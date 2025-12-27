@@ -57,11 +57,12 @@ export default function ProfilePreview({ profile }: ProfilePreviewProps) {
 
   return (
     <div
-      className="card"
       style={{
         marginBottom: '2rem',
         padding: 0,
         overflow: 'hidden',
+        background: 'var(--bg-secondary)',
+        border: '1px solid var(--border-medium)',
       }}
     >
       {/* Banner */}

@@ -36,10 +36,11 @@ export default function RecordPreview({ record, collection }: RecordPreviewProps
 
   return (
     <div
-      className="card"
       style={{
         marginBottom: '2rem',
         padding: '1.5rem',
+        background: 'var(--bg-secondary)',
+        border: '1px solid var(--border-medium)',
       }}
     >
       {/* Record Type Header */}

@@ -155,23 +155,25 @@ export default function TermsPage() {
               1. Data Collection
             </h3>
             <p style={{ marginBottom: '1rem' }}>
-              aturi.to collects minimal data:
+              aturi.to collects minimal data to understand how the service is being used:
+            </p>
+            <p style={{ marginBottom: '1rem' }}>
+              <strong>Analytics:</strong> We use Vercel Analytics to collect anonymous usage statistics including:
             </p>
             <ul style={{ marginBottom: '1rem', paddingLeft: '1.5rem' }}>
-              <li>
-                <strong>Analytics:</strong> We use Vercel Analytics to collect
-                anonymous usage statistics (page views, referrers, device types).
-                No personal information is collected.
-              </li>
-              <li>
-                <strong>Server Logs:</strong> Standard web server logs may include
-                IP addresses, timestamps, and URLs accessed. These are retained
-                temporarily for operational purposes.
-              </li>
+              <li>Page views and visitor counts</li>
+              <li>Referrer sources (where visitors came from)</li>
+              <li>General location (country-level only)</li>
+              <li>Device information (browser type, operating system, device type)</li>
             </ul>
             <p style={{ marginBottom: '1rem' }}>
-              We do not use cookies, tracking pixels, or other invasive tracking
-              technologies.
+              Vercel Analytics does not use cookies and cannot track individual visitors across different days or websites. All visitor data is anonymized through temporary daily identifiers that automatically reset.
+            </p>
+            <p style={{ marginBottom: '1rem' }}>
+              <strong>Server Logs:</strong> Standard web server logs may temporarily include IP addresses, timestamps, and URLs accessed for operational purposes.
+            </p>
+            <p style={{ marginBottom: '1rem' }}>
+              We do not collect personal information, use tracking pixels, or employ invasive tracking technologies.
             </p>
 
             <h3

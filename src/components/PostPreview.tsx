@@ -118,10 +118,11 @@ export default function PostPreview({ post }: PostPreviewProps) {
 
   return (
     <div
-      className="card"
       style={{
         marginBottom: '2rem',
         padding: '1.5rem',
+        background: 'var(--bg-secondary)',
+        border: '1px solid var(--border-medium)',
       }}
     >
       {/* Author Info */}
