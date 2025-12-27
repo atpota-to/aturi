@@ -50,26 +50,9 @@ export default function WaypointPicker({
   };
 
   return (
-    <div className="container-narrow" style={{ padding: '4rem 2rem' }}>
-      {/* Branding */}
-      <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-        <a
-          href="/"
-          className="branding-link"
-          style={{
-            display: 'inline-block',
-            color: 'var(--text-tertiary)',
-            fontSize: '0.875rem',
-            textDecoration: 'none',
-            transition: 'color 0.2s ease',
-          }}
-        >
-          aturi.to
-        </a>
-      </div>
-
+    <>
       {/* Header */}
-      <header style={{ marginBottom: '3rem', textAlign: 'center' }}>
+      <header style={{ marginBottom: '2rem', textAlign: 'center' }}>
         <h1 style={{ marginBottom: '1rem', color: 'var(--text-primary)' }}>
           Choose where to view
         </h1>
@@ -174,7 +157,7 @@ export default function WaypointPicker({
           label="Share this waypoint page"
         />
       </div>
-    </div>
+    </>
   );
 }
 

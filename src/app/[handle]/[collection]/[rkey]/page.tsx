@@ -3,7 +3,10 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import WaypointPicker from '@/components/WaypointPicker';
+import PostPreview from '@/components/PostPreview';
+import RecordPreview from '@/components/RecordPreview';
 import { parseURI, resolveHandle, getDisplayName, type ParsedURI } from '@/utils/uriParser';
+import { fetchRecordData, type PostThread, type GenericRecord } from '@/utils/recordFetcher';
 
 export default function RecordPage() {
   const params = useParams();
@@ -15,6 +18,9 @@ export default function RecordPage() {
   const [did, setDid] = useState<string | null>(null);
   const [parsed, setParsed] = useState<ParsedURI | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [recordData, setRecordData] = useState<
+    { type: 'post'; data: PostThread } | { type: 'record'; data: GenericRecord } | null
+  >(null);
 
   useEffect(() => {
     async function resolve() {
@@ -32,6 +38,12 @@ export default function RecordPage() {
         const resolvedDid = await resolveHandle(handle);
         if (resolvedDid) {
           setDid(resolvedDid);
+          
+          // Fetch the record data for preview
+          const data = await fetchRecordData(resolvedDid, collection, rkey);
+          if (data) {
+            setRecordData(data);
+          }
         } else {
           setError('Could not resolve handle');
         }
@@ -64,13 +76,45 @@ export default function RecordPage() {
   }
 
   return (
-    <WaypointPicker
-      type={parsed.type}
-      handle={handle}
-      collection={collection}
-      rkey={rkey}
-      displayName={getDisplayName(handle, did || undefined)}
-    />
+    <div className="container-narrow" style={{ padding: '4rem 2rem' }}>
+      {/* Branding */}
+      <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+        <a
+          href="/"
+          className="branding-link"
+          style={{
+            display: 'inline-block',
+            color: 'var(--text-tertiary)',
+            fontSize: '1.25rem',
+            textDecoration: 'none',
+            transition: 'color 0.2s ease',
+          }}
+        >
+          aturi.to
+        </a>
+      </div>
+
+      {/* Record Preview */}
+      {recordData && (
+        <>
+          {recordData.type === 'post' && recordData.data.thread[0]?.value.post && (
+            <PostPreview post={recordData.data.thread[0].value.post} />
+          )}
+          {recordData.type === 'record' && (
+            <RecordPreview record={recordData.data} collection={collection} />
+          )}
+        </>
+      )}
+
+      {/* Waypoint Picker */}
+      <WaypointPicker
+        type={parsed.type}
+        handle={handle}
+        collection={collection}
+        rkey={rkey}
+        displayName={getDisplayName(handle, did || undefined)}
+      />
+    </div>
   );
 }
 

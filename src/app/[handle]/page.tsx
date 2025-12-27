@@ -53,11 +53,30 @@ export default function ProfilePage() {
   const parsed = parseURI(handle);
 
   return (
-    <WaypointPicker
-      type="profile"
-      handle={handle}
-      displayName={getDisplayName(handle, did || undefined)}
-    />
+    <div className="container-narrow" style={{ padding: '4rem 2rem' }}>
+      {/* Branding */}
+      <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+        <a
+          href="/"
+          className="branding-link"
+          style={{
+            display: 'inline-block',
+            color: 'var(--text-tertiary)',
+            fontSize: '1.25rem',
+            textDecoration: 'none',
+            transition: 'color 0.2s ease',
+          }}
+        >
+          aturi.to
+        </a>
+      </div>
+
+      <WaypointPicker
+        type="profile"
+        handle={handle}
+        displayName={getDisplayName(handle, did || undefined)}
+      />
+    </div>
   );
 }
 

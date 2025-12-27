@@ -1,5 +1,5 @@
 import { ReactNode } from 'react';
-import { AtSign, MoonStar } from 'lucide-react';
+import { MoonStar, Wrench } from 'lucide-react';
 
 export type WaypointType = 'post' | 'profile' | 'list' | 'unknown';
 
@@ -141,7 +141,7 @@ export const WAYPOINT_DESTINATIONS: Record<string, Waypoint> = {
     id: 'atptools',
     name: 'atp.tools',
     description: 'View on atp.tools',
-    icon: <AtSign size={24} strokeWidth={2} />,
+    icon: <Wrench size={24} strokeWidth={2} />,
     getUrl: (handle, collection, rkey) => {
       if (collection && rkey) {
         return `https://atp.tools/record/${handle}/${collection}/${rkey}`;

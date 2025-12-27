@@ -186,6 +186,22 @@ button {
   box-shadow: 0 0 40px var(--glow-subtle);
 }
 
+/* Secondary card style for non-interactive cards */
+.card-secondary {
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-subtle);
+}
+
+/* External link card hover */
+.external-link-card:hover {
+  border-color: var(--border-strong);
+}
+
+/* Border color utility */
+.border-color {
+  border-color: var(--border-medium);
+}
+
 /* Waypoint button styling */
 .waypoint-button {
   display: flex;
