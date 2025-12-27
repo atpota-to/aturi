@@ -4,7 +4,7 @@
  */
 
 import { BskyProfile } from '@/utils/profileFetcher';
-import { User, Calendar, Users, MessageSquare, CheckCircle } from 'lucide-react';
+import { User, Calendar, Users, MessageSquare } from 'lucide-react';
 
 type ProfilePreviewProps = {
   profile: BskyProfile;
@@ -132,7 +132,23 @@ export default function ProfilePreview({ profile }: ProfilePreviewProps) {
                 {displayName || handle}
               </h2>
               {isVerified && (
-                <CheckCircle size={20} color="var(--text-accent)" fill="var(--text-accent)" />
+                <svg
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                  style={{ flexShrink: 0 }}
+                >
+                  <circle cx="12" cy="12" r="10" fill="var(--text-accent)" />
+                  <path
+                    d="M8 12.5L10.5 15L16 9"
+                    stroke="var(--bg-secondary)"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
               )}
             </div>
             <div style={{ fontSize: '1rem', color: 'var(--text-tertiary)' }}>@{handle}</div>
