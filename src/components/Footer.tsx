@@ -28,6 +28,20 @@ export default function Footer() {
         <div style={{ color: 'var(--text-tertiary)', fontSize: '0.875rem' }}>
           Made by{' '}
           <a
+            href="https://anisota.net"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="footer-link-accent"
+            style={{
+              color: 'var(--text-accent)',
+              textDecoration: 'none',
+              transition: 'opacity 0.2s ease',
+            }}
+          >
+            anisota.net
+          </a>
+          {' '}and{' '}
+          <a
             href="https://atpota.to"
             target="_blank"
             rel="noopener noreferrer"

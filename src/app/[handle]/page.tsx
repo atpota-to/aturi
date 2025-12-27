@@ -70,6 +70,14 @@ export default function ProfilePage() {
         >
           aturi.to
         </a>
+        <p style={{ 
+          color: 'var(--text-tertiary)', 
+          fontSize: '0.875rem',
+          marginTop: '0.5rem',
+          marginBottom: 0
+        }}>
+          Universal links for the ATmosphere
+        </p>
       </div>
 
       <WaypointPicker
