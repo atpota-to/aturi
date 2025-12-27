@@ -208,18 +208,6 @@ aturi.to is a community tool for the ATProto ecosystem. The service is free and 
         </p>
       </header>
 
-      {/* Custom Domain Info */}
-      <div className="card" style={{ marginBottom: '3rem', background: 'var(--bg-elevated)', borderLeft: '3px solid var(--text-accent)' }}>
-        <h3 style={{ marginBottom: '0.5rem', color: 'var(--text-accent)' }}>Running Your Own Instance?</h3>
-        <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem' }}>
-          Want to fork aturi.to with a custom domain? Check out our <Link 
-            href="/fork"
-            style={{ color: 'var(--text-accent)', textDecoration: 'underline' }}
-          >Fork Guide</Link> for easy setup instructions. The code examples below will work 
-          with your custom domain too!
-        </p>
-      </div>
-
       {/* URL Structure */}
       <section style={{ marginBottom: '3rem' }}>
         <h2 style={{ marginBottom: '1.5rem', color: 'var(--text-accent)' }}>

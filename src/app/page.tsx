@@ -11,12 +11,18 @@ export default function HomePage() {
       {/* Features Grid */}
       <div
         style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-          gap: '2rem',
+          maxWidth: '1200px',
+          margin: '0 auto',
           marginBottom: '6rem',
         }}
       >
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+            gap: '2rem',
+          }}
+        >
         <div className="card">
           <Link2 size={32} style={{ color: 'var(--text-accent)', marginBottom: '1rem' }} />
           <h3 style={{ marginBottom: '0.75rem' }}>Universal Sharing</h3>
@@ -43,10 +49,11 @@ export default function HomePage() {
             guide.
           </p>
         </div>
+        </div>
       </div>
 
       {/* Example Links */}
-      <section style={{ marginBottom: '6rem' }}>
+      <section style={{ marginBottom: '6rem', maxWidth: '1200px', margin: '0 auto 6rem' }}>
         <h2
           style={{
             textAlign: 'center',
@@ -97,7 +104,7 @@ export default function HomePage() {
       <section
         className="card"
         style={{
-          maxWidth: '800px',
+          maxWidth: '1200px',
           margin: '0 auto',
           textAlign: 'center',
           background: 'var(--bg-elevated)',
