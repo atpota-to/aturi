@@ -400,6 +400,86 @@ html {
   }
 }
 
+/* Homepage Feature Cards */
+.feature-card-primary {
+  background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-tertiary) 100%);
+}
+
+.feature-card-primary:hover {
+  transform: rotate(-0.5deg) translateY(-4px) !important;
+  box-shadow: 0 8px 60px var(--glow-medium);
+}
+
+.feature-card-secondary:hover {
+  transform: rotate(0.5deg) translateY(-2px) !important;
+  box-shadow: 0 4px 40px var(--glow-subtle);
+}
+
+/* Example Links with organic animation */
+.example-link {
+  transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.example-link:hover {
+  transform: rotate(0deg) translateX(8px) scale(1.02) !important;
+}
+
+/* CTA Card */
+.cta-card:hover {
+  transform: rotate(-0.2deg) scale(1.01) !important;
+  box-shadow: 0 12px 80px var(--glow-strong);
+}
+
+.cta-button {
+  position: relative;
+  overflow: hidden;
+}
+
+.cta-button::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+  transform: translateX(-100%);
+  transition: transform 0.6s ease;
+}
+
+.cta-button:hover::before {
+  transform: translateX(100%);
+}
+
+.cta-button:hover {
+  background: var(--accent-forest) !important;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 20px var(--glow-medium);
+}
+
+/* Floating animation for decorative elements */
+@keyframes float-gentle {
+  0%, 100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-10px) rotate(1deg);
+  }
+}
+
+/* Organic grid breathing effect */
+@keyframes breathe {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.005);
+  }
+}
+
+/* Add subtle parallax feel */
+.feature-card-primary,
+.feature-card-secondary {
+  will-change: transform;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   html {
@@ -427,6 +507,20 @@ html {
   .profile-stat-item {
     flex: 1 1 auto;
     min-width: 0;
+  }
+  
+  /* Reset transforms on mobile for simpler layout */
+  .feature-card-primary,
+  .feature-card-secondary,
+  .example-link,
+  .cta-card {
+    transform: none !important;
+  }
+  
+  /* Stack grid to single column on mobile */
+  [style*="gridTemplateColumns: 'repeat(12, 1fr)'"] {
+    display: flex !important;
+    flex-direction: column !important;
   }
   
   /* Stack stats vertically on very small screens */
