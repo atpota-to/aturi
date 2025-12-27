@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { ArrowLeft, GitFork, Terminal, Settings, Zap } from 'lucide-react';
+import { GitFork, Terminal, Settings, Zap } from 'lucide-react';
 import Header from '@/components/Header';
 
 export default function ForkPage() {
@@ -9,22 +9,6 @@ export default function ForkPage() {
     <div className="container-narrow" style={{ padding: '4rem 2rem' }}>
       {/* Site Header */}
       <Header simple />
-
-      {/* Back link */}
-      <Link
-        href="/"
-        style={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: '0.5rem',
-          marginBottom: '3rem',
-          color: 'var(--text-accent)',
-          fontSize: '0.95rem',
-        }}
-      >
-        <ArrowLeft size={16} />
-        Back to home
-      </Link>
 
       {/* Header */}
       <header style={{ marginBottom: '3rem' }}>
@@ -302,30 +286,18 @@ vercel
         <p style={{ color: 'var(--text-secondary)', marginBottom: '1rem' }}>
           Check the documentation or open an issue on GitHub.
         </p>
-        <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap' }}>
-          <Link
-            href="/"
-            style={{
-              color: 'var(--text-accent)',
-              textDecoration: 'underline',
-              textUnderlineOffset: '3px',
-            }}
-          >
-            Back to home
-          </Link>
-          <a
-            href="https://github.com/yourusername/aturi-to/issues"
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{
-              color: 'var(--text-accent)',
-              textDecoration: 'underline',
-              textUnderlineOffset: '3px',
-            }}
-          >
-            Report an issue
-          </a>
-        </div>
+        <a
+          href="https://github.com/yourusername/aturi-to/issues"
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{
+            color: 'var(--text-accent)',
+            textDecoration: 'underline',
+            textUnderlineOffset: '3px',
+          }}
+        >
+          Report an issue
+        </a>
       </section>
     </div>
   );

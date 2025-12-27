@@ -306,7 +306,7 @@ export default function HomePage() {
               gap: '1rem',
             }}>
               <Link
-                href="/bsky.app/app.bsky.feed.post/3kvob7fuunk2s"
+                href="/anisota.net/app.bsky.feed.post/3m6mwoadjbp2d"
                 className="waypoint-button example-link"
                 style={{ 
                   textDecoration: 'none',
@@ -316,14 +316,14 @@ export default function HomePage() {
                 <div style={{ flex: 1 }}>
                   <div className="waypoint-name">Example Post</div>
                   <div className="waypoint-description">
-                    bsky.app/app.bsky.feed.post/3kvob7fuunk2s
+                    anisota.net/app.bsky.feed.post/3m6mwoadjbp2d
                   </div>
                 </div>
                 <ArrowRight size={20} style={{ color: 'var(--text-tertiary)' }} />
               </Link>
 
               <Link
-                href="/bsky.app"
+                href="/anisota.net"
                 className="waypoint-button example-link"
                 style={{ 
                   textDecoration: 'none',
@@ -332,7 +332,24 @@ export default function HomePage() {
               >
                 <div style={{ flex: 1 }}>
                   <div className="waypoint-name">Example Profile</div>
-                  <div className="waypoint-description">bsky.app</div>
+                  <div className="waypoint-description">anisota.net</div>
+                </div>
+                <ArrowRight size={20} style={{ color: 'var(--text-tertiary)' }} />
+              </Link>
+
+              <Link
+                href="/anisota.net/net.anisota.beta.game.collection/3m7aso4kae72d"
+                className="waypoint-button example-link"
+                style={{ 
+                  textDecoration: 'none',
+                  transform: 'rotate(0.2deg)'
+                }}
+              >
+                <div style={{ flex: 1 }}>
+                  <div className="waypoint-name">Example Record</div>
+                  <div className="waypoint-description">
+                    anisota.net/net.anisota.beta.game.collection/3m7aso4kae72d
+                  </div>
                 </div>
                 <ArrowRight size={20} style={{ color: 'var(--text-tertiary)' }} />
               </Link>

@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { ArrowLeft, Code2, FileText } from 'lucide-react';
+import { Code2, FileText } from 'lucide-react';
 import { useState } from 'react';
 import Header from '@/components/Header';
 
@@ -161,22 +161,6 @@ aturi.to is a community tool for the ATProto ecosystem. The service is free and 
       {/* Site Header */}
       <Header simple />
 
-      {/* Back link */}
-      <Link
-        href="/"
-        style={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: '0.5rem',
-          marginBottom: '3rem',
-          color: 'var(--text-accent)',
-          fontSize: '0.95rem',
-        }}
-      >
-        <ArrowLeft size={16} />
-        Back to home
-      </Link>
-
       {/* Header */}
       <header style={{ marginBottom: '3rem' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
@@ -329,7 +313,7 @@ custom_link = to_aturi_link(at_uri, 'myshare.app')
           <div className="card">
             <h3 style={{ marginBottom: '0.5rem' }}>Share Buttons</h3>
             <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem' }}>
-              Add a "Share via aturi.to" button next to posts, letting users share
+              Add a &ldquo;Share via aturi.to&rdquo; button next to posts, letting users share
               content that anyone can view on their preferred platform.
             </p>
           </div>
@@ -366,7 +350,7 @@ custom_link = to_aturi_link(at_uri, 'myshare.app')
           Custom Domain Support
         </h2>
         <p style={{ marginBottom: '1rem', color: 'var(--text-secondary)' }}>
-          All of the above code examples support custom domains! If you're running your own 
+          All of the above code examples support custom domains! If you&apos;re running your own 
           fork, just pass your domain as a parameter.
         </p>
 
@@ -425,20 +409,10 @@ custom_link = to_aturi_link(at_uri, 'myshare.app')
         <h2 style={{ marginBottom: '1rem', color: 'var(--text-accent)' }}>
           Questions or Feedback?
         </h2>
-        <p style={{ color: 'var(--text-secondary)', marginBottom: '1rem' }}>
+        <p style={{ color: 'var(--text-secondary)' }}>
           aturi.to is a community tool for the ATProto ecosystem. Feel free to
           reach out with suggestions or bug reports.
         </p>
-        <Link
-          href="/"
-          style={{
-            color: 'var(--text-accent)',
-            textDecoration: 'underline',
-            textUnderlineOffset: '3px',
-          }}
-        >
-          Back to home
-        </Link>
       </section>
     </div>
   );
