@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { ArrowLeft, Code2, FileText } from 'lucide-react';
 import { useState } from 'react';
+import Header from '@/components/Header';
 
 export default function IntegratePage() {
   const [copied, setCopied] = useState(false);
@@ -157,6 +158,9 @@ aturi.to is a community tool for the ATProto ecosystem. The service is free and 
   };
   return (
     <div className="container-narrow" style={{ padding: '4rem 2rem' }}>
+      {/* Site Header */}
+      <Header simple />
+
       {/* Back link */}
       <Link
         href="/"

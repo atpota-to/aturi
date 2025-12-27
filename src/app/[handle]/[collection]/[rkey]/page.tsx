@@ -5,6 +5,7 @@ import { useParams } from 'next/navigation';
 import WaypointPicker from '@/components/WaypointPicker';
 import PostPreview from '@/components/PostPreview';
 import RecordPreview from '@/components/RecordPreview';
+import Header from '@/components/Header';
 import { parseURI, resolveHandle, getDisplayName, type ParsedURI } from '@/utils/uriParser';
 import { fetchRecordData, type PostThread, type GenericRecord } from '@/utils/recordFetcher';
 import { resolveDidToHandle } from '@/utils/didResolver';
@@ -96,30 +97,8 @@ export default function RecordPage() {
 
   return (
     <div className="container-narrow" style={{ padding: '4rem 2rem' }}>
-      {/* Branding */}
-      <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-        <a
-          href="/"
-          className="branding-link"
-          style={{
-            display: 'inline-block',
-            color: 'var(--text-tertiary)',
-            fontSize: '1.25rem',
-            textDecoration: 'none',
-            transition: 'color 0.2s ease',
-          }}
-        >
-          aturi.to
-        </a>
-        <p style={{ 
-          color: 'var(--text-tertiary)', 
-          fontSize: '0.875rem',
-          marginTop: '0.5rem',
-          marginBottom: 0
-        }}>
-          Universal links for the ATmosphere
-        </p>
-      </div>
+      {/* Site Header */}
+      <Header simple />
 
       {/* Record Preview */}
       {recordData && (

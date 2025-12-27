@@ -1,53 +1,12 @@
 import Link from 'next/link';
 import { ArrowRight, Link2, Code, Globe } from 'lucide-react';
+import Header from '@/components/Header';
 
 export default function HomePage() {
   return (
     <div className="container" style={{ padding: '4rem 2rem' }}>
       {/* Hero Section */}
-      <header
-        style={{
-          textAlign: 'center',
-          marginBottom: '6rem',
-          paddingTop: '4rem',
-        }}
-      >
-        <h1
-          style={{
-            fontSize: '3.5rem',
-            marginBottom: '1.5rem',
-            fontWeight: 300,
-            letterSpacing: '-0.04em',
-            background: 'linear-gradient(135deg, var(--text-primary) 0%, var(--text-accent) 100%)',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-            backgroundClip: 'text',
-          }}
-        >
-          aturi.to
-          </h1>
-        <p
-          style={{
-            fontSize: '1.5rem',
-            color: 'var(--text-secondary)',
-            maxWidth: '600px',
-            margin: '0 auto 2rem',
-            fontWeight: 300,
-          }}
-        >
-          Universal links for the ATmosphere
-        </p>
-        <p
-          style={{
-            fontSize: '1.125rem',
-            color: 'var(--text-tertiary)',
-            maxWidth: '500px',
-            margin: '0 auto',
-          }}
-        >
-          Share ATProto content with anyone, let them choose where to view it
-        </p>
-      </header>
+      <Header />
 
       {/* Features Grid */}
       <div

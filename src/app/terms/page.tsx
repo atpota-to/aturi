@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import Link from 'next/link';
+import Header from '@/components/Header';
 
 export const metadata: Metadata = {
   title: 'Terms & Privacy Policy - aturi.to',
@@ -9,21 +9,8 @@ export const metadata: Metadata = {
 export default function TermsPage() {
   return (
     <div className="container-narrow" style={{ padding: '4rem 2rem' }}>
-      {/* Branding */}
-      <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-        <Link
-          href="/"
-          style={{
-            display: 'inline-block',
-            color: 'var(--text-tertiary)',
-            fontSize: '0.875rem',
-            textDecoration: 'none',
-            transition: 'color 0.2s ease',
-          }}
-        >
-          aturi.to
-        </Link>
-      </div>
+      {/* Site Header */}
+      <Header simple />
 
       {/* Header */}
       <header style={{ marginBottom: '3rem', textAlign: 'center' }}>
@@ -110,7 +97,7 @@ export default function TermsPage() {
               3. Service Availability
             </h3>
             <p style={{ marginBottom: '1rem' }}>
-              We provide aturi.to on an "as is" basis. We make no guarantees about
+              We provide aturi.to on an &ldquo;as is&rdquo; basis. We make no guarantees about
               service availability, uptime, or functionality. We may modify,
               suspend, or discontinue the service at any time without notice.
             </p>
@@ -210,7 +197,7 @@ export default function TermsPage() {
               3. Third-Party Services
             </h3>
             <p style={{ marginBottom: '1rem' }}>
-              When you click a waypoint link, you'll be redirected to a third-party
+              When you click a waypoint link, you&rsquo;ll be redirected to a third-party
               ATProto client (Bluesky, Blacksky, etc.). Each of these services has
               their own privacy policies and terms of service.
             </p>
@@ -270,7 +257,7 @@ export default function TermsPage() {
             </h3>
             <p style={{ marginBottom: '1rem' }}>
               We may update this privacy policy from time to time. Changes will be
-              reflected on this page with an updated "Last updated" date.
+              reflected on this page with an updated &ldquo;Last updated&rdquo; date.
             </p>
           </section>
 

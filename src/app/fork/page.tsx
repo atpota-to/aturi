@@ -2,10 +2,14 @@
 
 import Link from 'next/link';
 import { ArrowLeft, GitFork, Terminal, Settings, Zap } from 'lucide-react';
+import Header from '@/components/Header';
 
 export default function ForkPage() {
   return (
     <div className="container-narrow" style={{ padding: '4rem 2rem' }}>
+      {/* Site Header */}
+      <Header simple />
+
       {/* Back link */}
       <Link
         href="/"
