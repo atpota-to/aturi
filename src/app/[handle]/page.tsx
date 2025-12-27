@@ -7,7 +7,8 @@ import { parseURI, resolveHandle, getDisplayName } from '@/utils/uriParser';
 
 export default function ProfilePage() {
   const params = useParams();
-  const handle = params.handle as string;
+  // Decode the handle parameter in case it's URL encoded (for DIDs with colons)
+  const handle = decodeURIComponent(params.handle as string);
   
   const [isLoading, setIsLoading] = useState(true);
   const [did, setDid] = useState<string | null>(null);

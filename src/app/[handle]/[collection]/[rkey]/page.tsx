@@ -10,9 +10,10 @@ import { fetchRecordData, type PostThread, type GenericRecord } from '@/utils/re
 
 export default function RecordPage() {
   const params = useParams();
-  const handle = params.handle as string;
-  const collection = params.collection as string;
-  const rkey = params.rkey as string;
+  // Decode the handle parameter in case it's URL encoded (for DIDs with colons)
+  const handle = decodeURIComponent(params.handle as string);
+  const collection = decodeURIComponent(params.collection as string);
+  const rkey = decodeURIComponent(params.rkey as string);
   
   const [isLoading, setIsLoading] = useState(true);
   const [did, setDid] = useState<string | null>(null);
@@ -36,6 +37,8 @@ export default function RecordPage() {
         setParsed(parsedData);
 
         const resolvedDid = await resolveHandle(handle);
+        console.log('Resolved DID:', resolvedDid, 'from handle:', handle);
+        
         if (resolvedDid) {
           setDid(resolvedDid);
           
@@ -43,13 +46,16 @@ export default function RecordPage() {
           const data = await fetchRecordData(resolvedDid, collection, rkey);
           if (data) {
             setRecordData(data);
+          } else {
+            console.warn('Failed to fetch record data');
           }
         } else {
-          setError('Could not resolve handle');
+          console.error('Could not resolve handle:', handle);
+          setError(`Could not resolve handle: ${handle}`);
         }
       } catch (err) {
         setError('Error processing URI');
-        console.error(err);
+        console.error('Error in resolve():', err);
       } finally {
         setIsLoading(false);
       }
