@@ -59,7 +59,7 @@ export const WAYPOINT_DESTINATIONS: Record<string, Waypoint> = {
     id: 'anisota',
     name: 'Anisota',
     description: 'View on anisota.net',
-    icon: <MoonStar size={18} strokeWidth={2} />,
+    icon: <MoonStar size={24} strokeWidth={2} />,
     getUrl: (handle, collection, rkey) => {
       if (collection && rkey) {
         return `https://anisota.net/profile/${handle}/post/${rkey}`;
@@ -72,7 +72,7 @@ export const WAYPOINT_DESTINATIONS: Record<string, Waypoint> = {
   bluesky: {
     id: 'bluesky',
     name: 'Bluesky',
-    description: 'The original ATProto client',
+    description: 'View on bsky.app',
     icon: <BlueskySVG />,
     getUrl: (handle, collection, rkey) => {
       if (collection && rkey) {
@@ -86,7 +86,7 @@ export const WAYPOINT_DESTINATIONS: Record<string, Waypoint> = {
   blacksky: {
     id: 'blacksky',
     name: 'Blacksky',
-    description: 'Alternative ATProto viewer',
+    description: 'View on blacksky.community',
     icon: <BlackskySVG />,
     getUrl: (handle, collection, rkey) => {
       if (collection && rkey) {
@@ -141,7 +141,7 @@ export const WAYPOINT_DESTINATIONS: Record<string, Waypoint> = {
     id: 'atptools',
     name: 'atp.tools',
     description: 'View on atp.tools',
-    icon: <AtSign size={18} strokeWidth={2} />,
+    icon: <AtSign size={24} strokeWidth={2} />,
     getUrl: (handle, collection, rkey) => {
       if (collection && rkey) {
         return `https://atp.tools/record/${handle}/${collection}/${rkey}`;

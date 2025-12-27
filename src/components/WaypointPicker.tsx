@@ -100,11 +100,8 @@ export default function WaypointPicker({
             const isCopied = copiedId === waypoint.id;
 
             return (
-              <a
+              <div
                 key={waypoint.id}
-                href={url}
-                target="_blank"
-                rel="noopener noreferrer"
                 className="waypoint-button"
               >
                 <div className="waypoint-icon">{waypoint.icon}</div>
@@ -118,10 +115,11 @@ export default function WaypointPicker({
                   <button
                     onClick={(e) => handleCopy(url, waypoint.id, e)}
                     aria-label="Copy link"
+                    className="copy-button"
                     style={{
                       background: 'none',
                       border: 'none',
-                      padding: 0,
+                      padding: '0.25rem',
                       cursor: 'pointer',
                       display: 'flex',
                       alignItems: 'center',
@@ -135,9 +133,22 @@ export default function WaypointPicker({
                       <Copy size={20} />
                     )}
                   </button>
-                  <ExternalLink size={20} style={{ color: 'var(--text-tertiary)' }} />
+                  <a
+                    href={url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label={`Open in ${waypoint.name}`}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      color: 'var(--text-tertiary)',
+                      transition: 'color 0.2s ease',
+                    }}
+                  >
+                    <ExternalLink size={20} />
+                  </a>
                 </div>
-              </a>
+              </div>
             );
           })
         )}
