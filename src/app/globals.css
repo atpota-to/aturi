@@ -225,6 +225,7 @@ button {
   background: linear-gradient(90deg, transparent, var(--glow-subtle), transparent);
   opacity: 0;
   transition: opacity 0.3s ease;
+  pointer-events: none;
 }
 
 .waypoint-button:hover {
