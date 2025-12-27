@@ -171,3 +171,10 @@ export function getWaypointsForType(type: WaypointType): Waypoint[] {
     .filter(waypoint => waypoint.supportedTypes.includes(type));
 }
 
+/**
+ * Get total count of waypoint destinations
+ */
+export function getWaypointCount(): number {
+  return WAYPOINT_ORDER.length;
+}
+

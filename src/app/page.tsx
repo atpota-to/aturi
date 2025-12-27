@@ -1,13 +1,160 @@
+'use client';
+
+import { useState } from 'react';
 import Link from 'next/link';
-import { ArrowRight, Link2, Code, Globe, Sparkles } from 'lucide-react';
+import { ArrowRight, Link2, Code, Globe, Sparkles, Check } from 'lucide-react';
 import Header from '@/components/Header';
+import { convertToAturiLink } from '@/utils/linkGenerator';
+import { getWaypointCount } from '@/utils/waypoints';
 
 export default function HomePage() {
+  const [quickInput, setQuickInput] = useState('');
+  const [quickGenerated, setQuickGenerated] = useState<string | null>(null);
+  const [quickCopied, setQuickCopied] = useState(false);
+  const waypointCount = getWaypointCount();
+
+  const handleQuickGenerate = () => {
+    if (!quickInput.trim()) return;
+    
+    const link = convertToAturiLink(quickInput);
+    if (link) {
+      setQuickGenerated(link);
+      // Auto copy to clipboard
+      navigator.clipboard.writeText(link);
+      setQuickCopied(true);
+      setTimeout(() => {
+        setQuickCopied(false);
+        setQuickGenerated(null);
+        setQuickInput('');
+      }, 3000);
+    }
+  };
+
   return (
     <div style={{ position: 'relative', overflow: 'hidden' }}>
       {/* Hero Section */}
       <div style={{ padding: '4rem 2rem 2rem' }}>
         <Header />
+      </div>
+
+      {/* Quick Link Creator */}
+      <div style={{ 
+        maxWidth: '700px', 
+        margin: '0 auto 6rem',
+        padding: '0 2rem'
+      }}>
+        <div 
+          style={{
+            padding: '2rem',
+            background: 'var(--bg-secondary)',
+            border: '1px solid var(--border-medium)',
+            transform: 'rotate(0.3deg)',
+            transition: 'all 0.4s ease',
+            position: 'relative'
+          }}
+          className="card"
+        >
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+            marginBottom: '1rem',
+            color: 'var(--text-secondary)',
+            fontSize: '0.875rem'
+          }}>
+            <Link2 size={14} />
+            <span>Quick create</span>
+          </div>
+
+          <div style={{
+            display: 'flex',
+            gap: '0.75rem',
+            alignItems: 'stretch',
+            flexWrap: 'wrap'
+          }}>
+            <input
+              type="text"
+              value={quickInput}
+              onChange={(e) => setQuickInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  handleQuickGenerate();
+                }
+              }}
+              placeholder="Paste any ATProto URL..."
+              style={{
+                flex: 1,
+                minWidth: '250px',
+                padding: '0.875rem 1rem',
+                background: 'var(--bg-primary)',
+                border: '1px solid var(--border-medium)',
+                color: 'var(--text-primary)',
+                fontSize: '0.9rem',
+                fontFamily: 'var(--font-mono)',
+                transition: 'all 0.3s ease',
+              }}
+              onFocus={(e) => {
+                e.target.style.borderColor = 'var(--text-accent)';
+                e.target.style.outline = 'none';
+              }}
+              onBlur={(e) => {
+                e.target.style.borderColor = 'var(--border-medium)';
+              }}
+            />
+
+            <button
+              onClick={handleQuickGenerate}
+              disabled={!quickInput.trim()}
+              className="generate-button"
+              style={{
+                padding: '0.875rem 1.5rem',
+                background: quickInput.trim() ? 'var(--accent-moss)' : 'var(--bg-tertiary)',
+                color: quickInput.trim() ? 'var(--text-primary)' : 'var(--text-tertiary)',
+                border: '1px solid',
+                borderColor: quickInput.trim() ? 'var(--accent-forest)' : 'var(--border-medium)',
+                fontSize: '0.9rem',
+                fontWeight: 400,
+                cursor: quickInput.trim() ? 'pointer' : 'not-allowed',
+                transition: 'all 0.3s ease',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                whiteSpace: 'nowrap'
+              }}
+            >
+              {quickCopied ? <Check size={16} /> : <Link2 size={16} />}
+              <span>{quickCopied ? 'Copied!' : 'Create'}</span>
+            </button>
+          </div>
+
+          {quickGenerated && (
+            <div style={{
+              marginTop: '1rem',
+              padding: '0.875rem 1rem',
+              background: 'var(--bg-primary)',
+              border: '1px solid var(--border-strong)',
+              fontFamily: 'var(--font-mono)',
+              fontSize: '0.85rem',
+              color: 'var(--text-accent)',
+              wordBreak: 'break-all',
+              animation: 'content-appear 0.3s ease-out'
+            }}>
+              {quickGenerated}
+            </div>
+          )}
+
+          <div style={{
+            marginTop: '1rem',
+            fontSize: '0.85rem',
+            color: 'var(--text-tertiary)',
+            textAlign: 'center'
+          }}>
+            <Link href="/create" style={{ color: 'var(--text-secondary)' }}>
+              Need more options? Use the full creator →
+            </Link>
+          </div>
+        </div>
       </div>
 
       {/* Main Content - Asymmetric Layout */}
@@ -62,8 +209,8 @@ export default function HomePage() {
                   lineHeight: 1.7,
                   marginBottom: '1.5rem'
                 }}>
-                  One link works everywhere. Share posts, profiles, and lists across all
-                  ATProto clients without worrying about compatibility.
+                  One link works across your favorite clients. Share posts, profiles, and lists
+                  on curated ATProto platforms without worrying about compatibility.
                 </p>
                 <div style={{
                   display: 'inline-flex',
@@ -74,7 +221,7 @@ export default function HomePage() {
                   fontFamily: 'var(--font-mono)'
                 }}>
                   <Sparkles size={14} />
-                  <span>Works with any ATProto app</span>
+                  <span>{waypointCount} curated ATProto apps</span>
                 </div>
               </div>
             </div>
@@ -107,8 +254,8 @@ export default function HomePage() {
                 fontSize: '0.95rem',
                 lineHeight: 1.6
               }}>
-                Recipients pick their preferred platform. Bluesky, Blacksky, pdsls,
-                or any ATProto client.
+                Recipients pick their preferred platform. Bluesky, Blacksky, Anisota,
+                Red Dwarf, Leaflet, pdsls, or atp.tools.
               </p>
             </div>
 

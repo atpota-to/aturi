@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { Home, Sparkles, Code } from 'lucide-react';
+import { Home, Link2, Code } from 'lucide-react';
 
 interface HeaderProps {
   simple?: boolean; // If true, shows a smaller version without the tagline
@@ -65,7 +65,7 @@ export default function Header({ simple = false }: HeaderProps) {
           </Link>
           <span style={{ color: 'var(--text-tertiary)', fontSize: '0.75rem' }}>·</span>
           <Link href="/create" className="nav-link">
-            <Sparkles size={14} />
+            <Link2 size={14} />
             <span>create</span>
           </Link>
           <span style={{ color: 'var(--text-tertiary)', fontSize: '0.75rem' }}>·</span>
@@ -138,7 +138,7 @@ export default function Header({ simple = false }: HeaderProps) {
         </Link>
         <span style={{ color: 'var(--text-tertiary)', fontSize: '0.875rem' }}>·</span>
         <Link href="/create" className="nav-link">
-          <Sparkles size={16} />
+          <Link2 size={16} />
           <span>create</span>
         </Link>
         <span style={{ color: 'var(--text-tertiary)', fontSize: '0.875rem' }}>·</span>

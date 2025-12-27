@@ -1,10 +1,9 @@
 'use client';
 
 import { useState } from 'react';
-import Link from 'next/link';
-import { ArrowLeft, Link2, Copy, Check, AlertCircle, Sparkles, ExternalLink } from 'lucide-react';
+import { Link2, Copy, Check, AlertCircle, ExternalLink } from 'lucide-react';
 import Header from '@/components/Header';
-import { convertToAturiLink, isValidInput } from '@/utils/linkGenerator';
+import { convertToAturiLink } from '@/utils/linkGenerator';
 
 export default function CreatePage() {
   const [input, setInput] = useState('');
@@ -73,13 +72,13 @@ export default function CreatePage() {
             background: 'var(--bg-secondary)',
             border: '1px solid var(--border-medium)',
           }}>
-            <Sparkles size={20} style={{ color: 'var(--text-accent)' }} />
+            <Link2 size={20} style={{ color: 'var(--text-accent)' }} />
             <span style={{ 
               fontFamily: 'var(--font-mono)', 
               fontSize: '0.875rem',
               color: 'var(--text-secondary)'
             }}>
-              Link Generator
+              Link Creator
             </span>
           </div>
           
@@ -90,7 +89,7 @@ export default function CreatePage() {
             color: 'var(--text-primary)',
             lineHeight: 1.2
           }}>
-            Create your universal link
+            Create a universal link
           </h2>
           
           <p style={{
@@ -100,11 +99,11 @@ export default function CreatePage() {
             margin: '0 auto',
             lineHeight: 1.6
           }}>
-            Paste any ATProto URL or AT URI and get a universal aturi.to link
+            Paste ATProto URLs or AT URIs and get a universal aturi.to link
           </p>
         </div>
 
-        {/* Generator Form */}
+        {/* Creator Form */}
         <div 
           className="card"
           style={{
@@ -116,7 +115,7 @@ export default function CreatePage() {
             transition: 'all 0.4s ease'
           }}
         >
-          {/* Input Section */}
+          {/* URL Bar Input */}
           <div style={{ marginBottom: '2rem' }}>
             <label 
               htmlFor="input-url"
@@ -131,65 +130,70 @@ export default function CreatePage() {
               Enter URL or AT URI
             </label>
             
-            <textarea
-              id="input-url"
-              value={input}
-              onChange={(e) => handleInputChange(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                  e.preventDefault();
-                  handleGenerate();
-                }
-              }}
-              placeholder="https://bsky.app/profile/alice.bsky.social/post/3m6mwoadjbp2d"
-              style={{
-                width: '100%',
-                minHeight: '120px',
-                padding: '1rem',
-                background: 'var(--bg-primary)',
-                border: '1px solid var(--border-medium)',
-                color: 'var(--text-primary)',
-                fontSize: '0.95rem',
-                fontFamily: 'var(--font-mono)',
-                resize: 'vertical',
-                transition: 'all 0.3s ease',
-                lineHeight: 1.6
-              }}
-              onFocus={(e) => {
-                e.target.style.borderColor = 'var(--text-accent)';
-                e.target.style.outline = 'none';
-              }}
-              onBlur={(e) => {
-                e.target.style.borderColor = 'var(--border-medium)';
-              }}
-            />
-          </div>
-
-          {/* Generate Button */}
-          <button
-            onClick={handleGenerate}
-            disabled={!input.trim()}
-            className="generate-button"
-            style={{
-              width: '100%',
-              padding: '1rem 2rem',
-              background: input.trim() ? 'var(--accent-moss)' : 'var(--bg-tertiary)',
-              color: input.trim() ? 'var(--text-primary)' : 'var(--text-tertiary)',
-              border: '1px solid',
-              borderColor: input.trim() ? 'var(--accent-forest)' : 'var(--border-medium)',
-              fontSize: '1.05rem',
-              fontWeight: 400,
-              cursor: input.trim() ? 'pointer' : 'not-allowed',
-              transition: 'all 0.3s ease',
+            <div style={{
               display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '0.5rem'
-            }}
-          >
-            <Link2 size={18} />
-            <span>Generate Link</span>
-          </button>
+              alignItems: 'stretch',
+              gap: '1rem',
+              flexWrap: 'wrap'
+            }}>
+              <input
+                id="input-url"
+                type="text"
+                value={input}
+                onChange={(e) => handleInputChange(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleGenerate();
+                  }
+                }}
+                placeholder="https://bsky.app/profile/alice.bsky.social/post/3m6mwoadjbp2d"
+                style={{
+                  flex: 1,
+                  minWidth: '300px',
+                  padding: '1rem 1.25rem',
+                  background: 'var(--bg-primary)',
+                  border: '1px solid var(--border-medium)',
+                  color: 'var(--text-primary)',
+                  fontSize: '0.95rem',
+                  fontFamily: 'var(--font-mono)',
+                  transition: 'all 0.3s ease',
+                }}
+                onFocus={(e) => {
+                  e.target.style.borderColor = 'var(--text-accent)';
+                  e.target.style.outline = 'none';
+                }}
+                onBlur={(e) => {
+                  e.target.style.borderColor = 'var(--border-medium)';
+                }}
+              />
+
+              <button
+                onClick={handleGenerate}
+                disabled={!input.trim()}
+                className="generate-button"
+                style={{
+                  padding: '1rem 2rem',
+                  background: input.trim() ? 'var(--accent-moss)' : 'var(--bg-tertiary)',
+                  color: input.trim() ? 'var(--text-primary)' : 'var(--text-tertiary)',
+                  border: '1px solid',
+                  borderColor: input.trim() ? 'var(--accent-forest)' : 'var(--border-medium)',
+                  fontSize: '1rem',
+                  fontWeight: 400,
+                  cursor: input.trim() ? 'pointer' : 'not-allowed',
+                  transition: 'all 0.3s ease',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.5rem',
+                  whiteSpace: 'nowrap'
+                }}
+              >
+                <Link2 size={18} />
+                <span>Create</span>
+              </button>
+            </div>
+          </div>
 
           {/* Error Message */}
           {error && (

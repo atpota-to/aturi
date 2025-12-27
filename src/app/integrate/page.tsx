@@ -114,7 +114,7 @@ custom_link = to_aturi_link(at_uri, 'myshare.app')
 ## Use Cases
 
 ### Share Buttons
-Add a "Share via aturi.to" button next to posts, letting users share content that anyone can view on their preferred platform.
+Add a "Share via aturi.to" button next to posts, letting users share content across curated ATProto platforms.
 
 ### Embedded Links
 Use aturi.to links in documentation, email newsletters, or anywhere you want flexible, platform-agnostic sharing.
