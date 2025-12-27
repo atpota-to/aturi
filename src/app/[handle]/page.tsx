@@ -3,7 +3,10 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import WaypointPicker from '@/components/WaypointPicker';
+import ProfilePreview from '@/components/ProfilePreview';
 import { parseURI, resolveHandle, getDisplayName } from '@/utils/uriParser';
+import { resolveDidToHandle } from '@/utils/didResolver';
+import { fetchProfile, type BskyProfile } from '@/utils/profileFetcher';
 
 export default function ProfilePage() {
   const params = useParams();
@@ -12,7 +15,9 @@ export default function ProfilePage() {
   
   const [isLoading, setIsLoading] = useState(true);
   const [did, setDid] = useState<string | null>(null);
+  const [resolvedHandle, setResolvedHandle] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [profileData, setProfileData] = useState<BskyProfile | null>(null);
 
   useEffect(() => {
     async function resolve() {
@@ -20,6 +25,25 @@ export default function ProfilePage() {
         const resolvedDid = await resolveHandle(handle);
         if (resolvedDid) {
           setDid(resolvedDid);
+          
+          // If the original input was a DID, resolve it back to a handle for display
+          if (handle.startsWith('did:')) {
+            const handleFromDid = await resolveDidToHandle(resolvedDid);
+            if (handleFromDid) {
+              setResolvedHandle(handleFromDid);
+            }
+          } else {
+            // If it was already a handle, use it
+            setResolvedHandle(handle);
+          }
+          
+          // Fetch the profile data for preview
+          const profile = await fetchProfile(resolvedDid);
+          if (profile) {
+            setProfileData(profile);
+          } else {
+            console.warn('Failed to fetch profile data');
+          }
         } else {
           setError('Could not resolve handle');
         }
@@ -80,10 +104,13 @@ export default function ProfilePage() {
         </p>
       </div>
 
+      {/* Profile Preview */}
+      {profileData && <ProfilePreview profile={profileData} />}
+
       <WaypointPicker
         type="profile"
-        handle={handle}
-        displayName={getDisplayName(handle, did || undefined)}
+        handle={resolvedHandle || handle}
+        displayName={getDisplayName(resolvedHandle || handle, did || undefined)}
       />
     </div>
   );

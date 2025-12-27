@@ -7,6 +7,7 @@ import PostPreview from '@/components/PostPreview';
 import RecordPreview from '@/components/RecordPreview';
 import { parseURI, resolveHandle, getDisplayName, type ParsedURI } from '@/utils/uriParser';
 import { fetchRecordData, type PostThread, type GenericRecord } from '@/utils/recordFetcher';
+import { resolveDidToHandle } from '@/utils/didResolver';
 
 export default function RecordPage() {
   const params = useParams();
@@ -17,6 +18,7 @@ export default function RecordPage() {
   
   const [isLoading, setIsLoading] = useState(true);
   const [did, setDid] = useState<string | null>(null);
+  const [resolvedHandle, setResolvedHandle] = useState<string | null>(null);
   const [parsed, setParsed] = useState<ParsedURI | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [recordData, setRecordData] = useState<
@@ -41,6 +43,17 @@ export default function RecordPage() {
         
         if (resolvedDid) {
           setDid(resolvedDid);
+          
+          // If the original input was a DID, resolve it back to a handle for display
+          if (handle.startsWith('did:')) {
+            const handleFromDid = await resolveDidToHandle(resolvedDid);
+            if (handleFromDid) {
+              setResolvedHandle(handleFromDid);
+            }
+          } else {
+            // If it was already a handle, use it
+            setResolvedHandle(handle);
+          }
           
           // Fetch the record data for preview
           const data = await fetchRecordData(resolvedDid, collection, rkey);
@@ -123,10 +136,10 @@ export default function RecordPage() {
       {/* Waypoint Picker */}
       <WaypointPicker
         type={parsed.type}
-        handle={handle}
+        handle={resolvedHandle || handle}
         collection={collection}
         rkey={rkey}
-        displayName={getDisplayName(handle, did || undefined)}
+        displayName={getDisplayName(resolvedHandle || handle, did || undefined)}
       />
     </div>
   );

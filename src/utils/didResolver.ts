@@ -113,6 +113,31 @@ export function extractPdsEndpoint(didDoc: DidDocument): string | null {
 }
 
 /**
+ * Resolves a DID back to its handle by looking at the alsoKnownAs field
+ */
+export async function resolveDidToHandle(did: string): Promise<string | null> {
+  try {
+    const didDoc = await fetchDidDocument(did);
+    if (!didDoc || !didDoc.alsoKnownAs || didDoc.alsoKnownAs.length === 0) {
+      return null;
+    }
+
+    // alsoKnownAs contains URIs like "at://alice.bsky.social"
+    for (const aka of didDoc.alsoKnownAs) {
+      if (aka.startsWith('at://')) {
+        const handle = aka.replace('at://', '');
+        return handle;
+      }
+    }
+
+    return null;
+  } catch (error) {
+    console.error(`Failed to resolve DID ${did} to handle:`, error);
+    return null;
+  }
+}
+
+/**
  * Resolves a handle or DID to its PDS endpoint
  */
 export async function resolvePdsEndpoint(
