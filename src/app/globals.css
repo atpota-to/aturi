@@ -1,0 +1,305 @@
+@import url('https://fonts.googleapis.com/css2?family=Crimson+Pro:wght@300;400;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+:root {
+  /* Dark, moody, natural color palette */
+  --bg-primary: #0a0a0a;
+  --bg-secondary: #151515;
+  --bg-tertiary: #1a1a1a;
+  --bg-elevated: #202020;
+  
+  /* Natural, organic accent colors */
+  --accent-moss: #4a5a3f;
+  --accent-forest: #2d3a28;
+  --accent-bark: #3d3329;
+  --accent-stone: #4a4a46;
+  
+  /* Text colors - muted and calm */
+  --text-primary: #e8e8e6;
+  --text-secondary: #a8a8a6;
+  --text-tertiary: #686866;
+  --text-accent: #8a9a7f;
+  
+  /* Ambient glow effects */
+  --glow-subtle: rgba(138, 154, 127, 0.05);
+  --glow-medium: rgba(138, 154, 127, 0.1);
+  --glow-strong: rgba(138, 154, 127, 0.2);
+  
+  /* Borders - subtle and organic */
+  --border-subtle: rgba(232, 232, 230, 0.08);
+  --border-medium: rgba(232, 232, 230, 0.12);
+  --border-strong: rgba(232, 232, 230, 0.16);
+  
+  /* Typography scale */
+  --font-serif: 'Crimson Pro', serif;
+  --font-mono: 'IBM Plex Mono', monospace;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  font-family: var(--font-serif);
+  font-weight: 300;
+  color: var(--text-primary);
+  background: var(--bg-primary);
+  line-height: 1.7;
+  overflow-x: hidden;
+}
+
+/* Ambient background effect */
+body::before {
+  content: '';
+  position: fixed;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: 
+    radial-gradient(circle at 20% 30%, var(--glow-medium) 0%, transparent 40%),
+    radial-gradient(circle at 80% 70%, var(--glow-subtle) 0%, transparent 50%),
+    radial-gradient(circle at 50% 50%, var(--glow-medium) 0%, transparent 60%);
+  opacity: 0.4;
+  z-index: -1;
+  animation: ambient-drift 60s ease-in-out infinite alternate;
+}
+
+@keyframes ambient-drift {
+  0% {
+    transform: translate(0, 0) scale(1);
+  }
+  100% {
+    transform: translate(-5%, -5%) scale(1.05);
+  }
+}
+
+/* Typography */
+h1, h2, h3, h4, h5, h6 {
+  font-weight: 400;
+  line-height: 1.3;
+  letter-spacing: -0.02em;
+}
+
+h1 {
+  font-size: 2.5rem;
+  font-weight: 300;
+  letter-spacing: -0.03em;
+}
+
+h2 {
+  font-size: 2rem;
+}
+
+h3 {
+  font-size: 1.5rem;
+}
+
+p {
+  margin-bottom: 1rem;
+}
+
+code {
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+  background: var(--bg-tertiary);
+  padding: 0.2em 0.4em;
+  color: var(--text-accent);
+}
+
+pre {
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
+  background: var(--bg-tertiary);
+  padding: 1rem;
+  overflow-x: auto;
+  margin: 1rem 0;
+  border: 1px solid var(--border-subtle);
+}
+
+/* Links */
+a {
+  color: var(--text-accent);
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+a:hover {
+  color: var(--text-primary);
+}
+
+.branding-link:hover {
+  color: var(--text-accent) !important;
+}
+
+/* Footer link styles */
+.footer-link:hover {
+  color: var(--text-primary) !important;
+}
+
+.footer-link-accent:hover {
+  opacity: 0.8;
+}
+
+/* Buttons */
+button {
+  font-family: var(--font-serif);
+  font-weight: 400;
+  cursor: pointer;
+  border: none;
+  background: none;
+  padding: 0;
+  color: inherit;
+}
+
+/* Container utilities */
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 2rem;
+}
+
+.container-narrow {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 0 2rem;
+}
+
+/* Card styling - no border radius */
+.card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-medium);
+  padding: 2rem;
+  transition: all 0.3s ease;
+}
+
+.card:hover {
+  background: var(--bg-tertiary);
+  border-color: var(--border-strong);
+  box-shadow: 0 0 40px var(--glow-subtle);
+}
+
+/* Waypoint button styling */
+.waypoint-button {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  width: 100%;
+  padding: 1.25rem 1.5rem;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-medium);
+  color: var(--text-primary);
+  text-align: left;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.waypoint-button::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, var(--glow-subtle), transparent);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.waypoint-button:hover {
+  background: var(--bg-tertiary);
+  border-color: var(--text-accent);
+  transform: translateX(4px);
+}
+
+.waypoint-button:hover::before {
+  opacity: 1;
+}
+
+.waypoint-icon {
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  color: var(--text-accent);
+  transition: color 0.3s ease;
+}
+
+.waypoint-button:hover .waypoint-icon {
+  color: var(--text-primary);
+}
+
+.waypoint-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.waypoint-name {
+  font-size: 1.125rem;
+  font-weight: 400;
+  margin-bottom: 0.25rem;
+}
+
+.waypoint-description {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+}
+
+/* Loading states */
+.loading {
+  color: var(--text-tertiary);
+  font-style: italic;
+}
+
+/* Noise texture overlay for depth */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.05'/%3E%3C/svg%3E");
+  opacity: 0.3;
+  pointer-events: none;
+  z-index: 9999;
+  mix-blend-mode: overlay;
+}
+
+/* Smooth scroll */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Selection */
+::selection {
+  background: var(--accent-moss);
+  color: var(--text-primary);
+}
+
+/* Focus styles */
+:focus-visible {
+  outline: 2px solid var(--text-accent);
+  outline-offset: 2px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  html {
+    font-size: 14px;
+  }
+  
+  .container,
+  .container-narrow {
+    padding: 0 1rem;
+  }
+  
+  .card {
+    padding: 1.5rem;
+  }
+  
+  h1 {
+    font-size: 2rem;
+  }
+}

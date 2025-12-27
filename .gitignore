@@ -1,0 +1,12 @@
+node_modules/
+.next/
+.env.local
+.vercel
+*.log
+.DS_Store
+out/
+build/
+dist/
+
+# Development documentation (internal use only)
+dev-docs/
