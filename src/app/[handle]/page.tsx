@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import WaypointPicker from '@/components/WaypointPicker';
 import ProfilePreview from '@/components/ProfilePreview';
+import ProfilePreviewSkeleton from '@/components/ProfilePreviewSkeleton';
 import Header from '@/components/Header';
 import { parseURI, resolveHandle, getDisplayName } from '@/utils/uriParser';
 import { resolveDidToHandle } from '@/utils/didResolver';
@@ -61,8 +62,9 @@ export default function ProfilePage() {
 
   if (isLoading) {
     return (
-      <div className="container-narrow" style={{ padding: '4rem 2rem', textAlign: 'center' }}>
-        <p className="loading">Resolving handle...</p>
+      <div className="container-narrow" style={{ padding: '4rem 2rem' }}>
+        <Header simple />
+        <ProfilePreviewSkeleton />
       </div>
     );
   }
@@ -84,7 +86,11 @@ export default function ProfilePage() {
       <Header simple />
 
       {/* Profile Preview */}
-      {profileData && <ProfilePreview profile={profileData} />}
+      {profileData && (
+        <div className="content-fade-in">
+          <ProfilePreview profile={profileData} />
+        </div>
+      )}
 
       <WaypointPicker
         type="profile"

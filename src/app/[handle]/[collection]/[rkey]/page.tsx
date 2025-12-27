@@ -4,7 +4,9 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import WaypointPicker from '@/components/WaypointPicker';
 import PostPreview from '@/components/PostPreview';
+import PostPreviewSkeleton from '@/components/PostPreviewSkeleton';
 import RecordPreview from '@/components/RecordPreview';
+import RecordPreviewSkeleton from '@/components/RecordPreviewSkeleton';
 import Header from '@/components/Header';
 import { parseURI, resolveHandle, getDisplayName, type ParsedURI } from '@/utils/uriParser';
 import { fetchRecordData, type PostThread, type GenericRecord } from '@/utils/recordFetcher';
@@ -80,8 +82,10 @@ export default function RecordPage() {
 
   if (isLoading) {
     return (
-      <div className="container-narrow" style={{ padding: '4rem 2rem', textAlign: 'center' }}>
-        <p className="loading">Loading...</p>
+      <div className="container-narrow" style={{ padding: '4rem 2rem' }}>
+        <Header simple />
+        {/* Show a post skeleton by default, as most records are posts */}
+        <PostPreviewSkeleton />
       </div>
     );
   }
@@ -102,14 +106,14 @@ export default function RecordPage() {
 
       {/* Record Preview */}
       {recordData && (
-        <>
+        <div className="content-fade-in">
           {recordData.type === 'post' && recordData.data.thread[0]?.value.post && (
             <PostPreview post={recordData.data.thread[0].value.post} />
           )}
           {recordData.type === 'record' && (
             <RecordPreview record={recordData.data} collection={collection} />
           )}
-        </>
+        </div>
       )}
 
       {/* Waypoint Picker */}

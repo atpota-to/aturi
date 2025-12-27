@@ -171,50 +171,44 @@ export default function ProfilePreview({ profile }: ProfilePreviewProps) {
         )}
 
         {/* Stats */}
-        <div
-          style={{
-            display: 'flex',
-            gap: '2rem',
-            paddingTop: '1rem',
-            borderTop: '1px solid var(--border-medium)',
-            flexWrap: 'wrap',
-          }}
-        >
-          {followersCount !== undefined && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <Users size={18} color="var(--text-tertiary)" />
-              <div>
-                <span style={{ fontWeight: '600', color: 'var(--text-primary)' }}>
-                  {followersCount.toLocaleString()}
-                </span>
-                <span style={{ color: 'var(--text-tertiary)', marginLeft: '0.25rem' }}>followers</span>
+        <div className="profile-stats-container">
+          <div className="profile-stats-row">
+            {followersCount !== undefined && (
+              <div className="profile-stat-item">
+                <Users size={18} color="var(--text-tertiary)" />
+                <div>
+                  <span style={{ fontWeight: '600', color: 'var(--text-primary)' }}>
+                    {followersCount.toLocaleString()}
+                  </span>
+                  <span style={{ color: 'var(--text-tertiary)', marginLeft: '0.25rem' }}>followers</span>
+                </div>
               </div>
-            </div>
-          )}
-          {followsCount !== undefined && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <Users size={18} color="var(--text-tertiary)" />
-              <div>
-                <span style={{ fontWeight: '600', color: 'var(--text-primary)' }}>
-                  {followsCount.toLocaleString()}
-                </span>
-                <span style={{ color: 'var(--text-tertiary)', marginLeft: '0.25rem' }}>following</span>
+            )}
+            {followsCount !== undefined && (
+              <div className="profile-stat-item">
+                <Users size={18} color="var(--text-tertiary)" />
+                <div>
+                  <span style={{ fontWeight: '600', color: 'var(--text-primary)' }}>
+                    {followsCount.toLocaleString()}
+                  </span>
+                  <span style={{ color: 'var(--text-tertiary)', marginLeft: '0.25rem' }}>following</span>
+                </div>
               </div>
-            </div>
-          )}
-          {postsCount !== undefined && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <MessageSquare size={18} color="var(--text-tertiary)" />
-              <div>
-                <span style={{ fontWeight: '600', color: 'var(--text-primary)' }}>
-                  {postsCount.toLocaleString()}
-                </span>
-                <span style={{ color: 'var(--text-tertiary)', marginLeft: '0.25rem' }}>posts</span>
+            )}
+            {postsCount !== undefined && (
+              <div className="profile-stat-item">
+                <MessageSquare size={18} color="var(--text-tertiary)" />
+                <div>
+                  <span style={{ fontWeight: '600', color: 'var(--text-primary)' }}>
+                    {postsCount.toLocaleString()}
+                  </span>
+                  <span style={{ color: 'var(--text-tertiary)', marginLeft: '0.25rem' }}>posts</span>
+                </div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
           {joinDate && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginLeft: 'auto' }}>
+            <div className="profile-join-date">
               <Calendar size={18} color="var(--text-tertiary)" />
               <span style={{ fontSize: '0.875rem', color: 'var(--text-tertiary)' }}>
                 Joined {joinDate}
