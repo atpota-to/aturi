@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { Home, Sparkles, Code } from 'lucide-react';
 
 interface HeaderProps {
   simple?: boolean; // If true, shows a smaller version without the tagline
@@ -40,10 +41,39 @@ export default function Header({ simple = false }: HeaderProps) {
             fontSize: '1rem',
             color: 'var(--text-secondary)',
             fontWeight: 300,
+            marginBottom: '2rem',
           }}
         >
           Universal links for the ATmosphere
         </p>
+
+        {/* Organic Navigation */}
+        <nav
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '0.5rem',
+            flexWrap: 'wrap',
+            maxWidth: '500px',
+            margin: '0 auto',
+          }}
+        >
+          <Link href="/" className="nav-link">
+            <Home size={14} />
+            <span>about</span>
+          </Link>
+          <span style={{ color: 'var(--text-tertiary)', fontSize: '0.75rem' }}>·</span>
+          <Link href="/create" className="nav-link">
+            <Sparkles size={14} />
+            <span>create</span>
+          </Link>
+          <span style={{ color: 'var(--text-tertiary)', fontSize: '0.75rem' }}>·</span>
+          <Link href="/integrate" className="nav-link">
+            <Code size={14} />
+            <span>integrate</span>
+          </Link>
+        </nav>
       </header>
     );
   }
@@ -86,11 +116,37 @@ export default function Header({ simple = false }: HeaderProps) {
           fontSize: '1.125rem',
           color: 'var(--text-tertiary)',
           maxWidth: '500px',
-          margin: '0 auto',
+          margin: '0 auto 2.5rem',
         }}
       >
         Share ATProto content with anyone, let them choose where to view it
       </p>
+
+      {/* Organic Navigation */}
+      <nav
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '0.75rem',
+          flexWrap: 'wrap',
+        }}
+      >
+        <Link href="/" className="nav-link">
+          <Home size={16} />
+          <span>about</span>
+        </Link>
+        <span style={{ color: 'var(--text-tertiary)', fontSize: '0.875rem' }}>·</span>
+        <Link href="/create" className="nav-link">
+          <Sparkles size={16} />
+          <span>create</span>
+        </Link>
+        <span style={{ color: 'var(--text-tertiary)', fontSize: '0.875rem' }}>·</span>
+        <Link href="/integrate" className="nav-link">
+          <Code size={16} />
+          <span>integrate</span>
+        </Link>
+      </nav>
     </header>
   );
 }

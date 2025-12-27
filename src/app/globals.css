@@ -148,6 +148,50 @@ a:hover {
   opacity: 0.8;
 }
 
+/* Navigation Links - Organic Style */
+.nav-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.5rem 1rem;
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+  font-weight: 400;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-secondary);
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.nav-link::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--glow-subtle);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.nav-link:hover {
+  color: var(--text-primary);
+  border-color: var(--text-accent);
+  background: var(--bg-tertiary);
+  transform: translateY(-2px);
+}
+
+.nav-link:hover::before {
+  opacity: 1;
+}
+
+.nav-link svg {
+  transition: transform 0.3s ease;
+}
+
+.nav-link:hover svg {
+  transform: scale(1.1) rotate(-5deg);
+}
+
 /* Buttons */
 button {
   font-family: var(--font-serif);
@@ -157,6 +201,17 @@ button {
   background: none;
   padding: 0;
   color: inherit;
+}
+
+/* Generate button specific styles */
+.generate-button:not(:disabled):hover {
+  background: var(--accent-forest) !important;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 20px var(--glow-medium);
+}
+
+.generate-button:active:not(:disabled) {
+  transform: translateY(0);
 }
 
 /* Container utilities */
