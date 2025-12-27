@@ -96,5 +96,5 @@ Feel free to open an issue for questions or reach out to the maintainer.
 
 ---
 
-Thank you for contributing to the ATProto ecosystem! 🎉
+Thank you for contributing to the ATProto ecosystem!
 

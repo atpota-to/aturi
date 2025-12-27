@@ -97,7 +97,7 @@ This is a community tool for the ATProto ecosystem. Contributions are welcome!
 
 Want to run your own instance with a custom domain? aturi.to is designed to be forkable!
 
-### 🚀 Quick Start
+### Quick Start
 
 ```bash
 # Clone the repository
@@ -112,7 +112,7 @@ npm install
 npm run dev
 ```
 
-**📖 See [QUICKSTART.md](QUICKSTART.md) for a complete 10-minute setup guide.**
+**See [QUICKSTART.md](QUICKSTART.md) for a complete 10-minute setup guide.**
 
 The setup script will help you configure:
 - Your custom domain
@@ -120,7 +120,7 @@ The setup script will help you configure:
 - Attribution information
 - Environment variables
 
-### 📚 More Resources
+### More Resources
 
 - [Quick Start Guide](QUICKSTART.md) - Get running in 10 minutes
 - [Forking Guide](FORKING.md) - Detailed customization instructions
