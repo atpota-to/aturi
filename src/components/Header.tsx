@@ -82,14 +82,14 @@ export default function Header({ simple = false }: HeaderProps) {
     <header
       style={{
         textAlign: 'center',
-        marginBottom: '6rem',
-        paddingTop: '4rem',
+        marginBottom: '3rem',
+        paddingTop: '2rem',
       }}
     >
       <h1
         style={{
           fontSize: '3.5rem',
-          marginBottom: '1.5rem',
+          marginBottom: '1rem',
           fontWeight: 300,
           letterSpacing: '-0.01em',
           background: 'linear-gradient(135deg, var(--text-primary) 0%, var(--text-accent) 100%)',
@@ -105,7 +105,7 @@ export default function Header({ simple = false }: HeaderProps) {
           fontSize: '1.5rem',
           color: 'var(--text-secondary)',
           maxWidth: '600px',
-          margin: '0 auto 2rem',
+          margin: '0 auto 1.5rem',
           fontWeight: 300,
         }}
       >
@@ -116,7 +116,7 @@ export default function Header({ simple = false }: HeaderProps) {
           fontSize: '1.125rem',
           color: 'var(--text-tertiary)',
           maxWidth: '500px',
-          margin: '0 auto 2.5rem',
+          margin: '0 auto 2rem',
         }}
       >
         Share ATProto content with anyone, let them choose where to view it

@@ -33,7 +33,7 @@ export default function HomePage() {
   return (
     <div style={{ position: 'relative', overflow: 'hidden' }}>
       {/* Hero Section */}
-      <div style={{ padding: '4rem 2rem 2rem' }}>
+      <div style={{ padding: '2rem 2rem 0' }}>
         <Header />
       </div>
 
@@ -45,7 +45,7 @@ export default function HomePage() {
       }}>
         <div 
           style={{
-            padding: '2rem',
+            padding: '1.5rem',
             background: 'var(--bg-secondary)',
             border: '1px solid var(--border-medium)',
             transform: 'rotate(0.3deg)',
@@ -54,18 +54,6 @@ export default function HomePage() {
           }}
           className="card"
         >
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.5rem',
-            marginBottom: '1rem',
-            color: 'var(--text-secondary)',
-            fontSize: '0.875rem'
-          }}>
-            <Link2 size={14} />
-            <span>Quick create</span>
-          </div>
-
           <div style={{
             display: 'flex',
             gap: '0.75rem',
@@ -143,17 +131,6 @@ export default function HomePage() {
               {quickGenerated}
             </div>
           )}
-
-          <div style={{
-            marginTop: '1rem',
-            fontSize: '0.85rem',
-            color: 'var(--text-tertiary)',
-            textAlign: 'center'
-          }}>
-            <Link href="/create" style={{ color: 'var(--text-secondary)' }}>
-              Need more options? Use the full creator →
-            </Link>
-          </div>
         </div>
       </div>
 
