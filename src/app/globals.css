@@ -572,10 +572,33 @@ html {
     transform: none !important;
   }
   
-  /* Stack grid to single column on mobile */
-  [style*="gridTemplateColumns: 'repeat(12, 1fr)'"] {
+  /* Stack feature cards to single column on mobile */
+  .feature-cards-grid {
     display: flex !important;
     flex-direction: column !important;
+  }
+  
+  .feature-card-primary,
+  .feature-cards-secondary-stack {
+    grid-column: unset !important;
+  }
+  
+  /* Stack examples section on mobile */
+  .examples-grid {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 2rem !important;
+  }
+  
+  .examples-heading {
+    position: static !important;
+    grid-column: unset !important;
+    text-align: center;
+    margin-bottom: 1rem;
+  }
+  
+  .examples-links {
+    grid-column: unset !important;
   }
   
   /* Stack stats vertically on very small screens */

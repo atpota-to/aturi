@@ -143,13 +143,16 @@ export default function HomePage() {
       }}>
         
         {/* Feature Cards - Organic Staggered Layout */}
-        <div style={{ 
-          display: 'grid',
-          gridTemplateColumns: 'repeat(12, 1fr)',
-          gap: '1.5rem',
-          marginBottom: '8rem',
-          position: 'relative'
-        }}>
+        <div 
+          className="feature-cards-grid"
+          style={{ 
+            display: 'grid',
+            gridTemplateColumns: 'repeat(12, 1fr)',
+            gap: '1.5rem',
+            marginBottom: '8rem',
+            position: 'relative'
+          }}
+        >
           {/* Large Primary Card - Universal Sharing */}
           <div 
             className="card feature-card-primary"
@@ -205,12 +208,15 @@ export default function HomePage() {
           </div>
 
           {/* Smaller Cards - Stacked */}
-          <div style={{
-            gridColumn: 'span 5',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '1.5rem',
-          }}>
+          <div 
+            className="feature-cards-secondary-stack"
+            style={{
+              gridColumn: 'span 5',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '1.5rem',
+            }}
+          >
             <div 
               className="card feature-card-secondary"
               style={{
@@ -268,18 +274,24 @@ export default function HomePage() {
           position: 'relative',
           marginBottom: '8rem',
         }}>
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(12, 1fr)',
-            gap: '2rem',
-            alignItems: 'center'
-          }}>
+          <div 
+            className="examples-grid"
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(12, 1fr)',
+              gap: '2rem',
+              alignItems: 'center'
+            }}
+          >
             {/* Heading - Offset */}
-            <div style={{ 
-              gridColumn: '1 / span 5',
-              position: 'sticky',
-              top: '2rem'
-            }}>
+            <div 
+              className="examples-heading"
+              style={{ 
+                gridColumn: '1 / span 5',
+                position: 'sticky',
+                top: '2rem'
+              }}
+            >
               <h2 style={{
                 fontSize: '2.5rem',
                 marginBottom: '1rem',
@@ -299,12 +311,15 @@ export default function HomePage() {
             </div>
 
             {/* Example Links - Offset */}
-            <div style={{
-              gridColumn: '7 / span 6',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '1rem',
-            }}>
+            <div 
+              className="examples-links"
+              style={{
+                gridColumn: '7 / span 6',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '1rem',
+              }}
+            >
               <Link
                 href="/anisota.net/app.bsky.feed.post/3m6mwoadjbp2d"
                 className="waypoint-button example-link"
