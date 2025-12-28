@@ -61,6 +61,11 @@ body {
   min-height: 100dvh; /* Dynamic viewport height for mobile browsers */
 }
 
+/* Lucide Icons - Thinner stroke for a more refined look */
+svg {
+  stroke-width: 1.5;
+}
+
 /* Moody atmospheric glow overlay - beneath all content */
 body::before {
   content: '';
@@ -215,6 +220,7 @@ a:hover {
 
 .nav-link svg {
   transition: transform 0.3s ease;
+  stroke-width: 2; /* Keep default stroke for small nav icons */
 }
 
 .nav-link:hover svg {
@@ -264,6 +270,7 @@ a:hover {
 .compact-nav-link svg {
   color: var(--text-accent);
   transition: all 0.3s ease;
+  stroke-width: 2; /* Keep default stroke for small nav icons */
 }
 
 .compact-nav-link:hover svg {
