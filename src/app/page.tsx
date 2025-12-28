@@ -332,7 +332,11 @@ export default function HomePage() {
               <div style={{ marginBottom: '0.5rem', color: 'var(--text-secondary)' }}>
                 Example AT URI:
               </div>
-              <div style={{ color: 'var(--text-accent)' }}>
+              <div style={{ 
+                color: 'var(--text-accent)',
+                wordBreak: 'break-all',
+                overflowWrap: 'break-word'
+              }}>
                 at://did:plc:ewvi7nxzyoun6zhxrhs64oiz/app.bsky.feed.post/3m6mwoadjbp2d
               </div>
             </div>

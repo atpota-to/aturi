@@ -2,6 +2,7 @@ import { ImageResponse } from '@vercel/og';
 import { NextRequest } from 'next/server';
 
 export const runtime = 'edge';
+export const revalidate = 3600; // Cache for 1 hour
 
 // Cache font data to avoid repeated fetches
 const fontCache = new Map<string, ArrayBuffer>();
@@ -38,12 +39,18 @@ async function loadGoogleFont(font: string, text: string) {
 }
 
 export async function GET(request: NextRequest) {
+  const startTime = Date.now();
+  console.log('[OG Post] Request started');
+  
   try {
     const { searchParams } = new URL(request.url);
     const identifier = searchParams.get('handle'); // This should be a DID
     const rkey = searchParams.get('rkey');
 
+    console.log('[OG Post] Params:', { identifier, rkey });
+
     if (!identifier || !rkey) {
+      console.log('[OG Post] Missing parameters');
       return new Response('Missing parameters', { status: 400 });
     }
 
@@ -125,10 +132,13 @@ export async function GET(request: NextRequest) {
     }
 
     // Load Crimson Pro font
+    console.log('[OG Post] Loading font...');
     const allText = `${displayName} @${handleName} ${truncatedText} ${likeCount} ${replyCount} ${repostCount} Choose where to view this post aturi.to Universal ATmosphere Links`;
     const fontData = await loadGoogleFont('Crimson+Pro:wght@300;400;600', allText);
+    console.log('[OG Post] Font loaded successfully');
 
-    return new ImageResponse(
+    console.log('[OG Post] Generating image...');
+    const imageResponse = new ImageResponse(
       (
         <div
           style={{
@@ -336,8 +346,22 @@ export async function GET(request: NextRequest) {
         ],
       }
     );
+
+    const duration = Date.now() - startTime;
+    console.log(`[OG Post] Image generated successfully in ${duration}ms`);
+    
+    // Add proper cache headers for social media crawlers
+    const headers = new Headers();
+    headers.set('Content-Type', 'image/png');
+    headers.set('Cache-Control', 'public, max-age=3600, s-maxage=3600, stale-while-revalidate=86400');
+    
+    return new Response(imageResponse.body, {
+      status: 200,
+      headers,
+    });
   } catch (error) {
-    console.error('Error generating OG image:', error);
+    const duration = Date.now() - startTime;
+    console.error(`[OG Post] Error generating OG image (${duration}ms):`, error);
     return new Response('Error generating image', { status: 500 });
   }
 }

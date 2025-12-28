@@ -2,6 +2,7 @@ import { ImageResponse } from '@vercel/og';
 import { NextRequest } from 'next/server';
 
 export const runtime = 'edge';
+export const revalidate = 3600; // Cache for 1 hour
 
 // Cache font data to avoid repeated fetches
 const fontCache = new Map<string, ArrayBuffer>();

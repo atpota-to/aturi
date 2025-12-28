@@ -106,13 +106,14 @@ async function ProfileContent({ handle }: { handle: string }) {
           </div>
         )}
 
-        <ScrollIndicator />
-
         <WaypointPicker
           type="profile"
           handle={resolvedHandle}
           displayName={getDisplayName(resolvedHandle, resolvedDid)}
         />
+
+        {/* Floating scroll indicator overlay */}
+        <ScrollIndicator />
       </div>
     );
   } catch (error) {

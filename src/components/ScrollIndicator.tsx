@@ -1,28 +1,27 @@
 /**
  * ScrollIndicator Component
- * A subtle, nature-inspired indicator that shows users there's more content below
- * Appears after preview cards and guides users to the waypoint picker
+ * A floating, nature-inspired overlay that shows users there's more content below
+ * Positioned over the preview card to ensure visibility regardless of card height
  */
 
 'use client';
 
 import { useEffect, useState } from 'react';
+import { Leaf } from 'lucide-react';
 
 type ScrollIndicatorProps = {
   targetId?: string; // Optional ID of element to scroll to
-  text?: string;
 };
 
 export default function ScrollIndicator({ 
-  targetId = 'waypoint-picker', 
-  text = 'Choose your path below'
+  targetId = 'waypoint-picker'
 }: ScrollIndicatorProps) {
   const [isVisible, setIsVisible] = useState(true);
 
   useEffect(() => {
     const handleScroll = () => {
       // Hide indicator once user has scrolled a bit
-      const scrolled = window.scrollY > 100;
+      const scrolled = window.scrollY > 150;
       setIsVisible(!scrolled);
     };
 
@@ -40,187 +39,215 @@ export default function ScrollIndicator({
   return (
     <div
       style={{
+        position: 'fixed',
+        bottom: '2rem',
+        left: '50%',
+        transform: 'translateX(-50%)',
+        zIndex: 50,
         opacity: isVisible ? 1 : 0,
-        transition: 'opacity 0.6s ease',
+        transition: 'opacity 0.6s ease, transform 0.4s ease',
         pointerEvents: isVisible ? 'auto' : 'none',
-        margin: '-1rem 0 2rem',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        gap: '1rem',
       }}
     >
-      {/* Subtle divider line with gradient fade */}
-      <div
-        style={{
-          width: '100%',
-          height: '1px',
-          background: 'linear-gradient(90deg, transparent 0%, var(--border-subtle) 50%, transparent 100%)',
-        }}
-      />
-
-      {/* Interactive scroll button */}
+      {/* Floating organic button with backdrop */}
       <button
         onClick={handleClick}
-        className="scroll-indicator-button"
+        className="scroll-indicator-floating"
         style={{
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
-          gap: '0.75rem',
-          padding: '1rem 1.5rem',
-          background: 'transparent',
-          border: 'none',
+          gap: '0.5rem',
+          padding: '1rem 1.75rem 1.25rem',
+          background: 'rgba(15, 15, 15, 0.85)',
+          backdropFilter: 'blur(12px)',
+          WebkitBackdropFilter: 'blur(12px)',
+          border: '1px solid var(--border-subtle)',
           cursor: 'pointer',
           color: 'var(--text-tertiary)',
           transition: 'all 0.4s ease',
           position: 'relative',
+          overflow: 'hidden',
+          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.03)',
         }}
         onMouseEnter={(e) => {
+          e.currentTarget.style.background = 'rgba(18, 18, 18, 0.9)';
+          e.currentTarget.style.borderColor = 'var(--border-medium)';
           e.currentTarget.style.color = 'var(--text-accent)';
-          e.currentTarget.style.transform = 'translateY(4px)';
+          e.currentTarget.style.transform = 'translateY(-4px)';
+          e.currentTarget.style.boxShadow = '0 12px 40px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.05)';
         }}
         onMouseLeave={(e) => {
+          e.currentTarget.style.background = 'rgba(15, 15, 15, 0.85)';
+          e.currentTarget.style.borderColor = 'var(--border-subtle)';
           e.currentTarget.style.color = 'var(--text-tertiary)';
           e.currentTarget.style.transform = 'translateY(0)';
+          e.currentTarget.style.boxShadow = '0 8px 32px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.03)';
         }}
       >
-        {/* Text hint */}
-        <span
+        {/* Subtle ambient glow */}
+        <div
           style={{
-            fontSize: '0.8125rem',
-            fontWeight: '400',
-            letterSpacing: '0.02em',
-            textTransform: 'lowercase',
-            opacity: 0.8,
+            position: 'absolute',
+            top: '-50%',
+            left: '-50%',
+            width: '200%',
+            height: '200%',
+            background: 'radial-gradient(circle at center, var(--glow-subtle) 0%, transparent 60%)',
+            opacity: 0.15,
+            pointerEvents: 'none',
+            animation: 'breathe-slow 6s ease-in-out infinite',
           }}
-        >
-          {text}
-        </span>
+        />
 
-        {/* Animated leaves/seeds falling */}
+        {/* Falling leaves container */}
         <div
           style={{
             position: 'relative',
-            width: '32px',
-            height: '32px',
+            width: '40px',
+            height: '40px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
           }}
         >
-          {/* First leaf */}
-          <svg
-            width="24"
-            height="24"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
+          {/* Multiple leaves falling at different rates */}
+          <div
             style={{
               position: 'absolute',
-              animation: 'float-down-1 3s ease-in-out infinite',
+              animation: 'float-leaf-1 3.5s ease-in-out infinite',
             }}
           >
-            <path d="M12 2C12 2 7 5 7 12c0 3 2 5 5 5s5-2 5-5c0-7-5-10-5-10z" />
-            <path d="M12 12L7 7" />
-          </svg>
+            <Leaf size={28} strokeWidth={1.5} />
+          </div>
 
-          {/* Second leaf (offset) */}
-          <svg
-            width="20"
-            height="20"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
+          <div
             style={{
               position: 'absolute',
-              opacity: 0.5,
-              animation: 'float-down-2 3s ease-in-out 1.5s infinite',
+              animation: 'float-leaf-2 3.5s ease-in-out 1.2s infinite',
             }}
           >
-            <path d="M12 2C12 2 7 5 7 12c0 3 2 5 5 5s5-2 5-5c0-7-5-10-5-10z" />
-            <path d="M12 12L7 7" />
-          </svg>
+            <Leaf size={22} strokeWidth={1.5} />
+          </div>
+
+          <div
+            style={{
+              position: 'absolute',
+              animation: 'float-leaf-3 3.5s ease-in-out 2.4s infinite',
+            }}
+          >
+            <Leaf size={24} strokeWidth={1.5} />
+          </div>
         </div>
 
-        {/* Simple arrow as fallback/reinforcement */}
-        <div
+        {/* Text hint */}
+        <span
           style={{
-            fontSize: '1.25rem',
-            opacity: 0.6,
-            animation: 'bounce-gentle 2s ease-in-out infinite',
+            fontSize: '0.75rem',
+            fontWeight: '400',
+            letterSpacing: '0.03em',
+            textTransform: 'lowercase',
+            opacity: 0.85,
+            whiteSpace: 'nowrap',
           }}
         >
-          ↓
-        </div>
+          scroll to choose path
+        </span>
+
       </button>
 
       <style jsx>{`
-        @keyframes float-down-1 {
+        @keyframes float-leaf-1 {
           0% {
-            transform: translateY(-8px) rotate(0deg);
+            transform: translateY(-12px) rotate(0deg) translateX(-2px);
             opacity: 0;
           }
-          20% {
-            opacity: 0.7;
+          15% {
+            opacity: 0.8;
           }
           50% {
-            transform: translateY(8px) rotate(15deg);
-            opacity: 0.9;
+            transform: translateY(10px) rotate(20deg) translateX(3px);
+            opacity: 1;
           }
-          80% {
-            opacity: 0.4;
-          }
-          100% {
-            transform: translateY(16px) rotate(30deg);
-            opacity: 0;
-          }
-        }
-
-        @keyframes float-down-2 {
-          0% {
-            transform: translateY(-8px) rotate(0deg) translateX(4px);
-            opacity: 0;
-          }
-          20% {
+          75% {
             opacity: 0.5;
           }
-          50% {
-            transform: translateY(8px) rotate(-12deg) translateX(-2px);
-            opacity: 0.7;
-          }
-          80% {
+          85% {
             opacity: 0.3;
           }
           100% {
-            transform: translateY(16px) rotate(-25deg) translateX(-6px);
+            transform: translateY(20px) rotate(35deg) translateX(5px);
             opacity: 0;
           }
         }
 
-        @keyframes bounce-gentle {
-          0%, 100% {
-            transform: translateY(0);
+        @keyframes float-leaf-2 {
+          0% {
+            transform: translateY(-12px) rotate(0deg) translateX(4px);
+            opacity: 0;
+          }
+          15% {
+            opacity: 0.6;
           }
           50% {
-            transform: translateY(4px);
+            transform: translateY(10px) rotate(-15deg) translateX(-2px);
+            opacity: 0.8;
+          }
+          75% {
+            opacity: 0.4;
+          }
+          85% {
+            opacity: 0.2;
+          }
+          100% {
+            transform: translateY(20px) rotate(-28deg) translateX(-6px);
+            opacity: 0;
           }
         }
 
-        .scroll-indicator-button:hover svg {
-          animation-play-state: paused;
-          opacity: 1;
+        @keyframes float-leaf-3 {
+          0% {
+            transform: translateY(-12px) rotate(0deg) translateX(0px);
+            opacity: 0;
+          }
+          15% {
+            opacity: 0.4;
+          }
+          50% {
+            transform: translateY(10px) rotate(10deg) translateX(-4px);
+            opacity: 0.6;
+          }
+          75% {
+            opacity: 0.3;
+          }
+          85% {
+            opacity: 0.15;
+          }
+          100% {
+            transform: translateY(20px) rotate(18deg) translateX(-7px);
+            opacity: 0;
+          }
+        }
+
+        @keyframes breathe-slow {
+          0%, 100% {
+            opacity: 0.15;
+            transform: scale(1);
+          }
+          50% {
+            opacity: 0.25;
+            transform: scale(1.1);
+          }
+        }
+
+        /* Keep leaves animating even on hover - just slow them down slightly */
+        .scroll-indicator-floating:hover > div > div > div {
+          animation-duration: 4.5s;
         }
 
         @media (max-width: 640px) {
-          .scroll-indicator-button {
-            padding: 0.875rem 1.25rem;
+          .scroll-indicator-floating {
+            padding: 0.875rem 1.5rem 1rem;
           }
         }
       `}</style>

@@ -173,8 +173,6 @@ async function RecordContent({ handle, collection, rkey }: { handle: string; col
           </div>
         )}
 
-        <ScrollIndicator />
-
         <WaypointPicker
           type={parsedData.type}
           handle={resolvedHandle}
@@ -182,6 +180,9 @@ async function RecordContent({ handle, collection, rkey }: { handle: string; col
           rkey={rkey}
           displayName={getDisplayName(resolvedHandle, resolvedDid)}
         />
+
+        {/* Floating scroll indicator overlay */}
+        <ScrollIndicator />
       </div>
     );
   } catch (error) {
