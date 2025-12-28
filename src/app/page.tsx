@@ -40,7 +40,7 @@ export default function HomePage() {
       {/* Quick Link Creator */}
       <div style={{ 
         maxWidth: '700px', 
-        margin: '0 auto 6rem',
+        margin: '0 auto 3rem',
         padding: '0 2rem'
       }}>
         <div 

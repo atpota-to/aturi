@@ -336,7 +336,7 @@ button {
 .waypoint-button:hover {
   background: var(--bg-tertiary);
   border-color: var(--text-accent);
-  transform: translateX(4px);
+  transform: translateX(4px) var(--button-rotation, rotate(0deg));
 }
 
 .waypoint-button:hover::before {

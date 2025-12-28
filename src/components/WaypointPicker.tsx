@@ -94,17 +94,26 @@ export default function WaypointPicker({
             </p>
           </div>
         ) : (
-          waypoints.map((waypoint) => {
+          waypoints.map((waypoint, index) => {
             const url = waypoint.getUrl(handle, collection, rkey);
             if (!url) return null;
             const isCopied = copiedId === waypoint.id;
+            
+            // Organic rotation for each button (alternating subtle angles)
+            const rotations = [0.3, -0.2, 0.4, -0.3, 0.2, -0.1, 0.35, -0.25];
+            const rotation = rotations[index % rotations.length];
 
             return (
               <div
                 key={waypoint.id}
                 className="waypoint-button"
                 onClick={(e) => handleWaypointClick(url, e)}
-                style={{ cursor: 'pointer' }}
+                style={{ 
+                  cursor: 'pointer', 
+                  transform: `rotate(${rotation}deg)`,
+                  // @ts-ignore - CSS custom property
+                  '--button-rotation': `rotate(${rotation}deg)`
+                }}
               >
                 <div className="waypoint-icon">{waypoint.icon}</div>
                 <div className="waypoint-content">

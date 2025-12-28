@@ -35,14 +35,16 @@ export default function Header({ simple = false, compact = false }: HeaderProps)
             transition: 'all 0.3s ease',
           }}
         >
-          {/* Logo/Wordmark */}
+          {/* Logo/Wordmark with Tagline */}
           <Link
             href="/"
             style={{
               textDecoration: 'none',
               display: 'flex',
               alignItems: 'center',
-              gap: '0.5rem',
+              gap: '0.625rem',
+              flex: 1,
+              minWidth: 0,
             }}
           >
             <span
@@ -54,9 +56,23 @@ export default function Header({ simple = false, compact = false }: HeaderProps)
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent',
                 backgroundClip: 'text',
+                whiteSpace: 'nowrap',
               }}
             >
               aturi.to
+            </span>
+            <span
+              style={{
+                fontSize: '0.8rem',
+                fontWeight: 300,
+                color: 'var(--text-tertiary)',
+                letterSpacing: '0.01em',
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+              }}
+            >
+              universal atmosphere links
             </span>
           </Link>
 

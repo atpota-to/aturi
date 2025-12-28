@@ -96,7 +96,7 @@ export default function ProfilePreview({ profile }: ProfilePreviewProps) {
               style={{
                 width: '96px',
                 height: '96px',
-                border: '4px solid var(--bg-secondary)',
+                border: '2px solid var(--accent-stone)',
                 overflow: 'hidden',
                 flexShrink: 0,
                 background: 'var(--bg-tertiary)',
@@ -118,7 +118,7 @@ export default function ProfilePreview({ profile }: ProfilePreviewProps) {
               style={{
                 width: '96px',
                 height: '96px',
-                border: '4px solid var(--bg-secondary)',
+                border: '2px solid var(--accent-stone)',
                 background: 'var(--bg-tertiary)',
                 display: 'flex',
                 alignItems: 'center',

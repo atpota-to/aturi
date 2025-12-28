@@ -42,7 +42,7 @@ export default function RecordPreview({ record, collection, handle, rkey }: Reco
     : null;
 
   // Helper to render field preview (simplified)
-  const renderFieldPreview = (val: any) => {
+  const renderFieldPreview = (val: unknown) => {
     if (typeof val === 'string') {
       // Truncate long strings
       return val.length > 100 ? `${val.substring(0, 100)}...` : val;
@@ -122,7 +122,7 @@ export default function RecordPreview({ record, collection, handle, rkey }: Reco
         </div>
 
         {/* Preview Fields - Simplified */}
-        <div style={{ padding: '1.5rem' }}>
+        <div>
           <div style={{ display: 'grid', gap: '1rem', marginBottom: '1.5rem' }}>
             {previewFields.map(([key, val]) => (
               <div
