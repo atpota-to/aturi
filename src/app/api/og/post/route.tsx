@@ -60,6 +60,7 @@ export async function GET(request: NextRequest) {
     
     let postData = null;
     let authorData = null;
+    let post = null;
     let likeCount = 0;
     let replyCount = 0;
     let repostCount = 0;
@@ -86,7 +87,7 @@ export async function GET(request: NextRequest) {
 
         if (response.ok) {
           const data = await response.json();
-          const post = data.thread?.post;
+          post = data.thread?.post;
           postData = post?.record;
           authorData = post?.author;
           
@@ -107,6 +108,63 @@ export async function GET(request: NextRequest) {
     const postText = postData?.text || 'Post content';
     const truncatedText = postText.length > 180 ? postText.slice(0, 180) + '...' : postText;
     const avatarUrl = authorData?.avatar || '';
+    
+    // Get embed data if available
+    const embed = post?.embed;
+    let embedType = null;
+    let embedImageUrl = null;
+    let embedQuoteAuthor = null;
+    let embedQuoteText = null;
+    let embedExternalTitle = null;
+    
+    if (embed) {
+      // Images
+      if (embed.$type === 'app.bsky.embed.images#view' && embed.images && embed.images.length > 0) {
+        embedType = 'images';
+        embedImageUrl = embed.images[0].thumb;
+      }
+      // External link with thumbnail
+      else if (embed.$type === 'app.bsky.embed.external#view' && embed.external) {
+        embedType = 'external';
+        embedImageUrl = embed.external.thumb;
+        embedExternalTitle = embed.external.title;
+      }
+      // Quote post
+      else if (embed.$type === 'app.bsky.embed.record#view' && embed.record) {
+        embedType = 'quote';
+        const quotedRecord = embed.record;
+        embedQuoteAuthor = quotedRecord.author?.displayName || quotedRecord.author?.handle || 'Unknown';
+        embedQuoteText = quotedRecord.value?.text || quotedRecord.record?.text || '';
+        if (embedQuoteText.length > 120) {
+          embedQuoteText = embedQuoteText.slice(0, 120) + '...';
+        }
+      }
+      // Record with media (quote + image/video/link)
+      else if (embed.$type === 'app.bsky.embed.recordWithMedia#view') {
+        if (embed.media?.$type === 'app.bsky.embed.images#view' && embed.media.images?.length > 0) {
+          embedType = 'images';
+          embedImageUrl = embed.media.images[0].thumb;
+        } else if (embed.media?.$type === 'app.bsky.embed.external#view' && embed.media.external) {
+          embedType = 'external';
+          embedImageUrl = embed.media.external.thumb;
+          embedExternalTitle = embed.media.external.title;
+        }
+        // Also capture quote info if available
+        if (embed.record?.record) {
+          const quotedRecord = embed.record.record;
+          embedQuoteAuthor = quotedRecord.author?.displayName || quotedRecord.author?.handle || 'Unknown';
+          embedQuoteText = quotedRecord.value?.text || quotedRecord.record?.text || '';
+          if (embedQuoteText.length > 120) {
+            embedQuoteText = embedQuoteText.slice(0, 120) + '...';
+          }
+        }
+      }
+      // Video
+      else if (embed.$type === 'app.bsky.embed.video#view' && embed.thumbnail) {
+        embedType = 'video';
+        embedImageUrl = embed.thumbnail;
+      }
+    }
     
     // Fetch avatar image and convert to base64 with timeout
     let avatarDataUrl = '';
@@ -132,9 +190,33 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    // Fetch embed image if available
+    let embedImageDataUrl = '';
+    if (embedImageUrl) {
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 3000); // 3 second timeout
+        
+        try {
+          const embedResponse = await fetch(embedImageUrl, { signal: controller.signal });
+          if (embedResponse.ok) {
+            const embedBuffer = await embedResponse.arrayBuffer();
+            const base64 = Buffer.from(embedBuffer).toString('base64');
+            const contentType = embedResponse.headers.get('content-type') || 'image/jpeg';
+            embedImageDataUrl = `data:${contentType};base64,${base64}`;
+          }
+        } finally {
+          clearTimeout(timeoutId);
+        }
+      } catch (error) {
+        console.error('Error fetching embed image:', error);
+        // Continue without embed image
+      }
+    }
+
     // Load Crimson Pro font
     console.log('[OG Post] Loading font...');
-    const allText = `${displayName} @${handleName} ${truncatedText} ${likeCount} ${replyCount} ${repostCount} Choose where to view this post aturi.to Universal ATmosphere Links`;
+    const allText = `${displayName} @${handleName} ${truncatedText} ${likeCount} ${replyCount} ${repostCount} ${embedQuoteAuthor || ''} ${embedQuoteText || ''} ${embedExternalTitle || ''} Choose where to view this post aturi.to Universal ATmosphere Links Image Video Link Quote`;
     const fontData = await loadGoogleFont('Crimson+Pro:wght@300;400;600', allText);
     console.log('[OG Post] Font loaded successfully');
 
@@ -270,20 +352,134 @@ export async function GET(request: NextRequest) {
             <div
               style={{
                 flex: 1,
-                fontSize: '28px',
-                lineHeight: 1.7,
-                color: '#e8e8e6',
-                padding: '35px',
-                backgroundColor: 'rgba(21, 21, 21, 0.6)',
-                border: '1px solid rgba(232, 232, 230, 0.08)',
-                fontWeight: 300,
                 display: 'flex',
-                backdropFilter: 'blur(10px)',
-                whiteSpace: 'pre-wrap',
-                wordBreak: 'break-word',
+                flexDirection: 'column',
+                gap: '20px',
               }}
             >
-              {truncatedText}
+              {/* Post text */}
+              <div
+                style={{
+                  fontSize: '28px',
+                  lineHeight: 1.7,
+                  color: '#e8e8e6',
+                  padding: '35px',
+                  backgroundColor: 'rgba(21, 21, 21, 0.6)',
+                  border: '1px solid rgba(232, 232, 230, 0.08)',
+                  fontWeight: 300,
+                  display: 'flex',
+                  backdropFilter: 'blur(10px)',
+                  whiteSpace: 'pre-wrap',
+                  wordBreak: 'break-word',
+                }}
+              >
+                {truncatedText}
+              </div>
+
+              {/* Embed Image/Video Thumbnail */}
+              {embedImageDataUrl && embedType !== 'quote' && (
+                <div
+                  style={{
+                    position: 'relative',
+                    display: 'flex',
+                    overflow: 'hidden',
+                    border: '1px solid rgba(232, 232, 230, 0.15)',
+                    backgroundColor: 'rgba(21, 21, 21, 0.8)',
+                    height: '180px',
+                  }}
+                >
+                  <img
+                    src={embedImageDataUrl}
+                    alt=""
+                    style={{
+                      width: '100%',
+                      height: '100%',
+                      objectFit: 'cover',
+                      opacity: 0.9,
+                    }}
+                  />
+                  {embedType === 'video' && (
+                    <div
+                      style={{
+                        position: 'absolute',
+                        top: '50%',
+                        left: '50%',
+                        transform: 'translate(-50%, -50%)',
+                        width: '60px',
+                        height: '60px',
+                        backgroundColor: 'rgba(138, 154, 127, 0.9)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '32px',
+                        color: '#0a0a0a',
+                      }}
+                    >
+                      ▶
+                    </div>
+                  )}
+                  {embedType === 'external' && embedExternalTitle && (
+                    <div
+                      style={{
+                        position: 'absolute',
+                        bottom: 0,
+                        left: 0,
+                        right: 0,
+                        padding: '12px 20px',
+                        backgroundColor: 'rgba(10, 10, 10, 0.95)',
+                        fontSize: '18px',
+                        fontWeight: 400,
+                        color: '#e8e8e6',
+                        borderTop: '1px solid rgba(232, 232, 230, 0.1)',
+                        display: 'flex',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      🔗 {embedExternalTitle}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Quote Post */}
+              {embedType === 'quote' && embedQuoteAuthor && embedQuoteText && (
+                <div
+                  style={{
+                    padding: '25px',
+                    backgroundColor: 'rgba(21, 21, 21, 0.7)',
+                    border: '1px solid rgba(138, 154, 127, 0.25)',
+                    borderLeft: '3px solid rgba(138, 154, 127, 0.6)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '12px',
+                  }}
+                >
+                  <div
+                    style={{
+                      fontSize: '20px',
+                      color: '#8a9a7f',
+                      fontWeight: 400,
+                      display: 'flex',
+                    }}
+                  >
+                    💬 {embedQuoteAuthor}
+                  </div>
+                  <div
+                    style={{
+                      fontSize: '22px',
+                      color: '#c8c8c6',
+                      lineHeight: 1.5,
+                      fontWeight: 300,
+                      display: 'flex',
+                      whiteSpace: 'pre-wrap',
+                    }}
+                  >
+                    {embedQuoteText}
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Footer - stats on left, tagline on right */}
