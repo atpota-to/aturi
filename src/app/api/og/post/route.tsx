@@ -105,7 +105,7 @@ export async function GET(request: NextRequest) {
 
     const displayName = authorData?.displayName || authorData?.handle || identifier;
     const handleName = authorData?.handle || identifier;
-    const postText = postData?.text || 'Post content';
+    const postText = postData?.text || '';
     const truncatedText = postText.length > 180 ? postText.slice(0, 180) + '...' : postText;
     const avatarUrl = authorData?.avatar || '';
     
@@ -357,24 +357,26 @@ export async function GET(request: NextRequest) {
                 gap: '20px',
               }}
             >
-              {/* Post text */}
-              <div
-                style={{
-                  fontSize: '28px',
-                  lineHeight: 1.7,
-                  color: '#e8e8e6',
-                  padding: '35px',
-                  backgroundColor: 'rgba(21, 21, 21, 0.6)',
-                  border: '1px solid rgba(232, 232, 230, 0.08)',
-                  fontWeight: 300,
-                  display: 'flex',
-                  backdropFilter: 'blur(10px)',
-                  whiteSpace: 'pre-wrap',
-                  wordBreak: 'break-word',
-                }}
-              >
-                {truncatedText}
-              </div>
+              {/* Post text - only show if there's actual text */}
+              {truncatedText && (
+                <div
+                  style={{
+                    fontSize: '28px',
+                    lineHeight: 1.7,
+                    color: '#e8e8e6',
+                    padding: '35px',
+                    backgroundColor: 'rgba(21, 21, 21, 0.6)',
+                    border: '1px solid rgba(232, 232, 230, 0.08)',
+                    fontWeight: 300,
+                    display: 'flex',
+                    backdropFilter: 'blur(10px)',
+                    whiteSpace: 'pre-wrap',
+                    wordBreak: 'break-word',
+                  }}
+                >
+                  {truncatedText}
+                </div>
+              )}
 
               {/* Embed Image/Video Thumbnail */}
               {embedImageDataUrl && embedType !== 'quote' && (
@@ -385,7 +387,8 @@ export async function GET(request: NextRequest) {
                     overflow: 'hidden',
                     border: '1px solid rgba(232, 232, 230, 0.15)',
                     backgroundColor: 'rgba(21, 21, 21, 0.8)',
-                    height: '180px',
+                    height: truncatedText ? '200px' : '280px',
+                    padding: '8px',
                   }}
                 >
                   <img
@@ -395,7 +398,7 @@ export async function GET(request: NextRequest) {
                       width: '100%',
                       height: '100%',
                       objectFit: 'cover',
-                      opacity: 0.9,
+                      opacity: 0.95,
                     }}
                   />
                   {embedType === 'video' && (
@@ -422,9 +425,9 @@ export async function GET(request: NextRequest) {
                     <div
                       style={{
                         position: 'absolute',
-                        bottom: 0,
-                        left: 0,
-                        right: 0,
+                        bottom: '8px',
+                        left: '8px',
+                        right: '8px',
                         padding: '12px 20px',
                         backgroundColor: 'rgba(10, 10, 10, 0.95)',
                         fontSize: '18px',
