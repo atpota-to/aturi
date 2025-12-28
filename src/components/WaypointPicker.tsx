@@ -54,15 +54,15 @@ export default function WaypointPicker({
   const getContextText = () => {
     switch (type) {
       case 'post':
-        return `Opening post by ${display}`;
+        return `Open post by ${display} on...`;
       case 'profile':
         return `Open profile for ${display} on...`;
       case 'list':
-        return `Opening list by ${display}`;
+        return `Open list by ${display} on...`;
       case 'record':
         return `Open record from ${display} on...`;
       default:
-        return `Opening content from ${display}`;
+        return `Open content from ${display} on...`;
     }
   };
 

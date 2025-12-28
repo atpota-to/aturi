@@ -135,6 +135,7 @@ export default function PostPreview({ post }: PostPreviewProps) {
             style={{
               width: '48px',
               height: '48px',
+              border: '2px solid var(--accent-stone)',
               overflow: 'hidden',
               flexShrink: 0,
             }}
@@ -156,6 +157,7 @@ export default function PostPreview({ post }: PostPreviewProps) {
             style={{
               width: '48px',
               height: '48px',
+              border: '2px solid var(--accent-stone)',
               background: 'var(--bg-tertiary)',
               display: 'flex',
               alignItems: 'center',
