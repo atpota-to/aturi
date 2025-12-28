@@ -122,7 +122,7 @@ export default function RecordPreview({ record, collection, handle, rkey }: Reco
         </div>
 
         {/* Preview Fields - Simplified */}
-        <div>
+        <div style={{ padding: '1.5rem' }}>
           <div style={{ display: 'grid', gap: '1rem', marginBottom: '1.5rem' }}>
             {previewFields.map(([key, val]) => (
               <div
