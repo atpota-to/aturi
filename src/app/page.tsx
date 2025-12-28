@@ -310,8 +310,9 @@ export default function HomePage() {
               marginBottom: '1.5rem'
             }}>
               <p style={{ marginBottom: '1rem' }}>
-                The name is a playful blend of <strong style={{ color: 'var(--text-primary)' }}>AT URI</strong> (pronounced &ldquo;at-yoo-are-eye&rdquo;),
-                which is how the AT Protocol structures links to records, profiles, and other resources across the network.
+                The name is a playful blend of <strong style={{ color: 'var(--text-primary)' }}>AT URI</strong>, which is how the AT Protocol
+                structures links to records, profiles, and other resources across the network. Pronounced like &ldquo;Atari&rdquo; but
+                with &ldquo;turi&rdquo; at the end—<em>uh-tour-ee</em>.
               </p>
               <p>
                 Every piece of content on ATProto has an AT URI—a universal identifier that works regardless of
@@ -332,7 +333,7 @@ export default function HomePage() {
                 Example AT URI:
               </div>
               <div style={{ color: 'var(--text-accent)' }}>
-                at://anisota.net/app.bsky.feed.post/3m6mwoadjbp2d
+                at://did:plc:ewvi7nxzyoun6zhxrhs64oiz/app.bsky.feed.post/3m6mwoadjbp2d
               </div>
             </div>
           </section>
