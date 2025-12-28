@@ -395,7 +395,6 @@ body::after {
   opacity: 0.5;
   pointer-events: none;
   z-index: 9999;
-  mix-blend-mode: overlay;
 }
 
 /* Smooth scroll */
@@ -731,6 +730,16 @@ html {
   }
   
   .examples-links {
+    grid-column: unset !important;
+  }
+  
+  /* Make all grid layouts stack on mobile */
+  [style*="grid-template-columns"] {
+    display: flex !important;
+    flex-direction: column !important;
+  }
+  
+  [style*="gridColumn"] {
     grid-column: unset !important;
   }
   

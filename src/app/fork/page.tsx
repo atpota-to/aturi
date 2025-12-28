@@ -6,58 +6,160 @@ import Header from '@/components/Header';
 
 export default function ForkPage() {
   return (
-    <div className="container-narrow" style={{ padding: '4rem 2rem' }}>
+    <div style={{ position: 'relative', overflow: 'hidden' }}>
       {/* Site Header */}
-      <Header simple />
+      <div style={{ padding: '2rem 2rem 0' }}>
+        <Header simple />
+      </div>
 
-      {/* Header */}
-      <header style={{ marginBottom: '3rem' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1rem' }}>
-          <GitFork size={32} style={{ color: 'var(--text-accent)' }} />
-          <h1>Fork aturi.to</h1>
+      {/* Hero Section - Asymmetric */}
+      <div style={{ 
+        maxWidth: '1200px', 
+        margin: '0 auto 5rem',
+        padding: '0 2rem'
+      }}>
+        <div 
+          className="card"
+          style={{ 
+            padding: '3.5rem',
+            transform: 'rotate(-0.3deg)',
+            transition: 'all 0.4s ease',
+            marginBottom: '3rem'
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1.5rem' }}>
+            <GitFork size={48} style={{ color: 'var(--text-accent)', flexShrink: 0 }} />
+            <div>
+              <h1 style={{ marginBottom: '1rem', fontSize: '2.75rem', fontWeight: 300 }}>
+                Fork aturi.to
+              </h1>
+              <p style={{ color: 'var(--text-secondary)', fontSize: '1.2rem', lineHeight: 1.7 }}>
+                Run your own ATProto link sharing service with a custom domain
+              </p>
+            </div>
+          </div>
         </div>
-        <p style={{ color: 'var(--text-secondary)', fontSize: '1.125rem' }}>
-          Run your own ATProto link sharing service with a custom domain
-        </p>
-      </header>
+      </div>
 
-      {/* Why Fork */}
-      <section style={{ marginBottom: '3rem' }}>
-        <h2 style={{ marginBottom: '1.5rem', color: 'var(--text-accent)' }}>
+      {/* Why Fork - Asymmetric Grid */}
+      <div style={{ 
+        maxWidth: '1200px', 
+        margin: '0 auto 6rem',
+        padding: '0 2rem'
+      }}>
+        <h2 style={{ 
+          marginBottom: '3rem', 
+          color: 'var(--text-accent)',
+          fontSize: '2rem',
+          fontWeight: 300,
+          textAlign: 'center'
+        }}>
           Why Fork?
         </h2>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          <div className="card">
-            <h3 style={{ marginBottom: '0.5rem' }}>Community-Specific</h3>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem' }}>
+
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(12, 1fr)',
+          gap: '1.5rem'
+        }}>
+          <div 
+            className="card" 
+            style={{ 
+              gridColumn: 'span 4',
+              padding: '2.5rem',
+              transform: 'rotate(0.4deg)',
+              transition: 'all 0.4s ease',
+            }}
+          >
+            <h3 style={{ marginBottom: '1rem', fontSize: '1.4rem', fontWeight: 400 }}>
+              Community-Specific
+            </h3>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem', lineHeight: 1.6 }}>
               Create a version tailored to your community with custom branding and curated platforms.
             </p>
           </div>
-          <div className="card">
-            <h3 style={{ marginBottom: '0.5rem' }}>Regional Optimization</h3>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem' }}>
+
+          <div 
+            className="card" 
+            style={{ 
+              gridColumn: 'span 4',
+              padding: '2.5rem',
+              transform: 'rotate(-0.3deg)',
+              transition: 'all 0.4s ease',
+            }}
+          >
+            <h3 style={{ marginBottom: '1rem', fontSize: '1.4rem', fontWeight: 400 }}>
+              Regional Optimization
+            </h3>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem', lineHeight: 1.6 }}>
               Host closer to your users for faster load times and better performance.
             </p>
           </div>
-          <div className="card">
-            <h3 style={{ marginBottom: '0.5rem' }}>Full Control</h3>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem' }}>
+
+          <div 
+            className="card" 
+            style={{ 
+              gridColumn: 'span 4',
+              padding: '2.5rem',
+              transform: 'rotate(0.2deg)',
+              transition: 'all 0.4s ease',
+            }}
+          >
+            <h3 style={{ marginBottom: '1rem', fontSize: '1.4rem', fontWeight: 400 }}>
+              Full Control
+            </h3>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem', lineHeight: 1.6 }}>
               Self-host on your infrastructure with complete control over features and data.
             </p>
           </div>
         </div>
-      </section>
+      </div>
 
-      {/* Quick Start */}
-      <section style={{ marginBottom: '3rem' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.5rem' }}>
-          <Zap size={24} style={{ color: 'var(--text-accent)' }} />
-          <h2 style={{ color: 'var(--text-accent)' }}>Quick Start</h2>
-        </div>
-        
-        <div className="card" style={{ marginBottom: '1.5rem' }}>
-          <h3 style={{ marginBottom: '1rem' }}>Interactive Setup (Recommended)</h3>
-          <pre>{`# Clone the repository
+      {/* Quick Start - Featured Section */}
+      <div style={{ 
+        maxWidth: '1200px', 
+        margin: '0 auto 6rem',
+        padding: '0 2rem'
+      }}>
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(12, 1fr)',
+          gap: '2rem',
+          alignItems: 'start'
+        }}>
+          <div style={{ gridColumn: '1 / span 4' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
+              <Zap size={32} style={{ color: 'var(--text-accent)' }} />
+              <h2 style={{ color: 'var(--text-accent)', fontSize: '2rem', fontWeight: 300 }}>
+                Quick Start
+              </h2>
+            </div>
+            <p style={{ color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+              Get your instance up and running in just a few minutes
+            </p>
+          </div>
+          
+          <div 
+            className="card" 
+            style={{ 
+              gridColumn: '6 / span 7',
+              padding: '2.5rem',
+              transform: 'rotate(-0.4deg)',
+              transition: 'all 0.4s ease',
+            }}
+          >
+            <h3 style={{ marginBottom: '1.5rem', fontSize: '1.5rem', fontWeight: 400 }}>
+              Interactive Setup (Recommended)
+            </h3>
+            <pre style={{
+              background: 'var(--bg-primary)',
+              padding: '1.5rem',
+              border: '1px solid var(--border-medium)',
+              fontSize: '0.9rem',
+              lineHeight: 1.7,
+              overflow: 'auto',
+              marginBottom: '1.25rem'
+            }}>{`# Clone the repository
 git clone https://github.com/yourusername/aturi-to.git my-instance
 cd my-instance
 
@@ -67,27 +169,38 @@ npm run setup-fork
 # Install and start
 npm install
 npm run dev`}</pre>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', marginTop: '1rem' }}>
-            The setup script will ask for your domain, name, and preferences, then create a 
-            <code style={{ margin: '0 0.25rem' }}>.env.local</code> file with your configuration.
-          </p>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', lineHeight: 1.6 }}>
+              The setup script will ask for your domain, name, and preferences, then create a 
+              <code style={{ margin: '0 0.25rem', padding: '0.125rem 0.375rem', background: 'var(--bg-primary)', border: '1px solid var(--border-medium)' }}>.env.local</code> 
+              file with your configuration.
+            </p>
+          </div>
         </div>
 
-        <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+        {/* Quick Links */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(12, 1fr)',
+          gap: '1.5rem',
+          marginTop: '2rem'
+        }}>
+          <div style={{ gridColumn: '1 / span 4' }}></div>
+          
           <Link
             href="/fork#manual-setup"
             className="card"
             style={{
-              flex: '1',
-              minWidth: '200px',
+              gridColumn: '6 / span 3',
+              padding: '2rem',
               textDecoration: 'none',
               color: 'inherit',
               cursor: 'pointer',
-              transition: 'border-color 0.2s ease',
+              transition: 'all 0.4s ease',
+              transform: 'rotate(0.3deg)',
             }}
           >
-            <Terminal size={20} style={{ color: 'var(--text-accent)', marginBottom: '0.5rem' }} />
-            <h3 style={{ fontSize: '1rem', marginBottom: '0.25rem' }}>Manual Setup</h3>
+            <Terminal size={24} style={{ color: 'var(--text-accent)', marginBottom: '0.75rem' }} />
+            <h3 style={{ fontSize: '1.1rem', marginBottom: '0.5rem', fontWeight: 400 }}>Manual Setup</h3>
             <p style={{ color: 'var(--text-tertiary)', fontSize: '0.875rem' }}>
               Step-by-step instructions
             </p>
@@ -99,65 +212,143 @@ npm run dev`}</pre>
             rel="noopener noreferrer"
             className="card"
             style={{
-              flex: '1',
-              minWidth: '200px',
+              gridColumn: '9 / span 4',
+              padding: '2rem',
               textDecoration: 'none',
               color: 'inherit',
               cursor: 'pointer',
-              transition: 'border-color 0.2s ease',
+              transition: 'all 0.4s ease',
+              transform: 'rotate(-0.2deg)',
             }}
           >
-            <Settings size={20} style={{ color: 'var(--text-accent)', marginBottom: '0.5rem' }} />
-            <h3 style={{ fontSize: '1rem', marginBottom: '0.25rem' }}>Full Guide</h3>
+            <Settings size={24} style={{ color: 'var(--text-accent)', marginBottom: '0.75rem' }} />
+            <h3 style={{ fontSize: '1.1rem', marginBottom: '0.5rem', fontWeight: 400 }}>Full Guide</h3>
             <p style={{ color: 'var(--text-tertiary)', fontSize: '0.875rem' }}>
               Detailed documentation
             </p>
           </a>
         </div>
-      </section>
+      </div>
 
-      {/* Configuration */}
-      <section style={{ marginBottom: '3rem' }}>
-        <h2 style={{ marginBottom: '1.5rem', color: 'var(--text-accent)' }}>
-          Configuration
-        </h2>
-        <p style={{ marginBottom: '1rem', color: 'var(--text-secondary)' }}>
-          Customize your instance through environment variables:
-        </p>
-        <div className="card">
-          <pre>{`# .env.local
+      {/* Configuration - Diagonal Layout */}
+      <div style={{ 
+        maxWidth: '1200px', 
+        margin: '0 auto 6rem',
+        padding: '0 2rem'
+      }}>
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(12, 1fr)',
+          gap: '2rem',
+          alignItems: 'start'
+        }}>
+          <div style={{ gridColumn: '1 / span 5' }}>
+            <h2 style={{ 
+              marginBottom: '1rem', 
+              color: 'var(--text-accent)',
+              fontSize: '2rem',
+              fontWeight: 300
+            }}>
+              Configuration
+            </h2>
+            <p style={{ color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+              Customize your instance through environment variables
+            </p>
+          </div>
+
+          <div 
+            className="card"
+            style={{ 
+              gridColumn: '7 / span 6',
+              padding: '2.5rem',
+              transform: 'rotate(0.3deg)',
+              transition: 'all 0.4s ease',
+            }}
+          >
+            <pre style={{
+              background: 'var(--bg-primary)',
+              padding: '1.5rem',
+              border: '1px solid var(--border-medium)',
+              fontSize: '0.9rem',
+              lineHeight: 1.7,
+              overflow: 'auto',
+              marginBottom: '1rem'
+            }}>{`# .env.local
 NEXT_PUBLIC_DOMAIN=yourdomain.com
 NEXT_PUBLIC_SITE_NAME=Your Site Name
 NEXT_PUBLIC_SITE_DESCRIPTION=Your description
 NEXT_PUBLIC_AUTHOR_NAME=Your Name
 NEXT_PUBLIC_REPO_URL=https://github.com/you/your-fork`}</pre>
+            <p style={{ color: 'var(--text-tertiary)', fontSize: '0.875rem', lineHeight: 1.6 }}>
+              See <code style={{ padding: '0.125rem 0.375rem', background: 'var(--bg-primary)', border: '1px solid var(--border-medium)' }}>.env.example</code> for all available options.
+            </p>
+          </div>
         </div>
-        <p style={{ color: 'var(--text-tertiary)', fontSize: '0.875rem', marginTop: '1rem' }}>
-          See <code>.env.example</code> for all available options.
-        </p>
-      </section>
+      </div>
 
-      {/* Manual Setup */}
-      <section id="manual-setup" style={{ marginBottom: '3rem' }}>
-        <h2 style={{ marginBottom: '1.5rem', color: 'var(--text-accent)' }}>
+      {/* Manual Setup - Organic Staggered Cards */}
+      <div style={{ 
+        maxWidth: '1200px', 
+        margin: '0 auto 6rem',
+        padding: '0 2rem'
+      }} id="manual-setup">
+        <h2 style={{ 
+          marginBottom: '3rem', 
+          color: 'var(--text-accent)',
+          fontSize: '2rem',
+          fontWeight: 300,
+          textAlign: 'center'
+        }}>
           Manual Setup
         </h2>
         
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-          <div className="card">
-            <h3 style={{ marginBottom: '0.75rem' }}>1. Clone & Configure</h3>
-            <pre style={{ fontSize: '0.9rem' }}>{`git clone https://github.com/yourusername/aturi-to.git
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+          <div 
+            className="card" 
+            style={{ 
+              padding: '2.5rem',
+              transform: 'rotate(0.3deg)',
+              transition: 'all 0.4s ease',
+            }}
+          >
+            <h3 style={{ marginBottom: '1.25rem', fontSize: '1.5rem', fontWeight: 400 }}>
+              1. Clone & Configure
+            </h3>
+            <pre style={{
+              background: 'var(--bg-primary)',
+              padding: '1.5rem',
+              border: '1px solid var(--border-medium)',
+              fontSize: '0.9rem',
+              lineHeight: 1.7,
+              overflow: 'auto'
+            }}>{`git clone https://github.com/yourusername/aturi-to.git
 cd aturi-to
 cp .env.example .env.local
 # Edit .env.local with your settings`}</pre>
           </div>
 
-          <div className="card">
-            <h3 style={{ marginBottom: '0.75rem' }}>2. Customize Waypoints</h3>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem', marginBottom: '0.5rem' }}>
-              Edit <code>src/utils/waypoints.tsx</code> to add/remove platforms:
+          <div 
+            className="card" 
+            style={{ 
+              padding: '2.5rem',
+              transform: 'rotate(-0.4deg)',
+              transition: 'all 0.4s ease',
+            }}
+          >
+            <h3 style={{ marginBottom: '1.25rem', fontSize: '1.5rem', fontWeight: 400 }}>
+              2. Customize Waypoints
+            </h3>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem', marginBottom: '1rem', lineHeight: 1.6 }}>
+              Edit <code style={{ padding: '0.125rem 0.375rem', background: 'var(--bg-primary)', border: '1px solid var(--border-medium)' }}>src/utils/waypoints.tsx</code> to add/remove platforms:
             </p>
-            <pre style={{ fontSize: '0.9rem' }}>{`export const waypoints: Waypoint[] = [
+            <pre style={{
+              background: 'var(--bg-primary)',
+              padding: '1.5rem',
+              border: '1px solid var(--border-medium)',
+              fontSize: '0.9rem',
+              lineHeight: 1.7,
+              overflow: 'auto'
+            }}>{`export const waypoints: Waypoint[] = [
   {
     id: 'your-platform',
     name: 'Your Platform',
@@ -168,23 +359,49 @@ cp .env.example .env.local
 ];`}</pre>
           </div>
 
-          <div className="card">
-            <h3 style={{ marginBottom: '0.75rem' }}>3. Update Branding</h3>
+          <div 
+            className="card" 
+            style={{ 
+              padding: '2.5rem',
+              transform: 'rotate(0.2deg)',
+              transition: 'all 0.4s ease',
+            }}
+          >
+            <h3 style={{ marginBottom: '1.25rem', fontSize: '1.5rem', fontWeight: 400 }}>
+              3. Update Branding
+            </h3>
             <ul style={{ 
               color: 'var(--text-secondary)', 
               fontSize: '0.95rem',
               paddingLeft: '1.5rem',
-              margin: '0.5rem 0 0 0'
+              margin: 0,
+              lineHeight: 2
             }}>
-              <li>Replace logo in <code>public/</code></li>
-              <li>Update colors in <code>src/app/globals.css</code></li>
-              <li>Modify metadata in <code>src/app/layout.tsx</code></li>
+              <li>Replace logo in <code style={{ padding: '0.125rem 0.375rem', background: 'var(--bg-primary)', border: '1px solid var(--border-medium)' }}>public/</code></li>
+              <li>Update colors in <code style={{ padding: '0.125rem 0.375rem', background: 'var(--bg-primary)', border: '1px solid var(--border-medium)' }}>src/app/globals.css</code></li>
+              <li>Modify metadata in <code style={{ padding: '0.125rem 0.375rem', background: 'var(--bg-primary)', border: '1px solid var(--border-medium)' }}>src/app/layout.tsx</code></li>
             </ul>
           </div>
 
-          <div className="card">
-            <h3 style={{ marginBottom: '0.75rem' }}>4. Deploy</h3>
-            <pre style={{ fontSize: '0.9rem' }}>{`npm install
+          <div 
+            className="card" 
+            style={{ 
+              padding: '2.5rem',
+              transform: 'rotate(-0.3deg)',
+              transition: 'all 0.4s ease',
+            }}
+          >
+            <h3 style={{ marginBottom: '1.25rem', fontSize: '1.5rem', fontWeight: 400 }}>
+              4. Deploy
+            </h3>
+            <pre style={{
+              background: 'var(--bg-primary)',
+              padding: '1.5rem',
+              border: '1px solid var(--border-medium)',
+              fontSize: '0.9rem',
+              lineHeight: 1.7,
+              overflow: 'auto'
+            }}>{`npm install
 npm run dev  # Test locally
 
 # Deploy to Vercel
@@ -193,112 +410,194 @@ vercel
 # Add custom domain in Vercel settings`}</pre>
           </div>
         </div>
-      </section>
+      </div>
 
-      {/* GPL Requirements */}
-      <section className="card" style={{ 
-        marginBottom: '3rem',
-        background: 'var(--bg-elevated)',
-        borderLeft: '3px solid var(--text-accent)'
+      {/* GPL Requirements - Featured Card */}
+      <div style={{ 
+        maxWidth: '1200px', 
+        margin: '0 auto 6rem',
+        padding: '0 2rem'
       }}>
-        <h3 style={{ marginBottom: '0.75rem', color: 'var(--text-accent)' }}>
-          ⚖️ GPL v3 Requirements
-        </h3>
-        <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem', marginBottom: '0.75rem' }}>
-          When forking aturi.to, you must:
-        </p>
-        <ul style={{ 
-          color: 'var(--text-secondary)', 
-          fontSize: '0.95rem',
-          paddingLeft: '1.5rem',
-          margin: 0
-        }}>
-          <li>Keep your source code publicly available</li>
-          <li>Use GPL v3 or later for your fork</li>
-          <li>Include the LICENSE file</li>
-          <li>Mark any changes you make</li>
-        </ul>
-        <p style={{ color: 'var(--text-tertiary)', fontSize: '0.875rem', marginTop: '0.75rem' }}>
-          Attribution to the original project is appreciated and helps the ecosystem!
-        </p>
-      </section>
-
-      {/* Resources */}
-      <section style={{ marginBottom: '3rem' }}>
-        <h2 style={{ marginBottom: '1.5rem', color: 'var(--text-accent)' }}>
-          Resources
-        </h2>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-          <a
-            href="https://github.com/yourusername/aturi-to/blob/main/QUICKSTART.md"
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{
-              color: 'var(--text-accent)',
-              textDecoration: 'none',
-              fontSize: '0.95rem',
-            }}
-          >
-            → Quick Start Guide (10 minutes)
-          </a>
-          <a
-            href="https://github.com/yourusername/aturi-to/blob/main/FORKING.md"
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{
-              color: 'var(--text-accent)',
-              textDecoration: 'none',
-              fontSize: '0.95rem',
-            }}
-          >
-            → Complete Forking Guide
-          </a>
-          <a
-            href="https://github.com/yourusername/aturi-to/blob/main/CONTRIBUTING.md"
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{
-              color: 'var(--text-accent)',
-              textDecoration: 'none',
-              fontSize: '0.95rem',
-            }}
-          >
-            → Contributing Guidelines
-          </a>
-          <Link
-            href="/integrate"
-            style={{
-              color: 'var(--text-accent)',
-              textDecoration: 'none',
-              fontSize: '0.95rem',
-            }}
-          >
-            → Integration Guide
-          </Link>
-        </div>
-      </section>
-
-      {/* Support */}
-      <section className="card" style={{ background: 'var(--bg-elevated)', textAlign: 'center' }}>
-        <h2 style={{ marginBottom: '1rem', color: 'var(--text-accent)' }}>
-          Need Help?
-        </h2>
-        <p style={{ color: 'var(--text-secondary)', marginBottom: '1rem' }}>
-          Check the documentation or open an issue on GitHub.
-        </p>
-        <a
-          href="https://github.com/yourusername/aturi-to/issues"
-          target="_blank"
-          rel="noopener noreferrer"
-          style={{
-            color: 'var(--text-accent)',
-            textDecoration: 'underline',
-            textUnderlineOffset: '3px',
+        <div 
+          className="card" 
+          style={{ 
+            padding: '3rem',
+            background: 'var(--bg-elevated)',
+            borderLeft: '3px solid var(--text-accent)',
+            transform: 'rotate(-0.2deg)',
+            transition: 'all 0.4s ease',
           }}
         >
-          Report an issue
-        </a>
-      </section>
+          <h3 style={{ marginBottom: '1.25rem', color: 'var(--text-accent)', fontSize: '1.75rem', fontWeight: 400 }}>
+            ⚖️ GPL v3 Requirements
+          </h3>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '1rem', marginBottom: '1rem', lineHeight: 1.7 }}>
+            When forking aturi.to, you must:
+          </p>
+          <ul style={{ 
+            color: 'var(--text-secondary)', 
+            fontSize: '1rem',
+            paddingLeft: '1.5rem',
+            margin: 0,
+            lineHeight: 2
+          }}>
+            <li>Keep your source code publicly available</li>
+            <li>Use GPL v3 or later for your fork</li>
+            <li>Include the LICENSE file</li>
+            <li>Mark any changes you make</li>
+          </ul>
+          <p style={{ color: 'var(--text-tertiary)', fontSize: '0.875rem', marginTop: '1.25rem', lineHeight: 1.6 }}>
+            Attribution to the original project is appreciated and helps the ecosystem!
+          </p>
+        </div>
+      </div>
+
+      {/* Resources - Asymmetric Layout */}
+      <div style={{ 
+        maxWidth: '1200px', 
+        margin: '0 auto 6rem',
+        padding: '0 2rem'
+      }}>
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(12, 1fr)',
+          gap: '2rem'
+        }}>
+          <div style={{ gridColumn: '1 / span 4' }}>
+            <h2 style={{ 
+              marginBottom: '1rem', 
+              color: 'var(--text-accent)',
+              fontSize: '2rem',
+              fontWeight: 300
+            }}>
+              Resources
+            </h2>
+            <p style={{ color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+              Everything you need to get started
+            </p>
+          </div>
+
+          <div 
+            className="card"
+            style={{ 
+              gridColumn: '6 / span 7',
+              padding: '2.5rem',
+              transform: 'rotate(0.3deg)',
+              transition: 'all 0.4s ease',
+            }}
+          >
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <a
+                href="https://github.com/yourusername/aturi-to/blob/main/QUICKSTART.md"
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  color: 'var(--text-accent)',
+                  textDecoration: 'none',
+                  fontSize: '1rem',
+                  padding: '0.75rem',
+                  background: 'var(--bg-primary)',
+                  border: '1px solid var(--border-medium)',
+                  transition: 'all 0.2s ease',
+                }}
+              >
+                → Quick Start Guide (10 minutes)
+              </a>
+              <a
+                href="https://github.com/yourusername/aturi-to/blob/main/FORKING.md"
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  color: 'var(--text-accent)',
+                  textDecoration: 'none',
+                  fontSize: '1rem',
+                  padding: '0.75rem',
+                  background: 'var(--bg-primary)',
+                  border: '1px solid var(--border-medium)',
+                  transition: 'all 0.2s ease',
+                }}
+              >
+                → Complete Forking Guide
+              </a>
+              <a
+                href="https://github.com/yourusername/aturi-to/blob/main/CONTRIBUTING.md"
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  color: 'var(--text-accent)',
+                  textDecoration: 'none',
+                  fontSize: '1rem',
+                  padding: '0.75rem',
+                  background: 'var(--bg-primary)',
+                  border: '1px solid var(--border-medium)',
+                  transition: 'all 0.2s ease',
+                }}
+              >
+                → Contributing Guidelines
+              </a>
+              <Link
+                href="/integrate"
+                style={{
+                  color: 'var(--text-accent)',
+                  textDecoration: 'none',
+                  fontSize: '1rem',
+                  padding: '0.75rem',
+                  background: 'var(--bg-primary)',
+                  border: '1px solid var(--border-medium)',
+                  transition: 'all 0.2s ease',
+                }}
+              >
+                → Integration Guide
+              </Link>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Support - Full Width Centered */}
+      <div style={{ 
+        maxWidth: '1200px', 
+        margin: '0 auto 4rem',
+        padding: '0 2rem'
+      }}>
+        <div 
+          className="card" 
+          style={{ 
+            padding: '3rem',
+            background: 'var(--bg-elevated)', 
+            textAlign: 'center',
+            transform: 'rotate(-0.2deg)',
+            transition: 'all 0.4s ease',
+          }}
+        >
+          <h2 style={{ marginBottom: '1rem', color: 'var(--text-accent)', fontSize: '2rem', fontWeight: 400 }}>
+            Need Help?
+          </h2>
+          <p style={{ color: 'var(--text-secondary)', marginBottom: '1.5rem', fontSize: '1.05rem', lineHeight: 1.7 }}>
+            Check the documentation or open an issue on GitHub.
+          </p>
+          <a
+            href="https://github.com/yourusername/aturi-to/issues"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              padding: '0.875rem 1.75rem',
+              background: 'var(--accent-moss)',
+              border: '1px solid var(--accent-forest)',
+              color: 'var(--text-primary)',
+              textDecoration: 'none',
+              fontSize: '1rem',
+              transition: 'all 0.3s ease',
+              fontWeight: 400
+            }}
+          >
+            Report an issue
+          </a>
+        </div>
+      </div>
     </div>
   );
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { Home, Link2, Code, Leaf } from 'lucide-react';
 
@@ -11,11 +11,29 @@ interface HeaderProps {
 
 export default function Header({ simple = false, compact = false }: HeaderProps) {
   const [isExpanded, setIsExpanded] = useState(false);
+  const headerRef = useRef<HTMLElement>(null);
+
+  // Click outside to close menu
+  useEffect(() => {
+    if (!compact || !isExpanded) return;
+
+    const handleClickOutside = (event: MouseEvent) => {
+      if (headerRef.current && !headerRef.current.contains(event.target as Node)) {
+        setIsExpanded(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [compact, isExpanded]);
 
   // Ultra-compact mode for link preview pages
   if (compact) {
     return (
       <header
+        ref={headerRef}
         style={{
           position: 'relative',
           marginBottom: '2rem',
