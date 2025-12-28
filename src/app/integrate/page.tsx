@@ -32,6 +32,14 @@ aturi.to/[handle or did]/[collection]/[rkey]
 \`\`\`
 Example: \`aturi.to/alice.bsky.social/app.bsky.feed.post/3k7qw...\`
 
+### Full AT URI format (also supported):
+\`\`\`
+aturi.to/at/[did]/[collection]/[rkey]
+\`\`\`
+Example: \`aturi.to/at/did:plc:lcieujcfkv4jx7gehsvok3pr/app.bsky.feed.threadgate/3lwtzzgb7y22z\`
+
+Note: Use \`/at/\` prefix (not \`/at://\`) to preserve the DID format in the URL path.
+
 ## Code Examples
 
 ### JavaScript/TypeScript
@@ -52,6 +60,11 @@ const shareLink = toAturiLink(atUri);
 // Usage with custom domain
 const customLink = toAturiLink(atUri, 'myshare.app');
 // https://myshare.app/alice.bsky.social/app.bsky.feed.post/3k7qw...
+
+// Or use /at/ prefix for explicit AT URI format
+const didUri = "at://did:plc:xxx/app.bsky.feed.post/3k7qw...";
+const atLink = \`https://aturi.to/at/\${didUri.replace('at://', '')}\`;
+// https://aturi.to/at/did:plc:xxx/app.bsky.feed.post/3k7qw...
 \`\`\`
 
 ### React Component
@@ -314,11 +327,27 @@ aturi.to is a community tool for the ATProto ecosystem. The service is free and 
                 padding: '0.75rem',
                 background: 'var(--bg-primary)',
                 border: '1px solid var(--border-medium)',
+                marginBottom: '0.75rem'
               }}>
                 aturi.to/[handle or did]/[collection]/[rkey]
               </code>
-              <p style={{ color: 'var(--text-tertiary)', fontSize: '0.875rem', marginTop: '0.75rem' }}>
+              <p style={{ color: 'var(--text-tertiary)', fontSize: '0.875rem', marginBottom: '0.75rem' }}>
                 Example: <code>aturi.to/alice.bsky.social/app.bsky.feed.post/3k7qw...</code>
+              </p>
+              <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', marginTop: '1rem', marginBottom: '0.5rem' }}>
+                Also supports full AT URI format (using /at/ prefix):
+              </p>
+              <code style={{ 
+                display: 'block', 
+                fontSize: '0.85rem',
+                padding: '0.75rem',
+                background: 'var(--bg-primary)',
+                border: '1px solid var(--border-medium)',
+              }}>
+                aturi.to/at/[did]/[collection]/[rkey]
+              </code>
+              <p style={{ color: 'var(--text-tertiary)', fontSize: '0.875rem', marginTop: '0.75rem' }}>
+                Example: <code style={{ fontSize: '0.8rem' }}>aturi.to/at/did:plc:lcieujcfkv4jx7gehsvok3pr/app.bsky.feed.threadgate/3lwtzzgb7y22z</code>
               </p>
             </div>
           </div>
@@ -364,7 +393,7 @@ aturi.to is a community tool for the ATProto ecosystem. The service is free and 
               fontSize: '0.9rem',
               lineHeight: 1.6,
               overflow: 'auto'
-            }}>{`// Convert AT URI to aturi.to link (or your custom domain)
+              }}>{`// Convert AT URI to aturi.to link (or your custom domain)
 function toAturiLink(atUri: string, domain: string = 'aturi.to'): string {
   // at://alice.bsky.social/app.bsky.feed.post/3k7qw...
   const uri = atUri.replace('at://', '');
@@ -378,7 +407,12 @@ const shareLink = toAturiLink(atUri);
 
 // Usage with custom domain
 const customLink = toAturiLink(atUri, 'myshare.app');
-// https://myshare.app/alice.bsky.social/app.bsky.feed.post/3k7qw...`}</pre>
+// https://myshare.app/alice.bsky.social/app.bsky.feed.post/3k7qw...
+
+// Or use /at/ prefix for explicit AT URI format
+const didUri = "at://did:plc:xxx/app.bsky.feed.post/3k7qw...";
+const atLink = \`https://aturi.to/at/\${didUri.replace('at://', '')}\`;
+// https://aturi.to/at/did:plc:xxx/app.bsky.feed.post/3k7qw...`}</pre>
           </div>
 
           <div style={{
