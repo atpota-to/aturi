@@ -701,22 +701,6 @@ html {
   box-shadow: 0 4px 40px var(--glow-subtle);
 }
 
-/* Rough text effect using SVG displacement */
-.rough-text {
-  filter: url(#roughEdges);
-}
-
-/* Optional: stronger version */
-.rough-text-strong {
-  filter: url(#roughEdges);
-  letter-spacing: 0.01em;
-}
-
-/* Optional: apply to all headings */
-/* h1, h2, h3 {
-  filter: url(#roughEdges);
-} */
-
 /* Responsive */
 @media (max-width: 768px) {
   html {
