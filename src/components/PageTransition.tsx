@@ -20,7 +20,7 @@ export default function PageTransition({ children }: PageTransitionProps) {
         exit={{ opacity: 0, y: -20 }}
         transition={{
           duration: 0.4,
-          ease: [0.34, 1.56, 0.64, 1], // Organic bounce easing
+          ease: [0.34, 1.56, 0.64, 1] as [number, number, number, number], // Organic bounce easing
         }}
       >
         {children}

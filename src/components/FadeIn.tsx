@@ -19,7 +19,7 @@ export function FadeIn({ children, delay = 0, className, style }: FadeInProps) {
       transition={{
         duration: 0.7,
         delay,
-        ease: [0.34, 1.56, 0.64, 1], // Organic spring-like easing
+        ease: [0.34, 1.56, 0.64, 1] as [number, number, number, number], // Organic spring-like easing
       }}
       className={className}
       style={style}
