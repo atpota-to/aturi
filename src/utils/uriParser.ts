@@ -1,5 +1,5 @@
 export type ParsedURI = {
-  type: 'post' | 'profile' | 'list' | 'unknown';
+  type: 'post' | 'profile' | 'list' | 'record' | 'unknown';
   uri: string;
   handle: string;
   did?: string;
@@ -38,13 +38,14 @@ export function parseURI(handle: string, collection?: string, rkey?: string): Pa
 
   // Record case (has collection and rkey)
   if (collection && rkey) {
-    let type: 'post' | 'list' | 'unknown' = 'unknown';
+    let type: 'post' | 'list' | 'record' = 'record';
     
     if (collection === 'app.bsky.feed.post') {
       type = 'post';
     } else if (collection === 'app.bsky.graph.list') {
       type = 'list';
     }
+    // All other collections are treated as generic records
 
     return {
       type,
