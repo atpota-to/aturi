@@ -59,6 +59,8 @@ export default function WaypointPicker({
         return `Open profile for ${display} on...`;
       case 'list':
         return `Opening list by ${display}`;
+      case 'record':
+        return `Opening record from ${display}`;
       default:
         return `Opening content from ${display}`;
     }

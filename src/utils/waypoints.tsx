@@ -1,7 +1,7 @@
 import { ReactNode } from 'react';
 import { MoonStar, Wrench } from 'lucide-react';
 
-export type WaypointType = 'post' | 'profile' | 'list' | 'unknown';
+export type WaypointType = 'post' | 'profile' | 'list' | 'record' | 'unknown';
 
 export type Waypoint = {
   id: string;
@@ -134,7 +134,7 @@ export const WAYPOINT_DESTINATIONS: Record<string, Waypoint> = {
       }
       return `https://pdsls.dev/at/${handle}`;
     },
-    supportedTypes: ['post', 'profile', 'list'],
+    supportedTypes: ['post', 'profile', 'list', 'record'],
   },
 
   atptools: {
@@ -148,7 +148,7 @@ export const WAYPOINT_DESTINATIONS: Record<string, Waypoint> = {
       }
       return `https://atp.tools/profile/${handle}`;
     },
-    supportedTypes: ['post', 'profile', 'list'],
+    supportedTypes: ['post', 'profile', 'list', 'record'],
   },
 };
 
