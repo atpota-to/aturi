@@ -70,7 +70,10 @@ svg {
 body::before {
   content: '';
   position: fixed;
-  inset: 0;
+  top: -20%;
+  left: -20%;
+  width: 140%;
+  height: 140%;
   z-index: 0;
   pointer-events: none;
   background: 
@@ -81,6 +84,7 @@ body::before {
   animation: organicBreathe 8s ease-in-out infinite, organicShift 12s ease-in-out infinite;
   will-change: transform, opacity, filter;
   opacity: 0.9;
+  overflow: hidden;
 }
 
 /* Mobile-only fade for status bar and URL bar */
