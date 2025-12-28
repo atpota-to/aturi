@@ -57,6 +57,43 @@ export type BskyPost = {
       description: string;
       thumb?: string;
     };
+    video?: {
+      playlist: string;
+      thumbnail?: string;
+      alt?: string;
+    };
+    record?: {
+      $type: string;
+      author?: {
+        did: string;
+        handle: string;
+        displayName?: string;
+        avatar?: string;
+      };
+      record?: any;
+      notFound?: boolean;
+      blocked?: boolean;
+    };
+    media?: {
+      $type: string;
+      images?: Array<{
+        thumb: string;
+        fullsize: string;
+        alt: string;
+        aspectRatio?: { width: number; height: number };
+      }>;
+      external?: {
+        uri: string;
+        title: string;
+        description: string;
+        thumb?: string;
+      };
+      video?: {
+        playlist: string;
+        thumbnail?: string;
+        alt?: string;
+      };
+    };
   };
   replyCount?: number;
   repostCount?: number;

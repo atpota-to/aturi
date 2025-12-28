@@ -4,7 +4,7 @@
  */
 
 import { BskyPost } from '@/utils/recordFetcher';
-import { User, MessageSquare, Repeat2, Heart, Quote } from 'lucide-react';
+import { User, MessageSquare, Repeat2, Heart, Quote, Play } from 'lucide-react';
 
 type PostPreviewProps = {
   post: BskyPost;
@@ -22,6 +22,116 @@ export default function PostPreview({ post }: PostPreviewProps) {
     hour: '2-digit',
     minute: '2-digit',
   });
+
+  // Render a quoted post card
+  const renderQuotedPost = (quotedPost: any) => {
+    if (!quotedPost) return null;
+
+    // Handle blocked/not found records
+    if (quotedPost.notFound || quotedPost.blocked) {
+      return (
+        <div
+          style={{
+            border: '1px solid var(--border-medium)',
+            padding: '1rem',
+            marginBottom: '1rem',
+            background: 'var(--bg-tertiary)',
+            color: 'var(--text-tertiary)',
+            fontSize: '0.875rem',
+          }}
+        >
+          {quotedPost.notFound ? 'Post not found' : 'Post unavailable'}
+        </div>
+      );
+    }
+
+    const qAuthor = quotedPost.author;
+    const qRecord = quotedPost.record || {};
+
+    return (
+      <div
+        style={{
+          border: '1px solid var(--border-medium)',
+          padding: '1rem',
+          marginBottom: '1rem',
+          background: 'var(--bg-tertiary)',
+        }}
+      >
+        {/* Quoted post author */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+          {qAuthor?.avatar ? (
+            <div
+              style={{
+                width: '24px',
+                height: '24px',
+                border: '1px solid var(--accent-stone)',
+                overflow: 'hidden',
+                flexShrink: 0,
+              }}
+            >
+              <img
+                src={qAuthor.avatar}
+                alt={qAuthor.displayName || qAuthor.handle}
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  objectFit: 'cover',
+                  display: 'block',
+                }}
+              />
+            </div>
+          ) : (
+            <div
+              style={{
+                width: '24px',
+                height: '24px',
+                border: '1px solid var(--accent-stone)',
+                background: 'var(--bg-secondary)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+              }}
+            >
+              <User size={14} color="var(--text-tertiary)" />
+            </div>
+          )}
+          <div style={{ fontSize: '0.875rem' }}>
+            <span style={{ fontWeight: '600', color: 'var(--text-primary)' }}>
+              {qAuthor?.displayName || qAuthor?.handle || 'Unknown'}
+            </span>
+            {qAuthor?.handle && (
+              <span style={{ color: 'var(--text-tertiary)', marginLeft: '0.5rem' }}>
+                @{qAuthor.handle}
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* Quoted post text */}
+        {qRecord.text && (
+          <div style={{ 
+            fontSize: '0.875rem', 
+            color: 'var(--text-secondary)', 
+            marginBottom: '0.5rem',
+            whiteSpace: 'pre-wrap',
+          }}>
+            {qRecord.text}
+          </div>
+        )}
+
+        {/* Quoted post embed preview (simple version) */}
+        {quotedPost.embed && (
+          <div style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>
+            {quotedPost.embed.$type === 'app.bsky.embed.images#view' && '📷 Images'}
+            {quotedPost.embed.$type === 'app.bsky.embed.external#view' && '🔗 Link'}
+            {quotedPost.embed.$type === 'app.bsky.embed.video#view' && '🎥 Video'}
+            {quotedPost.embed.$type === 'app.bsky.embed.record#view' && '💬 Quote'}
+          </div>
+        )}
+      </div>
+    );
+  };
 
   // Parse text with facets (links, mentions, hashtags)
   const renderText = () => {
@@ -269,6 +379,170 @@ export default function PostPreview({ post }: PostPreviewProps) {
             </div>
           </div>
         </a>
+      )}
+
+      {/* Embed - Video */}
+      {embed?.$type === 'app.bsky.embed.video#view' && embed.video && (
+        <div
+          style={{
+            position: 'relative',
+            marginBottom: '1rem',
+            background: 'var(--bg-tertiary)',
+            overflow: 'hidden',
+          }}
+        >
+          <video
+            controls
+            poster={embed.thumbnail}
+            style={{
+              width: '100%',
+              maxHeight: '500px',
+              display: 'block',
+            }}
+          >
+            <source src={embed.playlist} type="application/x-mpegURL" />
+            Your browser does not support the video tag.
+          </video>
+          {embed.alt && (
+            <div style={{ 
+              padding: '0.5rem', 
+              fontSize: '0.875rem', 
+              color: 'var(--text-tertiary)',
+              background: 'var(--bg-secondary)',
+            }}>
+              {embed.alt}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Embed - Quote Post (Record) */}
+      {embed?.$type === 'app.bsky.embed.record#view' && embed.record && (
+        renderQuotedPost(embed.record)
+      )}
+
+      {/* Embed - Record with Media (Quote + Link/Image/Video) */}
+      {embed?.$type === 'app.bsky.embed.recordWithMedia#view' && (
+        <>
+          {/* Render the media first */}
+          {embed.media?.$type === 'app.bsky.embed.images#view' && embed.media.images && (
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: embed.media.images.length === 1 ? '1fr' : 'repeat(2, 1fr)',
+                gap: '0.5rem',
+                marginBottom: '1rem',
+              }}
+            >
+              {embed.media.images.map((image: any, i: number) => (
+                <a
+                  key={i}
+                  href={image.fullsize}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ 
+                    display: 'block',
+                    overflow: 'hidden',
+                  }}
+                >
+                  <img
+                    src={image.thumb}
+                    alt={image.alt}
+                    style={{
+                      width: '100%',
+                      height: 'auto',
+                      maxHeight: '400px',
+                      objectFit: 'cover',
+                      background: 'var(--bg-tertiary)',
+                      display: 'block',
+                    }}
+                  />
+                </a>
+              ))}
+            </div>
+          )}
+
+          {embed.media?.$type === 'app.bsky.embed.external#view' && embed.media.external && (
+            <a
+              href={embed.media.external.uri}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                display: 'block',
+                marginBottom: '1rem',
+                border: '1px solid var(--border-medium)',
+                textDecoration: 'none',
+                color: 'inherit',
+                overflow: 'hidden',
+                transition: 'border-color 0.2s ease',
+              }}
+              className="external-link-card"
+            >
+              {embed.media.external.thumb && (
+                <img
+                  src={embed.media.external.thumb}
+                  alt=""
+                  style={{
+                    width: '100%',
+                    height: 'auto',
+                    maxHeight: '300px',
+                    objectFit: 'cover',
+                    background: 'var(--bg-tertiary)',
+                    display: 'block',
+                  }}
+                />
+              )}
+              <div style={{ padding: '1rem' }}>
+                <div style={{ fontWeight: '600', marginBottom: '0.25rem', color: 'var(--text-primary)' }}>
+                  {embed.media.external.title}
+                </div>
+                <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
+                  {embed.media.external.description}
+                </div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)', marginTop: '0.5rem' }}>
+                  {new URL(embed.media.external.uri).hostname}
+                </div>
+              </div>
+            </a>
+          )}
+
+          {embed.media?.$type === 'app.bsky.embed.video#view' && embed.media.video && (
+            <div
+              style={{
+                position: 'relative',
+                marginBottom: '1rem',
+                background: 'var(--bg-tertiary)',
+                overflow: 'hidden',
+              }}
+            >
+              <video
+                controls
+                poster={embed.media.thumbnail}
+                style={{
+                  width: '100%',
+                  maxHeight: '500px',
+                  display: 'block',
+                }}
+              >
+                <source src={embed.media.playlist} type="application/x-mpegURL" />
+                Your browser does not support the video tag.
+              </video>
+              {embed.media.alt && (
+                <div style={{ 
+                  padding: '0.5rem', 
+                  fontSize: '0.875rem', 
+                  color: 'var(--text-tertiary)',
+                  background: 'var(--bg-secondary)',
+                }}>
+                  {embed.media.alt}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Then render the quoted record */}
+          {embed.record?.record && renderQuotedPost(embed.record.record)}
+        </>
       )}
 
       {/* Post Metadata */}
