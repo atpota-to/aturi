@@ -5,10 +5,9 @@ import ProfilePreview from '@/components/ProfilePreview';
 import ProfilePreviewSkeleton from '@/components/ProfilePreviewSkeleton';
 import ScrollIndicator from '@/components/ScrollIndicator';
 import Header from '@/components/Header';
-import { parseURI, resolveHandle, getDisplayName } from '@/utils/uriParser';
+import { resolveHandle, getDisplayName } from '@/utils/uriParser';
 import { resolveDidToHandle } from '@/utils/didResolver';
-import { fetchProfile, type BskyProfile } from '@/utils/profileFetcher';
-import { getSiteUrl } from '@/lib/config';
+import { fetchProfile } from '@/utils/profileFetcher';
 
 type Props = {
   params: Promise<{ handle: string }>;
@@ -38,8 +37,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
         ? profile.description.slice(0, 160) 
         : `View @${displayHandle}'s profile on your preferred ATProto app`;
       
-      // Generate OG image URL
-      const ogImageUrl = new URL('/api/og/profile', getSiteUrl());
+      // Generate OG image URL - hardcode production domain
+      const ogImageUrl = new URL('/api/og/profile', 'https://aturi.to');
       ogImageUrl.searchParams.set('handle', resolvedDid);
       
       return {
@@ -77,55 +76,44 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 async function ProfileContent({ handle }: { handle: string }) {
-  try {
-    const resolvedDid = await resolveHandle(handle);
-    
-    if (!resolvedDid) {
-      return (
-        <div className="container-narrow" style={{ padding: '2rem 2rem 4rem', textAlign: 'center' }}>
-          <Header compact />
-          <h1 style={{ marginBottom: '1rem', color: 'var(--text-primary)' }}>Error</h1>
-          <p style={{ color: 'var(--text-secondary)' }}>Could not resolve handle</p>
-        </div>
-      );
-    }
-
-    const resolvedHandle = handle.startsWith('did:')
-      ? await resolveDidToHandle(resolvedDid) || handle
-      : handle;
-
-    const profileData = await fetchProfile(resolvedDid);
-
-    return (
-      <div className="container-narrow" style={{ padding: '2rem 2rem 4rem' }}>
-        <Header compact />
-
-        {profileData && (
-          <div className="content-fade-in">
-            <ProfilePreview profile={profileData} />
-          </div>
-        )}
-
-        <WaypointPicker
-          type="profile"
-          handle={resolvedHandle}
-          displayName={getDisplayName(resolvedHandle, resolvedDid)}
-        />
-
-        {/* Floating scroll indicator overlay */}
-        <ScrollIndicator />
-      </div>
-    );
-  } catch (error) {
-    console.error('Error loading profile:', error);
+  const resolvedDid = await resolveHandle(handle);
+  
+  if (!resolvedDid) {
     return (
       <div className="container-narrow" style={{ padding: '2rem 2rem 4rem', textAlign: 'center' }}>
         <Header compact />
         <h1 style={{ marginBottom: '1rem', color: 'var(--text-primary)' }}>Error</h1>
-        <p style={{ color: 'var(--text-secondary)' }}>Error loading profile</p>
+        <p style={{ color: 'var(--text-secondary)' }}>Could not resolve handle</p>
       </div>
     );
   }
+
+  const resolvedHandle = handle.startsWith('did:')
+    ? await resolveDidToHandle(resolvedDid) || handle
+    : handle;
+
+  const profileData = await fetchProfile(resolvedDid);
+
+  return (
+    <div className="container-narrow" style={{ padding: '2rem 2rem 4rem' }}>
+      <Header compact />
+
+      {profileData && (
+        <div className="content-fade-in">
+          <ProfilePreview profile={profileData} />
+        </div>
+      )}
+
+      <WaypointPicker
+        type="profile"
+        handle={resolvedHandle}
+        displayName={getDisplayName(resolvedHandle, resolvedDid)}
+      />
+
+      {/* Floating scroll indicator overlay */}
+      <ScrollIndicator />
+    </div>
+  );
 }
 
 export default async function ProfilePage({ params }: Props) {

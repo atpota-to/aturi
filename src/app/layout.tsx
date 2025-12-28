@@ -2,16 +2,12 @@ import type { Metadata } from "next";
 import { Analytics } from "@vercel/analytics/next";
 import Footer from "@/components/Footer";
 import PageTransition from "@/components/PageTransition";
-import { getSiteUrl } from "@/lib/config";
 import "./globals.css";
-
-// Force use production URL for OG images
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://aturi.to';
 
 export const metadata: Metadata = {
   title: "aturi.to - Universal links for the ATmosphere",
   description: "Share ATProto content with anyone, let them choose where to view it",
-  metadataBase: new URL(siteUrl),
+  metadataBase: new URL('https://aturi.to'),
   openGraph: {
     title: "aturi.to - Universal links for the ATmosphere",
     description: "Share ATProto content with anyone, let them choose where to view it",

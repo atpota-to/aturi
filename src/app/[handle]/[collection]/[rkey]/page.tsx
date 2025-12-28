@@ -4,13 +4,11 @@ import WaypointPicker from '@/components/WaypointPicker';
 import PostPreview from '@/components/PostPreview';
 import PostPreviewSkeleton from '@/components/PostPreviewSkeleton';
 import RecordPreview from '@/components/RecordPreview';
-import RecordPreviewSkeleton from '@/components/RecordPreviewSkeleton';
 import ScrollIndicator from '@/components/ScrollIndicator';
 import Header from '@/components/Header';
-import { parseURI, resolveHandle, getDisplayName, type ParsedURI } from '@/utils/uriParser';
-import { fetchRecordData, type PostThread, type GenericRecord } from '@/utils/recordFetcher';
+import { parseURI, resolveHandle, getDisplayName } from '@/utils/uriParser';
+import { fetchRecordData } from '@/utils/recordFetcher';
 import { resolveDidToHandle } from '@/utils/didResolver';
-import { getSiteUrl } from '@/lib/config';
 
 type Props = {
   params: Promise<{ handle: string; collection: string; rkey: string }>;
@@ -31,7 +29,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       };
     }
 
-    const parsedData = parseURI(handle, collection, rkey);
+    // Parse and fetch record data
+    parseURI(handle, collection, rkey); // Validate URI format
     const recordData = await fetchRecordData(resolvedDid, collection, rkey);
     const displayHandle = handle.startsWith('did:') 
       ? await resolveDidToHandle(resolvedDid) || handle
@@ -50,7 +49,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
           ? post.record.text.slice(0, 160) 
           : 'View this post on your preferred ATProto app';
         
-        const ogUrl = new URL('/api/og/post', getSiteUrl());
+        const ogUrl = new URL('/api/og/post', 'https://aturi.to');
         ogUrl.searchParams.set('handle', resolvedDid);
         ogUrl.searchParams.set('rkey', rkey);
         ogImageUrl = ogUrl.toString();
@@ -65,7 +64,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
             ? record.value.description.slice(0, 160)
             : 'View this list on your preferred ATProto app';
           
-          const ogUrl = new URL('/api/og/list', getSiteUrl());
+          const ogUrl = new URL('/api/og/list', 'https://aturi.to');
           ogUrl.searchParams.set('handle', resolvedDid);
           ogUrl.searchParams.set('rkey', rkey);
           ogImageUrl = ogUrl.toString();

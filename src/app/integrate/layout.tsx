@@ -1,11 +1,9 @@
 import type { Metadata } from "next";
 
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://aturi.to';
-
 export const metadata: Metadata = {
   title: "Integrate - aturi.to",
   description: "Add universal sharing to your ATProto app. Simple URL patterns for seamless integration.",
-  metadataBase: new URL(siteUrl),
+  metadataBase: new URL('https://aturi.to'),
   openGraph: {
     title: "Integrate - aturi.to",
     description: "Add universal sharing to your ATProto app",

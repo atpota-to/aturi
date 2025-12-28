@@ -1,11 +1,9 @@
 import type { Metadata } from "next";
 
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://aturi.to';
-
 export const metadata: Metadata = {
   title: "Create Link - aturi.to",
   description: "Turn any ATProto URL into a universal link. Paste a Bluesky URL or AT URI and get your aturi.to link.",
-  metadataBase: new URL(siteUrl),
+  metadataBase: new URL('https://aturi.to'),
   openGraph: {
     title: "Create Link - aturi.to",
     description: "Turn any ATProto URL into a universal link",
