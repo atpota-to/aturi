@@ -40,7 +40,8 @@ async function loadGoogleFont(font: string, text: string) {
 
 export async function GET(request: NextRequest) {
   const startTime = Date.now();
-  console.log('[OG Post] Request started');
+  const url = request.url;
+  console.log('[OG Post] Request started:', url);
   
   try {
     const { searchParams } = new URL(request.url);
@@ -50,7 +51,7 @@ export async function GET(request: NextRequest) {
     console.log('[OG Post] Params:', { identifier, rkey });
 
     if (!identifier || !rkey) {
-      console.log('[OG Post] Missing parameters');
+      console.error('[OG Post] Missing parameters');
       return new Response('Missing parameters', { status: 400 });
     }
 
@@ -350,18 +351,21 @@ export async function GET(request: NextRequest) {
     const duration = Date.now() - startTime;
     console.log(`[OG Post] Image generated successfully in ${duration}ms`);
     
-    // Add proper cache headers for social media crawlers
-    const headers = new Headers();
-    headers.set('Content-Type', 'image/png');
-    headers.set('Cache-Control', 'public, max-age=3600, s-maxage=3600, stale-while-revalidate=86400');
+    // ImageResponse already returns a proper Response, just add cache headers
+    imageResponse.headers.set('Cache-Control', 'public, max-age=3600, s-maxage=3600, stale-while-revalidate=86400');
     
-    return new Response(imageResponse.body, {
-      status: 200,
-      headers,
-    });
+    return imageResponse;
   } catch (error) {
     const duration = Date.now() - startTime;
     console.error(`[OG Post] Error generating OG image (${duration}ms):`, error);
-    return new Response('Error generating image', { status: 500 });
+    console.error('[OG Post] Error stack:', error instanceof Error ? error.stack : 'No stack trace');
+    
+    // Return a simple error response
+    return new Response(`Error generating image: ${error instanceof Error ? error.message : 'Unknown error'}`, { 
+      status: 500,
+      headers: {
+        'Content-Type': 'text/plain',
+      }
+    });
   }
 }
