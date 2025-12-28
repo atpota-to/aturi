@@ -46,7 +46,8 @@ export default function PostPreview({ post }: PostPreviewProps) {
     }
 
     const qAuthor = quotedPost.author;
-    const qRecord = quotedPost.record || {};
+    const qRecord = quotedPost.value || quotedPost.record || {};
+    const qEmbeds = quotedPost.embeds || [];
 
     return (
       <div
@@ -113,16 +114,132 @@ export default function PostPreview({ post }: PostPreviewProps) {
           <div style={{ 
             fontSize: '0.875rem', 
             color: 'var(--text-secondary)', 
-            marginBottom: '0.5rem',
+            marginBottom: qEmbeds.length > 0 ? '0.5rem' : '0',
             whiteSpace: 'pre-wrap',
           }}>
             {qRecord.text}
           </div>
         )}
 
-        {/* Quoted post embed preview (simple version) */}
-        {quotedPost.embed && (
-          <div style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>
+        {/* Quoted post embeds - render them properly */}
+        {qEmbeds.map((qEmbed: any, idx: number) => {
+          // Images
+          if (qEmbed.$type === 'app.bsky.embed.images#view' && qEmbed.images) {
+            return (
+              <div
+                key={idx}
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: qEmbed.images.length === 1 ? '1fr' : 'repeat(2, 1fr)',
+                  gap: '0.25rem',
+                  marginTop: '0.5rem',
+                }}
+              >
+                {qEmbed.images.map((image: any, i: number) => (
+                  <a
+                    key={i}
+                    href={image.fullsize}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{ 
+                      display: 'block',
+                      overflow: 'hidden',
+                    }}
+                  >
+                    <img
+                      src={image.thumb}
+                      alt={image.alt}
+                      style={{
+                        width: '100%',
+                        height: 'auto',
+                        maxHeight: '200px',
+                        objectFit: 'cover',
+                        background: 'var(--bg-secondary)',
+                        display: 'block',
+                      }}
+                    />
+                  </a>
+                ))}
+              </div>
+            );
+          }
+
+          // External link
+          if (qEmbed.$type === 'app.bsky.embed.external#view' && qEmbed.external) {
+            return (
+              <a
+                key={idx}
+                href={qEmbed.external.uri}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  display: 'block',
+                  marginTop: '0.5rem',
+                  border: '1px solid var(--border-medium)',
+                  textDecoration: 'none',
+                  color: 'inherit',
+                  overflow: 'hidden',
+                  fontSize: '0.75rem',
+                }}
+              >
+                {qEmbed.external.thumb && (
+                  <img
+                    src={qEmbed.external.thumb}
+                    alt=""
+                    style={{
+                      width: '100%',
+                      height: 'auto',
+                      maxHeight: '150px',
+                      objectFit: 'cover',
+                      background: 'var(--bg-secondary)',
+                      display: 'block',
+                    }}
+                  />
+                )}
+                <div style={{ padding: '0.5rem' }}>
+                  <div style={{ fontWeight: '600', marginBottom: '0.25rem', color: 'var(--text-primary)' }}>
+                    {qEmbed.external.title}
+                  </div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>
+                    {new URL(qEmbed.external.uri).hostname}
+                  </div>
+                </div>
+              </a>
+            );
+          }
+
+          // Video
+          if (qEmbed.$type === 'app.bsky.embed.video#view' && qEmbed.video) {
+            return (
+              <div
+                key={idx}
+                style={{
+                  marginTop: '0.5rem',
+                  background: 'var(--bg-secondary)',
+                  overflow: 'hidden',
+                }}
+              >
+                <video
+                  controls
+                  poster={qEmbed.video.thumbnail}
+                  style={{
+                    width: '100%',
+                    maxHeight: '200px',
+                    display: 'block',
+                  }}
+                >
+                  <source src={qEmbed.video.playlist} type="application/x-mpegURL" />
+                </video>
+              </div>
+            );
+          }
+
+          return null;
+        })}
+
+        {/* If no embeds were rendered but there's an embed object, show indicator */}
+        {qEmbeds.length === 0 && quotedPost.embed && (
+          <div style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)', marginTop: '0.5rem' }}>
             {quotedPost.embed.$type === 'app.bsky.embed.images#view' && '📷 Images'}
             {quotedPost.embed.$type === 'app.bsky.embed.external#view' && '🔗 Link'}
             {quotedPost.embed.$type === 'app.bsky.embed.video#view' && '🎥 Video'}
