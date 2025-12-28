@@ -785,6 +785,7 @@ html {
   border: 1px solid var(--border-medium);
   transition: all 0.4s ease;
   will-change: transform;
+  cursor: pointer;
 }
 
 .parent-card:hover {

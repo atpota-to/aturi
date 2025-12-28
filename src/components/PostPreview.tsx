@@ -401,8 +401,12 @@ export default function PostPreview({ post, parent }: PostPreviewProps) {
     <>
       {/* Parent Post Context - shown if this is a reply */}
       {parent && (
-        <div
+        <a
+          href={`/${parent.author.did || parent.author.handle}/app.bsky.feed.post/${parent.uri.split('/').pop()}`}
           style={{
+            display: 'block',
+            textDecoration: 'none',
+            color: 'inherit',
             position: 'relative',
             marginBottom: '-1.5rem',
             padding: '1rem 1.25rem',
@@ -655,7 +659,7 @@ export default function PostPreview({ post, parent }: PostPreviewProps) {
               )}
             </>
           )}
-        </div>
+        </a>
       )}
 
       <div
