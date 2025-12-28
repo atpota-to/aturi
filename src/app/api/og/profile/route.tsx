@@ -201,8 +201,8 @@ export async function GET(request: NextRequest) {
               </div>
               <div
                 style={{
-                  fontSize: '22px',
-                  color: '#686866',
+                  fontSize: '28px',
+                  color: '#a8a8a6',
                   fontWeight: 400,
                   letterSpacing: '1px',
                   display: 'flex',
@@ -360,7 +360,7 @@ export async function GET(request: NextRequest) {
                       style={{
                         fontWeight: 300,
                         fontSize: '18px',
-                        color: '#686866',
+                        color: '#b8b8b6',
                         display: 'flex',
                       }}
                     >
@@ -382,7 +382,7 @@ export async function GET(request: NextRequest) {
                       style={{
                         fontWeight: 300,
                         fontSize: '18px',
-                        color: '#686866',
+                        color: '#b8b8b6',
                         display: 'flex',
                       }}
                     >
@@ -404,7 +404,7 @@ export async function GET(request: NextRequest) {
                       style={{
                         fontWeight: 300,
                         fontSize: '18px',
-                        color: '#686866',
+                        color: '#b8b8b6',
                         display: 'flex',
                       }}
                     >
@@ -419,8 +419,8 @@ export async function GET(request: NextRequest) {
             <div
               style={{
                 marginTop: '50px',
-                fontSize: '22px',
-                color: '#686866',
+                fontSize: '26px',
+                color: '#a8a8a6',
                 textAlign: 'right',
                 fontWeight: 400,
                 letterSpacing: '0.5px',

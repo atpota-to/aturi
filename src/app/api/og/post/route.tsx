@@ -198,8 +198,8 @@ export async function GET(request: NextRequest) {
               </div>
               <div
                 style={{
-                  fontSize: '22px',
-                  color: '#686866',
+                  fontSize: '28px',
+                  color: '#a8a8a6',
                   fontWeight: 400,
                   letterSpacing: '1px',
                   display: 'flex',
@@ -304,15 +304,15 @@ export async function GET(request: NextRequest) {
                   fontWeight: 300,
                 }}
               >
-                <div style={{ display: 'flex', gap: '6px', color: '#686866' }}>
+                <div style={{ display: 'flex', gap: '6px', color: '#b8b8b6' }}>
                   <span style={{ color: '#8a9a7f', fontWeight: 400 }}>{likeCount.toLocaleString()}</span>
                   <span>likes</span>
                 </div>
-                <div style={{ display: 'flex', gap: '6px', color: '#686866' }}>
+                <div style={{ display: 'flex', gap: '6px', color: '#b8b8b6' }}>
                   <span style={{ color: '#8a9a7f', fontWeight: 400 }}>{repostCount.toLocaleString()}</span>
                   <span>reposts</span>
                 </div>
-                <div style={{ display: 'flex', gap: '6px', color: '#686866' }}>
+                <div style={{ display: 'flex', gap: '6px', color: '#b8b8b6' }}>
                   <span style={{ color: '#8a9a7f', fontWeight: 400 }}>{replyCount.toLocaleString()}</span>
                   <span>replies</span>
                 </div>
@@ -321,8 +321,8 @@ export async function GET(request: NextRequest) {
               {/* Right: Tagline */}
               <div
                 style={{
-                  fontSize: '22px',
-                  color: '#686866',
+                  fontSize: '26px',
+                  color: '#a8a8a6',
                   fontWeight: 400,
                   letterSpacing: '0.5px',
                   display: 'flex',

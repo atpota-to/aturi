@@ -19,6 +19,16 @@ export type BskyPost = {
     $type: string;
     text: string;
     createdAt: string;
+    reply?: {
+      parent: {
+        uri: string;
+        cid: string;
+      };
+      root: {
+        uri: string;
+        cid: string;
+      };
+    };
     embed?: {
       $type: string;
       images?: Array<{
@@ -113,6 +123,7 @@ export type PostThread = {
       post: BskyPost;
     };
   }>;
+  parent?: BskyPost;
 };
 
 export type GenericRecord = {
@@ -174,10 +185,10 @@ export async function fetchRecord(
  */
 export async function fetchPostThread(postUri: string): Promise<PostThread | null> {
   try {
-    // Use the public API for getPostThread (which actually uses the unspecced v2 endpoint)
+    // Use the public API for getPostThread with depth=1 to get parent posts
     const url = `https://public.api.bsky.app/xrpc/app.bsky.feed.getPostThread?uri=${encodeURIComponent(
       postUri
-    )}&depth=0`;
+    )}&depth=0&parentHeight=1`;
 
     const response = await fetch(url);
     if (!response.ok) {
@@ -188,10 +199,10 @@ export async function fetchPostThread(postUri: string): Promise<PostThread | nul
     const data = await response.json();
     
     // Transform the response to match our expected format
-    // The actual API returns { thread: { post, replies, ... } }
+    // The actual API returns { thread: { post, parent, replies, ... } }
     // We want to normalize it into an array format
     if (data.thread && data.thread.post) {
-      return {
+      const result: PostThread = {
         thread: [
           {
             uri: data.thread.post.uri,
@@ -203,6 +214,13 @@ export async function fetchPostThread(postUri: string): Promise<PostThread | nul
           },
         ],
       };
+
+      // Include parent post if it exists
+      if (data.thread.parent && data.thread.parent.post) {
+        result.parent = data.thread.parent.post;
+      }
+
+      return result;
     }
 
     return null;

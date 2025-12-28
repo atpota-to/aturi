@@ -779,6 +779,20 @@ html {
   border-color: var(--text-accent);
 }
 
+/* Parent post card - layered behind reply card */
+.parent-card {
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-medium);
+  transition: all 0.4s ease;
+  will-change: transform;
+}
+
+.parent-card:hover {
+  background: var(--bg-elevated);
+  border-color: var(--border-strong);
+  transform: rotate(-0.3deg) scale(0.97) !important;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   html {

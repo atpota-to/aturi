@@ -159,7 +159,10 @@ async function RecordContent({ handle, collection, rkey }: { handle: string; col
         {recordData && (
           <div className="content-fade-in">
             {recordData.type === 'post' && recordData.data.thread[0]?.value.post && (
-              <PostPreview post={recordData.data.thread[0].value.post} />
+              <PostPreview 
+                post={recordData.data.thread[0].value.post} 
+                parent={recordData.data.parent}
+              />
             )}
             {recordData.type === 'record' && (
               <RecordPreview 

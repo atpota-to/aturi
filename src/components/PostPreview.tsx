@@ -6,13 +6,14 @@
 'use client';
 
 import { BskyPost } from '@/utils/recordFetcher';
-import { User, MessageSquare, Repeat2, Heart, Quote, Play } from 'lucide-react';
+import { User, MessageSquare, Repeat2, Heart, Quote, Play, CornerDownRight } from 'lucide-react';
 
 type PostPreviewProps = {
   post: BskyPost;
+  parent?: BskyPost;
 };
 
-export default function PostPreview({ post }: PostPreviewProps) {
+export default function PostPreview({ post, parent }: PostPreviewProps) {
   const { author, record, embed, replyCount, repostCount, likeCount, quoteCount } = post;
 
   // Format the date nicely
@@ -205,6 +206,8 @@ export default function PostPreview({ post }: PostPreviewProps) {
                         objectFit: 'cover',
                         background: 'var(--bg-secondary)',
                         display: 'block',
+                        border: '1px solid var(--border-medium)',
+                        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.3)',
                       }}
                     />
                   </a>
@@ -229,6 +232,7 @@ export default function PostPreview({ post }: PostPreviewProps) {
                   color: 'inherit',
                   overflow: 'hidden',
                   fontSize: '0.75rem',
+                  boxShadow: '0 2px 8px rgba(0, 0, 0, 0.2)',
                 }}
               >
                 {qEmbed.external.thumb && (
@@ -242,6 +246,7 @@ export default function PostPreview({ post }: PostPreviewProps) {
                       objectFit: 'cover',
                       background: 'var(--bg-secondary)',
                       display: 'block',
+                      borderBottom: '1px solid var(--border-medium)',
                     }}
                   />
                 )}
@@ -266,6 +271,8 @@ export default function PostPreview({ post }: PostPreviewProps) {
                   marginTop: '0.5rem',
                   background: 'var(--bg-secondary)',
                   overflow: 'hidden',
+                  border: '1px solid var(--border-medium)',
+                  boxShadow: '0 2px 8px rgba(0, 0, 0, 0.3)',
                 }}
               >
                 <video
@@ -391,17 +398,280 @@ export default function PostPreview({ post }: PostPreviewProps) {
   };
 
   return (
-    <div
-      style={{
-        marginBottom: '2rem',
-        padding: '1.5rem',
-        background: 'var(--bg-secondary)',
-        border: '1px solid var(--border-medium)',
-        transform: 'rotate(0.4deg)',
-        transition: 'all 0.4s ease',
-      }}
-      className="card"
-    >
+    <>
+      {/* Parent Post Context - shown if this is a reply */}
+      {parent && (
+        <div
+          style={{
+            position: 'relative',
+            marginBottom: '-1.5rem',
+            padding: '1rem 1.25rem',
+            background: 'var(--bg-tertiary)',
+            border: '1px solid var(--border-medium)',
+            transform: 'rotate(-0.3deg) scale(0.96)',
+            transformOrigin: 'top center',
+            transition: 'all 0.4s ease',
+            paddingBottom: '3rem',
+            zIndex: 0,
+          }}
+          className="parent-card"
+        >
+          <div style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: '0.5rem',
+            marginBottom: '0.75rem',
+            color: 'var(--text-tertiary)',
+            fontSize: '0.875rem',
+          }}>
+            <CornerDownRight size={14} />
+            <span>Replying to</span>
+          </div>
+
+          {/* Parent Author */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+            <a
+              href={`/${parent.author.did || parent.author.handle}`}
+              style={{ textDecoration: 'none', flexShrink: 0 }}
+            >
+              {parent.author.avatar ? (
+                <div
+                  style={{
+                    width: '32px',
+                    height: '32px',
+                    border: '1px solid var(--accent-stone)',
+                    overflow: 'hidden',
+                    transition: 'border-color 0.2s ease',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.borderColor = 'var(--text-accent)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.borderColor = 'var(--accent-stone)';
+                  }}
+                >
+                  <img
+                    src={parent.author.avatar}
+                    alt={parent.author.displayName || parent.author.handle}
+                    style={{
+                      width: '100%',
+                      height: '100%',
+                      objectFit: 'cover',
+                      display: 'block',
+                    }}
+                  />
+                </div>
+              ) : (
+                <div
+                  style={{
+                    width: '32px',
+                    height: '32px',
+                    border: '1px solid var(--accent-stone)',
+                    background: 'var(--bg-secondary)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    transition: 'border-color 0.2s ease',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.borderColor = 'var(--text-accent)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.borderColor = 'var(--accent-stone)';
+                  }}
+                >
+                  <User size={16} color="var(--text-tertiary)" />
+                </div>
+              )}
+            </a>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <a
+                href={`/${parent.author.did || parent.author.handle}`}
+                style={{
+                  fontWeight: '600',
+                  color: 'var(--text-primary)',
+                  textDecoration: 'none',
+                  transition: 'color 0.2s ease',
+                  fontSize: '0.875rem',
+                  display: 'block',
+                  lineHeight: '1.2',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.color = 'var(--text-accent)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.color = 'var(--text-primary)';
+                }}
+              >
+                {parent.author.displayName || parent.author.handle}
+              </a>
+              <div style={{ fontSize: '0.875rem', lineHeight: '1.2' }}>
+                <a
+                  href={`/${parent.author.did || parent.author.handle}`}
+                  style={{
+                    color: 'var(--text-tertiary)',
+                    textDecoration: 'none',
+                    transition: 'color 0.2s ease',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.color = 'var(--text-accent)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.color = 'var(--text-tertiary)';
+                  }}
+                >
+                  @{parent.author.handle}
+                </a>
+              </div>
+            </div>
+          </div>
+
+          {/* Parent Post Text (truncated) */}
+          {parent.record.text && (
+            <div
+              style={{
+                fontSize: '0.875rem',
+                color: 'var(--text-secondary)',
+                whiteSpace: 'pre-wrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                display: '-webkit-box',
+                WebkitLineClamp: 3,
+                WebkitBoxOrient: 'vertical',
+                lineHeight: '1.4',
+                marginBottom: parent.embed ? '0.5rem' : '0',
+              }}
+            >
+              {parent.record.text}
+            </div>
+          )}
+
+          {/* Parent Post Embeds - Show images/video/external links */}
+          {parent.embed && (
+            <>
+              {/* Images */}
+              {parent.embed.$type === 'app.bsky.embed.images#view' && parent.embed.images && (
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: parent.embed.images.length === 1 ? '1fr' : 'repeat(2, 1fr)',
+                    gap: '0.25rem',
+                  }}
+                >
+                  {parent.embed.images.slice(0, 2).map((image: any, i: number) => (
+                    <a
+                      key={i}
+                      href={image.fullsize}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{ 
+                        display: 'block',
+                        overflow: 'hidden',
+                      }}
+                    >
+                      <img
+                        src={image.thumb}
+                        alt={image.alt}
+                        style={{
+                          width: '100%',
+                          height: 'auto',
+                          maxHeight: '120px',
+                          objectFit: 'cover',
+                          background: 'var(--bg-secondary)',
+                          display: 'block',
+                          border: '1px solid var(--border-medium)',
+                          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.3)',
+                        }}
+                      />
+                    </a>
+                  ))}
+                </div>
+              )}
+
+              {/* External link */}
+              {parent.embed.$type === 'app.bsky.embed.external#view' && parent.embed.external && (
+                <a
+                  href={parent.embed.external.uri}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    display: 'block',
+                    border: '1px solid var(--border-medium)',
+                    textDecoration: 'none',
+                    color: 'inherit',
+                    overflow: 'hidden',
+                    fontSize: '0.75rem',
+                    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.2)',
+                  }}
+                >
+                  {parent.embed.external.thumb && (
+                    <img
+                      src={parent.embed.external.thumb}
+                      alt=""
+                      style={{
+                        width: '100%',
+                        height: 'auto',
+                        maxHeight: '100px',
+                        objectFit: 'cover',
+                        background: 'var(--bg-secondary)',
+                        display: 'block',
+                        borderBottom: '1px solid var(--border-medium)',
+                      }}
+                    />
+                  )}
+                  <div style={{ padding: '0.5rem' }}>
+                    <div style={{ fontWeight: '600', marginBottom: '0.25rem', color: 'var(--text-primary)' }}>
+                      {parent.embed.external.title}
+                    </div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>
+                      {new URL(parent.embed.external.uri).hostname}
+                    </div>
+                  </div>
+                </a>
+              )}
+
+              {/* Video */}
+              {parent.embed.$type === 'app.bsky.embed.video#view' && parent.embed.playlist && (
+                <div
+                  style={{
+                    background: 'var(--bg-secondary)',
+                    overflow: 'hidden',
+                    border: '1px solid var(--border-medium)',
+                    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.3)',
+                  }}
+                >
+                  <video
+                    controls
+                    poster={parent.embed.thumbnail}
+                    style={{
+                      width: '100%',
+                      maxHeight: '150px',
+                      display: 'block',
+                    }}
+                  >
+                    <source src={parent.embed.playlist} type="application/x-mpegURL" />
+                  </video>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      )}
+
+      <div
+        style={{
+          position: 'relative',
+          marginBottom: '2rem',
+          padding: '1.5rem',
+          background: 'var(--bg-secondary)',
+          border: '1px solid var(--border-medium)',
+          transform: 'rotate(0.4deg)',
+          transition: 'all 0.4s ease',
+          boxShadow: parent ? '0 8px 24px rgba(0, 0, 0, 0.4)' : 'none',
+          zIndex: 1,
+        }}
+        className="card"
+      >
       {/* Author Info */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
         <a
@@ -467,6 +737,8 @@ export default function PostPreview({ post }: PostPreviewProps) {
               color: 'var(--text-primary)',
               textDecoration: 'none',
               transition: 'color 0.2s ease',
+              display: 'block',
+              lineHeight: '1.2',
             }}
             onMouseEnter={(e) => {
               e.currentTarget.style.color = 'var(--text-accent)';
@@ -482,7 +754,7 @@ export default function PostPreview({ post }: PostPreviewProps) {
               </span>
             )}
           </a>
-          <div style={{ fontSize: '0.875rem' }}>
+          <div style={{ fontSize: '0.875rem', lineHeight: '1.2' }}>
             <a
               href={`/${author.did || author.handle}`}
               style={{
@@ -539,6 +811,8 @@ export default function PostPreview({ post }: PostPreviewProps) {
                   objectFit: 'cover',
                   background: 'var(--bg-tertiary)',
                   display: 'block',
+                  border: '1px solid var(--border-medium)',
+                  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.4)',
                 }}
               />
             </a>
@@ -560,6 +834,7 @@ export default function PostPreview({ post }: PostPreviewProps) {
             color: 'inherit',
             overflow: 'hidden',
             transition: 'border-color 0.2s ease',
+            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
           }}
           className="external-link-card"
         >
@@ -574,6 +849,7 @@ export default function PostPreview({ post }: PostPreviewProps) {
                 objectFit: 'cover',
                 background: 'var(--bg-tertiary)',
                 display: 'block',
+                borderBottom: '1px solid var(--border-medium)',
               }}
             />
           )}
@@ -599,6 +875,8 @@ export default function PostPreview({ post }: PostPreviewProps) {
             marginBottom: '1rem',
             background: 'var(--bg-tertiary)',
             overflow: 'hidden',
+            border: '1px solid var(--border-medium)',
+            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.4)',
           }}
         >
           <video
@@ -665,6 +943,8 @@ export default function PostPreview({ post }: PostPreviewProps) {
                       objectFit: 'cover',
                       background: 'var(--bg-tertiary)',
                       display: 'block',
+                      border: '1px solid var(--border-medium)',
+                      boxShadow: '0 4px 12px rgba(0, 0, 0, 0.4)',
                     }}
                   />
                 </a>
@@ -685,6 +965,7 @@ export default function PostPreview({ post }: PostPreviewProps) {
                 color: 'inherit',
                 overflow: 'hidden',
                 transition: 'border-color 0.2s ease',
+                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
               }}
               className="external-link-card"
             >
@@ -699,6 +980,7 @@ export default function PostPreview({ post }: PostPreviewProps) {
                     objectFit: 'cover',
                     background: 'var(--bg-tertiary)',
                     display: 'block',
+                    borderBottom: '1px solid var(--border-medium)',
                   }}
                 />
               )}
@@ -723,6 +1005,8 @@ export default function PostPreview({ post }: PostPreviewProps) {
                 marginBottom: '1rem',
                 background: 'var(--bg-tertiary)',
                 overflow: 'hidden',
+                border: '1px solid var(--border-medium)',
+                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.4)',
               }}
             >
               <video
@@ -786,6 +1070,7 @@ export default function PostPreview({ post }: PostPreviewProps) {
         <div style={{ marginLeft: 'auto', fontSize: '0.75rem' }}>{formattedDate}</div>
       </div>
     </div>
+    </>
   );
 }
 
