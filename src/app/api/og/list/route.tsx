@@ -6,10 +6,10 @@ export const runtime = 'edge';
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const handle = searchParams.get('handle');
+    const identifier = searchParams.get('handle'); // This should be a DID
     const rkey = searchParams.get('rkey');
 
-    if (!handle || !rkey) {
+    if (!identifier || !rkey) {
       return new Response('Missing parameters', { status: 400 });
     }
 
@@ -20,17 +20,17 @@ export async function GET(request: NextRequest) {
     let creatorData = null;
     
     try {
-      const did = handle.startsWith('did:') ? handle : handle;
-      const uri = `at://${did}/app.bsky.graph.list/${rkey}`;
+      // Build the full AT URI - identifier should already be a DID
+      const uri = `at://${identifier}/app.bsky.graph.list/${rkey}`;
       
-      // Note: The actual API endpoint for lists might differ
-      // This is a placeholder structure
+      // Fetch list data
       const response = await fetch(
         `${apiUrl}/xrpc/app.bsky.graph.getList?list=${encodeURIComponent(uri)}`,
         {
           headers: {
             'Accept': 'application/json',
           },
+          next: { revalidate: 3600 }, // Cache for 1 hour
         }
       );
 
@@ -48,8 +48,8 @@ export async function GET(request: NextRequest) {
     const truncatedDescription = listDescription.length > 150 
       ? listDescription.slice(0, 150) + '...' 
       : listDescription;
-    const creatorName = creatorData?.displayName || creatorData?.handle || handle;
-    const creatorHandle = creatorData?.handle || handle;
+    const creatorName = creatorData?.displayName || creatorData?.handle || identifier;
+    const creatorHandle = creatorData?.handle || identifier;
 
     return new ImageResponse(
       (

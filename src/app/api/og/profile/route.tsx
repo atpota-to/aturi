@@ -6,24 +6,25 @@ export const runtime = 'edge';
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const handle = searchParams.get('handle');
+    const identifier = searchParams.get('handle'); // This can be a handle or DID
 
-    if (!handle) {
+    if (!identifier) {
       return new Response('Missing handle parameter', { status: 400 });
     }
 
-    // Fetch profile data from Bluesky API
+    // Fetch profile data from Bluesky API using the identifier (works with both handle and DID)
     const apiUrl = process.env.NEXT_PUBLIC_BSKY_API_URL || 'https://public.api.bsky.app';
     
     let profileData = null;
     
     try {
       const response = await fetch(
-        `${apiUrl}/xrpc/app.bsky.actor.getProfile?actor=${encodeURIComponent(handle)}`,
+        `${apiUrl}/xrpc/app.bsky.actor.getProfile?actor=${encodeURIComponent(identifier)}`,
         {
           headers: {
             'Accept': 'application/json',
           },
+          next: { revalidate: 3600 }, // Cache for 1 hour
         }
       );
 
@@ -34,8 +35,8 @@ export async function GET(request: NextRequest) {
       console.error('Error fetching profile:', error);
     }
 
-    const displayName = profileData?.displayName || handle;
-    const handleName = profileData?.handle || handle;
+    const displayName = profileData?.displayName || profileData?.handle || identifier;
+    const handleName = profileData?.handle || identifier;
     const bio = profileData?.description || 'ATProto user';
     const truncatedBio = bio.length > 150 ? bio.slice(0, 150) + '...' : bio;
     const followers = profileData?.followersCount || 0;
@@ -98,7 +99,7 @@ export async function GET(request: NextRequest) {
               {displayName}
             </div>
             <div style={{ fontSize: '28px', color: '#a8a8a6', marginBottom: '30px' }}>
-              @{handleName}
+              {'@' + handleName}
             </div>
 
             {/* Bio */}
@@ -116,17 +117,17 @@ export async function GET(request: NextRequest) {
 
             {/* Stats */}
             <div style={{ display: 'flex', gap: '60px', fontSize: '20px', color: '#686866' }}>
-              <div>
-                <span style={{ color: '#8a9a7f', fontSize: '28px', fontWeight: 500 }}>
+              <div style={{ display: 'flex' }}>
+                <span style={{ color: '#8a9a7f', fontSize: '28px', fontWeight: 500, marginRight: '8px' }}>
                   {followers.toLocaleString()}
-                </span>{' '}
-                followers
+                </span>
+                <span>followers</span>
               </div>
-              <div>
-                <span style={{ color: '#8a9a7f', fontSize: '28px', fontWeight: 500 }}>
+              <div style={{ display: 'flex' }}>
+                <span style={{ color: '#8a9a7f', fontSize: '28px', fontWeight: 500, marginRight: '8px' }}>
                   {following.toLocaleString()}
-                </span>{' '}
-                following
+                </span>
+                <span>following</span>
               </div>
             </div>
           </div>

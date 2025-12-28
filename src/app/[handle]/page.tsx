@@ -1,7 +1,5 @@
-'use client';
-
-import { useEffect, useState } from 'react';
-import { useParams } from 'next/navigation';
+import { Metadata } from 'next';
+import { Suspense } from 'react';
 import WaypointPicker from '@/components/WaypointPicker';
 import ProfilePreview from '@/components/ProfilePreview';
 import ProfilePreviewSkeleton from '@/components/ProfilePreviewSkeleton';
@@ -9,96 +7,138 @@ import Header from '@/components/Header';
 import { parseURI, resolveHandle, getDisplayName } from '@/utils/uriParser';
 import { resolveDidToHandle } from '@/utils/didResolver';
 import { fetchProfile, type BskyProfile } from '@/utils/profileFetcher';
+import { getSiteUrl } from '@/lib/config';
 
-export default function ProfilePage() {
-  const params = useParams();
-  // Decode the handle parameter in case it's URL encoded (for DIDs with colons)
-  const handle = decodeURIComponent(params.handle as string);
+type Props = {
+  params: Promise<{ handle: string }>;
+};
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { handle: rawHandle } = await params;
+  const handle = decodeURIComponent(rawHandle);
   
-  const [isLoading, setIsLoading] = useState(true);
-  const [did, setDid] = useState<string | null>(null);
-  const [resolvedHandle, setResolvedHandle] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [profileData, setProfileData] = useState<BskyProfile | null>(null);
-
-  useEffect(() => {
-    async function resolve() {
-      try {
-        const resolvedDid = await resolveHandle(handle);
-        if (resolvedDid) {
-          setDid(resolvedDid);
-          
-          // If the original input was a DID, resolve it back to a handle for display
-          if (handle.startsWith('did:')) {
-            const handleFromDid = await resolveDidToHandle(resolvedDid);
-            if (handleFromDid) {
-              setResolvedHandle(handleFromDid);
-            }
-          } else {
-            // If it was already a handle, use it
-            setResolvedHandle(handle);
-          }
-          
-          // Fetch the profile data for preview
-          const profile = await fetchProfile(resolvedDid);
-          if (profile) {
-            setProfileData(profile);
-          } else {
-            console.warn('Failed to fetch profile data');
-          }
-        } else {
-          setError('Could not resolve handle');
-        }
-      } catch (err) {
-        setError('Error resolving handle');
-        console.error(err);
-      } finally {
-        setIsLoading(false);
-      }
+  try {
+    const resolvedDid = await resolveHandle(handle);
+    if (!resolvedDid) {
+      return {
+        title: 'Profile not found - aturi.to',
+        description: 'Universal links for the ATmosphere',
+      };
     }
 
-    resolve();
-  }, [handle]);
+    const profile = await fetchProfile(resolvedDid);
+    const displayHandle = handle.startsWith('did:') 
+      ? await resolveDidToHandle(resolvedDid) || handle
+      : handle;
+    
+    if (profile) {
+      const title = `${profile.displayName || displayHandle} (@${displayHandle}) - aturi.to`;
+      const description = profile.description 
+        ? profile.description.slice(0, 160) 
+        : `View @${displayHandle}'s profile on your preferred ATProto app`;
+      
+      // Generate OG image URL
+      const ogImageUrl = new URL('/api/og/profile', getSiteUrl());
+      ogImageUrl.searchParams.set('handle', resolvedDid);
+      
+      return {
+        title,
+        description,
+        openGraph: {
+          title,
+          description,
+          type: 'profile',
+          images: [
+            {
+              url: ogImageUrl.toString(),
+              width: 1200,
+              height: 630,
+              alt: `${profile.displayName || displayHandle}'s profile`,
+            },
+          ],
+        },
+        twitter: {
+          card: 'summary_large_image',
+          title,
+          description,
+          images: [ogImageUrl.toString()],
+        },
+      };
+    }
+  } catch (error) {
+    console.error('Error generating metadata:', error);
+  }
 
-  if (isLoading) {
+  return {
+    title: `@${handle} - aturi.to`,
+    description: 'Universal links for the ATmosphere',
+  };
+}
+
+async function ProfileContent({ handle }: { handle: string }) {
+  try {
+    const resolvedDid = await resolveHandle(handle);
+    
+    if (!resolvedDid) {
+      return (
+        <div className="container-narrow" style={{ padding: '2rem 2rem 4rem', textAlign: 'center' }}>
+          <Header compact />
+          <h1 style={{ marginBottom: '1rem', color: 'var(--text-primary)' }}>Error</h1>
+          <p style={{ color: 'var(--text-secondary)' }}>Could not resolve handle</p>
+        </div>
+      );
+    }
+
+    const resolvedHandle = handle.startsWith('did:')
+      ? await resolveDidToHandle(resolvedDid) || handle
+      : handle;
+
+    const profileData = await fetchProfile(resolvedDid);
+
     return (
       <div className="container-narrow" style={{ padding: '2rem 2rem 4rem' }}>
         <Header compact />
-        <ProfilePreviewSkeleton />
+
+        {profileData && (
+          <div className="content-fade-in">
+            <ProfilePreview profile={profileData} />
+          </div>
+        )}
+
+        <WaypointPicker
+          type="profile"
+          handle={resolvedHandle}
+          displayName={getDisplayName(resolvedHandle, resolvedDid)}
+        />
       </div>
     );
-  }
-
-  if (error) {
+  } catch (error) {
+    console.error('Error loading profile:', error);
     return (
       <div className="container-narrow" style={{ padding: '2rem 2rem 4rem', textAlign: 'center' }}>
         <Header compact />
         <h1 style={{ marginBottom: '1rem', color: 'var(--text-primary)' }}>Error</h1>
-        <p style={{ color: 'var(--text-secondary)' }}>{error}</p>
+        <p style={{ color: 'var(--text-secondary)' }}>Error loading profile</p>
       </div>
     );
   }
+}
 
-  const parsed = parseURI(handle);
+export default async function ProfilePage({ params }: Props) {
+  const { handle: rawHandle } = await params;
+  const handle = decodeURIComponent(rawHandle);
 
   return (
-    <div className="container-narrow" style={{ padding: '2rem 2rem 4rem' }}>
-      {/* Site Header - Compact Mode */}
-      <Header compact />
-
-      {/* Profile Preview */}
-      {profileData && (
-        <div className="content-fade-in">
-          <ProfilePreview profile={profileData} />
+    <Suspense
+      fallback={
+        <div className="container-narrow" style={{ padding: '2rem 2rem 4rem' }}>
+          <Header compact />
+          <ProfilePreviewSkeleton />
         </div>
-      )}
-
-      <WaypointPicker
-        type="profile"
-        handle={resolvedHandle || handle}
-        displayName={getDisplayName(resolvedHandle || handle, did || undefined)}
-      />
-    </div>
+      }
+    >
+      <ProfileContent handle={handle} />
+    </Suspense>
   );
 }
 

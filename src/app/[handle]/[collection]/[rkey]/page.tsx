@@ -1,7 +1,5 @@
-'use client';
-
-import { useEffect, useState } from 'react';
-import { useParams } from 'next/navigation';
+import { Metadata } from 'next';
+import { Suspense } from 'react';
 import WaypointPicker from '@/components/WaypointPicker';
 import PostPreview from '@/components/PostPreview';
 import PostPreviewSkeleton from '@/components/PostPreviewSkeleton';
@@ -11,126 +9,205 @@ import Header from '@/components/Header';
 import { parseURI, resolveHandle, getDisplayName, type ParsedURI } from '@/utils/uriParser';
 import { fetchRecordData, type PostThread, type GenericRecord } from '@/utils/recordFetcher';
 import { resolveDidToHandle } from '@/utils/didResolver';
+import { getSiteUrl } from '@/lib/config';
 
-export default function RecordPage() {
-  const params = useParams();
-  // Decode the handle parameter in case it's URL encoded (for DIDs with colons)
-  const handle = decodeURIComponent(params.handle as string);
-  const collection = decodeURIComponent(params.collection as string);
-  const rkey = decodeURIComponent(params.rkey as string);
+type Props = {
+  params: Promise<{ handle: string; collection: string; rkey: string }>;
+};
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { handle: rawHandle, collection: rawCollection, rkey: rawRkey } = await params;
+  const handle = decodeURIComponent(rawHandle);
+  const collection = decodeURIComponent(rawCollection);
+  const rkey = decodeURIComponent(rawRkey);
   
-  const [isLoading, setIsLoading] = useState(true);
-  const [did, setDid] = useState<string | null>(null);
-  const [resolvedHandle, setResolvedHandle] = useState<string | null>(null);
-  const [parsed, setParsed] = useState<ParsedURI | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [recordData, setRecordData] = useState<
-    { type: 'post'; data: PostThread } | { type: 'record'; data: GenericRecord } | null
-  >(null);
-
-  useEffect(() => {
-    async function resolve() {
-      try {
-        const parsedData = parseURI(handle, collection, rkey);
-        
-        if (parsedData.error) {
-          setError(parsedData.error);
-          setIsLoading(false);
-          return;
-        }
-
-        setParsed(parsedData);
-
-        const resolvedDid = await resolveHandle(handle);
-        console.log('Resolved DID:', resolvedDid, 'from handle:', handle);
-        
-        if (resolvedDid) {
-          setDid(resolvedDid);
-          
-          // If the original input was a DID, resolve it back to a handle for display
-          if (handle.startsWith('did:')) {
-            const handleFromDid = await resolveDidToHandle(resolvedDid);
-            if (handleFromDid) {
-              setResolvedHandle(handleFromDid);
-            }
-          } else {
-            // If it was already a handle, use it
-            setResolvedHandle(handle);
-          }
-          
-          // Fetch the record data for preview
-          const data = await fetchRecordData(resolvedDid, collection, rkey);
-          if (data) {
-            setRecordData(data);
-          } else {
-            console.warn('Failed to fetch record data');
-          }
-        } else {
-          console.error('Could not resolve handle:', handle);
-          setError(`Could not resolve handle: ${handle}`);
-        }
-      } catch (err) {
-        setError('Error processing URI');
-        console.error('Error in resolve():', err);
-      } finally {
-        setIsLoading(false);
-      }
+  try {
+    const resolvedDid = await resolveHandle(handle);
+    if (!resolvedDid) {
+      return {
+        title: 'Record not found - aturi.to',
+        description: 'Universal links for the ATmosphere',
+      };
     }
 
-    resolve();
-  }, [handle, collection, rkey]);
+    const parsedData = parseURI(handle, collection, rkey);
+    const recordData = await fetchRecordData(resolvedDid, collection, rkey);
+    const displayHandle = handle.startsWith('did:') 
+      ? await resolveDidToHandle(resolvedDid) || handle
+      : handle;
+    
+    if (recordData) {
+      let title = '';
+      let description = '';
+      let ogImageUrl = '';
 
-  if (isLoading) {
+      if (recordData.type === 'post' && recordData.data.thread[0]?.value.post) {
+        const post = recordData.data.thread[0].value.post;
+        const author = post.author;
+        title = `${author.displayName || author.handle} (@${author.handle}) on ATProto`;
+        description = post.record?.text 
+          ? post.record.text.slice(0, 160) 
+          : 'View this post on your preferred ATProto app';
+        
+        const ogUrl = new URL('/api/og/post', getSiteUrl());
+        ogUrl.searchParams.set('handle', resolvedDid);
+        ogUrl.searchParams.set('rkey', rkey);
+        ogImageUrl = ogUrl.toString();
+      } else if (recordData.type === 'record') {
+        const record = recordData.data;
+        
+        if (collection === 'app.bsky.graph.list' || collection.endsWith('.list')) {
+          title = record.value?.name 
+            ? `${record.value.name} - ATProto List`
+            : 'ATProto List';
+          description = record.value?.description 
+            ? record.value.description.slice(0, 160)
+            : 'View this list on your preferred ATProto app';
+          
+          const ogUrl = new URL('/api/og/list', getSiteUrl());
+          ogUrl.searchParams.set('handle', resolvedDid);
+          ogUrl.searchParams.set('rkey', rkey);
+          ogImageUrl = ogUrl.toString();
+        } else {
+          title = `ATProto Record - @${displayHandle}`;
+          description = `View this ${collection} record on your preferred ATProto app`;
+        }
+      }
+      
+      return {
+        title: `${title} - aturi.to`,
+        description,
+        openGraph: {
+          title,
+          description,
+          type: 'article',
+          images: ogImageUrl ? [
+            {
+              url: ogImageUrl,
+              width: 1200,
+              height: 630,
+              alt: title,
+            },
+          ] : undefined,
+        },
+        twitter: {
+          card: 'summary_large_image',
+          title,
+          description,
+          images: ogImageUrl ? [ogImageUrl] : undefined,
+        },
+      };
+    }
+  } catch (error) {
+    console.error('Error generating metadata:', error);
+  }
+
+  return {
+    title: `Record - aturi.to`,
+    description: 'Universal links for the ATmosphere',
+  };
+}
+
+async function RecordContent({ handle, collection, rkey }: { handle: string; collection: string; rkey: string }) {
+  try {
+    const parsedData = parseURI(handle, collection, rkey);
+    
+    if (parsedData.error) {
+      return (
+        <div className="container-narrow" style={{ padding: '2rem 2rem 4rem', textAlign: 'center' }}>
+          <Header compact />
+          <h1 style={{ marginBottom: '1rem', color: 'var(--text-primary)' }}>Error</h1>
+          <p style={{ color: 'var(--text-secondary)' }}>{parsedData.error}</p>
+        </div>
+      );
+    }
+
+    const resolvedDid = await resolveHandle(handle);
+    
+    if (!resolvedDid) {
+      return (
+        <div className="container-narrow" style={{ padding: '2rem 2rem 4rem', textAlign: 'center' }}>
+          <Header compact />
+          <h1 style={{ marginBottom: '1rem', color: 'var(--text-primary)' }}>Error</h1>
+          <p style={{ color: 'var(--text-secondary)' }}>Could not resolve handle: {handle}</p>
+        </div>
+      );
+    }
+
+    const resolvedHandle = handle.startsWith('did:')
+      ? await resolveDidToHandle(resolvedDid) || handle
+      : handle;
+
+    const recordData = await fetchRecordData(resolvedDid, collection, rkey);
+
+    if (parsedData.type === 'unknown') {
+      return (
+        <div className="container-narrow" style={{ padding: '2rem 2rem 4rem', textAlign: 'center' }}>
+          <Header compact />
+          <h1 style={{ marginBottom: '1rem', color: 'var(--text-primary)' }}>Error</h1>
+          <p style={{ color: 'var(--text-secondary)' }}>Invalid or unsupported URI</p>
+        </div>
+      );
+    }
+
     return (
       <div className="container-narrow" style={{ padding: '2rem 2rem 4rem' }}>
         <Header compact />
-        {/* Show a post skeleton by default, as most records are posts */}
-        <PostPreviewSkeleton />
+
+        {recordData && (
+          <div className="content-fade-in">
+            {recordData.type === 'post' && recordData.data.thread[0]?.value.post && (
+              <PostPreview post={recordData.data.thread[0].value.post} />
+            )}
+            {recordData.type === 'record' && (
+              <RecordPreview 
+                record={recordData.data} 
+                collection={collection}
+                handle={resolvedHandle}
+                rkey={rkey}
+              />
+            )}
+          </div>
+        )}
+
+        <WaypointPicker
+          type={parsedData.type}
+          handle={resolvedHandle}
+          collection={collection}
+          rkey={rkey}
+          displayName={getDisplayName(resolvedHandle, resolvedDid)}
+        />
       </div>
     );
-  }
-
-  if (error || !parsed || parsed.type === 'unknown') {
+  } catch (error) {
+    console.error('Error loading record:', error);
     return (
       <div className="container-narrow" style={{ padding: '2rem 2rem 4rem', textAlign: 'center' }}>
         <Header compact />
         <h1 style={{ marginBottom: '1rem', color: 'var(--text-primary)' }}>Error</h1>
-        <p style={{ color: 'var(--text-secondary)' }}>{error || 'Invalid or unsupported URI'}</p>
+        <p style={{ color: 'var(--text-secondary)' }}>Error processing URI</p>
       </div>
     );
   }
+}
+
+export default async function RecordPage({ params }: Props) {
+  const { handle: rawHandle, collection: rawCollection, rkey: rawRkey } = await params;
+  const handle = decodeURIComponent(rawHandle);
+  const collection = decodeURIComponent(rawCollection);
+  const rkey = decodeURIComponent(rawRkey);
 
   return (
-    <div className="container-narrow" style={{ padding: '2rem 2rem 4rem' }}>
-      {/* Site Header - Compact Mode */}
-      <Header compact />
-
-      {/* Record Preview */}
-      {recordData && (
-        <div className="content-fade-in">
-          {recordData.type === 'post' && recordData.data.thread[0]?.value.post && (
-            <PostPreview post={recordData.data.thread[0].value.post} />
-          )}
-          {recordData.type === 'record' && (
-            <RecordPreview 
-              record={recordData.data} 
-              collection={collection}
-              handle={resolvedHandle || handle}
-              rkey={rkey}
-            />
-          )}
+    <Suspense
+      fallback={
+        <div className="container-narrow" style={{ padding: '2rem 2rem 4rem' }}>
+          <Header compact />
+          <PostPreviewSkeleton />
         </div>
-      )}
-
-      {/* Waypoint Picker */}
-      <WaypointPicker
-        type={parsed.type}
-        handle={resolvedHandle || handle}
-        collection={collection}
-        rkey={rkey}
-        displayName={getDisplayName(resolvedHandle || handle, did || undefined)}
-      />
-    </div>
+      }
+    >
+      <RecordContent handle={handle} collection={collection} rkey={rkey} />
+    </Suspense>
   );
 }
 

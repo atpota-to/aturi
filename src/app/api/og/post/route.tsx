@@ -6,10 +6,10 @@ export const runtime = 'edge';
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const handle = searchParams.get('handle');
+    const identifier = searchParams.get('handle'); // This should be a DID
     const rkey = searchParams.get('rkey');
 
-    if (!handle || !rkey) {
+    if (!identifier || !rkey) {
       return new Response('Missing parameters', { status: 400 });
     }
 
@@ -20,9 +20,8 @@ export async function GET(request: NextRequest) {
     let authorData = null;
     
     try {
-      // Build the full AT URI
-      const did = handle.startsWith('did:') ? handle : handle;
-      const uri = `at://${did}/app.bsky.feed.post/${rkey}`;
+      // Build the full AT URI - identifier should already be a DID
+      const uri = `at://${identifier}/app.bsky.feed.post/${rkey}`;
       
       // Fetch the post thread
       const response = await fetch(
@@ -31,6 +30,7 @@ export async function GET(request: NextRequest) {
           headers: {
             'Accept': 'application/json',
           },
+          next: { revalidate: 3600 }, // Cache for 1 hour
         }
       );
 
@@ -43,8 +43,8 @@ export async function GET(request: NextRequest) {
       console.error('Error fetching post:', error);
     }
 
-    const displayName = authorData?.displayName || authorData?.handle || handle;
-    const handleName = authorData?.handle || handle;
+    const displayName = authorData?.displayName || authorData?.handle || identifier;
+    const handleName = authorData?.handle || identifier;
     const postText = postData?.text || 'Post content';
     const truncatedText = postText.length > 200 ? postText.slice(0, 200) + '...' : postText;
 
