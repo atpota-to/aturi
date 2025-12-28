@@ -87,6 +87,18 @@ body::before {
   animation: organicBreathe 8s ease-in-out infinite, organicShift 12s ease-in-out infinite;
   will-change: transform, opacity, filter;
   opacity: 0.9;
+  mask-image: linear-gradient(to bottom, 
+    transparent 0%, 
+    black 8%, 
+    black 92%, 
+    transparent 100%
+  );
+  -webkit-mask-image: linear-gradient(to bottom, 
+    transparent 0%, 
+    black 8%, 
+    black 92%, 
+    transparent 100%
+  );
 }
 
 @keyframes organicBreathe {
@@ -437,6 +449,18 @@ body::after {
   opacity: 0.6;
   pointer-events: none;
   z-index: 9999;
+  mask-image: linear-gradient(to bottom, 
+    transparent 0%, 
+    black 8%, 
+    black 92%, 
+    transparent 100%
+  );
+  -webkit-mask-image: linear-gradient(to bottom, 
+    transparent 0%, 
+    black 8%, 
+    black 92%, 
+    transparent 100%
+  );
 }
 
 /* Smooth scroll */
