@@ -111,7 +111,12 @@ export default function RecordPage() {
             <PostPreview post={recordData.data.thread[0].value.post} />
           )}
           {recordData.type === 'record' && (
-            <RecordPreview record={recordData.data} collection={collection} />
+            <RecordPreview 
+              record={recordData.data} 
+              collection={collection}
+              handle={resolvedHandle || handle}
+              rkey={rkey}
+            />
           )}
         </div>
       )}
