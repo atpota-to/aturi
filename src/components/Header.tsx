@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { Home, Link2, Code, Leaf } from 'lucide-react';
+import { motion } from 'framer-motion';
 
 interface HeaderProps {
   simple?: boolean; // If true, shows a smaller version without the tagline
@@ -242,7 +243,10 @@ export default function Header({ simple = false, compact = false }: HeaderProps)
         paddingTop: '2rem',
       }}
     >
-      <h1
+      <motion.h1
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6, ease: [0.34, 1.56, 0.64, 1] }}
         style={{
           fontSize: '3.5rem',
           marginBottom: '1rem',
@@ -255,8 +259,11 @@ export default function Header({ simple = false, compact = false }: HeaderProps)
         }}
       >
         aturi.to
-      </h1>
-      <p
+      </motion.h1>
+      <motion.p
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6, delay: 0.1, ease: [0.34, 1.56, 0.64, 1] }}
         style={{
           fontSize: '1.5rem',
           color: 'var(--text-secondary)',
@@ -266,8 +273,11 @@ export default function Header({ simple = false, compact = false }: HeaderProps)
         }}
       >
         Universal links for the ATmosphere
-      </p>
-      <p
+      </motion.p>
+      <motion.p
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6, delay: 0.2, ease: [0.34, 1.56, 0.64, 1] }}
         style={{
           fontSize: '1.125rem',
           color: 'var(--text-tertiary)',
@@ -276,10 +286,13 @@ export default function Header({ simple = false, compact = false }: HeaderProps)
         }}
       >
         Share ATProto content with anyone, let them choose where to view it
-      </p>
+      </motion.p>
 
       {/* Organic Navigation */}
-      <nav
+      <motion.nav
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6, delay: 0.3, ease: [0.34, 1.56, 0.64, 1] }}
         style={{
           display: 'flex',
           alignItems: 'center',
@@ -302,7 +315,7 @@ export default function Header({ simple = false, compact = false }: HeaderProps)
           <Code size={16} />
           <span>integrate</span>
         </Link>
-      </nav>
+      </motion.nav>
     </header>
   );
 }

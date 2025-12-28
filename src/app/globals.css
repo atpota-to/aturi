@@ -735,16 +735,48 @@ html {
 .feature-card-primary,
 .feature-card-secondary {
   will-change: transform;
+  transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 /* Preview cards - subtle organic rotation on hover */
 .card:not(.feature-card-primary):not(.feature-card-secondary):not(.cta-card) {
   will-change: transform;
+  transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 .card:not(.feature-card-primary):not(.feature-card-secondary):not(.cta-card):hover {
-  transform: rotate(0deg) scale(1.005) !important;
+  transform: rotate(0deg) scale(1.005) translateY(-2px) !important;
   box-shadow: 0 4px 40px var(--glow-subtle);
+}
+
+/* Waypoint button organic animations */
+.waypoint-button {
+  transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.waypoint-button::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  background: rgba(108, 122, 95, 0.1);
+  transform: translate(-50%, -50%);
+  transition: width 0.6s cubic-bezier(0.34, 1.56, 0.64, 1), 
+              height 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.waypoint-button:hover::before {
+  width: 100%;
+  height: 100%;
+}
+
+.waypoint-button:hover {
+  transform: translateX(4px) rotate(0deg) !important;
+  border-color: var(--text-accent);
 }
 
 /* Responsive */

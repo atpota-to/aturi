@@ -64,6 +64,40 @@ export async function GET(request: NextRequest) {
     const truncatedDescription = listDescription.length > 120 ? listDescription.slice(0, 120) + '...' : listDescription;
     const creatorName = creatorData?.displayName || creatorData?.handle || identifier;
     const creatorHandle = creatorData?.handle || identifier;
+    const creatorAvatarUrl = creatorData?.avatar || '';
+    const listAvatarUrl = listData?.avatar || '';
+    
+    // Fetch list avatar image and convert to base64
+    let listAvatarDataUrl = '';
+    if (listAvatarUrl) {
+      try {
+        const avatarResponse = await fetch(listAvatarUrl);
+        if (avatarResponse.ok) {
+          const avatarBuffer = await avatarResponse.arrayBuffer();
+          const base64 = Buffer.from(avatarBuffer).toString('base64');
+          const contentType = avatarResponse.headers.get('content-type') || 'image/jpeg';
+          listAvatarDataUrl = `data:${contentType};base64,${base64}`;
+        }
+      } catch (error) {
+        console.error('Error fetching list avatar:', error);
+      }
+    }
+    
+    // Fetch creator avatar image and convert to base64
+    let creatorAvatarDataUrl = '';
+    if (creatorAvatarUrl) {
+      try {
+        const avatarResponse = await fetch(creatorAvatarUrl);
+        if (avatarResponse.ok) {
+          const avatarBuffer = await avatarResponse.arrayBuffer();
+          const base64 = Buffer.from(avatarBuffer).toString('base64');
+          const contentType = avatarResponse.headers.get('content-type') || 'image/jpeg';
+          creatorAvatarDataUrl = `data:${contentType};base64,${base64}`;
+        }
+      } catch (error) {
+        console.error('Error fetching creator avatar:', error);
+      }
+    }
 
     // Load Crimson Pro font
     const allText = `${listName} ${truncatedDescription} ${creatorName} @${creatorHandle} aturi.to ATmosphere`;
@@ -78,34 +112,20 @@ export async function GET(request: NextRequest) {
             display: 'flex',
             flexDirection: 'column',
             backgroundColor: '#0a0a0a',
+            backgroundImage: 'radial-gradient(ellipse at 20% 30%, rgba(138, 154, 127, 0.18) 0%, rgba(10, 10, 10, 0) 85%), radial-gradient(ellipse at 80% 70%, rgba(74, 90, 63, 0.15) 0%, rgba(10, 10, 10, 0) 85%), radial-gradient(ellipse at 50% 50%, rgba(61, 51, 41, 0.12) 0%, rgba(10, 10, 10, 0) 90%)',
             color: '#e8e8e6',
             fontFamily: 'Crimson Pro',
             padding: '70px',
             position: 'relative',
           }}
         >
-          {/* Organic glow background */}
+          {/* Grain overlay */}
           <div
             style={{
               position: 'absolute',
-              top: '-10%',
-              left: '20%',
-              width: '450px',
-              height: '450px',
-              background: 'radial-gradient(circle, rgba(138, 154, 127, 0.14) 0%, transparent 70%)',
-              filter: 'blur(85px)',
-              display: 'flex',
-            }}
-          />
-          <div
-            style={{
-              position: 'absolute',
-              bottom: '-10%',
-              right: '20%',
-              width: '500px',
-              height: '500px',
-              background: 'radial-gradient(circle, rgba(74, 90, 63, 0.11) 0%, transparent 70%)',
-              filter: 'blur(90px)',
+              inset: 0,
+              backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 800 800' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.8' numOctaves='5' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E")`,
+              opacity: 0.6,
               display: 'flex',
             }}
           />
@@ -142,14 +162,14 @@ export async function GET(request: NextRequest) {
               </div>
               <div
                 style={{
-                  fontSize: '18px',
+                  fontSize: '22px',
                   color: '#686866',
-                  fontWeight: 300,
+                  fontWeight: 400,
                   letterSpacing: '1px',
                   display: 'flex',
                 }}
               >
-                ATmosphere
+                Universal ATmosphere Links
               </div>
             </div>
 
@@ -177,9 +197,25 @@ export async function GET(request: NextRequest) {
                     height: '90px',
                     backgroundColor: '#4a5a3f',
                     boxShadow: '0 0 40px rgba(138, 154, 127, 0.18)',
+                    border: '2px solid rgba(138, 154, 127, 0.3)',
                     display: 'flex',
+                    overflow: 'hidden',
                   }}
-                />
+                >
+                  {listAvatarDataUrl && (
+                    <img
+                      src={listAvatarDataUrl}
+                      alt={listName}
+                      width="90"
+                      height="90"
+                      style={{
+                        width: '100%',
+                        height: '100%',
+                        objectFit: 'cover',
+                      }}
+                    />
+                  )}
+                </div>
                 <div
                   style={{
                     fontSize: '46px',
@@ -199,11 +235,13 @@ export async function GET(request: NextRequest) {
                   color: '#a8a8a6',
                   marginBottom: '45px',
                   padding: '30px',
-                  backgroundColor: 'rgba(21, 21, 21, 0.5)',
+                  backgroundColor: 'rgba(26, 26, 26, 0.8)',
                   border: '1px solid rgba(232, 232, 230, 0.08)',
                   fontWeight: 300,
                   display: 'flex',
                   backdropFilter: 'blur(10px)',
+                  whiteSpace: 'pre-wrap',
+                  wordBreak: 'break-word',
                 }}
               >
                 {truncatedDescription}
@@ -221,12 +259,27 @@ export async function GET(request: NextRequest) {
                   style={{
                     width: '56px',
                     height: '56px',
-                    borderRadius: '56px',
                     backgroundColor: '#3d3329',
                     boxShadow: '0 0 25px rgba(138, 154, 127, 0.12)',
+                    border: '2px solid rgba(138, 154, 127, 0.2)',
                     display: 'flex',
+                    overflow: 'hidden',
                   }}
-                />
+                >
+                  {creatorAvatarDataUrl && (
+                    <img
+                      src={creatorAvatarDataUrl}
+                      alt={creatorName}
+                      width="56"
+                      height="56"
+                      style={{
+                        width: '100%',
+                        height: '100%',
+                        objectFit: 'cover',
+                      }}
+                    />
+                  )}
+                </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                   <div
                     style={{
@@ -256,10 +309,10 @@ export async function GET(request: NextRequest) {
             <div
               style={{
                 marginTop: '50px',
-                fontSize: '18px',
+                fontSize: '22px',
                 color: '#686866',
                 textAlign: 'center',
-                fontWeight: 300,
+                fontWeight: 400,
                 letterSpacing: '0.5px',
                 display: 'flex',
                 justifyContent: 'center',

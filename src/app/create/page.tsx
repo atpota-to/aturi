@@ -3,7 +3,11 @@
 import { useState } from 'react';
 import { Link2, Copy, Check, AlertCircle, ExternalLink } from 'lucide-react';
 import Header from '@/components/Header';
+import { FadeIn } from '@/components/FadeIn';
 import { convertToAturiLink } from '@/utils/linkGenerator';
+
+// Note: metadata must be in a separate layout.tsx or page.tsx server component
+// For client components, we can't export metadata directly
 
 export default function CreatePage() {
   const [input, setInput] = useState('');
@@ -58,63 +62,66 @@ export default function CreatePage() {
         padding: '2rem',
       }}>
         {/* Page Title Section */}
-        <div style={{ 
-          marginBottom: '4rem',
-          textAlign: 'center',
-          position: 'relative'
-        }}>
-          <div style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '0.75rem',
-            marginBottom: '1rem',
-            padding: '0.5rem 1rem',
-            background: 'var(--bg-secondary)',
-            border: '1px solid var(--border-medium)',
+        <FadeIn delay={0.1}>
+          <div style={{ 
+            marginBottom: '4rem',
+            textAlign: 'center',
+            position: 'relative'
           }}>
-            <Link2 size={20} style={{ color: 'var(--text-accent)' }} />
-            <span style={{ 
-              fontFamily: 'var(--font-mono)', 
-              fontSize: '0.875rem',
-              color: 'var(--text-secondary)'
+            <div style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.75rem',
+              marginBottom: '1rem',
+              padding: '0.5rem 1rem',
+              background: 'var(--bg-secondary)',
+              border: '1px solid var(--border-medium)',
             }}>
-              Link Creator
-            </span>
+              <Link2 size={20} style={{ color: 'var(--text-accent)' }} />
+              <span style={{ 
+                fontFamily: 'var(--font-mono)', 
+                fontSize: '0.875rem',
+                color: 'var(--text-secondary)'
+              }}>
+                Link Creator
+              </span>
+            </div>
+            
+            <h2 style={{ 
+              fontSize: '2.5rem',
+              fontWeight: 300,
+              marginBottom: '1rem',
+              color: 'var(--text-primary)',
+              lineHeight: 1.2
+            }}>
+              Create a universal link
+            </h2>
+            
+            <p style={{
+              fontSize: '1.125rem',
+              color: 'var(--text-secondary)',
+              maxWidth: '500px',
+              margin: '0 auto',
+              lineHeight: 1.6
+            }}>
+              Paste ATProto URLs or AT URIs and get a universal aturi.to link
+            </p>
           </div>
-          
-          <h2 style={{ 
-            fontSize: '2.5rem',
-            fontWeight: 300,
-            marginBottom: '1rem',
-            color: 'var(--text-primary)',
-            lineHeight: 1.2
-          }}>
-            Create a universal link
-          </h2>
-          
-          <p style={{
-            fontSize: '1.125rem',
-            color: 'var(--text-secondary)',
-            maxWidth: '500px',
-            margin: '0 auto',
-            lineHeight: 1.6
-          }}>
-            Paste ATProto URLs or AT URIs and get a universal aturi.to link
-          </p>
-        </div>
+        </FadeIn>
 
         {/* Creator Form */}
-        <div 
-          className="card"
-          style={{
-            padding: '3rem',
-            marginBottom: '2rem',
-            background: 'var(--bg-secondary)',
-            border: '1px solid var(--border-medium)',
-            transform: 'rotate(-0.3deg)',
-            transition: 'all 0.4s ease'
-          }}
-        >
+        <FadeIn delay={0.2}>
+          <div 
+            className="card"
+            style={{
+              padding: '3rem',
+              marginBottom: '2rem',
+              background: 'var(--bg-secondary)',
+              border: '1px solid var(--border-medium)',
+              transform: 'rotate(-0.3deg)',
+              transition: 'all 0.4s ease'
+            }}
+          >
           {/* URL Bar Input */}
           <div style={{ marginBottom: '2rem' }}>
             <label 
@@ -324,18 +331,20 @@ export default function CreatePage() {
               </div>
             </div>
           )}
-        </div>
+          </div>
+        </FadeIn>
 
         {/* Examples Section */}
-        <div 
-          className="card"
-          style={{
-            padding: '2rem',
-            background: 'var(--bg-tertiary)',
-            border: '1px solid var(--border-subtle)',
-            transform: 'rotate(0.2deg)',
-          }}
-        >
+        <FadeIn delay={0.3}>
+          <div 
+            className="card"
+            style={{
+              padding: '2rem',
+              background: 'var(--bg-tertiary)',
+              border: '1px solid var(--border-subtle)',
+              transform: 'rotate(0.2deg)',
+            }}
+          >
           <h3 style={{
             fontSize: '1.25rem',
             fontWeight: 400,
@@ -384,6 +393,7 @@ export default function CreatePage() {
             ))}
           </ul>
         </div>
+        </FadeIn>
       </main>
     </div>
   );

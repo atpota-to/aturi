@@ -53,13 +53,66 @@ export async function GET(request: NextRequest) {
 
     const displayName = profileData?.displayName || profileData?.handle || identifier;
     const handleName = profileData?.handle || identifier;
-    const bio = profileData?.description || 'ATProto user';
-    const truncatedBio = bio.length > 120 ? bio.slice(0, 120) + '...' : bio;
+    const bio = profileData?.description || '';
+    const avatarUrl = profileData?.avatar || '';
+    
+    // Fetch avatar image and convert to base64
+    let avatarDataUrl = '';
+    if (avatarUrl) {
+      try {
+        const avatarResponse = await fetch(avatarUrl);
+        if (avatarResponse.ok) {
+          const avatarBuffer = await avatarResponse.arrayBuffer();
+          const base64 = Buffer.from(avatarBuffer).toString('base64');
+          const contentType = avatarResponse.headers.get('content-type') || 'image/jpeg';
+          avatarDataUrl = `data:${contentType};base64,${base64}`;
+        }
+      } catch (error) {
+        console.error('Error fetching avatar:', error);
+      }
+    }
+    
+    // Get first 3 lines or truncate at ~180 characters
+    const bioLines = bio.split('\n');
+    const maxChars = 180;
+    const maxLines = 3;
+    
+    let displayBio = '';
+    let isTruncated = false;
+    
+    if (bio.length > maxChars || bioLines.length > maxLines) {
+      // Take up to maxLines or until we hit maxChars
+      let charCount = 0;
+      let lineCount = 0;
+      
+      for (const line of bioLines) {
+        if (lineCount >= maxLines) {
+          isTruncated = true;
+          break;
+        }
+        
+        if (charCount + line.length > maxChars) {
+          displayBio += line.slice(0, maxChars - charCount);
+          isTruncated = true;
+          break;
+        }
+        
+        displayBio += line + '\n';
+        charCount += line.length + 1;
+        lineCount++;
+      }
+      
+      displayBio = displayBio.trim();
+    } else {
+      displayBio = bio;
+    }
+    
     const followers = profileData?.followersCount || 0;
     const following = profileData?.followsCount || 0;
+    const posts = profileData?.postsCount || 0;
 
     // Load Crimson Pro font
-    const allText = `${displayName} @${handleName} ${truncatedBio} ${followers.toLocaleString()} followers ${following.toLocaleString()} following aturi.to ATmosphere`;
+    const allText = `${displayName} @${handleName} ${displayBio} ${isTruncated ? '...' : ''} ${followers.toLocaleString()} followers ${following.toLocaleString()} following ${posts.toLocaleString()} posts aturi.to Universal ATmosphere Links Choose where to view this profile`;
     const fontData = await loadGoogleFont('Crimson+Pro:wght@300;400;600', allText);
 
     return new ImageResponse(
@@ -71,34 +124,20 @@ export async function GET(request: NextRequest) {
             display: 'flex',
             flexDirection: 'column',
             backgroundColor: '#0a0a0a',
+            backgroundImage: 'radial-gradient(ellipse at 20% 30%, rgba(138, 154, 127, 0.18) 0%, rgba(10, 10, 10, 0) 85%), radial-gradient(ellipse at 80% 70%, rgba(74, 90, 63, 0.15) 0%, rgba(10, 10, 10, 0) 85%), radial-gradient(ellipse at 50% 50%, rgba(61, 51, 41, 0.12) 0%, rgba(10, 10, 10, 0) 90%)',
             color: '#e8e8e6',
             fontFamily: 'Crimson Pro',
             padding: '70px',
             position: 'relative',
           }}
         >
-          {/* Organic glow background */}
+          {/* Grain overlay */}
           <div
             style={{
               position: 'absolute',
-              top: '-20%',
-              left: '-10%',
-              width: '500px',
-              height: '500px',
-              background: 'radial-gradient(circle, rgba(138, 154, 127, 0.15) 0%, transparent 70%)',
-              filter: 'blur(80px)',
-              display: 'flex',
-            }}
-          />
-          <div
-            style={{
-              position: 'absolute',
-              bottom: '-20%',
-              right: '-10%',
-              width: '600px',
-              height: '600px',
-              background: 'radial-gradient(circle, rgba(74, 90, 63, 0.12) 0%, transparent 70%)',
-              filter: 'blur(90px)',
+              inset: 0,
+              backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 800 800' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.8' numOctaves='5' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E")`,
+              opacity: 0.6,
               display: 'flex',
             }}
           />
@@ -119,7 +158,7 @@ export async function GET(request: NextRequest) {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                marginBottom: '60px',
+                marginBottom: '50px',
               }}
             >
               <div
@@ -135,125 +174,216 @@ export async function GET(request: NextRequest) {
               </div>
               <div
                 style={{
-                  fontSize: '18px',
+                  fontSize: '22px',
                   color: '#686866',
-                  fontWeight: 300,
+                  fontWeight: 400,
                   letterSpacing: '1px',
                   display: 'flex',
                 }}
               >
-                ATmosphere
+                Universal ATmosphere Links
               </div>
             </div>
 
-            {/* Profile Section */}
+            {/* Card-based Profile Layout */}
             <div
               style={{
                 flex: 1,
                 display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                textAlign: 'center',
+                gap: '30px',
               }}
             >
-              {/* Avatar with subtle glow */}
+              {/* Left side - Avatar and basic info */}
               <div
                 style={{
-                  width: '140px',
-                  height: '140px',
-                  borderRadius: '140px',
-                  backgroundColor: '#4a5a3f',
-                  marginBottom: '35px',
-                  boxShadow: '0 0 60px rgba(138, 154, 127, 0.2)',
                   display: 'flex',
-                }}
-              />
-
-              {/* Name */}
-              <div
-                style={{
-                  fontSize: '52px',
-                  fontWeight: 400,
-                  marginBottom: '12px',
-                  letterSpacing: '-0.5px',
-                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'flex-start',
+                  gap: '25px',
                 }}
               >
-                {displayName}
-              </div>
-
-              {/* Handle */}
-              <div
-                style={{
-                  fontSize: '26px',
-                  color: '#a8a8a6',
-                  fontWeight: 300,
-                  marginBottom: '35px',
-                  display: 'flex',
-                }}
-              >
-                {'@' + handleName}
-              </div>
-
-              {/* Bio */}
-              <div
-                style={{
-                  fontSize: '22px',
-                  lineHeight: 1.7,
-                  color: '#a8a8a6',
-                  maxWidth: '700px',
-                  marginBottom: '45px',
-                  fontWeight: 300,
-                  display: 'flex',
-                }}
-              >
-                {truncatedBio}
-              </div>
-
-              {/* Stats with organic divider */}
-              <div
-                style={{
-                  display: 'flex',
-                  gap: '50px',
-                  fontSize: '19px',
-                  color: '#686866',
-                  alignItems: 'center',
-                }}
-              >
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                  <span
-                    style={{
-                      color: '#8a9a7f',
-                      fontSize: '32px',
-                      fontWeight: 400,
-                      display: 'flex',
-                    }}
-                  >
-                    {followers.toLocaleString()}
-                  </span>
-                  <span style={{ fontWeight: 300, display: 'flex' }}>followers</span>
-                </div>
+                {/* Avatar */}
                 <div
                   style={{
-                    width: '1px',
-                    height: '50px',
-                    background: 'linear-gradient(to bottom, transparent, rgba(232, 232, 230, 0.1), transparent)',
+                    width: '160px',
+                    height: '160px',
+                    backgroundColor: '#4a5a3f',
+                    boxShadow: '0 0 60px rgba(138, 154, 127, 0.2)',
+                    border: '2px solid rgba(138, 154, 127, 0.3)',
                     display: 'flex',
+                    overflow: 'hidden',
                   }}
-                />
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                  <span
+                >
+                  {avatarDataUrl && (
+                    <img
+                      src={avatarDataUrl}
+                      alt={displayName}
+                      width="160"
+                      height="160"
+                      style={{
+                        width: '100%',
+                        height: '100%',
+                        objectFit: 'cover',
+                      }}
+                    />
+                  )}
+                </div>
+
+                {/* Name & Handle */}
+                <div
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '8px',
+                  }}
+                >
+                  <div
                     style={{
-                      color: '#8a9a7f',
-                      fontSize: '32px',
+                      fontSize: '42px',
                       fontWeight: 400,
+                      display: 'flex',
+                      letterSpacing: '-0.5px',
+                    }}
+                  >
+                    {displayName}
+                  </div>
+                  <div
+                    style={{
+                      fontSize: '24px',
+                      color: '#a8a8a6',
+                      fontWeight: 300,
                       display: 'flex',
                     }}
                   >
-                    {following.toLocaleString()}
-                  </span>
-                  <span style={{ fontWeight: 300, display: 'flex' }}>following</span>
+                    {'@' + handleName}
+                  </div>
+                </div>
+              </div>
+
+              {/* Right side - Bio and Stats */}
+              <div
+                style={{
+                  flex: 1,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'space-between',
+                  paddingLeft: '30px',
+                }}
+              >
+                {/* Bio card */}
+                <div
+                  style={{
+                    padding: '30px',
+                    backgroundColor: 'rgba(26, 26, 26, 0.8)',
+                    border: '1px solid rgba(232, 232, 230, 0.08)',
+                    backdropFilter: 'blur(10px)',
+                    marginBottom: '30px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '8px',
+                  }}
+                >
+                  <div
+                    style={{
+                      fontSize: '24px',
+                      lineHeight: 1.6,
+                      color: '#e8e8e6',
+                      fontWeight: 300,
+                      display: 'flex',
+                      whiteSpace: 'pre-wrap',
+                      wordBreak: 'break-word',
+                    }}
+                  >
+                    {displayBio}
+                  </div>
+                  {isTruncated && (
+                    <div
+                      style={{
+                        fontSize: '20px',
+                        color: '#8a9a7f',
+                        fontWeight: 300,
+                        display: 'flex',
+                        fontStyle: 'italic',
+                      }}
+                    >
+                      ...
+                    </div>
+                  )}
+                </div>
+
+                {/* Stats grid */}
+                <div
+                  style={{
+                    display: 'flex',
+                    gap: '40px',
+                  }}
+                >
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    <span
+                      style={{
+                        color: '#8a9a7f',
+                        fontSize: '36px',
+                        fontWeight: 400,
+                        display: 'flex',
+                      }}
+                    >
+                      {followers.toLocaleString()}
+                    </span>
+                    <span
+                      style={{
+                        fontWeight: 300,
+                        fontSize: '18px',
+                        color: '#686866',
+                        display: 'flex',
+                      }}
+                    >
+                      followers
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    <span
+                      style={{
+                        color: '#8a9a7f',
+                        fontSize: '36px',
+                        fontWeight: 400,
+                        display: 'flex',
+                      }}
+                    >
+                      {following.toLocaleString()}
+                    </span>
+                    <span
+                      style={{
+                        fontWeight: 300,
+                        fontSize: '18px',
+                        color: '#686866',
+                        display: 'flex',
+                      }}
+                    >
+                      following
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    <span
+                      style={{
+                        color: '#8a9a7f',
+                        fontSize: '36px',
+                        fontWeight: 400,
+                        display: 'flex',
+                      }}
+                    >
+                      {posts.toLocaleString()}
+                    </span>
+                    <span
+                      style={{
+                        fontWeight: 300,
+                        fontSize: '18px',
+                        color: '#686866',
+                        display: 'flex',
+                      }}
+                    >
+                      posts
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -262,13 +392,13 @@ export async function GET(request: NextRequest) {
             <div
               style={{
                 marginTop: '50px',
-                fontSize: '18px',
+                fontSize: '22px',
                 color: '#686866',
-                textAlign: 'center',
-                fontWeight: 300,
+                textAlign: 'right',
+                fontWeight: 400,
                 letterSpacing: '0.5px',
                 display: 'flex',
-                justifyContent: 'center',
+                justifyContent: 'flex-end',
               }}
             >
               Choose where to view this profile

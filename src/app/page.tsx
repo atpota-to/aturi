@@ -3,7 +3,10 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { ArrowRight, Link2, Code, Globe, Sparkles, Check } from 'lucide-react';
+import { motion } from 'framer-motion';
 import Header from '@/components/Header';
+import { StaggeredChildren, StaggerItem } from '@/components/StaggeredChildren';
+import { FadeIn } from '@/components/FadeIn';
 import { convertToAturiLink } from '@/utils/linkGenerator';
 import { getWaypointCount } from '@/utils/waypoints';
 
@@ -38,11 +41,16 @@ export default function HomePage() {
       </div>
 
       {/* Quick Link Creator */}
-      <div style={{ 
-        maxWidth: '700px', 
-        margin: '0 auto 3rem',
-        padding: '0 2rem'
-      }}>
+      <motion.div
+        initial={{ opacity: 0, y: 30 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6, delay: 0.4, ease: [0.34, 1.56, 0.64, 1] }}
+        style={{ 
+          maxWidth: '700px', 
+          margin: '0 auto 3rem',
+          padding: '0 2rem'
+        }}
+      >
         <div 
           style={{
             padding: '1.5rem',
@@ -132,7 +140,7 @@ export default function HomePage() {
             </div>
           )}
         </div>
-      </div>
+      </motion.div>
 
       {/* Main Content - Asymmetric Layout */}
       <div style={{ 
@@ -143,7 +151,7 @@ export default function HomePage() {
       }}>
         
         {/* Feature Cards - Organic Staggered Layout */}
-        <div 
+        <StaggeredChildren
           className="feature-cards-grid"
           style={{ 
             display: 'grid',
@@ -152,9 +160,10 @@ export default function HomePage() {
             marginBottom: '8rem',
             position: 'relative'
           }}
+          staggerDelay={0.12}
         >
           {/* Large Primary Card - Universal Sharing */}
-          <div 
+          <StaggerItem 
             className="card feature-card-primary"
             style={{
               gridColumn: 'span 7',
@@ -205,10 +214,10 @@ export default function HomePage() {
                 </div>
               </div>
             </div>
-          </div>
+          </StaggerItem>
 
           {/* Smaller Cards - Stacked */}
-          <div 
+          <StaggerItem 
             className="feature-cards-secondary-stack"
             style={{
               gridColumn: 'span 5',
@@ -266,15 +275,75 @@ export default function HomePage() {
                 guide.
               </p>
             </div>
-          </div>
-        </div>
+          </StaggerItem>
+        </StaggeredChildren>
+
+        {/* Why Aturi Section */}
+        <FadeIn delay={0.1}>
+          <section
+            className="card"
+            style={{
+              padding: '3rem',
+              background: 'var(--bg-secondary)',
+              border: '1px solid var(--border-medium)',
+              position: 'relative',
+              transform: 'rotate(-0.4deg)',
+              transition: 'all 0.4s ease',
+              marginBottom: '8rem',
+              maxWidth: '900px',
+              margin: '0 auto 8rem'
+            }}
+          >
+            <h2 style={{
+              fontSize: '2rem',
+              marginBottom: '1.5rem',
+              color: 'var(--text-accent)',
+              fontWeight: 400,
+              lineHeight: 1.2
+            }}>
+              Why &ldquo;aturi&rdquo;?
+            </h2>
+            <div style={{
+              color: 'var(--text-secondary)',
+              fontSize: '1.05rem',
+              lineHeight: 1.8,
+              marginBottom: '1.5rem'
+            }}>
+              <p style={{ marginBottom: '1rem' }}>
+                The name is a playful blend of <strong style={{ color: 'var(--text-primary)' }}>AT URI</strong> (pronounced &ldquo;at-yoo-are-eye&rdquo;),
+                which is how the AT Protocol structures links to records, profiles, and other resources across the network.
+              </p>
+              <p>
+                Every piece of content on ATProto has an AT URI—a universal identifier that works regardless of
+                which app or server you&apos;re using. We thought it deserved a friendly name that&apos;s easy to remember
+                and share!
+              </p>
+            </div>
+            <div style={{
+              padding: '1.25rem',
+              background: 'var(--bg-primary)',
+              border: '1px solid var(--border-medium)',
+              fontFamily: 'var(--font-mono)',
+              fontSize: '0.9rem',
+              color: 'var(--text-tertiary)',
+              lineHeight: 1.6
+            }}>
+              <div style={{ marginBottom: '0.5rem', color: 'var(--text-secondary)' }}>
+                Example AT URI:
+              </div>
+              <div style={{ color: 'var(--text-accent)' }}>
+                at://anisota.net/app.bsky.feed.post/3m6mwoadjbp2d
+              </div>
+            </div>
+          </section>
+        </FadeIn>
 
         {/* Example Section - Diagonal Layout */}
         <section style={{ 
           position: 'relative',
           marginBottom: '8rem',
         }}>
-          <div 
+          <StaggeredChildren
             className="examples-grid"
             style={{
               display: 'grid',
@@ -282,9 +351,10 @@ export default function HomePage() {
               gap: '2rem',
               alignItems: 'center'
             }}
+            staggerDelay={0.1}
           >
             {/* Heading - Offset */}
-            <div 
+            <StaggerItem 
               className="examples-heading"
               style={{ 
                 gridColumn: '1 / span 5',
@@ -308,10 +378,10 @@ export default function HomePage() {
               }}>
                 Click to see how universal links work in action
               </p>
-            </div>
+            </StaggerItem>
 
             {/* Example Links - Offset */}
-            <div 
+            <StaggerItem 
               className="examples-links"
               style={{
                 gridColumn: '7 / span 6',
@@ -368,24 +438,25 @@ export default function HomePage() {
                 </div>
                 <ArrowRight size={20} style={{ color: 'var(--text-tertiary)' }} />
               </Link>
-            </div>
-          </div>
+            </StaggerItem>
+          </StaggeredChildren>
         </section>
 
         {/* CTA Section - Full Width Breakout */}
-        <section
-          className="card cta-card"
-          style={{
-            padding: '4rem 3rem',
-            textAlign: 'center',
-            background: 'var(--bg-elevated)',
-            border: '1px solid var(--border-strong)',
-            position: 'relative',
-            transform: 'rotate(-0.2deg)',
-            transition: 'all 0.4s ease',
-            marginTop: '4rem'
-          }}
-        >
+        <FadeIn delay={0.1}>
+          <section
+            className="card cta-card"
+            style={{
+              padding: '4rem 3rem',
+              textAlign: 'center',
+              background: 'var(--bg-elevated)',
+              border: '1px solid var(--border-strong)',
+              position: 'relative',
+              transform: 'rotate(-0.2deg)',
+              transition: 'all 0.4s ease',
+              marginTop: '4rem'
+            }}
+          >
           <div style={{ maxWidth: '600px', margin: '0 auto' }}>
             <h2 style={{ 
               marginBottom: '1.5rem', 
@@ -427,21 +498,23 @@ export default function HomePage() {
             </Link>
           </div>
         </section>
+        </FadeIn>
 
         {/* Submit Your App Card */}
-        <section
-          className="card"
-          style={{
-            padding: '2.5rem',
-            background: 'var(--bg-secondary)',
-            border: '1px solid var(--border-medium)',
-            position: 'relative',
-            transform: 'rotate(0.3deg)',
-            transition: 'all 0.4s ease',
-            marginTop: '3rem',
-            textAlign: 'center'
-          }}
-        >
+        <FadeIn delay={0.2}>
+          <section
+            className="card"
+            style={{
+              padding: '2.5rem',
+              background: 'var(--bg-secondary)',
+              border: '1px solid var(--border-medium)',
+              position: 'relative',
+              transform: 'rotate(0.3deg)',
+              transition: 'all 0.4s ease',
+              marginTop: '3rem',
+              textAlign: 'center'
+            }}
+          >
           <div style={{ maxWidth: '700px', margin: '0 auto' }}>
             <h3 style={{ 
               marginBottom: '1rem', 
@@ -508,6 +581,7 @@ export default function HomePage() {
             </div>
           </div>
         </section>
+        </FadeIn>
       </div>
     </div>
   );

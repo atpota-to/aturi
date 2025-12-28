@@ -57,11 +57,11 @@ export type BskyPost = {
       description: string;
       thumb?: string;
     };
-    video?: {
-      playlist: string;
-      thumbnail?: string;
-      alt?: string;
-    };
+    playlist?: string;
+    thumbnail?: string;
+    alt?: string;
+    aspectRatio?: { width: number; height: number };
+    cid?: string;
     record?: {
       $type: string;
       author?: {
@@ -70,7 +70,9 @@ export type BskyPost = {
         displayName?: string;
         avatar?: string;
       };
+      value?: any;
       record?: any;
+      embeds?: any[];
       notFound?: boolean;
       blocked?: boolean;
     };
@@ -88,11 +90,11 @@ export type BskyPost = {
         description: string;
         thumb?: string;
       };
-      video?: {
-        playlist: string;
-        thumbnail?: string;
-        alt?: string;
-      };
+      playlist?: string;
+      thumbnail?: string;
+      alt?: string;
+      aspectRatio?: { width: number; height: number };
+      cid?: string;
     };
   };
   replyCount?: number;

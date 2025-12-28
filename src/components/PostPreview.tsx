@@ -60,51 +60,98 @@ export default function PostPreview({ post }: PostPreviewProps) {
       >
         {/* Quoted post author */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
-          {qAuthor?.avatar ? (
-            <div
-              style={{
-                width: '24px',
-                height: '24px',
-                border: '1px solid var(--accent-stone)',
-                overflow: 'hidden',
-                flexShrink: 0,
-              }}
-            >
-              <img
-                src={qAuthor.avatar}
-                alt={qAuthor.displayName || qAuthor.handle}
+          <a
+            href={qAuthor?.did || qAuthor?.handle ? `/${qAuthor.did || qAuthor.handle}` : '#'}
+            style={{ textDecoration: 'none', flexShrink: 0 }}
+          >
+            {qAuthor?.avatar ? (
+              <div
                 style={{
-                  width: '100%',
-                  height: '100%',
-                  objectFit: 'cover',
-                  display: 'block',
+                  width: '24px',
+                  height: '24px',
+                  border: '1px solid var(--accent-stone)',
+                  overflow: 'hidden',
+                  transition: 'border-color 0.2s ease',
                 }}
-              />
-            </div>
-          ) : (
-            <div
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = 'var(--text-accent)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = 'var(--accent-stone)';
+                }}
+              >
+                <img
+                  src={qAuthor.avatar}
+                  alt={qAuthor.displayName || qAuthor.handle}
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    objectFit: 'cover',
+                    display: 'block',
+                  }}
+                />
+              </div>
+            ) : (
+              <div
+                style={{
+                  width: '24px',
+                  height: '24px',
+                  border: '1px solid var(--accent-stone)',
+                  background: 'var(--bg-secondary)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  transition: 'border-color 0.2s ease',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = 'var(--text-accent)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = 'var(--accent-stone)';
+                }}
+              >
+                <User size={14} color="var(--text-tertiary)" />
+              </div>
+            )}
+          </a>
+          <div style={{ fontSize: '0.875rem' }}>
+            <a
+              href={qAuthor?.did || qAuthor?.handle ? `/${qAuthor.did || qAuthor.handle}` : '#'}
               style={{
-                width: '24px',
-                height: '24px',
-                border: '1px solid var(--accent-stone)',
-                background: 'var(--bg-secondary)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0,
+                fontWeight: '600',
+                color: 'var(--text-primary)',
+                textDecoration: 'none',
+                transition: 'color 0.2s ease',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.color = 'var(--text-accent)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.color = 'var(--text-primary)';
               }}
             >
-              <User size={14} color="var(--text-tertiary)" />
-            </div>
-          )}
-          <div style={{ fontSize: '0.875rem' }}>
-            <span style={{ fontWeight: '600', color: 'var(--text-primary)' }}>
               {qAuthor?.displayName || qAuthor?.handle || 'Unknown'}
-            </span>
+            </a>
             {qAuthor?.handle && (
-              <span style={{ color: 'var(--text-tertiary)', marginLeft: '0.5rem' }}>
-                @{qAuthor.handle}
-              </span>
+              <>
+                {' '}
+                <a
+                  href={qAuthor.did || qAuthor.handle ? `/${qAuthor.did || qAuthor.handle}` : '#'}
+                  style={{
+                    color: 'var(--text-tertiary)',
+                    textDecoration: 'none',
+                    transition: 'color 0.2s ease',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.color = 'var(--text-accent)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.color = 'var(--text-tertiary)';
+                  }}
+                >
+                  @{qAuthor.handle}
+                </a>
+              </>
             )}
           </div>
         </div>
@@ -209,7 +256,7 @@ export default function PostPreview({ post }: PostPreviewProps) {
           }
 
           // Video
-          if (qEmbed.$type === 'app.bsky.embed.video#view' && qEmbed.video) {
+          if (qEmbed.$type === 'app.bsky.embed.video#view' && qEmbed.playlist) {
             return (
               <div
                 key={idx}
@@ -221,14 +268,14 @@ export default function PostPreview({ post }: PostPreviewProps) {
               >
                 <video
                   controls
-                  poster={qEmbed.video.thumbnail}
+                  poster={qEmbed.thumbnail}
                   style={{
                     width: '100%',
                     maxHeight: '200px',
                     display: 'block',
                   }}
                 >
-                  <source src={qEmbed.video.playlist} type="application/x-mpegURL" />
+                  <source src={qEmbed.playlist} type="application/x-mpegURL" />
                 </video>
               </div>
             );
@@ -313,9 +360,7 @@ export default function PostPreview({ post }: PostPreviewProps) {
             return (
               <a
                 key={i}
-                href={`https://bsky.app/profile/${segment.facet.did}`}
-                target="_blank"
-                rel="noopener noreferrer"
+                href={`/${segment.facet.did}`}
                 style={{ color: 'var(--text-accent)', textDecoration: 'none' }}
               >
                 {segment.text}
@@ -357,55 +402,101 @@ export default function PostPreview({ post }: PostPreviewProps) {
     >
       {/* Author Info */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
-        {author.avatar ? (
-          <div
-            style={{
-              width: '48px',
-              height: '48px',
-              border: '2px solid var(--accent-stone)',
-              overflow: 'hidden',
-              flexShrink: 0,
-            }}
-          >
-            <img
-              src={author.avatar}
-              alt={author.displayName || author.handle}
+        <a
+          href={`/${author.did || author.handle}`}
+          style={{ textDecoration: 'none', flexShrink: 0 }}
+        >
+          {author.avatar ? (
+            <div
               style={{
-                width: '100%',
-                height: '100%',
-                objectFit: 'cover',
-                background: 'var(--bg-tertiary)',
-                display: 'block',
+                width: '48px',
+                height: '48px',
+                border: '2px solid var(--accent-stone)',
+                overflow: 'hidden',
+                transition: 'border-color 0.2s ease',
               }}
-            />
-          </div>
-        ) : (
-          <div
+              onMouseEnter={(e) => {
+                e.currentTarget.style.borderColor = 'var(--text-accent)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.borderColor = 'var(--accent-stone)';
+              }}
+            >
+              <img
+                src={author.avatar}
+                alt={author.displayName || author.handle}
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  objectFit: 'cover',
+                  background: 'var(--bg-tertiary)',
+                  display: 'block',
+                }}
+              />
+            </div>
+          ) : (
+            <div
+              style={{
+                width: '48px',
+                height: '48px',
+                border: '2px solid var(--accent-stone)',
+                background: 'var(--bg-tertiary)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                transition: 'border-color 0.2s ease',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.borderColor = 'var(--text-accent)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.borderColor = 'var(--accent-stone)';
+              }}
+            >
+              <User size={24} color="var(--text-tertiary)" />
+            </div>
+          )}
+        </a>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <a
+            href={`/${author.did || author.handle}`}
             style={{
-              width: '48px',
-              height: '48px',
-              border: '2px solid var(--accent-stone)',
-              background: 'var(--bg-tertiary)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              flexShrink: 0,
+              fontWeight: '600',
+              color: 'var(--text-primary)',
+              textDecoration: 'none',
+              transition: 'color 0.2s ease',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.color = 'var(--text-accent)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.color = 'var(--text-primary)';
             }}
           >
-            <User size={24} color="var(--text-tertiary)" />
-          </div>
-        )}
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontWeight: '600', color: 'var(--text-primary)' }}>
             {author.displayName || author.handle}
             {author.pronouns && (
               <span style={{ fontWeight: '400', color: 'var(--text-tertiary)', marginLeft: '0.5rem' }}>
                 {author.pronouns}
               </span>
             )}
-          </div>
-          <div style={{ fontSize: '0.875rem', color: 'var(--text-tertiary)' }}>
-            @{author.handle}
+          </a>
+          <div style={{ fontSize: '0.875rem' }}>
+            <a
+              href={`/${author.did || author.handle}`}
+              style={{
+                color: 'var(--text-tertiary)',
+                textDecoration: 'none',
+                transition: 'color 0.2s ease',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.color = 'var(--text-accent)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.color = 'var(--text-tertiary)';
+              }}
+            >
+              @{author.handle}
+            </a>
           </div>
         </div>
       </div>
@@ -499,7 +590,7 @@ export default function PostPreview({ post }: PostPreviewProps) {
       )}
 
       {/* Embed - Video */}
-      {embed?.$type === 'app.bsky.embed.video#view' && embed.video && (
+      {embed?.$type === 'app.bsky.embed.video#view' && embed.playlist && (
         <div
           style={{
             position: 'relative',
@@ -510,24 +601,24 @@ export default function PostPreview({ post }: PostPreviewProps) {
         >
           <video
             controls
-            poster={embed.video.thumbnail}
+            poster={embed.thumbnail}
             style={{
               width: '100%',
               maxHeight: '500px',
               display: 'block',
             }}
           >
-            <source src={embed.video.playlist} type="application/x-mpegURL" />
+            <source src={embed.playlist} type="application/x-mpegURL" />
             Your browser does not support the video tag.
           </video>
-          {embed.video.alt && (
+          {embed.alt && (
             <div style={{ 
               padding: '0.5rem', 
               fontSize: '0.875rem', 
               color: 'var(--text-tertiary)',
               background: 'var(--bg-secondary)',
             }}>
-              {embed.video.alt}
+              {embed.alt}
             </div>
           )}
         </div>
@@ -623,7 +714,7 @@ export default function PostPreview({ post }: PostPreviewProps) {
             </a>
           )}
 
-          {embed.media?.$type === 'app.bsky.embed.video#view' && embed.media.video && (
+          {embed.media?.$type === 'app.bsky.embed.video#view' && embed.media.playlist && (
             <div
               style={{
                 position: 'relative',
@@ -634,24 +725,24 @@ export default function PostPreview({ post }: PostPreviewProps) {
             >
               <video
                 controls
-                poster={embed.media.video.thumbnail}
+                poster={embed.media.thumbnail}
                 style={{
                   width: '100%',
                   maxHeight: '500px',
                   display: 'block',
                 }}
               >
-                <source src={embed.media.video.playlist} type="application/x-mpegURL" />
+                <source src={embed.media.playlist} type="application/x-mpegURL" />
                 Your browser does not support the video tag.
               </video>
-              {embed.media.video.alt && (
+              {embed.media.alt && (
                 <div style={{ 
                   padding: '0.5rem', 
                   fontSize: '0.875rem', 
                   color: 'var(--text-tertiary)',
                   background: 'var(--bg-secondary)',
                 }}>
-                  {embed.media.video.alt}
+                  {embed.media.alt}
                 </div>
               )}
             </div>

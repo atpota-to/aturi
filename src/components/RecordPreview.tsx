@@ -90,7 +90,23 @@ export default function RecordPreview({ record, collection, handle, rkey }: Reco
             }}
           >
             <span style={{ color: 'var(--text-tertiary)' }}>at://</span>
-            <span style={{ color: 'var(--text-accent)', fontWeight: '500' }}>{handle}</span>
+            <a
+              href={`/${handle}`}
+              style={{
+                color: 'var(--text-accent)',
+                fontWeight: '500',
+                textDecoration: 'none',
+                transition: 'opacity 0.2s ease',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.opacity = '0.7';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.opacity = '1';
+              }}
+            >
+              {handle}
+            </a>
             <span style={{ color: 'var(--text-tertiary)' }}>/</span>
             <span style={{ color: 'var(--text-secondary)' }}>{collection}</span>
             <span style={{ color: 'var(--text-tertiary)' }}>/</span>

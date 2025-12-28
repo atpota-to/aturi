@@ -34,6 +34,9 @@ export async function GET(request: NextRequest) {
     
     let postData = null;
     let authorData = null;
+    let likeCount = 0;
+    let replyCount = 0;
+    let repostCount = 0;
     
     try {
       // Build the full AT URI - identifier should already be a DID
@@ -52,8 +55,14 @@ export async function GET(request: NextRequest) {
 
       if (response.ok) {
         const data = await response.json();
-        postData = data.thread?.post?.record;
-        authorData = data.thread?.post?.author;
+        const post = data.thread?.post;
+        postData = post?.record;
+        authorData = post?.author;
+        
+        // Get engagement metrics
+        likeCount = post?.likeCount || 0;
+        replyCount = post?.replyCount || 0;
+        repostCount = post?.repostCount || 0;
       }
     } catch (error) {
       console.error('Error fetching post:', error);
@@ -63,9 +72,26 @@ export async function GET(request: NextRequest) {
     const handleName = authorData?.handle || identifier;
     const postText = postData?.text || 'Post content';
     const truncatedText = postText.length > 180 ? postText.slice(0, 180) + '...' : postText;
+    const avatarUrl = authorData?.avatar || '';
+    
+    // Fetch avatar image and convert to base64
+    let avatarDataUrl = '';
+    if (avatarUrl) {
+      try {
+        const avatarResponse = await fetch(avatarUrl);
+        if (avatarResponse.ok) {
+          const avatarBuffer = await avatarResponse.arrayBuffer();
+          const base64 = Buffer.from(avatarBuffer).toString('base64');
+          const contentType = avatarResponse.headers.get('content-type') || 'image/jpeg';
+          avatarDataUrl = `data:${contentType};base64,${base64}`;
+        }
+      } catch (error) {
+        console.error('Error fetching avatar:', error);
+      }
+    }
 
     // Load Crimson Pro font
-    const allText = `${displayName} @${handleName} ${truncatedText} aturi.to ATmosphere`;
+    const allText = `${displayName} @${handleName} ${truncatedText} ${likeCount} ${replyCount} ${repostCount} Choose where to view this post aturi.to Universal ATmosphere Links`;
     const fontData = await loadGoogleFont('Crimson+Pro:wght@300;400;600', allText);
 
     return new ImageResponse(
@@ -77,34 +103,20 @@ export async function GET(request: NextRequest) {
             display: 'flex',
             flexDirection: 'column',
             backgroundColor: '#0a0a0a',
+            backgroundImage: 'radial-gradient(ellipse at 20% 30%, rgba(138, 154, 127, 0.18) 0%, rgba(10, 10, 10, 0) 85%), radial-gradient(ellipse at 80% 70%, rgba(74, 90, 63, 0.15) 0%, rgba(10, 10, 10, 0) 85%), radial-gradient(ellipse at 50% 50%, rgba(61, 51, 41, 0.12) 0%, rgba(10, 10, 10, 0) 90%)',
             color: '#e8e8e6',
             fontFamily: 'Crimson Pro',
             padding: '70px',
             position: 'relative',
           }}
         >
-          {/* Organic glow background */}
+          {/* Grain overlay */}
           <div
             style={{
               position: 'absolute',
-              top: '10%',
-              right: '-5%',
-              width: '400px',
-              height: '400px',
-              background: 'radial-gradient(circle, rgba(138, 154, 127, 0.12) 0%, transparent 70%)',
-              filter: 'blur(70px)',
-              display: 'flex',
-            }}
-          />
-          <div
-            style={{
-              position: 'absolute',
-              bottom: '10%',
-              left: '-5%',
-              width: '350px',
-              height: '350px',
-              background: 'radial-gradient(circle, rgba(74, 90, 63, 0.1) 0%, transparent 70%)',
-              filter: 'blur(80px)',
+              inset: 0,
+              backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 800 800' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.8' numOctaves='5' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E")`,
+              opacity: 0.6,
               display: 'flex',
             }}
           />
@@ -141,14 +153,14 @@ export async function GET(request: NextRequest) {
               </div>
               <div
                 style={{
-                  fontSize: '18px',
+                  fontSize: '22px',
                   color: '#686866',
-                  fontWeight: 300,
+                  fontWeight: 400,
                   letterSpacing: '1px',
                   display: 'flex',
                 }}
               >
-                ATmosphere
+                Universal ATmosphere Links
               </div>
             </div>
 
@@ -165,12 +177,27 @@ export async function GET(request: NextRequest) {
                 style={{
                   width: '64px',
                   height: '64px',
-                  borderRadius: '64px',
                   backgroundColor: '#4a5a3f',
                   boxShadow: '0 0 30px rgba(138, 154, 127, 0.15)',
+                  border: '2px solid rgba(138, 154, 127, 0.25)',
                   display: 'flex',
+                  overflow: 'hidden',
                 }}
-              />
+              >
+                {avatarDataUrl && (
+                  <img
+                    src={avatarDataUrl}
+                    alt={displayName}
+                    width="64"
+                    height="64"
+                    style={{
+                      width: '100%',
+                      height: '100%',
+                      objectFit: 'cover',
+                    }}
+                  />
+                )}
+              </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                 <div
                   style={{
@@ -207,25 +234,57 @@ export async function GET(request: NextRequest) {
                 fontWeight: 300,
                 display: 'flex',
                 backdropFilter: 'blur(10px)',
+                whiteSpace: 'pre-wrap',
+                wordBreak: 'break-word',
               }}
             >
               {truncatedText}
             </div>
 
-            {/* Footer */}
+            {/* Footer - stats on left, tagline on right */}
             <div
               style={{
                 marginTop: '45px',
-                fontSize: '18px',
-                color: '#686866',
-                textAlign: 'center',
-                fontWeight: 300,
-                letterSpacing: '0.5px',
                 display: 'flex',
-                justifyContent: 'center',
+                justifyContent: 'space-between',
+                alignItems: 'center',
               }}
             >
-              Choose where to view this post
+              {/* Left: Post stats */}
+              <div
+                style={{
+                  display: 'flex',
+                  gap: '25px',
+                  fontSize: '18px',
+                  fontWeight: 300,
+                }}
+              >
+                <div style={{ display: 'flex', gap: '6px', color: '#686866' }}>
+                  <span style={{ color: '#8a9a7f', fontWeight: 400 }}>{likeCount.toLocaleString()}</span>
+                  <span>likes</span>
+                </div>
+                <div style={{ display: 'flex', gap: '6px', color: '#686866' }}>
+                  <span style={{ color: '#8a9a7f', fontWeight: 400 }}>{repostCount.toLocaleString()}</span>
+                  <span>reposts</span>
+                </div>
+                <div style={{ display: 'flex', gap: '6px', color: '#686866' }}>
+                  <span style={{ color: '#8a9a7f', fontWeight: 400 }}>{replyCount.toLocaleString()}</span>
+                  <span>replies</span>
+                </div>
+              </div>
+              
+              {/* Right: Tagline */}
+              <div
+                style={{
+                  fontSize: '22px',
+                  color: '#686866',
+                  fontWeight: 400,
+                  letterSpacing: '0.5px',
+                  display: 'flex',
+                }}
+              >
+                Choose where to view this post
+              </div>
             </div>
           </div>
         </div>
