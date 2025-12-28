@@ -82,8 +82,8 @@ export default function RecordPage() {
 
   if (isLoading) {
     return (
-      <div className="container-narrow" style={{ padding: '4rem 2rem' }}>
-        <Header simple />
+      <div className="container-narrow" style={{ padding: '2rem 2rem 4rem' }}>
+        <Header compact />
         {/* Show a post skeleton by default, as most records are posts */}
         <PostPreviewSkeleton />
       </div>
@@ -92,7 +92,8 @@ export default function RecordPage() {
 
   if (error || !parsed || parsed.type === 'unknown') {
     return (
-      <div className="container-narrow" style={{ padding: '4rem 2rem', textAlign: 'center' }}>
+      <div className="container-narrow" style={{ padding: '2rem 2rem 4rem', textAlign: 'center' }}>
+        <Header compact />
         <h1 style={{ marginBottom: '1rem', color: 'var(--text-primary)' }}>Error</h1>
         <p style={{ color: 'var(--text-secondary)' }}>{error || 'Invalid or unsupported URI'}</p>
       </div>
@@ -100,9 +101,9 @@ export default function RecordPage() {
   }
 
   return (
-    <div className="container-narrow" style={{ padding: '4rem 2rem' }}>
-      {/* Site Header */}
-      <Header simple />
+    <div className="container-narrow" style={{ padding: '2rem 2rem 4rem' }}>
+      {/* Site Header - Compact Mode */}
+      <Header compact />
 
       {/* Record Preview */}
       {recordData && (

@@ -64,7 +64,10 @@ export default function RecordPreview({ record, collection, handle, rkey }: Reco
           background: 'var(--bg-secondary)',
           border: '1px solid var(--border-medium)',
           overflow: 'hidden',
+          transform: 'rotate(0.2deg)',
+          transition: 'all 0.4s ease',
         }}
+        className="card"
       >
         {/* Header: URI Structure */}
         <div
@@ -218,69 +221,106 @@ export default function RecordPreview({ record, collection, handle, rkey }: Reco
           style={{
             position: 'fixed',
             inset: 0,
-            background: 'rgba(0, 0, 0, 0.85)',
-            backdropFilter: 'blur(8px)',
+            background: 'rgba(10, 10, 10, 0.75)',
+            backdropFilter: 'blur(12px)',
+            WebkitBackdropFilter: 'blur(12px)',
             zIndex: 1000,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             padding: '2rem',
-            animation: 'modal-fade-in 0.2s ease-out',
+            animation: 'modal-fade-in 0.3s ease-out',
           }}
           onClick={() => setShowJsonModal(false)}
         >
           <div
             style={{
               width: '100%',
-              maxWidth: '800px',
-              maxHeight: '90vh',
-              background: 'var(--bg-secondary)',
+              maxWidth: '900px',
+              maxHeight: '85vh',
+              background: 'linear-gradient(145deg, rgba(21, 21, 21, 0.95) 0%, rgba(26, 26, 26, 0.98) 100%)',
               border: '1px solid var(--border-medium)',
+              boxShadow: '0 20px 60px rgba(0, 0, 0, 0.5), 0 0 80px var(--glow-subtle)',
               display: 'flex',
               flexDirection: 'column',
-              animation: 'modal-slide-up 0.3s ease-out',
+              animation: 'modal-slide-up 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)',
+              position: 'relative',
+              overflow: 'hidden',
             }}
             onClick={(e) => e.stopPropagation()}
           >
+            {/* Ambient glow effect */}
+            <div
+              style={{
+                position: 'absolute',
+                top: '-50%',
+                left: '-20%',
+                width: '140%',
+                height: '100%',
+                background: 'radial-gradient(circle at 30% 40%, var(--glow-medium) 0%, transparent 50%)',
+                opacity: 0.3,
+                pointerEvents: 'none',
+                animation: 'breathe 8s ease-in-out infinite',
+              }}
+            />
+
             {/* Modal Header */}
             <div
               style={{
-                padding: '1.25rem 1.5rem',
-                borderBottom: '1px solid var(--border-medium)',
+                padding: '1.75rem 2rem',
+                borderBottom: '1px solid var(--border-subtle)',
                 display: 'flex',
-                alignItems: 'center',
+                alignItems: 'flex-start',
                 justifyContent: 'space-between',
-                background: 'var(--bg-tertiary)',
+                background: 'rgba(26, 26, 26, 0.4)',
+                position: 'relative',
+                zIndex: 1,
               }}
             >
-              <div>
-                <div style={{ fontSize: '1.125rem', fontWeight: '400', color: 'var(--text-primary)', marginBottom: '0.25rem' }}>
+              <div style={{ flex: 1, paddingRight: '1rem' }}>
+                <div style={{ 
+                  fontSize: '1.25rem', 
+                  fontWeight: '300', 
+                  color: 'var(--text-primary)', 
+                  marginBottom: '0.5rem',
+                  letterSpacing: '-0.01em',
+                }}>
                   Full Record Data
                 </div>
-                <div style={{ fontSize: '0.8125rem', color: 'var(--text-tertiary)', fontFamily: 'var(--font-mono)' }}>
+                <div style={{ 
+                  fontSize: '0.8125rem', 
+                  color: 'var(--text-tertiary)', 
+                  fontFamily: 'var(--font-mono)',
+                  wordBreak: 'break-all',
+                }}>
                   {displayType}
                 </div>
               </div>
               <button
                 onClick={() => setShowJsonModal(false)}
                 style={{
-                  padding: '0.5rem',
-                  background: 'none',
-                  border: 'none',
+                  padding: '0.625rem',
+                  background: 'rgba(26, 26, 26, 0.6)',
+                  border: '1px solid var(--border-subtle)',
                   color: 'var(--text-tertiary)',
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
-                  transition: 'color 0.2s ease',
+                  transition: 'all 0.2s ease',
+                  flexShrink: 0,
                 }}
                 onMouseEnter={(e) => {
+                  e.currentTarget.style.background = 'var(--bg-tertiary)';
                   e.currentTarget.style.color = 'var(--text-primary)';
+                  e.currentTarget.style.borderColor = 'var(--border-medium)';
                 }}
                 onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'rgba(26, 26, 26, 0.6)';
                   e.currentTarget.style.color = 'var(--text-tertiary)';
+                  e.currentTarget.style.borderColor = 'var(--border-subtle)';
                 }}
               >
-                <X size={24} />
+                <X size={20} />
               </button>
             </div>
 
@@ -289,24 +329,41 @@ export default function RecordPreview({ record, collection, handle, rkey }: Reco
               style={{
                 flex: 1,
                 overflow: 'auto',
-                padding: '1.5rem',
+                padding: '2rem',
+                position: 'relative',
+                zIndex: 1,
               }}
             >
               <pre
                 style={{
                   margin: 0,
-                  padding: '1.25rem',
-                  background: 'var(--bg-tertiary)',
+                  padding: '1.5rem',
+                  background: 'rgba(26, 26, 26, 0.6)',
                   border: '1px solid var(--border-subtle)',
                   fontSize: '0.875rem',
-                  lineHeight: '1.6',
+                  lineHeight: '1.7',
                   color: 'var(--text-primary)',
                   fontFamily: 'var(--font-mono)',
+                  boxShadow: 'inset 0 0 40px rgba(0, 0, 0, 0.3)',
                 }}
               >
                 {JSON.stringify(value, null, 2)}
               </pre>
             </div>
+
+            {/* Subtle bottom fade */}
+            <div
+              style={{
+                position: 'absolute',
+                bottom: 0,
+                left: 0,
+                right: 0,
+                height: '60px',
+                background: 'linear-gradient(to top, rgba(21, 21, 21, 0.95), transparent)',
+                pointerEvents: 'none',
+                zIndex: 2,
+              }}
+            />
           </div>
         </div>
       )}

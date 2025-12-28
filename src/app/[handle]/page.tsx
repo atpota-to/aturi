@@ -62,8 +62,8 @@ export default function ProfilePage() {
 
   if (isLoading) {
     return (
-      <div className="container-narrow" style={{ padding: '4rem 2rem' }}>
-        <Header simple />
+      <div className="container-narrow" style={{ padding: '2rem 2rem 4rem' }}>
+        <Header compact />
         <ProfilePreviewSkeleton />
       </div>
     );
@@ -71,7 +71,8 @@ export default function ProfilePage() {
 
   if (error) {
     return (
-      <div className="container-narrow" style={{ padding: '4rem 2rem', textAlign: 'center' }}>
+      <div className="container-narrow" style={{ padding: '2rem 2rem 4rem', textAlign: 'center' }}>
+        <Header compact />
         <h1 style={{ marginBottom: '1rem', color: 'var(--text-primary)' }}>Error</h1>
         <p style={{ color: 'var(--text-secondary)' }}>{error}</p>
       </div>
@@ -81,9 +82,9 @@ export default function ProfilePage() {
   const parsed = parseURI(handle);
 
   return (
-    <div className="container-narrow" style={{ padding: '4rem 2rem' }}>
-      {/* Site Header */}
-      <Header simple />
+    <div className="container-narrow" style={{ padding: '2rem 2rem 4rem' }}>
+      {/* Site Header - Compact Mode */}
+      <Header compact />
 
       {/* Profile Preview */}
       {profileData && (

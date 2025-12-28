@@ -22,6 +22,7 @@ export default function PostPreviewSkeleton({
         padding: '1.5rem',
         background: 'var(--bg-secondary)',
         border: '1px solid var(--border-medium)',
+        transform: 'rotate(0.4deg)',
       }}
     >
       {/* Author Info skeleton */}

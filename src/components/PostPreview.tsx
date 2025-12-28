@@ -123,7 +123,10 @@ export default function PostPreview({ post }: PostPreviewProps) {
         padding: '1.5rem',
         background: 'var(--bg-secondary)',
         border: '1px solid var(--border-medium)',
+        transform: 'rotate(0.4deg)',
+        transition: 'all 0.4s ease',
       }}
+      className="card"
     >
       {/* Author Info */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>

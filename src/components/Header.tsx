@@ -1,11 +1,133 @@
+'use client';
+
+import { useState } from 'react';
 import Link from 'next/link';
-import { Home, Link2, Code } from 'lucide-react';
+import { Home, Link2, Code, Leaf } from 'lucide-react';
 
 interface HeaderProps {
   simple?: boolean; // If true, shows a smaller version without the tagline
+  compact?: boolean; // If true, shows ultra-compact inline header with expandable menu
 }
 
-export default function Header({ simple = false }: HeaderProps) {
+export default function Header({ simple = false, compact = false }: HeaderProps) {
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  // Ultra-compact mode for link preview pages
+  if (compact) {
+    return (
+      <header
+        style={{
+          position: 'relative',
+          marginBottom: '2rem',
+          paddingTop: '1rem',
+        }}
+      >
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '1rem',
+            padding: '0.75rem 1rem',
+            background: 'var(--bg-secondary)',
+            border: '1px solid var(--border-medium)',
+            transform: 'rotate(-0.2deg)',
+            transition: 'all 0.3s ease',
+          }}
+        >
+          {/* Logo/Wordmark */}
+          <Link
+            href="/"
+            style={{
+              textDecoration: 'none',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+            }}
+          >
+            <span
+              style={{
+                fontSize: '1.25rem',
+                fontWeight: 300,
+                letterSpacing: '-0.01em',
+                background: 'linear-gradient(135deg, var(--text-primary) 0%, var(--text-accent) 100%)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                backgroundClip: 'text',
+              }}
+            >
+              aturi.to
+            </span>
+          </Link>
+
+          {/* Expandable menu button */}
+          <button
+            onClick={() => setIsExpanded(!isExpanded)}
+            style={{
+              padding: '0.5rem',
+              background: 'var(--bg-tertiary)',
+              border: '1px solid var(--border-medium)',
+              color: 'var(--text-accent)',
+              transition: 'all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)',
+              transform: isExpanded ? 'rotate(90deg) scale(1.1)' : 'rotate(0deg)',
+            }}
+            aria-label="Toggle menu"
+            aria-expanded={isExpanded}
+          >
+            <Leaf size={18} style={{
+              transition: 'all 0.3s ease',
+              opacity: isExpanded ? 0.6 : 1,
+            }} />
+          </button>
+        </div>
+
+        {/* Expanding organic nav panel */}
+        <div
+          style={{
+            position: 'absolute',
+            top: '100%',
+            left: 0,
+            right: 0,
+            marginTop: '0.5rem',
+            background: 'var(--bg-secondary)',
+            border: '1px solid var(--border-medium)',
+            transformOrigin: 'top center',
+            transform: isExpanded
+              ? 'scaleY(1) translateY(0) rotate(0.3deg)'
+              : 'scaleY(0) translateY(-10px) rotate(0deg)',
+            opacity: isExpanded ? 1 : 0,
+            transition: 'all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)',
+            pointerEvents: isExpanded ? 'auto' : 'none',
+            zIndex: 50,
+            overflow: 'hidden',
+          }}
+        >
+          <nav
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '0.25rem',
+              padding: '0.75rem',
+            }}
+          >
+            <Link href="/" className="compact-nav-link">
+              <Home size={16} />
+              <span>about</span>
+            </Link>
+            <Link href="/create" className="compact-nav-link">
+              <Link2 size={16} />
+              <span>create link</span>
+            </Link>
+            <Link href="/integrate" className="compact-nav-link">
+              <Code size={16} />
+              <span>integrate</span>
+            </Link>
+          </nav>
+        </div>
+      </header>
+    );
+  }
+  
   if (simple) {
     return (
       <header

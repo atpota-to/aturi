@@ -15,6 +15,7 @@ export default function ProfilePreviewSkeleton() {
         overflow: 'hidden',
         background: 'var(--bg-secondary)',
         border: '1px solid var(--border-medium)',
+        transform: 'rotate(-0.3deg)',
       }}
     >
       {/* Banner skeleton */}

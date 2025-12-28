@@ -192,6 +192,56 @@ a:hover {
   transform: scale(1.1) rotate(-5deg);
 }
 
+/* Compact Navigation Links - for dropdown menu */
+.compact-nav-link {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  padding: 0.75rem 1rem;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  font-weight: 400;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-subtle);
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+  text-decoration: none;
+}
+
+.compact-nav-link::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: var(--text-accent);
+  transform: scaleY(0);
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.compact-nav-link:hover {
+  color: var(--text-primary);
+  background: var(--bg-elevated);
+  border-color: var(--border-medium);
+  transform: translateX(4px);
+}
+
+.compact-nav-link:hover::before {
+  transform: scaleY(1);
+}
+
+.compact-nav-link svg {
+  color: var(--text-accent);
+  transition: all 0.3s ease;
+}
+
+.compact-nav-link:hover svg {
+  color: var(--text-primary);
+  transform: scale(1.15) rotate(-5deg);
+}
+
 /* Buttons */
 button {
   font-family: var(--font-serif);
@@ -607,6 +657,16 @@ html {
   will-change: transform;
 }
 
+/* Preview cards - subtle organic rotation on hover */
+.card:not(.feature-card-primary):not(.feature-card-secondary):not(.cta-card) {
+  will-change: transform;
+}
+
+.card:not(.feature-card-primary):not(.feature-card-secondary):not(.cta-card):hover {
+  transform: rotate(0deg) scale(1.005) !important;
+  box-shadow: 0 4px 40px var(--glow-subtle);
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   html {
@@ -640,7 +700,8 @@ html {
   .feature-card-primary,
   .feature-card-secondary,
   .example-link,
-  .cta-card {
+  .cta-card,
+  .card {
     transform: none !important;
   }
   
