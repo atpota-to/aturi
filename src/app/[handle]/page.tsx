@@ -3,6 +3,7 @@ import { Suspense } from 'react';
 import WaypointPicker from '@/components/WaypointPicker';
 import ProfilePreview from '@/components/ProfilePreview';
 import ProfilePreviewSkeleton from '@/components/ProfilePreviewSkeleton';
+import ScrollIndicator from '@/components/ScrollIndicator';
 import Header from '@/components/Header';
 import { parseURI, resolveHandle, getDisplayName } from '@/utils/uriParser';
 import { resolveDidToHandle } from '@/utils/didResolver';
@@ -104,6 +105,8 @@ async function ProfileContent({ handle }: { handle: string }) {
             <ProfilePreview profile={profileData} />
           </div>
         )}
+
+        <ScrollIndicator />
 
         <WaypointPicker
           type="profile"

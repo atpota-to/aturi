@@ -5,6 +5,7 @@ import PostPreview from '@/components/PostPreview';
 import PostPreviewSkeleton from '@/components/PostPreviewSkeleton';
 import RecordPreview from '@/components/RecordPreview';
 import RecordPreviewSkeleton from '@/components/RecordPreviewSkeleton';
+import ScrollIndicator from '@/components/ScrollIndicator';
 import Header from '@/components/Header';
 import { parseURI, resolveHandle, getDisplayName, type ParsedURI } from '@/utils/uriParser';
 import { fetchRecordData, type PostThread, type GenericRecord } from '@/utils/recordFetcher';
@@ -171,6 +172,8 @@ async function RecordContent({ handle, collection, rkey }: { handle: string; col
             )}
           </div>
         )}
+
+        <ScrollIndicator />
 
         <WaypointPicker
           type={parsedData.type}

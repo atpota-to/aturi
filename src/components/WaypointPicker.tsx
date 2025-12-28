@@ -67,7 +67,7 @@ export default function WaypointPicker({
   };
 
   return (
-    <>
+    <div id="waypoint-picker">
       {/* Header */}
       <header style={{ marginBottom: '2rem', textAlign: 'center' }}>
         <h1 style={{ marginBottom: '1rem', color: 'var(--text-primary)' }}>
@@ -185,7 +185,7 @@ export default function WaypointPicker({
           label="Share this waypoint page"
         />
       </div>
-    </>
+    </div>
   );
 }
 

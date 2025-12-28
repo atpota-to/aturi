@@ -3,17 +3,35 @@ import { NextRequest } from 'next/server';
 
 export const runtime = 'edge';
 
-// Helper to load Google Font
-async function loadGoogleFont(font: string, text: string) {
-  const url = `https://fonts.googleapis.com/css2?family=${font}&text=${encodeURIComponent(text)}`;
-  const css = await (await fetch(url)).text();
-  const resource = css.match(/src: url\((.+)\) format\('(opentype|truetype)'\)/);
+// Cache font data to avoid repeated fetches
+const fontCache = new Map<string, ArrayBuffer>();
 
-  if (resource) {
-    const response = await fetch(resource[1]);
-    if (response.status == 200) {
-      return await response.arrayBuffer();
+// Helper to load Google Font with timeout
+async function loadGoogleFont(font: string, text: string) {
+  const cacheKey = `${font}-${text.slice(0, 50)}`; // Cache based on font and first 50 chars
+  
+  if (fontCache.has(cacheKey)) {
+    return fontCache.get(cacheKey)!;
+  }
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 3000); // 3 second timeout
+  
+  try {
+    const url = `https://fonts.googleapis.com/css2?family=${font}&text=${encodeURIComponent(text)}`;
+    const css = await fetch(url, { signal: controller.signal }).then(r => r.text());
+    const resource = css.match(/src: url\((.+)\) format\('(opentype|truetype)'\)/);
+
+    if (resource) {
+      const response = await fetch(resource[1], { signal: controller.signal });
+      if (response.status == 200) {
+        const fontData = await response.arrayBuffer();
+        fontCache.set(cacheKey, fontData);
+        return fontData;
+      }
     }
+  } finally {
+    clearTimeout(timeoutId);
   }
 
   throw new Error('failed to load font data');
@@ -42,27 +60,35 @@ export async function GET(request: NextRequest) {
       // Build the full AT URI - identifier should already be a DID
       const uri = `at://${identifier}/app.bsky.feed.post/${rkey}`;
       
-      // Fetch the post thread
-      const response = await fetch(
-        `${apiUrl}/xrpc/app.bsky.feed.getPostThread?uri=${encodeURIComponent(uri)}`,
-        {
-          headers: {
-            'Accept': 'application/json',
-          },
-          next: { revalidate: 3600 }, // Cache for 1 hour
-        }
-      );
+      // Fetch the post thread with timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+      
+      try {
+        const response = await fetch(
+          `${apiUrl}/xrpc/app.bsky.feed.getPostThread?uri=${encodeURIComponent(uri)}`,
+          {
+            headers: {
+              'Accept': 'application/json',
+            },
+            signal: controller.signal,
+            next: { revalidate: 3600 }, // Cache for 1 hour
+          }
+        );
 
-      if (response.ok) {
-        const data = await response.json();
-        const post = data.thread?.post;
-        postData = post?.record;
-        authorData = post?.author;
-        
-        // Get engagement metrics
-        likeCount = post?.likeCount || 0;
-        replyCount = post?.replyCount || 0;
-        repostCount = post?.repostCount || 0;
+        if (response.ok) {
+          const data = await response.json();
+          const post = data.thread?.post;
+          postData = post?.record;
+          authorData = post?.author;
+          
+          // Get engagement metrics
+          likeCount = post?.likeCount || 0;
+          replyCount = post?.replyCount || 0;
+          repostCount = post?.repostCount || 0;
+        }
+      } finally {
+        clearTimeout(timeoutId);
       }
     } catch (error) {
       console.error('Error fetching post:', error);
@@ -74,19 +100,27 @@ export async function GET(request: NextRequest) {
     const truncatedText = postText.length > 180 ? postText.slice(0, 180) + '...' : postText;
     const avatarUrl = authorData?.avatar || '';
     
-    // Fetch avatar image and convert to base64
+    // Fetch avatar image and convert to base64 with timeout
     let avatarDataUrl = '';
     if (avatarUrl) {
       try {
-        const avatarResponse = await fetch(avatarUrl);
-        if (avatarResponse.ok) {
-          const avatarBuffer = await avatarResponse.arrayBuffer();
-          const base64 = Buffer.from(avatarBuffer).toString('base64');
-          const contentType = avatarResponse.headers.get('content-type') || 'image/jpeg';
-          avatarDataUrl = `data:${contentType};base64,${base64}`;
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 3000); // 3 second timeout
+        
+        try {
+          const avatarResponse = await fetch(avatarUrl, { signal: controller.signal });
+          if (avatarResponse.ok) {
+            const avatarBuffer = await avatarResponse.arrayBuffer();
+            const base64 = Buffer.from(avatarBuffer).toString('base64');
+            const contentType = avatarResponse.headers.get('content-type') || 'image/jpeg';
+            avatarDataUrl = `data:${contentType};base64,${base64}`;
+          }
+        } finally {
+          clearTimeout(timeoutId);
         }
       } catch (error) {
         console.error('Error fetching avatar:', error);
+        // Continue without avatar
       }
     }
 
