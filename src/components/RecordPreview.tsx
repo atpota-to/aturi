@@ -67,7 +67,7 @@ export default function RecordPreview({ record, collection, handle, rkey }: Reco
           transform: 'rotate(0.2deg)',
           transition: 'all 0.4s ease',
         }}
-        className="card"
+        className="card record-preview-card"
       >
         {/* Header: URI Structure */}
         <div

@@ -337,6 +337,10 @@ button {
   transition: all 0.3s ease;
 }
 
+.record-preview-card {
+  padding: 0;
+}
+
 .card:hover {
   background: var(--bg-tertiary);
   border-color: var(--border-strong);
