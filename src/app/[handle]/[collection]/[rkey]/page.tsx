@@ -44,7 +44,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       if (recordData.type === 'post' && recordData.data.thread[0]?.value.post) {
         const post = recordData.data.thread[0].value.post;
         const author = post.author;
-        title = `${author.displayName || author.handle} (@${author.handle}) on ATProto`;
+        title = `Post by ${author.displayName || author.handle} (@${author.handle}) on Bluesky — View on Aturi`;
         description = post.record?.text 
           ? post.record.text.slice(0, 160) 
           : 'View this post on your preferred ATProto app';
@@ -58,8 +58,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
         
         if (collection === 'app.bsky.graph.list' || collection.endsWith('.list')) {
           title = record.value?.name 
-            ? `${record.value.name} - ATProto List`
-            : 'ATProto List';
+            ? `${record.value.name} — ATProto List by @${displayHandle}`
+            : `ATProto List by @${displayHandle}`;
           description = record.value?.description 
             ? record.value.description.slice(0, 160)
             : 'View this list on your preferred ATProto app';
@@ -69,13 +69,15 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
           ogUrl.searchParams.set('rkey', rkey);
           ogImageUrl = ogUrl.toString();
         } else {
-          title = `ATProto Record - @${displayHandle}`;
-          description = `View this ${collection} record on your preferred ATProto app`;
+          // Generic record type
+          const collectionName = collection.split('.').pop() || collection;
+          title = `${collection} record by ${displayHandle} (@${displayHandle}) — View on Aturi`;
+          description = `View this ${collectionName} record on your preferred ATProto app`;
         }
       }
       
       return {
-        title: `${title} - aturi.to`,
+        title,
         description,
         openGraph: {
           title,
@@ -103,7 +105,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   }
 
   return {
-    title: `Record - aturi.to`,
+    title: `Record — View on Aturi`,
     description: 'Universal links for the ATmosphere',
   };
 }

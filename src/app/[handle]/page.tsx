@@ -32,7 +32,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       : handle;
     
     if (profile) {
-      const title = `${profile.displayName || displayHandle} (@${displayHandle}) - aturi.to`;
+      const title = `${profile.displayName || displayHandle} (@${displayHandle})'s ATmosphere Profile`;
       const description = profile.description 
         ? profile.description.slice(0, 160) 
         : `View @${displayHandle}'s profile on your preferred ATProto app`;
