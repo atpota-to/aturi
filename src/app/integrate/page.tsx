@@ -702,6 +702,77 @@ custom = to_aturi_link(
         </div>
       </div>
 
+      {/* Submit Your App Card */}
+      <div style={{ 
+        maxWidth: '1200px', 
+        margin: '0 auto 4rem',
+        padding: '0 2rem'
+      }}>
+        <div 
+          className="card" 
+          style={{ 
+            padding: '3rem',
+            background: 'var(--bg-elevated)', 
+            textAlign: 'center',
+            transform: 'rotate(-0.3deg)',
+            transition: 'all 0.4s ease',
+            border: '1px solid var(--border-strong)'
+          }}
+        >
+          <h2 style={{ marginBottom: '1rem', color: 'var(--text-accent)', fontSize: '2rem', fontWeight: 400 }}>
+            Submit your app as a waypoint
+          </h2>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '1.05rem', lineHeight: 1.7, marginBottom: '2rem' }}>
+            Building an ATProto client or tool? We&apos;d love to consider adding it to our curated list of waypoints so users can choose your platform when sharing content.
+          </p>
+          <div style={{
+            display: 'flex',
+            gap: '1rem',
+            flexWrap: 'wrap',
+            justifyContent: 'center'
+          }}>
+            <a
+              href="mailto:aturi@atpota.to"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                padding: '1rem 1.75rem',
+                background: 'var(--bg-secondary)',
+                color: 'var(--text-primary)',
+                border: '1px solid var(--border-medium)',
+                fontSize: '1rem',
+                textDecoration: 'none',
+                transition: 'all 0.3s ease',
+                fontWeight: 400
+              }}
+            >
+              Email aturi@atpota.to
+            </a>
+            <a
+              href="https://bsky.app/profile/aturi.to"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                padding: '1rem 1.75rem',
+                background: 'var(--bg-secondary)',
+                color: 'var(--text-primary)',
+                border: '1px solid var(--border-medium)',
+                fontSize: '1rem',
+                textDecoration: 'none',
+                transition: 'all 0.3s ease',
+                fontWeight: 400
+              }}
+            >
+              DM on Bluesky
+            </a>
+          </div>
+        </div>
+      </div>
+
       {/* Support - Full Width Centered */}
       <div style={{ 
         maxWidth: '1200px', 

@@ -685,7 +685,6 @@ html {
 /* CTA Card */
 .cta-card:hover {
   transform: rotate(-0.2deg) scale(1.01) !important;
-  box-shadow: 0 12px 80px var(--glow-strong);
 }
 
 .cta-button {

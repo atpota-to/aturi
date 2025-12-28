@@ -427,6 +427,86 @@ export default function HomePage() {
             </Link>
           </div>
         </section>
+
+        {/* Submit Your App Card */}
+        <section
+          className="card"
+          style={{
+            padding: '2.5rem',
+            background: 'var(--bg-secondary)',
+            border: '1px solid var(--border-medium)',
+            position: 'relative',
+            transform: 'rotate(0.3deg)',
+            transition: 'all 0.4s ease',
+            marginTop: '3rem'
+          }}
+        >
+          <div style={{ maxWidth: '700px', margin: '0 auto' }}>
+            <h3 style={{ 
+              marginBottom: '1rem', 
+              color: 'var(--text-primary)',
+              fontSize: '1.5rem',
+              fontWeight: 400
+            }}>
+              Submit your app as a waypoint
+            </h3>
+            <p
+              style={{
+                color: 'var(--text-secondary)',
+                marginBottom: '1.5rem',
+                fontSize: '1rem',
+                lineHeight: 1.7
+              }}
+            >
+              Building an ATProto client or tool? We&apos;d love to consider adding it to our curated list of waypoints.
+            </p>
+            <div style={{
+              display: 'flex',
+              gap: '1rem',
+              flexWrap: 'wrap',
+              justifyContent: 'center'
+            }}>
+              <a
+                href="mailto:aturi@atpota.to"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  padding: '0.875rem 1.5rem',
+                  background: 'var(--bg-primary)',
+                  color: 'var(--text-primary)',
+                  border: '1px solid var(--border-medium)',
+                  fontSize: '0.95rem',
+                  textDecoration: 'none',
+                  transition: 'all 0.3s ease',
+                  fontWeight: 400
+                }}
+              >
+                Email aturi@atpota.to
+              </a>
+              <a
+                href="https://bsky.app/profile/aturi.to"
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  padding: '0.875rem 1.5rem',
+                  background: 'var(--bg-primary)',
+                  color: 'var(--text-primary)',
+                  border: '1px solid var(--border-medium)',
+                  fontSize: '0.95rem',
+                  textDecoration: 'none',
+                  transition: 'all 0.3s ease',
+                  fontWeight: 400
+                }}
+              >
+                DM on Bluesky
+              </a>
+            </div>
+          </div>
+        </section>
       </div>
     </div>
   );
