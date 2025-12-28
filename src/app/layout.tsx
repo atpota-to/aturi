@@ -26,7 +26,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
-        <main>{children}</main>
+        <main style={{ position: 'relative', zIndex: 1 }}>{children}</main>
         <Footer />
         <Analytics />
       </body>

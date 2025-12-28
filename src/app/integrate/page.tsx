@@ -34,11 +34,11 @@ Example: \`aturi.to/alice.bsky.social/app.bsky.feed.post/3k7qw...\`
 
 ### Full AT URI format (also supported):
 \`\`\`
-aturi.to/at/[did]/[collection]/[rkey]
+aturi.to/at://[did or handle]/[collection]/[rkey]
 \`\`\`
-Example: \`aturi.to/at/did:plc:lcieujcfkv4jx7gehsvok3pr/app.bsky.feed.threadgate/3lwtzzgb7y22z\`
+Example: \`aturi.to/at://did:plc:lcieujcfkv4jx7gehsvok3pr/app.bsky.feed.threadgate/3lwtzzgb7y22z\`
 
-Note: Use \`/at/\` prefix (not \`/at://\`) to preserve the DID format in the URL path.
+Note: Modern browsers support the literal \`at://\` in URL paths.
 
 ## Code Examples
 
@@ -61,10 +61,10 @@ const shareLink = toAturiLink(atUri);
 const customLink = toAturiLink(atUri, 'myshare.app');
 // https://myshare.app/alice.bsky.social/app.bsky.feed.post/3k7qw...
 
-// Or use /at/ prefix for explicit AT URI format
-const didUri = "at://did:plc:xxx/app.bsky.feed.post/3k7qw...";
-const atLink = \`https://aturi.to/at/\${didUri.replace('at://', '')}\`;
-// https://aturi.to/at/did:plc:xxx/app.bsky.feed.post/3k7qw...
+// Or keep the literal at:// in the URL
+const fullAtUri = "at://did:plc:xxx/app.bsky.feed.post/3k7qw...";
+const atUriLink = \`https://aturi.to/\${fullAtUri}\`;
+// https://aturi.to/at://did:plc:xxx/app.bsky.feed.post/3k7qw...
 \`\`\`
 
 ### React Component
@@ -335,7 +335,7 @@ aturi.to is a community tool for the ATProto ecosystem. The service is free and 
                 Example: <code>aturi.to/alice.bsky.social/app.bsky.feed.post/3k7qw...</code>
               </p>
               <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', marginTop: '1rem', marginBottom: '0.5rem' }}>
-                Also supports full AT URI format (using /at/ prefix):
+                Also supports full AT URI format (literal at:// in URL):
               </p>
               <code style={{ 
                 display: 'block', 
@@ -344,10 +344,10 @@ aturi.to is a community tool for the ATProto ecosystem. The service is free and 
                 background: 'var(--bg-primary)',
                 border: '1px solid var(--border-medium)',
               }}>
-                aturi.to/at/[did]/[collection]/[rkey]
+                aturi.to/at://[did or handle]/[collection]/[rkey]
               </code>
               <p style={{ color: 'var(--text-tertiary)', fontSize: '0.875rem', marginTop: '0.75rem' }}>
-                Example: <code style={{ fontSize: '0.8rem' }}>aturi.to/at/did:plc:lcieujcfkv4jx7gehsvok3pr/app.bsky.feed.threadgate/3lwtzzgb7y22z</code>
+                Example: <code style={{ fontSize: '0.8rem' }}>aturi.to/at://did:plc:lcieujcfkv4jx7gehsvok3pr/app.bsky.feed.threadgate/3lwtzzgb7y22z</code>
               </p>
             </div>
           </div>
@@ -409,10 +409,10 @@ const shareLink = toAturiLink(atUri);
 const customLink = toAturiLink(atUri, 'myshare.app');
 // https://myshare.app/alice.bsky.social/app.bsky.feed.post/3k7qw...
 
-// Or use /at/ prefix for explicit AT URI format
-const didUri = "at://did:plc:xxx/app.bsky.feed.post/3k7qw...";
-const atLink = \`https://aturi.to/at/\${didUri.replace('at://', '')}\`;
-// https://aturi.to/at/did:plc:xxx/app.bsky.feed.post/3k7qw...`}</pre>
+// Or keep the literal at:// in the URL
+const fullAtUri = "at://did:plc:xxx/app.bsky.feed.post/3k7qw...";
+const atUriLink = \`https://aturi.to/\${fullAtUri}\`;
+// https://aturi.to/at://did:plc:xxx/app.bsky.feed.post/3k7qw...`}</pre>
           </div>
 
           <div style={{

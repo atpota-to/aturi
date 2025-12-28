@@ -101,27 +101,27 @@ export function extractAtUriComponents(input: string): AtUriComponents | null {
 
 /**
  * Generates an aturi.to link from AT URI components
- * @param useAtPrefix - If true, uses /at/ prefix format (e.g., aturi.to/at/did:plc:xxx/...)
+ * @param useAtPrefix - If true, keeps the literal at:// prefix (e.g., aturi.to/at://did:plc:xxx/...)
  */
 export function generateAturiLink(components: AtUriComponents, useAtPrefix: boolean = false): string {
   const { identifier, collection, rkey } = components;
   
   if (collection && rkey) {
     if (useAtPrefix) {
-      return `https://aturi.to/at/${identifier}/${collection}/${rkey}`;
+      return `https://aturi.to/at://${identifier}/${collection}/${rkey}`;
     }
     return `https://aturi.to/${identifier}/${collection}/${rkey}`;
   }
   
   if (useAtPrefix) {
-    return `https://aturi.to/at/${identifier}`;
+    return `https://aturi.to/at://${identifier}`;
   }
   return `https://aturi.to/${identifier}`;
 }
 
 /**
  * Main function to convert any input to an aturi.to link
- * @param useAtPrefix - If true, uses /at/ prefix format for DIDs
+ * @param useAtPrefix - If true, keeps the literal at:// prefix for full AT URI format
  */
 export function convertToAturiLink(input: string, useAtPrefix: boolean = false): string | null {
   const components = extractAtUriComponents(input);
