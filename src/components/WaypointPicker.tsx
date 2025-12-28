@@ -176,9 +176,11 @@ export default function WaypointPicker({
         <h3 style={{ marginBottom: '1rem', color: 'var(--text-accent)' }}>
           What is aturi.to?
         </h3>
-        <p style={{ color: 'var(--text-secondary)', marginBottom: '1rem' }}>
-          Universal links for the ATmosphere. Share ATProto content with anyone,
-          let them choose where to view it.
+        <p style={{ color: 'var(--text-primary)', fontSize: '1.25rem', marginBottom: '0.75rem', lineHeight: 1.4 }}>
+          Universal links for the ATmosphere.
+        </p>
+        <p style={{ color: 'var(--text-secondary)', fontSize: '1rem', marginBottom: '1.5rem', lineHeight: 1.6 }}>
+          Share ATProto content with anyone, let them choose where to view it.
         </p>
         <ShareButton
           url={typeof window !== 'undefined' ? window.location.href : ''}
