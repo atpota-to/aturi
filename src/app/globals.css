@@ -353,6 +353,57 @@ html {
   scroll-behavior: smooth;
 }
 
+/* Custom scrollbar styling - organic and minimal */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-tertiary);
+  border-left: 1px solid var(--border-subtle);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--text-tertiary);
+  transition: background 0.2s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-secondary);
+}
+
+/* Firefox scrollbar */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--text-tertiary) var(--bg-tertiary);
+}
+
+/* Scrollable container with fade indicator */
+.scroll-container {
+  position: relative;
+  max-height: 500px;
+  overflow: auto;
+}
+
+.scroll-container::after {
+  content: '';
+  position: sticky;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 40px;
+  background: linear-gradient(to top, var(--bg-secondary), transparent);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.scroll-container:hover::after,
+.scroll-container:focus-within::after {
+  opacity: 1;
+}
+
 /* Selection */
 ::selection {
   background: var(--accent-moss);

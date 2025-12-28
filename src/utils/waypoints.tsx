@@ -62,11 +62,16 @@ export const WAYPOINT_DESTINATIONS: Record<string, Waypoint> = {
     icon: <MoonStar size={24} strokeWidth={2} />,
     getUrl: (handle, collection, rkey) => {
       if (collection && rkey) {
-        return `https://anisota.net/profile/${handle}/post/${rkey}`;
+        // For standard posts, use the profile/post URL
+        if (collection === 'app.bsky.feed.post') {
+          return `https://anisota.net/profile/${handle}/post/${rkey}`;
+        }
+        // For arbitrary records, use the explorer URL
+        return `https://eclose.anisota.net/explorer/${handle}/${collection}/${rkey}`;
       }
       return `https://anisota.net/profile/${handle}`;
     },
-    supportedTypes: ['post', 'profile', 'list'],
+    supportedTypes: ['post', 'profile', 'list', 'record'],
   },
   
   bluesky: {

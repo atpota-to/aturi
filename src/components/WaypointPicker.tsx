@@ -60,7 +60,7 @@ export default function WaypointPicker({
       case 'list':
         return `Opening list by ${display}`;
       case 'record':
-        return `Opening record from ${display}`;
+        return `Open record from ${display} on...`;
       default:
         return `Opening content from ${display}`;
     }

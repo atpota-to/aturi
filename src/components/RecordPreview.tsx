@@ -141,16 +141,18 @@ export default function RecordPreview({ record, collection }: RecordPreviewProps
 
       {/* Conditional Rendering: Summary vs Full JSON */}
       {showFullJson ? (
-        <div>
+        <div
+          className="scroll-container"
+          style={{
+            background: 'var(--bg-tertiary)',
+            border: '1px solid var(--border-subtle)',
+          }}
+        >
           <pre
             style={{
               margin: 0,
               padding: '1rem',
-              background: 'var(--bg-tertiary)',
-              border: '1px solid var(--border-subtle)',
               fontSize: '0.875rem',
-              overflow: 'auto',
-              maxHeight: '600px',
               lineHeight: '1.5',
             }}
           >
@@ -158,26 +160,28 @@ export default function RecordPreview({ record, collection }: RecordPreviewProps
           </pre>
         </div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          {keyFields.map(([key, val]) => (
-            <div key={key}>
-              <div
-                style={{
-                  fontSize: '0.75rem',
-                  fontWeight: '600',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.05em',
-                  color: 'var(--text-tertiary)',
-                  marginBottom: '0.375rem',
-                }}
-              >
-                {key}
+        <div className="scroll-container">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', padding: '0.125rem' }}>
+            {keyFields.map(([key, val]) => (
+              <div key={key}>
+                <div
+                  style={{
+                    fontSize: '0.75rem',
+                    fontWeight: '600',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.05em',
+                    color: 'var(--text-tertiary)',
+                    marginBottom: '0.375rem',
+                  }}
+                >
+                  {key}
+                </div>
+                <div style={{ color: 'var(--text-primary)' }}>
+                  <FieldValue value={val} />
+                </div>
               </div>
-              <div style={{ color: 'var(--text-primary)' }}>
-                <FieldValue value={val} />
-              </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       )}
 
