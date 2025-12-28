@@ -393,24 +393,24 @@ export default function PostPreview({ post }: PostPreviewProps) {
         >
           <video
             controls
-            poster={embed.thumbnail}
+            poster={embed.video.thumbnail}
             style={{
               width: '100%',
               maxHeight: '500px',
               display: 'block',
             }}
           >
-            <source src={embed.playlist} type="application/x-mpegURL" />
+            <source src={embed.video.playlist} type="application/x-mpegURL" />
             Your browser does not support the video tag.
           </video>
-          {embed.alt && (
+          {embed.video.alt && (
             <div style={{ 
               padding: '0.5rem', 
               fontSize: '0.875rem', 
               color: 'var(--text-tertiary)',
               background: 'var(--bg-secondary)',
             }}>
-              {embed.alt}
+              {embed.video.alt}
             </div>
           )}
         </div>
