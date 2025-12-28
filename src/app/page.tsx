@@ -438,7 +438,8 @@ export default function HomePage() {
             position: 'relative',
             transform: 'rotate(0.3deg)',
             transition: 'all 0.4s ease',
-            marginTop: '3rem'
+            marginTop: '3rem',
+            textAlign: 'center'
           }}
         >
           <div style={{ maxWidth: '700px', margin: '0 auto' }}>
