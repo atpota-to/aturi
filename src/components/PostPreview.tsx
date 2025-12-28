@@ -3,6 +3,8 @@
  * Displays a rich preview card for Bluesky posts
  */
 
+'use client';
+
 import { BskyPost } from '@/utils/recordFetcher';
 import { User, MessageSquare, Repeat2, Heart, Quote, Play } from 'lucide-react';
 
