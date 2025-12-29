@@ -71,14 +71,27 @@ export default function Header({ simple = false, compact = false }: HeaderProps)
                 fontSize: '1.25rem',
                 fontWeight: 300,
                 letterSpacing: '-0.01em',
-                background: 'linear-gradient(135deg, var(--text-primary) 0%, var(--text-accent) 100%)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-                backgroundClip: 'text',
                 whiteSpace: 'nowrap',
               }}
             >
-              aturi.to
+              <span
+                style={{
+                  background: 'linear-gradient(135deg, var(--text-primary) 0%, var(--text-accent) 100%)',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                  backgroundClip: 'text',
+                }}
+              >
+                aturi
+              </span>
+              <span
+                style={{
+                  color: 'var(--text-tertiary)',
+                  opacity: 0.5,
+                }}
+              >
+                .to
+              </span>
             </span>
             <span
               style={{
@@ -184,13 +197,26 @@ export default function Header({ simple = false, compact = false }: HeaderProps)
               marginBottom: '0.5rem',
               fontWeight: 300,
               letterSpacing: '-0.01em',
-              background: 'linear-gradient(135deg, var(--text-primary) 0%, var(--text-accent) 100%)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              backgroundClip: 'text',
             }}
           >
-            aturi.to
+            <span
+              style={{
+                background: 'linear-gradient(135deg, var(--text-primary) 0%, var(--text-accent) 100%)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                backgroundClip: 'text',
+              }}
+            >
+              aturi
+            </span>
+            <span
+              style={{
+                color: 'var(--text-tertiary)',
+                opacity: 0.5,
+              }}
+            >
+              .to
+            </span>
           </h1>
         </Link>
         <p
@@ -252,13 +278,26 @@ export default function Header({ simple = false, compact = false }: HeaderProps)
           marginBottom: '1rem',
           fontWeight: 300,
           letterSpacing: '-0.01em',
-          background: 'linear-gradient(135deg, var(--text-primary) 0%, var(--text-accent) 100%)',
-          WebkitBackgroundClip: 'text',
-          WebkitTextFillColor: 'transparent',
-          backgroundClip: 'text',
         }}
       >
-        aturi.to
+        <span
+          style={{
+            background: 'linear-gradient(135deg, var(--text-primary) 0%, var(--text-accent) 100%)',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            backgroundClip: 'text',
+          }}
+        >
+          aturi
+        </span>
+        <span
+          style={{
+            color: 'var(--text-tertiary)',
+            opacity: 0.5,
+          }}
+        >
+          .to
+        </span>
       </motion.h1>
       <motion.p
         initial={{ opacity: 0, y: -10 }}
