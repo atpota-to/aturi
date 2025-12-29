@@ -819,6 +819,37 @@ html {
     min-width: 0;
   }
   
+  /* Force code blocks and inline code to wrap on mobile */
+  code {
+    word-break: break-all;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    white-space: pre-wrap;
+  }
+  
+  pre {
+    white-space: pre-wrap !important;
+    word-break: break-all;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    overflow-x: hidden !important; /* Prevent horizontal scroll */
+  }
+  
+  pre code {
+    white-space: pre-wrap;
+  }
+  
+  /* Ensure cards don't overflow on mobile */
+  .card {
+    max-width: 100%;
+    overflow: hidden;
+  }
+  
+  .card pre {
+    max-width: 100%;
+    overflow-x: hidden !important;
+  }
+  
   /* Reset transforms on mobile for simpler layout */
   .feature-card-primary,
   .feature-card-secondary,
