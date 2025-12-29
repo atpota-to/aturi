@@ -19,7 +19,7 @@ export default function ForkPage() {
         padding: '0 2rem'
       }}>
         <div 
-          className="card"
+          className="card fork-hero-card"
           style={{ 
             padding: '3.5rem',
             transform: 'rotate(-0.3deg)',
@@ -27,7 +27,7 @@ export default function ForkPage() {
             marginBottom: '3rem'
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1.5rem' }}>
+          <div className="fork-hero-content" style={{ display: 'flex', alignItems: 'flex-start', gap: '1.5rem' }}>
             <GitFork size={48} style={{ color: 'var(--text-accent)', flexShrink: 0 }} />
             <div>
               <h1 style={{ marginBottom: '1rem', fontSize: '2.75rem', fontWeight: 300 }}>
@@ -57,7 +57,7 @@ export default function ForkPage() {
           Why Fork?
         </h2>
 
-        <div style={{
+        <div className="fork-why-grid" style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(12, 1fr)',
           gap: '1.5rem'
@@ -121,7 +121,7 @@ export default function ForkPage() {
         margin: '0 auto 6rem',
         padding: '0 2rem'
       }}>
-        <div style={{
+        <div className="fork-quick-start-grid" style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(12, 1fr)',
           gap: '2rem',
@@ -164,7 +164,7 @@ git clone https://github.com/yourusername/aturi-to.git my-instance
 cd my-instance
 
 # Run interactive setup
-npm run setup-fork
+node scripts/setup-fork.js
 
 # Install and start
 npm install
@@ -178,7 +178,7 @@ npm run dev`}</pre>
         </div>
 
         {/* Quick Links */}
-        <div style={{
+        <div className="fork-quick-links-grid" style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(12, 1fr)',
           gap: '1.5rem',
@@ -236,7 +236,7 @@ npm run dev`}</pre>
         margin: '0 auto 6rem',
         padding: '0 2rem'
       }}>
-        <div style={{
+        <div className="fork-config-grid" style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(12, 1fr)',
           gap: '2rem',
@@ -392,7 +392,7 @@ cp .env.example .env.local
             }}
           >
             <h3 style={{ marginBottom: '1.25rem', fontSize: '1.5rem', fontWeight: 400 }}>
-              4. Deploy
+              4. Test & Deploy
             </h3>
             <pre style={{
               background: 'var(--bg-primary)',
@@ -400,14 +400,18 @@ cp .env.example .env.local
               border: '1px solid var(--border-medium)',
               fontSize: '0.9rem',
               lineHeight: 1.7,
-              overflow: 'auto'
+              overflow: 'auto',
+              marginBottom: '1rem'
             }}>{`npm install
-npm run dev  # Test locally
+npm run dev  # Test locally at http://localhost:3000
 
 # Deploy to Vercel
 vercel
 # Add env vars in Vercel dashboard
 # Add custom domain in Vercel settings`}</pre>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', lineHeight: 1.6 }}>
+              Test profile links and post links to ensure everything works before going live.
+            </p>
           </div>
         </div>
       </div>
@@ -458,7 +462,7 @@ vercel
         margin: '0 auto 6rem',
         padding: '0 2rem'
       }}>
-        <div style={{
+        <div className="fork-resources-grid" style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(12, 1fr)',
           gap: '2rem'

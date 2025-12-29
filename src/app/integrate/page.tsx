@@ -14,7 +14,7 @@ Add universal sharing to your ATProto application in minutes.
 
 ## For Custom Domain Forks
 
-If you're running your own fork with a custom domain, simply replace \`aturi.to\` with your domain in all examples below. See the [FORKING.md](https://github.com/yourusername/aturi-to/blob/main/FORKING.md) guide for complete setup instructions.
+If you're running your own fork with a custom domain, simply replace \`aturi.to\` with your domain in all examples below. See the [Fork Guide](/fork) for complete setup instructions.
 
 ## URL Structure
 
@@ -149,9 +149,9 @@ Running your own fork of aturi.to with a custom domain? All of the above pattern
 - **Custom waypoints**: Curate the list of platforms specific to your audience
 - **Self-hosting**: Maintain full control over your infrastructure
 
-See our [Forking Guide](https://github.com/yourusername/aturi-to/blob/main/FORKING.md) for complete setup instructions.
+See the [Fork Guide](/fork) for complete setup instructions.
 
-### Attribution Requirement
+### GPL v3 License Requirement
 
 If you fork aturi.to, you must keep it open source under GPL v3. This ensures the software remains free for everyone and all derivatives stay open. Attribution to the original project is appreciated and helps the ecosystem grow.
 
@@ -182,7 +182,7 @@ aturi.to is a community tool for the ATProto ecosystem. The service is free and 
         margin: '0 auto 5rem',
         padding: '0 2rem'
       }}>
-        <div style={{
+        <div className="integrate-hero-grid" style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(12, 1fr)',
           gap: '2rem',
@@ -263,7 +263,7 @@ aturi.to is a community tool for the ATProto ecosystem. The service is free and 
         margin: '0 auto 6rem',
         padding: '0 2rem'
       }}>
-        <div style={{
+        <div className="integrate-url-grid" style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(12, 1fr)',
           gap: '2rem',
@@ -279,7 +279,7 @@ aturi.to is a community tool for the ATProto ecosystem. The service is free and 
               URL Structure
             </h2>
             <p style={{ color: 'var(--text-secondary)', lineHeight: 1.6 }}>
-              Simple, predictable patterns based on ATProto URIs
+              Simple, predictable patterns based on ATProto URIs. Works with handles or DIDs.
             </p>
           </div>
 
@@ -415,7 +415,7 @@ const atUriLink = \`https://aturi.to/\${fullAtUri}\`;
 // https://aturi.to/at://did:plc:xxx/app.bsky.feed.post/3k7qw...`}</pre>
           </div>
 
-          <div style={{
+          <div className="integrate-code-examples-grid" style={{
             display: 'grid',
             gridTemplateColumns: 'repeat(12, 1fr)',
             gap: '2rem'
@@ -523,7 +523,7 @@ custom = to_aturi_link(
           Use Cases
         </h2>
 
-        <div style={{
+        <div className="integrate-usecases-grid" style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(12, 1fr)',
           gap: '1.5rem'
@@ -598,7 +598,7 @@ custom = to_aturi_link(
         margin: '0 auto 6rem',
         padding: '0 2rem'
       }}>
-        <div style={{
+        <div className="integrate-custom-domain-grid" style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(12, 1fr)',
           gap: '2rem',
@@ -674,7 +674,7 @@ custom = to_aturi_link(
         margin: '0 auto 4rem',
         padding: '0 2rem'
       }}>
-        <div style={{
+        <div className="integrate-attribution-grid" style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(12, 1fr)',
           gap: '2rem'
@@ -792,9 +792,12 @@ custom = to_aturi_link(
           <h2 style={{ marginBottom: '1rem', color: 'var(--text-accent)', fontSize: '2rem', fontWeight: 400 }}>
             Questions or Feedback?
           </h2>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '1.05rem', lineHeight: 1.7, marginBottom: '0.5rem' }}>
+            aturi.to is a community tool for the ATProto ecosystem. The service is completely free
+            and requires no API keys or registration.
+          </p>
           <p style={{ color: 'var(--text-secondary)', fontSize: '1.05rem', lineHeight: 1.7 }}>
-            aturi.to is a community tool for the ATProto ecosystem. Feel free to
-            reach out with suggestions or bug reports.
+            Feel free to reach out with suggestions or bug reports.
           </p>
         </div>
       </div>

@@ -857,21 +857,63 @@ html {
     grid-column: unset !important;
   }
   
-  /* Make all grid layouts stack on mobile */
-  [style*="grid-template-columns"] {
-    display: flex !important;
-    flex-direction: column !important;
-  }
-  
-  [style*="gridColumn"] {
-    grid-column: unset !important;
-  }
-  
   /* Stack stats vertically on very small screens */
   @media (max-width: 480px) {
     .profile-stats-row {
       flex-direction: column;
       gap: 0.75rem;
     }
+  }
+  
+  /* Fork Page Mobile Styles */
+  .fork-hero-card {
+    padding: 2rem !important;
+  }
+  
+  .fork-hero-content {
+    flex-direction: column !important;
+    align-items: center !important;
+    text-align: center;
+  }
+  
+  .fork-hero-content > svg {
+    margin-bottom: 1rem;
+  }
+  
+  .fork-why-grid,
+  .fork-quick-start-grid,
+  .fork-quick-links-grid,
+  .fork-config-grid,
+  .fork-resources-grid {
+    display: flex !important;
+    flex-direction: column !important;
+  }
+  
+  .fork-why-grid .card,
+  .fork-quick-start-grid > *,
+  .fork-quick-links-grid > *,
+  .fork-config-grid > *,
+  .fork-resources-grid > * {
+    grid-column: unset !important;
+  }
+  
+  /* Integrate Page Mobile Styles */
+  .integrate-hero-grid,
+  .integrate-url-grid,
+  .integrate-code-examples-grid,
+  .integrate-usecases-grid,
+  .integrate-custom-domain-grid,
+  .integrate-attribution-grid {
+    display: flex !important;
+    flex-direction: column !important;
+  }
+  
+  .integrate-hero-grid > *,
+  .integrate-url-grid > *,
+  .integrate-code-examples-grid > *,
+  .integrate-usecases-grid > *,
+  .integrate-custom-domain-grid > *,
+  .integrate-attribution-grid > * {
+    grid-column: unset !important;
   }
 }
