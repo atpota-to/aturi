@@ -8,6 +8,7 @@ export const metadata: Metadata = {
   title: "aturi.to - Universal links for the ATmosphere",
   description: "Share ATProto content with anyone, let them choose where to view it",
   metadataBase: new URL('https://aturi.to'),
+  manifest: '/site.webmanifest',
   icons: {
     icon: [
       { url: '/favicon.svg', type: 'image/svg+xml' },
