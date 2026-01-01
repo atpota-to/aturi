@@ -221,7 +221,11 @@ export default function ProfilePreview({ profile }: ProfilePreviewProps) {
         </div>
 
         {/* Additional Info */}
-        {associated && (associated.lists || associated.feedgens || associated.starterPacks) && (
+        {associated && (
+          (associated.lists && associated.lists > 0) || 
+          (associated.feedgens && associated.feedgens > 0) || 
+          (associated.starterPacks && associated.starterPacks > 0)
+        ) && (
           <div
             style={{
               display: 'flex',
