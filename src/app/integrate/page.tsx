@@ -1,6 +1,5 @@
 'use client';
 
-import Link from 'next/link';
 import { Code2, FileText } from 'lucide-react';
 import { useState } from 'react';
 import Header from '@/components/Header';
@@ -11,10 +10,6 @@ export default function IntegratePage() {
   const markdownContent = `# aturi.to Integration Guide
 
 Add universal sharing to your ATProto application in minutes.
-
-## For Custom Domain Forks
-
-If you're running your own fork with a custom domain, simply replace \`aturi.to\` with your domain in all examples below. See the [Fork Guide](/fork) for complete setup instructions.
 
 ## URL Structure
 
@@ -45,21 +40,17 @@ Note: Modern browsers support the literal \`at://\` in URL paths.
 ### JavaScript/TypeScript
 
 \`\`\`typescript
-// Convert AT URI to aturi.to link (or your custom domain)
-function toAturiLink(atUri: string, domain: string = 'aturi.to'): string {
+// Convert AT URI to aturi.to link
+function toAturiLink(atUri: string): string {
   // at://alice.bsky.social/app.bsky.feed.post/3k7qw...
   const uri = atUri.replace('at://', '');
-  return \`https://\${domain}/\${uri}\`;
+  return \`https://aturi.to/\${uri}\`;
 }
 
-// Usage with aturi.to
+// Usage
 const atUri = "at://alice.bsky.social/app.bsky.feed.post/3k7qw...";
 const shareLink = toAturiLink(atUri);
 // https://aturi.to/alice.bsky.social/app.bsky.feed.post/3k7qw...
-
-// Usage with custom domain
-const customLink = toAturiLink(atUri, 'myshare.app');
-// https://myshare.app/alice.bsky.social/app.bsky.feed.post/3k7qw...
 
 // Or keep the literal at:// in the URL
 const fullAtUri = "at://did:plc:xxx/app.bsky.feed.post/3k7qw...";
@@ -74,11 +65,10 @@ import { Share2 } from 'lucide-react';
 
 interface ShareButtonProps {
   atUri: string;
-  domain?: string; // Optional custom domain
 }
 
-function ShareButton({ atUri, domain = 'aturi.to' }: ShareButtonProps) {
-  const shareUrl = \`https://\${domain}/\${atUri.replace('at://', '')}\`;
+function ShareButton({ atUri }: ShareButtonProps) {
+  const shareUrl = \`https://aturi.to/\${atUri.replace('at://', '')}\`;
   
   const handleShare = async () => {
     if (navigator.share) {
@@ -91,7 +81,7 @@ function ShareButton({ atUri, domain = 'aturi.to' }: ShareButtonProps) {
   return (
     <button onClick={handleShare}>
       <Share2 size={16} />
-      Share via {domain}
+      Share via aturi.to
     </button>
   );
 }
@@ -100,28 +90,23 @@ function ShareButton({ atUri, domain = 'aturi.to' }: ShareButtonProps) {
 ### Python
 
 \`\`\`python
-def to_aturi_link(at_uri: str, domain: str = 'aturi.to') -> str:
+def to_aturi_link(at_uri: str) -> str:
     """
-    Convert AT URI to aturi.to link (or custom domain)
+    Convert AT URI to aturi.to link
     
     Args:
         at_uri: The ATProto URI (e.g., 'at://alice.bsky.social/...')
-        domain: The domain to use (default: 'aturi.to')
     
     Returns:
-        The shareable URL
+        The shareable aturi.to URL
     """
     uri = at_uri.replace('at://', '')
-    return f'https://{domain}/{uri}'
+    return f'https://aturi.to/{uri}'
 
-# Usage with aturi.to
+# Usage
 at_uri = "at://alice.bsky.social/app.bsky.feed.post/3k7qw..."
 share_link = to_aturi_link(at_uri)
 # https://aturi.to/alice.bsky.social/app.bsky.feed.post/3k7qw...
-
-# Usage with custom domain
-custom_link = to_aturi_link(at_uri, 'myshare.app')
-# https://myshare.app/alice.bsky.social/app.bsky.feed.post/3k7qw...
 \`\`\`
 
 ## Use Cases
@@ -137,23 +122,6 @@ Generate QR codes from aturi.to links for physical media, letting people scan an
 
 ### Cross-Platform Notifications
 Send notifications with aturi.to links that work regardless of which client the recipient prefers.
-
-## Custom Domain Support
-
-Running your own fork of aturi.to with a custom domain? All of the above patterns work the same way - just replace \`aturi.to\` with your domain.
-
-### Why Fork?
-
-- **Community-specific instances**: Run a version for your community with custom branding
-- **Regional optimization**: Host closer to your users for better performance  
-- **Custom waypoints**: Curate the list of platforms specific to your audience
-- **Self-hosting**: Maintain full control over your infrastructure
-
-See the [Fork Guide](/fork) for complete setup instructions.
-
-### GPL v3 License Requirement
-
-If you fork aturi.to, you must keep it open source under GPL v3. This ensures the software remains free for everyone and all derivatives stay open. Attribution to the original project is appreciated and helps the ecosystem grow.
 
 ---
 
@@ -393,21 +361,17 @@ aturi.to is a community tool for the ATProto ecosystem. The service is free and 
               fontSize: '0.9rem',
               lineHeight: 1.6,
               overflow: 'auto'
-              }}>{`// Convert AT URI to aturi.to link (or your custom domain)
-function toAturiLink(atUri: string, domain: string = 'aturi.to'): string {
+              }}>{`// Convert AT URI to aturi.to link
+function toAturiLink(atUri: string): string {
   // at://alice.bsky.social/app.bsky.feed.post/3k7qw...
   const uri = atUri.replace('at://', '');
-  return \`https://\${domain}/\${uri}\`;
+  return \`https://aturi.to/\${uri}\`;
 }
 
-// Usage with aturi.to
+// Usage
 const atUri = "at://alice.bsky.social/app.bsky.feed.post/3k7qw...";
 const shareLink = toAturiLink(atUri);
 // https://aturi.to/alice.bsky.social/app.bsky.feed.post/3k7qw...
-
-// Usage with custom domain
-const customLink = toAturiLink(atUri, 'myshare.app');
-// https://myshare.app/alice.bsky.social/app.bsky.feed.post/3k7qw...
 
 // Or keep the literal at:// in the URL
 const fullAtUri = "at://did:plc:xxx/app.bsky.feed.post/3k7qw...";
@@ -443,11 +407,10 @@ const atUriLink = \`https://aturi.to/\${fullAtUri}\`;
 
 interface ShareButtonProps {
   atUri: string;
-  domain?: string; // Optional custom domain
 }
 
-function ShareButton({ atUri, domain = 'aturi.to' }: ShareButtonProps) {
-  const shareUrl = \`https://\${domain}/\${atUri.replace('at://', '')}\`;
+function ShareButton({ atUri }: ShareButtonProps) {
+  const shareUrl = \`https://aturi.to/\${atUri.replace('at://', '')}\`;
   
   const handleShare = async () => {
     if (navigator.share) {
@@ -460,7 +423,7 @@ function ShareButton({ atUri, domain = 'aturi.to' }: ShareButtonProps) {
   return (
     <button onClick={handleShare}>
       <Share2 size={16} />
-      Share via {domain}
+      Share via aturi.to
     </button>
   );
 }`}</pre>
@@ -485,23 +448,15 @@ function ShareButton({ atUri, domain = 'aturi.to' }: ShareButtonProps) {
                 fontSize: '0.85rem',
                 lineHeight: 1.6,
                 overflow: 'auto'
-              }}>{`def to_aturi_link(
-    at_uri: str, 
-    domain: str = 'aturi.to'
-) -> str:
-    """Convert AT URI to link"""
+              }}>{`def to_aturi_link(at_uri: str) -> str:
+    """Convert AT URI to aturi.to link"""
     uri = at_uri.replace('at://', '')
-    return f'https://{domain}/{uri}'
+    return f'https://aturi.to/{uri}'
 
 # Usage
 at_uri = "at://alice.bsky..."
 link = to_aturi_link(at_uri)
-
-# Custom domain
-custom = to_aturi_link(
-    at_uri, 
-    'myshare.app'
-)`}</pre>
+# https://aturi.to/alice.bsky...`}</pre>
             </div>
           </div>
         </div>
@@ -587,116 +542,6 @@ custom = to_aturi_link(
             <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem', lineHeight: 1.6 }}>
               Send notifications with aturi.to links that work regardless of
               which client the recipient prefers.
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* Custom Domain Support - Diagonal Layout */}
-      <div style={{ 
-        maxWidth: '1200px', 
-        margin: '0 auto 6rem',
-        padding: '0 2rem'
-      }}>
-        <div className="integrate-custom-domain-grid" style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(12, 1fr)',
-          gap: '2rem',
-          alignItems: 'start'
-        }}>
-          <div style={{ gridColumn: '1 / span 5' }}>
-            <h2 style={{ 
-              marginBottom: '1rem', 
-              color: 'var(--text-accent)',
-              fontSize: '2rem',
-              fontWeight: 300
-            }}>
-              Custom Domain Support
-            </h2>
-            <p style={{ color: 'var(--text-secondary)', lineHeight: 1.6 }}>
-              All code examples support custom domains! Pass your domain as a parameter if you&apos;re running your own fork.
-            </p>
-          </div>
-
-          <div 
-            className="card" 
-            style={{ 
-              gridColumn: '7 / span 6',
-              padding: '2.5rem',
-              background: 'var(--bg-elevated)',
-              transform: 'rotate(-0.3deg)',
-              transition: 'all 0.4s ease',
-            }}
-          >
-            <h3 style={{ marginBottom: '1rem', fontSize: '1.5rem', fontWeight: 400 }}>
-              Run Your Own Instance
-            </h3>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem', marginBottom: '1rem', lineHeight: 1.6 }}>
-              Fork aturi.to for:
-            </p>
-            <ul style={{ 
-              color: 'var(--text-secondary)', 
-              fontSize: '0.95rem',
-              paddingLeft: '1.5rem',
-              margin: '0 0 1.5rem 0',
-              lineHeight: 1.8
-            }}>
-              <li>Community-specific instances with custom branding</li>
-              <li>Regional optimization for better performance</li>
-              <li>Custom platform lists for your audience</li>
-              <li>Full control over your infrastructure</li>
-            </ul>
-            <Link
-              href="/fork"
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '0.5rem',
-                padding: '0.875rem 1.75rem',
-                background: 'var(--accent-moss)',
-                border: '1px solid var(--accent-forest)',
-                color: 'var(--text-primary)',
-                textDecoration: 'none',
-                fontSize: '0.95rem',
-                transition: 'all 0.3s ease',
-                fontWeight: 400
-              }}
-            >
-              View Fork Guide →
-            </Link>
-          </div>
-        </div>
-      </div>
-
-      {/* Attribution Notice - Staggered */}
-      <div style={{ 
-        maxWidth: '1200px', 
-        margin: '0 auto 4rem',
-        padding: '0 2rem'
-      }}>
-        <div className="integrate-attribution-grid" style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(12, 1fr)',
-          gap: '2rem'
-        }}>
-          <div 
-            className="card" 
-            style={{ 
-              gridColumn: '2 / span 10',
-              padding: '2.5rem',
-              background: 'var(--bg-elevated)',
-              borderLeft: '3px solid var(--text-accent)',
-              transform: 'rotate(-0.2deg)',
-              transition: 'all 0.4s ease',
-            }}
-          >
-            <h3 style={{ marginBottom: '1rem', color: 'var(--text-accent)', fontSize: '1.5rem', fontWeight: 400 }}>
-              GPL v3 License
-            </h3>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '1rem', lineHeight: 1.7 }}>
-              If you fork aturi.to, you must keep it open source under GPL v3. This ensures the 
-              software remains free for everyone and all derivatives stay open. Attribution to 
-              the original project is appreciated and helps the ecosystem grow.
             </p>
           </div>
         </div>
