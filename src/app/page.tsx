@@ -447,63 +447,6 @@ export default function HomePage() {
           </StaggeredChildren>
         </section>
 
-        {/* CTA Section - Full Width Breakout */}
-        <FadeIn delay={0.1}>
-          <section
-            className="card cta-card"
-            style={{
-              padding: '4rem 3rem',
-              textAlign: 'center',
-              background: 'var(--bg-elevated)',
-              border: '1px solid var(--border-strong)',
-              position: 'relative',
-              transform: 'rotate(-0.2deg)',
-              transition: 'all 0.4s ease',
-              marginTop: '4rem'
-            }}
-          >
-          <div style={{ maxWidth: '600px', margin: '0 auto' }}>
-            <h2 style={{ 
-              marginBottom: '1.5rem', 
-              color: 'var(--text-accent)',
-              fontSize: '2rem',
-              fontWeight: 400
-            }}>
-              Integrate into your app
-            </h2>
-            <p
-              style={{
-                color: 'var(--text-secondary)',
-                marginBottom: '2.5rem',
-                fontSize: '1.05rem',
-                lineHeight: 1.7
-              }}
-            >
-              Add universal sharing to your ATProto application. Simple, clean, and
-              helps grow the ecosystem.
-            </p>
-            <Link
-              href="/integrate"
-              className="cta-button"
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '0.75rem',
-                padding: '1.25rem 2.5rem',
-                background: 'var(--accent-moss)',
-                color: 'var(--text-primary)',
-                border: '1px solid var(--accent-forest)',
-                fontSize: '1.05rem',
-                transition: 'all 0.3s ease',
-                fontWeight: 400
-              }}
-            >
-              View Integration Guide
-              <ArrowRight size={20} />
-            </Link>
-          </div>
-        </section>
-        </FadeIn>
 
         {/* Submit Your App Card */}
         <FadeIn delay={0.2}>

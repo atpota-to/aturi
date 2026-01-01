@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import { Home, Link2, Code, Leaf } from 'lucide-react';
+import { Home, Link2, Leaf } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 interface HeaderProps {
@@ -166,10 +166,6 @@ export default function Header({ simple = false, compact = false }: HeaderProps)
               <Link2 size={16} />
               <span>create link</span>
             </Link>
-            <Link href="/integrate" className="compact-nav-link">
-              <Code size={16} />
-              <span>integrate</span>
-            </Link>
           </nav>
         </div>
       </header>
@@ -250,11 +246,6 @@ export default function Header({ simple = false, compact = false }: HeaderProps)
           <Link href="/create" className="nav-link">
             <Link2 size={14} />
             <span>create</span>
-          </Link>
-          <span style={{ color: 'var(--text-tertiary)', fontSize: '0.75rem' }}>·</span>
-          <Link href="/integrate" className="nav-link">
-            <Code size={14} />
-            <span>integrate</span>
           </Link>
         </nav>
       </header>
@@ -348,11 +339,6 @@ export default function Header({ simple = false, compact = false }: HeaderProps)
         <Link href="/create" className="nav-link">
           <Link2 size={16} />
           <span>create</span>
-        </Link>
-        <span style={{ color: 'var(--text-tertiary)', fontSize: '0.875rem' }}>·</span>
-        <Link href="/integrate" className="nav-link">
-          <Code size={16} />
-          <span>integrate</span>
         </Link>
       </motion.nav>
     </header>
