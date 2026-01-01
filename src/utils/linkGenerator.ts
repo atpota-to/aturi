@@ -15,7 +15,7 @@ interface AtUriComponents {
  * - https://bsky.app/profile/handle.bsky.social/post/rkey
  * - https://blacksky.community/profile/handle/post/rkey
  * - https://anisota.net/profile/handle/post/rkey
- * - https://eclose.anisota.net/explorer/handle/collection/rkey
+ * - https://anisota.net/explorer/handle/collection/rkey
  * - https://reddwarf.app/profile/handle/post/rkey
  * - https://leaflet.pub/p/identifier
  * - https://pdsls.dev/at/identifier/collection/rkey
@@ -78,8 +78,8 @@ export function extractAtUriComponents(input: string): AtUriComponents | null {
       }
     }
     
-    // Anisota eclose explorer format: /explorer/identifier/collection/rkey
-    if (pathname.startsWith('/explorer/') && hostname === 'eclose.anisota.net') {
+    // Anisota explorer format: /explorer/identifier/collection/rkey
+    if (pathname.startsWith('/explorer/') && hostname === 'anisota.net') {
       const parts = pathname.substring(10).split('/'); // Remove "/explorer/"
       
       if (parts.length === 1) {

@@ -93,7 +93,7 @@ export const WAYPOINT_DESTINATIONS: Record<string, Waypoint> = {
           return `https://anisota.net/profile/${handle}/post/${rkey}`;
         }
         // For arbitrary records, use the explorer URL
-        return `https://eclose.anisota.net/explorer/${handle}/${collection}/${rkey}`;
+        return `https://anisota.net/explorer/${handle}/${collection}/${rkey}`;
       }
       return `https://anisota.net/profile/${handle}`;
     },
