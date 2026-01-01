@@ -100,11 +100,11 @@ export default function CreatePage() {
             <p style={{
               fontSize: '1.125rem',
               color: 'var(--text-secondary)',
-              maxWidth: '500px',
+              maxWidth: '600px',
               margin: '0 auto',
               lineHeight: 1.6
             }}>
-              Paste ATProto URLs or AT URIs and get a universal aturi.to link
+              Paste URLs from any ATProto platform and get a universal aturi.to link that works everywhere
             </p>
           </div>
         </FadeIn>
@@ -154,7 +154,7 @@ export default function CreatePage() {
                     handleGenerate();
                   }
                 }}
-                placeholder="https://bsky.app/profile/alice.bsky.social/post/3m6mwoadjbp2d"
+                placeholder="https://deer.social/profile/alice.bsky.social/post/3m6mwoadjbp2d"
                 style={{
                   flex: 1,
                   minWidth: '300px',
@@ -200,6 +200,15 @@ export default function CreatePage() {
                 <span>Create</span>
               </button>
             </div>
+            
+            <p style={{
+              marginTop: '0.75rem',
+              fontSize: '0.85rem',
+              color: 'var(--text-tertiary)',
+              lineHeight: 1.5
+            }}>
+              Works with links from Bluesky, Deer, Witchsky, Leaflet, Blacksky, Anisota, and more
+            </p>
           </div>
 
           {/* Error Message */}
@@ -360,7 +369,7 @@ export default function CreatePage() {
             marginBottom: '1.5rem',
             lineHeight: 1.6
           }}>
-            You can paste any of these formats:
+            You can paste any of these formats from any supported platform:
           </p>
 
           <ul style={{
@@ -370,11 +379,18 @@ export default function CreatePage() {
             gap: '0.75rem'
           }}>
             {[
-              'https://bsky.app/profile/alice.bsky.social',
-              'https://bsky.app/profile/alice.bsky.social/post/3m6mwoadjbp2d',
-              'at://did:plc:xxx/app.bsky.feed.post/3m6mwoadjbp2d',
-              'did:plc:qntsxa2i4sb24noi45fx4np2',
-              'alice.bsky.social'
+              { url: 'https://bsky.app/profile/alice.bsky.social', label: 'Bluesky profile' },
+              { url: 'https://bsky.app/profile/alice.bsky.social/post/3m6mwoadjbp2d', label: 'Bluesky post' },
+              { url: 'https://deer.social/profile/alice.bsky.social/post/3m6mwoadjbp2d', label: 'Deer post' },
+              { url: 'https://witchsky.app/profile/alice.bsky.social', label: 'Witchsky profile' },
+              { url: 'https://leaflet.pub/p/alice.bsky.social', label: 'Leaflet profile' },
+              { url: 'https://blacksky.community/profile/alice.bsky.social/post/3m6mwoadjbp2d', label: 'Blacksky post' },
+              { url: 'https://anisota.net/profile/alice.bsky.social', label: 'Anisota profile' },
+              { url: 'https://pdsls.dev/at/alice.bsky.social/app.bsky.feed.post/3m6mwoadjbp2d', label: 'pdsls record' },
+              { url: 'https://atp.tools/record/alice.bsky.social/app.bsky.feed.post/3m6mwoadjbp2d', label: 'atp.tools record' },
+              { url: 'at://did:plc:xxx/app.bsky.feed.post/3m6mwoadjbp2d', label: 'AT URI' },
+              { url: 'did:plc:qntsxa2i4sb24noi45fx4np2', label: 'DID' },
+              { url: 'alice.bsky.social', label: 'Handle' }
             ].map((example, i) => (
               <li 
                 key={i}
@@ -382,13 +398,26 @@ export default function CreatePage() {
                   padding: '0.75rem 1rem',
                   background: 'var(--bg-primary)',
                   border: '1px solid var(--border-subtle)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '0.25rem'
+                }}
+              >
+                <div style={{
                   fontFamily: 'var(--font-mono)',
                   fontSize: '0.85rem',
                   color: 'var(--text-secondary)',
                   wordBreak: 'break-all'
-                }}
-              >
-                {example}
+                }}>
+                  {example.url}
+                </div>
+                <div style={{
+                  fontSize: '0.75rem',
+                  color: 'var(--text-tertiary)',
+                  fontStyle: 'italic'
+                }}>
+                  {example.label}
+                </div>
               </li>
             ))}
           </ul>

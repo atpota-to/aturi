@@ -78,7 +78,7 @@ export default function HomePage() {
                   handleQuickGenerate();
                 }
               }}
-              placeholder="Paste any ATProto URL..."
+              placeholder="Paste any ATProto URL or URI from Bluesky, Deer, Witchsky, or any other platform..."
               style={{
                 flex: 1,
                 minWidth: '250px',
@@ -192,15 +192,15 @@ export default function HomePage() {
                 }}>
                   Universal Sharing
                 </h3>
-                <p style={{ 
-                  color: 'var(--text-secondary)', 
-                  fontSize: '1rem',
-                  lineHeight: 1.7,
-                  marginBottom: '1.5rem'
-                }}>
-                  One link works across your favorite clients. Share posts, profiles, and lists
-                  on curated ATProto platforms without worrying about compatibility.
-                </p>
+              <p style={{ 
+                color: 'var(--text-secondary)', 
+                fontSize: '1rem',
+                lineHeight: 1.7,
+                marginBottom: '1.5rem'
+              }}>
+                One link works across all your favorite ATProto clients. Share posts, profiles, and lists
+                from Bluesky, Deer, Witchsky, Leaflet, Blacksky, and more without worrying about compatibility.
+              </p>
                 <div style={{
                   display: 'inline-flex',
                   alignItems: 'center',
@@ -246,8 +246,8 @@ export default function HomePage() {
                 fontSize: '0.95rem',
                 lineHeight: 1.6
               }}>
-                Recipients pick their preferred platform. Bluesky, Blacksky, Anisota,
-                Red Dwarf, Leaflet, pdsls, or atp.tools.
+                Recipients pick their preferred platform: Bluesky, Deer, Witchsky, Blacksky, Anisota,
+                Red Dwarf, Catsky, Leaflet, pdsls, or atp.tools.
               </p>
             </div>
 

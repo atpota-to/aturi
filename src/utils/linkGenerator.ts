@@ -10,11 +10,20 @@ interface AtUriComponents {
 
 /**
  * Extracts AT URI components from a URL or AT URI string
- * Supports various formats:
+ * Supports various formats from all Waypoint platforms:
  * - https://bsky.app/profile/did:plc:xxx
  * - https://bsky.app/profile/handle.bsky.social/post/rkey
- * - https://leaflet.pub/p/did:plc:xxx
- * - https://pdsls.dev/at://did:plc:xxx/app.bsky.feed.like/rkey
+ * - https://blacksky.community/profile/handle/post/rkey
+ * - https://anisota.net/profile/handle/post/rkey
+ * - https://eclose.anisota.net/explorer/handle/collection/rkey
+ * - https://reddwarf.app/profile/handle/post/rkey
+ * - https://leaflet.pub/p/identifier
+ * - https://pdsls.dev/at/identifier/collection/rkey
+ * - https://atp.tools/record/identifier/collection/rkey
+ * - https://atp.tools/profile/identifier
+ * - https://witchsky.app/profile/handle/post/rkey
+ * - https://catsky.social/profile/handle/post/rkey
+ * - https://deer.social/profile/handle/post/rkey
  * - at://did:plc:xxx/app.bsky.feed.post/rkey
  */
 export function extractAtUriComponents(input: string): AtUriComponents | null {
@@ -42,8 +51,10 @@ export function extractAtUriComponents(input: string): AtUriComponents | null {
   try {
     const url = new URL(trimmedInput);
     const pathname = url.pathname;
+    const hostname = url.hostname;
     
-    // Bluesky format: /profile/identifier or /profile/identifier/post/rkey
+    // Standard /profile/identifier format (bsky.app, blacksky.community, anisota.net, 
+    // reddwarf.app, witchsky.app, catsky.social, deer.social)
     if (pathname.startsWith('/profile/')) {
       const parts = pathname.substring(9).split('/'); // Remove "/profile/"
       
@@ -67,7 +78,24 @@ export function extractAtUriComponents(input: string): AtUriComponents | null {
       }
     }
     
-    // Leaflet format: /p/identifier or similar
+    // Anisota eclose explorer format: /explorer/identifier/collection/rkey
+    if (pathname.startsWith('/explorer/') && hostname === 'eclose.anisota.net') {
+      const parts = pathname.substring(10).split('/'); // Remove "/explorer/"
+      
+      if (parts.length === 1) {
+        // Profile only
+        return { identifier: parts[0] };
+      } else if (parts.length === 3) {
+        // Full record
+        return {
+          identifier: parts[0],
+          collection: parts[1],
+          rkey: parts[2],
+        };
+      }
+    }
+    
+    // Leaflet format: /p/identifier
     if (pathname.startsWith('/p/')) {
       const parts = pathname.substring(3).split('/'); // Remove "/p/"
       
@@ -76,10 +104,44 @@ export function extractAtUriComponents(input: string): AtUriComponents | null {
       }
     }
     
-    // pdsls.dev format: /at://identifier/collection/rkey
+    // pdsls.dev format: /at/identifier or /at/identifier/collection/rkey
+    if (pathname.startsWith('/at/')) {
+      const parts = pathname.substring(4).split('/'); // Remove "/at/"
+      
+      if (parts.length === 1) {
+        // Profile only
+        return { identifier: parts[0] };
+      } else if (parts.length === 3) {
+        // Full record
+        return {
+          identifier: parts[0],
+          collection: parts[1],
+          rkey: parts[2],
+        };
+      }
+    }
+    
+    // pdsls.dev legacy format: /at://identifier/collection/rkey
     if (pathname.startsWith('/at://')) {
       const atUri = pathname.substring(1); // Remove leading "/"
       return extractAtUriComponents(atUri); // Recursive call
+    }
+    
+    // atp.tools format: /record/identifier/collection/rkey or /profile/identifier
+    if (pathname.startsWith('/record/')) {
+      const parts = pathname.substring(8).split('/'); // Remove "/record/"
+      
+      if (parts.length === 1) {
+        // Just identifier
+        return { identifier: parts[0] };
+      } else if (parts.length === 3) {
+        // Full record
+        return {
+          identifier: parts[0],
+          collection: parts[1],
+          rkey: parts[2],
+        };
+      }
     }
     
   } catch {
