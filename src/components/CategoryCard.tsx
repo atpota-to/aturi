@@ -38,7 +38,18 @@ export default function CategoryCard({
   onWaypointClick,
   subcategories,
 }: CategoryCardProps) {
+  // Safety check: if no waypoints, don't render anything
+  if (!waypoints || waypoints.length === 0) {
+    return null;
+  }
+  
   const defaultWaypoint = waypoints.find(w => w.id === category.defaultWaypointId) || waypoints[0];
+  
+  // Additional safety check: ensure default waypoint is actually compatible
+  const compatibleDefaultWaypoint = defaultWaypoint?.getUrl?.(handle, collection, rkey, did) 
+    ? defaultWaypoint 
+    : waypoints.find(w => w.getUrl(handle, collection, rkey, did) !== null);
+  
   const hasMultiple = waypoints.length > 1;
   const hasSubcategories = subcategories && subcategories.length > 0;
 
@@ -145,10 +156,10 @@ export default function CategoryCard({
 
       {/* Waypoint Cards */}
       <div className={`waypoint-stack ${isExpanded ? 'expanded' : 'collapsed'}`}>
-        {!isExpanded && (
+        {!isExpanded && compatibleDefaultWaypoint && (
           // Collapsed: Show only default with stacked effect
           <div className="stacked-cards">
-            {renderWaypointCard(defaultWaypoint, 0)}
+            {renderWaypointCard(compatibleDefaultWaypoint, 0)}
           </div>
         )}
         {isExpanded && (
