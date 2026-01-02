@@ -264,60 +264,62 @@ export default function WaypointPicker({
             {/* Recommended Waypoints */}
             {renderRecommendedWaypoints()}
 
-            {/* Divider */}
-            {recommendedWaypoints.length > 0 && categorizedWaypoints.length > 0 && (
-              <div style={{
-                height: '1px',
-                background: 'var(--border-subtle)',
-                margin: '1rem 0',
-              }} />
+            {/* More Options Section */}
+            {categorizedWaypoints.length > 0 && (
+              <div className="more-options-section">
+                {/* Other Waypoints Header */}
+                {recommendedWaypoints.length > 0 && (
+                  <h2 style={{ 
+                    fontSize: '0.875rem', 
+                    textTransform: 'uppercase', 
+                    letterSpacing: '0.1em',
+                    color: 'var(--text-tertiary)',
+                    marginBottom: '1rem',
+                    fontWeight: 500,
+                  }}>
+                    More Options
+                  </h2>
+                )}
+
+                {/* Categorized Waypoints */}
+                <div style={{ 
+                  display: 'flex', 
+                  flexDirection: 'column', 
+                  gap: '1.5rem' 
+                }}>
+                  {categorizedWaypoints.map(({ category, waypoints }) => {
+                    // Prepare subcategories data if they exist
+                    const subcategoriesData = category.subcategories?.map(subcat => {
+                      const subcatWaypoints = availableWaypoints.filter(w => w.category === subcat.id);
+                      return {
+                        category: subcat,
+                        waypoints: subcatWaypoints,
+                        isExpanded: expandedCategories.has(subcat.id),
+                        onToggle: () => toggleCategory(subcat.id),
+                      };
+                    }).filter(sub => sub.waypoints.length > 0);
+
+                    return (
+                      <CategoryCard
+                        key={category.id}
+                        category={category}
+                        waypoints={waypoints}
+                        isExpanded={expandedCategories.has(category.id)}
+                        onToggle={() => toggleCategory(category.id)}
+                        handle={handle}
+                        collection={collection}
+                        rkey={rkey}
+                        did={did}
+                        copiedId={copiedId}
+                        onCopy={handleCopy}
+                        onWaypointClick={handleWaypointClick}
+                        subcategories={subcategoriesData}
+                      />
+                    );
+                  })}
+                </div>
+              </div>
             )}
-
-            {/* Other Waypoints Header */}
-            {recommendedWaypoints.length > 0 && categorizedWaypoints.length > 0 && (
-              <h2 style={{ 
-                fontSize: '0.875rem', 
-                textTransform: 'uppercase', 
-                letterSpacing: '0.1em',
-                color: 'var(--text-tertiary)',
-                marginBottom: '-0.5rem',
-                fontWeight: 500,
-              }}>
-                More Options
-              </h2>
-            )}
-
-            {/* Categorized Waypoints */}
-            {categorizedWaypoints.map(({ category, waypoints }) => {
-              // Prepare subcategories data if they exist
-              const subcategoriesData = category.subcategories?.map(subcat => {
-                const subcatWaypoints = availableWaypoints.filter(w => w.category === subcat.id);
-                return {
-                  category: subcat,
-                  waypoints: subcatWaypoints,
-                  isExpanded: expandedCategories.has(subcat.id),
-                  onToggle: () => toggleCategory(subcat.id),
-                };
-              }).filter(sub => sub.waypoints.length > 0);
-
-              return (
-                <CategoryCard
-                  key={category.id}
-                  category={category}
-                  waypoints={waypoints}
-                  isExpanded={expandedCategories.has(category.id)}
-                  onToggle={() => toggleCategory(category.id)}
-                  handle={handle}
-                  collection={collection}
-                  rkey={rkey}
-                  did={did}
-                  copiedId={copiedId}
-                  onCopy={handleCopy}
-                  onWaypointClick={handleWaypointClick}
-                  subcategories={subcategoriesData}
-                />
-              );
-            })}
           </>
         )}
       </div>

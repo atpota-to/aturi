@@ -1060,6 +1060,11 @@ html {
   box-shadow: 0 0 30px var(--glow-strong);
 }
 
+/* More Options Section */
+.more-options-section {
+  margin-top: 0.5rem;
+}
+
 /* Stacked Cards Effect */
 .stacked-cards {
   position: relative;
