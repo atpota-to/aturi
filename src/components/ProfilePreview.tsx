@@ -225,7 +225,7 @@ export default function ProfilePreview({ profile }: ProfilePreviewProps) {
           (associated.lists && associated.lists > 0) || 
           (associated.feedgens && associated.feedgens > 0) || 
           (associated.starterPacks && associated.starterPacks > 0)
-        ) && (
+        ) ? (
           <div
             style={{
               display: 'flex',
@@ -253,7 +253,7 @@ export default function ProfilePreview({ profile }: ProfilePreviewProps) {
               </div>
             )}
           </div>
-        )}
+        ) : null}
       </div>
     </div>
   );
