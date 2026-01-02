@@ -38,20 +38,25 @@ export default function CategoryCard({
   onWaypointClick,
   subcategories,
 }: CategoryCardProps) {
-  // Safety check: if no waypoints, don't render anything
-  if (!waypoints || waypoints.length === 0) {
+  const hasSubcategories = subcategories && subcategories.length > 0;
+  
+  // Safety check: if no waypoints AND no subcategories, don't render anything
+  if ((!waypoints || waypoints.length === 0) && !hasSubcategories) {
     return null;
   }
   
-  const defaultWaypoint = waypoints.find(w => w.id === category.defaultWaypointId) || waypoints[0];
+  // If we have waypoints, find the default one
+  const defaultWaypoint = waypoints && waypoints.length > 0 
+    ? (waypoints.find(w => w.id === category.defaultWaypointId) || waypoints[0])
+    : null;
   
   // Additional safety check: ensure default waypoint is actually compatible
-  const compatibleDefaultWaypoint = defaultWaypoint?.getUrl?.(handle, collection, rkey, did) 
+  const compatibleDefaultWaypoint = defaultWaypoint && defaultWaypoint.getUrl?.(handle, collection, rkey, did) 
     ? defaultWaypoint 
-    : waypoints.find(w => w.getUrl(handle, collection, rkey, did) !== null);
+    : waypoints?.find(w => w.getUrl(handle, collection, rkey, did) !== null);
   
-  const hasMultiple = waypoints.length > 1;
-  const hasSubcategories = subcategories && subcategories.length > 0;
+  const hasMultiple = waypoints && waypoints.length > 1;
+  const hasWaypoints = waypoints && waypoints.length > 0;
 
   const renderWaypointCard = (waypoint: Waypoint, index: number) => {
     const url = waypoint.getUrl(handle, collection, rkey, did);
@@ -123,9 +128,9 @@ export default function CategoryCard({
     );
   };
 
-  if (!hasMultiple) {
-    // Single waypoint - render it directly without category wrapper
-    return renderWaypointCard(waypoints[0], 0);
+  if (!hasMultiple && !hasSubcategories && hasWaypoints) {
+    // Single waypoint with no subcategories - render it directly without category wrapper
+    return renderWaypointCard(waypoints![0], 0);
   }
 
   return (
@@ -139,9 +144,9 @@ export default function CategoryCard({
           )}
         </div>
         <div className="category-controls">
-          {!isExpanded && (
+          {!isExpanded && hasWaypoints && (
             <span className="expand-indicator">
-              +{waypoints.length - 1} more
+              +{(waypoints?.length || 0) + (subcategories?.length || 0) - 1} more
             </span>
           )}
           <button
@@ -165,7 +170,7 @@ export default function CategoryCard({
         {isExpanded && (
           // Expanded: Show all waypoints with stagger
           <div className="waypoint-list">
-            {waypoints.map((waypoint, index) => (
+            {hasWaypoints && waypoints!.map((waypoint, index) => (
               <div
                 key={waypoint.id}
                 className="waypoint-item"
@@ -179,7 +184,7 @@ export default function CategoryCard({
 
             {/* Render subcategories if they exist */}
             {hasSubcategories && (
-              <div className="subcategories" style={{ marginTop: '1rem' }}>
+              <div className="subcategories" style={{ marginTop: hasWaypoints ? '1rem' : '0' }}>
                 {subcategories.map((subcat) => (
                   <CategoryCard
                     key={subcat.category.id}

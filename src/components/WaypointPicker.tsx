@@ -46,12 +46,6 @@ export default function WaypointPicker({
     [recommendedData]
   );
   const availableWaypoints = useMemo(() => getWaypointsForType(type), [type]);
-  
-  // Get IDs of recommended waypoints to exclude from "More Options"
-  const recommendedWaypointIds = useMemo(
-    () => new Set(recommendedWaypoints.map(w => w.id)),
-    [recommendedWaypoints]
-  );
 
   // Smart expansion: Compute initial expanded categories based on compatible waypoints
   const initialExpandedCategories = useMemo(() => {
@@ -273,18 +267,11 @@ export default function WaypointPicker({
 
             {/* More Options Section */}
             {(() => {
-              // Filter categories to only show those with:
-              // 1. At least one compatible waypoint
-              // 2. At least one waypoint not in the recommended section
+              // Filter categories to only show those with at least one compatible waypoint
               const filteredCategories = categorizedWaypoints
                 .map(({ category, waypoints }) => {
-                  // Exclude recommended waypoints from this category
-                  const nonRecommendedWaypoints = waypoints.filter(
-                    w => !recommendedWaypointIds.has(w.id)
-                  );
-                  
-                  // Check if any of the non-recommended waypoints are compatible
-                  const compatibleWaypoints = nonRecommendedWaypoints.filter(waypoint => {
+                  // Check if any waypoints are compatible (don't filter by recommended status)
+                  const compatibleWaypoints = waypoints.filter(waypoint => {
                     const url = waypoint.getUrl(handle, collection, rkey, did);
                     return url !== null;
                   });
@@ -292,7 +279,7 @@ export default function WaypointPicker({
                   // Prepare subcategories data if they exist
                   const subcategoriesData = category.subcategories?.map(subcat => {
                     const subcatWaypoints = availableWaypoints
-                      .filter(w => w.category === subcat.id && !recommendedWaypointIds.has(w.id));
+                      .filter(w => w.category === subcat.id);
                     
                     const compatibleSubcatWaypoints = subcatWaypoints.filter(waypoint => {
                       const url = waypoint.getUrl(handle, collection, rkey, did);
@@ -314,7 +301,7 @@ export default function WaypointPicker({
                   
                   return {
                     category,
-                    waypoints: nonRecommendedWaypoints,
+                    waypoints, // Keep all waypoints, not just non-recommended ones
                     subcategoriesData,
                     hasCompatible: totalCompatible > 0,
                   };
