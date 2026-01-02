@@ -104,7 +104,7 @@ export function extractAtUriComponents(input: string): AtUriComponents | null {
       }
     }
     
-    // pdsls.dev format: /at/identifier or /at/identifier/collection/rkey
+    // pdsls.dev legacy format: /at/identifier or /at/identifier/collection/rkey
     if (pathname.startsWith('/at/')) {
       const parts = pathname.substring(4).split('/'); // Remove "/at/"
       
@@ -121,7 +121,7 @@ export function extractAtUriComponents(input: string): AtUriComponents | null {
       }
     }
     
-    // pdsls.dev legacy format: /at://identifier/collection/rkey
+    // pdsls.dev main format: /at://identifier/collection/rkey
     if (pathname.startsWith('/at://')) {
       const atUri = pathname.substring(1); // Remove leading "/"
       return extractAtUriComponents(atUri); // Recursive call

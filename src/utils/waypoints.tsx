@@ -181,7 +181,7 @@ export const WAYPOINT_DESTINATIONS: Record<string, Waypoint> = {
 
   pdsls: {
     id: 'pdsls',
-    name: 'pdsls',
+    name: 'PDSls',
     description: 'View raw record on pdsls.dev',
     icon: <PdslsSVG />,
     getUrl: (handle, collection, rkey) => {
