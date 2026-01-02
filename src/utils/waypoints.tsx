@@ -437,9 +437,9 @@ const RECOMMENDED_WAYPOINTS: Record<string, RecommendedConfig> = {
     label: 'Recommended for Repos',
   },
   
-  // Generic records - use Anisota for exploring
+  // Generic records - use pdsls for raw data, then atp.tools, then Anisota for exploring
   'record': {
-    waypointIds: ['anisota', 'pdsls'],
+    waypointIds: ['pdsls', 'atptools', 'anisota'],
     label: 'Recommended for Records',
   },
 };
