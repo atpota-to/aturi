@@ -38,6 +38,12 @@ export default function WaypointPicker({
     [type, collection]
   );
   const availableWaypoints = useMemo(() => getWaypointsForType(type), [type]);
+  
+  // Get IDs of recommended waypoints to exclude from "More Options"
+  const recommendedWaypointIds = useMemo(
+    () => new Set((recommendedWaypoints || []).map(w => w.id)),
+    [recommendedWaypoints]
+  );
 
   // Smart expansion: Compute initial expanded categories based on compatible waypoints
   const initialExpandedCategories = useMemo(() => {
@@ -258,34 +264,76 @@ export default function WaypointPicker({
             {renderRecommendedWaypoints()}
 
             {/* More Options Section */}
-            {categorizedWaypoints.length > 0 && (
-              <div className="more-options-section">
-                {/* Other Waypoints Header */}
-                {recommendedWaypoints.length > 0 && (
-                  <h2 className="section-header">
-                    More Options
-                  </h2>
-                )}
+            {(() => {
+              // Filter categories to only show those with:
+              // 1. At least one compatible waypoint
+              // 2. At least one waypoint not in the recommended section
+              const filteredCategories = categorizedWaypoints
+                .map(({ category, waypoints }) => {
+                  // Exclude recommended waypoints from this category
+                  const nonRecommendedWaypoints = waypoints.filter(
+                    w => !recommendedWaypointIds.has(w.id)
+                  );
+                  
+                  // Check if any of the non-recommended waypoints are compatible
+                  const compatibleWaypoints = nonRecommendedWaypoints.filter(waypoint => {
+                    const url = waypoint.getUrl(handle, collection, rkey, did);
+                    return url !== null;
+                  });
+                  
+                  // Prepare subcategories data if they exist
+                  const subcategoriesData = category.subcategories?.map(subcat => {
+                    const subcatWaypoints = availableWaypoints
+                      .filter(w => w.category === subcat.id && !recommendedWaypointIds.has(w.id));
+                    
+                    const compatibleSubcatWaypoints = subcatWaypoints.filter(waypoint => {
+                      const url = waypoint.getUrl(handle, collection, rkey, did);
+                      return url !== null;
+                    });
+                    
+                    return {
+                      category: subcat,
+                      waypoints: subcatWaypoints,
+                      compatibleCount: compatibleSubcatWaypoints.length,
+                      isExpanded: expandedCategories.has(subcat.id),
+                      onToggle: () => toggleCategory(subcat.id),
+                    };
+                  }).filter(sub => sub.compatibleCount > 0);
+                  
+                  // Calculate total compatible waypoints (category + subcategories)
+                  const totalCompatible = compatibleWaypoints.length + 
+                    (subcategoriesData?.reduce((sum, sub) => sum + sub.compatibleCount, 0) || 0);
+                  
+                  return {
+                    category,
+                    waypoints: nonRecommendedWaypoints,
+                    subcategoriesData,
+                    hasCompatible: totalCompatible > 0,
+                  };
+                })
+                .filter(data => data.hasCompatible);
 
-                {/* Categorized Waypoints */}
-                <div style={{ 
-                  display: 'flex', 
-                  flexDirection: 'column', 
-                  gap: '1.5rem' 
-                }}>
-                  {categorizedWaypoints.map(({ category, waypoints }) => {
-                    // Prepare subcategories data if they exist
-                    const subcategoriesData = category.subcategories?.map(subcat => {
-                      const subcatWaypoints = availableWaypoints.filter(w => w.category === subcat.id);
-                      return {
-                        category: subcat,
-                        waypoints: subcatWaypoints,
-                        isExpanded: expandedCategories.has(subcat.id),
-                        onToggle: () => toggleCategory(subcat.id),
-                      };
-                    }).filter(sub => sub.waypoints.length > 0);
+              // Only show "More Options" section if there are categories to display
+              if (filteredCategories.length === 0) {
+                return null;
+              }
 
-                    return (
+              return (
+                <div className="more-options-section">
+                  {/* Other Waypoints Header */}
+                  {recommendedWaypoints.length > 0 && (
+                    <h2 className="section-header">
+                      More Options
+                    </h2>
+                  )}
+
+                  {/* Categorized Waypoints */}
+                  <div style={{ 
+                    display: 'flex', 
+                    flexDirection: 'column', 
+                    gap: '1.5rem' 
+                  }}>
+                    {filteredCategories.map(({ category, waypoints, subcategoriesData }) => (
                       <CategoryCard
                         key={category.id}
                         category={category}
@@ -301,11 +349,11 @@ export default function WaypointPicker({
                         onWaypointClick={handleWaypointClick}
                         subcategories={subcategoriesData}
                       />
-                    );
-                  })}
+                    ))}
+                  </div>
                 </div>
-              </div>
-            )}
+              );
+            })()}
           </>
         )}
       </div>
