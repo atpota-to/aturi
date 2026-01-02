@@ -143,14 +143,7 @@ export default function WaypointPicker({
 
     return (
       <div className="featured-section">
-        <h2 style={{ 
-          fontSize: '0.875rem', 
-          textTransform: 'uppercase', 
-          letterSpacing: '0.1em',
-          color: 'var(--text-tertiary)',
-          marginBottom: '0.75rem',
-          fontWeight: 500,
-        }}>
+        <h2 className="section-header" style={{ marginBottom: '0.75rem' }}>
           {recommendedLabel}
         </h2>
         <div style={{ 
@@ -269,14 +262,7 @@ export default function WaypointPicker({
               <div className="more-options-section">
                 {/* Other Waypoints Header */}
                 {recommendedWaypoints.length > 0 && (
-                  <h2 style={{ 
-                    fontSize: '0.875rem', 
-                    textTransform: 'uppercase', 
-                    letterSpacing: '0.1em',
-                    color: 'var(--text-tertiary)',
-                    marginBottom: '1rem',
-                    fontWeight: 500,
-                  }}>
+                  <h2 className="section-header">
                     More Options
                   </h2>
                 )}

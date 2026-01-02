@@ -1065,6 +1065,14 @@ html {
   margin-top: 0.5rem;
 }
 
+.section-header {
+  font-size: 0.875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-tertiary);
+  font-weight: 500;
+}
+
 /* Stacked Cards Effect */
 .stacked-cards {
   position: relative;
