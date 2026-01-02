@@ -33,15 +33,23 @@ export default function WaypointPicker({
 
   // Get categorized waypoints and featured waypoint
   const categorizedWaypoints = useMemo(() => getCategorizedWaypoints(type), [type]);
-  const { waypoints: recommendedWaypoints, label: recommendedLabel } = useMemo(
+  const recommendedData = useMemo(
     () => getRecommendedWaypoints(type, collection), 
     [type, collection]
+  );
+  const recommendedWaypoints = useMemo(
+    () => recommendedData?.waypoints || [],
+    [recommendedData]
+  );
+  const recommendedLabel = useMemo(
+    () => recommendedData?.label || '',
+    [recommendedData]
   );
   const availableWaypoints = useMemo(() => getWaypointsForType(type), [type]);
   
   // Get IDs of recommended waypoints to exclude from "More Options"
   const recommendedWaypointIds = useMemo(
-    () => new Set((recommendedWaypoints || []).map(w => w.id)),
+    () => new Set(recommendedWaypoints.map(w => w.id)),
     [recommendedWaypoints]
   );
 
