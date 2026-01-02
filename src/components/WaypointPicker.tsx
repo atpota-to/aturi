@@ -343,6 +343,7 @@ export default function WaypointPicker({
                         onCopy={handleCopy}
                         onWaypointClick={handleWaypointClick}
                         subcategories={subcategoriesData}
+                        alwaysShowCategoryHeader={true}
                       />
                     ))}
                   </div>

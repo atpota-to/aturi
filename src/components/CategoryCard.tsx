@@ -22,6 +22,7 @@ type CategoryCardProps = {
     isExpanded: boolean;
     onToggle: () => void;
   }>;
+  alwaysShowCategoryHeader?: boolean;
 };
 
 export default function CategoryCard({
@@ -37,6 +38,7 @@ export default function CategoryCard({
   onCopy,
   onWaypointClick,
   subcategories,
+  alwaysShowCategoryHeader = false,
 }: CategoryCardProps) {
   const hasSubcategories = subcategories && subcategories.length > 0;
   
@@ -128,7 +130,7 @@ export default function CategoryCard({
     );
   };
 
-  if (!hasMultiple && !hasSubcategories && hasWaypoints) {
+  if (!alwaysShowCategoryHeader && !hasMultiple && !hasSubcategories && hasWaypoints) {
     // Single waypoint with no subcategories - render it directly without category wrapper
     return renderWaypointCard(waypoints![0], 0);
   }

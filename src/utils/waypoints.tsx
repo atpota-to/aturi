@@ -194,6 +194,22 @@ export const WAYPOINT_DESTINATIONS: Record<string, Waypoint> = {
     category: 'devTools',
   },
 
+  anisotaExplorer: {
+    id: 'anisotaExplorer',
+    name: 'Anisota Explorer',
+    description: 'Explore raw record on anisota.net',
+    icon: <MoonStar size={24} strokeWidth={2} />,
+    getUrl: (handle, collection, rkey) => {
+      if (collection && rkey) {
+        // Always use the explorer URL for raw records
+        return `https://anisota.net/explorer/${handle}/${collection}/${rkey}`;
+      }
+      return `https://anisota.net/explorer/${handle}`;
+    },
+    supportedTypes: ['post', 'profile', 'list', 'record'],
+    category: 'devTools',
+  },
+
   atptools: {
     id: 'atptools',
     name: 'atp.tools',
@@ -312,6 +328,7 @@ export const WAYPOINT_ORDER = [
   'reddwarf',
   'leaflet',
   'pdsls',
+  'anisotaExplorer',
   'smokesignal',
   'tangled',
   'atptools',
@@ -437,9 +454,9 @@ const RECOMMENDED_WAYPOINTS: Record<string, RecommendedConfig> = {
     label: 'Recommended for Repos',
   },
   
-  // Generic records - use pdsls for raw data, then atp.tools, then Anisota for exploring
+  // Generic records - use pdsls for raw data, then atp.tools, then Anisota Explorer for exploring
   'record': {
-    waypointIds: ['pdsls', 'atptools', 'anisota'],
+    waypointIds: ['pdsls', 'atptools', 'anisotaExplorer'],
     label: 'Recommended for Records',
   },
 };
