@@ -1,9 +1,15 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { ExternalLink, Copy, Check } from 'lucide-react';
-import { getWaypointsForType, type WaypointType } from '@/utils/waypoints';
+import { 
+  getCategorizedWaypoints, 
+  getFeaturedWaypoint,
+  getWaypointsForType,
+  type WaypointType 
+} from '@/utils/waypoints';
 import ShareButton from './ShareButton';
+import CategoryCard from './CategoryCard';
 
 type WaypointPickerProps = {
   type: WaypointType;
@@ -20,9 +26,34 @@ export default function WaypointPicker({
   rkey,
   displayName,
 }: WaypointPickerProps) {
-  const waypoints = getWaypointsForType(type);
   const display = displayName || `@${handle}`;
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
+
+  // Get categorized waypoints and featured waypoint
+  const categorizedWaypoints = useMemo(() => getCategorizedWaypoints(type), [type]);
+  const featuredWaypoint = useMemo(() => getFeaturedWaypoint(type, collection), [type, collection]);
+  const availableWaypoints = useMemo(() => getWaypointsForType(type), [type]);
+
+  // Smart expansion: Auto-expand categories with compatible waypoints
+  useEffect(() => {
+    const initialExpanded = new Set<string>();
+    
+    // Check each category to see if it contains compatible waypoints
+    for (const { category, waypoints } of categorizedWaypoints) {
+      // Check if any waypoint in this category can handle the current content
+      const hasCompatible = waypoints.some(waypoint => {
+        const url = waypoint.getUrl(handle, collection, rkey);
+        return url !== null;
+      });
+      
+      if (hasCompatible) {
+        initialExpanded.add(category.id);
+      }
+    }
+    
+    setExpandedCategories(initialExpanded);
+  }, [categorizedWaypoints, handle, collection, rkey]);
 
   const handleCopy = async (url: string, waypointId: string, e: React.MouseEvent) => {
     e.preventDefault();
@@ -51,6 +82,18 @@ export default function WaypointPicker({
     window.open(url, '_blank', 'noopener,noreferrer');
   };
 
+  const toggleCategory = (categoryId: string) => {
+    setExpandedCategories(prev => {
+      const next = new Set(prev);
+      if (next.has(categoryId)) {
+        next.delete(categoryId);
+      } else {
+        next.add(categoryId);
+      }
+      return next;
+    });
+  };
+
   const getContextText = () => {
     switch (type) {
       case 'post':
@@ -64,6 +107,82 @@ export default function WaypointPicker({
       default:
         return `Open content from ${display} on...`;
     }
+  };
+
+  const renderFeaturedWaypoint = () => {
+    if (!featuredWaypoint) return null;
+    
+    const url = featuredWaypoint.getUrl(handle, collection, rkey);
+    if (!url) return null;
+
+    const isCopied = copiedId === featuredWaypoint.id;
+
+    return (
+      <div className="featured-section" style={{ marginBottom: '2rem' }}>
+        <h2 style={{ 
+          fontSize: '0.875rem', 
+          textTransform: 'uppercase', 
+          letterSpacing: '0.1em',
+          color: 'var(--text-tertiary)',
+          marginBottom: '0.75rem',
+          fontWeight: 500,
+        }}>
+          Recommended
+        </h2>
+        <div
+          className="waypoint-button featured-waypoint"
+          onClick={(e) => handleWaypointClick(url, e)}
+          style={{ 
+            cursor: 'pointer',
+          }}
+        >
+          <div className="waypoint-icon">{featuredWaypoint.icon}</div>
+          <div className="waypoint-content">
+            <div className="waypoint-name">{featuredWaypoint.name}</div>
+            <div className="waypoint-description">
+              {featuredWaypoint.description}
+            </div>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <button
+              onClick={(e) => handleCopy(url, featuredWaypoint.id, e)}
+              aria-label="Copy link"
+              className="copy-button"
+              style={{
+                background: 'none',
+                border: 'none',
+                padding: '0.25rem',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                color: 'var(--text-tertiary)',
+                transition: 'color 0.2s ease',
+              }}
+            >
+              {isCopied ? (
+                <Check size={20} style={{ color: 'var(--text-accent)' }} />
+              ) : (
+                <Copy size={20} />
+              )}
+            </button>
+            <a
+              href={url}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label={`Open in ${featuredWaypoint.name}`}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                color: 'var(--text-tertiary)',
+                transition: 'color 0.2s ease',
+              }}
+            >
+              <ExternalLink size={20} />
+            </a>
+          </div>
+        </div>
+      </div>
+    );
   };
 
   return (
@@ -83,85 +202,61 @@ export default function WaypointPicker({
         style={{
           display: 'flex',
           flexDirection: 'column',
-          gap: '1rem',
+          gap: '1.5rem',
           marginBottom: '2rem',
         }}
       >
-        {waypoints.length === 0 ? (
+        {availableWaypoints.length === 0 ? (
           <div className="card" style={{ textAlign: 'center', padding: '2rem' }}>
             <p style={{ color: 'var(--text-secondary)' }}>
               No waypoints available for this content type yet.
             </p>
           </div>
         ) : (
-          waypoints.map((waypoint, index) => {
-            const url = waypoint.getUrl(handle, collection, rkey);
-            if (!url) return null;
-            const isCopied = copiedId === waypoint.id;
-            
-            // Organic rotation for each button (alternating subtle angles)
-            const rotations = [0.3, -0.2, 0.4, -0.3, 0.2, -0.1, 0.35, -0.25];
-            const rotation = rotations[index % rotations.length];
+          <>
+            {/* Featured Waypoint */}
+            {renderFeaturedWaypoint()}
 
-            return (
-              <div
-                key={waypoint.id}
-                className="waypoint-button"
-                onClick={(e) => handleWaypointClick(url, e)}
-                style={{ 
-                  cursor: 'pointer', 
-                  transform: `rotate(${rotation}deg)`,
-                  // @ts-ignore - CSS custom property
-                  '--button-rotation': `rotate(${rotation}deg)`
-                }}
-              >
-                <div className="waypoint-icon">{waypoint.icon}</div>
-                <div className="waypoint-content">
-                  <div className="waypoint-name">{waypoint.name}</div>
-                  <div className="waypoint-description">
-                    {waypoint.description}
-                  </div>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                  <button
-                    onClick={(e) => handleCopy(url, waypoint.id, e)}
-                    aria-label="Copy link"
-                    className="copy-button"
-                    style={{
-                      background: 'none',
-                      border: 'none',
-                      padding: '0.25rem',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      color: 'var(--text-tertiary)',
-                      transition: 'color 0.2s ease',
-                    }}
-                  >
-                    {isCopied ? (
-                      <Check size={20} style={{ color: 'var(--text-accent)' }} />
-                    ) : (
-                      <Copy size={20} />
-                    )}
-                  </button>
-                  <a
-                    href={url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    aria-label={`Open in ${waypoint.name}`}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      color: 'var(--text-tertiary)',
-                      transition: 'color 0.2s ease',
-                    }}
-                  >
-                    <ExternalLink size={20} />
-                  </a>
-                </div>
-              </div>
-            );
-          })
+            {/* Divider */}
+            {featuredWaypoint && categorizedWaypoints.length > 0 && (
+              <div style={{
+                height: '1px',
+                background: 'var(--border-subtle)',
+                margin: '1rem 0',
+              }} />
+            )}
+
+            {/* Other Waypoints Header */}
+            {featuredWaypoint && categorizedWaypoints.length > 0 && (
+              <h2 style={{ 
+                fontSize: '0.875rem', 
+                textTransform: 'uppercase', 
+                letterSpacing: '0.1em',
+                color: 'var(--text-tertiary)',
+                marginBottom: '-0.5rem',
+                fontWeight: 500,
+              }}>
+                More Options
+              </h2>
+            )}
+
+            {/* Categorized Waypoints */}
+            {categorizedWaypoints.map(({ category, waypoints }) => (
+              <CategoryCard
+                key={category.id}
+                category={category}
+                waypoints={waypoints}
+                isExpanded={expandedCategories.has(category.id)}
+                onToggle={() => toggleCategory(category.id)}
+                handle={handle}
+                collection={collection}
+                rkey={rkey}
+                copiedId={copiedId}
+                onCopy={handleCopy}
+                onWaypointClick={handleWaypointClick}
+              />
+            ))}
+          </>
         )}
       </div>
 
@@ -190,4 +285,3 @@ export default function WaypointPicker({
     </div>
   );
 }
-

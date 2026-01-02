@@ -10,6 +10,20 @@ export type Waypoint = {
   icon: ReactNode;
   getUrl: (handle: string, collection?: string, rkey?: string) => string | null;
   supportedTypes: WaypointType[];
+  category: string;
+};
+
+export type WaypointCategory = {
+  id: string;
+  name: string;
+  description?: string;
+  defaultWaypointId: string;
+  subcategories?: WaypointCategory[];
+};
+
+export type CategorizedWaypoints = {
+  category: WaypointCategory;
+  waypoints: Waypoint[];
 };
 
 // SVG Icons for each platform
@@ -104,6 +118,7 @@ export const WAYPOINT_DESTINATIONS: Record<string, Waypoint> = {
       return `https://anisota.net/profile/${handle}`;
     },
     supportedTypes: ['post', 'profile', 'list', 'record'],
+    category: 'blueskyClients',
   },
   
   bluesky: {
@@ -118,6 +133,7 @@ export const WAYPOINT_DESTINATIONS: Record<string, Waypoint> = {
       return `https://bsky.app/profile/${handle}`;
     },
     supportedTypes: ['post', 'profile', 'list'],
+    category: 'blueskyClients',
   },
   
   blacksky: {
@@ -132,6 +148,7 @@ export const WAYPOINT_DESTINATIONS: Record<string, Waypoint> = {
       return `https://blacksky.community/profile/${handle}`;
     },
     supportedTypes: ['post', 'profile', 'list'],
+    category: 'blueskyForks',
   },
 
   reddwarf: {
@@ -146,6 +163,7 @@ export const WAYPOINT_DESTINATIONS: Record<string, Waypoint> = {
       return `https://reddwarf.app/profile/${handle}`;
     },
     supportedTypes: ['post', 'profile', 'list'],
+    category: 'blueskyForks',
   },
 
   leaflet: {
@@ -158,6 +176,7 @@ export const WAYPOINT_DESTINATIONS: Record<string, Waypoint> = {
       return `https://leaflet.pub/p/${handle}`;
     },
     supportedTypes: ['profile'],
+    category: 'atmosphereApps',
   },
 
   pdsls: {
@@ -172,6 +191,7 @@ export const WAYPOINT_DESTINATIONS: Record<string, Waypoint> = {
       return `https://pdsls.dev/at/${handle}`;
     },
     supportedTypes: ['post', 'profile', 'list', 'record'],
+    category: 'devTools',
   },
 
   atptools: {
@@ -186,6 +206,7 @@ export const WAYPOINT_DESTINATIONS: Record<string, Waypoint> = {
       return `https://atp.tools/profile/${handle}`;
     },
     supportedTypes: ['post', 'profile', 'list', 'record'],
+    category: 'devTools',
   },
 
   witchsky: {
@@ -200,6 +221,7 @@ export const WAYPOINT_DESTINATIONS: Record<string, Waypoint> = {
       return `https://witchsky.app/profile/${handle}`;
     },
     supportedTypes: ['post', 'profile', 'list'],
+    category: 'blueskyForks',
   },
 
   catsky: {
@@ -214,6 +236,7 @@ export const WAYPOINT_DESTINATIONS: Record<string, Waypoint> = {
       return `https://catsky.social/profile/${handle}`;
     },
     supportedTypes: ['post', 'profile', 'list'],
+    category: 'blueskyForks',
   },
 
   deer: {
@@ -228,6 +251,7 @@ export const WAYPOINT_DESTINATIONS: Record<string, Waypoint> = {
       return `https://deer.social/profile/${handle}`;
     },
     supportedTypes: ['post', 'profile', 'list'],
+    category: 'blueskyForks',
   },
 
   smokesignal: {
@@ -249,6 +273,7 @@ export const WAYPOINT_DESTINATIONS: Record<string, Waypoint> = {
       return `https://smokesignal.events/${handle}`;
     },
     supportedTypes: ['profile', 'record'],
+    category: 'atmosphereApps',
   },
 
   tangled: {
@@ -273,6 +298,7 @@ export const WAYPOINT_DESTINATIONS: Record<string, Waypoint> = {
       return `https://tangled.org/${handle}`;
     },
     supportedTypes: ['profile', 'record'],
+    category: 'atmosphereApps',
   },
 };
 
@@ -305,5 +331,96 @@ export function getWaypointsForType(type: WaypointType): Waypoint[] {
  */
 export function getWaypointCount(): number {
   return WAYPOINT_ORDER.length;
+}
+
+/**
+ * Category definitions
+ */
+export const WAYPOINT_CATEGORIES: Record<string, WaypointCategory> = {
+  blueskyClients: {
+    id: 'blueskyClients',
+    name: 'Bluesky Clients',
+    description: 'Official and alternative Bluesky clients',
+    defaultWaypointId: 'bluesky',
+  },
+  blueskyForks: {
+    id: 'blueskyForks',
+    name: 'Bluesky Forks',
+    description: 'Community-built Bluesky variants',
+    defaultWaypointId: 'blacksky',
+  },
+  atmosphereApps: {
+    id: 'atmosphereApps',
+    name: 'ATmosphere Apps',
+    description: 'Apps built on the AT Protocol',
+    defaultWaypointId: 'leaflet',
+  },
+  devTools: {
+    id: 'devTools',
+    name: 'Developer Tools',
+    description: 'Tools for developers and debugging',
+    defaultWaypointId: 'pdsls',
+  },
+};
+
+export const CATEGORY_ORDER = [
+  'blueskyClients',
+  'blueskyForks',
+  'atmosphereApps',
+  'devTools',
+];
+
+/**
+ * Get waypoints grouped by category
+ */
+export function getCategorizedWaypoints(type: WaypointType): CategorizedWaypoints[] {
+  const availableWaypoints = getWaypointsForType(type);
+  const categorized: CategorizedWaypoints[] = [];
+
+  for (const categoryId of CATEGORY_ORDER) {
+    const category = WAYPOINT_CATEGORIES[categoryId];
+    const waypoints = availableWaypoints.filter(w => w.category === categoryId);
+    
+    if (waypoints.length > 0) {
+      categorized.push({ category, waypoints });
+    }
+  }
+
+  return categorized;
+}
+
+/**
+ * Get featured waypoint dynamically based on content type and collection
+ */
+export function getFeaturedWaypoint(
+  type: WaypointType,
+  collection?: string
+): Waypoint | null {
+  // For calendar events, feature Smoke Signal
+  if (collection === 'community.lexicon.calendar.event') {
+    return WAYPOINT_DESTINATIONS['smokesignal'];
+  }
+
+  // For Tangled repos, feature Tangled
+  if (collection === 'sh.tangled.repo') {
+    return WAYPOINT_DESTINATIONS['tangled'];
+  }
+
+  // For posts and profiles, feature Bluesky
+  if (type === 'post' || type === 'profile') {
+    return WAYPOINT_DESTINATIONS['bluesky'];
+  }
+
+  // For lists, feature Bluesky
+  if (type === 'list') {
+    return WAYPOINT_DESTINATIONS['bluesky'];
+  }
+
+  // For other record types, feature Anisota (explorer)
+  if (type === 'record') {
+    return WAYPOINT_DESTINATIONS['anisota'];
+  }
+
+  return null;
 }
 

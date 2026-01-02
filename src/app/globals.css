@@ -944,3 +944,231 @@ html {
     grid-column: unset !important;
   }
 }
+
+/* ============================================
+   Category Waypoint Styles
+   ============================================ */
+
+/* Category Section */
+.category-section {
+  margin-bottom: 1.5rem;
+}
+
+.category-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.25rem;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-medium);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin-bottom: 0.75rem;
+}
+
+.category-header:hover {
+  background: var(--bg-tertiary);
+  border-color: var(--text-accent);
+}
+
+.category-title h3 {
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  margin: 0 0 0.25rem 0;
+}
+
+.category-description {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+.category-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.expand-indicator {
+  font-size: 0.875rem;
+  color: var(--text-tertiary);
+  padding: 0.25rem 0.75rem;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-subtle);
+}
+
+.expand-button {
+  background: none;
+  border: none;
+  color: var(--text-accent);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  padding: 0.25rem;
+  transition: transform 0.3s ease;
+}
+
+.expand-button:hover {
+  transform: scale(1.1);
+}
+
+/* Featured Waypoint */
+.featured-section {
+  position: relative;
+}
+
+.featured-waypoint {
+  border: 2px solid var(--text-accent);
+  background: linear-gradient(135deg, var(--bg-secondary), var(--bg-tertiary));
+  box-shadow: 0 0 20px var(--glow-medium);
+  position: relative;
+  overflow: hidden;
+}
+
+.featured-waypoint::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, var(--glow-subtle), transparent);
+  opacity: 0.5;
+  animation: shimmer 3s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+  0%, 100% {
+    transform: translateX(-100%);
+  }
+  50% {
+    transform: translateX(100%);
+  }
+}
+
+.featured-waypoint:hover {
+  transform: translateX(4px) scale(1.02);
+  box-shadow: 0 0 30px var(--glow-strong);
+}
+
+/* Stacked Cards Effect */
+.stacked-cards {
+  position: relative;
+  padding-bottom: 0.5rem;
+}
+
+.stacked-cards::before,
+.stacked-cards::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 100%;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-medium);
+  opacity: 0.6;
+  pointer-events: none;
+  transition: all 0.3s ease;
+}
+
+.stacked-cards::before {
+  top: 0.25rem;
+  left: 0.25rem;
+  right: -0.25rem;
+  transform: rotate(-0.5deg) scale(0.98);
+  z-index: -1;
+}
+
+.stacked-cards::after {
+  top: 0.5rem;
+  left: 0.5rem;
+  right: -0.5rem;
+  transform: rotate(-1deg) scale(0.96);
+  opacity: 0.4;
+  z-index: -2;
+}
+
+.stacked-cards:hover::before {
+  transform: rotate(-0.5deg) scale(0.98) translateY(-2px);
+  opacity: 0.8;
+}
+
+.stacked-cards:hover::after {
+  transform: rotate(-1deg) scale(0.96) translateY(-4px);
+  opacity: 0.6;
+}
+
+/* Waypoint Stack Container */
+.waypoint-stack {
+  overflow: hidden;
+  transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.waypoint-stack.collapsed {
+  max-height: auto;
+}
+
+.waypoint-stack.expanded {
+  max-height: 5000px;
+}
+
+/* Waypoint List (Expanded State) */
+.waypoint-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.waypoint-item {
+  animation: slideOut 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  opacity: 0;
+  transform: translateY(-20px);
+}
+
+@keyframes slideOut {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Stagger animation for multiple items */
+.waypoint-item:nth-child(1) { animation-delay: 0ms; }
+.waypoint-item:nth-child(2) { animation-delay: 50ms; }
+.waypoint-item:nth-child(3) { animation-delay: 100ms; }
+.waypoint-item:nth-child(4) { animation-delay: 150ms; }
+.waypoint-item:nth-child(5) { animation-delay: 200ms; }
+.waypoint-item:nth-child(6) { animation-delay: 250ms; }
+.waypoint-item:nth-child(7) { animation-delay: 300ms; }
+.waypoint-item:nth-child(8) { animation-delay: 350ms; }
+
+/* Mobile adjustments for categories */
+@media (max-width: 768px) {
+  .category-header {
+    padding: 0.875rem 1rem;
+  }
+
+  .category-title h3 {
+    font-size: 0.9375rem;
+  }
+
+  .category-description {
+    font-size: 0.8125rem;
+  }
+
+  .expand-indicator {
+    font-size: 0.8125rem;
+    padding: 0.1875rem 0.5rem;
+  }
+
+  .stacked-cards::before {
+    top: 0.1875rem;
+    left: 0.1875rem;
+    right: -0.1875rem;
+  }
+
+  .stacked-cards::after {
+    top: 0.375rem;
+    left: 0.375rem;
+    right: -0.375rem;
+  }
+}
+
