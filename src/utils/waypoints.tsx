@@ -398,37 +398,96 @@ export function getCategorizedWaypoints(type: WaypointType): CategorizedWaypoint
 }
 
 /**
+ * Recommended waypoints configuration
+ * Define which waypoints to show as recommended for different content types
+ */
+type RecommendedConfig = {
+  waypointIds: string[];
+  label?: string;
+};
+
+const RECOMMENDED_WAYPOINTS: Record<string, RecommendedConfig> = {
+  // Bluesky posts
+  'app.bsky.feed.post': {
+    waypointIds: ['bluesky', 'anisota', 'blacksky'],
+    label: 'Recommended for Posts',
+  },
+  
+  // Bluesky profiles (when no collection)
+  'profile': {
+    waypointIds: ['bluesky', 'anisota'],
+    label: 'Recommended for Profiles',
+  },
+  
+  // Bluesky lists
+  'app.bsky.graph.list': {
+    waypointIds: ['bluesky', 'anisota'],
+    label: 'Recommended for Lists',
+  },
+  
+  // Calendar events
+  'community.lexicon.calendar.event': {
+    waypointIds: ['smokesignal'],
+    label: 'Recommended for Events',
+  },
+  
+  // Tangled repos
+  'sh.tangled.repo': {
+    waypointIds: ['tangled'],
+    label: 'Recommended for Repos',
+  },
+  
+  // Generic records - use Anisota for exploring
+  'record': {
+    waypointIds: ['anisota', 'pdsls'],
+    label: 'Recommended for Records',
+  },
+};
+
+/**
+ * Get recommended waypoints dynamically based on content type and collection
+ */
+export function getRecommendedWaypoints(
+  type: WaypointType,
+  collection?: string
+): { waypoints: Waypoint[]; label: string } {
+  let config: RecommendedConfig | undefined;
+
+  // First check by specific collection
+  if (collection && RECOMMENDED_WAYPOINTS[collection]) {
+    config = RECOMMENDED_WAYPOINTS[collection];
+  }
+  // Then check by type
+  else if (RECOMMENDED_WAYPOINTS[type]) {
+    config = RECOMMENDED_WAYPOINTS[type];
+  }
+  // Default fallback
+  else {
+    config = {
+      waypointIds: ['bluesky'],
+      label: 'Recommended',
+    };
+  }
+
+  const waypoints = config.waypointIds
+    .map(id => WAYPOINT_DESTINATIONS[id])
+    .filter(Boolean);
+
+  return {
+    waypoints,
+    label: config.label || 'Recommended',
+  };
+}
+
+/**
+ * @deprecated Use getRecommendedWaypoints instead
  * Get featured waypoint dynamically based on content type and collection
  */
 export function getFeaturedWaypoint(
   type: WaypointType,
   collection?: string
 ): Waypoint | null {
-  // For calendar events, feature Smoke Signal
-  if (collection === 'community.lexicon.calendar.event') {
-    return WAYPOINT_DESTINATIONS['smokesignal'];
-  }
-
-  // For Tangled repos, feature Tangled
-  if (collection === 'sh.tangled.repo') {
-    return WAYPOINT_DESTINATIONS['tangled'];
-  }
-
-  // For posts and profiles, feature Bluesky
-  if (type === 'post' || type === 'profile') {
-    return WAYPOINT_DESTINATIONS['bluesky'];
-  }
-
-  // For lists, feature Bluesky
-  if (type === 'list') {
-    return WAYPOINT_DESTINATIONS['bluesky'];
-  }
-
-  // For other record types, feature Anisota (explorer)
-  if (type === 'record') {
-    return WAYPOINT_DESTINATIONS['anisota'];
-  }
-
-  return null;
+  const { waypoints } = getRecommendedWaypoints(type, collection);
+  return waypoints[0] || null;
 }
 
