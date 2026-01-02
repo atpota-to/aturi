@@ -107,6 +107,7 @@ async function ProfileContent({ handle }: { handle: string }) {
       <WaypointPicker
         type="profile"
         handle={resolvedHandle}
+        did={resolvedDid}
         displayName={getDisplayName(resolvedHandle, resolvedDid)}
       />
 

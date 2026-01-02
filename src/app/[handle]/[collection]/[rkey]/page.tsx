@@ -180,6 +180,7 @@ async function RecordContent({ handle, collection, rkey }: { handle: string; col
           handle={resolvedHandle}
           collection={collection}
           rkey={rkey}
+          did={resolvedDid}
           displayName={getDisplayName(resolvedHandle, resolvedDid)}
         />
 

@@ -423,7 +423,6 @@ button {
 .waypoint-name {
   font-size: 1.125rem;
   font-weight: 400;
-  margin-bottom: 0.25rem;
 }
 
 .waypoint-description {
@@ -1098,7 +1097,7 @@ html {
 
 /* Waypoint Stack Container */
 .waypoint-stack {
-  overflow: hidden;
+  overflow: visible;
   transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
@@ -1169,6 +1168,46 @@ html {
     top: 0.375rem;
     left: 0.375rem;
     right: -0.375rem;
+  }
+}
+
+/* Subcategories styling */
+.subcategories {
+  padding-left: 1.5rem;
+  border-left: 2px solid var(--border-subtle);
+  margin-left: 0.5rem;
+}
+
+.subcategories .category-section {
+  margin-bottom: 1rem;
+}
+
+.subcategories .category-header {
+  background: var(--bg-tertiary);
+  border-color: var(--border-subtle);
+  padding: 0.875rem 1rem;
+}
+
+.subcategories .category-header:hover {
+  background: var(--bg-elevated);
+}
+
+.subcategories .category-title h3 {
+  font-size: 0.9375rem;
+}
+
+.subcategories .expand-indicator {
+  font-size: 0.8125rem;
+}
+
+@media (max-width: 768px) {
+  .subcategories {
+    padding-left: 1rem;
+    margin-left: 0.25rem;
+  }
+
+  .subcategories .category-header {
+    padding: 0.75rem 0.875rem;
   }
 }
 

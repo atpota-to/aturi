@@ -12,9 +12,16 @@ type CategoryCardProps = {
   handle: string;
   collection?: string;
   rkey?: string;
+  did?: string;
   copiedId: string | null;
   onCopy: (url: string, waypointId: string, e: React.MouseEvent) => void;
   onWaypointClick: (url: string, e: React.MouseEvent) => void;
+  subcategories?: Array<{
+    category: WaypointCategory;
+    waypoints: Waypoint[];
+    isExpanded: boolean;
+    onToggle: () => void;
+  }>;
 };
 
 export default function CategoryCard({
@@ -25,15 +32,18 @@ export default function CategoryCard({
   handle,
   collection,
   rkey,
+  did,
   copiedId,
   onCopy,
   onWaypointClick,
+  subcategories,
 }: CategoryCardProps) {
   const defaultWaypoint = waypoints.find(w => w.id === category.defaultWaypointId) || waypoints[0];
   const hasMultiple = waypoints.length > 1;
+  const hasSubcategories = subcategories && subcategories.length > 0;
 
   const renderWaypointCard = (waypoint: Waypoint, index: number) => {
-    const url = waypoint.getUrl(handle, collection, rkey);
+    const url = waypoint.getUrl(handle, collection, rkey, did);
     if (!url) return null;
     
     const isCopied = copiedId === waypoint.id;
@@ -155,6 +165,28 @@ export default function CategoryCard({
                 {renderWaypointCard(waypoint, index)}
               </div>
             ))}
+
+            {/* Render subcategories if they exist */}
+            {hasSubcategories && (
+              <div className="subcategories" style={{ marginTop: '1rem' }}>
+                {subcategories.map((subcat) => (
+                  <CategoryCard
+                    key={subcat.category.id}
+                    category={subcat.category}
+                    waypoints={subcat.waypoints}
+                    isExpanded={subcat.isExpanded}
+                    onToggle={subcat.onToggle}
+                    handle={handle}
+                    collection={collection}
+                    rkey={rkey}
+                    did={did}
+                    copiedId={copiedId}
+                    onCopy={onCopy}
+                    onWaypointClick={onWaypointClick}
+                  />
+                ))}
+              </div>
+            )}
           </div>
         )}
       </div>

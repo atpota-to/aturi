@@ -8,7 +8,7 @@ export type Waypoint = {
   name: string;
   description: string;
   icon: ReactNode;
-  getUrl: (handle: string, collection?: string, rkey?: string) => string | null;
+  getUrl: (handle: string, collection?: string, rkey?: string, did?: string) => string | null;
   supportedTypes: WaypointType[];
   category: string;
 };
@@ -259,18 +259,21 @@ export const WAYPOINT_DESTINATIONS: Record<string, Waypoint> = {
     name: 'Smoke Signal',
     description: 'View event on smokesignal.events',
     icon: <CalendarFold size={24} strokeWidth={2} />,
-    getUrl: (handle, collection, rkey) => {
+    getUrl: (handle, collection, rkey, did) => {
+      // Smoke Signal requires DIDs, not handles
+      const identifier = did || handle;
+      
       // Only show for calendar events or profiles
       if (collection && rkey) {
         // Only support community.lexicon.calendar.event
         if (collection === 'community.lexicon.calendar.event') {
-          return `https://smokesignal.events/${handle}/${rkey}`;
+          return `https://smokesignal.events/${identifier}/${rkey}`;
         }
         // Not compatible with this collection type
         return null;
       }
       // Profile view
-      return `https://smokesignal.events/${handle}`;
+      return `https://smokesignal.events/${identifier}`;
     },
     supportedTypes: ['profile', 'record'],
     category: 'atmosphereApps',
@@ -342,6 +345,12 @@ export const WAYPOINT_CATEGORIES: Record<string, WaypointCategory> = {
     name: 'Bluesky Clients',
     description: 'Official and alternative Bluesky clients',
     defaultWaypointId: 'bluesky',
+    subcategories: [{
+      id: 'blueskyForks',
+      name: 'Bluesky Forks',
+      description: 'Community-built Bluesky variants',
+      defaultWaypointId: 'blacksky',
+    }],
   },
   blueskyForks: {
     id: 'blueskyForks',
@@ -365,7 +374,6 @@ export const WAYPOINT_CATEGORIES: Record<string, WaypointCategory> = {
 
 export const CATEGORY_ORDER = [
   'blueskyClients',
-  'blueskyForks',
   'atmosphereApps',
   'devTools',
 ];

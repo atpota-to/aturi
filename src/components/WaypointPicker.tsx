@@ -17,6 +17,7 @@ type WaypointPickerProps = {
   collection?: string;
   rkey?: string;
   displayName?: string;
+  did?: string;
 };
 
 export default function WaypointPicker({
@@ -25,35 +26,60 @@ export default function WaypointPicker({
   collection,
   rkey,
   displayName,
+  did,
 }: WaypointPickerProps) {
   const display = displayName || `@${handle}`;
   const [copiedId, setCopiedId] = useState<string | null>(null);
-  const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
 
   // Get categorized waypoints and featured waypoint
   const categorizedWaypoints = useMemo(() => getCategorizedWaypoints(type), [type]);
   const featuredWaypoint = useMemo(() => getFeaturedWaypoint(type, collection), [type, collection]);
   const availableWaypoints = useMemo(() => getWaypointsForType(type), [type]);
 
-  // Smart expansion: Auto-expand categories with compatible waypoints
-  useEffect(() => {
+  // Smart expansion: Compute initial expanded categories based on compatible waypoints
+  const initialExpandedCategories = useMemo(() => {
     const initialExpanded = new Set<string>();
     
     // Check each category to see if it contains compatible waypoints
     for (const { category, waypoints } of categorizedWaypoints) {
       // Check if any waypoint in this category can handle the current content
       const hasCompatible = waypoints.some(waypoint => {
-        const url = waypoint.getUrl(handle, collection, rkey);
+        const url = waypoint.getUrl(handle, collection, rkey, did);
         return url !== null;
       });
       
       if (hasCompatible) {
         initialExpanded.add(category.id);
       }
+      
+      // Also check subcategories and auto-expand them
+      if (category.subcategories) {
+        for (const subcategory of category.subcategories) {
+          // Get waypoints for this subcategory
+          const subcatWaypoints = availableWaypoints.filter(w => w.category === subcategory.id);
+          const hasSubcatCompatible = subcatWaypoints.some(waypoint => {
+            const url = waypoint.getUrl(handle, collection, rkey, did);
+            return url !== null;
+          });
+          
+          if (hasSubcatCompatible) {
+            // Expand both parent and subcategory
+            initialExpanded.add(category.id);
+            initialExpanded.add(subcategory.id);
+          }
+        }
+      }
     }
     
-    setExpandedCategories(initialExpanded);
-  }, [categorizedWaypoints, handle, collection, rkey]);
+    return initialExpanded;
+  }, [categorizedWaypoints, availableWaypoints, handle, collection, rkey, did]);
+
+  const [expandedCategories, setExpandedCategories] = useState<Set<string>>(initialExpandedCategories);
+
+  // Update expanded categories when the initial computation changes
+  useEffect(() => {
+    setExpandedCategories(initialExpandedCategories);
+  }, [initialExpandedCategories]);
 
   const handleCopy = async (url: string, waypointId: string, e: React.MouseEvent) => {
     e.preventDefault();
@@ -112,13 +138,13 @@ export default function WaypointPicker({
   const renderFeaturedWaypoint = () => {
     if (!featuredWaypoint) return null;
     
-    const url = featuredWaypoint.getUrl(handle, collection, rkey);
+    const url = featuredWaypoint.getUrl(handle, collection, rkey, did);
     if (!url) return null;
 
     const isCopied = copiedId === featuredWaypoint.id;
 
     return (
-      <div className="featured-section" style={{ marginBottom: '2rem' }}>
+      <div className="featured-section">
         <h2 style={{ 
           fontSize: '0.875rem', 
           textTransform: 'uppercase', 
@@ -241,21 +267,36 @@ export default function WaypointPicker({
             )}
 
             {/* Categorized Waypoints */}
-            {categorizedWaypoints.map(({ category, waypoints }) => (
-              <CategoryCard
-                key={category.id}
-                category={category}
-                waypoints={waypoints}
-                isExpanded={expandedCategories.has(category.id)}
-                onToggle={() => toggleCategory(category.id)}
-                handle={handle}
-                collection={collection}
-                rkey={rkey}
-                copiedId={copiedId}
-                onCopy={handleCopy}
-                onWaypointClick={handleWaypointClick}
-              />
-            ))}
+            {categorizedWaypoints.map(({ category, waypoints }) => {
+              // Prepare subcategories data if they exist
+              const subcategoriesData = category.subcategories?.map(subcat => {
+                const subcatWaypoints = availableWaypoints.filter(w => w.category === subcat.id);
+                return {
+                  category: subcat,
+                  waypoints: subcatWaypoints,
+                  isExpanded: expandedCategories.has(subcat.id),
+                  onToggle: () => toggleCategory(subcat.id),
+                };
+              }).filter(sub => sub.waypoints.length > 0);
+
+              return (
+                <CategoryCard
+                  key={category.id}
+                  category={category}
+                  waypoints={waypoints}
+                  isExpanded={expandedCategories.has(category.id)}
+                  onToggle={() => toggleCategory(category.id)}
+                  handle={handle}
+                  collection={collection}
+                  rkey={rkey}
+                  did={did}
+                  copiedId={copiedId}
+                  onCopy={handleCopy}
+                  onWaypointClick={handleWaypointClick}
+                  subcategories={subcategoriesData}
+                />
+              );
+            })}
           </>
         )}
       </div>
