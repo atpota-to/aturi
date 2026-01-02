@@ -811,7 +811,7 @@ export default function PostPreview({ post, parent }: PostPreviewProps) {
                 style={{
                   width: '100%',
                   height: 'auto',
-                  maxHeight: '400px',
+                  maxHeight: '1000px',
                   objectFit: 'cover',
                   background: 'var(--bg-tertiary)',
                   display: 'block',
@@ -943,7 +943,7 @@ export default function PostPreview({ post, parent }: PostPreviewProps) {
                     style={{
                       width: '100%',
                       height: 'auto',
-                      maxHeight: '400px',
+                      maxHeight: '1000px',
                       objectFit: 'cover',
                       background: 'var(--bg-tertiary)',
                       display: 'block',
