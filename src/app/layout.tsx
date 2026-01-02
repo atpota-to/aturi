@@ -9,15 +9,6 @@ export const metadata: Metadata = {
   description: "Share ATProto content with anyone, let them choose where to view it",
   metadataBase: new URL('https://aturi.to'),
   manifest: '/site.webmanifest',
-  icons: {
-    icon: [
-      { url: '/favicon.svg', type: 'image/svg+xml' },
-      { url: '/favicon.ico', sizes: '32x32' }
-    ],
-    apple: [
-      { url: '/apple-touch-icon.svg', type: 'image/svg+xml' }
-    ],
-  },
   openGraph: {
     title: "aturi.to - Universal links for the ATmosphere",
     description: "Share ATProto content with anyone, let them choose where to view it",
