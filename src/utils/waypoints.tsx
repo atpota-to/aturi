@@ -184,11 +184,14 @@ export const WAYPOINT_DESTINATIONS: Record<string, Waypoint> = {
     name: 'PDSls',
     description: 'View raw record on pdsls.dev',
     icon: <PdslsSVG />,
-    getUrl: (handle, collection, rkey) => {
+    getUrl: (handle, collection, rkey, did) => {
+      // PDSls uses at:// URI format with DID preferred
+      const identifier = did || handle;
+      
       if (collection && rkey) {
-        return `https://pdsls.dev/at/${handle}/${collection}/${rkey}`;
+        return `https://pdsls.dev/at://${identifier}/${collection}/${rkey}`;
       }
-      return `https://pdsls.dev/at/${handle}`;
+      return `https://pdsls.dev/at://${identifier}`;
     },
     supportedTypes: ['post', 'profile', 'list', 'record'],
     category: 'devTools',
@@ -215,11 +218,13 @@ export const WAYPOINT_DESTINATIONS: Record<string, Waypoint> = {
     name: 'atp.tools',
     description: 'View on atp.tools',
     icon: <Wrench size={24} strokeWidth={2} />,
-    getUrl: (handle, collection, rkey) => {
+    getUrl: (handle, collection, rkey, did) => {
       if (collection && rkey) {
         return `https://atp.tools/record/${handle}/${collection}/${rkey}`;
       }
-      return `https://atp.tools/profile/${handle}`;
+      // For profiles, use the at:/ format with DID if available, otherwise handle
+      const identifier = did || handle;
+      return `https://atp.tools/at:/${identifier}`;
     },
     supportedTypes: ['post', 'profile', 'list', 'record'],
     category: 'devTools',
