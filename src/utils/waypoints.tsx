@@ -219,11 +219,12 @@ export const WAYPOINT_DESTINATIONS: Record<string, Waypoint> = {
     description: 'View on atp.tools',
     icon: <Wrench size={24} strokeWidth={2} />,
     getUrl: (handle, collection, rkey, did) => {
-      if (collection && rkey) {
-        return `https://atp.tools/record/${handle}/${collection}/${rkey}`;
-      }
-      // For profiles, use the at:/ format with DID if available, otherwise handle
+      // Use the at:/ format with DID if available, otherwise handle
       const identifier = did || handle;
+      
+      if (collection && rkey) {
+        return `https://atp.tools/at:/${identifier}/${collection}/${rkey}`;
+      }
       return `https://atp.tools/at:/${identifier}`;
     },
     supportedTypes: ['post', 'profile', 'list', 'record'],
