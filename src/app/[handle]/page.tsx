@@ -1,5 +1,6 @@
 import { Metadata } from 'next';
 import { Suspense } from 'react';
+import { redirect } from 'next/navigation';
 import WaypointPicker from '@/components/WaypointPicker';
 import ProfilePreview from '@/components/ProfilePreview';
 import ProfilePreviewSkeleton from '@/components/ProfilePreviewSkeleton';
@@ -15,7 +16,12 @@ type Props = {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { handle: rawHandle } = await params;
-  const handle = decodeURIComponent(rawHandle);
+  let handle = decodeURIComponent(rawHandle);
+  
+  // If handle starts with @, strip it for resolution
+  if (handle.startsWith('@')) {
+    handle = handle.slice(1);
+  }
   
   try {
     const resolvedDid = await resolveHandle(handle);
@@ -119,7 +125,21 @@ async function ProfileContent({ handle }: { handle: string }) {
 
 export default async function ProfilePage({ params }: Props) {
   const { handle: rawHandle } = await params;
-  const handle = decodeURIComponent(rawHandle);
+  let handle = decodeURIComponent(rawHandle);
+  
+  // If handle starts with @, resolve to DID and redirect
+  if (handle.startsWith('@')) {
+    const cleanHandle = handle.slice(1);
+    const resolvedDid = await resolveHandle(cleanHandle);
+    
+    if (resolvedDid) {
+      // Redirect to DID-based URL
+      redirect(`/${resolvedDid}`);
+    }
+    
+    // If resolution fails, continue with cleaned handle
+    handle = cleanHandle;
+  }
 
   return (
     <Suspense

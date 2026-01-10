@@ -4,7 +4,6 @@ import { redirect } from 'next/navigation';
 import WaypointPicker from '@/components/WaypointPicker';
 import PostPreview from '@/components/PostPreview';
 import PostPreviewSkeleton from '@/components/PostPreviewSkeleton';
-import RecordPreview from '@/components/RecordPreview';
 import ScrollIndicator from '@/components/ScrollIndicator';
 import Header from '@/components/Header';
 import { parseURI, resolveHandle, getDisplayName } from '@/utils/uriParser';
@@ -12,14 +11,14 @@ import { fetchRecordData } from '@/utils/recordFetcher';
 import { resolveDidToHandle } from '@/utils/didResolver';
 
 type Props = {
-  params: Promise<{ handle: string; collection: string; rkey: string }>;
+  params: Promise<{ handle: string; rkey: string }>;
 };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const { handle: rawHandle, collection: rawCollection, rkey: rawRkey } = await params;
+  const { handle: rawHandle, rkey: rawRkey } = await params;
   let handle = decodeURIComponent(rawHandle);
-  const collection = decodeURIComponent(rawCollection);
   const rkey = decodeURIComponent(rawRkey);
+  const collection = 'app.bsky.feed.post';
   
   // If handle starts with @, strip it for resolution
   if (handle.startsWith('@')) {
@@ -30,57 +29,30 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     const resolvedDid = await resolveHandle(handle);
     if (!resolvedDid) {
       return {
-        title: 'Record not found - aturi.to',
+        title: 'Post not found - aturi.to',
         description: 'Universal links for the ATmosphere',
       };
     }
 
-    // Parse and fetch record data
+    // Parse and fetch post data
     parseURI(handle, collection, rkey); // Validate URI format
     const recordData = await fetchRecordData(resolvedDid, collection, rkey);
     const displayHandle = handle.startsWith('did:') 
       ? await resolveDidToHandle(resolvedDid) || handle
       : handle;
     
-    if (recordData) {
-      let title = '';
-      let description = '';
-      let ogImageUrl = '';
-
-      if (recordData.type === 'post' && recordData.data.thread[0]?.value.post) {
-        const post = recordData.data.thread[0].value.post;
-        const author = post.author;
-        title = `Post by ${author.displayName || author.handle} (@${author.handle}) on Bluesky — View on Aturi`;
-        description = post.record?.text 
-          ? post.record.text.slice(0, 160) 
-          : 'View this post on your preferred ATProto app';
-        
-        const ogUrl = new URL('/api/og/post', 'https://aturi.to');
-        ogUrl.searchParams.set('handle', resolvedDid);
-        ogUrl.searchParams.set('rkey', rkey);
-        ogImageUrl = ogUrl.toString();
-      } else if (recordData.type === 'record') {
-        const record = recordData.data;
-        
-        if (collection === 'app.bsky.graph.list' || collection.endsWith('.list')) {
-          title = record.value?.name 
-            ? `${record.value.name} — ATProto List by @${displayHandle}`
-            : `ATProto List by @${displayHandle}`;
-          description = record.value?.description 
-            ? record.value.description.slice(0, 160)
-            : 'View this list on your preferred ATProto app';
-          
-          const ogUrl = new URL('/api/og/list', 'https://aturi.to');
-          ogUrl.searchParams.set('handle', resolvedDid);
-          ogUrl.searchParams.set('rkey', rkey);
-          ogImageUrl = ogUrl.toString();
-        } else {
-          // Generic record type
-          const collectionName = collection.split('.').pop() || collection;
-          title = `${collection} record by ${displayHandle} (@${displayHandle}) — View on Aturi`;
-          description = `View this ${collectionName} record on your preferred ATProto app`;
-        }
-      }
+    if (recordData && recordData.type === 'post' && recordData.data.thread[0]?.value.post) {
+      const post = recordData.data.thread[0].value.post;
+      const author = post.author;
+      const title = `Post by ${author.displayName || author.handle} (@${author.handle}) on Bluesky — View on Aturi`;
+      const description = post.record?.text 
+        ? post.record.text.slice(0, 160) 
+        : 'View this post on your preferred ATProto app';
+      
+      const ogUrl = new URL('/api/og/post', 'https://aturi.to');
+      ogUrl.searchParams.set('handle', resolvedDid);
+      ogUrl.searchParams.set('rkey', rkey);
+      const ogImageUrl = ogUrl.toString();
       
       return {
         title,
@@ -89,20 +61,20 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
           title,
           description,
           type: 'article',
-          images: ogImageUrl ? [
+          images: [
             {
               url: ogImageUrl,
               width: 1200,
               height: 630,
               alt: title,
             },
-          ] : undefined,
+          ],
         },
         twitter: {
           card: 'summary_large_image',
           title,
           description,
-          images: ogImageUrl ? [ogImageUrl] : undefined,
+          images: [ogImageUrl],
         },
       };
     }
@@ -111,12 +83,14 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   }
 
   return {
-    title: `Record — View on Aturi`,
+    title: `Post — View on Aturi`,
     description: 'Universal links for the ATmosphere',
   };
 }
 
-async function RecordContent({ handle, collection, rkey }: { handle: string; collection: string; rkey: string }) {
+async function PostContent({ handle, rkey }: { handle: string; rkey: string }) {
+  const collection = 'app.bsky.feed.post';
+  
   try {
     const parsedData = parseURI(handle, collection, rkey);
     
@@ -148,41 +122,21 @@ async function RecordContent({ handle, collection, rkey }: { handle: string; col
 
     const recordData = await fetchRecordData(resolvedDid, collection, rkey);
 
-    if (parsedData.type === 'unknown') {
-      return (
-        <div className="container-narrow" style={{ padding: '2rem 2rem 4rem', textAlign: 'center' }}>
-          <Header compact />
-          <h1 style={{ marginBottom: '1rem', color: 'var(--text-primary)' }}>Error</h1>
-          <p style={{ color: 'var(--text-secondary)' }}>Invalid or unsupported URI</p>
-        </div>
-      );
-    }
-
     return (
       <div className="container-narrow" style={{ padding: '2rem 2rem 4rem' }}>
         <Header compact />
 
-        {recordData && (
+        {recordData && recordData.type === 'post' && recordData.data.thread[0]?.value.post && (
           <div className="content-fade-in">
-            {recordData.type === 'post' && recordData.data.thread[0]?.value.post && (
-              <PostPreview 
-                post={recordData.data.thread[0].value.post} 
-                parent={recordData.data.parent}
-              />
-            )}
-            {recordData.type === 'record' && (
-              <RecordPreview 
-                record={recordData.data} 
-                collection={collection}
-                handle={resolvedHandle}
-                rkey={rkey}
-              />
-            )}
+            <PostPreview 
+              post={recordData.data.thread[0].value.post} 
+              parent={recordData.data.parent}
+            />
           </div>
         )}
 
         <WaypointPicker
-          type={parsedData.type}
+          type="post"
           handle={resolvedHandle}
           collection={collection}
           rkey={rkey}
@@ -195,21 +149,20 @@ async function RecordContent({ handle, collection, rkey }: { handle: string; col
       </div>
     );
   } catch (error) {
-    console.error('Error loading record:', error);
+    console.error('Error loading post:', error);
     return (
       <div className="container-narrow" style={{ padding: '2rem 2rem 4rem', textAlign: 'center' }}>
         <Header compact />
         <h1 style={{ marginBottom: '1rem', color: 'var(--text-primary)' }}>Error</h1>
-        <p style={{ color: 'var(--text-secondary)' }}>Error processing URI</p>
+        <p style={{ color: 'var(--text-secondary)' }}>Error loading post</p>
       </div>
     );
   }
 }
 
-export default async function RecordPage({ params }: Props) {
-  const { handle: rawHandle, collection: rawCollection, rkey: rawRkey } = await params;
+export default async function PostPage({ params }: Props) {
+  const { handle: rawHandle, rkey: rawRkey } = await params;
   let handle = decodeURIComponent(rawHandle);
-  const collection = decodeURIComponent(rawCollection);
   const rkey = decodeURIComponent(rawRkey);
 
   // If handle starts with @, resolve to DID and redirect
@@ -219,7 +172,7 @@ export default async function RecordPage({ params }: Props) {
     
     if (resolvedDid) {
       // Redirect to DID-based URL
-      redirect(`/${resolvedDid}/${collection}/${rkey}`);
+      redirect(`/${resolvedDid}/app.bsky.feed.post/${rkey}`);
     }
     
     // If resolution fails, continue with cleaned handle
@@ -235,7 +188,7 @@ export default async function RecordPage({ params }: Props) {
         </div>
       }
     >
-      <RecordContent handle={handle} collection={collection} rkey={rkey} />
+      <PostContent handle={handle} rkey={rkey} />
     </Suspense>
   );
 }
