@@ -306,20 +306,38 @@ export default function PostPreview({ post, parent }: PostPreviewProps) {
     );
   };
 
-  // Helper function to convert byte offset to character offset
-  const byteToCharIndex = (text: string, byteOffset: number): number => {
-    const encoder = new TextEncoder();
-    let charIndex = 0;
-    let currentByteLength = 0;
+  // Helper function to convert UTF-8 byte offset to JavaScript string index
+  // ATProto facets use UTF-8 byte offsets, but JS strings are UTF-16
+  const utf8ByteToUtf16Index = (text: string, targetByteOffset: number): number => {
+    const utf8Encoder = new TextEncoder();
+    let utf16Index = 0;
+    let utf8ByteCount = 0;
     
-    while (charIndex < text.length && currentByteLength < byteOffset) {
-      const char = text[charIndex];
-      const charBytes = encoder.encode(char).length;
-      currentByteLength += charBytes;
-      charIndex++;
+    // Use Array.from to properly iterate over code points (handles surrogate pairs)
+    const codePoints = Array.from(text);
+    
+    for (let i = 0; i < codePoints.length; i++) {
+      // Check if we've reached the target byte offset
+      if (utf8ByteCount === targetByteOffset) {
+        return utf16Index;
+      }
+      
+      // If we've passed it, something's wrong but return current position
+      if (utf8ByteCount > targetByteOffset) {
+        return utf16Index;
+      }
+      
+      const codePoint = codePoints[i];
+      const utf8Bytes = utf8Encoder.encode(codePoint).length;
+      
+      // In JavaScript strings, most characters are 1 UTF-16 unit, but
+      // characters outside the BMP (like many emoji) are 2 UTF-16 units (surrogate pairs)
+      utf16Index += codePoint.length;
+      utf8ByteCount += utf8Bytes;
     }
     
-    return charIndex;
+    // If we've processed all characters, return the final index
+    return utf16Index;
   };
 
   // Parse text with facets (links, mentions, hashtags)
@@ -340,8 +358,8 @@ export default function PostPreview({ post, parent }: PostPreviewProps) {
       const { byteStart, byteEnd } = facet.index;
       
       // Convert byte indices to character indices
-      const charStart = byteToCharIndex(record.text, byteStart);
-      const charEnd = byteToCharIndex(record.text, byteEnd);
+      const charStart = utf8ByteToUtf16Index(record.text, byteStart);
+      const charEnd = utf8ByteToUtf16Index(record.text, byteEnd);
 
       // Add text before facet
       if (charStart > lastIndex) {
@@ -363,10 +381,10 @@ export default function PostPreview({ post, parent }: PostPreviewProps) {
     }
 
     return (
-      <p style={{ margin: 0, whiteSpace: 'pre-wrap' }}>
+      <p style={{ margin: 0, whiteSpace: 'pre-wrap', pointerEvents: 'auto' }}>
         {segments.map((segment, i) => {
           if (!segment.facet) {
-            return <span key={i}>{segment.text}</span>;
+            return <span key={i} style={{ pointerEvents: 'auto' }}>{segment.text}</span>;
           }
 
           const { $type } = segment.facet;
@@ -800,7 +818,7 @@ export default function PostPreview({ post, parent }: PostPreviewProps) {
       </div>
 
       {/* Post Content */}
-      <div style={{ marginBottom: '1rem', color: 'var(--text-primary)', fontSize: '1rem', lineHeight: '1.5' }}>
+      <div style={{ marginBottom: '1rem', color: 'var(--text-primary)', fontSize: '1rem', lineHeight: '1.5', pointerEvents: 'auto' }}>
         {renderText()}
       </div>
 
