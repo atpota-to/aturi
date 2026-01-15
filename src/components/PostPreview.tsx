@@ -306,6 +306,22 @@ export default function PostPreview({ post, parent }: PostPreviewProps) {
     );
   };
 
+  // Helper function to convert byte offset to character offset
+  const byteToCharIndex = (text: string, byteOffset: number): number => {
+    const encoder = new TextEncoder();
+    let charIndex = 0;
+    let currentByteLength = 0;
+    
+    while (charIndex < text.length && currentByteLength < byteOffset) {
+      const char = text[charIndex];
+      const charBytes = encoder.encode(char).length;
+      currentByteLength += charBytes;
+      charIndex++;
+    }
+    
+    return charIndex;
+  };
+
   // Parse text with facets (links, mentions, hashtags)
   const renderText = () => {
     if (!record.facets || record.facets.length === 0) {
@@ -322,19 +338,23 @@ export default function PostPreview({ post, parent }: PostPreviewProps) {
 
     for (const facet of sortedFacets) {
       const { byteStart, byteEnd } = facet.index;
+      
+      // Convert byte indices to character indices
+      const charStart = byteToCharIndex(record.text, byteStart);
+      const charEnd = byteToCharIndex(record.text, byteEnd);
 
       // Add text before facet
-      if (byteStart > lastIndex) {
-        segments.push({ text: record.text.slice(lastIndex, byteStart) });
+      if (charStart > lastIndex) {
+        segments.push({ text: record.text.slice(lastIndex, charStart) });
       }
 
       // Add facet text
       segments.push({
-        text: record.text.slice(byteStart, byteEnd),
+        text: record.text.slice(charStart, charEnd),
         facet: facet.features[0],
       });
 
-      lastIndex = byteEnd;
+      lastIndex = charEnd;
     }
 
     // Add remaining text
