@@ -92,17 +92,6 @@ export default function Footer() {
           >
             Source Code
           </a>
-          <Link
-            href="/integrate"
-            className="footer-link"
-            style={{
-              color: 'var(--text-tertiary)',
-              textDecoration: 'none',
-              transition: 'color 0.2s ease',
-            }}
-          >
-            Integrate
-          </Link>
           <a
             href="https://tangled.org/atpota.to/aturi/blob/main/LICENSE"
             target="_blank"
