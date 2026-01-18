@@ -7,6 +7,7 @@
 
 import { useState } from 'react';
 import { GenericRecord } from '@/utils/recordFetcher';
+import { sanitizeHandle } from '@/utils/sanitize';
 import { X } from 'lucide-react';
 
 type RecordPreviewProps = {
@@ -91,7 +92,7 @@ export default function RecordPreview({ record, collection, handle, rkey }: Reco
           >
             <span style={{ color: 'var(--text-tertiary)' }}>at://</span>
             <a
-              href={`/${handle}`}
+              href={`/${sanitizeHandle(handle)}`}
               style={{
                 color: 'var(--text-accent)',
                 fontWeight: '500',

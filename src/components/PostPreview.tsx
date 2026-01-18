@@ -6,6 +6,7 @@
 'use client';
 
 import { BskyPost } from '@/utils/recordFetcher';
+import { sanitizeFacetLink, sanitizeDid, sanitizeHashtag, sanitizeUrl, sanitizeHandle } from '@/utils/sanitize';
 import { User, MessageSquare, Repeat2, Heart, Quote, Play, CornerDownRight } from 'lucide-react';
 
 type PostPreviewProps = {
@@ -64,7 +65,7 @@ export default function PostPreview({ post, parent }: PostPreviewProps) {
         {/* Quoted post author */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
           <a
-            href={qAuthor?.did || qAuthor?.handle ? `/${qAuthor.did || qAuthor.handle}` : '#'}
+            href={qAuthor?.did || qAuthor?.handle ? `/${sanitizeDid(qAuthor.did) || sanitizeHandle(qAuthor.handle)}` : '#'}
             style={{ textDecoration: 'none', flexShrink: 0 }}
           >
             {qAuthor?.avatar ? (
@@ -84,7 +85,7 @@ export default function PostPreview({ post, parent }: PostPreviewProps) {
                 }}
               >
                 <img
-                  src={qAuthor.avatar}
+                  src={sanitizeUrl(qAuthor.avatar)}
                   alt={qAuthor.displayName || qAuthor.handle}
                   style={{
                     width: '100%',
@@ -119,7 +120,7 @@ export default function PostPreview({ post, parent }: PostPreviewProps) {
           </a>
           <div style={{ fontSize: '0.875rem' }}>
             <a
-              href={qAuthor?.did || qAuthor?.handle ? `/${qAuthor.did || qAuthor.handle}` : '#'}
+              href={qAuthor?.did || qAuthor?.handle ? `/${sanitizeDid(qAuthor.did) || sanitizeHandle(qAuthor.handle)}` : '#'}
               style={{
                 fontWeight: '600',
                 color: 'var(--text-primary)',
@@ -139,7 +140,7 @@ export default function PostPreview({ post, parent }: PostPreviewProps) {
               <>
                 {' '}
                 <a
-                  href={qAuthor.did || qAuthor.handle ? `/${qAuthor.did || qAuthor.handle}` : '#'}
+                  href={qAuthor.did || qAuthor.handle ? `/${sanitizeDid(qAuthor.did) || sanitizeHandle(qAuthor.handle)}` : '#'}
                   style={{
                     color: 'var(--text-tertiary)',
                     textDecoration: 'none',
@@ -185,43 +186,51 @@ export default function PostPreview({ post, parent }: PostPreviewProps) {
                   marginTop: '0.5rem',
                 }}
               >
-                {qEmbed.images.map((image: any, i: number) => (
-                  <a
-                    key={i}
-                    href={image.fullsize}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    style={{ 
-                      display: 'block',
-                      overflow: 'hidden',
-                    }}
-                  >
-                    <img
-                      src={image.thumb}
-                      alt={image.alt}
-                      style={{
-                        width: '100%',
-                        height: 'auto',
-                        maxHeight: '200px',
-                        objectFit: 'cover',
-                        background: 'var(--bg-secondary)',
+                {qEmbed.images.map((image: any, i: number) => {
+                  const sanitizedFullsize = sanitizeUrl(image.fullsize);
+                  const sanitizedThumb = sanitizeUrl(image.thumb);
+                  
+                  return (
+                    <a
+                      key={i}
+                      href={sanitizedFullsize}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{ 
                         display: 'block',
-                        border: '1px solid var(--border-medium)',
-                        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.3)',
+                        overflow: 'hidden',
                       }}
-                    />
-                  </a>
-                ))}
+                    >
+                      <img
+                        src={sanitizedThumb}
+                        alt={image.alt}
+                        style={{
+                          width: '100%',
+                          height: 'auto',
+                          maxHeight: '200px',
+                          objectFit: 'cover',
+                          background: 'var(--bg-secondary)',
+                          display: 'block',
+                          border: '1px solid var(--border-medium)',
+                          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.3)',
+                        }}
+                      />
+                    </a>
+                  );
+                })}
               </div>
             );
           }
 
           // External link
           if (qEmbed.$type === 'app.bsky.embed.external#view' && qEmbed.external) {
+            const sanitizedExtUrl = sanitizeUrl(qEmbed.external.uri);
+            if (sanitizedExtUrl === '#') return null; // Skip invalid URLs
+            
             return (
               <a
                 key={idx}
-                href={qEmbed.external.uri}
+                href={sanitizedExtUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 style={{
@@ -237,7 +246,7 @@ export default function PostPreview({ post, parent }: PostPreviewProps) {
               >
                 {qEmbed.external.thumb && (
                   <img
-                    src={qEmbed.external.thumb}
+                    src={sanitizeUrl(qEmbed.external.thumb)}
                     alt=""
                     style={{
                       width: '100%',
@@ -255,7 +264,13 @@ export default function PostPreview({ post, parent }: PostPreviewProps) {
                     {qEmbed.external.title}
                   </div>
                   <div style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>
-                    {new URL(qEmbed.external.uri).hostname}
+                    {(() => {
+                      try {
+                        return new URL(sanitizedExtUrl).hostname;
+                      } catch {
+                        return '';
+                      }
+                    })()}
                   </div>
                 </div>
               </a>
@@ -264,6 +279,11 @@ export default function PostPreview({ post, parent }: PostPreviewProps) {
 
           // Video
           if (qEmbed.$type === 'app.bsky.embed.video#view' && qEmbed.playlist) {
+            const sanitizedPlaylist = sanitizeUrl(qEmbed.playlist);
+            const sanitizedThumbnail = sanitizeUrl(qEmbed.thumbnail);
+            
+            if (sanitizedPlaylist === '#') return null; // Skip invalid video URLs
+            
             return (
               <div
                 key={idx}
@@ -277,14 +297,14 @@ export default function PostPreview({ post, parent }: PostPreviewProps) {
               >
                 <video
                   controls
-                  poster={qEmbed.thumbnail}
+                  poster={sanitizedThumbnail}
                   style={{
                     width: '100%',
                     maxHeight: '200px',
                     display: 'block',
                   }}
                 >
-                  <source src={qEmbed.playlist} type="application/x-mpegURL" />
+                  <source src={sanitizedPlaylist} type="application/x-mpegURL" />
                 </video>
               </div>
             );
@@ -390,10 +410,15 @@ export default function PostPreview({ post, parent }: PostPreviewProps) {
           const { $type } = segment.facet;
 
           if ($type === 'app.bsky.richtext.facet#link') {
+            const sanitizedUrl = sanitizeFacetLink(segment.facet.uri);
+            // Don't render link if URL is invalid
+            if (sanitizedUrl === '#') {
+              return <span key={i} style={{ color: 'var(--text-secondary)' }}>{segment.text}</span>;
+            }
             return (
               <a
                 key={i}
-                href={segment.facet.uri}
+                href={sanitizedUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 style={{ color: 'var(--text-accent)', textDecoration: 'underline' }}
@@ -404,10 +429,15 @@ export default function PostPreview({ post, parent }: PostPreviewProps) {
           }
 
           if ($type === 'app.bsky.richtext.facet#mention') {
+            const sanitizedDid = sanitizeDid(segment.facet.did);
+            // Don't render link if DID is invalid
+            if (!sanitizedDid) {
+              return <span key={i} style={{ color: 'var(--text-secondary)' }}>{segment.text}</span>;
+            }
             return (
               <a
                 key={i}
-                href={`/${segment.facet.did}`}
+                href={`/${sanitizedDid}`}
                 style={{ color: 'var(--text-accent)', textDecoration: 'none' }}
               >
                 {segment.text}
@@ -416,10 +446,15 @@ export default function PostPreview({ post, parent }: PostPreviewProps) {
           }
 
           if ($type === 'app.bsky.richtext.facet#tag') {
+            const sanitizedTag = sanitizeHashtag(segment.facet.tag);
+            // Don't render link if tag is invalid
+            if (!sanitizedTag) {
+              return <span key={i} style={{ color: 'var(--text-secondary)' }}>{segment.text}</span>;
+            }
             return (
               <a
                 key={i}
-                href={`https://bsky.app/hashtag/${segment.facet.tag}`}
+                href={`https://bsky.app/hashtag/${sanitizedTag}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 style={{ color: 'var(--text-accent)', textDecoration: 'none' }}
@@ -473,7 +508,7 @@ export default function PostPreview({ post, parent }: PostPreviewProps) {
           {/* Parent Author */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
             <a
-              href={`/${parent.author.did || parent.author.handle}`}
+              href={`/${sanitizeDid(parent.author.did) || sanitizeHandle(parent.author.handle)}`}
               style={{ textDecoration: 'none', flexShrink: 0 }}
             >
               {parent.author.avatar ? (
@@ -493,7 +528,7 @@ export default function PostPreview({ post, parent }: PostPreviewProps) {
                   }}
                 >
                   <img
-                    src={parent.author.avatar}
+                    src={sanitizeUrl(parent.author.avatar)}
                     alt={parent.author.displayName || parent.author.handle}
                     style={{
                       width: '100%',
@@ -528,7 +563,7 @@ export default function PostPreview({ post, parent }: PostPreviewProps) {
             </a>
             <div style={{ flex: 1, minWidth: 0 }}>
               <a
-                href={`/${parent.author.did || parent.author.handle}`}
+                href={`/${sanitizeDid(parent.author.did) || sanitizeHandle(parent.author.handle)}`}
                 style={{
                   fontWeight: '600',
                   color: 'var(--text-primary)',
@@ -549,7 +584,7 @@ export default function PostPreview({ post, parent }: PostPreviewProps) {
               </a>
               <div style={{ fontSize: '0.875rem', lineHeight: '1.2' }}>
                 <a
-                  href={`/${parent.author.did || parent.author.handle}`}
+                  href={`/${sanitizeDid(parent.author.did) || sanitizeHandle(parent.author.handle)}`}
                   style={{
                     color: 'var(--text-tertiary)',
                     textDecoration: 'none',
@@ -717,7 +752,7 @@ export default function PostPreview({ post, parent }: PostPreviewProps) {
       {/* Author Info */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
         <a
-          href={`/${author.did || author.handle}`}
+          href={`/${sanitizeDid(author.did) || sanitizeHandle(author.handle)}`}
           style={{ textDecoration: 'none', flexShrink: 0 }}
         >
           {author.avatar ? (
@@ -737,7 +772,7 @@ export default function PostPreview({ post, parent }: PostPreviewProps) {
               }}
             >
               <img
-                src={author.avatar}
+                src={sanitizeUrl(author.avatar)}
                 alt={author.displayName || author.handle}
                 style={{
                   width: '100%',
@@ -773,7 +808,7 @@ export default function PostPreview({ post, parent }: PostPreviewProps) {
         </a>
         <div style={{ flex: 1, minWidth: 0 }}>
           <a
-            href={`/${author.did || author.handle}`}
+            href={`/${sanitizeDid(author.did) || sanitizeHandle(author.handle)}`}
             style={{
               fontWeight: '600',
               color: 'var(--text-primary)',
@@ -798,7 +833,7 @@ export default function PostPreview({ post, parent }: PostPreviewProps) {
           </a>
           <div style={{ fontSize: '0.875rem', lineHeight: '1.2' }}>
             <a
-              href={`/${author.did || author.handle}`}
+              href={`/${sanitizeDid(author.did) || sanitizeHandle(author.handle)}`}
               style={{
                 color: 'var(--text-tertiary)',
                 textDecoration: 'none',
@@ -832,119 +867,144 @@ export default function PostPreview({ post, parent }: PostPreviewProps) {
             marginBottom: '1rem',
           }}
         >
-          {embed.images.map((image, i) => (
-            <a
-              key={i}
-              href={image.fullsize}
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{ 
-                display: 'block',
-                overflow: 'hidden',
-              }}
-            >
-              <img
-                src={image.thumb}
-                alt={image.alt}
-                style={{
-                  width: '100%',
-                  height: 'auto',
-                  maxHeight: '1000px',
-                  objectFit: 'cover',
-                  background: 'var(--bg-tertiary)',
+          {embed.images.map((image, i) => {
+            const sanitizedFullsize = sanitizeUrl(image.fullsize);
+            const sanitizedThumb = sanitizeUrl(image.thumb);
+            
+            return (
+              <a
+                key={i}
+                href={sanitizedFullsize}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ 
                   display: 'block',
-                  border: '1px solid var(--border-medium)',
-                  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.4)',
+                  overflow: 'hidden',
                 }}
-              />
-            </a>
-          ))}
+              >
+                <img
+                  src={sanitizedThumb}
+                  alt={image.alt}
+                  style={{
+                    width: '100%',
+                    height: 'auto',
+                    maxHeight: '1000px',
+                    objectFit: 'cover',
+                    background: 'var(--bg-tertiary)',
+                    display: 'block',
+                    border: '1px solid var(--border-medium)',
+                    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.4)',
+                  }}
+                />
+              </a>
+            );
+          })}
         </div>
       )}
 
       {/* Embed - External Link */}
-      {embed?.$type === 'app.bsky.embed.external#view' && embed.external && (
-        <a
-          href={embed.external.uri}
-          target="_blank"
-          rel="noopener noreferrer"
-          style={{
-            display: 'block',
-            marginBottom: '1rem',
-            border: '1px solid var(--border-medium)',
-            textDecoration: 'none',
-            color: 'inherit',
-            overflow: 'hidden',
-            transition: 'border-color 0.2s ease',
-            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
-          }}
-          className="external-link-card"
-        >
-          {embed.external.thumb && (
-            <img
-              src={embed.external.thumb}
-              alt=""
-              style={{
-                width: '100%',
-                height: 'auto',
-                maxHeight: '300px',
-                objectFit: 'cover',
-                background: 'var(--bg-tertiary)',
-                display: 'block',
-                borderBottom: '1px solid var(--border-medium)',
-              }}
-            />
-          )}
-          <div style={{ padding: '1rem' }}>
-            <div style={{ fontWeight: '600', marginBottom: '0.25rem', color: 'var(--text-primary)' }}>
-              {embed.external.title}
+      {embed?.$type === 'app.bsky.embed.external#view' && embed.external && (() => {
+        const sanitizedExtUri = sanitizeUrl(embed.external.uri);
+        const sanitizedExtThumb = sanitizeUrl(embed.external.thumb);
+        
+        if (sanitizedExtUri === '#') return null; // Skip invalid URLs
+        
+        return (
+          <a
+            href={sanitizedExtUri}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              display: 'block',
+              marginBottom: '1rem',
+              border: '1px solid var(--border-medium)',
+              textDecoration: 'none',
+              color: 'inherit',
+              overflow: 'hidden',
+              transition: 'border-color 0.2s ease',
+              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
+            }}
+            className="external-link-card"
+          >
+            {embed.external.thumb && (
+              <img
+                src={sanitizedExtThumb}
+                alt=""
+                style={{
+                  width: '100%',
+                  height: 'auto',
+                  maxHeight: '300px',
+                  objectFit: 'cover',
+                  background: 'var(--bg-tertiary)',
+                  display: 'block',
+                  borderBottom: '1px solid var(--border-medium)',
+                }}
+              />
+            )}
+            <div style={{ padding: '1rem' }}>
+              <div style={{ fontWeight: '600', marginBottom: '0.25rem', color: 'var(--text-primary)' }}>
+                {embed.external.title}
+              </div>
+              <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
+                {embed.external.description}
+              </div>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)', marginTop: '0.5rem' }}>
+                {(() => {
+                  try {
+                    return new URL(sanitizedExtUri).hostname;
+                  } catch {
+                    return '';
+                  }
+                })()}
+              </div>
             </div>
-            <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
-              {embed.external.description}
-            </div>
-            <div style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)', marginTop: '0.5rem' }}>
-              {new URL(embed.external.uri).hostname}
-            </div>
-          </div>
-        </a>
-      )}
+          </a>
+        );
+      })()}
 
       {/* Embed - Video */}
-      {embed?.$type === 'app.bsky.embed.video#view' && embed.playlist && (
-        <div
-          style={{
-            position: 'relative',
-            marginBottom: '1rem',
-            background: 'var(--bg-tertiary)',
-            overflow: 'hidden',
-            border: '1px solid var(--border-medium)',
-            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.4)',
-          }}
-        >
-          <video
-            controls
-            poster={embed.thumbnail}
+      {embed?.$type === 'app.bsky.embed.video#view' && embed.playlist && (() => {
+        const sanitizedPlaylist = sanitizeUrl(embed.playlist);
+        const sanitizedThumbnail = sanitizeUrl(embed.thumbnail);
+        
+        if (sanitizedPlaylist === '#') return null; // Skip invalid video URLs
+        
+        return (
+          <div
             style={{
-              width: '100%',
-              maxHeight: '500px',
-              display: 'block',
+              position: 'relative',
+              marginBottom: '1rem',
+              background: 'var(--bg-tertiary)',
+              overflow: 'hidden',
+              border: '1px solid var(--border-medium)',
+              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.4)',
             }}
           >
-            <source src={embed.playlist} type="application/x-mpegURL" />
-            Your browser does not support the video tag.
-          </video>
-          {embed.alt && (
-            <div style={{ 
-              padding: '0.5rem', 
-              fontSize: '0.875rem', 
-              color: 'var(--text-tertiary)',
-              background: 'var(--bg-secondary)',
-            }}>
-              {embed.alt}
-            </div>
-          )}
-        </div>
-      )}
+            <video
+              controls
+              poster={sanitizedThumbnail}
+              style={{
+                width: '100%',
+                maxHeight: '500px',
+                display: 'block',
+              }}
+            >
+              <source src={sanitizedPlaylist} type="application/x-mpegURL" />
+              Your browser does not support the video tag.
+            </video>
+            {embed.alt && (
+              <div style={{ 
+                padding: '0.5rem', 
+                fontSize: '0.875rem', 
+                color: 'var(--text-tertiary)',
+                background: 'var(--bg-secondary)',
+              }}>
+                {embed.alt}
+              </div>
+            )}
+          </div>
+        );
+      })()}
 
       {/* Embed - Quote Post (Record) */}
       {embed?.$type === 'app.bsky.embed.record#view' && embed.record && (
@@ -964,117 +1024,142 @@ export default function PostPreview({ post, parent }: PostPreviewProps) {
                 marginBottom: '1rem',
               }}
             >
-              {embed.media.images.map((image: any, i: number) => (
-                <a
-                  key={i}
-                  href={image.fullsize}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  style={{ 
-                    display: 'block',
-                    overflow: 'hidden',
-                  }}
-                >
+              {embed.media.images.map((image: any, i: number) => {
+                const sanitizedFullsize = sanitizeUrl(image.fullsize);
+                const sanitizedThumb = sanitizeUrl(image.thumb);
+                
+                return (
+                  <a
+                    key={i}
+                    href={sanitizedFullsize}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{ 
+                      display: 'block',
+                      overflow: 'hidden',
+                    }}
+                  >
+                    <img
+                      src={sanitizedThumb}
+                      alt={image.alt}
+                      style={{
+                        width: '100%',
+                        height: 'auto',
+                        maxHeight: '1000px',
+                        objectFit: 'cover',
+                        background: 'var(--bg-tertiary)',
+                        display: 'block',
+                        border: '1px solid var(--border-medium)',
+                        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.4)',
+                      }}
+                    />
+                  </a>
+                );
+              })}
+            </div>
+          )}
+
+          {embed.media?.$type === 'app.bsky.embed.external#view' && embed.media.external && (() => {
+            const sanitizedMediaExtUri = sanitizeUrl(embed.media.external.uri);
+            const sanitizedMediaExtThumb = sanitizeUrl(embed.media.external.thumb);
+            
+            if (sanitizedMediaExtUri === '#') return null; // Skip invalid URLs
+            
+            return (
+              <a
+                href={sanitizedMediaExtUri}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  display: 'block',
+                  marginBottom: '1rem',
+                  border: '1px solid var(--border-medium)',
+                  textDecoration: 'none',
+                  color: 'inherit',
+                  overflow: 'hidden',
+                  transition: 'border-color 0.2s ease',
+                  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
+                }}
+                className="external-link-card"
+              >
+                {embed.media.external.thumb && (
                   <img
-                    src={image.thumb}
-                    alt={image.alt}
+                    src={sanitizedMediaExtThumb}
+                    alt=""
                     style={{
                       width: '100%',
                       height: 'auto',
-                      maxHeight: '1000px',
+                      maxHeight: '300px',
                       objectFit: 'cover',
                       background: 'var(--bg-tertiary)',
                       display: 'block',
-                      border: '1px solid var(--border-medium)',
-                      boxShadow: '0 4px 12px rgba(0, 0, 0, 0.4)',
+                      borderBottom: '1px solid var(--border-medium)',
                     }}
                   />
-                </a>
-              ))}
-            </div>
-          )}
+                )}
+                <div style={{ padding: '1rem' }}>
+                  <div style={{ fontWeight: '600', marginBottom: '0.25rem', color: 'var(--text-primary)' }}>
+                    {embed.media.external.title}
+                  </div>
+                  <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
+                    {embed.media.external.description}
+                  </div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)', marginTop: '0.5rem' }}>
+                    {(() => {
+                      try {
+                        return new URL(sanitizedMediaExtUri).hostname;
+                      } catch {
+                        return '';
+                      }
+                    })()}
+                  </div>
+                </div>
+              </a>
+            );
+          })()}
 
-          {embed.media?.$type === 'app.bsky.embed.external#view' && embed.media.external && (
-            <a
-              href={embed.media.external.uri}
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{
-                display: 'block',
-                marginBottom: '1rem',
-                border: '1px solid var(--border-medium)',
-                textDecoration: 'none',
-                color: 'inherit',
-                overflow: 'hidden',
-                transition: 'border-color 0.2s ease',
-                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
-              }}
-              className="external-link-card"
-            >
-              {embed.media.external.thumb && (
-                <img
-                  src={embed.media.external.thumb}
-                  alt=""
-                  style={{
-                    width: '100%',
-                    height: 'auto',
-                    maxHeight: '300px',
-                    objectFit: 'cover',
-                    background: 'var(--bg-tertiary)',
-                    display: 'block',
-                    borderBottom: '1px solid var(--border-medium)',
-                  }}
-                />
-              )}
-              <div style={{ padding: '1rem' }}>
-                <div style={{ fontWeight: '600', marginBottom: '0.25rem', color: 'var(--text-primary)' }}>
-                  {embed.media.external.title}
-                </div>
-                <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
-                  {embed.media.external.description}
-                </div>
-                <div style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)', marginTop: '0.5rem' }}>
-                  {new URL(embed.media.external.uri).hostname}
-                </div>
-              </div>
-            </a>
-          )}
-
-          {embed.media?.$type === 'app.bsky.embed.video#view' && embed.media.playlist && (
-            <div
-              style={{
-                position: 'relative',
-                marginBottom: '1rem',
-                background: 'var(--bg-tertiary)',
-                overflow: 'hidden',
-                border: '1px solid var(--border-medium)',
-                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.4)',
-              }}
-            >
-              <video
-                controls
-                poster={embed.media.thumbnail}
+          {embed.media?.$type === 'app.bsky.embed.video#view' && embed.media.playlist && (() => {
+            const sanitizedMediaPlaylist = sanitizeUrl(embed.media.playlist);
+            const sanitizedMediaThumbnail = sanitizeUrl(embed.media.thumbnail);
+            
+            if (sanitizedMediaPlaylist === '#') return null; // Skip invalid video URLs
+            
+            return (
+              <div
                 style={{
-                  width: '100%',
-                  maxHeight: '500px',
-                  display: 'block',
+                  position: 'relative',
+                  marginBottom: '1rem',
+                  background: 'var(--bg-tertiary)',
+                  overflow: 'hidden',
+                  border: '1px solid var(--border-medium)',
+                  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.4)',
                 }}
               >
-                <source src={embed.media.playlist} type="application/x-mpegURL" />
-                Your browser does not support the video tag.
-              </video>
-              {embed.media.alt && (
-                <div style={{ 
-                  padding: '0.5rem', 
-                  fontSize: '0.875rem', 
-                  color: 'var(--text-tertiary)',
-                  background: 'var(--bg-secondary)',
-                }}>
-                  {embed.media.alt}
-                </div>
-              )}
-            </div>
-          )}
+                <video
+                  controls
+                  poster={sanitizedMediaThumbnail}
+                  style={{
+                    width: '100%',
+                    maxHeight: '500px',
+                    display: 'block',
+                  }}
+                >
+                  <source src={sanitizedMediaPlaylist} type="application/x-mpegURL" />
+                  Your browser does not support the video tag.
+                </video>
+                {embed.media.alt && (
+                  <div style={{ 
+                    padding: '0.5rem', 
+                    fontSize: '0.875rem', 
+                    color: 'var(--text-tertiary)',
+                    background: 'var(--bg-secondary)',
+                  }}>
+                    {embed.media.alt}
+                  </div>
+                )}
+              </div>
+            );
+          })()}
 
           {/* Then render the quoted record */}
           {embed.record?.record && renderQuotedPost(embed.record.record)}

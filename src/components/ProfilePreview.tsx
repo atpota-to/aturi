@@ -4,6 +4,7 @@
  */
 
 import { BskyProfile } from '@/utils/profileFetcher';
+import { sanitizeUrl } from '@/utils/sanitize';
 import { User, Calendar, Users, MessageSquare } from 'lucide-react';
 
 type ProfilePreviewProps = {
@@ -74,7 +75,7 @@ export default function ProfilePreview({ profile }: ProfilePreviewProps) {
           style={{
             width: '100%',
             height: '200px',
-            background: `url(${banner}) center/cover`,
+            background: `url(${sanitizeUrl(banner)}) center/cover`,
             backgroundColor: 'var(--bg-tertiary)',
           }}
         />
@@ -103,7 +104,7 @@ export default function ProfilePreview({ profile }: ProfilePreviewProps) {
               }}
             >
               <img
-                src={avatar}
+                src={sanitizeUrl(avatar)}
                 alt={displayName || handle}
                 style={{
                   width: '100%',

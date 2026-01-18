@@ -553,4 +553,3 @@ export function getFeaturedWaypoint(
   const { waypoints } = getRecommendedWaypoints(type, collection);
   return waypoints[0] || null;
 }
-
