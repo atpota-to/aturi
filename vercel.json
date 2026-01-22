@@ -9,6 +9,19 @@
         }
       ]
     }
+  ],
+  "redirects": [
+    {
+      "source": "/:path*",
+      "has": [
+        {
+          "type": "host",
+          "value": "altsky.app"
+        }
+      ],
+      "destination": "https://aturi.to/:path*",
+      "permanent": true
+    }
   ]
 }
 

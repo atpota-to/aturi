@@ -2,6 +2,8 @@
  * Extracts AT URI components from various URL formats and generates aturi.to links
  */
 
+import { resolveHandleToDid } from './didResolver';
+
 interface AtUriComponents {
   identifier: string; // DID or handle
   collection?: string;
@@ -182,10 +184,49 @@ export function generateAturiLink(components: AtUriComponents, useAtPrefix: bool
 }
 
 /**
+ * Resolves a handle to DID if possible, returns the original if it's already a DID or resolution fails
+ */
+async function resolveIdentifierToDid(identifier: string): Promise<string> {
+  // If it's already a DID, return it
+  if (identifier.startsWith('did:')) {
+    return identifier;
+  }
+  
+  // Try to resolve handle to DID
+  try {
+    const did = await resolveHandleToDid(identifier);
+    return did || identifier; // Fall back to handle if resolution fails
+  } catch (error) {
+    console.warn(`Failed to resolve handle ${identifier} to DID:`, error);
+    return identifier; // Fall back to handle on error
+  }
+}
+
+/**
  * Main function to convert any input to an aturi.to link
  * @param useAtPrefix - If true, keeps the literal at:// prefix for full AT URI format
+ * @param preferDid - If true, attempts to resolve handles to DIDs (default: false for backwards compatibility)
  */
-export function convertToAturiLink(input: string, useAtPrefix: boolean = false): string | null {
+export async function convertToAturiLink(input: string, useAtPrefix: boolean = false, preferDid: boolean = false): Promise<string | null> {
+  const components = extractAtUriComponents(input);
+  
+  if (!components) {
+    return null;
+  }
+  
+  // If preferDid is true, try to resolve handle to DID
+  if (preferDid) {
+    components.identifier = await resolveIdentifierToDid(components.identifier);
+  }
+  
+  return generateAturiLink(components, useAtPrefix);
+}
+
+/**
+ * Synchronous version that doesn't resolve handles to DIDs
+ * Kept for backwards compatibility
+ */
+export function convertToAturiLinkSync(input: string, useAtPrefix: boolean = false): string | null {
   const components = extractAtUriComponents(input);
   
   if (!components) {

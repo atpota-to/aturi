@@ -16,10 +16,10 @@ export default function HomePage() {
   const [quickCopied, setQuickCopied] = useState(false);
   const waypointCount = getWaypointCount();
 
-  const handleQuickGenerate = () => {
+  const handleQuickGenerate = async () => {
     if (!quickInput.trim()) return;
     
-    const link = convertToAturiLink(quickInput);
+    const link = await convertToAturiLink(quickInput, false, true); // preferDid = true
     if (link) {
       setQuickGenerated(link);
       // Auto copy to clipboard

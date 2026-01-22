@@ -15,14 +15,14 @@ export default function CreatePage() {
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
-  const handleGenerate = () => {
+  const handleGenerate = async () => {
     if (!input.trim()) {
       setError('Please enter a URL or AT URI');
       setGeneratedLink(null);
       return;
     }
 
-    const link = convertToAturiLink(input);
+    const link = await convertToAturiLink(input, false, true); // preferDid = true
     
     if (link) {
       setGeneratedLink(link);
