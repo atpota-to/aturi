@@ -122,7 +122,7 @@ export const WAYPOINT_DESTINATIONS: Record<string, Waypoint> = {
     description: (collection) => {
       if (collection === 'app.bsky.feed.post') return 'View post on anisota.net';
       if (collection === 'app.bsky.graph.list') return 'View list on anisota.net';
-      if (collection && collection !== 'profile') return 'Explore record on anisota.net';
+      // For any other content type, default to profile (consistent with other Bluesky clients)
       return 'View profile on anisota.net';
     },
     icon: <MoonStar size={24} strokeWidth={2} />,
@@ -132,8 +132,13 @@ export const WAYPOINT_DESTINATIONS: Record<string, Waypoint> = {
         if (collection === 'app.bsky.feed.post') {
           return `https://anisota.net/profile/${handle}/post/${rkey}`;
         }
-        // For arbitrary records, use the explorer URL
-        return `https://anisota.net/explorer/${handle}/${collection}/${rkey}`;
+        // For lists, use the profile/lists URL
+        if (collection === 'app.bsky.graph.list') {
+          return `https://anisota.net/profile/${handle}/lists/${rkey}`;
+        }
+        // For other record types, fall back to profile (like other Bluesky clients do)
+        // Users can use Anisota Explorer for raw record inspection
+        return `https://anisota.net/profile/${handle}`;
       }
       return `https://anisota.net/profile/${handle}`;
     },
