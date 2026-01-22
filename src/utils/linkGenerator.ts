@@ -27,6 +27,8 @@ interface AtUriComponents {
  * - https://anisota.net/explorer/handle/collection/rkey
  * - https://reddwarf.app/profile/handle/post/rkey
  * - https://leaflet.pub/p/identifier
+ * - https://margin.at/domain.com/annotation/rkey (maps to at.margin.annotation)
+ * - https://margin.at/domain.com/collection/rkey (maps to at.margin.collection)
  * - https://witchsky.app/profile/handle/post/rkey
  * - https://catsky.social/profile/handle/post/rkey
  * - https://deer.social/profile/handle/post/rkey
@@ -163,6 +165,37 @@ export function extractAtUriComponents(input: string): AtUriComponents | null {
       const parts = pathname.substring(3).split('/'); // Remove "/p/"
       
       if (parts.length === 1) {
+        return { identifier: parts[0] };
+      }
+    }
+    
+    // Margin.at format: /domain/recordType/rkey
+    // Maps to at.margin.{recordType} lexicons
+    if (hostname === 'margin.at') {
+      const parts = pathname.substring(1).split('/').filter(p => p); // Remove leading "/" and split
+      
+      if (parts.length === 3) {
+        const domain = parts[0];
+        const recordType = parts[1];
+        const rkey = parts[2];
+        
+        // Valid margin record types: annotation, highlight, bookmark, collection, collectionItem, reply, like
+        const validMarginTypes = ['annotation', 'highlight', 'bookmark', 'collection', 'collectionitem', 'reply', 'like'];
+        
+        if (validMarginTypes.includes(recordType.toLowerCase())) {
+          // The domain in the URL is actually the handle
+          // Collection is at.margin.{recordType}
+          return {
+            identifier: domain,
+            collection: `at.margin.${recordType.toLowerCase()}`,
+            rkey: rkey,
+          };
+        }
+      } else if (parts.length === 2 && parts[0] === 'profile') {
+        // Profile format: /profile/identifier
+        return { identifier: parts[1] };
+      } else if (parts.length === 1) {
+        // Just a domain/handle
         return { identifier: parts[0] };
       }
     }
