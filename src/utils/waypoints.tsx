@@ -247,7 +247,7 @@ export const WAYPOINT_DESTINATIONS: Record<string, Waypoint> = {
   anisotaExplorer: {
     id: 'anisotaExplorer',
     name: 'Anisota Explorer',
-    description: 'Explore raw record on anisota.net',
+    description: 'View raw record on anisota.net',
     icon: <MoonStar size={24} strokeWidth={2} />,
     getUrl: (handle, collection, rkey) => {
       if (collection && rkey) {
@@ -263,7 +263,7 @@ export const WAYPOINT_DESTINATIONS: Record<string, Waypoint> = {
   atptools: {
     id: 'atptools',
     name: 'atp.tools',
-    description: 'View on atp.tools',
+    description: 'View raw record on atp.tools',
     icon: <Wrench size={24} strokeWidth={2} />,
     getUrl: (handle, collection, rkey, did) => {
       // Use the at:/ format with DID if available, otherwise handle
@@ -421,11 +421,15 @@ export const WAYPOINT_DESTINATIONS: Record<string, Waypoint> = {
       return 'View profile on pinksky.app';
     },
     icon: <PinskySVG />,
-    getUrl: (handle, collection, rkey) => {
+    getUrl: (handle, collection, rkey, did) => {
       if (collection && rkey) {
-        // Pinksky supports posts
+        // Pinksky supports posts with a special query parameter format
         if (collection === 'app.bsky.feed.post') {
-          return `https://pinksky.app/profile/${handle}/post/${rkey}`;
+          const identifier = did || handle;
+          const atUri = `at://${identifier}/${collection}/${rkey}`;
+          const encodedUri = encodeURIComponent(atUri);
+          const encodedDid = encodeURIComponent(identifier);
+          return `https://pinksky.app/feed?uri=${encodedUri}&src=profile&index=1&did=${encodedDid}&showThreads=${encodedDid}`;
         }
         // For other types, default to profile
         return `https://pinksky.app/profile/${handle}`;
