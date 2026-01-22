@@ -48,18 +48,23 @@ interface StaggerItemProps {
 }
 
 export function StaggerItem({ children, className, style, delay = 0 }: StaggerItemProps) {
+  // Extract rotation from inline styles to avoid animation conflicts
+  const inlineRotation = style?.transform 
+    ? parseFloat(style.transform.match(/rotate\(([-\d.]+)deg\)/)?.[1] || '0')
+    : 0;
+
   const item = {
     hidden: { 
       opacity: 0, 
       y: 30,
       scale: 0.95,
-      rotate: -1,
+      rotate: inlineRotation - 1, // Start 1 degree before the target rotation
     },
     show: { 
       opacity: 1, 
       y: 0,
       scale: 1,
-      rotate: 0,
+      rotate: inlineRotation, // End at the target rotation
       transition: {
         duration: 0.6,
         ease: [0.34, 1.56, 0.64, 1] as [number, number, number, number], // Organic spring-like easing
