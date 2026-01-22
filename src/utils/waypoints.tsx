@@ -108,6 +108,13 @@ export const PinskySVG = () => (
   </svg>
 );
 
+export const MarginSVG = () => (
+  <svg width="24" height="24" viewBox="0 0 265 231" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path fill="currentColor" d="M0 230 V0 H199 V65.7156 H149.5 V115.216 H182.5 L199 131.716 V230 Z"/>
+    <path fill="currentColor" d="M215 214.224 V230 H264.5 V0 H215.07 V16.2242 H248.5 V214.224 H215 Z"/>
+  </svg>
+);
+
 export const WAYPOINT_DESTINATIONS: Record<string, Waypoint> = {
   anisota: {
     id: 'anisota',
@@ -363,6 +370,44 @@ export const WAYPOINT_DESTINATIONS: Record<string, Waypoint> = {
     supportedTypes: ['post', 'profile', 'list'],
     category: 'atmosphereApps',
   },
+
+  margin: {
+    id: 'margin',
+    name: 'Margin',
+    description: 'View on margin.at',
+    icon: <MarginSVG />,
+    getUrl: (handle, collection, rkey, did) => {
+      // Margin supports at.margin.* records
+      if (collection && rkey && collection.startsWith('at.margin.')) {
+        // Extract the record type (annotation, highlight, bookmark, etc.)
+        const recordType = collection.replace('at.margin.', '');
+        
+        // For annotations and highlights, they use domain/type/rkey format
+        // For profiles, they use profile/did format
+        // Use DID if available, otherwise handle
+        const identifier = did || handle;
+        
+        if (recordType === 'annotation' || recordType === 'highlight' || recordType === 'bookmark') {
+          // Try to extract domain from handle if it looks like a domain
+          // e.g., isaaccorbrey.com becomes isaaccorbrey.com
+          // Otherwise use the identifier as-is
+          const handleLooksLikeDomain = handle.includes('.') && !handle.startsWith('did:');
+          const domain = handleLooksLikeDomain ? handle : identifier;
+          
+          return `https://margin.at/${domain}/${recordType}/${rkey}`;
+        }
+        
+        // For other margin types, fall back to profile
+        return `https://margin.at/profile/${identifier}`;
+      }
+      
+      // Profile view - use DID if available
+      const identifier = did || handle;
+      return `https://margin.at/profile/${identifier}`;
+    },
+    supportedTypes: ['profile', 'record'],
+    category: 'atmosphereApps',
+  },
 };
 
 export const WAYPOINT_ORDER = [
@@ -373,6 +418,7 @@ export const WAYPOINT_ORDER = [
   'reddwarf',
   'leaflet',
   'pinksky',
+  'margin',
   'pdsls',
   'anisotaExplorer',
   'smokesignal',
@@ -498,6 +544,48 @@ const RECOMMENDED_WAYPOINTS: Record<string, RecommendedConfig> = {
   'sh.tangled.repo': {
     waypointIds: ['tangled'],
     label: 'Recommended for Repos',
+  },
+  
+  // Margin annotations
+  'at.margin.annotation': {
+    waypointIds: ['margin', 'pdsls', 'atptools'],
+    label: 'Recommended for Annotations',
+  },
+  
+  // Margin bookmarks
+  'at.margin.bookmark': {
+    waypointIds: ['margin', 'pdsls', 'atptools'],
+    label: 'Recommended for Bookmarks',
+  },
+  
+  // Margin highlights
+  'at.margin.highlight': {
+    waypointIds: ['margin', 'pdsls', 'atptools'],
+    label: 'Recommended for Highlights',
+  },
+  
+  // Margin collections
+  'at.margin.collection': {
+    waypointIds: ['margin', 'pdsls', 'atptools'],
+    label: 'Recommended for Collections',
+  },
+  
+  // Margin collection items
+  'at.margin.collectionItem': {
+    waypointIds: ['margin', 'pdsls', 'atptools'],
+    label: 'Recommended for Collection Items',
+  },
+  
+  // Margin replies
+  'at.margin.reply': {
+    waypointIds: ['margin', 'pdsls', 'atptools'],
+    label: 'Recommended for Replies',
+  },
+  
+  // Margin likes
+  'at.margin.like': {
+    waypointIds: ['margin', 'pdsls', 'atptools'],
+    label: 'Recommended for Likes',
   },
   
   // Generic records - use pdsls for raw data, then atp.tools, then Anisota Explorer for exploring

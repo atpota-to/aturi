@@ -10,6 +10,16 @@ import Header from '@/components/Header';
 import { parseURI, resolveHandle, getDisplayName } from '@/utils/uriParser';
 import { fetchRecordData } from '@/utils/recordFetcher';
 import { resolveDidToHandle } from '@/utils/didResolver';
+import { getMarginLexiconType, getMarginLexiconDisplayName, getMarginLexiconDescription } from '@/utils/marginLexicons';
+import {
+  MarginAnnotationPreview,
+  MarginBookmarkPreview,
+  MarginHighlightPreview,
+  MarginCollectionPreview,
+  MarginCollectionItemPreview,
+  MarginReplyPreview,
+  MarginLikePreview,
+} from '@/components/margin';
 
 type Props = {
   params: Promise<{ handle: string; collection: string; rkey: string }>;
@@ -61,6 +71,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
         ogImageUrl = ogUrl.toString();
       } else if (recordData.type === 'record') {
         const record = recordData.data;
+        const marginLexiconType = getMarginLexiconType(collection);
         
         if (collection === 'app.bsky.graph.list' || collection.endsWith('.list')) {
           title = record.value?.name 
@@ -74,6 +85,59 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
           ogUrl.searchParams.set('handle', resolvedDid);
           ogUrl.searchParams.set('rkey', rkey);
           ogImageUrl = ogUrl.toString();
+        } else if (marginLexiconType) {
+          // Custom metadata for margin lexicons
+          const lexiconDisplayName = getMarginLexiconDisplayName(collection);
+          const lexiconDescription = getMarginLexiconDescription(collection);
+          
+          switch (marginLexiconType) {
+            case 'at.margin.annotation':
+              title = record.value?.target?.title
+                ? `Annotation on "${record.value.target.title}" by @${displayHandle}`
+                : `Annotation by @${displayHandle} — View on Aturi`;
+              description = record.value?.body?.value
+                ? record.value.body.value.slice(0, 160)
+                : lexiconDescription;
+              break;
+            case 'at.margin.bookmark':
+              title = record.value?.title
+                ? `Bookmark: ${record.value.title} by @${displayHandle}`
+                : `Bookmark by @${displayHandle} — View on Aturi`;
+              description = record.value?.description
+                ? record.value.description.slice(0, 160)
+                : record.value?.source || lexiconDescription;
+              break;
+            case 'at.margin.highlight':
+              title = record.value?.target?.title
+                ? `Highlight on "${record.value.target.title}" by @${displayHandle}`
+                : `Highlight by @${displayHandle} — View on Aturi`;
+              description = record.value?.target?.selector?.exact
+                ? record.value.target.selector.exact.slice(0, 160)
+                : lexiconDescription;
+              break;
+            case 'at.margin.collection':
+              title = record.value?.name
+                ? `${record.value.name} — Margin Collection by @${displayHandle}`
+                : `Margin Collection by @${displayHandle}`;
+              description = record.value?.description
+                ? record.value.description.slice(0, 160)
+                : lexiconDescription;
+              break;
+            case 'at.margin.reply':
+              title = `Reply by @${displayHandle} — View on Aturi`;
+              description = record.value?.text
+                ? record.value.text.slice(0, 160)
+                : lexiconDescription;
+              break;
+            case 'at.margin.like':
+            case 'at.margin.collectionItem':
+              title = `${lexiconDisplayName} by @${displayHandle} — View on Aturi`;
+              description = lexiconDescription;
+              break;
+            default:
+              title = `${lexiconDisplayName} by @${displayHandle} — View on Aturi`;
+              description = lexiconDescription;
+          }
         } else {
           // Generic record type
           const collectionName = collection.split('.').pop() || collection;
@@ -158,6 +222,9 @@ async function RecordContent({ handle, collection, rkey }: { handle: string; col
       );
     }
 
+    // Determine if this is a margin lexicon with custom preview
+    const marginLexiconType = getMarginLexiconType(collection);
+
     return (
       <div className="container-narrow" style={{ padding: '2rem 2rem 4rem' }}>
         <Header compact />
@@ -171,12 +238,74 @@ async function RecordContent({ handle, collection, rkey }: { handle: string; col
               />
             )}
             {recordData.type === 'record' && (
-              <RecordPreview 
-                record={recordData.data} 
-                collection={collection}
-                handle={resolvedHandle}
-                rkey={rkey}
-              />
+              <>
+                {/* Render custom margin preview if available */}
+                {marginLexiconType === 'at.margin.annotation' && (
+                  <MarginAnnotationPreview
+                    record={recordData.data}
+                    collection={collection}
+                    handle={resolvedHandle}
+                    rkey={rkey}
+                  />
+                )}
+                {marginLexiconType === 'at.margin.bookmark' && (
+                  <MarginBookmarkPreview
+                    record={recordData.data}
+                    collection={collection}
+                    handle={resolvedHandle}
+                    rkey={rkey}
+                  />
+                )}
+                {marginLexiconType === 'at.margin.highlight' && (
+                  <MarginHighlightPreview
+                    record={recordData.data}
+                    collection={collection}
+                    handle={resolvedHandle}
+                    rkey={rkey}
+                  />
+                )}
+                {marginLexiconType === 'at.margin.collection' && (
+                  <MarginCollectionPreview
+                    record={recordData.data}
+                    collection={collection}
+                    handle={resolvedHandle}
+                    rkey={rkey}
+                  />
+                )}
+                {marginLexiconType === 'at.margin.collectionItem' && (
+                  <MarginCollectionItemPreview
+                    record={recordData.data}
+                    collection={collection}
+                    handle={resolvedHandle}
+                    rkey={rkey}
+                  />
+                )}
+                {marginLexiconType === 'at.margin.reply' && (
+                  <MarginReplyPreview
+                    record={recordData.data}
+                    collection={collection}
+                    handle={resolvedHandle}
+                    rkey={rkey}
+                  />
+                )}
+                {marginLexiconType === 'at.margin.like' && (
+                  <MarginLikePreview
+                    record={recordData.data}
+                    collection={collection}
+                    handle={resolvedHandle}
+                    rkey={rkey}
+                  />
+                )}
+                {/* Fall back to generic record preview if not a margin lexicon */}
+                {!marginLexiconType && (
+                  <RecordPreview 
+                    record={recordData.data} 
+                    collection={collection}
+                    handle={resolvedHandle}
+                    rkey={rkey}
+                  />
+                )}
+              </>
             )}
           </div>
         )}
