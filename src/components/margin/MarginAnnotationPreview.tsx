@@ -68,7 +68,7 @@ export default function MarginAnnotationPreview({
           transform: 'rotate(0.2deg)',
           transition: 'all 0.4s ease',
         }}
-        className="card margin-annotation-card"
+        className="margin-annotation-card"
       >
         {/* Header */}
         <div

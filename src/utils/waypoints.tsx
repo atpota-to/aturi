@@ -6,7 +6,7 @@ export type WaypointType = 'post' | 'profile' | 'list' | 'record' | 'unknown';
 export type Waypoint = {
   id: string;
   name: string;
-  description: string;
+  description: string | ((collection?: string, type?: WaypointType) => string);
   icon: ReactNode;
   getUrl: (handle: string, collection?: string, rkey?: string, did?: string) => string | null;
   supportedTypes: WaypointType[];
@@ -119,7 +119,12 @@ export const WAYPOINT_DESTINATIONS: Record<string, Waypoint> = {
   anisota: {
     id: 'anisota',
     name: 'Anisota',
-    description: 'View on anisota.net',
+    description: (collection) => {
+      if (collection === 'app.bsky.feed.post') return 'View post on anisota.net';
+      if (collection === 'app.bsky.graph.list') return 'View list on anisota.net';
+      if (collection && collection !== 'profile') return 'Explore record on anisota.net';
+      return 'View profile on anisota.net';
+    },
     icon: <MoonStar size={24} strokeWidth={2} />,
     getUrl: (handle, collection, rkey) => {
       if (collection && rkey) {
@@ -139,58 +144,85 @@ export const WAYPOINT_DESTINATIONS: Record<string, Waypoint> = {
   bluesky: {
     id: 'bluesky',
     name: 'Bluesky',
-    description: 'View on bsky.app',
+    description: (collection) => {
+      if (collection === 'app.bsky.feed.post') return 'View post on bsky.app';
+      if (collection === 'app.bsky.graph.list') return 'View list on bsky.app';
+      return 'View profile on bsky.app';
+    },
     icon: <BlueskySVG />,
     getUrl: (handle, collection, rkey) => {
       if (collection && rkey) {
-        return `https://bsky.app/profile/${handle}/post/${rkey.replace('app.bsky.feed.post/', '')}`;
+        // Only show post-specific URL for actual posts
+        if (collection === 'app.bsky.feed.post') {
+          return `https://bsky.app/profile/${handle}/post/${rkey}`;
+        }
+        // For other types, default to profile
+        return `https://bsky.app/profile/${handle}`;
       }
       return `https://bsky.app/profile/${handle}`;
     },
-    supportedTypes: ['post', 'profile', 'list'],
+    supportedTypes: ['post', 'profile', 'list', 'record'],
     category: 'blueskyClients',
   },
   
   blacksky: {
     id: 'blacksky',
     name: 'Blacksky',
-    description: 'View on blacksky.community',
+    description: (collection) => {
+      if (collection === 'app.bsky.feed.post') return 'View post on blacksky.community';
+      if (collection === 'app.bsky.graph.list') return 'View list on blacksky.community';
+      return 'View profile on blacksky.community';
+    },
     icon: <BlackskySVG />,
     getUrl: (handle, collection, rkey) => {
       if (collection && rkey) {
-        return `https://blacksky.community/profile/${handle}/post/${rkey}`;
+        // Only show post-specific URL for actual posts
+        if (collection === 'app.bsky.feed.post') {
+          return `https://blacksky.community/profile/${handle}/post/${rkey}`;
+        }
+        // For other types, default to profile
+        return `https://blacksky.community/profile/${handle}`;
       }
       return `https://blacksky.community/profile/${handle}`;
     },
-    supportedTypes: ['post', 'profile', 'list'],
+    supportedTypes: ['post', 'profile', 'list', 'record'],
     category: 'blueskyForks',
   },
 
   reddwarf: {
     id: 'reddwarf',
     name: 'Red Dwarf',
-    description: 'Open on reddwarf.app',
+    description: (collection) => {
+      if (collection === 'app.bsky.feed.post') return 'View post on reddwarf.app';
+      if (collection === 'app.bsky.graph.list') return 'View list on reddwarf.app';
+      return 'View profile on reddwarf.app';
+    },
     icon: <RedDwarfSVG />,
     getUrl: (handle, collection, rkey) => {
       if (collection && rkey) {
-        return `https://reddwarf.app/profile/${handle}/post/${rkey}`;
+        // Only show post-specific URL for actual posts
+        if (collection === 'app.bsky.feed.post') {
+          return `https://reddwarf.app/profile/${handle}/post/${rkey}`;
+        }
+        // For other types, default to profile
+        return `https://reddwarf.app/profile/${handle}`;
       }
       return `https://reddwarf.app/profile/${handle}`;
     },
-    supportedTypes: ['post', 'profile', 'list'],
+    supportedTypes: ['post', 'profile', 'list', 'record'],
     category: 'blueskyForks',
   },
 
   leaflet: {
     id: 'leaflet',
     name: 'Leaflet',
-    description: 'Minimalist ATProto reader',
+    description: 'View profile on leaflet.pub',
     icon: <LeafletSVG />,
     getUrl: (handle) => {
-      // Leaflet doesn't have post pages yet, always go to profile
+      // Leaflet doesn't have post/record pages, always go to profile
       return `https://leaflet.pub/p/${handle}`;
     },
-    supportedTypes: ['profile'],
+    supportedTypes: ['post', 'profile', 'list', 'record'],
     category: 'atmosphereApps',
   },
 
@@ -249,132 +281,171 @@ export const WAYPOINT_DESTINATIONS: Record<string, Waypoint> = {
   witchsky: {
     id: 'witchsky',
     name: 'Witchsky',
-    description: 'View on witchsky.app',
+    description: (collection) => {
+      if (collection === 'app.bsky.feed.post') return 'View post on witchsky.app';
+      if (collection === 'app.bsky.graph.list') return 'View list on witchsky.app';
+      return 'View profile on witchsky.app';
+    },
     icon: <WitchskySVG />,
     getUrl: (handle, collection, rkey) => {
       if (collection && rkey) {
-        return `https://witchsky.app/profile/${handle}/post/${rkey}`;
+        // Only show post-specific URL for actual posts
+        if (collection === 'app.bsky.feed.post') {
+          return `https://witchsky.app/profile/${handle}/post/${rkey}`;
+        }
+        // For other types, default to profile
+        return `https://witchsky.app/profile/${handle}`;
       }
       return `https://witchsky.app/profile/${handle}`;
     },
-    supportedTypes: ['post', 'profile', 'list'],
+    supportedTypes: ['post', 'profile', 'list', 'record'],
     category: 'blueskyForks',
   },
 
   catsky: {
     id: 'catsky',
     name: 'Catsky',
-    description: 'View on catsky.social',
+    description: (collection) => {
+      if (collection === 'app.bsky.feed.post') return 'View post on catsky.social';
+      if (collection === 'app.bsky.graph.list') return 'View list on catsky.social';
+      return 'View profile on catsky.social';
+    },
     icon: <CatskySVG />,
     getUrl: (handle, collection, rkey) => {
       if (collection && rkey) {
-        return `https://catsky.social/profile/${handle}/post/${rkey}`;
+        // Only show post-specific URL for actual posts
+        if (collection === 'app.bsky.feed.post') {
+          return `https://catsky.social/profile/${handle}/post/${rkey}`;
+        }
+        // For other types, default to profile
+        return `https://catsky.social/profile/${handle}`;
       }
       return `https://catsky.social/profile/${handle}`;
     },
-    supportedTypes: ['post', 'profile', 'list'],
+    supportedTypes: ['post', 'profile', 'list', 'record'],
     category: 'blueskyForks',
   },
 
   deer: {
     id: 'deer',
     name: 'Deer',
-    description: 'View on deer.social',
+    description: (collection) => {
+      if (collection === 'app.bsky.feed.post') return 'View post on deer.social';
+      if (collection === 'app.bsky.graph.list') return 'View list on deer.social';
+      return 'View profile on deer.social';
+    },
     icon: <DeerSVG />,
     getUrl: (handle, collection, rkey) => {
       if (collection && rkey) {
-        return `https://deer.social/profile/${handle}/post/${rkey}`;
+        // Only show post-specific URL for actual posts
+        if (collection === 'app.bsky.feed.post') {
+          return `https://deer.social/profile/${handle}/post/${rkey}`;
+        }
+        // For other types, default to profile
+        return `https://deer.social/profile/${handle}`;
       }
       return `https://deer.social/profile/${handle}`;
     },
-    supportedTypes: ['post', 'profile', 'list'],
+    supportedTypes: ['post', 'profile', 'list', 'record'],
     category: 'blueskyForks',
   },
 
   smokesignal: {
     id: 'smokesignal',
     name: 'Smoke Signal',
-    description: 'View event on smokesignal.events',
+    description: 'View profile on smokesignal.events',
     icon: <CalendarFold size={24} strokeWidth={2} />,
     getUrl: (handle, collection, rkey, did) => {
       // Smoke Signal requires DIDs, not handles
       const identifier = did || handle;
       
-      // Only show for calendar events or profiles
+      // Support calendar events with specific URLs, otherwise default to profile
       if (collection && rkey) {
-        // Only support community.lexicon.calendar.event
+        // Support community.lexicon.calendar.event
         if (collection === 'community.lexicon.calendar.event') {
           return `https://smokesignal.events/${identifier}/${rkey}`;
         }
-        // Not compatible with this collection type
-        return null;
+        // For other types, default to profile
+        return `https://smokesignal.events/${identifier}`;
       }
       // Profile view
       return `https://smokesignal.events/${identifier}`;
     },
-    supportedTypes: ['profile', 'record'],
+    supportedTypes: ['post', 'profile', 'list', 'record'],
     category: 'atmosphereApps',
   },
 
   tangled: {
     id: 'tangled',
     name: 'Tangled',
-    description: 'View on tangled.org',
+    description: 'View profile on tangled.org',
     icon: <TangledSVG />,
-    getUrl: (handle, collection, rkey) => {
-      if (collection && rkey) {
-        // Only support sh.tangled.repo collection
-        if (collection === 'sh.tangled.repo') {
-          // Note: Tangled URLs are typically like https://tangled.org/{namespace}/{repo}
-          // where namespace and repo come from the record data itself.
-          // Since we don't have access to record data here, we link to the profile.
-          // The profile page will show all repos for that user.
-          return `https://tangled.org/${handle}`;
-        }
-        // Not compatible with this collection type
-        return null;
-      }
-      // Profile view
+    getUrl: (handle) => {
+      // Tangled shows repos on profile pages
+      // For all content types, link to profile
       return `https://tangled.org/${handle}`;
     },
-    supportedTypes: ['profile', 'record'],
+    supportedTypes: ['post', 'profile', 'list', 'record'],
     category: 'atmosphereApps',
   },
 
   tokimeki: {
     id: 'tokimeki',
     name: 'TOKIMEKI',
-    description: 'View on tokimeki.blue',
+    description: (collection) => {
+      if (collection === 'app.bsky.feed.post') return 'View post on tokimeki.blue';
+      if (collection === 'app.bsky.graph.list') return 'View list on tokimeki.blue';
+      return 'View profile on tokimeki.blue';
+    },
     icon: <Rainbow size={24} strokeWidth={2} />,
     getUrl: (handle, collection, rkey) => {
       if (collection && rkey) {
-        return `https://tokimeki.blue/profile/${handle}/post/${rkey}`;
+        // Only show post-specific URL for actual posts
+        if (collection === 'app.bsky.feed.post') {
+          return `https://tokimeki.blue/profile/${handle}/post/${rkey}`;
+        }
+        // For other types, default to profile
+        return `https://tokimeki.blue/profile/${handle}`;
       }
       return `https://tokimeki.blue/profile/${handle}`;
     },
-    supportedTypes: ['post', 'profile', 'list'],
+    supportedTypes: ['post', 'profile', 'list', 'record'],
     category: 'blueskyClients',
   },
 
   pinksky: {
     id: 'pinksky',
     name: 'Pinksky',
-    description: 'View on pinksky.app',
+    description: (collection) => {
+      if (collection === 'app.bsky.feed.post') return 'View post on pinksky.app';
+      return 'View profile on pinksky.app';
+    },
     icon: <PinskySVG />,
     getUrl: (handle, collection, rkey) => {
       if (collection && rkey) {
-        return `https://pinksky.app/profile/${handle}/post/${rkey}`;
+        // Pinksky supports posts
+        if (collection === 'app.bsky.feed.post') {
+          return `https://pinksky.app/profile/${handle}/post/${rkey}`;
+        }
+        // For other types, default to profile
+        return `https://pinksky.app/profile/${handle}`;
       }
       return `https://pinksky.app/profile/${handle}`;
     },
-    supportedTypes: ['post', 'profile', 'list'],
+    supportedTypes: ['post', 'profile', 'list', 'record'],
     category: 'atmosphereApps',
   },
 
   margin: {
     id: 'margin',
     name: 'Margin',
-    description: 'View on margin.at',
+    description: (collection) => {
+      if (collection === 'at.margin.annotation') return 'View annotation on margin.at';
+      if (collection === 'at.margin.highlight') return 'View highlight on margin.at';
+      if (collection === 'at.margin.bookmark') return 'View bookmark on margin.at';
+      if (collection?.startsWith('at.margin.')) return 'View on margin.at';
+      return 'View profile on margin.at';
+    },
     icon: <MarginSVG />,
     getUrl: (handle, collection, rkey, did) => {
       // Margin supports at.margin.* records
@@ -401,11 +472,11 @@ export const WAYPOINT_DESTINATIONS: Record<string, Waypoint> = {
         return `https://margin.at/profile/${identifier}`;
       }
       
-      // Profile view - use DID if available
+      // For all other content types, default to profile view
       const identifier = did || handle;
       return `https://margin.at/profile/${identifier}`;
     },
-    supportedTypes: ['profile', 'record'],
+    supportedTypes: ['post', 'profile', 'list', 'record'],
     category: 'atmosphereApps',
   },
 };

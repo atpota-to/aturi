@@ -56,7 +56,7 @@ export default function MarginBookmarkPreview({
           transform: 'rotate(0.2deg)',
           transition: 'all 0.4s ease',
         }}
-        className="card margin-bookmark-card"
+        className="margin-bookmark-card"
       >
         {/* Header */}
         <div

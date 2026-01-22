@@ -54,7 +54,7 @@ export default function MarginCollectionItemPreview({
           transform: 'rotate(0.2deg)',
           transition: 'all 0.4s ease',
         }}
-        className="card margin-collection-item-card"
+        className="margin-collection-item-card"
       >
         {/* Header */}
         <div

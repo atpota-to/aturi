@@ -62,7 +62,7 @@ export default function MarginHighlightPreview({
           transform: 'rotate(0.2deg)',
           transition: 'all 0.4s ease',
         }}
-        className="card margin-highlight-card"
+        className="margin-highlight-card"
       >
         {/* Header */}
         <div

@@ -1,6 +1,5 @@
 'use client';
 
-import { useState } from 'react';
 import { ExternalLink, Copy, Check, ChevronDown, ChevronUp } from 'lucide-react';
 import type { WaypointCategory, Waypoint } from '@/utils/waypoints';
 
@@ -78,7 +77,7 @@ export default function CategoryCard({
         style={{ 
           cursor: 'pointer', 
           transform: `rotate(${rotation}deg)`,
-          // @ts-ignore - CSS custom property
+          // @ts-expect-error - CSS custom property
           '--button-rotation': `rotate(${rotation}deg)`
         }}
       >
@@ -86,7 +85,9 @@ export default function CategoryCard({
         <div className="waypoint-content">
           <div className="waypoint-name">{waypoint.name}</div>
           <div className="waypoint-description">
-            {waypoint.description}
+            {typeof waypoint.description === 'function'
+              ? waypoint.description(collection, undefined)
+              : waypoint.description}
           </div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>

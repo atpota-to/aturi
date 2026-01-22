@@ -185,7 +185,9 @@ export default function WaypointPicker({
                 <div className="waypoint-content">
                   <div className="waypoint-name">{waypoint.name}</div>
                   <div className="waypoint-description">
-                    {waypoint.description}
+                    {typeof waypoint.description === 'function'
+                      ? waypoint.description(collection, type)
+                      : waypoint.description}
                   </div>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>

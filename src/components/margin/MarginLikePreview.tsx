@@ -55,7 +55,7 @@ export default function MarginLikePreview({
           transform: 'rotate(0.2deg)',
           transition: 'all 0.4s ease',
         }}
-        className="card margin-like-card"
+        className="margin-like-card"
       >
         {/* Header */}
         <div

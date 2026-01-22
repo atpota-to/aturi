@@ -61,7 +61,7 @@ export default function MarginReplyPreview({
           transform: 'rotate(0.2deg)',
           transition: 'all 0.4s ease',
         }}
-        className="card margin-reply-card"
+        className="margin-reply-card"
       >
         {/* Header */}
         <div
