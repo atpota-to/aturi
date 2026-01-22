@@ -29,6 +29,7 @@ interface AtUriComponents {
  * - https://leaflet.pub/p/identifier
  * - https://margin.at/domain.com/annotation/rkey (maps to at.margin.annotation)
  * - https://margin.at/domain.com/collection/rkey (maps to at.margin.collection)
+ * - https://semble.so/profile/identifier
  * - https://witchsky.app/profile/handle/post/rkey
  * - https://catsky.social/profile/handle/post/rkey
  * - https://deer.social/profile/handle/post/rkey
@@ -196,6 +197,15 @@ export function extractAtUriComponents(input: string): AtUriComponents | null {
         return { identifier: parts[1] };
       } else if (parts.length === 1) {
         // Just a domain/handle
+        return { identifier: parts[0] };
+      }
+    }
+    
+    // Semble format: /profile/identifier
+    if (hostname === 'semble.so' && pathname.startsWith('/profile/')) {
+      const parts = pathname.substring(9).split('/'); // Remove "/profile/"
+      
+      if (parts.length === 1) {
         return { identifier: parts[0] };
       }
     }
