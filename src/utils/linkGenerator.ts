@@ -12,7 +12,14 @@ interface AtUriComponents {
 
 /**
  * Extracts AT URI components from a URL or AT URI string
- * Supports various formats from all Waypoint platforms:
+ * 
+ * Universal AT URI pattern detection (works with any domain):
+ * - https://anydomain.com/at://did:plc:xxx/collection/rkey
+ * - https://anydomain.com/at:/did:plc:xxx/collection/rkey
+ * - https://anydomain.com/did:plc:xxx/collection/rkey
+ * - https://anydomain.com/handle.bsky.social/collection/rkey
+ * 
+ * Specific platform formats also supported:
  * - https://bsky.app/profile/did:plc:xxx
  * - https://bsky.app/profile/handle.bsky.social/post/rkey
  * - https://blacksky.community/profile/handle/post/rkey
@@ -20,9 +27,6 @@ interface AtUriComponents {
  * - https://anisota.net/explorer/handle/collection/rkey
  * - https://reddwarf.app/profile/handle/post/rkey
  * - https://leaflet.pub/p/identifier
- * - https://pdsls.dev/at/identifier/collection/rkey
- * - https://atp.tools/record/identifier/collection/rkey
- * - https://atp.tools/profile/identifier
  * - https://witchsky.app/profile/handle/post/rkey
  * - https://catsky.social/profile/handle/post/rkey
  * - https://deer.social/profile/handle/post/rkey
@@ -54,6 +58,63 @@ export function extractAtUriComponents(input: string): AtUriComponents | null {
     const url = new URL(trimmedInput);
     const pathname = url.pathname;
     const hostname = url.hostname;
+    
+    // Universal AT URI pattern detection: /at://identifier/collection/rkey
+    if (pathname.startsWith('/at://')) {
+      const atUri = pathname.substring(1); // Remove leading "/"
+      return extractAtUriComponents(atUri); // Recursive call
+    }
+    
+    // Universal AT URI pattern detection: /at:/identifier/collection/rkey
+    if (pathname.startsWith('/at:/')) {
+      const parts = pathname.substring(5).split('/'); // Remove "/at:/"
+      
+      if (parts.length === 1) {
+        // Profile only: /at:/identifier
+        return { identifier: parts[0] };
+      } else if (parts.length === 3) {
+        // Full record: /at:/identifier/collection/rkey
+        return {
+          identifier: parts[0],
+          collection: parts[1],
+          rkey: parts[2],
+        };
+      }
+    }
+    
+    // Universal pattern: /did:xxx/collection/rkey or /handle.tld/collection/rkey
+    // This catches any domain with a DID or handle-like structure in the path
+    const pathParts = pathname.substring(1).split('/').filter(p => p); // Remove leading "/" and split
+    
+    if (pathParts.length >= 1) {
+      const potentialIdentifier = pathParts[0];
+      
+      // Check if first segment looks like a DID or handle
+      const isDid = potentialIdentifier.startsWith('did:');
+      const isHandle = !isDid && potentialIdentifier.includes('.') && !potentialIdentifier.includes(' ');
+      
+      if (isDid || isHandle) {
+        if (pathParts.length === 1) {
+          // Just identifier: /did:plc:xxx or /handle.bsky.social
+          return { identifier: potentialIdentifier };
+        } else if (pathParts.length === 3) {
+          // Full record: /identifier/collection/rkey
+          const collection = pathParts[1];
+          const rkey = pathParts[2];
+          
+          // Validate that collection looks like a lexicon (contains dots)
+          if (collection.includes('.')) {
+            return {
+              identifier: potentialIdentifier,
+              collection: collection,
+              rkey: rkey,
+            };
+          }
+        }
+      }
+    }
+    
+    // Specific domain patterns (for non-AT-URI-like paths)
     
     // Standard /profile/identifier format (bsky.app, blacksky.community, anisota.net, 
     // reddwarf.app, witchsky.app, catsky.social, deer.social)
@@ -106,7 +167,7 @@ export function extractAtUriComponents(input: string): AtUriComponents | null {
       }
     }
     
-    // pdsls.dev legacy format: /at/identifier or /at/identifier/collection/rkey
+    // Legacy /at/ format: /at/identifier or /at/identifier/collection/rkey
     if (pathname.startsWith('/at/')) {
       const parts = pathname.substring(4).split('/'); // Remove "/at/"
       
@@ -121,12 +182,6 @@ export function extractAtUriComponents(input: string): AtUriComponents | null {
           rkey: parts[2],
         };
       }
-    }
-    
-    // pdsls.dev main format: /at://identifier/collection/rkey
-    if (pathname.startsWith('/at://')) {
-      const atUri = pathname.substring(1); // Remove leading "/"
-      return extractAtUriComponents(atUri); // Recursive call
     }
     
     // atp.tools format: /record/identifier/collection/rkey or /profile/identifier
