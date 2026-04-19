@@ -1,5 +1,6 @@
 import { ReactNode } from 'react';
-import { MoonStar, Wrench, CalendarFold, Rainbow } from 'lucide-react';
+import { Wrench, CalendarFold, Rainbow } from 'lucide-react';
+import { AnisotaLogo } from '../components/AnisotaLogo';
 
 export type WaypointType = 'post' | 'profile' | 'list' | 'record' | 'unknown';
 
@@ -134,7 +135,7 @@ export const WAYPOINT_DESTINATIONS: Record<string, Waypoint> = {
       // For any other content type, default to profile (consistent with other Bluesky clients)
       return 'View profile on anisota.net';
     },
-    icon: <MoonStar size={24} strokeWidth={2} />,
+    icon: <AnisotaLogo width={24} height={24} />,
     getUrl: (handle, collection, rkey) => {
       if (collection && rkey) {
         // For standard posts, use the profile/post URL
@@ -262,7 +263,7 @@ export const WAYPOINT_DESTINATIONS: Record<string, Waypoint> = {
     id: 'anisotaExplorer',
     name: 'Anisota Explorer',
     description: 'View raw record on anisota.net',
-    icon: <MoonStar size={24} strokeWidth={2} />,
+    icon: <AnisotaLogo width={24} height={24} />,
     getUrl: (handle, collection, rkey) => {
       if (collection && rkey) {
         // Always use the explorer URL for raw records
