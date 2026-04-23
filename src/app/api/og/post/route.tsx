@@ -1,5 +1,6 @@
 import { ImageResponse } from '@vercel/og';
 import { NextRequest } from 'next/server';
+import { fetchImageAsDataUrl } from '@/lib/og-image';
 
 export const runtime = 'edge';
 export const revalidate = 3600; // Cache for 1 hour
@@ -166,53 +167,8 @@ export async function GET(request: NextRequest) {
       }
     }
     
-    // Fetch avatar image and convert to base64 with timeout
-    let avatarDataUrl = '';
-    if (avatarUrl) {
-      try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 3000); // 3 second timeout
-        
-        try {
-          const avatarResponse = await fetch(avatarUrl, { signal: controller.signal });
-          if (avatarResponse.ok) {
-            const avatarBuffer = await avatarResponse.arrayBuffer();
-            const base64 = Buffer.from(avatarBuffer).toString('base64');
-            const contentType = avatarResponse.headers.get('content-type') || 'image/jpeg';
-            avatarDataUrl = `data:${contentType};base64,${base64}`;
-          }
-        } finally {
-          clearTimeout(timeoutId);
-        }
-      } catch (error) {
-        console.error('Error fetching avatar:', error);
-        // Continue without avatar
-      }
-    }
-
-    // Fetch embed image if available
-    let embedImageDataUrl = '';
-    if (embedImageUrl) {
-      try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 3000); // 3 second timeout
-        
-        try {
-          const embedResponse = await fetch(embedImageUrl, { signal: controller.signal });
-          if (embedResponse.ok) {
-            const embedBuffer = await embedResponse.arrayBuffer();
-            const base64 = Buffer.from(embedBuffer).toString('base64');
-            const contentType = embedResponse.headers.get('content-type') || 'image/jpeg';
-            embedImageDataUrl = `data:${contentType};base64,${base64}`;
-          }
-        } finally {
-          clearTimeout(timeoutId);
-        }
-      } catch (error) {
-        console.error('Error fetching embed image:', error);
-        // Continue without embed image
-      }
-    }
+    const avatarDataUrl = await fetchImageAsDataUrl(avatarUrl);
+    const embedImageDataUrl = await fetchImageAsDataUrl(embedImageUrl);
 
     // Load Crimson Pro font
     console.log('[OG Post] Loading font...');

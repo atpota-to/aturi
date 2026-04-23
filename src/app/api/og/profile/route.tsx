@@ -1,5 +1,6 @@
 import { ImageResponse } from '@vercel/og';
 import { NextRequest } from 'next/server';
+import { fetchImageAsDataUrl } from '@/lib/og-image';
 
 export const runtime = 'edge';
 export const revalidate = 3600; // Cache for 1 hour
@@ -75,29 +76,7 @@ export async function GET(request: NextRequest) {
     const bio = profileData?.description || '';
     const avatarUrl = profileData?.avatar || '';
     
-    // Fetch avatar image and convert to base64 with timeout
-    let avatarDataUrl = '';
-    if (avatarUrl) {
-      try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 3000); // 3 second timeout
-        
-        try {
-          const avatarResponse = await fetch(avatarUrl, { signal: controller.signal });
-          if (avatarResponse.ok) {
-            const avatarBuffer = await avatarResponse.arrayBuffer();
-            const base64 = Buffer.from(avatarBuffer).toString('base64');
-            const contentType = avatarResponse.headers.get('content-type') || 'image/jpeg';
-            avatarDataUrl = `data:${contentType};base64,${base64}`;
-          }
-        } finally {
-          clearTimeout(timeoutId);
-        }
-      } catch (error) {
-        console.error('Error fetching avatar:', error);
-        // Continue without avatar
-      }
-    }
+    const avatarDataUrl = await fetchImageAsDataUrl(avatarUrl);
     
     // Get first 3 lines or truncate at ~180 characters
     const bioLines = bio.split('\n');

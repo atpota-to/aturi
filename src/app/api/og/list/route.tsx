@@ -1,5 +1,6 @@
 import { ImageResponse } from '@vercel/og';
 import { NextRequest } from 'next/server';
+import { fetchImageAsDataUrl } from '@/lib/og-image';
 
 export const runtime = 'edge';
 export const revalidate = 3600; // Cache for 1 hour
@@ -86,53 +87,8 @@ export async function GET(request: NextRequest) {
     const creatorAvatarUrl = creatorData?.avatar || '';
     const listAvatarUrl = listData?.avatar || '';
     
-    // Fetch list avatar image and convert to base64 with timeout
-    let listAvatarDataUrl = '';
-    if (listAvatarUrl) {
-      try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 3000); // 3 second timeout
-        
-        try {
-          const avatarResponse = await fetch(listAvatarUrl, { signal: controller.signal });
-          if (avatarResponse.ok) {
-            const avatarBuffer = await avatarResponse.arrayBuffer();
-            const base64 = Buffer.from(avatarBuffer).toString('base64');
-            const contentType = avatarResponse.headers.get('content-type') || 'image/jpeg';
-            listAvatarDataUrl = `data:${contentType};base64,${base64}`;
-          }
-        } finally {
-          clearTimeout(timeoutId);
-        }
-      } catch (error) {
-        console.error('Error fetching list avatar:', error);
-        // Continue without avatar
-      }
-    }
-    
-    // Fetch creator avatar image and convert to base64 with timeout
-    let creatorAvatarDataUrl = '';
-    if (creatorAvatarUrl) {
-      try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 3000); // 3 second timeout
-        
-        try {
-          const avatarResponse = await fetch(creatorAvatarUrl, { signal: controller.signal });
-          if (avatarResponse.ok) {
-            const avatarBuffer = await avatarResponse.arrayBuffer();
-            const base64 = Buffer.from(avatarBuffer).toString('base64');
-            const contentType = avatarResponse.headers.get('content-type') || 'image/jpeg';
-            creatorAvatarDataUrl = `data:${contentType};base64,${base64}`;
-          }
-        } finally {
-          clearTimeout(timeoutId);
-        }
-      } catch (error) {
-        console.error('Error fetching creator avatar:', error);
-        // Continue without avatar
-      }
-    }
+    const listAvatarDataUrl = await fetchImageAsDataUrl(listAvatarUrl);
+    const creatorAvatarDataUrl = await fetchImageAsDataUrl(creatorAvatarUrl);
 
     // Load Crimson Pro font
     const allText = `${listName} ${truncatedDescription} ${creatorName} @${creatorHandle} aturi.to ATmosphere`;
