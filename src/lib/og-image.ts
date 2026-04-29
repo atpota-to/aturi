@@ -12,6 +12,30 @@ const OG_SUPPORTED_MIME_TYPES = new Set([
 ]);
 
 /**
+ * Rewrite a Bluesky CDN avatar URL to its smaller thumbnail variant.
+ *
+ * Bluesky's CDN serves two avatar sizes from the same blob:
+ *   - /img/avatar/plain/<did>/<cid>            → ~1000×1000
+ *   - /img/avatar_thumbnail/plain/<did>/<cid>  → 128×128
+ *
+ * The thumbnail variant is small enough that messaging clients (iMessage,
+ * Signal, Discord) render link previews as a compact "square thumbnail" card
+ * instead of a giant hero image — matching how native bsky.app post links
+ * unfurl. See bskyweb's `avatar_thumbnail` filter for the canonical version.
+ */
+export function toBskyAvatarThumbnail(url: string | undefined | null): string | undefined {
+  if (!url) return undefined;
+  try {
+    const parsed = new URL(url);
+    if (parsed.hostname !== 'cdn.bsky.app') return url;
+    parsed.pathname = parsed.pathname.replace('/img/avatar/plain/', '/img/avatar_thumbnail/plain/');
+    return parsed.toString();
+  } catch {
+    return url;
+  }
+}
+
+/**
  * Rewrite Bluesky CDN image URLs so the CDN returns JPEG instead of WebP.
  * The bsky CDN honours an `@jpeg` suffix on the blob CID. We only touch URLs
  * where it's safe to append the suffix (no existing format suffix and no query).

@@ -9,6 +9,7 @@ import Header from '@/components/Header';
 import { parseURI, resolveHandle, getDisplayName } from '@/utils/uriParser';
 import { fetchRecordData } from '@/utils/recordFetcher';
 import { resolveDidToHandle } from '@/utils/didResolver';
+import { buildPostMetadata } from '@/lib/postMetadata';
 
 type Props = {
   params: Promise<{ handle: string; rkey: string }>;
@@ -37,46 +38,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     // Parse and fetch post data
     parseURI(handle, collection, rkey); // Validate URI format
     const recordData = await fetchRecordData(resolvedDid, collection, rkey);
-    const displayHandle = handle.startsWith('did:') 
-      ? await resolveDidToHandle(resolvedDid) || handle
-      : handle;
-    
+
     if (recordData && recordData.type === 'post' && recordData.data.thread[0]?.value.post) {
-      const post = recordData.data.thread[0].value.post;
-      const author = post.author;
-      const title = `Post by ${author.displayName || author.handle} (@${author.handle}) on Bluesky — View on Aturi`;
-      const description = post.record?.text 
-        ? post.record.text.slice(0, 160) 
-        : 'View this post on your preferred ATProto app';
-      
-      const ogUrl = new URL('/api/og/post', 'https://aturi.to');
-      ogUrl.searchParams.set('handle', resolvedDid);
-      ogUrl.searchParams.set('rkey', rkey);
-      const ogImageUrl = ogUrl.toString();
-      
-      return {
-        title,
-        description,
-        openGraph: {
-          title,
-          description,
-          type: 'article',
-          images: [
-            {
-              url: ogImageUrl,
-              width: 1200,
-              height: 630,
-              alt: title,
-            },
-          ],
-        },
-        twitter: {
-          card: 'summary_large_image',
-          title,
-          description,
-          images: [ogImageUrl],
-        },
-      };
+      return buildPostMetadata(recordData.data.thread[0].value.post);
     }
   } catch (error) {
     console.error('Error generating metadata:', error);

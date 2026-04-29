@@ -10,6 +10,7 @@ import Header from '@/components/Header';
 import { parseURI, resolveHandle, getDisplayName } from '@/utils/uriParser';
 import { fetchRecordData } from '@/utils/recordFetcher';
 import { resolveDidToHandle } from '@/utils/didResolver';
+import { buildPostMetadata } from '@/lib/postMetadata';
 import { getMarginLexiconType, getMarginLexiconDisplayName, getMarginLexiconDescription } from '@/utils/marginLexicons';
 import {
   MarginAnnotationPreview,
@@ -53,23 +54,18 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       : handle;
     
     if (recordData) {
+      // Posts get the bsky.app-style unfurl: compact author+text card for
+      // text-only posts, big media card for posts with images/video/etc.
+      // See `src/lib/postMetadata.ts` for the full rationale.
+      if (recordData.type === 'post' && recordData.data.thread[0]?.value.post) {
+        return buildPostMetadata(recordData.data.thread[0].value.post);
+      }
+
       let title = '';
       let description = '';
       let ogImageUrl = '';
 
-      if (recordData.type === 'post' && recordData.data.thread[0]?.value.post) {
-        const post = recordData.data.thread[0].value.post;
-        const author = post.author;
-        title = `Post by ${author.displayName || author.handle} (@${author.handle}) on Bluesky — View on Aturi`;
-        description = post.record?.text 
-          ? post.record.text.slice(0, 160) 
-          : 'View this post on your preferred ATProto app';
-        
-        const ogUrl = new URL('/api/og/post', 'https://aturi.to');
-        ogUrl.searchParams.set('handle', resolvedDid);
-        ogUrl.searchParams.set('rkey', rkey);
-        ogImageUrl = ogUrl.toString();
-      } else if (recordData.type === 'record') {
+      if (recordData.type === 'record') {
         const record = recordData.data;
         const marginLexiconType = getMarginLexiconType(collection);
         
