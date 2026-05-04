@@ -1,6 +1,8 @@
 // Anisota brand mark from https://anisota.net/branding
 // Uses currentColor so it inherits the surrounding text color.
-export const AnisotaLogo = (props: React.SVGProps<SVGSVGElement>) => (
+import type { SVGProps } from 'react';
+
+export const AnisotaLogo = (props: SVGProps<SVGSVGElement>) => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
     viewBox="0 0 516.02 741.26"

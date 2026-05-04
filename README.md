@@ -13,6 +13,13 @@ aturi.to is a simple service that makes it easy to share ATProto content across 
 - **Rich Previews**: Dynamic OpenGraph images for beautiful social sharing
 - **Easy Integration**: Simple URL structure, no API keys required
 
+## Browser extension
+
+A companion browser extension lives in [`extension/`](extension/). It lets you
+open the current page in any other Aturi waypoint with one click, and can
+auto-redirect links between apps based on your preferences. See
+[`extension/README.md`](extension/README.md) for dev and build instructions.
+
 ## URL Structure
 
 ### For profiles:

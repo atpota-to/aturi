@@ -1,0 +1,6 @@
+node_modules/
+.wxt/
+.output/
+web-ext-artifacts/
+stats.html
+*.log

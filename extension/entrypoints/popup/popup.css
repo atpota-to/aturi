@@ -1,0 +1,321 @@
+body {
+  width: 380px;
+  min-height: 220px;
+}
+
+.popup-root {
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-primary);
+}
+
+.popup-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px 12px;
+  border-bottom: 1px solid var(--border-subtle);
+  background: linear-gradient(180deg, var(--bg-secondary), var(--bg-primary));
+}
+
+.popup-title {
+  font-family: var(--font-serif);
+  font-weight: 500;
+  font-size: 18px;
+  letter-spacing: -0.01em;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-primary);
+}
+
+.popup-title svg {
+  color: var(--text-accent);
+}
+
+.popup-source {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  max-width: 60%;
+  font-family: var(--font-mono);
+}
+
+.popup-source-handle {
+  color: var(--text-secondary);
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 200px;
+  letter-spacing: -0.01em;
+}
+
+.popup-section {
+  padding: 14px 18px;
+}
+
+.popup-section + .popup-section {
+  border-top: 1px solid var(--border-subtle);
+}
+
+.popup-notice {
+  padding: 12px 18px;
+  border-bottom: 1px solid var(--border-subtle);
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--text-secondary);
+  font-family: var(--font-serif);
+}
+
+.popup-notice-title {
+  font-weight: 500;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+}
+
+.popup-section-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-family: var(--font-serif);
+}
+
+.popup-waypoints {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.popup-waypoint {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  position: relative;
+  overflow: hidden;
+  font-family: var(--font-serif);
+}
+
+.popup-waypoint::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, var(--glow-subtle), transparent);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+}
+
+.popup-waypoint:hover {
+  background: var(--bg-tertiary);
+  border-color: var(--text-accent);
+  transform: translateX(3px);
+}
+
+.popup-waypoint:hover::before {
+  opacity: 1;
+}
+
+.popup-waypoint:disabled {
+  opacity: 0.5;
+  cursor: wait;
+  transform: none;
+}
+
+.popup-waypoint-icon {
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-accent);
+  flex-shrink: 0;
+  transition: color 0.3s ease;
+}
+
+.popup-waypoint:hover .popup-waypoint-icon {
+  color: var(--text-primary);
+}
+
+.popup-waypoint-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.popup-waypoint-name {
+  font-weight: 500;
+  font-size: 14px;
+  color: var(--text-primary);
+  letter-spacing: -0.01em;
+}
+
+.popup-waypoint-desc {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin-top: 1px;
+}
+
+.popup-empty {
+  padding: 28px 20px;
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: 14px;
+  font-family: var(--font-serif);
+}
+
+.popup-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 18px;
+  border-top: 1px solid var(--border-subtle);
+  background: var(--bg-secondary);
+  font-size: 12px;
+}
+
+.popup-uri {
+  flex: 1;
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--text-tertiary);
+  font-size: 11px;
+  font-family: var(--font-mono);
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.popup-uri:hover {
+  background: var(--bg-tertiary);
+  border-color: var(--border-subtle);
+  color: var(--text-secondary);
+}
+
+.popup-uri:active {
+  background: var(--bg-elevated);
+}
+
+.popup-uri-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: var(--text-tertiary);
+}
+
+.popup-uri:hover .popup-uri-icon {
+  color: var(--text-accent);
+}
+
+.popup-uri-text {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.popup-uri.is-copied {
+  color: var(--text-accent);
+  border-color: var(--text-accent);
+  background: var(--glow-subtle);
+}
+
+.popup-uri.is-copied .popup-uri-icon {
+  color: var(--text-accent);
+}
+
+.popup-recents-row {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  /* Vertical padding gives the hover translate room to breathe — overflow-x:auto
+     also clips the y-axis, so without padding the lifted card would get cropped
+     at the top. */
+  padding: 4px 0 6px;
+  scrollbar-width: thin;
+}
+
+.popup-recent {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 12px;
+  min-width: 76px;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-secondary);
+  cursor: pointer;
+  transition: background 0.25s ease, border-color 0.25s ease, color 0.25s ease,
+    transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  font-family: var(--font-serif);
+}
+
+.popup-recent:hover {
+  background: var(--bg-tertiary);
+  border-color: var(--text-accent);
+  transform: translateY(-2px);
+}
+
+.popup-recent .popup-waypoint-icon {
+  color: var(--text-accent);
+}
+
+.popup-recent:hover .popup-waypoint-icon {
+  color: var(--text-primary);
+}
+
+.popup-recent-name {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+  letter-spacing: 0.01em;
+}
+
+.popup-recent:hover .popup-recent-name {
+  color: var(--text-primary);
+}
+
+.popup-icon-letter {
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-subtle);
+  font-family: var(--font-serif);
+  font-weight: 600;
+  font-size: 12px;
+  color: var(--text-accent);
+}
