@@ -507,6 +507,29 @@ export const WAYPOINT_DESTINATIONS_DATA: Record<string, WaypointData> = {
     redirectCompat: ['blento'],
   },
 
+  anisotaReader: {
+    id: 'anisotaReader',
+    name: 'Anisota Reader',
+    description: (collection) => {
+      if (collection?.startsWith('site.standard.') || collection?.startsWith('pub.leaflet.')) {
+        return 'Read document on anisota.net';
+      }
+      return 'View publications on anisota.net';
+    },
+    getUrl: (handle, collection, rkey, did) => {
+      if (collection && rkey) {
+        if (collection.startsWith('site.standard.') || collection.startsWith('pub.leaflet.')) {
+          const identifier = did || handle;
+          return `https://anisota.net/profile/${identifier}/document/${rkey}`;
+        }
+      }
+      return `https://anisota.net/profile/${handle}`;
+    },
+    supportedTypes: ['post', 'profile', 'list', 'record'],
+    category: 'publications',
+    redirectCompat: ['standard-site'],
+  },
+
   offprint: {
     id: 'offprint',
     name: 'Offprint',
@@ -554,6 +577,7 @@ export const WAYPOINT_ORDER = [
   'popfeed',
   'sifa',
   'blento',
+  'anisotaReader',
   'offprint',
   'pckt',
   'pdsls',
@@ -679,12 +703,12 @@ const RECOMMENDED_WAYPOINTS: Record<string, RecommendedConfig> = {
  */
 const RECOMMENDED_NAMESPACE_PREFIXES: Record<string, RecommendedConfig> = {
   'site.standard': {
-    waypointIds: ['leaflet', 'offprint', 'pckt', 'anisota', 'pdsls'],
-    label: 'Recommended for Standard Site',
+    waypointIds: ['leaflet', 'anisotaReader', 'offprint', 'pckt', 'pdsls'],
+    label: 'Recommended for Publications',
   },
   'pub.leaflet': {
-    waypointIds: ['leaflet', 'offprint', 'pckt', 'anisota', 'pdsls'],
-    label: 'Recommended for Leaflet',
+    waypointIds: ['leaflet', 'anisotaReader', 'offprint', 'pckt', 'pdsls'],
+    label: 'Recommended for Publications',
   },
   'sh.tangled': {
     waypointIds: ['tangled', 'pdsls', 'atptools'],

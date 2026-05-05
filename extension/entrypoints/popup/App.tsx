@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { browser } from '#imports';
 import type { ReverseMatch } from '@aturi/reverseParsers';
 import type { WaypointData, WaypointType } from '@aturi/waypoints.data';
-import { matchSupportedUrl, parseAtUri } from '@aturi/reverseParsers';
+import { matchSupportedUrl, parseAtUri, SUPPORTED_HOSTS } from '@aturi/reverseParsers';
 import { matchCustomUrl } from '../../lib/template';
 import {
   categorizedForType,
@@ -20,8 +20,8 @@ import { WaypointIcon } from '../../lib/Icons';
 
 type PopupState =
   | { phase: 'loading' }
-  | { phase: 'unsupported'; prefs: Prefs }
-  | { phase: 'ready'; match: ReverseMatch; prefs: Prefs };
+  | { phase: 'unsupported'; prefs: Prefs; tabId: number | null; isKnownHost: boolean }
+  | { phase: 'ready'; match: ReverseMatch; prefs: Prefs; tabId: number | null };
 
 export default function App() {
   const [state, setState] = useState<PopupState>({ phase: 'loading' });
@@ -34,8 +34,9 @@ export default function App() {
   async function init() {
     const prefs = await loadPrefs();
     const tab = await getActiveTab();
+    const tabId = (tab?.id as number | undefined) ?? null;
     if (!tab?.url) {
-      setState({ phase: 'unsupported', prefs });
+      setState({ phase: 'unsupported', prefs, tabId, isKnownHost: false });
       return;
     }
 
@@ -43,9 +44,11 @@ export default function App() {
     try {
       url = new URL(tab.url);
     } catch {
-      setState({ phase: 'unsupported', prefs });
+      setState({ phase: 'unsupported', prefs, tabId, isKnownHost: false });
       return;
     }
+
+    const isKnownHost = SUPPORTED_HOSTS.includes(url.hostname.replace(/^www\./, ''));
 
     let match = matchSupportedUrl(url) ?? matchCustomUrl(url, prefs.customWaypoints);
 
@@ -57,11 +60,23 @@ export default function App() {
     }
 
     if (!match) {
-      setState({ phase: 'unsupported', prefs });
+      setState({ phase: 'unsupported', prefs, tabId, isKnownHost });
       return;
     }
 
-    setState({ phase: 'ready', match, prefs });
+    setState({ phase: 'ready', match, prefs, tabId });
+  }
+
+  async function navigateTo(url: string, tabId: number | null, openInNewTab: boolean) {
+    if (!openInNewTab && tabId != null) {
+      try {
+        await browser.tabs.update(tabId, { url });
+        return;
+      } catch (err) {
+        console.warn('[aturi:popup] tab update failed, falling back to new tab', err);
+      }
+    }
+    await browser.tabs.create({ url });
   }
 
   async function openWaypoint(waypoint: WaypointData) {
@@ -88,7 +103,7 @@ export default function App() {
     }
 
     await bumpRecent(waypoint.id);
-    await browser.tabs.create({ url });
+    await navigateTo(url, state.tabId, state.prefs.openInNewTab);
     setPendingId(null);
     window.close();
   }
@@ -100,7 +115,7 @@ export default function App() {
 
     setPendingId(waypoint.id);
     await bumpRecent(waypoint.id);
-    await browser.tabs.create({ url: home });
+    await navigateTo(home, state.tabId, state.prefs.openInNewTab);
     setPendingId(null);
     window.close();
   }
@@ -115,6 +130,7 @@ export default function App() {
         prefs={state.prefs}
         pendingId={pendingId}
         onOpenHome={openHomeShortcut}
+        isKnownHost={state.isKnownHost}
       />
     );
   }
@@ -152,9 +168,10 @@ type NoAtmosphereViewProps = {
   prefs: Prefs;
   pendingId: string | null;
   onOpenHome: (waypoint: WaypointData) => void;
+  isKnownHost: boolean;
 };
 
-function NoAtmosphereView({ prefs, pendingId, onOpenHome }: NoAtmosphereViewProps) {
+function NoAtmosphereView({ prefs, pendingId, onOpenHome, isKnownHost }: NoAtmosphereViewProps) {
   const shortcutGroups = useMemo(() => {
     return categorizedVisibleAll(prefs)
       .map(group => ({
@@ -173,17 +190,22 @@ function NoAtmosphereView({ prefs, pendingId, onOpenHome }: NoAtmosphereViewProp
           <AturiMark />
           <span>Aturi</span>
         </div>
-      </div>
-
-      <div className="popup-notice">
-        <div className="popup-notice-title">No Atmosphere data on this page</div>
-        <div>
-          We couldn&apos;t find a supported AT URI for this tab (from the address or an{' '}
-          <code style={{ fontSize: 12 }}>at://</code> link in the page head). Your destinations
-          below open each app&apos;s home page. On a supported profile or post, this popup will
-          offer context-aware links instead.
+        <div className="popup-source" style={{ fontFamily: 'var(--font-sans)', fontSize: 11, textAlign: 'right' }}>
+          Universal links for the ATmosphere
         </div>
       </div>
+
+      {!isKnownHost && (
+        <div className="popup-notice">
+          <div className="popup-notice-title">No Atmosphere data on this page</div>
+          <div>
+            We couldn&apos;t find a supported AT URI for this tab (from the address or an{' '}
+            <code style={{ fontSize: 12 }}>at://</code> link in the page head). Your destinations
+            below open each app&apos;s home page. On a supported profile or post, this popup will
+            offer context-aware links instead.
+          </div>
+        </div>
+      )}
 
       {shortcutGroups.length === 0 ? (
         <div className="popup-empty">

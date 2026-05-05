@@ -111,6 +111,12 @@ export type Prefs = {
    * meaningful) but not shown.
    */
   showRecents: boolean;
+  /**
+   * When true (default), opening a waypoint from the popup creates a new
+   * browser tab. When false, the current tab is navigated to the waypoint
+   * URL instead.
+   */
+  openInNewTab: boolean;
 };
 
 const CUSTOM_GROUP_ID = 'custom';
@@ -130,6 +136,7 @@ export const DEFAULT_PREFS: Prefs = {
   waypointGroups: defaultWaypointGroups(),
   smartRecommendations: true,
   showRecents: true,
+  openInNewTab: false,
 };
 
 /**

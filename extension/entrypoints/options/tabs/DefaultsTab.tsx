@@ -156,6 +156,27 @@ export default function DefaultsTab({ prefs, onChange }: Props) {
 
         <div className="options-toggle-row">
           <div>
+            <div className="options-card-title">Open in new tab</div>
+            <div className="options-card-sub">
+              {prefs.openInNewTab
+                ? 'Picking a waypoint opens it in a new browser tab.'
+                : 'Off — picking a waypoint navigates the current tab instead of opening a new one.'}
+            </div>
+          </div>
+          <button
+            className={`aturi-switch ${prefs.openInNewTab ? 'on' : ''}`}
+            onClick={() => onChange({ openInNewTab: !prefs.openInNewTab })}
+            aria-pressed={prefs.openInNewTab}
+          >
+            <span className="aturi-switch-box" />
+            <span className="aturi-muted">{prefs.openInNewTab ? 'On' : 'Off'}</span>
+          </button>
+        </div>
+
+        <div className="aturi-hr" />
+
+        <div className="options-toggle-row">
+          <div>
             <div className="options-card-title">Show recently used</div>
             <div className="options-card-sub">
               {prefs.showRecents

@@ -12,6 +12,7 @@ const BUILTIN_HOME: Record<string, string> = {
   reddwarf: 'https://reddwarf.app/',
   leaflet: 'https://leaflet.pub/',
   pdsls: 'https://pdsls.dev/',
+  anisotaReader: 'https://anisota.net/',
   anisotaExplorer: 'https://anisota.net/explorer',
   atptools: 'https://atp.tools/',
   witchsky: 'https://witchsky.app/',
