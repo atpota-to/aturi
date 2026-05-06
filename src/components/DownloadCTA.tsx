@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { Download, Chrome } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { detectBrowser, EXTENSION_URLS, BROWSER_LABELS, type Browser } from '@/utils/browserDetect';
+import { detectBrowser, EXTENSION_URLS, BROWSER_LABELS, SUPPORTED_BROWSERS, type Browser } from '@/utils/browserDetect';
 
 interface DownloadCTAProps {
   variant?: 'hero' | 'compact';
@@ -19,6 +19,7 @@ export default function DownloadCTA({ variant = 'hero' }: DownloadCTAProps) {
   // Default to Chrome label/URL during SSR or while detecting, so the button is
   // immediately useful even before hydration completes.
   const detected: Browser = browser ?? 'chrome';
+  const isSupported = SUPPORTED_BROWSERS.includes(detected);
   const primaryUrl = EXTENSION_URLS[detected] ?? EXTENSION_URLS.chrome!;
   const primaryLabel = BROWSER_LABELS[detected];
 
@@ -42,7 +43,7 @@ export default function DownloadCTA({ variant = 'hero' }: DownloadCTAProps) {
     );
   }
 
-  const showFallbackLinks = browser === 'safari' || browser === 'other';
+  const showFallbackLinks = !isSupported;
 
   return (
     <motion.div
@@ -93,7 +94,7 @@ export default function DownloadCTA({ variant = 'hero' }: DownloadCTAProps) {
         <div
           style={{
             display: 'flex',
-            gap: '1rem',
+            gap: '0.75rem',
             alignItems: 'center',
             flexWrap: 'wrap',
             justifyContent: 'center',
@@ -102,35 +103,20 @@ export default function DownloadCTA({ variant = 'hero' }: DownloadCTAProps) {
           }}
         >
           <span>Available for</span>
-          <a
-            href={EXTENSION_URLS.chrome!}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="nav-link"
-            style={{ padding: '0.25rem 0.5rem' }}
-          >
-            Chrome
-          </a>
-          <span style={{ opacity: 0.5 }}>·</span>
-          <a
-            href={EXTENSION_URLS.firefox!}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="nav-link"
-            style={{ padding: '0.25rem 0.5rem' }}
-          >
-            Firefox
-          </a>
-          <span style={{ opacity: 0.5 }}>·</span>
-          <a
-            href={EXTENSION_URLS.edge!}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="nav-link"
-            style={{ padding: '0.25rem 0.5rem' }}
-          >
-            Edge
-          </a>
+          {SUPPORTED_BROWSERS.map((b, idx) => (
+            <span key={b} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.75rem' }}>
+              <a
+                href={EXTENSION_URLS[b]!}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="nav-link"
+                style={{ padding: '0.25rem 0.5rem' }}
+              >
+                {BROWSER_LABELS[b]}
+              </a>
+              {idx < SUPPORTED_BROWSERS.length - 1 ? <span style={{ opacity: 0.5 }}>·</span> : null}
+            </span>
+          ))}
         </div>
       ) : (
         <div
@@ -142,23 +128,29 @@ export default function DownloadCTA({ variant = 'hero' }: DownloadCTAProps) {
             color: 'var(--text-tertiary)',
           }}
         >
-          <span>Also for</span>
-          {(['chrome', 'firefox', 'edge'] as const)
-            .filter((b) => b !== detected)
-            .map((b, idx, arr) => (
-              <span key={b} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
-                <a
-                  href={EXTENSION_URLS[b]!}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="nav-link"
-                  style={{ padding: '0.2rem 0.4rem' }}
-                >
-                  {BROWSER_LABELS[b]}
-                </a>
-                {idx < arr.length - 1 ? <span style={{ opacity: 0.5 }}>·</span> : null}
-              </span>
-            ))}
+          {(() => {
+            const others = SUPPORTED_BROWSERS.filter((b) => b !== detected);
+            if (others.length === 0) return null;
+            return (
+              <>
+                <span>Also for</span>
+                {others.map((b, idx) => (
+                  <span key={b} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <a
+                      href={EXTENSION_URLS[b]!}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="nav-link"
+                      style={{ padding: '0.2rem 0.4rem' }}
+                    >
+                      {BROWSER_LABELS[b]}
+                    </a>
+                    {idx < others.length - 1 ? <span style={{ opacity: 0.5 }}>·</span> : null}
+                  </span>
+                ))}
+              </>
+            );
+          })()}
         </div>
       )}
     </motion.div>
