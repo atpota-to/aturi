@@ -79,8 +79,8 @@ export async function GET(request: NextRequest) {
       console.error('Error fetching list:', error);
     }
 
-    const listName = listData?.name || 'ATProto List';
-    const listDescription = listData?.description || 'View this list on your preferred ATProto app';
+    const listName = listData?.name || 'Atmosphere List';
+    const listDescription = listData?.description || 'View this list in your preferred Atmosphere client';
     const truncatedDescription = listDescription.length > 120 ? listDescription.slice(0, 120) + '...' : listDescription;
     const creatorName = creatorData?.displayName || creatorData?.handle || identifier;
     const creatorHandle = creatorData?.handle || identifier;
@@ -91,7 +91,7 @@ export async function GET(request: NextRequest) {
     const creatorAvatarDataUrl = await fetchImageAsDataUrl(creatorAvatarUrl);
 
     // Load Crimson Pro font
-    const allText = `${listName} ${truncatedDescription} ${creatorName} @${creatorHandle} aturi.to ATmosphere`;
+    const allText = `${listName} ${truncatedDescription} ${creatorName} @${creatorHandle} aturi.to Atmosphere Fast Travel`;
     const fontData = await loadGoogleFont('Crimson+Pro:wght@300;400;600', allText);
 
     return new ImageResponse(
@@ -160,7 +160,7 @@ export async function GET(request: NextRequest) {
                   display: 'flex',
                 }}
               >
-                Universal ATmosphere Links
+                Atmosphere Fast Travel
               </div>
             </div>
 

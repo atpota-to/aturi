@@ -5,20 +5,20 @@ import PageTransition from "@/components/PageTransition";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "aturi.to - Universal links for the ATmosphere",
-  description: "Share ATProto content with anyone, let them choose where to view it",
+  title: "aturi.to - Fast travel across the Atmosphere",
+  description: "Switch between apps, auto-redirect to preferred clients, and share universal Atmosphere links.",
   metadataBase: new URL('https://aturi.to'),
   manifest: '/site.webmanifest',
   openGraph: {
-    title: "aturi.to - Universal links for the ATmosphere",
-    description: "Share ATProto content with anyone, let them choose where to view it",
+    title: "aturi.to - Fast travel across the Atmosphere",
+    description: "Switch between apps, auto-redirect to preferred clients, and share universal Atmosphere links.",
     type: "website",
     images: ['/api/og/static?page=home'],
   },
   twitter: {
     card: "summary_large_image",
-    title: "aturi.to - Universal links for the ATmosphere",
-    description: "Share ATProto content with anyone, let them choose where to view it",
+    title: "aturi.to - Fast travel across the Atmosphere",
+    description: "Switch between apps, auto-redirect to preferred clients, and share universal Atmosphere links.",
     images: ['/api/og/static?page=home'],
   },
 };

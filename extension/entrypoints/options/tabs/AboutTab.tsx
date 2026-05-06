@@ -36,7 +36,7 @@ export default function AboutTab() {
       <div className="options-card">
         <div className="options-card-title">Aturi</div>
         <div className="options-card-sub">
-          Universal links for the Atmosphere. The web app and this extension
+          Fast travel across the Atmosphere. The web app and this extension
           are part of the same project — the extension is a quick way to jump
           between Atmosphere clients while you browse.
         </div>

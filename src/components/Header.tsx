@@ -104,7 +104,7 @@ export default function Header({ simple = false, compact = false }: HeaderProps)
                 textOverflow: 'ellipsis',
               }}
             >
-              universal atmosphere links
+              atmosphere fast travel
             </span>
           </Link>
 
@@ -227,7 +227,7 @@ export default function Header({ simple = false, compact = false }: HeaderProps)
             marginBottom: '2rem',
           }}
         >
-          Universal links for the ATmosphere
+          Fast travel across the Atmosphere
         </p>
 
         {/* Organic Navigation */}
@@ -311,7 +311,7 @@ export default function Header({ simple = false, compact = false }: HeaderProps)
           fontWeight: 300,
         }}
       >
-        Universal links for the ATmosphere
+        Fast travel across the Atmosphere
       </motion.p>
       <motion.p
         initial={{ opacity: 0, y: -10 }}
@@ -324,7 +324,7 @@ export default function Header({ simple = false, compact = false }: HeaderProps)
           margin: '0 auto 2rem',
         }}
       >
-        Share ATProto content with anyone, let them choose where to view it
+        Switch between apps, auto-redirect to preferred clients, and share universal Atmosphere links.
       </motion.p>
 
       {/* Organic Navigation */}

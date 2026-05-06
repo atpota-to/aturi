@@ -47,20 +47,20 @@ export async function GET(request: NextRequest) {
     const pageContent: Record<string, { title: string; subtitle: string; tagline: string; showBranding: boolean }> = {
       home: {
         title: 'aturi.to',
-        subtitle: 'Universal links for the ATmosphere',
-        tagline: 'Share ATProto content with anyone, let them choose where to view it',
+        subtitle: 'Fast travel across the Atmosphere',
+        tagline: 'Switch between apps, auto-redirect to preferred clients, and share universal Atmosphere links.',
         showBranding: false, // Home already shows aturi.to as main title
       },
       create: {
         title: 'Create Link',
-        subtitle: 'Turn any ATProto URL into a universal link',
+        subtitle: 'Turn any Atmosphere URL into a universal link',
         tagline: 'Paste a Bluesky URL or AT URI and get an aturi.to link',
         showBranding: true,
       },
       integrate: {
         title: 'Integrate',
-        subtitle: 'Add universal sharing to your ATmosphere app',
-        tagline: 'Simple URL patterns for seamless ATProto integration',
+        subtitle: 'Add universal sharing to your Atmosphere app',
+        tagline: 'Simple URL patterns for Atmosphere app integration',
         showBranding: true,
       },
       fork: {
@@ -74,7 +74,7 @@ export async function GET(request: NextRequest) {
     const content = pageContent[page] || pageContent.home;
     
     // Load Crimson Pro font
-    const allText = `${content.title} ${content.subtitle} ${content.tagline} aturi.to Universal ATmosphere Links`;
+    const allText = `${content.title} ${content.subtitle} ${content.tagline} aturi.to Atmosphere Fast Travel`;
     const fontData = await loadGoogleFont('Crimson+Pro:wght@300;400;600', allText);
 
     return new ImageResponse(
@@ -287,7 +287,7 @@ export async function GET(request: NextRequest) {
                 display: 'flex',
               }}
             >
-              Universal ATmosphere Links
+              Atmosphere Fast Travel
             </div>
           )}
         </div>

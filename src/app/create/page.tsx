@@ -104,7 +104,7 @@ export default function CreatePage() {
               margin: '0 auto',
               lineHeight: 1.6
             }}>
-              Paste URLs from any ATProto platform and get a universal aturi.to link that works everywhere
+              Paste URLs from any Atmosphere app and get a universal aturi.to link that works everywhere
             </p>
           </div>
         </FadeIn>

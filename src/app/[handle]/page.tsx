@@ -28,7 +28,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     if (!resolvedDid) {
       return {
         title: 'Profile not found - aturi.to',
-        description: 'Universal links for the ATmosphere',
+        description: 'Fast travel across the Atmosphere',
       };
     }
 
@@ -38,10 +38,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       : handle;
     
     if (profile) {
-      const title = `${profile.displayName || displayHandle} (@${displayHandle})'s ATmosphere Profile`;
+      const title = `${profile.displayName || displayHandle} (@${displayHandle})'s Atmosphere Profile`;
       const description = profile.description 
         ? profile.description.slice(0, 160) 
-        : `View @${displayHandle}'s profile on your preferred ATProto app`;
+        : `View @${displayHandle}'s profile in your preferred Atmosphere client`;
       
       // Generate OG image URL - hardcode production domain
       const ogImageUrl = new URL('/api/og/profile', 'https://aturi.to');
@@ -77,7 +77,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
   return {
     title: `@${handle} - aturi.to`,
-    description: 'Universal links for the ATmosphere',
+    description: 'Fast travel across the Atmosphere',
   };
 }
 

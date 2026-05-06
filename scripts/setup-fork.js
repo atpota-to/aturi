@@ -33,7 +33,7 @@ async function main() {
   // Get configuration from user
   const domain = await question('What is your custom domain? (e.g., myshare.app): ');
   const siteName = await question(`Site name [${domain}]: `) || domain;
-  const description = await question('Site description [Universal links for the ATmosphere]: ') || 'Universal links for the ATmosphere';
+  const description = await question('Site description [Fast travel across the Atmosphere]: ') || 'Fast travel across the Atmosphere';
   const authorName = await question('Your name: ');
   const authorUrl = await question('Your website/profile URL (optional): ');
   const repoUrl = await question('Your repository URL: ');

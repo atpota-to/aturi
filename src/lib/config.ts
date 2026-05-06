@@ -12,7 +12,7 @@ export const config = {
   
   // Site metadata
   siteName: process.env.NEXT_PUBLIC_SITE_NAME || 'aturi.to',
-  siteDescription: process.env.NEXT_PUBLIC_SITE_DESCRIPTION || 'Universal links for the ATmosphere',
+  siteDescription: process.env.NEXT_PUBLIC_SITE_DESCRIPTION || 'Fast travel across the Atmosphere',
   
   // Author/Creator info (for attribution in forks)
   author: {

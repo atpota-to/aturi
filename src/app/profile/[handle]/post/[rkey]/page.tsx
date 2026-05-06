@@ -30,7 +30,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     if (!resolvedDid) {
       return {
         title: 'Post not found - aturi.to',
-        description: 'Universal links for the ATmosphere',
+        description: 'Fast travel across the Atmosphere',
       };
     }
 
@@ -49,7 +49,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
         : `@${author.handle}`;
       const pageTitle = `@${author.handle} on Bluesky — View on Aturi`;
       const postText = post.record?.text || '';
-      const description = postText || 'View this post on your preferred ATProto app';
+      const description = postText || 'View this post in your preferred Atmosphere client';
       const avatarThumb = author.avatar
         ? author.avatar.replace('/img/avatar/', '/img/avatar_thumbnail/')
         : '';
@@ -123,7 +123,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
   return {
     title: `Post — View on Aturi`,
-    description: 'Universal links for the ATmosphere',
+    description: 'Fast travel across the Atmosphere',
   };
 }
 

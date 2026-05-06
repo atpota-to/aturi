@@ -34,7 +34,7 @@ export default function ForkPage() {
                 Fork aturi.to
               </h1>
               <p style={{ color: 'var(--text-secondary)', fontSize: '1.2rem', lineHeight: 1.7 }}>
-                Run your own ATProto link sharing service with a custom domain
+                Run your own Atmosphere link sharing service with a custom domain
               </p>
             </div>
           </div>

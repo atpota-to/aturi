@@ -266,7 +266,7 @@ function NoAtmosphereView({
         </div>
         <div className="popup-source">
           <div className="popup-header-actions">
-            <span className="popup-tagline">Universal Atmosphere Links</span>
+            <span className="popup-tagline">Atmosphere Fast Travel</span>
             <HeaderSettingsButton />
           </div>
         </div>

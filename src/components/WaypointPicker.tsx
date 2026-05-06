@@ -368,10 +368,10 @@ export default function WaypointPicker({
           What is aturi.to?
         </h3>
         <p style={{ color: 'var(--text-primary)', fontSize: '1.25rem', marginBottom: '0.75rem', lineHeight: 1.4 }}>
-          Universal links for the ATmosphere.
+          Fast travel across the Atmosphere.
         </p>
         <p style={{ color: 'var(--text-secondary)', fontSize: '1rem', marginBottom: '1.5rem', lineHeight: 1.6 }}>
-          Share ATProto content with anyone, let them choose where to view it.
+          Switch between apps, auto-redirect to preferred clients, and share universal Atmosphere links.
         </p>
         <ShareButton
           url={typeof window !== 'undefined' ? window.location.href : ''}

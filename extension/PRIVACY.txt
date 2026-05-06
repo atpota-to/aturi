@@ -1,0 +1,145 @@
+ATURI BROWSER EXTENSION - PRIVACY POLICY
+Last updated: May 6, 2026
+
+Canonical URL: https://aturi.to/extension/privacy
+
+
+SUMMARY
+
+The Aturi browser extension does not collect, transmit, or sell any personal
+data. It has no analytics, no telemetry, no tracking, no advertising, and no
+remote code. Everything you configure stays in your own browser.
+
+The only network request the extension ever makes is an anonymous lookup to
+the public Bluesky AppView, and only when you actively open a waypoint that
+requires a Decentralized Identifier (DID) for the handle in the URL.
+
+
+1. WHAT THE EXTENSION STORES
+
+The extension saves your preferences locally using your browser's built-in
+extension storage (chrome.storage.sync, with a fallback to
+chrome.storage.local if the sync quota is exceeded). The data stored is
+limited to:
+
+  - Your auto-redirect preferences (whether it's on, your favorite waypoint
+    per content family, and per-source overrides).
+  - Custom waypoints you define (name, domain, URL templates, and category).
+  - Your waypoint groups, ordering, and visibility choices.
+  - A capped local list of recently used waypoints (up to 20 entries) used
+    to surface frequently used destinations in the popup. You can disable
+    this in the History tab and clear it at any time.
+  - UI preferences such as compact mode and open-in-new-tab.
+
+No part of this data is sent to Aturi, the developer, or any third party.
+If you are signed into your browser and have extension sync enabled, your
+browser vendor (Google, Mozilla, Apple, etc.) may sync this data across
+your devices through their own infrastructure under their own privacy
+policy. Aturi has no access to that synced data.
+
+
+2. NETWORK REQUESTS
+
+The extension makes a single kind of network request:
+
+  - Handle resolution. When you open the popup on an Atmosphere page whose
+    URL contains a handle (e.g. example.bsky.social) and you click a
+    waypoint that requires a DID, the extension calls
+    https://public.api.bsky.app/xrpc/com.atproto.identity.resolveHandle to
+    convert the handle to a DID. The handle is sent as a query parameter;
+    nothing else is sent. This call is made by your browser directly to
+    Bluesky's public AppView. Bluesky's privacy policy applies to that
+    request.
+
+Auto-redirects do not make network requests. They are implemented with
+chrome.declarativeNetRequest, which lets the browser rewrite URLs locally
+based on static rules the extension generates from your preferences. The
+extension does not see, read, or log the URLs you visit while redirects
+run.
+
+The extension never contacts aturi.to or any Aturi-operated server during
+normal use.
+
+
+3. PERMISSIONS AND WHY THEY'RE NEEDED
+
+  - storage - to persist your preferences, custom waypoints, and recents
+    list.
+  - tabs - to read the URL of the current tab when you open the popup, so
+    the extension can offer waypoints that match the page you're on.
+  - declarativeNetRequest - to perform local URL redirects without exposing
+    your browsing history to the extension.
+  - clipboardWrite - to copy universal Aturi links to your clipboard when
+    you use the "copy link" action.
+  - host_permissions: <all_urls> - required so the popup can recognize
+    Atmosphere pages on any domain (Bluesky, Leaflet, Blacksky, PDSls,
+    custom waypoints you define, etc.) and so declarativeNetRequest rules
+    can match those domains. The extension does not inject content scripts
+    and does not read or modify page contents.
+
+
+4. WHAT THE EXTENSION DOES NOT DO
+
+  - It does not collect or transmit personal information.
+  - It does not use cookies or any tracking technology.
+  - It does not run analytics, telemetry, crash reporting, or A/B testing.
+  - It does not load or execute remotely hosted code. All executable code
+    is bundled in the released extension package and reviewed by the
+    browser store.
+  - It does not read, modify, or send the contents of pages you visit.
+  - It does not show ads or include any advertising SDKs.
+  - It does not sell, rent, share, or trade any data with third parties.
+
+
+5. THIRD-PARTY DESTINATIONS
+
+When you click a waypoint or follow an auto-redirected link, your browser
+navigates to a third-party Atmosphere client (Bluesky, Blacksky, Leaflet,
+etc.) or a custom waypoint you defined. Those services have their own
+privacy policies and terms of service, and Aturi has no control over them.
+
+
+6. CHILDREN'S PRIVACY
+
+The extension is a general-purpose link-routing utility and is not directed
+at children. Because it does not collect any personal information, it does
+not knowingly collect data from children under 13.
+
+
+7. DATA RETENTION AND DELETION
+
+Settings persist in your browser's extension storage for as long as the
+extension is installed. You can:
+
+  - Clear the recents list at any time from the History tab in the options
+    page.
+  - Disable history tracking entirely from the History tab.
+  - Remove all extension data by uninstalling the extension. Your browser
+    may also remove any synced copy via its own sync settings.
+
+
+8. OPEN SOURCE
+
+Aturi is open source under GPL v3. You can audit the extension's source
+code, including every network request it makes, at:
+
+  https://tangled.org/atpota.to/aturi
+
+
+9. CHANGES TO THIS POLICY
+
+This policy may be updated as the extension evolves. Changes will be
+reflected on this page with a new "Last updated" date. Material changes
+(for example, the addition of any new outbound network request) will also
+be noted in the extension's release notes.
+
+
+CONTACT
+
+Questions or concerns? File an issue at:
+
+  https://tangled.org/atpota.to/aturi/issues
+
+Or contact @atpota.to:
+
+  https://bsky.app/profile/atpota.to

@@ -1,6 +1,8 @@
 import { defineConfig } from 'wxt';
 import path from 'node:path';
 
+const preactRoot = path.resolve(__dirname, 'node_modules/preact');
+
 export default defineConfig({
   modules: ['@wxt-dev/module-react'],
   srcDir: '.',
@@ -13,7 +15,7 @@ export default defineConfig({
   manifest: {
     name: 'Aturi',
     description:
-      'Open the current Atmosphere page in your preferred client, or auto-redirect links.',
+      'Move around the Atmosphere with ease — switch between apps, auto-redirect to your client of choice, and copy universal links.',
     permissions: ['storage', 'tabs', 'declarativeNetRequest', 'clipboardWrite'],
     host_permissions: ['<all_urls>'],
     action: {
@@ -36,7 +38,16 @@ export default defineConfig({
     browser_specific_settings: {
       gecko: {
         id: 'aturi@dame.is',
-        strict_min_version: '115.0',
+        // Must match support for gecko.data_collection_permissions (desktop 140+, Android 142+ per AMO).
+        strict_min_version: '140.0',
+        // Required for new Firefox submissions on AMO (Nov 2025+). Adjust if the
+        // extension transmits data off-device for storage/processing.
+        data_collection_permissions: {
+          required: ['none'],
+        },
+      },
+      gecko_android: {
+        strict_min_version: '142.0',
       },
     },
   },
@@ -44,6 +55,12 @@ export default defineConfig({
     resolve: {
       alias: {
         '@aturi': path.resolve(__dirname, '../src/utils'),
+        // Alias React APIs to Preact compat (smaller bundle, fewer linter hits than react-dom).
+        'react/jsx-runtime': path.join(preactRoot, 'compat/jsx-runtime.mjs'),
+        'react/jsx-dev-runtime': path.join(preactRoot, 'compat/jsx-dev-runtime.mjs'),
+        'react-dom/client': path.join(preactRoot, 'compat/client.mjs'),
+        react: path.join(preactRoot, 'compat/dist/compat.mjs'),
+        'react-dom': path.join(preactRoot, 'compat/dist/compat.mjs'),
       },
     },
   }),

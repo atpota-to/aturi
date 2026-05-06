@@ -41,7 +41,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     if (!resolvedDid) {
       return {
         title: 'Record not found - aturi.to',
-        description: 'Universal links for the ATmosphere',
+        description: 'Fast travel across the Atmosphere',
       };
     }
 
@@ -65,7 +65,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
           : `@${author.handle}`;
         const pageTitle = `@${author.handle} on Bluesky — View on Aturi`;
         const postText = post.record?.text || '';
-        const postDescription = postText || 'View this post on your preferred ATProto app';
+        const postDescription = postText || 'View this post in your preferred Atmosphere client';
         const avatarThumb = author.avatar
           ? author.avatar.replace('/img/avatar/', '/img/avatar_thumbnail/')
           : '';
@@ -138,11 +138,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
         
         if (collection === 'app.bsky.graph.list' || collection.endsWith('.list')) {
           title = record.value?.name 
-            ? `${record.value.name} — ATProto List by @${displayHandle}`
-            : `ATProto List by @${displayHandle}`;
+            ? `${record.value.name} — Atmosphere List by @${displayHandle}`
+            : `Atmosphere List by @${displayHandle}`;
           description = record.value?.description 
             ? record.value.description.slice(0, 160)
-            : 'View this list on your preferred ATProto app';
+            : 'View this list in your preferred Atmosphere client';
           
           const ogUrl = new URL('/api/og/list', 'https://aturi.to');
           ogUrl.searchParams.set('handle', resolvedDid);
@@ -205,7 +205,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
           // Generic record type
           const collectionName = collection.split('.').pop() || collection;
           title = `${collection} record by ${displayHandle} (@${displayHandle}) — View on Aturi`;
-          description = `View this ${collectionName} record on your preferred ATProto app`;
+          description = `View this ${collectionName} record in your preferred Atmosphere client`;
         }
       }
       
@@ -239,7 +239,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
   return {
     title: `Record — View on Aturi`,
-    description: 'Universal links for the ATmosphere',
+    description: 'Fast travel across the Atmosphere',
   };
 }
 

@@ -45,7 +45,7 @@ export default function SkeletonDemoPage() {
     },
     record: {
       $type: 'app.bsky.feed.post',
-      text: 'Just discovered aturi.to and it is amazing! Universal links for the ATmosphere 🦋\n\nThis makes sharing content so much easier.',
+      text: 'Just discovered aturi.to and it is amazing! Fast travel across the Atmosphere 🦋\n\nThis makes sharing content so much easier.',
       createdAt: '2024-12-27T12:00:00Z',
       facets: [],
     },

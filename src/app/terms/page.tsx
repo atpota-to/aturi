@@ -61,8 +61,8 @@ export default function TermsPage() {
             </h3>
             <p style={{ marginBottom: '1rem' }}>
               aturi.to is a free link routing service that allows users to share
-              ATProto content and let recipients choose which client to view it in.
-              We do not host, store, or modify any ATProto content.
+              Atmosphere content and let recipients choose which client to view it in.
+              We do not host, store, or modify any Atmosphere content.
             </p>
 
             <h3
@@ -76,7 +76,7 @@ export default function TermsPage() {
               2. Acceptable Use
             </h3>
             <p style={{ marginBottom: '1rem' }}>
-              You may use aturi.to to share links to ATProto content. You must not
+              You may use aturi.to to share links to Atmosphere content. You must not
               use the service to:
             </p>
             <ul style={{ marginBottom: '1rem', paddingLeft: '1.5rem' }}>
@@ -198,7 +198,7 @@ export default function TermsPage() {
             </h3>
             <p style={{ marginBottom: '1rem' }}>
               When you click a waypoint link, you&rsquo;ll be redirected to a third-party
-              ATProto client (Bluesky, Blacksky, etc.). Each of these services has
+              Atmosphere client (Bluesky, Blacksky, etc.). Each of these services has
               their own privacy policies and terms of service.
             </p>
 

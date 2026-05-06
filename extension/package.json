@@ -1,6 +1,6 @@
 {
   "name": "aturi-extension",
-  "description": "Aturi browser extension - reroute and unify Atmosphere app links",
+  "description": "Aturi browser extension - fast travel across the Atmosphere",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -22,8 +22,8 @@
     "@dnd-kit/core": "^6.3.1",
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "lucide-react": "^0.562.0",
+    "preact": "^10.29.1"
   },
   "devDependencies": {
     "@types/chrome": "^0.0.287",

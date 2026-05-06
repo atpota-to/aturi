@@ -2,9 +2,10 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { ArrowRight, Link2, Code, Globe, Sparkles, Check } from 'lucide-react';
+import { ArrowRight, Link2, Sparkles, Check, MousePointerClick, Repeat } from 'lucide-react';
 import { motion } from 'framer-motion';
 import Header from '@/components/Header';
+import DownloadCTA from '@/components/DownloadCTA';
 import { StaggeredChildren, StaggerItem } from '@/components/StaggeredChildren';
 import { FadeIn } from '@/components/FadeIn';
 import { convertToAturiLink } from '@/utils/linkGenerator';
@@ -39,6 +40,9 @@ export default function HomePage() {
       <div style={{ padding: '2rem 2rem 0' }}>
         <Header />
       </div>
+
+      {/* Primary CTA: Download Extension */}
+      <DownloadCTA />
 
       {/* Quick Link Creator */}
       <motion.div
@@ -78,7 +82,7 @@ export default function HomePage() {
                   handleQuickGenerate();
                 }
               }}
-              placeholder="Paste any ATProto URL or URI from Bluesky, Deer, Witchsky, or any other platform..."
+              placeholder="Paste any URL or AT URI from Bluesky, Deer, Witchsky, or any other Atmosphere app..."
               style={{
                 flex: 1,
                 minWidth: '250px',
@@ -162,7 +166,7 @@ export default function HomePage() {
           }}
           staggerDelay={0.12}
         >
-          {/* Large Primary Card - Universal Sharing */}
+          {/* Large Primary Card - Quick Navigation (Extension) */}
           <StaggerItem 
             className="card feature-card-primary"
             style={{
@@ -179,7 +183,7 @@ export default function HomePage() {
               gap: '1.5rem',
               marginBottom: '1.5rem'
             }}>
-              <Link2 size={40} style={{ 
+              <MousePointerClick size={40} style={{ 
                 color: 'var(--text-accent)', 
                 flexShrink: 0,
                 marginTop: '0.25rem'
@@ -190,7 +194,7 @@ export default function HomePage() {
                   fontSize: '1.75rem',
                   fontWeight: 400,
                 }}>
-                  Universal Sharing
+                  Quick Navigation
                 </h3>
               <p style={{ 
                 color: 'var(--text-secondary)', 
@@ -198,8 +202,9 @@ export default function HomePage() {
                 lineHeight: 1.7,
                 marginBottom: '1.5rem'
               }}>
-                One link works across all your favorite ATProto clients. Share posts, profiles, and lists
-                from Bluesky, Deer, Witchsky, Leaflet, Blacksky, and more without worrying about compatibility.
+                Land on a Bluesky post and want to view it in Deer? Click the Aturi extension icon
+                and jump there in one click. Works on Bluesky, Witchsky, Blacksky, Leaflet, Tangled,
+                Margin, PDSls, atp.tools, and dozens more.
               </p>
                 <div style={{
                   display: 'inline-flex',
@@ -210,7 +215,7 @@ export default function HomePage() {
                   fontFamily: 'var(--font-mono)'
                 }}>
                   <Sparkles size={14} />
-                  <span>{waypointCount} curated ATProto apps</span>
+                  <span>{waypointCount} curated Atmosphere apps</span>
                 </div>
               </div>
             </div>
@@ -234,20 +239,20 @@ export default function HomePage() {
                 transition: 'all 0.4s ease',
               }}
             >
-              <Globe size={28} style={{ 
+              <Repeat size={28} style={{ 
                 color: 'var(--text-accent)', 
                 marginBottom: '1rem' 
               }} />
               <h3 style={{ marginBottom: '0.75rem', fontSize: '1.25rem' }}>
-                Choose Your View
+                Auto-Redirect
               </h3>
               <p style={{ 
                 color: 'var(--text-secondary)', 
                 fontSize: '0.95rem',
                 lineHeight: 1.6
               }}>
-                Recipients pick their preferred platform: Bluesky, Deer, Witchsky, Blacksky, Anisota,
-                Red Dwarf, Catsky, Leaflet, pdsls, or atp.tools.
+                Set your preferred client once. Every Atmosphere link you click automatically
+                opens in the app you actually use.
               </p>
             </div>
 
@@ -259,20 +264,20 @@ export default function HomePage() {
                 transition: 'all 0.4s ease',
               }}
             >
-              <Code size={28} style={{ 
+              <Link2 size={28} style={{ 
                 color: 'var(--text-accent)', 
                 marginBottom: '1rem' 
               }} />
               <h3 style={{ marginBottom: '0.75rem', fontSize: '1.25rem' }}>
-                Easy Integration
+                Universal Links
               </h3>
               <p style={{ 
                 color: 'var(--text-secondary)', 
                 fontSize: '0.95rem',
                 lineHeight: 1.6
               }}>
-                Simple URL structure. Add to your app in minutes with our integration
-                guide.
+                Share an aturi.to link with anyone. They pick the Atmosphere client they
+                want to view it in — no app lock-in.
               </p>
             </div>
           </StaggerItem>
@@ -310,14 +315,14 @@ export default function HomePage() {
               marginBottom: '1.5rem'
             }}>
               <p style={{ marginBottom: '1rem' }}>
-                The name is a playful blend of <strong style={{ color: 'var(--text-primary)' }}>AT URI</strong>, which is how the AT Protocol
-                structures links to records, profiles, and other resources across the network. Pronounced like &ldquo;Atari&rdquo; but
+                The name is a playful blend of <strong style={{ color: 'var(--text-primary)' }}>AT URI</strong>, the universal identifier
+                that points to any record, profile, or resource across the Atmosphere. Pronounced like &ldquo;Atari&rdquo; but
                 with &ldquo;turi&rdquo; at the end—<em>uh-tour-ee</em>.
               </p>
               <p>
-                Every piece of content on ATProto has an AT URI—a universal identifier that works regardless of
-                which app or server you&apos;re using. We thought it deserved a friendly name that&apos;s easy to remember
-                and share!
+                Every piece of content in the Atmosphere has an AT URI that works regardless of which app or
+                server you&apos;re using. We thought it deserved a friendly name that&apos;s easy to remember
+                and share.
               </p>
             </div>
             <div style={{
@@ -480,7 +485,7 @@ export default function HomePage() {
                 lineHeight: 1.7
               }}
             >
-              Building an ATProto client or tool? We&apos;d love to consider adding it to our curated list of waypoints.
+              Building an Atmosphere client or tool? We&apos;d love to consider adding it to our curated list of waypoints.
             </p>
             <div style={{
               display: 'flex',
