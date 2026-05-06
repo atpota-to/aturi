@@ -60,23 +60,43 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       if (recordData.type === 'post' && recordData.data.thread[0]?.value.post) {
         const post = recordData.data.thread[0].value.post;
         const author = post.author;
-        const pageTitle = `Post by ${author.displayName || author.handle} (@${author.handle}) on Bluesky — View on Aturi`;
-        const ogTitle = `${author.displayName || author.handle} (@${author.handle})`;
-        const ogDescription = post.record?.text 
-          ? post.record.text.slice(0, 300) 
+        const authorByline = `${author.displayName || author.handle} (@${author.handle})`;
+        const pageTitle = `Post by ${authorByline} on Bluesky — View on Aturi`;
+        const postText = post.record?.text || '';
+        
+        // iMessage / many rich-link previewers surface og:title prominently and
+        // either omit or de-emphasize og:description. To replicate Bluesky's
+        // post-text-forward preview, put the post text in og:title and the
+        // author byline in og:description.
+        const ogTitle = postText
+          ? (postText.length > 200 ? postText.slice(0, 200) + '…' : postText)
+          : authorByline;
+        const ogDescription = postText
+          ? `${authorByline} on Bluesky`
           : 'View this post on your preferred ATProto app';
         
         const avatarThumb = author.avatar
           ? author.avatar.replace('/img/avatar/', '/img/avatar_thumbnail/')
           : '';
 
+        const canonicalUrl = `https://aturi.to/profile/${author.handle}/post/${rkey}`;
+        const oembedUrl = `https://aturi.to/api/oembed?url=${encodeURIComponent(canonicalUrl)}&format=json`;
+
         return {
           title: pageTitle,
-          description: ogDescription,
+          description: postText || ogDescription,
+          alternates: {
+            canonical: canonicalUrl,
+            types: {
+              'application/json+oembed': oembedUrl,
+            },
+          },
           openGraph: {
             title: ogTitle,
             description: ogDescription,
             type: 'article',
+            url: canonicalUrl,
+            siteName: 'Aturi',
             ...(avatarThumb ? {
               images: [{ url: avatarThumb }],
             } : {}),
