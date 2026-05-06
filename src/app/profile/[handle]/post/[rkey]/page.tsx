@@ -44,34 +44,32 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     if (recordData && recordData.type === 'post' && recordData.data.thread[0]?.value.post) {
       const post = recordData.data.thread[0].value.post;
       const author = post.author;
-      const title = `Post by ${author.displayName || author.handle} (@${author.handle}) on Bluesky — View on Aturi`;
-      const description = post.record?.text 
+      const pageTitle = `Post by ${author.displayName || author.handle} (@${author.handle}) on Bluesky — View on Aturi`;
+      const ogTitle = `${author.displayName || author.handle} (@${author.handle})`;
+      const ogDescription = post.record?.text 
         ? post.record.text.slice(0, 300) 
         : 'View this post on your preferred ATProto app';
       
-      const avatarUrl = author.avatar || 'https://aturi.to/api/og/static';
+      const avatarThumb = author.avatar
+        ? author.avatar.replace('/img/avatar/', '/img/avatar_thumbnail/')
+        : '';
       
       return {
-        title,
-        description,
+        title: pageTitle,
+        description: ogDescription,
         openGraph: {
-          title,
-          description,
+          title: ogTitle,
+          description: ogDescription,
           type: 'article',
-          images: [
-            {
-              url: avatarUrl,
-              width: 1000,
-              height: 1000,
-              alt: `${author.displayName || author.handle}'s avatar`,
-            },
-          ],
+          ...(avatarThumb ? {
+            images: [{ url: avatarThumb }],
+          } : {}),
         },
         twitter: {
           card: 'summary',
-          title,
-          description,
-          images: [avatarUrl],
+          title: ogTitle,
+          description: ogDescription,
+          ...(avatarThumb ? { images: [avatarThumb] } : {}),
         },
       };
     }

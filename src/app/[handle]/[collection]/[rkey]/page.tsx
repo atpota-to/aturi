@@ -56,22 +56,38 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       let title = '';
       let description = '';
       let ogImageUrl = '';
-      let twitterCard: 'summary' | 'summary_large_image' = 'summary_large_image';
-      let ogImageWidth = 1200;
-      let ogImageHeight = 630;
 
       if (recordData.type === 'post' && recordData.data.thread[0]?.value.post) {
         const post = recordData.data.thread[0].value.post;
         const author = post.author;
-        title = `Post by ${author.displayName || author.handle} (@${author.handle}) on Bluesky — View on Aturi`;
-        description = post.record?.text 
+        const pageTitle = `Post by ${author.displayName || author.handle} (@${author.handle}) on Bluesky — View on Aturi`;
+        const ogTitle = `${author.displayName || author.handle} (@${author.handle})`;
+        const ogDescription = post.record?.text 
           ? post.record.text.slice(0, 300) 
           : 'View this post on your preferred ATProto app';
         
-        ogImageUrl = author.avatar || 'https://aturi.to/api/og/static';
-        twitterCard = 'summary';
-        ogImageWidth = 1000;
-        ogImageHeight = 1000;
+        const avatarThumb = author.avatar
+          ? author.avatar.replace('/img/avatar/', '/img/avatar_thumbnail/')
+          : '';
+
+        return {
+          title: pageTitle,
+          description: ogDescription,
+          openGraph: {
+            title: ogTitle,
+            description: ogDescription,
+            type: 'article',
+            ...(avatarThumb ? {
+              images: [{ url: avatarThumb }],
+            } : {}),
+          },
+          twitter: {
+            card: 'summary',
+            title: ogTitle,
+            description: ogDescription,
+            ...(avatarThumb ? { images: [avatarThumb] } : {}),
+          },
+        };
       } else if (recordData.type === 'record') {
         const record = recordData.data;
         const marginLexiconType = getMarginLexiconType(collection);
@@ -159,14 +175,14 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
           images: ogImageUrl ? [
             {
               url: ogImageUrl,
-              width: ogImageWidth,
-              height: ogImageHeight,
+              width: 1200,
+              height: 630,
               alt: title,
             },
           ] : undefined,
         },
         twitter: {
-          card: twitterCard,
+          card: 'summary_large_image',
           title,
           description,
           images: ogImageUrl ? [ogImageUrl] : undefined,
