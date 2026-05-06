@@ -79,7 +79,15 @@ export async function GET(request: NextRequest) {
   const targetUrl = searchParams.get('url');
   const format = (searchParams.get('format') || 'json').toLowerCase();
   const maxwidthParam = searchParams.get('maxwidth');
-  const maxwidth = maxwidthParam ? parseInt(maxwidthParam, 10) : 600;
+
+  // Bluesky's oEmbed spec: maxwidth in [220..550], default 325. maxheight unsupported.
+  let maxwidth = 325;
+  if (maxwidthParam) {
+    const parsed = parseInt(maxwidthParam, 10);
+    if (!Number.isNaN(parsed)) {
+      maxwidth = Math.min(550, Math.max(220, parsed));
+    }
+  }
 
   if (!targetUrl) {
     return NextResponse.json({ error: 'Missing url parameter' }, { status: 400 });
@@ -122,23 +130,23 @@ export async function GET(request: NextRequest) {
     const indexedAt = post.indexedAt || post.record?.createdAt || '';
 
     const profileUrl = `https://aturi.to/profile/${handle}`;
-    const postUrl = `https://aturi.to/profile/${handle}/post/${target.rkey}`;
 
     const escapedText = escapeHtml(postText);
     const escapedDisplayName = escapeHtml(displayName);
     const escapedHandle = escapeHtml(handle);
     const escapedAtUri = escapeHtml(atUri);
 
-    // Mirrors Bluesky's oEmbed html structure. Apple LinkPresentation reads
-    // type/author_name/provider_name/title from the JSON itself; the html is
-    // used by webpages that render embeds inline.
+    // Mirrors Bluesky's oEmbed html structure so that Apple LinkPresentation
+    // (and inline-embed renderers) can construct a rich, post-text-forward
+    // preview. The blockquote loads bsky.app's embed.js for full styling on
+    // websites that render the html.
     const html = `<blockquote class="bluesky-embed" data-bluesky-uri="${escapedAtUri}" data-bluesky-cid="${escapeHtml(post.cid || '')}"><p lang="en">${escapedText}</p>&mdash; <a href="${escapeHtml(`https://bsky.app/profile/${did}?ref_src=embed`)}">${escapedDisplayName} (@${escapedHandle})</a> <a href="${escapeHtml(`https://bsky.app/profile/${did}/post/${target.rkey}?ref_src=embed`)}">${escapeHtml(indexedAt)}</a></blockquote><script async src="https://embed.bsky.app/static/embed.js" charset="utf-8"></script>`;
 
+    // Match Bluesky's exact response shape: do NOT include title or
+    // thumbnail_* — they alter how Apple LP renders the card.
     const body = {
       type: 'rich' as const,
       version: '1.0' as const,
-      // `title` helps LinkPresentation surface the post text as the headline.
-      title: postText || `${displayName} (@${handle})`,
       author_name: `${displayName} (@${handle})`,
       author_url: profileUrl,
       provider_name: 'Aturi',
@@ -146,17 +154,7 @@ export async function GET(request: NextRequest) {
       cache_age: 86400,
       width: maxwidth,
       height: null,
-      // Avatar thumbnail also helps non-LP renderers show a small icon.
-      ...(author.avatar
-        ? {
-            thumbnail_url: author.avatar.replace('/img/avatar/', '/img/avatar_thumbnail/'),
-            thumbnail_width: 200,
-            thumbnail_height: 200,
-          }
-        : {}),
       html,
-      // Convenience fields some consumers read.
-      url: postUrl,
     };
 
     return NextResponse.json(body, {

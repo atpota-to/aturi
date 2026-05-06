@@ -44,31 +44,25 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     if (recordData && recordData.type === 'post' && recordData.data.thread[0]?.value.post) {
       const post = recordData.data.thread[0].value.post;
       const author = post.author;
-      const authorByline = `${author.displayName || author.handle} (@${author.handle})`;
-      const pageTitle = `Post by ${authorByline} on Bluesky — View on Aturi`;
+      const authorByline = author.displayName
+        ? `${author.displayName} (@${author.handle})`
+        : `@${author.handle}`;
+      const pageTitle = `@${author.handle} on Bluesky — View on Aturi`;
       const postText = post.record?.text || '';
-      
-      // iMessage / many rich-link previewers surface og:title prominently and
-      // either omit or de-emphasize og:description. To replicate Bluesky's
-      // post-text-forward preview, put the post text in og:title and the
-      // author byline in og:description.
-      const ogTitle = postText
-        ? (postText.length > 200 ? postText.slice(0, 200) + '…' : postText)
-        : authorByline;
-      const ogDescription = postText
-        ? `${authorByline} on Bluesky`
-        : 'View this post on your preferred ATProto app';
+      const description = postText || 'View this post on your preferred ATProto app';
       
       const avatarThumb = author.avatar
         ? author.avatar.replace('/img/avatar/', '/img/avatar_thumbnail/')
         : '';
       
       const canonicalUrl = `https://aturi.to/profile/${author.handle}/post/${rkey}`;
-      const oembedUrl = `https://aturi.to/api/oembed?url=${encodeURIComponent(canonicalUrl)}&format=json`;
+      const atUri = `at://${resolvedDid}/${collection}/${rkey}`;
+      const oembedUrl = `https://aturi.to/api/oembed?format=json&url=${encodeURIComponent(atUri)}`;
+      const publishedTime = post.indexedAt || post.record?.createdAt;
       
       return {
         title: pageTitle,
-        description: postText || ogDescription,
+        description,
         alternates: {
           canonical: canonicalUrl,
           types: {
@@ -76,20 +70,48 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
           },
         },
         openGraph: {
-          title: ogTitle,
-          description: ogDescription,
+          title: authorByline,
+          description,
           type: 'article',
           url: canonicalUrl,
           siteName: 'Aturi',
+          ...(publishedTime ? { publishedTime } : {}),
           ...(avatarThumb ? {
             images: [{ url: avatarThumb }],
           } : {}),
         },
         twitter: {
           card: 'summary',
-          title: ogTitle,
-          description: ogDescription,
+          title: authorByline,
+          description,
           ...(avatarThumb ? { images: [avatarThumb] } : {}),
+        },
+        other: {
+          'profile:username': author.handle,
+          ...(publishedTime
+            ? {
+                'twitter:label1': 'Posted At',
+                'twitter:value1': publishedTime,
+              }
+            : {}),
+          ...(post.likeCount
+            ? {
+                'twitter:label2': 'Likes',
+                'twitter:value2': String(post.likeCount),
+              }
+            : {}),
+          ...(post.replyCount
+            ? {
+                'twitter:label3': 'Replies',
+                'twitter:value3': String(post.replyCount),
+              }
+            : {}),
+          ...(post.repostCount
+            ? {
+                'twitter:label4': 'Reposts',
+                'twitter:value4': String(post.repostCount),
+              }
+            : {}),
         },
       };
     }
@@ -137,15 +159,63 @@ async function PostContent({ handle, rkey }: { handle: string; rkey: string }) {
 
     const recordData = await fetchRecordData(resolvedDid, collection, rkey);
 
+    const post =
+      recordData && recordData.type === 'post' && recordData.data.thread[0]?.value.post
+        ? recordData.data.thread[0].value.post
+        : null;
+
+    const jsonLd = post
+      ? {
+          '@context': 'https://schema.org',
+          '@type': 'DiscussionForumPosting',
+          author: {
+            '@type': 'Person',
+            ...(post.author.displayName
+              ? {
+                  name: post.author.displayName,
+                  alternateName: `@${post.author.handle}`,
+                }
+              : { name: `@${post.author.handle}` }),
+            url: `https://aturi.to/profile/${post.author.handle}`,
+          },
+          ...(post.record?.text ? { text: post.record.text } : {}),
+          datePublished: post.indexedAt || post.record?.createdAt,
+          interactionStatistic: [
+            {
+              '@type': 'InteractionCounter',
+              interactionType: 'https://schema.org/LikeAction',
+              userInteractionCount: post.likeCount || 0,
+            },
+            {
+              '@type': 'InteractionCounter',
+              interactionType: 'https://schema.org/CommentAction',
+              userInteractionCount: post.replyCount || 0,
+            },
+            {
+              '@type': 'InteractionCounter',
+              interactionType: 'https://schema.org/ShareAction',
+              userInteractionCount: (post.repostCount || 0) + (post.quoteCount || 0),
+            },
+          ],
+        }
+      : null;
+
     return (
       <div className="container-narrow" style={{ padding: '2rem 2rem 4rem' }}>
         <Header compact />
 
-        {recordData && recordData.type === 'post' && recordData.data.thread[0]?.value.post && (
+        {jsonLd && (
+          <script
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+          />
+        )}
+
+        {post && (
           <div className="content-fade-in">
             <PostPreview 
-              post={recordData.data.thread[0].value.post} 
-              parent={recordData.data.parent}
+              post={post} 
+              parent={recordData!.type === 'post' ? recordData.data.parent : undefined}
             />
           </div>
         )}
