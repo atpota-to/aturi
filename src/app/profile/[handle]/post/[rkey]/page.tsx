@@ -60,6 +60,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       const oembedUrl = `https://aturi.to/api/oembed?format=json&url=${encodeURIComponent(atUri)}`;
       const publishedTime = post.indexedAt || post.record?.createdAt;
       
+      // NOTE: Tags requiring `property=` (profile:username, twitter:description,
+      // twitter:image) and the at:// alternate link are emitted as JSX inside
+      // PostContent so React 19 hoists them to <head> with the correct
+      // attribute name. Apple LinkPresentation parses Twitter Card tags as OG
+      // protocol extensions and only reads them when written with `property=`.
       return {
         title: pageTitle,
         description,
@@ -82,12 +87,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
         },
         twitter: {
           card: 'summary',
-          title: authorByline,
-          description,
-          ...(avatarThumb ? { images: [avatarThumb] } : {}),
         },
         other: {
-          'profile:username': author.handle,
           ...(publishedTime
             ? {
                 'twitter:label1': 'Posted At',
@@ -200,9 +201,27 @@ async function PostContent({ handle, rkey }: { handle: string; rkey: string }) {
         }
       : null;
 
+    const postText = post?.record?.text || '';
+    const avatarThumb = post?.author.avatar
+      ? post.author.avatar.replace('/img/avatar/', '/img/avatar_thumbnail/')
+      : '';
+    const atUri = post?.uri || '';
+
     return (
       <div className="container-narrow" style={{ padding: '2rem 2rem 4rem' }}>
         <Header compact />
+
+        {/* Manual meta tags using property= so Apple LinkPresentation
+            (which reads Twitter Card tags as OG-protocol extensions) picks
+            them up. React 19 hoists these to <head> automatically. */}
+        {post && (
+          <>
+            <meta property="profile:username" content={post.author.handle} />
+            {postText && <meta property="twitter:description" content={postText} />}
+            {avatarThumb && <meta property="twitter:image" content={avatarThumb} />}
+            {atUri && <link rel="alternate" href={atUri} />}
+          </>
+        )}
 
         {jsonLd && (
           <script
