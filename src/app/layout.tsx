@@ -30,6 +30,13 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
+      <head>
+        {/* Apple TN3156 requires an `application/activity+json` link element
+            on social-network post pages for rich previews in Messages.
+            Bluesky's bskyweb base template emits this with an empty href on
+            EVERY page; we mirror that exactly. */}
+        <link type="application/activity+json" href="" />
+      </head>
       <body>
         <PageTransition>
           <main style={{ position: 'relative', zIndex: 1 }}>{children}</main>
