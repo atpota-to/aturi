@@ -211,11 +211,11 @@ async function PostContent({ handle, rkey }: { handle: string; rkey: string }) {
           />
         )}
 
-        {post && (
+        {post && recordData && recordData.type === 'post' && (
           <div className="content-fade-in">
             <PostPreview 
               post={post} 
-              parent={recordData!.type === 'post' ? recordData.data.parent : undefined}
+              parent={recordData.data.parent}
             />
           </div>
         )}
