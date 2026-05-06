@@ -60,24 +60,26 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       if (recordData.type === 'post' && recordData.data.thread[0]?.value.post) {
         const post = recordData.data.thread[0].value.post;
         const author = post.author;
+        const authorByline = author.displayName
+          ? `${author.displayName} (@${author.handle})`
+          : `@${author.handle}`;
         const pageTitle = `@${author.handle} on Bluesky — View on Aturi`;
         const postText = post.record?.text || '';
         const postDescription = postText || 'View this post on your preferred ATProto app';
+        const avatarThumb = author.avatar
+          ? author.avatar.replace('/img/avatar/', '/img/avatar_thumbnail/')
+          : '';
 
         const canonicalUrl = `https://aturi.to/profile/${author.handle}/post/${rkey}`;
         const atUri = `at://${resolvedDid}/${collection}/${rkey}`;
         const oembedUrl = `https://aturi.to/api/oembed?format=json&url=${encodeURIComponent(atUri)}`;
         const publishedTime = post.indexedAt || post.record?.createdAt;
 
-        // NOTE: ALL tags that need `property=` (og:*, profile:username,
-        // twitter:description, twitter:image, twitter:card) and the at://
-        // alternate link are emitted as JSX inside RecordContent so React 19
-        // hoists them to <head> with the correct attribute name and we can
-        // avoid Next.js' auto-generation of duplicate `name="twitter:..."`
-        // tags. Apple's LinkPresentation framework reads Twitter Card tags as
-        // OG-protocol extensions and only picks them up with `property=`.
-        // We keep ONLY <title>, <meta name="description">, twitter:label*,
-        // canonical, and oEmbed alternate in the metadata API.
+        // We MUST set openGraph and twitter blocks here to override the root
+        // layout's site-wide defaults. Without this, the root layout's
+        // og:title="aturi.to - Universal links" and og:image=/api/og/static
+        // bleed through and create conflicting tags that confuse Apple's
+        // LinkPresentation framework and other rich-link previewers.
         return {
           title: pageTitle,
           description: postDescription,
@@ -87,7 +89,23 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
               'application/json+oembed': oembedUrl,
             },
           },
+          openGraph: {
+            title: authorByline,
+            description: postText || postDescription,
+            type: 'article',
+            url: canonicalUrl,
+            siteName: 'Aturi',
+            ...(publishedTime ? { publishedTime } : {}),
+            ...(avatarThumb ? { images: [{ url: avatarThumb }] } : {}),
+          },
+          twitter: {
+            card: 'summary',
+            title: authorByline,
+            description: postText || postDescription,
+            ...(avatarThumb ? { images: [avatarThumb] } : {}),
+          },
           other: {
+            'profile:username': author.handle,
             ...(publishedTime
               ? {
                   'twitter:label1': 'Posted At',
@@ -312,48 +330,15 @@ async function RecordContent({ handle, collection, rkey }: { handle: string; col
         }
       : null;
 
-    const postText = post?.record?.text || '';
-    const postAvatarThumb = post?.author.avatar
-      ? post.author.avatar.replace('/img/avatar/', '/img/avatar_thumbnail/')
-      : '';
     const postAtUri = post?.uri || '';
-    const postAuthorByline = post
-      ? (post.author.displayName
-          ? `${post.author.displayName} (@${post.author.handle})`
-          : `@${post.author.handle}`)
-      : '';
-    const postCanonicalUrl = post
-      ? `https://aturi.to/profile/${post.author.handle}/post/${rkey}`
-      : '';
-    const postPublishedTime = post?.indexedAt || post?.record?.createdAt || '';
 
     return (
       <div className="container-narrow" style={{ padding: '2rem 2rem 4rem' }}>
         <Header compact />
 
-        {/* All og:* and twitter:* meta tags rendered as JSX so we control
-            exactly which attribute (property= or name=) is used and avoid
-            Next.js' auto-generation of duplicate `name="twitter:..."` tags
-            from openGraph fields. React 19 hoists these to <head>.
-            Apple's LinkPresentation framework reads Twitter Card tags as
-            OG-protocol extensions and only picks them up with `property=`. */}
-        {post && (
-          <>
-            <meta property="og:type" content="article" />
-            <meta property="profile:username" content={post.author.handle} />
-            <meta property="og:url" content={postCanonicalUrl} />
-            <meta property="og:title" content={postAuthorByline} />
-            {postText && <meta property="og:description" content={postText} />}
-            {postText && <meta property="twitter:description" content={postText} />}
-            {postAvatarThumb && <meta property="og:image" content={postAvatarThumb} />}
-            {postAvatarThumb && <meta property="twitter:image" content={postAvatarThumb} />}
-            <meta name="twitter:card" content="summary" />
-            {postPublishedTime && (
-              <meta property="article:published_time" content={postPublishedTime} />
-            )}
-            {postAtUri && <link rel="alternate" href={postAtUri} />}
-          </>
-        )}
+        {/* AT-URI alternate link, mirroring Bluesky's bskyweb template.
+            React 19 hoists this to <head>. */}
+        {postAtUri && <link rel="alternate" href={postAtUri} />}
 
         {jsonLd && (
           <script
