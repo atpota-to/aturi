@@ -565,13 +565,18 @@ export const WAYPOINT_DESTINATIONS_DATA: Record<string, WaypointData> = {
   offprint: {
     id: 'offprint',
     name: 'Offprint',
-    description: 'View on offprint.app',
-    getUrl: (handle, collection, rkey, did) => {
-      const identifier = did || handle;
-      if (collection && rkey) {
-        return `https://pdsls.dev/at://${identifier}/${collection}/${rkey}`;
+    description: (collection) => {
+      if (collection?.startsWith('site.standard.') || collection?.startsWith('pub.leaflet.')) {
+        return 'Read document on offprint.app';
       }
-      return `https://pdsls.dev/at://${identifier}`;
+      return 'View on offprint.app';
+    },
+    getUrl: (handle, collection, rkey, did) => {
+      // offprint only has record-level URLs; without a collection+rkey there's
+      // no meaningful destination, so hide the waypoint in profile-only views.
+      if (!collection || !rkey) return null;
+      const identifier = did || handle;
+      return `https://offprint.app/${identifier}/${collection}/${rkey}`;
     },
     supportedTypes: ['post', 'profile', 'list', 'record'],
     category: 'publications',
@@ -581,13 +586,18 @@ export const WAYPOINT_DESTINATIONS_DATA: Record<string, WaypointData> = {
   pckt: {
     id: 'pckt',
     name: 'pckt',
-    description: 'View on pckt.blog',
-    getUrl: (handle, collection, rkey, did) => {
-      const identifier = did || handle;
-      if (collection && rkey) {
-        return `https://pdsls.dev/at://${identifier}/${collection}/${rkey}`;
+    description: (collection) => {
+      if (collection?.startsWith('site.standard.') || collection?.startsWith('pub.leaflet.')) {
+        return 'Read document on pckt.blog';
       }
-      return `https://pdsls.dev/at://${identifier}`;
+      return 'View on pckt.blog';
+    },
+    getUrl: (handle, collection, rkey, did) => {
+      // pckt only has record-level URLs; without a collection+rkey there's no
+      // meaningful destination, so hide the waypoint in profile-only views.
+      if (!collection || !rkey) return null;
+      const identifier = did || handle;
+      return `https://pckt.blog/${identifier}/${collection}/${rkey}`;
     },
     supportedTypes: ['post', 'profile', 'list', 'record'],
     category: 'publications',

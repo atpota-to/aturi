@@ -150,15 +150,13 @@ describe('buildRules', () => {
   it('allows redirects inside the standard-site family', () => {
     const rules = buildRules(prefs({
       autoRedirect: true,
-      defaults: { leaflet: { profile: 'pckt' } },
+      defaults: { leaflet: { profile: 'anisotaReader' } },
     }));
     const leafletRule = rules.find(r =>
       r.condition.regexFilter?.includes('leaflet\\.pub')
     );
     expect(leafletRule).toBeDefined();
-    // pckt currently proxies through pdsls in its getUrl, so just assert the
-    // rule exists (compat filter allowed it through).
-    expect(leafletRule?.action.redirect?.regexSubstitution).toBeTruthy();
+    expect(leafletRule?.action.redirect?.regexSubstitution).toContain('anisota.net');
   });
 
   it('family favorite for standard-site does not leak into bluesky-social sources', () => {
