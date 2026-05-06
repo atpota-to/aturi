@@ -3,9 +3,9 @@ import { loadPrefs, onPrefsChanged, savePrefs, type Prefs } from '../../lib/pref
 import DefaultsTab from './tabs/DefaultsTab';
 import VisibilityTab from './tabs/VisibilityTab';
 import CustomTab from './tabs/CustomTab';
-import HistoryTab from './tabs/HistoryTab';
+import AboutTab from './tabs/AboutTab';
 
-type TabId = 'defaults' | 'visibility' | 'custom' | 'history';
+type TabId = 'defaults' | 'visibility' | 'custom' | 'about';
 
 function AturiMark() {
   return (
@@ -30,7 +30,7 @@ const TABS: { id: TabId; label: string; sub: string }[] = [
   { id: 'defaults', label: 'General', sub: 'Auto-redirect & popup' },
   { id: 'visibility', label: 'Waypoints', sub: 'Hide or show apps' },
   { id: 'custom', label: 'Custom waypoints', sub: 'Add your own sites' },
-  { id: 'history', label: 'History', sub: 'Recently used' },
+  { id: 'about', label: 'About', sub: 'Project, credits, feedback' },
 ];
 
 export default function App() {
@@ -83,7 +83,7 @@ export default function App() {
         {tab === 'defaults' && <DefaultsTab prefs={prefs} onChange={update} />}
         {tab === 'visibility' && <VisibilityTab prefs={prefs} onChange={update} />}
         {tab === 'custom' && <CustomTab prefs={prefs} onChange={update} />}
-        {tab === 'history' && <HistoryTab prefs={prefs} onChange={update} />}
+        {tab === 'about' && <AboutTab />}
       </main>
     </div>
   );

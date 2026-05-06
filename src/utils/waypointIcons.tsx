@@ -143,6 +143,23 @@ export const PcktSVG = () => (
   </svg>
 );
 
+export const AturiSVG = () => (
+  <svg
+    width="24"
+    height="24"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth={2}
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    <path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z" />
+    <path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12" />
+  </svg>
+);
+
 export const BlentoSVG = () => (
   <svg width="24" height="24" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
     <path d="M24.2728 7.25019C24.2728 3.79832 27.0711 1.00003 30.5229 1.00003H57.2186C60.6705 1.00003 63.4688 3.79833 63.4688 7.2502V33.4355C63.4688 36.8874 60.6705 39.6857 57.2186 39.6857H30.5229C27.0711 39.6857 24.2728 36.8874 24.2728 33.4355V7.25019Z" fill="currentColor" opacity="0.8" />
@@ -153,6 +170,7 @@ export const BlentoSVG = () => (
 );
 
 export const WAYPOINT_ICONS: Record<string, ReactNode> = {
+  aturi: <AturiSVG />,
   anisota: <AnisotaLogo width={24} height={24} />,
   bluesky: <BlueskySVG />,
   blacksky: <BlackskySVG />,

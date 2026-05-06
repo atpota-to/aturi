@@ -11,6 +11,7 @@ import {
   recommendedForType,
   requiresDid,
   visibleWaypointIds,
+  waypointHandlesContent,
 } from '../../lib/catalog';
 import { bumpRecent, loadPrefs, type Prefs } from '../../lib/prefs';
 import { resolveHandleToDid } from '../../lib/handleResolver';
@@ -26,6 +27,7 @@ type PopupState =
 export default function App() {
   const [state, setState] = useState<PopupState>({ phase: 'loading' });
   const [pendingId, setPendingId] = useState<string | null>(null);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
 
   useEffect(() => {
     void init();
@@ -120,6 +122,45 @@ export default function App() {
     window.close();
   }
 
+  // Resolve the waypoint URL (resolving the handle to a DID if required) and
+  // copy it to the clipboard. Used by the per-row copy buttons so users can
+  // grab a link to a waypoint without navigating to it.
+  async function copyWaypoint(waypoint: WaypointData) {
+    if (state.phase !== 'ready') return;
+    const { parsed } = state.match;
+
+    let did = parsed.did;
+    if (requiresDid(waypoint.id, state.prefs.customWaypoints) && !did) {
+      const resolved = await resolveHandleToDid(parsed.handle);
+      if (!resolved) {
+        alert(`Couldn't resolve ${parsed.handle} to a DID.`);
+        return;
+      }
+      did = resolved;
+    }
+
+    const url = waypoint.getUrl(parsed.handle, parsed.collection, parsed.rkey, did);
+    if (!url) return;
+
+    await writeToClipboard(url);
+    flashCopied(waypoint.id);
+  }
+
+  async function copyHomeShortcut(waypoint: WaypointData) {
+    if (state.phase !== 'unsupported') return;
+    const home = getWaypointHomePageUrl(waypoint, state.prefs.customWaypoints);
+    if (!home) return;
+    await writeToClipboard(home);
+    flashCopied(waypoint.id);
+  }
+
+  function flashCopied(id: string) {
+    setCopiedId(id);
+    window.setTimeout(() => {
+      setCopiedId(prev => (prev === id ? null : prev));
+    }, 1400);
+  }
+
   if (state.phase === 'loading') {
     return <div className="popup-empty">Loading...</div>;
   }
@@ -129,7 +170,9 @@ export default function App() {
       <NoAtmosphereView
         prefs={state.prefs}
         pendingId={pendingId}
+        copiedId={copiedId}
         onOpenHome={openHomeShortcut}
+        onCopyHome={copyHomeShortcut}
         isKnownHost={state.isKnownHost}
       />
     );
@@ -140,9 +183,31 @@ export default function App() {
       match={state.match}
       prefs={state.prefs}
       pendingId={pendingId}
+      copiedId={copiedId}
       onOpen={openWaypoint}
+      onCopy={copyWaypoint}
     />
   );
+}
+
+async function writeToClipboard(text: string): Promise<void> {
+  try {
+    await navigator.clipboard.writeText(text);
+    return;
+  } catch (err) {
+    console.warn('[aturi:popup] clipboard write failed, falling back', err);
+  }
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  ta.style.position = 'fixed';
+  ta.style.opacity = '0';
+  document.body.appendChild(ta);
+  ta.select();
+  try {
+    document.execCommand('copy');
+  } finally {
+    document.body.removeChild(ta);
+  }
 }
 
 function AturiMark() {
@@ -167,11 +232,20 @@ function AturiMark() {
 type NoAtmosphereViewProps = {
   prefs: Prefs;
   pendingId: string | null;
+  copiedId: string | null;
   onOpenHome: (waypoint: WaypointData) => void;
+  onCopyHome: (waypoint: WaypointData) => void;
   isKnownHost: boolean;
 };
 
-function NoAtmosphereView({ prefs, pendingId, onOpenHome, isKnownHost }: NoAtmosphereViewProps) {
+function NoAtmosphereView({
+  prefs,
+  pendingId,
+  copiedId,
+  onOpenHome,
+  onCopyHome,
+  isKnownHost,
+}: NoAtmosphereViewProps) {
   const shortcutGroups = useMemo(() => {
     return categorizedVisibleAll(prefs)
       .map(group => ({
@@ -184,14 +258,17 @@ function NoAtmosphereView({ prefs, pendingId, onOpenHome, isKnownHost }: NoAtmos
   }, [prefs]);
 
   return (
-    <div className="popup-root">
+    <div className={`popup-root ${prefs.compactMode ? 'is-compact' : ''}`}>
       <div className="popup-header">
         <div className="popup-title">
           <AturiMark />
           <span>Aturi</span>
         </div>
-        <div className="popup-source" style={{ fontFamily: 'var(--font-sans)', fontSize: 11, textAlign: 'right' }}>
-          Universal links for the ATmosphere
+        <div className="popup-source">
+          <div className="popup-header-actions">
+            <span className="popup-tagline">Universal Atmosphere Links</span>
+            <HeaderSettingsButton />
+          </div>
         </div>
       </div>
 
@@ -223,21 +300,29 @@ function NoAtmosphereView({ prefs, pendingId, onOpenHome, isKnownHost }: NoAtmos
               <div className="popup-section-label">{group.category.name}</div>
               <div className="popup-waypoints">
                 {group.waypoints.map(w => (
-                  <button
-                    key={w.id}
-                    type="button"
-                    className="popup-waypoint"
-                    onClick={() => onOpenHome(w)}
-                    disabled={pendingId === w.id}
-                  >
-                    <WaypointIcon id={w.id} name={w.name} />
-                    <div className="popup-waypoint-text">
-                      <div className="popup-waypoint-name">{w.name}</div>
-                      <div className="popup-waypoint-desc">
-                        {homePageSubtitle(w, prefs.customWaypoints)}
+                  <div key={w.id} className="popup-waypoint">
+                    <button
+                      type="button"
+                      className="popup-waypoint-main"
+                      onClick={() => onOpenHome(w)}
+                      disabled={pendingId === w.id}
+                    >
+                      <WaypointIcon id={w.id} name={w.name} />
+                      <div className="popup-waypoint-text">
+                        <div className="popup-waypoint-name">{w.name}</div>
+                        {!prefs.compactMode && (
+                          <div className="popup-waypoint-desc">
+                            {homePageSubtitle(w, prefs.customWaypoints)}
+                          </div>
+                        )}
                       </div>
-                    </div>
-                  </button>
+                    </button>
+                    <CopyWaypointButton
+                      copied={copiedId === w.id}
+                      onClick={() => onCopyHome(w)}
+                      label={`Copy link to ${w.name}`}
+                    />
+                  </div>
                 ))}
               </div>
             </div>
@@ -264,10 +349,12 @@ type ReadyProps = {
   match: ReverseMatch;
   prefs: Prefs;
   pendingId: string | null;
+  copiedId: string | null;
   onOpen: (waypoint: WaypointData) => void;
+  onCopy: (waypoint: WaypointData) => void;
 };
 
-function Ready({ match, prefs, pendingId, onOpen }: ReadyProps) {
+function Ready({ match, prefs, pendingId, copiedId, onOpen, onCopy }: ReadyProps) {
   const { parsed, source } = match;
   const type: WaypointType = parsed.type === 'unknown' ? 'profile' : parsed.type;
 
@@ -286,32 +373,58 @@ function Ready({ match, prefs, pendingId, onOpen }: ReadyProps) {
     return prefs.recents
       .map(r => {
         const w = findWaypoint(prefs, r.waypointId);
-        return w && visible.has(w.id) && w.supportedTypes.includes(type) && w.id !== source
-          ? w
-          : null;
+        if (!w) return null;
+        if (!visible.has(w.id)) return null;
+        if (!w.supportedTypes.includes(type)) return null;
+        if (w.id === source) return null;
+        if (!waypointHandlesContent(w, parsed.handle, parsed.collection, parsed.rkey, parsed.did)) {
+          return null;
+        }
+        return w;
       })
       .filter((w): w is WaypointData => !!w)
       .slice(0, 5);
-  }, [prefs, type, source]);
+  }, [prefs, type, source, parsed.handle, parsed.collection, parsed.rkey, parsed.did]);
+
+  const recommendedIds = useMemo(() => {
+    if (!prefs.smartRecommendations) return new Set<string>();
+    return new Set(
+      recommended.waypoints.filter(w => w.id !== source).map(w => w.id)
+    );
+  }, [prefs.smartRecommendations, recommended.waypoints, source]);
+
+  // Aturi universal link for the current AT URI. We always look up the aturi
+  // waypoint directly (independent of group visibility) so the header copy
+  // button works even if the user has hidden Aturi from their popup groups.
+  const aturiLink = useMemo(() => {
+    const aturi = findWaypoint(prefs, 'aturi');
+    if (!aturi) return null;
+    return (
+      aturi.getUrl(parsed.handle, parsed.collection, parsed.rkey, parsed.did) ?? null
+    );
+  }, [prefs, parsed.handle, parsed.collection, parsed.rkey, parsed.did]);
 
   return (
-    <div className="popup-root">
+    <div className={`popup-root ${prefs.compactMode ? 'is-compact' : ''}`}>
       <div className="popup-header">
         <div className="popup-title">
           <AturiMark />
           <span>Aturi</span>
         </div>
         <div className="popup-source">
-          <div className="popup-source-handle">{parsed.handle}</div>
-          <div>
-            {source} &middot; {type}
+          <div className="popup-header-actions">
+            {aturiLink && <HeaderCopyLinkButton url={aturiLink} />}
+            <HeaderSettingsButton />
+          </div>
+          <div className="popup-source-collection" title={parsed.uri}>
+            {parsed.collection ?? type}
           </div>
         </div>
       </div>
 
-      {prefs.showRecents && recents.length > 0 && (
+      {prefs.historyEnabled && recents.length > 0 && (
         <div className="popup-section">
-          <div className="popup-section-label">Recently used</div>
+          <div className="popup-section-label">Recents</div>
           <div className="popup-recents-row">
             {recents.map(w => (
               <button
@@ -342,7 +455,9 @@ function Ready({ match, prefs, pendingId, onOpen }: ReadyProps) {
                   collection={parsed.collection}
                   type={type}
                   pending={pendingId === w.id}
+                  copied={copiedId === w.id}
                   onClick={onOpen}
+                  onCopy={onCopy}
                 />
               ))}
           </div>
@@ -350,7 +465,9 @@ function Ready({ match, prefs, pendingId, onOpen }: ReadyProps) {
       )}
 
       {categorized.map(group => {
-        const waypoints = group.waypoints.filter(w => w.id !== source);
+        const waypoints = group.waypoints.filter(
+          w => w.id !== source && !recommendedIds.has(w.id)
+        );
         if (waypoints.length === 0) return null;
         return (
           <div className="popup-section" key={group.category.id}>
@@ -363,7 +480,9 @@ function Ready({ match, prefs, pendingId, onOpen }: ReadyProps) {
                   collection={parsed.collection}
                   type={type}
                   pending={pendingId === w.id}
+                  copied={copiedId === w.id}
                   onClick={onOpen}
+                  onCopy={onCopy}
                 />
               ))}
             </div>
@@ -385,22 +504,7 @@ function CopyUriButton({ uri }: { uri: string }) {
   const [copied, setCopied] = useState(false);
 
   async function handleCopy() {
-    try {
-      await navigator.clipboard.writeText(uri);
-    } catch (err) {
-      console.warn('[aturi:popup] clipboard write failed, falling back', err);
-      const ta = document.createElement('textarea');
-      ta.value = uri;
-      ta.style.position = 'fixed';
-      ta.style.opacity = '0';
-      document.body.appendChild(ta);
-      ta.select();
-      try {
-        document.execCommand('copy');
-      } finally {
-        document.body.removeChild(ta);
-      }
-    }
+    await writeToClipboard(uri);
     setCopied(true);
     window.setTimeout(() => setCopied(false), 1400);
   }
@@ -435,27 +539,119 @@ function WaypointButton({
   collection,
   type,
   pending,
+  copied,
   onClick,
+  onCopy,
 }: {
   waypoint: WaypointData;
   collection?: string;
   type: WaypointType;
   pending: boolean;
+  copied: boolean;
   onClick: (w: WaypointData) => void;
+  onCopy: (w: WaypointData) => void;
+}) {
+  return (
+    <div className="popup-waypoint">
+      <button
+        type="button"
+        className="popup-waypoint-main"
+        onClick={() => onClick(waypoint)}
+        disabled={pending}
+      >
+        <WaypointIcon id={waypoint.id} name={waypoint.name} />
+        <div className="popup-waypoint-text">
+          <div className="popup-waypoint-name">{waypoint.name}</div>
+          <div className="popup-waypoint-desc">
+            {describeWaypoint(waypoint, collection, type)}
+          </div>
+        </div>
+      </button>
+      <CopyWaypointButton
+        copied={copied}
+        onClick={() => onCopy(waypoint)}
+        label={`Copy link to ${waypoint.name}`}
+      />
+    </div>
+  );
+}
+
+function HeaderSettingsButton() {
+  return (
+    <button
+      type="button"
+      className="popup-header-settings"
+      onClick={() => browser.runtime.openOptionsPage()}
+      title="Open settings"
+      aria-label="Open extension settings"
+    >
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <circle cx="12" cy="12" r="3" />
+        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+      </svg>
+    </button>
+  );
+}
+
+function HeaderCopyLinkButton({ url }: { url: string }) {
+  const [copied, setCopied] = useState(false);
+
+  async function handleCopy() {
+    await writeToClipboard(url);
+    setCopied(true);
+    window.setTimeout(() => setCopied(false), 1400);
+  }
+
+  return (
+    <button
+      type="button"
+      className={`popup-header-copy ${copied ? 'is-copied' : ''}`}
+      onClick={handleCopy}
+      title={copied ? 'Copied!' : `Copy aturi.to link\n${url}`}
+      aria-label={copied ? 'Copied aturi.to link to clipboard' : 'Copy aturi.to universal link'}
+    >
+      {copied ? (
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <polyline points="20 6 9 17 4 12" />
+        </svg>
+      ) : (
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <rect x="9" y="9" width="13" height="13" rx="0" />
+          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+        </svg>
+      )}
+      <span>{copied ? 'Copied!' : 'Copy universal link'}</span>
+    </button>
+  );
+}
+
+function CopyWaypointButton({
+  copied,
+  onClick,
+  label,
+}: {
+  copied: boolean;
+  onClick: () => void;
+  label: string;
 }) {
   return (
     <button
-      className="popup-waypoint"
-      onClick={() => onClick(waypoint)}
-      disabled={pending}
+      type="button"
+      className={`popup-waypoint-copy ${copied ? 'is-copied' : ''}`}
+      onClick={onClick}
+      title={copied ? 'Copied!' : 'Copy link'}
+      aria-label={copied ? 'Copied to clipboard' : label}
     >
-      <WaypointIcon id={waypoint.id} name={waypoint.name} />
-      <div className="popup-waypoint-text">
-        <div className="popup-waypoint-name">{waypoint.name}</div>
-        <div className="popup-waypoint-desc">
-          {describeWaypoint(waypoint, collection, type)}
-        </div>
-      </div>
+      {copied ? (
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <polyline points="20 6 9 17 4 12" />
+        </svg>
+      ) : (
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <rect x="9" y="9" width="13" height="13" rx="0" />
+          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+        </svg>
+      )}
     </button>
   );
 }

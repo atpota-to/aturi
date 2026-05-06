@@ -6,6 +6,7 @@ import type { CustomWaypoint } from './prefs';
  * page-specific Atmosphere URI to open (shortcuts only).
  */
 const BUILTIN_HOME: Record<string, string> = {
+  aturi: 'https://aturi.to/',
   anisota: 'https://anisota.net/',
   bluesky: 'https://bsky.app/',
   blacksky: 'https://blacksky.community/',

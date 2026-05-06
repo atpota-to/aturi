@@ -16,6 +16,9 @@ body {
   padding: 14px 18px 12px;
   border-bottom: 1px solid var(--border-subtle);
   background: linear-gradient(180deg, var(--bg-secondary), var(--bg-primary));
+  position: sticky;
+  top: 0;
+  z-index: 2;
 }
 
 .popup-title {
@@ -29,8 +32,91 @@ body {
   color: var(--text-primary);
 }
 
-.popup-title svg {
+.popup-title > svg {
   color: var(--text-accent);
+}
+
+.popup-header-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.popup-tagline {
+  font-family: var(--font-sans);
+  font-size: 10px;
+  color: var(--text-tertiary);
+  text-align: right;
+  white-space: nowrap;
+  letter-spacing: 0;
+}
+
+.popup-header-copy {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 22px;
+  padding: 0 9px;
+  background: transparent;
+  border: 1px solid var(--border-subtle);
+  color: var(--text-tertiary);
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: 0;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+  white-space: nowrap;
+}
+
+.popup-header-copy:hover {
+  background: var(--bg-tertiary);
+  border-color: var(--text-accent);
+  color: var(--text-accent);
+}
+
+.popup-header-copy:active {
+  background: var(--bg-elevated);
+}
+
+.popup-header-copy.is-copied {
+  background: var(--glow-subtle);
+  border-color: var(--text-accent);
+  color: var(--text-accent);
+}
+
+.popup-header-copy svg {
+  flex-shrink: 0;
+}
+
+.popup-header-settings {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 24px;
+  height: 22px;
+  padding: 0;
+  background: transparent;
+  border: 1px solid var(--border-subtle);
+  color: var(--text-tertiary);
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+
+.popup-header-settings:hover {
+  background: var(--bg-tertiary);
+  border-color: var(--text-accent);
+  color: var(--text-accent);
+}
+
+.popup-header-settings:active {
+  background: var(--bg-elevated);
+}
+
+.popup-header-settings svg {
+  flex-shrink: 0;
 }
 
 .popup-source {
@@ -39,8 +125,8 @@ body {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  gap: 2px;
-  max-width: 60%;
+  gap: 6px;
+  max-width: 65%;
   font-family: var(--font-mono);
 }
 
@@ -54,8 +140,20 @@ body {
   letter-spacing: -0.01em;
 }
 
+.popup-source-collection {
+  color: var(--text-tertiary);
+  font-weight: 400;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+  letter-spacing: 0;
+  font-size: 10px;
+  opacity: 0.85;
+}
+
 .popup-section {
-  padding: 14px 18px;
+  padding: 14px 18px 18px;
 }
 
 .popup-section + .popup-section {
@@ -96,17 +194,18 @@ body {
   gap: 4px;
 }
 
+/* The waypoint row is a div container holding two buttons: a primary
+   "navigate" button on the left and a small copy-link button on the right.
+   Visual row styling (border, background, hover lift) lives on the wrapper
+   so both controls feel like part of one card. */
 .popup-waypoint {
   display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 10px 12px;
+  align-items: stretch;
   background: var(--bg-secondary);
   border: 1px solid var(--border-subtle);
   width: 100%;
-  text-align: left;
-  cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transition: background 0.3s ease, border-color 0.3s ease,
+    transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
   position: relative;
   overflow: hidden;
   font-family: var(--font-serif);
@@ -132,10 +231,57 @@ body {
   opacity: 1;
 }
 
-.popup-waypoint:disabled {
+.popup-waypoint:has(.popup-waypoint-main:disabled) {
   opacity: 0.5;
-  cursor: wait;
   transform: none;
+}
+
+.popup-waypoint-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  background: transparent;
+  border: 0;
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+}
+
+.popup-waypoint-main:disabled {
+  cursor: wait;
+}
+
+.popup-waypoint-copy {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 32px;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  border-left: 1px solid var(--border-subtle);
+  color: var(--text-tertiary);
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.popup-waypoint-copy:hover {
+  background: var(--bg-elevated);
+  color: var(--text-accent);
+}
+
+.popup-waypoint-copy:active {
+  background: var(--bg-tertiary);
+}
+
+.popup-waypoint-copy.is-copied {
+  color: var(--text-accent);
+  background: var(--glow-subtle);
 }
 
 .popup-waypoint-icon {
@@ -191,6 +337,9 @@ body {
   border-top: 1px solid var(--border-subtle);
   background: var(--bg-secondary);
   font-size: 12px;
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
 }
 
 .popup-uri {
@@ -318,4 +467,56 @@ body {
   font-weight: 600;
   font-size: 12px;
   color: var(--text-accent);
+}
+
+/* Compact mode: smaller icons, tighter rows, no description line so more
+   waypoints fit in the popup at once. */
+.popup-root.is-compact .popup-section {
+  padding: 8px 18px 12px;
+}
+
+.popup-root.is-compact .popup-section-label {
+  margin-bottom: 6px;
+}
+
+.popup-root.is-compact .popup-waypoints {
+  gap: 2px;
+}
+
+.popup-root.is-compact .popup-waypoint-main {
+  padding: 6px 10px;
+  gap: 10px;
+}
+
+.popup-root.is-compact .popup-waypoint-copy {
+  width: 28px;
+}
+
+.popup-root.is-compact .popup-waypoint-icon {
+  width: 18px;
+  height: 18px;
+}
+
+.popup-root.is-compact .popup-waypoint-icon svg,
+.popup-root.is-compact .popup-waypoint-icon img {
+  width: 18px;
+  height: 18px;
+}
+
+.popup-root.is-compact .popup-icon-letter {
+  width: 18px;
+  height: 18px;
+  font-size: 10px;
+}
+
+.popup-root.is-compact .popup-waypoint-name {
+  font-size: 13px;
+}
+
+.popup-root.is-compact .popup-waypoint-desc {
+  display: none;
+}
+
+.popup-root.is-compact .popup-waypoint:hover {
+  transform: translateX(2px);
 }

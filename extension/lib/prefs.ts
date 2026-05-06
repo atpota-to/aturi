@@ -105,10 +105,10 @@ export type Prefs = {
    */
   smartRecommendations: boolean;
   /**
-   * When true (default), the popup shows a "Recently used" row above the
-   * grouped waypoint list. When false, that row is hidden. Independent of
-   * `historyEnabled` - history is still *tracked* (so future toggling is
-   * meaningful) but not shown.
+   * @deprecated The popup now uses a single `historyEnabled` toggle to
+   * control both tracking and display of the Recents row. Kept on the type
+   * so existing storage payloads still typecheck during migration; new code
+   * should read from `historyEnabled` instead.
    */
   showRecents: boolean;
   /**
@@ -117,6 +117,12 @@ export type Prefs = {
    * URL instead.
    */
   openInNewTab: boolean;
+  /**
+   * When true, the popup renders waypoints in a denser layout: smaller
+   * icons, tighter rows, and the secondary description line is hidden so
+   * more entries fit on screen at once. Off by default.
+   */
+  compactMode: boolean;
 };
 
 const CUSTOM_GROUP_ID = 'custom';
@@ -137,6 +143,7 @@ export const DEFAULT_PREFS: Prefs = {
   smartRecommendations: true,
   showRecents: true,
   openInNewTab: false,
+  compactMode: false,
 };
 
 /**

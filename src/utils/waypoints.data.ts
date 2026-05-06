@@ -132,6 +132,38 @@ export type CategorizedWaypointsData = {
 };
 
 export const WAYPOINT_DESTINATIONS_DATA: Record<string, WaypointData> = {
+  aturi: {
+    id: 'aturi',
+    name: 'Aturi',
+    description: (collection) => {
+      if (collection === 'app.bsky.feed.post') return 'View post on aturi.to';
+      if (collection === 'app.bsky.graph.list') return 'View list on aturi.to';
+      if (collection?.startsWith('site.standard.') || collection?.startsWith('pub.leaflet.')) {
+        return 'View document on aturi.to';
+      }
+      if (collection) return 'View record on aturi.to';
+      return 'View profile on aturi.to';
+    },
+    getUrl: (handle, collection, rkey, did) => {
+      if (collection && rkey) {
+        if (collection === 'app.bsky.feed.post') {
+          return `https://aturi.to/profile/${handle}/post/${rkey}`;
+        }
+        if (collection === 'app.bsky.graph.list') {
+          return `https://aturi.to/profile/${handle}/lists/${rkey}`;
+        }
+        // Generic AT-record viewer; prefer the DID (stable across handle changes)
+        // when one is available, falling back to the handle otherwise.
+        const identifier = did || handle;
+        return `https://aturi.to/${identifier}/${collection}/${rkey}`;
+      }
+      return `https://aturi.to/${handle}`;
+    },
+    supportedTypes: ['post', 'profile', 'list', 'record'],
+    category: 'atmosphereApps',
+    redirectCompat: ['bluesky-social', 'standard-site'],
+  },
+
   anisota: {
     id: 'anisota',
     name: 'Anisota',
@@ -569,6 +601,7 @@ export const WAYPOINT_ORDER = [
   'blacksky',
   'reddwarf',
   'leaflet',
+  'aturi',
   'pinksky',
   'margin',
   'semble',

@@ -1097,47 +1097,86 @@ body {
   text-align: center;
 }
 
-/* History tab */
+/* About tab */
 
-.history-list {
+.about-links {
   display: flex;
   flex-direction: column;
   gap: 4px;
+  margin-top: 4px;
 }
 
-.history-row {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 80px 180px;
-  gap: 12px;
-  padding: 12px 14px;
+.about-link {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 10px 14px;
   border: 1px solid var(--border-subtle);
   background: var(--bg-tertiary);
-  align-items: center;
-  font-family: var(--font-serif);
-  transition: border-color 0.2s ease;
-}
-
-.history-row:hover {
-  border-color: var(--border-medium);
-}
-
-.history-name {
-  font-weight: 500;
-  font-size: 14px;
   color: var(--text-primary);
+  text-decoration: none;
+  font-family: var(--font-serif);
+  transition: border-color 0.2s ease, background 0.2s ease, color 0.2s ease;
 }
 
-.history-count {
-  font-family: var(--font-mono);
-  font-variant-numeric: tabular-nums;
-  color: var(--text-tertiary);
-  font-size: 12px;
+.about-link:hover {
+  border-color: var(--text-accent);
+  background: var(--bg-elevated);
+  color: var(--text-accent);
 }
 
-.history-date {
-  color: var(--text-tertiary);
+.about-link-label {
   font-size: 12px;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 500;
+}
+
+.about-link:hover .about-link-label {
+  color: var(--text-secondary);
+}
+
+.about-link-value {
   font-family: var(--font-mono);
+  font-size: 12px;
+  color: inherit;
+  text-align: right;
+  word-break: break-all;
+}
+
+.about-code {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  padding: 1px 6px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+}
+
+.about-version {
+  margin-top: 12px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-tertiary);
+  letter-spacing: 0.04em;
+}
+
+/* Recents control inside the General tab */
+
+.defaults-clear-recents {
+  margin-top: 10px;
+  padding: 4px 10px;
+  font-size: 12px;
+  color: var(--text-tertiary);
+  border-color: var(--border-subtle);
+}
+
+.defaults-clear-recents:hover {
+  color: var(--danger);
+  border-color: var(--danger);
+  background: var(--danger-soft);
 }
 
 /* Tokens / hints */

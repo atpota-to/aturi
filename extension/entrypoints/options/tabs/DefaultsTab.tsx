@@ -5,6 +5,7 @@ import {
   type RedirectCompatFamily,
 } from '@aturi/waypoints.data';
 import {
+  clearRecents,
   getRedirectCompatFor,
   setFavoriteForFamily,
   type Prefs,
@@ -50,6 +51,13 @@ export default function DefaultsTab({ prefs, onChange }: Props) {
   function setFamilyFavorite(family: RedirectCompatFamily, id: string) {
     const next = setFavoriteForFamily(prefs, family, id || null);
     onChange({ favoriteByFamily: next.favoriteByFamily });
+  }
+
+  async function handleClearRecents() {
+    if (!confirm('Clear your Recents list? This only affects the Recents row in the popup.')) {
+      return;
+    }
+    await clearRecents();
   }
 
   return (
@@ -177,20 +185,50 @@ export default function DefaultsTab({ prefs, onChange }: Props) {
 
         <div className="options-toggle-row">
           <div>
-            <div className="options-card-title">Show recently used</div>
+            <div className="options-card-title">Compact mode</div>
             <div className="options-card-sub">
-              {prefs.showRecents
-                ? 'A "Recently used" row appears at the top of the popup with your most recent picks.'
-                : 'Off — the popup skips the recents row and jumps straight into your groups.'}
+              {prefs.compactMode
+                ? 'On — the popup uses a denser layout with smaller icons and no description line, so more waypoints fit at once.'
+                : 'Off — the popup shows each waypoint with a larger icon and a secondary description line.'}
             </div>
           </div>
           <button
-            className={`aturi-switch ${prefs.showRecents ? 'on' : ''}`}
-            onClick={() => onChange({ showRecents: !prefs.showRecents })}
-            aria-pressed={prefs.showRecents}
+            className={`aturi-switch ${prefs.compactMode ? 'on' : ''}`}
+            onClick={() => onChange({ compactMode: !prefs.compactMode })}
+            aria-pressed={prefs.compactMode}
           >
             <span className="aturi-switch-box" />
-            <span className="aturi-muted">{prefs.showRecents ? 'On' : 'Off'}</span>
+            <span className="aturi-muted">{prefs.compactMode ? 'On' : 'Off'}</span>
+          </button>
+        </div>
+
+        <div className="aturi-hr" />
+
+        <div className="options-toggle-row">
+          <div>
+            <div className="options-card-title">Recents</div>
+            <div className="options-card-sub">
+              {prefs.historyEnabled
+                ? 'On — the popup shows a Recents row at the top with the waypoints you reach for most often.'
+                : 'Off — the popup hides the Recents row and stops recording new picks.'}
+            </div>
+            {prefs.historyEnabled && prefs.recents.length > 0 && (
+              <button
+                type="button"
+                className="aturi-btn aturi-btn-ghost defaults-clear-recents"
+                onClick={handleClearRecents}
+              >
+                Clear Recents ({prefs.recents.length})
+              </button>
+            )}
+          </div>
+          <button
+            className={`aturi-switch ${prefs.historyEnabled ? 'on' : ''}`}
+            onClick={() => onChange({ historyEnabled: !prefs.historyEnabled })}
+            aria-pressed={prefs.historyEnabled}
+          >
+            <span className="aturi-switch-box" />
+            <span className="aturi-muted">{prefs.historyEnabled ? 'On' : 'Off'}</span>
           </button>
         </div>
       </div>

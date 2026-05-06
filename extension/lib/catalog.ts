@@ -219,6 +219,33 @@ export function recommendedForType(
   return { waypoints: filtered, label };
 }
 
+/**
+ * Returns true if `waypoint` actually targets the given collection/rkey rather
+ * than silently falling back to its profile/home URL. When there is no
+ * collection or rkey (e.g. profile-only contexts), every waypoint is
+ * considered applicable.
+ *
+ * This catches waypoints whose `supportedTypes` advertise `post`/`list`/etc.
+ * but whose `getUrl` only handles a narrow slice of collections (e.g. Anisota
+ * Reader handles `site.standard.*` / `pub.leaflet.*` documents and falls back
+ * to the profile URL for `app.bsky.feed.post`). Use this to filter "recently
+ * used" entries down to the ones that meaningfully apply to the current page.
+ */
+export function waypointHandlesContent(
+  waypoint: WaypointData,
+  handle: string,
+  collection?: string,
+  rkey?: string,
+  did?: string
+): boolean {
+  if (!collection || !rkey) return true;
+  const specific = waypoint.getUrl(handle, collection, rkey, did);
+  if (!specific) return false;
+  const fallback = waypoint.getUrl(handle, undefined, undefined, did);
+  if (!fallback) return true;
+  return specific !== fallback;
+}
+
 export function findWaypoint(
   prefs: Prefs,
   waypointId: string
