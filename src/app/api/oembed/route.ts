@@ -130,6 +130,9 @@ export async function GET(request: NextRequest) {
     const indexedAt = post.indexedAt || post.record?.createdAt || '';
 
     const profileUrl = `https://aturi.to/profile/${handle}`;
+    const avatarThumb = author.avatar
+      ? author.avatar.replace('/img/avatar/', '/img/avatar_thumbnail/')
+      : '';
 
     const escapedText = escapeHtml(postText);
     const escapedDisplayName = escapeHtml(displayName);
@@ -142,8 +145,9 @@ export async function GET(request: NextRequest) {
     // websites that render the html.
     const html = `<blockquote class="bluesky-embed" data-bluesky-uri="${escapedAtUri}" data-bluesky-cid="${escapeHtml(post.cid || '')}"><p lang="en">${escapedText}</p>&mdash; <a href="${escapeHtml(`https://bsky.app/profile/${did}?ref_src=embed`)}">${escapedDisplayName} (@${escapedHandle})</a> <a href="${escapeHtml(`https://bsky.app/profile/${did}/post/${target.rkey}?ref_src=embed`)}">${escapeHtml(indexedAt)}</a></blockquote><script async src="https://embed.bsky.app/static/embed.js" charset="utf-8"></script>`;
 
-    // Match Bluesky's exact response shape: do NOT include title or
-    // thumbnail_* — they alter how Apple LP renders the card.
+    // Mostly mirrors Bluesky's response shape, plus `thumbnail_url` which
+    // Apple's LinkPresentation framework reads for the avatar in rich-link
+    // previews even though it's optional in the oEmbed spec.
     const body = {
       type: 'rich' as const,
       version: '1.0' as const,
@@ -154,6 +158,13 @@ export async function GET(request: NextRequest) {
       cache_age: 86400,
       width: maxwidth,
       height: null,
+      ...(avatarThumb
+        ? {
+            thumbnail_url: avatarThumb,
+            thumbnail_width: 200,
+            thumbnail_height: 200,
+          }
+        : {}),
       html,
     };
 

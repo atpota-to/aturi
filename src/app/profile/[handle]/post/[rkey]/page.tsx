@@ -44,27 +44,24 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     if (recordData && recordData.type === 'post' && recordData.data.thread[0]?.value.post) {
       const post = recordData.data.thread[0].value.post;
       const author = post.author;
-      const authorByline = author.displayName
-        ? `${author.displayName} (@${author.handle})`
-        : `@${author.handle}`;
       const pageTitle = `@${author.handle} on Bluesky — View on Aturi`;
       const postText = post.record?.text || '';
       const description = postText || 'View this post on your preferred ATProto app';
-      
-      const avatarThumb = author.avatar
-        ? author.avatar.replace('/img/avatar/', '/img/avatar_thumbnail/')
-        : '';
-      
+
       const canonicalUrl = `https://aturi.to/profile/${author.handle}/post/${rkey}`;
       const atUri = `at://${resolvedDid}/${collection}/${rkey}`;
       const oembedUrl = `https://aturi.to/api/oembed?format=json&url=${encodeURIComponent(atUri)}`;
       const publishedTime = post.indexedAt || post.record?.createdAt;
       
-      // NOTE: Tags requiring `property=` (profile:username, twitter:description,
-      // twitter:image) and the at:// alternate link are emitted as JSX inside
-      // PostContent so React 19 hoists them to <head> with the correct
-      // attribute name. Apple LinkPresentation parses Twitter Card tags as OG
-      // protocol extensions and only reads them when written with `property=`.
+      // NOTE: ALL tags that need `property=` (og:*, profile:username,
+      // twitter:description, twitter:image, twitter:card) and the at://
+      // alternate link are emitted as JSX inside PostContent so React 19
+      // hoists them to <head> with the correct attribute name and we can
+      // avoid Next.js' auto-generation of duplicate `name="twitter:..."`
+      // tags. Apple's LinkPresentation framework reads Twitter Card tags as
+      // OG-protocol extensions and only picks them up with `property=`.
+      // We keep ONLY <title>, <meta name="description">, twitter:label*,
+      // canonical, and oEmbed alternate in the metadata API.
       return {
         title: pageTitle,
         description,
@@ -73,20 +70,6 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
           types: {
             'application/json+oembed': oembedUrl,
           },
-        },
-        openGraph: {
-          title: authorByline,
-          description,
-          type: 'article',
-          url: canonicalUrl,
-          siteName: 'Aturi',
-          ...(publishedTime ? { publishedTime } : {}),
-          ...(avatarThumb ? {
-            images: [{ url: avatarThumb }],
-          } : {}),
-        },
-        twitter: {
-          card: 'summary',
         },
         other: {
           ...(publishedTime
@@ -206,19 +189,40 @@ async function PostContent({ handle, rkey }: { handle: string; rkey: string }) {
       ? post.author.avatar.replace('/img/avatar/', '/img/avatar_thumbnail/')
       : '';
     const atUri = post?.uri || '';
+    const authorByline = post
+      ? (post.author.displayName
+          ? `${post.author.displayName} (@${post.author.handle})`
+          : `@${post.author.handle}`)
+      : '';
+    const canonicalPostUrl = post
+      ? `https://aturi.to/profile/${post.author.handle}/post/${rkey}`
+      : '';
+    const publishedTime = post?.indexedAt || post?.record?.createdAt || '';
 
     return (
       <div className="container-narrow" style={{ padding: '2rem 2rem 4rem' }}>
         <Header compact />
 
-        {/* Manual meta tags using property= so Apple LinkPresentation
-            (which reads Twitter Card tags as OG-protocol extensions) picks
-            them up. React 19 hoists these to <head> automatically. */}
+        {/* All og:* and twitter:* meta tags rendered as JSX so we control
+            exactly which attribute (property= or name=) is used and avoid
+            Next.js' auto-generation of duplicate `name="twitter:..."` tags
+            from openGraph fields. React 19 hoists these to <head>.
+            Apple's LinkPresentation framework reads Twitter Card tags as
+            OG-protocol extensions and only picks them up with `property=`. */}
         {post && (
           <>
+            <meta property="og:type" content="article" />
             <meta property="profile:username" content={post.author.handle} />
+            <meta property="og:url" content={canonicalPostUrl} />
+            <meta property="og:title" content={authorByline} />
+            {postText && <meta property="og:description" content={postText} />}
             {postText && <meta property="twitter:description" content={postText} />}
+            {avatarThumb && <meta property="og:image" content={avatarThumb} />}
             {avatarThumb && <meta property="twitter:image" content={avatarThumb} />}
+            <meta name="twitter:card" content="summary" />
+            {publishedTime && (
+              <meta property="article:published_time" content={publishedTime} />
+            )}
             {atUri && <link rel="alternate" href={atUri} />}
           </>
         )}
