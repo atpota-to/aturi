@@ -133,8 +133,8 @@ export default async function ProfilePage({ params }: Props) {
     const resolvedDid = await resolveHandle(cleanHandle);
     
     if (resolvedDid) {
-      // Redirect to DID-based URL
-      redirect(`/${resolvedDid}`);
+      // Redirect to canonical /profile/{did} URL
+      redirect(`/profile/${resolvedDid}`);
     }
     
     // If resolution fails, continue with cleaned handle

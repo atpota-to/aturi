@@ -262,23 +262,36 @@ export function extractAtUriComponents(input: string): AtUriComponents | null {
 }
 
 /**
- * Generates an aturi.to link from AT URI components
+ * Generates an aturi.to link from AT URI components.
+ *
+ * Canonical URLs include the `/profile/` prefix to mirror the bsky.app /
+ * anisota.net layout. The bare-path forms (`aturi.to/{identifier}/...`) still
+ * resolve, but new links should always use `/profile/` so callers like the
+ * extension and share UI produce consistent output.
+ *
  * @param useAtPrefix - If true, keeps the literal at:// prefix (e.g., aturi.to/at://did:plc:xxx/...)
  */
 export function generateAturiLink(components: AtUriComponents, useAtPrefix: boolean = false): string {
   const { identifier, collection, rkey } = components;
-  
-  if (collection && rkey) {
-    if (useAtPrefix) {
+
+  if (useAtPrefix) {
+    if (collection && rkey) {
       return `https://aturi.to/at://${identifier}/${collection}/${rkey}`;
     }
-    return `https://aturi.to/${identifier}/${collection}/${rkey}`;
-  }
-  
-  if (useAtPrefix) {
     return `https://aturi.to/at://${identifier}`;
   }
-  return `https://aturi.to/${identifier}`;
+
+  if (collection && rkey) {
+    if (collection === 'app.bsky.feed.post') {
+      return `https://aturi.to/profile/${identifier}/post/${rkey}`;
+    }
+    if (collection === 'app.bsky.graph.list') {
+      return `https://aturi.to/profile/${identifier}/lists/${rkey}`;
+    }
+    return `https://aturi.to/profile/${identifier}/${collection}/${rkey}`;
+  }
+
+  return `https://aturi.to/profile/${identifier}`;
 }
 
 /**

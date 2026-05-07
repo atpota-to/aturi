@@ -49,18 +49,21 @@ Want to add a new waypoint? Open a PR against [`src/utils/waypoints.data.ts`](sr
 Profiles:
 
 ```
-aturi.to/[handle or did]
+aturi.to/profile/[handle or did]
 ```
 
-Example: `aturi.to/alice.bsky.social`
+Example: `aturi.to/profile/alice.bsky.social`
 
 Records (posts, lists, etc.):
 
 ```
-aturi.to/[handle or did]/[collection]/[rkey]
+aturi.to/profile/[handle or did]/[collection]/[rkey]
 ```
 
-Example: `aturi.to/alice.bsky.social/app.bsky.feed.post/3k7qw...`
+Example: `aturi.to/profile/alice.bsky.social/app.bsky.feed.post/3k7qw...`
+
+The bare-path forms (without `/profile/`) also resolve for backwards
+compatibility, but new links should prefer the canonical `/profile/` form.
 
 ## Running locally
 

@@ -38,8 +38,8 @@ export default function AtUriSingleSlashRedirect() {
     // Reconstruct the path without the at:/ prefix
     const cleanPath = nonEmptySegments.map(segment => encodeURIComponent(segment)).join('/');
     
-    // Redirect to the standard route format
-    router.replace(`/${cleanPath}`);
+    // Redirect to the canonical /profile/ route
+    router.replace(`/profile/${cleanPath}`);
   }, [slug, router]);
 
   // Show minimal loading state during redirect

@@ -465,8 +465,8 @@ export default async function RecordPage({ params }: Props) {
     const resolvedDid = await resolveHandle(cleanHandle);
     
     if (resolvedDid) {
-      // Redirect to DID-based URL
-      redirect(`/${resolvedDid}/${collection}/${rkey}`);
+      // Redirect to canonical /profile/{did}/{collection}/{rkey} URL
+      redirect(`/profile/${resolvedDid}/${collection}/${rkey}`);
     }
     
     // If resolution fails, continue with cleaned handle

@@ -155,9 +155,9 @@ export const WAYPOINT_DESTINATIONS_DATA: Record<string, WaypointData> = {
         // Generic AT-record viewer; prefer the DID (stable across handle changes)
         // when one is available, falling back to the handle otherwise.
         const identifier = did || handle;
-        return `https://aturi.to/${identifier}/${collection}/${rkey}`;
+        return `https://aturi.to/profile/${identifier}/${collection}/${rkey}`;
       }
-      return `https://aturi.to/${handle}`;
+      return `https://aturi.to/profile/${handle}`;
     },
     supportedTypes: ['post', 'profile', 'list', 'record'],
     category: 'atmosphereApps',

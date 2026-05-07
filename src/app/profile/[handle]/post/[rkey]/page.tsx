@@ -264,8 +264,8 @@ export default async function PostPage({ params }: Props) {
     const resolvedDid = await resolveHandle(cleanHandle);
     
     if (resolvedDid) {
-      // Redirect to DID-based URL
-      redirect(`/${resolvedDid}/app.bsky.feed.post/${rkey}`);
+      // Redirect to canonical /profile/{did}/post/{rkey} URL
+      redirect(`/profile/${resolvedDid}/post/${rkey}`);
     }
     
     // If resolution fails, continue with cleaned handle

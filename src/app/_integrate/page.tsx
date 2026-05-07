@@ -17,15 +17,26 @@ aturi.to uses a simple, predictable URL pattern based on ATProto URIs:
 
 ### For profiles:
 \`\`\`
-aturi.to/[handle or did]
+aturi.to/profile/[handle or did]
 \`\`\`
-Example: \`aturi.to/alice.bsky.social\`
+Example: \`aturi.to/profile/alice.bsky.social\`
 
-### For records (posts, lists, etc.):
+### For posts:
 \`\`\`
-aturi.to/[handle or did]/[collection]/[rkey]
+aturi.to/profile/[handle or did]/post/[rkey]
 \`\`\`
-Example: \`aturi.to/alice.bsky.social/app.bsky.feed.post/3k7qw...\`
+Example: \`aturi.to/profile/alice.bsky.social/post/3k7qw...\`
+
+### For records (any collection):
+\`\`\`
+aturi.to/profile/[handle or did]/[collection]/[rkey]
+\`\`\`
+Example: \`aturi.to/profile/alice.bsky.social/app.bsky.feed.post/3k7qw...\`
+
+### Bare paths without /profile/ also work
+For backwards compatibility, all of the above also resolve without the
+\`/profile/\` prefix (e.g. \`aturi.to/alice.bsky.social/app.bsky.feed.post/3k7qw...\`).
+New links should prefer the canonical \`/profile/\` form.
 
 ### Full AT URI format (also supported):
 \`\`\`
@@ -44,13 +55,13 @@ Note: Modern browsers support the literal \`at://\` in URL paths.
 function toAturiLink(atUri: string): string {
   // at://alice.bsky.social/app.bsky.feed.post/3k7qw...
   const uri = atUri.replace('at://', '');
-  return \`https://aturi.to/\${uri}\`;
+  return \`https://aturi.to/profile/\${uri}\`;
 }
 
 // Usage
 const atUri = "at://alice.bsky.social/app.bsky.feed.post/3k7qw...";
 const shareLink = toAturiLink(atUri);
-// https://aturi.to/alice.bsky.social/app.bsky.feed.post/3k7qw...
+// https://aturi.to/profile/alice.bsky.social/app.bsky.feed.post/3k7qw...
 
 // Or keep the literal at:// in the URL
 const fullAtUri = "at://did:plc:xxx/app.bsky.feed.post/3k7qw...";
@@ -68,7 +79,7 @@ interface ShareButtonProps {
 }
 
 function ShareButton({ atUri }: ShareButtonProps) {
-  const shareUrl = \`https://aturi.to/\${atUri.replace('at://', '')}\`;
+  const shareUrl = \`https://aturi.to/profile/\${atUri.replace('at://', '')}\`;
   
   const handleShare = async () => {
     if (navigator.share) {
@@ -101,12 +112,12 @@ def to_aturi_link(at_uri: str) -> str:
         The shareable aturi.to URL
     """
     uri = at_uri.replace('at://', '')
-    return f'https://aturi.to/{uri}'
+    return f'https://aturi.to/profile/{uri}'
 
 # Usage
 at_uri = "at://alice.bsky.social/app.bsky.feed.post/3k7qw..."
 share_link = to_aturi_link(at_uri)
-# https://aturi.to/alice.bsky.social/app.bsky.feed.post/3k7qw...
+# https://aturi.to/profile/alice.bsky.social/app.bsky.feed.post/3k7qw...
 \`\`\`
 
 ## Use Cases
@@ -273,10 +284,10 @@ aturi.to is a community tool for the ATProto ecosystem. The service is free and 
                 background: 'var(--bg-primary)',
                 border: '1px solid var(--border-medium)',
               }}>
-                aturi.to/[handle or did]
+                aturi.to/profile/[handle or did]
               </code>
               <p style={{ color: 'var(--text-tertiary)', fontSize: '0.875rem', marginTop: '0.75rem' }}>
-                Example: <code>aturi.to/alice.bsky.social</code>
+                Example: <code>aturi.to/profile/alice.bsky.social</code>
               </p>
             </div>
 
@@ -297,10 +308,13 @@ aturi.to is a community tool for the ATProto ecosystem. The service is free and 
                 border: '1px solid var(--border-medium)',
                 marginBottom: '0.75rem'
               }}>
-                aturi.to/[handle or did]/[collection]/[rkey]
+                aturi.to/profile/[handle or did]/[collection]/[rkey]
               </code>
               <p style={{ color: 'var(--text-tertiary)', fontSize: '0.875rem', marginBottom: '0.75rem' }}>
-                Example: <code>aturi.to/alice.bsky.social/app.bsky.feed.post/3k7qw...</code>
+                Example: <code>aturi.to/profile/alice.bsky.social/app.bsky.feed.post/3k7qw...</code>
+              </p>
+              <p style={{ color: 'var(--text-tertiary)', fontSize: '0.825rem', marginBottom: '0.75rem' }}>
+                The bare path without <code>/profile/</code> also works for backwards compatibility.
               </p>
               <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', marginTop: '1rem', marginBottom: '0.5rem' }}>
                 Also supports full AT URI format (literal at:// in URL):
@@ -365,13 +379,13 @@ aturi.to is a community tool for the ATProto ecosystem. The service is free and 
 function toAturiLink(atUri: string): string {
   // at://alice.bsky.social/app.bsky.feed.post/3k7qw...
   const uri = atUri.replace('at://', '');
-  return \`https://aturi.to/\${uri}\`;
+  return \`https://aturi.to/profile/\${uri}\`;
 }
 
 // Usage
 const atUri = "at://alice.bsky.social/app.bsky.feed.post/3k7qw...";
 const shareLink = toAturiLink(atUri);
-// https://aturi.to/alice.bsky.social/app.bsky.feed.post/3k7qw...
+// https://aturi.to/profile/alice.bsky.social/app.bsky.feed.post/3k7qw...
 
 // Or keep the literal at:// in the URL
 const fullAtUri = "at://did:plc:xxx/app.bsky.feed.post/3k7qw...";
@@ -410,7 +424,7 @@ interface ShareButtonProps {
 }
 
 function ShareButton({ atUri }: ShareButtonProps) {
-  const shareUrl = \`https://aturi.to/\${atUri.replace('at://', '')}\`;
+  const shareUrl = \`https://aturi.to/profile/\${atUri.replace('at://', '')}\`;
   
   const handleShare = async () => {
     if (navigator.share) {
@@ -451,12 +465,12 @@ function ShareButton({ atUri }: ShareButtonProps) {
               }}>{`def to_aturi_link(at_uri: str) -> str:
     """Convert AT URI to aturi.to link"""
     uri = at_uri.replace('at://', '')
-    return f'https://aturi.to/{uri}'
+    return f'https://aturi.to/profile/{uri}'
 
 # Usage
 at_uri = "at://alice.bsky..."
 link = to_aturi_link(at_uri)
-# https://aturi.to/alice.bsky...`}</pre>
+# https://aturi.to/profile/alice.bsky...`}</pre>
             </div>
           </div>
         </div>
