@@ -4,36 +4,40 @@ body {
 }
 
 .options-root {
-  display: grid;
-  /* `minmax(0, 1fr)` lets the content column actually shrink — a plain `1fr`
-     uses min-content as its floor, which a long un-breakable URL inside the
-     custom-waypoint preview can blow past, forcing horizontal scroll. */
-  grid-template-columns: 188px minmax(0, 1fr);
+  display: flex;
+  flex-direction: column;
   max-width: 1100px;
   margin: 0 auto;
   min-height: 100vh;
+  /* Prevent intrinsic min-content of nested grids/long URLs from forcing the
+     whole page to grow horizontally. */
+  min-width: 0;
 }
 
-.options-sidebar {
-  border-right: 1px solid var(--border-subtle);
-  padding: 28px 0;
-  background: var(--bg-secondary);
+.options-header {
   position: sticky;
   top: 0;
-  align-self: start;
-  min-height: 100vh;
+  z-index: 5;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-subtle);
+  padding: 14px 24px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
 .options-brand {
-  padding: 0 18px 18px;
-  border-bottom: 1px solid var(--border-subtle);
-  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
 }
 
 .options-brand-title {
   font-family: var(--font-serif);
   font-weight: 500;
   font-size: 20px;
+  line-height: 1;
   letter-spacing: -0.02em;
   display: inline-flex;
   align-items: center;
@@ -46,24 +50,24 @@ body {
 }
 
 .options-brand-sub {
-  font-size: 11px;
+  font-size: 10px;
+  line-height: 1;
   color: var(--text-tertiary);
   text-transform: uppercase;
-  letter-spacing: 0.1em;
-  margin-top: 2px;
+  letter-spacing: 0.14em;
+  /* Nudge down so the small caps optically center with the cap-height of
+     "Aturi" rather than its full ascender-to-descender box. */
+  transform: translateY(1px);
 }
 
 .options-nav {
   display: flex;
-  flex-direction: column;
+  flex-wrap: wrap;
+  gap: 2px;
+  margin: 0 -6px;
 }
 
 .options-nav-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 10px 18px;
-  text-align: left;
   background: transparent;
   border: none;
   color: var(--text-secondary);
@@ -71,30 +75,48 @@ body {
   font-family: var(--font-serif);
   font-size: 13.5px;
   font-weight: 400;
-  border-left: 2px solid transparent;
-  transition: all 0.2s ease;
-  position: relative;
+  padding: 8px 12px 10px;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+  white-space: nowrap;
 }
 
 .options-nav-item:hover {
-  background: var(--bg-tertiary);
   color: var(--text-primary);
+  background: var(--bg-tertiary);
 }
 
 .options-nav-item.active {
-  background: var(--bg-tertiary);
-  border-left-color: var(--text-accent);
   color: var(--text-primary);
+  border-bottom-color: var(--text-accent);
   font-weight: 500;
 }
 
 .options-content {
-  padding: 32px 36px;
+  padding: 28px 28px 40px;
   max-width: 880px;
+  width: 100%;
   /* Same reason as .options-root: prevent intrinsic min-content of children
      from forcing this block to grow beyond its container. */
   min-width: 0;
   overflow-x: hidden;
+  box-sizing: border-box;
+}
+
+@media (max-width: 560px) {
+  .options-header {
+    padding: 12px 16px 0;
+  }
+
+  .options-content {
+    padding: 22px 16px 32px;
+  }
+
+  .options-nav-item {
+    font-size: 13px;
+    padding: 8px 10px 10px;
+  }
 }
 
 .options-h1 {

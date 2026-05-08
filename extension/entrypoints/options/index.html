@@ -3,6 +3,13 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!--
+      Open the options page in a real tab. When this is false, Chromium
+      embeds the options inside chrome://extensions/?options=<id>, which
+      Arc browser does not implement, so chrome.runtime.openOptionsPage()
+      silently does nothing in Arc.
+    -->
+    <meta name="manifest.open_in_tab" content="true" />
     <title>Aturi Settings</title>
   </head>
   <body>

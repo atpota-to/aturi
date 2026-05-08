@@ -24,6 +24,24 @@ type PopupState =
   | { phase: 'unsupported'; prefs: Prefs; tabId: number | null; isKnownHost: boolean }
   | { phase: 'ready'; match: ReverseMatch; prefs: Prefs; tabId: number | null };
 
+// Open the extension's options page. We prefer browser.runtime.openOptionsPage()
+// because it focuses an existing options tab when one is already open. Some
+// Chromium-derived browsers (notably Arc) do not implement the chrome://extensions
+// surface that hosts embedded options, so the call can silently no-op. If it
+// throws or never resolves, fall back to opening options.html in a new tab.
+async function openOptionsPage() {
+  const fallbackUrl = browser.runtime.getURL('/options.html');
+  try {
+    const result = browser.runtime.openOptionsPage();
+    if (result && typeof (result as Promise<unknown>).then === 'function') {
+      await (result as Promise<unknown>);
+    }
+  } catch {
+    await browser.tabs.create({ url: fallbackUrl });
+  }
+  window.close();
+}
+
 export default function App() {
   const [state, setState] = useState<PopupState>({ phase: 'loading' });
   const [pendingId, setPendingId] = useState<string | null>(null);
@@ -288,7 +306,7 @@ function NoAtmosphereView({
         <div className="popup-empty">
           No destinations are visible. Add waypoints to a group in Settings.
           <div style={{ marginTop: 12 }}>
-            <button className="aturi-btn" type="button" onClick={() => browser.runtime.openOptionsPage()}>
+            <button className="aturi-btn" type="button" onClick={() => void openOptionsPage()}>
               Settings
             </button>
           </div>
@@ -334,7 +352,7 @@ function NoAtmosphereView({
             <button
               className="aturi-btn-ghost aturi-btn"
               type="button"
-              onClick={() => browser.runtime.openOptionsPage()}
+              onClick={() => void openOptionsPage()}
             >
               Settings
             </button>
@@ -492,7 +510,7 @@ function Ready({ match, prefs, pendingId, copiedId, onOpen, onCopy }: ReadyProps
 
       <div className="popup-footer">
         <CopyUriButton uri={parsed.uri} />
-        <button className="aturi-btn-ghost aturi-btn" onClick={() => browser.runtime.openOptionsPage()}>
+        <button className="aturi-btn-ghost aturi-btn" onClick={() => void openOptionsPage()}>
           Settings
         </button>
       </div>
@@ -581,7 +599,7 @@ function HeaderSettingsButton() {
     <button
       type="button"
       className="popup-header-settings"
-      onClick={() => browser.runtime.openOptionsPage()}
+      onClick={() => void openOptionsPage()}
       title="Open settings"
       aria-label="Open extension settings"
     >

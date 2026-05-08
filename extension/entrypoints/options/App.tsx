@@ -26,11 +26,11 @@ function AturiMark() {
   );
 }
 
-const TABS: { id: TabId; label: string; sub: string }[] = [
-  { id: 'defaults', label: 'General', sub: 'Auto-redirect & popup' },
-  { id: 'visibility', label: 'Waypoints', sub: 'Hide or show apps' },
-  { id: 'custom', label: 'Custom waypoints', sub: 'Add your own sites' },
-  { id: 'about', label: 'About', sub: 'Project, credits, feedback' },
+const TABS: { id: TabId; label: string }[] = [
+  { id: 'defaults', label: 'General' },
+  { id: 'visibility', label: 'Waypoints' },
+  { id: 'custom', label: 'Custom' },
+  { id: 'about', label: 'About' },
 ];
 
 export default function App() {
@@ -58,7 +58,7 @@ export default function App() {
 
   return (
     <div className="options-root">
-      <aside className="options-sidebar">
+      <header className="options-header">
         <div className="options-brand">
           <div className="options-brand-title">
             <AturiMark />
@@ -66,18 +66,20 @@ export default function App() {
           </div>
           <div className="options-brand-sub">Settings</div>
         </div>
-        <nav className="options-nav">
+        <nav className="options-nav" role="tablist">
           {TABS.map(t => (
             <button
               key={t.id}
+              role="tab"
+              aria-selected={tab === t.id}
               className={`options-nav-item ${tab === t.id ? 'active' : ''}`}
               onClick={() => setTab(t.id)}
             >
-              <span>{t.label}</span>
+              {t.label}
             </button>
           ))}
         </nav>
-      </aside>
+      </header>
 
       <main className="options-content">
         {tab === 'defaults' && <DefaultsTab prefs={prefs} onChange={update} />}
