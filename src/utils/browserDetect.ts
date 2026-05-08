@@ -8,18 +8,17 @@ export const BROWSER_LABELS: Record<Browser, string> = {
   other: 'browser',
 };
 
-// Until we have published store listings, all download buttons point back to
-// the main aturi.to homepage. Browsers we don't yet support (Edge, Safari) get
-// `null` so the UI falls back to the supported-browsers list.
+// Browsers we don't yet support (Edge, Safari) get `null` so the UI falls back
+// to the supported-browsers list. Firefox listing is pending review.
 export const EXTENSION_URLS: Record<Browser, string | null> = {
-  chrome: 'https://aturi.to',
-  firefox: 'https://aturi.to',
+  chrome: 'https://chromewebstore.google.com/detail/aturi/miblfaecnjbdoabhdmjfagocfokmpmnf',
+  firefox: null,
   edge: null,
   safari: null,
   other: null,
 };
 
-export const SUPPORTED_BROWSERS: Browser[] = ['chrome', 'firefox'];
+export const SUPPORTED_BROWSERS: Browser[] = ['chrome'];
 
 export function detectBrowser(): Browser {
   if (typeof navigator === 'undefined') return 'other';
