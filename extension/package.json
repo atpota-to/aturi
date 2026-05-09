@@ -1,7 +1,7 @@
 {
   "name": "aturi-extension",
   "description": "Aturi browser extension - fast travel across the Atmosphere",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "type": "module",
   "license": "GPL-3.0-or-later",
