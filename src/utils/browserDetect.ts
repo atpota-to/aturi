@@ -9,16 +9,16 @@ export const BROWSER_LABELS: Record<Browser, string> = {
 };
 
 // Browsers we don't yet support (Edge, Safari) get `null` so the UI falls back
-// to the supported-browsers list. Firefox listing is pending review.
+// to the supported-browsers list.
 export const EXTENSION_URLS: Record<Browser, string | null> = {
   chrome: 'https://chromewebstore.google.com/detail/aturi/miblfaecnjbdoabhdmjfagocfokmpmnf',
-  firefox: null,
+  firefox: 'https://addons.mozilla.org/en-US/firefox/addon/aturi/',
   edge: null,
   safari: null,
   other: null,
 };
 
-export const SUPPORTED_BROWSERS: Browser[] = ['chrome'];
+export const SUPPORTED_BROWSERS: Browser[] = ['chrome', 'firefox'];
 
 export function detectBrowser(): Browser {
   if (typeof navigator === 'undefined') return 'other';
