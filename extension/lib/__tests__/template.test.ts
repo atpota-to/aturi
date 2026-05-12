@@ -37,6 +37,23 @@ describe('templateToRegex', () => {
     expect(regex.test('/u.v/alice')).toBe(true);
     expect(regex.test('/uxv/alice')).toBe(false);
   });
+
+  it('is agnostic about a trailing slash on the URL', () => {
+    const { regex } = templateToRegex('/u/{handle}');
+    expect(regex.test('/u/alice')).toBe(true);
+    expect(regex.test('/u/alice/')).toBe(true);
+  });
+
+  it('is agnostic about a trailing slash on the template', () => {
+    const { regex } = templateToRegex('/u/{handle}/');
+    expect(regex.test('/u/alice')).toBe(true);
+    expect(regex.test('/u/alice/')).toBe(true);
+  });
+
+  it('still anchors the end - extra path segments do not match', () => {
+    const { regex } = templateToRegex('/u/{handle}');
+    expect(regex.test('/u/alice/extra')).toBe(false);
+  });
 });
 
 describe('matchCustomUrl', () => {
@@ -72,6 +89,22 @@ describe('matchCustomUrl', () => {
 
   it('handles www. prefix', () => {
     const match = matchCustomUrl(new URL('https://www.myapp.example/u/alice'), [cw]);
+    expect(match?.parsed.handle).toBe('alice');
+  });
+
+  it('matches a profile url with a trailing slash', () => {
+    const match = matchCustomUrl(new URL('https://myapp.example/u/alice/'), [cw]);
+    expect(match?.parsed.type).toBe('profile');
+    expect(match?.parsed.handle).toBe('alice');
+  });
+
+  it('matches when the template has a trailing slash but the url does not', () => {
+    const trailing: CustomWaypoint = {
+      ...cw,
+      templates: { profile: '/u/{handle}/' },
+      supportedTypes: ['profile'],
+    };
+    const match = matchCustomUrl(new URL('https://myapp.example/u/alice'), [trailing]);
     expect(match?.parsed.handle).toBe('alice');
   });
 });

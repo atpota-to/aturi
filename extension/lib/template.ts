@@ -35,23 +35,38 @@ function escapeRegex(input: string): string {
 }
 
 /**
+ * Strip a trailing `/` from a path/template, leaving a bare `/` alone so we
+ * don't accidentally turn the root into the empty string.
+ */
+function stripTrailingSlash(input: string): string {
+  if (input.length > 1 && input.endsWith('/')) {
+    return input.slice(0, -1);
+  }
+  return input;
+}
+
+/**
  * Compile a URL template into a regex that can match real URLs against it
  * (used for both reverse detection and for generating DNR regexSubstitution
  * strings). The returned `regex` has one capture group per token in order,
  * and `substitution` is the template with `{handle}` etc. replaced by `\1`
  * backrefs suitable for declarativeNetRequest regexSubstitution.
+ *
+ * Trailing slashes are normalised: a template ending in `/` matches URLs
+ * with or without one, and vice versa.
  */
 export function templateToRegex(template: string): CompiledTemplate {
+  const normalized = stripTrailingSlash(template);
   const tokenOrder: CompiledTemplate['tokenOrder'] = [];
   let regexSource = '';
   let substitution = '';
   let cursor = 0;
 
-  const matches = [...template.matchAll(TOKEN_REGEX)];
+  const matches = [...normalized.matchAll(TOKEN_REGEX)];
 
   for (const match of matches) {
     const idx = match.index ?? 0;
-    const literal = template.slice(cursor, idx);
+    const literal = normalized.slice(cursor, idx);
     regexSource += escapeRegex(literal);
     substitution += literal;
 
@@ -63,11 +78,11 @@ export function templateToRegex(template: string): CompiledTemplate {
     cursor = idx + match[0].length;
   }
 
-  const tail = template.slice(cursor);
+  const tail = normalized.slice(cursor);
   regexSource += escapeRegex(tail);
   substitution += tail;
 
-  const anchored = `^${regexSource}$`;
+  const anchored = normalized === '/' ? `^${regexSource}$` : `^${regexSource}/?$`;
   return {
     regex: new RegExp(anchored),
     tokenOrder,
@@ -85,7 +100,7 @@ export function matchCustomUrl(
   customWaypoints: CustomWaypoint[]
 ): ReverseMatch | null {
   const host = url.hostname.toLowerCase().replace(/^www\./, '');
-  const pathAndSearch = `${url.pathname}${url.search}`;
+  const pathAndSearch = `${stripTrailingSlash(url.pathname)}${url.search}`;
 
   for (const cw of customWaypoints) {
     const cwDomain = cw.domain.toLowerCase().replace(/^www\./, '');
