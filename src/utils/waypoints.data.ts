@@ -693,7 +693,19 @@ export function getCategorizedWaypointsData(type: WaypointType): CategorizedWayp
   const availableWaypoints = getWaypointDataForType(type);
   const categorized: CategorizedWaypointsData[] = [];
 
+  // Categories that are declared as subcategories of another category should
+  // not also appear as standalone top-level categories. Their waypoints will
+  // be rendered nested under their parent by the picker.
+  const subcategoryIds = new Set<string>();
+  for (const category of Object.values(WAYPOINT_CATEGORIES_DATA)) {
+    for (const subcat of category.subcategories ?? []) {
+      subcategoryIds.add(subcat.id);
+    }
+  }
+
   for (const categoryId of CATEGORY_ORDER) {
+    if (subcategoryIds.has(categoryId)) continue;
+
     const category = WAYPOINT_CATEGORIES_DATA[categoryId];
     const waypoints = availableWaypoints.filter(w => w.category === categoryId);
 
