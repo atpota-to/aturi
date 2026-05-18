@@ -9,6 +9,7 @@ import Header from '@/components/Header';
 import { parseURI, resolveHandle, getDisplayName } from '@/utils/uriParser';
 import { fetchRecordData } from '@/utils/recordFetcher';
 import { resolveDidToHandle } from '@/utils/didResolver';
+import { getPostOgImage } from '@/utils/postOgImage';
 
 type Props = {
   params: Promise<{ handle: string; rkey: string }>;
@@ -54,6 +55,24 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
         ? author.avatar.replace('/img/avatar/', '/img/avatar_thumbnail/')
         : '';
 
+      // Prefer the post's embedded media (photo/video/external thumb) so
+      // rich-link previewers (iMessage, Twitter, Slack, etc.) render the
+      // large image like bsky.app does. Fall back to the avatar thumbnail
+      // for text-only or quote-only posts.
+      const postOgImage = getPostOgImage(post);
+      const ogImage = postOgImage
+        ? {
+            url: postOgImage.url,
+            ...(postOgImage.alt ? { alt: postOgImage.alt } : {}),
+            ...(postOgImage.width && postOgImage.height
+              ? { width: postOgImage.width, height: postOgImage.height }
+              : {}),
+          }
+        : avatarThumb
+        ? { url: avatarThumb }
+        : null;
+      const twitterCard = postOgImage ? 'summary_large_image' : 'summary';
+
       const canonicalUrl = `https://aturi.to/profile/${author.handle}/post/${rkey}`;
       const atUri = `at://${resolvedDid}/${collection}/${rkey}`;
       const oembedUrl = `https://aturi.to/api/oembed?format=json&url=${encodeURIComponent(atUri)}`;
@@ -80,13 +99,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
           url: canonicalUrl,
           siteName: 'Aturi',
           ...(publishedTime ? { publishedTime } : {}),
-          ...(avatarThumb ? { images: [{ url: avatarThumb }] } : {}),
+          ...(ogImage ? { images: [ogImage] } : {}),
         },
         twitter: {
-          card: 'summary',
+          card: twitterCard,
           title: authorByline,
           description: postText || description,
-          ...(avatarThumb ? { images: [avatarThumb] } : {}),
+          ...(ogImage ? { images: [ogImage.url] } : {}),
         },
         other: {
           'profile:username': author.handle,
