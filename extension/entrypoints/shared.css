@@ -31,6 +31,11 @@
   --danger: #d97070;
   --danger-soft: rgba(217, 112, 112, 0.18);
 
+  /* Text on the dark accent backgrounds (primary buttons, active segmented
+     controls). --accent-forest is dark green in both themes, so this token
+     intentionally stays light in both themes too. */
+  --text-on-accent: #f0f0ee;
+
   --font-serif: 'Crimson Pro', Georgia, 'Times New Roman', serif;
   --font-mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
 
@@ -209,12 +214,13 @@ body > * {
 
 .aturi-btn-primary {
   background: var(--accent-forest);
-  color: var(--text-primary);
+  color: var(--text-on-accent);
   border-color: var(--text-accent);
 }
 
 .aturi-btn-primary:hover {
   background: var(--accent-moss);
+  color: var(--text-on-accent);
   box-shadow: 0 4px 20px var(--glow-medium);
   transform: translateY(-1px);
 }
