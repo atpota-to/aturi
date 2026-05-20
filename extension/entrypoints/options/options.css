@@ -36,7 +36,7 @@ body {
 .options-brand-title {
   font-family: var(--font-serif);
   font-weight: 500;
-  font-size: 20px;
+  font-size: var(--fs-display-sm);
   line-height: 1;
   letter-spacing: -0.02em;
   display: inline-flex;
@@ -50,9 +50,9 @@ body {
 }
 
 .options-brand-sub {
-  font-size: 10px;
+  font-size: var(--fs-xs);
   line-height: 1;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.14em;
   /* Nudge down so the small caps optically center with the cap-height of
@@ -73,7 +73,7 @@ body {
   color: var(--text-secondary);
   cursor: pointer;
   font-family: var(--font-serif);
-  font-size: 13.5px;
+  font-size: var(--fs-md);
   font-weight: 400;
   padding: 8px 12px 10px;
   border-bottom: 2px solid transparent;
@@ -114,14 +114,14 @@ body {
   }
 
   .options-nav-item {
-    font-size: 13px;
+    font-size: var(--fs-md);
     padding: 8px 10px 10px;
   }
 }
 
 .options-h1 {
   font-family: var(--font-serif);
-  font-size: 28px;
+  font-size: var(--fs-display);
   font-weight: 400;
   letter-spacing: -0.02em;
   margin: 0 0 6px;
@@ -132,7 +132,7 @@ body {
   font-family: var(--font-serif);
   color: var(--text-secondary);
   margin: 0 0 28px;
-  font-size: 14px;
+  font-size: var(--fs-lg);
   line-height: 1.6;
   max-width: 60ch;
 }
@@ -153,7 +153,7 @@ body {
 .options-card-title {
   font-family: var(--font-serif);
   font-weight: 500;
-  font-size: 16px;
+  font-size: var(--fs-xl);
   margin: 0 0 4px;
   color: var(--text-primary);
   letter-spacing: -0.01em;
@@ -161,8 +161,8 @@ body {
 
 .options-card-sub {
   font-family: var(--font-serif);
-  color: var(--text-tertiary);
-  font-size: 13px;
+  color: var(--text-secondary);
+  font-size: var(--fs-md);
   margin: 0 0 16px;
   line-height: 1.55;
   max-width: 65ch;
@@ -211,7 +211,65 @@ body {
 
 .aturi-switch.on .aturi-switch-box::after {
   transform: translateX(16px);
-  background: var(--text-accent);
+  /* The forest background is dark green in both themes, so we always use
+     a light thumb when on for legibility instead of the accent (which is
+     dark green in light mode and would disappear). */
+  background: #e8e8e6;
+}
+
+/* Appearance row (theme & font size segmented controls inside the General tab) */
+
+.appearance-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 8px 0;
+}
+
+.appearance-row + .appearance-row {
+  border-top: 1px solid var(--border-subtle);
+}
+
+.appearance-row-label {
+  font-family: var(--font-serif);
+  font-weight: 500;
+  font-size: var(--fs-md);
+  color: var(--text-primary);
+}
+
+.appearance-segmented {
+  display: inline-flex;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-tertiary);
+  overflow: hidden;
+}
+
+.appearance-segment {
+  font-family: var(--font-serif);
+  font-size: var(--fs-sm);
+  font-weight: 500;
+  color: var(--text-secondary);
+  background: transparent;
+  border: none;
+  padding: 7px 14px;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+  letter-spacing: 0.02em;
+}
+
+.appearance-segment + .appearance-segment {
+  border-left: 1px solid var(--border-subtle);
+}
+
+.appearance-segment:hover {
+  color: var(--text-primary);
+  background: var(--bg-elevated);
+}
+
+.appearance-segment.is-active {
+  background: var(--accent-forest);
+  color: var(--text-primary);
 }
 
 /* Defaults tab */
@@ -268,14 +326,14 @@ body {
 .defaults-family-name {
   font-family: var(--font-serif);
   font-weight: 500;
-  font-size: 14px;
+  font-size: var(--fs-lg);
   color: var(--text-primary);
   letter-spacing: -0.01em;
 }
 
 .defaults-family-desc {
-  color: var(--text-tertiary);
-  font-size: 12px;
+  color: var(--text-secondary);
+  font-size: var(--fs-sm);
   line-height: 1.4;
 }
 
@@ -314,14 +372,14 @@ body {
 .defaults-source-name {
   font-family: var(--font-serif);
   font-weight: 500;
-  font-size: 15px;
+  font-size: var(--fs-xl);
   color: var(--text-primary);
   letter-spacing: -0.01em;
 }
 
 .defaults-source-host {
-  color: var(--text-tertiary);
-  font-size: 11px;
+  color: var(--text-secondary);
+  font-size: var(--fs-xs);
   font-family: var(--font-mono);
   margin-top: 2px;
 }
@@ -336,9 +394,9 @@ body {
 .defaults-pertype-toggle {
   align-self: flex-start;
   font-family: var(--font-serif);
-  font-size: 12px;
+  font-size: var(--fs-sm);
   font-weight: 500;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   background: transparent;
   border: none;
   padding: 2px 0;
@@ -369,7 +427,7 @@ body {
 
 .defaults-pertype-label {
   font-family: var(--font-serif);
-  font-size: 12px;
+  font-size: var(--fs-sm);
   font-weight: 500;
   color: var(--text-secondary);
   letter-spacing: 0.02em;
@@ -401,7 +459,7 @@ body {
 .visibility-category {
   font-family: var(--font-serif);
   font-weight: 600;
-  font-size: 11px;
+  font-size: var(--fs-xs);
   color: var(--text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.08em;
@@ -421,7 +479,7 @@ body {
   padding: 12px 16px;
   font-family: var(--font-serif);
   font-weight: 600;
-  font-size: 11px;
+  font-size: var(--fs-xs);
   text-transform: uppercase;
   letter-spacing: 0.1em;
   color: var(--text-secondary);
@@ -492,7 +550,7 @@ body {
 
 .reorder-name {
   flex: 1;
-  font-size: 14px;
+  font-size: var(--fs-lg);
   color: var(--text-primary);
   display: inline-flex;
   align-items: center;
@@ -501,11 +559,11 @@ body {
 
 .reorder-tag {
   font-family: var(--font-serif);
-  font-size: 10px;
+  font-size: var(--fs-xs);
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   background: var(--bg-secondary);
   border: 1px solid var(--border-subtle);
   padding: 2px 8px;
@@ -602,7 +660,7 @@ body {
   padding: 4px 8px;
   font-family: var(--font-serif);
   font-weight: 600;
-  font-size: 13px;
+  font-size: var(--fs-md);
   color: var(--text-primary);
   text-transform: uppercase;
   letter-spacing: 0.06em;
@@ -622,7 +680,7 @@ body {
   padding: 4px 8px;
   font-family: var(--font-serif);
   font-weight: 600;
-  font-size: 13px;
+  font-size: var(--fs-md);
   color: var(--text-primary);
   text-transform: uppercase;
   letter-spacing: 0.06em;
@@ -632,8 +690,8 @@ body {
 
 .group-count {
   font-family: var(--font-mono);
-  font-size: 11px;
-  color: var(--text-tertiary);
+  font-size: var(--fs-xs);
+  color: var(--text-secondary);
   padding: 2px 8px;
   border: 1px solid var(--border-subtle);
   background: var(--bg-tertiary);
@@ -683,8 +741,8 @@ body {
 
 .group-empty {
   font-family: var(--font-serif);
-  font-size: 13px;
-  color: var(--text-tertiary);
+  font-size: var(--fs-md);
+  color: var(--text-secondary);
   padding: 14px 16px;
   font-style: italic;
 }
@@ -742,7 +800,7 @@ body {
 
 .group-row-name {
   flex: 1;
-  font-size: 14px;
+  font-size: var(--fs-lg);
   color: var(--text-primary);
   display: inline-flex;
   align-items: center;
@@ -806,7 +864,7 @@ body {
   color: var(--text-primary);
   padding: 6px 10px;
   font-family: var(--font-serif);
-  font-size: 13px;
+  font-size: var(--fs-md);
   outline: none;
   min-width: 0;
 }
@@ -834,7 +892,7 @@ body {
   text-align: left;
   cursor: pointer;
   font-family: var(--font-serif);
-  font-size: 13px;
+  font-size: var(--fs-md);
   transition: background 0.12s ease;
 }
 
@@ -864,7 +922,7 @@ body {
 
 .waypoint-picker-status {
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: var(--fs-xs);
   color: var(--text-accent);
   text-transform: uppercase;
   letter-spacing: 0.06em;
@@ -872,15 +930,15 @@ body {
 }
 
 .waypoint-picker-item.is-member .waypoint-picker-status {
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 
 .waypoint-picker-empty {
   padding: 14px 12px;
   font-family: var(--font-serif);
-  font-size: 13px;
+  font-size: var(--fs-md);
   font-style: italic;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   text-align: center;
 }
 
@@ -915,13 +973,13 @@ body {
 .custom-item-name {
   font-family: var(--font-serif);
   font-weight: 500;
-  font-size: 14px;
+  font-size: var(--fs-lg);
   color: var(--text-primary);
 }
 
 .custom-item-domain {
-  color: var(--text-tertiary);
-  font-size: 12px;
+  color: var(--text-secondary);
+  font-size: var(--fs-sm);
   font-family: var(--font-mono);
   margin-top: 2px;
 }
@@ -956,7 +1014,7 @@ body {
 .custom-template-row .custom-template-label {
   font-family: var(--font-serif);
   font-weight: 600;
-  font-size: 12px;
+  font-size: var(--fs-sm);
   color: var(--text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.06em;
@@ -967,7 +1025,7 @@ body {
   border: 1px solid var(--border-subtle);
   padding: 12px 14px;
   font-family: var(--font-mono);
-  font-size: 12px;
+  font-size: var(--fs-sm);
   color: var(--text-secondary);
   overflow-x: auto;
   white-space: nowrap;
@@ -975,8 +1033,8 @@ body {
 
 .custom-preview-label {
   font-family: var(--font-serif);
-  font-size: 11px;
-  color: var(--text-tertiary);
+  font-size: var(--fs-xs);
+  color: var(--text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.08em;
   margin-bottom: 6px;
@@ -999,7 +1057,7 @@ body {
   border: 1px solid var(--border-subtle);
   color: var(--text-primary);
   font-family: var(--font-serif);
-  font-size: 13px;
+  font-size: var(--fs-md);
   text-align: left;
   cursor: pointer;
   transition: border-color 0.15s ease;
@@ -1014,7 +1072,7 @@ body {
 }
 
 .search-select-trigger svg {
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   flex-shrink: 0;
 }
 
@@ -1053,7 +1111,7 @@ body {
   color: var(--text-primary);
   padding: 6px 10px;
   font-family: var(--font-serif);
-  font-size: 13px;
+  font-size: var(--fs-md);
   outline: none;
   box-sizing: border-box;
 }
@@ -1078,7 +1136,7 @@ body {
   border-bottom: 1px solid var(--border-subtle);
   color: var(--text-primary);
   font-family: var(--font-serif);
-  font-size: 13px;
+  font-size: var(--fs-md);
   cursor: pointer;
   transition: background 0.12s ease;
 }
@@ -1113,9 +1171,9 @@ body {
 .search-select-empty {
   padding: 14px 12px;
   font-family: var(--font-serif);
-  font-size: 13px;
+  font-size: var(--fs-md);
   font-style: italic;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   text-align: center;
 }
 
@@ -1149,20 +1207,20 @@ body {
 }
 
 .about-link-label {
-  font-size: 12px;
-  color: var(--text-tertiary);
+  font-size: var(--fs-sm);
+  color: var(--text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.06em;
   font-weight: 500;
 }
 
 .about-link:hover .about-link-label {
-  color: var(--text-secondary);
+  color: var(--text-primary);
 }
 
 .about-link-value {
   font-family: var(--font-mono);
-  font-size: 12px;
+  font-size: var(--fs-sm);
   color: inherit;
   text-align: right;
   word-break: break-all;
@@ -1170,7 +1228,7 @@ body {
 
 .about-code {
   font-family: var(--font-mono);
-  font-size: 12px;
+  font-size: var(--fs-sm);
   padding: 1px 6px;
   background: var(--bg-tertiary);
   border: 1px solid var(--border-subtle);
@@ -1180,8 +1238,8 @@ body {
 .about-version {
   margin-top: 12px;
   font-family: var(--font-mono);
-  font-size: 11px;
-  color: var(--text-tertiary);
+  font-size: var(--fs-xs);
+  color: var(--text-secondary);
   letter-spacing: 0.04em;
 }
 
@@ -1190,8 +1248,8 @@ body {
 .defaults-clear-recents {
   margin-top: 10px;
   padding: 4px 10px;
-  font-size: 12px;
-  color: var(--text-tertiary);
+  font-size: var(--fs-sm);
+  color: var(--text-secondary);
   border-color: var(--border-subtle);
 }
 
@@ -1205,7 +1263,7 @@ body {
 
 .token-hint {
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: var(--fs-xs);
   background: var(--bg-secondary);
   padding: 2px 8px;
   border: 1px solid var(--border-subtle);
@@ -1215,6 +1273,6 @@ body {
 
 .validation-error {
   color: var(--danger);
-  font-size: 12px;
+  font-size: var(--fs-sm);
   font-family: var(--font-serif);
 }

@@ -70,6 +70,64 @@ export default function DefaultsTab({ prefs, onChange }: Props) {
       </p>
 
       <div className="options-card">
+        <div className="options-card-title">Appearance</div>
+        <div className="options-card-sub">
+          Pick a color theme and text size. Changes apply immediately to the popup
+          and this settings page.
+        </div>
+
+        <div className="appearance-row">
+          <div className="appearance-row-label">Theme</div>
+          <div
+            className="appearance-segmented"
+            role="radiogroup"
+            aria-label="Color theme"
+          >
+            {(['dark', 'light'] as const).map(value => (
+              <button
+                key={value}
+                type="button"
+                role="radio"
+                aria-checked={prefs.theme === value}
+                className={`appearance-segment ${prefs.theme === value ? 'is-active' : ''}`}
+                onClick={() => onChange({ theme: value })}
+              >
+                {value === 'dark' ? 'Dark' : 'Light'}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="appearance-row">
+          <div className="appearance-row-label">Text size</div>
+          <div
+            className="appearance-segmented"
+            role="radiogroup"
+            aria-label="Text size"
+          >
+            {(
+              [
+                { value: 'small', label: 'Small' },
+                { value: 'medium', label: 'Medium' },
+                { value: 'large', label: 'Large' },
+              ] as const
+            ).map(opt => (
+              <button
+                key={opt.value}
+                type="button"
+                role="radio"
+                aria-checked={prefs.fontSize === opt.value}
+                className={`appearance-segment ${prefs.fontSize === opt.value ? 'is-active' : ''}`}
+                onClick={() => onChange({ fontSize: opt.value })}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div className="options-card">
         <div className="options-toggle-row">
           <div>
             <div className="options-card-title">Auto-redirect</div>

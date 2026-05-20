@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { loadPrefs, onPrefsChanged, savePrefs, type Prefs } from '../../lib/prefs';
+import { applyAppearance } from '../../lib/appearance';
 import DefaultsTab from './tabs/DefaultsTab';
 import VisibilityTab from './tabs/VisibilityTab';
 import CustomTab from './tabs/CustomTab';
@@ -14,7 +15,7 @@ function AturiMark() {
       height="18"
       viewBox="0 0 24 24"
       fill="none"
-      stroke="#8a9a7f"
+      stroke="currentColor"
       strokeWidth="2"
       strokeLinecap="round"
       strokeLinejoin="round"
@@ -42,6 +43,10 @@ export default function App() {
     const unsub = onPrefsChanged(setPrefs);
     return unsub;
   }, []);
+
+  useEffect(() => {
+    if (prefs) applyAppearance(prefs);
+  }, [prefs?.theme, prefs?.fontSize]);
 
   async function update(partial: Partial<Prefs>) {
     const next = await savePrefs(partial);

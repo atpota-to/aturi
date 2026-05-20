@@ -13,7 +13,8 @@ import {
   visibleWaypointIds,
   waypointHandlesContent,
 } from '../../lib/catalog';
-import { bumpRecent, loadPrefs, type Prefs } from '../../lib/prefs';
+import { bumpRecent, loadPrefs, onPrefsChanged, type Prefs } from '../../lib/prefs';
+import { applyAppearance } from '../../lib/appearance';
 import { resolveHandleToDid } from '../../lib/handleResolver';
 import { describeWaypoint } from '../../lib/describe';
 import { getWaypointHomePageUrl, homePageSubtitle } from '../../lib/homePage';
@@ -49,10 +50,22 @@ export default function App() {
 
   useEffect(() => {
     void init();
+    // Listen for prefs changes (e.g. user toggled theme in the options page
+    // while the popup was open) and re-apply appearance immediately.
+    const unsub = onPrefsChanged(next => {
+      applyAppearance(next);
+      setState(prev =>
+        prev.phase === 'ready' || prev.phase === 'unsupported'
+          ? { ...prev, prefs: next }
+          : prev
+      );
+    });
+    return unsub;
   }, []);
 
   async function init() {
     const prefs = await loadPrefs();
+    applyAppearance(prefs);
     const tab = await getActiveTab();
     const tabId = (tab?.id as number | undefined) ?? null;
     if (!tab?.url) {
@@ -235,7 +248,7 @@ function AturiMark() {
       height="16"
       viewBox="0 0 24 24"
       fill="none"
-      stroke="#8a9a7f"
+      stroke="currentColor"
       strokeWidth="2"
       strokeLinecap="round"
       strokeLinejoin="round"

@@ -123,6 +123,15 @@ export type Prefs = {
    * more entries fit on screen at once. Off by default.
    */
   compactMode: boolean;
+  /**
+   * Color theme for the popup and settings page. Dark by default.
+   */
+  theme: 'dark' | 'light';
+  /**
+   * Text size preset. Scales font sizes across the popup and settings page;
+   * `medium` is the new default and slightly larger than the previous baseline.
+   */
+  fontSize: 'small' | 'medium' | 'large';
 };
 
 const CUSTOM_GROUP_ID = 'custom';
@@ -144,6 +153,8 @@ export const DEFAULT_PREFS: Prefs = {
   showRecents: true,
   openInNewTab: false,
   compactMode: false,
+  theme: 'dark',
+  fontSize: 'medium',
 };
 
 /**

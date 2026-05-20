@@ -3,6 +3,16 @@ body {
   min-height: 220px;
 }
 
+[data-fs='large'] body {
+  /* Larger preset needs a touch more horizontal room so waypoint names and
+     subtitles don't truncate prematurely. */
+  width: 420px;
+}
+
+[data-fs='small'] body {
+  width: 360px;
+}
+
 .popup-root {
   display: flex;
   flex-direction: column;
@@ -24,7 +34,7 @@ body {
 .popup-title {
   font-family: var(--font-serif);
   font-weight: 500;
-  font-size: 18px;
+  font-size: var(--fs-2xl);
   letter-spacing: -0.01em;
   display: inline-flex;
   align-items: center;
@@ -44,8 +54,8 @@ body {
 
 .popup-tagline {
   font-family: var(--font-sans);
-  font-size: 10px;
-  color: var(--text-tertiary);
+  font-size: var(--fs-xs);
+  color: var(--text-secondary);
   text-align: right;
   white-space: nowrap;
   letter-spacing: 0;
@@ -59,9 +69,9 @@ body {
   padding: 0 9px;
   background: transparent;
   border: 1px solid var(--border-subtle);
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   font-family: var(--font-sans);
-  font-size: 11px;
+  font-size: var(--fs-xs);
   font-weight: 500;
   line-height: 1;
   letter-spacing: 0;
@@ -100,7 +110,7 @@ body {
   padding: 0;
   background: transparent;
   border: 1px solid var(--border-subtle);
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   cursor: pointer;
   transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
 }
@@ -120,8 +130,8 @@ body {
 }
 
 .popup-source {
-  font-size: 12px;
-  color: var(--text-tertiary);
+  font-size: var(--fs-sm);
+  color: var(--text-secondary);
   display: flex;
   flex-direction: column;
   align-items: flex-end;
@@ -148,8 +158,8 @@ body {
   white-space: nowrap;
   max-width: 100%;
   letter-spacing: 0;
-  font-size: 10px;
-  opacity: 0.85;
+  font-size: var(--fs-xs);
+  opacity: 0.95;
 }
 
 .popup-section {
@@ -163,7 +173,7 @@ body {
 .popup-notice {
   padding: 12px 18px;
   border-bottom: 1px solid var(--border-subtle);
-  font-size: 13px;
+  font-size: var(--fs-md);
   line-height: 1.45;
   color: var(--text-secondary);
   font-family: var(--font-serif);
@@ -176,9 +186,9 @@ body {
 }
 
 .popup-section-label {
-  font-size: 10px;
+  font-size: var(--fs-xs);
   font-weight: 600;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.1em;
   margin-bottom: 10px;
@@ -265,7 +275,7 @@ body {
   background: transparent;
   border: 0;
   border-left: 1px solid var(--border-subtle);
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   cursor: pointer;
   transition: background 0.2s ease, color 0.2s ease;
 }
@@ -306,14 +316,14 @@ body {
 
 .popup-waypoint-name {
   font-weight: 500;
-  font-size: 14px;
+  font-size: var(--fs-lg);
   color: var(--text-primary);
   letter-spacing: -0.01em;
 }
 
 .popup-waypoint-desc {
-  font-size: 12px;
-  color: var(--text-tertiary);
+  font-size: var(--fs-sm);
+  color: var(--text-secondary);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -324,7 +334,7 @@ body {
   padding: 28px 20px;
   text-align: center;
   color: var(--text-secondary);
-  font-size: 14px;
+  font-size: var(--fs-lg);
   font-family: var(--font-serif);
 }
 
@@ -336,7 +346,7 @@ body {
   padding: 10px 18px;
   border-top: 1px solid var(--border-subtle);
   background: var(--bg-secondary);
-  font-size: 12px;
+  font-size: var(--fs-sm);
   position: sticky;
   bottom: 0;
   z-index: 2;
@@ -351,8 +361,8 @@ body {
   padding: 6px 10px;
   background: transparent;
   border: 1px solid transparent;
-  color: var(--text-tertiary);
-  font-size: 11px;
+  color: var(--text-secondary);
+  font-size: var(--fs-xs);
   font-family: var(--font-mono);
   text-align: left;
   cursor: pointer;
@@ -362,7 +372,7 @@ body {
 .popup-uri:hover {
   background: var(--bg-tertiary);
   border-color: var(--border-subtle);
-  color: var(--text-secondary);
+  color: var(--text-primary);
 }
 
 .popup-uri:active {
@@ -374,7 +384,7 @@ body {
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 
 .popup-uri:hover .popup-uri-icon {
@@ -440,9 +450,9 @@ body {
 }
 
 .popup-recent-name {
-  font-size: 11px;
+  font-size: var(--fs-xs);
   font-weight: 500;
-  color: var(--text-secondary);
+  color: var(--text-primary);
   text-align: center;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -465,7 +475,7 @@ body {
   border: 1px solid var(--border-subtle);
   font-family: var(--font-serif);
   font-weight: 600;
-  font-size: 12px;
+  font-size: var(--fs-sm);
   color: var(--text-accent);
 }
 
@@ -506,11 +516,11 @@ body {
 .popup-root.is-compact .popup-icon-letter {
   width: 18px;
   height: 18px;
-  font-size: 10px;
+  font-size: var(--fs-xs);
 }
 
 .popup-root.is-compact .popup-waypoint-name {
-  font-size: 13px;
+  font-size: var(--fs-md);
 }
 
 .popup-root.is-compact .popup-waypoint-desc {
