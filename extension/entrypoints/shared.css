@@ -12,26 +12,41 @@
   --accent-bark: #3d3329;
   --accent-stone: #4a4a46;
 
-  --text-primary: #e8e8e6;
-  --text-secondary: #a8a8a6;
-  --text-tertiary: #686866;
-  --text-accent: #8a9a7f;
+  /* Text colors — secondary and tertiary brightened from #a8a8a6/#686866
+     so secondary copy and "subtle" labels remain legible against the very
+     dark backgrounds. */
+  --text-primary: #f0f0ee;
+  --text-secondary: #c4c4c0;
+  --text-tertiary: #9a9a96;
+  --text-accent: #a8b89c;
 
-  --glow-subtle: rgba(138, 154, 127, 0.05);
-  --glow-medium: rgba(138, 154, 127, 0.1);
-  --glow-strong: rgba(138, 154, 127, 0.2);
+  --glow-subtle: rgba(168, 184, 156, 0.06);
+  --glow-medium: rgba(168, 184, 156, 0.12);
+  --glow-strong: rgba(168, 184, 156, 0.22);
 
-  --border-subtle: rgba(232, 232, 230, 0.08);
-  --border-medium: rgba(232, 232, 230, 0.12);
-  --border-strong: rgba(232, 232, 230, 0.16);
+  --border-subtle: rgba(240, 240, 238, 0.12);
+  --border-medium: rgba(240, 240, 238, 0.18);
+  --border-strong: rgba(240, 240, 238, 0.24);
 
-  --danger: #c46161;
-  --danger-soft: rgba(196, 97, 97, 0.15);
+  --danger: #d97070;
+  --danger-soft: rgba(217, 112, 112, 0.18);
 
   --font-serif: 'Crimson Pro', Georgia, 'Times New Roman', serif;
   --font-mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
 
-  /* Backwards-compat aliases used by SVG components etc. */
+  /* Font-size scale. Overridden per-element below; the [data-fs] selectors
+     bump everything up or down together so the popup and settings page
+     respond to the user's font-size preset in one place. */
+  --fs-xs: 11px;
+  --fs-sm: 12px;
+  --fs-md: 13px;
+  --fs-base: 15px;
+  --fs-lg: 14px;
+  --fs-xl: 16px;
+  --fs-2xl: 19px;
+  --fs-display-sm: 22px;
+  --fs-display: 30px;
+
   --bg: var(--bg-primary);
   --bg-muted: var(--bg-secondary);
   --fg: var(--text-primary);
@@ -42,6 +57,61 @@
   --accent-fg: var(--bg-primary);
   --shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
   color-scheme: dark;
+}
+
+[data-fs='small'] {
+  --fs-xs: 10px;
+  --fs-sm: 11px;
+  --fs-md: 12px;
+  --fs-base: 13px;
+  --fs-lg: 13px;
+  --fs-xl: 14px;
+  --fs-2xl: 17px;
+  --fs-display-sm: 19px;
+  --fs-display: 26px;
+}
+
+[data-fs='large'] {
+  --fs-xs: 12px;
+  --fs-sm: 13px;
+  --fs-md: 14px;
+  --fs-base: 17px;
+  --fs-lg: 16px;
+  --fs-xl: 18px;
+  --fs-2xl: 22px;
+  --fs-display-sm: 25px;
+  --fs-display: 34px;
+}
+
+[data-theme='light'] {
+  --bg-primary: #faf8f3;
+  --bg-secondary: #f1ede4;
+  --bg-tertiary: #e8e2d4;
+  --bg-elevated: #ffffff;
+
+  --accent-moss: #6c7c5f;
+  --accent-forest: #4d5a48;
+  --accent-bark: #6e5f4c;
+  --accent-stone: #76766f;
+
+  --text-primary: #1a1c18;
+  --text-secondary: #3e3f3a;
+  --text-tertiary: #5c5d56;
+  --text-accent: #4d5e3f;
+
+  --glow-subtle: rgba(77, 94, 63, 0.05);
+  --glow-medium: rgba(77, 94, 63, 0.1);
+  --glow-strong: rgba(77, 94, 63, 0.18);
+
+  --border-subtle: rgba(26, 28, 24, 0.14);
+  --border-medium: rgba(26, 28, 24, 0.22);
+  --border-strong: rgba(26, 28, 24, 0.32);
+
+  --danger: #b5453e;
+  --danger-soft: rgba(181, 69, 62, 0.12);
+
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+  color-scheme: light;
 }
 
 * {
@@ -56,7 +126,7 @@ body {
   color: var(--text-primary);
   font-family: var(--font-serif);
   font-weight: 400;
-  font-size: 14px;
+  font-size: var(--fs-base);
   line-height: 1.55;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -102,8 +172,8 @@ body::before {
   z-index: 0;
   pointer-events: none;
   background:
-    radial-gradient(circle at 20% 20%, rgba(138, 154, 127, 0.08) 0%, transparent 60%),
-    radial-gradient(circle at 80% 80%, rgba(74, 90, 63, 0.07) 0%, transparent 60%);
+    radial-gradient(circle at 20% 20%, var(--glow-medium) 0%, transparent 60%),
+    radial-gradient(circle at 80% 80%, var(--glow-subtle) 0%, transparent 60%);
   filter: blur(60px);
   opacity: 0.9;
 }
@@ -123,7 +193,7 @@ body > * {
   color: var(--text-primary);
   border: 1px solid var(--border-subtle);
   font-family: var(--font-serif);
-  font-size: 13px;
+  font-size: var(--fs-md);
   font-weight: 400;
   cursor: pointer;
   transition: all 0.3s ease;
@@ -181,18 +251,25 @@ body > * {
   color: var(--text-primary);
   border: 1px solid var(--border-subtle);
   font-family: var(--font-serif);
-  font-size: 13px;
+  font-size: var(--fs-md);
   transition: border-color 0.2s ease, background 0.2s ease;
 }
 
 .aturi-select {
   appearance: none;
   -webkit-appearance: none;
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238a9a7f' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>");
+  /* Chevron is drawn with two diagonal linear-gradients so it picks up the
+     current `--text-accent` in both themes instead of being baked into a
+     data-URI SVG. */
+  background-image:
+    linear-gradient(45deg, transparent 50%, var(--text-accent) 50%),
+    linear-gradient(135deg, var(--text-accent) 50%, transparent 50%);
+  background-position:
+    calc(100% - 16px) calc(50% + 1px),
+    calc(100% - 12px) calc(50% + 1px);
+  background-size: 5px 5px, 5px 5px;
   background-repeat: no-repeat;
-  background-position: right 10px center;
-  background-size: 14px;
-  padding-right: 32px;
+  padding-right: 30px;
 }
 
 .aturi-input:hover,
@@ -209,7 +286,7 @@ body > * {
 
 .aturi-label {
   display: block;
-  font-size: 11px;
+  font-size: var(--fs-xs);
   font-weight: 600;
   color: var(--text-secondary);
   margin-bottom: 6px;
@@ -224,7 +301,7 @@ body > * {
 
 .aturi-subtle {
   color: var(--text-tertiary);
-  font-size: 12px;
+  font-size: var(--fs-sm);
 }
 
 .aturi-hr {
