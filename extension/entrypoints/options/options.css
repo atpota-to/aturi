@@ -269,7 +269,7 @@ body {
 
 .appearance-segment.is-active {
   background: var(--accent-forest);
-  color: var(--text-primary);
+  color: var(--text-on-accent);
 }
 
 /* Defaults tab */
@@ -496,7 +496,7 @@ body {
 
 .reorder-header.is-drop-target {
   background: var(--accent-forest);
-  color: var(--text-primary);
+  color: var(--text-on-accent);
   border-color: var(--text-accent);
 }
 
