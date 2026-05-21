@@ -182,7 +182,7 @@ export default function CreatePage() {
                 style={{
                   padding: '1rem 2rem',
                   background: input.trim() ? 'var(--accent-moss)' : 'var(--bg-tertiary)',
-                  color: input.trim() ? 'var(--text-primary)' : 'var(--text-tertiary)',
+                  color: input.trim() ? 'var(--text-on-accent)' : 'var(--text-tertiary)',
                   border: '1px solid',
                   borderColor: input.trim() ? 'var(--accent-forest)' : 'var(--border-medium)',
                   fontSize: '1rem',
@@ -295,7 +295,7 @@ export default function CreatePage() {
                     minWidth: '200px',
                     padding: '0.875rem 1.5rem',
                     background: copied ? 'var(--accent-moss)' : 'var(--bg-tertiary)',
-                    color: 'var(--text-primary)',
+                    color: copied ? 'var(--text-on-accent)' : 'var(--text-primary)',
                     border: '1px solid',
                     borderColor: copied ? 'var(--accent-forest)' : 'var(--border-strong)',
                     fontSize: '0.95rem',

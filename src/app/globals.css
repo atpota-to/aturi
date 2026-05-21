@@ -6,32 +6,83 @@
   --bg-secondary: #151515;
   --bg-tertiary: #1a1a1a;
   --bg-elevated: #202020;
-  
+
   /* Natural, organic accent colors */
   --accent-moss: #4a5a3f;
   --accent-forest: #2d3a28;
   --accent-bark: #3d3329;
   --accent-stone: #4a4a46;
-  
+
   /* Text colors - muted and calm */
   --text-primary: #e8e8e6;
   --text-secondary: #a8a8a6;
   --text-tertiary: #686866;
   --text-accent: #8a9a7f;
-  
+
   /* Ambient glow effects */
   --glow-subtle: rgba(138, 154, 127, 0.05);
   --glow-medium: rgba(138, 154, 127, 0.1);
   --glow-strong: rgba(138, 154, 127, 0.2);
-  
+
   /* Borders - subtle and organic */
   --border-subtle: rgba(232, 232, 230, 0.08);
   --border-medium: rgba(232, 232, 230, 0.12);
   --border-strong: rgba(232, 232, 230, 0.16);
-  
+
+  /* Page-level ambient glow used by body::before. Tuned moodier than the
+     standard glow tokens so the dark backdrop reads atmospheric; overridden
+     in [data-theme='light'] below. */
+  --page-glow-a: rgba(138, 154, 127, 0.25);
+  --page-glow-b: rgba(74, 90, 63, 0.22);
+  --page-glow-c: rgba(138, 154, 127, 0.18);
+
+  /* Opacity for the global noise overlay. Lower in light mode so paper
+     backgrounds don't look gritty. */
+  --noise-opacity: 0.6;
+
+  /* Text drawn on the dark-green primary buttons / active toggles. The
+     accent backgrounds stay dark in both themes, so this token does too. */
+  --text-on-accent: #f0f0ee;
+
   /* Typography scale */
   --font-serif: 'Crimson Pro', serif;
   --font-mono: 'IBM Plex Mono', monospace;
+
+  color-scheme: dark;
+}
+
+[data-theme='light'] {
+  --bg-primary: #faf8f3;
+  --bg-secondary: #f1ede4;
+  --bg-tertiary: #e8e2d4;
+  --bg-elevated: #ffffff;
+
+  --accent-moss: #6c7c5f;
+  --accent-forest: #4d5a48;
+  --accent-bark: #6e5f4c;
+  --accent-stone: #76766f;
+
+  --text-primary: #1a1c18;
+  --text-secondary: #3e3f3a;
+  --text-tertiary: #5c5d56;
+  --text-accent: #4d5e3f;
+
+  --glow-subtle: rgba(77, 94, 63, 0.05);
+  --glow-medium: rgba(77, 94, 63, 0.1);
+  --glow-strong: rgba(77, 94, 63, 0.18);
+
+  --border-subtle: rgba(26, 28, 24, 0.14);
+  --border-medium: rgba(26, 28, 24, 0.22);
+  --border-strong: rgba(26, 28, 24, 0.32);
+
+  /* Softer page glow so the paper backdrop reads warm but not muddy. */
+  --page-glow-a: rgba(77, 94, 63, 0.14);
+  --page-glow-b: rgba(110, 95, 76, 0.12);
+  --page-glow-c: rgba(77, 94, 63, 0.1);
+
+  --noise-opacity: 0.25;
+
+  color-scheme: light;
 }
 
 * {
@@ -76,10 +127,10 @@ body::before {
   width: 140%;
   z-index: 0;
   pointer-events: none;
-  background: 
-    radial-gradient(circle at 20% 30%, rgba(138, 154, 127, 0.25) 0%, transparent 50%),
-    radial-gradient(circle at 80% 70%, rgba(74, 90, 63, 0.22) 0%, transparent 50%),
-    radial-gradient(circle at 50% 50%, rgba(138, 154, 127, 0.18) 0%, transparent 60%);
+  background:
+    radial-gradient(circle at 20% 30%, var(--page-glow-a) 0%, transparent 50%),
+    radial-gradient(circle at 80% 70%, var(--page-glow-b) 0%, transparent 50%),
+    radial-gradient(circle at 50% 50%, var(--page-glow-c) 0%, transparent 60%);
   filter: blur(90px);
   animation: organicBreathe 8s ease-in-out infinite, organicShift 12s ease-in-out infinite;
   will-change: transform, opacity, filter;
@@ -451,7 +502,7 @@ body::after {
   position: fixed;
   inset: 0;
   background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 800 800' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.8' numOctaves='5' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
-  opacity: 0.6;
+  opacity: var(--noise-opacity);
   pointer-events: none;
   z-index: 9999;
 }
@@ -537,7 +588,7 @@ html {
 /* Selection */
 ::selection {
   background: var(--accent-moss);
-  color: var(--text-primary);
+  color: var(--text-on-accent);
 }
 
 /* Focus styles */

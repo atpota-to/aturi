@@ -591,7 +591,7 @@ vercel
               padding: '0.875rem 1.75rem',
               background: 'var(--accent-moss)',
               border: '1px solid var(--accent-forest)',
-              color: 'var(--text-primary)',
+              color: 'var(--text-on-accent)',
               textDecoration: 'none',
               fontSize: '1rem',
               transition: 'all 0.3s ease',
