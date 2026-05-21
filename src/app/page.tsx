@@ -1,38 +1,15 @@
 'use client';
 
-import { useState } from 'react';
 import Link from 'next/link';
-import { ArrowRight, Link2, Sparkles, Check, MousePointerClick, Repeat } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { ArrowRight, Link2, Sparkles, MousePointerClick, Repeat } from 'lucide-react';
 import Header from '@/components/Header';
 import DownloadCTA from '@/components/DownloadCTA';
 import { StaggeredChildren, StaggerItem } from '@/components/StaggeredChildren';
 import { FadeIn } from '@/components/FadeIn';
-import { convertToAturiLink } from '@/utils/linkGenerator';
 import { getWaypointCount } from '@/utils/waypoints';
 
 export default function HomePage() {
-  const [quickInput, setQuickInput] = useState('');
-  const [quickGenerated, setQuickGenerated] = useState<string | null>(null);
-  const [quickCopied, setQuickCopied] = useState(false);
   const waypointCount = getWaypointCount();
-
-  const handleQuickGenerate = async () => {
-    if (!quickInput.trim()) return;
-    
-    const link = await convertToAturiLink(quickInput, false, true); // preferDid = true
-    if (link) {
-      setQuickGenerated(link);
-      // Auto copy to clipboard
-      navigator.clipboard.writeText(link);
-      setQuickCopied(true);
-      setTimeout(() => {
-        setQuickCopied(false);
-        setQuickGenerated(null);
-        setQuickInput('');
-      }, 3000);
-    }
-  };
 
   return (
     <div style={{ position: 'relative', overflow: 'hidden' }}>
@@ -43,108 +20,6 @@ export default function HomePage() {
 
       {/* Primary CTA: Download Extension */}
       <DownloadCTA />
-
-      {/* Quick Link Creator */}
-      <motion.div
-        initial={{ opacity: 0, y: 30 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, delay: 0.4, ease: [0.34, 1.56, 0.64, 1] as [number, number, number, number] }}
-        style={{ 
-          maxWidth: '700px', 
-          margin: '0 auto 3rem',
-          padding: '0 2rem'
-        }}
-      >
-        <div 
-          style={{
-            padding: '1.5rem',
-            background: 'var(--bg-secondary)',
-            border: '1px solid var(--border-medium)',
-            transform: 'rotate(0.3deg)',
-            transition: 'all 0.4s ease',
-            position: 'relative'
-          }}
-          className="card"
-        >
-          <div style={{
-            display: 'flex',
-            gap: '0.75rem',
-            alignItems: 'stretch',
-            flexWrap: 'wrap'
-          }}>
-            <input
-              type="text"
-              value={quickInput}
-              onChange={(e) => setQuickInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  e.preventDefault();
-                  handleQuickGenerate();
-                }
-              }}
-              placeholder="Paste any URL or AT URI from Bluesky, Deer, Witchsky, or any other Atmosphere app..."
-              style={{
-                flex: 1,
-                minWidth: '250px',
-                padding: '0.875rem 1rem',
-                background: 'var(--bg-primary)',
-                border: '1px solid var(--border-medium)',
-                color: 'var(--text-primary)',
-                fontSize: '0.9rem',
-                fontFamily: 'var(--font-mono)',
-                transition: 'all 0.3s ease',
-              }}
-              onFocus={(e) => {
-                e.target.style.borderColor = 'var(--text-accent)';
-                e.target.style.outline = 'none';
-              }}
-              onBlur={(e) => {
-                e.target.style.borderColor = 'var(--border-medium)';
-              }}
-            />
-
-            <button
-              onClick={handleQuickGenerate}
-              disabled={!quickInput.trim()}
-              className="generate-button"
-              style={{
-                padding: '0.875rem 1.5rem',
-                background: quickInput.trim() ? 'var(--accent-moss)' : 'var(--bg-tertiary)',
-                color: quickInput.trim() ? 'var(--text-on-accent)' : 'var(--text-tertiary)',
-                border: '1px solid',
-                borderColor: quickInput.trim() ? 'var(--accent-forest)' : 'var(--border-medium)',
-                fontSize: '0.9rem',
-                fontWeight: 400,
-                cursor: quickInput.trim() ? 'pointer' : 'not-allowed',
-                transition: 'all 0.3s ease',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.5rem',
-                whiteSpace: 'nowrap'
-              }}
-            >
-              {quickCopied ? <Check size={16} /> : <Link2 size={16} />}
-              <span>{quickCopied ? 'Copied!' : 'Create'}</span>
-            </button>
-          </div>
-
-          {quickGenerated && (
-            <div style={{
-              marginTop: '1rem',
-              padding: '0.875rem 1rem',
-              background: 'var(--bg-primary)',
-              border: '1px solid var(--border-strong)',
-              fontFamily: 'var(--font-mono)',
-              fontSize: '0.85rem',
-              color: 'var(--text-accent)',
-              wordBreak: 'break-all',
-              animation: 'content-appear 0.3s ease-out'
-            }}>
-              {quickGenerated}
-            </div>
-          )}
-        </div>
-      </motion.div>
 
       {/* Main Content - Asymmetric Layout */}
       <div style={{ 
