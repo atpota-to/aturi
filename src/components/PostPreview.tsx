@@ -5,6 +5,7 @@
 
 'use client';
 
+import { useRouter } from 'next/navigation';
 import { BskyPost } from '@/utils/recordFetcher';
 import { sanitizeFacetLink, sanitizeDid, sanitizeHashtag, sanitizeUrl, sanitizeHandle } from '@/utils/sanitize';
 import { User, MessageSquare, Repeat2, Heart, Quote, Play, CornerDownRight } from 'lucide-react';
@@ -14,7 +15,18 @@ type PostPreviewProps = {
   parent?: BskyPost;
 };
 
+// Build a canonical post URL from an AT URI and the post's author.
+// Returns null if either piece is missing or doesn't sanitize to a valid identifier.
+const buildPostUrl = (uri?: string, author?: { did?: string; handle?: string }): string | null => {
+  if (!uri || !author) return null;
+  const rkey = uri.split('/').pop();
+  const id = sanitizeDid(author.did) || sanitizeHandle(author.handle);
+  if (!rkey || !id) return null;
+  return `/profile/${id}/post/${rkey}`;
+};
+
 export default function PostPreview({ post, parent }: PostPreviewProps) {
+  const router = useRouter();
   const { author, record, embed, replyCount, repostCount, likeCount, quoteCount } = post;
 
   // Format the date nicely
@@ -52,20 +64,43 @@ export default function PostPreview({ post, parent }: PostPreviewProps) {
     const qAuthor = quotedPost.author;
     const qRecord = quotedPost.value || quotedPost.record || {};
     const qEmbeds = quotedPost.embeds || [];
+    const quoteUrl = buildPostUrl(quotedPost.uri, qAuthor);
 
     return (
       <div
+        {...(quoteUrl
+          ? {
+              role: 'link',
+              tabIndex: 0,
+              onClick: () => router.push(quoteUrl),
+              onKeyDown: (e: React.KeyboardEvent<HTMLDivElement>) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  router.push(quoteUrl);
+                }
+              },
+              onMouseEnter: (e: React.MouseEvent<HTMLDivElement>) => {
+                e.currentTarget.style.borderColor = 'var(--text-accent)';
+              },
+              onMouseLeave: (e: React.MouseEvent<HTMLDivElement>) => {
+                e.currentTarget.style.borderColor = 'var(--border-medium)';
+              },
+            }
+          : {})}
         style={{
           border: '1px solid var(--border-medium)',
           padding: '1rem',
           marginBottom: '1rem',
           background: 'var(--bg-tertiary)',
+          transition: 'border-color 0.2s ease',
+          ...(quoteUrl ? { cursor: 'pointer' } : {}),
         }}
       >
         {/* Quoted post author */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
           <a
             href={qAuthor?.did || qAuthor?.handle ? `/${sanitizeDid(qAuthor.did) || sanitizeHandle(qAuthor.handle)}` : '#'}
+            onClick={(e) => e.stopPropagation()}
             style={{ textDecoration: 'none', flexShrink: 0 }}
           >
             {qAuthor?.avatar ? (
@@ -121,6 +156,7 @@ export default function PostPreview({ post, parent }: PostPreviewProps) {
           <div style={{ fontSize: '0.875rem' }}>
             <a
               href={qAuthor?.did || qAuthor?.handle ? `/${sanitizeDid(qAuthor.did) || sanitizeHandle(qAuthor.handle)}` : '#'}
+              onClick={(e) => e.stopPropagation()}
               style={{
                 fontWeight: '600',
                 color: 'var(--text-primary)',
@@ -141,6 +177,7 @@ export default function PostPreview({ post, parent }: PostPreviewProps) {
                 {' '}
                 <a
                   href={qAuthor.did || qAuthor.handle ? `/${sanitizeDid(qAuthor.did) || sanitizeHandle(qAuthor.handle)}` : '#'}
+                  onClick={(e) => e.stopPropagation()}
                   style={{
                     color: 'var(--text-tertiary)',
                     textDecoration: 'none',
@@ -196,7 +233,8 @@ export default function PostPreview({ post, parent }: PostPreviewProps) {
                       href={sanitizedFullsize}
                       target="_blank"
                       rel="noopener noreferrer"
-                      style={{ 
+                      onClick={(e) => e.stopPropagation()}
+                      style={{
                         display: 'block',
                         overflow: 'hidden',
                       }}
@@ -226,13 +264,14 @@ export default function PostPreview({ post, parent }: PostPreviewProps) {
           if (qEmbed.$type === 'app.bsky.embed.external#view' && qEmbed.external) {
             const sanitizedExtUrl = sanitizeUrl(qEmbed.external.uri);
             if (sanitizedExtUrl === '#') return null; // Skip invalid URLs
-            
+
             return (
               <a
                 key={idx}
                 href={sanitizedExtUrl}
                 target="_blank"
                 rel="noopener noreferrer"
+                onClick={(e) => e.stopPropagation()}
                 style={{
                   display: 'block',
                   marginTop: '0.5rem',
@@ -287,6 +326,7 @@ export default function PostPreview({ post, parent }: PostPreviewProps) {
             return (
               <div
                 key={idx}
+                onClick={(e) => e.stopPropagation()}
                 style={{
                   marginTop: '0.5rem',
                   background: 'var(--bg-secondary)',
@@ -473,9 +513,23 @@ export default function PostPreview({ post, parent }: PostPreviewProps) {
   return (
     <>
       {/* Parent Post Context - shown if this is a reply */}
-      {parent && (
-        <a
-          href={`/${parent.author.did || parent.author.handle}/app.bsky.feed.post/${parent.uri.split('/').pop()}`}
+      {parent && (() => {
+        const parentUrl = buildPostUrl(parent.uri, parent.author);
+        return (
+        <div
+          {...(parentUrl
+            ? {
+                role: 'link',
+                tabIndex: 0,
+                onClick: () => router.push(parentUrl),
+                onKeyDown: (e: React.KeyboardEvent<HTMLDivElement>) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    router.push(parentUrl);
+                  }
+                },
+              }
+            : {})}
           style={{
             display: 'block',
             textDecoration: 'none',
@@ -509,6 +563,7 @@ export default function PostPreview({ post, parent }: PostPreviewProps) {
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
             <a
               href={`/${sanitizeDid(parent.author.did) || sanitizeHandle(parent.author.handle)}`}
+              onClick={(e) => e.stopPropagation()}
               style={{ textDecoration: 'none', flexShrink: 0 }}
             >
               {parent.author.avatar ? (
@@ -564,6 +619,7 @@ export default function PostPreview({ post, parent }: PostPreviewProps) {
             <div style={{ flex: 1, minWidth: 0 }}>
               <a
                 href={`/${sanitizeDid(parent.author.did) || sanitizeHandle(parent.author.handle)}`}
+                onClick={(e) => e.stopPropagation()}
                 style={{
                   fontWeight: '600',
                   color: 'var(--text-primary)',
@@ -585,6 +641,7 @@ export default function PostPreview({ post, parent }: PostPreviewProps) {
               <div style={{ fontSize: '0.875rem', lineHeight: '1.2' }}>
                 <a
                   href={`/${sanitizeDid(parent.author.did) || sanitizeHandle(parent.author.handle)}`}
+                  onClick={(e) => e.stopPropagation()}
                   style={{
                     color: 'var(--text-tertiary)',
                     textDecoration: 'none',
@@ -641,7 +698,8 @@ export default function PostPreview({ post, parent }: PostPreviewProps) {
                       href={image.fullsize}
                       target="_blank"
                       rel="noopener noreferrer"
-                      style={{ 
+                      onClick={(e) => e.stopPropagation()}
+                      style={{
                         display: 'block',
                         overflow: 'hidden',
                       }}
@@ -671,6 +729,7 @@ export default function PostPreview({ post, parent }: PostPreviewProps) {
                   href={parent.embed.external.uri}
                   target="_blank"
                   rel="noopener noreferrer"
+                  onClick={(e) => e.stopPropagation()}
                   style={{
                     display: 'block',
                     border: '1px solid var(--border-medium)',
@@ -710,6 +769,7 @@ export default function PostPreview({ post, parent }: PostPreviewProps) {
               {/* Video */}
               {parent.embed.$type === 'app.bsky.embed.video#view' && parent.embed.playlist && (
                 <div
+                  onClick={(e) => e.stopPropagation()}
                   style={{
                     background: 'var(--bg-secondary)',
                     overflow: 'hidden',
@@ -732,8 +792,9 @@ export default function PostPreview({ post, parent }: PostPreviewProps) {
               )}
             </>
           )}
-        </a>
-      )}
+        </div>
+        );
+      })()}
 
       <div
         style={{
