@@ -59,7 +59,7 @@ export default function ScrollIndicator({
           alignItems: 'center',
           gap: '0.5rem',
           padding: '1rem 1.75rem 1.25rem',
-          background: 'rgba(15, 15, 15, 0.85)',
+          background: 'var(--bg-overlay)',
           backdropFilter: 'blur(12px)',
           WebkitBackdropFilter: 'blur(12px)',
           border: '1px solid var(--border-subtle)',
@@ -68,21 +68,21 @@ export default function ScrollIndicator({
           transition: 'all 0.4s ease',
           position: 'relative',
           overflow: 'hidden',
-          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.03)',
+          boxShadow: 'var(--shadow-overlay)',
         }}
         onMouseEnter={(e) => {
-          e.currentTarget.style.background = 'rgba(18, 18, 18, 0.9)';
+          e.currentTarget.style.background = 'var(--bg-overlay-hover)';
           e.currentTarget.style.borderColor = 'var(--border-medium)';
           e.currentTarget.style.color = 'var(--text-accent)';
           e.currentTarget.style.transform = 'translateY(-4px)';
-          e.currentTarget.style.boxShadow = '0 12px 40px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.05)';
+          e.currentTarget.style.boxShadow = 'var(--shadow-overlay-hover)';
         }}
         onMouseLeave={(e) => {
-          e.currentTarget.style.background = 'rgba(15, 15, 15, 0.85)';
+          e.currentTarget.style.background = 'var(--bg-overlay)';
           e.currentTarget.style.borderColor = 'var(--border-subtle)';
           e.currentTarget.style.color = 'var(--text-tertiary)';
           e.currentTarget.style.transform = 'translateY(0)';
-          e.currentTarget.style.boxShadow = '0 8px 32px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.03)';
+          e.currentTarget.style.boxShadow = 'var(--shadow-overlay)';
         }}
       >
         {/* Subtle ambient glow */}
