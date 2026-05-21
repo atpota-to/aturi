@@ -322,6 +322,27 @@ export const WAYPOINT_DESTINATIONS_DATA: Record<string, WaypointData> = {
     redirectCompat: [],
   },
 
+  bluepy: {
+    id: 'bluepy',
+    name: 'Bluepy',
+    description: (collection) => {
+      if (collection === 'app.bsky.feed.post') return 'View post on bluepy.social';
+      if (collection === 'app.bsky.graph.list') return 'View list on bluepy.social';
+      if (collection) return 'View record on bluepy.social';
+      return 'View profile on bluepy.social';
+    },
+    getUrl: (handle, collection, rkey, did) => {
+      const identifier = did || handle;
+      if (collection && rkey) {
+        return `https://bluepy.social/at://${identifier}/${collection}/${rkey}`;
+      }
+      return `https://bluepy.social/at://${identifier}/app.bsky.actor.profile/self`;
+    },
+    supportedTypes: ['post', 'profile', 'list', 'record'],
+    category: 'blueskyClients',
+    redirectCompat: ['bluesky-social'],
+  },
+
   witchsky: {
     id: 'witchsky',
     name: 'Witchsky',
@@ -608,6 +629,7 @@ export const WAYPOINT_DESTINATIONS_DATA: Record<string, WaypointData> = {
 export const WAYPOINT_ORDER = [
   'anisota',
   'bluesky',
+  'bluepy',
   'blacksky',
   'reddwarf',
   'leaflet',

@@ -2,6 +2,7 @@ import type { ParsedURI } from './uriParser';
 
 export type SourceApp =
   | 'bluesky'
+  | 'bluepy'
   | 'blacksky'
   | 'reddwarf'
   | 'witchsky'
@@ -328,6 +329,40 @@ function matchAtpTools(host: string, pathname: string): ReverseMatch | null {
   };
 }
 
+function matchBluepy(host: string, pathname: string): ReverseMatch | null {
+  if (host !== 'bluepy.social') return null;
+  const atUri = parseAtUriPath(pathname);
+  if (!atUri) return null;
+  const { handle, collection, rkey } = atUri;
+  const did = handle.startsWith('did:') ? handle : undefined;
+
+  if (collection === 'app.bsky.actor.profile') {
+    return {
+      source: 'bluepy',
+      parsed: { type: 'profile', uri: `at://${handle}`, handle, did },
+    };
+  }
+
+  if (collection && rkey) {
+    return {
+      source: 'bluepy',
+      parsed: {
+        type: inferType(collection),
+        uri: `at://${handle}/${collection}/${rkey}`,
+        handle,
+        did,
+        collection,
+        rkey,
+      },
+    };
+  }
+
+  return {
+    source: 'bluepy',
+    parsed: { type: 'profile', uri: `at://${handle}`, handle, did },
+  };
+}
+
 function matchSemble(host: string, parts: string[]): ReverseMatch | null {
   if (host !== 'semble.so') return null;
   if (parts[0] !== 'profile' || !parts[1]) return null;
@@ -428,6 +463,7 @@ export function matchSupportedUrl(url: URL): ReverseMatch | null {
     matchMargin(host, parts) ||
     matchPdsls(host, url.pathname) ||
     matchAtpTools(host, url.pathname) ||
+    matchBluepy(host, url.pathname) ||
     matchSemble(host, parts) ||
     matchStreamplace(host, parts) ||
     matchGrain(host, parts) ||
@@ -485,6 +521,7 @@ export const SUPPORTED_HOSTS: string[] = [
   'margin.at',
   'pdsls.dev',
   'atp.tools',
+  'bluepy.social',
   'semble.so',
   'stream.place',
   'grain.social',
