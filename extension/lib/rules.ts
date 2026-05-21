@@ -67,6 +67,31 @@ function sourceRecipes(sourceId: SourceApp | string): SourceRecipe[] {
       ];
     }
 
+    case 'bluepy': {
+      const host = HOST_BY_SOURCE.bluepy;
+      const base = `^https://${escapeHost(host)}/at:/+([^/?#]+)`;
+      return [
+        {
+          regexFilter: `${base}/app\\.bsky\\.feed\\.post/([^/?#]+).*`,
+          capturesLabel: 'bluepy:post',
+          tokens: { handle: 1, rkey: 2 },
+          type: 'post',
+        },
+        {
+          regexFilter: `${base}/app\\.bsky\\.graph\\.list/([^/?#]+).*`,
+          capturesLabel: 'bluepy:list',
+          tokens: { handle: 1, rkey: 2 },
+          type: 'list',
+        },
+        {
+          regexFilter: `${base}/app\\.bsky\\.actor\\.profile/self/?.*`,
+          capturesLabel: 'bluepy:profile',
+          tokens: { handle: 1 },
+          type: 'profile',
+        },
+      ];
+    }
+
     case 'pinksky': {
       return [
         {
@@ -173,6 +198,7 @@ function sourceRecipes(sourceId: SourceApp | string): SourceRecipe[] {
 
 const HOST_BY_SOURCE: Record<SourceApp, string> = {
   bluesky: 'bsky.app',
+  bluepy: 'bluepy.social',
   blacksky: 'blacksky.community',
   reddwarf: 'reddwarf.app',
   witchsky: 'witchsky.app',
@@ -339,6 +365,7 @@ export function buildRules(prefs: Prefs, opts: BuildRulesOptions = {}): Redirect
 
 const ALL_KNOWN_SOURCES: SourceApp[] = [
   'bluesky',
+  'bluepy',
   'blacksky',
   'reddwarf',
   'witchsky',

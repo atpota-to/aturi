@@ -16,6 +16,7 @@ import { WAYPOINT_ICONS } from './waypointIcons';
 
 export {
   BlueskySVG,
+  BluepySVG,
   BlackskySVG,
   PdslsSVG,
   LeafletSVG,
