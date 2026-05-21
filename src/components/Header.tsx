@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { Home, Link2, Leaf, UserPlus } from 'lucide-react';
 import { motion } from 'framer-motion';
+import ThemeToggle from './ThemeToggle';
 
 interface HeaderProps {
   simple?: boolean; // If true, shows a smaller version without the tagline
@@ -170,6 +171,9 @@ export default function Header({ simple = false, compact = false }: HeaderProps)
               <UserPlus size={16} />
               <span>follow</span>
             </Link>
+            <div style={{ marginTop: '0.5rem' }}>
+              <ThemeToggle variant="row" />
+            </div>
           </nav>
         </div>
       </header>
@@ -256,6 +260,8 @@ export default function Header({ simple = false, compact = false }: HeaderProps)
             <UserPlus size={14} />
             <span>follow</span>
           </Link>
+          <span style={{ color: 'var(--text-tertiary)', fontSize: '0.75rem' }}>·</span>
+          <ThemeToggle variant="inline" />
         </nav>
       </header>
     );
@@ -354,6 +360,8 @@ export default function Header({ simple = false, compact = false }: HeaderProps)
           <UserPlus size={16} />
           <span>follow</span>
         </Link>
+        <span style={{ color: 'var(--text-tertiary)', fontSize: '0.875rem' }}>·</span>
+        <ThemeToggle variant="inline" />
       </motion.nav>
     </header>
   );

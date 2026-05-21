@@ -71,7 +71,7 @@ export default function DownloadCTA({ variant = 'hero' }: DownloadCTAProps) {
           gap: '0.625rem',
           padding: '1rem 1.75rem',
           background: 'var(--accent-moss)',
-          color: 'var(--text-primary)',
+          color: 'var(--text-on-accent)',
           border: '1px solid var(--accent-forest)',
           fontSize: '1.05rem',
           fontWeight: 400,

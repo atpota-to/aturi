@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Analytics } from "@vercel/analytics/next";
 import Footer from "@/components/Footer";
 import PageTransition from "@/components/PageTransition";
+import ThemeSync from "@/components/ThemeSync";
+import { DEFAULT_THEME, THEME_INIT_SCRIPT } from "@/lib/theme";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -29,15 +31,20 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" data-theme={DEFAULT_THEME} suppressHydrationWarning>
       <head>
         {/* Apple TN3156 requires an `application/activity+json` link element
             on social-network post pages for rich previews in Messages.
             Bluesky's bskyweb base template emits this with an empty href on
             EVERY page; we mirror that exactly. */}
         <link type="application/activity+json" href="" />
+        {/* Apply the saved theme before first paint to avoid a dark/light
+            flash on cold loads. The script reads from localStorage and sets
+            data-theme on <html> synchronously. */}
+        <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
       </head>
       <body>
+        <ThemeSync />
         <PageTransition>
           <main style={{ position: 'relative', zIndex: 1 }}>{children}</main>
         </PageTransition>

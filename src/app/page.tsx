@@ -110,7 +110,7 @@ export default function HomePage() {
               style={{
                 padding: '0.875rem 1.5rem',
                 background: quickInput.trim() ? 'var(--accent-moss)' : 'var(--bg-tertiary)',
-                color: quickInput.trim() ? 'var(--text-primary)' : 'var(--text-tertiary)',
+                color: quickInput.trim() ? 'var(--text-on-accent)' : 'var(--text-tertiary)',
                 border: '1px solid',
                 borderColor: quickInput.trim() ? 'var(--accent-forest)' : 'var(--border-medium)',
                 fontSize: '0.9rem',

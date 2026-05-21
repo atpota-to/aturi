@@ -213,7 +213,7 @@ aturi.to is a community tool for the ATProto ecosystem. The service is free and 
                 background: copied ? 'var(--accent-moss)' : 'var(--bg-primary)',
                 border: '1px solid',
                 borderColor: copied ? 'var(--accent-forest)' : 'var(--border-medium)',
-                color: 'var(--text-primary)',
+                color: copied ? 'var(--text-on-accent)' : 'var(--text-primary)',
                 fontSize: '0.9rem',
                 cursor: 'pointer',
                 transition: 'all 0.3s ease',
