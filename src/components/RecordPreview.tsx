@@ -289,7 +289,7 @@ export default function RecordPreview({ record, collection, handle, rkey }: Reco
                 display: 'flex',
                 alignItems: 'flex-start',
                 justifyContent: 'space-between',
-                background: 'rgba(26, 26, 26, 0.4)',
+                background: 'var(--modal-header-bg)',
                 position: 'relative',
                 zIndex: 1,
               }}
@@ -317,7 +317,7 @@ export default function RecordPreview({ record, collection, handle, rkey }: Reco
                 onClick={() => setShowJsonModal(false)}
                 style={{
                   padding: '0.625rem',
-                  background: 'rgba(26, 26, 26, 0.6)',
+                  background: 'var(--modal-pane-bg)',
                   border: '1px solid var(--border-subtle)',
                   color: 'var(--text-tertiary)',
                   cursor: 'pointer',
@@ -332,7 +332,7 @@ export default function RecordPreview({ record, collection, handle, rkey }: Reco
                   e.currentTarget.style.borderColor = 'var(--border-medium)';
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.background = 'rgba(26, 26, 26, 0.6)';
+                  e.currentTarget.style.background = 'var(--modal-pane-bg)';
                   e.currentTarget.style.color = 'var(--text-tertiary)';
                   e.currentTarget.style.borderColor = 'var(--border-subtle)';
                 }}
@@ -355,13 +355,13 @@ export default function RecordPreview({ record, collection, handle, rkey }: Reco
                 style={{
                   margin: 0,
                   padding: '1.5rem',
-                  background: 'rgba(26, 26, 26, 0.6)',
+                  background: 'var(--modal-pane-bg)',
                   border: '1px solid var(--border-subtle)',
                   fontSize: '0.875rem',
                   lineHeight: '1.7',
                   color: 'var(--text-primary)',
                   fontFamily: 'var(--font-mono)',
-                  boxShadow: 'inset 0 0 40px rgba(0, 0, 0, 0.3)',
+                  boxShadow: 'var(--modal-pane-vignette)',
                 }}
               >
                 {JSON.stringify(value, null, 2)}
@@ -376,7 +376,7 @@ export default function RecordPreview({ record, collection, handle, rkey }: Reco
                 left: 0,
                 right: 0,
                 height: '60px',
-                background: 'linear-gradient(to top, rgba(21, 21, 21, 0.95), transparent)',
+                background: 'var(--modal-bottom-fade)',
                 pointerEvents: 'none',
                 zIndex: 2,
               }}
