@@ -50,6 +50,12 @@
   --modal-backdrop: rgba(10, 10, 10, 0.75);
   --modal-bg: linear-gradient(145deg, rgba(21, 21, 21, 0.95) 0%, rgba(26, 26, 26, 0.98) 100%);
   --modal-shadow: 0 20px 60px rgba(0, 0, 0, 0.5), 0 0 80px var(--glow-subtle);
+  /* Nested panes inside the modal (header strip, close button, JSON code
+     block) plus the scroll-affordance vignette and bottom fade. */
+  --modal-header-bg: rgba(26, 26, 26, 0.4);
+  --modal-pane-bg: rgba(26, 26, 26, 0.6);
+  --modal-pane-vignette: inset 0 0 40px rgba(0, 0, 0, 0.3);
+  --modal-bottom-fade: linear-gradient(to top, rgba(21, 21, 21, 0.95), transparent);
 
   /* Opacity for the global noise overlay. Lower in light mode so paper
      backgrounds don't look gritty. */
@@ -103,6 +109,10 @@
   --modal-backdrop: rgba(26, 28, 24, 0.45);
   --modal-bg: linear-gradient(145deg, rgba(255, 255, 255, 0.98) 0%, rgba(241, 237, 228, 0.99) 100%);
   --modal-shadow: 0 20px 60px rgba(26, 28, 24, 0.18), 0 0 80px var(--glow-subtle);
+  --modal-header-bg: rgba(26, 28, 24, 0.05);
+  --modal-pane-bg: rgba(26, 28, 24, 0.04);
+  --modal-pane-vignette: inset 0 0 40px rgba(26, 28, 24, 0.06);
+  --modal-bottom-fade: linear-gradient(to top, rgba(241, 237, 228, 0.95), transparent);
 
   --noise-opacity: 0.25;
 
