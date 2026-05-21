@@ -111,10 +111,10 @@ export default function CreatePage() {
 
         {/* Creator Form */}
         <FadeIn delay={0.2}>
-          <div 
+          <div
             className="card"
             style={{
-              padding: '3rem',
+              padding: '1.5rem',
               marginBottom: '2rem',
               background: 'var(--bg-secondary)',
               border: '1px solid var(--border-medium)',
@@ -123,24 +123,24 @@ export default function CreatePage() {
             }}
           >
           {/* URL Bar Input */}
-          <div style={{ marginBottom: '2rem' }}>
-            <label 
+          <div style={{ marginBottom: '1.5rem' }}>
+            <label
               htmlFor="input-url"
               style={{
                 display: 'block',
-                marginBottom: '0.75rem',
-                fontSize: '0.95rem',
+                marginBottom: '0.5rem',
+                fontSize: '0.9rem',
                 color: 'var(--text-secondary)',
                 fontWeight: 400
               }}
             >
               Enter URL or AT URI
             </label>
-            
+
             <div style={{
               display: 'flex',
               alignItems: 'stretch',
-              gap: '1rem',
+              gap: '0.75rem',
               flexWrap: 'wrap'
             }}>
               <input
@@ -157,12 +157,13 @@ export default function CreatePage() {
                 placeholder="https://deer.social/profile/alice.bsky.social/post/3m6mwoadjbp2d"
                 style={{
                   flex: 1,
-                  minWidth: '300px',
-                  padding: '1rem 1.25rem',
+                  minWidth: 0,
+                  width: '100%',
+                  padding: '0.875rem 1rem',
                   background: 'var(--bg-primary)',
                   border: '1px solid var(--border-medium)',
                   color: 'var(--text-primary)',
-                  fontSize: '0.95rem',
+                  fontSize: '0.9rem',
                   fontFamily: 'var(--font-mono)',
                   transition: 'all 0.3s ease',
                 }}
@@ -180,12 +181,12 @@ export default function CreatePage() {
                 disabled={!input.trim()}
                 className="generate-button"
                 style={{
-                  padding: '1rem 2rem',
+                  padding: '0.875rem 1.5rem',
                   background: input.trim() ? 'var(--accent-moss)' : 'var(--bg-tertiary)',
                   color: input.trim() ? 'var(--text-on-accent)' : 'var(--text-tertiary)',
                   border: '1px solid',
                   borderColor: input.trim() ? 'var(--accent-forest)' : 'var(--border-medium)',
-                  fontSize: '1rem',
+                  fontSize: '0.9rem',
                   fontWeight: 400,
                   cursor: input.trim() ? 'pointer' : 'not-allowed',
                   transition: 'all 0.3s ease',
@@ -196,7 +197,7 @@ export default function CreatePage() {
                   whiteSpace: 'nowrap'
                 }}
               >
-                <Link2 size={18} />
+                <Link2 size={16} />
                 <span>Create</span>
               </button>
             </div>
