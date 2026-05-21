@@ -9,6 +9,7 @@ const BUILTIN_HOME: Record<string, string> = {
   aturi: 'https://aturi.to/',
   anisota: 'https://anisota.net/',
   bluesky: 'https://bsky.app/',
+  bluepy: 'https://bluepy.social/',
   blacksky: 'https://blacksky.community/',
   reddwarf: 'https://reddwarf.app/',
   leaflet: 'https://leaflet.pub/',

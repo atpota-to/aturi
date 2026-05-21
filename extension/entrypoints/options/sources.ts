@@ -8,6 +8,7 @@ export type SourceDescriptor = {
 
 export const SOURCE_APPS: SourceDescriptor[] = [
   { id: 'bluesky', name: 'Bluesky', host: 'bsky.app' },
+  { id: 'bluepy', name: 'Bluepy', host: 'bluepy.social' },
   { id: 'blacksky', name: 'Blacksky', host: 'blacksky.community' },
   { id: 'reddwarf', name: 'Red Dwarf', host: 'reddwarf.app' },
   { id: 'witchsky', name: 'Witchsky', host: 'witchsky.app' },
