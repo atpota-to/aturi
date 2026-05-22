@@ -34,14 +34,40 @@ const TABS: { id: TabId; label: string }[] = [
   { id: 'about', label: 'About' },
 ];
 
+// Map URL hash → tab id. Lets the popup deep-link to Settings → Waypoints when
+// the user clicks "Add" on the new-waypoints banner.
+const HASH_TO_TAB: Record<string, TabId> = {
+  general: 'defaults',
+  defaults: 'defaults',
+  waypoints: 'visibility',
+  visibility: 'visibility',
+  custom: 'custom',
+  about: 'about',
+};
+
+function tabFromHash(): TabId | null {
+  if (typeof window === 'undefined') return null;
+  const hash = window.location.hash.replace(/^#/, '').toLowerCase();
+  return HASH_TO_TAB[hash] ?? null;
+}
+
 export default function App() {
   const [prefs, setPrefs] = useState<Prefs | null>(null);
-  const [tab, setTab] = useState<TabId>('defaults');
+  const [tab, setTab] = useState<TabId>(() => tabFromHash() ?? 'defaults');
 
   useEffect(() => {
     void loadPrefs().then(setPrefs);
     const unsub = onPrefsChanged(setPrefs);
     return unsub;
+  }, []);
+
+  useEffect(() => {
+    function onHashChange() {
+      const next = tabFromHash();
+      if (next) setTab(next);
+    }
+    window.addEventListener('hashchange', onHashChange);
+    return () => window.removeEventListener('hashchange', onHashChange);
   }, []);
 
   useEffect(() => {

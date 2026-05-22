@@ -269,6 +269,22 @@ export const DID_REQUIRED_WAYPOINTS = new Set<string>([
   'popfeed',
 ]);
 
+/**
+ * Built-in waypoints added since the user was last notified (i.e. not present
+ * in `prefs.knownWaypointIds`). Order matches `WAYPOINT_ORDER` so the popup
+ * banner reads them in a stable order. Custom waypoints are never returned.
+ */
+export function newBuiltinWaypoints(prefs: Prefs): WaypointData[] {
+  const known = new Set(prefs.knownWaypointIds ?? []);
+  const out: WaypointData[] = [];
+  for (const id of WAYPOINT_ORDER) {
+    if (known.has(id)) continue;
+    const w = WAYPOINT_DESTINATIONS_DATA[id];
+    if (w) out.push(w);
+  }
+  return out;
+}
+
 export function requiresDid(waypointId: string, customWaypoints: CustomWaypoint[]): boolean {
   if (DID_REQUIRED_WAYPOINTS.has(waypointId)) return true;
   if (waypointId.startsWith('custom:')) {

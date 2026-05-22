@@ -8,12 +8,20 @@ import {
   categorizedForType,
   categorizedVisibleAll,
   findWaypoint,
+  newBuiltinWaypoints,
   recommendedForType,
   requiresDid,
   visibleWaypointIds,
   waypointHandlesContent,
 } from '../../lib/catalog';
-import { bumpRecent, loadPrefs, onPrefsChanged, type Prefs } from '../../lib/prefs';
+import {
+  bumpRecent,
+  loadPrefs,
+  markWaypointsKnown,
+  onPrefsChanged,
+  savePrefs,
+  type Prefs,
+} from '../../lib/prefs';
 import { applyAppearance } from '../../lib/appearance';
 import { resolveHandleToDid } from '../../lib/handleResolver';
 import { describeWaypoint } from '../../lib/describe';
@@ -30,8 +38,18 @@ type PopupState =
 // Chromium-derived browsers (notably Arc) do not implement the chrome://extensions
 // surface that hosts embedded options, so the call can silently no-op. If it
 // throws or never resolves, fall back to opening options.html in a new tab.
-async function openOptionsPage() {
-  const fallbackUrl = browser.runtime.getURL('/options.html');
+//
+// When `tab` is passed, we always go through tabs.create so the URL hash makes
+// it through — `openOptionsPage()` doesn't accept a target route.
+async function openOptionsPage(tab?: string) {
+  const fallbackUrl = browser.runtime.getURL(
+    tab ? `/options.html#${tab}` : '/options.html'
+  );
+  if (tab) {
+    await browser.tabs.create({ url: fallbackUrl });
+    window.close();
+    return;
+  }
   try {
     const result = browser.runtime.openOptionsPage();
     if (result && typeof (result as Promise<unknown>).then === 'function') {
@@ -358,18 +376,14 @@ function NoAtmosphereView({
               </div>
             </div>
           ))}
-          <div className="popup-footer">
-            <span className="aturi-subtle" style={{ fontSize: 11 }}>
-              Shortcuts open each app&apos;s home page
-            </span>
-            <button
-              className="aturi-btn-ghost aturi-btn"
-              type="button"
-              onClick={() => void openOptionsPage()}
-            >
-              Settings
-            </button>
-          </div>
+          <PopupFooter
+            prefs={prefs}
+            leading={
+              <span className="aturi-subtle" style={{ fontSize: 11 }}>
+                Shortcuts open each app&apos;s home page
+              </span>
+            }
+          />
         </>
       )}
     </div>
@@ -521,13 +535,122 @@ function Ready({ match, prefs, pendingId, copiedId, onOpen, onCopy }: ReadyProps
         );
       })}
 
-      <div className="popup-footer">
-        <CopyUriButton uri={parsed.uri} />
-        <button className="aturi-btn-ghost aturi-btn" onClick={() => void openOptionsPage()}>
-          Settings
-        </button>
+      <PopupFooter prefs={prefs} leading={<CopyUriButton uri={parsed.uri} />} />
+    </div>
+  );
+}
+
+// Footer renders the per-view leading content (URI button or shortcuts note)
+// alongside the appearance toggle, and stacks a dismissable "new waypoints"
+// banner above when the catalog has grown since the user last opened the
+// popup. The Settings button moved to the header gear long ago — this is
+// where the theme toggle lives now.
+function PopupFooter({ prefs, leading }: { prefs: Prefs; leading: React.ReactNode }) {
+  const newWaypoints = useMemo(() => newBuiltinWaypoints(prefs), [prefs]);
+
+  return (
+    <div className="popup-footer">
+      {newWaypoints.length > 0 && (
+        <NewWaypointsBanner
+          waypoints={newWaypoints}
+          onOpenSettings={() => void openOptionsPage('waypoints')}
+          onDismiss={() => {
+            void markWaypointsKnown(newWaypoints.map(w => w.id));
+          }}
+        />
+      )}
+      <div className="popup-footer-row">
+        {leading}
+        <ThemeToggle theme={prefs.theme} />
       </div>
     </div>
+  );
+}
+
+function NewWaypointsBanner({
+  waypoints,
+  onOpenSettings,
+  onDismiss,
+}: {
+  waypoints: WaypointData[];
+  onOpenSettings: () => void;
+  onDismiss: () => void;
+}) {
+  const names = waypoints.map(w => w.name);
+  // Keep it short: list up to 3 by name, summarize the rest.
+  let summary: string;
+  if (names.length === 1) summary = `New waypoint: ${names[0]}`;
+  else if (names.length <= 3) summary = `New waypoints: ${names.join(', ')}`;
+  else summary = `${names.slice(0, 2).join(', ')} +${names.length - 2} more`;
+
+  return (
+    <div className="popup-update-banner" role="status">
+      <span className="popup-update-banner-icon" aria-hidden="true">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M12 2v4" />
+          <path d="M12 18v4" />
+          <path d="m4.93 4.93 2.83 2.83" />
+          <path d="m16.24 16.24 2.83 2.83" />
+          <path d="M2 12h4" />
+          <path d="M18 12h4" />
+          <path d="m4.93 19.07 2.83-2.83" />
+          <path d="m16.24 7.76 2.83-2.83" />
+        </svg>
+      </span>
+      <span className="popup-update-banner-text">{summary}</span>
+      <button
+        type="button"
+        className="popup-update-banner-action"
+        onClick={onOpenSettings}
+      >
+        Add
+      </button>
+      <button
+        type="button"
+        className="popup-update-banner-dismiss"
+        onClick={onDismiss}
+        aria-label="Dismiss new waypoints notification"
+        title="Dismiss"
+      >
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true">
+          <line x1="6" y1="6" x2="18" y2="18" />
+          <line x1="18" y1="6" x2="6" y2="18" />
+        </svg>
+      </button>
+    </div>
+  );
+}
+
+function ThemeToggle({ theme }: { theme: Prefs['theme'] }) {
+  const isDark = theme !== 'light';
+  return (
+    <button
+      type="button"
+      className="popup-theme-toggle"
+      onClick={() => void savePrefs({ theme: isDark ? 'light' : 'dark' })}
+      title={isDark ? 'Switch to light theme' : 'Switch to dark theme'}
+      aria-label={isDark ? 'Switch to light theme' : 'Switch to dark theme'}
+    >
+      {isDark ? (
+        // Sun – we're in dark mode, click to go light.
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="4" />
+          <path d="M12 2v2" />
+          <path d="M12 20v2" />
+          <path d="m4.93 4.93 1.41 1.41" />
+          <path d="m17.66 17.66 1.41 1.41" />
+          <path d="M2 12h2" />
+          <path d="M20 12h2" />
+          <path d="m6.34 17.66-1.41 1.41" />
+          <path d="m19.07 4.93-1.41 1.41" />
+        </svg>
+      ) : (
+        // Moon – we're in light mode, click to go dark.
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+        </svg>
+      )}
+    </button>
   );
 }
 
