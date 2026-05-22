@@ -110,6 +110,7 @@ export default function DefaultsTab({ prefs, onChange }: Props) {
                 { value: 'small', label: 'Small' },
                 { value: 'medium', label: 'Medium' },
                 { value: 'large', label: 'Large' },
+                { value: 'xlarge', label: 'X-Large' },
               ] as const
             ).map(opt => (
               <button
