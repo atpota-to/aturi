@@ -67,18 +67,18 @@ export default function MarginReplyPreview({
         <div
           style={{
             padding: '1.5rem',
-            background: 'linear-gradient(135deg, #1a2a4a 0%, var(--bg-secondary) 100%)',
+            background: 'linear-gradient(135deg, var(--margin-reply-tint) 0%, var(--bg-secondary) 100%)',
             borderBottom: '1px solid var(--border-medium)',
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
-            <MessageCircle size={18} style={{ color: '#60a5fa' }} />
+            <MessageCircle size={18} style={{ color: 'var(--margin-reply-fg)' }} />
             <div
               style={{
                 padding: '0.375rem 0.875rem',
-                background: 'rgba(96, 165, 250, 0.15)',
-                border: '1px solid rgba(96, 165, 250, 0.3)',
-                color: '#60a5fa',
+                background: 'var(--margin-reply-tint)',
+                border: '1px solid var(--margin-reply-border)',
+                color: 'var(--margin-reply-fg)',
                 fontSize: '0.8125rem',
                 fontWeight: '600',
                 letterSpacing: '0.03em',
@@ -174,7 +174,7 @@ export default function MarginReplyPreview({
         <div
           style={{
             padding: '1rem 1.5rem',
-            background: 'rgba(0, 0, 0, 0.2)',
+            background: 'var(--surface-overlay-dim)',
             borderTop: '1px solid var(--border-subtle)',
             fontSize: '0.75rem',
             color: 'var(--text-tertiary)',
@@ -258,6 +258,7 @@ export default function MarginReplyPreview({
               </div>
               <button
                 onClick={() => setShowJsonModal(false)}
+                aria-label="Close raw reply data"
                 style={{
                   padding: '0.625rem',
                   background: 'var(--modal-pane-bg)',

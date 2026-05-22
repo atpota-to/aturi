@@ -214,24 +214,27 @@ export default function CreatePage() {
 
           {/* Error Message */}
           {error && (
-            <div style={{
-              marginTop: '1.5rem',
-              padding: '1rem',
-              background: 'rgba(255, 100, 100, 0.1)',
-              border: '1px solid rgba(255, 100, 100, 0.3)',
-              display: 'flex',
-              alignItems: 'flex-start',
-              gap: '0.75rem',
-              animation: 'content-appear 0.3s ease-out'
-            }}>
-              <AlertCircle size={20} style={{ 
-                color: '#ff6464', 
+            <div
+              role="alert"
+              style={{
+                marginTop: '1.5rem',
+                padding: '1rem',
+                background: 'var(--danger-soft)',
+                border: '1px solid var(--danger-border)',
+                display: 'flex',
+                alignItems: 'flex-start',
+                gap: '0.75rem',
+                animation: 'content-appear 0.3s ease-out'
+              }}
+            >
+              <AlertCircle size={20} style={{
+                color: 'var(--danger)',
                 flexShrink: 0,
                 marginTop: '0.125rem'
               }} />
               <div>
-                <div style={{ 
-                  color: '#ff6464', 
+                <div style={{
+                  color: 'var(--danger)',
                   fontWeight: 400,
                   marginBottom: '0.25rem'
                 }}>

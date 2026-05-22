@@ -13,21 +13,23 @@
   --accent-bark: #3d3329;
   --accent-stone: #4a4a46;
 
-  /* Text colors - muted and calm */
-  --text-primary: #e8e8e6;
-  --text-secondary: #a8a8a6;
-  --text-tertiary: #686866;
-  --text-accent: #8a9a7f;
+  /* Text colors. Secondary and tertiary were bumped from #a8a8a6/#686866 so
+     supporting copy clears WCAG AA on the very dark backgrounds — `#686866`
+     was around 4.0:1 on --bg-primary, well under threshold for body text. */
+  --text-primary: #f0f0ee;
+  --text-secondary: #c4c4c0;
+  --text-tertiary: #9a9a96;
+  --text-accent: #a8b89c;
 
   /* Ambient glow effects */
-  --glow-subtle: rgba(138, 154, 127, 0.05);
-  --glow-medium: rgba(138, 154, 127, 0.1);
-  --glow-strong: rgba(138, 154, 127, 0.2);
+  --glow-subtle: rgba(168, 184, 156, 0.06);
+  --glow-medium: rgba(168, 184, 156, 0.12);
+  --glow-strong: rgba(168, 184, 156, 0.22);
 
   /* Borders - subtle and organic */
-  --border-subtle: rgba(232, 232, 230, 0.08);
-  --border-medium: rgba(232, 232, 230, 0.12);
-  --border-strong: rgba(232, 232, 230, 0.16);
+  --border-subtle: rgba(240, 240, 238, 0.12);
+  --border-medium: rgba(240, 240, 238, 0.18);
+  --border-strong: rgba(240, 240, 238, 0.24);
 
   /* Page-level ambient glow used by body::before. Tuned moodier than the
      standard glow tokens so the dark backdrop reads atmospheric; overridden
@@ -64,6 +66,51 @@
   /* Text drawn on the dark-green primary buttons / active toggles. The
      accent backgrounds stay dark in both themes, so this token does too. */
   --text-on-accent: #f0f0ee;
+
+  /* Error / invalid-input styling. Reused by the /create form so the alert
+     reads correctly in both themes — the previous hardcoded #ff6464 was
+     too low-contrast against the paper backdrop in light mode. */
+  --danger: #d97070;
+  --danger-soft: rgba(217, 112, 112, 0.12);
+  --danger-border: rgba(217, 112, 112, 0.32);
+
+  /* Inset footer strip used by the record-preview cards (the at:// URI
+     row). Needs to be visible in light mode too, so it can't stay
+     hardcoded to rgba(0,0,0,0.2) — that overlay vanishes on cream. */
+  --surface-overlay-dim: rgba(0, 0, 0, 0.25);
+
+  /* Per-record-type accents for the at.margin.* preview cards. Each type
+     gets a foreground (icon / label text), a soft tint (badge fill +
+     gradient stop on the header), and a border alpha. Light-mode block
+     below swaps in darker shades so emerald/sky/pink/etc. don't go pastel
+     and unreadable on the paper backdrop. */
+  --margin-collection-fg: #34d399;
+  --margin-collection-tint: rgba(52, 211, 153, 0.18);
+  --margin-collection-border: rgba(52, 211, 153, 0.36);
+
+  --margin-collection-item-fg: #86efac;
+  --margin-collection-item-tint: rgba(134, 239, 172, 0.18);
+  --margin-collection-item-border: rgba(134, 239, 172, 0.36);
+
+  --margin-bookmark-fg: #60a5fa;
+  --margin-bookmark-tint: rgba(96, 165, 250, 0.18);
+  --margin-bookmark-border: rgba(96, 165, 250, 0.36);
+
+  --margin-like-fg: #f472b6;
+  --margin-like-tint: rgba(244, 114, 182, 0.18);
+  --margin-like-border: rgba(244, 114, 182, 0.36);
+
+  --margin-reply-fg: #60a5fa;
+  --margin-reply-tint: rgba(96, 165, 250, 0.18);
+  --margin-reply-border: rgba(96, 165, 250, 0.36);
+
+  --margin-highlight-fg: #fde047;
+  --margin-highlight-tint: rgba(253, 224, 71, 0.18);
+  --margin-highlight-border: rgba(253, 224, 71, 0.36);
+
+  --margin-annotation-fg: #a78bfa;
+  --margin-annotation-tint: rgba(167, 139, 250, 0.18);
+  --margin-annotation-border: rgba(167, 139, 250, 0.36);
 
   /* Typography scale */
   --font-serif: 'Crimson Pro', serif;
@@ -115,6 +162,46 @@
   --modal-bottom-fade: linear-gradient(to top, rgba(241, 237, 228, 0.95), transparent);
 
   --noise-opacity: 0.25;
+
+  --danger: #b5453e;
+  --danger-soft: rgba(181, 69, 62, 0.1);
+  --danger-border: rgba(181, 69, 62, 0.3);
+
+  /* Almost-invisible warm strip — the previous rgba(0,0,0,0.2) inset
+     disappeared on the cream backdrop. This gives the at:// row a faint
+     ink-on-paper feel without going muddy. */
+  --surface-overlay-dim: rgba(26, 28, 24, 0.06);
+
+  /* Darker, more saturated equivalents of the dark-mode margin accents.
+     Each `-fg` clears WCAG AA against --bg-secondary (#f1ede4); tints stay
+     subtle so the header gradient reads as a hint, not a wash. */
+  --margin-collection-fg: #0e7a55;
+  --margin-collection-tint: rgba(14, 122, 85, 0.1);
+  --margin-collection-border: rgba(14, 122, 85, 0.28);
+
+  --margin-collection-item-fg: #2f7e3a;
+  --margin-collection-item-tint: rgba(47, 126, 58, 0.1);
+  --margin-collection-item-border: rgba(47, 126, 58, 0.28);
+
+  --margin-bookmark-fg: #1f63c4;
+  --margin-bookmark-tint: rgba(31, 99, 196, 0.1);
+  --margin-bookmark-border: rgba(31, 99, 196, 0.28);
+
+  --margin-like-fg: #b53574;
+  --margin-like-tint: rgba(181, 53, 116, 0.1);
+  --margin-like-border: rgba(181, 53, 116, 0.28);
+
+  --margin-reply-fg: #1f63c4;
+  --margin-reply-tint: rgba(31, 99, 196, 0.1);
+  --margin-reply-border: rgba(31, 99, 196, 0.28);
+
+  --margin-highlight-fg: #876d00;
+  --margin-highlight-tint: rgba(135, 109, 0, 0.1);
+  --margin-highlight-border: rgba(135, 109, 0, 0.28);
+
+  --margin-annotation-fg: #6543c6;
+  --margin-annotation-tint: rgba(101, 67, 198, 0.1);
+  --margin-annotation-border: rgba(101, 67, 198, 0.28);
 
   color-scheme: light;
 }
@@ -876,6 +963,48 @@ html {
   background: var(--bg-elevated);
   border-color: var(--border-strong);
   transform: rotate(-0.3deg) scale(0.97) !important;
+}
+
+/* Respect the OS-level reduced-motion preference. We keep the decorative
+   gradients and noise overlay (they're static visual depth, not motion)
+   but pause the body::before drift, drop hover translates/scale, and
+   collapse keyframe-driven animations to a near-instant fade. Framer
+   Motion components opt-in to the same preference via MotionConfig in
+   PageTransition.tsx. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  body::before {
+    animation: none !important;
+  }
+
+  /* Disable the hover-translate / rotate / scale flourishes — they aren't
+     just transitions, the `transform` property itself is being toggled. */
+  .nav-link:hover,
+  .compact-nav-link:hover,
+  .waypoint-button:hover,
+  .feature-card-primary:hover,
+  .feature-card-secondary:hover,
+  .example-link:hover,
+  .cta-card:hover,
+  .cta-button:hover,
+  .parent-card:hover,
+  .featured-waypoint:hover,
+  .card:not(.feature-card-primary):not(.feature-card-secondary):not(.cta-card):hover {
+    transform: none !important;
+  }
+
+  .nav-link:hover svg,
+  .compact-nav-link:hover svg {
+    transform: none !important;
+  }
 }
 
 /* Responsive */

@@ -61,19 +61,19 @@ export default function MarginLikePreview({
         <div
           style={{
             padding: '2rem',
-            background: 'linear-gradient(135deg, #4a1a3a 0%, var(--bg-secondary) 100%)',
+            background: 'linear-gradient(135deg, var(--margin-like-tint) 0%, var(--bg-secondary) 100%)',
             borderBottom: '1px solid var(--border-medium)',
             textAlign: 'center',
           }}
         >
-          <Heart size={48} style={{ color: '#f472b6', marginBottom: '1rem', display: 'inline-block' }} />
+          <Heart size={48} style={{ color: 'var(--margin-like-fg)', marginBottom: '1rem', display: 'inline-block' }} />
 
           <div
             style={{
               padding: '0.375rem 0.875rem',
-              background: 'rgba(244, 114, 182, 0.15)',
-              border: '1px solid rgba(244, 114, 182, 0.3)',
-              color: '#f472b6',
+              background: 'var(--margin-like-tint)',
+              border: '1px solid var(--margin-like-border)',
+              color: 'var(--margin-like-fg)',
               fontSize: '0.8125rem',
               fontWeight: '600',
               letterSpacing: '0.03em',
@@ -165,7 +165,7 @@ export default function MarginLikePreview({
         <div
           style={{
             padding: '1rem 1.5rem',
-            background: 'rgba(0, 0, 0, 0.2)',
+            background: 'var(--surface-overlay-dim)',
             borderTop: '1px solid var(--border-subtle)',
             fontSize: '0.75rem',
             color: 'var(--text-tertiary)',
@@ -249,6 +249,7 @@ export default function MarginLikePreview({
               </div>
               <button
                 onClick={() => setShowJsonModal(false)}
+                aria-label="Close raw like data"
                 style={{
                   padding: '0.625rem',
                   background: 'var(--modal-pane-bg)',

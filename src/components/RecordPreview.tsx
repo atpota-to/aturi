@@ -315,6 +315,7 @@ export default function RecordPreview({ record, collection, handle, rkey }: Reco
               </div>
               <button
                 onClick={() => setShowJsonModal(false)}
+                aria-label="Close full record data"
                 style={{
                   padding: '0.625rem',
                   background: 'var(--modal-pane-bg)',

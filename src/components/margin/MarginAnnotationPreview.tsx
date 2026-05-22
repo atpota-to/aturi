@@ -74,7 +74,7 @@ export default function MarginAnnotationPreview({
         <div
           style={{
             padding: '1.5rem',
-            background: 'linear-gradient(135deg, #2a1a4a 0%, var(--bg-secondary) 100%)',
+            background: 'linear-gradient(135deg, var(--margin-annotation-tint) 0%, var(--bg-secondary) 100%)',
             borderBottom: '1px solid var(--border-medium)',
           }}
         >
@@ -82,9 +82,9 @@ export default function MarginAnnotationPreview({
             <div
               style={{
                 padding: '0.375rem 0.875rem',
-                background: 'rgba(147, 51, 234, 0.15)',
-                border: '1px solid rgba(147, 51, 234, 0.3)',
-                color: '#a78bfa',
+                background: 'var(--margin-annotation-tint)',
+                border: '1px solid var(--margin-annotation-border)',
+                color: 'var(--margin-annotation-fg)',
                 fontSize: '0.8125rem',
                 fontWeight: '600',
                 letterSpacing: '0.03em',
@@ -152,7 +152,7 @@ export default function MarginAnnotationPreview({
           <div
             style={{
               padding: '1.5rem',
-              background: 'rgba(147, 51, 234, 0.05)',
+              background: 'var(--margin-annotation-tint)',
               borderBottom: '1px solid var(--border-subtle)',
             }}
           >
@@ -172,7 +172,7 @@ export default function MarginAnnotationPreview({
               style={{
                 margin: 0,
                 padding: '0 0 0 1rem',
-                borderLeft: '3px solid rgba(147, 51, 234, 0.4)',
+                borderLeft: '3px solid var(--margin-annotation-border)',
                 fontSize: '1rem',
                 lineHeight: '1.7',
                 color: 'var(--text-primary)',
@@ -283,7 +283,7 @@ export default function MarginAnnotationPreview({
         <div
           style={{
             padding: '1rem 1.5rem',
-            background: 'rgba(0, 0, 0, 0.2)',
+            background: 'var(--surface-overlay-dim)',
             borderTop: '1px solid var(--border-subtle)',
             fontSize: '0.75rem',
             color: 'var(--text-tertiary)',
@@ -367,6 +367,7 @@ export default function MarginAnnotationPreview({
               </div>
               <button
                 onClick={() => setShowJsonModal(false)}
+                aria-label="Close raw annotation data"
                 style={{
                   padding: '0.625rem',
                   background: 'var(--modal-pane-bg)',
