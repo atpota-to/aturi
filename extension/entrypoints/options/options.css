@@ -575,6 +575,12 @@ body {
   background: var(--glow-subtle);
 }
 
+.reorder-tag-new {
+  color: var(--bg-primary);
+  border-color: var(--text-accent);
+  background: var(--text-accent);
+}
+
 /* Group-based waypoint organizer (Waypoints tab) */
 
 .group-list {

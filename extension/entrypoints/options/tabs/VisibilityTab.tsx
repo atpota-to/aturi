@@ -36,7 +36,7 @@ import {
   type Prefs,
   type WaypointGroup,
 } from '../../../lib/prefs';
-import { allWaypoints } from '../../../lib/catalog';
+import { allWaypoints, newBuiltinWaypoints } from '../../../lib/catalog';
 
 type Props = {
   prefs: Prefs;
@@ -52,6 +52,11 @@ export default function VisibilityTab({ prefs, onChange }: Props) {
     for (const w of allWps) m.set(w.id, w);
     return m;
   }, [allWps]);
+
+  const newIds = useMemo(
+    () => new Set(newBuiltinWaypoints(prefs).map(w => w.id)),
+    [prefs.knownWaypointIds]
+  );
 
   const groupSensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
@@ -165,6 +170,7 @@ export default function VisibilityTab({ prefs, onChange }: Props) {
                   group={group}
                   lookup={lookup}
                   allWaypoints={allWps}
+                  newIds={newIds}
                   onRename={name => handleRenameGroup(group.id, name)}
                   onRemove={() => handleRemoveGroup(group.id)}
                   onToggleCollapsed={collapsed => handleToggleCollapsed(group.id, collapsed)}
@@ -197,6 +203,7 @@ type SortableGroupProps = {
   group: WaypointGroup;
   lookup: Map<string, WaypointData>;
   allWaypoints: WaypointData[];
+  newIds: Set<string>;
   onRename: (name: string) => void;
   onRemove: () => void;
   onToggleCollapsed: (collapsed: boolean) => void;
@@ -209,6 +216,7 @@ function SortableGroup({
   group,
   lookup,
   allWaypoints,
+  newIds,
   onRename,
   onRemove,
   onToggleCollapsed,
@@ -374,6 +382,7 @@ function SortableGroup({
                         name={w.name}
                         isCustom={isCustom}
                         isMoved={isMoved}
+                        isNew={newIds.has(id)}
                         onRemove={() => onRemoveWaypoint(id)}
                       />
                     );
@@ -389,6 +398,7 @@ function SortableGroup({
         <WaypointPicker
           candidates={pickerCandidates}
           memberIds={memberIds}
+          newIds={newIds}
           onPick={id => onAddWaypoint(id)}
           onClose={() => setPickerOpen(false)}
         />
@@ -404,10 +414,11 @@ type SortableRowProps = {
   name: string;
   isCustom: boolean;
   isMoved: boolean;
+  isNew: boolean;
   onRemove: () => void;
 };
 
-function SortableRow({ id, name, isCustom, isMoved, onRemove }: SortableRowProps) {
+function SortableRow({ id, name, isCustom, isMoved, isNew, onRemove }: SortableRowProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id });
   const style: React.CSSProperties = {
@@ -436,6 +447,9 @@ function SortableRow({ id, name, isCustom, isMoved, onRemove }: SortableRowProps
         {isMoved && !isCustom && (
           <span className="reorder-tag reorder-tag-moved">moved</span>
         )}
+        {isNew && !isCustom && (
+          <span className="reorder-tag reorder-tag-new">new</span>
+        )}
       </span>
       <button
         className="group-row-remove"
@@ -455,11 +469,12 @@ function SortableRow({ id, name, isCustom, isMoved, onRemove }: SortableRowProps
 type PickerProps = {
   candidates: WaypointData[];
   memberIds: Set<string>;
+  newIds: Set<string>;
   onPick: (id: string) => void;
   onClose: () => void;
 };
 
-function WaypointPicker({ candidates, memberIds, onPick, onClose }: PickerProps) {
+function WaypointPicker({ candidates, memberIds, newIds, onPick, onClose }: PickerProps) {
   const [query, setQuery] = useState('');
   const containerRef = useRef<HTMLDivElement | null>(null);
 
@@ -514,6 +529,7 @@ function WaypointPicker({ candidates, memberIds, onPick, onClose }: PickerProps)
           filtered.map(w => {
             const isMember = memberIds.has(w.id);
             const isCustom = w.id.startsWith('custom:');
+            const isNew = !isCustom && newIds.has(w.id);
             return (
               <button
                 key={w.id}
@@ -527,6 +543,7 @@ function WaypointPicker({ candidates, memberIds, onPick, onClose }: PickerProps)
                 <span className="waypoint-picker-name">
                   {w.name}
                   {isCustom && <span className="reorder-tag">custom</span>}
+                  {isNew && <span className="reorder-tag reorder-tag-new">new</span>}
                 </span>
                 <span className="waypoint-picker-status">
                   {isMember ? 'Added' : 'Add'}

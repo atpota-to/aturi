@@ -132,6 +132,17 @@ export type Prefs = {
    * `medium` is the new default and slightly larger than the previous baseline.
    */
   fontSize: 'small' | 'medium' | 'large';
+  /**
+   * Built-in waypoint ids the user has been notified about. Used to surface
+   * "New" badges in the popup and Settings → Waypoints when the extension
+   * adds new built-ins via update. Custom waypoints are not tracked here.
+   *
+   * Seeded the first time prefs are read: for existing installs we mark
+   * everything already in their groups (or previously hidden) as known, so
+   * only genuinely new built-ins get flagged. Brand-new installs are seeded
+   * with the full current built-in list — nothing is "new" on day one.
+   */
+  knownWaypointIds: string[];
 };
 
 const CUSTOM_GROUP_ID = 'custom';
@@ -155,6 +166,7 @@ export const DEFAULT_PREFS: Prefs = {
   compactMode: false,
   theme: 'dark',
   fontSize: 'medium',
+  knownWaypointIds: [...WAYPOINT_ORDER],
 };
 
 /**
@@ -282,7 +294,12 @@ function getLocalArea(): StorageArea | null {
 
 function mergePrefs(partial: Partial<Prefs> | undefined): Prefs {
   if (!partial) {
-    return { ...DEFAULT_PREFS, waypointGroups: defaultWaypointGroups() };
+    return {
+      ...DEFAULT_PREFS,
+      waypointGroups: defaultWaypointGroups(),
+      // Brand-new install: everything is "already known", nothing is new.
+      knownWaypointIds: [...WAYPOINT_ORDER],
+    };
   }
 
   // Once `waypointGroups` exists in the saved payload, trust it (even if
@@ -309,6 +326,7 @@ function mergePrefs(partial: Partial<Prefs> | undefined): Prefs {
   }
 
   const favoriteByFamily = migrateFavoriteByFamily(partial);
+  const knownWaypointIds = migrateKnownWaypointIds(partial, waypointGroups);
 
   return {
     ...DEFAULT_PREFS,
@@ -322,7 +340,44 @@ function mergePrefs(partial: Partial<Prefs> | undefined): Prefs {
     waypointOrder: partial.waypointOrder ?? DEFAULT_PREFS.waypointOrder,
     categoryOverrides: partial.categoryOverrides ?? DEFAULT_PREFS.categoryOverrides,
     waypointGroups,
+    knownWaypointIds,
   };
+}
+
+/**
+ * Seed `knownWaypointIds` for existing installs that predate the field.
+ * Anything currently in a group or in the legacy `hiddenWaypoints` list is
+ * treated as already "seen"; the diff against the current built-in list is
+ * what shows up as new in the popup banner.
+ *
+ * Trust an explicit empty array from storage (the user dismissed and then
+ * we somehow ended up with no built-ins added since — that's fine), but
+ * fall back to seeding when the field is entirely absent.
+ */
+function migrateKnownWaypointIds(
+  partial: Partial<Prefs>,
+  waypointGroups: WaypointGroup[]
+): string[] {
+  if (Array.isArray(partial.knownWaypointIds)) {
+    return partial.knownWaypointIds.filter(id => typeof id === 'string');
+  }
+
+  const seed = new Set<string>();
+  for (const group of waypointGroups) {
+    for (const id of group.waypointIds) {
+      if (!id.startsWith('custom:')) seed.add(id);
+    }
+  }
+  for (const id of partial.hiddenWaypoints ?? []) {
+    if (typeof id === 'string' && !id.startsWith('custom:')) seed.add(id);
+  }
+  if (seed.size === 0) {
+    // No signal in the stored prefs — treat as a fresh install and consider
+    // every built-in already known, so we don't blast the user with a "25
+    // new waypoints" banner the first time they open the popup post-upgrade.
+    return [...WAYPOINT_ORDER];
+  }
+  return Array.from(seed);
 }
 
 /**
@@ -417,6 +472,7 @@ export async function savePrefs(update: Partial<Prefs>): Promise<Prefs> {
     waypointOrder: update.waypointOrder ?? current.waypointOrder,
     categoryOverrides: update.categoryOverrides ?? current.categoryOverrides,
     waypointGroups: update.waypointGroups ?? current.waypointGroups,
+    knownWaypointIds: update.knownWaypointIds ?? current.knownWaypointIds,
   };
 
   const syncOk = await writeTo(getSyncArea(), next);
@@ -678,14 +734,41 @@ export function addWaypointToGroup(
   groupId: string,
   waypointId: string
 ): Prefs {
+  const isBuiltin = !waypointId.startsWith('custom:');
+  const knownWaypointIds =
+    isBuiltin && !prefs.knownWaypointIds.includes(waypointId)
+      ? [...prefs.knownWaypointIds, waypointId]
+      : prefs.knownWaypointIds;
   return {
     ...prefs,
+    knownWaypointIds,
     waypointGroups: prefs.waypointGroups.map(g => {
       if (g.id !== groupId) return g;
       if (g.waypointIds.includes(waypointId)) return g;
       return { ...g, waypointIds: [...g.waypointIds, waypointId] };
     }),
   };
+}
+
+/**
+ * Persist that the user has been notified about the given built-in waypoint
+ * ids — typically called when they dismiss the "new waypoints" banner in the
+ * popup, or after they add a new waypoint to a group via Settings.
+ */
+export async function markWaypointsKnown(ids: string[]): Promise<void> {
+  if (ids.length === 0) return;
+  const current = await loadPrefs();
+  const set = new Set(current.knownWaypointIds);
+  let changed = false;
+  for (const id of ids) {
+    if (id.startsWith('custom:')) continue;
+    if (!set.has(id)) {
+      set.add(id);
+      changed = true;
+    }
+  }
+  if (!changed) return;
+  await savePrefs({ knownWaypointIds: Array.from(set) });
 }
 
 export function removeWaypointFromGroup(
