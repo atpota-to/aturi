@@ -88,6 +88,18 @@
   --fs-display: 34px;
 }
 
+[data-fs='xlarge'] {
+  --fs-xs: 14px;
+  --fs-sm: 15px;
+  --fs-md: 16px;
+  --fs-base: 19px;
+  --fs-lg: 18px;
+  --fs-xl: 20px;
+  --fs-2xl: 25px;
+  --fs-display-sm: 28px;
+  --fs-display: 38px;
+}
+
 [data-theme='light'] {
   --bg-primary: #faf8f3;
   --bg-secondary: #f1ede4;

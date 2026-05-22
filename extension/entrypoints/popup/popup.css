@@ -9,6 +9,12 @@ body {
   width: 420px;
 }
 
+[data-fs='xlarge'] body {
+  /* Chrome caps the action popup at 800px; 460 gives the +2 step room to
+     breathe without bumping into that ceiling. */
+  width: 460px;
+}
+
 [data-fs='small'] body {
   width: 360px;
 }

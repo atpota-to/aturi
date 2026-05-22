@@ -131,7 +131,7 @@ export type Prefs = {
    * Text size preset. Scales font sizes across the popup and settings page;
    * `medium` is the new default and slightly larger than the previous baseline.
    */
-  fontSize: 'small' | 'medium' | 'large';
+  fontSize: 'small' | 'medium' | 'large' | 'xlarge';
   /**
    * Built-in waypoint ids the user has been notified about. Used to surface
    * "New" badges in the popup and Settings → Waypoints when the extension
