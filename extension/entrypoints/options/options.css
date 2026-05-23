@@ -1282,3 +1282,107 @@ body {
   font-size: var(--fs-sm);
   font-family: var(--font-serif);
 }
+
+/* --- Dev tab ------------------------------------------------------------- */
+
+.dev-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+  align-items: center;
+}
+
+.dev-card-subhead {
+  font-family: var(--font-serif);
+  font-weight: 500;
+  font-size: var(--fs-lg);
+  color: var(--text-primary);
+  margin-top: 6px;
+  letter-spacing: -0.01em;
+}
+
+.dev-card-sub {
+  font-size: var(--fs-sm);
+  color: var(--text-secondary);
+  margin-top: 2px;
+}
+
+.dev-select {
+  flex: 1;
+  min-width: 0;
+  padding: 6px 10px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: var(--fs-sm);
+}
+
+.dev-select:focus {
+  outline: none;
+  border-color: var(--text-accent);
+}
+
+.dev-code {
+  margin: 12px 0 0;
+  padding: 10px 12px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+  line-height: 1.45;
+  color: var(--text-primary);
+  white-space: pre;
+  overflow: auto;
+  max-height: 260px;
+}
+
+.dev-log {
+  max-height: 320px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.dev-btn-danger {
+  color: var(--danger);
+  border-color: var(--danger);
+}
+
+.dev-btn-danger:hover {
+  background: var(--danger-soft);
+}
+
+.dev-info {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.dev-info-row {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  font-size: var(--fs-sm);
+  color: var(--text-secondary);
+}
+
+.dev-info-label {
+  flex-shrink: 0;
+  min-width: 160px;
+  font-family: var(--font-serif);
+  color: var(--text-primary);
+}
+
+.dev-info-row code {
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+  color: var(--text-accent);
+  word-break: break-word;
+}
+
+.dev-info-mono {
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+}

@@ -5,8 +5,9 @@ import DefaultsTab from './tabs/DefaultsTab';
 import VisibilityTab from './tabs/VisibilityTab';
 import CustomTab from './tabs/CustomTab';
 import AboutTab from './tabs/AboutTab';
+import DevTab from './tabs/DevTab';
 
-type TabId = 'defaults' | 'visibility' | 'custom' | 'about';
+type TabId = 'defaults' | 'visibility' | 'custom' | 'about' | 'dev';
 
 function AturiMark() {
   return (
@@ -32,6 +33,7 @@ const TABS: { id: TabId; label: string }[] = [
   { id: 'visibility', label: 'Waypoints' },
   { id: 'custom', label: 'Custom' },
   { id: 'about', label: 'About' },
+  { id: 'dev', label: 'Dev' },
 ];
 
 // Map URL hash → tab id. Lets the popup deep-link to Settings → Waypoints when
@@ -43,6 +45,7 @@ const HASH_TO_TAB: Record<string, TabId> = {
   visibility: 'visibility',
   custom: 'custom',
   about: 'about',
+  dev: 'dev',
 };
 
 function tabFromHash(): TabId | null {
@@ -117,6 +120,7 @@ export default function App() {
         {tab === 'visibility' && <VisibilityTab prefs={prefs} onChange={update} />}
         {tab === 'custom' && <CustomTab prefs={prefs} onChange={update} />}
         {tab === 'about' && <AboutTab />}
+        {tab === 'dev' && <DevTab prefs={prefs} onChange={update} />}
       </main>
     </div>
   );
