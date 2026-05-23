@@ -8,6 +8,7 @@ import {
   type WaypointType,
 } from '@aturi/waypoints.data';
 import type { SourceApp } from '@aturi/reverseParsers';
+import { debugLog } from './debugLog';
 
 type StorageArea = {
   get(keys?: string | string[] | Record<string, unknown> | null): Promise<Record<string, unknown>>;
@@ -480,6 +481,7 @@ export async function savePrefs(update: Partial<Prefs>): Promise<Prefs> {
     await writeTo(getLocalArea(), next);
   }
 
+  debugLog('savePrefs', { keys: Object.keys(update), storedTo: syncOk ? 'sync' : 'local' });
   return next;
 }
 
@@ -759,15 +761,16 @@ export async function markWaypointsKnown(ids: string[]): Promise<void> {
   if (ids.length === 0) return;
   const current = await loadPrefs();
   const set = new Set(current.knownWaypointIds);
-  let changed = false;
+  const newlyMarked: string[] = [];
   for (const id of ids) {
     if (id.startsWith('custom:')) continue;
     if (!set.has(id)) {
       set.add(id);
-      changed = true;
+      newlyMarked.push(id);
     }
   }
-  if (!changed) return;
+  if (newlyMarked.length === 0) return;
+  debugLog('markWaypointsKnown', { ids: newlyMarked });
   await savePrefs({ knownWaypointIds: Array.from(set) });
 }
 

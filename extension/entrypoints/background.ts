@@ -1,6 +1,9 @@
 import { browser, defineBackground } from '#imports';
 import { loadPrefs, onPrefsChanged, type Prefs } from '../lib/prefs';
 import { buildRules } from '../lib/rules';
+import { setLogContext } from '../lib/debugLog';
+
+setLogContext('background');
 
 const RULE_ID_BASE = 1000;
 

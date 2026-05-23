@@ -22,6 +22,7 @@ import {
   savePrefs,
   type Prefs,
 } from '../../lib/prefs';
+import { debugLog } from '../../lib/debugLog';
 import { applyAppearance } from '../../lib/appearance';
 import { resolveHandleToDid } from '../../lib/handleResolver';
 import { describeWaypoint } from '../../lib/describe';
@@ -548,13 +549,23 @@ function Ready({ match, prefs, pendingId, copiedId, onOpen, onCopy }: ReadyProps
 function PopupFooter({ prefs, leading }: { prefs: Prefs; leading: React.ReactNode }) {
   const newWaypoints = useMemo(() => newBuiltinWaypoints(prefs), [prefs]);
 
+  useEffect(() => {
+    if (newWaypoints.length > 0) {
+      debugLog('banner: rendered', { ids: newWaypoints.map(w => w.id) });
+    }
+  }, [newWaypoints]);
+
   return (
     <div className="popup-footer">
       {newWaypoints.length > 0 && (
         <NewWaypointsBanner
           waypoints={newWaypoints}
-          onOpenSettings={() => void openOptionsPage('waypoints')}
+          onOpenSettings={() => {
+            debugLog('banner: Add clicked', { ids: newWaypoints.map(w => w.id) });
+            void openOptionsPage('waypoints');
+          }}
           onDismiss={() => {
+            debugLog('banner: dismissed', { ids: newWaypoints.map(w => w.id) });
             void markWaypointsKnown(newWaypoints.map(w => w.id));
           }}
         />
