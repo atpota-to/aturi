@@ -39,11 +39,19 @@ export default function Header({ simple = false, compact = false }: HeaderProps)
       <header
         ref={headerRef}
         style={{
-          position: 'relative',
+          position: 'sticky',
+          top: 0,
+          zIndex: 40,
           marginBottom: '2rem',
-          paddingTop: '1rem',
         }}
       >
+        <div
+          className="container-narrow"
+          style={{
+            padding: '2rem 2rem 0.75rem',
+          }}
+        >
+        <div style={{ position: 'relative' }}>
         <div
           style={{
             display: 'flex',
@@ -55,6 +63,7 @@ export default function Header({ simple = false, compact = false }: HeaderProps)
             border: '1px solid var(--border-medium)',
             transform: 'rotate(-0.2deg)',
             transition: 'all 0.3s ease',
+            boxShadow: 'var(--shadow-overlay)',
           }}
         >
           {/* Logo/Wordmark with Tagline */}
@@ -189,10 +198,12 @@ export default function Header({ simple = false, compact = false }: HeaderProps)
             </div>
           </nav>
         </div>
+        </div>
+        </div>
       </header>
     );
   }
-  
+
   if (simple) {
     return (
       <header

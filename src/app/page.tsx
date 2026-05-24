@@ -9,12 +9,12 @@ import ExplorerStrip from '@/components/home/ExplorerStrip';
 
 export default function HomePage() {
   return (
-    <div style={{ position: 'relative', overflow: 'hidden' }}>
+    <div style={{ position: 'relative', overflowX: 'clip' }}>
       {/* Compact nav card — same shape used by /explore, /profile/*, and
-          /account so the homepage doesn't fork its own header treatment. */}
-      <div className="container-narrow" style={{ padding: '2rem 2rem 0' }}>
-        <Header compact />
-      </div>
+          /account so the homepage doesn't fork its own header treatment.
+          Rendered as a direct child of the page wrapper so position:
+          sticky has the full page height as its containing block. */}
+      <Header compact />
 
       {/* Hero: tagline + description + two CTAs (Explore + Download) */}
       <HomeHero />

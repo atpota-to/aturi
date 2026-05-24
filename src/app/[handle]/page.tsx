@@ -86,11 +86,13 @@ async function ProfileContent({ handle }: { handle: string }) {
   
   if (!resolvedDid) {
     return (
-      <div className="container-narrow" style={{ padding: '2rem 2rem 4rem', textAlign: 'center' }}>
+      <>
         <Header compact />
-        <h1 style={{ marginBottom: '1rem', color: 'var(--text-primary)' }}>Error</h1>
-        <p style={{ color: 'var(--text-secondary)' }}>Could not resolve handle</p>
-      </div>
+        <div className="container-narrow" style={{ padding: '0 2rem 4rem', textAlign: 'center' }}>
+          <h1 style={{ marginBottom: '1rem', color: 'var(--text-primary)' }}>Error</h1>
+          <p style={{ color: 'var(--text-secondary)' }}>Could not resolve handle</p>
+        </div>
+      </>
     );
   }
 
@@ -101,25 +103,26 @@ async function ProfileContent({ handle }: { handle: string }) {
   const profileData = await fetchProfile(resolvedDid);
 
   return (
-    <div className="container-narrow" style={{ padding: '2rem 2rem 4rem' }}>
+    <>
       <Header compact />
+      <div className="container-narrow" style={{ padding: '0 2rem 4rem' }}>
+        {profileData && (
+          <div className="content-fade-in">
+            <ProfilePreview profile={profileData} />
+          </div>
+        )}
 
-      {profileData && (
-        <div className="content-fade-in">
-          <ProfilePreview profile={profileData} />
-        </div>
-      )}
+        <WaypointPicker
+          type="profile"
+          handle={resolvedHandle}
+          did={resolvedDid}
+          displayName={getDisplayName(resolvedHandle, resolvedDid)}
+        />
 
-      <WaypointPicker
-        type="profile"
-        handle={resolvedHandle}
-        did={resolvedDid}
-        displayName={getDisplayName(resolvedHandle, resolvedDid)}
-      />
-
-      {/* Floating scroll indicator overlay */}
-      <ScrollIndicator />
-    </div>
+        {/* Floating scroll indicator overlay */}
+        <ScrollIndicator />
+      </div>
+    </>
   );
 }
 
@@ -144,10 +147,12 @@ export default async function ProfilePage({ params }: Props) {
   return (
     <Suspense
       fallback={
-        <div className="container-narrow" style={{ padding: '2rem 2rem 4rem' }}>
+        <>
           <Header compact />
-          <ProfilePreviewSkeleton />
-        </div>
+          <div className="container-narrow" style={{ padding: '0 2rem 4rem' }}>
+            <ProfilePreviewSkeleton />
+          </div>
+        </>
       }
     >
       <ProfileContent handle={handle} />

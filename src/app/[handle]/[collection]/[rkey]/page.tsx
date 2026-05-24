@@ -268,23 +268,27 @@ async function RecordContent({ handle, collection, rkey }: { handle: string; col
     
     if (parsedData.error) {
       return (
-        <div className="container-narrow" style={{ padding: '2rem 2rem 4rem', textAlign: 'center' }}>
+        <>
           <Header compact />
-          <h1 style={{ marginBottom: '1rem', color: 'var(--text-primary)' }}>Error</h1>
-          <p style={{ color: 'var(--text-secondary)' }}>{parsedData.error}</p>
-        </div>
+          <div className="container-narrow" style={{ padding: '0 2rem 4rem', textAlign: 'center' }}>
+            <h1 style={{ marginBottom: '1rem', color: 'var(--text-primary)' }}>Error</h1>
+            <p style={{ color: 'var(--text-secondary)' }}>{parsedData.error}</p>
+          </div>
+        </>
       );
     }
 
     const resolvedDid = await resolveHandle(handle);
-    
+
     if (!resolvedDid) {
       return (
-        <div className="container-narrow" style={{ padding: '2rem 2rem 4rem', textAlign: 'center' }}>
+        <>
           <Header compact />
-          <h1 style={{ marginBottom: '1rem', color: 'var(--text-primary)' }}>Error</h1>
-          <p style={{ color: 'var(--text-secondary)' }}>Could not resolve handle: {handle}</p>
-        </div>
+          <div className="container-narrow" style={{ padding: '0 2rem 4rem', textAlign: 'center' }}>
+            <h1 style={{ marginBottom: '1rem', color: 'var(--text-primary)' }}>Error</h1>
+            <p style={{ color: 'var(--text-secondary)' }}>Could not resolve handle: {handle}</p>
+          </div>
+        </>
       );
     }
 
@@ -296,11 +300,13 @@ async function RecordContent({ handle, collection, rkey }: { handle: string; col
 
     if (parsedData.type === 'unknown') {
       return (
-        <div className="container-narrow" style={{ padding: '2rem 2rem 4rem', textAlign: 'center' }}>
+        <>
           <Header compact />
-          <h1 style={{ marginBottom: '1rem', color: 'var(--text-primary)' }}>Error</h1>
-          <p style={{ color: 'var(--text-secondary)' }}>Invalid or unsupported URI</p>
-        </div>
+          <div className="container-narrow" style={{ padding: '0 2rem 4rem', textAlign: 'center' }}>
+            <h1 style={{ marginBottom: '1rem', color: 'var(--text-primary)' }}>Error</h1>
+            <p style={{ color: 'var(--text-secondary)' }}>Invalid or unsupported URI</p>
+          </div>
+        </>
       );
     }
 
@@ -352,21 +358,21 @@ async function RecordContent({ handle, collection, rkey }: { handle: string; col
     const postAtUri = post?.uri || '';
 
     return (
-      <div className="container-narrow" style={{ padding: '2rem 2rem 4rem' }}>
+      <>
         <Header compact />
+        <div className="container-narrow" style={{ padding: '0 2rem 4rem' }}>
+          {/* AT-URI alternate link, mirroring Bluesky's bskyweb template.
+              React 19 hoists this to <head>. */}
+          {postAtUri && <link rel="alternate" href={postAtUri} />}
 
-        {/* AT-URI alternate link, mirroring Bluesky's bskyweb template.
-            React 19 hoists this to <head>. */}
-        {postAtUri && <link rel="alternate" href={postAtUri} />}
+          {jsonLd && (
+            <script
+              type="application/ld+json"
+              dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+            />
+          )}
 
-        {jsonLd && (
-          <script
-            type="application/ld+json"
-            dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-          />
-        )}
-
-        {recordData && (
+          {recordData && (
           <div className="content-fade-in">
             {recordData.type === 'post' && recordData.data.thread[0]?.value.post && (
               <PostPreview 
@@ -447,27 +453,30 @@ async function RecordContent({ handle, collection, rkey }: { handle: string; col
           </div>
         )}
 
-        <WaypointPicker
-          type={parsedData.type}
-          handle={resolvedHandle}
-          collection={collection}
-          rkey={rkey}
-          did={resolvedDid}
-          displayName={getDisplayName(resolvedHandle, resolvedDid)}
-        />
+          <WaypointPicker
+            type={parsedData.type}
+            handle={resolvedHandle}
+            collection={collection}
+            rkey={rkey}
+            did={resolvedDid}
+            displayName={getDisplayName(resolvedHandle, resolvedDid)}
+          />
 
-        {/* Floating scroll indicator overlay */}
-        <ScrollIndicator />
-      </div>
+          {/* Floating scroll indicator overlay */}
+          <ScrollIndicator />
+        </div>
+      </>
     );
   } catch (error) {
     console.error('Error loading record:', error);
     return (
-      <div className="container-narrow" style={{ padding: '2rem 2rem 4rem', textAlign: 'center' }}>
+      <>
         <Header compact />
-        <h1 style={{ marginBottom: '1rem', color: 'var(--text-primary)' }}>Error</h1>
-        <p style={{ color: 'var(--text-secondary)' }}>Error processing URI</p>
-      </div>
+        <div className="container-narrow" style={{ padding: '0 2rem 4rem', textAlign: 'center' }}>
+          <h1 style={{ marginBottom: '1rem', color: 'var(--text-primary)' }}>Error</h1>
+          <p style={{ color: 'var(--text-secondary)' }}>Error processing URI</p>
+        </div>
+      </>
     );
   }
 }
@@ -495,10 +504,12 @@ export default async function RecordPage({ params }: Props) {
   return (
     <Suspense
       fallback={
-        <div className="container-narrow" style={{ padding: '2rem 2rem 4rem' }}>
+        <>
           <Header compact />
-          <PostPreviewSkeleton />
-        </div>
+          <div className="container-narrow" style={{ padding: '0 2rem 4rem' }}>
+            <PostPreviewSkeleton />
+          </div>
+        </>
       }
     >
       <RecordContent handle={handle} collection={collection} rkey={rkey} />
