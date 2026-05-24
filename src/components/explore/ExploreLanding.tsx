@@ -1,10 +1,11 @@
 'use client';
 
 import Link from 'next/link';
-import { Compass, Download, Telescope } from 'lucide-react';
+import { Telescope } from 'lucide-react';
 import AppearIn from './AppearIn';
 import SearchBox from './SearchBox';
 import JetstreamFeed from './JetstreamFeed';
+import CrossLinkCards from '@/components/landing/CrossLinkCards';
 
 const SUGGESTIONS = ['aturi.to', 'bsky.app', 'dame.is', 'jay.bsky.team'];
 
@@ -90,77 +91,8 @@ export default function ExploreLanding() {
       </AppearIn>
 
       <AppearIn delay={0.16}>
-      <section
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(16rem, 1fr))',
-          gap: '1rem',
-        }}
-      >
-        <CrossLinkCard
-          icon={<Compass size={18} />}
-          title="Universal links"
-          body="Share aturi.to/handle/collection/rkey with anyone — they pick the Atmosphere app to open it in."
-          href="/"
-        />
-        <CrossLinkCard
-          icon={<Download size={18} />}
-          title="Browser extension"
-          body="Inspect AT URIs on any page and fast-travel between Atmosphere apps."
-          href="/extension"
-        />
-      </section>
+        <CrossLinkCards current="explore" />
       </AppearIn>
     </div>
-  );
-}
-
-function CrossLinkCard({
-  icon,
-  title,
-  body,
-  href,
-}: {
-  icon: React.ReactNode;
-  title: string;
-  body: string;
-  href: string;
-}) {
-  return (
-    <Link
-      href={href}
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '0.5rem',
-        padding: '1.25rem',
-        border: '1px solid var(--border-medium)',
-        background: 'var(--bg-secondary)',
-        color: 'var(--text-primary)',
-        textDecoration: 'none',
-        transition: 'border-color 0.2s ease, background 0.2s ease',
-      }}
-      onMouseEnter={(e) => {
-        e.currentTarget.style.borderColor = 'var(--text-accent)';
-        e.currentTarget.style.background = 'var(--bg-tertiary)';
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.borderColor = 'var(--border-medium)';
-        e.currentTarget.style.background = 'var(--bg-secondary)';
-      }}
-    >
-      <span style={{ color: 'var(--text-accent)' }}>{icon}</span>
-      <h3 style={{ fontSize: '1rem', fontWeight: 400, margin: 0 }}>{title}</h3>
-      <p
-        style={{
-          margin: 0,
-          fontSize: '0.875rem',
-          lineHeight: 1.5,
-          color: 'var(--text-secondary)',
-        }}
-      >
-        {body}
-      </p>
-    </Link>
   );
 }

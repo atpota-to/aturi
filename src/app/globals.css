@@ -1775,3 +1775,59 @@ html {
     font-size: 1.625rem;
   }
 }
+
+/* ---------- Product landing pages (extension, universal links) ---------- */
+
+/* Hero block on landing pages stacks the copy + a hero visual side-by-side
+   on desktop, and stacks the visual above the copy on mobile. */
+.landing-hero {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
+}
+
+.landing-hero > div:last-child {
+  display: flex;
+  justify-content: center;
+}
+
+@media (max-width: 820px) {
+  .landing-hero {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+}
+
+/* Feature row: copy + visual two-column block, flipped order via
+   `data-flip`. Mirrors `.home-product-strip` but tuned for the
+   landing pages' narrower max width and tighter vertical rhythm. */
+.landing-feature {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 2.5rem;
+  align-items: center;
+}
+
+.landing-feature[data-flip] .landing-feature-visual {
+  order: 2;
+}
+
+.landing-feature-visual {
+  display: flex;
+  justify-content: center;
+}
+
+.landing-feature-body p {
+  margin: 0 0 0.875rem;
+}
+
+.landing-feature-body p:last-child {
+  margin-bottom: 0;
+}
+
+@media (max-width: 820px) {
+  .landing-feature {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 1.5rem;
+  }
+  .landing-feature[data-flip] .landing-feature-visual {
+    order: 0;
+  }
+}
