@@ -1,25 +1,26 @@
 'use client';
 
-import WaypointsManager from '../WaypointsManager';
+import WaypointGroupsManager from '../WaypointGroupsManager';
 
 /**
- * Waypoints tab — reorder, hide, and define custom waypoints. Groups
- * (naming + multi-waypoint membership) are planned next; for now the
- * tab wraps the existing single-list manager so the schema stays
- * unchanged while we ship the rest of the settings shell.
+ * Waypoints tab — user-defined groups of waypoints. Drag groups to
+ * reorder them in the picker; drag rows within a group to reorder
+ * waypoints inside it. The same waypoint may appear in multiple groups;
+ * any waypoint not in any group is hidden from the picker.
  */
 export default function WaypointsTab() {
   return (
     <section className="settings-card">
       <div className="settings-card-head">
-        <h2 className="settings-card-title">Waypoints</h2>
+        <h2 className="settings-card-title">Waypoint groups</h2>
         <p className="settings-card-sub">
-          Personalize the catalog used on every universal-link page. Drag to
-          reorder, toggle the eye to hide a built-in from the picker, or add
-          your own with a URL template.
+          Build your own groups for the universal-link picker. Drag groups
+          (or rows within a group) to reorder. Use <strong>+</strong> on a
+          group header to add waypoints from the catalog. The same waypoint
+          can live in multiple groups; anything not in a group is hidden.
         </p>
       </div>
-      <WaypointsManager />
+      <WaypointGroupsManager />
     </section>
   );
 }

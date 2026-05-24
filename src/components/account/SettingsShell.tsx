@@ -4,14 +4,16 @@ import { useEffect, useState } from 'react';
 import AccountTab from './tabs/AccountTab';
 import GeneralTab from './tabs/GeneralTab';
 import WaypointsTab from './tabs/WaypointsTab';
+import CustomTab from './tabs/CustomTab';
 import AboutTab from './tabs/AboutTab';
 
-type TabId = 'account' | 'general' | 'waypoints' | 'about';
+type TabId = 'account' | 'general' | 'waypoints' | 'custom' | 'about';
 
 const TABS: { id: TabId; label: string }[] = [
   { id: 'account', label: 'Account' },
   { id: 'general', label: 'General' },
   { id: 'waypoints', label: 'Waypoints' },
+  { id: 'custom', label: 'Custom' },
   { id: 'about', label: 'About' },
 ];
 
@@ -19,6 +21,7 @@ const HASH_TO_TAB: Record<string, TabId> = {
   account: 'account',
   general: 'general',
   waypoints: 'waypoints',
+  custom: 'custom',
   about: 'about',
 };
 
@@ -82,6 +85,7 @@ export default function SettingsShell() {
         {tab === 'account' && <AccountTab />}
         {tab === 'general' && <GeneralTab />}
         {tab === 'waypoints' && <WaypointsTab />}
+        {tab === 'custom' && <CustomTab />}
         {tab === 'about' && <AboutTab />}
       </main>
     </div>

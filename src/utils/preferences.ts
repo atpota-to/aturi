@@ -17,7 +17,13 @@
  * by the PreferencesProvider).
  */
 
-import type { WaypointType } from './waypoints.data';
+import {
+  CATEGORY_ORDER,
+  WAYPOINT_CATEGORIES_DATA,
+  WAYPOINT_DESTINATIONS_DATA,
+  WAYPOINT_ORDER,
+  type WaypointType,
+} from './waypoints.data';
 
 const LS_KEY = 'aturi.prefs.v1';
 
@@ -31,12 +37,39 @@ export type CustomWaypoint = {
   templates: Partial<Record<WaypointType, string>>;
 };
 
+/**
+ * A user-defined waypoint group. Each group has an ordered list of
+ * waypoint ids; the same waypoint may appear in multiple groups, and any
+ * waypoint not in *any* group is hidden from the picker. Mirrors the
+ * extension's `WaypointGroup` 1:1 so PDS records round-trip between the
+ * two surfaces.
+ */
+export type WaypointGroup = {
+  id: string;
+  name: string;
+  waypointIds: string[];
+  collapsed?: boolean;
+};
+
 export type Preferences = {
-  /** Built-in waypoint ids the user has explicitly hidden. */
+  /**
+   * User-defined groups. Order of the array is display order in the
+   * picker; each group's `waypointIds` is the in-group order.
+   *
+   * The default value is derived from `WAYPOINT_CATEGORIES_DATA` so a
+   * brand-new user sees the same categories the old hide/reorder UI
+   * implied — but they can now rename them, split them, merge them, etc.
+   */
+  waypointGroups: WaypointGroup[];
+  /**
+   * @deprecated Replaced by `waypointGroups`. Kept on the type so legacy
+   * payloads still typecheck during migration; new code should read from
+   * `waypointGroups` instead. A waypoint is now hidden when it does not
+   * appear in any group.
+   */
   hiddenWaypoints: string[];
   /**
-   * Explicit ordering for built-in + custom waypoints. ids not in this list
-   * sort to the end in their default order. Empty array = use defaults.
+   * @deprecated Replaced by `waypointGroups`. Read for migration only.
    */
   waypointOrder: string[];
   /** User-defined waypoints. */
@@ -48,7 +81,11 @@ export type Preferences = {
   updatedAt: string;
 };
 
+export const CUSTOM_GROUP_ID = 'custom';
+export const CUSTOM_GROUP_NAME = 'My Waypoints';
+
 export const DEFAULT_PREFERENCES: Preferences = {
+  waypointGroups: defaultWaypointGroups(),
   hiddenWaypoints: [],
   waypointOrder: [],
   customWaypoints: [],
@@ -109,16 +146,28 @@ export function clearLocalPreferences(): void {
 
 /**
  * Fill missing fields on a possibly-stale stored object with defaults.
- * Keeps the schema forward-compatible.
+ * If the stored object has the legacy hide/order shape but no groups,
+ * runs `migrateToGroups` so the user's prior arrangement carries over.
  */
 export function mergeWithDefaults(input: Partial<Preferences> | null | undefined): Preferences {
   if (!input || typeof input !== 'object') return DEFAULT_PREFERENCES;
+  const customWaypoints = Array.isArray(input.customWaypoints)
+    ? input.customWaypoints.filter(isValidCustomWaypoint)
+    : [];
+  const hiddenWaypoints = Array.isArray(input.hiddenWaypoints) ? input.hiddenWaypoints : [];
+  const waypointOrder = Array.isArray(input.waypointOrder) ? input.waypointOrder : [];
+  const storedGroups = Array.isArray(input.waypointGroups)
+    ? input.waypointGroups.filter(isValidWaypointGroup)
+    : [];
+  const waypointGroups =
+    storedGroups.length > 0
+      ? storedGroups
+      : migrateToGroups({ customWaypoints, hiddenWaypoints, waypointOrder });
   return {
-    hiddenWaypoints: Array.isArray(input.hiddenWaypoints) ? input.hiddenWaypoints : [],
-    waypointOrder: Array.isArray(input.waypointOrder) ? input.waypointOrder : [],
-    customWaypoints: Array.isArray(input.customWaypoints)
-      ? input.customWaypoints.filter(isValidCustomWaypoint)
-      : [],
+    waypointGroups,
+    hiddenWaypoints,
+    waypointOrder,
+    customWaypoints,
     updatedAt:
       typeof input.updatedAt === 'string' ? input.updatedAt : new Date(0).toISOString(),
   };
@@ -133,6 +182,17 @@ function isValidCustomWaypoint(w: unknown): w is CustomWaypoint {
     Array.isArray(c.supportedTypes) &&
     c.templates !== null &&
     typeof c.templates === 'object'
+  );
+}
+
+function isValidWaypointGroup(g: unknown): g is WaypointGroup {
+  if (!g || typeof g !== 'object') return false;
+  const v = g as Record<string, unknown>;
+  return (
+    typeof v.id === 'string' &&
+    typeof v.name === 'string' &&
+    Array.isArray(v.waypointIds) &&
+    v.waypointIds.every((id) => typeof id === 'string')
   );
 }
 
@@ -170,8 +230,205 @@ export function expandTemplate(
 export function preferencesAreEqual(a: Preferences, b: Preferences): boolean {
   return (
     a.updatedAt === b.updatedAt &&
-    JSON.stringify(a.hiddenWaypoints) === JSON.stringify(b.hiddenWaypoints) &&
-    JSON.stringify(a.waypointOrder) === JSON.stringify(b.waypointOrder) &&
+    JSON.stringify(a.waypointGroups) === JSON.stringify(b.waypointGroups) &&
     JSON.stringify(a.customWaypoints) === JSON.stringify(b.customWaypoints)
+  );
+}
+
+// --- Group helpers ---------------------------------------------------------
+
+/**
+ * Build the default set of groups from the built-in category metadata.
+ * This is what new users see; existing users get a one-time migration
+ * via `migrateToGroups` instead so their hide/reorder state carries over.
+ */
+export function defaultWaypointGroups(
+  customWaypoints: CustomWaypoint[] = [],
+): WaypointGroup[] {
+  const groups: WaypointGroup[] = [];
+  for (const catId of CATEGORY_ORDER) {
+    const meta = WAYPOINT_CATEGORIES_DATA[catId];
+    const ids = WAYPOINT_ORDER.filter(
+      (id) => WAYPOINT_DESTINATIONS_DATA[id]?.category === catId,
+    );
+    if (ids.length === 0) continue;
+    groups.push({
+      id: catId,
+      name: meta?.name ?? catId,
+      waypointIds: ids,
+    });
+  }
+  if (customWaypoints.length > 0) {
+    groups.push({
+      id: CUSTOM_GROUP_ID,
+      name: CUSTOM_GROUP_NAME,
+      waypointIds: customWaypoints.map((c) => c.id),
+    });
+  }
+  return groups;
+}
+
+/**
+ * One-time migration from the legacy `hiddenWaypoints` + `waypointOrder`
+ * shape to grouped layout. Honors the user's hidden set (skipped entirely)
+ * and ordering (within the resulting buckets), keyed by each waypoint's
+ * built-in category. Mirrors the extension's `migrateToGroups`.
+ */
+export function migrateToGroups(partial: {
+  customWaypoints?: CustomWaypoint[];
+  hiddenWaypoints?: string[];
+  waypointOrder?: string[];
+}): WaypointGroup[] {
+  const customWaypoints = partial.customWaypoints ?? [];
+  const hidden = new Set(partial.hiddenWaypoints ?? []);
+  const order = partial.waypointOrder ?? [];
+
+  const customIds = new Set(customWaypoints.map((c) => c.id));
+
+  function effectiveCategoryFor(id: string): string {
+    if (customIds.has(id)) return CUSTOM_GROUP_ID;
+    return WAYPOINT_DESTINATIONS_DATA[id]?.category ?? CUSTOM_GROUP_ID;
+  }
+
+  const fallbackOrder = [...WAYPOINT_ORDER, ...customWaypoints.map((c) => c.id)];
+  const seen = new Set<string>();
+  const fullOrder: string[] = [];
+  for (const id of order) {
+    if (!seen.has(id)) {
+      fullOrder.push(id);
+      seen.add(id);
+    }
+  }
+  for (const id of fallbackOrder) {
+    if (!seen.has(id)) {
+      fullOrder.push(id);
+      seen.add(id);
+    }
+  }
+
+  const buckets = new Map<string, string[]>();
+  const bucketOrder: string[] = [];
+  for (const id of fullOrder) {
+    if (hidden.has(id)) continue;
+    const cat = effectiveCategoryFor(id);
+    if (!buckets.has(cat)) {
+      buckets.set(cat, []);
+      bucketOrder.push(cat);
+    }
+    buckets.get(cat)!.push(id);
+  }
+
+  const headerOrder: string[] = [];
+  for (const c of CATEGORY_ORDER) {
+    if (buckets.has(c)) headerOrder.push(c);
+  }
+  if (buckets.has(CUSTOM_GROUP_ID) && !headerOrder.includes(CUSTOM_GROUP_ID)) {
+    headerOrder.push(CUSTOM_GROUP_ID);
+  }
+  for (const c of bucketOrder) {
+    if (!headerOrder.includes(c)) headerOrder.push(c);
+  }
+
+  return headerOrder.map((catId) => {
+    const meta = WAYPOINT_CATEGORIES_DATA[catId];
+    const name =
+      catId === CUSTOM_GROUP_ID ? CUSTOM_GROUP_NAME : meta?.name ?? prettyGroupName(catId);
+    return {
+      id: catId,
+      name,
+      waypointIds: buckets.get(catId) ?? [],
+    };
+  });
+}
+
+function prettyGroupName(id: string): string {
+  return id.replace(/([A-Z])/g, ' $1').replace(/^./, (c) => c.toUpperCase()).trim();
+}
+
+function newGroupId(): string {
+  return `g_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
+}
+
+export function setWaypointGroups(prefs: Preferences, groups: WaypointGroup[]): Preferences {
+  return { ...prefs, waypointGroups: groups };
+}
+
+export function addWaypointGroup(prefs: Preferences, name: string): Preferences {
+  const id = newGroupId();
+  return setWaypointGroups(prefs, [
+    ...prefs.waypointGroups,
+    { id, name: name.trim() || 'New group', waypointIds: [] },
+  ]);
+}
+
+export function removeWaypointGroup(prefs: Preferences, groupId: string): Preferences {
+  return setWaypointGroups(
+    prefs,
+    prefs.waypointGroups.filter((g) => g.id !== groupId),
+  );
+}
+
+export function renameWaypointGroup(
+  prefs: Preferences,
+  groupId: string,
+  name: string,
+): Preferences {
+  const trimmed = name.trim();
+  if (!trimmed) return prefs;
+  return setWaypointGroups(
+    prefs,
+    prefs.waypointGroups.map((g) => (g.id === groupId ? { ...g, name: trimmed } : g)),
+  );
+}
+
+export function setGroupCollapsed(
+  prefs: Preferences,
+  groupId: string,
+  collapsed: boolean,
+): Preferences {
+  return setWaypointGroups(
+    prefs,
+    prefs.waypointGroups.map((g) => (g.id === groupId ? { ...g, collapsed } : g)),
+  );
+}
+
+export function addWaypointToGroup(
+  prefs: Preferences,
+  groupId: string,
+  waypointId: string,
+): Preferences {
+  return setWaypointGroups(
+    prefs,
+    prefs.waypointGroups.map((g) =>
+      g.id === groupId && !g.waypointIds.includes(waypointId)
+        ? { ...g, waypointIds: [...g.waypointIds, waypointId] }
+        : g,
+    ),
+  );
+}
+
+export function removeWaypointFromGroup(
+  prefs: Preferences,
+  groupId: string,
+  waypointId: string,
+): Preferences {
+  return setWaypointGroups(
+    prefs,
+    prefs.waypointGroups.map((g) =>
+      g.id === groupId
+        ? { ...g, waypointIds: g.waypointIds.filter((id) => id !== waypointId) }
+        : g,
+    ),
+  );
+}
+
+export function setGroupWaypointOrder(
+  prefs: Preferences,
+  groupId: string,
+  ids: string[],
+): Preferences {
+  return setWaypointGroups(
+    prefs,
+    prefs.waypointGroups.map((g) => (g.id === groupId ? { ...g, waypointIds: ids } : g)),
   );
 }

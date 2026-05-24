@@ -980,6 +980,400 @@ html {
   }
 }
 
+/* -----------------------------------------------------------------------
+   Waypoint groups manager. Ported from extension/entrypoints/options
+   (.group-* / .reorder-tag-* / .waypoint-picker-*). Used inside the
+   Waypoints tab of /account.
+   ----------------------------------------------------------------------- */
+
+.group-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.group-card {
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-tertiary);
+  position: relative;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.group-card:hover {
+  border-color: var(--border-medium);
+}
+
+.group-card.is-dragging {
+  border-color: var(--text-accent);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.55), 0 0 0 1px var(--text-accent);
+}
+
+.group-card.is-collapsed .group-header {
+  border-bottom-color: transparent;
+}
+
+.group-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-subtle);
+  user-select: none;
+}
+
+.group-handle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  color: var(--text-tertiary);
+  cursor: grab;
+  flex-shrink: 0;
+  touch-action: none;
+}
+
+.group-handle:active {
+  cursor: grabbing;
+}
+
+.group-card:hover .group-handle {
+  color: var(--text-accent);
+}
+
+.group-chevron {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 0;
+  flex-shrink: 0;
+}
+
+.group-chevron:hover {
+  color: var(--text-primary);
+}
+
+.group-name {
+  flex: 1;
+  text-align: left;
+  background: transparent;
+  border: 1px solid transparent;
+  padding: 4px 8px;
+  font-family: var(--font-serif);
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: var(--text-primary);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  cursor: text;
+  min-width: 0;
+}
+
+.group-name:hover {
+  border-color: var(--border-subtle);
+  background: var(--bg-tertiary);
+}
+
+.group-name-input {
+  flex: 1;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--text-accent);
+  padding: 4px 8px;
+  font-family: var(--font-serif);
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: var(--text-primary);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  outline: none;
+  min-width: 0;
+}
+
+.group-count {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+  padding: 2px 8px;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-tertiary);
+  flex-shrink: 0;
+}
+
+.group-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.group-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 0;
+  transition: all 0.15s ease;
+}
+
+.group-action:hover {
+  border-color: var(--border-subtle);
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+.group-action-add:hover {
+  color: var(--text-accent);
+  border-color: var(--text-accent);
+}
+
+.group-action-delete:hover {
+  color: var(--danger);
+  border-color: var(--danger);
+}
+
+.group-body {
+  padding: 4px 0;
+}
+
+.group-empty {
+  font-family: var(--font-serif);
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  padding: 14px 16px;
+  font-style: italic;
+}
+
+.group-rows {
+  display: flex;
+  flex-direction: column;
+}
+
+.group-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 12px;
+  background: var(--bg-tertiary);
+  border-bottom: 1px solid var(--border-subtle);
+  font-family: var(--font-serif);
+  user-select: none;
+  touch-action: none;
+  transition: background 0.15s ease;
+}
+
+.group-row:last-child {
+  border-bottom: none;
+}
+
+.group-row:hover {
+  background: var(--bg-elevated);
+}
+
+.group-row.is-dragging {
+  background: var(--bg-elevated);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4), 0 0 0 1px var(--text-accent);
+}
+
+.group-row-handle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  color: var(--text-tertiary);
+  cursor: grab;
+  flex-shrink: 0;
+  touch-action: none;
+}
+
+.group-row-handle:active {
+  cursor: grabbing;
+}
+
+.group-row:hover .group-row-handle {
+  color: var(--text-accent);
+}
+
+.group-row-name {
+  flex: 1;
+  font-size: 0.95rem;
+  color: var(--text-primary);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.group-row-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  padding: 0;
+  opacity: 0;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+}
+
+.group-row:hover .group-row-remove,
+.group-row-remove:focus-visible {
+  opacity: 1;
+}
+
+.group-row-remove:hover {
+  color: var(--danger);
+  border-color: var(--danger);
+}
+
+/* "moved" / "new" / "custom" pill tags */
+.reorder-tag {
+  font-family: var(--font-serif);
+  font-size: 0.65rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-secondary);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
+  padding: 2px 8px;
+}
+
+.reorder-tag-moved {
+  color: var(--text-accent);
+  border-color: var(--text-accent);
+  background: var(--glow-subtle);
+}
+
+.reorder-tag-new {
+  color: var(--bg-primary);
+  border-color: var(--text-accent);
+  background: var(--text-accent);
+}
+
+/* "Add waypoint to group" popover */
+.waypoint-picker {
+  position: absolute;
+  top: 48px;
+  right: 12px;
+  width: 280px;
+  max-height: 360px;
+  background: var(--bg-elevated, var(--bg-secondary));
+  border: 1px solid var(--text-accent);
+  box-shadow: 0 14px 32px rgba(0, 0, 0, 0.55);
+  display: flex;
+  flex-direction: column;
+  z-index: 10;
+}
+
+.waypoint-picker-head {
+  display: flex;
+  gap: 6px;
+  padding: 8px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.waypoint-picker-input {
+  flex: 1;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-primary);
+  padding: 6px 10px;
+  font-family: var(--font-serif);
+  font-size: 0.875rem;
+  outline: none;
+  min-width: 0;
+}
+
+.waypoint-picker-input:focus {
+  border-color: var(--text-accent);
+}
+
+.waypoint-picker-list {
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.waypoint-picker-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 9px 12px;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--border-subtle);
+  color: var(--text-primary);
+  text-align: left;
+  cursor: pointer;
+  font-family: var(--font-serif);
+  font-size: 0.875rem;
+  transition: background 0.12s ease;
+}
+
+.waypoint-picker-item:last-child {
+  border-bottom: none;
+}
+
+.waypoint-picker-item:hover:not(:disabled) {
+  background: var(--bg-tertiary);
+}
+
+.waypoint-picker-item.is-member {
+  color: var(--text-tertiary);
+  cursor: default;
+}
+
+.waypoint-picker-item:disabled {
+  cursor: default;
+}
+
+.waypoint-picker-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.waypoint-picker-status {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--text-accent);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  flex-shrink: 0;
+}
+
+.waypoint-picker-item.is-member .waypoint-picker-status {
+  color: var(--text-secondary);
+}
+
+.waypoint-picker-empty {
+  padding: 14px 12px;
+  font-family: var(--font-serif);
+  font-size: 0.875rem;
+  font-style: italic;
+  color: var(--text-secondary);
+  text-align: center;
+}
+
 /* Profile Preview Styles */
 .profile-stats-container {
   display: flex;
