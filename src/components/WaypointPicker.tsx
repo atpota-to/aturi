@@ -57,13 +57,31 @@ export default function WaypointPicker({
     () => recommendedData?.label || '',
     [recommendedData]
   );
+  // Flat list of every waypoint the user has surfaced (in any group),
+  // scoped to the current record type. Used by the smart-expansion
+  // heuristic below to decide which categories open by default.
   const availableWaypoints = useMemo(() => {
-    const builtins = getWaypointsForType(type);
-    const customs = prefs.customWaypoints
-      .filter((c) => c.supportedTypes.includes(type))
-      .map(customToWaypoint);
-    const hidden = new Set(prefs.hiddenWaypoints);
-    return [...customs, ...builtins.filter((w) => !hidden.has(w.id))];
+    const visible = new Set<string>();
+    for (const g of prefs.waypointGroups) {
+      for (const id of g.waypointIds) visible.add(id);
+    }
+    const out: typeof categorizedWaypoints[number]['waypoints'] = [];
+    const customById = new Map(prefs.customWaypoints.map((c) => [c.id, c]));
+    const seen = new Set<string>();
+    for (const id of visible) {
+      if (seen.has(id)) continue;
+      seen.add(id);
+      const custom = customById.get(id);
+      if (custom) {
+        if (custom.supportedTypes.includes(type)) {
+          out.push(customToWaypoint(custom));
+        }
+        continue;
+      }
+      const builtin = getWaypointsForType(type).find((w) => w.id === id);
+      if (builtin) out.push(builtin);
+    }
+    return out;
   }, [type, prefs]);
 
   // Smart expansion: Compute initial expanded categories based on compatible waypoints

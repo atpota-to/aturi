@@ -99,12 +99,16 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
         // Local prefs stand for now; we'll retry on the next session change.
       } else if (result.status === 'missing') {
         // Nothing in the PDS yet — push the local copy up so the user's
-        // anonymous customization carries over to other devices.
-        if (
+        // anonymous customization carries over to other devices. Only
+        // bother if they've actually customized something locally; an
+        // unmodified default doesn't need to land on the PDS yet.
+        const hasLocalCustomization =
           local.customWaypoints.length > 0 ||
           local.hiddenWaypoints.length > 0 ||
-          local.waypointOrder.length > 0
-        ) {
+          local.waypointOrder.length > 0 ||
+          JSON.stringify(local.waypointGroups) !==
+            JSON.stringify(DEFAULT_PREFERENCES.waypointGroups);
+        if (hasLocalCustomization) {
           try {
             await writePreferencesToPds(agent, did, local);
             if (!cancelled) setPdsSync('idle');

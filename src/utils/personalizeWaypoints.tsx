@@ -1,10 +1,16 @@
 /**
- * Apply user preferences (hide, reorder, custom additions) to the built-in
- * waypoint catalog. Consumed by WaypointPicker and the account page.
+ * Apply user preferences to the built-in waypoint catalog.
  *
- * Keeps the data layer (`waypoints.data.ts` / `waypoints.tsx`) pure — those
- * exports stay as the default unmodified catalog. Personalization happens
- * at the call site.
+ * Personalization now flows through `waypointGroups`: each group is its
+ * own category in the picker output, ordered as the user arranged them.
+ * Waypoints not in any group are hidden (the picker only renders ids
+ * referenced by some group).
+ *
+ * Custom waypoints live in groups too — they can be moved into any group
+ * the user wants, not pinned to a "Custom" bucket. New customs that
+ * haven't been added to a group yet (e.g. just created from the Custom
+ * tab) get appended to a default `custom` group automatically by the
+ * preferences provider.
  */
 
 import { Globe } from 'lucide-react';
@@ -13,19 +19,13 @@ import {
   type CustomWaypoint,
   type Preferences,
 } from './preferences';
-import type {
-  Waypoint,
-  WaypointCategory,
-  CategorizedWaypoints,
+import {
+  WAYPOINT_DESTINATIONS,
+  type Waypoint,
+  type WaypointCategory,
+  type CategorizedWaypoints,
 } from './waypoints';
 import type { WaypointType, RedirectCompatFamily } from './waypoints.data';
-
-export const CUSTOM_CATEGORY: WaypointCategory = {
-  id: 'custom',
-  name: 'My Waypoints',
-  description: 'Personal waypoints you added on the account page',
-  defaultWaypointId: '',
-};
 
 /**
  * Promote a CustomWaypoint into a Waypoint-shaped object that the
@@ -39,7 +39,7 @@ export function customToWaypoint(c: CustomWaypoint): Waypoint {
     name: c.name,
     description: c.description || (c.domain ? `Open on ${c.domain}` : 'Custom waypoint'),
     supportedTypes: c.supportedTypes,
-    category: CUSTOM_CATEGORY.id,
+    category: 'custom',
     redirectCompat: [] as RedirectCompatFamily[],
     getUrl: (handle, collection, rkey, did) => {
       const tplKey: WaypointType =
@@ -67,73 +67,69 @@ export function customToWaypoint(c: CustomWaypoint): Waypoint {
 }
 
 /**
- * Filter a flat waypoint array against user prefs (hide built-ins).
- * Custom waypoints are NOT injected here — callers do that explicitly
- * because the injection point differs (recommended vs categorized).
+ * Resolve a waypoint id to a renderable Waypoint, scoped to `type`.
+ * Returns null when the id is unknown or the waypoint doesn't support
+ * the requested record type.
  */
-export function applyHidden(waypoints: Waypoint[], prefs: Preferences): Waypoint[] {
-  if (prefs.hiddenWaypoints.length === 0) return waypoints;
-  const hidden = new Set(prefs.hiddenWaypoints);
-  return waypoints.filter((w) => !hidden.has(w.id));
+function resolveWaypoint(
+  id: string,
+  customById: Map<string, CustomWaypoint>,
+  type: WaypointType,
+): Waypoint | null {
+  const custom = customById.get(id);
+  if (custom) {
+    if (!custom.supportedTypes.includes(type)) return null;
+    return customToWaypoint(custom);
+  }
+  const builtin = WAYPOINT_DESTINATIONS[id];
+  if (!builtin) return null;
+  if (!builtin.supportedTypes.includes(type)) return null;
+  return builtin;
 }
 
 /**
- * Apply a user-defined ordering to a waypoint list. Items in `order` come
- * first in that order; everything else preserves the catalog's default
- * sequence at the end.
- */
-export function applyOrder(waypoints: Waypoint[], prefs: Preferences): Waypoint[] {
-  if (prefs.waypointOrder.length === 0) return waypoints;
-  const byId = new Map(waypoints.map((w) => [w.id, w]));
-  const used = new Set<string>();
-  const ordered: Waypoint[] = [];
-  for (const id of prefs.waypointOrder) {
-    const w = byId.get(id);
-    if (w) {
-      ordered.push(w);
-      used.add(id);
-    }
-  }
-  for (const w of waypoints) {
-    if (!used.has(w.id)) ordered.push(w);
-  }
-  return ordered;
-}
-
-/**
- * Personalize a categorized list. Built-ins respecting hidden/order;
- * customs added as a top-of-list group when present.
+ * Build the picker's category list straight from the user's groups.
+ * The `_categorized` parameter is ignored — kept for API stability with
+ * the previous version so existing callers don't need refactoring on
+ * this commit.
  */
 export function personalizeCategorized(
-  categorized: CategorizedWaypoints[],
+  _categorized: CategorizedWaypoints[],
   prefs: Preferences,
   type: WaypointType,
 ): CategorizedWaypoints[] {
-  // First, filter + reorder built-in groups.
-  const cleaned = categorized
-    .map(({ category, waypoints }) => ({
-      category,
-      waypoints: applyOrder(applyHidden(waypoints, prefs), prefs),
-    }))
-    .filter((g) => g.waypoints.length > 0);
-
-  // Then, prepend the user's custom waypoints (if any apply to this type).
-  const customs = prefs.customWaypoints
-    .filter((c) => c.supportedTypes.includes(type))
-    .map(customToWaypoint);
-
-  if (customs.length === 0) return cleaned;
-  return [{ category: CUSTOM_CATEGORY, waypoints: customs }, ...cleaned];
+  const customById = new Map(prefs.customWaypoints.map((c) => [c.id, c]));
+  const result: CategorizedWaypoints[] = [];
+  for (const group of prefs.waypointGroups) {
+    const waypoints: Waypoint[] = [];
+    for (const id of group.waypointIds) {
+      const w = resolveWaypoint(id, customById, type);
+      if (w) waypoints.push(w);
+    }
+    if (waypoints.length === 0) continue;
+    const category: WaypointCategory = {
+      id: group.id,
+      name: group.name,
+      defaultWaypointId: waypoints[0].id,
+    };
+    result.push({ category, waypoints });
+  }
+  return result;
 }
 
 /**
- * Personalize a recommended waypoints bundle — drop hidden ids, preserve
- * the recommendation's original order otherwise. Customs are NOT recommended
- * (we have no signal for that yet).
+ * Strip waypoints not surfaced by any group from a recommendation bundle.
+ * Recommendations are still ordered by the source — we just drop ids the
+ * user has banished (i.e. not in any group).
  */
 export function personalizeRecommended(
   waypoints: Waypoint[],
   prefs: Preferences,
 ): Waypoint[] {
-  return applyHidden(waypoints, prefs);
+  const visible = new Set<string>();
+  for (const group of prefs.waypointGroups) {
+    for (const id of group.waypointIds) visible.add(id);
+  }
+  if (visible.size === 0) return [];
+  return waypoints.filter((w) => visible.has(w.id));
 }

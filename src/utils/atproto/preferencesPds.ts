@@ -5,14 +5,24 @@
  * Lexicon (informal):
  *
  *   $type: to.aturi.actor.preferences
- *   hiddenWaypoints?: string[]
- *   waypointOrder?: string[]
+ *   waypointGroups?: Array<{
+ *     id: string,
+ *     name: string,
+ *     waypointIds: string[],
+ *     collapsed?: boolean,
+ *   }>
  *   customWaypoints?: Array<{
  *     id, name, domain?, description?,
  *     supportedTypes: string[],
  *     templates: { post?, profile?, list?, record?: string }
  *   }>
  *   updatedAt: datetime
+ *
+ *   // Legacy — still written for back-compat with older Aturi clients
+ *   // that read these fields directly. New code migrates them into
+ *   // `waypointGroups` on read.
+ *   hiddenWaypoints?: string[]
+ *   waypointOrder?: string[]
  */
 
 import type { Agent } from '@atproto/api';
@@ -71,9 +81,11 @@ export async function writePreferencesToPds(
 ): Promise<void> {
   const record = {
     $type: PREFERENCES_NSID,
+    waypointGroups: prefs.waypointGroups,
+    customWaypoints: prefs.customWaypoints,
+    // Legacy fields kept for back-compat with older clients.
     hiddenWaypoints: prefs.hiddenWaypoints,
     waypointOrder: prefs.waypointOrder,
-    customWaypoints: prefs.customWaypoints,
     updatedAt: new Date().toISOString(),
   };
   await agent.com.atproto.repo.putRecord({
