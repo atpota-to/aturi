@@ -69,6 +69,18 @@ export async function GET(request: NextRequest) {
         tagline: 'Open source and ready to deploy',
         showBranding: true,
       },
+      extension: {
+        title: 'Browser Extension',
+        subtitle: 'Jump between Atmosphere clients in one click',
+        tagline: 'Inspect AT URIs, auto-redirect by lexicon, copy universal links.',
+        showBranding: true,
+      },
+      'universal-links': {
+        title: 'Universal Links',
+        subtitle: 'One link, every Atmosphere client',
+        tagline: 'Share aturi.to/handle/collection/rkey — recipients pick the app.',
+        showBranding: true,
+      },
     };
 
     const content = pageContent[page] || pageContent.home;
