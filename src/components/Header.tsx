@@ -340,7 +340,7 @@ export default function Header({ simple = false, compact = false }: HeaderProps)
           margin: '0 auto 2rem',
         }}
       >
-        Switch between apps, share universal links, and walk any account&rsquo;s raw PDS data.
+        Switch between clients, share universal links, and browse through any account&rsquo;s PDS data.
       </motion.p>
 
       {/* Organic Navigation */}

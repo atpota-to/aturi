@@ -39,7 +39,7 @@ export default function ExploreLanding() {
             color: 'var(--text-primary)',
           }}
         >
-          Walk any repository.
+          Browse through any repository.
         </h1>
         <p
           style={{

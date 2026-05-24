@@ -84,8 +84,8 @@ export default function HomeHero() {
           margin: '0 auto 1.75rem',
         }}
       >
-        Switch between apps, share universal links, and walk any account&rsquo;s
-        raw PDS data.
+        Switch between clients, share universal links, and browse through any account&rsquo;s
+        PDS data.
       </p>
 
       {/* CTA row */}

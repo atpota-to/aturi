@@ -1,13 +1,13 @@
 # aturi.to
 
-Fast travel across the Atmosphere. Switch between apps, auto-redirect to preferred clients, and share universal Atmosphere links — anyone can pick where they view the content, and you can jump between clients in one click with the companion browser extension.
+Fast travel across the Atmosphere. Switch between clients, auto-redirect to preferred clients, and share universal Atmosphere links — anyone can pick where they view the content, and you can jump between clients in one click with the companion browser extension.
 
 ## What is aturi.to?
 
 aturi.to is a small ecosystem for navigating the Atmosphere. It has two halves that share the same waypoint catalog and URI parsers:
 
 - **The web app** at [aturi.to](https://aturi.to) turns any AT URI into a universal link. When someone opens an `aturi.to/...` URL, they see every supported app that can render that content (Bluesky, Anisota, Blacksky, Red Dwarf, Leaflet, Tangled, Margin, Grain, PDSls, atp.tools, and many more) and pick the one they prefer.
-- **The browser extension** ([`extension/`](extension/)) puts that same catalog in your toolbar. From any supported page, click the icon to open the same content in any other client, or flip on auto-redirect to silently rewrite links between apps before they load.
+- **The browser extension** ([`extension/`](extension/)) puts that same catalog in your toolbar. From any supported page, click the icon to open the same content in any other client, or flip on auto-redirect to silently rewrite links between clients before they load.
 
 If aturi.to is "send a link, let them pick the client," the extension is the inverse: "I landed on a link, take me to *my* client."
 

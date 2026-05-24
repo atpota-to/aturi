@@ -15,7 +15,7 @@ export default defineConfig({
   manifest: {
     name: 'Aturi',
     description:
-      'Move around the Atmosphere with ease — switch between apps, auto-redirect to your client of choice, and copy universal links.',
+      'Move around the Atmosphere with ease — switch between clients, auto-redirect to your client of choice, and copy universal links.',
     permissions: ['storage', 'tabs', 'declarativeNetRequest', 'clipboardWrite'],
     host_permissions: ['<all_urls>'],
     action: {

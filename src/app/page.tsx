@@ -78,9 +78,9 @@ export default function HomePage() {
                 lineHeight: 1.7,
                 marginBottom: '1.5rem'
               }}>
-                Land on a Bluesky post and want to view it in Deer? Click the Aturi extension icon
-                and jump there in one click. Works on Bluesky, Witchsky, Blacksky, Leaflet, Tangled,
-                Margin, PDSls, atp.tools, and dozens more.
+                Land on a Bluesky post and want to view it in Anisota? Click the Aturi extension icon
+                and jump there in one click. Works on Bluesky, Anisota, Blacksky, Leaflet, Tangled,
+                Margin, PDSls, Semble, and dozens more.
               </p>
                 <div style={{
                   display: 'inline-flex',
@@ -182,7 +182,7 @@ export default function HomePage() {
                 lineHeight: 1.6,
                 marginBottom: '0.75rem',
               }}>
-                Walk any account&apos;s PDS records, identity history, and backlinks.
+                Browse through any account&apos;s PDS records, identity history, and backlinks.
                 Sign in to edit your own data, watch the network live, and more.
               </p>
               <span style={{

@@ -390,7 +390,7 @@ export default function WaypointPicker({
           Tour the Atmosphere.
         </p>
         <p style={{ color: 'var(--text-secondary)', fontSize: '1rem', marginBottom: '1.5rem', lineHeight: 1.6 }}>
-          Switch between apps, share universal links, and explore any account&rsquo;s raw PDS data.
+          Switch between clients, share universal links, and explore any account&rsquo;s PDS data.
         </p>
         <ShareButton
           url={typeof window !== 'undefined' ? window.location.href : ''}

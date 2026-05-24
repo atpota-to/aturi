@@ -65,7 +65,7 @@ export default function DefaultsTab({ prefs, onChange }: Props) {
       <h1 className="options-h1">General</h1>
       <p className="options-lede">
         Tune how the popup behaves and, when auto-redirect is on, pick a favorite reader
-        for each family of records. Redirects only apply between apps that share the
+        for each family of records. Redirects only apply between clients that share the
         same underlying data.
       </p>
 

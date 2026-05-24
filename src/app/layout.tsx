@@ -10,19 +10,19 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "aturi.to — Tour the Atmosphere",
-  description: "Travel between apps with the browser extension, share universal Atmosphere links, and explore any account's raw PDS data.",
+  description: "Travel between clients with the browser extension, share universal Atmosphere links, and explore any account's PDS data.",
   metadataBase: new URL('https://aturi.to'),
   manifest: '/site.webmanifest',
   openGraph: {
     title: "aturi.to — Tour the Atmosphere",
-    description: "Travel between apps with the browser extension, share universal Atmosphere links, and explore any account's raw PDS data.",
+    description: "Travel between clients with the browser extension, share universal Atmosphere links, and explore any account's PDS data.",
     type: "website",
     images: ['/api/og/static?page=home'],
   },
   twitter: {
     card: "summary_large_image",
     title: "aturi.to — Tour the Atmosphere",
-    description: "Travel between apps with the browser extension, share universal Atmosphere links, and explore any account's raw PDS data.",
+    description: "Travel between clients with the browser extension, share universal Atmosphere links, and explore any account's PDS data.",
     images: ['/api/og/static?page=home'],
   },
 };

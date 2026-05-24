@@ -48,7 +48,7 @@ export async function GET(request: NextRequest) {
       home: {
         title: 'aturi.to',
         subtitle: 'Tour the Atmosphere',
-        tagline: 'Travel between apps, share universal links, and explore raw PDS data.',
+        tagline: 'Travel between clients, share universal links, and explore PDS data.',
         showBranding: false, // Home already shows aturi.to as main title
       },
       explore: {
