@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { resolveIdentifier, type IdentityBundle } from '@/utils/atproto/identity';
 import Breadcrumb from './Breadcrumb';
 import CopyButton from './CopyButton';
+import ProfileHeader from './ProfileHeader';
 import CollectionsTab from './tabs/CollectionsTab';
 import IdentityTab from './tabs/IdentityTab';
 import AuditTab from './tabs/AuditTab';
@@ -61,6 +62,7 @@ export default function RepoExplorer({ repo }: { repo: string }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
       <Breadcrumb handle={identity.handle} did={identity.did} />
+      <ProfileHeader identity={identity} />
       <IdentityRow identity={identity} />
       <TabbedView identity={identity} />
     </div>

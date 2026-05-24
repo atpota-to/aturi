@@ -33,6 +33,7 @@ export type AppViewProfile = {
   description?: string;
   avatar?: string;
   banner?: string;
+  pronouns?: string;
   followsCount?: number;
   followersCount?: number;
   postsCount?: number;
