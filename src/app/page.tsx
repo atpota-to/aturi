@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { ArrowRight, Link2, Sparkles, MousePointerClick, Repeat, Telescope } from 'lucide-react';
 import Header from '@/components/Header';
-import DownloadCTA from '@/components/DownloadCTA';
+import HomeHero from '@/components/HomeHero';
 import { StaggeredChildren, StaggerItem } from '@/components/StaggeredChildren';
 import { FadeIn } from '@/components/FadeIn';
 import { getWaypointCount } from '@/utils/waypoints';
@@ -14,15 +14,13 @@ export default function HomePage() {
   return (
     <div style={{ position: 'relative', overflow: 'hidden' }}>
       {/* Compact nav card — same shape used by /explore, /profile/*, and
-          /account so the homepage doesn't fork its own header treatment.
-          The feature cards + "Why aturi?" + examples sections below carry
-          the homepage's identity now that the giant hero is gone. */}
+          /account so the homepage doesn't fork its own header treatment. */}
       <div className="container-narrow" style={{ padding: '2rem 2rem 0' }}>
         <Header compact />
       </div>
 
-      {/* Primary CTA: Download Extension */}
-      <DownloadCTA />
+      {/* Hero: tagline + description + two CTAs (Explore + Download) */}
+      <HomeHero />
 
       {/* Main Content - Asymmetric Layout */}
       <div style={{ 
