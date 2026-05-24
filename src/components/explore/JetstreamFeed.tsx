@@ -7,7 +7,6 @@ import {
   type JetstreamCommit,
 } from '@/utils/atproto/jetstream';
 import { explorePathFromAtUri, shortDid } from '@/utils/atproto/urls';
-import { previewFor } from '@/utils/atproto/previewExtractors';
 import AtUriLink from './AtUriLink';
 
 type Op = 'create' | 'update' | 'delete';
@@ -25,9 +24,6 @@ type Row = {
 
 type Stats = {
   total: number;
-  creates: number;
-  updates: number;
-  deletes: number;
   uniqueDids: number;
   uniqueCollections: number;
   didsCapped: boolean;
@@ -36,9 +32,6 @@ type Stats = {
 
 const EMPTY_STATS: Stats = {
   total: 0,
-  creates: 0,
-  updates: 0,
-  deletes: 0,
   uniqueDids: 0,
   uniqueCollections: 0,
   didsCapped: false,
@@ -135,9 +128,6 @@ export default function JetstreamFeed({
   // sampled to state on each flush tick.
   const statsRef = useRef({
     total: 0,
-    creates: 0,
-    updates: 0,
-    deletes: 0,
     uniqueDids: new Set<string>(),
     uniqueCollections: new Set<string>(),
   });
@@ -165,12 +155,9 @@ export default function JetstreamFeed({
         });
         // Track arrival rate for the throughput indicator.
         epsCounter.current.push(receivedAt);
-        // Stats — totals + per-op breakdown + bounded cardinality sets.
+        // Stats — totals + bounded cardinality sets.
         const s = statsRef.current;
         s.total += 1;
-        if (op === 'create') s.creates += 1;
-        else if (op === 'update') s.updates += 1;
-        else if (op === 'delete') s.deletes += 1;
         if (s.uniqueDids.size < UNIQUE_DIDS_CAP) s.uniqueDids.add(did);
         if (s.uniqueCollections.size < UNIQUE_COLLECTIONS_CAP) s.uniqueCollections.add(c);
         // Bound buffer + counter so memory stays flat under steady load.
@@ -190,9 +177,6 @@ export default function JetstreamFeed({
         const s = statsRef.current;
         setStats({
           total: s.total,
-          creates: s.creates,
-          updates: s.updates,
-          deletes: s.deletes,
           uniqueDids: s.uniqueDids.size,
           uniqueCollections: s.uniqueCollections.size,
           didsCapped: s.uniqueDids.size >= UNIQUE_DIDS_CAP,
@@ -370,24 +354,14 @@ function FeedRow({ row, showOpLabel }: { row: Row; showOpLabel: boolean }) {
       >
         {tail}
       </code>
-      <span
-        style={{
-          color: 'var(--text-secondary)',
-          whiteSpace: 'nowrap',
-          overflow: 'hidden',
-          textOverflow: 'ellipsis',
-        }}
-      >
-        {previewFor(row.value) || row.rkey}
-      </span>
     </>
   );
 
   const rowGridStyle: React.CSSProperties = {
     display: 'grid',
     gridTemplateColumns: showOpLabel
-      ? 'auto minmax(14ch, 20ch) minmax(12ch, 18ch) 1fr'
-      : 'minmax(14ch, 20ch) minmax(12ch, 18ch) 1fr',
+      ? 'auto minmax(14ch, 22ch) 1fr'
+      : 'minmax(14ch, 22ch) 1fr',
     gap: '0.75rem',
     padding: '0.5rem 1rem',
     borderBottom: '1px solid var(--border-subtle)',
@@ -501,24 +475,6 @@ function StatsFooter({ stats }: { stats: Stats }) {
       }}
     >
       {item('total', stats.total.toLocaleString(), 'Events received since the feed loaded')}
-      <span
-        style={{
-          display: 'inline-flex',
-          gap: '0.6ch',
-          color: 'var(--text-tertiary)',
-        }}
-        title="Per-operation breakdown"
-      >
-        <span style={{ color: 'var(--text-primary)', fontVariantNumeric: 'tabular-nums' }}>
-          +{stats.creates.toLocaleString()}
-        </span>
-        <span style={{ color: 'var(--text-primary)', fontVariantNumeric: 'tabular-nums' }}>
-          ~{stats.updates.toLocaleString()}
-        </span>
-        <span style={{ color: 'var(--text-primary)', fontVariantNumeric: 'tabular-nums' }}>
-          ×{stats.deletes.toLocaleString()}
-        </span>
-      </span>
       {item(
         'users',
         `${stats.uniqueDids.toLocaleString()}${stats.didsCapped ? '+' : ''}`,
@@ -546,8 +502,8 @@ function SkeletonRows({ showOpColumn }: { showOpColumn: boolean }) {
   // about 1.5rem tall including border).
   const rows = Array.from({ length: 14 });
   const gridTemplateColumns = showOpColumn
-    ? 'auto minmax(14ch, 20ch) minmax(12ch, 18ch) 1fr'
-    : 'minmax(14ch, 20ch) minmax(12ch, 18ch) 1fr';
+    ? 'auto minmax(14ch, 22ch) 1fr'
+    : 'minmax(14ch, 22ch) 1fr';
   return (
     <>
       {rows.map((_, i) => (
@@ -567,7 +523,6 @@ function SkeletonRows({ showOpColumn }: { showOpColumn: boolean }) {
           {showOpColumn && <SkeletonBar widthCh={2} />}
           <SkeletonBar widthCh={16} />
           <SkeletonBar widthCh={10 + (i % 4) * 2} />
-          <SkeletonBar widthPct={`${75 - (i % 5) * 9}%`} />
         </li>
       ))}
     </>
