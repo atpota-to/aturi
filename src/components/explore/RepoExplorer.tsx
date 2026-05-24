@@ -87,30 +87,36 @@ export default function RepoExplorer({ repo }: { repo: string }) {
       <AppearIn delay={0.1}>
         <IdentityRow identity={identity} />
       </AppearIn>
-      <AppearIn delay={0.13}>
-        <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
-          <CredBlueScoreBadge
-            identifier={identity.handle || identity.did}
-            linkHandle={identity.handle || identity.did}
-          />
-        </div>
-      </AppearIn>
       {/* High-level stats — same tile grid the account-settings page
           uses, dropped in here so anyone viewing a repo (not just its
           owner) sees how big it is, when it was created, and how much
           inbound activity it has. */}
       <AppearIn delay={0.16}>
         <section style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
-          <h2
+          <div
             style={{
-              margin: 0,
-              fontSize: '1rem',
-              fontWeight: 400,
-              color: 'var(--text-primary)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '0.75rem',
+              flexWrap: 'wrap',
             }}
           >
-            Repo at a glance
-          </h2>
+            <h2
+              style={{
+                margin: 0,
+                fontSize: '1rem',
+                fontWeight: 400,
+                color: 'var(--text-primary)',
+              }}
+            >
+              Repo at a glance
+            </h2>
+            <CredBlueScoreBadge
+              identifier={identity.handle || identity.did}
+              linkHandle={identity.handle || identity.did}
+            />
+          </div>
           <AccountStats did={identity.did} />
         </section>
       </AppearIn>
@@ -134,7 +140,12 @@ function IdentityRow({ identity }: { identity: IdentityBundle }) {
         margin: 0,
       }}
     >
-      <Cell label="handle" value={identity.handle ? `@${identity.handle}` : null} />
+      <Cell
+        label="handle"
+        value={identity.handle ? `@${identity.handle}` : null}
+        copy={!!identity.handle}
+        copyValue={identity.handle || undefined}
+      />
       <Cell label="did" value={identity.did} copy />
       <PdsCell pds={identity.pds} />
     </dl>
@@ -190,7 +201,17 @@ function PdsCell({ pds }: { pds: string }) {
   );
 }
 
-function Cell({ label, value, copy }: { label: string; value: string | null; copy?: boolean }) {
+function Cell({
+  label,
+  value,
+  copy,
+  copyValue,
+}: {
+  label: string;
+  value: string | null;
+  copy?: boolean;
+  copyValue?: string;
+}) {
   return (
     <div>
       <dt className="explore-small-caps" style={{ marginBottom: '0.25rem' }}>
@@ -215,7 +236,14 @@ function Cell({ label, value, copy }: { label: string; value: string | null; cop
         ) : (
           <span className="explore-muted">unknown</span>
         )}
-        {copy && value && <CopyButton value={value} label={`Copy ${label}`} compact variant="subtle" />}
+        {copy && value && (
+          <CopyButton
+            value={copyValue ?? value}
+            label={`Copy ${label}`}
+            compact
+            variant="subtle"
+          />
+        )}
       </dd>
     </div>
   );
