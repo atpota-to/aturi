@@ -1,7 +1,8 @@
 'use client';
 
-import Link from 'next/link';
 import { Telescope } from 'lucide-react';
+import { useTranslations } from 'next-intl';
+import { Link } from '@/i18n/routing';
 import AppearIn from './AppearIn';
 import SearchBox from './SearchBox';
 import JetstreamFeed from './JetstreamFeed';
@@ -10,6 +11,7 @@ import CrossLinkCards from '@/components/landing/CrossLinkCards';
 const SUGGESTIONS = ['aturi.to', 'bsky.app', 'dame.is', 'jay.bsky.team'];
 
 export default function ExploreLanding() {
+  const t = useTranslations('explore');
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '2.5rem' }}>
       <AppearIn rise>
@@ -30,7 +32,7 @@ export default function ExploreLanding() {
             marginBottom: '1.25rem',
           }}
         >
-          <Telescope size={12} /> Atmosphere data explorer
+          <Telescope size={12} /> {t('badge')}
         </div>
         <h1
           style={{
@@ -40,7 +42,7 @@ export default function ExploreLanding() {
             color: 'var(--text-primary)',
           }}
         >
-          Browse through any repository.
+          {t('heading')}
         </h1>
         <p
           style={{
@@ -51,9 +53,7 @@ export default function ExploreLanding() {
             marginBottom: '2rem',
           }}
         >
-          Every account on the Atmosphere keeps its records in a public PDS.
-          Browse collections, inspect identity history, follow backlinks, and
-          edit your own records — all without leaving the browser.
+          {t('description')}
         </p>
         <SearchBox />
         <div
@@ -66,7 +66,7 @@ export default function ExploreLanding() {
             color: 'var(--text-tertiary)',
           }}
         >
-          <span>Try:</span>
+          <span>{t('tryLabel')}</span>
           {SUGGESTIONS.map((s) => (
             <Link
               key={s}

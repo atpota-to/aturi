@@ -1,7 +1,8 @@
 'use client';
 
-import Link from 'next/link';
 import { ArrowRight, Compass, Layers, Link2, Share2, Sparkles, UserCog } from 'lucide-react';
+import { useTranslations } from 'next-intl';
+import { Link } from '@/i18n/routing';
 import AppearIn from '@/components/explore/AppearIn';
 import WaypointJumpVisual from '@/components/home/WaypointJumpVisual';
 import WaypointCarousel from '@/components/home/WaypointCarousel';
@@ -18,6 +19,8 @@ const DEMO_HANDLE = 'aturi.to';
 const DEMO_DID = 'did:plc:gq4fo3u6tqzzdkjlwzpb23tj';
 
 export default function UniversalLinksLanding() {
+  const t = useTranslations('universalLinks');
+  const codeStyle = { color: 'var(--text-accent)' } as const;
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '4rem' }}>
       {/* Hero */}
@@ -31,7 +34,7 @@ export default function UniversalLinksLanding() {
           className="landing-hero"
         >
           <div>
-            <Badge icon={<Link2 size={12} aria-hidden />}>Universal links</Badge>
+            <Badge icon={<Link2 size={12} aria-hidden />}>{t('heroBadge')}</Badge>
             <h1
               style={{
                 fontSize: '2.5rem',
@@ -41,7 +44,7 @@ export default function UniversalLinksLanding() {
                 lineHeight: 1.15,
               }}
             >
-              One link, every Atmosphere client
+              {t('heroTitle')}
             </h1>
             <p
               style={{
@@ -52,15 +55,19 @@ export default function UniversalLinksLanding() {
                 marginBottom: '1.25rem',
               }}
             >
-              Drop an{' '}
-              <code style={{ background: 'transparent', padding: 0, color: 'var(--text-accent)' }}>
-                aturi.to
-              </code>{' '}
-              link anywhere — a DM, a footer, a bio. Your visitors land on a
-              friendly preview of the record and pick the Atmosphere client
-              they want to open it in. No client lock-in. No sign-up. Every
-              record, profile, list, and feed resolves to the right destination
-              across 25+ curated clients.
+              {t.rich('heroBody', {
+                code: (chunks) => (
+                  <code
+                    style={{
+                      background: 'transparent',
+                      padding: 0,
+                      color: 'var(--text-accent)',
+                    }}
+                  >
+                    {chunks}
+                  </code>
+                ),
+              })}
             </p>
             <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
               <Link
@@ -78,7 +85,7 @@ export default function UniversalLinksLanding() {
                   textDecoration: 'none',
                 }}
               >
-                See a live universal link
+                {t('heroCta')}
                 <ArrowRight size={14} />
               </Link>
             </div>
@@ -92,21 +99,12 @@ export default function UniversalLinksLanding() {
 
       <AppearIn delay={0.05}>
         <FeatureSection
-          badge={{ icon: <Compass size={12} />, label: 'Anatomy of a link' }}
-          title="Predictable, hackable URLs"
+          badge={{ icon: <Compass size={12} />, label: t('anatomyBadge') }}
+          title={t('anatomyTitle')}
           body={
             <>
-              <p>
-                Every aturi.to URL follows the same pattern: the host, a handle
-                or DID, the lexicon collection, and the record key. The same
-                shape works for every record type — there&rsquo;s nothing to
-                memorize beyond what an AT URI already looks like.
-              </p>
-              <p>
-                Drop the collection and the rkey, and you get a profile link.
-                Drop just the rkey, and you get a collection index. The path
-                always degrades gracefully.
-              </p>
+              <p>{t('anatomyBody1')}</p>
+              <p>{t('anatomyBody2')}</p>
             </>
           }
           visual={<UrlAnatomyVisual />}
@@ -122,7 +120,7 @@ export default function UniversalLinksLanding() {
           }}
         >
           <div>
-            <Badge icon={<Layers size={12} />}>Every record type</Badge>
+            <Badge icon={<Layers size={12} />}>{t('recordTypesBadge')}</Badge>
             <h2
               style={{
                 fontSize: '1.75rem',
@@ -133,7 +131,7 @@ export default function UniversalLinksLanding() {
                 letterSpacing: '-0.01em',
               }}
             >
-              Posts, profiles, lists, feeds, documents, repos, galleries…
+              {t('recordTypesTitle')}
             </h2>
             <p
               style={{
@@ -144,12 +142,9 @@ export default function UniversalLinksLanding() {
                 margin: 0,
               }}
             >
-              If a lexicon has a public record, aturi.to has a URL for it. The
-              same{' '}
-              <code style={{ color: 'var(--text-accent)' }}>handle/collection/rkey</code>{' '}
-              pattern resolves whether the record lives in app.bsky.feed.post,
-              pub.leaflet.document, sh.tangled.repo, or something brand new the
-              ecosystem invented last week.
+              {t.rich('recordTypesBody', {
+                code: (chunks) => <code style={codeStyle}>{chunks}</code>,
+              })}
             </p>
           </div>
           <RecordTypesGrid />
@@ -159,21 +154,12 @@ export default function UniversalLinksLanding() {
       <AppearIn delay={0.05}>
         <FeatureSection
           flip
-          badge={{ icon: <Sparkles size={12} />, label: 'The picker' }}
-          title="A friendly landing page for every record"
+          badge={{ icon: <Sparkles size={12} />, label: t('pickerBadge') }}
+          title={t('pickerTitle')}
           body={
             <>
-              <p>
-                Recipients land on a clean preview with a recommended client
-                pinned at the top and every alternative listed below. They can
-                read what the record is, decide where to open it, and never get
-                stranded in an app they don&rsquo;t use.
-              </p>
-              <p>
-                Each link is a real, indexable URL — embeds get OpenGraph
-                cards, link unfurlers get a real title and description, and
-                bookmarks survive client churn.
-              </p>
+              <p>{t('pickerBody1')}</p>
+              <p>{t('pickerBody2')}</p>
             </>
           }
           visual={<PickerPreviewVisual />}
@@ -182,22 +168,15 @@ export default function UniversalLinksLanding() {
 
       <AppearIn delay={0.05}>
         <FeatureSection
-          badge={{ icon: <UserCog size={12} />, label: 'Smart preferences' }}
-          title="Signed in? Your defaults travel with you."
+          badge={{ icon: <UserCog size={12} />, label: t('prefsBadge') }}
+          title={t('prefsTitle')}
           body={
             <>
+              <p>{t('prefsBody1')}</p>
               <p>
-                Sign in with your atproto handle and aturi.to remembers your
-                preferred client for each record type. The next time you
-                follow a universal link, the picker auto-resolves to your
-                favorite app — no extra clicks, on any device you sign in to.
-              </p>
-              <p>
-                Want to share a link that forces a specific client? Add a{' '}
-                <code style={{ color: 'var(--text-accent)' }}>?via=</code>{' '}
-                query param. Want to give your recipient the picker back? Drop
-                it. The default-vs-override decision lives in the URL, not in
-                the app.
+                {t.rich('prefsBody2', {
+                  code: (chunks) => <code style={codeStyle}>{chunks}</code>,
+                })}
               </p>
             </>
           }
@@ -224,7 +203,7 @@ export default function UniversalLinksLanding() {
                   letterSpacing: '0.1em',
                 }}
               >
-                Signed in as @aturi.to
+                {t('prefsSignedInAs')}
               </div>
               <PrefRow lexicon="app.bsky.feed.post" client="Deer" />
               <PrefRow lexicon="pub.leaflet.document" client="Leaflet" />
@@ -236,7 +215,7 @@ export default function UniversalLinksLanding() {
                   fontStyle: 'italic',
                 }}
               >
-                Synced to your repo · works on every device you sign in to.
+                {t('prefsSyncedNote')}
               </div>
             </div>
           }
@@ -252,7 +231,7 @@ export default function UniversalLinksLanding() {
           }}
         >
           <div>
-            <Badge icon={<Share2 size={12} />}>Share anywhere</Badge>
+            <Badge icon={<Share2 size={12} />}>{t('shareBadge')}</Badge>
             <h2
               style={{
                 fontSize: '1.75rem',
@@ -263,7 +242,7 @@ export default function UniversalLinksLanding() {
                 letterSpacing: '-0.01em',
               }}
             >
-              The link people can actually paste into anything
+              {t('shareTitle')}
             </h2>
             <p
               style={{
@@ -274,9 +253,7 @@ export default function UniversalLinksLanding() {
                 margin: 0,
               }}
             >
-              An aturi.to URL is short, readable, and copy-pasteable. It works
-              in Bluesky posts, group chats, blog footers, business cards, QR
-              codes, podcast show notes — anywhere a regular link belongs.
+              {t('shareBody')}
             </p>
           </div>
           <SharingScenariosVisual />

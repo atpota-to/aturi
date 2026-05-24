@@ -1,6 +1,5 @@
 'use client';
 
-import Link from 'next/link';
 import {
   Compass,
   Eye,
@@ -10,6 +9,8 @@ import {
   ShieldCheck,
   Zap,
 } from 'lucide-react';
+import { useTranslations } from 'next-intl';
+import { Link } from '@/i18n/routing';
 import AppearIn from '@/components/explore/AppearIn';
 import BrowserChrome from '@/components/home/BrowserChrome';
 import ExtensionPopupVisual from '@/components/home/ExtensionPopupVisual';
@@ -22,6 +23,7 @@ import ContextMenuVisual from './ContextMenuVisual';
 import FeatureSection from './FeatureSection';
 
 export default function ExtensionLanding() {
+  const t = useTranslations('extensionPage');
   const waypointCount = getWaypointCount();
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '4rem' }}>
@@ -37,7 +39,9 @@ export default function ExtensionLanding() {
           className="landing-hero"
         >
           <div>
-            <Badge icon={<MousePointerClick size={12} aria-hidden />}>Browser extension</Badge>
+            <Badge icon={<MousePointerClick size={12} aria-hidden />}>
+              {t('heroBadge')}
+            </Badge>
             <h1
               style={{
                 fontSize: '2.5rem',
@@ -47,7 +51,7 @@ export default function ExtensionLanding() {
                 lineHeight: 1.15,
               }}
             >
-              Jump between Atmosphere clients in one click
+              {t('heroTitle')}
             </h1>
             <p
               style={{
@@ -58,10 +62,7 @@ export default function ExtensionLanding() {
                 marginBottom: '1rem',
               }}
             >
-              Land on a Bluesky post and want to read it in Deer? Click the leaf
-              in your toolbar — the popup detects the AT URI on the page and
-              offers every app that can render it. Pick a favorite once and let
-              auto-redirect handle the rest.
+              {t('heroBody')}
             </p>
             <p
               style={{
@@ -75,7 +76,7 @@ export default function ExtensionLanding() {
               }}
             >
               <Repeat size={14} />
-              {waypointCount} curated Atmosphere clients
+              {t('clientCount', { count: waypointCount })}
             </p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
               <DownloadButton variant="primary" align="start" />
@@ -92,21 +93,12 @@ export default function ExtensionLanding() {
 
       <AppearIn delay={0.05}>
         <FeatureSection
-          badge={{ icon: <Compass size={12} />, label: 'One-click jump' }}
-          title="Every app that renders the record, one click away"
+          badge={{ icon: <Compass size={12} />, label: t('oneClickBadge') }}
+          title={t('oneClickTitle')}
           body={
             <>
-              <p>
-                The popup picks up whatever AT URI is on the page and surfaces a
-                recommended client at the top, plus every other waypoint that
-                supports that lexicon — from Bluesky and Deer to Leaflet,
-                Tangled, Margin, Grain, and the rest of the catalog.
-              </p>
-              <p>
-                Each row links straight to the equivalent page on the other
-                client, so there&rsquo;s no copy-pasting, no fiddling with URL
-                schemes, no re-resolving handles.
-              </p>
+              <p>{t('oneClickBody1')}</p>
+              <p>{t('oneClickBody2')}</p>
             </>
           }
           visual={
@@ -120,20 +112,12 @@ export default function ExtensionLanding() {
       <AppearIn delay={0.05}>
         <FeatureSection
           flip
-          badge={{ icon: <Eye size={12} />, label: 'Inspect mode' }}
-          title="See the AT URI under everything"
+          badge={{ icon: <Eye size={12} />, label: t('inspectBadge') }}
+          title={t('inspectTitle')}
           body={
             <>
-              <p>
-                Switch to the Inspect tab to read the underlying record: the DID
-                behind the handle, the PDS hosting it, the lexicon collection,
-                and the count of inbound backlinks pointing at it.
-              </p>
-              <p>
-                Click any field to copy it, or jump straight into the
-                Atmosphere Explorer to read the raw JSON. The same data
-                Bluesky&rsquo;s API serves, surfaced inline as you browse.
-              </p>
+              <p>{t('inspectBody1')}</p>
+              <p>{t('inspectBody2')}</p>
             </>
           }
           visual={<InspectPanelVisual />}
@@ -142,22 +126,12 @@ export default function ExtensionLanding() {
 
       <AppearIn delay={0.05}>
         <FeatureSection
-          badge={{ icon: <Zap size={12} />, label: 'Auto-redirect' }}
-          title="Set it once. Every link opens where you want."
+          badge={{ icon: <Zap size={12} />, label: t('autoBadge') }}
+          title={t('autoTitle')}
           body={
             <>
-              <p>
-                Pick a preferred client for each kind of record — posts in
-                Deer, documents in Leaflet, repositories in Tangled — and the
-                extension transparently sends you there whenever you click an
-                Atmosphere link from anywhere on the web.
-              </p>
-              <p>
-                Preferences are per-lexicon and per-device. Disable
-                auto-redirect for one collection without losing the others, or
-                turn the whole thing off and the extension goes back to a
-                popup-only tool.
-              </p>
+              <p>{t('autoBody1')}</p>
+              <p>{t('autoBody2')}</p>
             </>
           }
           visual={<AutoRedirectVisual />}
@@ -167,21 +141,18 @@ export default function ExtensionLanding() {
       <AppearIn delay={0.05}>
         <FeatureSection
           flip
-          badge={{ icon: <Link2 size={12} />, label: 'Right-click any AT URI' }}
-          title="Even raw URIs on random pages become first-class links"
+          badge={{ icon: <Link2 size={12} />, label: t('contextBadge') }}
+          title={t('contextTitle')}
           body={
             <>
               <p>
-                The extension registers a context menu on any text that looks
-                like an <code style={{ color: 'var(--text-accent)' }}>at://</code>{' '}
-                URI. Right-click it and you can open it in your recommended
-                app, inspect it on aturi.to, or copy a clean universal link
-                pointing at the same record.
+                {t.rich('contextBody1', {
+                  code: (chunks) => (
+                    <code style={{ color: 'var(--text-accent)' }}>{chunks}</code>
+                  ),
+                })}
               </p>
-              <p>
-                Useful in DMs, READMEs, JSON viewers, dev tools — anywhere an
-                AT URI shows up in plain text instead of a styled link.
-              </p>
+              <p>{t('contextBody2')}</p>
             </>
           }
           visual={<ContextMenuVisual />}
@@ -212,7 +183,7 @@ export default function ExtensionLanding() {
               fontFamily: 'var(--font-serif)',
             }}
           >
-            <ShieldCheck size={14} aria-hidden /> Local-first
+            <ShieldCheck size={14} aria-hidden /> {t('localFirstBadge')}
           </div>
           <h2
             style={{
@@ -223,7 +194,7 @@ export default function ExtensionLanding() {
               lineHeight: 1.2,
             }}
           >
-            No account required. No telemetry. No background network calls.
+            {t('localFirstTitle')}
           </h2>
           <p
             style={{
@@ -234,17 +205,16 @@ export default function ExtensionLanding() {
               maxWidth: '46rem',
             }}
           >
-            The extension only talks to your PDS when you actively trigger it —
-            click the popup, hit Inspect, or follow a context-menu jump.
-            Preferences stay in your browser&rsquo;s local storage; nothing is
-            uploaded.{' '}
-            <Link
-              href="/extension/privacy"
-              style={{ color: 'var(--text-accent)' }}
-            >
-              Read the privacy policy
-            </Link>
-            .
+            {t.rich('localFirstBody', {
+              link: (chunks) => (
+                <Link
+                  href="/extension/privacy"
+                  style={{ color: 'var(--text-accent)' }}
+                >
+                  {chunks}
+                </Link>
+              ),
+            })}
           </p>
           <DownloadButton variant="outline" align="start" />
         </section>
