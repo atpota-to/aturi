@@ -189,22 +189,15 @@ export default function JetstreamFeed({
           listStyle: 'none',
           margin: 0,
           padding: 0,
+          // Pin the viewport at 32rem from first paint so the surrounding
+          // page doesn't reflow once jetstream events start arriving — the
+          // skeleton rows below fill the space until real rows take over.
+          minHeight: '32rem',
           maxHeight: '32rem',
           overflowY: 'auto',
         }}
       >
-        {rows.length === 0 && (
-          <li
-            style={{
-              padding: '1.5rem 1rem',
-              color: 'var(--text-tertiary)',
-              fontStyle: 'italic',
-              textAlign: 'center',
-            }}
-          >
-            Waiting for records…
-          </li>
-        )}
+        {rows.length === 0 && <SkeletonRows />}
         {rows.map((r) => {
           const explorerHref = explorePathFromAtUri(r.uri);
           const tail = r.collection.split('.').slice(-2).join('.');
@@ -283,5 +276,63 @@ export default function JetstreamFeed({
         })}
       </ul>
     </section>
+  );
+}
+
+/**
+ * Skeleton placeholder rows shown until the first jetstream event arrives.
+ * Mirrors the live row grid (DID column / collection column / preview
+ * column) so the layout is stable as real rows replace them. Uses the
+ * site's existing .skeleton-shimmer sweep for the placeholder bars and
+ * varies the third-column width by index so the stack reads as a list
+ * of distinct items rather than a uniform pattern.
+ */
+function SkeletonRows() {
+  // 14 rows fills the 32rem viewport without overflowing it (each row is
+  // about 1.5rem tall including border).
+  const rows = Array.from({ length: 14 });
+  return (
+    <>
+      {rows.map((_, i) => (
+        <li
+          key={i}
+          aria-hidden
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'minmax(14ch, 20ch) minmax(12ch, 18ch) 1fr',
+            gap: '0.75rem',
+            alignItems: 'center',
+            padding: '0.5rem 1rem',
+            borderBottom: '1px solid var(--border-subtle)',
+            opacity: 0.9 - i * 0.04,
+          }}
+        >
+          <SkeletonBar widthCh={16} />
+          <SkeletonBar widthCh={10 + (i % 4) * 2} />
+          <SkeletonBar widthPct={`${75 - (i % 5) * 9}%`} />
+        </li>
+      ))}
+    </>
+  );
+}
+
+function SkeletonBar({
+  widthCh,
+  widthPct,
+}: {
+  widthCh?: number;
+  widthPct?: string;
+}) {
+  return (
+    <span
+      className="skeleton-shimmer"
+      style={{
+        display: 'block',
+        height: '0.65rem',
+        width: widthPct || `${widthCh}ch`,
+        background: 'var(--bg-tertiary)',
+        borderRadius: 0,
+      }}
+    />
   );
 }
