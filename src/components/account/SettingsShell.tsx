@@ -62,10 +62,6 @@ export default function SettingsShell() {
   return (
     <div className="settings-shell">
       <header className="settings-header">
-        <div className="settings-brand">
-          <h1 className="settings-brand-title">Aturi</h1>
-          <span className="settings-brand-sub">Settings</span>
-        </div>
         <nav className="settings-nav" role="tablist">
           {TABS.map((t) => (
             <button
