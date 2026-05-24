@@ -2,17 +2,13 @@
  * Dynamic OAuth client metadata.
  *
  * The OAuth spec ties `client_id` to the URL the metadata JSON is served
- * from. Aturi runs on multiple origins (aturi.to, *.vercel.app previews,
- * localhost for dev) so we generate the metadata per-request using the
- * incoming Host header rather than statically baking in a single origin.
+ * from, so we generate the metadata per-request from the incoming Host
+ * header rather than baking in a single origin. Localhost dev uses the
+ * loopback shortcut in `src/lib/oauth/client.ts` instead of this route.
  *
  * Allowed hosts:
- *   - aturi.to
- *   - any *.vercel.app subdomain
- *   - localhost / 127.0.0.1 (development)
- *
- * Requests from any other host are rejected so a typo can't leak
- * functionally-valid metadata under a wrong origin.
+ *   - aturi.to / www.aturi.to (production)
+ *   - testing.aturi.to (staging)
  */
 
 import { NextResponse } from 'next/server';
@@ -27,9 +23,7 @@ function isAllowedHost(hostname: string): boolean {
   return (
     hostname === 'aturi.to' ||
     hostname === 'www.aturi.to' ||
-    hostname.endsWith('.vercel.app') ||
-    hostname === 'localhost' ||
-    hostname === '127.0.0.1'
+    hostname === 'testing.aturi.to'
   );
 }
 
