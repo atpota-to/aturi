@@ -23,6 +23,14 @@ type Props = {
   did: string;
   /** Optional handle — when present, drives the cred.blue tile fetch + link. */
   handle?: string | null;
+  /**
+   * When false (the marketing/demo callers on the homepage strip),
+   * the cred.blue tile is rendered as a non-clickable preview and
+   * the per-tile `title` tooltips are suppressed. The real account
+   * and explorer pages leave this at its default `true` so visitors
+   * can still navigate to cred.blue and read the hint hover text.
+   */
+  interactive?: boolean;
 };
 
 type Stats = {
@@ -43,7 +51,7 @@ type Stats = {
  *
  * Each fetch is independent; one failure doesn't block the others.
  */
-export default function AccountStats({ did, handle }: Props) {
+export default function AccountStats({ did, handle, interactive = true }: Props) {
   const [stats, setStats] = useState<Stats | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [credBlue, setCredBlue] = useState<
@@ -172,12 +180,14 @@ export default function AccountStats({ did, handle }: Props) {
         label="Namespaces"
         hint="Unique top-level NSID prefixes (e.g. net.anisota, app.bsky)"
         value={stats?.namespaces}
+        interactive={interactive}
       />
       <StatTile
         icon={<Database size={16} />}
         label="Lexicons"
         hint="Distinct record types / collections across all namespaces"
         value={stats?.collections}
+        interactive={interactive}
       />
       <StatTile
         icon={<History size={16} />}
@@ -185,6 +195,7 @@ export default function AccountStats({ did, handle }: Props) {
         hint="PLC operations recorded against this DID"
         value={stats?.auditOps ?? undefined}
         unavailable={stats !== null && stats.auditOps === null}
+        interactive={interactive}
       />
       <StatTile
         icon={<LinkIcon size={16} />}
@@ -192,6 +203,7 @@ export default function AccountStats({ did, handle }: Props) {
         hint="Records across the Atmosphere pointing at this DID"
         value={stats?.backlinks ?? undefined}
         unavailable={stats !== null && stats.backlinks === null}
+        interactive={interactive}
       />
       <StatTile
         icon={<CalendarDays size={16} />}
@@ -199,8 +211,13 @@ export default function AccountStats({ did, handle }: Props) {
         hint="Earliest PLC operation timestamp"
         valueLabel={createdLabel || (stats !== null && !createdLabel ? '—' : undefined)}
         sublabel={createdRelative || undefined}
+        interactive={interactive}
       />
-      <CredBlueTile state={credBlue} handle={handle || did} />
+      <CredBlueTile
+        state={credBlue}
+        handle={handle || did}
+        interactive={interactive}
+      />
     </section>
   );
 }
@@ -208,16 +225,22 @@ export default function AccountStats({ did, handle }: Props) {
 function CredBlueTile({
   state,
   handle,
+  interactive,
 }: {
   state: { status: 'loading' } | { status: 'ready'; score: CredBlueScore | null };
   handle: string;
+  interactive: boolean;
 }) {
-  const href = `${CRED_BLUE_BASE}/${encodeURIComponent(handle.replace(/^@/, ''))}`;
+  // Only emit an href when the tile is actually meant to be clickable
+  // — non-interactive demos drop it so StatTile renders a plain div.
+  const href = interactive
+    ? `${CRED_BLUE_BASE}/${encodeURIComponent(handle.replace(/^@/, ''))}`
+    : undefined;
   const icon = <Gauge size={16} />;
   const label = 'cred.blue score';
 
   if (state.status === 'loading') {
-    return <StatTile icon={icon} label={label} href={href} />;
+    return <StatTile icon={icon} label={label} href={href} interactive={interactive} />;
   }
   if (!state.score) {
     return (
@@ -228,6 +251,7 @@ function CredBlueTile({
         href={href}
         valueLabel="—"
         sublabel="not scored yet"
+        interactive={interactive}
       />
     );
   }
@@ -240,6 +264,7 @@ function CredBlueTile({
       href={href}
       value={combined}
       sublabel={`bsky ${bluesky.toLocaleString()} · atp ${atproto.toLocaleString()}`}
+      interactive={interactive}
     />
   );
 }
@@ -275,6 +300,7 @@ function StatTile({
   sublabel,
   unavailable,
   href,
+  interactive = true,
 }: {
   icon: React.ReactNode;
   label: string;
@@ -289,6 +315,13 @@ function StatTile({
   unavailable?: boolean;
   /** When set, wraps the whole tile in an external link with hover affordance. */
   href?: string;
+  /**
+   * When false, the tile drops its native `title` tooltip so demo
+   * surfaces don't surface "click to generate one" hover popups for
+   * tiles the visitor can't actually click. Has no effect on the
+   * href path because callers strip href separately for those tiles.
+   */
+  interactive?: boolean;
 }) {
   let display: React.ReactNode;
   if (unavailable) {
@@ -365,13 +398,15 @@ function StatTile({
     gap: '0.4rem',
   };
 
+  const titleAttr = interactive ? hint : undefined;
+
   if (href) {
     return (
       <a
         href={href}
         target="_blank"
         rel="noreferrer"
-        title={hint}
+        title={titleAttr}
         style={{
           ...baseStyle,
           color: 'inherit',
@@ -391,7 +426,7 @@ function StatTile({
   }
 
   return (
-    <div title={hint} style={baseStyle}>
+    <div title={titleAttr} style={baseStyle}>
       {body}
     </div>
   );

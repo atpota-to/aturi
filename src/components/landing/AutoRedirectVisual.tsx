@@ -144,14 +144,10 @@ export default function AutoRedirectVisual() {
                 fontFamily: 'var(--font-serif)',
               }}
             >
-              <span
-                style={{
-                  display: 'inline-flex',
-                  width: 14,
-                  height: 14,
-                  color: 'var(--text-accent)',
-                }}
-              >
+              {/* Wrapper class + CSS in globals.css forces the inner
+                  waypoint SVG (intrinsic 24x24) to fill this 16x16 box
+                  so it lines up vertically with the client name. */}
+              <span className="landing-button-icon" aria-hidden>
                 {r.icon}
               </span>
               {r.client}

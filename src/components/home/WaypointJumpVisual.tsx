@@ -8,7 +8,7 @@ import { WAYPOINT_ICONS } from '@/utils/waypointIcons';
 // A handful of recognisable Atmosphere clients to populate the row. Order
 // + selection are tuned so the animated highlight visits a varied set of
 // icons (not just Bluesky forks back-to-back).
-const ROW_ICON_IDS = [
+const DEFAULT_ROW_ICON_IDS = [
   'bluesky',
   'leaflet',
   'tangled',
@@ -21,6 +21,8 @@ const ROW_ICON_IDS = [
 
 const HIGHLIGHT_INTERVAL_MS = 1100;
 
+const DEFAULT_ICON_SIZE = 38;
+
 /**
  * Animated visual for the homepage's Universal Links strip. Shows a
  * stylized aturi.to URL chip flowing into a row of waypoint icons,
@@ -28,15 +30,32 @@ const HIGHLIGHT_INTERVAL_MS = 1100;
  * \"one link, many clients\" idea in a way the carousel below can't on
  * its own.
  */
-export default function WaypointJumpVisual({ handle = 'aturi.to' }: { handle?: string }) {
+type Props = {
+  handle?: string;
+  /**
+   * Which icon ids to render across the row. Callers in narrower
+   * containers (e.g. the /universal-links landing page, which lives
+   * in container-narrow at 800px) should pass a shorter list so the
+   * row doesn't get squeezed.
+   */
+  iconIds?: readonly string[];
+  /** Pixel size of each icon cell. Defaults to 38. */
+  iconSize?: number;
+};
+
+export default function WaypointJumpVisual({
+  handle = 'aturi.to',
+  iconIds = DEFAULT_ROW_ICON_IDS,
+  iconSize = DEFAULT_ICON_SIZE,
+}: Props) {
   const [activeIndex, setActiveIndex] = useState(0);
 
   useEffect(() => {
     const id = window.setInterval(() => {
-      setActiveIndex((i) => (i + 1) % ROW_ICON_IDS.length);
+      setActiveIndex((i) => (i + 1) % iconIds.length);
     }, HIGHLIGHT_INTERVAL_MS);
     return () => window.clearInterval(id);
-  }, []);
+  }, [iconIds.length]);
 
   return (
     <div
@@ -90,7 +109,7 @@ export default function WaypointJumpVisual({ handle = 'aturi.to' }: { handle?: s
       >
         <motion.div
           animate={{
-            left: `${(activeIndex / Math.max(ROW_ICON_IDS.length - 1, 1)) * 100}%`,
+            left: `${(activeIndex / Math.max(iconIds.length - 1, 1)) * 100}%`,
           }}
           transition={{ type: 'spring', stiffness: 240, damping: 26 }}
           style={{
@@ -115,7 +134,7 @@ export default function WaypointJumpVisual({ handle = 'aturi.to' }: { handle?: s
           gap: '0.4rem',
         }}
       >
-        {ROW_ICON_IDS.map((id, i) => {
+        {iconIds.map((id, i) => {
           const isActive = i === activeIndex;
           return (
             <motion.div
@@ -126,8 +145,8 @@ export default function WaypointJumpVisual({ handle = 'aturi.to' }: { handle?: s
               }}
               transition={{ duration: 0.32, ease: 'easeOut' }}
               style={{
-                width: 38,
-                height: 38,
+                width: iconSize,
+                height: iconSize,
                 display: 'inline-flex',
                 alignItems: 'center',
                 justifyContent: 'center',

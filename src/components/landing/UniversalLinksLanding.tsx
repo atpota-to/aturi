@@ -84,7 +84,16 @@ export default function UniversalLinksLanding() {
             </div>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            <WaypointJumpVisual handle={DEMO_HANDLE} />
+            {/* The landing page lives inside container-narrow (800px),
+                so the hero's right column ends up around 350px wide on
+                desktop. Pass a trimmed icon set + slightly smaller cell
+                so the row stays comfortable and the highlight glow
+                isn't squeezed into its neighbours. */}
+            <WaypointJumpVisual
+              handle={DEMO_HANDLE}
+              iconIds={['bluesky', 'leaflet', 'tangled', 'deer', 'pinksky', 'grain']}
+              iconSize={34}
+            />
             <WaypointCarousel handle={DEMO_HANDLE} did={DEMO_DID} />
           </div>
         </header>
