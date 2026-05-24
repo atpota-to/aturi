@@ -86,10 +86,26 @@ export default function EngagementSidecar({ did, collection, atUri }: Props) {
       {items.map((item) => (
         <div
           key={item.label}
-          style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '0.4rem',
+            // Collapse line-height so icon and number sit on the same
+            // optical line (body's 1.7 line-height was floating the icon
+            // above the text midline).
+            lineHeight: 1,
+          }}
           title={item.label}
         >
-          <span style={{ color: 'var(--text-tertiary)' }}>{item.icon}</span>
+          <span
+            style={{
+              color: 'var(--text-tertiary)',
+              display: 'inline-flex',
+              alignItems: 'center',
+            }}
+          >
+            {item.icon}
+          </span>
           <span style={{ fontVariantNumeric: 'tabular-nums', color: 'var(--text-primary)' }}>
             {item.value.toLocaleString()}
           </span>

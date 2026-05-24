@@ -1237,6 +1237,9 @@ export default function PostPreview({ post, parent }: PostPreviewProps) {
           borderTop: '1px solid var(--border-color)',
           fontSize: '0.875rem',
           color: 'var(--text-tertiary)',
+          // Collapse inherited line-height so icons align to the text
+          // midline (body's default of 1.7 was floating them above).
+          lineHeight: 1,
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>

@@ -737,12 +737,17 @@ html {
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  /* Collapse the inherited line-height (body: 1.7) so the text's line-box
+     matches the icon's geometric height — without this, align-items:
+     center floats the icon above the optical midline of the text. */
+  line-height: 1;
 }
 
 .profile-join-date {
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  line-height: 1;
 }
 
 /* Skeleton Loading Styles */
