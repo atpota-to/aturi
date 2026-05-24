@@ -24,25 +24,25 @@ export const GRANULAR_SCOPES: GranularScope[] = [
   {
     id: 'create',
     scope: 'repo:*?action=create',
-    label: 'Create records',
+    label: 'Create',
     hint: 'Add new records to any collection in your repo.',
   },
   {
     id: 'update',
     scope: 'repo:*?action=update',
-    label: 'Update records',
+    label: 'Update',
     hint: 'Edit existing records (Record Editor, preferences).',
   },
   {
     id: 'delete',
     scope: 'repo:*?action=delete',
-    label: 'Delete records',
+    label: 'Delete',
     hint: 'Remove records from your repo.',
   },
   {
     id: 'blob',
     scope: 'blob:*/*',
-    label: 'Upload blobs',
+    label: 'Upload',
     hint: 'Upload images and other media attachments.',
   },
 ];
