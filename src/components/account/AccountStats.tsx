@@ -5,6 +5,7 @@ import {
   Boxes,
   CalendarDays,
   Database,
+  Gauge,
   History,
   Link as LinkIcon,
 } from 'lucide-react';
@@ -15,9 +16,13 @@ import {
   flattenSources,
   getBacklinkSources,
 } from '@/utils/atproto/constellation';
+import { fetchCachedCredBlueScore, type CredBlueScore } from '@/utils/credBlueScore';
+import { CRED_BLUE_BASE } from '@/utils/atproto/config';
 
 type Props = {
   did: string;
+  /** Optional handle — when present, drives the cred.blue tile fetch + link. */
+  handle?: string | null;
 };
 
 type Stats = {
@@ -38,9 +43,12 @@ type Stats = {
  *
  * Each fetch is independent; one failure doesn't block the others.
  */
-export default function AccountStats({ did }: Props) {
+export default function AccountStats({ did, handle }: Props) {
   const [stats, setStats] = useState<Stats | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [credBlue, setCredBlue] = useState<
+    { status: 'loading' } | { status: 'ready'; score: CredBlueScore | null }
+  >({ status: 'loading' });
 
   useEffect(() => {
     let cancelled = false;
@@ -104,6 +112,18 @@ export default function AccountStats({ did }: Props) {
       cancelled = true;
     };
   }, [did]);
+
+  useEffect(() => {
+    let cancelled = false;
+    setCredBlue({ status: 'loading' });
+    const identifier = handle || did;
+    fetchCachedCredBlueScore(identifier).then((score) => {
+      if (!cancelled) setCredBlue({ status: 'ready', score });
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [handle, did]);
 
   const createdLabel = useMemo(() => {
     if (!stats?.createdAt) return null;
@@ -180,7 +200,47 @@ export default function AccountStats({ did }: Props) {
         valueLabel={createdLabel || (stats !== null && !createdLabel ? '—' : undefined)}
         sublabel={createdRelative || undefined}
       />
+      <CredBlueTile state={credBlue} handle={handle || did} />
     </section>
+  );
+}
+
+function CredBlueTile({
+  state,
+  handle,
+}: {
+  state: { status: 'loading' } | { status: 'ready'; score: CredBlueScore | null };
+  handle: string;
+}) {
+  const href = `${CRED_BLUE_BASE}/${encodeURIComponent(handle.replace(/^@/, ''))}`;
+  const icon = <Gauge size={16} />;
+  const label = 'cred.blue score';
+
+  if (state.status === 'loading') {
+    return <StatTile icon={icon} label={label} href={href} />;
+  }
+  if (!state.score) {
+    return (
+      <StatTile
+        icon={icon}
+        label={label}
+        hint="This account hasn't been scored yet on cred.blue — click to generate one."
+        href={href}
+        valueLabel="—"
+        sublabel="not scored yet"
+      />
+    );
+  }
+  const { combined, bluesky, atproto } = state.score.scores;
+  return (
+    <StatTile
+      icon={icon}
+      label={label}
+      hint={`Bluesky ${bluesky.toLocaleString()} · ATProto ${atproto.toLocaleString()}`}
+      href={href}
+      value={combined}
+      sublabel={`bsky ${bluesky.toLocaleString()} · atp ${atproto.toLocaleString()}`}
+    />
   );
 }
 
@@ -214,6 +274,7 @@ function StatTile({
   valueLabel,
   sublabel,
   unavailable,
+  href,
 }: {
   icon: React.ReactNode;
   label: string;
@@ -226,6 +287,8 @@ function StatTile({
   sublabel?: string;
   /** When true, render an em-dash to show the source isn't applicable. */
   unavailable?: boolean;
+  /** When set, wraps the whole tile in an external link with hover affordance. */
+  href?: string;
 }) {
   let display: React.ReactNode;
   if (unavailable) {
@@ -252,18 +315,8 @@ function StatTile({
   } else {
     display = value.toLocaleString();
   }
-  return (
-    <div
-      title={hint}
-      style={{
-        padding: '0.75rem 0.875rem',
-        background: 'var(--bg-secondary)',
-        border: '1px solid var(--border-medium)',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '0.4rem',
-      }}
-    >
+  const body = (
+    <>
       <div
         className="explore-small-caps"
         style={{
@@ -300,6 +353,46 @@ function StatTile({
           {sublabel}
         </div>
       )}
+    </>
+  );
+
+  const baseStyle: React.CSSProperties = {
+    padding: '0.75rem 0.875rem',
+    background: 'var(--bg-secondary)',
+    border: '1px solid var(--border-medium)',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '0.4rem',
+  };
+
+  if (href) {
+    return (
+      <a
+        href={href}
+        target="_blank"
+        rel="noreferrer"
+        title={hint}
+        style={{
+          ...baseStyle,
+          color: 'inherit',
+          textDecoration: 'none',
+          transition: 'border-color 0.2s ease',
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.borderColor = 'var(--text-accent)';
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.borderColor = 'var(--border-medium)';
+        }}
+      >
+        {body}
+      </a>
+    );
+  }
+
+  return (
+    <div title={hint} style={baseStyle}>
+      {body}
     </div>
   );
 }
