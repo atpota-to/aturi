@@ -26,16 +26,12 @@ type Stats = {
   total: number;
   uniqueDids: number;
   uniqueCollections: number;
-  didsCapped: boolean;
-  collectionsCapped: boolean;
 };
 
 const EMPTY_STATS: Stats = {
   total: 0,
   uniqueDids: 0,
   uniqueCollections: 0,
-  didsCapped: false,
-  collectionsCapped: false,
 };
 
 // Flush interval — slower than the firehose tempo on purpose. A faster flush
@@ -47,12 +43,6 @@ const FLUSH_INTERVAL_MS = 750;
 // strobe of every commit. The rate counter below preserves the sense of
 // scale.
 const MAX_INSERTS_PER_FLUSH = 6;
-// Cardinality caps on the unique-counter Sets so memory stays flat on long
-// sessions. Past these the counters keep tracking totals but stop growing
-// (the display tacks on a "+" so the cap is visible).
-const UNIQUE_DIDS_CAP = 5_000;
-const UNIQUE_COLLECTIONS_CAP = 500;
-
 type Props = {
   /** Limit the firehose subscription to these NSIDs. */
   initialCollections?: string[];
@@ -155,11 +145,14 @@ export default function JetstreamFeed({
         });
         // Track arrival rate for the throughput indicator.
         epsCounter.current.push(receivedAt);
-        // Stats — totals + bounded cardinality sets.
+        // Stats — total events seen plus the unique-cardinality Sets.
+        // Sets grow with session length; the component unmounts (and the
+        // ref clears) when the user navigates away, so memory is bounded
+        // by tab lifetime.
         const s = statsRef.current;
         s.total += 1;
-        if (s.uniqueDids.size < UNIQUE_DIDS_CAP) s.uniqueDids.add(did);
-        if (s.uniqueCollections.size < UNIQUE_COLLECTIONS_CAP) s.uniqueCollections.add(c);
+        s.uniqueDids.add(did);
+        s.uniqueCollections.add(c);
         // Bound buffer + counter so memory stays flat under steady load.
         if (buffer.current.length > 400) {
           buffer.current.splice(0, buffer.current.length - 400);
@@ -179,8 +172,6 @@ export default function JetstreamFeed({
           total: s.total,
           uniqueDids: s.uniqueDids.size,
           uniqueCollections: s.uniqueCollections.size,
-          didsCapped: s.uniqueDids.size >= UNIQUE_DIDS_CAP,
-          collectionsCapped: s.uniqueCollections.size >= UNIQUE_COLLECTIONS_CAP,
         });
       }
 
@@ -475,16 +466,8 @@ function StatsFooter({ stats }: { stats: Stats }) {
       }}
     >
       {item('total', stats.total.toLocaleString(), 'Events received since the feed loaded')}
-      {item(
-        'users',
-        `${stats.uniqueDids.toLocaleString()}${stats.didsCapped ? '+' : ''}`,
-        'Distinct DIDs spotted',
-      )}
-      {item(
-        'lexicons',
-        `${stats.uniqueCollections.toLocaleString()}${stats.collectionsCapped ? '+' : ''}`,
-        'Distinct NSIDs spotted',
-      )}
+      {item('users', stats.uniqueDids.toLocaleString(), 'Distinct DIDs spotted')}
+      {item('lexicons', stats.uniqueCollections.toLocaleString(), 'Distinct NSIDs spotted')}
     </footer>
   );
 }
