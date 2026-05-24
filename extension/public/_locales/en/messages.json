@@ -1,0 +1,50 @@
+{
+  "extName": {
+    "message": "Aturi"
+  },
+  "extDescription": {
+    "message": "Move around the Atmosphere with ease — switch between clients, auto-redirect to your client of choice, and copy universal links."
+  },
+  "extActionTitle": {
+    "message": "Aturi"
+  },
+  "popup_loading": {
+    "message": "Loading…"
+  },
+  "popup_unsupported": {
+    "message": "This page isn't an atproto link."
+  },
+  "popup_modeWaypoints": {
+    "message": "Waypoints"
+  },
+  "popup_modeInspect": {
+    "message": "Inspect"
+  },
+  "common_cancel": {
+    "message": "Cancel"
+  },
+  "common_save": {
+    "message": "Save"
+  },
+  "common_close": {
+    "message": "Close"
+  },
+  "options_tab_defaults": {
+    "message": "Defaults"
+  },
+  "options_tab_visibility": {
+    "message": "Visibility"
+  },
+  "options_tab_custom": {
+    "message": "Custom"
+  },
+  "options_tab_history": {
+    "message": "History"
+  },
+  "options_tab_dev": {
+    "message": "Dev"
+  },
+  "options_tab_about": {
+    "message": "About"
+  }
+}

@@ -13,13 +13,16 @@ export default defineConfig({
     startUrls: ['about:debugging#/runtime/this-firefox'],
   },
   manifest: {
-    name: 'Aturi',
-    description:
-      'Move around the Atmosphere with ease — switch between clients, auto-redirect to your client of choice, and copy universal links.',
+    // i18n: name and description resolve from public/_locales/<lang>/messages.json
+    // via Chrome's native __MSG_<key>__ syntax. Chrome picks the user's
+    // browser UI language and falls back to `default_locale` ('en').
+    default_locale: 'en',
+    name: '__MSG_extName__',
+    description: '__MSG_extDescription__',
     permissions: ['storage', 'tabs', 'declarativeNetRequest', 'clipboardWrite'],
     host_permissions: ['<all_urls>'],
     action: {
-      default_title: 'Aturi',
+      default_title: '__MSG_extActionTitle__',
       default_icon: {
         16: 'icon/16.png',
         32: 'icon/32.png',
@@ -81,6 +84,11 @@ export default defineConfig({
         96: 'icon/96.png',
         128: 'icon/128.png',
       };
+      // WXT resolves __MSG_*__ in `default_title` against the default
+      // locale at build time, defeating Chrome's per-locale resolution.
+      // Reinject the placeholder so the toolbar tooltip follows the user's
+      // browser language.
+      action.default_title = '__MSG_extActionTitle__';
     },
   },
 });

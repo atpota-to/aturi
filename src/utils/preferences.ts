@@ -18,7 +18,7 @@
  */
 
 import type { WaypointType } from './waypoints.data';
-import { LOCALES, type Locale } from '@/i18n/routing';
+import { LOCALES, type Locale } from './locales';
 
 const LS_KEY = 'aturi.prefs.v1';
 

@@ -1,0 +1,50 @@
+{
+  "extName": {
+    "message": "Aturi"
+  },
+  "extDescription": {
+    "message": "アトモスフィアを軽やかに移動 — クライアントを切り替え、お好みのクライアントへ自動リダイレクトし、ユニバーサルリンクをコピーします。"
+  },
+  "extActionTitle": {
+    "message": "Aturi"
+  },
+  "popup_loading": {
+    "message": "読み込み中…"
+  },
+  "popup_unsupported": {
+    "message": "このページはatprotoリンクではありません。"
+  },
+  "popup_modeWaypoints": {
+    "message": "ウェイポイント"
+  },
+  "popup_modeInspect": {
+    "message": "インスペクト"
+  },
+  "common_cancel": {
+    "message": "キャンセル"
+  },
+  "common_save": {
+    "message": "保存"
+  },
+  "common_close": {
+    "message": "閉じる"
+  },
+  "options_tab_defaults": {
+    "message": "デフォルト"
+  },
+  "options_tab_visibility": {
+    "message": "表示"
+  },
+  "options_tab_custom": {
+    "message": "カスタム"
+  },
+  "options_tab_history": {
+    "message": "履歴"
+  },
+  "options_tab_dev": {
+    "message": "開発"
+  },
+  "options_tab_about": {
+    "message": "情報"
+  }
+}

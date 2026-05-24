@@ -1,8 +1,8 @@
 import { defineRouting } from 'next-intl/routing';
 import { createNavigation } from 'next-intl/navigation';
+import { LOCALES, type Locale } from '@/utils/locales';
 
-export const LOCALES = ['en', 'ja', 'fr', 'es'] as const;
-export type Locale = (typeof LOCALES)[number];
+export { LOCALES, type Locale };
 
 export const LOCALE_LABELS: Record<Locale, string> = {
   en: 'English',
