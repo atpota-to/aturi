@@ -62,12 +62,14 @@ export default function HomeHero() {
         PDS data.
       </p>
 
-      {/* CTA row */}
+      {/* CTA row — align to the top so the Explore link doesn't stretch
+          to match the Download column's full height (button + fallback
+          line). Each button keeps its natural size. */}
       <div
         style={{
           display: 'flex',
           flexWrap: 'wrap',
-          alignItems: 'stretch',
+          alignItems: 'flex-start',
           justifyContent: 'center',
           gap: '0.75rem',
           marginBottom: '0.875rem',
