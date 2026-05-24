@@ -7,27 +7,86 @@ import { describeRepo } from '@/utils/atproto/pdsClient';
 import { encodeRepo } from '@/utils/atproto/urls';
 import type { IdentityBundle } from '@/utils/atproto/identity';
 
-type Group = { key: string; items: string[] };
+type SubGroup = {
+  /** 3rd NSID segment, e.g. "feed", "graph", "actor". */
+  key: string;
+  /** Composite key used as a stable React + collapsed-state id. */
+  fullKey: string;
+  items: string[];
+};
 
-function groupByNamespace(list: string[], filterStr: string): Group[] {
+type MajorGroup = {
+  /** First two NSID segments, e.g. "app.bsky", "is.dame". */
+  key: string;
+  /** 3-segment NSIDs that live directly under the major group (no sub). */
+  directItems: string[];
+  /** 4+ segment NSIDs grouped by their 3rd segment. */
+  subgroups: SubGroup[];
+  /** Total leaf NSIDs across direct + all sub-groups. */
+  totalCount: number;
+};
+
+/**
+ * Two-level hierarchical grouping.
+ *
+ *   `app.bsky.feed.post`        → major `app.bsky`, sub `feed`, leaf
+ *   `app.bsky.feed.post.shit`   → major `app.bsky`, sub `feed`, leaf
+ *   `app.bsky.actor.profile`    → major `app.bsky`, sub `actor`, leaf
+ *   `is.dame.now`               → major `is.dame`, no sub, direct leaf
+ *
+ * For NSIDs with fewer than 4 segments there's no third segment to sub-group
+ * by, so they sort under the major group as direct leaves above the sub-groups.
+ */
+function groupHierarchically(list: string[], filterStr: string): MajorGroup[] {
   const f = filterStr.trim().toLowerCase();
   const filtered = f ? list.filter((nsid) => nsid.toLowerCase().includes(f)) : list;
-  const map = new Map<string, string[]>();
+
+  // Two-pass: bucket by major, then by sub within each major.
+  const majors = new Map<
+    string,
+    { direct: string[]; subs: Map<string, string[]> }
+  >();
   for (const nsid of filtered) {
-    const lastDot = nsid.lastIndexOf('.');
-    const key = lastDot > 0 ? nsid.slice(0, lastDot) : nsid;
-    if (!map.has(key)) map.set(key, []);
-    map.get(key)!.push(nsid);
+    const segs = nsid.split('.');
+    const major = segs.length >= 2 ? `${segs[0]}.${segs[1]}` : nsid;
+    if (!majors.has(major)) majors.set(major, { direct: [], subs: new Map() });
+    const bucket = majors.get(major)!;
+    if (segs.length >= 4) {
+      const subKey = segs[2];
+      if (!bucket.subs.has(subKey)) bucket.subs.set(subKey, []);
+      bucket.subs.get(subKey)!.push(nsid);
+    } else {
+      bucket.direct.push(nsid);
+    }
   }
-  return Array.from(map.entries())
+
+  // Sort + materialize.
+  return Array.from(majors.entries())
     .sort(([a], [b]) => a.localeCompare(b))
-    .map(([key, items]) => ({ key, items: items.sort() }));
+    .map(([majorKey, bucket]) => {
+      const subgroups: SubGroup[] = Array.from(bucket.subs.entries())
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([subKey, items]) => ({
+          key: subKey,
+          fullKey: `${majorKey}.${subKey}`,
+          items: items.sort(),
+        }));
+      const totalCount =
+        bucket.direct.length + subgroups.reduce((acc, s) => acc + s.items.length, 0);
+      return {
+        key: majorKey,
+        directItems: bucket.direct.sort(),
+        subgroups,
+        totalCount,
+      };
+    });
 }
 
 export default function CollectionsTab({ identity }: { identity: IdentityBundle }) {
   const [collections, setCollections] = useState<string[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState('');
+  /** Collapsed-state map keyed by full group/sub key (e.g. "app.bsky" or "app.bsky.feed"). */
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
@@ -48,8 +107,16 @@ export default function CollectionsTab({ identity }: { identity: IdentityBundle 
     };
   }, [identity.pds, identity.did]);
 
-  const groups = useMemo(() => groupByNamespace(collections || [], filter), [collections, filter]);
+  const groups = useMemo(
+    () => groupHierarchically(collections || [], filter),
+    [collections, filter],
+  );
+
   const repoSeg = encodeRepo(identity.handle || identity.did);
+
+  function toggle(key: string) {
+    setCollapsed((prev) => ({ ...prev, [key]: !prev[key] ? true : false }));
+  }
 
   if (error) return <p className="explore-error">{error}</p>;
   if (!collections) return <p className="explore-placeholder">Loading collections…</p>;
@@ -61,7 +128,7 @@ export default function CollectionsTab({ identity }: { identity: IdentityBundle 
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
       <input
         type="text"
-        placeholder="Filter collections…"
+        placeholder="Filter lexicons…"
         value={filter}
         onChange={(e) => setFilter(e.target.value)}
         style={{
@@ -82,7 +149,7 @@ export default function CollectionsTab({ identity }: { identity: IdentityBundle 
         </p>
       ) : (
         groups.map((g) => {
-          const open = collapsed[g.key] !== true;
+          const majorOpen = collapsed[g.key] !== true;
           return (
             <section
               key={g.key}
@@ -91,95 +158,68 @@ export default function CollectionsTab({ identity }: { identity: IdentityBundle 
                 background: 'var(--bg-secondary)',
               }}
             >
-              <button
-                type="button"
-                onClick={() =>
-                  setCollapsed((prev) => ({ ...prev, [g.key]: !prev[g.key] ? true : false }))
-                }
-                aria-expanded={open}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.5rem',
-                  width: '100%',
-                  padding: '0.625rem 1rem',
-                  background: 'transparent',
-                  border: 0,
-                  textAlign: 'left',
-                  fontFamily: 'var(--font-mono)',
-                  fontSize: '0.875rem',
-                  color: 'var(--text-primary)',
-                  cursor: 'pointer',
-                }}
-              >
-                {open ? (
-                  <ChevronDown size={14} aria-hidden style={{ color: 'var(--text-tertiary)' }} />
-                ) : (
-                  <ChevronRight size={14} aria-hidden style={{ color: 'var(--text-tertiary)' }} />
-                )}
-                <code
-                  style={{
-                    flex: 1,
-                    background: 'transparent',
-                    padding: 0,
-                    color: 'var(--text-accent)',
-                  }}
-                >
-                  {g.key}
-                </code>
-                <span
-                  style={{
-                    fontSize: '0.75rem',
-                    color: 'var(--text-tertiary)',
-                    padding: '0.125rem 0.5rem',
-                    background: 'var(--bg-tertiary)',
-                    border: '1px solid var(--border-subtle)',
-                  }}
-                >
-                  {g.items.length}
-                </span>
-              </button>
-              {open && (
-                <ul
-                  style={{
-                    listStyle: 'none',
-                    margin: 0,
-                    padding: 0,
-                    borderTop: '1px solid var(--border-subtle)',
-                  }}
-                >
-                  {g.items.map((nsid) => (
-                    <li
-                      key={nsid}
-                      style={{
-                        borderBottom: '1px solid var(--border-subtle)',
-                      }}
-                    >
-                      <Link
-                        href={`/explore/${repoSeg}/${nsid}`}
+              <GroupHeader
+                open={majorOpen}
+                onToggle={() => toggle(g.key)}
+                prefix={g.key}
+                count={g.totalCount}
+                emphasize
+              />
+              {majorOpen && (
+                <div style={{ borderTop: '1px solid var(--border-subtle)' }}>
+                  {/* Direct leaves (3-segment NSIDs) come first. */}
+                  {g.directItems.length > 0 && (
+                    <ul style={listStyle()}>
+                      {g.directItems.map((nsid) => (
+                        <LeafRow
+                          key={nsid}
+                          nsid={nsid}
+                          href={`/explore/${repoSeg}/${nsid}`}
+                        />
+                      ))}
+                    </ul>
+                  )}
+                  {/* Then collapsible sub-groups. */}
+                  {g.subgroups.map((sub) => {
+                    const subOpen = collapsed[sub.fullKey] !== true;
+                    return (
+                      <div
+                        key={sub.fullKey}
                         style={{
-                          display: 'block',
-                          padding: '0.5rem 1rem 0.5rem 2.5rem',
-                          fontFamily: 'var(--font-mono)',
-                          fontSize: '0.85rem',
-                          color: 'var(--text-primary)',
-                          textDecoration: 'none',
-                          transition: 'background 0.2s ease, color 0.2s ease',
-                        }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.background = 'var(--bg-tertiary)';
-                          e.currentTarget.style.color = 'var(--text-accent)';
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.background = 'transparent';
-                          e.currentTarget.style.color = 'var(--text-primary)';
+                          borderTop:
+                            g.directItems.length > 0 || g.subgroups.indexOf(sub) > 0
+                              ? '1px solid var(--border-subtle)'
+                              : undefined,
                         }}
                       >
-                        {nsid}
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
+                        <GroupHeader
+                          open={subOpen}
+                          onToggle={() => toggle(sub.fullKey)}
+                          prefix={sub.fullKey}
+                          count={sub.items.length}
+                          indent
+                        />
+                        {subOpen && (
+                          <ul
+                            style={{
+                              ...listStyle(),
+                              borderTop: '1px solid var(--border-subtle)',
+                            }}
+                          >
+                            {sub.items.map((nsid) => (
+                              <LeafRow
+                                key={nsid}
+                                nsid={nsid}
+                                href={`/explore/${repoSeg}/${nsid}`}
+                                deepIndent
+                              />
+                            ))}
+                          </ul>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
               )}
             </section>
           );
@@ -187,4 +227,119 @@ export default function CollectionsTab({ identity }: { identity: IdentityBundle 
       )}
     </div>
   );
+}
+
+function GroupHeader({
+  open,
+  onToggle,
+  prefix,
+  count,
+  emphasize,
+  indent,
+}: {
+  open: boolean;
+  onToggle: () => void;
+  prefix: string;
+  count: number;
+  emphasize?: boolean;
+  indent?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      aria-expanded={open}
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: '0.5rem',
+        width: '100%',
+        padding: indent ? '0.55rem 1rem 0.55rem 1.5rem' : '0.625rem 1rem',
+        background: 'transparent',
+        border: 0,
+        textAlign: 'left',
+        fontFamily: 'var(--font-mono)',
+        fontSize: indent ? '0.8125rem' : '0.875rem',
+        color: 'var(--text-primary)',
+        cursor: 'pointer',
+      }}
+    >
+      {open ? (
+        <ChevronDown size={14} aria-hidden style={{ color: 'var(--text-tertiary)' }} />
+      ) : (
+        <ChevronRight size={14} aria-hidden style={{ color: 'var(--text-tertiary)' }} />
+      )}
+      <code
+        style={{
+          flex: 1,
+          background: 'transparent',
+          padding: 0,
+          color: emphasize ? 'var(--text-accent)' : 'var(--text-secondary)',
+          wordBreak: 'break-all',
+        }}
+      >
+        {prefix}
+        <span style={{ color: 'var(--text-tertiary)' }}>.*</span>
+      </code>
+      <span
+        style={{
+          fontSize: '0.75rem',
+          color: 'var(--text-tertiary)',
+          padding: '0.125rem 0.5rem',
+          background: 'var(--bg-tertiary)',
+          border: '1px solid var(--border-subtle)',
+          flexShrink: 0,
+        }}
+      >
+        {count}
+      </span>
+    </button>
+  );
+}
+
+function LeafRow({
+  nsid,
+  href,
+  deepIndent,
+}: {
+  nsid: string;
+  href: string;
+  deepIndent?: boolean;
+}) {
+  return (
+    <li style={{ borderBottom: '1px solid var(--border-subtle)' }}>
+      <Link
+        href={href}
+        style={{
+          display: 'block',
+          padding: deepIndent
+            ? '0.5rem 1rem 0.5rem 3rem'
+            : '0.5rem 1rem 0.5rem 2.5rem',
+          fontFamily: 'var(--font-mono)',
+          fontSize: '0.85rem',
+          color: 'var(--text-primary)',
+          textDecoration: 'none',
+          transition: 'background 0.2s ease, color 0.2s ease',
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.background = 'var(--bg-tertiary)';
+          e.currentTarget.style.color = 'var(--text-accent)';
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.background = 'transparent';
+          e.currentTarget.style.color = 'var(--text-primary)';
+        }}
+      >
+        {nsid}
+      </Link>
+    </li>
+  );
+}
+
+function listStyle(): React.CSSProperties {
+  return {
+    listStyle: 'none',
+    margin: 0,
+    padding: 0,
+  };
 }
