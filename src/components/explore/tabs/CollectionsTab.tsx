@@ -179,11 +179,13 @@ export default function CollectionsTab({ identity }: { identity: IdentityBundle 
                   {/* Direct leaves (3-segment NSIDs) come first. */}
                   {g.directItems.length > 0 && (
                     <ul style={listStyle()}>
-                      {g.directItems.map((nsid) => (
+                      {g.directItems.map((nsid, i) => (
                         <LeafRow
                           key={nsid}
                           nsid={nsid}
                           href={`/explore/${repoSeg}/${nsid}`}
+                          dimPrefix={`${g.key}.`}
+                          baseBg={i % 2 === 1 ? 'var(--bg-primary)' : 'transparent'}
                         />
                       ))}
                     </ul>
@@ -205,6 +207,7 @@ export default function CollectionsTab({ identity }: { identity: IdentityBundle 
                           open={subOpen}
                           onToggle={() => toggle(sub.fullKey)}
                           prefix={sub.fullKey}
+                          dimPrefix={`${g.key}.`}
                           count={sub.items.length}
                           indent
                         />
@@ -215,12 +218,14 @@ export default function CollectionsTab({ identity }: { identity: IdentityBundle 
                               borderTop: '1px solid var(--border-subtle)',
                             }}
                           >
-                            {sub.items.map((nsid) => (
+                            {sub.items.map((nsid, i) => (
                               <LeafRow
                                 key={nsid}
                                 nsid={nsid}
                                 href={`/explore/${repoSeg}/${nsid}`}
                                 deepIndent
+                                dimPrefix={`${sub.fullKey}.`}
+                                baseBg={i % 2 === 1 ? 'var(--bg-primary)' : 'transparent'}
                               />
                             ))}
                           </ul>
@@ -242,6 +247,7 @@ function GroupHeader({
   open,
   onToggle,
   prefix,
+  dimPrefix,
   count,
   emphasize,
   indent,
@@ -249,10 +255,15 @@ function GroupHeader({
   open: boolean;
   onToggle: () => void;
   prefix: string;
+  /** Leading slice of `prefix` to render dimmed because it's inherited from a parent group. */
+  dimPrefix?: string;
   count: number;
   emphasize?: boolean;
   indent?: boolean;
 }) {
+  const hasDim = dimPrefix && prefix.startsWith(dimPrefix);
+  const dim = hasDim ? dimPrefix : '';
+  const tail = hasDim ? prefix.slice(dimPrefix.length) : prefix;
   return (
     <button
       type="button"
@@ -292,7 +303,8 @@ function GroupHeader({
           overflowWrap: 'anywhere',
         }}
       >
-        {prefix}
+        {dim && <span style={{ color: 'var(--text-tertiary)' }}>{dim}</span>}
+        {tail}
         <span style={{ color: 'var(--text-tertiary)' }}>.*</span>
       </code>
       <span
@@ -315,13 +327,22 @@ function LeafRow({
   nsid,
   href,
   deepIndent,
+  dimPrefix,
+  baseBg,
 }: {
   nsid: string;
   href: string;
   deepIndent?: boolean;
+  /** Leading slice of `nsid` that's redundant given the parent group; rendered dimmed. */
+  dimPrefix?: string;
+  /** Resting background for zebra striping; mouseleave restores to this. */
+  baseBg: string;
 }) {
+  const hasDim = dimPrefix && nsid.startsWith(dimPrefix);
+  const dim = hasDim ? dimPrefix : '';
+  const tail = hasDim ? nsid.slice(dimPrefix.length) : nsid;
   return (
-    <li style={{ borderBottom: '1px solid var(--border-subtle)' }}>
+    <li>
       <Link
         href={href}
         style={{
@@ -332,6 +353,7 @@ function LeafRow({
           fontFamily: 'var(--font-mono)',
           fontSize: '0.85rem',
           color: 'var(--text-primary)',
+          background: baseBg,
           textDecoration: 'none',
           wordBreak: 'break-all',
           overflowWrap: 'anywhere',
@@ -342,11 +364,12 @@ function LeafRow({
           e.currentTarget.style.color = 'var(--text-accent)';
         }}
         onMouseLeave={(e) => {
-          e.currentTarget.style.background = 'transparent';
+          e.currentTarget.style.background = baseBg;
           e.currentTarget.style.color = 'var(--text-primary)';
         }}
       >
-        {nsid}
+        {dim && <span style={{ color: 'var(--text-tertiary)' }}>{dim}</span>}
+        {tail}
       </Link>
     </li>
   );
