@@ -1,21 +1,33 @@
 import type { Metadata } from "next";
+import { getTranslations } from "next-intl/server";
 
-export const metadata: Metadata = {
-  title: "Fork & Deploy - aturi.to",
-  description: "Run your own instance with a custom domain. Open source and ready to deploy on Vercel.",
-  metadataBase: new URL('https://aturi.to'),
-  openGraph: {
-    title: "Fork & Deploy - aturi.to",
-    description: "Run your own instance with a custom domain",
-    images: ['/api/og/static?page=fork'],
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "Fork & Deploy - aturi.to",
-    description: "Run your own instance with a custom domain",
-    images: ['/api/og/static?page=fork'],
-  },
-};
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  const t = await getTranslations({ locale, namespace: "meta.fork" });
+  const title = t("title");
+  const description = t("description");
+  const ogDescription = t("ogDescription");
+  return {
+    title,
+    description,
+    metadataBase: new URL("https://aturi.to"),
+    openGraph: {
+      title,
+      description: ogDescription,
+      images: ["/api/og/static?page=fork"],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description: ogDescription,
+      images: ["/api/og/static?page=fork"],
+    },
+  };
+}
 
 export default function ForkLayout({
   children,
@@ -24,4 +36,3 @@ export default function ForkLayout({
 }) {
   return <>{children}</>;
 }
-

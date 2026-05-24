@@ -1,11 +1,19 @@
 import type { Metadata } from 'next';
+import { getTranslations } from 'next-intl/server';
 import Header from '@/components/Header';
 
-export const metadata: Metadata = {
-  title: 'Browser Extension Privacy Policy - aturi.to',
-  description:
-    'Privacy policy for the Aturi browser extension. What data it stores, what permissions it uses, and why.',
-};
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  const t = await getTranslations({ locale, namespace: 'meta.extensionPrivacy' });
+  return {
+    title: t('title'),
+    description: t('description'),
+  };
+}
 
 const headingPrimary = {
   color: 'var(--text-primary)',

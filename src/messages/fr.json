@@ -87,15 +87,40 @@
     },
     "profile": {
       "title": "Profil Atmosphere de {name} (@{handle})",
-      "descriptionFallback": "Voir le profil de @{handle} dans votre client Atmosphere préféré"
+      "descriptionFallback": "Voir le profil de @{handle} dans votre client Atmosphere préféré",
+      "notFoundTitle": "Profil introuvable · aturi.to",
+      "notFoundDescription": "Visite l'Atmosphère",
+      "rawTitle": "@{handle} · aturi.to"
     },
     "terms": {
       "title": "Conditions · aturi.to",
       "description": "Conditions d'utilisation d'aturi.to."
     },
     "extension": {
-      "title": "Extension · aturi.to",
-      "description": "Installez l'extension de navigateur Aturi pour changer entre les clients Atmosphere."
+      "title": "Extension de navigateur · aturi.to",
+      "description": "Passez d'un client Atmosphere à l'autre en un clic, inspectez les AT URI partout sur le web et redirigez automatiquement vers votre application préférée par lexique."
+    },
+    "extensionPrivacy": {
+      "title": "Politique de confidentialité de l'extension · aturi.to",
+      "description": "Politique de confidentialité de l'extension de navigateur Aturi. Quelles données elle stocke, quelles permissions elle utilise, et pourquoi."
+    },
+    "explore": {
+      "title": "Explorateur Atmosphere · aturi.to",
+      "description": "Parcourez les enregistrements PDS, l'historique d'identité et les backlinks de n'importe quel compte sur tout l'Atmosphere."
+    },
+    "universalLinks": {
+      "title": "Liens universels · aturi.to",
+      "description": "Partagez un seul lien aturi.to et laissez votre audience choisir le client Atmosphere dans lequel l'ouvrir — plus de 25 clients pris en charge, sans verrouillage ni inscription."
+    },
+    "fork": {
+      "title": "Fork & Deploy · aturi.to",
+      "description": "Lancez votre propre instance avec un domaine personnalisé. Open source et prêt à déployer sur Vercel.",
+      "ogDescription": "Lancez votre propre instance avec un domaine personnalisé"
+    },
+    "integrate": {
+      "title": "Intégrer · aturi.to",
+      "description": "Ajoutez le partage universel à votre application Atmosphere. Des motifs d'URL simples pour une intégration facile.",
+      "ogDescription": "Ajoutez le partage universel à votre application Atmosphere"
     }
   }
 }

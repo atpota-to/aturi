@@ -87,15 +87,40 @@
     },
     "profile": {
       "title": "{name} (@{handle})'s Atmosphere Profile",
-      "descriptionFallback": "View @{handle}'s profile in your preferred Atmosphere client"
+      "descriptionFallback": "View @{handle}'s profile in your preferred Atmosphere client",
+      "notFoundTitle": "Profile not found · aturi.to",
+      "notFoundDescription": "Tour the Atmosphere",
+      "rawTitle": "@{handle} · aturi.to"
     },
     "terms": {
       "title": "Terms · aturi.to",
       "description": "Terms of use for aturi.to."
     },
     "extension": {
-      "title": "Extension · aturi.to",
-      "description": "Install the Aturi browser extension to switch between Atmosphere clients."
+      "title": "Browser Extension · aturi.to",
+      "description": "Jump between Atmosphere clients in one click, inspect AT URIs anywhere on the web, and auto-redirect to your preferred app per lexicon."
+    },
+    "extensionPrivacy": {
+      "title": "Browser Extension Privacy Policy · aturi.to",
+      "description": "Privacy policy for the Aturi browser extension. What data it stores, what permissions it uses, and why."
+    },
+    "explore": {
+      "title": "Atmosphere Explorer · aturi.to",
+      "description": "Browse any account's PDS records, identity history, and backlinks across the Atmosphere."
+    },
+    "universalLinks": {
+      "title": "Universal Links · aturi.to",
+      "description": "Share one aturi.to link and let your audience pick the Atmosphere client they want to open it in — 25+ supported clients, no lock-in, no sign-up."
+    },
+    "fork": {
+      "title": "Fork & Deploy · aturi.to",
+      "description": "Run your own instance with a custom domain. Open source and ready to deploy on Vercel.",
+      "ogDescription": "Run your own instance with a custom domain"
+    },
+    "integrate": {
+      "title": "Integrate · aturi.to",
+      "description": "Add universal sharing to your Atmosphere app. Simple URL patterns for easy integration.",
+      "ogDescription": "Add universal sharing to your Atmosphere app"
     }
   }
 }

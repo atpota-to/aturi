@@ -1,10 +1,19 @@
 import type { Metadata } from 'next';
+import { getTranslations } from 'next-intl/server';
 import Header from '@/components/Header';
 
-export const metadata: Metadata = {
-  title: 'Terms & Privacy Policy - aturi.to',
-  description: 'Terms of service and privacy policy for aturi.to',
-};
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  const t = await getTranslations({ locale, namespace: 'meta.terms' });
+  return {
+    title: t('title'),
+    description: t('description'),
+  };
+}
 
 export default function TermsPage() {
   return (

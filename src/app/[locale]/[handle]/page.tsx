@@ -1,6 +1,7 @@
 import { Metadata } from 'next';
 import { Suspense } from 'react';
 import { redirect } from 'next/navigation';
+import { getTranslations } from 'next-intl/server';
 import WaypointPicker from '@/components/WaypointPicker';
 import ProfilePreview from '@/components/ProfilePreview';
 import ProfilePreviewSkeleton from '@/components/ProfilePreviewSkeleton';
@@ -11,37 +12,41 @@ import { resolveDidToHandle } from '@/utils/didResolver';
 import { fetchProfile } from '@/utils/profileFetcher';
 
 type Props = {
-  params: Promise<{ handle: string }>;
+  params: Promise<{ locale: string; handle: string }>;
 };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const { handle: rawHandle } = await params;
+  const { locale, handle: rawHandle } = await params;
+  const t = await getTranslations({ locale, namespace: 'meta.profile' });
   let handle = decodeURIComponent(rawHandle);
-  
+
   // If handle starts with @, strip it for resolution
   if (handle.startsWith('@')) {
     handle = handle.slice(1);
   }
-  
+
   try {
     const resolvedDid = await resolveHandle(handle);
     if (!resolvedDid) {
       return {
-        title: 'Profile not found - aturi.to',
-        description: 'Tour the Atmosphere',
+        title: t('notFoundTitle'),
+        description: t('notFoundDescription'),
       };
     }
 
     const profile = await fetchProfile(resolvedDid);
-    const displayHandle = handle.startsWith('did:') 
+    const displayHandle = handle.startsWith('did:')
       ? await resolveDidToHandle(resolvedDid) || handle
       : handle;
-    
+
     if (profile) {
-      const title = `${profile.displayName || displayHandle} (@${displayHandle})'s Atmosphere Profile`;
-      const description = profile.description 
-        ? profile.description.slice(0, 160) 
-        : `View @${displayHandle}'s profile in your preferred Atmosphere client`;
+      const title = t('title', {
+        name: profile.displayName || displayHandle,
+        handle: displayHandle,
+      });
+      const description = profile.description
+        ? profile.description.slice(0, 160)
+        : t('descriptionFallback', { handle: displayHandle });
       
       // Generate OG image URL - hardcode production domain
       const ogImageUrl = new URL('/api/og/profile', 'https://aturi.to');
@@ -76,8 +81,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   }
 
   return {
-    title: `@${handle} - aturi.to`,
-    description: 'Tour the Atmosphere',
+    title: t('rawTitle', { handle }),
+    description: t('notFoundDescription'),
   };
 }
 

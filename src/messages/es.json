@@ -87,15 +87,40 @@
     },
     "profile": {
       "title": "Perfil Atmosphere de {name} (@{handle})",
-      "descriptionFallback": "Ver el perfil de @{handle} en tu cliente Atmosphere preferido"
+      "descriptionFallback": "Ver el perfil de @{handle} en tu cliente Atmosphere preferido",
+      "notFoundTitle": "Perfil no encontrado · aturi.to",
+      "notFoundDescription": "Recorre la Atmósfera",
+      "rawTitle": "@{handle} · aturi.to"
     },
     "terms": {
       "title": "Términos · aturi.to",
       "description": "Términos de uso de aturi.to."
     },
     "extension": {
-      "title": "Extensión · aturi.to",
-      "description": "Instala la extensión de navegador Aturi para cambiar entre clientes Atmosphere."
+      "title": "Extensión de navegador · aturi.to",
+      "description": "Salta entre clientes Atmosphere con un clic, inspecciona AT URI en cualquier lugar de la web y redirige automáticamente a tu aplicación preferida según el léxico."
+    },
+    "extensionPrivacy": {
+      "title": "Política de privacidad de la extensión · aturi.to",
+      "description": "Política de privacidad de la extensión de navegador Aturi. Qué datos almacena, qué permisos usa y por qué."
+    },
+    "explore": {
+      "title": "Explorador Atmosphere · aturi.to",
+      "description": "Navega por los registros PDS, el historial de identidad y los backlinks de cualquier cuenta en todo Atmosphere."
+    },
+    "universalLinks": {
+      "title": "Enlaces universales · aturi.to",
+      "description": "Comparte un solo enlace aturi.to y deja que tu audiencia elija el cliente Atmosphere para abrirlo — más de 25 clientes compatibles, sin bloqueos ni registros."
+    },
+    "fork": {
+      "title": "Fork & Deploy · aturi.to",
+      "description": "Ejecuta tu propia instancia con un dominio personalizado. Open source y listo para desplegar en Vercel.",
+      "ogDescription": "Ejecuta tu propia instancia con un dominio personalizado"
+    },
+    "integrate": {
+      "title": "Integrar · aturi.to",
+      "description": "Añade el uso compartido universal a tu aplicación Atmosphere. Patrones de URL simples para integrar con facilidad.",
+      "ogDescription": "Añade el uso compartido universal a tu aplicación Atmosphere"
     }
   }
 }

@@ -1,25 +1,33 @@
 import type { Metadata } from 'next';
+import { getTranslations } from 'next-intl/server';
 import Header from '@/components/Header';
 import UniversalLinksLanding from '@/components/landing/UniversalLinksLanding';
 
-export const metadata: Metadata = {
-  title: 'Universal Links · aturi.to',
-  description:
-    'Share one aturi.to link and let your audience pick the Atmosphere client they want to open it in — 25+ supported clients, no lock-in, no sign-up.',
-  openGraph: {
-    title: 'Universal Links · aturi.to',
-    description:
-      'Share one aturi.to link and let your audience pick the Atmosphere client they want to open it in — 25+ supported clients, no lock-in, no sign-up.',
-    images: ['/api/og/static?page=universal-links'],
-  },
-  twitter: {
-    card: 'summary_large_image',
-    title: 'Universal Links · aturi.to',
-    description:
-      'Share one aturi.to link and let your audience pick the Atmosphere client they want to open it in — 25+ supported clients, no lock-in, no sign-up.',
-    images: ['/api/og/static?page=universal-links'],
-  },
-};
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  const t = await getTranslations({ locale, namespace: 'meta.universalLinks' });
+  const title = t('title');
+  const description = t('description');
+  return {
+    title,
+    description,
+    openGraph: {
+      title,
+      description,
+      images: ['/api/og/static?page=universal-links'],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title,
+      description,
+      images: ['/api/og/static?page=universal-links'],
+    },
+  };
+}
 
 export default function UniversalLinksPage() {
   return (

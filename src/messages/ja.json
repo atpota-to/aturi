@@ -87,15 +87,40 @@
     },
     "profile": {
       "title": "{name}（@{handle}）のアトモスフィアプロフィール",
-      "descriptionFallback": "@{handle}のプロフィールをお好みのAtmosphereクライアントで表示"
+      "descriptionFallback": "@{handle}のプロフィールをお好みのAtmosphereクライアントで表示",
+      "notFoundTitle": "プロフィールが見つかりません · aturi.to",
+      "notFoundDescription": "アトモスフィアを旅しよう",
+      "rawTitle": "@{handle} · aturi.to"
     },
     "terms": {
       "title": "利用規約 · aturi.to",
       "description": "aturi.toの利用規約。"
     },
     "extension": {
-      "title": "拡張機能 · aturi.to",
-      "description": "Aturiブラウザ拡張機能をインストールしてAtmosphereクライアント間を切り替えましょう。"
+      "title": "ブラウザ拡張機能 · aturi.to",
+      "description": "ワンクリックでAtmosphereクライアント間を移動、Web上のAT URIをどこでも検査、レキシコンごとにお好みのアプリへ自動リダイレクト。"
+    },
+    "extensionPrivacy": {
+      "title": "ブラウザ拡張機能 プライバシーポリシー · aturi.to",
+      "description": "Aturiブラウザ拡張機能のプライバシーポリシー。保存するデータ、使用する権限、その理由について。"
+    },
+    "explore": {
+      "title": "アトモスフィア エクスプローラー · aturi.to",
+      "description": "任意のアカウントのPDSレコード、アイデンティティ履歴、Atmosphere全体のバックリンクを閲覧できます。"
+    },
+    "universalLinks": {
+      "title": "ユニバーサルリンク · aturi.to",
+      "description": "aturi.toリンクを1つ共有するだけで、視聴者が開きたいAtmosphereクライアントを選べます — 25以上のクライアントに対応、ロックインなし、登録不要。"
+    },
+    "fork": {
+      "title": "フォーク＆デプロイ · aturi.to",
+      "description": "独自ドメインで自分のインスタンスを実行。オープンソースでVercelにすぐデプロイ可能。",
+      "ogDescription": "独自ドメインで自分のインスタンスを実行"
+    },
+    "integrate": {
+      "title": "連携 · aturi.to",
+      "description": "あなたのAtmosphereアプリにユニバーサル共有を追加。シンプルなURLパターンで簡単に連携。",
+      "ogDescription": "あなたのAtmosphereアプリにユニバーサル共有を追加"
     }
   }
 }
