@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { Server } from 'lucide-react';
 import { pdsHostname } from '@/utils/atproto/pdsServer';
 import AppearIn from './AppearIn';
+import Breadcrumb from './Breadcrumb';
 import CopyButton from './CopyButton';
 import ProfileHeader from './ProfileHeader';
 import CollectionsTab from './tabs/CollectionsTab';
@@ -64,18 +65,20 @@ export default function RepoExplorer({ repo }: { repo: string }) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-      {/* No breadcrumb at the repo level — the ProfileHeader (or the
-          technical identity row below it for non-Bluesky DIDs) already
-          tells the user which account they're inspecting. The Breadcrumb
-          component is rendered by CollectionExplorer / RecordExplorer
-          when there are nested segments to navigate back through. */}
+      {/* Breadcrumb at the repo level shows pds → @handle. The PDS segment
+          earns the slot here even though there's nothing nested below it
+          on this view — it's the only \"drill up\" affordance at the top
+          of the explorer hierarchy. */}
       <AppearIn rise>
+        <Breadcrumb handle={identity.handle} did={identity.did} pds={identity.pds} />
+      </AppearIn>
+      <AppearIn delay={0.04}>
         <ProfileHeader identity={identity} />
       </AppearIn>
-      <AppearIn delay={0.06}>
+      <AppearIn delay={0.1}>
         <IdentityRow identity={identity} />
       </AppearIn>
-      <AppearIn delay={0.12}>
+      <AppearIn delay={0.16}>
         <TabbedView identity={identity} />
       </AppearIn>
     </div>
