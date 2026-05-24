@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { ArrowRight, Telescope } from 'lucide-react';
 import { motion } from 'framer-motion';
-import DownloadButton from './home/DownloadButton';
+import DownloadButton, { BrowserFallbackList } from './home/DownloadButton';
 
 /**
  * Homepage hero: tagline + description + two side-by-side CTAs, plus the
@@ -97,8 +97,13 @@ export default function HomeHero() {
           <span>Explore the Atmosphere</span>
           <ArrowRight size={16} style={{ color: 'var(--text-tertiary)' }} />
         </Link>
-        <DownloadButton variant="primary" showFallback />
+        {/* showFallback omitted — the fallback list lives below the CTA
+            row so it can center relative to both buttons. */}
+        <DownloadButton variant="primary" />
       </div>
+
+      {/* Browser-detected "Also for X" line, centered under the row. */}
+      <BrowserFallbackList justify="center" />
     </motion.section>
   );
 }

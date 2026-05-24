@@ -103,9 +103,11 @@ export default function DownloadButton({
 function FallbackList({
   prefix,
   browsers,
+  justify,
 }: {
   prefix: string;
   browsers: Browser[];
+  justify?: 'start' | 'center';
 }) {
   if (browsers.length === 0) return null;
   return (
@@ -115,6 +117,7 @@ function FallbackList({
         gap: '0.5rem',
         alignItems: 'center',
         flexWrap: 'wrap',
+        justifyContent: justify === 'center' ? 'center' : 'flex-start',
         fontSize: '0.8125rem',
         color: 'var(--text-tertiary)',
       }}
@@ -135,5 +138,38 @@ function FallbackList({
         </span>
       ))}
     </div>
+  );
+}
+
+/**
+ * Standalone "Also for X / Available for X" fallback row. Renders the
+ * same browser-detected list DownloadButton can show inline, but as
+ * its own element so callers (e.g. HomeHero) can position it relative
+ * to the whole CTA row instead of just the download column.
+ */
+export function BrowserFallbackList({
+  justify = 'start',
+}: {
+  justify?: 'start' | 'center';
+} = {}) {
+  const [browser, setBrowser] = useState<Browser | null>(null);
+
+  useEffect(() => {
+    setBrowser(detectBrowser());
+  }, []);
+
+  const detected: Browser = browser ?? 'chrome';
+  const isSupported = SUPPORTED_BROWSERS.includes(detected);
+  if (!isSupported) {
+    return (
+      <FallbackList prefix="Available for" browsers={SUPPORTED_BROWSERS} justify={justify} />
+    );
+  }
+  return (
+    <FallbackList
+      prefix="Also for"
+      browsers={SUPPORTED_BROWSERS.filter((b) => b !== detected)}
+      justify={justify}
+    />
   );
 }

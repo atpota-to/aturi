@@ -57,6 +57,41 @@ export async function getProfile(actor: string): Promise<AppViewProfile | null> 
   );
 }
 
+/** Lightweight actor record returned by typeahead/search endpoints. */
+export type ActorTypeaheadResult = {
+  did: string;
+  handle: string;
+  displayName?: string;
+  avatar?: string;
+  description?: string;
+};
+
+/**
+ * app.bsky.actor.searchActorsTypeahead — prefix-search autocomplete
+ * suggestions for handle/display-name lookups. Public, no auth. Returns
+ * `[]` when the search yields nothing or the call fails so callers can
+ * render gracefully without try/catch.
+ */
+export async function searchActorsTypeahead(
+  q: string,
+  opts: { limit?: number; signal?: AbortSignal } = {},
+): Promise<ActorTypeaheadResult[]> {
+  if (!q) return [];
+  const { limit = 8, signal } = opts;
+  try {
+    const params = new URLSearchParams({ q, limit: String(limit) });
+    const res = await fetch(
+      `${APPVIEW}/xrpc/app.bsky.actor.searchActorsTypeahead?${params}`,
+      { signal },
+    );
+    if (!res.ok) return [];
+    const data = (await res.json()) as { actors?: ActorTypeaheadResult[] };
+    return Array.isArray(data.actors) ? data.actors : [];
+  } catch {
+    return [];
+  }
+}
+
 export async function getPostThread(
   uri: string,
   opts: { depth?: number; parentHeight?: number } = {},
