@@ -18,9 +18,22 @@ type RecordPreviewProps = {
   collection: string;
   handle: string;
   rkey: string;
+  /**
+   * When true, suppress the "View Full Record" JSON-modal button and the
+   * "Open in Explorer" cross-link. Used inside the explorer's record view,
+   * which already shows the raw (linkified) JSON inline and is itself the
+   * Explorer destination.
+   */
+  hideExplorerCtas?: boolean;
 };
 
-export default function RecordPreview({ record, collection, handle, rkey }: RecordPreviewProps) {
+export default function RecordPreview({
+  record,
+  collection,
+  handle,
+  rkey,
+  hideExplorerCtas,
+}: RecordPreviewProps) {
   const { value, cid } = record;
   const [showJsonModal, setShowJsonModal] = useState(false);
 
@@ -183,39 +196,44 @@ export default function RecordPreview({ record, collection, handle, rkey }: Reco
             ))}
           </div>
 
-          {/* View Full Record Button */}
-          <button
-            onClick={() => setShowJsonModal(true)}
-            style={{
-              width: '100%',
-              padding: '0.875rem 1.25rem',
-              fontSize: '0.9375rem',
-              fontWeight: '400',
-              color: 'var(--text-primary)',
-              background: 'var(--bg-tertiary)',
-              border: '1px solid var(--border-medium)',
-              cursor: 'pointer',
-              transition: 'all 0.3s ease',
-              position: 'relative',
-              overflow: 'hidden',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = 'var(--bg-elevated)';
-              e.currentTarget.style.borderColor = 'var(--text-accent)';
-              e.currentTarget.style.transform = 'translateY(-2px)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = 'var(--bg-tertiary)';
-              e.currentTarget.style.borderColor = 'var(--border-medium)';
-              e.currentTarget.style.transform = 'translateY(0)';
-            }}
-          >
-            {hasMoreFields
-              ? `View Full Record (${allFields.length} fields)`
-              : 'View Full Record'}
-          </button>
+          {/* View Full Record Button — hidden when used inside the explorer,
+              which renders the linkified raw JSON inline immediately below. */}
+          {!hideExplorerCtas && (
+            <button
+              onClick={() => setShowJsonModal(true)}
+              style={{
+                width: '100%',
+                padding: '0.875rem 1.25rem',
+                fontSize: '0.9375rem',
+                fontWeight: '400',
+                color: 'var(--text-primary)',
+                background: 'var(--bg-tertiary)',
+                border: '1px solid var(--border-medium)',
+                cursor: 'pointer',
+                transition: 'all 0.3s ease',
+                position: 'relative',
+                overflow: 'hidden',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = 'var(--bg-elevated)';
+                e.currentTarget.style.borderColor = 'var(--text-accent)';
+                e.currentTarget.style.transform = 'translateY(-2px)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'var(--bg-tertiary)';
+                e.currentTarget.style.borderColor = 'var(--border-medium)';
+                e.currentTarget.style.transform = 'translateY(0)';
+              }}
+            >
+              {hasMoreFields
+                ? `View Full Record (${allFields.length} fields)`
+                : 'View Full Record'}
+            </button>
+          )}
 
-          {/* Cross-product: jump into the same record inside the explorer */}
+          {/* Cross-product: jump into the same record inside the explorer —
+              suppressed when we're already on an explorer page. */}
+          {!hideExplorerCtas && (
           <Link
             href={`/explore/${encodeRepo(handle)}/${collection}/${encodeURIComponent(rkey)}`}
             style={{
@@ -240,6 +258,7 @@ export default function RecordPreview({ record, collection, handle, rkey }: Reco
             <Telescope size={13} />
             Open in Explorer — backlinks, identity, raw JSON →
           </Link>
+          )}
         </div>
 
         {/* Footer: CID */}

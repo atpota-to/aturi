@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { ChevronRight, Server } from 'lucide-react';
 import { encodeRepo } from '@/utils/atproto/urls';
 import { pdsHostname } from '@/utils/atproto/pdsServer';
+import ShareLinkChip from './ShareLinkChip';
 
 type Props = {
   handle: string | null;
@@ -12,6 +13,11 @@ type Props = {
   pds?: string;
   collection?: string;
   rkey?: string;
+  /**
+   * When provided, renders a "Copy link" chip at the end of the breadcrumb
+   * row. Path or full URL; bare paths get aturi.to prepended.
+   */
+  shareUrl?: string;
 };
 
 /**
@@ -22,7 +28,14 @@ type Props = {
  * Each upstream segment is clickable. The PDS segment is optional so older
  * call sites without a resolved PDS still render correctly.
  */
-export default function Breadcrumb({ handle, did, pds, collection, rkey }: Props) {
+export default function Breadcrumb({
+  handle,
+  did,
+  pds,
+  collection,
+  rkey,
+  shareUrl,
+}: Props) {
   const repoSegment = encodeRepo(handle || did);
   const repoLabel = handle ? `@${handle}` : did;
   const pdsHost = pds ? pdsHostname(pds) : null;
@@ -111,6 +124,12 @@ export default function Breadcrumb({ handle, did, pds, collection, rkey }: Props
           <ChevronRight size={14} aria-hidden style={{ color: 'var(--text-tertiary)' }} />
           <span style={{ color: 'var(--text-tertiary)' }}>{rkey}</span>
         </>
+      )}
+
+      {shareUrl && (
+        <span style={{ marginLeft: 'auto' }}>
+          <ShareLinkChip url={shareUrl} />
+        </span>
       )}
     </nav>
   );

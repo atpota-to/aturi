@@ -105,5 +105,13 @@ export default function RichRecordPreview({
     return <MarginLikePreview record={recordForLegacy} collection={collection} handle={handle} rkey={rkey} />;
   }
 
-  return <RecordPreview record={recordForLegacy} collection={collection} handle={handle} rkey={rkey} />;
+  return (
+    <RecordPreview
+      record={recordForLegacy}
+      collection={collection}
+      handle={handle}
+      rkey={rkey}
+      hideExplorerCtas
+    />
+  );
 }

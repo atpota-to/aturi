@@ -14,6 +14,7 @@ import { describeRepo } from '@/utils/atproto/pdsClient';
 import { encodeRepo, shortDid } from '@/utils/atproto/urls';
 import AppearIn from './AppearIn';
 import CopyButton from './CopyButton';
+import ShareLinkChip from './ShareLinkChip';
 
 type Props = {
   host: string;
@@ -190,18 +191,29 @@ function PdsHeader({
     >
       <div
         style={{
-          display: 'inline-flex',
+          display: 'flex',
           alignItems: 'center',
-          gap: '0.4rem',
-          color: 'var(--text-tertiary)',
-          fontSize: '0.7rem',
-          letterSpacing: '0.12em',
-          textTransform: 'uppercase',
-          fontFamily: 'var(--font-serif)',
+          justifyContent: 'space-between',
+          gap: '0.75rem',
+          flexWrap: 'wrap',
         }}
       >
-        <Server size={12} />
-        Personal Data Server
+        <div
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '0.4rem',
+            color: 'var(--text-tertiary)',
+            fontSize: '0.7rem',
+            letterSpacing: '0.12em',
+            textTransform: 'uppercase',
+            fontFamily: 'var(--font-serif)',
+          }}
+        >
+          <Server size={12} />
+          Personal Data Server
+        </div>
+        <ShareLinkChip url={`/explore/pds/${encodeURIComponent(host)}`} />
       </div>
       <h1
         style={{

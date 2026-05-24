@@ -103,6 +103,9 @@ export default function RecordExplorer({ repo, collection, rkey }: Props) {
           pds={identity.pds}
           collection={collection}
           rkey={decodedRkey}
+          // Universal link for the record — shareable into any compatible
+          // Atmosphere client via the WaypointPicker on aturi.to.
+          shareUrl={`/${identity.handle || identity.did}/${collection}/${encodeURIComponent(decodedRkey)}`}
         />
       </AppearIn>
 

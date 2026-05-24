@@ -132,6 +132,8 @@ function CollectionList({
           did={identity.did}
           pds={identity.pds}
           collection={collection}
+          // No universal link route for collections — share the explorer URL.
+          shareUrl={`/explore/${repoSeg}/${collection}`}
         />
       </AppearIn>
 

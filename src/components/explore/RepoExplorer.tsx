@@ -70,7 +70,14 @@ export default function RepoExplorer({ repo }: { repo: string }) {
           on this view — it's the only \"drill up\" affordance at the top
           of the explorer hierarchy. */}
       <AppearIn rise>
-        <Breadcrumb handle={identity.handle} did={identity.did} pds={identity.pds} />
+        <Breadcrumb
+          handle={identity.handle}
+          did={identity.did}
+          pds={identity.pds}
+          // Universal link for the profile — anyone can paste this anywhere
+          // and the WaypointPicker on aturi.to handles client selection.
+          shareUrl={`/${identity.handle || identity.did}`}
+        />
       </AppearIn>
       <AppearIn delay={0.04}>
         <ProfileHeader identity={identity} />
