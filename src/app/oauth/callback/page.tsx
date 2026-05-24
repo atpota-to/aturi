@@ -18,7 +18,7 @@ export default function OAuthCallback() {
     let cancelled = false;
     (async () => {
       try {
-        const client = getOauthClient();
+        const client = await getOauthClient();
         const result = await client.init();
         if (cancelled) return;
         if (result && 'session' in result && result.session) {

@@ -42,29 +42,20 @@ export function AtprotoSessionProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let cancelled = false;
 
-    let client;
-    try {
-      client = getOauthClient();
-    } catch (err) {
-      setError(err as Error);
-      setLoading(false);
-      return undefined;
-    }
-
-    client
-      .init()
-      .then((result) => {
+    (async () => {
+      try {
+        const client = await getOauthClient();
+        const result = await client.init();
         if (cancelled) return;
         if (result && 'session' in result && result.session) {
           setSession(result.session);
         }
-      })
-      .catch((err) => {
+      } catch (err) {
         if (!cancelled) setError(err as Error);
-      })
-      .finally(() => {
+      } finally {
         if (!cancelled) setLoading(false);
-      });
+      }
+    })();
 
     const events = getOauthEvents();
     const onDeleted = (event: Event) => {
@@ -101,7 +92,7 @@ export function AtprotoSessionProvider({ children }: { children: ReactNode }) {
   }, [session]);
 
   const signIn = useCallback(async (input: string) => {
-    const client = getOauthClient();
+    const client = await getOauthClient();
     await client.signIn(input, { scope: OAUTH_SCOPE });
   }, []);
 
