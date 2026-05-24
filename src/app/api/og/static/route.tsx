@@ -57,12 +57,6 @@ export async function GET(request: NextRequest) {
         tagline: 'Records, identity, backlinks, and a live view of the firehose.',
         showBranding: true,
       },
-      create: {
-        title: 'Create Link',
-        subtitle: 'Turn any Atmosphere URL into a universal link',
-        tagline: 'Paste a Bluesky URL or AT URI and get an aturi.to link',
-        showBranding: true,
-      },
       integrate: {
         title: 'Integrate',
         subtitle: 'Add universal sharing to your Atmosphere app',

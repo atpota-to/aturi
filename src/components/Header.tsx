@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import { Home, Link2, Leaf, UserPlus, Telescope } from 'lucide-react';
+import { Home, Leaf, Telescope } from 'lucide-react';
 import { motion } from 'framer-motion';
 import ThemeToggle from './ThemeToggle';
 import SessionMenu from './SessionMenu';
@@ -165,19 +165,11 @@ export default function Header({ simple = false, compact = false }: HeaderProps)
           >
             <Link href="/" className="compact-nav-link">
               <Home size={16} />
-              <span>about</span>
+              <span>home</span>
             </Link>
             <Link href="/explore" className="compact-nav-link">
               <Telescope size={16} />
               <span>explore</span>
-            </Link>
-            <Link href="/create" className="compact-nav-link">
-              <Link2 size={16} />
-              <span>create link</span>
-            </Link>
-            <Link href="/aturi.to" className="compact-nav-link">
-              <UserPlus size={16} />
-              <span>follow</span>
             </Link>
             <div style={{ marginTop: '0.5rem' }}>
               <ThemeToggle variant="row" />
@@ -269,22 +261,12 @@ export default function Header({ simple = false, compact = false }: HeaderProps)
         >
           <Link href="/" className="nav-link">
             <Home size={14} />
-            <span>about</span>
+            <span>home</span>
           </Link>
           <span style={{ color: 'var(--text-tertiary)', fontSize: '0.75rem' }}>·</span>
           <Link href="/explore" className="nav-link">
             <Telescope size={14} />
             <span>explore</span>
-          </Link>
-          <span style={{ color: 'var(--text-tertiary)', fontSize: '0.75rem' }}>·</span>
-          <Link href="/create" className="nav-link">
-            <Link2 size={14} />
-            <span>create</span>
-          </Link>
-          <span style={{ color: 'var(--text-tertiary)', fontSize: '0.75rem' }}>·</span>
-          <Link href="/aturi.to" className="nav-link">
-            <UserPlus size={14} />
-            <span>follow</span>
           </Link>
           <span style={{ color: 'var(--text-tertiary)', fontSize: '0.75rem' }}>·</span>
           <ThemeToggle variant="inline" />
@@ -376,22 +358,12 @@ export default function Header({ simple = false, compact = false }: HeaderProps)
       >
         <Link href="/" className="nav-link">
           <Home size={16} />
-          <span>about</span>
+          <span>home</span>
         </Link>
         <span style={{ color: 'var(--text-tertiary)', fontSize: '0.875rem' }}>·</span>
         <Link href="/explore" className="nav-link">
           <Telescope size={16} />
           <span>explore</span>
-        </Link>
-        <span style={{ color: 'var(--text-tertiary)', fontSize: '0.875rem' }}>·</span>
-        <Link href="/create" className="nav-link">
-          <Link2 size={16} />
-          <span>create</span>
-        </Link>
-        <span style={{ color: 'var(--text-tertiary)', fontSize: '0.875rem' }}>·</span>
-        <Link href="/aturi.to" className="nav-link">
-          <UserPlus size={16} />
-          <span>follow</span>
         </Link>
         <span style={{ color: 'var(--text-tertiary)', fontSize: '0.875rem' }}>·</span>
         <ThemeToggle variant="inline" />
