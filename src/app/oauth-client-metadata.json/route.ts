@@ -12,11 +12,11 @@
  */
 
 import { NextResponse } from 'next/server';
+import { METADATA_SCOPE } from '@/lib/oauth/scopes';
 
 export const runtime = 'edge';
 export const dynamic = 'force-dynamic';
 
-const OAUTH_SCOPE = 'atproto transition:generic';
 const REDIRECT_PATH = '/oauth/callback';
 
 function isAllowedHost(hostname: string): boolean {
@@ -46,7 +46,7 @@ export async function GET(request: Request): Promise<Response> {
     tos_uri: `${origin}/terms`,
     policy_uri: `${origin}/terms`,
     redirect_uris: [`${origin}${REDIRECT_PATH}`],
-    scope: OAUTH_SCOPE,
+    scope: METADATA_SCOPE,
     grant_types: ['authorization_code', 'refresh_token'],
     response_types: ['code'],
     token_endpoint_auth_method: 'none',

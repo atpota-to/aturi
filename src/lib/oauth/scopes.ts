@@ -1,0 +1,68 @@
+/**
+ * OAuth scope definitions and helpers.
+ *
+ * Aturi advertises a superset of granular per-action scopes in its OAuth
+ * client metadata and then lets users opt out of individual permissions
+ * at sign-in time. Per the atproto OAuth PAR spec, the runtime-requested
+ * scope must be a subset of what the metadata advertises — so the
+ * metadata string is the union of every granular scope below.
+ *
+ * Reads aren't gated by a scope (records in the user's own repo are
+ * public), so the picker only exposes write-side actions.
+ */
+
+export type ScopeId = 'create' | 'update' | 'delete' | 'blob';
+
+export type GranularScope = {
+  id: ScopeId;
+  scope: string;
+  label: string;
+  hint: string;
+};
+
+export const GRANULAR_SCOPES: GranularScope[] = [
+  {
+    id: 'create',
+    scope: 'repo:*?action=create',
+    label: 'Create records',
+    hint: 'Add new records to any collection in your repo.',
+  },
+  {
+    id: 'update',
+    scope: 'repo:*?action=update',
+    label: 'Update records',
+    hint: 'Edit existing records (Record Editor, preferences).',
+  },
+  {
+    id: 'delete',
+    scope: 'repo:*?action=delete',
+    label: 'Delete records',
+    hint: 'Remove records from your repo.',
+  },
+  {
+    id: 'blob',
+    scope: 'blob:*/*',
+    label: 'Upload blobs',
+    hint: 'Upload images and other media attachments.',
+  },
+];
+
+export const BASE_SCOPE = 'atproto';
+
+/** Superset string baked into oauth-client-metadata.json. */
+export const METADATA_SCOPE = [
+  BASE_SCOPE,
+  ...GRANULAR_SCOPES.map((s) => s.scope),
+].join(' ');
+
+export const ALL_SCOPE_IDS: ReadonlySet<ScopeId> = new Set(
+  GRANULAR_SCOPES.map((s) => s.id),
+);
+
+/** Build the runtime scope string from a set of selected granular IDs. */
+export function buildScopeString(selected: Set<ScopeId>): string {
+  const granular = GRANULAR_SCOPES.filter((s) => selected.has(s.id)).map(
+    (s) => s.scope,
+  );
+  return [BASE_SCOPE, ...granular].join(' ');
+}
