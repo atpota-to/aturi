@@ -190,16 +190,27 @@ export default function JetstreamFeed({
           listStyle: 'none',
           margin: 0,
           padding: 0,
-          // Pin the viewport at 32rem from first paint so the surrounding
-          // page doesn't reflow once jetstream events start arriving — the
+          // Pin the viewport at exactly 32rem so the surrounding page
+          // doesn't reflow once jetstream events start arriving. The
           // skeleton rows below fill the space until real rows take over.
-          minHeight: '32rem',
-          maxHeight: '32rem',
-          overflowY: 'auto',
-          // overscroll-behavior: contain prevents inner-scroll touches /
-          // wheel events from chaining into the outer document scroll when
-          // the user has scrolled past the feed and a new batch lands.
-          overscrollBehavior: 'contain',
+          height: '32rem',
+          // overflow: hidden (not auto) so the browser doesn't track a
+          // scroll position for this element at all. Rows beyond the
+          // 32rem viewport are clipped — fine for a live demo where the
+          // freshest rows are always at the top.
+          overflow: 'hidden',
+          // overflow-anchor: none opts out of browser scroll anchoring
+          // for this element. With anchoring on, Chromium picked an <li>
+          // inside the ul as the scroll anchor; each batch of prepends
+          // shifted the anchor's position within the (clipped) ul, and
+          // the browser tried to compensate by nudging the OUTER
+          // document scroll down to "keep" the anchor at its original
+          // viewport y. This is what was scrolling the page each batch.
+          overflowAnchor: 'none',
+          // contain: layout isolates the ul's internal layout from the
+          // rest of the page so DOM mutations inside it can't affect
+          // the surrounding document's layout calculations.
+          contain: 'layout',
         }}
       >
         {rows.length === 0 && <SkeletonRows />}

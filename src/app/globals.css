@@ -1191,6 +1191,14 @@ html {
    small color hint that something landed at the top of the list. */
 .explore-jetstream-row {
   border-left: 2px solid transparent;
+  /* Block individual rows from being picked as scroll anchors. The
+     viewport-level overflow-anchor: none on the ul should already do
+     this for descendants in spec-compliant browsers; this is belt-and-
+     braces against an anchor being selected on a row when the user has
+     scrolled past the feed. Without it, prepending new rows shifts
+     where the anchored row sits and the browser nudges the outer
+     document scroll to compensate. */
+  overflow-anchor: none;
 }
 
 /* Hide the inner scroll viewport's scrollbar. With overflow-y: auto the
