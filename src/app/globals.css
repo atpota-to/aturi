@@ -1811,6 +1811,12 @@ html {
   .landing-hero {
     grid-template-columns: minmax(0, 1fr) !important;
   }
+  /* Mirror the .landing-feature-visual clamp: the hero visuals (e.g.
+     BrowserChrome at maxWidth 520px) need to be clipped to the
+     mobile container width so they don't trigger horizontal scroll. */
+  .landing-hero > div:last-child > * {
+    max-width: 100% !important;
+  }
 }
 
 /* Feature row: copy + visual two-column block, flipped order via
@@ -1847,5 +1853,41 @@ html {
   }
   .landing-feature[data-flip] .landing-feature-visual {
     order: 0;
+  }
+  /* Clamp every visual to the column width so the 380-460px mocks
+     don't push horizontal overflow on narrow screens. The inner mocks
+     use their own max-widths to stay legible at desktop sizes; this
+     just caps them on mobile. */
+  .landing-feature-visual > * {
+    max-width: 100% !important;
+  }
+}
+
+/* BrowserChrome mobile: drop the absolutely-positioned popup
+   overlay. On a phone the chrome's content area can't be tall enough
+   to contain the popup, so we stack the popup inline under the
+   toolbar strip and let the chrome grow with its content. */
+@media (max-width: 820px) {
+  .browser-chrome-content {
+    min-height: 0 !important;
+    padding: 0 !important;
+    background: none !important;
+  }
+  .browser-chrome-fake-content {
+    display: none;
+  }
+  .browser-chrome-popup {
+    position: static !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    z-index: auto !important;
+  }
+  /* The popup inside has its own max-width + transform; clamp it
+     within the chrome and drop the offset rotation so it lines up
+     cleanly stacked. */
+  .browser-chrome-popup > * {
+    max-width: 100% !important;
+    margin: 0 auto !important;
+    transform: none !important;
   }
 }
