@@ -21,8 +21,8 @@ type Props = {
 };
 
 type Stats = {
-  collections: number;     // unique top-level namespaces (e.g. "app.bsky.feed")
-  lexicons: number;        // total distinct NSIDs (e.g. "app.bsky.feed.post")
+  namespaces: number;      // unique 2-segment NSID prefixes (e.g. "net.anisota")
+  collections: number;     // total distinct NSIDs / record types
   auditOps: number | null; // PLC operations count — null for non-did:plc
   createdAt: string | null;
   backlinks: number | null; // inbound atproto references via Constellation
@@ -68,11 +68,13 @@ export default function AccountStats({ did }: Props) {
           describe.status === 'fulfilled' && Array.isArray(describe.value.collections)
             ? describe.value.collections
             : [];
-        const lexicons = collections.length;
+        // Group by the first 2 NSID segments (the reverse-domain root) so the
+        // count matches the Lexicons tab's major-group hierarchy: app.bsky,
+        // net.anisota, is.dame, etc.
         const namespaces = new Set(
           collections.map((nsid) => {
-            const lastDot = nsid.lastIndexOf('.');
-            return lastDot > 0 ? nsid.slice(0, lastDot) : nsid;
+            const segs = nsid.split('.');
+            return segs.length >= 2 ? `${segs[0]}.${segs[1]}` : nsid;
           }),
         );
 
@@ -86,8 +88,8 @@ export default function AccountStats({ did }: Props) {
         const backlinks = flat ? flat.reduce((acc, s) => acc + (s.count || 0), 0) : null;
 
         setStats({
-          collections: namespaces.size,
-          lexicons,
+          namespaces: namespaces.size,
+          collections: collections.length,
           auditOps: auditEntries ? auditEntries.length : null,
           createdAt:
             auditEntries && auditEntries.length > 0 ? auditEntries[0].createdAt : null,
@@ -117,6 +119,15 @@ export default function AccountStats({ did }: Props) {
     }
   }, [stats?.createdAt]);
 
+  const createdRelative = useMemo(() => {
+    if (!stats?.createdAt) return null;
+    try {
+      return relativeAge(new Date(stats.createdAt));
+    } catch {
+      return null;
+    }
+  }, [stats?.createdAt]);
+
   if (error) {
     return (
       <p
@@ -138,15 +149,15 @@ export default function AccountStats({ did }: Props) {
     >
       <StatTile
         icon={<Boxes size={16} />}
-        label="Collections"
-        hint="Distinct top-level namespaces (e.g. app.bsky.feed)"
-        value={stats?.collections}
+        label="Namespaces"
+        hint="Unique top-level NSID prefixes (e.g. net.anisota, app.bsky)"
+        value={stats?.namespaces}
       />
       <StatTile
         icon={<Database size={16} />}
         label="Lexicons"
-        hint="Total record types in this repo"
-        value={stats?.lexicons}
+        hint="Distinct record types / collections across all namespaces"
+        value={stats?.collections}
       />
       <StatTile
         icon={<History size={16} />}
@@ -167,9 +178,32 @@ export default function AccountStats({ did }: Props) {
         label="Account created"
         hint="Earliest PLC operation timestamp"
         valueLabel={createdLabel || (stats !== null && !createdLabel ? '—' : undefined)}
+        sublabel={createdRelative || undefined}
       />
     </section>
   );
+}
+
+/**
+ * Convert a Date in the past into a single coarse phrase ("3 years old",
+ * "2 months old", "12 days old"). Returns the largest unit that fits;
+ * keeps it terse so it can sit beneath the absolute date inside a tile.
+ */
+function relativeAge(then: Date): string {
+  const ms = Date.now() - then.getTime();
+  if (ms < 0) return 'in the future';
+  const days = Math.floor(ms / 86_400_000);
+  if (days < 1) return 'today';
+  if (days === 1) return '1 day old';
+  if (days < 30) return `${days} days old`;
+  const months = Math.floor(days / 30);
+  if (months < 12) return `${months} month${months === 1 ? '' : 's'} old`;
+  const years = Math.floor(days / 365);
+  const remMonths = Math.floor((days - years * 365) / 30);
+  if (remMonths > 0) {
+    return `${years} yr ${remMonths} mo old`;
+  }
+  return `${years} year${years === 1 ? '' : 's'} old`;
 }
 
 function StatTile({
@@ -178,6 +212,7 @@ function StatTile({
   hint,
   value,
   valueLabel,
+  sublabel,
   unavailable,
 }: {
   icon: React.ReactNode;
@@ -187,6 +222,8 @@ function StatTile({
   value?: number;
   /** Pre-formatted string — overrides `value` when set. */
   valueLabel?: string;
+  /** Optional smaller line beneath the value (e.g. relative age beside a date). */
+  sublabel?: string;
   /** When true, render an em-dash to show the source isn't applicable. */
   unavailable?: boolean;
 }) {
@@ -251,6 +288,18 @@ function StatTile({
       >
         {display}
       </div>
+      {sublabel && (
+        <div
+          style={{
+            fontSize: '0.7rem',
+            color: 'var(--text-tertiary)',
+            fontFamily: 'var(--font-mono)',
+            marginTop: '-0.15rem',
+          }}
+        >
+          {sublabel}
+        </div>
+      )}
     </div>
   );
 }

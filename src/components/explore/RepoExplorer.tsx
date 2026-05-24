@@ -10,6 +10,7 @@ import AppearIn from './AppearIn';
 import Breadcrumb from './Breadcrumb';
 import CopyButton from './CopyButton';
 import ProfileHeader from './ProfileHeader';
+import AccountStats from '@/components/account/AccountStats';
 import CollectionsTab from './tabs/CollectionsTab';
 import IdentityTab from './tabs/IdentityTab';
 import AuditTab from './tabs/AuditTab';
@@ -85,7 +86,26 @@ export default function RepoExplorer({ repo }: { repo: string }) {
       <AppearIn delay={0.1}>
         <IdentityRow identity={identity} />
       </AppearIn>
+      {/* High-level stats — same tile grid the account-settings page
+          uses, dropped in here so anyone viewing a repo (not just its
+          owner) sees how big it is, when it was created, and how much
+          inbound activity it has. */}
       <AppearIn delay={0.16}>
+        <section style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
+          <h2
+            style={{
+              margin: 0,
+              fontSize: '1rem',
+              fontWeight: 400,
+              color: 'var(--text-primary)',
+            }}
+          >
+            Repo at a glance
+          </h2>
+          <AccountStats did={identity.did} />
+        </section>
+      </AppearIn>
+      <AppearIn delay={0.22}>
         <TabbedView identity={identity} />
       </AppearIn>
     </div>
