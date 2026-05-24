@@ -2,12 +2,6 @@
 
 import type { ReactNode } from 'react';
 import { Leaf } from 'lucide-react';
-import {
-  BlueskySVG,
-  LeafletSVG,
-  TangledSVG,
-  MarginSVG,
-} from '@/utils/waypointIcons';
 
 /**
  * Minimal browser-chrome backdrop for the homepage's extension strip.
@@ -83,22 +77,12 @@ export default function BrowserChrome({ children }: { children: ReactNode }) {
           </span>
         </div>
 
-        {/* Extension toolbar — the leaf is highlighted as the \"pressed\"
-            extension that opened the popup below. */}
-        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }} aria-hidden>
-          <ExtensionIcon dim>
-            <BlueskySVG />
-          </ExtensionIcon>
-          <ExtensionIcon dim>
-            <LeafletSVG />
-          </ExtensionIcon>
-          <ExtensionIcon dim>
-            <TangledSVG />
-          </ExtensionIcon>
-          <ExtensionIcon dim>
-            <MarginSVG />
-          </ExtensionIcon>
-          {/* The leaf — pressed / active. */}
+        {/* Extension toolbar — just the Aturi leaf as the active /
+            pressed extension. Real browser extension bars often have a
+            row of extensions, but rendering atmosphere-client logos
+            here would misrepresent them as browser extensions (they're
+            web apps, not extensions), so we keep this to just our own. */}
+        <div style={{ display: 'inline-flex', alignItems: 'center' }} aria-hidden>
           <ExtensionIcon active>
             <Leaf size={14} />
           </ExtensionIcon>
@@ -165,11 +149,9 @@ function TrafficLight({ color }: { color: string }) {
 function ExtensionIcon({
   children,
   active,
-  dim,
 }: {
   children: ReactNode;
   active?: boolean;
-  dim?: boolean;
 }) {
   return (
     <span
@@ -181,12 +163,7 @@ function ExtensionIcon({
         justifyContent: 'center',
         background: active ? 'var(--bg-tertiary)' : 'transparent',
         border: `1px solid ${active ? 'var(--text-accent)' : 'transparent'}`,
-        color: active
-          ? 'var(--text-accent)'
-          : dim
-            ? 'var(--text-tertiary)'
-            : 'var(--text-secondary)',
-        opacity: dim ? 0.7 : 1,
+        color: active ? 'var(--text-accent)' : 'var(--text-secondary)',
         boxShadow: active ? '0 0 14px var(--glow-subtle)' : undefined,
       }}
     >
