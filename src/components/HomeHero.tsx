@@ -1,8 +1,9 @@
 'use client';
 
-import Link from 'next/link';
 import { ArrowRight, Telescope } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { useTranslations } from 'next-intl';
+import { Link } from '@/i18n/routing';
 import DownloadButton, { BrowserFallbackList } from './home/DownloadButton';
 
 /**
@@ -15,6 +16,7 @@ import DownloadButton, { BrowserFallbackList } from './home/DownloadButton';
  * the extension (download).
  */
 export default function HomeHero() {
+  const t = useTranslations('home');
   return (
     <motion.section
       initial={{ opacity: 0, y: 16 }}
@@ -46,7 +48,7 @@ export default function HomeHero() {
             backgroundClip: 'text',
           }}
         >
-          Tour the Atmosphere
+          {t('heroTagline')}
         </span>
       </h1>
       <p
@@ -58,8 +60,7 @@ export default function HomeHero() {
           margin: '0 auto 1.75rem',
         }}
       >
-        Switch between clients, share universal links, and browse through any account&rsquo;s
-        PDS data.
+        {t('heroDescription')}
       </p>
 
       {/* CTA row — align to the top so the Explore link doesn't stretch
@@ -94,7 +95,7 @@ export default function HomeHero() {
           }}
         >
           <Telescope size={18} style={{ color: 'var(--text-accent)' }} />
-          <span>Explore the Atmosphere</span>
+          <span>{t('exploreCta')}</span>
           <ArrowRight size={16} style={{ color: 'var(--text-tertiary)' }} />
         </Link>
         {/* showFallback omitted — the fallback list lives below the CTA

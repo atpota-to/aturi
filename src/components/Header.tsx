@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Home, Leaf, Telescope } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/routing';
 import ThemeToggle from './ThemeToggle';
 import SessionMenu from './SessionMenu';
@@ -17,6 +18,8 @@ interface HeaderProps {
 export default function Header({ simple = false, compact = false }: HeaderProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const headerRef = useRef<HTMLElement>(null);
+  const t = useTranslations('nav');
+  const th = useTranslations('header');
 
   // Click outside to close menu
   useEffect(() => {
@@ -108,7 +111,7 @@ export default function Header({ simple = false, compact = false }: HeaderProps)
                 textOverflow: 'ellipsis',
               }}
             >
-              tour the atmosphere
+              {th('tagline').toLowerCase()}
             </span>
           </Link>
 
@@ -125,7 +128,7 @@ export default function Header({ simple = false, compact = false }: HeaderProps)
               transition: 'all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)',
               transform: isExpanded ? 'rotate(90deg) scale(1.1)' : 'rotate(0deg)',
             }}
-            aria-label="Toggle menu"
+            aria-label={t('toggleMenu')}
             aria-expanded={isExpanded}
           >
             <Leaf size={18} style={{
@@ -166,11 +169,11 @@ export default function Header({ simple = false, compact = false }: HeaderProps)
           >
             <Link href="/" className="compact-nav-link">
               <Home size={16} />
-              <span>home</span>
+              <span>{t('home')}</span>
             </Link>
             <Link href="/explore" className="compact-nav-link">
               <Telescope size={16} />
-              <span>explore</span>
+              <span>{t('explore')}</span>
             </Link>
             <div style={{ marginTop: '0.5rem' }}>
               <ThemeToggle variant="row" />
@@ -248,7 +251,7 @@ export default function Header({ simple = false, compact = false }: HeaderProps)
             marginBottom: '2rem',
           }}
         >
-          Tour the Atmosphere
+          {th('tagline')}
         </p>
 
         {/* Organic Navigation */}
@@ -265,12 +268,12 @@ export default function Header({ simple = false, compact = false }: HeaderProps)
         >
           <Link href="/" className="nav-link">
             <Home size={14} />
-            <span>home</span>
+            <span>{t('home')}</span>
           </Link>
           <span style={{ color: 'var(--text-tertiary)', fontSize: '0.75rem' }}>·</span>
           <Link href="/explore" className="nav-link">
             <Telescope size={14} />
-            <span>explore</span>
+            <span>{t('explore')}</span>
           </Link>
           <span style={{ color: 'var(--text-tertiary)', fontSize: '0.75rem' }}>·</span>
           <ThemeToggle variant="inline" />
@@ -333,7 +336,7 @@ export default function Header({ simple = false, compact = false }: HeaderProps)
           fontWeight: 300,
         }}
       >
-        Tour the Atmosphere
+        {th('tagline')}
       </motion.p>
       <motion.p
         initial={{ opacity: 0, y: -10 }}
@@ -346,7 +349,7 @@ export default function Header({ simple = false, compact = false }: HeaderProps)
           margin: '0 auto 2rem',
         }}
       >
-        Switch between clients, share universal links, and browse through any account&rsquo;s PDS data.
+        {th('description')}
       </motion.p>
 
       {/* Organic Navigation */}
@@ -364,12 +367,12 @@ export default function Header({ simple = false, compact = false }: HeaderProps)
       >
         <Link href="/" className="nav-link">
           <Home size={16} />
-          <span>home</span>
+          <span>{t('home')}</span>
         </Link>
         <span style={{ color: 'var(--text-tertiary)', fontSize: '0.875rem' }}>·</span>
         <Link href="/explore" className="nav-link">
           <Telescope size={16} />
-          <span>explore</span>
+          <span>{t('explore')}</span>
         </Link>
         <span style={{ color: 'var(--text-tertiary)', fontSize: '0.875rem' }}>·</span>
         <ThemeToggle variant="inline" />

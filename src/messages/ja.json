@@ -1,1 +1,101 @@
-{}
+{
+  "common": {
+    "cancel": "キャンセル",
+    "save": "保存",
+    "loading": "読み込み中…",
+    "copy": "コピー",
+    "copied": "コピーしました",
+    "close": "閉じる",
+    "dot": "·"
+  },
+  "nav": {
+    "home": "ホーム",
+    "explore": "探索",
+    "extension": "拡張機能",
+    "account": "アカウント",
+    "terms": "利用規約",
+    "signIn": "サインイン",
+    "signOut": "サインアウト",
+    "myRepo": "エクスプローラーで自分のリポを見る",
+    "accountSettings": "アカウント設定",
+    "toggleMenu": "メニューを切り替え"
+  },
+  "header": {
+    "tagline": "アトモスフィアを旅しよう",
+    "description": "クライアントを切り替え、ユニバーサルリンクを共有し、任意のアカウントのPDSデータを閲覧できます。",
+    "wordmark": "aturi",
+    "tld": ".to"
+  },
+  "footer": {
+    "madeBy": "<a>anisota.net</a> と <b>atpota.to</b> によって作られました",
+    "termsAndPrivacy": "利用規約・プライバシー",
+    "sourceCode": "ソースコード",
+    "license": "ライセンス"
+  },
+  "session": {
+    "signInTitle": "atprotoハンドルでサインイン",
+    "signInBlurb": "PDSへリダイレクトしてAturiを認可します。",
+    "handlePlaceholder": "handle.bsky.social または did:plc:…",
+    "continue": "続ける →",
+    "redirecting": "リダイレクト中…"
+  },
+  "home": {
+    "heroTagline": "アトモスフィアを旅しよう",
+    "heroDescription": "クライアントを切り替え、ユニバーサルリンクを共有し、任意のアカウントのPDSデータを閲覧できます。",
+    "exploreCta": "アトモスフィアを探索"
+  },
+  "account": {
+    "loading": "アカウントを読み込み中…",
+    "signInHeading": "サインインしてAturiをカスタマイズ",
+    "signInBlurb": "ウェイポイントの並び替え、使わないものを非表示にする、または自分で追加できます。設定はPDSに同期され、デバイス間で引き継がれます。",
+    "signInHandlePlaceholder": "handle.bsky.social または did:plc:…",
+    "signInButton": "atproto OAuthで続ける →",
+    "signInRedirecting": "リダイレクト中…",
+    "signInPermissionsNote": "PDSへリダイレクトしてAturiを認可します。設定レコードの読み書きに必要な権限のみをリクエストします。",
+    "myRepo": "自分のリポ",
+    "signOut": "サインアウト",
+    "repoAtAGlance": "リポの概要",
+    "syncing": "PDSに設定を同期中…",
+    "synced": "PDSに設定を同期しました。",
+    "syncError": "PDSへの設定同期に失敗しました — ローカルの変更は保存されています。",
+    "language": {
+      "label": "言語"
+    }
+  },
+  "explore": {},
+  "profile": {},
+  "extensionPage": {},
+  "terms": {},
+  "universalLinks": {},
+  "errors": {
+    "generic": "問題が発生しました",
+    "notFound": "見つかりません",
+    "recordNotFound": "レコードが見つかりません"
+  },
+  "themeToggle": {
+    "switchToLight": "ライトモードに切り替え",
+    "switchToDark": "ダークモードに切り替え"
+  },
+  "meta": {
+    "home": {
+      "title": "aturi.to — アトモスフィアを旅しよう",
+      "description": "ブラウザ拡張機能でクライアントを切り替え、ユニバーサルなAtmosphereリンクを共有し、任意のアカウントのPDSデータを探索できます。"
+    },
+    "account": {
+      "title": "アカウント · aturi.to",
+      "description": "Aturiのウェイポイントと設定をカスタマイズ。"
+    },
+    "profile": {
+      "title": "{name}（@{handle}）のアトモスフィアプロフィール",
+      "descriptionFallback": "@{handle}のプロフィールをお好みのAtmosphereクライアントで表示"
+    },
+    "terms": {
+      "title": "利用規約 · aturi.to",
+      "description": "aturi.toの利用規約。"
+    },
+    "extension": {
+      "title": "拡張機能 · aturi.to",
+      "description": "Aturiブラウザ拡張機能をインストールしてAtmosphereクライアント間を切り替えましょう。"
+    }
+  }
+}

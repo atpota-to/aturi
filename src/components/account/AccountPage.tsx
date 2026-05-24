@@ -1,10 +1,11 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import Link from 'next/link';
 import { CheckCircle2, CircleAlert, Loader2, LogOut, Telescope, User } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { useAtprotoSession } from '@/components/AtprotoSessionProvider';
 import { usePreferences } from '@/components/PreferencesProvider';
+import { Link } from '@/i18n/routing';
 import { getProfile, type AppViewProfile } from '@/utils/atproto/appview';
 import { encodeRepo } from '@/utils/atproto/urls';
 import AccountStats from './AccountStats';
@@ -18,6 +19,7 @@ export default function AccountPage() {
   const [busy, setBusy] = useState(false);
   const [profile, setProfile] = useState<AppViewProfile | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const t = useTranslations('account');
 
   useEffect(() => {
     if (!did) {
@@ -34,14 +36,14 @@ export default function AccountPage() {
   }, [did]);
 
   if (loading) {
-    return <p className="explore-placeholder">Loading account…</p>;
+    return <p className="explore-placeholder">{t('loading')}</p>;
   }
 
   if (!session) {
     return (
       <div style={{ maxWidth: '32rem' }}>
         <h1 style={{ fontSize: '1.75rem', fontWeight: 300, marginBottom: '0.75rem' }}>
-          Sign in to customize Aturi
+          {t('signInHeading')}
         </h1>
         <p
           style={{
@@ -50,8 +52,7 @@ export default function AccountPage() {
             marginBottom: '1.5rem',
           }}
         >
-          Reorder waypoints, hide ones you don&rsquo;t use, or add your own. Your
-          preferences sync to your PDS so they follow you across devices.
+          {t('signInBlurb')}
         </p>
         <form
           onSubmit={async (e) => {
@@ -73,7 +74,7 @@ export default function AccountPage() {
             type="text"
             autoComplete="username"
             spellCheck={false}
-            placeholder="handle.bsky.social or did:plc:…"
+            placeholder={t('signInHandlePlaceholder')}
             value={input}
             onChange={(e) => setInput(e.target.value)}
             disabled={busy}
@@ -101,7 +102,7 @@ export default function AccountPage() {
               opacity: busy || !input.trim() ? 0.6 : 1,
             }}
           >
-            {busy ? 'Redirecting…' : 'Continue with atproto OAuth →'}
+            {busy ? t('signInRedirecting') : t('signInButton')}
           </button>
           {error && (
             <p style={{ color: 'var(--danger)', fontSize: '0.8125rem', margin: 0 }}>
@@ -116,8 +117,7 @@ export default function AccountPage() {
             fontSize: '0.8125rem',
           }}
         >
-          You&rsquo;ll be redirected to your PDS to authorize Aturi. We only request the
-          permissions needed to read and write your preferences record.
+          {t('signInPermissionsNote')}
         </p>
       </div>
     );
@@ -197,11 +197,11 @@ export default function AccountPage() {
               href={`/explore/${encodeRepo(did)}`}
               style={ghostLinkStyle()}
             >
-              <Telescope size={13} /> My repo
+              <Telescope size={13} /> {t('myRepo')}
             </Link>
           )}
           <button type="button" onClick={() => void signOut()} style={ghostLinkStyle({ danger: true })}>
-            <LogOut size={13} /> Sign out
+            <LogOut size={13} /> {t('signOut')}
           </button>
         </div>
       </section>
@@ -217,7 +217,7 @@ export default function AccountPage() {
               color: 'var(--text-primary)',
             }}
           >
-            Repo at a glance
+            {t('repoAtAGlance')}
           </h2>
           <AccountStats did={did} />
         </section>
@@ -242,21 +242,22 @@ function SyncStatus({
 }: {
   pdsSync: ReturnType<typeof usePreferences>['pdsSync'];
 }) {
+  const t = useTranslations('account');
   if (pdsSync === null) return null;
   let icon: React.ReactNode;
   let label: string;
   let color: string;
   if (pdsSync === 'syncing') {
     icon = <Loader2 size={12} className="explore-spin" />;
-    label = 'Syncing preferences to your PDS…';
+    label = t('syncing');
     color = 'var(--text-tertiary)';
   } else if (pdsSync === 'idle') {
     icon = <CheckCircle2 size={12} />;
-    label = 'Preferences synced to your PDS.';
+    label = t('synced');
     color = 'var(--text-accent)';
   } else {
     icon = <CircleAlert size={12} />;
-    label = 'Preference sync to PDS failed — local changes are saved.';
+    label = t('syncError');
     color = 'var(--danger)';
   }
   return (

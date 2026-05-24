@@ -2,6 +2,7 @@
 
 import { useSyncExternalStore } from 'react';
 import { Moon, Sun } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import {
   applyTheme,
   DEFAULT_THEME,
@@ -124,12 +125,14 @@ export default function ThemeToggle({ variant = 'inline' }: ThemeToggleProps) {
   }
 
   const next: Theme = theme === 'dark' ? 'light' : 'dark';
+  const t = useTranslations('themeToggle');
+  const label = next === 'light' ? t('switchToLight') : t('switchToDark');
   return (
     <button
       type="button"
       onClick={() => pick(next)}
-      aria-label={`Switch to ${next} mode`}
-      title={`Switch to ${next} mode`}
+      aria-label={label}
+      title={label}
       className="nav-link"
       style={{
         padding: '0.5rem',

@@ -1,4 +1,5 @@
-import Link from 'next/link';
+import { useTranslations } from 'next-intl';
+import { Link } from '@/i18n/routing';
 
 // IMPORTANT: If you fork aturi.to, you MUST keep it open source under GPL v3.
 // This includes keeping the source code available and maintaining the same license.
@@ -6,6 +7,39 @@ import Link from 'next/link';
 // See LICENSE file for full details.
 
 export default function Footer() {
+  const t = useTranslations('footer');
+  const madeBy = t.rich('madeBy', {
+    a: (chunks) => (
+      <a
+        href="https://anisota.net"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="footer-link-accent"
+        style={{
+          color: 'var(--text-accent)',
+          textDecoration: 'none',
+          transition: 'opacity 0.2s ease',
+        }}
+      >
+        {chunks}
+      </a>
+    ),
+    b: (chunks) => (
+      <a
+        href="https://atpota.to"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="footer-link-accent"
+        style={{
+          color: 'var(--text-accent)',
+          textDecoration: 'none',
+          transition: 'opacity 0.2s ease',
+        }}
+      >
+        {chunks}
+      </a>
+    ),
+  });
   return (
     <footer
       style={{
@@ -28,34 +62,7 @@ export default function Footer() {
       >
         {/* Made by */}
         <div style={{ color: 'var(--text-tertiary)', fontSize: '0.875rem' }}>
-          Made by{' '}
-          <a
-            href="https://anisota.net"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="footer-link-accent"
-            style={{
-              color: 'var(--text-accent)',
-              textDecoration: 'none',
-              transition: 'opacity 0.2s ease',
-            }}
-          >
-            anisota.net
-          </a>
-          {' '}and{' '}
-          <a
-            href="https://atpota.to"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="footer-link-accent"
-            style={{
-              color: 'var(--text-accent)',
-              textDecoration: 'none',
-              transition: 'opacity 0.2s ease',
-            }}
-          >
-            atpota.to
-          </a>
+          {madeBy}
         </div>
 
         {/* Links */}
@@ -77,7 +84,7 @@ export default function Footer() {
               transition: 'color 0.2s ease',
             }}
           >
-            Terms & Privacy
+            {t('termsAndPrivacy')}
           </Link>
           <a
             href="https://tangled.org/atpota.to/aturi"
@@ -90,7 +97,7 @@ export default function Footer() {
               transition: 'color 0.2s ease',
             }}
           >
-            Source Code
+            {t('sourceCode')}
           </a>
           <a
             href="https://tangled.org/atpota.to/aturi/blob/main/LICENSE"
@@ -103,11 +110,10 @@ export default function Footer() {
               transition: 'color 0.2s ease',
             }}
           >
-            License
+            {t('license')}
           </a>
         </div>
       </div>
     </footer>
   );
 }
-

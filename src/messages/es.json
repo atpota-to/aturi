@@ -1,1 +1,101 @@
-{}
+{
+  "common": {
+    "cancel": "Cancelar",
+    "save": "Guardar",
+    "loading": "Cargando…",
+    "copy": "Copiar",
+    "copied": "Copiado",
+    "close": "Cerrar",
+    "dot": "·"
+  },
+  "nav": {
+    "home": "inicio",
+    "explore": "explorar",
+    "extension": "extensión",
+    "account": "cuenta",
+    "terms": "términos",
+    "signIn": "Iniciar sesión",
+    "signOut": "Cerrar sesión",
+    "myRepo": "Mi repo en el Explorador",
+    "accountSettings": "Configuración de la cuenta",
+    "toggleMenu": "Alternar menú"
+  },
+  "header": {
+    "tagline": "Recorre la Atmósfera",
+    "description": "Cambia entre clientes, comparte enlaces universales y navega por los datos del PDS de cualquier cuenta.",
+    "wordmark": "aturi",
+    "tld": ".to"
+  },
+  "footer": {
+    "madeBy": "Hecho por <a>anisota.net</a> y <b>atpota.to</b>",
+    "termsAndPrivacy": "Términos y privacidad",
+    "sourceCode": "Código fuente",
+    "license": "Licencia"
+  },
+  "session": {
+    "signInTitle": "Inicia sesión con tu handle de atproto",
+    "signInBlurb": "Te redirigiremos a tu PDS para autorizar a Aturi.",
+    "handlePlaceholder": "handle.bsky.social o did:plc:…",
+    "continue": "Continuar →",
+    "redirecting": "Redirigiendo…"
+  },
+  "home": {
+    "heroTagline": "Recorre la Atmósfera",
+    "heroDescription": "Cambia entre clientes, comparte enlaces universales y navega por los datos del PDS de cualquier cuenta.",
+    "exploreCta": "Explora la Atmósfera"
+  },
+  "account": {
+    "loading": "Cargando la cuenta…",
+    "signInHeading": "Inicia sesión para personalizar Aturi",
+    "signInBlurb": "Reordena los waypoints, oculta los que no uses o añade los tuyos. Tus preferencias se sincronizan con tu PDS para acompañarte entre dispositivos.",
+    "signInHandlePlaceholder": "handle.bsky.social o did:plc:…",
+    "signInButton": "Continuar con atproto OAuth →",
+    "signInRedirecting": "Redirigiendo…",
+    "signInPermissionsNote": "Te redirigiremos a tu PDS para autorizar a Aturi. Solo solicitamos los permisos necesarios para leer y escribir tu registro de preferencias.",
+    "myRepo": "Mi repo",
+    "signOut": "Cerrar sesión",
+    "repoAtAGlance": "Resumen del repo",
+    "syncing": "Sincronizando preferencias con tu PDS…",
+    "synced": "Preferencias sincronizadas con tu PDS.",
+    "syncError": "Fallo al sincronizar las preferencias con el PDS — los cambios locales se han guardado.",
+    "language": {
+      "label": "Idioma"
+    }
+  },
+  "explore": {},
+  "profile": {},
+  "extensionPage": {},
+  "terms": {},
+  "universalLinks": {},
+  "errors": {
+    "generic": "Algo salió mal",
+    "notFound": "No encontrado",
+    "recordNotFound": "Registro no encontrado"
+  },
+  "themeToggle": {
+    "switchToLight": "Cambiar a modo claro",
+    "switchToDark": "Cambiar a modo oscuro"
+  },
+  "meta": {
+    "home": {
+      "title": "aturi.to — Recorre la Atmósfera",
+      "description": "Cambia entre clientes con la extensión de navegador, comparte enlaces universales de Atmosphere y explora los datos del PDS de cualquier cuenta."
+    },
+    "account": {
+      "title": "Cuenta · aturi.to",
+      "description": "Personaliza tus waypoints y preferencias de Aturi."
+    },
+    "profile": {
+      "title": "Perfil Atmosphere de {name} (@{handle})",
+      "descriptionFallback": "Ver el perfil de @{handle} en tu cliente Atmosphere preferido"
+    },
+    "terms": {
+      "title": "Términos · aturi.to",
+      "description": "Términos de uso de aturi.to."
+    },
+    "extension": {
+      "title": "Extensión · aturi.to",
+      "description": "Instala la extensión de navegador Aturi para cambiar entre clientes Atmosphere."
+    }
+  }
+}

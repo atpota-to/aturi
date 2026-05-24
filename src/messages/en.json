@@ -26,7 +26,12 @@
     "wordmark": "aturi",
     "tld": ".to"
   },
-  "footer": {},
+  "footer": {
+    "madeBy": "Made by <a>anisota.net</a> and <b>atpota.to</b>",
+    "termsAndPrivacy": "Terms & Privacy",
+    "sourceCode": "Source Code",
+    "license": "License"
+  },
   "session": {
     "signInTitle": "Sign in with your atproto handle",
     "signInBlurb": "We'll redirect you to your PDS to authorize Aturi.",
@@ -34,8 +39,25 @@
     "continue": "Continue →",
     "redirecting": "Redirecting…"
   },
-  "home": {},
+  "home": {
+    "heroTagline": "Tour the Atmosphere",
+    "heroDescription": "Switch between clients, share universal links, and browse through any account's PDS data.",
+    "exploreCta": "Explore the Atmosphere"
+  },
   "account": {
+    "loading": "Loading account…",
+    "signInHeading": "Sign in to customize Aturi",
+    "signInBlurb": "Reorder waypoints, hide ones you don't use, or add your own. Your preferences sync to your PDS so they follow you across devices.",
+    "signInHandlePlaceholder": "handle.bsky.social or did:plc:…",
+    "signInButton": "Continue with atproto OAuth →",
+    "signInRedirecting": "Redirecting…",
+    "signInPermissionsNote": "You'll be redirected to your PDS to authorize Aturi. We only request the permissions needed to read and write your preferences record.",
+    "myRepo": "My repo",
+    "signOut": "Sign out",
+    "repoAtAGlance": "Repo at a glance",
+    "syncing": "Syncing preferences to your PDS…",
+    "synced": "Preferences synced to your PDS.",
+    "syncError": "Preference sync to PDS failed — local changes are saved.",
     "language": {
       "label": "Language"
     }
