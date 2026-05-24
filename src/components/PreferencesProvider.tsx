@@ -10,6 +10,7 @@ import {
   useState,
   type ReactNode,
 } from 'react';
+import { useLocale } from 'next-intl';
 import {
   DEFAULT_PREFERENCES,
   preferencesAreEqual,
@@ -22,6 +23,7 @@ import {
   readPreferencesFromPds,
   writePreferencesToPds,
 } from '@/utils/atproto/preferencesPds';
+import { LOCALES, usePathname, useRouter, type Locale } from '@/i18n/routing';
 import { useAtprotoSession } from './AtprotoSessionProvider';
 
 type PreferencesContextValue = {
@@ -171,6 +173,37 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
   const reset = useCallback(() => {
     update(() => ({ ...DEFAULT_PREFERENCES, updatedAt: new Date().toISOString() }));
   }, [update]);
+
+  // Bidirectional URL <-> language preference sync.
+  //
+  //   - If the user has an explicit `prefs.language` that differs from the
+  //     current URL locale, navigate to the matching locale prefix. This is
+  //     what makes cross-device sync feel right: signing in on a fresh
+  //     browser at `/` jumps you to `/ja` if you previously chose Japanese.
+  //
+  //   - If `prefs.language` is null (first visit, anonymous) and the user
+  //     lands on a non-default locale URL, adopt that locale so it persists
+  //     across reloads. We do not adopt the default locale to avoid clobbering
+  //     a future explicit choice with "null means follow URL".
+  const locale = useLocale() as Locale;
+  const router = useRouter();
+  const pathname = usePathname();
+  useEffect(() => {
+    if (loading) return;
+    if (
+      prefs.language &&
+      LOCALES.includes(prefs.language) &&
+      prefs.language !== locale
+    ) {
+      router.replace(pathname, { locale: prefs.language });
+    }
+  }, [loading, prefs.language, locale, pathname, router]);
+  useEffect(() => {
+    if (loading) return;
+    if (prefs.language) return;
+    if (locale === 'en') return; // default locale; leave `language` unset.
+    update((p) => ({ ...p, language: locale }));
+  }, [loading, prefs.language, locale, update]);
 
   // Flush pending PDS write on unmount.
   useEffect(() => {

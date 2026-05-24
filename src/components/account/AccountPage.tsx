@@ -8,6 +8,7 @@ import { usePreferences } from '@/components/PreferencesProvider';
 import { getProfile, type AppViewProfile } from '@/utils/atproto/appview';
 import { encodeRepo } from '@/utils/atproto/urls';
 import AccountStats from './AccountStats';
+import LanguageSwitcher from '@/components/LanguageSwitcher';
 import WaypointsManager from './WaypointsManager';
 
 export default function AccountPage() {
@@ -224,6 +225,11 @@ export default function AccountPage() {
 
       {/* PDS sync status */}
       <SyncStatus pdsSync={pdsSync} />
+
+      {/* Language preference — syncs to PDS like waypoint prefs. */}
+      <section style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
+        <LanguageSwitcher variant="block" />
+      </section>
 
       {/* The actual preference editor */}
       <WaypointsManager />

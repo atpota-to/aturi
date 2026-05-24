@@ -1,12 +1,13 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import Link from 'next/link';
 import { Home, Leaf, Telescope } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { Link } from '@/i18n/routing';
 import ThemeToggle from './ThemeToggle';
 import SessionMenu from './SessionMenu';
 import SessionPanel from './SessionPanel';
+import LanguageSwitcher from './LanguageSwitcher';
 
 interface HeaderProps {
   simple?: boolean; // If true, shows a smaller version without the tagline
@@ -174,6 +175,9 @@ export default function Header({ simple = false, compact = false }: HeaderProps)
             <div style={{ marginTop: '0.5rem' }}>
               <ThemeToggle variant="row" />
             </div>
+            <div style={{ marginTop: '0.25rem' }}>
+              <LanguageSwitcher variant="inline" />
+            </div>
 
             {/* Session controls: sign in (signed out) OR user info + my repo /
                 account / sign out (signed in). Lives inside the expanded
@@ -271,6 +275,8 @@ export default function Header({ simple = false, compact = false }: HeaderProps)
           <span style={{ color: 'var(--text-tertiary)', fontSize: '0.75rem' }}>·</span>
           <ThemeToggle variant="inline" />
           <span style={{ color: 'var(--text-tertiary)', fontSize: '0.75rem' }}>·</span>
+          <LanguageSwitcher variant="inline" />
+          <span style={{ color: 'var(--text-tertiary)', fontSize: '0.75rem' }}>·</span>
           <SessionMenu variant="inline" />
         </nav>
       </header>
@@ -367,6 +373,8 @@ export default function Header({ simple = false, compact = false }: HeaderProps)
         </Link>
         <span style={{ color: 'var(--text-tertiary)', fontSize: '0.875rem' }}>·</span>
         <ThemeToggle variant="inline" />
+        <span style={{ color: 'var(--text-tertiary)', fontSize: '0.875rem' }}>·</span>
+        <LanguageSwitcher variant="inline" />
         <span style={{ color: 'var(--text-tertiary)', fontSize: '0.875rem' }}>·</span>
         <SessionMenu variant="inline" />
       </motion.nav>

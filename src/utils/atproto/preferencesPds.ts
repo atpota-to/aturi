@@ -74,6 +74,10 @@ export async function writePreferencesToPds(
     hiddenWaypoints: prefs.hiddenWaypoints,
     waypointOrder: prefs.waypointOrder,
     customWaypoints: prefs.customWaypoints,
+    // Omit `language` entirely when null so older clients reading the record
+    // ignore the field gracefully and don't see an explicit "none" they have
+    // to interpret.
+    ...(prefs.language ? { language: prefs.language } : {}),
     updatedAt: new Date().toISOString(),
   };
   await agent.com.atproto.repo.putRecord({

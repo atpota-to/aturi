@@ -18,8 +18,11 @@
  */
 
 import type { WaypointType } from './waypoints.data';
+import { LOCALES, type Locale } from '@/i18n/routing';
 
 const LS_KEY = 'aturi.prefs.v1';
+
+const SUPPORTED_LOCALES: readonly Locale[] = LOCALES;
 
 export type CustomWaypoint = {
   id: string;                                 // 'custom:<uuid>'
@@ -42,6 +45,12 @@ export type Preferences = {
   /** User-defined waypoints. */
   customWaypoints: CustomWaypoint[];
   /**
+   * UI language preference. `null` means "follow URL / browser /
+   * Accept-Language"; when set, takes precedence and reroutes the app to
+   * the matching locale prefix on load.
+   */
+  language: Locale | null;
+  /**
    * ISO timestamp of last local change. Used to break ties when local and
    * PDS prefs both exist on sign-in.
    */
@@ -52,6 +61,7 @@ export const DEFAULT_PREFERENCES: Preferences = {
   hiddenWaypoints: [],
   waypointOrder: [],
   customWaypoints: [],
+  language: null,
   updatedAt: new Date(0).toISOString(),
 };
 
@@ -119,6 +129,11 @@ export function mergeWithDefaults(input: Partial<Preferences> | null | undefined
     customWaypoints: Array.isArray(input.customWaypoints)
       ? input.customWaypoints.filter(isValidCustomWaypoint)
       : [],
+    language:
+      typeof input.language === 'string' &&
+      SUPPORTED_LOCALES.includes(input.language as Locale)
+        ? (input.language as Locale)
+        : null,
     updatedAt:
       typeof input.updatedAt === 'string' ? input.updatedAt : new Date(0).toISOString(),
   };
@@ -170,6 +185,7 @@ export function expandTemplate(
 export function preferencesAreEqual(a: Preferences, b: Preferences): boolean {
   return (
     a.updatedAt === b.updatedAt &&
+    a.language === b.language &&
     JSON.stringify(a.hiddenWaypoints) === JSON.stringify(b.hiddenWaypoints) &&
     JSON.stringify(a.waypointOrder) === JSON.stringify(b.waypointOrder) &&
     JSON.stringify(a.customWaypoints) === JSON.stringify(b.customWaypoints)
