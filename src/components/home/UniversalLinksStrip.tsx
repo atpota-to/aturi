@@ -3,14 +3,23 @@
 import Link from 'next/link';
 import { ArrowRight, Link2 } from 'lucide-react';
 import ProductStrip from './ProductStrip';
-import ProfilePreviewDemo from './ProfilePreviewDemo';
+import WaypointJumpVisual from './WaypointJumpVisual';
+import WaypointCarousel from './WaypointCarousel';
 
 const DEMO_HANDLE = 'aturi.to';
+// Aturi's own DID — hardcoded so the carousel chips can build proper
+// did-aware URLs without a runtime profile fetch. (The carousel is
+// just a demo; resolved handles still take the visitor to the right
+// destinations.)
+const DEMO_DID = 'did:plc:gq4fo3u6tqzzdkjlwzpb23tj';
 
 /**
- * Strip 1 — Universal Links. Real ProfilePreview + WaypointPicker for
- * a stable handle, so visitors can tap any of the curated waypoints to
- * open the profile in that client. The demo IS the product.
+ * Strip 1 — Universal Links. Pure animated demo: an abstract
+ * \"jumping between waypoints\" visual on top, followed by the
+ * rotating carousel of three real, tappable waypoint chips. No
+ * heavyweight ProfilePreview fetch — the strip's job here is to
+ * communicate the IDEA of one link routing to many clients, not to
+ * recreate a real universal link page on the homepage.
  */
 export default function UniversalLinksStrip() {
   return (
@@ -39,9 +48,13 @@ export default function UniversalLinksStrip() {
           </span>
           <h2>One link, every client</h2>
           <p>
-            Drop an <code style={{ background: 'transparent', padding: 0, color: 'var(--text-accent)' }}>aturi.to</code> link anywhere — a DM, a footer, a
-            bio. Your visitors land on a friendly preview of the record and pick
-            the Atmosphere client they want to read it in.
+            Drop an{' '}
+            <code style={{ background: 'transparent', padding: 0, color: 'var(--text-accent)' }}>
+              aturi.to
+            </code>{' '}
+            link anywhere — a DM, a footer, a bio. Your visitors land on a
+            friendly preview of the record and pick the Atmosphere client they
+            want to read it in.
           </p>
           <p>
             No client lock-in. No login. Every record, profile, and list resolves
@@ -69,7 +82,12 @@ export default function UniversalLinksStrip() {
           </div>
         </>
       }
-      demo={<ProfilePreviewDemo handle={DEMO_HANDLE} />}
+      demo={
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <WaypointJumpVisual handle={DEMO_HANDLE} />
+          <WaypointCarousel handle={DEMO_HANDLE} did={DEMO_DID} />
+        </div>
+      }
     />
   );
 }
