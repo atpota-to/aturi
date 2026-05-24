@@ -22,8 +22,12 @@ const VISIBLE_SLOTS = 3;
  * see the breadth of supported Atmosphere clients without the demo
  * eating 800px of vertical space rendering all 25+ of them.
  *
- * Each chip is still a real link to the waypoint's URL for the given
- * handle, so the demo is functional, not just decorative.
+ * Chips are intentionally non-interactive: the carousel only runs in
+ * marketing/demo contexts (the homepage strip and the universal-links
+ * landing page), where clicking a randomly-rotated chip would route
+ * the visitor away from the page they came to learn about. The real,
+ * clickable picker lives on every universal-link page and is one CTA
+ * away.
  */
 export default function WaypointCarousel({ handle, did }: Props) {
   const allWaypoints = useMemo(() => getWaypointsForType('profile'), []);
@@ -126,8 +130,7 @@ export default function WaypointCarousel({ handle, did }: Props) {
           fontStyle: 'italic',
         }}
       >
-        Tap any to open this profile there. View the full picker on a real
-        universal link page.
+        Every universal link page shows the full picker.
       </p>
     </div>
   );
@@ -142,6 +145,9 @@ function WaypointChip({
   handle: string;
   did?: string;
 }) {
+  // Still drive the lookup so waypoints whose registry entry can't
+  // render a 'profile' URL (getUrl → null) are skipped — keeps the
+  // catalog filter consistent with the real picker.
   const url = waypoint.getUrl(handle, undefined, undefined, did);
   if (!url) return null;
   const description =
@@ -149,10 +155,8 @@ function WaypointChip({
       ? waypoint.description(undefined, 'profile')
       : waypoint.description;
   return (
-    <a
-      href={url}
-      target="_blank"
-      rel="noopener noreferrer"
+    <div
+      aria-hidden
       style={{
         display: 'flex',
         alignItems: 'center',
@@ -161,17 +165,7 @@ function WaypointChip({
         padding: '0 1rem',
         background: 'var(--bg-secondary)',
         border: '1px solid var(--border-medium)',
-        textDecoration: 'none',
         color: 'var(--text-primary)',
-        transition: 'border-color 0.2s ease, transform 0.2s ease',
-      }}
-      onMouseEnter={(e) => {
-        e.currentTarget.style.borderColor = 'var(--text-accent)';
-        e.currentTarget.style.transform = 'translateX(2px)';
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.borderColor = 'var(--border-medium)';
-        e.currentTarget.style.transform = 'translateX(0)';
       }}
     >
       <span
@@ -209,6 +203,6 @@ function WaypointChip({
           {description}
         </div>
       </div>
-    </a>
+    </div>
   );
 }

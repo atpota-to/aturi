@@ -110,7 +110,11 @@ export default function ExplorerStrip() {
               >
                 Repo at a glance · @{DEMO_HANDLE}
               </div>
-              <AccountStats did={demoDid} />
+              {/* Demo surface: the strip exists to advertise what the
+                  Explorer shows, not to be the explorer itself, so the
+                  tiles render as a preview without the cred.blue link
+                  or per-tile hint tooltips. */}
+              <AccountStats did={demoDid} interactive={false} />
             </div>
           )}
         </>
