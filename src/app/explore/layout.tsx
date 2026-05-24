@@ -8,7 +8,15 @@ import SessionBadge from '@/components/explore/SessionBadge';
 export default function ExploreLayout({ children }: { children: ReactNode }) {
   return (
     <AtprotoSessionProvider>
-      <div className="container-narrow" style={{ padding: '2rem 2rem 4rem' }}>
+      <div
+        className="container-narrow"
+        style={{
+          padding: '2rem 2rem 4rem',
+          // Hold the page open so the footer doesn't ride up between
+          // explore sub-route transitions (repo → collection → record).
+          minHeight: '80dvh',
+        }}
+      >
         <Header compact />
         <SessionStrip />
         {children}

@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { resolveIdentifier, type IdentityBundle } from '@/utils/atproto/identity';
+import AppearIn from './AppearIn';
 import CopyButton from './CopyButton';
 import ProfileHeader from './ProfileHeader';
 import CollectionsTab from './tabs/CollectionsTab';
@@ -65,9 +66,15 @@ export default function RepoExplorer({ repo }: { repo: string }) {
           tells the user which account they're inspecting. The Breadcrumb
           component is rendered by CollectionExplorer / RecordExplorer
           when there are nested segments to navigate back through. */}
-      <ProfileHeader identity={identity} />
-      <IdentityRow identity={identity} />
-      <TabbedView identity={identity} />
+      <AppearIn rise>
+        <ProfileHeader identity={identity} />
+      </AppearIn>
+      <AppearIn delay={0.06}>
+        <IdentityRow identity={identity} />
+      </AppearIn>
+      <AppearIn delay={0.12}>
+        <TabbedView identity={identity} />
+      </AppearIn>
     </div>
   );
 }

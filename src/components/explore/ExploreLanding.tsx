@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { Compass, Download, Telescope } from 'lucide-react';
+import AppearIn from './AppearIn';
 import SearchBox from './SearchBox';
 import JetstreamFeed from './JetstreamFeed';
 
@@ -10,6 +11,7 @@ const SUGGESTIONS = ['aturi.to', 'bsky.app', 'dame.is', 'jay.bsky.team'];
 export default function ExploreLanding() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '2.5rem' }}>
+      <AppearIn rise>
       <header>
         <div
           style={{
@@ -81,9 +83,13 @@ export default function ExploreLanding() {
           ))}
         </div>
       </header>
+      </AppearIn>
 
-      <JetstreamFeed />
+      <AppearIn delay={0.08}>
+        <JetstreamFeed />
+      </AppearIn>
 
+      <AppearIn delay={0.16}>
       <section
         style={{
           display: 'grid',
@@ -104,6 +110,7 @@ export default function ExploreLanding() {
           href="/extension"
         />
       </section>
+      </AppearIn>
     </div>
   );
 }

@@ -11,6 +11,7 @@ import {
   createJetstreamConnection,
   type JetstreamCommit,
 } from '@/utils/atproto/jetstream';
+import AppearIn from './AppearIn';
 import Breadcrumb from './Breadcrumb';
 
 type Props = {
@@ -125,8 +126,11 @@ function CollectionList({
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-      <Breadcrumb handle={identity.handle} did={identity.did} collection={collection} />
+      <AppearIn rise>
+        <Breadcrumb handle={identity.handle} did={identity.did} collection={collection} />
+      </AppearIn>
 
+      <AppearIn delay={0.05}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
         <button
           type="button"
@@ -152,7 +156,9 @@ function CollectionList({
           {records.length} record{records.length === 1 ? '' : 's'}
         </span>
       </div>
+      </AppearIn>
 
+      <AppearIn delay={0.1}>
       {error && <p className="explore-error">{error}</p>}
       {records.length === 0 && !loading && !error && (
         <p className="explore-placeholder">No records in this collection.</p>
@@ -241,6 +247,7 @@ function CollectionList({
           {loading ? 'Loading…' : 'Load more'}
         </button>
       )}
+      </AppearIn>
     </div>
   );
 }

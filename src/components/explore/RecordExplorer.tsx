@@ -7,6 +7,7 @@ import { ExternalLink, FilePenLine, X } from 'lucide-react';
 import { getRecord, type AtRecord } from '@/utils/atproto/pdsClient';
 import { resolveIdentifier, type IdentityBundle } from '@/utils/atproto/identity';
 import { encodeRepo } from '@/utils/atproto/urls';
+import AppearIn from './AppearIn';
 import Breadcrumb from './Breadcrumb';
 import CopyButton from './CopyButton';
 import EngagementSidecar from './EngagementSidecar';
@@ -93,22 +94,29 @@ export default function RecordExplorer({ repo, collection, rkey }: Props) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-      <Breadcrumb
-        handle={identity.handle}
-        did={identity.did}
-        collection={collection}
-        rkey={decodedRkey}
-      />
+      <AppearIn rise>
+        <Breadcrumb
+          handle={identity.handle}
+          did={identity.did}
+          collection={collection}
+          rkey={decodedRkey}
+        />
+      </AppearIn>
 
-      <RecordMeta atUri={atUri} cid={record?.cid} pds={identity.pds} did={identity.did} />
+      <AppearIn delay={0.05}>
+        <RecordMeta atUri={atUri} cid={record?.cid} pds={identity.pds} did={identity.did} />
+      </AppearIn>
 
       {recordError && <p className="explore-error">{recordError}</p>}
       {!record && !recordError && <p className="explore-placeholder">Loading record…</p>}
 
       {record && (
-        <EngagementSidecar did={identity.did} collection={collection} atUri={atUri} />
+        <AppearIn>
+          <EngagementSidecar did={identity.did} collection={collection} atUri={atUri} />
+        </AppearIn>
       )}
 
+      <AppearIn delay={0.1}>
       <div
         style={{
           display: 'flex',
@@ -176,6 +184,7 @@ export default function RecordExplorer({ repo, collection, rkey }: Props) {
           </button>
         )}
       </div>
+      </AppearIn>
 
       {editing && canEdit && agent && (
         <RecordEditor
