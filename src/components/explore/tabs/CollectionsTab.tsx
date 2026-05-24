@@ -185,7 +185,7 @@ export default function CollectionsTab({ identity }: { identity: IdentityBundle 
                           nsid={nsid}
                           href={`/explore/${repoSeg}/${nsid}`}
                           dimPrefix={`${g.key}.`}
-                          baseBg={i % 2 === 1 ? 'var(--bg-primary)' : 'transparent'}
+                          baseBg={i % 2 === 0 ? 'var(--bg-primary)' : 'transparent'}
                         />
                       ))}
                     </ul>
@@ -225,7 +225,7 @@ export default function CollectionsTab({ identity }: { identity: IdentityBundle 
                                 href={`/explore/${repoSeg}/${nsid}`}
                                 deepIndent
                                 dimPrefix={`${sub.fullKey}.`}
-                                baseBg={i % 2 === 1 ? 'var(--bg-primary)' : 'transparent'}
+                                baseBg={i % 2 === 0 ? 'var(--bg-primary)' : 'transparent'}
                               />
                             ))}
                           </ul>
