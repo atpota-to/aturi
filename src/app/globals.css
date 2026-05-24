@@ -1689,3 +1689,66 @@ html {
   }
 }
 
+
+/* ============================================
+   Homepage product strips
+   ============================================ */
+
+.home-product-strip {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 3rem;
+  align-items: center;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 4rem 2rem;
+}
+
+/* Desktop: when `data-flip` is set, swap the order so the demo sits on
+   the right side of the viewport while remaining first in the DOM. */
+.home-product-strip[data-flip] .home-product-strip-demo {
+  order: 2;
+}
+
+.home-product-strip-copy h2 {
+  font-size: 2rem;
+  font-weight: 300;
+  letter-spacing: -0.01em;
+  color: var(--text-primary);
+  margin: 0 0 1rem;
+  line-height: 1.15;
+}
+
+.home-product-strip-copy p {
+  font-size: 1.0125rem;
+  line-height: 1.65;
+  color: var(--text-secondary);
+  margin: 0 0 0.875rem;
+}
+
+.home-product-strip-copy p:last-of-type {
+  margin-bottom: 1.5rem;
+}
+
+.home-product-strip-demo {
+  /* Constrain the height of any embedded interactive surface so the
+     strip stays balanced regardless of how the demo renders. */
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+@media (max-width: 820px) {
+  .home-product-strip {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 1.75rem;
+    padding: 2.5rem 1.5rem;
+  }
+  /* On mobile, demo always above copy regardless of flip. */
+  .home-product-strip[data-flip] .home-product-strip-demo {
+    order: 0;
+  }
+  .home-product-strip-copy h2 {
+    font-size: 1.625rem;
+  }
+}

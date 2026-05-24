@@ -1,16 +1,9 @@
 'use client';
 
-import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { ArrowRight, Chrome, Download, Telescope } from 'lucide-react';
+import { ArrowRight, Telescope } from 'lucide-react';
 import { motion } from 'framer-motion';
-import {
-  BROWSER_LABELS,
-  EXTENSION_URLS,
-  SUPPORTED_BROWSERS,
-  detectBrowser,
-  type Browser,
-} from '@/utils/browserDetect';
+import DownloadButton from './home/DownloadButton';
 
 /**
  * Homepage hero: tagline + description + two side-by-side CTAs, plus the
@@ -22,25 +15,6 @@ import {
  * the extension (download).
  */
 export default function HomeHero() {
-  const [browser, setBrowser] = useState<Browser | null>(null);
-
-  useEffect(() => {
-    setBrowser(detectBrowser());
-  }, []);
-
-  // Mirror DownloadCTA's defaults so the button is meaningful pre-hydration.
-  const detected: Browser = browser ?? 'chrome';
-  const isSupported = SUPPORTED_BROWSERS.includes(detected);
-  const primaryUrl = EXTENSION_URLS[detected] ?? EXTENSION_URLS.chrome!;
-  const primaryLabel = BROWSER_LABELS[detected];
-  const showFallbackLinks = !isSupported;
-  const downloadButtonLabel =
-    browser === null
-      ? 'Download the Extension'
-      : showFallbackLinks
-        ? 'Download the Extension'
-        : `Download for ${primaryLabel}`;
-
   return (
     <motion.section
       initial={{ opacity: 0, y: 16 }}
@@ -121,84 +95,8 @@ export default function HomeHero() {
           <span>Explore the Atmosphere</span>
           <ArrowRight size={16} style={{ color: 'var(--text-tertiary)' }} />
         </Link>
-        <a
-          href={primaryUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="generate-button"
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '0.625rem',
-            padding: '0.875rem 1.5rem',
-            background: 'var(--accent-moss)',
-            color: 'var(--text-on-accent)',
-            border: '1px solid var(--accent-forest)',
-            fontSize: '1.0125rem',
-            fontWeight: 400,
-            textDecoration: 'none',
-            transition: 'all 0.3s ease',
-            letterSpacing: '0.01em',
-          }}
-        >
-          {detected === 'firefox' ? <Download size={18} /> : <Chrome size={18} />}
-          <span>{downloadButtonLabel}</span>
-        </a>
+        <DownloadButton variant="primary" showFallback />
       </div>
-
-      {/* Browser fallback line — same logic as the old DownloadCTA. */}
-      {showFallbackLinks ? (
-        <FallbackList prefix="Available for" browsers={SUPPORTED_BROWSERS} />
-      ) : (
-        <FallbackList
-          prefix="Also for"
-          browsers={SUPPORTED_BROWSERS.filter((b) => b !== detected)}
-        />
-      )}
     </motion.section>
-  );
-}
-
-function FallbackList({
-  prefix,
-  browsers,
-}: {
-  prefix: string;
-  browsers: Browser[];
-}) {
-  if (browsers.length === 0) return null;
-  return (
-    <div
-      style={{
-        display: 'flex',
-        justifyContent: 'center',
-        gap: '0.5rem',
-        alignItems: 'center',
-        flexWrap: 'wrap',
-        fontSize: '0.8125rem',
-        color: 'var(--text-tertiary)',
-      }}
-    >
-      <span>{prefix}</span>
-      {browsers.map((b, idx) => (
-        <span
-          key={b}
-          style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}
-        >
-          <a
-            href={EXTENSION_URLS[b]!}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="nav-link"
-            style={{ padding: '0.2rem 0.4rem' }}
-          >
-            {BROWSER_LABELS[b]}
-          </a>
-          {idx < browsers.length - 1 ? (
-            <span style={{ opacity: 0.5 }}>·</span>
-          ) : null}
-        </span>
-      ))}
-    </div>
   );
 }
