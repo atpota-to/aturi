@@ -185,6 +185,7 @@ export default function JetstreamFeed({
       </header>
 
       <ul
+        className="explore-jetstream-scroll"
         style={{
           listStyle: 'none',
           margin: 0,
@@ -195,6 +196,10 @@ export default function JetstreamFeed({
           minHeight: '32rem',
           maxHeight: '32rem',
           overflowY: 'auto',
+          // overscroll-behavior: contain prevents inner-scroll touches /
+          // wheel events from chaining into the outer document scroll when
+          // the user has scrolled past the feed and a new batch lands.
+          overscrollBehavior: 'contain',
         }}
       >
         {rows.length === 0 && <SkeletonRows />}

@@ -1193,6 +1193,21 @@ html {
   border-left: 2px solid transparent;
 }
 
+/* Hide the inner scroll viewport's scrollbar. With overflow-y: auto the
+   browser shows the scrollbar only when content exceeds the box height,
+   and toggling it on/off as rows are prepended (a) makes the rail
+   flicker and (b) changes the inner width by ~15px, which reflows row
+   contents and was nudging the outer document scroll on every batch. */
+.explore-jetstream-scroll {
+  scrollbar-width: none;          /* Firefox */
+  -ms-overflow-style: none;        /* IE / legacy Edge */
+}
+.explore-jetstream-scroll::-webkit-scrollbar {
+  display: none;                   /* Chromium, WebKit */
+  width: 0;
+  height: 0;
+}
+
 .explore-jetstream-row[data-fresh] {
   animation: explore-jetstream-arrived 1.4s ease-out forwards;
 }
