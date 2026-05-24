@@ -106,15 +106,19 @@ export default function UniversalLinksLanding() {
           body={
             <>
               <p>
-                Every aturi.to URL follows the same pattern: the host, a handle
-                or DID, the lexicon collection, and the record key. The same
-                shape works for every record type — there&rsquo;s nothing to
-                memorize beyond what an AT URI already looks like.
+                Every aturi.to URL follows the same pattern: the host, the{' '}
+                <code style={{ color: 'var(--text-accent)' }}>/profile</code>{' '}
+                mount, a handle or DID, the lexicon collection, and the record
+                key. The same shape works for every record type — there&rsquo;s
+                nothing to memorize beyond what an AT URI already looks like.
               </p>
               <p>
-                Drop the collection and the rkey, and you get a profile link.
-                Drop just the rkey, and you get a collection index. The path
-                always degrades gracefully.
+                Drop the collection and rkey and you get a profile link. Posts
+                also accept a friendlier{' '}
+                <code style={{ color: 'var(--text-accent)' }}>/post/&lt;rkey&gt;</code>{' '}
+                shortcut, and bare paths without the{' '}
+                <code style={{ color: 'var(--text-accent)' }}>/profile</code>{' '}
+                prefix still resolve for backwards compatibility.
               </p>
             </>
           }
@@ -192,21 +196,20 @@ export default function UniversalLinksLanding() {
       <AppearIn delay={0.05}>
         <FeatureSection
           badge={{ icon: <UserCog size={12} />, label: 'Smart preferences' }}
-          title="Signed in? Your defaults travel with you."
+          title="Signed in? The picker reorders for you."
           body={
             <>
               <p>
                 Sign in with your atproto handle and aturi.to remembers your
-                preferred client for each record type. The next time you
-                follow a universal link, the picker auto-resolves to your
-                favorite app — no extra clicks, on any device you sign in to.
+                favorite client for each record type, the waypoints you&rsquo;ve
+                hidden, and any custom ones you&rsquo;ve added. Every visit
+                lifts your favorites to the top of the picker so the right
+                client is one click away.
               </p>
               <p>
-                Want to share a link that forces a specific client? Add a{' '}
-                <code style={{ color: 'var(--text-accent)' }}>?via=</code>{' '}
-                query param. Want to give your recipient the picker back? Drop
-                it. The default-vs-override decision lives in the URL, not in
-                the app.
+                Preferences live in your atproto repo as records you own, so
+                they sync across every device you sign in to — and migrate
+                with you if you ever move your data to a different PDS.
               </p>
             </>
           }
