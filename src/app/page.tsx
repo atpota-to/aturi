@@ -13,9 +13,12 @@ export default function HomePage() {
 
   return (
     <div style={{ position: 'relative', overflow: 'hidden' }}>
-      {/* Hero Section */}
-      <div style={{ padding: '2rem 2rem 0' }}>
-        <Header />
+      {/* Compact nav card — same shape used by /explore, /profile/*, and
+          /account so the homepage doesn't fork its own header treatment.
+          The feature cards + "Why aturi?" + examples sections below carry
+          the homepage's identity now that the giant hero is gone. */}
+      <div className="container-narrow" style={{ padding: '2rem 2rem 0' }}>
+        <Header compact />
       </div>
 
       {/* Primary CTA: Download Extension */}
