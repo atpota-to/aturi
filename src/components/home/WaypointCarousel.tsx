@@ -93,9 +93,14 @@ export default function WaypointCarousel({ handle, did }: Props) {
             style={{
               position: 'relative',
               // Stable per-slot height so the rotation in/out doesn't
-              // reflow the strip every couple of seconds.
+              // reflow the strip every couple of seconds. `overflow-y`
+              // clips the vertical slide-in/out from AnimatePresence;
+              // `overflow-x` stays visible so the chip's hover
+              // translateX(2px) and accent border aren't clipped at
+              // the slot edges.
               height: '60px',
-              overflow: 'hidden',
+              overflowX: 'visible',
+              overflowY: 'clip',
             }}
           >
             <AnimatePresence mode="wait" initial={false}>
