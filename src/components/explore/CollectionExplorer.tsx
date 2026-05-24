@@ -53,6 +53,10 @@ export default function CollectionExplorer({ repo, collection }: Props) {
   return <CollectionList identity={identity} collection={collection} />;
 }
 
+// listRecords' XRPC max — request the full page on each call so users see
+// as many records as possible per fetch.
+const RECORDS_PER_PAGE = 100;
+
 function CollectionList({
   identity,
   collection,
@@ -75,13 +79,16 @@ function CollectionList({
         const res = await listRecordsPage(identity.pds, {
           repo: identity.did,
           collection,
-          limit: 50,
+          limit: RECORDS_PER_PAGE,
           cursor: after || undefined,
         });
         const batch = res.records || [];
         setRecords((prev) => (after ? [...prev, ...batch] : batch));
         setCursor(res.cursor);
-        if (!res.cursor || batch.length === 0) setDone(true);
+        // A partial page (fewer rows than requested) is a strong signal
+        // that the PDS has no more records — hide \"Load more\" in that
+        // case even if the server still returned a cursor.
+        if (!res.cursor || batch.length < RECORDS_PER_PAGE) setDone(true);
       } catch (err) {
         setError(err instanceof Error ? err.message : String(err));
       } finally {
@@ -242,6 +249,10 @@ function CollectionList({
           disabled={loading}
           style={{
             alignSelf: 'flex-start',
+            // The records list and this button live as siblings inside
+            // the same AppearIn (not a flex container), so they don't get
+            // the outer column gap. Push the button down explicitly.
+            marginTop: '1rem',
             padding: '0.5rem 1rem',
             background: 'var(--bg-tertiary)',
             border: '1px solid var(--border-medium)',
