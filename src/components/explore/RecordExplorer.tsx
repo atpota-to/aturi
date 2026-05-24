@@ -189,6 +189,14 @@ export default function RecordExplorer({ repo, collection, rkey }: Props) {
             <X size={12} /> Close editor
           </button>
         )}
+        {record && (
+          <CopyButton
+            value={JSON.stringify(record, null, 2)}
+            label="Copy JSON"
+            compact
+            variant="subtle"
+          />
+        )}
       </div>
       </AppearIn>
 

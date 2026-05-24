@@ -5,10 +5,11 @@
 
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
 import { GenericRecord } from '@/utils/recordFetcher';
 import { sanitizeHandle } from '@/utils/sanitize';
-import { Telescope } from 'lucide-react';
+import { Check, Copy, Telescope } from 'lucide-react';
 import { encodeRepo } from '@/utils/atproto/urls';
 
 type RecordPreviewProps = {
@@ -235,6 +236,11 @@ export default function RecordPreview({
               </span>
             </Link>
           )}
+
+          {/* Quick action: grab the raw record JSON without leaving the
+              universal link page. Sits beneath the primary CTA as a
+              quieter secondary affordance. */}
+          <CopyJsonRow record={record} />
         </div>
 
         {/* Footer: CID */}
@@ -256,6 +262,70 @@ export default function RecordPreview({
         )}
       </div>
 
+  );
+}
+
+async function writeToClipboard(text: string): Promise<void> {
+  try {
+    await navigator.clipboard.writeText(text);
+    return;
+  } catch {
+    /* fall through */
+  }
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  ta.style.position = 'fixed';
+  ta.style.opacity = '0';
+  document.body.appendChild(ta);
+  ta.select();
+  try {
+    document.execCommand('copy');
+  } finally {
+    document.body.removeChild(ta);
+  }
+}
+
+function CopyJsonRow({ record }: { record: GenericRecord }) {
+  const [copied, setCopied] = useState(false);
+  async function onClick() {
+    await writeToClipboard(JSON.stringify(record, null, 2));
+    setCopied(true);
+    window.setTimeout(() => setCopied(false), 1600);
+  }
+  return (
+    <div
+      style={{
+        marginTop: '0.625rem',
+        textAlign: 'center',
+      }}
+    >
+      <button
+        type="button"
+        onClick={onClick}
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '0.4rem',
+          padding: '0.4rem 0.75rem',
+          background: 'transparent',
+          border: 0,
+          color: copied ? 'var(--text-accent)' : 'var(--text-tertiary)',
+          fontFamily: 'var(--font-serif)',
+          fontSize: '0.8125rem',
+          cursor: 'pointer',
+          transition: 'color 0.2s ease',
+        }}
+        onMouseEnter={(e) => {
+          if (!copied) e.currentTarget.style.color = 'var(--text-accent)';
+        }}
+        onMouseLeave={(e) => {
+          if (!copied) e.currentTarget.style.color = 'var(--text-tertiary)';
+        }}
+      >
+        {copied ? <Check size={13} /> : <Copy size={13} />}
+        <span>{copied ? 'Copied JSON to clipboard' : 'Copy raw record JSON'}</span>
+      </button>
+    </div>
   );
 }
 
