@@ -6,9 +6,11 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { GenericRecord } from '@/utils/recordFetcher';
 import { sanitizeHandle } from '@/utils/sanitize';
-import { X } from 'lucide-react';
+import { Telescope, X } from 'lucide-react';
+import { encodeRepo } from '@/utils/atproto/urls';
 
 type RecordPreviewProps = {
   record: GenericRecord;
@@ -211,6 +213,32 @@ export default function RecordPreview({ record, collection, handle, rkey }: Reco
               ? `View Full Record (${allFields.length} fields)`
               : 'View Full Record'}
           </button>
+
+          {/* Cross-product: jump into the same record inside the explorer */}
+          <Link
+            href={`/explore/${encodeRepo(handle)}/${collection}/${encodeURIComponent(rkey)}`}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '0.4rem',
+              marginTop: '0.625rem',
+              padding: '0.5rem 0.75rem',
+              fontSize: '0.8125rem',
+              color: 'var(--text-tertiary)',
+              textDecoration: 'none',
+              transition: 'color 0.2s ease',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.color = 'var(--text-accent)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.color = 'var(--text-tertiary)';
+            }}
+          >
+            <Telescope size={13} />
+            Open in Explorer — backlinks, identity, raw JSON →
+          </Link>
         </div>
 
         {/* Footer: CID */}

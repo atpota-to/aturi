@@ -306,6 +306,30 @@ export const WAYPOINT_DESTINATIONS_DATA: Record<string, WaypointData> = {
     redirectCompat: [],
   },
 
+  aturiExplore: {
+    id: 'aturiExplore',
+    name: 'Aturi Explore',
+    description: (collection) => {
+      if (collection) return 'Inspect record on aturi.to/explore';
+      return 'Browse repo on aturi.to/explore';
+    },
+    getUrl: (handle, collection, rkey, did) => {
+      // The explorer keys URLs by DID when available so handle changes don't
+      // break shared links. Falls back to the handle when no DID was passed.
+      const identifier = did || handle;
+      if (collection && rkey) {
+        return `https://aturi.to/explore/${identifier}/${collection}/${encodeURIComponent(rkey)}`;
+      }
+      if (collection) {
+        return `https://aturi.to/explore/${identifier}/${collection}`;
+      }
+      return `https://aturi.to/explore/${identifier}`;
+    },
+    supportedTypes: ['post', 'profile', 'list', 'record'],
+    category: 'devTools',
+    redirectCompat: [],
+  },
+
   atptools: {
     id: 'atptools',
     name: 'atp.tools',
@@ -647,6 +671,7 @@ export const WAYPOINT_ORDER = [
   'pckt',
   'pdsls',
   'anisotaExplorer',
+  'aturiExplore',
   'tangled',
   'atptools',
   'witchsky',
