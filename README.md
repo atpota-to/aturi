@@ -1,15 +1,16 @@
 # aturi.to
 
-Fast travel across the Atmosphere. Switch between clients, auto-redirect to preferred clients, and share universal Atmosphere links — anyone can pick where they view the content, and you can jump between clients in one click with the companion browser extension.
+**Tour the Atmosphere.** Travel between clients with the browser extension, share universal Atmosphere links, and explore any account's PDS data.
 
 ## What is aturi.to?
 
-aturi.to is a small ecosystem for navigating the Atmosphere. It has two halves that share the same waypoint catalog and URI parsers:
+aturi.to is a small toolkit for navigating the Atmosphere (the network of apps built on atproto). Three surfaces, one shared waypoint catalog and URI parser:
 
-- **The web app** at [aturi.to](https://aturi.to) turns any AT URI into a universal link. When someone opens an `aturi.to/...` URL, they see every supported app that can render that content (Bluesky, Anisota, Blacksky, Red Dwarf, Leaflet, Tangled, Margin, Grain, PDSls, atp.tools, and many more) and pick the one they prefer.
-- **The browser extension** ([`extension/`](extension/)) puts that same catalog in your toolbar. From any supported page, click the icon to open the same content in any other client, or flip on auto-redirect to silently rewrite links between clients before they load.
+- **Browser extension** ([`extension/`](extension/)) — jump between Atmosphere clients in one click, or flip on auto-redirect to silently rewrite links to your preferred client before they load.
+- **Atmosphere Explorer** ([aturi.to/explore](https://aturi.to/explore)) — browse any account's PDS in your browser: every collection, every record, identity history, audit log, inbound backlinks, and a live view of the firehose.
+- **Universal links** ([aturi.to/profile/…](https://aturi.to/)) — share an `aturi.to/...` URL anywhere and the recipient lands on a friendly preview of the record, then picks the Atmosphere client they want to open it in. No login, no client lock-in.
 
-If aturi.to is "send a link, let them pick the client," the extension is the inverse: "I landed on a link, take me to *my* client."
+The extension and the web app import the same `src/utils/waypoints.data.ts`, so the catalog of supported clients stays in lockstep across surfaces.
 
 ## Browser extension
 
@@ -19,11 +20,54 @@ The extension is a first-class part of Aturi — for many users it's the primary
 
 - **One-click jump.** When you're on a supported site (bsky.app, blacksky.community, leaflet.pub, tangled.org, margin.at, pdsls.dev, atp.tools, and dozens more), click the toolbar icon to see every other Atmosphere waypoint that can render the same post, profile, list, or record. Click one and it opens in a new tab.
 - **Auto-redirect.** Flip a switch and links get silently rewritten to your preferred client *before* they load. Pick a favorite per "data family" (Bluesky-style clients, Publications, Tangled, Margin, Grain, Pinkleap, Semble, Streamplace, Popfeed, Sifa, Blento). Powered by `chrome.declarativeNetRequest`, so it's fast and doesn't read your browsing history.
+- **Inspect mode.** Surface the underlying AT URI, record JSON, PDS, DID, and backlinks for whatever's on screen — without leaving the page you're on.
 - **Custom waypoints.** Wire up any site that uses a consistent URL structure via templates like `/profile/{handle}` or `/u/{handle}/p/{rkey}`. The extension forward-fills *and* reverse-matches the templates, so custom waypoints are first-class everywhere — popup, auto-redirect, and visibility controls.
 - **Visibility & ordering.** Hide waypoints you'll never use, drag-and-drop the rest into the order you want, and the popup surfaces your most-used destinations first.
-- **Shared catalog.** The extension imports `@aturi/*` directly from the web app's `src/utils/`, so the waypoint list, URI parsers, and reverse parsers stay in sync between the two.
+- **Shared catalog.** The extension imports waypoints, URI parsers, and reverse parsers directly from the web app's `src/utils/`, so the two stay in sync.
 
 See [`extension/README.md`](extension/README.md) for development, build, and Safari packaging instructions.
+
+## Atmosphere Explorer
+
+Available at [aturi.to/explore](https://aturi.to/explore). A read-mostly window into any atproto repository:
+
+- **PDS → repo → collection → record** drill-down for any handle or DID.
+- **Repo at a glance** — record counts, creation date, identity history, audit log, and (where available) cred.blue score for any account.
+- **Lexicon hierarchy** with two-level grouping so big repos stay browseable.
+- **Inbound backlinks** — see who else's records reference the one you're looking at.
+- **Live firehose feed** — a calm, paginated view of the jetstream right on the explore index.
+- **Sign in with your atproto handle** to edit your own records inline, sync waypoint preferences across devices, and personalize how every universal link page renders.
+
+## Universal links
+
+Drop an `aturi.to/...` URL anywhere — a DM, a footer, a bio. Visitors land on a friendly preview of the record (post, profile, list, feed, leaflet, tangled repo, grain gallery, margin annotation, or any other supported lexicon) and pick the Atmosphere client they want to read it in.
+
+- **One link, every client.** Every record, profile, and list resolves to the right destination across 25+ curated Atmosphere clients.
+- **Platform-agnostic landing page.** Recipients choose — you don't lock them into your client.
+- **Rich previews.** Dynamic OpenGraph images so links look great in Messages, Slack, Discord, and Twitter.
+- **No login, no API keys.** Just a URL.
+- **Handle, DID, or full `at://` URI** all work as input.
+- **Signed-in personalization.** Your waypoint visibility and ordering preferences (synced from the extension via your PDS) carry over to every link page.
+
+### URL structure
+
+Profiles:
+
+```
+aturi.to/profile/[handle or did]
+```
+
+Example: `aturi.to/profile/aturi.to`
+
+Records (posts, lists, feeds, etc.):
+
+```
+aturi.to/profile/[handle or did]/[collection]/[rkey]
+```
+
+Example: `aturi.to/profile/alice.bsky.social/app.bsky.feed.post/3k7qw...`
+
+Posts also have a friendly alias: `aturi.to/profile/[handle]/post/[rkey]`. The bare-path forms (without `/profile/`) still resolve for backwards compatibility, but new links should prefer the canonical `/profile/` form.
 
 ### Supported waypoints
 
@@ -36,35 +80,6 @@ The catalog covers roughly 25+ Atmosphere apps and dev tools across categories l
 
 Want to add a new waypoint? Open a PR against [`src/utils/waypoints.data.ts`](src/utils/waypoints.data.ts) — both the web app and the extension pick it up automatically.
 
-## Web app features
-
-- **Universal sharing** — one link works everywhere
-- **Platform-agnostic landing page** — recipients choose their preferred client
-- **Rich previews** — dynamic OpenGraph images for beautiful social sharing
-- **Easy integration** — simple URL structure, no API keys required
-- **Handle and DID resolution** — handles, DIDs, and full `at://` URIs all work
-
-### URL structure
-
-Profiles:
-
-```
-aturi.to/profile/[handle or did]
-```
-
-Example: `aturi.to/profile/alice.bsky.social`
-
-Records (posts, lists, etc.):
-
-```
-aturi.to/profile/[handle or did]/[collection]/[rkey]
-```
-
-Example: `aturi.to/profile/alice.bsky.social/app.bsky.feed.post/3k7qw...`
-
-The bare-path forms (without `/profile/`) also resolve for backwards
-compatibility, but new links should prefer the canonical `/profile/` form.
-
 ## Running locally
 
 ### Prerequisites
@@ -74,8 +89,8 @@ compatibility, but new links should prefer the canonical `/profile/` form.
 ### Web app
 
 ```bash
-git clone https://github.com/yourusername/aturi-to.git
-cd aturi-to
+git clone https://github.com/atpota-to/aturi.git
+cd aturi
 nvm use
 npm install
 npm run dev
@@ -113,7 +128,7 @@ Want to add aturi.to links to your app? Check out the [Integration Guide](https:
 ```typescript
 function toAturiLink(atUri: string): string {
   const uri = atUri.replace('at://', '');
-  return `https://aturi.to/${uri}`;
+  return `https://aturi.to/profile/${uri}`;
 }
 ```
 
@@ -122,30 +137,31 @@ function toAturiLink(atUri: string): string {
 **Web app**
 
 - **Next.js 16** — App Router with React Server Components
+- **React 19** — Suspense, Server Components, and view transitions
 - **TypeScript** — type safety throughout
-- **@vercel/og** — dynamic OpenGraph image generation
+- **@vercel/og** — dynamic OpenGraph image generation on the Edge Runtime
 - **@vercel/analytics** — privacy-focused analytics
-- **Tailwind CSS v4** — utility-first styling
+- **Tailwind CSS v4** — utility-first styling alongside hand-rolled CSS variables
 - **Framer Motion** — page and component animations
 
 **Extension**
 
 - **WXT** — cross-browser MV3/MV2 build tooling (Chrome, Firefox, Safari)
-- **React 19** — popup and options UI
+- **React 19** — popup, options, and Inspect UI
 - **`chrome.declarativeNetRequest`** — fast, privacy-preserving auto-redirect
 - **`@dnd-kit`** — drag-and-drop ordering of waypoints
 - **Vitest** — unit tests for templates, rules, and reverse parsers
 
 ## Contributing
 
-This is a community tool for the Atmosphere ecosystem. Contributions are welcome — bugs, new waypoints, popup polish, and extension features all land in the same repo. See [CONTRIBUTING.md](CONTRIBUTING.md).
+This is a community tool for the Atmosphere ecosystem. Contributions are welcome — bugs, new waypoints, popup polish, explorer features, and extension features all land in the same repo. See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Forking & custom domains
 
 Want to run your own instance with a custom domain? aturi.to is designed to be forkable.
 
 ```bash
-git clone https://github.com/yourusername/aturi-to.git my-custom-instance
+git clone https://github.com/atpota-to/aturi.git my-custom-instance
 cd my-custom-instance
 npm run setup-fork
 
@@ -162,7 +178,6 @@ The setup script will help you configure:
 
 ### More resources
 
-- [Quick Start Guide](QUICKSTART.md) — get running in 10 minutes
 - [Forking Guide](FORKING.md) — detailed customization instructions
 - [Contributing Guide](CONTRIBUTING.md) — how to contribute back
 - [Extension README](extension/README.md) — extension dev, build, and Safari notes
