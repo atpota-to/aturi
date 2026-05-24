@@ -11,6 +11,8 @@ import AppearIn from './AppearIn';
 import Breadcrumb from './Breadcrumb';
 import CopyButton from './CopyButton';
 import EngagementSidecar from './EngagementSidecar';
+import LinkifiedJson from './LinkifiedJson';
+import RichRecordPreview from './RichRecordPreview';
 import BacklinksTab from './tabs/BacklinksTab';
 import RecordEditor from './RecordEditor';
 import SignInPanel from './SignInPanel';
@@ -221,10 +223,24 @@ export default function RecordExplorer({ repo, collection, rkey }: Props) {
         </div>
       )}
 
+      {/* Rich preview — same renderer the universal link pages use, so the
+          record looks the way it would on /profile/<handle>/<col>/<rkey>
+          (PostPreview for posts, margin previews for at.margin.*, generic
+          RecordPreview otherwise). */}
+      <AppearIn delay={0.12}>
+        <RichRecordPreview
+          handle={identity.handle || identity.did}
+          did={identity.did}
+          collection={collection}
+          rkey={decodedRkey}
+          record={record}
+        />
+      </AppearIn>
+
       {record && (
-        <details className="explore-section" open>
-          <summary>Raw record</summary>
-          <pre className="explore-json">{JSON.stringify(record, null, 2)}</pre>
+        <details className="explore-section">
+          <summary>Raw record JSON</summary>
+          <LinkifiedJson value={record} className="explore-json" />
         </details>
       )}
 

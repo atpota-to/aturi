@@ -20,3 +20,13 @@ export function buildExploreUrl(repo: string, collection?: string, rkey?: string
   }
   return `${ATURI_BASE}/explore/${encodedRepo}`;
 }
+
+/**
+ * Deep link to the web explorer's PDS-host page (e.g. /explore/pds/pds.atpota.to).
+ * Accepts either a bare hostname or a full URL.
+ */
+export function buildExplorePdsUrl(pdsHost: string): string {
+  // Strip protocol if a full URL was passed.
+  const host = pdsHost.replace(/^https?:\/\//i, '').replace(/\/.*$/, '');
+  return `${ATURI_BASE}/explore/pds/${encodeURIComponent(host)}`;
+}

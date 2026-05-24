@@ -1,0 +1,109 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+import PostPreview from '@/components/PostPreview';
+import RecordPreview from '@/components/RecordPreview';
+import {
+  MarginAnnotationPreview,
+  MarginBookmarkPreview,
+  MarginCollectionItemPreview,
+  MarginCollectionPreview,
+  MarginHighlightPreview,
+  MarginLikePreview,
+  MarginReplyPreview,
+} from '@/components/margin';
+import { getMarginLexiconType } from '@/utils/marginLexicons';
+import {
+  fetchPostThread,
+  type GenericRecord,
+  type PostThread,
+} from '@/utils/recordFetcher';
+import type { AtRecord } from '@/utils/atproto/pdsClient';
+
+type Props = {
+  handle: string;
+  did: string;
+  collection: string;
+  rkey: string;
+  /** PDS-fetched record; used as the source for non-post / margin previews. */
+  record: AtRecord | null;
+};
+
+/**
+ * Renders the same rich record preview that universal link pages show —
+ * PostPreview for Bluesky posts, the specialised margin previews for the
+ * at.margin.* lexicons, and the generic RecordPreview otherwise. Returns
+ * null when there's nothing to render yet (e.g. still fetching).
+ *
+ * Posts need a second fetch (AppView's getPostThread for author info,
+ * embeds, engagement counts) because the PDS-only record we already have
+ * is just the bare record value.
+ */
+export default function RichRecordPreview({
+  handle,
+  did,
+  collection,
+  rkey,
+  record,
+}: Props) {
+  const marginType = getMarginLexiconType(collection);
+  const isPost = collection === 'app.bsky.feed.post';
+
+  const [postThread, setPostThread] = useState<PostThread | null>(null);
+
+  useEffect(() => {
+    if (!isPost) {
+      setPostThread(null);
+      return undefined;
+    }
+    let cancelled = false;
+    const atUri = `at://${did}/${collection}/${rkey}`;
+    fetchPostThread(atUri).then((thread) => {
+      if (!cancelled) setPostThread(thread);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [isPost, did, collection, rkey]);
+
+  // Posts: prefer the AppView thread (renders embeds, author, counts).
+  if (isPost) {
+    const post = postThread?.thread[0]?.value.post;
+    if (!post) return null;
+    return <PostPreview post={post} parent={postThread?.parent} />;
+  }
+
+  if (!record) return null;
+
+  const recordForLegacy: GenericRecord = {
+    uri: record.uri,
+    cid: record.cid,
+    value: record.value,
+  };
+
+  // Margin lexicons get their own renderers — close visual parity with the
+  // universal link page so users get the same affordances.
+  if (marginType === 'at.margin.annotation') {
+    return <MarginAnnotationPreview record={recordForLegacy} collection={collection} handle={handle} rkey={rkey} />;
+  }
+  if (marginType === 'at.margin.bookmark') {
+    return <MarginBookmarkPreview record={recordForLegacy} collection={collection} handle={handle} rkey={rkey} />;
+  }
+  if (marginType === 'at.margin.highlight') {
+    return <MarginHighlightPreview record={recordForLegacy} collection={collection} handle={handle} rkey={rkey} />;
+  }
+  if (marginType === 'at.margin.collection') {
+    return <MarginCollectionPreview record={recordForLegacy} collection={collection} handle={handle} rkey={rkey} />;
+  }
+  if (marginType === 'at.margin.collectionItem') {
+    return <MarginCollectionItemPreview record={recordForLegacy} collection={collection} handle={handle} rkey={rkey} />;
+  }
+  if (marginType === 'at.margin.reply') {
+    return <MarginReplyPreview record={recordForLegacy} collection={collection} handle={handle} rkey={rkey} />;
+  }
+  if (marginType === 'at.margin.like') {
+    return <MarginLikePreview record={recordForLegacy} collection={collection} handle={handle} rkey={rkey} />;
+  }
+
+  return <RecordPreview record={recordForLegacy} collection={collection} handle={handle} rkey={rkey} />;
+}

@@ -1114,6 +1114,28 @@ html {
   line-height: 1.5;
 }
 
+/* Inline links inside <pre class="explore-json"> — used by LinkifiedJson
+   to turn at:// URIs / DIDs / URLs in the raw record view into
+   click-through navigation. Underline-on-hover keeps the JSON readable
+   when scanning. */
+.explore-json-link {
+  color: var(--text-accent);
+  text-decoration: none;
+  border-bottom: 1px dotted transparent;
+  transition: border-color 0.15s ease, color 0.15s ease;
+}
+
+.explore-json-link:hover,
+.explore-json-link:focus-visible {
+  color: var(--text-primary);
+  border-bottom-color: var(--text-accent);
+}
+
+.explore-json-link-external::after {
+  content: ' ↗';
+  opacity: 0.55;
+}
+
 .explore-section {
   font-family: var(--font-mono);
   font-size: 0.875rem;

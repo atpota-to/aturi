@@ -15,10 +15,15 @@ import { parseAtUri } from '@aturi/atproto/urls';
 import { resolveIdentifier, type IdentityBundle } from '@aturi/atproto/identity';
 import { getRecord, type AtRecord } from '@aturi/atproto/pdsClient';
 import { previewFor } from '@aturi/atproto/previewExtractors';
+import { pdsHostname } from '@aturi/atproto/pdsServer';
+import {
+  flattenSources,
+  getBacklinkSources,
+} from '@aturi/atproto/constellation';
 import { matchSupportedUrl } from '@aturi/reverseParsers';
 import { type Prefs } from '../../lib/prefs';
 import type { DetectedAtUri } from '../../lib/inspectScanner';
-import { buildExploreUrl } from '../../lib/aturiUrl';
+import { buildExploreUrl, buildExplorePdsUrl } from '../../lib/aturiUrl';
 import { dedupeByUri } from '../../lib/inspectScanner';
 
 type Props = {
@@ -167,12 +172,14 @@ function InspectCard({ hit, pds }: { hit: DetectedAtUri; pds: string | null }) {
     record: null,
     error: null,
   });
+  const [backlinkCount, setBacklinkCount] = useState<number | null>(null);
   const cancelled = useRef(false);
 
   useEffect(() => {
     cancelled.current = false;
     if (!parsed) return undefined;
     setResolution({ identity: null, record: null, error: null });
+    setBacklinkCount(null);
     (async () => {
       try {
         const identity = await resolveIdentifier(parsed.repo);
@@ -199,10 +206,19 @@ function InspectCard({ hit, pds }: { hit: DetectedAtUri; pds: string | null }) {
         }));
       }
     })();
+    // Backlinks lookup runs in parallel with identity resolution — it
+    // hits Constellation directly with the AT URI, no PDS hop needed.
+    (async () => {
+      const raw = await getBacklinkSources(hit.uri);
+      if (cancelled.current) return;
+      const flat = flattenSources(raw);
+      if (!flat) return;
+      setBacklinkCount(flat.reduce((acc, s) => acc + (s.count || 0), 0));
+    })();
     return () => {
       cancelled.current = true;
     };
-  }, [parsed]);
+  }, [parsed, hit.uri]);
 
   const identity = resolution.identity;
   const record = resolution.record;
@@ -215,6 +231,8 @@ function InspectCard({ hit, pds }: { hit: DetectedAtUri; pds: string | null }) {
       )
     : null;
   const effectivePds = pds || identity?.pds || null;
+  const effectivePdsHost = effectivePds ? pdsHostname(effectivePds) : null;
+  const pdsExplorerUrl = effectivePdsHost ? buildExplorePdsUrl(effectivePdsHost) : null;
   const effectiveDid = identity?.did || (parsed?.repo.startsWith('did:') ? parsed.repo : null);
 
   return (
@@ -228,7 +246,15 @@ function InspectCard({ hit, pds }: { hit: DetectedAtUri; pds: string | null }) {
         marginBottom: 6,
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11 }}>
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 6,
+          fontSize: 11,
+          flexWrap: 'wrap',
+        }}
+      >
         <span className="aturi-subtle" style={{ textTransform: 'uppercase', letterSpacing: '0.06em' }}>
           {hit.where}
         </span>
@@ -238,6 +264,15 @@ function InspectCard({ hit, pds }: { hit: DetectedAtUri; pds: string | null }) {
         {parsed?.collection && (
           <span style={{ fontFamily: 'monospace', color: 'var(--popup-accent)', fontSize: 10 }}>
             {parsed.collection}
+          </span>
+        )}
+        {backlinkCount !== null && backlinkCount > 0 && (
+          <span
+            className="aturi-subtle"
+            title="Inbound links across the Atmosphere (via Constellation)"
+            style={{ fontSize: 10 }}
+          >
+            · {backlinkCount.toLocaleString()} inbound
           </span>
         )}
       </div>
@@ -317,6 +352,29 @@ function InspectCard({ hit, pds }: { hit: DetectedAtUri; pds: string | null }) {
           >
             <ExternalLink size={11} />
             Open in Explorer
+          </a>
+        )}
+        {pdsExplorerUrl && (
+          <a
+            href={pdsExplorerUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="aturi-btn"
+            title={`Inspect ${effectivePdsHost} on aturi.to`}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 4,
+              fontSize: 11,
+              textDecoration: 'none',
+              padding: '3px 8px',
+            }}
+            onClick={() => {
+              window.setTimeout(() => window.close(), 50);
+            }}
+          >
+            <Server size={11} />
+            Open PDS
           </a>
         )}
       </div>

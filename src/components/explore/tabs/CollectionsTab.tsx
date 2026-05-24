@@ -272,10 +272,15 @@ function GroupHeader({
       <code
         style={{
           flex: 1,
+          // minWidth: 0 lets the flex item shrink below its intrinsic
+          // content width — without it, a long unbreakable NSID (e.g. a
+          // ULID-style rkey segment) pushes the count badge off the row.
+          minWidth: 0,
           background: 'transparent',
           padding: 0,
           color: emphasize ? 'var(--text-accent)' : 'var(--text-secondary)',
           wordBreak: 'break-all',
+          overflowWrap: 'anywhere',
         }}
       >
         {prefix}
@@ -319,6 +324,8 @@ function LeafRow({
           fontSize: '0.85rem',
           color: 'var(--text-primary)',
           textDecoration: 'none',
+          wordBreak: 'break-all',
+          overflowWrap: 'anywhere',
           transition: 'background 0.2s ease, color 0.2s ease',
         }}
         onMouseEnter={(e) => {

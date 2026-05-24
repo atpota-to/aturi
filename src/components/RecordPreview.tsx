@@ -11,6 +11,7 @@ import { GenericRecord } from '@/utils/recordFetcher';
 import { sanitizeHandle } from '@/utils/sanitize';
 import { Telescope, X } from 'lucide-react';
 import { encodeRepo } from '@/utils/atproto/urls';
+import LinkifiedJson from './explore/LinkifiedJson';
 
 type RecordPreviewProps = {
   record: GenericRecord;
@@ -380,7 +381,8 @@ export default function RecordPreview({ record, collection, handle, rkey }: Reco
                 zIndex: 1,
               }}
             >
-              <pre
+              <LinkifiedJson
+                value={value}
                 style={{
                   margin: 0,
                   padding: '1.5rem',
@@ -391,10 +393,10 @@ export default function RecordPreview({ record, collection, handle, rkey }: Reco
                   color: 'var(--text-primary)',
                   fontFamily: 'var(--font-mono)',
                   boxShadow: 'var(--modal-pane-vignette)',
+                  whiteSpace: 'pre-wrap',
+                  wordBreak: 'break-word',
                 }}
-              >
-                {JSON.stringify(value, null, 2)}
-              </pre>
+              />
             </div>
 
             {/* Subtle bottom fade */}
