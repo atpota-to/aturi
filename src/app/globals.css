@@ -1406,6 +1406,19 @@ html {
   line-height: 1;
 }
 
+/* "View raw repo in the explorer →" link on the profile preview card.
+   Class-based hover so the host (ProfilePreview) can stay a Server
+   Component — inline onMouseEnter/Leave would be a function prop on
+   <Link>, which RSC refuses to serialize. */
+.profile-explorer-link {
+  color: var(--text-tertiary);
+  transition: color 0.2s ease;
+}
+
+.profile-explorer-link:hover {
+  color: var(--text-accent);
+}
+
 /* Skeleton Loading Styles */
 .skeleton-shimmer {
   position: relative;

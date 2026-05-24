@@ -240,19 +240,12 @@ export default function ProfilePreview({ profile }: ProfilePreviewProps) {
         >
           <Link
             href={`/explore/${encodeRepo(handle)}`}
+            className="profile-explorer-link"
             style={{
               display: 'inline-flex',
               alignItems: 'center',
               gap: '0.4rem',
-              color: 'var(--text-tertiary)',
               textDecoration: 'none',
-              transition: 'color 0.2s ease',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.color = 'var(--text-accent)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.color = 'var(--text-tertiary)';
             }}
           >
             <Telescope size={12} />
