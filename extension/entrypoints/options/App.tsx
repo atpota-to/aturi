@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { loadPrefs, onPrefsChanged, savePrefs, type Prefs } from '../../lib/prefs';
 import { applyAppearance } from '../../lib/appearance';
+import { t } from '../../lib/i18n';
 import DefaultsTab from './tabs/DefaultsTab';
 import VisibilityTab from './tabs/VisibilityTab';
 import CustomTab from './tabs/CustomTab';
@@ -28,12 +29,14 @@ function AturiMark() {
   );
 }
 
-const TABS: { id: TabId; label: string }[] = [
-  { id: 'defaults', label: 'General' },
-  { id: 'visibility', label: 'Waypoints' },
-  { id: 'custom', label: 'Custom' },
-  { id: 'about', label: 'About' },
-  { id: 'dev', label: 'Dev' },
+type TabSpec = { id: TabId; labelKey: string };
+
+const TABS: TabSpec[] = [
+  { id: 'defaults', labelKey: 'options_tab_general' },
+  { id: 'visibility', labelKey: 'options_tab_waypoints' },
+  { id: 'custom', labelKey: 'options_tab_custom' },
+  { id: 'about', labelKey: 'options_tab_about' },
+  { id: 'dev', labelKey: 'options_tab_dev' },
 ];
 
 // Map URL hash → tab id. Lets the popup deep-link to Settings → Waypoints when
@@ -85,7 +88,7 @@ export default function App() {
   if (!prefs) {
     return (
       <div className="options-root">
-        <div className="options-content">Loading...</div>
+        <div className="options-content">{t('options_loading')}</div>
       </div>
     );
   }
@@ -98,18 +101,18 @@ export default function App() {
             <AturiMark />
             <span>Aturi</span>
           </div>
-          <div className="options-brand-sub">Settings</div>
+          <div className="options-brand-sub">{t('options_brandSubtitle')}</div>
         </div>
         <nav className="options-nav" role="tablist">
-          {TABS.map(t => (
+          {TABS.map(tab_ => (
             <button
-              key={t.id}
+              key={tab_.id}
               role="tab"
-              aria-selected={tab === t.id}
-              className={`options-nav-item ${tab === t.id ? 'active' : ''}`}
-              onClick={() => setTab(t.id)}
+              aria-selected={tab === tab_.id}
+              className={`options-nav-item ${tab === tab_.id ? 'active' : ''}`}
+              onClick={() => setTab(tab_.id)}
             >
-              {t.label}
+              {t(tab_.labelKey)}
             </button>
           ))}
         </nav>

@@ -29,11 +29,11 @@
   "common_close": {
     "message": "Close"
   },
-  "options_tab_defaults": {
-    "message": "Defaults"
+  "options_tab_general": {
+    "message": "General"
   },
-  "options_tab_visibility": {
-    "message": "Visibility"
+  "options_tab_waypoints": {
+    "message": "Waypoints"
   },
   "options_tab_custom": {
     "message": "Custom"
@@ -134,5 +134,65 @@
   },
   "popup_bannerDismissAria": {
     "message": "Dismiss new waypoints notification"
+  },
+  "options_brandSubtitle": {
+    "message": "Settings"
+  },
+  "options_loading": {
+    "message": "Loading…"
+  },
+  "about_h1": {
+    "message": "About"
+  },
+  "about_lede": {
+    "message": "Aturi makes Atmosphere links shareable with anyone. Drop a person an Aturi link and they pick the client they prefer — Bluesky, Anisota, Leaflet, Red Dwarf, and more — instead of being locked into yours."
+  },
+  "about_aturiTitle": {
+    "message": "Aturi"
+  },
+  "about_aturiSub": {
+    "message": "Fast travel across the Atmosphere. The web app and this extension are part of the same project — the extension is a quick way to jump between Atmosphere clients while you browse."
+  },
+  "about_linkWebsite": {
+    "message": "Website"
+  },
+  "about_linkProjectProfile": {
+    "message": "Project profile"
+  },
+  "about_linkSource": {
+    "message": "Source & issues"
+  },
+  "about_peopleTitle": {
+    "message": "People"
+  },
+  "about_peopleSub": {
+    "message": "Aturi is built by Dame and stewarded under the @$STEWARD$ umbrella on the Atmosphere — give them a follow for updates, releases, and the occasional bug fight.",
+    "placeholders": {
+      "steward": { "content": "$1", "example": "atpota.to" }
+    }
+  },
+  "about_linkCreator": {
+    "message": "Creator"
+  },
+  "about_linkSteward": {
+    "message": "Steward"
+  },
+  "about_feedbackTitle": {
+    "message": "Feedback"
+  },
+  "about_feedbackSub": {
+    "message": "Found a bug, want to suggest a new waypoint, or have an idea for the popup? File an issue or open a pull request on Tangled — Aturi is open source under GPL v3."
+  },
+  "about_linkReportIssue": {
+    "message": "Report an issue"
+  },
+  "about_linkPullRequests": {
+    "message": "Pull requests"
+  },
+  "about_version": {
+    "message": "Aturi extension v$VERSION$",
+    "placeholders": {
+      "version": { "content": "$1", "example": "0.1.2" }
+    }
   }
 }

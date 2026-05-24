@@ -29,11 +29,11 @@
   "common_close": {
     "message": "Cerrar"
   },
-  "options_tab_defaults": {
-    "message": "Predeterminados"
+  "options_tab_general": {
+    "message": "General"
   },
-  "options_tab_visibility": {
-    "message": "Visibilidad"
+  "options_tab_waypoints": {
+    "message": "Waypoints"
   },
   "options_tab_custom": {
     "message": "Personalizados"
@@ -134,5 +134,65 @@
   },
   "popup_bannerDismissAria": {
     "message": "Descartar notificación de nuevos waypoints"
+  },
+  "options_brandSubtitle": {
+    "message": "Configuración"
+  },
+  "options_loading": {
+    "message": "Cargando…"
+  },
+  "about_h1": {
+    "message": "Acerca de"
+  },
+  "about_lede": {
+    "message": "Aturi hace que los enlaces de Atmosphere se puedan compartir con cualquiera. Envíale a alguien un enlace de Aturi y elegirá el cliente que prefiera — Bluesky, Anisota, Leaflet, Red Dwarf, y más — en lugar de quedar atado al tuyo."
+  },
+  "about_aturiTitle": {
+    "message": "Aturi"
+  },
+  "about_aturiSub": {
+    "message": "Viaje rápido por Atmosphere. La aplicación web y esta extensión son parte del mismo proyecto — la extensión es una forma rápida de saltar entre clientes Atmosphere mientras navegas."
+  },
+  "about_linkWebsite": {
+    "message": "Sitio web"
+  },
+  "about_linkProjectProfile": {
+    "message": "Perfil del proyecto"
+  },
+  "about_linkSource": {
+    "message": "Código e incidencias"
+  },
+  "about_peopleTitle": {
+    "message": "Personas"
+  },
+  "about_peopleSub": {
+    "message": "Aturi está hecho por Dame y administrado bajo el paraguas de @$STEWARD$ en Atmosphere — síguelos para actualizaciones, lanzamientos y el ocasional combate contra bugs.",
+    "placeholders": {
+      "steward": { "content": "$1", "example": "atpota.to" }
+    }
+  },
+  "about_linkCreator": {
+    "message": "Creador"
+  },
+  "about_linkSteward": {
+    "message": "Administrador"
+  },
+  "about_feedbackTitle": {
+    "message": "Comentarios"
+  },
+  "about_feedbackSub": {
+    "message": "¿Encontraste un bug, quieres sugerir un nuevo waypoint, o tienes una idea para la ventana emergente? Abre una incidencia o un pull request en Tangled — Aturi es open source bajo GPL v3."
+  },
+  "about_linkReportIssue": {
+    "message": "Reportar una incidencia"
+  },
+  "about_linkPullRequests": {
+    "message": "Pull requests"
+  },
+  "about_version": {
+    "message": "Extensión Aturi v$VERSION$",
+    "placeholders": {
+      "version": { "content": "$1", "example": "0.1.2" }
+    }
   }
 }

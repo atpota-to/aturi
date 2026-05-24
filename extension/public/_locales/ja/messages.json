@@ -29,11 +29,11 @@
   "common_close": {
     "message": "閉じる"
   },
-  "options_tab_defaults": {
-    "message": "デフォルト"
+  "options_tab_general": {
+    "message": "一般"
   },
-  "options_tab_visibility": {
-    "message": "表示"
+  "options_tab_waypoints": {
+    "message": "ウェイポイント"
   },
   "options_tab_custom": {
     "message": "カスタム"
@@ -134,5 +134,65 @@
   },
   "popup_bannerDismissAria": {
     "message": "新しいウェイポイントの通知を閉じる"
+  },
+  "options_brandSubtitle": {
+    "message": "設定"
+  },
+  "options_loading": {
+    "message": "読み込み中…"
+  },
+  "about_h1": {
+    "message": "情報"
+  },
+  "about_lede": {
+    "message": "Aturiは、Atmosphereのリンクを誰とでも共有できるようにします。Aturiリンクを送るだけで、相手はあなたのクライアントに縛られず、Bluesky、Anisota、Leaflet、Red Dwarfなど、好みのクライアントを選べます。"
+  },
+  "about_aturiTitle": {
+    "message": "Aturi"
+  },
+  "about_aturiSub": {
+    "message": "アトモスフィアを高速移動。Webアプリとこの拡張機能は同じプロジェクトの一部 — 拡張機能は、閲覧中にAtmosphereクライアント間を素早く移動するための手段です。"
+  },
+  "about_linkWebsite": {
+    "message": "ウェブサイト"
+  },
+  "about_linkProjectProfile": {
+    "message": "プロジェクトのプロフィール"
+  },
+  "about_linkSource": {
+    "message": "ソース・課題"
+  },
+  "about_peopleTitle": {
+    "message": "メンバー"
+  },
+  "about_peopleSub": {
+    "message": "AturiはDameによって構築され、Atmosphereの@$STEWARD$傘下で運営されています — アップデート、リリース、時折のバグ対応について、フォローしてください。",
+    "placeholders": {
+      "steward": { "content": "$1", "example": "atpota.to" }
+    }
+  },
+  "about_linkCreator": {
+    "message": "作者"
+  },
+  "about_linkSteward": {
+    "message": "管理者"
+  },
+  "about_feedbackTitle": {
+    "message": "フィードバック"
+  },
+  "about_feedbackSub": {
+    "message": "バグを見つけた、新しいウェイポイントを提案したい、ポップアップへのアイデアがある？ TangledでIssueを起票するか、Pull Requestを開いてください — AturiはGPL v3のオープンソースです。"
+  },
+  "about_linkReportIssue": {
+    "message": "Issueを報告"
+  },
+  "about_linkPullRequests": {
+    "message": "Pull Request"
+  },
+  "about_version": {
+    "message": "Aturi拡張機能 v$VERSION$",
+    "placeholders": {
+      "version": { "content": "$1", "example": "0.1.2" }
+    }
   }
 }

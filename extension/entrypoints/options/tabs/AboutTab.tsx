@@ -1,4 +1,5 @@
 import { browser } from '#imports';
+import { t } from '../../../lib/i18n';
 
 const ATURI_SITE = 'https://aturi.to';
 const REPO_URL = 'https://tangled.org/atpota.to/aturi';
@@ -26,23 +27,15 @@ export default function AboutTab() {
 
   return (
     <div>
-      <h1 className="options-h1">About</h1>
-      <p className="options-lede">
-        Aturi makes Atmosphere links shareable with anyone. Drop a person an
-        Aturi link and they pick the client they prefer — Bluesky, Anisota,
-        Leaflet, Red Dwarf, and more — instead of being locked into yours.
-      </p>
+      <h1 className="options-h1">{t('about_h1')}</h1>
+      <p className="options-lede">{t('about_lede')}</p>
 
       <div className="options-card">
-        <div className="options-card-title">Aturi</div>
-        <div className="options-card-sub">
-          Fast travel across the Atmosphere. The web app and this extension
-          are part of the same project — the extension is a quick way to jump
-          between Atmosphere clients while you browse.
-        </div>
+        <div className="options-card-title">{t('about_aturiTitle')}</div>
+        <div className="options-card-sub">{t('about_aturiSub')}</div>
         <div className="about-links">
           <a href={ATURI_SITE} target="_blank" rel="noreferrer" className="about-link">
-            <span className="about-link-label">Website</span>
+            <span className="about-link-label">{t('about_linkWebsite')}</span>
             <span className="about-link-value">aturi.to</span>
           </a>
           <a
@@ -51,23 +44,19 @@ export default function AboutTab() {
             rel="noreferrer"
             className="about-link"
           >
-            <span className="about-link-label">Project profile</span>
+            <span className="about-link-label">{t('about_linkProjectProfile')}</span>
             <span className="about-link-value">@{PROJECT_HANDLE}</span>
           </a>
           <a href={REPO_URL} target="_blank" rel="noreferrer" className="about-link">
-            <span className="about-link-label">Source &amp; issues</span>
+            <span className="about-link-label">{t('about_linkSource')}</span>
             <span className="about-link-value">tangled.org/atpota.to/aturi</span>
           </a>
         </div>
       </div>
 
       <div className="options-card">
-        <div className="options-card-title">People</div>
-        <div className="options-card-sub">
-          Aturi is built by Dame and stewarded under the @{STEWARD_HANDLE}{' '}
-          umbrella on the Atmosphere — give them a follow for updates, releases,
-          and the occasional bug fight.
-        </div>
+        <div className="options-card-title">{t('about_peopleTitle')}</div>
+        <div className="options-card-sub">{t('about_peopleSub', STEWARD_HANDLE)}</div>
         <div className="about-links">
           <a
             href={bskyProfileUrl(CREATOR_HANDLE)}
@@ -75,7 +64,7 @@ export default function AboutTab() {
             rel="noreferrer"
             className="about-link"
           >
-            <span className="about-link-label">Creator</span>
+            <span className="about-link-label">{t('about_linkCreator')}</span>
             <span className="about-link-value">@{CREATOR_HANDLE}</span>
           </a>
           <a
@@ -84,19 +73,15 @@ export default function AboutTab() {
             rel="noreferrer"
             className="about-link"
           >
-            <span className="about-link-label">Steward</span>
+            <span className="about-link-label">{t('about_linkSteward')}</span>
             <span className="about-link-value">@{STEWARD_HANDLE}</span>
           </a>
         </div>
       </div>
 
       <div className="options-card">
-        <div className="options-card-title">Feedback</div>
-        <div className="options-card-sub">
-          Found a bug, want to suggest a new waypoint, or have an idea for the
-          popup? File an issue or open a pull request on Tangled — Aturi is
-          open source under GPL v3.
-        </div>
+        <div className="options-card-title">{t('about_feedbackTitle')}</div>
+        <div className="options-card-sub">{t('about_feedbackSub')}</div>
         <div className="about-links">
           <a
             href={`${REPO_URL}/issues`}
@@ -104,7 +89,7 @@ export default function AboutTab() {
             rel="noreferrer"
             className="about-link"
           >
-            <span className="about-link-label">Report an issue</span>
+            <span className="about-link-label">{t('about_linkReportIssue')}</span>
             <span className="about-link-value">tangled.org/atpota.to/aturi/issues</span>
           </a>
           <a
@@ -113,14 +98,14 @@ export default function AboutTab() {
             rel="noreferrer"
             className="about-link"
           >
-            <span className="about-link-label">Pull requests</span>
+            <span className="about-link-label">{t('about_linkPullRequests')}</span>
             <span className="about-link-value">tangled.org/atpota.to/aturi/pulls</span>
           </a>
         </div>
       </div>
 
       {version && (
-        <div className="about-version">Aturi extension v{version}</div>
+        <div className="about-version">{t('about_version', version)}</div>
       )}
     </div>
   );
