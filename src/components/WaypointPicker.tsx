@@ -387,7 +387,7 @@ export default function WaypointPicker({
           What is aturi.to?
         </h3>
         <p style={{ color: 'var(--text-primary)', fontSize: '1.25rem', marginBottom: '0.75rem', lineHeight: 1.4 }}>
-          Your toolkit for the Atmosphere.
+          Tour the Atmosphere.
         </p>
         <p style={{ color: 'var(--text-secondary)', fontSize: '1rem', marginBottom: '1.5rem', lineHeight: 1.6 }}>
           Switch between apps, share universal links, and explore any account&rsquo;s raw PDS data.

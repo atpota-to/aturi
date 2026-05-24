@@ -47,7 +47,7 @@ export async function GET(request: NextRequest) {
     const pageContent: Record<string, { title: string; subtitle: string; tagline: string; showBranding: boolean }> = {
       home: {
         title: 'aturi.to',
-        subtitle: 'Your toolkit for the Atmosphere',
+        subtitle: 'Tour the Atmosphere',
         tagline: 'Travel between apps, share universal links, and explore raw PDS data.',
         showBranding: false, // Home already shows aturi.to as main title
       },

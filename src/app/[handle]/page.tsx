@@ -28,7 +28,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     if (!resolvedDid) {
       return {
         title: 'Profile not found - aturi.to',
-        description: 'Your toolkit for the Atmosphere',
+        description: 'Tour the Atmosphere',
       };
     }
 
@@ -77,7 +77,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
   return {
     title: `@${handle} - aturi.to`,
-    description: 'Your toolkit for the Atmosphere',
+    description: 'Tour the Atmosphere',
   };
 }
 

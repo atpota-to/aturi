@@ -107,7 +107,7 @@ export default function Header({ simple = false, compact = false }: HeaderProps)
                 textOverflow: 'ellipsis',
               }}
             >
-              travel & explore the atmosphere
+              tour the atmosphere
             </span>
           </Link>
 
@@ -244,7 +244,7 @@ export default function Header({ simple = false, compact = false }: HeaderProps)
             marginBottom: '2rem',
           }}
         >
-          Travel and explore the Atmosphere
+          Tour the Atmosphere
         </p>
 
         {/* Organic Navigation */}
@@ -327,7 +327,7 @@ export default function Header({ simple = false, compact = false }: HeaderProps)
           fontWeight: 300,
         }}
       >
-        Travel and explore the Atmosphere
+        Tour the Atmosphere
       </motion.p>
       <motion.p
         initial={{ opacity: 0, y: -10 }}
@@ -340,7 +340,7 @@ export default function Header({ simple = false, compact = false }: HeaderProps)
           margin: '0 auto 2rem',
         }}
       >
-        Switch between apps, share universal links, and walk any account&rsquo;s raw PDS data — your toolkit for the Atmosphere.
+        Switch between apps, share universal links, and walk any account&rsquo;s raw PDS data.
       </motion.p>
 
       {/* Organic Navigation */}

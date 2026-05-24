@@ -72,7 +72,7 @@ export default function HomeHero() {
             backgroundClip: 'text',
           }}
         >
-          Your toolkit for the Atmosphere
+          Tour the Atmosphere
         </span>
       </h1>
       <p

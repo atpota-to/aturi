@@ -9,19 +9,19 @@ import { DEFAULT_THEME, THEME_INIT_SCRIPT } from "@/lib/theme";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "aturi.to - Your toolkit for the Atmosphere",
+  title: "aturi.to — Tour the Atmosphere",
   description: "Travel between apps with the browser extension, share universal Atmosphere links, and explore any account's raw PDS data.",
   metadataBase: new URL('https://aturi.to'),
   manifest: '/site.webmanifest',
   openGraph: {
-    title: "aturi.to - Your toolkit for the Atmosphere",
+    title: "aturi.to — Tour the Atmosphere",
     description: "Travel between apps with the browser extension, share universal Atmosphere links, and explore any account's raw PDS data.",
     type: "website",
     images: ['/api/og/static?page=home'],
   },
   twitter: {
     card: "summary_large_image",
-    title: "aturi.to - Your toolkit for the Atmosphere",
+    title: "aturi.to — Tour the Atmosphere",
     description: "Travel between apps with the browser extension, share universal Atmosphere links, and explore any account's raw PDS data.",
     images: ['/api/og/static?page=home'],
   },
