@@ -1,0 +1,39 @@
+import type { Metadata } from 'next';
+import PdsExplorer from '@/components/explore/PdsExplorer';
+
+type Params = { host: string };
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<Params>;
+}): Promise<Metadata> {
+  const { host } = await params;
+  const decoded = decodeURIComponent(host);
+  const title = `${decoded} · PDS · Atmosphere Explorer`;
+  const description = `Inspect the ${decoded} Personal Data Server — server metadata, available domains, and the repos it hosts.`;
+  return {
+    title,
+    description,
+    openGraph: {
+      title,
+      description,
+      images: [`/api/og/static?page=explore`],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title,
+      description,
+      images: [`/api/og/static?page=explore`],
+    },
+  };
+}
+
+export default async function ExplorePdsPage({
+  params,
+}: {
+  params: Promise<Params>;
+}) {
+  const { host } = await params;
+  return <PdsExplorer host={decodeURIComponent(host)} />;
+}

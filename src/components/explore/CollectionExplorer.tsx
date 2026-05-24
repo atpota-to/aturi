@@ -127,7 +127,12 @@ function CollectionList({
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
       <AppearIn rise>
-        <Breadcrumb handle={identity.handle} did={identity.did} collection={collection} />
+        <Breadcrumb
+          handle={identity.handle}
+          did={identity.did}
+          pds={identity.pds}
+          collection={collection}
+        />
       </AppearIn>
 
       <AppearIn delay={0.05}>

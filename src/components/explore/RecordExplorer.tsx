@@ -98,6 +98,7 @@ export default function RecordExplorer({ repo, collection, rkey }: Props) {
         <Breadcrumb
           handle={identity.handle}
           did={identity.did}
+          pds={identity.pds}
           collection={collection}
           rkey={decodedRkey}
         />

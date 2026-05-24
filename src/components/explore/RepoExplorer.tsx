@@ -3,6 +3,9 @@
 import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { resolveIdentifier, type IdentityBundle } from '@/utils/atproto/identity';
+import Link from 'next/link';
+import { Server } from 'lucide-react';
+import { pdsHostname } from '@/utils/atproto/pdsServer';
 import AppearIn from './AppearIn';
 import CopyButton from './CopyButton';
 import ProfileHeader from './ProfileHeader';
@@ -94,8 +97,57 @@ function IdentityRow({ identity }: { identity: IdentityBundle }) {
     >
       <Cell label="handle" value={identity.handle ? `@${identity.handle}` : null} />
       <Cell label="did" value={identity.did} copy />
-      <Cell label="pds" value={identity.pds} copy />
+      <PdsCell pds={identity.pds} />
     </dl>
+  );
+}
+
+function PdsCell({ pds }: { pds: string }) {
+  const host = pdsHostname(pds);
+  return (
+    <div>
+      <dt className="explore-small-caps" style={{ marginBottom: '0.25rem' }}>
+        pds
+      </dt>
+      <dd
+        style={{
+          margin: 0,
+          fontFamily: 'var(--font-mono)',
+          fontSize: '0.85rem',
+          wordBreak: 'break-all',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.5rem',
+          flexWrap: 'wrap',
+        }}
+      >
+        <Link
+          href={`/explore/pds/${encodeURIComponent(host)}`}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '0.35rem',
+            color: 'var(--text-primary)',
+            textDecoration: 'none',
+            transition: 'color 0.2s ease',
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.color = 'var(--text-accent)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.color = 'var(--text-primary)';
+          }}
+        >
+          <Server size={12} aria-hidden style={{ opacity: 0.7 }} />
+          <code
+            style={{ background: 'transparent', padding: 0, color: 'inherit' }}
+          >
+            {pds}
+          </code>
+        </Link>
+        <CopyButton value={pds} label="Copy pds" compact variant="subtle" />
+      </dd>
+    </div>
   );
 }
 

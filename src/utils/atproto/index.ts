@@ -7,6 +7,7 @@ export * from './config';
 export * from './cache';
 export * from './urls';
 export * from './pdsClient';
+export * from './pdsServer';
 export * from './identity';
 export * from './plc';
 export * from './constellation';
