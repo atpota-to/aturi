@@ -11,7 +11,8 @@ import {
 } from 'react';
 import type { Agent } from '@atproto/api';
 import type { OAuthSession } from '@atproto/oauth-client-browser';
-import { getOauthClient, getOauthEvents, OAUTH_SCOPE } from '@/lib/oauth/client';
+import { getOauthClient, getOauthEvents } from '@/lib/oauth/client';
+import { METADATA_SCOPE } from '@/lib/oauth/scopes';
 
 type SessionContextValue = {
   session: OAuthSession | null;
@@ -19,7 +20,12 @@ type SessionContextValue = {
   did: string | null;
   loading: boolean;
   error: Error | null;
-  signIn: (input: string) => Promise<void>;
+  /**
+   * Kick off the OAuth flow. `scope` is the runtime-requested scope string
+   * (must be a subset of METADATA_SCOPE); defaults to the full superset
+   * if the caller doesn't pass one (e.g. legacy entry points).
+   */
+  signIn: (input: string, scope?: string) => Promise<void>;
   signOut: () => Promise<void>;
 };
 
@@ -91,9 +97,9 @@ export function AtprotoSessionProvider({ children }: { children: ReactNode }) {
     };
   }, [session]);
 
-  const signIn = useCallback(async (input: string) => {
+  const signIn = useCallback(async (input: string, scope?: string) => {
     const client = await getOauthClient();
-    await client.signIn(input, { scope: OAUTH_SCOPE });
+    await client.signIn(input, { scope: scope ?? METADATA_SCOPE });
   }, []);
 
   const signOut = useCallback(async () => {

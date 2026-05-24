@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { ChevronDown, LogIn, LogOut, Settings, Telescope, User } from 'lucide-react';
 import { useAtprotoSession } from './AtprotoSessionProvider';
+import ScopeSelector from './oauth/ScopeSelector';
 import { getProfile, type AppViewProfile } from '@/utils/atproto/appview';
 import { encodeRepo } from '@/utils/atproto/urls';
 
@@ -22,17 +23,27 @@ export default function SessionMenu({ variant = 'inline' }: { variant?: Variant 
   const { session, did, signIn, signOut, loading } = useAtprotoSession();
   const [open, setOpen] = useState(false);
   const [signInInput, setSignInInput] = useState('');
+  const [step, setStep] = useState<'handle' | 'scopes'>('handle');
+  const [pendingAccount, setPendingAccount] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [profile, setProfile] = useState<AppViewProfile | null>(null);
   const rootRef = useRef<HTMLDivElement>(null);
+
+  function closePopover() {
+    setOpen(false);
+    setStep('handle');
+    setPendingAccount('');
+    setBusy(false);
+    setError(null);
+  }
 
   // Close on outside click.
   useEffect(() => {
     if (!open) return;
     function onClick(e: MouseEvent) {
       if (rootRef.current && !rootRef.current.contains(e.target as Node)) {
-        setOpen(false);
+        closePopover();
       }
     }
     document.addEventListener('mousedown', onClick);
@@ -62,7 +73,7 @@ export default function SessionMenu({ variant = 'inline' }: { variant?: Variant 
       <div ref={rootRef} style={{ position: 'relative' }}>
         <button
           type="button"
-          onClick={() => setOpen((o) => !o)}
+          onClick={() => (open ? closePopover() : setOpen(true))}
           aria-expanded={open}
           aria-haspopup="dialog"
           style={triggerButtonStyle(variant)}
@@ -70,25 +81,45 @@ export default function SessionMenu({ variant = 'inline' }: { variant?: Variant 
           <LogIn size={variant === 'inline' ? 14 : 12} />
           <span>Sign in</span>
         </button>
-        {open && (
+        {open && step === 'handle' && (
           <SignInPopover
             value={signInInput}
             onChange={setSignInInput}
             busy={busy}
             error={error}
-            onSubmit={async () => {
+            onSubmit={() => {
               const v = signInInput.trim();
               if (!v) return;
-              setBusy(true);
               setError(null);
-              try {
-                await signIn(v);
-              } catch (err) {
-                setBusy(false);
-                setError(err instanceof Error ? err.message : String(err));
-              }
+              setPendingAccount(v);
+              setStep('scopes');
             }}
           />
+        )}
+        {open && step === 'scopes' && (
+          <div role="dialog" aria-label="Select permissions" style={menuStyle({ width: '20rem' })}>
+            <div style={{ padding: '0.75rem' }}>
+              <ScopeSelector
+                account={pendingAccount}
+                busy={busy}
+                error={error}
+                onBack={() => {
+                  setStep('handle');
+                  setError(null);
+                }}
+                onContinue={async (scopeString) => {
+                  setBusy(true);
+                  setError(null);
+                  try {
+                    await signIn(pendingAccount, scopeString);
+                  } catch (err) {
+                    setBusy(false);
+                    setError(err instanceof Error ? err.message : String(err));
+                  }
+                }}
+              />
+            </div>
+          </div>
         )}
       </div>
     );
@@ -215,7 +246,7 @@ function SignInPopover({
           Sign in with your atproto handle
         </div>
         <div style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>
-          We&rsquo;ll redirect you to your PDS to authorize Aturi.
+          We&rsquo;ll ask which permissions to grant before redirecting.
         </div>
       </div>
       <form
@@ -261,7 +292,7 @@ function SignInPopover({
             opacity: busy || !value.trim() ? 0.6 : 1,
           }}
         >
-          {busy ? 'Redirecting…' : 'Continue →'}
+          {busy ? 'Redirecting…' : 'Next →'}
         </button>
         {error && (
           <p style={{ marginTop: '0.5rem', color: 'var(--danger)', fontSize: '0.75rem' }}>

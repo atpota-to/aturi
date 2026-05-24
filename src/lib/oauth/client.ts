@@ -17,6 +17,7 @@
  */
 
 import type { BrowserOAuthClient } from '@atproto/oauth-client-browser';
+import { METADATA_SCOPE } from './scopes';
 
 let client: BrowserOAuthClient | null = null;
 let pending: Promise<BrowserOAuthClient> | null = null;
@@ -26,8 +27,6 @@ let pending: Promise<BrowserOAuthClient> | null = null;
 // EventTarget so React (and anything else) can subscribe normally.
 // EventTarget is a global in Node 18+ too, so this is safe SSR-side.
 const events = new EventTarget();
-
-export const OAUTH_SCOPE = 'atproto transition:generic';
 
 export function getOauthEvents(): EventTarget {
   return events;
@@ -90,7 +89,7 @@ export async function getOauthClient(): Promise<BrowserOAuthClient> {
           tos_uri: `${origin}/terms`,
           policy_uri: `${origin}/terms`,
           redirect_uris: [`${origin}${redirectPath}`],
-          scope: OAUTH_SCOPE,
+          scope: METADATA_SCOPE,
           grant_types: ['authorization_code', 'refresh_token'],
           response_types: ['code'],
           token_endpoint_auth_method: 'none',

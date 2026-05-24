@@ -3,35 +3,64 @@
 import { useState } from 'react';
 import { LogIn } from 'lucide-react';
 import { useAtprotoSession } from '@/components/AtprotoSessionProvider';
+import ScopeSelector from '@/components/oauth/ScopeSelector';
 
 /**
  * Compact sign-in form used inside the record view's action row. Accepts a
- * handle / DID; redirects out to the user's OAuth provider.
+ * handle / DID; redirects out to the user's OAuth provider via a two-step
+ * flow that lets the user pick which permissions to grant.
  */
 export default function SignInPanel({ defaultInput }: { defaultInput?: string }) {
   const { signIn } = useAtprotoSession();
   const [value, setValue] = useState(defaultInput || '');
+  const [step, setStep] = useState<'handle' | 'scopes'>('handle');
+  const [pendingAccount, setPendingAccount] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    const v = value.trim();
-    if (!v) return;
-    setBusy(true);
-    setError(null);
-    try {
-      await signIn(v);
-      // signIn redirects; this is unreachable in normal flow.
-    } catch (err) {
-      setBusy(false);
-      setError(err instanceof Error ? err.message : String(err));
-    }
+  if (step === 'scopes') {
+    return (
+      <div
+        style={{
+          padding: '0.75rem',
+          background: 'var(--bg-secondary)',
+          border: '1px solid var(--border-medium)',
+          maxWidth: '24rem',
+        }}
+      >
+        <ScopeSelector
+          account={pendingAccount}
+          busy={busy}
+          error={error}
+          onBack={() => {
+            setStep('handle');
+            setError(null);
+          }}
+          onContinue={async (scopeString) => {
+            setBusy(true);
+            setError(null);
+            try {
+              await signIn(pendingAccount, scopeString);
+            } catch (err) {
+              setBusy(false);
+              setError(err instanceof Error ? err.message : String(err));
+            }
+          }}
+        />
+      </div>
+    );
   }
 
   return (
     <form
-      onSubmit={handleSubmit}
+      onSubmit={(e) => {
+        e.preventDefault();
+        const v = value.trim();
+        if (!v) return;
+        setError(null);
+        setPendingAccount(v);
+        setStep('scopes');
+      }}
       style={{
         display: 'flex',
         flexWrap: 'wrap',
@@ -46,7 +75,6 @@ export default function SignInPanel({ defaultInput }: { defaultInput?: string })
         placeholder="handle or DID"
         value={value}
         onChange={(e) => setValue(e.target.value)}
-        disabled={busy}
         style={{
           flex: '1 1 220px',
           minWidth: 0,
@@ -61,7 +89,7 @@ export default function SignInPanel({ defaultInput }: { defaultInput?: string })
       />
       <button
         type="submit"
-        disabled={busy || !value.trim()}
+        disabled={!value.trim()}
         style={{
           display: 'inline-flex',
           alignItems: 'center',
@@ -72,12 +100,12 @@ export default function SignInPanel({ defaultInput }: { defaultInput?: string })
           border: '1px solid var(--accent-moss)',
           fontFamily: 'var(--font-serif)',
           fontSize: '0.875rem',
-          cursor: busy ? 'wait' : 'pointer',
-          opacity: busy || !value.trim() ? 0.6 : 1,
+          cursor: 'pointer',
+          opacity: !value.trim() ? 0.6 : 1,
         }}
       >
         <LogIn size={14} />
-        {busy ? 'Redirecting…' : 'Sign in'}
+        Sign in
       </button>
       {error && (
         <p
