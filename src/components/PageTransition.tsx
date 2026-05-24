@@ -2,7 +2,7 @@
 
 import { motion, AnimatePresence, MotionConfig } from 'framer-motion';
 import { usePathname } from 'next/navigation';
-import { ReactNode } from 'react';
+import { ReactNode, useEffect } from 'react';
 
 interface PageTransitionProps {
   children: ReactNode;
@@ -30,6 +30,17 @@ interface PageTransitionProps {
  */
 export default function PageTransition({ children }: PageTransitionProps) {
   const pathname = usePathname();
+
+  // Reset scroll on route change. Next.js does this automatically, but
+  // AnimatePresence mode="popLayout" keeps the outgoing page mounted
+  // during the crossfade, which races the built-in scroll restoration
+  // and leaves the new page scrolled to wherever the old one was. Hash
+  // navigations are passed through so in-page anchors still work.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (window.location.hash) return;
+    window.scrollTo(0, 0);
+  }, [pathname]);
 
   return (
     <MotionConfig reducedMotion="user">
