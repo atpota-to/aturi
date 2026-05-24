@@ -1,0 +1,79 @@
+{
+  "common": {
+    "cancel": "Cancel",
+    "save": "Save",
+    "loading": "Loading…",
+    "copy": "Copy",
+    "copied": "Copied",
+    "close": "Close",
+    "dot": "·"
+  },
+  "nav": {
+    "home": "home",
+    "explore": "explore",
+    "extension": "extension",
+    "account": "account",
+    "terms": "terms",
+    "signIn": "Sign in",
+    "signOut": "Sign out",
+    "myRepo": "My repo in Explorer",
+    "accountSettings": "Account settings",
+    "toggleMenu": "Toggle menu"
+  },
+  "header": {
+    "tagline": "Tour the Atmosphere",
+    "description": "Switch between clients, share universal links, and browse through any account's PDS data.",
+    "wordmark": "aturi",
+    "tld": ".to"
+  },
+  "footer": {},
+  "session": {
+    "signInTitle": "Sign in with your atproto handle",
+    "signInBlurb": "We'll redirect you to your PDS to authorize Aturi.",
+    "handlePlaceholder": "handle.bsky.social or did:plc:…",
+    "continue": "Continue →",
+    "redirecting": "Redirecting…"
+  },
+  "home": {},
+  "account": {
+    "language": {
+      "label": "Language"
+    }
+  },
+  "explore": {},
+  "profile": {},
+  "extensionPage": {},
+  "terms": {},
+  "universalLinks": {},
+  "errors": {
+    "generic": "Something went wrong",
+    "notFound": "Not found",
+    "recordNotFound": "Record not found"
+  },
+  "themeToggle": {
+    "switchToLight": "Switch to light mode",
+    "switchToDark": "Switch to dark mode"
+  },
+  "meta": {
+    "home": {
+      "title": "aturi.to — Tour the Atmosphere",
+      "description": "Travel between clients with the browser extension, share universal Atmosphere links, and explore any account's PDS data."
+    },
+    "account": {
+      "title": "Account · aturi.to",
+      "description": "Customize your Aturi waypoints and preferences."
+    },
+    "profile": {
+      "title": "{name} (@{handle})'s Atmosphere Profile",
+      "descriptionFallback": "View @{handle}'s profile in your preferred Atmosphere client"
+    },
+    "terms": {
+      "title": "Terms · aturi.to",
+      "description": "Terms of use for aturi.to."
+    },
+    "extension": {
+      "title": "Extension · aturi.to",
+      "description": "Install the Aturi browser extension to switch between Atmosphere clients."
+    }
+  }
+}

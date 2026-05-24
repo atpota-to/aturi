@@ -5,4 +5,4 @@
 // but new links should use this path.
 //
 // We re-export the page module so both routes stay in lockstep.
-export { default, generateMetadata } from '@/app/[handle]/[collection]/[rkey]/page';
+export { default, generateMetadata } from '@/app/[locale]/[handle]/[collection]/[rkey]/page';
