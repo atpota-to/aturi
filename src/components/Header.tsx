@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import { Home, Link2, Leaf, UserPlus } from 'lucide-react';
+import { Home, Link2, Leaf, UserPlus, Telescope } from 'lucide-react';
 import { motion } from 'framer-motion';
 import ThemeToggle from './ThemeToggle';
 
@@ -105,7 +105,7 @@ export default function Header({ simple = false, compact = false }: HeaderProps)
                 textOverflow: 'ellipsis',
               }}
             >
-              atmosphere fast travel
+              travel & explore the atmosphere
             </span>
           </Link>
 
@@ -162,6 +162,10 @@ export default function Header({ simple = false, compact = false }: HeaderProps)
             <Link href="/" className="compact-nav-link">
               <Home size={16} />
               <span>about</span>
+            </Link>
+            <Link href="/explore" className="compact-nav-link">
+              <Telescope size={16} />
+              <span>explore</span>
             </Link>
             <Link href="/create" className="compact-nav-link">
               <Link2 size={16} />
@@ -231,7 +235,7 @@ export default function Header({ simple = false, compact = false }: HeaderProps)
             marginBottom: '2rem',
           }}
         >
-          Fast travel across the Atmosphere
+          Travel and explore the Atmosphere
         </p>
 
         {/* Organic Navigation */}
@@ -249,6 +253,11 @@ export default function Header({ simple = false, compact = false }: HeaderProps)
           <Link href="/" className="nav-link">
             <Home size={14} />
             <span>about</span>
+          </Link>
+          <span style={{ color: 'var(--text-tertiary)', fontSize: '0.75rem' }}>·</span>
+          <Link href="/explore" className="nav-link">
+            <Telescope size={14} />
+            <span>explore</span>
           </Link>
           <span style={{ color: 'var(--text-tertiary)', fontSize: '0.75rem' }}>·</span>
           <Link href="/create" className="nav-link">
@@ -317,7 +326,7 @@ export default function Header({ simple = false, compact = false }: HeaderProps)
           fontWeight: 300,
         }}
       >
-        Fast travel across the Atmosphere
+        Travel and explore the Atmosphere
       </motion.p>
       <motion.p
         initial={{ opacity: 0, y: -10 }}
@@ -326,11 +335,11 @@ export default function Header({ simple = false, compact = false }: HeaderProps)
         style={{
           fontSize: '1.125rem',
           color: 'var(--text-tertiary)',
-          maxWidth: '500px',
+          maxWidth: '560px',
           margin: '0 auto 2rem',
         }}
       >
-        Switch between apps, auto-redirect to preferred clients, and share universal Atmosphere links.
+        Switch between apps, share universal links, and walk any account&rsquo;s raw PDS data — your toolkit for the Atmosphere.
       </motion.p>
 
       {/* Organic Navigation */}
@@ -349,6 +358,11 @@ export default function Header({ simple = false, compact = false }: HeaderProps)
         <Link href="/" className="nav-link">
           <Home size={16} />
           <span>about</span>
+        </Link>
+        <span style={{ color: 'var(--text-tertiary)', fontSize: '0.875rem' }}>·</span>
+        <Link href="/explore" className="nav-link">
+          <Telescope size={16} />
+          <span>explore</span>
         </Link>
         <span style={{ color: 'var(--text-tertiary)', fontSize: '0.875rem' }}>·</span>
         <Link href="/create" className="nav-link">

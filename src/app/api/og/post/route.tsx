@@ -172,7 +172,7 @@ export async function GET(request: NextRequest) {
 
     // Load Crimson Pro font
     console.log('[OG Post] Loading font...');
-    const allText = `${displayName} @${handleName} ${truncatedText} ${likeCount} ${replyCount} ${repostCount} ${embedQuoteAuthor || ''} ${embedQuoteText || ''} ${embedExternalTitle || ''} Choose where to view this post aturi.to Atmosphere Fast Travel Image Video Link Quote`;
+    const allText = `${displayName} @${handleName} ${truncatedText} ${likeCount} ${replyCount} ${repostCount} ${embedQuoteAuthor || ''} ${embedQuoteText || ''} ${embedExternalTitle || ''} Choose where to view this post aturi.to Atmosphere Toolkit Image Video Link Quote`;
     const fontData = await loadGoogleFont('Crimson+Pro:wght@300;400;600', allText);
     console.log('[OG Post] Font loaded successfully');
 
@@ -243,7 +243,7 @@ export async function GET(request: NextRequest) {
                   display: 'flex',
                 }}
               >
-                Atmosphere Fast Travel
+                Atmosphere Toolkit
               </div>
             </div>
 

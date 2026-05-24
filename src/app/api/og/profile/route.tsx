@@ -118,7 +118,7 @@ export async function GET(request: NextRequest) {
     const posts = profileData?.postsCount || 0;
 
     // Load Crimson Pro font
-    const allText = `${displayName} @${handleName} ${displayBio} ${isTruncated ? '...' : ''} ${followers.toLocaleString()} followers ${following.toLocaleString()} following ${posts.toLocaleString()} posts aturi.to Atmosphere Fast Travel Choose where to view this profile`;
+    const allText = `${displayName} @${handleName} ${displayBio} ${isTruncated ? '...' : ''} ${followers.toLocaleString()} followers ${following.toLocaleString()} following ${posts.toLocaleString()} posts aturi.to Atmosphere Toolkit Choose where to view this profile`;
     const fontData = await loadGoogleFont('Crimson+Pro:wght@300;400;600', allText);
 
     return new ImageResponse(
@@ -187,7 +187,7 @@ export async function GET(request: NextRequest) {
                   display: 'flex',
                 }}
               >
-                Atmosphere Fast Travel
+                Atmosphere Toolkit
               </div>
             </div>
 

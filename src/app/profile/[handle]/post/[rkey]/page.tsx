@@ -31,7 +31,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     if (!resolvedDid) {
       return {
         title: 'Post not found - aturi.to',
-        description: 'Fast travel across the Atmosphere',
+        description: 'Your toolkit for the Atmosphere',
       };
     }
 
@@ -142,7 +142,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
   return {
     title: `Post — View on Aturi`,
-    description: 'Fast travel across the Atmosphere',
+    description: 'Your toolkit for the Atmosphere',
   };
 }
 

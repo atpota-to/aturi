@@ -47,9 +47,15 @@ export async function GET(request: NextRequest) {
     const pageContent: Record<string, { title: string; subtitle: string; tagline: string; showBranding: boolean }> = {
       home: {
         title: 'aturi.to',
-        subtitle: 'Fast travel across the Atmosphere',
-        tagline: 'Switch between apps, auto-redirect to preferred clients, and share universal Atmosphere links.',
+        subtitle: 'Your toolkit for the Atmosphere',
+        tagline: 'Travel between apps, share universal links, and explore raw PDS data.',
         showBranding: false, // Home already shows aturi.to as main title
+      },
+      explore: {
+        title: 'Atmosphere Explorer',
+        subtitle: "Browse any account's PDS",
+        tagline: 'Records, identity, backlinks, and a live view of the firehose.',
+        showBranding: true,
       },
       create: {
         title: 'Create Link',
@@ -74,7 +80,7 @@ export async function GET(request: NextRequest) {
     const content = pageContent[page] || pageContent.home;
     
     // Load Crimson Pro font
-    const allText = `${content.title} ${content.subtitle} ${content.tagline} aturi.to Atmosphere Fast Travel`;
+    const allText = `${content.title} ${content.subtitle} ${content.tagline} aturi.to Atmosphere Toolkit`;
     const fontData = await loadGoogleFont('Crimson+Pro:wght@300;400;600', allText);
 
     return new ImageResponse(
@@ -287,7 +293,7 @@ export async function GET(request: NextRequest) {
                 display: 'flex',
               }}
             >
-              Atmosphere Fast Travel
+              Atmosphere Toolkit
             </div>
           )}
         </div>

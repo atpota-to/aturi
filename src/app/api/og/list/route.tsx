@@ -91,7 +91,7 @@ export async function GET(request: NextRequest) {
     const creatorAvatarDataUrl = await fetchImageAsDataUrl(creatorAvatarUrl);
 
     // Load Crimson Pro font
-    const allText = `${listName} ${truncatedDescription} ${creatorName} @${creatorHandle} aturi.to Atmosphere Fast Travel`;
+    const allText = `${listName} ${truncatedDescription} ${creatorName} @${creatorHandle} aturi.to Atmosphere Toolkit`;
     const fontData = await loadGoogleFont('Crimson+Pro:wght@300;400;600', allText);
 
     return new ImageResponse(
@@ -160,7 +160,7 @@ export async function GET(request: NextRequest) {
                   display: 'flex',
                 }}
               >
-                Atmosphere Fast Travel
+                Atmosphere Toolkit
               </div>
             </div>
 
