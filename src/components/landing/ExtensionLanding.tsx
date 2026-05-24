@@ -4,10 +4,10 @@ import Link from 'next/link';
 import {
   Compass,
   Eye,
-  Link2,
   MousePointerClick,
   Repeat,
   ShieldCheck,
+  SlidersHorizontal,
   Zap,
 } from 'lucide-react';
 import AppearIn from '@/components/explore/AppearIn';
@@ -18,7 +18,8 @@ import { getWaypointCount } from '@/utils/waypoints';
 import CrossLinkCards from './CrossLinkCards';
 import InspectPanelVisual from './InspectPanelVisual';
 import AutoRedirectVisual from './AutoRedirectVisual';
-import ContextMenuVisual from './ContextMenuVisual';
+import ClientGalleryVisual from './ClientGalleryVisual';
+import CustomWaypointVisual from './CustomWaypointVisual';
 import FeatureSection from './FeatureSection';
 
 export default function ExtensionLanding() {
@@ -109,11 +110,7 @@ export default function ExtensionLanding() {
               </p>
             </>
           }
-          visual={
-            <BrowserChrome>
-              <ExtensionPopupVisual />
-            </BrowserChrome>
-          }
+          visual={<ClientGalleryVisual />}
         />
       </AppearIn>
 
@@ -167,24 +164,27 @@ export default function ExtensionLanding() {
       <AppearIn delay={0.05}>
         <FeatureSection
           flip
-          badge={{ icon: <Link2 size={12} />, label: 'Right-click any AT URI' }}
-          title="Even raw URIs on random pages become first-class links"
+          badge={{ icon: <SlidersHorizontal size={12} />, label: 'Custom waypoints' }}
+          title="Add any app that follows a URL pattern"
           body={
             <>
               <p>
-                The extension registers a context menu on any text that looks
-                like an <code style={{ color: 'var(--text-accent)' }}>at://</code>{' '}
-                URI. Right-click it and you can open it in your recommended
-                app, inspect it on aturi.to, or copy a clean universal link
-                pointing at the same record.
+                If the curated catalog doesn&rsquo;t cover an app you use, wire
+                it up yourself: name it, give it a URL template like{' '}
+                <code style={{ color: 'var(--text-accent)' }}>
+                  example.com/u/{'{handle}'}/posts/{'{rkey}'}
+                </code>
+                , and tell the extension which record types it supports.
               </p>
               <p>
-                Useful in DMs, READMEs, JSON viewers, dev tools — anywhere an
-                AT URI shows up in plain text instead of a styled link.
+                Templates work in both directions. The extension generates
+                outbound links for your custom waypoint and reverse-matches
+                inbound ones, so it appears as a source <em>and</em> a
+                destination in the popup like any built-in client.
               </p>
             </>
           }
-          visual={<ContextMenuVisual />}
+          visual={<CustomWaypointVisual />}
         />
       </AppearIn>
 

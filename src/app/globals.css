@@ -1776,6 +1776,24 @@ html {
   }
 }
 
+/* Constrained icon box used inside the auto-redirect / custom-waypoint
+   button mocks on the landing pages. Waypoint SVGs are authored at
+   24x24 with intrinsic width/height attributes, which inline-style
+   sizing can't override — but a descendant rule like this can. */
+.landing-button-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  color: var(--text-accent);
+  flex-shrink: 0;
+}
+.landing-button-icon svg {
+  width: 100%;
+  height: 100%;
+}
+
 /* ---------- Product landing pages (extension, universal links) ---------- */
 
 /* Hero block on landing pages stacks the copy + a hero visual side-by-side
