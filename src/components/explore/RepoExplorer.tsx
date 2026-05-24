@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { resolveIdentifier, type IdentityBundle } from '@/utils/atproto/identity';
-import Breadcrumb from './Breadcrumb';
 import CopyButton from './CopyButton';
 import ProfileHeader from './ProfileHeader';
 import CollectionsTab from './tabs/CollectionsTab';
@@ -61,7 +60,11 @@ export default function RepoExplorer({ repo }: { repo: string }) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-      <Breadcrumb handle={identity.handle} did={identity.did} />
+      {/* No breadcrumb at the repo level — the ProfileHeader (or the
+          technical identity row below it for non-Bluesky DIDs) already
+          tells the user which account they're inspecting. The Breadcrumb
+          component is rendered by CollectionExplorer / RecordExplorer
+          when there are nested segments to navigate back through. */}
       <ProfileHeader identity={identity} />
       <IdentityRow identity={identity} />
       <TabbedView identity={identity} />
