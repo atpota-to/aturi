@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Check } from 'lucide-react';
 import {
   ALL_SCOPE_IDS,
   buildScopeString,
@@ -97,17 +97,14 @@ export default function ScopeSelector({
               <label style={rowStyle(checked, busy)}>
                 <input
                   type="checkbox"
+                  className="scope-checkbox"
                   checked={checked}
                   onChange={() => toggle(scope.id)}
                   disabled={busy}
-                  style={{
-                    width: 14,
-                    height: 14,
-                    accentColor: 'var(--accent-moss)',
-                    flexShrink: 0,
-                    cursor: busy ? 'wait' : 'pointer',
-                  }}
                 />
+                <span className="scope-checkbox-box" aria-hidden="true">
+                  <Check size={12} strokeWidth={3} />
+                </span>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div
                     style={{
@@ -194,9 +191,9 @@ function backButtonStyle(): React.CSSProperties {
 function rowStyle(checked: boolean, busy?: boolean): React.CSSProperties {
   return {
     display: 'flex',
-    alignItems: 'flex-start',
-    gap: '0.625rem',
-    padding: '0.5rem 0.625rem',
+    alignItems: 'center',
+    gap: '0.75rem',
+    padding: '0.625rem 0.75rem',
     background: checked ? 'var(--bg-tertiary)' : 'transparent',
     border: '1px solid',
     borderColor: checked ? 'var(--border-medium)' : 'var(--border-subtle)',
