@@ -87,7 +87,15 @@ export default function ExploreLanding() {
       </AppearIn>
 
       <AppearIn delay={0.08}>
-        <JetstreamFeed />
+        {/* Verbose variant for the explorer dashboard: full mutation
+            stream (creates + updates + deletes) with op pills and the
+            rolling stats footer. The homepage strip uses the minimal
+            default (creates only, no op column, no stats). */}
+        <JetstreamFeed
+          wantedOps={['create', 'update', 'delete']}
+          showOpLabels
+          showStats
+        />
       </AppearIn>
 
       <AppearIn delay={0.16}>
