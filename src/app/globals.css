@@ -1156,21 +1156,34 @@ html {
   font-family: var(--font-mono);
 }
 
-@keyframes explore-row-fade-in {
-  from {
-    opacity: 0;
-    transform: translateY(-4px);
+/* Jetstream live feed — quiet "new arrival" cue.
+   Rows don't fade in (at firehose tempo, a row-wide opacity transition reads
+   as a strobe). Instead, freshly-inserted rows get a brief left-edge accent
+   that fades away over ~1.4s. The row itself is fully opaque from the first
+   frame, so the user's eye isn't tugged at by appearing content — just by a
+   small color hint that something landed at the top of the list. */
+.explore-jetstream-row {
+  border-left: 2px solid transparent;
+}
+
+.explore-jetstream-row[data-fresh] {
+  animation: explore-jetstream-arrived 1.4s ease-out forwards;
+}
+
+@keyframes explore-jetstream-arrived {
+  0% {
+    border-left-color: var(--text-accent);
+    background: var(--glow-subtle);
   }
-  to {
-    opacity: 1;
-    transform: translateY(0);
+  100% {
+    border-left-color: transparent;
+    background: transparent;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  @keyframes explore-row-fade-in {
-    from { opacity: 1; transform: none; }
-    to   { opacity: 1; transform: none; }
+  .explore-jetstream-row[data-fresh] {
+    animation: none;
   }
 }
 
