@@ -3,40 +3,43 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { getOauthClient } from '@/lib/oauth/client';
+import { useAtprotoSession } from '@/components/AtprotoSessionProvider';
 
 /**
- * OAuth callback page. The BrowserOAuthClient.init() call reads the URL
- * params left by the upstream OAuth server, finalizes the PKCE/DPoP
- * exchange, and resolves with the new session.
+ * OAuth callback page.
+ *
+ * `BrowserOAuthClient.init()` is owned by `<AtprotoSessionProvider>` —
+ * since the provider lives in the root layout, it's already running and
+ * will pick up the `?code=…` params from this URL on mount. We just
+ * subscribe to its session state and navigate when it resolves.
+ *
+ * Calling `init()` here too (the old behavior) caused a race: whichever
+ * call consumed the URL params first won, leaving the other site stuck
+ * with `session = null` and no way to retry without a full reload — that
+ * was the "signed in but nav says Sign in" bug.
  */
 export default function OAuthCallback() {
   const router = useRouter();
-  const [error, setError] = useState<string | null>(null);
+  const { did, loading, error } = useAtprotoSession();
+  const [timedOut, setTimedOut] = useState(false);
 
+  // Navigate when the provider's init() resolves with a session.
   useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const client = await getOauthClient();
-        const result = await client.init();
-        if (cancelled) return;
-        if (result && 'session' in result && result.session) {
-          const did = result.session.sub;
-          router.replace(`/explore/${did}`);
-        } else {
-          router.replace('/explore');
-        }
-      } catch (err) {
-        if (cancelled) return;
-        const message = err instanceof Error ? err.message : String(err);
-        setError(message);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [router]);
+    if (loading || !did) return;
+    router.replace(`/account`);
+  }, [loading, did, router]);
+
+  // If init resolves with no session and no error, the URL was probably
+  // visited directly — surface a recoverable error after a beat.
+  useEffect(() => {
+    if (loading || did || error) return;
+    const t = setTimeout(() => setTimedOut(true), 2500);
+    return () => clearTimeout(t);
+  }, [loading, did, error]);
+
+  const message =
+    error?.message ??
+    (timedOut ? 'No active session — was this callback URL visited directly?' : null);
 
   return (
     <div
@@ -48,13 +51,8 @@ export default function OAuthCallback() {
         padding: '2rem',
       }}
     >
-      <div
-        style={{
-          maxWidth: '480px',
-          textAlign: 'center',
-        }}
-      >
-        {error ? (
+      <div style={{ maxWidth: '480px', textAlign: 'center' }}>
+        {message ? (
           <>
             <h1
               style={{
@@ -73,7 +71,7 @@ export default function OAuthCallback() {
                 wordBreak: 'break-word',
               }}
             >
-              {error}
+              {message}
             </p>
             <p style={{ marginTop: '1.5rem' }}>
               <Link href="/explore" style={{ color: 'var(--text-accent)' }}>
