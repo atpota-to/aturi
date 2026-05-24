@@ -92,7 +92,7 @@ export default function RecordExplorer({ repo, collection, rkey }: Props) {
   const atUri = `at://${identity.did}/${collection}/${decodedRkey}`;
   const repoSeg = encodeRepo(identity.handle || identity.did);
   const canEdit = Boolean(agent && signedInDid && signedInDid === identity.did);
-  const aturiUniversalLink = `/${identity.handle || identity.did}/${collection}/${encodeURIComponent(decodedRkey)}`;
+  const aturiUniversalLink = `/profile/${identity.handle || identity.did}/${collection}/${encodeURIComponent(decodedRkey)}`;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
@@ -105,7 +105,7 @@ export default function RecordExplorer({ repo, collection, rkey }: Props) {
           rkey={decodedRkey}
           // Universal link for the record — shareable into any compatible
           // Atmosphere client via the WaypointPicker on aturi.to.
-          shareUrl={`/${identity.handle || identity.did}/${collection}/${encodeURIComponent(decodedRkey)}`}
+          shareUrl={aturiUniversalLink}
         />
       </AppearIn>
 

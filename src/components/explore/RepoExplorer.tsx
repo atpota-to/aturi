@@ -77,7 +77,7 @@ export default function RepoExplorer({ repo }: { repo: string }) {
           pds={identity.pds}
           // Universal link for the profile — anyone can paste this anywhere
           // and the WaypointPicker on aturi.to handles client selection.
-          shareUrl={`/${identity.handle || identity.did}`}
+          shareUrl={`/profile/${identity.handle || identity.did}`}
         />
       </AppearIn>
       <AppearIn delay={0.04}>
