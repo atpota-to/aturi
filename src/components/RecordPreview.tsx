@@ -5,13 +5,11 @@
 
 'use client';
 
-import { useState } from 'react';
 import Link from 'next/link';
 import { GenericRecord } from '@/utils/recordFetcher';
 import { sanitizeHandle } from '@/utils/sanitize';
-import { Telescope, X } from 'lucide-react';
+import { Telescope } from 'lucide-react';
 import { encodeRepo } from '@/utils/atproto/urls';
-import LinkifiedJson from './explore/LinkifiedJson';
 
 type RecordPreviewProps = {
   record: GenericRecord;
@@ -35,7 +33,6 @@ export default function RecordPreview({
   hideExplorerCtas,
 }: RecordPreviewProps) {
   const { value, cid } = record;
-  const [showJsonModal, setShowJsonModal] = useState(false);
 
   // Format the record type nicely
   const recordType = value.$type || collection;
@@ -74,18 +71,17 @@ export default function RecordPreview({
   };
 
   return (
-    <>
-      <div
-        style={{
-          marginBottom: '2rem',
-          background: 'var(--bg-secondary)',
-          border: '1px solid var(--border-medium)',
-          overflow: 'hidden',
-          transform: 'rotate(0.2deg)',
-          transition: 'all 0.4s ease',
-        }}
-        className="card record-preview-card"
-      >
+    <div
+      style={{
+        marginBottom: '2rem',
+        background: 'var(--bg-secondary)',
+        border: '1px solid var(--border-medium)',
+        overflow: 'hidden',
+        transform: 'rotate(0.2deg)',
+        transition: 'all 0.4s ease',
+      }}
+      className="card record-preview-card"
+    >
         {/* Header: URI Structure */}
         <div
           style={{
@@ -196,23 +192,29 @@ export default function RecordPreview({
             ))}
           </div>
 
-          {/* View Full Record Button — hidden when used inside the explorer,
-              which renders the linkified raw JSON inline immediately below. */}
+          {/* Single CTA: navigates into the explorer's record page, which
+              shows the full record JSON (linkified), backlinks, identity,
+              and editing affordances. Replaces the previous \"View Full
+              Record\" modal + secondary \"Open in Explorer\" link — one
+              click instead of two surfaces. Hidden when we're already
+              rendering inside the explorer. */}
           {!hideExplorerCtas && (
-            <button
-              onClick={() => setShowJsonModal(true)}
+            <Link
+              href={`/explore/${encodeRepo(handle)}/${collection}/${encodeURIComponent(rkey)}`}
               style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '0.5rem',
                 width: '100%',
                 padding: '0.875rem 1.25rem',
                 fontSize: '0.9375rem',
-                fontWeight: '400',
+                fontWeight: 400,
                 color: 'var(--text-primary)',
                 background: 'var(--bg-tertiary)',
                 border: '1px solid var(--border-medium)',
-                cursor: 'pointer',
+                textDecoration: 'none',
                 transition: 'all 0.3s ease',
-                position: 'relative',
-                overflow: 'hidden',
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.background = 'var(--bg-elevated)';
@@ -225,39 +227,13 @@ export default function RecordPreview({
                 e.currentTarget.style.transform = 'translateY(0)';
               }}
             >
-              {hasMoreFields
-                ? `View Full Record (${allFields.length} fields)`
-                : 'View Full Record'}
-            </button>
-          )}
-
-          {/* Cross-product: jump into the same record inside the explorer —
-              suppressed when we're already on an explorer page. */}
-          {!hideExplorerCtas && (
-          <Link
-            href={`/explore/${encodeRepo(handle)}/${collection}/${encodeURIComponent(rkey)}`}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '0.4rem',
-              marginTop: '0.625rem',
-              padding: '0.5rem 0.75rem',
-              fontSize: '0.8125rem',
-              color: 'var(--text-tertiary)',
-              textDecoration: 'none',
-              transition: 'color 0.2s ease',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.color = 'var(--text-accent)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.color = 'var(--text-tertiary)';
-            }}
-          >
-            <Telescope size={13} />
-            Open in Explorer — backlinks, identity, raw JSON →
-          </Link>
+              <Telescope size={15} style={{ color: 'var(--text-accent)' }} />
+              <span>
+                {hasMoreFields
+                  ? `View full record (${allFields.length} fields) in Explorer →`
+                  : 'View full record in Explorer →'}
+              </span>
+            </Link>
           )}
         </div>
 
@@ -280,183 +256,6 @@ export default function RecordPreview({
         )}
       </div>
 
-      {/* Full JSON Modal */}
-      {showJsonModal && (
-        <div
-          style={{
-            position: 'fixed',
-            inset: 0,
-            background: 'var(--modal-backdrop)',
-            backdropFilter: 'blur(12px)',
-            WebkitBackdropFilter: 'blur(12px)',
-            zIndex: 1000,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '2rem',
-            animation: 'modal-fade-in 0.3s ease-out',
-          }}
-          onClick={() => setShowJsonModal(false)}
-        >
-          <div
-            style={{
-              width: '100%',
-              maxWidth: '900px',
-              maxHeight: '85vh',
-              background: 'var(--modal-bg)',
-              border: '1px solid var(--border-medium)',
-              boxShadow: 'var(--modal-shadow)',
-              display: 'flex',
-              flexDirection: 'column',
-              animation: 'modal-slide-up 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)',
-              position: 'relative',
-              overflow: 'hidden',
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Ambient glow effect */}
-            <div
-              style={{
-                position: 'absolute',
-                top: '-50%',
-                left: '-20%',
-                width: '140%',
-                height: '100%',
-                background: 'radial-gradient(circle at 30% 40%, var(--glow-medium) 0%, transparent 50%)',
-                opacity: 0.3,
-                pointerEvents: 'none',
-                animation: 'breathe 8s ease-in-out infinite',
-              }}
-            />
-
-            {/* Modal Header */}
-            <div
-              style={{
-                padding: '1.75rem 2rem',
-                borderBottom: '1px solid var(--border-subtle)',
-                display: 'flex',
-                alignItems: 'flex-start',
-                justifyContent: 'space-between',
-                background: 'var(--modal-header-bg)',
-                position: 'relative',
-                zIndex: 1,
-              }}
-            >
-              <div style={{ flex: 1, paddingRight: '1rem' }}>
-                <div style={{ 
-                  fontSize: '1.25rem', 
-                  fontWeight: '300', 
-                  color: 'var(--text-primary)', 
-                  marginBottom: '0.5rem',
-                  letterSpacing: '-0.01em',
-                }}>
-                  Full Record Data
-                </div>
-                <div style={{ 
-                  fontSize: '0.8125rem', 
-                  color: 'var(--text-tertiary)', 
-                  fontFamily: 'var(--font-mono)',
-                  wordBreak: 'break-all',
-                }}>
-                  {displayType}
-                </div>
-              </div>
-              <button
-                onClick={() => setShowJsonModal(false)}
-                aria-label="Close full record data"
-                style={{
-                  padding: '0.625rem',
-                  background: 'var(--modal-pane-bg)',
-                  border: '1px solid var(--border-subtle)',
-                  color: 'var(--text-tertiary)',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  transition: 'all 0.2s ease',
-                  flexShrink: 0,
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = 'var(--bg-tertiary)';
-                  e.currentTarget.style.color = 'var(--text-primary)';
-                  e.currentTarget.style.borderColor = 'var(--border-medium)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = 'var(--modal-pane-bg)';
-                  e.currentTarget.style.color = 'var(--text-tertiary)';
-                  e.currentTarget.style.borderColor = 'var(--border-subtle)';
-                }}
-              >
-                <X size={20} />
-              </button>
-            </div>
-
-            {/* Modal Content */}
-            <div
-              style={{
-                flex: 1,
-                overflow: 'auto',
-                padding: '2rem',
-                position: 'relative',
-                zIndex: 1,
-              }}
-            >
-              <LinkifiedJson
-                value={value}
-                style={{
-                  margin: 0,
-                  padding: '1.5rem',
-                  background: 'var(--modal-pane-bg)',
-                  border: '1px solid var(--border-subtle)',
-                  fontSize: '0.875rem',
-                  lineHeight: '1.7',
-                  color: 'var(--text-primary)',
-                  fontFamily: 'var(--font-mono)',
-                  boxShadow: 'var(--modal-pane-vignette)',
-                  whiteSpace: 'pre-wrap',
-                  wordBreak: 'break-word',
-                }}
-              />
-            </div>
-
-            {/* Subtle bottom fade */}
-            <div
-              style={{
-                position: 'absolute',
-                bottom: 0,
-                left: 0,
-                right: 0,
-                height: '60px',
-                background: 'var(--modal-bottom-fade)',
-                pointerEvents: 'none',
-                zIndex: 2,
-              }}
-            />
-          </div>
-        </div>
-      )}
-
-      <style jsx>{`
-        @keyframes modal-fade-in {
-          from {
-            opacity: 0;
-          }
-          to {
-            opacity: 1;
-          }
-        }
-
-        @keyframes modal-slide-up {
-          from {
-            opacity: 0;
-            transform: translateY(20px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-      `}</style>
-    </>
   );
 }
 
