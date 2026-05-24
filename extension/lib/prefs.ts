@@ -144,6 +144,13 @@ export type Prefs = {
    * with the full current built-in list — nothing is "new" on day one.
    */
   knownWaypointIds: string[];
+  /**
+   * The popup tab the user landed on last. The popup has two modes: the
+   * existing Waypoints view (jump between Atmosphere apps) and the new
+   * Inspect view (debug AT URIs on the current page). Persisted so the
+   * popup opens to the user's last-used tab on next launch.
+   */
+  popupMode?: 'waypoints' | 'inspect';
 };
 
 const CUSTOM_GROUP_ID = 'custom';
@@ -168,6 +175,7 @@ export const DEFAULT_PREFS: Prefs = {
   theme: 'dark',
   fontSize: 'medium',
   knownWaypointIds: [...WAYPOINT_ORDER],
+  popupMode: 'waypoints',
 };
 
 /**

@@ -1,0 +1,89 @@
+/**
+ * Identity resolution. Bridges the existing top-level didResolver helpers
+ * with the explorer's "give me {did, handle, pds}" needs.
+ *
+ *   resolveHandle(handle) — appview first, falls back to bsky.social.
+ *   resolveIdentifier(input) — accepts handle | did | at://… and returns
+ *     the canonical identity bundle the explorer pages depend on.
+ */
+
+import { resolvePdsEndpoint } from '../didResolver';
+import { APPVIEW, HANDLE_RESOLVER_FALLBACK } from './config';
+import { describeRepo } from './pdsClient';
+import { TTLMap } from './cache';
+
+export type IdentityBundle = {
+  did: string;
+  handle: string | null;
+  pds: string;
+};
+
+const HANDLE_TTL = 5 * 60_000;
+const handleToDidCache = new TTLMap<string, string>(HANDLE_TTL);
+
+async function tryFetchJson<T>(url: string): Promise<T | null> {
+  try {
+    const res = await fetch(url);
+    if (!res.ok) return null;
+    return (await res.json()) as T;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Resolve a handle to a DID. Tries the AppView first, falls back to the
+ * bsky.social PDS (which can resolve handles served via DNS even when the
+ * appview hasn't seen them yet).
+ */
+export async function resolveHandle(handle: string): Promise<string | null> {
+  if (!handle) return null;
+  if (handle.startsWith('did:')) return handle;
+  const cached = handleToDidCache.get(handle);
+  if (cached) return cached;
+
+  const qs = `handle=${encodeURIComponent(handle)}`;
+  const resolved =
+    (await tryFetchJson<{ did?: string }>(
+      `${APPVIEW}/xrpc/com.atproto.identity.resolveHandle?${qs}`,
+    ))?.did ??
+    (await tryFetchJson<{ did?: string }>(
+      `${HANDLE_RESOLVER_FALLBACK}/xrpc/com.atproto.identity.resolveHandle?${qs}`,
+    ))?.did ??
+    null;
+
+  if (resolved) handleToDidCache.set(handle, resolved);
+  return resolved;
+}
+
+/**
+ * Normalize a user-supplied identifier (handle, DID, or at://… URI) into
+ * `{ did, handle, pds }`. Throws on failure.
+ */
+export async function resolveIdentifier(input: string): Promise<IdentityBundle> {
+  const trimmed = String(input || '').trim();
+  if (!trimmed) throw new Error('resolveIdentifier: empty input');
+
+  // at:// URI shortcut — extract the repo segment.
+  let target = trimmed;
+  if (target.startsWith('at://')) {
+    const m = target.match(/^at:\/\/([^/]+)/);
+    if (m) target = m[1];
+  }
+
+  const resolved = await resolvePdsEndpoint(target);
+  if (!resolved) throw new Error(`Could not resolve ${trimmed}`);
+
+  let handle: string | null = null;
+  try {
+    const desc = await describeRepo(resolved.pdsEndpoint.replace(/\/$/, ''), resolved.did);
+    handle = desc?.handle || null;
+  } catch {
+    // describeRepo failures are non-fatal — the explorer still works by DID.
+  }
+  return {
+    did: resolved.did,
+    handle,
+    pds: resolved.pdsEndpoint.replace(/\/$/, ''),
+  };
+}

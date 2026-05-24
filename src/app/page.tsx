@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { ArrowRight, Link2, Sparkles, MousePointerClick, Repeat } from 'lucide-react';
+import { ArrowRight, Link2, Sparkles, MousePointerClick, Repeat, Telescope } from 'lucide-react';
 import Header from '@/components/Header';
 import DownloadCTA from '@/components/DownloadCTA';
 import { StaggeredChildren, StaggerItem } from '@/components/StaggeredChildren';
@@ -131,7 +131,7 @@ export default function HomePage() {
               </p>
             </div>
 
-            <div 
+            <div
               className="card feature-card-secondary"
               style={{
                 padding: '2rem',
@@ -139,15 +139,15 @@ export default function HomePage() {
                 transition: 'all 0.4s ease',
               }}
             >
-              <Link2 size={28} style={{ 
-                color: 'var(--text-accent)', 
-                marginBottom: '1rem' 
+              <Link2 size={28} style={{
+                color: 'var(--text-accent)',
+                marginBottom: '1rem'
               }} />
               <h3 style={{ marginBottom: '0.75rem', fontSize: '1.25rem' }}>
                 Universal Links
               </h3>
-              <p style={{ 
-                color: 'var(--text-secondary)', 
+              <p style={{
+                color: 'var(--text-secondary)',
                 fontSize: '0.95rem',
                 lineHeight: 1.6
               }}>
@@ -155,6 +155,45 @@ export default function HomePage() {
                 want to view it in — no app lock-in.
               </p>
             </div>
+
+            <Link
+              href="/explore"
+              className="card feature-card-secondary"
+              style={{
+                padding: '2rem',
+                transform: 'rotate(0.4deg)',
+                transition: 'all 0.4s ease',
+                textDecoration: 'none',
+                color: 'inherit',
+                display: 'block',
+              }}
+            >
+              <Telescope size={28} style={{
+                color: 'var(--text-accent)',
+                marginBottom: '1rem',
+              }} />
+              <h3 style={{ marginBottom: '0.75rem', fontSize: '1.25rem' }}>
+                Atmosphere Explorer
+              </h3>
+              <p style={{
+                color: 'var(--text-secondary)',
+                fontSize: '0.95rem',
+                lineHeight: 1.6,
+                marginBottom: '0.75rem',
+              }}>
+                Walk any account&apos;s PDS records, identity history, and backlinks.
+                Sign in to edit your own data, watch the network live, and more.
+              </p>
+              <span style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.4rem',
+                color: 'var(--text-accent)',
+                fontSize: '0.875rem',
+              }}>
+                Start exploring <ArrowRight size={14} />
+              </span>
+            </Link>
           </StaggerItem>
         </StaggeredChildren>
 

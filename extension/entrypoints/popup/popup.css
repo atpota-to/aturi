@@ -641,3 +641,55 @@ body {
 .popup-root.is-compact .popup-waypoint:hover {
   transform: translateX(2px);
 }
+
+/* Popup mode tabs (Waypoints / Inspect) — sit above both views */
+.popup-shell {
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-primary);
+}
+
+.popup-mode-tabs {
+  display: flex;
+  align-items: stretch;
+  border-bottom: 1px solid var(--border-subtle);
+  background: var(--bg-secondary);
+  position: sticky;
+  top: 0;
+  z-index: 3;
+}
+
+.popup-mode-tab {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 12px;
+  background: transparent;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  color: var(--text-tertiary);
+  font-family: var(--font-sans);
+  font-size: var(--fs-xs);
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: color 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+}
+
+.popup-mode-tab:hover {
+  color: var(--text-secondary);
+  background: var(--bg-tertiary);
+}
+
+.popup-mode-tab.is-active {
+  color: var(--text-primary);
+  border-bottom-color: var(--text-accent);
+}
+
+.popup-mode-tab svg {
+  flex-shrink: 0;
+}

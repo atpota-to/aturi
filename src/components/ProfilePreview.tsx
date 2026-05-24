@@ -3,9 +3,11 @@
  * Displays a rich preview card for Bluesky profiles
  */
 
+import Link from 'next/link';
 import { BskyProfile } from '@/utils/profileFetcher';
 import { sanitizeUrl } from '@/utils/sanitize';
-import { User, Calendar, Users, MessageSquare } from 'lucide-react';
+import { User, Calendar, Users, MessageSquare, Telescope } from 'lucide-react';
+import { encodeRepo } from '@/utils/atproto/urls';
 
 type ProfilePreviewProps = {
   profile: BskyProfile;
@@ -219,6 +221,37 @@ export default function ProfilePreview({ profile }: ProfilePreviewProps) {
               </span>
             </div>
           )}
+        </div>
+
+        {/* Cross-product: view this profile's raw repo in the explorer */}
+        <div
+          style={{
+            paddingTop: '1rem',
+            marginTop: '1rem',
+            borderTop: '1px solid var(--border-subtle)',
+            fontSize: '0.8125rem',
+          }}
+        >
+          <Link
+            href={`/explore/${encodeRepo(handle)}`}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.4rem',
+              color: 'var(--text-tertiary)',
+              textDecoration: 'none',
+              transition: 'color 0.2s ease',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.color = 'var(--text-accent)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.color = 'var(--text-tertiary)';
+            }}
+          >
+            <Telescope size={12} />
+            View raw repo in the explorer →
+          </Link>
         </div>
 
         {/* Additional Info */}

@@ -1,9 +1,14 @@
 /**
  * Record Fetching Utilities
- * Fetches ATProto records and post threads from the appropriate endpoints
+ * Fetches ATProto records and post threads from the appropriate endpoints.
+ *
+ * Internally delegates the PDS hop to `utils/atproto/pdsClient` so the
+ * universal link pages, the explorer, and the extension all hit one shared
+ * code path. The public API of this module is unchanged.
  */
 
 import { resolvePdsEndpoint } from './didResolver';
+import { getRecord as pdsGetRecord } from './atproto/pdsClient';
 
 export type BskyPost = {
   uri: string;
@@ -133,7 +138,11 @@ export type GenericRecord = {
 };
 
 /**
- * Fetches a generic ATProto record using com.atproto.repo.getRecord
+ * Fetches a generic ATProto record using com.atproto.repo.getRecord.
+ *
+ * Tries the user's PDS first (via DID-resolved endpoint). Falls back to the
+ * public Bluesky API if PDS resolution fails so universal link pages still
+ * render for repos whose DID can't be resolved (cold caches, etc).
  */
 export async function fetchRecord(
   repo: string,
@@ -141,38 +150,30 @@ export async function fetchRecord(
   rkey: string
 ): Promise<GenericRecord | null> {
   try {
-    // Resolve the PDS endpoint for the repo
     const resolved = await resolvePdsEndpoint(repo);
-    if (!resolved) {
-      console.error(`Could not resolve PDS endpoint for ${repo}`);
-      // Fallback to public API
-      const publicUrl = `https://public.api.bsky.app/xrpc/com.atproto.repo.getRecord?repo=${encodeURIComponent(
-        repo
-      )}&collection=${encodeURIComponent(collection)}&rkey=${encodeURIComponent(rkey)}`;
-
-      const response = await fetch(publicUrl);
-      if (!response.ok) {
-        console.error(`Failed to fetch record: HTTP ${response.status}`);
-        return null;
+    if (resolved) {
+      try {
+        const record = await pdsGetRecord(resolved.pdsEndpoint.replace(/\/$/, ''), {
+          repo: resolved.did,
+          collection,
+          rkey,
+        });
+        return record as GenericRecord;
+      } catch (err) {
+        console.warn(`PDS getRecord failed for ${repo}, falling back to public API`, err);
       }
-
-      const data = await response.json();
-      return data;
     }
 
-    // Fetch from the user's PDS
-    const url = `${resolved.pdsEndpoint}/xrpc/com.atproto.repo.getRecord?repo=${encodeURIComponent(
-      resolved.did
+    // Public-API fallback (handles get out-of-band).
+    const publicUrl = `https://public.api.bsky.app/xrpc/com.atproto.repo.getRecord?repo=${encodeURIComponent(
+      repo
     )}&collection=${encodeURIComponent(collection)}&rkey=${encodeURIComponent(rkey)}`;
-
-    const response = await fetch(url);
+    const response = await fetch(publicUrl);
     if (!response.ok) {
-      console.error(`Failed to fetch record from PDS: HTTP ${response.status}`);
+      console.error(`Failed to fetch record: HTTP ${response.status}`);
       return null;
     }
-
-    const data = await response.json();
-    return data;
+    return (await response.json()) as GenericRecord;
   } catch (error) {
     console.error('Error fetching record:', error);
     return null;

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { browser } from '#imports';
+import { MousePointer2, Telescope } from 'lucide-react';
 import type { ReverseMatch } from '@aturi/reverseParsers';
 import type { WaypointData, WaypointType } from '@aturi/waypoints.data';
 import { matchSupportedUrl, parseAtUri, SUPPORTED_HOSTS } from '@aturi/reverseParsers';
@@ -28,6 +29,9 @@ import { resolveHandleToDid } from '../../lib/handleResolver';
 import { describeWaypoint } from '../../lib/describe';
 import { getWaypointHomePageUrl, homePageSubtitle } from '../../lib/homePage';
 import { WaypointIcon } from '../../lib/Icons';
+import InspectView from './InspectView';
+
+type PopupMode = 'waypoints' | 'inspect';
 
 type PopupState =
   | { phase: 'loading' }
@@ -66,6 +70,7 @@ export default function App() {
   const [state, setState] = useState<PopupState>({ phase: 'loading' });
   const [pendingId, setPendingId] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [mode, setMode] = useState<PopupMode>('waypoints');
 
   useEffect(() => {
     void init();
@@ -82,9 +87,15 @@ export default function App() {
     return unsub;
   }, []);
 
+  function selectMode(next: PopupMode) {
+    setMode(next);
+    void savePrefs({ popupMode: next });
+  }
+
   async function init() {
     const prefs = await loadPrefs();
     applyAppearance(prefs);
+    if (prefs.popupMode === 'inspect') setMode('inspect');
     const tab = await getActiveTab();
     const tabId = (tab?.id as number | undefined) ?? null;
     if (!tab?.url) {
@@ -215,28 +226,69 @@ export default function App() {
     return <div className="popup-empty">Loading...</div>;
   }
 
-  if (state.phase === 'unsupported') {
-    return (
+  const prefs = state.prefs;
+
+  const inner =
+    mode === 'inspect' ? (
+      <InspectView prefs={prefs} />
+    ) : state.phase === 'unsupported' ? (
       <NoAtmosphereView
-        prefs={state.prefs}
+        prefs={prefs}
         pendingId={pendingId}
         copiedId={copiedId}
         onOpenHome={openHomeShortcut}
         onCopyHome={copyHomeShortcut}
         isKnownHost={state.isKnownHost}
       />
+    ) : (
+      <Ready
+        match={state.match}
+        prefs={prefs}
+        pendingId={pendingId}
+        copiedId={copiedId}
+        onOpen={openWaypoint}
+        onCopy={copyWaypoint}
+      />
     );
-  }
 
   return (
-    <Ready
-      match={state.match}
-      prefs={state.prefs}
-      pendingId={pendingId}
-      copiedId={copiedId}
-      onOpen={openWaypoint}
-      onCopy={copyWaypoint}
-    />
+    <div className={`popup-shell ${prefs.compactMode ? 'is-compact' : ''}`}>
+      <PopupModeTabs mode={mode} onSelect={selectMode} />
+      {inner}
+    </div>
+  );
+}
+
+function PopupModeTabs({
+  mode,
+  onSelect,
+}: {
+  mode: PopupMode;
+  onSelect: (next: PopupMode) => void;
+}) {
+  return (
+    <div className="popup-mode-tabs" role="tablist" aria-label="Popup mode">
+      <button
+        type="button"
+        role="tab"
+        aria-selected={mode === 'waypoints'}
+        className={`popup-mode-tab ${mode === 'waypoints' ? 'is-active' : ''}`}
+        onClick={() => onSelect('waypoints')}
+      >
+        <MousePointer2 size={12} aria-hidden />
+        Waypoints
+      </button>
+      <button
+        type="button"
+        role="tab"
+        aria-selected={mode === 'inspect'}
+        className={`popup-mode-tab ${mode === 'inspect' ? 'is-active' : ''}`}
+        onClick={() => onSelect('inspect')}
+      >
+        <Telescope size={12} aria-hidden />
+        Inspect
+      </button>
+    </div>
   );
 }
 
