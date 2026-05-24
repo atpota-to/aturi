@@ -91,8 +91,12 @@ export default function BrowserChrome({ children }: { children: ReactNode }) {
 
       {/* Empty content area that fades into the page — the popup floats
           over the top-right corner so it visually anchors to the leaf
-          icon in the toolbar above. */}
+          icon in the toolbar above. On narrow viewports we drop the
+          absolute positioning (see CSS in globals.css) so the popup
+          stacks under the chrome instead of overflowing out the
+          bottom into the next section. */}
       <div
+        className="browser-chrome-content"
         style={{
           position: 'relative',
           minHeight: '20rem',
@@ -102,8 +106,10 @@ export default function BrowserChrome({ children }: { children: ReactNode }) {
         }}
       >
         {/* Faint placeholder content lines so the "page" doesn't read as
-            an empty void behind the popup. */}
-        <div aria-hidden style={{ opacity: 0.35 }}>
+            an empty void behind the popup. Hidden on mobile, where the
+            popup stacks inline and the placeholder would just be dead
+            space above it. */}
+        <div className="browser-chrome-fake-content" aria-hidden style={{ opacity: 0.35 }}>
           <FakeLine width="42%" />
           <FakeLine width="68%" />
           <FakeLine width="55%" />
@@ -112,8 +118,11 @@ export default function BrowserChrome({ children }: { children: ReactNode }) {
           <FakeLine width="60%" />
         </div>
         {/* Popup container — anchored to the right edge so it visually
-            tucks under the extension icon at the top-right corner. */}
+            tucks under the extension icon at the top-right corner.
+            On mobile the matching CSS class makes this static so the
+            popup stacks under the chrome and the parent grows to fit. */}
         <div
+          className="browser-chrome-popup"
           style={{
             position: 'absolute',
             top: '0.5rem',
