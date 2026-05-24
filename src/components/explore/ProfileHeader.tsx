@@ -188,6 +188,10 @@ export default function ProfileHeader({ identity }: Props) {
               marginTop: '0.875rem',
               fontSize: '0.8125rem',
               color: 'var(--text-tertiary)',
+              // Collapse line-height so the row's icons align with their
+              // text midline — body's 1.7 line-height was inflating each
+              // span's box and floating the icons above center.
+              lineHeight: 1,
             }}
           >
             {websiteHref && (
@@ -201,6 +205,7 @@ export default function ProfileHeader({ identity }: Props) {
                   gap: '0.4rem',
                   color: 'var(--text-accent)',
                   textDecoration: 'none',
+                  lineHeight: 1,
                 }}
               >
                 <Globe size={13} />
@@ -251,9 +256,18 @@ function Stat({
         display: 'inline-flex',
         alignItems: 'center',
         gap: '0.35rem',
+        lineHeight: 1,
       }}
     >
-      <span style={{ color: 'var(--text-tertiary)' }}>{icon}</span>
+      <span
+        style={{
+          color: 'var(--text-tertiary)',
+          display: 'inline-flex',
+          alignItems: 'center',
+        }}
+      >
+        {icon}
+      </span>
       <span
         style={{
           fontVariantNumeric: 'tabular-nums',
