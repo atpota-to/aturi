@@ -46,5 +46,93 @@
   },
   "options_tab_about": {
     "message": "情報"
+  },
+  "popup_tagline": {
+    "message": "Atmosphere ファストトラベル"
+  },
+  "popup_modesAriaLabel": {
+    "message": "ポップアップモード"
+  },
+  "popup_noDataTitle": {
+    "message": "このページにAtmosphereデータがありません"
+  },
+  "popup_noDataBody": {
+    "message": "このタブの対応するAT URIが見つかりませんでした（アドレスまたはページのheadにあるat://リンクから）。以下の宛先は各アプリのホームページを開きます。対応するプロフィールや投稿では、このポップアップは代わりにコンテキストに応じたリンクを提示します。"
+  },
+  "popup_noDestinations": {
+    "message": "表示する宛先がありません。設定でグループにウェイポイントを追加してください。"
+  },
+  "popup_settings": {
+    "message": "設定"
+  },
+  "popup_openSettings": {
+    "message": "設定を開く"
+  },
+  "popup_openSettingsAria": {
+    "message": "拡張機能の設定を開く"
+  },
+  "popup_recents": {
+    "message": "最近"
+  },
+  "popup_shortcutsHint": {
+    "message": "ショートカットは各アプリのホームページを開きます"
+  },
+  "popup_themeToLight": {
+    "message": "ライトテーマに切り替え"
+  },
+  "popup_themeToDark": {
+    "message": "ダークテーマに切り替え"
+  },
+  "popup_copyAriaToClipboard": {
+    "message": "Atmosphere URIをクリップボードにコピー"
+  },
+  "popup_copyAriaCopied": {
+    "message": "クリップボードにコピーしました"
+  },
+  "popup_copyHint": {
+    "message": "クリックでコピー"
+  },
+  "popup_copyDone": {
+    "message": "コピーしました！"
+  },
+  "popup_copyLinkTo": {
+    "message": "$NAME$へのリンクをコピー",
+    "placeholders": {
+      "name": { "content": "$1", "example": "Bluesky" }
+    }
+  },
+  "popup_resolveFailed": {
+    "message": "$HANDLE$をDIDに解決できませんでした。",
+    "placeholders": {
+      "handle": { "content": "$1", "example": "example.bsky.social" }
+    }
+  },
+  "popup_bannerNewOne": {
+    "message": "新しいウェイポイント: $NAME$",
+    "placeholders": {
+      "name": { "content": "$1", "example": "Bluesky" }
+    }
+  },
+  "popup_bannerNewFew": {
+    "message": "新しいウェイポイント: $NAMES$",
+    "placeholders": {
+      "names": { "content": "$1", "example": "Bluesky, Deer" }
+    }
+  },
+  "popup_bannerNewMany": {
+    "message": "$NAMES$ +他$EXTRA$個",
+    "placeholders": {
+      "names": { "content": "$1", "example": "Bluesky, Deer" },
+      "extra": { "content": "$2", "example": "3" }
+    }
+  },
+  "popup_bannerAdd": {
+    "message": "追加"
+  },
+  "popup_bannerDismiss": {
+    "message": "閉じる"
+  },
+  "popup_bannerDismissAria": {
+    "message": "新しいウェイポイントの通知を閉じる"
   }
 }

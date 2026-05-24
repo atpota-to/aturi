@@ -46,5 +46,93 @@
   },
   "options_tab_about": {
     "message": "Acerca de"
+  },
+  "popup_tagline": {
+    "message": "Viaje rápido por Atmosphere"
+  },
+  "popup_modesAriaLabel": {
+    "message": "Modo de la ventana"
+  },
+  "popup_noDataTitle": {
+    "message": "Sin datos de Atmosphere en esta página"
+  },
+  "popup_noDataBody": {
+    "message": "No encontramos un AT URI compatible para esta pestaña (desde la dirección o un enlace at:// en la cabecera de la página). Tus destinos a continuación abren la página de inicio de cada aplicación. En un perfil o post compatible, esta ventana ofrecerá enlaces contextuales en su lugar."
+  },
+  "popup_noDestinations": {
+    "message": "No hay destinos visibles. Añade waypoints a un grupo en Configuración."
+  },
+  "popup_settings": {
+    "message": "Configuración"
+  },
+  "popup_openSettings": {
+    "message": "Abrir configuración"
+  },
+  "popup_openSettingsAria": {
+    "message": "Abrir la configuración de la extensión"
+  },
+  "popup_recents": {
+    "message": "Recientes"
+  },
+  "popup_shortcutsHint": {
+    "message": "Los accesos directos abren la página de inicio de cada aplicación"
+  },
+  "popup_themeToLight": {
+    "message": "Cambiar al tema claro"
+  },
+  "popup_themeToDark": {
+    "message": "Cambiar al tema oscuro"
+  },
+  "popup_copyAriaToClipboard": {
+    "message": "Copiar AT URI al portapapeles"
+  },
+  "popup_copyAriaCopied": {
+    "message": "Copiado al portapapeles"
+  },
+  "popup_copyHint": {
+    "message": "Haz clic para copiar"
+  },
+  "popup_copyDone": {
+    "message": "¡Copiado!"
+  },
+  "popup_copyLinkTo": {
+    "message": "Copiar enlace a $NAME$",
+    "placeholders": {
+      "name": { "content": "$1", "example": "Bluesky" }
+    }
+  },
+  "popup_resolveFailed": {
+    "message": "No se pudo resolver $HANDLE$ a un DID.",
+    "placeholders": {
+      "handle": { "content": "$1", "example": "example.bsky.social" }
+    }
+  },
+  "popup_bannerNewOne": {
+    "message": "Nuevo waypoint: $NAME$",
+    "placeholders": {
+      "name": { "content": "$1", "example": "Bluesky" }
+    }
+  },
+  "popup_bannerNewFew": {
+    "message": "Nuevos waypoints: $NAMES$",
+    "placeholders": {
+      "names": { "content": "$1", "example": "Bluesky, Deer" }
+    }
+  },
+  "popup_bannerNewMany": {
+    "message": "$NAMES$ +$EXTRA$ más",
+    "placeholders": {
+      "names": { "content": "$1", "example": "Bluesky, Deer" },
+      "extra": { "content": "$2", "example": "3" }
+    }
+  },
+  "popup_bannerAdd": {
+    "message": "Añadir"
+  },
+  "popup_bannerDismiss": {
+    "message": "Descartar"
+  },
+  "popup_bannerDismissAria": {
+    "message": "Descartar notificación de nuevos waypoints"
   }
 }

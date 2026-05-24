@@ -46,5 +46,93 @@
   },
   "options_tab_about": {
     "message": "About"
+  },
+  "popup_tagline": {
+    "message": "Atmosphere Fast Travel"
+  },
+  "popup_modesAriaLabel": {
+    "message": "Popup mode"
+  },
+  "popup_noDataTitle": {
+    "message": "No Atmosphere data on this page"
+  },
+  "popup_noDataBody": {
+    "message": "We couldn't find a supported AT URI for this tab (from the address or an at:// link in the page head). Your destinations below open each app's home page. On a supported profile or post, this popup will offer context-aware links instead."
+  },
+  "popup_noDestinations": {
+    "message": "No destinations are visible. Add waypoints to a group in Settings."
+  },
+  "popup_settings": {
+    "message": "Settings"
+  },
+  "popup_openSettings": {
+    "message": "Open settings"
+  },
+  "popup_openSettingsAria": {
+    "message": "Open extension settings"
+  },
+  "popup_recents": {
+    "message": "Recents"
+  },
+  "popup_shortcutsHint": {
+    "message": "Shortcuts open each app's home page"
+  },
+  "popup_themeToLight": {
+    "message": "Switch to light theme"
+  },
+  "popup_themeToDark": {
+    "message": "Switch to dark theme"
+  },
+  "popup_copyAriaToClipboard": {
+    "message": "Copy Atmosphere URI to clipboard"
+  },
+  "popup_copyAriaCopied": {
+    "message": "Copied to clipboard"
+  },
+  "popup_copyHint": {
+    "message": "Click to copy"
+  },
+  "popup_copyDone": {
+    "message": "Copied!"
+  },
+  "popup_copyLinkTo": {
+    "message": "Copy link to $NAME$",
+    "placeholders": {
+      "name": { "content": "$1", "example": "Bluesky" }
+    }
+  },
+  "popup_resolveFailed": {
+    "message": "Couldn't resolve $HANDLE$ to a DID.",
+    "placeholders": {
+      "handle": { "content": "$1", "example": "example.bsky.social" }
+    }
+  },
+  "popup_bannerNewOne": {
+    "message": "New waypoint: $NAME$",
+    "placeholders": {
+      "name": { "content": "$1", "example": "Bluesky" }
+    }
+  },
+  "popup_bannerNewFew": {
+    "message": "New waypoints: $NAMES$",
+    "placeholders": {
+      "names": { "content": "$1", "example": "Bluesky, Deer" }
+    }
+  },
+  "popup_bannerNewMany": {
+    "message": "$NAMES$ +$EXTRA$ more",
+    "placeholders": {
+      "names": { "content": "$1", "example": "Bluesky, Deer" },
+      "extra": { "content": "$2", "example": "3" }
+    }
+  },
+  "popup_bannerAdd": {
+    "message": "Add"
+  },
+  "popup_bannerDismiss": {
+    "message": "Dismiss"
+  },
+  "popup_bannerDismissAria": {
+    "message": "Dismiss new waypoints notification"
   }
 }

@@ -29,6 +29,7 @@ import { resolveHandleToDid } from '../../lib/handleResolver';
 import { describeWaypoint } from '../../lib/describe';
 import { getWaypointHomePageUrl, homePageSubtitle } from '../../lib/homePage';
 import { WaypointIcon } from '../../lib/Icons';
+import { t } from '../../lib/i18n';
 import InspectView from './InspectView';
 
 type PopupMode = 'waypoints' | 'inspect';
@@ -153,7 +154,7 @@ export default function App() {
       const resolved = await resolveHandleToDid(parsed.handle);
       if (!resolved) {
         setPendingId(null);
-        alert(`Couldn't resolve ${parsed.handle} to a DID.`);
+        alert(t('popup_resolveFailed', parsed.handle));
         return;
       }
       did = resolved;
@@ -194,7 +195,7 @@ export default function App() {
     if (requiresDid(waypoint.id, state.prefs.customWaypoints) && !did) {
       const resolved = await resolveHandleToDid(parsed.handle);
       if (!resolved) {
-        alert(`Couldn't resolve ${parsed.handle} to a DID.`);
+        alert(t('popup_resolveFailed', parsed.handle));
         return;
       }
       did = resolved;
@@ -223,7 +224,7 @@ export default function App() {
   }
 
   if (state.phase === 'loading') {
-    return <div className="popup-empty">Loading...</div>;
+    return <div className="popup-empty">{t('popup_loading')}</div>;
   }
 
   const prefs = state.prefs;
@@ -267,7 +268,7 @@ function PopupModeTabs({
   onSelect: (next: PopupMode) => void;
 }) {
   return (
-    <div className="popup-mode-tabs" role="tablist" aria-label="Popup mode">
+    <div className="popup-mode-tabs" role="tablist" aria-label={t('popup_modesAriaLabel')}>
       <button
         type="button"
         role="tab"
@@ -276,7 +277,7 @@ function PopupModeTabs({
         onClick={() => onSelect('waypoints')}
       >
         <MousePointer2 size={12} aria-hidden />
-        Waypoints
+        {t('popup_modeWaypoints')}
       </button>
       <button
         type="button"
@@ -286,7 +287,7 @@ function PopupModeTabs({
         onClick={() => onSelect('inspect')}
       >
         <Telescope size={12} aria-hidden />
-        Inspect
+        {t('popup_modeInspect')}
       </button>
     </div>
   );
@@ -368,7 +369,7 @@ function NoAtmosphereView({
         </div>
         <div className="popup-source">
           <div className="popup-header-actions">
-            <span className="popup-tagline">Atmosphere Fast Travel</span>
+            <span className="popup-tagline">{t('popup_tagline')}</span>
             <HeaderSettingsButton />
           </div>
         </div>
@@ -376,22 +377,17 @@ function NoAtmosphereView({
 
       {!isKnownHost && (
         <div className="popup-notice">
-          <div className="popup-notice-title">No Atmosphere data on this page</div>
-          <div>
-            We couldn&apos;t find a supported AT URI for this tab (from the address or an{' '}
-            <code style={{ fontSize: 12 }}>at://</code> link in the page head). Your destinations
-            below open each app&apos;s home page. On a supported profile or post, this popup will
-            offer context-aware links instead.
-          </div>
+          <div className="popup-notice-title">{t('popup_noDataTitle')}</div>
+          <div>{t('popup_noDataBody')}</div>
         </div>
       )}
 
       {shortcutGroups.length === 0 ? (
         <div className="popup-empty">
-          No destinations are visible. Add waypoints to a group in Settings.
+          {t('popup_noDestinations')}
           <div style={{ marginTop: 12 }}>
             <button className="aturi-btn" type="button" onClick={() => void openOptionsPage()}>
-              Settings
+              {t('popup_settings')}
             </button>
           </div>
         </div>
@@ -422,7 +418,7 @@ function NoAtmosphereView({
                     <CopyWaypointButton
                       copied={copiedId === w.id}
                       onClick={() => onCopyHome(w)}
-                      label={`Copy link to ${w.name}`}
+                      label={t('popup_copyLinkTo', w.name)}
                     />
                   </div>
                 ))}
@@ -433,7 +429,7 @@ function NoAtmosphereView({
             prefs={prefs}
             leading={
               <span className="aturi-subtle" style={{ fontSize: 11 }}>
-                Shortcuts open each app&apos;s home page
+                {t('popup_shortcutsHint')}
               </span>
             }
           />
@@ -522,7 +518,7 @@ function Ready({ match, prefs, pendingId, copiedId, onOpen, onCopy }: ReadyProps
 
       {prefs.historyEnabled && recents.length > 0 && (
         <div className="popup-section">
-          <div className="popup-section-label">Recents</div>
+          <div className="popup-section-label">{t('popup_recents')}</div>
           <div className="popup-recents-row">
             {recents.map(w => (
               <button
@@ -642,9 +638,9 @@ function NewWaypointsBanner({
   const names = waypoints.map(w => w.name);
   // Keep it short: list up to 3 by name, summarize the rest.
   let summary: string;
-  if (names.length === 1) summary = `New waypoint: ${names[0]}`;
-  else if (names.length <= 3) summary = `New waypoints: ${names.join(', ')}`;
-  else summary = `${names.slice(0, 2).join(', ')} +${names.length - 2} more`;
+  if (names.length === 1) summary = t('popup_bannerNewOne', names[0]);
+  else if (names.length <= 3) summary = t('popup_bannerNewFew', names.join(', '));
+  else summary = t('popup_bannerNewMany', [names.slice(0, 2).join(', '), String(names.length - 2)]);
 
   return (
     <div className="popup-update-banner" role="status">
@@ -666,14 +662,14 @@ function NewWaypointsBanner({
         className="popup-update-banner-action"
         onClick={onOpenSettings}
       >
-        Add
+        {t('popup_bannerAdd')}
       </button>
       <button
         type="button"
         className="popup-update-banner-dismiss"
         onClick={onDismiss}
-        aria-label="Dismiss new waypoints notification"
-        title="Dismiss"
+        aria-label={t('popup_bannerDismissAria')}
+        title={t('popup_bannerDismiss')}
       >
         <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true">
           <line x1="6" y1="6" x2="18" y2="18" />
@@ -686,13 +682,14 @@ function NewWaypointsBanner({
 
 function ThemeToggle({ theme }: { theme: Prefs['theme'] }) {
   const isDark = theme !== 'light';
+  const label = isDark ? t('popup_themeToLight') : t('popup_themeToDark');
   return (
     <button
       type="button"
       className="popup-theme-toggle"
       onClick={() => void savePrefs({ theme: isDark ? 'light' : 'dark' })}
-      title={isDark ? 'Switch to light theme' : 'Switch to dark theme'}
-      aria-label={isDark ? 'Switch to light theme' : 'Switch to dark theme'}
+      title={label}
+      aria-label={label}
     >
       {isDark ? (
         // Sun – we're in dark mode, click to go light.
@@ -731,8 +728,8 @@ function CopyUriButton({ uri }: { uri: string }) {
       type="button"
       className={`popup-uri ${copied ? 'is-copied' : ''}`}
       onClick={handleCopy}
-      title={copied ? 'Copied!' : 'Click to copy'}
-      aria-label={copied ? 'Copied to clipboard' : 'Copy Atmosphere URI to clipboard'}
+      title={copied ? t('popup_copyDone') : t('popup_copyHint')}
+      aria-label={copied ? t('popup_copyAriaCopied') : t('popup_copyAriaToClipboard')}
     >
       <span className="popup-uri-icon" aria-hidden="true">
         {copied ? (
@@ -746,7 +743,7 @@ function CopyUriButton({ uri }: { uri: string }) {
           </svg>
         )}
       </span>
-      <span className="popup-uri-text">{copied ? 'Copied!' : uri}</span>
+      <span className="popup-uri-text">{copied ? t('popup_copyDone') : uri}</span>
     </button>
   );
 }
@@ -787,7 +784,7 @@ function WaypointButton({
       <CopyWaypointButton
         copied={copied}
         onClick={() => onCopy(waypoint)}
-        label={`Copy link to ${waypoint.name}`}
+        label={t('popup_copyLinkTo', waypoint.name)}
       />
     </div>
   );
@@ -799,8 +796,8 @@ function HeaderSettingsButton() {
       type="button"
       className="popup-header-settings"
       onClick={() => void openOptionsPage()}
-      title="Open settings"
-      aria-label="Open extension settings"
+      title={t('popup_openSettings')}
+      aria-label={t('popup_openSettingsAria')}
     >
       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
         <circle cx="12" cy="12" r="3" />
