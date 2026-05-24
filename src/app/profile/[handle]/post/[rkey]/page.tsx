@@ -154,23 +154,27 @@ async function PostContent({ handle, rkey }: { handle: string; rkey: string }) {
     
     if (parsedData.error) {
       return (
-        <div className="container-narrow" style={{ padding: '2rem 2rem 4rem', textAlign: 'center' }}>
+        <>
           <Header compact />
-          <h1 style={{ marginBottom: '1rem', color: 'var(--text-primary)' }}>Error</h1>
-          <p style={{ color: 'var(--text-secondary)' }}>{parsedData.error}</p>
-        </div>
+          <div className="container-narrow" style={{ padding: '0 2rem 4rem', textAlign: 'center' }}>
+            <h1 style={{ marginBottom: '1rem', color: 'var(--text-primary)' }}>Error</h1>
+            <p style={{ color: 'var(--text-secondary)' }}>{parsedData.error}</p>
+          </div>
+        </>
       );
     }
 
     const resolvedDid = await resolveHandle(handle);
-    
+
     if (!resolvedDid) {
       return (
-        <div className="container-narrow" style={{ padding: '2rem 2rem 4rem', textAlign: 'center' }}>
+        <>
           <Header compact />
-          <h1 style={{ marginBottom: '1rem', color: 'var(--text-primary)' }}>Error</h1>
-          <p style={{ color: 'var(--text-secondary)' }}>Could not resolve handle: {handle}</p>
-        </div>
+          <div className="container-narrow" style={{ padding: '0 2rem 4rem', textAlign: 'center' }}>
+            <h1 style={{ marginBottom: '1rem', color: 'var(--text-primary)' }}>Error</h1>
+            <p style={{ color: 'var(--text-secondary)' }}>Could not resolve handle: {handle}</p>
+          </div>
+        </>
       );
     }
 
@@ -224,50 +228,53 @@ async function PostContent({ handle, rkey }: { handle: string; rkey: string }) {
     const atUri = post?.uri || '';
 
     return (
-      <div className="container-narrow" style={{ padding: '2rem 2rem 4rem' }}>
+      <>
         <Header compact />
+        <div className="container-narrow" style={{ padding: '0 2rem 4rem' }}>
+          {/* AT-URI alternate link, mirroring Bluesky's bskyweb template.
+              React 19 hoists this to <head>. */}
+          {atUri && <link rel="alternate" href={atUri} />}
 
-        {/* AT-URI alternate link, mirroring Bluesky's bskyweb template.
-            React 19 hoists this to <head>. */}
-        {atUri && <link rel="alternate" href={atUri} />}
-
-        {jsonLd && (
-          <script
-            type="application/ld+json"
-            dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-          />
-        )}
-
-        {post && recordData && recordData.type === 'post' && (
-          <div className="content-fade-in">
-            <PostPreview 
-              post={post} 
-              parent={recordData.data.parent}
+          {jsonLd && (
+            <script
+              type="application/ld+json"
+              dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
             />
-          </div>
-        )}
+          )}
 
-        <WaypointPicker
-          type="post"
-          handle={resolvedHandle}
-          collection={collection}
-          rkey={rkey}
-          did={resolvedDid}
-          displayName={getDisplayName(resolvedHandle, resolvedDid)}
-        />
+          {post && recordData && recordData.type === 'post' && (
+            <div className="content-fade-in">
+              <PostPreview
+                post={post}
+                parent={recordData.data.parent}
+              />
+            </div>
+          )}
 
-        {/* Floating scroll indicator overlay */}
-        <ScrollIndicator />
-      </div>
+          <WaypointPicker
+            type="post"
+            handle={resolvedHandle}
+            collection={collection}
+            rkey={rkey}
+            did={resolvedDid}
+            displayName={getDisplayName(resolvedHandle, resolvedDid)}
+          />
+
+          {/* Floating scroll indicator overlay */}
+          <ScrollIndicator />
+        </div>
+      </>
     );
   } catch (error) {
     console.error('Error loading post:', error);
     return (
-      <div className="container-narrow" style={{ padding: '2rem 2rem 4rem', textAlign: 'center' }}>
+      <>
         <Header compact />
-        <h1 style={{ marginBottom: '1rem', color: 'var(--text-primary)' }}>Error</h1>
-        <p style={{ color: 'var(--text-secondary)' }}>Error loading post</p>
-      </div>
+        <div className="container-narrow" style={{ padding: '0 2rem 4rem', textAlign: 'center' }}>
+          <h1 style={{ marginBottom: '1rem', color: 'var(--text-primary)' }}>Error</h1>
+          <p style={{ color: 'var(--text-secondary)' }}>Error loading post</p>
+        </div>
+      </>
     );
   }
 }
@@ -294,10 +301,12 @@ export default async function PostPage({ params }: Props) {
   return (
     <Suspense
       fallback={
-        <div className="container-narrow" style={{ padding: '2rem 2rem 4rem' }}>
+        <>
           <Header compact />
-          <PostPreviewSkeleton />
-        </div>
+          <div className="container-narrow" style={{ padding: '0 2rem 4rem' }}>
+            <PostPreviewSkeleton />
+          </div>
+        </>
       }
     >
       <PostContent handle={handle} rkey={rkey} />

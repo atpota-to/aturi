@@ -23,12 +23,14 @@ export const metadata: Metadata = {
 
 export default function UniversalLinksPage() {
   return (
-    <div
-      className="container-narrow"
-      style={{ padding: '2rem 2rem 4rem', minHeight: '80dvh' }}
-    >
+    <>
       <Header compact />
-      <UniversalLinksLanding />
-    </div>
+      <div
+        className="container-narrow"
+        style={{ padding: '0 2rem 4rem', minHeight: '80dvh' }}
+      >
+        <UniversalLinksLanding />
+      </div>
+    </>
   );
 }

@@ -43,10 +43,15 @@ export default function Header({ simple = false, compact = false }: HeaderProps)
           top: 0,
           zIndex: 40,
           marginBottom: '2rem',
-          paddingTop: '1rem',
-          paddingBottom: '0.75rem',
         }}
       >
+        <div
+          className="container-narrow"
+          style={{
+            padding: '2rem 2rem 0.75rem',
+          }}
+        >
+        <div style={{ position: 'relative' }}>
         <div
           style={{
             display: 'flex',
@@ -193,10 +198,12 @@ export default function Header({ simple = false, compact = false }: HeaderProps)
             </div>
           </nav>
         </div>
+        </div>
+        </div>
       </header>
     );
   }
-  
+
   if (simple) {
     return (
       <header

@@ -20,7 +20,7 @@ type Row = {
   receivedAt: number;
 };
 
-const MAX_VISIBLE = 50;
+const MAX_VISIBLE = 20;
 // Flush interval — slower than the firehose tempo on purpose. A faster flush
 // makes the feed feel "live" but with thousands of events/sec the rendered
 // list churns so fast that nothing is readable.
