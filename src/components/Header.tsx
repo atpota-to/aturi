@@ -6,6 +6,7 @@ import { Home, Link2, Leaf, UserPlus, Telescope } from 'lucide-react';
 import { motion } from 'framer-motion';
 import ThemeToggle from './ThemeToggle';
 import SessionMenu from './SessionMenu';
+import SessionPanel from './SessionPanel';
 
 interface HeaderProps {
   simple?: boolean; // If true, shows a smaller version without the tagline
@@ -110,28 +111,27 @@ export default function Header({ simple = false, compact = false }: HeaderProps)
             </span>
           </Link>
 
-          {/* Session pill + expandable menu button */}
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
-            <SessionMenu variant="compact" />
-            <button
-              onClick={() => setIsExpanded(!isExpanded)}
-              style={{
-                padding: '0.5rem',
-                background: 'var(--bg-tertiary)',
-                border: '1px solid var(--border-medium)',
-                color: 'var(--text-accent)',
-                transition: 'all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)',
-                transform: isExpanded ? 'rotate(90deg) scale(1.1)' : 'rotate(0deg)',
-              }}
-              aria-label="Toggle menu"
-              aria-expanded={isExpanded}
-            >
-              <Leaf size={18} style={{
-                transition: 'all 0.3s ease',
-                opacity: isExpanded ? 0.6 : 1,
-              }} />
-            </button>
-          </div>
+          {/* Expandable menu button — session controls live INSIDE the panel,
+              not in the always-visible row, so the compact header stays
+              minimal at this level. */}
+          <button
+            onClick={() => setIsExpanded(!isExpanded)}
+            style={{
+              padding: '0.5rem',
+              background: 'var(--bg-tertiary)',
+              border: '1px solid var(--border-medium)',
+              color: 'var(--text-accent)',
+              transition: 'all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)',
+              transform: isExpanded ? 'rotate(90deg) scale(1.1)' : 'rotate(0deg)',
+            }}
+            aria-label="Toggle menu"
+            aria-expanded={isExpanded}
+          >
+            <Leaf size={18} style={{
+              transition: 'all 0.3s ease',
+              opacity: isExpanded ? 0.6 : 1,
+            }} />
+          </button>
         </div>
 
         {/* Expanding organic nav panel */}
@@ -181,6 +181,19 @@ export default function Header({ simple = false, compact = false }: HeaderProps)
             </Link>
             <div style={{ marginTop: '0.5rem' }}>
               <ThemeToggle variant="row" />
+            </div>
+
+            {/* Session controls: sign in (signed out) OR user info + my repo /
+                account / sign out (signed in). Lives inside the expanded
+                panel so the compact header stays uncluttered. */}
+            <div
+              style={{
+                marginTop: '0.5rem',
+                paddingTop: '0.5rem',
+                borderTop: '1px solid var(--border-subtle)',
+              }}
+            >
+              <SessionPanel onNavigate={() => setIsExpanded(false)} />
             </div>
           </nav>
         </div>
