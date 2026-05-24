@@ -12,9 +12,9 @@ import AuditTab from './tabs/AuditTab';
 import BacklinksTab from './tabs/BacklinksTab';
 
 const TABS = [
-  { id: 'collections', label: 'Collections' },
-  { id: 'identity', label: 'Identity' },
-  { id: 'audit', label: 'Audit log' },
+  { id: 'collections', label: 'Lexicons' },
+  { id: 'identity', label: 'ID' },
+  { id: 'audit', label: 'Log' },
   { id: 'backlinks', label: 'Backlinks' },
 ] as const;
 

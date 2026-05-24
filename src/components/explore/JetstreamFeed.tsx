@@ -210,22 +210,11 @@ export default function JetstreamFeed({
           const tail = r.collection.split('.').slice(-2).join('.');
           const age = Date.now() - r.receivedAt;
           const isFresh = age < NEW_ROW_ACCENT_MS;
-          return (
-            <li
-              key={r.uri}
-              data-fresh={isFresh ? '' : undefined}
-              className="explore-jetstream-row"
-              style={{
-                display: 'grid',
-                gridTemplateColumns: 'minmax(14ch, 20ch) minmax(12ch, 18ch) 1fr',
-                gap: '0.75rem',
-                padding: '0.5rem 1rem',
-                borderBottom: '1px solid var(--border-subtle)',
-                fontFamily: 'var(--font-mono)',
-                fontSize: '0.8125rem',
-                color: 'var(--text-primary)',
-              }}
-            >
+          // Reusable inner grid that shows DID / collection / preview as
+          // three columns. Used for both the linked and unlinked variants
+          // so the row layout stays identical.
+          const rowContents = (
+            <>
               <code
                 style={{
                   background: 'transparent',
@@ -252,21 +241,42 @@ export default function JetstreamFeed({
               >
                 {tail}
               </code>
+              <span
+                style={{
+                  color: 'var(--text-secondary)',
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                }}
+              >
+                {previewFor(r.value) || r.rkey}
+              </span>
+            </>
+          );
+          const rowGridStyle: React.CSSProperties = {
+            display: 'grid',
+            gridTemplateColumns: 'minmax(14ch, 20ch) minmax(12ch, 18ch) 1fr',
+            gap: '0.75rem',
+            padding: '0.5rem 1rem',
+            borderBottom: '1px solid var(--border-subtle)',
+            fontFamily: 'var(--font-mono)',
+            fontSize: '0.8125rem',
+            color: 'var(--text-primary)',
+            textDecoration: 'none',
+            alignItems: 'baseline',
+          };
+          return (
+            <li
+              key={r.uri}
+              data-fresh={isFresh ? '' : undefined}
+              className="explore-jetstream-row"
+            >
               {explorerHref ? (
-                <AtUriLink
-                  uri={r.uri}
-                  style={{
-                    color: 'var(--text-secondary)',
-                    whiteSpace: 'nowrap',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    textDecoration: 'none',
-                  }}
-                >
-                  {previewFor(r.value) || r.rkey}
+                <AtUriLink uri={r.uri} style={rowGridStyle}>
+                  {rowContents}
                 </AtUriLink>
               ) : (
-                <span style={{ color: 'var(--text-secondary)' }}>{r.rkey}</span>
+                <div style={rowGridStyle}>{rowContents}</div>
               )}
             </li>
           );
