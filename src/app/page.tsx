@@ -21,11 +21,14 @@ export default function HomePage() {
 
       {/* Three product strips. Each is one of Aturi's offerings with a
           real interactive demo on one side and the pitch on the other.
-          Replaces the old 4-card grid + the "Try it yourself" example
-          links (whose paths had gone stale). */}
-      <UniversalLinksStrip />
+          Order leads with the extension (the primary download CTA in
+          the hero), then the explorer (the secondary CTA), and closes
+          on universal links — the most ambient/everyone-encounters-it
+          surface, which doubles as the natural connector to the
+          waypoints catalog. */}
       <ExtensionStrip />
       <ExplorerStrip />
+      <UniversalLinksStrip />
 
       {/* Why Aturi? — brand story; kept as-is. */}
       <div

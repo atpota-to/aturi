@@ -71,7 +71,12 @@ export default function WaypointJumpVisual({ handle = 'aturi.to' }: { handle?: s
         aria-hidden
       >
         <Link2 size={12} style={{ color: 'var(--text-accent)' }} />
-        <span>aturi.to/<strong style={{ color: 'var(--text-accent)', fontWeight: 500 }}>{handle}</strong></span>
+        <span>
+          aturi.to/profile/
+          <strong style={{ color: 'var(--text-accent)', fontWeight: 500 }}>
+            {handle}
+          </strong>
+        </span>
       </div>
 
       {/* Travelling-highlight chevron arrow that sits between the URL

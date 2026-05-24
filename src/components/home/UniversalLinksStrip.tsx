@@ -62,7 +62,7 @@ export default function UniversalLinksStrip() {
           </p>
           <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
             <Link
-              href={`/${DEMO_HANDLE}`}
+              href={`/profile/${DEMO_HANDLE}`}
               className="generate-button"
               style={{
                 display: 'inline-flex',

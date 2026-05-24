@@ -3,6 +3,7 @@
 import { MousePointerClick, Repeat } from 'lucide-react';
 import { getWaypointCount } from '@/utils/waypoints';
 import ProductStrip from './ProductStrip';
+import BrowserChrome from './BrowserChrome';
 import ExtensionPopupVisual from './ExtensionPopupVisual';
 import DownloadButton from './DownloadButton';
 
@@ -67,7 +68,11 @@ export default function ExtensionStrip() {
           <DownloadButton variant="primary" align="start" />
         </>
       }
-      demo={<ExtensionPopupVisual />}
+      demo={
+        <BrowserChrome>
+          <ExtensionPopupVisual />
+        </BrowserChrome>
+      }
     />
   );
 }
