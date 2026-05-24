@@ -11,6 +11,7 @@ import Breadcrumb from './Breadcrumb';
 import CopyButton from './CopyButton';
 import ProfileHeader from './ProfileHeader';
 import AccountStats from '@/components/account/AccountStats';
+import CredBlueScoreBadge from '@/components/CredBlueScore';
 import CollectionsTab from './tabs/CollectionsTab';
 import IdentityTab from './tabs/IdentityTab';
 import AuditTab from './tabs/AuditTab';
@@ -85,6 +86,14 @@ export default function RepoExplorer({ repo }: { repo: string }) {
       </AppearIn>
       <AppearIn delay={0.1}>
         <IdentityRow identity={identity} />
+      </AppearIn>
+      <AppearIn delay={0.13}>
+        <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
+          <CredBlueScoreBadge
+            identifier={identity.handle || identity.did}
+            linkHandle={identity.handle || identity.did}
+          />
+        </div>
       </AppearIn>
       {/* High-level stats — same tile grid the account-settings page
           uses, dropped in here so anyone viewing a repo (not just its

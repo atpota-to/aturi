@@ -12,3 +12,6 @@ export const JETSTREAM = 'wss://jetstream2.us-east.bsky.network/subscribe';
 export const HANDLE_RESOLVER_FALLBACK = 'https://bsky.social';
 
 export const ATURI_BASE = 'https://aturi.to';
+
+export const CRED_BLUE_API = 'https://api.cred.blue';
+export const CRED_BLUE_BASE = 'https://cred.blue';
