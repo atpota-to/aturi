@@ -7,6 +7,7 @@ import { useAtprotoSession } from '@/components/AtprotoSessionProvider';
 import { usePreferences } from '@/components/PreferencesProvider';
 import { getProfile, type AppViewProfile } from '@/utils/atproto/appview';
 import { encodeRepo } from '@/utils/atproto/urls';
+import AccountStats from './AccountStats';
 import WaypointsManager from './WaypointsManager';
 
 export default function AccountPage() {
@@ -203,6 +204,23 @@ export default function AccountPage() {
           </button>
         </div>
       </section>
+
+      {/* High-level repo stats — pulled in parallel from PDS / PLC / Constellation. */}
+      {did && (
+        <section style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
+          <h2
+            style={{
+              margin: 0,
+              fontSize: '1.05rem',
+              fontWeight: 400,
+              color: 'var(--text-primary)',
+            }}
+          >
+            Repo at a glance
+          </h2>
+          <AccountStats did={did} />
+        </section>
+      )}
 
       {/* PDS sync status */}
       <SyncStatus pdsSync={pdsSync} />
