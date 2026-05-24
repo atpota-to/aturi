@@ -1,39 +1,21 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import Link from 'next/link';
-import { CheckCircle2, CircleAlert, Loader2, LogOut, Telescope, User } from 'lucide-react';
+import { useState } from 'react';
 import { useAtprotoSession } from '@/components/AtprotoSessionProvider';
 import ScopeSelector from '@/components/oauth/ScopeSelector';
-import { usePreferences } from '@/components/PreferencesProvider';
-import { getProfile, type AppViewProfile } from '@/utils/atproto/appview';
-import { encodeRepo } from '@/utils/atproto/urls';
-import AccountStats from './AccountStats';
-import WaypointsManager from './WaypointsManager';
+import SettingsShell from './SettingsShell';
 
+/**
+ * /account page. When signed out, renders the two-step sign-in flow.
+ * When signed in, renders the tabbed settings shell.
+ */
 export default function AccountPage() {
-  const { session, did, signIn, signOut, loading } = useAtprotoSession();
-  const { pdsSync } = usePreferences();
+  const { session, signIn, loading } = useAtprotoSession();
   const [input, setInput] = useState('');
   const [step, setStep] = useState<'handle' | 'scopes'>('handle');
   const [pendingAccount, setPendingAccount] = useState('');
   const [busy, setBusy] = useState(false);
-  const [profile, setProfile] = useState<AppViewProfile | null>(null);
   const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!did) {
-      setProfile(null);
-      return undefined;
-    }
-    let cancelled = false;
-    getProfile(did).then((p) => {
-      if (!cancelled) setProfile(p);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [did]);
 
   if (loading) {
     return <p className="explore-placeholder">Loading account…</p>;
@@ -145,169 +127,5 @@ export default function AccountPage() {
     );
   }
 
-  const handle = profile?.handle;
-  const displayName = profile?.displayName?.trim() || handle || did;
-  const avatar = profile?.avatar;
-
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-      {/* Account header */}
-      <section
-        style={{
-          display: 'flex',
-          gap: '1rem',
-          alignItems: 'center',
-          padding: '1rem',
-          background: 'var(--bg-secondary)',
-          border: '1px solid var(--border-medium)',
-          flexWrap: 'wrap',
-        }}
-      >
-        {avatar ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={avatar}
-            alt=""
-            width={48}
-            height={48}
-            style={{
-              width: 48,
-              height: 48,
-              objectFit: 'cover',
-              flexShrink: 0,
-              border: '1px solid var(--border-medium)',
-              background: 'var(--bg-tertiary)',
-            }}
-          />
-        ) : (
-          <span
-            style={{
-              width: 48,
-              height: 48,
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              background: 'var(--bg-tertiary)',
-              border: '1px solid var(--border-medium)',
-              color: 'var(--text-tertiary)',
-              flexShrink: 0,
-            }}
-          >
-            <User size={20} />
-          </span>
-        )}
-        <div style={{ flex: '1 1 14rem', minWidth: 0 }}>
-          <div style={{ fontSize: '1.1rem', color: 'var(--text-primary)' }}>
-            {displayName}
-          </div>
-          {handle && (
-            <div
-              style={{
-                fontSize: '0.85rem',
-                color: 'var(--text-tertiary)',
-                fontFamily: 'var(--font-mono)',
-                wordBreak: 'break-all',
-              }}
-            >
-              @{handle}
-            </div>
-          )}
-        </div>
-        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-          {did && (
-            <Link
-              href={`/explore/${encodeRepo(did)}`}
-              style={ghostLinkStyle()}
-            >
-              <Telescope size={13} /> My repo
-            </Link>
-          )}
-          <button type="button" onClick={() => void signOut()} style={ghostLinkStyle({ danger: true })}>
-            <LogOut size={13} /> Sign out
-          </button>
-        </div>
-      </section>
-
-      {/* High-level repo stats — pulled in parallel from PDS / PLC / Constellation. */}
-      {did && (
-        <section style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
-          <h2
-            style={{
-              margin: 0,
-              fontSize: '1.05rem',
-              fontWeight: 400,
-              color: 'var(--text-primary)',
-            }}
-          >
-            Repo at a glance
-          </h2>
-          <AccountStats did={did} />
-        </section>
-      )}
-
-      {/* PDS sync status */}
-      <SyncStatus pdsSync={pdsSync} />
-
-      {/* The actual preference editor */}
-      <WaypointsManager />
-    </div>
-  );
-}
-
-function SyncStatus({
-  pdsSync,
-}: {
-  pdsSync: ReturnType<typeof usePreferences>['pdsSync'];
-}) {
-  if (pdsSync === null) return null;
-  let icon: React.ReactNode;
-  let label: string;
-  let color: string;
-  if (pdsSync === 'syncing') {
-    icon = <Loader2 size={12} className="explore-spin" />;
-    label = 'Syncing preferences to your PDS…';
-    color = 'var(--text-tertiary)';
-  } else if (pdsSync === 'idle') {
-    icon = <CheckCircle2 size={12} />;
-    label = 'Preferences synced to your PDS.';
-    color = 'var(--text-accent)';
-  } else {
-    icon = <CircleAlert size={12} />;
-    label = 'Preference sync to PDS failed — local changes are saved.';
-    color = 'var(--danger)';
-  }
-  return (
-    <div
-      style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: '0.4rem',
-        padding: '0.4rem 0.625rem',
-        background: 'var(--bg-tertiary)',
-        border: '1px solid var(--border-subtle)',
-        fontSize: '0.75rem',
-        color,
-        alignSelf: 'flex-start',
-      }}
-    >
-      {icon}
-      <span>{label}</span>
-    </div>
-  );
-}
-
-function ghostLinkStyle({ danger }: { danger?: boolean } = {}): React.CSSProperties {
-  return {
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: '0.375rem',
-    padding: '0.4rem 0.75rem',
-    background: 'var(--bg-tertiary)',
-    border: '1px solid var(--border-medium)',
-    color: danger ? 'var(--danger)' : 'var(--text-secondary)',
-    fontFamily: 'var(--font-serif)',
-    fontSize: '0.8125rem',
-    cursor: 'pointer',
-    textDecoration: 'none',
-  };
+  return <SettingsShell />;
 }
