@@ -45,9 +45,6 @@ export default function Header({ simple = false, compact = false }: HeaderProps)
           marginBottom: '2rem',
           paddingTop: '1rem',
           paddingBottom: '0.75rem',
-          background: 'var(--bg-overlay)',
-          backdropFilter: 'blur(12px)',
-          WebkitBackdropFilter: 'blur(12px)',
         }}
       >
         <div
