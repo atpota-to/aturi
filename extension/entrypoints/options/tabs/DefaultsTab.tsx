@@ -11,6 +11,7 @@ import {
   type Prefs,
 } from '../../../lib/prefs';
 import { allWaypoints, DID_REQUIRED_WAYPOINTS, visibleWaypointIds } from '../../../lib/catalog';
+import { t } from '../../../lib/i18n';
 import SearchSelect, { type SearchSelectOption } from '../components/SearchSelect';
 
 type Props = {
@@ -54,34 +55,30 @@ export default function DefaultsTab({ prefs, onChange }: Props) {
   }
 
   async function handleClearRecents() {
-    if (!confirm('Clear your Recents list? This only affects the Recents row in the popup.')) {
+    if (!confirm(t('defaults_clearRecentsConfirm'))) {
       return;
     }
     await clearRecents();
   }
 
+  const onLabel = t('switch_on');
+  const offLabel = t('switch_off');
+
   return (
     <div>
-      <h1 className="options-h1">General</h1>
-      <p className="options-lede">
-        Tune how the popup behaves and, when auto-redirect is on, pick a favorite reader
-        for each family of records. Redirects only apply between clients that share the
-        same underlying data.
-      </p>
+      <h1 className="options-h1">{t('defaults_h1')}</h1>
+      <p className="options-lede">{t('defaults_lede')}</p>
 
       <div className="options-card">
-        <div className="options-card-title">Appearance</div>
-        <div className="options-card-sub">
-          Pick a color theme and text size. Changes apply immediately to the popup
-          and this settings page.
-        </div>
+        <div className="options-card-title">{t('defaults_appearanceTitle')}</div>
+        <div className="options-card-sub">{t('defaults_appearanceSub')}</div>
 
         <div className="appearance-row">
-          <div className="appearance-row-label">Theme</div>
+          <div className="appearance-row-label">{t('defaults_theme')}</div>
           <div
             className="appearance-segmented"
             role="radiogroup"
-            aria-label="Color theme"
+            aria-label={t('defaults_themeAria')}
           >
             {(['dark', 'light'] as const).map(value => (
               <button
@@ -92,25 +89,25 @@ export default function DefaultsTab({ prefs, onChange }: Props) {
                 className={`appearance-segment ${prefs.theme === value ? 'is-active' : ''}`}
                 onClick={() => onChange({ theme: value })}
               >
-                {value === 'dark' ? 'Dark' : 'Light'}
+                {value === 'dark' ? t('defaults_themeDark') : t('defaults_themeLight')}
               </button>
             ))}
           </div>
         </div>
 
         <div className="appearance-row">
-          <div className="appearance-row-label">Text size</div>
+          <div className="appearance-row-label">{t('defaults_textSize')}</div>
           <div
             className="appearance-segmented"
             role="radiogroup"
-            aria-label="Text size"
+            aria-label={t('defaults_textSizeAria')}
           >
             {(
               [
-                { value: 'small', label: 'Small' },
-                { value: 'medium', label: 'Medium' },
-                { value: 'large', label: 'Large' },
-                { value: 'xlarge', label: 'X-Large' },
+                { value: 'small', labelKey: 'defaults_textSmall' },
+                { value: 'medium', labelKey: 'defaults_textMedium' },
+                { value: 'large', labelKey: 'defaults_textLarge' },
+                { value: 'xlarge', labelKey: 'defaults_textXLarge' },
               ] as const
             ).map(opt => (
               <button
@@ -121,7 +118,7 @@ export default function DefaultsTab({ prefs, onChange }: Props) {
                 className={`appearance-segment ${prefs.fontSize === opt.value ? 'is-active' : ''}`}
                 onClick={() => onChange({ fontSize: opt.value })}
               >
-                {opt.label}
+                {t(opt.labelKey)}
               </button>
             ))}
           </div>
@@ -131,11 +128,11 @@ export default function DefaultsTab({ prefs, onChange }: Props) {
       <div className="options-card">
         <div className="options-toggle-row">
           <div>
-            <div className="options-card-title">Auto-redirect</div>
+            <div className="options-card-title">{t('defaults_autoRedirect')}</div>
             <div className="options-card-sub">
               {prefs.autoRedirect
-                ? 'On — pick a favorite reader for each record family below.'
-                : 'Off — the popup still works, but nothing is redirected automatically.'}
+                ? t('defaults_autoRedirectOnSub')
+                : t('defaults_autoRedirectOffSub')}
             </div>
           </div>
           <button
@@ -144,7 +141,7 @@ export default function DefaultsTab({ prefs, onChange }: Props) {
             aria-pressed={prefs.autoRedirect}
           >
             <span className="aturi-switch-box" />
-            <span className="aturi-muted">{prefs.autoRedirect ? 'On' : 'Off'}</span>
+            <span className="aturi-muted">{prefs.autoRedirect ? onLabel : offLabel}</span>
           </button>
         </div>
 
@@ -153,19 +150,16 @@ export default function DefaultsTab({ prefs, onChange }: Props) {
             <div className="aturi-hr" />
             <div className="defaults-favorites-intro">
               <div className="aturi-label" style={{ marginBottom: 4 }}>
-                Favorites by compatibility group
+                {t('defaults_favoritesLabel')}
               </div>
               <div className="aturi-subtle" style={{ fontSize: 12 }}>
-                Each group holds apps that render the same underlying records, so
-                redirects between them make sense. Pick a favorite (or leave blank) for
-                each.
+                {t('defaults_favoritesHelp')}
               </div>
             </div>
 
             {activeFamilies.length === 0 ? (
               <div className="aturi-subtle" style={{ marginTop: 6 }}>
-                Add more waypoints to your groups in the Waypoints tab to configure
-                favorites here.
+                {t('defaults_favoritesEmpty')}
               </div>
             ) : (
               <div className="defaults-family-list">
@@ -173,8 +167,9 @@ export default function DefaultsTab({ prefs, onChange }: Props) {
                   const meta = COMPAT_FAMILIES[family];
                   const candidates = familyCandidates.get(family) ?? [];
                   const current = prefs.favoriteByFamily?.[family] ?? '';
+                  const noneLabel = t('defaults_favoritesNone');
                   const options: SearchSelectOption[] = [
-                    { value: '', label: '(none)', fixed: true },
+                    { value: '', label: noneLabel, fixed: true },
                     ...candidates.map(w => ({ value: w.id, label: w.name })),
                   ];
                   return (
@@ -188,7 +183,7 @@ export default function DefaultsTab({ prefs, onChange }: Props) {
                         options={options}
                         value={current}
                         onChange={val => setFamilyFavorite(family, val)}
-                        placeholder="(none)"
+                        placeholder={noneLabel}
                       />
                     </div>
                   );
@@ -202,11 +197,11 @@ export default function DefaultsTab({ prefs, onChange }: Props) {
 
         <div className="options-toggle-row">
           <div>
-            <div className="options-card-title">Smart recommendations</div>
+            <div className="options-card-title">{t('defaults_smartRecsTitle')}</div>
             <div className="options-card-sub">
               {prefs.smartRecommendations
-                ? 'The popup highlights a "Recommended" row tailored to the current record (e.g. Standard Site pages suggest Leaflet, Offprint, pckt).'
-                : 'Off — the popup only shows your defined groups in the order you set, with no extra recommendation row.'}
+                ? t('defaults_smartRecsOnSub')
+                : t('defaults_smartRecsOffSub')}
             </div>
           </div>
           <button
@@ -215,7 +210,7 @@ export default function DefaultsTab({ prefs, onChange }: Props) {
             aria-pressed={prefs.smartRecommendations}
           >
             <span className="aturi-switch-box" />
-            <span className="aturi-muted">{prefs.smartRecommendations ? 'On' : 'Off'}</span>
+            <span className="aturi-muted">{prefs.smartRecommendations ? onLabel : offLabel}</span>
           </button>
         </div>
 
@@ -223,11 +218,11 @@ export default function DefaultsTab({ prefs, onChange }: Props) {
 
         <div className="options-toggle-row">
           <div>
-            <div className="options-card-title">Open in new tab</div>
+            <div className="options-card-title">{t('defaults_openNewTabTitle')}</div>
             <div className="options-card-sub">
               {prefs.openInNewTab
-                ? 'Picking a waypoint opens it in a new browser tab.'
-                : 'Off — picking a waypoint navigates the current tab instead of opening a new one.'}
+                ? t('defaults_openNewTabOnSub')
+                : t('defaults_openNewTabOffSub')}
             </div>
           </div>
           <button
@@ -236,7 +231,7 @@ export default function DefaultsTab({ prefs, onChange }: Props) {
             aria-pressed={prefs.openInNewTab}
           >
             <span className="aturi-switch-box" />
-            <span className="aturi-muted">{prefs.openInNewTab ? 'On' : 'Off'}</span>
+            <span className="aturi-muted">{prefs.openInNewTab ? onLabel : offLabel}</span>
           </button>
         </div>
 
@@ -244,11 +239,11 @@ export default function DefaultsTab({ prefs, onChange }: Props) {
 
         <div className="options-toggle-row">
           <div>
-            <div className="options-card-title">Compact mode</div>
+            <div className="options-card-title">{t('defaults_compactTitle')}</div>
             <div className="options-card-sub">
               {prefs.compactMode
-                ? 'On — the popup uses a denser layout with smaller icons and no description line, so more waypoints fit at once.'
-                : 'Off — the popup shows each waypoint with a larger icon and a secondary description line.'}
+                ? t('defaults_compactOnSub')
+                : t('defaults_compactOffSub')}
             </div>
           </div>
           <button
@@ -257,7 +252,7 @@ export default function DefaultsTab({ prefs, onChange }: Props) {
             aria-pressed={prefs.compactMode}
           >
             <span className="aturi-switch-box" />
-            <span className="aturi-muted">{prefs.compactMode ? 'On' : 'Off'}</span>
+            <span className="aturi-muted">{prefs.compactMode ? onLabel : offLabel}</span>
           </button>
         </div>
 
@@ -265,11 +260,11 @@ export default function DefaultsTab({ prefs, onChange }: Props) {
 
         <div className="options-toggle-row">
           <div>
-            <div className="options-card-title">Recents</div>
+            <div className="options-card-title">{t('defaults_recentsTitle')}</div>
             <div className="options-card-sub">
               {prefs.historyEnabled
-                ? 'On — the popup shows a Recents row at the top with the waypoints you reach for most often.'
-                : 'Off — the popup hides the Recents row and stops recording new picks.'}
+                ? t('defaults_recentsOnSub')
+                : t('defaults_recentsOffSub')}
             </div>
             {prefs.historyEnabled && prefs.recents.length > 0 && (
               <button
@@ -277,7 +272,7 @@ export default function DefaultsTab({ prefs, onChange }: Props) {
                 className="aturi-btn aturi-btn-ghost defaults-clear-recents"
                 onClick={handleClearRecents}
               >
-                Clear Recents ({prefs.recents.length})
+                {t('defaults_clearRecents', String(prefs.recents.length))}
               </button>
             )}
           </div>
@@ -287,7 +282,7 @@ export default function DefaultsTab({ prefs, onChange }: Props) {
             aria-pressed={prefs.historyEnabled}
           >
             <span className="aturi-switch-box" />
-            <span className="aturi-muted">{prefs.historyEnabled ? 'On' : 'Off'}</span>
+            <span className="aturi-muted">{prefs.historyEnabled ? onLabel : offLabel}</span>
           </button>
         </div>
       </div>

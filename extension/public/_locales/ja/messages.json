@@ -194,5 +194,119 @@
     "placeholders": {
       "version": { "content": "$1", "example": "0.1.2" }
     }
+  },
+  "defaults_h1": {
+    "message": "一般"
+  },
+  "defaults_lede": {
+    "message": "ポップアップの動作を調整し、自動リダイレクトがオンの場合は各レコードファミリーのお気に入りリーダーを選びます。リダイレクトは、同じ基礎データを共有するクライアント間でのみ適用されます。"
+  },
+  "defaults_appearanceTitle": {
+    "message": "外観"
+  },
+  "defaults_appearanceSub": {
+    "message": "カラーテーマとテキストサイズを選択。変更はポップアップとこの設定ページに即座に適用されます。"
+  },
+  "defaults_theme": {
+    "message": "テーマ"
+  },
+  "defaults_themeAria": {
+    "message": "カラーテーマ"
+  },
+  "defaults_themeDark": {
+    "message": "ダーク"
+  },
+  "defaults_themeLight": {
+    "message": "ライト"
+  },
+  "defaults_textSize": {
+    "message": "テキストサイズ"
+  },
+  "defaults_textSizeAria": {
+    "message": "テキストサイズ"
+  },
+  "defaults_textSmall": {
+    "message": "小"
+  },
+  "defaults_textMedium": {
+    "message": "中"
+  },
+  "defaults_textLarge": {
+    "message": "大"
+  },
+  "defaults_textXLarge": {
+    "message": "特大"
+  },
+  "defaults_autoRedirect": {
+    "message": "自動リダイレクト"
+  },
+  "defaults_autoRedirectOnSub": {
+    "message": "オン — 下記の各レコードファミリーにお気に入りリーダーを選んでください。"
+  },
+  "defaults_autoRedirectOffSub": {
+    "message": "オフ — ポップアップは引き続き動作しますが、自動リダイレクトは行われません。"
+  },
+  "defaults_favoritesLabel": {
+    "message": "互換性グループごとのお気に入り"
+  },
+  "defaults_favoritesHelp": {
+    "message": "各グループには、同じ基礎レコードを表示するアプリが含まれ、それらの間のリダイレクトは意味があります。各グループのお気に入りを選択（または空白のまま）してください。"
+  },
+  "defaults_favoritesEmpty": {
+    "message": "ウェイポイントタブでグループにさらにウェイポイントを追加すると、ここでお気に入りを設定できます。"
+  },
+  "defaults_favoritesNone": {
+    "message": "(なし)"
+  },
+  "defaults_smartRecsTitle": {
+    "message": "スマート推奨"
+  },
+  "defaults_smartRecsOnSub": {
+    "message": "ポップアップは現在のレコードに合わせた「推奨」行を強調表示します（例: Standard Siteページは Leaflet、Offprint、pckt を提案）。"
+  },
+  "defaults_smartRecsOffSub": {
+    "message": "オフ — ポップアップは設定した順序であなたが定義したグループのみを表示し、追加の推奨行はありません。"
+  },
+  "defaults_openNewTabTitle": {
+    "message": "新しいタブで開く"
+  },
+  "defaults_openNewTabOnSub": {
+    "message": "ウェイポイントを選択すると新しいブラウザタブで開きます。"
+  },
+  "defaults_openNewTabOffSub": {
+    "message": "オフ — ウェイポイントを選択すると、新しいタブを開かずに現在のタブで移動します。"
+  },
+  "defaults_compactTitle": {
+    "message": "コンパクトモード"
+  },
+  "defaults_compactOnSub": {
+    "message": "オン — ポップアップは小さなアイコンと説明行なしの密なレイアウトを使用し、一度により多くのウェイポイントを表示できます。"
+  },
+  "defaults_compactOffSub": {
+    "message": "オフ — ポップアップは各ウェイポイントを大きなアイコンと二次的な説明行で表示します。"
+  },
+  "defaults_recentsTitle": {
+    "message": "最近"
+  },
+  "defaults_recentsOnSub": {
+    "message": "オン — ポップアップは上部に、最もよく使うウェイポイントの「最近」行を表示します。"
+  },
+  "defaults_recentsOffSub": {
+    "message": "オフ — ポップアップは「最近」行を非表示にし、新しい選択の記録を停止します。"
+  },
+  "defaults_clearRecents": {
+    "message": "最近をクリア ($COUNT$)",
+    "placeholders": {
+      "count": { "content": "$1", "example": "12" }
+    }
+  },
+  "defaults_clearRecentsConfirm": {
+    "message": "最近のリストをクリアしますか？ ポップアップの最近の行にのみ影響します。"
+  },
+  "switch_on": {
+    "message": "オン"
+  },
+  "switch_off": {
+    "message": "オフ"
   }
 }

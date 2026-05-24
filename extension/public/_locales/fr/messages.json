@@ -194,5 +194,119 @@
     "placeholders": {
       "version": { "content": "$1", "example": "0.1.2" }
     }
+  },
+  "defaults_h1": {
+    "message": "Général"
+  },
+  "defaults_lede": {
+    "message": "Ajustez le comportement de la popup et, lorsque la redirection automatique est activée, choisissez un lecteur favori pour chaque famille d'enregistrements. Les redirections ne s'appliquent qu'entre les clients qui partagent les mêmes données sous-jacentes."
+  },
+  "defaults_appearanceTitle": {
+    "message": "Apparence"
+  },
+  "defaults_appearanceSub": {
+    "message": "Choisissez un thème de couleur et une taille de texte. Les modifications s'appliquent immédiatement à la popup et à cette page de paramètres."
+  },
+  "defaults_theme": {
+    "message": "Thème"
+  },
+  "defaults_themeAria": {
+    "message": "Thème de couleur"
+  },
+  "defaults_themeDark": {
+    "message": "Sombre"
+  },
+  "defaults_themeLight": {
+    "message": "Clair"
+  },
+  "defaults_textSize": {
+    "message": "Taille du texte"
+  },
+  "defaults_textSizeAria": {
+    "message": "Taille du texte"
+  },
+  "defaults_textSmall": {
+    "message": "Petit"
+  },
+  "defaults_textMedium": {
+    "message": "Moyen"
+  },
+  "defaults_textLarge": {
+    "message": "Grand"
+  },
+  "defaults_textXLarge": {
+    "message": "Très grand"
+  },
+  "defaults_autoRedirect": {
+    "message": "Redirection automatique"
+  },
+  "defaults_autoRedirectOnSub": {
+    "message": "Activée — choisissez un lecteur favori pour chaque famille d'enregistrements ci-dessous."
+  },
+  "defaults_autoRedirectOffSub": {
+    "message": "Désactivée — la popup fonctionne toujours, mais rien n'est redirigé automatiquement."
+  },
+  "defaults_favoritesLabel": {
+    "message": "Favoris par groupe de compatibilité"
+  },
+  "defaults_favoritesHelp": {
+    "message": "Chaque groupe contient des applications qui affichent les mêmes enregistrements sous-jacents, donc les redirections entre elles ont du sens. Choisissez un favori (ou laissez vide) pour chacun."
+  },
+  "defaults_favoritesEmpty": {
+    "message": "Ajoutez plus de waypoints à vos groupes dans l'onglet Waypoints pour configurer des favoris ici."
+  },
+  "defaults_favoritesNone": {
+    "message": "(aucun)"
+  },
+  "defaults_smartRecsTitle": {
+    "message": "Recommandations intelligentes"
+  },
+  "defaults_smartRecsOnSub": {
+    "message": "La popup met en avant une ligne « Recommandé » adaptée à l'enregistrement actuel (par exemple, les pages Standard Site suggèrent Leaflet, Offprint, pckt)."
+  },
+  "defaults_smartRecsOffSub": {
+    "message": "Désactivé — la popup n'affiche que vos groupes définis dans l'ordre choisi, sans ligne de recommandation supplémentaire."
+  },
+  "defaults_openNewTabTitle": {
+    "message": "Ouvrir dans un nouvel onglet"
+  },
+  "defaults_openNewTabOnSub": {
+    "message": "Choisir un waypoint l'ouvre dans un nouvel onglet de navigateur."
+  },
+  "defaults_openNewTabOffSub": {
+    "message": "Désactivé — choisir un waypoint navigue dans l'onglet actuel au lieu d'en ouvrir un nouveau."
+  },
+  "defaults_compactTitle": {
+    "message": "Mode compact"
+  },
+  "defaults_compactOnSub": {
+    "message": "Activé — la popup utilise une disposition plus dense avec des icônes plus petites et sans ligne de description, donc plus de waypoints tiennent à la fois."
+  },
+  "defaults_compactOffSub": {
+    "message": "Désactivé — la popup montre chaque waypoint avec une icône plus grande et une ligne de description secondaire."
+  },
+  "defaults_recentsTitle": {
+    "message": "Récents"
+  },
+  "defaults_recentsOnSub": {
+    "message": "Activé — la popup affiche une ligne Récents en haut avec les waypoints que vous utilisez le plus souvent."
+  },
+  "defaults_recentsOffSub": {
+    "message": "Désactivé — la popup cache la ligne Récents et arrête d'enregistrer de nouvelles sélections."
+  },
+  "defaults_clearRecents": {
+    "message": "Effacer les Récents ($COUNT$)",
+    "placeholders": {
+      "count": { "content": "$1", "example": "12" }
+    }
+  },
+  "defaults_clearRecentsConfirm": {
+    "message": "Effacer votre liste de Récents ? Cela n'affecte que la ligne Récents dans la popup."
+  },
+  "switch_on": {
+    "message": "Activé"
+  },
+  "switch_off": {
+    "message": "Désactivé"
   }
 }

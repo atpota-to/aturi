@@ -194,5 +194,119 @@
     "placeholders": {
       "version": { "content": "$1", "example": "0.1.2" }
     }
+  },
+  "defaults_h1": {
+    "message": "General"
+  },
+  "defaults_lede": {
+    "message": "Ajusta cómo se comporta la ventana emergente y, cuando la redirección automática está activada, elige un lector favorito para cada familia de registros. Las redirecciones solo se aplican entre clientes que comparten los mismos datos subyacentes."
+  },
+  "defaults_appearanceTitle": {
+    "message": "Apariencia"
+  },
+  "defaults_appearanceSub": {
+    "message": "Elige un tema de color y un tamaño de texto. Los cambios se aplican inmediatamente a la ventana emergente y a esta página de configuración."
+  },
+  "defaults_theme": {
+    "message": "Tema"
+  },
+  "defaults_themeAria": {
+    "message": "Tema de color"
+  },
+  "defaults_themeDark": {
+    "message": "Oscuro"
+  },
+  "defaults_themeLight": {
+    "message": "Claro"
+  },
+  "defaults_textSize": {
+    "message": "Tamaño de texto"
+  },
+  "defaults_textSizeAria": {
+    "message": "Tamaño de texto"
+  },
+  "defaults_textSmall": {
+    "message": "Pequeño"
+  },
+  "defaults_textMedium": {
+    "message": "Mediano"
+  },
+  "defaults_textLarge": {
+    "message": "Grande"
+  },
+  "defaults_textXLarge": {
+    "message": "Extra grande"
+  },
+  "defaults_autoRedirect": {
+    "message": "Redirección automática"
+  },
+  "defaults_autoRedirectOnSub": {
+    "message": "Activada — elige un lector favorito para cada familia de registros abajo."
+  },
+  "defaults_autoRedirectOffSub": {
+    "message": "Desactivada — la ventana emergente sigue funcionando, pero nada se redirige automáticamente."
+  },
+  "defaults_favoritesLabel": {
+    "message": "Favoritos por grupo de compatibilidad"
+  },
+  "defaults_favoritesHelp": {
+    "message": "Cada grupo contiene aplicaciones que muestran los mismos registros subyacentes, así que las redirecciones entre ellas tienen sentido. Elige un favorito (o déjalo en blanco) para cada uno."
+  },
+  "defaults_favoritesEmpty": {
+    "message": "Añade más waypoints a tus grupos en la pestaña Waypoints para configurar favoritos aquí."
+  },
+  "defaults_favoritesNone": {
+    "message": "(ninguno)"
+  },
+  "defaults_smartRecsTitle": {
+    "message": "Recomendaciones inteligentes"
+  },
+  "defaults_smartRecsOnSub": {
+    "message": "La ventana emergente destaca una fila «Recomendado» adaptada al registro actual (por ejemplo, las páginas Standard Site sugieren Leaflet, Offprint, pckt)."
+  },
+  "defaults_smartRecsOffSub": {
+    "message": "Desactivado — la ventana emergente solo muestra tus grupos definidos en el orden que estableciste, sin fila de recomendaciones adicional."
+  },
+  "defaults_openNewTabTitle": {
+    "message": "Abrir en nueva pestaña"
+  },
+  "defaults_openNewTabOnSub": {
+    "message": "Elegir un waypoint lo abre en una nueva pestaña del navegador."
+  },
+  "defaults_openNewTabOffSub": {
+    "message": "Desactivado — elegir un waypoint navega en la pestaña actual en lugar de abrir una nueva."
+  },
+  "defaults_compactTitle": {
+    "message": "Modo compacto"
+  },
+  "defaults_compactOnSub": {
+    "message": "Activado — la ventana emergente usa una disposición más densa con iconos más pequeños y sin línea de descripción, así que caben más waypoints a la vez."
+  },
+  "defaults_compactOffSub": {
+    "message": "Desactivado — la ventana emergente muestra cada waypoint con un icono más grande y una línea de descripción secundaria."
+  },
+  "defaults_recentsTitle": {
+    "message": "Recientes"
+  },
+  "defaults_recentsOnSub": {
+    "message": "Activado — la ventana emergente muestra una fila de Recientes arriba con los waypoints que más usas."
+  },
+  "defaults_recentsOffSub": {
+    "message": "Desactivado — la ventana emergente oculta la fila de Recientes y deja de registrar nuevas selecciones."
+  },
+  "defaults_clearRecents": {
+    "message": "Borrar Recientes ($COUNT$)",
+    "placeholders": {
+      "count": { "content": "$1", "example": "12" }
+    }
+  },
+  "defaults_clearRecentsConfirm": {
+    "message": "¿Borrar tu lista de Recientes? Solo afecta a la fila de Recientes en la ventana emergente."
+  },
+  "switch_on": {
+    "message": "Activado"
+  },
+  "switch_off": {
+    "message": "Desactivado"
   }
 }

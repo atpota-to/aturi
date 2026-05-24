@@ -194,5 +194,119 @@
     "placeholders": {
       "version": { "content": "$1", "example": "0.1.2" }
     }
+  },
+  "defaults_h1": {
+    "message": "General"
+  },
+  "defaults_lede": {
+    "message": "Tune how the popup behaves and, when auto-redirect is on, pick a favorite reader for each family of records. Redirects only apply between clients that share the same underlying data."
+  },
+  "defaults_appearanceTitle": {
+    "message": "Appearance"
+  },
+  "defaults_appearanceSub": {
+    "message": "Pick a color theme and text size. Changes apply immediately to the popup and this settings page."
+  },
+  "defaults_theme": {
+    "message": "Theme"
+  },
+  "defaults_themeAria": {
+    "message": "Color theme"
+  },
+  "defaults_themeDark": {
+    "message": "Dark"
+  },
+  "defaults_themeLight": {
+    "message": "Light"
+  },
+  "defaults_textSize": {
+    "message": "Text size"
+  },
+  "defaults_textSizeAria": {
+    "message": "Text size"
+  },
+  "defaults_textSmall": {
+    "message": "Small"
+  },
+  "defaults_textMedium": {
+    "message": "Medium"
+  },
+  "defaults_textLarge": {
+    "message": "Large"
+  },
+  "defaults_textXLarge": {
+    "message": "X-Large"
+  },
+  "defaults_autoRedirect": {
+    "message": "Auto-redirect"
+  },
+  "defaults_autoRedirectOnSub": {
+    "message": "On — pick a favorite reader for each record family below."
+  },
+  "defaults_autoRedirectOffSub": {
+    "message": "Off — the popup still works, but nothing is redirected automatically."
+  },
+  "defaults_favoritesLabel": {
+    "message": "Favorites by compatibility group"
+  },
+  "defaults_favoritesHelp": {
+    "message": "Each group holds apps that render the same underlying records, so redirects between them make sense. Pick a favorite (or leave blank) for each."
+  },
+  "defaults_favoritesEmpty": {
+    "message": "Add more waypoints to your groups in the Waypoints tab to configure favorites here."
+  },
+  "defaults_favoritesNone": {
+    "message": "(none)"
+  },
+  "defaults_smartRecsTitle": {
+    "message": "Smart recommendations"
+  },
+  "defaults_smartRecsOnSub": {
+    "message": "The popup highlights a \"Recommended\" row tailored to the current record (e.g. Standard Site pages suggest Leaflet, Offprint, pckt)."
+  },
+  "defaults_smartRecsOffSub": {
+    "message": "Off — the popup only shows your defined groups in the order you set, with no extra recommendation row."
+  },
+  "defaults_openNewTabTitle": {
+    "message": "Open in new tab"
+  },
+  "defaults_openNewTabOnSub": {
+    "message": "Picking a waypoint opens it in a new browser tab."
+  },
+  "defaults_openNewTabOffSub": {
+    "message": "Off — picking a waypoint navigates the current tab instead of opening a new one."
+  },
+  "defaults_compactTitle": {
+    "message": "Compact mode"
+  },
+  "defaults_compactOnSub": {
+    "message": "On — the popup uses a denser layout with smaller icons and no description line, so more waypoints fit at once."
+  },
+  "defaults_compactOffSub": {
+    "message": "Off — the popup shows each waypoint with a larger icon and a secondary description line."
+  },
+  "defaults_recentsTitle": {
+    "message": "Recents"
+  },
+  "defaults_recentsOnSub": {
+    "message": "On — the popup shows a Recents row at the top with the waypoints you reach for most often."
+  },
+  "defaults_recentsOffSub": {
+    "message": "Off — the popup hides the Recents row and stops recording new picks."
+  },
+  "defaults_clearRecents": {
+    "message": "Clear Recents ($COUNT$)",
+    "placeholders": {
+      "count": { "content": "$1", "example": "12" }
+    }
+  },
+  "defaults_clearRecentsConfirm": {
+    "message": "Clear your Recents list? This only affects the Recents row in the popup."
+  },
+  "switch_on": {
+    "message": "On"
+  },
+  "switch_off": {
+    "message": "Off"
   }
 }
