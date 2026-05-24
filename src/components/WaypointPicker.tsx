@@ -2,12 +2,18 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import { ExternalLink, Copy, Check } from 'lucide-react';
-import { 
-  getCategorizedWaypoints, 
+import {
+  getCategorizedWaypoints,
   getRecommendedWaypoints,
   getWaypointsForType,
-  type WaypointType 
+  type WaypointType
 } from '@/utils/waypoints';
+import {
+  personalizeCategorized,
+  personalizeRecommended,
+  customToWaypoint,
+} from '@/utils/personalizeWaypoints';
+import { usePreferences } from './PreferencesProvider';
 import ShareButton from './ShareButton';
 import CategoryCard from './CategoryCard';
 
@@ -30,22 +36,35 @@ export default function WaypointPicker({
 }: WaypointPickerProps) {
   const display = displayName || `@${handle}`;
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const { prefs } = usePreferences();
 
-  // Get categorized waypoints and featured waypoint
-  const categorizedWaypoints = useMemo(() => getCategorizedWaypoints(type), [type]);
+  // Get categorized waypoints and featured waypoint, with user prefs applied
+  // (hidden built-ins removed, custom waypoints added as their own group,
+  // user-defined ordering respected within each category).
+  const categorizedWaypoints = useMemo(
+    () => personalizeCategorized(getCategorizedWaypoints(type), prefs, type),
+    [type, prefs],
+  );
   const recommendedData = useMemo(
-    () => getRecommendedWaypoints(type, collection), 
+    () => getRecommendedWaypoints(type, collection),
     [type, collection]
   );
   const recommendedWaypoints = useMemo(
-    () => recommendedData?.waypoints || [],
-    [recommendedData]
+    () => personalizeRecommended(recommendedData?.waypoints || [], prefs),
+    [recommendedData, prefs]
   );
   const recommendedLabel = useMemo(
     () => recommendedData?.label || '',
     [recommendedData]
   );
-  const availableWaypoints = useMemo(() => getWaypointsForType(type), [type]);
+  const availableWaypoints = useMemo(() => {
+    const builtins = getWaypointsForType(type);
+    const customs = prefs.customWaypoints
+      .filter((c) => c.supportedTypes.includes(type))
+      .map(customToWaypoint);
+    const hidden = new Set(prefs.hiddenWaypoints);
+    return [...customs, ...builtins.filter((w) => !hidden.has(w.id))];
+  }, [type, prefs]);
 
   // Smart expansion: Compute initial expanded categories based on compatible waypoints
   const initialExpandedCategories = useMemo(() => {

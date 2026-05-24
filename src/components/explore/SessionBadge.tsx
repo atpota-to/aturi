@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { LogOut, User } from 'lucide-react';
-import { useAtprotoSession } from './AtprotoSessionProvider';
+import { useAtprotoSession } from '@/components/AtprotoSessionProvider';
 import { encodeRepo } from '@/utils/atproto/urls';
 
 /**

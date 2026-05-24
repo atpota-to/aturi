@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { Analytics } from "@vercel/analytics/next";
+import { AtprotoSessionProvider } from "@/components/AtprotoSessionProvider";
+import { PreferencesProvider } from "@/components/PreferencesProvider";
 import Footer from "@/components/Footer";
 import PageTransition from "@/components/PageTransition";
 import ThemeSync from "@/components/ThemeSync";
@@ -45,9 +47,13 @@ export default function RootLayout({
       </head>
       <body>
         <ThemeSync />
-        <PageTransition>
-          <main style={{ position: 'relative', zIndex: 1 }}>{children}</main>
-        </PageTransition>
+        <AtprotoSessionProvider>
+          <PreferencesProvider>
+            <PageTransition>
+              <main style={{ position: 'relative', zIndex: 1 }}>{children}</main>
+            </PageTransition>
+          </PreferencesProvider>
+        </AtprotoSessionProvider>
         <Footer />
         <Analytics />
       </body>

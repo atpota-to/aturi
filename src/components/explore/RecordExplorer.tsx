@@ -14,7 +14,7 @@ import EngagementSidecar from './EngagementSidecar';
 import BacklinksTab from './tabs/BacklinksTab';
 import RecordEditor from './RecordEditor';
 import SignInPanel from './SignInPanel';
-import { useAtprotoSession } from './AtprotoSessionProvider';
+import { useAtprotoSession } from '@/components/AtprotoSessionProvider';
 
 type Props = {
   repo: string;

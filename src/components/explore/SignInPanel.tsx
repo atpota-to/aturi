@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { LogIn } from 'lucide-react';
-import { useAtprotoSession } from './AtprotoSessionProvider';
+import { useAtprotoSession } from '@/components/AtprotoSessionProvider';
 
 /**
  * Compact sign-in form used inside the record view's action row. Accepts a

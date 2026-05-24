@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Home, Link2, Leaf, UserPlus, Telescope } from 'lucide-react';
 import { motion } from 'framer-motion';
 import ThemeToggle from './ThemeToggle';
+import SessionMenu from './SessionMenu';
 
 interface HeaderProps {
   simple?: boolean; // If true, shows a smaller version without the tagline
@@ -109,25 +110,28 @@ export default function Header({ simple = false, compact = false }: HeaderProps)
             </span>
           </Link>
 
-          {/* Expandable menu button */}
-          <button
-            onClick={() => setIsExpanded(!isExpanded)}
-            style={{
-              padding: '0.5rem',
-              background: 'var(--bg-tertiary)',
-              border: '1px solid var(--border-medium)',
-              color: 'var(--text-accent)',
-              transition: 'all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)',
-              transform: isExpanded ? 'rotate(90deg) scale(1.1)' : 'rotate(0deg)',
-            }}
-            aria-label="Toggle menu"
-            aria-expanded={isExpanded}
-          >
-            <Leaf size={18} style={{
-              transition: 'all 0.3s ease',
-              opacity: isExpanded ? 0.6 : 1,
-            }} />
-          </button>
+          {/* Session pill + expandable menu button */}
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
+            <SessionMenu variant="compact" />
+            <button
+              onClick={() => setIsExpanded(!isExpanded)}
+              style={{
+                padding: '0.5rem',
+                background: 'var(--bg-tertiary)',
+                border: '1px solid var(--border-medium)',
+                color: 'var(--text-accent)',
+                transition: 'all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)',
+                transform: isExpanded ? 'rotate(90deg) scale(1.1)' : 'rotate(0deg)',
+              }}
+              aria-label="Toggle menu"
+              aria-expanded={isExpanded}
+            >
+              <Leaf size={18} style={{
+                transition: 'all 0.3s ease',
+                opacity: isExpanded ? 0.6 : 1,
+              }} />
+            </button>
+          </div>
         </div>
 
         {/* Expanding organic nav panel */}
@@ -271,6 +275,8 @@ export default function Header({ simple = false, compact = false }: HeaderProps)
           </Link>
           <span style={{ color: 'var(--text-tertiary)', fontSize: '0.75rem' }}>·</span>
           <ThemeToggle variant="inline" />
+          <span style={{ color: 'var(--text-tertiary)', fontSize: '0.75rem' }}>·</span>
+          <SessionMenu variant="inline" />
         </nav>
       </header>
     );
@@ -376,6 +382,8 @@ export default function Header({ simple = false, compact = false }: HeaderProps)
         </Link>
         <span style={{ color: 'var(--text-tertiary)', fontSize: '0.875rem' }}>·</span>
         <ThemeToggle variant="inline" />
+        <span style={{ color: 'var(--text-tertiary)', fontSize: '0.875rem' }}>·</span>
+        <SessionMenu variant="inline" />
       </motion.nav>
     </header>
   );

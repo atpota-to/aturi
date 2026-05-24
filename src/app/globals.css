@@ -1181,6 +1181,22 @@ html {
   }
 }
 
+/* Spinner used by the account-page PDS sync status indicator. */
+.explore-spin {
+  animation: explore-spin 0.9s linear infinite;
+}
+
+@keyframes explore-spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .explore-spin {
+    animation: none;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .explore-jetstream-row[data-fresh] {
     animation: none;
