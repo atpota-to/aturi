@@ -18,6 +18,12 @@ const PARTS: Part[] = [
     accent: 'var(--text-tertiary)',
   },
   {
+    text: '/profile',
+    label: 'Mount',
+    hint: 'The canonical mount point. Bare paths without /profile/ resolve too, for backwards compatibility.',
+    accent: 'var(--text-secondary)',
+  },
+  {
     text: '/aturi.to',
     label: 'Handle or DID',
     hint: 'Resolved to a PDS via the standard atproto identity chain.',

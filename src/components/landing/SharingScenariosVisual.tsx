@@ -25,7 +25,7 @@ export default function SharingScenariosVisual() {
         body={
           <>
             check this out —{' '}
-            <Link>aturi.to/aturi.to/post/3lq…</Link>
+            <Link>aturi.to/profile/aturi.to/post/3lq…</Link>
           </>
         }
       />
@@ -36,7 +36,7 @@ export default function SharingScenariosVisual() {
         body={
           <>
             writer · gardener · my work lives at{' '}
-            <Link>aturi.to/new-account.bsky.social</Link>
+            <Link>aturi.to/profile/new-account.bsky.social</Link>
           </>
         }
       />
@@ -47,7 +47,7 @@ export default function SharingScenariosVisual() {
         body={
           <>
             Follow updates →{' '}
-            <Link>aturi.to/handle/app.bsky.feed.generator/news</Link>
+            <Link>aturi.to/profile/handle/app.bsky.feed.generator/news</Link>
           </>
         }
       />
