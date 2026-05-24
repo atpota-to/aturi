@@ -60,22 +60,31 @@ function groupHierarchically(list: string[], filterStr: string): MajorGroup[] {
     }
   }
 
-  // Sort + materialize.
+  // Sort + materialize. Sub-groups with a single item are hoisted up to
+  // the major's direct list — a collapsible group containing one row is
+  // pure wrapper noise.
   return Array.from(majors.entries())
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([majorKey, bucket]) => {
-      const subgroups: SubGroup[] = Array.from(bucket.subs.entries())
-        .sort(([a], [b]) => a.localeCompare(b))
-        .map(([subKey, items]) => ({
-          key: subKey,
-          fullKey: `${majorKey}.${subKey}`,
-          items: items.sort(),
-        }));
+      const hoistedDirect = [...bucket.direct];
+      const subgroups: SubGroup[] = [];
+      for (const [subKey, items] of bucket.subs.entries()) {
+        if (items.length === 1) {
+          hoistedDirect.push(items[0]);
+        } else {
+          subgroups.push({
+            key: subKey,
+            fullKey: `${majorKey}.${subKey}`,
+            items: items.sort(),
+          });
+        }
+      }
+      subgroups.sort((a, b) => a.key.localeCompare(b.key));
       const totalCount =
-        bucket.direct.length + subgroups.reduce((acc, s) => acc + s.items.length, 0);
+        hoistedDirect.length + subgroups.reduce((acc, s) => acc + s.items.length, 0);
       return {
         key: majorKey,
-        directItems: bucket.direct.sort(),
+        directItems: hoistedDirect.sort(),
         subgroups,
         totalCount,
       };
