@@ -238,7 +238,7 @@ export default function UniversalLinksLanding() {
               >
                 Signed in as @aturi.to
               </div>
-              <PrefRow lexicon="app.bsky.feed.post" client="Deer" />
+              <PrefRow lexicon="app.bsky.feed.post" client="Anisota" />
               <PrefRow lexicon="pub.leaflet.document" client="Leaflet" />
               <PrefRow lexicon="sh.tangled.repo" client="Tangled" />
               <div

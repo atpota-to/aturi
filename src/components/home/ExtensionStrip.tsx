@@ -41,9 +41,9 @@ export default function ExtensionStrip() {
           </span>
           <h2>Jump between Atmosphere clients in one click</h2>
           <p>
-            Land on a Bluesky post and want to read it in Deer? Click the leaf in
-            your toolbar — the popup detects the AT URI on the page and offers
-            every app that can render it.
+            Land on a Bluesky post and want to read it in Anisota? Click the
+            leaf in your toolbar — the popup detects the AT URI on the page and
+            offers every app that can render it.
           </p>
           <p>
             Pick a favorite once and let auto-redirect handle it. Open
