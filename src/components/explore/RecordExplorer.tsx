@@ -109,18 +109,30 @@ export default function RecordExplorer({ repo, collection, rkey }: Props) {
         />
       </AppearIn>
 
-      <AppearIn delay={0.05}>
-        <RecordMeta atUri={atUri} cid={record?.cid} pds={identity.pds} did={identity.did} />
-      </AppearIn>
-
+      {/* Rich preview leads — most visitors care about "what is this
+          record?" before they care about its CID / PDS / DID. Mirrors
+          the universal link page's layout. */}
       {recordError && <p className="explore-error">{recordError}</p>}
       {!record && !recordError && <p className="explore-placeholder">Loading record…</p>}
+      <AppearIn delay={0.05}>
+        <RichRecordPreview
+          handle={identity.handle || identity.did}
+          did={identity.did}
+          collection={collection}
+          rkey={decodedRkey}
+          record={record}
+        />
+      </AppearIn>
 
       {record && (
         <AppearIn>
           <EngagementSidecar did={identity.did} collection={collection} atUri={atUri} />
         </AppearIn>
       )}
+
+      <AppearIn delay={0.08}>
+        <RecordMeta atUri={atUri} cid={record?.cid} pds={identity.pds} did={identity.did} />
+      </AppearIn>
 
       <AppearIn delay={0.1}>
       <div
@@ -233,20 +245,6 @@ export default function RecordExplorer({ repo, collection, rkey }: Props) {
           <SignInPanel defaultInput={identity.handle || ''} />
         </div>
       )}
-
-      {/* Rich preview — same renderer the universal link pages use, so the
-          record looks the way it would on /profile/<handle>/<col>/<rkey>
-          (PostPreview for posts, margin previews for at.margin.*, generic
-          RecordPreview otherwise). */}
-      <AppearIn delay={0.12}>
-        <RichRecordPreview
-          handle={identity.handle || identity.did}
-          did={identity.did}
-          collection={collection}
-          rkey={decodedRkey}
-          record={record}
-        />
-      </AppearIn>
 
       {record && (
         <details className="explore-section">
