@@ -59,10 +59,10 @@ export default function ExtensionLanding() {
                 marginBottom: '1rem',
               }}
             >
-              Land on a Bluesky post and want to read it in Deer? Click the leaf
-              in your toolbar — the popup detects the AT URI on the page and
-              offers every app that can render it. Pick a favorite once and let
-              auto-redirect handle the rest.
+              Land on a Bluesky post and want to read it in Anisota? Click the
+              leaf in your toolbar — the popup detects the AT URI on the page
+              and offers every app that can render it. Pick a favorite once and
+              let auto-redirect handle the rest.
             </p>
             <p
               style={{
@@ -100,8 +100,8 @@ export default function ExtensionLanding() {
               <p>
                 The popup picks up whatever AT URI is on the page and surfaces a
                 recommended client at the top, plus every other waypoint that
-                supports that lexicon — from Bluesky and Deer to Leaflet,
-                Tangled, Margin, Grain, and the rest of the catalog.
+                supports that lexicon — from Anisota and Bluesky to Deer,
+                Leaflet, Tangled, Margin, Grain, and the rest of the catalog.
               </p>
               <p>
                 Each row links straight to the equivalent page on the other
@@ -145,9 +145,9 @@ export default function ExtensionLanding() {
             <>
               <p>
                 Pick a preferred client for each kind of record — posts in
-                Deer, documents in Leaflet, repositories in Tangled — and the
-                extension transparently sends you there whenever you click an
-                Atmosphere link from anywhere on the web.
+                Anisota, documents in Leaflet, repositories in Tangled — and
+                the extension transparently sends you there whenever you click
+                an Atmosphere link from anywhere on the web.
               </p>
               <p>
                 Preferences are per-lexicon and per-device. Disable

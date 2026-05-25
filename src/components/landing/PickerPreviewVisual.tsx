@@ -2,6 +2,7 @@
 
 import { ChevronRight, Star } from 'lucide-react';
 import {
+  AnisotaLogo,
   BlueskySVG,
   DeerSVG,
   LeafletSVG,
@@ -11,15 +12,20 @@ import {
 
 const ROWS: { icon: React.ReactNode; name: string; desc: string; featured?: boolean }[] = [
   {
-    icon: <DeerSVG />,
-    name: 'Deer',
-    desc: 'View post on deer.social',
+    icon: <AnisotaLogo />,
+    name: 'Anisota',
+    desc: 'View post on anisota.net',
     featured: true,
   },
   {
     icon: <BlueskySVG />,
     name: 'Bluesky',
     desc: 'View post on bsky.app',
+  },
+  {
+    icon: <DeerSVG />,
+    name: 'Deer',
+    desc: 'View post on deer.social',
   },
   {
     icon: <LeafletSVG />,

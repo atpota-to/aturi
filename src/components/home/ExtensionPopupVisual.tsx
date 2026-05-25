@@ -2,6 +2,7 @@
 
 import { Leaf, MoreHorizontal, Settings } from 'lucide-react';
 import {
+  AnisotaLogo,
   AturiSVG,
   BlueskySVG,
   DeerSVG,
@@ -114,9 +115,9 @@ export default function ExtensionPopupVisual() {
       {/* Recommended row */}
       <Section title="Recommended for posts">
         <Row
-          icon={<DeerSVG />}
-          name="Deer"
-          desc="View post on deer.social"
+          icon={<AnisotaLogo />}
+          name="Anisota"
+          desc="View post on anisota.net"
         />
       </Section>
 
@@ -126,6 +127,11 @@ export default function ExtensionPopupVisual() {
           icon={<BlueskySVG />}
           name="Bluesky"
           desc="View post on bsky.app"
+        />
+        <Row
+          icon={<DeerSVG />}
+          name="Deer"
+          desc="View post on deer.social"
         />
         <Row
           icon={<LeafletSVG />}
