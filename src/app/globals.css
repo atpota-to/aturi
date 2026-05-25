@@ -1927,7 +1927,19 @@ html {
   html {
     font-size: 14px;
   }
-  
+
+  /* iOS Safari auto-zooms a focused input/textarea/select whose computed
+     font-size is below 16px. Floor it at 16px on mobile so the explorer
+     search bar, login fields, custom-waypoint form, and other in-page
+     inputs don't trigger zoom-in on tap. !important is required because
+     most of these inputs set their font-size via inline `style={{...}}`,
+     which would otherwise win on specificity. */
+  input,
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
+
   .container,
   .container-narrow {
     padding: 0 1rem;
