@@ -56,20 +56,6 @@ export default function RecordPreview({
       })
     : null;
 
-  // Helper to render field preview (simplified)
-  const renderFieldPreview = (val: unknown) => {
-    if (typeof val === 'string') {
-      // Truncate long strings
-      return val.length > 100 ? `${val.substring(0, 100)}...` : val;
-    }
-    if (typeof val === 'number' || typeof val === 'boolean') {
-      return String(val);
-    }
-    if (typeof val === 'object' && val !== null) {
-      return `{${Object.keys(val).length} fields}`;
-    }
-    return String(val);
-  };
 
   return (
     <div
@@ -185,9 +171,10 @@ export default function RecordPreview({
                     fontSize: '0.9375rem',
                     lineHeight: '1.6',
                     wordBreak: 'break-word',
+                    minWidth: 0,
                   }}
                 >
-                  {renderFieldPreview(val)}
+                  <FieldValue value={val} />
                 </div>
               </div>
             ))}
@@ -284,6 +271,111 @@ async function writeToClipboard(text: string): Promise<void> {
     document.body.removeChild(ta);
   }
 }
+
+/**
+ * Recursively renders a record field value. Objects and arrays collapse
+ * into a tappable `{N fields}` / `[N items]` summary; expanding reveals
+ * the nested key/value pairs (themselves recursive, so deep blobs like
+ * `avatar.ref.$link` are reachable). Primitives render inline.
+ */
+function FieldValue({ value }: { value: unknown }) {
+  if (value === null) {
+    return <span style={{ color: 'var(--text-tertiary)' }}>null</span>;
+  }
+  if (typeof value === 'string') {
+    const display = value.length > 280 ? `${value.substring(0, 280)}…` : value;
+    return <>{display}</>;
+  }
+  if (typeof value === 'number' || typeof value === 'boolean') {
+    return <>{String(value)}</>;
+  }
+  if (Array.isArray(value)) {
+    if (value.length === 0) {
+      return <span style={{ color: 'var(--text-tertiary)' }}>[ ]</span>;
+    }
+    return (
+      <details>
+        <summary style={nestedSummaryStyle}>{`[${value.length} items]`}</summary>
+        <div style={nestedBodyStyle}>
+          {value.map((item, i) => (
+            <NestedRow key={i} label={String(i)} value={item} />
+          ))}
+        </div>
+      </details>
+    );
+  }
+  if (typeof value === 'object') {
+    const entries = Object.entries(value as Record<string, unknown>);
+    if (entries.length === 0) {
+      return <span style={{ color: 'var(--text-tertiary)' }}>{'{ }'}</span>;
+    }
+    return (
+      <details>
+        <summary style={nestedSummaryStyle}>{`{${entries.length} fields}`}</summary>
+        <div style={nestedBodyStyle}>
+          {entries.map(([k, v]) => (
+            <NestedRow key={k} label={k} value={v} />
+          ))}
+        </div>
+      </details>
+    );
+  }
+  return <>{String(value)}</>;
+}
+
+function NestedRow({ label, value }: { label: string; value: unknown }) {
+  return (
+    <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-start' }}>
+      <div
+        style={{
+          fontSize: '0.7rem',
+          fontWeight: 600,
+          textTransform: 'uppercase',
+          letterSpacing: '0.05em',
+          color: 'var(--text-tertiary)',
+          minWidth: '5.5rem',
+          paddingTop: '0.125rem',
+          fontFamily: 'var(--font-mono)',
+          wordBreak: 'break-all',
+        }}
+      >
+        {label}
+      </div>
+      <div
+        style={{
+          flex: 1,
+          minWidth: 0,
+          fontSize: '0.875rem',
+          color: 'var(--text-primary)',
+          wordBreak: 'break-word',
+        }}
+      >
+        <FieldValue value={value} />
+      </div>
+    </div>
+  );
+}
+
+const nestedSummaryStyle: React.CSSProperties = {
+  cursor: 'pointer',
+  color: 'var(--text-accent)',
+  fontFamily: 'var(--font-mono)',
+  fontSize: '0.85rem',
+  userSelect: 'none',
+  // Default `display: list-item` is preserved so the native disclosure
+  // triangle (▶ / ▼) shows and rotates with the open state — gives users
+  // a clear tap-to-expand affordance without a custom chevron.
+};
+
+const nestedBodyStyle: React.CSSProperties = {
+  marginTop: '0.5rem',
+  marginLeft: '0.5rem',
+  paddingLeft: '0.75rem',
+  borderLeft: '1px solid var(--border-subtle)',
+  display: 'flex',
+  flexDirection: 'column',
+  gap: '0.5rem',
+};
 
 function CopyJsonRow({ record }: { record: GenericRecord }) {
   const [copied, setCopied] = useState(false);
