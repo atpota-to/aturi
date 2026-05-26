@@ -75,15 +75,16 @@ export default function HomePage() {
               <p style={{ marginBottom: '1rem' }}>
                 The name is a playful blend of{' '}
                 <strong style={{ color: 'var(--text-primary)' }}>AT URI</strong>
-                , the universal identifier that points to any record, profile,
-                or resource across the Atmosphere. Pronounced like &ldquo;Atari&rdquo;
-                but with &ldquo;turi&rdquo; at the end&mdash;<em>uh-tour-ee</em>.
+                , the universal identifier the AT Protocol uses to point at
+                any record, profile, or resource. Pronounced like
+                &ldquo;Atari&rdquo; but with &ldquo;turi&rdquo; at the
+                end&mdash;<em>uh-tour-ee</em>.
               </p>
               <p>
                 Every piece of content in the Atmosphere has an AT URI that
                 works regardless of which app or server you&apos;re using. We
-                thought it deserved a friendly name that&apos;s easy to remember
-                and share.
+                thought it deserved a friendly name that&apos;s easy to
+                remember and share.
               </p>
             </div>
             <div

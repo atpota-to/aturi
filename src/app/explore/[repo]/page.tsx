@@ -11,7 +11,7 @@ export async function generateMetadata({
   const { repo } = await params;
   const decoded = decodeURIComponent(repo);
   const title = `${decoded} · Atmosphere Explorer`;
-  const description = `Browse the PDS records, identity history, and backlinks for ${decoded} on the Atmosphere.`;
+  const description = `Browse the PDS records, identity history, and backlinks for ${decoded} in the Atmosphere.`;
   return {
     title,
     description,
