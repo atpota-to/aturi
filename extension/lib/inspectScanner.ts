@@ -159,6 +159,53 @@ export function scanDocumentForAtUris(doc: Document): DetectedAtUri[] {
 }
 
 /**
+ * Lightweight scan used by the always-on content script that drives the
+ * toolbar badge. Skips the body-text regex (the expensive part) and only
+ * looks at structured signals: `<link>` head tags, `<meta>` tags, and
+ * `<a href="at://">` anchors. URL-pattern matching is the caller's job
+ * since the scanner has no access to a URL by itself.
+ */
+export function scanDocumentForAtUrisFast(doc: Document): DetectedAtUri[] {
+  const out: DetectedAtUri[] = [];
+
+  try {
+    doc.querySelectorAll<HTMLLinkElement>('head link[href^="at://"]').forEach((el) => {
+      const href = el.getAttribute('href');
+      if (href) addUnique(out, { uri: normalize(href), where: 'head' });
+    });
+  } catch {
+    /* ignore */
+  }
+
+  try {
+    doc.querySelectorAll<HTMLMetaElement>(
+      'meta[property^="og:"], meta[name^="twitter:"], meta[name="atproto:uri"]',
+    ).forEach((el) => {
+      const content = el.getAttribute('content');
+      if (content && content.includes('at://')) {
+        const matches = content.match(AT_URI_REGEX);
+        if (matches) {
+          matches.forEach((m) => addUnique(out, { uri: normalize(m), where: 'meta' }));
+        }
+      }
+    });
+  } catch {
+    /* ignore */
+  }
+
+  try {
+    doc.querySelectorAll<HTMLAnchorElement>('a[href^="at://"]').forEach((el) => {
+      const href = el.getAttribute('href');
+      if (href) addUnique(out, { uri: normalize(href), where: 'link' });
+    });
+  } catch {
+    /* ignore */
+  }
+
+  return out;
+}
+
+/**
  * Merge detections so that each unique AT URI appears once, with a stable
  * `where` ranked from most-authoritative to least.
  */

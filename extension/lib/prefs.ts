@@ -160,6 +160,13 @@ export type Prefs = {
    * (cached for an hour); turn off to suppress that traffic.
    */
   pdsRecordScan: boolean;
+  /**
+   * When true (default), a content script scans every page you visit for
+   * AT URIs (head/meta/link tags, plus URL pattern) and surfaces a count
+   * badge on the toolbar icon. Turn off if you'd rather only scan when
+   * you open the popup's Inspect tab.
+   */
+  passiveScanEnabled: boolean;
 };
 
 const CUSTOM_GROUP_ID = 'custom';
@@ -186,6 +193,7 @@ export const DEFAULT_PREFS: Prefs = {
   knownWaypointIds: [...WAYPOINT_ORDER],
   popupMode: 'waypoints',
   pdsRecordScan: true,
+  passiveScanEnabled: true,
 };
 
 /**

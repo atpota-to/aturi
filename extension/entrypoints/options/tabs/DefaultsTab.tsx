@@ -244,6 +244,27 @@ export default function DefaultsTab({ prefs, onChange }: Props) {
 
         <div className="options-toggle-row">
           <div>
+            <div className="options-card-title">Auto-scan pages for AT URIs</div>
+            <div className="options-card-sub">
+              {prefs.passiveScanEnabled
+                ? 'On — every page you visit is checked for AT URIs (in meta tags, head links, and anchors), and a count badge appears on the toolbar icon when any are found.'
+                : "Off — the toolbar icon stays neutral. The popup's Inspect tab still scans on demand when you open it."}
+            </div>
+          </div>
+          <button
+            className={`aturi-switch ${prefs.passiveScanEnabled ? 'on' : ''}`}
+            onClick={() => onChange({ passiveScanEnabled: !prefs.passiveScanEnabled })}
+            aria-pressed={prefs.passiveScanEnabled}
+          >
+            <span className="aturi-switch-box" />
+            <span className="aturi-muted">{prefs.passiveScanEnabled ? 'On' : 'Off'}</span>
+          </button>
+        </div>
+
+        <div className="aturi-hr" />
+
+        <div className="options-toggle-row">
+          <div>
             <div className="options-card-title">Open in new tab</div>
             <div className="options-card-sub">
               {prefs.openInNewTab
