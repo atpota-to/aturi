@@ -5,8 +5,8 @@ import Link from 'next/link';
 import { ChevronDown, ChevronRight, Check } from 'lucide-react';
 import { describeRepo } from '@/utils/atproto/pdsClient';
 import { encodeRepo } from '@/utils/atproto/urls';
-import { resolveIdentifier, type IdentityBundle } from '@/utils/atproto/identity';
-import { useAtprotoSession } from '@/components/AtprotoSessionProvider';
+import type { IdentityBundle } from '@/utils/atproto/identity';
+import { useMyCollections } from '../useRepoCollections';
 
 type SubGroup = {
   /** 3rd NSID segment, e.g. "feed", "graph", "actor". */
@@ -411,48 +411,4 @@ function listStyle(): React.CSSProperties {
     margin: 0,
     padding: 0,
   };
-}
-
-/**
- * Session-cached lookup of the signed-in user's collection NSIDs. Used to
- * mark collections in common between the viewer and the repo being viewed.
- * Returns null when not signed in, viewing your own repo, or the lookup
- * is still in flight. The cache is module-level so flipping between
- * repos in a single session reuses the same Set.
- */
-const myCollectionsCache = new Map<string, Set<string>>();
-
-function useMyCollections(viewingDid: string): Set<string> | null {
-  const { did: myDid } = useAtprotoSession();
-  const [set, setSet] = useState<Set<string> | null>(null);
-  const skip = !myDid || myDid === viewingDid;
-
-  useEffect(() => {
-    if (skip || !myDid) {
-      setSet(null);
-      return undefined;
-    }
-    const cached = myCollectionsCache.get(myDid);
-    if (cached) {
-      setSet(cached);
-      return undefined;
-    }
-    let cancelled = false;
-    (async () => {
-      try {
-        const id = await resolveIdentifier(myDid);
-        const desc = await describeRepo(id.pds, id.did);
-        const next = new Set(Array.isArray(desc.collections) ? desc.collections : []);
-        myCollectionsCache.set(myDid, next);
-        if (!cancelled) setSet(next);
-      } catch {
-        // Non-fatal: failure just means we don't render in-common markers.
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [skip, myDid]);
-
-  return set;
 }
