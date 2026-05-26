@@ -15,6 +15,7 @@ import CollectionsTab from './tabs/CollectionsTab';
 import IdentityTab from './tabs/IdentityTab';
 import AuditTab from './tabs/AuditTab';
 import BacklinksTab from './tabs/BacklinksTab';
+import NotFoundPanel from '@/components/NotFoundPanel';
 
 const TABS = [
   { id: 'collections', label: 'Lexicons' },
@@ -47,13 +48,12 @@ export default function RepoExplorer({ repo }: { repo: string }) {
 
   if (error) {
     return (
-      <div>
-        <p className="explore-error">{error}</p>
-        <p className="explore-hint">
-          Try a handle (<code>aturi.to</code>), a DID (<code>did:plc:…</code>), or an{' '}
-          <code>at://</code> URI.
-        </p>
-      </div>
+      <NotFoundPanel
+        eyebrow="Couldn't resolve"
+        headline="That handle didn't resolve."
+        body={`We tried to resolve "${repo}" and the AT Protocol resolver returned: ${error}. Try a handle, DID, or AT URI below.`}
+        initialQuery={repo}
+      />
     );
   }
   if (!identity) {

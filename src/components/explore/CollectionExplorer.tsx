@@ -14,6 +14,7 @@ import {
 } from '@/utils/atproto/jetstream';
 import AppearIn from './AppearIn';
 import Breadcrumb from './Breadcrumb';
+import NotFoundPanel from '@/components/NotFoundPanel';
 
 type Props = {
   repo: string;
@@ -41,7 +42,14 @@ export default function CollectionExplorer({ repo, collection }: Props) {
   }, [repo]);
 
   if (identityError) {
-    return <p className="explore-error">{identityError}</p>;
+    return (
+      <NotFoundPanel
+        eyebrow="Couldn't resolve"
+        headline="That handle didn't resolve."
+        body={`We tried to resolve "${repo}" and the AT Protocol resolver returned: ${identityError}. Try another handle, DID, or AT URI below.`}
+        initialQuery={repo}
+      />
+    );
   }
   if (!identity) {
     return (
