@@ -46,11 +46,9 @@ const linkStyle = {
 
 export default function TermsPage() {
   return (
-    <div className="container-narrow" style={{ padding: '4rem 2rem' }}>
-      {/* Site Header */}
-      <Header simple />
+    <div className="container-narrow" style={{ padding: '2rem 2rem 4rem' }}>
+      <Header compact />
 
-      {/* Header */}
       <header style={{ marginBottom: '3rem', textAlign: 'center' }}>
         <h1 style={{ marginBottom: '1rem', color: 'var(--text-primary)' }}>
           Terms of Service & Privacy Policy

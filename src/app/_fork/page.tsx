@@ -7,10 +7,7 @@ import Header from '@/components/Header';
 export default function ForkPage() {
   return (
     <div style={{ position: 'relative', overflow: 'hidden' }}>
-      {/* Site Header */}
-      <div style={{ padding: '2rem 2rem 0' }}>
-        <Header simple />
-      </div>
+      <Header compact />
 
       {/* Hero Section - Asymmetric */}
       <div style={{ 

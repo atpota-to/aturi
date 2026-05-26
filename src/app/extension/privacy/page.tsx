@@ -26,8 +26,8 @@ const list = { marginBottom: '1rem', paddingLeft: '1.5rem' } as const;
 
 export default function ExtensionPrivacyPage() {
   return (
-    <div className="container-narrow" style={{ padding: '4rem 2rem' }}>
-      <Header simple />
+    <div className="container-narrow" style={{ padding: '2rem 2rem 4rem' }}>
+      <Header compact />
 
       <header style={{ marginBottom: '3rem', textAlign: 'center' }}>
         <h1 style={{ marginBottom: '1rem', color: 'var(--text-primary)' }}>
