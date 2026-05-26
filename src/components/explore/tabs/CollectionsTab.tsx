@@ -149,25 +149,33 @@ export default function CollectionsTab({ identity }: { identity: IdentityBundle 
 
   // The Mutual-only filter needs me signed in AND looking at someone else
   // (so `myCollections` is non-null and the comparison is meaningful).
-  const isOwnRepo = Boolean(myDid && myDid === identity.did);
-  // Pin button is always available when signed in — even on others' repos —
-  // so users can curate their pinned list while browsing.
-  const canPin = Boolean(myDid);
-  const pinTarget = pinTargetFor(prefs.pinScope, isOwnRepo);
-  // Which list backs the Pinned section on THIS repo (separate from which
-  // list pin clicks toggle — usually the same, but in 'own' mode pins on
-  // others' repos still go into the user's primary list even though the
-  // section isn't shown here).
+  const isSignedIn = Boolean(myDid);
+  // "Own repo" is meaningless when signed out — there's no logged-in DID
+  // to compare against — so this stays false in that case.
+  const isOwnRepo = isSignedIn && myDid === identity.did;
+  // Pin buttons work without sign-in: prefs are local-first and only
+  // sync to the PDS once the user signs in.
+  const canPin = true;
+  // Signed-out users have no "mine vs others" distinction, so pin
+  // toggles always target the primary list (`pinnedLexicons`). When
+  // signed in, the scope picker decides.
+  const pinTarget = isSignedIn ? pinTargetFor(prefs.pinScope, isOwnRepo) : 'mine';
+  // Which list backs the Pinned section on THIS repo. For signed-out
+  // users it's always the primary list — they can't experience the
+  // split distinction.
   const activePinList =
-    prefs.pinScope === 'split' && !isOwnRepo
+    isSignedIn && prefs.pinScope === 'split' && !isOwnRepo
       ? prefs.pinnedLexiconsOthers
       : prefs.pinnedLexicons;
-  // Whether the Pinned section bubbles up on this specific repo.
-  const pinsVisibleHere = Boolean(myDid) && (
-    prefs.pinScope === 'all'
+  // Whether the Pinned section bubbles up on this specific repo. When
+  // signed out, treat every repo as "show pins here" (effectively `all`
+  // scope) — `own` scope would otherwise hide pins everywhere since
+  // there's no own repo to be on.
+  const pinsVisibleHere =
+    !isSignedIn
+    || prefs.pinScope === 'all'
     || isOwnRepo
-    || (prefs.pinScope === 'split' && !isOwnRepo)
-  );
+    || prefs.pinScope === 'split';
   // The pinned state shown on each row reflects whichever list the next
   // pin click would target — so the row stays consistent with the button.
   const pinnedSet = useMemo(() => {
