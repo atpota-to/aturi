@@ -1092,6 +1092,18 @@ html {
   .settings-card {
     padding: 18px 16px;
   }
+  /* Stack the toggle/control under its label instead of cramming both
+     onto the same row — the segmented selectors (pin scope, theme) end
+     up wider than what fits next to a wrapped description otherwise. */
+  .settings-toggle-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+  .settings-toggle-row > .settings-switch,
+  .settings-toggle-row > [role="radiogroup"] {
+    align-self: flex-start;
+  }
 }
 
 /* -----------------------------------------------------------------------
