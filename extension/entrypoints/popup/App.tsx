@@ -35,6 +35,32 @@ import InspectView from './InspectView';
 
 type PopupMode = 'waypoints' | 'inspect';
 
+const POPUP_MODE_REMEMBER_MIN_MINUTES = 5;
+const POPUP_MODE_REMEMBER_MAX_MINUTES = 1440;
+
+/**
+ * Decide which tab the popup should open to. When the user has enabled
+ * the remember-last-mode behavior and clicked a tab within the TTL
+ * window, honor that choice; otherwise fall back to the configured
+ * default. Out-of-range minute values are clamped so a corrupt pref
+ * payload can never crash the popup or strand the user on an unwanted
+ * tab forever.
+ */
+function resolveInitialMode(prefs: Prefs): PopupMode {
+  const fallback: PopupMode = prefs.popupModeDefault ?? 'waypoints';
+  if (!prefs.popupModeRemember) return fallback;
+  if (!prefs.popupMode) return fallback;
+  const rawMinutes = prefs.popupModeRememberMinutes ?? 30;
+  const minutes = Math.min(
+    POPUP_MODE_REMEMBER_MAX_MINUTES,
+    Math.max(POPUP_MODE_REMEMBER_MIN_MINUTES, rawMinutes),
+  );
+  const stamp = prefs.popupModeLastUsedAt ?? 0;
+  if (stamp <= 0) return fallback;
+  if (Date.now() - stamp > minutes * 60_000) return fallback;
+  return prefs.popupMode;
+}
+
 type PopupState =
   | { phase: 'loading' }
   | { phase: 'unsupported'; prefs: Prefs; tabId: number | null; isKnownHost: boolean }
@@ -91,13 +117,15 @@ export default function App() {
 
   function selectMode(next: PopupMode) {
     setMode(next);
-    void savePrefs({ popupMode: next });
+    // Stamp the click time alongside the mode so the next popup launch
+    // can decide whether the remembered tab is still fresh enough.
+    void savePrefs({ popupMode: next, popupModeLastUsedAt: Date.now() });
   }
 
   async function init() {
     const prefs = await loadPrefs();
     applyAppearance(prefs);
-    if (prefs.popupMode === 'inspect') setMode('inspect');
+    setMode(resolveInitialMode(prefs));
     const tab = await getActiveTab();
     const tabId = (tab?.id as number | undefined) ?? null;
     if (!tab?.url) {

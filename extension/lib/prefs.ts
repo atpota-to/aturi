@@ -146,11 +146,36 @@ export type Prefs = {
   knownWaypointIds: string[];
   /**
    * The popup tab the user landed on last. The popup has two modes: the
-   * existing Waypoints view (jump between Atmosphere apps) and the new
-   * Inspect view (debug AT URIs on the current page). Persisted so the
-   * popup opens to the user's last-used tab on next launch.
+   * existing Waypoints view (jump between Atmosphere apps) and the
+   * Inspect view (surface AT URIs on the current page). Only honored
+   * when `popupModeRemember` is true and `popupModeLastUsedAt` is within
+   * the TTL window — otherwise the popup opens to `popupModeDefault`.
    */
   popupMode?: 'waypoints' | 'inspect';
+  /**
+   * The tab the popup opens to by default. Used when there's no
+   * remembered last-used tab, when the remember-window has expired, or
+   * when remember is turned off entirely.
+   */
+  popupModeDefault: 'waypoints' | 'inspect';
+  /**
+   * When true (default), the popup reopens to whichever tab the user was
+   * last on, subject to `popupModeRememberMinutes`. When false, every
+   * popup launch starts on `popupModeDefault`.
+   */
+  popupModeRemember: boolean;
+  /**
+   * How long (in minutes) the remembered last-used tab stays in effect
+   * before the popup falls back to `popupModeDefault`. Default 30.
+   * Valid range: 5–1440 minutes.
+   */
+  popupModeRememberMinutes: number;
+  /**
+   * Timestamp (ms since epoch) of the last time the user clicked a popup
+   * tab. Used together with `popupModeRememberMinutes` to decide whether
+   * `popupMode` is still fresh enough to honor on the next launch.
+   */
+  popupModeLastUsedAt: number;
   /**
    * When true (default), the popup calls describeRepo on the target DID
    * and uses the resulting collection list to (a) dim waypoints whose
@@ -192,6 +217,10 @@ export const DEFAULT_PREFS: Prefs = {
   fontSize: 'medium',
   knownWaypointIds: [...WAYPOINT_ORDER],
   popupMode: 'waypoints',
+  popupModeDefault: 'waypoints',
+  popupModeRemember: true,
+  popupModeRememberMinutes: 30,
+  popupModeLastUsedAt: 0,
   pdsRecordScan: true,
   passiveScanEnabled: true,
 };

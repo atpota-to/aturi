@@ -129,6 +129,87 @@ export default function DefaultsTab({ prefs, onChange }: Props) {
       </div>
 
       <div className="options-card">
+        <div className="options-card-title">Popup</div>
+        <div className="options-card-sub">
+          Choose which tab the popup opens to by default. The Waypoints tab
+          jumps between Atmosphere apps for the current page; the Inspect tab
+          surfaces the AT URIs detected on the page.
+        </div>
+
+        <div className="appearance-row">
+          <div className="appearance-row-label">Default tab</div>
+          <div
+            className="appearance-segmented"
+            role="radiogroup"
+            aria-label="Default popup tab"
+          >
+            {(
+              [
+                { value: 'waypoints', label: 'Waypoints' },
+                { value: 'inspect', label: 'Inspect' },
+              ] as const
+            ).map(opt => (
+              <button
+                key={opt.value}
+                type="button"
+                role="radio"
+                aria-checked={prefs.popupModeDefault === opt.value}
+                className={`appearance-segment ${prefs.popupModeDefault === opt.value ? 'is-active' : ''}`}
+                onClick={() => onChange({ popupModeDefault: opt.value })}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="aturi-hr" />
+
+        <div className="options-toggle-row">
+          <div>
+            <div className="options-card-title">Remember last-used tab</div>
+            <div className="options-card-sub">
+              {prefs.popupModeRemember
+                ? `On — after you switch tabs, the popup will reopen to that tab for the next ${prefs.popupModeRememberMinutes} minutes, then revert to the default.`
+                : 'Off — every popup launch starts on the default tab above.'}
+            </div>
+          </div>
+          <button
+            className={`aturi-switch ${prefs.popupModeRemember ? 'on' : ''}`}
+            onClick={() => onChange({ popupModeRemember: !prefs.popupModeRemember })}
+            aria-pressed={prefs.popupModeRemember}
+          >
+            <span className="aturi-switch-box" />
+            <span className="aturi-muted">{prefs.popupModeRemember ? 'On' : 'Off'}</span>
+          </button>
+        </div>
+
+        {prefs.popupModeRemember && (
+          <div className="appearance-row">
+            <div className="appearance-row-label">Remember for</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <input
+                type="number"
+                className="aturi-input"
+                min={5}
+                max={1440}
+                step={5}
+                value={prefs.popupModeRememberMinutes}
+                style={{ width: 90 }}
+                onChange={e => {
+                  const raw = Number(e.currentTarget.value);
+                  if (!Number.isFinite(raw)) return;
+                  const next = Math.min(1440, Math.max(5, Math.round(raw)));
+                  onChange({ popupModeRememberMinutes: next });
+                }}
+              />
+              <span className="aturi-subtle" style={{ fontSize: 12 }}>minutes (5–1440)</span>
+            </div>
+          </div>
+        )}
+      </div>
+
+      <div className="options-card">
         <div className="options-toggle-row">
           <div>
             <div className="options-card-title">Auto-redirect</div>
