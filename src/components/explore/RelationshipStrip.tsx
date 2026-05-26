@@ -1,8 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { Heart, Server, UserCheck, UserPlus, Users } from 'lucide-react';
+import { Heart, Layers, Server, UserCheck, UserPlus, Users } from 'lucide-react';
 import { useAtprotoSession } from '@/components/AtprotoSessionProvider';
 import {
   getProfileWithViewer,
@@ -11,6 +11,7 @@ import {
 import { pdsHostname } from '@/utils/atproto/pdsServer';
 import { encodeRepo } from '@/utils/atproto/urls';
 import { resolveIdentifier, type IdentityBundle } from '@/utils/atproto/identity';
+import { useMyCollections, useRepoCollections } from './useRepoCollections';
 
 type Props = {
   /** The repo the visitor is currently viewing. */
@@ -46,6 +47,14 @@ export default function RelationshipStrip({ target }: Props) {
   const targetDid = target.did;
   const targetPds = target.pds;
   const showStrip = Boolean(myDid) && Boolean(agent) && myDid !== targetDid;
+  const targetCollections = useRepoCollections(targetDid, targetPds);
+  const myCollections = useMyCollections(targetDid);
+  const inCommonCount = useMemo(() => {
+    if (!targetCollections || !myCollections) return 0;
+    let n = 0;
+    for (const c of myCollections) if (targetCollections.has(c)) n++;
+    return n;
+  }, [targetCollections, myCollections]);
 
   useEffect(() => {
     if (!showStrip || !agent || !myDid) {
@@ -97,6 +106,7 @@ export default function RelationshipStrip({ target }: Props) {
   const theyFollowedOn = dateFromFollowUri(profile?.viewer?.followedBy);
   const mutualCount = profile?.knownFollowers?.count ?? 0;
   const mutualLink = `/explore/${encodeRepo(target.handle || target.did)}?tab=identity`;
+  const collectionsLink = `/explore/${encodeRepo(target.handle || target.did)}?tab=collections`;
 
   return (
     <section style={shellStyle}>
@@ -158,7 +168,18 @@ export default function RelationshipStrip({ target }: Props) {
             </Chip>
           </Link>
         )}
-        {!samePds && !followsYou && !youFollow && mutualCount === 0 && (
+        {inCommonCount > 0 && (
+          <Link
+            href={collectionsLink}
+            style={{ textDecoration: 'none' }}
+          >
+            <Chip icon={<Layers size={11} aria-hidden />} tone="neutral">
+              {inCommonCount.toLocaleString()}{' '}
+              {inCommonCount === 1 ? 'lexicon' : 'lexicons'} in common
+            </Chip>
+          </Link>
+        )}
+        {!samePds && !followsYou && !youFollow && mutualCount === 0 && inCommonCount === 0 && (
           <span
             style={{
               fontSize: '0.75rem',
