@@ -74,7 +74,16 @@ export default function ProfileHeader({ identity }: Props) {
   const pronouns = profile.pronouns?.trim() || extras.pronouns?.trim();
   const website = extras.website?.trim();
   const handle = identity.handle || profile.handle;
-  const websiteHref = normalizeUrl(website);
+  // Website resolution: prefer the explicit `website` field on the profile
+  // record; otherwise fall back to `https://<handle>` when the handle looks
+  // like a real domain. Many self-hosted handles (certified.app, dame.is,
+  // anisota.net) ARE their own website and never bother to fill in the
+  // separate field. *.bsky.social / *.bsky.network users get the same
+  // treatment — those subdomains may not host much, but the affordance is
+  // consistent and the worst case is one extra tab that resolves to
+  // Bluesky's umbrella page.
+  const websiteHref =
+    normalizeUrl(website) ?? handleAsWebsite(handle);
   const websiteLabel = websiteHref ? prettyHostname(websiteHref) : null;
 
   // Bail entirely if there's nothing interesting to show — this is the
@@ -327,5 +336,28 @@ function prettyHostname(href: string): string {
     return (url.hostname + url.pathname).replace(/\/$/, '');
   } catch {
     return href;
+  }
+}
+
+/**
+ * Treat the handle as a potential website when it parses as a domain.
+ * Filters out: nulls, DIDs (`did:plc:...`), and bare strings without a dot
+ * (single-segment handles can't be a valid hostname). Everything else
+ * tries `https://<handle>` — the URL constructor + an http(s) protocol
+ * guard does the rest of the sanity check.
+ */
+function handleAsWebsite(handle: string | null | undefined): string | null {
+  if (!handle) return null;
+  if (handle.startsWith('did:')) return null;
+  if (!handle.includes('.')) return null;
+  try {
+    const url = new URL(`https://${handle}`);
+    if (url.protocol !== 'https:') return null;
+    // Reject anything where the hostname doesn't round-trip — guards
+    // against handles with characters that aren't valid in a hostname.
+    if (url.hostname.toLowerCase() !== handle.toLowerCase()) return null;
+    return url.toString();
+  } catch {
+    return null;
   }
 }
