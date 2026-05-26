@@ -81,10 +81,17 @@ export default defineContentScript({
 
     function report(count: number) {
       try {
-        void chrome.runtime.sendMessage({ type: 'aturi:detected', count });
+        // sendMessage returns a Promise in MV3; we don't need a response,
+        // but we still attach a .catch so an unhandled-rejection from a
+        // sleeping worker doesn't pollute the page's console.
+        const out = chrome.runtime.sendMessage({ type: 'aturi:detected', count });
+        if (out && typeof (out as Promise<unknown>).catch === 'function') {
+          (out as Promise<unknown>).catch(() => {
+            /* background not alive yet — next scan will retry */
+          });
+        }
       } catch {
-        // Background may not be alive yet (MV3) — it'll come back up on the
-        // next event and we'll re-fire on the next mutation.
+        /* ignore */
       }
     }
 

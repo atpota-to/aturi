@@ -9,6 +9,7 @@ import {
   Hash,
   Link as LinkIcon,
   MessageCircle,
+  Network,
   Quote,
   RefreshCw,
   Repeat2,
@@ -323,21 +324,6 @@ function InspectCard({ hit }: { hit: DetectedAtUri }) {
       </div>
 
       {/* Source + backlink count line. */}
-      <div className="inspect-meta">
-        <span className="inspect-source">{hit.where}</span>
-        {backlinkCount !== null && backlinkCount > 0 && (
-          <span
-            className="aturi-subtle"
-            title="Inbound links across the Atmosphere (via Constellation)"
-          >
-            · {backlinkCount.toLocaleString()} inbound
-          </span>
-        )}
-      </div>
-
-      {/* AT URI in monospace. */}
-      <code className="inspect-uri">{hit.uri}</code>
-
       {hit.sample && (
         <div className="aturi-subtle" style={{ fontSize: 11, fontStyle: 'italic' }}>
           “{hit.sample}”
@@ -348,7 +334,9 @@ function InspectCard({ hit }: { hit: DetectedAtUri }) {
         <div className="inspect-preview">{preview}</div>
       )}
 
-      {engagement && <EngagementRow engagement={engagement} />}
+      {(engagement || (backlinkCount !== null && backlinkCount > 0)) && (
+        <EngagementRow engagement={engagement} backlinkCount={backlinkCount} />
+      )}
 
       {resolution.error && (
         <div className="aturi-subtle" style={{ fontSize: 11, color: 'var(--danger, #d97070)' }}>
@@ -471,16 +459,29 @@ function BreadcrumbSeparator() {
   return <ChevronRight size={10} aria-hidden className="inspect-breadcrumb-sep" />;
 }
 
-function EngagementRow({ engagement }: { engagement: Engagement }) {
+function EngagementRow({
+  engagement,
+  backlinkCount,
+}: {
+  engagement: Engagement | null;
+  backlinkCount: number | null;
+}) {
   const items: Array<{ key: string; icon: React.ReactNode; value: number; label: string }> = [];
-  if (engagement.replies != null)
+  if (engagement?.replies != null)
     items.push({ key: 'replies', icon: <MessageCircle size={11} />, value: engagement.replies, label: 'replies' });
-  if (engagement.reposts != null)
+  if (engagement?.reposts != null)
     items.push({ key: 'reposts', icon: <Repeat2 size={11} />, value: engagement.reposts, label: 'reposts' });
-  if (engagement.likes != null)
+  if (engagement?.likes != null)
     items.push({ key: 'likes', icon: <Heart size={11} />, value: engagement.likes, label: 'likes' });
-  if (engagement.quotes != null)
+  if (engagement?.quotes != null)
     items.push({ key: 'quotes', icon: <Quote size={11} />, value: engagement.quotes, label: 'quotes' });
+  if (backlinkCount != null && backlinkCount > 0)
+    items.push({
+      key: 'inbound',
+      icon: <Network size={11} />,
+      value: backlinkCount,
+      label: 'inbound links across the Atmosphere',
+    });
   if (items.length === 0) return null;
   return (
     <div className="inspect-engagement">
