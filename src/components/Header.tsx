@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useCallback, useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { Compass, Download, Home, Leaf, Search, Telescope } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -17,6 +17,15 @@ interface HeaderProps {
 export default function Header({ simple = false, compact = false }: HeaderProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [isSearchExpanded, setIsSearchExpanded] = useState(false);
+  // When SessionPanel's inline sign-in flow is active, the panel collapses
+  // the rest of the nav (home/explore/extension/universal-links + theme
+  // toggle) so the handle input and scope picker don't push the popover
+  // into a tall, scrolly layout. `useCallback` so SessionPanel's effect
+  // doesn't fire on every Header render.
+  const [isSignInActive, setIsSignInActive] = useState(false);
+  const handleSignInActiveChange = useCallback((active: boolean) => {
+    setIsSignInActive(active);
+  }, []);
   const headerRef = useRef<HTMLElement>(null);
 
   // Click outside to close either panel. The menu and search panels are
@@ -238,37 +247,53 @@ export default function Header({ simple = false, compact = false }: HeaderProps)
               padding: '0.75rem',
             }}
           >
-            <Link href="/" className="compact-nav-link">
-              <Home size={16} />
-              <span>home</span>
-            </Link>
-            <Link href="/explore" className="compact-nav-link">
-              <Telescope size={16} />
-              <span>explore</span>
-            </Link>
-            <Link href="/extension" className="compact-nav-link">
-              <Download size={16} />
-              <span>extension</span>
-            </Link>
-            <Link href="/universal-links" className="compact-nav-link">
-              <Compass size={16} />
-              <span>universal links</span>
-            </Link>
-            <div style={{ marginTop: '0.5rem' }}>
-              <ThemeToggle variant="row" />
-            </div>
+            {/* When the sign-in flow is active inside SessionPanel, hide the
+                nav rows and theme toggle so the handle input / scope
+                picker can claim the panel's vertical space. The session
+                controls below carry their own visual chrome (input field,
+                scope-picker list) so we drop the divider rule too. */}
+            {!isSignInActive && (
+              <>
+                <Link href="/" className="compact-nav-link">
+                  <Home size={16} />
+                  <span>home</span>
+                </Link>
+                <Link href="/explore" className="compact-nav-link">
+                  <Telescope size={16} />
+                  <span>explore</span>
+                </Link>
+                <Link href="/extension" className="compact-nav-link">
+                  <Download size={16} />
+                  <span>extension</span>
+                </Link>
+                <Link href="/universal-links" className="compact-nav-link">
+                  <Compass size={16} />
+                  <span>universal links</span>
+                </Link>
+                <div style={{ marginTop: '0.5rem' }}>
+                  <ThemeToggle variant="row" />
+                </div>
+              </>
+            )}
 
             {/* Session controls: sign in (signed out) OR user info + my repo /
                 account / sign out (signed in). Lives inside the expanded
                 panel so the compact header stays uncluttered. */}
             <div
-              style={{
-                marginTop: '0.5rem',
-                paddingTop: '0.5rem',
-                borderTop: '1px solid var(--border-subtle)',
-              }}
+              style={
+                isSignInActive
+                  ? undefined
+                  : {
+                      marginTop: '0.5rem',
+                      paddingTop: '0.5rem',
+                      borderTop: '1px solid var(--border-subtle)',
+                    }
+              }
             >
-              <SessionPanel onNavigate={() => setIsExpanded(false)} />
+              <SessionPanel
+                onNavigate={() => setIsExpanded(false)}
+                onSignInActiveChange={handleSignInActiveChange}
+              />
             </div>
           </nav>
         </div>

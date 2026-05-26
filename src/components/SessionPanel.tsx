@@ -12,6 +12,13 @@ import { encodeRepo } from '@/utils/atproto/urls';
 type Props = {
   /** Called when the user clicks a nav link — lets the parent close the menu. */
   onNavigate?: () => void;
+  /**
+   * Notifies the parent when the sign-in flow is taking over the panel
+   * (handle input or scope picker visible). The compact header uses
+   * this to hide unrelated nav rows so the form doesn't push the panel
+   * to a tall, scrolly layout.
+   */
+  onSignInActiveChange?: (active: boolean) => void;
 };
 
 type SignInStep = 'idle' | 'handle' | 'scopes';
@@ -25,7 +32,7 @@ type SignInStep = 'idle' | 'handle' | 'scopes';
  * @handle" header and quick actions for the user's repo / settings /
  * sign-out.
  */
-export default function SessionPanel({ onNavigate }: Props) {
+export default function SessionPanel({ onNavigate, onSignInActiveChange }: Props) {
   const { session, did, signIn, signOut, loading } = useAtprotoSession();
   const [profile, setProfile] = useState<AppViewProfile | null>(null);
   const [signInStep, setSignInStep] = useState<SignInStep>('idle');
@@ -33,6 +40,14 @@ export default function SessionPanel({ onNavigate }: Props) {
   const [pendingAccount, setPendingAccount] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Mirror the flow's active/idle status up to the parent so it can
+  // hide adjacent nav rows while the form is taking over the panel.
+  // No setState inside — just a prop call — so this stays compliant
+  // with react-hooks/set-state-in-effect.
+  useEffect(() => {
+    onSignInActiveChange?.(signInStep !== 'idle');
+  }, [signInStep, onSignInActiveChange]);
 
   useEffect(() => {
     if (!did) {
