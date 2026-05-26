@@ -96,6 +96,13 @@ export type Preferences = {
    */
   pinScope: 'own' | 'all' | 'split';
   /**
+   * Whether lexicon groups in the explorer's Collections tab should
+   * start collapsed. Per-group toggles still work and stick for the
+   * duration of the session, but the initial fallback (and the
+   * "expand/collapse all" target) flips with this.
+   */
+  collectionGroupsCollapsedByDefault: boolean;
+  /**
    * ISO timestamp of last local change. Used to break ties when local and
    * PDS prefs both exist on sign-in.
    */
@@ -113,6 +120,7 @@ export const DEFAULT_PREFERENCES: Preferences = {
   pinnedLexicons: [],
   pinnedLexiconsOthers: [],
   pinScope: 'own',
+  collectionGroupsCollapsedByDefault: false,
   updatedAt: new Date(0).toISOString(),
 };
 
@@ -197,6 +205,10 @@ export function mergeWithDefaults(input: Partial<Preferences> | null | undefined
     input.pinScope === 'all' || input.pinScope === 'own' || input.pinScope === 'split'
       ? input.pinScope
       : 'own';
+  const collectionGroupsCollapsedByDefault =
+    typeof input.collectionGroupsCollapsedByDefault === 'boolean'
+      ? input.collectionGroupsCollapsedByDefault
+      : false;
   return {
     waypointGroups,
     hiddenWaypoints,
@@ -205,6 +217,7 @@ export function mergeWithDefaults(input: Partial<Preferences> | null | undefined
     pinnedLexicons,
     pinnedLexiconsOthers,
     pinScope,
+    collectionGroupsCollapsedByDefault,
     updatedAt:
       typeof input.updatedAt === 'string' ? input.updatedAt : new Date(0).toISOString(),
   };
@@ -268,6 +281,7 @@ export function preferencesAreEqual(a: Preferences, b: Preferences): boolean {
   return (
     a.updatedAt === b.updatedAt &&
     a.pinScope === b.pinScope &&
+    a.collectionGroupsCollapsedByDefault === b.collectionGroupsCollapsedByDefault &&
     JSON.stringify(a.waypointGroups) === JSON.stringify(b.waypointGroups) &&
     JSON.stringify(a.customWaypoints) === JSON.stringify(b.customWaypoints) &&
     JSON.stringify(a.pinnedLexicons) === JSON.stringify(b.pinnedLexicons) &&

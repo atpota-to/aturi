@@ -2,7 +2,15 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { ChevronDown, ChevronRight, Check, Pin, PinOff } from 'lucide-react';
+import {
+  ChevronDown,
+  ChevronRight,
+  ChevronsDownUp,
+  ChevronsUpDown,
+  Check,
+  Pin,
+  PinOff,
+} from 'lucide-react';
 import { describeRepo } from '@/utils/atproto/pdsClient';
 import { encodeRepo } from '@/utils/atproto/urls';
 import type { IdentityBundle } from '@/utils/atproto/identity';
@@ -100,8 +108,14 @@ export default function CollectionsTab({ identity }: { identity: IdentityBundle 
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState('');
   const [mutualOnly, setMutualOnly] = useState(false);
-  /** Collapsed-state map keyed by full group/sub key (e.g. "app.bsky" or "app.bsky.feed"). */
-  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
+  /**
+   * Per-group open-state OVERRIDES keyed by full group/sub key (e.g.
+   * "app.bsky" or "app.bsky.feed"). A missing key falls back to the
+   * user's `collectionGroupsCollapsedByDefault` preference, which is
+   * also what the "expand/collapse all" button targets — clicking it
+   * writes an explicit override for every visible group key.
+   */
+  const [openOverrides, setOpenOverrides] = useState<Record<string, boolean>>({});
   const myCollections = useMyCollections(identity.did);
   const { did: myDid } = useAtprotoSession();
   const { prefs, update } = usePreferences();
@@ -188,8 +202,31 @@ export default function CollectionsTab({ identity }: { identity: IdentityBundle 
 
   const repoSeg = encodeRepo(identity.handle || identity.did);
 
+  const defaultOpen = !prefs.collectionGroupsCollapsedByDefault;
+  function isOpen(key: string): boolean {
+    return openOverrides[key] ?? defaultOpen;
+  }
   function toggle(key: string) {
-    setCollapsed((prev) => ({ ...prev, [key]: !prev[key] ? true : false }));
+    setOpenOverrides((prev) => ({ ...prev, [key]: !isOpen(key) }));
+  }
+
+  // Collect every group key currently rendered so the "expand/collapse all"
+  // button can target the visible set, not stale keys from a previous filter.
+  const allGroupKeys = useMemo(() => {
+    const keys: string[] = [];
+    for (const g of groups) {
+      keys.push(g.key);
+      for (const sg of g.subgroups) keys.push(sg.fullKey);
+    }
+    return keys;
+  }, [groups]);
+  const anyOpen = allGroupKeys.some((k) => isOpen(k));
+  function setAllOpen(open: boolean) {
+    setOpenOverrides((prev) => {
+      const next = { ...prev };
+      for (const k of allGroupKeys) next[k] = open;
+      return next;
+    });
   }
 
   function togglePin(nsid: string) {
@@ -254,6 +291,41 @@ export default function CollectionsTab({ identity }: { identity: IdentityBundle 
             />
             Mutual lexicons only
           </label>
+        )}
+        {groups.length > 0 && (
+          <button
+            type="button"
+            onClick={() => setAllOpen(!anyOpen)}
+            aria-label={anyOpen ? 'Collapse all groups' : 'Expand all groups'}
+            title={anyOpen ? 'Collapse all groups' : 'Expand all groups'}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '0.45rem',
+              marginLeft: 'auto',
+              background: 'var(--bg-tertiary)',
+              border: '1px solid var(--border-medium)',
+              color: 'var(--text-secondary)',
+              cursor: 'pointer',
+              transition: 'color 0.15s ease, border-color 0.15s ease',
+              flexShrink: 0,
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.color = 'var(--text-accent)';
+              e.currentTarget.style.borderColor = 'var(--text-accent)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.color = 'var(--text-secondary)';
+              e.currentTarget.style.borderColor = 'var(--border-medium)';
+            }}
+          >
+            {anyOpen ? (
+              <ChevronsDownUp size={14} aria-hidden />
+            ) : (
+              <ChevronsUpDown size={14} aria-hidden />
+            )}
+          </button>
         )}
       </div>
 
@@ -320,7 +392,7 @@ export default function CollectionsTab({ identity }: { identity: IdentityBundle 
         </p>
       ) : groups.length === 0 ? null : (
         groups.map((g) => {
-          const majorOpen = collapsed[g.key] !== true;
+          const majorOpen = isOpen(g.key);
           return (
             <section
               key={g.key}
@@ -358,7 +430,7 @@ export default function CollectionsTab({ identity }: { identity: IdentityBundle 
                   )}
                   {/* Then collapsible sub-groups. */}
                   {g.subgroups.map((sub) => {
-                    const subOpen = collapsed[sub.fullKey] !== true;
+                    const subOpen = isOpen(sub.fullKey);
                     return (
                       <div
                         key={sub.fullKey}
