@@ -7,9 +7,11 @@ import { WAYPOINT_ICONS } from '@/utils/waypointIcons';
 
 // A handful of recognisable Atmosphere clients to populate the row. Order
 // + selection are tuned so the animated highlight visits a varied set of
-// icons (not just Bluesky forks back-to-back).
+// icons (not just Bluesky forks back-to-back). Anisota sits in slot 2 so
+// it's always within the mobile-trimmed window (see MOBILE_ICON_COUNT).
 const DEFAULT_ROW_ICON_IDS = [
   'bluesky',
+  'anisota',
   'leaflet',
   'tangled',
   'margin',
