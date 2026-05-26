@@ -89,6 +89,12 @@ export default function RelationshipStrip({ target }: Props) {
     myPds && targetPds && pdsHostname(myPds) === pdsHostname(targetPds);
   const followsYou = Boolean(profile?.viewer?.followedBy);
   const youFollow = Boolean(profile?.viewer?.following);
+  // `viewer.following` is an AT URI like
+  // `at://<myDid>/app.bsky.graph.follow/<tid-rkey>`. TIDs encode the
+  // creation microsecond in their first 53 bits — decode to surface
+  // "You followed them on Mar 14, 2024" without a second network call.
+  const youFollowedOn = dateFromFollowUri(profile?.viewer?.following);
+  const theyFollowedOn = dateFromFollowUri(profile?.viewer?.followedBy);
   const mutualCount = profile?.knownFollowers?.count ?? 0;
   const mutualLink = `/explore/${encodeRepo(target.handle || target.did)}?tab=identity`;
 
@@ -111,17 +117,32 @@ export default function RelationshipStrip({ target }: Props) {
         {followsYou && youFollow ? (
           <Chip icon={<UserCheck size={11} aria-hidden />} tone="accent">
             Mutual follow
+            {youFollowedOn && (
+              <span style={{ opacity: 0.75, marginLeft: '0.25rem' }}>
+                · since {formatShortDate(youFollowedOn)}
+              </span>
+            )}
           </Chip>
         ) : (
           <>
             {youFollow && (
               <Chip icon={<UserPlus size={11} aria-hidden />} tone="neutral">
                 You follow them
+                {youFollowedOn && (
+                  <span style={{ opacity: 0.75, marginLeft: '0.25rem' }}>
+                    · {formatShortDate(youFollowedOn)}
+                  </span>
+                )}
               </Chip>
             )}
             {followsYou && (
               <Chip icon={<Heart size={11} aria-hidden />} tone="neutral">
                 They follow you
+                {theyFollowedOn && (
+                  <span style={{ opacity: 0.75, marginLeft: '0.25rem' }}>
+                    · {formatShortDate(theyFollowedOn)}
+                  </span>
+                )}
               </Chip>
             )}
           </>
@@ -190,6 +211,50 @@ function Chip({
 function targetLabel(target: IdentityBundle): string {
   if (target.handle) return `@${target.handle}`;
   return target.did.length > 24 ? `${target.did.slice(0, 24)}…` : target.did;
+}
+
+/**
+ * Extract the creation date of a follow record from its AT URI by
+ * decoding the TID rkey. TIDs are 13-char base32-sortable strings whose
+ * upper 53 bits encode microseconds since the UNIX epoch — accurate
+ * enough that we can avoid a second getRecord round-trip for createdAt.
+ */
+function dateFromFollowUri(uri: string | undefined): Date | null {
+  if (!uri) return null;
+  const parts = uri.split('/');
+  const rkey = parts[parts.length - 1];
+  if (!rkey || rkey.length !== 13) return null;
+  return tidToDate(rkey);
+}
+
+const TID_ALPHABET = '234567abcdefghijklmnopqrstuvwxyz';
+
+function tidToDate(tid: string): Date | null {
+  // Decode directly into milliseconds: shift the bottom 10 clock-id bits
+  // off first by skipping them, then accumulate as a plain Number. The
+  // resulting epoch-ms value fits well inside JS's safe-integer range
+  // (current time is ~1.7e12, MAX_SAFE_INTEGER is ~9e15), so no need
+  // for BigInt — which would push the TS lib target up to ES2020.
+  let micros = 0;
+  for (const ch of tid) {
+    const i = TID_ALPHABET.indexOf(ch);
+    if (i < 0) return null;
+    micros = micros * 32 + i;
+  }
+  // Strip the bottom 10 bits (clock identifier) by dividing — equivalent
+  // to `>> 10n` on a BigInt, but stays inside Number precision because
+  // we never observe the bottom bits as a separate value.
+  const ms = Math.floor(micros / 1024 / 1000);
+  if (!Number.isFinite(ms) || ms <= 0) return null;
+  return new Date(ms);
+}
+
+function formatShortDate(d: Date): string {
+  return d.toLocaleDateString(undefined, {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  });
 }
 
 const shellStyle: React.CSSProperties = {
