@@ -89,6 +89,13 @@ export type AppViewProfileWithViewer = AppViewProfile & {
  * `knownFollowers` blocks. The unauthenticated `getProfile` above can't
  * compute relationship state — for that we need the AppView call to go
  * through the signed-in agent so it knows who "you" are.
+ *
+ * Important: an OAuth-authenticated Agent talks to the user's PDS by
+ * default. Without an explicit `atproto-proxy` header the PDS forwards
+ * `app.bsky.*` calls to the AppView WITHOUT attaching a service-auth
+ * token identifying the user, so the AppView treats it as anonymous and
+ * the `viewer` block comes back empty. `withProxy('bsky_appview', ...)`
+ * sets the header so the PDS signs the proxied request as the user.
  */
 export async function getProfileWithViewer(
   agent: Agent,
@@ -96,7 +103,8 @@ export async function getProfileWithViewer(
 ): Promise<AppViewProfileWithViewer | null> {
   if (!actor) return null;
   try {
-    const res = await agent.app.bsky.actor.getProfile({ actor });
+    const proxied = agent.withProxy('bsky_appview', 'did:web:api.bsky.app');
+    const res = await proxied.app.bsky.actor.getProfile({ actor });
     return (res?.data ?? res) as AppViewProfileWithViewer;
   } catch (err) {
     // Log so we can see what's actually happening in the console when
