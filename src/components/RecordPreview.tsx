@@ -24,6 +24,15 @@ type RecordPreviewProps = {
    * Explorer destination.
    */
   hideExplorerCtas?: boolean;
+  /**
+   * Optional action UI rendered in the card's footer next to the CID
+   * (e.g. the explorer's "Edit record" button). Only shown when
+   * hideExplorerCtas is true — the universal-link version keeps a
+   * cleaner footer with just the CID. Passing this turns the card's
+   * bottom strip into a flex row that fits the CID on the left and
+   * the actions on the right.
+   */
+  footerActions?: import('react').ReactNode;
 };
 
 export default function RecordPreview({
@@ -32,6 +41,7 @@ export default function RecordPreview({
   handle,
   rkey,
   hideExplorerCtas,
+  footerActions,
 }: RecordPreviewProps) {
   const { value, cid } = record;
 
@@ -62,7 +72,6 @@ export default function RecordPreview({
   return (
     <div
       style={{
-        marginBottom: '2rem',
         background: 'var(--bg-secondary)',
         border: '1px solid var(--border-medium)',
         overflow: 'hidden',
@@ -205,22 +214,57 @@ export default function RecordPreview({
           {!hideExplorerCtas && <CopyJsonRow record={record} />}
         </div>
 
-        {/* Footer: CID. Suppressed inside the explorer (CID is in the
-            copy row + the raw JSON below). */}
-        {cid && !hideExplorerCtas && (
+        {/* Footer: CID + caller-supplied action slot. Universal-link pages
+            get just the CID display; the explorer passes its Edit button
+            in via footerActions so editing affordances live with the
+            record they apply to. */}
+        {(cid || footerActions) && (
           <div
             style={{
-              padding: '1rem 1.5rem',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '1rem',
+              flexWrap: 'wrap',
+              padding: '0.875rem 1.5rem',
               background: 'var(--bg-tertiary)',
               borderTop: '1px solid var(--border-subtle)',
+              fontFamily: 'var(--font-mono)',
               fontSize: '0.75rem',
               color: 'var(--text-tertiary)',
-              fontFamily: 'var(--font-mono)',
-              wordBreak: 'break-all',
             }}
           >
-            <span style={{ opacity: 0.6, marginRight: '0.5rem' }}>CID:</span>
-            {cid}
+            {cid ? (
+              <span
+                style={{
+                  display: 'flex',
+                  alignItems: 'baseline',
+                  gap: '0.4rem',
+                  minWidth: 0,
+                  flex: 1,
+                  wordBreak: 'break-all',
+                }}
+              >
+                <span style={{ opacity: 0.6, flexShrink: 0 }}>CID:</span>
+                <span style={{ minWidth: 0, flex: 1 }}>
+                  <CopyableValue display={cid} copy={cid} />
+                </span>
+              </span>
+            ) : (
+              <span style={{ flex: 1 }} />
+            )}
+            {footerActions && (
+              <span
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  flexShrink: 0,
+                }}
+              >
+                {footerActions}
+              </span>
+            )}
           </div>
         )}
       </div>

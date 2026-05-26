@@ -27,7 +27,26 @@ type Props = {
   rkey: string;
   /** PDS-fetched record; used as the source for non-post / margin previews. */
   record: AtRecord | null;
+  /**
+   * Optional action UI (e.g. the explorer's Edit button) rendered inside
+   * the generic RecordPreview's footer next to the CID. Ignored by the
+   * specialised post / margin previews — those have their own surrounds
+   * and the explorer renders the action above them instead.
+   */
+  footerActions?: import('react').ReactNode;
 };
+
+/**
+ * Returns true when the given collection will render through the generic
+ * RecordPreview fallback (i.e. not a post, not a margin lexicon). The
+ * explorer uses this to decide whether its edit button gets slotted into
+ * the preview's footer or rendered as a standalone chip above the card.
+ */
+export function previewRendersGeneric(collection: string): boolean {
+  if (collection === 'app.bsky.feed.post') return false;
+  if (getMarginLexiconType(collection)) return false;
+  return true;
+}
 
 /**
  * Renders the same rich record preview that universal link pages show —
@@ -45,6 +64,7 @@ export default function RichRecordPreview({
   collection,
   rkey,
   record,
+  footerActions,
 }: Props) {
   const marginType = getMarginLexiconType(collection);
   const isPost = collection === 'app.bsky.feed.post';
@@ -112,6 +132,7 @@ export default function RichRecordPreview({
       handle={handle}
       rkey={rkey}
       hideExplorerCtas
+      footerActions={footerActions}
     />
   );
 }

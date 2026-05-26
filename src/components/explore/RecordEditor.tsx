@@ -206,23 +206,31 @@ export default function RecordEditor({
         border: '1px solid var(--border-medium)',
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
-        {lex && (
-          <button
-            type="button"
-            onClick={toggleRawMode}
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.75rem',
+          flexWrap: 'wrap',
+          justifyContent: 'space-between',
+        }}
+      >
+        {lex ? (
+          <ModeToggle mode={rawMode ? 'json' : 'form'} onChange={toggleRawMode} />
+        ) : (
+          // No registered lexicon means there's no form to switch to —
+          // editor stays in JSON mode and we just label the row.
+          <span
             style={{
-              background: 'transparent',
-              border: 0,
-              color: 'var(--text-accent)',
               fontFamily: 'var(--font-serif)',
-              fontSize: '0.875rem',
-              cursor: 'pointer',
-              padding: 0,
+              fontSize: '0.8125rem',
+              color: 'var(--text-tertiary)',
+              letterSpacing: '0.08em',
+              textTransform: 'uppercase',
             }}
           >
-            {rawMode ? 'Use form' : 'Edit JSON'}
-          </button>
+            Edit JSON
+          </span>
         )}
         {lex && (
           <span style={{ color: 'var(--text-tertiary)', fontSize: '0.8125rem' }}>
@@ -645,4 +653,74 @@ function stringifyJson(v: unknown): string {
   } catch {
     return '';
   }
+}
+
+/**
+ * Segmented Form / JSON switch used at the top of the editor. Two button
+ * cells side-by-side with the active one filled — same visual idiom as
+ * the dark/light theme toggle in the nav, so the affordance reads as a
+ * "pick one" control instead of a hidden text link.
+ */
+function ModeToggle({
+  mode,
+  onChange,
+}: {
+  mode: 'form' | 'json';
+  onChange: () => void;
+}) {
+  return (
+    <div
+      role="group"
+      aria-label="Editor mode"
+      style={{
+        display: 'inline-flex',
+        border: '1px solid var(--border-medium)',
+        background: 'var(--bg-tertiary)',
+        padding: '2px',
+      }}
+    >
+      <ModeToggleButton
+        active={mode === 'form'}
+        onClick={() => mode !== 'form' && onChange()}
+      >
+        Form
+      </ModeToggleButton>
+      <ModeToggleButton
+        active={mode === 'json'}
+        onClick={() => mode !== 'json' && onChange()}
+      >
+        JSON
+      </ModeToggleButton>
+    </div>
+  );
+}
+
+function ModeToggleButton({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      style={{
+        padding: '0.35rem 0.75rem',
+        background: active ? 'var(--accent-moss)' : 'transparent',
+        color: active ? 'var(--text-on-accent)' : 'var(--text-secondary)',
+        border: 0,
+        fontFamily: 'var(--font-serif)',
+        fontSize: '0.8125rem',
+        cursor: active ? 'default' : 'pointer',
+        transition: 'background 0.15s ease, color 0.15s ease',
+      }}
+    >
+      {children}
+    </button>
+  );
 }

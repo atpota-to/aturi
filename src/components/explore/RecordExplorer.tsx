@@ -11,7 +11,7 @@ import Breadcrumb from './Breadcrumb';
 import CopyButton from './CopyButton';
 import EngagementSidecar from './EngagementSidecar';
 import LinkifiedJson from './LinkifiedJson';
-import RichRecordPreview from './RichRecordPreview';
+import RichRecordPreview, { previewRendersGeneric } from './RichRecordPreview';
 import BacklinksTab from './tabs/BacklinksTab';
 import RecordEditor from './RecordEditor';
 import SignInPanel from './SignInPanel';
@@ -97,8 +97,33 @@ export default function RecordExplorer({ repo, collection, rkey }: Props) {
   const aturiUniversalPath = `/profile/${identity.handle || identity.did}/${collection}/${encodeURIComponent(decodedRkey)}`;
   const universalLinkFull = `https://aturi.to${aturiUniversalPath}`;
 
+  // The generic RecordPreview has a footer slot for the Edit button; for
+  // post/margin previews we keep a standalone Edit chip above the copy row.
+  const editsInPreviewFooter = previewRendersGeneric(collection);
+  const editButton =
+    canEdit && !editing ? (
+      <button
+        type="button"
+        onClick={() => setEditing(true)}
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '0.4rem',
+          padding: '0.4rem 0.75rem',
+          background: 'var(--accent-moss)',
+          color: 'var(--text-on-accent)',
+          border: '1px solid var(--accent-moss)',
+          fontFamily: 'var(--font-serif)',
+          fontSize: '0.8125rem',
+          cursor: 'pointer',
+        }}
+      >
+        <FilePenLine size={12} /> Edit record
+      </button>
+    ) : null;
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
       <AppearIn rise>
         <Breadcrumb
           handle={identity.handle}
@@ -111,7 +136,9 @@ export default function RecordExplorer({ repo, collection, rkey }: Props) {
 
       {/* Rich preview leads — most visitors care about "what is this
           record?" before they care about its CID / PDS / DID. Mirrors
-          the universal link page's layout. */}
+          the universal link page's layout. The Edit button slots into
+          the generic preview's footer alongside the CID when applicable;
+          post / margin previews fall back to a standalone chip below. */}
       {recordError && <p className="explore-error">{recordError}</p>}
       {!record && !recordError && <p className="explore-placeholder">Loading record…</p>}
       <AppearIn delay={0.05}>
@@ -121,6 +148,7 @@ export default function RecordExplorer({ repo, collection, rkey }: Props) {
           collection={collection}
           rkey={decodedRkey}
           record={record}
+          footerActions={editsInPreviewFooter ? editButton : null}
         />
       </AppearIn>
 
@@ -131,20 +159,22 @@ export default function RecordExplorer({ repo, collection, rkey }: Props) {
       )}
 
       {/* Consolidated copy row. URI elements live in the breadcrumb above,
-          so we don't repeat them as a value-display grid — every identifier
-          is one tap away as a copy button instead. */}
+          so we don't repeat them — every identifier is one tap away as a
+          copy button. CID is omitted because the preview card already
+          surfaces it visibly in its footer. */}
       <AppearIn delay={0.08}>
         <CopyRow
           atUri={atUri}
           did={identity.did}
-          cid={record?.cid}
           pds={identity.pds}
           universalLink={universalLinkFull}
           recordJson={record ? JSON.stringify(record, null, 2) : null}
         />
       </AppearIn>
 
-      {canEdit && !editing && (
+      {/* Standalone Edit chip — only for post / margin previews that
+          don't have a place to slot the button into their layout. */}
+      {!editsInPreviewFooter && editButton && (
         <AppearIn delay={0.1}>
           <div
             style={{
@@ -154,24 +184,7 @@ export default function RecordExplorer({ repo, collection, rkey }: Props) {
               alignItems: 'center',
             }}
           >
-            <button
-              type="button"
-              onClick={() => setEditing(true)}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '0.4rem',
-                padding: '0.4rem 0.75rem',
-                background: 'var(--accent-moss)',
-                color: 'var(--text-on-accent)',
-                border: '1px solid var(--accent-moss)',
-                fontFamily: 'var(--font-serif)',
-                fontSize: '0.8125rem',
-                cursor: 'pointer',
-              }}
-            >
-              <FilePenLine size={12} /> Edit record
-            </button>
+            {editButton}
           </div>
         </AppearIn>
       )}
@@ -238,18 +251,19 @@ export default function RecordExplorer({ repo, collection, rkey }: Props) {
 function CopyRow({
   atUri,
   did,
-  cid,
   pds,
   universalLink,
   recordJson,
 }: {
   atUri: string;
   did: string;
-  cid?: string;
   pds: string;
   universalLink: string;
   recordJson: string | null;
 }) {
+  // CID intentionally omitted — the preview card's footer surfaces it
+  // visibly with click-to-copy, so a second copy chip here would
+  // duplicate the affordance.
   return (
     <div
       style={{
@@ -270,7 +284,6 @@ function CopyRow({
       </span>
       <CopyButton value={atUri} label="AT URI" compact variant="subtle" />
       <CopyButton value={did} label="DID" compact variant="subtle" />
-      {cid && <CopyButton value={cid} label="CID" compact variant="subtle" />}
       <CopyButton value={pds} label="PDS" compact variant="subtle" />
       <CopyButton value={universalLink} label="Universal link" compact variant="subtle" />
       {recordJson && (
