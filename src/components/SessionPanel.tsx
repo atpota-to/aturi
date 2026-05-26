@@ -2,8 +2,10 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { LogIn, LogOut, Settings, Telescope, User } from 'lucide-react';
+import { ArrowLeft, LogIn, LogOut, Settings, Telescope, User } from 'lucide-react';
 import { useAtprotoSession } from './AtprotoSessionProvider';
+import ScopeSelector from './oauth/ScopeSelector';
+import { rememberCurrentPathForReturn } from '@/lib/oauth/returnTo';
 import { getProfile, type AppViewProfile } from '@/utils/atproto/appview';
 import { encodeRepo } from '@/utils/atproto/urls';
 
@@ -12,16 +14,25 @@ type Props = {
   onNavigate?: () => void;
 };
 
+type SignInStep = 'idle' | 'handle' | 'scopes';
+
 /**
  * Inline session UI for the compact header's expanding menu panel. Renders
  * as a stack of compact-nav-link rows, NOT a dropdown (the parent panel
- * is already a popover). When signed out: a "Sign in" link to /account.
- * When signed in: a small \"signed in as @handle\" header and quick
- * actions for the user's repo / settings / sign-out.
+ * is already a popover). When signed out: a "Sign in" row that expands
+ * into a handle input + scope picker so the OAuth flow happens without
+ * leaving the current page. When signed in: a small "signed in as
+ * @handle" header and quick actions for the user's repo / settings /
+ * sign-out.
  */
 export default function SessionPanel({ onNavigate }: Props) {
-  const { session, did, signOut, loading } = useAtprotoSession();
+  const { session, did, signIn, signOut, loading } = useAtprotoSession();
   const [profile, setProfile] = useState<AppViewProfile | null>(null);
+  const [signInStep, setSignInStep] = useState<SignInStep>('idle');
+  const [signInValue, setSignInValue] = useState('');
+  const [pendingAccount, setPendingAccount] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!did) {
@@ -41,15 +52,114 @@ export default function SessionPanel({ onNavigate }: Props) {
 
   // ─── Signed out ─────────────────────────────────────────────────────────
   if (!session) {
+    if (signInStep === 'handle') {
+      return (
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            const v = signInValue.trim();
+            if (!v) return;
+            setError(null);
+            setPendingAccount(v);
+            setSignInStep('scopes');
+          }}
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '0.5rem',
+            padding: '0.625rem 0.75rem',
+            background: 'var(--bg-tertiary)',
+            border: '1px solid var(--border-subtle)',
+          }}
+        >
+          <div style={headerRowStyle()}>
+            <button
+              type="button"
+              onClick={() => {
+                setSignInStep('idle');
+                setError(null);
+              }}
+              aria-label="Back"
+              style={iconBackButtonStyle()}
+            >
+              <ArrowLeft size={14} />
+            </button>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: '0.875rem', color: 'var(--text-primary)' }}>
+                Sign in with your handle
+              </div>
+              <div style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)' }}>
+                You&rsquo;ll come back to this page when finished.
+              </div>
+            </div>
+          </div>
+          <input
+            type="text"
+            autoComplete="username"
+            spellCheck={false}
+            autoFocus
+            placeholder="handle.bsky.social or did:plc:…"
+            value={signInValue}
+            onChange={(e) => setSignInValue(e.target.value)}
+            style={inputStyle()}
+          />
+          <button
+            type="submit"
+            disabled={!signInValue.trim()}
+            style={primaryButtonStyle({ disabled: !signInValue.trim() })}
+          >
+            Next →
+          </button>
+        </form>
+      );
+    }
+
+    if (signInStep === 'scopes') {
+      return (
+        <div
+          style={{
+            padding: '0.625rem 0.75rem',
+            background: 'var(--bg-tertiary)',
+            border: '1px solid var(--border-subtle)',
+          }}
+        >
+          <ScopeSelector
+            account={pendingAccount}
+            busy={busy}
+            error={error}
+            onBack={() => {
+              setSignInStep('handle');
+              setError(null);
+            }}
+            onContinue={async (scopeString) => {
+              setBusy(true);
+              setError(null);
+              try {
+                rememberCurrentPathForReturn();
+                await signIn(pendingAccount, scopeString);
+              } catch (err) {
+                setBusy(false);
+                setError(err instanceof Error ? err.message : String(err));
+              }
+            }}
+          />
+        </div>
+      );
+    }
+
     return (
-      <Link
-        href="/account"
+      <button
+        type="button"
+        onClick={() => {
+          setError(null);
+          setSignInStep('handle');
+        }}
         className="compact-nav-link"
-        onClick={onNavigate}
+        style={{ font: 'inherit', textAlign: 'left', width: '100%' }}
       >
         <LogIn size={16} />
         <span>sign in</span>
-      </Link>
+      </button>
     );
   }
 
@@ -172,4 +282,55 @@ export default function SessionPanel({ onNavigate }: Props) {
       </button>
     </>
   );
+}
+
+// ─── Style helpers ────────────────────────────────────────────────────────
+
+function headerRowStyle(): React.CSSProperties {
+  return {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '0.5rem',
+  };
+}
+
+function iconBackButtonStyle(): React.CSSProperties {
+  return {
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: 24,
+    height: 24,
+    background: 'var(--bg-secondary)',
+    border: '1px solid var(--border-subtle)',
+    color: 'var(--text-secondary)',
+    cursor: 'pointer',
+    flexShrink: 0,
+  };
+}
+
+function inputStyle(): React.CSSProperties {
+  return {
+    width: '100%',
+    padding: '0.5rem 0.625rem',
+    background: 'var(--bg-secondary)',
+    border: '1px solid var(--border-medium)',
+    color: 'var(--text-primary)',
+    fontFamily: 'var(--font-mono)',
+    fontSize: '0.8125rem',
+    outline: 'none',
+  };
+}
+
+function primaryButtonStyle({ disabled }: { disabled?: boolean } = {}): React.CSSProperties {
+  return {
+    padding: '0.5rem',
+    background: 'var(--accent-moss)',
+    color: 'var(--text-on-accent)',
+    border: '1px solid var(--accent-moss)',
+    fontFamily: 'var(--font-serif)',
+    fontSize: '0.875rem',
+    cursor: disabled ? 'not-allowed' : 'pointer',
+    opacity: disabled ? 0.6 : 1,
+  };
 }

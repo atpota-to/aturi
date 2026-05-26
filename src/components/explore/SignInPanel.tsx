@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { LogIn } from 'lucide-react';
 import { useAtprotoSession } from '@/components/AtprotoSessionProvider';
 import ScopeSelector from '@/components/oauth/ScopeSelector';
+import { rememberCurrentPathForReturn } from '@/lib/oauth/returnTo';
 
 /**
  * Compact sign-in form used inside the record view's action row. Accepts a
@@ -40,6 +41,7 @@ export default function SignInPanel({ defaultInput }: { defaultInput?: string })
             setBusy(true);
             setError(null);
             try {
+              rememberCurrentPathForReturn();
               await signIn(pendingAccount, scopeString);
             } catch (err) {
               setBusy(false);
