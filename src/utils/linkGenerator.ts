@@ -24,7 +24,6 @@ interface AtUriComponents {
  * - https://bsky.app/profile/handle.bsky.social/post/rkey
  * - https://blacksky.community/profile/handle/post/rkey
  * - https://anisota.net/profile/handle/post/rkey
- * - https://anisota.net/explorer/handle/collection/rkey
  * - https://reddwarf.app/profile/handle/post/rkey
  * - https://leaflet.pub/p/identifier
  * - https://margin.at/domain.com/annotation/rkey (maps to at.margin.annotation)
@@ -139,23 +138,6 @@ export function extractAtUriComponents(input: string): AtUriComponents | null {
         return {
           identifier: parts[0],
           collection: 'app.bsky.graph.list',
-          rkey: parts[2],
-        };
-      }
-    }
-    
-    // Anisota explorer format: /explorer/identifier/collection/rkey
-    if (pathname.startsWith('/explorer/') && hostname === 'anisota.net') {
-      const parts = pathname.substring(10).split('/'); // Remove "/explorer/"
-      
-      if (parts.length === 1) {
-        // Profile only
-        return { identifier: parts[0] };
-      } else if (parts.length === 3) {
-        // Full record
-        return {
-          identifier: parts[0],
-          collection: parts[1],
           rkey: parts[2],
         };
       }

@@ -9,7 +9,6 @@ export type SourceApp =
   | 'catsky'
   | 'deer'
   | 'anisota'
-  | 'anisotaExplorer'
   | 'pinksky'
   | 'leaflet'
   | 'tangled'
@@ -116,37 +115,6 @@ function inferType(collection: string): 'post' | 'list' | 'record' {
   if (collection === 'app.bsky.feed.post') return 'post';
   if (collection === 'app.bsky.graph.list') return 'list';
   return 'record';
-}
-
-function matchAnisotaExplorer(host: string, parts: string[]): ReverseMatch | null {
-  if (host !== 'anisota.net' || parts[0] !== 'explorer' || !parts[1]) return null;
-
-  const handle = parts[1];
-  const did = handle.startsWith('did:') ? handle : undefined;
-
-  if (parts[2] && parts[3]) {
-    return {
-      source: 'anisotaExplorer',
-      parsed: {
-        type: inferType(parts[2]),
-        uri: `at://${handle}/${parts[2]}/${parts[3]}`,
-        handle,
-        did,
-        collection: parts[2],
-        rkey: parts[3],
-      },
-    };
-  }
-
-  return {
-    source: 'anisotaExplorer',
-    parsed: {
-      type: 'profile',
-      uri: `at://${handle}`,
-      handle,
-      did,
-    },
-  };
 }
 
 function matchPinksky(host: string, parts: string[], search: URLSearchParams): ReverseMatch | null {
@@ -456,7 +424,6 @@ export function matchSupportedUrl(url: URL): ReverseMatch | null {
 
   return (
     matchBlueskyFamily(host, parts) ||
-    matchAnisotaExplorer(host, parts) ||
     matchPinksky(host, parts, search) ||
     matchLeaflet(host, parts) ||
     matchTangled(host, parts) ||

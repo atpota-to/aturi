@@ -184,7 +184,6 @@ describe('compat helpers', () => {
   it('dev tools have no compat (never a redirect target)', () => {
     expect(getRedirectCompatFor('pdsls', [])).toEqual([]);
     expect(getRedirectCompatFor('atptools', [])).toEqual([]);
-    expect(getRedirectCompatFor('anisotaExplorer', [])).toEqual([]);
   });
 
   it('pinksky is in its own family (not bluesky-social)', () => {
