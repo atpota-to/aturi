@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import { Home, Leaf, Telescope } from 'lucide-react';
+import { Compass, Download, Home, Leaf, Telescope } from 'lucide-react';
 import { motion } from 'framer-motion';
 import ThemeToggle from './ThemeToggle';
 import SessionMenu from './SessionMenu';
@@ -180,6 +180,14 @@ export default function Header({ simple = false, compact = false }: HeaderProps)
               <Telescope size={16} />
               <span>explore</span>
             </Link>
+            <Link href="/extension" className="compact-nav-link">
+              <Download size={16} />
+              <span>extension</span>
+            </Link>
+            <Link href="/universal-links" className="compact-nav-link">
+              <Compass size={16} />
+              <span>universal links</span>
+            </Link>
             <div style={{ marginTop: '0.5rem' }}>
               <ThemeToggle variant="row" />
             </div>
@@ -280,6 +288,16 @@ export default function Header({ simple = false, compact = false }: HeaderProps)
             <span>explore</span>
           </Link>
           <span style={{ color: 'var(--text-tertiary)', fontSize: '0.75rem' }}>·</span>
+          <Link href="/extension" className="nav-link">
+            <Download size={14} />
+            <span>extension</span>
+          </Link>
+          <span style={{ color: 'var(--text-tertiary)', fontSize: '0.75rem' }}>·</span>
+          <Link href="/universal-links" className="nav-link">
+            <Compass size={14} />
+            <span>universal links</span>
+          </Link>
+          <span style={{ color: 'var(--text-tertiary)', fontSize: '0.75rem' }}>·</span>
           <ThemeToggle variant="inline" />
           <span style={{ color: 'var(--text-tertiary)', fontSize: '0.75rem' }}>·</span>
           <SessionMenu variant="inline" />
@@ -375,6 +393,16 @@ export default function Header({ simple = false, compact = false }: HeaderProps)
         <Link href="/explore" className="nav-link">
           <Telescope size={16} />
           <span>explore</span>
+        </Link>
+        <span style={{ color: 'var(--text-tertiary)', fontSize: '0.875rem' }}>·</span>
+        <Link href="/extension" className="nav-link">
+          <Download size={16} />
+          <span>extension</span>
+        </Link>
+        <span style={{ color: 'var(--text-tertiary)', fontSize: '0.875rem' }}>·</span>
+        <Link href="/universal-links" className="nav-link">
+          <Compass size={16} />
+          <span>universal links</span>
         </Link>
         <span style={{ color: 'var(--text-tertiary)', fontSize: '0.875rem' }}>·</span>
         <ThemeToggle variant="inline" />
