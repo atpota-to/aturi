@@ -52,13 +52,12 @@ export default function UniversalLinksStrip() {
             <code style={{ background: 'transparent', padding: 0, color: 'var(--text-accent)' }}>
               aturi.to
             </code>{' '}
-            link anywhere — a DM, a footer, a bio. Your visitors land on a
-            friendly preview of the record and pick the Atmosphere client they
-            want to read it in.
+            link anywhere: a DM, a footer, a bio. Visitors land on a preview
+            of the record and choose which Atmosphere client opens it.
           </p>
           <p>
-            No client lock-in. No login. Every record, profile, and list resolves
-            to the right destination across 25+ curated Atmosphere clients.
+            No lock-in, no login. Every record, profile, and list resolves
+            cleanly across 25+ curated Atmosphere clients.
           </p>
           <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
             <Link

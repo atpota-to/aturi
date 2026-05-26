@@ -58,8 +58,7 @@ export default function HomeHero() {
           margin: '0 auto 1.75rem',
         }}
       >
-        Switch between clients, share universal links, and browse through any account&rsquo;s
-        PDS data.
+        Switch clients, share universal links, browse any PDS.
       </p>
 
       {/* CTA row — align to the top so the Explore link doesn't stretch
