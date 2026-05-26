@@ -18,7 +18,7 @@ import {
 } from 'lucide-react';
 import { parseAtUri, encodeRepo } from '@aturi/atproto/urls';
 import { resolveIdentifier, type IdentityBundle } from '@aturi/atproto/identity';
-import { getRecord, type AtRecord } from '@aturi/atproto/pdsClient';
+import { getRecord, getRecordUrl, type AtRecord } from '@aturi/atproto/pdsClient';
 import { getPostThread } from '@aturi/atproto/appview';
 import { previewFor } from '@aturi/atproto/previewExtractors';
 import { pdsHostname } from '@aturi/atproto/pdsServer';
@@ -274,6 +274,17 @@ function InspectCard({ hit }: { hit: DetectedAtUri }) {
   const effectivePdsHost = effectivePds ? pdsHostname(effectivePds) : null;
   const pdsExplorerUrl = effectivePdsHost ? buildExplorePdsUrl(effectivePdsHost) : null;
   const effectiveDid = identity?.did || (parsed?.repo.startsWith('did:') ? parsed.repo : null);
+  // Direct PDS XRPC URL for the record — opens the raw JSON in a new
+  // tab. Only available once we know the repo + collection + rkey AND
+  // we've resolved (or were given) the PDS host.
+  const pdsRecordUrl =
+    effectivePds && effectiveDid && parsed?.collection && parsed?.rkey
+      ? getRecordUrl(effectivePds, {
+          repo: effectiveDid,
+          collection: parsed.collection,
+          rkey: parsed.rkey,
+        })
+      : null;
 
   const universalLink =
     handleOrDid && parsed?.collection && parsed?.rkey
@@ -390,8 +401,8 @@ function InspectCard({ hit }: { hit: DetectedAtUri }) {
         )}
       </div>
 
-      {/* Footer: raw JSON disclosure + CID + secondary PDS link. */}
-      {(record || pdsExplorerUrl) && (
+      {/* Footer: raw JSON disclosure + CID + secondary PDS links. */}
+      {(record || pdsExplorerUrl || pdsRecordUrl) && (
         <div className="inspect-footer">
           {record && (
             <details className="inspect-json">
@@ -422,6 +433,20 @@ function InspectCard({ hit }: { hit: DetectedAtUri }) {
                 }}
               >
                 <Server size={10} aria-hidden /> Open PDS
+              </a>
+            )}
+            {pdsRecordUrl && (
+              <a
+                href={pdsRecordUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="inspect-footer-link"
+                title="Open the raw record JSON on the PDS"
+                onClick={() => {
+                  window.setTimeout(() => window.close(), 50);
+                }}
+              >
+                <ExternalLink size={10} aria-hidden /> View on PDS
               </a>
             )}
           </div>

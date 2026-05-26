@@ -262,7 +262,6 @@ function SignInPopover({
           type="text"
           autoComplete="username"
           spellCheck={false}
-          autoFocus
           placeholder="handle.bsky.social or did:plc:…"
           value={value}
           onChange={(e) => onChange(e.target.value)}

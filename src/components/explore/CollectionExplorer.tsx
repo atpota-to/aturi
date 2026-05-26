@@ -8,6 +8,7 @@ import { listRecordsPage, type AtRecord } from '@/utils/atproto/pdsClient';
 import { encodeRepo, rkeyFromAtUri } from '@/utils/atproto/urls';
 import { resolveIdentifier, type IdentityBundle } from '@/utils/atproto/identity';
 import { previewFor } from '@/utils/atproto/previewExtractors';
+import { tidToDate, formatTidRelative } from '@/utils/atproto/tid';
 import {
   createJetstreamConnection,
   type JetstreamCommit,
@@ -217,6 +218,10 @@ function CollectionList({
       >
         {records.map((rec) => {
           const rkey = rkeyFromAtUri(rec.uri) || '';
+          // TID-derived timestamps are decoded client-side from the rkey
+          // itself — no extra PDS call. Non-TID rkeys (custom strings,
+          // singletons like "self") return null and we just hide the chip.
+          const tidDate = tidToDate(rkey);
           return (
             <li
               key={rec.uri}
@@ -242,15 +247,36 @@ function CollectionList({
                   e.currentTarget.style.background = 'transparent';
                 }}
               >
-                <code
-                  style={{
-                    background: 'transparent',
-                    padding: 0,
-                    color: 'var(--text-primary)',
-                  }}
-                >
-                  {rkey}
-                </code>
+                <div style={{ minWidth: 0 }}>
+                  <code
+                    style={{
+                      background: 'transparent',
+                      padding: 0,
+                      color: 'var(--text-primary)',
+                      display: 'block',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    {rkey}
+                  </code>
+                  {tidDate && (
+                    <time
+                      dateTime={tidDate.toISOString()}
+                      title={tidDate.toISOString()}
+                      style={{
+                        display: 'block',
+                        marginTop: '0.125rem',
+                        fontSize: '0.7rem',
+                        color: 'var(--text-tertiary)',
+                        fontFamily: 'var(--font-mono)',
+                      }}
+                    >
+                      {formatTidRelative(tidDate)}
+                    </time>
+                  )}
+                </div>
                 <span
                   style={{
                     color: 'var(--text-tertiary)',
@@ -294,3 +320,4 @@ function CollectionList({
     </div>
   );
 }
+

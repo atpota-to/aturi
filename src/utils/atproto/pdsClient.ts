@@ -113,9 +113,21 @@ export async function getRecord(
   pds: string,
   opts: { repo: string; collection: string; rkey: string },
 ): Promise<AtRecord> {
-  const { repo, collection, rkey } = opts;
-  const params = new URLSearchParams({ repo, collection, rkey });
+  const params = new URLSearchParams(opts);
   return fetchJson<AtRecord>(
     `${pds}/xrpc/com.atproto.repo.getRecord?${params}`,
   );
+}
+
+/**
+ * Build the public PDS XRPC URL for a single record. Used by the
+ * "View on PDS" link in the explorer and the extension's inspect view
+ * so the visitor can read the raw JSON straight from the source.
+ */
+export function getRecordUrl(
+  pds: string,
+  opts: { repo: string; collection: string; rkey: string },
+): string {
+  const params = new URLSearchParams(opts);
+  return `${pds}/xrpc/com.atproto.repo.getRecord?${params}`;
 }

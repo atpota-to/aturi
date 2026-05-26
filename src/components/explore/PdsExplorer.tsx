@@ -12,6 +12,7 @@ import {
 } from '@/utils/atproto/pdsServer';
 import { describeRepo } from '@/utils/atproto/pdsClient';
 import { encodeRepo, shortDid } from '@/utils/atproto/urls';
+import { tidToDate, formatTidRelative } from '@/utils/atproto/tid';
 import AppearIn from './AppearIn';
 import CopyButton from './CopyButton';
 import ShareLinkChip from './ShareLinkChip';
@@ -411,15 +412,26 @@ function RepoRow({ repo, pdsBase }: { repo: RepoEntry; pdsBase: string }) {
     };
   }, [pdsBase, repo.did]);
 
+  // The repo's head `rev` is itself a TID (the commit timestamp), so we
+  // can render the last-updated time without a second round-trip. Custom
+  // / non-TID revs fall back to null and the line is just hidden.
+  const revDate = repo.rev ? tidToDate(repo.rev) : null;
+
+  // `active === false` records carry a `status` like 'takendown' /
+  // 'suspended' / 'deactivated' / 'deleted'. Show it prominently — those
+  // repos still appear in listRepos but their records won't fetch.
+  const showStatus = repo.active === false || (repo.status && repo.status !== 'active');
+  const statusLabel = repo.status || (repo.active === false ? 'inactive' : null);
+
   return (
     <li style={{ borderBottom: '1px solid var(--border-subtle)' }}>
       <Link
         href={`/explore/${encodeRepo(handle || repo.did)}`}
         style={{
           display: 'grid',
-          gridTemplateColumns: 'minmax(14ch, 24ch) 1fr',
+          gridTemplateColumns: 'minmax(14ch, 24ch) 1fr auto',
           gap: '0.75rem',
-          alignItems: 'baseline',
+          alignItems: 'center',
           padding: '0.55rem 1rem',
           fontFamily: 'var(--font-mono)',
           fontSize: '0.8125rem',
@@ -434,30 +446,66 @@ function RepoRow({ repo, pdsBase }: { repo: RepoEntry; pdsBase: string }) {
           e.currentTarget.style.background = 'transparent';
         }}
       >
-        <code
-          style={{
-            background: 'transparent',
-            padding: 0,
-            color: 'var(--text-primary)',
-            whiteSpace: 'nowrap',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-          }}
-          title={repo.did}
-        >
-          {handle ? `@${handle}` : shortDid(repo.did)}
-        </code>
+        <div style={{ minWidth: 0 }}>
+          <code
+            style={{
+              background: 'transparent',
+              padding: 0,
+              color: 'var(--text-primary)',
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              display: 'block',
+            }}
+            title={repo.did}
+          >
+            {handle ? `@${handle}` : shortDid(repo.did)}
+          </code>
+          {revDate && (
+            <time
+              dateTime={revDate.toISOString()}
+              title={`rev ${repo.rev} · ${revDate.toISOString()}`}
+              style={{
+                display: 'block',
+                marginTop: '0.125rem',
+                fontSize: '0.7rem',
+                color: 'var(--text-tertiary)',
+                fontFamily: 'var(--font-mono)',
+              }}
+            >
+              updated {formatTidRelative(revDate)}
+            </time>
+          )}
+        </div>
         <span
           style={{
             color: 'var(--text-tertiary)',
             whiteSpace: 'nowrap',
             overflow: 'hidden',
             textOverflow: 'ellipsis',
+            minWidth: 0,
           }}
           title={repo.did}
         >
           {handle ? repo.did : ''}
         </span>
+        {showStatus && statusLabel && (
+          <span
+            title={`Repo status: ${statusLabel}`}
+            style={{
+              padding: '0.125rem 0.4rem',
+              fontSize: '0.7rem',
+              fontFamily: 'var(--font-mono)',
+              color: 'var(--danger)',
+              border: '1px solid var(--danger)',
+              background: 'transparent',
+              whiteSpace: 'nowrap',
+              textTransform: 'lowercase',
+            }}
+          >
+            {statusLabel}
+          </span>
+        )}
       </Link>
     </li>
   );
