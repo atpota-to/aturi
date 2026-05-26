@@ -60,14 +60,20 @@ export default function SessionPanel({ onNavigate }: Props) {
 
   return (
     <>
+      {/* Identity card. Uses the same border / background / padding as the
+          compact-nav-link rows that follow so the section reads as a
+          coherent stack instead of an un-styled header floating above a
+          list of action cards. The avatar is sized slightly larger than
+          the row icons (32 vs 16) to give the user's identity some
+          presence without breaking horizontal alignment. */}
       <div
         style={{
           display: 'flex',
           alignItems: 'center',
-          gap: '0.625rem',
-          padding: '0.625rem 1rem',
-          marginBottom: '0.25rem',
-          borderBottom: '1px solid var(--border-subtle)',
+          gap: '0.75rem',
+          padding: '0.625rem 0.75rem',
+          background: 'var(--bg-tertiary)',
+          border: '1px solid var(--border-subtle)',
         }}
       >
         {avatar ? (
@@ -75,36 +81,36 @@ export default function SessionPanel({ onNavigate }: Props) {
           <img
             src={avatar}
             alt=""
-            width={22}
-            height={22}
+            width={32}
+            height={32}
             style={{
-              width: 22,
-              height: 22,
+              width: 32,
+              height: 32,
               objectFit: 'cover',
               flexShrink: 0,
-              background: 'var(--bg-tertiary)',
+              background: 'var(--bg-secondary)',
             }}
           />
         ) : (
           <span
             style={{
-              width: 22,
-              height: 22,
+              width: 32,
+              height: 32,
               display: 'inline-flex',
               alignItems: 'center',
               justifyContent: 'center',
-              background: 'var(--bg-tertiary)',
+              background: 'var(--bg-secondary)',
               color: 'var(--text-tertiary)',
               flexShrink: 0,
             }}
           >
-            <User size={12} />
+            <User size={16} />
           </span>
         )}
-        <div style={{ minWidth: 0, lineHeight: 1.2 }}>
+        <div style={{ minWidth: 0, lineHeight: 1.25, flex: 1 }}>
           <div
             style={{
-              fontSize: '0.8125rem',
+              fontSize: '0.875rem',
               color: 'var(--text-primary)',
               overflow: 'hidden',
               textOverflow: 'ellipsis',
@@ -116,6 +122,7 @@ export default function SessionPanel({ onNavigate }: Props) {
           {handle && (
             <div
               style={{
+                marginTop: '0.125rem',
                 fontSize: '0.7rem',
                 color: 'var(--text-tertiary)',
                 fontFamily: 'var(--font-mono)',
