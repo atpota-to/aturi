@@ -36,9 +36,9 @@ export default function AboutTab() {
       <div className="options-card">
         <div className="options-card-title">Aturi</div>
         <div className="options-card-sub">
-          Fast travel across the Atmosphere. The web app and this extension
-          are part of the same project — the extension is a quick way to jump
-          between Atmosphere clients while you browse.
+          Tour the Atmosphere. The web app and this extension are part of the
+          same project — the extension is a quick way to jump between
+          Atmosphere clients while you browse.
         </div>
         <div className="about-links">
           <a href={ATURI_SITE} target="_blank" rel="noreferrer" className="about-link">

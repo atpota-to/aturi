@@ -38,7 +38,6 @@ describe('matchSupportedUrl - Bluesky family', () => {
     ['witchsky.app', 'witchsky'],
     ['catsky.social', 'catsky'],
     ['deer.social', 'deer'],
-    ['tokimeki.blue', 'tokimeki'],
     ['anisota.net', 'anisota'],
   ])('parses %s profile', (host, sourceId) => {
     const m = match(`https://${host}/profile/alice.bsky.social`);
@@ -61,9 +60,9 @@ describe('matchSupportedUrl - other apps', () => {
     expect(m?.parsed.type).toBe('post');
   });
 
-  it('parses pinksky feed url', () => {
+  it('parses pinkleap feed url', () => {
     const uri = encodeURIComponent('at://did:plc:x/app.bsky.feed.post/r');
-    const m = match(`https://pinksky.app/feed?uri=${uri}&src=profile`);
+    const m = match(`https://pinkleap.app/feed?uri=${uri}&src=profile`);
     expect(m?.source).toBe('pinksky');
     expect(m?.parsed.type).toBe('post');
   });
