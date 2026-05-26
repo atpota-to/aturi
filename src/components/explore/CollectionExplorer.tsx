@@ -8,7 +8,7 @@ import { listRecordsPage, type AtRecord } from '@/utils/atproto/pdsClient';
 import { encodeRepo, rkeyFromAtUri } from '@/utils/atproto/urls';
 import { resolveIdentifier, type IdentityBundle } from '@/utils/atproto/identity';
 import { previewFor } from '@/utils/atproto/previewExtractors';
-import { tidToDate } from '@/utils/atproto/tid';
+import { tidToDate, formatTidRelative } from '@/utils/atproto/tid';
 import {
   createJetstreamConnection,
   type JetstreamCommit,
@@ -273,7 +273,7 @@ function CollectionList({
                         fontFamily: 'var(--font-mono)',
                       }}
                     >
-                      {formatTidTimestamp(tidDate)}
+                      {formatTidRelative(tidDate)}
                     </time>
                   )}
                 </div>
@@ -321,24 +321,3 @@ function CollectionList({
   );
 }
 
-/**
- * Render the TID-derived date in a list-friendly way: recent items get
- * a relative chip ("12m", "3h", "2d"); older items get a calendar date.
- * Hover/`title` always shows the full ISO timestamp via the parent.
- */
-function formatTidTimestamp(date: Date): string {
-  const now = Date.now();
-  const diffMs = now - date.getTime();
-  if (diffMs < 0) return date.toISOString().slice(0, 10);
-  const sec = Math.floor(diffMs / 1000);
-  if (sec < 60) return `${sec}s ago`;
-  const min = Math.floor(sec / 60);
-  if (min < 60) return `${min}m ago`;
-  const hr = Math.floor(min / 60);
-  if (hr < 24) return `${hr}h ago`;
-  const day = Math.floor(hr / 24);
-  if (day < 14) return `${day}d ago`;
-  // Beyond two weeks the relative form loses precision; show the actual
-  // date so a 6-month-old record doesn't read as "189d ago".
-  return date.toISOString().slice(0, 10);
-}
