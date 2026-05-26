@@ -19,6 +19,8 @@ type Props = {
   onSaved?: (record: Record<string, unknown>) => void;
   onDeleted?: () => void;
   onCreated?: (info: { rkey: string | null; record: Record<string, unknown>; uri?: string }) => void;
+  /** Dismiss the editor without saving. */
+  onCancel?: () => void;
 };
 
 export default function RecordEditor({
@@ -30,6 +32,7 @@ export default function RecordEditor({
   onSaved,
   onDeleted,
   onCreated,
+  onCancel,
 }: Props) {
   const lex = lexiconFor(collection);
   const isNew = !rkey;
@@ -269,6 +272,25 @@ export default function RecordEditor({
         >
           {saving ? 'Saving…' : isNew ? 'Create' : 'Save'}
         </button>
+        {onCancel && !confirmingDelete && (
+          <button
+            type="button"
+            onClick={onCancel}
+            disabled={saving || deleting}
+            style={{
+              padding: '0.55rem 1rem',
+              background: 'transparent',
+              color: 'var(--text-secondary)',
+              border: '1px solid var(--border-medium)',
+              fontFamily: 'var(--font-serif)',
+              fontSize: '0.875rem',
+              cursor: saving || deleting ? 'not-allowed' : 'pointer',
+              opacity: saving || deleting ? 0.6 : 1,
+            }}
+          >
+            Cancel
+          </button>
+        )}
         {!isNew && !confirmingDelete && (
           <button
             type="button"
