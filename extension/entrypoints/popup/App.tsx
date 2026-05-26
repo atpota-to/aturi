@@ -2,8 +2,9 @@ import { useEffect, useMemo, useState } from 'react';
 import { browser } from '#imports';
 import { MousePointer2, Telescope } from 'lucide-react';
 import type { ReverseMatch } from '@aturi/reverseParsers';
-import type { WaypointData, WaypointType } from '@aturi/waypoints.data';
+import type { WaypointActivity, WaypointData, WaypointType } from '@aturi/waypoints.data';
 import { matchSupportedUrl, parseAtUri, SUPPORTED_HOSTS } from '@aturi/reverseParsers';
+import { waypointActivity } from '@aturi/waypoints.data';
 import { matchCustomUrl } from '../../lib/template';
 import {
   categorizedForType,
@@ -29,6 +30,7 @@ import { resolveHandleToDid } from '../../lib/handleResolver';
 import { describeWaypoint } from '../../lib/describe';
 import { getWaypointHomePageUrl, homePageSubtitle } from '../../lib/homePage';
 import { WaypointIcon } from '../../lib/Icons';
+import { cachedRepoCollections, scanRepoCollections } from '../../lib/repoScan';
 import InspectView from './InspectView';
 
 type PopupMode = 'waypoints' | 'inspect';
@@ -456,14 +458,52 @@ function Ready({ match, prefs, pendingId, copiedId, onOpen, onCopy }: ReadyProps
   const { parsed, source } = match;
   const type: WaypointType = parsed.type === 'unknown' ? 'profile' : parsed.type;
 
+  // describeRepo scan against the target DID. Result feeds the per-waypoint
+  // 'present' | 'absent' | 'unknown' badge and re-orders recommendations so
+  // confirmed-active waypoints win the top slot. Gated on the prefs toggle
+  // and on the target having a DID we can resolve.
+  const [repoCollections, setRepoCollections] = useState<Set<string> | null>(null);
+
+  useEffect(() => {
+    if (!prefs.pdsRecordScan) {
+      setRepoCollections(null);
+      return undefined;
+    }
+    let cancelled = false;
+
+    async function run() {
+      // We need a DID to scan. Profiles often arrive with just the handle;
+      // resolve to DID up-front so the scan can proceed.
+      let did = parsed.did;
+      if (!did && parsed.handle) {
+        const resolved = await resolveHandleToDid(parsed.handle);
+        if (resolved) did = resolved;
+      }
+      if (!did) return;
+
+      // Show whatever's cached immediately, then live-refresh in the
+      // background so the badges don't flicker on a warm cache.
+      const cached = await cachedRepoCollections(did);
+      if (!cancelled && cached) setRepoCollections(cached);
+
+      const live = await scanRepoCollections(did);
+      if (!cancelled && live) setRepoCollections(live);
+    }
+
+    void run();
+    return () => {
+      cancelled = true;
+    };
+  }, [prefs.pdsRecordScan, parsed.did, parsed.handle]);
+
   const categorized = useMemo(
     () => categorizedForType(prefs, type),
     [prefs, type]
   );
 
   const recommended = useMemo(
-    () => recommendedForType(prefs, type, parsed.collection),
-    [prefs, type, parsed.collection]
+    () => recommendedForType(prefs, type, parsed.collection, repoCollections),
+    [prefs, type, parsed.collection, repoCollections]
   );
 
   const recents = useMemo(() => {
@@ -554,6 +594,7 @@ function Ready({ match, prefs, pendingId, copiedId, onOpen, onCopy }: ReadyProps
                   type={type}
                   pending={pendingId === w.id}
                   copied={copiedId === w.id}
+                  activity={waypointActivity(w, repoCollections)}
                   onClick={onOpen}
                   onCopy={onCopy}
                 />
@@ -579,6 +620,7 @@ function Ready({ match, prefs, pendingId, copiedId, onOpen, onCopy }: ReadyProps
                   type={type}
                   pending={pendingId === w.id}
                   copied={copiedId === w.id}
+                  activity={waypointActivity(w, repoCollections)}
                   onClick={onOpen}
                   onCopy={onCopy}
                 />
@@ -757,6 +799,7 @@ function WaypointButton({
   type,
   pending,
   copied,
+  activity,
   onClick,
   onCopy,
 }: {
@@ -765,22 +808,37 @@ function WaypointButton({
   type: WaypointType;
   pending: boolean;
   copied: boolean;
+  /**
+   * 'absent' dims the row and replaces the description with a "no records
+   * found" caption. 'present' / 'unknown' render as normal. Set to
+   * 'unknown' (or omitted) when the PDS-scan toggle is off so the badge
+   * stays out of the way.
+   */
+  activity?: WaypointActivity;
   onClick: (w: WaypointData) => void;
   onCopy: (w: WaypointData) => void;
 }) {
+  const isAbsent = activity === 'absent';
   return (
-    <div className="popup-waypoint">
+    <div className={`popup-waypoint ${isAbsent ? 'is-absent' : ''}`}>
       <button
         type="button"
         className="popup-waypoint-main"
         onClick={() => onClick(waypoint)}
         disabled={pending}
+        title={
+          isAbsent
+            ? `No records under ${(waypoint.expectedCollections ?? []).join(' / ')} on this repo`
+            : undefined
+        }
       >
         <WaypointIcon id={waypoint.id} name={waypoint.name} />
         <div className="popup-waypoint-text">
           <div className="popup-waypoint-name">{waypoint.name}</div>
           <div className="popup-waypoint-desc">
-            {describeWaypoint(waypoint, collection, type)}
+            {isAbsent
+              ? 'No records found on this repo'
+              : describeWaypoint(waypoint, collection, type)}
           </div>
         </div>
       </button>
