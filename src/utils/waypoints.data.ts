@@ -42,9 +42,11 @@ export type WaypointData = {
    * found" in the popup and demoted in smart recommendations.
    *
    * Use trailing-dot prefixes for whole namespaces (e.g. `'sh.tangled.'`)
-   * or full NSIDs for single-collection apps. Omit the field entirely for
-   * generic explorers (PDSls, atp.tools, Aturi) and for apps whose backing
-   * NSIDs aren't known — those stay in the "unknown" / no-opinion state.
+   * or full NSIDs for single-collection apps. Atmosphere apps typically
+   * declare a reversed-domain prefix (`semble.so` → `so.semble.`) so the
+   * popup can flag accounts that haven't published any of that app's
+   * records. Omit the field entirely for generic explorers (PDSls,
+   * atp.tools, Aturi) — those stay in the "unknown" / no-opinion state.
    */
   expectedCollections?: string[];
 };
@@ -208,7 +210,7 @@ export const WAYPOINT_DESTINATIONS_DATA: Record<string, WaypointData> = {
     supportedTypes: ['post', 'profile', 'list', 'record'],
     category: 'blueskyClients',
     redirectCompat: ['bluesky-social', 'standard-site'],
-    expectedCollections: ['app.bsky.', 'net.anisota.', 'pub.leaflet.', 'site.standard.'],
+    expectedCollections: ['app.bsky.', 'net.anisota.'],
   },
 
   bluesky: {
@@ -303,21 +305,6 @@ export const WAYPOINT_DESTINATIONS_DATA: Record<string, WaypointData> = {
         return `https://pdsls.dev/at://${identifier}/${collection}/${rkey}`;
       }
       return `https://pdsls.dev/at://${identifier}`;
-    },
-    supportedTypes: ['post', 'profile', 'list', 'record'],
-    category: 'devTools',
-    redirectCompat: [],
-  },
-
-  anisotaExplorer: {
-    id: 'anisotaExplorer',
-    name: 'Anisota Explorer',
-    description: 'View raw record on anisota.net',
-    getUrl: (handle, collection, rkey) => {
-      if (collection && rkey) {
-        return `https://anisota.net/explorer/${handle}/${collection}/${rkey}`;
-      }
-      return `https://anisota.net/explorer/${handle}`;
     },
     supportedTypes: ['post', 'profile', 'list', 'record'],
     category: 'devTools',
@@ -539,6 +526,7 @@ export const WAYPOINT_DESTINATIONS_DATA: Record<string, WaypointData> = {
     supportedTypes: ['post', 'profile', 'list', 'record'],
     category: 'atmosphereApps',
     redirectCompat: ['semble'],
+    expectedCollections: ['so.semble.'],
   },
 
   streamplace: {
@@ -551,6 +539,7 @@ export const WAYPOINT_DESTINATIONS_DATA: Record<string, WaypointData> = {
     supportedTypes: ['post', 'profile', 'list', 'record'],
     category: 'atmosphereApps',
     redirectCompat: ['streamplace'],
+    expectedCollections: ['place.stream.'],
   },
 
   grain: {
@@ -584,6 +573,7 @@ export const WAYPOINT_DESTINATIONS_DATA: Record<string, WaypointData> = {
     supportedTypes: ['post', 'profile', 'list', 'record'],
     category: 'atmosphereApps',
     redirectCompat: ['popfeed'],
+    expectedCollections: ['social.popfeed.'],
   },
 
   sifa: {
@@ -596,6 +586,7 @@ export const WAYPOINT_DESTINATIONS_DATA: Record<string, WaypointData> = {
     supportedTypes: ['post', 'profile', 'list', 'record'],
     category: 'atmosphereApps',
     redirectCompat: ['sifa'],
+    expectedCollections: ['id.sifa.'],
   },
 
   blento: {
@@ -608,6 +599,7 @@ export const WAYPOINT_DESTINATIONS_DATA: Record<string, WaypointData> = {
     supportedTypes: ['post', 'profile', 'list', 'record'],
     category: 'atmosphereApps',
     redirectCompat: ['blento'],
+    expectedCollections: ['app.blento.'],
   },
 
   anisotaReader: {
@@ -699,7 +691,6 @@ export const WAYPOINT_ORDER = [
   'offprint',
   'pckt',
   'pdsls',
-  'anisotaExplorer',
   'aturiExplore',
   'tangled',
   'atptools',
@@ -820,7 +811,7 @@ const RECOMMENDED_WAYPOINTS: Record<string, RecommendedConfig> = {
     label: 'Recommended for Repos',
   },
   'record': {
-    waypointIds: ['pdsls', 'atptools', 'anisotaExplorer'],
+    waypointIds: ['pdsls', 'atptools'],
     label: 'Recommended for Records',
   },
 };

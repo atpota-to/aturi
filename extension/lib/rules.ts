@@ -205,7 +205,6 @@ const HOST_BY_SOURCE: Record<SourceApp, string> = {
   catsky: 'catsky.social',
   deer: 'deer.social',
   anisota: 'anisota.net',
-  anisotaExplorer: 'anisota.net',
   pinksky: 'pinkleap.app',
   leaflet: 'leaflet.pub',
   tangled: 'tangled.org',

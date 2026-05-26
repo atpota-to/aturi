@@ -76,7 +76,7 @@ The catalog covers roughly 25+ Atmosphere apps and dev tools across categories l
 - **Bluesky clients** — Bluesky, Anisota, Blacksky, Red Dwarf, Witchsky, Catsky, Deer, and other forks
 - **Publications** — Leaflet, Standard Site readers
 - **Apps** — Tangled, Margin, Grain, Pinkleap, Semble, Streamplace, Popfeed, Sifa, Blento, Offprint, pckt, Anisota Reader
-- **Dev tools** — PDSls, atp.tools, Anisota Explorer
+- **Dev tools** — PDSls, atp.tools
 
 Want to add a new waypoint? Open a PR against [`src/utils/waypoints.data.ts`](src/utils/waypoints.data.ts) — both the web app and the extension pick it up automatically.
 

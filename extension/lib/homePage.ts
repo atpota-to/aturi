@@ -15,7 +15,6 @@ const BUILTIN_HOME: Record<string, string> = {
   leaflet: 'https://leaflet.pub/',
   pdsls: 'https://pdsls.dev/',
   anisotaReader: 'https://anisota.net/',
-  anisotaExplorer: 'https://anisota.net/explorer',
   atptools: 'https://atp.tools/',
   witchsky: 'https://witchsky.app/',
   catsky: 'https://catsky.social/',

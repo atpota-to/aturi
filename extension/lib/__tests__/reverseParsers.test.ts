@@ -61,13 +61,6 @@ describe('matchSupportedUrl - other apps', () => {
     expect(m?.parsed.type).toBe('post');
   });
 
-  it('parses anisota explorer records', () => {
-    const m = match('https://anisota.net/explorer/alice.bsky.social/com.example.foo/bar');
-    expect(m?.source).toBe('anisotaExplorer');
-    expect(m?.parsed.type).toBe('record');
-    expect(m?.parsed.collection).toBe('com.example.foo');
-  });
-
   it('parses pinksky feed url', () => {
     const uri = encodeURIComponent('at://did:plc:x/app.bsky.feed.post/r');
     const m = match(`https://pinksky.app/feed?uri=${uri}&src=profile`);
