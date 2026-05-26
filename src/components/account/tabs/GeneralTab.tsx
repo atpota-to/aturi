@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useSyncExternalStore } from 'react';
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { Pin, X } from 'lucide-react';
 import {
   applyTheme,
@@ -12,6 +12,7 @@ import {
   DEFAULT_THEME,
 } from '@/lib/theme';
 import { usePreferences } from '@/components/PreferencesProvider';
+import { useMyCollections } from '@/components/explore/useRepoCollections';
 import {
   addPinnedLexicon,
   isLikelyNsid,
@@ -139,6 +140,8 @@ function ExplorerCard() {
   );
 }
 
+const SUGGESTION_LIMIT = 8;
+
 function PinnedList({
   target,
   title,
@@ -151,21 +154,91 @@ function PinnedList({
     target === 'others' ? prefs.pinnedLexiconsOthers : prefs.pinnedLexicons;
   const [draft, setDraft] = useState('');
   const [err, setErr] = useState<string | null>(null);
+  const [focused, setFocused] = useState(false);
+  const [activeIdx, setActiveIdx] = useState(0);
+  const containerRef = useRef<HTMLFormElement>(null);
 
-  function submit() {
-    const value = draft.trim().toLowerCase();
-    if (!value) return;
-    if (!isLikelyNsid(value)) {
-      setErr('That doesn’t look like a valid NSID. Expected lowercase, dotted (e.g. app.bsky.feed.post).');
+  // Source for autocomplete: NSIDs on the signed-in user's own repo.
+  // null when signed out or still loading — in that case we fall back
+  // to a pure free-text input.
+  const myCollections = useMyCollections();
+  const pinnedSet = useMemo(() => new Set(list), [list]);
+  const suggestions = useMemo(() => {
+    if (!myCollections) return [] as string[];
+    const q = draft.trim().toLowerCase();
+    const candidates = Array.from(myCollections).filter((n) => !pinnedSet.has(n));
+    candidates.sort();
+    if (!q) return candidates.slice(0, SUGGESTION_LIMIT);
+    // Rank: prefix match first, then any substring match.
+    const lc = candidates.map((n) => [n, n.toLowerCase()] as const);
+    const prefix = lc.filter(([, l]) => l.startsWith(q)).map(([n]) => n);
+    const contains = lc
+      .filter(([, l]) => !l.startsWith(q) && l.includes(q))
+      .map(([n]) => n);
+    return [...prefix, ...contains].slice(0, SUGGESTION_LIMIT);
+  }, [myCollections, draft, pinnedSet]);
+
+  // Close suggestions on outside click.
+  useEffect(() => {
+    if (!focused) return;
+    function onClick(e: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setFocused(false);
+      }
+    }
+    document.addEventListener('mousedown', onClick);
+    return () => document.removeEventListener('mousedown', onClick);
+  }, [focused]);
+
+  // Reset active suggestion whenever the filtered set changes shape.
+  useEffect(() => {
+    setActiveIdx(0);
+  }, [draft, suggestions.length]);
+
+  const suggestionsOpen = focused && suggestions.length > 0;
+
+  function pin(value: string) {
+    const v = value.trim().toLowerCase();
+    if (!v) return;
+    if (!isLikelyNsid(v)) {
+      setErr(
+        'That doesn’t look like a valid NSID. Expected lowercase, dotted (e.g. app.bsky.feed.post).',
+      );
       return;
     }
-    if (list.includes(value)) {
+    if (list.includes(v)) {
       setErr('Already pinned.');
       return;
     }
-    update((p) => addPinnedLexicon(p, value, target));
+    update((p) => addPinnedLexicon(p, v, target));
     setDraft('');
     setErr(null);
+  }
+
+  function submit() {
+    if (suggestionsOpen && suggestions[activeIdx]) {
+      pin(suggestions[activeIdx]);
+      return;
+    }
+    pin(draft);
+  }
+
+  function onKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (!suggestionsOpen) return;
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setActiveIdx((i) => Math.min(i + 1, suggestions.length - 1));
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setActiveIdx((i) => Math.max(i - 1, 0));
+    } else if (e.key === 'Escape') {
+      setFocused(false);
+    } else if (e.key === 'Tab' && suggestions[activeIdx]) {
+      // Tab autofills the input without submitting, so the user can
+      // tweak the NSID before pinning.
+      e.preventDefault();
+      setDraft(suggestions[activeIdx]);
+    }
   }
 
   function unpin(nsid: string) {
@@ -199,37 +272,103 @@ function PinnedList({
           e.preventDefault();
           submit();
         }}
+        ref={containerRef}
         style={{
           display: 'flex',
           gap: '0.5rem',
           marginBottom: '0.5rem',
+          position: 'relative',
         }}
       >
-        <input
-          type="text"
-          inputMode="text"
-          autoComplete="off"
-          autoCapitalize="none"
-          spellCheck={false}
-          value={draft}
-          onChange={(e) => {
-            setDraft(e.target.value);
-            if (err) setErr(null);
-          }}
-          placeholder="app.bsky.feed.post"
-          aria-label={`Add lexicon to ${title}`}
-          style={{
-            flex: 1,
-            minWidth: 0,
-            padding: '0.45rem 0.65rem',
-            background: 'var(--bg-tertiary)',
-            border: `1px solid ${err ? 'var(--text-error, #b94a4a)' : 'var(--border-medium)'}`,
-            color: 'var(--text-primary)',
-            fontFamily: 'var(--font-mono)',
-            fontSize: '0.85rem',
-            outline: 'none',
-          }}
-        />
+        <div style={{ flex: 1, minWidth: 0, position: 'relative' }}>
+          <input
+            type="text"
+            inputMode="text"
+            autoComplete="off"
+            autoCapitalize="none"
+            spellCheck={false}
+            value={draft}
+            onChange={(e) => {
+              setDraft(e.target.value);
+              if (err) setErr(null);
+            }}
+            onFocus={() => setFocused(true)}
+            onKeyDown={onKeyDown}
+            placeholder={
+              myCollections
+                ? 'Search your repo or type an NSID…'
+                : 'app.bsky.feed.post'
+            }
+            aria-label={`Add lexicon to ${title}`}
+            aria-autocomplete="list"
+            aria-expanded={suggestionsOpen}
+            aria-controls={`pinned-suggestions-${target}`}
+            aria-activedescendant={
+              suggestionsOpen ? `pinned-suggestion-${target}-${activeIdx}` : undefined
+            }
+            role="combobox"
+            style={{
+              width: '100%',
+              padding: '0.45rem 0.65rem',
+              background: 'var(--bg-tertiary)',
+              border: `1px solid ${err ? 'var(--text-error, #b94a4a)' : 'var(--border-medium)'}`,
+              color: 'var(--text-primary)',
+              fontFamily: 'var(--font-mono)',
+              fontSize: '0.85rem',
+              outline: 'none',
+            }}
+          />
+          {suggestionsOpen && (
+            <ul
+              id={`pinned-suggestions-${target}`}
+              role="listbox"
+              style={{
+                listStyle: 'none',
+                margin: 0,
+                padding: 0,
+                position: 'absolute',
+                top: 'calc(100% + 2px)',
+                left: 0,
+                right: 0,
+                zIndex: 5,
+                background: 'var(--bg-secondary)',
+                border: '1px solid var(--border-medium)',
+                maxHeight: '16rem',
+                overflowY: 'auto',
+                boxShadow: '0 6px 18px rgba(0,0,0,0.25)',
+              }}
+            >
+              {suggestions.map((nsid, i) => (
+                <li
+                  key={nsid}
+                  id={`pinned-suggestion-${target}-${i}`}
+                  role="option"
+                  aria-selected={i === activeIdx}
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    pin(nsid);
+                  }}
+                  onMouseEnter={() => setActiveIdx(i)}
+                  style={{
+                    padding: '0.4rem 0.65rem',
+                    fontFamily: 'var(--font-mono)',
+                    fontSize: '0.8rem',
+                    background:
+                      i === activeIdx ? 'var(--bg-tertiary)' : 'transparent',
+                    color:
+                      i === activeIdx
+                        ? 'var(--text-accent)'
+                        : 'var(--text-primary)',
+                    cursor: 'pointer',
+                    wordBreak: 'break-all',
+                  }}
+                >
+                  {highlightMatch(nsid, draft)}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
         <button
           type="submit"
           disabled={draft.trim().length === 0}
@@ -344,6 +483,27 @@ function getSnapshot(): Theme {
 
 function getServerSnapshot(): Theme {
   return DEFAULT_THEME;
+}
+
+/**
+ * Render `nsid` with the substring matching `query` underlined. Falls
+ * back to plain text when there's no match or no query.
+ */
+function highlightMatch(nsid: string, query: string): React.ReactNode {
+  const q = query.trim().toLowerCase();
+  if (!q) return nsid;
+  const lc = nsid.toLowerCase();
+  const idx = lc.indexOf(q);
+  if (idx < 0) return nsid;
+  return (
+    <>
+      {nsid.slice(0, idx)}
+      <strong style={{ color: 'var(--text-accent)', fontWeight: 600 }}>
+        {nsid.slice(idx, idx + q.length)}
+      </strong>
+      {nsid.slice(idx + q.length)}
+    </>
+  );
 }
 
 function ThemePicker() {
