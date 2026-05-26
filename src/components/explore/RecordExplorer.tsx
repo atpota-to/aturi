@@ -134,25 +134,48 @@ export default function RecordExplorer({ repo, collection, rkey }: Props) {
         />
       </AppearIn>
 
-      {/* Rich preview leads — most visitors care about "what is this
-          record?" before they care about its CID / PDS / DID. Mirrors
-          the universal link page's layout. The Edit button slots into
-          the generic preview's footer alongside the CID when applicable;
-          post / margin previews fall back to a standalone chip below. */}
+      {/* Primary slot. In read mode this is the rich preview (PostPreview /
+          margin variants / generic RecordPreview). In edit mode the same
+          slot becomes the editor — so the user's eye doesn't have to
+          travel to find their changes, and the page doesn't grow longer
+          to accommodate a separate editor section.
+
+          The Edit button slots into the generic preview's footer
+          alongside the CID when applicable; post / margin previews fall
+          back to a standalone chip below the copy row. */}
       {recordError && <p className="explore-error">{recordError}</p>}
-      {!record && !recordError && <p className="explore-placeholder">Loading record…</p>}
+      {!record && !recordError && !editing && (
+        <p className="explore-placeholder">Loading record…</p>
+      )}
       <AppearIn delay={0.05}>
-        <RichRecordPreview
-          handle={identity.handle || identity.did}
-          did={identity.did}
-          collection={collection}
-          rkey={decodedRkey}
-          record={record}
-          footerActions={editsInPreviewFooter ? editButton : null}
-        />
+        {editing && canEdit && agent ? (
+          <RecordEditor
+            agent={agent}
+            did={identity.did}
+            collection={collection}
+            rkey={decodedRkey}
+            onSaved={(next) => {
+              setRecord((prev) => (prev ? { ...prev, value: next } : prev));
+            }}
+            onDeleted={() => {
+              setEditing(false);
+              router.push(`/explore/${repoSeg}/${collection}`);
+            }}
+            onCancel={() => setEditing(false)}
+          />
+        ) : (
+          <RichRecordPreview
+            handle={identity.handle || identity.did}
+            did={identity.did}
+            collection={collection}
+            rkey={decodedRkey}
+            record={record}
+            footerActions={editsInPreviewFooter ? editButton : null}
+          />
+        )}
       </AppearIn>
 
-      {record && (
+      {record && !editing && (
         <AppearIn>
           <EngagementSidecar did={identity.did} collection={collection} atUri={atUri} />
         </AppearIn>
@@ -173,8 +196,9 @@ export default function RecordExplorer({ repo, collection, rkey }: Props) {
       </AppearIn>
 
       {/* Standalone Edit chip — only for post / margin previews that
-          don't have a place to slot the button into their layout. */}
-      {!editsInPreviewFooter && editButton && (
+          don't have a place to slot the button into their layout, and
+          only in read mode. */}
+      {!editsInPreviewFooter && !editing && editButton && (
         <AppearIn delay={0.1}>
           <div
             style={{
@@ -187,23 +211,6 @@ export default function RecordExplorer({ repo, collection, rkey }: Props) {
             {editButton}
           </div>
         </AppearIn>
-      )}
-
-      {editing && canEdit && agent && (
-        <RecordEditor
-          agent={agent}
-          did={identity.did}
-          collection={collection}
-          rkey={decodedRkey}
-          onSaved={(next) => {
-            setRecord((prev) => (prev ? { ...prev, value: next } : prev));
-          }}
-          onDeleted={() => {
-            setEditing(false);
-            router.push(`/explore/${repoSeg}/${collection}`);
-          }}
-          onCancel={() => setEditing(false)}
-        />
       )}
 
       {!session && (
