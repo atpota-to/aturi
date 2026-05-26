@@ -123,6 +123,35 @@ function ExplorerCard() {
         </div>
       </div>
 
+      <div className="settings-toggle-row">
+        <div className="settings-toggle-label">
+          <span className="settings-toggle-label-text">
+            Start lexicon groups collapsed
+          </span>
+          <span className="settings-toggle-label-sub">
+            When on, every group on the explorer's Collections tab starts
+            folded. Use the toggle next to the filter bar to flip everything
+            at once.
+          </span>
+        </div>
+        <span className="settings-switch">
+          <input
+            id="collections-collapse-default"
+            type="checkbox"
+            role="switch"
+            checked={prefs.collectionGroupsCollapsedByDefault}
+            onChange={(e) =>
+              update((p) => ({
+                ...p,
+                collectionGroupsCollapsedByDefault: e.target.checked,
+              }))
+            }
+            aria-label="Start lexicon groups collapsed"
+          />
+          <span className="settings-switch-box" aria-hidden="true" />
+        </span>
+      </div>
+
       <PinnedList
         target="mine"
         title={

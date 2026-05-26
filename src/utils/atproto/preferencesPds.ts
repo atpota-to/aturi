@@ -19,6 +19,7 @@
  *   pinnedLexicons?: string[]         // NSIDs pinned in the explorer
  *   pinnedLexiconsOthers?: string[]   // separate list for others' repos in split mode
  *   pinScope?: 'own' | 'all' | 'split'
+ *   collectionGroupsCollapsedByDefault?: boolean
  *   updatedAt: datetime
  *
  *   // Legacy — still written for back-compat with older Aturi clients
@@ -89,6 +90,7 @@ export async function writePreferencesToPds(
     pinnedLexicons: prefs.pinnedLexicons,
     pinnedLexiconsOthers: prefs.pinnedLexiconsOthers,
     pinScope: prefs.pinScope,
+    collectionGroupsCollapsedByDefault: prefs.collectionGroupsCollapsedByDefault,
     // Legacy fields kept for back-compat with older clients.
     hiddenWaypoints: prefs.hiddenWaypoints,
     waypointOrder: prefs.waypointOrder,
