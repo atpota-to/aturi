@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { FilePenLine, X } from 'lucide-react';
+import { FilePenLine } from 'lucide-react';
 import { getRecord, type AtRecord } from '@/utils/atproto/pdsClient';
 import { resolveIdentifier, type IdentityBundle } from '@/utils/atproto/identity';
 import { encodeRepo } from '@/utils/atproto/urls';
@@ -144,7 +144,7 @@ export default function RecordExplorer({ repo, collection, rkey }: Props) {
         />
       </AppearIn>
 
-      {canEdit && (
+      {canEdit && !editing && (
         <AppearIn delay={0.1}>
           <div
             style={{
@@ -154,46 +154,24 @@ export default function RecordExplorer({ repo, collection, rkey }: Props) {
               alignItems: 'center',
             }}
           >
-            {!editing && (
-              <button
-                type="button"
-                onClick={() => setEditing(true)}
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '0.4rem',
-                  padding: '0.4rem 0.75rem',
-                  background: 'var(--accent-moss)',
-                  color: 'var(--text-on-accent)',
-                  border: '1px solid var(--accent-moss)',
-                  fontFamily: 'var(--font-serif)',
-                  fontSize: '0.8125rem',
-                  cursor: 'pointer',
-                }}
-              >
-                <FilePenLine size={12} /> Edit record
-              </button>
-            )}
-            {editing && (
-              <button
-                type="button"
-                onClick={() => setEditing(false)}
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '0.4rem',
-                  padding: '0.4rem 0.75rem',
-                  background: 'transparent',
-                  border: '1px solid var(--border-medium)',
-                  color: 'var(--text-secondary)',
-                  fontFamily: 'var(--font-serif)',
-                  fontSize: '0.8125rem',
-                  cursor: 'pointer',
-                }}
-              >
-                <X size={12} /> Close editor
-              </button>
-            )}
+            <button
+              type="button"
+              onClick={() => setEditing(true)}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.4rem',
+                padding: '0.4rem 0.75rem',
+                background: 'var(--accent-moss)',
+                color: 'var(--text-on-accent)',
+                border: '1px solid var(--accent-moss)',
+                fontFamily: 'var(--font-serif)',
+                fontSize: '0.8125rem',
+                cursor: 'pointer',
+              }}
+            >
+              <FilePenLine size={12} /> Edit record
+            </button>
           </div>
         </AppearIn>
       )}
@@ -211,6 +189,7 @@ export default function RecordExplorer({ repo, collection, rkey }: Props) {
             setEditing(false);
             router.push(`/explore/${repoSeg}/${collection}`);
           }}
+          onCancel={() => setEditing(false)}
         />
       )}
 
