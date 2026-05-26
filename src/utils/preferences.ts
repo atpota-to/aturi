@@ -75,6 +75,34 @@ export type Preferences = {
   /** User-defined waypoints. */
   customWaypoints: CustomWaypoint[];
   /**
+   * NSIDs the user has pinned in the explorer's CollectionsTab. Shown at
+   * the top of the list whenever the current repo has a matching
+   * collection. In `split` mode this list is shown only on the user's
+   * own repo; in `own` and `all` modes it's the single list used wherever
+   * pins apply.
+   */
+  pinnedLexicons: string[];
+  /**
+   * Additional NSIDs pinned only for other people's repos when `pinScope`
+   * is `split`. Empty/unused otherwise.
+   */
+  pinnedLexiconsOthers: string[];
+  /**
+   * Where the Pinned section shows up and which list backs it:
+   *   - `own`:   shows `pinnedLexicons` only on the user's own repo.
+   *   - `all`:   shows `pinnedLexicons` on every repo (own + others).
+   *   - `split`: shows `pinnedLexicons` on own; `pinnedLexiconsOthers`
+   *              on everyone else's.
+   */
+  pinScope: 'own' | 'all' | 'split';
+  /**
+   * Whether lexicon groups in the explorer's Collections tab should
+   * start collapsed. Per-group toggles still work and stick for the
+   * duration of the session, but the initial fallback (and the
+   * "expand/collapse all" target) flips with this.
+   */
+  collectionGroupsCollapsedByDefault: boolean;
+  /**
    * ISO timestamp of last local change. Used to break ties when local and
    * PDS prefs both exist on sign-in.
    */
@@ -89,6 +117,10 @@ export const DEFAULT_PREFERENCES: Preferences = {
   hiddenWaypoints: [],
   waypointOrder: [],
   customWaypoints: [],
+  pinnedLexicons: [],
+  pinnedLexiconsOthers: [],
+  pinScope: 'own',
+  collectionGroupsCollapsedByDefault: false,
   updatedAt: new Date(0).toISOString(),
 };
 
@@ -163,11 +195,29 @@ export function mergeWithDefaults(input: Partial<Preferences> | null | undefined
     storedGroups.length > 0
       ? storedGroups
       : migrateToGroups({ customWaypoints, hiddenWaypoints, waypointOrder });
+  const pinnedLexicons = Array.isArray(input.pinnedLexicons)
+    ? input.pinnedLexicons.filter((s): s is string => typeof s === 'string')
+    : [];
+  const pinnedLexiconsOthers = Array.isArray(input.pinnedLexiconsOthers)
+    ? input.pinnedLexiconsOthers.filter((s): s is string => typeof s === 'string')
+    : [];
+  const pinScope: Preferences['pinScope'] =
+    input.pinScope === 'all' || input.pinScope === 'own' || input.pinScope === 'split'
+      ? input.pinScope
+      : 'own';
+  const collectionGroupsCollapsedByDefault =
+    typeof input.collectionGroupsCollapsedByDefault === 'boolean'
+      ? input.collectionGroupsCollapsedByDefault
+      : false;
   return {
     waypointGroups,
     hiddenWaypoints,
     waypointOrder,
     customWaypoints,
+    pinnedLexicons,
+    pinnedLexiconsOthers,
+    pinScope,
+    collectionGroupsCollapsedByDefault,
     updatedAt:
       typeof input.updatedAt === 'string' ? input.updatedAt : new Date(0).toISOString(),
   };
@@ -230,9 +280,90 @@ export function expandTemplate(
 export function preferencesAreEqual(a: Preferences, b: Preferences): boolean {
   return (
     a.updatedAt === b.updatedAt &&
+    a.pinScope === b.pinScope &&
+    a.collectionGroupsCollapsedByDefault === b.collectionGroupsCollapsedByDefault &&
     JSON.stringify(a.waypointGroups) === JSON.stringify(b.waypointGroups) &&
-    JSON.stringify(a.customWaypoints) === JSON.stringify(b.customWaypoints)
+    JSON.stringify(a.customWaypoints) === JSON.stringify(b.customWaypoints) &&
+    JSON.stringify(a.pinnedLexicons) === JSON.stringify(b.pinnedLexicons) &&
+    JSON.stringify(a.pinnedLexiconsOthers) === JSON.stringify(b.pinnedLexiconsOthers)
   );
+}
+
+// --- Pinned lexicons -------------------------------------------------------
+
+/**
+ * Which list ("mine" / "others") backs a pin click given the current
+ * scope and whether the user is on their own repo. In non-split modes
+ * everything maps to the primary `pinnedLexicons` list — the "others"
+ * list only exists in `split` mode.
+ */
+export type PinTarget = 'mine' | 'others';
+
+export function pinTargetFor(
+  scope: Preferences['pinScope'],
+  isOwnRepo: boolean,
+): PinTarget {
+  if (scope === 'split' && !isOwnRepo) return 'others';
+  return 'mine';
+}
+
+function pinListFieldFor(target: PinTarget): 'pinnedLexicons' | 'pinnedLexiconsOthers' {
+  return target === 'others' ? 'pinnedLexiconsOthers' : 'pinnedLexicons';
+}
+
+export function togglePinnedLexicon(
+  prefs: Preferences,
+  nsid: string,
+  target: PinTarget = 'mine',
+): Preferences {
+  const field = pinListFieldFor(target);
+  const list = prefs[field];
+  const has = list.includes(nsid);
+  return {
+    ...prefs,
+    [field]: has ? list.filter((n) => n !== nsid) : [...list, nsid],
+  };
+}
+
+export function addPinnedLexicon(
+  prefs: Preferences,
+  nsid: string,
+  target: PinTarget = 'mine',
+): Preferences {
+  const field = pinListFieldFor(target);
+  if (prefs[field].includes(nsid)) return prefs;
+  return { ...prefs, [field]: [...prefs[field], nsid] };
+}
+
+export function removePinnedLexicon(
+  prefs: Preferences,
+  nsid: string,
+  target: PinTarget = 'mine',
+): Preferences {
+  const field = pinListFieldFor(target);
+  return { ...prefs, [field]: prefs[field].filter((n) => n !== nsid) };
+}
+
+export function setPinScope(
+  prefs: Preferences,
+  scope: Preferences['pinScope'],
+): Preferences {
+  return { ...prefs, pinScope: scope };
+}
+
+/**
+ * Loose NSID validation — at least three lowercase segments separated by
+ * dots. Good enough to catch typos in the settings input without
+ * blocking unusual but valid NSIDs.
+ */
+export function isLikelyNsid(input: string): boolean {
+  const s = input.trim();
+  if (!s) return false;
+  if (s.length > 253) return false;
+  const segments = s.split('.');
+  if (segments.length < 3) return false;
+  const segRe = /^[a-zA-Z][a-zA-Z0-9-]*$/;
+  return segments.every((seg) => segRe.test(seg));
 }
 
 // --- Group helpers ---------------------------------------------------------

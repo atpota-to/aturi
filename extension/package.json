@@ -1,6 +1,6 @@
 {
   "name": "aturi-extension",
-  "description": "Aturi browser extension - fast travel across the Atmosphere",
+  "description": "Aturi browser extension - tour the Atmosphere",
   "version": "0.1.2",
   "private": true,
   "type": "module",

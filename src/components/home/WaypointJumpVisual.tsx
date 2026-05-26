@@ -7,9 +7,11 @@ import { WAYPOINT_ICONS } from '@/utils/waypointIcons';
 
 // A handful of recognisable Atmosphere clients to populate the row. Order
 // + selection are tuned so the animated highlight visits a varied set of
-// icons (not just Bluesky forks back-to-back).
+// icons (not just Bluesky forks back-to-back). Anisota sits in slot 2 so
+// it's always within the mobile-trimmed window (see MOBILE_ICON_COUNT).
 const DEFAULT_ROW_ICON_IDS = [
   'bluesky',
+  'anisota',
   'leaflet',
   'tangled',
   'margin',
@@ -22,6 +24,12 @@ const DEFAULT_ROW_ICON_IDS = [
 const HIGHLIGHT_INTERVAL_MS = 1100;
 
 const DEFAULT_ICON_SIZE = 38;
+
+// Below this viewport width the default 8-icon row overflows the card
+// (each icon is fixed-size with flex-shrink: 0). Trim to a smaller set on
+// mobile rather than letting the row scroll off the right edge.
+const MOBILE_MAX_PX = 640;
+const MOBILE_ICON_COUNT = 5;
 
 /**
  * Animated visual for the homepage's Universal Links strip. Shows a
@@ -49,13 +57,30 @@ export default function WaypointJumpVisual({
   iconSize = DEFAULT_ICON_SIZE,
 }: Props) {
   const [activeIndex, setActiveIndex] = useState(0);
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Server render assumes desktop; client upgrades after mount. Brief
+  // mismatch on a mobile cold load is preferable to letting the icon row
+  // overflow before any JS runs.
+  useEffect(() => {
+    const mq = window.matchMedia(`(max-width: ${MOBILE_MAX_PX}px)`);
+    const update = () => setIsMobile(mq.matches);
+    update();
+    mq.addEventListener('change', update);
+    return () => mq.removeEventListener('change', update);
+  }, []);
+
+  const visibleIds =
+    isMobile && iconIds.length > MOBILE_ICON_COUNT
+      ? iconIds.slice(0, MOBILE_ICON_COUNT)
+      : iconIds;
 
   useEffect(() => {
     const id = window.setInterval(() => {
-      setActiveIndex((i) => (i + 1) % iconIds.length);
+      setActiveIndex((i) => (i + 1) % visibleIds.length);
     }, HIGHLIGHT_INTERVAL_MS);
     return () => window.clearInterval(id);
-  }, [iconIds.length]);
+  }, [visibleIds.length]);
 
   return (
     <div
@@ -109,7 +134,7 @@ export default function WaypointJumpVisual({
       >
         <motion.div
           animate={{
-            left: `${(activeIndex / Math.max(iconIds.length - 1, 1)) * 100}%`,
+            left: `${(activeIndex / Math.max(visibleIds.length - 1, 1)) * 100}%`,
           }}
           transition={{ type: 'spring', stiffness: 240, damping: 26 }}
           style={{
@@ -134,7 +159,7 @@ export default function WaypointJumpVisual({
           gap: '0.4rem',
         }}
       >
-        {iconIds.map((id, i) => {
+        {visibleIds.map((id, i) => {
           const isActive = i === activeIndex;
           return (
             <motion.div

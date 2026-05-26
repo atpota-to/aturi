@@ -3,6 +3,7 @@
  * engagement overlay (likes / reposts / replies / follower counts).
  */
 
+import type { Agent } from '@atproto/api';
 import { APPVIEW } from './config';
 
 export type AppViewPostThread = {
@@ -55,6 +56,62 @@ export async function getProfile(actor: string): Promise<AppViewProfile | null> 
   return fetchJsonOrNull<AppViewProfile>(
     `${APPVIEW}/xrpc/app.bsky.actor.getProfile?actor=${encodeURIComponent(actor)}`,
   );
+}
+
+/**
+ * Viewer-specific state the AppView attaches to an authenticated
+ * getProfile response — only present when called via a signed-in agent.
+ * Used by the explorer's relationship strip to surface "do we follow
+ * each other / mutuals" signals.
+ */
+export type ViewerState = {
+  /** AT URI of the viewer's follow record pointing at the target. */
+  following?: string;
+  /** AT URI of the target's follow record pointing at the viewer. */
+  followedBy?: string;
+  muted?: boolean;
+  blockedBy?: boolean;
+  blocking?: string;
+};
+
+export type KnownFollowers = {
+  count: number;
+  followers?: Array<{ did: string; handle?: string; displayName?: string; avatar?: string }>;
+};
+
+export type AppViewProfileWithViewer = AppViewProfile & {
+  viewer?: ViewerState;
+  knownFollowers?: KnownFollowers;
+};
+
+/**
+ * Authenticated profile lookup that includes the AppView's `viewer` and
+ * `knownFollowers` blocks. The unauthenticated `getProfile` above can't
+ * compute relationship state — for that we need the AppView call to go
+ * through the signed-in agent so it knows who "you" are.
+ *
+ * Important: an OAuth-authenticated Agent talks to the user's PDS by
+ * default. Without an explicit `atproto-proxy` header the PDS forwards
+ * `app.bsky.*` calls to the AppView WITHOUT attaching a service-auth
+ * token identifying the user, so the AppView treats it as anonymous and
+ * the `viewer` block comes back empty. `withProxy('bsky_appview', ...)`
+ * sets the header so the PDS signs the proxied request as the user.
+ */
+export async function getProfileWithViewer(
+  agent: Agent,
+  actor: string,
+): Promise<AppViewProfileWithViewer | null> {
+  if (!actor) return null;
+  try {
+    const proxied = agent.withProxy('bsky_appview', 'did:web:api.bsky.app');
+    const res = await proxied.app.bsky.actor.getProfile({ actor });
+    return (res?.data ?? res) as AppViewProfileWithViewer;
+  } catch (err) {
+    // Log so we can see what's actually happening in the console when
+    // viewer state goes missing — silent null was eating useful diagnostics.
+    console.warn('[appview] getProfileWithViewer failed', { actor, err });
+    return null;
+  }
 }
 
 /** Lightweight actor record returned by typeahead/search endpoints. */

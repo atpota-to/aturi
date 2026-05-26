@@ -32,6 +32,13 @@ export type JetstreamCommit = {
 export type JetstreamOpts = {
   wantedCollections?: string[];
   wantedDids?: string[];
+  /**
+   * Commit operations the caller wants to receive. Defaults to
+   * `['create']` so existing callers (which assume only fresh records
+   * come through) keep working. Pass `['create', 'update', 'delete']`
+   * to surface the full mutation stream.
+   */
+  wantedOps?: ('create' | 'update' | 'delete')[];
   cursor?: number;
 };
 
@@ -60,6 +67,9 @@ export function createJetstreamConnection(
   let ws: WebSocket | null = null;
   let attempt = 0;
   let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+  const allowedOps = new Set<'create' | 'update' | 'delete'>(
+    opts.wantedOps && opts.wantedOps.length ? opts.wantedOps : ['create'],
+  );
 
   function connect(): void {
     if (disposed) return;
@@ -82,8 +92,8 @@ export function createJetstreamConnection(
         if (
           data &&
           data.kind === 'commit' &&
-          data.commit?.operation === 'create' &&
-          data.commit?.collection
+          data.commit?.collection &&
+          allowedOps.has(data.commit?.operation)
         ) {
           onEvent(data as JetstreamCommit);
         }

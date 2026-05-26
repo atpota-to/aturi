@@ -6,12 +6,17 @@ import Footer from "@/components/Footer";
 import PageTransition from "@/components/PageTransition";
 import ThemeSync from "@/components/ThemeSync";
 import { DEFAULT_THEME, THEME_INIT_SCRIPT } from "@/lib/theme";
+import { getSiteUrl } from "@/lib/config";
 import "./globals.css";
 
 export const metadata: Metadata = {
   title: "aturi.to — Tour the Atmosphere",
   description: "Travel between clients with the browser extension, share universal Atmosphere links, and explore any account's PDS data.",
-  metadataBase: new URL('https://aturi.to'),
+  // Use the deploy's actual origin (testing.aturi.to on staging, a preview
+  // URL on Vercel previews) so OG image URLs resolve against THIS deploy
+  // and not production. Without this, embeds on staging would render
+  // whatever OG image production happened to have built.
+  metadataBase: new URL(getSiteUrl()),
   manifest: '/site.webmanifest',
   openGraph: {
     title: "aturi.to — Tour the Atmosphere",

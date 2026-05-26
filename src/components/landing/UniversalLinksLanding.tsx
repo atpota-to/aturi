@@ -56,11 +56,10 @@ export default function UniversalLinksLanding() {
               <code style={{ background: 'transparent', padding: 0, color: 'var(--text-accent)' }}>
                 aturi.to
               </code>{' '}
-              link anywhere — a DM, a footer, a bio. Your visitors land on a
-              friendly preview of the record and pick the Atmosphere client
-              they want to open it in. No client lock-in. No sign-up. Every
-              record, profile, list, and feed resolves to the right destination
-              across 25+ curated clients.
+              link anywhere: a DM, a footer, a bio. Visitors land on a preview
+              of the record and choose which Atmosphere client opens it. No
+              lock-in, no sign-up. Every record, profile, list, and feed
+              resolves across 25+ curated clients.
             </p>
             <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
               <Link
@@ -106,15 +105,19 @@ export default function UniversalLinksLanding() {
           body={
             <>
               <p>
-                Every aturi.to URL follows the same pattern: the host, a handle
-                or DID, the lexicon collection, and the record key. The same
-                shape works for every record type — there&rsquo;s nothing to
-                memorize beyond what an AT URI already looks like.
+                Every aturi.to URL follows one pattern: the host, the{' '}
+                <code style={{ color: 'var(--text-accent)' }}>/profile</code>{' '}
+                mount, a handle or DID, the lexicon collection, and the record
+                key. The same shape covers every record type. If you know what
+                an AT URI looks like, you already know the URL.
               </p>
               <p>
-                Drop the collection and the rkey, and you get a profile link.
-                Drop just the rkey, and you get a collection index. The path
-                always degrades gracefully.
+                Drop the collection and rkey for a profile link. Posts also
+                accept a friendlier{' '}
+                <code style={{ color: 'var(--text-accent)' }}>/post/&lt;rkey&gt;</code>{' '}
+                shortcut, and bare paths without the{' '}
+                <code style={{ color: 'var(--text-accent)' }}>/profile</code>{' '}
+                prefix still resolve for backwards compatibility.
               </p>
             </>
           }
@@ -157,8 +160,8 @@ export default function UniversalLinksLanding() {
               same{' '}
               <code style={{ color: 'var(--text-accent)' }}>handle/collection/rkey</code>{' '}
               pattern resolves whether the record lives in app.bsky.feed.post,
-              pub.leaflet.document, sh.tangled.repo, or something brand new the
-              ecosystem invented last week.
+              pub.leaflet.document, sh.tangled.repo, or a lexicon that shipped
+              yesterday.
             </p>
           </div>
           <RecordTypesGrid />
@@ -174,12 +177,12 @@ export default function UniversalLinksLanding() {
             <>
               <p>
                 Recipients land on a clean preview with a recommended client
-                pinned at the top and every alternative listed below. They can
-                read what the record is, decide where to open it, and never get
-                stranded in an app they don&rsquo;t use.
+                pinned at the top and every alternative below. They can read
+                the record, decide where to open it, and skip apps they
+                don&rsquo;t use.
               </p>
               <p>
-                Each link is a real, indexable URL — embeds get OpenGraph
+                Each link is a real, indexable URL. Embeds get OpenGraph
                 cards, link unfurlers get a real title and description, and
                 bookmarks survive client churn.
               </p>
@@ -192,21 +195,19 @@ export default function UniversalLinksLanding() {
       <AppearIn delay={0.05}>
         <FeatureSection
           badge={{ icon: <UserCog size={12} />, label: 'Smart preferences' }}
-          title="Signed in? Your defaults travel with you."
+          title="Signed in? The picker reorders for you."
           body={
             <>
               <p>
                 Sign in with your atproto handle and aturi.to remembers your
-                preferred client for each record type. The next time you
-                follow a universal link, the picker auto-resolves to your
-                favorite app — no extra clicks, on any device you sign in to.
+                favorite client for each record type, the waypoints
+                you&rsquo;ve hidden, and any custom ones you&rsquo;ve added.
+                Every visit lifts your favorites to the top of the picker.
               </p>
               <p>
-                Want to share a link that forces a specific client? Add a{' '}
-                <code style={{ color: 'var(--text-accent)' }}>?via=</code>{' '}
-                query param. Want to give your recipient the picker back? Drop
-                it. The default-vs-override decision lives in the URL, not in
-                the app.
+                Preferences live in your atproto repo as records you own. They
+                sync across every device you sign in to, and they migrate
+                with you if you move your data to a different PDS.
               </p>
             </>
           }
@@ -235,7 +236,7 @@ export default function UniversalLinksLanding() {
               >
                 Signed in as @aturi.to
               </div>
-              <PrefRow lexicon="app.bsky.feed.post" client="Deer" />
+              <PrefRow lexicon="app.bsky.feed.post" client="Anisota" />
               <PrefRow lexicon="pub.leaflet.document" client="Leaflet" />
               <PrefRow lexicon="sh.tangled.repo" client="Tangled" />
               <div
@@ -272,7 +273,7 @@ export default function UniversalLinksLanding() {
                 letterSpacing: '-0.01em',
               }}
             >
-              The link people can actually paste into anything
+              A link you can paste anywhere
             </h2>
             <p
               style={{
@@ -285,7 +286,8 @@ export default function UniversalLinksLanding() {
             >
               An aturi.to URL is short, readable, and copy-pasteable. It works
               in Bluesky posts, group chats, blog footers, business cards, QR
-              codes, podcast show notes — anywhere a regular link belongs.
+              codes, podcast show notes, and anywhere else a regular link
+              works.
             </p>
           </div>
           <SharingScenariosVisual />

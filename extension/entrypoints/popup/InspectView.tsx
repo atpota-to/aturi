@@ -3,17 +3,23 @@ import { browser } from '#imports';
 import {
   Activity,
   Check,
-  Copy,
+  ChevronRight,
   ExternalLink,
+  Heart,
   Hash,
   Link as LinkIcon,
+  MessageCircle,
+  Network,
+  Quote,
   RefreshCw,
+  Repeat2,
   Server,
   Telescope,
 } from 'lucide-react';
-import { parseAtUri } from '@aturi/atproto/urls';
+import { parseAtUri, encodeRepo } from '@aturi/atproto/urls';
 import { resolveIdentifier, type IdentityBundle } from '@aturi/atproto/identity';
 import { getRecord, type AtRecord } from '@aturi/atproto/pdsClient';
+import { getPostThread } from '@aturi/atproto/appview';
 import { previewFor } from '@aturi/atproto/previewExtractors';
 import { pdsHostname } from '@aturi/atproto/pdsServer';
 import {
@@ -23,7 +29,11 @@ import {
 import { matchSupportedUrl } from '@aturi/reverseParsers';
 import { type Prefs } from '../../lib/prefs';
 import type { DetectedAtUri } from '../../lib/inspectScanner';
-import { buildExploreUrl, buildExplorePdsUrl } from '../../lib/aturiUrl';
+import {
+  ATURI_BASE,
+  buildExplorePdsUrl,
+  buildUniversalLink,
+} from '../../lib/aturiUrl';
 import { dedupeByUri } from '../../lib/inspectScanner';
 
 type Props = {
@@ -44,12 +54,12 @@ async function getActiveTab(): Promise<AnyTab | null> {
 }
 
 /**
- * The new Inspect tab. Scans the current page for AT URIs and surfaces
- * underlying PDS data with copy / "open in explorer" tools.
+ * Inspect tab. Scans the current page for AT URIs and surfaces them with
+ * the same data depth + visual language as the web explorer at aturi.to.
  */
 export default function InspectView(_props: Props) {
   void _props;
-  const [tab, setTab] = useState<AnyTab | null>(null);
+  const [, setTab] = useState<AnyTab | null>(null);
   const [scanning, setScanning] = useState(true);
   const [hits, setHits] = useState<DetectedAtUri[]>([]);
   const [scanError, setScanError] = useState<string | null>(null);
@@ -62,7 +72,6 @@ export default function InspectView(_props: Props) {
       setTab(t);
       const out: DetectedAtUri[] = [];
 
-      // 1. URL-pattern match — the page itself is a known atmosphere app.
       if (t?.url) {
         try {
           const url = new URL(t.url);
@@ -75,7 +84,6 @@ export default function InspectView(_props: Props) {
         }
       }
 
-      // 2. Ask the inspect-scan content script for in-page hits.
       const tabId = (t?.id as number | undefined) ?? null;
       if (tabId != null) {
         try {
@@ -84,7 +92,6 @@ export default function InspectView(_props: Props) {
           })) as { atUris?: DetectedAtUri[]; error?: string } | undefined;
           if (response?.atUris) out.push(...response.atUris);
           if (response?.error) {
-            // Not fatal — we still show URL hits if any.
             console.warn('[aturi:inspect] scan reported error:', response.error);
           }
         } catch (err) {
@@ -132,7 +139,7 @@ export default function InspectView(_props: Props) {
       {hits.length > 0 && (
         <>
           {hits.map((hit) => (
-            <InspectCard key={`${hit.uri}-${hit.where}`} hit={hit} pds={null} />
+            <InspectCard key={`${hit.uri}-${hit.where}`} hit={hit} />
           ))}
           <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 8 }}>
             <button
@@ -165,7 +172,14 @@ type Resolution = {
   error: string | null;
 };
 
-function InspectCard({ hit, pds }: { hit: DetectedAtUri; pds: string | null }) {
+type Engagement = {
+  replies?: number;
+  reposts?: number;
+  likes?: number;
+  quotes?: number;
+};
+
+function InspectCard({ hit }: { hit: DetectedAtUri }) {
   const parsed = useMemo(() => parseAtUri(hit.uri), [hit.uri]);
   const [resolution, setResolution] = useState<Resolution>({
     identity: null,
@@ -173,6 +187,7 @@ function InspectCard({ hit, pds }: { hit: DetectedAtUri; pds: string | null }) {
     error: null,
   });
   const [backlinkCount, setBacklinkCount] = useState<number | null>(null);
+  const [engagement, setEngagement] = useState<Engagement | null>(null);
   const cancelled = useRef(false);
 
   useEffect(() => {
@@ -180,6 +195,7 @@ function InspectCard({ hit, pds }: { hit: DetectedAtUri; pds: string | null }) {
     if (!parsed) return undefined;
     setResolution({ identity: null, record: null, error: null });
     setBacklinkCount(null);
+    setEngagement(null);
     (async () => {
       try {
         const identity = await resolveIdentifier(parsed.repo);
@@ -195,7 +211,7 @@ function InspectCard({ hit, pds }: { hit: DetectedAtUri; pds: string | null }) {
             if (cancelled.current) return;
             setResolution((prev) => ({ ...prev, record }));
           } catch {
-            /* not fatal — the URI may point at a deleted record */
+            /* not fatal */
           }
         }
       } catch (err) {
@@ -206,8 +222,6 @@ function InspectCard({ hit, pds }: { hit: DetectedAtUri; pds: string | null }) {
         }));
       }
     })();
-    // Backlinks lookup runs in parallel with identity resolution — it
-    // hits Constellation directly with the AT URI, no PDS hop needed.
     (async () => {
       const raw = await getBacklinkSources(hit.uri);
       if (cancelled.current) return;
@@ -215,6 +229,22 @@ function InspectCard({ hit, pds }: { hit: DetectedAtUri; pds: string | null }) {
       if (!flat) return;
       setBacklinkCount(flat.reduce((acc, s) => acc + (s.count || 0), 0));
     })();
+    // Engagement counts — only for post-shaped collections. Fails silently
+    // (some posts have been deleted, some collections aren't post-shaped).
+    if (parsed.collection === 'app.bsky.feed.post' && parsed.rkey) {
+      (async () => {
+        const thread = await getPostThread(hit.uri);
+        if (cancelled.current) return;
+        const post = thread?.thread?.post;
+        if (!post) return;
+        setEngagement({
+          replies: post.replyCount,
+          reposts: post.repostCount,
+          likes: post.likeCount,
+          quotes: post.quoteCount,
+        });
+      })();
+    }
     return () => {
       cancelled.current = true;
     };
@@ -223,74 +253,81 @@ function InspectCard({ hit, pds }: { hit: DetectedAtUri; pds: string | null }) {
   const identity = resolution.identity;
   const record = resolution.record;
   const preview = record ? previewFor(record.value) : '';
-  const explorerUrl = parsed
-    ? buildExploreUrl(
-        identity?.handle || identity?.did || parsed.repo,
-        parsed.collection,
-        parsed.rkey,
-      )
-    : null;
-  const effectivePds = pds || identity?.pds || null;
+
+  const handleOrDid = identity?.handle || identity?.did || parsed?.repo || '';
+  const repoSegment = encodeRepo(handleOrDid);
+
+  const repoExplorerUrl = handleOrDid ? `${ATURI_BASE}/explore/${repoSegment}` : null;
+  const collectionExplorerUrl =
+    handleOrDid && parsed?.collection
+      ? `${ATURI_BASE}/explore/${repoSegment}/${parsed.collection}`
+      : null;
+  const recordExplorerUrl =
+    handleOrDid && parsed?.collection && parsed?.rkey
+      ? `${ATURI_BASE}/explore/${repoSegment}/${parsed.collection}/${encodeURIComponent(parsed.rkey)}`
+      : null;
+
+  // The primary CTA always picks the deepest available explorer route.
+  const primaryExplorerUrl = recordExplorerUrl || collectionExplorerUrl || repoExplorerUrl;
+
+  const effectivePds = identity?.pds || null;
   const effectivePdsHost = effectivePds ? pdsHostname(effectivePds) : null;
   const pdsExplorerUrl = effectivePdsHost ? buildExplorePdsUrl(effectivePdsHost) : null;
   const effectiveDid = identity?.did || (parsed?.repo.startsWith('did:') ? parsed.repo : null);
 
+  const universalLink =
+    handleOrDid && parsed?.collection && parsed?.rkey
+      ? buildUniversalLink(handleOrDid, parsed.collection, parsed.rkey)
+      : null;
+
   return (
-    <div
-      className="popup-waypoint"
-      style={{
-        flexDirection: 'column',
-        alignItems: 'stretch',
-        gap: 8,
-        padding: 10,
-        marginBottom: 6,
-      }}
-    >
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 6,
-          fontSize: 11,
-          flexWrap: 'wrap',
-        }}
-      >
-        <span className="aturi-subtle" style={{ textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-          {hit.where}
-        </span>
-        {identity?.handle && (
-          <span style={{ color: 'var(--popup-text)', fontWeight: 500 }}>@{identity.handle}</span>
+    <div className="inspect-card">
+      {/* Breadcrumb: PDS host › @handle › collection › rkey. Each segment
+          is a deep link into the explorer at the appropriate depth. */}
+      <div className="inspect-breadcrumb">
+        {effectivePdsHost && pdsExplorerUrl && (
+          <>
+            <BreadcrumbSegment
+              href={pdsExplorerUrl}
+              label={effectivePdsHost}
+              icon={<Server size={10} aria-hidden />}
+              kind="pds"
+            />
+            <BreadcrumbSeparator />
+          </>
         )}
-        {parsed?.collection && (
-          <span style={{ fontFamily: 'monospace', color: 'var(--popup-accent)', fontSize: 10 }}>
-            {parsed.collection}
-          </span>
+        {handleOrDid && repoExplorerUrl && (
+          <>
+            <BreadcrumbSegment
+              href={repoExplorerUrl}
+              label={identity?.handle ? `@${identity.handle}` : handleOrDid}
+              kind="handle"
+            />
+            {parsed?.collection && <BreadcrumbSeparator />}
+          </>
         )}
-        {backlinkCount !== null && backlinkCount > 0 && (
-          <span
-            className="aturi-subtle"
-            title="Inbound links across the Atmosphere (via Constellation)"
-            style={{ fontSize: 10 }}
-          >
-            · {backlinkCount.toLocaleString()} inbound
+        {parsed?.collection && collectionExplorerUrl && (
+          <>
+            <BreadcrumbSegment
+              href={collectionExplorerUrl}
+              label={parsed.collection}
+              kind="collection"
+            />
+            {parsed.rkey && <BreadcrumbSeparator />}
+          </>
+        )}
+        {parsed?.rkey && (
+          <span className="inspect-breadcrumb-segment is-rkey" title={parsed.rkey}>
+            {parsed.rkey}
           </span>
         )}
       </div>
 
-      <code
-        style={{
-          fontSize: 11,
-          fontFamily: 'monospace',
-          color: 'var(--popup-text)',
-          wordBreak: 'break-all',
-          background: 'var(--popup-bg-elevated, transparent)',
-          padding: '4px 6px',
-          borderRadius: 0,
-        }}
-      >
-        {hit.uri}
-      </code>
-
+      {/* Card body — everything below the breadcrumb. Wrapped so the
+          breadcrumb above can read as a distinct attached header
+          (different background, bottom border) instead of just another
+          row in a uniform stack. */}
+      <div className="inspect-card-body">
       {hit.sample && (
         <div className="aturi-subtle" style={{ fontSize: 11, fontStyle: 'italic' }}>
           “{hit.sample}”
@@ -298,86 +335,167 @@ function InspectCard({ hit, pds }: { hit: DetectedAtUri; pds: string | null }) {
       )}
 
       {preview && (
-        <div style={{ fontSize: 12, color: 'var(--popup-text)' }}>{preview}</div>
+        <div className="inspect-preview">{preview}</div>
+      )}
+
+      {(engagement || (backlinkCount !== null && backlinkCount > 0)) && (
+        <EngagementRow engagement={engagement} backlinkCount={backlinkCount} />
       )}
 
       {resolution.error && (
-        <div className="aturi-subtle" style={{ fontSize: 11, color: 'var(--popup-danger, #d97070)' }}>
+        <div className="aturi-subtle" style={{ fontSize: 11, color: 'var(--danger, #d97070)' }}>
           {resolution.error}
         </div>
       )}
 
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-        <CopyChip label="Copy AT URI" icon={<LinkIcon size={11} />} value={hit.uri} />
+      {/* Primary CTA. Full-width, accent color, visually dominant. */}
+      {primaryExplorerUrl && (
+        <a
+          href={primaryExplorerUrl}
+          target="_blank"
+          rel="noreferrer"
+          className="aturi-btn aturi-btn-primary inspect-cta"
+          onClick={() => {
+            window.setTimeout(() => window.close(), 50);
+          }}
+        >
+          <ExternalLink size={12} aria-hidden />
+          Open in Explorer
+        </a>
+      )}
+
+      {/* Compact copy chips. Subtle, secondary to the CTA above. */}
+      <div className="inspect-copy-row">
+        <span className="inspect-copy-label">Copy</span>
+        <CopyChip label="AT URI" icon={<LinkIcon size={10} />} value={hit.uri} />
+        {effectiveDid && (
+          <CopyChip label="DID" icon={<Hash size={10} />} value={effectiveDid} />
+        )}
+        {effectivePds && (
+          <CopyChip label="PDS" icon={<Server size={10} />} value={effectivePds} />
+        )}
+        {universalLink && (
+          <CopyChip
+            label="Universal link"
+            icon={<LinkIcon size={10} />}
+            value={universalLink}
+          />
+        )}
         {record && (
           <CopyChip
-            label="Copy JSON"
-            icon={<Hash size={11} />}
+            label="JSON"
+            icon={<Hash size={10} />}
             value={JSON.stringify(record, null, 2)}
           />
         )}
-        {effectivePds && (
-          <CopyChip
-            label="Copy PDS"
-            icon={<Server size={11} />}
-            value={effectivePds}
-          />
-        )}
-        {effectiveDid && (
-          <CopyChip
-            label="Copy DID"
-            icon={<Hash size={11} />}
-            value={effectiveDid}
-          />
-        )}
-        {explorerUrl && (
-          <a
-            href={explorerUrl}
-            target="_blank"
-            rel="noreferrer"
-            className="aturi-btn"
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 4,
-              fontSize: 11,
-              textDecoration: 'none',
-              padding: '3px 8px',
-            }}
-            onClick={() => {
-              // Close the popup after the user navigates so they land on the
-              // page instead of having the popup hover over their new tab.
-              window.setTimeout(() => window.close(), 50);
-            }}
-          >
-            <ExternalLink size={11} />
-            Open in Explorer
-          </a>
-        )}
-        {pdsExplorerUrl && (
-          <a
-            href={pdsExplorerUrl}
-            target="_blank"
-            rel="noreferrer"
-            className="aturi-btn"
-            title={`Inspect ${effectivePdsHost} on aturi.to`}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 4,
-              fontSize: 11,
-              textDecoration: 'none',
-              padding: '3px 8px',
-            }}
-            onClick={() => {
-              window.setTimeout(() => window.close(), 50);
-            }}
-          >
-            <Server size={11} />
-            Open PDS
-          </a>
-        )}
       </div>
+
+      {/* Footer: raw JSON disclosure + CID + secondary PDS link. */}
+      {(record || pdsExplorerUrl) && (
+        <div className="inspect-footer">
+          {record && (
+            <details className="inspect-json">
+              <summary>Raw record JSON</summary>
+              <pre className="inspect-json-pre">
+                {JSON.stringify(record.value, null, 2)}
+              </pre>
+            </details>
+          )}
+          <div className="inspect-footer-meta">
+            {record?.cid && (
+              <CopyChip
+                label={`cid: ${shortCid(record.cid)}`}
+                icon={<Hash size={10} />}
+                value={record.cid}
+                variant="ghost"
+              />
+            )}
+            {pdsExplorerUrl && (
+              <a
+                href={pdsExplorerUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="inspect-footer-link"
+                title={`Inspect ${effectivePdsHost} on aturi.to`}
+                onClick={() => {
+                  window.setTimeout(() => window.close(), 50);
+                }}
+              >
+                <Server size={10} aria-hidden /> Open PDS
+              </a>
+            )}
+          </div>
+        </div>
+      )}
+      </div>
+    </div>
+  );
+}
+
+function BreadcrumbSegment({
+  href,
+  label,
+  icon,
+  kind,
+}: {
+  href: string;
+  label: string;
+  icon?: React.ReactNode;
+  kind: 'pds' | 'handle' | 'collection';
+}) {
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noreferrer"
+      className={`inspect-breadcrumb-segment is-${kind}`}
+      title={label}
+      onClick={() => {
+        window.setTimeout(() => window.close(), 50);
+      }}
+    >
+      {icon}
+      <span>{label}</span>
+    </a>
+  );
+}
+
+function BreadcrumbSeparator() {
+  return <ChevronRight size={10} aria-hidden className="inspect-breadcrumb-sep" />;
+}
+
+function EngagementRow({
+  engagement,
+  backlinkCount,
+}: {
+  engagement: Engagement | null;
+  backlinkCount: number | null;
+}) {
+  const items: Array<{ key: string; icon: React.ReactNode; value: number; label: string }> = [];
+  if (engagement?.replies != null)
+    items.push({ key: 'replies', icon: <MessageCircle size={11} />, value: engagement.replies, label: 'replies' });
+  if (engagement?.reposts != null)
+    items.push({ key: 'reposts', icon: <Repeat2 size={11} />, value: engagement.reposts, label: 'reposts' });
+  if (engagement?.likes != null)
+    items.push({ key: 'likes', icon: <Heart size={11} />, value: engagement.likes, label: 'likes' });
+  if (engagement?.quotes != null)
+    items.push({ key: 'quotes', icon: <Quote size={11} />, value: engagement.quotes, label: 'quotes' });
+  if (backlinkCount != null && backlinkCount > 0)
+    items.push({
+      key: 'inbound',
+      icon: <Network size={11} />,
+      value: backlinkCount,
+      label: 'inbound links across the Atmosphere',
+    });
+  if (items.length === 0) return null;
+  return (
+    <div className="inspect-engagement">
+      {items.map((it) => (
+        <span key={it.key} className="inspect-engagement-item" title={it.label}>
+          {it.icon}
+          {it.value.toLocaleString()}
+        </span>
+      ))}
     </div>
   );
 }
@@ -406,32 +524,32 @@ function CopyChip({
   label,
   icon,
   value,
+  variant = 'subtle',
 }: {
   label: string;
   icon: React.ReactNode;
   value: string;
+  variant?: 'subtle' | 'ghost';
 }) {
   const [copied, setCopied] = useState(false);
   return (
     <button
       type="button"
-      className="aturi-btn"
+      className={`inspect-chip is-${variant} ${copied ? 'is-copied' : ''}`}
       onClick={async () => {
         await writeToClipboard(value);
         setCopied(true);
         window.setTimeout(() => setCopied(false), 1200);
       }}
-      style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: 4,
-        fontSize: 11,
-        padding: '3px 8px',
-      }}
       title={copied ? 'Copied!' : label}
     >
-      {copied ? <Check size={11} /> : icon}
+      {copied ? <Check size={10} /> : icon}
       {copied ? 'Copied' : label}
     </button>
   );
+}
+
+function shortCid(cid: string): string {
+  if (cid.length <= 12) return cid;
+  return `${cid.slice(0, 6)}…${cid.slice(-4)}`;
 }

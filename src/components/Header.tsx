@@ -1,12 +1,13 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useCallback, useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import { Home, Leaf, Telescope } from 'lucide-react';
+import { Compass, Download, Home, Leaf, Search, Telescope } from 'lucide-react';
 import { motion } from 'framer-motion';
 import ThemeToggle from './ThemeToggle';
 import SessionMenu from './SessionMenu';
 import SessionPanel from './SessionPanel';
+import CompactSearchPanel from './CompactSearchPanel';
 
 interface HeaderProps {
   simple?: boolean; // If true, shows a smaller version without the tagline
@@ -15,15 +16,27 @@ interface HeaderProps {
 
 export default function Header({ simple = false, compact = false }: HeaderProps) {
   const [isExpanded, setIsExpanded] = useState(false);
+  const [isSearchExpanded, setIsSearchExpanded] = useState(false);
+  // When SessionPanel's inline sign-in flow is active, the panel collapses
+  // the rest of the nav (home/explore/extension/universal-links + theme
+  // toggle) so the handle input and scope picker don't push the popover
+  // into a tall, scrolly layout. `useCallback` so SessionPanel's effect
+  // doesn't fire on every Header render.
+  const [isSignInActive, setIsSignInActive] = useState(false);
+  const handleSignInActiveChange = useCallback((active: boolean) => {
+    setIsSignInActive(active);
+  }, []);
   const headerRef = useRef<HTMLElement>(null);
 
-  // Click outside to close menu
+  // Click outside to close either panel. The menu and search panels are
+  // mutually exclusive but share the same outside-click closing behavior.
   useEffect(() => {
-    if (!compact || !isExpanded) return;
+    if (!compact || (!isExpanded && !isSearchExpanded)) return;
 
     const handleClickOutside = (event: MouseEvent) => {
       if (headerRef.current && !headerRef.current.contains(event.target as Node)) {
         setIsExpanded(false);
+        setIsSearchExpanded(false);
       }
     };
 
@@ -31,7 +44,7 @@ export default function Header({ simple = false, compact = false }: HeaderProps)
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [compact, isExpanded]);
+  }, [compact, isExpanded, isSearchExpanded]);
 
   // Ultra-compact mode for link preview pages
   if (compact) {
@@ -39,11 +52,19 @@ export default function Header({ simple = false, compact = false }: HeaderProps)
       <header
         ref={headerRef}
         style={{
-          position: 'relative',
+          position: 'sticky',
+          top: 0,
+          zIndex: 40,
           marginBottom: '2rem',
-          paddingTop: '1rem',
         }}
       >
+        <div
+          className="container-narrow"
+          style={{
+            padding: '2rem 2rem 0.75rem',
+          }}
+        >
+        <div style={{ position: 'relative' }}>
         <div
           style={{
             display: 'flex',
@@ -55,6 +76,7 @@ export default function Header({ simple = false, compact = false }: HeaderProps)
             border: '1px solid var(--border-medium)',
             transform: 'rotate(-0.2deg)',
             transition: 'all 0.3s ease',
+            boxShadow: 'var(--shadow-overlay)',
           }}
         >
           {/* Logo/Wordmark with Tagline */}
@@ -111,27 +133,89 @@ export default function Header({ simple = false, compact = false }: HeaderProps)
             </span>
           </Link>
 
-          {/* Expandable menu button — session controls live INSIDE the panel,
-              not in the always-visible row, so the compact header stays
-              minimal at this level. */}
-          <button
-            onClick={() => setIsExpanded(!isExpanded)}
-            style={{
-              padding: '0.5rem',
-              background: 'var(--bg-tertiary)',
-              border: '1px solid var(--border-medium)',
-              color: 'var(--text-accent)',
-              transition: 'all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)',
-              transform: isExpanded ? 'rotate(90deg) scale(1.1)' : 'rotate(0deg)',
-            }}
-            aria-label="Toggle menu"
-            aria-expanded={isExpanded}
-          >
-            <Leaf size={18} style={{
-              transition: 'all 0.3s ease',
-              opacity: isExpanded ? 0.6 : 1,
-            }} />
-          </button>
+          {/* Search shortcut — opens an inline search bar below the header
+              so visitors can jump into the explorer without leaving the
+              page. Mutually exclusive with the nav menu. */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+            <button
+              onClick={() => {
+                setIsSearchExpanded((v) => !v);
+                setIsExpanded(false);
+              }}
+              style={{
+                padding: '0.5rem',
+                background: 'var(--bg-tertiary)',
+                border: '1px solid var(--border-medium)',
+                color: 'var(--text-accent)',
+                transition: 'all 0.3s ease',
+                transform: isSearchExpanded ? 'scale(1.08)' : 'scale(1)',
+              }}
+              aria-label="Search the explorer"
+              aria-expanded={isSearchExpanded}
+            >
+              <Search
+                size={18}
+                style={{
+                  transition: 'all 0.3s ease',
+                  opacity: isSearchExpanded ? 0.7 : 1,
+                }}
+              />
+            </button>
+
+            {/* Expandable menu button — session controls live INSIDE the panel,
+                not in the always-visible row, so the compact header stays
+                minimal at this level. */}
+            <button
+              onClick={() => {
+                setIsExpanded((v) => !v);
+                setIsSearchExpanded(false);
+              }}
+              style={{
+                padding: '0.5rem',
+                background: 'var(--bg-tertiary)',
+                border: '1px solid var(--border-medium)',
+                color: 'var(--text-accent)',
+                transition: 'all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)',
+                transform: isExpanded ? 'rotate(90deg) scale(1.1)' : 'rotate(0deg)',
+              }}
+              aria-label="Toggle menu"
+              aria-expanded={isExpanded}
+            >
+              <Leaf size={18} style={{
+                transition: 'all 0.3s ease',
+                opacity: isExpanded ? 0.6 : 1,
+              }} />
+            </button>
+          </div>
+        </div>
+
+        {/* Search panel — sits in the same expanding region as the menu
+            panel but is its own card so the two slide independently. */}
+        <div
+          style={{
+            position: 'absolute',
+            top: '100%',
+            left: 0,
+            right: 0,
+            marginTop: '0.5rem',
+            background: 'var(--bg-secondary)',
+            border: '1px solid var(--border-medium)',
+            transformOrigin: 'top center',
+            transform: isSearchExpanded
+              ? 'scaleY(1) translateY(0) rotate(-0.3deg)'
+              : 'scaleY(0) translateY(-10px) rotate(0deg)',
+            opacity: isSearchExpanded ? 1 : 0,
+            transition: 'all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)',
+            pointerEvents: isSearchExpanded ? 'auto' : 'none',
+            zIndex: 50,
+            overflow: 'hidden',
+            padding: '0.75rem',
+          }}
+        >
+          <CompactSearchPanel
+            active={isSearchExpanded}
+            onDone={() => setIsSearchExpanded(false)}
+          />
         </div>
 
         {/* Expanding organic nav panel */}
@@ -163,36 +247,62 @@ export default function Header({ simple = false, compact = false }: HeaderProps)
               padding: '0.75rem',
             }}
           >
-            <Link href="/" className="compact-nav-link">
-              <Home size={16} />
-              <span>home</span>
-            </Link>
-            <Link href="/explore" className="compact-nav-link">
-              <Telescope size={16} />
-              <span>explore</span>
-            </Link>
-            <div style={{ marginTop: '0.5rem' }}>
-              <ThemeToggle variant="row" />
-            </div>
+            {/* When the sign-in flow is active inside SessionPanel, hide the
+                nav rows and theme toggle so the handle input / scope
+                picker can claim the panel's vertical space. The session
+                controls below carry their own visual chrome (input field,
+                scope-picker list) so we drop the divider rule too. */}
+            {!isSignInActive && (
+              <>
+                <Link href="/" className="compact-nav-link">
+                  <Home size={16} />
+                  <span>home</span>
+                </Link>
+                <Link href="/explore" className="compact-nav-link">
+                  <Telescope size={16} />
+                  <span>explore</span>
+                </Link>
+                <Link href="/extension" className="compact-nav-link">
+                  <Download size={16} />
+                  <span>extension</span>
+                </Link>
+                <Link href="/universal-links" className="compact-nav-link">
+                  <Compass size={16} />
+                  <span>universal links</span>
+                </Link>
+                <div style={{ marginTop: '0.5rem' }}>
+                  <ThemeToggle variant="row" />
+                </div>
+              </>
+            )}
 
             {/* Session controls: sign in (signed out) OR user info + my repo /
                 account / sign out (signed in). Lives inside the expanded
                 panel so the compact header stays uncluttered. */}
             <div
-              style={{
-                marginTop: '0.5rem',
-                paddingTop: '0.5rem',
-                borderTop: '1px solid var(--border-subtle)',
-              }}
+              style={
+                isSignInActive
+                  ? undefined
+                  : {
+                      marginTop: '0.5rem',
+                      paddingTop: '0.5rem',
+                      borderTop: '1px solid var(--border-subtle)',
+                    }
+              }
             >
-              <SessionPanel onNavigate={() => setIsExpanded(false)} />
+              <SessionPanel
+                onNavigate={() => setIsExpanded(false)}
+                onSignInActiveChange={handleSignInActiveChange}
+              />
             </div>
           </nav>
+        </div>
+        </div>
         </div>
       </header>
     );
   }
-  
+
   if (simple) {
     return (
       <header
@@ -267,6 +377,16 @@ export default function Header({ simple = false, compact = false }: HeaderProps)
           <Link href="/explore" className="nav-link">
             <Telescope size={14} />
             <span>explore</span>
+          </Link>
+          <span style={{ color: 'var(--text-tertiary)', fontSize: '0.75rem' }}>·</span>
+          <Link href="/extension" className="nav-link">
+            <Download size={14} />
+            <span>extension</span>
+          </Link>
+          <span style={{ color: 'var(--text-tertiary)', fontSize: '0.75rem' }}>·</span>
+          <Link href="/universal-links" className="nav-link">
+            <Compass size={14} />
+            <span>universal links</span>
           </Link>
           <span style={{ color: 'var(--text-tertiary)', fontSize: '0.75rem' }}>·</span>
           <ThemeToggle variant="inline" />
@@ -364,6 +484,16 @@ export default function Header({ simple = false, compact = false }: HeaderProps)
         <Link href="/explore" className="nav-link">
           <Telescope size={16} />
           <span>explore</span>
+        </Link>
+        <span style={{ color: 'var(--text-tertiary)', fontSize: '0.875rem' }}>·</span>
+        <Link href="/extension" className="nav-link">
+          <Download size={16} />
+          <span>extension</span>
+        </Link>
+        <span style={{ color: 'var(--text-tertiary)', fontSize: '0.875rem' }}>·</span>
+        <Link href="/universal-links" className="nav-link">
+          <Compass size={16} />
+          <span>universal links</span>
         </Link>
         <span style={{ color: 'var(--text-tertiary)', fontSize: '0.875rem' }}>·</span>
         <ThemeToggle variant="inline" />

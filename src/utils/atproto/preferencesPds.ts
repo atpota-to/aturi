@@ -16,6 +16,10 @@
  *     supportedTypes: string[],
  *     templates: { post?, profile?, list?, record?: string }
  *   }>
+ *   pinnedLexicons?: string[]         // NSIDs pinned in the explorer
+ *   pinnedLexiconsOthers?: string[]   // separate list for others' repos in split mode
+ *   pinScope?: 'own' | 'all' | 'split'
+ *   collectionGroupsCollapsedByDefault?: boolean
  *   updatedAt: datetime
  *
  *   // Legacy — still written for back-compat with older Aturi clients
@@ -83,6 +87,10 @@ export async function writePreferencesToPds(
     $type: PREFERENCES_NSID,
     waypointGroups: prefs.waypointGroups,
     customWaypoints: prefs.customWaypoints,
+    pinnedLexicons: prefs.pinnedLexicons,
+    pinnedLexiconsOthers: prefs.pinnedLexiconsOthers,
+    pinScope: prefs.pinScope,
+    collectionGroupsCollapsedByDefault: prefs.collectionGroupsCollapsedByDefault,
     // Legacy fields kept for back-compat with older clients.
     hiddenWaypoints: prefs.hiddenWaypoints,
     waypointOrder: prefs.waypointOrder,

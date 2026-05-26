@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Pause, Play } from 'lucide-react';
 import { listRecordsPage, type AtRecord } from '@/utils/atproto/pdsClient';
 import { encodeRepo, rkeyFromAtUri } from '@/utils/atproto/urls';
@@ -13,6 +14,7 @@ import {
 } from '@/utils/atproto/jetstream';
 import AppearIn from './AppearIn';
 import Breadcrumb from './Breadcrumb';
+import NotFoundPanel from '@/components/NotFoundPanel';
 
 type Props = {
   repo: string;
@@ -40,7 +42,14 @@ export default function CollectionExplorer({ repo, collection }: Props) {
   }, [repo]);
 
   if (identityError) {
-    return <p className="explore-error">{identityError}</p>;
+    return (
+      <NotFoundPanel
+        eyebrow="Couldn't resolve"
+        headline="That handle didn't resolve."
+        body={`We tried to resolve "${repo}" and the AT Protocol resolver returned: ${identityError}. Try another handle, DID, or AT URI below.`}
+        initialQuery={repo}
+      />
+    );
   }
   if (!identity) {
     return (
@@ -64,6 +73,7 @@ function CollectionList({
   identity: IdentityBundle;
   collection: string;
 }) {
+  const router = useRouter();
   const [records, setRecords] = useState<AtRecord[]>([]);
   const [cursor, setCursor] = useState<string | undefined>(undefined);
   const [done, setDone] = useState(false);
@@ -130,6 +140,21 @@ function CollectionList({
   }, [live, identity.did, collection]);
 
   const repoSeg = encodeRepo(identity.handle || identity.did);
+
+  // Collections with exactly one record are usually singletons (actor.profile,
+  // settings docs, etc.) — there's no list browsing to do, so jump straight
+  // to the record page. router.replace so the back button skips this hop and
+  // returns to whatever the visitor came from. Gated on `done` so we don't
+  // redirect on a transient mid-load state where the page hasn't fully
+  // settled yet, and on `!live` so a one-record collection stays browsable
+  // when the visitor is intentionally streaming new commits.
+  useEffect(() => {
+    if (!done || loading || live) return;
+    if (records.length !== 1) return;
+    const rkey = rkeyFromAtUri(records[0].uri);
+    if (!rkey) return;
+    router.replace(`/explore/${repoSeg}/${collection}/${encodeURIComponent(rkey)}`);
+  }, [done, loading, live, records, repoSeg, collection, router]);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>

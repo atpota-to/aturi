@@ -2,8 +2,9 @@ import { useEffect, useMemo, useState } from 'react';
 import { browser } from '#imports';
 import { MousePointer2, Telescope } from 'lucide-react';
 import type { ReverseMatch } from '@aturi/reverseParsers';
-import type { WaypointData, WaypointType } from '@aturi/waypoints.data';
+import type { WaypointActivity, WaypointData, WaypointType } from '@aturi/waypoints.data';
 import { matchSupportedUrl, parseAtUri, SUPPORTED_HOSTS } from '@aturi/reverseParsers';
+import { waypointActivity } from '@aturi/waypoints.data';
 import { matchCustomUrl } from '../../lib/template';
 import {
   categorizedForType,
@@ -29,9 +30,36 @@ import { resolveHandleToDid } from '../../lib/handleResolver';
 import { describeWaypoint } from '../../lib/describe';
 import { getWaypointHomePageUrl, homePageSubtitle } from '../../lib/homePage';
 import { WaypointIcon } from '../../lib/Icons';
+import { cachedRepoCollections, scanRepoCollections } from '../../lib/repoScan';
 import InspectView from './InspectView';
 
 type PopupMode = 'waypoints' | 'inspect';
+
+const POPUP_MODE_REMEMBER_MIN_MINUTES = 5;
+const POPUP_MODE_REMEMBER_MAX_MINUTES = 1440;
+
+/**
+ * Decide which tab the popup should open to. When the user has enabled
+ * the remember-last-mode behavior and clicked a tab within the TTL
+ * window, honor that choice; otherwise fall back to the configured
+ * default. Out-of-range minute values are clamped so a corrupt pref
+ * payload can never crash the popup or strand the user on an unwanted
+ * tab forever.
+ */
+function resolveInitialMode(prefs: Prefs): PopupMode {
+  const fallback: PopupMode = prefs.popupModeDefault ?? 'waypoints';
+  if (!prefs.popupModeRemember) return fallback;
+  if (!prefs.popupMode) return fallback;
+  const rawMinutes = prefs.popupModeRememberMinutes ?? 30;
+  const minutes = Math.min(
+    POPUP_MODE_REMEMBER_MAX_MINUTES,
+    Math.max(POPUP_MODE_REMEMBER_MIN_MINUTES, rawMinutes),
+  );
+  const stamp = prefs.popupModeLastUsedAt ?? 0;
+  if (stamp <= 0) return fallback;
+  if (Date.now() - stamp > minutes * 60_000) return fallback;
+  return prefs.popupMode;
+}
 
 type PopupState =
   | { phase: 'loading' }
@@ -89,13 +117,15 @@ export default function App() {
 
   function selectMode(next: PopupMode) {
     setMode(next);
-    void savePrefs({ popupMode: next });
+    // Stamp the click time alongside the mode so the next popup launch
+    // can decide whether the remembered tab is still fresh enough.
+    void savePrefs({ popupMode: next, popupModeLastUsedAt: Date.now() });
   }
 
   async function init() {
     const prefs = await loadPrefs();
     applyAppearance(prefs);
-    if (prefs.popupMode === 'inspect') setMode('inspect');
+    setMode(resolveInitialMode(prefs));
     const tab = await getActiveTab();
     const tabId = (tab?.id as number | undefined) ?? null;
     if (!tab?.url) {
@@ -228,6 +258,38 @@ export default function App() {
 
   const prefs = state.prefs;
 
+  // The Ready+Waypoints combo shows the universal-link copy chip + the
+  // current collection in the right side of the title bar. Other phases /
+  // modes show a static tagline instead. Computed up here so the title bar
+  // is rendered once for all modes (the user explicitly asked for the
+  // title bar to appear on Inspect too, like it does on Waypoints).
+  const ready = state.phase === 'ready' ? state : null;
+  const aturiLink = useMemo(() => {
+    if (!ready || mode !== 'waypoints') return null;
+    const aturi = findWaypoint(ready.prefs, 'aturi');
+    if (!aturi) return null;
+    const { parsed } = ready.match;
+    return (
+      aturi.getUrl(parsed.handle, parsed.collection, parsed.rkey, parsed.did) ?? null
+    );
+  }, [ready, mode]);
+
+  const titleAccessory =
+    ready && mode === 'waypoints' ? (
+      <>
+        <div className="popup-header-actions">
+          {aturiLink && <HeaderCopyLinkButton url={aturiLink} />}
+        </div>
+        <div className="popup-source-collection" title={ready.match.parsed.uri}>
+          {ready.match.parsed.collection ?? (ready.match.parsed.type === 'unknown' ? 'profile' : ready.match.parsed.type)}
+        </div>
+      </>
+    ) : (
+      <div className="popup-header-actions">
+        <span className="popup-tagline">Tour the Atmosphere</span>
+      </div>
+    );
+
   const inner =
     mode === 'inspect' ? (
       <InspectView prefs={prefs} />
@@ -253,7 +315,20 @@ export default function App() {
 
   return (
     <div className={`popup-shell ${prefs.compactMode ? 'is-compact' : ''}`}>
-      <PopupModeTabs mode={mode} onSelect={selectMode} />
+      <div className="popup-topbar">
+        <div className="popup-header">
+          <div className="popup-title">
+            <AturiMark />
+            <span>Aturi</span>
+          </div>
+          <div className="popup-source">{titleAccessory}</div>
+        </div>
+        <PopupModeTabs
+          mode={mode}
+          onSelect={selectMode}
+          onOpenSettings={() => void openOptionsPage()}
+        />
+      </div>
       {inner}
     </div>
   );
@@ -262,9 +337,11 @@ export default function App() {
 function PopupModeTabs({
   mode,
   onSelect,
+  onOpenSettings,
 }: {
   mode: PopupMode;
   onSelect: (next: PopupMode) => void;
+  onOpenSettings: () => void;
 }) {
   return (
     <div className="popup-mode-tabs" role="tablist" aria-label="Popup mode">
@@ -287,6 +364,15 @@ function PopupModeTabs({
       >
         <Telescope size={12} aria-hidden />
         Inspect
+      </button>
+      <button
+        type="button"
+        className="popup-mode-tab-settings"
+        onClick={onOpenSettings}
+        title="Open settings"
+        aria-label="Open extension settings"
+      >
+        <SettingsGearIcon />
       </button>
     </div>
   );
@@ -361,19 +447,6 @@ function NoAtmosphereView({
 
   return (
     <div className={`popup-root ${prefs.compactMode ? 'is-compact' : ''}`}>
-      <div className="popup-header">
-        <div className="popup-title">
-          <AturiMark />
-          <span>Aturi</span>
-        </div>
-        <div className="popup-source">
-          <div className="popup-header-actions">
-            <span className="popup-tagline">Atmosphere Fast Travel</span>
-            <HeaderSettingsButton />
-          </div>
-        </div>
-      </div>
-
       {!isKnownHost && (
         <div className="popup-notice">
           <div className="popup-notice-title">No Atmosphere data on this page</div>
@@ -456,14 +529,52 @@ function Ready({ match, prefs, pendingId, copiedId, onOpen, onCopy }: ReadyProps
   const { parsed, source } = match;
   const type: WaypointType = parsed.type === 'unknown' ? 'profile' : parsed.type;
 
+  // describeRepo scan against the target DID. Result feeds the per-waypoint
+  // 'present' | 'absent' | 'unknown' badge and re-orders recommendations so
+  // confirmed-active waypoints win the top slot. Gated on the prefs toggle
+  // and on the target having a DID we can resolve.
+  const [repoCollections, setRepoCollections] = useState<Set<string> | null>(null);
+
+  useEffect(() => {
+    if (!prefs.pdsRecordScan) {
+      setRepoCollections(null);
+      return undefined;
+    }
+    let cancelled = false;
+
+    async function run() {
+      // We need a DID to scan. Profiles often arrive with just the handle;
+      // resolve to DID up-front so the scan can proceed.
+      let did = parsed.did;
+      if (!did && parsed.handle) {
+        const resolved = await resolveHandleToDid(parsed.handle);
+        if (resolved) did = resolved;
+      }
+      if (!did) return;
+
+      // Show whatever's cached immediately, then live-refresh in the
+      // background so the badges don't flicker on a warm cache.
+      const cached = await cachedRepoCollections(did);
+      if (!cancelled && cached) setRepoCollections(cached);
+
+      const live = await scanRepoCollections(did);
+      if (!cancelled && live) setRepoCollections(live);
+    }
+
+    void run();
+    return () => {
+      cancelled = true;
+    };
+  }, [prefs.pdsRecordScan, parsed.did, parsed.handle]);
+
   const categorized = useMemo(
     () => categorizedForType(prefs, type),
     [prefs, type]
   );
 
   const recommended = useMemo(
-    () => recommendedForType(prefs, type, parsed.collection),
-    [prefs, type, parsed.collection]
+    () => recommendedForType(prefs, type, parsed.collection, repoCollections),
+    [prefs, type, parsed.collection, repoCollections]
   );
 
   const recents = useMemo(() => {
@@ -491,35 +602,8 @@ function Ready({ match, prefs, pendingId, copiedId, onOpen, onCopy }: ReadyProps
     );
   }, [prefs.smartRecommendations, recommended.waypoints, source]);
 
-  // Aturi universal link for the current AT URI. We always look up the aturi
-  // waypoint directly (independent of group visibility) so the header copy
-  // button works even if the user has hidden Aturi from their popup groups.
-  const aturiLink = useMemo(() => {
-    const aturi = findWaypoint(prefs, 'aturi');
-    if (!aturi) return null;
-    return (
-      aturi.getUrl(parsed.handle, parsed.collection, parsed.rkey, parsed.did) ?? null
-    );
-  }, [prefs, parsed.handle, parsed.collection, parsed.rkey, parsed.did]);
-
   return (
     <div className={`popup-root ${prefs.compactMode ? 'is-compact' : ''}`}>
-      <div className="popup-header">
-        <div className="popup-title">
-          <AturiMark />
-          <span>Aturi</span>
-        </div>
-        <div className="popup-source">
-          <div className="popup-header-actions">
-            {aturiLink && <HeaderCopyLinkButton url={aturiLink} />}
-            <HeaderSettingsButton />
-          </div>
-          <div className="popup-source-collection" title={parsed.uri}>
-            {parsed.collection ?? type}
-          </div>
-        </div>
-      </div>
-
       {prefs.historyEnabled && recents.length > 0 && (
         <div className="popup-section">
           <div className="popup-section-label">Recents</div>
@@ -554,6 +638,7 @@ function Ready({ match, prefs, pendingId, copiedId, onOpen, onCopy }: ReadyProps
                   type={type}
                   pending={pendingId === w.id}
                   copied={copiedId === w.id}
+                  activity={waypointActivity(w, repoCollections)}
                   onClick={onOpen}
                   onCopy={onCopy}
                 />
@@ -579,6 +664,7 @@ function Ready({ match, prefs, pendingId, copiedId, onOpen, onCopy }: ReadyProps
                   type={type}
                   pending={pendingId === w.id}
                   copied={copiedId === w.id}
+                  activity={waypointActivity(w, repoCollections)}
                   onClick={onOpen}
                   onCopy={onCopy}
                 />
@@ -757,6 +843,7 @@ function WaypointButton({
   type,
   pending,
   copied,
+  activity,
   onClick,
   onCopy,
 }: {
@@ -765,22 +852,37 @@ function WaypointButton({
   type: WaypointType;
   pending: boolean;
   copied: boolean;
+  /**
+   * 'absent' dims the row and replaces the description with a "no records
+   * found" caption. 'present' / 'unknown' render as normal. Set to
+   * 'unknown' (or omitted) when the PDS-scan toggle is off so the badge
+   * stays out of the way.
+   */
+  activity?: WaypointActivity;
   onClick: (w: WaypointData) => void;
   onCopy: (w: WaypointData) => void;
 }) {
+  const isAbsent = activity === 'absent';
   return (
-    <div className="popup-waypoint">
+    <div className={`popup-waypoint ${isAbsent ? 'is-absent' : ''}`}>
       <button
         type="button"
         className="popup-waypoint-main"
         onClick={() => onClick(waypoint)}
         disabled={pending}
+        title={
+          isAbsent
+            ? `No records under ${(waypoint.expectedCollections ?? []).join(' / ')} on this repo`
+            : undefined
+        }
       >
         <WaypointIcon id={waypoint.id} name={waypoint.name} />
         <div className="popup-waypoint-text">
           <div className="popup-waypoint-name">{waypoint.name}</div>
           <div className="popup-waypoint-desc">
-            {describeWaypoint(waypoint, collection, type)}
+            {isAbsent
+              ? 'No records found on this repo'
+              : describeWaypoint(waypoint, collection, type)}
           </div>
         </div>
       </button>
@@ -793,20 +895,12 @@ function WaypointButton({
   );
 }
 
-function HeaderSettingsButton() {
+function SettingsGearIcon() {
   return (
-    <button
-      type="button"
-      className="popup-header-settings"
-      onClick={() => void openOptionsPage()}
-      title="Open settings"
-      aria-label="Open extension settings"
-    >
-      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-        <circle cx="12" cy="12" r="3" />
-        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
-      </svg>
-    </button>
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="3" />
+      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+    </svg>
   );
 }
 

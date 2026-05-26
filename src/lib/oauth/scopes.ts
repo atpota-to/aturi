@@ -7,8 +7,11 @@
  * scope must be a subset of what the metadata advertises — so the
  * metadata string is the union of every granular scope below.
  *
- * Reads aren't gated by a scope (records in the user's own repo are
- * public), so the picker only exposes write-side actions.
+ * Repo reads aren't gated by a scope (records in the user's own repo
+ * are public), but AppView RPC reads now require an explicit `rpc:`
+ * grant since the granular-scope rollout — that one is bundled into
+ * BASE_SCOPE below so it isn't optional. The picker only exposes
+ * write-side actions.
  */
 
 export type ScopeId = 'create' | 'update' | 'delete' | 'blob';
@@ -47,7 +50,29 @@ export const GRANULAR_SCOPES: GranularScope[] = [
   },
 ];
 
-export const BASE_SCOPE = 'atproto';
+/**
+ * Reads from the Bluesky AppView (profile lookups, viewer state, known
+ * followers, post threads, etc.) go through the user's PDS, which since
+ * the granular-scope OAuth rollout requires an explicit `rpc:` grant
+ * before it will proxy the call with a user-identifying service-auth
+ * token. Without this the explorer's relationship strip silently gets
+ * `viewer: {}` back from the AppView because the PDS forwards the
+ * request anonymously.
+ *
+ * Scope syntax notes (from @atproto/oauth-scopes rpc-permission.ts):
+ *   - The `lxm` parameter is either a literal `*` or a full NSID. NSID
+ *     prefix wildcards (e.g. `app.bsky.*`) are NOT supported and get
+ *     dropped during scope normalization, which is why an earlier
+ *     attempt at `rpc:app.bsky.*?aud=...` left the PDS still throwing
+ *     ScopeMissingError.
+ *   - The `#` in the audience DID fragment MUST be URL-encoded as `%23`.
+ *
+ * `rpc:*` is read-only and core to the explorer working at all, so it's
+ * bundled into BASE_SCOPE rather than exposed as a picker chip.
+ */
+const APPVIEW_RPC_SCOPE = 'rpc:*?aud=did:web:api.bsky.app%23bsky_appview';
+
+export const BASE_SCOPE = ['atproto', APPVIEW_RPC_SCOPE].join(' ');
 
 /** Superset string baked into oauth-client-metadata.json. */
 export const METADATA_SCOPE = [

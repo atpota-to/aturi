@@ -2,8 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
-import { ExternalLink, FilePenLine, X } from 'lucide-react';
+import { FilePenLine } from 'lucide-react';
 import { getRecord, type AtRecord } from '@/utils/atproto/pdsClient';
 import { resolveIdentifier, type IdentityBundle } from '@/utils/atproto/identity';
 import { encodeRepo } from '@/utils/atproto/urls';
@@ -12,10 +11,11 @@ import Breadcrumb from './Breadcrumb';
 import CopyButton from './CopyButton';
 import EngagementSidecar from './EngagementSidecar';
 import LinkifiedJson from './LinkifiedJson';
-import RichRecordPreview from './RichRecordPreview';
+import RichRecordPreview, { previewRendersGeneric } from './RichRecordPreview';
 import BacklinksTab from './tabs/BacklinksTab';
 import RecordEditor from './RecordEditor';
 import SignInPanel from './SignInPanel';
+import NotFoundPanel from '@/components/NotFoundPanel';
 import { useAtprotoSession } from '@/components/AtprotoSessionProvider';
 
 type Props = {
@@ -79,7 +79,14 @@ export default function RecordExplorer({ repo, collection, rkey }: Props) {
   }, [identity, collection, decodedRkey]);
 
   if (identityError) {
-    return <p className="explore-error">{identityError}</p>;
+    return (
+      <NotFoundPanel
+        eyebrow="Couldn't resolve"
+        headline="That handle didn't resolve."
+        body={`We tried to resolve "${repo}" and the AT Protocol resolver returned: ${identityError}. Try another handle, DID, or AT URI below.`}
+        initialQuery={repo}
+      />
+    );
   }
   if (!identity) {
     return (
@@ -92,10 +99,39 @@ export default function RecordExplorer({ repo, collection, rkey }: Props) {
   const atUri = `at://${identity.did}/${collection}/${decodedRkey}`;
   const repoSeg = encodeRepo(identity.handle || identity.did);
   const canEdit = Boolean(agent && signedInDid && signedInDid === identity.did);
-  const aturiUniversalLink = `/${identity.handle || identity.did}/${collection}/${encodeURIComponent(decodedRkey)}`;
+  // Universal link uses the canonical `/profile/` path; bare-form
+  // `/<handle>/<collection>/<rkey>` still works as a fallback route but
+  // shareable copies should point at the canonical one.
+  const aturiUniversalPath = `/profile/${identity.handle || identity.did}/${collection}/${encodeURIComponent(decodedRkey)}`;
+  const universalLinkFull = `https://aturi.to${aturiUniversalPath}`;
+
+  // The generic RecordPreview has a footer slot for the Edit button; for
+  // post/margin previews we keep a standalone Edit chip above the copy row.
+  const editsInPreviewFooter = previewRendersGeneric(collection);
+  const editButton =
+    canEdit && !editing ? (
+      <button
+        type="button"
+        onClick={() => setEditing(true)}
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '0.4rem',
+          padding: '0.4rem 0.75rem',
+          background: 'var(--accent-moss)',
+          color: 'var(--text-on-accent)',
+          border: '1px solid var(--accent-moss)',
+          fontFamily: 'var(--font-serif)',
+          fontSize: '0.8125rem',
+          cursor: 'pointer',
+        }}
+      >
+        <FilePenLine size={12} /> Edit record
+      </button>
+    ) : null;
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
       <AppearIn rise>
         <Breadcrumb
           handle={identity.handle}
@@ -103,117 +139,86 @@ export default function RecordExplorer({ repo, collection, rkey }: Props) {
           pds={identity.pds}
           collection={collection}
           rkey={decodedRkey}
-          // Universal link for the record — shareable into any compatible
-          // Atmosphere client via the WaypointPicker on aturi.to.
-          shareUrl={`/${identity.handle || identity.did}/${collection}/${encodeURIComponent(decodedRkey)}`}
         />
       </AppearIn>
 
+      {/* Primary slot. In read mode this is the rich preview (PostPreview /
+          margin variants / generic RecordPreview). In edit mode the same
+          slot becomes the editor — so the user's eye doesn't have to
+          travel to find their changes, and the page doesn't grow longer
+          to accommodate a separate editor section.
+
+          The Edit button slots into the generic preview's footer
+          alongside the CID when applicable; post / margin previews fall
+          back to a standalone chip below the copy row. */}
+      {recordError && <p className="explore-error">{recordError}</p>}
+      {!record && !recordError && !editing && (
+        <p className="explore-placeholder">Loading record…</p>
+      )}
       <AppearIn delay={0.05}>
-        <RecordMeta atUri={atUri} cid={record?.cid} pds={identity.pds} did={identity.did} />
+        {editing && canEdit && agent ? (
+          <RecordEditor
+            agent={agent}
+            did={identity.did}
+            collection={collection}
+            rkey={decodedRkey}
+            onSaved={(next) => {
+              setRecord((prev) => (prev ? { ...prev, value: next } : prev));
+            }}
+            onDeleted={() => {
+              setEditing(false);
+              router.push(`/explore/${repoSeg}/${collection}`);
+            }}
+            onCancel={() => setEditing(false)}
+          />
+        ) : (
+          <RichRecordPreview
+            handle={identity.handle || identity.did}
+            did={identity.did}
+            collection={collection}
+            rkey={decodedRkey}
+            record={record}
+            footerActions={editsInPreviewFooter ? editButton : null}
+          />
+        )}
       </AppearIn>
 
-      {recordError && <p className="explore-error">{recordError}</p>}
-      {!record && !recordError && <p className="explore-placeholder">Loading record…</p>}
-
-      {record && (
+      {record && !editing && (
         <AppearIn>
           <EngagementSidecar did={identity.did} collection={collection} atUri={atUri} />
         </AppearIn>
       )}
 
-      <AppearIn delay={0.1}>
-      <div
-        style={{
-          display: 'flex',
-          flexWrap: 'wrap',
-          gap: '0.5rem',
-          alignItems: 'center',
-        }}
-      >
-        <Link
-          href={aturiUniversalLink}
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '0.4rem',
-            padding: '0.4rem 0.75rem',
-            background: 'var(--bg-tertiary)',
-            border: '1px solid var(--border-medium)',
-            color: 'var(--text-primary)',
-            fontFamily: 'var(--font-serif)',
-            fontSize: '0.8125rem',
-            textDecoration: 'none',
-          }}
-        >
-          <ExternalLink size={12} /> Universal link
-        </Link>
-
-        {canEdit && !editing && (
-          <button
-            type="button"
-            onClick={() => setEditing(true)}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '0.4rem',
-              padding: '0.4rem 0.75rem',
-              background: 'var(--accent-moss)',
-              color: 'var(--text-on-accent)',
-              border: '1px solid var(--accent-moss)',
-              fontFamily: 'var(--font-serif)',
-              fontSize: '0.8125rem',
-              cursor: 'pointer',
-            }}
-          >
-            <FilePenLine size={12} /> Edit record
-          </button>
-        )}
-        {canEdit && editing && (
-          <button
-            type="button"
-            onClick={() => setEditing(false)}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '0.4rem',
-              padding: '0.4rem 0.75rem',
-              background: 'transparent',
-              border: '1px solid var(--border-medium)',
-              color: 'var(--text-secondary)',
-              fontFamily: 'var(--font-serif)',
-              fontSize: '0.8125rem',
-              cursor: 'pointer',
-            }}
-          >
-            <X size={12} /> Close editor
-          </button>
-        )}
-        {record && (
-          <CopyButton
-            value={JSON.stringify(record, null, 2)}
-            label="Copy JSON"
-            compact
-            variant="subtle"
-          />
-        )}
-      </div>
+      {/* Consolidated copy row. URI elements live in the breadcrumb above,
+          so we don't repeat them — every identifier is one tap away as a
+          copy button. CID is omitted because the preview card already
+          surfaces it visibly in its footer. */}
+      <AppearIn delay={0.08}>
+        <CopyRow
+          atUri={atUri}
+          did={identity.did}
+          pds={identity.pds}
+          universalLink={universalLinkFull}
+          recordJson={record ? JSON.stringify(record, null, 2) : null}
+        />
       </AppearIn>
 
-      {editing && canEdit && agent && (
-        <RecordEditor
-          agent={agent}
-          did={identity.did}
-          collection={collection}
-          rkey={decodedRkey}
-          onSaved={(next) => {
-            setRecord((prev) => (prev ? { ...prev, value: next } : prev));
-          }}
-          onDeleted={() => {
-            setEditing(false);
-            router.push(`/explore/${repoSeg}/${collection}`);
-          }}
-        />
+      {/* Standalone Edit chip — only for post / margin previews that
+          don't have a place to slot the button into their layout, and
+          only in read mode. */}
+      {!editsInPreviewFooter && !editing && editButton && (
+        <AppearIn delay={0.1}>
+          <div
+            style={{
+              display: 'flex',
+              flexWrap: 'wrap',
+              gap: '0.5rem',
+              alignItems: 'center',
+            }}
+          >
+            {editButton}
+          </div>
+        </AppearIn>
       )}
 
       {!session && (
@@ -234,20 +239,6 @@ export default function RecordExplorer({ repo, collection, rkey }: Props) {
         </div>
       )}
 
-      {/* Rich preview — same renderer the universal link pages use, so the
-          record looks the way it would on /profile/<handle>/<col>/<rkey>
-          (PostPreview for posts, margin previews for at.margin.*, generic
-          RecordPreview otherwise). */}
-      <AppearIn delay={0.12}>
-        <RichRecordPreview
-          handle={identity.handle || identity.did}
-          did={identity.did}
-          collection={collection}
-          rkey={decodedRkey}
-          record={record}
-        />
-      </AppearIn>
-
       {record && (
         <details className="explore-section">
           <summary>Raw record JSON</summary>
@@ -265,66 +256,54 @@ export default function RecordExplorer({ repo, collection, rkey }: Props) {
   );
 }
 
-function RecordMeta({
+/**
+ * Single-row of compact copy buttons for the values a record-page
+ * visitor might want to grab. Replaces the older RecordMeta + per-cell
+ * copy + standalone "Copy JSON" + outbound "Universal link" cluster.
+ * Values themselves aren't displayed — the URI elements are in the
+ * breadcrumb above, and CID/DID/PDS are visible in the raw JSON below.
+ */
+function CopyRow({
   atUri,
-  cid,
-  pds,
   did,
+  pds,
+  universalLink,
+  recordJson,
 }: {
   atUri: string;
-  cid?: string;
-  pds: string;
   did: string;
+  pds: string;
+  universalLink: string;
+  recordJson: string | null;
 }) {
+  // CID intentionally omitted — the preview card's footer surfaces it
+  // visibly with click-to-copy, so a second copy chip here would
+  // duplicate the affordance.
   return (
     <div
       style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(16rem, 1fr))',
-        gap: '0.75rem',
-        padding: '1rem',
+        display: 'flex',
+        flexWrap: 'wrap',
+        alignItems: 'center',
+        gap: '0.5rem',
+        padding: '0.75rem 1rem',
         border: '1px solid var(--border-medium)',
         background: 'var(--bg-secondary)',
       }}
     >
-      <MetaCell label="at uri" value={atUri} copyLabel="Copy AT URI" />
-      {cid && <MetaCell label="cid" value={cid} copyLabel="Copy CID" />}
-      <MetaCell label="pds" value={pds} copyLabel="Copy PDS URL" />
-      <MetaCell label="did" value={did} copyLabel="Copy DID" />
-    </div>
-  );
-}
-
-function MetaCell({
-  label,
-  value,
-  copyLabel,
-}: {
-  label: string;
-  value: string;
-  copyLabel: string;
-}) {
-  return (
-    <div>
-      <div className="explore-small-caps" style={{ marginBottom: '0.25rem' }}>
-        {label}
-      </div>
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '0.5rem',
-          fontFamily: 'var(--font-mono)',
-          fontSize: '0.8125rem',
-          wordBreak: 'break-all',
-          flexWrap: 'wrap',
-        }}
+      <span
+        className="explore-small-caps"
+        style={{ marginRight: '0.25rem', color: 'var(--text-tertiary)' }}
       >
-        <code style={{ background: 'transparent', padding: 0, color: 'var(--text-primary)' }}>
-          {value}
-        </code>
-        <CopyButton value={value} label={copyLabel} compact variant="subtle" />
-      </div>
+        Copy
+      </span>
+      <CopyButton value={atUri} label="AT URI" compact variant="subtle" />
+      <CopyButton value={did} label="DID" compact variant="subtle" />
+      <CopyButton value={pds} label="PDS" compact variant="subtle" />
+      <CopyButton value={universalLink} label="Universal link" compact variant="subtle" />
+      {recordJson && (
+        <CopyButton value={recordJson} label="JSON" compact variant="subtle" />
+      )}
     </div>
   );
 }

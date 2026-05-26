@@ -30,3 +30,17 @@ export function buildExplorePdsUrl(pdsHost: string): string {
   const host = pdsHost.replace(/^https?:\/\//i, '').replace(/\/.*$/, '');
   return `${ATURI_BASE}/explore/pds/${encodeURIComponent(host)}`;
 }
+
+/**
+ * Build the aturi.to "universal link" (canonical `/profile/` route) for a
+ * record. Mirrors the website's `RecordExplorer.tsx` shareable form so a
+ * link copied from the extension lands the user on the same page their
+ * peers would land on. Caller passes `handle ?? did`.
+ */
+export function buildUniversalLink(
+  handleOrDid: string,
+  collection: string,
+  rkey: string,
+): string {
+  return `${ATURI_BASE}/profile/${handleOrDid}/${collection}/${encodeURIComponent(rkey)}`;
+}

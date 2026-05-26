@@ -2,8 +2,8 @@
 
 import { Check, ChevronRight } from 'lucide-react';
 import {
+  AnisotaLogo,
   BlueskySVG,
-  DeerSVG,
   LeafletSVG,
   TangledSVG,
   GrainSVG,
@@ -13,8 +13,8 @@ const ROWS: { collection: string; label: string; icon: React.ReactNode; client: 
   {
     collection: 'app.bsky.feed.post',
     label: 'Posts',
-    icon: <DeerSVG />,
-    client: 'Deer',
+    icon: <AnisotaLogo />,
+    client: 'Anisota',
   },
   {
     collection: 'pub.leaflet.document',

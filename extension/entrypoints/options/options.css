@@ -19,11 +19,26 @@ body {
   top: 0;
   z-index: 5;
   background: var(--bg-secondary);
-  border-bottom: 1px solid var(--border-subtle);
+  /* Framed on all four sides so the header reads as a contained panel
+     inside the centered content column, matching the bordered nav-bar
+     treatment on the main site. The top edge is the page's own top, so
+     a single border line there sits flush with the browser chrome. */
+  border: 1px solid var(--border-subtle);
   padding: 14px 24px 0;
   display: flex;
   flex-direction: column;
   gap: 10px;
+}
+
+/* Below the small-screen breakpoint the content column goes edge-to-edge,
+   so framing the header with side borders just adds two pixel-thin lines
+   touching the viewport edges. Drop them on mobile to keep things clean. */
+@media (max-width: 560px) {
+  .options-header {
+    border-left: 0;
+    border-right: 0;
+    border-top: 0;
+  }
 }
 
 .options-brand {

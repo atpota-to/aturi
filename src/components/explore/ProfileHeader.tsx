@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { ExternalLink, Globe, Heart, MessageSquare, Users } from 'lucide-react';
+import { ExternalLink, Heart, MessageSquare, Users } from 'lucide-react';
 import { getProfile, type AppViewProfile } from '@/utils/atproto/appview';
 import { getRecord } from '@/utils/atproto/pdsClient';
 import type { IdentityBundle } from '@/utils/atproto/identity';
@@ -74,7 +74,16 @@ export default function ProfileHeader({ identity }: Props) {
   const pronouns = profile.pronouns?.trim() || extras.pronouns?.trim();
   const website = extras.website?.trim();
   const handle = identity.handle || profile.handle;
-  const websiteHref = normalizeUrl(website);
+  // Website resolution: prefer the explicit `website` field on the profile
+  // record; otherwise fall back to `https://<handle>` when the handle looks
+  // like a real domain. Many self-hosted handles (certified.app, dame.is,
+  // anisota.net) ARE their own website and never bother to fill in the
+  // separate field. *.bsky.social / *.bsky.network users get the same
+  // treatment — those subdomains may not host much, but the affordance is
+  // consistent and the worst case is one extra tab that resolves to
+  // Bluesky's umbrella page.
+  const websiteHref =
+    normalizeUrl(website) ?? handleAsWebsite(handle);
   const websiteLabel = websiteHref ? prettyHostname(websiteHref) : null;
 
   // Bail entirely if there's nothing interesting to show — this is the
@@ -160,7 +169,39 @@ export default function ProfileHeader({ identity }: Props) {
               wordBreak: 'break-all',
             }}
           >
-            @{handle}
+            {websiteHref ? (
+              // Handle doubles as the website link when the profile has one.
+              // Trailing ExternalLink icon signals that the tap leaves the
+              // current site, since the handle text alone reads as an
+              // identifier (no underline / no obvious "link" affordance).
+              <a
+                href={websiteHref}
+                target="_blank"
+                rel="noreferrer noopener"
+                title={websiteLabel ?? websiteHref}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'baseline',
+                  gap: '0.3rem',
+                  color: 'var(--text-accent)',
+                  textDecoration: 'none',
+                }}
+              >
+                <span>@{handle}</span>
+                <ExternalLink
+                  size={11}
+                  aria-hidden
+                  style={{
+                    color: 'var(--text-tertiary)',
+                    opacity: 0.7,
+                    flexShrink: 0,
+                    transform: 'translateY(1px)',
+                  }}
+                />
+              </a>
+            ) : (
+              <>@{handle}</>
+            )}
           </div>
         )}
 
@@ -178,7 +219,7 @@ export default function ProfileHeader({ identity }: Props) {
           </p>
         )}
 
-        {(websiteHref || hasStats(profile)) && (
+        {hasStats(profile) && (
           <div
             style={{
               display: 'flex',
@@ -194,25 +235,6 @@ export default function ProfileHeader({ identity }: Props) {
               lineHeight: 1,
             }}
           >
-            {websiteHref && (
-              <a
-                href={websiteHref}
-                target="_blank"
-                rel="noreferrer noopener"
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '0.4rem',
-                  color: 'var(--text-accent)',
-                  textDecoration: 'none',
-                  lineHeight: 1,
-                }}
-              >
-                <Globe size={13} />
-                <span>{websiteLabel}</span>
-                <ExternalLink size={11} aria-hidden style={{ opacity: 0.6 }} />
-              </a>
-            )}
             {profile.followersCount != null && (
               <Stat
                 icon={<Heart size={13} />}
@@ -314,5 +336,28 @@ function prettyHostname(href: string): string {
     return (url.hostname + url.pathname).replace(/\/$/, '');
   } catch {
     return href;
+  }
+}
+
+/**
+ * Treat the handle as a potential website when it parses as a domain.
+ * Filters out: nulls, DIDs (`did:plc:...`), and bare strings without a dot
+ * (single-segment handles can't be a valid hostname). Everything else
+ * tries `https://<handle>` — the URL constructor + an http(s) protocol
+ * guard does the rest of the sanity check.
+ */
+function handleAsWebsite(handle: string | null | undefined): string | null {
+  if (!handle) return null;
+  if (handle.startsWith('did:')) return null;
+  if (!handle.includes('.')) return null;
+  try {
+    const url = new URL(`https://${handle}`);
+    if (url.protocol !== 'https:') return null;
+    // Reject anything where the hostname doesn't round-trip — guards
+    // against handles with characters that aren't valid in a hostname.
+    if (url.hostname.toLowerCase() !== handle.toLowerCase()) return null;
+    return url.toString();
+  } catch {
+    return null;
   }
 }

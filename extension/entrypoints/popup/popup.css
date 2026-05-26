@@ -25,6 +25,16 @@ body {
   background: var(--bg-primary);
 }
 
+/* `.popup-topbar` stacks the title bar and the mode tabs so they scroll
+   together as a single sticky unit. Previously each was independently
+   `position: sticky` and they overlapped when the popup content scrolled. */
+.popup-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  background: var(--bg-primary);
+}
+
 .popup-header {
   display: flex;
   align-items: center;
@@ -32,9 +42,6 @@ body {
   padding: 14px 18px 12px;
   border-bottom: 1px solid var(--border-subtle);
   background: linear-gradient(180deg, var(--bg-secondary), var(--bg-primary));
-  position: sticky;
-  top: 0;
-  z-index: 2;
 }
 
 .popup-title {
@@ -250,6 +257,23 @@ body {
 .popup-waypoint:has(.popup-waypoint-main:disabled) {
   opacity: 0.5;
   transform: none;
+}
+
+/* PDS-scan came back without a matching collection in the target repo —
+   the row stays clickable (we don't know that the user wouldn't want to
+   open the app anyway) but reads quietly. The caption switches to
+   "No records found on this repo" so the dimming is explained inline. */
+.popup-waypoint.is-absent {
+  opacity: 0.5;
+}
+
+.popup-waypoint.is-absent:hover {
+  opacity: 0.85;
+}
+
+.popup-waypoint.is-absent .popup-waypoint-desc {
+  font-style: italic;
+  color: var(--text-tertiary);
 }
 
 .popup-waypoint-main {
@@ -649,14 +673,12 @@ body {
   background: var(--bg-primary);
 }
 
+/* Sticky behavior lives on `.popup-topbar` now — see above. */
 .popup-mode-tabs {
   display: flex;
   align-items: stretch;
   border-bottom: 1px solid var(--border-subtle);
   background: var(--bg-secondary);
-  position: sticky;
-  top: 0;
-  z-index: 3;
 }
 
 .popup-mode-tab {
@@ -680,6 +702,16 @@ body {
   transition: color 0.2s ease, border-color 0.2s ease, background 0.2s ease;
 }
 
+/* Vertical dividers between adjacent tab-bar items (including the settings
+   gear on the right). The first item has no left border so the divider
+   pattern only renders between siblings. */
+.popup-mode-tab + .popup-mode-tab,
+.popup-mode-tab + .popup-mode-tab-settings,
+.popup-mode-tab-settings + .popup-mode-tab,
+.popup-mode-tab-settings + .popup-mode-tab-settings {
+  border-left: 1px solid var(--border-subtle);
+}
+
 .popup-mode-tab:hover {
   color: var(--text-secondary);
   background: var(--bg-tertiary);
@@ -692,4 +724,272 @@ body {
 
 .popup-mode-tab svg {
   flex-shrink: 0;
+}
+
+/* The settings gear sits at the right edge of the tab bar — narrow,
+   icon-only, never "active" since it opens a separate page. Visually
+   it shares the tab-bar treatment (same height, same divider). */
+.popup-mode-tab-settings {
+  flex: 0 0 auto;
+  width: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  transition: color 0.2s ease, background 0.2s ease;
+}
+
+.popup-mode-tab-settings:hover {
+  color: var(--text-accent);
+  background: var(--bg-tertiary);
+}
+
+.popup-mode-tab-settings:active {
+  background: var(--bg-elevated);
+}
+
+.popup-mode-tab-settings svg {
+  flex-shrink: 0;
+}
+
+/* ----- Inspect card ------------------------------------------------------ */
+
+.inspect-card {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 8px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-medium);
+  font-family: var(--font-serif);
+}
+
+.inspect-card + .inspect-card {
+  margin-top: 4px;
+}
+
+/* The breadcrumb sits as a distinct header section at the top of the
+   card — own background, own padding, divider below — so it reads as a
+   "this is what record you're looking at" banner rather than just the
+   first row in a uniform stack. */
+.inspect-breadcrumb {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+  font-size: 11px;
+  padding: 10px 14px;
+  background: var(--bg-tertiary);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.inspect-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 14px;
+}
+
+.inspect-breadcrumb-segment {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 5px;
+  color: var(--text-secondary);
+  text-decoration: none;
+  font-family: var(--font-mono);
+  letter-spacing: 0;
+  border-radius: 0;
+  transition: color 0.15s ease, background 0.15s ease;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.inspect-breadcrumb-segment:hover {
+  color: var(--text-accent);
+  background: var(--bg-tertiary);
+}
+
+.inspect-breadcrumb-segment.is-handle {
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.inspect-breadcrumb-segment.is-collection,
+.inspect-breadcrumb-segment.is-pds {
+  color: var(--text-tertiary);
+}
+
+.inspect-breadcrumb-segment.is-rkey {
+  color: var(--text-tertiary);
+  font-family: var(--font-mono);
+  padding: 2px 5px;
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.inspect-breadcrumb-sep {
+  color: var(--text-tertiary);
+  opacity: 0.6;
+  flex-shrink: 0;
+}
+
+.inspect-preview {
+  font-size: 12px;
+  color: var(--text-secondary);
+  font-family: var(--font-serif);
+  line-height: 1.4;
+}
+
+.inspect-engagement {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  padding: 6px 0;
+  border-top: 1px solid var(--border-subtle);
+  border-bottom: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+}
+
+.inspect-engagement-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-family: var(--font-mono);
+}
+
+.inspect-engagement-item svg {
+  color: var(--text-tertiary);
+  flex-shrink: 0;
+}
+
+.inspect-cta {
+  width: 100%;
+  padding: 8px 12px;
+  font-size: 12px;
+  text-decoration: none;
+  margin-top: 2px;
+}
+
+.inspect-copy-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+}
+
+.inspect-copy-label {
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-tertiary);
+  font-family: var(--font-serif);
+  margin-right: 2px;
+}
+
+.inspect-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 7px;
+  background: transparent;
+  border: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+  white-space: nowrap;
+}
+
+.inspect-chip:hover {
+  color: var(--text-accent);
+  border-color: var(--text-accent);
+  background: var(--bg-tertiary);
+}
+
+.inspect-chip.is-ghost {
+  border-color: transparent;
+}
+
+.inspect-chip.is-ghost:hover {
+  border-color: var(--border-subtle);
+}
+
+.inspect-chip.is-copied {
+  color: var(--text-accent);
+  border-color: var(--text-accent);
+}
+
+.inspect-footer {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-top: 6px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.inspect-footer-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.inspect-footer-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-tertiary);
+  text-decoration: none;
+  padding: 3px 5px;
+  transition: color 0.15s ease;
+}
+
+.inspect-footer-link:hover {
+  color: var(--text-accent);
+}
+
+.inspect-json {
+  font-size: 11px;
+}
+
+.inspect-json > summary {
+  cursor: pointer;
+  color: var(--text-tertiary);
+  font-family: var(--font-serif);
+  font-size: 11px;
+  padding: 2px 0;
+  user-select: none;
+}
+
+.inspect-json > summary:hover {
+  color: var(--text-secondary);
+}
+
+.inspect-json-pre {
+  margin: 6px 0 0;
+  padding: 8px 10px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-subtle);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  line-height: 1.45;
+  color: var(--text-secondary);
+  white-space: pre-wrap;
+  word-break: break-all;
+  max-height: 280px;
+  overflow-y: auto;
 }

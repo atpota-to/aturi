@@ -1,6 +1,7 @@
 'use client';
 
-import { useSyncExternalStore } from 'react';
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
+import { Pin, X } from 'lucide-react';
 import {
   applyTheme,
   getStoredTheme,
@@ -10,6 +11,16 @@ import {
   type Theme,
   DEFAULT_THEME,
 } from '@/lib/theme';
+import { usePreferences } from '@/components/PreferencesProvider';
+import { useMyCollections } from '@/components/explore/useRepoCollections';
+import {
+  addPinnedLexicon,
+  isLikelyNsid,
+  removePinnedLexicon,
+  setPinScope,
+  type PinTarget,
+  type Preferences,
+} from '@/utils/preferences';
 
 /**
  * General settings — appearance and other app-wide toggles. The schema
@@ -30,7 +41,458 @@ export default function GeneralTab() {
         </div>
         <ThemePicker />
       </section>
+
+      <ExplorerCard />
     </>
+  );
+}
+
+function ExplorerCard() {
+  const { prefs, update } = usePreferences();
+
+  function pickScope(scope: Preferences['pinScope']) {
+    update((p) => setPinScope(p, scope));
+  }
+
+  return (
+    <section className="settings-card">
+      <div className="settings-card-head">
+        <h2 className="settings-card-title">Explorer</h2>
+        <p className="settings-card-sub">
+          Pin lexicons from any repo's collections tab to surface them at the
+          top of the list. Useful for jumping straight to the records you
+          touch most.
+        </p>
+      </div>
+
+      <div className="settings-toggle-row">
+        <div className="settings-toggle-label">
+          <span className="settings-toggle-label-text">
+            Show pinned section on
+          </span>
+          <span className="settings-toggle-label-sub">
+            <em>My repo</em> keeps the Pinned section private to your own
+            account page. <em>Every repo</em> bubbles a single shared list up
+            on every page that has a match. <em>Separate</em> lets you keep
+            two different lists — one for your repo, another for everyone
+            else's.
+          </span>
+        </div>
+        <div
+          role="radiogroup"
+          aria-label="Pin scope"
+          style={{
+            display: 'inline-flex',
+            border: '1px solid var(--border-medium)',
+            overflow: 'hidden',
+            flexShrink: 0,
+          }}
+        >
+          {(
+            [
+              { value: 'own', label: 'my repo' },
+              { value: 'all', label: 'every repo' },
+              { value: 'split', label: 'separate' },
+            ] as const
+          ).map(({ value, label }) => {
+            const active = prefs.pinScope === value;
+            return (
+              <button
+                key={value}
+                type="button"
+                role="radio"
+                aria-checked={active}
+                onClick={() => pickScope(value)}
+                style={{
+                  padding: '0.4rem 0.875rem',
+                  fontSize: '0.85rem',
+                  background: active ? 'var(--accent-forest)' : 'transparent',
+                  color: active ? 'var(--text-on-accent)' : 'var(--text-secondary)',
+                  border: 'none',
+                  cursor: 'pointer',
+                  transition: 'background 0.2s ease, color 0.2s ease',
+                  textTransform: 'lowercase',
+                  letterSpacing: '0.02em',
+                  fontFamily: 'var(--font-serif)',
+                }}
+              >
+                {label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      <div className="settings-toggle-row">
+        <div className="settings-toggle-label">
+          <span className="settings-toggle-label-text">
+            Start lexicon groups collapsed
+          </span>
+          <span className="settings-toggle-label-sub">
+            When on, every group on the explorer's Collections tab starts
+            folded. Use the toggle next to the filter bar to flip everything
+            at once.
+          </span>
+        </div>
+        <span className="settings-switch">
+          <input
+            id="collections-collapse-default"
+            type="checkbox"
+            role="switch"
+            checked={prefs.collectionGroupsCollapsedByDefault}
+            onChange={(e) =>
+              update((p) => ({
+                ...p,
+                collectionGroupsCollapsedByDefault: e.target.checked,
+              }))
+            }
+            aria-label="Start lexicon groups collapsed"
+          />
+          <span className="settings-switch-box" aria-hidden="true" />
+        </span>
+      </div>
+
+      <PinnedList
+        target="mine"
+        title={
+          prefs.pinScope === 'split'
+            ? 'Pinned on my repo'
+            : prefs.pinScope === 'all'
+              ? 'Pinned everywhere'
+              : 'Pinned lexicons'
+        }
+      />
+      {prefs.pinScope === 'split' && (
+        <PinnedList target="others" title="Pinned on others' repos" />
+      )}
+    </section>
+  );
+}
+
+const SUGGESTION_LIMIT = 8;
+
+function PinnedList({
+  target,
+  title,
+}: {
+  target: PinTarget;
+  title: string;
+}) {
+  const { prefs, update } = usePreferences();
+  const list =
+    target === 'others' ? prefs.pinnedLexiconsOthers : prefs.pinnedLexicons;
+  const [draft, setDraft] = useState('');
+  const [err, setErr] = useState<string | null>(null);
+  const [focused, setFocused] = useState(false);
+  const [activeIdx, setActiveIdx] = useState(0);
+  const containerRef = useRef<HTMLFormElement>(null);
+
+  // Source for autocomplete: NSIDs on the signed-in user's own repo.
+  // null when signed out or still loading — in that case we fall back
+  // to a pure free-text input.
+  const myCollections = useMyCollections();
+  const pinnedSet = useMemo(() => new Set(list), [list]);
+  const suggestions = useMemo(() => {
+    if (!myCollections) return [] as string[];
+    const q = draft.trim().toLowerCase();
+    const candidates = Array.from(myCollections).filter((n) => !pinnedSet.has(n));
+    candidates.sort();
+    if (!q) return candidates.slice(0, SUGGESTION_LIMIT);
+    // Rank: prefix match first, then any substring match.
+    const lc = candidates.map((n) => [n, n.toLowerCase()] as const);
+    const prefix = lc.filter(([, l]) => l.startsWith(q)).map(([n]) => n);
+    const contains = lc
+      .filter(([, l]) => !l.startsWith(q) && l.includes(q))
+      .map(([n]) => n);
+    return [...prefix, ...contains].slice(0, SUGGESTION_LIMIT);
+  }, [myCollections, draft, pinnedSet]);
+
+  // Close suggestions on outside click.
+  useEffect(() => {
+    if (!focused) return;
+    function onClick(e: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setFocused(false);
+      }
+    }
+    document.addEventListener('mousedown', onClick);
+    return () => document.removeEventListener('mousedown', onClick);
+  }, [focused]);
+
+  // Reset active suggestion whenever the filtered set changes shape.
+  useEffect(() => {
+    setActiveIdx(0);
+  }, [draft, suggestions.length]);
+
+  const suggestionsOpen = focused && suggestions.length > 0;
+
+  function pin(value: string) {
+    const v = value.trim().toLowerCase();
+    if (!v) return;
+    if (!isLikelyNsid(v)) {
+      setErr(
+        'That doesn’t look like a valid NSID. Expected lowercase, dotted (e.g. app.bsky.feed.post).',
+      );
+      return;
+    }
+    if (list.includes(v)) {
+      setErr('Already pinned.');
+      return;
+    }
+    update((p) => addPinnedLexicon(p, v, target));
+    setDraft('');
+    setErr(null);
+  }
+
+  function submit() {
+    if (suggestionsOpen && suggestions[activeIdx]) {
+      pin(suggestions[activeIdx]);
+      return;
+    }
+    pin(draft);
+  }
+
+  function onKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (!suggestionsOpen) return;
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setActiveIdx((i) => Math.min(i + 1, suggestions.length - 1));
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setActiveIdx((i) => Math.max(i - 1, 0));
+    } else if (e.key === 'Escape') {
+      setFocused(false);
+    } else if (e.key === 'Tab' && suggestions[activeIdx]) {
+      // Tab autofills the input without submitting, so the user can
+      // tweak the NSID before pinning.
+      e.preventDefault();
+      setDraft(suggestions[activeIdx]);
+    }
+  }
+
+  function unpin(nsid: string) {
+    update((p) => removePinnedLexicon(p, nsid, target));
+  }
+
+  return (
+    <div style={{ marginTop: '1rem' }}>
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.4rem',
+          fontFamily: 'var(--font-serif)',
+          fontSize: '0.75rem',
+          letterSpacing: '0.08em',
+          textTransform: 'uppercase',
+          color: 'var(--text-tertiary)',
+          marginBottom: '0.5rem',
+        }}
+      >
+        <Pin size={12} aria-hidden />
+        {title}
+        <span style={{ marginLeft: 'auto', letterSpacing: '0.04em' }}>
+          {list.length}
+        </span>
+      </div>
+
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          submit();
+        }}
+        ref={containerRef}
+        style={{
+          display: 'flex',
+          gap: '0.5rem',
+          marginBottom: '0.5rem',
+          position: 'relative',
+        }}
+      >
+        <div style={{ flex: 1, minWidth: 0, position: 'relative' }}>
+          <input
+            type="text"
+            inputMode="text"
+            autoComplete="off"
+            autoCapitalize="none"
+            spellCheck={false}
+            value={draft}
+            onChange={(e) => {
+              setDraft(e.target.value);
+              if (err) setErr(null);
+            }}
+            onFocus={() => setFocused(true)}
+            onKeyDown={onKeyDown}
+            placeholder={
+              myCollections
+                ? 'Search your repo or type an NSID…'
+                : 'app.bsky.feed.post'
+            }
+            aria-label={`Add lexicon to ${title}`}
+            aria-autocomplete="list"
+            aria-expanded={suggestionsOpen}
+            aria-controls={`pinned-suggestions-${target}`}
+            aria-activedescendant={
+              suggestionsOpen ? `pinned-suggestion-${target}-${activeIdx}` : undefined
+            }
+            role="combobox"
+            style={{
+              width: '100%',
+              padding: '0.45rem 0.65rem',
+              background: 'var(--bg-tertiary)',
+              border: `1px solid ${err ? 'var(--text-error, #b94a4a)' : 'var(--border-medium)'}`,
+              color: 'var(--text-primary)',
+              fontFamily: 'var(--font-mono)',
+              fontSize: '0.85rem',
+              outline: 'none',
+            }}
+          />
+          {suggestionsOpen && (
+            <ul
+              id={`pinned-suggestions-${target}`}
+              role="listbox"
+              style={{
+                listStyle: 'none',
+                margin: 0,
+                padding: 0,
+                position: 'absolute',
+                top: 'calc(100% + 2px)',
+                left: 0,
+                right: 0,
+                zIndex: 5,
+                background: 'var(--bg-secondary)',
+                border: '1px solid var(--border-medium)',
+                maxHeight: '16rem',
+                overflowY: 'auto',
+                boxShadow: '0 6px 18px rgba(0,0,0,0.25)',
+              }}
+            >
+              {suggestions.map((nsid, i) => (
+                <li
+                  key={nsid}
+                  id={`pinned-suggestion-${target}-${i}`}
+                  role="option"
+                  aria-selected={i === activeIdx}
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    pin(nsid);
+                  }}
+                  onMouseEnter={() => setActiveIdx(i)}
+                  style={{
+                    padding: '0.4rem 0.65rem',
+                    fontFamily: 'var(--font-mono)',
+                    fontSize: '0.8rem',
+                    background:
+                      i === activeIdx ? 'var(--bg-tertiary)' : 'transparent',
+                    color:
+                      i === activeIdx
+                        ? 'var(--text-accent)'
+                        : 'var(--text-primary)',
+                    cursor: 'pointer',
+                    wordBreak: 'break-all',
+                  }}
+                >
+                  {highlightMatch(nsid, draft)}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+        <button
+          type="submit"
+          disabled={draft.trim().length === 0}
+          style={{
+            padding: '0.45rem 0.9rem',
+            background: 'var(--accent-forest)',
+            color: 'var(--text-on-accent)',
+            border: 0,
+            cursor: draft.trim() ? 'pointer' : 'not-allowed',
+            fontFamily: 'var(--font-serif)',
+            fontSize: '0.85rem',
+            opacity: draft.trim() ? 1 : 0.5,
+          }}
+        >
+          Pin
+        </button>
+      </form>
+      {err && (
+        <p
+          style={{
+            margin: '0 0 0.5rem 0',
+            fontSize: '0.75rem',
+            color: 'var(--text-error, #b94a4a)',
+          }}
+        >
+          {err}
+        </p>
+      )}
+
+      {list.length === 0 ? (
+        <p
+          style={{
+            fontSize: '0.85rem',
+            color: 'var(--text-tertiary)',
+            fontStyle: 'italic',
+            margin: 0,
+          }}
+        >
+          Nothing pinned yet. Add an NSID above, or use the pin button on rows
+          in any repo's Collections tab.
+        </p>
+      ) : (
+        <ul
+          style={{
+            listStyle: 'none',
+            margin: 0,
+            padding: 0,
+            border: '1px solid var(--border-medium)',
+          }}
+        >
+          {list.map((nsid, i) => (
+            <li
+              key={nsid}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                padding: '0.45rem 0.75rem',
+                background: i % 2 === 0 ? 'var(--bg-primary)' : 'transparent',
+                fontFamily: 'var(--font-mono)',
+                fontSize: '0.85rem',
+                wordBreak: 'break-all',
+              }}
+            >
+              <span style={{ flex: 1, minWidth: 0 }}>{nsid}</span>
+              <button
+                type="button"
+                onClick={() => unpin(nsid)}
+                aria-label={`Unpin ${nsid}`}
+                title="Remove pin"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: '0.25rem',
+                  background: 'transparent',
+                  border: 0,
+                  color: 'var(--text-tertiary)',
+                  cursor: 'pointer',
+                  flexShrink: 0,
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.color = 'var(--text-accent)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.color = 'var(--text-tertiary)';
+                }}
+              >
+                <X size={14} aria-hidden />
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
   );
 }
 
@@ -50,6 +512,27 @@ function getSnapshot(): Theme {
 
 function getServerSnapshot(): Theme {
   return DEFAULT_THEME;
+}
+
+/**
+ * Render `nsid` with the substring matching `query` underlined. Falls
+ * back to plain text when there's no match or no query.
+ */
+function highlightMatch(nsid: string, query: string): React.ReactNode {
+  const q = query.trim().toLowerCase();
+  if (!q) return nsid;
+  const lc = nsid.toLowerCase();
+  const idx = lc.indexOf(q);
+  if (idx < 0) return nsid;
+  return (
+    <>
+      {nsid.slice(0, idx)}
+      <strong style={{ color: 'var(--text-accent)', fontWeight: 600 }}>
+        {nsid.slice(idx, idx + q.length)}
+      </strong>
+      {nsid.slice(idx + q.length)}
+    </>
+  );
 }
 
 function ThemePicker() {

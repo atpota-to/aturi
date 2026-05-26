@@ -60,15 +60,14 @@ export default function ExplorerStrip() {
           </span>
           <h2>Browse through any account&rsquo;s data</h2>
           <p>
-            Browse every collection, every record, every backlink across the
-            Atmosphere — from any account&rsquo;s PDS, in your browser. Identity
-            history, audit log, inbound references, and a live view of the
-            firehose are all one click away.
+            Read every collection, record, and backlink on any account&rsquo;s
+            PDS, all from your browser. Identity history, audit logs, inbound
+            references, and a live view of network activity sit one tab away.
           </p>
           <p>
-            Sign in with your atproto handle to edit your own records directly,
-            sync waypoint preferences across devices, and customize how every
-            universal link page renders.
+            Sign in with your atproto handle to edit your own records, sync
+            waypoint preferences across devices, and tune how your universal
+            link pages render.
           </p>
           <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '1.25rem' }}>
             <Link

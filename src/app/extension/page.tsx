@@ -23,12 +23,14 @@ export const metadata: Metadata = {
 
 export default function ExtensionPage() {
   return (
-    <div
-      className="container-narrow"
-      style={{ padding: '2rem 2rem 4rem', minHeight: '80dvh' }}
-    >
+    <>
       <Header compact />
-      <ExtensionLanding />
-    </div>
+      <div
+        className="container-narrow"
+        style={{ padding: '0 2rem 4rem', minHeight: '80dvh' }}
+      >
+        <ExtensionLanding />
+      </div>
+    </>
   );
 }

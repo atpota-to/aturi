@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { ChevronDown, LogIn, LogOut, Settings, Telescope, User } from 'lucide-react';
 import { useAtprotoSession } from './AtprotoSessionProvider';
 import ScopeSelector from './oauth/ScopeSelector';
+import { rememberCurrentPathForReturn } from '@/lib/oauth/returnTo';
 import { getProfile, type AppViewProfile } from '@/utils/atproto/appview';
 import { encodeRepo } from '@/utils/atproto/urls';
 
@@ -111,6 +112,7 @@ export default function SessionMenu({ variant = 'inline' }: { variant?: Variant 
                   setBusy(true);
                   setError(null);
                   try {
+                    rememberCurrentPathForReturn();
                     await signIn(pendingAccount, scopeString);
                   } catch (err) {
                     setBusy(false);
@@ -204,7 +206,7 @@ export default function SessionMenu({ variant = 'inline' }: { variant?: Variant 
           <MenuLink
             href="/account"
             icon={<Settings size={13} />}
-            label="Account settings"
+            label="Settings"
             onClick={() => setOpen(false)}
           />
           <button

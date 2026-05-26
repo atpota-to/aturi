@@ -2,6 +2,7 @@
 
 import { Star } from 'lucide-react';
 import {
+  AnisotaLogo,
   BlueskySVG,
   BluepySVG,
   DeerSVG,
@@ -13,23 +14,23 @@ import {
 } from '@/utils/waypointIcons';
 
 const RECOMMENDED = {
-  name: 'Deer',
-  desc: 'View post on deer.social',
-  icon: <DeerSVG />,
+  name: 'Anisota',
+  desc: 'View post on anisota.net',
+  icon: <AnisotaLogo />,
 };
 
 const COLUMN_A: { icon: React.ReactNode; name: string; host: string }[] = [
   { icon: <BlueskySVG />, name: 'Bluesky', host: 'bsky.app' },
+  { icon: <DeerSVG />, name: 'Deer', host: 'deer.social' },
   { icon: <BluepySVG />, name: 'Bluepy', host: 'bluepy.dev' },
   { icon: <LeafletSVG />, name: 'Leaflet', host: 'leaflet.pub' },
-  { icon: <PdslsSVG />, name: 'PDSls', host: 'pdsls.dev' },
 ];
 
 const COLUMN_B: { icon: React.ReactNode; name: string; host: string }[] = [
   { icon: <TangledSVG />, name: 'Tangled', host: 'tangled.org' },
   { icon: <GrainSVG />, name: 'Grain', host: 'grain.social' },
-  { icon: <MarginSVG />, name: 'Margin', host: 'margin.at' },
-  { icon: <DeerSVG />, name: '+18 more', host: 'browse the full picker' },
+  { icon: <PdslsSVG />, name: 'PDSls', host: 'pdsls.dev' },
+  { icon: <MarginSVG />, name: '+18 more', host: 'browse the full picker' },
 ];
 
 /**

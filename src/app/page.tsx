@@ -6,15 +6,16 @@ import { FadeIn } from '@/components/FadeIn';
 import UniversalLinksStrip from '@/components/home/UniversalLinksStrip';
 import ExtensionStrip from '@/components/home/ExtensionStrip';
 import ExplorerStrip from '@/components/home/ExplorerStrip';
+import { Code2, GitFork, Scale } from 'lucide-react';
 
 export default function HomePage() {
   return (
-    <div style={{ position: 'relative', overflow: 'hidden' }}>
+    <div style={{ position: 'relative', overflowX: 'clip' }}>
       {/* Compact nav card — same shape used by /explore, /profile/*, and
-          /account so the homepage doesn't fork its own header treatment. */}
-      <div className="container-narrow" style={{ padding: '2rem 2rem 0' }}>
-        <Header compact />
-      </div>
+          /account so the homepage doesn't fork its own header treatment.
+          Rendered as a direct child of the page wrapper so position:
+          sticky has the full page height as its containing block. */}
+      <Header compact />
 
       {/* Hero: tagline + description + two CTAs (Explore + Download) */}
       <HomeHero />
@@ -75,15 +76,16 @@ export default function HomePage() {
               <p style={{ marginBottom: '1rem' }}>
                 The name is a playful blend of{' '}
                 <strong style={{ color: 'var(--text-primary)' }}>AT URI</strong>
-                , the universal identifier that points to any record, profile,
-                or resource across the Atmosphere. Pronounced like &ldquo;Atari&rdquo;
-                but with &ldquo;turi&rdquo; at the end&mdash;<em>uh-tour-ee</em>.
+                , the universal identifier the AT Protocol uses to point at
+                any record, profile, or resource. Pronounced like
+                &ldquo;Atari&rdquo; but with &ldquo;turi&rdquo; at the
+                end&mdash;<em>uh-tour-ee</em>.
               </p>
               <p>
                 Every piece of content in the Atmosphere has an AT URI that
                 works regardless of which app or server you&apos;re using. We
-                thought it deserved a friendly name that&apos;s easy to remember
-                and share.
+                thought it deserved a friendly name that&apos;s easy to
+                remember and share.
               </p>
             </div>
             <div
@@ -200,7 +202,118 @@ export default function HomePage() {
             </div>
           </section>
         </FadeIn>
+
+        {/* Open source card. Sits at the bottom of the home page so it
+            reads as "by the way, this thing is yours to fork" rather than
+            leading with it. Three pill links cover the three things people
+            usually want next: the code, the license, and the fork docs. */}
+        <FadeIn delay={0.3}>
+          <section
+            className="card"
+            style={{
+              padding: '2.5rem',
+              background: 'var(--bg-secondary)',
+              border: '1px solid var(--border-medium)',
+              position: 'relative',
+              transform: 'rotate(-0.2deg)',
+              transition: 'all 0.4s ease',
+              marginTop: '3rem',
+            }}
+          >
+            <div
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                color: 'var(--text-accent)',
+                fontSize: '0.75rem',
+                letterSpacing: '0.12em',
+                textTransform: 'uppercase',
+                fontFamily: 'var(--font-serif)',
+                marginBottom: '1rem',
+              }}
+            >
+              <Code2 size={14} aria-hidden /> Open source
+            </div>
+            <h3
+              style={{
+                marginBottom: '0.875rem',
+                color: 'var(--text-primary)',
+                fontSize: '1.625rem',
+                fontWeight: 400,
+                maxWidth: '34rem',
+              }}
+            >
+              GPL v3, built in the open, ready to fork.
+            </h3>
+            <p
+              style={{
+                color: 'var(--text-secondary)',
+                marginBottom: '1.5rem',
+                fontSize: '1rem',
+                lineHeight: 1.7,
+                maxWidth: '46rem',
+              }}
+            >
+              Every line of aturi.to lives on{' '}
+              <a
+                href="https://tangled.org/atpota.to/aturi"
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ color: 'var(--text-accent)' }}
+              >
+                tangled.org
+              </a>
+              . Run your own instance on a custom domain, audit the OAuth
+              flow, contribute a waypoint, or break it apart for parts. The
+              license keeps modifications open too.
+            </p>
+            <div
+              style={{
+                display: 'flex',
+                gap: '0.625rem',
+                flexWrap: 'wrap',
+              }}
+            >
+              <a
+                href="https://tangled.org/atpota.to/aturi"
+                target="_blank"
+                rel="noopener noreferrer"
+                style={openSourcePillStyle}
+              >
+                <Code2 size={14} aria-hidden /> Source code
+              </a>
+              <a
+                href="https://tangled.org/atpota.to/aturi/blob/main/LICENSE"
+                target="_blank"
+                rel="noopener noreferrer"
+                style={openSourcePillStyle}
+              >
+                <Scale size={14} aria-hidden /> GPL v3 license
+              </a>
+              <a
+                href="/fork"
+                style={openSourcePillStyle}
+              >
+                <GitFork size={14} aria-hidden /> Fork & deploy
+              </a>
+            </div>
+          </section>
+        </FadeIn>
       </div>
     </div>
   );
 }
+
+const openSourcePillStyle: React.CSSProperties = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: '0.4rem',
+  padding: '0.55rem 1rem',
+  background: 'var(--bg-primary)',
+  color: 'var(--text-primary)',
+  border: '1px solid var(--border-medium)',
+  fontSize: '0.875rem',
+  textDecoration: 'none',
+  fontFamily: 'var(--font-serif)',
+};

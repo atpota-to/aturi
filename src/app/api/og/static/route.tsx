@@ -1,308 +1,337 @@
 import { ImageResponse } from '@vercel/og';
 import { NextRequest } from 'next/server';
+import {
+  AnisotaIcon,
+  DropChevron,
+  Headline,
+  loadGoogleFont,
+  OgFrame,
+  OG_COLORS,
+  TopRow,
+  UrlPill,
+  WaypointRow,
+} from '@/lib/og-design';
+import type { ReactNode } from 'react';
 
 export const runtime = 'edge';
-export const revalidate = 86400; // Cache for 24 hours (static content)
+export const revalidate = 86400;
 
-// Cache font data to avoid repeated fetches
-const fontCache = new Map<string, ArrayBuffer>();
+type PageConfig = {
+  eyebrow: string;
+  title: string;
+  tagline: string;
+  /** Promotional product visual shown beneath the headline. */
+  visual: ReactNode;
+};
 
-// Helper to load Google Font with timeout
-async function loadGoogleFont(font: string, text: string) {
-  const cacheKey = `${font}-${text.slice(0, 50)}`; // Cache based on font and first 50 chars
-  
-  if (fontCache.has(cacheKey)) {
-    return fontCache.get(cacheKey)!;
+/**
+ * Promotional OG cards for the site's landing pages. Every card shares the
+ * same top row (leaf wordmark + uppercase product label), a serif headline,
+ * a tagline, and a product-specific visual mock further down.
+ */
+function configFor(page: string): PageConfig {
+  switch (page) {
+    case 'explore':
+      return {
+        eyebrow: 'Atmosphere data explorer',
+        title: 'Browse every PDS.',
+        tagline:
+          'Records, identity history, backlinks, and a live view of network activity. For any account in the Atmosphere.',
+        visual: <ExploreVisual />,
+      };
+    case 'extension':
+      return {
+        eyebrow: 'Browser extension',
+        title: 'Jump between clients\nin one click.',
+        tagline:
+          'Land on any post and pop open the curated picker. Auto-redirect by lexicon, inspect the underlying AT URI, copy a universal link.',
+        visual: <ExtensionVisual />,
+      };
+    case 'universal-links':
+      return {
+        eyebrow: 'Universal links',
+        title: 'One link, every\nAtmosphere client.',
+        tagline:
+          'Share aturi.to/handle/collection/rkey with anyone — they pick where to open it, from a curated list of 25+ clients.',
+        visual: <UniversalLinksVisual />,
+      };
+    case 'integrate':
+      return {
+        eyebrow: 'Integrate',
+        title: 'Add universal sharing\nto your app.',
+        tagline:
+          'A simple URL pattern your atproto app can adopt to make every record shareable across the Atmosphere.',
+        visual: <UniversalLinksVisual />,
+      };
+    case 'fork':
+      return {
+        eyebrow: 'Fork & deploy',
+        title: 'Run your own\ninstance.',
+        tagline:
+          'Open source, environment-driven branding, and ready to deploy on a custom domain.',
+        visual: <HomeVisual />,
+      };
+    case 'home':
+    default:
+      return {
+        eyebrow: 'Atmosphere fast travel',
+        title: 'Tour the\nAtmosphere.',
+        tagline:
+          'Travel between clients with the browser extension, share universal links, and explore any account’s PDS data.',
+        visual: <HomeVisual />,
+      };
   }
-
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 3000); // 3 second timeout
-  
-  try {
-    const url = `https://fonts.googleapis.com/css2?family=${font}&text=${encodeURIComponent(text)}`;
-    const css = await fetch(url, { signal: controller.signal }).then(r => r.text());
-    const resource = css.match(/src: url\((.+)\) format\('(opentype|truetype)'\)/);
-
-    if (resource) {
-      const response = await fetch(resource[1], { signal: controller.signal });
-      if (response.status == 200) {
-        const fontData = await response.arrayBuffer();
-        fontCache.set(cacheKey, fontData);
-        return fontData;
-      }
-    }
-  } finally {
-    clearTimeout(timeoutId);
-  }
-
-  throw new Error('failed to load font data');
 }
+
+// ─── Page visuals ──────────────────────────────────────────────────────────
+
+function HomeVisual() {
+  // Mirrors the homepage WaypointJumpVisual: aturi.to URL pill on top,
+  // chevron, row of waypoint icons with one highlighted to show the
+  // "which client?" pick that aturi enables.
+  return (
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        gap: '14px',
+      }}
+    >
+      <UrlPill url="aturi.to/profile/dame.is" />
+      <DropChevron />
+      <WaypointRow highlightIndex={1} />
+    </div>
+  );
+}
+
+function UniversalLinksVisual() {
+  return <HomeVisual />;
+}
+
+function ExploreVisual() {
+  // AT-URI styled breadcrumb — the explorer's signature navigation
+  // pattern, rendered as a horizontal pill so it scans like the
+  // breadcrumb you'd see inside the app.
+  const segments: { label: string; muted?: boolean }[] = [
+    { label: 'pds.atpota.to' },
+    { label: '@dame.is' },
+    { label: 'app.bsky.actor.profile' },
+    { label: 'self', muted: true },
+  ];
+  return (
+    <div
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        flexWrap: 'wrap',
+        gap: '10px 14px',
+        padding: '24px 28px',
+        background: OG_COLORS.bgSecondary,
+        border: `1px solid ${OG_COLORS.borderMedium}`,
+        fontFamily: 'Crimson Pro',
+        fontSize: '24px',
+      }}
+    >
+      {segments.map((s, i) => (
+        <div
+          key={s.label}
+          style={{ display: 'flex', alignItems: 'center', gap: '14px' }}
+        >
+          {i > 0 && (
+            <span style={{ color: OG_COLORS.textTertiary, display: 'flex' }}>›</span>
+          )}
+          <span
+            style={{
+              color: s.muted ? OG_COLORS.textTertiary : OG_COLORS.textPrimary,
+              display: 'flex',
+            }}
+          >
+            {s.label}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function ExtensionVisual() {
+  // Compact extension-popup mock: header strip, source URI, a
+  // "Recommended" row with the Anisota icon (matches the live popup's
+  // default recommendation for posts).
+  return (
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        width: '460px',
+        background: OG_COLORS.bgSecondary,
+        border: `1px solid ${OG_COLORS.borderMedium}`,
+        boxShadow: '0 12px 40px rgba(0, 0, 0, 0.35)',
+        transform: 'rotate(-1deg)',
+      }}
+    >
+      {/* Popup header */}
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          padding: '14px 18px',
+          borderBottom: `1px solid ${OG_COLORS.borderSubtle}`,
+          background: OG_COLORS.bgTertiary,
+        }}
+      >
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px',
+            color: OG_COLORS.textPrimary,
+            fontSize: '20px',
+          }}
+        >
+          <svg
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke={OG_COLORS.accent}
+            strokeWidth={1.6}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z" />
+            <path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12" />
+          </svg>
+          <span style={{ display: 'flex' }}>Aturi</span>
+        </div>
+        <div
+          style={{
+            fontSize: '14px',
+            color: OG_COLORS.textTertiary,
+            display: 'flex',
+          }}
+        >
+          app.bsky.feed.post
+        </div>
+      </div>
+      {/* Source URI strip */}
+      <div
+        style={{
+          padding: '10px 18px',
+          borderBottom: `1px solid ${OG_COLORS.borderSubtle}`,
+          fontSize: '15px',
+          color: OG_COLORS.textTertiary,
+          display: 'flex',
+        }}
+      >
+        <span style={{ display: 'flex', color: OG_COLORS.textSecondary }}>at://</span>
+        <span style={{ display: 'flex' }}>&nbsp;dame.is&nbsp;/&nbsp;app.bsky.feed.post&nbsp;/&nbsp;3lq9…</span>
+      </div>
+      {/* Recommended section */}
+      <div style={{ padding: '14px 18px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+        <div
+          style={{
+            fontSize: '12px',
+            letterSpacing: '0.14em',
+            textTransform: 'uppercase',
+            color: OG_COLORS.accent,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+          }}
+        >
+          <span style={{ display: 'flex' }}>★</span>
+          <span style={{ display: 'flex' }}>Recommended for posts</span>
+        </div>
+        <RowChip name="Anisota" desc="View post on anisota.net" icon={<AnisotaIcon height={26} color={OG_COLORS.accent} />} featured />
+      </div>
+    </div>
+  );
+}
+
+function RowChip({
+  name,
+  desc,
+  icon,
+  featured,
+}: {
+  name: string;
+  desc: string;
+  icon: ReactNode;
+  featured?: boolean;
+}) {
+  return (
+    <div
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: '12px',
+        padding: '10px 12px',
+        background: featured ? OG_COLORS.bgTertiary : 'transparent',
+        border: `1px solid ${featured ? OG_COLORS.accent : OG_COLORS.borderSubtle}`,
+      }}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', width: 28, justifyContent: 'center' }}>
+        {icon}
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.2 }}>
+        <span style={{ fontSize: '18px', color: OG_COLORS.textPrimary, display: 'flex' }}>
+          {name}
+        </span>
+        <span style={{ fontSize: '14px', color: OG_COLORS.textTertiary, display: 'flex' }}>
+          {desc}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+// ─── Route ────────────────────────────────────────────────────────────────
 
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const page = searchParams.get('page') || 'home';
-    
-    // Define content for each page
-    const pageContent: Record<string, { title: string; subtitle: string; tagline: string; showBranding: boolean }> = {
-      home: {
-        title: 'aturi.to',
-        subtitle: 'Tour the Atmosphere',
-        tagline: 'Travel between clients, share universal links, and explore PDS data.',
-        showBranding: false, // Home already shows aturi.to as main title
-      },
-      explore: {
-        title: 'Atmosphere Explorer',
-        subtitle: "Browse any account's PDS",
-        tagline: 'Records, identity, backlinks, and a live view of the firehose.',
-        showBranding: true,
-      },
-      integrate: {
-        title: 'Integrate',
-        subtitle: 'Add universal sharing to your Atmosphere app',
-        tagline: 'Simple URL patterns for Atmosphere app integration',
-        showBranding: true,
-      },
-      fork: {
-        title: 'Fork & Deploy',
-        subtitle: 'Run your own instance with a custom domain',
-        tagline: 'Open source and ready to deploy',
-        showBranding: true,
-      },
-      extension: {
-        title: 'Browser Extension',
-        subtitle: 'Jump between Atmosphere clients in one click',
-        tagline: 'Inspect AT URIs, auto-redirect by lexicon, copy universal links.',
-        showBranding: true,
-      },
-      'universal-links': {
-        title: 'Universal Links',
-        subtitle: 'One link, every Atmosphere client',
-        tagline: 'Share aturi.to/handle/collection/rkey — recipients pick the app.',
-        showBranding: true,
-      },
-    };
+    const config = configFor(page);
 
-    const content = pageContent[page] || pageContent.home;
-    
-    // Load Crimson Pro font
-    const allText = `${content.title} ${content.subtitle} ${content.tagline} aturi.to Atmosphere Toolkit`;
+    const allText =
+      `${config.title} ${config.tagline} ${config.eyebrow} aturi.to ` +
+      'Anisota Bluesky Leaflet Tangled Margin Deer Grain Recommended for posts ' +
+      'pds.atpota.to dame.is app.bsky.feed.post app.bsky.actor.profile self at:// › ★ ▾';
     const fontData = await loadGoogleFont('Crimson+Pro:wght@300;400;600', allText);
 
     return new ImageResponse(
       (
-        <div
-          style={{
-            height: '100%',
-            width: '100%',
-            display: 'flex',
-            flexDirection: 'column',
-            backgroundColor: '#0a0a0a',
-            backgroundImage: 'radial-gradient(ellipse at 20% 30%, rgba(138, 154, 127, 0.18) 0%, rgba(10, 10, 10, 0) 85%), radial-gradient(ellipse at 80% 70%, rgba(74, 90, 63, 0.15) 0%, rgba(10, 10, 10, 0) 85%), radial-gradient(ellipse at 50% 50%, rgba(61, 51, 41, 0.12) 0%, rgba(10, 10, 10, 0) 90%)',
-            color: '#e8e8e6',
-            fontFamily: 'Crimson Pro',
-            padding: '70px',
-            position: 'relative',
-          }}
-        >
-          {/* Grain overlay */}
-          <div
-            style={{
-              position: 'absolute',
-              inset: 0,
-              backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 800 800' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.8' numOctaves='5' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E")`,
-              opacity: 0.6,
-              display: 'flex',
-            }}
-          />
-
-          {/* Organic decorative blobs */}
-          <div
-            style={{
-              position: 'absolute',
-              top: '15%',
-              right: '8%',
-              width: '180px',
-              height: '180px',
-              background: 'radial-gradient(circle, rgba(138, 154, 127, 0.08) 0%, transparent 70%)',
-              filter: 'blur(40px)',
-              display: 'flex',
-            }}
-          />
-          <div
-            style={{
-              position: 'absolute',
-              bottom: '20%',
-              left: '12%',
-              width: '220px',
-              height: '220px',
-              background: 'radial-gradient(circle, rgba(74, 90, 63, 0.06) 0%, transparent 70%)',
-              filter: 'blur(50px)',
-              display: 'flex',
-            }}
-          />
-
-          {/* Main Content Container */}
+        <OgFrame>
           <div
             style={{
               display: 'flex',
               flexDirection: 'column',
               flex: 1,
+              gap: '36px',
               position: 'relative',
               zIndex: 1,
-              justifyContent: 'center',
-              alignItems: 'center',
             }}
           >
-            {/* Main card - slightly rotated for organic feel */}
+            <TopRow eyebrow={config.eyebrow} />
+
+            <Headline title={config.title} tagline={config.tagline} />
+
             <div
               style={{
                 display: 'flex',
-                flexDirection: 'column',
-                maxWidth: '950px',
-                width: '100%',
-                padding: '70px 80px',
-                backgroundColor: 'rgba(26, 26, 26, 0.85)',
-                border: '1px solid rgba(138, 154, 127, 0.15)',
-                backdropFilter: 'blur(15px)',
-                boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(232, 232, 230, 0.05)',
-                transform: 'rotate(-0.5deg)',
+                flex: 1,
+                alignItems: 'flex-end',
+                justifyContent: 'center',
               }}
             >
-              {/* Accent bar - organic touch */}
-              <div
-                style={{
-                  position: 'absolute',
-                  left: 0,
-                  top: '35%',
-                  width: '4px',
-                  height: '120px',
-                  background: 'linear-gradient(to bottom, rgba(138, 154, 127, 0.6), rgba(74, 90, 63, 0.3))',
-                  display: 'flex',
-                }}
-              />
-
-              {/* Top branding for non-home pages - inside card */}
-              {content.showBranding && (
-                <div
-                  style={{
-                    fontSize: '28px',
-                    color: '#8a9a7f',
-                    fontWeight: 300,
-                    letterSpacing: '0.5px',
-                    marginBottom: '40px',
-                    display: 'flex',
-                    opacity: 0.9,
-                  }}
-                >
-                  aturi.to
-                </div>
-              )}
-
-              {/* Main Title with decorative element */}
-              <div
-                style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  marginBottom: '35px',
-                }}
-              >
-                <div
-                  style={{
-                    fontSize: '76px',
-                    fontWeight: content.showBranding ? 400 : 300,
-                    color: '#e8e8e6',
-                    letterSpacing: '-0.02em',
-                    lineHeight: 1,
-                    marginBottom: '15px',
-                    display: 'flex',
-                  }}
-                >
-                  {content.title}
-                </div>
-                {/* Decorative underline */}
-                <div
-                  style={{
-                    width: '140px',
-                    height: '2px',
-                    background: 'linear-gradient(to right, rgba(138, 154, 127, 0.5), transparent)',
-                    display: 'flex',
-                  }}
-                />
-              </div>
-
-              {/* Subtitle with more prominence */}
-              <div
-                style={{
-                  fontSize: '40px',
-                  color: '#8a9a7f',
-                  fontWeight: 300,
-                  marginBottom: '30px',
-                  letterSpacing: '0.3px',
-                  lineHeight: 1.3,
-                  display: 'flex',
-                }}
-              >
-                {content.subtitle}
-              </div>
-
-              {/* Tagline in a nested organic container */}
-              <div
-                style={{
-                  display: 'flex',
-                  padding: '28px 32px',
-                  backgroundColor: 'rgba(21, 21, 21, 0.6)',
-                  border: '1px solid rgba(232, 232, 230, 0.06)',
-                  marginTop: '10px',
-                  transform: 'rotate(0.3deg)',
-                }}
-              >
-                <div
-                  style={{
-                    fontSize: '26px',
-                    color: '#a8a8a6',
-                    fontWeight: 300,
-                    lineHeight: 1.6,
-                    display: 'flex',
-                  }}
-                >
-                  {content.tagline}
-                </div>
-              </div>
-
-              {/* Organic corner accent */}
-              <div
-                style={{
-                  position: 'absolute',
-                  bottom: 0,
-                  right: 0,
-                  width: '100px',
-                  height: '100px',
-                  background: 'radial-gradient(circle at bottom right, rgba(138, 154, 127, 0.08), transparent 60%)',
-                  display: 'flex',
-                }}
-              />
+              {config.visual}
             </div>
           </div>
-
-          {/* Footer branding - only for home */}
-          {!content.showBranding && (
-            <div
-              style={{
-                position: 'absolute',
-                bottom: '70px',
-                right: '70px',
-                fontSize: '28px',
-                color: '#a8a8a6',
-                fontWeight: 400,
-                letterSpacing: '0.5px',
-                display: 'flex',
-              }}
-            >
-              Atmosphere Toolkit
-            </div>
-          )}
-        </div>
+        </OgFrame>
       ),
       {
         width: 1200,
@@ -315,11 +344,10 @@ export async function GET(request: NextRequest) {
             weight: 300,
           },
         ],
-      }
+      },
     );
   } catch (error) {
     console.error('Error generating OG image:', error);
     return new Response('Error generating image', { status: 500 });
   }
 }
-
