@@ -9,7 +9,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { GenericRecord } from '@/utils/recordFetcher';
 import { sanitizeHandle } from '@/utils/sanitize';
-import { Check, Copy, Telescope } from 'lucide-react';
+import { Check, ChevronDown, ChevronRight, Copy, Telescope } from 'lucide-react';
 import { encodeRepo } from '@/utils/atproto/urls';
 
 type RecordPreviewProps = {
@@ -39,12 +39,14 @@ export default function RecordPreview({
   const recordType = value.$type || collection;
   const displayType = recordType.replace('app.bsky.', '').replace('com.atproto.', '').replace('net.anisota.', '');
 
-  // Get a few key interesting fields to preview (limit to 5-6)
+  // Get a few key interesting fields to preview (limit to 5-6 on universal
+  // link pages, no cap inside the explorer where the page is the canonical
+  // record view).
   const allFields = Object.entries(value).filter(
     ([key]) => !key.startsWith('$') && key !== 'createdAt' && key !== 'updatedAt'
   );
-  const previewFields = allFields.slice(0, 6);
-  const hasMoreFields = allFields.length > 6;
+  const previewFields = hideExplorerCtas ? allFields : allFields.slice(0, 6);
+  const hasMoreFields = !hideExplorerCtas && allFields.length > 6;
 
   // Format date if available
   const createdAt = value.createdAt ? new Date(value.createdAt) : null;
@@ -141,46 +143,14 @@ export default function RecordPreview({
           </div>
         )}
 
-        {/* Preview Fields - Simplified */}
+        {/* Preview Fields. Each row is a stateful FieldRow — tapping an
+            object/array chip slides a full-width panel down BELOW the row
+            (not into the right column), so nested content gets the full
+            container width instead of compounding indentation. */}
         <div style={{ padding: '1.5rem' }}>
-          <div style={{ display: 'grid', gap: '1rem', marginBottom: '1.5rem' }}>
+          <div style={{ marginBottom: '1.5rem' }}>
             {previewFields.map(([key, val]) => (
-              <div
-                key={key}
-                style={{
-                  display: 'flex',
-                  gap: '1rem',
-                  alignItems: 'flex-start',
-                  paddingBottom: '1rem',
-                  borderBottom: '1px solid var(--border-subtle)',
-                }}
-              >
-                <div
-                  style={{
-                    minWidth: '140px',
-                    fontSize: '0.75rem',
-                    fontWeight: '600',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.05em',
-                    color: 'var(--text-tertiary)',
-                    paddingTop: '0.125rem',
-                  }}
-                >
-                  {key}
-                </div>
-                <div
-                  style={{
-                    flex: 1,
-                    color: 'var(--text-primary)',
-                    fontSize: '0.9375rem',
-                    lineHeight: '1.6',
-                    wordBreak: 'break-word',
-                    minWidth: 0,
-                  }}
-                >
-                  <FieldValue value={val} />
-                </div>
-              </div>
+              <FieldRow key={key} label={key} value={val} />
             ))}
           </div>
 
@@ -279,12 +249,88 @@ async function writeToClipboard(text: string): Promise<void> {
 }
 
 /**
- * Recursively renders a record field value. Objects and arrays collapse
- * into a tappable `{N fields}` / `[N items]` summary; expanding reveals
- * the nested key/value pairs (themselves recursive, so deep blobs like
- * `avatar.ref.$link` are reachable). Primitives render inline.
+ * A single field row: `[LABEL] [value-or-expand-chip]` on top, and — when
+ * the value is an object/array and the chip is open — a full-width panel
+ * below the row containing nested FieldRows.
+ *
+ * The expansion lives BELOW the row rather than inside the right column,
+ * so deeply-nested data gets the parent container's full width instead of
+ * compounding indentation. The slide-down uses CSS grid-template-rows
+ * (0fr -> 1fr), which animates height changes without needing a fixed
+ * max-height ceiling.
  */
-function FieldValue({ value }: { value: unknown }) {
+function FieldRow({ label, value }: { label: string; value: unknown }) {
+  const [open, setOpen] = useState(false);
+  const expandable = isExpandable(value);
+  return (
+    <div style={{ borderBottom: '1px solid var(--border-subtle)' }}>
+      <div
+        style={{
+          display: 'flex',
+          gap: '1rem',
+          alignItems: 'flex-start',
+          padding: '0.875rem 0',
+        }}
+      >
+        <div style={fieldLabelStyle}>{label}</div>
+        <div
+          style={{
+            flex: 1,
+            minWidth: 0,
+            color: 'var(--text-primary)',
+            fontSize: '0.9375rem',
+            lineHeight: 1.6,
+            wordBreak: 'break-word',
+          }}
+        >
+          {expandable ? (
+            <button
+              type="button"
+              onClick={() => setOpen((o) => !o)}
+              aria-expanded={open}
+              style={fieldChipStyle}
+            >
+              {open ? (
+                <ChevronDown size={12} aria-hidden />
+              ) : (
+                <ChevronRight size={12} aria-hidden />
+              )}
+              <span>{summarizeContainer(value)}</span>
+            </button>
+          ) : (
+            <FieldPrimitive value={value} />
+          )}
+        </div>
+      </div>
+      {expandable && (
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateRows: open ? '1fr' : '0fr',
+            transition: 'grid-template-rows 0.25s ease',
+          }}
+        >
+          <div style={{ overflow: 'hidden', minHeight: 0 }}>
+            <div
+              style={{
+                marginLeft: '0.5rem',
+                paddingLeft: '0.875rem',
+                paddingBottom: '0.5rem',
+                borderLeft: '2px solid var(--border-subtle)',
+              }}
+            >
+              {childEntries(value).map(([k, v]) => (
+                <FieldRow key={k} label={k} value={v} />
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function FieldPrimitive({ value }: { value: unknown }) {
   if (value === null) {
     return <span style={{ color: 'var(--text-tertiary)' }}>null</span>;
   }
@@ -292,95 +338,56 @@ function FieldValue({ value }: { value: unknown }) {
     const display = value.length > 280 ? `${value.substring(0, 280)}…` : value;
     return <>{display}</>;
   }
-  if (typeof value === 'number' || typeof value === 'boolean') {
-    return <>{String(value)}</>;
-  }
-  if (Array.isArray(value)) {
-    if (value.length === 0) {
-      return <span style={{ color: 'var(--text-tertiary)' }}>[ ]</span>;
-    }
-    return (
-      <details>
-        <summary style={nestedSummaryStyle}>{`[${value.length} items]`}</summary>
-        <div style={nestedBodyStyle}>
-          {value.map((item, i) => (
-            <NestedRow key={i} label={String(i)} value={item} />
-          ))}
-        </div>
-      </details>
-    );
-  }
-  if (typeof value === 'object') {
-    const entries = Object.entries(value as Record<string, unknown>);
-    if (entries.length === 0) {
-      return <span style={{ color: 'var(--text-tertiary)' }}>{'{ }'}</span>;
-    }
-    return (
-      <details>
-        <summary style={nestedSummaryStyle}>{`{${entries.length} fields}`}</summary>
-        <div style={nestedBodyStyle}>
-          {entries.map(([k, v]) => (
-            <NestedRow key={k} label={k} value={v} />
-          ))}
-        </div>
-      </details>
-    );
-  }
   return <>{String(value)}</>;
 }
 
-function NestedRow({ label, value }: { label: string; value: unknown }) {
-  return (
-    <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-start' }}>
-      <div
-        style={{
-          fontSize: '0.7rem',
-          fontWeight: 600,
-          textTransform: 'uppercase',
-          letterSpacing: '0.05em',
-          color: 'var(--text-tertiary)',
-          minWidth: '5.5rem',
-          paddingTop: '0.125rem',
-          fontFamily: 'var(--font-mono)',
-          wordBreak: 'break-all',
-        }}
-      >
-        {label}
-      </div>
-      <div
-        style={{
-          flex: 1,
-          minWidth: 0,
-          fontSize: '0.875rem',
-          color: 'var(--text-primary)',
-          wordBreak: 'break-word',
-        }}
-      >
-        <FieldValue value={value} />
-      </div>
-    </div>
-  );
+function isExpandable(v: unknown): boolean {
+  return typeof v === 'object' && v !== null;
 }
 
-const nestedSummaryStyle: React.CSSProperties = {
-  cursor: 'pointer',
+function summarizeContainer(v: unknown): string {
+  if (Array.isArray(v)) {
+    return v.length === 0 ? '[ ]' : `[${v.length} ${v.length === 1 ? 'item' : 'items'}]`;
+  }
+  if (typeof v === 'object' && v !== null) {
+    const n = Object.keys(v).length;
+    return n === 0 ? '{ }' : `{${n} ${n === 1 ? 'field' : 'fields'}}`;
+  }
+  return '';
+}
+
+function childEntries(v: unknown): [string, unknown][] {
+  if (Array.isArray(v)) return v.map((item, i) => [String(i), item]);
+  if (typeof v === 'object' && v !== null) {
+    return Object.entries(v as Record<string, unknown>);
+  }
+  return [];
+}
+
+const fieldLabelStyle: React.CSSProperties = {
+  minWidth: '140px',
+  fontSize: '0.75rem',
+  fontWeight: 600,
+  textTransform: 'uppercase',
+  letterSpacing: '0.05em',
+  color: 'var(--text-tertiary)',
+  paddingTop: '0.125rem',
+  fontFamily: 'var(--font-mono)',
+  wordBreak: 'break-all',
+};
+
+const fieldChipStyle: React.CSSProperties = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: '0.4rem',
+  padding: '0.3rem 0.625rem',
+  background: 'var(--bg-tertiary)',
+  border: '1px solid var(--border-subtle)',
   color: 'var(--text-accent)',
   fontFamily: 'var(--font-mono)',
   fontSize: '0.85rem',
+  cursor: 'pointer',
   userSelect: 'none',
-  // Default `display: list-item` is preserved so the native disclosure
-  // triangle (▶ / ▼) shows and rotates with the open state — gives users
-  // a clear tap-to-expand affordance without a custom chevron.
-};
-
-const nestedBodyStyle: React.CSSProperties = {
-  marginTop: '0.5rem',
-  marginLeft: '0.5rem',
-  paddingLeft: '0.75rem',
-  borderLeft: '1px solid var(--border-subtle)',
-  display: 'flex',
-  flexDirection: 'column',
-  gap: '0.5rem',
 };
 
 function CopyJsonRow({ record }: { record: GenericRecord }) {
