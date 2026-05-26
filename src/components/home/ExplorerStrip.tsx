@@ -62,7 +62,7 @@ export default function ExplorerStrip() {
           <p>
             Read every collection, record, and backlink on any account&rsquo;s
             PDS, all from your browser. Identity history, audit logs, inbound
-            references, and a live firehose view sit one tab away.
+            references, and a live view of network activity sit one tab away.
           </p>
           <p>
             Sign in with your atproto handle to edit your own records, sync

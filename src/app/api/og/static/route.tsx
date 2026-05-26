@@ -36,7 +36,7 @@ function configFor(page: string): PageConfig {
         eyebrow: 'Atmosphere data explorer',
         title: 'Browse every PDS.',
         tagline:
-          'Records, identity history, backlinks, and a live view of the firehose. For any account in the Atmosphere.',
+          'Records, identity history, backlinks, and a live view of network activity. For any account in the Atmosphere.',
         visual: <ExploreVisual />,
       };
     case 'extension':
