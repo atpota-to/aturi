@@ -2,11 +2,14 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { ChevronDown, ChevronRight, Check } from 'lucide-react';
+import { ChevronDown, ChevronRight, Check, Pin, PinOff } from 'lucide-react';
 import { describeRepo } from '@/utils/atproto/pdsClient';
 import { encodeRepo } from '@/utils/atproto/urls';
 import type { IdentityBundle } from '@/utils/atproto/identity';
 import { useMyCollections } from '../useRepoCollections';
+import { useAtprotoSession } from '@/components/AtprotoSessionProvider';
+import { usePreferences } from '@/components/PreferencesProvider';
+import { togglePinnedLexicon } from '@/utils/preferences';
 
 type SubGroup = {
   /** 3rd NSID segment, e.g. "feed", "graph", "actor". */
@@ -96,9 +99,12 @@ export default function CollectionsTab({ identity }: { identity: IdentityBundle 
   const [collections, setCollections] = useState<string[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState('');
+  const [mutualOnly, setMutualOnly] = useState(false);
   /** Collapsed-state map keyed by full group/sub key (e.g. "app.bsky" or "app.bsky.feed"). */
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
   const myCollections = useMyCollections(identity.did);
+  const { did: myDid } = useAtprotoSession();
+  const { prefs, update } = usePreferences();
 
   useEffect(() => {
     let cancelled = false;
@@ -118,9 +124,43 @@ export default function CollectionsTab({ identity }: { identity: IdentityBundle 
     };
   }, [identity.pds, identity.did]);
 
+  // Viewing my own repo (or scope='all') unlocks the Pinned section and the
+  // pin button per row. The Mutual-only filter needs me signed in AND looking
+  // at someone else (so `myCollections` is non-null).
+  const isOwnRepo = Boolean(myDid && myDid === identity.did);
+  const pinsApplyHere = Boolean(myDid) && (prefs.pinScope === 'all' || isOwnRepo);
+  const pinnedSet = useMemo(
+    () => new Set(prefs.pinnedLexicons),
+    [prefs.pinnedLexicons],
+  );
+  const repoCollectionSet = useMemo(
+    () => new Set(collections ?? []),
+    [collections],
+  );
+  const pinnedOnThisRepo = useMemo(() => {
+    if (!pinsApplyHere || !collections) return [] as string[];
+    const f = filter.trim().toLowerCase();
+    return prefs.pinnedLexicons
+      .filter((n) => repoCollectionSet.has(n))
+      .filter((n) => !f || n.toLowerCase().includes(f));
+  }, [pinsApplyHere, collections, prefs.pinnedLexicons, repoCollectionSet, filter]);
+
+  // The main grouped list drops anything in the Pinned section so the same
+  // collection doesn't render twice.
+  const groupSource = useMemo(() => {
+    if (!collections) return [] as string[];
+    let list = pinnedOnThisRepo.length > 0
+      ? collections.filter((n) => !pinnedSet.has(n))
+      : collections;
+    if (mutualOnly && myCollections) {
+      list = list.filter((n) => myCollections.has(n));
+    }
+    return list;
+  }, [collections, pinnedOnThisRepo, pinnedSet, mutualOnly, myCollections]);
+
   const groups = useMemo(
-    () => groupHierarchically(collections || [], filter),
-    [collections, filter],
+    () => groupHierarchically(groupSource, filter),
+    [groupSource, filter],
   );
 
   const repoSeg = encodeRepo(identity.handle || identity.did);
@@ -128,6 +168,14 @@ export default function CollectionsTab({ identity }: { identity: IdentityBundle 
   function toggle(key: string) {
     setCollapsed((prev) => ({ ...prev, [key]: !prev[key] ? true : false }));
   }
+
+  function togglePin(nsid: string) {
+    update((p) => togglePinnedLexicon(p, nsid));
+  }
+
+  // Mutual filter only makes sense when signed in and viewing someone else's
+  // repo (own repo is 100% mutual by definition).
+  const showMutualToggle = Boolean(myDid) && !isOwnRepo && myCollections !== null;
 
   if (error) return <p className="explore-error">{error}</p>;
   if (!collections) return <p className="explore-placeholder">Loading collections…</p>;
@@ -137,28 +185,117 @@ export default function CollectionsTab({ identity }: { identity: IdentityBundle 
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-      <input
-        type="text"
-        placeholder="Filter lexicons…"
-        value={filter}
-        onChange={(e) => setFilter(e.target.value)}
+      <div
         style={{
-          maxWidth: '24rem',
-          padding: '0.5rem 0.75rem',
-          background: 'var(--bg-tertiary)',
-          border: '1px solid var(--border-medium)',
-          color: 'var(--text-primary)',
-          fontFamily: 'var(--font-mono)',
-          fontSize: '0.85rem',
-          outline: 'none',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.75rem',
+          flexWrap: 'wrap',
         }}
-      />
+      >
+        <input
+          type="text"
+          placeholder="Filter lexicons…"
+          value={filter}
+          onChange={(e) => setFilter(e.target.value)}
+          style={{
+            flex: '1 1 16rem',
+            maxWidth: '24rem',
+            padding: '0.5rem 0.75rem',
+            background: 'var(--bg-tertiary)',
+            border: '1px solid var(--border-medium)',
+            color: 'var(--text-primary)',
+            fontFamily: 'var(--font-mono)',
+            fontSize: '0.85rem',
+            outline: 'none',
+          }}
+        />
+        {showMutualToggle && (
+          <label
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.4rem',
+              fontFamily: 'var(--font-serif)',
+              fontSize: '0.85rem',
+              color: 'var(--text-secondary)',
+              cursor: 'pointer',
+              userSelect: 'none',
+            }}
+          >
+            <input
+              type="checkbox"
+              checked={mutualOnly}
+              onChange={(e) => setMutualOnly(e.target.checked)}
+              style={{ accentColor: 'var(--text-accent)' }}
+            />
+            Mutual lexicons only
+          </label>
+        )}
+      </div>
 
-      {groups.length === 0 ? (
+      {pinnedOnThisRepo.length > 0 && (
+        <section
+          style={{
+            border: '1px solid var(--text-accent)',
+            background: 'var(--bg-secondary)',
+          }}
+        >
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              padding: '0.55rem 1rem',
+              fontFamily: 'var(--font-serif)',
+              fontSize: '0.75rem',
+              letterSpacing: '0.08em',
+              textTransform: 'uppercase',
+              color: 'var(--text-accent)',
+            }}
+          >
+            <Pin size={12} aria-hidden />
+            Pinned
+            <span
+              style={{
+                marginLeft: 'auto',
+                fontSize: '0.7rem',
+                letterSpacing: '0.04em',
+                color: 'var(--text-tertiary)',
+                textTransform: 'none',
+              }}
+            >
+              {pinnedOnThisRepo.length}
+            </span>
+          </div>
+          <ul style={{ ...listStyle(), borderTop: '1px solid var(--border-subtle)' }}>
+            {pinnedOnThisRepo.map((nsid, i) => (
+              <LeafRow
+                key={nsid}
+                nsid={nsid}
+                href={`/explore/${repoSeg}/${nsid}`}
+                baseBg={i % 2 === 0 ? 'var(--bg-primary)' : 'transparent'}
+                inCommon={myCollections?.has(nsid)}
+                pinnable={pinsApplyHere}
+                pinned
+                onTogglePin={() => togglePin(nsid)}
+              />
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {groups.length === 0 && pinnedOnThisRepo.length === 0 ? (
         <p className="explore-placeholder">
-          No collections match <code>{filter}</code>.
+          {mutualOnly
+            ? 'No collections in common with this repo.'
+            : (
+              <>
+                No collections match <code>{filter}</code>.
+              </>
+            )}
         </p>
-      ) : (
+      ) : groups.length === 0 ? null : (
         groups.map((g) => {
           const majorOpen = collapsed[g.key] !== true;
           return (
@@ -189,6 +326,9 @@ export default function CollectionsTab({ identity }: { identity: IdentityBundle 
                           dimPrefix={`${g.key}.`}
                           baseBg={i % 2 === 0 ? 'var(--bg-primary)' : 'transparent'}
                           inCommon={myCollections?.has(nsid)}
+                          pinnable={pinsApplyHere}
+                          pinned={pinnedSet.has(nsid)}
+                          onTogglePin={() => togglePin(nsid)}
                         />
                       ))}
                     </ul>
@@ -230,6 +370,9 @@ export default function CollectionsTab({ identity }: { identity: IdentityBundle 
                                 dimPrefix={`${sub.fullKey}.`}
                                 baseBg={i % 2 === 0 ? 'var(--bg-primary)' : 'transparent'}
                                 inCommon={myCollections?.has(nsid)}
+                                pinnable={pinsApplyHere}
+                                pinned={pinnedSet.has(nsid)}
+                                onTogglePin={() => togglePin(nsid)}
                               />
                             ))}
                           </ul>
@@ -334,6 +477,9 @@ function LeafRow({
   dimPrefix,
   baseBg,
   inCommon,
+  pinnable,
+  pinned,
+  onTogglePin,
 }: {
   nsid: string;
   href: string;
@@ -344,37 +490,53 @@ function LeafRow({
   baseBg: string;
   /** Signed-in viewer also has records in this collection — show a marker. */
   inCommon?: boolean;
+  /** Show the pin/unpin button (only when prefs say pins apply on this repo). */
+  pinnable?: boolean;
+  pinned?: boolean;
+  onTogglePin?: () => void;
 }) {
   const hasDim = dimPrefix && nsid.startsWith(dimPrefix);
   const dim = hasDim ? dimPrefix : '';
   const tail = hasDim ? nsid.slice(dimPrefix.length) : nsid;
   return (
-    <li>
+    <li
+      style={{
+        display: 'flex',
+        alignItems: 'stretch',
+        background: baseBg,
+        transition: 'background 0.2s ease',
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.background = 'var(--bg-tertiary)';
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.background = baseBg;
+      }}
+    >
       <Link
         href={href}
-        title={inCommon ? "You have records in this collection too" : undefined}
+        title={inCommon ? 'You have records in this collection too' : undefined}
         style={{
+          flex: 1,
+          minWidth: 0,
           display: 'flex',
           alignItems: 'center',
           gap: '0.4rem',
           padding: deepIndent
-            ? '0.5rem 1rem 0.5rem 3rem'
-            : '0.5rem 1rem 0.5rem 2.5rem',
+            ? '0.5rem 0.5rem 0.5rem 3rem'
+            : '0.5rem 0.5rem 0.5rem 2.5rem',
           fontFamily: 'var(--font-mono)',
           fontSize: '0.85rem',
           color: 'var(--text-primary)',
-          background: baseBg,
           textDecoration: 'none',
           wordBreak: 'break-all',
           overflowWrap: 'anywhere',
-          transition: 'background 0.2s ease, color 0.2s ease',
+          transition: 'color 0.2s ease',
         }}
         onMouseEnter={(e) => {
-          e.currentTarget.style.background = 'var(--bg-tertiary)';
           e.currentTarget.style.color = 'var(--text-accent)';
         }}
         onMouseLeave={(e) => {
-          e.currentTarget.style.background = baseBg;
           e.currentTarget.style.color = 'var(--text-primary)';
         }}
       >
@@ -401,6 +563,40 @@ function LeafRow({
           </span>
         )}
       </Link>
+      {pinnable && onTogglePin && (
+        <button
+          type="button"
+          onClick={onTogglePin}
+          aria-label={pinned ? `Unpin ${nsid}` : `Pin ${nsid}`}
+          title={pinned ? 'Unpin from explorer' : 'Pin to top of collections list'}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '0 0.75rem',
+            background: 'transparent',
+            border: 0,
+            color: pinned ? 'var(--text-accent)' : 'var(--text-tertiary)',
+            cursor: 'pointer',
+            flexShrink: 0,
+            transition: 'color 0.15s ease',
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.color = 'var(--text-accent)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.color = pinned
+              ? 'var(--text-accent)'
+              : 'var(--text-tertiary)';
+          }}
+        >
+          {pinned ? (
+            <PinOff size={13} aria-hidden />
+          ) : (
+            <Pin size={13} aria-hidden />
+          )}
+        </button>
+      )}
     </li>
   );
 }
