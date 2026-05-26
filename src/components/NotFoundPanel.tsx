@@ -39,9 +39,13 @@ export default function NotFoundPanel({
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, ease: [0.34, 1.56, 0.64, 1] }}
       style={{
+        // Constrains text width but lets the parent layout handle the
+        // horizontal gutter — the explore routes are already inside a
+        // container-narrow with its own 2rem of side padding, and adding
+        // more here doubled the inset. The standalone /not-found route
+        // wraps this in its own padded container.
         maxWidth: '40rem',
         margin: '3rem auto 4rem',
-        padding: '0 2rem',
       }}
     >
       <div
