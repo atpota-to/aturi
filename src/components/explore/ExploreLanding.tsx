@@ -71,7 +71,7 @@ export default function ExploreLanding() {
             color: 'var(--text-primary)',
           }}
         >
-          Browse through any repository.
+          Browse any repository.
         </h1>
         <p
           style={{
@@ -84,7 +84,7 @@ export default function ExploreLanding() {
         >
           Every account on the Atmosphere keeps its records in a public PDS.
           Browse collections, inspect identity history, follow backlinks, and
-          edit your own records — all without leaving the browser.
+          edit your own records, all from the browser.
         </p>
         <SearchBox />
         <div

@@ -19,21 +19,21 @@ const CARDS: Card[] = [
     href: '/universal-links',
     icon: <Compass size={18} />,
     title: 'Universal links',
-    body: 'Share aturi.to/handle/collection/rkey with anyone — they pick the Atmosphere app to open it in.',
+    body: 'Share aturi.to/handle/collection/rkey. Visitors choose which Atmosphere app opens it.',
   },
   {
     key: 'extension',
     href: '/extension',
     icon: <Download size={18} />,
     title: 'Browser extension',
-    body: 'Inspect AT URIs on any page and fast-travel between Atmosphere apps.',
+    body: 'Inspect AT URIs on any page and jump between Atmosphere apps.',
   },
   {
     key: 'explore',
     href: '/explore',
     icon: <Telescope size={18} />,
     title: 'Atmosphere Explorer',
-    body: "Browse any account's PDS records, identity history, and backlinks across the Atmosphere.",
+    body: "Browse any account's PDS records, identity history, and backlinks.",
   },
 ];
 

@@ -60,9 +60,9 @@ export default function ExtensionLanding() {
               }}
             >
               Land on a Bluesky post and want to read it in Anisota? Click the
-              leaf in your toolbar — the popup detects the AT URI on the page
-              and offers every app that can render it. Pick a favorite once and
-              let auto-redirect handle the rest.
+              leaf in your toolbar. The popup detects the AT URI on the page
+              and offers every app that can render it. Pick a favorite once,
+              then auto-redirect handles the rest.
             </p>
             <p
               style={{
@@ -94,19 +94,18 @@ export default function ExtensionLanding() {
       <AppearIn delay={0.05}>
         <FeatureSection
           badge={{ icon: <Compass size={12} />, label: 'One-click jump' }}
-          title="Every app that renders the record, one click away"
+          title="Every app that renders the record, in one tap"
           body={
             <>
               <p>
-                The popup picks up whatever AT URI is on the page and surfaces a
-                recommended client at the top, plus every other waypoint that
-                supports that lexicon — from Anisota and Bluesky to Deer,
+                The popup picks up the AT URI on the page and surfaces a
+                recommended client at the top. Every other waypoint that
+                supports the lexicon lists below: Anisota, Bluesky, Deer,
                 Leaflet, Tangled, Margin, Grain, and the rest of the catalog.
               </p>
               <p>
-                Each row links straight to the equivalent page on the other
-                client, so there&rsquo;s no copy-pasting, no fiddling with URL
-                schemes, no re-resolving handles.
+                Each row links to the equivalent page on the other client.
+                No copy-pasting, URL fiddling, or handle resolving.
               </p>
             </>
           }
@@ -122,14 +121,14 @@ export default function ExtensionLanding() {
           body={
             <>
               <p>
-                Switch to the Inspect tab to read the underlying record: the DID
-                behind the handle, the PDS hosting it, the lexicon collection,
-                and the count of inbound backlinks pointing at it.
+                Open the Inspect tab to read the underlying record: the DID
+                behind the handle, its PDS, the lexicon collection, and the
+                inbound backlinks count.
               </p>
               <p>
-                Click any field to copy it, or jump straight into the
-                Atmosphere Explorer to read the raw JSON. The same data
-                Bluesky&rsquo;s API serves, surfaced inline as you browse.
+                Tap any field to copy it, or jump into the Atmosphere Explorer
+                for the raw JSON. The same data Bluesky&rsquo;s API exposes,
+                rendered inline as you browse.
               </p>
             </>
           }
@@ -144,16 +143,15 @@ export default function ExtensionLanding() {
           body={
             <>
               <p>
-                Pick a preferred client for each kind of record — posts in
-                Anisota, documents in Leaflet, repositories in Tangled — and
-                the extension transparently sends you there whenever you click
-                an Atmosphere link from anywhere on the web.
+                Pick a preferred client per record type: posts in Anisota,
+                documents in Leaflet, repositories in Tangled. The extension
+                routes you there whenever you click an Atmosphere link, from
+                anywhere on the web.
               </p>
               <p>
                 Preferences are per-lexicon and per-device. Disable
                 auto-redirect for one collection without losing the others, or
-                turn the whole thing off and the extension goes back to a
-                popup-only tool.
+                turn it off entirely and the extension reverts to popup-only.
               </p>
             </>
           }
@@ -169,18 +167,18 @@ export default function ExtensionLanding() {
           body={
             <>
               <p>
-                If the curated catalog doesn&rsquo;t cover an app you use, wire
-                it up yourself: name it, give it a URL template like{' '}
+                If the catalog doesn&rsquo;t cover an app you use, wire it up
+                yourself. Name it, give it a URL template like{' '}
                 <code style={{ color: 'var(--text-accent)' }}>
                   example.com/u/{'{handle}'}/posts/{'{rkey}'}
                 </code>
                 , and tell the extension which record types it supports.
               </p>
               <p>
-                Templates work in both directions. The extension generates
-                outbound links for your custom waypoint and reverse-matches
-                inbound ones, so it appears as a source <em>and</em> a
-                destination in the popup like any built-in client.
+                Templates work in both directions: the extension generates
+                outbound links AND reverse-matches inbound ones. Your custom
+                waypoint shows up as both a source and a destination in the
+                popup, same as any built-in.
               </p>
             </>
           }
@@ -223,7 +221,7 @@ export default function ExtensionLanding() {
               lineHeight: 1.2,
             }}
           >
-            No account required. No telemetry. No background network calls.
+            No account, no telemetry, no background network calls.
           </h2>
           <p
             style={{
@@ -234,10 +232,10 @@ export default function ExtensionLanding() {
               maxWidth: '46rem',
             }}
           >
-            The extension only talks to your PDS when you actively trigger it —
-            click the popup, hit Inspect, or follow a context-menu jump.
-            Preferences stay in your browser&rsquo;s local storage; nothing is
-            uploaded.{' '}
+            The extension only talks to your PDS when you ask it to: opening
+            the popup, hitting Inspect, or following a context-menu jump.
+            Preferences live in your browser&rsquo;s local storage. Nothing
+            uploads.{' '}
             <Link
               href="/extension/privacy"
               style={{ color: 'var(--text-accent)' }}
