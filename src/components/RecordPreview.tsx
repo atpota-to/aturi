@@ -259,11 +259,27 @@ async function writeToClipboard(text: string): Promise<void> {
  * (0fr -> 1fr), which animates height changes without needing a fixed
  * max-height ceiling.
  */
-function FieldRow({ label, value }: { label: string; value: unknown }) {
+function FieldRow({
+  label,
+  value,
+  isLast,
+}: {
+  label: string;
+  value: unknown;
+  /** When true, the row's separator is suppressed — used for the last
+   * child inside an expansion so it doesn't double up against the parent
+   * row's bottom border. */
+  isLast?: boolean;
+}) {
   const [open, setOpen] = useState(false);
   const expandable = isExpandable(value);
+  const children = expandable ? childEntries(value) : [];
   return (
-    <div style={{ borderBottom: '1px solid var(--border-subtle)' }}>
+    <div
+      style={{
+        borderBottom: isLast ? undefined : '1px solid var(--border-subtle)',
+      }}
+    >
       <div
         style={{
           display: 'flex',
@@ -310,17 +326,31 @@ function FieldRow({ label, value }: { label: string; value: unknown }) {
             transition: 'grid-template-rows 0.25s ease',
           }}
         >
-          <div style={{ overflow: 'hidden', minHeight: 0 }}>
+          {/* paddingBottom lives on the overflow wrapper, not on the
+              bordered indent below — so the left vertical line ends at
+              the last child's content instead of running past it down
+              to the parent row's separator. */}
+          <div
+            style={{
+              overflow: 'hidden',
+              minHeight: 0,
+              paddingBottom: '0.5rem',
+            }}
+          >
             <div
               style={{
                 marginLeft: '0.5rem',
                 paddingLeft: '0.875rem',
-                paddingBottom: '0.5rem',
                 borderLeft: '2px solid var(--border-subtle)',
               }}
             >
-              {childEntries(value).map(([k, v]) => (
-                <FieldRow key={k} label={k} value={v} />
+              {children.map(([k, v], i) => (
+                <FieldRow
+                  key={k}
+                  label={k}
+                  value={v}
+                  isLast={i === children.length - 1}
+                />
               ))}
             </div>
           </div>
