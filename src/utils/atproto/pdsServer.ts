@@ -61,6 +61,21 @@ export async function describeServer(pds: string): Promise<ServerDescription> {
   );
 }
 
+export type ServerHealth = {
+  /** Software version reported by the PDS (e.g. "0.4.219"). */
+  version?: string;
+};
+
+/**
+ * Hit `_health` to surface the PDS implementation version. This is a
+ * non-XRPC convenience endpoint on the reference PDS implementation —
+ * older / custom PDSs may 404, so callers should treat failure as
+ * "version unknown" rather than an error condition.
+ */
+export async function getServerHealth(pds: string): Promise<ServerHealth> {
+  return fetchJson<ServerHealth>(`${normalizePdsBase(pds)}/xrpc/_health`);
+}
+
 export async function listRepos(
   pds: string,
   opts: { limit?: number; cursor?: string } = {},
