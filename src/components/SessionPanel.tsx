@@ -274,7 +274,7 @@ export default function SessionPanel({ onNavigate, onSignInActiveChange }: Props
       )}
       <Link href="/account" className="compact-nav-link" onClick={onNavigate}>
         <Settings size={16} />
-        <span>account</span>
+        <span>settings</span>
       </Link>
       <button
         type="button"

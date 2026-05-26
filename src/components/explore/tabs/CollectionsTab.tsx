@@ -9,7 +9,7 @@ import type { IdentityBundle } from '@/utils/atproto/identity';
 import { useMyCollections } from '../useRepoCollections';
 import { useAtprotoSession } from '@/components/AtprotoSessionProvider';
 import { usePreferences } from '@/components/PreferencesProvider';
-import { togglePinnedLexicon } from '@/utils/preferences';
+import { pinTargetFor, togglePinnedLexicon } from '@/utils/preferences';
 
 type SubGroup = {
   /** 3rd NSID segment, e.g. "feed", "graph", "actor". */
@@ -124,39 +124,62 @@ export default function CollectionsTab({ identity }: { identity: IdentityBundle 
     };
   }, [identity.pds, identity.did]);
 
-  // Viewing my own repo (or scope='all') unlocks the Pinned section and the
-  // pin button per row. The Mutual-only filter needs me signed in AND looking
-  // at someone else (so `myCollections` is non-null).
+  // The Mutual-only filter needs me signed in AND looking at someone else
+  // (so `myCollections` is non-null and the comparison is meaningful).
   const isOwnRepo = Boolean(myDid && myDid === identity.did);
-  const pinsApplyHere = Boolean(myDid) && (prefs.pinScope === 'all' || isOwnRepo);
-  const pinnedSet = useMemo(
-    () => new Set(prefs.pinnedLexicons),
-    [prefs.pinnedLexicons],
+  // Pin button is always available when signed in — even on others' repos —
+  // so users can curate their pinned list while browsing.
+  const canPin = Boolean(myDid);
+  const pinTarget = pinTargetFor(prefs.pinScope, isOwnRepo);
+  // Which list backs the Pinned section on THIS repo (separate from which
+  // list pin clicks toggle — usually the same, but in 'own' mode pins on
+  // others' repos still go into the user's primary list even though the
+  // section isn't shown here).
+  const activePinList =
+    prefs.pinScope === 'split' && !isOwnRepo
+      ? prefs.pinnedLexiconsOthers
+      : prefs.pinnedLexicons;
+  // Whether the Pinned section bubbles up on this specific repo.
+  const pinsVisibleHere = Boolean(myDid) && (
+    prefs.pinScope === 'all'
+    || isOwnRepo
+    || (prefs.pinScope === 'split' && !isOwnRepo)
   );
+  // The pinned state shown on each row reflects whichever list the next
+  // pin click would target — so the row stays consistent with the button.
+  const pinnedSet = useMemo(() => {
+    const source =
+      pinTarget === 'others' ? prefs.pinnedLexiconsOthers : prefs.pinnedLexicons;
+    return new Set(source);
+  }, [pinTarget, prefs.pinnedLexicons, prefs.pinnedLexiconsOthers]);
   const repoCollectionSet = useMemo(
     () => new Set(collections ?? []),
     [collections],
   );
   const pinnedOnThisRepo = useMemo(() => {
-    if (!pinsApplyHere || !collections) return [] as string[];
+    if (!pinsVisibleHere || !collections) return [] as string[];
     const f = filter.trim().toLowerCase();
-    return prefs.pinnedLexicons
+    return activePinList
       .filter((n) => repoCollectionSet.has(n))
       .filter((n) => !f || n.toLowerCase().includes(f));
-  }, [pinsApplyHere, collections, prefs.pinnedLexicons, repoCollectionSet, filter]);
+  }, [pinsVisibleHere, collections, activePinList, repoCollectionSet, filter]);
 
   // The main grouped list drops anything in the Pinned section so the same
   // collection doesn't render twice.
+  const pinnedHereSet = useMemo(
+    () => new Set(pinnedOnThisRepo),
+    [pinnedOnThisRepo],
+  );
   const groupSource = useMemo(() => {
     if (!collections) return [] as string[];
     let list = pinnedOnThisRepo.length > 0
-      ? collections.filter((n) => !pinnedSet.has(n))
+      ? collections.filter((n) => !pinnedHereSet.has(n))
       : collections;
     if (mutualOnly && myCollections) {
       list = list.filter((n) => myCollections.has(n));
     }
     return list;
-  }, [collections, pinnedOnThisRepo, pinnedSet, mutualOnly, myCollections]);
+  }, [collections, pinnedOnThisRepo, pinnedHereSet, mutualOnly, myCollections]);
 
   const groups = useMemo(
     () => groupHierarchically(groupSource, filter),
@@ -170,7 +193,7 @@ export default function CollectionsTab({ identity }: { identity: IdentityBundle 
   }
 
   function togglePin(nsid: string) {
-    update((p) => togglePinnedLexicon(p, nsid));
+    update((p) => togglePinnedLexicon(p, nsid, pinTarget));
   }
 
   // Mutual filter only makes sense when signed in and viewing someone else's
@@ -276,7 +299,7 @@ export default function CollectionsTab({ identity }: { identity: IdentityBundle 
                 href={`/explore/${repoSeg}/${nsid}`}
                 baseBg={i % 2 === 0 ? 'var(--bg-primary)' : 'transparent'}
                 inCommon={myCollections?.has(nsid)}
-                pinnable={pinsApplyHere}
+                pinnable={canPin}
                 pinned
                 onTogglePin={() => togglePin(nsid)}
               />
@@ -326,7 +349,7 @@ export default function CollectionsTab({ identity }: { identity: IdentityBundle 
                           dimPrefix={`${g.key}.`}
                           baseBg={i % 2 === 0 ? 'var(--bg-primary)' : 'transparent'}
                           inCommon={myCollections?.has(nsid)}
-                          pinnable={pinsApplyHere}
+                          pinnable={canPin}
                           pinned={pinnedSet.has(nsid)}
                           onTogglePin={() => togglePin(nsid)}
                         />
@@ -370,7 +393,7 @@ export default function CollectionsTab({ identity }: { identity: IdentityBundle 
                                 dimPrefix={`${sub.fullKey}.`}
                                 baseBg={i % 2 === 0 ? 'var(--bg-primary)' : 'transparent'}
                                 inCommon={myCollections?.has(nsid)}
-                                pinnable={pinsApplyHere}
+                                pinnable={canPin}
                                 pinned={pinnedSet.has(nsid)}
                                 onTogglePin={() => togglePin(nsid)}
                               />
