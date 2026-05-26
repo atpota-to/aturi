@@ -2,7 +2,6 @@ import { defineContentScript } from '#imports';
 import {
   dedupeByUri,
   scanDocumentForAtUris,
-  scanDocumentForAtUrisFast,
   type DetectedAtUri,
 } from '../lib/inspectScanner';
 import { matchSupportedUrl } from '@aturi/reverseParsers';
@@ -67,7 +66,12 @@ function countAtUris(): number {
   } catch {
     /* ignore */
   }
-  hits.push(...scanDocumentForAtUrisFast(document));
+  // Use the same full scanner the popup runs on demand so the toolbar
+  // badge count matches what the popup will show when the user clicks
+  // through. The fast structured-only scan undercounted body-text URIs
+  // (e.g. at:// strings quoted inside post text) and produced a badge
+  // of "1" against a popup that listed several.
+  hits.push(...scanDocumentForAtUris(document));
   return dedupeByUri(hits).length;
 }
 
