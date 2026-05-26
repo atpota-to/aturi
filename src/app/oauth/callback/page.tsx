@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAtprotoSession } from '@/components/AtprotoSessionProvider';
+import { takeReturnPath } from '@/lib/oauth/returnTo';
 
 /**
  * OAuth callback page.
@@ -22,12 +23,16 @@ export default function OAuthCallback() {
   const router = useRouter();
   const { did, loading, error } = useAtprotoSession();
   const [timedOut, setTimedOut] = useState(false);
+  // takeReturnPath() clears the stored value, so capture it once via a
+  // lazy initial state — re-running it on every render would yield null
+  // after the first call.
+  const [returnTo] = useState(() => takeReturnPath());
 
   // Navigate when the provider's init() resolves with a session.
   useEffect(() => {
     if (loading || !did) return;
-    router.replace(`/account`);
-  }, [loading, did, router]);
+    router.replace(returnTo || '/account');
+  }, [loading, did, router, returnTo]);
 
   // If init resolves with no session and no error, the URL was probably
   // visited directly — surface a recoverable error after a beat.
