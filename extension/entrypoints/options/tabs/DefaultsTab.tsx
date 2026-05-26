@@ -223,6 +223,27 @@ export default function DefaultsTab({ prefs, onChange }: Props) {
 
         <div className="options-toggle-row">
           <div>
+            <div className="options-card-title">Detect active apps</div>
+            <div className="options-card-sub">
+              {prefs.pdsRecordScan
+                ? "On — the popup quickly scans the target repo's collections and dims waypoints with no records found there (e.g. Tangled gets dimmed on a profile with no sh.tangled.* records). Active apps also rank higher in recommendations."
+                : 'Off — every waypoint renders the same way regardless of whether the target user has any records in its lexicons.'}
+            </div>
+          </div>
+          <button
+            className={`aturi-switch ${prefs.pdsRecordScan ? 'on' : ''}`}
+            onClick={() => onChange({ pdsRecordScan: !prefs.pdsRecordScan })}
+            aria-pressed={prefs.pdsRecordScan}
+          >
+            <span className="aturi-switch-box" />
+            <span className="aturi-muted">{prefs.pdsRecordScan ? 'On' : 'Off'}</span>
+          </button>
+        </div>
+
+        <div className="aturi-hr" />
+
+        <div className="options-toggle-row">
+          <div>
             <div className="options-card-title">Open in new tab</div>
             <div className="options-card-sub">
               {prefs.openInNewTab

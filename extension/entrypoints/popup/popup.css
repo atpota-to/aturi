@@ -252,6 +252,23 @@ body {
   transform: none;
 }
 
+/* PDS-scan came back without a matching collection in the target repo —
+   the row stays clickable (we don't know that the user wouldn't want to
+   open the app anyway) but reads quietly. The caption switches to
+   "No records found on this repo" so the dimming is explained inline. */
+.popup-waypoint.is-absent {
+  opacity: 0.5;
+}
+
+.popup-waypoint.is-absent:hover {
+  opacity: 0.85;
+}
+
+.popup-waypoint.is-absent .popup-waypoint-desc {
+  font-style: italic;
+  color: var(--text-tertiary);
+}
+
 .popup-waypoint-main {
   flex: 1;
   min-width: 0;

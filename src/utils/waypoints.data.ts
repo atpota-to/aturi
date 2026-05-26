@@ -34,6 +34,19 @@ export type WaypointData = {
    * (dev tools / generic record viewers land here by design).
    */
   redirectCompat: RedirectCompatFamily[];
+  /**
+   * NSID prefixes that signal this waypoint is meaningfully usable for the
+   * target repo. When set, the extension can call describeRepo on the target
+   * DID and check whether any of the user's collections start with one of
+   * these prefixes — if none do, the waypoint is flagged as "no records
+   * found" in the popup and demoted in smart recommendations.
+   *
+   * Use trailing-dot prefixes for whole namespaces (e.g. `'sh.tangled.'`)
+   * or full NSIDs for single-collection apps. Omit the field entirely for
+   * generic explorers (PDSls, atp.tools, Aturi) and for apps whose backing
+   * NSIDs aren't known — those stay in the "unknown" / no-opinion state.
+   */
+  expectedCollections?: string[];
 };
 
 export type CompatFamilyMeta = {
@@ -195,6 +208,7 @@ export const WAYPOINT_DESTINATIONS_DATA: Record<string, WaypointData> = {
     supportedTypes: ['post', 'profile', 'list', 'record'],
     category: 'blueskyClients',
     redirectCompat: ['bluesky-social', 'standard-site'],
+    expectedCollections: ['app.bsky.', 'net.anisota.', 'pub.leaflet.', 'site.standard.'],
   },
 
   bluesky: {
@@ -217,6 +231,7 @@ export const WAYPOINT_DESTINATIONS_DATA: Record<string, WaypointData> = {
     supportedTypes: ['post', 'profile', 'list', 'record'],
     category: 'blueskyClients',
     redirectCompat: ['bluesky-social'],
+    expectedCollections: ['app.bsky.'],
   },
 
   blacksky: {
@@ -239,6 +254,7 @@ export const WAYPOINT_DESTINATIONS_DATA: Record<string, WaypointData> = {
     supportedTypes: ['post', 'profile', 'list', 'record'],
     category: 'blueskyForks',
     redirectCompat: ['bluesky-social'],
+    expectedCollections: ['app.bsky.'],
   },
 
   reddwarf: {
@@ -261,6 +277,7 @@ export const WAYPOINT_DESTINATIONS_DATA: Record<string, WaypointData> = {
     supportedTypes: ['post', 'profile', 'list', 'record'],
     category: 'blueskyForks',
     redirectCompat: ['bluesky-social'],
+    expectedCollections: ['app.bsky.'],
   },
 
   leaflet: {
@@ -273,6 +290,7 @@ export const WAYPOINT_DESTINATIONS_DATA: Record<string, WaypointData> = {
     supportedTypes: ['post', 'profile', 'list', 'record'],
     category: 'publications',
     redirectCompat: ['standard-site'],
+    expectedCollections: ['pub.leaflet.', 'site.standard.'],
   },
 
   pdsls: {
@@ -365,6 +383,7 @@ export const WAYPOINT_DESTINATIONS_DATA: Record<string, WaypointData> = {
     supportedTypes: ['post', 'profile', 'list', 'record'],
     category: 'blueskyClients',
     redirectCompat: ['bluesky-social'],
+    expectedCollections: ['app.bsky.'],
   },
 
   witchsky: {
@@ -387,6 +406,7 @@ export const WAYPOINT_DESTINATIONS_DATA: Record<string, WaypointData> = {
     supportedTypes: ['post', 'profile', 'list', 'record'],
     category: 'blueskyForks',
     redirectCompat: ['bluesky-social'],
+    expectedCollections: ['app.bsky.'],
   },
 
   catsky: {
@@ -409,6 +429,7 @@ export const WAYPOINT_DESTINATIONS_DATA: Record<string, WaypointData> = {
     supportedTypes: ['post', 'profile', 'list', 'record'],
     category: 'blueskyForks',
     redirectCompat: ['bluesky-social'],
+    expectedCollections: ['app.bsky.'],
   },
 
   deer: {
@@ -431,6 +452,7 @@ export const WAYPOINT_DESTINATIONS_DATA: Record<string, WaypointData> = {
     supportedTypes: ['post', 'profile', 'list', 'record'],
     category: 'blueskyForks',
     redirectCompat: ['bluesky-social'],
+    expectedCollections: ['app.bsky.'],
   },
 
   tangled: {
@@ -443,6 +465,7 @@ export const WAYPOINT_DESTINATIONS_DATA: Record<string, WaypointData> = {
     supportedTypes: ['post', 'profile', 'list', 'record'],
     category: 'atmosphereApps',
     redirectCompat: ['tangled'],
+    expectedCollections: ['sh.tangled.'],
   },
 
 
@@ -469,6 +492,7 @@ export const WAYPOINT_DESTINATIONS_DATA: Record<string, WaypointData> = {
     supportedTypes: ['post', 'profile', 'list', 'record'],
     category: 'atmosphereApps',
     redirectCompat: ['pinksky'],
+    expectedCollections: ['app.bsky.'],
   },
 
   margin: {
@@ -502,6 +526,7 @@ export const WAYPOINT_DESTINATIONS_DATA: Record<string, WaypointData> = {
     supportedTypes: ['post', 'profile', 'list', 'record'],
     category: 'atmosphereApps',
     redirectCompat: ['margin'],
+    expectedCollections: ['at.margin.'],
   },
 
   semble: {
@@ -545,6 +570,7 @@ export const WAYPOINT_DESTINATIONS_DATA: Record<string, WaypointData> = {
     supportedTypes: ['post', 'profile', 'list', 'record'],
     category: 'atmosphereApps',
     redirectCompat: ['grain'],
+    expectedCollections: ['social.grain.'],
   },
 
   popfeed: {
@@ -605,6 +631,7 @@ export const WAYPOINT_DESTINATIONS_DATA: Record<string, WaypointData> = {
     supportedTypes: ['post', 'profile', 'list', 'record'],
     category: 'publications',
     redirectCompat: ['standard-site'],
+    expectedCollections: ['pub.leaflet.', 'site.standard.'],
   },
 
   offprint: {
@@ -626,6 +653,7 @@ export const WAYPOINT_DESTINATIONS_DATA: Record<string, WaypointData> = {
     supportedTypes: ['post', 'profile', 'list', 'record'],
     category: 'publications',
     redirectCompat: ['standard-site'],
+    expectedCollections: ['pub.leaflet.', 'site.standard.'],
   },
 
   pckt: {
@@ -647,6 +675,7 @@ export const WAYPOINT_DESTINATIONS_DATA: Record<string, WaypointData> = {
     supportedTypes: ['post', 'profile', 'list', 'record'],
     category: 'publications',
     redirectCompat: ['standard-site'],
+    expectedCollections: ['pub.leaflet.', 'site.standard.'],
   },
 };
 
@@ -876,4 +905,37 @@ export function getFeaturedWaypointData(
 ): WaypointData | null {
   const { waypoints } = getRecommendedWaypointsData(type, collection);
   return waypoints[0] || null;
+}
+
+/**
+ * Result of comparing a waypoint's `expectedCollections` against the set of
+ * NSIDs found in the target repo.
+ *
+ *   - 'present'  — the user has at least one record under a matching prefix.
+ *   - 'absent'   — the waypoint declared collections but none are in the repo.
+ *   - 'unknown'  — the waypoint didn't declare any expectations, or we
+ *                  haven't scanned the repo yet (e.g. scan disabled, no DID).
+ */
+export type WaypointActivity = 'present' | 'absent' | 'unknown';
+
+/**
+ * Classify a waypoint against the set of collection NSIDs known to exist on
+ * the target repo. Prefix-matches each entry in `expectedCollections` against
+ * `repoCollections`. Returns 'unknown' when the waypoint has no declared
+ * expectations or the caller passed `null` for `repoCollections` (i.e. scan
+ * disabled or still in flight).
+ */
+export function waypointActivity(
+  waypoint: Pick<WaypointData, 'expectedCollections'>,
+  repoCollections: ReadonlySet<string> | null,
+): WaypointActivity {
+  if (!repoCollections) return 'unknown';
+  const expected = waypoint.expectedCollections;
+  if (!expected || expected.length === 0) return 'unknown';
+  for (const c of repoCollections) {
+    for (const prefix of expected) {
+      if (c === prefix || c.startsWith(prefix)) return 'present';
+    }
+  }
+  return 'absent';
 }

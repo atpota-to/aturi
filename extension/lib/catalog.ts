@@ -2,6 +2,7 @@ import {
   WAYPOINT_DESTINATIONS_DATA,
   WAYPOINT_ORDER,
   getRecommendedWaypointsData,
+  waypointActivity,
   type WaypointData,
   type WaypointType,
   type WaypointCategoryData,
@@ -208,15 +209,37 @@ export function categorizedForType(
 export function recommendedForType(
   prefs: Prefs,
   type: WaypointType,
-  collection?: string
+  collection?: string,
+  /**
+   * Set of NSIDs known to exist on the target repo (from describeRepo).
+   * When provided, confirmed-present waypoints sort to the front of the
+   * recommendation list — they win the "Recommended" slot over candidates
+   * with no matching records.
+   */
+  repoCollections?: ReadonlySet<string> | null,
 ): { waypoints: WaypointData[]; label: string } {
   const { waypoints, label } = getRecommendedWaypointsData(type, collection);
   const visibleIds = new Set(visibleWaypoints(prefs).map(w => w.id));
   const orderIdx = buildOrderIndex(effectiveWaypointOrder(prefs));
+  const activeSet = repoCollections ?? null;
   const filtered = waypoints
     .filter(w => visibleIds.has(w.id))
-    .sort((a, b) => (orderIdx.get(a.id) ?? 0) - (orderIdx.get(b.id) ?? 0));
+    .sort((a, b) => {
+      // Confirmed-present waypoints sort to the front; absent waypoints sort
+      // to the back; unknown rides the catalog order. Within each bucket we
+      // preserve the user's chosen order so a manual reordering still wins.
+      const aRank = activityRank(waypointActivity(a, activeSet));
+      const bRank = activityRank(waypointActivity(b, activeSet));
+      if (aRank !== bRank) return aRank - bRank;
+      return (orderIdx.get(a.id) ?? 0) - (orderIdx.get(b.id) ?? 0);
+    });
   return { waypoints: filtered, label };
+}
+
+function activityRank(status: 'present' | 'absent' | 'unknown'): number {
+  if (status === 'present') return 0;
+  if (status === 'unknown') return 1;
+  return 2; // 'absent'
 }
 
 /**
