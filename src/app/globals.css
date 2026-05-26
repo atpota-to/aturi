@@ -374,6 +374,113 @@ a:hover {
   opacity: 0.8;
 }
 
+/* New footer layout (Footer.tsx). Two-row card: brand + nav on top,
+   AT-URI styled credits below. Constrained to the site's content width
+   and stacks at narrow viewports. */
+.footer-inner {
+  max-width: 64rem;
+  margin: 0 auto;
+  padding: 0 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.footer-grid {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 2rem;
+  align-items: start;
+}
+
+.footer-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
+  min-width: 0;
+}
+
+.footer-nav {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.4rem;
+  font-family: var(--font-serif);
+  font-size: 0.8125rem;
+  letter-spacing: 0.03em;
+  text-align: right;
+}
+
+.footer-nav .footer-link {
+  color: var(--text-tertiary);
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.footer-nav .footer-link:hover {
+  color: var(--text-accent) !important;
+}
+
+.footer-credits {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.55rem;
+  padding-top: 1.25rem;
+  border-top: 1px dashed var(--border-subtle);
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  color: var(--text-tertiary);
+}
+
+.footer-credits-label {
+  font-family: var(--font-serif);
+  font-size: 0.7rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+  opacity: 0.85;
+}
+
+.footer-uri {
+  display: inline-flex;
+  align-items: baseline;
+  text-decoration: none;
+  color: var(--text-primary);
+  transition: color 0.2s ease;
+}
+
+.footer-uri-scheme {
+  color: var(--text-tertiary);
+  margin-right: 0.05rem;
+}
+
+.footer-uri-handle {
+  color: var(--text-accent);
+  font-weight: 500;
+}
+
+.footer-uri:hover .footer-uri-handle {
+  text-decoration: underline;
+  text-underline-offset: 0.18em;
+  text-decoration-thickness: 1px;
+}
+
+@media (max-width: 640px) {
+  .footer-grid {
+    grid-template-columns: 1fr;
+    gap: 1.25rem;
+  }
+  .footer-nav {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 0.4rem 1rem;
+    text-align: left;
+  }
+}
+
 /* Navigation Links - Organic Style */
 .nav-link {
   display: inline-flex;
