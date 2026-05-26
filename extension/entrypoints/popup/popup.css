@@ -785,32 +785,6 @@ body {
   flex-shrink: 0;
 }
 
-.inspect-meta {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 10px;
-}
-
-.inspect-source {
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--text-tertiary);
-  font-family: var(--font-serif);
-  font-weight: 500;
-}
-
-.inspect-uri {
-  font-family: var(--font-mono);
-  font-size: 11px;
-  color: var(--text-primary);
-  background: var(--bg-tertiary);
-  padding: 6px 8px;
-  word-break: break-all;
-  line-height: 1.45;
-  border: 1px solid var(--border-subtle);
-}
-
 .inspect-preview {
   font-size: 12px;
   color: var(--text-secondary);

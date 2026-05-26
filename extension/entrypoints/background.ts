@@ -1,7 +1,7 @@
 import { browser, defineBackground } from '#imports';
 import { loadPrefs, onPrefsChanged, type Prefs } from '../lib/prefs';
 import { buildRules } from '../lib/rules';
-import { setLogContext } from '../lib/debugLog';
+import { debugLog, setLogContext } from '../lib/debugLog';
 
 setLogContext('background');
 
@@ -35,12 +35,21 @@ type ActionApi = {
 
 /**
  * Resolve the toolbar-icon API across MV2 (Firefox `browserAction`) and MV3
- * (Chrome `action`). Both expose the same surface we need; the only
- * difference is the property name on the `browser` namespace.
+ * (Chrome `action`). WXT's `browser` shim is just `globalThis.chrome` on
+ * Chrome and `globalThis.browser` on Firefox — both expose the right
+ * namespace; we just have to pick the right name.
  */
 function getActionApi(): ActionApi | null {
   const b = browser as unknown as { action?: ActionApi; browserAction?: ActionApi };
-  return b.action ?? b.browserAction ?? null;
+  if (b.action) return b.action;
+  if (b.browserAction) return b.browserAction;
+  // Last-resort: in case the `browser` shim is missing on some platform,
+  // reach for chrome.* directly.
+  const c =
+    typeof chrome !== 'undefined'
+      ? (chrome as unknown as { action?: ActionApi; browserAction?: ActionApi })
+      : null;
+  return c?.action ?? c?.browserAction ?? null;
 }
 
 /**
@@ -75,32 +84,36 @@ async function syncRules(prefs: Prefs): Promise<void> {
  * Apply the active / idle toolbar icon to a single tab. `count > 0` swaps to
  * the active icon and shows the count as a badge; otherwise we clear back
  * to the default icon with no badge.
+ *
+ * Each underlying API call is awaited individually with its own try/catch
+ * so a single platform-specific failure (e.g. `setBadgeTextColor` not
+ * supported on older Firefox) doesn't abort the whole update.
  */
 async function applyTabBadge(tabId: number, count: number): Promise<void> {
   const action = getActionApi();
-  if (!action) return;
+  if (!action) {
+    console.warn('[aturi] no action API available — toolbar icon will not update');
+    return;
+  }
   const text = count > 0 ? String(count) : '';
   try {
     if (action.setBadgeText) await action.setBadgeText({ text, tabId });
-  } catch {
-    /* ignore */
+  } catch (err) {
+    console.warn('[aturi] setBadgeText failed', err);
   }
   try {
     if (count > 0 && action.setBadgeBackgroundColor) {
       await action.setBadgeBackgroundColor({ color: BADGE_BG, tabId });
     }
-  } catch {
-    /* ignore */
+  } catch (err) {
+    console.warn('[aturi] setBadgeBackgroundColor failed', err);
   }
   try {
-    // Per-tab text color is supported on Chrome 110+ and Firefox 109+. If it
-    // throws we leave the default (white in Chrome, black in some Firefox
-    // builds) — the background color above is high enough contrast either way.
     if (count > 0 && action.setBadgeTextColor) {
       await action.setBadgeTextColor({ color: BADGE_FG, tabId });
     }
   } catch {
-    /* ignore */
+    /* setBadgeTextColor isn't supported everywhere — silent fallback is fine */
   }
   try {
     if (action.setIcon) {
@@ -109,8 +122,8 @@ async function applyTabBadge(tabId: number, count: number): Promise<void> {
         tabId,
       });
     }
-  } catch {
-    /* ignore */
+  } catch (err) {
+    console.warn('[aturi] setIcon failed', err);
   }
 }
 
@@ -135,10 +148,36 @@ async function clearAllTabBadges(): Promise<void> {
   }
 }
 
+/**
+ * Set the badge background color globally (default for all tabs that don't
+ * have a per-tab override). This way even if the per-tab call below misses
+ * for some reason, badges still render against the brand color instead of
+ * the browser's default red.
+ */
+async function primeBadgeDefaults(): Promise<void> {
+  const action = getActionApi();
+  if (!action) return;
+  try {
+    if (action.setBadgeBackgroundColor) {
+      await action.setBadgeBackgroundColor({ color: BADGE_BG });
+    }
+  } catch {
+    /* ignore */
+  }
+  try {
+    if (action.setBadgeTextColor) {
+      await action.setBadgeTextColor({ color: BADGE_FG });
+    }
+  } catch {
+    /* ignore */
+  }
+}
+
 export default defineBackground(() => {
   const primeAndSync = async () => {
     const prefs = await loadPrefs();
     await syncRules(prefs);
+    await primeBadgeDefaults();
   };
 
   browser.runtime.onInstalled.addListener(() => {
@@ -159,15 +198,17 @@ export default defineBackground(() => {
   });
 
   // Content scripts on every page report their detection count here. We
-  // trust the sender.tab.id so we always badge the right tab, even if the
-  // popup or other code is also messaging us in parallel.
+  // *return* the badge-update promise so the MV3 service worker stays
+  // alive until the action APIs actually fire — returning undefined
+  // synchronously would let Chrome terminate the worker mid-update and
+  // the icon/badge would never visibly change.
   browser.runtime.onMessage.addListener((message, sender) => {
     if (message?.type !== 'aturi:detected') return undefined;
     const tabId = sender.tab?.id;
     if (typeof tabId !== 'number') return undefined;
     const count = typeof message.count === 'number' ? message.count : 0;
-    void applyTabBadge(tabId, count);
-    return undefined;
+    debugLog('detected', { tabId, count });
+    return applyTabBadge(tabId, count);
   });
 
   // Reset before the new page's content script reports — keeps stale counts
