@@ -59,11 +59,18 @@ export const GRANULAR_SCOPES: GranularScope[] = [
  * `viewer: {}` back from the AppView because the PDS forwards the
  * request anonymously.
  *
- * `app.bsky.*` is a read-only wildcard and core to the explorer
- * working at all, so it's bundled into BASE_SCOPE rather than exposed
- * as an opt-in chip in the granular scope picker.
+ * Scope syntax notes (from @atproto/oauth-scopes rpc-permission.ts):
+ *   - The `lxm` parameter is either a literal `*` or a full NSID. NSID
+ *     prefix wildcards (e.g. `app.bsky.*`) are NOT supported and get
+ *     dropped during scope normalization, which is why an earlier
+ *     attempt at `rpc:app.bsky.*?aud=...` left the PDS still throwing
+ *     ScopeMissingError.
+ *   - The `#` in the audience DID fragment MUST be URL-encoded as `%23`.
+ *
+ * `rpc:*` is read-only and core to the explorer working at all, so it's
+ * bundled into BASE_SCOPE rather than exposed as a picker chip.
  */
-const APPVIEW_RPC_SCOPE = 'rpc:app.bsky.*?aud=did:web:api.bsky.app#bsky_appview';
+const APPVIEW_RPC_SCOPE = 'rpc:*?aud=did:web:api.bsky.app%23bsky_appview';
 
 export const BASE_SCOPE = ['atproto', APPVIEW_RPC_SCOPE].join(' ');
 
