@@ -118,9 +118,7 @@ export default function TrendingLexicons() {
                 className="explore-placeholder"
                 style={{ padding: '1rem', margin: 0 }}
               >
-                {mode === 'trending'
-                  ? 'No non-Bluesky lexicons matched in this window.'
-                  : 'No lexicons matched in this window.'}
+                No lexicons matched in this window.
               </p>
             ) : (
               <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
@@ -146,8 +144,42 @@ export default function TrendingLexicons() {
             </p>
           ) : null}
         </div>
+        <Credit />
       </section>
     </AppearIn>
+  );
+}
+
+function Credit() {
+  return (
+    <div
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'flex-end',
+        gap: '0.4rem',
+        padding: '0.625rem 1rem',
+        borderTop: '1px solid var(--border-subtle)',
+        fontSize: '0.7rem',
+        color: 'var(--text-tertiary)',
+        letterSpacing: '0.06em',
+        textTransform: 'uppercase',
+        fontFamily: 'var(--font-serif)',
+      }}
+    >
+      <span>Data from</span>
+      <a
+        href="https://www.microcosm.blue"
+        target="_blank"
+        rel="noopener noreferrer"
+        style={{
+          color: 'var(--text-accent)',
+          textDecoration: 'none',
+        }}
+      >
+        microcosm.blue
+      </a>
+    </div>
   );
 }
 
@@ -310,8 +342,8 @@ function Row({
       }}
     >
       <Link
-        href={`/at/${row.nsid}`}
-        title={`Browse ${row.nsid}`}
+        href={schemaPathFor(row.nsid)}
+        title={`Open the ${row.nsid} lexicon schema`}
         style={{
           display: 'grid',
           gridTemplateColumns: '2rem minmax(0, 1fr) 7rem auto',
@@ -473,8 +505,23 @@ function formatPct(pct: number): string {
 
 // ─── NSID grouping ─────────────────────────────────────────────────────────
 
-function isBluesky(nsid: string): boolean {
-  return nsid.startsWith('app.bsky.');
+/**
+ * Namespaces we suppress from the Trending view. Both flavors of Bluesky
+ * (public app + chat) dominate every absolute ranking and barely move in
+ * % terms, so they crowd out the smaller projects we want surfaced.
+ */
+const TRENDING_HIDDEN_PREFIXES = ['app.bsky.', 'chat.bsky.'];
+
+/**
+ * Namespaces we suppress from the Top view too. Chat collections are
+ * private DM traffic — they're real activity but not interesting to
+ * publish as "what's hot on the protocol". Bluesky's public namespace
+ * stays in Top (it's the elephant in the room and that's accurate).
+ */
+const TOP_HIDDEN_PREFIXES = ['chat.'];
+
+function hasHiddenPrefix(nsid: string, prefixes: string[]): boolean {
+  return prefixes.some((p) => nsid.startsWith(p));
 }
 
 /** First two segments — `app.bsky.feed.post` -> `app.bsky`. Single-segment
@@ -487,18 +534,40 @@ function namespaceKey(nsid: string): string {
 
 function filterAndDedup<T extends { nsid: string }>(
   rows: T[],
-  dropBluesky: boolean,
+  mode: Mode,
 ): T[] {
+  const hidden = mode === 'trending' ? TRENDING_HIDDEN_PREFIXES : TOP_HIDDEN_PREFIXES;
   const seen = new Set<string>();
   const out: T[] = [];
   for (const r of rows) {
-    if (dropBluesky && isBluesky(r.nsid)) continue;
+    if (hasHiddenPrefix(r.nsid, hidden)) continue;
     const key = namespaceKey(r.nsid);
     if (seen.has(key)) continue;
     seen.add(key);
     out.push(r);
   }
   return out;
+}
+
+/**
+ * Convention: an NSID like `<tld>.<owner>.<...>` maps to `<owner>.<tld>`
+ * as the publisher's handle. `net.anisota.harvest.minigame` ->
+ * `anisota.net`, `app.bsky.feed.post` -> `bsky.app`, etc. Used to build
+ * the deep link into the explorer's lexicon-schema record for an NSID.
+ */
+function publisherForNsid(nsid: string): string {
+  const parts = nsid.split('.');
+  if (parts.length < 2) return nsid;
+  return `${parts[1]}.${parts[0]}`;
+}
+
+/** Lexicon-schema records live at this collection on the publisher's repo,
+ * keyed by the full NSID. The explorer's record page renders them nicely
+ * via RecordPreview, and falls through to a not-found message when the
+ * publisher hasn't published a schema. */
+function schemaPathFor(nsid: string): string {
+  const publisher = publisherForNsid(nsid);
+  return `/explore/${publisher}/com.atproto.lexicon.schema/${encodeURIComponent(nsid)}`;
 }
 
 // ─── Fetching ──────────────────────────────────────────────────────────────
@@ -552,8 +621,8 @@ async function fetchRanking(
     orderForMetric(metric),
   );
 
-  // 2) Filter (bsky dropped only in trending) + dedup by top-2-segment ns.
-  const filtered = filterAndDedup(candidates, mode === 'trending');
+  // 2) Filter (mode-specific) + dedup by top-2-segment namespace.
+  const filtered = filterAndDedup(candidates, mode);
   if (filtered.length === 0) return [];
 
   // 3) Score by the chosen metric. /collections gives us creates +
