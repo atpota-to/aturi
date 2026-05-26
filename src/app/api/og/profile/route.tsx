@@ -1,43 +1,10 @@
 import { ImageResponse } from '@vercel/og';
 import { NextRequest } from 'next/server';
 import { fetchImageAsDataUrl } from '@/lib/og-image';
+import { BrandMark, Eyebrow, loadGoogleFont, OgFrame, OG_COLORS } from '@/lib/og-design';
 
 export const runtime = 'edge';
 export const revalidate = 3600; // Cache for 1 hour
-
-// Cache font data to avoid repeated fetches
-const fontCache = new Map<string, ArrayBuffer>();
-
-// Helper to load Google Font with timeout
-async function loadGoogleFont(font: string, text: string) {
-  const cacheKey = `${font}-${text.slice(0, 50)}`; // Cache based on font and first 50 chars
-  
-  if (fontCache.has(cacheKey)) {
-    return fontCache.get(cacheKey)!;
-  }
-
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 3000); // 3 second timeout
-  
-  try {
-    const url = `https://fonts.googleapis.com/css2?family=${font}&text=${encodeURIComponent(text)}`;
-    const css = await fetch(url, { signal: controller.signal }).then(r => r.text());
-    const resource = css.match(/src: url\((.+)\) format\('(opentype|truetype)'\)/);
-
-    if (resource) {
-      const response = await fetch(resource[1], { signal: controller.signal });
-      if (response.status == 200) {
-        const fontData = await response.arrayBuffer();
-        fontCache.set(cacheKey, fontData);
-        return fontData;
-      }
-    }
-  } finally {
-    clearTimeout(timeoutId);
-  }
-
-  throw new Error('failed to load font data');
-}
 
 export async function GET(request: NextRequest) {
   try {
@@ -118,36 +85,12 @@ export async function GET(request: NextRequest) {
     const posts = profileData?.postsCount || 0;
 
     // Load Crimson Pro font
-    const allText = `${displayName} @${handleName} ${displayBio} ${isTruncated ? '...' : ''} ${followers.toLocaleString()} followers ${following.toLocaleString()} following ${posts.toLocaleString()} posts aturi.to Atmosphere Toolkit Choose where to view this profile`;
+    const allText = `${displayName} @${handleName} ${displayBio} ${isTruncated ? '...' : ''} ${followers.toLocaleString()} followers ${following.toLocaleString()} following ${posts.toLocaleString()} posts aturi.to Open in any Atmosphere client Universal link aturi`;
     const fontData = await loadGoogleFont('Crimson+Pro:wght@300;400;600', allText);
 
     return new ImageResponse(
       (
-        <div
-          style={{
-            height: '100%',
-            width: '100%',
-            display: 'flex',
-            flexDirection: 'column',
-            backgroundColor: '#0a0a0a',
-            backgroundImage: 'radial-gradient(ellipse at 20% 30%, rgba(138, 154, 127, 0.18) 0%, rgba(10, 10, 10, 0) 85%), radial-gradient(ellipse at 80% 70%, rgba(74, 90, 63, 0.15) 0%, rgba(10, 10, 10, 0) 85%), radial-gradient(ellipse at 50% 50%, rgba(61, 51, 41, 0.12) 0%, rgba(10, 10, 10, 0) 90%)',
-            color: '#e8e8e6',
-            fontFamily: 'Crimson Pro',
-            padding: '70px',
-            position: 'relative',
-          }}
-        >
-          {/* Grain overlay */}
-          <div
-            style={{
-              position: 'absolute',
-              inset: 0,
-              backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 800 800' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.8' numOctaves='5' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E")`,
-              opacity: 0.6,
-              display: 'flex',
-            }}
-          />
-
+        <OgFrame>
           {/* Content */}
           <div
             style={{
@@ -167,28 +110,8 @@ export async function GET(request: NextRequest) {
                 marginBottom: '50px',
               }}
             >
-              <div
-                style={{
-                  fontSize: '36px',
-                  color: '#8a9a7f',
-                  fontWeight: 300,
-                  letterSpacing: '0.5px',
-                  display: 'flex',
-                }}
-              >
-                aturi.to
-              </div>
-              <div
-                style={{
-                  fontSize: '28px',
-                  color: '#a8a8a6',
-                  fontWeight: 400,
-                  letterSpacing: '1px',
-                  display: 'flex',
-                }}
-              >
-                Atmosphere Toolkit
-              </div>
+              <BrandMark size={30} />
+              <Eyebrow>Universal link</Eyebrow>
             </div>
 
             {/* Card-based Profile Layout */}
@@ -398,19 +321,18 @@ export async function GET(request: NextRequest) {
             <div
               style={{
                 marginTop: '50px',
-                fontSize: '26px',
-                color: '#a8a8a6',
-                textAlign: 'right',
-                fontWeight: 400,
-                letterSpacing: '0.5px',
+                fontSize: '24px',
+                color: OG_COLORS.textTertiary,
+                fontWeight: 300,
+                fontStyle: 'italic',
                 display: 'flex',
                 justifyContent: 'flex-end',
               }}
             >
-              Choose where to view this profile
+              Open in any Atmosphere client →
             </div>
           </div>
-        </div>
+        </OgFrame>
       ),
       {
         width: 1200,
