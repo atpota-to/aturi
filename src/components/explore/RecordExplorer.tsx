@@ -2,8 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
-import { ExternalLink, FilePenLine, X } from 'lucide-react';
+import { FilePenLine, X } from 'lucide-react';
 import { getRecord, type AtRecord } from '@/utils/atproto/pdsClient';
 import { resolveIdentifier, type IdentityBundle } from '@/utils/atproto/identity';
 import { encodeRepo } from '@/utils/atproto/urls';
@@ -92,7 +91,11 @@ export default function RecordExplorer({ repo, collection, rkey }: Props) {
   const atUri = `at://${identity.did}/${collection}/${decodedRkey}`;
   const repoSeg = encodeRepo(identity.handle || identity.did);
   const canEdit = Boolean(agent && signedInDid && signedInDid === identity.did);
-  const aturiUniversalLink = `/profile/${identity.handle || identity.did}/${collection}/${encodeURIComponent(decodedRkey)}`;
+  // Universal link uses the canonical `/profile/` path; bare-form
+  // `/<handle>/<collection>/<rkey>` still works as a fallback route but
+  // shareable copies should point at the canonical one.
+  const aturiUniversalPath = `/profile/${identity.handle || identity.did}/${collection}/${encodeURIComponent(decodedRkey)}`;
+  const universalLinkFull = `https://aturi.to${aturiUniversalPath}`;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
@@ -103,9 +106,6 @@ export default function RecordExplorer({ repo, collection, rkey }: Props) {
           pds={identity.pds}
           collection={collection}
           rkey={decodedRkey}
-          // Universal link for the record — shareable into any compatible
-          // Atmosphere client via the WaypointPicker on aturi.to.
-          shareUrl={aturiUniversalLink}
         />
       </AppearIn>
 
@@ -130,87 +130,73 @@ export default function RecordExplorer({ repo, collection, rkey }: Props) {
         </AppearIn>
       )}
 
+      {/* Consolidated copy row. URI elements live in the breadcrumb above,
+          so we don't repeat them as a value-display grid — every identifier
+          is one tap away as a copy button instead. */}
       <AppearIn delay={0.08}>
-        <RecordMeta atUri={atUri} cid={record?.cid} pds={identity.pds} did={identity.did} />
+        <CopyRow
+          atUri={atUri}
+          did={identity.did}
+          cid={record?.cid}
+          pds={identity.pds}
+          universalLink={universalLinkFull}
+          recordJson={record ? JSON.stringify(record, null, 2) : null}
+        />
       </AppearIn>
 
-      <AppearIn delay={0.1}>
-      <div
-        style={{
-          display: 'flex',
-          flexWrap: 'wrap',
-          gap: '0.5rem',
-          alignItems: 'center',
-        }}
-      >
-        <Link
-          href={aturiUniversalLink}
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '0.4rem',
-            padding: '0.4rem 0.75rem',
-            background: 'var(--bg-tertiary)',
-            border: '1px solid var(--border-medium)',
-            color: 'var(--text-primary)',
-            fontFamily: 'var(--font-serif)',
-            fontSize: '0.8125rem',
-            textDecoration: 'none',
-          }}
-        >
-          <ExternalLink size={12} /> Universal link
-        </Link>
-
-        {canEdit && !editing && (
-          <button
-            type="button"
-            onClick={() => setEditing(true)}
+      {canEdit && (
+        <AppearIn delay={0.1}>
+          <div
             style={{
-              display: 'inline-flex',
+              display: 'flex',
+              flexWrap: 'wrap',
+              gap: '0.5rem',
               alignItems: 'center',
-              gap: '0.4rem',
-              padding: '0.4rem 0.75rem',
-              background: 'var(--accent-moss)',
-              color: 'var(--text-on-accent)',
-              border: '1px solid var(--accent-moss)',
-              fontFamily: 'var(--font-serif)',
-              fontSize: '0.8125rem',
-              cursor: 'pointer',
             }}
           >
-            <FilePenLine size={12} /> Edit record
-          </button>
-        )}
-        {canEdit && editing && (
-          <button
-            type="button"
-            onClick={() => setEditing(false)}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '0.4rem',
-              padding: '0.4rem 0.75rem',
-              background: 'transparent',
-              border: '1px solid var(--border-medium)',
-              color: 'var(--text-secondary)',
-              fontFamily: 'var(--font-serif)',
-              fontSize: '0.8125rem',
-              cursor: 'pointer',
-            }}
-          >
-            <X size={12} /> Close editor
-          </button>
-        )}
-        {record && (
-          <CopyButton
-            value={JSON.stringify(record, null, 2)}
-            label="Copy JSON"
-            compact
-            variant="subtle"
-          />
-        )}
-      </div>
-      </AppearIn>
+            {!editing && (
+              <button
+                type="button"
+                onClick={() => setEditing(true)}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.4rem',
+                  padding: '0.4rem 0.75rem',
+                  background: 'var(--accent-moss)',
+                  color: 'var(--text-on-accent)',
+                  border: '1px solid var(--accent-moss)',
+                  fontFamily: 'var(--font-serif)',
+                  fontSize: '0.8125rem',
+                  cursor: 'pointer',
+                }}
+              >
+                <FilePenLine size={12} /> Edit record
+              </button>
+            )}
+            {editing && (
+              <button
+                type="button"
+                onClick={() => setEditing(false)}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.4rem',
+                  padding: '0.4rem 0.75rem',
+                  background: 'transparent',
+                  border: '1px solid var(--border-medium)',
+                  color: 'var(--text-secondary)',
+                  fontFamily: 'var(--font-serif)',
+                  fontSize: '0.8125rem',
+                  cursor: 'pointer',
+                }}
+              >
+                <X size={12} /> Close editor
+              </button>
+            )}
+          </div>
+        </AppearIn>
+      )}
 
       {editing && canEdit && agent && (
         <RecordEditor
@@ -263,66 +249,54 @@ export default function RecordExplorer({ repo, collection, rkey }: Props) {
   );
 }
 
-function RecordMeta({
+/**
+ * Single-row of compact copy buttons for the values a record-page
+ * visitor might want to grab. Replaces the older RecordMeta + per-cell
+ * copy + standalone "Copy JSON" + outbound "Universal link" cluster.
+ * Values themselves aren't displayed — the URI elements are in the
+ * breadcrumb above, and CID/DID/PDS are visible in the raw JSON below.
+ */
+function CopyRow({
   atUri,
+  did,
   cid,
   pds,
-  did,
+  universalLink,
+  recordJson,
 }: {
   atUri: string;
+  did: string;
   cid?: string;
   pds: string;
-  did: string;
+  universalLink: string;
+  recordJson: string | null;
 }) {
   return (
     <div
       style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(16rem, 1fr))',
-        gap: '0.75rem',
-        padding: '1rem',
+        display: 'flex',
+        flexWrap: 'wrap',
+        alignItems: 'center',
+        gap: '0.5rem',
+        padding: '0.75rem 1rem',
         border: '1px solid var(--border-medium)',
         background: 'var(--bg-secondary)',
       }}
     >
-      <MetaCell label="at uri" value={atUri} copyLabel="Copy AT URI" />
-      {cid && <MetaCell label="cid" value={cid} copyLabel="Copy CID" />}
-      <MetaCell label="pds" value={pds} copyLabel="Copy PDS URL" />
-      <MetaCell label="did" value={did} copyLabel="Copy DID" />
-    </div>
-  );
-}
-
-function MetaCell({
-  label,
-  value,
-  copyLabel,
-}: {
-  label: string;
-  value: string;
-  copyLabel: string;
-}) {
-  return (
-    <div>
-      <div className="explore-small-caps" style={{ marginBottom: '0.25rem' }}>
-        {label}
-      </div>
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '0.5rem',
-          fontFamily: 'var(--font-mono)',
-          fontSize: '0.8125rem',
-          wordBreak: 'break-all',
-          flexWrap: 'wrap',
-        }}
+      <span
+        className="explore-small-caps"
+        style={{ marginRight: '0.25rem', color: 'var(--text-tertiary)' }}
       >
-        <code style={{ background: 'transparent', padding: 0, color: 'var(--text-primary)' }}>
-          {value}
-        </code>
-        <CopyButton value={value} label={copyLabel} compact variant="subtle" />
-      </div>
+        Copy
+      </span>
+      <CopyButton value={atUri} label="AT URI" compact variant="subtle" />
+      <CopyButton value={did} label="DID" compact variant="subtle" />
+      {cid && <CopyButton value={cid} label="CID" compact variant="subtle" />}
+      <CopyButton value={pds} label="PDS" compact variant="subtle" />
+      <CopyButton value={universalLink} label="Universal link" compact variant="subtle" />
+      {recordJson && (
+        <CopyButton value={recordJson} label="JSON" compact variant="subtle" />
+      )}
     </div>
   );
 }
