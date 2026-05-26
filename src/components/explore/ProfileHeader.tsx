@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { ExternalLink, Globe, Heart, MessageSquare, Users } from 'lucide-react';
+import { ExternalLink, Heart, MessageSquare, Users } from 'lucide-react';
 import { getProfile, type AppViewProfile } from '@/utils/atproto/appview';
 import { getRecord } from '@/utils/atproto/pdsClient';
 import type { IdentityBundle } from '@/utils/atproto/identity';
@@ -160,7 +160,39 @@ export default function ProfileHeader({ identity }: Props) {
               wordBreak: 'break-all',
             }}
           >
-            @{handle}
+            {websiteHref ? (
+              // Handle doubles as the website link when the profile has one.
+              // Trailing ExternalLink icon signals that the tap leaves the
+              // current site, since the handle text alone reads as an
+              // identifier (no underline / no obvious "link" affordance).
+              <a
+                href={websiteHref}
+                target="_blank"
+                rel="noreferrer noopener"
+                title={websiteLabel ?? websiteHref}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'baseline',
+                  gap: '0.3rem',
+                  color: 'var(--text-accent)',
+                  textDecoration: 'none',
+                }}
+              >
+                <span>@{handle}</span>
+                <ExternalLink
+                  size={11}
+                  aria-hidden
+                  style={{
+                    color: 'var(--text-tertiary)',
+                    opacity: 0.7,
+                    flexShrink: 0,
+                    transform: 'translateY(1px)',
+                  }}
+                />
+              </a>
+            ) : (
+              <>@{handle}</>
+            )}
           </div>
         )}
 
@@ -178,7 +210,7 @@ export default function ProfileHeader({ identity }: Props) {
           </p>
         )}
 
-        {(websiteHref || hasStats(profile)) && (
+        {hasStats(profile) && (
           <div
             style={{
               display: 'flex',
@@ -194,25 +226,6 @@ export default function ProfileHeader({ identity }: Props) {
               lineHeight: 1,
             }}
           >
-            {websiteHref && (
-              <a
-                href={websiteHref}
-                target="_blank"
-                rel="noreferrer noopener"
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '0.4rem',
-                  color: 'var(--text-accent)',
-                  textDecoration: 'none',
-                  lineHeight: 1,
-                }}
-              >
-                <Globe size={13} />
-                <span>{websiteLabel}</span>
-                <ExternalLink size={11} aria-hidden style={{ opacity: 0.6 }} />
-              </a>
-            )}
             {profile.followersCount != null && (
               <Stat
                 icon={<Heart size={13} />}
