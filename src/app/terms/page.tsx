@@ -56,7 +56,7 @@ export default function TermsPage() {
           Terms of Service & Privacy Policy
         </h1>
         <p style={{ color: 'var(--text-tertiary)', fontSize: '0.875rem' }}>
-          Last updated: May 24, 2026
+          Last updated: May 26, 2026
         </p>
       </header>
 
@@ -97,8 +97,10 @@ export default function TermsPage() {
               <li>
                 The <strong>Atmosphere Explorer</strong> (the &ldquo;Explore&rdquo;
                 feature), which lets visitors browse public repository data,
-                identity history, collections, and backlinks for any account on
-                the Atmosphere.
+                identity history (via the PLC directory), collections, a live
+                Jetstream commit feed, backlinks (via the Constellation
+                third-party index), and cached reputation scores (via the
+                cred.blue third-party API) for any account on the Atmosphere.
               </li>
               <li>
                 The <strong>Record Editor</strong> and other authenticated
@@ -107,19 +109,27 @@ export default function TermsPage() {
                 repository.
               </li>
               <li>
-                <strong>Sign in with atproto</strong> (OAuth), preference sync
-                via your Personal Data Server (&ldquo;<strong>PDS</strong>&rdquo;),
-                and any other authenticated functionality offered through
-                aturi.to.
+                <strong>Sign in with atproto</strong> (OAuth) and{' '}
+                <strong>preference sync</strong> via your Personal Data Server
+                (&ldquo;<strong>PDS</strong>&rdquo;). When you sign in, you can
+                personalize the Service by reordering, hiding, grouping,
+                renaming, pinning, and starring waypoints, adding your own
+                custom waypoints, and storing other non-sensitive UI choices.
+                These preferences are written to a record in your own atproto
+                repository (NSID <code>to.aturi.actor.preferences</code>, rkey{' '}
+                <code>self</code>) so they follow you across devices and
+                clients. Any other authenticated functionality offered through
+                aturi.to is also covered.
               </li>
               <li>
                 The <strong>Aturi browser extension</strong> for Chrome,
-                Firefox, Safari, and other supported browsers, which is also
-                governed by its dedicated{' '}
+                Firefox, Safari, and other supported browsers, including its
+                detection, Inspect, auto-redirect, and waypoint-jump features.
+                The extension is also governed by its dedicated{' '}
                 <Link href={EXTENSION_PRIVACY_URL} style={linkStyle}>
                   Extension Privacy Policy
                 </Link>
-                .
+                , which controls in case of any conflict with this Agreement.
               </li>
               <li>
                 Any other websites, APIs, integrations, share-sheet endpoints,
@@ -173,10 +183,20 @@ export default function TermsPage() {
               </li>
               <li>
                 <strong>Explore.</strong> The Atmosphere Explorer renders
-                public repository data fetched on demand from public
-                Personal Data Servers, the Bluesky AppView, and other public
-                atproto endpoints. We do not warehouse this data; we display
-                what those upstream services return, when you request it.
+                public repository data fetched on demand from public Personal
+                Data Servers, the Bluesky AppView (
+                <code>public.api.bsky.app</code>), the PLC directory (
+                <code>plc.directory</code>) for identity-history lookups,
+                the Constellation third-party backlink index (
+                <code>constellation.microcosm.blue</code>) for incoming-link
+                aggregates, the cred.blue third-party API for cached
+                reputation scores when available, and a public Jetstream
+                relay (a WebSocket firehose of public atproto commits) for
+                live feed views. Aturi does not warehouse this data; we
+                display what those upstream services return, when you
+                request it. Some of these services are operated by third
+                parties and may be unavailable, rate-limited, or removed at
+                any time.
               </li>
               <li>
                 <strong>Record Editor and authenticated actions.</strong> When
@@ -185,16 +205,27 @@ export default function TermsPage() {
                 upload blobs) are performed by your browser directly against
                 your PDS using your DPoP-bound access tokens. Aturi acts as a
                 client interface; the resulting data lives in your repository
-                on your PDS, not on our servers.
+                on your PDS, not on our servers. You are solely responsible
+                for any record you create, modify, or delete through the
+                Service, including the consequences of deletion (such as
+                broken references, lost engagement metadata, or removal of
+                content others have linked to).
               </li>
               <li>
-                <strong>Preference sync.</strong> If you sign in, the Service
-                may store certain non-sensitive preferences (such as your
-                waypoint groupings, ordering, visibility, and custom
-                waypoints) as a record in your own PDS, so that the
-                preferences follow you across devices and clients. You can
-                delete this record at any time using the Service or any other
-                atproto client. We do not maintain a separate copy.
+                <strong>Preference sync and personalization.</strong> If you
+                sign in, the Service may store non-sensitive preferences
+                &mdash; including waypoint groups (name and order), per-group
+                waypoint ordering, hidden/visible/pinned waypoints, custom
+                waypoints you have defined (display name, domain, URL
+                templates, supported record types), and other UI choices
+                &mdash; as a record in your own PDS (NSID{' '}
+                <code>to.aturi.actor.preferences</code>, rkey{' '}
+                <code>self</code>). The authoritative copy lives in your
+                repository, under your control. A local copy is kept in your
+                browser&rsquo;s storage for fast access and to support
+                anonymous use. You can delete the preferences record at any
+                time using the Service or any other atproto client. We do not
+                maintain a separate copy.
               </li>
               <li>
                 <strong>Resolve API and oEmbed.</strong> Aturi exposes a
@@ -207,12 +238,25 @@ export default function TermsPage() {
               </li>
               <li>
                 <strong>Browser extension.</strong> The browser extension is
-                distributed via official browser web stores. Its data
-                handling is described separately in the{' '}
+                distributed via official browser web stores (Chrome Web
+                Store, Firefox Add-ons, and the Mac App Store for Safari).
+                In addition to one-click waypoint jumping and auto-redirect,
+                the extension offers <strong>AT URI detection</strong> (a
+                content script that passively looks for{' '}
+                <code>&lt;link href=&quot;at://&hellip;&quot;&gt;</code> in
+                the document head on pages you visit, so the popup can offer
+                relevant waypoints) and an <strong>Inspect</strong> view
+                (which, when you open it, scans the active page for AT URIs
+                in head, meta, anchor, JSON-LD, and body text, and then
+                fetches identity, record, and backlink data from public
+                atproto services to display details inline). Its full data
+                handling, network requests, and permissions are described in
+                the{' '}
                 <Link href={EXTENSION_PRIVACY_URL} style={linkStyle}>
                   Extension Privacy Policy
                 </Link>
-                . It does not transmit data to Aturi servers in normal use.
+                . The extension does not transmit data to Aturi-operated
+                servers in normal use.
               </li>
             </ul>
             <p style={paragraph}>
@@ -373,15 +417,61 @@ export default function TermsPage() {
             <p style={paragraph}>
               The Service interoperates with and routes to third-party
               services that we do not control, including without limitation:
-              the Bluesky AppView (<code>public.api.bsky.app</code>); your
-              chosen PDS and any identity authority associated with it;
-              third-party Atmosphere clients and waypoints (e.g., Bluesky,
-              Anisota, Blacksky, Red Dwarf, Leaflet, Tangled, Margin, Grain,
-              Pinkleap, Semble, Streamplace, Popfeed, Sifa, Blento, PDSls,
-              atp.tools); custom waypoints you define; our hosting and
-              edge-compute provider (Vercel); analytics provider (Vercel
-              Analytics); and other infrastructure providers.
             </p>
+            <ul style={list}>
+              <li>
+                The <strong>Bluesky AppView</strong> (
+                <code>public.api.bsky.app</code>) &mdash; profile lookups,
+                handle resolution, post/list fetches.
+              </li>
+              <li>
+                The <strong>PLC directory</strong> (
+                <code>plc.directory</code>) &mdash; DID document and
+                identity-audit-log lookups for Explore.
+              </li>
+              <li>
+                <strong>Constellation</strong> (
+                <code>constellation.microcosm.blue</code>) &mdash; a
+                third-party backlink index queried for incoming-reference
+                counts on records.
+              </li>
+              <li>
+                <strong>cred.blue</strong> (<code>api.cred.blue</code>) &mdash;
+                a third-party reputation/score API queried to display a
+                cached score badge on certain profile pages.
+              </li>
+              <li>
+                A public <strong>Jetstream relay</strong> WebSocket (e.g.,{' '}
+                <code>jetstream2.us-east.bsky.network</code>) &mdash; live
+                stream of public atproto commits used to render the Explore
+                live feed. Standard connection metadata (IP address, user
+                agent) is visible to the relay operator while the connection
+                is open.
+              </li>
+              <li>
+                Your <strong>PDS and identity authority</strong>{' '}
+                &mdash; authentication, repository reads and writes, blob
+                uploads.
+              </li>
+              <li>
+                <strong>Third-party Atmosphere clients and waypoints</strong>{' '}
+                (e.g., Bluesky, Anisota, Blacksky, Red Dwarf, Leaflet,
+                Tangled, Margin, Grain, Pinkleap, Semble, Streamplace,
+                Popfeed, Sifa, Blento, PDSls, atp.tools) and{' '}
+                <strong>custom waypoints you define</strong>.
+              </li>
+              <li>
+                <strong>Vercel</strong> &mdash; hosting, edge runtime, and
+                anonymous analytics.
+              </li>
+              <li>
+                Browser web stores and operating-system vendors (
+                <strong>Google</strong>, <strong>Mozilla</strong>,{' '}
+                <strong>Apple</strong>) that distribute the extension and
+                may, depending on your settings, sync extension storage
+                across your devices.
+              </li>
+            </ul>
             <p style={paragraph}>
               Your use of any third-party service is governed by that
               service&rsquo;s own terms and privacy policy. Aturi makes no
@@ -726,23 +816,35 @@ export default function TermsPage() {
               Signing out clears that local session in the browser you used.
             </p>
             <p style={paragraph}>
-              <strong>Preferences.</strong> Non-sensitive preferences
-              (waypoint groups, ordering, visibility, custom waypoints, UI
-              settings) are stored locally in your browser. If you are
-              signed in, we may also mirror those preferences as a record
-              in your own PDS so that they sync across your devices. The
+              <strong>Preferences and personalization.</strong> Non-sensitive
+              preferences &mdash; including waypoint groups, per-group
+              ordering, pinned/visible/hidden waypoints, custom waypoints
+              you create (display name, domain, URL templates, supported
+              record types), and other UI choices &mdash; are stored
+              locally in your browser. If you are signed in, we also mirror
+              those preferences as a record in your own PDS (NSID{' '}
+              <code>to.aturi.actor.preferences</code>, rkey{' '}
+              <code>self</code>) so they sync across your devices. The
               authoritative copy lives in your repository, under your
-              control; we do not maintain a separate copy.
+              control; we do not maintain a separate copy. The PDS record
+              is technically public &mdash; like all atproto records &mdash;
+              and may be visible to anyone with access to your PDS or
+              relays that ingest your repository.
             </p>
             <p style={paragraph}>
               <strong>Atmosphere data.</strong> When you use Explore, view a
               landing page, request an OG image, or call the Resolve or
               oEmbed APIs, the Service may fetch records, identity
-              documents, blobs, and profile data from public atproto
-              services (PDSes, the Bluesky AppView, and similar). That
-              data is rendered or returned to you and is not stored by
-              Aturi for any purpose other than fulfilling the request
-              (subject to short-lived edge caching for performance).
+              documents (including PLC audit logs), blobs, profile data,
+              backlink aggregates, reputation scores, and live commit
+              streams from public atproto services (PDSes, the Bluesky
+              AppView, the PLC directory, Constellation, cred.blue,
+              Jetstream relays, and similar). That data is rendered or
+              returned to you and is not stored by Aturi for any purpose
+              other than fulfilling the request (subject to short-lived
+              edge caching for performance). The identifiers (handles,
+              DIDs, AT URIs) you supply are necessarily transmitted to the
+              relevant third party so it can answer the query.
             </p>
             <p style={paragraph}>
               <strong>Resolve API and oEmbed.</strong> When a third-party
@@ -833,7 +935,7 @@ export default function TermsPage() {
 
             <h3 style={subHeading}>6. Sub-processors and third parties</h3>
             <p style={paragraph}>
-              We rely on a small set of third parties to operate the Service:
+              We rely on a set of third parties to operate the Service:
             </p>
             <ul style={list}>
               <li>
@@ -841,16 +943,34 @@ export default function TermsPage() {
                 anonymous analytics.
               </li>
               <li>
-                <strong>Bluesky AppView</strong> (<code>public.api.bsky.app</code>)
-                &mdash; resolving handles and DIDs, fetching public profile
-                and post data.
+                <strong>Bluesky AppView</strong> (
+                <code>public.api.bsky.app</code>) &mdash; resolving handles
+                and DIDs, fetching public profile and post data.
+              </li>
+              <li>
+                <strong>PLC directory</strong> (<code>plc.directory</code>)
+                &mdash; DID document and identity-audit-log lookups.
+              </li>
+              <li>
+                <strong>Constellation</strong> (
+                <code>constellation.microcosm.blue</code>) &mdash;
+                third-party backlink index.
+              </li>
+              <li>
+                <strong>cred.blue</strong> (<code>api.cred.blue</code>) &mdash;
+                third-party reputation/score API.
+              </li>
+              <li>
+                <strong>Jetstream relays</strong> (e.g.,{' '}
+                <code>jetstream2.us-east.bsky.network</code>) &mdash; live
+                public-commit firehose used to render Explore live feeds.
               </li>
               <li>
                 <strong>Your PDS and identity authority</strong> &mdash;
                 authentication, repository reads and writes, blob uploads.
               </li>
               <li>
-                <strong>Public atproto services</strong> &mdash; relays,
+                <strong>Other public atproto services</strong> &mdash; relays,
                 AppViews, and other public endpoints that may be queried to
                 render Explore, OG images, oEmbed, and Resolve responses.
               </li>
@@ -858,6 +978,12 @@ export default function TermsPage() {
                 <strong>Third-party Atmosphere clients and waypoints</strong>{' '}
                 &mdash; the destinations you (or your recipients) choose to
                 open links in. We do not control these services.
+              </li>
+              <li>
+                <strong>Browser web stores and OS vendors</strong> (Google,
+                Mozilla, Apple) &mdash; distribute the extension and,
+                depending on your settings, may sync extension storage
+                across your devices.
               </li>
             </ul>
             <p style={paragraph}>
