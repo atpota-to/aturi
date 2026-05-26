@@ -107,7 +107,16 @@ export default function CollectionsTab({ identity }: { identity: IdentityBundle 
   const [collections, setCollections] = useState<string[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState('');
-  const [mutualOnly, setMutualOnly] = useState(false);
+  /**
+   * Cross-repo filter:
+   *   - `all`:        show everything on this repo (default)
+   *   - `mutual`:     only NSIDs the viewer also has (intersection)
+   *   - `notMine`:    only NSIDs the viewer doesn't have yet
+   *
+   * Only meaningful when signed in and viewing someone else's repo.
+   */
+  type CommonFilter = 'all' | 'mutual' | 'notMine';
+  const [commonFilter, setCommonFilter] = useState<CommonFilter>('all');
   /**
    * Per-group open-state OVERRIDES keyed by full group/sub key (e.g.
    * "app.bsky" or "app.bsky.feed"). A missing key falls back to the
@@ -189,11 +198,13 @@ export default function CollectionsTab({ identity }: { identity: IdentityBundle 
     let list = pinnedOnThisRepo.length > 0
       ? collections.filter((n) => !pinnedHereSet.has(n))
       : collections;
-    if (mutualOnly && myCollections) {
-      list = list.filter((n) => myCollections.has(n));
+    if (commonFilter !== 'all' && myCollections) {
+      list = list.filter((n) =>
+        commonFilter === 'mutual' ? myCollections.has(n) : !myCollections.has(n),
+      );
     }
     return list;
-  }, [collections, pinnedOnThisRepo, pinnedHereSet, mutualOnly, myCollections]);
+  }, [collections, pinnedOnThisRepo, pinnedHereSet, commonFilter, myCollections]);
 
   const groups = useMemo(
     () => groupHierarchically(groupSource, filter),
@@ -233,9 +244,9 @@ export default function CollectionsTab({ identity }: { identity: IdentityBundle 
     update((p) => togglePinnedLexicon(p, nsid, pinTarget));
   }
 
-  // Mutual filter only makes sense when signed in and viewing someone else's
-  // repo (own repo is 100% mutual by definition).
-  const showMutualToggle = Boolean(myDid) && !isOwnRepo && myCollections !== null;
+  // Cross-repo filter only makes sense when signed in and viewing someone
+  // else's repo (own repo is 100% mutual by definition).
+  const showCommonFilter = Boolean(myDid) && !isOwnRepo && myCollections !== null;
 
   if (error) return <p className="explore-error">{error}</p>;
   if (!collections) return <p className="explore-placeholder">Loading collections…</p>;
@@ -270,27 +281,51 @@ export default function CollectionsTab({ identity }: { identity: IdentityBundle 
             outline: 'none',
           }}
         />
-        {showMutualToggle && (
-          <label
+        {showCommonFilter && (
+          <div
+            role="radiogroup"
+            aria-label="Filter by what you have in common"
             style={{
               display: 'inline-flex',
-              alignItems: 'center',
-              gap: '0.4rem',
-              fontFamily: 'var(--font-serif)',
-              fontSize: '0.85rem',
-              color: 'var(--text-secondary)',
-              cursor: 'pointer',
-              userSelect: 'none',
+              border: '1px solid var(--border-medium)',
+              overflow: 'hidden',
+              flexShrink: 0,
             }}
           >
-            <input
-              type="checkbox"
-              checked={mutualOnly}
-              onChange={(e) => setMutualOnly(e.target.checked)}
-              style={{ accentColor: 'var(--text-accent)' }}
-            />
-            Mutual lexicons only
-          </label>
+            {(
+              [
+                { value: 'all', label: 'all' },
+                { value: 'mutual', label: 'in common' },
+                { value: 'notMine', label: "i don't have" },
+              ] as const
+            ).map(({ value, label }) => {
+              const active = commonFilter === value;
+              return (
+                <button
+                  key={value}
+                  type="button"
+                  role="radio"
+                  aria-checked={active}
+                  onClick={() => setCommonFilter(value)}
+                  style={{
+                    padding: '0.4rem 0.75rem',
+                    fontSize: '0.8rem',
+                    background: active ? 'var(--accent-forest)' : 'transparent',
+                    color: active ? 'var(--text-on-accent)' : 'var(--text-secondary)',
+                    border: 'none',
+                    cursor: 'pointer',
+                    transition: 'background 0.2s ease, color 0.2s ease',
+                    textTransform: 'lowercase',
+                    letterSpacing: '0.02em',
+                    fontFamily: 'var(--font-serif)',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {label}
+                </button>
+              );
+            })}
+          </div>
         )}
         {groups.length > 0 && (
           <button
@@ -382,13 +417,15 @@ export default function CollectionsTab({ identity }: { identity: IdentityBundle 
 
       {groups.length === 0 && pinnedOnThisRepo.length === 0 ? (
         <p className="explore-placeholder">
-          {mutualOnly
-            ? 'No collections in common with this repo.'
-            : (
-              <>
-                No collections match <code>{filter}</code>.
-              </>
-            )}
+          {commonFilter === 'mutual' ? (
+            'No collections in common with this repo.'
+          ) : commonFilter === 'notMine' ? (
+            'You already have every collection this repo has.'
+          ) : (
+            <>
+              No collections match <code>{filter}</code>.
+            </>
+          )}
         </p>
       ) : groups.length === 0 ? null : (
         groups.map((g) => {
