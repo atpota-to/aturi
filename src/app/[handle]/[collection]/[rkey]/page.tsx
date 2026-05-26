@@ -7,6 +7,7 @@ import PostPreviewSkeleton from '@/components/PostPreviewSkeleton';
 import RecordPreview from '@/components/RecordPreview';
 import ScrollIndicator from '@/components/ScrollIndicator';
 import Header from '@/components/Header';
+import NotFoundPanel from '@/components/NotFoundPanel';
 import { parseURI, resolveHandle, getDisplayName } from '@/utils/uriParser';
 import { fetchRecordData } from '@/utils/recordFetcher';
 import { resolveDidToHandle } from '@/utils/didResolver';
@@ -268,25 +269,27 @@ async function RecordContent({ handle, collection, rkey }: { handle: string; col
     
     if (parsedData.error) {
       return (
-        <>
+        <div className="container-narrow" style={{ padding: '2rem 2rem 4rem', textAlign: 'center' }}>
           <Header compact />
-          <div className="container-narrow" style={{ padding: '0 2rem 4rem', textAlign: 'center' }}>
-            <h1 style={{ marginBottom: '1rem', color: 'var(--text-primary)' }}>Error</h1>
-            <p style={{ color: 'var(--text-secondary)' }}>{parsedData.error}</p>
-          </div>
-        </>
+          <h1 style={{ marginBottom: '1rem', color: 'var(--text-primary)' }}>Error</h1>
+          <p style={{ color: 'var(--text-secondary)' }}>{parsedData.error}</p>
+        </div>
       );
     }
 
     const resolvedDid = await resolveHandle(handle);
-
+    
     if (!resolvedDid) {
       return (
         <>
           <Header compact />
-          <div className="container-narrow" style={{ padding: '0 2rem 4rem', textAlign: 'center' }}>
-            <h1 style={{ marginBottom: '1rem', color: 'var(--text-primary)' }}>Error</h1>
-            <p style={{ color: 'var(--text-secondary)' }}>Could not resolve handle: {handle}</p>
+          <div className="container-narrow" style={{ padding: '0 2rem 4rem' }}>
+            <NotFoundPanel
+              eyebrow="Couldn't resolve"
+              headline="That handle didn't resolve."
+              body={`We tried to resolve "${handle}" as an Atmosphere handle and didn't find anything. Try a different handle, DID, or AT URI below.`}
+              initialQuery={handle}
+            />
           </div>
         </>
       );
@@ -300,13 +303,11 @@ async function RecordContent({ handle, collection, rkey }: { handle: string; col
 
     if (parsedData.type === 'unknown') {
       return (
-        <>
+        <div className="container-narrow" style={{ padding: '2rem 2rem 4rem', textAlign: 'center' }}>
           <Header compact />
-          <div className="container-narrow" style={{ padding: '0 2rem 4rem', textAlign: 'center' }}>
-            <h1 style={{ marginBottom: '1rem', color: 'var(--text-primary)' }}>Error</h1>
-            <p style={{ color: 'var(--text-secondary)' }}>Invalid or unsupported URI</p>
-          </div>
-        </>
+          <h1 style={{ marginBottom: '1rem', color: 'var(--text-primary)' }}>Error</h1>
+          <p style={{ color: 'var(--text-secondary)' }}>Invalid or unsupported URI</p>
+        </div>
       );
     }
 
@@ -358,21 +359,21 @@ async function RecordContent({ handle, collection, rkey }: { handle: string; col
     const postAtUri = post?.uri || '';
 
     return (
-      <>
+      <div className="container-narrow" style={{ padding: '2rem 2rem 4rem' }}>
         <Header compact />
-        <div className="container-narrow" style={{ padding: '0 2rem 4rem' }}>
-          {/* AT-URI alternate link, mirroring Bluesky's bskyweb template.
-              React 19 hoists this to <head>. */}
-          {postAtUri && <link rel="alternate" href={postAtUri} />}
 
-          {jsonLd && (
-            <script
-              type="application/ld+json"
-              dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-            />
-          )}
+        {/* AT-URI alternate link, mirroring Bluesky's bskyweb template.
+            React 19 hoists this to <head>. */}
+        {postAtUri && <link rel="alternate" href={postAtUri} />}
 
-          {recordData && (
+        {jsonLd && (
+          <script
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+          />
+        )}
+
+        {recordData && (
           <div className="content-fade-in">
             {recordData.type === 'post' && recordData.data.thread[0]?.value.post && (
               <PostPreview 
@@ -453,30 +454,27 @@ async function RecordContent({ handle, collection, rkey }: { handle: string; col
           </div>
         )}
 
-          <WaypointPicker
-            type={parsedData.type}
-            handle={resolvedHandle}
-            collection={collection}
-            rkey={rkey}
-            did={resolvedDid}
-            displayName={getDisplayName(resolvedHandle, resolvedDid)}
-          />
+        <WaypointPicker
+          type={parsedData.type}
+          handle={resolvedHandle}
+          collection={collection}
+          rkey={rkey}
+          did={resolvedDid}
+          displayName={getDisplayName(resolvedHandle, resolvedDid)}
+        />
 
-          {/* Floating scroll indicator overlay */}
-          <ScrollIndicator />
-        </div>
-      </>
+        {/* Floating scroll indicator overlay */}
+        <ScrollIndicator />
+      </div>
     );
   } catch (error) {
     console.error('Error loading record:', error);
     return (
-      <>
+      <div className="container-narrow" style={{ padding: '2rem 2rem 4rem', textAlign: 'center' }}>
         <Header compact />
-        <div className="container-narrow" style={{ padding: '0 2rem 4rem', textAlign: 'center' }}>
-          <h1 style={{ marginBottom: '1rem', color: 'var(--text-primary)' }}>Error</h1>
-          <p style={{ color: 'var(--text-secondary)' }}>Error processing URI</p>
-        </div>
-      </>
+        <h1 style={{ marginBottom: '1rem', color: 'var(--text-primary)' }}>Error</h1>
+        <p style={{ color: 'var(--text-secondary)' }}>Error processing URI</p>
+      </div>
     );
   }
 }
@@ -504,12 +502,10 @@ export default async function RecordPage({ params }: Props) {
   return (
     <Suspense
       fallback={
-        <>
+        <div className="container-narrow" style={{ padding: '2rem 2rem 4rem' }}>
           <Header compact />
-          <div className="container-narrow" style={{ padding: '0 2rem 4rem' }}>
-            <PostPreviewSkeleton />
-          </div>
-        </>
+          <PostPreviewSkeleton />
+        </div>
       }
     >
       <RecordContent handle={handle} collection={collection} rkey={rkey} />

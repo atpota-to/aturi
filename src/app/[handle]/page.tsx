@@ -6,6 +6,7 @@ import ProfilePreview from '@/components/ProfilePreview';
 import ProfilePreviewSkeleton from '@/components/ProfilePreviewSkeleton';
 import ScrollIndicator from '@/components/ScrollIndicator';
 import Header from '@/components/Header';
+import NotFoundPanel from '@/components/NotFoundPanel';
 import { resolveHandle, getDisplayName } from '@/utils/uriParser';
 import { resolveDidToHandle } from '@/utils/didResolver';
 import { fetchProfile } from '@/utils/profileFetcher';
@@ -88,9 +89,13 @@ async function ProfileContent({ handle }: { handle: string }) {
     return (
       <>
         <Header compact />
-        <div className="container-narrow" style={{ padding: '0 2rem 4rem', textAlign: 'center' }}>
-          <h1 style={{ marginBottom: '1rem', color: 'var(--text-primary)' }}>Error</h1>
-          <p style={{ color: 'var(--text-secondary)' }}>Could not resolve handle</p>
+        <div className="container-narrow" style={{ padding: '0 2rem 4rem' }}>
+          <NotFoundPanel
+            eyebrow="Couldn't resolve"
+            headline="That handle didn't resolve."
+            body={`We tried to resolve "${handle}" as an Atmosphere handle and didn't find anything. If you meant a different account, search for a handle, DID, or AT URI below.`}
+            initialQuery={handle}
+          />
         </div>
       </>
     );
@@ -103,26 +108,25 @@ async function ProfileContent({ handle }: { handle: string }) {
   const profileData = await fetchProfile(resolvedDid);
 
   return (
-    <>
+    <div className="container-narrow" style={{ padding: '2rem 2rem 4rem' }}>
       <Header compact />
-      <div className="container-narrow" style={{ padding: '0 2rem 4rem' }}>
-        {profileData && (
-          <div className="content-fade-in">
-            <ProfilePreview profile={profileData} />
-          </div>
-        )}
 
-        <WaypointPicker
-          type="profile"
-          handle={resolvedHandle}
-          did={resolvedDid}
-          displayName={getDisplayName(resolvedHandle, resolvedDid)}
-        />
+      {profileData && (
+        <div className="content-fade-in">
+          <ProfilePreview profile={profileData} />
+        </div>
+      )}
 
-        {/* Floating scroll indicator overlay */}
-        <ScrollIndicator />
-      </div>
-    </>
+      <WaypointPicker
+        type="profile"
+        handle={resolvedHandle}
+        did={resolvedDid}
+        displayName={getDisplayName(resolvedHandle, resolvedDid)}
+      />
+
+      {/* Floating scroll indicator overlay */}
+      <ScrollIndicator />
+    </div>
   );
 }
 
@@ -147,12 +151,10 @@ export default async function ProfilePage({ params }: Props) {
   return (
     <Suspense
       fallback={
-        <>
+        <div className="container-narrow" style={{ padding: '2rem 2rem 4rem' }}>
           <Header compact />
-          <div className="container-narrow" style={{ padding: '0 2rem 4rem' }}>
-            <ProfilePreviewSkeleton />
-          </div>
-        </>
+          <ProfilePreviewSkeleton />
+        </div>
       }
     >
       <ProfileContent handle={handle} />

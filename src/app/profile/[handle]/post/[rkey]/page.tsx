@@ -6,6 +6,7 @@ import PostPreview from '@/components/PostPreview';
 import PostPreviewSkeleton from '@/components/PostPreviewSkeleton';
 import ScrollIndicator from '@/components/ScrollIndicator';
 import Header from '@/components/Header';
+import NotFoundPanel from '@/components/NotFoundPanel';
 import { parseURI, resolveHandle, getDisplayName } from '@/utils/uriParser';
 import { fetchRecordData } from '@/utils/recordFetcher';
 import { resolveDidToHandle } from '@/utils/didResolver';
@@ -154,25 +155,27 @@ async function PostContent({ handle, rkey }: { handle: string; rkey: string }) {
     
     if (parsedData.error) {
       return (
-        <>
+        <div className="container-narrow" style={{ padding: '2rem 2rem 4rem', textAlign: 'center' }}>
           <Header compact />
-          <div className="container-narrow" style={{ padding: '0 2rem 4rem', textAlign: 'center' }}>
-            <h1 style={{ marginBottom: '1rem', color: 'var(--text-primary)' }}>Error</h1>
-            <p style={{ color: 'var(--text-secondary)' }}>{parsedData.error}</p>
-          </div>
-        </>
+          <h1 style={{ marginBottom: '1rem', color: 'var(--text-primary)' }}>Error</h1>
+          <p style={{ color: 'var(--text-secondary)' }}>{parsedData.error}</p>
+        </div>
       );
     }
 
     const resolvedDid = await resolveHandle(handle);
-
+    
     if (!resolvedDid) {
       return (
         <>
           <Header compact />
-          <div className="container-narrow" style={{ padding: '0 2rem 4rem', textAlign: 'center' }}>
-            <h1 style={{ marginBottom: '1rem', color: 'var(--text-primary)' }}>Error</h1>
-            <p style={{ color: 'var(--text-secondary)' }}>Could not resolve handle: {handle}</p>
+          <div className="container-narrow" style={{ padding: '0 2rem 4rem' }}>
+            <NotFoundPanel
+              eyebrow="Couldn't resolve"
+              headline="That handle didn't resolve."
+              body={`We tried to resolve "${handle}" as an Atmosphere handle and didn't find anything. Try a different handle, DID, or AT URI below.`}
+              initialQuery={handle}
+            />
           </div>
         </>
       );
@@ -228,53 +231,50 @@ async function PostContent({ handle, rkey }: { handle: string; rkey: string }) {
     const atUri = post?.uri || '';
 
     return (
-      <>
+      <div className="container-narrow" style={{ padding: '2rem 2rem 4rem' }}>
         <Header compact />
-        <div className="container-narrow" style={{ padding: '0 2rem 4rem' }}>
-          {/* AT-URI alternate link, mirroring Bluesky's bskyweb template.
-              React 19 hoists this to <head>. */}
-          {atUri && <link rel="alternate" href={atUri} />}
 
-          {jsonLd && (
-            <script
-              type="application/ld+json"
-              dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-            />
-          )}
+        {/* AT-URI alternate link, mirroring Bluesky's bskyweb template.
+            React 19 hoists this to <head>. */}
+        {atUri && <link rel="alternate" href={atUri} />}
 
-          {post && recordData && recordData.type === 'post' && (
-            <div className="content-fade-in">
-              <PostPreview
-                post={post}
-                parent={recordData.data.parent}
-              />
-            </div>
-          )}
-
-          <WaypointPicker
-            type="post"
-            handle={resolvedHandle}
-            collection={collection}
-            rkey={rkey}
-            did={resolvedDid}
-            displayName={getDisplayName(resolvedHandle, resolvedDid)}
+        {jsonLd && (
+          <script
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
           />
+        )}
 
-          {/* Floating scroll indicator overlay */}
-          <ScrollIndicator />
-        </div>
-      </>
+        {post && recordData && recordData.type === 'post' && (
+          <div className="content-fade-in">
+            <PostPreview 
+              post={post} 
+              parent={recordData.data.parent}
+            />
+          </div>
+        )}
+
+        <WaypointPicker
+          type="post"
+          handle={resolvedHandle}
+          collection={collection}
+          rkey={rkey}
+          did={resolvedDid}
+          displayName={getDisplayName(resolvedHandle, resolvedDid)}
+        />
+
+        {/* Floating scroll indicator overlay */}
+        <ScrollIndicator />
+      </div>
     );
   } catch (error) {
     console.error('Error loading post:', error);
     return (
-      <>
+      <div className="container-narrow" style={{ padding: '2rem 2rem 4rem', textAlign: 'center' }}>
         <Header compact />
-        <div className="container-narrow" style={{ padding: '0 2rem 4rem', textAlign: 'center' }}>
-          <h1 style={{ marginBottom: '1rem', color: 'var(--text-primary)' }}>Error</h1>
-          <p style={{ color: 'var(--text-secondary)' }}>Error loading post</p>
-        </div>
-      </>
+        <h1 style={{ marginBottom: '1rem', color: 'var(--text-primary)' }}>Error</h1>
+        <p style={{ color: 'var(--text-secondary)' }}>Error loading post</p>
+      </div>
     );
   }
 }
@@ -301,12 +301,10 @@ export default async function PostPage({ params }: Props) {
   return (
     <Suspense
       fallback={
-        <>
+        <div className="container-narrow" style={{ padding: '2rem 2rem 4rem' }}>
           <Header compact />
-          <div className="container-narrow" style={{ padding: '0 2rem 4rem' }}>
-            <PostPreviewSkeleton />
-          </div>
-        </>
+          <PostPreviewSkeleton />
+        </div>
       }
     >
       <PostContent handle={handle} rkey={rkey} />
