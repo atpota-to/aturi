@@ -323,7 +323,11 @@ function InspectCard({ hit }: { hit: DetectedAtUri }) {
         )}
       </div>
 
-      {/* Source + backlink count line. */}
+      {/* Card body — everything below the breadcrumb. Wrapped so the
+          breadcrumb above can read as a distinct attached header
+          (different background, bottom border) instead of just another
+          row in a uniform stack. */}
+      <div className="inspect-card-body">
       {hit.sample && (
         <div className="aturi-subtle" style={{ fontSize: 11, fontStyle: 'italic' }}>
           “{hit.sample}”
@@ -423,6 +427,7 @@ function InspectCard({ hit }: { hit: DetectedAtUri }) {
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 }
