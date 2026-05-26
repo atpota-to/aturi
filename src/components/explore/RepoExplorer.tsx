@@ -10,6 +10,7 @@ import AppearIn from './AppearIn';
 import Breadcrumb from './Breadcrumb';
 import CopyButton from './CopyButton';
 import ProfileHeader from './ProfileHeader';
+import RelationshipStrip from './RelationshipStrip';
 import AccountStats from '@/components/account/AccountStats';
 import CollectionsTab from './tabs/CollectionsTab';
 import IdentityTab from './tabs/IdentityTab';
@@ -79,6 +80,12 @@ export default function RepoExplorer({ repo }: { repo: string }) {
           // and the WaypointPicker on aturi.to handles client selection.
           shareUrl={`/${identity.handle || identity.did}`}
         />
+      </AppearIn>
+      {/* "You + @them" relationship signals. Renders nothing for signed-out
+          visitors or when viewing your own repo, so the strip is silent
+          unless it has something useful to say. */}
+      <AppearIn delay={0.02}>
+        <RelationshipStrip target={identity} />
       </AppearIn>
       <AppearIn delay={0.04}>
         <ProfileHeader identity={identity} />

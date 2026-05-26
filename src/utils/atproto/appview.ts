@@ -3,6 +3,7 @@
  * engagement overlay (likes / reposts / replies / follower counts).
  */
 
+import type { Agent } from '@atproto/api';
 import { APPVIEW } from './config';
 
 export type AppViewPostThread = {
@@ -55,6 +56,51 @@ export async function getProfile(actor: string): Promise<AppViewProfile | null> 
   return fetchJsonOrNull<AppViewProfile>(
     `${APPVIEW}/xrpc/app.bsky.actor.getProfile?actor=${encodeURIComponent(actor)}`,
   );
+}
+
+/**
+ * Viewer-specific state the AppView attaches to an authenticated
+ * getProfile response — only present when called via a signed-in agent.
+ * Used by the explorer's relationship strip to surface "do we follow
+ * each other / mutuals" signals.
+ */
+export type ViewerState = {
+  /** AT URI of the viewer's follow record pointing at the target. */
+  following?: string;
+  /** AT URI of the target's follow record pointing at the viewer. */
+  followedBy?: string;
+  muted?: boolean;
+  blockedBy?: boolean;
+  blocking?: string;
+};
+
+export type KnownFollowers = {
+  count: number;
+  followers?: Array<{ did: string; handle?: string; displayName?: string; avatar?: string }>;
+};
+
+export type AppViewProfileWithViewer = AppViewProfile & {
+  viewer?: ViewerState;
+  knownFollowers?: KnownFollowers;
+};
+
+/**
+ * Authenticated profile lookup that includes the AppView's `viewer` and
+ * `knownFollowers` blocks. The unauthenticated `getProfile` above can't
+ * compute relationship state — for that we need the AppView call to go
+ * through the signed-in agent so it knows who "you" are.
+ */
+export async function getProfileWithViewer(
+  agent: Agent,
+  actor: string,
+): Promise<AppViewProfileWithViewer | null> {
+  if (!actor) return null;
+  try {
+    const res = await agent.app.bsky.actor.getProfile({ actor });
+    return (res?.data ?? res) as AppViewProfileWithViewer;
+  } catch {
+    return null;
+  }
 }
 
 /** Lightweight actor record returned by typeahead/search endpoints. */
