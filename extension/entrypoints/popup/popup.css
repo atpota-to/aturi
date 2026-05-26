@@ -710,3 +710,21 @@ body {
 .popup-mode-tab svg {
   flex-shrink: 0;
 }
+
+.popup-mode-tab-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 5px;
+  margin-left: 2px;
+  background: var(--text-accent);
+  color: var(--bg-primary, #000);
+  border-radius: 8px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0;
+  line-height: 1;
+  text-transform: none;
+}
