@@ -82,7 +82,7 @@ export default function ExploreLanding() {
             marginBottom: '2rem',
           }}
         >
-          Every account on the Atmosphere keeps its records in a public PDS.
+          Every account in the Atmosphere keeps its records in a public PDS.
           Browse collections, inspect identity history, follow backlinks, and
           edit your own records, all from the browser.
         </p>
