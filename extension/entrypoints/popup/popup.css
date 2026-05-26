@@ -762,8 +762,6 @@ body {
 .inspect-card {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  padding: 12px 14px;
   margin-bottom: 8px;
   background: var(--bg-secondary);
   border: 1px solid var(--border-medium);
@@ -774,12 +772,26 @@ body {
   margin-top: 4px;
 }
 
+/* The breadcrumb sits as a distinct header section at the top of the
+   card — own background, own padding, divider below — so it reads as a
+   "this is what record you're looking at" banner rather than just the
+   first row in a uniform stack. */
 .inspect-breadcrumb {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
   gap: 4px;
   font-size: 11px;
+  padding: 10px 14px;
+  background: var(--bg-tertiary);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.inspect-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 14px;
 }
 
 .inspect-breadcrumb-segment {
