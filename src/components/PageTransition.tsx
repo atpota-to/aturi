@@ -36,10 +36,16 @@ export default function PageTransition({ children }: PageTransitionProps) {
   // during the crossfade, which races the built-in scroll restoration
   // and leaves the new page scrolled to wherever the old one was. Hash
   // navigations are passed through so in-page anchors still work.
+  //
+  // `behavior: 'instant'` is required: globals.css sets
+  // `scroll-behavior: smooth` on <html> for in-page anchor scrolling,
+  // and the default form would inherit that — turning the scroll-to-top
+  // into an animated tween that races the page-transition layout shift
+  // and lands the user partway up the new page instead of at 0.
   useEffect(() => {
     if (typeof window === 'undefined') return;
     if (window.location.hash) return;
-    window.scrollTo(0, 0);
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
   }, [pathname]);
 
   return (
