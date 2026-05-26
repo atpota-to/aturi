@@ -286,7 +286,7 @@ export default function App() {
       </>
     ) : (
       <div className="popup-header-actions">
-        <span className="popup-tagline">Atmosphere Fast Travel</span>
+        <span className="popup-tagline">Tour the Atmosphere</span>
       </div>
     );
 
