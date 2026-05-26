@@ -235,7 +235,6 @@ export const WAYPOINT_ICONS: Record<string, ReactNode> = {
   leaflet: <LeafletSVG />,
   pdsls: <PdslsSVG />,
   anisotaReader: <AnisotaLogo width={24} height={24} />,
-  anisotaExplorer: <AnisotaLogo width={24} height={24} />,
   atptools: <WrenchSVG />,
   witchsky: <WitchskySVG />,
   catsky: <CatskySVG />,
