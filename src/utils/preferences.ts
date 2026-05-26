@@ -75,6 +75,22 @@ export type Preferences = {
   /** User-defined waypoints. */
   customWaypoints: CustomWaypoint[];
   /**
+   * NSIDs the user has pinned in the explorer's CollectionsTab. When the
+   * repo being viewed has any of these collections, they bubble up into a
+   * "Pinned" section at the top of the list. Pinning is a personal
+   * cross-repo action — pinning `app.bsky.feed.post` while looking at
+   * @alice's repo also pins it on every other repo that has that
+   * collection (subject to `pinScope`).
+   */
+  pinnedLexicons: string[];
+  /**
+   * Where the Pinned section shows up:
+   *   - `own`: only on the signed-in user's own repo page.
+   *   - `all`: on every account's repo page (intersection with their
+   *     collections so it's not empty noise).
+   */
+  pinScope: 'own' | 'all';
+  /**
    * ISO timestamp of last local change. Used to break ties when local and
    * PDS prefs both exist on sign-in.
    */
@@ -89,6 +105,8 @@ export const DEFAULT_PREFERENCES: Preferences = {
   hiddenWaypoints: [],
   waypointOrder: [],
   customWaypoints: [],
+  pinnedLexicons: [],
+  pinScope: 'own',
   updatedAt: new Date(0).toISOString(),
 };
 
@@ -163,11 +181,18 @@ export function mergeWithDefaults(input: Partial<Preferences> | null | undefined
     storedGroups.length > 0
       ? storedGroups
       : migrateToGroups({ customWaypoints, hiddenWaypoints, waypointOrder });
+  const pinnedLexicons = Array.isArray(input.pinnedLexicons)
+    ? input.pinnedLexicons.filter((s): s is string => typeof s === 'string')
+    : [];
+  const pinScope: 'own' | 'all' =
+    input.pinScope === 'all' || input.pinScope === 'own' ? input.pinScope : 'own';
   return {
     waypointGroups,
     hiddenWaypoints,
     waypointOrder,
     customWaypoints,
+    pinnedLexicons,
+    pinScope,
     updatedAt:
       typeof input.updatedAt === 'string' ? input.updatedAt : new Date(0).toISOString(),
   };
@@ -230,9 +255,27 @@ export function expandTemplate(
 export function preferencesAreEqual(a: Preferences, b: Preferences): boolean {
   return (
     a.updatedAt === b.updatedAt &&
+    a.pinScope === b.pinScope &&
     JSON.stringify(a.waypointGroups) === JSON.stringify(b.waypointGroups) &&
-    JSON.stringify(a.customWaypoints) === JSON.stringify(b.customWaypoints)
+    JSON.stringify(a.customWaypoints) === JSON.stringify(b.customWaypoints) &&
+    JSON.stringify(a.pinnedLexicons) === JSON.stringify(b.pinnedLexicons)
   );
+}
+
+// --- Pinned lexicons -------------------------------------------------------
+
+export function togglePinnedLexicon(prefs: Preferences, nsid: string): Preferences {
+  const has = prefs.pinnedLexicons.includes(nsid);
+  return {
+    ...prefs,
+    pinnedLexicons: has
+      ? prefs.pinnedLexicons.filter((n) => n !== nsid)
+      : [...prefs.pinnedLexicons, nsid],
+  };
+}
+
+export function setPinScope(prefs: Preferences, scope: 'own' | 'all'): Preferences {
+  return { ...prefs, pinScope: scope };
 }
 
 // --- Group helpers ---------------------------------------------------------
