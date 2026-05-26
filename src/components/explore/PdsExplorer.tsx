@@ -5,10 +5,12 @@ import Link from 'next/link';
 import { ExternalLink, Globe, Server } from 'lucide-react';
 import {
   describeServer,
+  getServerHealth,
   listRepos,
   normalizePdsBase,
   type RepoEntry,
   type ServerDescription,
+  type ServerHealth,
 } from '@/utils/atproto/pdsServer';
 import { describeRepo } from '@/utils/atproto/pdsClient';
 import { encodeRepo, shortDid } from '@/utils/atproto/urls';
@@ -30,6 +32,10 @@ export default function PdsExplorer({ host }: Props) {
   const pdsBase = normalizePdsBase(host);
   const [serverInfo, setServerInfo] = useState<ServerDescription | null>(null);
   const [serverError, setServerError] = useState<string | null>(null);
+  // _health is a separate, optional endpoint — keep its state distinct
+  // from describeServer so a missing version doesn't visually mark the
+  // PDS as broken when the rest of the metadata loaded fine.
+  const [serverHealth, setServerHealth] = useState<ServerHealth | null>(null);
 
   const [repos, setRepos] = useState<RepoEntry[]>([]);
   const [cursor, setCursor] = useState<string | undefined>(undefined);
@@ -41,12 +47,21 @@ export default function PdsExplorer({ host }: Props) {
     let cancelled = false;
     setServerInfo(null);
     setServerError(null);
+    setServerHealth(null);
     describeServer(pdsBase)
       .then((d) => {
         if (!cancelled) setServerInfo(d);
       })
       .catch((err) => {
         if (!cancelled) setServerError(err instanceof Error ? err.message : String(err));
+      });
+    getServerHealth(pdsBase)
+      .then((h) => {
+        if (!cancelled) setServerHealth(h);
+      })
+      .catch(() => {
+        // _health is best-effort — older / non-reference PDSs may 404.
+        // We just leave the version cell off in that case.
       });
     return () => {
       cancelled = true;
@@ -82,7 +97,13 @@ export default function PdsExplorer({ host }: Props) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
       <AppearIn rise>
-        <PdsHeader host={host} info={serverInfo} error={serverError} pdsBase={pdsBase} />
+        <PdsHeader
+          host={host}
+          info={serverInfo}
+          health={serverHealth}
+          error={serverError}
+          pdsBase={pdsBase}
+        />
       </AppearIn>
 
       <AppearIn delay={0.08}>
@@ -171,11 +192,13 @@ export default function PdsExplorer({ host }: Props) {
 function PdsHeader({
   host,
   info,
+  health,
   error,
   pdsBase,
 }: {
   host: string;
   info: ServerDescription | null;
+  health: ServerHealth | null;
   error: string | null;
   pdsBase: string;
 }) {
@@ -261,6 +284,14 @@ function PdsHeader({
               {info.did}
             </code>
             <CopyButton value={info.did} label="Copy DID" compact variant="subtle" />
+          </Cell>
+        )}
+
+        {health?.version && (
+          <Cell label="version">
+            <code style={{ background: 'transparent', padding: 0, color: 'var(--text-primary)' }}>
+              {health.version}
+            </code>
           </Cell>
         )}
 

@@ -690,8 +690,8 @@ export const WAYPOINT_ORDER = [
   'anisotaReader',
   'offprint',
   'pckt',
-  'pdsls',
   'aturiExplore',
+  'pdsls',
   'tangled',
   'atptools',
   'witchsky',
@@ -744,7 +744,7 @@ export const WAYPOINT_CATEGORIES_DATA: Record<string, WaypointCategoryData> = {
     id: 'devTools',
     name: 'Dev Tools',
     description: 'Tools for developers and debugging',
-    defaultWaypointId: 'pdsls',
+    defaultWaypointId: 'aturiExplore',
   },
 };
 
@@ -803,7 +803,7 @@ const RECOMMENDED_WAYPOINTS: Record<string, RecommendedConfig> = {
     label: 'Recommended for Lists',
   },
   'community.lexicon.calendar.event': {
-    waypointIds: ['pdsls', 'atptools'],
+    waypointIds: ['aturiExplore', 'pdsls', 'atptools'],
     label: 'Recommended for Events',
   },
   'sh.tangled.repo': {
@@ -811,7 +811,7 @@ const RECOMMENDED_WAYPOINTS: Record<string, RecommendedConfig> = {
     label: 'Recommended for Repos',
   },
   'record': {
-    waypointIds: ['pdsls', 'atptools'],
+    waypointIds: ['aturiExplore', 'pdsls', 'atptools'],
     label: 'Recommended for Records',
   },
 };

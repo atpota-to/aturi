@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { browser } from '#imports';
 import {
   Activity,
   Check,
@@ -26,7 +25,6 @@ import {
   flattenSources,
   getBacklinkSources,
 } from '@aturi/atproto/constellation';
-import { matchSupportedUrl } from '@aturi/reverseParsers';
 import { type Prefs } from '../../lib/prefs';
 import type { DetectedAtUri } from '../../lib/inspectScanner';
 import {
@@ -34,81 +32,26 @@ import {
   buildExplorePdsUrl,
   buildUniversalLink,
 } from '../../lib/aturiUrl';
-import { dedupeByUri } from '../../lib/inspectScanner';
+import type { UseInspectScanResult } from '../../lib/inspectScan';
 
 type Props = {
   prefs: Prefs;
+  /**
+   * Scan state lifted up to <App /> so the popup-mode tab can badge
+   * the detected count even while the user is still on the Waypoints
+   * tab. We just render whatever the hook gave us.
+   */
+  scan: UseInspectScanResult;
 };
 
-type AnyTab = { url?: string; id?: number; active?: boolean; [k: string]: unknown };
-
-async function getActiveTab(): Promise<AnyTab | null> {
-  try {
-    const tabs = (await browser.tabs.query({ active: true, lastFocusedWindow: true })) as unknown as
-      | AnyTab[]
-      | undefined;
-    return tabs?.[0] ?? null;
-  } catch {
-    return null;
-  }
-}
-
 /**
- * Inspect tab. Scans the current page for AT URIs and surfaces them with
- * the same data depth + visual language as the web explorer at aturi.to.
+ * Inspect tab. Surfaces detected AT URIs from the active page with the
+ * same data depth + visual language as the web explorer at aturi.to.
+ * The page scan itself is owned by <App />; this view is a
+ * presentational renderer for the lifted scan state.
  */
-export default function InspectView(_props: Props) {
-  void _props;
-  const [, setTab] = useState<AnyTab | null>(null);
-  const [scanning, setScanning] = useState(true);
-  const [hits, setHits] = useState<DetectedAtUri[]>([]);
-  const [scanError, setScanError] = useState<string | null>(null);
-
-  const runScan = useMemo(
-    () => async () => {
-      setScanning(true);
-      setScanError(null);
-      const t = await getActiveTab();
-      setTab(t);
-      const out: DetectedAtUri[] = [];
-
-      if (t?.url) {
-        try {
-          const url = new URL(t.url);
-          const match = matchSupportedUrl(url);
-          if (match?.parsed.uri) {
-            out.push({ uri: match.parsed.uri, where: 'url' });
-          }
-        } catch {
-          /* ignore */
-        }
-      }
-
-      const tabId = (t?.id as number | undefined) ?? null;
-      if (tabId != null) {
-        try {
-          const response = (await browser.tabs.sendMessage(tabId, {
-            type: 'aturi:inspect-scan',
-          })) as { atUris?: DetectedAtUri[]; error?: string } | undefined;
-          if (response?.atUris) out.push(...response.atUris);
-          if (response?.error) {
-            console.warn('[aturi:inspect] scan reported error:', response.error);
-          }
-        } catch (err) {
-          console.warn('[aturi:inspect] content script unreachable', err);
-        }
-      }
-
-      setHits(dedupeByUri(out));
-      setScanning(false);
-    },
-    [],
-  );
-
-  useEffect(() => {
-    void runScan();
-  }, [runScan]);
-
+export default function InspectView({ scan }: Props) {
+  const { hits, scanning, error: scanError, rescan } = scan;
   return (
     <div className="popup-section">
       <div className="popup-section-label" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -128,7 +71,7 @@ export default function InspectView(_props: Props) {
           <button
             type="button"
             className="aturi-btn"
-            onClick={() => void runScan()}
+            onClick={() => rescan()}
           >
             <RefreshCw size={12} aria-hidden style={{ marginRight: 4 }} />
             Scan again
@@ -145,7 +88,7 @@ export default function InspectView(_props: Props) {
             <button
               type="button"
               className="aturi-btn"
-              onClick={() => void runScan()}
+              onClick={() => rescan()}
               style={{ fontSize: 11 }}
               disabled={scanning}
             >

@@ -31,6 +31,7 @@ import { describeWaypoint } from '../../lib/describe';
 import { getWaypointHomePageUrl, homePageSubtitle } from '../../lib/homePage';
 import { WaypointIcon } from '../../lib/Icons';
 import { cachedRepoCollections, scanRepoCollections } from '../../lib/repoScan';
+import { useInspectScan } from '../../lib/inspectScan';
 import InspectView from './InspectView';
 
 type PopupMode = 'waypoints' | 'inspect';
@@ -99,6 +100,10 @@ export default function App() {
   const [pendingId, setPendingId] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [mode, setMode] = useState<PopupMode>('waypoints');
+  // Lift the inspect-tab scan up to the popup root so the tab badge can
+  // show a hit count even while the user is still on the Waypoints tab.
+  // Re-running and rendering still happen inside <InspectView />.
+  const inspectScan = useInspectScan();
 
   useEffect(() => {
     void init();
@@ -292,7 +297,7 @@ export default function App() {
 
   const inner =
     mode === 'inspect' ? (
-      <InspectView prefs={prefs} />
+      <InspectView prefs={prefs} scan={inspectScan} />
     ) : state.phase === 'unsupported' ? (
       <NoAtmosphereView
         prefs={prefs}
@@ -327,6 +332,8 @@ export default function App() {
           mode={mode}
           onSelect={selectMode}
           onOpenSettings={() => void openOptionsPage()}
+          inspectCount={inspectScan.hits.length}
+          inspectScanning={inspectScan.scanning}
         />
       </div>
       {inner}
@@ -338,11 +345,18 @@ function PopupModeTabs({
   mode,
   onSelect,
   onOpenSettings,
+  inspectCount,
+  inspectScanning,
 }: {
   mode: PopupMode;
   onSelect: (next: PopupMode) => void;
   onOpenSettings: () => void;
+  /** Number of AT URIs detected on the active tab. Drives the badge. */
+  inspectCount: number;
+  /** While the scan is in flight we hide the badge to avoid flicker. */
+  inspectScanning: boolean;
 }) {
+  const showInspectBadge = !inspectScanning && inspectCount > 0;
   return (
     <div className="popup-mode-tabs" role="tablist" aria-label="Popup mode">
       <button
@@ -364,6 +378,14 @@ function PopupModeTabs({
       >
         <Telescope size={12} aria-hidden />
         Inspect
+        {showInspectBadge && (
+          <span
+            className="popup-mode-tab-badge"
+            aria-label={`${inspectCount} detected URI${inspectCount === 1 ? '' : 's'}`}
+          >
+            {inspectCount > 99 ? '99+' : inspectCount}
+          </span>
+        )}
       </button>
       <button
         type="button"
