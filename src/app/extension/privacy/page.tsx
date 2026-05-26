@@ -34,7 +34,7 @@ export default function ExtensionPrivacyPage() {
           Browser Extension Privacy Policy
         </h1>
         <p style={{ color: 'var(--text-tertiary)', fontSize: '0.875rem' }}>
-          Last updated: May 6, 2026
+          Last updated: May 26, 2026
         </p>
       </header>
 
@@ -54,10 +54,16 @@ export default function ExtensionPrivacyPage() {
               configure stays in your own browser.
             </p>
             <p style={paragraph}>
-              The only network request the extension ever makes is an
-              anonymous lookup to the public Bluesky AppView, and only when
-              you actively open a waypoint that requires a Decentralized
-              Identifier (DID) for the handle in the URL.
+              The extension does, however, read limited information from
+              pages you visit so it can offer waypoints and inspect AT URIs.
+              Page reading happens entirely inside your browser; the
+              extension never sends page contents to Aturi-operated servers.
+              The extension also makes anonymous lookups to public atproto
+              services (Bluesky AppView, PLC directory, Constellation, and
+              your chosen Personal Data Server) when you actively use the
+              waypoint picker or the Inspect tab. The details of every
+              network request and every part of the page that is read are
+              described below.
             </p>
           </section>
 
@@ -99,31 +105,111 @@ export default function ExtensionPrivacyPage() {
               their own infrastructure under their own privacy policy. Aturi
               has no access to that synced data.
             </p>
+            <p style={paragraph}>
+              The Inspect tab does not persist anything. AT URIs found on
+              the page, identity records, record previews, and backlink
+              counts live only in popup memory while the popup is open and
+              are discarded when you close it.
+            </p>
           </section>
 
           <section style={{ marginBottom: '2rem' }}>
-            <h2 style={sectionHeading}>2. Network requests</h2>
+            <h2 style={sectionHeading}>2. What the extension reads from pages</h2>
             <p style={paragraph}>
-              The extension makes a single kind of network request:
+              The extension includes two content scripts that run on
+              ordinary web pages. Both run entirely inside your browser. No
+              data they read is ever sent to Aturi-operated servers; the
+              extension only uses what they read to render the popup and
+              Inspect tab locally.
             </p>
             <ul style={list}>
               <li>
-                <strong>Handle resolution.</strong> When you open the popup
-                on an Atmosphere page whose URL contains a handle (e.g.{' '}
-                <code>example.bsky.social</code>) and you click a waypoint
-                that requires a DID, the extension calls{' '}
-                <code>
-                  https://public.api.bsky.app/xrpc/com.atproto.identity.resolveHandle
-                </code>{' '}
-                to convert the handle to a DID. The handle is sent as a
-                query parameter; nothing else is sent. This call is made by
-                your browser directly to Bluesky&rsquo;s public AppView.
-                Bluesky&rsquo;s privacy policy applies to that request.
+                <strong>Passive head detection</strong> (
+                <code>detect-head.content.ts</code>). On every page load, a
+                tiny script runs once and looks for{' '}
+                <code>&lt;link href=&quot;at://&hellip;&quot;&gt;</code>{' '}
+                elements in the document head. It does not read any other
+                part of the page, does not modify the page, and does not
+                send anything anywhere until you open the toolbar popup. If
+                the popup asks (and only then), it returns the AT URI it
+                found so the popup can show relevant waypoints. This is how
+                the extension supports apps like Leaflet, Offprint, and
+                pckt, which advertise their AT URI in the head rather than
+                the URL.
+              </li>
+              <li>
+                <strong>On-demand Inspect scan</strong> (
+                <code>inspect-scan.content.ts</code>). This script does
+                nothing until you open the popup&rsquo;s{' '}
+                <strong>Inspect</strong> tab on the page. When you do, it
+                scans the page for AT URIs (<code>at://&hellip;</code>) in
+                the document head, OpenGraph and Twitter meta tags, anchor
+                hrefs, JSON-LD blocks, and a capped portion (up to about
+                2&nbsp;MB) of the page&rsquo;s visible text. It returns the
+                URIs it finds, deduplicated, along with a short surrounding
+                text snippet for context. It does not log, persist, or
+                transmit any other page content.
               </li>
             </ul>
             <p style={paragraph}>
-              Auto-redirects do not make network requests. They are
-              implemented with{' '}
+              Neither script injects content into pages you visit, modifies
+              the DOM, intercepts form input, executes remote code, or
+              participates in any cross-origin tracking. You can disable
+              them entirely by uninstalling the extension or, on most
+              browsers, by revoking host permissions for specific sites in
+              the extension settings page.
+            </p>
+          </section>
+
+          <section style={{ marginBottom: '2rem' }}>
+            <h2 style={sectionHeading}>3. Network requests</h2>
+            <p style={paragraph}>
+              The extension makes a small number of well-defined network
+              requests, each tied to a specific user action. None of these
+              requests go to Aturi-operated servers; they go directly from
+              your browser to the relevant public atproto service, whose
+              own privacy policy applies.
+            </p>
+            <ul style={list}>
+              <li>
+                <strong>Handle resolution.</strong> When the popup needs to
+                turn a handle (e.g. <code>example.bsky.social</code>) into
+                a DID &mdash; for example, because a waypoint you clicked
+                requires a DID &mdash; the extension calls{' '}
+                <code>
+                  public.api.bsky.app/xrpc/com.atproto.identity.resolveHandle
+                </code>
+                . The handle is sent as a query parameter; nothing else is
+                sent.
+              </li>
+              <li>
+                <strong>Inspect: identity resolution.</strong> When you open
+                the Inspect tab and there is an AT URI to look up, the
+                extension resolves the repo identifier through the same
+                Bluesky AppView and, for <code>did:plc:&hellip;</code>{' '}
+                identifiers, may also fetch the DID document from the PLC
+                directory (<code>plc.directory</code>) to discover the
+                user&rsquo;s PDS host.
+              </li>
+              <li>
+                <strong>Inspect: record fetch.</strong> Once the PDS host is
+                known, the extension calls{' '}
+                <code>com.atproto.repo.getRecord</code> on that PDS to fetch
+                the record itself (when the AT URI points at a specific
+                collection and rkey) so the Inspect card can show a
+                preview.
+              </li>
+              <li>
+                <strong>Inspect: backlink count.</strong> The Inspect tab
+                queries the third-party Constellation index (
+                <code>constellation.microcosm.blue</code>) with the AT URI
+                to fetch an aggregate count of public backlinks to that
+                record.
+              </li>
+            </ul>
+            <p style={paragraph}>
+              <strong>Auto-redirects do not make network requests.</strong>{' '}
+              They are implemented with{' '}
               <code>chrome.declarativeNetRequest</code>, which lets the
               browser rewrite URLs locally based on static rules the
               extension generates from your preferences. The extension does
@@ -131,21 +217,23 @@ export default function ExtensionPrivacyPage() {
             </p>
             <p style={paragraph}>
               The extension never contacts <code>aturi.to</code> or any
-              Aturi-operated server during normal use.
+              other Aturi-operated server during normal use.
             </p>
           </section>
 
           <section style={{ marginBottom: '2rem' }}>
-            <h2 style={sectionHeading}>3. Permissions and why they&rsquo;re needed</h2>
+            <h2 style={sectionHeading}>4. Permissions and why they&rsquo;re needed</h2>
             <ul style={list}>
               <li>
                 <strong>storage</strong> &mdash; to persist your preferences,
                 custom waypoints, and recents list.
               </li>
               <li>
-                <strong>tabs</strong> &mdash; to read the URL of the current
-                tab when you open the popup, so the extension can offer
-                waypoints that match the page you&rsquo;re on.
+                <strong>tabs</strong> &mdash; to read the URL (and, for
+                Inspect, the tab id) of the current tab when you open the
+                popup, so the extension can offer waypoints that match the
+                page you&rsquo;re on and route the Inspect scan request to
+                the right tab.
               </li>
               <li>
                 <strong>declarativeNetRequest</strong> &mdash; to perform
@@ -161,17 +249,23 @@ export default function ExtensionPrivacyPage() {
                 <strong>host_permissions: &lt;all_urls&gt;</strong> &mdash;
                 required so the popup can recognize Atmosphere pages on any
                 domain (Bluesky, Leaflet, Blacksky, PDSls, custom waypoints
-                you define, etc.) and so declarativeNetRequest rules can
-                match those domains. The extension does not inject content
-                scripts and does not read or modify page contents.
+                you define, etc.), so <code>declarativeNetRequest</code>{' '}
+                rules can match those domains, and so the two content
+                scripts described above can run on the active tab when
+                needed. The scripts only read the limited page surfaces
+                listed in Section&nbsp;2 and never transmit page contents
+                off-device.
               </li>
             </ul>
           </section>
 
           <section style={{ marginBottom: '2rem' }}>
-            <h2 style={sectionHeading}>4. What the extension does not do</h2>
+            <h2 style={sectionHeading}>5. What the extension does not do</h2>
             <ul style={list}>
-              <li>It does not collect or transmit personal information.</li>
+              <li>
+                It does not collect or transmit personal information to
+                Aturi.
+              </li>
               <li>It does not use cookies or any tracking technology.</li>
               <li>
                 It does not run analytics, telemetry, crash reporting, or
@@ -179,12 +273,14 @@ export default function ExtensionPrivacyPage() {
               </li>
               <li>
                 It does not load or execute remotely hosted code. All
-                executable code is bundled in the released extension package
-                and reviewed by the browser store.
+                executable code is bundled in the released extension
+                package and reviewed by the browser store.
               </li>
               <li>
-                It does not read, modify, or send the contents of pages you
-                visit.
+                It does not modify the contents of pages you visit, inject
+                user-facing UI into pages, intercept form input, or read
+                page content beyond the specific surfaces described in
+                Section&nbsp;2.
               </li>
               <li>It does not show ads or include any advertising SDKs.</li>
               <li>
@@ -195,28 +291,32 @@ export default function ExtensionPrivacyPage() {
           </section>
 
           <section style={{ marginBottom: '2rem' }}>
-            <h2 style={sectionHeading}>5. Third-party destinations</h2>
+            <h2 style={sectionHeading}>6. Third-party destinations and services</h2>
             <p style={paragraph}>
               When you click a waypoint or follow an auto-redirected link,
               your browser navigates to a third-party Atmosphere client
-              (Bluesky, Blacksky, Leaflet, etc.) or a custom waypoint you
-              defined. Those services have their own privacy policies and
-              terms of service, and Aturi has no control over them.
+              (Bluesky, Blacksky, Leaflet, Tangled, Margin, Grain, PDSls,
+              atp.tools, etc.) or a custom waypoint you defined. When you
+              use the Inspect tab, your browser makes the lookups described
+              in Section&nbsp;3 directly to the Bluesky AppView, the PLC
+              directory, Constellation, and the relevant Personal Data
+              Server. Each of these services has its own privacy policy
+              and terms of service, and Aturi has no control over them.
             </p>
           </section>
 
           <section style={{ marginBottom: '2rem' }}>
-            <h2 style={sectionHeading}>6. Children&rsquo;s privacy</h2>
+            <h2 style={sectionHeading}>7. Children&rsquo;s privacy</h2>
             <p style={paragraph}>
-              The extension is a general-purpose link-routing utility and is
-              not directed at children. Because it does not collect any
-              personal information, it does not knowingly collect data from
-              children under 13.
+              The extension is a general-purpose link-routing and
+              inspection utility and is not directed at children. Because
+              it does not collect any personal information, it does not
+              knowingly collect data from children under 13.
             </p>
           </section>
 
           <section style={{ marginBottom: '2rem' }}>
-            <h2 style={sectionHeading}>7. Data retention and deletion</h2>
+            <h2 style={sectionHeading}>8. Data retention and deletion</h2>
             <p style={paragraph}>
               Settings persist in your browser&rsquo;s extension storage for
               as long as the extension is installed. You can:
@@ -238,7 +338,7 @@ export default function ExtensionPrivacyPage() {
           </section>
 
           <section style={{ marginBottom: '2rem' }}>
-            <h2 style={sectionHeading}>8. Open source</h2>
+            <h2 style={sectionHeading}>9. Open source</h2>
             <p style={paragraph}>
               Aturi is open source under GPL v3. You can audit the
               extension&rsquo;s source code, including every network request
@@ -259,7 +359,7 @@ export default function ExtensionPrivacyPage() {
           </section>
 
           <section>
-            <h2 style={sectionHeading}>9. Changes to this policy</h2>
+            <h2 style={sectionHeading}>10. Changes to this policy</h2>
             <p style={paragraph}>
               This policy may be updated as the extension evolves. Changes
               will be reflected on this page with a new &ldquo;Last

@@ -1,5 +1,5 @@
 ATURI BROWSER EXTENSION - PRIVACY POLICY
-Last updated: May 6, 2026
+Last updated: May 26, 2026
 
 Canonical URL: https://aturi.to/extension/privacy
 
@@ -10,9 +10,14 @@ The Aturi browser extension does not collect, transmit, or sell any personal
 data. It has no analytics, no telemetry, no tracking, no advertising, and no
 remote code. Everything you configure stays in your own browser.
 
-The only network request the extension ever makes is an anonymous lookup to
-the public Bluesky AppView, and only when you actively open a waypoint that
-requires a Decentralized Identifier (DID) for the handle in the URL.
+The extension does, however, read limited information from pages you visit
+so it can offer waypoints and inspect AT URIs. Page reading happens entirely
+inside your browser; the extension never sends page contents to
+Aturi-operated servers. The extension also makes anonymous lookups to public
+atproto services (Bluesky AppView, PLC directory, Constellation, and your
+chosen Personal Data Server) when you actively use the waypoint picker or
+the Inspect tab. The details of every network request and every part of the
+page that is read are described below.
 
 
 1. WHAT THE EXTENSION STORES
@@ -37,19 +42,70 @@ browser vendor (Google, Mozilla, Apple, etc.) may sync this data across
 your devices through their own infrastructure under their own privacy
 policy. Aturi has no access to that synced data.
 
+The Inspect tab does not persist anything. AT URIs found on the page,
+identity records, record previews, and backlink counts live only in popup
+memory while the popup is open and are discarded when you close it.
 
-2. NETWORK REQUESTS
 
-The extension makes a single kind of network request:
+2. WHAT THE EXTENSION READS FROM PAGES
 
-  - Handle resolution. When you open the popup on an Atmosphere page whose
-    URL contains a handle (e.g. example.bsky.social) and you click a
-    waypoint that requires a DID, the extension calls
-    https://public.api.bsky.app/xrpc/com.atproto.identity.resolveHandle to
-    convert the handle to a DID. The handle is sent as a query parameter;
-    nothing else is sent. This call is made by your browser directly to
-    Bluesky's public AppView. Bluesky's privacy policy applies to that
-    request.
+The extension includes two content scripts that run on ordinary web pages.
+Both run entirely inside your browser. No data they read is ever sent to
+Aturi-operated servers; the extension only uses what they read to render
+the popup and Inspect tab locally.
+
+  - Passive head detection (detect-head.content.ts). On every page load, a
+    tiny script runs once and looks for <link href="at://..."> elements in
+    the document head. It does not read any other part of the page, does
+    not modify the page, and does not send anything anywhere until you
+    open the toolbar popup. If the popup asks (and only then), it returns
+    the AT URI it found so the popup can show relevant waypoints. This is
+    how the extension supports apps like Leaflet, Offprint, and pckt,
+    which advertise their AT URI in the head rather than the URL.
+
+  - On-demand Inspect scan (inspect-scan.content.ts). This script does
+    nothing until you open the popup's Inspect tab on the page. When you
+    do, it scans the page for AT URIs (at://...) in the document head,
+    OpenGraph and Twitter meta tags, anchor hrefs, JSON-LD blocks, and a
+    capped portion (up to about 2 MB) of the page's visible text. It
+    returns the URIs it finds, deduplicated, along with a short
+    surrounding text snippet for context. It does not log, persist, or
+    transmit any other page content.
+
+Neither script injects content into pages you visit, modifies the DOM,
+intercepts form input, executes remote code, or participates in any
+cross-origin tracking. You can disable them entirely by uninstalling the
+extension or, on most browsers, by revoking host permissions for specific
+sites in the extension settings page.
+
+
+3. NETWORK REQUESTS
+
+The extension makes a small number of well-defined network requests, each
+tied to a specific user action. None of these requests go to Aturi-operated
+servers; they go directly from your browser to the relevant public atproto
+service, whose own privacy policy applies.
+
+  - Handle resolution. When the popup needs to turn a handle (e.g.
+    example.bsky.social) into a DID -- for example, because a waypoint you
+    clicked requires a DID -- the extension calls
+    https://public.api.bsky.app/xrpc/com.atproto.identity.resolveHandle.
+    The handle is sent as a query parameter; nothing else is sent.
+
+  - Inspect: identity resolution. When you open the Inspect tab and there
+    is an AT URI to look up, the extension resolves the repo identifier
+    through the same Bluesky AppView and, for did:plc:... identifiers, may
+    also fetch the DID document from the PLC directory (plc.directory) to
+    discover the user's PDS host.
+
+  - Inspect: record fetch. Once the PDS host is known, the extension calls
+    com.atproto.repo.getRecord on that PDS to fetch the record itself
+    (when the AT URI points at a specific collection and rkey) so the
+    Inspect card can show a preview.
+
+  - Inspect: backlink count. The Inspect tab queries the third-party
+    Constellation index (constellation.microcosm.blue) with the AT URI to
+    fetch an aggregate count of public backlinks to that record.
 
 Auto-redirects do not make network requests. They are implemented with
 chrome.declarativeNetRequest, which lets the browser rewrite URLs locally
@@ -57,56 +113,66 @@ based on static rules the extension generates from your preferences. The
 extension does not see, read, or log the URLs you visit while redirects
 run.
 
-The extension never contacts aturi.to or any Aturi-operated server during
-normal use.
+The extension never contacts aturi.to or any other Aturi-operated server
+during normal use.
 
 
-3. PERMISSIONS AND WHY THEY'RE NEEDED
+4. PERMISSIONS AND WHY THEY'RE NEEDED
 
   - storage - to persist your preferences, custom waypoints, and recents
     list.
-  - tabs - to read the URL of the current tab when you open the popup, so
-    the extension can offer waypoints that match the page you're on.
-  - declarativeNetRequest - to perform local URL redirects without exposing
-    your browsing history to the extension.
+  - tabs - to read the URL (and, for Inspect, the tab id) of the current
+    tab when you open the popup, so the extension can offer waypoints
+    that match the page you're on and route the Inspect scan request to
+    the right tab.
+  - declarativeNetRequest - to perform local URL redirects without
+    exposing your browsing history to the extension.
   - clipboardWrite - to copy universal Aturi links to your clipboard when
     you use the "copy link" action.
   - host_permissions: <all_urls> - required so the popup can recognize
     Atmosphere pages on any domain (Bluesky, Leaflet, Blacksky, PDSls,
-    custom waypoints you define, etc.) and so declarativeNetRequest rules
-    can match those domains. The extension does not inject content scripts
-    and does not read or modify page contents.
+    custom waypoints you define, etc.), so declarativeNetRequest rules
+    can match those domains, and so the two content scripts described
+    above can run on the active tab when needed. The scripts only read
+    the limited page surfaces listed in Section 2 and never transmit
+    page contents off-device.
 
 
-4. WHAT THE EXTENSION DOES NOT DO
+5. WHAT THE EXTENSION DOES NOT DO
 
-  - It does not collect or transmit personal information.
+  - It does not collect or transmit personal information to Aturi.
   - It does not use cookies or any tracking technology.
   - It does not run analytics, telemetry, crash reporting, or A/B testing.
   - It does not load or execute remotely hosted code. All executable code
     is bundled in the released extension package and reviewed by the
     browser store.
-  - It does not read, modify, or send the contents of pages you visit.
+  - It does not modify the contents of pages you visit, inject
+    user-facing UI into pages, intercept form input, or read page content
+    beyond the specific surfaces described in Section 2.
   - It does not show ads or include any advertising SDKs.
   - It does not sell, rent, share, or trade any data with third parties.
 
 
-5. THIRD-PARTY DESTINATIONS
+6. THIRD-PARTY DESTINATIONS AND SERVICES
 
 When you click a waypoint or follow an auto-redirected link, your browser
 navigates to a third-party Atmosphere client (Bluesky, Blacksky, Leaflet,
-etc.) or a custom waypoint you defined. Those services have their own
-privacy policies and terms of service, and Aturi has no control over them.
+Tangled, Margin, Grain, PDSls, atp.tools, etc.) or a custom waypoint you
+defined. When you use the Inspect tab, your browser makes the lookups
+described in Section 3 directly to the Bluesky AppView, the PLC directory,
+Constellation, and the relevant Personal Data Server. Each of these
+services has its own privacy policy and terms of service, and Aturi has no
+control over them.
 
 
-6. CHILDREN'S PRIVACY
+7. CHILDREN'S PRIVACY
 
-The extension is a general-purpose link-routing utility and is not directed
-at children. Because it does not collect any personal information, it does
-not knowingly collect data from children under 13.
+The extension is a general-purpose link-routing and inspection utility and
+is not directed at children. Because it does not collect any personal
+information, it does not knowingly collect data from children under 13.
 
 
-7. DATA RETENTION AND DELETION
+8. DATA RETENTION AND DELETION
 
 Settings persist in your browser's extension storage for as long as the
 extension is installed. You can:
@@ -118,7 +184,7 @@ extension is installed. You can:
     may also remove any synced copy via its own sync settings.
 
 
-8. OPEN SOURCE
+9. OPEN SOURCE
 
 Aturi is open source under GPL v3. You can audit the extension's source
 code, including every network request it makes, at:
@@ -126,7 +192,7 @@ code, including every network request it makes, at:
   https://tangled.org/atpota.to/aturi
 
 
-9. CHANGES TO THIS POLICY
+10. CHANGES TO THIS POLICY
 
 This policy may be updated as the extension evolves. Changes will be
 reflected on this page with a new "Last updated" date. Material changes
