@@ -364,11 +364,64 @@ function FieldPrimitive({ value }: { value: unknown }) {
   if (value === null) {
     return <span style={{ color: 'var(--text-tertiary)' }}>null</span>;
   }
-  if (typeof value === 'string') {
-    const display = value.length > 280 ? `${value.substring(0, 280)}…` : value;
-    return <>{display}</>;
+  const full = typeof value === 'string' ? value : String(value);
+  const display =
+    typeof value === 'string' && value.length > 280
+      ? `${value.substring(0, 280)}…`
+      : full;
+  return <CopyableValue display={display} copy={full} />;
+}
+
+/**
+ * Tap-anywhere-to-copy wrapper for a primitive field value. Renders the
+ * text inline with a faint copy icon trailing it; clicking copies the
+ * full (untruncated) value to the clipboard and flashes a check mark.
+ */
+function CopyableValue({ display, copy }: { display: string; copy: string }) {
+  const [copied, setCopied] = useState(false);
+  async function onClick() {
+    await writeToClipboard(copy);
+    setCopied(true);
+    window.setTimeout(() => setCopied(false), 1400);
   }
-  return <>{String(value)}</>;
+  function onKeyDown(e: React.KeyboardEvent<HTMLDivElement>) {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      onClick();
+    }
+  }
+  return (
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={onClick}
+      onKeyDown={onKeyDown}
+      aria-label={copied ? 'Copied' : 'Click to copy'}
+      title={copied ? 'Copied!' : 'Click to copy'}
+      style={{
+        cursor: 'pointer',
+        wordBreak: 'break-word',
+        outline: 'none',
+        transition: 'color 0.2s ease',
+        color: copied ? 'var(--text-accent)' : 'inherit',
+      }}
+    >
+      {display}
+      <span
+        style={{
+          marginLeft: '0.35rem',
+          display: 'inline-block',
+          verticalAlign: 'middle',
+          color: copied ? 'var(--text-accent)' : 'var(--text-tertiary)',
+          opacity: copied ? 1 : 0.35,
+          transition: 'opacity 0.2s ease, color 0.2s ease',
+        }}
+        aria-hidden
+      >
+        {copied ? <Check size={12} /> : <Copy size={12} />}
+      </span>
+    </div>
+  );
 }
 
 function isExpandable(v: unknown): boolean {
