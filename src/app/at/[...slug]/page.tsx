@@ -39,9 +39,12 @@ export default function AtUriRedirect() {
     
     // Reconstruct the path without the at:// prefix
     const cleanPath = nonEmptySegments.map(segment => encodeURIComponent(segment)).join('/');
-    
-    // Redirect to the canonical /profile/ route
-    router.replace(`/profile/${cleanPath}`);
+
+    // Pasted AT URIs land on the explorer — that's the technical view
+    // most people poking around a raw at:// want. The universal-link
+    // page lives at /profile/<path> and is reachable from the explorer's
+    // copy row.
+    router.replace(`/explore/${cleanPath}`);
   }, [slug, router]);
 
   // Show minimal loading state during redirect

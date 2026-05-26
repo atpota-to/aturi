@@ -69,73 +69,77 @@ export default function RecordPreview({
       }}
       className="card record-preview-card"
     >
-        {/* Header: URI Structure */}
-        <div
-          style={{
-            padding: '1.5rem',
-            background: 'linear-gradient(135deg, var(--bg-tertiary) 0%, var(--bg-secondary) 100%)',
-            borderBottom: '1px solid var(--border-medium)',
-          }}
-        >
-          {/* AT URI Path */}
+        {/* Header: URI Structure. Suppressed inside the explorer, where the
+            breadcrumb already shows the at:// segments and the collection
+            chip — repeating them here is the redundancy this prop targets. */}
+        {!hideExplorerCtas && (
           <div
             style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5rem',
-              marginBottom: '1rem',
-              flexWrap: 'wrap',
-              fontFamily: 'var(--font-mono)',
-              fontSize: '0.875rem',
+              padding: '1.5rem',
+              background: 'linear-gradient(135deg, var(--bg-tertiary) 0%, var(--bg-secondary) 100%)',
+              borderBottom: '1px solid var(--border-medium)',
             }}
           >
-            <span style={{ color: 'var(--text-tertiary)' }}>at://</span>
-            <a
-              href={`/${sanitizeHandle(handle)}`}
-              style={{
-                color: 'var(--text-accent)',
-                fontWeight: '500',
-                textDecoration: 'none',
-                transition: 'opacity 0.2s ease',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.opacity = '0.7';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.opacity = '1';
-              }}
-            >
-              {handle}
-            </a>
-            <span style={{ color: 'var(--text-tertiary)' }}>/</span>
-            <span style={{ color: 'var(--text-secondary)' }}>{collection}</span>
-            <span style={{ color: 'var(--text-tertiary)' }}>/</span>
-            <span style={{ color: 'var(--text-tertiary)', opacity: 0.7 }}>{rkey}</span>
-          </div>
-
-          {/* Record Type Badge */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+            {/* AT URI Path */}
             <div
               style={{
-                display: 'inline-block',
-                padding: '0.375rem 0.875rem',
-                background: 'var(--glow-subtle)',
-                border: '1px solid var(--border-subtle)',
-                color: 'var(--text-accent)',
-                fontSize: '0.8125rem',
-                fontWeight: '600',
-                letterSpacing: '0.03em',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                marginBottom: '1rem',
+                flexWrap: 'wrap',
+                fontFamily: 'var(--font-mono)',
+                fontSize: '0.875rem',
               }}
             >
-              {displayType}
+              <span style={{ color: 'var(--text-tertiary)' }}>at://</span>
+              <a
+                href={`/${sanitizeHandle(handle)}`}
+                style={{
+                  color: 'var(--text-accent)',
+                  fontWeight: '500',
+                  textDecoration: 'none',
+                  transition: 'opacity 0.2s ease',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.opacity = '0.7';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.opacity = '1';
+                }}
+              >
+                {handle}
+              </a>
+              <span style={{ color: 'var(--text-tertiary)' }}>/</span>
+              <span style={{ color: 'var(--text-secondary)' }}>{collection}</span>
+              <span style={{ color: 'var(--text-tertiary)' }}>/</span>
+              <span style={{ color: 'var(--text-tertiary)', opacity: 0.7 }}>{rkey}</span>
             </div>
-            {formattedDate && (
-              <div style={{ fontSize: '0.875rem', color: 'var(--text-tertiary)' }}>
-                {formattedDate}
+
+            {/* Record Type Badge */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+              <div
+                style={{
+                  display: 'inline-block',
+                  padding: '0.375rem 0.875rem',
+                  background: 'var(--glow-subtle)',
+                  border: '1px solid var(--border-subtle)',
+                  color: 'var(--text-accent)',
+                  fontSize: '0.8125rem',
+                  fontWeight: '600',
+                  letterSpacing: '0.03em',
+                }}
+              >
+                {displayType}
               </div>
-            )}
+              {formattedDate && (
+                <div style={{ fontSize: '0.875rem', color: 'var(--text-tertiary)' }}>
+                  {formattedDate}
+                </div>
+              )}
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Preview Fields - Simplified */}
         <div style={{ padding: '1.5rem' }}>
@@ -226,12 +230,14 @@ export default function RecordPreview({
 
           {/* Quick action: grab the raw record JSON without leaving the
               universal link page. Sits beneath the primary CTA as a
-              quieter secondary affordance. */}
-          <CopyJsonRow record={record} />
+              quieter secondary affordance. Hidden inside the explorer —
+              the consolidated copy row already covers JSON. */}
+          {!hideExplorerCtas && <CopyJsonRow record={record} />}
         </div>
 
-        {/* Footer: CID */}
-        {cid && (
+        {/* Footer: CID. Suppressed inside the explorer (CID is in the
+            copy row + the raw JSON below). */}
+        {cid && !hideExplorerCtas && (
           <div
             style={{
               padding: '1rem 1.5rem',
