@@ -8,6 +8,7 @@ import { listRecordsPage, type AtRecord } from '@/utils/atproto/pdsClient';
 import { encodeRepo, rkeyFromAtUri } from '@/utils/atproto/urls';
 import { resolveIdentifier, type IdentityBundle } from '@/utils/atproto/identity';
 import { previewFor } from '@/utils/atproto/previewExtractors';
+import { tidToDate } from '@/utils/atproto/tid';
 import {
   createJetstreamConnection,
   type JetstreamCommit,
@@ -217,6 +218,10 @@ function CollectionList({
       >
         {records.map((rec) => {
           const rkey = rkeyFromAtUri(rec.uri) || '';
+          // TID-derived timestamps are decoded client-side from the rkey
+          // itself — no extra PDS call. Non-TID rkeys (custom strings,
+          // singletons like "self") return null and we just hide the chip.
+          const tidDate = tidToDate(rkey);
           return (
             <li
               key={rec.uri}
@@ -242,15 +247,36 @@ function CollectionList({
                   e.currentTarget.style.background = 'transparent';
                 }}
               >
-                <code
-                  style={{
-                    background: 'transparent',
-                    padding: 0,
-                    color: 'var(--text-primary)',
-                  }}
-                >
-                  {rkey}
-                </code>
+                <div style={{ minWidth: 0 }}>
+                  <code
+                    style={{
+                      background: 'transparent',
+                      padding: 0,
+                      color: 'var(--text-primary)',
+                      display: 'block',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    {rkey}
+                  </code>
+                  {tidDate && (
+                    <time
+                      dateTime={tidDate.toISOString()}
+                      title={tidDate.toISOString()}
+                      style={{
+                        display: 'block',
+                        marginTop: '0.125rem',
+                        fontSize: '0.7rem',
+                        color: 'var(--text-tertiary)',
+                        fontFamily: 'var(--font-mono)',
+                      }}
+                    >
+                      {formatTidTimestamp(tidDate)}
+                    </time>
+                  )}
+                </div>
                 <span
                   style={{
                     color: 'var(--text-tertiary)',
@@ -293,4 +319,26 @@ function CollectionList({
       </AppearIn>
     </div>
   );
+}
+
+/**
+ * Render the TID-derived date in a list-friendly way: recent items get
+ * a relative chip ("12m", "3h", "2d"); older items get a calendar date.
+ * Hover/`title` always shows the full ISO timestamp via the parent.
+ */
+function formatTidTimestamp(date: Date): string {
+  const now = Date.now();
+  const diffMs = now - date.getTime();
+  if (diffMs < 0) return date.toISOString().slice(0, 10);
+  const sec = Math.floor(diffMs / 1000);
+  if (sec < 60) return `${sec}s ago`;
+  const min = Math.floor(sec / 60);
+  if (min < 60) return `${min}m ago`;
+  const hr = Math.floor(min / 60);
+  if (hr < 24) return `${hr}h ago`;
+  const day = Math.floor(hr / 24);
+  if (day < 14) return `${day}d ago`;
+  // Beyond two weeks the relative form loses precision; show the actual
+  // date so a 6-month-old record doesn't read as "189d ago".
+  return date.toISOString().slice(0, 10);
 }

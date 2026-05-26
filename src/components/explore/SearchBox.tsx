@@ -10,6 +10,7 @@ import {
 } from 'react';
 import { Search } from 'lucide-react';
 import { encodeRepo } from '@/utils/atproto/urls';
+import { resolveSearchPath } from '@/utils/atproto/searchRouting';
 import {
   searchActorsTypeahead,
   type ActorTypeaheadResult,
@@ -86,28 +87,9 @@ export default function SearchBox({ initial }: { initial?: string }) {
       goTo(suggestions[highlightIndex].handle);
       return;
     }
-    const v = value.trim();
-    if (!v) return;
-
-    // Paste-an-at-uri shortcut: route straight to the record.
-    if (v.startsWith('at://')) {
-      const m = v.match(/^at:\/\/([^/]+)\/([^/]+)\/([^/?#]+)/);
-      if (m) {
-        router.push(`/explore/${encodeRepo(m[1])}/${m[2]}/${encodeURIComponent(m[3])}`);
-        return;
-      }
-      const m2 = v.match(/^at:\/\/([^/]+)\/([^/?#]+)/);
-      if (m2) {
-        router.push(`/explore/${encodeRepo(m2[1])}/${m2[2]}`);
-        return;
-      }
-      const m3 = v.match(/^at:\/\/([^/?#]+)/);
-      if (m3) {
-        router.push(`/explore/${encodeRepo(m3[1])}`);
-        return;
-      }
-    }
-    router.push(`/explore/${encodeRepo(v)}`);
+    const path = resolveSearchPath(value);
+    if (!path) return;
+    router.push(path);
   }
 
   function onKeyDown(e: KeyboardEvent<HTMLInputElement>) {
@@ -159,7 +141,7 @@ export default function SearchBox({ initial }: { initial?: string }) {
           type="text"
           autoComplete="off"
           spellCheck={false}
-          placeholder="handle, DID, or at:// URI"
+          placeholder="handle, DID, at:// URI, or PDS URL"
           value={value}
           onChange={(e) => {
             setValue(e.target.value);

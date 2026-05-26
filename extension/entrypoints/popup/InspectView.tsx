@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 import { parseAtUri } from '@aturi/atproto/urls';
 import { resolveIdentifier, type IdentityBundle } from '@aturi/atproto/identity';
-import { getRecord, type AtRecord } from '@aturi/atproto/pdsClient';
+import { getRecord, getRecordUrl, type AtRecord } from '@aturi/atproto/pdsClient';
 import { previewFor } from '@aturi/atproto/previewExtractors';
 import { pdsHostname } from '@aturi/atproto/pdsServer';
 import {
@@ -234,6 +234,17 @@ function InspectCard({ hit, pds }: { hit: DetectedAtUri; pds: string | null }) {
   const effectivePdsHost = effectivePds ? pdsHostname(effectivePds) : null;
   const pdsExplorerUrl = effectivePdsHost ? buildExplorePdsUrl(effectivePdsHost) : null;
   const effectiveDid = identity?.did || (parsed?.repo.startsWith('did:') ? parsed.repo : null);
+  // Direct PDS XRPC URL for the record — opens the raw JSON in a new
+  // tab. Only available once we know the repo + collection + rkey AND
+  // we've resolved (or were given) the PDS host.
+  const pdsRecordUrl =
+    effectivePds && effectiveDid && parsed?.collection && parsed?.rkey
+      ? getRecordUrl(effectivePds, {
+          repo: effectiveDid,
+          collection: parsed.collection,
+          rkey: parsed.rkey,
+        })
+      : null;
 
   return (
     <div
@@ -375,6 +386,29 @@ function InspectCard({ hit, pds }: { hit: DetectedAtUri; pds: string | null }) {
           >
             <Server size={11} />
             Open PDS
+          </a>
+        )}
+        {pdsRecordUrl && (
+          <a
+            href={pdsRecordUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="aturi-btn"
+            title="Open the raw record JSON on the PDS"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 4,
+              fontSize: 11,
+              textDecoration: 'none',
+              padding: '3px 8px',
+            }}
+            onClick={() => {
+              window.setTimeout(() => window.close(), 50);
+            }}
+          >
+            <ExternalLink size={11} />
+            View on PDS
           </a>
         )}
       </div>

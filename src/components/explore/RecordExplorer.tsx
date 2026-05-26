@@ -2,8 +2,8 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { FilePenLine } from 'lucide-react';
-import { getRecord, type AtRecord } from '@/utils/atproto/pdsClient';
+import { ExternalLink, FilePenLine } from 'lucide-react';
+import { getRecord, getRecordUrl, type AtRecord } from '@/utils/atproto/pdsClient';
 import { resolveIdentifier, type IdentityBundle } from '@/utils/atproto/identity';
 import { encodeRepo } from '@/utils/atproto/urls';
 import AppearIn from './AppearIn';
@@ -200,6 +200,11 @@ export default function RecordExplorer({ repo, collection, rkey }: Props) {
           pds={identity.pds}
           universalLink={universalLinkFull}
           recordJson={record ? JSON.stringify(record, null, 2) : null}
+          pdsRecordUrl={getRecordUrl(identity.pds, {
+            repo: identity.did,
+            collection,
+            rkey: decodedRkey,
+          })}
         />
       </AppearIn>
 
@@ -269,12 +274,15 @@ function CopyRow({
   pds,
   universalLink,
   recordJson,
+  pdsRecordUrl,
 }: {
   atUri: string;
   did: string;
   pds: string;
   universalLink: string;
   recordJson: string | null;
+  /** Direct PDS XRPC URL — `View raw on PDS` lands on the raw JSON. */
+  pdsRecordUrl: string;
 }) {
   // CID intentionally omitted — the preview card's footer surfaces it
   // visibly with click-to-copy, so a second copy chip here would
@@ -304,6 +312,27 @@ function CopyRow({
       {recordJson && (
         <CopyButton value={recordJson} label="JSON" compact variant="subtle" />
       )}
+      <a
+        href={pdsRecordUrl}
+        target="_blank"
+        rel="noreferrer"
+        title="Fetch the raw record JSON from the PDS"
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '0.3rem',
+          padding: '0.3rem 0.6rem',
+          background: 'var(--bg-tertiary)',
+          border: '1px solid var(--border-medium)',
+          color: 'var(--text-secondary)',
+          fontFamily: 'var(--font-serif)',
+          fontSize: '0.8125rem',
+          textDecoration: 'none',
+        }}
+      >
+        <ExternalLink size={12} />
+        View on PDS
+      </a>
     </div>
   );
 }
