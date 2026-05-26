@@ -2,10 +2,11 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { ChevronDown, ChevronRight } from 'lucide-react';
+import { ChevronDown, ChevronRight, Check } from 'lucide-react';
 import { describeRepo } from '@/utils/atproto/pdsClient';
 import { encodeRepo } from '@/utils/atproto/urls';
-import type { IdentityBundle } from '@/utils/atproto/identity';
+import { resolveIdentifier, type IdentityBundle } from '@/utils/atproto/identity';
+import { useAtprotoSession } from '@/components/AtprotoSessionProvider';
 
 type SubGroup = {
   /** 3rd NSID segment, e.g. "feed", "graph", "actor". */
@@ -97,6 +98,7 @@ export default function CollectionsTab({ identity }: { identity: IdentityBundle 
   const [filter, setFilter] = useState('');
   /** Collapsed-state map keyed by full group/sub key (e.g. "app.bsky" or "app.bsky.feed"). */
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
+  const myCollections = useMyCollections(identity.did);
 
   useEffect(() => {
     let cancelled = false;
@@ -186,6 +188,7 @@ export default function CollectionsTab({ identity }: { identity: IdentityBundle 
                           href={`/explore/${repoSeg}/${nsid}`}
                           dimPrefix={`${g.key}.`}
                           baseBg={i % 2 === 0 ? 'var(--bg-primary)' : 'transparent'}
+                          inCommon={myCollections?.has(nsid)}
                         />
                       ))}
                     </ul>
@@ -226,6 +229,7 @@ export default function CollectionsTab({ identity }: { identity: IdentityBundle 
                                 deepIndent
                                 dimPrefix={`${sub.fullKey}.`}
                                 baseBg={i % 2 === 0 ? 'var(--bg-primary)' : 'transparent'}
+                                inCommon={myCollections?.has(nsid)}
                               />
                             ))}
                           </ul>
@@ -329,6 +333,7 @@ function LeafRow({
   deepIndent,
   dimPrefix,
   baseBg,
+  inCommon,
 }: {
   nsid: string;
   href: string;
@@ -337,6 +342,8 @@ function LeafRow({
   dimPrefix?: string;
   /** Resting background for zebra striping; mouseleave restores to this. */
   baseBg: string;
+  /** Signed-in viewer also has records in this collection — show a marker. */
+  inCommon?: boolean;
 }) {
   const hasDim = dimPrefix && nsid.startsWith(dimPrefix);
   const dim = hasDim ? dimPrefix : '';
@@ -345,8 +352,11 @@ function LeafRow({
     <li>
       <Link
         href={href}
+        title={inCommon ? "You have records in this collection too" : undefined}
         style={{
-          display: 'block',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.4rem',
           padding: deepIndent
             ? '0.5rem 1rem 0.5rem 3rem'
             : '0.5rem 1rem 0.5rem 2.5rem',
@@ -368,8 +378,28 @@ function LeafRow({
           e.currentTarget.style.color = 'var(--text-primary)';
         }}
       >
-        {dim && <span style={{ color: 'var(--text-tertiary)' }}>{dim}</span>}
-        {tail}
+        <span style={{ flex: 1, minWidth: 0 }}>
+          {dim && <span style={{ color: 'var(--text-tertiary)' }}>{dim}</span>}
+          {tail}
+        </span>
+        {inCommon && (
+          <span
+            aria-hidden
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.25rem',
+              fontFamily: 'var(--font-serif)',
+              fontSize: '0.7rem',
+              letterSpacing: '0.06em',
+              textTransform: 'uppercase',
+              color: 'var(--text-accent)',
+              flexShrink: 0,
+            }}
+          >
+            <Check size={11} aria-hidden /> you
+          </span>
+        )}
       </Link>
     </li>
   );
@@ -381,4 +411,48 @@ function listStyle(): React.CSSProperties {
     margin: 0,
     padding: 0,
   };
+}
+
+/**
+ * Session-cached lookup of the signed-in user's collection NSIDs. Used to
+ * mark collections in common between the viewer and the repo being viewed.
+ * Returns null when not signed in, viewing your own repo, or the lookup
+ * is still in flight. The cache is module-level so flipping between
+ * repos in a single session reuses the same Set.
+ */
+const myCollectionsCache = new Map<string, Set<string>>();
+
+function useMyCollections(viewingDid: string): Set<string> | null {
+  const { did: myDid } = useAtprotoSession();
+  const [set, setSet] = useState<Set<string> | null>(null);
+  const skip = !myDid || myDid === viewingDid;
+
+  useEffect(() => {
+    if (skip || !myDid) {
+      setSet(null);
+      return undefined;
+    }
+    const cached = myCollectionsCache.get(myDid);
+    if (cached) {
+      setSet(cached);
+      return undefined;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const id = await resolveIdentifier(myDid);
+        const desc = await describeRepo(id.pds, id.did);
+        const next = new Set(Array.isArray(desc.collections) ? desc.collections : []);
+        myCollectionsCache.set(myDid, next);
+        if (!cancelled) setSet(next);
+      } catch {
+        // Non-fatal: failure just means we don't render in-common markers.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [skip, myDid]);
+
+  return set;
 }

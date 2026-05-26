@@ -98,7 +98,10 @@ export async function getProfileWithViewer(
   try {
     const res = await agent.app.bsky.actor.getProfile({ actor });
     return (res?.data ?? res) as AppViewProfileWithViewer;
-  } catch {
+  } catch (err) {
+    // Log so we can see what's actually happening in the console when
+    // viewer state goes missing — silent null was eating useful diagnostics.
+    console.warn('[appview] getProfileWithViewer failed', { actor, err });
     return null;
   }
 }
