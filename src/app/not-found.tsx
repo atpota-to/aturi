@@ -13,7 +13,12 @@ export default function NotFound() {
       <div className="container-narrow" style={{ padding: '2rem 2rem 0' }}>
         <Header compact />
       </div>
-      <NotFoundPanel />
+      {/* Mirror the explore layout's gutter so the panel doesn't sit flush
+          against the viewport edges on this top-level route. The panel
+          itself no longer self-pads. */}
+      <div className="container-narrow" style={{ padding: '0 2rem 4rem' }}>
+        <NotFoundPanel />
+      </div>
     </div>
   );
 }
