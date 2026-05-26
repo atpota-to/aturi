@@ -5,13 +5,16 @@ import Link from 'next/link';
 import { CheckCircle2, CircleAlert, Loader2, LogOut, Telescope, User } from 'lucide-react';
 import { useAtprotoSession } from '@/components/AtprotoSessionProvider';
 import { usePreferences } from '@/components/PreferencesProvider';
+import ScopeSelector from '@/components/oauth/ScopeSelector';
 import { getProfile, type AppViewProfile } from '@/utils/atproto/appview';
 import { encodeRepo } from '@/utils/atproto/urls';
 import AccountStats from '../AccountStats';
 
 /**
  * Account tab — identity card (avatar / handle / DID), repo stats,
- * preference-sync status, and sign-out action.
+ * preference-sync status, and sign-out action. When signed out, the
+ * tab body becomes the two-step sign-in flow so the rest of the
+ * settings UI stays reachable for anonymous customization.
  */
 export default function AccountTab() {
   const { did, signOut } = useAtprotoSession();
@@ -29,7 +32,7 @@ export default function AccountTab() {
     };
   }, [did]);
 
-  if (!did) return null;
+  if (!did) return <SignInCard />;
 
   const handle = profile?.handle;
   const displayName = profile?.displayName?.trim() || handle || did;
@@ -199,4 +202,118 @@ function ghostLinkStyle({ danger }: { danger?: boolean } = {}): React.CSSPropert
     cursor: 'pointer',
     textDecoration: 'none',
   };
+}
+
+/**
+ * Signed-out body for the Account tab. Mirrors the previous AccountPage
+ * sign-in flow but lives inside the settings shell so the other tabs
+ * (General, Waypoints, Custom, About) remain reachable for anonymous
+ * users — anything they change is kept in localStorage and pushed to
+ * the PDS the moment they sign in.
+ */
+function SignInCard() {
+  const { signIn } = useAtprotoSession();
+  const [input, setInput] = useState('');
+  const [step, setStep] = useState<'handle' | 'scopes'>('handle');
+  const [pendingAccount, setPendingAccount] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  return (
+    <section className="settings-card">
+      <div className="settings-card-head">
+        <h2 className="settings-card-title">Sign in to sync</h2>
+        <p className="settings-card-sub">
+          You can use Aturi without signing in — preferences save to this
+          browser. Sign in and they sync to your PDS so the same setup
+          follows you across devices.
+        </p>
+      </div>
+      {step === 'handle' ? (
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            const v = input.trim();
+            if (!v) return;
+            setError(null);
+            setPendingAccount(v);
+            setStep('scopes');
+          }}
+          style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem' }}
+        >
+          <input
+            type="text"
+            autoComplete="username"
+            spellCheck={false}
+            placeholder="handle.bsky.social or did:plc:…"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            style={{
+              padding: '0.75rem 0.875rem',
+              background: 'var(--bg-secondary)',
+              border: '1px solid var(--border-medium)',
+              color: 'var(--text-primary)',
+              fontFamily: 'var(--font-mono)',
+              fontSize: '0.9rem',
+              outline: 'none',
+            }}
+          />
+          <button
+            type="submit"
+            disabled={!input.trim()}
+            style={{
+              padding: '0.75rem 1rem',
+              background: 'var(--accent-moss)',
+              color: 'var(--text-on-accent)',
+              border: '1px solid var(--accent-moss)',
+              fontFamily: 'var(--font-serif)',
+              fontSize: '0.95rem',
+              cursor: 'pointer',
+              opacity: !input.trim() ? 0.6 : 1,
+            }}
+          >
+            Next: choose permissions →
+          </button>
+        </form>
+      ) : (
+        <div
+          style={{
+            padding: '1rem',
+            background: 'var(--bg-secondary)',
+            border: '1px solid var(--border-medium)',
+          }}
+        >
+          <ScopeSelector
+            account={pendingAccount}
+            busy={busy}
+            error={error}
+            onBack={() => {
+              setStep('handle');
+              setError(null);
+            }}
+            onContinue={async (scopeString) => {
+              setBusy(true);
+              setError(null);
+              try {
+                await signIn(pendingAccount, scopeString);
+              } catch (err) {
+                setBusy(false);
+                setError(err instanceof Error ? err.message : String(err));
+              }
+            }}
+          />
+        </div>
+      )}
+      <p
+        style={{
+          marginTop: '1rem',
+          color: 'var(--text-tertiary)',
+          fontSize: '0.8125rem',
+        }}
+      >
+        You&rsquo;ll be redirected to your PDS to authorize Aturi. Reads
+        always work because your repo is public.
+      </p>
+    </section>
+  );
 }

@@ -163,18 +163,47 @@ export default function SessionPanel({ onNavigate, onSignInActiveChange }: Props
     }
 
     return (
-      <button
-        type="button"
-        onClick={() => {
-          setError(null);
-          setSignInStep('handle');
-        }}
-        className="compact-nav-link"
-        style={{ font: 'inherit', textAlign: 'left', width: '100%' }}
-      >
-        <LogIn size={16} />
-        <span>sign in</span>
-      </button>
+      <>
+        <button
+          type="button"
+          onClick={() => {
+            setError(null);
+            setSignInStep('handle');
+          }}
+          className="compact-nav-link"
+          style={{ font: 'inherit', textAlign: 'left', width: '100%' }}
+        >
+          <LogIn size={16} />
+          <span>sign in</span>
+        </button>
+        <Link
+          href="/account#general"
+          className="compact-nav-link"
+          onClick={onNavigate}
+        >
+          <Settings size={16} />
+          <span
+            style={{
+              display: 'inline-flex',
+              alignItems: 'baseline',
+              gap: '0.4rem',
+              flexWrap: 'wrap',
+            }}
+          >
+            settings
+            <span
+              style={{
+                fontSize: '0.65rem',
+                letterSpacing: '0.08em',
+                textTransform: 'uppercase',
+                color: 'var(--text-tertiary)',
+              }}
+            >
+              local
+            </span>
+          </span>
+        </Link>
+      </>
     );
   }
 
