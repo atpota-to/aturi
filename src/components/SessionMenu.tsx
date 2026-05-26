@@ -204,7 +204,7 @@ export default function SessionMenu({ variant = 'inline' }: { variant?: Variant 
           <MenuLink
             href="/account"
             icon={<Settings size={13} />}
-            label="Account settings"
+            label="Settings"
             onClick={() => setOpen(false)}
           />
           <button
