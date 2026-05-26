@@ -71,9 +71,9 @@ function ExplorerCard() {
             Show pinned section on
           </span>
           <span className="settings-toggle-label-sub">
-            <em>My repo</em> keeps the Pinned section private to your own
-            account page. <em>Every repo</em> bubbles a single shared list up
-            on every page that has a match. <em>Separate</em> lets you keep
+            <em>My repo</em> shows the Pinned section only on your own account
+            page. <em>Every repo</em> bubbles a single shared list up on
+            every page that has a match. <em>Separate</em> lets you keep
             two different lists — one for your repo, another for everyone
             else's.
           </span>
