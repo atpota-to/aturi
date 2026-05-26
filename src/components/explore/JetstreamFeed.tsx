@@ -236,7 +236,7 @@ export default function JetstreamFeed({
               color: 'var(--text-tertiary)',
               fontVariantNumeric: 'tabular-nums',
             }}
-            title="Events per second across the firehose"
+            title="Events per second across the live network feed"
           >
             ~{eps.toLocaleString()}/s
           </span>

@@ -6,6 +6,7 @@ import { Telescope, User } from 'lucide-react';
 import AppearIn from './AppearIn';
 import SearchBox from './SearchBox';
 import JetstreamFeed from './JetstreamFeed';
+import TrendingLexicons from './TrendingLexicons';
 import CrossLinkCards from '@/components/landing/CrossLinkCards';
 import { useAtprotoSession } from '@/components/AtprotoSessionProvider';
 import { getProfile, type AppViewProfile } from '@/utils/atproto/appview';
@@ -148,6 +149,8 @@ export default function ExploreLanding() {
           showStats
         />
       </AppearIn>
+
+      <TrendingLexicons />
 
       <AppearIn delay={0.16}>
         <CrossLinkCards current="explore" />
