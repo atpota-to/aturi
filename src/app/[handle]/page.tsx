@@ -6,6 +6,7 @@ import ProfilePreview from '@/components/ProfilePreview';
 import ProfilePreviewSkeleton from '@/components/ProfilePreviewSkeleton';
 import ScrollIndicator from '@/components/ScrollIndicator';
 import Header from '@/components/Header';
+import NotFoundPanel from '@/components/NotFoundPanel';
 import { resolveHandle, getDisplayName } from '@/utils/uriParser';
 import { resolveDidToHandle } from '@/utils/didResolver';
 import { fetchProfile } from '@/utils/profileFetcher';
@@ -88,9 +89,21 @@ async function ProfileContent({ handle }: { handle: string }) {
     return (
       <div className="container-narrow" style={{ padding: '2rem 2rem 4rem', textAlign: 'center' }}>
         <Header compact />
+<<<<<<< Updated upstream
         <h1 style={{ marginBottom: '1rem', color: 'var(--text-primary)' }}>Error</h1>
         <p style={{ color: 'var(--text-secondary)' }}>Could not resolve handle</p>
       </div>
+=======
+        <div className="container-narrow" style={{ padding: '0 2rem 4rem' }}>
+          <NotFoundPanel
+            eyebrow="Couldn't resolve"
+            headline="That handle didn't resolve."
+            body={`We tried to resolve "${handle}" as an Atmosphere handle and didn't find anything. If you meant a different account, search for a handle, DID, or AT URI below.`}
+            initialQuery={handle}
+          />
+        </div>
+      </>
+>>>>>>> Stashed changes
     );
   }
 

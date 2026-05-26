@@ -7,6 +7,7 @@ import PostPreviewSkeleton from '@/components/PostPreviewSkeleton';
 import RecordPreview from '@/components/RecordPreview';
 import ScrollIndicator from '@/components/ScrollIndicator';
 import Header from '@/components/Header';
+import NotFoundPanel from '@/components/NotFoundPanel';
 import { parseURI, resolveHandle, getDisplayName } from '@/utils/uriParser';
 import { fetchRecordData } from '@/utils/recordFetcher';
 import { resolveDidToHandle } from '@/utils/didResolver';
@@ -282,9 +283,21 @@ async function RecordContent({ handle, collection, rkey }: { handle: string; col
       return (
         <div className="container-narrow" style={{ padding: '2rem 2rem 4rem', textAlign: 'center' }}>
           <Header compact />
+<<<<<<< Updated upstream
           <h1 style={{ marginBottom: '1rem', color: 'var(--text-primary)' }}>Error</h1>
           <p style={{ color: 'var(--text-secondary)' }}>Could not resolve handle: {handle}</p>
         </div>
+=======
+          <div className="container-narrow" style={{ padding: '0 2rem 4rem' }}>
+            <NotFoundPanel
+              eyebrow="Couldn't resolve"
+              headline="That handle didn't resolve."
+              body={`We tried to resolve "${handle}" as an Atmosphere handle and didn't find anything. Try a different handle, DID, or AT URI below.`}
+              initialQuery={handle}
+            />
+          </div>
+        </>
+>>>>>>> Stashed changes
       );
     }
 
