@@ -15,6 +15,7 @@ import RichRecordPreview, { previewRendersGeneric } from './RichRecordPreview';
 import BacklinksTab from './tabs/BacklinksTab';
 import RecordEditor from './RecordEditor';
 import SignInPanel from './SignInPanel';
+import NotFoundPanel from '@/components/NotFoundPanel';
 import { useAtprotoSession } from '@/components/AtprotoSessionProvider';
 
 type Props = {
@@ -78,7 +79,14 @@ export default function RecordExplorer({ repo, collection, rkey }: Props) {
   }, [identity, collection, decodedRkey]);
 
   if (identityError) {
-    return <p className="explore-error">{identityError}</p>;
+    return (
+      <NotFoundPanel
+        eyebrow="Couldn't resolve"
+        headline="That handle didn't resolve."
+        body={`We tried to resolve "${repo}" and the AT Protocol resolver returned: ${identityError}. Try another handle, DID, or AT URI below.`}
+        initialQuery={repo}
+      />
+    );
   }
   if (!identity) {
     return (
