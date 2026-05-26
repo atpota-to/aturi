@@ -66,8 +66,8 @@ export default function SkeletonDemoPage() {
   };
 
   return (
-    <div className="container-narrow" style={{ padding: '4rem 2rem' }}>
-      <Header simple />
+    <div className="container-narrow" style={{ padding: '2rem 2rem 4rem' }}>
+      <Header compact />
 
       <div style={{ marginBottom: '4rem', textAlign: 'center' }}>
         <h2 style={{ color: 'var(--text-accent)', marginBottom: '1rem', fontSize: '2rem' }}>
