@@ -258,6 +258,38 @@ export default function App() {
 
   const prefs = state.prefs;
 
+  // The Ready+Waypoints combo shows the universal-link copy chip + the
+  // current collection in the right side of the title bar. Other phases /
+  // modes show a static tagline instead. Computed up here so the title bar
+  // is rendered once for all modes (the user explicitly asked for the
+  // title bar to appear on Inspect too, like it does on Waypoints).
+  const ready = state.phase === 'ready' ? state : null;
+  const aturiLink = useMemo(() => {
+    if (!ready || mode !== 'waypoints') return null;
+    const aturi = findWaypoint(ready.prefs, 'aturi');
+    if (!aturi) return null;
+    const { parsed } = ready.match;
+    return (
+      aturi.getUrl(parsed.handle, parsed.collection, parsed.rkey, parsed.did) ?? null
+    );
+  }, [ready, mode]);
+
+  const titleAccessory =
+    ready && mode === 'waypoints' ? (
+      <>
+        <div className="popup-header-actions">
+          {aturiLink && <HeaderCopyLinkButton url={aturiLink} />}
+        </div>
+        <div className="popup-source-collection" title={ready.match.parsed.uri}>
+          {ready.match.parsed.collection ?? (ready.match.parsed.type === 'unknown' ? 'profile' : ready.match.parsed.type)}
+        </div>
+      </>
+    ) : (
+      <div className="popup-header-actions">
+        <span className="popup-tagline">Atmosphere Fast Travel</span>
+      </div>
+    );
+
   const inner =
     mode === 'inspect' ? (
       <InspectView prefs={prefs} />
@@ -283,7 +315,20 @@ export default function App() {
 
   return (
     <div className={`popup-shell ${prefs.compactMode ? 'is-compact' : ''}`}>
-      <PopupModeTabs mode={mode} onSelect={selectMode} />
+      <div className="popup-topbar">
+        <div className="popup-header">
+          <div className="popup-title">
+            <AturiMark />
+            <span>Aturi</span>
+          </div>
+          <div className="popup-source">{titleAccessory}</div>
+        </div>
+        <PopupModeTabs
+          mode={mode}
+          onSelect={selectMode}
+          onOpenSettings={() => void openOptionsPage()}
+        />
+      </div>
       {inner}
     </div>
   );
@@ -292,9 +337,11 @@ export default function App() {
 function PopupModeTabs({
   mode,
   onSelect,
+  onOpenSettings,
 }: {
   mode: PopupMode;
   onSelect: (next: PopupMode) => void;
+  onOpenSettings: () => void;
 }) {
   return (
     <div className="popup-mode-tabs" role="tablist" aria-label="Popup mode">
@@ -317,6 +364,15 @@ function PopupModeTabs({
       >
         <Telescope size={12} aria-hidden />
         Inspect
+      </button>
+      <button
+        type="button"
+        className="popup-mode-tab-settings"
+        onClick={onOpenSettings}
+        title="Open settings"
+        aria-label="Open extension settings"
+      >
+        <SettingsGearIcon />
       </button>
     </div>
   );
@@ -391,19 +447,6 @@ function NoAtmosphereView({
 
   return (
     <div className={`popup-root ${prefs.compactMode ? 'is-compact' : ''}`}>
-      <div className="popup-header">
-        <div className="popup-title">
-          <AturiMark />
-          <span>Aturi</span>
-        </div>
-        <div className="popup-source">
-          <div className="popup-header-actions">
-            <span className="popup-tagline">Atmosphere Fast Travel</span>
-            <HeaderSettingsButton />
-          </div>
-        </div>
-      </div>
-
       {!isKnownHost && (
         <div className="popup-notice">
           <div className="popup-notice-title">No Atmosphere data on this page</div>
@@ -559,35 +602,8 @@ function Ready({ match, prefs, pendingId, copiedId, onOpen, onCopy }: ReadyProps
     );
   }, [prefs.smartRecommendations, recommended.waypoints, source]);
 
-  // Aturi universal link for the current AT URI. We always look up the aturi
-  // waypoint directly (independent of group visibility) so the header copy
-  // button works even if the user has hidden Aturi from their popup groups.
-  const aturiLink = useMemo(() => {
-    const aturi = findWaypoint(prefs, 'aturi');
-    if (!aturi) return null;
-    return (
-      aturi.getUrl(parsed.handle, parsed.collection, parsed.rkey, parsed.did) ?? null
-    );
-  }, [prefs, parsed.handle, parsed.collection, parsed.rkey, parsed.did]);
-
   return (
     <div className={`popup-root ${prefs.compactMode ? 'is-compact' : ''}`}>
-      <div className="popup-header">
-        <div className="popup-title">
-          <AturiMark />
-          <span>Aturi</span>
-        </div>
-        <div className="popup-source">
-          <div className="popup-header-actions">
-            {aturiLink && <HeaderCopyLinkButton url={aturiLink} />}
-            <HeaderSettingsButton />
-          </div>
-          <div className="popup-source-collection" title={parsed.uri}>
-            {parsed.collection ?? type}
-          </div>
-        </div>
-      </div>
-
       {prefs.historyEnabled && recents.length > 0 && (
         <div className="popup-section">
           <div className="popup-section-label">Recents</div>
@@ -879,20 +895,12 @@ function WaypointButton({
   );
 }
 
-function HeaderSettingsButton() {
+function SettingsGearIcon() {
   return (
-    <button
-      type="button"
-      className="popup-header-settings"
-      onClick={() => void openOptionsPage()}
-      title="Open settings"
-      aria-label="Open extension settings"
-    >
-      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-        <circle cx="12" cy="12" r="3" />
-        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
-      </svg>
-    </button>
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="3" />
+      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+    </svg>
   );
 }
 
