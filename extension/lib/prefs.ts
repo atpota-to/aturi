@@ -151,6 +151,15 @@ export type Prefs = {
    * popup opens to the user's last-used tab on next launch.
    */
   popupMode?: 'waypoints' | 'inspect';
+  /**
+   * When true (default), the popup calls describeRepo on the target DID
+   * and uses the resulting collection list to (a) dim waypoints whose
+   * expectedCollections aren't in the repo with a "no records found"
+   * caption, and (b) sort confirmed-present waypoints to the top of
+   * smart recommendations. Adds one PDS roundtrip per target repo
+   * (cached for an hour); turn off to suppress that traffic.
+   */
+  pdsRecordScan: boolean;
 };
 
 const CUSTOM_GROUP_ID = 'custom';
@@ -176,6 +185,7 @@ export const DEFAULT_PREFS: Prefs = {
   fontSize: 'medium',
   knownWaypointIds: [...WAYPOINT_ORDER],
   popupMode: 'waypoints',
+  pdsRecordScan: true,
 };
 
 /**
