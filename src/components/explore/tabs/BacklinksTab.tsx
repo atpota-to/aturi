@@ -20,8 +20,18 @@ import AtUriLink from '../AtUriLink';
  *   undefined → still loading
  *   null      → constellation unavailable / failed
  *   []        → no inbound links found
+ *
+ * When `showSummary` is set, the panel wraps itself in a card with a
+ * prominent count header — used on the record page where backlinks are
+ * featured content rather than one tab among many.
  */
-export default function BacklinksTab({ target }: { target: string }) {
+export default function BacklinksTab({
+  target,
+  showSummary,
+}: {
+  target: string;
+  showSummary?: boolean;
+}) {
   const [sources, setSources] = useState<BacklinkSource[] | null | undefined>(undefined);
   const [open, setOpen] = useState<string | null>(null);
 
@@ -42,27 +52,141 @@ export default function BacklinksTab({ target }: { target: string }) {
     };
   }, [target]);
 
-  if (sources === undefined) return <p className="explore-placeholder">Loading backlinks…</p>;
-  if (sources === null) {
-    return (
-      <p className="explore-muted" style={{ fontStyle: 'italic' }}>
-        Backlinks unavailable (
-        <a
-          href="https://constellation.microcosm.blue"
-          target="_blank"
-          rel="noreferrer noopener"
-          style={{ color: 'var(--text-accent)' }}
-        >
-          constellation
-        </a>
-        ).
-      </p>
-    );
-  }
-  if (sources.length === 0) {
-    return <p className="explore-placeholder">No inbound links found.</p>;
+  if (!showSummary) {
+    if (sources === undefined) return <p className="explore-placeholder">Loading backlinks…</p>;
+    if (sources === null) return <BacklinksUnavailable />;
+    if (sources.length === 0) {
+      return <p className="explore-placeholder">No inbound links found.</p>;
+    }
+    return <BacklinkSourceList sources={sources} open={open} setOpen={setOpen} target={target} />;
   }
 
+  return (
+    <BacklinksSummaryPanel sources={sources}>
+      {sources && sources.length > 0 && (
+        <BacklinkSourceList sources={sources} open={open} setOpen={setOpen} target={target} />
+      )}
+    </BacklinksSummaryPanel>
+  );
+}
+
+function BacklinksUnavailable() {
+  return (
+    <p className="explore-muted" style={{ fontStyle: 'italic' }}>
+      Backlinks unavailable (
+      <a
+        href="https://constellation.microcosm.blue"
+        target="_blank"
+        rel="noreferrer noopener"
+        style={{ color: 'var(--text-accent)' }}
+      >
+        constellation
+      </a>
+      ).
+    </p>
+  );
+}
+
+/**
+ * Card-shaped wrapper for the record-page backlinks section: header with
+ * a prominent total count, followed by either the source list (children)
+ * or a state-appropriate empty / loading / unavailable message in the
+ * body slot.
+ */
+function BacklinksSummaryPanel({
+  sources,
+  children,
+}: {
+  sources: BacklinkSource[] | null | undefined;
+  children: import('react').ReactNode;
+}) {
+  const ready = Array.isArray(sources);
+  const totalCount = ready ? sources.reduce((sum, s) => sum + s.count, 0) : 0;
+  const hasAccounts = ready ? sources.some((s) => s.distinctDids != null) : false;
+  const totalAccounts = hasAccounts
+    ? sources!.reduce((sum, s) => sum + (s.distinctDids ?? 0), 0)
+    : 0;
+  const sourceCount = ready ? sources.length : 0;
+
+  return (
+    <section
+      style={{
+        border: '1px solid var(--border-medium)',
+        background: 'var(--bg-secondary)',
+      }}
+    >
+      <header
+        style={{
+          padding: '1rem 1.25rem',
+          borderBottom: '1px solid var(--border-medium)',
+          background:
+            'linear-gradient(135deg, var(--bg-tertiary) 0%, var(--bg-secondary) 100%)',
+          display: 'flex',
+          alignItems: 'baseline',
+          gap: '0.75rem',
+          flexWrap: 'wrap',
+        }}
+      >
+        <span className="explore-small-caps">Inbound links</span>
+        <span
+          style={{
+            fontFamily: 'var(--font-serif)',
+            fontSize: '1.875rem',
+            fontWeight: 600,
+            color: 'var(--text-accent)',
+            fontVariantNumeric: 'tabular-nums',
+            lineHeight: 1,
+          }}
+        >
+          {ready ? totalCount.toLocaleString() : '—'}
+        </span>
+        <span style={{ fontSize: '0.875rem', color: 'var(--text-tertiary)' }}>
+          {!ready
+            ? sources === null
+              ? 'unavailable'
+              : 'loading…'
+            : sourceCount === 0
+              ? 'no records reference this yet'
+              : `across ${sourceCount} ${sourceCount === 1 ? 'source' : 'sources'}${
+                  hasAccounts
+                    ? ` · from ${totalAccounts.toLocaleString()} ${totalAccounts === 1 ? 'account' : 'accounts'}`
+                    : ''
+                }`}
+        </span>
+      </header>
+      <div style={{ padding: '0.75rem' }}>
+        {sources === undefined && (
+          <p className="explore-placeholder" style={{ margin: 0 }}>
+            Loading backlinks…
+          </p>
+        )}
+        {sources === null && (
+          <div style={{ padding: '0.5rem 0.25rem' }}>
+            <BacklinksUnavailable />
+          </div>
+        )}
+        {Array.isArray(sources) && sources.length === 0 && (
+          <p className="explore-muted" style={{ margin: 0, padding: '0.5rem 0.25rem' }}>
+            Nothing references this record yet.
+          </p>
+        )}
+        {children}
+      </div>
+    </section>
+  );
+}
+
+function BacklinkSourceList({
+  sources,
+  open,
+  setOpen,
+  target,
+}: {
+  sources: BacklinkSource[];
+  open: string | null;
+  setOpen: (s: string | null) => void;
+  target: string;
+}) {
   return (
     <ul
       style={{

@@ -189,6 +189,16 @@ export default function RecordExplorer({ repo, collection, rkey }: Props) {
         </AppearIn>
       )}
 
+      {/* Backlinks. Featured directly under the preview (not buried in a
+          `<details>` at the bottom) so the count is visible at a glance —
+          inbound links are often the most interesting context for a
+          record. */}
+      {!editing && (
+        <AppearIn delay={0.06}>
+          <BacklinksTab target={atUri} showSummary />
+        </AppearIn>
+      )}
+
       {/* Consolidated copy row. URI elements live in the breadcrumb above,
           so we don't repeat them — every identifier is one tap away as a
           copy button. CID is omitted because the preview card already
@@ -250,13 +260,6 @@ export default function RecordExplorer({ repo, collection, rkey }: Props) {
           <LinkifiedJson value={record} className="explore-json" />
         </details>
       )}
-
-      <details className="explore-section">
-        <summary>Backlinks to this record</summary>
-        <div style={{ marginTop: '0.75rem' }}>
-          <BacklinksTab target={atUri} />
-        </div>
-      </details>
     </div>
   );
 }
