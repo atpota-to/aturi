@@ -3,6 +3,8 @@ import {
   Activity,
   Check,
   ChevronRight,
+  Clock,
+  Compass,
   ExternalLink,
   Heart,
   Hash,
@@ -15,7 +17,7 @@ import {
   Server,
   Telescope,
 } from 'lucide-react';
-import { parseAtUri, encodeRepo } from '@aturi/atproto/urls';
+import { parseAtUri, encodeRepo, shortDid } from '@aturi/atproto/urls';
 import { resolveIdentifier, type IdentityBundle } from '@aturi/atproto/identity';
 import { getRecord, getRecordUrl, type AtRecord } from '@aturi/atproto/pdsClient';
 import { getPostThread } from '@aturi/atproto/appview';
@@ -33,6 +35,10 @@ import {
   buildUniversalLink,
 } from '../../lib/aturiUrl';
 import type { UseInspectScanResult } from '../../lib/inspectScan';
+import {
+  loadInspectRecentRepos,
+  type InspectRepoEntry,
+} from '../../lib/inspectHistory';
 
 type Props = {
   prefs: Prefs;
@@ -50,7 +56,7 @@ type Props = {
  * The page scan itself is owned by <App />; this view is a
  * presentational renderer for the lifted scan state.
  */
-export default function InspectView({ scan }: Props) {
+export default function InspectView({ prefs, scan }: Props) {
   const { hits, scanning, error: scanError, rescan } = scan;
   return (
     <div className="popup-section">
@@ -66,17 +72,10 @@ export default function InspectView({ scan }: Props) {
       )}
 
       {!scanning && hits.length === 0 && (
-        <div className="popup-empty">
-          <div style={{ marginBottom: 8 }}>No AT URIs detected on this page.</div>
-          <button
-            type="button"
-            className="aturi-btn"
-            onClick={() => rescan()}
-          >
-            <RefreshCw size={12} aria-hidden style={{ marginRight: 4 }} />
-            Scan again
-          </button>
-        </div>
+        <InspectEmptyState
+          onRescan={() => rescan()}
+          historyEnabled={prefs.historyEnabled}
+        />
       )}
 
       {hits.length > 0 && (
@@ -106,6 +105,110 @@ export default function InspectView({ scan }: Props) {
         </div>
       )}
     </div>
+  );
+}
+
+/**
+ * Shown when the scan finished but found nothing. Offers the user two
+ * forward paths instead of a dead-end "Scan again" button:
+ *   1. A primary CTA into the Atmosphere explorer at aturi.to/explore.
+ *   2. A list of frequently-seen repos pulled from local history so they
+ *      can jump straight into the Explorer for someone they've recently
+ *      come across, even though this page has nothing to inspect.
+ *
+ * The original rescan affordance is still here as a small ghost action.
+ */
+function InspectEmptyState({
+  onRescan,
+  historyEnabled,
+}: {
+  onRescan: () => void;
+  historyEnabled: boolean;
+}) {
+  const [recents, setRecents] = useState<InspectRepoEntry[] | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!historyEnabled) {
+      setRecents([]);
+      return undefined;
+    }
+    void (async () => {
+      const list = await loadInspectRecentRepos();
+      if (!cancelled) setRecents(list);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [historyEnabled]);
+
+  const topRecents = (recents ?? []).slice(0, 6);
+
+  return (
+    <div className="inspect-empty">
+      <div className="inspect-empty-message">No AT URIs detected on this page.</div>
+
+      <a
+        href={`${ATURI_BASE}/explore`}
+        target="_blank"
+        rel="noreferrer"
+        className="aturi-btn aturi-btn-primary inspect-empty-cta"
+        onClick={() => {
+          window.setTimeout(() => window.close(), 50);
+        }}
+      >
+        <Compass size={12} aria-hidden />
+        Open Aturi Explorer
+      </a>
+
+      {topRecents.length > 0 && (
+        <div className="inspect-empty-recents">
+          <div className="inspect-empty-recents-label">
+            <Clock size={10} aria-hidden /> Frequently seen
+          </div>
+          <div className="inspect-empty-recents-list">
+            {topRecents.map((entry) => (
+              <RecentRepoChip key={entry.repo} entry={entry} />
+            ))}
+          </div>
+        </div>
+      )}
+
+      <button
+        type="button"
+        className="inspect-empty-rescan"
+        onClick={onRescan}
+      >
+        <RefreshCw size={11} aria-hidden />
+        Scan this page again
+      </button>
+    </div>
+  );
+}
+
+function RecentRepoChip({ entry }: { entry: InspectRepoEntry }) {
+  const href = `${ATURI_BASE}/explore/${encodeRepo(entry.repo)}`;
+  const label = entry.repo.startsWith('did:') ? shortDid(entry.repo) : entry.repo;
+  const title = `Open ${entry.repo} in the Atmosphere explorer (seen ${entry.count}×)`;
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noreferrer"
+      className="inspect-empty-recent"
+      title={title}
+      onClick={() => {
+        window.setTimeout(() => window.close(), 50);
+      }}
+    >
+      <span className="inspect-empty-recent-label">{label}</span>
+      {entry.count > 1 && (
+        <span className="inspect-empty-recent-count" aria-hidden>
+          {entry.count}
+        </span>
+      )}
+      <ExternalLink size={10} aria-hidden className="inspect-empty-recent-icon" />
+    </a>
   );
 }
 

@@ -14,6 +14,8 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 import { browser } from '#imports';
 import { matchSupportedUrl } from '@aturi/reverseParsers';
 import { dedupeByUri, type DetectedAtUri } from './inspectScanner';
+import { recordInspectHits } from './inspectHistory';
+import { loadPrefs } from './prefs';
 
 export type ActiveTab = { url?: string; id?: number; active?: boolean; [k: string]: unknown };
 
@@ -80,7 +82,23 @@ export async function scanForAtUris(): Promise<ScanOutcome> {
     }
   }
 
-  return { hits: dedupeByUri(out), tab: t, error };
+  const hits = dedupeByUri(out);
+
+  // Persist the repos we just saw so the empty-state on the next "no URIs
+  // here" page can recommend them. Gated on the same `historyEnabled` pref
+  // that controls the waypoint recents list.
+  if (hits.length > 0) {
+    try {
+      const prefs = await loadPrefs();
+      if (prefs.historyEnabled) {
+        void recordInspectHits(hits);
+      }
+    } catch {
+      /* prefs read shouldn't block the scan returning */
+    }
+  }
+
+  return { hits, tab: t, error };
 }
 
 export type UseInspectScanResult = {
