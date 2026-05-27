@@ -142,24 +142,10 @@ export default function ExploreLanding() {
       </header>
       </AppearIn>
 
-      <AppearIn delay={0.08}>
-        {/* Verbose variant for the explorer dashboard: full mutation
-            stream (creates + updates + deletes) with op pills and the
-            rolling stats footer. The homepage strip uses the minimal
-            default (creates only, no op column, no stats). */}
-        <JetstreamFeed
-          wantedOps={['create', 'update', 'delete']}
-          showOpLabels
-          showStats
-        />
-      </AppearIn>
-
       <TrendingLexicons />
 
       {/* Feature spotlights — what the Explorer does that other AT
-          Protocol browsers don't. Sits between the trending feed and
-          the cross-link cards so visitors see live data first, then
-          the unique features, then the way out to the other tools. */}
+          Protocol browsers don't. */}
       <AppearIn delay={0.12}>
         <FeatureSection
           badge={{ icon: <Gauge size={12} />, label: 'Repo at a glance' }}
@@ -225,6 +211,18 @@ export default function ExploreLanding() {
             </>
           }
           visual={<SignedInExploreVisual />}
+        />
+      </AppearIn>
+
+      <AppearIn delay={0.12}>
+        {/* Verbose variant for the explorer dashboard: full mutation
+            stream (creates + updates + deletes) with op pills and the
+            rolling stats footer. The homepage strip uses the minimal
+            default (creates only, no op column, no stats). */}
+        <JetstreamFeed
+          wantedOps={['create', 'update', 'delete']}
+          showOpLabels
+          showStats
         />
       </AppearIn>
 
