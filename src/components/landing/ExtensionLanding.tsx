@@ -4,6 +4,7 @@ import Link from 'next/link';
 import {
   Compass,
   Eye,
+  Layers,
   MousePointerClick,
   Repeat,
   ShieldCheck,
@@ -21,6 +22,7 @@ import AutoRedirectVisual from './AutoRedirectVisual';
 import ClientGalleryVisual from './ClientGalleryVisual';
 import CustomWaypointVisual from './CustomWaypointVisual';
 import FeatureSection from './FeatureSection';
+import WaypointGroupsVisual from './WaypointGroupsVisual';
 
 export default function ExtensionLanding() {
   const waypointCount = getWaypointCount();
@@ -183,6 +185,32 @@ export default function ExtensionLanding() {
             </>
           }
           visual={<CustomWaypointVisual />}
+        />
+      </AppearIn>
+
+      <AppearIn delay={0.05}>
+        <FeatureSection
+          badge={{ icon: <Layers size={12} />, label: 'Groups & order' }}
+          title="Organize your waypoints into your own groups"
+          body={
+            <>
+              <p>
+                Build groups around how you actually browse: a Reading group
+                for the Bluesky-shaped clients, a Long-form group for
+                Leaflet and friends, a Building group for the developer
+                tools. Drag groups up and down to set their order, drag
+                rows inside a group to set the order within it.
+              </p>
+              <p>
+                The same waypoint can live in more than one group, so
+                Anisota can sit in both Reading and Favorites without
+                duplicating preferences. Anything you leave out of every
+                group stays hidden from the popup — your groups <em>are</em>{' '}
+                your visibility settings.
+              </p>
+            </>
+          }
+          visual={<WaypointGroupsVisual />}
         />
       </AppearIn>
 

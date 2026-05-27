@@ -1,6 +1,6 @@
 'use client';
 
-import { Leaf, MoreHorizontal, Settings } from 'lucide-react';
+import { Leaf, MoreHorizontal, MousePointer2, Settings, Telescope } from 'lucide-react';
 import {
   AnisotaLogo,
   AturiSVG,
@@ -10,15 +10,26 @@ import {
   TangledSVG,
 } from '@/utils/waypointIcons';
 
+type Props = {
+  /** Which mode tab is shown as active. Defaults to 'waypoints'. */
+  activeMode?: 'waypoints' | 'inspect';
+  /** Badge number on the Inspect tab. Set to 0 to hide. Defaults to 3. */
+  inspectBadge?: number;
+};
+
 /**
  * Static pure-CSS mock of the browser extension's popup. No real
  * interactivity — communicates what the extension looks like to a
  * visitor who hasn't installed it. Mirrors the actual popup's
- * structure (leaf header, source URI strip, "Recommended" row, a
- * few sample waypoint rows) so the visual is recognizable to
- * existing users too.
+ * structure (leaf header, tab strip with Waypoints/Inspect + a
+ * settings gear, source URI strip, "Recommended" row, a few sample
+ * waypoint rows) so the visual is recognizable to existing users
+ * too.
  */
-export default function ExtensionPopupVisual() {
+export default function ExtensionPopupVisual({
+  activeMode = 'waypoints',
+  inspectBadge = 3,
+}: Props = {}) {
   return (
     <div
       style={{
@@ -44,7 +55,6 @@ export default function ExtensionPopupVisual() {
           alignItems: 'center',
           justifyContent: 'space-between',
           padding: '14px 16px 12px',
-          borderBottom: '1px solid var(--border-subtle)',
           background:
             'linear-gradient(180deg, var(--bg-secondary), var(--bg-primary))',
         }}
@@ -68,32 +78,19 @@ export default function ExtensionPopupVisual() {
         </div>
         <div
           style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
             fontSize: '0.65rem',
             color: 'var(--text-tertiary)',
+            letterSpacing: '0.02em',
+            fontFamily: 'var(--font-mono)',
           }}
         >
-          <span style={{ letterSpacing: '0.02em' }}>app.bsky.feed.post</span>
-          <button
-            type="button"
-            aria-label="Settings"
-            tabIndex={-1}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              padding: '2px 4px',
-              border: '1px solid var(--border-subtle)',
-              background: 'transparent',
-              color: 'var(--text-tertiary)',
-              cursor: 'default',
-            }}
-          >
-            <Settings size={11} aria-hidden />
-          </button>
+          app.bsky.feed.post
         </div>
       </div>
+
+      {/* Mode tabs: Waypoints | Inspect | settings gear. Mirrors the real
+          popup's tab strip so the mock is recognizable to existing users. */}
+      <ModeTabs activeMode={activeMode} inspectBadge={inspectBadge} />
 
       {/* Source URI */}
       <div
@@ -183,6 +180,121 @@ export default function ExtensionPopupVisual() {
           <MoreHorizontal size={12} aria-hidden />
         </span>
       </div>
+    </div>
+  );
+}
+
+function ModeTabs({
+  activeMode,
+  inspectBadge,
+}: {
+  activeMode: 'waypoints' | 'inspect';
+  inspectBadge: number;
+}) {
+  return (
+    <div
+      style={{
+        display: 'flex',
+        alignItems: 'stretch',
+        borderBottom: '1px solid var(--border-subtle)',
+        background: 'var(--bg-secondary)',
+      }}
+    >
+      <ModeTab
+        icon={<MousePointer2 size={11} aria-hidden />}
+        label="Waypoints"
+        active={activeMode === 'waypoints'}
+        isFirst
+      />
+      <ModeTab
+        icon={<Telescope size={11} aria-hidden />}
+        label="Inspect"
+        active={activeMode === 'inspect'}
+        badge={inspectBadge > 0 ? inspectBadge : undefined}
+      />
+      <div
+        style={{
+          flex: '0 0 auto',
+          width: 36,
+          display: 'inline-flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          color: 'var(--text-tertiary)',
+          borderLeft: '1px solid var(--border-subtle)',
+          marginBottom: '-1px',
+        }}
+        aria-label="Open settings"
+      >
+        <Settings size={12} aria-hidden />
+      </div>
+    </div>
+  );
+}
+
+function ModeTab({
+  icon,
+  label,
+  active,
+  badge,
+  isFirst,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  active: boolean;
+  badge?: number;
+  isFirst?: boolean;
+}) {
+  return (
+    <div
+      style={{
+        flex: 1,
+        display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: '5px',
+        padding: '8px 8px',
+        borderBottom: active
+          ? '2px solid var(--text-accent)'
+          : '2px solid transparent',
+        // Adjacent dividers between the two tabs and the settings gear
+        // — matches the real popup's vertical separators.
+        borderLeft: isFirst ? 'none' : '1px solid var(--border-subtle)',
+        marginBottom: '-1px',
+        color: active ? 'var(--text-primary)' : 'var(--text-tertiary)',
+        fontFamily: 'var(--font-sans)',
+        fontSize: '0.6rem',
+        fontWeight: 500,
+        textTransform: 'uppercase',
+        letterSpacing: '0.08em',
+        lineHeight: 1,
+      }}
+    >
+      {icon}
+      <span>{label}</span>
+      {badge !== undefined && (
+        <span
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            minWidth: 14,
+            height: 14,
+            padding: '0 4px',
+            marginLeft: 2,
+            background: 'var(--text-accent)',
+            color: 'var(--bg-primary, #000)',
+            borderRadius: 7,
+            fontSize: 9,
+            fontWeight: 600,
+            letterSpacing: 0,
+            lineHeight: 1,
+            textTransform: 'none',
+          }}
+          aria-label={`${badge} detected URIs`}
+        >
+          {badge > 99 ? '99+' : badge}
+        </span>
+      )}
     </div>
   );
 }
