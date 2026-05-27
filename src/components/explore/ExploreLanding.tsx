@@ -16,7 +16,7 @@ import { useAtprotoSession } from '@/components/AtprotoSessionProvider';
 import { getProfile, type AppViewProfile } from '@/utils/atproto/appview';
 import { encodeRepo } from '@/utils/atproto/urls';
 
-const SUGGESTIONS = ['aturi.to', 'bsky.app', 'dame.is', 'jay.bsky.team'];
+const SUGGESTIONS = ['dame.is', 'anisota.net', 'aturi.to', 'atpota.to'];
 
 export default function ExploreLanding() {
   const { did } = useAtprotoSession();
