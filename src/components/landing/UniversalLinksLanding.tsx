@@ -183,8 +183,7 @@ export default function UniversalLinksLanding() {
               </p>
               <p>
                 Each link is a real, indexable URL. Embeds get OpenGraph
-                cards, link unfurlers get a real title and description, and
-                bookmarks survive client churn.
+                cards, link unfurlers get a real title and description.
               </p>
             </>
           }

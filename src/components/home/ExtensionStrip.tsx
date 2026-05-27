@@ -39,15 +39,14 @@ export default function ExtensionStrip() {
             <MousePointerClick size={12} aria-hidden />
             Browser extension
           </span>
-          <h2>Jump between Atmosphere clients in one click</h2>
+          <h2>Jump between Atmosphere clients in one click... or zero</h2>
           <p>
             Land on a Bluesky post and want to read it in Anisota? Click the
             leaf in your toolbar. The popup detects the AT URI on the page and
             offers every app that can render it.
           </p>
           <p>
-            Pick a favorite once. Auto-redirect opens
-            <em> any</em> Atmosphere link in the client you chose. The Inspect
+            Prefer not to click? Auto-redirect opens links in your preferred client. The Inspect
             tab surfaces the underlying record, PDS, DID, and backlinks for
             whatever&rsquo;s on screen.
           </p>

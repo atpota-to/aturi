@@ -109,7 +109,7 @@ export default function HomePage() {
                   overflowWrap: 'break-word',
                 }}
               >
-                at://did:plc:ewvi7nxzyoun6zhxrhs64oiz/app.bsky.feed.post/3m6mwoadjbp2d
+                at://did:plc:lcieujcfkv4jx7gehsvok3pr/app.bsky.feed.post/3mi2mcc5lxj2y
               </div>
             </div>
           </section>
@@ -264,9 +264,8 @@ export default function HomePage() {
               >
                 tangled.org
               </a>
-              . Run your own instance on a custom domain, audit the OAuth
-              flow, contribute a waypoint, or break it apart for parts. The
-              license keeps modifications open too.
+              . Run your own instance on a custom domain, audit the source code,
+              flow, or contribute a waypoint.
             </p>
             <div
               style={{
@@ -290,12 +289,6 @@ export default function HomePage() {
                 style={openSourcePillStyle}
               >
                 <Scale size={14} aria-hidden /> GPL v3 license
-              </a>
-              <a
-                href="/fork"
-                style={openSourcePillStyle}
-              >
-                <GitFork size={14} aria-hidden /> Fork & deploy
               </a>
             </div>
           </section>

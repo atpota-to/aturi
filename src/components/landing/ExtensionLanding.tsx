@@ -260,17 +260,7 @@ export default function ExtensionLanding() {
               maxWidth: '46rem',
             }}
           >
-            The extension only talks to your PDS when you ask it to: opening
-            the popup, hitting Inspect, or following a context-menu jump.
-            Preferences live in your browser&rsquo;s local storage. Nothing
-            uploads.{' '}
-            <Link
-              href="/extension/privacy"
-              style={{ color: 'var(--text-accent)' }}
-            >
-              Read the privacy policy
-            </Link>
-            .
+            The extension is read-only and never uploads anything. Preferences live in your browser&rsquo;s local storage.
           </p>
           <DownloadButton variant="outline" align="start" />
         </section>

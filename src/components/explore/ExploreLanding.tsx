@@ -173,9 +173,7 @@ export default function ExploreLanding() {
                 score. Five public sources, one block.
               </p>
               <p>
-                A compact identity row sits beneath — handle, DID, and a
-                clickable PDS host. The kind of summary other explorers
-                bury inside individual tabs.
+                Get the tl;dr of any account without having to wade into all the details.
               </p>
             </>
           }
@@ -215,16 +213,14 @@ export default function ExploreLanding() {
           body={
             <>
               <p>
-                Sign in and pins, custom waypoints, theme, and panel
-                state ride with you via your PDS &mdash; jump between
-                devices and the Explorer picks up where you left off.
+                By optionally signing in, your preferences (pins, custom waypoints, theme, etc) ride with you via your PDS &mdash; jump between
+                devices and the Explorer will not forget your settings.
               </p>
               <p>
                 On every other account&rsquo;s page, a &ldquo;You +
                 @them&rdquo; strip surfaces what you have in common: the
-                same PDS host, your follow status (with the date you
-                followed them), known mutuals, and the count of
-                lexicons you both publish.
+                same PDS host, your follow status, mutual followers, and the count of
+                lexicons you have in common.
               </p>
             </>
           }
