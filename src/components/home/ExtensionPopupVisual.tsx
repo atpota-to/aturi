@@ -6,8 +6,6 @@ import {
   AturiSVG,
   BlueskySVG,
   DeerSVG,
-  LeafletSVG,
-  TangledSVG,
 } from '@/utils/waypointIcons';
 
 type Props = {
@@ -129,16 +127,6 @@ export default function ExtensionPopupVisual({
           icon={<DeerSVG />}
           name="Deer"
           desc="View post on deer.social"
-        />
-        <Row
-          icon={<LeafletSVG />}
-          name="Leaflet"
-          desc="View document on leaflet.pub"
-        />
-        <Row
-          icon={<TangledSVG />}
-          name="Tangled"
-          desc="View on tangled.org"
         />
       </Section>
 

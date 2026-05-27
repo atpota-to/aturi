@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Compass, Download, Telescope } from 'lucide-react';
+import { Compass, Download, Leaf, Telescope } from 'lucide-react';
 
 type ProductKey = 'universal-links' | 'extension' | 'explore';
 
@@ -46,16 +46,48 @@ export default function CrossLinkCards({ current }: { current?: ProductKey }) {
   const cards = CARDS.filter((c) => c.key !== current);
   return (
     <section
-      style={{
-        display: 'grid',
-        gridTemplateColumns: `repeat(auto-fit, minmax(16rem, 1fr))`,
-        gap: '1rem',
-      }}
-      aria-label="Other Aturi products"
+      style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}
+      aria-label="Other Aturi tools"
     >
-      {cards.map((c) => (
-        <CrossLinkCard key={c.key} icon={c.icon} title={c.title} body={c.body} href={c.href} />
-      ))}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+        <span
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '0.4rem',
+            color: 'var(--text-accent)',
+            fontSize: '0.75rem',
+            letterSpacing: '0.12em',
+            textTransform: 'uppercase',
+            fontFamily: 'var(--font-serif)',
+            lineHeight: 1,
+          }}
+        >
+          <Leaf size={14} aria-hidden /> More from Aturi
+        </span>
+        <h2
+          style={{
+            fontSize: '1.625rem',
+            fontWeight: 300,
+            color: 'var(--text-primary)',
+            margin: 0,
+            lineHeight: 1.2,
+          }}
+        >
+          See the rest of the toolkit
+        </h2>
+      </div>
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: `repeat(auto-fit, minmax(16rem, 1fr))`,
+          gap: '1rem',
+        }}
+      >
+        {cards.map((c) => (
+          <CrossLinkCard key={c.key} icon={c.icon} title={c.title} body={c.body} href={c.href} />
+        ))}
+      </div>
     </section>
   );
 }
