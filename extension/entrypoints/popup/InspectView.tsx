@@ -320,6 +320,16 @@ function InspectCard({ hit }: { hit: DetectedAtUri }) {
   const effectivePdsHost = effectivePds ? pdsHostname(effectivePds) : null;
   const pdsExplorerUrl = effectivePdsHost ? buildExplorePdsUrl(effectivePdsHost) : null;
   const effectiveDid = identity?.did || (parsed?.repo.startsWith('did:') ? parsed.repo : null);
+  // Canonical, DID-based AT URI for the Copy chip. Falls back to the raw
+  // detected URI when we haven't resolved a DID yet (e.g. on a fresh scan
+  // before the identity lookup completes), so the chip is never empty.
+  const copyableAtUri = effectiveDid
+    ? parsed?.collection && parsed?.rkey
+      ? `at://${effectiveDid}/${parsed.collection}/${parsed.rkey}`
+      : parsed?.collection
+        ? `at://${effectiveDid}/${parsed.collection}`
+        : `at://${effectiveDid}`
+    : hit.uri;
   // Direct PDS XRPC URL for the record — opens the raw JSON in a new
   // tab. Only available once we know the repo + collection + rkey AND
   // we've resolved (or were given) the PDS host.
@@ -424,7 +434,7 @@ function InspectCard({ hit }: { hit: DetectedAtUri }) {
       {/* Compact copy chips. Subtle, secondary to the CTA above. */}
       <div className="inspect-copy-row">
         <span className="inspect-copy-label">Copy</span>
-        <CopyChip label="AT URI" icon={<LinkIcon size={10} />} value={hit.uri} />
+        <CopyChip label="AT URI" icon={<LinkIcon size={10} />} value={copyableAtUri} />
         {effectiveDid && (
           <CopyChip label="DID" icon={<Hash size={10} />} value={effectiveDid} />
         )}

@@ -696,7 +696,7 @@ function Ready({ match, prefs, pendingId, copiedId, onOpen, onCopy }: ReadyProps
         );
       })}
 
-      <PopupFooter prefs={prefs} leading={<CopyUriButton uri={parsed.uri} />} />
+      <PopupFooter prefs={prefs} leading={<CopyUriButton parsed={parsed} />} />
     </div>
   );
 }
@@ -825,11 +825,50 @@ function ThemeToggle({ theme }: { theme: Prefs['theme'] }) {
   );
 }
 
-function CopyUriButton({ uri }: { uri: string }) {
+/**
+ * Build an at:// URI using the DID when it's known (or when the handle field
+ * is itself already a did:), otherwise fall back to the handle form. The DID
+ * form is the canonical, redirect-stable identifier — it's what we want on
+ * the clipboard so links don't rot if a handle changes.
+ */
+function buildAtUri(
+  identifier: string,
+  collection?: string,
+  rkey?: string,
+): string {
+  if (collection && rkey) return `at://${identifier}/${collection}/${rkey}`;
+  if (collection) return `at://${identifier}/${collection}`;
+  return `at://${identifier}`;
+}
+
+function CopyUriButton({ parsed }: { parsed: ReverseMatch['parsed'] }) {
   const [copied, setCopied] = useState(false);
+  // Eagerly resolve the handle to its DID so the displayed URI (and the
+  // copied value) use the canonical, redirect-stable identifier. While the
+  // resolution is in flight, we fall back to the handle-based URI so the
+  // popup still has something useful to render. Resolution is cached for
+  // the lifetime of the service worker, so repeated popups don't re-fetch.
+  const [resolvedDid, setResolvedDid] = useState<string | null>(
+    parsed.did ?? (parsed.handle.startsWith('did:') ? parsed.handle : null),
+  );
+
+  useEffect(() => {
+    if (resolvedDid) return undefined;
+    let cancelled = false;
+    void (async () => {
+      const did = await resolveHandleToDid(parsed.handle);
+      if (!cancelled && did) setResolvedDid(did);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [parsed.handle, resolvedDid]);
+
+  const identifier = resolvedDid ?? parsed.handle;
+  const displayUri = buildAtUri(identifier, parsed.collection, parsed.rkey);
 
   async function handleCopy() {
-    await writeToClipboard(uri);
+    await writeToClipboard(displayUri);
     setCopied(true);
     window.setTimeout(() => setCopied(false), 1400);
   }
@@ -854,7 +893,7 @@ function CopyUriButton({ uri }: { uri: string }) {
           </svg>
         )}
       </span>
-      <span className="popup-uri-text">{copied ? 'Copied!' : uri}</span>
+      <span className="popup-uri-text">{copied ? 'Copied!' : displayUri}</span>
     </button>
   );
 }
