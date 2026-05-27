@@ -12,8 +12,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint",
-    "setup-fork": "node scripts/setup-fork.js"
+    "lint": "eslint"
   },
   "dependencies": {
     "@atproto/api": "^0.20.5",

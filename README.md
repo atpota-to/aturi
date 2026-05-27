@@ -171,35 +171,12 @@ GET https://aturi.to/api/resolve?atUri=at://...
 
 This is a community tool for the Atmosphere ecosystem. Contributions are welcome — bugs, new waypoints, popup polish, explorer features, and extension features all land in the same repo. See [CONTRIBUTING.md](CONTRIBUTING.md).
 
-## Forking & custom domains
+## More resources
 
-Want to run your own instance with a custom domain? aturi.to is designed to be forkable.
-
-```bash
-git clone https://github.com/atpota-to/aturi.git my-custom-instance
-cd my-custom-instance
-npm run setup-fork
-
-npm install
-npm run dev
-```
-
-The setup script will help you configure:
-
-- Your custom domain
-- Site branding and metadata
-- Attribution information
-- Environment variables
-
-### More resources
-
-- [Forking Guide](FORKING.md) — detailed customization instructions
 - [Contributing Guide](CONTRIBUTING.md) — how to contribute back
 - [Extension README](extension/README.md) — extension dev, build, and Safari notes
 - [Terms & Privacy Policy](https://aturi.to/terms) — what we collect, how the third-party services we depend on fit in
 - [Extension Privacy Policy](https://aturi.to/extension/privacy) — what the extension stores, what it reads, and what it sends where
-
-When forking, please keep your source code open (GPL v3) and credit the original project.
 
 ## License
 
