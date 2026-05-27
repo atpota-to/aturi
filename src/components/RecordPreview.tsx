@@ -10,7 +10,7 @@ import Link from 'next/link';
 import { GenericRecord } from '@/utils/recordFetcher';
 import { sanitizeHandle } from '@/utils/sanitize';
 import { Check, ChevronDown, ChevronRight, Copy, Telescope } from 'lucide-react';
-import { encodeRepo } from '@/utils/atproto/urls';
+import { encodeRepo, explorePathFromAtUri } from '@/utils/atproto/urls';
 
 type RecordPreviewProps = {
   record: GenericRecord;
@@ -413,7 +413,77 @@ function FieldPrimitive({ value }: { value: unknown }) {
     typeof value === 'string' && value.length > 280
       ? `${value.substring(0, 280)}…`
       : full;
+  // AT URI values in record fields are common cross-references (e.g.
+  // gallery.item -> photo). Click-to-copy is the wrong default — users
+  // want to follow the link into the explorer. The copy affordance moves
+  // onto the trailing clipboard icon.
+  if (typeof value === 'string') {
+    const href = explorePathFromAtUri(value);
+    if (href && value.startsWith('at://')) {
+      return <LinkableValue display={display} copy={full} href={href} />;
+    }
+  }
   return <CopyableValue display={display} copy={full} />;
+}
+
+/**
+ * Field value that is also an AT URI: the text navigates into the
+ * explorer, the trailing clipboard icon copies the raw value. Mirrors
+ * CopyableValue's visual treatment so non-AT-URI rows still feel
+ * consistent next to it.
+ */
+function LinkableValue({
+  display,
+  copy,
+  href,
+}: {
+  display: string;
+  copy: string;
+  href: string;
+}) {
+  const [copied, setCopied] = useState(false);
+  async function onCopy(e: React.MouseEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    await writeToClipboard(copy);
+    setCopied(true);
+    window.setTimeout(() => setCopied(false), 1400);
+  }
+  return (
+    <span style={{ wordBreak: 'break-word' }}>
+      <Link
+        href={href}
+        title="Open in Explorer"
+        style={{
+          color: 'var(--text-accent)',
+          textDecoration: 'none',
+          wordBreak: 'break-word',
+        }}
+      >
+        {display}
+      </Link>
+      <button
+        type="button"
+        onClick={onCopy}
+        aria-label={copied ? 'Copied' : 'Copy to clipboard'}
+        title={copied ? 'Copied!' : 'Copy to clipboard'}
+        style={{
+          marginLeft: '0.35rem',
+          display: 'inline-flex',
+          verticalAlign: 'middle',
+          background: 'transparent',
+          border: 0,
+          padding: 0,
+          color: copied ? 'var(--text-accent)' : 'var(--text-tertiary)',
+          opacity: copied ? 1 : 0.45,
+          cursor: 'pointer',
+          transition: 'opacity 0.2s ease, color 0.2s ease',
+        }}
+      >
+        {copied ? <Check size={12} /> : <Copy size={12} />}
+      </button>
+    </span>
+  );
 }
 
 /**
