@@ -368,6 +368,127 @@ body {
   font-family: var(--font-serif);
 }
 
+/* Empty state for the Inspect tab. Replaces the dead-end "Scan again"
+   button with a primary CTA into the website explorer + a list of
+   frequently-seen repos pulled from local history. */
+.inspect-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 14px;
+  padding: 6px 0 4px;
+}
+
+.inspect-empty-message {
+  text-align: center;
+  color: var(--text-secondary);
+  font-family: var(--font-serif);
+  font-size: var(--fs-md);
+  padding: 4px 4px 0;
+}
+
+.inspect-empty-cta {
+  width: 100%;
+  justify-content: center;
+}
+
+.inspect-empty-recents {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.inspect-empty-recents-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-family: var(--font-serif);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.inspect-empty-recents-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.inspect-empty-recent {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-primary);
+  font-family: var(--font-mono, var(--font-sans));
+  font-size: var(--fs-sm);
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+  min-width: 0;
+}
+
+.inspect-empty-recent:hover {
+  background: var(--bg-tertiary);
+  border-color: var(--text-accent);
+  transform: translateX(2px);
+}
+
+.inspect-empty-recent-label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.inspect-empty-recent-count {
+  flex-shrink: 0;
+  padding: 1px 6px;
+  background: var(--glow-subtle);
+  color: var(--text-accent);
+  font-family: var(--font-sans);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  border: 1px solid var(--border-subtle);
+}
+
+.inspect-empty-recent-icon {
+  flex-shrink: 0;
+  color: var(--text-secondary);
+}
+
+.inspect-empty-recent:hover .inspect-empty-recent-icon {
+  color: var(--text-accent);
+}
+
+.inspect-empty-rescan {
+  align-self: center;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 2px;
+  padding: 6px 10px;
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  font-family: var(--font-sans);
+  font-size: var(--fs-xs);
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.inspect-empty-rescan:hover {
+  color: var(--text-accent);
+}
+
 .popup-footer {
   display: flex;
   flex-direction: column;
