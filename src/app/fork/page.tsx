@@ -536,20 +536,6 @@ vercel
               >
                 → Contributing Guidelines
               </a>
-              <Link
-                href="/integrate"
-                style={{
-                  color: 'var(--text-accent)',
-                  textDecoration: 'none',
-                  fontSize: '1rem',
-                  padding: '0.75rem',
-                  background: 'var(--bg-primary)',
-                  border: '1px solid var(--border-medium)',
-                  transition: 'all 0.2s ease',
-                }}
-              >
-                → Integration Guide
-              </Link>
             </div>
           </div>
         </div>

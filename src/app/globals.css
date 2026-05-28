@@ -2188,26 +2188,6 @@ html {
   .fork-resources-grid > * {
     grid-column: unset !important;
   }
-  
-  /* Integrate Page Mobile Styles */
-  .integrate-hero-grid,
-  .integrate-url-grid,
-  .integrate-code-examples-grid,
-  .integrate-usecases-grid,
-  .integrate-custom-domain-grid,
-  .integrate-attribution-grid {
-    display: flex !important;
-    flex-direction: column !important;
-  }
-  
-  .integrate-hero-grid > *,
-  .integrate-url-grid > *,
-  .integrate-code-examples-grid > *,
-  .integrate-usecases-grid > *,
-  .integrate-custom-domain-grid > *,
-  .integrate-attribution-grid > * {
-    grid-column: unset !important;
-  }
 }
 
 /* ============================================

@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
       post: '/api/og/post?handle=<DID>&rkey=<RKEY>',
       profile: '/api/og/profile?handle=<DID_OR_HANDLE>',
       list: '/api/og/list?handle=<DID>&rkey=<RKEY>',
-      static: '/api/og/static?page=<home|create|integrate|fork>',
+      static: '/api/og/static?page=<home|explore|extension|universal-links|fork>',
     }
   }, {
     headers: {
