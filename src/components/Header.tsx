@@ -266,7 +266,7 @@ export default function Header({ simple = false, compact = false }: HeaderProps)
                   <Download size={16} />
                   <span>extension</span>
                 </Link>
-                <Link href="/universal-links" className="compact-nav-link">
+                <Link href="/links" className="compact-nav-link">
                   <Compass size={16} />
                   <span>universal links</span>
                 </Link>
@@ -384,7 +384,7 @@ export default function Header({ simple = false, compact = false }: HeaderProps)
             <span>extension</span>
           </Link>
           <span style={{ color: 'var(--text-tertiary)', fontSize: '0.75rem' }}>·</span>
-          <Link href="/universal-links" className="nav-link">
+          <Link href="/links" className="nav-link">
             <Compass size={14} />
             <span>universal links</span>
           </Link>
@@ -491,7 +491,7 @@ export default function Header({ simple = false, compact = false }: HeaderProps)
           <span>extension</span>
         </Link>
         <span style={{ color: 'var(--text-tertiary)', fontSize: '0.875rem' }}>·</span>
-        <Link href="/universal-links" className="nav-link">
+        <Link href="/links" className="nav-link">
           <Compass size={16} />
           <span>universal links</span>
         </Link>

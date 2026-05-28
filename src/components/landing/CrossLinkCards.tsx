@@ -16,7 +16,7 @@ type Card = {
 const CARDS: Card[] = [
   {
     key: 'universal-links',
-    href: '/universal-links',
+    href: '/links',
     icon: <Compass size={18} />,
     title: 'Universal links',
     body: 'Share aturi.to/handle/collection/rkey. Visitors choose which Atmosphere app opens it.',

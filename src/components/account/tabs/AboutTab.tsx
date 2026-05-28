@@ -19,7 +19,7 @@ const LINKS: { label: string; href: string; icon?: React.ReactNode }[] = [
   },
   {
     label: 'Universal links',
-    href: '/universal-links',
+    href: '/links',
   },
   {
     label: 'Terms & privacy',
