@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { ArrowDownRight, ArrowUpRight, BarChart3, Sparkles } from 'lucide-react';
 import AppearIn from './AppearIn';
+import { Skeleton } from '@/components/SkeletonLoader';
 
 const UFOS_API = 'https://ufos-api.microcosm.blue';
 
@@ -68,21 +69,20 @@ export default function TrendingLexicons() {
   const [window, setWindow] = useState<Window>('7d');
   const [rows, setRows] = useState<CollectionRow[] | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
-    setLoading(true);
     setError(null);
 
+    // Note: we intentionally don't clear `rows` here. On toggle refetches
+    // the previous table stays visible until the new data arrives, so the
+    // skeleton only appears on the very first load (rows === null).
     (async () => {
       try {
         const next = await fetchRanking(window, mode, metric);
         if (!cancelled) setRows(next);
       } catch (err) {
         if (!cancelled) setError(err instanceof Error ? err.message : String(err));
-      } finally {
-        if (!cancelled) setLoading(false);
       }
     })();
 
@@ -135,14 +135,12 @@ export default function TrendingLexicons() {
                 ))}
               </ul>
             )
-          ) : loading ? (
-            <p
-              className="explore-placeholder"
-              style={{ padding: '1rem', margin: 0 }}
-            >
-              Loading {mode} lexicons…
-            </p>
-          ) : null}
+          ) : (
+            // First load: render a full-height skeleton table so the
+            // section reserves its final size instead of starting tiny and
+            // jumping tall once the data lands.
+            <SkeletonRows />
+          )}
         </div>
         <Credit />
       </section>
@@ -317,6 +315,51 @@ function Segmented<T extends string>({
         );
       })}
     </div>
+  );
+}
+
+/**
+ * Placeholder table shown on first load. Mirrors the real Row grid exactly
+ * — same column template, gap, padding, row count (RESULT_COUNT) and
+ * separators — so its height matches the loaded table and the section
+ * doesn't resize when data arrives. The sparkline placeholder is 24px tall
+ * (the live Sparkline's height) so per-row height is identical too.
+ */
+function SkeletonRows() {
+  // Varied nsid widths so the column reads as organic text rather than a
+  // stack of identical bars.
+  const nsidWidths = ['62%', '78%', '52%', '70%', '46%', '82%', '58%', '66%', '50%', '74%'];
+  return (
+    <ul aria-hidden style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+      {Array.from({ length: RESULT_COUNT }).map((_, i) => (
+        <li
+          key={i}
+          style={{
+            borderBottom:
+              i === RESULT_COUNT - 1 ? undefined : '1px solid var(--border-subtle)',
+          }}
+        >
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: '2rem minmax(0, 1fr) 7rem auto',
+              alignItems: 'center',
+              gap: '0.875rem',
+              padding: '0.625rem 1rem',
+            }}
+          >
+            <Skeleton width="1.25rem" height="0.75rem" />
+            <Skeleton width={nsidWidths[i % nsidWidths.length]} height="0.75rem" />
+            <span style={{ display: 'flex', justifyContent: 'flex-end' }}>
+              <Skeleton width="90px" height="24px" />
+            </span>
+            <span style={{ display: 'flex', justifyContent: 'flex-end' }}>
+              <Skeleton width="2.75rem" height="0.75rem" />
+            </span>
+          </div>
+        </li>
+      ))}
+    </ul>
   );
 }
 
