@@ -15,6 +15,7 @@ import {
   searchActorsTypeahead,
   type ActorTypeaheadResult,
 } from '@/utils/atproto/appview';
+import { recordActorVisit, recordQueryVisit } from '@/utils/searchHistory';
 
 const TYPEAHEAD_DEBOUNCE_MS = 180;
 
@@ -70,9 +71,10 @@ export default function SearchBox({ initial }: { initial?: string }) {
     return () => document.removeEventListener('mousedown', onClick);
   }, [showSuggestions]);
 
-  const goTo = useCallback(
-    (handleOrDid: string) => {
-      router.push(`/explore/${encodeRepo(handleOrDid)}`);
+  const goToActor = useCallback(
+    (actor: ActorTypeaheadResult) => {
+      recordActorVisit(actor);
+      router.push(`/explore/${encodeRepo(actor.handle)}`);
       setShowSuggestions(false);
     },
     [router],
@@ -84,11 +86,12 @@ export default function SearchBox({ initial }: { initial?: string }) {
     // If the user has a suggestion highlighted, jump to that — otherwise
     // fall through to the existing free-text routing.
     if (highlightIndex >= 0 && suggestions[highlightIndex]) {
-      goTo(suggestions[highlightIndex].handle);
+      goToActor(suggestions[highlightIndex]);
       return;
     }
     const path = resolveSearchPath(value);
     if (!path) return;
+    recordQueryVisit(value, path);
     router.push(path);
   }
 
@@ -207,7 +210,7 @@ export default function SearchBox({ initial }: { initial?: string }) {
                     // mousedown beats the input's blur so the click registers
                     // before the suggestion list unmounts.
                     e.preventDefault();
-                    goTo(actor.handle);
+                    goToActor(actor);
                   }}
                   onMouseEnter={() => setHighlightIndex(i)}
                   style={{

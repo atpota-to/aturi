@@ -2,15 +2,25 @@
 
 import { useCallback, useEffect, useRef, useState, type KeyboardEvent } from 'react';
 import { useRouter } from 'next/navigation';
-import { Search } from 'lucide-react';
+import { Clock, Search, TrendingUp } from 'lucide-react';
 import { encodeRepo } from '@/utils/atproto/urls';
 import { resolveSearchPath } from '@/utils/atproto/searchRouting';
 import {
   searchActorsTypeahead,
   type ActorTypeaheadResult,
 } from '@/utils/atproto/appview';
+import {
+  getFrequent,
+  getRecents,
+  readSearchHistory,
+  recordActorVisit,
+  recordQueryVisit,
+  type SearchHistoryEntry,
+} from '@/utils/searchHistory';
 
 const TYPEAHEAD_DEBOUNCE_MS = 180;
+const RECENTS_LIMIT = 6;
+const FREQUENT_LIMIT = 4;
 
 type Props = {
   /** When the header opens this panel, set to true to focus the input. */
@@ -23,21 +33,25 @@ type Props = {
  * Lightweight search box for the compact header's expanding panel. Mirrors
  * the explorer's SearchBox typeahead + at:// shortcuts but is styled to
  * fit inside the slim header card and intentionally omits the standalone
- * "Look up" button (the input alone is the UI).
+ * "Look up" button (the input alone is the UI). When the input is empty it
+ * surfaces locally-stored "recent" and "frequent" recommendations.
  */
 export default function CompactSearchPanel({ active, onDone }: Props) {
   const router = useRouter();
   const [value, setValue] = useState('');
   const [suggestions, setSuggestions] = useState<ActorTypeaheadResult[]>([]);
   const [highlightIndex, setHighlightIndex] = useState(-1);
+  const [history, setHistory] = useState<SearchHistoryEntry[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Focus + select existing text whenever the panel becomes active. Using
   // a microtask so the input is mounted and visible before we focus it
-  // (the parent panel animates in via transform/opacity).
+  // (the parent panel animates in via transform/opacity). Reload history
+  // here too so freshly-recorded visits show up next time it opens.
   useEffect(() => {
     if (!active) return;
     const id = window.setTimeout(() => {
+      setHistory(readSearchHistory());
       inputRef.current?.focus();
       inputRef.current?.select();
     }, 0);
@@ -75,9 +89,9 @@ export default function CompactSearchPanel({ active, onDone }: Props) {
     };
   }, [value]);
 
-  const goTo = useCallback(
-    (handleOrDid: string) => {
-      router.push(`/explore/${encodeRepo(handleOrDid)}`);
+  const finish = useCallback(
+    (path: string) => {
+      router.push(path);
       setValue('');
       setSuggestions([]);
       onDone();
@@ -85,18 +99,33 @@ export default function CompactSearchPanel({ active, onDone }: Props) {
     [router, onDone],
   );
 
+  const goToActor = useCallback(
+    (actor: ActorTypeaheadResult) => {
+      recordActorVisit(actor);
+      finish(`/explore/${encodeRepo(actor.handle)}`);
+    },
+    [finish],
+  );
+
+  const goToEntry = useCallback(
+    (entry: SearchHistoryEntry) => {
+      // Re-picking bumps the count; merge logic keeps the stored avatar/handle.
+      recordQueryVisit(entry.label, entry.path);
+      finish(entry.path);
+    },
+    [finish],
+  );
+
   function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (highlightIndex >= 0 && suggestions[highlightIndex]) {
-      goTo(suggestions[highlightIndex].handle);
+      goToActor(suggestions[highlightIndex]);
       return;
     }
     const path = resolveSearchPath(value);
     if (!path) return;
-    router.push(path);
-    setValue('');
-    setSuggestions([]);
-    onDone();
+    recordQueryVisit(value, path);
+    finish(path);
   }
 
   function onKeyDown(e: KeyboardEvent<HTMLInputElement>) {
@@ -115,6 +144,12 @@ export default function CompactSearchPanel({ active, onDone }: Props) {
   }
 
   const showList = suggestions.length > 0;
+  const recents = getRecents(history, RECENTS_LIMIT);
+  const frequent = getFrequent(history, FREQUENT_LIMIT);
+  // Recommendations only show on an empty input (typeahead takes over once
+  // the user starts typing).
+  const showRecommendations =
+    !showList && value.trim() === '' && (recents.length > 0 || frequent.length > 0);
 
   return (
     <form onSubmit={onSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
@@ -174,18 +209,18 @@ export default function CompactSearchPanel({ active, onDone }: Props) {
           }}
         >
           {suggestions.map((actor, i) => {
-            const active = i === highlightIndex;
+            const isActive = i === highlightIndex;
             return (
               <li
                 key={actor.did}
                 id={`compact-search-typeahead-${i}`}
                 role="option"
-                aria-selected={active}
+                aria-selected={isActive}
                 onMouseDown={(e) => {
                   // mousedown beats the input's blur so the click registers
                   // before any focus-related state change unmounts us.
                   e.preventDefault();
-                  goTo(actor.handle);
+                  goToActor(actor);
                 }}
                 onMouseEnter={() => setHighlightIndex(i)}
                 style={{
@@ -193,7 +228,7 @@ export default function CompactSearchPanel({ active, onDone }: Props) {
                   alignItems: 'center',
                   gap: '0.5rem',
                   padding: '0.4rem 0.6rem',
-                  background: active ? 'var(--bg-elevated)' : 'transparent',
+                  background: isActive ? 'var(--bg-elevated)' : 'transparent',
                   borderBottom:
                     i < suggestions.length - 1
                       ? '1px solid var(--border-subtle)'
@@ -260,6 +295,151 @@ export default function CompactSearchPanel({ active, onDone }: Props) {
           })}
         </ul>
       )}
+
+      {showRecommendations && (
+        <div
+          style={{
+            background: 'var(--bg-tertiary)',
+            border: '1px solid var(--border-subtle)',
+            maxHeight: '20rem',
+            overflowY: 'auto',
+          }}
+        >
+          {recents.length > 0 && (
+            <RecommendationSection
+              icon={<Clock size={12} />}
+              label="recent"
+              entries={recents}
+              onPick={goToEntry}
+            />
+          )}
+          {frequent.length > 0 && (
+            <RecommendationSection
+              icon={<TrendingUp size={12} />}
+              label="frequent"
+              entries={frequent}
+              onPick={goToEntry}
+              topBorder={recents.length > 0}
+            />
+          )}
+        </div>
+      )}
     </form>
+  );
+}
+
+function RecommendationSection({
+  icon,
+  label,
+  entries,
+  onPick,
+  topBorder = false,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  entries: SearchHistoryEntry[];
+  onPick: (entry: SearchHistoryEntry) => void;
+  topBorder?: boolean;
+}) {
+  return (
+    <div style={topBorder ? { borderTop: '1px solid var(--border-subtle)' } : undefined}>
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.35rem',
+          padding: '0.45rem 0.6rem 0.3rem',
+          color: 'var(--text-tertiary)',
+          fontFamily: 'var(--font-mono)',
+          fontSize: '0.62rem',
+          letterSpacing: '0.08em',
+          textTransform: 'uppercase',
+        }}
+      >
+        {icon}
+        <span>{label}</span>
+      </div>
+      <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+        {entries.map((entry, i) => (
+          <li
+            key={entry.path}
+            onMouseDown={(e) => {
+              e.preventDefault();
+              onPick(entry);
+            }}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              padding: '0.4rem 0.6rem',
+              borderBottom:
+                i < entries.length - 1 ? '1px solid var(--border-subtle)' : 'none',
+              cursor: 'pointer',
+              transition: 'background 0.12s ease',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = 'var(--bg-elevated)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = 'transparent';
+            }}
+          >
+            {entry.avatar ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={entry.avatar}
+                alt=""
+                width={24}
+                height={24}
+                style={{
+                  width: 24,
+                  height: 24,
+                  objectFit: 'cover',
+                  background: 'var(--bg-secondary)',
+                  flexShrink: 0,
+                }}
+              />
+            ) : (
+              <span
+                style={{
+                  width: 24,
+                  height: 24,
+                  background: 'var(--bg-secondary)',
+                  flexShrink: 0,
+                }}
+              />
+            )}
+            <div style={{ minWidth: 0, lineHeight: 1.2 }}>
+              <div
+                style={{
+                  fontSize: '0.8125rem',
+                  color: 'var(--text-primary)',
+                  fontFamily: 'var(--font-serif)',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {entry.label}
+              </div>
+              {entry.sublabel && entry.sublabel !== entry.label && (
+                <div
+                  style={{
+                    fontSize: '0.7rem',
+                    color: 'var(--text-tertiary)',
+                    fontFamily: 'var(--font-mono)',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {entry.sublabel}
+                </div>
+              )}
+            </div>
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }
