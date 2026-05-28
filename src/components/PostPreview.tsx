@@ -15,6 +15,11 @@ import { explorePathFromAtUri } from '@/utils/atproto/urls';
 type PostPreviewProps = {
   post: BskyPost;
   parent?: BskyPost;
+  /**
+   * When true, suppress the "View raw record in the explorer" footer link.
+   * Used inside the explorer, which is itself the link's destination.
+   */
+  hideExplorerCtas?: boolean;
 };
 
 // Build a canonical post URL from an AT URI and the post's author.
@@ -27,7 +32,7 @@ const buildPostUrl = (uri?: string, author?: { did?: string; handle?: string }):
   return `/profile/${id}/post/${rkey}`;
 };
 
-export default function PostPreview({ post, parent }: PostPreviewProps) {
+export default function PostPreview({ post, parent, hideExplorerCtas }: PostPreviewProps) {
   const router = useRouter();
   const { author, record, embed, replyCount, repostCount, likeCount, quoteCount } = post;
 
@@ -1264,7 +1269,7 @@ export default function PostPreview({ post, parent }: PostPreviewProps) {
       </div>
 
       {/* Cross-product: jump to this post's raw record in the explorer */}
-      {(() => {
+      {!hideExplorerCtas && (() => {
         const explorePath = explorePathFromAtUri(post.uri);
         if (!explorePath) return null;
         return (

@@ -8,7 +8,6 @@ import { BskyProfile } from '@/utils/profileFetcher';
 import { sanitizeUrl } from '@/utils/sanitize';
 import { User, Calendar, Users, MessageSquare, Telescope } from 'lucide-react';
 import { encodeRepo } from '@/utils/atproto/urls';
-import CredBlueScoreBadge from '@/components/CredBlueScore';
 
 type ProfilePreviewProps = {
   profile: BskyProfile;
@@ -231,11 +230,6 @@ export default function ProfilePreview({ profile }: ProfilePreviewProps) {
             marginTop: '1rem',
             borderTop: '1px solid var(--border-subtle)',
             fontSize: '0.8125rem',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            flexWrap: 'wrap',
-            gap: '0.75rem',
           }}
         >
           <Link
@@ -251,7 +245,6 @@ export default function ProfilePreview({ profile }: ProfilePreviewProps) {
             <Telescope size={12} />
             View raw repo in the explorer →
           </Link>
-          <CredBlueScoreBadge identifier={handle} />
         </div>
 
         {/* Additional Info */}

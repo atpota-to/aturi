@@ -90,7 +90,7 @@ export default function RichRecordPreview({
   if (isPost) {
     const post = postThread?.thread[0]?.value.post;
     if (!post) return null;
-    return <PostPreview post={post} parent={postThread?.parent} />;
+    return <PostPreview post={post} parent={postThread?.parent} hideExplorerCtas />;
   }
 
   if (!record) return null;
