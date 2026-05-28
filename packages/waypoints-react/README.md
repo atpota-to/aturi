@@ -8,6 +8,12 @@ and client icons to your app in a few lines.
 namespaced styling hooks. Use your own design system, opt into the polished Aturi
 theme, or drop down to a hook and render everything yourself.
 
+> **Beta — early release.** This is a `0.x` package that hasn't been
+> thoroughly tested in production yet. Expect rough edges, and possible
+> breaking changes between minor versions while the API settles. Bug reports
+> and feedback are very welcome at
+> [github.com/atpota-to/aturi/issues](https://github.com/atpota-to/aturi/issues).
+
 ## Install
 
 ```sh

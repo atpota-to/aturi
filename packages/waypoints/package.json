@@ -1,7 +1,7 @@
 {
   "name": "@aturi/waypoints",
   "version": "0.1.0",
-  "description": "Aturi's curated catalog of Atmosphere (AT Protocol) clients, with per-client \"Open in…\" link builders, recommendations, and URL/AT-URI resolution. Zero runtime dependencies.",
+  "description": "[Beta] Aturi's curated catalog of Atmosphere (AT Protocol) clients, with per-client \"Open in…\" link builders, recommendations, and URL/AT-URI resolution. Zero runtime dependencies.",
   "license": "MIT",
   "author": "dame.art",
   "homepage": "https://aturi.to",
