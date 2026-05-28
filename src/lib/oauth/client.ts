@@ -17,7 +17,9 @@
  */
 
 import type { BrowserOAuthClient } from '@atproto/oauth-client-browser';
+import type { HandleResolver } from '@atproto-labs/handle-resolver';
 import { METADATA_SCOPE } from './scopes';
+import { APPVIEW } from '@/utils/atproto/config';
 
 let client: BrowserOAuthClient | null = null;
 let pending: Promise<BrowserOAuthClient> | null = null;
@@ -57,11 +59,48 @@ export async function getOauthClient(): Promise<BrowserOAuthClient> {
   if (pending) return pending;
 
   pending = (async () => {
-    const mod = await import('@atproto/oauth-client-browser');
-    const { BrowserOAuthClient: Ctor } = mod;
+    const [oauthMod, { AtprotoDohHandleResolver, asResolvedHandle }] = await Promise.all([
+      import('@atproto/oauth-client-browser'),
+      import('@atproto-labs/handle-resolver'),
+    ]);
+    const { BrowserOAuthClient: Ctor } = oauthMod;
 
     const origin = window.location.origin;
     const redirectPath = '/oauth/callback';
+
+    // Resolve handles via DNS-over-HTTPS first, then fall back to the appview.
+    // DNS TXT records are authoritative for handles backed by did:web (and for
+    // handles that migrated did:plc → did:web): the bsky.social entryway only
+    // does HTTP handle resolution and hands back the stale did:plc, so OAuth
+    // then aborts when the resolved DID document's handle no longer matches.
+    // The appview fallback covers handles with no DNS record whose .well-known
+    // endpoint the browser can't reach (CORS).
+    const dohResolver = new AtprotoDohHandleResolver({
+      dohEndpoint: 'https://dns.google/resolve',
+    });
+    const handleResolver: HandleResolver = {
+      async resolve(handle, options) {
+        try {
+          const did = await dohResolver.resolve(handle, options);
+          if (did) return did;
+        } catch {
+          // fall through to the appview fallback
+        }
+        try {
+          const res = await fetch(
+            `${APPVIEW}/xrpc/com.atproto.identity.resolveHandle?handle=${encodeURIComponent(
+              handle,
+            )}`,
+            { signal: options?.signal },
+          );
+          if (!res.ok) return null;
+          const { did } = (await res.json()) as { did?: string };
+          return did ? asResolvedHandle(did) : null;
+        } catch {
+          return null;
+        }
+      },
+    };
 
     const hooks = {
       onDelete: (sub: string, cause?: unknown) => {
@@ -74,13 +113,13 @@ export async function getOauthClient(): Promise<BrowserOAuthClient> {
 
     if (isLoopback(window.location.hostname)) {
       client = new Ctor({
-        handleResolver: 'https://bsky.social',
+        handleResolver,
         clientMetadata: loopbackMetadataUrl(origin, redirectPath) as unknown as undefined,
         ...hooks,
       } as ConstructorParameters<typeof Ctor>[0]);
     } else {
       client = new Ctor({
-        handleResolver: 'https://bsky.social',
+        handleResolver,
         clientMetadata: {
           client_id: `${origin}/oauth-client-metadata.json`,
           client_name: 'aturi.to',

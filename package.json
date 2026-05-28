@@ -15,6 +15,7 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@atproto-labs/handle-resolver": "^0.4.0",
     "@atproto/api": "^0.20.5",
     "@atproto/common-web": "^0.5.0",
     "@atproto/oauth-client-browser": "^0.4.0",
