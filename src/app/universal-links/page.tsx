@@ -13,8 +13,8 @@ export const metadata: Metadata = {
     images: [
       {
         url: '/og-images/aturi-links.png',
-        width: 3020,
-        height: 1698,
+        width: 1200,
+        height: 675,
         alt: 'Universal Links — one link, every client',
       },
     ],

@@ -25,8 +25,8 @@ export const metadata: Metadata = {
     images: [
       {
         url: '/og-images/aturi-home.png',
-        width: 2966,
-        height: 1660,
+        width: 1200,
+        height: 672,
         alt: 'aturi.to — three tools for one Atmosphere',
       },
     ],

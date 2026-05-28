@@ -12,8 +12,8 @@ export const metadata: Metadata = {
     images: [
       {
         url: '/og-images/aturi-explore.png',
-        width: 2972,
-        height: 1658,
+        width: 1200,
+        height: 669,
         alt: 'Atmosphere Explorer — tour the Atmosphere',
       },
     ],
