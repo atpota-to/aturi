@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import {
+  Activity,
   Boxes,
   CalendarDays,
   Database,
@@ -9,7 +10,8 @@ import {
   History,
   Link as LinkIcon,
 } from 'lucide-react';
-import { describeRepo } from '@/utils/atproto/pdsClient';
+import { describeRepo, getLatestCommit } from '@/utils/atproto/pdsClient';
+import { tidToDate, formatTidRelative } from '@/utils/atproto/tid';
 import { getPlcAuditLog, type PlcAuditEntry } from '@/utils/atproto/plc';
 import { resolveIdentifier } from '@/utils/atproto/identity';
 import {
@@ -39,6 +41,7 @@ type Stats = {
   auditOps: number | null; // PLC operations count — null for non-did:plc
   createdAt: string | null;
   backlinks: number | null; // inbound atproto references via Constellation
+  headRev: string | null;  // repo head commit rev (TID) — drives "last active"
 };
 
 /**
@@ -71,13 +74,15 @@ export default function AccountStats({ did, handle, interactive = true }: Props)
         if (cancelled) return;
 
         // Kick off each request independently; failures degrade.
-        const [describe, audit, backlinkSources] = await Promise.allSettled([
-          describeRepo(identity.pds, identity.did),
-          did.startsWith('did:plc:')
-            ? getPlcAuditLog(did)
-            : Promise.resolve<PlcAuditEntry[] | null>(null),
-          getBacklinkSources(did),
-        ]);
+        const [describe, audit, backlinkSources, latestCommit] =
+          await Promise.allSettled([
+            describeRepo(identity.pds, identity.did),
+            did.startsWith('did:plc:')
+              ? getPlcAuditLog(did)
+              : Promise.resolve<PlcAuditEntry[] | null>(null),
+            getBacklinkSources(did),
+            getLatestCommit(identity.pds, identity.did),
+          ]);
         if (cancelled) return;
 
         const collections =
@@ -103,6 +108,11 @@ export default function AccountStats({ did, handle, interactive = true }: Props)
             : null;
         const backlinks = flat ? flat.reduce((acc, s) => acc + (s.count || 0), 0) : null;
 
+        const headRev =
+          latestCommit.status === 'fulfilled' && latestCommit.value.rev
+            ? latestCommit.value.rev
+            : null;
+
         setStats({
           namespaces: namespaces.size,
           collections: collections.length,
@@ -110,6 +120,7 @@ export default function AccountStats({ did, handle, interactive = true }: Props)
           createdAt:
             auditEntries && auditEntries.length > 0 ? auditEntries[0].createdAt : null,
           backlinks,
+          headRev,
         });
       } catch (err) {
         if (!cancelled) setError(err instanceof Error ? err.message : String(err));
@@ -155,6 +166,11 @@ export default function AccountStats({ did, handle, interactive = true }: Props)
       return null;
     }
   }, [stats?.createdAt]);
+
+  // Decode the head commit rev (a TID) into the account's last-active time.
+  // Cheap pure call; no memo needed (and avoids the compiler bail the other
+  // tile memos in this file already trip).
+  const lastActiveDate = stats?.headRev ? tidToDate(stats.headRev) : null;
 
   if (error) {
     return (
@@ -211,6 +227,18 @@ export default function AccountStats({ did, handle, interactive = true }: Props)
         hint="Earliest PLC operation timestamp"
         valueLabel={createdLabel || (stats !== null && !createdLabel ? '—' : undefined)}
         sublabel={createdRelative || undefined}
+        interactive={interactive}
+      />
+      <StatTile
+        icon={<Activity size={16} />}
+        label="Last active"
+        hint={
+          lastActiveDate
+            ? `Repo's most recent commit · ${lastActiveDate.toISOString()}`
+            : "Timestamp of the repo's most recent commit (head rev)"
+        }
+        valueLabel={lastActiveDate ? formatTidRelative(lastActiveDate) : undefined}
+        unavailable={stats !== null && lastActiveDate === null}
         interactive={interactive}
       />
       <CredBlueTile

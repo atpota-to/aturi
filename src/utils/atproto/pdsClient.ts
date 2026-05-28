@@ -48,6 +48,24 @@ export async function describeRepo(pds: string, repo: string): Promise<DescribeR
   );
 }
 
+export type LatestCommit = {
+  cid: string;
+  /** Head commit revision — a TID encoding the last write's timestamp. */
+  rev: string;
+};
+
+/**
+ * com.atproto.sync.getLatestCommit — the repo's current head commit. The
+ * `rev` is the same TID the PDS-wide listRepos surfaces, so decoding it with
+ * `tidToDate` gives the account's last-active time.
+ */
+export async function getLatestCommit(pds: string, did: string): Promise<LatestCommit> {
+  const params = new URLSearchParams({ did });
+  return fetchJson<LatestCommit>(
+    `${pds}/xrpc/com.atproto.sync.getLatestCommit?${params}`,
+  );
+}
+
 /**
  * com.atproto.repo.listRecords (single page).
  * Use this when the caller wants to control pagination (e.g. "Load more").
