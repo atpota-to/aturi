@@ -1292,7 +1292,7 @@ export default function PostPreview({ post, parent, hideExplorerCtas }: PostPrev
               }}
             >
               <Telescope size={12} />
-              View raw record in the explorer →
+              View record data in the Explorer →
             </Link>
           </div>
         );

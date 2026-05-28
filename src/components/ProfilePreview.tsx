@@ -243,7 +243,7 @@ export default function ProfilePreview({ profile }: ProfilePreviewProps) {
             }}
           >
             <Telescope size={12} />
-            View raw repo in the explorer →
+            View repo in the Explorer →
           </Link>
         </div>
 
