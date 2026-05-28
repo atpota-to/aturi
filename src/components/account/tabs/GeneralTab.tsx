@@ -16,7 +16,8 @@ import { useMyCollections } from '@/components/explore/useRepoCollections';
 import Toggle from '../Toggle';
 import {
   addPinnedLexicon,
-  isLikelyNsid,
+  isLikelyPinEntry,
+  isPinGroup,
   removePinnedLexicon,
   setPinScope,
   type PinTarget,
@@ -60,9 +61,9 @@ function ExplorerCard() {
       <div className="settings-card-head">
         <h2 className="settings-card-title">Explorer</h2>
         <p className="settings-card-sub">
-          Pin lexicons from any repo's collections tab to surface them at the
-          top of the list. Useful for jumping straight to the records you
-          touch most.
+          Pin lexicons — or entire NSID groups like <code>app.bsky.feed.*</code> —
+          from any repo's collections tab to surface them at the top of the
+          list. Useful for jumping straight to the records you touch most.
         </p>
       </div>
 
@@ -174,10 +175,33 @@ function PinnedList({
   // to a pure free-text input.
   const myCollections = useMyCollections();
   const pinnedSet = useMemo(() => new Set(list), [list]);
-  const suggestions = useMemo(() => {
+  // Suggestion pool: every NSID on the user's own repo, plus group
+  // wildcards (`prefix.*`) for any major/sub prefix shared by two or more
+  // collections — a one-member group isn't worth offering.
+  const candidatePool = useMemo(() => {
     if (!myCollections) return [] as string[];
+    const nsids = Array.from(myCollections);
+    const counts = new Map<string, number>();
+    for (const n of nsids) {
+      const segs = n.split('.');
+      if (segs.length >= 2) {
+        const major = `${segs[0]}.${segs[1]}`;
+        counts.set(major, (counts.get(major) ?? 0) + 1);
+      }
+      if (segs.length >= 4) {
+        const sub = `${segs[0]}.${segs[1]}.${segs[2]}`;
+        counts.set(sub, (counts.get(sub) ?? 0) + 1);
+      }
+    }
+    const groups = Array.from(counts.entries())
+      .filter(([, c]) => c >= 2)
+      .map(([p]) => `${p}.*`);
+    return [...nsids, ...groups];
+  }, [myCollections]);
+  const suggestions = useMemo(() => {
+    if (candidatePool.length === 0) return [] as string[];
     const q = draft.trim().toLowerCase();
-    const candidates = Array.from(myCollections).filter((n) => !pinnedSet.has(n));
+    const candidates = candidatePool.filter((n) => !pinnedSet.has(n));
     candidates.sort();
     if (!q) return candidates.slice(0, SUGGESTION_LIMIT);
     // Rank: prefix match first, then any substring match.
@@ -187,7 +211,7 @@ function PinnedList({
       .filter(([, l]) => !l.startsWith(q) && l.includes(q))
       .map(([n]) => n);
     return [...prefix, ...contains].slice(0, SUGGESTION_LIMIT);
-  }, [myCollections, draft, pinnedSet]);
+  }, [candidatePool, draft, pinnedSet]);
 
   // Close suggestions on outside click.
   useEffect(() => {
@@ -211,9 +235,9 @@ function PinnedList({
   function pin(value: string) {
     const v = value.trim().toLowerCase();
     if (!v) return;
-    if (!isLikelyNsid(v)) {
+    if (!isLikelyPinEntry(v)) {
       setErr(
-        'That doesn’t look like a valid NSID. Expected lowercase, dotted (e.g. app.bsky.feed.post).',
+        'That doesn’t look like a valid NSID. Expected lowercase, dotted (e.g. app.bsky.feed.post), or a group wildcard (e.g. app.bsky.feed.*).',
       );
       return;
     }
@@ -307,8 +331,8 @@ function PinnedList({
             onKeyDown={onKeyDown}
             placeholder={
               myCollections
-                ? 'Search your repo or type an NSID…'
-                : 'app.bsky.feed.post'
+                ? 'Search, or type an NSID / group (app.bsky.feed.*)…'
+                : 'app.bsky.feed.post or app.bsky.feed.*'
             }
             aria-label={`Add lexicon to ${title}`}
             aria-autocomplete="list"
@@ -418,8 +442,9 @@ function PinnedList({
             margin: 0,
           }}
         >
-          Nothing pinned yet. Add an NSID above, or use the pin button on rows
-          in any repo's Collections tab.
+          Nothing pinned yet. Add an NSID or a group wildcard (e.g.
+          app.bsky.feed.*) above, or use the pin button on rows and group
+          headers in any repo's Collections tab.
         </p>
       ) : (
         <ul
@@ -445,6 +470,22 @@ function PinnedList({
               }}
             >
               <span style={{ flex: 1, minWidth: 0 }}>{nsid}</span>
+              {isPinGroup(nsid) && (
+                <span
+                  style={{
+                    flexShrink: 0,
+                    fontFamily: 'var(--font-serif)',
+                    fontSize: '0.65rem',
+                    letterSpacing: '0.06em',
+                    textTransform: 'uppercase',
+                    color: 'var(--text-accent)',
+                    border: '1px solid var(--text-accent)',
+                    padding: '0.05rem 0.35rem',
+                  }}
+                >
+                  group
+                </span>
+              )}
               <button
                 type="button"
                 onClick={() => unpin(nsid)}

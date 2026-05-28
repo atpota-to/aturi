@@ -169,7 +169,8 @@ export default function ExploreLanding() {
           body={
             <>
               <p>
-                Click the pin on any lexicon to lift it out of the
+                Click the pin on any lexicon — or a whole group header like{' '}
+                <code>app.bsky.feed.*</code> — to lift it out of the
                 hierarchy. Pinned NSIDs sit in their own accent-bordered
                 section at the top of the Lexicons tab, on every account
                 page you visit.
