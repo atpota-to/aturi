@@ -177,6 +177,28 @@ export default function App() {
     await browser.tabs.create({ url });
   }
 
+  // Open a destination the user explicitly chose in the popup. We hand it to
+  // the background so it can suppress auto-redirect for this one navigation —
+  // otherwise a standing redirect rule could rewrite the chosen URL and send
+  // the user to their default client instead of the one they just picked. If
+  // the background can't handle it (older browser, messaging hiccup, redirect
+  // disabled), fall back to opening the tab directly from here.
+  async function openDestination(url: string, tabId: number | null, prefs: Prefs) {
+    try {
+      const res = (await browser.runtime.sendMessage({
+        type: 'aturi:open-waypoint',
+        url,
+        tabId,
+        openInNewTab: prefs.openInNewTab,
+        autoRedirect: prefs.autoRedirect,
+      })) as { ok?: boolean } | undefined;
+      if (res?.ok) return;
+    } catch (err) {
+      console.warn('[aturi:popup] background open failed, opening directly', err);
+    }
+    await navigateTo(url, tabId, prefs.openInNewTab);
+  }
+
   async function openWaypoint(waypoint: WaypointData) {
     if (state.phase !== 'ready') return;
     const { parsed } = state.match;
@@ -201,7 +223,7 @@ export default function App() {
     }
 
     await bumpRecent(waypoint.id);
-    await navigateTo(url, state.tabId, state.prefs.openInNewTab);
+    await openDestination(url, state.tabId, state.prefs);
     setPendingId(null);
     window.close();
   }
@@ -213,7 +235,7 @@ export default function App() {
 
     setPendingId(waypoint.id);
     await bumpRecent(waypoint.id);
-    await navigateTo(home, state.tabId, state.prefs.openInNewTab);
+    await openDestination(home, state.tabId, state.prefs);
     setPendingId(null);
     window.close();
   }

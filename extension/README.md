@@ -13,7 +13,9 @@ auto-redirect links between them.
 - **Auto-redirect**: flip a switch in settings to silently rewrite links before
   they even load. You pick a default per source site per content type (post,
   profile, list, record). Powered by `chrome.declarativeNetRequest`, so it's
-  fast and doesn't need to see your browsing history.
+  fast and doesn't need to see your browsing history. An explicit pick in the
+  popup always wins: choosing a client there opens *that* client, even when a
+  standing redirect rule would otherwise rewrite the same URL.
 - **Custom waypoints**: wire up any site that uses a consistent URL structure
   via URL templates (`/profile/{handle}`, `/u/{handle}/p/{rkey}`, etc.).
 - **Recents**: the popup surfaces the waypoints you use most often first.
