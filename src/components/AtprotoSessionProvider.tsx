@@ -11,11 +11,26 @@ import {
 } from 'react';
 import type { Agent } from '@atproto/api';
 import type { OAuthSession } from '@atproto/oauth-client-browser';
+import type { BackendSession } from '@/lib/oauth/backendClient';
 import { getOauthClient, getOauthEvents } from '@/lib/oauth/client';
 import { METADATA_SCOPE } from '@/lib/oauth/scopes';
 
+/**
+ * Selects the confidential backend OAuth flow (long-lived sessions via the BFF
+ * at /api/oauth/*) over the client-side BrowserOAuthClient. Build-time constant
+ * so the unused path is tree-shaken. Defaults to the browser flow.
+ */
+const USE_BACKEND_OAUTH = process.env.NEXT_PUBLIC_USE_BACKEND_OAUTH === 'true';
+
+/**
+ * Either OAuth flow yields a "session" object the rest of the app treats as an
+ * opaque truthy value and reads `sub` from. The backend flow's object is a thin
+ * `{ did, sub }`; the browser flow's is a full OAuthSession.
+ */
+type SessionLike = OAuthSession | BackendSession;
+
 type SessionContextValue = {
-  session: OAuthSession | null;
+  session: SessionLike | null;
   agent: Agent | null;
   did: string | null;
   loading: boolean;
@@ -36,11 +51,18 @@ const Ctx = createContext<SessionContextValue | null>(null);
  *
  *   const { session, agent, did, signIn, signOut, loading } = useAtprotoSession();
  *
- * `agent` is lazy-loaded from `@atproto/api` only when a session exists, so
- * the SDK (~200KB gzipped) is never on the cold-visit critical path.
+ * Two interchangeable backends select on `NEXT_PUBLIC_USE_BACKEND_OAUTH`:
+ *
+ *   - Browser (default): `@atproto/oauth-client-browser`, tokens in IndexedDB,
+ *     `agent` is a lazily-imported `@atproto/api` Agent wrapping the session.
+ *   - Backend: a long-lived opaque token in localStorage; `agent` is a proxy
+ *     that routes calls through the same-origin /api/oauth/proxy BFF.
+ *
+ * Both expose the identical context shape, so consumers don't care which is
+ * active.
  */
 export function AtprotoSessionProvider({ children }: { children: ReactNode }) {
-  const [session, setSession] = useState<OAuthSession | null>(null);
+  const [session, setSession] = useState<SessionLike | null>(null);
   const [agent, setAgent] = useState<Agent | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
@@ -48,6 +70,31 @@ export function AtprotoSessionProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let cancelled = false;
 
+    // Backend (confidential) flow: restore from the opaque token / OAuth
+    // callback params, and build the proxy agent up front.
+    if (USE_BACKEND_OAUTH) {
+      (async () => {
+        try {
+          const { getBackendClient } = await import('@/lib/oauth/backendClient');
+          const client = getBackendClient();
+          const result = await client.initialize();
+          if (cancelled) return;
+          if (result) {
+            setSession(result);
+            setAgent(client.createProxyAgent());
+          }
+        } catch (err) {
+          if (!cancelled) setError(err as Error);
+        } finally {
+          if (!cancelled) setLoading(false);
+        }
+      })();
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    // Browser (public) flow.
     (async () => {
       try {
         const client = await getOauthClient();
@@ -77,6 +124,10 @@ export function AtprotoSessionProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
+    // In backend mode the proxy agent is created during init() and never needs
+    // the @atproto/api Agent, so this effect is a no-op.
+    if (USE_BACKEND_OAUTH) return undefined;
+
     let cancelled = false;
     if (!session) {
       setAgent(null);
@@ -98,14 +149,31 @@ export function AtprotoSessionProvider({ children }: { children: ReactNode }) {
   }, [session]);
 
   const signIn = useCallback(async (input: string, scope?: string) => {
+    if (USE_BACKEND_OAUTH) {
+      const { getBackendClient } = await import('@/lib/oauth/backendClient');
+      await getBackendClient().signIn(input, scope ?? METADATA_SCOPE);
+      return;
+    }
     const client = await getOauthClient();
     await client.signIn(input, { scope: scope ?? METADATA_SCOPE });
   }, []);
 
   const signOut = useCallback(async () => {
+    if (USE_BACKEND_OAUTH) {
+      try {
+        const { getBackendClient } = await import('@/lib/oauth/backendClient');
+        await getBackendClient().signOut();
+      } catch {
+        // ignore — we still drop local state
+      }
+      setSession(null);
+      setAgent(null);
+      return;
+    }
+
     if (!session) return;
     try {
-      await session.signOut();
+      await (session as OAuthSession).signOut();
     } catch {
       // ignore network errors on revoke; we still drop local state
     }
