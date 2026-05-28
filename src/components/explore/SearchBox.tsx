@@ -15,9 +15,19 @@ import {
   searchActorsTypeahead,
   type ActorTypeaheadResult,
 } from '@/utils/atproto/appview';
-import { recordActorVisit, recordQueryVisit } from '@/utils/searchHistory';
+import {
+  getFrequent,
+  getRecents,
+  readSearchHistory,
+  recordActorVisit,
+  recordQueryVisit,
+  type SearchHistoryEntry,
+} from '@/utils/searchHistory';
+import SearchRecommendations from './SearchRecommendations';
 
 const TYPEAHEAD_DEBOUNCE_MS = 180;
+const RECENTS_LIMIT = 6;
+const FREQUENT_LIMIT = 4;
 
 export default function SearchBox({ initial }: { initial?: string }) {
   const router = useRouter();
@@ -25,11 +35,18 @@ export default function SearchBox({ initial }: { initial?: string }) {
   const [suggestions, setSuggestions] = useState<ActorTypeaheadResult[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [highlightIndex, setHighlightIndex] = useState(-1);
+  const [history, setHistory] = useState<SearchHistoryEntry[]>([]);
   const wrapRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setValue(initial || '');
   }, [initial]);
+
+  // Load locally-stored history once on mount so recommendations are ready
+  // the first time the input is focused. Refreshed again on each focus.
+  useEffect(() => {
+    setHistory(readSearchHistory());
+  }, []);
 
   // Debounced typeahead lookup. Skips DIDs and at:// URIs since the
   // appview typeahead is handle/display-name oriented.
@@ -80,6 +97,16 @@ export default function SearchBox({ initial }: { initial?: string }) {
     [router],
   );
 
+  const goToEntry = useCallback(
+    (entry: SearchHistoryEntry) => {
+      // Re-picking bumps the count; merge logic keeps the stored avatar/handle.
+      recordQueryVisit(entry.label, entry.path);
+      router.push(entry.path);
+      setShowSuggestions(false);
+    },
+    [router],
+  );
+
   function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setShowSuggestions(false);
@@ -109,6 +136,15 @@ export default function SearchBox({ initial }: { initial?: string }) {
   }
 
   const showList = showSuggestions && suggestions.length > 0;
+  const recents = getRecents(history, RECENTS_LIMIT);
+  const frequent = getFrequent(history, FREQUENT_LIMIT);
+  // Recommendations only show on an empty, focused input — once the user types,
+  // the typeahead list takes over.
+  const showRecommendations =
+    showSuggestions &&
+    !showList &&
+    value.trim() === '' &&
+    (recents.length > 0 || frequent.length > 0);
 
   return (
     <form
@@ -152,6 +188,9 @@ export default function SearchBox({ initial }: { initial?: string }) {
           }}
           onFocus={(e) => {
             setShowSuggestions(true);
+            // Refresh so visits recorded since mount (this tab or another)
+            // show up.
+            setHistory(readSearchHistory());
             e.currentTarget.style.borderColor = 'var(--text-accent)';
           }}
           onBlur={(e) => {
@@ -284,6 +323,29 @@ export default function SearchBox({ initial }: { initial?: string }) {
               );
             })}
           </ul>
+        )}
+
+        {showRecommendations && (
+          <div
+            style={{
+              position: 'absolute',
+              top: 'calc(100% + 0.25rem)',
+              left: 0,
+              right: 0,
+              background: 'var(--bg-secondary)',
+              border: '1px solid var(--border-medium)',
+              boxShadow: 'var(--shadow-overlay)',
+              zIndex: 30,
+              maxHeight: '22rem',
+              overflowY: 'auto',
+            }}
+          >
+            <SearchRecommendations
+              recents={recents}
+              frequent={frequent}
+              onPick={goToEntry}
+            />
+          </div>
         )}
       </div>
 
