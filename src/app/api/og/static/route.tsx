@@ -7,6 +7,7 @@ import {
   loadGoogleFont,
   OgFrame,
   OG_COLORS,
+  OG_GLYPH_BASELINE,
   TopRow,
   UrlPill,
   WaypointRow,
@@ -292,7 +293,11 @@ export async function GET(request: NextRequest) {
     const allText =
       `${config.title} ${config.tagline} ${config.eyebrow} aturi.to ` +
       'Anisota Bluesky Leaflet Tangled Margin Deer Grain Recommended for posts ' +
-      'pds.atpota.to dame.is app.bsky.feed.post app.bsky.actor.profile self at:// › ★ ▾';
+      'pds.atpota.to dame.is app.bsky.feed.post app.bsky.actor.profile self at:// › ★ ▾ ' +
+      // The eyebrow is rendered uppercase via CSS; include the full alphabet
+      // so the font subset has glyphs for the transformed text (see
+      // OG_GLYPH_BASELINE).
+      OG_GLYPH_BASELINE;
     const fontData = await loadGoogleFont('Crimson+Pro:wght@300;400;600', allText);
 
     return new ImageResponse(

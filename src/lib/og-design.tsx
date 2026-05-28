@@ -29,6 +29,21 @@ export const OG_COLORS = {
 const fontCache = new Map<string, ArrayBuffer>();
 
 /**
+ * Every ASCII letter + digit. Append this to a route's font-subset request
+ * text so the subset always carries glyphs for CSS-transformed copy.
+ *
+ * Satori applies `text-transform` *after* the Google Fonts subset has been
+ * built from the literal `&text=` characters, so an uppercased `Eyebrow`
+ * (e.g. "Atmosphere data explorer" → "ATMOSPHERE DATA EXPLORER") asks the
+ * renderer for capital glyphs — O, E, H, X… — that never appear verbatim in
+ * the card's copy and are therefore missing from the subset. The renderer
+ * then falls back to mismatched glyphs, which is the jumbled-caps look on
+ * the eyebrow chip. Including the full alphabet guarantees coverage.
+ */
+export const OG_GLYPH_BASELINE =
+  'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+
+/**
  * Fetch a Google Font subset for the characters in `text`. Cached in
  * module memory and short-circuited on a 3s timeout — image generation
  * has to stay fast even when the font CDN is slow.
@@ -327,7 +342,10 @@ export function UrlPill({ url, fontSize = 26 }: { url: string; fontSize?: number
   return (
     <div
       style={{
-        display: 'inline-flex',
+        // Satori only supports flex/block/none/-webkit-box — "inline-flex"
+        // throws and 500s the whole card. The parent centers this row, so
+        // plain "flex" reads identically.
+        display: 'flex',
         alignItems: 'center',
         gap: '14px',
         padding: '16px 22px',
@@ -423,7 +441,11 @@ export function WaypointRow({
               background: isActive ? OG_COLORS.bgTertiary : 'transparent',
               border: `1px solid ${isActive ? OG_COLORS.accent : OG_COLORS.borderSubtle}`,
               color: isActive ? OG_COLORS.accent : OG_COLORS.textSecondary,
-              boxShadow: isActive ? '0 0 32px rgba(138, 154, 127, 0.25)' : undefined,
+              // Satori rejects `boxShadow: undefined`, so only set it when the
+              // cell is highlighted instead of passing an undefined value.
+              ...(isActive
+                ? { boxShadow: '0 0 32px rgba(138, 154, 127, 0.25)' }
+                : {}),
             }}
           >
             {item.node}
