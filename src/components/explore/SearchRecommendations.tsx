@@ -1,7 +1,9 @@
 'use client';
 
+import { useEffect, useMemo } from 'react';
 import { Clock, TrendingUp } from 'lucide-react';
-import type { SearchHistoryEntry } from '@/utils/searchHistory';
+import { actorFromPath, type SearchHistoryEntry } from '@/utils/searchHistory';
+import { enrichRecommendationAvatars } from '@/utils/searchHistoryEnrich';
 
 /**
  * Shared rendering for the "recent" / "frequent" recommendations surfaced
@@ -9,16 +11,47 @@ import type { SearchHistoryEntry } from '@/utils/searchHistory';
  * compact header search panel. Renders the section blocks only — each caller
  * supplies its own positioned/styled container so the dropdown can sit inline
  * (header) or as an absolute overlay (explorer).
+ *
+ * Free-text searches don't capture an avatar at record time, so on display we
+ * resolve those actor entries against the AppView and call `onEnriched` once
+ * any avatars/display-names have been written back to local history.
  */
 export default function SearchRecommendations({
   recents,
   frequent,
   onPick,
+  onEnriched,
 }: {
   recents: SearchHistoryEntry[];
   frequent: SearchHistoryEntry[];
   onPick: (entry: SearchHistoryEntry) => void;
+  onEnriched?: () => void;
 }) {
+  // Key off the actor entries still missing an avatar so the effect only runs
+  // when there's something to backfill (not on every render).
+  const pendingKey = useMemo(
+    () =>
+      [...recents, ...frequent]
+        .filter((e) => !e.avatar && actorFromPath(e.path))
+        .map((e) => e.path)
+        .join('|'),
+    [recents, frequent],
+  );
+
+  useEffect(() => {
+    if (!pendingKey) return;
+    let cancelled = false;
+    enrichRecommendationAvatars([...recents, ...frequent]).then((changed) => {
+      if (changed && !cancelled) onEnriched?.();
+    });
+    return () => {
+      cancelled = true;
+    };
+    // recents/frequent are captured via pendingKey; re-running only when the
+    // set of un-enriched actor paths changes is what we want.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingKey, onEnriched]);
+
   return (
     <>
       {recents.length > 0 && (

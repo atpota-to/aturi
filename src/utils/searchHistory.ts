@@ -75,6 +75,44 @@ export function clearSearchHistory(): void {
   }
 }
 
+/**
+ * Pull the actor identifier (handle or DID) out of an `/explore/<repo>` path
+ * so we can look the profile up for avatar enrichment. Returns null for PDS
+ * paths (`/explore/pds/<host>`) and anything that isn't a repo destination —
+ * those have no actor avatar to fetch.
+ */
+export function actorFromPath(path: string): string | null {
+  const prefix = '/explore/';
+  if (!path.startsWith(prefix)) return null;
+  const rest = path.slice(prefix.length);
+  if (!rest || rest.startsWith('pds/')) return null;
+  const seg = rest.split('/')[0];
+  if (!seg) return null;
+  try {
+    return decodeURIComponent(seg);
+  } catch {
+    return seg;
+  }
+}
+
+/**
+ * Patch an existing entry's display metadata (avatar/handle/label/…) in place
+ * without touching its visit count or recency. Used to backfill avatars that
+ * free-text searches couldn't capture at record time. Returns whether a stored
+ * entry was actually updated.
+ */
+export function enrichEntry(
+  path: string,
+  patch: Partial<Omit<SearchHistoryEntry, 'path' | 'count' | 'lastVisited'>>,
+): boolean {
+  const entries = readSearchHistory();
+  const i = entries.findIndex((e) => e.path === path);
+  if (i < 0) return false;
+  entries[i] = { ...entries[i], ...patch };
+  writeSearchHistory(entries);
+  return true;
+}
+
 type SearchVisitInput = {
   path: string;
   label: string;
