@@ -131,17 +131,17 @@ export default function DefaultsTab({ prefs, onChange }: Props) {
       <div className="options-card">
         <div className="options-card-title">Popup</div>
         <div className="options-card-sub">
-          Choose which tab the popup opens to by default. The Waypoints tab
-          jumps between Atmosphere apps for the current page; the Inspect tab
+          Choose which view the popup opens to by default. The Waypoints view
+          jumps between Atmosphere apps for the current page; the Inspect view
           surfaces the AT URIs detected on the page.
         </div>
 
         <div className="appearance-row">
-          <div className="appearance-row-label">Default tab</div>
+          <div className="appearance-row-label">Default view</div>
           <div
             className="appearance-segmented"
             role="radiogroup"
-            aria-label="Default popup tab"
+            aria-label="Default popup view"
           >
             {(
               [
@@ -167,11 +167,11 @@ export default function DefaultsTab({ prefs, onChange }: Props) {
 
         <div className="options-toggle-row">
           <div>
-            <div className="options-card-title">Remember last-used tab</div>
+            <div className="options-card-title">Remember last-used view</div>
             <div className="options-card-sub">
               {prefs.popupModeRemember
-                ? `On — after you switch tabs, the popup will reopen to that tab for the next ${prefs.popupModeRememberMinutes} minutes, then revert to the default.`
-                : 'Off — every popup launch starts on the default tab above.'}
+                ? `On — after you switch between the Waypoints and Inspect views, the popup reopens to whichever you used last for the next ${prefs.popupModeRememberMinutes} minutes, then reverts to the default.`
+                : 'Off — every popup launch starts on the default view above.'}
             </div>
           </div>
           <button
