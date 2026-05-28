@@ -311,6 +311,42 @@ function pinListFieldFor(target: PinTarget): 'pinnedLexicons' | 'pinnedLexiconsO
   return target === 'others' ? 'pinnedLexiconsOthers' : 'pinnedLexicons';
 }
 
+/**
+ * Suffix that marks a pinned entry as an NSID *group* (prefix) pin rather
+ * than a single lexicon. `app.bsky.feed.*` pins everything nested under
+ * `app.bsky.feed`; `app.bsky.*` pins the whole `app.bsky` group. Stored in
+ * the same `pinnedLexicons` arrays as exact NSIDs — older clients that
+ * don't understand the wildcard simply won't match it to anything, so the
+ * format stays backward compatible.
+ */
+export const PIN_GROUP_SUFFIX = '.*';
+
+/** True when a pin entry targets an entire NSID group (ends with `.*`). */
+export function isPinGroup(entry: string): boolean {
+  return entry.endsWith(PIN_GROUP_SUFFIX);
+}
+
+/** The NSID prefix a group pin covers, e.g. `app.bsky.feed.*` → `app.bsky.feed`. */
+export function pinGroupPrefix(entry: string): string {
+  return isPinGroup(entry) ? entry.slice(0, -PIN_GROUP_SUFFIX.length) : entry;
+}
+
+/**
+ * Whether a pin entry matches a concrete NSID. Exact entries match only
+ * themselves; group entries (`prefix.*`) match the prefix itself and
+ * anything nested beneath it.
+ */
+export function pinMatchesNsid(entry: string, nsid: string): boolean {
+  if (!isPinGroup(entry)) return entry === nsid;
+  const prefix = pinGroupPrefix(entry);
+  return nsid === prefix || nsid.startsWith(`${prefix}.`);
+}
+
+/** True when some group pin in `list` covers `nsid`. */
+export function nsidCoveredByGroupPin(list: string[], nsid: string): boolean {
+  return list.some((e) => isPinGroup(e) && pinMatchesNsid(e, nsid));
+}
+
 export function togglePinnedLexicon(
   prefs: Preferences,
   nsid: string,
@@ -362,6 +398,24 @@ export function isLikelyNsid(input: string): boolean {
   if (s.length > 253) return false;
   const segments = s.split('.');
   if (segments.length < 3) return false;
+  const segRe = /^[a-zA-Z][a-zA-Z0-9-]*$/;
+  return segments.every((seg) => segRe.test(seg));
+}
+
+/**
+ * Validates anything pinnable from the settings input — a single NSID, or
+ * an NSID-group wildcard (`prefix.*`) whose prefix is at least two
+ * lowercase, dotted segments. Two segments matches the explorer's
+ * major-group granularity (`app.bsky.*`); three matches a sub-group
+ * (`app.bsky.feed.*`).
+ */
+export function isLikelyPinEntry(input: string): boolean {
+  const s = input.trim();
+  if (!isPinGroup(s)) return isLikelyNsid(s);
+  const prefix = pinGroupPrefix(s);
+  if (s.length > 253) return false;
+  const segments = prefix.split('.');
+  if (segments.length < 2) return false;
   const segRe = /^[a-zA-Z][a-zA-Z0-9-]*$/;
   return segments.every((seg) => segRe.test(seg));
 }

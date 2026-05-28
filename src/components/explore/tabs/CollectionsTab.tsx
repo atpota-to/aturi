@@ -17,7 +17,15 @@ import type { IdentityBundle } from '@/utils/atproto/identity';
 import { useMyCollections } from '../useRepoCollections';
 import { useAtprotoSession } from '@/components/AtprotoSessionProvider';
 import { usePreferences } from '@/components/PreferencesProvider';
-import { pinTargetFor, togglePinnedLexicon } from '@/utils/preferences';
+import {
+  PIN_GROUP_SUFFIX,
+  isPinGroup,
+  nsidCoveredByGroupPin,
+  pinGroupPrefix,
+  pinMatchesNsid,
+  pinTargetFor,
+  togglePinnedLexicon,
+} from '@/utils/preferences';
 
 type SubGroup = {
   /** 3rd NSID segment, e.g. "feed", "graph", "actor". */
@@ -176,35 +184,66 @@ export default function CollectionsTab({ identity }: { identity: IdentityBundle 
     || prefs.pinScope === 'all'
     || isOwnRepo
     || prefs.pinScope === 'split';
-  // The pinned state shown on each row reflects whichever list the next
-  // pin click would target — so the row stays consistent with the button.
-  const pinnedSet = useMemo(() => {
-    const source =
-      pinTarget === 'others' ? prefs.pinnedLexiconsOthers : prefs.pinnedLexicons;
-    return new Set(source);
-  }, [pinTarget, prefs.pinnedLexicons, prefs.pinnedLexiconsOthers]);
+  // The pinned state shown on each row/header reflects whichever list the
+  // next pin click would target — `activePinList` always equals that list
+  // when pins are visible here, so a single set backs both exact (leaf) and
+  // group (`prefix.*`) membership checks.
+  const activePinSet = useMemo(() => new Set(activePinList), [activePinList]);
   const repoCollectionSet = useMemo(
     () => new Set(collections ?? []),
     [collections],
   );
-  const pinnedOnThisRepo = useMemo(() => {
+
+  // Pinned NSID groups (`prefix.*`) that actually have a match on this repo,
+  // each paired with the collections it surfaces. Order follows the pin list.
+  const pinnedGroups = useMemo(() => {
+    if (!pinsVisibleHere || !collections) {
+      return [] as { entry: string; prefix: string; items: string[] }[];
+    }
+    const f = filter.trim().toLowerCase();
+    const prefixes = activePinList.filter(isPinGroup).map(pinGroupPrefix);
+    return prefixes
+      // Drop group pins subsumed by a broader one (e.g. `app.bsky.feed.*`
+      // when `app.bsky.*` is also pinned) so members never render twice.
+      .filter((p) => !prefixes.some((o) => o !== p && p.startsWith(`${o}.`)))
+      .map((prefix) => {
+        const entry = `${prefix}${PIN_GROUP_SUFFIX}`;
+        const items = collections
+          .filter((c) => pinMatchesNsid(entry, c))
+          .filter((c) => !f || c.toLowerCase().includes(f))
+          .sort();
+        return { entry, prefix, items };
+      })
+      .filter((g) => g.items.length > 0);
+  }, [pinsVisibleHere, collections, activePinList, filter]);
+
+  // Individually-pinned NSIDs present on this repo, minus any already
+  // surfaced by a pinned group (a group pin subsumes its members).
+  const pinnedSingles = useMemo(() => {
     if (!pinsVisibleHere || !collections) return [] as string[];
     const f = filter.trim().toLowerCase();
     return activePinList
+      .filter((e) => !isPinGroup(e))
       .filter((n) => repoCollectionSet.has(n))
+      .filter((n) => !nsidCoveredByGroupPin(activePinList, n))
       .filter((n) => !f || n.toLowerCase().includes(f));
   }, [pinsVisibleHere, collections, activePinList, repoCollectionSet, filter]);
 
-  // The main grouped list drops anything in the Pinned section so the same
-  // collection doesn't render twice.
-  const pinnedHereSet = useMemo(
-    () => new Set(pinnedOnThisRepo),
-    [pinnedOnThisRepo],
-  );
+  // Everything the Pinned section surfaces. The main grouped list drops
+  // these so the same collection never renders twice.
+  const surfacedSet = useMemo(() => {
+    const s = new Set<string>(pinnedSingles);
+    for (const g of pinnedGroups) for (const it of g.items) s.add(it);
+    return s;
+  }, [pinnedSingles, pinnedGroups]);
+  const hasAnyPinned = pinnedGroups.length > 0 || pinnedSingles.length > 0;
+  const pinnedCount =
+    pinnedSingles.length + pinnedGroups.reduce((acc, g) => acc + g.items.length, 0);
+
   const groupSource = useMemo(() => {
     if (!collections) return [] as string[];
-    let list = pinnedOnThisRepo.length > 0
-      ? collections.filter((n) => !pinnedHereSet.has(n))
+    let list = surfacedSet.size > 0
+      ? collections.filter((n) => !surfacedSet.has(n))
       : collections;
     if (commonFilter !== 'all' && myCollections) {
       list = list.filter((n) =>
@@ -212,7 +251,7 @@ export default function CollectionsTab({ identity }: { identity: IdentityBundle 
       );
     }
     return list;
-  }, [collections, pinnedOnThisRepo, pinnedHereSet, commonFilter, myCollections]);
+  }, [collections, surfacedSet, commonFilter, myCollections]);
 
   const groups = useMemo(
     () => groupHierarchically(groupSource, filter),
@@ -233,12 +272,13 @@ export default function CollectionsTab({ identity }: { identity: IdentityBundle 
   // button can target the visible set, not stale keys from a previous filter.
   const allGroupKeys = useMemo(() => {
     const keys: string[] = [];
+    for (const g of pinnedGroups) keys.push(pinnedKey(g.entry));
     for (const g of groups) {
       keys.push(g.key);
       for (const sg of g.subgroups) keys.push(sg.fullKey);
     }
     return keys;
-  }, [groups]);
+  }, [groups, pinnedGroups]);
   const anyOpen = allGroupKeys.some((k) => isOpen(k));
   function setAllOpen(open: boolean) {
     setOpenOverrides((prev) => {
@@ -250,6 +290,13 @@ export default function CollectionsTab({ identity }: { identity: IdentityBundle 
 
   function togglePin(nsid: string) {
     update((p) => togglePinnedLexicon(p, nsid, pinTarget));
+  }
+  // Pinning a group stores the `prefix.*` wildcard in the same list.
+  function toggleGroupPin(prefix: string) {
+    update((p) => togglePinnedLexicon(p, `${prefix}${PIN_GROUP_SUFFIX}`, pinTarget));
+  }
+  function isGroupPinned(prefix: string): boolean {
+    return activePinSet.has(`${prefix}${PIN_GROUP_SUFFIX}`);
   }
 
   // Cross-repo filter only makes sense when signed in and viewing someone
@@ -372,7 +419,7 @@ export default function CollectionsTab({ identity }: { identity: IdentityBundle 
         )}
       </div>
 
-      {pinnedOnThisRepo.length > 0 && (
+      {hasAnyPinned && (
         <section
           style={{
             border: '1px solid var(--text-accent)',
@@ -403,27 +450,76 @@ export default function CollectionsTab({ identity }: { identity: IdentityBundle 
                 textTransform: 'none',
               }}
             >
-              {pinnedOnThisRepo.length}
+              {pinnedCount}
             </span>
           </div>
-          <ul style={{ ...listStyle(), borderTop: '1px solid var(--border-subtle)' }}>
-            {pinnedOnThisRepo.map((nsid, i) => (
-              <LeafRow
-                key={nsid}
-                nsid={nsid}
-                href={`/explore/${repoSeg}/${nsid}`}
-                baseBg={i % 2 === 0 ? 'var(--bg-primary)' : 'transparent'}
-                inCommon={myCollections?.has(nsid)}
-                pinnable={canPin}
-                pinned
-                onTogglePin={() => togglePin(nsid)}
-              />
-            ))}
-          </ul>
+
+          {/* Pinned NSID groups — collapsible, with a group-level unpin in
+              the header. Their members are plain links; the group is the
+              unit you pin/unpin. */}
+          {pinnedGroups.map((g) => {
+            const open = isOpen(pinnedKey(g.entry));
+            return (
+              <div
+                key={g.entry}
+                style={{ borderTop: '1px solid var(--border-subtle)' }}
+              >
+                <GroupHeader
+                  open={open}
+                  onToggle={() => toggle(pinnedKey(g.entry))}
+                  prefix={g.prefix}
+                  count={g.items.length}
+                  emphasize
+                  pinnable={canPin}
+                  pinned
+                  onTogglePin={() => toggleGroupPin(g.prefix)}
+                />
+                {open && (
+                  <ul
+                    style={{
+                      ...listStyle(),
+                      borderTop: '1px solid var(--border-subtle)',
+                    }}
+                  >
+                    {g.items.map((nsid, i) => (
+                      <LeafRow
+                        key={nsid}
+                        nsid={nsid}
+                        href={`/explore/${repoSeg}/${nsid}`}
+                        dimPrefix={`${g.prefix}.`}
+                        baseBg={i % 2 === 0 ? 'var(--bg-primary)' : 'transparent'}
+                        inCommon={myCollections?.has(nsid)}
+                      />
+                    ))}
+                  </ul>
+                )}
+              </div>
+            );
+          })}
+
+          {/* Individually-pinned lexicons. */}
+          {pinnedSingles.length > 0 && (
+            <ul
+              style={{ ...listStyle(), borderTop: '1px solid var(--border-subtle)' }}
+            >
+              {pinnedSingles.map((nsid, i) => (
+                <LeafRow
+                  key={nsid}
+                  nsid={nsid}
+                  href={`/explore/${repoSeg}/${nsid}`}
+                  baseBg={i % 2 === 0 ? 'var(--bg-primary)' : 'transparent'}
+                  inCommon={myCollections?.has(nsid)}
+                  pinnable={canPin}
+                  pinned
+                  onTogglePin={() => togglePin(nsid)}
+                />
+              ))}
+            </ul>
+          )}
         </section>
       )}
 
-      {groups.length === 0 && pinnedOnThisRepo.length === 0 ? (
+      {groups.length === 0 && !hasAnyPinned ? (
         <p className="explore-placeholder">
           {commonFilter === 'mutual' ? (
             'No collections in common with this repo.'
@@ -452,6 +548,9 @@ export default function CollectionsTab({ identity }: { identity: IdentityBundle 
                 prefix={g.key}
                 count={g.totalCount}
                 emphasize
+                pinnable={canPin}
+                pinned={isGroupPinned(g.key)}
+                onTogglePin={() => toggleGroupPin(g.key)}
               />
               {majorOpen && (
                 <div style={{ borderTop: '1px solid var(--border-subtle)' }}>
@@ -467,7 +566,7 @@ export default function CollectionsTab({ identity }: { identity: IdentityBundle 
                           baseBg={i % 2 === 0 ? 'var(--bg-primary)' : 'transparent'}
                           inCommon={myCollections?.has(nsid)}
                           pinnable={canPin}
-                          pinned={pinnedSet.has(nsid)}
+                          pinned={activePinSet.has(nsid)}
                           onTogglePin={() => togglePin(nsid)}
                         />
                       ))}
@@ -493,6 +592,9 @@ export default function CollectionsTab({ identity }: { identity: IdentityBundle 
                           dimPrefix={`${g.key}.`}
                           count={sub.items.length}
                           indent
+                          pinnable={canPin}
+                          pinned={isGroupPinned(sub.fullKey)}
+                          onTogglePin={() => toggleGroupPin(sub.fullKey)}
                         />
                         {subOpen && (
                           <ul
@@ -511,7 +613,7 @@ export default function CollectionsTab({ identity }: { identity: IdentityBundle 
                                 baseBg={i % 2 === 0 ? 'var(--bg-primary)' : 'transparent'}
                                 inCommon={myCollections?.has(nsid)}
                                 pinnable={canPin}
-                                pinned={pinnedSet.has(nsid)}
+                                pinned={activePinSet.has(nsid)}
                                 onTogglePin={() => togglePin(nsid)}
                               />
                             ))}
@@ -538,6 +640,9 @@ function GroupHeader({
   count,
   emphasize,
   indent,
+  pinnable,
+  pinned,
+  onTogglePin,
 }: {
   open: boolean;
   onToggle: () => void;
@@ -547,67 +652,117 @@ function GroupHeader({
   count: number;
   emphasize?: boolean;
   indent?: boolean;
+  /** Show the pin/unpin button that pins the whole `prefix.*` group. */
+  pinnable?: boolean;
+  pinned?: boolean;
+  onTogglePin?: () => void;
 }) {
   const hasDim = dimPrefix && prefix.startsWith(dimPrefix);
   const dim = hasDim ? dimPrefix : '';
   const tail = hasDim ? prefix.slice(dimPrefix.length) : prefix;
+  const groupNsid = `${prefix}${PIN_GROUP_SUFFIX}`;
   return (
-    <button
-      type="button"
-      onClick={onToggle}
-      aria-expanded={open}
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: '0.5rem',
-        width: '100%',
-        padding: indent ? '0.55rem 1rem 0.55rem 1.5rem' : '0.625rem 1rem',
-        background: 'transparent',
-        border: 0,
-        textAlign: 'left',
-        fontFamily: 'var(--font-mono)',
-        fontSize: indent ? '0.8125rem' : '0.875rem',
-        color: 'var(--text-primary)',
-        cursor: 'pointer',
-      }}
-    >
-      {open ? (
-        <ChevronDown size={14} aria-hidden style={{ color: 'var(--text-tertiary)' }} />
-      ) : (
-        <ChevronRight size={14} aria-hidden style={{ color: 'var(--text-tertiary)' }} />
-      )}
-      <code
+    <div style={{ display: 'flex', alignItems: 'stretch' }}>
+      <button
+        type="button"
+        onClick={onToggle}
+        aria-expanded={open}
         style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.5rem',
           flex: 1,
-          // minWidth: 0 lets the flex item shrink below its intrinsic
-          // content width — without it, a long unbreakable NSID (e.g. a
-          // ULID-style rkey segment) pushes the count badge off the row.
           minWidth: 0,
+          padding: indent ? '0.55rem 1rem 0.55rem 1.5rem' : '0.625rem 1rem',
           background: 'transparent',
-          padding: 0,
-          color: emphasize ? 'var(--text-accent)' : 'var(--text-secondary)',
-          wordBreak: 'break-all',
-          overflowWrap: 'anywhere',
+          border: 0,
+          textAlign: 'left',
+          fontFamily: 'var(--font-mono)',
+          fontSize: indent ? '0.8125rem' : '0.875rem',
+          color: 'var(--text-primary)',
+          cursor: 'pointer',
         }}
       >
-        {dim && <span style={{ color: 'var(--text-tertiary)' }}>{dim}</span>}
-        {tail}
-        <span style={{ color: 'var(--text-tertiary)' }}>.*</span>
-      </code>
-      <span
-        style={{
-          fontSize: '0.75rem',
-          color: 'var(--text-tertiary)',
-          padding: '0.125rem 0.5rem',
-          background: 'var(--bg-tertiary)',
-          border: '1px solid var(--border-subtle)',
-          flexShrink: 0,
-        }}
-      >
-        {count}
-      </span>
-    </button>
+        {open ? (
+          <ChevronDown size={14} aria-hidden style={{ color: 'var(--text-tertiary)' }} />
+        ) : (
+          <ChevronRight size={14} aria-hidden style={{ color: 'var(--text-tertiary)' }} />
+        )}
+        <code
+          style={{
+            flex: 1,
+            // minWidth: 0 lets the flex item shrink below its intrinsic
+            // content width — without it, a long unbreakable NSID (e.g. a
+            // ULID-style rkey segment) pushes the count badge off the row.
+            minWidth: 0,
+            background: 'transparent',
+            padding: 0,
+            color: emphasize ? 'var(--text-accent)' : 'var(--text-secondary)',
+            wordBreak: 'break-all',
+            overflowWrap: 'anywhere',
+          }}
+        >
+          {dim && <span style={{ color: 'var(--text-tertiary)' }}>{dim}</span>}
+          {tail}
+          <span style={{ color: 'var(--text-tertiary)' }}>.*</span>
+        </code>
+        <span
+          style={{
+            fontSize: '0.75rem',
+            color: 'var(--text-tertiary)',
+            padding: '0.125rem 0.5rem',
+            background: 'var(--bg-tertiary)',
+            border: '1px solid var(--border-subtle)',
+            flexShrink: 0,
+          }}
+        >
+          {count}
+        </span>
+      </button>
+      {pinnable && onTogglePin && (
+        <button
+          type="button"
+          onClick={onTogglePin}
+          aria-label={pinned ? `Unpin ${groupNsid}` : `Pin ${groupNsid}`}
+          title={
+            pinned
+              ? 'Unpin this group from the explorer'
+              : 'Pin this whole group to the top of the list'
+          }
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '0 0.75rem',
+            background: 'transparent',
+            border: 0,
+            color: pinned ? 'var(--text-accent)' : 'var(--text-tertiary)',
+            cursor: 'pointer',
+            flexShrink: 0,
+            transition: 'color 0.15s ease',
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.color = 'var(--text-accent)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.color = pinned
+              ? 'var(--text-accent)'
+              : 'var(--text-tertiary)';
+          }}
+        >
+          {pinned ? <PinOff size={13} aria-hidden /> : <Pin size={13} aria-hidden />}
+        </button>
+      )}
+    </div>
   );
+}
+
+/**
+ * Open-state key for a pinned group block, namespaced so it can't collide
+ * with a main-list group key of the same prefix.
+ */
+function pinnedKey(entry: string): string {
+  return `pinned:${entry}`;
 }
 
 function LeafRow({
