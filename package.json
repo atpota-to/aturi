@@ -15,7 +15,6 @@
     "lint": "eslint"
   },
   "dependencies": {
-    "@atproto-labs/did-resolver": "^0.3.0",
     "@atproto-labs/handle-resolver": "^0.4.0",
     "@atproto/api": "^0.20.5",
     "@atproto/common-web": "^0.5.0",
