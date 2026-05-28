@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo } from 'react';
-import { Clock, TrendingUp } from 'lucide-react';
+import { Clock, Server, TrendingUp, User } from 'lucide-react';
 import { actorFromPath, type SearchHistoryEntry } from '@/utils/searchHistory';
 import { enrichRecommendationAvatars } from '@/utils/searchHistoryEnrich';
 
@@ -149,12 +149,22 @@ function RecommendationSection({
             ) : (
               <span
                 style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
                   width: 24,
                   height: 24,
                   background: 'var(--bg-secondary)',
+                  color: 'var(--text-tertiary)',
                   flexShrink: 0,
                 }}
-              />
+              >
+                {entry.path.startsWith('/explore/pds/') ? (
+                  <Server size={13} />
+                ) : (
+                  <User size={13} />
+                )}
+              </span>
             )}
             <div style={{ minWidth: 0, lineHeight: 1.2 }}>
               <div
