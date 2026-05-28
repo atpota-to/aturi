@@ -149,17 +149,11 @@ export default function ExploreLanding() {
       <AppearIn delay={0.12}>
         <FeatureSection
           badge={{ icon: <Gauge size={12} />, label: 'Repo at a glance' }}
-          title="Account-level signal before you drill in"
+          title="Get the tl;dr up top"
           body={
             <>
               <p>
-                Every repo page leads with a tile grid: namespace count,
-                total lexicons, PLC audit-log size, inbound backlinks
-                across the Atmosphere, account age, and the cred.blue
-                score. Five public sources, one block.
-              </p>
-              <p>
-                Get the tl;dr of any account without having to wade into all the details.
+                Every repo page leads with high-level context so you can orient yourself quickly without having to wade into all the details.
               </p>
             </>
           }
