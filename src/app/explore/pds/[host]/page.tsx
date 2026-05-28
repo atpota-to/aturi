@@ -12,19 +12,20 @@ export async function generateMetadata({
   const decoded = decodeURIComponent(host);
   const title = `${decoded} · PDS · Atmosphere Explorer`;
   const description = `Inspect the ${decoded} Personal Data Server — server metadata, available domains, and the repos it hosts.`;
+  const ogPath = `/api/og/explore?host=${encodeURIComponent(decoded)}`;
   return {
     title,
     description,
     openGraph: {
       title,
       description,
-      images: [`/api/og/static?page=explore`],
+      images: [ogPath],
     },
     twitter: {
       card: 'summary_large_image',
       title,
       description,
-      images: [`/api/og/static?page=explore`],
+      images: [ogPath],
     },
   };
 }

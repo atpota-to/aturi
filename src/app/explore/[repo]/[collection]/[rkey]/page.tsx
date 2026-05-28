@@ -17,7 +17,7 @@ export async function generateMetadata({
   const isPost = decodedCollection === 'app.bsky.feed.post';
   const ogPath = isPost
     ? `/api/og/post?handle=${encodeURIComponent(decodedRepo)}&rkey=${encodeURIComponent(decodedRkey)}`
-    : `/api/og/static?page=explore`;
+    : `/api/og/explore?repo=${encodeURIComponent(decodedRepo)}&collection=${encodeURIComponent(decodedCollection)}&rkey=${encodeURIComponent(decodedRkey)}`;
   return {
     title,
     description,
