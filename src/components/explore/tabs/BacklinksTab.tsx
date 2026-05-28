@@ -56,7 +56,7 @@ export default function BacklinksTab({
     if (sources === undefined) return <p className="explore-placeholder">Loading backlinks…</p>;
     if (sources === null) return <BacklinksUnavailable />;
     if (sources.length === 0) {
-      return <p className="explore-placeholder">No inbound links found.</p>;
+      return <p className="explore-placeholder">No backlinks found.</p>;
     }
     return <BacklinkSourceList sources={sources} open={open} setOpen={setOpen} target={target} />;
   }
@@ -127,7 +127,7 @@ function BacklinksSummaryPanel({
           flexWrap: 'wrap',
         }}
       >
-        <span className="explore-small-caps">Inbound links</span>
+        <span className="explore-small-caps">Backlinks</span>
         <span
           style={{
             fontFamily: 'var(--font-serif)',
@@ -152,6 +152,23 @@ function BacklinksSummaryPanel({
                     ? ` · from ${totalAccounts.toLocaleString()} ${totalAccounts === 1 ? 'account' : 'accounts'}`
                     : ''
                 }`}
+        </span>
+        <span
+          style={{
+            marginLeft: 'auto',
+            fontSize: '0.75rem',
+            color: 'var(--text-tertiary)',
+          }}
+        >
+          via{' '}
+          <a
+            href="https://www.microcosm.blue"
+            target="_blank"
+            rel="noreferrer noopener"
+            style={{ color: 'var(--text-accent)' }}
+          >
+            Microcosm
+          </a>
         </span>
       </header>
       <div style={{ padding: '0.75rem' }}>
