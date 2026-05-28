@@ -5,10 +5,12 @@
 
 'use client';
 
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { BskyPost } from '@/utils/recordFetcher';
 import { sanitizeFacetLink, sanitizeDid, sanitizeHashtag, sanitizeUrl, sanitizeHandle } from '@/utils/sanitize';
-import { User, MessageSquare, Repeat2, Heart, Quote, Play, CornerDownRight } from 'lucide-react';
+import { User, MessageSquare, Repeat2, Heart, Quote, Play, CornerDownRight, Telescope } from 'lucide-react';
+import { explorePathFromAtUri } from '@/utils/atproto/urls';
 
 type PostPreviewProps = {
   post: BskyPost;
@@ -1260,6 +1262,36 @@ export default function PostPreview({ post, parent }: PostPreviewProps) {
         </div>
         <div style={{ marginLeft: 'auto', fontSize: '0.75rem' }}>{formattedDate}</div>
       </div>
+
+      {/* Cross-product: jump to this post's raw record in the explorer */}
+      {(() => {
+        const explorePath = explorePathFromAtUri(post.uri);
+        if (!explorePath) return null;
+        return (
+          <div
+            style={{
+              paddingTop: '1rem',
+              marginTop: '1rem',
+              borderTop: '1px solid var(--border-subtle)',
+              fontSize: '0.8125rem',
+            }}
+          >
+            <Link
+              href={explorePath}
+              className="profile-explorer-link"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.4rem',
+                textDecoration: 'none',
+              }}
+            >
+              <Telescope size={12} />
+              View raw record in the explorer →
+            </Link>
+          </div>
+        );
+      })()}
     </div>
     </>
   );
