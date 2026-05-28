@@ -59,10 +59,12 @@ export async function getOauthClient(): Promise<BrowserOAuthClient> {
   if (pending) return pending;
 
   pending = (async () => {
-    const [oauthMod, { AtprotoDohHandleResolver, asResolvedHandle }] = await Promise.all([
-      import('@atproto/oauth-client-browser'),
-      import('@atproto-labs/handle-resolver'),
-    ]);
+    const [oauthMod, { AtprotoDohHandleResolver, asResolvedHandle }, { createDidResolver }] =
+      await Promise.all([
+        import('@atproto/oauth-client-browser'),
+        import('@atproto-labs/handle-resolver'),
+        import('@atproto-labs/did-resolver'),
+      ]);
     const { BrowserOAuthClient: Ctor } = oauthMod;
 
     const origin = window.location.origin;
@@ -102,6 +104,29 @@ export async function getOauthClient(): Promise<BrowserOAuthClient> {
       },
     };
 
+    // Resolve DID documents through a same-origin proxy for did:web. Those
+    // docs live at https://{host}/.well-known/did.json on arbitrary hosts that
+    // frequently omit CORS headers, so a direct browser fetch is blocked even
+    // when the host returns the document — which leaves did:web users unable to
+    // sign in. plc.directory and same-origin requests are CORS-safe and pass
+    // straight through. The proxy is scoped to the DID resolver only, never the
+    // OAuth token/DPoP fetch.
+    const didDocFetch = (input: string | URL | Request, init?: RequestInit): Promise<Response> => {
+      const href =
+        typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
+      try {
+        const url = new URL(href);
+        if (url.pathname.endsWith('/did.json') && url.origin !== origin) {
+          const signal = init?.signal ?? (input instanceof Request ? input.signal : undefined);
+          return fetch(`${origin}/api/did-doc?url=${encodeURIComponent(url.href)}`, { signal });
+        }
+      } catch {
+        // Unparseable input — fall through to a normal fetch.
+      }
+      return fetch(input, init);
+    };
+    const didResolver = createDidResolver({ fetch: didDocFetch });
+
     const hooks = {
       onDelete: (sub: string, cause?: unknown) => {
         events.dispatchEvent(new CustomEvent('deleted', { detail: { sub, cause } }));
@@ -114,12 +139,14 @@ export async function getOauthClient(): Promise<BrowserOAuthClient> {
     if (isLoopback(window.location.hostname)) {
       client = new Ctor({
         handleResolver,
+        didResolver,
         clientMetadata: loopbackMetadataUrl(origin, redirectPath) as unknown as undefined,
         ...hooks,
       } as ConstructorParameters<typeof Ctor>[0]);
     } else {
       client = new Ctor({
         handleResolver,
+        didResolver,
         clientMetadata: {
           client_id: `${origin}/oauth-client-metadata.json`,
           client_name: 'aturi.to',
