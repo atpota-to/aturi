@@ -128,7 +128,7 @@ The extension ships as standalone bundles via `npm run zip` / `npm run zip:firef
 
 ## Integration
 
-Want to add aturi.to links to your app? Check out the [Integration Guide](https://aturi.to/integrate) for code examples and best practices.
+Want to add aturi.to links to your app? Here's how.
 
 ### Quick example (TypeScript)
 

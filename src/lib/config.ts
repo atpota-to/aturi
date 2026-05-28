@@ -35,11 +35,6 @@ export const config = {
   analytics: {
     enabled: process.env.NEXT_PUBLIC_ANALYTICS_ENABLED === 'true',
   },
-  
-  // Feature flags
-  features: {
-    showIntegrationPromo: process.env.NEXT_PUBLIC_SHOW_INTEGRATION_PROMO !== 'false',
-  },
 } as const;
 
 /**

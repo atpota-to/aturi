@@ -31,7 +31,6 @@ See [FORKING.md](FORKING.md) for detailed instructions.
 ## Support
 
 - 📚 [Forking Guide](FORKING.md)
-- 🔧 [Integration Guide](https://aturi.to/integrate)
 - 📄 [Original Project](https://aturi.to)
 
 

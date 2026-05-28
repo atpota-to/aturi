@@ -55,14 +55,6 @@ function configFor(page: string): PageConfig {
           'Share aturi.to/handle/collection/rkey with anyone — they pick where to open it, from a curated list of 25+ clients.',
         visual: <UniversalLinksVisual />,
       };
-    case 'integrate':
-      return {
-        eyebrow: 'Integrate',
-        title: 'Add universal sharing\nto your app.',
-        tagline:
-          'A simple URL pattern your atproto app can adopt to make every record shareable across the Atmosphere.',
-        visual: <UniversalLinksVisual />,
-      };
     case 'fork':
       return {
         eyebrow: 'Fork & deploy',
