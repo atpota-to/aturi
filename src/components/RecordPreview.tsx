@@ -160,7 +160,18 @@ export default function RecordPreview({
         <div style={{ padding: '1.5rem' }}>
           <div style={{ marginBottom: '1.5rem' }}>
             {previewFields.map(([key, val]) => (
-              <FieldRow key={key} label={key} value={val} />
+              // Inside the explorer (hideExplorerCtas) this card IS the
+              // canonical record view, so top-level fields start expanded —
+              // the visitor came here to read the record, not to click each
+              // object/array chip open. Nested rows stay collapsed so deep
+              // structures don't unfurl all at once. On universal-link pages
+              // the preview stays compact (everything collapsed).
+              <FieldRow
+                key={key}
+                label={key}
+                value={val}
+                defaultOpen={hideExplorerCtas}
+              />
             ))}
           </div>
 
@@ -308,6 +319,7 @@ function FieldRow({
   label,
   value,
   isLast,
+  defaultOpen = false,
 }: {
   label: string;
   value: unknown;
@@ -315,8 +327,11 @@ function FieldRow({
    * child inside an expansion so it doesn't double up against the parent
    * row's bottom border. */
   isLast?: boolean;
+  /** Initial expansion state. Top-level rows in the explorer pass true so
+   * the record opens already unfurled; nested rows default to collapsed. */
+  defaultOpen?: boolean;
 }) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(defaultOpen);
   const expandable = isExpandable(value);
   const children = expandable ? childEntries(value) : [];
   return (
