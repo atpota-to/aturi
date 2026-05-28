@@ -9,14 +9,21 @@ export const metadata: Metadata = {
     title: 'Atmosphere Explorer · aturi.to',
     description:
       "Browse any account's PDS records, identity history, and backlinks across the AT Protocol.",
-    images: ['/api/og/static?page=explore'],
+    images: [
+      {
+        url: '/og-images/aturi-explore.png',
+        width: 2972,
+        height: 1658,
+        alt: 'Atmosphere Explorer — tour the Atmosphere',
+      },
+    ],
   },
   twitter: {
     card: 'summary_large_image',
     title: 'Atmosphere Explorer · aturi.to',
     description:
       "Browse any account's PDS records, identity history, and backlinks across the AT Protocol.",
-    images: ['/api/og/static?page=explore'],
+    images: ['/og-images/aturi-explore.png'],
   },
 };
 

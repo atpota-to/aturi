@@ -22,13 +22,20 @@ export const metadata: Metadata = {
     title: "aturi.to — Tour the Atmosphere",
     description: "Travel between clients with the browser extension, share universal Atmosphere links, and explore any account's PDS data.",
     type: "website",
-    images: ['/api/og/static?page=home'],
+    images: [
+      {
+        url: '/og-images/aturi-home.png',
+        width: 2966,
+        height: 1660,
+        alt: 'aturi.to — three tools for one Atmosphere',
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
     title: "aturi.to — Tour the Atmosphere",
     description: "Travel between clients with the browser extension, share universal Atmosphere links, and explore any account's PDS data.",
-    images: ['/api/og/static?page=home'],
+    images: ['/og-images/aturi-home.png'],
   },
 };
 

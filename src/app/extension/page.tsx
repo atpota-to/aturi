@@ -10,14 +10,21 @@ export const metadata: Metadata = {
     title: 'Browser Extension · aturi.to',
     description:
       'Jump between Atmosphere clients in one click, inspect AT URIs anywhere on the web, and auto-redirect to your preferred app per lexicon.',
-    images: ['/api/og/static?page=extension'],
+    images: [
+      {
+        url: '/og-images/aturi-extension.png',
+        width: 2968,
+        height: 1660,
+        alt: 'Browser Extension — three modes, one extension',
+      },
+    ],
   },
   twitter: {
     card: 'summary_large_image',
     title: 'Browser Extension · aturi.to',
     description:
       'Jump between Atmosphere clients in one click, inspect AT URIs anywhere on the web, and auto-redirect to your preferred app per lexicon.',
-    images: ['/api/og/static?page=extension'],
+    images: ['/og-images/aturi-extension.png'],
   },
 };
 
