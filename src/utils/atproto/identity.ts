@@ -7,7 +7,7 @@
  *     the canonical identity bundle the explorer pages depend on.
  */
 
-import { resolvePdsEndpoint } from '../didResolver';
+import { resolveDidToHandle, resolvePdsEndpoint } from '../didResolver';
 import { APPVIEW, HANDLE_RESOLVER_FALLBACK } from './config';
 import { describeRepo } from './pdsClient';
 import { TTLMap } from './cache';
@@ -54,6 +54,35 @@ export async function resolveHandle(handle: string): Promise<string | null> {
 
   if (resolved) handleToDidCache.set(handle, resolved);
   return resolved;
+}
+
+const DID_HANDLE_TTL = 30 * 60_000;
+const didToHandleCache = new TTLMap<string, string | null>(DID_HANDLE_TTL);
+const didHandleInflight = new Map<string, Promise<string | null>>();
+
+/**
+ * Reverse-resolve a DID to its primary handle (the at:// entry in the DID
+ * document's alsoKnownAs). Cached and de-duped so a record full of the same
+ * DID — or repeated visits — doesn't re-hit plc.directory / the did:web host.
+ * Returns null when the DID has no handle or resolution fails.
+ */
+export async function resolveDidHandle(did: string): Promise<string | null> {
+  if (!did || !did.startsWith('did:')) return null;
+  const cached = didToHandleCache.get(did);
+  if (cached !== undefined) return cached;
+  const existing = didHandleInflight.get(did);
+  if (existing) return existing;
+  const pending = resolveDidToHandle(did)
+    .then((handle) => {
+      didToHandleCache.set(did, handle);
+      return handle;
+    })
+    .catch(() => null)
+    .finally(() => {
+      didHandleInflight.delete(did);
+    });
+  didHandleInflight.set(did, pending);
+  return pending;
 }
 
 /**

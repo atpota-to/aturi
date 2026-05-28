@@ -5,12 +5,13 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { GenericRecord } from '@/utils/recordFetcher';
 import { sanitizeHandle } from '@/utils/sanitize';
 import { Check, ChevronDown, ChevronRight, Copy, Telescope } from 'lucide-react';
 import { encodeRepo, explorePathFromAtUri } from '@/utils/atproto/urls';
+import { resolveDidHandle } from '@/utils/atproto/identity';
 
 type RecordPreviewProps = {
   record: GenericRecord;
@@ -413,17 +414,75 @@ function FieldPrimitive({ value }: { value: unknown }) {
     typeof value === 'string' && value.length > 280
       ? `${value.substring(0, 280)}…`
       : full;
-  // AT URI values in record fields are common cross-references (e.g.
-  // gallery.item -> photo). Click-to-copy is the wrong default — users
-  // want to follow the link into the explorer. The copy affordance moves
-  // onto the trailing clipboard icon.
+  // AT URI / DID values in record fields are cross-references (e.g.
+  // gallery.item -> photo, follow.subject -> repo). Click-to-copy is the
+  // wrong default — users want to follow the link into the explorer. The
+  // copy affordance moves onto the trailing clipboard icon.
   if (typeof value === 'string') {
+    if (isDid(value)) {
+      return <DidValue did={value} />;
+    }
     const href = explorePathFromAtUri(value);
     if (href && value.startsWith('at://')) {
       return <LinkableValue display={display} copy={full} href={href} />;
     }
   }
   return <CopyableValue display={display} copy={full} />;
+}
+
+const DID_RE = /^did:[a-z]+:[A-Za-z0-9._:%-]+$/;
+function isDid(v: string): boolean {
+  return DID_RE.test(v);
+}
+
+/**
+ * Resolve a DID to its handle (cached/de-duped), re-running whenever the
+ * DID changes. Returns null until resolved, or when the DID has no handle.
+ */
+function useDidHandle(did: string): string | null {
+  const [handle, setHandle] = useState<string | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    setHandle(null);
+    resolveDidHandle(did).then((h) => {
+      if (!cancelled) setHandle(h);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [did]);
+  return handle;
+}
+
+/**
+ * A DID-valued field: the DID links into its repo explorer page, the
+ * resolved handle trails it for readability, and the clipboard icon copies
+ * the raw DID. Delegates the link + copy chrome to LinkableValue.
+ */
+function DidValue({ did }: { did: string }) {
+  const handle = useDidHandle(did);
+  return (
+    <LinkableValue
+      display={did}
+      copy={did}
+      href={`/explore/${did}`}
+      linkTitle="Open repo in Explorer"
+      copyLabel="Copy DID"
+      suffix={
+        handle ? (
+          <span
+            style={{
+              marginLeft: '0.4rem',
+              color: 'var(--text-tertiary)',
+              fontSize: '0.875rem',
+            }}
+          >
+            @{handle}
+          </span>
+        ) : null
+      }
+    />
+  );
 }
 
 /**
@@ -436,10 +495,17 @@ function LinkableValue({
   display,
   copy,
   href,
+  suffix,
+  linkTitle = 'Open in Explorer',
+  copyLabel = 'Copy to clipboard',
 }: {
   display: string;
   copy: string;
   href: string;
+  /** Optional trailing node (e.g. a resolved handle) shown after the link. */
+  suffix?: import('react').ReactNode;
+  linkTitle?: string;
+  copyLabel?: string;
 }) {
   const [copied, setCopied] = useState(false);
   async function onCopy(e: React.MouseEvent) {
@@ -453,7 +519,7 @@ function LinkableValue({
     <span style={{ wordBreak: 'break-word' }}>
       <Link
         href={href}
-        title="Open in Explorer"
+        title={linkTitle}
         style={{
           color: 'var(--text-accent)',
           textDecoration: 'none',
@@ -462,11 +528,12 @@ function LinkableValue({
       >
         {display}
       </Link>
+      {suffix}
       <button
         type="button"
         onClick={onCopy}
-        aria-label={copied ? 'Copied' : 'Copy to clipboard'}
-        title={copied ? 'Copied!' : 'Copy to clipboard'}
+        aria-label={copied ? 'Copied' : copyLabel}
+        title={copied ? 'Copied!' : copyLabel}
         style={{
           marginLeft: '0.35rem',
           display: 'inline-flex',
