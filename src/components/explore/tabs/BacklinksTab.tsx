@@ -127,18 +127,27 @@ function BacklinksSummaryPanel({
           flexWrap: 'wrap',
         }}
       >
-        <span className="explore-small-caps">Backlinks</span>
         <span
           style={{
-            fontFamily: 'var(--font-serif)',
-            fontSize: '1.875rem',
-            fontWeight: 600,
-            color: 'var(--text-accent)',
-            fontVariantNumeric: 'tabular-nums',
-            lineHeight: 1,
+            display: 'inline-flex',
+            alignItems: 'baseline',
+            gap: '0.4rem',
+            fontWeight: 700,
           }}
         >
-          {ready ? totalCount.toLocaleString() : '—'}
+          <span
+            style={{
+              fontFamily: 'var(--font-serif)',
+              fontSize: '1.875rem',
+              fontWeight: 600,
+              color: 'var(--text-accent)',
+              fontVariantNumeric: 'tabular-nums',
+              lineHeight: 1,
+            }}
+          >
+            {ready ? totalCount.toLocaleString() : '—'}
+          </span>
+          <span style={{ color: 'var(--text-primary)' }}>backlinks</span>
         </span>
         <span style={{ fontSize: '0.875rem', color: 'var(--text-tertiary)' }}>
           {!ready
