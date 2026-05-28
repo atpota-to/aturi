@@ -285,7 +285,7 @@ export default function CollectionsTab({ identity }: { identity: IdentityBundle 
             border: '1px solid var(--border-medium)',
             color: 'var(--text-primary)',
             fontFamily: 'var(--font-mono)',
-            fontSize: '0.85rem',
+            fontSize: '0.78rem',
             outline: 'none',
           }}
         />
