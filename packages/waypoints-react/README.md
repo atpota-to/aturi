@@ -25,6 +25,15 @@ npm install react react-dom lucide-react
 `@aturi/waypoints-react` re-exports everything from `@aturi/waypoints`, so a
 single install gives you the components *and* the catalog/resolvers.
 
+## Server vs. client components
+
+This is a **client** package — its entry carries the `"use client"` directive,
+so the components work out of the box in the Next.js App Router and other React
+Server Components setups (no wrapper needed). Because the directive applies to
+the whole entry, reach for [`@aturi/waypoints`](../waypoints) directly when you
+need the framework-agnostic helpers (`resolveAtUri`, `buildWaypointsForParsed`,
+the catalog, …) inside a Server Component.
+
 ## Three ways to use it
 
 ### 1. Drop-in picker (headless markup, bring your own styles)

@@ -15,8 +15,8 @@ export default defineConfig({
   outExtension({ format }) {
     return { js: format === 'cjs' ? '.cjs' : '.js' };
   },
-  // The theme stylesheet is opt-in and not imported by any component, so copy
-  // it into dist as a standalone file consumers can import explicitly.
-  onSuccess:
-    "node -e \"require('fs').copyFileSync('src/styles.css','dist/styles.css')\"",
+  // Post-build: copy the opt-in theme into dist and prepend the "use client"
+  // directive to the bundles. esbuild strips the directive during bundling, so
+  // we re-add it here — see scripts/postbuild.mjs.
+  onSuccess: 'node scripts/postbuild.mjs',
 });
