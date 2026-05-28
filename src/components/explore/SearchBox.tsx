@@ -107,6 +107,8 @@ export default function SearchBox({ initial }: { initial?: string }) {
     [router],
   );
 
+  const reloadHistory = useCallback(() => setHistory(readSearchHistory()), []);
+
   function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setShowSuggestions(false);
@@ -344,6 +346,7 @@ export default function SearchBox({ initial }: { initial?: string }) {
               recents={recents}
               frequent={frequent}
               onPick={goToEntry}
+              onEnriched={reloadHistory}
             />
           </div>
         )}

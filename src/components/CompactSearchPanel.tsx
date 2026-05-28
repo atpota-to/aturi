@@ -117,6 +117,8 @@ export default function CompactSearchPanel({ active, onDone }: Props) {
     [finish],
   );
 
+  const reloadHistory = useCallback(() => setHistory(readSearchHistory()), []);
+
   function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (highlightIndex >= 0 && suggestions[highlightIndex]) {
@@ -310,6 +312,7 @@ export default function CompactSearchPanel({ active, onDone }: Props) {
             recents={recents}
             frequent={frequent}
             onPick={goToEntry}
+            onEnriched={reloadHistory}
           />
         </div>
       )}
