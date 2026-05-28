@@ -1,7 +1,14 @@
 import { ImageResponse } from '@vercel/og';
 import { NextRequest } from 'next/server';
 import { fetchImageAsDataUrl } from '@/lib/og-image';
-import { BrandMark, Eyebrow, loadGoogleFont, OgFrame, OG_COLORS } from '@/lib/og-design';
+import {
+  BrandMark,
+  Eyebrow,
+  loadGoogleFont,
+  OgFrame,
+  OG_COLORS,
+  OG_GLYPH_BASELINE,
+} from '@/lib/og-design';
 
 export const runtime = 'edge';
 export const revalidate = 3600; // Cache for 1 hour
@@ -85,7 +92,10 @@ export async function GET(request: NextRequest) {
     const posts = profileData?.postsCount || 0;
 
     // Load Crimson Pro font
-    const allText = `${displayName} @${handleName} ${displayBio} ${isTruncated ? '...' : ''} ${followers.toLocaleString()} followers ${following.toLocaleString()} following ${posts.toLocaleString()} posts aturi.to Open in any Atmosphere client Universal link aturi`;
+    // The "Universal link" eyebrow is rendered uppercase via CSS; append the
+    // full alphabet so the font subset covers the transformed glyphs (see
+    // OG_GLYPH_BASELINE).
+    const allText = `${displayName} @${handleName} ${displayBio} ${isTruncated ? '...' : ''} ${followers.toLocaleString()} followers ${following.toLocaleString()} following ${posts.toLocaleString()} posts aturi.to Open in any Atmosphere client Universal link aturi ${OG_GLYPH_BASELINE}`;
     const fontData = await loadGoogleFont('Crimson+Pro:wght@300;400;600', allText);
 
     return new ImageResponse(
