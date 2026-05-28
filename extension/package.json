@@ -1,7 +1,7 @@
 {
   "name": "aturi-extension",
   "description": "Aturi browser extension - tour the Atmosphere",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "private": true,
   "type": "module",
   "license": "GPL-3.0-or-later",
