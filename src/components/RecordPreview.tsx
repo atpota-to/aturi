@@ -522,7 +522,8 @@ function LinkableValue({
         title={linkTitle}
         style={{
           color: 'var(--text-accent)',
-          textDecoration: 'none',
+          textDecoration: 'underline',
+          textUnderlineOffset: '0.15em',
           wordBreak: 'break-word',
         }}
       >
