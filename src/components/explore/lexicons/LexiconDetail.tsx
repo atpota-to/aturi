@@ -381,6 +381,24 @@ export default function LexiconDetail({ nsid }: { nsid: string }) {
               ))}
             </ul>
           )}
+          {siblings && siblings.length > 0 && groupPrefix(nsid).includes('.') && (
+            <Link
+              href={groupPathFor(groupPrefix(nsid))}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.3rem',
+                padding: '0.625rem 1rem',
+                borderTop: '1px solid var(--border-subtle)',
+                fontSize: '0.8125rem',
+                color: 'var(--text-accent)',
+                textDecoration: 'none',
+                fontFamily: 'var(--font-serif)',
+              }}
+            >
+              Browse all of {groupPrefix(nsid)} →
+            </Link>
+          )}
         </Section>
       </AppearIn>
 
