@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Cloud, Gauge, Pin, Telescope, User } from 'lucide-react';
+import { ArrowUpRight, Cloud, Gauge, Pin, Telescope, User } from 'lucide-react';
 import AppearIn from './AppearIn';
 import SearchBox from './SearchBox';
 import JetstreamFeed from './JetstreamFeed';
@@ -143,6 +143,23 @@ export default function ExploreLanding() {
       </AppearIn>
 
       <TrendingLexicons />
+
+      <AppearIn delay={0.14}>
+        <Link
+          href="/explore/lexicons"
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '0.3rem',
+            fontFamily: 'var(--font-mono)',
+            fontSize: '0.85rem',
+            color: 'var(--text-accent)',
+            textDecoration: 'none',
+          }}
+        >
+          Explore all lexicons <ArrowUpRight size={13} aria-hidden />
+        </Link>
+      </AppearIn>
 
       {/* Feature spotlights — what the Explorer does that other AT
           Protocol browsers don't. */}

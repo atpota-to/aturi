@@ -13,6 +13,7 @@ import EngagementSidecar from './EngagementSidecar';
 import LinkifiedJson from './LinkifiedJson';
 import RichRecordPreview, { previewRendersGeneric } from './RichRecordPreview';
 import BacklinksTab from './tabs/BacklinksTab';
+import LexiconUsageCard from './lexicons/LexiconUsageCard';
 import RecordEditor from './RecordEditor';
 import SignInPanel from './SignInPanel';
 import NotFoundPanel from '@/components/NotFoundPanel';
@@ -196,6 +197,14 @@ export default function RecordExplorer({ repo, collection, rkey }: Props) {
       {!editing && (
         <AppearIn delay={0.06}>
           <BacklinksTab target={atUri} showSummary />
+        </AppearIn>
+      )}
+
+      {/* Contextual usage of this record's lexicon across the atmosphere —
+          a navigational hook into the dedicated lexicon explorer. */}
+      {!editing && (
+        <AppearIn delay={0.07}>
+          <LexiconUsageCard collection={collection} />
         </AppearIn>
       )}
 
