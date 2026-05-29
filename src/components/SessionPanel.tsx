@@ -162,13 +162,7 @@ export default function SessionPanel({ onNavigate, onSignInActiveChange }: Props
     }
 
     return (
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: '1fr 1fr',
-          gap: '0.25rem',
-        }}
-      >
+      <div className="compact-nav-grid">
         <button
           type="button"
           onClick={() => {
@@ -296,13 +290,7 @@ export default function SessionPanel({ onNavigate, onSignInActiveChange }: Props
         </div>
       </div>
 
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: '1fr 1fr',
-          gap: '0.25rem',
-        }}
-      >
+      <div className="compact-nav-grid">
         {did && (
           <Link
             href={`/explore/${encodeRepo(did)}`}

@@ -254,13 +254,7 @@ export default function Header({ simple = false, compact = false }: HeaderProps)
                 scope-picker list) so we drop the divider rule too. */}
             {!isSignInActive && (
               <>
-                <div
-                  style={{
-                    display: 'grid',
-                    gridTemplateColumns: '1fr 1fr',
-                    gap: '0.25rem',
-                  }}
-                >
+                <div className="compact-nav-grid">
                   <Link href="/" className="compact-nav-link">
                     <Home size={16} />
                     <span>home</span>
@@ -277,16 +271,10 @@ export default function Header({ simple = false, compact = false }: HeaderProps)
                     <Compass size={16} />
                     <span>universal links</span>
                   </Link>
-                  <Link
-                    href="/docs"
-                    className="compact-nav-link"
-                    style={{ gridColumn: '1 / -1' }}
-                  >
+                  <Link href="/docs" className="compact-nav-link">
                     <BookOpen size={16} />
                     <span>docs</span>
                   </Link>
-                </div>
-                <div style={{ marginTop: '0.5rem' }}>
                   <ThemeToggle variant="row" />
                 </div>
               </>
