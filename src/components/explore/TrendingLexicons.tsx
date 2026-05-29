@@ -139,7 +139,7 @@ export default function TrendingLexicons() {
             // First load: render a full-height skeleton table so the
             // section reserves its final size instead of starting tiny and
             // jumping tall once the data lands.
-            <SkeletonRows />
+            <SkeletonRows mode={mode} />
           )}
         </div>
         <Credit />
@@ -325,7 +325,7 @@ function Segmented<T extends string>({
  * doesn't resize when data arrives. The sparkline placeholder is 24px tall
  * (the live Sparkline's height) so per-row height is identical too.
  */
-function SkeletonRows() {
+function SkeletonRows({ mode }: { mode: Mode }) {
   // Varied nsid widths so the column reads as organic text rather than a
   // stack of identical bars.
   const nsidWidths = ['62%', '78%', '52%', '70%', '46%', '82%', '58%', '66%', '50%', '74%'];
@@ -353,8 +353,18 @@ function SkeletonRows() {
             <span style={{ display: 'flex', justifyContent: 'flex-end' }}>
               <Skeleton width="90px" height="24px" />
             </span>
-            <span style={{ display: 'flex', justifyContent: 'flex-end' }}>
-              <Skeleton width="2.75rem" height="0.75rem" />
+            <span
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'flex-end',
+                gap: '0.2rem',
+              }}
+            >
+              <Skeleton width="2.5rem" height="0.75rem" />
+              {/* Trending stacks a delta under the count — mirror it so the
+                  row height matches the loaded table in either mode. */}
+              {mode === 'trending' && <Skeleton width="2.75rem" height="0.75rem" />}
             </span>
           </div>
         </li>
@@ -430,24 +440,42 @@ function Row({
           <Sparkline data={row.series} window={window} />
         </span>
         {mode === 'trending' ? (
-          <DeltaPill pct={row.deltaPct} />
-        ) : (
+          // Trending shows both the absolute count for the window and the
+          // % change vs the prior window — count on top, delta below.
           <span
-            title={`${row.value.toLocaleString()} ${METRIC_LABEL[metric].toLowerCase()}`}
             style={{
-              fontFamily: 'var(--font-mono)',
-              fontSize: '0.75rem',
-              color: 'var(--text-tertiary)',
-              fontVariantNumeric: 'tabular-nums',
-              whiteSpace: 'nowrap',
-              textAlign: 'right',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'flex-end',
+              gap: '0.2rem',
             }}
           >
-            {formatCount(row.value)}
+            <CountValue value={row.value} metric={metric} />
+            <DeltaPill pct={row.deltaPct} />
           </span>
+        ) : (
+          <CountValue value={row.value} metric={metric} />
         )}
       </Link>
     </li>
+  );
+}
+
+function CountValue({ value, metric }: { value: number; metric: Metric }) {
+  return (
+    <span
+      title={`${value.toLocaleString()} ${METRIC_LABEL[metric].toLowerCase()}`}
+      style={{
+        fontFamily: 'var(--font-mono)',
+        fontSize: '0.75rem',
+        color: 'var(--text-tertiary)',
+        fontVariantNumeric: 'tabular-nums',
+        whiteSpace: 'nowrap',
+        textAlign: 'right',
+      }}
+    >
+      {formatCount(value)}
+    </span>
   );
 }
 
