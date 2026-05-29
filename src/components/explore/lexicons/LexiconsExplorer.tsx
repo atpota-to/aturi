@@ -62,7 +62,7 @@ export default function LexiconsExplorer() {
         </header>
       </AppearIn>
 
-      <TrendingLexicons />
+      <TrendingLexicons showExploreAllLink={false} />
 
       <AppearIn delay={0.08}>
         <BrowseAllLexicons />

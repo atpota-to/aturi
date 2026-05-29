@@ -55,7 +55,13 @@ type CollectionRow = {
  * modes dedupe by top-2-segment namespace so `social.grain.gallery` and
  * `social.grain.like` aren't both in the table at once.
  */
-export default function TrendingLexicons() {
+export default function TrendingLexicons({
+  showExploreAllLink = true,
+}: {
+  /** The "Explore all" header link points at /explore/lexicons; hide it
+   * when the strip is rendered on that page itself. */
+  showExploreAllLink?: boolean;
+} = {}) {
   const [mode, setMode] = useState<Mode>('trending');
   const [metric, setMetric] = useState<Metric>('dids');
   const [window, setWindow] = useState<Window>('7d');
@@ -98,6 +104,7 @@ export default function TrendingLexicons() {
           setMetric={setMetric}
           window={window}
           setWindow={setWindow}
+          showExploreAllLink={showExploreAllLink}
         />
         <div style={{ borderTop: '1px solid var(--border-subtle)' }}>
           {error ? (
@@ -147,6 +154,7 @@ function Header({
   setMetric,
   window,
   setWindow,
+  showExploreAllLink,
 }: {
   mode: Mode;
   setMode: (m: Mode) => void;
@@ -154,6 +162,7 @@ function Header({
   setMetric: (m: Metric) => void;
   window: Window;
   setWindow: (w: Window) => void;
+  showExploreAllLink: boolean;
 }) {
   const Icon = mode === 'trending' ? Sparkles : BarChart3;
   return (
@@ -188,20 +197,22 @@ function Header({
         >
           via UFOs
         </span>
-        <Link
-          href="/explore/lexicons"
-          style={{
-            marginLeft: 'auto',
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '0.2rem',
-            fontSize: '0.8125rem',
-            color: 'var(--text-accent)',
-            textDecoration: 'none',
-          }}
-        >
-          Explore all <ArrowUpRight size={12} aria-hidden />
-        </Link>
+        {showExploreAllLink && (
+          <Link
+            href="/explore/lexicons"
+            style={{
+              marginLeft: 'auto',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.2rem',
+              fontSize: '0.8125rem',
+              color: 'var(--text-accent)',
+              textDecoration: 'none',
+            }}
+          >
+            Explore all <ArrowUpRight size={12} aria-hidden />
+          </Link>
+        )}
       </div>
       <div
         style={{
