@@ -112,7 +112,7 @@ export default function SessionPanel({ onNavigate, onSignInActiveChange }: Props
             type="text"
             autoComplete="username"
             spellCheck={false}
-            placeholder="handle.bsky.social or did:plc:…"
+            placeholder="handle.bsky.social"
             value={signInValue}
             onChange={(e) => setSignInValue(e.target.value)}
             style={inputStyle()}

@@ -173,7 +173,7 @@ export default function CompactSearchPanel({ active, onDone }: Props) {
           type="text"
           autoComplete="off"
           spellCheck={false}
-          placeholder="handle, DID, at:// URI, or PDS URL"
+          placeholder="handle, DID, or URL"
           value={value}
           onChange={(e) => setValue(e.target.value)}
           onKeyDown={onKeyDown}

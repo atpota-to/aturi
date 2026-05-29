@@ -269,7 +269,7 @@ export default function Header({ simple = false, compact = false }: HeaderProps)
                   </Link>
                   <Link href="/links" className="compact-nav-link">
                     <Compass size={16} />
-                    <span>universal links</span>
+                    <span>links</span>
                   </Link>
                   <Link href="/docs" className="compact-nav-link">
                     <BookOpen size={16} />
@@ -393,7 +393,7 @@ export default function Header({ simple = false, compact = false }: HeaderProps)
           <span style={{ color: 'var(--text-tertiary)', fontSize: '0.75rem' }}>·</span>
           <Link href="/links" className="nav-link">
             <Compass size={14} />
-            <span>universal links</span>
+            <span>links</span>
           </Link>
           <span style={{ color: 'var(--text-tertiary)', fontSize: '0.75rem' }}>·</span>
           <Link href="/docs" className="nav-link">
@@ -505,7 +505,7 @@ export default function Header({ simple = false, compact = false }: HeaderProps)
         <span style={{ color: 'var(--text-tertiary)', fontSize: '0.875rem' }}>·</span>
         <Link href="/links" className="nav-link">
           <Compass size={16} />
-          <span>universal links</span>
+          <span>links</span>
         </Link>
         <span style={{ color: 'var(--text-tertiary)', fontSize: '0.875rem' }}>·</span>
         <Link href="/docs" className="nav-link">

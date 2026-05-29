@@ -594,7 +594,7 @@ a:hover {
   align-items: stretch;
 }
 
-@media (max-width: 520px) {
+@media (max-width: 359px) {
   .compact-nav-grid {
     grid-template-columns: 1fr;
   }

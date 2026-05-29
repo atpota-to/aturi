@@ -59,36 +59,38 @@ export default function ThemeToggle({ variant = 'inline' }: ThemeToggleProps) {
   }
 
   if (variant === 'row') {
+    // Compact, cell-friendly layout: a small leading icon plus a segmented
+    // dark/light control that flexes to fill the available width. No "theme"
+    // word label, so it fits a half-width grid cell down to ~350px.
     return (
       <div
         style={{
           display: 'flex',
           alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: '0.75rem',
-          padding: '0.625rem 0.875rem',
+          gap: '0.5rem',
+          padding: '0.45rem 0.5rem',
           background: 'var(--bg-tertiary)',
           border: '1px solid var(--border-subtle)',
         }}
       >
         <span
+          aria-hidden
           style={{
             display: 'inline-flex',
             alignItems: 'center',
-            gap: '0.5rem',
             color: 'var(--text-secondary)',
-            fontSize: '0.85rem',
-            letterSpacing: '0.02em',
+            flexShrink: 0,
           }}
         >
           {theme === 'light' ? <Sun size={14} /> : <Moon size={14} />}
-          <span>theme</span>
         </span>
         <div
           role="radiogroup"
           aria-label="Color theme"
           style={{
-            display: 'inline-flex',
+            display: 'flex',
+            flex: 1,
+            minWidth: 0,
             border: '1px solid var(--border-medium)',
             overflow: 'hidden',
           }}
@@ -103,7 +105,8 @@ export default function ThemeToggle({ variant = 'inline' }: ThemeToggleProps) {
                 aria-checked={active}
                 onClick={() => pick(value)}
                 style={{
-                  padding: '0.3rem 0.75rem',
+                  flex: 1,
+                  padding: '0.3rem 0.4rem',
                   fontSize: '0.8rem',
                   background: active ? 'var(--accent-forest)' : 'transparent',
                   color: active ? 'var(--text-on-accent)' : 'var(--text-secondary)',
@@ -112,6 +115,7 @@ export default function ThemeToggle({ variant = 'inline' }: ThemeToggleProps) {
                   transition: 'background 0.2s ease, color 0.2s ease',
                   textTransform: 'lowercase',
                   letterSpacing: '0.02em',
+                  textAlign: 'center',
                 }}
               >
                 {value}
