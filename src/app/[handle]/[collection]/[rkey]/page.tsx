@@ -269,11 +269,13 @@ async function RecordContent({ handle, collection, rkey }: { handle: string; col
     
     if (parsedData.error) {
       return (
-        <div className="container-narrow" style={{ padding: '2rem 2rem 4rem', textAlign: 'center' }}>
+        <>
           <Header compact />
-          <h1 style={{ marginBottom: '1rem', color: 'var(--text-primary)' }}>Error</h1>
-          <p style={{ color: 'var(--text-secondary)' }}>{parsedData.error}</p>
-        </div>
+          <div className="container-narrow" style={{ padding: '0 2rem 4rem', textAlign: 'center' }}>
+            <h1 style={{ marginBottom: '1rem', color: 'var(--text-primary)' }}>Error</h1>
+            <p style={{ color: 'var(--text-secondary)' }}>{parsedData.error}</p>
+          </div>
+        </>
       );
     }
 
@@ -303,11 +305,13 @@ async function RecordContent({ handle, collection, rkey }: { handle: string; col
 
     if (parsedData.type === 'unknown') {
       return (
-        <div className="container-narrow" style={{ padding: '2rem 2rem 4rem', textAlign: 'center' }}>
+        <>
           <Header compact />
-          <h1 style={{ marginBottom: '1rem', color: 'var(--text-primary)' }}>Error</h1>
-          <p style={{ color: 'var(--text-secondary)' }}>Invalid or unsupported URI</p>
-        </div>
+          <div className="container-narrow" style={{ padding: '0 2rem 4rem', textAlign: 'center' }}>
+            <h1 style={{ marginBottom: '1rem', color: 'var(--text-primary)' }}>Error</h1>
+            <p style={{ color: 'var(--text-secondary)' }}>Invalid or unsupported URI</p>
+          </div>
+        </>
       );
     }
 
@@ -359,8 +363,9 @@ async function RecordContent({ handle, collection, rkey }: { handle: string; col
     const postAtUri = post?.uri || '';
 
     return (
-      <div className="container-narrow" style={{ padding: '2rem 2rem 4rem' }}>
+      <>
         <Header compact />
+        <div className="container-narrow" style={{ padding: '0 2rem 4rem' }}>
 
         {/* AT-URI alternate link, mirroring Bluesky's bskyweb template.
             React 19 hoists this to <head>. */}
@@ -465,16 +470,19 @@ async function RecordContent({ handle, collection, rkey }: { handle: string; col
 
         {/* Floating scroll indicator overlay */}
         <ScrollIndicator />
-      </div>
+        </div>
+      </>
     );
   } catch (error) {
     console.error('Error loading record:', error);
     return (
-      <div className="container-narrow" style={{ padding: '2rem 2rem 4rem', textAlign: 'center' }}>
+      <>
         <Header compact />
-        <h1 style={{ marginBottom: '1rem', color: 'var(--text-primary)' }}>Error</h1>
-        <p style={{ color: 'var(--text-secondary)' }}>Error processing URI</p>
-      </div>
+        <div className="container-narrow" style={{ padding: '0 2rem 4rem', textAlign: 'center' }}>
+          <h1 style={{ marginBottom: '1rem', color: 'var(--text-primary)' }}>Error</h1>
+          <p style={{ color: 'var(--text-secondary)' }}>Error processing URI</p>
+        </div>
+      </>
     );
   }
 }
@@ -502,10 +510,12 @@ export default async function RecordPage({ params }: Props) {
   return (
     <Suspense
       fallback={
-        <div className="container-narrow" style={{ padding: '2rem 2rem 4rem' }}>
+        <>
           <Header compact />
-          <PostPreviewSkeleton />
-        </div>
+          <div className="container-narrow" style={{ padding: '0 2rem 4rem' }}>
+            <PostPreviewSkeleton />
+          </div>
+        </>
       }
     >
       <RecordContent handle={handle} collection={collection} rkey={rkey} />
