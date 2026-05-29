@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "description": "[Beta] Aturi's curated catalog of Atmosphere (AT Protocol) clients, with per-client \"Open in…\" link builders, recommendations, and URL/AT-URI resolution. Zero runtime dependencies.",
   "license": "MIT",
-  "author": "dame.art",
+  "author": "atpotato, LLC",
   "homepage": "https://aturi.to",
   "repository": {
     "type": "git",

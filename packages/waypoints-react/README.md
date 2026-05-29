@@ -173,4 +173,4 @@ import { WAYPOINT_ICONS, BlueskySVG } from '@aturi.to/waypoints-react';
 
 ## License
 
-MIT © dame.art.
+MIT © atpotato, LLC.

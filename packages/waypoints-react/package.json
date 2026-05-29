@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "description": "[Beta] React picker UI + client icons for Aturi's Atmosphere (AT Protocol) waypoint catalog. Headless-first and fully themeable; ships zero CSS by default.",
   "license": "MIT",
-  "author": "dame.art",
+  "author": "atpotato, LLC",
   "homepage": "https://aturi.to",
   "repository": {
     "type": "git",

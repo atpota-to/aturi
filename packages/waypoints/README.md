@@ -82,5 +82,5 @@ If you change waypoint data or parsing logic in the app, re-run `npm run sync`.
 
 ## License
 
-MIT © dame.art. (The Aturi app itself is GPL-3.0; these packages are
+MIT © atpotato, LLC. (The Aturi app itself is GPL-3.0; these packages are
 dual-licensed MIT by the copyright holder to remove the adoption barrier.)
