@@ -15,6 +15,7 @@ import RichRecordPreview, { previewRendersGeneric } from './RichRecordPreview';
 import BacklinksTab from './tabs/BacklinksTab';
 import RecordEditor from './RecordEditor';
 import SignInPanel from './SignInPanel';
+import UniversalLinkChip from './UniversalLinkChip';
 import NotFoundPanel from '@/components/NotFoundPanel';
 import { useAtprotoSession } from '@/components/AtprotoSessionProvider';
 
@@ -209,6 +210,7 @@ export default function RecordExplorer({ repo, collection, rkey }: Props) {
           did={identity.did}
           pds={identity.pds}
           universalLink={universalLinkFull}
+          universalPath={aturiUniversalPath}
           recordJson={record ? JSON.stringify(record, null, 2) : null}
           pdsRecordUrl={getRecordUrl(identity.pds, {
             repo: identity.did,
@@ -276,6 +278,7 @@ function CopyRow({
   did,
   pds,
   universalLink,
+  universalPath,
   recordJson,
   pdsRecordUrl,
 }: {
@@ -283,6 +286,9 @@ function CopyRow({
   did: string;
   pds: string;
   universalLink: string;
+  /** Internal path to the universal link page — the inverse of the
+      "View full record in Explorer" CTA on universal link pages. */
+  universalPath: string;
   recordJson: string | null;
   /** Direct PDS XRPC URL — `View raw on PDS` lands on the raw JSON. */
   pdsRecordUrl: string;
@@ -315,6 +321,7 @@ function CopyRow({
       {recordJson && (
         <CopyButton value={recordJson} label="JSON" compact variant="subtle" />
       )}
+      <UniversalLinkChip href={universalPath} />
       <a
         href={pdsRecordUrl}
         target="_blank"
