@@ -2,7 +2,7 @@
 
 import { useCallback, useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import { Compass, Download, Home, Leaf, Search, Telescope } from 'lucide-react';
+import { BookOpen, Compass, Download, Home, Leaf, Search, Telescope } from 'lucide-react';
 import { motion } from 'framer-motion';
 import ThemeToggle from './ThemeToggle';
 import SessionMenu from './SessionMenu';
@@ -270,6 +270,10 @@ export default function Header({ simple = false, compact = false }: HeaderProps)
                   <Compass size={16} />
                   <span>universal links</span>
                 </Link>
+                <Link href="/docs" className="compact-nav-link">
+                  <BookOpen size={16} />
+                  <span>docs</span>
+                </Link>
                 <div style={{ marginTop: '0.5rem' }}>
                   <ThemeToggle variant="row" />
                 </div>
@@ -389,6 +393,11 @@ export default function Header({ simple = false, compact = false }: HeaderProps)
             <span>universal links</span>
           </Link>
           <span style={{ color: 'var(--text-tertiary)', fontSize: '0.75rem' }}>·</span>
+          <Link href="/docs" className="nav-link">
+            <BookOpen size={14} />
+            <span>docs</span>
+          </Link>
+          <span style={{ color: 'var(--text-tertiary)', fontSize: '0.75rem' }}>·</span>
           <ThemeToggle variant="inline" />
           <span style={{ color: 'var(--text-tertiary)', fontSize: '0.75rem' }}>·</span>
           <SessionMenu variant="inline" />
@@ -494,6 +503,11 @@ export default function Header({ simple = false, compact = false }: HeaderProps)
         <Link href="/links" className="nav-link">
           <Compass size={16} />
           <span>universal links</span>
+        </Link>
+        <span style={{ color: 'var(--text-tertiary)', fontSize: '0.875rem' }}>·</span>
+        <Link href="/docs" className="nav-link">
+          <BookOpen size={16} />
+          <span>docs</span>
         </Link>
         <span style={{ color: 'var(--text-tertiary)', fontSize: '0.875rem' }}>·</span>
         <ThemeToggle variant="inline" />

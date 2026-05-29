@@ -64,6 +64,14 @@ function configFor(page: string): PageConfig {
           'Open source, environment-driven branding, and ready to deploy on a custom domain.',
         visual: <HomeVisual />,
       };
+    case 'docs':
+      return {
+        eyebrow: 'Developer packages',
+        title: 'Add Atmosphere\nlinks to your app.',
+        tagline:
+          'Drop-in npm packages — a zero-dependency core and a headless React picker — for client links, recommendations, and AT-URI resolution.',
+        visual: <HomeVisual />,
+      };
     case 'home':
     default:
       return {
