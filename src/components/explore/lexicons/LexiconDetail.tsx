@@ -89,9 +89,15 @@ export default function LexiconDetail({ nsid }: { nsid: string }) {
     setSiblings(null);
     setSamples(null);
 
+    // /prefix needs a 2+ segment group prefix (single-segment 400s) and
+    // 500s when an `order` is passed, so we omit order and rank the
+    // children client-side.
+    const prefix = groupPrefix(nsid);
     (async () => {
       const [prefixRes, recordsRes] = await Promise.allSettled([
-        fetchPrefix({ prefix: groupPrefix(nsid), order: 'records-created' }),
+        prefix.includes('.')
+          ? fetchPrefix({ prefix })
+          : Promise.resolve({ children: [], cursor: null, total: ZERO }),
         fetchRecentRecords([nsid]),
       ]);
       if (cancelled) return;

@@ -1,44 +1,48 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { Skeleton } from '@/components/SkeletonLoader';
 import { Segmented } from './primitives';
 import { fetchCollections } from '@/utils/ufos/client';
 import { type CollectionOrder, type NsidCount } from '@/utils/ufos/config';
 import { formatCount } from '@/utils/ufos/format';
-import { lexiconPathFor } from '@/utils/ufos/nsid';
+import { lexiconPathFor, namespaceKey } from '@/utils/ufos/nsid';
 
 type View = 'top' | 'all';
 
-const TOP_LIMIT = 50;
+const TOP_FETCH = 200; // pull a deep pool so "one per group" has enough to dedupe
+const TOP_DISPLAY = 50; // …but only show this many when not deduping
 const PAGE_LIMIT = 100;
 
 /**
  * Full-catalog browser for the lexicons explorer.
  *
- *   - Top:  a ranked single page (by creates or by repos/DID-estimate).
+ *   - Top:  a ranked list (by creates or repos/DID-estimate).
  *   - All:  the entire catalog, cursor-paginated with "Load more".
  *
+ * The "One per group" filter collapses the list to a single row per
+ * 2-segment namespace (the highest-ranked one), so a project with many
+ * collections — e.g. hundreds of app.bsky.* — doesn't swamp the view.
+ *
  * `order` and `cursor` are mutually exclusive in the API, so Top never
- * paginates and All never sorts (the catalog order is unspecified). Group
- * drill-down lives on each lexicon's detail page (sibling collections).
+ * paginates and All never sorts.
  */
 export default function BrowseAllLexicons() {
   const [view, setView] = useState<View>('top');
   const [order, setOrder] = useState<CollectionOrder>('records-created');
+  const [dedupe, setDedupe] = useState(false);
   const [rows, setRows] = useState<NsidCount[] | null>(null);
   const [cursor, setCursor] = useState<string | null>(null);
   const [loadingMore, setLoadingMore] = useState(false);
 
-  // Initial / re-filter load. Keep previous rows visible on toggle so the
-  // section doesn't collapse to a skeleton each time.
+  // Initial / re-filter load. Keep previous rows visible on toggle.
   useEffect(() => {
     let cancelled = false;
     (async () => {
       const res =
         view === 'top'
-          ? await fetchCollections({ order, limit: TOP_LIMIT })
+          ? await fetchCollections({ order, limit: TOP_FETCH })
           : await fetchCollections({ limit: PAGE_LIMIT });
       if (cancelled) return;
       setRows(res.collections);
@@ -48,6 +52,12 @@ export default function BrowseAllLexicons() {
       cancelled = true;
     };
   }, [view, order]);
+
+  const displayed = useMemo(() => {
+    if (!rows) return null;
+    if (dedupe) return dedupeByNamespace(rows);
+    return view === 'top' ? rows.slice(0, TOP_DISPLAY) : rows;
+  }, [rows, dedupe, view]);
 
   async function loadMore() {
     if (!cursor || loadingMore) return;
@@ -100,6 +110,24 @@ export default function BrowseAllLexicons() {
               onChange={(v) => setOrder(v as CollectionOrder)}
             />
           )}
+          <button
+            type="button"
+            onClick={() => setDedupe((v) => !v)}
+            aria-pressed={dedupe}
+            title="Show only the top lexicon from each namespace"
+            style={{
+              padding: '0.3rem 0.7rem',
+              background: dedupe ? 'var(--accent-moss)' : 'var(--bg-tertiary)',
+              color: dedupe ? 'var(--text-on-accent)' : 'var(--text-secondary)',
+              border: '1px solid var(--border-medium)',
+              fontFamily: 'var(--font-serif)',
+              fontSize: '0.8125rem',
+              cursor: 'pointer',
+              transition: 'background 0.15s ease, color 0.15s ease',
+            }}
+          >
+            One per group
+          </button>
         </div>
       </div>
 
@@ -119,19 +147,20 @@ export default function BrowseAllLexicons() {
         <span style={{ textAlign: 'right' }}>Repos</span>
       </div>
 
-      {rows === null ? (
+      {displayed === null ? (
         <BrowseSkeleton />
-      ) : rows.length === 0 ? (
+      ) : displayed.length === 0 ? (
         <p className="explore-placeholder" style={{ margin: 0 }}>
           No lexicons found.
         </p>
       ) : (
         <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
-          {rows.map((c, i) => (
+          {displayed.map((c, i) => (
             <li
               key={`${c.nsid}-${i}`}
               style={{
-                borderBottom: i === rows.length - 1 ? undefined : '1px solid var(--border-subtle)',
+                borderBottom:
+                  i === displayed.length - 1 ? undefined : '1px solid var(--border-subtle)',
               }}
             >
               <Link
@@ -172,7 +201,7 @@ export default function BrowseAllLexicons() {
         </ul>
       )}
 
-      {view === 'all' && cursor && rows && rows.length > 0 && (
+      {view === 'all' && cursor && displayed && displayed.length > 0 && (
         <div style={{ padding: '0.75rem 1rem', borderTop: '1px solid var(--border-subtle)' }}>
           <button
             type="button"
@@ -195,6 +224,19 @@ export default function BrowseAllLexicons() {
       )}
     </section>
   );
+}
+
+/** Keep the first (highest-ranked) collection per 2-segment namespace. */
+function dedupeByNamespace(rows: NsidCount[]): NsidCount[] {
+  const seen = new Set<string>();
+  const out: NsidCount[] = [];
+  for (const c of rows) {
+    const key = namespaceKey(c.nsid);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(c);
+  }
+  return out;
 }
 
 function Count({ value }: { value: number }) {
