@@ -79,6 +79,9 @@ export default function RepoExplorer({ repo }: { repo: string }) {
           // Universal link for the profile — anyone can paste this anywhere
           // and the WaypointPicker on aturi.to handles client selection.
           shareUrl={`/profile/${identity.handle || identity.did}`}
+          // ...and a clickable way to actually visit that universal link page,
+          // the inverse of the "View in Explorer" CTA found there.
+          universalLinkPath={`/profile/${identity.handle || identity.did}`}
         />
       </AppearIn>
       {/* "You + @them" relationship signals. Renders nothing for signed-out
