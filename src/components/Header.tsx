@@ -254,26 +254,38 @@ export default function Header({ simple = false, compact = false }: HeaderProps)
                 scope-picker list) so we drop the divider rule too. */}
             {!isSignInActive && (
               <>
-                <Link href="/" className="compact-nav-link">
-                  <Home size={16} />
-                  <span>home</span>
-                </Link>
-                <Link href="/explore" className="compact-nav-link">
-                  <Telescope size={16} />
-                  <span>explore</span>
-                </Link>
-                <Link href="/extension" className="compact-nav-link">
-                  <Download size={16} />
-                  <span>extension</span>
-                </Link>
-                <Link href="/links" className="compact-nav-link">
-                  <Compass size={16} />
-                  <span>universal links</span>
-                </Link>
-                <Link href="/docs" className="compact-nav-link">
-                  <BookOpen size={16} />
-                  <span>docs</span>
-                </Link>
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: '1fr 1fr',
+                    gap: '0.25rem',
+                  }}
+                >
+                  <Link href="/" className="compact-nav-link">
+                    <Home size={16} />
+                    <span>home</span>
+                  </Link>
+                  <Link href="/explore" className="compact-nav-link">
+                    <Telescope size={16} />
+                    <span>explore</span>
+                  </Link>
+                  <Link href="/extension" className="compact-nav-link">
+                    <Download size={16} />
+                    <span>extension</span>
+                  </Link>
+                  <Link href="/links" className="compact-nav-link">
+                    <Compass size={16} />
+                    <span>universal links</span>
+                  </Link>
+                  <Link
+                    href="/docs"
+                    className="compact-nav-link"
+                    style={{ gridColumn: '1 / -1' }}
+                  >
+                    <BookOpen size={16} />
+                    <span>docs</span>
+                  </Link>
+                </div>
                 <div style={{ marginTop: '0.5rem' }}>
                   <ThemeToggle variant="row" />
                 </div>
@@ -288,6 +300,9 @@ export default function Header({ simple = false, compact = false }: HeaderProps)
                 isSignInActive
                   ? undefined
                   : {
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '0.25rem',
                       marginTop: '0.5rem',
                       paddingTop: '0.5rem',
                       borderTop: '1px solid var(--border-subtle)',
