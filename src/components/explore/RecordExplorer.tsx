@@ -1,11 +1,13 @@
 'use client';
 
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ExternalLink, FilePenLine, SearchX, TriangleAlert } from 'lucide-react';
 import { getRecord, getRecordUrl, type AtRecord } from '@/utils/atproto/pdsClient';
 import { resolveIdentifier, type IdentityBundle } from '@/utils/atproto/identity';
 import { encodeRepo } from '@/utils/atproto/urls';
+import { lexiconPathFor } from '@/utils/ufos/nsid';
 import AppearIn from './AppearIn';
 import Breadcrumb from './Breadcrumb';
 import CopyButton from './CopyButton';
@@ -214,10 +216,16 @@ export default function RecordExplorer({ repo, collection, rkey }: Props) {
 
       {/* Contextual usage of this record's lexicon across the atmosphere —
           a navigational hook into the dedicated lexicon explorer. Hidden
-          when the record itself couldn't be loaded. */}
+          when the record itself couldn't be loaded. For a lexicon-schema
+          record the relevant lexicon is the one it DEFINES (the rkey/NSID),
+          not the com.atproto.lexicon.schema collection itself. */}
       {!editing && !recordError && (
         <AppearIn delay={0.07}>
-          <LexiconUsageCard collection={collection} />
+          <LexiconUsageCard
+            collection={
+              collection === 'com.atproto.lexicon.schema' ? decodedRkey : collection
+            }
+          />
         </AppearIn>
       )}
 
@@ -485,6 +493,23 @@ function RecordErrorPanel({
       >
         {body}
       </p>
+      {notFound && isSchema && (
+        <Link
+          href={lexiconPathFor(rkey)}
+          style={{
+            alignSelf: 'flex-start',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '0.3rem',
+            fontSize: '0.85rem',
+            color: 'var(--text-accent)',
+            textDecoration: 'none',
+            fontFamily: 'var(--font-serif)',
+          }}
+        >
+          See how {rkey} is used across the atmosphere →
+        </Link>
+      )}
       <details className="explore-section" style={{ marginTop: '0.35rem' }}>
         <summary>Technical details</summary>
         <p className="explore-error" style={{ marginTop: '0.5rem' }}>
