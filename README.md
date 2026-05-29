@@ -10,7 +10,7 @@ aturi.to is a toolkit for navigating the Atmosphere (the network of apps built o
 - **Atmosphere Explorer** ([aturi.to/explore](https://aturi.to/explore)) — browse any account's PDS: every collection, every record, identity history, audit log, inbound backlinks, trending lexicons, and a live view of the firehose. Sign in to edit your own records.
 - **Universal links** ([aturi.to/profile/…](https://aturi.to/)) — drop an `aturi.to/...` URL anywhere and the recipient lands on a friendly preview of the record, then picks the Atmosphere client they want to open it in. No login, no client lock-in.
 
-The extension and the web app import the same `src/utils/waypoints.data.ts`, so the catalog of supported clients stays in lockstep across surfaces.
+The extension and the web app import the same `src/utils/waypoints.data.ts`, so the catalog of supported clients stays in lockstep across surfaces. That same catalog and resolver logic is also published as the MIT-licensed [`@aturi.to/waypoints`](packages/waypoints/README.md) packages, so you can build on it in your own app — see the [developer docs](https://aturi.to/docs).
 
 ## Browser extension
 
@@ -128,7 +128,37 @@ The extension ships as standalone bundles via `npm run zip` / `npm run zip:firef
 
 ## Integration
 
-Want to add aturi.to links to your app? Here's how.
+Want to add aturi.to links — or the whole waypoint picker — to your app? Here's how. For the full guide, see the **[developer docs](https://aturi.to/docs)**.
+
+### Packages
+
+The waypoint catalog, link builders, recommendations, and URI resolution that power aturi.to are published as two standalone npm packages, dual-licensed **MIT** (the app itself is GPL-3.0) so other Atmosphere developers can build on them freely:
+
+- **[`@aturi.to/waypoints`](packages/waypoints/README.md)** — zero-dependency, framework-agnostic core. Works in the browser, Node 18+, and edge runtimes.
+
+  ```sh
+  npm install @aturi.to/waypoints
+  ```
+
+  ```ts
+  import { resolveAtUri } from '@aturi.to/waypoints';
+
+  const result = resolveAtUri('at://did:plc:abc/app.bsky.feed.post/3k7');
+  result?.waypoints;   // [{ id: 'anisota', name: 'Anisota', category, url }, ...]
+  result?.recommended; // { ids: ['bluesky', 'anisota', ...], label: 'Recommended for Posts' }
+  ```
+
+- **[`@aturi.to/waypoints-react`](packages/waypoints-react/README.md)** — a headless-first React picker UI + client icons, built on the core. Ships zero CSS by default and is fully themeable.
+
+  ```sh
+  npm install @aturi.to/waypoints-react react react-dom lucide-react
+  ```
+
+  ```tsx
+  import { WaypointPicker } from '@aturi.to/waypoints-react';
+
+  <WaypointPicker type="post" handle="alice.bsky.social" collection="app.bsky.feed.post" rkey="3k7qw..." />;
+  ```
 
 ### Quick example (TypeScript)
 
@@ -173,6 +203,8 @@ This is a community tool for the Atmosphere ecosystem. Contributions are welcome
 
 ## More resources
 
+- [Developer docs](https://aturi.to/docs) — integrate the waypoint packages and the Resolve API into your own app
+- [`@aturi.to/waypoints`](packages/waypoints/README.md) & [`@aturi.to/waypoints-react`](packages/waypoints-react/README.md) — the published package READMEs
 - [Contributing Guide](CONTRIBUTING.md) — how to contribute back
 - [Extension README](extension/README.md) — extension dev, build, and Safari notes
 - [Terms & Privacy Policy](https://aturi.to/terms) — what we collect, how the third-party services we depend on fit in
@@ -183,6 +215,8 @@ This is a community tool for the Atmosphere ecosystem. Contributions are welcome
 This project is licensed under the GNU General Public License v3.0 or later — see the [LICENSE](LICENSE) file for details.
 
 **GPL v3 ensures:** all forks and modifications must remain open source and credit the original work. When you fork aturi.to, you must share your source code and maintain the same GPL v3 license.
+
+**The published packages are MIT.** The two libraries under [`packages/`](packages/) — [`@aturi.to/waypoints`](packages/waypoints/LICENSE) and [`@aturi.to/waypoints-react`](packages/waypoints-react/LICENSE) — are dual-licensed MIT by the copyright holder so other Atmosphere developers can adopt them without the GPL's copyleft obligations.
 
 ## Acknowledgments
 

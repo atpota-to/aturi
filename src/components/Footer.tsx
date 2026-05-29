@@ -79,6 +79,9 @@ export default function Footer() {
 
           {/* Nav */}
           <nav className="footer-nav" aria-label="Site">
+            <Link href="/docs" className="footer-link">
+              Docs
+            </Link>
             <Link href="/terms" className="footer-link">
               Terms &amp; Privacy
             </Link>

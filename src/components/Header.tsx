@@ -2,7 +2,7 @@
 
 import { useCallback, useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import { Compass, Download, Home, Leaf, Search, Telescope } from 'lucide-react';
+import { BookOpen, Compass, Download, Home, Leaf, Search, Telescope } from 'lucide-react';
 import { motion } from 'framer-motion';
 import ThemeToggle from './ThemeToggle';
 import SessionMenu from './SessionMenu';
@@ -254,23 +254,27 @@ export default function Header({ simple = false, compact = false }: HeaderProps)
                 scope-picker list) so we drop the divider rule too. */}
             {!isSignInActive && (
               <>
-                <Link href="/" className="compact-nav-link">
-                  <Home size={16} />
-                  <span>home</span>
-                </Link>
-                <Link href="/explore" className="compact-nav-link">
-                  <Telescope size={16} />
-                  <span>explore</span>
-                </Link>
-                <Link href="/extension" className="compact-nav-link">
-                  <Download size={16} />
-                  <span>extension</span>
-                </Link>
-                <Link href="/links" className="compact-nav-link">
-                  <Compass size={16} />
-                  <span>universal links</span>
-                </Link>
-                <div style={{ marginTop: '0.5rem' }}>
+                <div className="compact-nav-grid">
+                  <Link href="/" className="compact-nav-link">
+                    <Home size={16} />
+                    <span>home</span>
+                  </Link>
+                  <Link href="/explore" className="compact-nav-link">
+                    <Telescope size={16} />
+                    <span>explore</span>
+                  </Link>
+                  <Link href="/extension" className="compact-nav-link">
+                    <Download size={16} />
+                    <span>extension</span>
+                  </Link>
+                  <Link href="/links" className="compact-nav-link">
+                    <Compass size={16} />
+                    <span>links</span>
+                  </Link>
+                  <Link href="/docs" className="compact-nav-link">
+                    <BookOpen size={16} />
+                    <span>docs</span>
+                  </Link>
                   <ThemeToggle variant="row" />
                 </div>
               </>
@@ -284,6 +288,9 @@ export default function Header({ simple = false, compact = false }: HeaderProps)
                 isSignInActive
                   ? undefined
                   : {
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '0.25rem',
                       marginTop: '0.5rem',
                       paddingTop: '0.5rem',
                       borderTop: '1px solid var(--border-subtle)',
@@ -386,7 +393,12 @@ export default function Header({ simple = false, compact = false }: HeaderProps)
           <span style={{ color: 'var(--text-tertiary)', fontSize: '0.75rem' }}>·</span>
           <Link href="/links" className="nav-link">
             <Compass size={14} />
-            <span>universal links</span>
+            <span>links</span>
+          </Link>
+          <span style={{ color: 'var(--text-tertiary)', fontSize: '0.75rem' }}>·</span>
+          <Link href="/docs" className="nav-link">
+            <BookOpen size={14} />
+            <span>docs</span>
           </Link>
           <span style={{ color: 'var(--text-tertiary)', fontSize: '0.75rem' }}>·</span>
           <ThemeToggle variant="inline" />
@@ -493,7 +505,12 @@ export default function Header({ simple = false, compact = false }: HeaderProps)
         <span style={{ color: 'var(--text-tertiary)', fontSize: '0.875rem' }}>·</span>
         <Link href="/links" className="nav-link">
           <Compass size={16} />
-          <span>universal links</span>
+          <span>links</span>
+        </Link>
+        <span style={{ color: 'var(--text-tertiary)', fontSize: '0.875rem' }}>·</span>
+        <Link href="/docs" className="nav-link">
+          <BookOpen size={16} />
+          <span>docs</span>
         </Link>
         <span style={{ color: 'var(--text-tertiary)', fontSize: '0.875rem' }}>·</span>
         <ThemeToggle variant="inline" />

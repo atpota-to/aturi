@@ -584,6 +584,22 @@ a:hover {
   transform: scale(1.15) rotate(-5deg);
 }
 
+/* Two-column layout for the compact menu's grouped rows (nav links + theme,
+   and the session actions). Collapses to a single column on narrow screens so
+   the theme toggle's segmented control and longer labels never overflow. */
+.compact-nav-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.25rem;
+  align-items: stretch;
+}
+
+@media (max-width: 359px) {
+  .compact-nav-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* Buttons */
 button {
   font-family: var(--font-serif);

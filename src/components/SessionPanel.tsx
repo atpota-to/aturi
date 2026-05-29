@@ -112,7 +112,7 @@ export default function SessionPanel({ onNavigate, onSignInActiveChange }: Props
             type="text"
             autoComplete="username"
             spellCheck={false}
-            placeholder="handle.bsky.social or did:plc:…"
+            placeholder="handle.bsky.social"
             value={signInValue}
             onChange={(e) => setSignInValue(e.target.value)}
             style={inputStyle()}
@@ -162,7 +162,7 @@ export default function SessionPanel({ onNavigate, onSignInActiveChange }: Props
     }
 
     return (
-      <>
+      <div className="compact-nav-grid">
         <button
           type="button"
           onClick={() => {
@@ -202,7 +202,7 @@ export default function SessionPanel({ onNavigate, onSignInActiveChange }: Props
             </span>
           </span>
         </Link>
-      </>
+      </div>
     );
   }
 
@@ -290,20 +290,22 @@ export default function SessionPanel({ onNavigate, onSignInActiveChange }: Props
         </div>
       </div>
 
-      {did && (
-        <Link
-          href={`/explore/${encodeRepo(did)}`}
-          className="compact-nav-link"
-          onClick={onNavigate}
-        >
-          <Telescope size={16} />
-          <span>my repo</span>
+      <div className="compact-nav-grid">
+        {did && (
+          <Link
+            href={`/explore/${encodeRepo(did)}`}
+            className="compact-nav-link"
+            onClick={onNavigate}
+          >
+            <Telescope size={16} />
+            <span>my repo</span>
+          </Link>
+        )}
+        <Link href="/account" className="compact-nav-link" onClick={onNavigate}>
+          <Settings size={16} />
+          <span>settings</span>
         </Link>
-      )}
-      <Link href="/account" className="compact-nav-link" onClick={onNavigate}>
-        <Settings size={16} />
-        <span>settings</span>
-      </Link>
+      </div>
       <button
         type="button"
         onClick={async () => {
