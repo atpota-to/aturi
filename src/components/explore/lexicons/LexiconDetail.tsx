@@ -23,6 +23,7 @@ import {
 } from '@/utils/ufos/config';
 import { formatCount } from '@/utils/ufos/format';
 import {
+  groupPathFor,
   groupPrefix,
   lexiconPathFor,
   namespaceKey,
@@ -188,7 +189,9 @@ export default function LexiconDetail({ nsid }: { nsid: string }) {
           >
             <span>
               group{' '}
-              <span style={{ color: 'var(--text-secondary)' }}>{group}</span>
+              <Link href={groupPathFor(group)} style={{ color: 'var(--text-accent)', textDecoration: 'none' }}>
+                {group}
+              </Link>
             </span>
             <span>
               publisher{' '}

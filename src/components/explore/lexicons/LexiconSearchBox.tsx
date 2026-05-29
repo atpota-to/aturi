@@ -2,11 +2,11 @@
 
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
-import { Search } from 'lucide-react';
+import { FolderTree, Search } from 'lucide-react';
 import { searchLexicons } from '@/utils/ufos/client';
 import { type NsidCount } from '@/utils/ufos/config';
 import { formatCount } from '@/utils/ufos/format';
-import { lexiconPathFor } from '@/utils/ufos/nsid';
+import { groupPathFor, lexiconPathFor } from '@/utils/ufos/nsid';
 
 const TYPEAHEAD_DEBOUNCE_MS = 180;
 const SUGGESTION_LIMIT = 12;
@@ -68,6 +68,11 @@ export default function LexiconSearchBox() {
     router.push(lexiconPathFor(nsid));
   }
 
+  function goGroup(term: string) {
+    setShowSuggestions(false);
+    router.push(groupPathFor(term));
+  }
+
   function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (highlightIndex >= 0 && suggestions[highlightIndex]) {
@@ -75,9 +80,13 @@ export default function LexiconSearchBox() {
       return;
     }
     const trimmed = value.trim();
-    // Free-text: jump straight to the typed NSID's page (it renders empty
-    // states for unknown NSIDs, so this is always safe).
-    if (alnumLen(trimmed) >= 2) go(trimmed);
+    if (alnumLen(trimmed) < 2) return;
+    // An exact match to a known collection opens its detail page;
+    // otherwise treat the input as a namespace / search term and route to
+    // the group page (which lists the namespace via /prefix, or falls back
+    // to /search for single-segment terms).
+    if (suggestions.some((s) => s.nsid === trimmed)) go(trimmed);
+    else goGroup(trimmed);
   }
 
   function onKeyDown(e: KeyboardEvent<HTMLInputElement>) {
@@ -93,7 +102,12 @@ export default function LexiconSearchBox() {
     }
   }
 
+  const trimmed = value.trim();
+  // Offer "browse this namespace" when the query reads like a dotted
+  // prefix (e.g. net.anisota) — that's what /prefix can enumerate.
+  const showNsRow = trimmed.includes('.') && alnumLen(trimmed) >= 2;
   const showList = showSuggestions && suggestions.length > 0;
+  const showDropdown = showSuggestions && (showList || showNsRow);
 
   return (
     <form onSubmit={onSubmit} style={{ display: 'flex', alignItems: 'stretch', gap: '0.5rem', position: 'relative' }}>
@@ -128,7 +142,7 @@ export default function LexiconSearchBox() {
           }}
           onKeyDown={onKeyDown}
           role="combobox"
-          aria-expanded={showList}
+          aria-expanded={showDropdown}
           aria-autocomplete="list"
           aria-controls="lexicon-typeahead-list"
           aria-activedescendant={
@@ -147,18 +161,13 @@ export default function LexiconSearchBox() {
           }}
         />
 
-        {showList && (
-          <ul
-            id="lexicon-typeahead-list"
-            role="listbox"
+        {showDropdown && (
+          <div
             style={{
               position: 'absolute',
               top: 'calc(100% + 0.25rem)',
               left: 0,
               right: 0,
-              listStyle: 'none',
-              margin: 0,
-              padding: 0,
               background: 'var(--bg-secondary)',
               border: '1px solid var(--border-medium)',
               boxShadow: 'var(--shadow-overlay)',
@@ -167,7 +176,51 @@ export default function LexiconSearchBox() {
               overflowY: 'auto',
             }}
           >
-            {suggestions.map((m, i) => {
+            {showNsRow && (
+              <button
+                type="button"
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  goGroup(trimmed);
+                }}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  width: '100%',
+                  padding: '0.5rem 0.75rem',
+                  background: 'transparent',
+                  border: 0,
+                  borderBottom: showList ? '1px solid var(--border-subtle)' : 'none',
+                  color: 'var(--text-secondary)',
+                  fontFamily: 'var(--font-serif)',
+                  fontSize: '0.8rem',
+                  textAlign: 'left',
+                  cursor: 'pointer',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = 'var(--bg-tertiary)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'transparent';
+                }}
+              >
+                <FolderTree size={14} aria-hidden style={{ color: 'var(--text-accent)', flexShrink: 0 }} />
+                <span>
+                  Browse all of{' '}
+                  <span style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-primary)' }}>
+                    {trimmed}
+                  </span>
+                </span>
+              </button>
+            )}
+            {showList && (
+              <ul
+                id="lexicon-typeahead-list"
+                role="listbox"
+                style={{ listStyle: 'none', margin: 0, padding: 0 }}
+              >
+                {suggestions.map((m, i) => {
               const active = i === highlightIndex;
               return (
                 <li
@@ -219,8 +272,10 @@ export default function LexiconSearchBox() {
                   </span>
                 </li>
               );
-            })}
-          </ul>
+                })}
+              </ul>
+            )}
+          </div>
         )}
       </div>
 

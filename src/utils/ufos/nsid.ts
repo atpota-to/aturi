@@ -44,3 +44,9 @@ export function schemaPathFor(nsid: string): string {
 export function lexiconPathFor(nsid: string): string {
   return `/explore/lexicons/${encodeURIComponent(nsid)}`;
 }
+
+/** Deep link into the namespace/prefix browse page for a lexicon group
+ * (e.g. `net.anisota`) or a free-text term. */
+export function groupPathFor(prefix: string): string {
+  return `/explore/lexicons/group/${encodeURIComponent(prefix)}`;
+}
