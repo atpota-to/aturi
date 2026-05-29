@@ -59,71 +59,21 @@ export default function ThemeToggle({ variant = 'inline' }: ThemeToggleProps) {
   }
 
   if (variant === 'row') {
-    // Compact, cell-friendly layout: a small leading icon plus a segmented
-    // dark/light control that flexes to fill the available width. No "theme"
-    // word label, so it fits a half-width grid cell down to ~350px.
+    // Match the other compact-menu rows exactly: an icon + label button using
+    // the shared .compact-nav-link styling. Clicking toggles dark/light; the
+    // moon/sun icon reflects the current theme.
+    const rowNext: Theme = theme === 'dark' ? 'light' : 'dark';
     return (
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '0.5rem',
-          padding: '0.45rem 0.5rem',
-          background: 'var(--bg-tertiary)',
-          border: '1px solid var(--border-subtle)',
-        }}
+      <button
+        type="button"
+        onClick={() => pick(rowNext)}
+        aria-label={`Switch to ${rowNext} mode`}
+        className="compact-nav-link"
+        style={{ font: 'inherit', textAlign: 'left', width: '100%' }}
       >
-        <span
-          aria-hidden
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            color: 'var(--text-secondary)',
-            flexShrink: 0,
-          }}
-        >
-          {theme === 'light' ? <Sun size={14} /> : <Moon size={14} />}
-        </span>
-        <div
-          role="radiogroup"
-          aria-label="Color theme"
-          style={{
-            display: 'flex',
-            flex: 1,
-            minWidth: 0,
-            border: '1px solid var(--border-medium)',
-            overflow: 'hidden',
-          }}
-        >
-          {(['dark', 'light'] as const).map((value) => {
-            const active = theme === value;
-            return (
-              <button
-                key={value}
-                type="button"
-                role="radio"
-                aria-checked={active}
-                onClick={() => pick(value)}
-                style={{
-                  flex: 1,
-                  padding: '0.3rem 0.4rem',
-                  fontSize: '0.8rem',
-                  background: active ? 'var(--accent-forest)' : 'transparent',
-                  color: active ? 'var(--text-on-accent)' : 'var(--text-secondary)',
-                  border: 'none',
-                  cursor: 'pointer',
-                  transition: 'background 0.2s ease, color 0.2s ease',
-                  textTransform: 'lowercase',
-                  letterSpacing: '0.02em',
-                  textAlign: 'center',
-                }}
-              >
-                {value}
-              </button>
-            );
-          })}
-        </div>
-      </div>
+        {theme === 'dark' ? <Moon size={16} /> : <Sun size={16} />}
+        <span>theme</span>
+      </button>
     );
   }
 
