@@ -1,36 +1,28 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { ArrowDownRight, ArrowUpRight, BarChart3, Sparkles } from 'lucide-react';
+import { ArrowUpRight, BarChart3, Sparkles } from 'lucide-react';
 import AppearIn from './AppearIn';
 import { Skeleton } from '@/components/SkeletonLoader';
+import { Credit, DeltaPill, Segmented, Sparkline } from './lexicons/primitives';
+import {
+  fetchCollections,
+  fetchCollectionStats,
+  fetchTimeseries,
+} from '@/utils/ufos/client';
+import {
+  isoAgo,
+  METRIC_LABEL,
+  orderForMetric,
+  statForMetric,
+  type Metric,
+} from '@/utils/ufos/config';
+import { formatCount } from '@/utils/ufos/format';
+import { namespaceKey, schemaPathFor } from '@/utils/ufos/nsid';
+import { WINDOWS, type Window } from '@/utils/ufos/windows';
 
-const UFOS_API = 'https://ufos-api.microcosm.blue';
-
-type Window = '1d' | '7d' | '30d';
 type Mode = 'top' | 'trending';
-type Metric = 'creates' | 'updates' | 'deletes' | 'dids';
-
-type WindowConfig = {
-  label: string;
-  hours: number;
-  step: number;
-  bucketCount: number;
-};
-
-const WINDOWS: Record<Window, WindowConfig> = {
-  '1d': { label: '1d', hours: 24, step: 60 * 60 * 2, bucketCount: 12 },
-  '7d': { label: '7d', hours: 24 * 7, step: 60 * 60 * 12, bucketCount: 14 },
-  '30d': { label: '30d', hours: 24 * 30, step: 60 * 60 * 24, bucketCount: 30 },
-};
-
-const METRIC_LABEL: Record<Metric, string> = {
-  creates: 'Creates',
-  updates: 'Updates',
-  deletes: 'Deletes',
-  dids: 'DIDs',
-};
 
 const RESULT_COUNT = 10;
 /**
@@ -63,7 +55,13 @@ type CollectionRow = {
  * modes dedupe by top-2-segment namespace so `social.grain.gallery` and
  * `social.grain.like` aren't both in the table at once.
  */
-export default function TrendingLexicons() {
+export default function TrendingLexicons({
+  showExploreAllLink = true,
+}: {
+  /** The "Explore all" header link points at /explore/lexicons; hide it
+   * when the strip is rendered on that page itself. */
+  showExploreAllLink?: boolean;
+} = {}) {
   const [mode, setMode] = useState<Mode>('trending');
   const [metric, setMetric] = useState<Metric>('dids');
   const [window, setWindow] = useState<Window>('7d');
@@ -106,6 +104,7 @@ export default function TrendingLexicons() {
           setMetric={setMetric}
           window={window}
           setWindow={setWindow}
+          showExploreAllLink={showExploreAllLink}
         />
         <div style={{ borderTop: '1px solid var(--border-subtle)' }}>
           {error ? (
@@ -148,39 +147,6 @@ export default function TrendingLexicons() {
   );
 }
 
-function Credit() {
-  return (
-    <div
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'flex-end',
-        gap: '0.4rem',
-        padding: '0.625rem 1rem',
-        borderTop: '1px solid var(--border-subtle)',
-        fontSize: '0.7rem',
-        color: 'var(--text-tertiary)',
-        letterSpacing: '0.06em',
-        textTransform: 'uppercase',
-        fontFamily: 'var(--font-serif)',
-      }}
-    >
-      <span>Data from</span>
-      <a
-        href="https://www.microcosm.blue"
-        target="_blank"
-        rel="noopener noreferrer"
-        style={{
-          color: 'var(--text-accent)',
-          textDecoration: 'none',
-        }}
-      >
-        microcosm.blue
-      </a>
-    </div>
-  );
-}
-
 function Header({
   mode,
   setMode,
@@ -188,6 +154,7 @@ function Header({
   setMetric,
   window,
   setWindow,
+  showExploreAllLink,
 }: {
   mode: Mode;
   setMode: (m: Mode) => void;
@@ -195,6 +162,7 @@ function Header({
   setMetric: (m: Metric) => void;
   window: Window;
   setWindow: (w: Window) => void;
+  showExploreAllLink: boolean;
 }) {
   const Icon = mode === 'trending' ? Sparkles : BarChart3;
   return (
@@ -229,6 +197,22 @@ function Header({
         >
           via UFOs
         </span>
+        {showExploreAllLink && (
+          <Link
+            href="/explore/lexicons"
+            style={{
+              marginLeft: 'auto',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.2rem',
+              fontSize: '0.8125rem',
+              color: 'var(--text-accent)',
+              textDecoration: 'none',
+            }}
+          >
+            Explore all <ArrowUpRight size={12} aria-hidden />
+          </Link>
+        )}
       </div>
       <div
         style={{
@@ -265,55 +249,6 @@ function Header({
           onChange={(v) => setWindow(v as Window)}
         />
       </div>
-    </div>
-  );
-}
-
-function Segmented<T extends string>({
-  ariaLabel,
-  options,
-  value,
-  onChange,
-}: {
-  ariaLabel: string;
-  options: { value: T; label: string }[];
-  value: T;
-  onChange: (v: T) => void;
-}) {
-  return (
-    <div
-      role="group"
-      aria-label={ariaLabel}
-      style={{
-        display: 'inline-flex',
-        border: '1px solid var(--border-medium)',
-        background: 'var(--bg-tertiary)',
-        padding: '2px',
-      }}
-    >
-      {options.map(({ value: v, label }) => {
-        const active = v === value;
-        return (
-          <button
-            key={v}
-            type="button"
-            onClick={() => v !== value && onChange(v)}
-            aria-pressed={active}
-            style={{
-              padding: '0.3rem 0.7rem',
-              background: active ? 'var(--accent-moss)' : 'transparent',
-              color: active ? 'var(--text-on-accent)' : 'var(--text-secondary)',
-              border: 0,
-              fontFamily: 'var(--font-serif)',
-              fontSize: '0.8125rem',
-              cursor: active ? 'default' : 'pointer',
-              transition: 'background 0.15s ease, color 0.15s ease',
-            }}
-          >
-            {label}
-          </button>
-        );
-      })}
     </div>
   );
 }
@@ -437,7 +372,10 @@ function Row({
           {row.nsid}
         </span>
         <span style={{ display: 'flex', justifyContent: 'flex-end' }}>
-          <Sparkline data={row.series} window={window} />
+          <Sparkline
+            data={row.series}
+            ariaLabel={`Activity over the last ${WINDOWS[window].label}`}
+          />
         </span>
         {mode === 'trending' ? (
           // Trending shows both the absolute count for the window and the
@@ -479,101 +417,6 @@ function CountValue({ value, metric }: { value: number; metric: Metric }) {
   );
 }
 
-function DeltaPill({ pct }: { pct: number | null }) {
-  if (pct === null || !isFinite(pct)) {
-    return (
-      <span
-        style={{
-          fontFamily: 'var(--font-mono)',
-          fontSize: '0.75rem',
-          color: 'var(--text-tertiary)',
-          textAlign: 'right',
-        }}
-      >
-        new
-      </span>
-    );
-  }
-  const positive = pct >= 0;
-  const Arrow = positive ? ArrowUpRight : ArrowDownRight;
-  const color = positive ? 'var(--text-accent)' : 'var(--danger)';
-  return (
-    <span
-      style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        justifyContent: 'flex-end',
-        gap: '0.25rem',
-        fontFamily: 'var(--font-mono)',
-        fontSize: '0.75rem',
-        color,
-        fontVariantNumeric: 'tabular-nums',
-        whiteSpace: 'nowrap',
-      }}
-    >
-      <Arrow size={11} aria-hidden />
-      {formatPct(pct)}
-    </span>
-  );
-}
-
-function Sparkline({ data, window }: { data: number[]; window: Window }) {
-  const width = 90;
-  const height = 24;
-  const path = useMemo(() => buildPath(data, width, height), [data]);
-  return (
-    <svg
-      width={width}
-      height={height}
-      viewBox={`0 0 ${width} ${height}`}
-      role="img"
-      aria-label={`Activity over the last ${WINDOWS[window].label}`}
-      style={{ display: 'block' }}
-    >
-      {path && (
-        <path
-          d={path}
-          fill="none"
-          stroke="var(--text-accent)"
-          strokeWidth="1.25"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-      )}
-    </svg>
-  );
-}
-
-function buildPath(data: number[], w: number, h: number): string | null {
-  if (data.length === 0) return null;
-  const min = Math.min(...data);
-  const max = Math.max(...data);
-  const span = max - min || 1;
-  const stepX = data.length > 1 ? w / (data.length - 1) : 0;
-  const pad = 2;
-  const useable = h - pad * 2;
-  return data
-    .map((v, i) => {
-      const x = i * stepX;
-      const y = pad + useable - ((v - min) / span) * useable;
-      return `${i === 0 ? 'M' : 'L'}${x.toFixed(1)} ${y.toFixed(1)}`;
-    })
-    .join(' ');
-}
-
-function formatCount(n: number): string {
-  if (n >= 1_000_000_000) return `${(n / 1_000_000_000).toFixed(1)}B`;
-  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
-  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}k`;
-  return n.toLocaleString();
-}
-
-function formatPct(pct: number): string {
-  const sign = pct >= 0 ? '+' : '';
-  if (Math.abs(pct) >= 100) return `${sign}${pct.toFixed(0)}%`;
-  return `${sign}${pct.toFixed(1)}%`;
-}
-
 // ─── NSID grouping ─────────────────────────────────────────────────────────
 
 /**
@@ -595,18 +438,7 @@ function hasHiddenPrefix(nsid: string, prefixes: string[]): boolean {
   return prefixes.some((p) => nsid.startsWith(p));
 }
 
-/** First two segments — `app.bsky.feed.post` -> `app.bsky`. Single-segment
- * NSIDs return the whole NSID. */
-function namespaceKey(nsid: string): string {
-  const parts = nsid.split('.');
-  if (parts.length <= 2) return nsid;
-  return `${parts[0]}.${parts[1]}`;
-}
-
-function filterAndDedup<T extends { nsid: string }>(
-  rows: T[],
-  mode: Mode,
-): T[] {
+function filterAndDedup<T extends { nsid: string }>(rows: T[], mode: Mode): T[] {
   const hidden = mode === 'trending' ? TRENDING_HIDDEN_PREFIXES : TOP_HIDDEN_PREFIXES;
   const seen = new Set<string>();
   const out: T[] = [];
@@ -620,60 +452,37 @@ function filterAndDedup<T extends { nsid: string }>(
   return out;
 }
 
-/**
- * Convention: an NSID like `<tld>.<owner>.<...>` maps to `<owner>.<tld>`
- * as the publisher's handle. `net.anisota.harvest.minigame` ->
- * `anisota.net`, `app.bsky.feed.post` -> `bsky.app`, etc. Used to build
- * the deep link into the explorer's lexicon-schema record for an NSID.
- */
-function publisherForNsid(nsid: string): string {
-  const parts = nsid.split('.');
-  if (parts.length < 2) return nsid;
-  return `${parts[1]}.${parts[0]}`;
-}
-
-/** Lexicon-schema records live at this collection on the publisher's repo,
- * keyed by the full NSID. The explorer's record page renders them nicely
- * via RecordPreview, and falls through to a not-found message when the
- * publisher hasn't published a schema. */
-function schemaPathFor(nsid: string): string {
-  const publisher = publisherForNsid(nsid);
-  return `/explore/${publisher}/com.atproto.lexicon.schema/${encodeURIComponent(nsid)}`;
-}
-
 // ─── Fetching ──────────────────────────────────────────────────────────────
 
-type RawCollection = {
-  nsid: string;
-  creates: number;
-  updates: number;
-  deletes: number;
-  dids_estimate: number;
-};
-
-type MetricStats = {
-  creates: number;
-  updates: number;
-  deletes: number;
-  dids_estimate: number;
-};
-
-function isoAgo(hours: number): string {
-  return new Date(Date.now() - hours * 60 * 60 * 1000).toISOString();
+/** Stats projected to a single metric, keyed by NSID. */
+async function fetchStatsMetric(
+  nsids: string[],
+  sinceIso: string,
+  untilIso: string,
+  metric: Metric,
+): Promise<Map<string, number>> {
+  const stats = await fetchCollectionStats({
+    collections: nsids,
+    since: sinceIso,
+    until: untilIso,
+  });
+  const out = new Map<string, number>();
+  for (const [nsid, entry] of stats) out.set(nsid, statForMetric(entry, metric));
+  return out;
 }
 
-/** /collections only supports two sort orders. Pick the closest to the
- * chosen metric so the candidate pool is well-aligned; deletes / updates
- * fall back to records-created since the API can't sort by them. */
-function orderForMetric(metric: Metric): 'records-created' | 'dids-estimate' {
-  return metric === 'dids' ? 'dids-estimate' : 'records-created';
-}
-
-function statForMetric(s: MetricStats, metric: Metric): number {
-  if (metric === 'creates') return s.creates ?? 0;
-  if (metric === 'updates') return s.updates ?? 0;
-  if (metric === 'deletes') return s.deletes ?? 0;
-  return s.dids_estimate ?? 0;
+/** Timeseries for one collection, projected to the metric and trimmed to
+ * the window's bucket count. */
+async function fetchSeries(
+  collection: string,
+  sinceIso: string,
+  step: number,
+  bucketCount: number,
+  metric: Metric,
+): Promise<number[]> {
+  const { series } = await fetchTimeseries({ collection, since: sinceIso, step });
+  const bucket = series.get(collection) || [];
+  return bucket.slice(-bucketCount).map((b) => statForMetric(b, metric));
 }
 
 async function fetchRanking(
@@ -686,11 +495,11 @@ async function fetchRanking(
 
   // 1) Candidate pool. Order by whichever the API supports best for this
   //    metric; ties / unsupported orders fall back to records-created.
-  const candidates = await fetchTopRaw(
-    sinceIso,
-    CANDIDATE_POOL,
-    orderForMetric(metric),
-  );
+  const { collections: candidates } = await fetchCollections({
+    order: orderForMetric(metric),
+    limit: CANDIDATE_POOL,
+    since: sinceIso,
+  });
 
   // 2) Filter (mode-specific) + dedup by top-2-segment namespace.
   const filtered = filterAndDedup(candidates, mode);
@@ -701,7 +510,7 @@ async function fetchRanking(
   const directlyAvailable = metric === 'creates' || metric === 'dids';
   const currentMap = directlyAvailable
     ? new Map(filtered.map((c) => [c.nsid, statForMetric(c, metric)]))
-    : await fetchStats(
+    : await fetchStatsMetric(
         filtered.map((c) => c.nsid),
         sinceIso,
         /* until */ new Date().toISOString(),
@@ -729,7 +538,7 @@ async function fetchRanking(
   // Trending: pull prior-window metric values, compute % change.
   const priorSinceIso = isoAgo(cfg.hours * 2);
   const priorUntilIso = sinceIso;
-  const priorMap = await fetchStats(
+  const priorMap = await fetchStatsMetric(
     filtered.map((c) => c.nsid),
     priorSinceIso,
     priorUntilIso,
@@ -766,75 +575,4 @@ async function fetchRanking(
     series: series[i],
     deltaPct: c.deltaPct,
   }));
-}
-
-async function fetchTopRaw(
-  sinceIso: string,
-  limit: number,
-  order: 'records-created' | 'dids-estimate',
-): Promise<RawCollection[]> {
-  const url =
-    `${UFOS_API}/collections` +
-    `?order=${order}&limit=${limit}&since=${encodeURIComponent(sinceIso)}`;
-  const res = await fetch(url, { cache: 'no-store' });
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  const data = (await res.json()) as { collections?: RawCollection[] };
-  return data.collections || [];
-}
-
-/** /collections/stats returns a flat { nsid: { creates, updates, deletes,
- * dids_estimate } } map. Pick the metric we care about and project. */
-async function fetchStats(
-  nsids: string[],
-  sinceIso: string,
-  untilIso: string,
-  metric: Metric,
-): Promise<Map<string, number>> {
-  if (nsids.length === 0) return new Map();
-  const params = new URLSearchParams();
-  for (const n of nsids) params.append('collection', n);
-  params.set('since', sinceIso);
-  params.set('until', untilIso);
-  try {
-    const res = await fetch(`${UFOS_API}/collections/stats?${params.toString()}`, {
-      cache: 'no-store',
-    });
-    if (!res.ok) return new Map();
-    const data = (await res.json()) as Record<string, Partial<MetricStats>>;
-    const out = new Map<string, number>();
-    for (const [nsid, entry] of Object.entries(data)) {
-      if (entry && typeof entry === 'object') {
-        out.set(nsid, statForMetric(entry as MetricStats, metric));
-      }
-    }
-    return out;
-  } catch {
-    return new Map();
-  }
-}
-
-async function fetchSeries(
-  collection: string,
-  sinceIso: string,
-  step: number,
-  bucketCount: number,
-  metric: Metric,
-): Promise<number[]> {
-  const url =
-    `${UFOS_API}/timeseries` +
-    `?collection=${encodeURIComponent(collection)}` +
-    `&since=${encodeURIComponent(sinceIso)}` +
-    `&step=${step}`;
-  try {
-    const res = await fetch(url, { cache: 'no-store' });
-    if (!res.ok) return [];
-    const data = (await res.json()) as {
-      series?: Record<string, MetricStats[]>;
-    };
-    const bucket = data.series?.[collection] || [];
-    const trimmed = bucket.slice(-bucketCount);
-    return trimmed.map((b) => statForMetric(b, metric));
-  } catch {
-    return [];
-  }
 }

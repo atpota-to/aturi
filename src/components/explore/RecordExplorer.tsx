@@ -1,11 +1,13 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ExternalLink, FilePenLine } from 'lucide-react';
+import { ExternalLink, FilePenLine, SearchX, TriangleAlert } from 'lucide-react';
 import { getRecord, getRecordUrl, type AtRecord } from '@/utils/atproto/pdsClient';
 import { resolveIdentifier, type IdentityBundle } from '@/utils/atproto/identity';
 import { encodeRepo } from '@/utils/atproto/urls';
+import { lexiconPathFor } from '@/utils/ufos/nsid';
 import AppearIn from './AppearIn';
 import Breadcrumb from './Breadcrumb';
 import CopyButton from './CopyButton';
@@ -13,6 +15,7 @@ import EngagementSidecar from './EngagementSidecar';
 import LinkifiedJson from './LinkifiedJson';
 import RichRecordPreview, { previewRendersGeneric } from './RichRecordPreview';
 import BacklinksTab from './tabs/BacklinksTab';
+import LexiconUsageCard from './lexicons/LexiconUsageCard';
 import RecordEditor from './RecordEditor';
 import SignInPanel from './SignInPanel';
 import UniversalLinkChip from './UniversalLinkChip';
@@ -152,37 +155,49 @@ export default function RecordExplorer({ repo, collection, rkey }: Props) {
           The Edit button slots into the generic preview's footer
           alongside the CID when applicable; post / margin previews fall
           back to a standalone chip below the copy row. */}
-      {recordError && <p className="explore-error">{recordError}</p>}
-      {!record && !recordError && !editing && (
-        <p className="explore-placeholder">Loading record…</p>
-      )}
-      <AppearIn delay={0.05}>
-        {editing && canEdit && agent ? (
-          <RecordEditor
-            agent={agent}
-            did={identity.did}
+      {recordError ? (
+        <AppearIn delay={0.05}>
+          <RecordErrorPanel
+            raw={recordError}
             collection={collection}
             rkey={decodedRkey}
-            onSaved={(next) => {
-              setRecord((prev) => (prev ? { ...prev, value: next } : prev));
-            }}
-            onDeleted={() => {
-              setEditing(false);
-              router.push(`/explore/${repoSeg}/${collection}`);
-            }}
-            onCancel={() => setEditing(false)}
-          />
-        ) : (
-          <RichRecordPreview
             handle={identity.handle || identity.did}
-            did={identity.did}
-            collection={collection}
-            rkey={decodedRkey}
-            record={record}
-            footerActions={editsInPreviewFooter ? editButton : null}
           />
-        )}
-      </AppearIn>
+        </AppearIn>
+      ) : (
+        <>
+          {!record && !editing && (
+            <p className="explore-placeholder">Loading record…</p>
+          )}
+          <AppearIn delay={0.05}>
+            {editing && canEdit && agent ? (
+              <RecordEditor
+                agent={agent}
+                did={identity.did}
+                collection={collection}
+                rkey={decodedRkey}
+                onSaved={(next) => {
+                  setRecord((prev) => (prev ? { ...prev, value: next } : prev));
+                }}
+                onDeleted={() => {
+                  setEditing(false);
+                  router.push(`/explore/${repoSeg}/${collection}`);
+                }}
+                onCancel={() => setEditing(false)}
+              />
+            ) : (
+              <RichRecordPreview
+                handle={identity.handle || identity.did}
+                did={identity.did}
+                collection={collection}
+                rkey={decodedRkey}
+                record={record}
+                footerActions={editsInPreviewFooter ? editButton : null}
+              />
+            )}
+          </AppearIn>
+        </>
+      )}
 
       {record && !editing && (
         <AppearIn>
@@ -197,6 +212,21 @@ export default function RecordExplorer({ repo, collection, rkey }: Props) {
       {!editing && (
         <AppearIn delay={0.06}>
           <BacklinksTab target={atUri} showSummary />
+        </AppearIn>
+      )}
+
+      {/* Contextual usage of this record's lexicon across the atmosphere —
+          a navigational hook into the dedicated lexicon explorer. Hidden
+          when the record itself couldn't be loaded. For a lexicon-schema
+          record the relevant lexicon is the one it DEFINES (the rkey/NSID),
+          not the com.atproto.lexicon.schema collection itself. */}
+      {!editing && !recordError && (
+        <AppearIn delay={0.07}>
+          <LexiconUsageCard
+            collection={
+              collection === 'com.atproto.lexicon.schema' ? decodedRkey : collection
+            }
+          />
         </AppearIn>
       )}
 
@@ -343,6 +373,156 @@ function CopyRow({
         <ExternalLink size={12} />
         View on PDS
       </a>
+    </div>
+  );
+}
+
+/**
+ * Pull the HTTP status and the XRPC error code/message out of the raw
+ * error string thrown by the PDS client (`HTTP <status> <text> for <url>
+ * :: <json-body>`). The body may be truncated, so JSON parsing is
+ * best-effort and detection also falls back to substring matching.
+ */
+function parseRecordError(raw: string): {
+  status: number | null;
+  code: string | null;
+} {
+  const status = raw.match(/^HTTP (\d+)/)?.[1];
+  let code: string | null = null;
+  const sep = raw.indexOf('::');
+  if (sep >= 0) {
+    try {
+      const obj = JSON.parse(raw.slice(sep + 2).trim());
+      if (obj && typeof obj === 'object' && typeof obj.error === 'string') {
+        code = obj.error;
+      }
+    } catch {
+      // Truncated / non-JSON body — fall through to substring detection.
+    }
+  }
+  return { status: status ? Number(status) : null, code };
+}
+
+/**
+ * Human-readable replacement for dumping the raw PDS error onto the page.
+ * Recognises "record not found" (the common case when following a "View
+ * schema record" link to a lexicon whose owner never published a schema)
+ * and explains it plainly; everything else gets a generic load-failure
+ * message. The raw error stays available under a details disclosure.
+ */
+function RecordErrorPanel({
+  raw,
+  collection,
+  rkey,
+  handle,
+}: {
+  raw: string;
+  collection: string;
+  rkey: string;
+  handle: string;
+}) {
+  const { status, code } = parseRecordError(raw);
+  const notFound =
+    code === 'RecordNotFound' || status === 404 || /RecordNotFound/i.test(raw);
+  const isSchema = collection === 'com.atproto.lexicon.schema';
+  const Icon = notFound ? SearchX : TriangleAlert;
+
+  let headline: string;
+  let body: ReactNode;
+  if (notFound && isSchema) {
+    headline = 'No schema published for this lexicon';
+    body = (
+      <>
+        <code>{rkey}</code> is used across the network, but{' '}
+        <strong>@{handle}</strong> hasn&rsquo;t published a{' '}
+        <code>com.atproto.lexicon.schema</code> record defining it. That&rsquo;s
+        common — a lexicon can be widely adopted without a formal schema record
+        in its owner&rsquo;s repository.
+      </>
+    );
+  } else if (notFound) {
+    headline = 'This record doesn’t exist';
+    body = (
+      <>
+        We couldn&rsquo;t find a <code>{collection}</code> record with key{' '}
+        <code>{rkey}</code> in <strong>@{handle}</strong>&rsquo;s repository. It
+        may have been deleted, or the link may be incorrect.
+      </>
+    );
+  } else {
+    headline = 'Couldn’t load this record';
+    body = (
+      <>
+        The PDS returned an error{status ? ` (HTTP ${status})` : ''} while
+        fetching this record. It might be a temporary problem — try again in a
+        moment.
+      </>
+    );
+  }
+
+  return (
+    <div
+      style={{
+        border: '1px solid var(--border-medium)',
+        background: 'var(--bg-secondary)',
+        padding: '1.5rem 1.25rem',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '0.6rem',
+      }}
+    >
+      <div
+        className="explore-small-caps"
+        style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
+      >
+        <Icon size={13} aria-hidden style={{ color: 'var(--text-accent)' }} />
+        {notFound ? 'Not found' : 'Error'}
+      </div>
+      <h2
+        style={{
+          margin: 0,
+          fontFamily: 'var(--font-serif)',
+          fontWeight: 400,
+          fontSize: '1.25rem',
+          color: 'var(--text-primary)',
+        }}
+      >
+        {headline}
+      </h2>
+      <p
+        style={{
+          margin: 0,
+          fontSize: '0.9rem',
+          lineHeight: 1.6,
+          color: 'var(--text-secondary)',
+          maxWidth: '42rem',
+        }}
+      >
+        {body}
+      </p>
+      {notFound && isSchema && (
+        <Link
+          href={lexiconPathFor(rkey)}
+          style={{
+            alignSelf: 'flex-start',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '0.3rem',
+            fontSize: '0.85rem',
+            color: 'var(--text-accent)',
+            textDecoration: 'none',
+            fontFamily: 'var(--font-serif)',
+          }}
+        >
+          See how {rkey} is used across the atmosphere →
+        </Link>
+      )}
+      <details className="explore-section" style={{ marginTop: '0.35rem' }}>
+        <summary>Technical details</summary>
+        <p className="explore-error" style={{ marginTop: '0.5rem' }}>
+          {raw}
+        </p>
+      </details>
     </div>
   );
 }
