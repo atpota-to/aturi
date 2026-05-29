@@ -16,6 +16,7 @@ import CollectionsTab from './tabs/CollectionsTab';
 import IdentityTab from './tabs/IdentityTab';
 import AuditTab from './tabs/AuditTab';
 import BacklinksTab from './tabs/BacklinksTab';
+import UniversalLinkChip from './UniversalLinkChip';
 import NotFoundPanel from '@/components/NotFoundPanel';
 
 const TABS = [
@@ -79,9 +80,6 @@ export default function RepoExplorer({ repo }: { repo: string }) {
           // Universal link for the profile — anyone can paste this anywhere
           // and the WaypointPicker on aturi.to handles client selection.
           shareUrl={`/profile/${identity.handle || identity.did}`}
-          // ...and a clickable way to actually visit that universal link page,
-          // the inverse of the "View in Explorer" CTA found there.
-          universalLinkPath={`/profile/${identity.handle || identity.did}`}
         />
       </AppearIn>
       {/* "You + @them" relationship signals. Renders nothing for signed-out
@@ -117,6 +115,22 @@ export default function RepoExplorer({ repo }: { repo: string }) {
       </AppearIn>
       <AppearIn delay={0.22}>
         <TabbedView identity={identity} />
+      </AppearIn>
+      {/* Outbound link to the shareable universal link page for this profile.
+          Lives at the foot of the viewer (rather than crowding the
+          breadcrumb) as the inverse of the "View in Explorer" CTA found
+          on the universal link page itself. */}
+      <AppearIn delay={0.24}>
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'center',
+            paddingTop: '0.5rem',
+            borderTop: '1px solid var(--border-subtle)',
+          }}
+        >
+          <UniversalLinkChip href={`/profile/${identity.handle || identity.did}`} />
+        </div>
       </AppearIn>
     </div>
   );
