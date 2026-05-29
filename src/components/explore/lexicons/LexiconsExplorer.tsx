@@ -1,8 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import Link from 'next/link';
-import { ArrowLeft, Boxes } from 'lucide-react';
+import { Boxes } from 'lucide-react';
 import AppearIn from '../AppearIn';
 import TrendingLexicons from '../TrendingLexicons';
 import LexiconSearchBox from './LexiconSearchBox';
@@ -19,21 +18,6 @@ export default function LexiconsExplorer() {
     <div style={{ display: 'flex', flexDirection: 'column', gap: '2.5rem' }}>
       <AppearIn rise>
         <header>
-          <Link
-            href="/explore"
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '0.3rem',
-              fontSize: '0.8125rem',
-              color: 'var(--text-tertiary)',
-              textDecoration: 'none',
-              fontFamily: 'var(--font-serif)',
-              marginBottom: '1rem',
-            }}
-          >
-            <ArrowLeft size={13} aria-hidden /> Explorer
-          </Link>
           <div
             style={{
               display: 'inline-flex',
