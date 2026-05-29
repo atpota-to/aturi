@@ -32,7 +32,7 @@ const rewriteAnisotaImport = (s) =>
   );
 
 const FILES = [
-  // Zero-dependency core logic -> @aturi/waypoints
+  // Zero-dependency core logic -> @aturi.to/waypoints
   {
     from: resolve(repoRoot, 'src/utils/waypoints.data.ts'),
     to: resolve(coreSrc, 'waypoints.data.ts'),
@@ -48,7 +48,7 @@ const FILES = [
     to: resolve(coreSrc, 'reverseParsers.ts'),
     transform: identity,
   },
-  // React icon catalog + its Anisota dependency -> @aturi/waypoints-react
+  // React icon catalog + its Anisota dependency -> @aturi.to/waypoints-react
   {
     from: resolve(repoRoot, 'src/utils/waypointIcons.tsx'),
     to: resolve(reactSrc, 'waypointIcons.tsx'),

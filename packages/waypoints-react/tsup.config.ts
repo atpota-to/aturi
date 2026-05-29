@@ -8,7 +8,7 @@ export default defineConfig({
   clean: true,
   treeshake: true,
   target: 'es2020',
-  external: ['react', 'react-dom', 'lucide-react', '@aturi/waypoints'],
+  external: ['react', 'react-dom', 'lucide-react', '@aturi.to/waypoints'],
   esbuildOptions(options) {
     options.jsx = 'automatic';
   },

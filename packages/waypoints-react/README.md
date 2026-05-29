@@ -1,7 +1,7 @@
-# @aturi/waypoints-react
+# @aturi.to/waypoints-react
 
 A drop-in React "Open in…" picker for the Atmosphere, built on
-[`@aturi/waypoints`](../waypoints). Add per-client links, smart recommendations,
+[`@aturi.to/waypoints`](../waypoints). Add per-client links, smart recommendations,
 and client icons to your app in a few lines.
 
 **Headless-first**: the components ship **zero CSS** by default and emit stable,
@@ -17,12 +17,12 @@ theme, or drop down to a hook and render everything yourself.
 ## Install
 
 ```sh
-npm install @aturi/waypoints-react
+npm install @aturi.to/waypoints-react
 # peers (you almost certainly already have react/react-dom):
 npm install react react-dom lucide-react
 ```
 
-`@aturi/waypoints-react` re-exports everything from `@aturi/waypoints`, so a
+`@aturi.to/waypoints-react` re-exports everything from `@aturi.to/waypoints`, so a
 single install gives you the components *and* the catalog/resolvers.
 
 ## Server vs. client components
@@ -30,7 +30,7 @@ single install gives you the components *and* the catalog/resolvers.
 This is a **client** package — its entry carries the `"use client"` directive,
 so the components work out of the box in the Next.js App Router and other React
 Server Components setups (no wrapper needed). Because the directive applies to
-the whole entry, reach for [`@aturi/waypoints`](../waypoints) directly when you
+the whole entry, reach for [`@aturi.to/waypoints`](../waypoints) directly when you
 need the framework-agnostic helpers (`resolveAtUri`, `buildWaypointsForParsed`,
 the catalog, …) inside a Server Component.
 
@@ -39,7 +39,7 @@ the catalog, …) inside a Server Component.
 ### 1. Drop-in picker (headless markup, bring your own styles)
 
 ```tsx
-import { WaypointPicker } from '@aturi/waypoints-react';
+import { WaypointPicker } from '@aturi.to/waypoints-react';
 
 <WaypointPicker
   type="post"
@@ -91,7 +91,7 @@ For full control, the hook returns render-ready data and `copy` / `open`
 helpers. Render 100% your own UI:
 
 ```tsx
-import { useWaypoints } from '@aturi/waypoints-react';
+import { useWaypoints } from '@aturi.to/waypoints-react';
 
 function MyPicker() {
   const { recommended, categories, waypoints, copy, open } = useWaypoints({
@@ -122,8 +122,8 @@ Each entry carries `{ id, name, label, description, url, icon, category, isRecom
 Want the Aturi look without writing CSS? Import the stylesheet once:
 
 ```tsx
-import '@aturi/waypoints-react/styles.css';
-import { WaypointPicker } from '@aturi/waypoints-react';
+import '@aturi.to/waypoints-react/styles.css';
+import { WaypointPicker } from '@aturi.to/waypoints-react';
 ```
 
 It targets the namespaced classes and is fully themeable via CSS custom
@@ -168,7 +168,7 @@ Available tokens: `--aturi-wp-accent`, `--aturi-wp-accent-contrast`,
 The per-client SVG components and the `WAYPOINT_ICONS` map are exported too:
 
 ```tsx
-import { WAYPOINT_ICONS, BlueskySVG } from '@aturi/waypoints-react';
+import { WAYPOINT_ICONS, BlueskySVG } from '@aturi.to/waypoints-react';
 ```
 
 ## License

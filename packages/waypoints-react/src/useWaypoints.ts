@@ -7,7 +7,7 @@ import {
   type WaypointCategoryData,
   type WaypointData,
   type WaypointType,
-} from '@aturi/waypoints';
+} from '@aturi.to/waypoints';
 import { WAYPOINT_ICONS } from './waypointIcons';
 
 /** A single waypoint resolved against a target, ready to render. */

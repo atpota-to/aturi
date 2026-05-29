@@ -6,7 +6,7 @@ import {
   type MouseEvent,
 } from 'react';
 import { ChevronDown } from 'lucide-react';
-import type { WaypointType } from '@aturi/waypoints';
+import type { WaypointType } from '@aturi.to/waypoints';
 import {
   useWaypoints,
   type CustomWaypoint,
@@ -149,7 +149,7 @@ function contextText(type: WaypointType, display: string): string {
 /**
  * Self-contained "Open in…" picker. Headless by default — emits namespaced
  * `data-aturi-wp` hooks and `aturi-wp-*` classes but ships no CSS. Opt into the
- * polished theme with `import '@aturi/waypoints-react/styles.css'`, map your own
+ * polished theme with `import '@aturi.to/waypoints-react/styles.css'`, map your own
  * classes via `classNames`, pass `unstyled` to drop built-in classes, or replace
  * rows entirely with `renderWaypoint`.
  */

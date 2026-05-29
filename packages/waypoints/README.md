@@ -1,4 +1,4 @@
-# @aturi/waypoints
+# @aturi.to/waypoints
 
 Aturi's curated catalog of Atmosphere (AT Protocol) clients — "waypoints" — plus
 the logic to turn an AT URI into per-client "Open in…" links, recommend the best
@@ -7,7 +7,7 @@ client for a record type, and reverse-resolve a pasted URL back into an AT URI.
 Zero runtime dependencies. Works in the browser, Node 18+, and edge runtimes.
 Ships ESM + CJS with full type definitions.
 
-For a drop-in React picker UI, see [`@aturi/waypoints-react`](../waypoints-react).
+For a drop-in React picker UI, see [`@aturi.to/waypoints-react`](../waypoints-react).
 
 > **Beta — early release.** This is a `0.x` package that hasn't been
 > thoroughly tested in production yet. Expect rough edges, and possible
@@ -18,13 +18,13 @@ For a drop-in React picker UI, see [`@aturi/waypoints-react`](../waypoints-react
 ## Install
 
 ```sh
-npm install @aturi/waypoints
+npm install @aturi.to/waypoints
 ```
 
 ## Quick start
 
 ```ts
-import { resolveAtUri, resolveUrl, buildWaypointsForParsed } from '@aturi/waypoints';
+import { resolveAtUri, resolveUrl, buildWaypointsForParsed } from '@aturi.to/waypoints';
 
 // AT URI -> waypoints
 const result = resolveAtUri('at://did:plc:abc/app.bsky.feed.post/3k7');

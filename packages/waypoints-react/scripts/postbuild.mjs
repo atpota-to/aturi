@@ -1,9 +1,9 @@
-// Post-build steps for @aturi/waypoints-react, run by tsup's `onSuccess`.
+// Post-build steps for @aturi.to/waypoints-react, run by tsup's `onSuccess`.
 import { copyFileSync, readFileSync, writeFileSync } from 'node:fs';
 
 // 1) Ship the opt-in theme as a standalone file. No component imports it, so
 //    tsup never emits it on its own — copy it verbatim for explicit import via
-//    `@aturi/waypoints-react/styles.css`.
+//    `@aturi.to/waypoints-react/styles.css`.
 copyFileSync('src/styles.css', 'dist/styles.css');
 
 // 2) Guarantee the React Client Component directive survives bundling. The

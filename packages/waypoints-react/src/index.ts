@@ -1,5 +1,5 @@
 // Re-export the full core so a React consumer needs only one install.
-export * from '@aturi/waypoints';
+export * from '@aturi.to/waypoints';
 
 export { useWaypoints } from './useWaypoints';
 export type {
