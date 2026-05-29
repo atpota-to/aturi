@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { ExternalLink, Heart, MessageSquare, Users } from 'lucide-react';
+import Link from 'next/link';
+import { ExternalLink, Globe, Heart, MessageSquare, Users } from 'lucide-react';
 import { getProfile, type AppViewProfile } from '@/utils/atproto/appview';
 import { getRecord } from '@/utils/atproto/pdsClient';
 import type { IdentityBundle } from '@/utils/atproto/identity';
@@ -258,6 +259,32 @@ export default function ProfileHeader({ identity }: Props) {
             )}
           </div>
         )}
+      </div>
+
+      {/* Inverse of the universal link page's "View repo in the Explorer →"
+          CTA: a quiet text link at the foot of the preview back out to the
+          shareable universal link page for this profile. */}
+      <div
+        style={{
+          flexBasis: '100%',
+          paddingTop: '1rem',
+          borderTop: '1px solid var(--border-subtle)',
+          fontSize: '0.8125rem',
+        }}
+      >
+        <Link
+          href={`/profile/${handle || identity.did}`}
+          className="profile-explorer-link"
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '0.4rem',
+            textDecoration: 'none',
+          }}
+        >
+          <Globe size={12} />
+          View the universal link page →
+        </Link>
       </div>
     </section>
   );
