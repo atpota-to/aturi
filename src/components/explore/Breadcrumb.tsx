@@ -5,7 +5,6 @@ import { ChevronRight, Server } from 'lucide-react';
 import { encodeRepo } from '@/utils/atproto/urls';
 import { pdsHostname } from '@/utils/atproto/pdsServer';
 import ShareLinkChip from './ShareLinkChip';
-import UniversalLinkChip from './UniversalLinkChip';
 
 type Props = {
   handle: string | null;
@@ -19,12 +18,6 @@ type Props = {
    * row. Path or full URL; bare paths get aturi.to prepended.
    */
   shareUrl?: string;
-  /**
-   * When provided, renders a navigation link to the universal link page —
-   * the inverse of the "View in Explorer" CTA on universal link pages.
-   * Internal path, e.g. `/profile/<handle>`.
-   */
-  universalLinkPath?: string;
 };
 
 /**
@@ -42,7 +35,6 @@ export default function Breadcrumb({
   collection,
   rkey,
   shareUrl,
-  universalLinkPath,
 }: Props) {
   const repoSegment = encodeRepo(handle || did);
   const repoLabel = handle ? `@${handle}` : did;
@@ -134,18 +126,9 @@ export default function Breadcrumb({
         </>
       )}
 
-      {(shareUrl || universalLinkPath) && (
-        <span
-          style={{
-            marginLeft: 'auto',
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '0.5rem',
-            flexWrap: 'wrap',
-          }}
-        >
-          {universalLinkPath && <UniversalLinkChip href={universalLinkPath} />}
-          {shareUrl && <ShareLinkChip url={shareUrl} />}
+      {shareUrl && (
+        <span style={{ marginLeft: 'auto' }}>
+          <ShareLinkChip url={shareUrl} />
         </span>
       )}
     </nav>
