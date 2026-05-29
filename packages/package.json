@@ -1,0 +1,17 @@
+{
+  "name": "@aturi.to/packages",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Nested workspace root for the publishable Aturi waypoint packages. Links @aturi.to/waypoints and @aturi.to/waypoints-react locally during development; not published itself.",
+  "workspaces": [
+    "waypoints",
+    "waypoints-react"
+  ],
+  "scripts": {
+    "build": "npm run build -w @aturi.to/waypoints && npm run build -w @aturi.to/waypoints-react",
+    "test": "npm run test -w @aturi.to/waypoints",
+    "typecheck": "npm run typecheck -w @aturi.to/waypoints && npm run typecheck -w @aturi.to/waypoints-react",
+    "sync": "npm run sync -w @aturi.to/waypoints",
+    "sync:check": "npm run sync:check -w @aturi.to/waypoints"
+  }
+}

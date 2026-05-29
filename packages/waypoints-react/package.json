@@ -1,0 +1,76 @@
+{
+  "name": "@aturi.to/waypoints-react",
+  "version": "0.1.0",
+  "description": "[Beta] React picker UI + client icons for Aturi's Atmosphere (AT Protocol) waypoint catalog. Headless-first and fully themeable; ships zero CSS by default.",
+  "license": "MIT",
+  "author": "dame.art",
+  "homepage": "https://aturi.to",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/atpota-to/aturi.git",
+    "directory": "packages/waypoints-react"
+  },
+  "keywords": [
+    "atproto",
+    "atmosphere",
+    "bluesky",
+    "react",
+    "aturi",
+    "waypoints"
+  ],
+  "type": "module",
+  "sideEffects": [
+    "**/*.css"
+  ],
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
+    },
+    "./styles.css": "./dist/styles.css",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "npm run build"
+  },
+  "peerDependencies": {
+    "lucide-react": ">=0.300.0",
+    "react": ">=18",
+    "react-dom": ">=18"
+  },
+  "dependencies": {
+    "@aturi.to/waypoints": "^0.1.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "lucide-react": "^0.562.0",
+    "react": "^19",
+    "react-dom": "^19",
+    "tsup": "^8.3.5",
+    "typescript": "^5.7.2"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

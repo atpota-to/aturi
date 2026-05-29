@@ -1,0 +1,209 @@
+/*
+ * Optional polished theme for @aturi/waypoints-react.
+ *
+ * Opt in explicitly:  import '@aturi/waypoints-react/styles.css'
+ *
+ * Nothing here is applied unless you import this file. Everything targets the
+ * namespaced `aturi-wp-*` classes and is themeable via the CSS custom
+ * properties below — override a handful of `--aturi-wp-*` tokens to recolor or
+ * respace the picker to match your brand.
+ */
+
+.aturi-wp {
+  --aturi-wp-accent: #2563eb;
+  --aturi-wp-accent-contrast: #ffffff;
+  --aturi-wp-bg: #ffffff;
+  --aturi-wp-surface: #f8fafc;
+  --aturi-wp-surface-hover: #f1f5f9;
+  --aturi-wp-border: #e2e8f0;
+  --aturi-wp-text: #0f172a;
+  --aturi-wp-text-secondary: #475569;
+  --aturi-wp-text-tertiary: #94a3b8;
+  --aturi-wp-radius: 12px;
+  --aturi-wp-gap: 0.75rem;
+  --aturi-wp-pad: 1rem;
+  --aturi-wp-font: inherit;
+
+  font-family: var(--aturi-wp-font);
+  color: var(--aturi-wp-text);
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+@media (prefers-color-scheme: dark) {
+  .aturi-wp {
+    --aturi-wp-accent: #60a5fa;
+    --aturi-wp-accent-contrast: #0b1120;
+    --aturi-wp-bg: #0b1120;
+    --aturi-wp-surface: #111827;
+    --aturi-wp-surface-hover: #1f2937;
+    --aturi-wp-border: #1f2937;
+    --aturi-wp-text: #f1f5f9;
+    --aturi-wp-text-secondary: #cbd5e1;
+    --aturi-wp-text-tertiary: #64748b;
+  }
+}
+
+.aturi-wp-header {
+  text-align: center;
+}
+
+.aturi-wp-subtitle {
+  margin: 0;
+  color: var(--aturi-wp-text-secondary);
+  font-size: 1rem;
+}
+
+.aturi-wp-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--aturi-wp-gap);
+}
+
+.aturi-wp-section-header {
+  margin: 0;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--aturi-wp-text-tertiary);
+}
+
+.aturi-wp-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--aturi-wp-gap);
+}
+
+.aturi-wp-button {
+  display: flex;
+  align-items: center;
+  gap: var(--aturi-wp-pad);
+  padding: var(--aturi-wp-pad);
+  border: 1px solid var(--aturi-wp-border);
+  border-radius: var(--aturi-wp-radius);
+  background: var(--aturi-wp-surface);
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    transform 0.15s ease;
+}
+
+.aturi-wp-button:hover {
+  background: var(--aturi-wp-surface-hover);
+  border-color: var(--aturi-wp-accent);
+}
+
+.aturi-wp-button[data-recommended] {
+  border-color: var(--aturi-wp-accent);
+}
+
+.aturi-wp-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  color: var(--aturi-wp-text);
+}
+
+.aturi-wp-icon svg {
+  width: 24px;
+  height: 24px;
+}
+
+.aturi-wp-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.aturi-wp-name {
+  font-weight: 600;
+  color: var(--aturi-wp-text);
+}
+
+.aturi-wp-description {
+  font-size: 0.875rem;
+  color: var(--aturi-wp-text-secondary);
+}
+
+.aturi-wp-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.aturi-wp-copy,
+.aturi-wp-open {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.375rem;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--aturi-wp-text-tertiary);
+  cursor: pointer;
+  transition:
+    color 0.15s ease,
+    background 0.15s ease;
+}
+
+.aturi-wp-copy:hover,
+.aturi-wp-open:hover {
+  color: var(--aturi-wp-accent);
+  background: var(--aturi-wp-surface-hover);
+}
+
+.aturi-wp-category {
+  border: 1px solid var(--aturi-wp-border);
+  border-radius: var(--aturi-wp-radius);
+  background: var(--aturi-wp-bg);
+  overflow: hidden;
+}
+
+.aturi-wp-category + .aturi-wp-category {
+  margin-top: var(--aturi-wp-gap);
+}
+
+.aturi-wp-category-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: var(--aturi-wp-pad);
+  border: none;
+  background: transparent;
+  color: var(--aturi-wp-text);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.aturi-wp-category-header:hover {
+  background: var(--aturi-wp-surface-hover);
+}
+
+.aturi-wp-category-toggle {
+  color: var(--aturi-wp-text-tertiary);
+  transition: transform 0.15s ease;
+}
+
+.aturi-wp-category .aturi-wp-list {
+  padding: 0 var(--aturi-wp-pad) var(--aturi-wp-pad);
+}
+
+.aturi-wp-empty {
+  padding: 2rem;
+  text-align: center;
+  color: var(--aturi-wp-text-secondary);
+  border: 1px dashed var(--aturi-wp-border);
+  border-radius: var(--aturi-wp-radius);
+}
