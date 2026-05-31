@@ -103,6 +103,29 @@ export type Preferences = {
    */
   collectionGroupsCollapsedByDefault: boolean;
   /**
+   * Hide the "You + @them" relationship strip on other people's repo pages
+   * in the explorer. When off (default) the strip shows whenever it has a
+   * signal to surface.
+   */
+  hideRelationshipBar: boolean;
+  /**
+   * Hide the "Repo at a glance" stats section on explorer repo pages
+   * entirely. When off (default) the section shows and can be collapsed in
+   * place instead (see `repoGlanceCollapsedByDefault`).
+   */
+  hideRepoGlance: boolean;
+  /**
+   * When "Repo at a glance" is shown, start it collapsed. The inline header
+   * toggle still flips it for the session; this only sets the initial state.
+   */
+  repoGlanceCollapsedByDefault: boolean;
+  /**
+   * Show a minimal profile on explorer repo pages — just the DID, handle,
+   * and PDS identity row — instead of the rich profile card. The page also
+   * offers an inline switch to flip back to the full profile.
+   */
+  minimalProfile: boolean;
+  /**
    * ISO timestamp of last local change. Used to break ties when local and
    * PDS prefs both exist on sign-in.
    */
@@ -121,6 +144,10 @@ export const DEFAULT_PREFERENCES: Preferences = {
   pinnedLexiconsOthers: [],
   pinScope: 'own',
   collectionGroupsCollapsedByDefault: false,
+  hideRelationshipBar: false,
+  hideRepoGlance: false,
+  repoGlanceCollapsedByDefault: false,
+  minimalProfile: false,
   updatedAt: new Date(0).toISOString(),
 };
 
@@ -209,6 +236,16 @@ export function mergeWithDefaults(input: Partial<Preferences> | null | undefined
     typeof input.collectionGroupsCollapsedByDefault === 'boolean'
       ? input.collectionGroupsCollapsedByDefault
       : false;
+  const hideRelationshipBar =
+    typeof input.hideRelationshipBar === 'boolean' ? input.hideRelationshipBar : false;
+  const hideRepoGlance =
+    typeof input.hideRepoGlance === 'boolean' ? input.hideRepoGlance : false;
+  const repoGlanceCollapsedByDefault =
+    typeof input.repoGlanceCollapsedByDefault === 'boolean'
+      ? input.repoGlanceCollapsedByDefault
+      : false;
+  const minimalProfile =
+    typeof input.minimalProfile === 'boolean' ? input.minimalProfile : false;
   return {
     waypointGroups,
     hiddenWaypoints,
@@ -218,6 +255,10 @@ export function mergeWithDefaults(input: Partial<Preferences> | null | undefined
     pinnedLexiconsOthers,
     pinScope,
     collectionGroupsCollapsedByDefault,
+    hideRelationshipBar,
+    hideRepoGlance,
+    repoGlanceCollapsedByDefault,
+    minimalProfile,
     updatedAt:
       typeof input.updatedAt === 'string' ? input.updatedAt : new Date(0).toISOString(),
   };
@@ -282,6 +323,10 @@ export function preferencesAreEqual(a: Preferences, b: Preferences): boolean {
     a.updatedAt === b.updatedAt &&
     a.pinScope === b.pinScope &&
     a.collectionGroupsCollapsedByDefault === b.collectionGroupsCollapsedByDefault &&
+    a.hideRelationshipBar === b.hideRelationshipBar &&
+    a.hideRepoGlance === b.hideRepoGlance &&
+    a.repoGlanceCollapsedByDefault === b.repoGlanceCollapsedByDefault &&
+    a.minimalProfile === b.minimalProfile &&
     JSON.stringify(a.waypointGroups) === JSON.stringify(b.waypointGroups) &&
     JSON.stringify(a.customWaypoints) === JSON.stringify(b.customWaypoints) &&
     JSON.stringify(a.pinnedLexicons) === JSON.stringify(b.pinnedLexicons) &&

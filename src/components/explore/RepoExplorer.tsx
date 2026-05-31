@@ -4,8 +4,9 @@ import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { resolveIdentifier, type IdentityBundle } from '@/utils/atproto/identity';
 import Link from 'next/link';
-import { Server } from 'lucide-react';
+import { ChevronDown, ChevronRight, Server } from 'lucide-react';
 import { pdsHostname } from '@/utils/atproto/pdsServer';
+import { usePreferences } from '@/components/PreferencesProvider';
 import AppearIn from './AppearIn';
 import Breadcrumb from './Breadcrumb';
 import CopyButton from './CopyButton';
@@ -30,6 +31,7 @@ type TabId = (typeof TABS)[number]['id'];
 export default function RepoExplorer({ repo }: { repo: string }) {
   const [identity, setIdentity] = useState<IdentityBundle | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const { prefs, update, loading } = usePreferences();
 
   useEffect(() => {
     let cancelled = false;
@@ -65,6 +67,15 @@ export default function RepoExplorer({ repo }: { repo: string }) {
     );
   }
 
+  // Visibility prefs only take effect once they've settled from
+  // localStorage/PDS. Until then we behave as the defaults (everything
+  // shown, rich profile), which matches the server-rendered HTML and avoids
+  // a hydration mismatch.
+  const settled = !loading;
+  const showRelationship = !(settled && prefs.hideRelationshipBar);
+  const showGlance = !(settled && prefs.hideRepoGlance);
+  const useMinimalProfile = settled && prefs.minimalProfile;
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
       {/* Breadcrumb at the repo level shows pds → @handle. The PDS segment
@@ -84,38 +95,138 @@ export default function RepoExplorer({ repo }: { repo: string }) {
       {/* "You + @them" relationship signals. Renders nothing for signed-out
           visitors or when viewing your own repo, so the strip is silent
           unless it has something useful to say. */}
-      <AppearIn delay={0.02}>
-        <RelationshipStrip target={identity} />
-      </AppearIn>
-      <AppearIn delay={0.04}>
-        <ProfileHeader identity={identity} />
-      </AppearIn>
+      {showRelationship && (
+        <AppearIn delay={0.02}>
+          <RelationshipStrip target={identity} />
+        </AppearIn>
+      )}
+      {!useMinimalProfile && (
+        <AppearIn delay={0.04}>
+          <ProfileHeader identity={identity} />
+        </AppearIn>
+      )}
       <AppearIn delay={0.1}>
         <IdentityRow identity={identity} />
       </AppearIn>
+      {/* Inline switch between the rich profile card and the minimal
+          identity-only view, so users don't have to round-trip through
+          settings. Flips the persisted pref, so it sticks and syncs. */}
+      {settled && (
+        <ProfileViewSwitch
+          minimal={useMinimalProfile}
+          onToggle={() =>
+            update((p) => ({ ...p, minimalProfile: !p.minimalProfile }))
+          }
+        />
+      )}
       {/* High-level stats — same tile grid the account-settings page
           uses, dropped in here so anyone viewing a repo (not just its
           owner) sees how big it is, when it was created, and how much
-          inbound activity it has. */}
-      <AppearIn delay={0.16}>
-        <section style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
-          <h2
-            style={{
-              margin: 0,
-              fontSize: '1rem',
-              fontWeight: 400,
-              color: 'var(--text-primary)',
-            }}
-          >
-            Repo at a glance
-          </h2>
-          <AccountStats did={identity.did} handle={identity.handle} />
-        </section>
-      </AppearIn>
+          inbound activity it has. Collapsible in place; hidden outright
+          when the user has turned it off. */}
+      {showGlance && (
+        <AppearIn delay={0.16}>
+          <RepoGlanceSection
+            identity={identity}
+            startCollapsed={settled && prefs.repoGlanceCollapsedByDefault}
+          />
+        </AppearIn>
+      )}
       <AppearIn delay={0.22}>
         <TabbedView identity={identity} />
       </AppearIn>
     </div>
+  );
+}
+
+/**
+ * "Repo at a glance" stats, collapsible in place. The initial open/closed
+ * state comes from the user's `repoGlanceCollapsedByDefault` preference; once
+ * the user clicks the header the session override (`collapsed`) wins. Mirrors
+ * the per-group collapse pattern in the Collections tab.
+ */
+function RepoGlanceSection({
+  identity,
+  startCollapsed,
+}: {
+  identity: IdentityBundle;
+  startCollapsed: boolean;
+}) {
+  const [collapsed, setCollapsed] = useState<boolean | null>(null);
+  const isCollapsed = collapsed ?? startCollapsed;
+
+  return (
+    <section style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
+      <h2 style={{ margin: 0 }}>
+        <button
+          type="button"
+          onClick={() => setCollapsed(!isCollapsed)}
+          aria-expanded={!isCollapsed}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '0.375rem',
+            padding: 0,
+            background: 'transparent',
+            border: 0,
+            cursor: 'pointer',
+            fontSize: '1rem',
+            fontWeight: 400,
+            fontFamily: 'inherit',
+            color: 'var(--text-primary)',
+          }}
+        >
+          {isCollapsed ? (
+            <ChevronRight size={14} aria-hidden style={{ color: 'var(--text-tertiary)' }} />
+          ) : (
+            <ChevronDown size={14} aria-hidden style={{ color: 'var(--text-tertiary)' }} />
+          )}
+          Repo at a glance
+        </button>
+      </h2>
+      {!isCollapsed && <AccountStats did={identity.did} handle={identity.handle} />}
+    </section>
+  );
+}
+
+/**
+ * Subtle inline control to flip between the rich profile card and the
+ * minimal identity-only view. Persists the choice via the preferences
+ * store so it carries across pages and devices.
+ */
+function ProfileViewSwitch({
+  minimal,
+  onToggle,
+}: {
+  minimal: boolean;
+  onToggle: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      style={{
+        alignSelf: 'flex-start',
+        marginTop: '-0.75rem',
+        padding: 0,
+        background: 'transparent',
+        border: 0,
+        cursor: 'pointer',
+        fontFamily: 'var(--font-serif)',
+        fontSize: '0.75rem',
+        letterSpacing: '0.04em',
+        color: 'var(--text-tertiary)',
+        transition: 'color 0.2s ease',
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.color = 'var(--text-accent)';
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.color = 'var(--text-tertiary)';
+      }}
+    >
+      {minimal ? 'Show full profile' : 'Use minimal view'}
+    </button>
   );
 }
 

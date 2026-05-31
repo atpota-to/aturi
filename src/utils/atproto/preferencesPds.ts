@@ -20,6 +20,10 @@
  *   pinnedLexiconsOthers?: string[]   // separate list for others' repos in split mode
  *   pinScope?: 'own' | 'all' | 'split'
  *   collectionGroupsCollapsedByDefault?: boolean
+ *   hideRelationshipBar?: boolean         // hide the explorer relationship strip
+ *   hideRepoGlance?: boolean              // hide the "Repo at a glance" section
+ *   repoGlanceCollapsedByDefault?: boolean // start that section collapsed
+ *   minimalProfile?: boolean              // minimal profile on repo pages
  *   updatedAt: datetime
  *
  *   // Legacy — still written for back-compat with older Aturi clients
@@ -91,6 +95,10 @@ export async function writePreferencesToPds(
     pinnedLexiconsOthers: prefs.pinnedLexiconsOthers,
     pinScope: prefs.pinScope,
     collectionGroupsCollapsedByDefault: prefs.collectionGroupsCollapsedByDefault,
+    hideRelationshipBar: prefs.hideRelationshipBar,
+    hideRepoGlance: prefs.hideRepoGlance,
+    repoGlanceCollapsedByDefault: prefs.repoGlanceCollapsedByDefault,
+    minimalProfile: prefs.minimalProfile,
     // Legacy fields kept for back-compat with older clients.
     hiddenWaypoints: prefs.hiddenWaypoints,
     waypointOrder: prefs.waypointOrder,
