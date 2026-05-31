@@ -32,20 +32,61 @@ import {
 export default function GeneralTab() {
   return (
     <>
-      <section className="settings-card">
-        <div className="settings-card-head">
-          <h2 className="settings-card-title">Appearance</h2>
-          <p className="settings-card-sub">
-            Switch between dark and light themes. The page chrome and accent
-            palette flip together; explorer panels, embeds, and the home strip
-            all follow.
-          </p>
-        </div>
-        <ThemePicker />
-      </section>
-
+      <AppearanceCard />
       <ExplorerCard />
     </>
+  );
+}
+
+function AppearanceCard() {
+  const { prefs, update } = usePreferences();
+
+  return (
+    <section className="settings-card">
+      <div className="settings-card-head">
+        <h2 className="settings-card-title">Appearance</h2>
+        <p className="settings-card-sub">
+          Switch between dark and light themes, and choose how much of each
+          explorer repo page you see. The page chrome and accent palette flip
+          together; explorer panels, embeds, and the home strip all follow.
+        </p>
+      </div>
+      <ThemePicker />
+
+      <Toggle
+        id="hide-relationship-bar"
+        label="Hide the relationship bar"
+        description="Removes the “you + @them” signals strip at the top of a repo page."
+        checked={prefs.hideRelationshipBar}
+        onChange={(next) => update((p) => ({ ...p, hideRelationshipBar: next }))}
+      />
+
+      <Toggle
+        id="hide-repo-glance"
+        label="Hide “Repo at a glance”"
+        description="Removes the stats tiles (size, creation date, inbound activity) above the explorer tabs entirely. Leave off to keep it collapsible in place."
+        checked={prefs.hideRepoGlance}
+        onChange={(next) => update((p) => ({ ...p, hideRepoGlance: next }))}
+      />
+
+      <Toggle
+        id="repo-glance-collapsed"
+        label="Start “Repo at a glance” collapsed"
+        description="When shown, the stats section starts folded; click its header to expand. No effect when hidden above."
+        checked={prefs.repoGlanceCollapsedByDefault}
+        onChange={(next) =>
+          update((p) => ({ ...p, repoGlanceCollapsedByDefault: next }))
+        }
+      />
+
+      <Toggle
+        id="minimal-profile"
+        label="Minimal profile view"
+        description="Skips the rich profile card on repo pages, showing just the DID, handle, and PDS. You can switch back to the full profile right on the page."
+        checked={prefs.minimalProfile}
+        onChange={(next) => update((p) => ({ ...p, minimalProfile: next }))}
+      />
+    </section>
   );
 }
 
@@ -133,40 +174,6 @@ function ExplorerCard() {
         onChange={(next) =>
           update((p) => ({ ...p, collectionGroupsCollapsedByDefault: next }))
         }
-      />
-
-      <Toggle
-        id="hide-relationship-bar"
-        label="Hide the relationship bar"
-        description="Removes the “you + @them” signals strip at the top of a repo page."
-        checked={prefs.hideRelationshipBar}
-        onChange={(next) => update((p) => ({ ...p, hideRelationshipBar: next }))}
-      />
-
-      <Toggle
-        id="hide-repo-glance"
-        label="Hide “Repo at a glance”"
-        description="Removes the stats tiles (size, creation date, inbound activity) above the explorer tabs entirely. Leave off to keep it collapsible in place."
-        checked={prefs.hideRepoGlance}
-        onChange={(next) => update((p) => ({ ...p, hideRepoGlance: next }))}
-      />
-
-      <Toggle
-        id="repo-glance-collapsed"
-        label="Start “Repo at a glance” collapsed"
-        description="When shown, the stats section starts folded; click its header to expand. No effect when hidden above."
-        checked={prefs.repoGlanceCollapsedByDefault}
-        onChange={(next) =>
-          update((p) => ({ ...p, repoGlanceCollapsedByDefault: next }))
-        }
-      />
-
-      <Toggle
-        id="minimal-profile"
-        label="Minimal profile view"
-        description="Skips the rich profile card on repo pages, showing just the DID, handle, and PDS. You can switch back to the full profile right on the page."
-        checked={prefs.minimalProfile}
-        onChange={(next) => update((p) => ({ ...p, minimalProfile: next }))}
       />
 
       <PinnedList
