@@ -359,7 +359,7 @@ export default function DocsPage() {
             <h2 style={h2Style}>License</h2>
             <p style={{ ...pStyle, margin: 0 }}>
               <code>@aturi.to/waypoints</code> and{' '}
-              <code>@aturi.to/waypoints-react</code> are MIT © dame.art. The
+              <code>@aturi.to/waypoints-react</code> are MIT © atpotato, LLC. The
               aturi.to web app and browser extension are licensed GPL-3.0 — the
               packages are intentionally dual-licensed MIT so other Atmosphere
               developers can adopt them freely.
