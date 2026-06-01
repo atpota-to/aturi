@@ -5,7 +5,9 @@ import { PreferencesProvider } from "@/components/PreferencesProvider";
 import Footer from "@/components/Footer";
 import PageTransition from "@/components/PageTransition";
 import ThemeSync from "@/components/ThemeSync";
+import FontScaleSync from "@/components/FontScaleSync";
 import { DEFAULT_THEME, THEME_INIT_SCRIPT } from "@/lib/theme";
+import { FONT_SCALE_INIT_SCRIPT } from "@/lib/fontScale";
 import { getSiteUrl } from "@/lib/config";
 import "./globals.css";
 
@@ -56,9 +58,15 @@ export default function RootLayout({
             flash on cold loads. The script reads from localStorage and sets
             data-theme on <html> synchronously. */}
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
+        {/* Apply the saved font scale before first paint to avoid a reflow
+            on cold loads. Reads from localStorage and sets the root
+            font-size on <html> synchronously; "default" resolves to the
+            same 16px the CSS already sets, so the baseline is unchanged. */}
+        <script dangerouslySetInnerHTML={{ __html: FONT_SCALE_INIT_SCRIPT }} />
       </head>
       <body>
         <ThemeSync />
+        <FontScaleSync />
         <AtprotoSessionProvider>
           <PreferencesProvider>
             <PageTransition>

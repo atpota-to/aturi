@@ -11,6 +11,16 @@ import {
   type Theme,
   DEFAULT_THEME,
 } from '@/lib/theme';
+import {
+  applyFontScale,
+  getStoredFontScale,
+  isFontScale,
+  setStoredFontScale,
+  FONT_SCALE_OPTIONS,
+  FONT_SCALE_STORAGE_KEY,
+  type FontScale,
+  DEFAULT_FONT_SCALE,
+} from '@/lib/fontScale';
 import { usePreferences } from '@/components/PreferencesProvider';
 import { useMyCollections } from '@/components/explore/useRepoCollections';
 import Toggle from '../Toggle';
@@ -52,6 +62,7 @@ function AppearanceCard() {
         </p>
       </div>
       <ThemePicker />
+      <FontScalePicker />
 
       <Toggle
         id="hide-relationship-bar"
@@ -651,6 +662,91 @@ function ThemePicker() {
               }}
             >
               {value}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function subscribeFontScale(onChange: () => void): () => void {
+  function handler(event: StorageEvent) {
+    if (event.key === FONT_SCALE_STORAGE_KEY) onChange();
+  }
+  window.addEventListener('storage', handler);
+  return () => window.removeEventListener('storage', handler);
+}
+
+function getFontScaleSnapshot(): FontScale {
+  const attr = document.documentElement.dataset.fontScale;
+  if (isFontScale(attr)) return attr;
+  return getStoredFontScale();
+}
+
+function getFontScaleServerSnapshot(): FontScale {
+  return DEFAULT_FONT_SCALE;
+}
+
+function FontScalePicker() {
+  const scale = useSyncExternalStore(
+    subscribeFontScale,
+    getFontScaleSnapshot,
+    getFontScaleServerSnapshot,
+  );
+
+  function pick(next: FontScale) {
+    setStoredFontScale(next);
+    applyFontScale(next);
+    window.dispatchEvent(
+      new StorageEvent('storage', {
+        key: FONT_SCALE_STORAGE_KEY,
+        newValue: next,
+      }),
+    );
+  }
+
+  return (
+    <div className="settings-toggle-row">
+      <div className="settings-toggle-label">
+        <span className="settings-toggle-label-text">Font size</span>
+        <span className="settings-toggle-label-sub">
+          Adjusts text size across the app. Saved in this browser.
+        </span>
+      </div>
+      <div
+        role="radiogroup"
+        aria-label="Font size"
+        style={{
+          display: 'inline-flex',
+          border: '1px solid var(--border-medium)',
+          overflow: 'hidden',
+          flexShrink: 0,
+        }}
+      >
+        {FONT_SCALE_OPTIONS.map(({ value, label }) => {
+          const active = scale === value;
+          return (
+            <button
+              key={value}
+              type="button"
+              role="radio"
+              aria-checked={active}
+              onClick={() => pick(value)}
+              style={{
+                padding: '0.4rem 0.875rem',
+                fontSize: '0.85rem',
+                background: active ? 'var(--accent-forest)' : 'transparent',
+                color: active ? 'var(--text-on-accent)' : 'var(--text-secondary)',
+                border: 'none',
+                cursor: 'pointer',
+                transition: 'background 0.2s ease, color 0.2s ease',
+                textTransform: 'lowercase',
+                letterSpacing: '0.02em',
+                fontFamily: 'var(--font-serif)',
+              }}
+            >
+              {label}
             </button>
           );
         })}
