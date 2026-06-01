@@ -8,6 +8,7 @@ import ThemeToggle from './ThemeToggle';
 import SessionMenu from './SessionMenu';
 import SessionPanel from './SessionPanel';
 import CompactSearchPanel from './CompactSearchPanel';
+import StickyBreadcrumbBar from './explore/StickyBreadcrumbBar';
 
 interface HeaderProps {
   simple?: boolean; // If true, shows a smaller version without the tagline
@@ -68,10 +69,11 @@ export default function Header({ simple = false, compact = false }: HeaderProps)
         <div
           style={{
             display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: '1rem',
-            padding: '0.75rem 1rem',
+            // Column so the condensed breadcrumb can sit as a full-width
+            // section beneath the logo/menu row. The card itself is unpadded
+            // so that section's top border reaches both edges — the row and
+            // the breadcrumb each carry their own padding instead.
+            flexDirection: 'column',
             background: 'var(--bg-secondary)',
             border: '1px solid var(--border-medium)',
             transform: 'rotate(-0.2deg)',
@@ -79,114 +81,130 @@ export default function Header({ simple = false, compact = false }: HeaderProps)
             boxShadow: 'var(--shadow-overlay)',
           }}
         >
-          {/* Logo/Wordmark with Tagline */}
-          <Link
-            href="/"
+          <div
             style={{
-              textDecoration: 'none',
               display: 'flex',
               alignItems: 'center',
-              gap: '0.625rem',
-              flex: 1,
-              minWidth: 0,
+              justifyContent: 'space-between',
+              gap: '1rem',
+              padding: '0.75rem 1rem',
             }}
           >
-            <span
+            {/* Logo/Wordmark with Tagline */}
+            <Link
+              href="/"
               style={{
-                fontSize: '1.25rem',
-                fontWeight: 300,
-                letterSpacing: '-0.01em',
-                whiteSpace: 'nowrap',
+                textDecoration: 'none',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.625rem',
+                flex: 1,
+                minWidth: 0,
               }}
             >
               <span
                 style={{
-                  background: 'linear-gradient(135deg, var(--text-primary) 0%, var(--text-accent) 100%)',
-                  WebkitBackgroundClip: 'text',
-                  WebkitTextFillColor: 'transparent',
-                  backgroundClip: 'text',
+                  fontSize: '1.25rem',
+                  fontWeight: 300,
+                  letterSpacing: '-0.01em',
+                  whiteSpace: 'nowrap',
                 }}
               >
-                aturi
+                <span
+                  style={{
+                    background: 'linear-gradient(135deg, var(--text-primary) 0%, var(--text-accent) 100%)',
+                    WebkitBackgroundClip: 'text',
+                    WebkitTextFillColor: 'transparent',
+                    backgroundClip: 'text',
+                  }}
+                >
+                  aturi
+                </span>
+                <span
+                  style={{
+                    color: 'var(--text-tertiary)',
+                    opacity: 0.5,
+                  }}
+                >
+                  .to
+                </span>
               </span>
               <span
                 style={{
+                  fontSize: '0.8rem',
+                  fontWeight: 300,
                   color: 'var(--text-tertiary)',
-                  opacity: 0.5,
+                  letterSpacing: '0.01em',
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
                 }}
               >
-                .to
+                tour the atmosphere
               </span>
-            </span>
-            <span
-              style={{
-                fontSize: '0.8rem',
-                fontWeight: 300,
-                color: 'var(--text-tertiary)',
-                letterSpacing: '0.01em',
-                whiteSpace: 'nowrap',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-              }}
-            >
-              tour the atmosphere
-            </span>
-          </Link>
+            </Link>
 
-          {/* Search shortcut — opens an inline search bar below the header
-              so visitors can jump into the explorer without leaving the
-              page. Mutually exclusive with the nav menu. */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-            <button
-              onClick={() => {
-                setIsSearchExpanded((v) => !v);
-                setIsExpanded(false);
-              }}
-              style={{
-                padding: '0.5rem',
-                background: 'var(--bg-tertiary)',
-                border: '1px solid var(--border-medium)',
-                color: 'var(--text-accent)',
-                transition: 'all 0.3s ease',
-                transform: isSearchExpanded ? 'scale(1.08)' : 'scale(1)',
-              }}
-              aria-label="Search the explorer"
-              aria-expanded={isSearchExpanded}
-            >
-              <Search
-                size={18}
-                style={{
-                  transition: 'all 0.3s ease',
-                  opacity: isSearchExpanded ? 0.7 : 1,
+            {/* Search shortcut — opens an inline search bar below the header
+                so visitors can jump into the explorer without leaving the
+                page. Mutually exclusive with the nav menu. */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+              <button
+                onClick={() => {
+                  setIsSearchExpanded((v) => !v);
+                  setIsExpanded(false);
                 }}
-              />
-            </button>
+                style={{
+                  padding: '0.5rem',
+                  background: 'var(--bg-tertiary)',
+                  border: '1px solid var(--border-medium)',
+                  color: 'var(--text-accent)',
+                  transition: 'all 0.3s ease',
+                  transform: isSearchExpanded ? 'scale(1.08)' : 'scale(1)',
+                }}
+                aria-label="Search the explorer"
+                aria-expanded={isSearchExpanded}
+              >
+                <Search
+                  size={18}
+                  style={{
+                    transition: 'all 0.3s ease',
+                    opacity: isSearchExpanded ? 0.7 : 1,
+                  }}
+                />
+              </button>
 
-            {/* Expandable menu button — session controls live INSIDE the panel,
-                not in the always-visible row, so the compact header stays
-                minimal at this level. */}
-            <button
-              onClick={() => {
-                setIsExpanded((v) => !v);
-                setIsSearchExpanded(false);
-              }}
-              style={{
-                padding: '0.5rem',
-                background: 'var(--bg-tertiary)',
-                border: '1px solid var(--border-medium)',
-                color: 'var(--text-accent)',
-                transition: 'all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)',
-                transform: isExpanded ? 'rotate(90deg) scale(1.1)' : 'rotate(0deg)',
-              }}
-              aria-label="Toggle menu"
-              aria-expanded={isExpanded}
-            >
-              <Leaf size={18} style={{
-                transition: 'all 0.3s ease',
-                opacity: isExpanded ? 0.6 : 1,
-              }} />
-            </button>
+              {/* Expandable menu button — session controls live INSIDE the panel,
+                  not in the always-visible row, so the compact header stays
+                  minimal at this level. */}
+              <button
+                onClick={() => {
+                  setIsExpanded((v) => !v);
+                  setIsSearchExpanded(false);
+                }}
+                style={{
+                  padding: '0.5rem',
+                  background: 'var(--bg-tertiary)',
+                  border: '1px solid var(--border-medium)',
+                  color: 'var(--text-accent)',
+                  transition: 'all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)',
+                  transform: isExpanded ? 'rotate(90deg) scale(1.1)' : 'rotate(0deg)',
+                }}
+                aria-label="Toggle menu"
+                aria-expanded={isExpanded}
+              >
+                <Leaf size={18} style={{
+                  transition: 'all 0.3s ease',
+                  opacity: isExpanded ? 0.6 : 1,
+                }} />
+              </button>
+            </div>
           </div>
+
+          {/* Condensed breadcrumb that drops in once you scroll past the
+              in-page one, keeping the explorer path anchored at the top.
+              A full-width section below the row; renders nothing off the
+              explorer routes (no trail registered). */}
+          <StickyBreadcrumbBar />
         </div>
 
         {/* Search panel — sits in the same expanding region as the menu
