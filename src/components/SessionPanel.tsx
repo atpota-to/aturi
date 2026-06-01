@@ -176,7 +176,7 @@ export default function SessionPanel({ onNavigate, onSignInActiveChange }: Props
           <span>sign in</span>
         </button>
         <Link
-          href="/account#general"
+          href="/account"
           className="compact-nav-link"
           onClick={onNavigate}
         >
