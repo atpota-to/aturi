@@ -1935,6 +1935,52 @@ html {
   word-break: break-word;
 }
 
+/* Trending/Top lexicons row grid: rank | nsid | sparkline | count. Shared
+   by the live rows and the loading skeleton so the two stay in lockstep.
+   The sparkline column is fixed-width and, together with the count and
+   gaps, was starving the flexible nsid column on phones — leaving room for
+   only a few characters before the NSID truncated. On narrow screens we
+   shrink the (decorative) sparkline and tighten the gap/padding so the
+   (meaningful) NSID text gets that width back. The Sparkline svg scales to
+   fill whatever the column gives it via .lexicon-row-spark. */
+.lexicon-row-grid {
+  display: grid;
+  grid-template-columns: 2rem minmax(0, 1fr) 7rem auto;
+  align-items: center;
+  gap: 0.875rem;
+  padding: 0.625rem 1rem;
+}
+
+/* Sparkline cell — right-aligned, and on mobile it constrains the svg width
+   so the chart shrinks with the column instead of overflowing it. */
+.lexicon-row-spark {
+  display: flex;
+  justify-content: flex-end;
+  min-width: 0;
+}
+
+@media (max-width: 600px) {
+  .lexicon-row-grid {
+    grid-template-columns: 1.5rem minmax(0, 1fr) 3rem auto;
+    gap: 0.5rem;
+    padding: 0.625rem 0.75rem;
+  }
+
+  /* Shrink the chart to fill the narrower column. Height stays at the svg's
+     24px box (the viewBox scales the line down proportionally and centers
+     it) so loaded rows and the 24px skeleton block keep identical heights —
+     no layout shift when data lands. */
+  .lexicon-row-spark svg {
+    width: 100%;
+  }
+
+  /* The skeleton's sparkline block is a fixed 90px wide; let it fill the
+     smaller column on mobile instead of overflowing it. */
+  .lexicon-row-spark .skeleton-shimmer {
+    width: 100% !important;
+  }
+}
+
 .explore-hint {
   color: var(--text-tertiary);
   font-size: 0.875rem;

@@ -274,18 +274,10 @@ function SkeletonRows({ mode }: { mode: Mode }) {
               i === RESULT_COUNT - 1 ? undefined : '1px solid var(--border-subtle)',
           }}
         >
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: '2rem minmax(0, 1fr) 7rem auto',
-              alignItems: 'center',
-              gap: '0.875rem',
-              padding: '0.625rem 1rem',
-            }}
-          >
+          <div className="lexicon-row-grid">
             <Skeleton width="1.25rem" height="0.75rem" />
             <Skeleton width={nsidWidths[i % nsidWidths.length]} height="0.75rem" />
-            <span style={{ display: 'flex', justifyContent: 'flex-end' }}>
+            <span className="lexicon-row-spark">
               <Skeleton width="90px" height="24px" />
             </span>
             <span
@@ -332,12 +324,8 @@ function Row({
       <Link
         href={schemaPathFor(row.nsid)}
         title={`Open the ${row.nsid} lexicon schema`}
+        className="lexicon-row-grid"
         style={{
-          display: 'grid',
-          gridTemplateColumns: '2rem minmax(0, 1fr) 7rem auto',
-          alignItems: 'center',
-          gap: '0.875rem',
-          padding: '0.625rem 1rem',
           textDecoration: 'none',
           color: 'var(--text-primary)',
           transition: 'background 0.2s ease',
@@ -371,7 +359,7 @@ function Row({
         >
           {row.nsid}
         </span>
-        <span style={{ display: 'flex', justifyContent: 'flex-end' }}>
+        <span className="lexicon-row-spark">
           <Sparkline
             data={row.series}
             ariaLabel={`Activity over the last ${WINDOWS[window].label}`}
