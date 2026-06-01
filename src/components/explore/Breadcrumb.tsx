@@ -9,9 +9,14 @@ import { useBreadcrumbTrail, type BreadcrumbCrumb } from './BreadcrumbContext';
 import ShareLinkChip from './ShareLinkChip';
 
 // Approximate height of the sticky compact nav. The condensed breadcrumb
-// reveals the moment the full one slips up behind the nav, so we treat the
-// top ~96px of the viewport as occluded when deciding "scrolled past".
+// reveals the moment the full one slips up behind the nav, so the top ~96px
+// of the viewport counts as occluded when deciding "scrolled past".
 const NAV_OFFSET_PX = 96;
+// Dead band between the reveal and retract points. The condensed bar lives
+// inside the sticky nav, so showing it grows the nav and nudges the page
+// (and this breadcrumb) down; a band taller than the bar keeps that nudge
+// from carrying the breadcrumb back across the line and strobing the reveal.
+const REVEAL_HYSTERESIS_PX = 72;
 
 type Props = {
   handle: string | null;
@@ -78,19 +83,41 @@ export default function Breadcrumb({
     return () => setTrail(null);
   }, [trail, setTrail]);
 
-  // Watch the live breadcrumb; once it sits fully behind the sticky nav the
-  // condensed copy takes over. The negative top rootMargin pulls the trigger
-  // line down to the nav's lower edge so the handoff lines up with the
-  // breadcrumb actually disappearing rather than leaving the viewport.
+  // Reveal the condensed copy once this breadcrumb sits behind the sticky
+  // nav, and retract it only after scrolling well back up. Two thresholds (a
+  // dead band) rather than one keep the reveal from oscillating at the
+  // boundary — see REVEAL_HYSTERESIS_PX. rAF-throttled, passive listeners.
   useEffect(() => {
     const node = navRef.current;
-    if (!node || typeof IntersectionObserver === 'undefined') return;
-    const observer = new IntersectionObserver(
-      ([entry]) => setScrolledPast(!entry.isIntersecting),
-      { rootMargin: `-${NAV_OFFSET_PX}px 0px 0px 0px`, threshold: 0 },
-    );
-    observer.observe(node);
-    return () => observer.disconnect();
+    if (!node) return;
+
+    let shown = false;
+    let frame = 0;
+
+    const evaluate = () => {
+      frame = 0;
+      const { bottom } = node.getBoundingClientRect();
+      if (!shown && bottom <= NAV_OFFSET_PX) {
+        shown = true;
+        setScrolledPast(true);
+      } else if (shown && bottom >= NAV_OFFSET_PX + REVEAL_HYSTERESIS_PX) {
+        shown = false;
+        setScrolledPast(false);
+      }
+    };
+
+    const onScroll = () => {
+      if (!frame) frame = requestAnimationFrame(evaluate);
+    };
+
+    evaluate();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', onScroll, { passive: true });
+    return () => {
+      window.removeEventListener('scroll', onScroll);
+      window.removeEventListener('resize', onScroll);
+      if (frame) cancelAnimationFrame(frame);
+    };
   }, [setScrolledPast]);
 
   return (

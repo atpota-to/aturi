@@ -28,9 +28,9 @@ export default function StickyBreadcrumbBar() {
           animate={{ height: 'auto', opacity: 1 }}
           exit={{ height: 0, opacity: 0 }}
           transition={{ duration: 0.24, ease: 'easeOut' }}
-          // flex-basis 100% drops this onto its own line below the
-          // logo/menu row inside the wrapping nav card.
-          style={{ flexBasis: '100%', overflow: 'hidden' }}
+          // A full-width section at the bottom of the (unpadded) nav card; its
+          // border-top reads as a divider connecting it to the row above.
+          style={{ overflow: 'hidden' }}
         >
           <div
             style={{
@@ -38,8 +38,7 @@ export default function StickyBreadcrumbBar() {
               flexWrap: 'wrap',
               alignItems: 'center',
               gap: '0.3rem',
-              marginTop: '0.5rem',
-              paddingTop: '0.45rem',
+              padding: '0.5rem 1rem',
               borderTop: '1px solid var(--border-subtle)',
               fontFamily: 'var(--font-mono)',
               fontSize: '0.6875rem',
