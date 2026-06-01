@@ -21,6 +21,20 @@ import {
   type FontScale,
   DEFAULT_FONT_SCALE,
 } from '@/lib/fontScale';
+import {
+  applyHighContrast,
+  applyReduceMotion,
+  getHighContrastServerSnapshot,
+  getHighContrastSnapshot,
+  getReduceMotionServerSnapshot,
+  getReduceMotionSnapshot,
+  HIGH_CONTRAST_STORAGE_KEY,
+  REDUCE_MOTION_STORAGE_KEY,
+  setStoredHighContrast,
+  setStoredReduceMotion,
+  subscribeHighContrast,
+  subscribeReduceMotion,
+} from '@/lib/a11y';
 import { usePreferences } from '@/components/PreferencesProvider';
 import { useMyCollections } from '@/components/explore/useRepoCollections';
 import Toggle from '../Toggle';
@@ -56,13 +70,16 @@ function AppearanceCard() {
       <div className="settings-card-head">
         <h2 className="settings-card-title">Appearance</h2>
         <p className="settings-card-sub">
-          Switch between dark and light themes, and choose how much of each
-          explorer repo page you see. The page chrome and accent palette flip
-          together; explorer panels, embeds, and the home strip all follow.
+          Switch between dark and light themes, tune the text size, dial in
+          accessibility options, and choose how much of each explorer repo
+          page you see. The page chrome and accent palette flip together;
+          explorer panels, embeds, and the home strip all follow.
         </p>
       </div>
       <ThemePicker />
       <FontScalePicker />
+      <ReduceMotionToggle />
+      <HighContrastToggle />
 
       <Toggle
         id="hide-relationship-bar"
@@ -752,5 +769,63 @@ function FontScalePicker() {
         })}
       </div>
     </div>
+  );
+}
+
+function ReduceMotionToggle() {
+  const on = useSyncExternalStore(
+    subscribeReduceMotion,
+    getReduceMotionSnapshot,
+    getReduceMotionServerSnapshot,
+  );
+
+  function set(next: boolean) {
+    setStoredReduceMotion(next);
+    applyReduceMotion(next);
+    window.dispatchEvent(
+      new StorageEvent('storage', {
+        key: REDUCE_MOTION_STORAGE_KEY,
+        newValue: next ? 'true' : 'false',
+      }),
+    );
+  }
+
+  return (
+    <Toggle
+      id="reduce-motion"
+      label="Reduce motion"
+      description="Stops the drifting background glow and pauses page, hover, and loading animations across the site. Defaults to your system setting."
+      checked={on}
+      onChange={set}
+    />
+  );
+}
+
+function HighContrastToggle() {
+  const on = useSyncExternalStore(
+    subscribeHighContrast,
+    getHighContrastSnapshot,
+    getHighContrastServerSnapshot,
+  );
+
+  function set(next: boolean) {
+    setStoredHighContrast(next);
+    applyHighContrast(next);
+    window.dispatchEvent(
+      new StorageEvent('storage', {
+        key: HIGH_CONTRAST_STORAGE_KEY,
+        newValue: next ? 'true' : 'false',
+      }),
+    );
+  }
+
+  return (
+    <Toggle
+      id="high-contrast"
+      label="High contrast"
+      description="Boosts text and border contrast and removes the ambient glow and grain overlays for a sharper, more legible interface. Defaults to your system setting."
+      checked={on}
+      onChange={set}
+    />
   );
 }

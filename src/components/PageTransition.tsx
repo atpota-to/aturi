@@ -2,7 +2,12 @@
 
 import { motion, AnimatePresence, MotionConfig } from 'framer-motion';
 import { usePathname } from 'next/navigation';
-import { ReactNode, useEffect } from 'react';
+import { ReactNode, useEffect, useSyncExternalStore } from 'react';
+import {
+  getReduceMotionServerSnapshot,
+  getReduceMotionSnapshot,
+  subscribeReduceMotion,
+} from '@/lib/a11y';
 
 interface PageTransitionProps {
   children: ReactNode;
@@ -23,13 +28,23 @@ interface PageTransitionProps {
  *     one during the crossfade, so the layout doesn't collapse to zero
  *     height (which was making the footer ride up between pages).
  *
- * `reducedMotion="user"` makes every descendant motion component (FadeIn,
- * StaggeredChildren, the header h1/p/nav) respect the OS-level
- * prefers-reduced-motion setting — Framer auto-disables transforms while
- * keeping opacity transitions, matching the CSS-side guard in globals.css.
+ * The `reducedMotion` config makes every descendant motion component
+ * (FadeIn, StaggeredChildren, the header h1/p/nav) respect the reduce-motion
+ * choice — Framer auto-disables transforms while keeping opacity
+ * transitions, matching the CSS-side guard in globals.css. We read the live
+ * `data-reduce-motion` attribute (seeded from the OS preference, overridable
+ * by the in-app toggle) rather than `"user"` so the toggle controls Framer
+ * too. Framer animations are JS-driven and only start after hydration, by
+ * which point useSyncExternalStore has read the real attribute the init
+ * script set before paint — so there's no pre-hydration motion flash.
  */
 export default function PageTransition({ children }: PageTransitionProps) {
   const pathname = usePathname();
+  const reduceMotion = useSyncExternalStore(
+    subscribeReduceMotion,
+    getReduceMotionSnapshot,
+    getReduceMotionServerSnapshot,
+  );
 
   // Reset scroll on route change. Next.js does this automatically, but
   // AnimatePresence mode="popLayout" keeps the outgoing page mounted
@@ -49,7 +64,7 @@ export default function PageTransition({ children }: PageTransitionProps) {
   }, [pathname]);
 
   return (
-    <MotionConfig reducedMotion="user">
+    <MotionConfig reducedMotion={reduceMotion ? 'always' : 'never'}>
       <AnimatePresence mode="popLayout" initial={false}>
         <motion.div
           key={pathname}
