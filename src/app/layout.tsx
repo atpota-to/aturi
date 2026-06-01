@@ -6,8 +6,10 @@ import Footer from "@/components/Footer";
 import PageTransition from "@/components/PageTransition";
 import ThemeSync from "@/components/ThemeSync";
 import FontScaleSync from "@/components/FontScaleSync";
+import A11ySync from "@/components/A11ySync";
 import { DEFAULT_THEME, THEME_INIT_SCRIPT } from "@/lib/theme";
 import { FONT_SCALE_INIT_SCRIPT } from "@/lib/fontScale";
+import { A11Y_INIT_SCRIPT } from "@/lib/a11y";
 import { getSiteUrl } from "@/lib/config";
 import "./globals.css";
 
@@ -63,10 +65,16 @@ export default function RootLayout({
             font-size on <html> synchronously; "default" resolves to the
             same 16px the CSS already sets, so the baseline is unchanged. */}
         <script dangerouslySetInnerHTML={{ __html: FONT_SCALE_INIT_SCRIPT }} />
+        {/* Apply saved reduce-motion / high-contrast choices before first
+            paint so cold loads don't flash the motion background or a
+            low-contrast palette. Each falls back to the matching OS
+            preference when the user hasn't chosen explicitly. */}
+        <script dangerouslySetInnerHTML={{ __html: A11Y_INIT_SCRIPT }} />
       </head>
       <body>
         <ThemeSync />
         <FontScaleSync />
+        <A11ySync />
         <AtprotoSessionProvider>
           <PreferencesProvider>
             <PageTransition>

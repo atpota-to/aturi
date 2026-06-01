@@ -206,6 +206,66 @@
   color-scheme: light;
 }
 
+/* High-contrast overrides. Layered on top of whichever theme is active, so
+   they only touch the tokens that need more separation: pure-black/white
+   backgrounds and text, opaque borders, and brighter accents. Everything
+   else in the app reads from these custom properties, so overriding them
+   here lifts contrast app-wide without per-component edits. The ambient
+   glow + noise overlays are removed further down (they wash out edges). */
+[data-high-contrast='true'] {
+  --bg-primary: #000000;
+  --bg-secondary: #0c0c0c;
+  --bg-tertiary: #161616;
+  --bg-elevated: #1e1e1e;
+
+  --text-primary: #ffffff;
+  --text-secondary: #ededed;
+  --text-tertiary: #cccccc;
+  --text-accent: #c8e0b4;
+
+  --accent-moss: #6f8a5c;
+  --accent-forest: #44603a;
+  --accent-bark: #6a5847;
+  --accent-stone: #6a6a64;
+
+  --border-subtle: rgba(255, 255, 255, 0.5);
+  --border-medium: rgba(255, 255, 255, 0.7);
+  --border-strong: rgba(255, 255, 255, 0.9);
+
+  --glow-subtle: transparent;
+  --glow-medium: transparent;
+  --glow-strong: transparent;
+
+  --text-on-accent: #ffffff;
+  --danger: #ff8a8a;
+  --danger-border: rgba(255, 138, 138, 0.7);
+}
+
+[data-theme='light'][data-high-contrast='true'] {
+  --bg-primary: #ffffff;
+  --bg-secondary: #f4f1ea;
+  --bg-tertiary: #e7e2d6;
+  --bg-elevated: #ffffff;
+
+  --text-primary: #000000;
+  --text-secondary: #1a1a17;
+  --text-tertiary: #333330;
+  --text-accent: #2a3a1e;
+
+  --accent-moss: #3f4f33;
+  --accent-forest: #2f3d28;
+  --accent-bark: #4a3f30;
+  --accent-stone: #44443f;
+
+  --border-subtle: rgba(0, 0, 0, 0.5);
+  --border-medium: rgba(0, 0, 0, 0.7);
+  --border-strong: rgba(0, 0, 0, 0.9);
+
+  --text-on-accent: #ffffff;
+  --danger: #9a1f1a;
+  --danger-border: rgba(154, 31, 26, 0.7);
+}
+
 * {
   margin: 0;
   padding: 0;
@@ -756,6 +816,14 @@ body::after {
   opacity: var(--noise-opacity);
   pointer-events: none;
   z-index: 9999;
+}
+
+/* High contrast: drop the ambient glow and grain overlays — both soften
+   edges and lower text/background separation, which is the opposite of
+   what this mode is for. */
+[data-high-contrast='true'] body::before,
+[data-high-contrast='true'] body::after {
+  display: none;
 }
 
 /* Mobile-only fade for status bar and URL bar */
@@ -1786,46 +1854,48 @@ html {
   transform: rotate(-0.3deg) scale(0.97) !important;
 }
 
-/* Respect the OS-level reduced-motion preference. We keep the decorative
-   gradients and noise overlay (they're static visual depth, not motion)
-   but pause the body::before drift, drop hover translates/scale, and
-   collapse keyframe-driven animations to a near-instant fade. Framer
-   Motion components opt-in to the same preference via MotionConfig in
-   PageTransition.tsx. */
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.001ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.001ms !important;
-    scroll-behavior: auto !important;
-  }
+/* Reduced motion. Driven by the `data-reduce-motion` attribute on <html>,
+   which the A11Y_INIT_SCRIPT seeds from the OS `prefers-reduced-motion`
+   setting before first paint and the settings toggle can flip either way.
+   Keying off the attribute (rather than the media query directly) lets the
+   in-app toggle override the OS preference in both directions while still
+   defaulting to it. We keep the decorative gradients and noise overlay
+   (static visual depth, not motion) but pause the body::before drift, drop
+   hover translates/scale, and collapse keyframe-driven animations to a
+   near-instant fade. Framer Motion follows the same flag via MotionConfig
+   in PageTransition.tsx. */
+[data-reduce-motion='true'] *,
+[data-reduce-motion='true'] *::before,
+[data-reduce-motion='true'] *::after {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001ms !important;
+  scroll-behavior: auto !important;
+}
 
-  body::before {
-    animation: none !important;
-  }
+[data-reduce-motion='true'] body::before {
+  animation: none !important;
+}
 
-  /* Disable the hover-translate / rotate / scale flourishes — they aren't
-     just transitions, the `transform` property itself is being toggled. */
-  .nav-link:hover,
-  .compact-nav-link:hover,
-  .waypoint-button:hover,
-  .feature-card-primary:hover,
-  .feature-card-secondary:hover,
-  .example-link:hover,
-  .cta-card:hover,
-  .cta-button:hover,
-  .parent-card:hover,
-  .featured-waypoint:hover,
-  .card:not(.feature-card-primary):not(.feature-card-secondary):not(.cta-card):hover {
-    transform: none !important;
-  }
+/* Disable the hover-translate / rotate / scale flourishes — they aren't
+   just transitions, the `transform` property itself is being toggled. */
+[data-reduce-motion='true'] .nav-link:hover,
+[data-reduce-motion='true'] .compact-nav-link:hover,
+[data-reduce-motion='true'] .waypoint-button:hover,
+[data-reduce-motion='true'] .feature-card-primary:hover,
+[data-reduce-motion='true'] .feature-card-secondary:hover,
+[data-reduce-motion='true'] .example-link:hover,
+[data-reduce-motion='true'] .cta-card:hover,
+[data-reduce-motion='true'] .cta-button:hover,
+[data-reduce-motion='true'] .parent-card:hover,
+[data-reduce-motion='true'] .featured-waypoint:hover,
+[data-reduce-motion='true'] .card:not(.feature-card-primary):not(.feature-card-secondary):not(.cta-card):hover {
+  transform: none !important;
+}
 
-  .nav-link:hover svg,
-  .compact-nav-link:hover svg {
-    transform: none !important;
-  }
+[data-reduce-motion='true'] .nav-link:hover svg,
+[data-reduce-motion='true'] .compact-nav-link:hover svg {
+  transform: none !important;
 }
 
 /* ============================================
@@ -2056,16 +2126,12 @@ html {
   to   { transform: rotate(360deg); }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .explore-spin {
-    animation: none;
-  }
+[data-reduce-motion='true'] .explore-spin {
+  animation: none;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .explore-jetstream-row[data-fresh] {
-    animation: none;
-  }
+[data-reduce-motion='true'] .explore-jetstream-row[data-fresh] {
+  animation: none;
 }
 
 /* Responsive */
