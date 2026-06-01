@@ -1,10 +1,17 @@
 'use client';
 
+import { useEffect, useMemo, useRef } from 'react';
 import Link from 'next/link';
 import { ChevronRight, Server } from 'lucide-react';
 import { encodeRepo } from '@/utils/atproto/urls';
 import { pdsHostname } from '@/utils/atproto/pdsServer';
+import { useBreadcrumbTrail, type BreadcrumbCrumb } from './BreadcrumbContext';
 import ShareLinkChip from './ShareLinkChip';
+
+// Approximate height of the sticky compact nav. The condensed breadcrumb
+// reveals the moment the full one slips up behind the nav, so we treat the
+// top ~96px of the viewport as occluded when deciding "scrolled past".
+const NAV_OFFSET_PX = 96;
 
 type Props = {
   handle: string | null;
@@ -40,8 +47,55 @@ export default function Breadcrumb({
   const repoLabel = handle ? `@${handle}` : did;
   const pdsHost = pds ? pdsHostname(pds) : null;
 
+  const navRef = useRef<HTMLElement>(null);
+  const { setTrail, setScrolledPast } = useBreadcrumbTrail();
+
+  // Mirror the visible trail into shared context so the floating nav can
+  // re-render it in miniature once this breadcrumb scrolls away. The share
+  // chip is intentionally left out — the condensed copy is a path, not a row
+  // of actions.
+  const trail = useMemo<BreadcrumbCrumb[]>(() => {
+    const crumbs: BreadcrumbCrumb[] = [];
+    if (pdsHost) {
+      crumbs.push({
+        label: pdsHost,
+        href: `/explore/pds/${encodeURIComponent(pdsHost)}`,
+        icon: 'server',
+      });
+    }
+    crumbs.push({ label: repoLabel, href: `/explore/${repoSegment}` });
+    if (collection) {
+      crumbs.push({ label: collection, href: `/explore/${repoSegment}/${collection}` });
+    }
+    if (rkey) {
+      crumbs.push({ label: rkey });
+    }
+    return crumbs;
+  }, [pdsHost, repoLabel, repoSegment, collection, rkey]);
+
+  useEffect(() => {
+    setTrail(trail);
+    return () => setTrail(null);
+  }, [trail, setTrail]);
+
+  // Watch the live breadcrumb; once it sits fully behind the sticky nav the
+  // condensed copy takes over. The negative top rootMargin pulls the trigger
+  // line down to the nav's lower edge so the handoff lines up with the
+  // breadcrumb actually disappearing rather than leaving the viewport.
+  useEffect(() => {
+    const node = navRef.current;
+    if (!node || typeof IntersectionObserver === 'undefined') return;
+    const observer = new IntersectionObserver(
+      ([entry]) => setScrolledPast(!entry.isIntersecting),
+      { rootMargin: `-${NAV_OFFSET_PX}px 0px 0px 0px`, threshold: 0 },
+    );
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [setScrolledPast]);
+
   return (
     <nav
+      ref={navRef}
       aria-label="Breadcrumb"
       style={{
         display: 'flex',

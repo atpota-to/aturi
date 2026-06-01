@@ -8,6 +8,7 @@ import ThemeToggle from './ThemeToggle';
 import SessionMenu from './SessionMenu';
 import SessionPanel from './SessionPanel';
 import CompactSearchPanel from './CompactSearchPanel';
+import StickyBreadcrumbBar from './explore/StickyBreadcrumbBar';
 
 interface HeaderProps {
   simple?: boolean; // If true, shows a smaller version without the tagline
@@ -68,9 +69,13 @@ export default function Header({ simple = false, compact = false }: HeaderProps)
         <div
           style={{
             display: 'flex',
+            // Wrap so the condensed breadcrumb (flex-basis 100%) can drop onto
+            // its own line beneath the logo/menu row. columnGap, not gap, so
+            // the wrap doesn't introduce vertical space above a hidden bar.
+            flexWrap: 'wrap',
             alignItems: 'center',
             justifyContent: 'space-between',
-            gap: '1rem',
+            columnGap: '1rem',
             padding: '0.75rem 1rem',
             background: 'var(--bg-secondary)',
             border: '1px solid var(--border-medium)',
@@ -187,6 +192,11 @@ export default function Header({ simple = false, compact = false }: HeaderProps)
               }} />
             </button>
           </div>
+
+          {/* Condensed breadcrumb that drops in once you scroll past the
+              in-page one, keeping the explorer path anchored at the top.
+              Renders nothing off the explorer routes (no trail registered). */}
+          <StickyBreadcrumbBar />
         </div>
 
         {/* Search panel — sits in the same expanding region as the menu
