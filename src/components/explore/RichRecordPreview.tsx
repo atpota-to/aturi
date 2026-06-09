@@ -86,20 +86,40 @@ export default function RichRecordPreview({
     };
   }, [isPost, did, collection, rkey]);
 
-  // Posts: prefer the AppView thread (renders embeds, author, counts).
+  const recordForLegacy: GenericRecord | null = record
+    ? {
+        uri: record.uri,
+        cid: record.cid,
+        value: record.value,
+      }
+    : null;
+
+  // Posts: prefer the AppView thread (renders embeds, author, counts) for
+  // the rich preview, then surface the underlying record's structured
+  // fields beneath it — the same "rich JSON" view every other record type
+  // gets through RecordPreview. Without this a post's actual record data
+  // (text, facets, langs, reply refs, embed) is only reachable in the
+  // collapsed "Raw record JSON" disclosure at the bottom of the page.
   if (isPost) {
     const post = postThread?.thread[0]?.value.post;
     if (!post) return null;
-    return <PostPreview post={post} parent={postThread?.parent} hideExplorerCtas />;
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+        <PostPreview post={post} parent={postThread?.parent} hideExplorerCtas />
+        {recordForLegacy && (
+          <RecordPreview
+            record={recordForLegacy}
+            collection={collection}
+            handle={handle}
+            rkey={rkey}
+            hideExplorerCtas
+          />
+        )}
+      </div>
+    );
   }
 
-  if (!record) return null;
-
-  const recordForLegacy: GenericRecord = {
-    uri: record.uri,
-    cid: record.cid,
-    value: record.value,
-  };
+  if (!recordForLegacy) return null;
 
   // Margin lexicons get their own renderers — close visual parity with the
   // universal link page so users get the same affordances.
