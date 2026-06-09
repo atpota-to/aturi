@@ -114,6 +114,14 @@ function AppearanceCard() {
         checked={prefs.minimalProfile}
         onChange={(next) => update((p) => ({ ...p, minimalProfile: next }))}
       />
+
+      <Toggle
+        id="minimal-post-preview"
+        label="Minimal post view"
+        description="Skips the rich Bluesky post card on explorer record pages, showing just the record's structured data. You can switch back to the full preview right on the page."
+        checked={prefs.minimalPostPreview}
+        onChange={(next) => update((p) => ({ ...p, minimalPostPreview: next }))}
+      />
     </section>
   );
 }

@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ExternalLink, FilePenLine, SearchX, TriangleAlert } from 'lucide-react';
+import { FilePenLine, SearchX, TriangleAlert } from 'lucide-react';
 import { getRecord, getRecordUrl, type AtRecord } from '@/utils/atproto/pdsClient';
 import { resolveIdentifier, type IdentityBundle } from '@/utils/atproto/identity';
 import { encodeRepo } from '@/utils/atproto/urls';
@@ -18,9 +18,10 @@ import BacklinksTab from './tabs/BacklinksTab';
 import LexiconUsageCard from './lexicons/LexiconUsageCard';
 import RecordEditor from './RecordEditor';
 import SignInPanel from './SignInPanel';
-import UniversalLinkChip from './UniversalLinkChip';
+import LinkButton from './LinkButton';
 import NotFoundPanel from '@/components/NotFoundPanel';
 import { useAtprotoSession } from '@/components/AtprotoSessionProvider';
+import { usePreferences } from '@/components/PreferencesProvider';
 
 type Props = {
   repo: string;
@@ -36,6 +37,7 @@ export default function RecordExplorer({ repo, collection, rkey }: Props) {
   const [recordError, setRecordError] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
   const { agent, did: signedInDid, session } = useAtprotoSession();
+  const { prefs, update: updatePrefs, loading: prefsLoading } = usePreferences();
 
   const decodedRkey = useMemo(() => {
     try {
@@ -103,6 +105,12 @@ export default function RecordExplorer({ repo, collection, rkey }: Props) {
   const atUri = `at://${identity.did}/${collection}/${decodedRkey}`;
   const repoSeg = encodeRepo(identity.handle || identity.did);
   const canEdit = Boolean(agent && signedInDid && signedInDid === identity.did);
+  // "Minimal post view" preference — collapse the rich Bluesky post card to
+  // just the structured record. Only applies to posts, and only once prefs
+  // have settled (defaults render the full preview, matching first paint).
+  const isPost = collection === 'app.bsky.feed.post';
+  const showPostViewSwitch = !prefsLoading && isPost;
+  const minimalPost = showPostViewSwitch && prefs.minimalPostPreview;
   // Universal link uses the canonical `/profile/` path; bare-form
   // `/<handle>/<collection>/<rkey>` still works as a fallback route but
   // shareable copies should point at the canonical one.
@@ -193,9 +201,21 @@ export default function RecordExplorer({ repo, collection, rkey }: Props) {
                 rkey={decodedRkey}
                 record={record}
                 footerActions={editsInPreviewFooter ? editButton : null}
+                minimalPost={minimalPost}
               />
             )}
           </AppearIn>
+          {/* Inline switch between the rich post card and the minimal
+              record-only view — mirrors the repo page's profile switch so
+              users can flip without round-tripping through settings. */}
+          {!editing && showPostViewSwitch && (
+            <PostViewSwitch
+              minimal={minimalPost}
+              onToggle={() =>
+                updatePrefs((p) => ({ ...p, minimalPostPreview: !p.minimalPostPreview }))
+              }
+            />
+          )}
         </>
       )}
 
@@ -297,6 +317,47 @@ export default function RecordExplorer({ repo, collection, rkey }: Props) {
 }
 
 /**
+ * Quiet text toggle between the rich post card and the minimal
+ * record-only view, mirroring the repo page's ProfileViewSwitch. Flips the
+ * persisted `minimalPostPreview` pref so the choice sticks and syncs.
+ */
+function PostViewSwitch({
+  minimal,
+  onToggle,
+}: {
+  minimal: boolean;
+  onToggle: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      style={{
+        alignSelf: 'flex-start',
+        marginTop: '-0.5rem',
+        padding: 0,
+        background: 'transparent',
+        border: 0,
+        cursor: 'pointer',
+        fontFamily: 'var(--font-serif)',
+        fontSize: '0.75rem',
+        letterSpacing: '0.04em',
+        color: 'var(--text-tertiary)',
+        transition: 'color 0.2s ease',
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.color = 'var(--text-accent)';
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.color = 'var(--text-tertiary)';
+      }}
+    >
+      {minimal ? 'Show full post preview' : 'Use minimal view'}
+    </button>
+  );
+}
+
+/**
  * Single-row of compact copy buttons for the values a record-page
  * visitor might want to grab. Replaces the older RecordMeta + per-cell
  * copy + standalone "Copy JSON" + outbound "Universal link" cluster.
@@ -338,12 +399,6 @@ function CopyRow({
         background: 'var(--bg-secondary)',
       }}
     >
-      <span
-        className="explore-small-caps"
-        style={{ marginRight: '0.25rem', color: 'var(--text-tertiary)' }}
-      >
-        Copy
-      </span>
       <CopyButton value={atUri} label="AT URI" compact variant="subtle" />
       <CopyButton value={did} label="DID" compact variant="subtle" />
       <CopyButton value={pds} label="PDS" compact variant="subtle" />
@@ -351,28 +406,13 @@ function CopyRow({
       {recordJson && (
         <CopyButton value={recordJson} label="JSON" compact variant="subtle" />
       )}
-      <UniversalLinkChip href={universalPath} />
-      <a
+      <LinkButton href={universalPath} label="Universal link page" />
+      <LinkButton
         href={pdsRecordUrl}
-        target="_blank"
-        rel="noreferrer"
+        label="View on PDS"
+        external
         title="Fetch the raw record JSON from the PDS"
-        style={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: '0.3rem',
-          padding: '0.3rem 0.6rem',
-          background: 'var(--bg-tertiary)',
-          border: '1px solid var(--border-medium)',
-          color: 'var(--text-secondary)',
-          fontFamily: 'var(--font-serif)',
-          fontSize: '0.8125rem',
-          textDecoration: 'none',
-        }}
-      >
-        <ExternalLink size={12} />
-        View on PDS
-      </a>
+      />
     </div>
   );
 }

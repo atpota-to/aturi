@@ -126,6 +126,12 @@ export type Preferences = {
    */
   minimalProfile: boolean;
   /**
+   * Show a minimal post on explorer record pages — just the record's
+   * structured data — instead of the rich Bluesky post card. The page also
+   * offers an inline switch to flip back to the full preview.
+   */
+  minimalPostPreview: boolean;
+  /**
    * ISO timestamp of last local change. Used to break ties when local and
    * PDS prefs both exist on sign-in.
    */
@@ -148,6 +154,7 @@ export const DEFAULT_PREFERENCES: Preferences = {
   hideRepoGlance: false,
   repoGlanceCollapsedByDefault: false,
   minimalProfile: false,
+  minimalPostPreview: false,
   updatedAt: new Date(0).toISOString(),
 };
 
@@ -246,6 +253,8 @@ export function mergeWithDefaults(input: Partial<Preferences> | null | undefined
       : false;
   const minimalProfile =
     typeof input.minimalProfile === 'boolean' ? input.minimalProfile : false;
+  const minimalPostPreview =
+    typeof input.minimalPostPreview === 'boolean' ? input.minimalPostPreview : false;
   return {
     waypointGroups,
     hiddenWaypoints,
@@ -259,6 +268,7 @@ export function mergeWithDefaults(input: Partial<Preferences> | null | undefined
     hideRepoGlance,
     repoGlanceCollapsedByDefault,
     minimalProfile,
+    minimalPostPreview,
     updatedAt:
       typeof input.updatedAt === 'string' ? input.updatedAt : new Date(0).toISOString(),
   };
@@ -327,6 +337,7 @@ export function preferencesAreEqual(a: Preferences, b: Preferences): boolean {
     a.hideRepoGlance === b.hideRepoGlance &&
     a.repoGlanceCollapsedByDefault === b.repoGlanceCollapsedByDefault &&
     a.minimalProfile === b.minimalProfile &&
+    a.minimalPostPreview === b.minimalPostPreview &&
     JSON.stringify(a.waypointGroups) === JSON.stringify(b.waypointGroups) &&
     JSON.stringify(a.customWaypoints) === JSON.stringify(b.customWaypoints) &&
     JSON.stringify(a.pinnedLexicons) === JSON.stringify(b.pinnedLexicons) &&

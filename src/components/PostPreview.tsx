@@ -11,7 +11,7 @@ import { BskyPost } from '@/utils/recordFetcher';
 import { getEmbedImages, type EmbedDisplayImage } from '@/utils/postEmbeds';
 import { formatCount } from '@/utils/ufos/format';
 import { sanitizeFacetLink, sanitizeDid, sanitizeHashtag, sanitizeUrl, sanitizeHandle } from '@/utils/sanitize';
-import { User, MessageSquare, Repeat2, Heart, Quote, Play, CornerDownRight, Telescope } from 'lucide-react';
+import { User, MessageSquare, Repeat2, Heart, Quote, Play, CornerDownRight, Telescope, Globe } from 'lucide-react';
 import { explorePathFromAtUri } from '@/utils/atproto/urls';
 
 type PostPreviewProps = {
@@ -1292,6 +1292,39 @@ export default function PostPreview({ post, parent, hideExplorerCtas }: PostPrev
             >
               <Telescope size={12} />
               View record data in the Explorer →
+            </Link>
+          </div>
+        );
+      })()}
+
+      {/* Inverse of the universal link page's "View record data in the
+          Explorer →" CTA: inside the explorer, a quiet link back out to the
+          shareable universal link page for this post. Mirrors the explorer
+          profile card's "View the universal link page →". */}
+      {hideExplorerCtas && (() => {
+        const postUrl = buildPostUrl(post.uri, author);
+        if (!postUrl) return null;
+        return (
+          <div
+            style={{
+              paddingTop: '1rem',
+              marginTop: '1rem',
+              borderTop: '1px solid var(--border-subtle)',
+              fontSize: '0.8125rem',
+            }}
+          >
+            <Link
+              href={postUrl}
+              className="profile-explorer-link"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.4rem',
+                textDecoration: 'none',
+              }}
+            >
+              <Globe size={12} />
+              View the universal link page →
             </Link>
           </div>
         );

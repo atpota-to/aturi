@@ -34,6 +34,12 @@ type Props = {
    * and the explorer renders the action above them instead.
    */
   footerActions?: import('react').ReactNode;
+  /**
+   * When true (posts only), collapse the rich Bluesky post card and show
+   * just the record's structured data — the user's "minimal post view"
+   * preference, mirroring the minimal profile view on repo pages.
+   */
+  minimalPost?: boolean;
 };
 
 /**
@@ -65,6 +71,7 @@ export default function RichRecordPreview({
   rkey,
   record,
   footerActions,
+  minimalPost = false,
 }: Props) {
   const marginType = getMarginLexiconType(collection);
   const isPost = collection === 'app.bsky.feed.post';
@@ -72,7 +79,8 @@ export default function RichRecordPreview({
   const [postThread, setPostThread] = useState<PostThread | null>(null);
 
   useEffect(() => {
-    if (!isPost) {
+    // Minimal view doesn't render the post card, so skip the AppView fetch.
+    if (!isPost || minimalPost) {
       setPostThread(null);
       return undefined;
     }
@@ -84,7 +92,7 @@ export default function RichRecordPreview({
     return () => {
       cancelled = true;
     };
-  }, [isPost, did, collection, rkey]);
+  }, [isPost, minimalPost, did, collection, rkey]);
 
   const recordForLegacy: GenericRecord | null = record
     ? {
@@ -101,6 +109,19 @@ export default function RichRecordPreview({
   // (text, facets, langs, reply refs, embed) is only reachable in the
   // collapsed "Raw record JSON" disclosure at the bottom of the page.
   if (isPost) {
+    // Minimal view: drop the rich post card, keep just the structured
+    // record data (the same RecordPreview shown beneath the full preview).
+    if (minimalPost) {
+      return recordForLegacy ? (
+        <RecordPreview
+          record={recordForLegacy}
+          collection={collection}
+          handle={handle}
+          rkey={rkey}
+          hideExplorerCtas
+        />
+      ) : null;
+    }
     const post = postThread?.thread[0]?.value.post;
     if (!post) return null;
     return (
