@@ -78,29 +78,33 @@ export default function PostPreviewSkeleton({
         style={{
           display: 'flex',
           alignItems: 'center',
-          gap: '1.5rem',
+          // Mirror the real footer: wrap on narrow screens so the fixed-width
+          // stat/date placeholders never spill past the card's right edge.
+          flexWrap: 'wrap',
+          gap: '0.5rem 1.5rem',
           paddingTop: '1rem',
           borderTop: '1px solid var(--border-medium)',
         }}
       >
         {/* Stat icons */}
         {[1, 2, 3, 4].map((i) => (
-          <div 
+          <div
             key={i}
-            style={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              gap: '0.375rem' 
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.375rem',
+              flexShrink: 0,
             }}
           >
             <Skeleton width="16px" height="16px" />
             <Skeleton width="24px" height="0.875rem" />
           </div>
         ))}
-        
-        {/* Date skeleton */}
-        <div style={{ marginLeft: 'auto' }}>
-          <Skeleton width="100px" height="0.75rem" />
+
+        {/* Date skeleton — compact, matching the relative timestamp. */}
+        <div style={{ marginLeft: 'auto', flexShrink: 0 }}>
+          <Skeleton width="40px" height="0.75rem" />
         </div>
       </div>
     </div>
