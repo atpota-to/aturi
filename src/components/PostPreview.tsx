@@ -9,6 +9,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { BskyPost } from '@/utils/recordFetcher';
 import { getEmbedImages, type EmbedDisplayImage } from '@/utils/postEmbeds';
+import { formatCount } from '@/utils/ufos/format';
 import { sanitizeFacetLink, sanitizeDid, sanitizeHashtag, sanitizeUrl, sanitizeHandle } from '@/utils/sanitize';
 import { User, MessageSquare, Repeat2, Heart, Quote, Play, CornerDownRight, Telescope } from 'lucide-react';
 import { explorePathFromAtUri } from '@/utils/atproto/urls';
@@ -21,6 +22,24 @@ type PostPreviewProps = {
    * Used inside the explorer, which is itself the link's destination.
    */
   hideExplorerCtas?: boolean;
+};
+
+// Compact, Bluesky-style relative timestamp ("now", "5m", "2h", "3d",
+// "2w", "5mo", "1y"). Keeps the post footer from being squished on narrow
+// screens; the full timestamp is retained on hover via a title tooltip.
+// Future timestamps (clock skew) clamp to "now".
+const formatRelativeTime = (date: Date, now: Date = new Date()): string => {
+  const sec = Math.floor((now.getTime() - date.getTime()) / 1000);
+  if (sec < 60) return 'now';
+  const min = Math.floor(sec / 60);
+  if (min < 60) return `${min}m`;
+  const hr = Math.floor(min / 60);
+  if (hr < 24) return `${hr}h`;
+  const day = Math.floor(hr / 24);
+  if (day < 7) return `${day}d`;
+  if (day < 30) return `${Math.floor(day / 7)}w`;
+  if (day < 365) return `${Math.floor(day / 30)}mo`;
+  return `${Math.floor(day / 365)}y`;
 };
 
 // Build a canonical post URL from an AT URI and the post's author.
@@ -114,6 +133,11 @@ export default function PostPreview({ post, parent, hideExplorerCtas }: PostPrev
     hour: '2-digit',
     minute: '2-digit',
   });
+  // Compact relative form shown in the footer; the full date above stays
+  // available on hover so no information is lost. Falls back to the full
+  // string for unparseable dates (toISOString would otherwise throw).
+  const validDate = !Number.isNaN(createdAt.getTime());
+  const relativeDate = validDate ? formatRelativeTime(createdAt) : formattedDate;
 
   // Render a quoted post card
   const renderQuotedPost = (quotedPost: any) => {
@@ -1196,7 +1220,10 @@ export default function PostPreview({ post, parent, hideExplorerCtas }: PostPrev
         style={{
           display: 'flex',
           alignItems: 'center',
-          gap: '1.5rem',
+          // Wrap on narrow screens so the timestamp drops to its own line
+          // intact instead of squishing the row; tighter row gap when it does.
+          flexWrap: 'wrap',
+          gap: '0.5rem 1.5rem',
           paddingTop: '1rem',
           borderTop: '1px solid var(--border-color)',
           fontSize: '0.875rem',
@@ -1206,23 +1233,38 @@ export default function PostPreview({ post, parent, hideExplorerCtas }: PostPrev
           lineHeight: 1,
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', flexShrink: 0 }}>
           <MessageSquare size={16} />
-          <span>{replyCount || 0}</span>
+          <span>{formatCount(replyCount || 0)}</span>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', flexShrink: 0 }}>
           <Repeat2 size={16} />
-          <span>{repostCount || 0}</span>
+          <span>{formatCount(repostCount || 0)}</span>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', flexShrink: 0 }}>
           <Heart size={16} />
-          <span>{likeCount || 0}</span>
+          <span>{formatCount(likeCount || 0)}</span>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', flexShrink: 0 }}>
           <Quote size={16} />
-          <span>{quoteCount || 0}</span>
+          <span>{formatCount(quoteCount || 0)}</span>
         </div>
-        <div style={{ marginLeft: 'auto', fontSize: '0.75rem' }}>{formattedDate}</div>
+        {/* Relative time keeps the footer compact; full timestamp on hover. */}
+        <time
+          dateTime={validDate ? createdAt.toISOString() : undefined}
+          title={formattedDate}
+          // Relative time is computed from "now", so the SSR value may differ
+          // from the client at hydration — expected, don't warn.
+          suppressHydrationWarning
+          style={{
+            marginLeft: 'auto',
+            fontSize: '0.75rem',
+            whiteSpace: 'nowrap',
+            flexShrink: 0,
+          }}
+        >
+          {relativeDate}
+        </time>
       </div>
 
       {/* Cross-product: jump to this post's raw record in the explorer */}
