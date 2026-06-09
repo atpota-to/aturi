@@ -219,7 +219,11 @@ export default function RecordExplorer({ repo, collection, rkey }: Props) {
         </>
       )}
 
-      {record && !editing && (
+      {/* Engagement counts. Skipped for Bluesky posts — the rich post
+          preview's footer already shows replies/reposts/likes/quotes, so a
+          separate sidecar would just duplicate them. Still shown for
+          profiles (followers/following/posts) and other applicable records. */}
+      {record && !editing && !isPost && (
         <AppearIn>
           <EngagementSidecar did={identity.did} collection={collection} atUri={atUri} />
         </AppearIn>
