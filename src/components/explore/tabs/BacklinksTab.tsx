@@ -11,6 +11,7 @@ import {
   type BacklinkSource,
 } from '@/utils/atproto/constellation';
 import { shortDid } from '@/utils/atproto/urls';
+import { formatCount } from '@/utils/ufos/format';
 import AtUriLink from '../AtUriLink';
 
 /**
@@ -240,7 +241,7 @@ function BacklinkSourceList({
               aria-expanded={isOpen}
               style={{
                 display: 'grid',
-                gridTemplateColumns: 'auto 1fr 1fr auto auto',
+                gridTemplateColumns: 'auto 1fr 1fr auto',
                 gap: '0.5rem',
                 alignItems: 'baseline',
                 width: '100%',
@@ -277,20 +278,38 @@ function BacklinkSourceList({
               >
                 {s.path}
               </code>
+              {/* Count over distinct-accounts, stacked and abbreviated
+                  (2.4k) so the metrics take one narrow right-hand column
+                  instead of two — leaving the NSID/path columns more room
+                  before they wrap on mobile. */}
               <span
                 style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'flex-end',
+                  gap: '0.15rem',
                   fontVariantNumeric: 'tabular-nums',
-                  fontWeight: 600,
-                  color: 'var(--text-primary)',
+                  whiteSpace: 'nowrap',
                 }}
               >
-                {s.count.toLocaleString()}
-              </span>
-              {s.distinctDids != null && (
-                <span style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>
-                  {s.distinctDids.toLocaleString()} accounts
+                <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
+                  {formatCount(s.count)}{' '}
+                  <span
+                    style={{
+                      fontWeight: 400,
+                      fontSize: '0.75rem',
+                      color: 'var(--text-tertiary)',
+                    }}
+                  >
+                    backlinks
+                  </span>
                 </span>
-              )}
+                {s.distinctDids != null && (
+                  <span style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>
+                    {formatCount(s.distinctDids)} accounts
+                  </span>
+                )}
+              </span>
             </button>
             {isOpen && <BacklinkRecords target={target} source={s.source} />}
           </li>
