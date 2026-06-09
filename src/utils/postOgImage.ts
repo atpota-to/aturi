@@ -8,6 +8,7 @@
  */
 
 import type { BskyPost } from './recordFetcher';
+import { getEmbedImages } from './postEmbeds';
 
 export type PostOgImage = {
   url: string;
@@ -37,12 +38,11 @@ type EmbedView = {
 function pickFromView(view: EmbedView | undefined): PostOgImage | null {
   if (!view) return null;
 
-  if (
-    view.$type === 'app.bsky.embed.images#view' &&
-    view.images &&
-    view.images.length > 0
-  ) {
-    const img = view.images[0];
+  // Classic images embed (1–4) and the newer gallery embed (5+) both
+  // surface a list of images we can pull the first frame from.
+  const images = getEmbedImages(view);
+  if (images && images.length > 0) {
+    const img = images[0];
     const url = img.fullsize || img.thumb;
     if (!url) return null;
     return {

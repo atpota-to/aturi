@@ -1,6 +1,7 @@
 import { ImageResponse } from '@vercel/og';
 import { NextRequest } from 'next/server';
 import { fetchImageAsDataUrl } from '@/lib/og-image';
+import { getEmbedImages } from '@/utils/postEmbeds';
 
 export const runtime = 'edge';
 export const revalidate = 3600; // Cache for 1 hour
@@ -119,10 +120,11 @@ export async function GET(request: NextRequest) {
     let embedExternalTitle = null;
     
     if (embed) {
-      // Images
-      if (embed.$type === 'app.bsky.embed.images#view' && embed.images && embed.images.length > 0) {
+      // Images — classic images embed (1–4) or gallery embed (5+).
+      const mainImages = getEmbedImages(embed);
+      if (mainImages && mainImages.length > 0) {
         embedType = 'images';
-        embedImageUrl = embed.images[0].thumb;
+        embedImageUrl = mainImages[0].thumb;
       }
       // External link with thumbnail
       else if (embed.$type === 'app.bsky.embed.external#view' && embed.external) {
@@ -142,9 +144,10 @@ export async function GET(request: NextRequest) {
       }
       // Record with media (quote + image/video/link)
       else if (embed.$type === 'app.bsky.embed.recordWithMedia#view') {
-        if (embed.media?.$type === 'app.bsky.embed.images#view' && embed.media.images?.length > 0) {
+        const mediaImages = getEmbedImages(embed.media);
+        if (mediaImages && mediaImages.length > 0) {
           embedType = 'images';
-          embedImageUrl = embed.media.images[0].thumb;
+          embedImageUrl = mediaImages[0].thumb;
         } else if (embed.media?.$type === 'app.bsky.embed.external#view' && embed.media.external) {
           embedType = 'external';
           embedImageUrl = embed.media.external.thumb;

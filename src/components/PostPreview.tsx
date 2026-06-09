@@ -8,6 +8,7 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { BskyPost } from '@/utils/recordFetcher';
+import { getEmbedImages, type EmbedDisplayImage } from '@/utils/postEmbeds';
 import { sanitizeFacetLink, sanitizeDid, sanitizeHashtag, sanitizeUrl, sanitizeHandle } from '@/utils/sanitize';
 import { User, MessageSquare, Repeat2, Heart, Quote, Play, CornerDownRight, Telescope } from 'lucide-react';
 import { explorePathFromAtUri } from '@/utils/atproto/urls';
@@ -31,6 +32,74 @@ const buildPostUrl = (uri?: string, author?: { did?: string; handle?: string }):
   if (!rkey || !id) return null;
   return `/profile/${id}/post/${rkey}`;
 };
+
+// Shared grid for a post's image embeds, used by the main post, the parent
+// preview, quoted posts, and recordWithMedia media. Renders both the classic
+// images embed (1–4) and the gallery embed (5+) identically — callers pass a
+// normalized list from getEmbedImages. Galleries (5+) lay out in 3 columns;
+// smaller sets keep the original 1/2-column behaviour.
+function EmbedImageGrid({
+  images,
+  gap,
+  marginTop,
+  marginBottom,
+  maxHeight,
+  background,
+  boxShadow,
+  limit,
+  stopPropagation,
+}: {
+  images: EmbedDisplayImage[];
+  gap: string;
+  marginTop?: string;
+  marginBottom?: string;
+  maxHeight: string;
+  background: string;
+  boxShadow: string;
+  /** Cap the number of images shown (e.g. the parent preview shows 2). */
+  limit?: number;
+  /** Stop click propagation so opening an image doesn't trigger card nav. */
+  stopPropagation?: boolean;
+}) {
+  const shown = typeof limit === 'number' ? images.slice(0, limit) : images;
+  const columns =
+    shown.length === 1 ? '1fr' : shown.length >= 5 ? 'repeat(3, 1fr)' : 'repeat(2, 1fr)';
+
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: columns, gap, marginTop, marginBottom }}>
+      {shown.map((image, i) => {
+        const sanitizedFullsize = sanitizeUrl(image.fullsize);
+        const sanitizedThumb = sanitizeUrl(image.thumb);
+
+        return (
+          <a
+            key={i}
+            href={sanitizedFullsize}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={stopPropagation ? (e) => e.stopPropagation() : undefined}
+            style={{ display: 'block', overflow: 'hidden' }}
+          >
+            <img
+              src={sanitizedThumb}
+              alt={image.alt}
+              style={{
+                width: '100%',
+                height: 'auto',
+                maxHeight,
+                objectFit: 'cover',
+                background,
+                display: 'block',
+                border: '1px solid var(--border-medium)',
+                boxShadow,
+              }}
+            />
+          </a>
+        );
+      })}
+    </div>
+  );
+}
 
 export default function PostPreview({ post, parent, hideExplorerCtas }: PostPreviewProps) {
   const router = useRouter();
@@ -218,52 +287,20 @@ export default function PostPreview({ post, parent, hideExplorerCtas }: PostPrev
 
         {/* Quoted post embeds - render them properly */}
         {qEmbeds.map((qEmbed: any, idx: number) => {
-          // Images
-          if (qEmbed.$type === 'app.bsky.embed.images#view' && qEmbed.images) {
+          // Images — classic images embed (1–4) or gallery embed (5+).
+          const qImages = getEmbedImages(qEmbed);
+          if (qImages) {
             return (
-              <div
+              <EmbedImageGrid
                 key={idx}
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: qEmbed.images.length === 1 ? '1fr' : 'repeat(2, 1fr)',
-                  gap: '0.25rem',
-                  marginTop: '0.5rem',
-                }}
-              >
-                {qEmbed.images.map((image: any, i: number) => {
-                  const sanitizedFullsize = sanitizeUrl(image.fullsize);
-                  const sanitizedThumb = sanitizeUrl(image.thumb);
-                  
-                  return (
-                    <a
-                      key={i}
-                      href={sanitizedFullsize}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      onClick={(e) => e.stopPropagation()}
-                      style={{
-                        display: 'block',
-                        overflow: 'hidden',
-                      }}
-                    >
-                      <img
-                        src={sanitizedThumb}
-                        alt={image.alt}
-                        style={{
-                          width: '100%',
-                          height: 'auto',
-                          maxHeight: '200px',
-                          objectFit: 'cover',
-                          background: 'var(--bg-secondary)',
-                          display: 'block',
-                          border: '1px solid var(--border-medium)',
-                          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.3)',
-                        }}
-                      />
-                    </a>
-                  );
-                })}
-              </div>
+                images={qImages}
+                gap="0.25rem"
+                marginTop="0.5rem"
+                maxHeight="200px"
+                background="var(--bg-secondary)"
+                boxShadow="0 2px 8px rgba(0, 0, 0, 0.3)"
+                stopPropagation
+              />
             );
           }
 
@@ -364,6 +401,7 @@ export default function PostPreview({ post, parent, hideExplorerCtas }: PostPrev
         {qEmbeds.length === 0 && quotedPost.embed && (
           <div style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)', marginTop: '0.5rem' }}>
             {quotedPost.embed.$type === 'app.bsky.embed.images#view' && '📷 Images'}
+            {quotedPost.embed.$type === 'app.bsky.embed.gallery#view' && '📷 Images'}
             {quotedPost.embed.$type === 'app.bsky.embed.external#view' && '🔗 Link'}
             {quotedPost.embed.$type === 'app.bsky.embed.video#view' && '🎥 Video'}
             {quotedPost.embed.$type === 'app.bsky.embed.record#view' && '💬 Quote'}
@@ -690,45 +728,22 @@ export default function PostPreview({ post, parent, hideExplorerCtas }: PostPrev
           {/* Parent Post Embeds - Show images/video/external links */}
           {parent.embed && (
             <>
-              {/* Images */}
-              {parent.embed.$type === 'app.bsky.embed.images#view' && parent.embed.images && (
-                <div
-                  style={{
-                    display: 'grid',
-                    gridTemplateColumns: parent.embed.images.length === 1 ? '1fr' : 'repeat(2, 1fr)',
-                    gap: '0.25rem',
-                  }}
-                >
-                  {parent.embed.images.slice(0, 2).map((image: any, i: number) => (
-                    <a
-                      key={i}
-                      href={image.fullsize}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      onClick={(e) => e.stopPropagation()}
-                      style={{
-                        display: 'block',
-                        overflow: 'hidden',
-                      }}
-                    >
-                      <img
-                        src={image.thumb}
-                        alt={image.alt}
-                        style={{
-                          width: '100%',
-                          height: 'auto',
-                          maxHeight: '120px',
-                          objectFit: 'cover',
-                          background: 'var(--bg-secondary)',
-                          display: 'block',
-                          border: '1px solid var(--border-medium)',
-                          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.3)',
-                        }}
-                      />
-                    </a>
-                  ))}
-                </div>
-              )}
+              {/* Images — classic images embed (1–4) or gallery embed (5+). */}
+              {(() => {
+                const parentImages = getEmbedImages(parent.embed);
+                if (!parentImages) return null;
+                return (
+                  <EmbedImageGrid
+                    images={parentImages}
+                    gap="0.25rem"
+                    maxHeight="120px"
+                    background="var(--bg-secondary)"
+                    boxShadow="0 2px 8px rgba(0, 0, 0, 0.3)"
+                    limit={2}
+                    stopPropagation
+                  />
+                );
+              })()}
 
               {/* External link */}
               {parent.embed.$type === 'app.bsky.embed.external#view' && parent.embed.external && (
@@ -925,50 +940,21 @@ export default function PostPreview({ post, parent, hideExplorerCtas }: PostPrev
         {renderText()}
       </div>
 
-      {/* Embed - Images */}
-      {embed?.$type === 'app.bsky.embed.images#view' && embed.images && (
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: embed.images.length === 1 ? '1fr' : 'repeat(2, 1fr)',
-            gap: '0.5rem',
-            marginBottom: '1rem',
-          }}
-        >
-          {embed.images.map((image, i) => {
-            const sanitizedFullsize = sanitizeUrl(image.fullsize);
-            const sanitizedThumb = sanitizeUrl(image.thumb);
-            
-            return (
-              <a
-                key={i}
-                href={sanitizedFullsize}
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{ 
-                  display: 'block',
-                  overflow: 'hidden',
-                }}
-              >
-                <img
-                  src={sanitizedThumb}
-                  alt={image.alt}
-                  style={{
-                    width: '100%',
-                    height: 'auto',
-                    maxHeight: '1000px',
-                    objectFit: 'cover',
-                    background: 'var(--bg-tertiary)',
-                    display: 'block',
-                    border: '1px solid var(--border-medium)',
-                    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.4)',
-                  }}
-                />
-              </a>
-            );
-          })}
-        </div>
-      )}
+      {/* Embed - Images (classic images embed 1–4 or gallery embed 5+) */}
+      {(() => {
+        const mainImages = getEmbedImages(embed);
+        if (!mainImages) return null;
+        return (
+          <EmbedImageGrid
+            images={mainImages}
+            gap="0.5rem"
+            marginBottom="1rem"
+            maxHeight="1000px"
+            background="var(--bg-tertiary)"
+            boxShadow="0 4px 12px rgba(0, 0, 0, 0.4)"
+          />
+        );
+      })()}
 
       {/* Embed - External Link */}
       {embed?.$type === 'app.bsky.embed.external#view' && embed.external && (() => {
@@ -1082,50 +1068,21 @@ export default function PostPreview({ post, parent, hideExplorerCtas }: PostPrev
       {/* Embed - Record with Media (Quote + Link/Image/Video) */}
       {embed?.$type === 'app.bsky.embed.recordWithMedia#view' && (
         <>
-          {/* Render the media first */}
-          {embed.media?.$type === 'app.bsky.embed.images#view' && embed.media.images && (
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: embed.media.images.length === 1 ? '1fr' : 'repeat(2, 1fr)',
-                gap: '0.5rem',
-                marginBottom: '1rem',
-              }}
-            >
-              {embed.media.images.map((image: any, i: number) => {
-                const sanitizedFullsize = sanitizeUrl(image.fullsize);
-                const sanitizedThumb = sanitizeUrl(image.thumb);
-                
-                return (
-                  <a
-                    key={i}
-                    href={sanitizedFullsize}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    style={{ 
-                      display: 'block',
-                      overflow: 'hidden',
-                    }}
-                  >
-                    <img
-                      src={sanitizedThumb}
-                      alt={image.alt}
-                      style={{
-                        width: '100%',
-                        height: 'auto',
-                        maxHeight: '1000px',
-                        objectFit: 'cover',
-                        background: 'var(--bg-tertiary)',
-                        display: 'block',
-                        border: '1px solid var(--border-medium)',
-                        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.4)',
-                      }}
-                    />
-                  </a>
-                );
-              })}
-            </div>
-          )}
+          {/* Render the media first (images embed 1–4 or gallery embed 5+) */}
+          {(() => {
+            const mediaImages = getEmbedImages(embed.media);
+            if (!mediaImages) return null;
+            return (
+              <EmbedImageGrid
+                images={mediaImages}
+                gap="0.5rem"
+                marginBottom="1rem"
+                maxHeight="1000px"
+                background="var(--bg-tertiary)"
+                boxShadow="0 4px 12px rgba(0, 0, 0, 0.4)"
+              />
+            );
+          })()}
 
           {embed.media?.$type === 'app.bsky.embed.external#view' && embed.media.external && (() => {
             const sanitizedMediaExtUri = sanitizeUrl(embed.media.external.uri);

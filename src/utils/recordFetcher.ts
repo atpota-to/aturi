@@ -66,6 +66,13 @@ export type BskyPost = {
       alt: string;
       aspectRatio?: { width: number; height: number };
     }>;
+    // app.bsky.embed.gallery#view (5+ images) — `items` with `thumbnail`.
+    items?: Array<{
+      thumbnail: string;
+      fullsize: string;
+      alt: string;
+      aspectRatio?: { width: number; height: number };
+    }>;
     external?: {
       uri: string;
       title: string;
@@ -95,6 +102,13 @@ export type BskyPost = {
       $type: string;
       images?: Array<{
         thumb: string;
+        fullsize: string;
+        alt: string;
+        aspectRatio?: { width: number; height: number };
+      }>;
+      // app.bsky.embed.gallery#view used as recordWithMedia media.
+      items?: Array<{
+        thumbnail: string;
         fullsize: string;
         alt: string;
         aspectRatio?: { width: number; height: number };
