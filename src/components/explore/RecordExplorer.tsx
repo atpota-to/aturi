@@ -229,15 +229,26 @@ export default function RecordExplorer({ repo, collection, rkey }: Props) {
         </AppearIn>
       )}
 
-      {/* Backlinks. Featured directly under the preview (not buried in a
-          `<details>` at the bottom) so the count is visible at a glance —
-          inbound links are often the most interesting context for a
-          record. */}
-      {!editing && (
-        <AppearIn delay={0.06}>
-          <BacklinksTab target={atUri} showSummary />
-        </AppearIn>
-      )}
+      {/* Consolidated copy row, kept directly beneath the preview (rich post
+          + record JSON) and above the contextual sections. URI elements live
+          in the breadcrumb above, so we don't repeat them — every identifier
+          is one tap away as a copy button. CID is omitted because the preview
+          card already surfaces it visibly in its footer. */}
+      <AppearIn delay={0.06}>
+        <CopyRow
+          atUri={atUri}
+          did={identity.did}
+          pds={identity.pds}
+          universalLink={universalLinkFull}
+          universalPath={aturiUniversalPath}
+          recordJson={record ? JSON.stringify(record, null, 2) : null}
+          pdsRecordUrl={getRecordUrl(identity.pds, {
+            repo: identity.did,
+            collection,
+            rkey: decodedRkey,
+          })}
+        />
+      </AppearIn>
 
       {/* Contextual usage of this record's lexicon across the atmosphere —
           a navigational hook into the dedicated lexicon explorer. Hidden
@@ -254,29 +265,18 @@ export default function RecordExplorer({ repo, collection, rkey }: Props) {
         </AppearIn>
       )}
 
-      {/* Consolidated copy row. URI elements live in the breadcrumb above,
-          so we don't repeat them — every identifier is one tap away as a
-          copy button. CID is omitted because the preview card already
-          surfaces it visibly in its footer. */}
-      <AppearIn delay={0.08}>
-        <CopyRow
-          atUri={atUri}
-          did={identity.did}
-          pds={identity.pds}
-          universalLink={universalLinkFull}
-          universalPath={aturiUniversalPath}
-          recordJson={record ? JSON.stringify(record, null, 2) : null}
-          pdsRecordUrl={getRecordUrl(identity.pds, {
-            repo: identity.did,
-            collection,
-            rkey: decodedRkey,
-          })}
-        />
-      </AppearIn>
+      {/* Backlinks — inbound references to this record, shown after its own
+          identity/lexicon context. */}
+      {!editing && (
+        <AppearIn delay={0.08}>
+          <BacklinksTab target={atUri} showSummary />
+        </AppearIn>
+      )}
 
       {/* Standalone Edit chip — only for post / margin previews that
           don't have a place to slot the button into their layout, and
-          only in read mode. */}
+          only in read mode. Sits with the sign-in prompt below as the
+          page's editing affordances. */}
       {!editsInPreviewFooter && !editing && editButton && (
         <AppearIn delay={0.1}>
           <div
