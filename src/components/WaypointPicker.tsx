@@ -6,6 +6,7 @@ import {
   getCategorizedWaypoints,
   getRecommendedWaypoints,
   getWaypointsForType,
+  WAYPOINT_DESTINATIONS,
   type WaypointType
 } from '@/utils/waypoints';
 import {
@@ -13,9 +14,15 @@ import {
   personalizeRecommended,
   customToWaypoint,
 } from '@/utils/personalizeWaypoints';
+import {
+  newBuiltinWaypointIds,
+  addWaypointsToDefaultGroups,
+  markWaypointsKnown,
+} from '@/utils/preferences';
 import { usePreferences } from './PreferencesProvider';
 import ShareButton from './ShareButton';
 import CategoryCard from './CategoryCard';
+import NewWaypointsBanner from './NewWaypointsBanner';
 
 type WaypointPickerProps = {
   type: WaypointType;
@@ -36,7 +43,15 @@ export default function WaypointPicker({
 }: WaypointPickerProps) {
   const display = displayName || `@${handle}`;
   const [copiedId, setCopiedId] = useState<string | null>(null);
-  const { prefs } = usePreferences();
+  const { prefs, update } = usePreferences();
+
+  // Built-in waypoints that have shipped since the user last acknowledged the
+  // catalog. Surfaced as a dismissable banner with one-click add.
+  const newWaypointIds = useMemo(() => newBuiltinWaypointIds(prefs), [prefs]);
+  const newWaypoints = useMemo(
+    () => newWaypointIds.map((id) => WAYPOINT_DESTINATIONS[id]).filter(Boolean),
+    [newWaypointIds],
+  );
 
   // Get categorized waypoints and featured waypoint, with user prefs applied
   // (hidden built-ins removed, custom waypoints added as their own group,
@@ -274,6 +289,14 @@ export default function WaypointPicker({
 
   return (
     <div id="waypoint-picker">
+      {newWaypoints.length > 0 && (
+        <NewWaypointsBanner
+          waypoints={newWaypoints}
+          onAdd={() => update((p) => addWaypointsToDefaultGroups(p, newWaypointIds))}
+          onDismiss={() => update((p) => markWaypointsKnown(p, newWaypointIds))}
+        />
+      )}
+
       {/* Header */}
       <header style={{ marginBottom: '2rem', textAlign: 'center' }}>
         <h1 style={{ marginBottom: '1rem', color: 'var(--text-primary)' }}>

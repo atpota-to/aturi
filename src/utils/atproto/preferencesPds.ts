@@ -16,6 +16,7 @@
  *     supportedTypes: string[],
  *     templates: { post?, profile?, list?, record?: string }
  *   }>
+ *   knownWaypointIds?: string[]       // built-ins the user has been notified about
  *   pinnedLexicons?: string[]         // NSIDs pinned in the explorer
  *   pinnedLexiconsOthers?: string[]   // separate list for others' repos in split mode
  *   pinScope?: 'own' | 'all' | 'split'
@@ -91,6 +92,7 @@ export async function writePreferencesToPds(
     $type: PREFERENCES_NSID,
     waypointGroups: prefs.waypointGroups,
     customWaypoints: prefs.customWaypoints,
+    knownWaypointIds: prefs.knownWaypointIds,
     pinnedLexicons: prefs.pinnedLexicons,
     pinnedLexiconsOthers: prefs.pinnedLexiconsOthers,
     pinScope: prefs.pinScope,
