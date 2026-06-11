@@ -8,6 +8,7 @@ export type SourceApp =
   | 'witchsky'
   | 'catsky'
   | 'deer'
+  | 'mu'
   | 'anisota'
   | 'pinksky'
   | 'leaflet'
@@ -45,6 +46,7 @@ const BLUESKY_FAMILY: HostConfig[] = [
   { source: 'witchsky', hosts: ['witchsky.app'] },
   { source: 'catsky', hosts: ['catsky.social'] },
   { source: 'deer', hosts: ['deer.social'] },
+  { source: 'mu', hosts: ['mu.social'] },
   { source: 'anisota', hosts: ['anisota.net'] },
 ];
 

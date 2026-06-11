@@ -41,6 +41,7 @@ function sourceRecipes(sourceId: SourceApp | string): SourceRecipe[] {
     case 'witchsky':
     case 'catsky':
     case 'deer':
+    case 'mu':
     case 'anisota': {
       const host = HOST_BY_SOURCE[sourceId as SourceApp];
       if (!host) return [];
@@ -204,6 +205,7 @@ const HOST_BY_SOURCE: Record<SourceApp, string> = {
   witchsky: 'witchsky.app',
   catsky: 'catsky.social',
   deer: 'deer.social',
+  mu: 'mu.social',
   anisota: 'anisota.net',
   pinksky: 'pinkleap.app',
   leaflet: 'leaflet.pub',
@@ -370,6 +372,7 @@ const ALL_KNOWN_SOURCES: SourceApp[] = [
   'witchsky',
   'catsky',
   'deer',
+  'mu',
   'anisota',
   'pinksky',
   'leaflet',

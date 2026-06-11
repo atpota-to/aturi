@@ -19,6 +19,7 @@ const BUILTIN_HOME: Record<string, string> = {
   witchsky: 'https://witchsky.app/',
   catsky: 'https://catsky.social/',
   deer: 'https://deer.social/',
+  mu: 'https://mu.social/',
   tangled: 'https://tangled.org/',
   pinksky: 'https://pinkleap.app/',
   margin: 'https://margin.at/',
