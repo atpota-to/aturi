@@ -7,6 +7,24 @@
 
 import { encodeRepo } from './urls';
 import { pdsHostname } from './pdsServer';
+import { matchSupportedUrl } from '../reverseParsers';
+import type { ParsedURI } from '../uriParser';
+
+/**
+ * Turn a reverse-parsed waypoint URL (bsky.app post, pdsls record, …) into
+ * the explorer path that shows the same record. Drills down as far as the
+ * parsed components allow: repo → collection → rkey.
+ */
+function explorePathFromParsed(parsed: ParsedURI): string {
+  const repo = encodeRepo(parsed.handle);
+  if (parsed.collection && parsed.rkey) {
+    return `/explore/${repo}/${parsed.collection}/${encodeURIComponent(parsed.rkey)}`;
+  }
+  if (parsed.collection) {
+    return `/explore/${repo}/${parsed.collection}`;
+  }
+  return `/explore/${repo}`;
+}
 
 /**
  * Bare hostnames that begin with `pds.` are overwhelmingly atproto PDS
@@ -37,11 +55,20 @@ export function resolveSearchPath(rawInput: string): string | null {
     return null;
   }
 
-  // 2. Explicit URL → PDS host page. Anything with a protocol is a URL,
-  //    not a handle. Path / query / fragment are stripped down to the
-  //    host so users can paste a `/xrpc/...` URL and still land on the
-  //    right page.
+  // 2. Explicit URL. Anything with a protocol is a URL, not a handle.
   if (/^https?:\/\//i.test(v)) {
+    // 2a. Known waypoint apps (bsky.app, pdsls.dev, …) — reverse-parse the
+    //     URL back into repo/collection/rkey and drill into that record.
+    try {
+      const match = matchSupportedUrl(new URL(v));
+      if (match) return explorePathFromParsed(match.parsed);
+    } catch {
+      // Not a parseable URL — fall through to PDS host handling.
+    }
+
+    // 2b. Otherwise treat it as a PDS host. Path / query / fragment are
+    //     stripped down to the host so users can paste a `/xrpc/...` URL
+    //     and still land on the right page.
     const host = pdsHostname(v);
     if (host) return `/explore/pds/${encodeURIComponent(host)}`;
     return null;
