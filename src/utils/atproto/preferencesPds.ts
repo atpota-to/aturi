@@ -24,8 +24,9 @@
  *   hideRelationshipBar?: boolean         // hide the explorer relationship strip
  *   hideRepoGlance?: boolean              // hide the "Repo at a glance" section
  *   repoGlanceCollapsedByDefault?: boolean // start that section collapsed
- *   minimalProfile?: boolean              // minimal profile on repo pages
- *   hideRichPreview?: boolean             // collapse the rich preview on record pages
+ *   minimalProfile?: boolean              // collapse the rich profile card on repo pages
+ *   hideRichPreview?: boolean             // collapse the rich preview card on record pages
+ *   hideRichJsonPreview?: boolean         // collapse the structured field table on record pages
  *   showRawRecordJson?: boolean           // show raw record JSON on record pages
  *   updatedAt: datetime
  *
@@ -104,6 +105,7 @@ export async function writePreferencesToPds(
     repoGlanceCollapsedByDefault: prefs.repoGlanceCollapsedByDefault,
     minimalProfile: prefs.minimalProfile,
     hideRichPreview: prefs.hideRichPreview,
+    hideRichJsonPreview: prefs.hideRichJsonPreview,
     showRawRecordJson: prefs.showRawRecordJson,
     // Legacy fields kept for back-compat with older clients.
     hiddenWaypoints: prefs.hiddenWaypoints,

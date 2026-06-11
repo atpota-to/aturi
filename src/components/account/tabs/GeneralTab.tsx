@@ -109,26 +109,26 @@ function AppearanceCard() {
 
       <Toggle
         id="minimal-profile"
-        label="Minimal profile view"
-        description="Skips the rich profile card on repo pages, showing just the DID, handle, and PDS. You can switch back to the full profile right on the page."
+        label="Hide the rich profile preview"
+        description="Collapses the rich profile card on repo pages, showing just the DID, handle, and PDS. You can flip it back right on the page."
         checked={prefs.minimalProfile}
         onChange={(next) => update((p) => ({ ...p, minimalProfile: next }))}
       />
 
       <Toggle
-        id="minimal-post-preview"
-        label="Minimal post view"
-        description="Skips the rich Bluesky post card on explorer record pages, showing just the record's structured data. You can switch back to the full preview right on the page."
-        checked={prefs.minimalPostPreview}
-        onChange={(next) => update((p) => ({ ...p, minimalPostPreview: next }))}
+        id="hide-rich-preview"
+        label="Hide the rich record preview"
+        description="Collapses the rendered card (e.g. the Bluesky post card) on explorer record pages, leaving the structured field view. No effect on records that have no card. You can flip it back right on the page."
+        checked={prefs.hideRichPreview}
+        onChange={(next) => update((p) => ({ ...p, hideRichPreview: next }))}
       />
 
       <Toggle
-        id="hide-rich-preview"
-        label="Hide the rich record preview"
-        description="Collapses the rich preview card on explorer record pages. Pair with “Show raw record JSON” to read records as JSON instead. You can flip this back right on the page."
-        checked={prefs.hideRichPreview}
-        onChange={(next) => update((p) => ({ ...p, hideRichPreview: next }))}
+        id="hide-rich-json-preview"
+        label="Hide the rich JSON preview"
+        description="Collapses the structured field table on explorer record pages. Can't be hidden at the same time as raw JSON — one of the two data views always stays visible."
+        checked={prefs.hideRichJsonPreview}
+        onChange={(next) => update((p) => ({ ...p, hideRichJsonPreview: next }))}
       />
 
       <Toggle

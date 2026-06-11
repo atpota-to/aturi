@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useState, type CSSProperties, type ReactNode } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { FilePenLine, SearchX, TriangleAlert } from 'lucide-react';
@@ -13,7 +13,8 @@ import Breadcrumb from './Breadcrumb';
 import CopyButton from './CopyButton';
 import EngagementSidecar from './EngagementSidecar';
 import LinkifiedJson from './LinkifiedJson';
-import RichRecordPreview, { previewRendersGeneric } from './RichRecordPreview';
+import RecordPreview from '@/components/RecordPreview';
+import RichRecordCard, { recordHasRichCard } from './RichRecordCard';
 import BacklinksTab from './tabs/BacklinksTab';
 import LexiconUsageCard from './lexicons/LexiconUsageCard';
 import RecordEditor from './RecordEditor';
@@ -105,27 +106,48 @@ export default function RecordExplorer({ repo, collection, rkey }: Props) {
   const atUri = `at://${identity.did}/${collection}/${decodedRkey}`;
   const repoSeg = encodeRepo(identity.handle || identity.did);
   const canEdit = Boolean(agent && signedInDid && signedInDid === identity.did);
-  // "Minimal post view" preference — collapse the rich Bluesky post card to
-  // just the structured record. Only applies to posts, and only once prefs
-  // have settled (defaults render the full preview, matching first paint).
   const isPost = collection === 'app.bsky.feed.post';
-  const showPostViewSwitch = !prefsLoading && isPost;
-  const minimalPost = showPostViewSwitch && prefs.minimalPostPreview;
-  // Rich-preview vs raw-JSON view state. Both gated on prefs having settled so
-  // first paint matches the defaults (rich shown, raw hidden) and doesn't
-  // flicker. The two are independent: a visitor can collapse the rich card,
-  // surface the raw JSON, do both, or neither.
-  const hideRich = !prefsLoading && prefs.hideRichPreview;
-  const showRawJson = !prefsLoading && prefs.showRawRecordJson;
+
+  // The record body is up to three independently-toggleable sections, each
+  // with its own switch directly beneath it:
+  //   1. rich preview card  — the post / margin card (generic records have none)
+  //   2. rich JSON preview  — the structured RecordPreview field table
+  //   3. raw JSON           — the linkified record JSON
+  // Visibility is gated on prefs having settled so first paint matches the
+  // defaults (card + field table shown, raw hidden) and doesn't flicker.
+  const settled = !prefsLoading;
+  const hasRichCard = recordHasRichCard(collection);
+  const hideCard = settled && prefs.hideRichPreview;
+  const hideJsonPreview = settled && prefs.hideRichJsonPreview;
+  const showRawJson = settled && prefs.showRawRecordJson;
+
+  // The field table and the raw JSON are the record's two data views; at least
+  // one must stay visible so the body is never empty. Hiding one forces the
+  // other on. The card (a rendering, not the data itself) is freely hideable.
+  const toggleCard = () =>
+    updatePrefs((p) => ({ ...p, hideRichPreview: !p.hideRichPreview }));
+  const toggleJsonPreview = () =>
+    updatePrefs((p) =>
+      p.hideRichJsonPreview
+        ? { ...p, hideRichJsonPreview: false }
+        : { ...p, hideRichJsonPreview: true, showRawRecordJson: true },
+    );
+  const toggleRawJson = () =>
+    updatePrefs((p) =>
+      p.showRawRecordJson
+        ? { ...p, showRawRecordJson: false, hideRichJsonPreview: false }
+        : { ...p, showRawRecordJson: true },
+    );
+
   // Universal link uses the canonical `/profile/` path; bare-form
   // `/<handle>/<collection>/<rkey>` still works as a fallback route but
   // shareable copies should point at the canonical one.
   const aturiUniversalPath = `/profile/${identity.handle || identity.did}/${collection}/${encodeURIComponent(decodedRkey)}`;
   const universalLinkFull = `https://aturi.to${aturiUniversalPath}`;
 
-  // The generic RecordPreview has a footer slot for the Edit button; for
-  // post/margin previews we keep a standalone Edit chip above the copy row.
-  const editsInPreviewFooter = previewRendersGeneric(collection);
+  // Edit affordance is a standalone chip rendered beneath the view sections —
+  // the sections are independently toggleable, so the button can't live inside
+  // any one of them (it would vanish when that section is hidden).
   const editButton =
     canEdit && !editing ? (
       <button
@@ -160,15 +182,11 @@ export default function RecordExplorer({ repo, collection, rkey }: Props) {
         />
       </AppearIn>
 
-      {/* Primary slot. In read mode this is the rich preview (PostPreview /
-          margin variants / generic RecordPreview). In edit mode the same
-          slot becomes the editor — so the user's eye doesn't have to
-          travel to find their changes, and the page doesn't grow longer
-          to accommodate a separate editor section.
-
-          The Edit button slots into the generic preview's footer
-          alongside the CID when applicable; post / margin previews fall
-          back to a standalone chip below the copy row. */}
+      {/* Record body. In read mode this is up to three stacked sections —
+          rich preview card, structured field table, raw JSON — each with its
+          own toggle directly beneath it. In edit mode the whole body becomes
+          the editor, so the user's eye stays put and the page doesn't grow a
+          separate editor section. */}
       {recordError ? (
         <AppearIn delay={0.05}>
           <RecordErrorPanel
@@ -178,86 +196,80 @@ export default function RecordExplorer({ repo, collection, rkey }: Props) {
             handle={identity.handle || identity.did}
           />
         </AppearIn>
+      ) : editing && canEdit && agent ? (
+        <AppearIn delay={0.05}>
+          <RecordEditor
+            agent={agent}
+            did={identity.did}
+            collection={collection}
+            rkey={decodedRkey}
+            onSaved={(next) => {
+              setRecord((prev) => (prev ? { ...prev, value: next } : prev));
+            }}
+            onDeleted={() => {
+              setEditing(false);
+              router.push(`/explore/${repoSeg}/${collection}`);
+            }}
+            onCancel={() => setEditing(false)}
+          />
+        </AppearIn>
+      ) : !record ? (
+        <p className="explore-placeholder">Loading record…</p>
       ) : (
         <>
-          {!record && !editing && (
-            <p className="explore-placeholder">Loading record…</p>
-          )}
-          {(editing || !hideRich) && (
-            <AppearIn delay={0.05}>
-              {editing && canEdit && agent ? (
-                <RecordEditor
-                  agent={agent}
-                  did={identity.did}
-                  collection={collection}
-                  rkey={decodedRkey}
-                  onSaved={(next) => {
-                    setRecord((prev) => (prev ? { ...prev, value: next } : prev));
-                  }}
-                  onDeleted={() => {
-                    setEditing(false);
-                    router.push(`/explore/${repoSeg}/${collection}`);
-                  }}
-                  onCancel={() => setEditing(false)}
-                />
-              ) : (
-                <RichRecordPreview
-                  handle={identity.handle || identity.did}
-                  did={identity.did}
-                  collection={collection}
-                  rkey={decodedRkey}
-                  record={record}
-                  footerActions={editsInPreviewFooter ? editButton : null}
-                  minimalPost={minimalPost}
-                />
-              )}
-            </AppearIn>
-          )}
-          {/* View switches beneath the preview. "Hide rich preview" collapses
-              the rich card; "Show raw JSON" swaps in the linkified record JSON
-              (replacing the old standalone disclosure at the page foot). The
-              minimal/full post switch only applies to the rich post card, so
-              it's hidden once the rich preview is collapsed. All flip persisted
-              prefs so the choice sticks and syncs across devices. */}
-          {!editing && record && (
-            <div
-              style={{
-                display: 'flex',
-                flexWrap: 'wrap',
-                alignItems: 'baseline',
-                gap: '0.35rem 1.25rem',
-                marginTop: '-0.25rem',
-              }}
-            >
-              <ViewSwitchButton
-                label={hideRich ? 'Show rich preview' : 'Hide rich preview'}
-                onToggle={() =>
-                  updatePrefs((p) => ({ ...p, hideRichPreview: !p.hideRichPreview }))
-                }
-              />
-              {!hideRich && showPostViewSwitch && (
-                <ViewSwitchButton
-                  label={minimalPost ? 'Show full post preview' : 'Use minimal view'}
-                  onToggle={() =>
-                    updatePrefs((p) => ({ ...p, minimalPostPreview: !p.minimalPostPreview }))
-                  }
-                />
+          {/* Section 1 — rich preview card (posts, margin lexicons). Generic
+              records skip it; their rich view is the field table below. */}
+          {hasRichCard && (
+            <div style={sectionGroupStyle}>
+              {!hideCard && (
+                <AppearIn delay={0.05}>
+                  <RichRecordCard
+                    handle={identity.handle || identity.did}
+                    did={identity.did}
+                    collection={collection}
+                    rkey={decodedRkey}
+                    record={record}
+                  />
+                </AppearIn>
               )}
               <ViewSwitchButton
-                label={showRawJson ? 'Hide raw JSON' : 'Show raw JSON'}
-                onToggle={() =>
-                  updatePrefs((p) => ({ ...p, showRawRecordJson: !p.showRawRecordJson }))
-                }
+                label={hideCard ? 'Show rich preview' : 'Hide rich preview'}
+                onToggle={toggleCard}
               />
             </div>
           )}
-          {/* Raw record JSON, surfaced right under the preview area so it
-              reads as the rich preview's counterpart rather than a footnote. */}
-          {!editing && record && showRawJson && (
-            <AppearIn delay={0.05}>
-              <LinkifiedJson value={record} className="explore-json" />
-            </AppearIn>
-          )}
+
+          {/* Section 2 — rich JSON preview (structured field table). */}
+          <div style={sectionGroupStyle}>
+            {!hideJsonPreview && (
+              <AppearIn delay={0.05}>
+                <RecordPreview
+                  record={{ uri: record.uri, cid: record.cid, value: record.value }}
+                  collection={collection}
+                  handle={identity.handle || identity.did}
+                  rkey={decodedRkey}
+                  hideExplorerCtas
+                />
+              </AppearIn>
+            )}
+            <ViewSwitchButton
+              label={hideJsonPreview ? 'Show rich JSON preview' : 'Hide rich JSON preview'}
+              onToggle={toggleJsonPreview}
+            />
+          </div>
+
+          {/* Section 3 — raw JSON. */}
+          <div style={sectionGroupStyle}>
+            {showRawJson && (
+              <AppearIn delay={0.05}>
+                <LinkifiedJson value={record} className="explore-json" />
+              </AppearIn>
+            )}
+            <ViewSwitchButton
+              label={showRawJson ? 'Hide raw JSON' : 'Show raw JSON'}
+              onToggle={toggleRawJson}
+            />
+          </div>
         </>
       )}
 
@@ -315,11 +327,8 @@ export default function RecordExplorer({ repo, collection, rkey }: Props) {
         </AppearIn>
       )}
 
-      {/* Standalone Edit chip — for post / margin previews that don't have a
-          place to slot the button into their layout, and as the fallback when
-          the rich preview (which would host the generic record's footer Edit
-          button) is collapsed. Read mode only. */}
-      {(!editsInPreviewFooter || hideRich) && !editing && editButton && (
+      {/* Standalone Edit chip, beneath the view sections (read mode only). */}
+      {!editing && editButton && (
         <AppearIn delay={0.1}>
           <div
             style={{
@@ -357,10 +366,22 @@ export default function RecordExplorer({ repo, collection, rkey }: Props) {
 }
 
 /**
- * Quiet text toggle used for the record page's view switches (hide/show the
- * rich preview, minimal/full post, show/hide raw JSON). Mirrors the repo
- * page's ProfileViewSwitch styling; callers own the persisted pref each one
- * flips and supply a state-dependent label.
+ * A section + its view-switch share a tight vertical group (0.5rem) so the
+ * toggle reads as belonging to the content directly above it, while groups sit
+ * a full 1rem apart from each other in the page column.
+ */
+const sectionGroupStyle: CSSProperties = {
+  display: 'flex',
+  flexDirection: 'column',
+  gap: '0.5rem',
+};
+
+/**
+ * Quiet text toggle sitting beneath each record-body section (rich preview
+ * card, rich JSON preview, raw JSON). Mirrors the repo page's ProfileViewSwitch
+ * styling; callers own the persisted pref each one flips and supply a
+ * state-dependent label. `alignSelf` keeps the hit area tight to the text even
+ * though the group stretches its content sections full-width.
  */
 function ViewSwitchButton({
   label,
@@ -374,6 +395,7 @@ function ViewSwitchButton({
       type="button"
       onClick={onToggle}
       style={{
+        alignSelf: 'flex-start',
         padding: 0,
         background: 'transparent',
         border: 0,

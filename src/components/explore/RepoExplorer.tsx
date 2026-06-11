@@ -105,12 +105,11 @@ export default function RepoExplorer({ repo }: { repo: string }) {
           <ProfileHeader identity={identity} />
         </AppearIn>
       )}
-      <AppearIn delay={0.1}>
-        <IdentityRow identity={identity} />
-      </AppearIn>
-      {/* Inline switch between the rich profile card and the minimal
-          identity-only view, so users don't have to round-trip through
-          settings. Flips the persisted pref, so it sticks and syncs. */}
+      {/* Inline switch beneath the rich profile card (mirrors the record
+          page's "Hide rich preview"). Flips the persisted pref, so the choice
+          sticks and syncs without a round-trip through settings. When the card
+          is hidden it reads "Show rich preview" and sits above the identity
+          row, which always shows. */}
       {settled && (
         <ProfileViewSwitch
           minimal={useMinimalProfile}
@@ -119,6 +118,9 @@ export default function RepoExplorer({ repo }: { repo: string }) {
           }
         />
       )}
+      <AppearIn delay={0.1}>
+        <IdentityRow identity={identity} />
+      </AppearIn>
       {/* High-level stats — same tile grid the account-settings page
           uses, dropped in here so anyone viewing a repo (not just its
           owner) sees how big it is, when it was created, and how much
@@ -190,9 +192,10 @@ function RepoGlanceSection({
 }
 
 /**
- * Subtle inline control to flip between the rich profile card and the
- * minimal identity-only view. Persists the choice via the preferences
- * store so it carries across pages and devices.
+ * Subtle inline "Hide / Show rich preview" control beneath the profile card —
+ * the repo-page sibling of the record page's rich-preview switch. Hiding the
+ * card leaves the always-present identity row. Persists the choice via the
+ * preferences store so it carries across pages and devices.
  */
 function ProfileViewSwitch({
   minimal,
@@ -225,7 +228,7 @@ function ProfileViewSwitch({
         e.currentTarget.style.color = 'var(--text-tertiary)';
       }}
     >
-      {minimal ? 'Show full profile' : 'Use minimal view'}
+      {minimal ? 'Show rich preview' : 'Hide rich preview'}
     </button>
   );
 }
