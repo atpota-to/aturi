@@ -1,6 +1,15 @@
 'use client';
 
+import { useMemo } from 'react';
 import WaypointGroupsManager from '../WaypointGroupsManager';
+import NewWaypointsBanner from '@/components/NewWaypointsBanner';
+import { usePreferences } from '@/components/PreferencesProvider';
+import {
+  newBuiltinWaypointIds,
+  addWaypointsToDefaultGroups,
+  markWaypointsKnown,
+} from '@/utils/preferences';
+import { WAYPOINT_DESTINATIONS } from '@/utils/waypoints';
 
 /**
  * Waypoints tab — user-defined groups of waypoints. Drag groups to
@@ -9,6 +18,14 @@ import WaypointGroupsManager from '../WaypointGroupsManager';
  * any waypoint not in any group is hidden from the picker.
  */
 export default function WaypointsTab() {
+  const { prefs, update } = usePreferences();
+
+  const newWaypointIds = useMemo(() => newBuiltinWaypointIds(prefs), [prefs]);
+  const newWaypoints = useMemo(
+    () => newWaypointIds.map((id) => WAYPOINT_DESTINATIONS[id]).filter(Boolean),
+    [newWaypointIds],
+  );
+
   return (
     <section className="settings-card">
       <div className="settings-card-head">
@@ -20,6 +37,13 @@ export default function WaypointsTab() {
           can live in multiple groups; anything not in a group is hidden.
         </p>
       </div>
+      {newWaypoints.length > 0 && (
+        <NewWaypointsBanner
+          waypoints={newWaypoints}
+          onAdd={() => update((p) => addWaypointsToDefaultGroups(p, newWaypointIds))}
+          onDismiss={() => update((p) => markWaypointsKnown(p, newWaypointIds))}
+        />
+      )}
       <WaypointGroupsManager />
     </section>
   );

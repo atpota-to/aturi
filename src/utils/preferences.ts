@@ -75,6 +75,15 @@ export type Preferences = {
   /** User-defined waypoints. */
   customWaypoints: CustomWaypoint[];
   /**
+   * Built-in waypoint ids the user has already been notified about. When a
+   * new built-in ships, it won't be in this list, so the picker and settings
+   * surface a "new waypoint" banner offering to add it. Mirrors the
+   * extension's `knownWaypointIds`. Seeded from the user's existing groups on
+   * first read after this field shipped, so an upgrade doesn't flag every
+   * waypoint as new.
+   */
+  knownWaypointIds: string[];
+  /**
    * NSIDs the user has pinned in the explorer's CollectionsTab. Shown at
    * the top of the list whenever the current repo has a matching
    * collection. In `split` mode this list is shown only on the user's
@@ -146,6 +155,7 @@ export const DEFAULT_PREFERENCES: Preferences = {
   hiddenWaypoints: [],
   waypointOrder: [],
   customWaypoints: [],
+  knownWaypointIds: [...WAYPOINT_ORDER],
   pinnedLexicons: [],
   pinnedLexiconsOthers: [],
   pinScope: 'own',
@@ -229,6 +239,7 @@ export function mergeWithDefaults(input: Partial<Preferences> | null | undefined
     storedGroups.length > 0
       ? storedGroups
       : migrateToGroups({ customWaypoints, hiddenWaypoints, waypointOrder });
+  const knownWaypointIds = migrateKnownWaypointIds(input, waypointGroups, hiddenWaypoints);
   const pinnedLexicons = Array.isArray(input.pinnedLexicons)
     ? input.pinnedLexicons.filter((s): s is string => typeof s === 'string')
     : [];
@@ -260,6 +271,7 @@ export function mergeWithDefaults(input: Partial<Preferences> | null | undefined
     hiddenWaypoints,
     waypointOrder,
     customWaypoints,
+    knownWaypointIds,
     pinnedLexicons,
     pinnedLexiconsOthers,
     pinScope,
@@ -340,6 +352,7 @@ export function preferencesAreEqual(a: Preferences, b: Preferences): boolean {
     a.minimalPostPreview === b.minimalPostPreview &&
     JSON.stringify(a.waypointGroups) === JSON.stringify(b.waypointGroups) &&
     JSON.stringify(a.customWaypoints) === JSON.stringify(b.customWaypoints) &&
+    JSON.stringify(a.knownWaypointIds) === JSON.stringify(b.knownWaypointIds) &&
     JSON.stringify(a.pinnedLexicons) === JSON.stringify(b.pinnedLexicons) &&
     JSON.stringify(a.pinnedLexiconsOthers) === JSON.stringify(b.pinnedLexiconsOthers)
   );
@@ -584,6 +597,96 @@ export function migrateToGroups(partial: {
 
 function prettyGroupName(id: string): string {
   return id.replace(/([A-Z])/g, ' $1').replace(/^./, (c) => c.toUpperCase()).trim();
+}
+
+/**
+ * Seed `knownWaypointIds` for payloads that predate the field. Anything
+ * currently in a group or in the legacy `hiddenWaypoints` list counts as
+ * already "seen"; the diff against the current built-in catalog is what
+ * surfaces as new. Mirrors the extension's `migrateKnownWaypointIds`.
+ *
+ * Trust an explicit array from storage; only seed when the field is absent.
+ */
+function migrateKnownWaypointIds(
+  input: Partial<Preferences>,
+  waypointGroups: WaypointGroup[],
+  hiddenWaypoints: string[],
+): string[] {
+  if (Array.isArray(input.knownWaypointIds)) {
+    return input.knownWaypointIds.filter((id): id is string => typeof id === 'string');
+  }
+
+  const seed = new Set<string>();
+  for (const group of waypointGroups) {
+    for (const id of group.waypointIds) {
+      if (!id.startsWith('custom:')) seed.add(id);
+    }
+  }
+  for (const id of hiddenWaypoints) {
+    if (typeof id === 'string' && !id.startsWith('custom:')) seed.add(id);
+  }
+  if (seed.size === 0) {
+    // No signal in the stored prefs — treat as a fresh user and consider
+    // every built-in already known, so the first post-upgrade load doesn't
+    // flag the entire catalog as new.
+    return [...WAYPOINT_ORDER];
+  }
+  return Array.from(seed);
+}
+
+/**
+ * Built-in waypoint ids that have shipped since the user was last notified
+ * (i.e. not present in `knownWaypointIds`). Order follows `WAYPOINT_ORDER`.
+ * Custom waypoints are never returned.
+ */
+export function newBuiltinWaypointIds(prefs: Preferences): string[] {
+  const known = new Set(prefs.knownWaypointIds ?? []);
+  return WAYPOINT_ORDER.filter((id) => !known.has(id) && WAYPOINT_DESTINATIONS_DATA[id]);
+}
+
+/**
+ * Mark the given built-in waypoint ids as seen so the "new waypoint" banner
+ * stops surfacing them. Custom ids are ignored. Returns a new prefs object;
+ * a no-op (same reference) when nothing changes.
+ */
+export function markWaypointsKnown(prefs: Preferences, ids: string[]): Preferences {
+  const known = new Set(prefs.knownWaypointIds ?? []);
+  let changed = false;
+  for (const id of ids) {
+    if (id.startsWith('custom:')) continue;
+    if (!known.has(id)) {
+      known.add(id);
+      changed = true;
+    }
+  }
+  if (!changed) return prefs;
+  return { ...prefs, knownWaypointIds: Array.from(known) };
+}
+
+/**
+ * Quick-add new built-in waypoints into their default category group,
+ * creating that group if the user has since removed it, and mark them known.
+ * This backs the "Add" action on the new-waypoint banner.
+ */
+export function addWaypointsToDefaultGroups(prefs: Preferences, ids: string[]): Preferences {
+  const groups = prefs.waypointGroups.map((g) => ({ ...g, waypointIds: [...g.waypointIds] }));
+  const byId = new Map(groups.map((g) => [g.id, g]));
+
+  for (const id of ids) {
+    const data = WAYPOINT_DESTINATIONS_DATA[id];
+    if (!data) continue;
+    const catId = data.category;
+    let group = byId.get(catId);
+    if (!group) {
+      const meta = WAYPOINT_CATEGORIES_DATA[catId];
+      group = { id: catId, name: meta?.name ?? prettyGroupName(catId), waypointIds: [] };
+      byId.set(catId, group);
+      groups.push(group);
+    }
+    if (!group.waypointIds.includes(id)) group.waypointIds.push(id);
+  }
+
+  return markWaypointsKnown({ ...prefs, waypointGroups: groups }, ids);
 }
 
 function newGroupId(): string {
