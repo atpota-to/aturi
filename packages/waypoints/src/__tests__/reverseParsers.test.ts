@@ -88,6 +88,23 @@ describe('matchSupportedUrl - other apps', () => {
     expect(m?.source).toBe('semble');
   });
 
+  it('parses a standard-reader document into a site.standard.document uri', () => {
+    const m = match('https://standard-reader.app/a/did:plc:ofrbh253gwicbkc5nktqepol/3mnzim6jkqs24');
+    expect(m?.source).toBe('standardReader');
+    expect(m?.parsed.type).toBe('record');
+    expect(m?.parsed.collection).toBe('site.standard.document');
+    expect(m?.parsed.rkey).toBe('3mnzim6jkqs24');
+    expect(m?.parsed.uri).toBe(
+      'at://did:plc:ofrbh253gwicbkc5nktqepol/site.standard.document/3mnzim6jkqs24',
+    );
+  });
+
+  it('parses a standard-reader profile', () => {
+    const m = match('https://standard-reader.app/u/did:plc:ofrbh253gwicbkc5nktqepol');
+    expect(m?.source).toBe('standardReader');
+    expect(m?.parsed.type).toBe('profile');
+  });
+
   it('ignores unsupported hosts', () => {
     expect(match('https://example.com/profile/alice')).toBeNull();
   });

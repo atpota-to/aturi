@@ -450,19 +450,41 @@ function matchLichen(host: string, parts: string[]): ReverseMatch | null {
 }
 
 /**
- * Standard Reader: `/u/<identifier>` is a profile (document list). The
- * `/a/<identifier>/<rkey>` document route omits the collection NSID, so we
- * only reverse-match the profile shape (mirrors Leaflet's profile-only parse).
+ * Standard Reader: `/u/<identifier>` is a profile (document list) and
+ * `/a/<identifier>/<rkey>` is a document. The document route omits the
+ * collection NSID, but every `/a/` link is a Standard Site document, so we
+ * reconstruct the full `site.standard.document/<rkey>` AT URI.
  */
 function matchStandardReader(host: string, parts: string[]): ReverseMatch | null {
   if (host !== 'standard-reader.app') return null;
-  if (parts[0] !== 'u' || !parts[1]) return null;
-  const handle = parts[1];
-  const did = handle.startsWith('did:') ? handle : undefined;
-  return {
-    source: 'standardReader',
-    parsed: { type: 'profile', uri: `at://${handle}`, handle, did },
-  };
+
+  if (parts[0] === 'a' && parts[1] && parts[2]) {
+    const handle = parts[1];
+    const did = handle.startsWith('did:') ? handle : undefined;
+    const rkey = parts[2];
+    return {
+      source: 'standardReader',
+      parsed: {
+        type: 'record',
+        uri: `at://${handle}/site.standard.document/${rkey}`,
+        handle,
+        did,
+        collection: 'site.standard.document',
+        rkey,
+      },
+    };
+  }
+
+  if (parts[0] === 'u' && parts[1]) {
+    const handle = parts[1];
+    const did = handle.startsWith('did:') ? handle : undefined;
+    return {
+      source: 'standardReader',
+      parsed: { type: 'profile', uri: `at://${handle}`, handle, did },
+    };
+  }
+
+  return null;
 }
 
 /**
