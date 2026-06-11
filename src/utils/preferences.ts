@@ -141,6 +141,19 @@ export type Preferences = {
    */
   minimalPostPreview: boolean;
   /**
+   * Collapse the rich preview card on explorer record pages. Paired with
+   * `showRawRecordJson` this lets a visitor read the record as raw JSON
+   * instead of (or alongside) the rich rendering. Flipped by the inline
+   * "Hide rich preview" switch beneath the preview.
+   */
+  hideRichPreview: boolean;
+  /**
+   * Show the raw (linkified) record JSON on explorer record pages. Replaces
+   * the old always-present "Raw record JSON" disclosure with a persisted
+   * toggle, surfaced by the inline "Show raw JSON" switch.
+   */
+  showRawRecordJson: boolean;
+  /**
    * ISO timestamp of last local change. Used to break ties when local and
    * PDS prefs both exist on sign-in.
    */
@@ -165,6 +178,8 @@ export const DEFAULT_PREFERENCES: Preferences = {
   repoGlanceCollapsedByDefault: false,
   minimalProfile: false,
   minimalPostPreview: false,
+  hideRichPreview: false,
+  showRawRecordJson: false,
   updatedAt: new Date(0).toISOString(),
 };
 
@@ -266,6 +281,10 @@ export function mergeWithDefaults(input: Partial<Preferences> | null | undefined
     typeof input.minimalProfile === 'boolean' ? input.minimalProfile : false;
   const minimalPostPreview =
     typeof input.minimalPostPreview === 'boolean' ? input.minimalPostPreview : false;
+  const hideRichPreview =
+    typeof input.hideRichPreview === 'boolean' ? input.hideRichPreview : false;
+  const showRawRecordJson =
+    typeof input.showRawRecordJson === 'boolean' ? input.showRawRecordJson : false;
   return {
     waypointGroups,
     hiddenWaypoints,
@@ -281,6 +300,8 @@ export function mergeWithDefaults(input: Partial<Preferences> | null | undefined
     repoGlanceCollapsedByDefault,
     minimalProfile,
     minimalPostPreview,
+    hideRichPreview,
+    showRawRecordJson,
     updatedAt:
       typeof input.updatedAt === 'string' ? input.updatedAt : new Date(0).toISOString(),
   };
@@ -350,6 +371,8 @@ export function preferencesAreEqual(a: Preferences, b: Preferences): boolean {
     a.repoGlanceCollapsedByDefault === b.repoGlanceCollapsedByDefault &&
     a.minimalProfile === b.minimalProfile &&
     a.minimalPostPreview === b.minimalPostPreview &&
+    a.hideRichPreview === b.hideRichPreview &&
+    a.showRawRecordJson === b.showRawRecordJson &&
     JSON.stringify(a.waypointGroups) === JSON.stringify(b.waypointGroups) &&
     JSON.stringify(a.customWaypoints) === JSON.stringify(b.customWaypoints) &&
     JSON.stringify(a.knownWaypointIds) === JSON.stringify(b.knownWaypointIds) &&

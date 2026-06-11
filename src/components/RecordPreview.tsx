@@ -50,12 +50,12 @@ export default function RecordPreview({
   const recordType = value.$type || collection;
   const displayType = recordType.replace('app.bsky.', '').replace('com.atproto.', '').replace('net.anisota.', '');
 
-  // Get a few key interesting fields to preview (limit to 5-6 on universal
-  // link pages, no cap inside the explorer where the page is the canonical
-  // record view).
-  const allFields = Object.entries(value).filter(
-    ([key]) => !key.startsWith('$') && key !== 'createdAt' && key !== 'updatedAt'
-  );
+  // Show every field in the record value — including $type, createdAt, and
+  // updatedAt. The preview is meant to be a faithful, readable rendering of
+  // the record (and, inside the explorer, the rich counterpart to the raw
+  // JSON view), so dropping fields would make the two disagree and hide real
+  // data. Universal-link pages still cap the count for a compact teaser.
+  const allFields = Object.entries(value);
   const previewFields = hideExplorerCtas ? allFields : allFields.slice(0, 6);
   const hasMoreFields = !hideExplorerCtas && allFields.length > 6;
 
