@@ -1,6 +1,6 @@
 'use client';
 
-import { Sparkles, X } from 'lucide-react';
+import { X } from 'lucide-react';
 import type { Waypoint } from '@/utils/waypoints';
 
 type Props = {
@@ -52,7 +52,6 @@ export default function NewWaypointsBanner({ waypoints, onAdd, onDismiss }: Prop
           flexShrink: 0,
         }}
       >
-        <Sparkles size={16} />
         {waypoints.slice(0, 3).map((w) => (
           <span
             key={w.id}
