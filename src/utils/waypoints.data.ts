@@ -442,6 +442,29 @@ export const WAYPOINT_DESTINATIONS_DATA: Record<string, WaypointData> = {
     expectedCollections: ['app.bsky.'],
   },
 
+  mu: {
+    id: 'mu',
+    name: 'Mu',
+    description: (collection) => {
+      if (collection === 'app.bsky.feed.post') return 'View post on mu.social';
+      if (collection === 'app.bsky.graph.list') return 'View list on mu.social';
+      return 'View profile on mu.social';
+    },
+    getUrl: (handle, collection, rkey) => {
+      if (collection && rkey) {
+        if (collection === 'app.bsky.feed.post') {
+          return `https://mu.social/profile/${handle}/post/${rkey}`;
+        }
+        return `https://mu.social/profile/${handle}`;
+      }
+      return `https://mu.social/profile/${handle}`;
+    },
+    supportedTypes: ['post', 'profile', 'list', 'record'],
+    category: 'blueskyForks',
+    redirectCompat: ['bluesky-social'],
+    expectedCollections: ['app.bsky.'],
+  },
+
   tangled: {
     id: 'tangled',
     name: 'Tangled',
@@ -697,6 +720,7 @@ export const WAYPOINT_ORDER = [
   'witchsky',
   'catsky',
   'deer',
+  'mu',
 ];
 
 export function getWaypointDataForType(type: WaypointType): WaypointData[] {
