@@ -18,7 +18,8 @@ export type RedirectCompatFamily =
   | 'streamplace'
   | 'popfeed'
   | 'sifa'
-  | 'blento';
+  | 'blento'
+  | 'lichen';
 
 export type WaypointData = {
   id: string;
@@ -117,6 +118,11 @@ export const COMPAT_FAMILIES: Record<RedirectCompatFamily, CompatFamilyMeta> = {
     name: 'Blento',
     description: 'Blento profiles.',
   },
+  lichen: {
+    id: 'lichen',
+    name: 'Lichen',
+    description: 'Lichen wikis.',
+  },
 };
 
 export const COMPAT_FAMILY_ORDER: RedirectCompatFamily[] = [
@@ -131,6 +137,7 @@ export const COMPAT_FAMILY_ORDER: RedirectCompatFamily[] = [
   'popfeed',
   'sifa',
   'blento',
+  'lichen',
 ];
 
 export type WaypointCategoryData = {
@@ -625,6 +632,25 @@ export const WAYPOINT_DESTINATIONS_DATA: Record<string, WaypointData> = {
     expectedCollections: ['app.blento.'],
   },
 
+  lichen: {
+    id: 'lichen',
+    name: 'Lichen',
+    description: (collection) => {
+      if (collection === 'wiki.lichen.wiki') return 'View wiki on lichen.wiki';
+      return 'View profile on lichen.wiki';
+    },
+    getUrl: (handle, collection, rkey) => {
+      if (collection === 'wiki.lichen.wiki' && rkey) {
+        return `https://lichen.wiki/@${handle}/${rkey}`;
+      }
+      return `https://lichen.wiki/@${handle}`;
+    },
+    supportedTypes: ['post', 'profile', 'list', 'record'],
+    category: 'atmosphereApps',
+    redirectCompat: ['lichen'],
+    expectedCollections: ['wiki.lichen.'],
+  },
+
   anisotaReader: {
     id: 'anisotaReader',
     name: 'Anisota Reader',
@@ -692,6 +718,51 @@ export const WAYPOINT_DESTINATIONS_DATA: Record<string, WaypointData> = {
     redirectCompat: ['standard-site'],
     expectedCollections: ['pub.leaflet.', 'site.standard.'],
   },
+
+  standardReader: {
+    id: 'standardReader',
+    name: 'Standard Reader',
+    description: (collection) => {
+      if (collection?.startsWith('site.standard.') || collection?.startsWith('pub.leaflet.')) {
+        return 'Read document on standard-reader.app';
+      }
+      return 'View documents on standard-reader.app';
+    },
+    getUrl: (handle, collection, rkey, did) => {
+      const identifier = did || handle;
+      if (
+        collection &&
+        rkey &&
+        (collection.startsWith('site.standard.') || collection.startsWith('pub.leaflet.'))
+      ) {
+        return `https://standard-reader.app/a/${identifier}/${rkey}`;
+      }
+      return `https://standard-reader.app/u/${identifier}`;
+    },
+    supportedTypes: ['post', 'profile', 'list', 'record'],
+    category: 'publications',
+    redirectCompat: ['standard-site'],
+    expectedCollections: ['pub.leaflet.', 'site.standard.'],
+  },
+
+  taproot: {
+    id: 'taproot',
+    name: 'Taproot',
+    description: (collection) => {
+      if (collection) return 'Inspect record on atproto.at';
+      return 'Browse repo on atproto.at';
+    },
+    getUrl: (handle, collection, rkey, did) => {
+      const identifier = did || handle;
+      if (collection && rkey) {
+        return `https://atproto.at/uri/at://${identifier}/${collection}/${rkey}`;
+      }
+      return `https://atproto.at/uri/at://${identifier}`;
+    },
+    supportedTypes: ['post', 'profile', 'list', 'record'],
+    category: 'devTools',
+    redirectCompat: [],
+  },
 };
 
 export const WAYPOINT_ORDER = [
@@ -710,13 +781,16 @@ export const WAYPOINT_ORDER = [
   'popfeed',
   'sifa',
   'blento',
+  'lichen',
   'anisotaReader',
   'offprint',
   'pckt',
+  'standardReader',
   'aturiExplore',
   'pdsls',
   'tangled',
   'atptools',
+  'taproot',
   'witchsky',
   'catsky',
   'deer',
@@ -835,7 +909,7 @@ const RECOMMENDED_WAYPOINTS: Record<string, RecommendedConfig> = {
     label: 'Recommended for Repos',
   },
   'record': {
-    waypointIds: ['aturiExplore', 'pdsls', 'atptools'],
+    waypointIds: ['aturiExplore', 'pdsls', 'atptools', 'taproot'],
     label: 'Recommended for Records',
   },
 };
@@ -849,12 +923,16 @@ const RECOMMENDED_WAYPOINTS: Record<string, RecommendedConfig> = {
  */
 const RECOMMENDED_NAMESPACE_PREFIXES: Record<string, RecommendedConfig> = {
   'site.standard': {
-    waypointIds: ['leaflet', 'anisotaReader', 'offprint', 'pckt', 'pdsls'],
+    waypointIds: ['leaflet', 'standardReader', 'anisotaReader', 'offprint', 'pckt', 'pdsls'],
     label: 'Recommended for Publications',
   },
   'pub.leaflet': {
     waypointIds: ['leaflet', 'anisotaReader', 'offprint', 'pckt', 'pdsls'],
     label: 'Recommended for Publications',
+  },
+  'wiki.lichen': {
+    waypointIds: ['lichen', 'aturiExplore', 'pdsls'],
+    label: 'Recommended for Lichen',
   },
   'sh.tangled': {
     waypointIds: ['tangled', 'pdsls', 'atptools'],

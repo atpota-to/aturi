@@ -29,8 +29,11 @@ const BUILTIN_HOME: Record<string, string> = {
   popfeed: 'https://popfeed.social/',
   sifa: 'https://sifa.id/',
   blento: 'https://blento.app/',
+  lichen: 'https://lichen.wiki/',
   offprint: 'https://offprint.app/',
   pckt: 'https://pckt.blog/',
+  standardReader: 'https://standard-reader.app/',
+  taproot: 'https://atproto.at/',
 };
 
 function hostLabel(url: string): string {

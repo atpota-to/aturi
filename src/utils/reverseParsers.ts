@@ -22,6 +22,9 @@ export type SourceApp =
   | 'popfeed'
   | 'sifa'
   | 'blento'
+  | 'lichen'
+  | 'standardReader'
+  | 'taproot'
   | 'offprint'
   | 'pckt'
   | 'headDetected';
@@ -415,6 +418,89 @@ function matchBlento(host: string, parts: string[]): ReverseMatch | null {
 }
 
 /**
+ * Lichen wikis: `/@handle` is a profile, `/@handle/slug` is a wiki record
+ * (`wiki.lichen.wiki/<slug>`).
+ */
+function matchLichen(host: string, parts: string[]): ReverseMatch | null {
+  if (host !== 'lichen.wiki') return null;
+  if (!parts[0] || !parts[0].startsWith('@')) return null;
+  const handle = parts[0].slice(1);
+  if (!handle) return null;
+  const did = handle.startsWith('did:') ? handle : undefined;
+
+  if (parts[1]) {
+    const rkey = parts[1];
+    return {
+      source: 'lichen',
+      parsed: {
+        type: 'record',
+        uri: `at://${handle}/wiki.lichen.wiki/${rkey}`,
+        handle,
+        did,
+        collection: 'wiki.lichen.wiki',
+        rkey,
+      },
+    };
+  }
+
+  return {
+    source: 'lichen',
+    parsed: { type: 'profile', uri: `at://${handle}`, handle, did },
+  };
+}
+
+/**
+ * Standard Reader: `/u/<identifier>` is a profile (document list). The
+ * `/a/<identifier>/<rkey>` document route omits the collection NSID, so we
+ * only reverse-match the profile shape (mirrors Leaflet's profile-only parse).
+ */
+function matchStandardReader(host: string, parts: string[]): ReverseMatch | null {
+  if (host !== 'standard-reader.app') return null;
+  if (parts[0] !== 'u' || !parts[1]) return null;
+  const handle = parts[1];
+  const did = handle.startsWith('did:') ? handle : undefined;
+  return {
+    source: 'standardReader',
+    parsed: { type: 'profile', uri: `at://${handle}`, handle, did },
+  };
+}
+
+/**
+ * Taproot (atproto.at): a generic AT-URI explorer addressed at
+ * `/uri/at://<identifier>[/<collection>/<rkey>]`.
+ */
+function matchTaproot(host: string, pathname: string): ReverseMatch | null {
+  if (host !== 'atproto.at') return null;
+  const m = pathname.replace(/^\/+/, '').match(/^uri\/at:\/{1,2}(.+)$/);
+  if (!m) return null;
+  const segments = m[1].split('/').filter(Boolean);
+  if (segments.length === 0) return null;
+  const handle = segments[0];
+  const collection = segments[1];
+  const rkey = segments[2];
+  const did = handle.startsWith('did:') ? handle : undefined;
+
+  if (collection && rkey) {
+    return {
+      source: 'taproot',
+      parsed: {
+        type: inferType(collection),
+        uri: `at://${handle}/${collection}/${rkey}`,
+        handle,
+        did,
+        collection,
+        rkey,
+      },
+    };
+  }
+
+  return {
+    source: 'taproot',
+    parsed: { type: 'profile', uri: `at://${handle}`, handle, did },
+  };
+}
+
+/**
  * Reverse-match any supported Aturi waypoint site URL back into a structured
  * ParsedURI (handle/collection/rkey). Returns `null` if the URL isn't on a
  * supported site or isn't a shape we recognize.
@@ -438,7 +524,10 @@ export function matchSupportedUrl(url: URL): ReverseMatch | null {
     matchGrain(host, parts) ||
     matchPopfeed(host, parts) ||
     matchSifa(host, parts) ||
-    matchBlento(host, parts)
+    matchBlento(host, parts) ||
+    matchLichen(host, parts) ||
+    matchStandardReader(host, parts) ||
+    matchTaproot(host, url.pathname)
   );
 }
 
@@ -497,4 +586,7 @@ export const SUPPORTED_HOSTS: string[] = [
   'popfeed.social',
   'sifa.id',
   'blento.app',
+  'lichen.wiki',
+  'standard-reader.app',
+  'atproto.at',
 ];
