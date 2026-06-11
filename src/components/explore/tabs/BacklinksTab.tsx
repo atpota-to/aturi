@@ -241,7 +241,7 @@ function BacklinkSourceList({
               aria-expanded={isOpen}
               style={{
                 display: 'grid',
-                gridTemplateColumns: 'auto 1fr 1fr auto',
+                gridTemplateColumns: 'auto 1fr auto',
                 gap: '0.5rem',
                 alignItems: 'baseline',
                 width: '100%',
@@ -258,26 +258,41 @@ function BacklinkSourceList({
               <span style={{ color: 'var(--text-tertiary)', width: '1ch' }}>
                 {isOpen ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
               </span>
-              <code
+              {/* Collection NSID over its record path, stacked and
+                  left-aligned (mirroring the right-hand metric stack). The
+                  two used to sit in side-by-side 1fr columns, which starved
+                  both into mid-word wraps on mobile — stacking gives each the
+                  row's full width before it needs to break. */}
+              <span
                 style={{
-                  background: 'transparent',
-                  padding: 0,
-                  color: 'var(--text-accent)',
-                  wordBreak: 'break-all',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'flex-start',
+                  gap: '0.15rem',
+                  minWidth: 0,
                 }}
               >
-                {s.collection}
-              </code>
-              <code
-                style={{
-                  background: 'transparent',
-                  padding: 0,
-                  color: 'var(--text-tertiary)',
-                  wordBreak: 'break-all',
-                }}
-              >
-                {s.path}
-              </code>
+                <code
+                  style={{
+                    background: 'transparent',
+                    padding: 0,
+                    color: 'var(--text-accent)',
+                    wordBreak: 'break-all',
+                  }}
+                >
+                  {s.collection}
+                </code>
+                <code
+                  style={{
+                    background: 'transparent',
+                    padding: 0,
+                    color: 'var(--text-tertiary)',
+                    wordBreak: 'break-all',
+                  }}
+                >
+                  {s.path}
+                </code>
+              </span>
               {/* Count over distinct-accounts, stacked and abbreviated
                   (2.4k) so the metrics take one narrow right-hand column
                   instead of two — leaving the NSID/path columns more room

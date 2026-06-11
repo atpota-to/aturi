@@ -1902,6 +1902,35 @@ html {
    Atmosphere Explorer Styles
    ============================================ */
 
+/* RecordPreview field rows. Each row is `LABEL  value` — a fixed-width label
+   column beside a flexible value column. On a roomy card that reads well, but
+   when the preview is narrow (mobile, or embedded in a split pane) the value
+   column gets starved and prose / long AT-URIs / CIDs wrap mid-word into a thin
+   ribbon. `.record-fields` is a container-query host (it measures the card's
+   own width, not the viewport's); below the breakpoint the row flips to a
+   column so the label sits on top and the value spans the row's full width. */
+.record-fields {
+  container-type: inline-size;
+}
+
+.field-row-label {
+  min-width: 140px;
+}
+
+@container (max-width: 460px) {
+  .record-fields .field-row-main {
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+  .record-fields .field-row-label {
+    min-width: 0;
+    /* Drop the baseline-alignment pad once stacked — beside the value it
+       lines the label up with the first text line; on top it'd just add a
+       stray gap above the label. */
+    padding-top: 0;
+  }
+}
+
 .explore-small-caps {
   font-family: var(--font-serif);
   font-size: 0.75rem;
