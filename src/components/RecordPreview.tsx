@@ -50,12 +50,12 @@ export default function RecordPreview({
   const recordType = value.$type || collection;
   const displayType = recordType.replace('app.bsky.', '').replace('com.atproto.', '').replace('net.anisota.', '');
 
-  // Get a few key interesting fields to preview (limit to 5-6 on universal
-  // link pages, no cap inside the explorer where the page is the canonical
-  // record view).
-  const allFields = Object.entries(value).filter(
-    ([key]) => !key.startsWith('$') && key !== 'createdAt' && key !== 'updatedAt'
-  );
+  // Show every field in the record value — including $type, createdAt, and
+  // updatedAt. The preview is meant to be a faithful, readable rendering of
+  // the record (and, inside the explorer, the rich counterpart to the raw
+  // JSON view), so dropping fields would make the two disagree and hide real
+  // data. Universal-link pages still cap the count for a compact teaser.
+  const allFields = Object.entries(value);
   const previewFields = hideExplorerCtas ? allFields : allFields.slice(0, 6);
   const hasMoreFields = !hideExplorerCtas && allFields.length > 6;
 
@@ -158,7 +158,12 @@ export default function RecordPreview({
             (not into the right column), so nested content gets the full
             container width instead of compounding indentation. */}
         <div style={{ padding: '1.5rem' }}>
-          <div style={{ marginBottom: '1.5rem' }}>
+          {/* container-query host: field rows below read this wrapper's
+              width (not the viewport's) to decide whether the value sits
+              beside its label or drops onto its own line — see .record-fields
+              in globals.css. Lets the card stack correctly inside narrow
+              split panes, not just on small screens. */}
+          <div className="record-fields" style={{ marginBottom: '1.5rem' }}>
             {previewFields.map(([key, val]) => (
               // Inside the explorer (hideExplorerCtas) this card IS the
               // canonical record view, so top-level fields start expanded —
@@ -341,6 +346,7 @@ function FieldRow({
       }}
     >
       <div
+        className="field-row-main"
         style={{
           display: 'flex',
           gap: '1rem',
@@ -348,7 +354,9 @@ function FieldRow({
           padding: '0.875rem 0',
         }}
       >
-        <div style={fieldLabelStyle}>{label}</div>
+        <div className="field-row-label" style={fieldLabelStyle}>
+          {label}
+        </div>
         <div
           style={{
             flex: 1,
@@ -645,7 +653,9 @@ function childEntries(v: unknown): [string, unknown][] {
 }
 
 const fieldLabelStyle: React.CSSProperties = {
-  minWidth: '140px',
+  // Width lives in .field-row-label (globals.css), not here — a container
+  // query collapses it to 0 when the card is narrow so the value can drop
+  // onto its own full-width line. An inline minWidth would override that.
   fontSize: '0.75rem',
   fontWeight: 600,
   textTransform: 'uppercase',

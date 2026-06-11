@@ -122,6 +122,22 @@ function AppearanceCard() {
         checked={prefs.minimalPostPreview}
         onChange={(next) => update((p) => ({ ...p, minimalPostPreview: next }))}
       />
+
+      <Toggle
+        id="hide-rich-preview"
+        label="Hide the rich record preview"
+        description="Collapses the rich preview card on explorer record pages. Pair with “Show raw record JSON” to read records as JSON instead. You can flip this back right on the page."
+        checked={prefs.hideRichPreview}
+        onChange={(next) => update((p) => ({ ...p, hideRichPreview: next }))}
+      />
+
+      <Toggle
+        id="show-raw-record-json"
+        label="Show raw record JSON"
+        description="Surfaces the raw, linkified record JSON on explorer record pages. You can toggle it right on the page."
+        checked={prefs.showRawRecordJson}
+        onChange={(next) => update((p) => ({ ...p, showRawRecordJson: next }))}
+      />
     </section>
   );
 }

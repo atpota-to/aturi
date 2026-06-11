@@ -25,6 +25,8 @@
  *   hideRepoGlance?: boolean              // hide the "Repo at a glance" section
  *   repoGlanceCollapsedByDefault?: boolean // start that section collapsed
  *   minimalProfile?: boolean              // minimal profile on repo pages
+ *   hideRichPreview?: boolean             // collapse the rich preview on record pages
+ *   showRawRecordJson?: boolean           // show raw record JSON on record pages
  *   updatedAt: datetime
  *
  *   // Legacy — still written for back-compat with older Aturi clients
@@ -101,6 +103,8 @@ export async function writePreferencesToPds(
     hideRepoGlance: prefs.hideRepoGlance,
     repoGlanceCollapsedByDefault: prefs.repoGlanceCollapsedByDefault,
     minimalProfile: prefs.minimalProfile,
+    hideRichPreview: prefs.hideRichPreview,
+    showRawRecordJson: prefs.showRawRecordJson,
     // Legacy fields kept for back-compat with older clients.
     hiddenWaypoints: prefs.hiddenWaypoints,
     waypointOrder: prefs.waypointOrder,

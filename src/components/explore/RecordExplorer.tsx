@@ -111,6 +111,12 @@ export default function RecordExplorer({ repo, collection, rkey }: Props) {
   const isPost = collection === 'app.bsky.feed.post';
   const showPostViewSwitch = !prefsLoading && isPost;
   const minimalPost = showPostViewSwitch && prefs.minimalPostPreview;
+  // Rich-preview vs raw-JSON view state. Both gated on prefs having settled so
+  // first paint matches the defaults (rich shown, raw hidden) and doesn't
+  // flicker. The two are independent: a visitor can collapse the rich card,
+  // surface the raw JSON, do both, or neither.
+  const hideRich = !prefsLoading && prefs.hideRichPreview;
+  const showRawJson = !prefsLoading && prefs.showRawRecordJson;
   // Universal link uses the canonical `/profile/` path; bare-form
   // `/<handle>/<collection>/<rkey>` still works as a fallback route but
   // shareable copies should point at the canonical one.
@@ -177,44 +183,80 @@ export default function RecordExplorer({ repo, collection, rkey }: Props) {
           {!record && !editing && (
             <p className="explore-placeholder">Loading record…</p>
           )}
-          <AppearIn delay={0.05}>
-            {editing && canEdit && agent ? (
-              <RecordEditor
-                agent={agent}
-                did={identity.did}
-                collection={collection}
-                rkey={decodedRkey}
-                onSaved={(next) => {
-                  setRecord((prev) => (prev ? { ...prev, value: next } : prev));
-                }}
-                onDeleted={() => {
-                  setEditing(false);
-                  router.push(`/explore/${repoSeg}/${collection}`);
-                }}
-                onCancel={() => setEditing(false)}
+          {(editing || !hideRich) && (
+            <AppearIn delay={0.05}>
+              {editing && canEdit && agent ? (
+                <RecordEditor
+                  agent={agent}
+                  did={identity.did}
+                  collection={collection}
+                  rkey={decodedRkey}
+                  onSaved={(next) => {
+                    setRecord((prev) => (prev ? { ...prev, value: next } : prev));
+                  }}
+                  onDeleted={() => {
+                    setEditing(false);
+                    router.push(`/explore/${repoSeg}/${collection}`);
+                  }}
+                  onCancel={() => setEditing(false)}
+                />
+              ) : (
+                <RichRecordPreview
+                  handle={identity.handle || identity.did}
+                  did={identity.did}
+                  collection={collection}
+                  rkey={decodedRkey}
+                  record={record}
+                  footerActions={editsInPreviewFooter ? editButton : null}
+                  minimalPost={minimalPost}
+                />
+              )}
+            </AppearIn>
+          )}
+          {/* View switches beneath the preview. "Hide rich preview" collapses
+              the rich card; "Show raw JSON" swaps in the linkified record JSON
+              (replacing the old standalone disclosure at the page foot). The
+              minimal/full post switch only applies to the rich post card, so
+              it's hidden once the rich preview is collapsed. All flip persisted
+              prefs so the choice sticks and syncs across devices. */}
+          {!editing && record && (
+            <div
+              style={{
+                display: 'flex',
+                flexWrap: 'wrap',
+                alignItems: 'baseline',
+                gap: '0.35rem 1.25rem',
+                marginTop: '-0.25rem',
+              }}
+            >
+              <ViewSwitchButton
+                label={hideRich ? 'Show rich preview' : 'Hide rich preview'}
+                onToggle={() =>
+                  updatePrefs((p) => ({ ...p, hideRichPreview: !p.hideRichPreview }))
+                }
               />
-            ) : (
-              <RichRecordPreview
-                handle={identity.handle || identity.did}
-                did={identity.did}
-                collection={collection}
-                rkey={decodedRkey}
-                record={record}
-                footerActions={editsInPreviewFooter ? editButton : null}
-                minimalPost={minimalPost}
+              {!hideRich && showPostViewSwitch && (
+                <ViewSwitchButton
+                  label={minimalPost ? 'Show full post preview' : 'Use minimal view'}
+                  onToggle={() =>
+                    updatePrefs((p) => ({ ...p, minimalPostPreview: !p.minimalPostPreview }))
+                  }
+                />
+              )}
+              <ViewSwitchButton
+                label={showRawJson ? 'Hide raw JSON' : 'Show raw JSON'}
+                onToggle={() =>
+                  updatePrefs((p) => ({ ...p, showRawRecordJson: !p.showRawRecordJson }))
+                }
               />
-            )}
-          </AppearIn>
-          {/* Inline switch between the rich post card and the minimal
-              record-only view — mirrors the repo page's profile switch so
-              users can flip without round-tripping through settings. */}
-          {!editing && showPostViewSwitch && (
-            <PostViewSwitch
-              minimal={minimalPost}
-              onToggle={() =>
-                updatePrefs((p) => ({ ...p, minimalPostPreview: !p.minimalPostPreview }))
-              }
-            />
+            </div>
+          )}
+          {/* Raw record JSON, surfaced right under the preview area so it
+              reads as the rich preview's counterpart rather than a footnote. */}
+          {!editing && record && showRawJson && (
+            <AppearIn delay={0.05}>
+              <LinkifiedJson value={record} className="explore-json" />
+            </AppearIn>
           )}
         </>
       )}
@@ -273,11 +315,11 @@ export default function RecordExplorer({ repo, collection, rkey }: Props) {
         </AppearIn>
       )}
 
-      {/* Standalone Edit chip — only for post / margin previews that
-          don't have a place to slot the button into their layout, and
-          only in read mode. Sits with the sign-in prompt below as the
-          page's editing affordances. */}
-      {!editsInPreviewFooter && !editing && editButton && (
+      {/* Standalone Edit chip — for post / margin previews that don't have a
+          place to slot the button into their layout, and as the fallback when
+          the rich preview (which would host the generic record's footer Edit
+          button) is collapsed. Read mode only. */}
+      {(!editsInPreviewFooter || hideRich) && !editing && editButton && (
         <AppearIn delay={0.1}>
           <div
             style={{
@@ -310,26 +352,21 @@ export default function RecordExplorer({ repo, collection, rkey }: Props) {
         </div>
       )}
 
-      {record && (
-        <details className="explore-section">
-          <summary>Raw record JSON</summary>
-          <LinkifiedJson value={record} className="explore-json" />
-        </details>
-      )}
     </div>
   );
 }
 
 /**
- * Quiet text toggle between the rich post card and the minimal
- * record-only view, mirroring the repo page's ProfileViewSwitch. Flips the
- * persisted `minimalPostPreview` pref so the choice sticks and syncs.
+ * Quiet text toggle used for the record page's view switches (hide/show the
+ * rich preview, minimal/full post, show/hide raw JSON). Mirrors the repo
+ * page's ProfileViewSwitch styling; callers own the persisted pref each one
+ * flips and supply a state-dependent label.
  */
-function PostViewSwitch({
-  minimal,
+function ViewSwitchButton({
+  label,
   onToggle,
 }: {
-  minimal: boolean;
+  label: string;
   onToggle: () => void;
 }) {
   return (
@@ -337,8 +374,6 @@ function PostViewSwitch({
       type="button"
       onClick={onToggle}
       style={{
-        alignSelf: 'flex-start',
-        marginTop: '-0.5rem',
         padding: 0,
         background: 'transparent',
         border: 0,
@@ -356,7 +391,7 @@ function PostViewSwitch({
         e.currentTarget.style.color = 'var(--text-tertiary)';
       }}
     >
-      {minimal ? 'Show full post preview' : 'Use minimal view'}
+      {label}
     </button>
   );
 }
