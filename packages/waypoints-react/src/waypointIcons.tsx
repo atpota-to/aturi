@@ -230,6 +230,59 @@ export const MuSVG = () => (
   </svg>
 );
 
+// Lichen wordmark — from lichen.wiki's /public/logo.svg, recolored to
+// currentColor so it inherits the accent like the rest of the catalog.
+export const LichenSVG = () => (
+  <svg width="24" height="24" viewBox="0 0 134.92644 128.42101" xmlns="http://www.w3.org/2000/svg">
+    <g transform="matrix(1.1,0,0,1.1,301.47096,350.25297)">
+      <path fill="currentColor" d="m -228.35257,-262.99296 c -19.02978,5.17331 5.71835,53.17295 -8.81529,55.61911 -13.95583,2.34891 0.99206,-24.53241 -15.5475,-43.46739 -15.47347,-6.08381 -20.6167,-0.72715 -21.15703,-6.95845 -1.3108,-15.1168 3.95665,-3.71429 19.79401,-8.66631 10.82433,-3.38455 8.09155,-17.08945 3.51308,-19.68708 -14.62332,-8.29661 -0.4486,-21.17177 10.05655,-4.9252 4.71302,9.40824 16.36423,20.32455 18.35849,1.52382 1.60655,-15.14555 2.81668,-16.44355 8.53544,-24.19918 5.90154,-8.00349 25.08044,-4.44133 20.58215,1.31991 -5.02364,6.43406 -7.98538,3.21247 -14.05766,18.33414 -12.75512,31.76381 6.97901,29.69424 13.71761,37.34873 4.34654,4.93731 7.24489,-0.30345 10.876,-6.12677 8,-12 7.33137,-12.59361 13.33137,-20.59361 6,-6 3.48697,-14.27094 11.48697,-8.27094 2.14738,1.61054 8.33559,11.3398 5.57936,13.31991 -7.65995,1.7579 -6.25355,1.42931 -12.25355,11.42931 -6,10 -12,22 -16,30 4,6 3.7579,16.36888 5.7579,28.36888 -6.36045,10.47209 -14.25746,-0.3673 -24.05766,6.32268 -6.32302,4.31633 -20.20337,-14.76624 -11.82391,-14.37787 28.84239,1.33675 17.02084,-2.92172 15.35708,-20.34251 -10.88292,-10.19367 -16.95709,-23.80355 -33.23341,-25.97118 z" />
+    </g>
+  </svg>
+);
+
+// Sprout mark for Taproot — inlined from lucide-react (atproto.at ships no
+// icon-size logo). Kept local so this catalog stays free of third-party
+// React deps the extension bundler can't resolve from the parent project.
+export const TaprootSVG = () => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="24"
+    height="24"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    <path d="M7 20h10" />
+    <path d="M10 20c5.5-2.5.8-6.4 3-10" />
+    <path d="M9.5 9.4c1.1.8 1.8 2.2 2.3 3.7-2 .4-3.5.4-4.8-.3-1.2-.6-2.3-1.9-3-4.2 2.8-.5 4.4 0 5.5.8z" />
+    <path d="M14.1 6a7 7 0 0 0-1.1 4c1.9-.1 3.3-.6 4.3-1.4 1-1 1.6-2.3 1.7-4.6-2.7.1-4 1-4.9 2z" />
+  </svg>
+);
+
+// Open-book mark for Standard Reader — inlined from lucide-react (the site
+// uses lucide icons in-app and ships no distinct logo).
+export const StandardReaderSVG = () => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="24"
+    height="24"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    <path d="M12 7v14" />
+    <path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z" />
+  </svg>
+);
+
 export const WAYPOINT_ICONS: Record<string, ReactNode> = {
   aturi: <AturiSVG />,
   aturiExplore: <AturiExploreSVG />,
@@ -255,6 +308,9 @@ export const WAYPOINT_ICONS: Record<string, ReactNode> = {
   popfeed: <PopfeedSVG />,
   sifa: <SifaSVG />,
   blento: <BlentoSVG />,
+  lichen: <LichenSVG />,
   offprint: <OffprintSVG />,
   pckt: <PcktSVG />,
+  standardReader: <StandardReaderSVG />,
+  taproot: <TaprootSVG />,
 };
