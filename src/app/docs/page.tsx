@@ -3,6 +3,8 @@ import Link from 'next/link';
 import Header from '@/components/Header';
 import { FadeIn } from '@/components/FadeIn';
 import CodeBlock from '@/components/docs/CodeBlock';
+import CopyMarkdownButton from '@/components/docs/CopyMarkdownButton';
+import { DOCS_MARKDOWN } from './markdown';
 
 const DESCRIPTION =
   'Add Atmosphere “Open in…” links, smart client recommendations, and AT-URI resolution to your own app with the @aturi.to/waypoints packages and the public Resolve API.';
@@ -151,6 +153,38 @@ export default function DocsPage() {
             Add Atmosphere “Open in…” links, smart client recommendations, and
             AT-URI resolution to your own app — with two MIT-licensed packages
             and a public API.
+          </p>
+          <div
+            style={{
+              display: 'flex',
+              flexWrap: 'wrap',
+              justifyContent: 'center',
+              alignItems: 'center',
+              gap: '0.75rem',
+              marginTop: '1.5rem',
+            }}
+          >
+            <CopyMarkdownButton markdown={DOCS_MARKDOWN} />
+            <a
+              href="/docs.md"
+              style={{
+                fontSize: '0.8125rem',
+                color: 'var(--text-tertiary)',
+                fontFamily: 'var(--font-mono)',
+              }}
+            >
+              View raw .md →
+            </a>
+          </div>
+          <p
+            style={{
+              color: 'var(--text-tertiary)',
+              fontSize: '0.8125rem',
+              lineHeight: 1.5,
+              margin: '0.75rem 0 0',
+            }}
+          >
+            Building with an LLM or coding agent? Grab the whole page as Markdown.
           </p>
         </header>
 
