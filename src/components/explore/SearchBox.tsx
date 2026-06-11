@@ -182,7 +182,7 @@ export default function SearchBox({ initial }: { initial?: string }) {
           type="text"
           autoComplete="off"
           spellCheck={false}
-          placeholder="handle, DID, at:// URI, or PDS URL"
+          placeholder="handle, DID, at:// URI, or URL"
           value={value}
           onChange={(e) => {
             setValue(e.target.value);
