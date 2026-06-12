@@ -135,22 +135,32 @@ export type Preferences = {
    */
   minimalProfile: boolean;
   /**
-   * Show a minimal post on explorer record pages — just the record's
-   * structured data — instead of the rich Bluesky post card. The page also
-   * offers an inline switch to flip back to the full preview.
+   * @deprecated Folded into `hideRichPreview` — both mean "collapse the rich
+   * card on a record page, leaving the structured field view". Read once on
+   * migration to seed `hideRichPreview`; no longer written by the UI.
    */
   minimalPostPreview: boolean;
   /**
-   * Collapse the rich preview card on explorer record pages. Paired with
-   * `showRawRecordJson` this lets a visitor read the record as raw JSON
-   * instead of (or alongside) the rich rendering. Flipped by the inline
-   * "Hide rich preview" switch beneath the preview.
+   * Collapse the rich preview *card* on explorer record pages — the Bluesky
+   * post card or an at.margin.* card. The structured field table and raw JSON
+   * are separate sections with their own toggles, so hiding the card just
+   * drops the rendering, not the record's data. Flipped by the inline
+   * "Hide rich preview" switch beneath the card.
    */
   hideRichPreview: boolean;
   /**
+   * Collapse the rich JSON preview (the structured field table) on explorer
+   * record pages. Constrained against `showRawRecordJson`: the field table and
+   * the raw JSON are the record's two data views, and at least one always stays
+   * visible — hiding this forces raw JSON on. Flipped by the inline
+   * "Hide rich JSON preview" switch beneath the table.
+   */
+  hideRichJsonPreview: boolean;
+  /**
    * Show the raw (linkified) record JSON on explorer record pages. Replaces
    * the old always-present "Raw record JSON" disclosure with a persisted
-   * toggle, surfaced by the inline "Show raw JSON" switch.
+   * toggle, surfaced by the inline "Show raw JSON" switch. See
+   * `hideRichJsonPreview` for the "at least one data view" constraint.
    */
   showRawRecordJson: boolean;
   /**
@@ -179,6 +189,7 @@ export const DEFAULT_PREFERENCES: Preferences = {
   minimalProfile: false,
   minimalPostPreview: false,
   hideRichPreview: false,
+  hideRichJsonPreview: false,
   showRawRecordJson: false,
   updatedAt: new Date(0).toISOString(),
 };
@@ -281,8 +292,15 @@ export function mergeWithDefaults(input: Partial<Preferences> | null | undefined
     typeof input.minimalProfile === 'boolean' ? input.minimalProfile : false;
   const minimalPostPreview =
     typeof input.minimalPostPreview === 'boolean' ? input.minimalPostPreview : false;
+  // `hideRichPreview` superseded the post-only `minimalPostPreview`; when a
+  // stored blob predates it, carry the old value over so the user's choice to
+  // collapse the post card survives the rename.
   const hideRichPreview =
-    typeof input.hideRichPreview === 'boolean' ? input.hideRichPreview : false;
+    typeof input.hideRichPreview === 'boolean'
+      ? input.hideRichPreview
+      : minimalPostPreview;
+  const hideRichJsonPreview =
+    typeof input.hideRichJsonPreview === 'boolean' ? input.hideRichJsonPreview : false;
   const showRawRecordJson =
     typeof input.showRawRecordJson === 'boolean' ? input.showRawRecordJson : false;
   return {
@@ -301,6 +319,7 @@ export function mergeWithDefaults(input: Partial<Preferences> | null | undefined
     minimalProfile,
     minimalPostPreview,
     hideRichPreview,
+    hideRichJsonPreview,
     showRawRecordJson,
     updatedAt:
       typeof input.updatedAt === 'string' ? input.updatedAt : new Date(0).toISOString(),
@@ -372,6 +391,7 @@ export function preferencesAreEqual(a: Preferences, b: Preferences): boolean {
     a.minimalProfile === b.minimalProfile &&
     a.minimalPostPreview === b.minimalPostPreview &&
     a.hideRichPreview === b.hideRichPreview &&
+    a.hideRichJsonPreview === b.hideRichJsonPreview &&
     a.showRawRecordJson === b.showRawRecordJson &&
     JSON.stringify(a.waypointGroups) === JSON.stringify(b.waypointGroups) &&
     JSON.stringify(a.customWaypoints) === JSON.stringify(b.customWaypoints) &&
