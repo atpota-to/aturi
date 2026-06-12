@@ -30,92 +30,32 @@ export default function NewWaypointsBanner({ waypoints, onAdd, onDismiss }: Prop
   const addLabel = waypoints.length === 1 ? 'Add it' : 'Add all';
 
   return (
-    <div
-      role="status"
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: '0.875rem',
-        padding: '0.75rem 1rem',
-        background: 'var(--bg-secondary)',
-        border: '1px solid var(--text-accent)',
-        marginBottom: '1.5rem',
-      }}
-    >
-      <span
-        aria-hidden
-        style={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: '0.4rem',
-          color: 'var(--text-accent)',
-          flexShrink: 0,
-        }}
-      >
+    <div role="status" className="new-waypoints-banner">
+      <span aria-hidden className="new-waypoints-banner-icons">
         {waypoints.slice(0, 3).map((w) => (
-          <span
-            key={w.id}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              width: 20,
-              height: 20,
-            }}
-          >
+          <span key={w.id} className="new-waypoints-banner-icon">
             {w.icon}
           </span>
         ))}
       </span>
 
-      <span
-        style={{
-          flex: 1,
-          minWidth: 0,
-          fontSize: '0.9rem',
-          color: 'var(--text-primary)',
-          lineHeight: 1.3,
-        }}
-      >
-        {summary}
-      </span>
+      <span className="new-waypoints-banner-text">{summary}</span>
 
-      <button
-        type="button"
-        onClick={onAdd}
-        style={{
-          flexShrink: 0,
-          padding: '0.4rem 0.85rem',
-          background: 'var(--accent-moss)',
-          color: 'var(--text-on-accent)',
-          border: '1px solid var(--accent-forest)',
-          fontSize: '0.85rem',
-          fontFamily: 'var(--font-serif)',
-          cursor: 'pointer',
-        }}
-      >
-        {addLabel}
-      </button>
+      <div className="new-waypoints-banner-actions">
+        <button type="button" onClick={onAdd} className="new-waypoints-banner-add">
+          {addLabel}
+        </button>
 
-      <button
-        type="button"
-        onClick={onDismiss}
-        aria-label="Dismiss new waypoints notification"
-        title="Dismiss"
-        style={{
-          flexShrink: 0,
-          display: 'inline-flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          padding: '0.25rem',
-          background: 'none',
-          border: 'none',
-          color: 'var(--text-tertiary)',
-          cursor: 'pointer',
-        }}
-      >
-        <X size={16} />
-      </button>
+        <button
+          type="button"
+          onClick={onDismiss}
+          aria-label="Dismiss new waypoints notification"
+          title="Dismiss"
+          className="new-waypoints-banner-dismiss"
+        >
+          <X size={16} />
+        </button>
+      </div>
     </div>
   );
 }
