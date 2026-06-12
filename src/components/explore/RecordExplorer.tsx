@@ -23,6 +23,12 @@ import LinkButton from './LinkButton';
 import NotFoundPanel from '@/components/NotFoundPanel';
 import { useAtprotoSession } from '@/components/AtprotoSessionProvider';
 import { usePreferences } from '@/components/PreferencesProvider';
+import {
+  DEFAULT_RECORD_SECTIONS,
+  sectionHidden,
+  type RecordSectionId,
+} from '@/utils/exploreSections';
+import { setSectionHidden, toggleRecordDataView } from '@/utils/preferences';
 
 type Props = {
   repo: string;
@@ -107,43 +113,30 @@ export default function RecordExplorer({ repo, collection, rkey }: Props) {
   const repoSeg = encodeRepo(identity.handle || identity.did);
   const canEdit = Boolean(agent && signedInDid && signedInDid === identity.did);
   const isPost = collection === 'app.bsky.feed.post';
-
-  // The record body is up to three independently-toggleable sections, each
-  // with its own switch directly beneath it:
-  //   1. rich preview card  — the post / margin card (generic records have none)
-  //   2. rich JSON preview  — the structured RecordPreview field table
-  //   3. raw JSON           — the linkified record JSON
-  // Visibility is gated on prefs having settled so first paint matches the
-  // defaults (card + field table shown, raw hidden) and doesn't flicker.
-  const settled = !prefsLoading;
   const hasRichCard = recordHasRichCard(collection);
-  const hideCard = settled && prefs.hideRichPreview;
-  const hideJsonPreview = settled && prefs.hideRichJsonPreview;
-  const showRawJson = settled && prefs.showRawRecordJson;
 
-  // The field table and the raw JSON are the record's two data views; at least
-  // one must stay visible so the body is never empty. Hiding one forces the
-  // other on. The card (a rendering, not the data itself) is freely hideable.
-  const toggleCard = () =>
-    updatePrefs((p) => ({ ...p, hideRichPreview: !p.hideRichPreview }));
-  const toggleJsonPreview = () =>
-    updatePrefs((p) =>
-      p.hideRichJsonPreview
-        ? { ...p, hideRichJsonPreview: false }
-        : { ...p, hideRichJsonPreview: true, showRawRecordJson: true },
-    );
-  const toggleRawJson = () =>
-    updatePrefs((p) =>
-      p.showRawRecordJson
-        ? { ...p, showRawRecordJson: false, hideRichJsonPreview: false }
-        : { ...p, showRawRecordJson: true },
-    );
+  // The record page renders the user's chosen sections in their chosen order
+  // (configurable in Settings → Sections). Until prefs settle we use the
+  // defaults so first paint matches SSR and doesn't flicker.
+  const settled = !prefsLoading;
+  const recordSections = settled ? prefs.recordSections : DEFAULT_RECORD_SECTIONS;
+  const cardHidden = sectionHidden(recordSections, 'richPreview');
+  const structuredHiddenRaw = sectionHidden(recordSections, 'structuredJson');
+  const rawHidden = sectionHidden(recordSections, 'rawJson');
+  // The field table and raw JSON are the two data views; at least one must
+  // stay visible. The setters maintain this, but guard the render too.
+  const structuredHidden = structuredHiddenRaw && rawHidden ? false : structuredHiddenRaw;
 
   // Universal link uses the canonical `/profile/` path; bare-form
   // `/<handle>/<collection>/<rkey>` still works as a fallback route but
   // shareable copies should point at the canonical one.
   const aturiUniversalPath = `/profile/${identity.handle || identity.did}/${collection}/${encodeURIComponent(decodedRkey)}`;
   const universalLinkFull = `https://aturi.to${aturiUniversalPath}`;
+  const pdsRecordUrl = getRecordUrl(identity.pds, {
+    repo: identity.did,
+    collection,
+    rkey: decodedRkey,
+  });
 
   // Edit affordance is a standalone chip rendered beneath the view sections —
   // the sections are independently toggleable, so the button can't live inside
@@ -170,24 +163,56 @@ export default function RecordExplorer({ repo, collection, rkey }: Props) {
       </button>
     ) : null;
 
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-      <AppearIn rise>
-        <Breadcrumb
-          handle={identity.handle}
-          did={identity.did}
-          pds={identity.pds}
-          collection={collection}
-          rkey={decodedRkey}
-        />
-      </AppearIn>
+  const breadcrumb = (
+    <AppearIn rise>
+      <Breadcrumb
+        handle={identity.handle}
+        did={identity.did}
+        pds={identity.pds}
+        collection={collection}
+        rkey={decodedRkey}
+      />
+    </AppearIn>
+  );
+  const copyRowNode = (
+    <CopyRow
+      atUri={atUri}
+      did={identity.did}
+      pds={identity.pds}
+      universalLink={universalLinkFull}
+      universalPath={aturiUniversalPath}
+      recordJson={record ? JSON.stringify(record, null, 2) : null}
+      pdsRecordUrl={pdsRecordUrl}
+    />
+  );
+  const signInNode = !session ? (
+    <div
+      style={{
+        padding: '0.875rem 1rem',
+        border: '1px solid var(--border-medium)',
+        background: 'var(--bg-secondary)',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '0.5rem',
+      }}
+    >
+      <p style={{ margin: 0, fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
+        Sign in with your handle to edit your own records.
+      </p>
+      <SignInPanel defaultInput={identity.handle || ''} />
+    </div>
+  ) : null;
+  const editChipNode = editButton ? (
+    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', alignItems: 'center' }}>
+      {editButton}
+    </div>
+  ) : null;
 
-      {/* Record body. In read mode this is up to three stacked sections —
-          rich preview card, structured field table, raw JSON — each with its
-          own toggle directly beneath it. In edit mode the whole body becomes
-          the editor, so the user's eye stays put and the page doesn't grow a
-          separate editor section. */}
-      {recordError ? (
+  // Load error: error panel + the helper sections that still make sense.
+  if (recordError) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+        {breadcrumb}
         <AppearIn delay={0.05}>
           <RecordErrorPanel
             raw={recordError}
@@ -196,7 +221,21 @@ export default function RecordExplorer({ repo, collection, rkey }: Props) {
             handle={identity.handle || identity.did}
           />
         </AppearIn>
-      ) : editing && canEdit && agent ? (
+        <AppearIn delay={0.07}>
+          <BacklinksTab target={atUri} showSummary />
+        </AppearIn>
+        <AppearIn delay={0.09}>{copyRowNode}</AppearIn>
+        {editChipNode && <AppearIn delay={0.1}>{editChipNode}</AppearIn>}
+        {signInNode && <AppearIn delay={0.11}>{signInNode}</AppearIn>}
+      </div>
+    );
+  }
+
+  // Edit mode: the editor takes the whole body; keep the copy row handy.
+  if (editing && canEdit && agent) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+        {breadcrumb}
         <AppearIn delay={0.05}>
           <RecordEditor
             agent={agent}
@@ -213,154 +252,110 @@ export default function RecordExplorer({ repo, collection, rkey }: Props) {
             onCancel={() => setEditing(false)}
           />
         </AppearIn>
-      ) : !record ? (
+        <AppearIn delay={0.07}>{copyRowNode}</AppearIn>
+      </div>
+    );
+  }
+
+  if (!record) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+        {breadcrumb}
         <p className="explore-placeholder">Loading record…</p>
-      ) : (
-        <>
-          {/* Section 1 — rich preview card (posts, margin lexicons). Generic
-              records skip it; their rich view is the field table below. */}
-          {hasRichCard && (
-            <div style={sectionGroupStyle}>
-              {!hideCard && (
-                <AppearIn delay={0.05}>
-                  <RichRecordCard
-                    handle={identity.handle || identity.did}
-                    did={identity.did}
-                    collection={collection}
-                    rkey={decodedRkey}
-                    record={record}
-                  />
-                </AppearIn>
-              )}
-              <ViewSwitchButton
-                label={hideCard ? 'Show rich preview' : 'Hide rich preview'}
-                onToggle={toggleCard}
-              />
-            </div>
+      </div>
+    );
+  }
+
+  // Read mode: render the user's sections in their chosen order. The three
+  // data views (card / field table / raw JSON) keep their inline switch
+  // present even when collapsed, so they can be re-shown right on the page;
+  // helper sections simply disappear when hidden (re-show via Settings).
+  const recordForPreview = { uri: record.uri, cid: record.cid, value: record.value };
+  const sectionRenderers: Record<RecordSectionId, () => ReactNode> = {
+    richPreview: () =>
+      !hasRichCard ? null : (
+        <div style={sectionGroupStyle}>
+          {!cardHidden && (
+            <RichRecordCard
+              handle={identity.handle || identity.did}
+              did={identity.did}
+              collection={collection}
+              rkey={decodedRkey}
+              record={record}
+            />
           )}
-
-          {/* Section 2 — rich JSON preview (structured field table). */}
-          <div style={sectionGroupStyle}>
-            {!hideJsonPreview && (
-              <AppearIn delay={0.05}>
-                <RecordPreview
-                  record={{ uri: record.uri, cid: record.cid, value: record.value }}
-                  collection={collection}
-                  handle={identity.handle || identity.did}
-                  rkey={decodedRkey}
-                  hideExplorerCtas
-                />
-              </AppearIn>
-            )}
-            <ViewSwitchButton
-              label={hideJsonPreview ? 'Show rich JSON preview' : 'Hide rich JSON preview'}
-              onToggle={toggleJsonPreview}
-            />
-          </div>
-
-          {/* Section 3 — raw JSON. */}
-          <div style={sectionGroupStyle}>
-            {showRawJson && (
-              <AppearIn delay={0.05}>
-                <LinkifiedJson value={record} className="explore-json" />
-              </AppearIn>
-            )}
-            <ViewSwitchButton
-              label={showRawJson ? 'Hide raw JSON' : 'Show raw JSON'}
-              onToggle={toggleRawJson}
-            />
-          </div>
-        </>
-      )}
-
-      {/* Engagement counts. Skipped for Bluesky posts — the rich post
-          preview's footer already shows replies/reposts/likes/quotes, so a
-          separate sidecar would just duplicate them. Still shown for
-          profiles (followers/following/posts) and other applicable records. */}
-      {record && !editing && !isPost && (
-        <AppearIn>
-          <EngagementSidecar did={identity.did} collection={collection} atUri={atUri} />
-        </AppearIn>
-      )}
-
-      {/* Consolidated copy row, kept directly beneath the preview (rich post
-          + record JSON) and above the contextual sections. URI elements live
-          in the breadcrumb above, so we don't repeat them — every identifier
-          is one tap away as a copy button. CID is omitted because the preview
-          card already surfaces it visibly in its footer. */}
-      <AppearIn delay={0.06}>
-        <CopyRow
-          atUri={atUri}
-          did={identity.did}
-          pds={identity.pds}
-          universalLink={universalLinkFull}
-          universalPath={aturiUniversalPath}
-          recordJson={record ? JSON.stringify(record, null, 2) : null}
-          pdsRecordUrl={getRecordUrl(identity.pds, {
-            repo: identity.did,
-            collection,
-            rkey: decodedRkey,
-          })}
-        />
-      </AppearIn>
-
-      {/* Contextual usage of this record's lexicon across the atmosphere —
-          a navigational hook into the dedicated lexicon explorer. Hidden
-          when the record itself couldn't be loaded. For a lexicon-schema
-          record the relevant lexicon is the one it DEFINES (the rkey/NSID),
-          not the com.atproto.lexicon.schema collection itself. */}
-      {!editing && !recordError && (
-        <AppearIn delay={0.07}>
-          <LexiconUsageCard
-            collection={
-              collection === 'com.atproto.lexicon.schema' ? decodedRkey : collection
+          <ViewSwitchButton
+            label={cardHidden ? 'Show rich preview' : 'Hide rich preview'}
+            onToggle={() =>
+              updatePrefs((p) => setSectionHidden(p, 'record', 'richPreview', !cardHidden))
             }
           />
-        </AppearIn>
-      )}
-
-      {/* Backlinks — inbound references to this record, shown after its own
-          identity/lexicon context. */}
-      {!editing && (
-        <AppearIn delay={0.08}>
-          <BacklinksTab target={atUri} showSummary />
-        </AppearIn>
-      )}
-
-      {/* Standalone Edit chip, beneath the view sections (read mode only). */}
-      {!editing && editButton && (
-        <AppearIn delay={0.1}>
-          <div
-            style={{
-              display: 'flex',
-              flexWrap: 'wrap',
-              gap: '0.5rem',
-              alignItems: 'center',
-            }}
-          >
-            {editButton}
-          </div>
-        </AppearIn>
-      )}
-
-      {!session && (
-        <div
-          style={{
-            padding: '0.875rem 1rem',
-            border: '1px solid var(--border-medium)',
-            background: 'var(--bg-secondary)',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '0.5rem',
-          }}
-        >
-          <p style={{ margin: 0, fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
-            Sign in with your handle to edit your own records.
-          </p>
-          <SignInPanel defaultInput={identity.handle || ''} />
         </div>
-      )}
+      ),
+    structuredJson: () => (
+      <div style={sectionGroupStyle}>
+        {!structuredHidden && (
+          <RecordPreview
+            record={recordForPreview}
+            collection={collection}
+            handle={identity.handle || identity.did}
+            rkey={decodedRkey}
+            hideExplorerCtas
+          />
+        )}
+        <ViewSwitchButton
+          label={structuredHidden ? 'Show rich JSON preview' : 'Hide rich JSON preview'}
+          onToggle={() => updatePrefs((p) => toggleRecordDataView(p, 'structuredJson'))}
+        />
+      </div>
+    ),
+    rawJson: () => (
+      <div style={sectionGroupStyle}>
+        {!rawHidden && <LinkifiedJson value={record} className="explore-json" />}
+        <ViewSwitchButton
+          label={rawHidden ? 'Show raw JSON' : 'Hide raw JSON'}
+          onToggle={() => updatePrefs((p) => toggleRecordDataView(p, 'rawJson'))}
+        />
+      </div>
+    ),
+    engagement: () =>
+      !isPost ? (
+        <EngagementSidecar did={identity.did} collection={collection} atUri={atUri} />
+      ) : null,
+    copyRow: () => copyRowNode,
+    lexiconUsage: () => (
+      <LexiconUsageCard
+        collection={collection === 'com.atproto.lexicon.schema' ? decodedRkey : collection}
+      />
+    ),
+    backlinks: () => <BacklinksTab target={atUri} showSummary />,
+    signIn: () => signInNode,
+  };
 
+  const applicable = (id: string): boolean => {
+    if (id === 'richPreview') return hasRichCard;
+    if (id === 'engagement') return !isPost;
+    if (id === 'signIn') return !session;
+    return true;
+  };
+  const DATA_VIEW_IDS = new Set(['richPreview', 'structuredJson', 'rawJson']);
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+      {breadcrumb}
+      {recordSections.map(({ id, hidden }, i) => {
+        if (!applicable(id)) return null;
+        // Data views keep their switch even when collapsed; hidden helpers go.
+        if (!DATA_VIEW_IDS.has(id) && hidden) return null;
+        const node = sectionRenderers[id as RecordSectionId]();
+        if (node == null) return null;
+        return (
+          <AppearIn key={id} delay={Math.min(0.05 + i * 0.02, 0.16)}>
+            {node}
+          </AppearIn>
+        );
+      })}
+      {editChipNode && <AppearIn delay={0.18}>{editChipNode}</AppearIn>}
     </div>
   );
 }

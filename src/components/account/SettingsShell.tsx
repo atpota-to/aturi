@@ -5,15 +5,17 @@ import { CloudOff } from 'lucide-react';
 import { useAtprotoSession } from '@/components/AtprotoSessionProvider';
 import AccountTab from './tabs/AccountTab';
 import GeneralTab from './tabs/GeneralTab';
+import SectionsTab from './tabs/SectionsTab';
 import WaypointsTab from './tabs/WaypointsTab';
 import CustomTab from './tabs/CustomTab';
 import AboutTab from './tabs/AboutTab';
 
-type TabId = 'account' | 'general' | 'waypoints' | 'custom' | 'about';
+type TabId = 'account' | 'general' | 'sections' | 'waypoints' | 'custom' | 'about';
 
 const TABS: { id: TabId; label: string }[] = [
   { id: 'account', label: 'Account' },
   { id: 'general', label: 'General' },
+  { id: 'sections', label: 'Sections' },
   { id: 'waypoints', label: 'Waypoints' },
   { id: 'custom', label: 'Custom' },
   { id: 'about', label: 'About' },
@@ -22,6 +24,7 @@ const TABS: { id: TabId; label: string }[] = [
 const HASH_TO_TAB: Record<string, TabId> = {
   account: 'account',
   general: 'general',
+  sections: 'sections',
   waypoints: 'waypoints',
   custom: 'custom',
   about: 'about',
@@ -88,6 +91,7 @@ export default function SettingsShell() {
       <main className="settings-content">
         {tab === 'account' && <AccountTab />}
         {tab === 'general' && <GeneralTab />}
+        {tab === 'sections' && <SectionsTab />}
         {tab === 'waypoints' && <WaypointsTab />}
         {tab === 'custom' && <CustomTab />}
         {tab === 'about' && <AboutTab />}

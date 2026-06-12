@@ -1,8 +1,14 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { resolveIdentifier, type IdentityBundle } from '@/utils/atproto/identity';
+import {
+  DEFAULT_REPO_SECTIONS,
+  sectionHidden,
+  type RepoSectionId,
+} from '@/utils/exploreSections';
+import { setSectionHidden } from '@/utils/preferences';
 import Link from 'next/link';
 import { ChevronDown, ChevronRight, Server } from 'lucide-react';
 import { pdsHostname } from '@/utils/atproto/pdsServer';
@@ -67,21 +73,42 @@ export default function RepoExplorer({ repo }: { repo: string }) {
     );
   }
 
-  // Visibility prefs only take effect once they've settled from
-  // localStorage/PDS. Until then we behave as the defaults (everything
-  // shown, rich profile), which matches the server-rendered HTML and avoids
-  // a hydration mismatch.
+  // The repo page renders the user's chosen sections in their chosen order
+  // (configurable in Settings → Sections). Until prefs settle we use the
+  // defaults so first paint matches SSR and avoids a hydration mismatch.
   const settled = !loading;
-  const showRelationship = !(settled && prefs.hideRelationshipBar);
-  const showGlance = !(settled && prefs.hideRepoGlance);
-  const useMinimalProfile = settled && prefs.minimalProfile;
+  const repoSections = settled ? prefs.repoSections : DEFAULT_REPO_SECTIONS;
+  const profileHidden = sectionHidden(repoSections, 'profile');
+
+  const sectionRenderers: Record<RepoSectionId, () => ReactNode> = {
+    // Self-suppresses for own / signed-out visitors.
+    relationship: () => <RelationshipStrip target={identity} />,
+    // Profile keeps its inline switch even when the card is hidden, so it can
+    // be re-shown right on the page (mirrors the record page's rich preview).
+    profile: () => (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+        {!profileHidden && <ProfileHeader identity={identity} />}
+        <ProfileViewSwitch
+          minimal={profileHidden}
+          onToggle={() =>
+            update((p) => setSectionHidden(p, 'repo', 'profile', !profileHidden))
+          }
+        />
+      </div>
+    ),
+    identity: () => <IdentityRow identity={identity} />,
+    repoGlance: () => (
+      <RepoGlanceSection
+        identity={identity}
+        startCollapsed={settled && prefs.repoGlanceCollapsedByDefault}
+      />
+    ),
+  };
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-      {/* Breadcrumb at the repo level shows pds → @handle. The PDS segment
-          earns the slot here even though there's nothing nested below it
-          on this view — it's the only \"drill up\" affordance at the top
-          of the explorer hierarchy. */}
+      {/* Breadcrumb at the repo level shows pds → @handle — fixed at the top,
+          not part of the configurable section list. */}
       <AppearIn rise>
         <Breadcrumb
           handle={identity.handle}
@@ -92,49 +119,20 @@ export default function RepoExplorer({ repo }: { repo: string }) {
           shareUrl={`/profile/${identity.handle || identity.did}`}
         />
       </AppearIn>
-      {/* "You + @them" relationship signals. Renders nothing for signed-out
-          visitors or when viewing your own repo, so the strip is silent
-          unless it has something useful to say. */}
-      {showRelationship && (
-        <AppearIn delay={0.02}>
-          <RelationshipStrip target={identity} />
-        </AppearIn>
-      )}
-      {!useMinimalProfile && (
-        <AppearIn delay={0.04}>
-          <ProfileHeader identity={identity} />
-        </AppearIn>
-      )}
-      {/* Inline switch beneath the rich profile card (mirrors the record
-          page's "Hide rich preview"). Flips the persisted pref, so the choice
-          sticks and syncs without a round-trip through settings. When the card
-          is hidden it reads "Show rich preview" and sits above the identity
-          row, which always shows. */}
-      {settled && (
-        <ProfileViewSwitch
-          minimal={useMinimalProfile}
-          onToggle={() =>
-            update((p) => ({ ...p, minimalProfile: !p.minimalProfile }))
-          }
-        />
-      )}
-      <AppearIn delay={0.1}>
-        <IdentityRow identity={identity} />
-      </AppearIn>
-      {/* High-level stats — same tile grid the account-settings page
-          uses, dropped in here so anyone viewing a repo (not just its
-          owner) sees how big it is, when it was created, and how much
-          inbound activity it has. Collapsible in place; hidden outright
-          when the user has turned it off. */}
-      {showGlance && (
-        <AppearIn delay={0.16}>
-          <RepoGlanceSection
-            identity={identity}
-            startCollapsed={settled && prefs.repoGlanceCollapsedByDefault}
-          />
-        </AppearIn>
-      )}
-      <AppearIn delay={0.22}>
+      {repoSections.map(({ id, hidden }, i) => {
+        // Profile keeps its switch even when collapsed; other sections go.
+        if (id !== 'profile' && hidden) return null;
+        const node = sectionRenderers[id as RepoSectionId]();
+        if (node == null) return null;
+        return (
+          <AppearIn key={id} delay={Math.min(0.04 + i * 0.04, 0.2)}>
+            {node}
+          </AppearIn>
+        );
+      })}
+      {/* Tabbed collections / identity / log / backlinks — core content,
+          fixed at the bottom and not configurable. */}
+      <AppearIn delay={0.24}>
         <TabbedView identity={identity} />
       </AppearIn>
     </div>

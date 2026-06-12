@@ -24,6 +24,20 @@ import {
   WAYPOINT_ORDER,
   type WaypointType,
 } from './waypoints.data';
+import {
+  DEFAULT_RECORD_SECTIONS,
+  DEFAULT_REPO_SECTIONS,
+  countVisibleGuaranteed,
+  defaultSectionsFor,
+  isGuaranteedDataView,
+  isValidSectionConfig,
+  reconcileSections,
+  sectionHidden,
+  type ExplorePage,
+  type SectionConfig,
+} from './exploreSections';
+
+export type { SectionConfig, ExplorePage } from './exploreSections';
 
 const LS_KEY = 'aturi.prefs.v1';
 
@@ -164,6 +178,20 @@ export type Preferences = {
    */
   showRawRecordJson: boolean;
   /**
+   * Ordered, per-section visibility for explorer record pages. Array order
+   * is display order; each entry's `hidden` toggles the section. This is the
+   * source of truth — the `hideRichPreview` / `hideRichJsonPreview` /
+   * `showRawRecordJson` booleans above are derived from it on write (and
+   * seed it on migration) for back-compat. See `exploreSections.ts`.
+   */
+  recordSections: SectionConfig[];
+  /**
+   * Ordered, per-section visibility for explorer repo / profile pages.
+   * Source of truth for `minimalProfile` / `hideRelationshipBar` /
+   * `hideRepoGlance` (derived on write, seed on migration).
+   */
+  repoSections: SectionConfig[];
+  /**
    * ISO timestamp of last local change. Used to break ties when local and
    * PDS prefs both exist on sign-in.
    */
@@ -191,6 +219,8 @@ export const DEFAULT_PREFERENCES: Preferences = {
   hideRichPreview: false,
   hideRichJsonPreview: false,
   showRawRecordJson: false,
+  recordSections: DEFAULT_RECORD_SECTIONS.map((s) => ({ ...s })),
+  repoSections: DEFAULT_REPO_SECTIONS.map((s) => ({ ...s })),
   updatedAt: new Date(0).toISOString(),
 };
 
@@ -303,6 +333,25 @@ export function mergeWithDefaults(input: Partial<Preferences> | null | undefined
     typeof input.hideRichJsonPreview === 'boolean' ? input.hideRichJsonPreview : false;
   const showRawRecordJson =
     typeof input.showRawRecordJson === 'boolean' ? input.showRawRecordJson : false;
+  // Section layout is the source of truth: reconcile a saved list against
+  // the current defaults, or — for prefs that predate it — seed it from the
+  // per-section booleans so an existing user keeps their chosen layout.
+  const recordSections = Array.isArray(input.recordSections)
+    ? reconcileSections(input.recordSections.filter(isValidSectionConfig), DEFAULT_RECORD_SECTIONS)
+    : DEFAULT_RECORD_SECTIONS.map((s) => {
+        if (s.id === 'richPreview') return { ...s, hidden: hideRichPreview };
+        if (s.id === 'structuredJson') return { ...s, hidden: hideRichJsonPreview };
+        if (s.id === 'rawJson') return { ...s, hidden: !showRawRecordJson };
+        return { ...s };
+      });
+  const repoSections = Array.isArray(input.repoSections)
+    ? reconcileSections(input.repoSections.filter(isValidSectionConfig), DEFAULT_REPO_SECTIONS)
+    : DEFAULT_REPO_SECTIONS.map((s) => {
+        if (s.id === 'relationship') return { ...s, hidden: hideRelationshipBar };
+        if (s.id === 'profile') return { ...s, hidden: minimalProfile };
+        if (s.id === 'repoGlance') return { ...s, hidden: hideRepoGlance };
+        return { ...s };
+      });
   return {
     waypointGroups,
     hiddenWaypoints,
@@ -321,6 +370,8 @@ export function mergeWithDefaults(input: Partial<Preferences> | null | undefined
     hideRichPreview,
     hideRichJsonPreview,
     showRawRecordJson,
+    recordSections,
+    repoSections,
     updatedAt:
       typeof input.updatedAt === 'string' ? input.updatedAt : new Date(0).toISOString(),
   };
@@ -391,6 +442,8 @@ export function preferencesAreEqual(a: Preferences, b: Preferences): boolean {
     a.minimalProfile === b.minimalProfile &&
     a.minimalPostPreview === b.minimalPostPreview &&
     a.hideRichPreview === b.hideRichPreview &&
+    JSON.stringify(a.recordSections) === JSON.stringify(b.recordSections) &&
+    JSON.stringify(a.repoSections) === JSON.stringify(b.repoSections) &&
     a.hideRichJsonPreview === b.hideRichJsonPreview &&
     a.showRawRecordJson === b.showRawRecordJson &&
     JSON.stringify(a.waypointGroups) === JSON.stringify(b.waypointGroups) &&
@@ -818,4 +871,68 @@ export function setGroupWaypointOrder(
     prefs,
     prefs.waypointGroups.map((g) => (g.id === groupId ? { ...g, waypointIds: ids } : g)),
   );
+}
+
+// --- Explore page sections -------------------------------------------------
+
+/** Replace the ordered section list for a page (after a drag-reorder). */
+export function setSections(
+  prefs: Preferences,
+  page: ExplorePage,
+  sections: SectionConfig[],
+): Preferences {
+  return page === 'record'
+    ? { ...prefs, recordSections: sections }
+    : { ...prefs, repoSections: sections };
+}
+
+/**
+ * Show/hide a single section. Hiding is a no-op when it would hide the last
+ * visible *guaranteed data view* (field table / raw JSON on record pages;
+ * profile / identity on repo pages) — the page must always show at least
+ * one. Non-guaranteed sections (incl. the rich preview card) hide freely.
+ */
+export function setSectionHidden(
+  prefs: Preferences,
+  page: ExplorePage,
+  id: string,
+  hidden: boolean,
+): Preferences {
+  const current = page === 'record' ? prefs.recordSections : prefs.repoSections;
+  if (hidden && isGuaranteedDataView(page, id)) {
+    const currentlyVisible = current.some((s) => s.id === id && !s.hidden);
+    if (currentlyVisible && countVisibleGuaranteed(current, page) <= 1) {
+      return prefs;
+    }
+  }
+  return setSections(
+    prefs,
+    page,
+    current.map((s) => (s.id === id ? { ...s, hidden } : s)),
+  );
+}
+
+/**
+ * Toggle one of the two record-page data views (`structuredJson` /
+ * `rawJson`), auto-showing the other when this one is hidden so at least one
+ * stays visible. Used by the inline view switches, mirroring the previous
+ * boolean-pair behaviour.
+ */
+export function toggleRecordDataView(
+  prefs: Preferences,
+  id: 'structuredJson' | 'rawJson',
+): Preferences {
+  const partner = id === 'structuredJson' ? 'rawJson' : 'structuredJson';
+  const currentlyHidden = sectionHidden(prefs.recordSections, id);
+  const next = prefs.recordSections.map((s) => {
+    if (s.id === id) return { ...s, hidden: !currentlyHidden };
+    if (s.id === partner && !currentlyHidden) return { ...s, hidden: false };
+    return s;
+  });
+  return { ...prefs, recordSections: next };
+}
+
+/** Restore a page's section list to its defaults. */
+export function resetSections(prefs: Preferences, page: ExplorePage): Preferences {
+  return setSections(prefs, page, defaultSectionsFor(page));
 }

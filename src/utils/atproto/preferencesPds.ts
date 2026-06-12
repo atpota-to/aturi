@@ -24,10 +24,12 @@
  *   hideRelationshipBar?: boolean         // hide the explorer relationship strip
  *   hideRepoGlance?: boolean              // hide the "Repo at a glance" section
  *   repoGlanceCollapsedByDefault?: boolean // start that section collapsed
- *   minimalProfile?: boolean              // collapse the rich profile card on repo pages
- *   hideRichPreview?: boolean             // collapse the rich preview card on record pages
- *   hideRichJsonPreview?: boolean         // collapse the structured field table on record pages
- *   showRawRecordJson?: boolean           // show raw record JSON on record pages
+ *   recordSections?: Array<{ id: string, hidden: boolean }>  // record-page layout (source of truth)
+ *   repoSections?: Array<{ id: string, hidden: boolean }>    // repo-page layout (source of truth)
+ *   minimalProfile?: boolean              // derived: profile card hidden on repo pages
+ *   hideRichPreview?: boolean             // derived: rich preview card hidden on record pages
+ *   hideRichJsonPreview?: boolean         // derived: field table hidden on record pages
+ *   showRawRecordJson?: boolean           // derived: raw JSON shown on record pages
  *   updatedAt: datetime
  *
  *   // Legacy — still written for back-compat with older Aturi clients
@@ -43,6 +45,7 @@ import {
   mergeWithDefaults,
   type Preferences,
 } from '../preferences';
+import { sectionHidden } from '../exploreSections';
 
 export const PREFERENCES_NSID = 'to.aturi.actor.preferences';
 export const PREFERENCES_RKEY = 'self';
@@ -100,13 +103,18 @@ export async function writePreferencesToPds(
     pinnedLexiconsOthers: prefs.pinnedLexiconsOthers,
     pinScope: prefs.pinScope,
     collectionGroupsCollapsedByDefault: prefs.collectionGroupsCollapsedByDefault,
-    hideRelationshipBar: prefs.hideRelationshipBar,
-    hideRepoGlance: prefs.hideRepoGlance,
     repoGlanceCollapsedByDefault: prefs.repoGlanceCollapsedByDefault,
-    minimalProfile: prefs.minimalProfile,
-    hideRichPreview: prefs.hideRichPreview,
-    hideRichJsonPreview: prefs.hideRichJsonPreview,
-    showRawRecordJson: prefs.showRawRecordJson,
+    // Section layout — the source of truth for explore-page visibility/order.
+    recordSections: prefs.recordSections,
+    repoSections: prefs.repoSections,
+    // Per-section visibility booleans, derived from the section lists so
+    // older clients (and the browser extension) that read them stay in sync.
+    hideRelationshipBar: sectionHidden(prefs.repoSections, 'relationship'),
+    hideRepoGlance: sectionHidden(prefs.repoSections, 'repoGlance'),
+    minimalProfile: sectionHidden(prefs.repoSections, 'profile'),
+    hideRichPreview: sectionHidden(prefs.recordSections, 'richPreview'),
+    hideRichJsonPreview: sectionHidden(prefs.recordSections, 'structuredJson'),
+    showRawRecordJson: !sectionHidden(prefs.recordSections, 'rawJson'),
     // Legacy fields kept for back-compat with older clients.
     hiddenWaypoints: prefs.hiddenWaypoints,
     waypointOrder: prefs.waypointOrder,

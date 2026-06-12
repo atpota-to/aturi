@@ -63,81 +63,22 @@ export default function GeneralTab() {
 }
 
 function AppearanceCard() {
-  const { prefs, update } = usePreferences();
-
   return (
     <section className="settings-card">
       <div className="settings-card-head">
         <h2 className="settings-card-title">Appearance</h2>
         <p className="settings-card-sub">
-          Switch between dark and light themes, tune the text size, dial in
-          accessibility options, and choose how much of each explorer repo
-          page you see. The page chrome and accent palette flip together;
-          explorer panels, embeds, and the home strip all follow.
+          Switch between dark and light themes, tune the text size, and dial
+          in accessibility options. The page chrome and accent palette flip
+          together; explorer panels, embeds, and the home strip all follow.
+          Choose which explorer sections appear — and in what order — under
+          the <strong>Sections</strong> tab.
         </p>
       </div>
       <ThemePicker />
       <FontScalePicker />
       <ReduceMotionToggle />
       <HighContrastToggle />
-
-      <Toggle
-        id="hide-relationship-bar"
-        label="Hide the relationship bar"
-        description="Removes the “you + @them” signals strip at the top of a repo page."
-        checked={prefs.hideRelationshipBar}
-        onChange={(next) => update((p) => ({ ...p, hideRelationshipBar: next }))}
-      />
-
-      <Toggle
-        id="hide-repo-glance"
-        label="Hide “Repo at a glance”"
-        description="Removes the stats tiles (size, creation date, inbound activity) above the explorer tabs entirely. Leave off to keep it collapsible in place."
-        checked={prefs.hideRepoGlance}
-        onChange={(next) => update((p) => ({ ...p, hideRepoGlance: next }))}
-      />
-
-      <Toggle
-        id="repo-glance-collapsed"
-        label="Start “Repo at a glance” collapsed"
-        description="When shown, the stats section starts folded; click its header to expand. No effect when hidden above."
-        checked={prefs.repoGlanceCollapsedByDefault}
-        onChange={(next) =>
-          update((p) => ({ ...p, repoGlanceCollapsedByDefault: next }))
-        }
-      />
-
-      <Toggle
-        id="minimal-profile"
-        label="Hide the rich profile preview"
-        description="Collapses the rich profile card on repo pages, showing just the DID, handle, and PDS. You can flip it back right on the page."
-        checked={prefs.minimalProfile}
-        onChange={(next) => update((p) => ({ ...p, minimalProfile: next }))}
-      />
-
-      <Toggle
-        id="hide-rich-preview"
-        label="Hide the rich record preview"
-        description="Collapses the rendered card (e.g. the Bluesky post card) on explorer record pages, leaving the structured field view. No effect on records that have no card. You can flip it back right on the page."
-        checked={prefs.hideRichPreview}
-        onChange={(next) => update((p) => ({ ...p, hideRichPreview: next }))}
-      />
-
-      <Toggle
-        id="hide-rich-json-preview"
-        label="Hide the rich JSON preview"
-        description="Collapses the structured field table on explorer record pages. Can't be hidden at the same time as raw JSON — one of the two data views always stays visible."
-        checked={prefs.hideRichJsonPreview}
-        onChange={(next) => update((p) => ({ ...p, hideRichJsonPreview: next }))}
-      />
-
-      <Toggle
-        id="show-raw-record-json"
-        label="Show raw record JSON"
-        description="Surfaces the raw, linkified record JSON on explorer record pages. You can toggle it right on the page."
-        checked={prefs.showRawRecordJson}
-        onChange={(next) => update((p) => ({ ...p, showRawRecordJson: next }))}
-      />
     </section>
   );
 }
