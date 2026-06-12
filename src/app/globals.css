@@ -2839,3 +2839,87 @@ html {
     transform: none !important;
   }
 }
+
+/* New-waypoints notification banner (universal-link picker + account settings) */
+.new-waypoints-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
+  padding: 0.75rem 1rem;
+  background: var(--bg-secondary);
+  border: 1px solid var(--text-accent);
+  margin-bottom: 1.5rem;
+}
+
+.new-waypoints-banner-icons {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--text-accent);
+  flex-shrink: 0;
+}
+
+.new-waypoints-banner-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+}
+
+.new-waypoints-banner-text {
+  flex: 1;
+  min-width: 0;
+  font-size: 0.9rem;
+  color: var(--text-primary);
+  line-height: 1.3;
+}
+
+.new-waypoints-banner-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.new-waypoints-banner-add {
+  padding: 0.4rem 0.85rem;
+  background: var(--accent-moss);
+  color: var(--text-on-accent);
+  border: 1px solid var(--accent-forest);
+  font-size: 0.85rem;
+  font-family: var(--font-serif);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.new-waypoints-banner-dismiss {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.25rem;
+  background: none;
+  border: none;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+/* On narrow screens the actions drop to their own full-width row so the
+   summary text gets the full width instead of being squeezed into a sliver. */
+@media (max-width: 600px) {
+  .new-waypoints-banner {
+    flex-wrap: wrap;
+    row-gap: 0.75rem;
+  }
+
+  .new-waypoints-banner-actions {
+    flex: 1 1 100%;
+    justify-content: flex-end;
+  }
+
+  .new-waypoints-banner-add {
+    flex: 1;
+    text-align: center;
+  }
+}
