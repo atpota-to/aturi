@@ -208,7 +208,6 @@ function ProfileViewSwitch({
       onClick={onToggle}
       style={{
         alignSelf: 'flex-start',
-        marginTop: '-0.75rem',
         padding: 0,
         background: 'transparent',
         border: 0,
