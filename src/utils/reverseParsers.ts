@@ -22,7 +22,6 @@ export type SourceApp =
   | 'popfeed'
   | 'sifa'
   | 'blento'
-  | 'lichen'
   | 'standardReader'
   | 'taproot'
   | 'offprint'
@@ -418,38 +417,6 @@ function matchBlento(host: string, parts: string[]): ReverseMatch | null {
 }
 
 /**
- * Lichen wikis: `/@handle` is a profile, `/@handle/slug` is a wiki record
- * (`wiki.lichen.wiki/<slug>`).
- */
-function matchLichen(host: string, parts: string[]): ReverseMatch | null {
-  if (host !== 'lichen.wiki') return null;
-  if (!parts[0] || !parts[0].startsWith('@')) return null;
-  const handle = parts[0].slice(1);
-  if (!handle) return null;
-  const did = handle.startsWith('did:') ? handle : undefined;
-
-  if (parts[1]) {
-    const rkey = parts[1];
-    return {
-      source: 'lichen',
-      parsed: {
-        type: 'record',
-        uri: `at://${handle}/wiki.lichen.wiki/${rkey}`,
-        handle,
-        did,
-        collection: 'wiki.lichen.wiki',
-        rkey,
-      },
-    };
-  }
-
-  return {
-    source: 'lichen',
-    parsed: { type: 'profile', uri: `at://${handle}`, handle, did },
-  };
-}
-
-/**
  * Standard Reader: `/u/<identifier>` is a profile (document list) and
  * `/a/<identifier>/<rkey>` is a document. The document route omits the
  * collection NSID, but every `/a/` link is a Standard Site document, so we
@@ -547,7 +514,6 @@ export function matchSupportedUrl(url: URL): ReverseMatch | null {
     matchPopfeed(host, parts) ||
     matchSifa(host, parts) ||
     matchBlento(host, parts) ||
-    matchLichen(host, parts) ||
     matchStandardReader(host, parts) ||
     matchTaproot(host, url.pathname)
   );
@@ -608,7 +574,6 @@ export const SUPPORTED_HOSTS: string[] = [
   'popfeed.social',
   'sifa.id',
   'blento.app',
-  'lichen.wiki',
   'standard-reader.app',
   'atproto.at',
 ];

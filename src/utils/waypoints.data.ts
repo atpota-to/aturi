@@ -18,8 +18,7 @@ export type RedirectCompatFamily =
   | 'streamplace'
   | 'popfeed'
   | 'sifa'
-  | 'blento'
-  | 'lichen';
+  | 'blento';
 
 export type WaypointData = {
   id: string;
@@ -118,11 +117,6 @@ export const COMPAT_FAMILIES: Record<RedirectCompatFamily, CompatFamilyMeta> = {
     name: 'Blento',
     description: 'Blento profiles.',
   },
-  lichen: {
-    id: 'lichen',
-    name: 'Lichen',
-    description: 'Lichen wikis.',
-  },
 };
 
 export const COMPAT_FAMILY_ORDER: RedirectCompatFamily[] = [
@@ -137,7 +131,6 @@ export const COMPAT_FAMILY_ORDER: RedirectCompatFamily[] = [
   'popfeed',
   'sifa',
   'blento',
-  'lichen',
 ];
 
 export type WaypointCategoryData = {
@@ -632,25 +625,6 @@ export const WAYPOINT_DESTINATIONS_DATA: Record<string, WaypointData> = {
     expectedCollections: ['app.blento.'],
   },
 
-  lichen: {
-    id: 'lichen',
-    name: 'Lichen',
-    description: (collection) => {
-      if (collection === 'wiki.lichen.wiki') return 'View wiki on lichen.wiki';
-      return 'View profile on lichen.wiki';
-    },
-    getUrl: (handle, collection, rkey) => {
-      if (collection === 'wiki.lichen.wiki' && rkey) {
-        return `https://lichen.wiki/@${handle}/${rkey}`;
-      }
-      return `https://lichen.wiki/@${handle}`;
-    },
-    supportedTypes: ['post', 'profile', 'list', 'record'],
-    category: 'atmosphereApps',
-    redirectCompat: ['lichen'],
-    expectedCollections: ['wiki.lichen.'],
-  },
-
   anisotaReader: {
     id: 'anisotaReader',
     name: 'Anisota Reader',
@@ -781,7 +755,6 @@ export const WAYPOINT_ORDER = [
   'popfeed',
   'sifa',
   'blento',
-  'lichen',
   'anisotaReader',
   'offprint',
   'pckt',
@@ -929,10 +902,6 @@ const RECOMMENDED_NAMESPACE_PREFIXES: Record<string, RecommendedConfig> = {
   'pub.leaflet': {
     waypointIds: ['leaflet', 'anisotaReader', 'offprint', 'pckt', 'pdsls'],
     label: 'Recommended for Publications',
-  },
-  'wiki.lichen': {
-    waypointIds: ['lichen', 'aturiExplore', 'pdsls'],
-    label: 'Recommended for Lichen',
   },
   'sh.tangled': {
     waypointIds: ['tangled', 'pdsls', 'atptools'],

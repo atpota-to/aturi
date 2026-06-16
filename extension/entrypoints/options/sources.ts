@@ -28,7 +28,6 @@ export const SOURCE_APPS: SourceDescriptor[] = [
   { id: 'popfeed', name: 'Popfeed', host: 'popfeed.social' },
   { id: 'sifa', name: 'Sifa', host: 'sifa.id' },
   { id: 'blento', name: 'Blento', host: 'blento.app' },
-  { id: 'lichen', name: 'Lichen', host: 'lichen.wiki' },
   { id: 'offprint', name: 'Offprint', host: 'offprint.app' },
   { id: 'pckt', name: 'pckt', host: 'pckt.blog' },
   { id: 'standardReader', name: 'Standard Reader', host: 'standard-reader.app' },
