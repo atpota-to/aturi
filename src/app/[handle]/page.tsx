@@ -89,7 +89,7 @@ async function ProfileContent({ handle }: { handle: string }) {
     return (
       <>
         <Header compact />
-        <div className="container-narrow" style={{ padding: '0 2rem 4rem' }}>
+        <div className="container-narrow waypoint-page" style={{ padding: '0 2rem 4rem' }}>
           <NotFoundPanel
             eyebrow="Couldn't resolve"
             headline="That handle didn't resolve."
@@ -110,7 +110,7 @@ async function ProfileContent({ handle }: { handle: string }) {
   return (
     <>
       <Header compact />
-      <div className="container-narrow" style={{ padding: '0 2rem 4rem' }}>
+      <div className="container-narrow waypoint-page" style={{ padding: '0 2rem 4rem' }}>
         {profileData && (
           <div className="content-fade-in">
             <ProfilePreview profile={profileData} />
@@ -154,7 +154,7 @@ export default async function ProfilePage({ params }: Props) {
       fallback={
         <>
           <Header compact />
-          <div className="container-narrow" style={{ padding: '0 2rem 4rem' }}>
+          <div className="container-narrow waypoint-page" style={{ padding: '0 2rem 4rem' }}>
             <ProfilePreviewSkeleton />
           </div>
         </>

@@ -55,10 +55,10 @@ export default function ScrollIndicator({
         className="scroll-indicator-floating"
         style={{
           display: 'flex',
-          flexDirection: 'column',
+          flexDirection: 'row',
           alignItems: 'center',
-          gap: '0.5rem',
-          padding: '1rem 1.75rem 1.25rem',
+          gap: '0.625rem',
+          padding: '0.5rem 1rem 0.5rem 0.875rem',
           background: 'var(--bg-overlay)',
           backdropFilter: 'blur(12px)',
           WebkitBackdropFilter: 'blur(12px)',
@@ -104,8 +104,9 @@ export default function ScrollIndicator({
         <div
           style={{
             position: 'relative',
-            width: '40px',
-            height: '40px',
+            width: '24px',
+            height: '24px',
+            flexShrink: 0,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -118,7 +119,7 @@ export default function ScrollIndicator({
               animation: 'float-leaf-1 3.5s ease-in-out infinite',
             }}
           >
-            <Leaf size={28} strokeWidth={1.5} />
+            <Leaf size={18} strokeWidth={1.5} />
           </div>
 
           <div
@@ -127,7 +128,7 @@ export default function ScrollIndicator({
               animation: 'float-leaf-2 3.5s ease-in-out 1.2s infinite',
             }}
           >
-            <Leaf size={22} strokeWidth={1.5} />
+            <Leaf size={14} strokeWidth={1.5} />
           </div>
 
           <div
@@ -136,7 +137,7 @@ export default function ScrollIndicator({
               animation: 'float-leaf-3 3.5s ease-in-out 2.4s infinite',
             }}
           >
-            <Leaf size={24} strokeWidth={1.5} />
+            <Leaf size={16} strokeWidth={1.5} />
           </div>
         </div>
 
@@ -247,7 +248,7 @@ export default function ScrollIndicator({
 
         @media (max-width: 640px) {
           .scroll-indicator-floating {
-            padding: 0.875rem 1.5rem 1rem;
+            padding: 0.4375rem 0.875rem 0.4375rem 0.75rem;
           }
         }
       `}</style>
