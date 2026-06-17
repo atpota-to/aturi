@@ -173,17 +173,19 @@ export default function CategoryCard({
         {isExpanded && (
           // Expanded: Show all waypoints with stagger
           <div className="waypoint-list">
-            {hasWaypoints && waypoints!.map((waypoint, index) => (
-              <div
-                key={waypoint.id}
-                className="waypoint-item"
-                style={{
-                  animationDelay: `${index * 50}ms`,
-                }}
-              >
-                {renderWaypointCard(waypoint, index)}
-              </div>
-            ))}
+            {hasWaypoints && waypoints!
+              .filter((waypoint) => waypoint.getUrl(handle, collection, rkey, did) !== null)
+              .map((waypoint, index) => (
+                <div
+                  key={waypoint.id}
+                  className="waypoint-item"
+                  style={{
+                    animationDelay: `${index * 50}ms`,
+                  }}
+                >
+                  {renderWaypointCard(waypoint, index)}
+                </div>
+              ))}
 
             {/* Render subcategories if they exist */}
             {hasSubcategories && (
