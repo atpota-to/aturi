@@ -21,6 +21,11 @@ type Props = {
   showFallback?: boolean;
   /** Cross-axis alignment of the button + fallback within the container. */
   align?: 'center' | 'start';
+  /**
+   * Override the button text. Defaults to the browser-detected
+   * "Download for ${browser}" / "Download the Extension" copy.
+   */
+  label?: string;
 };
 
 /**
@@ -32,6 +37,7 @@ export default function DownloadButton({
   variant = 'primary',
   showFallback = false,
   align = 'center',
+  label: labelOverride,
 }: Props) {
   const [browser, setBrowser] = useState<Browser | null>(null);
 
@@ -45,11 +51,12 @@ export default function DownloadButton({
   const primaryLabel = BROWSER_LABELS[detected];
   const showFallbackLinks = !isSupported;
   const label =
-    browser === null
+    labelOverride ??
+    (browser === null
       ? 'Download the Extension'
       : showFallbackLinks
         ? 'Download the Extension'
-        : `Download for ${primaryLabel}`;
+        : `Download for ${primaryLabel}`);
 
   const isPrimary = variant === 'primary';
 
