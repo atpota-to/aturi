@@ -29,12 +29,15 @@ export default function HomeHero() {
     >
       <h1
         style={{
-          fontSize: '2.75rem',
+          fontSize: '2.25rem',
           fontWeight: 300,
           letterSpacing: '-0.01em',
           color: 'var(--text-primary)',
-          marginBottom: '0.875rem',
-          lineHeight: 1.15,
+          marginBottom: '1.75rem',
+          lineHeight: 1.2,
+          maxWidth: '38rem',
+          marginLeft: 'auto',
+          marginRight: 'auto',
         }}
       >
         <span
@@ -46,20 +49,9 @@ export default function HomeHero() {
             backgroundClip: 'text',
           }}
         >
-          Tour the Atmosphere
+          Jump between clients, share universal links, browse any PDS
         </span>
       </h1>
-      <p
-        style={{
-          fontSize: '1.125rem',
-          color: 'var(--text-secondary)',
-          lineHeight: 1.6,
-          maxWidth: '36rem',
-          margin: '0 auto 1.75rem',
-        }}
-      >
-        Switch clients, share universal links, browse any PDS.
-      </p>
 
       {/* CTA row — align to the top so the Explore link doesn't stretch
           to match the Download column's full height (button + fallback
@@ -93,12 +85,12 @@ export default function HomeHero() {
           }}
         >
           <Telescope size={18} style={{ color: 'var(--text-accent)' }} />
-          <span>Explore the Atmosphere</span>
+          <span>Explore</span>
           <ArrowRight size={16} style={{ color: 'var(--text-tertiary)' }} />
         </Link>
         {/* showFallback omitted — the fallback list lives below the CTA
             row so it can center relative to both buttons. */}
-        <DownloadButton variant="primary" />
+        <DownloadButton variant="primary" label="Download" />
       </div>
 
       {/* Browser-detected "Also for X" line, centered under the row. */}
