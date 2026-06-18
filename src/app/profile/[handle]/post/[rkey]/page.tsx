@@ -171,7 +171,7 @@ async function PostContent({ handle, rkey }: { handle: string; rkey: string }) {
       return (
         <>
           <Header compact />
-          <div className="container-narrow" style={{ padding: '0 2rem 4rem' }}>
+          <div className="container-narrow waypoint-page" style={{ padding: '0 2rem 4rem' }}>
             <NotFoundPanel
               eyebrow="Couldn't resolve"
               headline="That handle didn't resolve."
@@ -235,7 +235,7 @@ async function PostContent({ handle, rkey }: { handle: string; rkey: string }) {
     return (
       <>
         <Header compact />
-        <div className="container-narrow" style={{ padding: '0 2rem 4rem' }}>
+        <div className="container-narrow waypoint-page" style={{ padding: '0 2rem 4rem' }}>
 
         {/* AT-URI alternate link, mirroring Bluesky's bskyweb template.
             React 19 hoists this to <head>. */}
@@ -309,7 +309,7 @@ export default async function PostPage({ params }: Props) {
       fallback={
         <>
           <Header compact />
-          <div className="container-narrow" style={{ padding: '0 2rem 4rem' }}>
+          <div className="container-narrow waypoint-page" style={{ padding: '0 2rem 4rem' }}>
             <PostPreviewSkeleton />
           </div>
         </>

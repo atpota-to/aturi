@@ -2923,3 +2923,51 @@ html {
     text-align: center;
   }
 }
+
+.profile-preview-banner {
+  width: 100%;
+  height: 200px;
+}
+
+/* Universal-link (waypoint) pages ran large on phones — the preview card,
+   the "choose where to view" header, and the waypoint rows were all sized
+   for desktop, so the page felt zoomed in versus the rest of the app. On
+   small screens tighten the gutters and scale the big elements down a notch
+   so more fits on screen without the user having to pinch-zoom out. */
+@media (max-width: 600px) {
+  .waypoint-page {
+    padding-left: 1.25rem;
+    padding-right: 1.25rem;
+  }
+
+  .waypoint-page #waypoint-picker > header {
+    margin-bottom: 1.5rem;
+  }
+
+  .waypoint-page #waypoint-picker > header h1 {
+    font-size: 1.875rem;
+  }
+
+  .waypoint-page #waypoint-picker > header p {
+    font-size: 1rem !important;
+  }
+
+  .waypoint-page .waypoint-button {
+    padding: 1rem 1.125rem;
+    gap: 0.75rem;
+  }
+
+  .waypoint-page .waypoint-name {
+    font-size: 1rem;
+  }
+
+  .waypoint-page .waypoint-description {
+    font-size: 0.8125rem;
+  }
+
+  /* Trim the profile banner — at 200px it ate roughly a third of the
+     viewport before any content showed. */
+  .profile-preview-banner {
+    height: 130px;
+  }
+}

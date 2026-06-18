@@ -74,18 +74,16 @@ export default function ProfilePreview({ profile }: ProfilePreviewProps) {
       {/* Banner */}
       {banner ? (
         <div
+          className="profile-preview-banner"
           style={{
-            width: '100%',
-            height: '200px',
             background: `url(${sanitizeUrl(banner)}) center/cover`,
             backgroundColor: 'var(--bg-tertiary)',
           }}
         />
       ) : (
         <div
+          className="profile-preview-banner"
           style={{
-            width: '100%',
-            height: '200px',
             background: 'linear-gradient(135deg, var(--accent-moss) 0%, var(--accent-forest) 100%)',
           }}
         />
