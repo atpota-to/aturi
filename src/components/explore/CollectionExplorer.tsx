@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState, type CSSProperties } from 'react';
+import { useCallback, useEffect, useRef, useState, type CSSProperties } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Pause, Play, FilePenLine, Trash2, X } from 'lucide-react';
@@ -18,6 +18,7 @@ import Breadcrumb from './Breadcrumb';
 import NotFoundPanel from '@/components/NotFoundPanel';
 import SignInPanel from './SignInPanel';
 import { useAtprotoSession } from '@/components/AtprotoSessionProvider';
+import { useEditBar } from './EditBarContext';
 
 type Props = {
   repo: string;
@@ -69,6 +70,13 @@ export default function CollectionExplorer({ repo, collection }: Props) {
 // as many records as possible per fetch.
 const RECORDS_PER_PAGE = 100;
 
+// Reveal/retract thresholds for dropping the condensed edit bar into the nav,
+// matching the breadcrumb's behaviour: the top ~96px counts as occluded by the
+// sticky nav, and a dead band keeps the reveal from strobing at the boundary
+// (showing the bar grows the nav, which nudges the page back across the line).
+const NAV_OFFSET_PX = 96;
+const REVEAL_HYSTERESIS_PX = 72;
+
 // Shared look for the quiet "Select all" / "Deselect all" buttons in the
 // bulk-edit toolbar — neutral chips that dim when their action is a no-op.
 function selectionButtonStyle(disabled: boolean): CSSProperties {
@@ -116,6 +124,18 @@ function CollectionList({
   const loggedOut = !session && !sessionLoading;
   const showEditButton = canEdit || loggedOut;
   const editActive = editing || signInOpen;
+
+  const { setBar, setScrolledPast } = useEditBar();
+  // Latest selection + record set, read by the stable handlers below (and the
+  // published snapshot) without making those callbacks change identity on
+  // every toggle — which would otherwise thrash the publish effect.
+  const recordsRef = useRef(records);
+  recordsRef.current = records;
+  const selectedRef = useRef(selected);
+  selectedRef.current = selected;
+  // In-page edit toolbar, watched so the condensed nav copy reveals once it
+  // scrolls behind the nav.
+  const editBarRef = useRef<HTMLDivElement>(null);
 
   const loadPage = useCallback(
     async (after: string | undefined) => {
@@ -216,10 +236,25 @@ function CollectionList({
     setDeleteError(null);
   }, []);
 
-  async function handleBulkDelete() {
-    if (!agent || selected.size === 0) return;
+  // Stable selection actions (live state read via refs) so the in-page bar and
+  // the condensed nav bar share one set of handlers, and publishing them to
+  // context doesn't change their identity on every toggle.
+  const selectAll = useCallback(() => {
+    setSelected(new Set(recordsRef.current.map((r) => r.uri)));
+  }, []);
+  const deselectAll = useCallback(() => setSelected(new Set()), []);
+  const requestDelete = useCallback(() => setConfirmingDelete(true), []);
+  const cancelDelete = useCallback(() => setConfirmingDelete(false), []);
+
+  const confirmDelete = useCallback(async () => {
+    if (!agent) return;
     const ag = agent;
-    const targets = records.filter((r) => selected.has(r.uri)).map((r) => r.uri);
+    const selectedNow = selectedRef.current;
+    const targets = recordsRef.current
+      .filter((r) => selectedNow.has(r.uri))
+      .map((r) => r.uri);
+    if (targets.length === 0) return;
+    const targetSet = new Set(targets);
     setDeleting(true);
     setDeleteError(null);
 
@@ -248,7 +283,7 @@ function CollectionList({
 
     // Drop the records we deleted; keep any that failed so the visitor can see
     // what's left and retry.
-    setRecords((prev) => prev.filter((r) => !selected.has(r.uri) || failed.has(r.uri)));
+    setRecords((prev) => prev.filter((r) => !targetSet.has(r.uri) || failed.has(r.uri)));
     setConfirmingDelete(false);
     setDeleting(false);
     if (failed.size > 0) {
@@ -261,7 +296,81 @@ function CollectionList({
     } else {
       exitEditing();
     }
-  }
+  }, [agent, identity.did, collection, exitEditing]);
+
+  // Reveal the condensed edit bar in the nav once the in-page one scrolls up
+  // behind it — same rAF-throttled hysteresis dance as the breadcrumb. Only
+  // wired while selection mode is on (the bar is in the DOM then).
+  useEffect(() => {
+    const node = editBarRef.current;
+    if (!editing || !node) {
+      setScrolledPast(false);
+      return undefined;
+    }
+    let shown = false;
+    let frame = 0;
+    const evaluate = () => {
+      frame = 0;
+      const { bottom } = node.getBoundingClientRect();
+      if (!shown && bottom <= NAV_OFFSET_PX) {
+        shown = true;
+        setScrolledPast(true);
+      } else if (shown && bottom >= NAV_OFFSET_PX + REVEAL_HYSTERESIS_PX) {
+        shown = false;
+        setScrolledPast(false);
+      }
+    };
+    const onScroll = () => {
+      if (!frame) frame = requestAnimationFrame(evaluate);
+    };
+    evaluate();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', onScroll, { passive: true });
+    return () => {
+      window.removeEventListener('scroll', onScroll);
+      window.removeEventListener('resize', onScroll);
+      if (frame) cancelAnimationFrame(frame);
+      setScrolledPast(false);
+    };
+  }, [editing, setScrolledPast]);
+
+  // Publish the toolbar snapshot so the nav's <StickyEditBar> can mirror it.
+  // Handlers are stable and the rest are primitives, so this only re-runs on
+  // real changes — no feedback loop with the context-driven re-render.
+  useEffect(() => {
+    if (!editing) {
+      setBar(null);
+      return;
+    }
+    setBar({
+      selectedCount: selected.size,
+      totalCount: records.length,
+      allSelected,
+      confirming: confirmingDelete,
+      deleting,
+      onSelectAll: selectAll,
+      onDeselectAll: deselectAll,
+      onRequestDelete: requestDelete,
+      onConfirmDelete: confirmDelete,
+      onCancelDelete: cancelDelete,
+    });
+  }, [
+    editing,
+    selected.size,
+    records.length,
+    allSelected,
+    confirmingDelete,
+    deleting,
+    selectAll,
+    deselectAll,
+    requestDelete,
+    confirmDelete,
+    cancelDelete,
+    setBar,
+  ]);
+
+  // Clear the published snapshot when this list unmounts.
+  useEffect(() => () => setBar(null), [setBar]);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
@@ -342,6 +451,7 @@ function CollectionList({
 
         {editing && (
           <div
+            ref={editBarRef}
             style={{
               display: 'flex',
               alignItems: 'center',
@@ -354,7 +464,7 @@ function CollectionList({
           >
             <button
               type="button"
-              onClick={() => setSelected(new Set(records.map((r) => r.uri)))}
+              onClick={selectAll}
               disabled={records.length === 0 || allSelected}
               style={selectionButtonStyle(records.length === 0 || allSelected)}
             >
@@ -362,7 +472,7 @@ function CollectionList({
             </button>
             <button
               type="button"
-              onClick={() => setSelected(new Set())}
+              onClick={deselectAll}
               disabled={selected.size === 0}
               style={selectionButtonStyle(selected.size === 0)}
             >
@@ -381,7 +491,7 @@ function CollectionList({
             {!confirmingDelete ? (
               <button
                 type="button"
-                onClick={() => setConfirmingDelete(true)}
+                onClick={requestDelete}
                 disabled={selected.size === 0}
                 style={{
                   display: 'inline-flex',
@@ -407,7 +517,7 @@ function CollectionList({
                 </span>
                 <button
                   type="button"
-                  onClick={handleBulkDelete}
+                  onClick={confirmDelete}
                   disabled={deleting}
                   style={{
                     padding: '0.4rem 0.75rem',
@@ -423,7 +533,7 @@ function CollectionList({
                 </button>
                 <button
                   type="button"
-                  onClick={() => setConfirmingDelete(false)}
+                  onClick={cancelDelete}
                   disabled={deleting}
                   style={{
                     padding: '0.4rem 0.75rem',
