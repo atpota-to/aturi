@@ -9,6 +9,7 @@ import SessionMenu from './SessionMenu';
 import SessionPanel from './SessionPanel';
 import CompactSearchPanel from './CompactSearchPanel';
 import StickyBreadcrumbBar from './explore/StickyBreadcrumbBar';
+import StickyEditBar from './explore/StickyEditBar';
 
 interface HeaderProps {
   simple?: boolean; // If true, shows a smaller version without the tagline
@@ -205,6 +206,12 @@ export default function Header({ simple = false, compact = false }: HeaderProps)
               A full-width section below the row; renders nothing off the
               explorer routes (no trail registered). */}
           <StickyBreadcrumbBar />
+
+          {/* Condensed bulk-edit toolbar — drops in below the breadcrumb once
+              the in-page selection bar scrolls away, so the count and delete
+              controls stay reachable down a long list. Inert unless a
+              collection page has selection mode active. */}
+          <StickyEditBar />
         </div>
 
         {/* Search panel — sits in the same expanding region as the menu

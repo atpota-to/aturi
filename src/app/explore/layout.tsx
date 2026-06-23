@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import Header from '@/components/Header';
 import { BreadcrumbProvider } from '@/components/explore/BreadcrumbContext';
+import { EditBarProvider } from '@/components/explore/EditBarContext';
 
 // AtprotoSessionProvider now lives in the root layout, so the session and
 // the Header's sign-in menu are available on every page. This layout just
@@ -13,16 +14,18 @@ import { BreadcrumbProvider } from '@/components/explore/BreadcrumbContext';
 export default function ExploreLayout({ children }: { children: ReactNode }) {
   return (
     <BreadcrumbProvider>
-      <Header compact />
-      <div
-        className="container-narrow"
-        style={{
-          padding: '0 2rem 4rem',
-          minHeight: '80dvh',
-        }}
-      >
-        {children}
-      </div>
+      <EditBarProvider>
+        <Header compact />
+        <div
+          className="container-narrow"
+          style={{
+            padding: '0 2rem 4rem',
+            minHeight: '80dvh',
+          }}
+        >
+          {children}
+        </div>
+      </EditBarProvider>
     </BreadcrumbProvider>
   );
 }
