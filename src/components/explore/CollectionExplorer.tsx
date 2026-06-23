@@ -16,6 +16,7 @@ import {
 import AppearIn from './AppearIn';
 import Breadcrumb from './Breadcrumb';
 import NotFoundPanel from '@/components/NotFoundPanel';
+import SignInPanel from './SignInPanel';
 import { useAtprotoSession } from '@/components/AtprotoSessionProvider';
 
 type Props = {
@@ -91,23 +92,30 @@ function CollectionList({
   collection: string;
 }) {
   const router = useRouter();
-  const { agent, did: signedInDid } = useAtprotoSession();
+  const { agent, did: signedInDid, session, loading: sessionLoading } = useAtprotoSession();
   const [records, setRecords] = useState<AtRecord[]>([]);
   const [cursor, setCursor] = useState<string | undefined>(undefined);
   const [done, setDone] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [live, setLive] = useState(false);
-
-  // Selection / bulk-delete mode. Records can only be deleted from your own
-  // repository, so the whole affordance is gated on the signed-in user owning
-  // this repo — mirrors how the single-record view gates its "Edit record".
-  const canEdit = Boolean(agent && signedInDid && signedInDid === identity.did);
   const [editing, setEditing] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [signInOpen, setSignInOpen] = useState(false);
+
+  // Records can only be deleted from your own repository, so selection mode is
+  // gated on the signed-in user owning this repo. The Edit button itself is
+  // also offered to logged-out visitors though: pressing it reveals a sign-in
+  // prompt prefilled with this repo's handle (mirrors the record page) so the
+  // owner can sign in and start managing in two clicks. We hide it only from
+  // someone signed in as a *different* account — they can't edit here.
+  const canEdit = Boolean(agent && signedInDid && signedInDid === identity.did);
+  const loggedOut = !session && !sessionLoading;
+  const showEditButton = canEdit || loggedOut;
+  const editActive = editing || signInOpen;
 
   const loadPage = useCallback(
     async (after: string | undefined) => {
@@ -271,23 +279,37 @@ function CollectionList({
       <AppearIn delay={0.05}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
-          {canEdit && (
+          {showEditButton && (
             <button
               type="button"
-              onClick={() => (editing ? exitEditing() : setEditing(true))}
+              onClick={() => {
+                if (canEdit) {
+                  if (editing) exitEditing();
+                  else setEditing(true);
+                } else {
+                  // Logged out — reveal the prefilled sign-in prompt instead.
+                  setSignInOpen((v) => !v);
+                }
+              }}
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '0.4rem',
                 padding: '0.4rem 0.75rem',
-                background: editing ? 'var(--accent-moss)' : 'var(--bg-tertiary)',
-                color: editing ? 'var(--text-on-accent)' : 'var(--text-secondary)',
-                border: `1px solid ${editing ? 'var(--accent-moss)' : 'var(--border-medium)'}`,
+                background: editActive ? 'var(--accent-moss)' : 'var(--bg-tertiary)',
+                color: editActive ? 'var(--text-on-accent)' : 'var(--text-secondary)',
+                border: `1px solid ${editActive ? 'var(--accent-moss)' : 'var(--border-medium)'}`,
                 fontFamily: 'var(--font-serif)',
                 fontSize: '0.8125rem',
                 cursor: 'pointer',
               }}
-              title={editing ? 'Exit selection mode' : 'Select records to delete'}
+              title={
+                canEdit
+                  ? editing
+                    ? 'Exit selection mode'
+                    : 'Select records to delete'
+                  : 'Sign in to manage your records'
+              }
             >
               {editing ? <X size={12} /> : <FilePenLine size={12} />}
               {editing ? 'Done' : 'Edit'}
@@ -417,6 +439,25 @@ function CollectionList({
                 </button>
               </>
             )}
+          </div>
+        )}
+        {signInOpen && !session && (
+          <div
+            style={{
+              padding: '0.875rem 1rem',
+              border: '1px solid var(--border-medium)',
+              background: 'var(--bg-secondary)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '0.5rem',
+            }}
+          >
+            <p style={{ margin: 0, fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
+              Sign in as{' '}
+              <strong>{identity.handle ? `@${identity.handle}` : identity.did}</strong> to
+              select and delete your own records.
+            </p>
+            <SignInPanel defaultInput={identity.handle || identity.did} />
           </div>
         )}
         {editing && deleteError && (
