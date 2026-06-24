@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { ExternalLink, Copy, Check } from 'lucide-react';
 import {
   getCategorizedWaypoints,
@@ -9,6 +9,7 @@ import {
   WAYPOINT_DESTINATIONS,
   type WaypointType
 } from '@/utils/waypoints';
+import { waypointActivity } from '@/utils/waypoints.data';
 import {
   personalizeCategorized,
   personalizeRecommended,
@@ -31,6 +32,15 @@ type WaypointPickerProps = {
   rkey?: string;
   displayName?: string;
   did?: string;
+  /**
+   * Collection NSIDs found in the target repo (from describeRepo). When
+   * provided, waypoints whose `expectedCollections` match none of these are
+   * hidden — e.g. the Tangled waypoint won't show for an account with no
+   * `sh.tangled.*` records. `null`/`undefined` (scan failed or not run, as on
+   * record pages) leaves every waypoint visible. Generic tools that declare no
+   * `expectedCollections` (PDSls, atp.tools, Aturi Explore…) are never hidden.
+   */
+  repoCollections?: string[] | null;
 };
 
 export default function WaypointPicker({
@@ -40,10 +50,28 @@ export default function WaypointPicker({
   rkey,
   displayName,
   did,
+  repoCollections,
 }: WaypointPickerProps) {
   const display = displayName || `@${handle}`;
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const { prefs, update } = usePreferences();
+
+  // Set of collection NSIDs the target repo holds. `null` means "no opinion"
+  // (scan failed/not run) — `waypointActivity` returns 'unknown' for everything
+  // and nothing gets hidden. An empty array is a real answer (repo with no
+  // collections), so only a nullish prop short-circuits to null.
+  const repoCollectionSet = useMemo(
+    () => (repoCollections ? new Set(repoCollections) : null),
+    [repoCollections],
+  );
+
+  // Keep a waypoint unless we've positively confirmed the repo has no records
+  // for it. 'present' and 'unknown' both pass; only 'absent' is filtered out.
+  const isActiveForRepo = useCallback(
+    (waypoint: { expectedCollections?: string[] }) =>
+      waypointActivity(waypoint, repoCollectionSet) !== 'absent',
+    [repoCollectionSet],
+  );
 
   // Built-in waypoints that have shipped since the user last acknowledged the
   // catalog. Surfaced as a dismissable banner with one-click add.
@@ -57,16 +85,25 @@ export default function WaypointPicker({
   // (hidden built-ins removed, custom waypoints added as their own group,
   // user-defined ordering respected within each category).
   const categorizedWaypoints = useMemo(
-    () => personalizeCategorized(getCategorizedWaypoints(type), prefs, type),
-    [type, prefs],
+    () =>
+      personalizeCategorized(getCategorizedWaypoints(type), prefs, type).map(
+        ({ category, waypoints }) => ({
+          category,
+          waypoints: waypoints.filter(isActiveForRepo),
+        }),
+      ),
+    [type, prefs, isActiveForRepo],
   );
   const recommendedData = useMemo(
     () => getRecommendedWaypoints(type, collection),
     [type, collection]
   );
   const recommendedWaypoints = useMemo(
-    () => personalizeRecommended(recommendedData?.waypoints || [], prefs),
-    [recommendedData, prefs]
+    () =>
+      personalizeRecommended(recommendedData?.waypoints || [], prefs).filter(
+        isActiveForRepo,
+      ),
+    [recommendedData, prefs, isActiveForRepo]
   );
   const recommendedLabel = useMemo(
     () => recommendedData?.label || '',
@@ -96,8 +133,8 @@ export default function WaypointPicker({
       const builtin = getWaypointsForType(type).find((w) => w.id === id);
       if (builtin) out.push(builtin);
     }
-    return out;
-  }, [type, prefs]);
+    return out.filter(isActiveForRepo);
+  }, [type, prefs, isActiveForRepo]);
 
   // Smart expansion: Compute initial expanded categories based on compatible waypoints
   const initialExpandedCategories = useMemo(() => {

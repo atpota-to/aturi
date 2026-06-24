@@ -10,6 +10,7 @@ import NotFoundPanel from '@/components/NotFoundPanel';
 import { resolveHandle, getDisplayName } from '@/utils/uriParser';
 import { resolveDidToHandle } from '@/utils/didResolver';
 import { fetchProfile } from '@/utils/profileFetcher';
+import { fetchRepoCollections } from '@/utils/atproto/identity';
 
 type Props = {
   params: Promise<{ handle: string }>;
@@ -105,7 +106,15 @@ async function ProfileContent({ handle }: { handle: string }) {
     ? await resolveDidToHandle(resolvedDid) || handle
     : handle;
 
-  const profileData = await fetchProfile(resolvedDid);
+  // Fetch the Bluesky profile and the repo's collection list together. The
+  // collections feed the waypoint picker so it can hide clients the account
+  // has no records for (e.g. no Tangled waypoint when there are no
+  // sh.tangled.* records). A null result (failed scan) leaves every waypoint
+  // visible rather than wrongly hiding them.
+  const [profileData, repoCollections] = await Promise.all([
+    fetchProfile(resolvedDid),
+    fetchRepoCollections(resolvedDid),
+  ]);
 
   return (
     <>
@@ -122,6 +131,7 @@ async function ProfileContent({ handle }: { handle: string }) {
           handle={resolvedHandle}
           did={resolvedDid}
           displayName={getDisplayName(resolvedHandle, resolvedDid)}
+          repoCollections={repoCollections}
         />
 
         {/* Floating scroll indicator overlay */}

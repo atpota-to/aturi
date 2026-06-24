@@ -116,3 +116,29 @@ export async function resolveIdentifier(input: string): Promise<IdentityBundle> 
     pds: resolved.pdsEndpoint.replace(/\/$/, ''),
   };
 }
+
+/**
+ * List the collection NSIDs held in a repo. Resolves the DID's PDS and calls
+ * describeRepo. Returns null on any failure (unresolvable identity, no PDS,
+ * network error) so callers keep the "unknown" state rather than treating a
+ * failed scan as "this repo has no records". An empty array is a real answer
+ * — the repo exists but holds no collections.
+ *
+ * Feeds the profile waypoint picker's `waypointActivity` check so clients the
+ * account has no records for (no `sh.tangled.*`, no `social.grain.*`, …) can
+ * be hidden.
+ */
+export async function fetchRepoCollections(did: string): Promise<string[] | null> {
+  if (!did || !did.startsWith('did:')) return null;
+  try {
+    const resolved = await resolvePdsEndpoint(did);
+    if (!resolved) return null;
+    const desc = await describeRepo(
+      resolved.pdsEndpoint.replace(/\/$/, ''),
+      resolved.did,
+    );
+    return Array.isArray(desc.collections) ? desc.collections : null;
+  } catch {
+    return null;
+  }
+}
