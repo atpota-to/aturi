@@ -2971,3 +2971,19 @@ html {
     height: 130px;
   }
 }
+
+/* "Repo at a glance" stat tiles. On wide screens the tiles flow as many-per-row
+   via auto-fit; on phones an 11rem minimum collapsed them into a single tall
+   column that ate the viewport, so below 600px force a compact 2-column grid. */
+.account-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+  gap: 0.5rem;
+}
+
+@media (max-width: 600px) {
+  .account-stats-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.4rem;
+  }
+}

@@ -184,13 +184,7 @@ export default function AccountStats({ did, handle, interactive = true }: Props)
   }
 
   return (
-    <section
-      style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(11rem, 1fr))',
-        gap: '0.5rem',
-      }}
-    >
+    <section className="account-stats-grid">
       <StatTile
         icon={<Boxes size={16} />}
         label="Namespaces"
