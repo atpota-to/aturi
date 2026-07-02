@@ -223,6 +223,13 @@ export default function AccountStats({ did, handle, interactive = true }: Props)
         sublabel={createdRelative || undefined}
         interactive={interactive}
       />
+      {/* Score sits directly after Created so the two pair up on the same row
+          in the 2-column mobile grid; Last active trails as the lone tile. */}
+      <CredBlueTile
+        state={credBlue}
+        handle={handle || did}
+        interactive={interactive}
+      />
       <StatTile
         icon={<Activity size={16} />}
         label="Last active"
@@ -233,11 +240,6 @@ export default function AccountStats({ did, handle, interactive = true }: Props)
         }
         valueLabel={lastActiveDate ? formatTidRelative(lastActiveDate) : undefined}
         unavailable={stats !== null && lastActiveDate === null}
-        interactive={interactive}
-      />
-      <CredBlueTile
-        state={credBlue}
-        handle={handle || did}
         interactive={interactive}
       />
     </section>
