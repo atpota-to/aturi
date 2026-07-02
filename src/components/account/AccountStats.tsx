@@ -217,7 +217,7 @@ export default function AccountStats({ did, handle, interactive = true }: Props)
       />
       <StatTile
         icon={<CalendarDays size={16} />}
-        label="Account created"
+        label="Created"
         hint="Earliest PLC operation timestamp"
         valueLabel={createdLabel || (stats !== null && !createdLabel ? '—' : undefined)}
         sublabel={createdRelative || undefined}
@@ -259,7 +259,7 @@ function CredBlueTile({
     ? `${CRED_BLUE_BASE}/${encodeURIComponent(handle.replace(/^@/, ''))}`
     : undefined;
   const icon = <Gauge size={16} />;
-  const label = 'cred.blue score';
+  const label = 'Score';
 
   if (state.status === 'loading') {
     return <StatTile icon={icon} label={label} href={href} interactive={interactive} />;
