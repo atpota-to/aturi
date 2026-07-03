@@ -27,6 +27,20 @@ describe('matchSupportedUrl - Bluesky family', () => {
     expect(m?.parsed.collection).toBe('app.bsky.graph.list');
   });
 
+  it('parses an anisota subdomain the same as anisota.net', () => {
+    const m = match('https://eclose.anisota.net/profile/alice.bsky.social/post/abc');
+    expect(m?.source).toBe('anisota');
+    expect(m?.parsed.type).toBe('post');
+    expect(m?.parsed.rkey).toBe('abc');
+    expect(m?.parsed.collection).toBe('app.bsky.feed.post');
+  });
+
+  it('does not treat a lookalike host as an anisota subdomain', () => {
+    // Must be a real subdomain of anisota.net, not just a suffix match.
+    expect(match('https://notanisota.net/profile/alice.bsky.social')).toBeNull();
+    expect(match('https://anisota.net.evil.com/profile/alice')).toBeNull();
+  });
+
   it('parses blacksky', () => {
     const m = match('https://blacksky.community/profile/alice.bsky.social/post/abc');
     expect(m?.source).toBe('blacksky');

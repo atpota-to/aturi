@@ -36,6 +36,11 @@ export type ReverseMatch = {
 type HostConfig = {
   source: SourceApp;
   hosts: string[];
+  /**
+   * When true, any subdomain of the listed hosts is treated as this source
+   * too (e.g. Anisota gives each publication its own `*.anisota.net` host).
+   */
+  matchSubdomains?: boolean;
 };
 
 /**
@@ -49,15 +54,22 @@ const BLUESKY_FAMILY: HostConfig[] = [
   { source: 'catsky', hosts: ['catsky.social'] },
   { source: 'deer', hosts: ['deer.social'] },
   { source: 'mu', hosts: ['mu.social'] },
-  { source: 'anisota', hosts: ['anisota.net'] },
+  { source: 'anisota', hosts: ['anisota.net'], matchSubdomains: true },
 ];
 
 function normalizeHost(host: string): string {
   return host.toLowerCase().replace(/^www\./, '');
 }
 
+/** Exact host match, or a subdomain match when the config opts in. */
+function hostMatchesConfig(host: string, config: HostConfig): boolean {
+  if (config.hosts.includes(host)) return true;
+  if (!config.matchSubdomains) return false;
+  return config.hosts.some(h => host.endsWith(`.${h}`));
+}
+
 function matchBlueskyFamily(host: string, parts: string[]): ReverseMatch | null {
-  const entry = BLUESKY_FAMILY.find(f => f.hosts.includes(host));
+  const entry = BLUESKY_FAMILY.find(f => hostMatchesConfig(host, f));
   if (!entry) return null;
 
   if (parts[0] !== 'profile' || !parts[1]) return null;
