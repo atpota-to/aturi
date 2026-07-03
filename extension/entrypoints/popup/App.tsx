@@ -3,7 +3,7 @@ import { browser } from '#imports';
 import { MousePointer2, Telescope } from 'lucide-react';
 import type { ReverseMatch } from '@aturi/reverseParsers';
 import type { WaypointActivity, WaypointData, WaypointType } from '@aturi/waypoints.data';
-import { matchSupportedUrl, parseAtUri, SUPPORTED_HOSTS } from '@aturi/reverseParsers';
+import { matchSupportedUrl, parseAtUri, isSupportedHost } from '@aturi/reverseParsers';
 import { waypointActivity } from '@aturi/waypoints.data';
 import { matchCustomUrl } from '../../lib/template';
 import {
@@ -146,7 +146,7 @@ export default function App() {
       return;
     }
 
-    const isKnownHost = SUPPORTED_HOSTS.includes(url.hostname.replace(/^www\./, ''));
+    const isKnownHost = isSupportedHost(url.hostname);
 
     let match = matchSupportedUrl(url) ?? matchCustomUrl(url, prefs.customWaypoints);
 

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { matchSupportedUrl, parseAtUri } from '../reverseParsers';
+import { matchSupportedUrl, parseAtUri, isSupportedHost } from '../reverseParsers';
 
 function match(url: string) {
   return matchSupportedUrl(new URL(url));
@@ -153,6 +153,29 @@ describe('matchSupportedUrl - other apps', () => {
 
   it('ignores unsupported hosts', () => {
     expect(match('https://example.com/profile/alice')).toBeNull();
+  });
+});
+
+describe('isSupportedHost', () => {
+  it('recognizes exact hosts and strips www', () => {
+    expect(isSupportedHost('bsky.app')).toBe(true);
+    expect(isSupportedHost('www.anisota.net')).toBe(true);
+    expect(isSupportedHost('offprint.app')).toBe(true);
+    expect(isSupportedHost('ANISOTA.NET')).toBe(true);
+  });
+
+  it('recognizes anisota subdomains', () => {
+    expect(isSupportedHost('eclose.anisota.net')).toBe(true);
+    expect(isSupportedHost('sub.eclose.anisota.net')).toBe(true);
+  });
+
+  it('rejects lookalikes and non-subdomain hosts', () => {
+    expect(isSupportedHost('notanisota.net')).toBe(false);
+    expect(isSupportedHost('anisota.net.evil.com')).toBe(false);
+    expect(isSupportedHost('bsky.app.evil.com')).toBe(false);
+    expect(isSupportedHost('example.com')).toBe(false);
+    // Only opted-in hosts match subdomains; bsky.app does not.
+    expect(isSupportedHost('foo.bsky.app')).toBe(false);
   });
 });
 

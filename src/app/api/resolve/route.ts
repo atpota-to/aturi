@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import {
   matchSupportedUrl,
   parseAtUri,
-  SUPPORTED_HOSTS,
+  isSupportedHost,
   type ReverseMatch,
 } from '@/utils/reverseParsers';
 import {
@@ -93,8 +93,7 @@ export async function GET(request: NextRequest) {
       return jsonError(400, 'Only http(s) URLs are supported');
     }
 
-    const host = parsedUrl.hostname.replace(/^www\./, '').toLowerCase();
-    isKnownHost = SUPPORTED_HOSTS.includes(host);
+    isKnownHost = isSupportedHost(parsedUrl.hostname);
 
     match = matchSupportedUrl(parsedUrl);
     if (match) {

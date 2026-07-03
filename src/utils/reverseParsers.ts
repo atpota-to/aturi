@@ -57,15 +57,28 @@ const BLUESKY_FAMILY: HostConfig[] = [
   { source: 'anisota', hosts: ['anisota.net'], matchSubdomains: true },
 ];
 
+/**
+ * Base hosts whose subdomains are also recognized (e.g. `*.anisota.net`).
+ * Derived from the `matchSubdomains` opt-in so there's one source of truth.
+ */
+const SUBDOMAIN_HOSTS: string[] = BLUESKY_FAMILY.filter(f => f.matchSubdomains).flatMap(
+  f => f.hosts,
+);
+
 function normalizeHost(host: string): string {
   return host.toLowerCase().replace(/^www\./, '');
+}
+
+/** True when `host` is a subdomain of `base` (a real dotted-label boundary). */
+function isSubdomainOf(host: string, base: string): boolean {
+  return host.endsWith(`.${base}`);
 }
 
 /** Exact host match, or a subdomain match when the config opts in. */
 function hostMatchesConfig(host: string, config: HostConfig): boolean {
   if (config.hosts.includes(host)) return true;
   if (!config.matchSubdomains) return false;
-  return config.hosts.some(h => host.endsWith(`.${h}`));
+  return config.hosts.some(h => isSubdomainOf(host, h));
 }
 
 function matchBlueskyFamily(host: string, parts: string[]): ReverseMatch | null {
@@ -642,3 +655,15 @@ export const SUPPORTED_HOSTS: string[] = [
   'pckt.blog',
   'atproto.at',
 ];
+
+/**
+ * Whether a hostname belongs to a supported waypoint. Prefer this over a raw
+ * `SUPPORTED_HOSTS.includes(...)` check: it strips a leading `www.` and also
+ * recognizes subdomains of hosts that opt in (e.g. `eclose.anisota.net`), so
+ * the extension popup and resolve API treat those tabs as known.
+ */
+export function isSupportedHost(host: string): boolean {
+  const h = normalizeHost(host);
+  if (SUPPORTED_HOSTS.includes(h)) return true;
+  return SUBDOMAIN_HOSTS.some(base => isSubdomainOf(h, base));
+}
