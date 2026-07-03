@@ -27,6 +27,52 @@ function explorePathFromParsed(parsed: ParsedURI): string {
 }
 
 /**
+ * Aturi's own links (the main app's `/profile/...` shapes and the explorer's
+ * `/explore/...` shapes) route straight back into the explorer. Pasting an
+ * `aturi.to` URL should land on the same record rather than being treated as
+ * a PDS host, so we recognise our own domain explicitly.
+ */
+function explorePathFromAturiUrl(url: URL): string | null {
+  const host = url.hostname.toLowerCase().replace(/^www\./, '');
+  if (host !== 'aturi.to') return null;
+  const parts = url.pathname.split('/').filter(Boolean);
+
+  // `/explore/<id>[/<collection>[/<rkey>]]` — already an explorer path.
+  if (parts[0] === 'explore') {
+    const [, id, collection, rkey] = parts;
+    if (!id) return null;
+    const repo = encodeRepo(id);
+    if (collection && rkey) {
+      return `/explore/${repo}/${collection}/${encodeURIComponent(rkey)}`;
+    }
+    if (collection) return `/explore/${repo}/${collection}`;
+    return `/explore/${repo}`;
+  }
+
+  // `/profile/<id>[/(post|lists)/<rkey>]` or `/profile/<id>/<nsid>/<rkey>`.
+  if (parts[0] === 'profile') {
+    const id = parts[1];
+    if (!id) return null;
+    const repo = encodeRepo(id);
+    const seg = parts[2];
+    const rkey = parts[3];
+    if (seg && rkey) {
+      if (seg === 'post') {
+        return `/explore/${repo}/app.bsky.feed.post/${encodeURIComponent(rkey)}`;
+      }
+      if (seg === 'lists' || seg === 'list') {
+        return `/explore/${repo}/app.bsky.graph.list/${encodeURIComponent(rkey)}`;
+      }
+      // Generic record route: the collection NSID sits in the path verbatim.
+      return `/explore/${repo}/${seg}/${encodeURIComponent(rkey)}`;
+    }
+    return `/explore/${repo}`;
+  }
+
+  return null;
+}
+
+/**
  * Bare hostnames that begin with `pds.` are overwhelmingly atproto PDS
  * hosts (pds.atpota.to, pds.bsky.network, …). Anything else without a
  * protocol scheme is treated as a handle by default — there's no
@@ -57,10 +103,14 @@ export function resolveSearchPath(rawInput: string): string | null {
 
   // 2. Explicit URL. Anything with a protocol is a URL, not a handle.
   if (/^https?:\/\//i.test(v)) {
-    // 2a. Known waypoint apps (bsky.app, pdsls.dev, …) — reverse-parse the
-    //     URL back into repo/collection/rkey and drill into that record.
+    // 2a. Known waypoint apps (bsky.app, pdsls.dev, …) plus Aturi's own
+    //     links — reverse-parse the URL back into repo/collection/rkey and
+    //     drill into that record.
     try {
-      const match = matchSupportedUrl(new URL(v));
+      const url = new URL(v);
+      const own = explorePathFromAturiUrl(url);
+      if (own) return own;
+      const match = matchSupportedUrl(url);
       if (match) return explorePathFromParsed(match.parsed);
     } catch {
       // Not a parseable URL — fall through to PDS host handling.

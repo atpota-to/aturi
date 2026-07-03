@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { matchSupportedUrl, parseAtUri } from '../reverseParsers';
+import { matchSupportedUrl, parseAtUri, isSupportedHost } from '../reverseParsers';
 
 function match(url: string) {
   return matchSupportedUrl(new URL(url));
@@ -25,6 +25,20 @@ describe('matchSupportedUrl - Bluesky family', () => {
     const m = match('https://bsky.app/profile/alice.bsky.social/lists/abc');
     expect(m?.parsed.type).toBe('list');
     expect(m?.parsed.collection).toBe('app.bsky.graph.list');
+  });
+
+  it('parses an anisota subdomain the same as anisota.net', () => {
+    const m = match('https://eclose.anisota.net/profile/alice.bsky.social/post/abc');
+    expect(m?.source).toBe('anisota');
+    expect(m?.parsed.type).toBe('post');
+    expect(m?.parsed.rkey).toBe('abc');
+    expect(m?.parsed.collection).toBe('app.bsky.feed.post');
+  });
+
+  it('does not treat a lookalike host as an anisota subdomain', () => {
+    // Must be a real subdomain of anisota.net, not just a suffix match.
+    expect(match('https://notanisota.net/profile/alice.bsky.social')).toBeNull();
+    expect(match('https://anisota.net.evil.com/profile/alice')).toBeNull();
   });
 
   it('parses blacksky', () => {
@@ -105,8 +119,63 @@ describe('matchSupportedUrl - other apps', () => {
     expect(m?.parsed.type).toBe('profile');
   });
 
+  it('parses an anisota reader document into a site.standard.document uri', () => {
+    const m = match('https://anisota.net/profile/did:plc:xyz/document/rk123');
+    expect(m?.source).toBe('anisota');
+    expect(m?.parsed.type).toBe('record');
+    expect(m?.parsed.collection).toBe('site.standard.document');
+    expect(m?.parsed.rkey).toBe('rk123');
+    expect(m?.parsed.did).toBe('did:plc:xyz');
+  });
+
+  it('parses an offprint record', () => {
+    const m = match('https://offprint.app/did:plc:xyz/site.standard.document/rk123');
+    expect(m?.source).toBe('offprint');
+    expect(m?.parsed.type).toBe('record');
+    expect(m?.parsed.collection).toBe('site.standard.document');
+    expect(m?.parsed.rkey).toBe('rk123');
+    expect(m?.parsed.did).toBe('did:plc:xyz');
+  });
+
+  it('parses a pckt record', () => {
+    const m = match('https://pckt.blog/did:plc:xyz/pub.leaflet.document/rk123');
+    expect(m?.source).toBe('pckt');
+    expect(m?.parsed.type).toBe('record');
+    expect(m?.parsed.collection).toBe('pub.leaflet.document');
+    expect(m?.parsed.rkey).toBe('rk123');
+  });
+
+  it('does not treat non-record offprint/pckt paths as records', () => {
+    // No NSID collection segment -> not a record link.
+    expect(match('https://offprint.app/settings')).toBeNull();
+    expect(match('https://pckt.blog/alice.bsky.social/notacollection/rk')).toBeNull();
+  });
+
   it('ignores unsupported hosts', () => {
     expect(match('https://example.com/profile/alice')).toBeNull();
+  });
+});
+
+describe('isSupportedHost', () => {
+  it('recognizes exact hosts and strips www', () => {
+    expect(isSupportedHost('bsky.app')).toBe(true);
+    expect(isSupportedHost('www.anisota.net')).toBe(true);
+    expect(isSupportedHost('offprint.app')).toBe(true);
+    expect(isSupportedHost('ANISOTA.NET')).toBe(true);
+  });
+
+  it('recognizes anisota subdomains', () => {
+    expect(isSupportedHost('eclose.anisota.net')).toBe(true);
+    expect(isSupportedHost('sub.eclose.anisota.net')).toBe(true);
+  });
+
+  it('rejects lookalikes and non-subdomain hosts', () => {
+    expect(isSupportedHost('notanisota.net')).toBe(false);
+    expect(isSupportedHost('anisota.net.evil.com')).toBe(false);
+    expect(isSupportedHost('bsky.app.evil.com')).toBe(false);
+    expect(isSupportedHost('example.com')).toBe(false);
+    // Only opted-in hosts match subdomains; bsky.app does not.
+    expect(isSupportedHost('foo.bsky.app')).toBe(false);
   });
 });
 

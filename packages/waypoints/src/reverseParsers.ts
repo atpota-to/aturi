@@ -36,6 +36,11 @@ export type ReverseMatch = {
 type HostConfig = {
   source: SourceApp;
   hosts: string[];
+  /**
+   * When true, any subdomain of the listed hosts is treated as this source
+   * too (e.g. Anisota gives each publication its own `*.anisota.net` host).
+   */
+  matchSubdomains?: boolean;
 };
 
 /**
@@ -49,15 +54,35 @@ const BLUESKY_FAMILY: HostConfig[] = [
   { source: 'catsky', hosts: ['catsky.social'] },
   { source: 'deer', hosts: ['deer.social'] },
   { source: 'mu', hosts: ['mu.social'] },
-  { source: 'anisota', hosts: ['anisota.net'] },
+  { source: 'anisota', hosts: ['anisota.net'], matchSubdomains: true },
 ];
+
+/**
+ * Base hosts whose subdomains are also recognized (e.g. `*.anisota.net`).
+ * Derived from the `matchSubdomains` opt-in so there's one source of truth.
+ */
+const SUBDOMAIN_HOSTS: string[] = BLUESKY_FAMILY.filter(f => f.matchSubdomains).flatMap(
+  f => f.hosts,
+);
 
 function normalizeHost(host: string): string {
   return host.toLowerCase().replace(/^www\./, '');
 }
 
+/** True when `host` is a subdomain of `base` (a real dotted-label boundary). */
+function isSubdomainOf(host: string, base: string): boolean {
+  return host.endsWith(`.${base}`);
+}
+
+/** Exact host match, or a subdomain match when the config opts in. */
+function hostMatchesConfig(host: string, config: HostConfig): boolean {
+  if (config.hosts.includes(host)) return true;
+  if (!config.matchSubdomains) return false;
+  return config.hosts.some(h => isSubdomainOf(host, h));
+}
+
 function matchBlueskyFamily(host: string, parts: string[]): ReverseMatch | null {
-  const entry = BLUESKY_FAMILY.find(f => f.hosts.includes(host));
+  const entry = BLUESKY_FAMILY.find(f => hostMatchesConfig(host, f));
   if (!entry) return null;
 
   if (parts[0] !== 'profile' || !parts[1]) return null;
@@ -99,6 +124,24 @@ function matchBlueskyFamily(host: string, parts: string[]): ReverseMatch | null 
         handle,
         did,
         collection: 'app.bsky.graph.list',
+        rkey: parts[3],
+      },
+    };
+  }
+
+  // Anisota's reader addresses Standard Site / Leaflet documents at
+  // `/profile/:handle/document/:rkey` without the collection NSID in the URL.
+  // Mirror Standard Reader's convention and reconstruct the canonical
+  // `site.standard.document` collection so the record still resolves.
+  if (parts[2] === 'document' && parts[3]) {
+    return {
+      source: entry.source,
+      parsed: {
+        type: 'record',
+        uri: `at://${handle}/site.standard.document/${parts[3]}`,
+        handle,
+        did,
+        collection: 'site.standard.document',
         rkey: parts[3],
       },
     };
@@ -455,6 +498,37 @@ function matchStandardReader(host: string, parts: string[]): ReverseMatch | null
 }
 
 /**
+ * Offprint (offprint.app) and pckt (pckt.blog) address publications at the
+ * flat path `/<identifier>/<collection>/<rkey>` — the collection NSID sits in
+ * the path verbatim, so we can round-trip it straight back. Both only expose
+ * record-level URLs, so a profile-only path has no meaningful match.
+ */
+function matchFlatRecordHost(
+  host: string,
+  parts: string[],
+  target: { host: string; source: SourceApp },
+): ReverseMatch | null {
+  if (host !== target.host) return null;
+  const [handle, collection, rkey] = parts;
+  if (!handle || !collection || !rkey) return null;
+  // Guard against non-record pages (settings, landing, …): a real record path
+  // always carries an NSID collection segment.
+  if (!collection.includes('.')) return null;
+  const did = handle.startsWith('did:') ? handle : undefined;
+  return {
+    source: target.source,
+    parsed: {
+      type: inferType(collection),
+      uri: `at://${handle}/${collection}/${rkey}`,
+      handle,
+      did,
+      collection,
+      rkey,
+    },
+  };
+}
+
+/**
  * Taproot (atproto.at): a generic AT-URI explorer addressed at
  * `/uri/at://<identifier>[/<collection>/<rkey>]`.
  */
@@ -515,6 +589,8 @@ export function matchSupportedUrl(url: URL): ReverseMatch | null {
     matchSifa(host, parts) ||
     matchBlento(host, parts) ||
     matchStandardReader(host, parts) ||
+    matchFlatRecordHost(host, parts, { host: 'offprint.app', source: 'offprint' }) ||
+    matchFlatRecordHost(host, parts, { host: 'pckt.blog', source: 'pckt' }) ||
     matchTaproot(host, url.pathname)
   );
 }
@@ -575,5 +651,19 @@ export const SUPPORTED_HOSTS: string[] = [
   'sifa.id',
   'blento.app',
   'standard-reader.app',
+  'offprint.app',
+  'pckt.blog',
   'atproto.at',
 ];
+
+/**
+ * Whether a hostname belongs to a supported waypoint. Prefer this over a raw
+ * `SUPPORTED_HOSTS.includes(...)` check: it strips a leading `www.` and also
+ * recognizes subdomains of hosts that opt in (e.g. `eclose.anisota.net`), so
+ * the extension popup and resolve API treat those tabs as known.
+ */
+export function isSupportedHost(host: string): boolean {
+  const h = normalizeHost(host);
+  if (SUPPORTED_HOSTS.includes(h)) return true;
+  return SUBDOMAIN_HOSTS.some(base => isSubdomainOf(h, base));
+}
