@@ -612,9 +612,11 @@ function CollectionList({
                     padding: 0,
                     color: 'var(--text-primary)',
                     display: 'block',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap',
+                    // Long rkeys wrap within the column instead of being cut
+                    // off — the rkey is the record's identity, so losing the
+                    // tail to an ellipsis is worse than a two-line row.
+                    overflowWrap: 'anywhere',
+                    wordBreak: 'break-word',
                   }}
                 >
                   {rkey}
@@ -659,7 +661,7 @@ function CollectionList({
                 <label
                   style={{
                     display: 'grid',
-                    gridTemplateColumns: 'auto minmax(10ch, 22ch) 1fr',
+                    gridTemplateColumns: 'auto minmax(10ch, 30ch) 1fr',
                     gap: '1rem',
                     alignItems: 'center',
                     padding: '0.625rem 1rem',
@@ -690,7 +692,7 @@ function CollectionList({
                   href={`/explore/${repoSeg}/${collection}/${encodeURIComponent(rkey)}`}
                   style={{
                     display: 'grid',
-                    gridTemplateColumns: 'minmax(10ch, 22ch) 1fr',
+                    gridTemplateColumns: 'minmax(10ch, 30ch) 1fr',
                     gap: '1rem',
                     padding: '0.625rem 1rem',
                     fontFamily: 'var(--font-mono)',
