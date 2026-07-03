@@ -385,7 +385,13 @@ function StatTile({
           color: 'var(--text-tertiary)',
         }}
       >
-        <span style={{ color: 'var(--text-accent)' }}>{icon}</span>
+        {/* inline-flex so the wrapper hugs the 16px glyph instead of
+            inheriting the inline SVG's descender space — otherwise the icon
+            box is taller than the icon and align-items:center pushes the
+            icon optically above the label text. */}
+        <span style={{ display: 'inline-flex', color: 'var(--text-accent)' }}>
+          {icon}
+        </span>
         <span>{label}</span>
       </div>
       <div
