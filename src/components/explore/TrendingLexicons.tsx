@@ -19,7 +19,7 @@ import {
   type Metric,
 } from '@/utils/ufos/config';
 import { formatCount } from '@/utils/ufos/format';
-import { namespaceKey, schemaPathFor } from '@/utils/ufos/nsid';
+import { namespaceKey, schemaPathFor, splitNsid } from '@/utils/ufos/nsid';
 import { WINDOWS, type Window } from '@/utils/ufos/windows';
 
 type Mode = 'top' | 'trending';
@@ -276,7 +276,15 @@ function SkeletonRows({ mode }: { mode: Mode }) {
         >
           <div className="lexicon-row-grid">
             <Skeleton width="1.25rem" height="0.75rem" />
-            <Skeleton width={nsidWidths[i % nsidWidths.length]} height="0.75rem" />
+            {/* Mirror the NSID cell: a single bar on wide screens, two
+                stacked bars on mobile (matching the head/tail two-line
+                layout) so the skeleton and loaded rows keep equal heights. */}
+            <span className="lexicon-row-nsid-skel">
+              <Skeleton width={nsidWidths[i % nsidWidths.length]} height="0.75rem" />
+              <span className="lexicon-nsid-tail-skel">
+                <Skeleton width={nsidWidths[(i + 4) % nsidWidths.length]} height="0.75rem" />
+              </span>
+            </span>
             <span className="lexicon-row-spark">
               <Skeleton width="90px" height="24px" />
             </span>
@@ -347,18 +355,7 @@ function Row({
         >
           {rank.toString().padStart(2, '0')}
         </span>
-        <span
-          style={{
-            fontFamily: 'var(--font-mono)',
-            fontSize: '0.8125rem',
-            color: 'var(--text-primary)',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap',
-          }}
-        >
-          {row.nsid}
-        </span>
+        <NsidLabel nsid={row.nsid} />
         <span className="lexicon-row-spark">
           <Sparkline
             data={row.series}
@@ -384,6 +381,23 @@ function Row({
         )}
       </Link>
     </li>
+  );
+}
+
+/**
+ * The NSID cell. On wide screens it renders as a single truncating line
+ * (`app.bsky.feed.post`); on narrow screens CSS stacks the top-2-segment
+ * namespace over the remainder (`app.bsky` / `feed.post`) so the whole NSID
+ * stays readable instead of ellipsizing. The joining dot is a `::before` on
+ * the tail so it only shows inline, not as a stray leading dot when stacked.
+ */
+function NsidLabel({ nsid }: { nsid: string }) {
+  const { head, tail } = splitNsid(nsid);
+  return (
+    <span className="lexicon-row-nsid" title={nsid}>
+      <span className="lexicon-nsid-head">{head}</span>
+      {tail && <span className="lexicon-nsid-tail">{tail}</span>}
+    </span>
   );
 }
 

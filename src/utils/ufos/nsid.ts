@@ -11,6 +11,18 @@ export function namespaceKey(nsid: string): string {
   return `${parts[0]}.${parts[1]}`;
 }
 
+/**
+ * Split an NSID into its top-2-segment namespace and the remainder, so
+ * narrow screens can stack the two on separate lines instead of truncating.
+ * `app.bsky.feed.post` -> `{ head: 'app.bsky', tail: 'feed.post' }`. NSIDs
+ * with two or fewer segments return an empty tail.
+ */
+export function splitNsid(nsid: string): { head: string; tail: string } {
+  const parts = nsid.split('.');
+  if (parts.length <= 2) return { head: nsid, tail: '' };
+  return { head: `${parts[0]}.${parts[1]}`, tail: parts.slice(2).join('.') };
+}
+
 /** The parent lexicon group — everything before the final NSID segment.
  * `app.bsky.feed.post` -> `app.bsky.feed`. Used as the `/prefix` argument
  * to find sibling collections. */
