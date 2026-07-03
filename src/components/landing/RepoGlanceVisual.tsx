@@ -63,18 +63,11 @@ export default function RepoGlanceVisual() {
         </div>
       </div>
 
-      <div
-        style={{
-          padding: '10px',
-          display: 'grid',
-          gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
-          gap: '6px',
-        }}
-      >
+      <div className="repo-glance-tiles">
         <Tile icon={<Boxes size={13} />} label="Namespaces" value="14" />
         <Tile icon={<Database size={13} />} label="Lexicons" value="63" />
         <Tile icon={<History size={13} />} label="Audit changes" value="8" />
-        <Tile icon={<LinkIcon size={13} />} label="Inbound links" value="2.1k" />
+        <Tile icon={<LinkIcon size={13} />} label="Backlinks" value="2.1k" />
         <Tile
           icon={<CalendarDays size={13} />}
           label="Created"
@@ -155,6 +148,9 @@ function Tile({
           fontWeight: 500,
           color: 'var(--text-primary)',
           lineHeight: 1,
+          // Keep short values (esp. "Aug 2023") on one line in the narrow
+          // mobile tiles instead of breaking at the space.
+          whiteSpace: 'nowrap',
         }}
       >
         {value}
