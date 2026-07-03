@@ -2035,6 +2035,12 @@ html {
     white-space: nowrap;
   }
 
+  /* Mute the remainder line so the top-2-segment namespace reads as the
+     primary anchor and the two stacked lines are easy to tell apart. */
+  .lexicon-row-nsid .lexicon-nsid-tail {
+    color: var(--text-secondary);
+  }
+
   /* No inline joining dot when the segments are stacked. */
   .lexicon-row-nsid .lexicon-nsid-tail::before {
     content: none;
