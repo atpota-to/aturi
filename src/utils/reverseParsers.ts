@@ -104,6 +104,24 @@ function matchBlueskyFamily(host: string, parts: string[]): ReverseMatch | null 
     };
   }
 
+  // Anisota's reader addresses Standard Site / Leaflet documents at
+  // `/profile/:handle/document/:rkey` without the collection NSID in the URL.
+  // Mirror Standard Reader's convention and reconstruct the canonical
+  // `site.standard.document` collection so the record still resolves.
+  if (parts[2] === 'document' && parts[3]) {
+    return {
+      source: entry.source,
+      parsed: {
+        type: 'record',
+        uri: `at://${handle}/site.standard.document/${parts[3]}`,
+        handle,
+        did,
+        collection: 'site.standard.document',
+        rkey: parts[3],
+      },
+    };
+  }
+
   return {
     source: entry.source,
     parsed: {
@@ -455,6 +473,37 @@ function matchStandardReader(host: string, parts: string[]): ReverseMatch | null
 }
 
 /**
+ * Offprint (offprint.app) and pckt (pckt.blog) address publications at the
+ * flat path `/<identifier>/<collection>/<rkey>` — the collection NSID sits in
+ * the path verbatim, so we can round-trip it straight back. Both only expose
+ * record-level URLs, so a profile-only path has no meaningful match.
+ */
+function matchFlatRecordHost(
+  host: string,
+  parts: string[],
+  target: { host: string; source: SourceApp },
+): ReverseMatch | null {
+  if (host !== target.host) return null;
+  const [handle, collection, rkey] = parts;
+  if (!handle || !collection || !rkey) return null;
+  // Guard against non-record pages (settings, landing, …): a real record path
+  // always carries an NSID collection segment.
+  if (!collection.includes('.')) return null;
+  const did = handle.startsWith('did:') ? handle : undefined;
+  return {
+    source: target.source,
+    parsed: {
+      type: inferType(collection),
+      uri: `at://${handle}/${collection}/${rkey}`,
+      handle,
+      did,
+      collection,
+      rkey,
+    },
+  };
+}
+
+/**
  * Taproot (atproto.at): a generic AT-URI explorer addressed at
  * `/uri/at://<identifier>[/<collection>/<rkey>]`.
  */
@@ -515,6 +564,8 @@ export function matchSupportedUrl(url: URL): ReverseMatch | null {
     matchSifa(host, parts) ||
     matchBlento(host, parts) ||
     matchStandardReader(host, parts) ||
+    matchFlatRecordHost(host, parts, { host: 'offprint.app', source: 'offprint' }) ||
+    matchFlatRecordHost(host, parts, { host: 'pckt.blog', source: 'pckt' }) ||
     matchTaproot(host, url.pathname)
   );
 }
@@ -575,5 +626,7 @@ export const SUPPORTED_HOSTS: string[] = [
   'sifa.id',
   'blento.app',
   'standard-reader.app',
+  'offprint.app',
+  'pckt.blog',
   'atproto.at',
 ];

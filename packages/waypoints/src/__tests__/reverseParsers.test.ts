@@ -105,6 +105,38 @@ describe('matchSupportedUrl - other apps', () => {
     expect(m?.parsed.type).toBe('profile');
   });
 
+  it('parses an anisota reader document into a site.standard.document uri', () => {
+    const m = match('https://anisota.net/profile/did:plc:xyz/document/rk123');
+    expect(m?.source).toBe('anisota');
+    expect(m?.parsed.type).toBe('record');
+    expect(m?.parsed.collection).toBe('site.standard.document');
+    expect(m?.parsed.rkey).toBe('rk123');
+    expect(m?.parsed.did).toBe('did:plc:xyz');
+  });
+
+  it('parses an offprint record', () => {
+    const m = match('https://offprint.app/did:plc:xyz/site.standard.document/rk123');
+    expect(m?.source).toBe('offprint');
+    expect(m?.parsed.type).toBe('record');
+    expect(m?.parsed.collection).toBe('site.standard.document');
+    expect(m?.parsed.rkey).toBe('rk123');
+    expect(m?.parsed.did).toBe('did:plc:xyz');
+  });
+
+  it('parses a pckt record', () => {
+    const m = match('https://pckt.blog/did:plc:xyz/pub.leaflet.document/rk123');
+    expect(m?.source).toBe('pckt');
+    expect(m?.parsed.type).toBe('record');
+    expect(m?.parsed.collection).toBe('pub.leaflet.document');
+    expect(m?.parsed.rkey).toBe('rk123');
+  });
+
+  it('does not treat non-record offprint/pckt paths as records', () => {
+    // No NSID collection segment -> not a record link.
+    expect(match('https://offprint.app/settings')).toBeNull();
+    expect(match('https://pckt.blog/alice.bsky.social/notacollection/rk')).toBeNull();
+  });
+
   it('ignores unsupported hosts', () => {
     expect(match('https://example.com/profile/alice')).toBeNull();
   });
