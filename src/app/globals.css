@@ -2035,10 +2035,13 @@ html {
     white-space: nowrap;
   }
 
-  /* Mute the remainder line so the top-2-segment namespace reads as the
-     primary anchor and the two stacked lines are easy to tell apart. */
+  /* Push the remainder line down the hierarchy — more muted color and a
+     step smaller than the namespace above it — so the top-2-segment
+     namespace reads as the primary anchor and the two lines are clearly
+     distinct rather than one long identifier. */
   .lexicon-row-nsid .lexicon-nsid-tail {
-    color: var(--text-secondary);
+    color: var(--text-tertiary);
+    font-size: 0.75rem;
   }
 
   /* No inline joining dot when the segments are stacked. */
