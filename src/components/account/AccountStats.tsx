@@ -148,10 +148,12 @@ export default function AccountStats({ did, handle, interactive = true }: Props)
     if (!stats?.createdAt) return null;
     try {
       const d = new Date(stats.createdAt);
+      // Month + year only ("Aug 2023"). The tile is narrow in the 2-column
+      // mobile grid, and the relative age sublabel already carries the
+      // finer-grained "how long ago" — a full day-level date just wrapped.
       return d.toLocaleDateString(undefined, {
         year: 'numeric',
         month: 'short',
-        day: 'numeric',
       });
     } catch {
       return null;
@@ -209,7 +211,7 @@ export default function AccountStats({ did, handle, interactive = true }: Props)
       />
       <StatTile
         icon={<LinkIcon size={16} />}
-        label="Inbound links"
+        label="Backlinks"
         hint="Records across the Atmosphere pointing at this DID"
         value={stats?.backlinks ?? undefined}
         unavailable={stats !== null && stats.backlinks === null}
@@ -394,6 +396,9 @@ function StatTile({
           color: 'var(--text-primary)',
           fontVariantNumeric: 'tabular-nums',
           lineHeight: 1.1,
+          // Keep short values (esp. the "Aug 2023" date) on one line instead
+          // of breaking at the space in the narrow mobile tiles.
+          whiteSpace: 'nowrap',
         }}
       >
         {display}
