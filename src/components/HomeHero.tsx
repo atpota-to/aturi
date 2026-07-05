@@ -1,18 +1,20 @@
 'use client';
 
 import Link from 'next/link';
-import { ArrowRight, Telescope } from 'lucide-react';
+import { Code2 } from 'lucide-react';
 import { motion } from 'framer-motion';
+import SearchBox from './explore/SearchBox';
 import DownloadButton, { BrowserFallbackList } from './home/DownloadButton';
 
 /**
- * Homepage hero: tagline + description + two side-by-side CTAs, plus the
- * download CTA's browser-detected fallback list below.
+ * Homepage hero: tagline + a full-width Explore search bar (the same one
+ * that leads the /explore page), followed by two CTAs (Download +
+ * Integrate) and the download's browser-detected fallback list.
  *
- * Used in place of the bare <DownloadCTA /> after we swapped the homepage's
- * full-hero Header for the compact nav card. The CTA row anchors users on
- * the two product entry points: the explorer (a website experience) and
- * the extension (download).
+ * The search bar puts the explorer's core action right under the tagline
+ * so visitors can jump straight to any repo, while the CTA row anchors the
+ * two product entry points: the extension (download) and the developer
+ * packages (integrate → docs).
  */
 export default function HomeHero() {
   return (
@@ -53,7 +55,14 @@ export default function HomeHero() {
         </span>
       </h1>
 
-      {/* CTA row — align to the top so the Explore link doesn't stretch
+      {/* Full-width Explore search bar — the same component that leads the
+          /explore page. Left-aligned text inside a centered hero, so the
+          typeahead/recommendations dropdown reads naturally. */}
+      <div style={{ textAlign: 'left', marginBottom: '1.5rem' }}>
+        <SearchBox />
+      </div>
+
+      {/* CTA row — align to the top so the Integrate link doesn't stretch
           to match the Download column's full height (button + fallback
           line). Each button keeps its natural size. */}
       <div
@@ -66,8 +75,11 @@ export default function HomeHero() {
           marginBottom: '0.875rem',
         }}
       >
+        {/* showFallback omitted — the fallback list lives below the CTA
+            row so it can center relative to both buttons. */}
+        <DownloadButton variant="primary" label="Download" />
         <Link
-          href="/explore"
+          href="/docs"
           className="generate-button"
           style={{
             display: 'inline-flex',
@@ -84,13 +96,9 @@ export default function HomeHero() {
             letterSpacing: '0.01em',
           }}
         >
-          <Telescope size={18} style={{ color: 'var(--text-accent)' }} />
-          <span>Explore</span>
-          <ArrowRight size={16} style={{ color: 'var(--text-tertiary)' }} />
+          <Code2 size={18} style={{ color: 'var(--text-accent)' }} />
+          <span>Integrate</span>
         </Link>
-        {/* showFallback omitted — the fallback list lives below the CTA
-            row so it can center relative to both buttons. */}
-        <DownloadButton variant="primary" label="Download" />
       </div>
 
       {/* Browser-detected "Also for X" line, centered under the row. */}
