@@ -26,7 +26,8 @@ export default function DefaultsTab({ prefs, onChange }: Props) {
   const visible = useMemo(() => visibleWaypointIds(prefs), [prefs.waypointGroups]);
 
   // Build per-family candidate lists: visible, redirect-capable waypoints
-  // that belong to that family.
+  // that belong to that family. DID-required waypoints (pdsls, atp.tools, …)
+  // are excluded because they can't be a *destination* of a static DNR rule.
   const familyCandidates = useMemo(() => {
     const map = new Map<RedirectCompatFamily, typeof waypoints>();
     for (const family of COMPAT_FAMILY_ORDER) {
@@ -41,11 +42,35 @@ export default function DefaultsTab({ prefs, onChange }: Props) {
     return map;
   }, [waypoints, visible, prefs.customWaypoints]);
 
-  // Only surface families with >1 member - there's nothing to "choose" if the
-  // family has exactly one waypoint, and it'd only add clutter.
+  // Total visible members of each family, *including* DID-required ones. Those
+  // can't be redirect destinations but are still valid redirect sources, so
+  // they count toward whether a family has anything worth configuring.
+  const familyMemberCounts = useMemo(() => {
+    const map = new Map<RedirectCompatFamily, number>();
+    for (const family of COMPAT_FAMILY_ORDER) {
+      const count = waypoints.filter(w => {
+        if (!visible.has(w.id)) return false;
+        return getRedirectCompatFor(w.id, prefs.customWaypoints).includes(family);
+      }).length;
+      map.set(family, count);
+    }
+    return map;
+  }, [waypoints, visible, prefs.customWaypoints]);
+
+  // Surface a family's favorite selector when a redirect could actually happen:
+  // at least one non-DID destination to land on, and at least two members
+  // overall so there's a source distinct from that destination. This is what
+  // reveals the explorer family (pdsls / atp.tools → Aturi Explore), whose only
+  // valid destination is Aturi Explore even though the DID-only explorers are
+  // still redirect sources. Single-member families stay hidden as clutter.
   const activeFamilies = useMemo(
-    () => COMPAT_FAMILY_ORDER.filter(f => (familyCandidates.get(f)?.length ?? 0) > 1),
-    [familyCandidates]
+    () =>
+      COMPAT_FAMILY_ORDER.filter(f => {
+        const candidateCount = familyCandidates.get(f)?.length ?? 0;
+        const memberCount = familyMemberCounts.get(f) ?? 0;
+        return candidateCount >= 1 && memberCount >= 2;
+      }),
+    [familyCandidates, familyMemberCounts]
   );
 
   function setFamilyFavorite(family: RedirectCompatFamily, id: string) {
