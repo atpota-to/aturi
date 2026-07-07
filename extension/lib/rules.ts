@@ -192,6 +192,34 @@ function sourceRecipes(sourceId: SourceApp | string): SourceRecipe[] {
       ];
     }
 
+    case 'pdsls':
+    case 'atptools': {
+      const host = HOST_BY_SOURCE[sourceId as SourceApp];
+      if (!host) return [];
+      // Both raw explorers address records by AT URI:
+      // `/at://<identifier>/<collection>/<rkey>`. atp.tools uses a single slash
+      // after `at:` and pdsls a double, so `at:/+` accepts either. The
+      // identifier (a DID or handle) sits verbatim in the path and passes
+      // straight through to the destination explorer, which also keys its URLs
+      // by identifier — so unlike handle-only sources, no DID resolution is
+      // needed and the record's own collection (`\2`) rides along untouched.
+      const base = `^https://${escapeHost(host)}/at:/+([^/?#]+)`;
+      return [
+        {
+          regexFilter: `${base}/([^/?#]+)/([^/?#]+).*`,
+          capturesLabel: `${sourceId}:record`,
+          tokens: { handle: 1, collection: 2, rkey: 3 },
+          type: 'record',
+        },
+        {
+          regexFilter: `${base}/?$`,
+          capturesLabel: `${sourceId}:profile`,
+          tokens: { handle: 1 },
+          type: 'profile',
+        },
+      ];
+    }
+
     default:
       return [];
   }
@@ -385,4 +413,6 @@ const ALL_KNOWN_SOURCES: SourceApp[] = [
   'popfeed',
   'sifa',
   'blento',
+  'pdsls',
+  'atptools',
 ];

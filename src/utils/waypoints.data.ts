@@ -18,7 +18,8 @@ export type RedirectCompatFamily =
   | 'streamplace'
   | 'popfeed'
   | 'sifa'
-  | 'blento';
+  | 'blento'
+  | 'atproto-explorer';
 
 export type WaypointData = {
   id: string;
@@ -117,6 +118,12 @@ export const COMPAT_FAMILIES: Record<RedirectCompatFamily, CompatFamilyMeta> = {
     name: 'Blento',
     description: 'Blento profiles.',
   },
+  'atproto-explorer': {
+    id: 'atproto-explorer',
+    name: 'Record explorers',
+    description:
+      'Raw AT Protocol record explorers (pdsls, atp.tools, Aturi Explore) that render any record by its AT URI.',
+  },
 };
 
 export const COMPAT_FAMILY_ORDER: RedirectCompatFamily[] = [
@@ -131,6 +138,7 @@ export const COMPAT_FAMILY_ORDER: RedirectCompatFamily[] = [
   'popfeed',
   'sifa',
   'blento',
+  'atproto-explorer',
 ];
 
 export type WaypointCategoryData = {
@@ -308,7 +316,7 @@ export const WAYPOINT_DESTINATIONS_DATA: Record<string, WaypointData> = {
     },
     supportedTypes: ['post', 'profile', 'list', 'record'],
     category: 'devTools',
-    redirectCompat: [],
+    redirectCompat: ['atproto-explorer'],
   },
 
   aturiExplore: {
@@ -332,7 +340,7 @@ export const WAYPOINT_DESTINATIONS_DATA: Record<string, WaypointData> = {
     },
     supportedTypes: ['post', 'profile', 'list', 'record'],
     category: 'devTools',
-    redirectCompat: [],
+    redirectCompat: ['atproto-explorer'],
   },
 
   atptools: {
@@ -348,7 +356,7 @@ export const WAYPOINT_DESTINATIONS_DATA: Record<string, WaypointData> = {
     },
     supportedTypes: ['post', 'profile', 'list', 'record'],
     category: 'devTools',
-    redirectCompat: [],
+    redirectCompat: ['atproto-explorer'],
   },
 
   bluepy: {

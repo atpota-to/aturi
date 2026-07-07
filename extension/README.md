@@ -11,11 +11,16 @@ auto-redirect links between them.
   see every other Aturi waypoint that can open that same content. Clicking one
   opens it in a new tab.
 - **Auto-redirect**: flip a switch in settings to silently rewrite links before
-  they even load. You pick a default per source site per content type (post,
-  profile, list, record). Powered by `chrome.declarativeNetRequest`, so it's
-  fast and doesn't need to see your browsing history. An explicit pick in the
-  popup always wins: choosing a client there opens *that* client, even when a
-  standing redirect rule would otherwise rewrite the same URL.
+  they even load. You pick a favorite reader for each compatibility group (apps
+  that render the same underlying records), so redirects only happen between
+  clients that share data. That includes a **Record explorers** group: point it
+  at Aturi Explore to have pdsls.dev and atp.tools links open in
+  `aturi.to/explore` instead. Because those explorers already carry the full AT
+  URI in the path, no handle/DID resolution is needed. Powered by
+  `chrome.declarativeNetRequest`, so it's fast and doesn't need to see your
+  browsing history. An explicit pick in the popup always wins: choosing a client
+  there opens *that* client, even when a standing redirect rule would otherwise
+  rewrite the same URL.
 - **Custom waypoints**: wire up any site that uses a consistent URL structure
   via URL templates (`/profile/{handle}`, `/u/{handle}/p/{rkey}`, etc.).
 - **Recents**: the popup surfaces the waypoints you use most often first.
@@ -86,7 +91,9 @@ green background). The master SVG lives at `assets/icon.svg`; run
 
 ## Known limitations
 
-Auto-redirect uses static DNR rules, so it can't rewrite to destinations that
+Auto-redirect uses static DNR rules, so it can't rewrite *to* destinations that
 need a DID - PDSls, atp.tools, Margin, and any custom waypoint
 whose template uses `{did}`. Those destinations still work great from the
-popup, which resolves the handle on demand.
+popup, which resolves the handle on demand. (PDSls and atp.tools can still be
+redirect *sources* — their URLs already contain the DID or handle, so rewriting
+them into another explorer needs no resolution.)

@@ -122,11 +122,11 @@ describe('buildRules', () => {
   });
 
   it('skips family favorites whose templates need a DID', () => {
-    // pdsls isn't in any compat family so it can never act as a family favorite,
-    // but even if someone wires it in manually, the DID gate kicks in.
+    // Within the explorer family atp.tools is a valid *source* but a DID-only
+    // *destination*, so a pdsls -> atp.tools favorite must not emit any rule.
     const rules = buildRules(prefs({
       autoRedirect: true,
-      defaults: { bluesky: { profile: 'pdsls' } },
+      favoriteByFamily: { 'atproto-explorer': 'atptools' },
     }));
     expect(rules).toEqual([]);
   });
@@ -172,6 +172,77 @@ describe('buildRules', () => {
   });
 });
 
+describe('explorer redirects (pdsls / atp.tools -> Aturi Explore)', () => {
+  it('rewrites a pdsls record and profile to the aturi explorer', () => {
+    const rules = buildRules(prefs({
+      autoRedirect: true,
+      favoriteByFamily: { 'atproto-explorer': 'aturiExplore' },
+    }));
+    const pdslsRules = rules.filter(r =>
+      r.condition.regexFilter?.includes('pdsls\\.dev')
+    );
+    // One record rule (identifier/collection/rkey) + one profile rule.
+    expect(pdslsRules.length).toBe(2);
+
+    const record = pdslsRules.find(r =>
+      r.action.redirect?.regexSubstitution?.endsWith('/\\1/\\2/\\3')
+    );
+    const profile = pdslsRules.find(r =>
+      r.action.redirect?.regexSubstitution?.endsWith('/explore/\\1')
+    );
+
+    expect(record?.action.redirect?.regexSubstitution).toBe(
+      'https://aturi.to/explore/\\1/\\2/\\3'
+    );
+    // The record recipe accepts `at://` (double slash) or `at:/` (single).
+    expect(record?.condition.regexFilter).toBe(
+      '^https://pdsls\\.dev/at:/+([^/?#]+)/([^/?#]+)/([^/?#]+).*'
+    );
+    expect(profile?.action.redirect?.regexSubstitution).toBe(
+      'https://aturi.to/explore/\\1'
+    );
+    expect(profile?.condition.regexFilter).toBe(
+      '^https://pdsls\\.dev/at:/+([^/?#]+)/?$'
+    );
+  });
+
+  it('also rewrites atp.tools under the same explorer favorite', () => {
+    const rules = buildRules(prefs({
+      autoRedirect: true,
+      favoriteByFamily: { 'atproto-explorer': 'aturiExplore' },
+    }));
+    const atpRules = rules.filter(r =>
+      r.condition.regexFilter?.includes('atp\\.tools')
+    );
+    expect(atpRules.length).toBe(2);
+    expect(
+      atpRules.every(r =>
+        r.action.redirect?.regexSubstitution?.includes('aturi.to/explore')
+      )
+    ).toBe(true);
+  });
+
+  it('emits no explorer rules until an explorer favorite is chosen', () => {
+    const rules = buildRules(prefs({ autoRedirect: true }));
+    const explorerRules = rules.filter(r =>
+      r.condition.regexFilter?.includes('pdsls\\.dev') ||
+      r.condition.regexFilter?.includes('atp\\.tools')
+    );
+    expect(explorerRules).toEqual([]);
+  });
+
+  it('never turns the destination explorer into a source (no aturi.to rules)', () => {
+    const rules = buildRules(prefs({
+      autoRedirect: true,
+      favoriteByFamily: { 'atproto-explorer': 'aturiExplore' },
+    }));
+    const fromAturi = rules.filter(r =>
+      r.condition.regexFilter?.includes('aturi\\.to')
+    );
+    expect(fromAturi).toEqual([]);
+  });
+});
+
 describe('compat helpers', () => {
   it('bluesky and anisota are redirect-compatible', () => {
     expect(areRedirectCompatible('bluesky', 'anisota', [])).toBe(true);
@@ -181,9 +252,13 @@ describe('compat helpers', () => {
     expect(areRedirectCompatible('bluesky', 'semble', [])).toBe(false);
   });
 
-  it('dev tools have no compat (never a redirect target)', () => {
-    expect(getRedirectCompatFor('pdsls', [])).toEqual([]);
-    expect(getRedirectCompatFor('atptools', [])).toEqual([]);
+  it('record explorers share the explorer compat family', () => {
+    expect(getRedirectCompatFor('pdsls', [])).toEqual(['atproto-explorer']);
+    expect(getRedirectCompatFor('atptools', [])).toEqual(['atproto-explorer']);
+    expect(getRedirectCompatFor('aturiExplore', [])).toEqual(['atproto-explorer']);
+    expect(areRedirectCompatible('pdsls', 'aturiExplore', [])).toBe(true);
+    // pdsls stays incompatible with bluesky clients — different families.
+    expect(areRedirectCompatible('pdsls', 'bluesky', [])).toBe(false);
   });
 
   it('pinksky is in its own family (not bluesky-social)', () => {
