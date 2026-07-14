@@ -81,6 +81,26 @@ const APPLY_WRITES_MAX = 200;
 // pool clears them promptly without hammering the PDS.
 const DELETE_CHUNK_CONCURRENCY = 3;
 
+// Pull minutes-until-reset out of a PDS 429 so the delete UI can say when the
+// write budget frees up. Bluesky sends `ratelimit-reset` as an absolute
+// unix-seconds timestamp; `retry-after` (seconds from now) is the fallback.
+// Returns null when neither header is present or parseable.
+function rateLimitResetMinutes(err: unknown): number | null {
+  const headers = (err as { headers?: Record<string, string | undefined> } | null)?.headers;
+  if (!headers) return null;
+  const reset = headers['ratelimit-reset'];
+  if (reset) {
+    const ms = Number(reset) * 1000 - Date.now();
+    if (Number.isFinite(ms) && ms > 0) return Math.max(1, Math.ceil(ms / 60000));
+  }
+  const retryAfter = headers['retry-after'];
+  if (retryAfter) {
+    const secs = Number(retryAfter);
+    if (Number.isFinite(secs) && secs > 0) return Math.max(1, Math.ceil(secs / 60));
+  }
+  return null;
+}
+
 // Reveal/retract thresholds for dropping the condensed edit bar into the nav,
 // matching the breadcrumb's behaviour: the top ~96px counts as occluded by the
 // sticky nav, and a dead band keeps the reveal from strobing at the boundary
@@ -299,6 +319,10 @@ function CollectionList({
     }
 
     let firstError: string | null = null;
+    // Set once a 429 halts the run; holds minutes until the write budget
+    // resets (or null if unknown). Staying undefined means no rate limit hit.
+    let rateLimitResetMin: number | null | undefined;
+    let stopped = false;
     const queue = [...chunks];
     // Bounded concurrency over the batches: clear a large selection promptly
     // without firing every batch at the PDS at once. JS is single-threaded
@@ -306,7 +330,9 @@ function CollectionList({
     const workers = Array.from(
       { length: Math.min(DELETE_CHUNK_CONCURRENCY, queue.length) },
       async () => {
-        for (let chunk = queue.shift(); chunk; chunk = queue.shift()) {
+        while (!stopped) {
+          const chunk = queue.shift();
+          if (!chunk) return;
           try {
             await ag.com.atproto.repo.applyWrites({
               repo: identity.did,
@@ -317,18 +343,30 @@ function CollectionList({
               })),
             });
           } catch (err) {
-            // A batch is atomic: if the commit fails, none of its records were
-            // deleted, so mark the whole chunk failed for retry.
+            // A batch is atomic: a failed commit deleted none of its records,
+            // so keep the whole chunk selected for retry.
             for (const job of chunk) failed.add(job.uri);
-            if (!firstError) firstError = err instanceof Error ? err.message : String(err);
-          } finally {
-            processed += chunk.length;
-            setDeleteProgress({ done: processed, total: targets.length });
+            if ((err as { status?: number } | null)?.status === 429) {
+              // Write budget exhausted. applyWrites counts each delete as one
+              // point, so batching cut the request count but not this ceiling
+              // (5k/hr, 35k/day). Retrying now is futile — stop cleanly and
+              // leave the rest selected to resume after the window resets.
+              rateLimitResetMin = rateLimitResetMinutes(err);
+              stopped = true;
+            } else if (!firstError) {
+              firstError = err instanceof Error ? err.message : String(err);
+            }
           }
+          processed += chunk.length;
+          setDeleteProgress({ done: processed, total: targets.length });
         }
       },
     );
     await Promise.all(workers);
+    // Whatever is still queued when a 429 stops the run stays selected too.
+    for (const chunk of queue) {
+      for (const job of chunk) failed.add(job.uri);
+    }
 
     // Drop the records we deleted; keep any that failed so the visitor can see
     // what's left and retry.
@@ -338,11 +376,22 @@ function CollectionList({
     setDeleteProgress(null);
     if (failed.size > 0) {
       setSelected(failed);
-      setDeleteError(
-        `Couldn't delete ${failed.size} of ${targets.length} record${
-          targets.length === 1 ? '' : 's'
-        }.${firstError ? ` ${firstError}` : ''}`,
-      );
+      if (rateLimitResetMin !== undefined) {
+        const deleted = targets.length - failed.size;
+        const when = rateLimitResetMin
+          ? `Resets in ~${rateLimitResetMin} min — retry then.`
+          : 'Try again in a bit.';
+        setDeleteError(
+          `Hit your PDS's write rate limit after ${deleted} of ${targets.length}. ` +
+            `${failed.size} still selected. ${when}`,
+        );
+      } else {
+        setDeleteError(
+          `Couldn't delete ${failed.size} of ${targets.length} record${
+            targets.length === 1 ? '' : 's'
+          }.${firstError ? ` ${firstError}` : ''}`,
+        );
+      }
     } else {
       exitEditing();
     }
