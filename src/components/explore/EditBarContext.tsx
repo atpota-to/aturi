@@ -21,11 +21,17 @@ export type EditBarSnapshot = {
   /** True while showing the "are you sure?" confirm step. */
   confirming: boolean;
   deleting: boolean;
+  /** Records settled / total during an in-flight delete, else null. */
+  progress: { done: number; total: number } | null;
+  /** Seconds until the throttle resumes while paced-paused, else null. */
+  waitingSec: number | null;
   onSelectAll: () => void;
   onDeselectAll: () => void;
   onRequestDelete: () => void;
   onConfirmDelete: () => void;
   onCancelDelete: () => void;
+  /** Stop an in-flight delete after the current batch. */
+  onStop: () => void;
 };
 
 type EditBarContextValue = {

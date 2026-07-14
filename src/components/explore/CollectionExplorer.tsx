@@ -1,10 +1,16 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState, type CSSProperties } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Pause, Play, FilePenLine, Trash2, X } from 'lucide-react';
 import { listRecordsPage, type AtRecord } from '@/utils/atproto/pdsClient';
+import {
+  msUntilBudget,
+  recordSpend,
+  pointsAvailable,
+  HOURLY_POINT_BUDGET,
+} from '@/utils/atproto/writeThrottle';
 import { encodeRepo, rkeyFromAtUri } from '@/utils/atproto/urls';
 import { resolveIdentifier, type IdentityBundle } from '@/utils/atproto/identity';
 import { previewFor } from '@/utils/atproto/previewExtractors';
@@ -15,6 +21,7 @@ import {
 } from '@/utils/atproto/jetstream';
 import AppearIn from './AppearIn';
 import Breadcrumb from './Breadcrumb';
+import DeleteProgressBar from './DeleteProgressBar';
 import NotFoundPanel from '@/components/NotFoundPanel';
 import SignInPanel from './SignInPanel';
 import { useAtprotoSession } from '@/components/AtprotoSessionProvider';
@@ -70,6 +77,40 @@ export default function CollectionExplorer({ repo, collection }: Props) {
 // as many records as possible per fetch.
 const RECORDS_PER_PAGE = 100;
 
+// com.atproto.repo.applyWrites caps a batch at 200 operations (lexicon
+// maxLength), so a larger selection is split into chunks. Each chunk lands as
+// one atomic repo commit instead of one commit per record.
+const APPLY_WRITES_MAX = 200;
+
+// Deletes run one batch at a time. Throughput is dominated by the write-rate
+// throttle (below) once a selection is large, and sequential batches keep the
+// pacing accounting and the "resuming in Ns" countdown simple and exact.
+const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
+
+// While paused for the throttle, re-check the budget on this cadence so the
+// countdown ticks and a Stop press is picked up within a second.
+const THROTTLE_TICK_MS = 1000;
+
+// Pull minutes-until-reset out of a PDS 429 so the delete UI can say when the
+// write budget frees up. Bluesky sends `ratelimit-reset` as an absolute
+// unix-seconds timestamp; `retry-after` (seconds from now) is the fallback.
+// Returns null when neither header is present or parseable.
+function rateLimitResetMinutes(err: unknown): number | null {
+  const headers = (err as { headers?: Record<string, string | undefined> } | null)?.headers;
+  if (!headers) return null;
+  const reset = headers['ratelimit-reset'];
+  if (reset) {
+    const ms = Number(reset) * 1000 - Date.now();
+    if (Number.isFinite(ms) && ms > 0) return Math.max(1, Math.ceil(ms / 60000));
+  }
+  const retryAfter = headers['retry-after'];
+  if (retryAfter) {
+    const secs = Number(retryAfter);
+    if (Number.isFinite(secs) && secs > 0) return Math.max(1, Math.ceil(secs / 60));
+  }
+  return null;
+}
+
 // Reveal/retract thresholds for dropping the condensed edit bar into the nav,
 // matching the breadcrumb's behaviour: the top ~96px counts as occluded by the
 // sticky nav, and a dead band keeps the reveal from strobing at the boundary
@@ -111,8 +152,20 @@ function CollectionList({
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  // Records settled (deleted or failed) / total, so the bar advances a chunk
+  // at a time. Null when no delete run is in flight.
+  const [deleteProgress, setDeleteProgress] = useState<{
+    done: number;
+    total: number;
+  } | null>(null);
+  // Seconds until the throttle resumes, while a run is paced-paused. Null when
+  // actively deleting (or idle).
+  const [deleteWaitSec, setDeleteWaitSec] = useState<number | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [signInOpen, setSignInOpen] = useState(false);
+  // Flipped by the Stop button so the in-flight delete loop bails after its
+  // current batch; a ref so the running loop sees it without a re-render.
+  const deleteCancelRef = useRef(false);
 
   // Records can only be deleted from your own repository, so selection mode is
   // gated on the signed-in user owning this repo. The Edit button itself is
@@ -171,6 +224,8 @@ function CollectionList({
     // A fresh record set invalidates any pending selection.
     setSelected(new Set());
     setConfirmingDelete(false);
+    setDeleteProgress(null);
+    setDeleteWaitSec(null);
     setDeleteError(null);
     loadPage(undefined);
   }, [loadPage]);
@@ -220,6 +275,14 @@ function CollectionList({
 
   const allSelected = records.length > 0 && records.every((r) => selected.has(r.uri));
 
+  // Whether confirming this delete will hit the throttle and pace partway —
+  // i.e. the selection is bigger than the write budget left this hour. Drives
+  // the heads-up in the confirm step so a big delete isn't a surprise.
+  const willPace = useMemo(() => {
+    if (!confirmingDelete || deleting) return false;
+    return selected.size > pointsAvailable(identity.did);
+  }, [confirmingDelete, deleting, selected.size, identity.did]);
+
   const toggleSelect = useCallback((uri: string) => {
     setSelected((prev) => {
       const next = new Set(prev);
@@ -233,6 +296,8 @@ function CollectionList({
     setEditing(false);
     setSelected(new Set());
     setConfirmingDelete(false);
+    setDeleteProgress(null);
+    setDeleteWaitSec(null);
     setDeleteError(null);
   }, []);
 
@@ -246,53 +311,145 @@ function CollectionList({
   const requestDelete = useCallback(() => setConfirmingDelete(true), []);
   const cancelDelete = useCallback(() => setConfirmingDelete(false), []);
 
+  // Stop an in-flight delete after the current batch. The loop reads this ref
+  // (set synchronously) between batches and bails; whatever hasn't been
+  // deleted stays selected.
+  const stopDelete = useCallback(() => {
+    deleteCancelRef.current = true;
+  }, []);
+
   const confirmDelete = useCallback(async () => {
     if (!agent) return;
     const ag = agent;
+    const did = identity.did;
     const selectedNow = selectedRef.current;
     const targets = recordsRef.current
       .filter((r) => selectedNow.has(r.uri))
       .map((r) => r.uri);
     if (targets.length === 0) return;
     const targetSet = new Set(targets);
+
+    // Resolve each URI to its rkey up front. A URI with no decodable rkey
+    // can't be deleted, so it's counted as failed without spending a request.
+    const failed = new Set<string>();
+    const deletable: { uri: string; rkey: string }[] = [];
+    for (const uri of targets) {
+      const rkey = rkeyFromAtUri(uri);
+      if (rkey) deletable.push({ uri, rkey });
+      else failed.add(uri);
+    }
+
+    // Split the deletable rows into ≤200-op batches; each batch lands as one
+    // atomic applyWrites commit rather than one deleteRecord per record.
+    const chunks: { uri: string; rkey: string }[][] = [];
+    for (let i = 0; i < deletable.length; i += APPLY_WRITES_MAX) {
+      chunks.push(deletable.slice(i, i + APPLY_WRITES_MAX));
+    }
+
+    deleteCancelRef.current = false;
     setDeleting(true);
     setDeleteError(null);
+    setDeleteWaitSec(null);
+    // Undecodable rows are already settled, so seed the bar with them.
+    let processed = failed.size;
+    setDeleteProgress({ done: processed, total: targets.length });
 
-    const failed = new Set<string>();
     let firstError: string | null = null;
-    const queue = [...targets];
-    // Bounded concurrency: clear a large selection quickly without firing one
-    // request per record at the PDS all at once. JS is single-threaded between
-    // awaits, so the shared `queue.shift()` hand-off is race-free.
-    const workers = Array.from({ length: Math.min(5, queue.length) }, async () => {
-      for (let uri = queue.shift(); uri; uri = queue.shift()) {
-        const rkey = rkeyFromAtUri(uri);
-        if (!rkey) {
-          failed.add(uri);
-          continue;
-        }
-        try {
-          await ag.com.atproto.repo.deleteRecord({ repo: identity.did, collection, rkey });
-        } catch (err) {
-          failed.add(uri);
-          if (!firstError) firstError = err instanceof Error ? err.message : String(err);
-        }
+    // Set once a 429 halts the run; minutes until the write budget resets (or
+    // null if unknown). Staying undefined means no rate limit was hit.
+    let rateLimitResetMin: number | null | undefined;
+    // First chunk we did NOT attempt (a Stop or a 429), so the rest can be
+    // swept back into the selection.
+    let stopIdx = chunks.length;
+
+    for (let ci = 0; ci < chunks.length; ci++) {
+      const chunk = chunks[ci];
+
+      // Pace against the write budget so we never trip the PDS limit: wait
+      // until spending this batch stays under it, ticking the countdown and
+      // watching for Stop. A fresh hourly budget means no wait at all.
+      let paused = false;
+      for (;;) {
+        if (deleteCancelRef.current) break;
+        const wait = msUntilBudget(did, chunk.length);
+        if (wait <= 0) break;
+        paused = true;
+        setDeleteWaitSec(Math.ceil(wait / 1000));
+        await sleep(Math.min(wait, THROTTLE_TICK_MS));
       }
-    });
-    await Promise.all(workers);
+      if (paused) setDeleteWaitSec(null);
+
+      if (deleteCancelRef.current) {
+        stopIdx = ci;
+        break;
+      }
+
+      // Reserve the points before sending; on failure we keep the reservation
+      // (staying conservative) rather than risk under-counting.
+      recordSpend(did, chunk.length);
+      try {
+        await ag.com.atproto.repo.applyWrites({
+          repo: did,
+          writes: chunk.map((job) => ({
+            $type: 'com.atproto.repo.applyWrites#delete' as const,
+            collection,
+            rkey: job.rkey,
+          })),
+        });
+      } catch (err) {
+        // A batch is atomic: a failed commit deleted none of its records, so
+        // keep the whole chunk selected for retry.
+        for (const job of chunk) failed.add(job.uri);
+        if ((err as { status?: number } | null)?.status === 429) {
+          // 429 despite pacing — usually writes from elsewhere spent the
+          // budget. Stop cleanly and leave the rest selected to resume later.
+          rateLimitResetMin = rateLimitResetMinutes(err);
+          processed += chunk.length;
+          setDeleteProgress({ done: processed, total: targets.length });
+          stopIdx = ci + 1;
+          break;
+        }
+        if (!firstError) firstError = err instanceof Error ? err.message : String(err);
+      }
+      processed += chunk.length;
+      setDeleteProgress({ done: processed, total: targets.length });
+    }
+
+    // Sweep any chunks we didn't attempt (Stop or 429) back into the selection.
+    for (let ci = stopIdx; ci < chunks.length; ci++) {
+      for (const job of chunks[ci]) failed.add(job.uri);
+    }
+    const cancelled = deleteCancelRef.current;
 
     // Drop the records we deleted; keep any that failed so the visitor can see
     // what's left and retry.
     setRecords((prev) => prev.filter((r) => !targetSet.has(r.uri) || failed.has(r.uri)));
     setConfirmingDelete(false);
     setDeleting(false);
+    setDeleteProgress(null);
+    setDeleteWaitSec(null);
     if (failed.size > 0) {
       setSelected(failed);
-      setDeleteError(
-        `Couldn't delete ${failed.size} of ${targets.length} record${
-          targets.length === 1 ? '' : 's'
-        }.${firstError ? ` ${firstError}` : ''}`,
-      );
+      const deleted = targets.length - failed.size;
+      if (rateLimitResetMin !== undefined) {
+        const when = rateLimitResetMin
+          ? `Resets in ~${rateLimitResetMin} min — retry then.`
+          : 'Try again in a bit.';
+        setDeleteError(
+          `Hit your PDS's write rate limit after ${deleted} of ${targets.length}. ` +
+            `${failed.size} still selected. ${when}`,
+        );
+      } else if (cancelled) {
+        setDeleteError(
+          `Stopped after ${deleted} of ${targets.length}. ${failed.size} still selected.`,
+        );
+      } else {
+        setDeleteError(
+          `Couldn't delete ${failed.size} of ${targets.length} record${
+            targets.length === 1 ? '' : 's'
+          }.${firstError ? ` ${firstError}` : ''}`,
+        );
+      }
     } else {
       exitEditing();
     }
@@ -348,11 +505,14 @@ function CollectionList({
       allSelected,
       confirming: confirmingDelete,
       deleting,
+      progress: deleteProgress,
+      waitingSec: deleteWaitSec,
       onSelectAll: selectAll,
       onDeselectAll: deselectAll,
       onRequestDelete: requestDelete,
       onConfirmDelete: confirmDelete,
       onCancelDelete: cancelDelete,
+      onStop: stopDelete,
     });
   }, [
     editing,
@@ -361,11 +521,14 @@ function CollectionList({
     allSelected,
     confirmingDelete,
     deleting,
+    deleteProgress,
+    deleteWaitSec,
     selectAll,
     deselectAll,
     requestDelete,
     confirmDelete,
     cancelDelete,
+    stopDelete,
     setBar,
   ]);
 
@@ -465,16 +628,16 @@ function CollectionList({
             <button
               type="button"
               onClick={selectAll}
-              disabled={records.length === 0 || allSelected}
-              style={selectionButtonStyle(records.length === 0 || allSelected)}
+              disabled={records.length === 0 || allSelected || deleting}
+              style={selectionButtonStyle(records.length === 0 || allSelected || deleting)}
             >
               Select all
             </button>
             <button
               type="button"
               onClick={deselectAll}
-              disabled={selected.size === 0}
-              style={selectionButtonStyle(selected.size === 0)}
+              disabled={selected.size === 0 || deleting}
+              style={selectionButtonStyle(selected.size === 0 || deleting)}
             >
               Deselect all
             </button>
@@ -509,32 +672,23 @@ function CollectionList({
               >
                 <Trash2 size={12} /> Delete{selected.size ? ` (${selected.size})` : ''}
               </button>
-            ) : (
+            ) : deleting && deleteProgress ? (
               <>
-                <span style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>
-                  Delete {selected.size} record{selected.size === 1 ? '' : 's'}? This cannot be
-                  undone.
-                </span>
-                <button
-                  type="button"
-                  onClick={confirmDelete}
-                  disabled={deleting}
+                <span
                   style={{
-                    padding: '0.4rem 0.75rem',
-                    background: 'var(--danger)',
-                    color: 'var(--text-on-accent)',
-                    border: '1px solid var(--danger)',
-                    fontFamily: 'var(--font-serif)',
                     fontSize: '0.8125rem',
-                    cursor: deleting ? 'wait' : 'pointer',
+                    color: 'var(--text-secondary)',
+                    whiteSpace: 'nowrap',
                   }}
                 >
-                  {deleting ? 'Deleting…' : 'Confirm delete'}
-                </button>
+                  {deleteWaitSec != null
+                    ? `Paced under the rate limit — resuming in ${deleteWaitSec}s`
+                    : 'Deleting…'}
+                </span>
+                <DeleteProgressBar done={deleteProgress.done} total={deleteProgress.total} />
                 <button
                   type="button"
-                  onClick={cancelDelete}
-                  disabled={deleting}
+                  onClick={stopDelete}
                   style={{
                     padding: '0.4rem 0.75rem',
                     background: 'transparent',
@@ -542,7 +696,47 @@ function CollectionList({
                     border: '1px solid var(--border-medium)',
                     fontFamily: 'var(--font-serif)',
                     fontSize: '0.8125rem',
-                    cursor: deleting ? 'not-allowed' : 'pointer',
+                    cursor: 'pointer',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  Stop
+                </button>
+              </>
+            ) : (
+              <>
+                <span style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>
+                  Delete {selected.size} record{selected.size === 1 ? '' : 's'}? This cannot be
+                  undone.
+                  {willPace &&
+                    ` Aturi will pace this under Bluesky's ~${HOURLY_POINT_BUDGET.toLocaleString()}/hour write limit, so it may pause partway.`}
+                </span>
+                <button
+                  type="button"
+                  onClick={confirmDelete}
+                  style={{
+                    padding: '0.4rem 0.75rem',
+                    background: 'var(--danger)',
+                    color: 'var(--text-on-accent)',
+                    border: '1px solid var(--danger)',
+                    fontFamily: 'var(--font-serif)',
+                    fontSize: '0.8125rem',
+                    cursor: 'pointer',
+                  }}
+                >
+                  Confirm delete
+                </button>
+                <button
+                  type="button"
+                  onClick={cancelDelete}
+                  style={{
+                    padding: '0.4rem 0.75rem',
+                    background: 'transparent',
+                    color: 'var(--text-secondary)',
+                    border: '1px solid var(--border-medium)',
+                    fontFamily: 'var(--font-serif)',
+                    fontSize: '0.8125rem',
+                    cursor: 'pointer',
                   }}
                 >
                   Cancel
