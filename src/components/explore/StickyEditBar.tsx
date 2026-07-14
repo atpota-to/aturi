@@ -60,9 +60,23 @@ function BarControls({ bar }: { bar: EditBarSnapshot }) {
             whiteSpace: 'nowrap',
           }}
         >
-          Deleting…
+          {bar.waitingSec != null ? `Paced — resuming in ${bar.waitingSec}s` : 'Deleting…'}
         </span>
         <DeleteProgressBar done={bar.progress.done} total={bar.progress.total} compact />
+        <button
+          type="button"
+          onClick={bar.onStop}
+          style={{
+            ...miniButton,
+            background: 'transparent',
+            color: 'var(--text-secondary)',
+            border: '1px solid var(--border-medium)',
+            cursor: 'pointer',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          Stop
+        </button>
       </>
     );
   }
