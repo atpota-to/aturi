@@ -15,6 +15,7 @@ import {
 } from '@/utils/atproto/jetstream';
 import AppearIn from './AppearIn';
 import Breadcrumb from './Breadcrumb';
+import DeleteProgressBar from './DeleteProgressBar';
 import NotFoundPanel from '@/components/NotFoundPanel';
 import SignInPanel from './SignInPanel';
 import { useAtprotoSession } from '@/components/AtprotoSessionProvider';
@@ -70,6 +71,16 @@ export default function CollectionExplorer({ repo, collection }: Props) {
 // as many records as possible per fetch.
 const RECORDS_PER_PAGE = 100;
 
+// com.atproto.repo.applyWrites caps a batch at 200 operations (lexicon
+// maxLength), so a larger selection is split into chunks. Each chunk lands as
+// one atomic repo commit instead of one commit per record.
+const APPLY_WRITES_MAX = 200;
+
+// How many applyWrites batches to run at once. Most selections are a single
+// page (one chunk); a few pages loaded still stays to a handful, so a small
+// pool clears them promptly without hammering the PDS.
+const DELETE_CHUNK_CONCURRENCY = 3;
+
 // Reveal/retract thresholds for dropping the condensed edit bar into the nav,
 // matching the breadcrumb's behaviour: the top ~96px counts as occluded by the
 // sticky nav, and a dead band keeps the reveal from strobing at the boundary
@@ -111,6 +122,12 @@ function CollectionList({
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  // Records settled (deleted or failed) / total, so the bar advances a chunk
+  // at a time. Null when no delete run is in flight.
+  const [deleteProgress, setDeleteProgress] = useState<{
+    done: number;
+    total: number;
+  } | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [signInOpen, setSignInOpen] = useState(false);
 
@@ -171,6 +188,7 @@ function CollectionList({
     // A fresh record set invalidates any pending selection.
     setSelected(new Set());
     setConfirmingDelete(false);
+    setDeleteProgress(null);
     setDeleteError(null);
     loadPage(undefined);
   }, [loadPage]);
@@ -233,6 +251,7 @@ function CollectionList({
     setEditing(false);
     setSelected(new Set());
     setConfirmingDelete(false);
+    setDeleteProgress(null);
     setDeleteError(null);
   }, []);
 
@@ -255,30 +274,60 @@ function CollectionList({
       .map((r) => r.uri);
     if (targets.length === 0) return;
     const targetSet = new Set(targets);
+
+    // Resolve each URI to its rkey up front. A URI with no decodable rkey
+    // can't be deleted, so it's counted as failed without spending a request.
+    const failed = new Set<string>();
+    const deletable: { uri: string; rkey: string }[] = [];
+    for (const uri of targets) {
+      const rkey = rkeyFromAtUri(uri);
+      if (rkey) deletable.push({ uri, rkey });
+      else failed.add(uri);
+    }
+
     setDeleting(true);
     setDeleteError(null);
+    // Undecodable rows are already settled, so seed the bar with them.
+    let processed = failed.size;
+    setDeleteProgress({ done: processed, total: targets.length });
 
-    const failed = new Set<string>();
+    // Split the deletable rows into ≤200-op batches; each batch lands as one
+    // atomic applyWrites commit rather than one deleteRecord per record.
+    const chunks: { uri: string; rkey: string }[][] = [];
+    for (let i = 0; i < deletable.length; i += APPLY_WRITES_MAX) {
+      chunks.push(deletable.slice(i, i + APPLY_WRITES_MAX));
+    }
+
     let firstError: string | null = null;
-    const queue = [...targets];
-    // Bounded concurrency: clear a large selection quickly without firing one
-    // request per record at the PDS all at once. JS is single-threaded between
-    // awaits, so the shared `queue.shift()` hand-off is race-free.
-    const workers = Array.from({ length: Math.min(5, queue.length) }, async () => {
-      for (let uri = queue.shift(); uri; uri = queue.shift()) {
-        const rkey = rkeyFromAtUri(uri);
-        if (!rkey) {
-          failed.add(uri);
-          continue;
+    const queue = [...chunks];
+    // Bounded concurrency over the batches: clear a large selection promptly
+    // without firing every batch at the PDS at once. JS is single-threaded
+    // between awaits, so the shared `queue.shift()` hand-off is race-free.
+    const workers = Array.from(
+      { length: Math.min(DELETE_CHUNK_CONCURRENCY, queue.length) },
+      async () => {
+        for (let chunk = queue.shift(); chunk; chunk = queue.shift()) {
+          try {
+            await ag.com.atproto.repo.applyWrites({
+              repo: identity.did,
+              writes: chunk.map((job) => ({
+                $type: 'com.atproto.repo.applyWrites#delete' as const,
+                collection,
+                rkey: job.rkey,
+              })),
+            });
+          } catch (err) {
+            // A batch is atomic: if the commit fails, none of its records were
+            // deleted, so mark the whole chunk failed for retry.
+            for (const job of chunk) failed.add(job.uri);
+            if (!firstError) firstError = err instanceof Error ? err.message : String(err);
+          } finally {
+            processed += chunk.length;
+            setDeleteProgress({ done: processed, total: targets.length });
+          }
         }
-        try {
-          await ag.com.atproto.repo.deleteRecord({ repo: identity.did, collection, rkey });
-        } catch (err) {
-          failed.add(uri);
-          if (!firstError) firstError = err instanceof Error ? err.message : String(err);
-        }
-      }
-    });
+      },
+    );
     await Promise.all(workers);
 
     // Drop the records we deleted; keep any that failed so the visitor can see
@@ -286,6 +335,7 @@ function CollectionList({
     setRecords((prev) => prev.filter((r) => !targetSet.has(r.uri) || failed.has(r.uri)));
     setConfirmingDelete(false);
     setDeleting(false);
+    setDeleteProgress(null);
     if (failed.size > 0) {
       setSelected(failed);
       setDeleteError(
@@ -348,6 +398,7 @@ function CollectionList({
       allSelected,
       confirming: confirmingDelete,
       deleting,
+      progress: deleteProgress,
       onSelectAll: selectAll,
       onDeselectAll: deselectAll,
       onRequestDelete: requestDelete,
@@ -361,6 +412,7 @@ function CollectionList({
     allSelected,
     confirmingDelete,
     deleting,
+    deleteProgress,
     selectAll,
     deselectAll,
     requestDelete,
@@ -465,16 +517,16 @@ function CollectionList({
             <button
               type="button"
               onClick={selectAll}
-              disabled={records.length === 0 || allSelected}
-              style={selectionButtonStyle(records.length === 0 || allSelected)}
+              disabled={records.length === 0 || allSelected || deleting}
+              style={selectionButtonStyle(records.length === 0 || allSelected || deleting)}
             >
               Select all
             </button>
             <button
               type="button"
               onClick={deselectAll}
-              disabled={selected.size === 0}
-              style={selectionButtonStyle(selected.size === 0)}
+              disabled={selected.size === 0 || deleting}
+              style={selectionButtonStyle(selected.size === 0 || deleting)}
             >
               Deselect all
             </button>
@@ -509,6 +561,19 @@ function CollectionList({
               >
                 <Trash2 size={12} /> Delete{selected.size ? ` (${selected.size})` : ''}
               </button>
+            ) : deleting && deleteProgress ? (
+              <>
+                <span
+                  style={{
+                    fontSize: '0.8125rem',
+                    color: 'var(--text-secondary)',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  Deleting…
+                </span>
+                <DeleteProgressBar done={deleteProgress.done} total={deleteProgress.total} />
+              </>
             ) : (
               <>
                 <span style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>
@@ -518,7 +583,6 @@ function CollectionList({
                 <button
                   type="button"
                   onClick={confirmDelete}
-                  disabled={deleting}
                   style={{
                     padding: '0.4rem 0.75rem',
                     background: 'var(--danger)',
@@ -526,15 +590,14 @@ function CollectionList({
                     border: '1px solid var(--danger)',
                     fontFamily: 'var(--font-serif)',
                     fontSize: '0.8125rem',
-                    cursor: deleting ? 'wait' : 'pointer',
+                    cursor: 'pointer',
                   }}
                 >
-                  {deleting ? 'Deleting…' : 'Confirm delete'}
+                  Confirm delete
                 </button>
                 <button
                   type="button"
                   onClick={cancelDelete}
-                  disabled={deleting}
                   style={{
                     padding: '0.4rem 0.75rem',
                     background: 'transparent',
@@ -542,7 +605,7 @@ function CollectionList({
                     border: '1px solid var(--border-medium)',
                     fontFamily: 'var(--font-serif)',
                     fontSize: '0.8125rem',
-                    cursor: deleting ? 'not-allowed' : 'pointer',
+                    cursor: 'pointer',
                   }}
                 >
                   Cancel

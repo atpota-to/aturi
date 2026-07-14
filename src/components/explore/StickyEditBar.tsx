@@ -4,6 +4,7 @@ import { type CSSProperties } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Trash2 } from 'lucide-react';
 import { useEditBar, type EditBarSnapshot } from './EditBarContext';
+import DeleteProgressBar from './DeleteProgressBar';
 
 /**
  * Condensed bulk-edit toolbar that drops into the bottom of the floating nav
@@ -48,6 +49,23 @@ export default function StickyEditBar() {
 }
 
 function BarControls({ bar }: { bar: EditBarSnapshot }) {
+  if (bar.deleting && bar.progress) {
+    return (
+      <>
+        <span
+          style={{
+            fontSize: '0.75rem',
+            color: 'var(--text-secondary)',
+            fontFamily: 'var(--font-serif)',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          Deleting…
+        </span>
+        <DeleteProgressBar done={bar.progress.done} total={bar.progress.total} compact />
+      </>
+    );
+  }
   if (bar.confirming) {
     return (
       <>
@@ -65,27 +83,25 @@ function BarControls({ bar }: { bar: EditBarSnapshot }) {
         <button
           type="button"
           onClick={bar.onConfirmDelete}
-          disabled={bar.deleting}
           style={{
             ...miniButton,
             background: 'var(--danger)',
             color: 'var(--text-on-accent)',
             border: '1px solid var(--danger)',
-            cursor: bar.deleting ? 'wait' : 'pointer',
+            cursor: 'pointer',
           }}
         >
-          {bar.deleting ? 'Deleting…' : 'Confirm delete'}
+          Confirm delete
         </button>
         <button
           type="button"
           onClick={bar.onCancelDelete}
-          disabled={bar.deleting}
           style={{
             ...miniButton,
             background: 'transparent',
             color: 'var(--text-secondary)',
             border: '1px solid var(--border-medium)',
-            cursor: bar.deleting ? 'not-allowed' : 'pointer',
+            cursor: 'pointer',
           }}
         >
           Cancel
