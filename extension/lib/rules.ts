@@ -226,6 +226,8 @@ function sourceRecipes(sourceId: SourceApp | string): SourceRecipe[] {
 }
 
 const HOST_BY_SOURCE: Record<SourceApp, string> = {
+  aturi: 'aturi.to',
+  aturiExplore: 'aturi.to',
   bluesky: 'bsky.app',
   bluepy: 'bluepy.social',
   blacksky: 'blacksky.community',
