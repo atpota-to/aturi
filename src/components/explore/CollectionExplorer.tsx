@@ -709,7 +709,7 @@ function CollectionList({
               disabled={records.length === 0 || allSelected || deleting}
               style={selectionButtonStyle(records.length === 0 || allSelected || deleting)}
             >
-              Select all
+              Select
             </button>
             <button
               type="button"
@@ -717,7 +717,7 @@ function CollectionList({
               disabled={selected.size === 0 || deleting}
               style={selectionButtonStyle(selected.size === 0 || deleting)}
             >
-              Deselect all
+              Deselect
             </button>
             <span
               style={{
@@ -734,11 +734,22 @@ function CollectionList({
                 type="button"
                 onClick={requestDelete}
                 disabled={selected.size === 0}
+                aria-label={
+                  selected.size
+                    ? `Delete ${selected.size} selected record${selected.size === 1 ? '' : 's'}`
+                    : 'Delete selected records'
+                }
+                title={
+                  selected.size
+                    ? `Delete ${selected.size} selected record${selected.size === 1 ? '' : 's'}`
+                    : 'Delete selected records'
+                }
                 style={{
                   display: 'inline-flex',
                   alignItems: 'center',
-                  gap: '0.4rem',
-                  padding: '0.4rem 0.75rem',
+                  // Icon-only now, so square the horizontal padding up rather
+                  // than leaving the old icon+label width.
+                  padding: '0.4rem 0.6rem',
                   background: 'var(--danger-soft)',
                   color: 'var(--danger)',
                   border: '1px solid var(--danger-border)',
@@ -748,7 +759,7 @@ function CollectionList({
                   opacity: selected.size === 0 ? 0.5 : 1,
                 }}
               >
-                <Trash2 size={12} /> Delete{selected.size ? ` (${selected.size})` : ''}
+                <Trash2 size={14} />
               </button>
             ) : deleting && deleteProgress ? (
               <>

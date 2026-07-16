@@ -134,7 +134,7 @@ function BarControls({ bar }: { bar: EditBarSnapshot }) {
         disabled={selectAllDisabled}
         style={neutralButton(selectAllDisabled)}
       >
-        Select all
+        Select
       </button>
       <button
         type="button"
@@ -142,7 +142,7 @@ function BarControls({ bar }: { bar: EditBarSnapshot }) {
         disabled={nothingSelected}
         style={neutralButton(nothingSelected)}
       >
-        Deselect all
+        Deselect
       </button>
       <span style={{ color: 'var(--text-tertiary)', fontSize: '0.75rem', marginLeft: '0.15rem' }}>
         {bar.selectedCount} selected
@@ -152,11 +152,20 @@ function BarControls({ bar }: { bar: EditBarSnapshot }) {
         type="button"
         onClick={bar.onRequestDelete}
         disabled={nothingSelected}
+        aria-label={
+          bar.selectedCount
+            ? `Delete ${bar.selectedCount} selected record${bar.selectedCount === 1 ? '' : 's'}`
+            : 'Delete selected records'
+        }
+        title={
+          bar.selectedCount
+            ? `Delete ${bar.selectedCount} selected record${bar.selectedCount === 1 ? '' : 's'}`
+            : 'Delete selected records'
+        }
         style={{
           ...miniButton,
           display: 'inline-flex',
           alignItems: 'center',
-          gap: '0.35rem',
           background: 'var(--danger-soft)',
           color: 'var(--danger)',
           border: '1px solid var(--danger-border)',
@@ -164,7 +173,7 @@ function BarControls({ bar }: { bar: EditBarSnapshot }) {
           opacity: nothingSelected ? 0.5 : 1,
         }}
       >
-        <Trash2 size={11} /> Delete{bar.selectedCount ? ` (${bar.selectedCount})` : ''}
+        <Trash2 size={13} />
       </button>
     </>
   );
