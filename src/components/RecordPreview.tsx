@@ -5,13 +5,20 @@
 
 'use client';
 
-import { useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { GenericRecord } from '@/utils/recordFetcher';
-import { sanitizeHandle } from '@/utils/sanitize';
+import { sanitizeHandle, sanitizeUrl } from '@/utils/sanitize';
 import { Check, ChevronDown, ChevronRight, Copy, Telescope } from 'lucide-react';
 import { encodeRepo, explorePathFromAtUri } from '@/utils/atproto/urls';
 import { resolveDidHandle } from '@/utils/atproto/identity';
+import RecordImageThumb from '@/components/RecordImageThumb';
+import {
+  didFromAtUri,
+  getBlobUrl,
+  imageBlobFromValue,
+  imageUrlFromValue,
+} from '@/utils/recordImages';
 
 type RecordPreviewProps = {
   record: GenericRecord;
@@ -34,7 +41,25 @@ type RecordPreviewProps = {
    * the actions on the right.
    */
   footerActions?: import('react').ReactNode;
+  /**
+   * Owning repo's PDS endpoint. When present, blob-backed image fields render
+   * an inline thumbnail (served via `com.atproto.sync.getBlob`); without it,
+   * only direct image URLs preview. The explorer passes it; the universal-link
+   * page omits it (it doesn't resolve the PDS), so blob thumbnails are
+   * explorer-only for now.
+   */
+  pds?: string;
 };
+
+/**
+ * Supplies the repo coordinates a blob image needs to build its getBlob URL.
+ * Read by the recursive FieldRow so we don't thread `pds`/`did` through every
+ * nested level by hand. `did` comes from the record URI; both are optional so
+ * blob previews simply no-op when either is missing.
+ */
+const RecordImageContext = createContext<{ pds?: string; did: string | null }>({
+  did: null,
+});
 
 export default function RecordPreview({
   record,
@@ -43,8 +68,10 @@ export default function RecordPreview({
   rkey,
   hideExplorerCtas,
   footerActions,
+  pds,
 }: RecordPreviewProps) {
   const { value, cid } = record;
+  const did = didFromAtUri(record.uri);
 
   // Format the record type nicely
   const recordType = value.$type || collection;
@@ -163,22 +190,24 @@ export default function RecordPreview({
               beside its label or drops onto its own line — see .record-fields
               in globals.css. Lets the card stack correctly inside narrow
               split panes, not just on small screens. */}
-          <div className="record-fields" style={{ marginBottom: '1.5rem' }}>
-            {previewFields.map(([key, val]) => (
-              // Inside the explorer (hideExplorerCtas) this card IS the
-              // canonical record view, so top-level fields start expanded —
-              // the visitor came here to read the record, not to click each
-              // object/array chip open. Nested rows stay collapsed so deep
-              // structures don't unfurl all at once. On universal-link pages
-              // the preview stays compact (everything collapsed).
-              <FieldRow
-                key={key}
-                label={key}
-                value={val}
-                defaultOpen={hideExplorerCtas}
-              />
-            ))}
-          </div>
+          <RecordImageContext.Provider value={{ pds, did }}>
+            <div className="record-fields" style={{ marginBottom: '1.5rem' }}>
+              {previewFields.map(([key, val]) => (
+                // Inside the explorer (hideExplorerCtas) this card IS the
+                // canonical record view, so top-level fields start expanded —
+                // the visitor came here to read the record, not to click each
+                // object/array chip open. Nested rows stay collapsed so deep
+                // structures don't unfurl all at once. On universal-link pages
+                // the preview stays compact (everything collapsed).
+                <FieldRow
+                  key={key}
+                  label={key}
+                  value={val}
+                  defaultOpen={hideExplorerCtas}
+                />
+              ))}
+            </div>
+          </RecordImageContext.Provider>
 
           {/* Single CTA: navigates into the explorer's record page, which
               shows the full record JSON (linkified), backlinks, identity,
@@ -325,6 +354,7 @@ function FieldRow({
   value,
   isLast,
   defaultOpen = false,
+  suppressBlobImage = false,
 }: {
   label: string;
   value: unknown;
@@ -335,10 +365,24 @@ function FieldRow({
   /** Initial expansion state. Top-level rows in the explorer pass true so
    * the record opens already unfurled; nested rows default to collapsed. */
   defaultOpen?: boolean;
+  /** When true, don't render a blob thumbnail for this row — set by the parent
+   * when a sibling field already previews the same image as a direct URL (e.g.
+   * arena mirror's `image.src` next to `image.blob`), so we show it once. */
+  suppressBlobImage?: boolean;
 }) {
   const [open, setOpen] = useState(defaultOpen);
+  const { pds, did } = useContext(RecordImageContext);
   const expandable = isExpandable(value);
   const children = expandable ? childEntries(value) : [];
+  // A sibling direct-URL image means this object's blob is (almost always) the
+  // same asset; let the URL row own the single preview.
+  const childrenHaveImageUrl = children.some(
+    ([, v]) => imageUrlFromValue(v) != null,
+  );
+
+  // Blob-backed image preview (needs the repo coordinates to build getBlob).
+  const blob = suppressBlobImage ? null : imageBlobFromValue(value);
+  const blobSrc = blob && pds && did ? getBlobUrl(pds, did, blob.cid) : null;
   return (
     <div
       style={{
@@ -386,6 +430,11 @@ function FieldRow({
           )}
         </div>
       </div>
+      {blobSrc && (
+        <div style={{ paddingBottom: '0.75rem' }}>
+          <RecordImageThumb src={blobSrc} alt={label} />
+        </div>
+      )}
       {expandable && (
         <div
           style={{
@@ -418,6 +467,7 @@ function FieldRow({
                   label={k}
                   value={v}
                   isLast={i === children.length - 1}
+                  suppressBlobImage={childrenHaveImageUrl}
                 />
               ))}
             </div>
@@ -448,6 +498,21 @@ function FieldPrimitive({ value }: { value: unknown }) {
     const href = explorePathFromAtUri(value);
     if (href && value.startsWith('at://')) {
       return <LinkableValue display={display} copy={full} href={href} />;
+    }
+    // Direct image URL: keep the copyable text and preview it beneath. The
+    // URL still renders as a plain external string (like other non-AT URLs);
+    // the thumbnail is the added affordance.
+    const imageUrl = imageUrlFromValue(value);
+    if (imageUrl) {
+      const safe = sanitizeUrl(imageUrl);
+      if (safe !== '#') {
+        return (
+          <>
+            <CopyableValue display={display} copy={full} />
+            <RecordImageThumb src={safe} />
+          </>
+        );
+      }
     }
   }
   return <CopyableValue display={display} copy={full} />;
