@@ -67,6 +67,57 @@ export async function getLatestCommit(pds: string, did: string): Promise<LatestC
 }
 
 /**
+ * com.atproto.sync.getRepo — downloads the account's full repo export (a CAR
+ * file) and returns its size in bytes. Unlike the other account-stats sources
+ * this can run to many megabytes, so callers only ever trigger it from an
+ * explicit user action, never on page load.
+ *
+ * The body is streamed and counted chunk-by-chunk — each chunk is dropped as
+ * soon as it's measured — so even a large repo never sits in memory whole. An
+ * optional `onProgress` receives the running byte total to drive a live
+ * counter; `signal` lets the caller abort an in-flight download. Falls back to
+ * a single `arrayBuffer` measure when the runtime doesn't expose a readable
+ * response body.
+ */
+export async function getRepoSize(
+  pds: string,
+  did: string,
+  opts?: { onProgress?: (bytes: number) => void; signal?: AbortSignal },
+): Promise<number> {
+  const params = new URLSearchParams({ did });
+  const res = await fetch(`${pds}/xrpc/com.atproto.sync.getRepo?${params}`, {
+    signal: opts?.signal,
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    const err = new Error(
+      `HTTP ${res.status} ${res.statusText} for com.atproto.sync.getRepo :: ${text.slice(0, 200)}`,
+    );
+    (err as Error & { status?: number }).status = res.status;
+    throw err;
+  }
+
+  // Stream the CAR so we can report progress and avoid buffering the whole
+  // export; not every runtime gives us a readable body, so fall back if absent.
+  if (res.body) {
+    const reader = res.body.getReader();
+    let total = 0;
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      if (value) {
+        total += value.byteLength;
+        opts?.onProgress?.(total);
+      }
+    }
+    return total;
+  }
+
+  const buf = await res.arrayBuffer();
+  return buf.byteLength;
+}
+
+/**
  * com.atproto.repo.listRecords (single page).
  * Use this when the caller wants to control pagination (e.g. "Load more").
  */

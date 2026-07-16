@@ -1,16 +1,22 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Activity,
   Boxes,
   CalendarDays,
   Database,
+  Download,
   Gauge,
+  HardDrive,
   History,
   Link as LinkIcon,
 } from 'lucide-react';
-import { describeRepo, getLatestCommit } from '@/utils/atproto/pdsClient';
+import {
+  describeRepo,
+  getLatestCommit,
+  getRepoSize,
+} from '@/utils/atproto/pdsClient';
 import { tidToDate, formatTidRelative } from '@/utils/atproto/tid';
 import { getPlcAuditLog, type PlcAuditEntry } from '@/utils/atproto/plc';
 import { resolveIdentifier } from '@/utils/atproto/identity';
@@ -52,7 +58,9 @@ type Stats = {
  *   - PLC audit log → operation count + create timestamp (did:plc only).
  *   - Constellation → total inbound backlink count.
  *
- * Each fetch is independent; one failure doesn't block the others.
+ * Each fetch is independent; one failure doesn't block the others. The repo
+ * size tile is the exception — it downloads the full repo CAR and so is only
+ * measured on an explicit button press, never on load (see `RepoSizeTile`).
  */
 export default function AccountStats({ did, handle, interactive = true }: Props) {
   const [stats, setStats] = useState<Stats | null>(null);
@@ -226,7 +234,8 @@ export default function AccountStats({ did, handle, interactive = true }: Props)
         interactive={interactive}
       />
       {/* Score sits directly after Created so the two pair up on the same row
-          in the 2-column mobile grid; Last active trails as the lone tile. */}
+          in the 2-column mobile grid; Last active + Repo size then pair up on
+          the final row. */}
       <CredBlueTile
         state={credBlue}
         handle={handle || did}
@@ -244,6 +253,10 @@ export default function AccountStats({ did, handle, interactive = true }: Props)
         unavailable={stats !== null && lastActiveDate === null}
         interactive={interactive}
       />
+      {/* The one stat that isn't fetched on load — measuring it downloads the
+          full repo CAR, so it stays behind an explicit button. Keyed on `did`
+          so switching repos resets it to idle (and unmounts the old fetch). */}
+      <RepoSizeTile key={did} did={did} interactive={interactive} />
     </section>
   );
 }
@@ -376,62 +389,11 @@ function StatTile({
   }
   const body = (
     <>
-      <div
-        className="explore-small-caps"
-        style={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: '0.4rem',
-          color: 'var(--text-tertiary)',
-        }}
-      >
-        {/* inline-flex so the wrapper hugs the 16px glyph instead of
-            inheriting the inline SVG's descender space — otherwise the icon
-            box is taller than the icon and align-items:center pushes the
-            icon optically above the label text. */}
-        <span style={{ display: 'inline-flex', color: 'var(--text-accent)' }}>
-          {icon}
-        </span>
-        <span>{label}</span>
-      </div>
-      <div
-        style={{
-          fontFamily: 'var(--font-serif)',
-          fontSize: '1.25rem',
-          fontWeight: 400,
-          color: 'var(--text-primary)',
-          fontVariantNumeric: 'tabular-nums',
-          lineHeight: 1.1,
-          // Keep short values (esp. the "Aug 2023" date) on one line instead
-          // of breaking at the space in the narrow mobile tiles.
-          whiteSpace: 'nowrap',
-        }}
-      >
-        {display}
-      </div>
-      {sublabel && (
-        <div
-          style={{
-            fontSize: '0.7rem',
-            color: 'var(--text-tertiary)',
-            fontFamily: 'var(--font-mono)',
-            marginTop: '-0.15rem',
-          }}
-        >
-          {sublabel}
-        </div>
-      )}
+      <TileLabel icon={icon} label={label} />
+      <div style={TILE_VALUE_STYLE}>{display}</div>
+      {sublabel && <div style={TILE_SUBLABEL_STYLE}>{sublabel}</div>}
     </>
   );
-
-  const baseStyle: React.CSSProperties = {
-    padding: '0.75rem 0.875rem',
-    background: 'var(--bg-secondary)',
-    border: '1px solid var(--border-medium)',
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '0.4rem',
-  };
 
   const titleAttr = interactive ? hint : undefined;
 
@@ -443,7 +405,7 @@ function StatTile({
         rel="noreferrer"
         title={titleAttr}
         style={{
-          ...baseStyle,
+          ...TILE_BASE_STYLE,
           color: 'inherit',
           textDecoration: 'none',
           transition: 'border-color 0.2s ease',
@@ -461,8 +423,239 @@ function StatTile({
   }
 
   return (
-    <div title={titleAttr} style={baseStyle}>
+    <div title={titleAttr} style={TILE_BASE_STYLE}>
       {body}
     </div>
   );
+}
+
+/** Shared tile chrome — the flat card container every stat tile sits in. */
+const TILE_BASE_STYLE: React.CSSProperties = {
+  padding: '0.75rem 0.875rem',
+  background: 'var(--bg-secondary)',
+  border: '1px solid var(--border-medium)',
+  display: 'flex',
+  flexDirection: 'column',
+  gap: '0.4rem',
+};
+
+/** The big serif value line (numbers, dates, sizes). */
+const TILE_VALUE_STYLE: React.CSSProperties = {
+  fontFamily: 'var(--font-serif)',
+  fontSize: '1.25rem',
+  fontWeight: 400,
+  color: 'var(--text-primary)',
+  fontVariantNumeric: 'tabular-nums',
+  lineHeight: 1.1,
+  // Keep short values (esp. the "Aug 2023" date) on one line instead of
+  // breaking at the space in the narrow mobile tiles.
+  whiteSpace: 'nowrap',
+};
+
+/** The small mono sublabel under the value (relative age, exact bytes). */
+const TILE_SUBLABEL_STYLE: React.CSSProperties = {
+  fontSize: '0.7rem',
+  color: 'var(--text-tertiary)',
+  fontFamily: 'var(--font-mono)',
+  marginTop: '-0.15rem',
+};
+
+/** The icon + small-caps label row shared by every tile. */
+function TileLabel({ icon, label }: { icon: React.ReactNode; label: string }) {
+  return (
+    <div
+      className="explore-small-caps"
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: '0.4rem',
+        color: 'var(--text-tertiary)',
+      }}
+    >
+      {/* inline-flex so the wrapper hugs the 16px glyph instead of inheriting
+          the inline SVG's descender space — otherwise the icon box is taller
+          than the icon and align-items:center pushes it optically above the
+          label text. */}
+      <span style={{ display: 'inline-flex', color: 'var(--text-accent)' }}>
+        {icon}
+      </span>
+      <span>{label}</span>
+    </div>
+  );
+}
+
+type RepoSizeState =
+  | { status: 'idle' }
+  | { status: 'loading'; bytes: number }
+  | { status: 'ready'; bytes: number }
+  | { status: 'error'; message: string };
+
+/**
+ * Repo-size tile — the one stat that isn't fetched on page load. Measuring it
+ * means downloading the account's entire repo export (com.atproto.sync.getRepo,
+ * a CAR file that can run to many MB), so it stays behind an explicit button.
+ * On click we resolve the PDS, stream the CAR, and count bytes as they arrive
+ * — the value ticks up live, then settles on the exact size.
+ *
+ * The in-flight download is tied to an AbortController so switching repos (or
+ * unmounting) cancels it instead of leaking the fetch and updating dead state.
+ * Non-interactive demo surfaces (the homepage strip) render the button as an
+ * inert preview so a marketing card never kicks off a multi-MB download.
+ */
+function RepoSizeTile({ did, interactive }: { did: string; interactive: boolean }) {
+  const [state, setState] = useState<RepoSizeState>({ status: 'idle' });
+  const abortRef = useRef<AbortController | null>(null);
+  // Throttle the live counter to ~one paint per 256 KB downloaded — a large
+  // CAR streams in thousands of small chunks and a setState per chunk would
+  // thrash. The final size still comes from the exact total getRepoSize returns.
+  const lastShownRef = useRef(0);
+
+  // Abort an in-flight download if the tile unmounts — the parent re-keys this
+  // component on `did`, so switching repos unmounts the old one and stops it
+  // pulling a multi-MB CAR (and updating dead state) mid-stream.
+  useEffect(() => () => abortRef.current?.abort(), []);
+
+  async function measure() {
+    if (state.status === 'loading') return;
+    const controller = new AbortController();
+    abortRef.current = controller;
+    lastShownRef.current = 0;
+    setState({ status: 'loading', bytes: 0 });
+    try {
+      const identity = await resolveIdentifier(did);
+      const bytes = await getRepoSize(identity.pds, identity.did, {
+        signal: controller.signal,
+        onProgress: (b) => {
+          if (controller.signal.aborted) return;
+          if (b - lastShownRef.current >= 262_144) {
+            lastShownRef.current = b;
+            setState({ status: 'loading', bytes: b });
+          }
+        },
+      });
+      if (!controller.signal.aborted) setState({ status: 'ready', bytes });
+    } catch (err) {
+      if (controller.signal.aborted) return;
+      setState({
+        status: 'error',
+        message: err instanceof Error ? err.message : String(err),
+      });
+    }
+  }
+
+  let content: React.ReactNode;
+  let titleAttr: string | undefined;
+  if (state.status === 'ready') {
+    content = (
+      <>
+        <div style={TILE_VALUE_STYLE}>{formatBytes(state.bytes)}</div>
+        <div style={TILE_SUBLABEL_STYLE}>{state.bytes.toLocaleString()} bytes</div>
+      </>
+    );
+    titleAttr = interactive ? 'Uncompressed size of the full repo CAR' : undefined;
+  } else if (state.status === 'loading') {
+    content = (
+      <>
+        <div style={TILE_VALUE_STYLE}>{formatBytes(state.bytes)}</div>
+        <div style={TILE_SUBLABEL_STYLE}>downloading CAR…</div>
+      </>
+    );
+  } else if (state.status === 'error') {
+    content = (
+      <>
+        <MeasureButton interactive={interactive} onClick={measure} label="Retry" />
+        <div style={TILE_SUBLABEL_STYLE}>couldn&rsquo;t measure</div>
+      </>
+    );
+    titleAttr = interactive ? `Couldn't measure repo: ${state.message}` : undefined;
+  } else {
+    content = <MeasureButton interactive={interactive} onClick={measure} />;
+    titleAttr = interactive
+      ? 'Downloads the full repo (com.atproto.sync.getRepo) to measure its CAR size'
+      : undefined;
+  }
+
+  return (
+    <div title={titleAttr} style={TILE_BASE_STYLE}>
+      <TileLabel icon={<HardDrive size={16} />} label="Repo size" />
+      {content}
+    </div>
+  );
+}
+
+/**
+ * The tap target that kicks off (or retries) a repo-size measurement. On
+ * non-interactive demo surfaces it renders as an inert, look-alike preview so
+ * a marketing card never triggers a real multi-MB download.
+ */
+function MeasureButton({
+  interactive,
+  onClick,
+  label = 'Measure',
+}: {
+  interactive: boolean;
+  onClick: () => void;
+  label?: string;
+}) {
+  const inner = (
+    <>
+      <Download size={13} aria-hidden />
+      {label}
+    </>
+  );
+  const style: React.CSSProperties = {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '0.35rem',
+    alignSelf: 'flex-start',
+    padding: '0.3rem 0.55rem',
+    background: 'transparent',
+    border: '1px solid var(--border-medium)',
+    color: 'var(--text-secondary)',
+    fontFamily: 'var(--font-serif)',
+    fontSize: '0.8rem',
+    lineHeight: 1.1,
+    cursor: interactive ? 'pointer' : 'default',
+    transition: 'border-color 0.2s ease, color 0.2s ease',
+  };
+
+  if (!interactive) {
+    return (
+      <span style={style} aria-hidden>
+        {inner}
+      </span>
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      style={style}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.borderColor = 'var(--text-accent)';
+        e.currentTarget.style.color = 'var(--text-primary)';
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.borderColor = 'var(--border-medium)';
+        e.currentTarget.style.color = 'var(--text-secondary)';
+      }}
+    >
+      {inner}
+    </button>
+  );
+}
+
+/**
+ * Human-readable byte size using binary units (1 KB = 1024 B), matching how
+ * PDS/repo tooling reports CAR sizes. Shows one decimal from MB up (two for
+ * GB) and drops the decimal for whole-ish KB so tiny repos stay tidy.
+ */
+function formatBytes(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  const kb = bytes / 1024;
+  if (kb < 1024) return `${kb.toFixed(kb < 10 ? 1 : 0)} KB`;
+  const mb = kb / 1024;
+  if (mb < 1024) return `${mb.toFixed(1)} MB`;
+  return `${(mb / 1024).toFixed(2)} GB`;
 }
