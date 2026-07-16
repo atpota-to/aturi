@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Pause, Play, FilePenLine, Trash2, X } from 'lucide-react';
+import { Pause, Play, FilePenLine, Trash2, X, Plus } from 'lucide-react';
 import { listRecordsPage, type AtRecord } from '@/utils/atproto/pdsClient';
 import {
   msUntilBudget,
@@ -246,6 +246,20 @@ function CollectionList({
     setDeleteError(null);
     loadPage(undefined);
   }, [loadPage]);
+
+  // If a delete empties the loaded set while the PDS still has more pages,
+  // pull the next page automatically instead of flashing a false "No records"
+  // / 0-count state when the collection isn't actually empty. The cursor sits
+  // at the end of what we've fetched, so deleting earlier rows never
+  // invalidates it. Guarded on `!error` so a failed fetch doesn't spin here,
+  // and on `cursor` so it stays dormant during the initial load (cursor is
+  // still undefined then — that first page is the other effect's job).
+  useEffect(() => {
+    if (loading || error) return;
+    if (records.length > 0 || done) return;
+    if (cursor === undefined) return;
+    loadPage(cursor);
+  }, [records.length, loading, error, done, cursor, loadPage]);
 
   // Live mode: jetstream subscription filtered to this collection+DID. New
   // commits are prepended to the list (capped to a sensible window).
@@ -624,8 +638,33 @@ function CollectionList({
             {live ? <Pause size={12} /> : <Play size={12} />}
             {live ? 'Live' : 'Go live'}
           </button>
+          {!done && records.length > 0 && (
+            <button
+              type="button"
+              onClick={() => loadPage(cursor)}
+              disabled={loading}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.4rem',
+                padding: '0.4rem 0.75rem',
+                background: 'var(--bg-tertiary)',
+                color: 'var(--text-secondary)',
+                border: '1px solid var(--border-medium)',
+                fontFamily: 'var(--font-serif)',
+                fontSize: '0.8125rem',
+                cursor: loading ? 'wait' : 'pointer',
+              }}
+              title={`Fetch the next ${RECORDS_PER_PAGE} records`}
+            >
+              <Plus size={12} />
+              {loading ? 'Loading…' : 'Load more'}
+            </button>
+          )}
           <span style={{ color: 'var(--text-tertiary)', fontSize: '0.8125rem' }}>
-            {records.length} record{records.length === 1 ? '' : 's'}
+            {records.length === 0 && !done
+              ? 'Loading…'
+              : `${records.length} record${records.length === 1 ? '' : 's'}`}
           </span>
         </div>
 
@@ -791,10 +830,15 @@ function CollectionList({
 
       <AppearIn delay={0.1}>
       {error && <p className="explore-error">{error}</p>}
-      {records.length === 0 && !loading && !error && (
+      {/* Only claim the collection is empty once we've actually exhausted it
+          (done). While records is empty but more pages remain — the initial
+          load, or the gap after a delete clears the page before the auto-fetch
+          refills it — keep showing "Loading" so we never flash a false empty
+          state. */}
+      {records.length === 0 && done && !error && (
         <p className="explore-placeholder">No records in this collection.</p>
       )}
-      {loading && records.length === 0 && (
+      {records.length === 0 && !done && !error && (
         <p className="explore-placeholder">Loading records…</p>
       )}
 
@@ -938,30 +982,6 @@ function CollectionList({
           );
         })}
       </ul>
-
-      {!done && records.length > 0 && (
-        <button
-          type="button"
-          onClick={() => loadPage(cursor)}
-          disabled={loading}
-          style={{
-            alignSelf: 'flex-start',
-            // The records list and this button live as siblings inside
-            // the same AppearIn (not a flex container), so they don't get
-            // the outer column gap. Push the button down explicitly.
-            marginTop: '1rem',
-            padding: '0.5rem 1rem',
-            background: 'var(--bg-tertiary)',
-            border: '1px solid var(--border-medium)',
-            color: 'var(--text-primary)',
-            fontFamily: 'var(--font-serif)',
-            fontSize: '0.875rem',
-            cursor: loading ? 'wait' : 'pointer',
-          }}
-        >
-          {loading ? 'Loading…' : 'Load more'}
-        </button>
-      )}
       </AppearIn>
     </div>
   );
