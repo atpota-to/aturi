@@ -118,15 +118,22 @@ function rateLimitResetMinutes(err: unknown): number | null {
 const NAV_OFFSET_PX = 96;
 const REVEAL_HYSTERESIS_PX = 72;
 
-// Row layout: the rkey column hugs its content but is capped at 30ch, past
+// Row layout. The whole list is one CSS grid so the rkey and data-preview
+// columns line up across every row: the <ul> defines the columns and each row
+// re-adopts them with `grid-template-columns: subgrid`. The rkey track hugs its
+// content but is capped at 30ch — a shared column is only as wide as its widest
+// member, so this bounds how far one long rkey can push every preview in — past
 // which a long rkey wraps onto a second line (see the <code> wrap rule below)
-// rather than shoving the data preview off-screen. Sizing to content is the
-// point — a fixed `minmax(_, 30ch)` always *reserves* its 30ch max (grid grows
-// fixed tracks to their limit and skips the flexible `1fr`), which on a narrow
-// phone viewport left the preview squeezed into a sliver on the right. With
-// fit-content the short rkeys that are the common case take only what they need
-// and the preview's `1fr` claims the rest of the row.
+// rather than shoving the preview off-screen; the `1fr` preview takes the rest.
+//
+// Sizing to content is the point: a fixed `minmax(_, 30ch)` always *reserves*
+// its 30ch max (grid grows fixed tracks to their limit and skips the flexible
+// `1fr`), which on a narrow phone viewport left the preview squeezed into a
+// sliver on the right. Selection mode prepends a checkbox, adding a leading
+// `auto` track.
 const RKEY_COLUMN = 'fit-content(30ch)';
+const listColumns = (editing: boolean) =>
+  editing ? `auto ${RKEY_COLUMN} 1fr` : `${RKEY_COLUMN} 1fr`;
 
 // Shared look for the quiet "Select all" / "Deselect all" buttons in the
 // bulk-edit toolbar — neutral chips that dim when their action is a no-op.
@@ -798,6 +805,11 @@ function CollectionList({
           padding: 0,
           border: records.length ? '1px solid var(--border-medium)' : 0,
           background: 'var(--bg-secondary)',
+          // One grid for the whole list so the rkey/preview columns align
+          // across rows; each row re-adopts these tracks via subgrid.
+          display: 'grid',
+          gridTemplateColumns: listColumns(editing),
+          columnGap: '1rem',
         }}
       >
         {records.map((rec) => {
@@ -856,7 +868,14 @@ function CollectionList({
           return (
             <li
               key={rec.uri}
-              style={{ borderBottom: '1px solid var(--border-subtle)' }}
+              style={{
+                // Span the full grid and hand the shared tracks down to the
+                // row's link/label, which lays out the actual cells.
+                gridColumn: '1 / -1',
+                display: 'grid',
+                gridTemplateColumns: 'subgrid',
+                borderBottom: '1px solid var(--border-subtle)',
+              }}
             >
               {editing ? (
                 // Selection mode: the row becomes a checkbox label so clicking
@@ -865,8 +884,8 @@ function CollectionList({
                 <label
                   style={{
                     display: 'grid',
-                    gridTemplateColumns: `auto ${RKEY_COLUMN} 1fr`,
-                    gap: '1rem',
+                    gridColumn: '1 / -1',
+                    gridTemplateColumns: 'subgrid',
                     alignItems: 'center',
                     padding: '0.625rem 1rem',
                     fontFamily: 'var(--font-mono)',
@@ -896,8 +915,8 @@ function CollectionList({
                   href={`/explore/${repoSeg}/${collection}/${encodeURIComponent(rkey)}`}
                   style={{
                     display: 'grid',
-                    gridTemplateColumns: `${RKEY_COLUMN} 1fr`,
-                    gap: '1rem',
+                    gridColumn: '1 / -1',
+                    gridTemplateColumns: 'subgrid',
                     padding: '0.625rem 1rem',
                     fontFamily: 'var(--font-mono)',
                     fontSize: '0.85rem',
