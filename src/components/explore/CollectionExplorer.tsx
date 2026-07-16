@@ -77,6 +77,18 @@ export default function CollectionExplorer({ repo, collection }: Props) {
 // as many records as possible per fetch.
 const RECORDS_PER_PAGE = 100;
 
+// Keep the record-count stat compact once a repo has paged in a lot of rows:
+// 1000 -> "1k", 1400 -> "1.4k", 12300 -> "12.3k", 1_000_000 -> "1m". Counts
+// under 1k render verbatim. Lowercased to sit with the explorer's quiet,
+// terminal-flavoured typography.
+const compactCountFormatter = new Intl.NumberFormat('en-US', {
+  notation: 'compact',
+  maximumFractionDigits: 1,
+});
+function formatCount(n: number): string {
+  return n < 1000 ? String(n) : compactCountFormatter.format(n).toLowerCase();
+}
+
 // com.atproto.repo.applyWrites caps a batch at 200 operations (lexicon
 // maxLength), so a larger selection is split into chunks. Each chunk lands as
 // one atomic repo commit instead of one commit per record.
@@ -636,7 +648,7 @@ function CollectionList({
             title={live ? 'Pause live stream' : 'Stream new records as they arrive'}
           >
             {live ? <Pause size={12} /> : <Play size={12} />}
-            {live ? 'Live' : 'Go live'}
+            Live
           </button>
           {!done && records.length > 0 && (
             <button
@@ -658,13 +670,13 @@ function CollectionList({
               title={`Fetch the next ${RECORDS_PER_PAGE} records`}
             >
               <Plus size={12} />
-              {loading ? 'Loading…' : 'Load more'}
+              {loading ? 'Fetching…' : 'Fetch'}
             </button>
           )}
           <span style={{ color: 'var(--text-tertiary)', fontSize: '0.8125rem' }}>
             {records.length === 0 && !done
               ? 'Loading…'
-              : `${records.length} record${records.length === 1 ? '' : 's'}`}
+              : `${formatCount(records.length)} record${records.length === 1 ? '' : 's'}`}
           </span>
         </div>
 
