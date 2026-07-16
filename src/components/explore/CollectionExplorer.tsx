@@ -673,7 +673,17 @@ function CollectionList({
               {loading ? 'Fetching…' : 'Fetch'}
             </button>
           )}
-          <span style={{ color: 'var(--text-tertiary)', fontSize: '0.8125rem' }}>
+          <span
+            style={{
+              color: 'var(--text-tertiary)',
+              fontSize: '0.8125rem',
+              // Pin the count to the right edge so the Fetch→Fetching… width
+              // change is absorbed by the flexible gap on its left instead of
+              // shoving the count sideways on every tap.
+              marginLeft: 'auto',
+              whiteSpace: 'nowrap',
+            }}
+          >
             {records.length === 0 && !done
               ? 'Loading…'
               : `${formatCount(records.length)} record${records.length === 1 ? '' : 's'}`}
