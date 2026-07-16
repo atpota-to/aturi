@@ -118,6 +118,16 @@ function rateLimitResetMinutes(err: unknown): number | null {
 const NAV_OFFSET_PX = 96;
 const REVEAL_HYSTERESIS_PX = 72;
 
+// Row layout: the rkey column hugs its content but is capped at 30ch, past
+// which a long rkey wraps onto a second line (see the <code> wrap rule below)
+// rather than shoving the data preview off-screen. Sizing to content is the
+// point — a fixed `minmax(_, 30ch)` always *reserves* its 30ch max (grid grows
+// fixed tracks to their limit and skips the flexible `1fr`), which on a narrow
+// phone viewport left the preview squeezed into a sliver on the right. With
+// fit-content the short rkeys that are the common case take only what they need
+// and the preview's `1fr` claims the rest of the row.
+const RKEY_COLUMN = 'fit-content(30ch)';
+
 // Shared look for the quiet "Select all" / "Deselect all" buttons in the
 // bulk-edit toolbar — neutral chips that dim when their action is a no-op.
 function selectionButtonStyle(disabled: boolean): CSSProperties {
@@ -855,7 +865,7 @@ function CollectionList({
                 <label
                   style={{
                     display: 'grid',
-                    gridTemplateColumns: 'auto minmax(10ch, 30ch) 1fr',
+                    gridTemplateColumns: `auto ${RKEY_COLUMN} 1fr`,
                     gap: '1rem',
                     alignItems: 'center',
                     padding: '0.625rem 1rem',
@@ -886,7 +896,7 @@ function CollectionList({
                   href={`/explore/${repoSeg}/${collection}/${encodeURIComponent(rkey)}`}
                   style={{
                     display: 'grid',
-                    gridTemplateColumns: 'minmax(10ch, 30ch) 1fr',
+                    gridTemplateColumns: `${RKEY_COLUMN} 1fr`,
                     gap: '1rem',
                     padding: '0.625rem 1rem',
                     fontFamily: 'var(--font-mono)',
