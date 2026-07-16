@@ -300,6 +300,7 @@ export default function RecordExplorer({ repo, collection, rkey }: Props) {
             collection={collection}
             handle={identity.handle || identity.did}
             rkey={decodedRkey}
+            pds={identity.pds}
             hideExplorerCtas
           />
         )}
