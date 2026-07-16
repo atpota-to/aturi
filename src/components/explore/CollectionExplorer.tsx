@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Pause, Play, FilePenLine, Trash2, X, Plus } from 'lucide-react';
+import { Pause, Play, FilePenLine, Trash2, X, Plus, Loader2 } from 'lucide-react';
 import { listRecordsPage, type AtRecord } from '@/utils/atproto/pdsClient';
 import {
   msUntilBudget,
@@ -669,8 +669,15 @@ function CollectionList({
               }}
               title={`Fetch the next ${RECORDS_PER_PAGE} records`}
             >
-              <Plus size={12} />
-              {loading ? 'Fetching…' : 'Fetch'}
+              {/* Keep the label fixed at "Fetch" and only swap the icon for a
+                  spinner while loading — both icons are 12px, so the button
+                  never changes width when tapped. */}
+              {loading ? (
+                <Loader2 size={12} className="explore-spin" />
+              ) : (
+                <Plus size={12} />
+              )}
+              Fetch
             </button>
           )}
           <span
