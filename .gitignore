@@ -10,3 +10,6 @@ dist/
 
 # Development documentation (internal use only)
 dev-docs/
+
+# TypeScript incremental build info (build artifact)
+tsconfig.tsbuildinfo

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Save, X } from 'lucide-react';
 import {
   newCustomWaypointId,
@@ -46,18 +46,6 @@ export default function CustomWaypointForm({ initial, onSave, onCancel }: Props)
     initial?.templates || {},
   );
   const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    // Make sure each enabled type has a template field present (even if
-    // empty) so users can fill them in. Don't clobber existing values.
-    setTemplates((prev) => {
-      const next = { ...prev };
-      for (const t of types) {
-        if (!(t in next)) next[t] = '';
-      }
-      return next;
-    });
-  }, [types]);
 
   const canSubmit = useMemo(() => {
     if (!name.trim()) return false;

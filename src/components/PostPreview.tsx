@@ -7,11 +7,11 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { BskyPost } from '@/utils/recordFetcher';
+import { BskyPost, UnknownRecordValue } from '@/utils/recordFetcher';
 import { getEmbedImages, type EmbedDisplayImage } from '@/utils/postEmbeds';
 import { formatCount } from '@/utils/ufos/format';
 import { sanitizeFacetLink, sanitizeDid, sanitizeHashtag, sanitizeUrl, sanitizeHandle } from '@/utils/sanitize';
-import { User, MessageSquare, Repeat2, Heart, Quote, Play, CornerDownRight, Telescope, Globe } from 'lucide-react';
+import { User, MessageSquare, Repeat2, Heart, Quote, CornerDownRight, Telescope, Globe } from 'lucide-react';
 import { explorePathFromAtUri } from '@/utils/atproto/urls';
 
 type PostPreviewProps = {
@@ -139,8 +139,9 @@ export default function PostPreview({ post, parent, hideExplorerCtas }: PostPrev
   const validDate = !Number.isNaN(createdAt.getTime());
   const relativeDate = validDate ? formatRelativeTime(createdAt) : formattedDate;
 
-  // Render a quoted post card
-  const renderQuotedPost = (quotedPost: any) => {
+  // Quote embeds mix several view shapes (ViewRecord, ViewNotFound,
+  // ViewBlocked, nested re-quotes), so field access is dynamic by design.
+  const renderQuotedPost = (quotedPost: UnknownRecordValue) => {
     if (!quotedPost) return null;
 
     // Handle blocked/not found records
@@ -310,7 +311,7 @@ export default function PostPreview({ post, parent, hideExplorerCtas }: PostPrev
         )}
 
         {/* Quoted post embeds - render them properly */}
-        {qEmbeds.map((qEmbed: any, idx: number) => {
+        {qEmbeds.map((qEmbed: UnknownRecordValue, idx: number) => {
           // Images — classic images embed (1–4) or gallery embed (5+).
           const qImages = getEmbedImages(qEmbed);
           if (qImages) {
@@ -475,7 +476,8 @@ export default function PostPreview({ post, parent, hideExplorerCtas }: PostPrev
       return <p style={{ margin: 0, whiteSpace: 'pre-wrap' }}>{record.text}</p>;
     }
 
-    const segments: Array<{ text: string; facet?: any }> = [];
+    type FacetFeature = NonNullable<BskyPost['record']['facets']>[number]['features'][number];
+    const segments: Array<{ text: string; facet?: FacetFeature }> = [];
     let lastIndex = 0;
 
     // Sort facets by start index
@@ -770,9 +772,15 @@ export default function PostPreview({ post, parent, hideExplorerCtas }: PostPrev
               })()}
 
               {/* External link */}
-              {parent.embed.$type === 'app.bsky.embed.external#view' && parent.embed.external && (
+              {parent.embed.$type === 'app.bsky.embed.external#view' && parent.embed.external && (() => {
+                const parentExtUri = sanitizeUrl(parent.embed.external.uri);
+                const parentExtThumb = sanitizeUrl(parent.embed.external.thumb);
+
+                if (parentExtUri === '#') return null; // Skip invalid/unsafe URLs
+
+                return (
                 <a
-                  href={parent.embed.external.uri}
+                  href={parentExtUri}
                   target="_blank"
                   rel="noopener noreferrer"
                   onClick={(e) => e.stopPropagation()}
@@ -788,7 +796,7 @@ export default function PostPreview({ post, parent, hideExplorerCtas }: PostPrev
                 >
                   {parent.embed.external.thumb && (
                     <img
-                      src={parent.embed.external.thumb}
+                      src={parentExtThumb}
                       alt=""
                       style={{
                         width: '100%',
@@ -806,11 +814,18 @@ export default function PostPreview({ post, parent, hideExplorerCtas }: PostPrev
                       {parent.embed.external.title}
                     </div>
                     <div style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>
-                      {new URL(parent.embed.external.uri).hostname}
+                      {(() => {
+                        try {
+                          return new URL(parentExtUri).hostname;
+                        } catch {
+                          return '';
+                        }
+                      })()}
                     </div>
                   </div>
                 </a>
-              )}
+                );
+              })()}
 
               {/* Video */}
               {parent.embed.$type === 'app.bsky.embed.video#view' && parent.embed.playlist && (

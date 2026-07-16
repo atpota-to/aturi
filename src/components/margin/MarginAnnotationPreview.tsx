@@ -7,7 +7,7 @@
 
 import { useState } from 'react';
 import { GenericRecord } from '@/utils/recordFetcher';
-import { sanitizeHandle } from '@/utils/sanitize';
+import { sanitizeUrl } from '@/utils/sanitize';
 import { X, ExternalLink, Tag, Calendar } from 'lucide-react';
 
 type MarginAnnotationPreviewProps = {
@@ -23,7 +23,8 @@ type AnnotationRecord = {
     source: string;
     title?: string;
     sourceHash?: string;
-    selector?: any;
+    /** W3C-style text quote selector — margin records store the picked text here. */
+    selector?: { exact?: string; prefix?: string; suffix?: string };
   };
   body?: {
     value?: string;
@@ -41,7 +42,7 @@ export default function MarginAnnotationPreview({
   handle,
   rkey,
 }: MarginAnnotationPreviewProps) {
-  const { value, cid } = record;
+  const { value } = record;
   const annotation = value as AnnotationRecord;
   const [showJsonModal, setShowJsonModal] = useState(false);
 
@@ -122,7 +123,7 @@ export default function MarginAnnotationPreview({
 
           {/* Source URL */}
           <a
-            href={annotation.target.source}
+            href={sanitizeUrl(annotation.target.source)}
             target="_blank"
             rel="noopener noreferrer"
             style={{

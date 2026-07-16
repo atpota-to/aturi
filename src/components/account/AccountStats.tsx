@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   Activity,
   Boxes,
@@ -63,16 +63,26 @@ type Stats = {
  * measured on an explicit button press, never on load (see `RepoSizeTile`).
  */
 export default function AccountStats({ did, handle, interactive = true }: Props) {
-  const [stats, setStats] = useState<Stats | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [credBlue, setCredBlue] = useState<
-    { status: 'loading' } | { status: 'ready'; score: CredBlueScore | null }
-  >({ status: 'loading' });
+  // Both stats and the cred.blue score are keyed by their inputs, so when
+  // the account changes the derived values below reset on their own — no
+  // synchronous reset-setState inside the effects.
+  const [statsEntry, setStatsEntry] = useState<
+    { did: string; stats: Stats | null; error: string | null } | null
+  >(null);
+  const [credBlueEntry, setCredBlueEntry] = useState<
+    { id: string; score: CredBlueScore | null } | null
+  >(null);
+
+  const stats = statsEntry && statsEntry.did === did ? statsEntry.stats : null;
+  const error = statsEntry && statsEntry.did === did ? statsEntry.error : null;
+  const credBlueId = handle || did;
+  const credBlue: { status: 'loading' } | { status: 'ready'; score: CredBlueScore | null } =
+    credBlueEntry && credBlueEntry.id === credBlueId
+      ? { status: 'ready', score: credBlueEntry.score }
+      : { status: 'loading' };
 
   useEffect(() => {
     let cancelled = false;
-    setStats(null);
-    setError(null);
 
     (async () => {
       try {
@@ -121,17 +131,22 @@ export default function AccountStats({ did, handle, interactive = true }: Props)
             ? latestCommit.value.rev
             : null;
 
-        setStats({
-          namespaces: namespaces.size,
-          collections: collections.length,
-          auditOps: auditEntries ? auditEntries.length : null,
-          createdAt:
-            auditEntries && auditEntries.length > 0 ? auditEntries[0].createdAt : null,
-          backlinks,
-          headRev,
+        setStatsEntry({
+          did,
+          error: null,
+          stats: {
+            namespaces: namespaces.size,
+            collections: collections.length,
+            auditOps: auditEntries ? auditEntries.length : null,
+            createdAt:
+              auditEntries && auditEntries.length > 0 ? auditEntries[0].createdAt : null,
+            backlinks,
+            headRev,
+          },
         });
       } catch (err) {
-        if (!cancelled) setError(err instanceof Error ? err.message : String(err));
+        if (!cancelled)
+          setStatsEntry({ did, stats: null, error: err instanceof Error ? err.message : String(err) });
       }
     })();
 
@@ -142,40 +157,35 @@ export default function AccountStats({ did, handle, interactive = true }: Props)
 
   useEffect(() => {
     let cancelled = false;
-    setCredBlue({ status: 'loading' });
     const identifier = handle || did;
     fetchCachedCredBlueScore(identifier).then((score) => {
-      if (!cancelled) setCredBlue({ status: 'ready', score });
+      if (!cancelled) setCredBlueEntry({ id: identifier, score });
     });
     return () => {
       cancelled = true;
     };
   }, [handle, did]);
 
-  const createdLabel = useMemo(() => {
-    if (!stats?.createdAt) return null;
+  // Plain computation — the React Compiler memoizes these itself, and the
+  // manual useMemo wrappers made it bail ("could not preserve existing
+  // manual memoization") once `stats` became a derived value.
+  // Month + year only ("Aug 2023"). The tile is narrow in the 2-column
+  // mobile grid, and the relative age sublabel already carries the
+  // finer-grained "how long ago" — a full day-level date just wrapped.
+  let createdLabel: string | null = null;
+  let createdRelative: string | null = null;
+  if (stats?.createdAt) {
     try {
       const d = new Date(stats.createdAt);
-      // Month + year only ("Aug 2023"). The tile is narrow in the 2-column
-      // mobile grid, and the relative age sublabel already carries the
-      // finer-grained "how long ago" — a full day-level date just wrapped.
-      return d.toLocaleDateString(undefined, {
+      createdLabel = d.toLocaleDateString(undefined, {
         year: 'numeric',
         month: 'short',
       });
+      createdRelative = relativeAge(d);
     } catch {
-      return null;
+      // Unparseable timestamp — leave both labels empty.
     }
-  }, [stats?.createdAt]);
-
-  const createdRelative = useMemo(() => {
-    if (!stats?.createdAt) return null;
-    try {
-      return relativeAge(new Date(stats.createdAt));
-    } catch {
-      return null;
-    }
-  }, [stats?.createdAt]);
+  }
 
   // Decode the head commit rev (a TID) into the account's last-active time.
   // Cheap pure call; no memo needed (and avoids the compiler bail the other

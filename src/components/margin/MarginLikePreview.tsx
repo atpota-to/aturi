@@ -31,7 +31,7 @@ export default function MarginLikePreview({
   handle,
   rkey,
 }: MarginLikePreviewProps) {
-  const { value, cid } = record;
+  const { value } = record;
   const like = value as LikeRecord;
   const [showJsonModal, setShowJsonModal] = useState(false);
 

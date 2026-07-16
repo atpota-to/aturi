@@ -37,7 +37,7 @@ export default function MarginReplyPreview({
   handle,
   rkey,
 }: MarginReplyPreviewProps) {
-  const { value, cid } = record;
+  const { value } = record;
   const reply = value as ReplyRecord;
   const [showJsonModal, setShowJsonModal] = useState(false);
 

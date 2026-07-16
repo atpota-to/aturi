@@ -27,7 +27,7 @@ type ParsedTarget = {
  *  - at://{did}/app.bsky.feed.post/{rkey}
  */
 function parseTarget(input: string): ParsedTarget | null {
-  let raw = input.trim();
+  const raw = input.trim();
   if (!raw) return null;
 
   if (raw.startsWith('at://')) {

@@ -9,6 +9,16 @@
 
 import { resolvePdsEndpoint } from './didResolver';
 import { getRecord as pdsGetRecord } from './atproto/pdsClient';
+import { upstreamFetch, logUpstreamHttpError } from './upstreamFetch';
+
+/**
+ * Arbitrary record JSON from any lexicon. Unchecked field access is the
+ * point: preview components render whatever shape the record actually has,
+ * so a structural type here would just be a lie that forces casts at every
+ * call site.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type UnknownRecordValue = Record<string, any>;
 
 export type BskyPost = {
   uri: string;
@@ -38,14 +48,14 @@ export type BskyPost = {
       $type: string;
       images?: Array<{
         alt: string;
-        image: any;
+        image: unknown;
         aspectRatio?: { width: number; height: number };
       }>;
       external?: {
         uri: string;
         title: string;
         description: string;
-        thumb?: any;
+        thumb?: unknown;
       };
     };
     facets?: Array<{
@@ -92,9 +102,9 @@ export type BskyPost = {
         displayName?: string;
         avatar?: string;
       };
-      value?: any;
-      record?: any;
-      embeds?: any[];
+      value?: UnknownRecordValue;
+      record?: UnknownRecordValue;
+      embeds?: UnknownRecordValue[];
       notFound?: boolean;
       blocked?: boolean;
     };
@@ -148,7 +158,7 @@ export type PostThread = {
 export type GenericRecord = {
   uri: string;
   cid?: string;
-  value: Record<string, any>;
+  value: UnknownRecordValue;
 };
 
 /**
@@ -182,9 +192,9 @@ export async function fetchRecord(
     const publicUrl = `https://public.api.bsky.app/xrpc/com.atproto.repo.getRecord?repo=${encodeURIComponent(
       repo
     )}&collection=${encodeURIComponent(collection)}&rkey=${encodeURIComponent(rkey)}`;
-    const response = await fetch(publicUrl);
+    const response = await upstreamFetch(publicUrl);
     if (!response.ok) {
-      console.error(`Failed to fetch record: HTTP ${response.status}`);
+      logUpstreamHttpError('Failed to fetch record', response);
       return null;
     }
     return (await response.json()) as GenericRecord;
@@ -205,9 +215,9 @@ export async function fetchPostThread(postUri: string): Promise<PostThread | nul
       postUri
     )}&depth=0&parentHeight=1`;
 
-    const response = await fetch(url);
+    const response = await upstreamFetch(url);
     if (!response.ok) {
-      console.error(`Failed to fetch post thread: HTTP ${response.status}`);
+      logUpstreamHttpError('Failed to fetch post thread', response);
       return null;
     }
 

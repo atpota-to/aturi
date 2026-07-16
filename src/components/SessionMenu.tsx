@@ -28,7 +28,10 @@ export default function SessionMenu({ variant = 'inline' }: { variant?: Variant 
   const [pendingAccount, setPendingAccount] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [profile, setProfile] = useState<AppViewProfile | null>(null);
+  // Keyed by DID so switching accounts derives back to null on its own —
+  // no reset-setState in the effect, and no stale avatar flash.
+  const [profileEntry, setProfileEntry] = useState<{ did: string; profile: AppViewProfile | null } | null>(null);
+  const profile = did && profileEntry && profileEntry.did === did ? profileEntry.profile : null;
   const rootRef = useRef<HTMLDivElement>(null);
 
   function closePopover() {
@@ -53,13 +56,10 @@ export default function SessionMenu({ variant = 'inline' }: { variant?: Variant 
 
   // Lazy-load profile so the menu can show avatar + display name.
   useEffect(() => {
-    if (!did) {
-      setProfile(null);
-      return undefined;
-    }
+    if (!did) return undefined;
     let cancelled = false;
     getProfile(did).then((p) => {
-      if (!cancelled) setProfile(p);
+      if (!cancelled) setProfileEntry({ did, profile: p });
     });
     return () => {
       cancelled = true;

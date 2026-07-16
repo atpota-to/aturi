@@ -1,12 +1,11 @@
 'use client';
 
-import { useEffect, useState } from 'react';
 import { Chrome, Download } from 'lucide-react';
 import {
   BROWSER_LABELS,
   EXTENSION_URLS,
   SUPPORTED_BROWSERS,
-  detectBrowser,
+  useDetectedBrowser,
   type Browser,
 } from '@/utils/browserDetect';
 
@@ -39,11 +38,7 @@ export default function DownloadButton({
   align = 'center',
   label: labelOverride,
 }: Props) {
-  const [browser, setBrowser] = useState<Browser | null>(null);
-
-  useEffect(() => {
-    setBrowser(detectBrowser());
-  }, []);
+  const browser = useDetectedBrowser();
 
   const detected: Browser = browser ?? 'chrome';
   const isSupported = SUPPORTED_BROWSERS.includes(detected);
@@ -159,11 +154,7 @@ export function BrowserFallbackList({
 }: {
   justify?: 'start' | 'center';
 } = {}) {
-  const [browser, setBrowser] = useState<Browser | null>(null);
-
-  useEffect(() => {
-    setBrowser(detectBrowser());
-  }, []);
+  const browser = useDetectedBrowser();
 
   const detected: Browser = browser ?? 'chrome';
   const isSupported = SUPPORTED_BROWSERS.includes(detected);

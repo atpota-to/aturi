@@ -140,7 +140,9 @@ function ExploreVisual() {
           style={{ display: 'flex', alignItems: 'center', gap: '14px' }}
         >
           {i > 0 && (
-            <span style={{ color: OG_COLORS.textTertiary, display: 'flex' }}>›</span>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={OG_COLORS.textTertiary} strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" xmlns="http://www.w3.org/2000/svg">
+              <polyline points="9 5 16 12 9 19" />
+            </svg>
           )}
           <span
             style={{
@@ -244,7 +246,9 @@ function ExtensionVisual() {
             gap: '6px',
           }}
         >
-          <span style={{ display: 'flex' }}>★</span>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill={OG_COLORS.accent} xmlns="http://www.w3.org/2000/svg">
+            <path d="M12 2l2.9 6.26L21.5 9.27l-5 4.6 1.4 6.86L12 17.5l-5.9 3.23 1.4-6.86-5-4.6 6.6-1.01L12 2z" />
+          </svg>
           <span style={{ display: 'flex' }}>Recommended for posts</span>
         </div>
         <RowChip name="Anisota" desc="View post on anisota.net" icon={<AnisotaIcon height={26} color={OG_COLORS.accent} />} featured />
@@ -301,7 +305,7 @@ export async function GET(request: NextRequest) {
     const allText =
       `${config.title} ${config.tagline} ${config.eyebrow} aturi.to ` +
       'Anisota Bluesky Leaflet Tangled Margin Deer Grain Recommended for posts ' +
-      'pds.atpota.to dame.is app.bsky.feed.post app.bsky.actor.profile self at:// › ★ ▾ ' +
+      'pds.atpota.to dame.is app.bsky.feed.post app.bsky.actor.profile self at:// ' +
       // The eyebrow is rendered uppercase via CSS; include the full alphabet
       // so the font subset has glyphs for the transformed text (see
       // OG_GLYPH_BASELINE).
@@ -349,6 +353,11 @@ export async function GET(request: NextRequest) {
             weight: 300,
           },
         ],
+        headers: {
+          // Cache for a day, not @vercel/og's immutable year — the card
+          // design changes with deploys.
+          'Cache-Control': 'public, max-age=86400, s-maxage=86400, stale-while-revalidate=604800',
+        },
       },
     );
   } catch (error) {

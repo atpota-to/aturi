@@ -8,6 +8,7 @@ import {
   TopRow,
 } from '@/lib/og-design';
 import { pdsHostname } from '@/utils/atproto/pdsServer';
+import { isBlockedFetchHost } from '@/utils/ssrfGuard';
 import type { ReactNode } from 'react';
 
 export const runtime = 'edge';
@@ -51,7 +52,12 @@ async function resolveRepo(repo: string, signal: AbortSignal): Promise<Resolved>
       docUrl = `https://plc.directory/${did}`;
     } else if (did.startsWith('did:web:')) {
       const host = did.slice('did:web:'.length).replace(/:/g, '/');
-      docUrl = `https://${host}/.well-known/did.json`;
+      // did:web host comes straight from the caller-supplied ?repo= param;
+      // reject loopback/private/internal targets so this can't be used to
+      // probe internal services via the OG renderer (SSRF).
+      if (!isBlockedFetchHost(host.split('/')[0])) {
+        docUrl = `https://${host}/.well-known/did.json`;
+      }
     }
 
     if (docUrl) {
@@ -338,6 +344,11 @@ export async function GET(request: NextRequest) {
         { name: 'Crimson Pro', data: crimsonData, weight: 300, style: 'normal' },
         { name: 'IBM Plex Mono', data: monoData, weight: 500, style: 'normal' },
       ],
+      headers: {
+        // Explore cards show live repo data — cache for an hour, not
+        // @vercel/og's immutable year.
+        'Cache-Control': 'public, max-age=3600, s-maxage=3600, stale-while-revalidate=86400',
+      },
     });
   } catch (error) {
     console.error('Error generating explore OG image:', error);

@@ -34,7 +34,10 @@ type SignInStep = 'idle' | 'handle' | 'scopes';
  */
 export default function SessionPanel({ onNavigate, onSignInActiveChange }: Props) {
   const { session, did, signIn, signOut, loading } = useAtprotoSession();
-  const [profile, setProfile] = useState<AppViewProfile | null>(null);
+  // Keyed by DID so switching accounts derives back to null on its own —
+  // no reset-setState in the effect, and no stale avatar flash.
+  const [profileEntry, setProfileEntry] = useState<{ did: string; profile: AppViewProfile | null } | null>(null);
+  const profile = did && profileEntry && profileEntry.did === did ? profileEntry.profile : null;
   const [signInStep, setSignInStep] = useState<SignInStep>('idle');
   const [signInValue, setSignInValue] = useState('');
   const [pendingAccount, setPendingAccount] = useState('');
@@ -50,13 +53,10 @@ export default function SessionPanel({ onNavigate, onSignInActiveChange }: Props
   }, [signInStep, onSignInActiveChange]);
 
   useEffect(() => {
-    if (!did) {
-      setProfile(null);
-      return undefined;
-    }
+    if (!did) return undefined;
     let cancelled = false;
     getProfile(did).then((p) => {
-      if (!cancelled) setProfile(p);
+      if (!cancelled) setProfileEntry({ did, profile: p });
     });
     return () => {
       cancelled = true;

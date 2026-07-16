@@ -1,3 +1,5 @@
+import { useSyncExternalStore } from 'react';
+
 export type Browser = 'chrome' | 'firefox' | 'safari' | 'edge' | 'other';
 
 export const BROWSER_LABELS: Record<Browser, string> = {
@@ -31,4 +33,16 @@ export function detectBrowser(): Browser {
   }
   if (ua.includes('Chrome/') || ua.includes('Chromium/')) return 'chrome';
   return 'other';
+}
+
+const emptySubscribe = () => () => {};
+
+/**
+ * SSR-safe browser detection for client components. Renders `null` on the
+ * server (callers fall back to a generic label), the real browser after
+ * hydration — without the setState-in-effect pattern that trips
+ * react-hooks/set-state-in-effect and forces a second render pass.
+ */
+export function useDetectedBrowser(): Browser | null {
+  return useSyncExternalStore(emptySubscribe, detectBrowser, () => null);
 }

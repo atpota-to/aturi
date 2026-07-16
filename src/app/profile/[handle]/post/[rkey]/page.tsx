@@ -11,6 +11,7 @@ import { parseURI, resolveHandle, getDisplayName } from '@/utils/uriParser';
 import { fetchRecordData } from '@/utils/recordFetcher';
 import { resolveDidToHandle } from '@/utils/didResolver';
 import { getPostOgImage } from '@/utils/postOgImage';
+import { serializeJsonLd } from '@/utils/sanitize';
 
 type Props = {
   params: Promise<{ handle: string; rkey: string }>;
@@ -39,10 +40,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     // Parse and fetch post data
     parseURI(handle, collection, rkey); // Validate URI format
     const recordData = await fetchRecordData(resolvedDid, collection, rkey);
-    const displayHandle = handle.startsWith('did:') 
-      ? await resolveDidToHandle(resolvedDid) || handle
-      : handle;
-    
+
     if (recordData && recordData.type === 'post' && recordData.data.thread[0]?.value.post) {
       const post = recordData.data.thread[0].value.post;
       const author = post.author;
@@ -244,7 +242,7 @@ async function PostContent({ handle, rkey }: { handle: string; rkey: string }) {
         {jsonLd && (
           <script
             type="application/ld+json"
-            dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+            dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }}
           />
         )}
 

@@ -7,6 +7,7 @@
 
 import { useState } from 'react';
 import { GenericRecord } from '@/utils/recordFetcher';
+import { sanitizeUrl } from '@/utils/sanitize';
 import { X, Highlighter, ExternalLink, Tag, Calendar } from 'lucide-react';
 
 type MarginHighlightPreviewProps = {
@@ -22,7 +23,8 @@ type HighlightRecord = {
     source: string;
     title?: string;
     sourceHash?: string;
-    selector?: any;
+    /** W3C-style text quote selector — margin records store the picked text here. */
+    selector?: { exact?: string; prefix?: string; suffix?: string };
   };
   color?: string;
   tags?: string[];
@@ -35,7 +37,7 @@ export default function MarginHighlightPreview({
   handle,
   rkey,
 }: MarginHighlightPreviewProps) {
-  const { value, cid } = record;
+  const { value } = record;
   const highlight = value as HighlightRecord;
   const [showJsonModal, setShowJsonModal] = useState(false);
 
@@ -117,7 +119,7 @@ export default function MarginHighlightPreview({
 
           {/* Source URL */}
           <a
-            href={highlight.target.source}
+            href={sanitizeUrl(highlight.target.source)}
             target="_blank"
             rel="noopener noreferrer"
             style={{

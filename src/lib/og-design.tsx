@@ -29,6 +29,24 @@ export const OG_COLORS = {
 const fontCache = new Map<string, ArrayBuffer>();
 
 /**
+ * Strip glyphs that break @vercel/og image generation from user-supplied
+ * text (display names, bios, post text).
+ *
+ * When the rendered text contains characters missing from the Crimson Pro
+ * subset, Satori asks Google Fonts for a dynamic fallback subset. For
+ * decorative symbols — arrows, stars, geometric shapes (U+2190–U+2BFF) —
+ * that request returns HTTP 400 and @vercel/og throws, failing the WHOLE
+ * image (observed in production for display names like "⊱⋅⊰⋆⟡─"). Letters
+ * in real scripts (CJK, Cyrillic, Arabic…) resolve fine via Noto fallbacks,
+ * so only the symbol blocks are stripped.
+ */
+export function sanitizeOgText(text: string): string {
+  return text
+    .replace(/[←-⯿]️?/g, '')
+    .replace(/ {2,}/g, ' ');
+}
+
+/**
  * Every ASCII letter + digit. Append this to a route's font-subset request
  * text so the subset always carries glyphs for CSS-transformed copy.
  *
@@ -381,19 +399,44 @@ export function UrlPill({ url, fontSize = 26 }: { url: string; fontSize?: number
  * mirroring the WaypointJumpVisual on the home page.
  */
 export function DropChevron({ color = OG_COLORS.accent }: { color?: string } = {}) {
+  // Inline SVG rather than the '▾' glyph: Crimson Pro has no glyph for it,
+  // which forces Satori into a Google Fonts dynamic-subset request that 400s
+  // and kills the whole image (seen in production on /api/og/static).
   return (
     <div
       style={{
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        color,
-        fontSize: '32px',
-        lineHeight: 1,
       }}
     >
-      ▾
+      <svg width="26" height="26" viewBox="0 0 24 24" fill={color} xmlns="http://www.w3.org/2000/svg">
+        <path d="M6 9l6 7 6-7z" />
+      </svg>
     </div>
+  );
+}
+
+/**
+ * Right arrow for "Open in …" CTAs. SVG for the same reason as DropChevron —
+ * a literal '→' has no Crimson Pro glyph and trips the dynamic-font 400.
+ */
+export function ArrowRight({ size = 22, color = 'currentColor' }: { size?: number; color?: string } = {}) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke={color}
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <line x1="4" y1="12" x2="20" y2="12" />
+      <polyline points="13 5 20 12 13 19" />
+    </svg>
   );
 }
 

@@ -1,3 +1,5 @@
+import { upstreamFetch } from './upstreamFetch';
+
 export type ParsedURI = {
   type: 'post' | 'profile' | 'list' | 'record' | 'unknown';
   uri: string;
@@ -76,7 +78,7 @@ export async function resolveHandle(handle: string): Promise<string | null> {
 
   try {
     const apiUrl = process.env.NEXT_PUBLIC_BSKY_API_URL || 'https://public.api.bsky.app';
-    const response = await fetch(
+    const response = await upstreamFetch(
       `${apiUrl}/xrpc/com.atproto.identity.resolveHandle?handle=${encodeURIComponent(handle)}`
     );
 

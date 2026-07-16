@@ -30,7 +30,7 @@ export default function MarginCollectionPreview({
   handle,
   rkey,
 }: MarginCollectionPreviewProps) {
-  const { value, cid } = record;
+  const { value } = record;
   const marginCollection = value as CollectionRecord;
   const [showJsonModal, setShowJsonModal] = useState(false);
 
