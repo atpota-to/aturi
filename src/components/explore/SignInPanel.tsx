@@ -2,9 +2,8 @@
 
 import { useState } from 'react';
 import { LogIn } from 'lucide-react';
-import { useAtprotoSession } from '@/components/AtprotoSessionProvider';
 import ScopeSelector from '@/components/oauth/ScopeSelector';
-import { rememberCurrentPathForReturn } from '@/lib/oauth/returnTo';
+import { useSignInFlow } from '@/components/oauth/useSignInFlow';
 
 /**
  * Compact sign-in form used inside the record view's action row. Accepts a
@@ -12,12 +11,9 @@ import { rememberCurrentPathForReturn } from '@/lib/oauth/returnTo';
  * flow that lets the user pick which permissions to grant.
  */
 export default function SignInPanel({ defaultInput }: { defaultInput?: string }) {
-  const { signIn } = useAtprotoSession();
   const [value, setValue] = useState(defaultInput || '');
-  const [step, setStep] = useState<'handle' | 'scopes'>('handle');
-  const [pendingAccount, setPendingAccount] = useState('');
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const { step, pendingAccount, busy, error, proceedToScopes, backToHandle, submitScopes } =
+    useSignInFlow();
 
   if (step === 'scopes') {
     return (
@@ -33,21 +29,8 @@ export default function SignInPanel({ defaultInput }: { defaultInput?: string })
           account={pendingAccount}
           busy={busy}
           error={error}
-          onBack={() => {
-            setStep('handle');
-            setError(null);
-          }}
-          onContinue={async (scopeString) => {
-            setBusy(true);
-            setError(null);
-            try {
-              rememberCurrentPathForReturn();
-              await signIn(pendingAccount, scopeString);
-            } catch (err) {
-              setBusy(false);
-              setError(err instanceof Error ? err.message : String(err));
-            }
-          }}
+          onBack={backToHandle}
+          onContinue={submitScopes}
         />
       </div>
     );
@@ -57,11 +40,7 @@ export default function SignInPanel({ defaultInput }: { defaultInput?: string })
     <form
       onSubmit={(e) => {
         e.preventDefault();
-        const v = value.trim();
-        if (!v) return;
-        setError(null);
-        setPendingAccount(v);
-        setStep('scopes');
+        proceedToScopes(value);
       }}
       style={{
         display: 'flex',

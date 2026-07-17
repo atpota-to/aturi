@@ -5,8 +5,8 @@ import Link from 'next/link';
 import { ChevronDown, LogIn, LogOut, Settings, Telescope, User } from 'lucide-react';
 import { useAtprotoSession } from './AtprotoSessionProvider';
 import ScopeSelector from './oauth/ScopeSelector';
-import { rememberCurrentPathForReturn } from '@/lib/oauth/returnTo';
-import { getProfile, type AppViewProfile } from '@/utils/atproto/appview';
+import { useSignInFlow } from './oauth/useSignInFlow';
+import { useSessionProfile } from './useSessionProfile';
 import { encodeRepo } from '@/utils/atproto/urls';
 
 type Variant = 'compact' | 'inline' | 'pill';
@@ -21,25 +21,17 @@ type Variant = 'compact' | 'inline' | 'pill';
  *   - 'pill'    — standalone (used in account-page header context)
  */
 export default function SessionMenu({ variant = 'inline' }: { variant?: Variant }) {
-  const { session, did, signIn, signOut, loading } = useAtprotoSession();
+  const { session, did, signOut, loading } = useAtprotoSession();
   const [open, setOpen] = useState(false);
   const [signInInput, setSignInInput] = useState('');
-  const [step, setStep] = useState<'handle' | 'scopes'>('handle');
-  const [pendingAccount, setPendingAccount] = useState('');
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  // Keyed by DID so switching accounts derives back to null on its own —
-  // no reset-setState in the effect, and no stale avatar flash.
-  const [profileEntry, setProfileEntry] = useState<{ did: string; profile: AppViewProfile | null } | null>(null);
-  const profile = did && profileEntry && profileEntry.did === did ? profileEntry.profile : null;
+  const { step, pendingAccount, busy, error, proceedToScopes, backToHandle, submitScopes, reset } =
+    useSignInFlow();
+  const profile = useSessionProfile(did);
   const rootRef = useRef<HTMLDivElement>(null);
 
   function closePopover() {
     setOpen(false);
-    setStep('handle');
-    setPendingAccount('');
-    setBusy(false);
-    setError(null);
+    reset();
   }
 
   // Close on outside click.
@@ -53,18 +45,6 @@ export default function SessionMenu({ variant = 'inline' }: { variant?: Variant 
     document.addEventListener('mousedown', onClick);
     return () => document.removeEventListener('mousedown', onClick);
   }, [open]);
-
-  // Lazy-load profile so the menu can show avatar + display name.
-  useEffect(() => {
-    if (!did) return undefined;
-    let cancelled = false;
-    getProfile(did).then((p) => {
-      if (!cancelled) setProfileEntry({ did, profile: p });
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [did]);
 
   if (loading) return null;
 
@@ -88,13 +68,7 @@ export default function SessionMenu({ variant = 'inline' }: { variant?: Variant 
             onChange={setSignInInput}
             busy={busy}
             error={error}
-            onSubmit={() => {
-              const v = signInInput.trim();
-              if (!v) return;
-              setError(null);
-              setPendingAccount(v);
-              setStep('scopes');
-            }}
+            onSubmit={() => proceedToScopes(signInInput)}
           />
         )}
         {open && step === 'scopes' && (
@@ -104,21 +78,8 @@ export default function SessionMenu({ variant = 'inline' }: { variant?: Variant 
                 account={pendingAccount}
                 busy={busy}
                 error={error}
-                onBack={() => {
-                  setStep('handle');
-                  setError(null);
-                }}
-                onContinue={async (scopeString) => {
-                  setBusy(true);
-                  setError(null);
-                  try {
-                    rememberCurrentPathForReturn();
-                    await signIn(pendingAccount, scopeString);
-                  } catch (err) {
-                    setBusy(false);
-                    setError(err instanceof Error ? err.message : String(err));
-                  }
-                }}
+                onBack={backToHandle}
+                onContinue={submitScopes}
               />
             </div>
           </div>
