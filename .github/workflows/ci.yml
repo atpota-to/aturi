@@ -31,19 +31,25 @@ jobs:
   extension:
     name: Extension (typecheck · test)
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: extension
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version-file: .nvmrc
           cache: npm
-          cache-dependency-path: extension/package-lock.json
+          cache-dependency-path: |
+            package-lock.json
+            extension/package-lock.json
+      # The extension shares source with the web app through the @aturi/* alias
+      # (../src/utils/**). Those files import root deps such as @atproto/api and
+      # react, so the extension typecheck needs the root packages installed too.
       - run: npm ci
+      - run: npm ci
+        working-directory: extension
       - run: npm run compile
+        working-directory: extension
       - run: npm test
+        working-directory: extension
 
   packages:
     name: Packages (sync guard · typecheck · test · build)
