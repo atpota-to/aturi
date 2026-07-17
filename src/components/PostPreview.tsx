@@ -1240,7 +1240,7 @@ export default function PostPreview({ post, parent, hideExplorerCtas }: PostPrev
           flexWrap: 'wrap',
           gap: '0.5rem 1.5rem',
           paddingTop: '1rem',
-          borderTop: '1px solid var(--border-color)',
+          borderTop: '1px solid var(--border-subtle)',
           fontSize: '0.875rem',
           color: 'var(--text-tertiary)',
           // Collapse inherited line-height so icons align to the text

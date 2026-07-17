@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { getWaypointsForType, type Waypoint } from '@/utils/waypoints';
+import { getWaypointsForType, getWaypointCount, type Waypoint } from '@/utils/waypoints';
 
 type Props = {
   handle: string;
@@ -82,7 +82,7 @@ export default function WaypointCarousel({ handle, did }: Props) {
           color: 'var(--text-secondary)',
         }}
       >
-        Open in any of 25+ Atmosphere clients
+        Open in any of {getWaypointCount()} Atmosphere clients
       </h3>
       <div
         style={{

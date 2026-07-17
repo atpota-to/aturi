@@ -387,7 +387,7 @@ function PinnedList({
               width: '100%',
               padding: '0.45rem 0.65rem',
               background: 'var(--bg-tertiary)',
-              border: `1px solid ${err ? 'var(--text-error, #b94a4a)' : 'var(--border-medium)'}`,
+              border: `1px solid ${err ? 'var(--danger)' : 'var(--border-medium)'}`,
               color: 'var(--text-primary)',
               fontFamily: 'var(--font-mono)',
               fontSize: '0.85rem',
@@ -467,7 +467,7 @@ function PinnedList({
           style={{
             margin: '0 0 0.5rem 0',
             fontSize: '0.75rem',
-            color: 'var(--text-error, #b94a4a)',
+            color: 'var(--danger)',
           }}
         >
           {err}
