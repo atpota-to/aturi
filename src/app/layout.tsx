@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Analytics } from "@vercel/analytics/next";
 import { AtprotoSessionProvider } from "@/components/AtprotoSessionProvider";
 import { PreferencesProvider } from "@/components/PreferencesProvider";
+import { KeyboardShortcutsProvider } from "@/components/KeyboardShortcutsProvider";
 import Footer from "@/components/Footer";
 import PageTransition from "@/components/PageTransition";
 import ThemeSync from "@/components/ThemeSync";
@@ -77,9 +78,11 @@ export default function RootLayout({
         <A11ySync />
         <AtprotoSessionProvider>
           <PreferencesProvider>
-            <PageTransition>
-              <main style={{ position: 'relative', zIndex: 1 }}>{children}</main>
-            </PageTransition>
+            <KeyboardShortcutsProvider>
+              <PageTransition>
+                <main style={{ position: 'relative', zIndex: 1 }}>{children}</main>
+              </PageTransition>
+            </KeyboardShortcutsProvider>
           </PreferencesProvider>
         </AtprotoSessionProvider>
         <Footer />
