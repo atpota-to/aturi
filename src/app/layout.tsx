@@ -14,7 +14,7 @@ import { getSiteUrl } from "@/lib/config";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "aturi.to — Tour the Atmosphere",
+  title: "aturi.to: Tour the Atmosphere",
   description: "Travel between clients with the browser extension, share universal Atmosphere links, and explore any account's PDS data.",
   // Use the deploy's actual origin (testing.aturi.to on staging, a preview
   // URL on Vercel previews) so OG image URLs resolve against THIS deploy
@@ -23,7 +23,7 @@ export const metadata: Metadata = {
   metadataBase: new URL(getSiteUrl()),
   manifest: '/site.webmanifest',
   openGraph: {
-    title: "aturi.to — Tour the Atmosphere",
+    title: "aturi.to: Tour the Atmosphere",
     description: "Travel between clients with the browser extension, share universal Atmosphere links, and explore any account's PDS data.",
     type: "website",
     images: [
@@ -31,13 +31,13 @@ export const metadata: Metadata = {
         url: '/og-images/aturi-home.png',
         width: 1200,
         height: 672,
-        alt: 'aturi.to — three tools for one Atmosphere',
+        alt: 'aturi.to: three tools for one Atmosphere',
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "aturi.to — Tour the Atmosphere",
+    title: "aturi.to: Tour the Atmosphere",
     description: "Travel between clients with the browser extension, share universal Atmosphere links, and explore any account's PDS data.",
     images: ['/og-images/aturi-home.png'],
   },

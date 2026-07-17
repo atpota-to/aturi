@@ -165,7 +165,7 @@ function SyncStatus({
     color = 'var(--text-accent)';
   } else {
     icon = <CircleAlert size={12} />;
-    label = 'Preference sync to PDS failed — local changes are saved.';
+    label = 'Preference sync to PDS failed. Local changes are saved.';
     color = 'var(--danger)';
   }
   return (
@@ -224,7 +224,7 @@ function SignInCard() {
       <div className="settings-card-head">
         <h2 className="settings-card-title">Sign in to sync</h2>
         <p className="settings-card-sub">
-          You can use Aturi without signing in — preferences save to this
+          You can use Aturi without signing in: preferences save to this
           browser. Sign in and they sync to your PDS so the same setup
           follows you across devices.
         </p>

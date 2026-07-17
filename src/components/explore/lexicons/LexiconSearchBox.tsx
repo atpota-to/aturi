@@ -127,7 +127,7 @@ export default function LexiconSearchBox() {
           type="text"
           autoComplete="off"
           spellCheck={false}
-          placeholder="search lexicons — e.g. app.bsky.feed.post, grain, smokesignal"
+          placeholder="search lexicons, e.g. app.bsky.feed.post, grain, smokesignal"
           value={value}
           onChange={(e) => {
             setValue(e.target.value);

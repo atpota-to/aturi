@@ -204,7 +204,7 @@ export default function CustomWaypointForm({ initial, onSave, onCancel }: Props)
       {Array.from(types).map((t) => (
         <Field
           key={t}
-          label={`URL template — ${TYPE_OPTIONS.find((o) => o.id === t)?.label}`}
+          label={`URL template: ${TYPE_OPTIONS.find((o) => o.id === t)?.label}`}
           hint={`Placeholders: {handle} · {did} · {actor} · {collection} · {rkey}`}
         >
           <input

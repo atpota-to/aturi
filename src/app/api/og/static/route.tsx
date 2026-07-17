@@ -53,7 +53,7 @@ function configFor(page: string): PageConfig {
         eyebrow: 'Universal links',
         title: 'One link, every\nAtmosphere client.',
         tagline:
-          'Share aturi.to/handle/collection/rkey with anyone — they pick where to open it, from a curated list of 25+ clients.',
+          'Share aturi.to/handle/collection/rkey with anyone; they pick where to open it, from a curated list of 25+ clients.',
         visual: <UniversalLinksVisual />,
       };
     case 'fork':
@@ -69,7 +69,7 @@ function configFor(page: string): PageConfig {
         eyebrow: 'Developer packages',
         title: 'Add Atmosphere\nlinks to your app.',
         tagline:
-          'Drop-in npm packages — a zero-dependency core and a headless React picker — for client links, recommendations, and AT-URI resolution.',
+          'Drop-in npm packages (a zero-dependency core and a headless React picker) for client links, recommendations, and AT-URI resolution.',
         visual: <HomeVisual />,
       };
     case 'home':

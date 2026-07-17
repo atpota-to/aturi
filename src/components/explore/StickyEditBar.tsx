@@ -60,7 +60,7 @@ function BarControls({ bar }: { bar: EditBarSnapshot }) {
             whiteSpace: 'nowrap',
           }}
         >
-          {bar.waitingSec != null ? `Paced — resuming in ${bar.waitingSec}s` : 'Deleting…'}
+          {bar.waitingSec != null ? `Paced, resuming in ${bar.waitingSec}s` : 'Deleting…'}
         </span>
         <DeleteProgressBar done={bar.progress.done} total={bar.progress.total} compact />
         <button

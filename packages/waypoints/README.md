@@ -1,6 +1,6 @@
 # @aturi.to/waypoints
 
-Aturi's curated catalog of Atmosphere (AT Protocol) clients — "waypoints" — plus
+Aturi's curated catalog of Atmosphere (AT Protocol) clients ("waypoints") plus
 the logic to turn an AT URI into per-client "Open in…" links, recommend the best
 client for a record type, and reverse-resolve a pasted URL back into an AT URI.
 
@@ -9,7 +9,7 @@ Ships ESM + CJS with full type definitions.
 
 For a drop-in React picker UI, see [`@aturi.to/waypoints-react`](../waypoints-react).
 
-> **Beta — early release.** This is a `0.x` package that hasn't been
+> **Beta: early release.** This is a `0.x` package that hasn't been
 > thoroughly tested in production yet. Expect rough edges, and possible
 > breaking changes between minor versions while the API settles. Bug reports
 > and feedback are very welcome at
@@ -48,20 +48,20 @@ const fromUrl = await resolveUrl('https://bsky.app/profile/alice.bsky.social/pos
   - `buildWaypointsForParsed(parsed, { did?, excludeSourceId? })`
   - `resolveAtUri(uri)`
   - `resolveUrl(url, { fetchHead?, resolveHandle? })`
-  - `resolveViaApi(input, { endpoint? })` — typed client for the hosted
+  - `resolveViaApi(input, { endpoint? })`: typed client for the hosted
     `aturi.to/api/resolve` endpoint.
 
 ### DID-only waypoints
 
 A handful of destinations (`pdsls`, `atptools`, `margin`, `grain`, `popfeed`)
 only produce useful URLs when a DID is known. They're filtered out unless a DID
-is available — pass one in, or supply a `resolveHandle` to `resolveUrl`.
+is available: pass one in, or supply a `resolveHandle` to `resolveUrl`.
 
 ### Hosted vs. local resolution
 
 `resolveUrl` matches URL patterns locally (no network). The optional `fetchHead`
 flag and `resolveViaApi` let you fall back to fetching the page and probing for a
-`<link href="at://…">` — useful for sites without a recognizable URL shape.
+`<link href="at://…">`, useful for sites without a recognizable URL shape.
 `resolveViaApi` is the right choice from a browser, where fetching arbitrary
 pages is blocked by CORS.
 

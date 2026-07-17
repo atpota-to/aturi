@@ -48,7 +48,7 @@ export default function SectionsTab() {
           <p className="settings-card-sub">
             Choose which sections appear on a record / Bluesky-post explorer
             page, and drag to reorder them. The rich JSON preview and raw JSON
-            are the two data views — at least one always stays on so the
+            are the two data views; at least one always stays on so the
             record is never blank.
           </p>
         </div>

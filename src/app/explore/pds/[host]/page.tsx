@@ -11,7 +11,7 @@ export async function generateMetadata({
   const { host } = await params;
   const decoded = decodeURIComponent(host);
   const title = `${decoded} · PDS · Atmosphere Explorer`;
-  const description = `Inspect the ${decoded} Personal Data Server — server metadata, available domains, and the repos it hosts.`;
+  const description = `Inspect the ${decoded} Personal Data Server: server metadata, available domains, and the repos it hosts.`;
   const ogPath = `/api/og/explore?host=${encodeURIComponent(decoded)}`;
   return {
     title,

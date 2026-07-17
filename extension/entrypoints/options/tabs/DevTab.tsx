@@ -95,7 +95,7 @@ export default function DevTab({ prefs, onChange }: Props) {
   function resetAll() {
     if (
       !confirm(
-        'Reset ALL preferences to defaults? This wipes custom waypoints, groups, recents, redirect favorites — everything. Are you sure?'
+        'Reset ALL preferences to defaults? This wipes everything: custom waypoints, groups, recents, and redirect favorites. Are you sure?'
       )
     ) {
       return;
@@ -112,7 +112,7 @@ export default function DevTab({ prefs, onChange }: Props) {
       <h1 className="options-h1">Dev</h1>
       <p className="options-lede">
         Tools for testing the popup, prefs migrations, and the new-waypoints
-        banner. Some actions wipe data — be deliberate.
+        banner. Some actions wipe data, so be deliberate.
       </p>
 
       <div className="options-card">
@@ -148,7 +148,7 @@ export default function DevTab({ prefs, onChange }: Props) {
             onChange={e => setForgetId(e.target.value)}
             aria-label="Waypoint to forget"
           >
-            <option value="">— pick a waypoint —</option>
+            <option value="">Pick a waypoint…</option>
             {forgetCandidates.map(id => (
               <option key={id} value={id}>
                 {id}

@@ -14,7 +14,7 @@ export const metadata: Metadata = {
         url: '/og-images/aturi-explore.png',
         width: 1200,
         height: 669,
-        alt: 'Atmosphere Explorer — lexicon trends',
+        alt: 'Atmosphere Explorer: lexicon trends',
       },
     ],
   },

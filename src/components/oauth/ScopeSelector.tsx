@@ -155,7 +155,7 @@ export default function ScopeSelector({
           lineHeight: 1.4,
         }}
       >
-        Reading records is always allowed — your repo is public.
+        Reading records is always allowed: your repo is public.
       </p>
 
       {error && (

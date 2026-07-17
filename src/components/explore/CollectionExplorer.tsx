@@ -395,7 +395,7 @@ function CollectionList({
       const deleted = targets.length - failed.size;
       if (rateLimitResetMin !== undefined) {
         const when = rateLimitResetMin
-          ? `Resets in ~${rateLimitResetMin} min — retry then.`
+          ? `Resets in ~${rateLimitResetMin} min. Retry then.`
           : 'Try again in a bit.';
         setDeleteError(
           `Hit your PDS's write rate limit after ${deleted} of ${targets.length}. ` +

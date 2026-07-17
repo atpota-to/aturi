@@ -195,8 +195,8 @@ export default function DefaultsTab({ prefs, onChange }: Props) {
             <div className="options-card-title">Remember last-used view</div>
             <div className="options-card-sub">
               {prefs.popupModeRemember
-                ? `On — after you switch between the Waypoints and Inspect views, the popup reopens to whichever you used last for the next ${prefs.popupModeRememberMinutes} minutes, then reverts to the default.`
-                : 'Off — every popup launch starts on the default view above.'}
+                ? `On: after you switch between the Waypoints and Inspect views, the popup reopens to whichever you used last for the next ${prefs.popupModeRememberMinutes} minutes, then reverts to the default.`
+                : 'Off: every popup launch starts on the default view above.'}
             </div>
           </div>
           <button
@@ -240,8 +240,8 @@ export default function DefaultsTab({ prefs, onChange }: Props) {
             <div className="options-card-title">Auto-redirect</div>
             <div className="options-card-sub">
               {prefs.autoRedirect
-                ? 'On — pick a favorite reader for each record family below.'
-                : 'Off — the popup still works, but nothing is redirected automatically.'}
+                ? 'On: pick a favorite reader for each record family below.'
+                : 'Off: the popup still works, but nothing is redirected automatically.'}
             </div>
           </div>
           <button
@@ -312,7 +312,7 @@ export default function DefaultsTab({ prefs, onChange }: Props) {
             <div className="options-card-sub">
               {prefs.smartRecommendations
                 ? 'The popup highlights a "Recommended" row tailored to the current record (e.g. Standard Site pages suggest Leaflet, Offprint, pckt).'
-                : 'Off — the popup only shows your defined groups in the order you set, with no extra recommendation row.'}
+                : 'Off: the popup only shows your defined groups in the order you set, with no extra recommendation row.'}
             </div>
           </div>
           <button
@@ -332,8 +332,8 @@ export default function DefaultsTab({ prefs, onChange }: Props) {
             <div className="options-card-title">Detect active apps</div>
             <div className="options-card-sub">
               {prefs.pdsRecordScan
-                ? "On — the popup quickly scans the target repo's collections and dims waypoints with no records found there (e.g. Tangled gets dimmed on a profile with no sh.tangled.* records). Active apps also rank higher in recommendations."
-                : 'Off — every waypoint renders the same way regardless of whether the target user has any records in its lexicons.'}
+                ? "On: the popup quickly scans the target repo's collections and dims waypoints with no records found there (e.g. Tangled gets dimmed on a profile with no sh.tangled.* records). Active apps also rank higher in recommendations."
+                : 'Off: every waypoint renders the same way regardless of whether the target user has any records in its lexicons.'}
             </div>
           </div>
           <button
@@ -353,8 +353,8 @@ export default function DefaultsTab({ prefs, onChange }: Props) {
             <div className="options-card-title">Auto-scan pages for AT URIs</div>
             <div className="options-card-sub">
               {prefs.passiveScanEnabled
-                ? 'On — every page you visit is checked for AT URIs (in meta tags, head links, and anchors), and a count badge appears on the toolbar icon when any are found.'
-                : "Off — the toolbar icon stays neutral. The popup's Inspect tab still scans on demand when you open it."}
+                ? 'On: every page you visit is checked for AT URIs (in meta tags, head links, and anchors), and a count badge appears on the toolbar icon when any are found.'
+                : "Off: the toolbar icon stays neutral. The popup's Inspect tab still scans on demand when you open it."}
             </div>
           </div>
           <button
@@ -375,7 +375,7 @@ export default function DefaultsTab({ prefs, onChange }: Props) {
             <div className="options-card-sub">
               {prefs.openInNewTab
                 ? 'Picking a waypoint opens it in a new browser tab.'
-                : 'Off — picking a waypoint navigates the current tab instead of opening a new one.'}
+                : 'Off: picking a waypoint navigates the current tab instead of opening a new one.'}
             </div>
           </div>
           <button
@@ -395,8 +395,8 @@ export default function DefaultsTab({ prefs, onChange }: Props) {
             <div className="options-card-title">Compact mode</div>
             <div className="options-card-sub">
               {prefs.compactMode
-                ? 'On — the popup uses a denser layout with smaller icons and no description line, so more waypoints fit at once.'
-                : 'Off — the popup shows each waypoint with a larger icon and a secondary description line.'}
+                ? 'On: the popup uses a denser layout with smaller icons and no description line, so more waypoints fit at once.'
+                : 'Off: the popup shows each waypoint with a larger icon and a secondary description line.'}
             </div>
           </div>
           <button
@@ -416,8 +416,8 @@ export default function DefaultsTab({ prefs, onChange }: Props) {
             <div className="options-card-title">Recents</div>
             <div className="options-card-sub">
               {prefs.historyEnabled
-                ? 'On — the popup shows a Recents row at the top with the waypoints you reach for most often.'
-                : 'Off — the popup hides the Recents row and stops recording new picks.'}
+                ? 'On: the popup shows a Recents row at the top with the waypoints you reach for most often.'
+                : 'Off: the popup hides the Recents row and stops recording new picks.'}
             </div>
             {prefs.historyEnabled && prefs.recents.length > 0 && (
               <button

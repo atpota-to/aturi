@@ -30,7 +30,7 @@ export default function IdentityTab({ identity }: { identity: IdentityBundle }) 
   if (!isPlc) {
     return (
       <p className="explore-placeholder">
-        <code>{did}</code> isn&rsquo;t a <code>did:plc:</code> &mdash; PLC directory data isn&rsquo;t
+        <code>{did}</code> isn&rsquo;t a <code>did:plc:</code>. PLC directory data isn&rsquo;t
         available for this method.
       </p>
     );

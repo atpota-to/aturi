@@ -134,7 +134,7 @@ export default function WaypointGroupsManager() {
           }}
         >
           {groups.length === 0
-            ? 'No groups yet — create one to start surfacing waypoints.'
+            ? 'No groups yet. Create one to start surfacing waypoints.'
             : `${groups.length} ${groups.length === 1 ? 'group' : 'groups'} · ${totalVisible} visible${
                 hiddenCount > 0 ? ` · ${hiddenCount} hidden` : ''
               }`}

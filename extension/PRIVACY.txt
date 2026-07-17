@@ -77,7 +77,7 @@ the popup and Inspect tab locally.
         (the default): on each page load and SPA route change it runs the
         scan and reports only the *count* of AT URIs it found to the
         extension's own background worker, which drives the toolbar badge
-        and icon. No page content leaves the page — only a number. You can
+        and icon. No page content leaves the page, only a number. You can
         turn this off with the passive-scan toggle in the options page,
         after which the script stays idle until you ask for a scan.
 
@@ -114,7 +114,7 @@ service, whose own privacy policy applies.
     through the same Bluesky AppView. For did:plc:... identifiers it may
     fetch the DID document from the PLC directory (plc.directory), and for
     did:web:... identifiers it fetches the DID document from the
-    /.well-known/did.json endpoint of the host named in the DID — to
+    /.well-known/did.json endpoint of the host named in the DID, to
     discover the user's PDS host.
 
   - Inspect: repository description. To show a repo at a glance, the

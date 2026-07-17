@@ -21,7 +21,7 @@ export function buildPostMetadata(
   const authorByline = author.displayName
     ? `${author.displayName} (@${author.handle})`
     : `@${author.handle}`;
-  const pageTitle = `@${author.handle} on Bluesky — View on Aturi`;
+  const pageTitle = `@${author.handle} on Bluesky: View on Aturi`;
   const postText = post.record?.text || '';
   const description = postText || 'View this post in your preferred Atmosphere client';
   const avatarThumb = author.avatar

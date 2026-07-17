@@ -30,7 +30,7 @@ type Props = {
 export default function NotFoundPanel({
   eyebrow = '404 · Not found',
   headline = 'Lost in the Atmosphere.',
-  body = "The path you tried didn't resolve. Search for a handle, DID, or AT URI to keep looking — or head home.",
+  body = "The path you tried didn't resolve. Search for a handle, DID, or AT URI to keep looking, or head home.",
   initialQuery,
 }: Props) {
   return (

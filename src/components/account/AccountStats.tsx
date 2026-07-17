@@ -296,7 +296,7 @@ function CredBlueTile({
       <StatTile
         icon={icon}
         label={label}
-        hint="This account hasn't been scored yet on cred.blue — click to generate one."
+        hint="This account hasn't been scored yet on cred.blue. Click to generate one."
         href={href}
         valueLabel="—"
         sublabel="not scored yet"
