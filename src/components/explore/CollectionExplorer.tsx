@@ -1,31 +1,39 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
-import Link from 'next/link';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Pause, Play, FilePenLine, Trash2, X, Plus, Loader2 } from 'lucide-react';
+import { Pause, Play, FilePenLine, X, Plus, Loader2 } from 'lucide-react';
 import { listRecordsPage, type AtRecord } from '@/utils/atproto/pdsClient';
 import {
   msUntilBudget,
   recordSpend,
   pointsAvailable,
-  HOURLY_POINT_BUDGET,
 } from '@/utils/atproto/writeThrottle';
 import { encodeRepo, rkeyFromAtUri } from '@/utils/atproto/urls';
 import { resolveIdentifier, type IdentityBundle } from '@/utils/atproto/identity';
-import { previewFor } from '@/utils/atproto/previewExtractors';
-import { tidToDate, formatTidRelative } from '@/utils/atproto/tid';
 import {
   createJetstreamConnection,
   type JetstreamCommit,
 } from '@/utils/atproto/jetstream';
 import AppearIn from './AppearIn';
 import Breadcrumb from './Breadcrumb';
-import DeleteProgressBar from './DeleteProgressBar';
+import CollectionEditBar from './CollectionEditBar';
+import CollectionRecordRow from './CollectionRecordRow';
 import NotFoundPanel from '@/components/NotFoundPanel';
 import SignInPanel from './SignInPanel';
 import { useAtprotoSession } from '@/components/AtprotoSessionProvider';
 import { useEditBar } from './EditBarContext';
+import {
+  RECORDS_PER_PAGE,
+  APPLY_WRITES_MAX,
+  THROTTLE_TICK_MS,
+  NAV_OFFSET_PX,
+  REVEAL_HYSTERESIS_PX,
+  sleep,
+  listColumns,
+  formatCount,
+  rateLimitResetMinutes,
+} from './collectionListHelpers';
 
 type Props = {
   repo: string;
@@ -71,95 +79,6 @@ export default function CollectionExplorer({ repo, collection }: Props) {
   }
 
   return <CollectionList identity={identity} collection={collection} />;
-}
-
-// listRecords' XRPC max — request the full page on each call so users see
-// as many records as possible per fetch.
-const RECORDS_PER_PAGE = 100;
-
-// Keep the record-count stat compact once a repo has paged in a lot of rows:
-// 1000 -> "1k", 1400 -> "1.4k", 12300 -> "12.3k", 1_000_000 -> "1m". Counts
-// under 1k render verbatim. Lowercased to sit with the explorer's quiet,
-// terminal-flavoured typography.
-const compactCountFormatter = new Intl.NumberFormat('en-US', {
-  notation: 'compact',
-  maximumFractionDigits: 1,
-});
-function formatCount(n: number): string {
-  return n < 1000 ? String(n) : compactCountFormatter.format(n).toLowerCase();
-}
-
-// com.atproto.repo.applyWrites caps a batch at 200 operations (lexicon
-// maxLength), so a larger selection is split into chunks. Each chunk lands as
-// one atomic repo commit instead of one commit per record.
-const APPLY_WRITES_MAX = 200;
-
-// Deletes run one batch at a time. Throughput is dominated by the write-rate
-// throttle (below) once a selection is large, and sequential batches keep the
-// pacing accounting and the "resuming in Ns" countdown simple and exact.
-const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
-
-// While paused for the throttle, re-check the budget on this cadence so the
-// countdown ticks and a Stop press is picked up within a second.
-const THROTTLE_TICK_MS = 1000;
-
-// Pull minutes-until-reset out of a PDS 429 so the delete UI can say when the
-// write budget frees up. Bluesky sends `ratelimit-reset` as an absolute
-// unix-seconds timestamp; `retry-after` (seconds from now) is the fallback.
-// Returns null when neither header is present or parseable.
-function rateLimitResetMinutes(err: unknown): number | null {
-  const headers = (err as { headers?: Record<string, string | undefined> } | null)?.headers;
-  if (!headers) return null;
-  const reset = headers['ratelimit-reset'];
-  if (reset) {
-    const ms = Number(reset) * 1000 - Date.now();
-    if (Number.isFinite(ms) && ms > 0) return Math.max(1, Math.ceil(ms / 60000));
-  }
-  const retryAfter = headers['retry-after'];
-  if (retryAfter) {
-    const secs = Number(retryAfter);
-    if (Number.isFinite(secs) && secs > 0) return Math.max(1, Math.ceil(secs / 60));
-  }
-  return null;
-}
-
-// Reveal/retract thresholds for dropping the condensed edit bar into the nav,
-// matching the breadcrumb's behaviour: the top ~96px counts as occluded by the
-// sticky nav, and a dead band keeps the reveal from strobing at the boundary
-// (showing the bar grows the nav, which nudges the page back across the line).
-const NAV_OFFSET_PX = 96;
-const REVEAL_HYSTERESIS_PX = 72;
-
-// Row layout. The whole list is one CSS grid so the rkey and data-preview
-// columns line up across every row: the <ul> defines the columns and each row
-// re-adopts them with `grid-template-columns: subgrid`. The rkey track hugs its
-// content but is capped at 30ch — a shared column is only as wide as its widest
-// member, so this bounds how far one long rkey can push every preview in — past
-// which a long rkey wraps onto a second line (see the <code> wrap rule below)
-// rather than shoving the preview off-screen; the `1fr` preview takes the rest.
-//
-// Sizing to content is the point: a fixed `minmax(_, 30ch)` always *reserves*
-// its 30ch max (grid grows fixed tracks to their limit and skips the flexible
-// `1fr`), which on a narrow phone viewport left the preview squeezed into a
-// sliver on the right. Selection mode prepends a checkbox, adding a leading
-// `auto` track.
-const RKEY_COLUMN = 'fit-content(30ch)';
-const listColumns = (editing: boolean) =>
-  editing ? `auto ${RKEY_COLUMN} 1fr` : `${RKEY_COLUMN} 1fr`;
-
-// Shared look for the quiet "Select all" / "Deselect all" buttons in the
-// bulk-edit toolbar — neutral chips that dim when their action is a no-op.
-function selectionButtonStyle(disabled: boolean): CSSProperties {
-  return {
-    padding: '0.4rem 0.75rem',
-    background: 'var(--bg-tertiary)',
-    color: 'var(--text-secondary)',
-    border: '1px solid var(--border-medium)',
-    fontFamily: 'var(--font-serif)',
-    fontSize: '0.8125rem',
-    cursor: disabled ? 'not-allowed' : 'pointer',
-    opacity: disabled ? 0.5 : 1,
-  };
 }
 
 function CollectionList({
@@ -698,148 +617,23 @@ function CollectionList({
         </div>
 
         {editing && (
-          <div
-            ref={editBarRef}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5rem',
-              flexWrap: 'wrap',
-              padding: '0.625rem 0.75rem',
-              background: 'var(--bg-secondary)',
-              border: '1px solid var(--border-medium)',
-            }}
-          >
-            <button
-              type="button"
-              onClick={selectAll}
-              disabled={records.length === 0 || allSelected || deleting}
-              style={selectionButtonStyle(records.length === 0 || allSelected || deleting)}
-            >
-              Select
-            </button>
-            <button
-              type="button"
-              onClick={deselectAll}
-              disabled={selected.size === 0 || deleting}
-              style={selectionButtonStyle(selected.size === 0 || deleting)}
-            >
-              Deselect
-            </button>
-            <span
-              style={{
-                color: 'var(--text-tertiary)',
-                fontSize: '0.8125rem',
-                marginLeft: '0.25rem',
-              }}
-            >
-              {selected.size} selected
-            </span>
-            <span style={{ flex: 1 }} />
-            {!confirmingDelete ? (
-              <button
-                type="button"
-                onClick={requestDelete}
-                disabled={selected.size === 0}
-                aria-label={
-                  selected.size
-                    ? `Delete ${selected.size} selected record${selected.size === 1 ? '' : 's'}`
-                    : 'Delete selected records'
-                }
-                title={
-                  selected.size
-                    ? `Delete ${selected.size} selected record${selected.size === 1 ? '' : 's'}`
-                    : 'Delete selected records'
-                }
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  // Icon-only now, so square the horizontal padding up rather
-                  // than leaving the old icon+label width.
-                  padding: '0.4rem 0.6rem',
-                  background: 'var(--danger-soft)',
-                  color: 'var(--danger)',
-                  border: '1px solid var(--danger-border)',
-                  fontFamily: 'var(--font-serif)',
-                  fontSize: '0.8125rem',
-                  cursor: selected.size === 0 ? 'not-allowed' : 'pointer',
-                  opacity: selected.size === 0 ? 0.5 : 1,
-                }}
-              >
-                <Trash2 size={14} />
-              </button>
-            ) : deleting && deleteProgress ? (
-              <>
-                <span
-                  style={{
-                    fontSize: '0.8125rem',
-                    color: 'var(--text-secondary)',
-                    whiteSpace: 'nowrap',
-                  }}
-                >
-                  {deleteWaitSec != null
-                    ? `Paced under the rate limit — resuming in ${deleteWaitSec}s`
-                    : 'Deleting…'}
-                </span>
-                <DeleteProgressBar done={deleteProgress.done} total={deleteProgress.total} />
-                <button
-                  type="button"
-                  onClick={stopDelete}
-                  style={{
-                    padding: '0.4rem 0.75rem',
-                    background: 'transparent',
-                    color: 'var(--text-secondary)',
-                    border: '1px solid var(--border-medium)',
-                    fontFamily: 'var(--font-serif)',
-                    fontSize: '0.8125rem',
-                    cursor: 'pointer',
-                    whiteSpace: 'nowrap',
-                  }}
-                >
-                  Stop
-                </button>
-              </>
-            ) : (
-              <>
-                <span style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>
-                  Delete {selected.size} record{selected.size === 1 ? '' : 's'}? This cannot be
-                  undone.
-                  {willPace &&
-                    ` Aturi will pace this under Bluesky's ~${HOURLY_POINT_BUDGET.toLocaleString()}/hour write limit, so it may pause partway.`}
-                </span>
-                <button
-                  type="button"
-                  onClick={confirmDelete}
-                  style={{
-                    padding: '0.4rem 0.75rem',
-                    background: 'var(--danger)',
-                    color: 'var(--text-on-accent)',
-                    border: '1px solid var(--danger)',
-                    fontFamily: 'var(--font-serif)',
-                    fontSize: '0.8125rem',
-                    cursor: 'pointer',
-                  }}
-                >
-                  Confirm delete
-                </button>
-                <button
-                  type="button"
-                  onClick={cancelDelete}
-                  style={{
-                    padding: '0.4rem 0.75rem',
-                    background: 'transparent',
-                    color: 'var(--text-secondary)',
-                    border: '1px solid var(--border-medium)',
-                    fontFamily: 'var(--font-serif)',
-                    fontSize: '0.8125rem',
-                    cursor: 'pointer',
-                  }}
-                >
-                  Cancel
-                </button>
-              </>
-            )}
-          </div>
+          <CollectionEditBar
+            editBarRef={editBarRef}
+            recordsLength={records.length}
+            selectedSize={selected.size}
+            allSelected={allSelected}
+            deleting={deleting}
+            confirmingDelete={confirmingDelete}
+            deleteProgress={deleteProgress}
+            deleteWaitSec={deleteWaitSec}
+            willPace={willPace}
+            onSelectAll={selectAll}
+            onDeselectAll={deselectAll}
+            onRequestDelete={requestDelete}
+            onConfirmDelete={confirmDelete}
+            onCancelDelete={cancelDelete}
+            onStop={stopDelete}
+          />
         )}
         {signInOpen && !session && (
           <div
@@ -896,131 +690,17 @@ function CollectionList({
           columnGap: '1rem',
         }}
       >
-        {records.map((rec) => {
-          const rkey = rkeyFromAtUri(rec.uri) || '';
-          // TID-derived timestamps are decoded client-side from the rkey
-          // itself — no extra PDS call. Non-TID rkeys (custom strings,
-          // singletons like "self") return null and we just hide the chip.
-          const tidDate = tidToDate(rkey);
-          const isSelected = selected.has(rec.uri);
-          const rowInner = (
-            <>
-              <div style={{ minWidth: 0 }}>
-                <code
-                  style={{
-                    background: 'transparent',
-                    padding: 0,
-                    color: 'var(--text-primary)',
-                    display: 'block',
-                    // Long rkeys wrap within the column instead of being cut
-                    // off — the rkey is the record's identity, so losing the
-                    // tail to an ellipsis is worse than a two-line row.
-                    overflowWrap: 'anywhere',
-                    wordBreak: 'break-word',
-                  }}
-                >
-                  {rkey}
-                </code>
-                {tidDate && (
-                  <time
-                    dateTime={tidDate.toISOString()}
-                    title={tidDate.toISOString()}
-                    style={{
-                      display: 'block',
-                      marginTop: '0.125rem',
-                      fontSize: '0.7rem',
-                      color: 'var(--text-tertiary)',
-                      fontFamily: 'var(--font-mono)',
-                    }}
-                  >
-                    {formatTidRelative(tidDate)}
-                  </time>
-                )}
-              </div>
-              <span
-                style={{
-                  color: 'var(--text-tertiary)',
-                  whiteSpace: 'nowrap',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                }}
-              >
-                {previewFor(rec.value)}
-              </span>
-            </>
-          );
-          return (
-            <li
-              key={rec.uri}
-              style={{
-                // Span the full grid and hand the shared tracks down to the
-                // row's link/label, which lays out the actual cells.
-                gridColumn: '1 / -1',
-                display: 'grid',
-                gridTemplateColumns: 'subgrid',
-                borderBottom: '1px solid var(--border-subtle)',
-              }}
-            >
-              {editing ? (
-                // Selection mode: the row becomes a checkbox label so clicking
-                // anywhere toggles selection (native), and navigation is
-                // suppressed while the visitor is choosing what to delete.
-                <label
-                  style={{
-                    display: 'grid',
-                    gridColumn: '1 / -1',
-                    gridTemplateColumns: 'subgrid',
-                    alignItems: 'center',
-                    padding: '0.625rem 1rem',
-                    fontFamily: 'var(--font-mono)',
-                    fontSize: '0.85rem',
-                    color: 'var(--text-primary)',
-                    cursor: 'pointer',
-                    background: isSelected ? 'var(--bg-tertiary)' : 'transparent',
-                    transition: 'background 0.2s ease',
-                  }}
-                >
-                  <input
-                    type="checkbox"
-                    checked={isSelected}
-                    onChange={() => toggleSelect(rec.uri)}
-                    aria-label={`Select ${rkey}`}
-                    style={{
-                      width: '1rem',
-                      height: '1rem',
-                      cursor: 'pointer',
-                      accentColor: 'var(--accent-moss)',
-                    }}
-                  />
-                  {rowInner}
-                </label>
-              ) : (
-                <Link
-                  href={`/explore/${repoSeg}/${collection}/${encodeURIComponent(rkey)}`}
-                  style={{
-                    display: 'grid',
-                    gridColumn: '1 / -1',
-                    gridTemplateColumns: 'subgrid',
-                    padding: '0.625rem 1rem',
-                    fontFamily: 'var(--font-mono)',
-                    fontSize: '0.85rem',
-                    color: 'var(--text-primary)',
-                    textDecoration: 'none',
-                    transition: 'background 0.2s ease',
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = 'var(--bg-tertiary)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = 'transparent';
-                  }}
-                >
-                  {rowInner}
-                </Link>
-              )}
-            </li>
-          );
-        })}
+        {records.map((rec) => (
+          <CollectionRecordRow
+            key={rec.uri}
+            rec={rec}
+            editing={editing}
+            isSelected={selected.has(rec.uri)}
+            repoSeg={repoSeg}
+            collection={collection}
+            onToggleSelect={toggleSelect}
+          />
+        ))}
       </ul>
       </AppearIn>
     </div>
