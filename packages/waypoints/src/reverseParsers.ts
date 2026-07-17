@@ -1,6 +1,8 @@
 import type { ParsedURI } from './uriParser';
 
 export type SourceApp =
+  | 'aturi'
+  | 'aturiExplore'
   | 'bluesky'
   | 'bluepy'
   | 'blacksky'
@@ -564,6 +566,112 @@ function matchTaproot(host: string, pathname: string): ReverseMatch | null {
 }
 
 /**
+ * Aturi's own pages. Two URL spaces share the aturi.to host:
+ *   - `/explore/<identifier>[/<collection>[/<rkey>]]` — the raw record explorer
+ *     (source id `aturiExplore`).
+ *   - `/profile/<identifier>[/post/<rkey> | /lists/<rkey> | /<collection>/<rkey>]`
+ *     — the universal-link view (source id `aturi`).
+ *
+ * Detecting these lets the popup offer jumps to other clients and explorers
+ * while you're already on Aturi. Reporting the source id as the matching
+ * waypoint (`aturiExplore` vs `aturi`) also keeps the page you're on out of the
+ * suggestion list.
+ */
+function matchAturi(host: string, parts: string[]): ReverseMatch | null {
+  if (host !== 'aturi.to') return null;
+
+  // A repo identifier is always a DID (`did:…`) or a dotted handle. This rules
+  // out the explorer's own sub-tools — `/explore/lexicons`, `/explore/pds` —
+  // whose first segment is a bare word, not an account.
+  const isIdentifier = (seg: string | undefined): boolean =>
+    !!seg && (seg.startsWith('did:') || seg.includes('.'));
+
+  // Explorer: /explore/<identifier>[/<collection>[/<rkey>]]
+  if (parts[0] === 'explore' && isIdentifier(parts[1])) {
+    const handle = parts[1];
+    const did = handle.startsWith('did:') ? handle : undefined;
+    const collection = parts[2];
+    const rkey = parts[3];
+    if (collection && rkey) {
+      return {
+        source: 'aturiExplore',
+        parsed: {
+          type: inferType(collection),
+          uri: `at://${handle}/${collection}/${rkey}`,
+          handle,
+          did,
+          collection,
+          rkey,
+        },
+      };
+    }
+    // Repo browse or a collection listing (no rkey): treat as profile-level so
+    // the popup offers profile waypoints for the identifier.
+    return {
+      source: 'aturiExplore',
+      parsed: { type: 'profile', uri: `at://${handle}`, handle, did },
+    };
+  }
+
+  // Universal-link view: /profile/<identifier>[/post|/lists|/<collection>/<rkey>]
+  if (parts[0] === 'profile' && isIdentifier(parts[1])) {
+    const handle = parts[1];
+    const did = handle.startsWith('did:') ? handle : undefined;
+
+    if (parts[2] === 'post' && parts[3]) {
+      return {
+        source: 'aturi',
+        parsed: {
+          type: 'post',
+          uri: `at://${handle}/app.bsky.feed.post/${parts[3]}`,
+          handle,
+          did,
+          collection: 'app.bsky.feed.post',
+          rkey: parts[3],
+        },
+      };
+    }
+
+    if (parts[2] === 'lists' && parts[3]) {
+      return {
+        source: 'aturi',
+        parsed: {
+          type: 'list',
+          uri: `at://${handle}/app.bsky.graph.list/${parts[3]}`,
+          handle,
+          did,
+          collection: 'app.bsky.graph.list',
+          rkey: parts[3],
+        },
+      };
+    }
+
+    // Generic record view: /profile/<identifier>/<collection>/<rkey>. Guard on
+    // the dot so non-record profile subpages don't masquerade as records.
+    if (parts[2] && parts[2].includes('.') && parts[3]) {
+      return {
+        source: 'aturi',
+        parsed: {
+          type: inferType(parts[2]),
+          uri: `at://${handle}/${parts[2]}/${parts[3]}`,
+          handle,
+          did,
+          collection: parts[2],
+          rkey: parts[3],
+        },
+      };
+    }
+
+    return {
+      source: 'aturi',
+      parsed: { type: 'profile', uri: `at://${handle}`, handle, did },
+    };
+  }
+
+  return null;
+}
+
+/**
  * Reverse-match any supported Aturi waypoint site URL back into a structured
  * ParsedURI (handle/collection/rkey). Returns `null` if the URL isn't on a
  * supported site or isn't a shape we recognize.
@@ -574,6 +682,7 @@ export function matchSupportedUrl(url: URL): ReverseMatch | null {
   const search = url.searchParams;
 
   return (
+    matchAturi(host, parts) ||
     matchBlueskyFamily(host, parts) ||
     matchPinksky(host, parts, search) ||
     matchLeaflet(host, parts) ||
@@ -636,6 +745,7 @@ export function parseAtUri(uri: string): ReverseMatch | null {
  * worker to decide if a tab is "relevant" before doing more expensive work.
  */
 export const SUPPORTED_HOSTS: string[] = [
+  'aturi.to',
   ...BLUESKY_FAMILY.flatMap(e => e.hosts),
   'pinkleap.app',
   'leaflet.pub',

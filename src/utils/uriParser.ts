@@ -71,9 +71,24 @@ export function parseURI(handle: string, collection?: string, rkey?: string): Pa
 /**
  * Resolve a handle to a DID using the Bluesky API
  */
-export async function resolveHandle(handle: string): Promise<string | null> {
+/**
+ * Handle resolution that distinguishes a definitive "no such handle" from a
+ * transient "resolver unavailable". Callers that need to decide between a real
+ * 404 and a retry state use this; `resolveHandle` remains for the common
+ * did-or-null case.
+ *
+ * - `not-found`: the appview returned a 4xx (invalid/unknown handle). Safe to
+ *   surface as a 404.
+ * - `unavailable`: network failure or 5xx. Must NOT be shown as a 404 — it's a
+ *   real account we couldn't look up right now.
+ */
+export type HandleResolution =
+  | { did: string; reason?: undefined }
+  | { did: null; reason: 'not-found' | 'unavailable' };
+
+export async function resolveHandleStatus(handle: string): Promise<HandleResolution> {
   if (handle.startsWith('did:')) {
-    return handle;
+    return { did: handle };
   }
 
   try {
@@ -83,15 +98,20 @@ export async function resolveHandle(handle: string): Promise<string | null> {
     );
 
     if (!response.ok) {
-      return null;
+      return { did: null, reason: response.status >= 500 ? 'unavailable' : 'not-found' };
     }
 
     const data = await response.json();
-    return data.did || null;
+    if (data.did) return { did: data.did };
+    return { did: null, reason: 'not-found' };
   } catch (error) {
     console.error('Error resolving handle:', error);
-    return null;
+    return { did: null, reason: 'unavailable' };
   }
+}
+
+export async function resolveHandle(handle: string): Promise<string | null> {
+  return (await resolveHandleStatus(handle)).did;
 }
 
 /**

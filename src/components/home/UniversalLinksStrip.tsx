@@ -5,6 +5,7 @@ import { ArrowRight, Link2 } from 'lucide-react';
 import ProductStrip from './ProductStrip';
 import WaypointJumpVisual from './WaypointJumpVisual';
 import WaypointCarousel from './WaypointCarousel';
+import { getWaypointCount } from '@/utils/waypoints';
 
 const DEMO_HANDLE = 'aturi.to';
 // Aturi's own DID — hardcoded so the carousel chips can build proper
@@ -57,7 +58,7 @@ export default function UniversalLinksStrip() {
           </p>
           <p>
             No lock-in, no login. Every record, profile, and list resolves
-            cleanly across 25+ curated Atmosphere clients.
+            cleanly across {getWaypointCount()} curated Atmosphere clients.
           </p>
           <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
             <Link

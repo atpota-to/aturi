@@ -1,13 +1,13 @@
 import { Metadata } from 'next';
 import { Suspense } from 'react';
-import { redirect } from 'next/navigation';
+import { redirect, notFound } from 'next/navigation';
 import WaypointPicker from '@/components/WaypointPicker';
 import ProfilePreview from '@/components/ProfilePreview';
 import ProfilePreviewSkeleton from '@/components/ProfilePreviewSkeleton';
 import ScrollIndicator from '@/components/ScrollIndicator';
 import Header from '@/components/Header';
 import NotFoundPanel from '@/components/NotFoundPanel';
-import { resolveHandle, getDisplayName } from '@/utils/uriParser';
+import { resolveHandle, resolveHandleStatus, getDisplayName } from '@/utils/uriParser';
 import { resolveDidToHandle } from '@/utils/didResolver';
 import { fetchProfile } from '@/utils/profileFetcher';
 import { fetchRepoCollections } from '@/utils/atproto/identity';
@@ -83,25 +83,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
-async function ProfileContent({ handle }: { handle: string }) {
-  const resolvedDid = await resolveHandle(handle);
-  
-  if (!resolvedDid) {
-    return (
-      <>
-        <Header compact />
-        <div className="container-narrow waypoint-page" style={{ padding: '0 2rem 4rem' }}>
-          <NotFoundPanel
-            eyebrow="Couldn't resolve"
-            headline="That handle didn't resolve."
-            body={`We tried to resolve "${handle}" as an Atmosphere handle and didn't find anything. If you meant a different account, search for a handle, DID, or AT URI below.`}
-            initialQuery={handle}
-          />
-        </div>
-      </>
-    );
-  }
-
+async function ProfileContent({ handle, resolvedDid }: { handle: string; resolvedDid: string }) {
   const resolvedHandle = handle.startsWith('did:')
     ? await resolveDidToHandle(resolvedDid) || handle
     : handle;
@@ -149,14 +131,40 @@ export default async function ProfilePage({ params }: Props) {
   if (handle.startsWith('@')) {
     const cleanHandle = handle.slice(1);
     const resolvedDid = await resolveHandle(cleanHandle);
-    
+
     if (resolvedDid) {
       // Redirect to canonical /profile/{did} URL
       redirect(`/profile/${resolvedDid}`);
     }
-    
+
     // If resolution fails, continue with cleaned handle
     handle = cleanHandle;
+  }
+
+  // Resolve up front so /[handle] returns a real HTTP 404 for handles that
+  // definitively don't resolve (scanners, typos) instead of a soft-404 (200)
+  // that crawlers index. A transient resolver outage is NOT a 404 — it falls
+  // through to a retry panel below. (Resolving here rather than inside the
+  // Suspense child is what lets the 404 status be set before streaming begins,
+  // mirroring the '@' redirect path above.)
+  const resolution = await resolveHandleStatus(handle);
+  if (resolution.reason === 'not-found') {
+    notFound();
+  }
+  if (!resolution.did) {
+    return (
+      <>
+        <Header compact />
+        <div className="container-narrow waypoint-page" style={{ padding: '0 2rem 4rem' }}>
+          <NotFoundPanel
+            eyebrow="Couldn't reach the resolver"
+            headline="We couldn't look that up right now."
+            body={`We couldn't reach the atproto resolver to look up "${handle}". This is usually temporary — try again in a moment, or search for a handle, DID, or AT URI below.`}
+            initialQuery={handle}
+          />
+        </div>
+      </>
+    );
   }
 
   return (
@@ -170,7 +178,7 @@ export default async function ProfilePage({ params }: Props) {
         </>
       }
     >
-      <ProfileContent handle={handle} />
+      <ProfileContent handle={handle} resolvedDid={resolution.did} />
     </Suspense>
   );
 }

@@ -11,6 +11,23 @@ import ProductStrip from './ProductStrip';
 
 const DEMO_HANDLE = 'aturi.to';
 
+// A curated, diverse slice of Atmosphere lexicons for the homepage demo feed.
+// Jetstream filters these server-side, so the homepage — the highest-traffic
+// page — pulls a small fraction of the full firehose (which streams every
+// like/follow/block at thousands/sec) instead of the whole thing into every
+// visitor's browser. It also reads better: the strip is meant to show activity
+// *across* the Atmosphere, not a wall of Bluesky likes.
+const HOME_FEED_COLLECTIONS = [
+  'app.bsky.feed.post',
+  'app.bsky.graph.follow',
+  'sh.tangled.repo',
+  'pub.leaflet.document',
+  'social.grain.gallery',
+  'com.whtwnd.blog.entry',
+  'blue.flashes.feed.post',
+  'events.smokesignal.calendar.rsvp',
+];
+
 /**
  * Strip 3 — Atmosphere Explorer. Two stacked demos on the demo side:
  *
@@ -120,7 +137,7 @@ export default function ExplorerStrip() {
       }
       demo={
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.875rem' }}>
-          <JetstreamFeed />
+          <JetstreamFeed initialCollections={HOME_FEED_COLLECTIONS} />
           <SearchBox />
         </div>
       }

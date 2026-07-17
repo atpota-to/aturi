@@ -122,7 +122,28 @@ export default function JetstreamFeed({
     uniqueCollections: new Set<string>(),
   });
 
+  // Read `paused` inside tick() via a ref so toggling it doesn't tear down and
+  // reopen the websocket (which dropped the buffer and hammered the Jetstream
+  // server on every click). Pause now just stops rendering rows while the
+  // socket — and the live throughput counter — keep running.
+  const pausedRef = useRef(paused);
+  pausedRef.current = paused;
+
+  // Close the socket while the tab is backgrounded. Unlike timers, websockets
+  // are NOT throttled in hidden tabs, so an unattended background tab would
+  // otherwise keep pulling the full firehose (bandwidth, CPU, mobile data,
+  // battery) indefinitely. Reconnecting when the user returns is cheap.
+  const [hidden, setHidden] = useState(
+    typeof document !== 'undefined' && document.hidden,
+  );
   useEffect(() => {
+    const onVis = () => setHidden(document.hidden);
+    document.addEventListener('visibilitychange', onVis);
+    return () => document.removeEventListener('visibilitychange', onVis);
+  }, []);
+
+  useEffect(() => {
+    if (hidden) return; // hold the socket closed while the tab is backgrounded
     const dispose = createJetstreamConnection(
       { wantedCollections: collections, wantedOps: ops },
       (evt: JetstreamCommit) => {
@@ -175,7 +196,7 @@ export default function JetstreamFeed({
         });
       }
 
-      if (!paused && buffer.current.length > 0) {
+      if (!pausedRef.current && buffer.current.length > 0) {
         // Take only the most recent N from the buffer — older events drop.
         const buf = buffer.current;
         const take = buf.slice(-MAX_INSERTS_PER_FLUSH).reverse();
@@ -202,7 +223,9 @@ export default function JetstreamFeed({
       buffer.current = [];
       epsCounter.current = [];
     };
-  }, [collections, ops, paused, showStats, maxVisible]);
+    // `paused` intentionally excluded — handled via pausedRef so pausing
+    // doesn't reconnect. `hidden` gates the socket for tab visibility.
+  }, [collections, ops, hidden, showStats, maxVisible]);
 
   return (
     <section

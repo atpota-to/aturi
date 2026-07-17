@@ -46,9 +46,14 @@ const linkStyle = {
 
 export default function TermsPage() {
   return (
-    <div className="container-narrow" style={{ padding: '2rem 2rem 4rem' }}>
+    <div style={{ position: 'relative', overflowX: 'clip' }}>
+      {/* Header is a direct child of the page wrapper — matching the home,
+          explore, profile, and account pages — so it uses its normal full
+          width instead of being boxed into (and pushed down by) the narrow
+          content column. */}
       <Header compact />
 
+      <div className="container-narrow" style={{ padding: '2rem 2rem 4rem' }}>
       <header style={{ marginBottom: '3rem', textAlign: 'center' }}>
         <h1 style={{ marginBottom: '1rem', color: 'var(--text-primary)' }}>
           Terms of Service & Privacy Policy
@@ -1142,6 +1147,7 @@ export default function TermsPage() {
             </p>
           </section>
         </article>
+      </div>
       </div>
     </div>
   );

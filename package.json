@@ -6,13 +6,17 @@
   "author": "dame",
   "repository": {
     "type": "git",
-    "url": "https://github.com/yourusername/aturi-to.git"
+    "url": "https://github.com/atpota-to/aturi.git"
+  },
+  "engines": {
+    "node": ">=22.0.0"
   },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@atproto-labs/did-resolver": "^0.3.0",

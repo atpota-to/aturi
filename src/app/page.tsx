@@ -264,8 +264,8 @@ export default function HomePage() {
               >
                 tangled.org
               </a>
-              . Run your own instance on a custom domain, audit the source code,
-              flow, or contribute a waypoint.
+              . Run your own instance on a custom domain, audit the source
+              code, or contribute a waypoint.
             </p>
             <div
               style={{

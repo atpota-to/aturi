@@ -73,9 +73,21 @@ export default function CategoryCard({
       <div
         key={waypoint.id}
         className="waypoint-button"
+        role="button"
+        tabIndex={0}
+        aria-label={`Open in ${waypoint.name}`}
         onClick={(e) => onWaypointClick(url, e)}
-        style={{ 
-          cursor: 'pointer', 
+        onKeyDown={(e) => {
+          // Make the card operable by keyboard (Enter/Space), matching native
+          // button semantics — previously only the small icon link was
+          // reachable. Space is preventDefault'd so the page doesn't scroll.
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            onWaypointClick(url, e as unknown as React.MouseEvent);
+          }
+        }}
+        style={{
+          cursor: 'pointer',
           transform: `rotate(${rotation}deg)`,
           // @ts-expect-error - CSS custom property
           '--button-rotation': `rotate(${rotation}deg)`
@@ -92,7 +104,7 @@ export default function CategoryCard({
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
           <button
-            onClick={(e) => onCopy(url, waypoint.id, e)}
+            onClick={(e) => { e.stopPropagation(); onCopy(url, waypoint.id, e); }}
             aria-label="Copy link"
             className="copy-button"
             style={{
@@ -117,6 +129,7 @@ export default function CategoryCard({
             target="_blank"
             rel="noopener noreferrer"
             aria-label={`Open in ${waypoint.name}`}
+            onClick={(e) => e.stopPropagation()}
             style={{
               display: 'flex',
               alignItems: 'center',
@@ -138,7 +151,10 @@ export default function CategoryCard({
 
   return (
     <div className="category-section">
-      {/* Category Header */}
+      {/* Category Header — the whole bar stays mouse-clickable, but the
+          expand button carries the real toggle so it's keyboard-reachable
+          and announces its state. stopPropagation prevents a double toggle
+          when the button itself is clicked. */}
       <div className="category-header" onClick={onToggle}>
         <div className="category-title">
           <h3>{category.name}</h3>
@@ -156,6 +172,7 @@ export default function CategoryCard({
             className="expand-button"
             aria-label={isExpanded ? 'Collapse category' : 'Expand category'}
             aria-expanded={isExpanded}
+            onClick={(e) => { e.stopPropagation(); onToggle(); }}
           >
             {isExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
           </button>

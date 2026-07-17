@@ -1,0 +1,79 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# Cancel superseded runs on the same ref.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  web:
+    name: Web app (lint · typecheck · build)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm run build
+        env:
+          # Keep the build deterministic; no secrets are required.
+          NEXT_TELEMETRY_DISABLED: "1"
+
+  extension:
+    name: Extension (typecheck · test)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            extension/package-lock.json
+      # The extension shares source with the web app through the @aturi/* alias
+      # (../src/utils/**). Those files import root deps such as @atproto/api and
+      # react, so the extension typecheck needs the root packages installed too.
+      - run: npm ci
+      - run: npm ci
+        working-directory: extension
+      - run: npm run compile
+        working-directory: extension
+      - run: npm test
+        working-directory: extension
+
+  packages:
+    name: Packages (sync guard · typecheck · test · build)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: packages/package-lock.json
+      - run: npm ci
+        working-directory: packages
+      # Drift guard: the published packages ship standalone copies of the app's
+      # canonical src/utils files. Fail if they've fallen out of sync.
+      - run: npm run sync:check
+        working-directory: packages/waypoints
+      - run: npm run typecheck
+        working-directory: packages/waypoints
+      - run: npm test
+        working-directory: packages/waypoints
+      - run: npm run build
+        working-directory: packages/waypoints
+      - run: npm run typecheck
+        working-directory: packages/waypoints-react
+      - run: npm run build
+        working-directory: packages/waypoints-react

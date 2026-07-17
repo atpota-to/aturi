@@ -384,8 +384,15 @@ function isValidCustomWaypoint(w: unknown): w is CustomWaypoint {
     typeof c.id === 'string' &&
     typeof c.name === 'string' &&
     Array.isArray(c.supportedTypes) &&
+    c.supportedTypes.every((t) => typeof t === 'string') &&
     c.templates !== null &&
-    typeof c.templates === 'object'
+    typeof c.templates === 'object' &&
+    // The preferences record is user-writable in the PDS; a template value
+    // that isn't a string would crash expandTemplate() (String.replace) and
+    // take down the whole waypoint picker. Reject the waypoint instead.
+    Object.values(c.templates as Record<string, unknown>).every(
+      (t) => typeof t === 'string',
+    )
   );
 }
 

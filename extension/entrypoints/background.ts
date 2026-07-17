@@ -63,10 +63,25 @@ function getDnr(): typeof chrome.declarativeNetRequest | undefined {
   ).declarativeNetRequest;
 }
 
+// Serialize DNR rule syncs. onInstalled, onStartup, onPrefsChanged, and the
+// module-level prime all call syncRules; run concurrently they read the same
+// existing-rule set and both call updateDynamicRules, so the second can reject
+// on duplicate rule ids or leave stale rules live. Chaining guarantees each
+// sync sees the previous one's committed state.
+let syncQueue: Promise<void> = Promise.resolve();
+
+function syncRules(prefs: Prefs): Promise<void> {
+  syncQueue = syncQueue.then(
+    () => doSyncRules(prefs),
+    () => doSyncRules(prefs)
+  );
+  return syncQueue;
+}
+
 /**
  * Replace the dynamic DNR rule set with the rules derived from the given prefs.
  */
-async function syncRules(prefs: Prefs): Promise<void> {
+async function doSyncRules(prefs: Prefs): Promise<void> {
   const dnr = getDnr();
   if (!dnr?.updateDynamicRules) return;
 
