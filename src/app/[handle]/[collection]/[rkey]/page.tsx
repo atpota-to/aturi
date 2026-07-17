@@ -11,7 +11,7 @@ import NotFoundPanel from '@/components/NotFoundPanel';
 import { parseURI, resolveHandle, getDisplayName } from '@/utils/uriParser';
 import { fetchRecordData } from '@/utils/recordFetcher';
 import { resolveDidToHandle } from '@/utils/didResolver';
-import { getPostOgImage } from '@/utils/postOgImage';
+import { buildPostMetadata, buildPostJsonLd } from '@/utils/postMetadata';
 import { serializeJsonLd } from '@/utils/sanitize';
 import { getMarginLexiconType, getMarginLexiconDisplayName, getMarginLexiconDescription } from '@/utils/marginLexicons';
 import {
@@ -62,97 +62,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
       if (recordData.type === 'post' && recordData.data.thread[0]?.value.post) {
         const post = recordData.data.thread[0].value.post;
-        const author = post.author;
-        const authorByline = author.displayName
-          ? `${author.displayName} (@${author.handle})`
-          : `@${author.handle}`;
-        const pageTitle = `@${author.handle} on Bluesky — View on Aturi`;
-        const postText = post.record?.text || '';
-        const postDescription = postText || 'View this post in your preferred Atmosphere client';
-        const avatarThumb = author.avatar
-          ? author.avatar.replace('/img/avatar/', '/img/avatar_thumbnail/')
-          : '';
-
-        // Prefer the post's embedded media (photo/video/external thumb) so
-        // rich-link previewers (iMessage, Twitter, Slack, etc.) render the
-        // large image like bsky.app does. Fall back to the avatar thumbnail
-        // for text-only or quote-only posts.
-        const postOgImage = getPostOgImage(post);
-        const ogImage = postOgImage
-          ? {
-              url: postOgImage.url,
-              ...(postOgImage.alt ? { alt: postOgImage.alt } : {}),
-              ...(postOgImage.width && postOgImage.height
-                ? { width: postOgImage.width, height: postOgImage.height }
-                : {}),
-            }
-          : avatarThumb
-          ? { url: avatarThumb }
-          : null;
-        const twitterCard = postOgImage ? 'summary_large_image' : 'summary';
-
-        const canonicalUrl = `https://aturi.to/profile/${author.handle}/post/${rkey}`;
-        const atUri = `at://${resolvedDid}/${collection}/${rkey}`;
-        const oembedUrl = `https://aturi.to/api/oembed?format=json&url=${encodeURIComponent(atUri)}`;
-        const publishedTime = post.indexedAt || post.record?.createdAt;
-
-        // We MUST set openGraph and twitter blocks here to override the root
-        // layout's site-wide defaults. Without this, the root layout's
-        // og:title="aturi.to - Universal links" and og:image=/api/og/static
-        // bleed through and create conflicting tags that confuse Apple's
-        // LinkPresentation framework and other rich-link previewers.
-        return {
-          title: pageTitle,
-          description: postDescription,
-          alternates: {
-            canonical: canonicalUrl,
-            types: {
-              'application/json+oembed': oembedUrl,
-            },
-          },
-          openGraph: {
-            title: authorByline,
-            description: postText || postDescription,
-            type: 'article',
-            url: canonicalUrl,
-            siteName: 'Aturi',
-            ...(publishedTime ? { publishedTime } : {}),
-            ...(ogImage ? { images: [ogImage] } : {}),
-          },
-          twitter: {
-            card: twitterCard,
-            title: authorByline,
-            description: postText || postDescription,
-            ...(ogImage ? { images: [ogImage.url] } : {}),
-          },
-          other: {
-            'profile:username': author.handle,
-            ...(publishedTime
-              ? {
-                  'twitter:label1': 'Posted At',
-                  'twitter:value1': publishedTime,
-                }
-              : {}),
-            ...(post.likeCount
-              ? {
-                  'twitter:label2': 'Likes',
-                  'twitter:value2': String(post.likeCount),
-                }
-              : {}),
-            ...(post.replyCount
-              ? {
-                  'twitter:label3': 'Replies',
-                  'twitter:value3': String(post.replyCount),
-                }
-              : {}),
-            ...(post.repostCount
-              ? {
-                  'twitter:label4': 'Reposts',
-                  'twitter:value4': String(post.repostCount),
-                }
-              : {}),
-          },
-        };
+        return buildPostMetadata(post, { resolvedDid, collection, rkey });
       } else if (recordData.type === 'record') {
         const record = recordData.data;
         const marginLexiconType = getMarginLexiconType(collection);
@@ -325,41 +235,7 @@ async function RecordContent({ handle, collection, rkey }: { handle: string; col
       recordData && recordData.type === 'post' && recordData.data.thread[0]?.value.post
         ? recordData.data.thread[0].value.post
         : null;
-    const jsonLd = post
-      ? {
-          '@context': 'https://schema.org',
-          '@type': 'DiscussionForumPosting',
-          author: {
-            '@type': 'Person',
-            ...(post.author.displayName
-              ? {
-                  name: post.author.displayName,
-                  alternateName: `@${post.author.handle}`,
-                }
-              : { name: `@${post.author.handle}` }),
-            url: `https://aturi.to/profile/${post.author.handle}`,
-          },
-          ...(post.record?.text ? { text: post.record.text } : {}),
-          datePublished: post.indexedAt || post.record?.createdAt,
-          interactionStatistic: [
-            {
-              '@type': 'InteractionCounter',
-              interactionType: 'https://schema.org/LikeAction',
-              userInteractionCount: post.likeCount || 0,
-            },
-            {
-              '@type': 'InteractionCounter',
-              interactionType: 'https://schema.org/CommentAction',
-              userInteractionCount: post.replyCount || 0,
-            },
-            {
-              '@type': 'InteractionCounter',
-              interactionType: 'https://schema.org/ShareAction',
-              userInteractionCount: (post.repostCount || 0) + (post.quoteCount || 0),
-            },
-          ],
-        }
-      : null;
+    const jsonLd = post ? buildPostJsonLd(post) : null;
 
     const postAtUri = post?.uri || '';
 
