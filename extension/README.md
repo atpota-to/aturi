@@ -95,5 +95,5 @@ Auto-redirect uses static DNR rules, so it can't rewrite *to* destinations that
 need a DID - PDSls, atp.tools, Margin, and any custom waypoint
 whose template uses `{did}`. Those destinations still work great from the
 popup, which resolves the handle on demand. (PDSls and atp.tools can still be
-redirect *sources* — their URLs already contain the DID or handle, so rewriting
+redirect *sources*: their URLs already contain the DID or handle, so rewriting
 them into another explorer needs no resolution.)

@@ -8,7 +8,7 @@ and client icons to your app in a few lines.
 namespaced styling hooks. Use your own design system, opt into the polished Aturi
 theme, or drop down to a hook and render everything yourself.
 
-> **Beta — early release.** This is a `0.x` package that hasn't been
+> **Beta: early release.** This is a `0.x` package that hasn't been
 > thoroughly tested in production yet. Expect rough edges, and possible
 > breaking changes between minor versions while the API settles. Bug reports
 > and feedback are very welcome at
@@ -27,7 +27,7 @@ single install gives you the components *and* the catalog/resolvers.
 
 ## Server vs. client components
 
-This is a **client** package — its entry carries the `"use client"` directive,
+This is a **client** package: its entry carries the `"use client"` directive,
 so the components work out of the box in the Next.js App Router and other React
 Server Components setups (no wrapper needed). Because the directive applies to
 the whole entry, reach for [`@aturi.to/waypoints`](../waypoints) directly when you

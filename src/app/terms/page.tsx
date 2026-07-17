@@ -85,7 +85,7 @@ export default function TermsPage() {
               aturi.to (&ldquo;<strong>Aturi</strong>,&rdquo; &ldquo;
               <strong>we</strong>,&rdquo; &ldquo;<strong>us</strong>,&rdquo; or
               &ldquo;<strong>our</strong>&rdquo;) is a free, open-source
-              ecosystem of tools for navigating the Atmosphere &mdash; the
+              ecosystem of tools for navigating the Atmosphere: the
               federated network of services built on the AT Protocol
               (atproto). These Terms of Service and Privacy Policy (together,
               this &ldquo;<strong>Agreement</strong>&rdquo;) govern your use
@@ -216,12 +216,12 @@ export default function TermsPage() {
               </li>
               <li>
                 <strong>Preference sync and personalization.</strong> If you
-                sign in, the Service may store non-sensitive preferences
-                &mdash; including waypoint groups (name and order), per-group
+                sign in, the Service may store non-sensitive preferences,
+                including waypoint groups (name and order), per-group
                 waypoint ordering, hidden/visible/pinned waypoints, custom
                 waypoints you have defined (display name, domain, URL
-                templates, supported record types), and other UI choices
-                &mdash; as a record in your own PDS (NSID{' '}
+                templates, supported record types), and other UI choices,
+                as a record in your own PDS (NSID{' '}
                 <code>to.aturi.actor.preferences</code>, rkey{' '}
                 <code>self</code>). The authoritative copy lives in your
                 repository, under your control. A local copy is kept in your
@@ -424,36 +424,36 @@ export default function TermsPage() {
             <ul style={list}>
               <li>
                 The <strong>Bluesky AppView</strong> (
-                <code>public.api.bsky.app</code>) &mdash; profile lookups,
+                <code>public.api.bsky.app</code>): profile lookups,
                 handle resolution, post/list fetches.
               </li>
               <li>
                 The <strong>PLC directory</strong> (
-                <code>plc.directory</code>) &mdash; DID document and
+                <code>plc.directory</code>): DID document and
                 identity-audit-log lookups for Explore.
               </li>
               <li>
                 <strong>Constellation</strong> (
-                <code>constellation.microcosm.blue</code>) &mdash; a
+                <code>constellation.microcosm.blue</code>): a
                 third-party backlink index queried for incoming-reference
                 counts on records.
               </li>
               <li>
-                <strong>cred.blue</strong> (<code>api.cred.blue</code>) &mdash;
-                a third-party reputation/score API queried to display a
+                <strong>cred.blue</strong> (<code>api.cred.blue</code>): a
+                third-party reputation/score API queried to display a
                 cached score badge on certain profile pages.
               </li>
               <li>
                 A public <strong>Jetstream relay</strong> WebSocket (e.g.,{' '}
-                <code>jetstream2.us-east.bsky.network</code>) &mdash; live
+                <code>jetstream2.us-east.bsky.network</code>): live
                 stream of public atproto commits used to render the Explore
                 live feed. Standard connection metadata (IP address, user
                 agent) is visible to the relay operator while the connection
                 is open.
               </li>
               <li>
-                Your <strong>PDS and identity authority</strong>{' '}
-                &mdash; authentication, repository reads and writes, blob
+                Your <strong>PDS and identity authority</strong>:{' '}
+                authentication, repository reads and writes, blob
                 uploads.
               </li>
               <li>
@@ -464,7 +464,7 @@ export default function TermsPage() {
                 <strong>custom waypoints you define</strong>.
               </li>
               <li>
-                <strong>Vercel</strong> &mdash; hosting, edge runtime, and
+                <strong>Vercel</strong>: hosting, edge runtime, and
                 anonymous analytics.
               </li>
               <li>
@@ -820,17 +820,17 @@ export default function TermsPage() {
             </p>
             <p style={paragraph}>
               <strong>Preferences and personalization.</strong> Non-sensitive
-              preferences &mdash; including waypoint groups, per-group
+              preferences, including waypoint groups, per-group
               ordering, pinned/visible/hidden waypoints, custom waypoints
               you create (display name, domain, URL templates, supported
-              record types), and other UI choices &mdash; are stored
+              record types), and other UI choices, are stored
               locally in your browser. If you are signed in, we also mirror
               those preferences as a record in your own PDS (NSID{' '}
               <code>to.aturi.actor.preferences</code>, rkey{' '}
               <code>self</code>) so they sync across your devices. The
               authoritative copy lives in your repository, under your
               control; we do not maintain a separate copy. The PDS record
-              is technically public &mdash; like all atproto records &mdash;
+              is technically public, like all atproto records,
               and may be visible to anyone with access to your PDS or
               relays that ingest your repository.
             </p>
@@ -942,49 +942,48 @@ export default function TermsPage() {
             </p>
             <ul style={list}>
               <li>
-                <strong>Vercel</strong> &mdash; hosting, edge functions, and
+                <strong>Vercel</strong>: hosting, edge functions, and
                 anonymous analytics.
               </li>
               <li>
                 <strong>Bluesky AppView</strong> (
-                <code>public.api.bsky.app</code>) &mdash; resolving handles
+                <code>public.api.bsky.app</code>): resolving handles
                 and DIDs, fetching public profile and post data.
               </li>
               <li>
-                <strong>PLC directory</strong> (<code>plc.directory</code>)
-                &mdash; DID document and identity-audit-log lookups.
+                <strong>PLC directory</strong> (<code>plc.directory</code>): DID document and identity-audit-log lookups.
               </li>
               <li>
                 <strong>Constellation</strong> (
-                <code>constellation.microcosm.blue</code>) &mdash;
+                <code>constellation.microcosm.blue</code>):
                 third-party backlink index.
               </li>
               <li>
-                <strong>cred.blue</strong> (<code>api.cred.blue</code>) &mdash;
+                <strong>cred.blue</strong> (<code>api.cred.blue</code>):
                 third-party reputation/score API.
               </li>
               <li>
                 <strong>Jetstream relays</strong> (e.g.,{' '}
-                <code>jetstream2.us-east.bsky.network</code>) &mdash; live
+                <code>jetstream2.us-east.bsky.network</code>): live
                 public-commit firehose used to render Explore live feeds.
               </li>
               <li>
-                <strong>Your PDS and identity authority</strong> &mdash;
+                <strong>Your PDS and identity authority</strong>:
                 authentication, repository reads and writes, blob uploads.
               </li>
               <li>
-                <strong>Other public atproto services</strong> &mdash; relays,
+                <strong>Other public atproto services</strong>: relays,
                 AppViews, and other public endpoints that may be queried to
                 render Explore, OG images, oEmbed, and Resolve responses.
               </li>
               <li>
-                <strong>Third-party Atmosphere clients and waypoints</strong>{' '}
-                &mdash; the destinations you (or your recipients) choose to
+                <strong>Third-party Atmosphere clients and waypoints</strong>:{' '}
+                the destinations you (or your recipients) choose to
                 open links in. We do not control these services.
               </li>
               <li>
                 <strong>Browser web stores and OS vendors</strong> (Google,
-                Mozilla, Apple) &mdash; distribute the extension and,
+                Mozilla, Apple): distribute the extension and,
                 depending on your settings, may sync extension storage
                 across your devices.
               </li>
@@ -1045,8 +1044,8 @@ export default function TermsPage() {
               <a href={`mailto:${CONTACT_EMAIL}`} style={linkStyle}>
                 {CONTACT_EMAIL}
               </a>
-              . Many requests &mdash; especially those relating to records
-              in your atproto repository &mdash; are best made directly to
+              . Many requests, especially those relating to records
+              in your atproto repository, are best made directly to
               your PDS, since that is where the authoritative copy of your
               data lives.
             </p>

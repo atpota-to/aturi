@@ -129,7 +129,7 @@ export default function CollectionEditBar({
             }}
           >
             {deleteWaitSec != null
-              ? `Paced under the rate limit — resuming in ${deleteWaitSec}s`
+              ? `Paced under the rate limit, resuming in ${deleteWaitSec}s`
               : 'Deleting…'}
           </span>
           <DeleteProgressBar done={deleteProgress.done} total={deleteProgress.total} />

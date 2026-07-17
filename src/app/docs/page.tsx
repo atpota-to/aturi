@@ -151,7 +151,7 @@ export default function DocsPage() {
           </h1>
           <p style={{ color: 'var(--text-secondary)', fontSize: '1.125rem', lineHeight: 1.6, margin: 0 }}>
             Add Atmosphere “Open in…” links, smart client recommendations, and
-            AT-URI resolution to your own app — with two MIT-licensed packages
+            AT-URI resolution to your own app, with two MIT-licensed packages
             and a public API.
           </p>
           <div
@@ -228,13 +228,13 @@ export default function DocsPage() {
             </p>
             <ul style={{ paddingLeft: '1.25rem', margin: '0 0 1rem' }}>
               <li style={liStyle}>
-                <code>@aturi.to/waypoints</code> — a zero-dependency,
+                <code>@aturi.to/waypoints</code>, a zero-dependency,
                 framework-agnostic core: the client catalog, per-client
                 “Open in…” link builders, recommendations, and URL ⇄ AT-URI
                 resolution. Works in the browser, Node 18+, and edge runtimes.
               </li>
               <li style={liStyle}>
-                <code>@aturi.to/waypoints-react</code> — a headless-first React
+                <code>@aturi.to/waypoints-react</code>: a headless-first React
                 picker UI plus client icons, built on the core. Ships zero CSS
                 by default and is fully themeable.
               </li>
@@ -288,7 +288,7 @@ export default function DocsPage() {
             </ul>
             <p style={{ ...pStyle, margin: 0 }}>
               A handful of destinations (pdsls, atp.tools, Margin, Grain,
-              Popfeed) only produce useful URLs when a DID is known — they’re
+              Popfeed) only produce useful URLs when a DID is known; they’re
               filtered out unless a DID is available, so pass one in or supply a{' '}
               <code>resolveHandle</code> to <code>resolveUrl</code>. Full
               reference in the{' '}
@@ -332,7 +332,7 @@ export default function DocsPage() {
             <h3 style={h3Style}>2. The useWaypoints hook</h3>
             <p style={pStyle}>
               For full control, the hook returns render-ready data plus{' '}
-              <code>copy</code> / <code>open</code> helpers — no markup at all.
+              <code>copy</code> / <code>open</code> helpers: no markup at all.
             </p>
             <CodeBlock label="tsx" code={reactHook} />
 
@@ -361,7 +361,7 @@ export default function DocsPage() {
             <h2 style={h2Style}>Resolve API</h2>
             <p style={pStyle}>
               Don’t want to install anything? Hit the hosted endpoint from a
-              share sheet, an Apple Shortcut, or any client — no login, no API
+              share sheet, an Apple Shortcut, or any client: no login, no API
               keys. It returns the resolved waypoints and recommendations for a
               page URL or an AT URI.
             </p>
@@ -379,7 +379,7 @@ export default function DocsPage() {
           <section id="links" className="card" style={sectionStyle}>
             <h2 style={h2Style}>Build an aturi.to link</h2>
             <p style={pStyle}>
-              Universal links need no SDK at all — just rewrite an AT URI into an{' '}
+              Universal links need no SDK at all: just rewrite an AT URI into an{' '}
               <code>aturi.to/profile/…</code> URL and the recipient picks their
               client on a friendly landing page.
             </p>
@@ -394,7 +394,7 @@ export default function DocsPage() {
             <p style={{ ...pStyle, margin: 0 }}>
               <code>@aturi.to/waypoints</code> and{' '}
               <code>@aturi.to/waypoints-react</code> are MIT © atpotato, LLC. The
-              aturi.to web app and browser extension are licensed GPL-3.0 — the
+              aturi.to web app and browser extension are licensed GPL-3.0; the
               packages are intentionally dual-licensed MIT so other Atmosphere
               developers can adopt them freely.
             </p>

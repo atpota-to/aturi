@@ -50,7 +50,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   }
 
   return {
-    title: `Post — View on Aturi`,
+    title: `Post: View on Aturi`,
     description: 'Tour the Atmosphere',
   };
 }

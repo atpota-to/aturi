@@ -29,15 +29,15 @@ export default function AboutTab() {
       <h1 className="options-h1">About</h1>
       <p className="options-lede">
         Aturi makes Atmosphere links shareable with anyone. Drop a person an
-        Aturi link and they pick the client they prefer — Bluesky, Anisota,
-        Leaflet, Red Dwarf, and more — instead of being locked into yours.
+        Aturi link and they pick the client they prefer (Bluesky, Anisota,
+        Leaflet, Red Dwarf, and more) instead of being locked into yours.
       </p>
 
       <div className="options-card">
         <div className="options-card-title">Aturi</div>
         <div className="options-card-sub">
           Tour the Atmosphere. The web app and this extension are part of the
-          same project — the extension is a quick way to jump between
+          same project. The extension is a quick way to jump between
           Atmosphere clients while you browse.
         </div>
         <div className="about-links">
@@ -65,7 +65,7 @@ export default function AboutTab() {
         <div className="options-card-title">People</div>
         <div className="options-card-sub">
           Aturi is built by Dame and stewarded under the @{STEWARD_HANDLE}{' '}
-          umbrella on the Atmosphere — give them a follow for updates, releases,
+          umbrella on the Atmosphere. Give them a follow for updates, releases,
           and the occasional bug fight.
         </div>
         <div className="about-links">
@@ -94,7 +94,7 @@ export default function AboutTab() {
         <div className="options-card-title">Feedback</div>
         <div className="options-card-sub">
           Found a bug, want to suggest a new waypoint, or have an idea for the
-          popup? File an issue or open a pull request on Tangled — Aturi is
+          popup? File an issue or open a pull request on Tangled. Aturi is
           open source under GPL v3.
         </div>
         <div className="about-links">

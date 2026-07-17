@@ -186,15 +186,15 @@ export default function ExploreLanding() {
           body={
             <>
               <p>
-                Click the pin on any lexicon — or a whole group header like{' '}
-                <code>app.bsky.feed.*</code> — to lift it out of the
+                Click the pin on any lexicon (or a whole group header like{' '}
+                <code>app.bsky.feed.*</code>) to lift it out of the
                 hierarchy. Pinned NSIDs sit in their own accent-bordered
                 section at the top of the Lexicons tab, on every account
                 page you visit.
               </p>
               <p>
                 Maintain separate pin lists for your own repo and other
-                people&rsquo;s — Anisota records when you&rsquo;re
+                people&rsquo;s: Anisota records when you&rsquo;re
                 auditing yourself, Bluesky posts when you&rsquo;re
                 reading someone else, both without re-pinning each time.
               </p>
@@ -211,7 +211,7 @@ export default function ExploreLanding() {
           body={
             <>
               <p>
-                By optionally signing in, your preferences (pins, custom waypoints, theme, etc) ride with you via your PDS &mdash; jump between
+                By optionally signing in, your preferences (pins, custom waypoints, theme, etc) ride with you via your PDS: jump between
                 devices and the Explorer will not forget your settings.
               </p>
               <p>

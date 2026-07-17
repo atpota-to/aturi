@@ -56,8 +56,8 @@ export default function Error({
             Turbulence in the Atmosphere.
           </h1>
           <p style={{ color: 'var(--text-secondary)', lineHeight: 1.6, margin: '0 0 2rem' }}>
-            Something went wrong rendering this page. It&apos;s usually transient — an
-            upstream PDS or API hiccup — so trying again often works.
+            Something went wrong rendering this page. It&apos;s usually transient (an
+            upstream PDS or API hiccup), so trying again often works.
             {error.digest ? (
               <span style={{ display: 'block', marginTop: '0.5rem', color: 'var(--text-tertiary)', fontSize: '0.85rem' }}>
                 Error reference: {error.digest}

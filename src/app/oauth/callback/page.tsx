@@ -44,7 +44,7 @@ export default function OAuthCallback() {
 
   const message =
     error?.message ??
-    (timedOut ? 'No active session — was this callback URL visited directly?' : null);
+    (timedOut ? 'No active session. Was this callback URL visited directly?' : null);
 
   return (
     <div

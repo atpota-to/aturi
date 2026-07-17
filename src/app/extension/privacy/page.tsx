@@ -179,8 +179,8 @@ export default function ExtensionPrivacyPage() {
               <li>
                 <strong>Handle resolution.</strong> When the popup needs to
                 turn a handle (e.g. <code>example.bsky.social</code>) into
-                a DID &mdash; for example, because a waypoint you clicked
-                requires a DID &mdash; the extension calls{' '}
+                a DID (for example, because a waypoint you clicked
+                requires a DID), the extension calls{' '}
                 <code>
                   public.api.bsky.app/xrpc/com.atproto.identity.resolveHandle
                 </code>
@@ -230,28 +230,28 @@ export default function ExtensionPrivacyPage() {
             <h2 style={sectionHeading}>4. Permissions and why they&rsquo;re needed</h2>
             <ul style={list}>
               <li>
-                <strong>storage</strong> &mdash; to persist your preferences,
+                <strong>storage</strong>: to persist your preferences,
                 custom waypoints, and recents list.
               </li>
               <li>
-                <strong>tabs</strong> &mdash; to read the URL (and, for
+                <strong>tabs</strong>: to read the URL (and, for
                 Inspect, the tab id) of the current tab when you open the
                 popup, so the extension can offer waypoints that match the
                 page you&rsquo;re on and route the Inspect scan request to
                 the right tab.
               </li>
               <li>
-                <strong>declarativeNetRequest</strong> &mdash; to perform
+                <strong>declarativeNetRequest</strong>: to perform
                 local URL redirects without exposing your browsing history
                 to the extension.
               </li>
               <li>
-                <strong>clipboardWrite</strong> &mdash; to copy universal
+                <strong>clipboardWrite</strong>: to copy universal
                 Aturi links to your clipboard when you use the &ldquo;copy
                 link&rdquo; action.
               </li>
               <li>
-                <strong>host_permissions: &lt;all_urls&gt;</strong> &mdash;
+                <strong>host_permissions: &lt;all_urls&gt;</strong>:
                 required so the popup can recognize Atmosphere pages on any
                 domain (Bluesky, Leaflet, Blacksky, PDSls, custom waypoints
                 you define, etc.), so <code>declarativeNetRequest</code>{' '}

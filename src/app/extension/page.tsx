@@ -15,7 +15,7 @@ export const metadata: Metadata = {
         url: '/og-images/aturi-extension.png',
         width: 1200,
         height: 671,
-        alt: 'Browser Extension — three modes, one extension',
+        alt: 'Browser Extension: three modes, one extension',
       },
     ],
   },

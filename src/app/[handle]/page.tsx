@@ -159,7 +159,7 @@ export default async function ProfilePage({ params }: Props) {
           <NotFoundPanel
             eyebrow="Couldn't reach the resolver"
             headline="We couldn't look that up right now."
-            body={`We couldn't reach the atproto resolver to look up "${handle}". This is usually temporary — try again in a moment, or search for a handle, DID, or AT URI below.`}
+            body={`We couldn't reach the atproto resolver to look up "${handle}". This is usually temporary. Try again in a moment, or search for a handle, DID, or AT URI below.`}
             initialQuery={handle}
           />
         </div>

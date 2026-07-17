@@ -71,7 +71,7 @@ function AppearanceCard() {
           Switch between dark and light themes, tune the text size, and dial
           in accessibility options. The page chrome and accent palette flip
           together; explorer panels, embeds, and the home strip all follow.
-          Choose which explorer sections appear — and in what order — under
+          Choose which explorer sections appear (and in what order) under
           the <strong>Sections</strong> tab.
         </p>
       </div>
@@ -95,7 +95,7 @@ function ExplorerCard() {
       <div className="settings-card-head">
         <h2 className="settings-card-title">Explorer</h2>
         <p className="settings-card-sub">
-          Pin lexicons — or entire NSID groups like <code>app.bsky.feed.*</code> —
+          Pin lexicons (or entire NSID groups like <code>app.bsky.feed.*</code>)
           from any repo&apos;s collections tab to surface them at the top of the
           list. Useful for jumping straight to the records you touch most.
         </p>
@@ -110,7 +110,7 @@ function ExplorerCard() {
             <em>My repo</em> shows the Pinned section only on your own account
             page. <em>Every repo</em> bubbles a single shared list up on
             every page that has a match. <em>Separate</em> lets you keep
-            two different lists — one for your repo, another for everyone
+            two different lists: one for your repo, another for everyone
             else&apos;s.
           </span>
         </div>

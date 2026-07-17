@@ -143,7 +143,7 @@ export default function VisibilityTab({ prefs, onChange }: Props) {
             <div className="options-card-title">Your groups</div>
             <div className="options-card-sub">
               {groups.length === 0
-                ? 'No groups yet — create one below.'
+                ? 'No groups yet. Create one below.'
                 : `${groups.length} ${groups.length === 1 ? 'group' : 'groups'} · ${totalVisible} visible${hiddenCount > 0 ? ` · ${hiddenCount} hidden` : ''}`}
             </div>
           </div>

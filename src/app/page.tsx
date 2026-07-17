@@ -79,7 +79,7 @@ export default function HomePage() {
                 , the universal identifier the AT Protocol uses to point at
                 any record, profile, or resource. Pronounced like
                 &ldquo;Atari&rdquo; but with &ldquo;turi&rdquo; at the
-                end&mdash;<em>uh-tour-ee</em>.
+                end: <em>uh-tour-ee</em>.
               </p>
               <p>
                 Every piece of content in the Atmosphere has an AT URI that

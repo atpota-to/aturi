@@ -204,7 +204,7 @@ export default function ExtensionLanding() {
                 The same waypoint can live in more than one group, so
                 Anisota can sit in both Reading and Favorites without
                 duplicating preferences. Anything you leave out of every
-                group stays hidden from the popup — your groups <em>are</em>{' '}
+                group stays hidden from the popup: your groups <em>are</em>{' '}
                 your visibility settings.
               </p>
             </>

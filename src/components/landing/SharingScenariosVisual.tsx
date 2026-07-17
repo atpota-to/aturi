@@ -24,7 +24,7 @@ export default function SharingScenariosVisual() {
         author="ren"
         body={
           <>
-            check this out —{' '}
+            check this out:{' '}
             <Link>aturi.to/profile/aturi.to/post/3lq…</Link>
           </>
         }

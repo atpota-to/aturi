@@ -69,7 +69,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
         
         if (collection === 'app.bsky.graph.list' || collection.endsWith('.list')) {
           title = record.value?.name 
-            ? `${record.value.name} — Atmosphere List by @${displayHandle}`
+            ? `${record.value.name}: Atmosphere List by @${displayHandle}`
             : `Atmosphere List by @${displayHandle}`;
           description = record.value?.description 
             ? record.value.description.slice(0, 160)
@@ -88,7 +88,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
             case 'at.margin.annotation':
               title = record.value?.target?.title
                 ? `Annotation on "${record.value.target.title}" by @${displayHandle}`
-                : `Annotation by @${displayHandle} — View on Aturi`;
+                : `Annotation by @${displayHandle}: View on Aturi`;
               description = record.value?.body?.value
                 ? record.value.body.value.slice(0, 160)
                 : lexiconDescription;
@@ -96,7 +96,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
             case 'at.margin.bookmark':
               title = record.value?.title
                 ? `Bookmark: ${record.value.title} by @${displayHandle}`
-                : `Bookmark by @${displayHandle} — View on Aturi`;
+                : `Bookmark by @${displayHandle}: View on Aturi`;
               description = record.value?.description
                 ? record.value.description.slice(0, 160)
                 : record.value?.source || lexiconDescription;
@@ -104,38 +104,38 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
             case 'at.margin.highlight':
               title = record.value?.target?.title
                 ? `Highlight on "${record.value.target.title}" by @${displayHandle}`
-                : `Highlight by @${displayHandle} — View on Aturi`;
+                : `Highlight by @${displayHandle}: View on Aturi`;
               description = record.value?.target?.selector?.exact
                 ? record.value.target.selector.exact.slice(0, 160)
                 : lexiconDescription;
               break;
             case 'at.margin.collection':
               title = record.value?.name
-                ? `${record.value.name} — Margin Collection by @${displayHandle}`
+                ? `${record.value.name}: Margin Collection by @${displayHandle}`
                 : `Margin Collection by @${displayHandle}`;
               description = record.value?.description
                 ? record.value.description.slice(0, 160)
                 : lexiconDescription;
               break;
             case 'at.margin.reply':
-              title = `Reply by @${displayHandle} — View on Aturi`;
+              title = `Reply by @${displayHandle}: View on Aturi`;
               description = record.value?.text
                 ? record.value.text.slice(0, 160)
                 : lexiconDescription;
               break;
             case 'at.margin.like':
             case 'at.margin.collectionItem':
-              title = `${lexiconDisplayName} by @${displayHandle} — View on Aturi`;
+              title = `${lexiconDisplayName} by @${displayHandle}: View on Aturi`;
               description = lexiconDescription;
               break;
             default:
-              title = `${lexiconDisplayName} by @${displayHandle} — View on Aturi`;
+              title = `${lexiconDisplayName} by @${displayHandle}: View on Aturi`;
               description = lexiconDescription;
           }
         } else {
           // Generic record type
           const collectionName = collection.split('.').pop() || collection;
-          title = `${collection} record by ${displayHandle} (@${displayHandle}) — View on Aturi`;
+          title = `${collection} record by ${displayHandle} (@${displayHandle}): View on Aturi`;
           description = `View this ${collectionName} record in your preferred Atmosphere client`;
         }
       }
@@ -169,7 +169,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   }
 
   return {
-    title: `Record — View on Aturi`,
+    title: `Record: View on Aturi`,
     description: 'Tour the Atmosphere',
   };
 }
