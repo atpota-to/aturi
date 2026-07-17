@@ -44,11 +44,21 @@ export function getSiteUrl(): string {
   if (process.env.NEXT_PUBLIC_SITE_URL) {
     return process.env.NEXT_PUBLIC_SITE_URL;
   }
-  
-  if (process.env.VERCEL_URL) {
+
+  // On PREVIEW deployments, the per-deployment *.vercel.app host is the right
+  // base so OG images and canonical URLs resolve against the deploy you're
+  // viewing. On PRODUCTION, VERCEL_URL is *also* a per-deployment *.vercel.app
+  // host (not the canonical domain), so using it would point production OG
+  // images and canonical links at an ephemeral hostname — prefer the
+  // configured domain there instead.
+  if (
+    process.env.VERCEL_URL &&
+    process.env.VERCEL_ENV &&
+    process.env.VERCEL_ENV !== 'production'
+  ) {
     return `https://${process.env.VERCEL_URL}`;
   }
-  
+
   return `https://${config.domain}`;
 }
 

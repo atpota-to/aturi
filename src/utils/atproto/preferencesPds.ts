@@ -75,10 +75,16 @@ export async function readPreferencesFromPds(
     return { status: 'ok', prefs };
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    // The PDS responds with `RecordNotFound` (HTTP 400 / NotFound) when the
-    // record simply hasn't been created yet. Treat that as "no prefs in
-    // PDS" rather than an error worth surfacing.
-    if (/RecordNotFound|Could not locate record/i.test(msg) || /\b400\b/.test(msg)) {
+    const errName = (err as { error?: string })?.error ?? '';
+    // The PDS responds with `RecordNotFound` when the record simply hasn't
+    // been created yet. Treat ONLY that as "no prefs in PDS". A bare HTTP 400
+    // must NOT be treated as missing: the caller writes local prefs to the PDS
+    // on a `missing` result, so misclassifying a transient InvalidRequest/rate
+    // limit as missing would overwrite the user's saved preferences.
+    if (
+      /RecordNotFound/i.test(errName) ||
+      /RecordNotFound|Could not locate record/i.test(msg)
+    ) {
       return { status: 'missing' };
     }
     return { status: 'error', error: msg };

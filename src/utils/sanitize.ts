@@ -36,8 +36,14 @@ export function sanitizeUrl(url: string | undefined | null): string {
       }
     }
 
-    // Allow relative URLs (starting with / or #)
-    if (trimmedUrl.startsWith('/') || trimmedUrl.startsWith('#')) {
+    // Allow relative URLs (starting with / or #), but NOT protocol-relative
+    // URLs (//host), which the browser resolves to https://host — an
+    // open-redirect/phishing vector. Those fall through to the URL()
+    // validation below, which rejects them (no base).
+    if (
+      (trimmedUrl.startsWith('/') && !trimmedUrl.startsWith('//')) ||
+      trimmedUrl.startsWith('#')
+    ) {
       return trimmedUrl;
     }
 
