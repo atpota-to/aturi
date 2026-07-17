@@ -39,6 +39,12 @@ const FILES = [
     transform: identity,
   },
   {
+    // uriParser imports this; ship it in the package so the copy builds.
+    from: resolve(repoRoot, 'src/utils/upstreamFetch.ts'),
+    to: resolve(coreSrc, 'upstreamFetch.ts'),
+    transform: identity,
+  },
+  {
     from: resolve(repoRoot, 'src/utils/uriParser.ts'),
     to: resolve(coreSrc, 'uriParser.ts'),
     transform: identity,
