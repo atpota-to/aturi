@@ -6,6 +6,12 @@ const preactRoot = path.resolve(__dirname, 'node_modules/preact');
 export default defineConfig({
   modules: ['@wxt-dev/module-react'],
   srcDir: '.',
+  // Force MV3 on every target. WXT otherwise defaults Firefox/Safari to MV2,
+  // where declarativeNetRequest is unavailable to the extension — which
+  // silently disables the entire auto-redirect engine on those browsers while
+  // the options UI still offers the toggle. gecko strict_min_version 140+
+  // fully supports MV3 DNR and event-page backgrounds.
+  manifestVersion: 3,
   webExt: {
     binaries: {
       firefox: '/Applications/Firefox Developer Edition.app/Contents/MacOS/firefox',

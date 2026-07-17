@@ -45,7 +45,10 @@ function sourceRecipes(sourceId: SourceApp | string): SourceRecipe[] {
     case 'anisota': {
       const host = HOST_BY_SOURCE[sourceId as SourceApp];
       if (!host) return [];
-      const base = `^https://${escapeHost(host)}/profile/([^/]+)`;
+      // Exclude ?, # (and /) from the handle capture. `[^/]+` would otherwise
+      // swallow a trailing query string (e.g. /profile/alice?foo=bar) into the
+      // handle and redirect to a mangled destination.
+      const base = `^https://${escapeHost(host)}/profile/([^/?#]+)`;
       return [
         {
           regexFilter: `${base}/post/([^/?#]+).*`,
@@ -338,8 +341,6 @@ export function buildRules(prefs: Prefs, opts: BuildRulesOptions = {}): Redirect
   if (!prefs.autoRedirect) return [];
 
   const visible = visibleWaypointIds(prefs);
-  const rules: RedirectRule[] = [];
-  let nextId = opts.baseId ?? 1;
 
   // Sources to consider: every source we have a recipe for. We don't want a
   // missing entry in `defaults` to suppress favorite-driven redirects.
@@ -348,6 +349,18 @@ export function buildRules(prefs: Prefs, opts: BuildRulesOptions = {}): Redirect
     ...Object.keys(prefs.defaults),
     ...prefs.customWaypoints.map(c => c.id),
   ]));
+
+  // Pass 1: collect every eligible source->destination edge (after all
+  // visibility/compat/DID checks) without assigning rule ids yet.
+  type Candidate = {
+    source: string;
+    destinationId: string;
+    recipe: ReturnType<typeof sourceRecipes>[number];
+    substitution: string;
+  };
+  const candidates: Candidate[] = [];
+  const edgeKey = (type: string, src: string) => `${type} ${src}`;
+  const edge = new Map<string, string>();
 
   for (const source of sources) {
     if (!visible.has(source)) continue;
@@ -376,21 +389,50 @@ export function buildRules(prefs: Prefs, opts: BuildRulesOptions = {}): Redirect
       const substitution = buildSubstitution(destinationId, recipe, prefs.customWaypoints);
       if (!substitution) continue;
 
-      rules.push({
-        id: nextId++,
-        priority: 1,
-        action: {
-          type: 'redirect' as chrome.declarativeNetRequest.RuleActionType,
-          redirect: {
-            regexSubstitution: substitution,
-          },
-        },
-        condition: {
-          regexFilter: recipe.regexFilter,
-          resourceTypes: ['main_frame'] as chrome.declarativeNetRequest.ResourceType[],
-        },
-      });
+      candidates.push({ source, destinationId, recipe, substitution });
+      edge.set(edgeKey(recipe.type, source), destinationId);
     }
+  }
+
+  // Following the redirect chain for `start`+`type`, does it lead back to
+  // `target`? A per-source default combined with a family favorite can emit
+  // mutual A->B and B->A rules; DNR re-evaluates on each hop, so both firing
+  // ping-pongs the browser into ERR_TOO_MANY_REDIRECTS. Dropping the edges
+  // that close a loop keeps both sites reachable.
+  const leadsBackTo = (type: string, start: string, target: string): boolean => {
+    let cur = start;
+    const seen = new Set<string>();
+    while (edge.has(edgeKey(type, cur))) {
+      if (seen.has(cur)) return false; // pre-existing loop not involving target
+      seen.add(cur);
+      const next = edge.get(edgeKey(type, cur))!;
+      if (next === target) return true;
+      cur = next;
+    }
+    return false;
+  };
+
+  // Pass 2: emit rules, skipping any edge that would close a redirect cycle.
+  const rules: RedirectRule[] = [];
+  let nextId = opts.baseId ?? 1;
+
+  for (const c of candidates) {
+    if (leadsBackTo(c.recipe.type, c.destinationId, c.source)) continue;
+
+    rules.push({
+      id: nextId++,
+      priority: 1,
+      action: {
+        type: 'redirect' as chrome.declarativeNetRequest.RuleActionType,
+        redirect: {
+          regexSubstitution: c.substitution,
+        },
+      },
+      condition: {
+        regexFilter: c.recipe.regexFilter,
+        resourceTypes: ['main_frame'] as chrome.declarativeNetRequest.ResourceType[],
+      },
+    });
   }
 
   return rules;

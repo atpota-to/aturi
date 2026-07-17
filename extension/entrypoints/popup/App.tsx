@@ -205,27 +205,31 @@ export default function App() {
 
     setPendingId(waypoint.id);
 
-    let did = parsed.did;
-    if (requiresDid(waypoint.id, state.prefs.customWaypoints) && !did) {
-      const resolved = await resolveHandleToDid(parsed.handle);
-      if (!resolved) {
-        setPendingId(null);
-        alert(`Couldn't resolve ${parsed.handle} to a DID.`);
-        return;
+    // try/finally so any thrown error (resolveHandleToDid, openDestination,
+    // a rejected tabs API) still clears the pending state — otherwise the row
+    // stays spinner-locked and unclickable for the life of the popup.
+    try {
+      let did = parsed.did;
+      if (requiresDid(waypoint.id, state.prefs.customWaypoints) && !did) {
+        const resolved = await resolveHandleToDid(parsed.handle);
+        if (!resolved) {
+          alert(`Couldn't resolve ${parsed.handle} to a DID.`);
+          return;
+        }
+        did = resolved;
       }
-      did = resolved;
-    }
 
-    const url = waypoint.getUrl(parsed.handle, parsed.collection, parsed.rkey, did);
-    if (!url) {
+      const url = waypoint.getUrl(parsed.handle, parsed.collection, parsed.rkey, did);
+      if (!url) return;
+
+      await bumpRecent(waypoint.id);
+      await openDestination(url, state.tabId, state.prefs);
+      window.close();
+    } catch (err) {
+      console.error('[aturi] failed to open waypoint', err);
+    } finally {
       setPendingId(null);
-      return;
     }
-
-    await bumpRecent(waypoint.id);
-    await openDestination(url, state.tabId, state.prefs);
-    setPendingId(null);
-    window.close();
   }
 
   async function openHomeShortcut(waypoint: WaypointData) {
@@ -1040,9 +1044,23 @@ async function getActiveTab(): Promise<AnyTab | null> {
     }
   };
 
-  const allActive = await tryQuery({ active: true });
-  if (allActive.length) {
-    const withUrl = allActive.find(t => !!t.url);
+  // Prefer the window the popup is attached to. Querying a bare {active:true}
+  // first returns the active tab of EVERY window (with the 'tabs' permission
+  // every tab has a url), so with 2+ windows it can resolve to — and navigate —
+  // the wrong window's tab. currentWindow/lastFocusedWindow pin us to the user's
+  // actual foreground window; the broad queries stay only as a last resort.
+  const currentWin = await tryQuery({ active: true, currentWindow: true });
+  if (currentWin.length) {
+    const withUrl = currentWin.find(t => !!t.url);
+    if (withUrl) return withUrl;
+  }
+
+  const lastFocused = await tryQuery({
+    active: true,
+    lastFocusedWindow: true,
+  });
+  if (lastFocused.length) {
+    const withUrl = lastFocused.find(t => !!t.url);
     if (withUrl) return withUrl;
   }
 
@@ -1055,12 +1073,9 @@ async function getActiveTab(): Promise<AnyTab | null> {
     if (withUrl) return withUrl;
   }
 
-  const lastFocused = await tryQuery({
-    active: true,
-    lastFocusedWindow: true,
-  });
-  if (lastFocused.length) {
-    const withUrl = lastFocused.find(t => !!t.url);
+  const allActive = await tryQuery({ active: true });
+  if (allActive.length) {
+    const withUrl = allActive.find(t => !!t.url);
     if (withUrl) return withUrl;
   }
 
@@ -1090,5 +1105,5 @@ async function getActiveTab(): Promise<AnyTab | null> {
     /* ignore */
   }
 
-  return allActive[0] ?? allNormal[0] ?? lastFocused[0] ?? null;
+  return currentWin[0] ?? lastFocused[0] ?? allNormal[0] ?? allActive[0] ?? null;
 }

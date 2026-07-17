@@ -465,22 +465,30 @@ function migrateFavoriteByFamily(
   return next;
 }
 
-async function readFrom(area: StorageArea | null): Promise<Prefs | null> {
+async function readFrom(
+  area: StorageArea | null
+): Promise<{ prefs: Prefs; savedAt: number } | null> {
   if (!area) return null;
   try {
     const items = (await area.get(STORAGE_KEY)) as Record<string, unknown> | undefined;
-    const raw = items?.[STORAGE_KEY] as Partial<Prefs> | undefined;
-    return raw ? mergePrefs(raw) : null;
+    const raw = items?.[STORAGE_KEY] as (Partial<Prefs> & { _savedAt?: number }) | undefined;
+    if (!raw) return null;
+    const savedAt = typeof raw._savedAt === 'number' ? raw._savedAt : 0;
+    return { prefs: mergePrefs(raw), savedAt };
   } catch (err) {
     console.warn('[aturi:prefs] read failed', err);
     return null;
   }
 }
 
-async function writeTo(area: StorageArea | null, prefs: Prefs): Promise<boolean> {
+async function writeTo(
+  area: StorageArea | null,
+  prefs: Prefs,
+  savedAt: number
+): Promise<boolean> {
   if (!area) return false;
   try {
-    await area.set({ [STORAGE_KEY]: prefs });
+    await area.set({ [STORAGE_KEY]: { ...prefs, _savedAt: savedAt } });
     return true;
   } catch (err) {
     console.warn('[aturi:prefs] write failed', err);
@@ -494,13 +502,20 @@ async function writeTo(area: StorageArea | null, prefs: Prefs): Promise<boolean>
  * user has many custom waypoints).
  */
 export async function loadPrefs(): Promise<Prefs> {
-  const synced = await readFrom(getSyncArea());
-  if (synced) return synced;
+  const [synced, local] = await Promise.all([
+    readFrom(getSyncArea()),
+    readFrom(getLocalArea()),
+  ]);
 
-  const local = await readFrom(getLocalArea());
-  if (local) return local;
-
-  return { ...DEFAULT_PREFS };
+  // Prefer whichever area was written most recently. This is what makes the
+  // local fallback actually work: when a sync write fails on quota (the "many
+  // custom waypoints" case) and falls back to local, the local copy is newer
+  // and wins here — otherwise loadPrefs would keep returning the stale synced
+  // copy and every later edit would silently revert on the next load.
+  if (synced && local) {
+    return (local.savedAt > synced.savedAt ? local : synced).prefs;
+  }
+  return (synced ?? local)?.prefs ?? { ...DEFAULT_PREFS };
 }
 
 /**
@@ -508,7 +523,20 @@ export async function loadPrefs(): Promise<Prefs> {
  * `chrome.storage.sync` when possible; falls back to `local` if the sync
  * quota is hit.
  */
-export async function savePrefs(update: Partial<Prefs>): Promise<Prefs> {
+// Serialize writes through a single promise chain. Callers fire savePrefs
+// without awaiting from several places (popup + options, rapid toggles); run
+// concurrently they would each read the same base via loadPrefs and the last
+// write would clobber the others. Chaining guarantees each save re-reads the
+// freshest prefs inside its own turn.
+let saveQueue: Promise<Prefs> = Promise.resolve({ ...DEFAULT_PREFS });
+
+export function savePrefs(update: Partial<Prefs>): Promise<Prefs> {
+  const run = () => doSavePrefs(update);
+  saveQueue = saveQueue.then(run, run);
+  return saveQueue;
+}
+
+async function doSavePrefs(update: Partial<Prefs>): Promise<Prefs> {
   const current = await loadPrefs();
   const next: Prefs = {
     ...current,
@@ -531,9 +559,10 @@ export async function savePrefs(update: Partial<Prefs>): Promise<Prefs> {
     knownWaypointIds: update.knownWaypointIds ?? current.knownWaypointIds,
   };
 
-  const syncOk = await writeTo(getSyncArea(), next);
+  const savedAt = Date.now();
+  const syncOk = await writeTo(getSyncArea(), next, savedAt);
   if (!syncOk) {
-    await writeTo(getLocalArea(), next);
+    await writeTo(getLocalArea(), next, savedAt);
   }
 
   debugLog('savePrefs', { keys: Object.keys(update), storedTo: syncOk ? 'sync' : 'local' });

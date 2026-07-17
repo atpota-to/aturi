@@ -1,5 +1,5 @@
 ATURI BROWSER EXTENSION - PRIVACY POLICY
-Last updated: May 26, 2026
+Last updated: July 17, 2026
 
 Canonical URL: https://aturi.to/extension/privacy
 
@@ -42,9 +42,14 @@ browser vendor (Google, Mozilla, Apple, etc.) may sync this data across
 your devices through their own infrastructure under their own privacy
 policy. Aturi has no access to that synced data.
 
-The Inspect tab does not persist anything. AT URIs found on the page,
-identity records, record previews, and backlink counts live only in popup
-memory while the popup is open and are discarded when you close it.
+Identity records, record previews, and backlink counts fetched by the
+Inspect tab live only in popup memory while the popup is open and are
+discarded when you close it. One exception: when history is enabled (the
+default), the extension remembers the repo identifiers (the DID/handle) of
+records it saw, so the "no AT URIs on this page" empty state can suggest
+repos you recently looked at. These identifiers are stored locally alongside
+your other preferences, are gated on the same History toggle as the recents
+list, and are removed when you clear or disable history.
 
 
 2. WHAT THE EXTENSION READS FROM PAGES
@@ -63,14 +68,26 @@ the popup and Inspect tab locally.
     how the extension supports apps like Leaflet, Offprint, and pckt,
     which advertise their AT URI in the head rather than the URL.
 
-  - On-demand Inspect scan (inspect-scan.content.ts). This script does
-    nothing until you open the popup's Inspect tab on the page. When you
-    do, it scans the page for AT URIs (at://...) in the document head,
-    OpenGraph and Twitter meta tags, anchor hrefs, JSON-LD blocks, and a
-    capped portion (up to about 2 MB) of the page's visible text. It
-    returns the URIs it finds, deduplicated, along with a short
-    surrounding text snippet for context. It does not log, persist, or
-    transmit any other page content.
+  - Inspect scan (inspect-scan.content.ts). This script scans the page for
+    AT URIs (at://...) in the document head, OpenGraph and Twitter meta
+    tags, anchor hrefs, JSON-LD blocks, and a capped portion (up to about
+    2 MB) of the page's visible text. It runs in two modes:
+
+      * Passively, when the "highlight Atmosphere pages" badge is enabled
+        (the default): on each page load and SPA route change it runs the
+        scan and reports only the *count* of AT URIs it found to the
+        extension's own background worker, which drives the toolbar badge
+        and icon. No page content leaves the page — only a number. You can
+        turn this off with the passive-scan toggle in the options page,
+        after which the script stays idle until you ask for a scan.
+
+      * On demand, when you open the popup's Inspect tab: it runs the same
+        scan and returns the URIs it found, deduplicated, along with a
+        short surrounding text snippet for context, so the popup can render
+        the Inspect cards.
+
+    In both modes the scan stays inside your browser and never transmits
+    page content to Aturi-operated servers.
 
 Neither script injects content into pages you visit, modifies the DOM,
 intercepts form input, executes remote code, or participates in any
@@ -94,14 +111,22 @@ service, whose own privacy policy applies.
 
   - Inspect: identity resolution. When you open the Inspect tab and there
     is an AT URI to look up, the extension resolves the repo identifier
-    through the same Bluesky AppView and, for did:plc:... identifiers, may
-    also fetch the DID document from the PLC directory (plc.directory) to
+    through the same Bluesky AppView. For did:plc:... identifiers it may
+    fetch the DID document from the PLC directory (plc.directory), and for
+    did:web:... identifiers it fetches the DID document from the
+    /.well-known/did.json endpoint of the host named in the DID — to
     discover the user's PDS host.
+
+  - Inspect: repository description. To show a repo at a glance, the
+    Inspect tab calls com.atproto.repo.describeRepo on the resolved PDS
+    host, which returns the account's collections and handle.
 
   - Inspect: record fetch. Once the PDS host is known, the extension calls
     com.atproto.repo.getRecord on that PDS to fetch the record itself
     (when the AT URI points at a specific collection and rkey) so the
-    Inspect card can show a preview.
+    Inspect card can show a preview. For Bluesky posts it may additionally
+    call app.bsky.feed.getPostThread on the AppView to show reply/thread
+    context.
 
   - Inspect: backlink count. The Inspect tab queries the third-party
     Constellation index (constellation.microcosm.blue) with the AT URI to
