@@ -6,7 +6,7 @@ import { FadeIn } from '@/components/FadeIn';
 import UniversalLinksStrip from '@/components/home/UniversalLinksStrip';
 import ExtensionStrip from '@/components/home/ExtensionStrip';
 import ExplorerStrip from '@/components/home/ExplorerStrip';
-import { Code2, GitFork, Scale } from 'lucide-react';
+import { Code2, Scale } from 'lucide-react';
 
 export default function HomePage() {
   return (

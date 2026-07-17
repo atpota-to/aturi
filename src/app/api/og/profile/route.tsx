@@ -2,12 +2,14 @@ import { ImageResponse } from '@vercel/og';
 import { NextRequest } from 'next/server';
 import { fetchImageAsDataUrl } from '@/lib/og-image';
 import {
+  ArrowRight,
   BrandMark,
   Eyebrow,
   loadGoogleFont,
   OgFrame,
   OG_COLORS,
   OG_GLYPH_BASELINE,
+  sanitizeOgText,
 } from '@/lib/og-design';
 
 export const runtime = 'edge';
@@ -35,6 +37,9 @@ export async function GET(request: NextRequest) {
             'Accept': 'application/json',
           },
           next: { revalidate: 3600 }, // Cache for 1 hour
+          // A hung upstream connection here has kept this function alive
+          // until Vercel's 300s task timeout. Bound it like the avatar fetch.
+          signal: AbortSignal.timeout(8000),
         }
       );
 
@@ -45,9 +50,9 @@ export async function GET(request: NextRequest) {
       console.error('Error fetching profile:', error);
     }
 
-    const displayName = profileData?.displayName || profileData?.handle || identifier;
-    const handleName = profileData?.handle || identifier;
-    const bio = profileData?.description || '';
+    const displayName = sanitizeOgText(profileData?.displayName || profileData?.handle || identifier);
+    const handleName = sanitizeOgText(profileData?.handle || identifier);
+    const bio = sanitizeOgText(profileData?.description || '');
     const avatarUrl = profileData?.avatar || '';
     
     const avatarDataUrl = await fetchImageAsDataUrl(avatarUrl);
@@ -336,10 +341,13 @@ export async function GET(request: NextRequest) {
                 fontWeight: 300,
                 fontStyle: 'italic',
                 display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
                 justifyContent: 'flex-end',
               }}
             >
-              Open in any Atmosphere client →
+              <span style={{ display: 'flex' }}>Open in any Atmosphere client</span>
+              <ArrowRight size={22} color={OG_COLORS.textTertiary} />
             </div>
           </div>
         </OgFrame>
@@ -355,10 +363,17 @@ export async function GET(request: NextRequest) {
             style: 'normal',
           },
         ],
+        headers: {
+          // Override @vercel/og's default 1-year immutable cache: profile
+          // cards change when the account's avatar/name/bio changes.
+          'Cache-Control': 'public, max-age=3600, s-maxage=3600, stale-while-revalidate=86400',
+        },
       }
     );
   } catch (error) {
     console.error('Error generating OG image:', error);
-    return new Response('Error generating image', { status: 500 });
+    // Serve the branded static card instead of a broken image so link
+    // unfurls in Slack/Discord/Messages still show something.
+    return Response.redirect(new URL('/api/og/static', request.url), 302);
   }
 }

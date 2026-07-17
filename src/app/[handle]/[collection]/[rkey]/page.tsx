@@ -12,6 +12,7 @@ import { parseURI, resolveHandle, getDisplayName } from '@/utils/uriParser';
 import { fetchRecordData } from '@/utils/recordFetcher';
 import { resolveDidToHandle } from '@/utils/didResolver';
 import { getPostOgImage } from '@/utils/postOgImage';
+import { serializeJsonLd } from '@/utils/sanitize';
 import { getMarginLexiconType, getMarginLexiconDisplayName, getMarginLexiconDescription } from '@/utils/marginLexicons';
 import {
   MarginAnnotationPreview,
@@ -374,7 +375,7 @@ async function RecordContent({ handle, collection, rkey }: { handle: string; col
         {jsonLd && (
           <script
             type="application/ld+json"
-            dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+            dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }}
           />
         )}
 

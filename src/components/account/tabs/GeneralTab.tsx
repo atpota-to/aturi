@@ -96,7 +96,7 @@ function ExplorerCard() {
         <h2 className="settings-card-title">Explorer</h2>
         <p className="settings-card-sub">
           Pin lexicons — or entire NSID groups like <code>app.bsky.feed.*</code> —
-          from any repo's collections tab to surface them at the top of the
+          from any repo&apos;s collections tab to surface them at the top of the
           list. Useful for jumping straight to the records you touch most.
         </p>
       </div>
@@ -111,7 +111,7 @@ function ExplorerCard() {
             page. <em>Every repo</em> bubbles a single shared list up on
             every page that has a match. <em>Separate</em> lets you keep
             two different lists — one for your repo, another for everyone
-            else's.
+            else&apos;s.
           </span>
         </div>
         <div
@@ -201,7 +201,11 @@ function PinnedList({
   const [draft, setDraft] = useState('');
   const [err, setErr] = useState<string | null>(null);
   const [focused, setFocused] = useState(false);
-  const [activeIdx, setActiveIdx] = useState(0);
+  // Active suggestion index, keyed by the (draft, list-length) shape it was
+  // set against. When the filtered suggestions change the derived index
+  // resets to 0 on its own — replaces the old reset-on-change effect that
+  // tripped react-hooks/set-state-in-effect.
+  const [activeEntry, setActiveEntry] = useState<{ key: string; idx: number } | null>(null);
   const containerRef = useRef<HTMLFormElement>(null);
 
   // Source for autocomplete: NSIDs on the signed-in user's own repo.
@@ -259,12 +263,15 @@ function PinnedList({
     return () => document.removeEventListener('mousedown', onClick);
   }, [focused]);
 
-  // Reset active suggestion whenever the filtered set changes shape.
-  useEffect(() => {
-    setActiveIdx(0);
-  }, [draft, suggestions.length]);
-
   const suggestionsOpen = focused && suggestions.length > 0;
+
+  // Derived: whenever the filtered set changes shape the key changes and the
+  // index falls back to 0 without a reset effect.
+  const activeKey = `${draft}|${suggestions.length}`;
+  const activeIdx = activeEntry && activeEntry.key === activeKey ? activeEntry.idx : 0;
+  function setActiveIdx(next: number | ((i: number) => number)) {
+    setActiveEntry({ key: activeKey, idx: typeof next === 'function' ? next(activeIdx) : next });
+  }
 
   function pin(value: string) {
     const v = value.trim().toLowerCase();
@@ -478,7 +485,7 @@ function PinnedList({
         >
           Nothing pinned yet. Add an NSID or a group wildcard (e.g.
           app.bsky.feed.*) above, or use the pin button on rows and group
-          headers in any repo's Collections tab.
+          headers in any repo&apos;s Collections tab.
         </p>
       ) : (
         <ul

@@ -25,8 +25,10 @@ export type DescribeRepoResponse = {
   handleIsCorrect?: boolean;
 };
 
+import { upstreamFetch } from '../upstreamFetch';
+
 async function fetchJson<T>(url: string): Promise<T> {
-  const res = await fetch(url);
+  const res = await upstreamFetch(url);
   if (!res.ok) {
     const text = await res.text().catch(() => '');
     const err = new Error(

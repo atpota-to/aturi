@@ -12,6 +12,7 @@ import {
   type WaypointType,
 } from '@/utils/waypoints.data';
 import { resolveHandle } from '@/utils/uriParser';
+import { isBlockedFetchHost } from '@/utils/ssrfGuard';
 
 export const runtime = 'edge';
 
@@ -98,7 +99,9 @@ export async function GET(request: NextRequest) {
     match = matchSupportedUrl(parsedUrl);
     if (match) {
       detectedVia = 'urlPattern';
-    } else if (!skipHead) {
+    } else if (!skipHead && !isBlockedFetchHost(parsedUrl.hostname)) {
+      // Only fetch the page for head-link detection when it's a public host;
+      // never let this endpoint probe loopback/private/internal addresses.
       const headAtUri = await detectAtUriInHead(parsedUrl.toString());
       if (headAtUri) {
         match = parseAtUri(headAtUri);

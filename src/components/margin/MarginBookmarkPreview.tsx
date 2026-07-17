@@ -7,6 +7,7 @@
 
 import { useState } from 'react';
 import { GenericRecord } from '@/utils/recordFetcher';
+import { sanitizeUrl } from '@/utils/sanitize';
 import { X, Bookmark, ExternalLink, Tag, Calendar } from 'lucide-react';
 
 type MarginBookmarkPreviewProps = {
@@ -32,7 +33,7 @@ export default function MarginBookmarkPreview({
   handle,
   rkey,
 }: MarginBookmarkPreviewProps) {
-  const { value, cid } = record;
+  const { value } = record;
   const bookmark = value as BookmarkRecord;
   const [showJsonModal, setShowJsonModal] = useState(false);
 
@@ -114,7 +115,7 @@ export default function MarginBookmarkPreview({
 
           {/* Source URL */}
           <a
-            href={bookmark.source}
+            href={sanitizeUrl(bookmark.source)}
             target="_blank"
             rel="noopener noreferrer"
             style={{

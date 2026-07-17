@@ -528,18 +528,19 @@ function isDid(v: string): boolean {
  * DID changes. Returns null until resolved, or when the DID has no handle.
  */
 function useDidHandle(did: string): string | null {
-  const [handle, setHandle] = useState<string | null>(null);
+  // Keyed by DID: when it changes, the derived return value below is null
+  // until the new resolution lands — no reset-setState inside the effect.
+  const [entry, setEntry] = useState<{ did: string; handle: string | null } | null>(null);
   useEffect(() => {
     let cancelled = false;
-    setHandle(null);
     resolveDidHandle(did).then((h) => {
-      if (!cancelled) setHandle(h);
+      if (!cancelled) setEntry({ did, handle: h });
     });
     return () => {
       cancelled = true;
     };
   }, [did]);
-  return handle;
+  return entry && entry.did === did ? entry.handle : null;
 }
 
 /**

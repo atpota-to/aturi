@@ -17,18 +17,23 @@ type Props = {
 };
 
 export default function CredBlueScoreBadge({ identifier, linkHandle }: Props) {
-  const [state, setState] = useState<State>({ status: 'loading' });
+  // Keyed by identifier: when the prop changes, the derived `state` below
+  // falls back to loading on its own — no synchronous reset-setState in the
+  // effect, so a stale score never flashes for the new identifier either.
+  const [entry, setEntry] = useState<{ id: string; state: State } | null>(null);
 
   useEffect(() => {
     let cancelled = false;
-    setState({ status: 'loading' });
     fetchCachedCredBlueScore(identifier).then((score) => {
-      if (!cancelled) setState({ status: 'ready', score });
+      if (!cancelled) setEntry({ id: identifier, state: { status: 'ready', score } });
     });
     return () => {
       cancelled = true;
     };
   }, [identifier]);
+
+  const state: State =
+    entry && entry.id === identifier ? entry.state : { status: 'loading' };
 
   if (state.status === 'loading') return null;
 

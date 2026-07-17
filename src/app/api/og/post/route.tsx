@@ -1,6 +1,7 @@
 import { ImageResponse } from '@vercel/og';
 import { NextRequest } from 'next/server';
 import { fetchImageAsDataUrl } from '@/lib/og-image';
+import { sanitizeOgText } from '@/lib/og-design';
 import { getEmbedImages } from '@/utils/postEmbeds';
 
 export const runtime = 'edge';
@@ -105,9 +106,9 @@ export async function GET(request: NextRequest) {
       console.error('Error fetching post:', error);
     }
 
-    const displayName = authorData?.displayName || authorData?.handle || identifier;
-    const handleName = authorData?.handle || identifier;
-    const postText = postData?.text || '';
+    const displayName = sanitizeOgText(authorData?.displayName || authorData?.handle || identifier);
+    const handleName = sanitizeOgText(authorData?.handle || identifier);
+    const postText = sanitizeOgText(postData?.text || '');
     const truncatedText = postText.length > 180 ? postText.slice(0, 180) + '...' : postText;
     const avatarUrl = authorData?.avatar || '';
     
@@ -136,8 +137,8 @@ export async function GET(request: NextRequest) {
       else if (embed.$type === 'app.bsky.embed.record#view' && embed.record) {
         embedType = 'quote';
         const quotedRecord = embed.record;
-        embedQuoteAuthor = quotedRecord.author?.displayName || quotedRecord.author?.handle || 'Unknown';
-        embedQuoteText = quotedRecord.value?.text || quotedRecord.record?.text || '';
+        embedQuoteAuthor = sanitizeOgText(quotedRecord.author?.displayName || quotedRecord.author?.handle || 'Unknown');
+        embedQuoteText = sanitizeOgText(quotedRecord.value?.text || quotedRecord.record?.text || '');
         if (embedQuoteText.length > 120) {
           embedQuoteText = embedQuoteText.slice(0, 120) + '...';
         }
@@ -156,8 +157,8 @@ export async function GET(request: NextRequest) {
         // Also capture quote info if available
         if (embed.record?.record) {
           const quotedRecord = embed.record.record;
-          embedQuoteAuthor = quotedRecord.author?.displayName || quotedRecord.author?.handle || 'Unknown';
-          embedQuoteText = quotedRecord.value?.text || quotedRecord.record?.text || '';
+          embedQuoteAuthor = sanitizeOgText(quotedRecord.author?.displayName || quotedRecord.author?.handle || 'Unknown');
+          embedQuoteText = sanitizeOgText(quotedRecord.value?.text || quotedRecord.record?.text || '');
           if (embedQuoteText.length > 120) {
             embedQuoteText = embedQuoteText.slice(0, 120) + '...';
           }
@@ -517,13 +518,9 @@ export async function GET(request: NextRequest) {
     const duration = Date.now() - startTime;
     console.error(`[OG Post] Error generating OG image (${duration}ms):`, error);
     console.error('[OG Post] Error stack:', error instanceof Error ? error.stack : 'No stack trace');
-    
-    // Return a simple error response
-    return new Response(`Error generating image: ${error instanceof Error ? error.message : 'Unknown error'}`, { 
-      status: 500,
-      headers: {
-        'Content-Type': 'text/plain',
-      }
-    });
+
+    // Serve the branded static card instead of a broken image (and stop
+    // echoing internal error messages to the client).
+    return Response.redirect(new URL('/api/og/static', request.url), 302);
   }
 }

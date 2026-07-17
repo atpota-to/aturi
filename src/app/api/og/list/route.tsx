@@ -2,12 +2,14 @@ import { ImageResponse } from '@vercel/og';
 import { NextRequest } from 'next/server';
 import { fetchImageAsDataUrl } from '@/lib/og-image';
 import {
+  ArrowRight,
   BrandMark,
   Eyebrow,
   loadGoogleFont,
   OgFrame,
   OG_COLORS,
   OG_GLYPH_BASELINE,
+  sanitizeOgText,
 } from '@/lib/og-design';
 
 export const runtime = 'edge';
@@ -41,6 +43,9 @@ export async function GET(request: NextRequest) {
             'Accept': 'application/json',
           },
           next: { revalidate: 3600 }, // Cache for 1 hour
+          // Bound the upstream call so a hung connection can't pin the
+          // function until the platform's task timeout.
+          signal: AbortSignal.timeout(8000),
         }
       );
 
@@ -53,11 +58,11 @@ export async function GET(request: NextRequest) {
       console.error('Error fetching list:', error);
     }
 
-    const listName = listData?.name || 'Atmosphere List';
-    const listDescription = listData?.description || 'View this list in your preferred Atmosphere client';
+    const listName = sanitizeOgText(listData?.name || 'Atmosphere List');
+    const listDescription = sanitizeOgText(listData?.description || 'View this list in your preferred Atmosphere client');
     const truncatedDescription = listDescription.length > 120 ? listDescription.slice(0, 120) + '...' : listDescription;
-    const creatorName = creatorData?.displayName || creatorData?.handle || identifier;
-    const creatorHandle = creatorData?.handle || identifier;
+    const creatorName = sanitizeOgText(creatorData?.displayName || creatorData?.handle || identifier);
+    const creatorHandle = sanitizeOgText(creatorData?.handle || identifier);
     const creatorAvatarUrl = creatorData?.avatar || '';
     const listAvatarUrl = listData?.avatar || '';
     
@@ -238,10 +243,13 @@ export async function GET(request: NextRequest) {
                 fontWeight: 300,
                 fontStyle: 'italic',
                 display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
                 justifyContent: 'flex-end',
               }}
             >
-              Open in any Atmosphere client →
+              <span style={{ display: 'flex' }}>Open in any Atmosphere client</span>
+              <ArrowRight size={22} color={OG_COLORS.textTertiary} />
             </div>
           </div>
         </OgFrame>
@@ -257,10 +265,17 @@ export async function GET(request: NextRequest) {
             style: 'normal',
           },
         ],
+        headers: {
+          // Override @vercel/og's default 1-year immutable cache: list
+          // cards change when the list's name/description changes.
+          'Cache-Control': 'public, max-age=3600, s-maxage=3600, stale-while-revalidate=86400',
+        },
       }
     );
   } catch (error) {
     console.error('Error generating OG image:', error);
-    return new Response('Error generating image', { status: 500 });
+    // Serve the branded static card instead of a broken image so link
+    // unfurls in Slack/Discord/Messages still show something.
+    return Response.redirect(new URL('/api/og/static', request.url), 302);
   }
 }
