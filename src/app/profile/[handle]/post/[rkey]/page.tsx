@@ -248,10 +248,34 @@ async function PostContent({ handle, rkey }: { handle: string; rkey: string }) {
 
         {post && recordData && recordData.type === 'post' && (
           <div className="content-fade-in">
-            <PostPreview 
-              post={post} 
+            <PostPreview
+              post={post}
               parent={recordData.data.parent}
             />
+          </div>
+        )}
+
+        {/* Covers both a deleted post and a transient host failure (the fetch
+            returns null for both), so the visitor isn't shown a bare picker
+            with no explanation. The picker still renders below. */}
+        {!post && (
+          <div
+            className="content-fade-in"
+            style={{
+              border: '1px solid var(--border-medium)',
+              background: 'var(--bg-secondary)',
+              padding: '1rem 1.25rem',
+              marginBottom: '1.5rem',
+              color: 'var(--text-secondary)',
+              fontSize: '0.9375rem',
+              lineHeight: 1.5,
+            }}
+          >
+            <strong style={{ color: 'var(--text-primary)' }}>
+              We couldn&rsquo;t load a preview for this post.
+            </strong>{' '}
+            It may have been deleted, or the account&rsquo;s host server may be
+            temporarily unavailable. You can still try opening it in a client below.
           </div>
         )}
 

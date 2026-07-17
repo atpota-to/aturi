@@ -460,6 +460,32 @@ async function RecordContent({ handle, collection, rkey }: { handle: string; col
           </div>
         )}
 
+        {/* The record fetch returns null for both a deleted/nonexistent record
+            and a transient host failure, so this notice covers both honestly
+            rather than silently showing the picker with no preview and no
+            explanation. The picker still renders below — its client links work
+            if the record exists elsewhere or the host recovers. */}
+        {!recordData && (
+          <div
+            className="content-fade-in"
+            style={{
+              border: '1px solid var(--border-medium)',
+              background: 'var(--bg-secondary)',
+              padding: '1rem 1.25rem',
+              marginBottom: '1.5rem',
+              color: 'var(--text-secondary)',
+              fontSize: '0.9375rem',
+              lineHeight: 1.5,
+            }}
+          >
+            <strong style={{ color: 'var(--text-primary)' }}>
+              We couldn&rsquo;t load a preview for this record.
+            </strong>{' '}
+            It may have been deleted, or the account&rsquo;s host server may be
+            temporarily unavailable. You can still try opening it in a client below.
+          </div>
+        )}
+
         <WaypointPicker
           type={parsedData.type}
           handle={resolvedHandle}
