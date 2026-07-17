@@ -21,9 +21,14 @@ const PAGE_LIMIT = 100;
  *   - Top:  a ranked list (by creates or repos/DID-estimate).
  *   - All:  the entire catalog, cursor-paginated with "Load more".
  *
- * The "One per group" filter collapses the list to a single row per
- * 2-segment namespace (the highest-ranked one), so a project with many
- * collections — e.g. hundreds of app.bsky.* — doesn't swamp the view.
+ * The "One per group" filter (on by default) collapses the list to a
+ * single row per 2-segment namespace (the highest-ranked one), so a
+ * project with many collections — e.g. hundreds of app.bsky.* — doesn't
+ * swamp the view.
+ *
+ * Only one stat column is shown at a time — the one picked by the
+ * Creates/Repos toggle — so the NSID column keeps as much width as
+ * possible. In Top that toggle is also the sort key.
  *
  * `order` and `cursor` are mutually exclusive in the API, so Top never
  * paginates and All never sorts.
@@ -31,20 +36,20 @@ const PAGE_LIMIT = 100;
 export default function BrowseAllLexicons() {
   const [view, setView] = useState<View>('top');
   const [order, setOrder] = useState<CollectionOrder>('records-created');
-  const [dedupe, setDedupe] = useState(false);
+  const [dedupe, setDedupe] = useState(true);
   const [rows, setRows] = useState<NsidCount[] | null>(null);
   const [cursor, setCursor] = useState<string | null>(null);
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Initial / re-filter load. Keep previous rows visible on toggle.
+  // Top view: a ranked pool sorted by the selected metric, so a metric change
+  // is a re-sort and must refetch. We over-fetch (TOP_FETCH) so "one per group"
+  // still has a deep pool to dedupe from. Keep previous rows visible on toggle.
   useEffect(() => {
+    if (view !== 'top') return;
     let cancelled = false;
     (async () => {
-      const res =
-        view === 'top'
-          ? await fetchCollections({ order, limit: TOP_FETCH })
-          : await fetchCollections({ limit: PAGE_LIMIT });
+      const res = await fetchCollections({ order, limit: TOP_FETCH });
       if (cancelled) return;
       // Surface a real API failure instead of rendering it as "No lexicons
       // found." (an empty result the user would read as authoritative).
@@ -55,18 +60,47 @@ export default function BrowseAllLexicons() {
       }
       setError(null);
       setRows(res.collections);
-      setCursor(view === 'all' ? res.cursor : null);
+      setCursor(null);
     })();
     return () => {
       cancelled = true;
     };
   }, [view, order]);
 
+  // All view: the unsorted catalog, cursor-paginated. The metric only picks
+  // which stat column shows here, so it deliberately isn't a dependency —
+  // otherwise switching Creates/Repos would discard every "Load more" page.
+  useEffect(() => {
+    if (view !== 'all') return;
+    let cancelled = false;
+    (async () => {
+      const res = await fetchCollections({ limit: PAGE_LIMIT });
+      if (cancelled) return;
+      if (res.failed) {
+        setError('the UFOs API is unavailable');
+        setRows((prev) => prev ?? []);
+        return;
+      }
+      setError(null);
+      setRows(res.collections);
+      setCursor(res.cursor);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [view]);
+
   const displayed = useMemo(() => {
     if (!rows) return null;
     if (dedupe) return dedupeByNamespace(rows);
     return view === 'top' ? rows.slice(0, TOP_DISPLAY) : rows;
   }, [rows, dedupe, view]);
+
+  // Only one stat column is shown at a time (chosen by the Creates/Repos
+  // toggle) so the NSID column gets the freed-up width.
+  const showCreates = order === 'records-created';
+  const metricLabel = showCreates ? 'Creates' : 'Repos';
+  const statFor = (c: NsidCount) => (showCreates ? c.creates : c.dids_estimate);
 
   async function loadMore() {
     if (!cursor || loadingMore) return;
@@ -108,17 +142,15 @@ export default function BrowseAllLexicons() {
             value={view}
             onChange={(v) => setView(v as View)}
           />
-          {view === 'top' && (
-            <Segmented
-              ariaLabel="Rank by"
-              options={[
-                { value: 'records-created', label: 'Creates' },
-                { value: 'dids-estimate', label: 'Repos' },
-              ]}
-              value={order}
-              onChange={(v) => setOrder(v as CollectionOrder)}
-            />
-          )}
+          <Segmented
+            ariaLabel={view === 'top' ? 'Rank by' : 'Show metric'}
+            options={[
+              { value: 'records-created', label: 'Creates' },
+              { value: 'dids-estimate', label: 'Repos' },
+            ]}
+            value={order}
+            onChange={(v) => setOrder(v as CollectionOrder)}
+          />
           <button
             type="button"
             onClick={() => setDedupe((v) => !v)}
@@ -144,7 +176,7 @@ export default function BrowseAllLexicons() {
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: 'minmax(0, 1fr) 5rem 5rem',
+          gridTemplateColumns: 'minmax(0, 1fr) 5rem',
           gap: '0.875rem',
           padding: '0.4rem 1rem',
           borderBottom: '1px solid var(--border-subtle)',
@@ -152,8 +184,7 @@ export default function BrowseAllLexicons() {
         className="explore-small-caps"
       >
         <span>Lexicon</span>
-        <span style={{ textAlign: 'right' }}>Creates</span>
-        <span style={{ textAlign: 'right' }}>Repos</span>
+        <span style={{ textAlign: 'right' }}>{metricLabel}</span>
       </div>
 
       {error && (displayed === null || displayed.length === 0) ? (
@@ -180,7 +211,7 @@ export default function BrowseAllLexicons() {
                 href={lexiconPathFor(c.nsid)}
                 style={{
                   display: 'grid',
-                  gridTemplateColumns: 'minmax(0, 1fr) 5rem 5rem',
+                  gridTemplateColumns: 'minmax(0, 1fr) 5rem',
                   gap: '0.875rem',
                   alignItems: 'center',
                   padding: '0.55rem 1rem',
@@ -206,8 +237,7 @@ export default function BrowseAllLexicons() {
                 >
                   {c.nsid}
                 </span>
-                <Count value={c.creates} />
-                <Count value={c.dids_estimate} />
+                <Count value={statFor(c)} />
               </Link>
             </li>
           ))}
@@ -279,7 +309,7 @@ function BrowseSkeleton() {
           key={i}
           style={{
             display: 'grid',
-            gridTemplateColumns: 'minmax(0, 1fr) 5rem 5rem',
+            gridTemplateColumns: 'minmax(0, 1fr) 5rem',
             gap: '0.875rem',
             alignItems: 'center',
             padding: '0.55rem 1rem',
@@ -287,9 +317,6 @@ function BrowseSkeleton() {
           }}
         >
           <Skeleton width={w} height="0.75rem" />
-          <span style={{ display: 'flex', justifyContent: 'flex-end' }}>
-            <Skeleton width="2.5rem" height="0.75rem" />
-          </span>
           <span style={{ display: 'flex', justifyContent: 'flex-end' }}>
             <Skeleton width="2.5rem" height="0.75rem" />
           </span>
