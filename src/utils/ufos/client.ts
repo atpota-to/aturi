@@ -48,7 +48,7 @@ export async function fetchCollections(opts: {
   limit?: number;
   since?: string;
   until?: string;
-} = {}): Promise<{ collections: NsidCount[]; cursor: string | null }> {
+} = {}): Promise<{ collections: NsidCount[]; cursor: string | null; failed: boolean }> {
   const params = new URLSearchParams();
   if (opts.order) {
     params.set('order', opts.order);
@@ -60,7 +60,10 @@ export async function fetchCollections(opts: {
   const data = await fetchJsonOrNull<{ collections?: NsidCount[]; cursor?: string | null }>(
     `${UFOS_API}/collections?${params.toString()}`,
   );
-  return { collections: data?.collections ?? [], cursor: data?.cursor ?? null };
+  // `failed` distinguishes a real request failure (null) from a genuinely
+  // empty result ([]), so callers can show an error state instead of silently
+  // rendering an outage as "no data". Existing callers ignore the extra field.
+  return { collections: data?.collections ?? [], cursor: data?.cursor ?? null, failed: data === null };
 }
 
 /**

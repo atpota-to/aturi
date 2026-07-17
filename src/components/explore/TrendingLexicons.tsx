@@ -497,11 +497,18 @@ async function fetchRanking(
 
   // 1) Candidate pool. Order by whichever the API supports best for this
   //    metric; ties / unsupported orders fall back to records-created.
-  const { collections: candidates } = await fetchCollections({
+  const { collections: candidates, failed } = await fetchCollections({
     order: orderForMetric(metric),
     limit: CANDIDATE_POOL,
     since: sinceIso,
   });
+
+  // A real API failure must surface as an error, not an empty leaderboard.
+  // Without this the swallowed failure rendered "No lexicons matched in this
+  // window." as if the network were fine and there were genuinely no activity.
+  if (failed) {
+    throw new Error('the UFOs API is unavailable');
+  }
 
   // 2) Filter (mode-specific) + dedup by top-2-segment namespace.
   const filtered = filterAndDedup(candidates, mode);

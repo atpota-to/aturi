@@ -35,6 +35,7 @@ export default function BrowseAllLexicons() {
   const [rows, setRows] = useState<NsidCount[] | null>(null);
   const [cursor, setCursor] = useState<string | null>(null);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   // Initial / re-filter load. Keep previous rows visible on toggle.
   useEffect(() => {
@@ -45,6 +46,14 @@ export default function BrowseAllLexicons() {
           ? await fetchCollections({ order, limit: TOP_FETCH })
           : await fetchCollections({ limit: PAGE_LIMIT });
       if (cancelled) return;
+      // Surface a real API failure instead of rendering it as "No lexicons
+      // found." (an empty result the user would read as authoritative).
+      if (res.failed) {
+        setError('the UFOs API is unavailable');
+        setRows((prev) => prev ?? []);
+        return;
+      }
+      setError(null);
       setRows(res.collections);
       setCursor(view === 'all' ? res.cursor : null);
     })();
@@ -147,7 +156,11 @@ export default function BrowseAllLexicons() {
         <span style={{ textAlign: 'right' }}>Repos</span>
       </div>
 
-      {displayed === null ? (
+      {error && (displayed === null || displayed.length === 0) ? (
+        <div className="explore-error" style={{ padding: '1rem' }}>
+          Couldn&rsquo;t reach the UFOs API: {error}
+        </div>
+      ) : displayed === null ? (
         <BrowseSkeleton />
       ) : displayed.length === 0 ? (
         <p className="explore-placeholder" style={{ margin: 0 }}>

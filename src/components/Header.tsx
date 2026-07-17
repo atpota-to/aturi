@@ -42,9 +42,20 @@ export default function Header({ simple = false, compact = false }: HeaderProps)
       }
     };
 
+    // Escape closes whichever panel is open — keyboard users otherwise had no
+    // way to dismiss the expanded nav menu (only an outside mouse click).
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setIsExpanded(false);
+        setIsSearchExpanded(false);
+      }
+    };
+
     document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleKeyDown);
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleKeyDown);
     };
   }, [compact, isExpanded, isSearchExpanded]);
 
@@ -217,6 +228,8 @@ export default function Header({ simple = false, compact = false }: HeaderProps)
         {/* Search panel — sits in the same expanding region as the menu
             panel but is its own card so the two slide independently. */}
         <div
+          // Keep the collapsed search input out of the tab order / a11y tree.
+          inert={!isSearchExpanded}
           style={{
             position: 'absolute',
             top: '100%',
@@ -245,6 +258,11 @@ export default function Header({ simple = false, compact = false }: HeaderProps)
 
         {/* Expanding organic nav panel */}
         <div
+          // `inert` when collapsed removes the hidden panel's links and
+          // controls from the tab order and accessibility tree. scaleY(0) +
+          // opacity + pointerEvents alone left keyboard users tabbing through
+          // an invisible menu.
+          inert={!isExpanded}
           style={{
             position: 'absolute',
             top: '100%',

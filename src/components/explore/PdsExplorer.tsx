@@ -422,6 +422,37 @@ function ExternalLinkRow({
   );
 }
 
+// A PDS page renders up to ~50 repo rows at once, each of which looks up its
+// handle via describeRepo. Firing all of them on mount hit the PDS with ~50
+// simultaneous requests (rate-limit / hammer risk). This tiny semaphore caps
+// concurrent lookups; rows still fill in their handle as slots free up.
+const HANDLE_LOOKUP_CONCURRENCY = 6;
+let activeLookups = 0;
+const lookupWaiters: (() => void)[] = [];
+
+function acquireLookupSlot(): Promise<void> {
+  if (activeLookups < HANDLE_LOOKUP_CONCURRENCY) {
+    activeLookups++;
+    return Promise.resolve();
+  }
+  return new Promise<void>((resolve) => lookupWaiters.push(resolve));
+}
+
+function releaseLookupSlot(): void {
+  const next = lookupWaiters.shift();
+  if (next) next(); // hand the slot straight to the next waiter
+  else activeLookups--;
+}
+
+async function describeRepoLimited(pdsBase: string, did: string) {
+  await acquireLookupSlot();
+  try {
+    return await describeRepo(pdsBase, did);
+  } finally {
+    releaseLookupSlot();
+  }
+}
+
 /**
  * Single repo row — DID always shown immediately; the canonical handle is
  * fetched in the background via describeRepo and slots in once available.
@@ -431,7 +462,7 @@ function RepoRow({ repo, pdsBase }: { repo: RepoEntry; pdsBase: string }) {
 
   useEffect(() => {
     let cancelled = false;
-    describeRepo(pdsBase, repo.did)
+    describeRepoLimited(pdsBase, repo.did)
       .then((res) => {
         if (!cancelled && res.handle) setHandle(res.handle);
       })
