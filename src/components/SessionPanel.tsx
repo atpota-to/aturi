@@ -5,8 +5,8 @@ import Link from 'next/link';
 import { ArrowLeft, LogIn, LogOut, Settings, Telescope, User } from 'lucide-react';
 import { useAtprotoSession } from './AtprotoSessionProvider';
 import ScopeSelector from './oauth/ScopeSelector';
-import { rememberCurrentPathForReturn } from '@/lib/oauth/returnTo';
-import { getProfile, type AppViewProfile } from '@/utils/atproto/appview';
+import { useSignInFlow } from './oauth/useSignInFlow';
+import { useSessionProfile } from './useSessionProfile';
 import { encodeRepo } from '@/utils/atproto/urls';
 
 type Props = {
@@ -21,8 +21,6 @@ type Props = {
   onSignInActiveChange?: (active: boolean) => void;
 };
 
-type SignInStep = 'idle' | 'handle' | 'scopes';
-
 /**
  * Inline session UI for the compact header's expanding menu panel. Renders
  * as a stack of compact-nav-link rows, NOT a dropdown (the parent panel
@@ -33,16 +31,20 @@ type SignInStep = 'idle' | 'handle' | 'scopes';
  * sign-out.
  */
 export default function SessionPanel({ onNavigate, onSignInActiveChange }: Props) {
-  const { session, did, signIn, signOut, loading } = useAtprotoSession();
-  // Keyed by DID so switching accounts derives back to null on its own —
-  // no reset-setState in the effect, and no stale avatar flash.
-  const [profileEntry, setProfileEntry] = useState<{ did: string; profile: AppViewProfile | null } | null>(null);
-  const profile = did && profileEntry && profileEntry.did === did ? profileEntry.profile : null;
-  const [signInStep, setSignInStep] = useState<SignInStep>('idle');
+  const { session, did, signOut, loading } = useAtprotoSession();
+  const profile = useSessionProfile(did);
+  const {
+    step: signInStep,
+    setStep: setSignInStep,
+    pendingAccount,
+    busy,
+    error,
+    setError,
+    proceedToScopes,
+    backToHandle,
+    submitScopes,
+  } = useSignInFlow('idle');
   const [signInValue, setSignInValue] = useState('');
-  const [pendingAccount, setPendingAccount] = useState('');
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   // Mirror the flow's active/idle status up to the parent so it can
   // hide adjacent nav rows while the form is taking over the panel.
@@ -51,17 +53,6 @@ export default function SessionPanel({ onNavigate, onSignInActiveChange }: Props
   useEffect(() => {
     onSignInActiveChange?.(signInStep !== 'idle');
   }, [signInStep, onSignInActiveChange]);
-
-  useEffect(() => {
-    if (!did) return undefined;
-    let cancelled = false;
-    getProfile(did).then((p) => {
-      if (!cancelled) setProfileEntry({ did, profile: p });
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [did]);
 
   if (loading) return null;
 
@@ -72,11 +63,7 @@ export default function SessionPanel({ onNavigate, onSignInActiveChange }: Props
         <form
           onSubmit={(e) => {
             e.preventDefault();
-            const v = signInValue.trim();
-            if (!v) return;
-            setError(null);
-            setPendingAccount(v);
-            setSignInStep('scopes');
+            proceedToScopes(signInValue);
           }}
           style={{
             display: 'flex',
@@ -141,21 +128,8 @@ export default function SessionPanel({ onNavigate, onSignInActiveChange }: Props
             account={pendingAccount}
             busy={busy}
             error={error}
-            onBack={() => {
-              setSignInStep('handle');
-              setError(null);
-            }}
-            onContinue={async (scopeString) => {
-              setBusy(true);
-              setError(null);
-              try {
-                rememberCurrentPathForReturn();
-                await signIn(pendingAccount, scopeString);
-              } catch (err) {
-                setBusy(false);
-                setError(err instanceof Error ? err.message : String(err));
-              }
-            }}
+            onBack={backToHandle}
+            onContinue={submitScopes}
           />
         </div>
       );
