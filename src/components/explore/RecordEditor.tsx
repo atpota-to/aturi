@@ -507,21 +507,25 @@ function FieldShell({
   charCount?: string | null;
   children: React.ReactNode;
 }) {
+  // The whole field is a <label> wrapping its control, so every input in the
+  // editor gets an implicit programmatic label (previously the caption was a
+  // bare <label> with no htmlFor, leaving each control announced as unlabeled).
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
+    <label style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
       {label && (
-        <label
+        <span
           className="explore-small-caps"
           style={{ color: 'var(--text-secondary)', fontSize: '0.75rem' }}
         >
           {label}
           {required && <span style={{ color: 'var(--danger)' }}> *</span>}
-        </label>
+        </span>
       )}
       {children}
       {(hint || charCount) && (
-        <p
+        <span
           style={{
+            display: 'block',
             margin: 0,
             fontSize: '0.75rem',
             color: 'var(--text-tertiary)',
@@ -530,9 +534,9 @@ function FieldShell({
           {hint}
           {hint && charCount ? ' · ' : ''}
           {charCount}
-        </p>
+        </span>
       )}
-    </div>
+    </label>
   );
 }
 
