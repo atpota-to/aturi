@@ -67,6 +67,89 @@ describe('scanDocumentForAtUrisFast', () => {
   });
 });
 
+describe('AT Tags (at: meta) detection', () => {
+  const CANON = 'at://did:plc:abc123/site.standard.document/rkey';
+  const AUTHOR = 'at://did:plc:author';
+
+  it('detects at:canonical/at:author and labels the relation', () => {
+    const doc = docFrom(`
+      <html><head>
+        <meta name="at:canonical" content="${CANON}" />
+        <meta name="at:author" content="${AUTHOR}" />
+      </head><body></body></html>
+    `);
+    const hits = scanDocumentForAtUrisFast(doc);
+    const canon = hits.find((h) => h.uri === CANON);
+    const author = hits.find((h) => h.uri === AUTHOR);
+    expect(canon?.where).toBe('at-tags');
+    expect(canon?.relation).toBe('canonical');
+    expect(author?.where).toBe('at-tags');
+    expect(author?.relation).toBe('author');
+  });
+
+  it('labels namespaced relations as namespace:property', () => {
+    const doc = docFrom(`
+      <html><head>
+        <meta name="at:standard.site:comments" content="${CANON}" />
+      </head><body></body></html>
+    `);
+    const hits = scanDocumentForAtUrisFast(doc);
+    expect(hits[0].relation).toBe('standard.site:comments');
+  });
+
+  it('ranks an at:canonical declaration above a bare <link> for the same URI', () => {
+    const doc = docFrom(`
+      <html><head>
+        <meta name="at:canonical" content="${CANON}" />
+        <link rel="alternate" href="${CANON}" />
+      </head><body></body></html>
+    `);
+    const merged = dedupeByUri(scanDocumentForAtUris(doc));
+    const hit = merged.find((h) => h.uri === CANON);
+    expect(hit?.where).toBe('at-tags');
+    expect(hit?.relation).toBe('canonical');
+  });
+
+  it('keeps one detection per URI, labeled with the most authoritative relation', () => {
+    // Same DID declared as both author and me; canonical also shares a URI with
+    // a namespaced relation that appears first in the document.
+    const SELF = 'at://did:plc:me';
+    const doc = docFrom(`
+      <html><head>
+        <meta name="at:standard.site:comments" content="${CANON}" />
+        <meta name="at:canonical" content="${CANON}" />
+        <meta name="at:author" content="${SELF}" />
+        <meta name="at:me" content="${SELF}" />
+      </head><body></body></html>
+    `);
+    const hits = scanDocumentForAtUrisFast(doc).filter((h) => h.where === 'at-tags');
+    const canon = hits.filter((h) => h.uri === CANON);
+    const self = hits.filter((h) => h.uri === SELF);
+    expect(canon).toHaveLength(1);
+    expect(canon[0].relation).toBe('canonical'); // beats standard.site:comments
+    expect(self).toHaveLength(1);
+    expect(self[0].relation).toBe('author'); // beats me
+  });
+
+  it('orders at-tags ahead of a URL-pattern hit for a different URI', () => {
+    const OTHER = 'at://did:plc:other/site.standard.document/x';
+    const doc = docFrom(`
+      <html><head>
+        <meta name="at:canonical" content="${CANON}" />
+      </head><body></body></html>
+    `);
+    // Simulate the popup path: a URL-pattern hit collected first, then the
+    // content-script DOM hits appended.
+    const hits = [
+      { uri: OTHER, where: 'url' as const },
+      ...scanDocumentForAtUris(doc),
+    ];
+    const merged = dedupeByUri(hits);
+    expect(merged[0].where).toBe('at-tags');
+    expect(merged[0].uri).toBe(CANON);
+  });
+});
+
 describe('scanDocumentForAtUris (full)', () => {
   it('does pick up body-text URIs that the fast scan ignores', () => {
     const doc = docFrom(`

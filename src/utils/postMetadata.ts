@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import type { BskyPost } from './recordFetcher';
 import { getPostOgImage } from './postOgImage';
+import { buildAtTagsMetadata } from './atproto/atTags';
 
 /**
  * Build the page <head> metadata for a Bluesky post. Shared by the two routes
@@ -76,6 +77,13 @@ export function buildPostMetadata(
       ...(ogImage ? { images: [ogImage.url] } : {}),
     },
     other: {
+      // AT Tags (https://tangled.org/chrisshank.com/at-tags/): declare the
+      // record this page renders and the identity that authored it, so
+      // extensions, crawlers, and verifiers can map the page back to atproto.
+      ...buildAtTagsMetadata({
+        canonical: atUri,
+        author: `at://${resolvedDid}`,
+      }),
       'profile:username': author.handle,
       ...(publishedTime
         ? {

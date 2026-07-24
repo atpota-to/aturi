@@ -963,6 +963,26 @@ body {
   flex-shrink: 0;
 }
 
+/* AT Tags relation badge — labels a detection that came from an explicit
+   `<meta name="at:...">` declaration (canonical / author / me / namespaced).
+   Sits at the head of the breadcrumb as a small accent pill. */
+.inspect-relation {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  flex-shrink: 0;
+  padding: 1px 6px;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-accent);
+  background: var(--bg-accent-subtle, rgba(120, 120, 200, 0.12));
+  border: 1px solid var(--border-subtle);
+  border-radius: 0;
+}
+
 .inspect-preview {
   font-size: 12px;
   color: var(--text-secondary);

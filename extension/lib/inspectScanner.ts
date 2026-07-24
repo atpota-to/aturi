@@ -4,16 +4,23 @@
  * of detected AT URIs back to the popup for display.
  *
  * Bucket meanings:
- *   - 'url'   : the page URL itself matched a known atmosphere app pattern.
- *   - 'head'  : <link href="at://..."> in <head>.
- *   - 'meta'  : OpenGraph / Twitter meta tags with an at:// value.
- *   - 'link'  : <a href="at://..."> anywhere on the page.
- *   - 'jsonld': inside a <script type="application/ld+json"> block.
- *   - 'text'  : raw at:// substring in document.body.innerText.
+ *   - 'url'    : the page URL itself matched a known atmosphere app pattern.
+ *   - 'at-tags': the AT Tags proposal — <meta name="at:canonical" content="at://...">
+ *                and its siblings (alternate / author / me / namespaced). This
+ *                is an explicit, machine-readable declaration by the page, so
+ *                it's the most authoritative DOM signal.
+ *   - 'head'   : <link href="at://..."> in <head>.
+ *   - 'meta'   : OpenGraph / Twitter meta tags with an at:// value.
+ *   - 'link'   : <a href="at://..."> anywhere on the page.
+ *   - 'jsonld' : inside a <script type="application/ld+json"> block.
+ *   - 'text'   : raw at:// substring in document.body.innerText.
  */
+
+import { parseAtTagsFromDocument } from '@aturi/atproto/atTags';
 
 export type DetectedSource =
   | 'url'
+  | 'at-tags'
   | 'head'
   | 'meta'
   | 'link'
@@ -24,6 +31,12 @@ export type DetectedAtUri = {
   uri: string;
   where: DetectedSource;
   sample?: string;
+  /**
+   * The declared relationship for an AT Tags hit: a standard property
+   * (`canonical` / `alternate` / `author` / `me`) or a namespaced
+   * `namespace:property`. Only set when `where === 'at-tags'`.
+   */
+  relation?: string;
 };
 
 const AT_URI_REGEX = /at:\/\/[A-Za-z0-9._:-]+(?:\/[A-Za-z0-9._-]+)?(?:\/[A-Za-z0-9._~-]+)?/g;
@@ -47,6 +60,47 @@ function addUnique(out: DetectedAtUri[], hit: DetectedAtUri): void {
   if (!isLikelyAtUri(hit.uri)) return;
   if (out.some((existing) => existing.uri === hit.uri && existing.where === hit.where)) return;
   out.push(hit);
+}
+
+// Which AT Tags relation wins the badge when one URI is declared under several
+// (e.g. the same DID as both at:author and at:me). Lower is more authoritative;
+// anything namespaced falls to the end.
+const AT_TAG_RELATION_RANK: Record<string, number> = {
+  canonical: 0,
+  alternate: 1,
+  author: 2,
+  me: 3,
+};
+function atTagRelationRank(relation: string): number {
+  return relation in AT_TAG_RELATION_RANK ? AT_TAG_RELATION_RANK[relation] : 4;
+}
+
+/**
+ * Collect AT Tags (`<meta name="at:...">`) as detections, tagged with the
+ * declared relationship so the popup can badge each hit (canonical, author,
+ * etc.). A single URI can be declared under more than one relation; we keep one
+ * detection per URI, labeled with the most authoritative relation (so the label
+ * is deterministic rather than document-order dependent), preserving
+ * first-appearance order so canonical/author lead the list.
+ */
+function collectAtTags(doc: Document, out: DetectedAtUri[]): void {
+  try {
+    const parsed = parseAtTagsFromDocument(doc);
+    const best = new Map<string, string>();
+    for (const tag of parsed.tags) {
+      const relation =
+        tag.kind === 'standard' ? tag.relation : `${tag.namespace}:${tag.property}`;
+      const current = best.get(tag.uri);
+      if (current === undefined || atTagRelationRank(relation) < atTagRelationRank(current)) {
+        best.set(tag.uri, relation);
+      }
+    }
+    for (const [uri, relation] of best) {
+      addUnique(out, { uri, where: 'at-tags', relation });
+    }
+  } catch {
+    /* ignore — a malformed DOM shouldn't sink the rest of the scan */
+  }
 }
 
 function walkJsonForAtUris(value: unknown, onHit: (uri: string) => void): void {
@@ -75,6 +129,10 @@ function walkJsonForAtUris(value: unknown, onHit: (uri: string) => void): void {
  */
 export function scanDocumentForAtUris(doc: Document): DetectedAtUri[] {
   const out: DetectedAtUri[] = [];
+
+  // 0. AT Tags proposal: <meta name="at:canonical" content="at://..."> &c.
+  //    Runs first so explicit, labeled declarations lead the results.
+  collectAtTags(doc, out);
 
   // 1. <head> <link href="at://...">
   try {
@@ -168,6 +226,10 @@ export function scanDocumentForAtUris(doc: Document): DetectedAtUri[] {
 export function scanDocumentForAtUrisFast(doc: Document): DetectedAtUri[] {
   const out: DetectedAtUri[] = [];
 
+  // AT Tags are structured `<meta>` tags, so they're cheap enough for the
+  // always-on badge scan too.
+  collectAtTags(doc, out);
+
   try {
     doc.querySelectorAll<HTMLLinkElement>('head link[href^="at://"]').forEach((el) => {
       const href = el.getAttribute('href');
@@ -206,12 +268,19 @@ export function scanDocumentForAtUrisFast(doc: Document): DetectedAtUri[] {
 }
 
 /**
- * Merge detections so that each unique AT URI appears once, with a stable
- * `where` ranked from most-authoritative to least.
+ * Merge detections so that each unique AT URI appears once, keeping the
+ * most-authoritative `where` for that URI, and order the result from
+ * most-authoritative source to least. Ordering by rank (not just insertion)
+ * means an explicit `at:canonical` declaration leads the list even when a
+ * URL-pattern match for a *different* URI was collected first upstream. Ties
+ * keep first-appearance order (Array.prototype.sort is stable).
  */
 export function dedupeByUri(hits: DetectedAtUri[]): DetectedAtUri[] {
-  const ranking: DetectedSource[] = ['url', 'head', 'meta', 'link', 'jsonld', 'text'];
-  const score = (w: DetectedSource) => ranking.indexOf(w);
+  const ranking: DetectedSource[] = ['at-tags', 'url', 'head', 'meta', 'link', 'jsonld', 'text'];
+  const score = (w: DetectedSource) => {
+    const i = ranking.indexOf(w);
+    return i === -1 ? ranking.length : i;
+  };
   const map = new Map<string, DetectedAtUri>();
   for (const hit of hits) {
     const existing = map.get(hit.uri);
@@ -219,5 +288,5 @@ export function dedupeByUri(hits: DetectedAtUri[]): DetectedAtUri[] {
       map.set(hit.uri, hit);
     }
   }
-  return Array.from(map.values());
+  return Array.from(map.values()).sort((a, b) => score(a.where) - score(b.where));
 }
