@@ -13,6 +13,7 @@ import { fetchRecordData } from '@/utils/recordFetcher';
 import { resolveDidToHandle } from '@/utils/didResolver';
 import { buildPostMetadata, buildPostJsonLd } from '@/utils/postMetadata';
 import { serializeJsonLd } from '@/utils/sanitize';
+import { buildAtTagsMetadata } from '@/utils/atproto/atTags';
 import { getMarginLexiconType, getMarginLexiconDisplayName, getMarginLexiconDescription } from '@/utils/marginLexicons';
 import {
   MarginAnnotationPreview,
@@ -162,6 +163,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
           description,
           images: ogImageUrl ? [ogImageUrl] : undefined,
         },
+        // AT Tags (https://tangled.org/chrisshank.com/at-tags/): this page
+        // renders the record at `at://{did}/{collection}/{rkey}`, authored by
+        // {did}, so declare both for extensions/crawlers/verifiers.
+        other: buildAtTagsMetadata({
+          canonical: `at://${resolvedDid}/${collection}/${rkey}`,
+          author: `at://${resolvedDid}`,
+        }),
       };
     }
   } catch (error) {

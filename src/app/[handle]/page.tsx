@@ -11,6 +11,7 @@ import { resolveHandle, resolveHandleStatus, getDisplayName } from '@/utils/uriP
 import { resolveDidToHandle } from '@/utils/didResolver';
 import { fetchProfile } from '@/utils/profileFetcher';
 import { fetchRepoCollections } from '@/utils/atproto/identity';
+import { buildAtTagsMetadata } from '@/utils/atproto/atTags';
 
 type Props = {
   params: Promise<{ handle: string }>;
@@ -71,6 +72,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
           description,
           images: [ogImageUrl.toString()],
         },
+        // AT Tags (https://tangled.org/chrisshank.com/at-tags/): this page is
+        // about a single atproto identity, so point `at:author` at its DID.
+        other: buildAtTagsMetadata({
+          author: `at://${resolvedDid}`,
+        }),
       };
     }
   } catch (error) {

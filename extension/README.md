@@ -24,6 +24,14 @@ auto-redirect links between them.
 - **Custom waypoints**: wire up any site that uses a consistent URL structure
   via URL templates (`/profile/{handle}`, `/u/{handle}/p/{rkey}`, etc.).
 - **Recents**: the popup surfaces the waypoints you use most often first.
+- **AT Tags**: the Inspect tab reads the
+  [AT Tags](https://tangled.org/chrisshank.com/at-tags/) a page declares about
+  itself (`<meta name="at:canonical" content="at://...">` and the `at:alternate`,
+  `at:author`, `at:me`, and namespaced `at:{namespace}:{property}` siblings) and
+  labels each detected URI with its relationship. The popup's jump flow also
+  prefers a page's `at:canonical` record when one is declared. Parsing lives in
+  the shared `src/utils/atproto/atTags.ts`, so the web app emits the same tags on
+  its record and profile pages.
 
 ## Development
 

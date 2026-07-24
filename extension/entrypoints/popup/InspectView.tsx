@@ -15,6 +15,7 @@ import {
   RefreshCw,
   Repeat2,
   Server,
+  Tag,
   Telescope,
 } from 'lucide-react';
 import { parseAtUri, encodeRepo, shortDid } from '@aturi/atproto/urls';
@@ -340,8 +341,19 @@ function InspectCard({ hit }: { hit: DetectedAtUri }) {
   return (
     <div className="inspect-card">
       {/* Breadcrumb: PDS host › @handle › collection › rkey. Each segment
-          is a deep link into the explorer at the appropriate depth. */}
+          is a deep link into the explorer at the appropriate depth. A
+          leading relation pill appears when the page declared this URI via
+          the AT Tags proposal (at:canonical / at:author / …). */}
       <div className="inspect-breadcrumb">
+        {hit.relation && (
+          <span
+            className="inspect-relation"
+            title={`Declared by this page via AT Tags: at:${hit.relation}`}
+          >
+            <Tag size={9} aria-hidden />
+            {hit.relation}
+          </span>
+        )}
         {effectivePdsHost && pdsExplorerUrl && (
           <>
             <BreadcrumbSegment
