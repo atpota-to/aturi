@@ -58,7 +58,27 @@ export type CommandMeta = {
   keywords?: string[];
   /** Command only does something for a signed-in user (e.g. "my repo"). */
   requiresAuth?: boolean;
+  /**
+   * Marks an irreversible / data-mutating action (e.g. deleting a record).
+   * INVARIANT: a shortcut must never destroy data on a single keystroke. The
+   * keydown engine refuses to fire a destructive command directly (see
+   * `isDirectlyRunnable`), and the palette runs it as a *request* only — the
+   * action itself must still surface the app's on-screen "…this cannot be
+   * undone" confirmation before anything is deleted. No built-in command is
+   * destructive today; this exists so that if one is ever added, the
+   * "confirm on screen" guarantee is enforced by construction, not convention.
+   */
+  destructive?: boolean;
 };
+
+/**
+ * Whether a command's effect may run straight from a global keydown. Anything
+ * destructive is barred here so a stray or rebound key can't delete records
+ * without the on-screen confirmation the delete UIs already require.
+ */
+export function isDirectlyRunnable(meta: CommandMeta): boolean {
+  return !meta.destructive;
+}
 
 export const COMMAND_GROUPS: { id: CommandGroup; label: string }[] = [
   { id: 'general', label: 'General' },
@@ -69,6 +89,11 @@ export const COMMAND_GROUPS: { id: CommandGroup; label: string }[] = [
 /**
  * The command catalog. Ordering here is the display order within each group
  * and the tie-break order when two commands share a binding (first wins).
+ *
+ * Every command here is non-destructive (navigate, toggle, copy). Deleting or
+ * otherwise mutating records is intentionally NOT a shortcut — those flows keep
+ * their own on-screen "…this cannot be undone" confirmation. If a destructive
+ * command is ever added, mark it `destructive: true`; see `isDirectlyRunnable`.
  */
 export const COMMANDS: CommandMeta[] = [
   {
