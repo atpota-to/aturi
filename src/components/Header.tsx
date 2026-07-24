@@ -64,6 +64,7 @@ export default function Header({ simple = false, compact = false }: HeaderProps)
     return (
       <header
         ref={headerRef}
+        className="compact-header"
         style={{
           position: 'sticky',
           top: 0,
@@ -72,7 +73,7 @@ export default function Header({ simple = false, compact = false }: HeaderProps)
         }}
       >
         <div
-          className="container-narrow"
+          className="container-narrow compact-header-inner"
           style={{
             padding: '2rem 2rem 0.75rem',
           }}
@@ -94,6 +95,7 @@ export default function Header({ simple = false, compact = false }: HeaderProps)
           }}
         >
           <div
+            className="compact-header-row"
             style={{
               display: 'flex',
               alignItems: 'center',

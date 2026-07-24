@@ -13,7 +13,7 @@ export default function ForkPage() {
       <div style={{ 
         maxWidth: '1200px', 
         margin: '0 auto 5rem',
-        padding: '0 2rem'
+        padding: '0 var(--page-edge)'
       }}>
         <div 
           className="card fork-hero-card"
@@ -42,7 +42,7 @@ export default function ForkPage() {
       <div style={{ 
         maxWidth: '1200px', 
         margin: '0 auto 6rem',
-        padding: '0 2rem'
+        padding: '0 var(--page-edge)'
       }}>
         <h2 style={{ 
           marginBottom: '3rem', 
@@ -116,7 +116,7 @@ export default function ForkPage() {
       <div style={{ 
         maxWidth: '1200px', 
         margin: '0 auto 6rem',
-        padding: '0 2rem'
+        padding: '0 var(--page-edge)'
       }}>
         <div className="fork-quick-start-grid" style={{
           display: 'grid',
@@ -231,7 +231,7 @@ npm run dev`}</pre>
       <div style={{ 
         maxWidth: '1200px', 
         margin: '0 auto 6rem',
-        padding: '0 2rem'
+        padding: '0 var(--page-edge)'
       }}>
         <div className="fork-config-grid" style={{
           display: 'grid',
@@ -287,7 +287,7 @@ NEXT_PUBLIC_REPO_URL=https://github.com/you/your-fork`}</pre>
       <div style={{ 
         maxWidth: '1200px', 
         margin: '0 auto 6rem',
-        padding: '0 2rem'
+        padding: '0 var(--page-edge)'
       }} id="manual-setup">
         <h2 style={{ 
           marginBottom: '3rem', 
@@ -417,7 +417,7 @@ vercel
       <div style={{ 
         maxWidth: '1200px', 
         margin: '0 auto 6rem',
-        padding: '0 2rem'
+        padding: '0 var(--page-edge)'
       }}>
         <div 
           className="card" 
@@ -457,7 +457,7 @@ vercel
       <div style={{ 
         maxWidth: '1200px', 
         margin: '0 auto 6rem',
-        padding: '0 2rem'
+        padding: '0 var(--page-edge)'
       }}>
         <div className="fork-resources-grid" style={{
           display: 'grid',
@@ -545,7 +545,7 @@ vercel
       <div style={{ 
         maxWidth: '1200px', 
         margin: '0 auto 4rem',
-        padding: '0 2rem'
+        padding: '0 var(--page-edge)'
       }}>
         <div 
           className="card" 

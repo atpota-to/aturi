@@ -36,7 +36,7 @@ export default function HomePage() {
         style={{
           maxWidth: '1400px',
           margin: '0 auto',
-          padding: '0 2rem 4rem',
+          padding: '0 var(--page-edge) 4rem',
         }}
       >
         <FadeIn delay={0.1}>

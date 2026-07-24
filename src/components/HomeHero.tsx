@@ -25,7 +25,7 @@ export default function HomeHero() {
       style={{
         maxWidth: '760px',
         margin: '2.5rem auto 3rem',
-        padding: '0 2rem',
+        padding: '0 var(--page-edge)',
         textAlign: 'center',
       }}
     >

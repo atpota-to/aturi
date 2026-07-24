@@ -116,6 +116,12 @@
   --font-serif: 'Crimson Pro', serif;
   --font-mono: 'IBM Plex Mono', monospace;
 
+  /* Horizontal gutter at the page edges. Trimmed on phones (see the
+     max-width: 768px block) and consumed both by the .container classes
+     and by inline `padding: '0 var(--page-edge) …'` on the home + fork
+     page section wrappers that don't use those classes. */
+  --page-edge: 2rem;
+
   color-scheme: dark;
 }
 
@@ -2294,11 +2300,38 @@ html {
     font-size: 16px !important;
   }
 
+  :root {
+    /* Tighter edge gutter on phones. Drives both the container override
+       below and the inline var(--page-edge) wrappers on home + fork. */
+    --page-edge: 0.875rem;
+  }
+
   .container,
   .container-narrow {
-    padding: 0 1rem;
+    /* Longhand + !important so this also wins over the inline
+       `padding: '0 2rem …'` most page wrappers set on these containers —
+       an inline shorthand otherwise beat the old `padding: 0 1rem` rule,
+       leaving 2rem edges on mobile. Only the horizontal gutter is forced;
+       each wrapper keeps its own inline top/bottom spacing. */
+    padding-left: var(--page-edge) !important;
+    padding-right: var(--page-edge) !important;
   }
-  
+
+  /* Sticky compact nav — trim the desktop-sized padding so the nav card
+     hugs the top and screen edges on phones. Its horizontal edges already
+     come from the .container-narrow override above (the card shares that
+     class); here we only tighten the top gap, inner row, and the space
+     below the header. */
+  .compact-header {
+    margin-bottom: 1.25rem !important;
+  }
+  .compact-header-inner {
+    padding-top: 1rem !important;
+  }
+  .compact-header-row {
+    padding: 0.625rem 0.75rem !important;
+  }
+
   h1 {
     font-size: 2rem;
   }
@@ -2780,7 +2813,8 @@ html {
   .home-product-strip {
     grid-template-columns: minmax(0, 1fr);
     gap: 1.75rem;
-    padding: 2.5rem 1.5rem;
+    /* Match the reduced page-edge gutter used elsewhere on mobile. */
+    padding: 2.5rem 0.875rem;
   }
   /* On mobile, demo always above copy regardless of flip. */
   .home-product-strip[data-flip] .home-product-strip-demo {
