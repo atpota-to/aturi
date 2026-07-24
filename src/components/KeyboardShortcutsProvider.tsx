@@ -40,6 +40,7 @@ import {
   effectiveBindings,
   eventToStep,
   getPlatform,
+  isDirectlyRunnable,
   normalizeBinding,
   parseBinding,
   readKeybindingsState,
@@ -318,7 +319,9 @@ export function KeyboardShortcutsProvider({ children }: { children: ReactNode })
 
     function fire(id: CommandId) {
       const cmd = liveRef.current.commands.find((c) => c.meta.id === id);
-      if (cmd && cmd.available) cmd.run();
+      // Never let a keystroke run a destructive command directly — those must
+      // go through their own on-screen confirmation, not a hotkey.
+      if (cmd && cmd.available && isDirectlyRunnable(cmd.meta)) cmd.run();
     }
 
     function onKeyDown(e: KeyboardEvent) {
@@ -344,6 +347,7 @@ export function KeyboardShortcutsProvider({ children }: { children: ReactNode })
       const entries: { id: CommandId; steps: string[] }[] = [];
       for (const cmd of live.commands) {
         if (!cmd.available) continue;
+        if (!isDirectlyRunnable(cmd.meta)) continue; // destructive: no hotkey path
         for (const binding of cmd.bindings) {
           const steps = parseBinding(binding);
           if (steps.length === 0) continue;
