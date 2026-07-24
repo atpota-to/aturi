@@ -30,7 +30,7 @@ const COLUMN_B: { icon: React.ReactNode; name: string; host: string }[] = [
   { icon: <TangledSVG />, name: 'Tangled', host: 'tangled.org' },
   { icon: <GrainSVG />, name: 'Grain', host: 'grain.social' },
   { icon: <PdslsSVG />, name: 'PDSls', host: 'pdsls.dev' },
-  { icon: <MarginSVG />, name: '+18 more', host: 'browse the full picker' },
+  { icon: <MarginSVG />, name: '+18 more', host: 'full picker' },
 ];
 
 /**
@@ -120,7 +120,14 @@ export default function ClientGalleryVisual() {
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: '1fr 1fr',
+            // minmax(0, 1fr) — not a bare 1fr — so each track can shrink
+            // below its content's min size. A bare `1fr` is `minmax(auto,
+            // 1fr)`, whose `auto` floor equals the widest row's min-content;
+            // a longer `host` string in one column inflates that column's
+            // floor and the two tracks render unequal (the right column
+            // spilling past its half). Zeroing the floor forces even halves
+            // and lets each row's own text ellipsis clip any overflow.
+            gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)',
             gap: '6px',
           }}
         >
