@@ -5,10 +5,54 @@
  * You can also use environment variables to override these settings.
  */
 
+/**
+ * Reduce a configured domain to a bare host (optionally with a port).
+ *
+ * NEXT_PUBLIC_DOMAIN is documented as a bare host, but it's easy to paste a
+ * full URL into a dashboard env var instead. Left unnormalized, a value like
+ * `https://aturi.to` turns `https://${config.domain}` into
+ * `https://https://aturi.to`, which `new URL()` re-reads as the host `https`
+ * with the path `/aturi.to` — that's what breaks `metadataBase`, and with it
+ * every relative og:image, canonical URL, robots.txt and sitemap entry.
+ */
+function normalizeDomain(raw: string | undefined): string {
+  if (!raw) return '';
+  return raw
+    .trim()
+    .replace(/^[a-z][a-z0-9+.-]*:\/\//i, '') // drop any scheme
+    .replace(/\/.*$/, '') // drop any path/query/hash
+    .replace(/\.$/, '') // drop a trailing FQDN dot
+    .toLowerCase();
+}
+
+/**
+ * Coerce a configured base URL into an absolute, origin-only URL with no
+ * trailing slash. Accepts bare hosts (`aturi.to`) and full URLs alike, and
+ * returns '' when the value can't be parsed so callers fall back to the domain.
+ */
+function normalizeSiteUrl(raw: string | undefined): string {
+  if (!raw) return '';
+  const trimmed = raw.trim();
+  if (!trimmed) return '';
+  const withScheme = /^[a-z][a-z0-9+.-]*:\/\//i.test(trimmed)
+    ? trimmed
+    : `https://${trimmed}`;
+  try {
+    const url = new URL(withScheme);
+    if (url.protocol !== 'http:' && url.protocol !== 'https:') return '';
+    if (!url.hostname || url.hostname === 'https' || url.hostname === 'http') return '';
+    return url.origin;
+  } catch {
+    return '';
+  }
+}
+
 // Site configuration
 export const config = {
   // Your domain (change this when forking!)
-  domain: process.env.NEXT_PUBLIC_DOMAIN || 'aturi.to',
+  // Normalized to a bare host so a full-URL env value can't corrupt every
+  // absolute URL the site generates.
+  domain: normalizeDomain(process.env.NEXT_PUBLIC_DOMAIN) || 'aturi.to',
   
   // Site metadata
   siteName: process.env.NEXT_PUBLIC_SITE_NAME || 'aturi.to',
@@ -41,8 +85,9 @@ export const config = {
  * Get the full URL for the site
  */
 export function getSiteUrl(): string {
-  if (process.env.NEXT_PUBLIC_SITE_URL) {
-    return process.env.NEXT_PUBLIC_SITE_URL;
+  const configured = normalizeSiteUrl(process.env.NEXT_PUBLIC_SITE_URL);
+  if (configured) {
+    return configured;
   }
 
   // On PREVIEW deployments, the per-deployment *.vercel.app host is the right
@@ -56,7 +101,8 @@ export function getSiteUrl(): string {
     process.env.VERCEL_ENV &&
     process.env.VERCEL_ENV !== 'production'
   ) {
-    return `https://${process.env.VERCEL_URL}`;
+    const preview = normalizeSiteUrl(process.env.VERCEL_URL);
+    if (preview) return preview;
   }
 
   return `https://${config.domain}`;

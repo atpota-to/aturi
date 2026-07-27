@@ -12,6 +12,7 @@ import { resolveDidToHandle } from '@/utils/didResolver';
 import { fetchProfile } from '@/utils/profileFetcher';
 import { fetchRepoCollections } from '@/utils/atproto/identity';
 import { buildAtTagsMetadata } from '@/utils/atproto/atTags';
+import { getSiteUrl } from '@/lib/config';
 
 type Props = {
   params: Promise<{ handle: string }>;
@@ -46,8 +47,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
         ? profile.description.slice(0, 160) 
         : `View @${displayHandle}'s profile in your preferred Atmosphere client`;
       
-      // Generate OG image URL - hardcode production domain
-      const ogImageUrl = new URL('/api/og/profile', 'https://aturi.to');
+      // Absolute OG image URL, built from the site's own base so previews and
+      // forks point at the deployment that's actually serving the page.
+      const ogImageUrl = new URL('/api/og/profile', getSiteUrl());
       ogImageUrl.searchParams.set('handle', resolvedDid);
       
       return {

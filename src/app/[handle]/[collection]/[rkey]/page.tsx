@@ -14,6 +14,7 @@ import { resolveDidToHandle } from '@/utils/didResolver';
 import { buildPostMetadata, buildPostJsonLd } from '@/utils/postMetadata';
 import { serializeJsonLd } from '@/utils/sanitize';
 import { buildAtTagsMetadata } from '@/utils/atproto/atTags';
+import { getSiteUrl } from '@/lib/config';
 import { getMarginLexiconType, getMarginLexiconDisplayName, getMarginLexiconDescription } from '@/utils/marginLexicons';
 import {
   MarginAnnotationPreview,
@@ -76,7 +77,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
             ? record.value.description.slice(0, 160)
             : 'View this list in your preferred Atmosphere client';
           
-          const ogUrl = new URL('/api/og/list', 'https://aturi.to');
+          const ogUrl = new URL('/api/og/list', getSiteUrl());
           ogUrl.searchParams.set('handle', resolvedDid);
           ogUrl.searchParams.set('rkey', rkey);
           ogImageUrl = ogUrl.toString();
