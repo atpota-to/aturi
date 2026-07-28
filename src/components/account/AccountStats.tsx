@@ -16,6 +16,7 @@ import {
   describeRepo,
   getLatestCommit,
   getRepoSize,
+  getRepoUrl,
 } from '@/utils/atproto/pdsClient';
 import { tidToDate, formatTidRelative } from '@/utils/atproto/tid';
 import { getPlcAuditLog, type PlcAuditEntry } from '@/utils/atproto/plc';
@@ -497,7 +498,9 @@ function TileLabel({ icon, label }: { icon: React.ReactNode; label: string }) {
 type RepoSizeState =
   | { status: 'idle' }
   | { status: 'loading'; bytes: number }
-  | { status: 'ready'; bytes: number }
+  // `href` is the PDS getRepo URL we just streamed. Kept on the state so the
+  // ready tile can offer the CAR as a download without re-resolving identity.
+  | { status: 'ready'; bytes: number; href: string }
   | { status: 'error'; message: string };
 
 /**
@@ -543,7 +546,13 @@ function RepoSizeTile({ did, interactive }: { did: string; interactive: boolean 
           }
         },
       });
-      if (!controller.signal.aborted) setState({ status: 'ready', bytes });
+      if (!controller.signal.aborted) {
+        setState({
+          status: 'ready',
+          bytes,
+          href: getRepoUrl(identity.pds, identity.did),
+        });
+      }
     } catch (err) {
       if (controller.signal.aborted) return;
       setState({
@@ -559,7 +568,15 @@ function RepoSizeTile({ did, interactive }: { did: string; interactive: boolean 
     content = (
       <>
         <div style={TILE_VALUE_STYLE}>{formatBytes(state.bytes)}</div>
-        <div style={TILE_SUBLABEL_STYLE}>{state.bytes.toLocaleString()} bytes</div>
+        {/* Once measured, the exact byte count has served its purpose, so the
+            subline becomes the useful next action: grab the CAR itself. The
+            demo surfaces keep the inert byte count rather than offering a
+            live multi-MB download from a marketing card. */}
+        {interactive ? (
+          <DownloadCarLink href={state.href} bytes={state.bytes} />
+        ) : (
+          <div style={TILE_SUBLABEL_STYLE}>{state.bytes.toLocaleString()} bytes</div>
+        )}
       </>
     );
     titleAttr = interactive ? 'Uncompressed size of the full repo CAR' : undefined;
@@ -590,6 +607,45 @@ function RepoSizeTile({ did, interactive }: { did: string; interactive: boolean 
       <TileLabel icon={<HardDrive size={16} />} label="Repo size" />
       {content}
     </div>
+  );
+}
+
+/**
+ * The "Download CAR" subline shown once a repo has been measured. Sits where
+ * the exact byte count used to, in the same small mono style, so the tile
+ * gains an action without gaining visual weight. The byte count isn't lost —
+ * it moves into the link's tooltip.
+ *
+ * Deliberately no `download` attribute: the PDS is a different origin, so
+ * browsers ignore the filename hint and fall back to the server's
+ * Content-Disposition anyway. Opens in a new tab so a large download never
+ * navigates the visitor out of the explorer.
+ */
+function DownloadCarLink({ href, bytes }: { href: string; bytes: number }) {
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noreferrer"
+      title={`Download the full repo as a CAR file (${bytes.toLocaleString()} bytes)`}
+      style={{
+        ...TILE_SUBLABEL_STYLE,
+        alignSelf: 'flex-start',
+        color: 'var(--text-secondary)',
+        textDecoration: 'underline',
+        textUnderlineOffset: '0.2em',
+        cursor: 'pointer',
+        transition: 'color 0.2s ease',
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.color = 'var(--text-accent)';
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.color = 'var(--text-secondary)';
+      }}
+    >
+      Download CAR
+    </a>
   );
 }
 

@@ -86,8 +86,7 @@ export async function getRepoSize(
   did: string,
   opts?: { onProgress?: (bytes: number) => void; signal?: AbortSignal },
 ): Promise<number> {
-  const params = new URLSearchParams({ did });
-  const res = await fetch(`${pds}/xrpc/com.atproto.sync.getRepo?${params}`, {
+  const res = await fetch(getRepoUrl(pds, did), {
     signal: opts?.signal,
   });
   if (!res.ok) {
@@ -117,6 +116,16 @@ export async function getRepoSize(
 
   const buf = await res.arrayBuffer();
   return buf.byteLength;
+}
+
+/**
+ * Build the public PDS XRPC URL for an account's full repo export (the CAR
+ * file). Shared by `getRepoSize`, which streams it to measure the size, and by
+ * the "Download CAR" link the explorer offers once a repo has been measured.
+ */
+export function getRepoUrl(pds: string, did: string): string {
+  const params = new URLSearchParams({ did });
+  return `${pds}/xrpc/com.atproto.sync.getRepo?${params}`;
 }
 
 /**
