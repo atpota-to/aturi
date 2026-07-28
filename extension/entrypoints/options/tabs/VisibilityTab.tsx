@@ -184,8 +184,8 @@ export default function VisibilityTab({ prefs, onChange }: Props) {
           </div>
           <div className="options-card-sub">
             Added to Aturi since you last looked. They stay out of the popup until
-            you add them — your existing groups and ordering aren&apos;t touched
-            either way.
+            you add them. Adding one puts it at the end of that group and leaves
+            everything else where it is.
           </div>
 
           <div className="adopt-list">
@@ -223,7 +223,7 @@ export default function VisibilityTab({ prefs, onChange }: Props) {
               type="button"
               onClick={() => commit(markKnown(prefs, unplacedNew.map(w => w.id)))}
             >
-              No thanks
+              Dismiss all
             </button>
           </div>
         </div>
@@ -278,8 +278,8 @@ export default function VisibilityTab({ prefs, onChange }: Props) {
         {hiddenOpen && hiddenCount > 0 && (
           <div className="hidden-panel">
             <div className="hidden-panel-head">
-              In no group, so the popup, redirects, and recommendations all skip
-              them.
+              These are in no group, so the popup, redirect rules, and
+              recommendations all skip them.
             </div>
             <div className="adopt-list">
               {hiddenWaypoints.map(w => (
@@ -370,7 +370,7 @@ function AdoptRow({ waypoint, target, isNew, onAdopt, onIgnore }: AdoptRowProps)
         </button>
         {onIgnore && (
           <button className="aturi-btn aturi-btn-ghost" type="button" onClick={onIgnore}>
-            Not now
+            Dismiss
           </button>
         )}
       </div>
