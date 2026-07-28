@@ -820,20 +820,119 @@ export function addWaypointToGroup(
   groupId: string,
   waypointId: string
 ): Prefs {
-  const isBuiltin = !waypointId.startsWith('custom:');
-  const knownWaypointIds =
-    isBuiltin && !prefs.knownWaypointIds.includes(waypointId)
-      ? [...prefs.knownWaypointIds, waypointId]
-      : prefs.knownWaypointIds;
+  const withKnown = markKnown(prefs, [waypointId]);
   return {
-    ...prefs,
-    knownWaypointIds,
-    waypointGroups: prefs.waypointGroups.map(g => {
+    ...withKnown,
+    waypointGroups: withKnown.waypointGroups.map(g => {
       if (g.id !== groupId) return g;
       if (g.waypointIds.includes(waypointId)) return g;
       return { ...g, waypointIds: [...g.waypointIds, waypointId] };
     }),
   };
+}
+
+/**
+ * The group a waypoint belongs in when we place it on the user's behalf: its
+ * built-in category (custom waypoints go to the Custom group). Returns the
+ * group id plus the name to use if that group has to be created.
+ */
+export function nativeGroupFor(
+  waypointId: string,
+  customWaypoints: CustomWaypoint[] = []
+): { id: string; name: string } {
+  if (waypointId.startsWith('custom:')) {
+    return { id: CUSTOM_GROUP_ID, name: CUSTOM_GROUP_NAME };
+  }
+  const category = WAYPOINT_DESTINATIONS_DATA[waypointId]?.category;
+  if (!category) return { id: CUSTOM_GROUP_ID, name: CUSTOM_GROUP_NAME };
+  return {
+    id: category,
+    name: WAYPOINT_CATEGORIES_DATA[category]?.name ?? prettyGroupName(category),
+  };
+}
+
+/**
+ * Resolve the group a waypoint would be added to by `adoptWaypoint`, given
+ * the user's current groups. Returns the existing group when one matches the
+ * waypoint's native category, otherwise a `created: true` placeholder so the
+ * UI can say "Add to Publications" for a group that doesn't exist yet.
+ */
+export function adoptTargetFor(
+  prefs: Prefs,
+  waypointId: string
+): { id: string; name: string; created: boolean } {
+  const native = nativeGroupFor(waypointId, prefs.customWaypoints);
+  const existing = prefs.waypointGroups.find(g => g.id === native.id);
+  if (existing) return { id: existing.id, name: existing.name, created: false };
+  return { ...native, created: true };
+}
+
+/**
+ * Place a waypoint into its native category group and mark it known. Creates
+ * the group when the user no longer has one for that category, slotting it
+ * into `CATEGORY_ORDER` position relative to their other category groups so a
+ * recreated group doesn't just land at the bottom.
+ *
+ * This is the "one click and it's in the popup" path used by the new-waypoints
+ * card in Settings and the popup banner — it never touches the order or
+ * membership of anything the user already arranged.
+ */
+export function adoptWaypoint(prefs: Prefs, waypointId: string): Prefs {
+  const target = adoptTargetFor(prefs, waypointId);
+  const withKnown = markKnown(prefs, [waypointId]);
+
+  if (!target.created) {
+    return {
+      ...withKnown,
+      waypointGroups: withKnown.waypointGroups.map(g =>
+        g.id === target.id && !g.waypointIds.includes(waypointId)
+          ? { ...g, waypointIds: [...g.waypointIds, waypointId] }
+          : g
+      ),
+    };
+  }
+
+  const group: WaypointGroup = {
+    id: target.id,
+    name: target.name,
+    waypointIds: [waypointId],
+  };
+  // Slot it before the first *category* group that sorts after it. Groups the
+  // user made themselves have no rank and are never used as an anchor, so a
+  // recreated group lands among its peers rather than jumping the queue ahead
+  // of someone's hand-built group.
+  const groups = [...withKnown.waypointGroups];
+  const targetRank = CATEGORY_ORDER.indexOf(target.id);
+  const insertAt =
+    targetRank === -1
+      ? -1
+      : groups.findIndex(g => {
+          const rank = CATEGORY_ORDER.indexOf(g.id);
+          return rank !== -1 && rank > targetRank;
+        });
+  if (insertAt === -1) groups.push(group);
+  else groups.splice(insertAt, 0, group);
+
+  return { ...withKnown, waypointGroups: groups };
+}
+
+/**
+ * Pure counterpart to `markWaypointsKnown` for the options UI, which edits a
+ * prefs object and hands the diff back through `onChange`. Custom waypoint
+ * ids are never tracked.
+ */
+export function markKnown(prefs: Prefs, ids: string[]): Prefs {
+  const set = new Set(prefs.knownWaypointIds);
+  let changed = false;
+  for (const id of ids) {
+    if (id.startsWith('custom:')) continue;
+    if (!set.has(id)) {
+      set.add(id);
+      changed = true;
+    }
+  }
+  if (!changed) return prefs;
+  return { ...prefs, knownWaypointIds: Array.from(set) };
 }
 
 /**
@@ -856,6 +955,23 @@ export async function markWaypointsKnown(ids: string[]): Promise<void> {
   if (newlyMarked.length === 0) return;
   debugLog('markWaypointsKnown', { ids: newlyMarked });
   await savePrefs({ knownWaypointIds: Array.from(set) });
+}
+
+/**
+ * Add the given waypoints to their native category groups and mark them
+ * known, in one write. Backs the popup banner's "Add" button, which used to
+ * only deep-link into Settings and leave the actual work to the user.
+ */
+export async function adoptWaypoints(ids: string[]): Promise<void> {
+  if (ids.length === 0) return;
+  const current = await loadPrefs();
+  let next = current;
+  for (const id of ids) next = adoptWaypoint(next, id);
+  debugLog('adoptWaypoints', { ids });
+  await savePrefs({
+    waypointGroups: next.waypointGroups,
+    knownWaypointIds: next.knownWaypointIds,
+  });
 }
 
 export function removeWaypointFromGroup(

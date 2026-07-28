@@ -17,6 +17,7 @@ import {
   waypointHandlesContent,
 } from '../../lib/catalog';
 import {
+  adoptWaypoints,
   bumpRecent,
   loadPrefs,
   markWaypointsKnown,
@@ -746,8 +747,12 @@ function PopupFooter({ prefs, leading }: { prefs: Prefs; leading: React.ReactNod
       {newWaypoints.length > 0 && (
         <NewWaypointsBanner
           waypoints={newWaypoints}
-          onOpenSettings={() => {
+          onAdd={() => {
             debugLog('banner: Add clicked', { ids: newWaypoints.map(w => w.id) });
+            void adoptWaypoints(newWaypoints.map(w => w.id));
+          }}
+          onReview={() => {
+            debugLog('banner: review clicked', { ids: newWaypoints.map(w => w.id) });
             void openOptionsPage('waypoints');
           }}
           onDismiss={() => {
@@ -766,11 +771,15 @@ function PopupFooter({ prefs, leading }: { prefs: Prefs; leading: React.ReactNod
 
 function NewWaypointsBanner({
   waypoints,
-  onOpenSettings,
+  onAdd,
+  onReview,
   onDismiss,
 }: {
   waypoints: WaypointData[];
-  onOpenSettings: () => void;
+  /** Places every listed waypoint into its category group, in one click. */
+  onAdd: () => void;
+  /** Escape hatch to Settings → Waypoints for per-waypoint choices. */
+  onReview: () => void;
   onDismiss: () => void;
 }) {
   const names = waypoints.map(w => w.name);
@@ -794,11 +803,23 @@ function NewWaypointsBanner({
           <path d="m16.24 7.76 2.83-2.83" />
         </svg>
       </span>
-      <span className="popup-update-banner-text">{summary}</span>
+      <button
+        type="button"
+        className="popup-update-banner-text"
+        onClick={onReview}
+        title="Review in Settings → Waypoints"
+      >
+        {summary}
+      </button>
       <button
         type="button"
         className="popup-update-banner-action"
-        onClick={onOpenSettings}
+        onClick={onAdd}
+        title={
+          waypoints.length === 1
+            ? `Add ${names[0]} to your waypoints`
+            : `Add all ${waypoints.length} to your waypoints`
+        }
       >
         Add
       </button>

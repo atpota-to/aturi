@@ -26,7 +26,10 @@ import {
 import {
   addWaypointGroup,
   addWaypointToGroup,
+  adoptTargetFor,
+  adoptWaypoint,
   defaultWaypointGroups,
+  markKnown,
   removeWaypointFromGroup,
   removeWaypointGroup,
   renameWaypointGroup,
@@ -37,14 +40,20 @@ import {
   type WaypointGroup,
 } from '../../../lib/prefs';
 import { allWaypoints, newBuiltinWaypoints } from '../../../lib/catalog';
+import { describeWaypoint } from '../../../lib/describe';
 
 type Props = {
   prefs: Prefs;
   onChange: (partial: Partial<Prefs>) => void;
 };
 
+/** How many new waypoints the card lists before collapsing behind "Show N more". */
+const NEW_PREVIEW_COUNT = 6;
+
 export default function VisibilityTab({ prefs, onChange }: Props) {
   const groups = prefs.waypointGroups;
+  const [hiddenOpen, setHiddenOpen] = useState(false);
+  const [showAllNew, setShowAllNew] = useState(false);
 
   const allWps = useMemo(() => allWaypoints(prefs.customWaypoints), [prefs.customWaypoints]);
   const lookup = useMemo(() => {
@@ -53,18 +62,23 @@ export default function VisibilityTab({ prefs, onChange }: Props) {
     return m;
   }, [allWps]);
 
-  const newIds = useMemo(
-    () => new Set(newBuiltinWaypoints(prefs).map(w => w.id)),
-    [prefs.knownWaypointIds]
-  );
+  const newWaypoints = useMemo(() => newBuiltinWaypoints(prefs), [prefs.knownWaypointIds]);
+  const newIds = useMemo(() => new Set(newWaypoints.map(w => w.id)), [newWaypoints]);
 
   const groupSensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
 
+  // Forward `knownWaypointIds` alongside the groups: `addWaypointToGroup` and
+  // `adoptWaypoint` both clear the "new" flag for the waypoint being placed,
+  // and dropping that half of the update left the badge (and the popup banner)
+  // up forever even after the user had added the waypoint.
   function commit(next: Prefs) {
-    onChange({ waypointGroups: next.waypointGroups });
+    onChange({
+      waypointGroups: next.waypointGroups,
+      knownWaypointIds: next.knownWaypointIds,
+    });
   }
 
   function handleGroupDragEnd(event: DragEndEvent) {
@@ -112,13 +126,47 @@ export default function VisibilityTab({ prefs, onChange }: Props) {
     commit(setGroupWaypointOrder(prefs, groupId, ids));
   }
 
-  const totalVisible = useMemo(() => {
+  function handleAdopt(waypointId: string) {
+    commit(adoptWaypoint(prefs, waypointId));
+  }
+
+  function handleAdoptAll(ids: string[]) {
+    let next = prefs;
+    for (const id of ids) next = adoptWaypoint(next, id);
+    commit(next);
+  }
+
+  function handleIgnore(waypointId: string) {
+    commit(markKnown(prefs, [waypointId]));
+  }
+
+  const visibleIds = useMemo(() => {
     const ids = new Set<string>();
     for (const g of groups) for (const id of g.waypointIds) ids.add(id);
-    return ids.size;
+    return ids;
   }, [groups]);
-  const totalAvailable = allWps.length;
-  const hiddenCount = Math.max(0, totalAvailable - totalVisible);
+  const totalVisible = visibleIds.size;
+
+  // Everything the user owns but has in no group. New built-ins land here by
+  // definition (we never auto-add to an existing arrangement), which is what
+  // made them invisible with no way back short of Reset.
+  const hiddenWaypoints = useMemo(
+    () => allWps.filter(w => !visibleIds.has(w.id)),
+    [allWps, visibleIds]
+  );
+  const hiddenCount = hiddenWaypoints.length;
+
+  // The card above the groups only calls out genuinely new built-ins. Anything
+  // else the user has hidden is their own doing and lives behind the disclosure.
+  const unplacedNew = useMemo(
+    () => newWaypoints.filter(w => !visibleIds.has(w.id)),
+    [newWaypoints, visibleIds]
+  );
+
+  // A normal release adds a handful. Someone returning after several releases
+  // (or a first upgrade past a big batch) shouldn't get a card that buries
+  // their own groups off-screen, so show a slice until they ask for the rest.
+  const shownNew = showAllNew ? unplacedNew : unplacedNew.slice(0, NEW_PREVIEW_COUNT);
 
   return (
     <div>
@@ -128,6 +176,58 @@ export default function VisibilityTab({ prefs, onChange }: Props) {
         plus button on a group header to add waypoints. The same waypoint can live in
         multiple groups. Waypoints not in any group are hidden from the popup.
       </p>
+
+      {unplacedNew.length > 0 && (
+        <div className="options-card new-waypoints-card">
+          <div className="options-card-title">
+            {unplacedNew.length} new waypoint{unplacedNew.length === 1 ? '' : 's'}
+          </div>
+          <div className="options-card-sub">
+            Added to Aturi since you last looked. They stay out of the popup until
+            you add them — your existing groups and ordering aren&apos;t touched
+            either way.
+          </div>
+
+          <div className="adopt-list">
+            {shownNew.map(w => (
+              <AdoptRow
+                key={w.id}
+                waypoint={w}
+                target={adoptTargetFor(prefs, w.id)}
+                isNew
+                onAdopt={() => handleAdopt(w.id)}
+                onIgnore={() => handleIgnore(w.id)}
+              />
+            ))}
+            {unplacedNew.length > shownNew.length && (
+              <button
+                type="button"
+                className="adopt-more"
+                onClick={() => setShowAllNew(true)}
+              >
+                Show {unplacedNew.length - shownNew.length} more
+              </button>
+            )}
+          </div>
+
+          <div className="adopt-bulk">
+            <button
+              className="aturi-btn aturi-btn-primary"
+              type="button"
+              onClick={() => handleAdoptAll(unplacedNew.map(w => w.id))}
+            >
+              Add all
+            </button>
+            <button
+              className="aturi-btn aturi-btn-ghost"
+              type="button"
+              onClick={() => commit(markKnown(prefs, unplacedNew.map(w => w.id)))}
+            >
+              No thanks
+            </button>
+          </div>
+        </div>
+      )}
 
       <div className="options-card">
         <div
@@ -142,9 +242,27 @@ export default function VisibilityTab({ prefs, onChange }: Props) {
           <div>
             <div className="options-card-title">Your groups</div>
             <div className="options-card-sub">
-              {groups.length === 0
-                ? 'No groups yet. Create one below.'
-                : `${groups.length} ${groups.length === 1 ? 'group' : 'groups'} · ${totalVisible} visible${hiddenCount > 0 ? ` · ${hiddenCount} hidden` : ''}`}
+              {groups.length === 0 ? (
+                'No groups yet. Create one below.'
+              ) : (
+                <>
+                  {groups.length} {groups.length === 1 ? 'group' : 'groups'} ·{' '}
+                  {totalVisible} visible
+                  {hiddenCount > 0 && (
+                    <>
+                      {' · '}
+                      <button
+                        type="button"
+                        className="hidden-toggle"
+                        aria-expanded={hiddenOpen}
+                        onClick={() => setHiddenOpen(o => !o)}
+                      >
+                        {hiddenCount} hidden
+                      </button>
+                    </>
+                  )}
+                </>
+              )}
             </div>
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
@@ -156,6 +274,26 @@ export default function VisibilityTab({ prefs, onChange }: Props) {
             </button>
           </div>
         </div>
+
+        {hiddenOpen && hiddenCount > 0 && (
+          <div className="hidden-panel">
+            <div className="hidden-panel-head">
+              In no group, so the popup, redirects, and recommendations all skip
+              them.
+            </div>
+            <div className="adopt-list">
+              {hiddenWaypoints.map(w => (
+                <AdoptRow
+                  key={w.id}
+                  waypoint={w}
+                  target={adoptTargetFor(prefs, w.id)}
+                  isNew={newIds.has(w.id)}
+                  onAdopt={() => handleAdopt(w.id)}
+                />
+              ))}
+            </div>
+          </div>
+        )}
 
         <DndContext
           sensors={groupSensors}
@@ -191,6 +329,49 @@ export default function VisibilityTab({ prefs, onChange }: Props) {
               Create your first group
             </button>
           </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// --- Unplaced waypoint row ---------------------------------------------------
+
+type AdoptRowProps = {
+  waypoint: WaypointData;
+  /** Group this waypoint would land in, per `adoptTargetFor`. */
+  target: { id: string; name: string; created: boolean };
+  isNew: boolean;
+  onAdopt: () => void;
+  /** Omitted in the hidden-waypoints panel, where "new" isn't the framing. */
+  onIgnore?: () => void;
+};
+
+function AdoptRow({ waypoint, target, isNew, onAdopt, onIgnore }: AdoptRowProps) {
+  return (
+    <div className="adopt-row">
+      <span className="adopt-name">
+        {waypoint.name}
+        {isNew && <span className="reorder-tag reorder-tag-new">new</span>}
+      </span>
+      <span className="adopt-desc">{describeWaypoint(waypoint)}</span>
+      <div className="adopt-actions">
+        <button
+          className="aturi-btn aturi-btn-primary"
+          type="button"
+          onClick={onAdopt}
+          title={
+            target.created
+              ? `Creates a "${target.name}" group and adds ${waypoint.name} to it`
+              : `Adds ${waypoint.name} to the end of your ${target.name} group`
+          }
+        >
+          Add to {target.name}
+        </button>
+        {onIgnore && (
+          <button className="aturi-btn aturi-btn-ghost" type="button" onClick={onIgnore}>
+            Not now
+          </button>
         )}
       </div>
     </div>
@@ -495,13 +676,18 @@ function WaypointPicker({ candidates, memberIds, newIds, onPick, onClose }: Pick
   }, [onClose]);
 
   const q = query.trim().toLowerCase();
-  const filtered = useMemo(
-    () =>
-      candidates.filter(w =>
-        q ? w.name.toLowerCase().includes(q) || w.id.toLowerCase().includes(q) : true
-      ),
-    [candidates, q]
-  );
+  // New built-ins float to the top of an otherwise catalog-ordered list —
+  // spotting a small "new" tag somewhere in a list of 28 was not a real way
+  // to find the waypoint that just shipped.
+  const filtered = useMemo(() => {
+    const matches = candidates.filter(w =>
+      q ? w.name.toLowerCase().includes(q) || w.id.toLowerCase().includes(q) : true
+    );
+    const fresh = matches.filter(w => newIds.has(w.id) && !memberIds.has(w.id));
+    if (fresh.length === 0) return matches;
+    const freshIds = new Set(fresh.map(w => w.id));
+    return [...fresh, ...matches.filter(w => !freshIds.has(w.id))];
+  }, [candidates, q, newIds, memberIds]);
 
   return (
     <div ref={containerRef} className="waypoint-picker" role="dialog" aria-label="Add waypoint">

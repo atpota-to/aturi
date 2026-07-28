@@ -532,12 +532,25 @@ body {
   color: var(--text-accent);
 }
 
+/* Clicking the summary opens Settings → Waypoints, where each new waypoint
+   can be placed individually; the Add button next to it takes them all. */
 .popup-update-banner-text {
   flex: 1;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  padding: 0;
+  background: none;
+  border: 0;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.popup-update-banner-text:hover {
+  text-decoration: underline;
 }
 
 .popup-update-banner-action {

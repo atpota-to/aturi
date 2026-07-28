@@ -596,6 +596,135 @@ body {
   background: var(--text-accent);
 }
 
+/* New / unplaced waypoints. Built-ins added by an update never join an
+   existing arrangement on their own, so this card is the place they surface
+   with a one-click way into the group they belong to. */
+
+.new-waypoints-card {
+  border-color: var(--text-accent);
+  background: var(--glow-subtle);
+}
+
+.adopt-list {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-tertiary);
+}
+
+.adopt-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-areas:
+    'name actions'
+    'desc actions';
+  align-items: center;
+  gap: 2px 16px;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.adopt-row:last-child {
+  border-bottom: none;
+}
+
+.adopt-name {
+  grid-area: name;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-serif);
+  font-size: var(--fs-lg);
+  color: var(--text-primary);
+}
+
+.adopt-desc {
+  grid-area: desc;
+  font-family: var(--font-serif);
+  font-size: var(--fs-sm);
+  color: var(--text-secondary);
+  line-height: 1.45;
+}
+
+.adopt-actions {
+  grid-area: actions;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.adopt-more {
+  padding: 10px 14px;
+  background: none;
+  border: 0;
+  border-top: 1px solid var(--border-subtle);
+  font-family: var(--font-serif);
+  font-size: var(--fs-sm);
+  color: var(--text-secondary);
+  text-align: left;
+  cursor: pointer;
+}
+
+.adopt-more:hover {
+  color: var(--text-primary);
+  background: var(--bg-secondary);
+}
+
+.adopt-bulk {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+@media (max-width: 560px) {
+  .adopt-row {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      'name'
+      'desc'
+      'actions';
+    gap: 4px;
+  }
+
+  .adopt-actions {
+    margin-top: 8px;
+  }
+}
+
+/* "N hidden" in the groups card — a disclosure, not a dead statistic. */
+.hidden-toggle {
+  padding: 0;
+  background: none;
+  border: 0;
+  border-bottom: 1px dotted currentColor;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+.hidden-toggle:hover {
+  color: var(--text-primary);
+}
+
+.hidden-panel {
+  margin-bottom: 12px;
+}
+
+/* Scroll rather than push the user's groups off the page — this list is the
+   whole catalog for someone who has curated their popup down to a handful. */
+.hidden-panel .adopt-list {
+  max-height: 420px;
+  overflow-y: auto;
+}
+
+.hidden-panel-head {
+  font-family: var(--font-serif);
+  font-size: var(--fs-sm);
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+}
+
 /* Group-based waypoint organizer (Waypoints tab) */
 
 .group-list {
