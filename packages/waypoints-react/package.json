@@ -1,6 +1,6 @@
 {
   "name": "@aturi.to/waypoints-react",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "[Beta] React picker UI + client icons for Aturi's Atmosphere (AT Protocol) waypoint catalog. Headless-first and fully themeable; ships zero CSS by default.",
   "license": "MIT",
   "author": "atpotato, LLC",
@@ -59,7 +59,7 @@
     "react-dom": ">=18"
   },
   "dependencies": {
-    "@aturi.to/waypoints": "^0.1.0"
+    "@aturi.to/waypoints": "^0.2.0"
   },
   "devDependencies": {
     "@types/react": "^19",
