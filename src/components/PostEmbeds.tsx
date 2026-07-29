@@ -1,7 +1,9 @@
 'use client';
 
+import { useState } from 'react';
 import { sanitizeUrl } from '@/utils/sanitize';
 import type { EmbedDisplayImage } from '@/utils/postEmbeds';
+import ImageLightbox from './ImageLightbox';
 
 /**
  * Shared renderers for a post's embeds. PostPreview shows embeds in four
@@ -50,43 +52,67 @@ export function EmbedImageGrid({
   /** Stop click propagation so opening an image doesn't trigger card nav. */
   stopPropagation?: boolean;
 }) {
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+
   const shown = typeof limit === 'number' ? images.slice(0, limit) : images;
   const columns =
     shown.length === 1 ? '1fr' : shown.length >= 5 ? 'repeat(3, 1fr)' : 'repeat(2, 1fr)';
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: columns, gap, marginTop, marginBottom }}>
-      {shown.map((image, i) => {
-        const sanitizedFullsize = sanitizeUrl(image.fullsize);
-        const sanitizedThumb = sanitizeUrl(image.thumb);
+    <>
+      <div style={{ display: 'grid', gridTemplateColumns: columns, gap, marginTop, marginBottom }}>
+        {shown.map((image, i) => {
+          const sanitizedFullsize = sanitizeUrl(image.fullsize);
+          const sanitizedThumb = sanitizeUrl(image.thumb);
 
-        return (
-          <a
-            key={i}
-            href={sanitizedFullsize}
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={stopPropagation ? (e) => e.stopPropagation() : undefined}
-            style={{ display: 'block', overflow: 'hidden' }}
-          >
-            <img
-              src={sanitizedThumb}
-              alt={image.alt}
-              style={{
-                width: '100%',
-                height: 'auto',
-                maxHeight,
-                objectFit: 'cover',
-                background,
-                display: 'block',
-                border: '1px solid var(--border-medium)',
-                boxShadow,
+          return (
+            <a
+              key={i}
+              // The href stays real so ⌘/middle-click, "open image in new tab",
+              // and long-press-to-save keep working — a plain click is
+              // intercepted below and opens the lightbox instead.
+              href={sanitizedFullsize}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => {
+                if (stopPropagation) e.stopPropagation();
+                // Leave modified clicks to the browser.
+                if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
+                e.preventDefault();
+                setLightboxIndex(i);
               }}
-            />
-          </a>
-        );
-      })}
-    </div>
+              style={{ display: 'block', overflow: 'hidden', cursor: 'zoom-in' }}
+            >
+              <img
+                src={sanitizedThumb}
+                alt={image.alt}
+                style={{
+                  width: '100%',
+                  height: 'auto',
+                  maxHeight,
+                  objectFit: 'cover',
+                  background,
+                  display: 'block',
+                  border: '1px solid var(--border-medium)',
+                  boxShadow,
+                }}
+              />
+            </a>
+          );
+        })}
+      </div>
+
+      {lightboxIndex !== null && (
+        // The viewer browses the whole embed even where the grid is capped
+        // (the reply parent shows two thumbnails of a four-image post).
+        <ImageLightbox
+          images={images}
+          index={lightboxIndex}
+          onIndexChange={setLightboxIndex}
+          onClose={() => setLightboxIndex(null)}
+        />
+      )}
+    </>
   );
 }
 

@@ -329,6 +329,9 @@ export function KeyboardShortcutsProvider({ children }: { children: ReactNode })
       if (!live.state.enabled) return;
       if (captureActiveRef.current) return; // settings is recording a binding
       if (live.paletteOpen || live.helpOpen) return; // a modal owns the keyboard
+      // Same for any other modal <dialog> (the image lightbox): while one is
+      // up it owns the keyboard, so `g h` shouldn't navigate out from under it.
+      if (document.querySelector('dialog[open]')) return;
       if (e.defaultPrevented) return;
 
       const step = eventToStep(e, platformNow);
