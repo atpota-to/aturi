@@ -1,0 +1,119 @@
+name: Publish packages
+
+# Publishing used to be a manual `npm publish` that nobody remembered to run, so
+# npm sat two months behind main. This publishes on version change instead: bump
+# the version in a package's package.json, merge to main, and the release ships.
+# A package whose version is already on the registry is skipped, so ordinary
+# commits under packages/ are a no-op.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - packages/**
+      - .github/workflows/publish-packages.yml
+  workflow_dispatch:
+    inputs:
+      dry-run:
+        description: Build and pack without publishing
+        type: boolean
+        default: false
+
+# Never run two publishes at once, and never cancel one part-way through.
+concurrency:
+  group: publish-packages
+  cancel-in-progress: false
+
+permissions:
+  contents: write # push the release tags
+  id-token: write # npm provenance attestation
+
+jobs:
+  publish:
+    name: Publish changed packages to npm
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: packages/package-lock.json
+          registry-url: https://registry.npmjs.org
+
+      - name: Check for the npm token
+        if: inputs.dry-run != true
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          if [ -z "$NPM_TOKEN" ]; then
+            echo "::error::NPM_TOKEN is not set. Add a repository secret with publish rights to the @aturi.to scope."
+            exit 1
+          fi
+
+      - run: npm ci
+        working-directory: packages
+
+      # The same gates CI runs, re-run here so a release can never ship source
+      # that has drifted from the app's canonical src/utils files.
+      - name: Verify before publishing
+        working-directory: packages
+        run: |
+          npm run sync:check
+          npm run typecheck
+          npm test
+
+      - name: Publish
+        working-directory: packages
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_CONFIG_PROVENANCE: "true"
+          DRY_RUN: ${{ inputs.dry-run }}
+        run: |
+          set -euo pipefail
+          : > /tmp/published.txt
+
+          # waypoints first: waypoints-react depends on it, so a release that
+          # bumps both needs the dependency on the registry by the time the
+          # dependent goes out.
+          for dir in waypoints waypoints-react; do
+            name=$(node -p "require('./$dir/package.json').name")
+            version=$(node -p "require('./$dir/package.json').version")
+
+            echo "::group::$name@$version"
+            if npm view "$name@$version" version >/dev/null 2>&1; then
+              echo "$name@$version is already on npm; nothing to publish."
+              echo "::endgroup::"
+              continue
+            fi
+
+            if [ "$DRY_RUN" = "true" ]; then
+              # --dry-run still runs prepublishOnly, so the build is exercised.
+              npm publish --dry-run --workspace "$name"
+            else
+              npm publish --workspace "$name"
+              echo "$name@$version" >> /tmp/published.txt
+            fi
+            echo "::endgroup::"
+          done
+
+          if [ -s /tmp/published.txt ]; then
+            echo 'Published:' >> "$GITHUB_STEP_SUMMARY"
+            sed 's/^/- `/; s/$/`/' /tmp/published.txt >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo 'No new versions to publish.' >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Tag the releases
+        if: inputs.dry-run != true
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          while read -r spec; do
+            [ -n "$spec" ] || continue
+            # @aturi.to/waypoints-react@0.2.0 -> waypoints-react-v0.2.0
+            tag="$(printf '%s' "${spec%@*}" | sed 's|^@aturi.to/||')-v${spec##*@}"
+            git tag -a "$tag" -m "$spec"
+            git push origin "$tag"
+          done < /tmp/published.txt
