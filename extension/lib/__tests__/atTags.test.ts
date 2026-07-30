@@ -4,6 +4,8 @@ import {
   parseAtTagName,
   parseAtTags,
   parseAtTagsFromDocument,
+  parseAtTagsFromHtml,
+  primaryRecordFromAtTags,
   buildAtTagsMetadata,
   isValidAtUri,
   isDidOnlyAtUri,
@@ -184,6 +186,102 @@ describe('parseAtTagsFromDocument', () => {
     `);
     const result = parseAtTagsFromDocument(doc);
     expect(result.canonical).toEqual([RECORD]);
+  });
+});
+
+describe('parseAtTagsFromHtml (DOM-free, server path)', () => {
+  it('parses at: meta tags out of raw HTML', () => {
+    const tags = parseAtTagsFromHtml(`
+      <html><head>
+        <meta name="at:canonical" content="${RECORD}">
+        <meta name="at:author" content="${AUTHOR}">
+      </head><body><p>hi</p></body></html>
+    `);
+    expect(tags.canonical).toEqual([RECORD]);
+    expect(tags.author).toEqual([AUTHOR]);
+  });
+
+  it('tolerates reversed attribute order, single quotes, and self-closing tags', () => {
+    const tags = parseAtTagsFromHtml(`
+      <meta content='${RECORD}' name='at:canonical' />
+      <meta content="${RECORD_2}" name="at:alternate">
+    `);
+    expect(tags.canonical).toEqual([RECORD]);
+    expect(tags.alternate).toEqual([RECORD_2]);
+  });
+
+  it('keeps array semantics across repeated tags', () => {
+    const tags = parseAtTagsFromHtml(`
+      <meta name="at:canonical" content="${RECORD}">
+      <meta name="at:canonical" content="${RECORD_2}">
+    `);
+    expect(tags.canonical).toEqual([RECORD, RECORD_2]);
+  });
+
+  it('decodes HTML entities in content', () => {
+    // A DID containing an escaped ampersand round-trips to a literal one.
+    const tags = parseAtTagsFromHtml(
+      `<meta name="at:canonical" content="at://did:plc:abc123/app.bsky.feed.post/a&amp;b">`,
+    );
+    expect(tags.canonical).toEqual(['at://did:plc:abc123/app.bsky.feed.post/a&b']);
+  });
+
+  it('ignores meta tags that are not AT Tags', () => {
+    const tags = parseAtTagsFromHtml(`
+      <meta name="description" content="a page">
+      <meta property="og:url" content="${RECORD}">
+      <meta name="at:bogus" content="${RECORD}">
+    `);
+    expect(tags.tags).toHaveLength(0);
+  });
+
+  it('returns an empty result for empty or non-HTML input', () => {
+    expect(parseAtTagsFromHtml('').tags).toHaveLength(0);
+    expect(parseAtTagsFromHtml(null).tags).toHaveLength(0);
+    expect(parseAtTagsFromHtml('just some text').tags).toHaveLength(0);
+  });
+
+  it('agrees with the DOM parser on the same markup', () => {
+    const html = `
+      <html><head>
+        <meta name="at:canonical" content="${RECORD}">
+        <meta name="at:alternate" content="${RECORD_2}">
+        <meta name="at:standard.site:comments" content="${RECORD_2}">
+      </head><body></body></html>
+    `;
+    const fromHtml = parseAtTagsFromHtml(html);
+    const fromDom = parseAtTagsFromDocument(docFrom(html));
+    expect(fromHtml.canonical).toEqual(fromDom.canonical);
+    expect(fromHtml.alternate).toEqual(fromDom.alternate);
+    expect(fromHtml.namespaces).toEqual(fromDom.namespaces);
+  });
+});
+
+describe('primaryRecordFromAtTags', () => {
+  it('prefers canonical, then alternate', () => {
+    expect(
+      primaryRecordFromAtTags(
+        parseAtTags([
+          { name: 'at:alternate', content: RECORD_2 },
+          { name: 'at:canonical', content: RECORD },
+        ]),
+      ),
+    ).toBe(RECORD);
+    expect(
+      primaryRecordFromAtTags(parseAtTags([{ name: 'at:alternate', content: RECORD_2 }])),
+    ).toBe(RECORD_2);
+  });
+
+  it('ignores author/me, which point at a DID rather than a record', () => {
+    const tags = parseAtTags([
+      { name: 'at:author', content: AUTHOR },
+      { name: 'at:me', content: ME },
+    ]);
+    expect(primaryRecordFromAtTags(tags)).toBeNull();
+  });
+
+  it('returns null when the page declares nothing', () => {
+    expect(primaryRecordFromAtTags(parseAtTags([]))).toBeNull();
   });
 });
 

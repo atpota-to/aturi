@@ -10,7 +10,7 @@ import {
 } from 'react';
 import { CornerDownLeft, Search } from 'lucide-react';
 import { COMMAND_GROUPS, type Platform } from '@/lib/keybindings';
-import { resolveSearchPath } from '@/utils/atproto/searchRouting';
+import { resolveSearchPath, resolveSearchPathAsync } from '@/utils/atproto/searchRouting';
 import Kbd from './Kbd';
 import type { ResolvedCommand } from './KeyboardShortcutsProvider';
 
@@ -125,8 +125,17 @@ export default function CommandPalette({
   function runItem(item: Item | undefined) {
     if (!item) return;
     onClose();
-    if (item.kind === 'command') item.cmd.run();
-    else onNavigate(item.path);
+    if (item.kind === 'command') {
+      item.cmd.run();
+      return;
+    }
+    // The row above was built with the synchronous guess (re-resolving on every
+    // keystroke would mean a network call per character). Resolve properly now
+    // that the user has committed, so an unrecognized URL gets a chance to be
+    // identified by its AT Tags. Falls back to the same path on any failure.
+    void resolveSearchPathAsync(item.query).then((path) => {
+      onNavigate(path || item.path);
+    });
   }
 
   function onKeyDown(e: KeyboardEvent<HTMLInputElement>) {

@@ -13,6 +13,8 @@ import {
 } from '@/utils/waypoints.data';
 import { resolveHandle } from '@/utils/uriParser';
 import { isBlockedFetchHost } from '@/utils/ssrfGuard';
+import { parseAtTagsFromHtml, primaryRecordFromAtTags } from '@/utils/atproto/atTags';
+import { fetchPageHtml } from '@/utils/fetchPageHtml';
 
 export const runtime = 'edge';
 
@@ -27,9 +29,11 @@ export const runtime = 'edge';
  * Detection has two phases, in order:
  *  1. URL-pattern matching via `matchSupportedUrl` (covers bsky.app, leaflet,
  *     pdsls, atp.tools, the Bluesky-fork family, and friends).
- *  2. Head-link probing: fetch the page (capped to ~256KB and a short timeout)
- *     and look for `<link href="at://...">` in the document head. Optional;
- *     callers can suppress with `?headDetect=false`.
+ *  2. Page probing: fetch the page (capped to ~256KB and a short timeout) and
+ *     look for the AT Tags it declares about itself
+ *     (`<meta name="at:canonical">`, then `at:alternate`), falling back to a
+ *     legacy `<link href="at://...">`. Optional; callers can suppress with
+ *     `?headDetect=false`.
  *
  * Inputs:
  *  - `url=<encoded-page-url>` (preferred from share sheets)
@@ -47,10 +51,6 @@ const DID_REQUIRED_WAYPOINTS = new Set([
 ]);
 
 const HEAD_FETCH_TIMEOUT_MS = 4000;
-// Stop reading well before most pages finish. The head almost always lives in
-// the first ~64KB; 256KB is generous overhead for sites that ship enormous
-// inline JSON/JS before </head>.
-const HEAD_FETCH_MAX_BYTES = 256 * 1024;
 
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
@@ -75,7 +75,7 @@ export async function GET(request: NextRequest) {
   let match: ReverseMatch | null = null;
   let isKnownHost = false;
   let inputKind: 'atUri' | 'url' = 'url';
-  let detectedVia: 'atUri' | 'urlPattern' | 'headLink' | null = null;
+  let detectedVia: 'atUri' | 'urlPattern' | 'atTags' | 'headLink' | null = null;
 
   if (rawAtUri) {
     inputKind = 'atUri';
@@ -102,10 +102,10 @@ export async function GET(request: NextRequest) {
     } else if (!skipHead && !isBlockedFetchHost(parsedUrl.hostname)) {
       // Only fetch the page for head-link detection when it's a public host;
       // never let this endpoint probe loopback/private/internal addresses.
-      const headAtUri = await detectAtUriInHead(parsedUrl.toString());
-      if (headAtUri) {
-        match = parseAtUri(headAtUri);
-        if (match) detectedVia = 'headLink';
+      const detected = await detectAtUriInHead(parsedUrl.toString());
+      if (detected) {
+        match = parseAtUri(detected.uri);
+        if (match) detectedVia = detected.via;
       }
     }
   }
@@ -119,7 +119,7 @@ export async function GET(request: NextRequest) {
         isKnownHost,
         reason: 'no-atmosphere-data',
         message:
-          "Couldn't find a supported AT URI for this page (no URL pattern match and no <link href=\"at://...\"> in <head>).",
+          "Couldn't find a supported AT URI for this page (no URL pattern match, no at:canonical meta tag, and no <link href=\"at://...\"> in <head>).",
       },
       { status: 200, headers: corsAndCache(60) }
     );
@@ -213,64 +213,34 @@ function jsonError(status: number, message: string) {
 }
 
 /**
- * Stream-fetch the page and look for `<link href="at://...">` in the document
- * head. Bails out as soon as `</head>` is seen or we cross the byte cap, so
- * the worst case is bounded even on very large pages.
+ * Stream-fetch the page and look for an AT URI in the document head. Bails out
+ * as soon as `</head>` is seen or we cross the byte cap, so the worst case is
+ * bounded even on very large pages.
  *
- * Returns the first AT URI found, or null if none/unreadable/timeout.
+ * Two signals, in priority order:
+ *   1. AT Tags (https://tangled.org/chrisshank.com/at-tags/) — the page's own
+ *      `<meta name="at:canonical">` (or `at:alternate`) declaration.
+ *   2. The legacy `<link href="at://...">`, as used by Offprint, pckt, and
+ *      Leaflet/standard.site pages predating the proposal.
+ *
+ * Returns the URI and which mechanism found it, or null if none/unreadable.
  */
-async function detectAtUriInHead(url: string): Promise<string | null> {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), HEAD_FETCH_TIMEOUT_MS);
-  try {
-    const response = await fetch(url, {
-      signal: controller.signal,
-      redirect: 'follow',
-      headers: {
-        // Some atmosphere apps (Leaflet, Offprint, pckt) gate on UA; identify
-        // ourselves clearly and request HTML.
-        'User-Agent':
-          'Mozilla/5.0 (compatible; AturiResolver/1.0; +https://aturi.to)',
-        Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.5',
-      },
-    });
-    if (!response.ok || !response.body) return null;
+async function detectAtUriInHead(
+  url: string,
+): Promise<{ uri: string; via: 'atTags' | 'headLink' } | null> {
+  const haystack = await fetchPageHtml(url, { timeoutMs: HEAD_FETCH_TIMEOUT_MS });
+  if (!haystack) return null;
 
-    const ct = response.headers.get('content-type') || '';
-    if (!/text\/html|application\/xhtml/i.test(ct)) return null;
+  // 1. AT Tags — an explicit declaration by the page, so it wins.
+  const declared = primaryRecordFromAtTags(parseAtTagsFromHtml(haystack));
+  if (declared) return { uri: declared, via: 'atTags' };
 
-    const reader = response.body.getReader();
-    const decoder = new TextDecoder('utf-8');
-    let buffer = '';
-    let bytesRead = 0;
-    try {
-      while (bytesRead < HEAD_FETCH_MAX_BYTES) {
-        const { value, done } = await reader.read();
-        if (done) break;
-        bytesRead += value.byteLength;
-        buffer += decoder.decode(value, { stream: true });
-        if (/<\/head>/i.test(buffer)) break;
-      }
-    } finally {
-      try {
-        await reader.cancel();
-      } catch {
-        /* ignore */
-      }
-    }
-
-    const headMatch = buffer.match(/<head[\s\S]*?<\/head>/i);
-    const haystack = headMatch ? headMatch[0] : buffer;
-    const linkRe = /<link\b[^>]*\bhref\s*=\s*["'](at:\/\/[^"']+)["'][^>]*>/gi;
-    let m: RegExpExecArray | null;
-    while ((m = linkRe.exec(haystack)) !== null) {
-      const href = m[1];
-      if (href.startsWith('at://')) return href;
-    }
-    return null;
-  } catch {
-    return null;
-  } finally {
-    clearTimeout(timeout);
+  // 2. Legacy <link href="at://...">.
+  const linkRe = /<link\b[^>]*\bhref\s*=\s*["'](at:\/\/[^"']+)["'][^>]*>/gi;
+  let m: RegExpExecArray | null;
+  while ((m = linkRe.exec(haystack)) !== null) {
+    const href = m[1];
+    if (href.startsWith('at://')) return { uri: href, via: 'headLink' };
   }
+  return null;
 }

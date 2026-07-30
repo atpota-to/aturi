@@ -5,7 +5,7 @@
  * falls back to treating the input as a handle/DID for repo lookup.
  */
 
-import { encodeRepo } from './urls';
+import { encodeRepo, explorePathFromAtUri } from './urls';
 import { pdsHostname } from './pdsServer';
 import { matchSupportedUrl } from '../reverseParsers';
 import type { ParsedURI } from '../uriParser';
@@ -86,18 +86,28 @@ function looksLikeBarePdsHostname(input: string): boolean {
   return true;
 }
 
-export function resolveSearchPath(rawInput: string): string | null {
+/**
+ * A routing decision plus how confident it is. `kind: 'pds-guess'` marks the
+ * one low-confidence branch: an http(s) URL we couldn't reverse-parse, where
+ * treating the host as a PDS is a guess rather than a match. That's the branch
+ * `resolveSearchPathAsync` upgrades by asking the page for its AT Tags.
+ */
+export type SearchTarget =
+  | { kind: 'match'; path: string }
+  | { kind: 'pds-guess'; path: string; url: string };
+
+export function resolveSearchTarget(rawInput: string): SearchTarget | null {
   const v = rawInput.trim();
   if (!v) return null;
 
   // 1. at:// URIs — drill down as far as the URI allows.
   if (v.startsWith('at://')) {
     const m = v.match(/^at:\/\/([^/]+)\/([^/]+)\/([^/?#]+)/);
-    if (m) return `/explore/${encodeRepo(m[1])}/${m[2]}/${encodeURIComponent(m[3])}`;
+    if (m) return match(`/explore/${encodeRepo(m[1])}/${m[2]}/${encodeURIComponent(m[3])}`);
     const m2 = v.match(/^at:\/\/([^/]+)\/([^/?#]+)/);
-    if (m2) return `/explore/${encodeRepo(m2[1])}/${m2[2]}`;
+    if (m2) return match(`/explore/${encodeRepo(m2[1])}/${m2[2]}`);
     const m3 = v.match(/^at:\/\/([^/?#]+)/);
-    if (m3) return `/explore/${encodeRepo(m3[1])}`;
+    if (m3) return match(`/explore/${encodeRepo(m3[1])}`);
     return null;
   }
 
@@ -109,26 +119,81 @@ export function resolveSearchPath(rawInput: string): string | null {
     try {
       const url = new URL(v);
       const own = explorePathFromAturiUrl(url);
-      if (own) return own;
-      const match = matchSupportedUrl(url);
-      if (match) return explorePathFromParsed(match.parsed);
+      if (own) return match(own);
+      const found = matchSupportedUrl(url);
+      if (found) return match(explorePathFromParsed(found.parsed));
     } catch {
       // Not a parseable URL — fall through to PDS host handling.
     }
 
     // 2b. Otherwise treat it as a PDS host. Path / query / fragment are
     //     stripped down to the host so users can paste a `/xrpc/...` URL
-    //     and still land on the right page.
+    //     and still land on the right page. This is a guess, not a match —
+    //     the async resolver gets a chance to beat it with the page's own
+    //     AT Tags before we send anyone to a PDS page that may not exist.
     const host = pdsHostname(v);
-    if (host) return `/explore/pds/${encodeURIComponent(host)}`;
+    if (host) {
+      return { kind: 'pds-guess', path: `/explore/pds/${encodeURIComponent(host)}`, url: v };
+    }
     return null;
   }
 
   // 3. Bare `pds.<domain>` shortcut — `pds.atpota.to` etc.
   if (looksLikeBarePdsHostname(v)) {
-    return `/explore/pds/${encodeURIComponent(v)}`;
+    return match(`/explore/pds/${encodeURIComponent(v)}`);
   }
 
   // 4. Default: treat as handle or DID.
-  return `/explore/${encodeRepo(v)}`;
+  return match(`/explore/${encodeRepo(v)}`);
+}
+
+function match(path: string): SearchTarget {
+  return { kind: 'match', path };
+}
+
+/**
+ * Synchronous routing — unchanged behaviour, used where a network round trip
+ * isn't wanted (or as the immediate fallback if AT Tags discovery fails).
+ */
+export function resolveSearchPath(rawInput: string): string | null {
+  return resolveSearchTarget(rawInput)?.path ?? null;
+}
+
+/**
+ * Routing with AT Tags discovery. Identical to {@link resolveSearchPath} for
+ * everything it already understands; the difference is the unrecognized-URL
+ * case, where instead of blindly treating the host as a PDS we ask the page
+ * what atproto records it references (the AT Tags proposal) and route to the
+ * canonical one.
+ *
+ * So pasting a link to someone's standard.site blog post, or any other page
+ * that declares `at:canonical`, lands on that record in the explorer rather
+ * than on a PDS page for a host that isn't a PDS.
+ *
+ * Never throws and never blocks indefinitely: any failure (offline, timeout,
+ * no tags, unparseable) falls back to the synchronous guess.
+ */
+export async function resolveSearchPathAsync(
+  rawInput: string,
+  opts?: { signal?: AbortSignal },
+): Promise<string | null> {
+  const target = resolveSearchTarget(rawInput);
+  if (!target) return null;
+  if (target.kind !== 'pds-guess') return target.path;
+
+  try {
+    const endpoint = `/api/at-tags?url=${encodeURIComponent(target.url)}`;
+    const res = await fetch(endpoint, { signal: opts?.signal });
+    if (res.ok) {
+      const data = (await res.json()) as { ok?: boolean; primary?: string | null };
+      if (data?.ok && data.primary) {
+        const path = explorePathFromAtUri(data.primary);
+        if (path) return path;
+      }
+    }
+  } catch {
+    /* offline, aborted, or malformed — fall through to the guess */
+  }
+
+  return target.path;
 }

@@ -10,7 +10,7 @@ import {
 } from 'react';
 import { Search } from 'lucide-react';
 import { encodeRepo } from '@/utils/atproto/urls';
-import { resolveSearchPath } from '@/utils/atproto/searchRouting';
+import { resolveSearchPathAsync } from '@/utils/atproto/searchRouting';
 import {
   searchActorsTypeahead,
   type ActorTypeaheadResult,
@@ -36,6 +36,10 @@ export default function SearchBox({ initial }: { initial?: string }) {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [highlightIndex, setHighlightIndex] = useState(-1);
   const [history, setHistory] = useState<SearchHistoryEntry[]>([]);
+  // Submitting an unrecognized URL costs a round trip to /api/at-tags, so the
+  // input reflects that instead of appearing to swallow the Enter key.
+  const [resolving, setResolving] = useState(false);
+  const resolvingRef = useRef(false);
   const wrapRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -109,7 +113,7 @@ export default function SearchBox({ initial }: { initial?: string }) {
 
   const reloadHistory = useCallback(() => setHistory(readSearchHistory()), []);
 
-  function onSubmit(e: React.FormEvent) {
+  async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setShowSuggestions(false);
     // If the user has a suggestion highlighted, jump to that — otherwise
@@ -118,10 +122,20 @@ export default function SearchBox({ initial }: { initial?: string }) {
       goToActor(suggestions[highlightIndex]);
       return;
     }
-    const path = resolveSearchPath(value);
-    if (!path) return;
-    recordQueryVisit(value, path);
-    router.push(path);
+    if (resolvingRef.current) return;
+    resolvingRef.current = true;
+    setResolving(true);
+    try {
+      // Async so an unrecognized URL gets a chance to tell us, via its AT
+      // Tags, which record it's actually about.
+      const path = await resolveSearchPathAsync(value);
+      if (!path) return;
+      recordQueryVisit(value, path);
+      router.push(path);
+    } finally {
+      resolvingRef.current = false;
+      setResolving(false);
+    }
   }
 
   function onKeyDown(e: KeyboardEvent<HTMLInputElement>) {
@@ -354,6 +368,7 @@ export default function SearchBox({ initial }: { initial?: string }) {
 
       <button
         type="submit"
+        disabled={resolving}
         style={{
           padding: '0.75rem 1.25rem',
           background: 'var(--accent-moss)',
@@ -361,8 +376,10 @@ export default function SearchBox({ initial }: { initial?: string }) {
           border: '1px solid var(--accent-moss)',
           fontFamily: 'var(--font-serif)',
           fontSize: '0.95rem',
-          cursor: 'pointer',
-          transition: 'background 0.2s ease',
+          cursor: resolving ? 'progress' : 'pointer',
+          opacity: resolving ? 0.75 : 1,
+          whiteSpace: 'nowrap',
+          transition: 'background 0.2s ease, opacity 0.2s ease',
         }}
         onMouseEnter={(e) => {
           e.currentTarget.style.background = 'var(--accent-forest)';
@@ -371,7 +388,7 @@ export default function SearchBox({ initial }: { initial?: string }) {
           e.currentTarget.style.background = 'var(--accent-moss)';
         }}
       >
-        Look up
+        {resolving ? 'Looking…' : 'Look up'}
       </button>
     </form>
   );

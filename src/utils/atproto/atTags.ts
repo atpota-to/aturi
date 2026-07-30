@@ -208,6 +208,83 @@ export function isEmptyAtTags(result: AtTagsResult): boolean {
   return result.tags.length === 0;
 }
 
+/**
+ * The single record an AT Tags result is "about", if it declares one:
+ * `at:canonical` first, then `at:alternate`. Deliberately ignores `at:author`
+ * and `at:me` — those reference a bare DID, so routing to them would land on a
+ * profile when the visitor asked about a page.
+ */
+export function primaryRecordFromAtTags(result: AtTagsResult): string | null {
+  return result.canonical[0] || result.alternate[0] || null;
+}
+
+const META_TAG_REGEX = /<meta\b[^>]*>/gi;
+
+/** Read one attribute off a raw tag string (double, single, or unquoted). */
+function readAttribute(tag: string, attr: string): string | null {
+  const re = new RegExp(
+    `\\b${attr}\\s*=\\s*(?:"([^"]*)"|'([^']*)'|([^\\s"'\`=<>]+))`,
+    'i',
+  );
+  const m = tag.match(re);
+  if (!m) return null;
+  return m[1] ?? m[2] ?? m[3] ?? null;
+}
+
+/**
+ * Decode the HTML entities that can realistically appear in a `content`
+ * attribute. `&amp;` is unescaped last so `&amp;quot;` survives as the literal
+ * text `&quot;` rather than collapsing into a quote character.
+ */
+function decodeEntities(input: string): string {
+  return input
+    .replace(/&#(\d+);/g, (_, dec: string) => safeCodePoint(Number(dec)))
+    .replace(/&#x([0-9a-f]+);/gi, (_, hex: string) => safeCodePoint(parseInt(hex, 16)))
+    .replace(/&quot;/gi, '"')
+    .replace(/&apos;/gi, "'")
+    .replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>')
+    .replace(/&amp;/gi, '&');
+}
+
+function safeCodePoint(code: number): string {
+  if (!Number.isFinite(code) || code < 0 || code > 0x10ffff) return '';
+  try {
+    return String.fromCodePoint(code);
+  } catch {
+    return '';
+  }
+}
+
+/**
+ * Parse AT Tags out of raw HTML, without a DOM. This is the server-side path
+ * (Next.js edge routes have no DOMParser) used when Aturi fetches a pasted URL
+ * to discover what atproto records the page references.
+ *
+ * Intentionally a scanner rather than a real HTML parse: it only needs the
+ * `name`/`content` pairs off `<meta>` tags, and callers already cap how many
+ * bytes of the document they hand over. Attribute order, quoting style, and
+ * self-closing syntax are all tolerated.
+ */
+export function parseAtTagsFromHtml(html: string | null | undefined): AtTagsResult {
+  if (typeof html !== 'string' || !html) return parseAtTags([]);
+
+  const entries: MetaEntry[] = [];
+  const matches = html.match(META_TAG_REGEX);
+  if (matches) {
+    for (const tag of matches) {
+      const name = readAttribute(tag, 'name');
+      if (!name) continue;
+      const content = readAttribute(tag, 'content');
+      entries.push({
+        name: decodeEntities(name),
+        content: content == null ? null : decodeEntities(content),
+      });
+    }
+  }
+  return parseAtTags(entries);
+}
+
 /** Input to {@link buildAtTagsMetadata}: each property may be one URI or many. */
 export type AtTagsInput = {
   canonical?: string | string[] | null;

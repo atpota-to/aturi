@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState, type KeyboardEvent } from 're
 import { useRouter } from 'next/navigation';
 import { Search } from 'lucide-react';
 import { encodeRepo } from '@/utils/atproto/urls';
-import { resolveSearchPath } from '@/utils/atproto/searchRouting';
+import { resolveSearchPathAsync } from '@/utils/atproto/searchRouting';
 import {
   searchActorsTypeahead,
   type ActorTypeaheadResult,
@@ -44,6 +44,9 @@ export default function CompactSearchPanel({ active, onDone }: Props) {
   const [highlightIndex, setHighlightIndex] = useState(-1);
   const [history, setHistory] = useState<SearchHistoryEntry[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
+  // Guards against a second Enter while an unrecognized URL is being resolved
+  // through /api/at-tags.
+  const resolvingRef = useRef(false);
 
   // Focus + select existing text whenever the panel becomes active. Using
   // a microtask so the input is mounted and visible before we focus it
@@ -119,16 +122,23 @@ export default function CompactSearchPanel({ active, onDone }: Props) {
 
   const reloadHistory = useCallback(() => setHistory(readSearchHistory()), []);
 
-  function onSubmit(e: React.FormEvent) {
+  async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (highlightIndex >= 0 && suggestions[highlightIndex]) {
       goToActor(suggestions[highlightIndex]);
       return;
     }
-    const path = resolveSearchPath(value);
-    if (!path) return;
-    recordQueryVisit(value, path);
-    finish(path);
+    if (resolvingRef.current) return;
+    resolvingRef.current = true;
+    try {
+      // Async so an unrecognized URL can be resolved through its AT Tags.
+      const path = await resolveSearchPathAsync(value);
+      if (!path) return;
+      recordQueryVisit(value, path);
+      finish(path);
+    } finally {
+      resolvingRef.current = false;
+    }
   }
 
   function onKeyDown(e: KeyboardEvent<HTMLInputElement>) {
