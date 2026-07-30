@@ -17,6 +17,8 @@ export async function generateMetadata({
   return {
     title,
     description,
+    // Unbounded, client-rendered inspection view — see `explore/[repo]/page.tsx`.
+    robots: { index: false, follow: true },
     openGraph: {
       title,
       description,

@@ -14,6 +14,7 @@ import { resolveDidToHandle } from '@/utils/didResolver';
 import { buildPostMetadata, buildPostJsonLd } from '@/utils/postMetadata';
 import { serializeJsonLd } from '@/utils/sanitize';
 import { buildAtTagsMetadata } from '@/utils/atproto/atTags';
+import { buildRecordCanonical } from '@/utils/canonicalUrl';
 import { getSiteUrl } from '@/lib/config';
 import { getMarginLexiconType, getMarginLexiconDisplayName, getMarginLexiconDescription } from '@/utils/marginLexicons';
 import {
@@ -145,6 +146,15 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       return {
         title,
         description,
+        // Served at both `/{handle}/{collection}/{rkey}` and the canonical
+        // `/profile/...` form, with either a handle or a DID in the first
+        // segment. Point them all at the DID form so crawlers collapse the
+        // spellings into one page — the record URL space is unbounded, so
+        // leaving the duplicates unconsolidated multiplies crawl volume.
+        // (Posts return early via `buildPostMetadata`, which sets its own.)
+        alternates: {
+          canonical: buildRecordCanonical(resolvedDid, collection, rkey),
+        },
         openGraph: {
           title,
           description,

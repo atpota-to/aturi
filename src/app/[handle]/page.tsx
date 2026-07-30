@@ -12,6 +12,7 @@ import { resolveDidToHandle } from '@/utils/didResolver';
 import { fetchProfile } from '@/utils/profileFetcher';
 import { fetchRepoCollections } from '@/utils/atproto/identity';
 import { buildAtTagsMetadata } from '@/utils/atproto/atTags';
+import { buildProfileCanonical } from '@/utils/canonicalUrl';
 import { getSiteUrl } from '@/lib/config';
 
 type Props = {
@@ -55,6 +56,12 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       return {
         title,
         description,
+        // This page is served at both `/{handle}` and `/profile/{handle}`, with
+        // either a handle or a DID — point every spelling at the DID form so
+        // crawlers consolidate them into one page instead of crawling each.
+        alternates: {
+          canonical: buildProfileCanonical(resolvedDid),
+        },
         openGraph: {
           title,
           description,
