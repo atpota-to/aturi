@@ -99,6 +99,9 @@ export async function resolveIdentifier(input: string): Promise<IdentityBundle> 
     const m = target.match(/^at:\/\/([^/]+)/);
     if (m) target = m[1];
   }
+  // People commonly write handles with the presentation-only @ prefix.
+  // AT Protocol's resolver expects the bare handle.
+  target = target.replace(/^@/, '');
 
   const resolved = await resolvePdsEndpoint(target);
   if (!resolved) throw new Error(`Could not resolve ${trimmed}`);
