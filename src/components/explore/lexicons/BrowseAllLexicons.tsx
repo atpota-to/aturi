@@ -27,15 +27,17 @@ const PAGE_LIMIT = 100;
  * swamp the view.
  *
  * Only one stat column is shown at a time — the one picked by the
- * Creates/Repos toggle — so the NSID column keeps as much width as
- * possible. In Top that toggle is also the sort key.
+ * Repos/Creates toggle — so the NSID column keeps as much width as
+ * possible. In Top that toggle is also the sort key, and it defaults to
+ * repos: how many accounts publish a lexicon says more about reach than
+ * raw record volume, which a handful of chatty repos can dominate.
  *
  * `order` and `cursor` are mutually exclusive in the API, so Top never
  * paginates and All never sorts.
  */
 export default function BrowseAllLexicons() {
   const [view, setView] = useState<View>('top');
-  const [order, setOrder] = useState<CollectionOrder>('records-created');
+  const [order, setOrder] = useState<CollectionOrder>('dids-estimate');
   const [dedupe, setDedupe] = useState(true);
   const [rows, setRows] = useState<NsidCount[] | null>(null);
   const [cursor, setCursor] = useState<string | null>(null);
@@ -69,7 +71,7 @@ export default function BrowseAllLexicons() {
 
   // All view: the unsorted catalog, cursor-paginated. The metric only picks
   // which stat column shows here, so it deliberately isn't a dependency —
-  // otherwise switching Creates/Repos would discard every "Load more" page.
+  // otherwise switching Repos/Creates would discard every "Load more" page.
   useEffect(() => {
     if (view !== 'all') return;
     let cancelled = false;
@@ -96,7 +98,7 @@ export default function BrowseAllLexicons() {
     return view === 'top' ? rows.slice(0, TOP_DISPLAY) : rows;
   }, [rows, dedupe, view]);
 
-  // Only one stat column is shown at a time (chosen by the Creates/Repos
+  // Only one stat column is shown at a time (chosen by the Repos/Creates
   // toggle) so the NSID column gets the freed-up width.
   const showCreates = order === 'records-created';
   const metricLabel = showCreates ? 'Creates' : 'Repos';
@@ -145,8 +147,8 @@ export default function BrowseAllLexicons() {
           <Segmented
             ariaLabel={view === 'top' ? 'Rank by' : 'Show metric'}
             options={[
-              { value: 'records-created', label: 'Creates' },
               { value: 'dids-estimate', label: 'Repos' },
+              { value: 'records-created', label: 'Creates' },
             ]}
             value={order}
             onChange={(v) => setOrder(v as CollectionOrder)}

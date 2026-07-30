@@ -25,12 +25,14 @@ import { WINDOWS, type Window } from '@/utils/ufos/windows';
 type Mode = 'top' | 'trending';
 
 const RESULT_COUNT = 10;
+/** Row count after "Show more". */
+const EXPANDED_COUNT = 20;
 /**
  * Pull more candidates than we'll display so the filter (drop app.bsky.*
  * in trending) + dedup (one row per top-2-segment namespace) still leaves
  * enough rows to fill the table.
  */
-const CANDIDATE_POOL = 50;
+const CANDIDATE_POOL_FACTOR = 5;
 
 type CollectionRow = {
   nsid: string;
@@ -65,8 +67,11 @@ export default function TrendingLexicons({
   const [mode, setMode] = useState<Mode>('trending');
   const [metric, setMetric] = useState<Metric>('dids');
   const [window, setWindow] = useState<Window>('7d');
+  const [expanded, setExpanded] = useState(false);
   const [rows, setRows] = useState<CollectionRow[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  const limit = expanded ? EXPANDED_COUNT : RESULT_COUNT;
 
   useEffect(() => {
     let cancelled = false;
@@ -77,7 +82,7 @@ export default function TrendingLexicons({
     // skeleton only appears on the very first load (rows === null).
     (async () => {
       try {
-        const next = await fetchRanking(window, mode, metric);
+        const next = await fetchRanking(window, mode, metric, limit);
         if (!cancelled) setRows(next);
       } catch (err) {
         if (!cancelled) setError(err instanceof Error ? err.message : String(err));
@@ -87,7 +92,12 @@ export default function TrendingLexicons({
     return () => {
       cancelled = true;
     };
-  }, [window, mode, metric]);
+  }, [window, mode, metric, limit]);
+
+  // Slice defensively: while an expand is in flight `rows` still holds the
+  // previous (shorter or longer) result, and collapsing should take effect
+  // immediately rather than waiting on the refetch.
+  const visible = rows ? rows.slice(0, limit) : null;
 
   return (
     <AppearIn delay={0.12}>
@@ -111,8 +121,8 @@ export default function TrendingLexicons({
             <div className="explore-error" style={{ padding: '1rem' }}>
               Couldn&rsquo;t reach the UFOs API: {error}
             </div>
-          ) : rows ? (
-            rows.length === 0 ? (
+          ) : visible ? (
+            visible.length === 0 ? (
               <p
                 className="explore-placeholder"
                 style={{ padding: '1rem', margin: 0 }}
@@ -120,25 +130,35 @@ export default function TrendingLexicons({
                 No lexicons matched in this window.
               </p>
             ) : (
-              <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
-                {rows.map((row, i) => (
-                  <Row
-                    key={row.nsid}
-                    row={row}
-                    rank={i + 1}
-                    mode={mode}
-                    metric={metric}
-                    window={window}
-                    isLast={i === rows.length - 1}
+              <>
+                <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+                  {visible.map((row, i) => (
+                    <Row
+                      key={row.nsid}
+                      row={row}
+                      rank={i + 1}
+                      mode={mode}
+                      metric={metric}
+                      window={window}
+                      isLast={i === visible.length - 1}
+                    />
+                  ))}
+                </ul>
+                {/* Hide the toggle only when collapsed and the list is
+                    already short — there's nothing more to reveal. */}
+                {(expanded || visible.length >= RESULT_COUNT) && (
+                  <ShowMore
+                    expanded={expanded}
+                    onToggle={() => setExpanded((v) => !v)}
                   />
-                ))}
-              </ul>
+                )}
+              </>
             )
           ) : (
             // First load: render a full-height skeleton table so the
             // section reserves its final size instead of starting tiny and
             // jumping tall once the data lands.
-            <SkeletonRows mode={mode} />
+            <SkeletonRows mode={mode} count={limit} />
           )}
         </div>
         <Credit />
@@ -253,25 +273,49 @@ function Header({
   );
 }
 
+/** Expand / collapse control under the table. */
+function ShowMore({ expanded, onToggle }: { expanded: boolean; onToggle: () => void }) {
+  return (
+    <div style={{ padding: '0.75rem 1rem', borderTop: '1px solid var(--border-subtle)' }}>
+      <button
+        type="button"
+        onClick={onToggle}
+        aria-expanded={expanded}
+        style={{
+          width: '100%',
+          padding: '0.5rem',
+          background: 'var(--bg-tertiary)',
+          border: '1px solid var(--border-medium)',
+          color: 'var(--text-secondary)',
+          fontFamily: 'var(--font-serif)',
+          fontSize: '0.8125rem',
+          cursor: 'pointer',
+        }}
+      >
+        {expanded ? `Show top ${RESULT_COUNT}` : `Show top ${EXPANDED_COUNT}`}
+      </button>
+    </div>
+  );
+}
+
 /**
  * Placeholder table shown on first load. Mirrors the real Row grid exactly
- * — same column template, gap, padding, row count (RESULT_COUNT) and
- * separators — so its height matches the loaded table and the section
- * doesn't resize when data arrives. The sparkline placeholder is 24px tall
- * (the live Sparkline's height) so per-row height is identical too.
+ * — same column template, gap, padding, row count and separators — so its
+ * height matches the loaded table and the section doesn't resize when data
+ * arrives. The sparkline placeholder is 24px tall (the live Sparkline's
+ * height) so per-row height is identical too.
  */
-function SkeletonRows({ mode }: { mode: Mode }) {
+function SkeletonRows({ mode, count }: { mode: Mode; count: number }) {
   // Varied nsid widths so the column reads as organic text rather than a
   // stack of identical bars.
   const nsidWidths = ['62%', '78%', '52%', '70%', '46%', '82%', '58%', '66%', '50%', '74%'];
   return (
     <ul aria-hidden style={{ listStyle: 'none', margin: 0, padding: 0 }}>
-      {Array.from({ length: RESULT_COUNT }).map((_, i) => (
+      {Array.from({ length: count }).map((_, i) => (
         <li
           key={i}
           style={{
-            borderBottom:
-              i === RESULT_COUNT - 1 ? undefined : '1px solid var(--border-subtle)',
+            borderBottom: i === count - 1 ? undefined : '1px solid var(--border-subtle)',
           }}
         >
           <div className="lexicon-row-grid">
@@ -491,6 +535,7 @@ async function fetchRanking(
   window: Window,
   mode: Mode,
   metric: Metric,
+  resultCount: number,
 ): Promise<CollectionRow[]> {
   const cfg = WINDOWS[window];
   const sinceIso = isoAgo(cfg.hours);
@@ -499,7 +544,7 @@ async function fetchRanking(
   //    metric; ties / unsupported orders fall back to records-created.
   const { collections: candidates, failed } = await fetchCollections({
     order: orderForMetric(metric),
-    limit: CANDIDATE_POOL,
+    limit: resultCount * CANDIDATE_POOL_FACTOR,
     since: sinceIso,
   });
 
@@ -530,7 +575,7 @@ async function fetchRanking(
     const sorted = [...filtered].sort(
       (a, b) => (currentMap.get(b.nsid) ?? 0) - (currentMap.get(a.nsid) ?? 0),
     );
-    const picked = sorted.slice(0, RESULT_COUNT);
+    const picked = sorted.slice(0, resultCount);
     const series = await Promise.all(
       picked.map((c) =>
         fetchSeries(c.nsid, sinceIso, cfg.step, cfg.bucketCount, metric),
@@ -571,7 +616,7 @@ async function fetchRanking(
       if (bd === null) return -1;
       return bd - ad;
     })
-    .slice(0, RESULT_COUNT);
+    .slice(0, resultCount);
 
   const series = await Promise.all(
     ranked.map((c) =>
