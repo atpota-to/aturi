@@ -126,7 +126,7 @@ export default function TermsPage() {
               </li>
               <li>
                 The <strong>Aturi browser extension</strong> for Chrome,
-                Firefox, Safari, and other supported browsers, including its
+                Firefox, and any other browsers we support, including its
                 detection, Inspect, auto-redirect, and waypoint-jump features.
                 The extension is also governed by its dedicated{' '}
                 <Link href={EXTENSION_PRIVACY_URL} style={linkStyle}>
@@ -241,8 +241,8 @@ export default function TermsPage() {
               </li>
               <li>
                 <strong>Browser extension.</strong> The browser extension is
-                distributed via official browser web stores (Chrome Web
-                Store, Firefox Add-ons, and the Mac App Store for Safari).
+                distributed via official browser web stores (currently the
+                Chrome Web Store and Firefox Add-ons).
                 In addition to one-click waypoint jumping and auto-redirect,
                 the extension offers <strong>AT URI detection</strong> (a
                 content script that passively looks for{' '}

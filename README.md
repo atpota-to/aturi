@@ -14,7 +14,7 @@ The extension and the web app import the same `src/utils/waypoints.data.ts`, so 
 
 ## Browser extension
 
-The extension is a core part of Aturi: for many users it's the primary way they use the project day to day. Available for Chrome, Firefox, and Safari (via WXT + Xcode's web-extension converter).
+The extension is a core part of Aturi: for many users it's the primary way they use the project day to day. Available for Chrome and Firefox. Safari isn't shipped yet — WXT produces an MV3 bundle that Xcode's web-extension converter can wrap, but that build hasn't been tested or submitted to the App Store.
 
 ### What it does
 
@@ -26,7 +26,7 @@ The extension is a core part of Aturi: for many users it's the primary way they 
 - **Local-first.** No account, no telemetry, no background network calls. The extension only talks to public atproto services when you open the popup or hit Inspect. Preferences live in your browser's local storage. See [`extension/PRIVACY.txt`](extension/PRIVACY.txt) or [aturi.to/extension/privacy](https://aturi.to/extension/privacy).
 - **Shared catalog.** Imports waypoints, URI parsers, and reverse parsers directly from the web app's `src/utils/`, so the two stay in sync.
 
-See [`extension/README.md`](extension/README.md) for development, build, and Safari packaging instructions.
+See [`extension/README.md`](extension/README.md) for development and build instructions.
 
 ## Atmosphere Explorer
 
@@ -114,7 +114,7 @@ npm run dev            # Chrome (loads the extension into a fresh Chromium profi
 npm run dev:firefox    # Firefox
 ```
 
-WXT hot-reloads on changes. For release builds and Safari packaging, see [`extension/README.md`](extension/README.md).
+WXT hot-reloads on changes. For release builds, see [`extension/README.md`](extension/README.md).
 
 ## Deployment
 
@@ -124,7 +124,7 @@ The web app is designed for Vercel so the OpenGraph route can use the Edge Runti
 2. Import the repository in Vercel
 3. Deploy
 
-The extension ships as standalone bundles via `npm run zip` / `npm run zip:firefox` (and `xcrun safari-web-extension-converter` for Safari).
+The extension ships as standalone bundles via `npm run zip` / `npm run zip:firefox`.
 
 ## Integration
 
@@ -191,7 +191,7 @@ GET https://aturi.to/api/resolve?atUri=at://...
 
 **Extension**
 
-- **WXT**: cross-browser MV3/MV2 build tooling (Chrome, Firefox, Safari)
+- **WXT**: cross-browser MV3 build tooling (Chrome and Firefox)
 - **React 19** (Preact-aliased in the bundle): popup, options, and Inspect UI
 - **`chrome.declarativeNetRequest`**: fast, privacy-preserving auto-redirect
 - **`@dnd-kit`**: drag-and-drop ordering of waypoints
@@ -206,7 +206,7 @@ This is a community tool for the Atmosphere ecosystem. Contributions are welcome
 - [Developer docs](https://aturi.to/docs): integrate the waypoint packages and the Resolve API into your own app
 - [`@aturi.to/waypoints`](packages/waypoints/README.md) & [`@aturi.to/waypoints-react`](packages/waypoints-react/README.md): the published package READMEs
 - [Contributing Guide](CONTRIBUTING.md): how to contribute back
-- [Extension README](extension/README.md): extension dev, build, and Safari notes
+- [Extension README](extension/README.md): extension dev and build notes
 - [Terms & Privacy Policy](https://aturi.to/terms): what we collect, how the third-party services we depend on fit in
 - [Extension Privacy Policy](https://aturi.to/extension/privacy): what the extension stores, what it reads, and what it sends where
 

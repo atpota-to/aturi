@@ -42,12 +42,6 @@ npm run dev            # Chrome
 npm run dev:firefox    # Firefox
 ```
 
-```bash
-cd aturi-to/extension
-npm install
-npm run dev:firefox    # Firefox
-```
-
 `npm run dev` launches a Chromium instance with the extension loaded; WXT
 watches for changes and hot-reloads.
 
@@ -55,23 +49,30 @@ watches for changes and hot-reloads.
 
 ```bash
 npm run build            # .output/chrome-mv3/
-npm run build:firefox    # .output/firefox-mv2/ (WXT handles manifest transforms)
+npm run build:firefox    # .output/firefox-mv3/ (WXT handles manifest transforms)
 npm run zip
 npm run zip:firefox
 ```
 
-## Safari
+## Safari (not shipped)
 
-Safari accepts a web extension via Xcode's converter. Once you've built the
-Chrome bundle, run:
+There is no Safari build yet. Nothing has been converted, tested, or submitted,
+and the web app's install page intentionally doesn't offer Safari
+(`SUPPORTED_BROWSERS` in `src/utils/browserDetect.ts` lists Chrome and Firefox
+only).
+
+The intended path, when someone picks this up: Safari accepts a web extension
+through Xcode's converter, so building the Chrome bundle and running
 
 ```bash
 xcrun safari-web-extension-converter ./.output/chrome-mv3
 ```
 
-Xcode will open a generated project. From there, run it on macOS or iOS
-simulators, then submit through App Store Connect. No code changes are needed
-in the extension itself.
+should produce an Xcode project to run on macOS or iOS and submit through App
+Store Connect. Expect to find work beyond that — at minimum, `declarativeNetRequest`
+support needs verifying on Safari before the auto-redirect toggle can be trusted
+there, and shipping means adding a Safari entry to `EXTENSION_URLS` and
+`SUPPORTED_BROWSERS`, plus updating the Terms page's distribution list.
 
 ## Architecture
 
