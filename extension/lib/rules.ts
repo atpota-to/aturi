@@ -39,7 +39,6 @@ function sourceRecipes(sourceId: SourceApp | string): SourceRecipe[] {
     case 'blacksky':
     case 'reddwarf':
     case 'witchsky':
-    case 'catsky':
     case 'deer':
     case 'mu':
     case 'anisota': {
@@ -236,7 +235,6 @@ const HOST_BY_SOURCE: Record<SourceApp, string> = {
   blacksky: 'blacksky.community',
   reddwarf: 'reddwarf.app',
   witchsky: 'witchsky.app',
-  catsky: 'catsky.social',
   deer: 'deer.social',
   mu: 'mu.social',
   anisota: 'anisota.net',
@@ -444,7 +442,6 @@ const ALL_KNOWN_SOURCES: SourceApp[] = [
   'blacksky',
   'reddwarf',
   'witchsky',
-  'catsky',
   'deer',
   'mu',
   'anisota',

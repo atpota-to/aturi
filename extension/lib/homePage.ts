@@ -17,7 +17,6 @@ const BUILTIN_HOME: Record<string, string> = {
   anisotaReader: 'https://anisota.net/',
   atptools: 'https://atp.tools/',
   witchsky: 'https://witchsky.app/',
-  catsky: 'https://catsky.social/',
   deer: 'https://deer.social/',
   mu: 'https://mu.social/',
   tangled: 'https://tangled.org/',

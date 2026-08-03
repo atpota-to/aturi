@@ -285,7 +285,7 @@ export const WAYPOINT_DESTINATIONS_DATA: Record<string, WaypointData> = {
       return `https://reddwarf.app/profile/${handle}`;
     },
     supportedTypes: ['post', 'profile', 'list', 'record'],
-    category: 'blueskyForks',
+    category: 'blueskyClients',
     redirectCompat: ['bluesky-social'],
     expectedCollections: ['app.bsky.'],
   },
@@ -397,29 +397,6 @@ export const WAYPOINT_DESTINATIONS_DATA: Record<string, WaypointData> = {
         return `https://witchsky.app/profile/${handle}`;
       }
       return `https://witchsky.app/profile/${handle}`;
-    },
-    supportedTypes: ['post', 'profile', 'list', 'record'],
-    category: 'blueskyForks',
-    redirectCompat: ['bluesky-social'],
-    expectedCollections: ['app.bsky.'],
-  },
-
-  catsky: {
-    id: 'catsky',
-    name: 'Catsky',
-    description: (collection) => {
-      if (collection === 'app.bsky.feed.post') return 'View post on catsky.social';
-      if (collection === 'app.bsky.graph.list') return 'View list on catsky.social';
-      return 'View profile on catsky.social';
-    },
-    getUrl: (handle, collection, rkey) => {
-      if (collection && rkey) {
-        if (collection === 'app.bsky.feed.post') {
-          return `https://catsky.social/profile/${handle}/post/${rkey}`;
-        }
-        return `https://catsky.social/profile/${handle}`;
-      }
-      return `https://catsky.social/profile/${handle}`;
     },
     supportedTypes: ['post', 'profile', 'list', 'record'],
     category: 'blueskyForks',
@@ -751,8 +728,8 @@ export const WAYPOINT_ORDER = [
   'anisota',
   'bluesky',
   'bluepy',
-  'blacksky',
   'reddwarf',
+  'blacksky',
   'leaflet',
   'aturi',
   'pinksky',
@@ -773,9 +750,8 @@ export const WAYPOINT_ORDER = [
   'atptools',
   'taproot',
   'witchsky',
-  'catsky',
-  'deer',
   'mu',
+  'deer',
 ];
 
 export function getWaypointDataForType(type: WaypointType): WaypointData[] {

@@ -30,7 +30,6 @@ interface AtUriComponents {
  * - https://margin.at/domain.com/collection/rkey (maps to at.margin.collection)
  * - https://semble.so/profile/identifier
  * - https://witchsky.app/profile/handle/post/rkey
- * - https://catsky.social/profile/handle/post/rkey
  * - https://deer.social/profile/handle/post/rkey
  * - at://did:plc:xxx/app.bsky.feed.post/rkey
  */
@@ -119,7 +118,7 @@ export function extractAtUriComponents(input: string): AtUriComponents | null {
     // Specific domain patterns (for non-AT-URI-like paths)
     
     // Standard /profile/identifier format (bsky.app, blacksky.community, anisota.net, 
-    // reddwarf.app, witchsky.app, catsky.social, deer.social)
+    // reddwarf.app, witchsky.app, deer.social)
     if (pathname.startsWith('/profile/')) {
       const parts = pathname.substring(9).split('/'); // Remove "/profile/"
       
