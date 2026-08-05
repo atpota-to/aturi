@@ -2511,10 +2511,22 @@ body.has-explore-chrome {
   min-width: 0;
 }
 
-/* …except a companion to something that should take the slack itself, like
-   Stop beside the delete progress bar. */
+/* …except one that should let its neighbour take the slack: Stop beside the
+   delete progress bar, or Confirm delete beside the Cancel that ought to be
+   the easier of the two to hit. */
 .explore-chrome-panel-split > .explore-chrome-panel-row-fit {
   flex: 0 0 auto;
+}
+
+/* Delete: the smallest target in the panel and held off from the rest, since
+   it's the one control here that a thumb should have to mean. Smaller in both
+   directions, not just narrower — and the extra margin is the gap that keeps
+   a slightly-off tap on Done from landing on it. */
+.explore-chrome-panel-split > .explore-chrome-panel-row-tight {
+  flex: 0 0 auto;
+  align-self: center;
+  padding: 0.35rem 0.5rem;
+  margin-left: 0.4rem;
 }
 
 .explore-chrome-panel-row:disabled {

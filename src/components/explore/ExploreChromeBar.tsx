@@ -167,11 +167,11 @@ function PanelToggle({
 
 /**
  * The selection controls, expanding up out of the bar the way the nav's menu
- * expands down out of the header. Two rows deep at most: the controls that
- * pair naturally sit side by side, and only the destructive one gets the full
- * width — both to keep the panel short and to keep Delete from sharing an
- * edge with Done. `inert` while closed so the collapsed rows stay out of the
- * tab order and the a11y tree.
+ * expands down out of the header. One row where it can be: the safe controls
+ * share the width, and delete is deliberately the smallest target of the four
+ * and set apart from them — it's the one control here a thumb should have to
+ * mean. `inert` while closed so the collapsed rows stay out of the tab order
+ * and the a11y tree.
  */
 function ChromePanel({ open, bar }: { open: boolean; bar: EditBarSnapshot }) {
   const selectAllDisabled = bar.totalCount === 0 || bar.allSelected;
@@ -204,6 +204,8 @@ function ChromePanel({ open, bar }: { open: boolean; bar: EditBarSnapshot }) {
             Delete {bar.selectedCount} record{plural}? This can&rsquo;t be undone.
           </span>
           <div className="explore-chrome-panel-split">
+            {/* Backing out takes the width; going through with it hugs its
+                own label. Same principle as the delete chip below. */}
             <button
               type="button"
               onClick={bar.onCancelDelete}
@@ -214,7 +216,7 @@ function ChromePanel({ open, bar }: { open: boolean; bar: EditBarSnapshot }) {
             <button
               type="button"
               onClick={bar.onConfirmDelete}
-              className="explore-chrome-panel-row explore-chrome-danger-solid"
+              className="explore-chrome-panel-row explore-chrome-panel-row-fit explore-chrome-danger-solid"
             >
               Confirm delete
             </button>
@@ -254,16 +256,29 @@ function ChromePanel({ open, bar }: { open: boolean; bar: EditBarSnapshot }) {
               <X size={13} aria-hidden />
               Done
             </button>
+            {/* The smallest thing in the panel, held off from the rest. Its
+                words live in the accessible name — the icon and the colour
+                carry it on screen, and the confirm step spells it out before
+                anything happens. */}
+            <button
+              type="button"
+              onClick={bar.onRequestDelete}
+              disabled={nothingSelected}
+              title={
+                nothingSelected
+                  ? 'Delete selected records'
+                  : `Delete ${bar.selectedCount} selected record${plural}`
+              }
+              aria-label={
+                nothingSelected
+                  ? 'Delete selected records'
+                  : `Delete ${bar.selectedCount} selected record${plural}`
+              }
+              className="explore-chrome-panel-row explore-chrome-panel-row-tight explore-chrome-danger"
+            >
+              <Trash2 size={13} aria-hidden />
+            </button>
           </div>
-          <button
-            type="button"
-            onClick={bar.onRequestDelete}
-            disabled={nothingSelected}
-            className="explore-chrome-panel-row explore-chrome-danger"
-          >
-            <Trash2 size={13} aria-hidden />
-            {nothingSelected ? 'Delete selected' : `Delete ${bar.selectedCount} selected`}
-          </button>
         </>
       )}
     </div>
