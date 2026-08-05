@@ -137,7 +137,10 @@
   --bg-tertiary: #e8e2d4;
   --bg-elevated: #ffffff;
 
-  --accent-moss: #6c7c5f;
+  /* Darker than it looks like it needs to be: --accent-moss is a filled
+     button background under --text-on-accent, and the old #6c7c5f only
+     reached 3.9:1 against it. */
+  --accent-moss: #5d6b51;
   --accent-forest: #4d5a48;
   --accent-bark: #6e5f4c;
   --accent-stone: #76766f;
@@ -175,9 +178,12 @@
 
   --noise-opacity: 0.25;
 
-  --danger: #b5453e;
-  --danger-soft: rgba(181, 69, 62, 0.1);
-  --danger-border: rgba(181, 69, 62, 0.3);
+  /* Deepened from #b5453e: --danger is shared by every light palette, and
+     on the warmer scheme backgrounds (ember's parchment especially) the
+     old red landed at 4.4:1. This clears AA on all of them. */
+  --danger: #a83c35;
+  --danger-soft: rgba(168, 60, 53, 0.1);
+  --danger-border: rgba(168, 60, 53, 0.3);
 
   /* Almost-invisible warm strip — the previous rgba(0,0,0,0.2) inset
      disappeared on the cream backdrop. This gives the at:// row a faint
@@ -453,6 +459,299 @@
   --modal-bottom-fade: linear-gradient(to top, rgba(239, 233, 246, 0.95), transparent);
 }
 
+/* Sol — brass and sunbaked gold over deep umber; ivory in the light. */
+[data-theme='dark'][data-scheme='sol'] {
+  --bg-primary: #0b0a06;
+  --bg-secondary: #16140d;
+  --bg-tertiary: #1c1911;
+  --bg-elevated: #232016;
+
+  --accent-moss: #7d6524;
+  --accent-forest: #453a15;
+  --accent-bark: #3d3520;
+  --accent-stone: #4a473f;
+
+  --text-primary: #f6f2e6;
+  --text-secondary: #cfc8b2;
+  --text-tertiary: #a39c86;
+  --text-accent: #e6c25c;
+
+  --glow-subtle: rgba(230, 194, 92, 0.06);
+  --glow-medium: rgba(230, 194, 92, 0.12);
+  --glow-strong: rgba(230, 194, 92, 0.22);
+
+  --border-subtle: rgba(246, 242, 230, 0.12);
+  --border-medium: rgba(246, 242, 230, 0.18);
+  --border-strong: rgba(246, 242, 230, 0.24);
+
+  --page-glow-a: rgba(214, 178, 80, 0.24);
+  --page-glow-b: rgba(120, 95, 35, 0.22);
+  --page-glow-c: rgba(240, 210, 120, 0.16);
+
+  --bg-overlay: rgba(16, 14, 9, 0.85);
+  --bg-overlay-hover: rgba(20, 18, 12, 0.9);
+
+  --modal-backdrop: rgba(11, 10, 6, 0.75);
+  --modal-bg: linear-gradient(145deg, rgba(22, 20, 13, 0.95) 0%, rgba(28, 25, 17, 0.98) 100%);
+  --modal-bottom-fade: linear-gradient(to top, rgba(22, 20, 13, 0.95), transparent);
+}
+
+[data-theme='light'][data-scheme='sol'] {
+  --bg-primary: #fdf8e9;
+  --bg-secondary: #f5edd6;
+  --bg-tertiary: #ece0bf;
+  --bg-elevated: #fffef9;
+
+  --accent-moss: #7d6320;
+  --accent-forest: #55450f;
+  --accent-bark: #6f5f3a;
+  --accent-stone: #77736a;
+
+  --text-primary: #201d10;
+  --text-secondary: #423c26;
+  --text-tertiary: #5d5637;
+  --text-accent: #705405;
+
+  --glow-subtle: rgba(112, 84, 5, 0.05);
+  --glow-medium: rgba(112, 84, 5, 0.1);
+  --glow-strong: rgba(112, 84, 5, 0.18);
+
+  --border-subtle: rgba(32, 29, 16, 0.14);
+  --border-medium: rgba(32, 29, 16, 0.22);
+  --border-strong: rgba(32, 29, 16, 0.32);
+
+  --page-glow-a: rgba(190, 155, 45, 0.14);
+  --page-glow-b: rgba(150, 120, 60, 0.12);
+  --page-glow-c: rgba(215, 190, 110, 0.1);
+
+  --bg-overlay: rgba(253, 248, 233, 0.85);
+  --bg-overlay-hover: rgba(245, 237, 214, 0.92);
+
+  --modal-bg: linear-gradient(145deg, rgba(255, 254, 249, 0.98) 0%, rgba(245, 237, 214, 0.99) 100%);
+  --modal-bottom-fade: linear-gradient(to top, rgba(245, 237, 214, 0.95), transparent);
+}
+
+/* Bloom — wild rose over a plum-black; blush paper in the light. Kept in
+   the magenta end of pink so links never read as a --danger message. */
+[data-theme='dark'][data-scheme='bloom'] {
+  --bg-primary: #0c0709;
+  --bg-secondary: #170f13;
+  --bg-tertiary: #1d1418;
+  --bg-elevated: #24191e;
+
+  --accent-moss: #8e3550;
+  --accent-forest: #4c1c2c;
+  --accent-bark: #3f2831;
+  --accent-stone: #4a4144;
+
+  --text-primary: #f8edf1;
+  --text-secondary: #d3c2c9;
+  --text-tertiary: #a8959d;
+  --text-accent: #f08fb8;
+
+  --glow-subtle: rgba(240, 143, 184, 0.06);
+  --glow-medium: rgba(240, 143, 184, 0.12);
+  --glow-strong: rgba(240, 143, 184, 0.22);
+
+  --border-subtle: rgba(248, 237, 241, 0.12);
+  --border-medium: rgba(248, 237, 241, 0.18);
+  --border-strong: rgba(248, 237, 241, 0.24);
+
+  --page-glow-a: rgba(220, 90, 145, 0.24);
+  --page-glow-b: rgba(130, 45, 80, 0.22);
+  --page-glow-c: rgba(240, 150, 190, 0.16);
+
+  --bg-overlay: rgba(17, 10, 13, 0.85);
+  --bg-overlay-hover: rgba(21, 13, 17, 0.9);
+
+  --modal-backdrop: rgba(12, 7, 9, 0.75);
+  --modal-bg: linear-gradient(145deg, rgba(23, 15, 19, 0.95) 0%, rgba(29, 20, 24, 0.98) 100%);
+  --modal-bottom-fade: linear-gradient(to top, rgba(23, 15, 19, 0.95), transparent);
+}
+
+[data-theme='light'][data-scheme='bloom'] {
+  --bg-primary: #fdf5f8;
+  --bg-secondary: #f7e7ee;
+  --bg-tertiary: #efd7e1;
+  --bg-elevated: #fffdfe;
+
+  --accent-moss: #9c2f56;
+  --accent-forest: #6f1f3c;
+  --accent-bark: #7d4f5c;
+  --accent-stone: #7c7175;
+
+  --text-primary: #22151b;
+  --text-secondary: #453038;
+  --text-tertiary: #634d56;
+  --text-accent: #961f56;
+
+  --glow-subtle: rgba(150, 31, 86, 0.05);
+  --glow-medium: rgba(150, 31, 86, 0.1);
+  --glow-strong: rgba(150, 31, 86, 0.18);
+
+  --border-subtle: rgba(34, 21, 27, 0.14);
+  --border-medium: rgba(34, 21, 27, 0.22);
+  --border-strong: rgba(34, 21, 27, 0.32);
+
+  --page-glow-a: rgba(190, 60, 120, 0.14);
+  --page-glow-b: rgba(150, 80, 120, 0.12);
+  --page-glow-c: rgba(220, 130, 175, 0.1);
+
+  --bg-overlay: rgba(253, 245, 248, 0.85);
+  --bg-overlay-hover: rgba(247, 231, 238, 0.92);
+
+  --modal-bg: linear-gradient(145deg, rgba(255, 253, 254, 0.98) 0%, rgba(247, 231, 238, 0.99) 100%);
+  --modal-bottom-fade: linear-gradient(to top, rgba(247, 231, 238, 0.95), transparent);
+}
+
+/* Trans — the flag's sky blue, pink and white. The blue leads (it's the
+   link color); the pink carries the ambient glow and the secondary accent,
+   darkened where it has to sit behind --text-on-accent. */
+[data-theme='dark'][data-scheme='trans'] {
+  --bg-primary: #07080b;
+  --bg-secondary: #11131a;
+  --bg-tertiary: #171a22;
+  --bg-elevated: #1e2129;
+
+  --accent-moss: #a04a63;
+  --accent-forest: #23405a;
+  --accent-bark: #6b3d4d;
+  --accent-stone: #44464e;
+
+  --text-primary: #f4f7fa;
+  --text-secondary: #c3ccd6;
+  --text-tertiary: #97a2ae;
+  --text-accent: #5bcefa;
+
+  --glow-subtle: rgba(91, 206, 250, 0.06);
+  --glow-medium: rgba(91, 206, 250, 0.12);
+  --glow-strong: rgba(91, 206, 250, 0.22);
+
+  --border-subtle: rgba(244, 247, 250, 0.12);
+  --border-medium: rgba(244, 247, 250, 0.18);
+  --border-strong: rgba(244, 247, 250, 0.24);
+
+  --page-glow-a: rgba(91, 206, 250, 0.24);
+  --page-glow-b: rgba(245, 169, 184, 0.2);
+  --page-glow-c: rgba(255, 255, 255, 0.12);
+
+  --bg-overlay: rgba(10, 12, 16, 0.85);
+  --bg-overlay-hover: rgba(14, 16, 21, 0.9);
+
+  --modal-backdrop: rgba(7, 8, 11, 0.75);
+  --modal-bg: linear-gradient(145deg, rgba(17, 19, 26, 0.95) 0%, rgba(23, 26, 34, 0.98) 100%);
+  --modal-bottom-fade: linear-gradient(to top, rgba(17, 19, 26, 0.95), transparent);
+}
+
+[data-theme='light'][data-scheme='trans'] {
+  --bg-primary: #f7fbfe;
+  --bg-secondary: #eaf3fa;
+  --bg-tertiary: #dbe9f4;
+  --bg-elevated: #ffffff;
+
+  --accent-moss: #a8415c;
+  --accent-forest: #1c5678;
+  --accent-bark: #8a5a68;
+  --accent-stone: #6f757c;
+
+  --text-primary: #101a22;
+  --text-secondary: #33424e;
+  --text-tertiary: #4d5d69;
+  --text-accent: #0a5f88;
+
+  --glow-subtle: rgba(10, 95, 136, 0.05);
+  --glow-medium: rgba(10, 95, 136, 0.1);
+  --glow-strong: rgba(10, 95, 136, 0.18);
+
+  --border-subtle: rgba(16, 26, 34, 0.14);
+  --border-medium: rgba(16, 26, 34, 0.22);
+  --border-strong: rgba(16, 26, 34, 0.32);
+
+  --page-glow-a: rgba(91, 206, 250, 0.18);
+  --page-glow-b: rgba(245, 169, 184, 0.18);
+  --page-glow-c: rgba(255, 255, 255, 0.14);
+
+  --bg-overlay: rgba(247, 251, 254, 0.85);
+  --bg-overlay-hover: rgba(234, 243, 250, 0.92);
+
+  --modal-bg: linear-gradient(145deg, rgba(255, 255, 255, 0.98) 0%, rgba(234, 243, 250, 0.99) 100%);
+  --modal-bottom-fade: linear-gradient(to top, rgba(234, 243, 250, 0.95), transparent);
+}
+
+/* Noir — no hue at all. Links are the brightest (dark) or darkest (light)
+   thing on the page rather than the most colorful, since there's no accent
+   hue to carry them. */
+[data-theme='dark'][data-scheme='noir'] {
+  --bg-primary: #000000;
+  --bg-secondary: #101010;
+  --bg-tertiary: #171717;
+  --bg-elevated: #1f1f1f;
+
+  --accent-moss: #4e4e4e;
+  --accent-forest: #303030;
+  --accent-bark: #3a3a3a;
+  --accent-stone: #4a4a4a;
+
+  --text-primary: #e9e9e9;
+  --text-secondary: #b4b4b4;
+  --text-tertiary: #8c8c8c;
+  --text-accent: #ffffff;
+
+  --glow-subtle: rgba(255, 255, 255, 0.05);
+  --glow-medium: rgba(255, 255, 255, 0.09);
+  --glow-strong: rgba(255, 255, 255, 0.16);
+
+  --border-subtle: rgba(255, 255, 255, 0.14);
+  --border-medium: rgba(255, 255, 255, 0.22);
+  --border-strong: rgba(255, 255, 255, 0.3);
+
+  --page-glow-a: rgba(255, 255, 255, 0.1);
+  --page-glow-b: rgba(160, 160, 160, 0.08);
+  --page-glow-c: rgba(255, 255, 255, 0.06);
+
+  --bg-overlay: rgba(8, 8, 8, 0.85);
+  --bg-overlay-hover: rgba(14, 14, 14, 0.9);
+
+  --modal-backdrop: rgba(0, 0, 0, 0.78);
+  --modal-bg: linear-gradient(145deg, rgba(16, 16, 16, 0.96) 0%, rgba(23, 23, 23, 0.98) 100%);
+  --modal-bottom-fade: linear-gradient(to top, rgba(16, 16, 16, 0.95), transparent);
+}
+
+[data-theme='light'][data-scheme='noir'] {
+  --bg-primary: #ffffff;
+  --bg-secondary: #f2f2f2;
+  --bg-tertiary: #e6e6e6;
+  --bg-elevated: #ffffff;
+
+  --accent-moss: #4a4a4a;
+  --accent-forest: #2b2b2b;
+  --accent-bark: #565656;
+  --accent-stone: #6e6e6e;
+
+  --text-primary: #171717;
+  --text-secondary: #3d3d3d;
+  --text-tertiary: #5e5e5e;
+  --text-accent: #000000;
+
+  --glow-subtle: rgba(0, 0, 0, 0.04);
+  --glow-medium: rgba(0, 0, 0, 0.08);
+  --glow-strong: rgba(0, 0, 0, 0.14);
+
+  --border-subtle: rgba(0, 0, 0, 0.16);
+  --border-medium: rgba(0, 0, 0, 0.24);
+  --border-strong: rgba(0, 0, 0, 0.34);
+
+  --page-glow-a: rgba(0, 0, 0, 0.07);
+  --page-glow-b: rgba(90, 90, 90, 0.06);
+  --page-glow-c: rgba(0, 0, 0, 0.05);
+
+  --bg-overlay: rgba(255, 255, 255, 0.85);
+  --bg-overlay-hover: rgba(242, 242, 242, 0.92);
+
+  --modal-bg: linear-gradient(145deg, rgba(255, 255, 255, 0.98) 0%, rgba(242, 242, 242, 0.99) 100%);
+  --modal-bottom-fade: linear-gradient(to top, rgba(242, 242, 242, 0.95), transparent);
+}
+
 /* High-contrast overrides. Layered on top of whichever theme is active, so
    they only touch the tokens that need more separation: pure-black/white
    backgrounds and text, opaque borders, and brighter accents. Everything
@@ -474,8 +773,11 @@
   --text-tertiary: #cccccc;
   --text-accent: #c8e0b4;
 
-  --accent-moss: #6f8a5c;
-  --accent-forest: #44603a;
+  /* High contrast wants these *darker*, not brighter: they're filled
+     backgrounds under white text, so lifting them lowers the contrast the
+     mode exists to raise. #6f8a5c managed only 3.8:1. */
+  --accent-moss: #587049;
+  --accent-forest: #3b5432;
   --accent-bark: #6a5847;
   --accent-stone: #6a6a64;
 
@@ -486,6 +788,15 @@
   --glow-subtle: transparent;
   --glow-medium: transparent;
   --glow-strong: transparent;
+
+  /* Floating surfaces get flattened too. Without these a scheme's tinted
+     modal gradient would survive into high contrast and sit warm (or blue,
+     or violet) against backgrounds that have all gone neutral black. */
+  --bg-overlay: rgba(0, 0, 0, 0.9);
+  --bg-overlay-hover: rgba(12, 12, 12, 0.94);
+  --modal-backdrop: rgba(0, 0, 0, 0.85);
+  --modal-bg: linear-gradient(145deg, rgba(12, 12, 12, 0.98) 0%, rgba(22, 22, 22, 0.99) 100%);
+  --modal-bottom-fade: linear-gradient(to top, rgba(12, 12, 12, 0.98), transparent);
 
   --text-on-accent: #ffffff;
   --danger: #ff8a8a;
@@ -512,6 +823,12 @@
   --border-medium: rgba(0, 0, 0, 0.7);
   --border-strong: rgba(0, 0, 0, 0.9);
 
+  --bg-overlay: rgba(255, 255, 255, 0.94);
+  --bg-overlay-hover: rgba(244, 241, 234, 0.96);
+  --modal-backdrop: rgba(0, 0, 0, 0.6);
+  --modal-bg: linear-gradient(145deg, rgba(255, 255, 255, 0.99) 0%, rgba(244, 241, 234, 1) 100%);
+  --modal-bottom-fade: linear-gradient(to top, rgba(255, 255, 255, 0.98), transparent);
+
   --text-on-accent: #ffffff;
   --danger: #9a1f1a;
   --danger-border: rgba(154, 31, 26, 0.7);
@@ -526,7 +843,7 @@
    without the dark and light variants colliding with each other. */
 :root[data-theme='dark'][data-high-contrast='true'][data-scheme='ember'] {
   --text-accent: #f0b782;
-  --accent-moss: #a3653f;
+  --accent-moss: #8a5230;
   --accent-forest: #5c3620;
 }
 
@@ -538,7 +855,7 @@
 
 :root[data-theme='dark'][data-high-contrast='true'][data-scheme='tide'] {
   --text-accent: #a5dcec;
-  --accent-moss: #3f7d92;
+  --accent-moss: #35697c;
   --accent-forest: #26495a;
 }
 
@@ -558,6 +875,56 @@
   --text-accent: #45298a;
   --accent-moss: #56467a;
   --accent-forest: #3b2f57;
+}
+
+:root[data-theme='dark'][data-high-contrast='true'][data-scheme='sol'] {
+  --text-accent: #f5d878;
+  --accent-moss: #755d1e;
+  --accent-forest: #574716;
+}
+
+:root[data-theme='light'][data-high-contrast='true'][data-scheme='sol'] {
+  --text-accent: #5c4405;
+  --accent-moss: #5f4b10;
+  --accent-forest: #453609;
+}
+
+:root[data-theme='dark'][data-high-contrast='true'][data-scheme='bloom'] {
+  --text-accent: #ffa7c8;
+  --accent-moss: #9c3a5c;
+  --accent-forest: #5e2337;
+}
+
+:root[data-theme='light'][data-high-contrast='true'][data-scheme='bloom'] {
+  --text-accent: #8a0f4a;
+  --accent-moss: #85204a;
+  --accent-forest: #631d34;
+}
+
+:root[data-theme='dark'][data-high-contrast='true'][data-scheme='trans'] {
+  --text-accent: #8ad8ff;
+  --accent-moss: #9c4560;
+  --accent-forest: #26506e;
+}
+
+:root[data-theme='light'][data-high-contrast='true'][data-scheme='trans'] {
+  --text-accent: #0a4f73;
+  --accent-moss: #8a2f4b;
+  --accent-forest: #1b4a68;
+}
+
+/* Noir has no hue to preserve, so high contrast pushes its accents to the
+   ends of the scale instead: white links on black, black on white. */
+:root[data-theme='dark'][data-high-contrast='true'][data-scheme='noir'] {
+  --text-accent: #ffffff;
+  --accent-moss: #5a5a5a;
+  --accent-forest: #383838;
+}
+
+:root[data-theme='light'][data-high-contrast='true'][data-scheme='noir'] {
+  --text-accent: #000000;
+  --accent-moss: #3a3a3a;
+  --accent-forest: #262626;
 }
 
 * {
@@ -1532,6 +1899,38 @@ html {
   --swatch-dark-accent: #b9a7e0;
   --swatch-light-bg: #f8f5fb;
   --swatch-light-accent: #5b3f9c;
+}
+
+.scheme-swatch[data-scheme='sol'] {
+  --swatch-dark-bg: #0b0a06;
+  --swatch-dark-accent: #e6c25c;
+  --swatch-light-bg: #fdf8e9;
+  --swatch-light-accent: #705405;
+}
+
+.scheme-swatch[data-scheme='bloom'] {
+  --swatch-dark-bg: #0c0709;
+  --swatch-dark-accent: #f08fb8;
+  --swatch-light-bg: #fdf5f8;
+  --swatch-light-accent: #961f56;
+}
+
+.scheme-swatch[data-scheme='trans'] {
+  --swatch-dark-bg: #07080b;
+  --swatch-dark-accent: #5bcefa;
+  --swatch-light-bg: #f7fbfe;
+  --swatch-light-accent: #0a5f88;
+}
+
+.scheme-swatch[data-scheme='noir'] {
+  --swatch-dark-bg: #000000;
+  --swatch-dark-accent: #ffffff;
+  --swatch-light-bg: #ffffff;
+  --swatch-light-accent: #000000;
+  /* This chip is the page's own black and white, so the shared
+     --border-medium can vanish into it. Pin a mid-grey edge that holds
+     against either end. */
+  border-color: #767676;
 }
 
 /* Custom switch — visually matches the extension's .aturi-switch but

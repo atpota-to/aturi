@@ -72,8 +72,9 @@ export type WaypointGroup = {
 
 export type Preferences = {
   /**
-   * The app-wide color palette (`moss` | `ember` | `tide` | `dusk`). Each
-   * scheme has a dark and a light variant; which of the two is showing is
+   * The app-wide color palette — see `COLOR_SCHEMES` in
+   * `src/lib/colorScheme.ts` for the full list. Each scheme has a dark and
+   * a light variant; which of the two is showing is
    * the separate, browser-local `theme` choice (see `src/lib/theme.ts`).
    * This one lives in prefs so a user's palette follows them across
    * devices. `ColorSchemeSync` applies it to <html data-scheme> and keeps

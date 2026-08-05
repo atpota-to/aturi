@@ -17,7 +17,15 @@
  * preferences record has been read back from the PDS.
  */
 
-export type ColorScheme = 'moss' | 'ember' | 'tide' | 'dusk';
+export type ColorScheme =
+  | 'moss'
+  | 'ember'
+  | 'tide'
+  | 'dusk'
+  | 'sol'
+  | 'bloom'
+  | 'trans'
+  | 'noir';
 
 export const COLOR_SCHEME_STORAGE_KEY = 'aturi.colorScheme';
 export const DEFAULT_COLOR_SCHEME: ColorScheme = 'moss';
@@ -32,6 +40,10 @@ export const COLOR_SCHEMES: ReadonlyArray<{
   { value: 'ember', label: 'Ember', hint: 'Rust and amber on warm black' },
   { value: 'tide', label: 'Tide', hint: 'Deep water blues, misted light' },
   { value: 'dusk', label: 'Dusk', hint: 'Violet twilight over ink' },
+  { value: 'sol', label: 'Sol', hint: 'Brass and gold over deep umber' },
+  { value: 'bloom', label: 'Bloom', hint: 'Wild rose on plum, blush paper' },
+  { value: 'trans', label: 'Trans', hint: 'Sky blue, pink and white' },
+  { value: 'noir', label: 'Noir', hint: 'Black and white, no hue at all' },
 ];
 
 const VALUES: ReadonlySet<string> = new Set(COLOR_SCHEMES.map((s) => s.value));

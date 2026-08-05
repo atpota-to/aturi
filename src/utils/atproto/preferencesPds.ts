@@ -5,7 +5,9 @@
  * Lexicon (informal):
  *
  *   $type: to.aturi.actor.preferences
- *   colorScheme?: 'moss' | 'ember' | 'tide' | 'dusk'  // app-wide palette
+ *   // app-wide palette; unknown values fall back to 'moss' on read
+ *   colorScheme?: 'moss' | 'ember' | 'tide' | 'dusk'
+ *               | 'sol' | 'bloom' | 'trans' | 'noir'
  *   waypointGroups?: Array<{
  *     id: string,
  *     name: string,
