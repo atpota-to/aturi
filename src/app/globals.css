@@ -69,9 +69,18 @@
      backgrounds don't look gritty. */
   --noise-opacity: 0.6;
 
-  /* Text drawn on the dark-green primary buttons / active toggles. The
-     accent backgrounds stay dark in both themes, so this token does too. */
+  /* Text drawn on the primary buttons / active toggles — i.e. on top of
+     --accent-moss and --accent-forest. Most schemes keep those accents dark
+     in both themes, so this stays near-white; a scheme that fills with pale
+     accents instead (trans) flips it to ink. */
   --text-on-accent: #f0f0ee;
+
+  /* Text drawn on a --danger fill (the confirm-delete buttons). Separate
+     from --text-on-accent because the two backgrounds move independently:
+     dark mode's danger is a *light* salmon, so it takes ink, while the
+     accents beneath it are dark and take near-white. Near-white on this
+     red was 2.8:1. */
+  --text-on-danger: #1c0f0f;
 
   /* Error / invalid-input styling. Reused by the /create form so the alert
      reads correctly in both themes — the previous hardcoded #ff6464 was
@@ -184,6 +193,8 @@
   --danger: #a83c35;
   --danger-soft: rgba(168, 60, 53, 0.1);
   --danger-border: rgba(168, 60, 53, 0.3);
+  /* Deep enough to carry a near-white label, unlike dark mode's salmon. */
+  --text-on-danger: #f0f0ee;
 
   /* Almost-invisible warm strip — the previous rgba(0,0,0,0.2) inset
      disappeared on the cream backdrop. This gives the at:// row a faint
@@ -604,35 +615,43 @@
   --modal-bottom-fade: linear-gradient(to top, rgba(247, 231, 238, 0.95), transparent);
 }
 
-/* Trans — the flag's sky blue, pink and white. The blue leads (it's the
-   link color); the pink carries the ambient glow and the secondary accent,
-   darkened where it has to sit behind --text-on-accent. */
+/* Trans — the flag's sky blue, pink and white, kept at flag strength
+   rather than darkened into the app's usual moody accents.
+
+   The two colors split by role so both are always on screen: blue carries
+   text (links, inline code, anything read as a word), pink carries surface
+   — every filled button, every panel edge, every glow. That's the only
+   scheme here that fills with a *pale* accent, which is why it also flips
+   --text-on-accent to ink; a near-white label would vanish on baby pink.
+   Everything painting a fill under that token is listed above it. */
 [data-theme='dark'][data-scheme='trans'] {
-  --bg-primary: #07080b;
-  --bg-secondary: #11131a;
-  --bg-tertiary: #171a22;
-  --bg-elevated: #1e2129;
+  --bg-primary: #07080c;
+  --bg-secondary: #14111a;
+  --bg-tertiary: #1a1621;
+  --bg-elevated: #211c29;
 
-  --accent-moss: #a04a63;
-  --accent-forest: #23405a;
-  --accent-bark: #6b3d4d;
-  --accent-stone: #44464e;
+  --accent-moss: #f5a9b8;
+  --accent-forest: #8ad7fb;
+  --accent-bark: #d98fa5;
+  --accent-stone: #b9899a;
 
-  --text-primary: #f4f7fa;
-  --text-secondary: #c3ccd6;
-  --text-tertiary: #97a2ae;
+  --text-primary: #f6f3f7;
+  --text-secondary: #cbc3d0;
+  --text-tertiary: #a197a8;
   --text-accent: #5bcefa;
 
-  --glow-subtle: rgba(91, 206, 250, 0.06);
-  --glow-medium: rgba(91, 206, 250, 0.12);
-  --glow-strong: rgba(91, 206, 250, 0.22);
+  --text-on-accent: #0f1119;
 
-  --border-subtle: rgba(244, 247, 250, 0.12);
-  --border-medium: rgba(244, 247, 250, 0.18);
-  --border-strong: rgba(244, 247, 250, 0.24);
+  --glow-subtle: rgba(245, 169, 184, 0.07);
+  --glow-medium: rgba(245, 169, 184, 0.14);
+  --glow-strong: rgba(245, 169, 184, 0.24);
+
+  --border-subtle: rgba(245, 196, 210, 0.14);
+  --border-medium: rgba(245, 196, 210, 0.22);
+  --border-strong: rgba(245, 196, 210, 0.3);
 
   --page-glow-a: rgba(91, 206, 250, 0.24);
-  --page-glow-b: rgba(245, 169, 184, 0.2);
+  --page-glow-b: rgba(245, 169, 184, 0.24);
   --page-glow-c: rgba(255, 255, 255, 0.12);
 
   --bg-overlay: rgba(10, 12, 16, 0.85);
@@ -643,39 +662,45 @@
   --modal-bottom-fade: linear-gradient(to top, rgba(17, 19, 26, 0.95), transparent);
 }
 
+/* The light variant alternates the flag between depths as well as roles:
+   the page is sky, the panels sitting on it are blush. Links have to stay
+   a readable blue — baby blue on near-white is about 1.9:1 — so the pale
+   flag colors do their work as fills and edges instead. */
 [data-theme='light'][data-scheme='trans'] {
-  --bg-primary: #f7fbfe;
-  --bg-secondary: #eaf3fa;
-  --bg-tertiary: #dbe9f4;
+  --bg-primary: #f4fafe;
+  --bg-secondary: #fdf1f5;
+  --bg-tertiary: #f8e3ea;
   --bg-elevated: #ffffff;
 
-  --accent-moss: #a8415c;
-  --accent-forest: #1c5678;
-  --accent-bark: #8a5a68;
-  --accent-stone: #6f757c;
+  --accent-moss: #f5a9b8;
+  --accent-forest: #86d3f7;
+  --accent-bark: #d295a6;
+  --accent-stone: #9d8791;
 
-  --text-primary: #101a22;
-  --text-secondary: #33424e;
-  --text-tertiary: #4d5d69;
+  --text-primary: #16121a;
+  --text-secondary: #3b3440;
+  --text-tertiary: #59505f;
   --text-accent: #0a5f88;
 
-  --glow-subtle: rgba(10, 95, 136, 0.05);
-  --glow-medium: rgba(10, 95, 136, 0.1);
-  --glow-strong: rgba(10, 95, 136, 0.18);
+  --text-on-accent: #16121a;
 
-  --border-subtle: rgba(16, 26, 34, 0.14);
-  --border-medium: rgba(16, 26, 34, 0.22);
-  --border-strong: rgba(16, 26, 34, 0.32);
+  --glow-subtle: rgba(226, 122, 148, 0.07);
+  --glow-medium: rgba(226, 122, 148, 0.13);
+  --glow-strong: rgba(226, 122, 148, 0.2);
 
-  --page-glow-a: rgba(91, 206, 250, 0.18);
-  --page-glow-b: rgba(245, 169, 184, 0.18);
-  --page-glow-c: rgba(255, 255, 255, 0.14);
+  --border-subtle: rgba(92, 40, 58, 0.16);
+  --border-medium: rgba(92, 40, 58, 0.26);
+  --border-strong: rgba(92, 40, 58, 0.36);
 
-  --bg-overlay: rgba(247, 251, 254, 0.85);
-  --bg-overlay-hover: rgba(234, 243, 250, 0.92);
+  --page-glow-a: rgba(91, 206, 250, 0.2);
+  --page-glow-b: rgba(245, 169, 184, 0.22);
+  --page-glow-c: rgba(255, 255, 255, 0.16);
 
-  --modal-bg: linear-gradient(145deg, rgba(255, 255, 255, 0.98) 0%, rgba(234, 243, 250, 0.99) 100%);
-  --modal-bottom-fade: linear-gradient(to top, rgba(234, 243, 250, 0.95), transparent);
+  --bg-overlay: rgba(244, 250, 254, 0.85);
+  --bg-overlay-hover: rgba(253, 241, 245, 0.92);
+
+  --modal-bg: linear-gradient(145deg, rgba(255, 255, 255, 0.98) 0%, rgba(253, 241, 245, 0.99) 100%);
+  --modal-bottom-fade: linear-gradient(to top, rgba(253, 241, 245, 0.95), transparent);
 }
 
 /* Noir — no hue at all. Links are the brightest (dark) or darkest (light)
@@ -801,6 +826,9 @@
   --text-on-accent: #ffffff;
   --danger: #ff8a8a;
   --danger-border: rgba(255, 138, 138, 0.7);
+  /* High contrast brightens the salmon further, so the label goes to black
+     rather than the white used on the accents. */
+  --text-on-danger: #000000;
 }
 
 :root[data-theme='light'][data-high-contrast='true'] {
@@ -832,6 +860,7 @@
   --text-on-accent: #ffffff;
   --danger: #9a1f1a;
   --danger-border: rgba(154, 31, 26, 0.7);
+  --text-on-danger: #ffffff;
 }
 
 /* Keep the accent hue with the chosen scheme in high contrast. The blocks
@@ -901,16 +930,21 @@
   --accent-forest: #631d34;
 }
 
+/* Trans fills pale in both themes, so high contrast keeps the pale flag
+   colors and drives the label to pure black instead of darkening the fill —
+   black on baby pink beats white on any darkened version of it. */
 :root[data-theme='dark'][data-high-contrast='true'][data-scheme='trans'] {
   --text-accent: #8ad8ff;
-  --accent-moss: #9c4560;
-  --accent-forest: #26506e;
+  --accent-moss: #f7b9c6;
+  --accent-forest: #9fdcfb;
+  --text-on-accent: #000000;
 }
 
 :root[data-theme='light'][data-high-contrast='true'][data-scheme='trans'] {
-  --text-accent: #0a4f73;
-  --accent-moss: #8a2f4b;
-  --accent-forest: #1b4a68;
+  --text-accent: #08415f;
+  --accent-moss: #f2a2b3;
+  --accent-forest: #86ceef;
+  --text-on-accent: #000000;
 }
 
 /* Noir has no hue to preserve, so high contrast pushes its accents to the
@@ -1335,6 +1369,7 @@ button {
 /* Generate button specific styles */
 .generate-button:not(:disabled):hover {
   background: var(--accent-forest) !important;
+  color: var(--text-on-accent) !important;
   transform: translateY(-2px);
   box-shadow: 0 4px 20px var(--glow-medium);
 }
@@ -1915,11 +1950,14 @@ html {
   --swatch-light-accent: #961f56;
 }
 
+/* Trans is the one chip that shows a different accent per half — blue on
+   the dark side, pink on the light one. Both are load-bearing in the
+   scheme, and one dot each is the only way the chip reads as the flag. */
 .scheme-swatch[data-scheme='trans'] {
-  --swatch-dark-bg: #07080b;
+  --swatch-dark-bg: #07080c;
   --swatch-dark-accent: #5bcefa;
-  --swatch-light-bg: #f7fbfe;
-  --swatch-light-accent: #0a5f88;
+  --swatch-light-bg: #f4fafe;
+  --swatch-light-accent: #f5a9b8;
 }
 
 .scheme-swatch[data-scheme='noir'] {
@@ -1983,7 +2021,9 @@ html {
 
 .settings-switch input:checked + .settings-switch-box::after {
   transform: translateX(16px);
-  background: #e8e8e6;
+  /* Same token as the text on any other accent fill, so the knob stays
+     visible whether the scheme fills dark or pale. */
+  background: var(--text-on-accent);
 }
 
 .settings-switch input:focus-visible + .settings-switch-box {
@@ -2589,6 +2629,7 @@ html {
 
 .cta-button:hover {
   background: var(--accent-forest) !important;
+  color: var(--text-on-accent) !important;
   transform: translateY(-2px);
   box-shadow: 0 4px 20px var(--glow-medium);
 }
