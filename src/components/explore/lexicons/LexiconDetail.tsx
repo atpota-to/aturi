@@ -2,8 +2,10 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { ArrowLeft, FileText, GitBranch, Layers } from 'lucide-react';
 import AppearIn from '../AppearIn';
+import { useChromeBarField } from '../ChromeBarContext';
 import { Skeleton } from '@/components/SkeletonLoader';
 import { Credit, DeltaPill, Segmented, Sparkline } from './primitives';
 import {
@@ -45,6 +47,7 @@ const SAMPLE_LIMIT = 8;
  * string; unknown NSIDs simply show empty states rather than erroring.
  */
 export default function LexiconDetail({ nsid }: { nsid: string }) {
+  const router = useRouter();
   const [window, setWindow] = useState<Window>('7d');
   const [metric, setMetric] = useState<Metric>('creates');
 
@@ -123,6 +126,22 @@ export default function LexiconDetail({ nsid }: { nsid: string }) {
     () => (buckets ? buckets.map((b) => statForMetric(b, metric)) : []),
     [buckets, metric],
   );
+
+  // There's no list to narrow on this page, so the bottom chrome bar keeps
+  // offering the section's own action: search for another lexicon. Routes
+  // through the group page, which resolves a namespace, a free-text term, or
+  // a full NSID that turns out to have nothing published under it.
+  const [search, setSearch] = useState('');
+  useChromeBarField({
+    placeholder: 'Search lexicons…',
+    label: 'Search lexicons',
+    value: search,
+    onChange: setSearch,
+    onSubmit: () => {
+      const trimmed = search.trim();
+      if (trimmed) router.push(groupPathFor(trimmed));
+    },
+  });
 
   const publisher = publisherForNsid(nsid);
   const group = namespaceKey(nsid);

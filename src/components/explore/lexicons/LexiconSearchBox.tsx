@@ -7,6 +7,7 @@ import { searchLexicons } from '@/utils/ufos/client';
 import { type NsidCount } from '@/utils/ufos/config';
 import { formatCount } from '@/utils/ufos/format';
 import { groupPathFor, lexiconPathFor } from '@/utils/ufos/nsid';
+import { useChromeBarField } from '../ChromeBarContext';
 
 const TYPEAHEAD_DEBOUNCE_MS = 180;
 const SUGGESTION_LIMIT = 12;
@@ -73,8 +74,7 @@ export default function LexiconSearchBox() {
     router.push(groupPathFor(term));
   }
 
-  function onSubmit(e: React.FormEvent) {
-    e.preventDefault();
+  function submit() {
     if (highlightIndex >= 0 && suggestions[highlightIndex]) {
       go(suggestions[highlightIndex].nsid);
       return;
@@ -88,6 +88,25 @@ export default function LexiconSearchBox() {
     if (suggestions.some((s) => s.nsid === trimmed)) go(trimmed);
     else goGroup(trimmed);
   }
+
+  function onSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    submit();
+  }
+
+  // The lexicons explorer's find action, mirrored into the bottom chrome bar:
+  // same query state and same routing, so the search stays in reach once this
+  // box has scrolled off the top of a long page.
+  useChromeBarField({
+    placeholder: 'Search lexicons…',
+    label: 'Search lexicons',
+    value,
+    onChange: (next) => {
+      setValue(next);
+      setShowSuggestions(true);
+    },
+    onSubmit: submit,
+  });
 
   function onKeyDown(e: KeyboardEvent<HTMLInputElement>) {
     if (!showSuggestions || suggestions.length === 0) return;

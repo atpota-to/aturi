@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, FileText, Folder, Layers, Search } from 'lucide-react';
 import AppearIn from '../AppearIn';
@@ -14,6 +14,7 @@ import {
 } from '@/utils/ufos/config';
 import { formatCount } from '@/utils/ufos/format';
 import { groupPathFor, lexiconPathFor } from '@/utils/ufos/nsid';
+import { useChromeBarField } from '../ChromeBarContext';
 
 const PREFIX_LIMIT = 200;
 
@@ -154,12 +155,14 @@ function PrefixView({ prefix }: { prefix: string }) {
   const [cursor, setCursor] = useState<string | null>(null);
   const [total, setTotal] = useState<JustCount | null>(null);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [filter, setFilter] = useState('');
 
   useEffect(() => {
     let cancelled = false;
     setChildren(null);
     setCursor(null);
     setTotal(null);
+    setFilter('');
     (async () => {
       const res = await fetchPrefix({ prefix, limit: PREFIX_LIMIT });
       if (cancelled) return;
@@ -181,6 +184,25 @@ function PrefixView({ prefix }: { prefix: string }) {
     setLoadingMore(false);
   }
 
+  const query = filter.trim().toLowerCase();
+  const visible = useMemo(() => {
+    if (!children) return null;
+    if (!query) return children;
+    return children.filter((c) => childName(c).toLowerCase().includes(query));
+  }, [children, query]);
+
+  useChromeBarField({
+    placeholder: 'Filter this namespace…',
+    label: `Filter entries under ${prefix}`,
+    value: filter,
+    onChange: setFilter,
+    status: !children
+      ? null
+      : query
+        ? `${visible?.length ?? 0}/${children.length}`
+        : `${children.length}`,
+  });
+
   return (
     <Frame
       prefix={prefix}
@@ -189,7 +211,7 @@ function PrefixView({ prefix }: { prefix: string }) {
       headerExtra={<SummaryLine total={total} count={children?.length ?? null} />}
     >
       <ListCard>
-        {children === null ? (
+        {children === null || visible === null ? (
           <ListSkeleton />
         ) : children.length === 0 ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', padding: '0.75rem 0' }}>
@@ -203,11 +225,15 @@ function PrefixView({ prefix }: { prefix: string }) {
               View {prefix} as a lexicon →
             </Link>
           </div>
+        ) : visible.length === 0 ? (
+          <p className="explore-muted" style={{ margin: 0, padding: '0.75rem 0' }}>
+            No entries under <code>{prefix}</code> match “{filter.trim()}”.
+          </p>
         ) : (
           <>
             <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
-              {children.map((c, i) => (
-                <ChildRow key={`${childName(c)}-${i}`} child={c} isLast={i === children.length - 1} />
+              {visible.map((c, i) => (
+                <ChildRow key={`${childName(c)}-${i}`} child={c} isLast={i === visible.length - 1} />
               ))}
             </ul>
             {cursor && (
@@ -268,10 +294,12 @@ function ChildRow({ child, isLast }: { child: PrefixChild; isLast: boolean }) {
 
 function SearchView({ term }: { term: string }) {
   const [results, setResults] = useState<NsidCount[] | null>(null);
+  const [filter, setFilter] = useState('');
 
   useEffect(() => {
     let cancelled = false;
     setResults(null);
+    setFilter('');
     searchLexicons(term).then((r) => {
       if (cancelled) return;
       setResults([...r].sort((a, b) => b.creates - a.creates));
@@ -281,21 +309,44 @@ function SearchView({ term }: { term: string }) {
     };
   }, [term]);
 
+  const query = filter.trim().toLowerCase();
+  const visible = useMemo(() => {
+    if (!results) return null;
+    if (!query) return results;
+    return results.filter((c) => c.nsid.toLowerCase().includes(query));
+  }, [results, query]);
+
+  useChromeBarField({
+    placeholder: 'Filter these results…',
+    label: `Filter lexicons matching ${term}`,
+    value: filter,
+    onChange: setFilter,
+    status: !results
+      ? null
+      : query
+        ? `${visible?.length ?? 0}/${results.length}`
+        : `${results.length}`,
+  });
+
   return (
     <Frame prefix={term} eyebrow="Search results" icon={<Search size={13} aria-hidden />}>
       <ListCard>
-        {results === null ? (
+        {results === null || visible === null ? (
           <ListSkeleton />
         ) : results.length === 0 ? (
           <p className="explore-muted" style={{ margin: 0, padding: '0.75rem 0' }}>
             No lexicons matched “{term}”.
           </p>
+        ) : visible.length === 0 ? (
+          <p className="explore-muted" style={{ margin: 0, padding: '0.75rem 0' }}>
+            No results match “{filter.trim()}”.
+          </p>
         ) : (
           <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
-            {results.map((c, i) => (
+            {visible.map((c, i) => (
               <li
                 key={c.nsid}
-                style={{ borderBottom: i === results.length - 1 ? undefined : '1px solid var(--border-subtle)' }}
+                style={{ borderBottom: i === visible.length - 1 ? undefined : '1px solid var(--border-subtle)' }}
               >
                 <Link href={lexiconPathFor(c.nsid)} style={rowStyle} onMouseEnter={hoverOn} onMouseLeave={hoverOff}>
                   <span style={nameStyle}>{c.nsid}</span>

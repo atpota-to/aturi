@@ -2288,6 +2288,142 @@ html {
   animation: none;
 }
 
+/* --- explorer bottom chrome bar (ExploreChromeBar.tsx) -------------------- */
+/* A thin strip pinned under every /explore route: the route's find action on
+   the left, copy-link on the right. Because it's fixed, the document reserves
+   its height as bottom padding — the component measures the bar and writes
+   --explore-chrome-h (the value below is the first-paint fallback). That
+   reservation is what keeps the bar off the tail of a long list and off the
+   site footer: the footer is a sibling of <main> at the same z-index, so it
+   would paint OVER the bar rather than slide under it. */
+body.has-explore-chrome {
+  padding-bottom: var(--explore-chrome-h, 4rem);
+}
+
+.explore-chrome-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  /* Under the sticky nav's expanding panels (z 50) and its card (z 40), above
+     page content. */
+  z-index: 30;
+  background: var(--bg-overlay);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-top: 1px solid var(--border-medium);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* Shares .container-narrow with the page body so the bar's controls line up
+   with the content above them; only the vertical padding is ours. */
+.explore-chrome-inner {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding-top: 0.45rem;
+  padding-bottom: 0.45rem;
+}
+
+.explore-chrome-form {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex: 1;
+  min-width: 0;
+  padding: 0 0.5rem;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-medium);
+  transition: border-color 0.2s ease;
+}
+
+.explore-chrome-form:focus-within {
+  border-color: var(--text-accent);
+}
+
+.explore-chrome-search-icon {
+  flex-shrink: 0;
+  color: var(--text-tertiary);
+}
+
+.explore-chrome-input {
+  flex: 1;
+  min-width: 0;
+  padding: 0.4rem 0;
+  background: transparent;
+  border: 0;
+  outline: none;
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+}
+
+.explore-chrome-status {
+  flex-shrink: 0;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+}
+
+.explore-chrome-clear,
+.explore-chrome-copy {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-shrink: 0;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  transition: color 0.2s ease, border-color 0.2s ease;
+}
+
+.explore-chrome-clear {
+  padding: 0.2rem;
+  background: transparent;
+  border: 0;
+}
+
+.explore-chrome-copy {
+  padding: 0.4rem 0.6rem;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-medium);
+  font-family: var(--font-serif);
+  font-size: 0.75rem;
+  line-height: 1;
+}
+
+.explore-chrome-clear:hover,
+.explore-chrome-clear:focus-visible,
+.explore-chrome-copy:hover,
+.explore-chrome-copy:focus-visible {
+  color: var(--text-primary);
+}
+
+.explore-chrome-copy[data-copied] {
+  color: var(--text-accent);
+  border-color: var(--text-accent);
+}
+
+@media (max-width: 560px) {
+  /* Icon-only copy button — the label is the first thing worth giving up when
+     the field wants the width. Kept in the a11y tree, just not on screen. */
+  .explore-chrome-copy-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .explore-chrome-copy {
+    padding: 0.4rem 0.5rem;
+  }
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   html {

@@ -18,6 +18,7 @@ import {
   togglePinnedLexicon,
 } from '@/utils/preferences';
 import { groupHierarchically, pinnedKey } from './collectionGrouping';
+import { useChromeBarField } from '../ChromeBarContext';
 import GroupHeader from './GroupHeader';
 import LeafRow from './LeafRow';
 
@@ -212,6 +213,26 @@ export default function CollectionsTab({ identity }: { identity: IdentityBundle 
   // Cross-repo filter only makes sense when signed in and viewing someone
   // else's repo (own repo is 100% mutual by definition).
   const showCommonFilter = Boolean(myDid) && !isOwnRepo && myCollections !== null;
+
+  // Mirror the filter into the bottom chrome bar so it stays reachable once
+  // the in-page field has scrolled away — same state, so typing in either
+  // moves both. Registered from here rather than from <RepoExplorer> because
+  // only this tab has lexicons to narrow; switching to ID / Log / Backlinks
+  // unmounts it and the bar falls back to its jump search.
+  const shownCount =
+    pinnedCount + groups.reduce((acc, g) => acc + g.totalCount, 0);
+  const narrowed = filter.trim() !== '' || commonFilter !== 'all';
+  useChromeBarField({
+    placeholder: 'Filter lexicons…',
+    label: 'Filter lexicons on this repo',
+    value: filter,
+    onChange: setFilter,
+    status: !collections
+      ? null
+      : narrowed
+        ? `${shownCount}/${collections.length}`
+        : `${collections.length}`,
+  });
 
   if (error) return <p className="explore-error">{error}</p>;
   if (!collections) return <p className="explore-placeholder">Loading collections…</p>;

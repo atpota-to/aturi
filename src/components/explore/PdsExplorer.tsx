@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { ExternalLink, Globe, Server } from 'lucide-react';
 import {
@@ -18,6 +18,7 @@ import { tidToDate, formatTidRelative } from '@/utils/atproto/tid';
 import AppearIn from './AppearIn';
 import CopyButton from './CopyButton';
 import ShareLinkChip from './ShareLinkChip';
+import { useChromeBarField } from './ChromeBarContext';
 
 type Props = {
   host: string;
@@ -42,6 +43,17 @@ export default function PdsExplorer({ host }: Props) {
   const [reposLoading, setReposLoading] = useState(false);
   const [done, setDone] = useState(false);
   const [reposError, setReposError] = useState<string | null>(null);
+  // Search over the repos fetched so far, driven from the bottom chrome bar.
+  // listRepos has no query parameter, so this narrows what's loaded.
+  const [filter, setFilter] = useState('');
+  // Rows resolve their own handle lazily (see <RepoRow>); the results are
+  // kept here so the search can match a handle and not just a DID, and so a
+  // row that scrolls out of the filter and back doesn't refetch it.
+  const [handles, setHandles] = useState<Record<string, string>>({});
+
+  const rememberHandle = useCallback((did: string, handle: string) => {
+    setHandles((prev) => (prev[did] === handle ? prev : { ...prev, [did]: handle }));
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -91,8 +103,37 @@ export default function PdsExplorer({ host }: Props) {
     setRepos([]);
     setCursor(undefined);
     setDone(false);
+    setFilter('');
+    setHandles({});
     loadPage(undefined);
   }, [loadPage]);
+
+  const query = filter.trim().toLowerCase();
+  const visibleRepos = useMemo(
+    () =>
+      query
+        ? repos.filter(
+            (r) =>
+              r.did.toLowerCase().includes(query) ||
+              (handles[r.did]?.toLowerCase().includes(query) ?? false),
+          )
+        : repos,
+    [repos, handles, query],
+  );
+
+  // The PDS page's find action: search the repos this server hosts.
+  useChromeBarField({
+    placeholder: 'Search repos…',
+    label: 'Search repos on this PDS',
+    value: filter,
+    onChange: setFilter,
+    status:
+      repos.length === 0
+        ? null
+        : query
+          ? `${visibleRepos.length}/${repos.length}`
+          : `${repos.length}${done ? '' : '+'}`,
+  });
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
@@ -130,8 +171,16 @@ export default function PdsExplorer({ host }: Props) {
                 fontFamily: 'var(--font-mono)',
               }}
             >
-              {repos.length}
-              {!done && '+'} loaded
+              {query ? (
+                <>
+                  {visibleRepos.length} of {repos.length} shown
+                </>
+              ) : (
+                <>
+                  {repos.length}
+                  {!done && '+'} loaded
+                </>
+              )}
             </span>
           </header>
 
@@ -142,23 +191,34 @@ export default function PdsExplorer({ host }: Props) {
           {repos.length === 0 && !reposLoading && !reposError && (
             <p className="explore-placeholder">No repos reported by this PDS.</p>
           )}
+          {/* A search only sees the pages fetched so far — and only the rows
+              whose handle has resolved — so say that rather than implying the
+              PDS doesn't host a match. */}
+          {repos.length > 0 && visibleRepos.length === 0 && (
+            <p className="explore-placeholder">
+              No loaded repos match <code>{filter.trim()}</code>.
+              {!done && ' Load more to search further.'}
+            </p>
+          )}
 
           <ul
             style={{
               listStyle: 'none',
               margin: 0,
               padding: 0,
-              border: repos.length ? '1px solid var(--border-medium)' : 0,
+              border: visibleRepos.length ? '1px solid var(--border-medium)' : 0,
               background: 'var(--bg-secondary)',
-              display: repos.length ? 'flex' : undefined,
+              display: visibleRepos.length ? 'flex' : undefined,
               flexDirection: 'column',
             }}
           >
-            {repos.map((r) => (
+            {visibleRepos.map((r) => (
               <RepoRow
                 key={r.did}
                 repo={r}
                 pdsBase={pdsBase}
+                handle={handles[r.did] ?? null}
+                onHandle={rememberHandle}
               />
             ))}
           </ul>
@@ -455,16 +515,28 @@ async function describeRepoLimited(pdsBase: string, did: string) {
 
 /**
  * Single repo row — DID always shown immediately; the canonical handle is
- * fetched in the background via describeRepo and slots in once available.
+ * fetched in the background via describeRepo and reported up to the parent,
+ * which owns the handle map so the repo search can match on it.
  */
-function RepoRow({ repo, pdsBase }: { repo: RepoEntry; pdsBase: string }) {
-  const [handle, setHandle] = useState<string | null>(null);
-
+function RepoRow({
+  repo,
+  pdsBase,
+  handle,
+  onHandle,
+}: {
+  repo: RepoEntry;
+  pdsBase: string;
+  handle: string | null;
+  onHandle: (did: string, handle: string) => void;
+}) {
   useEffect(() => {
+    // Already resolved (or resolved before a filter hid this row): nothing
+    // to fetch.
+    if (handle) return undefined;
     let cancelled = false;
     describeRepoLimited(pdsBase, repo.did)
       .then((res) => {
-        if (!cancelled && res.handle) setHandle(res.handle);
+        if (!cancelled && res.handle) onHandle(repo.did, res.handle);
       })
       .catch(() => {
         // Handle lookup is best-effort. Showing just the DID is fine.
@@ -472,7 +544,7 @@ function RepoRow({ repo, pdsBase }: { repo: RepoEntry; pdsBase: string }) {
     return () => {
       cancelled = true;
     };
-  }, [pdsBase, repo.did]);
+  }, [pdsBase, repo.did, handle, onHandle]);
 
   // The repo's head `rev` is itself a TID (the commit timestamp), so we
   // can render the last-updated time without a second round-trip. Custom

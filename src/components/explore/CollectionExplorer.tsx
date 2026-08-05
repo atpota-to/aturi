@@ -23,6 +23,7 @@ import NotFoundPanel from '@/components/NotFoundPanel';
 import SignInPanel from './SignInPanel';
 import { useAtprotoSession } from '@/components/AtprotoSessionProvider';
 import { useEditBar } from './EditBarContext';
+import { useChromeBarField } from './ChromeBarContext';
 import {
   RECORDS_PER_PAGE,
   APPLY_WRITES_MAX,
@@ -96,6 +97,10 @@ function CollectionList({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [live, setLive] = useState(false);
+  // Client-side search over the records fetched so far — listRecords has no
+  // server-side query, so this narrows what's loaded rather than the whole
+  // collection. Driven from the bottom chrome bar.
+  const [filter, setFilter] = useState('');
   const [editing, setEditing] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [confirmingDelete, setConfirmingDelete] = useState(false);
@@ -169,6 +174,8 @@ function CollectionList({
     setRecords([]);
     setCursor(undefined);
     setDone(false);
+    // A query typed against one collection means nothing in the next.
+    setFilter('');
     // A fresh record set invalidates any pending selection.
     setSelected(new Set());
     setConfirmingDelete(false);
@@ -235,7 +242,41 @@ function CollectionList({
     router.replace(`/explore/${repoSeg}/${collection}/${encodeURIComponent(rkey)}`);
   }, [done, loading, live, editing, records, repoSeg, collection, router]);
 
-  const allSelected = records.length > 0 && records.every((r) => selected.has(r.uri));
+  // One lowercased haystack per record — its rkey plus its whole JSON body,
+  // so a search finds records by content ("that post about mushrooms") and
+  // not just by key. Memoized on the record set, so a keystroke only re-runs
+  // the substring test.
+  const haystacks = useMemo(
+    () =>
+      records.map((rec) => {
+        const rkey = rkeyFromAtUri(rec.uri) || '';
+        let body = '';
+        try {
+          body = JSON.stringify(rec.value) ?? '';
+        } catch {
+          // A cyclic / unserializable value is vanishingly unlikely from a
+          // PDS, but throwing here would take the whole list down with it.
+        }
+        return `${rkey}\n${body}`.toLowerCase();
+      }),
+    [records],
+  );
+
+  const query = filter.trim().toLowerCase();
+  const visibleRecords = useMemo(
+    () => (query ? records.filter((_, i) => haystacks[i].includes(query)) : records),
+    [records, haystacks, query],
+  );
+
+  // Select-all targets what you can see, so narrowing the list and then
+  // selecting is a way to bulk-delete a subset. Deletes still resolve against
+  // `recordsRef` (every loaded record), so a row that scrolls out of the
+  // filter after you selected it is still deleted.
+  const visibleRef = useRef(visibleRecords);
+  visibleRef.current = visibleRecords;
+
+  const allSelected =
+    visibleRecords.length > 0 && visibleRecords.every((r) => selected.has(r.uri));
 
   // Whether confirming this delete will hit the throttle and pace partway —
   // i.e. the selection is bigger than the write budget left this hour. Drives
@@ -267,7 +308,11 @@ function CollectionList({
   // the condensed nav bar share one set of handlers, and publishing them to
   // context doesn't change their identity on every toggle.
   const selectAll = useCallback(() => {
-    setSelected(new Set(recordsRef.current.map((r) => r.uri)));
+    setSelected((prev) => {
+      const next = new Set(prev);
+      for (const r of visibleRef.current) next.add(r.uri);
+      return next;
+    });
   }, []);
   const deselectAll = useCallback(() => setSelected(new Set()), []);
   const requestDelete = useCallback(() => setConfirmingDelete(true), []);
@@ -463,7 +508,8 @@ function CollectionList({
     }
     setBar({
       selectedCount: selected.size,
-      totalCount: records.length,
+      // What "Select" would take, which is the filtered view when one's up.
+      totalCount: visibleRecords.length,
       allSelected,
       confirming: confirmingDelete,
       deleting,
@@ -479,7 +525,7 @@ function CollectionList({
   }, [
     editing,
     selected.size,
-    records.length,
+    visibleRecords.length,
     allSelected,
     confirmingDelete,
     deleting,
@@ -496,6 +542,20 @@ function CollectionList({
 
   // Clear the published snapshot when this list unmounts.
   useEffect(() => () => setBar(null), [setBar]);
+
+  // The collection page's find action: search the records you've fetched.
+  useChromeBarField({
+    placeholder: 'Search records…',
+    label: 'Search records in this collection',
+    value: filter,
+    onChange: setFilter,
+    status:
+      records.length === 0
+        ? null
+        : query
+          ? `${formatCount(visibleRecords.length)}/${formatCount(records.length)}`
+          : `${formatCount(records.length)}${done ? '' : '+'}`,
+  });
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
@@ -612,14 +672,18 @@ function CollectionList({
           >
             {records.length === 0 && !done
               ? 'Loading…'
-              : `${formatCount(records.length)} record${records.length === 1 ? '' : 's'}`}
+              : query
+                ? `${formatCount(visibleRecords.length)} of ${formatCount(records.length)}`
+                : `${formatCount(records.length)} record${records.length === 1 ? '' : 's'}`}
           </span>
         </div>
 
         {editing && (
           <CollectionEditBar
             editBarRef={editBarRef}
-            recordsLength={records.length}
+            // The visible set, so "Select" greys out when a search has
+            // narrowed the list to nothing — same rule as its condensed twin.
+            recordsLength={visibleRecords.length}
             selectedSize={selected.size}
             allSelected={allSelected}
             deleting={deleting}
@@ -675,13 +739,22 @@ function CollectionList({
       {records.length === 0 && !done && !error && (
         <p className="explore-placeholder">Loading records…</p>
       )}
+      {/* A search only sees what's been fetched, so when it comes up empty
+          and the collection still has pages left, say so — otherwise "no
+          match" reads as "not in this collection". */}
+      {records.length > 0 && visibleRecords.length === 0 && (
+        <p className="explore-placeholder">
+          No loaded records match <code>{filter.trim()}</code>.
+          {!done && ' Fetch more to search further.'}
+        </p>
+      )}
 
       <ul
         style={{
           listStyle: 'none',
           margin: 0,
           padding: 0,
-          border: records.length ? '1px solid var(--border-medium)' : 0,
+          border: visibleRecords.length ? '1px solid var(--border-medium)' : 0,
           background: 'var(--bg-secondary)',
           // One grid for the whole list so the rkey/preview columns align
           // across rows; each row re-adopts these tracks via subgrid.
@@ -690,7 +763,7 @@ function CollectionList({
           columnGap: '1rem',
         }}
       >
-        {records.map((rec) => (
+        {visibleRecords.map((rec) => (
           <CollectionRecordRow
             key={rec.uri}
             rec={rec}
