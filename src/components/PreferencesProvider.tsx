@@ -103,6 +103,7 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
         // bother if they've actually customized something locally; an
         // unmodified default doesn't need to land on the PDS yet.
         const hasLocalCustomization =
+          local.colorScheme !== DEFAULT_PREFERENCES.colorScheme ||
           local.customWaypoints.length > 0 ||
           local.hiddenWaypoints.length > 0 ||
           local.waypointOrder.length > 0 ||

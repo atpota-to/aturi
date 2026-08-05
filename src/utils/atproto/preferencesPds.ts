@@ -5,6 +5,7 @@
  * Lexicon (informal):
  *
  *   $type: to.aturi.actor.preferences
+ *   colorScheme?: 'moss' | 'ember' | 'tide' | 'dusk'  // app-wide palette
  *   waypointGroups?: Array<{
  *     id: string,
  *     name: string,
@@ -102,6 +103,7 @@ export async function writePreferencesToPds(
 ): Promise<void> {
   const record = {
     $type: PREFERENCES_NSID,
+    colorScheme: prefs.colorScheme,
     waypointGroups: prefs.waypointGroups,
     customWaypoints: prefs.customWaypoints,
     knownWaypointIds: prefs.knownWaypointIds,

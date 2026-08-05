@@ -218,13 +218,252 @@
   color-scheme: light;
 }
 
+/* -----------------------------------------------------------------------
+   Color schemes.
+
+   `data-theme` (dark | light) and `data-scheme` (moss | ember | tide | dusk)
+   are independent axes: the theme decides whether the page is dark or light,
+   the scheme decides the hue family. `moss` is the default and lives in the
+   two blocks above — the three blocks per theme below are pure overrides on
+   top of it, so any token a scheme doesn't name keeps its moss value (the
+   margin-* record accents, --danger, --noise-opacity, and the modal's
+   nested panes are all deliberately scheme-independent).
+
+   Every selector is qualified with BOTH attributes so the dark blocks can't
+   leak into light mode via source order — [data-scheme='tide'] alone would
+   match a light page too, and being further down the file it would win.
+
+   Keep these in sync with COLOR_SCHEMES in src/lib/colorScheme.ts (the
+   settings picker) and with the .scheme-swatch chips further down.
+   ----------------------------------------------------------------------- */
+
+/* Ember — rust and amber over a warm near-black / parchment. */
+[data-theme='dark'][data-scheme='ember'] {
+  --bg-primary: #0c0908;
+  --bg-secondary: #171110;
+  --bg-tertiary: #1d1614;
+  --bg-elevated: #241b18;
+
+  --accent-moss: #8a5236;
+  --accent-forest: #4a2a1c;
+  --accent-bark: #3f2a1c;
+  --accent-stone: #4a443f;
+
+  --text-primary: #f4efe9;
+  --text-secondary: #cdc3b8;
+  --text-tertiary: #a2968a;
+  --text-accent: #e0a06a;
+
+  --glow-subtle: rgba(224, 160, 106, 0.06);
+  --glow-medium: rgba(224, 160, 106, 0.12);
+  --glow-strong: rgba(224, 160, 106, 0.22);
+
+  --border-subtle: rgba(244, 239, 233, 0.12);
+  --border-medium: rgba(244, 239, 233, 0.18);
+  --border-strong: rgba(244, 239, 233, 0.24);
+
+  --page-glow-a: rgba(214, 138, 82, 0.24);
+  --page-glow-b: rgba(138, 82, 54, 0.22);
+  --page-glow-c: rgba(224, 160, 106, 0.16);
+
+  --bg-overlay: rgba(18, 13, 11, 0.85);
+  --bg-overlay-hover: rgba(22, 16, 14, 0.9);
+
+  --modal-backdrop: rgba(12, 9, 8, 0.75);
+  --modal-bg: linear-gradient(145deg, rgba(23, 17, 16, 0.95) 0%, rgba(29, 22, 20, 0.98) 100%);
+  --modal-bottom-fade: linear-gradient(to top, rgba(23, 17, 16, 0.95), transparent);
+}
+
+[data-theme='light'][data-scheme='ember'] {
+  --bg-primary: #fbf4ea;
+  --bg-secondary: #f3e7d8;
+  --bg-tertiary: #ead9c4;
+  --bg-elevated: #fffdf9;
+
+  --accent-moss: #9a5a33;
+  --accent-forest: #6b3a22;
+  --accent-bark: #7a5a3f;
+  --accent-stone: #7a7168;
+
+  --text-primary: #211711;
+  --text-secondary: #443329;
+  --text-tertiary: #64513f;
+  --text-accent: #8f4718;
+
+  --glow-subtle: rgba(143, 71, 24, 0.05);
+  --glow-medium: rgba(143, 71, 24, 0.1);
+  --glow-strong: rgba(143, 71, 24, 0.18);
+
+  --border-subtle: rgba(33, 23, 17, 0.14);
+  --border-medium: rgba(33, 23, 17, 0.22);
+  --border-strong: rgba(33, 23, 17, 0.32);
+
+  --page-glow-a: rgba(180, 100, 45, 0.14);
+  --page-glow-b: rgba(150, 95, 60, 0.12);
+  --page-glow-c: rgba(200, 140, 80, 0.1);
+
+  --bg-overlay: rgba(251, 244, 234, 0.85);
+  --bg-overlay-hover: rgba(243, 231, 216, 0.92);
+
+  --modal-bg: linear-gradient(145deg, rgba(255, 253, 249, 0.98) 0%, rgba(243, 231, 216, 0.99) 100%);
+  --modal-bottom-fade: linear-gradient(to top, rgba(243, 231, 216, 0.95), transparent);
+}
+
+/* Tide — deep water blues and a cool, misted light mode. */
+[data-theme='dark'][data-scheme='tide'] {
+  --bg-primary: #070a0d;
+  --bg-secondary: #101619;
+  --bg-tertiary: #151d22;
+  --bg-elevated: #1c262c;
+
+  --accent-moss: #33697d;
+  --accent-forest: #1e3a45;
+  --accent-bark: #2c3a42;
+  --accent-stone: #414a50;
+
+  --text-primary: #eaf2f5;
+  --text-secondary: #bcc9d0;
+  --text-tertiary: #91a2ab;
+  --text-accent: #86c8da;
+
+  --glow-subtle: rgba(134, 200, 218, 0.06);
+  --glow-medium: rgba(134, 200, 218, 0.12);
+  --glow-strong: rgba(134, 200, 218, 0.22);
+
+  --border-subtle: rgba(234, 242, 245, 0.12);
+  --border-medium: rgba(234, 242, 245, 0.18);
+  --border-strong: rgba(234, 242, 245, 0.24);
+
+  --page-glow-a: rgba(90, 170, 200, 0.24);
+  --page-glow-b: rgba(40, 90, 120, 0.22);
+  --page-glow-c: rgba(110, 190, 200, 0.16);
+
+  --bg-overlay: rgba(11, 16, 20, 0.85);
+  --bg-overlay-hover: rgba(14, 20, 24, 0.9);
+
+  --modal-backdrop: rgba(7, 10, 13, 0.75);
+  --modal-bg: linear-gradient(145deg, rgba(16, 22, 25, 0.95) 0%, rgba(21, 29, 34, 0.98) 100%);
+  --modal-bottom-fade: linear-gradient(to top, rgba(16, 22, 25, 0.95), transparent);
+}
+
+[data-theme='light'][data-scheme='tide'] {
+  --bg-primary: #f4f8fa;
+  --bg-secondary: #e7eef2;
+  --bg-tertiary: #d9e4ea;
+  --bg-elevated: #ffffff;
+
+  --accent-moss: #3a7185;
+  --accent-forest: #27505f;
+  --accent-bark: #4a5f6b;
+  --accent-stone: #6b757c;
+
+  --text-primary: #101a1f;
+  --text-secondary: #32424a;
+  --text-tertiary: #4e5f68;
+  --text-accent: #1a5e76;
+
+  --glow-subtle: rgba(26, 94, 118, 0.05);
+  --glow-medium: rgba(26, 94, 118, 0.1);
+  --glow-strong: rgba(26, 94, 118, 0.18);
+
+  --border-subtle: rgba(16, 26, 31, 0.14);
+  --border-medium: rgba(16, 26, 31, 0.22);
+  --border-strong: rgba(16, 26, 31, 0.32);
+
+  --page-glow-a: rgba(40, 120, 150, 0.14);
+  --page-glow-b: rgba(70, 110, 140, 0.12);
+  --page-glow-c: rgba(90, 160, 180, 0.1);
+
+  --bg-overlay: rgba(244, 248, 250, 0.85);
+  --bg-overlay-hover: rgba(231, 238, 242, 0.92);
+
+  --modal-bg: linear-gradient(145deg, rgba(255, 255, 255, 0.98) 0%, rgba(231, 238, 242, 0.99) 100%);
+  --modal-bottom-fade: linear-gradient(to top, rgba(231, 238, 242, 0.95), transparent);
+}
+
+/* Dusk — violet twilight over ink, and a pale lilac paper. */
+[data-theme='dark'][data-scheme='dusk'] {
+  --bg-primary: #09080d;
+  --bg-secondary: #15121c;
+  --bg-tertiary: #1b1724;
+  --bg-elevated: #221d2c;
+
+  --accent-moss: #5d4b7e;
+  --accent-forest: #382c50;
+  --accent-bark: #3b3243;
+  --accent-stone: #474451;
+
+  --text-primary: #f1eef7;
+  --text-secondary: #c6bed4;
+  --text-tertiary: #9c94aa;
+  --text-accent: #b9a7e0;
+
+  --glow-subtle: rgba(185, 167, 224, 0.06);
+  --glow-medium: rgba(185, 167, 224, 0.12);
+  --glow-strong: rgba(185, 167, 224, 0.22);
+
+  --border-subtle: rgba(241, 238, 247, 0.12);
+  --border-medium: rgba(241, 238, 247, 0.18);
+  --border-strong: rgba(241, 238, 247, 0.24);
+
+  --page-glow-a: rgba(150, 120, 210, 0.24);
+  --page-glow-b: rgba(88, 68, 138, 0.22);
+  --page-glow-c: rgba(190, 140, 200, 0.16);
+
+  --bg-overlay: rgba(13, 11, 18, 0.85);
+  --bg-overlay-hover: rgba(17, 14, 23, 0.9);
+
+  --modal-backdrop: rgba(9, 8, 13, 0.75);
+  --modal-bg: linear-gradient(145deg, rgba(21, 18, 28, 0.95) 0%, rgba(27, 23, 36, 0.98) 100%);
+  --modal-bottom-fade: linear-gradient(to top, rgba(21, 18, 28, 0.95), transparent);
+}
+
+[data-theme='light'][data-scheme='dusk'] {
+  --bg-primary: #f8f5fb;
+  --bg-secondary: #efe9f6;
+  --bg-tertiary: #e3dbef;
+  --bg-elevated: #ffffff;
+
+  --accent-moss: #6a5893;
+  --accent-forest: #483b68;
+  --accent-bark: #5b4d6b;
+  --accent-stone: #706b7a;
+
+  --text-primary: #1b1622;
+  --text-secondary: #3b3446;
+  --text-tertiary: #575067;
+  --text-accent: #5b3f9c;
+
+  --glow-subtle: rgba(91, 63, 156, 0.05);
+  --glow-medium: rgba(91, 63, 156, 0.1);
+  --glow-strong: rgba(91, 63, 156, 0.18);
+
+  --border-subtle: rgba(27, 22, 34, 0.14);
+  --border-medium: rgba(27, 22, 34, 0.22);
+  --border-strong: rgba(27, 22, 34, 0.32);
+
+  --page-glow-a: rgba(120, 90, 190, 0.14);
+  --page-glow-b: rgba(140, 100, 170, 0.12);
+  --page-glow-c: rgba(160, 130, 200, 0.1);
+
+  --bg-overlay: rgba(248, 245, 251, 0.85);
+  --bg-overlay-hover: rgba(239, 233, 246, 0.92);
+
+  --modal-bg: linear-gradient(145deg, rgba(255, 255, 255, 0.98) 0%, rgba(239, 233, 246, 0.99) 100%);
+  --modal-bottom-fade: linear-gradient(to top, rgba(239, 233, 246, 0.95), transparent);
+}
+
 /* High-contrast overrides. Layered on top of whichever theme is active, so
    they only touch the tokens that need more separation: pure-black/white
    backgrounds and text, opaque borders, and brighter accents. Everything
    else in the app reads from these custom properties, so overriding them
    here lifts contrast app-wide without per-component edits. The ambient
-   glow + noise overlays are removed further down (they wash out edges). */
-[data-high-contrast='true'] {
+   glow + noise overlays are removed further down (they wash out edges).
+
+   The `:root` prefix is load-bearing: it lifts these to the same specificity
+   as the two-attribute color-scheme blocks above so high contrast still wins
+   on a non-default scheme. */
+:root[data-high-contrast='true'] {
   --bg-primary: #000000;
   --bg-secondary: #0c0c0c;
   --bg-tertiary: #161616;
@@ -253,7 +492,7 @@
   --danger-border: rgba(255, 138, 138, 0.7);
 }
 
-[data-theme='light'][data-high-contrast='true'] {
+:root[data-theme='light'][data-high-contrast='true'] {
   --bg-primary: #ffffff;
   --bg-secondary: #f4f1ea;
   --bg-tertiary: #e7e2d6;
@@ -276,6 +515,49 @@
   --text-on-accent: #ffffff;
   --danger: #9a1f1a;
   --danger-border: rgba(154, 31, 26, 0.7);
+}
+
+/* Keep the accent hue with the chosen scheme in high contrast. The blocks
+   above flatten backgrounds, text and borders to near black/white — that
+   part is scheme-independent — but their green accents would drag an ember
+   or tide page back to moss. Only the three accent tokens are restated
+   here, each pushed further from its background than the normal palette.
+   Both attributes are named so these outrank the generic blocks above
+   without the dark and light variants colliding with each other. */
+:root[data-theme='dark'][data-high-contrast='true'][data-scheme='ember'] {
+  --text-accent: #f0b782;
+  --accent-moss: #a3653f;
+  --accent-forest: #5c3620;
+}
+
+:root[data-theme='light'][data-high-contrast='true'][data-scheme='ember'] {
+  --text-accent: #6b3210;
+  --accent-moss: #6d3f22;
+  --accent-forest: #4a2c19;
+}
+
+:root[data-theme='dark'][data-high-contrast='true'][data-scheme='tide'] {
+  --text-accent: #a5dcec;
+  --accent-moss: #3f7d92;
+  --accent-forest: #26495a;
+}
+
+:root[data-theme='light'][data-high-contrast='true'][data-scheme='tide'] {
+  --text-accent: #10485c;
+  --accent-moss: #2f5f72;
+  --accent-forest: #21414f;
+}
+
+:root[data-theme='dark'][data-high-contrast='true'][data-scheme='dusk'] {
+  --text-accent: #cfbcf2;
+  --accent-moss: #6c5a92;
+  --accent-forest: #45375f;
+}
+
+:root[data-theme='light'][data-high-contrast='true'][data-scheme='dusk'] {
+  --text-accent: #45298a;
+  --accent-moss: #56467a;
+  --accent-forest: #3b2f57;
 }
 
 * {
@@ -1121,6 +1403,135 @@ html {
   font-size: 0.8rem;
   color: var(--text-tertiary);
   line-height: 1.45;
+}
+
+/* Rows whose control is too wide to sit beside its label (the color-scheme
+   grid) stack it underneath instead. */
+.settings-toggle-row.is-stacked {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+/* -----------------------------------------------------------------------
+   Color-scheme picker (General tab → Appearance).
+   ----------------------------------------------------------------------- */
+.scheme-picker {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(9.5rem, 1fr));
+  gap: 8px;
+}
+
+.scheme-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: transparent;
+  border: 1px solid var(--border-medium);
+  color: var(--text-secondary);
+  font-family: var(--font-serif);
+  font-size: 0.9rem;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.2s ease, background 0.2s ease, color 0.2s ease;
+}
+
+.scheme-option:hover {
+  border-color: var(--border-strong);
+  color: var(--text-primary);
+}
+
+.scheme-option.is-active {
+  background: var(--bg-tertiary);
+  border-color: var(--text-accent);
+  color: var(--text-primary);
+}
+
+.scheme-option:focus-visible {
+  outline: 2px solid var(--text-accent);
+  outline-offset: 2px;
+}
+
+.scheme-option-name {
+  display: block;
+  letter-spacing: 0.01em;
+}
+
+.scheme-option-hint {
+  display: block;
+  font-size: 0.72rem;
+  color: var(--text-tertiary);
+  line-height: 1.35;
+}
+
+/* Two-tone chip: the scheme's dark variant on the left, its light variant
+   on the right, each carrying that variant's accent as a dot. Rendered from
+   its own tokens rather than the live palette so every chip shows its own
+   scheme — keep the values in step with the color-scheme blocks up top. */
+.scheme-swatch {
+  display: flex;
+  flex-shrink: 0;
+  width: 40px;
+  height: 24px;
+  border: 1px solid var(--border-medium);
+}
+
+.scheme-swatch span {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.scheme-swatch span::after {
+  content: '';
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+}
+
+.scheme-swatch span:first-child {
+  background: var(--swatch-dark-bg);
+}
+
+.scheme-swatch span:first-child::after {
+  background: var(--swatch-dark-accent);
+}
+
+.scheme-swatch span:last-child {
+  background: var(--swatch-light-bg);
+}
+
+.scheme-swatch span:last-child::after {
+  background: var(--swatch-light-accent);
+}
+
+.scheme-swatch[data-scheme='moss'] {
+  --swatch-dark-bg: #0a0a0a;
+  --swatch-dark-accent: #a8b89c;
+  --swatch-light-bg: #faf8f3;
+  --swatch-light-accent: #4d5e3f;
+}
+
+.scheme-swatch[data-scheme='ember'] {
+  --swatch-dark-bg: #0c0908;
+  --swatch-dark-accent: #e0a06a;
+  --swatch-light-bg: #fbf4ea;
+  --swatch-light-accent: #8f4718;
+}
+
+.scheme-swatch[data-scheme='tide'] {
+  --swatch-dark-bg: #070a0d;
+  --swatch-dark-accent: #86c8da;
+  --swatch-light-bg: #f4f8fa;
+  --swatch-light-accent: #1a5e76;
+}
+
+.scheme-swatch[data-scheme='dusk'] {
+  --swatch-dark-bg: #09080d;
+  --swatch-dark-accent: #b9a7e0;
+  --swatch-light-bg: #f8f5fb;
+  --swatch-light-accent: #5b3f9c;
 }
 
 /* Custom switch — visually matches the extension's .aturi-switch but

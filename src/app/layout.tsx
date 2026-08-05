@@ -6,9 +6,14 @@ import { KeyboardShortcutsProvider } from "@/components/KeyboardShortcutsProvide
 import Footer from "@/components/Footer";
 import PageTransition from "@/components/PageTransition";
 import ThemeSync from "@/components/ThemeSync";
+import ColorSchemeSync from "@/components/ColorSchemeSync";
 import FontScaleSync from "@/components/FontScaleSync";
 import A11ySync from "@/components/A11ySync";
 import { DEFAULT_THEME, THEME_INIT_SCRIPT } from "@/lib/theme";
+import {
+  COLOR_SCHEME_INIT_SCRIPT,
+  DEFAULT_COLOR_SCHEME,
+} from "@/lib/colorScheme";
 import { FONT_SCALE_INIT_SCRIPT } from "@/lib/fontScale";
 import { A11Y_INIT_SCRIPT } from "@/lib/a11y";
 import { getSiteUrl } from "@/lib/config";
@@ -50,7 +55,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" data-theme={DEFAULT_THEME} suppressHydrationWarning>
+    <html
+      lang="en"
+      data-theme={DEFAULT_THEME}
+      data-scheme={DEFAULT_COLOR_SCHEME}
+      suppressHydrationWarning
+    >
       <head>
         {/* Apple TN3156 requires an `application/activity+json` link element
             on social-network post pages for rich previews in Messages.
@@ -61,6 +71,12 @@ export default function RootLayout({
             flash on cold loads. The script reads from localStorage and sets
             data-theme on <html> synchronously. */}
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
+        {/* Same idea for the color scheme (the hue family each theme is
+            painted in). Preferences are the source of truth and sync to the
+            PDS, but they aren't readable until React mounts — this reads the
+            localStorage cache ColorSchemeSync keeps current so a cold load
+            doesn't paint the default palette first. */}
+        <script dangerouslySetInnerHTML={{ __html: COLOR_SCHEME_INIT_SCRIPT }} />
         {/* Apply the saved font scale before first paint to avoid a reflow
             on cold loads. Reads from localStorage and sets the root
             font-size on <html> synchronously; "default" resolves to the
@@ -78,6 +94,7 @@ export default function RootLayout({
         <A11ySync />
         <AtprotoSessionProvider>
           <PreferencesProvider>
+            <ColorSchemeSync />
             <KeyboardShortcutsProvider>
               <PageTransition>
                 <main style={{ position: 'relative', zIndex: 1 }}>{children}</main>
