@@ -211,7 +211,7 @@ export default function ExploreLanding() {
           body={
             <>
               <p>
-                By optionally signing in, your preferences (pins, custom waypoints, theme, etc) ride with you via your PDS: jump between
+                By optionally signing in, your preferences (pins, custom waypoints, color scheme, etc) ride with you via your PDS: jump between
                 devices and the Explorer will not forget your settings.
               </p>
               <p>

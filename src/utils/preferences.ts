@@ -18,6 +18,11 @@
  */
 
 import {
+  DEFAULT_COLOR_SCHEME,
+  isColorScheme,
+  type ColorScheme,
+} from '@/lib/colorScheme';
+import {
   CATEGORY_ORDER,
   WAYPOINT_CATEGORIES_DATA,
   WAYPOINT_DESTINATIONS_DATA,
@@ -66,6 +71,16 @@ export type WaypointGroup = {
 };
 
 export type Preferences = {
+  /**
+   * The app-wide color palette — see `COLOR_SCHEMES` in
+   * `src/lib/colorScheme.ts` for the full list. Each scheme has a dark and
+   * a light variant; which of the two is showing is
+   * the separate, browser-local `theme` choice (see `src/lib/theme.ts`).
+   * This one lives in prefs so a user's palette follows them across
+   * devices. `ColorSchemeSync` applies it to <html data-scheme> and keeps
+   * the pre-paint localStorage cache current.
+   */
+  colorScheme: ColorScheme;
   /**
    * User-defined groups. Order of the array is display order in the
    * picker; each group's `waypointIds` is the in-group order.
@@ -202,6 +217,7 @@ export const CUSTOM_GROUP_ID = 'custom';
 export const CUSTOM_GROUP_NAME = 'My Waypoints';
 
 export const DEFAULT_PREFERENCES: Preferences = {
+  colorScheme: DEFAULT_COLOR_SCHEME,
   waypointGroups: defaultWaypointGroups(),
   hiddenWaypoints: [],
   waypointOrder: [],
@@ -283,6 +299,12 @@ export function clearLocalPreferences(): void {
  */
 export function mergeWithDefaults(input: Partial<Preferences> | null | undefined): Preferences {
   if (!input || typeof input !== 'object') return DEFAULT_PREFERENCES;
+  // Anything unrecognised (a scheme from a newer build, a hand-edited PDS
+  // record) falls back to the default rather than leaving <html> pointing at
+  // a palette that has no tokens behind it.
+  const colorScheme = isColorScheme(input.colorScheme)
+    ? input.colorScheme
+    : DEFAULT_COLOR_SCHEME;
   const customWaypoints = Array.isArray(input.customWaypoints)
     ? input.customWaypoints.filter(isValidCustomWaypoint)
     : [];
@@ -353,6 +375,7 @@ export function mergeWithDefaults(input: Partial<Preferences> | null | undefined
         return { ...s };
       });
   return {
+    colorScheme,
     waypointGroups,
     hiddenWaypoints,
     waypointOrder,
@@ -441,6 +464,7 @@ export function expandTemplate(
 export function preferencesAreEqual(a: Preferences, b: Preferences): boolean {
   return (
     a.updatedAt === b.updatedAt &&
+    a.colorScheme === b.colorScheme &&
     a.pinScope === b.pinScope &&
     a.collectionGroupsCollapsedByDefault === b.collectionGroupsCollapsedByDefault &&
     a.hideRelationshipBar === b.hideRelationshipBar &&

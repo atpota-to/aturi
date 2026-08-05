@@ -161,7 +161,7 @@ export default function CollectionEditBar({
             style={{
               padding: '0.4rem 0.75rem',
               background: 'var(--danger)',
-              color: 'var(--text-on-accent)',
+              color: 'var(--text-on-danger)',
               border: '1px solid var(--danger)',
               fontFamily: 'var(--font-serif)',
               fontSize: '0.8125rem',
