@@ -2,10 +2,11 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
-import { Check, FilePenLine, Link2, Search, Trash2, X } from 'lucide-react';
+import { Check, ChevronUp, FilePenLine, Link2, Search, Trash2, X } from 'lucide-react';
 import { resolveSearchPathAsync } from '@/utils/atproto/searchRouting';
 import { useChromeBar, type ChromeBarAction } from './ChromeBarContext';
 import { useEditBar, type EditBarSnapshot } from './EditBarContext';
+import { useIsNarrow } from './useIsNarrow';
 import DeleteProgressBar from './DeleteProgressBar';
 
 /**
@@ -26,13 +27,21 @@ import DeleteProgressBar from './DeleteProgressBar';
  *     never on screen twice.
  *   - Right: copy the link to the page you're on.
  *
+ * A phone can't fit a toolbar and a search field on one line, so there the
+ * selection controls expand upward out of the bar as a panel — the mirror of
+ * the nav's menu expanding downward out of the header.
+ *
  * The bar reserves its own height as padding on <body> (see
  * `.has-explore-chrome` in globals.css), so it never covers the end of a
- * list or the site footer.
+ * list or the site footer. The panel is deliberately left out of that
+ * measurement: like the nav's, it floats over the page rather than pushing
+ * it around.
  */
 export default function ExploreChromeBar() {
   const { field, action } = useChromeBar();
   const { bar } = useEditBar();
+  const narrow = useIsNarrow();
+  const [panelOpen, setPanelOpen] = useState(false);
   const barRef = useRef<HTMLDivElement>(null);
 
   // Reserve the bar's real height at the bottom of the document — measured,
@@ -56,24 +65,183 @@ export default function ExploreChromeBar() {
     };
   }, []);
 
-  // A confirm prompt or an in-flight delete owns the whole row: it's a moment
-  // that needs the words, and searching mid-delete isn't a thing anyone does.
-  const takeover = bar && (bar.confirming || bar.deleting);
+  // Where the selection controls live: inline on a roomy viewport, in the
+  // expanding panel on a phone.
+  const inPanel = narrow && !!bar;
+
+  // Nothing left to show (selection mode ended, or the viewport grew and the
+  // controls went back inline) — don't leave an empty panel hanging open.
+  useEffect(() => {
+    if (!inPanel) setPanelOpen(false);
+  }, [inPanel]);
+
+  // A confirm prompt or a running delete must never sit behind a closed
+  // toggle, so the panel opens itself for them.
+  const midStep = !!bar && (bar.confirming || bar.deleting);
+  useEffect(() => {
+    if (inPanel && midStep) setPanelOpen(true);
+  }, [inPanel, midStep]);
+
+  // Click-outside and Escape dismiss the panel, matching the nav's menu.
+  // Mid-step it stays put: Cancel and Stop are the ways out of those, and
+  // losing the prompt to a stray tap would be worse than a sticky panel.
+  useEffect(() => {
+    if (!panelOpen || midStep) return undefined;
+    const onPointerDown = (e: MouseEvent) => {
+      if (barRef.current && !barRef.current.contains(e.target as Node)) {
+        setPanelOpen(false);
+      }
+    };
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setPanelOpen(false);
+    };
+    document.addEventListener('mousedown', onPointerDown);
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', onPointerDown);
+      document.removeEventListener('keydown', onKeyDown);
+    };
+  }, [panelOpen, midStep]);
+
+  // On a roomy viewport a confirm prompt or an in-flight delete owns the
+  // whole row: it's a moment that needs the words, and searching mid-delete
+  // isn't a thing anyone does.
+  const takeover = !narrow && midStep;
 
   return (
     <div ref={barRef} className="explore-chrome-bar">
       <div className="container-narrow explore-chrome-inner">
-        {takeover ? (
+        {takeover && bar ? (
           <DeleteSteps bar={bar} />
         ) : (
           <>
             {field ? <RouteField key="route" /> : <JumpField key="jump" />}
-            {bar && <SelectionControls bar={bar} />}
+            {bar && !inPanel && <SelectionControls bar={bar} />}
+            {inPanel && bar && (
+              <PanelToggle
+                open={panelOpen}
+                bar={bar}
+                onClick={() => setPanelOpen((v) => !v)}
+              />
+            )}
             {action && <ActionButton action={action} />}
             <CopyLinkButton />
           </>
         )}
+
+        {inPanel && bar && <ChromePanel open={panelOpen} bar={bar} />}
       </div>
+    </div>
+  );
+}
+
+/**
+ * The phone-width entry point to the selection controls. Carries the count on
+ * its face so leaving the panel closed doesn't mean losing track of what's
+ * selected.
+ */
+function PanelToggle({
+  open,
+  bar,
+  onClick,
+}: {
+  open: boolean;
+  bar: EditBarSnapshot;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-expanded={open}
+      aria-label={`${open ? 'Hide' : 'Show'} selection controls, ${bar.selectedCount} selected`}
+      title="Selection controls"
+      className="explore-chrome-button explore-chrome-toggle"
+      data-open={open || undefined}
+    >
+      <ChevronUp size={13} aria-hidden />
+      <span aria-hidden>{bar.selectedCount}</span>
+    </button>
+  );
+}
+
+/**
+ * The selection controls as full-width rows, expanding up out of the bar the
+ * way the nav's menu expands down out of the header. `inert` while closed so
+ * the collapsed rows stay out of the tab order and the a11y tree.
+ */
+function ChromePanel({ open, bar }: { open: boolean; bar: EditBarSnapshot }) {
+  const selectAllDisabled = bar.totalCount === 0 || bar.allSelected;
+  const nothingSelected = bar.selectedCount === 0;
+
+  return (
+    <div className="explore-chrome-panel" data-open={open || undefined} inert={!open}>
+      {bar.deleting && bar.progress ? (
+        <>
+          <span className="explore-chrome-prompt">
+            {bar.waitingSec != null
+              ? `Paced under the rate limit, resuming in ${bar.waitingSec}s`
+              : 'Deleting…'}
+          </span>
+          <DeleteProgressBar done={bar.progress.done} total={bar.progress.total} compact />
+          <button type="button" onClick={bar.onStop} className="explore-chrome-panel-row">
+            Stop
+          </button>
+        </>
+      ) : bar.confirming ? (
+        <>
+          <span className="explore-chrome-prompt">
+            Delete {bar.selectedCount} record{bar.selectedCount === 1 ? '' : 's'}? This
+            can&rsquo;t be undone.
+          </span>
+          <button
+            type="button"
+            onClick={bar.onConfirmDelete}
+            className="explore-chrome-panel-row explore-chrome-danger-solid"
+          >
+            Confirm delete
+          </button>
+          <button
+            type="button"
+            onClick={bar.onCancelDelete}
+            className="explore-chrome-panel-row"
+          >
+            Cancel
+          </button>
+        </>
+      ) : (
+        <>
+          <button
+            type="button"
+            onClick={bar.onSelectAll}
+            disabled={selectAllDisabled}
+            className="explore-chrome-panel-row"
+          >
+            Select all {bar.totalCount} shown
+          </button>
+          <button
+            type="button"
+            onClick={bar.onDeselectAll}
+            disabled={nothingSelected}
+            className="explore-chrome-panel-row"
+          >
+            Deselect all
+          </button>
+          <button
+            type="button"
+            onClick={bar.onRequestDelete}
+            disabled={nothingSelected}
+            className="explore-chrome-panel-row explore-chrome-danger"
+          >
+            <Trash2 size={13} aria-hidden />
+            Delete {bar.selectedCount} selected
+          </button>
+          <button type="button" onClick={bar.onDone} className="explore-chrome-panel-row">
+            <X size={13} aria-hidden />
+            Done
+          </button>
+        </>
+      )}
     </div>
   );
 }

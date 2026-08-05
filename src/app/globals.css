@@ -2316,11 +2316,12 @@ body.has-explore-chrome {
 }
 
 /* Shares .container-narrow with the page body so the bar's controls line up
-   with the content above them; only the vertical padding is ours. Wraps
-   rather than crushes: with selection controls up, a phone puts the field on
-   one line and the buttons on the next, and the measured height above keeps
-   the reserved space honest. */
+   with the content above them; only the vertical padding is ours. Wrapping is
+   the safety net for an in-between width — a phone moves the selection
+   controls into the panel below instead, so the row stays one line. Anchors
+   that panel, hence `relative`. */
 .explore-chrome-inner {
+  position: relative;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -2421,9 +2422,104 @@ body.has-explore-chrome {
 
 /* Copy link keeps the right-hand corner. A no-op while the field is growing
    to fill the row (nothing left for the auto margin to absorb); it earns its
-   keep once the row wraps on a phone and the field is on the line above. */
+   keep if the row ever wraps and the field is on the line above. */
 .explore-chrome-copy {
   margin-left: auto;
+}
+
+.explore-chrome-toggle[data-open] {
+  color: var(--text-accent);
+  border-color: var(--text-accent);
+}
+
+.explore-chrome-toggle svg {
+  transition: transform 0.3s ease;
+}
+
+.explore-chrome-toggle[data-open] svg {
+  transform: rotate(180deg);
+}
+
+/* The phone-width controls panel: grows up out of the bar's top edge, the
+   mirror of the nav menu growing down out of the header. Left out of the
+   bar's height measurement on purpose — like the nav's panel it floats over
+   the page rather than pushing it around. */
+.explore-chrome-panel {
+  position: absolute;
+  bottom: 100%;
+  /* Line up with the page gutter rather than the bar's full bleed. */
+  left: var(--page-edge);
+  right: var(--page-edge);
+  margin-bottom: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  padding: 0.6rem;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-medium);
+  box-shadow: var(--shadow-overlay);
+  transform-origin: bottom center;
+  transform: scaleY(0) translateY(10px) rotate(0deg);
+  opacity: 0;
+  pointer-events: none;
+  transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  z-index: 50;
+}
+
+.explore-chrome-panel[data-open] {
+  transform: scaleY(1) translateY(0) rotate(-0.3deg);
+  opacity: 1;
+  pointer-events: auto;
+}
+
+[data-reduce-motion='true'] .explore-chrome-panel {
+  transition: opacity 0.2s ease;
+  transform: none;
+}
+
+/* Full-width rows: a phone has the vertical room the bar's single line
+   doesn't, so the controls get their words back. */
+.explore-chrome-panel-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  width: 100%;
+  padding: 0.55rem 0.75rem;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-medium);
+  color: var(--text-secondary);
+  font-family: var(--font-serif);
+  font-size: 0.8125rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: color 0.2s ease, border-color 0.2s ease;
+}
+
+.explore-chrome-panel-row:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.explore-chrome-panel-row:hover:not(:disabled) {
+  color: var(--text-primary);
+}
+
+/* …but a danger row keeps its own colour on hover — the rule above is more
+   specific than the shared .explore-chrome-danger* ones, so it needs
+   answering here rather than there. */
+.explore-chrome-panel-row.explore-chrome-danger:hover:not(:disabled) {
+  color: var(--danger);
+}
+
+.explore-chrome-panel-row.explore-chrome-danger-solid:hover:not(:disabled) {
+  color: var(--text-on-accent);
+}
+
+.explore-chrome-panel .explore-chrome-prompt {
+  flex: 0 0 auto;
+  padding: 0.15rem 0.15rem 0.35rem;
+  text-align: center;
 }
 
 /* Delete: quiet until it can actually do something, then unmistakable at the

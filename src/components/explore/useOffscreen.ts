@@ -39,6 +39,12 @@ export function useOffscreen(node: HTMLElement | null): boolean {
       setOffscreen(false);
       return undefined;
     }
+    // Answer synchronously first. An IntersectionObserver doesn't report
+    // until the end of a frame, and this hook drives whether the chrome bar
+    // is carrying a control — so a re-attach that fell back to the "on
+    // screen" default, even for one frame, would blink a live toolbar (or a
+    // delete confirmation) out of existence and back.
+    setOffscreen(!intersectsViewport(node));
     const observer = new IntersectionObserver(
       ([entry]) => setOffscreen(!entry.isIntersecting),
       { rootMargin: `-${NAV_OCCLUSION_PX}px 0px -${CHROME_OCCLUSION_PX}px 0px` },
@@ -48,4 +54,15 @@ export function useOffscreen(node: HTMLElement | null): boolean {
   }, [node]);
 
   return offscreen;
+}
+
+/** The same test the observer's rootMargin encodes, done by hand. */
+function intersectsViewport(node: HTMLElement): boolean {
+  const rect = node.getBoundingClientRect();
+  return (
+    rect.bottom > NAV_OCCLUSION_PX &&
+    rect.top < window.innerHeight - CHROME_OCCLUSION_PX &&
+    rect.right > 0 &&
+    rect.left < window.innerWidth
+  );
 }
