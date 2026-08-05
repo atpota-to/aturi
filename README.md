@@ -44,7 +44,7 @@ Available at [aturi.to/explore](https://aturi.to/explore). A read-mostly window 
 
 Authentication uses standard atproto OAuth: no passwords, no Aturi-side account database. The sign-in flow shows a granular permissions picker so you can grant only the scopes you want (create / update / delete records / upload blobs), and access tokens are DPoP-bound and stored only in your browser. Reads of your own repo are always allowed.
 
-Your personalization (waypoint groups, ordering, pins, custom waypoints) is written to a `to.aturi.actor.preferences/self` record in your own PDS, so it migrates with you if you move servers.
+Your personalization (waypoint groups, ordering, pins, custom waypoints, color scheme) is written to a `to.aturi.actor.preferences/self` record in your own PDS, so it migrates with you if you move servers.
 
 ## Universal links
 
