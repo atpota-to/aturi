@@ -20,6 +20,8 @@ import LexiconUsageCard from './lexicons/LexiconUsageCard';
 import RecordEditor from './RecordEditor';
 import SignInPanel from './SignInPanel';
 import LinkButton from './LinkButton';
+import { useChromeBarAction } from './ChromeBarContext';
+import { useOffscreen } from './useOffscreen';
 import NotFoundPanel from '@/components/NotFoundPanel';
 import { useAtprotoSession } from '@/components/AtprotoSessionProvider';
 import { usePreferences } from '@/components/PreferencesProvider';
@@ -53,6 +55,26 @@ export default function RecordExplorer({ repo, collection, rkey }: Props) {
       return rkey;
     }
   }, [rkey]);
+
+  // The in-page "Edit record" chip, watched so the chrome bar can offer the
+  // same action exactly while it isn't on screen. Its place on the page is
+  // the visitor's choice (Settings → Sections), so it could be anywhere.
+  const [editChipEl, setEditChipEl] = useState<HTMLDivElement | null>(null);
+  const editChipOffscreen = useOffscreen(editChipEl);
+  // Resolved up here — ahead of the early returns below — so the chrome-bar
+  // hook runs on every render.
+  const canEdit = Boolean(
+    agent && signedInDid && identity && signedInDid === identity.did,
+  );
+  useChromeBarAction(
+    canEdit && !editing && editChipOffscreen
+      ? {
+          label: 'Edit record',
+          title: 'Edit this record',
+          onClick: () => setEditing(true),
+        }
+      : null,
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -111,7 +133,6 @@ export default function RecordExplorer({ repo, collection, rkey }: Props) {
 
   const atUri = `at://${identity.did}/${collection}/${decodedRkey}`;
   const repoSeg = encodeRepo(identity.handle || identity.did);
-  const canEdit = Boolean(agent && signedInDid && signedInDid === identity.did);
   const isPost = collection === 'app.bsky.feed.post';
   const hasRichCard = recordHasRichCard(collection);
 
@@ -203,7 +224,10 @@ export default function RecordExplorer({ repo, collection, rkey }: Props) {
     </div>
   ) : null;
   const editChipNode = editButton ? (
-    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', alignItems: 'center' }}>
+    <div
+      ref={setEditChipEl}
+      style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', alignItems: 'center' }}
+    >
       {editButton}
     </div>
   ) : null;

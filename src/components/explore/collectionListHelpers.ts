@@ -18,13 +18,6 @@ export const THROTTLE_TICK_MS = 1000;
 // accounting and the "resuming in Ns" countdown simple and exact.
 export const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
-// Reveal/retract thresholds for dropping the condensed edit bar into the nav,
-// matching the breadcrumb's behaviour: the top ~96px counts as occluded by the
-// sticky nav, and a dead band keeps the reveal from strobing at the boundary
-// (showing the bar grows the nav, which nudges the page back across the line).
-export const NAV_OFFSET_PX = 96;
-export const REVEAL_HYSTERESIS_PX = 72;
-
 // Row layout. The whole list is one CSS grid so the rkey and data-preview
 // columns line up across every row: the <ul> defines the columns and each row
 // re-adopts them with `grid-template-columns: subgrid`. The rkey track hugs its

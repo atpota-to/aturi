@@ -2316,11 +2316,15 @@ body.has-explore-chrome {
 }
 
 /* Shares .container-narrow with the page body so the bar's controls line up
-   with the content above them; only the vertical padding is ours. */
+   with the content above them; only the vertical padding is ours. Wraps
+   rather than crushes: with selection controls up, a phone puts the field on
+   one line and the buttons on the next, and the measured height above keeps
+   the reserved space honest. */
 .explore-chrome-inner {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.4rem;
   padding-top: 0.45rem;
   padding-bottom: 0.45rem;
 }
@@ -2329,7 +2333,9 @@ body.has-explore-chrome {
   display: flex;
   align-items: center;
   gap: 0.4rem;
-  flex: 1;
+  /* Basis wide enough to be worth typing in — below that the row wraps
+     instead of squeezing the field down to nothing. */
+  flex: 1 1 12rem;
   min-width: 0;
   padding: 0 0.5rem;
   background: var(--bg-tertiary);
@@ -2368,7 +2374,7 @@ body.has-explore-chrome {
 }
 
 .explore-chrome-clear,
-.explore-chrome-copy {
+.explore-chrome-button {
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
@@ -2384,31 +2390,86 @@ body.has-explore-chrome {
   border: 0;
 }
 
-.explore-chrome-copy {
+/* Every chip in the bar — copy link, edit, and the selection controls —
+   shares one shape so the row reads as a single strip of tools. */
+.explore-chrome-button {
   padding: 0.4rem 0.6rem;
   background: var(--bg-tertiary);
   border: 1px solid var(--border-medium);
   font-family: var(--font-serif);
   font-size: 0.75rem;
   line-height: 1;
+  white-space: nowrap;
 }
 
 .explore-chrome-clear:hover,
 .explore-chrome-clear:focus-visible,
-.explore-chrome-copy:hover,
-.explore-chrome-copy:focus-visible {
+.explore-chrome-button:hover:not(:disabled),
+.explore-chrome-button:focus-visible {
   color: var(--text-primary);
 }
 
-.explore-chrome-copy[data-copied] {
+.explore-chrome-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.explore-chrome-button[data-copied] {
   color: var(--text-accent);
   border-color: var(--text-accent);
 }
 
+/* Copy link keeps the right-hand corner. A no-op while the field is growing
+   to fill the row (nothing left for the auto margin to absorb); it earns its
+   keep once the row wraps on a phone and the field is on the line above. */
+.explore-chrome-copy {
+  margin-left: auto;
+}
+
+/* Delete: quiet until it can actually do something, then unmistakable at the
+   confirm step. */
+.explore-chrome-danger:not(:disabled) {
+  background: var(--danger-soft);
+  color: var(--danger);
+  border-color: var(--danger-border);
+}
+
+.explore-chrome-danger-solid {
+  background: var(--danger);
+  color: var(--text-on-accent);
+  border-color: var(--danger);
+}
+
+.explore-chrome-danger-solid:hover,
+.explore-chrome-danger-solid:focus-visible {
+  color: var(--text-on-accent);
+}
+
+.explore-chrome-count {
+  flex-shrink: 0;
+  padding: 0 0.15rem;
+  font-family: var(--font-serif);
+  font-size: 0.75rem;
+  color: var(--text-tertiary);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* The confirm / in-flight sentence, which takes the row from the field. */
+.explore-chrome-prompt {
+  flex: 1 1 12rem;
+  min-width: 0;
+  font-family: var(--font-serif);
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
 @media (max-width: 560px) {
-  /* Icon-only copy button — the label is the first thing worth giving up when
-     the field wants the width. Kept in the a11y tree, just not on screen. */
-  .explore-chrome-copy-label {
+  /* Icon-bearing chips drop their labels first — the icon still says it, and
+     the text stays in the a11y tree via the button's aria-label. Text-only
+     chips (Select, Deselect, Cancel) keep their words: they have no icon to
+     fall back on. */
+  .explore-chrome-button-label {
     position: absolute;
     width: 1px;
     height: 1px;
@@ -2419,7 +2480,7 @@ body.has-explore-chrome {
     white-space: nowrap;
   }
 
-  .explore-chrome-copy {
+  .explore-chrome-button {
     padding: 0.4rem 0.5rem;
   }
 }

@@ -23,13 +23,12 @@ import NotFoundPanel from '@/components/NotFoundPanel';
 import SignInPanel from './SignInPanel';
 import { useAtprotoSession } from '@/components/AtprotoSessionProvider';
 import { useEditBar } from './EditBarContext';
-import { useChromeBarField } from './ChromeBarContext';
+import { useChromeBarAction, useChromeBarField } from './ChromeBarContext';
+import { useOffscreen } from './useOffscreen';
 import {
   RECORDS_PER_PAGE,
   APPLY_WRITES_MAX,
   THROTTLE_TICK_MS,
-  NAV_OFFSET_PX,
-  REVEAL_HYSTERESIS_PX,
   sleep,
   listColumns,
   formatCount,
@@ -131,7 +130,7 @@ function CollectionList({
   const showEditButton = canEdit || loggedOut;
   const editActive = editing || signInOpen;
 
-  const { setBar, setScrolledPast } = useEditBar();
+  const { setBar } = useEditBar();
   // Latest selection + record set, read by the stable handlers below (and the
   // published snapshot) without making those callbacks change identity on
   // every toggle — which would otherwise thrash the publish effect.
@@ -139,9 +138,11 @@ function CollectionList({
   recordsRef.current = records;
   const selectedRef = useRef(selected);
   selectedRef.current = selected;
-  // In-page edit toolbar, watched so the condensed nav copy reveals once it
-  // scrolls behind the nav.
-  const editBarRef = useRef<HTMLDivElement>(null);
+  // The in-page controls (Edit / Live / Fetch and the selection toolbar under
+  // them), watched so the chrome bar picks up their duties exactly while they
+  // aren't on screen.
+  const [controlsNode, setControlsNode] = useState<HTMLDivElement | null>(null);
+  const controlsOffscreen = useOffscreen(controlsNode);
 
   const loadPage = useCallback(
     async (after: string | undefined) => {
@@ -462,47 +463,12 @@ function CollectionList({
     }
   }, [agent, identity.did, collection, exitEditing]);
 
-  // Reveal the condensed edit bar in the nav once the in-page one scrolls up
-  // behind it — same rAF-throttled hysteresis dance as the breadcrumb. Only
-  // wired while selection mode is on (the bar is in the DOM then).
+  // Publish the toolbar snapshot so the chrome bar can mirror it, but only
+  // while the in-page toolbar is off screen — otherwise the same Delete
+  // button would be sitting in two places at once. Handlers are stable and
+  // the rest are primitives, so this only re-runs on real changes.
   useEffect(() => {
-    const node = editBarRef.current;
-    if (!editing || !node) {
-      setScrolledPast(false);
-      return undefined;
-    }
-    let shown = false;
-    let frame = 0;
-    const evaluate = () => {
-      frame = 0;
-      const { bottom } = node.getBoundingClientRect();
-      if (!shown && bottom <= NAV_OFFSET_PX) {
-        shown = true;
-        setScrolledPast(true);
-      } else if (shown && bottom >= NAV_OFFSET_PX + REVEAL_HYSTERESIS_PX) {
-        shown = false;
-        setScrolledPast(false);
-      }
-    };
-    const onScroll = () => {
-      if (!frame) frame = requestAnimationFrame(evaluate);
-    };
-    evaluate();
-    window.addEventListener('scroll', onScroll, { passive: true });
-    window.addEventListener('resize', onScroll, { passive: true });
-    return () => {
-      window.removeEventListener('scroll', onScroll);
-      window.removeEventListener('resize', onScroll);
-      if (frame) cancelAnimationFrame(frame);
-      setScrolledPast(false);
-    };
-  }, [editing, setScrolledPast]);
-
-  // Publish the toolbar snapshot so the nav's <StickyEditBar> can mirror it.
-  // Handlers are stable and the rest are primitives, so this only re-runs on
-  // real changes — no feedback loop with the context-driven re-render.
-  useEffect(() => {
-    if (!editing) {
+    if (!editing || !controlsOffscreen) {
       setBar(null);
       return;
     }
@@ -521,9 +487,11 @@ function CollectionList({
       onConfirmDelete: confirmDelete,
       onCancelDelete: cancelDelete,
       onStop: stopDelete,
+      onDone: exitEditing,
     });
   }, [
     editing,
+    controlsOffscreen,
     selected.size,
     visibleRecords.length,
     allSelected,
@@ -537,11 +505,25 @@ function CollectionList({
     confirmDelete,
     cancelDelete,
     stopDelete,
+    exitEditing,
     setBar,
   ]);
 
   // Clear the published snapshot when this list unmounts.
   useEffect(() => () => setBar(null), [setBar]);
+
+  // The way *into* selection mode, for when the in-page Edit button has
+  // scrolled away. Only for the repo's owner: a logged-out visitor's Edit
+  // reveals an in-page sign-in prompt, which is no use from down here.
+  useChromeBarAction(
+    canEdit && !editing && controlsOffscreen
+      ? {
+          label: 'Edit',
+          title: 'Select records to delete',
+          onClick: () => setEditing(true),
+        }
+      : null,
+  );
 
   // The collection page's find action: search the records you've fetched.
   useChromeBarField({
@@ -571,7 +553,13 @@ function CollectionList({
       </AppearIn>
 
       <AppearIn delay={0.05}>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+      {/* The page's own controls. Watched as one block — Edit/Live/Fetch and
+          the selection toolbar that appears under them — so the chrome bar
+          takes over exactly when this whole cluster is off screen. */}
+      <div
+        ref={setControlsNode}
+        style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}
+      >
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
           {showEditButton && (
             <button
@@ -680,7 +668,6 @@ function CollectionList({
 
         {editing && (
           <CollectionEditBar
-            editBarRef={editBarRef}
             // The visible set, so "Select" greys out when a search has
             // narrowed the list to nothing — same rule as its condensed twin.
             recordsLength={visibleRecords.length}

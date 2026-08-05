@@ -9,7 +9,6 @@ import SessionMenu from './SessionMenu';
 import SessionPanel from './SessionPanel';
 import CompactSearchPanel from './CompactSearchPanel';
 import StickyBreadcrumbBar from './explore/StickyBreadcrumbBar';
-import StickyEditBar from './explore/StickyEditBar';
 
 interface HeaderProps {
   simple?: boolean; // If true, shows a smaller version without the tagline
@@ -217,14 +216,11 @@ export default function Header({ simple = false, compact = false }: HeaderProps)
           {/* Condensed breadcrumb that drops in once you scroll past the
               in-page one, keeping the explorer path anchored at the top.
               A full-width section below the row; renders nothing off the
-              explorer routes (no trail registered). */}
-          <StickyBreadcrumbBar />
+              explorer routes (no trail registered).
 
-          {/* Condensed bulk-edit toolbar — drops in below the breadcrumb once
-              the in-page selection bar scrolls away, so the count and delete
-              controls stay reachable down a long list. Inert unless a
-              collection page has selection mode active. */}
-          <StickyEditBar />
+              The nav says where you are; what you can do lives at the other
+              end of the screen, in <ExploreChromeBar>. */}
+          <StickyBreadcrumbBar />
         </div>
 
         {/* Search panel — sits in the same expanding region as the menu

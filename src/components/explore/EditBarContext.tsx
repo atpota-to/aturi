@@ -10,9 +10,10 @@ import {
 
 /**
  * Snapshot of the collection explorer's bulk-edit toolbar, published while
- * selection mode is active. Carries both the live counts/flags (so the
- * condensed copy can mirror them) and stable action callbacks (so its buttons
- * drive the same handlers as the in-page bar).
+ * selection mode is active AND the in-page toolbar is off screen. Carries
+ * both the live counts/flags (so the condensed copy can mirror them) and
+ * stable action callbacks (so its buttons drive the same handlers as the
+ * in-page bar).
  */
 export type EditBarSnapshot = {
   selectedCount: number;
@@ -32,45 +33,37 @@ export type EditBarSnapshot = {
   onCancelDelete: () => void;
   /** Stop an in-flight delete after the current batch. */
   onStop: () => void;
+  /** Leave selection mode entirely. */
+  onDone: () => void;
 };
 
 type EditBarContextValue = {
   /** The active toolbar snapshot, or null when no selection mode is mounted. */
   bar: EditBarSnapshot | null;
-  /** True once the in-page edit bar has scrolled up behind the nav. */
-  scrolledPast: boolean;
   setBar: (bar: EditBarSnapshot | null) => void;
-  setScrolledPast: (scrolledPast: boolean) => void;
 };
 
 const noop = () => {};
 
 /**
  * Bridges the in-page bulk-edit toolbar (which publishes its state + handlers
- * and reports when it scrolls out of view) and the floating nav's
- * <StickyEditBar> (which re-renders a condensed copy once you've scrolled
- * past it). Mirrors BreadcrumbContext.
+ * while it's off screen) and the bottom <ExploreChromeBar> (which renders a
+ * condensed copy in its place). Mirrors BreadcrumbContext.
  *
- * The default value is inert, so <StickyEditBar> safely renders nothing on
+ * The default value is inert, so the chrome bar safely renders nothing on
  * routes that don't wrap their content in an <EditBarProvider>.
  */
 const EditBarContext = createContext<EditBarContextValue>({
   bar: null,
-  scrolledPast: false,
   setBar: noop,
-  setScrolledPast: noop,
 });
 
 export function EditBarProvider({ children }: { children: ReactNode }) {
   const [bar, setBar] = useState<EditBarSnapshot | null>(null);
-  const [scrolledPast, setScrolledPast] = useState(false);
 
-  // setBar / setScrolledPast are stable useState setters, so the value only
-  // changes identity when the snapshot or scroll state actually does.
-  const value = useMemo<EditBarContextValue>(
-    () => ({ bar, scrolledPast, setBar, setScrolledPast }),
-    [bar, scrolledPast],
-  );
+  // setBar is a stable useState setter, so the value only changes identity
+  // when the snapshot actually does.
+  const value = useMemo<EditBarContextValue>(() => ({ bar, setBar }), [bar]);
 
   return (
     <EditBarContext.Provider value={value}>{children}</EditBarContext.Provider>

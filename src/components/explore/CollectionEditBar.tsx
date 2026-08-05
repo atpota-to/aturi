@@ -1,6 +1,5 @@
 'use client';
 
-import { type RefObject } from 'react';
 import { Trash2 } from 'lucide-react';
 import { HOURLY_POINT_BUDGET } from '@/utils/atproto/writeThrottle';
 import DeleteProgressBar from './DeleteProgressBar';
@@ -12,11 +11,11 @@ import { selectionButtonStyle } from './collectionListHelpers';
  * delete affordance, which walks through delete → confirm → in-flight
  * (progress bar + Stop) states. Purely presentational — every count, flag, and
  * handler is supplied by <CollectionList>, which owns the selection and the
- * delete engine. Its condensed twin lives in <StickyEditBar>, driven from the
- * same published snapshot.
+ * delete engine. Its condensed twin lives in the bottom <ExploreChromeBar>,
+ * driven from the same published snapshot and shown only while this one is
+ * scrolled out of view.
  */
 export default function CollectionEditBar({
-  editBarRef,
   recordsLength,
   selectedSize,
   allSelected,
@@ -32,7 +31,6 @@ export default function CollectionEditBar({
   onCancelDelete,
   onStop,
 }: {
-  editBarRef: RefObject<HTMLDivElement | null>;
   recordsLength: number;
   selectedSize: number;
   allSelected: boolean;
@@ -50,7 +48,6 @@ export default function CollectionEditBar({
 }) {
   return (
     <div
-      ref={editBarRef}
       style={{
         display: 'flex',
         alignItems: 'center',

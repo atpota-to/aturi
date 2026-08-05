@@ -2,9 +2,11 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
-import { Check, Link2, Search, X } from 'lucide-react';
+import { Check, FilePenLine, Link2, Search, Trash2, X } from 'lucide-react';
 import { resolveSearchPathAsync } from '@/utils/atproto/searchRouting';
-import { useChromeBar } from './ChromeBarContext';
+import { useChromeBar, type ChromeBarAction } from './ChromeBarContext';
+import { useEditBar, type EditBarSnapshot } from './EditBarContext';
+import DeleteProgressBar from './DeleteProgressBar';
 
 /**
  * Thin bar pinned to the bottom of the viewport on every explorer route, so
@@ -17,6 +19,11 @@ import { useChromeBar } from './ChromeBarContext';
  *     filter (a single record, a lexicon page) fall back to the global jump
  *     search, which resolves a handle / DID / at:// URI / URL the same way
  *     the header's search does.
+ *   - Middle: whatever the page can do to itself — the "Edit" affordance, and
+ *     on a collection the whole bulk-selection toolbar (select, deselect,
+ *     delete, and the confirm / in-flight steps that follow). These appear
+ *     only while the in-page originals are off screen, so the same button is
+ *     never on screen twice.
  *   - Right: copy the link to the page you're on.
  *
  * The bar reserves its own height as padding on <body> (see
@@ -24,7 +31,8 @@ import { useChromeBar } from './ChromeBarContext';
  * list or the site footer.
  */
 export default function ExploreChromeBar() {
-  const { field } = useChromeBar();
+  const { field, action } = useChromeBar();
+  const { bar } = useEditBar();
   const barRef = useRef<HTMLDivElement>(null);
 
   // Reserve the bar's real height at the bottom of the document — measured,
@@ -48,11 +56,23 @@ export default function ExploreChromeBar() {
     };
   }, []);
 
+  // A confirm prompt or an in-flight delete owns the whole row: it's a moment
+  // that needs the words, and searching mid-delete isn't a thing anyone does.
+  const takeover = bar && (bar.confirming || bar.deleting);
+
   return (
     <div ref={barRef} className="explore-chrome-bar">
       <div className="container-narrow explore-chrome-inner">
-        {field ? <RouteField key="route" /> : <JumpField key="jump" />}
-        <CopyLinkButton />
+        {takeover ? (
+          <DeleteSteps bar={bar} />
+        ) : (
+          <>
+            {field ? <RouteField key="route" /> : <JumpField key="jump" />}
+            {bar && <SelectionControls bar={bar} />}
+            {action && <ActionButton action={action} />}
+            <CopyLinkButton />
+          </>
+        )}
       </div>
     </div>
   );
@@ -203,6 +223,135 @@ function FieldForm({
   );
 }
 
+/**
+ * A page-level affordance the route asked us to keep in reach — the "Edit"
+ * button on a collection or a record, published while its in-page twin is
+ * scrolled away.
+ */
+function ActionButton({ action }: { action: ChromeBarAction }) {
+  return (
+    <button
+      type="button"
+      onClick={action.onClick}
+      title={action.title || action.label}
+      aria-label={action.title || action.label}
+      className="explore-chrome-button"
+    >
+      <FilePenLine size={13} aria-hidden />
+      <span className="explore-chrome-button-label">{action.label}</span>
+    </button>
+  );
+}
+
+/**
+ * The bulk-selection toolbar, condensed: what's selected, how to select more
+ * or less of it, and the way out. Drives the same handlers as the in-page
+ * bar — this is a second set of buttons on one piece of state, not a second
+ * selection.
+ */
+function SelectionControls({ bar }: { bar: EditBarSnapshot }) {
+  const selectAllDisabled = bar.totalCount === 0 || bar.allSelected;
+  const nothingSelected = bar.selectedCount === 0;
+  const countLabel = `${bar.selectedCount} selected`;
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={bar.onSelectAll}
+        disabled={selectAllDisabled}
+        title={bar.totalCount ? `Select all ${bar.totalCount} shown` : 'Select all shown'}
+        className="explore-chrome-button"
+      >
+        Select
+      </button>
+      <button
+        type="button"
+        onClick={bar.onDeselectAll}
+        disabled={nothingSelected}
+        title="Clear the selection"
+        className="explore-chrome-button"
+      >
+        Deselect
+      </button>
+      {/* The count is the one thing here that isn't recoverable from the
+          buttons, so it survives longest before the narrow-screen rules
+          start hiding labels. */}
+      <span className="explore-chrome-count" aria-live="polite" aria-atomic>
+        {countLabel}
+      </span>
+      <button
+        type="button"
+        onClick={bar.onRequestDelete}
+        disabled={nothingSelected}
+        title={
+          bar.selectedCount
+            ? `Delete ${bar.selectedCount} selected record${bar.selectedCount === 1 ? '' : 's'}`
+            : 'Delete selected records'
+        }
+        aria-label={
+          bar.selectedCount
+            ? `Delete ${bar.selectedCount} selected record${bar.selectedCount === 1 ? '' : 's'}`
+            : 'Delete selected records'
+        }
+        className="explore-chrome-button explore-chrome-danger"
+      >
+        <Trash2 size={13} aria-hidden />
+      </button>
+      <button
+        type="button"
+        onClick={bar.onDone}
+        title="Leave selection mode"
+        className="explore-chrome-button"
+      >
+        <X size={13} aria-hidden />
+        <span className="explore-chrome-button-label">Done</span>
+      </button>
+    </>
+  );
+}
+
+/**
+ * The two steps that follow a delete request — confirm, then the run itself
+ * with its progress and a way to stop. Both take the full row.
+ */
+function DeleteSteps({ bar }: { bar: EditBarSnapshot }) {
+  if (bar.deleting && bar.progress) {
+    return (
+      <>
+        <span className="explore-chrome-prompt">
+          {bar.waitingSec != null
+            ? `Paced under the rate limit, resuming in ${bar.waitingSec}s`
+            : 'Deleting…'}
+        </span>
+        <DeleteProgressBar done={bar.progress.done} total={bar.progress.total} compact />
+        <button type="button" onClick={bar.onStop} className="explore-chrome-button">
+          Stop
+        </button>
+      </>
+    );
+  }
+
+  return (
+    <>
+      <span className="explore-chrome-prompt">
+        Delete {bar.selectedCount} record{bar.selectedCount === 1 ? '' : 's'}? This
+        can&rsquo;t be undone.
+      </span>
+      <button
+        type="button"
+        onClick={bar.onConfirmDelete}
+        className="explore-chrome-button explore-chrome-danger-solid"
+      >
+        Confirm delete
+      </button>
+      <button type="button" onClick={bar.onCancelDelete} className="explore-chrome-button">
+        Cancel
+      </button>
+    </>
+  );
+}
+
 /** Copies the URL of the page you're looking at, query string and all. */
 function CopyLinkButton() {
   const pathname = usePathname();
@@ -252,11 +401,11 @@ function CopyLinkButton() {
       onClick={onClick}
       title={copied ? 'Copied!' : 'Copy link to this page'}
       aria-label={copied ? 'Page link copied' : 'Copy link to this page'}
-      className="explore-chrome-copy"
+      className="explore-chrome-button explore-chrome-copy"
       data-copied={copied || undefined}
     >
       {copied ? <Check size={13} aria-hidden /> : <Link2 size={13} aria-hidden />}
-      <span className="explore-chrome-copy-label">{copied ? 'Copied' : 'Copy link'}</span>
+      <span className="explore-chrome-button-label">{copied ? 'Copied' : 'Copy link'}</span>
     </button>
   );
 }

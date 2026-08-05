@@ -80,7 +80,12 @@ export default function RootLayout({
           <PreferencesProvider>
             <KeyboardShortcutsProvider>
               <PageTransition>
-                <main style={{ position: 'relative', zIndex: 1 }}>{children}</main>
+                {/* Above the footer (z 1), not just the motion background
+                    (z 0): the explorer's chrome bar is fixed inside <main>
+                    and overlaps the footer near the end of a page. At equal
+                    z-index the footer would win on DOM order and swallow
+                    clicks meant for the bar. */}
+                <main style={{ position: 'relative', zIndex: 2 }}>{children}</main>
               </PageTransition>
             </KeyboardShortcutsProvider>
           </PreferencesProvider>

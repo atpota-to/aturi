@@ -33,10 +33,25 @@ export type ChromeBarField = {
   status?: string | null;
 };
 
+/**
+ * A single button the route wants within reach — today the "Edit" affordance
+ * on a collection or record page, published while the in-page one is off
+ * screen. Sits between the field and the copy-link button.
+ */
+export type ChromeBarAction = {
+  label: string;
+  /** Accessible name / tooltip, when the label alone is too terse. */
+  title?: string;
+  onClick: () => void;
+};
+
 type ChromeBarContextValue = {
   /** The active field, or null when the route publishes none. */
   field: ChromeBarField | null;
   setField: (field: ChromeBarField | null) => void;
+  /** The active action button, or null when the route publishes none. */
+  action: ChromeBarAction | null;
+  setAction: (action: ChromeBarAction | null) => void;
 };
 
 const noop = () => {};
@@ -52,14 +67,20 @@ const noop = () => {};
 const ChromeBarContext = createContext<ChromeBarContextValue>({
   field: null,
   setField: noop,
+  action: null,
+  setAction: noop,
 });
 
 export function ChromeBarProvider({ children }: { children: ReactNode }) {
   const [field, setField] = useState<ChromeBarField | null>(null);
+  const [action, setAction] = useState<ChromeBarAction | null>(null);
 
-  // setField is a stable useState setter, so the value only changes identity
-  // when the published field actually does.
-  const value = useMemo<ChromeBarContextValue>(() => ({ field, setField }), [field]);
+  // The setters are stable useState setters, so the value only changes
+  // identity when what's published actually does.
+  const value = useMemo<ChromeBarContextValue>(
+    () => ({ field, setField, action, setAction }),
+    [field, action],
+  );
 
   return <ChromeBarContext.Provider value={value}>{children}</ChromeBarContext.Provider>;
 }
@@ -112,4 +133,32 @@ export function useChromeBarField(field: ChromeBarField | null): void {
   }, [active, placeholder, label, value, status, submits, setField]);
 
   useEffect(() => () => setField(null), [setField]);
+}
+
+/**
+ * Publish a button into the chrome bar for as long as it's mounted. Pass
+ * `null` when the route has nothing to offer (or while the in-page original
+ * is on screen), so the hook can still be called unconditionally.
+ */
+export function useChromeBarAction(action: ChromeBarAction | null): void {
+  const { setAction } = useChromeBar();
+
+  const onClick = useRef<(() => void) | undefined>(undefined);
+  useEffect(() => {
+    onClick.current = action?.onClick;
+  });
+
+  const active = action !== null;
+  const label = action?.label ?? '';
+  const title = action?.title;
+
+  useEffect(() => {
+    if (!active) {
+      setAction(null);
+      return;
+    }
+    setAction({ label, title, onClick: () => onClick.current?.() });
+  }, [active, label, title, setAction]);
+
+  useEffect(() => () => setAction(null), [setAction]);
 }
