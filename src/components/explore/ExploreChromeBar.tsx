@@ -166,13 +166,17 @@ function PanelToggle({
 }
 
 /**
- * The selection controls as full-width rows, expanding up out of the bar the
- * way the nav's menu expands down out of the header. `inert` while closed so
- * the collapsed rows stay out of the tab order and the a11y tree.
+ * The selection controls, expanding up out of the bar the way the nav's menu
+ * expands down out of the header. Two rows deep at most: the controls that
+ * pair naturally sit side by side, and only the destructive one gets the full
+ * width — both to keep the panel short and to keep Delete from sharing an
+ * edge with Done. `inert` while closed so the collapsed rows stay out of the
+ * tab order and the a11y tree.
  */
 function ChromePanel({ open, bar }: { open: boolean; bar: EditBarSnapshot }) {
   const selectAllDisabled = bar.totalCount === 0 || bar.allSelected;
   const nothingSelected = bar.selectedCount === 0;
+  const plural = bar.selectedCount === 1 ? '' : 's';
 
   return (
     <div className="explore-chrome-panel" data-open={open || undefined} inert={!open}>
@@ -183,50 +187,74 @@ function ChromePanel({ open, bar }: { open: boolean; bar: EditBarSnapshot }) {
               ? `Paced under the rate limit, resuming in ${bar.waitingSec}s`
               : 'Deleting…'}
           </span>
-          <DeleteProgressBar done={bar.progress.done} total={bar.progress.total} compact />
-          <button type="button" onClick={bar.onStop} className="explore-chrome-panel-row">
-            Stop
-          </button>
+          <div className="explore-chrome-panel-split">
+            <DeleteProgressBar done={bar.progress.done} total={bar.progress.total} compact />
+            <button
+              type="button"
+              onClick={bar.onStop}
+              className="explore-chrome-panel-row explore-chrome-panel-row-fit"
+            >
+              Stop
+            </button>
+          </div>
         </>
       ) : bar.confirming ? (
         <>
           <span className="explore-chrome-prompt">
-            Delete {bar.selectedCount} record{bar.selectedCount === 1 ? '' : 's'}? This
-            can&rsquo;t be undone.
+            Delete {bar.selectedCount} record{plural}? This can&rsquo;t be undone.
           </span>
-          <button
-            type="button"
-            onClick={bar.onConfirmDelete}
-            className="explore-chrome-panel-row explore-chrome-danger-solid"
-          >
-            Confirm delete
-          </button>
-          <button
-            type="button"
-            onClick={bar.onCancelDelete}
-            className="explore-chrome-panel-row"
-          >
-            Cancel
-          </button>
+          <div className="explore-chrome-panel-split">
+            <button
+              type="button"
+              onClick={bar.onCancelDelete}
+              className="explore-chrome-panel-row"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={bar.onConfirmDelete}
+              className="explore-chrome-panel-row explore-chrome-danger-solid"
+            >
+              Confirm delete
+            </button>
+          </div>
         </>
       ) : (
         <>
-          <button
-            type="button"
-            onClick={bar.onSelectAll}
-            disabled={selectAllDisabled}
-            className="explore-chrome-panel-row"
-          >
-            Select all {bar.totalCount} shown
-          </button>
-          <button
-            type="button"
-            onClick={bar.onDeselectAll}
-            disabled={nothingSelected}
-            className="explore-chrome-panel-row"
-          >
-            Deselect all
-          </button>
+          <div className="explore-chrome-panel-split">
+            {/* Short labels so three fit across; the counts they'd otherwise
+                carry are on the toggle and the delete row. */}
+            <button
+              type="button"
+              onClick={bar.onSelectAll}
+              disabled={selectAllDisabled}
+              title={`Select all ${bar.totalCount} shown`}
+              aria-label={`Select all ${bar.totalCount} shown`}
+              className="explore-chrome-panel-row"
+            >
+              Select all
+            </button>
+            <button
+              type="button"
+              onClick={bar.onDeselectAll}
+              disabled={nothingSelected}
+              title="Clear the selection"
+              aria-label="Deselect all"
+              className="explore-chrome-panel-row"
+            >
+              Deselect
+            </button>
+            <button
+              type="button"
+              onClick={bar.onDone}
+              title="Leave selection mode"
+              className="explore-chrome-panel-row"
+            >
+              <X size={13} aria-hidden />
+              Done
+            </button>
+          </div>
           <button
             type="button"
             onClick={bar.onRequestDelete}
@@ -234,11 +262,7 @@ function ChromePanel({ open, bar }: { open: boolean; bar: EditBarSnapshot }) {
             className="explore-chrome-panel-row explore-chrome-danger"
           >
             <Trash2 size={13} aria-hidden />
-            Delete {bar.selectedCount} selected
-          </button>
-          <button type="button" onClick={bar.onDone} className="explore-chrome-panel-row">
-            <X size={13} aria-hidden />
-            Done
+            {nothingSelected ? 'Delete selected' : `Delete ${bar.selectedCount} selected`}
           </button>
         </>
       )}
