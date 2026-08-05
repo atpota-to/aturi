@@ -3148,7 +3148,14 @@ html {
    site footer: the footer is a sibling of <main> at the same z-index, so it
    would paint OVER the bar rather than slide under it. */
 body.has-explore-chrome {
-  padding-bottom: var(--explore-chrome-h, 4rem);
+  /* The bar's measured height plus a gap. The height alone is enough on
+     paper — at pixel-exact maximum scroll the footer's box lands flush
+     against the bar and nothing is lost — but that's the only scroll
+     position where it's true. Stop a little short of the bottom, which a
+     wheel or a trackpad usually does, and the last line of the footer sits
+     under the bar. The gap is the slack that makes "scrolled to the end"
+     look finished wherever you actually come to rest. */
+  padding-bottom: calc(var(--explore-chrome-h, 4rem) + 2rem);
 }
 
 .explore-chrome-bar {
