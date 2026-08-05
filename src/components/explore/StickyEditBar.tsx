@@ -100,7 +100,7 @@ function BarControls({ bar }: { bar: EditBarSnapshot }) {
           style={{
             ...miniButton,
             background: 'var(--danger)',
-            color: 'var(--text-on-accent)',
+            color: 'var(--text-on-danger)',
             border: '1px solid var(--danger)',
             cursor: 'pointer',
           }}
