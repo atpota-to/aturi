@@ -109,27 +109,36 @@ export default function ExploreChromeBar() {
   const takeover = !narrow && midStep;
 
   return (
+    // Structured to mirror the compact header: a container-narrow shell, a
+    // relative anchor for the panel, and the card itself — so the two ends of
+    // the screen are the same object, one stuck to the top and one to the
+    // bottom.
     <div ref={barRef} className="explore-chrome-bar">
-      <div className="container-narrow explore-chrome-inner">
-        {takeover && bar ? (
-          <DeleteSteps bar={bar} />
-        ) : (
-          <>
-            {field ? <RouteField key="route" /> : <JumpField key="jump" />}
-            {bar && !inPanel && <SelectionControls bar={bar} />}
-            {inPanel && bar && (
-              <PanelToggle
-                open={panelOpen}
-                bar={bar}
-                onClick={() => setPanelOpen((v) => !v)}
-              />
-            )}
-            {action && <ActionButton action={action} />}
-            <CopyLinkButton />
-          </>
-        )}
-
-        {inPanel && bar && <ChromePanel open={panelOpen} bar={bar} />}
+      <div className="container-narrow explore-chrome-shell">
+        <div className="explore-chrome-anchor">
+          {inPanel && bar && <ChromePanel open={panelOpen} bar={bar} />}
+          <div className="explore-chrome-card">
+            <div className="explore-chrome-inner">
+              {takeover && bar ? (
+                <DeleteSteps bar={bar} />
+              ) : (
+                <>
+                  {field ? <RouteField key="route" /> : <JumpField key="jump" />}
+                  {bar && !inPanel && <SelectionControls bar={bar} />}
+                  {inPanel && bar && (
+                    <PanelToggle
+                      open={panelOpen}
+                      bar={bar}
+                      onClick={() => setPanelOpen((v) => !v)}
+                    />
+                  )}
+                  {action && <ActionButton action={action} />}
+                  <CopyLinkButton />
+                </>
+              )}
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );

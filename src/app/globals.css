@@ -3158,6 +3158,10 @@ body.has-explore-chrome {
   padding-bottom: calc(var(--explore-chrome-h, 4rem) + 2rem);
 }
 
+/* The fixed frame. Nothing is drawn here — it only pins the card to the
+   bottom of the viewport — so it must not take clicks: the gaps beside and
+   below the card belong to the page underneath. The card and the panel opt
+   back in. */
 .explore-chrome-bar {
   position: fixed;
   left: 0;
@@ -3166,26 +3170,42 @@ body.has-explore-chrome {
   /* Under the sticky nav's expanding panels (z 50) and its card (z 40), above
      page content. */
   z-index: 30;
-  background: var(--bg-overlay);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border-top: 1px solid var(--border-medium);
-  padding-bottom: env(safe-area-inset-bottom, 0px);
+  pointer-events: none;
 }
 
-/* Shares .container-narrow with the page body so the bar's controls line up
-   with the content above them; only the vertical padding is ours. Wrapping is
-   the safety net for an in-between width — a phone moves the selection
-   controls into the panel below instead, so the row stays one line. Anchors
-   that panel, hence `relative`. */
-.explore-chrome-inner {
+/* The compact header's `2rem 2rem 0.75rem`, flipped: the same gutter, and the
+   same float away from its edge of the screen. .container-narrow gives the
+   horizontal half (and trims it on phones); the vertical half is ours. */
+.explore-chrome-shell {
+  padding-top: 0.75rem;
+  padding-bottom: calc(2rem + env(safe-area-inset-bottom, 0px));
+}
+
+/* Anchors the panel to the card, the way the header anchors its menu. */
+.explore-chrome-anchor {
   position: relative;
+}
+
+/* Same card as the top nav: same width, same border on all four sides, same
+   surface, shadow and off-square tilt. */
+.explore-chrome-card {
+  pointer-events: auto;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-medium);
+  box-shadow: var(--shadow-overlay);
+  transform: rotate(-0.2deg);
+  transition: all 0.3s ease;
+}
+
+/* Wrapping is the safety net for an in-between width — a phone moves the
+   selection controls into the panel above instead, so the row stays one
+   line. */
+.explore-chrome-inner {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 0.4rem;
-  padding-top: 0.45rem;
-  padding-bottom: 0.45rem;
+  padding: 0.5rem 0.6rem;
 }
 
 .explore-chrome-form {
@@ -3305,9 +3325,9 @@ body.has-explore-chrome {
 .explore-chrome-panel {
   position: absolute;
   bottom: 100%;
-  /* Line up with the page gutter rather than the bar's full bleed. */
-  left: var(--page-edge);
-  right: var(--page-edge);
+  /* Flush with the card it grows out of. */
+  left: 0;
+  right: 0;
   margin-bottom: 0.5rem;
   display: flex;
   flex-direction: column;
@@ -3517,6 +3537,11 @@ body.has-explore-chrome {
   }
   .compact-header-inner {
     padding-top: 1rem !important;
+  }
+  /* The bottom chrome mirrors that trim, so the pair keeps matching on a
+     phone rather than one hugging its edge more tightly than the other. */
+  .explore-chrome-shell {
+    padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
   }
   .compact-header-row {
     padding: 0.625rem 0.75rem !important;
