@@ -10,6 +10,12 @@ export type {
   UseWaypointsResult,
 } from './useWaypoints';
 
+export { usePreferredClients } from './usePreferredClients';
+export type {
+  UsePreferredClientsParams,
+  UsePreferredClientsResult,
+} from './usePreferredClients';
+
 export { WaypointButton } from './WaypointButton';
 export type { WaypointButtonProps } from './WaypointButton';
 

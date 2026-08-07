@@ -1,0 +1,89 @@
+{
+  "lexicon": 1,
+  "id": "to.aturi.actor.preferredClients",
+  "defs": {
+    "main": {
+      "type": "record",
+      "description": "A public declaration of which Atmosphere client interfaces this account prefers records to be opened in. Any app that links out to a record can read this record for the person it is linking on behalf of and route them to the client they actually use, instead of assuming the ecosystem default. Rules are matched most-specific-first; see the `scope` description.",
+      "key": "literal:self",
+      "record": {
+        "type": "object",
+        "required": ["preferences", "createdAt"],
+        "properties": {
+          "preferences": {
+            "type": "array",
+            "description": "Ordered list of rules. Order is not significant for matching (specificity decides); it is preserved so an editor can round-trip the record.",
+            "maxLength": 100,
+            "items": { "type": "ref", "ref": "#rule" }
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "datetime",
+            "description": "When the record was first published."
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "datetime",
+            "description": "When the record was last changed."
+          }
+        }
+      }
+    },
+    "rule": {
+      "type": "object",
+      "description": "One preference: for records matching `scope`, prefer `clients` in the order given.",
+      "required": ["scope", "clients"],
+      "properties": {
+        "scope": {
+          "type": "string",
+          "maxLength": 253,
+          "description": "What this rule applies to. One of: a full collection NSID (`app.bsky.feed.post`); an NSID namespace wildcard (`app.bsky.*`, `sh.tangled.*`) matching every collection beneath that prefix; one of the generic record kinds `post`, `profile`, `list`, `record`; or `*` for everything. When more than one rule matches, the most specific wins: exact NSID, then the longest namespace wildcard, then the record kind, then `*`."
+        },
+        "clients": {
+          "type": "array",
+          "description": "Preferred clients for this scope, most preferred first. A reader should use the first entry it can build a link for and fall through to the next.",
+          "minLength": 1,
+          "maxLength": 10,
+          "items": { "type": "ref", "ref": "#client" }
+        }
+      }
+    },
+    "client": {
+      "type": "object",
+      "description": "A client interface. Identify it by catalog id where possible so readers can build links without knowing anything about the client; supply `templates` for a client that isn't in the catalog.",
+      "required": ["name"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "maxLength": 64,
+          "description": "The client's id in the shared Aturi waypoint catalog, e.g. `blacksky`. See https://aturi.to/links for the current catalog. A reader using @aturi.to/waypoints can build a link from this alone."
+        },
+        "name": {
+          "type": "string",
+          "maxLength": 128,
+          "description": "Human-readable client name. Always present so a reader can name the destination even when it recognises neither the id nor the templates."
+        },
+        "homepage": {
+          "type": "string",
+          "format": "uri",
+          "description": "The client's home page. Useful as a link of last resort."
+        },
+        "templates": {
+          "type": "ref",
+          "ref": "#linkTemplates",
+          "description": "URL templates, for a client that isn't in the shared catalog (or a self-hosted deploy of one that is). Takes precedence over `id` when both are present and the reader can expand the template."
+        }
+      }
+    },
+    "linkTemplates": {
+      "type": "object",
+      "description": "URL templates keyed by record kind. Each may contain the placeholders `{handle}`, `{did}`, `{actor}` (DID, falling back to handle), `{collection}`, and `{rkey}`; a template whose placeholders can't all be filled is skipped.",
+      "properties": {
+        "post": { "type": "string", "maxLength": 512 },
+        "profile": { "type": "string", "maxLength": 512 },
+        "list": { "type": "string", "maxLength": 512 },
+        "record": { "type": "string", "maxLength": 512 }
+      }
+    }
+  }
+}

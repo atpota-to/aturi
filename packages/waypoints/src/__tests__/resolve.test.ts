@@ -3,8 +3,8 @@ import {
   resolveAtUri,
   resolveUrl,
   buildWaypointsForParsed,
-  DID_REQUIRED_WAYPOINTS,
 } from '../resolve';
+import { DID_REQUIRED_WAYPOINTS } from '../waypoints.data';
 
 describe('resolveAtUri', () => {
   it('resolves a post end to end', () => {

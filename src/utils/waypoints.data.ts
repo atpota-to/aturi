@@ -754,6 +754,20 @@ export const WAYPOINT_ORDER = [
   'deer',
 ];
 
+/**
+ * Waypoints whose `getUrl` only produces a useful destination when a DID is
+ * known. Their URLs key on `did || handle`, so passing a handle yields a link
+ * that looks valid but resolves to nothing. Callers filter these out when no
+ * DID is available.
+ */
+export const DID_REQUIRED_WAYPOINTS: ReadonlySet<string> = new Set([
+  'pdsls',
+  'atptools',
+  'margin',
+  'grain',
+  'popfeed',
+]);
+
 export function getWaypointDataForType(type: WaypointType): WaypointData[] {
   return WAYPOINT_ORDER
     .map(id => WAYPOINT_DESTINATIONS_DATA[id])

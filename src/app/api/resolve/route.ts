@@ -6,11 +6,18 @@ import {
   type ReverseMatch,
 } from '@/utils/reverseParsers';
 import {
+  DID_REQUIRED_WAYPOINTS,
   WAYPOINT_DESTINATIONS_DATA,
   WAYPOINT_ORDER,
   getRecommendedWaypointsData,
   type WaypointType,
 } from '@/utils/waypoints.data';
+import {
+  fetchPreferredClients,
+  orderIdsByPreference,
+  preferredWaypointFor,
+  type PreferredClientsRecord,
+} from '@/utils/preferredClients';
 import { resolveHandle } from '@/utils/uriParser';
 import { isBlockedFetchHost } from '@/utils/ssrfGuard';
 import { parseAtTagsFromHtml, primaryRecordFromAtTags } from '@/utils/atproto/atTags';
@@ -38,19 +45,17 @@ export const runtime = 'edge';
  * Inputs:
  *  - `url=<encoded-page-url>` (preferred from share sheets)
  *  - `atUri=at://...`         (skips detection entirely)
+ *  - `actor=<handle|did>`     (optional) whoever is about to open the link.
+ *    Their public `to.aturi.actor.preferredClients` record is applied: the
+ *    clients they declared lift to the front of `recommended.ids` and the
+ *    winner comes back as `preferred`. Lets a caller honor a reader's choice
+ *    without implementing any of this themselves.
  *
  * Either is accepted; `atUri` wins when both are supplied.
  */
 
-const DID_REQUIRED_WAYPOINTS = new Set([
-  'pdsls',
-  'atptools',
-  'margin',
-  'grain',
-  'popfeed',
-]);
-
 const HEAD_FETCH_TIMEOUT_MS = 4000;
+const PREFERRED_CLIENTS_TIMEOUT_MS = 4000;
 
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
@@ -67,6 +72,7 @@ export async function GET(request: NextRequest) {
   const rawAtUri = searchParams.get('atUri') || searchParams.get('aturi');
   const rawUrl = searchParams.get('url');
   const skipHead = searchParams.get('headDetect') === 'false';
+  const actor = searchParams.get('actor')?.trim() || null;
 
   if (!rawAtUri && !rawUrl) {
     return jsonError(400, 'Missing url or atUri parameter');
@@ -174,6 +180,26 @@ export async function GET(request: NextRequest) {
     .map(w => w.id)
     .filter(id => id !== source && availableIds.has(id));
 
+  // Optional: fold in the reader's own published preferences.
+  let preferredClients: PreferredClientsRecord | null = null;
+  if (actor) {
+    preferredClients = await fetchPreferredClients(actor, {
+      timeoutMs: PREFERRED_CLIENTS_TIMEOUT_MS,
+      // The PDS endpoint comes out of a DID document, which anyone can point
+      // wherever they like — keep this route off internal addresses.
+      allowHost: (hostname) => !isBlockedFetchHost(hostname),
+    });
+  }
+  const preferred = preferredClients
+    ? preferredWaypointFor(preferredClients, {
+        type,
+        handle: parsed.handle,
+        did: did ?? undefined,
+        collection: parsed.collection,
+        rkey: parsed.rkey,
+      })
+    : null;
+
   return NextResponse.json(
     {
       ok: true,
@@ -190,10 +216,20 @@ export async function GET(request: NextRequest) {
         rkey: parsed.rkey ?? null,
       },
       didResolved,
-      recommended: { ids: recommendedIds, label: recommendedRaw.label },
+      recommended: {
+        ids: orderIdsByPreference(recommendedIds, preferredClients, {
+          collection: parsed.collection,
+          type,
+        }),
+        label: recommendedRaw.label,
+      },
       waypoints,
+      ...(actor ? { preferred } : {}),
     },
-    { status: 200, headers: corsAndCache(300) }
+    // `actor` is part of the query string, so caches key on it already. The
+    // window is shorter because a preference change should take effect
+    // promptly, where the catalog itself barely moves.
+    { status: 200, headers: corsAndCache(actor ? 60 : 300) }
   );
 }
 

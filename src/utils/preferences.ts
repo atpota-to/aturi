@@ -30,6 +30,13 @@ import {
   type WaypointType,
 } from './waypoints.data';
 import {
+  expandLinkTemplate,
+  parsePreferredClientRules,
+  PREFERRED_SCOPE_ALL,
+  type PreferredClient,
+  type PreferredClientRule,
+} from './preferredClients';
+import {
   DEFAULT_RECORD_SECTIONS,
   DEFAULT_REPO_SECTIONS,
   countVisibleGuaranteed,
@@ -207,6 +214,21 @@ export type Preferences = {
    */
   repoSections: SectionConfig[];
   /**
+   * The user's declared preferred client per record type — the rules behind
+   * the public `to.aturi.actor.preferredClients` record. Kept here as well so
+   * the picker can honor them instantly (and for anonymous users, who have no
+   * PDS to publish to). `publishPreferredClients` controls whether they also
+   * leave this device.
+   */
+  preferredClients: PreferredClientRule[];
+  /**
+   * Whether to mirror `preferredClients` into the public
+   * `to.aturi.actor.preferredClients/self` record so other Atmosphere apps can
+   * read it. Off until the user asks for it: publishing is a deliberate,
+   * outward-facing act, unlike the rest of these settings.
+   */
+  publishPreferredClients: boolean;
+  /**
    * ISO timestamp of last local change. Used to break ties when local and
    * PDS prefs both exist on sign-in.
    */
@@ -237,6 +259,8 @@ export const DEFAULT_PREFERENCES: Preferences = {
   showRawRecordJson: false,
   recordSections: DEFAULT_RECORD_SECTIONS.map((s) => ({ ...s })),
   repoSections: DEFAULT_REPO_SECTIONS.map((s) => ({ ...s })),
+  preferredClients: [],
+  publishPreferredClients: false,
   updatedAt: new Date(0).toISOString(),
 };
 
@@ -374,6 +398,13 @@ export function mergeWithDefaults(input: Partial<Preferences> | null | undefined
         if (s.id === 'repoGlance') return { ...s, hidden: hideRepoGlance };
         return { ...s };
       });
+  // Validated on read: these rules can arrive from a PDS record the user may
+  // have hand-edited, and a malformed one would break link building.
+  const preferredClients = parsePreferredClientRules(input.preferredClients);
+  const publishPreferredClients =
+    typeof input.publishPreferredClients === 'boolean'
+      ? input.publishPreferredClients
+      : false;
   return {
     colorScheme,
     waypointGroups,
@@ -395,6 +426,8 @@ export function mergeWithDefaults(input: Partial<Preferences> | null | undefined
     showRawRecordJson,
     recordSections,
     repoSections,
+    preferredClients,
+    publishPreferredClients,
     updatedAt:
       typeof input.updatedAt === 'string' ? input.updatedAt : new Date(0).toISOString(),
   };
@@ -438,27 +471,10 @@ export function expandTemplate(
   template: string,
   ctx: { handle?: string; did?: string; collection?: string; rkey?: string },
 ): string | null {
-  let out = template;
-  // Replace identifier placeholders first so they don't get mangled when
-  // the same template references both handle and DID. `{actor}` prefers DID,
-  // falling back to handle, mirroring the built-in waypoint convention.
-  const actor = ctx.did || ctx.handle;
-  const replacements: Record<string, string | undefined> = {
-    '{handle}': ctx.handle,
-    '{did}': ctx.did,
-    '{actor}': actor,
-    '{collection}': ctx.collection,
-    '{rkey}': ctx.rkey,
-  };
-  for (const [token, value] of Object.entries(replacements)) {
-    if (out.includes(token)) {
-      if (!value) return null;
-      out = out.split(token).join(encodeURIComponent(value));
-    }
-  }
-  // Undo the over-eager encoding of colons in DIDs — they're URL-safe.
-  out = out.replace(/did%3A/g, 'did:');
-  return out;
+  // Same placeholder vocabulary as the `to.aturi.actor.preferredClients`
+  // templates, so a custom waypoint and a published client preference expand
+  // identically. Single implementation lives in the shared module.
+  return expandLinkTemplate(template, ctx);
 }
 
 export function preferencesAreEqual(a: Preferences, b: Preferences): boolean {
@@ -477,6 +493,8 @@ export function preferencesAreEqual(a: Preferences, b: Preferences): boolean {
     JSON.stringify(a.repoSections) === JSON.stringify(b.repoSections) &&
     a.hideRichJsonPreview === b.hideRichJsonPreview &&
     a.showRawRecordJson === b.showRawRecordJson &&
+    a.publishPreferredClients === b.publishPreferredClients &&
+    JSON.stringify(a.preferredClients) === JSON.stringify(b.preferredClients) &&
     JSON.stringify(a.waypointGroups) === JSON.stringify(b.waypointGroups) &&
     JSON.stringify(a.customWaypoints) === JSON.stringify(b.customWaypoints) &&
     JSON.stringify(a.knownWaypointIds) === JSON.stringify(b.knownWaypointIds) &&
@@ -614,6 +632,70 @@ export function isLikelyPinEntry(input: string): boolean {
   if (segments.length < 2) return false;
   const segRe = /^[a-zA-Z][a-zA-Z0-9-]*$/;
   return segments.every((seg) => segRe.test(seg));
+}
+
+// --- Preferred clients -----------------------------------------------------
+
+/**
+ * The scopes the settings UI offers out of the box, coarsest last. Users can
+ * still hand-add any NSID or namespace wildcard; these are the ones worth a
+ * one-click row because they cover what people actually share.
+ */
+export const SUGGESTED_CLIENT_SCOPES: string[] = [
+  'app.bsky.feed.post',
+  'profile',
+  'app.bsky.graph.list',
+  'app.bsky.feed.generator',
+  'sh.tangled.*',
+  'pub.leaflet.*',
+  'at.margin.*',
+  'social.grain.*',
+  PREFERRED_SCOPE_ALL,
+];
+
+/** The rule for a scope, if the user has set one. */
+export function preferredClientRuleFor(
+  prefs: Preferences,
+  scope: string,
+): PreferredClientRule | undefined {
+  return prefs.preferredClients.find((r) => r.scope === scope);
+}
+
+/**
+ * Set the clients for a scope, replacing any existing rule for it. An empty
+ * client list removes the rule — "no preference" is the absence of a rule, not
+ * a rule pointing at nothing.
+ */
+export function setPreferredClients(
+  prefs: Preferences,
+  scope: string,
+  clients: PreferredClient[],
+): Preferences {
+  const without = prefs.preferredClients.filter((r) => r.scope !== scope);
+  if (clients.length === 0) return { ...prefs, preferredClients: without };
+  const existingIndex = prefs.preferredClients.findIndex((r) => r.scope === scope);
+  const rule: PreferredClientRule = { scope, clients };
+  if (existingIndex === -1) {
+    return { ...prefs, preferredClients: [...without, rule] };
+  }
+  // Keep the row where the user last saw it rather than jumping to the end.
+  const next = [...prefs.preferredClients];
+  next[existingIndex] = rule;
+  return { ...prefs, preferredClients: next };
+}
+
+export function removePreferredClients(prefs: Preferences, scope: string): Preferences {
+  return {
+    ...prefs,
+    preferredClients: prefs.preferredClients.filter((r) => r.scope !== scope),
+  };
+}
+
+export function setPublishPreferredClients(
+  prefs: Preferences,
+  publish: boolean,
+): Preferences {
+  return { ...prefs, publishPreferredClients: publish };
 }
 
 // --- Group helpers ---------------------------------------------------------

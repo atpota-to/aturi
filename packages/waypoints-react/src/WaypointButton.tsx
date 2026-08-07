@@ -44,6 +44,7 @@ export function WaypointButton({
       data-aturi-wp="button"
       data-category={waypoint.category}
       data-recommended={waypoint.isRecommended || undefined}
+      data-preferred={waypoint.isPreferred || undefined}
       className={slotClass('button', unstyled, classNames)}
       onClick={handleRootClick}
       role="button"

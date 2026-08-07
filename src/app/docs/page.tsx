@@ -63,6 +63,7 @@ const TOC: { id: string; label: string }[] = [
   { id: 'overview', label: 'Overview' },
   { id: 'core', label: 'Core package' },
   { id: 'react', label: 'React picker' },
+  { id: 'preferred-clients', label: 'Preferred clients' },
   { id: 'resolve-api', label: 'Resolve API' },
   { id: 'links', label: 'Universal links' },
   { id: 'license', label: 'License' },
@@ -119,8 +120,42 @@ function MyPicker() {
 const reactTheme = `import '@aturi.to/waypoints-react/styles.css';
 import { WaypointPicker } from '@aturi.to/waypoints-react';`;
 
+const reactPrefer = `import { WaypointPicker } from '@aturi.to/waypoints-react';
+
+// viewerDid is whoever is about to click the link.
+<WaypointPicker type="post" handle="alice.bsky.social" collection="app.bsky.feed.post"
+  rkey="3k7qw..." preferFor={viewerDid} />;`;
+
+const preferredRead = `import { fetchPreferredClients, preferredWaypointFor } from '@aturi.to/waypoints';
+
+// One public read — no auth, no API key. Handle or DID.
+const record = await fetchPreferredClients(viewerHandleOrDid);
+
+const choice = preferredWaypointFor(record, {
+  type: 'post',
+  handle: 'alice.bsky.social',
+  collection: 'app.bsky.feed.post',
+  rkey: '3k7qw...',
+});
+
+const href = choice?.url ?? myExistingDefault;`;
+
+const preferredRecord = `{
+  "$type": "to.aturi.actor.preferredClients",
+  "preferences": [
+    {
+      "scope": "app.bsky.feed.post",
+      "clients": [{ "id": "blacksky", "name": "Blacksky" }]
+    },
+    { "scope": "sh.tangled.*", "clients": [{ "id": "tangled", "name": "Tangled" }] },
+    { "scope": "*", "clients": [{ "id": "pdsls", "name": "PDSls" }] }
+  ],
+  "createdAt": "2026-08-07T17:04:11.000Z"
+}`;
+
 const resolveApi = `GET https://aturi.to/api/resolve?url=<encoded-page-url>
-GET https://aturi.to/api/resolve?atUri=at://...`;
+GET https://aturi.to/api/resolve?atUri=at://...
+GET https://aturi.to/api/resolve?atUri=at://...&actor=<handle-or-did>`;
 
 // Escaped so the template literal renders the snippet literally.
 const linkExample = `function toAturiLink(atUri: string): string {
@@ -285,6 +320,14 @@ export default function DocsPage() {
                 <code>parseAtUri</code>, <code>matchSupportedUrl</code>,{' '}
                 <code>resolveHandle</code>.
               </li>
+              <li style={liStyle}>
+                <strong>Preferred clients:</strong>{' '}
+                <code>fetchPreferredClients</code>,{' '}
+                <code>preferredWaypointFor</code>,{' '}
+                <code>resolveAtUriForActor</code> — read an account&rsquo;s
+                published client preferences and route your links accordingly.{' '}
+                <a href="#preferred-clients">More below</a>.
+              </li>
             </ul>
             <p style={{ ...pStyle, margin: 0 }}>
               A handful of destinations (pdsls, atp.tools, Margin, Grain,
@@ -336,7 +379,17 @@ export default function DocsPage() {
             </p>
             <CodeBlock label="tsx" code={reactHook} />
 
-            <h3 style={h3Style}>3. The polished theme (opt-in)</h3>
+            <h3 style={h3Style}>3. Honor the reader&rsquo;s preferred client</h3>
+            <p style={pStyle}>
+              Point <code>preferFor</code> at whoever is about to click the link
+              and the picker reads their published preferences, pinning the
+              client they chose above everything else. There&rsquo;s a{' '}
+              <code>usePreferredClients</code> hook too, if you just want the
+              destination.
+            </p>
+            <CodeBlock label="tsx" code={reactPrefer} />
+
+            <h3 style={h3Style}>4. The polished theme (opt-in)</h3>
             <p style={pStyle}>
               Want the Aturi look without writing CSS? Import the stylesheet
               once. It targets the namespaced classes and is fully themeable via{' '}
@@ -355,6 +408,54 @@ export default function DocsPage() {
           </section>
         </FadeIn>
 
+        {/* Preferred clients */}
+        <FadeIn>
+          <section id="preferred-clients" className="card" style={sectionStyle}>
+            <h2 style={h2Style}>Preferred clients</h2>
+            <p style={pStyle}>
+              Right now the ecosystem sends every <code>app.bsky.feed.post</code>{' '}
+              link to bsky.app. That’s a guess about the reader, and for anyone
+              who reads Bluesky in Blacksky, Deer, or Anisota it’s the wrong one
+              — they land somewhere they didn’t want to be and have to re-find
+              the post themselves.
+            </p>
+            <p style={pStyle}>
+              <code>to.aturi.actor.preferredClients</code> is a public record an
+              account writes to its own PDS saying where it wants records opened.
+              If your app links out to Atmosphere records and knows who it’s
+              linking on behalf of, read that record and honor it.
+            </p>
+            <CodeBlock label="ts" code={preferredRead} />
+            <p style={pStyle}>
+              Most accounts have published nothing, so <code>null</code> is the
+              common answer and never an error — fall back to whatever you do
+              today. <code>resolveAtUriForActor(uri, actor)</code> does the read
+              and the resolve in one call.
+            </p>
+
+            <h3 style={h3Style}>The record</h3>
+            <CodeBlock label="json" code={preferredRecord} />
+            <p style={pStyle}>
+              A <code>scope</code> is a collection NSID, a namespace wildcard (
+              <code>sh.tangled.*</code>), a record kind (<code>post</code>,{' '}
+              <code>profile</code>, <code>list</code>, <code>record</code>), or{' '}
+              <code>*</code>. The most specific match wins, regardless of array
+              order. <code>clients</code> is ordered most-preferred-first — use
+              the first entry you can build a link for. A client outside the
+              Aturi catalog can carry its own URL templates, so a self-hosted
+              deploy still produces a working link in an app that has never heard
+              of it.
+            </p>
+            <p style={{ ...pStyle, margin: 0 }}>
+              <a href="/lexicons/to.aturi.actor.preferredClients.json">
+                Lexicon schema
+              </a>
+              . Aturi users publish this from{' '}
+              <Link href="/account#clients">Settings → Clients</Link>.
+            </p>
+          </section>
+        </FadeIn>
+
         {/* Resolve API */}
         <FadeIn>
           <section id="resolve-api" className="card" style={sectionStyle}>
@@ -366,6 +467,14 @@ export default function DocsPage() {
               page URL or an AT URI.
             </p>
             <CodeBlock label="http" code={resolveApi} />
+            <p style={pStyle}>
+              Add <code>actor</code> and the endpoint applies that account’s
+              published <a href="#preferred-clients">preferred clients</a> for
+              you: their choices lift to the front of <code>recommended.ids</code>{' '}
+              and the winning destination comes back as <code>preferred</code>.
+              That’s the whole integration — one query parameter, and your links
+              go where the reader asked.
+            </p>
             <p style={{ ...pStyle, margin: 0 }}>
               The core package’s <code>resolveViaApi()</code> is a typed client
               for this endpoint. It’s the right choice from a browser, where

@@ -70,6 +70,9 @@ const fromUrl = await resolveUrl('https://bsky.app/profile/alice.bsky.social/pos
   \`WAYPOINT_DESTINATIONS_DATA\` catalog.
 - **Parsing:** \`parseURI\`, \`parseAtUri\`, \`matchSupportedUrl\`,
   \`resolveHandle\`.
+- **Preferred clients:** \`fetchPreferredClients\`, \`preferredWaypointFor\`,
+  \`resolveAtUriForActor\`, \`applyPreferredClients\` — read an account's
+  published client preferences and route links accordingly. See below.
 
 A handful of destinations (pdsls, atp.tools, Margin, Grain, Popfeed) only
 produce useful URLs when a DID is known; they're filtered out unless a DID is
@@ -139,7 +142,23 @@ function MyPicker() {
 }
 \`\`\`
 
-### 3. The polished theme (opt-in)
+### 3. Honor the reader's preferred client
+
+Point \`preferFor\` at whoever is about to click the link and the picker reads
+their published preferences, pinning the client they chose above everything
+else. See "Preferred clients" below.
+
+\`\`\`tsx
+<WaypointPicker
+  type="post"
+  handle="alice.bsky.social"
+  collection="app.bsky.feed.post"
+  rkey="3k7qw..."
+  preferFor={viewerDid}
+/>
+\`\`\`
+
+### 4. The polished theme (opt-in)
 
 Want the Aturi look without writing CSS? Import the stylesheet once. It targets
 the namespaced classes and is fully themeable via \`--aturi-wp-*\` CSS custom
@@ -155,6 +174,76 @@ import { WaypointPicker } from '@aturi.to/waypoints-react';
 framework-agnostic helpers inside a Server Component, import them from
 \`@aturi.to/waypoints\` directly.
 
+## Preferred clients
+
+Right now the ecosystem sends every \`app.bsky.feed.post\` link to bsky.app. That
+is a guess about the reader, and for anyone who reads Bluesky in Blacksky, Deer,
+or Anisota it is the wrong one — they land somewhere they didn't want to be and
+have to re-find the post themselves.
+
+\`to.aturi.actor.preferredClients\` is a public record an account writes to its
+own PDS saying where it wants records opened: "Bluesky posts in Blacksky,
+Tangled records in Tangled, everything else in PDSls." If your app links out to
+Atmosphere records and knows who it is linking on behalf of, read that record and
+honor it.
+
+\`\`\`ts
+import { fetchPreferredClients, preferredWaypointFor } from '@aturi.to/waypoints';
+
+// One public read — no auth, no API key. Handle or DID.
+const record = await fetchPreferredClients(viewerHandleOrDid);
+
+const choice = preferredWaypointFor(record, {
+  type: 'post',
+  handle: 'alice.bsky.social',
+  collection: 'app.bsky.feed.post',
+  rkey: '3k7qw...',
+});
+
+const href = choice?.url ?? myExistingDefault;
+\`\`\`
+
+Most accounts have published nothing, so \`null\` is the common answer and never
+an error — fall back to whatever you do today. Or do both steps at once:
+
+\`\`\`ts
+import { resolveAtUriForActor } from '@aturi.to/waypoints';
+
+const result = await resolveAtUriForActor(atUri, viewerHandleOrDid);
+result?.preferred;         // { client, waypointId, url, scope } | null
+result?.recommended.ids;   // their choices lifted to the front
+\`\`\`
+
+### The record
+
+\`\`\`jsonc
+{
+  "$type": "to.aturi.actor.preferredClients",
+  "preferences": [
+    {
+      "scope": "app.bsky.feed.post",
+      "clients": [{ "id": "blacksky", "name": "Blacksky" }]
+    },
+    { "scope": "sh.tangled.*", "clients": [{ "id": "tangled", "name": "Tangled" }] },
+    { "scope": "*", "clients": [{ "id": "pdsls", "name": "PDSls" }] }
+  ],
+  "createdAt": "2026-08-07T17:04:11.000Z"
+}
+\`\`\`
+
+A \`scope\` is a collection NSID (\`app.bsky.feed.post\`), a namespace wildcard
+(\`sh.tangled.*\`), a record kind (\`post\`, \`profile\`, \`list\`, \`record\`), or \`*\`.
+The most specific match wins, regardless of array order. \`clients\` is ordered
+most-preferred-first; use the first entry you can build a link for. A client
+outside the Aturi catalog can carry its own URL templates
+(\`{handle}\`, \`{did}\`, \`{actor}\`, \`{collection}\`, \`{rkey}\`), so a self-hosted
+deploy still produces a working link in an app that has never heard of it.
+
+Schema: https://aturi.to/lexicons/to.aturi.actor.preferredClients.json
+
+Aturi users publish this from Settings → Clients
+(https://aturi.to/account#clients).
+
 ## Resolve API
 
 Don't want to install anything? Hit the hosted endpoint from a share sheet, an
@@ -164,7 +253,13 @@ waypoints and recommendations for a page URL or an AT URI.
 \`\`\`http
 GET https://aturi.to/api/resolve?url=<encoded-page-url>
 GET https://aturi.to/api/resolve?atUri=at://...
+GET https://aturi.to/api/resolve?atUri=at://...&actor=<handle-or-did>
 \`\`\`
+
+Add \`actor\` and the endpoint applies that account's published preferred
+clients for you: their choices lift to the front of \`recommended.ids\` and the
+winning destination comes back as \`preferred\`. That's the whole integration —
+one query parameter, and your links go where the reader asked.
 
 The core package's \`resolveViaApi()\` is a typed client for this endpoint. It's
 the right choice from a browser, where fetching arbitrary pages is blocked by

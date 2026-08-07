@@ -29,6 +29,11 @@
  *   repoGlanceCollapsedByDefault?: boolean // start that section collapsed
  *   recordSections?: Array<{ id: string, hidden: boolean }>  // record-page layout (source of truth)
  *   repoSections?: Array<{ id: string, hidden: boolean }>    // repo-page layout (source of truth)
+ *   // The rules behind the public `to.aturi.actor.preferredClients` record.
+ *   // Mirrored here so they follow the user across devices and keep working
+ *   // for the Aturi picker whether or not they're published.
+ *   preferredClients?: Array<{ scope: string, clients: Array<{ id?, name, homepage?, templates? }> }>
+ *   publishPreferredClients?: boolean
  *   minimalProfile?: boolean              // derived: profile card hidden on repo pages
  *   hideRichPreview?: boolean             // derived: rich preview card hidden on record pages
  *   hideRichJsonPreview?: boolean         // derived: field table hidden on record pages
@@ -117,6 +122,11 @@ export async function writePreferencesToPds(
     // Section layout — the source of truth for explore-page visibility/order.
     recordSections: prefs.recordSections,
     repoSections: prefs.repoSections,
+    // Client preferences travel with the rest of the settings so they're the
+    // same on every device. The *public* declaration is a separate record
+    // (`to.aturi.actor.preferredClients`) written only when the user opts in.
+    preferredClients: prefs.preferredClients,
+    publishPreferredClients: prefs.publishPreferredClients,
     // Per-section visibility booleans, derived from the section lists so
     // older clients (and the browser extension) that read them stay in sync.
     hideRelationshipBar: sectionHidden(prefs.repoSections, 'relationship'),

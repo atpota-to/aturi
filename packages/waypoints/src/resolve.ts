@@ -1,4 +1,5 @@
 import {
+  DID_REQUIRED_WAYPOINTS,
   WAYPOINT_DESTINATIONS_DATA,
   WAYPOINT_ORDER,
   getRecommendedWaypointsData,
@@ -10,6 +11,14 @@ import {
   type SourceApp,
 } from './reverseParsers';
 import type { ParsedURI } from './uriParser';
+import {
+  fetchPreferredClients,
+  orderIdsByPreference,
+  preferredWaypointFor,
+  type FetchPreferredClientsOptions,
+  type PreferredClientMatch,
+  type PreferredClientsRecord,
+} from './preferredClients';
 
 export type ResolvedWaypoint = {
   id: string;
@@ -30,20 +39,17 @@ export type ResolveResult = {
   didResolved: boolean;
   waypoints: ResolvedWaypoint[];
   recommended: ResolvedRecommendation;
+  /**
+   * The destination an account has publicly declared it prefers for this
+   * record, when one was applied. Only set by the actor-aware resolvers —
+   * see `applyPreferredClients` and `resolveAtUriForActor`.
+   */
+  preferred?: PreferredClientMatch | null;
 };
 
-/**
- * Waypoints whose `getUrl` only produces a useful destination when a DID is
- * available. These are filtered out unless a DID is known. Mirrors the hosted
- * aturi.to/api/resolve route exactly.
- */
-export const DID_REQUIRED_WAYPOINTS: ReadonlySet<string> = new Set([
-  'pdsls',
-  'atptools',
-  'margin',
-  'grain',
-  'popfeed',
-]);
+// `DID_REQUIRED_WAYPOINTS` moved to the catalog module (it's a property of the
+// catalog, and three copies had to be kept in step). Re-exported through the
+// package root either way, so importers see no change.
 
 export type BuildWaypointsOptions = {
   /** DID to pass to each waypoint's getUrl. Falls back to `parsed.did`. */
@@ -104,6 +110,69 @@ export function resolveAtUri(uri: string): ResolveResult | null {
     waypoints,
     recommended,
   };
+}
+
+/**
+ * Apply an account's published `to.aturi.actor.preferredClients` record to a
+ * resolve result: lift the clients they declared for this record type to the
+ * front of `recommended.ids`, and attach the winning destination as
+ * `preferred`.
+ *
+ * Pure — pass a record you already have. `resolveAtUriForActor` does the fetch
+ * for you.
+ */
+export function applyPreferredClients(
+  result: ResolveResult,
+  record: PreferredClientsRecord | null | undefined,
+): ResolveResult {
+  if (!record) return { ...result, preferred: null };
+  const { parsed } = result;
+  const type: WaypointType = parsed.type === 'unknown' ? 'profile' : parsed.type;
+  const query = { collection: parsed.collection, type };
+  const preferred = preferredWaypointFor(record, {
+    type,
+    handle: parsed.handle,
+    did: result.did ?? undefined,
+    collection: parsed.collection,
+    rkey: parsed.rkey,
+  });
+  return {
+    ...result,
+    preferred,
+    recommended: {
+      ...result.recommended,
+      ids: orderIdsByPreference(result.recommended.ids, record, query),
+    },
+  };
+}
+
+export type ResolveForActorOptions = FetchPreferredClientsOptions & {
+  /**
+   * Skip the network read by passing a record you already hold (from a cache,
+   * or from the account's own session).
+   */
+  preferredClients?: PreferredClientsRecord | null;
+};
+
+/**
+ * Resolve an AT URI *for a particular reader*: same as `resolveAtUri`, then the
+ * reader's own published client preferences applied on top.
+ *
+ * `actor` is whoever is about to click the link — a handle or DID. If they've
+ * published nothing, this degrades exactly to `resolveAtUri`.
+ */
+export async function resolveAtUriForActor(
+  uri: string,
+  actor: string,
+  options: ResolveForActorOptions = {},
+): Promise<ResolveResult | null> {
+  const base = resolveAtUri(uri);
+  if (!base) return null;
+  const record =
+    options.preferredClients !== undefined
+      ? options.preferredClients
+      : await fetchPreferredClients(actor, options);
+  return applyPreferredClients(base, record);
 }
 
 export type ResolveUrlOptions = {
@@ -182,11 +251,36 @@ export async function resolveUrl(
   };
 }
 
+/**
+ * `resolveUrl` with a reader's published client preferences applied. See
+ * `resolveAtUriForActor`.
+ */
+export async function resolveUrlForActor(
+  url: string | URL,
+  actor: string,
+  options: ResolveUrlOptions & ResolveForActorOptions = {},
+): Promise<ResolveResult | null> {
+  const [base, record] = await Promise.all([
+    resolveUrl(url, options),
+    options.preferredClients !== undefined
+      ? Promise.resolve(options.preferredClients)
+      : fetchPreferredClients(actor, options),
+  ]);
+  if (!base) return null;
+  return applyPreferredClients(base, record);
+}
+
 export type ResolveApiInput = {
   url?: string;
   atUri?: string;
   /** Set false to skip the server-side <head> probe. */
   headDetect?: boolean;
+  /**
+   * Handle or DID of the reader. When set, the endpoint reads that account's
+   * published `to.aturi.actor.preferredClients` record and applies it, so you
+   * get their preferred destination back without fetching it yourself.
+   */
+  actor?: string;
 };
 
 export type ResolveApiParsed = {
@@ -208,6 +302,11 @@ export type ResolveApiSuccess = {
   didResolved: boolean;
   recommended: ResolvedRecommendation;
   waypoints: ResolvedWaypoint[];
+  /**
+   * Present when `actor` was supplied: the destination that account declared
+   * it prefers for this record, or null if it has declared nothing applicable.
+   */
+  preferred?: PreferredClientMatch | null;
 };
 
 export type ResolveApiFailure = {
@@ -251,6 +350,7 @@ export async function resolveViaApi(
     throw new Error('resolveViaApi requires either `url` or `atUri`');
   }
   if (input.headDetect === false) params.set('headDetect', 'false');
+  if (input.actor) params.set('actor', input.actor);
 
   const res = await fetchImpl(`${endpoint}?${params.toString()}`, {
     method: 'GET',

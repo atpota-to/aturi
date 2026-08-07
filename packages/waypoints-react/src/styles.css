@@ -100,6 +100,13 @@
   border-color: var(--aturi-wp-accent);
 }
 
+/* The reader's own declared client, not merely a suggestion — weighted so it
+   reads as the answer rather than one option among several. */
+.aturi-wp-button[data-preferred] {
+  border-color: var(--aturi-wp-accent);
+  box-shadow: inset 2px 0 0 var(--aturi-wp-accent);
+}
+
 .aturi-wp-icon {
   display: inline-flex;
   align-items: center;

@@ -34,7 +34,7 @@ the whole entry, reach for [`@aturi.to/waypoints`](../waypoints) directly when y
 need the framework-agnostic helpers (`resolveAtUri`, `buildWaypointsForParsed`,
 the catalog, …) inside a Server Component.
 
-## Three ways to use it
+## Four ways to use it
 
 ### 1. Drop-in picker (headless markup, bring your own styles)
 
@@ -115,9 +115,45 @@ function MyPicker() {
 }
 ```
 
-Each entry carries `{ id, name, label, description, url, icon, category, isRecommended }`.
+Each entry carries `{ id, name, label, description, url, icon, category, isRecommended, isPreferred }`.
 
-### 3. The polished theme (opt-in)
+### 3. Honor the reader's preferred client
+
+Point `preferFor` at whoever is about to click the link — usually your
+signed-in user — and the picker reads their public
+`to.aturi.actor.preferredClients` record and pins the client they chose at the
+top, ahead of the catalog's own recommendation:
+
+```tsx
+<WaypointPicker
+  type="post"
+  handle="alice.bsky.social"
+  collection="app.bsky.feed.post"
+  rkey="3k7qw..."
+  preferFor={viewerDid}
+/>
+```
+
+Not building a picker? The hook underneath gives you just the destination:
+
+```tsx
+import { usePreferredClients } from '@aturi.to/waypoints-react';
+
+function OpenLink({ viewerDid, handle, collection, rkey, did }) {
+  const { preferredFor } = usePreferredClients({ actor: viewerDid });
+  const choice = preferredFor({ type: 'post', handle, collection, rkey, did });
+  return <a href={choice?.url ?? `https://bsky.app/profile/${handle}/post/${rkey}`}>Open</a>;
+}
+```
+
+Most people haven't published a record, so `choice` is usually `null` — that's
+the normal case, not an error. Already have the record (from your own backend, or
+your user's session)? Pass it as `record` / `preferredClients` and no fetch
+happens. See the
+[core package's notes](../waypoints/README.md#preferred-clients) for the record
+shape and matching rules.
+
+### 4. The polished theme (opt-in)
 
 Want the Aturi look without writing CSS? Import the stylesheet once:
 
@@ -155,6 +191,9 @@ Available tokens: `--aturi-wp-accent`, `--aturi-wp-accent-contrast`,
 | `waypointIds` | `string[]?` | Allowlist of waypoint ids to surface |
 | `hiddenIds` | `string[]?` | Ids to remove |
 | `customWaypoints` | `CustomWaypoint[]?` | Your own destinations |
+| `preferFor` | `string?` | Handle/DID whose published client preferences to honor |
+| `preferredClients` | `PreferredClientsRecord?` | A record you already hold, instead of fetching |
+| `showPreferred` | `boolean?` | Default `true` |
 | `showRecommended` | `boolean?` | Default `true` |
 | `showCopy` | `boolean?` | Default `true` |
 | `onSelect` | `(waypoint, event) => void` | Override open-in-new-tab |

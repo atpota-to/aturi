@@ -4,6 +4,11 @@ import {
   getCategorizedWaypointsData,
   getRecommendedWaypointsData,
   getWaypointDataForType,
+  orderIdsByPreference,
+  preferredWaypointFor,
+  preferredWaypointIdsFor,
+  type PreferredClientMatch,
+  type PreferredClientsRecord,
   type WaypointCategoryData,
   type WaypointData,
   type WaypointType,
@@ -23,6 +28,11 @@ export type WaypointEntry = {
   category: string;
   icon: ReactNode;
   isRecommended: boolean;
+  /**
+   * True when the account in `preferredClients` named this client for this
+   * kind of record. Their choice, not the catalog's suggestion.
+   */
+  isPreferred: boolean;
 };
 
 export type WaypointCategoryEntry = {
@@ -66,6 +76,13 @@ export type UseWaypointsParams = {
   hiddenIds?: string[];
   /** Extra developer-defined destinations, grouped under a "Custom" category. */
   customWaypoints?: CustomWaypoint[];
+  /**
+   * A reader's published `to.aturi.actor.preferredClients` record. When set,
+   * the clients they declared for this record type lift to the front of
+   * `recommended`, get `isPreferred`, and the winner comes back as
+   * `preferred`. Fetch one with `usePreferredClients`.
+   */
+  preferredClients?: PreferredClientsRecord | null;
 };
 
 export type UseWaypointsResult = {
@@ -73,6 +90,13 @@ export type UseWaypointsResult = {
   categories: WaypointCategoryEntry[];
   /** Flat, de-duplicated list across recommended + every category. */
   waypoints: WaypointEntry[];
+  /**
+   * The destination the `preferredClients` account declared for this target.
+   * Null when they declared nothing applicable — or when it points at a client
+   * outside the catalog, in which case it still resolves here even though no
+   * matching `WaypointEntry` exists.
+   */
+  preferred: PreferredClientMatch | null;
   /** Copy a url to the clipboard. Resolves to whether it succeeded. */
   copy: (url: string) => Promise<boolean>;
   /** Open a url in a new tab. */
@@ -103,6 +127,7 @@ export function useWaypoints(params: UseWaypointsParams): UseWaypointsResult {
     waypointIds,
     hiddenIds,
     customWaypoints,
+    preferredClients,
   } = params;
 
   const copy = useCallback(async (url: string): Promise<boolean> => {
@@ -131,6 +156,17 @@ export function useWaypoints(params: UseWaypointsParams): UseWaypointsResult {
 
     const recommendedData = getRecommendedWaypointsData(type, collection);
     const recommendedIds = new Set(recommendedData.waypoints.map((w) => w.id));
+    const preferenceQuery = { collection, type };
+    const preferredIds = new Set(
+      preferredWaypointIdsFor(preferredClients, preferenceQuery),
+    );
+    const preferred = preferredWaypointFor(preferredClients, {
+      type,
+      handle,
+      collection,
+      rkey,
+      did,
+    });
 
     const buildBuiltin = (w: WaypointData): WaypointEntry | null => {
       const url = w.getUrl(handle, collection, rkey, did);
@@ -144,6 +180,7 @@ export function useWaypoints(params: UseWaypointsParams): UseWaypointsResult {
         category: w.category,
         icon: WAYPOINT_ICONS[w.id] ?? null,
         isRecommended: recommendedIds.has(w.id),
+        isPreferred: preferredIds.has(w.id),
       };
     };
 
@@ -160,6 +197,7 @@ export function useWaypoints(params: UseWaypointsParams): UseWaypointsResult {
         category: c.category ?? 'custom',
         icon: c.icon ?? null,
         isRecommended: recommendedIds.has(c.id),
+        isPreferred: preferredIds.has(c.id),
       };
     };
 
@@ -202,11 +240,22 @@ export function useWaypoints(params: UseWaypointsParams): UseWaypointsResult {
       });
     }
 
+    const recommendedEntries = recommendedData.waypoints
+      .filter((w) => isVisible(w.id))
+      .map(buildBuiltin)
+      .filter((e): e is WaypointEntry => !!e);
+    // A declared preference outranks the catalog's suggestion, so lift it —
+    // without dropping anything, since the rest are still valid destinations.
+    const recommendedOrder = orderIdsByPreference(
+      recommendedEntries.map((e) => e.id),
+      preferredClients,
+      preferenceQuery,
+    );
+    const recommendedById = new Map(recommendedEntries.map((e) => [e.id, e]));
     const recommended = {
       label: recommendedData.label,
-      waypoints: recommendedData.waypoints
-        .filter((w) => isVisible(w.id))
-        .map(buildBuiltin)
+      waypoints: recommendedOrder
+        .map((id) => recommendedById.get(id))
         .filter((e): e is WaypointEntry => !!e),
     };
 
@@ -227,8 +276,18 @@ export function useWaypoints(params: UseWaypointsParams): UseWaypointsResult {
     pushAll(recommended.waypoints);
     categories.forEach(collect);
 
-    return { recommended, categories, waypoints: flat };
-  }, [type, handle, collection, rkey, did, waypointIds, hiddenIds, customWaypoints]);
+    return { recommended, categories, waypoints: flat, preferred };
+  }, [
+    type,
+    handle,
+    collection,
+    rkey,
+    did,
+    waypointIds,
+    hiddenIds,
+    customWaypoints,
+    preferredClients,
+  ]);
 
   return { ...data, copy, open };
 }

@@ -46,6 +46,24 @@ Authentication uses standard atproto OAuth: no passwords, no Aturi-side account 
 
 Your personalization (waypoint groups, ordering, pins, custom waypoints, color scheme) is written to a `to.aturi.actor.preferences/self` record in your own PDS, so it migrates with you if you move servers.
 
+## Preferred clients
+
+The ecosystem default is to link every `app.bsky.feed.post` to bsky.app, which is a guess about the reader and is often wrong. **Settings → Clients** lets you answer it instead: "Bluesky posts in Blacksky, Tangled records in Tangled, everything else in PDSls."
+
+Aturi's own picker follows those rules right away. Publish them and they become a public `to.aturi.actor.preferredClients/self` record in your repo that *any* Atmosphere app can read — one public fetch, no auth — so its links can send you where you asked to go instead of where it assumed.
+
+For app developers, that's two calls (or one query parameter on the Resolve API):
+
+```ts
+import { fetchPreferredClients, preferredWaypointFor } from '@aturi.to/waypoints';
+
+const record = await fetchPreferredClients(viewerHandleOrDid);
+const choice = preferredWaypointFor(record, { type: 'post', handle, collection, rkey, did });
+const href = choice?.url ?? yourExistingDefault;   // null just means "no preference"
+```
+
+Rules can be scoped to a collection (`app.bsky.feed.post`), a namespace (`sh.tangled.*`), a record kind (`post`), or everything (`*`), most-specific-wins, with ordered fallbacks. A client outside the catalog can carry its own URL templates, so self-hosted deploys work too. Schema and matching rules: [`lexicons/`](lexicons/README.md) and the [developer docs](https://aturi.to/docs#preferred-clients).
+
 ## Universal links
 
 Drop an `aturi.to/...` URL anywhere: a DM, a footer, a bio. Visitors land on a friendly preview of the record (post, profile, list, feed, leaflet, tangled repo, grain gallery, margin annotation, or any other supported lexicon) and pick the Atmosphere client they want to read it in.
@@ -174,7 +192,10 @@ Or use the public Resolve API to look up the waypoints for an arbitrary page URL
 ```
 GET https://aturi.to/api/resolve?url=<encoded-page-url>
 GET https://aturi.to/api/resolve?atUri=at://...
+GET https://aturi.to/api/resolve?atUri=at://...&actor=<handle-or-did>
 ```
+
+Pass `actor` and the endpoint applies that account's [preferred clients](#preferred-clients): their choices lift to the front of `recommended.ids` and the winning destination comes back as `preferred`.
 
 ## Tech stack
 
@@ -204,6 +225,7 @@ This is a community tool for the Atmosphere ecosystem. Contributions are welcome
 ## More resources
 
 - [Developer docs](https://aturi.to/docs): integrate the waypoint packages and the Resolve API into your own app
+- [Lexicons](lexicons/README.md): the `to.aturi.actor.preferredClients` schema and how to read it
 - [`@aturi.to/waypoints`](packages/waypoints/README.md) & [`@aturi.to/waypoints-react`](packages/waypoints-react/README.md): the published package READMEs
 - [Contributing Guide](CONTRIBUTING.md): how to contribute back
 - [Extension README](extension/README.md): extension dev, build, and Safari notes

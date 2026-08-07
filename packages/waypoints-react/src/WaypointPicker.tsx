@@ -6,13 +6,15 @@ import {
   type MouseEvent,
 } from 'react';
 import { ChevronDown } from 'lucide-react';
-import type { WaypointType } from '@aturi.to/waypoints';
+import type { PreferredClientsRecord, WaypointType } from '@aturi.to/waypoints';
 import {
   useWaypoints,
   type CustomWaypoint,
   type WaypointCategoryEntry,
   type WaypointEntry,
 } from './useWaypoints';
+import { usePreferredClients } from './usePreferredClients';
+import { WAYPOINT_ICONS } from './waypointIcons';
 import { WaypointList, type RenderWaypoint } from './WaypointList';
 import { cx, slotClass, type WaypointClassNames } from './styling';
 
@@ -27,6 +29,17 @@ export type WaypointPickerProps = {
   waypointIds?: string[];
   hiddenIds?: string[];
   customWaypoints?: CustomWaypoint[];
+  /**
+   * Handle or DID of the person about to open the link — usually your
+   * signed-in user. The picker reads their public
+   * `to.aturi.actor.preferredClients` record and pins the client they declared
+   * at the top. Ignored when `preferredClients` is passed.
+   */
+  preferFor?: string | null;
+  /** A preferences record you already hold, instead of letting the picker fetch one. */
+  preferredClients?: PreferredClientsRecord | null;
+  /** Show the "Your preferred client" section. Default true. */
+  showPreferred?: boolean;
   /** Show the recommended section. Default true. */
   showRecommended?: boolean;
   /** Show the per-row copy button. Default true. */
@@ -163,6 +176,9 @@ export function WaypointPicker({
   waypointIds,
   hiddenIds,
   customWaypoints,
+  preferFor,
+  preferredClients,
+  showPreferred = true,
   showRecommended = true,
   showCopy = true,
   onSelect,
@@ -171,7 +187,14 @@ export function WaypointPicker({
   renderWaypoint,
   className,
 }: WaypointPickerProps) {
-  const { recommended, categories, copy } = useWaypoints({
+  const { record } = usePreferredClients({
+    actor: preferFor,
+    // `undefined` means "go fetch"; an explicit null means "this reader has
+    // none", so only forward the prop when the caller actually passed it.
+    ...(preferredClients !== undefined ? { record: preferredClients } : {}),
+  });
+
+  const { recommended, categories, copy, preferred, waypoints } = useWaypoints({
     type,
     handle,
     collection,
@@ -180,9 +203,46 @@ export function WaypointPicker({
     waypointIds,
     hiddenIds,
     customWaypoints,
+    preferredClients: record,
   });
 
   const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  /**
+   * The reader's own declaration, as a renderable row. Built by hand rather
+   * than looked up, because the client they named may be outside the catalog
+   * (a self-hosted deploy declared with URL templates) or filtered out of the
+   * visible set — an explicit choice should survive both.
+   */
+  const preferredEntry = useMemo<WaypointEntry | null>(() => {
+    if (!showPreferred || !preferred) return null;
+    const fromCatalog = preferred.waypointId
+      ? waypoints.find((w) => w.id === preferred.waypointId)
+      : undefined;
+    if (fromCatalog) {
+      return { ...fromCatalog, url: preferred.url, isPreferred: true };
+    }
+    return {
+      id: preferred.waypointId ?? `preferred:${preferred.client.name}`,
+      name: preferred.client.name,
+      label: preferred.client.name,
+      description: `Chosen for ${preferred.scope}`,
+      url: preferred.url,
+      category: 'preferred',
+      icon: preferred.waypointId ? WAYPOINT_ICONS[preferred.waypointId] ?? null : null,
+      isRecommended: false,
+      isPreferred: true,
+    };
+  }, [showPreferred, preferred, waypoints]);
+
+  // Pinned above, so don't repeat it in the recommendations below.
+  const recommendedWaypoints = useMemo(
+    () =>
+      preferredEntry
+        ? recommended.waypoints.filter((w) => w.id !== preferredEntry.id)
+        : recommended.waypoints,
+    [recommended.waypoints, preferredEntry],
+  );
 
   // Smart expansion: open categories (and subcategories) that have at least
   // one compatible waypoint. `useWaypoints` already drops null-url waypoints,
@@ -228,8 +288,9 @@ export function WaypointPicker({
 
   const display = displayName || `@${handle}`;
   const onCopy = showCopy ? handleCopy : undefined;
-  const hasRecommended = showRecommended && recommended.waypoints.length > 0;
-  const hasAny = recommended.waypoints.length > 0 || categories.length > 0;
+  const hasRecommended = showRecommended && recommendedWaypoints.length > 0;
+  const hasAny =
+    !!preferredEntry || recommended.waypoints.length > 0 || categories.length > 0;
 
   return (
     <div
@@ -257,6 +318,31 @@ export function WaypointPicker({
         </div>
       ) : null}
 
+      {preferredEntry ? (
+        <section
+          data-aturi-wp="section"
+          data-section="preferred"
+          className={slotClass('section', unstyled, classNames)}
+        >
+          <h2
+            data-aturi-wp="section-header"
+            className={slotClass('sectionHeader', unstyled, classNames)}
+          >
+            Your preferred client
+          </h2>
+          <WaypointList
+            waypoints={[preferredEntry]}
+            copiedId={copiedId}
+            onCopy={onCopy}
+            onSelect={onSelect}
+            showCopy={showCopy}
+            unstyled={unstyled}
+            classNames={classNames}
+            renderWaypoint={renderWaypoint}
+          />
+        </section>
+      ) : null}
+
       {hasRecommended ? (
         <section
           data-aturi-wp="section"
@@ -270,7 +356,7 @@ export function WaypointPicker({
             {recommended.label}
           </h2>
           <WaypointList
-            waypoints={recommended.waypoints}
+            waypoints={recommendedWaypoints}
             copiedId={copiedId}
             onCopy={onCopy}
             onSelect={onSelect}

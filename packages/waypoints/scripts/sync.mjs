@@ -54,6 +54,18 @@ const FILES = [
     to: resolve(coreSrc, 'reverseParsers.ts'),
     transform: identity,
   },
+  {
+    // preferredClients needs handle -> DID -> PDS resolution to read the
+    // record; ship the resolver so the package can do it standalone.
+    from: resolve(repoRoot, 'src/utils/didResolver.ts'),
+    to: resolve(coreSrc, 'didResolver.ts'),
+    transform: identity,
+  },
+  {
+    from: resolve(repoRoot, 'src/utils/preferredClients.ts'),
+    to: resolve(coreSrc, 'preferredClients.ts'),
+    transform: identity,
+  },
   // React icon catalog + its Anisota dependency -> @aturi.to/waypoints-react
   {
     from: resolve(repoRoot, 'src/utils/waypointIcons.tsx'),

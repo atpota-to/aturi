@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useMemo, useEffect, useCallback } from 'react';
-import { ExternalLink, Copy, Check } from 'lucide-react';
+import { ExternalLink, Copy, Check, Globe } from 'lucide-react';
 import {
   getCategorizedWaypoints,
   getRecommendedWaypoints,
@@ -20,6 +20,12 @@ import {
   addWaypointsToDefaultGroups,
   markWaypointsKnown,
 } from '@/utils/preferences';
+import {
+  describeScope,
+  orderIdsByPreference,
+  preferredWaypointFor,
+  type PreferredClientsRecord,
+} from '@/utils/preferredClients';
 import { usePreferences } from './PreferencesProvider';
 import ShareButton from './ShareButton';
 import CategoryCard from './CategoryCard';
@@ -94,17 +100,50 @@ export default function WaypointPicker({
       ),
     [type, prefs, isActiveForRepo],
   );
+  // The user's own declared client preferences (the rules behind their
+  // `to.aturi.actor.preferredClients` record). An explicit declaration outranks
+  // the catalog's recommendations, so the winner gets its own row at the top.
+  const preferredRecord = useMemo<PreferredClientsRecord | null>(
+    () =>
+      prefs.preferredClients.length > 0
+        ? { preferences: prefs.preferredClients }
+        : null,
+    [prefs.preferredClients],
+  );
+  const preferred = useMemo(
+    () =>
+      preferredWaypointFor(preferredRecord, {
+        type,
+        handle,
+        did,
+        collection,
+        rkey,
+      }),
+    [preferredRecord, type, handle, did, collection, rkey],
+  );
+
   const recommendedData = useMemo(
     () => getRecommendedWaypoints(type, collection),
     [type, collection]
   );
-  const recommendedWaypoints = useMemo(
-    () =>
-      personalizeRecommended(recommendedData?.waypoints || [], prefs).filter(
-        isActiveForRepo,
-      ),
-    [recommendedData, prefs, isActiveForRepo]
-  );
+  const recommendedWaypoints = useMemo(() => {
+    const visible = personalizeRecommended(
+      recommendedData?.waypoints || [],
+      prefs,
+    ).filter(isActiveForRepo);
+    // Declared fallbacks bubble up within the recommendations; the first
+    // choice is pulled out above, so don't list it twice.
+    const ordered = orderIdsByPreference(
+      visible.map((w) => w.id),
+      preferredRecord,
+      { collection, type },
+    );
+    const byId = new Map(visible.map((w) => [w.id, w]));
+    return ordered
+      .filter((id) => id !== preferred?.waypointId)
+      .map((id) => byId.get(id)!)
+      .filter(Boolean);
+  }, [recommendedData, prefs, isActiveForRepo, preferredRecord, preferred, collection, type]);
   const recommendedLabel = useMemo(
     () => recommendedData?.label || '',
     [recommendedData]
@@ -235,6 +274,89 @@ export default function WaypointPicker({
     }
   };
 
+  /**
+   * The client the user has declared for this kind of record, pinned above
+   * everything else. Distinct from "Recommended", which is Aturi's opinion —
+   * this row is the user's own, so it says so.
+   */
+  const renderPreferredWaypoint = () => {
+    if (!preferred) return null;
+    const catalog = preferred.waypointId
+      ? WAYPOINT_DESTINATIONS[preferred.waypointId]
+      : undefined;
+    const isCopied = copiedId === 'preferred';
+    let host = '';
+    try {
+      host = new URL(preferred.url).hostname.replace(/^www\./, '');
+    } catch {
+      // A hand-written template can produce something unparseable; the link
+      // still works for the user's own client, so just skip the subtitle.
+    }
+
+    return (
+      <div className="featured-section">
+        <h2 className="section-header" style={{ marginBottom: '0.75rem' }}>
+          Your preferred client
+        </h2>
+        <div
+          className="waypoint-button featured-waypoint"
+          onClick={(e) => handleWaypointClick(preferred.url, e)}
+          style={{ cursor: 'pointer' }}
+        >
+          <div className="waypoint-icon">
+            {catalog?.icon ?? (
+              <Globe size={20} style={{ color: 'var(--text-accent)' }} aria-hidden />
+            )}
+          </div>
+          <div className="waypoint-content">
+            <div className="waypoint-name">{preferred.client.name}</div>
+            <div className="waypoint-description">
+              {`You chose this for ${describeScope(preferred.scope).toLowerCase()}`}
+              {host ? ` · ${host}` : ''}
+            </div>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <button
+              onClick={(e) => handleCopy(preferred.url, 'preferred', e)}
+              aria-label="Copy link"
+              className="copy-button"
+              style={{
+                background: 'none',
+                border: 'none',
+                padding: '0.25rem',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                color: 'var(--text-tertiary)',
+                transition: 'color 0.2s ease',
+              }}
+            >
+              {isCopied ? (
+                <Check size={20} style={{ color: 'var(--text-accent)' }} />
+              ) : (
+                <Copy size={20} />
+              )}
+            </button>
+            <a
+              href={preferred.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label={`Open in ${preferred.client.name}`}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                color: 'var(--text-tertiary)',
+                transition: 'color 0.2s ease',
+              }}
+            >
+              <ExternalLink size={20} />
+            </a>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   const renderRecommendedWaypoints = () => {
     if (!recommendedWaypoints || recommendedWaypoints.length === 0) return null;
 
@@ -353,12 +475,18 @@ export default function WaypointPicker({
           marginBottom: '2rem',
         }}
       >
+        {/* The user's own declaration, ahead of anything Aturi suggests. Shown
+            even when every other waypoint is filtered out — they asked for it. */}
+        {renderPreferredWaypoint()}
+
         {availableWaypoints.length === 0 ? (
-          <div className="card" style={{ textAlign: 'center', padding: '2rem' }}>
-            <p style={{ color: 'var(--text-secondary)' }}>
-              No waypoints available for this content type yet.
-            </p>
-          </div>
+          !preferred && (
+            <div className="card" style={{ textAlign: 'center', padding: '2rem' }}>
+              <p style={{ color: 'var(--text-secondary)' }}>
+                No waypoints available for this content type yet.
+              </p>
+            </div>
+          )
         ) : (
           <>
             {/* Recommended Waypoints */}

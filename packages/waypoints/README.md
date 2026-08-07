@@ -35,19 +35,69 @@ result?.recommended; // { ids: ['bluesky', 'anisota', ...], label: 'Recommended 
 const fromUrl = await resolveUrl('https://bsky.app/profile/alice.bsky.social/post/3k7');
 ```
 
+## Preferred clients
+
+The ecosystem default is to send every `app.bsky.feed.post` link to bsky.app.
+That's a guess about the reader, and it's often wrong — plenty of people read
+Bluesky in Blacksky, Deer, or Anisota.
+
+`to.aturi.actor.preferredClients` is a public record an account publishes to its
+own PDS saying where it wants records opened. If your app links out to Atmosphere
+records and knows who it's linking on behalf of, you can read that record and
+honor it:
+
+```ts
+import { fetchPreferredClients, preferredWaypointFor } from '@aturi.to/waypoints';
+
+// One public read — no auth, no API key. Accepts a handle or a DID.
+const record = await fetchPreferredClients('alice.bsky.social');
+
+const choice = preferredWaypointFor(record, {
+  type: 'post',
+  handle: 'bob.bsky.social',
+  collection: 'app.bsky.feed.post',
+  rkey: '3k7qw...',
+});
+
+const href = choice?.url ?? myExistingDefault;
+```
+
+Most accounts have published nothing, so `null` is the common answer and never an
+error: fall back to whatever you do today. Or do both steps at once with
+`resolveAtUriForActor(uri, actor)`, which returns a normal `ResolveResult` with
+the reader's clients lifted to the front of `recommended.ids` and the winner on
+`preferred`.
+
+A rule's scope is a collection NSID (`app.bsky.feed.post`), a namespace wildcard
+(`sh.tangled.*`), a record kind (`post`, `profile`, `list`, `record`), or `*`.
+The most specific match wins. Clients are listed most-preferred-first, and a
+client outside the catalog can carry its own URL templates — so a self-hosted
+deploy still produces a working link in an app that has never heard of it.
+
+Schema:
+[`to.aturi.actor.preferredClients`](https://aturi.to/lexicons/to.aturi.actor.preferredClients.json).
+
 ## What's included
 
 - **Catalog**: `WAYPOINT_DESTINATIONS_DATA`, `WAYPOINT_ORDER`, `WAYPOINT_CATEGORIES_DATA`,
-  `COMPAT_FAMILIES`, and the `WaypointData` / `WaypointType` types.
+  `COMPAT_FAMILIES`, `DID_REQUIRED_WAYPOINTS`, and the `WaypointData` /
+  `WaypointType` types.
 - **Link builders & recommendations**: `getWaypointDataForType`,
   `getCategorizedWaypointsData`, `getRecommendedWaypointsData`,
   `getFeaturedWaypointData`, `waypointActivity`.
 - **AT URI parsing**: `parseURI`, `resolveHandle`, `getDisplayName`.
 - **Reverse resolution**: `matchSupportedUrl`, `parseAtUri`, `SUPPORTED_HOSTS`.
+- **Identity**: `resolveHandleToDid`, `fetchDidDocument`, `resolvePdsEndpoint`,
+  `resolveDidToHandle`.
+- **Preferred clients**: `fetchPreferredClients`, `preferredWaypointFor`,
+  `preferredClientUrl`, `preferredWaypointIdsFor`, `orderIdsByPreference`,
+  `parsePreferredClientsRecord`, `buildPreferredClientsRecord`.
 - **High-level resolvers** (`resolve.ts`):
   - `buildWaypointsForParsed(parsed, { did?, excludeSourceId? })`
-  - `resolveAtUri(uri)`
-  - `resolveUrl(url, { fetchHead?, resolveHandle? })`
+  - `resolveAtUri(uri)` / `resolveAtUriForActor(uri, actor)`
+  - `resolveUrl(url, { fetchHead?, resolveHandle? })` /
+    `resolveUrlForActor(url, actor, …)`
+  - `applyPreferredClients(result, record)`
   - `resolveViaApi(input, { endpoint? })`: typed client for the hosted
     `aturi.to/api/resolve` endpoint.
 
@@ -67,9 +117,10 @@ pages is blocked by CORS.
 
 ## A note on drift
 
-The four canonical logic/icon files (`waypoints.data.ts`, `uriParser.ts`,
-`reverseParsers.ts`, and the React icon catalog) are the single source of truth
-inside the [`aturi.to`](https://github.com/atpota-to/aturi) app under `src/`.
+The canonical logic/icon files (`waypoints.data.ts`, `uriParser.ts`,
+`reverseParsers.ts`, `didResolver.ts`, `preferredClients.ts`, and the React icon
+catalog) are the single source of truth inside the
+[`aturi.to`](https://github.com/atpota-to/aturi) app under `src/`.
 This package ships **copies** so it can build standalone, kept in lockstep by a
 sync script:
 
