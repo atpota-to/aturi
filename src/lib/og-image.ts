@@ -12,6 +12,26 @@ const OG_SUPPORTED_MIME_TYPES = new Set([
 ]);
 
 /**
+ * Identify an image by its magic bytes, for hosts that don't declare a usable
+ * content-type. `video.bsky.app` serves post video thumbnails
+ * (`.../thumbnail.jpg`) as `application/octet-stream`, so trusting the header
+ * alone dropped the thumbnail from every video post's card and left a hole in
+ * the layout.
+ *
+ * Deliberately narrow: only the formats @vercel/og can actually decode are
+ * recognized, so a webp or avif body still gets rejected rather than being
+ * waved through on a permissive header.
+ */
+function sniffImageMime(bytes: Uint8Array): string | null {
+  if (bytes.length < 12) return null;
+  const b = bytes;
+  if (b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff) return 'image/jpeg';
+  if (b[0] === 0x89 && b[1] === 0x50 && b[2] === 0x4e && b[3] === 0x47) return 'image/png';
+  if (b[0] === 0x47 && b[1] === 0x49 && b[2] === 0x46 && b[3] === 0x38) return 'image/gif';
+  return null;
+}
+
+/**
  * Rewrite Bluesky CDN image URLs so the CDN returns JPEG instead of WebP.
  * The bsky CDN honours an `@jpeg` suffix on the blob CID. We only touch URLs
  * where it's safe to append the suffix (no existing format suffix and no query).
@@ -57,18 +77,25 @@ export async function fetchImageAsDataUrl(
     if (!response.ok) return '';
 
     const rawContentType = response.headers.get('content-type') || 'image/jpeg';
-    const contentType = rawContentType.split(';')[0].trim().toLowerCase();
+    const declaredType = rawContentType.split(';')[0].trim().toLowerCase();
 
-    if (!OG_SUPPORTED_MIME_TYPES.has(contentType)) {
+    const buffer = await response.arrayBuffer();
+
+    // Trust the header when it names a format we can decode; otherwise fall
+    // back to the file's own magic bytes before giving up.
+    const contentType = OG_SUPPORTED_MIME_TYPES.has(declaredType)
+      ? declaredType
+      : sniffImageMime(new Uint8Array(buffer.slice(0, 12)));
+
+    if (!contentType) {
       // Silently drop unsupported formats (webp/avif/etc.). Including them would
       // blow up image generation with "l is not iterable" inside @vercel/og.
       console.warn(
-        `[og-image] Skipping image with unsupported content-type "${contentType}" (${url})`
+        `[og-image] Skipping image with unsupported content-type "${declaredType}" (${url})`
       );
       return '';
     }
 
-    const buffer = await response.arrayBuffer();
     const base64 = Buffer.from(buffer).toString('base64');
     return `data:${contentType};base64,${base64}`;
   } catch (error) {

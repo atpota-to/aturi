@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import type { BskyPost } from './recordFetcher';
 import { getPostOgImage } from './postOgImage';
 import { buildAtTagsMetadata } from './atproto/atTags';
+import { getSiteUrl } from '@/lib/config';
 
 /**
  * Build the page <head> metadata for a Bluesky post. Shared by the two routes
@@ -25,15 +26,19 @@ export function buildPostMetadata(
   const pageTitle = `@${author.handle} on Bluesky: View on Aturi`;
   const postText = post.record?.text || '';
   const description = postText || 'View this post in your preferred Atmosphere client';
-  const avatarThumb = author.avatar
-    ? author.avatar.replace('/img/avatar/', '/img/avatar_thumbnail/')
-    : '';
-
   // Prefer the post's embedded media (photo/video/external thumb) so rich-link
   // previewers (iMessage, Twitter, Slack, etc.) render the large image like
-  // bsky.app does. Fall back to the avatar thumbnail for text-only or
-  // quote-only posts.
+  // bsky.app does.
   const postOgImage = getPostOgImage(post);
+
+  // Text-only and quote-only posts have no media to show. They used to fall
+  // back to the author's avatar thumbnail — a small square that unfurls as a
+  // `summary` card with no post content in it — so render the post card
+  // instead, which carries the text, the byline, and the counts.
+  const renderedCard = new URL('/api/og/post', getSiteUrl());
+  renderedCard.searchParams.set('handle', resolvedDid);
+  renderedCard.searchParams.set('rkey', rkey);
+
   const ogImage = postOgImage
     ? {
         url: postOgImage.url,
@@ -42,10 +47,8 @@ export function buildPostMetadata(
           ? { width: postOgImage.width, height: postOgImage.height }
           : {}),
       }
-    : avatarThumb
-    ? { url: avatarThumb }
-    : null;
-  const twitterCard = postOgImage ? 'summary_large_image' : 'summary';
+    : { url: renderedCard.toString(), width: 1200, height: 630 };
+  const twitterCard = 'summary_large_image';
 
   const canonicalUrl = `https://aturi.to/profile/${author.handle}/post/${rkey}`;
   const atUri = `at://${resolvedDid}/${collection}/${rkey}`;

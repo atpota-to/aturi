@@ -12,19 +12,23 @@ export async function generateMetadata({
   const decoded = decodeURIComponent(nsid);
   const title = `${decoded} · Lexicons · Atmosphere Explorer`;
   const description = `Usage trends, stats, and recent records for the ${decoded} lexicon across the AT Protocol.`;
+  // Every lexicon page used to unfurl with the same generic explorer PNG, so
+  // com.atproto.lexicon.schema and sh.tangled.repo were indistinguishable in a
+  // share. Name the NSID on the card instead.
+  const ogPath = `/api/og/explore?nsid=${encodeURIComponent(decoded)}`;
   return {
     title,
     description,
     openGraph: {
       title,
       description,
-      images: ['/og-images/aturi-explore.png'],
+      images: [ogPath],
     },
     twitter: {
       card: 'summary_large_image',
       title,
       description,
-      images: ['/og-images/aturi-explore.png'],
+      images: [ogPath],
     },
   };
 }
