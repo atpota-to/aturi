@@ -1,10 +1,18 @@
 import { ImageResponse } from '@vercel/og';
 import { NextRequest } from 'next/server';
 import {
+  ChipSlash,
+  ContextLabel,
+  fitMonoSize,
+  FooterCta,
+  Headline,
+  IdentityChip,
   loadGoogleFont,
+  OgFooter,
   OgFrame,
   OG_COLORS,
   OG_GLYPH_BASELINE,
+  ServerGlyph,
   TopRow,
 } from '@/lib/og-design';
 import { pdsHostname } from '@/utils/atproto/pdsServer';
@@ -15,9 +23,9 @@ export const runtime = 'edge';
 export const revalidate = 3600;
 
 // ─── Identity resolution ────────────────────────────────────────────────────
-// Best-effort, PDS-agnostic resolution so the breadcrumb matches the in-app
-// trail (pds host → @handle → collection → rkey). Every step is guarded; we
-// render with whatever we managed to resolve and fall back to the raw repo.
+// Best-effort, PDS-agnostic resolution so the card names the account the way
+// the app does (@handle, not a raw DID). Every step is guarded; we render with
+// whatever we managed to resolve and fall back to the raw repo.
 
 type Resolved = { did?: string; handle?: string; pdsHost?: string };
 
@@ -78,131 +86,143 @@ async function resolveRepo(repo: string, signal: AbortSignal): Promise<Resolved>
       }
     }
   } catch {
-    // DID-doc fetch is optional — the breadcrumb just drops the PDS segment
+    // DID-doc fetch is optional — the card just drops the PDS line
   }
 
   return out;
 }
 
-/** Collapse a long DID into something that fits a breadcrumb segment. */
+/** Collapse a long DID into something that still fits a headline chip. */
 function shortenDid(did: string): string {
   if (did.length <= 24) return did;
   return `${did.slice(0, 20)}…`;
 }
 
-// ─── Breadcrumb hero ─────────────────────────────────────────────────────────
+// ─── Card model ─────────────────────────────────────────────────────────────
 
-type SegmentKind = 'pds' | 'repo' | 'collection' | 'rkey';
-type Segment = { kind: SegmentKind; label: string };
+type Chip = { text: string; glyph?: boolean };
 
-function ChevronRight({ size, color }: { size: number; color: string }) {
+type Card = {
+  label: string;
+  tagline: string;
+  /** The AT-URI trail, leaf last — the leaf is what the route points at. */
+  chips: Chip[];
+  pdsHost?: string;
+};
+
+/**
+ * Size the trail from the leaf backwards.
+ *
+ * The leaf takes the largest size that still fits the content width; each
+ * segment above it is then capped at a fraction of whatever the leaf actually
+ * landed on. Sizing every chip independently would let a short handle outgrow
+ * a long NSID below it and invert the hierarchy — @dame.is has room to be
+ * enormous, com.atproto.lexicon.schema does not.
+ */
+function chipSizes(chips: Chip[]): number[] {
+  const leafIndex = chips.length - 1;
+  const leafCap = chips.length === 1 ? 92 : chips.length === 2 ? 82 : 72;
+  // 1000 rather than the full 1060 content width, leaving room for the
+  // trailing slash and a margin — a chip that lands exactly on the edge reads
+  // as clipped even when it technically fits.
+  const width = (c: Chip) => c.text.length + (c.glyph ? 2 : 0);
+  const leafSize = fitMonoSize(width(chips[leafIndex]), leafCap, { maxWidth: 1000 });
+
+  return chips.map((chip, i) => {
+    if (i === leafIndex) return leafSize;
+    const stepsBack = leafIndex - i;
+    const cap = Math.round(leafSize * (stepsBack === 1 ? 0.8 : 0.68));
+    return fitMonoSize(width(chip), cap, { maxWidth: 1000 });
+  });
+}
+
+/** Leaf is brightest; each step back from it recedes. */
+function chipTone(index: number, total: number): 'primary' | 'accent' | 'muted' {
+  const stepsBack = total - 1 - index;
+  if (stepsBack === 0) return 'primary';
+  if (stepsBack === 1) return 'accent';
+  return 'muted';
+}
+
+/**
+ * Context line: what kind of thing this is, and which server it lives on.
+ * Deliberately small — the chips below carry the headline.
+ */
+function ContextRow({ card }: { card: Card }) {
   return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke={color}
-      strokeWidth={2}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      xmlns="http://www.w3.org/2000/svg"
-      style={{ flexShrink: 0 }}
-    >
-      <path d="m9 18 6-6-6-6" />
-    </svg>
+    <div style={{ display: 'flex', alignItems: 'center', gap: '18px' }}>
+      <ContextLabel>{card.label}</ContextLabel>
+      {card.pdsHost && (
+        <div
+          style={{
+            display: 'flex',
+            width: '4px',
+            height: '4px',
+            background: OG_COLORS.textTertiary,
+          }}
+        />
+      )}
+      {card.pdsHost && (
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '9px',
+            fontFamily: 'IBM Plex Mono',
+            fontSize: '20px',
+            fontWeight: 500,
+            color: OG_COLORS.textTertiary,
+          }}
+        >
+          <ServerGlyph size={19} />
+          <span style={{ display: 'flex' }}>{card.pdsHost}</span>
+        </div>
+      )}
+    </div>
   );
 }
 
-function ServerGlyph({ size, color }: { size: number; color: string }) {
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke={color}
-      strokeWidth={1.8}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      xmlns="http://www.w3.org/2000/svg"
-      style={{ flexShrink: 0 }}
-    >
-      <rect width="20" height="8" x="2" y="2" rx="2" ry="2" />
-      <rect width="20" height="8" x="2" y="14" rx="2" ry="2" />
-      <path d="M6 6h.01" />
-      <path d="M6 18h.01" />
-    </svg>
-  );
-}
-
-function BreadcrumbHero({ segments }: { segments: Segment[] }) {
-  // Scale the trail down as it gets longer so typical AT URIs stay on one or
-  // two lines instead of overflowing the 1200px card.
-  const totalLen =
-    segments.reduce((n, s) => n + s.label.length, 0) + segments.length * 3;
-  let size = 52;
-  if (totalLen > 28) size = 44;
-  if (totalLen > 40) size = 36;
-  if (totalLen > 56) size = 30;
-  if (totalLen > 74) size = 26;
-
-  const toneFor = (i: number): string => {
-    const isLeaf = i === segments.length - 1;
-    if (isLeaf) return OG_COLORS.accent;
-    const kind = segments[i].kind;
-    if (kind === 'pds') return OG_COLORS.textTertiary;
-    if (kind === 'collection') return OG_COLORS.textPrimary;
-    return OG_COLORS.textSecondary;
-  };
+function HeadlineChips({ card }: { card: Card }) {
+  const sizes = chipSizes(card.chips);
+  const total = card.chips.length;
 
   return (
     <div
       style={{
         display: 'flex',
-        flexWrap: 'wrap',
-        alignItems: 'center',
-        gap: `${Math.round(size * 0.42)}px`,
-        padding: '32px 36px',
-        background: OG_COLORS.bgSecondary,
-        border: `1px solid ${OG_COLORS.borderMedium}`,
-        fontFamily: 'IBM Plex Mono',
+        flexDirection: 'column',
+        alignItems: 'flex-start',
+        gap: '14px',
       }}
     >
-      {segments.map((seg, i) => {
-        const isLeaf = i === segments.length - 1;
-        const color = toneFor(i);
+      {card.chips.map((chip, i) => {
+        const tone = chipTone(i, total);
+        const glyphColor =
+          tone === 'primary'
+            ? OG_COLORS.textPrimary
+            : tone === 'accent'
+            ? OG_COLORS.accent
+            : OG_COLORS.textTertiary;
         return (
           <div
-            key={`${seg.kind}-${i}`}
-            style={{ display: 'flex', alignItems: 'center', gap: `${Math.round(size * 0.42)}px` }}
+            key={chip.text}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: `${Math.round(sizes[i] * 0.28)}px`,
+            }}
           >
-            {i > 0 && <ChevronRight size={Math.round(size * 0.72)} color={OG_COLORS.textTertiary} />}
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: `${Math.round(size * 0.3)}px`,
-                fontSize: `${size}px`,
-                fontWeight: 500,
-                color,
-                lineHeight: 1.1,
-                // Highlight the leaf (the record/collection you actually
-                // shared) with an accent chip so the eye lands there.
-                ...(isLeaf
-                  ? {
-                      padding: `${Math.round(size * 0.16)}px ${Math.round(size * 0.34)}px`,
-                      background: OG_COLORS.bgTertiary,
-                      border: `1px solid ${OG_COLORS.borderAccent}`,
-                    }
-                  : {}),
-              }}
-            >
-              {seg.kind === 'pds' && (
-                <ServerGlyph size={Math.round(size * 0.78)} color={color} />
-              )}
-              <span style={{ display: 'flex' }}>{seg.label}</span>
-            </div>
+            <IdentityChip
+              text={chip.text}
+              size={sizes[i]}
+              tone={tone}
+              icon={
+                chip.glyph ? (
+                  <ServerGlyph size={Math.round(sizes[i] * 0.82)} color={glyphColor} />
+                ) : undefined
+              }
+            />
+            {i < total - 1 && <ChipSlash size={sizes[i]} />}
           </div>
         );
       })}
@@ -219,17 +239,32 @@ export async function GET(request: NextRequest) {
     const collection = searchParams.get('collection') || '';
     const rkey = searchParams.get('rkey') || '';
     const hostParam = searchParams.get('host') || '';
+    const nsidParam = searchParams.get('nsid') || '';
+    const prefixParam = searchParams.get('prefix') || '';
+    // Universal-link pages share this layout but sell a different action:
+    // "open this anywhere" rather than "inspect this here".
+    const isLink = searchParams.get('context') === 'link';
 
-    // Build the breadcrumb segments.
-    const segments: Segment[] = [];
-    let contextLabel = 'Repository';
-    let tagline = 'Records, lexicons, identity history, and backlinks.';
+    let card: Card | null = null;
 
     if (hostParam && !repo) {
-      // PDS-level link: the host is the whole trail.
-      segments.push({ kind: 'pds', label: pdsHostname(hostParam) });
-      contextLabel = 'Personal data server';
-      tagline = 'Server metadata, available domains, and the repos it hosts.';
+      card = {
+        label: 'Personal data server',
+        tagline: 'Server metadata, available domains, and the repos it hosts.',
+        chips: [{ text: pdsHostname(hostParam), glyph: true }],
+      };
+    } else if (nsidParam) {
+      card = {
+        label: 'Lexicon',
+        tagline: 'Schema, usage trends, and recent records across the network.',
+        chips: [{ text: nsidParam }],
+      };
+    } else if (prefixParam) {
+      card = {
+        label: 'Namespace',
+        tagline: 'Every lexicon published under this namespace.',
+        chips: [{ text: prefixParam }],
+      };
     } else if (repo) {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 3000);
@@ -240,39 +275,51 @@ export async function GET(request: NextRequest) {
         clearTimeout(timeoutId);
       }
 
-      if (resolved.pdsHost) segments.push({ kind: 'pds', label: resolved.pdsHost });
-
-      const repoLabel = resolved.handle
+      const handle = resolved.handle
         ? `@${resolved.handle}`
         : repo.startsWith('did:')
         ? shortenDid(repo)
         : repo;
-      segments.push({ kind: 'repo', label: repoLabel });
 
-      if (collection) segments.push({ kind: 'collection', label: collection });
-      if (rkey) segments.push({ kind: 'rkey', label: rkey });
-
-      if (rkey) {
-        contextLabel = 'Record';
-        tagline = 'Raw record data, the lexicon behind it, and who links to it.';
+      if (rkey && collection) {
+        card = {
+          label: 'Record',
+          tagline: isLink
+            ? 'A single record, ready to open wherever you read the Atmosphere.'
+            : 'Raw record data, the lexicon behind it, and who links to it.',
+          chips: [{ text: handle }, { text: collection }, { text: rkey }],
+          pdsHost: resolved.pdsHost,
+        };
       } else if (collection) {
-        contextLabel = 'Collection';
-        tagline = 'Every record in this collection, with live counts.';
+        card = {
+          label: 'Collection',
+          tagline: 'Every record in this collection, with live counts.',
+          chips: [{ text: handle }, { text: collection }],
+          pdsHost: resolved.pdsHost,
+        };
       } else {
-        contextLabel = 'Repository';
-        tagline = 'Records, lexicons, identity history, and backlinks.';
+        card = {
+          label: 'Repository',
+          tagline: 'Records, lexicons, identity history, and backlinks.',
+          chips: [{ text: handle }],
+          pdsHost: resolved.pdsHost,
+        };
       }
-    } else {
-      // No target — degrade to a generic explorer card rather than 500.
-      segments.push({ kind: 'repo', label: 'aturi.to/explore' });
-      contextLabel = 'Atmosphere explorer';
-      tagline = 'Browse the PDS records, identity, and backlinks for any account.';
     }
 
+    // No target — degrade to a branded explorer card rather than faking a
+    // breadcrumb out of the site's own URL.
+    const eyebrow = isLink ? 'Universal link' : 'Atmosphere Explorer';
+    const fallbackTagline =
+      'Browse the records, identity history, and backlinks for any account in the Atmosphere.';
+
     const serifText =
-      `Atmosphere Explorer ${contextLabel} ${tagline} aturi.to ` + OG_GLYPH_BASELINE;
+      `${eyebrow} ${card?.tagline ?? fallbackTagline} Browse every PDS. ` +
+      'Open in any Atmosphere client aturi.to ' +
+      OG_GLYPH_BASELINE;
     const monoText =
-      `${contextLabel} ${segments.map((s) => s.label).join(' ')} @ . : / - _ ` +
+      `${card?.label ?? ''} ${card?.chips.map((c) => c.text).join(' ') ?? ''} ` +
+      `${card?.pdsHost ?? ''} aturi.to/explore @ . : / - _ ` +
       OG_GLYPH_BASELINE;
 
     const [crimsonData, monoData] = await Promise.all([
@@ -291,48 +338,66 @@ export async function GET(request: NextRequest) {
             zIndex: 1,
           }}
         >
-          <TopRow eyebrow="Atmosphere Explorer" />
+          <TopRow eyebrow={eyebrow} />
 
-          {/* Breadcrumb hero — vertically centered so the trail is the focus. */}
           <div
             style={{
               display: 'flex',
               flexDirection: 'column',
               flex: 1,
               justifyContent: 'center',
-              gap: '24px',
+              gap: '26px',
             }}
           >
-            <div
-              style={{
-                display: 'flex',
-                fontFamily: 'IBM Plex Mono',
-                fontSize: '20px',
-                fontWeight: 500,
-                letterSpacing: '0.18em',
-                textTransform: 'uppercase',
-                color: OG_COLORS.accent,
-              }}
-            >
-              {contextLabel}
-            </div>
-
-            <BreadcrumbHero segments={segments} />
-
-            <div
-              style={{
-                display: 'flex',
-                fontFamily: 'Crimson Pro',
-                fontSize: '30px',
-                fontWeight: 300,
-                color: OG_COLORS.textSecondary,
-                lineHeight: 1.3,
-                maxWidth: '960px',
-              }}
-            >
-              {tagline}
-            </div>
+            {/* Rendered as flat siblings, never wrapped in a fragment: Satori
+                treats a fragment as a layout node, which collapses the parent
+                column back into a row. */}
+            {card && <ContextRow card={card} />}
+            {card && <HeadlineChips card={card} />}
+            {!card && <Headline title={'Browse every\nPDS.'} tagline={fallbackTagline} />}
           </div>
+
+          <OgFooter
+            left={
+              // The fallback card already carries its tagline in the headline
+              // block, so leave the footer's left slot empty rather than
+              // echoing the URL that sits on the right.
+              card ? (
+                <div
+                  style={{
+                    display: 'flex',
+                    fontFamily: 'Crimson Pro',
+                    fontSize: '27px',
+                    fontWeight: 300,
+                    color: OG_COLORS.textSecondary,
+                    lineHeight: 1.3,
+                    maxWidth: '740px',
+                  }}
+                >
+                  {card.tagline}
+                </div>
+              ) : undefined
+            }
+            right={
+              isLink ? (
+                <FooterCta>Open in any Atmosphere client</FooterCta>
+              ) : (
+                <div
+                  style={{
+                    display: 'flex',
+                    flexShrink: 0,
+                    fontFamily: 'IBM Plex Mono',
+                    fontSize: '19px',
+                    fontWeight: 500,
+                    letterSpacing: '0.02em',
+                    color: OG_COLORS.textTertiary,
+                  }}
+                >
+                  aturi.to/explore
+                </div>
+              )
+            }
+          />
         </div>
       </OgFrame>
     );

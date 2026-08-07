@@ -141,8 +141,21 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
           title = `${collection} record by ${displayHandle} (@${displayHandle}): View on Aturi`;
           description = `View this ${collectionName} record in your preferred Atmosphere client`;
         }
+
+        // Everything that isn't a post or a list — margin annotations, lexicon
+        // schemas, any custom collection — used to ship no og:image at all, so
+        // sharing one produced a bare text unfurl. Fall back to the record card,
+        // which names the handle and the NSID.
+        if (!ogImageUrl) {
+          const ogUrl = new URL('/api/og/explore', getSiteUrl());
+          ogUrl.searchParams.set('repo', resolvedDid);
+          ogUrl.searchParams.set('collection', collection);
+          ogUrl.searchParams.set('rkey', rkey);
+          ogUrl.searchParams.set('context', 'link');
+          ogImageUrl = ogUrl.toString();
+        }
       }
-      
+
       return {
         title,
         description,

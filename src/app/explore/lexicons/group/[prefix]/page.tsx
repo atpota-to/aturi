@@ -12,19 +12,20 @@ export async function generateMetadata({
   const decoded = decodeURIComponent(prefix);
   const title = `${decoded} · Lexicons · Atmosphere Explorer`;
   const description = `Lexicons in the ${decoded} namespace across the AT Protocol.`;
+  const ogPath = `/api/og/explore?prefix=${encodeURIComponent(decoded)}`;
   return {
     title,
     description,
     openGraph: {
       title,
       description,
-      images: ['/og-images/aturi-explore.png'],
+      images: [ogPath],
     },
     twitter: {
       card: 'summary_large_image',
       title,
       description,
-      images: ['/og-images/aturi-explore.png'],
+      images: [ogPath],
     },
   };
 }

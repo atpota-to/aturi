@@ -42,8 +42,29 @@ const fontCache = new Map<string, ArrayBuffer>();
  */
 export function sanitizeOgText(text: string): string {
   return text
-    .replace(/[←-⯿]️?/g, '')
+    // Take the whole ZWJ sequence when one of its parts is in range, rather
+    // than just the offending codepoint: 🏳️‍⚧️ is flag + ZWJ + ⚧ + VS16, and
+    // dropping only the ⚧ left a plain white flag standing in for a trans
+    // flag — a wrong glyph is worse than no glyph.
+    .replace(/(?:\p{Extended_Pictographic}️?‍)?[←-⯿]️?/gu, '')
     .replace(/ {2,}/g, ' ');
+}
+
+/**
+ * Largest font size at which `len` monospace characters still fit inside
+ * `maxWidth`, accounting for the chip's own horizontal padding.
+ *
+ * IBM Plex Mono advances exactly 0.6em per character, so the fit is closed
+ * form — no measuring pass needed, which matters because Satori gives us no
+ * way to measure text before layout.
+ */
+export function fitMonoSize(
+  len: number,
+  cap: number,
+  { maxWidth = 1060, padEm = 0.34, min = 18 }: { maxWidth?: number; padEm?: number; min?: number } = {},
+): number {
+  const size = maxWidth / (0.6 * len + 2 * padEm);
+  return Math.max(min, Math.min(cap, Math.floor(size)));
 }
 
 /**
@@ -225,6 +246,178 @@ export function TopRow({ eyebrow }: { eyebrow?: ReactNode }) {
     >
       <BrandMark />
       {eyebrow ? <Eyebrow>{eyebrow}</Eyebrow> : <div style={{ display: 'flex' }} />}
+    </div>
+  );
+}
+
+/**
+ * Small-caps mono label — the accent-coloured kicker that names what kind of
+ * thing the card is about ("COLLECTION", "RECORD", "BLUESKY POST").
+ */
+export function ContextLabel({ children }: { children: ReactNode }) {
+  return (
+    <div
+      style={{
+        display: 'flex',
+        fontFamily: 'IBM Plex Mono',
+        fontSize: '20px',
+        fontWeight: 500,
+        letterSpacing: '0.18em',
+        textTransform: 'uppercase',
+        color: OG_COLORS.accent,
+      }}
+    >
+      {children}
+    </div>
+  );
+}
+
+/** Stacked-drive glyph, used wherever a PDS hostname appears. */
+export function ServerGlyph({ size = 22, color = OG_COLORS.textTertiary }: IconProps = {}) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke={color}
+      strokeWidth={1.8}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      xmlns="http://www.w3.org/2000/svg"
+      style={{ flexShrink: 0 }}
+    >
+      <rect width="20" height="8" x="2" y="2" rx="2" ry="2" />
+      <rect width="20" height="8" x="2" y="14" rx="2" ry="2" />
+      <path d="M6 6h.01" />
+      <path d="M6 18h.01" />
+    </svg>
+  );
+}
+
+/**
+ * The card's headline unit: a shrink-wrapped mono chip carrying one segment of
+ * an AT URI (a handle, an NSID, an rkey).
+ *
+ * Every chip wears identical chrome — same background, same hairline border —
+ * so the only things separating them are size and text colour. That keeps the
+ * hierarchy readable at unfurl scale: the segment the route actually points at
+ * is the biggest and the brightest, and everything above it steps back.
+ */
+export function IdentityChip({
+  text,
+  size,
+  tone = 'primary',
+  icon,
+}: {
+  text: string;
+  size: number;
+  /** Distance from the leaf: `primary` is the leaf, then `accent`, then `muted`. */
+  tone?: 'primary' | 'accent' | 'muted';
+  icon?: ReactNode;
+}) {
+  const color =
+    tone === 'accent'
+      ? OG_COLORS.accent
+      : tone === 'muted'
+      ? OG_COLORS.textTertiary
+      : OG_COLORS.textPrimary;
+
+  return (
+    <div
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: `${Math.round(size * 0.3)}px`,
+        padding: `${Math.round(size * 0.2)}px ${Math.round(size * 0.34)}px`,
+        background: OG_COLORS.bgSecondary,
+        border: `1px solid ${OG_COLORS.borderSubtle}`,
+        fontFamily: 'IBM Plex Mono',
+        fontSize: `${size}px`,
+        fontWeight: 500,
+        color,
+        lineHeight: 1.1,
+      }}
+    >
+      {icon}
+      <span style={{ display: 'flex' }}>{text}</span>
+    </div>
+  );
+}
+
+/**
+ * Path separator set outside the chips, between one segment and the next.
+ * The chips stack rather than run inline (an NSID at headline size is wider
+ * than the card), so the slash is what tells you you're reading a trail.
+ */
+export function ChipSlash({ size }: { size: number }) {
+  return (
+    <div
+      style={{
+        display: 'flex',
+        flexShrink: 0,
+        fontFamily: 'IBM Plex Mono',
+        fontSize: `${Math.round(size * 0.86)}px`,
+        fontWeight: 500,
+        color: OG_COLORS.textTertiary,
+        lineHeight: 1.1,
+      }}
+    >
+      /
+    </div>
+  );
+}
+
+/**
+ * Hairline rule + a left/right row, pinned to the bottom of a card. Gives
+ * every data card the same closing line so the bottom third stops reading as
+ * unused space.
+ */
+export function OgFooter({ left, right }: { left?: ReactNode; right?: ReactNode }) {
+  return (
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '18px',
+        position: 'relative',
+        zIndex: 1,
+      }}
+    >
+      <div style={{ display: 'flex', height: '1px', background: OG_COLORS.borderSubtle }} />
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: '32px',
+        }}
+      >
+        {left ?? <div style={{ display: 'flex' }} />}
+        {right ?? <div style={{ display: 'flex' }} />}
+      </div>
+    </div>
+  );
+}
+
+/** Right-hand footer CTA: "Open in any Atmosphere client →". */
+export function FooterCta({ children }: { children: ReactNode }) {
+  return (
+    <div
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: '10px',
+        flexShrink: 0,
+        fontFamily: 'Crimson Pro',
+        fontSize: '24px',
+        fontWeight: 300,
+        fontStyle: 'italic',
+        color: OG_COLORS.textTertiary,
+      }}
+    >
+      <span style={{ display: 'flex' }}>{children}</span>
+      <ArrowRight size={22} color={OG_COLORS.textTertiary} />
     </div>
   );
 }
@@ -453,7 +646,10 @@ export function WaypointRow({
 }) {
   const items: { key: string; node: ReactNode }[] = [
     { key: 'bluesky', node: <BlueskyIcon size={iconSize} /> },
-    { key: 'anisota', node: <AnisotaIcon height={iconSize} /> },
+    // Anisota's mark is a single tall hairline stroke — matched to the others
+    // on height it reads as a smudge, so give it ~30% more and let it run
+    // taller than the square marks to even out the optical weight.
+    { key: 'anisota', node: <AnisotaIcon height={Math.round(iconSize * 1.3)} /> },
     { key: 'leaflet', node: <LeafletIcon size={iconSize} /> },
     { key: 'tangled', node: <TangledIcon size={iconSize} /> },
     { key: 'margin', node: <MarginIcon size={iconSize} /> },
@@ -508,11 +704,17 @@ export function WaypointRow({
 export function Headline({
   title,
   tagline,
+  size = 78,
+  taglineSize,
 }: {
   title: string;
   tagline?: string;
+  /** Display size. Split layouts pass a smaller value to fit a half-width column. */
+  size?: number;
+  taglineSize?: number;
 }) {
   const lines = title.split('\n');
+  const subSize = taglineSize ?? Math.max(22, Math.round(size * 0.36));
   return (
     <div
       style={{
@@ -526,7 +728,7 @@ export function Headline({
         style={{
           display: 'flex',
           flexDirection: 'column',
-          fontSize: '78px',
+          fontSize: `${size}px`,
           fontWeight: 300,
           letterSpacing: '-0.02em',
           color: OG_COLORS.textPrimary,
@@ -543,7 +745,7 @@ export function Headline({
         <div
           style={{
             marginTop: '18px',
-            fontSize: '28px',
+            fontSize: `${subSize}px`,
             fontWeight: 300,
             color: OG_COLORS.textSecondary,
             lineHeight: 1.4,
