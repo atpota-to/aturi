@@ -37,7 +37,7 @@ function clampBio(bio: string, { maxChars = 240, maxLines = 4 } = {}): string {
   out = out.trimEnd();
   // Drop trailing punctuation before the ellipsis, so a bio that happens to
   // break after a full stop doesn't render as "sky/weather.…".
-  return truncated ? `${out.replace(/[\s.,;:!?—-]+$/, '')}…` : out;
+  return truncated ? `${out.replace(/[\s.,;:!?·|—-]+$/, '')}…` : out;
 }
 
 function PersonGlyph({ size = 56 }: { size?: number }) {
