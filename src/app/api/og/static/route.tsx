@@ -224,6 +224,25 @@ function ExploreVisual() {
           <span style={{ display: 'flex' }}>pds.atpota.to</span>
         </div>
       </div>
+      {/* Same rules as the real explore card: identical chip chrome, colour
+          and size carrying the hierarchy, slash outside the chip. */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <div
+          style={{
+            display: 'flex',
+            padding: '8px 12px',
+            background: OG_COLORS.bgTertiary,
+            border: `1px solid ${OG_COLORS.borderSubtle}`,
+          }}
+        >
+          <MonoLine size={21} color={OG_COLORS.accent}>
+            @dame.is
+          </MonoLine>
+        </div>
+        <MonoLine size={18} color={OG_COLORS.textTertiary}>
+          /
+        </MonoLine>
+      </div>
       <div
         style={{
           display: 'flex',
@@ -233,18 +252,6 @@ function ExploreVisual() {
         }}
       >
         <MonoLine size={26} color={OG_COLORS.textPrimary}>
-          @dame.is
-        </MonoLine>
-      </div>
-      <div
-        style={{
-          display: 'flex',
-          padding: '10px 14px',
-          background: OG_COLORS.bgTertiary,
-          border: `1px solid ${OG_COLORS.borderAccent}`,
-        }}
-      >
-        <MonoLine size={24} color={OG_COLORS.accent}>
           app.bsky.feed.post
         </MonoLine>
       </div>

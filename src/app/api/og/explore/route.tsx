@@ -1,6 +1,7 @@
 import { ImageResponse } from '@vercel/og';
 import { NextRequest } from 'next/server';
 import {
+  ChipSlash,
   ContextLabel,
   fitMonoSize,
   FooterCta,
@@ -99,31 +100,48 @@ function shortenDid(did: string): string {
 
 // ─── Card model ─────────────────────────────────────────────────────────────
 
-type Chip = { text: string; tone: 'primary' | 'accent' | 'muted'; glyph?: boolean };
+type Chip = { text: string; glyph?: boolean };
 
 type Card = {
   label: string;
   tagline: string;
-  /** One or two headline chips — the identity the card is really about. */
+  /** The AT-URI trail, leaf last — the leaf is what the route points at. */
   chips: Chip[];
-  /** Subordinate chip (a record key), rendered smaller beneath the pair. */
-  minor?: string;
   pdsHost?: string;
 };
 
 /**
- * The headline chips carry the whole message of these cards, so they get the
- * full content width and the largest size that still fits. A lone chip can go
- * very large; a pair backs off enough that the second one doesn't shrink into
- * body copy.
+ * Size the trail from the leaf backwards.
+ *
+ * The leaf takes the largest size that still fits the content width; each
+ * segment above it is then capped at a fraction of whatever the leaf actually
+ * landed on. Sizing every chip independently would let a short handle outgrow
+ * a long NSID below it and invert the hierarchy — @dame.is has room to be
+ * enormous, com.atproto.lexicon.schema does not.
  */
-function chipSizes(chips: Chip[], hasMinor: boolean): number[] {
-  const cap = chips.length > 1 ? (hasMinor ? 68 : 78) : 92;
-  // 1020 rather than the full 1060 content width: a chip that lands exactly on
-  // the margin reads as clipped even when it technically fits.
-  return chips.map((c) =>
-    fitMonoSize(c.text.length + (c.glyph ? 2 : 0), cap, { maxWidth: 1020 }),
-  );
+function chipSizes(chips: Chip[]): number[] {
+  const leafIndex = chips.length - 1;
+  const leafCap = chips.length === 1 ? 92 : chips.length === 2 ? 82 : 72;
+  // 1000 rather than the full 1060 content width, leaving room for the
+  // trailing slash and a margin — a chip that lands exactly on the edge reads
+  // as clipped even when it technically fits.
+  const width = (c: Chip) => c.text.length + (c.glyph ? 2 : 0);
+  const leafSize = fitMonoSize(width(chips[leafIndex]), leafCap, { maxWidth: 1000 });
+
+  return chips.map((chip, i) => {
+    if (i === leafIndex) return leafSize;
+    const stepsBack = leafIndex - i;
+    const cap = Math.round(leafSize * (stepsBack === 1 ? 0.8 : 0.68));
+    return fitMonoSize(width(chip), cap, { maxWidth: 1000 });
+  });
+}
+
+/** Leaf is brightest; each step back from it recedes. */
+function chipTone(index: number, total: number): 'primary' | 'accent' | 'muted' {
+  const stepsBack = total - 1 - index;
+  if (stepsBack === 0) return 'primary';
+  if (stepsBack === 1) return 'accent';
+  return 'muted';
 }
 
 /**
@@ -165,8 +183,8 @@ function ContextRow({ card }: { card: Card }) {
 }
 
 function HeadlineChips({ card }: { card: Card }) {
-  const sizes = chipSizes(card.chips, Boolean(card.minor));
-  const minorSize = Math.max(26, Math.round(Math.min(...sizes) * 0.55));
+  const sizes = chipSizes(card.chips);
+  const total = card.chips.length;
 
   return (
     <div
@@ -177,25 +195,37 @@ function HeadlineChips({ card }: { card: Card }) {
         gap: '14px',
       }}
     >
-      {card.chips.map((chip, i) => (
-        <IdentityChip
-          key={chip.text}
-          text={chip.text}
-          size={sizes[i]}
-          tone={chip.tone}
-          icon={
-            chip.glyph ? (
-              <ServerGlyph
-                size={Math.round(sizes[i] * 0.82)}
-                color={chip.tone === 'accent' ? OG_COLORS.accent : OG_COLORS.textPrimary}
-              />
-            ) : undefined
-          }
-        />
-      ))}
-      {card.minor && (
-        <IdentityChip text={card.minor} size={minorSize} tone="muted" />
-      )}
+      {card.chips.map((chip, i) => {
+        const tone = chipTone(i, total);
+        const glyphColor =
+          tone === 'primary'
+            ? OG_COLORS.textPrimary
+            : tone === 'accent'
+            ? OG_COLORS.accent
+            : OG_COLORS.textTertiary;
+        return (
+          <div
+            key={chip.text}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: `${Math.round(sizes[i] * 0.28)}px`,
+            }}
+          >
+            <IdentityChip
+              text={chip.text}
+              size={sizes[i]}
+              tone={tone}
+              icon={
+                chip.glyph ? (
+                  <ServerGlyph size={Math.round(sizes[i] * 0.82)} color={glyphColor} />
+                ) : undefined
+              }
+            />
+            {i < total - 1 && <ChipSlash size={sizes[i]} />}
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -221,19 +251,19 @@ export async function GET(request: NextRequest) {
       card = {
         label: 'Personal data server',
         tagline: 'Server metadata, available domains, and the repos it hosts.',
-        chips: [{ text: pdsHostname(hostParam), tone: 'accent', glyph: true }],
+        chips: [{ text: pdsHostname(hostParam), glyph: true }],
       };
     } else if (nsidParam) {
       card = {
         label: 'Lexicon',
         tagline: 'Schema, usage trends, and recent records across the network.',
-        chips: [{ text: nsidParam, tone: 'accent' }],
+        chips: [{ text: nsidParam }],
       };
     } else if (prefixParam) {
       card = {
         label: 'Namespace',
         tagline: 'Every lexicon published under this namespace.',
-        chips: [{ text: prefixParam, tone: 'accent' }],
+        chips: [{ text: prefixParam }],
       };
     } else if (repo) {
       const controller = new AbortController();
@@ -257,28 +287,21 @@ export async function GET(request: NextRequest) {
           tagline: isLink
             ? 'A single record, ready to open wherever you read the Atmosphere.'
             : 'Raw record data, the lexicon behind it, and who links to it.',
-          chips: [
-            { text: handle, tone: 'primary' },
-            { text: collection, tone: 'accent' },
-          ],
-          minor: rkey,
+          chips: [{ text: handle }, { text: collection }, { text: rkey }],
           pdsHost: resolved.pdsHost,
         };
       } else if (collection) {
         card = {
           label: 'Collection',
           tagline: 'Every record in this collection, with live counts.',
-          chips: [
-            { text: handle, tone: 'primary' },
-            { text: collection, tone: 'accent' },
-          ],
+          chips: [{ text: handle }, { text: collection }],
           pdsHost: resolved.pdsHost,
         };
       } else {
         card = {
           label: 'Repository',
           tagline: 'Records, lexicons, identity history, and backlinks.',
-          chips: [{ text: handle, tone: 'accent' }],
+          chips: [{ text: handle }],
           pdsHost: resolved.pdsHost,
         };
       }
@@ -296,7 +319,7 @@ export async function GET(request: NextRequest) {
       OG_GLYPH_BASELINE;
     const monoText =
       `${card?.label ?? ''} ${card?.chips.map((c) => c.text).join(' ') ?? ''} ` +
-      `${card?.minor ?? ''} ${card?.pdsHost ?? ''} aturi.to/explore @ . : / - _ ` +
+      `${card?.pdsHost ?? ''} aturi.to/explore @ . : / - _ ` +
       OG_GLYPH_BASELINE;
 
     const [crimsonData, monoData] = await Promise.all([

@@ -296,10 +296,13 @@ export function ServerGlyph({ size = 22, color = OG_COLORS.textTertiary }: IconP
 }
 
 /**
- * The card's headline unit: a shrink-wrapped mono chip carrying one piece of
- * an AT URI (a handle, an NSID, an rkey). Sized by `fitMonoSize` so the
- * longest realistic NSID still lands large instead of being scaled into the
- * body copy.
+ * The card's headline unit: a shrink-wrapped mono chip carrying one segment of
+ * an AT URI (a handle, an NSID, an rkey).
+ *
+ * Every chip wears identical chrome — same background, same hairline border —
+ * so the only things separating them are size and text colour. That keeps the
+ * hierarchy readable at unfurl scale: the segment the route actually points at
+ * is the biggest and the brightest, and everything above it steps back.
  */
 export function IdentityChip({
   text,
@@ -309,6 +312,7 @@ export function IdentityChip({
 }: {
   text: string;
   size: number;
+  /** Distance from the leaf: `primary` is the leaf, then `accent`, then `muted`. */
   tone?: 'primary' | 'accent' | 'muted';
   icon?: ReactNode;
 }) {
@@ -318,7 +322,6 @@ export function IdentityChip({
       : tone === 'muted'
       ? OG_COLORS.textTertiary
       : OG_COLORS.textPrimary;
-  const border = tone === 'accent' ? OG_COLORS.borderAccent : OG_COLORS.borderSubtle;
 
   return (
     <div
@@ -327,8 +330,8 @@ export function IdentityChip({
         alignItems: 'center',
         gap: `${Math.round(size * 0.3)}px`,
         padding: `${Math.round(size * 0.2)}px ${Math.round(size * 0.34)}px`,
-        background: tone === 'muted' ? 'transparent' : OG_COLORS.bgSecondary,
-        border: `1px solid ${border}`,
+        background: OG_COLORS.bgSecondary,
+        border: `1px solid ${OG_COLORS.borderSubtle}`,
         fontFamily: 'IBM Plex Mono',
         fontSize: `${size}px`,
         fontWeight: 500,
@@ -338,6 +341,29 @@ export function IdentityChip({
     >
       {icon}
       <span style={{ display: 'flex' }}>{text}</span>
+    </div>
+  );
+}
+
+/**
+ * Path separator set outside the chips, between one segment and the next.
+ * The chips stack rather than run inline (an NSID at headline size is wider
+ * than the card), so the slash is what tells you you're reading a trail.
+ */
+export function ChipSlash({ size }: { size: number }) {
+  return (
+    <div
+      style={{
+        display: 'flex',
+        flexShrink: 0,
+        fontFamily: 'IBM Plex Mono',
+        fontSize: `${Math.round(size * 0.86)}px`,
+        fontWeight: 500,
+        color: OG_COLORS.textTertiary,
+        lineHeight: 1.1,
+      }}
+    >
+      /
     </div>
   );
 }
