@@ -293,7 +293,7 @@ export async function GET(request: NextRequest) {
       } else if (collection) {
         card = {
           label: 'Collection',
-          tagline: 'Every record in this collection, with live counts.',
+          tagline: 'Every record in this collection for this account.',
           chips: [{ text: handle }, { text: collection }],
           pdsHost: resolved.pdsHost,
         };
