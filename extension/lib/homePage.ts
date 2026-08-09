@@ -12,6 +12,7 @@ const BUILTIN_HOME: Record<string, string> = {
   bluepy: 'https://bluepy.social/',
   blacksky: 'https://blacksky.community/',
   reddwarf: 'https://reddwarf.app/',
+  impro: 'https://impro.social/',
   leaflet: 'https://leaflet.pub/',
   pdsls: 'https://pdsls.dev/',
   anisotaReader: 'https://anisota.net/',

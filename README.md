@@ -80,7 +80,7 @@ Posts also have a friendly alias: `aturi.to/profile/[handle]/post/[rkey]`. The b
 
 The catalog covers 25+ Atmosphere apps and dev tools across categories like:
 
-- **Bluesky clients**: Bluesky, Anisota, Bluepy, Red Dwarf, plus forks like Blacksky, Witchsky, Mu, and Deer
+- **Bluesky clients**: Bluesky, Anisota, Bluepy, Red Dwarf, Impro, plus forks like Blacksky, Witchsky, Mu, and Deer
 - **Publications**: Leaflet, Standard Site readers
 - **Apps**: Tangled, Margin, Grain, Pinkleap, Semble, Streamplace, Popfeed, Sifa, Blento, Offprint, pckt, Anisota Reader
 - **Dev tools**: PDSls, atp.tools, Anisota Explorer
