@@ -1,0 +1,14 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Security vulnerability
+    url: https://github.com/atpota-to/aturi/security/advisories/new
+    about: Report privately. Do not open a public issue.
+  - name: Contributing guide
+    url: https://github.com/atpota-to/aturi/blob/main/CONTRIBUTING.md
+    about: Setup, the checks CI runs, how to add a waypoint, and expectations for AI-assisted PRs.
+  - name: Developer docs
+    url: https://aturi.to/docs
+    about: Integrating the waypoint packages and the Resolve API into your own app.
+  - name: Email or Bluesky
+    url: https://bsky.app/profile/aturi.to
+    about: DM @aturi.to, or email aturi@atpota.to.
