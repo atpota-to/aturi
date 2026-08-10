@@ -40,6 +40,8 @@ Edit the canonical file, then run `cd packages && npm run sync` and commit both.
 
 **5. Do not bump package versions or touch the publish workflow.** Releases are tag-triggered and maintainer-driven. npm trusted publishing pins the credential to `atpota-to/aturi` plus the exact filename `.github/workflows/publish-packages.yml`, so renaming or moving that file breaks publishing until it is re-registered on npm for both packages.
 
+The same workflow's `github-packages` job then mirrors both builds to GitHub Packages under `@atpota-to`, rewriting only the `name` field at publish time. GitHub rejects the real scope on two counts: it must match the repository owner, and it cannot contain the dot in `aturi.to`. Do not rewrite `@aturi.to/waypoints-react`'s dependency on `@aturi.to/waypoints` to the mirrored scope. The built bundle re-exports the `@aturi.to/waypoints` specifier verbatim, so a rewritten dependency would resolve to a package the bundle never imports.
+
 ## Adding a waypoint
 
 Four edits, all required, none of which fail the build if you skip them:

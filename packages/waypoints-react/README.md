@@ -25,6 +25,20 @@ npm install react react-dom lucide-react
 `@aturi.to/waypoints-react` re-exports everything from `@aturi.to/waypoints`, so a
 single install gives you the components *and* the catalog/resolvers.
 
+Also mirrored to GitHub Packages as `@atpota-to/waypoints-react` (GitHub only
+accepts a scope matching the repository owner, and it rejects the dot in
+`aturi.to`). Installing from there needs an `.npmrc`, because GitHub Packages
+requires a token even for public packages:
+
+```sh
+@atpota-to:registry=https://npm.pkg.github.com
+//npm.pkg.github.com/:_authToken=${GITHUB_TOKEN}   # PAT with read:packages
+```
+
+The mirror keeps its dependency on `@aturi.to/waypoints` from npm rather than
+pointing at the mirrored core, because the published bundle re-exports that exact
+specifier. npm resolves it from npmjs with no token involved.
+
 ## Server vs. client components
 
 This is a **client** package: its entry carries the `"use client"` directive,

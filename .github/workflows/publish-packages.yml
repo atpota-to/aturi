@@ -6,11 +6,19 @@ name: Publish packages
 # `atpota-to/aturi` + this filename. Renaming this file breaks publishing until
 # the new name is re-registered on npm for BOTH packages.
 #
+# The `github-packages` job then mirrors the same two builds to GitHub Packages.
+# npm is the primary registry; the mirror is a convenience for consumers who
+# pull from GitHub. It publishes under `@atpota-to/*` because GitHub Packages
+# only accepts a scope matching the repository owner - see
+# .github/scripts/publish-github-package.sh.
+#
 # Releasing: bump both package.json versions, merge to main, then push a tag:
 #   git tag v0.1.2 && git push origin v0.1.2
 #
 # Each package is skipped if its version is already on the registry, so re-runs
-# are safe and bumping only one package doesn't fail the other.
+# are safe and bumping only one package doesn't fail the other. The two
+# registries are tracked separately, so a mirror that failed on its own can be
+# backfilled by re-running the workflow.
 
 on:
   push:
@@ -100,3 +108,62 @@ jobs:
       - name: Report dry run
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run }}
         run: echo "Dry run - built and verified, published nothing." >> "$GITHUB_STEP_SUMMARY"
+
+  github-packages:
+    name: Mirror to GitHub Packages
+    needs: publish # npm is the source of truth; don't mirror a release that failed there
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write # GITHUB_TOKEN's publish rights on npm.pkg.github.com
+    # Job-wide rather than per-step: setup-node writes a literal
+    # `${NODE_AUTH_TOKEN}` into the .npmrc, and npm fails to parse that config
+    # at all - `npm ci` included - if the variable is unset. npm only sends it
+    # to npm.pkg.github.com, the host the token line is scoped to.
+    env:
+      NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          # Writes `//npm.pkg.github.com/:_authToken=${NODE_AUTH_TOKEN}` plus
+          # `@atpota-to:registry=https://npm.pkg.github.com/` - with no `scope`
+          # input, setup-node defaults it to the lowercased repository owner,
+          # which is exactly the scope GitHub Packages demands. The default
+          # registry is left alone, so `npm ci` still installs from npmjs.
+          registry-url: 'https://npm.pkg.github.com'
+          cache: npm
+          cache-dependency-path: packages/package-lock.json
+
+      - name: Install
+        run: npm ci
+        working-directory: packages
+
+      # The gates already ran in `publish`, and `prepublishOnly` rebuilds each
+      # package at publish time anyway - but waypoints-react's .d.ts build
+      # resolves @aturi.to/waypoints through the workspace symlink, so core's
+      # dist has to exist even on a run where core itself is skipped as
+      # already-mirrored.
+      - name: Build core
+        run: npm run build
+        working-directory: packages/waypoints
+
+      - name: Build react
+        run: npm run build
+        working-directory: packages/waypoints-react
+
+      - name: Publish @atpota-to/waypoints
+        if: ${{ github.event_name != 'workflow_dispatch' || !inputs.dry_run }}
+        run: ../../.github/scripts/publish-github-package.sh
+        working-directory: packages/waypoints
+
+      - name: Publish @atpota-to/waypoints-react
+        if: ${{ github.event_name != 'workflow_dispatch' || !inputs.dry_run }}
+        run: ../../.github/scripts/publish-github-package.sh
+        working-directory: packages/waypoints-react
+
+      - name: Report dry run
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run }}
+        run: echo "Dry run - mirrored nothing to GitHub Packages." >> "$GITHUB_STEP_SUMMARY"

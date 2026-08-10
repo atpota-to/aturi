@@ -180,6 +180,8 @@ Publishing `@aturi.to/waypoints` and `@aturi.to/waypoints-react` to npm is a mai
 
 For maintainers: bump both `package.json` versions, merge to main, then push a tag (`git tag v0.1.2 && git push origin v0.1.2`). `.github/workflows/publish-packages.yml` runs the same gates as CI and publishes through npm trusted publishing (OIDC), so there is no token to rotate. A package already on the registry at that version is skipped, so re-runs and single-package bumps are both safe. Renaming that workflow file breaks publishing until the new name is registered on npm for both packages.
 
+Once npm has both packages, the workflow's second job mirrors the same builds to GitHub Packages as `@atpota-to/waypoints` and `@atpota-to/waypoints-react`. The rename is forced: GitHub only accepts a scope matching the repository owner, and it rejects the dot in `aturi.to`. That job authenticates with the run's `GITHUB_TOKEN` (`packages: write`), needs no secret, and tracks the two registries separately, so a mirror that failed on its own can be backfilled by re-running the workflow after npm has already accepted the version.
+
 ## License
 
 The app is GPL-3.0-or-later. The two packages under `packages/` are MIT, so other Atmosphere developers can build on them without copyleft obligations.
