@@ -264,6 +264,10 @@ export const WAYPOINT_DESTINATIONS_DATA: Record<string, WaypointData> = {
     },
     supportedTypes: ['post', 'profile', 'list', 'record'],
     category: 'blueskyClients',
+    // Anisota implements the Bluesky shape deliberately, then extends it with
+    // `url`, `tags`, `channel`, and `title` (and answers `/post` with the same
+    // query). What's declared here is the interoperable subset every caller can
+    // rely on; the extras are Anisota-only and unrepresentable in this field.
     composeIntent: socialAppComposeIntent('https://anisota.net'),
     redirectCompat: ['bluesky-social', 'standard-site'],
     expectedCollections: ['app.bsky.', 'net.anisota.'],
