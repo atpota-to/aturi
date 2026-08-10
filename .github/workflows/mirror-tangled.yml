@@ -1,0 +1,85 @@
+name: Mirror to Tangled
+
+# Pushes this repository to its Tangled mirror at tangled.org/atpota.to/aturi.
+# GitHub is the primary: issues, pull requests and releases live here, and the
+# mirror is force-pushed to match, so anything committed only on Tangled is lost.
+#
+# Only `main` and `v*` tags are mirrored. A blanket `git push --mirror` - what
+# the off-the-shelf mirror actions do - would copy every claude/* branch onto
+# the mirror as well.
+#
+# Setup (one time):
+#   1. ssh-keygen -t ed25519 -C "aturi mirror" -f ./tangled-mirror -N ""
+#   2. Add ./tangled-mirror.pub on Tangled under Settings -> Keys.
+#   3. Add the contents of ./tangled-mirror (the private half) as the
+#      TANGLED_SSH_KEY secret under Settings -> Secrets -> Actions, then delete
+#      both local files.
+#
+# Tangled has no per-repo deploy keys - keys are account-level - so this key can
+# push to every repo on the atpota.to identity. Keep it dedicated to this
+# workflow so revoking it from Settings -> Keys costs nothing else.
+
+on:
+  push:
+    branches: [main]
+    tags:
+      - 'v*'
+  workflow_dispatch:
+  # Catch-up run: closes the gap if a push-triggered run failed or the knot was
+  # unreachable at the time.
+  schedule:
+    - cron: '17 6 * * 1'
+
+# Never let two mirror pushes race. A queued run carries the newer commits, so
+# waiting is always correct here.
+concurrency:
+  group: mirror-tangled
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  mirror:
+    name: Push main and tags to Tangled
+    runs-on: ubuntu-latest
+    # Forks inherit this workflow but not the secret; without this they'd fail
+    # on every scheduled run.
+    if: github.repository == 'atpota-to/aturi'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # A shallow clone can't be pushed on, and this also brings the tags.
+          fetch-depth: 0
+
+      - name: Configure the Tangled SSH key
+        env:
+          TANGLED_SSH_KEY: ${{ secrets.TANGLED_SSH_KEY }}
+        run: |
+          set -euo pipefail
+          if [ -z "${TANGLED_SSH_KEY:-}" ]; then
+            echo "TANGLED_SSH_KEY is unset - see the setup notes at the top of this file." >&2
+            exit 1
+          fi
+          mkdir -p ~/.ssh
+          printf '%s\n' "${TANGLED_SSH_KEY}" > ~/.ssh/tangled
+          chmod 600 ~/.ssh/tangled
+          # ssh-keyscan can exit 0 having printed nothing, which would surface
+          # later as an opaque host key verification failure on the push.
+          ssh-keyscan tangled.org > ~/.ssh/known_hosts 2>/dev/null || true
+          if [ ! -s ~/.ssh/known_hosts ]; then
+            echo "Could not read tangled.org's SSH host key." >&2
+            exit 1
+          fi
+
+      - name: Push main and tags
+        env:
+          # IdentitiesOnly stops ssh from offering any other agent key first.
+          GIT_SSH_COMMAND: ssh -i ~/.ssh/tangled -o IdentitiesOnly=yes
+        run: |
+          set -euo pipefail
+          # Source refs are the remote-tracking ones: on a tag push or a
+          # scheduled run there is no local `main` branch to push from.
+          git push --force git@tangled.org:atpota.to/aturi \
+            'refs/remotes/origin/main:refs/heads/main' \
+            'refs/tags/*:refs/tags/*'
