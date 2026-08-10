@@ -8,6 +8,7 @@
 export const APPVIEW = 'https://public.api.bsky.app';
 export const PLC_DIRECTORY = 'https://plc.directory';
 export const CONSTELLATION = 'https://constellation.microcosm.blue';
+export const SLINGSHOT = 'https://slingshot.microcosm.blue';
 export const JETSTREAM = 'wss://jetstream2.us-east.bsky.network/subscribe';
 export const HANDLE_RESOLVER_FALLBACK = 'https://bsky.social';
 

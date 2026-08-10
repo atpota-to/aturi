@@ -2,7 +2,16 @@
 
 import { useCallback, useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import { BookOpen, Compass, Download, Home, Leaf, Search, Telescope } from 'lucide-react';
+import {
+  BookOpen,
+  Compass,
+  Download,
+  Home,
+  Leaf,
+  MessageSquareHeart,
+  Search,
+  Telescope,
+} from 'lucide-react';
 import { motion } from 'framer-motion';
 import ThemeToggle from './ThemeToggle';
 import SessionMenu from './SessionMenu';
@@ -315,6 +324,10 @@ export default function Header({ simple = false, compact = false }: HeaderProps)
                   <Link href="/docs" className="compact-nav-link">
                     <BookOpen size={16} />
                     <span>docs</span>
+                  </Link>
+                  <Link href="/feedback" className="compact-nav-link">
+                    <MessageSquareHeart size={16} />
+                    <span>feedback</span>
                   </Link>
                   <ThemeToggle variant="row" />
                 </div>

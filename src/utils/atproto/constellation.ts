@@ -124,3 +124,115 @@ export function backlinksFromPage(page: BacklinksPage | null): BacklinkRecord[] 
   if (!page) return [];
   return page.records ?? page.linking_records ?? [];
 }
+
+/** Constellation caps `limit` at 100 on every paginated endpoint. */
+const MAX_PAGE = 100;
+
+/**
+ * Every backlink for a (target, source) tuple, following the cursor until the
+ * index is exhausted or `max` records have been collected. Returns `null` only
+ * when the *first* page fails — a mid-pagination failure yields what we have,
+ * since a partial list beats an empty one for a feedback board.
+ */
+export async function getAllBacklinks(
+  target: string,
+  source: string,
+  opts: { max?: number; reverse?: boolean; dids?: readonly string[] } = {},
+): Promise<BacklinkRecord[] | null> {
+  if (!target || !source) return null;
+  const { max = 500, reverse = false, dids } = opts;
+  const out: BacklinkRecord[] = [];
+  let cursor: string | undefined;
+
+  while (out.length < max) {
+    const params = new URLSearchParams({
+      subject: target,
+      source,
+      limit: String(Math.min(MAX_PAGE, max - out.length)),
+    });
+    if (cursor) params.set('cursor', cursor);
+    if (reverse) params.set('reverse', 'true');
+    // Repeat `did` to narrow the result to specific linking identities — far
+    // cheaper than paging the whole set and filtering client-side when only
+    // one author's links can possibly matter.
+    for (const did of dids ?? []) params.append('did', did);
+    const page = await fetchJsonOrNull<BacklinksPage>(
+      `${CONSTELLATION}/xrpc/blue.microcosm.links.getBacklinks?${params}`,
+    );
+    if (!page) return out.length ? out : null;
+    const records = backlinksFromPage(page);
+    out.push(...records);
+    if (!page.cursor || records.length === 0) break;
+    cursor = page.cursor;
+  }
+
+  return out;
+}
+
+export type ManyToManyItem = {
+  linkRecord: BacklinkRecord;
+  /** The secondary target the join record points at (an AT URI or a DID). */
+  otherSubject: string;
+};
+
+type ManyToManyPage = {
+  items?: ManyToManyItem[];
+  cursor?: string | null;
+};
+
+/**
+ * Join records that link a target *and* a secondary target — e.g. an
+ * `app.userinput.pin` carries both `space.uri` (the target) and `subject.uri`
+ * (the pinned discussion). One request returns both ends of every pin, where
+ * `getBacklinks` would return the pin coordinates and leave us to hydrate each
+ * record just to read the other side.
+ *
+ * `pathToOther` is the record path of the secondary link *without* a leading
+ * dot (`subject.uri` for a strongRef, `subject` for a bare DID string).
+ */
+export async function getManyToMany(
+  target: string,
+  source: string,
+  pathToOther: string,
+  opts: { max?: number } = {},
+): Promise<ManyToManyItem[] | null> {
+  if (!target || !source || !pathToOther) return null;
+  const { max = 500 } = opts;
+  const out: ManyToManyItem[] = [];
+  let cursor: string | undefined;
+
+  while (out.length < max) {
+    const params = new URLSearchParams({
+      subject: target,
+      source,
+      pathToOther,
+      limit: String(Math.min(MAX_PAGE, max - out.length)),
+    });
+    if (cursor) params.set('cursor', cursor);
+    const page = await fetchJsonOrNull<ManyToManyPage>(
+      `${CONSTELLATION}/xrpc/blue.microcosm.links.getManyToMany?${params}`,
+    );
+    if (!page) return out.length ? out : null;
+    const items = page.items ?? [];
+    out.push(...items);
+    if (!page.cursor || items.length === 0) break;
+    cursor = page.cursor;
+  }
+
+  return out;
+}
+
+/**
+ * Per-source counts for one target, keyed by `collection:path` in the same
+ * `source` form `getBacklinks` takes. One request covers every relationship
+ * pointing at a record — for a feedback discussion that's upvotes, downvotes,
+ * replies, statuses and edits together, instead of five count calls.
+ */
+export async function getBacklinkCounts(
+  target: string,
+): Promise<Map<string, BacklinkSource> | null> {
+  const sources = flattenSources(await getBacklinkSources(target));
+  if (!sources) return null;
+  return new Map(sources.map((s) => [s.source, s]));
+}
+

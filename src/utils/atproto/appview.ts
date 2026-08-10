@@ -41,9 +41,9 @@ export type AppViewProfile = {
   createdAt?: string;
 };
 
-async function fetchJsonOrNull<T>(url: string): Promise<T | null> {
+async function fetchJsonOrNull<T>(url: string, signal?: AbortSignal): Promise<T | null> {
   try {
-    const res = await fetch(url);
+    const res = await fetch(url, { signal });
     if (!res.ok) return null;
     return (await res.json()) as T;
   } catch {
@@ -112,6 +112,42 @@ export async function getProfileWithViewer(
     console.warn('[appview] getProfileWithViewer failed', { actor, err });
     return null;
   }
+}
+
+/**
+ * app.bsky.actor.getProfiles — batch profile lookup, 25 actors per request.
+ *
+ * Any page that renders a list of DIDs (a feedback board's authors, a
+ * backlink list) would otherwise issue one `getProfile` per row. This chunks
+ * the set and returns what the AppView knows, keyed by DID. Actors it has
+ * never seen — accounts on a PDS the AppView doesn't index — are simply
+ * absent, so callers should fall back to identity resolution rather than
+ * treat a miss as an error.
+ */
+export async function getProfiles(
+  actors: readonly string[],
+  opts: { signal?: AbortSignal } = {},
+): Promise<Map<string, AppViewProfile>> {
+  const out = new Map<string, AppViewProfile>();
+  const unique = Array.from(new Set(actors.filter(Boolean)));
+  const chunks: string[][] = [];
+  for (let i = 0; i < unique.length; i += 25) chunks.push(unique.slice(i, i + 25));
+
+  await Promise.all(
+    chunks.map(async (chunk) => {
+      const params = new URLSearchParams();
+      chunk.forEach((actor) => params.append('actors', actor));
+      const data = await fetchJsonOrNull<{ profiles?: AppViewProfile[] }>(
+        `${APPVIEW}/xrpc/app.bsky.actor.getProfiles?${params}`,
+        opts.signal,
+      );
+      for (const profile of data?.profiles ?? []) {
+        if (profile?.did) out.set(profile.did, profile);
+      }
+    }),
+  );
+
+  return out;
 }
 
 /** Lightweight actor record returned by typeahead/search endpoints. */
