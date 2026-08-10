@@ -4,15 +4,16 @@
 
 ## What is aturi.to?
 
-aturi.to is a toolkit for navigating the Atmosphere (the network of apps built on atproto). Three surfaces, one shared waypoint catalog and URI parser:
+aturi.to is a toolkit for navigating the Atmosphere (the network of apps built on atproto). Four surfaces, one shared waypoint catalog and URI parser:
 
 - **Browser extension** ([`extension/`](extension/)): jump between Atmosphere clients in one click, auto-redirect every Atmosphere link to your preferred client before it loads, and inspect the AT URI under any page.
 - **Atmosphere Explorer** ([aturi.to/explore](https://aturi.to/explore)). Browse any account's PDS: every collection, every record, identity history, audit log, inbound backlinks, trending lexicons, and a live view of the firehose. Sign in to edit your own records.
 - **Universal links** ([aturi.to/profile/…](https://aturi.to/)): drop an `aturi.to/...` URL anywhere and the recipient lands on a friendly preview of the record, then picks the Atmosphere client they want to open it in. No login, no client lock-in.
+- **Waypoints packages** ([`@aturi.to/waypoints`](packages/waypoints/README.md)): the same catalog, link builders, and URI resolution the other three surfaces run on, published as a zero-dependency npm package, with a headless React picker UI in [`@aturi.to/waypoints-react`](packages/waypoints-react/README.md). MIT-licensed, so you can add waypoints to your own app.
 
 Plus a **[feedback board](#feedback-board)** at [aturi.to/feedback](https://aturi.to/feedback), built on the userinput.app lexicons: post a bug or an idea, vote on someone else's, and every record lands in your own repo.
 
-The extension and the web app import the same `src/utils/waypoints.data.ts`, so the catalog of supported clients stays in lockstep across surfaces. That same catalog and resolver logic is also published as the MIT-licensed [`@aturi.to/waypoints`](packages/waypoints/README.md) packages, so you can build on it in your own app. See the [developer docs](https://aturi.to/docs).
+The extension and the web app import the same `src/utils/waypoints.data.ts`, so the catalog of supported clients stays in lockstep across surfaces. See the [developer docs](https://aturi.to/docs) for the packages.
 
 ## Browser extension
 
