@@ -7,7 +7,7 @@ import CopyMarkdownButton from '@/components/docs/CopyMarkdownButton';
 import { DOCS_MARKDOWN } from './markdown';
 
 const DESCRIPTION =
-  'Add Atmosphere “Open in…” links, smart client recommendations, and AT-URI resolution to your own app with the @aturi.to/waypoints packages and the public Resolve API.';
+  'Add Atmosphere “Open in…” links, smart client recommendations, compose intents, and AT-URI resolution to your own app with the @aturi.to/waypoints packages and the public Resolve API.';
 
 export const metadata: Metadata = {
   title: 'Developer Docs · aturi.to',
@@ -132,7 +132,7 @@ const composeExample = `import {
 
 // Which clients will open a composer for you?
 getComposeIntentWaypoints().map((w) => w.id);
-// ['bluesky', 'impro', 'blacksky', 'witchsky', 'mu', 'deer']
+// ['anisota', 'bluesky', 'impro', 'blacksky', 'witchsky', 'mu', 'deer']
 
 supportsComposeIntent(WAYPOINT_DESTINATIONS_DATA.deer); // true
 getComposeIntentUrl(WAYPOINT_DESTINATIONS_DATA.deer, 'hello from my app');

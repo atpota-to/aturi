@@ -227,7 +227,12 @@ export type ResolveApiParsed = {
 export type ResolveApiSuccess = {
   ok: true;
   inputKind: 'atUri' | 'url';
-  detectedVia: 'atUri' | 'urlPattern' | 'headLink' | null;
+  /**
+   * How the endpoint found the AT URI. `atTags` means the page declared it
+   * itself via `<meta name="at:canonical">` (or `at:alternate`); `headLink` is
+   * the older `<link href="at://…">` the same probe falls back to.
+   */
+  detectedVia: 'atUri' | 'urlPattern' | 'atTags' | 'headLink' | null;
   source: SourceApp;
   isKnownHost: boolean;
   parsed: ResolveApiParsed;

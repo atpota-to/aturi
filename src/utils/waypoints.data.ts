@@ -264,6 +264,7 @@ export const WAYPOINT_DESTINATIONS_DATA: Record<string, WaypointData> = {
     },
     supportedTypes: ['post', 'profile', 'list', 'record'],
     category: 'blueskyClients',
+    composeIntent: socialAppComposeIntent('https://anisota.net'),
     redirectCompat: ['bluesky-social', 'standard-site'],
     expectedCollections: ['app.bsky.', 'net.anisota.'],
   },

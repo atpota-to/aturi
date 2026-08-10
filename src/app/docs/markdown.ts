@@ -13,8 +13,9 @@
 
 export const DOCS_MARKDOWN = `# aturi.to: Developer Docs
 
-> Add Atmosphere "Open in…" links, smart client recommendations, and AT-URI
-> resolution to your own app, with two MIT-licensed packages and a public API.
+> Add Atmosphere "Open in…" links, smart client recommendations, compose
+> intents, and AT-URI resolution to your own app, with two MIT-licensed
+> packages and a public API.
 
 - Docs: https://aturi.to/docs
 - Repo: https://github.com/atpota-to/aturi
@@ -200,7 +201,7 @@ import {
 
 // Which clients will open a composer for you?
 getComposeIntentWaypoints().map((w) => w.id);
-// ['bluesky', 'impro', 'blacksky', 'witchsky', 'mu', 'deer']
+// ['anisota', 'bluesky', 'impro', 'blacksky', 'witchsky', 'mu', 'deer']
 
 supportsComposeIntent(WAYPOINT_DESTINATIONS_DATA.deer); // true
 getComposeIntentUrl(WAYPOINT_DESTINATIONS_DATA.deer, 'hello from my app');

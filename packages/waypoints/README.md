@@ -48,9 +48,9 @@ const fromUrl = await resolveUrl('https://bsky.app/profile/alice.bsky.social/pos
 - **AT URI parsing**: `parseURI`, `resolveHandle`, `getDisplayName`.
 - **Reverse resolution**: `matchSupportedUrl`, `parseAtUri`, `SUPPORTED_HOSTS`.
 - **High-level resolvers** (`resolve.ts`):
-  - `buildWaypointsForParsed(parsed, { did?, excludeSourceId? })`
-  - `resolveAtUri(uri)`
-  - `resolveUrl(url, { fetchHead?, resolveHandle? })`
+  - `buildWaypointsForParsed(parsed, { did?, excludeSourceId?, composeText? })`
+  - `resolveAtUri(uri, { composeText? })`
+  - `resolveUrl(url, { fetchHead?, resolveHandle?, composeText? })`
   - `resolveViaApi(input, { endpoint? })`: typed client for the hosted
     `aturi.to/api/resolve` endpoint.
 
@@ -72,7 +72,7 @@ import {
 } from '@aturi.to/waypoints';
 
 getComposeIntentWaypoints().map((w) => w.id);
-// ['bluesky', 'impro', 'blacksky', 'witchsky', 'mu', 'deer']
+// ['anisota', 'bluesky', 'impro', 'blacksky', 'witchsky', 'mu', 'deer']
 
 supportsComposeIntent(WAYPOINT_DESTINATIONS_DATA.pdsls); // false
 getComposeIntentUrl(WAYPOINT_DESTINATIONS_DATA.deer, 'hello from my app');
@@ -118,6 +118,14 @@ flag and `resolveViaApi` let you fall back to fetching the page and probing for 
 `<link href="at://…">`, useful for sites without a recognizable URL shape.
 `resolveViaApi` is the right choice from a browser, where fetching arbitrary
 pages is blocked by CORS.
+
+There's a second hosted endpoint for the catalog itself — what's in it, and
+which clients can do what — for consumers that aren't installing the package:
+
+```http
+GET https://aturi.to/api/waypoints
+GET https://aturi.to/api/waypoints?type=post&capability=compose
+```
 
 ## A note on drift
 

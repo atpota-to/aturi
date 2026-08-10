@@ -97,9 +97,12 @@ describe('getRecommendedWaypointsData', () => {
 describe('compose intents', () => {
   // Each of these was confirmed against the client's shipped bundle: the
   // social-app forks all parse `/intent/compose?text=`, Impro routes the path
-  // but drops the text. Anything not listed here has no confirmed route.
+  // but drops the text. Anisota is the exception — its route is in flight, so
+  // this asserts the shape we agreed on, not something already deployed.
+  // Anything not listed here has no confirmed route.
   it.each([
     ['bluesky', 'https://bsky.app/intent/compose?text=hello%20there'],
+    ['anisota', 'https://anisota.net/intent/compose?text=hello%20there'],
     ['blacksky', 'https://blacksky.community/intent/compose?text=hello%20there'],
     ['deer', 'https://deer.social/intent/compose?text=hello%20there'],
     ['witchsky', 'https://witchsky.app/intent/compose?text=hello%20there'],
@@ -118,7 +121,7 @@ describe('compose intents', () => {
   });
 
   it('returns null for clients with no confirmed intent route', () => {
-    for (const id of ['anisota', 'bluepy', 'reddwarf', 'pinksky', 'pdsls', 'leaflet']) {
+    for (const id of ['bluepy', 'reddwarf', 'pinksky', 'pdsls', 'leaflet']) {
       const waypoint = WAYPOINT_DESTINATIONS_DATA[id];
       expect(supportsComposeIntent(waypoint)).toBe(false);
       expect(getComposeIntentUrl(waypoint, 'hi')).toBeNull();
@@ -160,6 +163,7 @@ describe('compose intents', () => {
 
   it('lists compose-capable waypoints in catalog order', () => {
     expect(getComposeIntentWaypoints().map((w) => w.id)).toEqual([
+      'anisota',
       'bluesky',
       'impro',
       'blacksky',
