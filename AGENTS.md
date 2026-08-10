@@ -38,6 +38,8 @@ Edit the canonical file, then run `cd packages && npm run sync` and commit both.
 
 **4. Two licenses.** `src/` and `extension/` are GPL-3.0-or-later. `packages/` is MIT. Do not copy code from a GPL dependency into anything the sync script exports to `packages/`.
 
+**5. Do not bump package versions or touch the publish workflow.** Releases are tag-triggered and maintainer-driven. npm trusted publishing pins the credential to `atpota-to/aturi` plus the exact filename `.github/workflows/publish-packages.yml`, so renaming or moving that file breaks publishing until it is re-registered on npm for both packages.
+
 ## Adding a waypoint
 
 Four edits, all required, none of which fail the build if you skip them:
