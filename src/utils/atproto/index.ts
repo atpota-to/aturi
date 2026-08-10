@@ -11,6 +11,7 @@ export * from './pdsServer';
 export * from './identity';
 export * from './plc';
 export * from './constellation';
+export * from './slingshot';
 export * from './appview';
 export * from './jetstream';
 export * from './lexicons';

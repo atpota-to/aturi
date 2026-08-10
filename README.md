@@ -10,6 +10,8 @@ aturi.to is a toolkit for navigating the Atmosphere (the network of apps built o
 - **Atmosphere Explorer** ([aturi.to/explore](https://aturi.to/explore)). Browse any account's PDS: every collection, every record, identity history, audit log, inbound backlinks, trending lexicons, and a live view of the firehose. Sign in to edit your own records.
 - **Universal links** ([aturi.to/profile/…](https://aturi.to/)): drop an `aturi.to/...` URL anywhere and the recipient lands on a friendly preview of the record, then picks the Atmosphere client they want to open it in. No login, no client lock-in.
 
+Plus a **[feedback board](#feedback-board)** at [aturi.to/feedback](https://aturi.to/feedback), built on the userinput.app lexicons: post a bug or an idea, vote on someone else's, and every record lands in your own repo.
+
 The extension and the web app import the same `src/utils/waypoints.data.ts`, so the catalog of supported clients stays in lockstep across surfaces. That same catalog and resolver logic is also published as the MIT-licensed [`@aturi.to/waypoints`](packages/waypoints/README.md) packages, so you can build on it in your own app. See the [developer docs](https://aturi.to/docs).
 
 ## Browser extension
@@ -88,6 +90,35 @@ The catalog covers 25+ Atmosphere apps and dev tools across categories like:
 Building an Atmosphere client or tool and want it added? The quickest route is to [open a waypoint request](https://github.com/atpota-to/aturi/issues/new?template=add-waypoint.yml) with your URL patterns and lexicon NSIDs, or email [aturi@atpota.to](mailto:aturi@atpota.to) or DM [@aturi.to](https://bsky.app/profile/aturi.to) on Bluesky, and it can be added for you.
 
 To send a PR instead, follow [the waypoint walkthrough in CONTRIBUTING.md](CONTRIBUTING.md#adding-a-waypoint). It is four edits rather than one: the entry in [`src/utils/waypoints.data.ts`](src/utils/waypoints.data.ts), the id in `WAYPOINT_ORDER`, an icon, and a `npm run sync` so the published packages stay in step. Once merged, the web app and the extension both pick it up.
+
+## Feedback board
+
+Available at [aturi.to/feedback](https://aturi.to/feedback). Bugs, feature requests and ideas, posted and voted on by whoever shows up:
+
+- **Post, reply, vote.** Sign in with atproto and file feedback under a category, thread replies on anything, and up/downvote what matters to you.
+- **Statuses that stick.** The team marks discussions `planned`, `in-progress`, `implemented`, `declined` and so on, optionally with a note explaining the call.
+- **Sort and filter.** By score, recency or reply volume; narrow to a status or a category.
+- **Nothing stored here.** Every post, reply and vote is a record in *your* repo — delete it and it's gone network-wide, take it with you if you move servers.
+
+### How it works
+
+The board speaks the [userinput.app](https://userinput.app) lexicon family (`app.userinput.*`, browsable in the explorer at [`/explore/userinput.app/com.atproto.lexicon.schema`](https://aturi.to/explore/userinput.app/com.atproto.lexicon.schema)). There is no AppView and no aturi.to database: a *space* is one record in its owner's repo, and everything else is a record in the acting user's repo pointing back at it. That leaves two questions to answer at read time, and one service for each:
+
+- **[Constellation](https://constellation.microcosm.blue)** answers *what links here* — turning a space URI into every discussion filed into it, and a discussion URI into its vote, reply and edit tallies.
+- **[Slingshot](https://slingshot.microcosm.blue)** answers *what is this record* — hydrating those coordinates through an edge cache, so the browser makes one request per record instead of resolving each author's DID and then asking their PDS.
+
+Authority is checked when reading, not writing. Anyone can publish a record claiming a discussion is `implemented`; it only counts if its author is the space owner or holds a role the owner granted, and the same filter governs pins, hides, locks and bans. Edits never mutate the original — they're sidecar records, so the newest one from the author is the live text and the whole set is the revision history.
+
+### Configuring it for a fork
+
+The board renders one `app.userinput.space` record; point it at yours in `.env.local`:
+
+```sh
+NEXT_PUBLIC_FEEDBACK_OWNER=yourhandle.example      # repo to find the space in
+# NEXT_PUBLIC_FEEDBACK_SPACE_URI=at://did:plc:.../app.userinput.space/3l...  # or pin one exactly
+```
+
+If that account has no space yet, `/feedback` shows a setup panel instead of an empty board — sign in as the owner and create one in a click. Discovery scans the owner's repo, so it's picked up on the next load without a redeploy.
 
 ## Running locally
 
@@ -233,6 +264,7 @@ Watch `prefillsText`: one client routes the intent but ignores the text, so the 
 - **`@atproto/oauth-client-browser`**: DPoP-bound, granular-scope OAuth sign-in entirely in the browser
 - **`@vercel/og`**: dynamic OpenGraph image generation on the Edge Runtime
 - **`@vercel/analytics`**: privacy-focused, cookieless analytics
+- **Constellation & Slingshot**: microcosm's backlink index and record cache, which the feedback board reads instead of an AppView
 - **Tailwind CSS v4**: utility-first styling alongside hand-rolled CSS variables
 - **Framer Motion**: page and component animations
 
