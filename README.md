@@ -81,9 +81,9 @@ Posts also have a friendly alias: `aturi.to/profile/[handle]/post/[rkey]`. The b
 The catalog covers 25+ Atmosphere apps and dev tools across categories like:
 
 - **Bluesky clients**: Bluesky, Anisota, Bluepy, Red Dwarf, Impro, plus forks like Blacksky, Witchsky, Mu, and Deer
-- **Publications**: Leaflet, Standard Site readers
-- **Apps**: Tangled, Margin, Grain, Pinkleap, Semble, Streamplace, Popfeed, Sifa, Blento, Offprint, pckt, Anisota Reader
-- **Dev tools**: PDSls, atp.tools, Anisota Explorer
+- **Publications**: Leaflet, Standard Reader, Anisota Reader, Offprint, pckt
+- **Apps**: Aturi, Tangled, Margin, Grain, Pinkleap, Semble, Streamplace, Popfeed, Sifa, Blento
+- **Dev tools**: Aturi Explore, PDSls, atp.tools, Taproot
 
 Building an Atmosphere client or tool and want it added? Email [aturi@atpota.to](mailto:aturi@atpota.to), DM [@aturi.to](https://bsky.app/profile/aturi.to) on Bluesky, or open a PR against [`src/utils/waypoints.data.ts`](src/utils/waypoints.data.ts). Both the web app and the extension pick it up automatically.
 
