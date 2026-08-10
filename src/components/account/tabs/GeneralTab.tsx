@@ -64,8 +64,37 @@ export default function GeneralTab() {
   return (
     <>
       <AppearanceCard />
+      <UpdatesCard />
       <ExplorerCard />
     </>
+  );
+}
+
+/**
+ * Counterpart to the "Don't show these again" button on the What's new modal,
+ * so turning it off isn't a one-way door.
+ */
+function UpdatesCard() {
+  const { prefs, update } = usePreferences();
+
+  return (
+    <section className="settings-card">
+      <div className="settings-card-head">
+        <h2 className="settings-card-title">Updates</h2>
+        <p className="settings-card-sub">
+          When Aturi ships something new — a client joining the catalog, a new
+          feature — it can tell you about it the next time you visit.
+        </p>
+      </div>
+
+      <Toggle
+        id="announce-releases"
+        label="Announce new releases"
+        description="Show a summary of what changed the first time you visit after an update. The bell in the header always keeps the notes available, whether this is on or off."
+        checked={prefs.announceReleases}
+        onChange={(next) => update((p) => ({ ...p, announceReleases: next }))}
+      />
+    </section>
   );
 }
 

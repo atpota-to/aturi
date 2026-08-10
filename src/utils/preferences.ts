@@ -29,6 +29,7 @@ import {
   WAYPOINT_ORDER,
   type WaypointType,
 } from './waypoints.data';
+import { LATEST_RELEASE_ID } from './releaseNotes';
 import {
   DEFAULT_RECORD_SECTIONS,
   DEFAULT_REPO_SECTIONS,
@@ -112,6 +113,25 @@ export type Preferences = {
    * waypoint as new.
    */
   knownWaypointIds: string[];
+  /**
+   * Id of the newest release whose notes the user has seen, from
+   * `releaseNotes.ts`. Anything newer surfaces in the header badge and — if
+   * `announceReleases` is on — the "What's new" modal.
+   *
+   * Defaults to the newest shipped release, so a first-time visitor starts
+   * caught up and is never greeted by a changelog. An existing user whose
+   * stored preferences predate this field migrates to `''` instead, which
+   * `unseenReleases` reads as "announce only the newest" — they hear about
+   * the current release once rather than the whole history.
+   */
+  lastSeenReleaseId: string;
+  /**
+   * Whether to interrupt with the "What's new" modal on the first visit after
+   * a release. The header badge is unaffected and always available; this only
+   * controls the popup, which is what the modal's "Don't show these again"
+   * button turns off.
+   */
+  announceReleases: boolean;
   /**
    * NSIDs the user has pinned in the explorer's CollectionsTab. Shown at
    * the top of the list whenever the current repo has a matching
@@ -223,6 +243,8 @@ export const DEFAULT_PREFERENCES: Preferences = {
   waypointOrder: [],
   customWaypoints: [],
   knownWaypointIds: [...WAYPOINT_ORDER],
+  lastSeenReleaseId: LATEST_RELEASE_ID,
+  announceReleases: true,
   pinnedLexicons: [],
   pinnedLexiconsOthers: [],
   pinScope: 'own',
@@ -318,6 +340,14 @@ export function mergeWithDefaults(input: Partial<Preferences> | null | undefined
       ? storedGroups
       : migrateToGroups({ customWaypoints, hiddenWaypoints, waypointOrder });
   const knownWaypointIds = migrateKnownWaypointIds(input, waypointGroups, hiddenWaypoints);
+  // Absent means these preferences predate release notes: leave the cursor
+  // empty so `unseenReleases` announces the newest release once, rather than
+  // defaulting to LATEST and silently swallowing it. An explicit empty string
+  // from storage is honored for the same reason.
+  const lastSeenReleaseId =
+    typeof input.lastSeenReleaseId === 'string' ? input.lastSeenReleaseId : '';
+  const announceReleases =
+    typeof input.announceReleases === 'boolean' ? input.announceReleases : true;
   const pinnedLexicons = Array.isArray(input.pinnedLexicons)
     ? input.pinnedLexicons.filter((s): s is string => typeof s === 'string')
     : [];
@@ -381,6 +411,8 @@ export function mergeWithDefaults(input: Partial<Preferences> | null | undefined
     waypointOrder,
     customWaypoints,
     knownWaypointIds,
+    lastSeenReleaseId,
+    announceReleases,
     pinnedLexicons,
     pinnedLexiconsOthers,
     pinScope,
@@ -480,6 +512,8 @@ export function preferencesAreEqual(a: Preferences, b: Preferences): boolean {
     JSON.stringify(a.waypointGroups) === JSON.stringify(b.waypointGroups) &&
     JSON.stringify(a.customWaypoints) === JSON.stringify(b.customWaypoints) &&
     JSON.stringify(a.knownWaypointIds) === JSON.stringify(b.knownWaypointIds) &&
+    a.lastSeenReleaseId === b.lastSeenReleaseId &&
+    a.announceReleases === b.announceReleases &&
     JSON.stringify(a.pinnedLexicons) === JSON.stringify(b.pinnedLexicons) &&
     JSON.stringify(a.pinnedLexiconsOthers) === JSON.stringify(b.pinnedLexiconsOthers)
   );
