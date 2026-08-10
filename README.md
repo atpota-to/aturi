@@ -218,6 +218,19 @@ The waypoint catalog, link builders, recommendations, and URI resolution that po
   <WaypointPicker type="post" handle="alice.bsky.social" collection="app.bsky.feed.post" rkey="3k7qw..." />;
   ```
 
+Every release also mirrors both packages to [GitHub Packages](https://github.com/atpota-to/aturi/packages) as `@atpota-to/waypoints` and `@atpota-to/waypoints-react`. The scope differs because GitHub only accepts one matching the repository owner, and it rejects the dot in `aturi.to`. npm stays the primary registry; the mirror is for orgs that install from GitHub. It requires a token even for public packages, so consumers need an `.npmrc`:
+
+```sh
+@atpota-to:registry=https://npm.pkg.github.com
+//npm.pkg.github.com/:_authToken=${GITHUB_TOKEN}   # PAT with read:packages
+```
+
+```sh
+npm install @atpota-to/waypoints-react
+```
+
+The mirrored React package still depends on `@aturi.to/waypoints` from npm: its bundle re-exports that exact specifier, and npm resolves it without a token.
+
 ### Quick example (TypeScript)
 
 ```typescript

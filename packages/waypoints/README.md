@@ -21,6 +21,16 @@ For a drop-in React picker UI, see [`@aturi.to/waypoints-react`](../waypoints-re
 npm install @aturi.to/waypoints
 ```
 
+Also mirrored to GitHub Packages as `@atpota-to/waypoints` (GitHub only accepts a
+scope matching the repository owner, and it rejects the dot in `aturi.to`). Same
+build, same version. GitHub Packages requires a token even for public packages,
+so installing from there needs an `.npmrc`:
+
+```sh
+@atpota-to:registry=https://npm.pkg.github.com
+//npm.pkg.github.com/:_authToken=${GITHUB_TOKEN}   # PAT with read:packages
+```
+
 ## Quick start
 
 ```ts
