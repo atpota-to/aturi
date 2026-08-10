@@ -46,10 +46,13 @@ jobs:
           cache: npm
           cache-dependency-path: packages/package-lock.json
 
-      # Trusted publishing needs npm >= 11.5.1; Node 22 still ships npm 10.x.
+      # Trusted publishing needs npm >= 11.5.1 and Node 22 still ships npm 10.x,
+      # so npm has to be upgraded here. Held at 11.x deliberately: npm 12 wants
+      # node ^22.22.2 || ^24.15.0 || >=26, and .nvmrc pins 22.22.0 - just under
+      # that floor, so npm@latest fails to install. Widen this once .nvmrc moves.
       - name: Upgrade npm for OIDC support
         run: |
-          npm install -g npm@latest
+          npm install -g npm@^11.5.1
           npm --version
 
       - name: Install
