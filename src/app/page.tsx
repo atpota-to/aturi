@@ -6,6 +6,7 @@ import { FadeIn } from '@/components/FadeIn';
 import UniversalLinksStrip from '@/components/home/UniversalLinksStrip';
 import ExtensionStrip from '@/components/home/ExtensionStrip';
 import ExplorerStrip from '@/components/home/ExplorerStrip';
+import OnboardingPrompt from '@/components/onboarding/OnboardingPrompt';
 import { Code2, Scale } from 'lucide-react';
 
 export default function HomePage() {
@@ -19,6 +20,20 @@ export default function HomePage() {
 
       {/* Hero: tagline + description + two CTAs (Explore + Download) */}
       <HomeHero />
+
+      {/* Setup invitation, under the hero rather than in it: the hero's job
+          is to explain what Aturi is to someone who just arrived, and this
+          only makes sense once that's landed. Disappears for good once the
+          flow is finished or waved away. */}
+      <div
+        style={{
+          maxWidth: '760px',
+          margin: '0 auto',
+          padding: '0 var(--page-edge)',
+        }}
+      >
+        <OnboardingPrompt />
+      </div>
 
       {/* Three product strips. Each is one of Aturi's offerings with a
           real interactive demo on one side and the pitch on the other.

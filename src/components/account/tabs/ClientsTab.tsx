@@ -101,15 +101,19 @@ function RulesCard() {
       </div>
 
       {rules.length === 0 ? (
+        // An empty rules list is exactly what the guided setup exists to fill,
+        // and answering three questions is a gentler start than composing a
+        // scope from scratch. Offered, not forced — the manual path is still
+        // right below.
         <p
           style={{
             margin: 0,
             color: 'var(--text-tertiary)',
             fontSize: '0.85rem',
-            fontStyle: 'italic',
           }}
         >
-          No preferences yet — add one below.
+          No preferences yet. <Link href="/welcome#bluesky">Walk through setup</Link>{' '}
+          to answer a few questions, or add a rule by hand below.
         </p>
       ) : (
         <ul

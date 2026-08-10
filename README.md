@@ -50,6 +50,8 @@ Your personalization (waypoint groups, ordering, pins, custom waypoints, color s
 
 The ecosystem default is to link every `app.bsky.feed.post` to bsky.app, which is a guess about the reader and is often wrong. **Settings → Clients** lets you answer it instead: "Bluesky posts in Blacksky, Tangled records in Tangled, everything else in PDSls."
 
+New here, or don't want to think in scopes? [aturi.to/welcome](https://aturi.to/welcome) is an optional guided setup that asks three questions — which client you read Bluesky in, which reader you use for publications, which explorer you want for raw records — and writes the rules for you, with a preview link on every option so you can look before choosing. It's skippable at every step, works signed out (answers land in localStorage until you sign in), and each answer saves as you make it, so quitting halfway keeps what you answered.
+
 Aturi's own picker follows those rules right away. Publish them and they become a public `to.aturi.actor.preferredClients/self` record in your repo that *any* Atmosphere app can read — one public fetch, no auth — so its links can send you where you asked to go instead of where it assumed.
 
 For app developers, that's two calls (or one query parameter on the Resolve API):

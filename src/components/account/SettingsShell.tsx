@@ -11,6 +11,7 @@ import WaypointsTab from './tabs/WaypointsTab';
 import ClientsTab from './tabs/ClientsTab';
 import CustomTab from './tabs/CustomTab';
 import AboutTab from './tabs/AboutTab';
+import OnboardingPrompt from '@/components/onboarding/OnboardingPrompt';
 
 type TabId =
   | 'account'
@@ -85,6 +86,10 @@ export default function SettingsShell() {
 
   return (
     <div className="settings-shell">
+      {/* Anyone who's landed in Settings without ever running setup gets the
+          offer here too — this is the screen where "which app do you use?"
+          is most obviously a question they could answer. */}
+      <OnboardingPrompt compact />
       {!did && <LocalModeBanner onSignIn={() => pick('account')} />}
       <header className="settings-header">
         <nav className="settings-nav" role="tablist">

@@ -3,20 +3,6 @@
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { Pin, X } from 'lucide-react';
 import {
-  applyTheme,
-  getStoredTheme,
-  isTheme,
-  setStoredTheme,
-  THEME_STORAGE_KEY,
-  type Theme,
-  DEFAULT_THEME,
-} from '@/lib/theme';
-import {
-  applyColorScheme,
-  COLOR_SCHEMES,
-  type ColorScheme,
-} from '@/lib/colorScheme';
-import {
   applyFontScale,
   getStoredFontScale,
   isFontScale,
@@ -42,6 +28,7 @@ import {
 } from '@/lib/a11y';
 import { usePreferences } from '@/components/PreferencesProvider';
 import { useMyCollections } from '@/components/explore/useRepoCollections';
+import { ColorSchemePicker, ThemePicker } from '../AppearanceControls';
 import Toggle from '../Toggle';
 import {
   addPinnedLexicon,
@@ -568,24 +555,6 @@ function PinnedList({
   );
 }
 
-function subscribe(onChange: () => void): () => void {
-  function handler(event: StorageEvent) {
-    if (event.key === THEME_STORAGE_KEY) onChange();
-  }
-  window.addEventListener('storage', handler);
-  return () => window.removeEventListener('storage', handler);
-}
-
-function getSnapshot(): Theme {
-  const attr = document.documentElement.dataset.theme;
-  if (isTheme(attr)) return attr;
-  return getStoredTheme();
-}
-
-function getServerSnapshot(): Theme {
-  return DEFAULT_THEME;
-}
-
 /**
  * Render `nsid` with the substring matching `query` underlined. Falls
  * back to plain text when there's no match or no query.
@@ -604,126 +573,6 @@ function highlightMatch(nsid: string, query: string): React.ReactNode {
       </strong>
       {nsid.slice(idx + q.length)}
     </>
-  );
-}
-
-/**
- * Palette picker. Unlike the rest of this card, the scheme lives in the
- * synced preferences record rather than localStorage, so it travels with
- * the account. `applyColorScheme` runs here for instant feedback;
- * `ColorSchemeSync` re-applies from prefs and updates the pre-paint cache.
- */
-function ColorSchemePicker() {
-  const { prefs, update } = usePreferences();
-
-  function pick(next: ColorScheme) {
-    applyColorScheme(next);
-    update((p) => ({ ...p, colorScheme: next }));
-  }
-
-  return (
-    <div className="settings-toggle-row is-stacked">
-      <div className="settings-toggle-label">
-        <span className="settings-toggle-label-text">Color scheme</span>
-        <span className="settings-toggle-label-sub">
-          The palette the whole app is painted in. Every scheme has a dark and
-          a light variant — the row below picks which one you see. Saved with
-          the rest of your settings, so it follows you to other devices when
-          you&apos;re signed in.
-        </span>
-      </div>
-      <div
-        role="radiogroup"
-        aria-label="Color scheme"
-        className="scheme-picker"
-      >
-        {COLOR_SCHEMES.map(({ value, label, hint }) => {
-          const active = prefs.colorScheme === value;
-          return (
-            <button
-              key={value}
-              type="button"
-              role="radio"
-              aria-checked={active}
-              onClick={() => pick(value)}
-              className={`scheme-option ${active ? 'is-active' : ''}`}
-            >
-              {/* Two-tone chip: dark variant on the left, light on the
-                  right, so both are visible whichever one is active. */}
-              <span className="scheme-swatch" data-scheme={value} aria-hidden>
-                <span />
-                <span />
-              </span>
-              <span style={{ minWidth: 0 }}>
-                <span className="scheme-option-name">{label}</span>
-                <span className="scheme-option-hint">{hint}</span>
-              </span>
-            </button>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-function ThemePicker() {
-  const theme = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
-
-  function pick(next: Theme) {
-    setStoredTheme(next);
-    applyTheme(next);
-    window.dispatchEvent(
-      new StorageEvent('storage', { key: THEME_STORAGE_KEY, newValue: next }),
-    );
-  }
-
-  return (
-    <div className="settings-toggle-row">
-      <div className="settings-toggle-label">
-        <span className="settings-toggle-label-text">Dark or light</span>
-        <span className="settings-toggle-label-sub">
-          Which variant of the scheme above to show. Saved in this browser, so
-          you can run light here and dark on your phone.
-        </span>
-      </div>
-      <div
-        role="radiogroup"
-        aria-label="Dark or light"
-        style={{
-          display: 'inline-flex',
-          border: '1px solid var(--border-medium)',
-          overflow: 'hidden',
-          flexShrink: 0,
-        }}
-      >
-        {(['dark', 'light'] as const).map((value) => {
-          const active = theme === value;
-          return (
-            <button
-              key={value}
-              type="button"
-              role="radio"
-              aria-checked={active}
-              onClick={() => pick(value)}
-              style={{
-                padding: '0.4rem 0.875rem',
-                fontSize: '0.85rem',
-                background: active ? 'var(--accent-forest)' : 'transparent',
-                color: active ? 'var(--text-on-accent)' : 'var(--text-secondary)',
-                border: 'none',
-                cursor: 'pointer',
-                transition: 'background 0.2s ease, color 0.2s ease',
-                textTransform: 'lowercase',
-                letterSpacing: '0.02em',
-                fontFamily: 'var(--font-serif)',
-              }}
-            >
-              {value}
-            </button>
-          );
-        })}
-      </div>
-    </div>
   );
 }
 

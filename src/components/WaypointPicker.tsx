@@ -21,7 +21,7 @@ import {
   markWaypointsKnown,
 } from '@/utils/preferences';
 import {
-  describeScope,
+  describeScopeInline,
   orderIdsByPreference,
   preferredWaypointFor,
   type PreferredClientsRecord,
@@ -30,6 +30,7 @@ import { usePreferences } from './PreferencesProvider';
 import ShareButton from './ShareButton';
 import CategoryCard from './CategoryCard';
 import NewWaypointsBanner from './NewWaypointsBanner';
+import OnboardingPrompt from './onboarding/OnboardingPrompt';
 
 type WaypointPickerProps = {
   type: WaypointType;
@@ -311,7 +312,7 @@ export default function WaypointPicker({
           <div className="waypoint-content">
             <div className="waypoint-name">{preferred.client.name}</div>
             <div className="waypoint-description">
-              {`You chose this for ${describeScope(preferred.scope).toLowerCase()}`}
+              {`You chose this for ${describeScopeInline(preferred.scope)}`}
               {host ? ` · ${host}` : ''}
             </div>
           </div>
@@ -448,12 +449,18 @@ export default function WaypointPicker({
 
   return (
     <div id="waypoint-picker">
-      {newWaypoints.length > 0 && (
+      {newWaypoints.length > 0 ? (
         <NewWaypointsBanner
           waypoints={newWaypoints}
           onAdd={() => update((p) => addWaypointsToDefaultGroups(p, newWaypointIds))}
           onDismiss={() => update((p) => markWaypointsKnown(p, newWaypointIds))}
         />
+      ) : (
+        // Only one banner at a time, and a brand-new waypoint is the more
+        // time-sensitive of the two. This page is where the cost of having no
+        // preference is most visible — the visitor is being asked "open this
+        // where?" right now — so the invitation is worth surfacing here.
+        <OnboardingPrompt />
       )}
 
       {/* Header */}

@@ -77,6 +77,27 @@ export type WaypointGroup = {
   collapsed?: boolean;
 };
 
+/**
+ * Version of the guided setup at `/welcome`. Bump when the flow gains a
+ * question worth re-asking people who already finished the old one — anyone
+ * whose recorded version is lower gets invited back in.
+ */
+export const ONBOARDING_VERSION = 1;
+
+/**
+ * What the user has done with the guided setup. Lives in the synced prefs
+ * rather than localStorage so finishing setup on a laptop doesn't leave a
+ * phone still nagging about it.
+ */
+export type OnboardingState = {
+  /** Highest flow version the user finished. 0 when they never have. */
+  completedVersion: number;
+  /** Highest flow version the user dismissed without finishing. 0 if never. */
+  dismissedVersion: number;
+  /** ISO timestamp of the most recent completed run, when there is one. */
+  completedAt?: string;
+};
+
 export type Preferences = {
   /**
    * The app-wide color palette — see `COLOR_SCHEMES` in
@@ -228,6 +249,8 @@ export type Preferences = {
    * outward-facing act, unlike the rest of these settings.
    */
   publishPreferredClients: boolean;
+  /** Guided-setup progress. See `OnboardingState`. */
+  onboarding: OnboardingState;
   /**
    * ISO timestamp of last local change. Used to break ties when local and
    * PDS prefs both exist on sign-in.
@@ -261,6 +284,7 @@ export const DEFAULT_PREFERENCES: Preferences = {
   repoSections: DEFAULT_REPO_SECTIONS.map((s) => ({ ...s })),
   preferredClients: [],
   publishPreferredClients: false,
+  onboarding: { completedVersion: 0, dismissedVersion: 0 },
   updatedAt: new Date(0).toISOString(),
 };
 
@@ -405,6 +429,7 @@ export function mergeWithDefaults(input: Partial<Preferences> | null | undefined
     typeof input.publishPreferredClients === 'boolean'
       ? input.publishPreferredClients
       : false;
+  const onboarding = readOnboardingState(input.onboarding);
   return {
     colorScheme,
     waypointGroups,
@@ -428,9 +453,30 @@ export function mergeWithDefaults(input: Partial<Preferences> | null | undefined
     repoSections,
     preferredClients,
     publishPreferredClients,
+    onboarding,
     updatedAt:
       typeof input.updatedAt === 'string' ? input.updatedAt : new Date(0).toISOString(),
   };
+}
+
+/**
+ * Read the guided-setup state out of a stored blob. Hand-edited PDS records
+ * are a real possibility here, so anything that isn't a positive number is
+ * read as "hasn't been through the flow" rather than trusted.
+ */
+function readOnboardingState(input: unknown): OnboardingState {
+  if (!input || typeof input !== 'object') {
+    return { completedVersion: 0, dismissedVersion: 0 };
+  }
+  const v = input as Record<string, unknown>;
+  const version = (x: unknown) =>
+    typeof x === 'number' && Number.isFinite(x) && x > 0 ? Math.floor(x) : 0;
+  const state: OnboardingState = {
+    completedVersion: version(v.completedVersion),
+    dismissedVersion: version(v.dismissedVersion),
+  };
+  if (typeof v.completedAt === 'string') state.completedAt = v.completedAt;
+  return state;
 }
 
 function isValidCustomWaypoint(w: unknown): w is CustomWaypoint {
@@ -495,6 +541,7 @@ export function preferencesAreEqual(a: Preferences, b: Preferences): boolean {
     a.showRawRecordJson === b.showRawRecordJson &&
     a.publishPreferredClients === b.publishPreferredClients &&
     JSON.stringify(a.preferredClients) === JSON.stringify(b.preferredClients) &&
+    JSON.stringify(a.onboarding) === JSON.stringify(b.onboarding) &&
     JSON.stringify(a.waypointGroups) === JSON.stringify(b.waypointGroups) &&
     JSON.stringify(a.customWaypoints) === JSON.stringify(b.customWaypoints) &&
     JSON.stringify(a.knownWaypointIds) === JSON.stringify(b.knownWaypointIds) &&
@@ -642,12 +689,14 @@ export function isLikelyPinEntry(input: string): boolean {
  * one-click row because they cover what people actually share.
  */
 export const SUGGESTED_CLIENT_SCOPES: string[] = [
+  'app.bsky.*',
   'app.bsky.feed.post',
   'profile',
   'app.bsky.graph.list',
   'app.bsky.feed.generator',
   'sh.tangled.*',
   'pub.leaflet.*',
+  'site.standard.*',
   'at.margin.*',
   'social.grain.*',
   PREFERRED_SCOPE_ALL,
@@ -696,6 +745,41 @@ export function setPublishPreferredClients(
   publish: boolean,
 ): Preferences {
   return { ...prefs, publishPreferredClients: publish };
+}
+
+// --- Guided setup ----------------------------------------------------------
+
+/**
+ * Whether to invite the user into the guided setup. True until they either
+ * finish the current version of the flow or wave the invitation away —
+ * bumping `ONBOARDING_VERSION` re-opens it for everyone.
+ */
+export function shouldOfferOnboarding(prefs: Preferences): boolean {
+  const { completedVersion, dismissedVersion } = prefs.onboarding;
+  return Math.max(completedVersion, dismissedVersion) < ONBOARDING_VERSION;
+}
+
+/** Record that the user finished the flow, so it stops being offered. */
+export function markOnboardingComplete(prefs: Preferences): Preferences {
+  return {
+    ...prefs,
+    onboarding: {
+      ...prefs.onboarding,
+      completedVersion: ONBOARDING_VERSION,
+      completedAt: new Date().toISOString(),
+    },
+  };
+}
+
+/** Record that the user declined the invitation without finishing. */
+export function markOnboardingDismissed(prefs: Preferences): Preferences {
+  return {
+    ...prefs,
+    onboarding: {
+      ...prefs.onboarding,
+      dismissedVersion: Math.max(prefs.onboarding.dismissedVersion, ONBOARDING_VERSION),
+    },
+  };
 }
 
 // --- Group helpers ---------------------------------------------------------

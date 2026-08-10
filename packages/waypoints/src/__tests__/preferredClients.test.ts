@@ -3,6 +3,7 @@ import {
   buildPreferredClientsRecord,
   clientFromWaypointId,
   describeScope,
+  describeScopeInline,
   expandLinkTemplate,
   isValidPreferredScope,
   matchPreferredRule,
@@ -423,9 +424,23 @@ describe('helpers', () => {
   it('labels scopes for display', () => {
     expect(describeScope('*')).toBe('Everything else');
     expect(describeScope('post')).toBe('Posts');
-    expect(describeScope('sh.tangled.*')).toBe('sh.tangled records');
     expect(describeScope('app.bsky.feed.post')).toBe('Bluesky posts');
+    // A namespace we can name reads as the app, not as a reversed domain —
+    // nobody calls it "sh.tangled".
+    expect(describeScope('sh.tangled.*')).toBe('Tangled records');
+    expect(describeScope('app.bsky.*')).toBe('Bluesky records');
+    // One we can't name still falls back to the bare prefix rather than a guess.
+    expect(describeScope('com.example.*')).toBe('com.example records');
     // A lexicon we have no name for is labelled by its NSID, not guessed at.
     expect(describeScope('social.grain.photo.gallery')).toBe('social.grain.photo.gallery');
+  });
+
+  it('labels scopes for use mid-sentence', () => {
+    // The catch-all reads as a phrase, and generic kinds drop their capital…
+    expect(describeScopeInline('*')).toBe('anything else');
+    expect(describeScopeInline('post')).toBe('posts');
+    // …but an app's name keeps its own.
+    expect(describeScopeInline('app.bsky.*')).toBe('Bluesky records');
+    expect(describeScopeInline('app.bsky.feed.post')).toBe('Bluesky posts');
   });
 });

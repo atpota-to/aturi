@@ -569,6 +569,26 @@ const KNOWN_COLLECTION_LABELS: Record<string, string> = {
   'app.bsky.actor.profile': 'Bluesky profiles',
 };
 
+/**
+ * Namespace prefixes worth naming. Without these, a wildcard scope describes
+ * itself as "app.bsky records", which is accurate and unreadable — reversed
+ * domains are not how anyone refers to the app they use.
+ */
+const KNOWN_NAMESPACE_LABELS: Record<string, string> = {
+  'app.bsky': 'Bluesky',
+  'pub.leaflet': 'Leaflet',
+  'site.standard': 'Standard Site',
+  'sh.tangled': 'Tangled',
+  'at.margin': 'Margin',
+  'social.grain': 'Grain',
+  'net.anisota': 'Anisota',
+  'so.semble': 'Semble',
+  'place.stream': 'Streamplace',
+  'social.popfeed': 'Popfeed',
+  'id.sifa': 'Sifa',
+  'app.blento': 'Blento',
+};
+
 /** Human-readable label for a scope, for settings UI and explanations. */
 export function describeScope(scope: string): string {
   if (scope === PREFERRED_SCOPE_ALL) return 'Everything else';
@@ -582,7 +602,24 @@ export function describeScope(scope: string): string {
     case 'record':
       return 'Any record';
     default:
-      if (scope.endsWith('.*')) return `${scope.slice(0, -2)} records`;
+      if (scope.endsWith('.*')) {
+        const prefix = scope.slice(0, -2);
+        return `${KNOWN_NAMESPACE_LABELS[prefix] ?? prefix} records`;
+      }
       return KNOWN_COLLECTION_LABELS[scope] ?? scope;
   }
+}
+
+/**
+ * `describeScope` for use mid-sentence ("You chose this for …"). Differs in
+ * two places: the catch-all reads as a phrase rather than a heading, and the
+ * generic record kinds lose their leading capital. App names keep theirs —
+ * lowercasing the whole label would turn Bluesky into bluesky.
+ */
+export function describeScopeInline(scope: string): string {
+  if (scope === PREFERRED_SCOPE_ALL) return 'anything else';
+  if ((PREFERRED_CLIENT_KINDS as readonly string[]).includes(scope)) {
+    return describeScope(scope).toLowerCase();
+  }
+  return describeScope(scope);
 }

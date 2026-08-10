@@ -24,6 +24,14 @@ import {
 } from '@/utils/atproto/preferencesPds';
 import { useAtprotoSession } from './AtprotoSessionProvider';
 
+/**
+ * Outcome of an explicit `flush()`:
+ *   - `saved`: the PDS write landed.
+ *   - `local`: nobody's signed in, so localStorage is the only home for now.
+ *   - `error`: the write was attempted and failed.
+ */
+export type FlushResult = 'saved' | 'local' | 'error';
+
 type PreferencesContextValue = {
   prefs: Preferences;
   /**
@@ -31,6 +39,13 @@ type PreferencesContextValue = {
    * synchronously; debounces a PDS write when signed in.
    */
   update: (updater: (prev: Preferences) => Preferences) => void;
+  /**
+   * Write pending changes to the PDS *now*, skipping the debounce, and
+   * resolve once the write settles. For flows that want to tell the user
+   * their choices are saved (the guided setup's closing step) rather than
+   * leaving a write in flight as they navigate away.
+   */
+  flush: () => Promise<FlushResult>;
   /** Drop user prefs back to defaults (local only — does NOT delete the PDS record). */
   reset: () => void;
   /** True until the first read (local + PDS if signed in) has settled. */
@@ -65,10 +80,16 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
   const [pdsSync, setPdsSync] = useState<PreferencesContextValue['pdsSync']>(null);
   const pdsWriteTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastSyncedDid = useRef<string | null>(null);
+  // Newest prefs, readable synchronously. `flush()` is typically called in the
+  // same tick as the `update()` whose result it means to save, and React state
+  // hasn't re-rendered by then.
+  const latestPrefs = useRef<Preferences>(DEFAULT_PREFERENCES);
 
   // Step 1: hydrate from localStorage on mount.
   useEffect(() => {
-    setPrefs(readLocalPreferences());
+    const local = readLocalPreferences();
+    latestPrefs.current = local;
+    setPrefs(local);
     setLoading(false);
   }, []);
 
@@ -106,6 +127,7 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
           local.colorScheme !== DEFAULT_PREFERENCES.colorScheme ||
           local.customWaypoints.length > 0 ||
           local.preferredClients.length > 0 ||
+          local.onboarding.completedVersion > 0 ||
           local.hiddenWaypoints.length > 0 ||
           local.waypointOrder.length > 0 ||
           JSON.stringify(local.waypointGroups) !==
@@ -124,6 +146,7 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
       } else {
         // Both exist — pick the newer copy.
         const winning = pickNewer(local, result.prefs);
+        latestPrefs.current = winning;
         if (!preferencesAreEqual(prefs, winning)) {
           setPrefs(winning);
           writeLocalPreferences(winning);
@@ -153,6 +176,7 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
     (updater: (prev: Preferences) => Preferences) => {
       setPrefs((prev) => {
         const next = { ...updater(prev), updatedAt: new Date().toISOString() };
+        latestPrefs.current = next;
         writeLocalPreferences(next);
         // Debounce PDS write — burst edits (DnD reorder, typing) collapse
         // into a single network call.
@@ -174,6 +198,23 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
     [agent, did],
   );
 
+  const flush = useCallback(async (): Promise<FlushResult> => {
+    if (pdsWriteTimer.current) {
+      clearTimeout(pdsWriteTimer.current);
+      pdsWriteTimer.current = null;
+    }
+    if (!agent || !did) return 'local';
+    setPdsSync('syncing');
+    try {
+      await writePreferencesToPds(agent, did, latestPrefs.current);
+      setPdsSync('idle');
+      return 'saved';
+    } catch {
+      setPdsSync('error');
+      return 'error';
+    }
+  }, [agent, did]);
+
   const reset = useCallback(() => {
     update(() => ({ ...DEFAULT_PREFERENCES, updatedAt: new Date().toISOString() }));
   }, [update]);
@@ -186,8 +227,8 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const value = useMemo<PreferencesContextValue>(
-    () => ({ prefs, update, reset, loading, pdsSync }),
-    [prefs, update, reset, loading, pdsSync],
+    () => ({ prefs, update, flush, reset, loading, pdsSync }),
+    [prefs, update, flush, reset, loading, pdsSync],
   );
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

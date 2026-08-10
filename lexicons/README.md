@@ -87,6 +87,19 @@ GET https://aturi.to/api/resolve?atUri=at://…&actor=alice.bsky.social
 Never got a record back? That's the common case — fall back to whatever you do
 today. The record is an override, not a requirement.
 
+### Writing one
+
+On aturi.to, [the guided setup](https://aturi.to/welcome) is the short path: it
+asks which client you read Bluesky in, which reader you use for publications,
+and which explorer you want for raw records, then writes the matching rules and
+offers to publish them. Settings → Clients is the long path, where any scope,
+any fallback order, and off-catalog clients with their own URL templates are all
+available.
+
+Publishing is opt-in either way, and turning it off deletes the record rather
+than leaving a stale declaration behind — an account that stops declaring should
+read as "no preference", not as "still prefers whatever it said in 2026".
+
 ## `to.aturi.actor.preferences`
 
 Aturi's own app settings — waypoint groups, custom waypoints, pinned lexicons,

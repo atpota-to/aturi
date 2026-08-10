@@ -34,6 +34,11 @@
  *   // for the Aturi picker whether or not they're published.
  *   preferredClients?: Array<{ scope: string, clients: Array<{ id?, name, homepage?, templates? }> }>
  *   publishPreferredClients?: boolean
+ *   onboarding?: {                        // guided-setup progress
+ *     completedVersion: number,
+ *     dismissedVersion: number,
+ *     completedAt?: datetime,
+ *   }
  *   minimalProfile?: boolean              // derived: profile card hidden on repo pages
  *   hideRichPreview?: boolean             // derived: rich preview card hidden on record pages
  *   hideRichJsonPreview?: boolean         // derived: field table hidden on record pages
@@ -127,6 +132,9 @@ export async function writePreferencesToPds(
     // (`to.aturi.actor.preferredClients`) written only when the user opts in.
     preferredClients: prefs.preferredClients,
     publishPreferredClients: prefs.publishPreferredClients,
+    // Guided-setup progress rides along so finishing setup on one device
+    // retires the invitation on every other one.
+    onboarding: prefs.onboarding,
     // Per-section visibility booleans, derived from the section lists so
     // older clients (and the browser extension) that read them stay in sync.
     hideRelationshipBar: sectionHidden(prefs.repoSections, 'relationship'),

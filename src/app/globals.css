@@ -5205,3 +5205,646 @@ body.has-explore-chrome {
     padding: 0.4rem;
   }
 }
+
+/* -----------------------------------------------------------------------
+   Guided setup (/welcome) + its invitation banner.
+
+   The flow reuses the settings vocabulary (`.settings-toggle-row`, the
+   scheme picker) wherever it embeds a real settings control, so the two
+   screens feel like the same app. What's here is only the wizard chrome:
+   the progress rail, the question panel, and the answer grid.
+   ----------------------------------------------------------------------- */
+.onboarding {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  padding-top: 0.5rem;
+  max-width: 46rem;
+  margin: 0 auto;
+}
+
+/* Progress rail. Every step is reachable at any time — this is optional
+   setup, not a funnel, so skipping ahead and going back are both fine. */
+.onboarding-rail {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.75rem;
+  list-style: none;
+  margin: 0;
+  padding: 0 0 0.25rem;
+}
+
+.onboarding-rail-item button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: none;
+  border: none;
+  padding: 0.15rem 0;
+  cursor: pointer;
+  color: var(--text-tertiary);
+  font-family: var(--font-serif);
+  font-size: 0.8rem;
+  letter-spacing: 0.02em;
+  transition: color 0.2s ease;
+}
+
+.onboarding-rail-item button:hover {
+  color: var(--text-primary);
+}
+
+.onboarding-rail-dot {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.25rem;
+  height: 1.25rem;
+  border: 1px solid var(--border-medium);
+  font-size: 0.65rem;
+  font-family: var(--font-mono);
+  color: var(--text-tertiary);
+  flex-shrink: 0;
+  transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+
+.onboarding-rail-item.is-current button {
+  color: var(--text-primary);
+}
+
+.onboarding-rail-item.is-current .onboarding-rail-dot {
+  border-color: var(--text-accent);
+  color: var(--text-accent);
+}
+
+.onboarding-rail-item.is-done .onboarding-rail-dot {
+  background: var(--accent-moss);
+  border-color: var(--accent-moss);
+  color: var(--text-on-accent);
+}
+
+.onboarding-panel {
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-secondary);
+  padding: 26px 28px;
+}
+
+.onboarding-step {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  min-width: 0;
+}
+
+.onboarding-head {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.onboarding-eyebrow {
+  font-family: var(--font-serif);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--text-tertiary);
+}
+
+.onboarding-title {
+  font-family: var(--font-serif);
+  font-weight: 400;
+  font-size: 1.9rem;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  margin: 0;
+  color: var(--text-primary);
+}
+
+.onboarding-blurb {
+  margin: 0;
+  font-family: var(--font-serif);
+  font-size: 0.95rem;
+  line-height: 1.6;
+  color: var(--text-secondary);
+  max-width: 62ch;
+}
+
+.onboarding-facts {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.onboarding-facts li {
+  padding-left: 0.9rem;
+  border-left: 2px solid var(--border-medium);
+  font-size: 0.875rem;
+  line-height: 1.55;
+  color: var(--text-secondary);
+  max-width: 62ch;
+}
+
+.onboarding-facts strong {
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+/* --- Answer grid ------------------------------------------------------- */
+.client-choice {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(15.5rem, 1fr));
+  gap: 0.5rem;
+}
+
+.client-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.7rem;
+  padding: 0.7rem 0.8rem;
+  text-align: left;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-subtle);
+  cursor: pointer;
+  position: relative;
+  transition: border-color 0.2s ease, background 0.2s ease, transform 0.2s ease;
+}
+
+.client-option:hover {
+  border-color: var(--border-medium);
+  transform: translateY(-1px);
+}
+
+.client-option.is-selected {
+  border-color: var(--text-accent);
+  background: var(--bg-primary);
+}
+
+.client-option:focus-visible {
+  outline: 2px solid var(--text-accent);
+  outline-offset: 2px;
+}
+
+.client-option-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  color: var(--text-tertiary);
+  margin-top: 0.1rem;
+}
+
+.client-option.is-selected .client-option-icon {
+  color: var(--text-accent);
+}
+
+.client-option-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+  flex: 1;
+}
+
+.client-option-name {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  font-family: var(--font-serif);
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  line-height: 1.2;
+}
+
+.client-option-domain {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  font-weight: 400;
+  color: var(--text-tertiary);
+  letter-spacing: -0.01em;
+}
+
+.client-option-blurb {
+  font-size: 0.78rem;
+  line-height: 1.4;
+  color: var(--text-tertiary);
+}
+
+/* Preview link. Hidden until the row is hovered or focus lands inside it,
+   so 10 options don't read as 20 competing actions. Always visible on
+   touch, where there is no hover to reveal it. */
+.client-option-preview {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  flex-shrink: 0;
+  align-self: center;
+  padding: 0.2rem 0.4rem;
+  color: var(--text-tertiary);
+  font-family: var(--font-serif);
+  font-size: 0.72rem;
+  border: 1px solid transparent;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+
+.client-option:hover .client-option-preview,
+.client-option:focus-within .client-option-preview,
+.client-option-preview:focus-visible {
+  opacity: 1;
+}
+
+.client-option-preview:hover,
+.client-option-preview:focus-visible {
+  color: var(--text-accent);
+  border-color: var(--border-medium);
+}
+
+@media (hover: none) {
+  .client-option-preview {
+    opacity: 1;
+  }
+}
+
+.client-option-check {
+  position: absolute;
+  top: 0.4rem;
+  right: 0.45rem;
+  display: inline-flex;
+  color: var(--text-accent);
+}
+
+.client-option.is-neutral .client-option-icon {
+  color: var(--text-tertiary);
+}
+
+.onboarding-appearance {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/* --- Closing step ------------------------------------------------------ */
+.onboarding-summary {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--border-subtle);
+}
+
+.onboarding-summary li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  padding: 0.6rem 0.85rem;
+}
+
+.onboarding-summary li + li {
+  border-top: 1px solid var(--border-subtle);
+}
+
+.onboarding-summary-scope {
+  font-family: var(--font-serif);
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-tertiary);
+}
+
+.onboarding-summary-pick {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-family: var(--font-serif);
+  font-size: 0.95rem;
+  color: var(--text-primary);
+}
+
+.onboarding-summary-pick.is-empty {
+  color: var(--text-tertiary);
+  font-style: italic;
+  font-size: 0.85rem;
+}
+
+.onboarding-summary-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  color: var(--text-accent);
+}
+
+.onboarding-summary-domain {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  color: var(--text-tertiary);
+}
+
+.onboarding-status {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  padding: 0.7rem 0.85rem;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-subtle);
+  border-left: 3px solid var(--border-medium);
+  font-size: 0.85rem;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+.onboarding-status > span {
+  flex: 1;
+  min-width: 12rem;
+}
+
+.onboarding-status svg {
+  flex-shrink: 0;
+  color: var(--text-tertiary);
+}
+
+.onboarding-status.is-ok {
+  border-left-color: var(--accent-moss);
+}
+
+.onboarding-status.is-ok svg {
+  color: var(--text-accent);
+}
+
+.onboarding-status.is-error {
+  border-left-color: var(--danger);
+}
+
+.onboarding-status.is-error svg {
+  color: var(--danger);
+}
+
+.onboarding-spin {
+  animation: onboarding-spin 1.1s linear infinite;
+}
+
+@keyframes onboarding-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.onboarding-publish {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.85rem;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-tertiary);
+}
+
+.onboarding-publish-state {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--text-tertiary);
+}
+
+.onboarding-publish-state code {
+  font-size: 0.72rem;
+  word-break: break-all;
+}
+
+.onboarding-publish-state .is-error {
+  color: var(--danger);
+}
+
+.onboarding-signin {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 0.9rem;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-tertiary);
+}
+
+.onboarding-signin-head {
+  display: flex;
+  gap: 0.6rem;
+  align-items: flex-start;
+}
+
+.onboarding-signin-head svg {
+  flex-shrink: 0;
+  margin-top: 0.15rem;
+  color: var(--text-accent);
+}
+
+.onboarding-signin-head strong {
+  font-family: var(--font-serif);
+  font-size: 0.95rem;
+  color: var(--text-primary);
+}
+
+.onboarding-signin-head p {
+  margin: 0.2rem 0 0;
+  font-size: 0.82rem;
+  line-height: 1.55;
+  color: var(--text-secondary);
+  max-width: 60ch;
+}
+
+.onboarding-signin-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.onboarding-signin-form input {
+  flex: 1 1 14rem;
+  min-width: 0;
+  padding: 0.55rem 0.75rem;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-medium);
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  outline: none;
+}
+
+.onboarding-signin-form input:focus-visible {
+  border-color: var(--text-accent);
+}
+
+.onboarding-signin-error {
+  margin: 0;
+  color: var(--danger);
+  font-size: 0.8rem;
+}
+
+.onboarding-footnote {
+  margin: 0;
+  font-size: 0.8rem;
+  line-height: 1.55;
+  color: var(--text-tertiary);
+  max-width: 62ch;
+}
+
+.onboarding-footnote a {
+  color: var(--text-accent);
+}
+
+/* --- Step navigation --------------------------------------------------- */
+.onboarding-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.onboarding-actions.is-inline {
+  margin-top: 0.25rem;
+}
+
+.onboarding-actions-spacer {
+  flex: 1;
+}
+
+.onboarding-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.55rem 1rem;
+  font-family: var(--font-serif);
+  font-size: 0.9rem;
+  border: 1px solid var(--border-medium);
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  text-decoration: none;
+  transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+
+.onboarding-btn:hover {
+  color: var(--text-primary);
+  border-color: var(--text-accent);
+}
+
+.onboarding-btn.is-primary {
+  background: var(--accent-moss);
+  border-color: var(--accent-forest);
+  color: var(--text-on-accent);
+}
+
+.onboarding-btn.is-primary:hover {
+  background: var(--accent-forest);
+  color: var(--text-on-accent);
+}
+
+.onboarding-btn.is-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.onboarding-btn.is-quiet {
+  border-color: transparent;
+}
+
+/* --- Invitation banner ------------------------------------------------- */
+.onboarding-prompt {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.7rem 0.9rem;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-medium);
+  border-left: 3px solid var(--text-accent);
+  margin-bottom: 1.5rem;
+}
+
+.onboarding-prompt.is-compact {
+  margin-bottom: 1rem;
+}
+
+.onboarding-prompt-icon {
+  display: inline-flex;
+  color: var(--text-accent);
+  flex-shrink: 0;
+}
+
+.onboarding-prompt-text {
+  flex: 1;
+  min-width: 0;
+  font-size: 0.875rem;
+  line-height: 1.45;
+  color: var(--text-secondary);
+}
+
+.onboarding-prompt-text strong {
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.onboarding-prompt-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-shrink: 0;
+}
+
+.onboarding-prompt-cta {
+  padding: 0.35rem 0.8rem;
+  background: var(--accent-moss);
+  border: 1px solid var(--accent-forest);
+  color: var(--text-on-accent);
+  font-family: var(--font-serif);
+  font-size: 0.85rem;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.onboarding-prompt-dismiss {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.25rem;
+  background: none;
+  border: none;
+  color: var(--text-tertiary);
+  cursor: pointer;
+}
+
+.onboarding-prompt-dismiss:hover {
+  color: var(--text-primary);
+}
+
+@media (max-width: 640px) {
+  .onboarding-panel {
+    padding: 20px 16px;
+  }
+  .onboarding-title {
+    font-size: 1.55rem;
+  }
+  .client-choice {
+    grid-template-columns: 1fr;
+  }
+  .onboarding-prompt {
+    flex-wrap: wrap;
+    row-gap: 0.6rem;
+  }
+  .onboarding-prompt-text {
+    flex-basis: 100%;
+  }
+  .onboarding-rail-label {
+    display: none;
+  }
+}
