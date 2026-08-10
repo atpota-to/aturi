@@ -24,8 +24,13 @@ export const revalidate = 3600; // Cache for 1 hour
 // is a fixed box, the text column takes what's left, and the copy is truncated
 // to what that column can actually hold.
 
-const MEDIA_W = 380;
-const MEDIA_H = 287;
+// Byline and copy share a column with the media rail rather than sitting in a
+// band above it, and the two are centred against each other — so a tall photo
+// no longer starts level with the wordmark while the text it belongs to floats
+// off in the corner. Folding the byline in also freed ~90px of height, which
+// goes to the rail.
+const MEDIA_W = 420;
+const MEDIA_H = 340;
 const TEXT_COL_W = 1060 - MEDIA_W - 28;
 
 /**
@@ -37,7 +42,7 @@ function clamp(text: string, max: number): string {
   const slice = text.slice(0, max);
   const lastSpace = slice.lastIndexOf(' ');
   const cut = lastSpace > max * 0.6 ? slice.slice(0, lastSpace) : slice;
-  return `${cut.replace(/[\s.,;:!?—-]+$/, '')}…`;
+  return `${cut.replace(/[\s.,;:!?·|—-]+$/, '')}…`;
 }
 
 // ─── Glyphs ─────────────────────────────────────────────────────────────────
@@ -389,57 +394,16 @@ export async function GET(request: NextRequest) {
         >
           <TopRow eyebrow="Bluesky post" />
 
-          {/* Author */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '18px', flexShrink: 0 }}>
-            <div
-              style={{
-                width: '64px',
-                height: '64px',
-                flexShrink: 0,
-                background: OG_COLORS.bgTertiary,
-                border: `1px solid ${OG_COLORS.borderMedium}`,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                overflow: 'hidden',
-              }}
-            >
-              {avatarDataUrl ? (
-                <img
-                  src={avatarDataUrl}
-                  alt=""
-                  width={64}
-                  height={64}
-                  style={{ width: '64px', height: '64px', objectFit: 'cover' }}
-                />
-              ) : (
-                <PersonGlyph size={30} />
-              )}
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-              <div style={{ display: 'flex', fontSize: '30px', fontWeight: 400 }}>
-                {displayName}
-              </div>
-              <div
-                style={{
-                  display: 'flex',
-                  fontFamily: 'IBM Plex Mono',
-                  fontSize: '20px',
-                  fontWeight: 500,
-                  color: OG_COLORS.textTertiary,
-                }}
-              >
-                {'@' + handleName}
-              </div>
-            </div>
-          </div>
-
-          {/* Body — text (and quote) on the left, media on a fixed right rail */}
+          {/* Body — byline and copy on the left, media on a fixed right rail.
+              alignItems: center puts the two columns on one axis, so the
+              byline sits level with the middle of a tall photo instead of
+              level with its top edge. */}
           <div
             style={{
               display: 'flex',
               flex: 1,
               gap: '28px',
+              alignItems: 'center',
               overflow: 'hidden',
             }}
           >
@@ -448,15 +412,56 @@ export async function GET(request: NextRequest) {
                 display: 'flex',
                 flexDirection: 'column',
                 flex: 1,
-                // Line the copy up with the top of the media rail when there is
-                // one; centre it when the column has the card to itself, so a
-                // short post doesn't leave a band of dead space above the rule.
-                justifyContent: hasMedia ? 'flex-start' : 'center',
-                gap: '16px',
+                gap: '20px',
                 minWidth: 0,
                 overflow: 'hidden',
               }}
             >
+              {/* Byline */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '18px' }}>
+                <div
+                  style={{
+                    width: '64px',
+                    height: '64px',
+                    flexShrink: 0,
+                    background: OG_COLORS.bgTertiary,
+                    border: `1px solid ${OG_COLORS.borderMedium}`,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    overflow: 'hidden',
+                  }}
+                >
+                  {avatarDataUrl ? (
+                    <img
+                      src={avatarDataUrl}
+                      alt=""
+                      width={64}
+                      height={64}
+                      style={{ width: '64px', height: '64px', objectFit: 'cover' }}
+                    />
+                  ) : (
+                    <PersonGlyph size={30} />
+                  )}
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                  <div style={{ display: 'flex', fontSize: '30px', fontWeight: 400 }}>
+                    {displayName}
+                  </div>
+                  <div
+                    style={{
+                      display: 'flex',
+                      fontFamily: 'IBM Plex Mono',
+                      fontSize: '20px',
+                      fontWeight: 500,
+                      color: OG_COLORS.textTertiary,
+                    }}
+                  >
+                    {'@' + handleName}
+                  </div>
+                </div>
+              </div>
+
               {truncatedText && (
                 <div
                   style={{

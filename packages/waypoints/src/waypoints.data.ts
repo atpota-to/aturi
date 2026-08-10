@@ -290,6 +290,32 @@ export const WAYPOINT_DESTINATIONS_DATA: Record<string, WaypointData> = {
     expectedCollections: ['app.bsky.'],
   },
 
+  impro: {
+    id: 'impro',
+    name: 'Impro',
+    description: (collection) => {
+      if (collection === 'app.bsky.feed.post') return 'View post on impro.social';
+      if (collection === 'app.bsky.graph.list') return 'View list on impro.social';
+      return 'View profile on impro.social';
+    },
+    getUrl: (handle, collection, rkey) => {
+      if (collection && rkey) {
+        if (collection === 'app.bsky.feed.post') {
+          return `https://impro.social/profile/${handle}/post/${rkey}`;
+        }
+        if (collection === 'app.bsky.graph.list') {
+          return `https://impro.social/profile/${handle}/lists/${rkey}`;
+        }
+        return `https://impro.social/profile/${handle}`;
+      }
+      return `https://impro.social/profile/${handle}`;
+    },
+    supportedTypes: ['post', 'profile', 'list', 'record'],
+    category: 'blueskyClients',
+    redirectCompat: ['bluesky-social'],
+    expectedCollections: ['app.bsky.'],
+  },
+
   leaflet: {
     id: 'leaflet',
     name: 'Leaflet',
@@ -729,6 +755,7 @@ export const WAYPOINT_ORDER = [
   'bluesky',
   'bluepy',
   'reddwarf',
+  'impro',
   'blacksky',
   'leaflet',
   'aturi',

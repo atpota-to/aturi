@@ -27,7 +27,7 @@ function clamp(text: string, max: number): string {
   const slice = text.slice(0, max);
   const lastSpace = slice.lastIndexOf(' ');
   const cut = lastSpace > max * 0.6 ? slice.slice(0, lastSpace) : slice;
-  return `${cut.replace(/[\s.,;:!?—-]+$/, '')}…`;
+  return `${cut.replace(/[\s.,;:!?·|—-]+$/, '')}…`;
 }
 
 function ListGlyph({ size = 44 }: { size?: number }) {

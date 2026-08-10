@@ -49,6 +49,7 @@ describe('matchSupportedUrl - Bluesky family', () => {
 
   it.each([
     ['reddwarf.app', 'reddwarf'],
+    ['impro.social', 'impro'],
     ['witchsky.app', 'witchsky'],
     ['deer.social', 'deer'],
     ['anisota.net', 'anisota'],
