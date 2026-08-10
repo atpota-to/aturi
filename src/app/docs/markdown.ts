@@ -70,6 +70,8 @@ const fromUrl = await resolveUrl('https://bsky.app/profile/alice.bsky.social/pos
   \`WAYPOINT_DESTINATIONS_DATA\` catalog.
 - **Parsing:** \`parseURI\`, \`parseAtUri\`, \`matchSupportedUrl\`,
   \`resolveHandle\`.
+- **Capabilities:** \`supportsComposeIntent\`, \`getComposeIntentUrl\`,
+  \`getComposeIntentWaypoints\` — see "Compose intents" below.
 
 A handful of destinations (pdsls, atp.tools, Margin, Grain, Popfeed) only
 produce useful URLs when a DID is known; they're filtered out unless a DID is
@@ -169,6 +171,73 @@ GET https://aturi.to/api/resolve?atUri=at://...
 The core package's \`resolveViaApi()\` is a typed client for this endpoint. It's
 the right choice from a browser, where fetching arbitrary pages is blocked by
 CORS.
+
+To ask about the catalog itself rather than a specific record — what's in it,
+and which clients can do what — there's a companion endpoint, filterable by
+\`?type=\` and \`?capability=\`:
+
+\`\`\`http
+GET https://aturi.to/api/waypoints
+GET https://aturi.to/api/waypoints?type=post&capability=compose
+\`\`\`
+
+## Compose intents
+
+bsky.app can be handed a link that opens its composer pre-filled:
+\`/intent/compose?text=…\` (see
+https://docs.bsky.app/docs/advanced-guides/intent-links). Clients forked from
+the official social app inherit the same route, so the catalog records which
+ones do — and every waypoint carries a \`composeIntent\`, \`null\` when the client
+has no confirmed route.
+
+\`\`\`ts
+import {
+  WAYPOINT_DESTINATIONS_DATA,
+  getComposeIntentUrl,
+  getComposeIntentWaypoints,
+  supportsComposeIntent,
+} from '@aturi.to/waypoints';
+
+// Which clients will open a composer for you?
+getComposeIntentWaypoints().map((w) => w.id);
+// ['bluesky', 'impro', 'blacksky', 'witchsky', 'mu', 'deer']
+
+supportsComposeIntent(WAYPOINT_DESTINATIONS_DATA.deer); // true
+getComposeIntentUrl(WAYPOINT_DESTINATIONS_DATA.deer, 'hello from my app');
+// 'https://deer.social/intent/compose?text=hello%20from%20my%20app'
+\`\`\`
+
+Two nuances worth reading off the data rather than assuming. \`prefillsText\` is
+\`false\` for a client that routes the intent but ignores the text, so a "share
+this" link would open an empty composer — fine as a jump, useless as a share.
+And \`appUrl\` appears only where the client publishes a native scheme, so it's a
+bonus, not a fallback.
+
+Over HTTP, the same data comes back on both endpoints. Pass the text to get
+finished links, or take \`urlTemplate\` and substitute the URL-encoded text for
+\`{text}\` yourself.
+
+\`\`\`http
+GET https://aturi.to/api/waypoints?capability=compose&text=<encoded-text>
+GET https://aturi.to/api/resolve?atUri=at://...&composeText=<encoded-text>
+\`\`\`
+
+\`\`\`json
+{
+  "id": "deer",
+  "name": "Deer",
+  "category": "blueskyForks",
+  "composeIntent": {
+    "url": "https://deer.social/intent/compose?text=hello",
+    "urlTemplate": "https://deer.social/intent/compose?text={text}",
+    "textParam": "text",
+    "prefillsText": true
+  }
+}
+\`\`\`
+
+In React, each \`useWaypoints\` entry carries the same \`composeIntent\`; pass
+\`composeText\` to the hook to have the links built for you.
 
 ## Build an aturi.to link (universal links)
 

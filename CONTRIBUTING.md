@@ -16,18 +16,31 @@ Found a bug or have a feature idea? [Open an issue](https://github.com/yourusern
 
 Want to add support for a new ATProto client?
 
-Edit `src/utils/waypoints.tsx` and add your platform:
+Edit `src/utils/waypoints.data.ts` and add your platform to `WAYPOINT_DESTINATIONS_DATA`, then add its id to `WAYPOINT_ORDER`:
 
 ```typescript
 {
-  id: 'your-platform',
+  id: 'yourPlatform',
   name: 'Your Platform',
-  urlPattern: (repo, collection, rkey) => {
-    if (!collection) return `https://yourplatform.com/profile/${repo}`;
-    return `https://yourplatform.com/profile/${repo}/post/${rkey}`;
+  description: 'View profile on yourplatform.com',
+  getUrl: (handle, collection, rkey) => {
+    if (collection === 'app.bsky.feed.post' && rkey) {
+      return `https://yourplatform.com/profile/${handle}/post/${rkey}`;
+    }
+    return `https://yourplatform.com/profile/${handle}`;
   },
+  supportedTypes: ['post', 'profile', 'record'],
+  category: 'blueskyClients',
+  redirectCompat: ['bluesky-social'],
+  expectedCollections: ['app.bsky.'],
+  // Optional: only if your client handles Bluesky-style intent links
+  // (https://docs.bsky.app/docs/advanced-guides/intent-links). Omit
+  // `textParam` if the route opens the composer but ignores the text.
+  composeIntent: { url: 'https://yourplatform.com/intent/compose', textParam: 'text' },
 }
 ```
+
+Only claim `supportedTypes` and `composeIntent` your client actually handles — a route that 404s or silently drops the user on their home feed is worse than not being offered. The packages ship copies of this file, so run `npm run sync` in `packages/waypoints` before opening the PR.
 
 Then submit a pull request!
 

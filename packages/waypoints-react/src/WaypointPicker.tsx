@@ -27,6 +27,11 @@ export type WaypointPickerProps = {
   waypointIds?: string[];
   hiddenIds?: string[];
   customWaypoints?: CustomWaypoint[];
+  /**
+   * Text to pre-fill into each entry's `composeIntent` link. Only reachable
+   * through `renderWaypoint` — the default row doesn't render a compose action.
+   */
+  composeText?: string;
   /** Show the recommended section. Default true. */
   showRecommended?: boolean;
   /** Show the per-row copy button. Default true. */
@@ -163,6 +168,7 @@ export function WaypointPicker({
   waypointIds,
   hiddenIds,
   customWaypoints,
+  composeText,
   showRecommended = true,
   showCopy = true,
   onSelect,
@@ -180,6 +186,7 @@ export function WaypointPicker({
     waypointIds,
     hiddenIds,
     customWaypoints,
+    composeText,
   });
 
   const [copiedId, setCopiedId] = useState<string | null>(null);

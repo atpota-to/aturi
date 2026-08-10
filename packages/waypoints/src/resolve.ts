@@ -1,7 +1,9 @@
 import {
   WAYPOINT_DESTINATIONS_DATA,
   WAYPOINT_ORDER,
+  describeComposeIntent,
   getRecommendedWaypointsData,
+  type ComposeIntentDescriptor,
   type WaypointType,
 } from './waypoints.data';
 import {
@@ -16,6 +18,12 @@ export type ResolvedWaypoint = {
   name: string;
   category: string;
   url: string;
+  /**
+   * Whether this client can be handed a link that opens its composer, and how
+   * to build one. Null when it has no confirmed compose intent route. Supply
+   * `composeText` to get the links back pre-filled.
+   */
+  composeIntent: ComposeIntentDescriptor | null;
 };
 
 export type ResolvedRecommendation = {
@@ -50,6 +58,8 @@ export type BuildWaypointsOptions = {
   did?: string;
   /** Waypoint id to omit (e.g. the source app the user is already on). */
   excludeSourceId?: string;
+  /** Text to pre-fill into each waypoint's compose intent link, if it has one. */
+  composeText?: string;
 };
 
 /**
@@ -74,7 +84,13 @@ export function buildWaypointsForParsed(
       if (DID_REQUIRED_WAYPOINTS.has(w.id) && !did) return null;
       const url = w.getUrl(parsed.handle, parsed.collection, parsed.rkey, did);
       if (!url) return null;
-      return { id: w.id, name: w.name, category: w.category, url };
+      return {
+        id: w.id,
+        name: w.name,
+        category: w.category,
+        url,
+        composeIntent: describeComposeIntent(w, options.composeText),
+      };
     })
     .filter((w): w is ResolvedWaypoint => !!w);
 
@@ -91,11 +107,16 @@ export function buildWaypointsForParsed(
  * Resolve an AT URI string (e.g. "at://did:plc:abc/app.bsky.feed.post/rkey")
  * directly into its waypoints. Returns null if the string isn't a valid AT URI.
  */
-export function resolveAtUri(uri: string): ResolveResult | null {
+export function resolveAtUri(
+  uri: string,
+  options: Pick<BuildWaypointsOptions, 'composeText'> = {},
+): ResolveResult | null {
   const match = parseAtUri(uri);
   if (!match) return null;
   const { parsed, source } = match;
-  const { waypoints, recommended } = buildWaypointsForParsed(parsed);
+  const { waypoints, recommended } = buildWaypointsForParsed(parsed, {
+    composeText: options.composeText,
+  });
   return {
     parsed,
     source,
@@ -121,6 +142,8 @@ export type ResolveUrlOptions = {
    * your own implementation.
    */
   resolveHandle?: (handle: string) => Promise<string | null>;
+  /** Text to pre-fill into each waypoint's compose intent link, if it has one. */
+  composeText?: string;
 };
 
 /**
@@ -171,6 +194,7 @@ export async function resolveUrl(
   const { waypoints, recommended } = buildWaypointsForParsed(parsed, {
     did,
     excludeSourceId: source,
+    composeText: options.composeText,
   });
   return {
     parsed: { ...parsed, did },
@@ -187,6 +211,8 @@ export type ResolveApiInput = {
   atUri?: string;
   /** Set false to skip the server-side <head> probe. */
   headDetect?: boolean;
+  /** Text to pre-fill into the returned compose intent links. */
+  composeText?: string;
 };
 
 export type ResolveApiParsed = {
@@ -251,6 +277,7 @@ export async function resolveViaApi(
     throw new Error('resolveViaApi requires either `url` or `atUri`');
   }
   if (input.headDetect === false) params.set('headDetect', 'false');
+  if (input.composeText) params.set('composeText', input.composeText);
 
   const res = await fetchImpl(`${endpoint}?${params.toString()}`, {
     method: 'GET',
