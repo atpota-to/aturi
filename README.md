@@ -1,6 +1,6 @@
 # aturi.to
 
-**Tour the Atmosphere.** Switch clients, share universal links, browse any PDS.
+**Tour the Atmosphere.** Switch clients, share universal links, discover lexicons, detect URIs, browse any PDS, add Waypoints to any app.
 
 ## What is aturi.to?
 
