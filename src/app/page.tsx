@@ -6,7 +6,7 @@ import { FadeIn } from '@/components/FadeIn';
 import UniversalLinksStrip from '@/components/home/UniversalLinksStrip';
 import ExtensionStrip from '@/components/home/ExtensionStrip';
 import ExplorerStrip from '@/components/home/ExplorerStrip';
-import { Code2, Scale } from 'lucide-react';
+import { Code2, GitFork, Scale } from 'lucide-react';
 
 export default function HomePage() {
   return (
@@ -257,6 +257,15 @@ export default function HomePage() {
             >
               Every line of aturi.to lives on{' '}
               <a
+                href="https://github.com/atpota-to/aturi"
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ color: 'var(--text-accent)' }}
+              >
+                GitHub
+              </a>
+              , mirrored to{' '}
+              <a
                 href="https://tangled.org/atpota.to/aturi"
                 target="_blank"
                 rel="noopener noreferrer"
@@ -275,7 +284,7 @@ export default function HomePage() {
               }}
             >
               <a
-                href="https://tangled.org/atpota.to/aturi"
+                href="https://github.com/atpota-to/aturi"
                 target="_blank"
                 rel="noopener noreferrer"
                 style={openSourcePillStyle}
@@ -283,12 +292,20 @@ export default function HomePage() {
                 <Code2 size={14} aria-hidden /> Source code
               </a>
               <a
-                href="https://tangled.org/atpota.to/aturi/blob/main/LICENSE"
+                href="https://github.com/atpota-to/aturi/blob/main/LICENSE"
                 target="_blank"
                 rel="noopener noreferrer"
                 style={openSourcePillStyle}
               >
                 <Scale size={14} aria-hidden /> GPL v3 license
+              </a>
+              <a
+                href="https://tangled.org/atpota.to/aturi"
+                target="_blank"
+                rel="noopener noreferrer"
+                style={openSourcePillStyle}
+              >
+                <GitFork size={14} aria-hidden /> Tangled mirror
               </a>
             </div>
           </section>

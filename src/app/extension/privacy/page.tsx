@@ -349,7 +349,7 @@ export default function ExtensionPrivacyPage() {
               extension&rsquo;s source code, including every network request
               it makes, at{' '}
               <a
-                href="https://tangled.org/atpota.to/aturi"
+                href="https://github.com/atpota-to/aturi"
                 target="_blank"
                 rel="noopener noreferrer"
                 style={{
@@ -357,7 +357,7 @@ export default function ExtensionPrivacyPage() {
                   textDecoration: 'none',
                 }}
               >
-                tangled.org/atpota.to/aturi
+                github.com/atpota-to/aturi
               </a>
               .
             </p>
@@ -376,7 +376,7 @@ export default function ExtensionPrivacyPage() {
             <p style={paragraph}>
               Questions or concerns? File an issue at{' '}
               <a
-                href="https://tangled.org/atpota.to/aturi/issues"
+                href="https://github.com/atpota-to/aturi/issues"
                 target="_blank"
                 rel="noopener noreferrer"
                 style={{
@@ -384,7 +384,7 @@ export default function ExtensionPrivacyPage() {
                   textDecoration: 'none',
                 }}
               >
-                tangled.org/atpota.to/aturi/issues
+                github.com/atpota-to/aturi/issues
               </a>{' '}
               or contact{' '}
               <a

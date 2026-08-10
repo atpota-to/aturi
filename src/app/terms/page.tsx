@@ -9,8 +9,9 @@ export const metadata: Metadata = {
 };
 
 const CONTACT_EMAIL = 'contact@aturi.to';
-const REPO_URL = 'https://tangled.org/atpota.to/aturi';
-const ISSUES_URL = 'https://tangled.org/atpota.to/aturi/issues';
+// GitHub is the primary repository; tangled.org/atpota.to/aturi mirrors it.
+const REPO_URL = 'https://github.com/atpota-to/aturi';
+const ISSUES_URL = 'https://github.com/atpota-to/aturi/issues';
 const BSKY_PROFILE_URL = 'https://bsky.app/profile/atpota.to';
 const EXTENSION_PRIVACY_URL = '/extension/privacy';
 
@@ -1140,7 +1141,7 @@ export default function TermsPage() {
                 rel="noopener noreferrer"
                 style={linkStyle}
               >
-                tangled.org/atpota.to/aturi
+                github.com/atpota-to/aturi
               </a>
               .
             </p>

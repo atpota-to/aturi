@@ -69,11 +69,13 @@ export const config = {
     name: 'aturi.to',
     author: 'dame',
     url: 'https://aturi.to',
-    repo: 'https://tangled.org/atpota.to/aturi',
+    repo: 'https://github.com/atpota-to/aturi',
   },
-  
-  // Source code repository
-  repo: process.env.NEXT_PUBLIC_REPO_URL || 'https://tangled.org/atpota.to/aturi',
+
+  // Source code repository. GitHub is primary — issues, pull requests and
+  // releases live there. tangled.org/atpota.to/aturi is a mirror of it.
+  repo: process.env.NEXT_PUBLIC_REPO_URL || 'https://github.com/atpota-to/aturi',
+  repoMirror: 'https://tangled.org/atpota.to/aturi',
   
   // Analytics (optional)
   analytics: {

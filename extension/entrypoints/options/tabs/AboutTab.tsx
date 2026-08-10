@@ -1,7 +1,10 @@
 import { browser } from '#imports';
 
 const ATURI_SITE = 'https://aturi.to';
-const REPO_URL = 'https://tangled.org/atpota.to/aturi';
+// GitHub is the primary repository — issues and pull requests land there.
+// Tangled mirrors it for anyone who'd rather browse the source on atproto.
+const REPO_URL = 'https://github.com/atpota-to/aturi';
+const MIRROR_URL = 'https://tangled.org/atpota.to/aturi';
 const PROJECT_HANDLE = 'aturi.to';
 const CREATOR_HANDLE = 'dame.is';
 const STEWARD_HANDLE = 'atpota.to';
@@ -56,6 +59,10 @@ export default function AboutTab() {
           </a>
           <a href={REPO_URL} target="_blank" rel="noreferrer" className="about-link">
             <span className="about-link-label">Source &amp; issues</span>
+            <span className="about-link-value">github.com/atpota-to/aturi</span>
+          </a>
+          <a href={MIRROR_URL} target="_blank" rel="noreferrer" className="about-link">
+            <span className="about-link-label">Tangled mirror</span>
             <span className="about-link-value">tangled.org/atpota.to/aturi</span>
           </a>
         </div>
@@ -94,7 +101,7 @@ export default function AboutTab() {
         <div className="options-card-title">Feedback</div>
         <div className="options-card-sub">
           Found a bug, want to suggest a new waypoint, or have an idea for the
-          popup? File an issue or open a pull request on Tangled. Aturi is
+          popup? File an issue or open a pull request on GitHub. Aturi is
           open source under GPL v3.
         </div>
         <div className="about-links">
@@ -105,7 +112,7 @@ export default function AboutTab() {
             className="about-link"
           >
             <span className="about-link-label">Report an issue</span>
-            <span className="about-link-value">tangled.org/atpota.to/aturi/issues</span>
+            <span className="about-link-value">github.com/atpota-to/aturi/issues</span>
           </a>
           <a
             href={`${REPO_URL}/pulls`}
@@ -114,7 +121,7 @@ export default function AboutTab() {
             className="about-link"
           >
             <span className="about-link-label">Pull requests</span>
-            <span className="about-link-value">tangled.org/atpota.to/aturi/pulls</span>
+            <span className="about-link-value">github.com/atpota-to/aturi/pulls</span>
           </a>
         </div>
       </div>
