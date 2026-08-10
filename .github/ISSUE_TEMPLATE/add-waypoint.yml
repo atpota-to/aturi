@@ -86,6 +86,23 @@ body:
         as yours? Say "none" if this is a standalone app or a generic explorer.
       placeholder: Renders the same app.bsky.feed.post records as Bluesky and Anisota.
 
+  - type: dropdown
+    id: compose-intent
+    attributes:
+      label: Compose intent
+      description: >
+        Does the app handle a link that opens its composer, the way bsky.app takes
+        /intent/compose?text=… (https://docs.bsky.app/docs/advanced-guides/intent-links)?
+        Apps forked from the official social app usually inherit it. If the route lives at a
+        different path, say so in the auto-redirect box above.
+      options:
+        - Yes, and it pre-fills the text
+        - Yes, but it ignores the text and opens an empty composer
+        - No
+        - Not sure
+    validations:
+      required: true
+
   - type: input
     id: icon
     attributes:

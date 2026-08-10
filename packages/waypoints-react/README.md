@@ -115,7 +115,36 @@ function MyPicker() {
 }
 ```
 
-Each entry carries `{ id, name, label, description, url, icon, category, isRecommended }`.
+Each entry carries `{ id, name, label, description, url, icon, category, isRecommended, composeIntent }`.
+
+#### Compose intents
+
+`composeIntent` is a link that opens that client's own composer
+([Bluesky's intent links](https://docs.bsky.app/docs/advanced-guides/intent-links)),
+or `null` when the client has no confirmed route — enough on its own to gate a
+"post this over there" button. Pass `composeText` to have the links built for
+you:
+
+```tsx
+const { waypoints } = useWaypoints({
+  type: 'post',
+  handle: 'alice.bsky.social',
+  composeText: 'found via my app',
+});
+
+{waypoints
+  .filter((w) => w.composeIntent?.prefillsText)
+  .map((w) => (
+    <button key={w.id} onClick={() => open(w.composeIntent!.url)}>
+      Post in {w.name}
+    </button>
+  ))}
+```
+
+The `prefillsText` filter matters: one client routes the intent but ignores the
+text, so without it a share button would open an empty composer. Drop the filter
+when you just want to send someone to a composer. Custom waypoints can declare a
+`composeIntent` of their own and they'll surface the same way.
 
 ### 3. The polished theme (opt-in)
 
@@ -155,6 +184,7 @@ Available tokens: `--aturi-wp-accent`, `--aturi-wp-accent-contrast`,
 | `waypointIds` | `string[]?` | Allowlist of waypoint ids to surface |
 | `hiddenIds` | `string[]?` | Ids to remove |
 | `customWaypoints` | `CustomWaypoint[]?` | Your own destinations |
+| `composeText` | `string?` | Pre-fills each entry's `composeIntent` link |
 | `showRecommended` | `boolean?` | Default `true` |
 | `showCopy` | `boolean?` | Default `true` |
 | `onSelect` | `(waypoint, event) => void` | Override open-in-new-tab |

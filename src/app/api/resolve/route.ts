@@ -8,7 +8,9 @@ import {
 import {
   WAYPOINT_DESTINATIONS_DATA,
   WAYPOINT_ORDER,
+  describeComposeIntent,
   getRecommendedWaypointsData,
+  type ComposeIntentDescriptor,
   type WaypointType,
 } from '@/utils/waypoints.data';
 import { resolveHandle } from '@/utils/uriParser';
@@ -38,9 +40,23 @@ export const runtime = 'edge';
  * Inputs:
  *  - `url=<encoded-page-url>` (preferred from share sheets)
  *  - `atUri=at://...`         (skips detection entirely)
+ *  - `composeText=<text>`     (optional; pre-fills the compose intent links)
  *
- * Either is accepted; `atUri` wins when both are supplied.
+ * Either of the first two is accepted; `atUri` wins when both are supplied.
+ *
+ * Every waypoint carries a `composeIntent` describing whether that client can
+ * be handed a link that opens its composer
+ * (https://docs.bsky.app/docs/advanced-guides/intent-links), null when it
+ * can't. Pass `composeText` to get the links back pre-filled.
  */
+
+type ResolvedWaypointJson = {
+  id: string;
+  name: string;
+  category: string;
+  url: string;
+  composeIntent: ComposeIntentDescriptor | null;
+};
 
 const DID_REQUIRED_WAYPOINTS = new Set([
   'pdsls',
@@ -67,6 +83,7 @@ export async function GET(request: NextRequest) {
   const rawAtUri = searchParams.get('atUri') || searchParams.get('aturi');
   const rawUrl = searchParams.get('url');
   const skipHead = searchParams.get('headDetect') === 'false';
+  const composeText = searchParams.get('composeText') || undefined;
 
   if (!rawAtUri && !rawUrl) {
     return jsonError(400, 'Missing url or atUri parameter');
@@ -164,9 +181,12 @@ export async function GET(request: NextRequest) {
         name: w.name,
         category: w.category,
         url,
+        // Null for every client without a confirmed compose intent route, so a
+        // caller can branch on it without having to know the catalog.
+        composeIntent: describeComposeIntent(w, composeText),
       };
     })
-    .filter((w): w is { id: string; name: string; category: string; url: string } => !!w);
+    .filter((w): w is ResolvedWaypointJson => !!w);
 
   const recommendedRaw = getRecommendedWaypointsData(type, parsed.collection);
   const availableIds = new Set(waypoints.map(w => w.id));

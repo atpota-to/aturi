@@ -203,6 +203,26 @@ GET https://aturi.to/api/resolve?url=<encoded-page-url>
 GET https://aturi.to/api/resolve?atUri=at://...
 ```
 
+To ask about the catalog itself instead of a single record — what's in it, and which clients can do what — there's a companion endpoint:
+
+```
+GET https://aturi.to/api/waypoints
+GET https://aturi.to/api/waypoints?type=post&capability=compose
+```
+
+### Compose intents
+
+Clients that inherit Bluesky's [intent links](https://docs.bsky.app/docs/advanced-guides/intent-links) can be handed a URL that opens their composer pre-filled. The catalog tracks which ones do, so every waypoint — in the packages, in both API endpoints, and in the React hook — carries a `composeIntent` (`null` when the client has no confirmed route):
+
+```ts
+import { getComposeIntentUrl, WAYPOINT_DESTINATIONS_DATA } from '@aturi.to/waypoints';
+
+getComposeIntentUrl(WAYPOINT_DESTINATIONS_DATA.deer, 'hello from my app');
+// 'https://deer.social/intent/compose?text=hello%20from%20my%20app'
+```
+
+Watch `prefillsText`: one client routes the intent but ignores the text, so the link opens an empty composer. Maintain a client that handles compose intents and isn't listed? Open an issue and we'll add it.
+
 ## Tech stack
 
 **Web app**
