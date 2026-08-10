@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { Package } from 'lucide-react';
 import Header from '@/components/Header';
 import CodeBlock from '@/components/docs/CodeBlock';
 import CopyMarkdownButton from '@/components/docs/CopyMarkdownButton';
@@ -57,6 +58,11 @@ const liStyle: React.CSSProperties = {
   lineHeight: 1.6,
   marginBottom: '0.4rem',
 };
+
+// The published core package, linked from the page header rather than buried
+// in the "Core package" section: the first thing a developer wants off this
+// page is somewhere to go look at the thing before installing it.
+const NPMX_CORE_URL = 'https://npmx.dev/package/@aturi.to/waypoints';
 
 const TOC: { id: string; label: string }[] = [
   { id: 'overview', label: 'Overview' },
@@ -187,6 +193,30 @@ export default function DocsPage() {
             compose intents, and AT-URI resolution to your own app, with two
             MIT-licensed packages and a public API.
           </p>
+          {/* Color is left to the global `a` rule so the chip picks up the
+              accent color and its hover transition — this page is a Server
+              Component, so the inline hover handlers used by the Copy button
+              below aren't available here. */}
+          <a
+            href={NPMX_CORE_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.45rem',
+              marginTop: '1.5rem',
+              padding: '0.45rem 0.85rem',
+              border: '1px solid var(--border-subtle)',
+              background: 'var(--bg-tertiary)',
+              fontFamily: 'var(--font-mono)',
+              fontSize: '0.8125rem',
+            }}
+          >
+            <Package size={14} strokeWidth={1.5} aria-hidden />
+            <span>@aturi.to/waypoints</span>
+            <span style={{ color: 'var(--text-tertiary)' }}>on npmx ↗</span>
+          </a>
           <div
             style={{
               display: 'flex',
