@@ -159,6 +159,57 @@ describe('buildRules', () => {
     expect(leafletRule?.action.redirect?.regexSubstitution).toContain('anisota.net');
   });
 
+  // Regression: a list rule used to inherit the destination's profile URL when
+  // that destination's getUrl had no `app.bsky.graph.list` branch, so
+  // `bsky.app/profile/alice/lists/xyz` redirected to alice's profile instead of
+  // to her list.
+  it('carries the list rkey through to the destination', () => {
+    const rules = buildRules(prefs({
+      autoRedirect: true,
+      favoriteByFamily: { 'bluesky-social': 'blacksky' },
+    }));
+    const listRule = rules.find(r =>
+      r.condition.regexFilter?.includes('bsky\\.app') &&
+      r.condition.regexFilter?.includes('lists')
+    );
+    expect(listRule?.action.redirect?.regexSubstitution).toBe(
+      'https://blacksky.community/profile/\\1/lists/\\2'
+    );
+  });
+
+  it('emits no rule at all rather than one that drops the record', () => {
+    // Red Dwarf has no list route, so a bsky list must stay on bsky.app.
+    const rules = buildRules(prefs({
+      autoRedirect: true,
+      favoriteByFamily: { 'bluesky-social': 'reddwarf' },
+    }));
+    const toProfile = rules.find(r =>
+      r.condition.regexFilter?.includes('lists') &&
+      r.action.redirect?.regexSubstitution === 'https://reddwarf.app/profile/\\1'
+    );
+    expect(toProfile).toBeUndefined();
+    // The post rules for the same favorite are unaffected.
+    expect(rules.some(r => r.condition.regexFilter?.includes('post'))).toBe(true);
+  });
+
+  it('drops a custom-waypoint rule whose template ignores the rkey', () => {
+    const rules = buildRules(prefs({
+      autoRedirect: true,
+      defaults: { bluesky: { list: 'custom:x' } },
+      customWaypoints: [{
+        id: 'custom:x',
+        name: 'Example',
+        domain: 'example.app',
+        category: 'custom',
+        supportedTypes: ['list'],
+        // No `{rkey}`: the destination can't address the list itself.
+        templates: { list: '/u/{handle}' },
+        redirectCompat: ['bluesky-social'],
+      }],
+    }));
+    expect(rules).toEqual([]);
+  });
+
   it('family favorite for standard-site does not leak into bluesky-social sources', () => {
     const rules = buildRules(prefs({
       autoRedirect: true,
