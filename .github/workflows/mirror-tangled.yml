@@ -8,12 +8,20 @@ name: Mirror to Tangled
 # the off-the-shelf mirror actions do - would copy every claude/* branch onto
 # the mirror as well.
 #
-# Setup (one time). Generate the key OUTSIDE this working tree - a keypair
-# written into the repo is one `git add .` away from being published:
-#   1. ssh-keygen -t ed25519 -C "aturi mirror" -f "$(mktemp -d)/mirror" -N ""
-#   2. Add mirror.pub on Tangled under Settings -> Keys.
-#   3. Add the contents of mirror (the private half) as the TANGLED_SSH_KEY
-#      secret under Settings -> Secrets -> Actions, then delete the temp dir.
+# Setup (one time). ssh-keygen can only write to files, so this generates the
+# pair in a temp dir, prints it, and destroys the dir in the same command -
+# nothing is left on disk to commit by accident. The trap needs the subshell:
+# run it unwrapped and the cleanup waits until you close the terminal.
+#
+#   ( d=$(mktemp -d) && trap 'rm -rf "$d"' EXIT \
+#     && ssh-keygen -q -t ed25519 -C "aturi mirror" -f "$d/mirror" -N "" \
+#     && echo "PUBLIC:"  && cat "$d/mirror.pub" \
+#     && echo "PRIVATE:" && cat "$d/mirror" )
+#
+# Add the public half on Tangled under Settings -> Keys, and the private half as
+# the TANGLED_SSH_KEY secret under Settings -> Secrets -> Actions. Both halves
+# land in terminal scrollback, so clear it afterwards - or swap the last line
+# for `pbcopy < "$d/mirror"` to keep the private key off screen entirely.
 #
 # Tangled has no per-repo deploy keys - keys are account-level - so this key can
 # push to every repo on the atpota.to identity. Keep it dedicated to this
