@@ -7,6 +7,15 @@ import { ChevronRight, Leaf } from 'lucide-react';
 // See LICENSE file for full details.
 
 /**
+ * The repo lives in two places. GitHub is canonical — issues, pull requests,
+ * releases and npm's trusted publishing all point at it — and Tangled is the
+ * atproto-native mirror. Both are named in the footer so a contributor lands
+ * on the one that accepts their patch.
+ */
+const GITHUB_REPO_URL = 'https://github.com/atpota-to/aturi';
+const TANGLED_REPO_URL = 'https://tangled.org/atpota.to/aturi';
+
+/**
  * Site footer. Two-row layout: a brand+nav grid on top, then a single
  * monospace "made by" line below styled as a pair of at:// breadcrumbs —
  * picks up the AT-URI segment treatment used by the explorer pages so the
@@ -88,16 +97,32 @@ export default function Footer() {
             <Link href="/terms" className="footer-link">
               Terms &amp; Privacy
             </Link>
+            <div className="footer-source">
+              <span className="footer-source-label">Source</span>
+              <a
+                href={GITHUB_REPO_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="footer-link footer-source-primary"
+                aria-label="Source code on GitHub"
+              >
+                GitHub
+              </a>
+              <span className="footer-source-sep" aria-hidden>
+                /
+              </span>
+              <a
+                href={TANGLED_REPO_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="footer-link"
+                aria-label="Source code mirror on Tangled"
+              >
+                Tangled<span className="footer-source-note">mirror</span>
+              </a>
+            </div>
             <a
-              href="https://tangled.org/atpota.to/aturi"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="footer-link"
-            >
-              Source code
-            </a>
-            <a
-              href="https://tangled.org/atpota.to/aturi/blob/main/LICENSE"
+              href={`${GITHUB_REPO_URL}/blob/main/LICENSE`}
               target="_blank"
               rel="noopener noreferrer"
               className="footer-link"

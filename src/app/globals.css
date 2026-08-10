@@ -1183,6 +1183,43 @@ a:hover {
   color: var(--text-accent) !important;
 }
 
+/* Source-code row inside the footer nav. GitHub and its Tangled mirror share
+   one labelled line so they read as two hosts for the same repo rather than
+   as two unrelated nav items; the primary sits a shade brighter than the
+   mirror, which carries a "mirror" tag. */
+.footer-source {
+  display: flex;
+  align-items: baseline;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.footer-source-label {
+  font-size: 0.7rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+  opacity: 0.85;
+}
+
+.footer-nav .footer-source-primary {
+  color: var(--text-secondary);
+}
+
+.footer-source-sep {
+  color: var(--text-tertiary);
+  opacity: 0.5;
+}
+
+.footer-source-note {
+  margin-left: 0.3rem;
+  font-size: 0.65rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  opacity: 0.7;
+}
+
 .footer-credits {
   display: flex;
   flex-wrap: wrap;
@@ -1240,6 +1277,9 @@ a:hover {
     justify-content: flex-start;
     gap: 0.4rem 1rem;
     text-align: left;
+  }
+  .footer-source {
+    justify-content: flex-start;
   }
 }
 
