@@ -97,8 +97,7 @@ export default function SpaceSetup({ onCreated }: { onCreated: () => void }) {
           <Link href={`/explore/${FEEDBACK_OWNER}`} style={{ color: 'var(--text-accent)' }}>
             {FEEDBACK_OWNER}
           </Link>
-          &rsquo;s repo. Nobody has created one, so there&rsquo;s nothing to show — the space has to
-          be written by that account itself.
+          &rsquo;s repo. There isn&rsquo;t one yet, and only that account can write it.
         </p>
       </div>
 

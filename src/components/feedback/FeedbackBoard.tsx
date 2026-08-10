@@ -97,7 +97,9 @@ export default function FeedbackBoard() {
               color: 'var(--text-primary)',
             }}
           >
-            {space.record.name}
+            {/* The page is titled by what it's for, not by the space record's
+                own name: on aturi.to that name would just read "Aturi". */}
+            Feedback
           </h1>
           {space.record.description ? (
             <p
@@ -353,8 +355,8 @@ function FilterButton({
 }
 
 /**
- * The board is worth explaining once: it isn't a form that emails us, and it
- * isn't stored here. Both facts change what a visitor should expect from it.
+ * One line on where the data goes, because it isn't where a visitor would
+ * assume: posting here writes to their repo, not ours.
  */
 function BoardIntro({ spaceUri }: { spaceUri?: string }) {
   return (
@@ -369,7 +371,7 @@ function BoardIntro({ spaceUri }: { spaceUri?: string }) {
         lineHeight: 1.65,
       }}
     >
-      Built on the{' '}
+      Every post, reply and vote is a record in your repo, not ours. Built on the{' '}
       <a
         href={USERINPUT_HOME}
         target="_blank"
@@ -381,7 +383,7 @@ function BoardIntro({ spaceUri }: { spaceUri?: string }) {
       <Link href={USERINPUT_LEXICONS_PATH} style={{ color: 'var(--text-accent)' }}>
         lexicons
       </Link>
-      . Every post, reply and vote is a record in its author&rsquo;s own repo — counted here by{' '}
+      , counted by{' '}
       <a
         href="https://constellation.microcosm.blue"
         target="_blank"
@@ -389,8 +391,8 @@ function BoardIntro({ spaceUri }: { spaceUri?: string }) {
         style={{ color: 'var(--text-accent)' }}
       >
         Constellation
-      </a>{' '}
-      and read through{' '}
+      </a>
+      , read through{' '}
       <a
         href="https://slingshot.microcosm.blue"
         target="_blank"
@@ -399,8 +401,7 @@ function BoardIntro({ spaceUri }: { spaceUri?: string }) {
       >
         Slingshot
       </a>
-      . Nothing lives on aturi.to, and the same board is readable from any other client that speaks
-      these lexicons.
+      .
       {spaceUri ? (
         <>
           {' '}
