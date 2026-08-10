@@ -7,6 +7,7 @@ import Footer from "@/components/Footer";
 import PageTransition from "@/components/PageTransition";
 import ThemeSync from "@/components/ThemeSync";
 import ColorSchemeSync from "@/components/ColorSchemeSync";
+import WhatsNewModal from "@/components/whatsnew/WhatsNewModal";
 import FontScaleSync from "@/components/FontScaleSync";
 import A11ySync from "@/components/A11ySync";
 import { DEFAULT_THEME, THEME_INIT_SCRIPT } from "@/lib/theme";
@@ -95,6 +96,9 @@ export default function RootLayout({
         <AtprotoSessionProvider>
           <PreferencesProvider>
             <ColorSchemeSync />
+            {/* Self-triggering: decides once, after preferences settle, and
+                renders nothing for a reader who is already caught up. */}
+            <WhatsNewModal />
             <KeyboardShortcutsProvider>
               <PageTransition>
                 {/* Above the footer (z 1), not just the motion background

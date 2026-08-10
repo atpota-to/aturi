@@ -9,6 +9,7 @@ import SessionMenu from './SessionMenu';
 import SessionPanel from './SessionPanel';
 import CompactSearchPanel from './CompactSearchPanel';
 import StickyBreadcrumbBar from './explore/StickyBreadcrumbBar';
+import WhatsNewBadge from './whatsnew/WhatsNewBadge';
 
 interface HeaderProps {
   simple?: boolean; // If true, shows a smaller version without the tagline
@@ -161,6 +162,10 @@ export default function Header({ simple = false, compact = false }: HeaderProps)
                 so visitors can jump into the explorer without leaving the
                 page. Mutually exclusive with the nav menu. */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+              {/* Only renders when there's unread news, so the row stays at
+                  two buttons the rest of the time. */}
+              <WhatsNewBadge />
+
               <button
                 onClick={() => {
                   setIsSearchExpanded((v) => !v);

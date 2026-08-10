@@ -1,0 +1,102 @@
+name: Publish packages
+
+# Publishes @aturi.to/waypoints and @aturi.to/waypoints-react to npm using
+# trusted publishing (OIDC) - no NPM_TOKEN secret is involved. npm mints a
+# short-lived credential for this exact workflow, so the trust is pinned to
+# `atpota-to/aturi` + this filename. Renaming this file breaks publishing until
+# the new name is re-registered on npm for BOTH packages.
+#
+# Releasing: bump both package.json versions, merge to main, then push a tag:
+#   git tag v0.1.2 && git push origin v0.1.2
+#
+# Each package is skipped if its version is already on the registry, so re-runs
+# are safe and bumping only one package doesn't fail the other.
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Build and verify, but skip the publish'
+        type: boolean
+        default: false
+
+# Never let two releases race for the same version.
+concurrency:
+  group: publish-packages
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  id-token: write # mints the OIDC token npm exchanges for publish rights
+
+jobs:
+  publish:
+    name: Publish to npm
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          registry-url: 'https://registry.npmjs.org'
+          cache: npm
+          cache-dependency-path: packages/package-lock.json
+
+      # Trusted publishing needs npm >= 11.5.1 and Node 22 still ships npm 10.x,
+      # so npm has to be upgraded here. Held at 11.x deliberately: npm 12 wants
+      # node ^22.22.2 || ^24.15.0 || >=26, and .nvmrc pins 22.22.0 - just under
+      # that floor, so npm@latest fails to install. Widen this once .nvmrc moves.
+      - name: Upgrade npm for OIDC support
+        run: |
+          npm install -g npm@^11.5.1
+          npm --version
+
+      - name: Install
+        run: npm ci
+        working-directory: packages
+
+      # Same gates as the `packages` CI job. `prepublishOnly` re-runs the sync
+      # guard and build at publish time too, but failing here keeps a bad build
+      # from getting as far as the registry.
+      - name: Sync guard
+        run: npm run sync:check
+        working-directory: packages/waypoints
+
+      - name: Typecheck core
+        run: npm run typecheck
+        working-directory: packages/waypoints
+
+      - name: Test core
+        run: npm test
+        working-directory: packages/waypoints
+
+      - name: Build core
+        run: npm run build
+        working-directory: packages/waypoints
+
+      - name: Typecheck react
+        run: npm run typecheck
+        working-directory: packages/waypoints-react
+
+      - name: Build react
+        run: npm run build
+        working-directory: packages/waypoints-react
+
+      # Core first: waypoints-react depends on it.
+      - name: Publish @aturi.to/waypoints
+        if: ${{ github.event_name != 'workflow_dispatch' || !inputs.dry_run }}
+        run: ../../.github/scripts/publish-if-new.sh
+        working-directory: packages/waypoints
+
+      - name: Publish @aturi.to/waypoints-react
+        if: ${{ github.event_name != 'workflow_dispatch' || !inputs.dry_run }}
+        run: ../../.github/scripts/publish-if-new.sh
+        working-directory: packages/waypoints-react
+
+      - name: Report dry run
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run }}
+        run: echo "Dry run - built and verified, published nothing." >> "$GITHUB_STEP_SUMMARY"
