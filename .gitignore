@@ -13,3 +13,12 @@ dev-docs/
 
 # TypeScript incremental build info (build artifact)
 tsconfig.tsbuildinfo
+
+# Private keys never belong in the repo. The Tangled mirror key is generated
+# outside the working tree and lives only in the TANGLED_SSH_KEY secret - see
+# .github/workflows/mirror-tangled.yml. These patterns are a backstop.
+tangled-mirror
+tangled-mirror.pub
+id_ed25519*
+id_rsa*
+*.pem
