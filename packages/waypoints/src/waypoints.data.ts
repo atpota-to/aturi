@@ -234,6 +234,9 @@ export const WAYPOINT_DESTINATIONS_DATA: Record<string, WaypointData> = {
         if (collection === 'app.bsky.feed.post') {
           return `https://bsky.app/profile/${handle}/post/${rkey}`;
         }
+        if (collection === 'app.bsky.graph.list') {
+          return `https://bsky.app/profile/${handle}/lists/${rkey}`;
+        }
         return `https://bsky.app/profile/${handle}`;
       }
       return `https://bsky.app/profile/${handle}`;
@@ -257,6 +260,9 @@ export const WAYPOINT_DESTINATIONS_DATA: Record<string, WaypointData> = {
         if (collection === 'app.bsky.feed.post') {
           return `https://blacksky.community/profile/${handle}/post/${rkey}`;
         }
+        if (collection === 'app.bsky.graph.list') {
+          return `https://blacksky.community/profile/${handle}/lists/${rkey}`;
+        }
         return `https://blacksky.community/profile/${handle}`;
       }
       return `https://blacksky.community/profile/${handle}`;
@@ -272,7 +278,6 @@ export const WAYPOINT_DESTINATIONS_DATA: Record<string, WaypointData> = {
     name: 'Red Dwarf',
     description: (collection) => {
       if (collection === 'app.bsky.feed.post') return 'View post on reddwarf.app';
-      if (collection === 'app.bsky.graph.list') return 'View list on reddwarf.app';
       return 'View profile on reddwarf.app';
     },
     getUrl: (handle, collection, rkey) => {
@@ -284,7 +289,10 @@ export const WAYPOINT_DESTINATIONS_DATA: Record<string, WaypointData> = {
       }
       return `https://reddwarf.app/profile/${handle}`;
     },
-    supportedTypes: ['post', 'profile', 'list', 'record'],
+    // No `list`: unlike the social-app forks in this family, Red Dwarf has no
+    // `/profile/:handle/lists/:rkey` route, so offering it for a list would
+    // silently land the user on the list's author instead.
+    supportedTypes: ['post', 'profile', 'record'],
     category: 'blueskyClients',
     redirectCompat: ['bluesky-social'],
     expectedCollections: ['app.bsky.'],
@@ -420,6 +428,9 @@ export const WAYPOINT_DESTINATIONS_DATA: Record<string, WaypointData> = {
         if (collection === 'app.bsky.feed.post') {
           return `https://witchsky.app/profile/${handle}/post/${rkey}`;
         }
+        if (collection === 'app.bsky.graph.list') {
+          return `https://witchsky.app/profile/${handle}/lists/${rkey}`;
+        }
         return `https://witchsky.app/profile/${handle}`;
       }
       return `https://witchsky.app/profile/${handle}`;
@@ -443,6 +454,9 @@ export const WAYPOINT_DESTINATIONS_DATA: Record<string, WaypointData> = {
         if (collection === 'app.bsky.feed.post') {
           return `https://deer.social/profile/${handle}/post/${rkey}`;
         }
+        if (collection === 'app.bsky.graph.list') {
+          return `https://deer.social/profile/${handle}/lists/${rkey}`;
+        }
         return `https://deer.social/profile/${handle}`;
       }
       return `https://deer.social/profile/${handle}`;
@@ -465,6 +479,9 @@ export const WAYPOINT_DESTINATIONS_DATA: Record<string, WaypointData> = {
       if (collection && rkey) {
         if (collection === 'app.bsky.feed.post') {
           return `https://mu.social/profile/${handle}/post/${rkey}`;
+        }
+        if (collection === 'app.bsky.graph.list') {
+          return `https://mu.social/profile/${handle}/lists/${rkey}`;
         }
         return `https://mu.social/profile/${handle}`;
       }

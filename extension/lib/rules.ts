@@ -303,6 +303,13 @@ function buildSubstitution(
   const url = waypoint.getUrl(PH.handle, collection, rkey, undefined);
   if (!url) return null;
 
+  // A destination that doesn't recognize this collection typically falls back
+  // to its profile URL, dropping the rkey on the floor. Rewriting to that would
+  // silently strand the user on the *author* of the record they clicked (e.g.
+  // `bsky.app/profile/alice/lists/xyz` -> `example.app/profile/alice`), so drop
+  // the rule and leave the source URL alone instead.
+  if (rkey && !url.includes(PH.rkey)) return null;
+
   let substitution = url;
 
   const handleIdx = recipe.tokens.handle;
