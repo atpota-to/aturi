@@ -99,7 +99,7 @@ export default function WhatsNewBadge() {
         aria-label={count > 0 ? `What's new — ${count} unread` : "What's new"}
         onClick={toggle}
       >
-        <Bell size={16} aria-hidden />
+        <Bell size={18} aria-hidden />
         {count > 0 && <span className="whats-new-badge-dot" aria-hidden />}
       </button>
 
