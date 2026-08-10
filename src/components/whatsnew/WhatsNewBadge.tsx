@@ -5,6 +5,7 @@ import { Bell } from 'lucide-react';
 import { usePreferences } from '@/components/PreferencesProvider';
 import {
   LATEST_RELEASE_ID,
+  RELEASES,
   countEntries,
   unseenReleases,
   type Release,
@@ -20,8 +21,10 @@ import WhatsNewContent from './WhatsNewContent';
  * notification later, which is why the dot is driven by a count rather than a
  * boolean.
  *
- * Renders nothing when there is nothing unread, so the header doesn't carry a
- * permanently dead button.
+ * Unlike the modal, this is for everyone. A first-time visitor gets the bell
+ * with no dot, and opening it shows the current release — the notes are
+ * reference material, not an interruption, so there's no reason to withhold
+ * them. Only the unread dot depends on having fallen behind.
  */
 export default function WhatsNewBadge() {
   const { prefs, update } = usePreferences();
@@ -41,6 +44,9 @@ export default function WhatsNewBadge() {
   );
   const count = countEntries(releases);
 
+  // Caught-up readers still get something to read: the most recent release.
+  const available = releases.length > 0 ? releases : RELEASES.slice(0, 1);
+
   const close = useCallback(() => {
     setOpen(false);
     btnRef.current?.focus();
@@ -51,16 +57,16 @@ export default function WhatsNewBadge() {
       close();
       return;
     }
-    setShown(releases);
+    setShown(available);
     setOpen(true);
     // Opening is the acknowledgement: the dot clears and the modal won't fire
-    // on the next visit.
+    // on the next visit. A no-op for a reader who was already caught up.
     update((p) =>
       p.lastSeenReleaseId === LATEST_RELEASE_ID
         ? p
         : { ...p, lastSeenReleaseId: LATEST_RELEASE_ID },
     );
-  }, [open, close, releases, update]);
+  }, [open, close, available, update]);
 
   useEffect(() => {
     if (!open) return;
@@ -78,11 +84,9 @@ export default function WhatsNewBadge() {
     };
   }, [open, close]);
 
-  // Hidden until there's something to say, so the header keeps its two buttons
-  // for a reader who is caught up. Once it has appeared, `shown` keeps it
-  // mounted for the rest of the page — reading the notes shouldn't make the
-  // way back to them disappear mid-thought.
-  if (releases.length === 0 && shown.length === 0) return null;
+  // Only bails when there are no release notes at all, which would make the
+  // button lead nowhere.
+  if (available.length === 0) return null;
 
   return (
     <div className="whats-new-badge-wrap" ref={wrapRef}>
