@@ -5205,3 +5205,246 @@ body.has-explore-chrome {
     padding: 0.4rem;
   }
 }
+
+/* ---------------------------------------------------------------------------
+   What's new — release notes, shown as a modal on the first visit after a
+   release and from the header bell any time. Both surfaces share the body
+   styles below; only the shell differs.
+   --------------------------------------------------------------------------- */
+
+.whats-new-panel {
+  width: min(30rem, calc(100vw - 2rem));
+}
+
+.whats-new-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 1.15rem 0.75rem;
+  background: var(--modal-header-bg);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.whats-new-title {
+  font-family: var(--font-serif);
+  font-size: 1.15rem;
+  font-weight: 500;
+  margin: 0;
+  color: var(--text-primary);
+}
+
+.whats-new-date {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+  margin: 0.2rem 0 0;
+}
+
+.whats-new-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.25rem;
+  background: none;
+  border: none;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.whats-new-close:hover {
+  color: var(--text-primary);
+}
+
+.whats-new-body {
+  overflow-y: auto;
+  padding: 0 1.15rem;
+}
+
+.whats-new-release-label {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+  margin: 0.9rem 0 0;
+}
+
+.whats-new-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.whats-new-item {
+  padding: 0.85rem 0;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.whats-new-item:first-child {
+  border-top: none;
+}
+
+.whats-new-item-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  font-family: var(--font-serif);
+  font-size: 1rem;
+  font-weight: 500;
+  margin: 0 0 0.25rem;
+  color: var(--text-primary);
+}
+
+.whats-new-item-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  color: var(--text-accent);
+  flex-shrink: 0;
+}
+
+.whats-new-item-icon svg {
+  width: 100%;
+  height: 100%;
+}
+
+.whats-new-chip {
+  font-family: var(--font-mono);
+  font-size: 0.58rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-accent);
+  border: 1px solid currentColor;
+  padding: 0.1rem 0.35rem;
+}
+
+.whats-new-item-body {
+  margin: 0;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+.whats-new-item-action {
+  margin-top: 0.6rem;
+}
+
+.whats-new-item-added {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin: 0.6rem 0 0;
+  font-size: 0.8rem;
+  color: var(--text-accent);
+}
+
+.whats-new-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.85rem 1.15rem;
+  border-top: 1px solid var(--border-subtle);
+  background: var(--modal-header-bg);
+}
+
+.whats-new-btn {
+  padding: 0.4rem 0.85rem;
+  background: var(--accent-moss);
+  color: var(--text-on-accent);
+  border: 1px solid var(--accent-forest);
+  font-family: var(--font-serif);
+  font-size: 0.85rem;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.whats-new-btn:hover {
+  filter: brightness(1.15);
+}
+
+.whats-new-optout {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 0.78rem;
+  color: var(--text-tertiary);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.whats-new-optout:hover {
+  color: var(--text-secondary);
+}
+
+/* --- header bell + popover --- */
+
+.whats-new-badge-wrap {
+  position: relative;
+  display: inline-flex;
+}
+
+.whats-new-badge-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-medium);
+  color: var(--text-accent);
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.whats-new-badge-btn:hover {
+  background: var(--bg-elevated);
+}
+
+.whats-new-badge-dot {
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  width: 8px;
+  height: 8px;
+  background: var(--text-accent);
+  border: 2px solid var(--bg-primary);
+}
+
+.whats-new-popover {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  right: 0;
+  z-index: 60;
+  width: min(22rem, calc(100vw - 2rem));
+  display: flex;
+  flex-direction: column;
+  max-height: 70vh;
+  overflow: hidden;
+  /* Solid, unlike the modal's translucent --modal-bg: that only reads well
+     because a modal <dialog> blurs the page behind it via ::backdrop. A
+     popover has no backdrop, so the page would show straight through. */
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-medium);
+  box-shadow: var(--modal-shadow);
+  text-align: left;
+}
+
+@media (max-width: 30rem) {
+  /* Anchoring to a button near the right edge would push the panel offscreen
+     on a phone; centre it under the header instead. */
+  .whats-new-popover {
+    position: fixed;
+    top: 4.5rem;
+    left: 1rem;
+    right: 1rem;
+    width: auto;
+  }
+}

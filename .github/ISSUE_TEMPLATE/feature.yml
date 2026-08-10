@@ -1,0 +1,42 @@
+name: Feature request
+description: Suggest something new
+labels: ["enhancement"]
+body:
+  - type: dropdown
+    id: surface
+    attributes:
+      label: Where
+      options:
+        - Universal links
+        - Atmosphere Explorer
+        - Browser extension
+        - Published packages
+        - Somewhere else
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What are you trying to do
+      description: >
+        Describe the situation you hit, not the feature you have in mind. There is often a simpler
+        fix than the one that comes to mind first.
+    validations:
+      required: true
+
+  - type: textarea
+    id: idea
+    attributes:
+      label: What you think would solve it
+      description: Optional. Sketches, screenshots, and links to how other apps handle it all help.
+
+  - type: checkboxes
+    id: help
+    attributes:
+      label: Would you like to build it?
+      options:
+        - label: I would like to work on this
+        - label: >
+            I plan to use an AI agent for it, and I have read the AI-assisted contributions section
+            of CONTRIBUTING.md
