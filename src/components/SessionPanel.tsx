@@ -143,7 +143,7 @@ export default function SessionPanel({ onNavigate, onSignInActiveChange }: Props
             setError(null);
             setSignInStep('handle');
           }}
-          className="compact-nav-link"
+          className="compact-nav-link compact-nav-link-accent"
           style={{ font: 'inherit', textAlign: 'left', width: '100%' }}
         >
           <LogIn size={16} />
@@ -275,7 +275,13 @@ export default function SessionPanel({ onNavigate, onSignInActiveChange }: Props
             <span>my repo</span>
           </Link>
         )}
-        <Link href="/account" className="compact-nav-link" onClick={onNavigate}>
+        {/* Same slot as "sign in" once you're signed in: the way into your
+            own account, so it carries the same accent. */}
+        <Link
+          href="/account"
+          className="compact-nav-link compact-nav-link-accent"
+          onClick={onNavigate}
+        >
           <Settings size={16} />
           <span>settings</span>
         </Link>

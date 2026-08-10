@@ -1379,6 +1379,35 @@ a:hover {
   transform: scale(1.15) rotate(-5deg);
 }
 
+/* The session action in the compact menu: "sign in" when signed out, the
+   account link when signed in. It's the row people open the menu looking for,
+   and it was previously indistinguishable from the five navigation rows above
+   it, so it gets the filled accent the app already uses for primary buttons.
+   Must stay after the base rules — the :hover pairs have equal specificity, so
+   source order is what lets these win. */
+.compact-nav-link-accent {
+  color: var(--text-on-accent);
+  background: var(--accent-moss);
+  border-color: var(--accent-moss);
+}
+
+/* The left accent bar reads as emphasis against a plain row; on a filled one
+   it's just a sliver of a second color. */
+.compact-nav-link-accent::before {
+  display: none;
+}
+
+.compact-nav-link-accent svg,
+.compact-nav-link-accent:hover svg {
+  color: var(--text-on-accent);
+}
+
+.compact-nav-link-accent:hover {
+  color: var(--text-on-accent);
+  background: var(--accent-forest);
+  border-color: var(--accent-forest);
+}
+
 /* Two-column layout for the compact menu's grouped rows (nav links + theme,
    and the session actions). Collapses to a single column on narrow screens so
    the theme toggle's segmented control and longer labels never overflow. */
