@@ -85,13 +85,28 @@ The catalog covers 25+ Atmosphere apps and dev tools across categories like:
 - **Apps**: Aturi, Tangled, Margin, Grain, Pinkleap, Semble, Streamplace, Popfeed, Sifa, Blento
 - **Dev tools**: Aturi Explore, PDSls, atp.tools, Taproot
 
-Building an Atmosphere client or tool and want it added? Email [aturi@atpota.to](mailto:aturi@atpota.to), DM [@aturi.to](https://bsky.app/profile/aturi.to) on Bluesky, or open a PR against [`src/utils/waypoints.data.ts`](src/utils/waypoints.data.ts). Both the web app and the extension pick it up automatically.
+Building an Atmosphere client or tool and want it added? The quickest route is to [open a waypoint request](https://github.com/atpota-to/aturi/issues/new?template=add-waypoint.yml) with your URL patterns and lexicon NSIDs, or email [aturi@atpota.to](mailto:aturi@atpota.to) or DM [@aturi.to](https://bsky.app/profile/aturi.to) on Bluesky, and it can be added for you.
+
+To send a PR instead, follow [the waypoint walkthrough in CONTRIBUTING.md](CONTRIBUTING.md#adding-a-waypoint). It is four edits rather than one: the entry in [`src/utils/waypoints.data.ts`](src/utils/waypoints.data.ts), the id in `WAYPOINT_ORDER`, an icon, and a `npm run sync` so the published packages stay in step. Once merged, the web app and the extension both pick it up.
 
 ## Running locally
 
 ### Prerequisites
 
-- Node.js 20.9.0 or higher (use `.nvmrc` with nvm: `nvm use`)
+- Node.js 22 or higher (the exact pinned version is in `.nvmrc`: `nvm use`)
+
+### Repo layout
+
+Four codebases share this repository:
+
+| Path | What it is |
+| --- | --- |
+| `src/` | The Next.js web app: universal links, Atmosphere Explorer, OG images, Resolve API |
+| `extension/` | The browser extension (Chrome, Firefox, Safari) |
+| `packages/waypoints` | Published `@aturi.to/waypoints`, MIT |
+| `packages/waypoints-react` | Published `@aturi.to/waypoints-react`, MIT |
+
+The extension imports the app's `src/utils/**` directly. The packages ship generated copies of those files so they can build without Next.js, kept honest by a drift guard in CI. `src/` is canonical for both. See [CONTRIBUTING.md](CONTRIBUTING.md#repo-map).
 
 ### Web app
 
@@ -115,6 +130,18 @@ npm run dev:firefox    # Firefox
 ```
 
 WXT hot-reloads on changes. For release builds and Safari packaging, see [`extension/README.md`](extension/README.md).
+
+### Verifying a change
+
+The same commands CI runs, in [`.github/workflows/ci.yml`](.github/workflows/ci.yml). Run the ones that touch what you changed:
+
+```bash
+npm run lint && npm run typecheck && npm run build          # web app
+cd extension && npm run compile && npm test                 # extension
+cd packages && npm run sync:check && npm test && npm run build   # packages
+```
+
+If you edited a canonical file under `src/utils/` that the packages copy, run `cd packages && npm run sync` and commit the regenerated copies, or `sync:check` will fail.
 
 ## Deployment
 
@@ -199,13 +226,20 @@ GET https://aturi.to/api/resolve?atUri=at://...
 
 ## Contributing
 
-This is a community tool for the Atmosphere ecosystem. Contributions are welcome: bugs, new waypoints, popup polish, explorer features, and extension features all land in the same repo. See [CONTRIBUTING.md](CONTRIBUTING.md).
+This is a community tool for the Atmosphere ecosystem. Bugs, new waypoints, popup polish, explorer features, and extension work all land in the same repo. Start with [CONTRIBUTING.md](CONTRIBUTING.md): it covers the repo layout, the checks CI runs, and the four-step walkthrough for adding a waypoint.
+
+Coding agents are welcome, and much of this repository was written with one. If you are using an agent, point it at [AGENTS.md](AGENTS.md) and read the [AI-assisted contributions](CONTRIBUTING.md#ai-assisted-contributions) section first. The short version: disclose it, run the result rather than only the tests, keep the diff to what was asked, and verify URL patterns and NSIDs against the live app instead of trusting the model. There is one maintainer here, so a PR nobody has read costs more to review than it took to generate.
+
+Found a security issue? Report it privately. See [SECURITY.md](SECURITY.md).
 
 ## More resources
 
 - [Developer docs](https://aturi.to/docs): integrate the waypoint packages and the Resolve API into your own app
 - [`@aturi.to/waypoints`](packages/waypoints/README.md) & [`@aturi.to/waypoints-react`](packages/waypoints-react/README.md): the published package READMEs
 - [Contributing Guide](CONTRIBUTING.md): how to contribute back
+- [AGENTS.md](AGENTS.md): repository instructions for coding agents
+- [Security Policy](SECURITY.md): what's in scope and how to report privately
+- [Code of Conduct](CODE_OF_CONDUCT.md)
 - [Extension README](extension/README.md): extension dev, build, and Safari notes
 - [Terms & Privacy Policy](https://aturi.to/terms): what we collect, how the third-party services we depend on fit in
 - [Extension Privacy Policy](https://aturi.to/extension/privacy): what the extension stores, what it reads, and what it sends where
