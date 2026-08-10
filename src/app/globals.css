@@ -5391,11 +5391,15 @@ body.has-explore-chrome {
   display: inline-flex;
 }
 
+/* Deliberately `block`, not a centering flex box. The sibling search and menu
+   buttons are plain blocks whose inline <svg> child sits on a text baseline,
+   which leaves descender space under it — they measure 36x40 for an 18px icon.
+   A flex button collapses that gap and comes out 4px shorter, which reads as a
+   different-sized button next to them. Matching their box means matching their
+   layout mode and their icon size. */
 .whats-new-badge-btn {
   position: relative;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+  display: block;
   padding: 0.5rem;
   background: var(--bg-tertiary);
   border: 1px solid var(--border-medium);
