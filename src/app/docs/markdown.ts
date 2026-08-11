@@ -18,6 +18,7 @@ export const DOCS_MARKDOWN = `# aturi.to: Developer Docs
 > packages and a public API.
 
 - Docs: https://aturi.to/docs
+- Core package: https://npmx.dev/package/@aturi.to/waypoints
 - Repo: https://github.com/atpota-to/aturi
 - Raw Markdown: https://aturi.to/docs.md
 
