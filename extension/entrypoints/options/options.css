@@ -1530,3 +1530,23 @@ body {
   font-family: var(--font-mono);
   font-size: var(--fs-xs);
 }
+
+/* One-shot import of a published preferredClients record, above the manual
+   favorites it fills in. */
+.defaults-import {
+  margin: 10px 0 4px;
+  padding: 10px 12px;
+  border: 1px dashed var(--border);
+  background: var(--bg-secondary);
+}
+
+.defaults-import-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.defaults-import-row .aturi-input {
+  flex: 1 1 14rem;
+  min-width: 0;
+}

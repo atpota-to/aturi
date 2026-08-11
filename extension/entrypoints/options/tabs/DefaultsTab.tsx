@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import {
   COMPAT_FAMILIES,
   COMPAT_FAMILY_ORDER,
@@ -12,6 +12,7 @@ import {
 } from '../../../lib/prefs';
 import { allWaypoints, DID_REQUIRED_WAYPOINTS, visibleWaypointIds } from '../../../lib/catalog';
 import SearchSelect, { type SearchSelectOption } from '../components/SearchSelect';
+import { importPreferredClients } from '../../../lib/importPreferredClients';
 
 type Props = {
   prefs: Prefs;
@@ -268,6 +269,14 @@ export default function DefaultsTab({ prefs, onChange }: Props) {
               </div>
             </div>
 
+            <ImportFromAccount
+              onImport={favorites =>
+                onChange({
+                  favoriteByFamily: { ...(prefs.favoriteByFamily ?? {}), ...favorites },
+                })
+              }
+            />
+
             {activeFamilies.length === 0 ? (
               <div className="aturi-subtle" style={{ marginTop: 6 }}>
                 Add more waypoints to your groups in the Waypoints tab to configure
@@ -439,6 +448,83 @@ export default function DefaultsTab({ prefs, onChange }: Props) {
           </button>
         </div>
       </div>
+    </div>
+  );
+}
+
+
+/**
+ * One-shot import of a published `to.aturi.actor.preferredClients` record.
+ *
+ * Manual and on demand rather than a background sync: the extension makes no
+ * network calls you didn't ask for, and this is a network call. It also stays
+ * a copy rather than a live mirror, so the favorites below remain editable
+ * here without a remote record silently overwriting them later.
+ */
+function ImportFromAccount({
+  onImport,
+}: {
+  onImport: (favorites: Record<string, string>) => void;
+}) {
+  const [actor, setActor] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [status, setStatus] = useState<string | null>(null);
+
+  async function run() {
+    setBusy(true);
+    setStatus(null);
+    const result = await importPreferredClients(actor);
+    setBusy(false);
+    if (result.status === 'ok') {
+      onImport(result.favorites as Record<string, string>);
+      setStatus(
+        `Imported ${result.count} favorite${result.count === 1 ? '' : 's'}. Edit them below.`
+      );
+      return;
+    }
+    if (result.status === 'not-found') {
+      setStatus("No published preferences on that account. Set them up at aturi.to/welcome.");
+      return;
+    }
+    if (result.status === 'empty') {
+      setStatus('That record names no clients this extension can redirect to.');
+      return;
+    }
+    setStatus(result.message);
+  }
+
+  return (
+    <div className="defaults-import">
+      <div className="aturi-subtle" style={{ fontSize: 12, marginBottom: 6 }}>
+        Already answered these on aturi.to and published them? Pull them in instead of
+        picking again.
+      </div>
+      <form
+        className="defaults-import-row"
+        onSubmit={e => {
+          e.preventDefault();
+          void run();
+        }}
+      >
+        <input
+          type="text"
+          className="aturi-input"
+          placeholder="your handle or DID"
+          aria-label="Your handle or DID"
+          spellCheck={false}
+          autoComplete="username"
+          value={actor}
+          onChange={e => setActor((e.target as HTMLInputElement).value)}
+        />
+        <button type="submit" className="aturi-btn" disabled={busy || !actor.trim()}>
+          {busy ? 'Importing…' : 'Import'}
+        </button>
+      </form>
+      {status && (
+        <div className="aturi-subtle" style={{ fontSize: 12, marginTop: 6 }}>
+          {status}
+        </div>
+      )}
     </div>
   );
 }
