@@ -4107,15 +4107,6 @@ body.has-explore-chrome {
   .home-product-strip-copy h2 {
     font-size: 1.625rem;
   }
-  /* Shrink the embedded jetstream viewport (JetstreamFeed reads this var,
-     defaulting to 32rem). Stacked on a phone, a 32rem feed is taller than
-     the screen: the visitor scrolls through a full page of ticking rows
-     before the section's own heading appears, which reads as a break in
-     the page rather than as this section's visual. At 17rem it lands in
-     the same range as the other strips' visuals. */
-  .home-product-strip-demo {
-    --jetstream-viewport-h: 17rem;
-  }
 }
 
 /* Constrained icon box used inside the auto-redirect / custom-waypoint

@@ -60,12 +60,7 @@ type Props = {
   showRate?: boolean;
   /** Show the Pause/Resume button in the header. */
   showPauseButton?: boolean;
-  /**
-   * Pin the row viewport to this height. Left unset, the viewport reads
-   * `--jetstream-viewport-h` (falling back to 32rem) so a stylesheet can
-   * size the feed per breakpoint — the homepage strip shrinks it on
-   * mobile, where a full 32rem of ticking rows swallows the screen.
-   */
+  /** Pin the row viewport to this height. */
   height?: string;
   /** Max rows kept in the visible list before old rows drop off. */
   maxVisible?: number;
@@ -95,7 +90,7 @@ export default function JetstreamFeed({
   showStats = false,
   showRate = true,
   showPauseButton = true,
-  height,
+  height = '32rem',
   maxVisible = 20,
 }: Props) {
   const [collections] = useState<string[] | undefined>(
@@ -235,6 +230,7 @@ export default function JetstreamFeed({
   return (
     <section
       style={{
+        marginTop: '2rem',
         border: '1px solid var(--border-medium)',
         background: 'var(--bg-secondary)',
       }}
@@ -300,7 +296,7 @@ export default function JetstreamFeed({
           // Pin the viewport so the surrounding page doesn't reflow once
           // jetstream events start arriving. Skeleton rows below fill the
           // space until real rows take over.
-          height: height || 'var(--jetstream-viewport-h, 32rem)',
+          height,
           // overflow: hidden (not auto) so the browser doesn't track a
           // scroll position for this element at all. Rows beyond the
           // viewport are clipped — fine for a live demo where the
@@ -508,8 +504,8 @@ function StatsFooter({ stats }: { stats: Stats }) {
  * of distinct items rather than a uniform pattern.
  */
 function SkeletonRows({ showOpColumn }: { showOpColumn: boolean }) {
-  // 14 rows fills the tallest (32rem) viewport; shorter viewports clip the
-  // overflow, which is the same thing that happens to real rows.
+  // 14 rows fills the 32rem viewport without overflowing it (each row is
+  // about 1.5rem tall including border).
   const rows = Array.from({ length: 14 });
   const gridTemplateColumns = showOpColumn
     ? 'auto minmax(14ch, 22ch) 1fr'

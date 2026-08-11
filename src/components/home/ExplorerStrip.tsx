@@ -1,59 +1,29 @@
 'use client';
 
-import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { ArrowRight, Telescope } from 'lucide-react';
-import JetstreamFeed from '@/components/explore/JetstreamFeed';
 import SearchBox from '@/components/explore/SearchBox';
 import AccountStats from '@/components/account/AccountStats';
-import { resolveHandle } from '@/utils/uriParser';
 import ProductStrip from './ProductStrip';
 
 const DEMO_HANDLE = 'aturi.to';
-
-// A curated, diverse slice of Atmosphere lexicons for the homepage demo feed.
-// Jetstream filters these server-side, so the homepage — the highest-traffic
-// page — pulls a small fraction of the full firehose (which streams every
-// like/follow/block at thousands/sec) instead of the whole thing into every
-// visitor's browser. It also reads better: the strip is meant to show activity
-// *across* the Atmosphere, not a wall of Bluesky likes.
-const HOME_FEED_COLLECTIONS = [
-  'app.bsky.feed.post',
-  'app.bsky.graph.follow',
-  'sh.tangled.repo',
-  'pub.leaflet.document',
-  'social.grain.gallery',
-  'com.whtwnd.blog.entry',
-  'blue.flashes.feed.post',
-  'events.smokesignal.calendar.rsvp',
-];
+// aturi.to's DID, hardcoded rather than resolved at mount: these tiles are
+// the section's visual now, so they render on first paint with their own
+// placeholders instead of appearing a round trip later — or not at all, on
+// the visit where the handle lookup fails. A PLC DID is permanent, so the
+// only thing that could stale this is aturi.to moving to another account.
+const DEMO_DID = 'did:plc:6teuhlkizzebk6wdp42633el';
 
 /**
- * Strip 3 — Atmosphere Explorer. The demo side is the live JetstreamFeed
- * (the actual component from /explore) so visitors see real network
- * activity ticking past on the homepage.
- *
- * Everything the visitor can act on stays in the copy column: the
- * "Start exploring" link, the SearchBox for jumping into the explorer
- * with any handle, and the "Repo at a glance" stat tiles for a stable
- * handle — concrete evidence of what the Explorer surfaces. Stacked on
- * mobile that keeps the strip reading like its two neighbours, one
- * visual with the section's text under it, instead of opening with an
- * unlabelled search form above the heading.
+ * Strip 3 — Atmosphere Explorer. The demo side is the "Repo at a glance"
+ * stat tiles, the same component the explorer leads every repo page with:
+ * a real sample of what the Explorer surfaces rather than a picture of
+ * it. Copy column carries the pitch, the "Start exploring" link, and the
+ * SearchBox for jumping into the explorer with any handle — stacked on
+ * mobile that reads like the neighbouring strips, one visual with the
+ * section's text under it.
  */
 export default function ExplorerStrip() {
-  const [demoDid, setDemoDid] = useState<string | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    resolveHandle(DEMO_HANDLE).then((did) => {
-      if (!cancelled) setDemoDid(did);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
   return (
     <ProductStrip
       label="Atmosphere Explorer"
@@ -117,34 +87,23 @@ export default function ExplorerStrip() {
             Or look up any account
           </div>
           <SearchBox />
-
-          {/* Isolated AccountStats row — concrete preview of what the
-              explorer shows per repo. Renders for a stable DID we
-              resolve at mount; tile placeholders fill the space while
-              the lookup is in flight. */}
-          {demoDid && (
-            <div
-              style={{
-                paddingTop: '1rem',
-                borderTop: '1px solid var(--border-subtle)',
-              }}
-            >
-              <div
-                className="explore-small-caps"
-                style={{ marginBottom: '0.5rem' }}
-              >
-                Repo at a glance · @{DEMO_HANDLE}
-              </div>
-              {/* Demo surface: the strip exists to advertise what the
-                  Explorer shows, not to be the explorer itself, so the
-                  tiles render as a preview without the cred.blue link
-                  or per-tile hint tooltips. */}
-              <AccountStats did={demoDid} interactive={false} />
-            </div>
-          )}
         </>
       }
-      demo={<JetstreamFeed initialCollections={HOME_FEED_COLLECTIONS} />}
+      demo={
+        <div>
+          <div
+            className="explore-small-caps"
+            style={{ marginBottom: '0.5rem' }}
+          >
+            Repo at a glance · @{DEMO_HANDLE}
+          </div>
+          {/* Demo surface: the strip exists to advertise what the
+              Explorer shows, not to be the explorer itself, so the
+              tiles render as a preview without the cred.blue link
+              or per-tile hint tooltips. */}
+          <AccountStats did={DEMO_DID} interactive={false} />
+        </div>
+      }
     />
   );
 }
