@@ -113,7 +113,7 @@ function RulesCard() {
           }}
         >
           No rules yet. <Link href="/welcome#bluesky">Answer three questions</Link>{' '}
-          and Aturi writes the common ones for you, or build one by hand below.
+          and Aturi writes the common ones, or build one by hand below.
         </p>
       ) : (
         <ul

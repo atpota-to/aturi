@@ -31,8 +31,8 @@ export default function OnboardingPrompt({ compact = false }: { compact?: boolea
 
       <span className="onboarding-prompt-text">
         Shared links open in whichever client Aturi lists first.{' '}
-        <strong>Answer {setupQuestions().length} questions</strong> and they
-        open in the apps you use.
+        <strong>Answer {setupQuestions().length} questions</strong> and
+        they&apos;ll open in yours.
       </span>
 
       <span className="onboarding-prompt-actions">

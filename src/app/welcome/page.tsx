@@ -5,7 +5,7 @@ import OnboardingFlow from '@/components/onboarding/OnboardingFlow';
 export const metadata: Metadata = {
   title: 'Set up Aturi · aturi.to',
   description:
-    'Name the Bluesky client, publication reader and record explorer you use. Aturi puts them first on every link it builds, and writes the choices to your own repository.',
+    'Name the Bluesky client, publication reader and record explorer you use. Aturi puts them first on every link, and stores the choices in your own repository.',
   openGraph: {
     title: 'Set up Aturi',
     description:

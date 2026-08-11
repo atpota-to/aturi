@@ -2,7 +2,7 @@
 
 import { Check, ExternalLink, Minus } from 'lucide-react';
 import type { Waypoint } from '@/utils/waypoints';
-import { waypointBlurb, waypointDomain } from '@/utils/onboardingQuestions';
+import { waypointDomain } from '@/utils/onboardingQuestions';
 
 type Props = {
   /** Unique within the page; becomes the radio group's `name`. */
@@ -68,9 +68,6 @@ export default function ClientChoice({
             </span>
             <span className="client-option-body">
               <span className="client-option-name">Clear this answer</span>
-              <span className="client-option-blurb">
-                Hand the question back to Aturi&apos;s own recommendations.
-              </span>
             </span>
           </button>
         )}
@@ -123,11 +120,8 @@ function Option({
         {waypoint.icon}
       </span>
       <span className="client-option-body">
-        <span className="client-option-name">
-          {waypoint.name}
-          {domain && <span className="client-option-domain">{domain}</span>}
-        </span>
-        <span className="client-option-blurb">{waypointBlurb(waypoint)}</span>
+        <span className="client-option-name">{waypoint.name}</span>
+        {domain && <span className="client-option-domain">{domain}</span>}
       </span>
 
       {previewUrl && (

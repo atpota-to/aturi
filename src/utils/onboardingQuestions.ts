@@ -61,7 +61,7 @@ const QUESTIONS: SetupQuestion[] = [
     scopes: ['app.bsky.*', 'profile'],
     question: 'Where do you read Bluesky?',
     blurb:
-      'Posts, profiles, lists, and feeds all live in your app.bsky collections, and every client here reads the same records. Today a shared aturi.to link puts bsky.app at the top. Pick what you use and it goes there instead.',
+      'Posts, profiles, lists and feeds are all app.bsky records, and every client here reads them. Shared links open bsky.app first today. Pick what you use and it goes first instead.',
     shortLabel: 'Bluesky',
   },
   {
@@ -70,7 +70,7 @@ const QUESTIONS: SetupQuestion[] = [
     scopes: ['pub.leaflet.*', 'site.standard.*'],
     question: 'Where do you read publications?',
     blurb:
-      'Longform writing on atproto lives in pub.leaflet and site.standard records. Every reader here opens all of them; what changes is the typography and the page layout, not which documents work.',
+      'Longform writing lives in pub.leaflet and site.standard records. Every reader here opens all of them; they differ in typography, not in what they can render.',
     shortLabel: 'Publications',
   },
   {
@@ -81,7 +81,7 @@ const QUESTIONS: SetupQuestion[] = [
     scopes: [PREFERRED_SCOPE_ALL],
     question: 'Where do you inspect raw records?',
     blurb:
-      'For the times you want the JSON, the CID and the collection rather than a rendered page. This answer doubles as your fallback: any record the questions above left uncovered opens here, including lexicons nobody has written a reader for yet.',
+      'For when you want the JSON rather than a rendered page. This is also your fallback: anything the questions above missed opens here, including lexicons nobody has written a reader for yet.',
     shortLabel: 'Records',
   },
 ];
@@ -119,8 +119,8 @@ export function setupQuestions(): (SetupQuestion & { options: Waypoint[] })[] {
  * The host a waypoint sends people to ("bsky.app", "leaflet.pub"), read off a
  * sample profile URL. Waypoints don't declare their domain — `getUrl` is the
  * only thing that knows it — so we build one throwaway link and keep the
- * hostname. Shown under each option so a name you don't recognise still tells
- * you where you'd land.
+ * hostname. It's the whole subtitle on an option row: the catalog's own
+ * description ("View profile on bsky.app") only ever restated it.
  */
 export function waypointDomain(waypoint: Waypoint): string | null {
   // Two probes, because some waypoints only build record-level URLs and
@@ -140,13 +140,6 @@ export function waypointDomain(waypoint: Waypoint): string | null {
     }
   }
   return null;
-}
-
-/** A waypoint's description, resolved for display outside a record context. */
-export function waypointBlurb(waypoint: Waypoint): string {
-  return typeof waypoint.description === 'function'
-    ? waypoint.description(undefined, 'profile')
-    : waypoint.description;
 }
 
 /**

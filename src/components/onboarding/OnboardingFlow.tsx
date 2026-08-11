@@ -213,7 +213,7 @@ export default function OnboardingFlow() {
               headingRef={headingRef}
               eyebrow="Appearance"
               title="Pick a palette"
-              blurb={`${COLOR_SCHEMES.length} palettes, each with a dark and a light variant. The palette is stored with the rest of your preferences and follows your account. Dark or light is per-device, so a laptop can run light while a phone runs dark.`}
+              blurb={`${COLOR_SCHEMES.length} palettes, each with a dark and a light variant. The palette follows your account; dark or light stays on this device.`}
             />
             <div className="onboarding-appearance">
               <ColorSchemePicker description="Applies as you click." />
@@ -333,32 +333,30 @@ function IntroStep({
         headingRef={headingRef}
         eyebrow="Optional setup"
         title="Which apps do you actually use?"
-        blurb={`Your posts, articles and photos are records in your own repository, and more than one app can render any of them. That leaves every shared link answering "open this where?" on your behalf, and today it answers with whichever client the catalog lists first. ${QUESTIONS.length} questions here and the answer is yours.`}
+        blurb={`More than one app can render any atproto record, so every shared link answers "open this where?" on your behalf. Today it answers with whichever client the catalog lists first. ${QUESTIONS.length} questions and the answer is yours.`}
       />
 
       <ul className="onboarding-facts">
         <li>
-          <strong>Skippable.</strong> Every question takes an answer or a pass,
-          and each one covers a group of apps that read the same records.
+          <strong>Skippable.</strong> Every question takes a pass as readily as
+          an answer.
         </li>
         <li>
-          <strong>Your answer leads the list, it doesn&apos;t shorten it.</strong>{' '}
-          The apps you didn&apos;t pick stay right underneath, one click away.
+          <strong>Nothing gets hidden.</strong> Your pick leads the list; the
+          apps you passed over stay underneath it.
         </li>
         <li>
           {signedIn ? (
             <>
-              <strong>Written to your repository.</strong> Answers go into your{' '}
-              <code>to.aturi.actor.preferences</code> record, so they follow the
-              account instead of this browser. The last step offers to publish
-              them separately as <code>{PREFERRED_CLIENTS_NSID}</code>, which any
-              Atmosphere app can read.
+              <strong>Stored in your repository</strong>, not this browser. The
+              last step can also publish them as{' '}
+              <code>{PREFERRED_CLIENTS_NSID}</code> for other Atmosphere apps to
+              read.
             </>
           ) : (
             <>
-              <strong>No account needed.</strong> Answers are kept in this
-              browser. Sign in at the last step and they move into your own
-              repository instead.
+              <strong>No account needed.</strong> Answers stay in this browser
+              until you sign in at the last step.
             </>
           )}
         </li>
@@ -439,8 +437,8 @@ function FinishStep({ headingRef }: { headingRef: HeadingRef }) {
         title={answered > 0 ? 'What you picked' : 'Nothing set'}
         blurb={
           answered > 0
-            ? 'These go first whenever a record could open in more than one place: shared aturi.to links, the picker, and anything else that reads your preferences.'
-            : 'You passed on every question, so the picker carries on with its own recommendations. The same choices are in Settings whenever you want them.'
+            ? 'These go first wherever a record could open in more than one place.'
+            : 'The picker keeps its own recommendations. Settings has these choices whenever you want them.'
         }
       />
 
@@ -480,9 +478,8 @@ function FinishStep({ headingRef }: { headingRef: HeadingRef }) {
 
       <p className="onboarding-footnote">
         <Link href="/account#clients">Settings → Clients</Link> holds the same
-        rules, plus per-lexicon scopes and ordered fallbacks. The browser
-        extension keeps its own redirect targets, in the extension&apos;s
-        options.
+        rules, plus per-lexicon scopes and fallbacks. The browser extension
+        keeps its own separate redirect settings.
       </p>
     </div>
   );
@@ -503,8 +500,7 @@ function SaveStatus({
         <TriangleAlert size={16} aria-hidden />
         <span>
           Couldn&apos;t reach your PDS. Your answers are saved in this browser,
-          and the next setting you change will push all of them up. You can also
-          try again now.
+          and the next setting you change will push them up.
         </span>
         <button type="button" className="onboarding-btn is-quiet" onClick={onRetry}>
           <RefreshCw size={14} aria-hidden />
@@ -519,8 +515,8 @@ function SaveStatus({
       <div className="onboarding-status is-ok" role="status">
         <Check size={16} aria-hidden />
         <span>
-          Saved to <strong>{handle}</strong>. Your preferences live in your own
-          repository, so they move with the account rather than the browser.
+          Saved to <strong>{handle}</strong>. Your preferences live in your
+          repository, so they move with the account.
         </span>
       </div>
     );
@@ -551,7 +547,7 @@ function PublishOffer({ actor }: { actor: string }) {
       <Toggle
         id="onboarding-publish"
         label="Let other apps read these choices"
-        description={`Writes a ${PREFERRED_CLIENTS_NSID} record to your repository. Any app that links to atproto records can read it and send you to the client you picked. The record is public: anyone who knows your handle can fetch it and see which apps you use. Switching this off deletes it.`}
+        description={`Writes a public ${PREFERRED_CLIENTS_NSID} record. Any app that links to atproto records can read it and send you to the client you picked, and so can anyone who knows your handle. Switching this off deletes it.`}
         checked={published}
         onChange={setPublishing}
       />
@@ -611,10 +607,9 @@ function SignInOffer() {
         <div>
           <strong>Saved in this browser</strong>
           <p>
-            Sign in and the same answers go to your own repository instead,
-            where they will be waiting on your phone and on the next laptop.
-            Sign-in is atproto OAuth: no password, and you choose which
-            permissions to grant on the next screen.
+            Sign in and they move to your repository, where your phone and your
+            next laptop will find them. atproto OAuth: no password, and you
+            pick the permissions on the next screen.
           </p>
         </div>
       </div>
