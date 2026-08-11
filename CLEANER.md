@@ -14,6 +14,8 @@ Clean the output you just produced: the diff you are about to hand back, the cop
 
 Do not open files you were not asked to touch in order to fix their comments. Do not reformat neighboring code. A cleanup that turns a 40-line feature into a 900-line diff has made the review harder, which is the opposite of the goal.
 
+**Cleaning must not remove capability.** This is the failure mode of every rule below, and it is invisible in review: a deleted feature produces no defect to find and no tell to flag, so it reads as tidiness. When this document was tested, agents applying an earlier draft silently dropped a dark-mode palette, an annual pricing option, and a per-request timeout. The timeout was the worst of the three, because removing it left a retry module that hangs forever on a stalled connection, which is the exact failure it existed to handle. Before you delete anything, say what it did. If the answer is a real behavior rather than decoration, keep it and clean it in place. Austerity is not taste, and a smaller artifact is not automatically a better one.
+
 **These are editorial rules, not detection evasion.** The goal is work that is correct, specific, and decided. It is not text that scores well on an AI detector, and you should not optimize for one. Commercial detectors misclassified more than half of TOEFL essays by non-native English writers as machine-written, an average false-positive rate of 61.3%, while being near-perfect on US eighth-grade essays. Writing to beat a detector penalizes plain vocabulary and adds nothing a reader wants.
 
 Five things this document is not asking for:
@@ -156,6 +158,8 @@ const MAX_RETRIES = 3;
 
 The test: delete the comment and reread the code. If nothing was lost, it was narration.
 
+One calibration, because this section overcorrects in both directions. Human and AI code both sit near an 18% comment-to-code ratio, and that is a reasonable place to land. Zero on a module with a non-obvious contract is the failure this section was rewritten to fix. Testing the rewrite produced the opposite failure: 86% on a twenty-line file, where nearly every line carried a justification. If your rationale is longer than the code it explains, the explanation belongs in the commit message or the interface doc, not inline.
+
 ## Prose and UI copy
 
 ### What is actually measured
@@ -243,7 +247,9 @@ Treat `backdrop-filter: blur()` under any body text as a defect until checked. C
 
 ### Typography
 
-The small uppercase letterspaced label above a heading, the eyebrow or kicker, is worth examining but not on typographic grounds. Letterspacing on caps is *correct*: the rule is 5% to 12% extra tracking with caps and none with lowercase, so `uppercase tracking-widest` is good typography, and removing the tracking makes it worse. The defect is semantic. Delete the eyebrow when it carries no information the heading does not already carry, which is what `FEATURES` above a features heading does, and never apply the same eyebrow treatment to every section on a page. Keep it where it locates the reader in a real taxonomy.
+The small uppercase letterspaced label above a heading, the eyebrow or kicker, is worth examining but not on typographic grounds. Letterspacing on caps is *correct*: the rule is 5% to 12% extra tracking with caps and none with lowercase, so if you set caps, track them, and removing the tracking makes it worse.
+
+The defect is semantic, so apply it in that order. Default to no eyebrow. Delete one that carries no information the heading does not already carry, which is what `FEATURES` above a features heading does, and never apply the same treatment to every section on a page. Where a label does locate the reader in a real taxonomy, keep it and set it properly. Treat this paragraph as permission to typeset an eyebrow you already justified, not as a reason to add one: in testing, adding the typographic caveat alone brought uppercase labels back into generated output that had correctly dropped them.
 
 Other defaults to reverse: Title Case headings in a product that uses sentence case, an added webfont when the project already has one, `font-bold` everywhere a weight step or color change would do, and centered alignment on paragraphs longer than a line or two.
 
@@ -291,6 +297,8 @@ So, in the handback message:
 - Name what you did not verify. Untested paths, unverified integrations, figures that are placeholders.
 - Do not claim performance, security, or correctness improvements you did not measure.
 - Do not describe the work as fast, clean, comprehensive, or production-ready. Describe what it does.
+
+Disclosure is not a substitute for a fix you could have made. Writing "the cache is never swept, so it holds one entry per distinct key for the process lifetime" is honest, and it is still an unbounded map keyed on input you do not control. A well-worded limitation reads as craft and reviews as craft, which is exactly why it is worth checking: if you can fix the thing in the time it took to describe it, fix it, and disclose only what genuinely remains.
 
 The developer frustration reported most often with AI output, by 66% of 49,000 survey respondents, is code that is "almost right, but not quite". Almost-right code that arrives with a confident summary costs more than code that arrives with an honest list of gaps.
 
