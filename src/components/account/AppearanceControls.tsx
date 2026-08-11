@@ -48,7 +48,19 @@ function getThemeServerSnapshot(): Theme {
  * account. `applyColorScheme` runs here for instant feedback;
  * `ColorSchemeSync` re-applies from prefs and updates the pre-paint cache.
  */
-export function ColorSchemePicker({ description }: { description?: string }) {
+export function ColorSchemePicker({
+  description,
+  hideLabel = false,
+}: {
+  description?: string;
+  /**
+   * Drop the "Color scheme" row label and description, for callers whose own
+   * heading already says it. The guided setup gives this control a whole step
+   * titled "Pick a palette"; repeating that above the swatches turns a tray
+   * of colours into a form.
+   */
+  hideLabel?: boolean;
+}) {
   const { prefs, update } = usePreferences();
 
   function pick(next: ColorScheme) {
@@ -57,14 +69,16 @@ export function ColorSchemePicker({ description }: { description?: string }) {
   }
 
   return (
-    <div className="settings-toggle-row is-stacked">
-      <div className="settings-toggle-label">
-        <span className="settings-toggle-label-text">Color scheme</span>
-        <span className="settings-toggle-label-sub">
-          {description ??
-            'The palette the whole app is painted in. Every scheme has a dark and a light variant — the row below picks which one you see. Saved with the rest of your settings, so it follows you to other devices when you’re signed in.'}
-        </span>
-      </div>
+    <div className={`settings-toggle-row is-stacked ${hideLabel ? 'is-bare' : ''}`}>
+      {!hideLabel && (
+        <div className="settings-toggle-label">
+          <span className="settings-toggle-label-text">Color scheme</span>
+          <span className="settings-toggle-label-sub">
+            {description ??
+              'The palette the whole app is painted in. Every scheme has a dark and a light variant — the row below picks which one you see. Saved with the rest of your settings, so it follows you to other devices when you’re signed in.'}
+          </span>
+        </div>
+      )}
       <div role="radiogroup" aria-label="Color scheme" className="scheme-picker">
         {COLOR_SCHEMES.map(({ value, label, hint }) => {
           const active = prefs.colorScheme === value;

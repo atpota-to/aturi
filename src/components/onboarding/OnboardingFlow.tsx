@@ -9,6 +9,7 @@ import {
   useSyncExternalStore,
 } from 'react';
 import Link from 'next/link';
+import { COLOR_SCHEMES } from '@/lib/colorScheme';
 import { track } from '@vercel/analytics';
 import {
   ArrowLeft,
@@ -38,6 +39,7 @@ import {
 } from '@/utils/onboardingQuestions';
 import { PREFERRED_CLIENTS_NSID } from '@/utils/preferredClients';
 import { WAYPOINT_DESTINATIONS } from '@/utils/waypoints';
+import { ColorSchemePicker, ThemePicker } from '@/components/account/AppearanceControls';
 import ClientChoice from './ClientChoice';
 import AnswerPreview from './AnswerPreview';
 
@@ -58,14 +60,26 @@ import AnswerPreview from './AnswerPreview';
 
 const QUESTIONS = setupQuestions();
 
-type StepId = 'intro' | 'finish' | (string & {});
+type StepId = 'intro' | 'appearance' | 'finish' | (string & {});
 
-const STEP_IDS: StepId[] = ['intro', ...QUESTIONS.map((q) => q.id), 'finish'];
+const STEP_IDS: StepId[] = [
+  'intro',
+  ...QUESTIONS.map((q) => q.id),
+  'appearance',
+  'finish',
+];
 
+/**
+ * The client questions, which is what the intro promises and what each step
+ * counts against. The palette step deliberately isn't one: it asks nothing
+ * about where records open, so numbering it would make the intro's promise
+ * false and turn a treat into a fourth interrogation.
+ */
 const NUMBERED_STEPS = QUESTIONS.length;
 
 function stepLabel(id: StepId): string {
   if (id === 'intro') return 'Start';
+  if (id === 'appearance') return 'Palette';
   if (id === 'finish') return 'Done';
   return QUESTIONS.find((q) => q.id === id)?.shortLabel ?? String(id);
 }
@@ -224,6 +238,24 @@ export default function OnboardingFlow() {
               handle={profile?.handle ?? null}
               did={did}
             />
+          </div>
+        )}
+
+        {stepId === 'appearance' && (
+          <div className="onboarding-step">
+            <StepHead
+              headingRef={headingRef}
+              eyebrow="One more thing"
+              title="Pick a palette"
+              blurb={`${COLOR_SCHEMES.length} of them, and they apply the moment you click, so try a few. The palette travels with your account; whether you see its dark or its light half stays on this device.`}
+            />
+            <div className="onboarding-appearance">
+              {/* No "Color scheme" label here: the step's own heading already
+                  said it, and a settings row inside a full-screen step reads
+                  as a form rather than the swatch tray it is. */}
+              <ColorSchemePicker hideLabel />
+              <ThemePicker description="Kept per-device, so a bright desk and a dark bedroom can disagree." />
+            </div>
           </div>
         )}
 

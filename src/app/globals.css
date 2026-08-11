@@ -5541,6 +5541,19 @@ body.has-explore-chrome {
   outline-offset: 2px;
 }
 
+/* Appearance step: the scheme grid without its settings-row label, plus the
+   dark/light switch under it. */
+.onboarding-appearance {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/* A stacked row whose label was suppressed has nothing to space away from. */
+.settings-toggle-row.is-stacked.is-bare {
+  gap: 0;
+}
+
 /* The URL an answer produces, shown beneath the grid. Monospace and dimmed:
    it's evidence, not a control. */
 .answer-preview {
