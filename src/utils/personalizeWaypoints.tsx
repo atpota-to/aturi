@@ -112,7 +112,9 @@ export function personalizeCategorized(
       name: group.name,
       defaultWaypointId: waypoints[0].id,
     };
-    result.push({ category, waypoints });
+    // User-defined groups are flat by construction — there is no UI for nesting
+    // one inside another — so there are never subcategories to carry here.
+    result.push({ category, waypoints, subcategories: [] });
   }
   return result;
 }

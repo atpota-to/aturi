@@ -164,13 +164,7 @@ describe('matchSupportedUrl - other apps', () => {
  * rendered ~20 links to https://bsky.app/profile/about. A repo identifier is
  * always a DID or a dotted handle; a bare word never is.
  */
-// SKIPPED: this is audit finding rank 7, which was not in the approved fix
-// scope (high-severity findings + quick wins). The bug is real and verified —
-// `resolveUrl('https://tangled.org/about')` currently returns a successful
-// parse with handle "about" — so these assertions are correct and should start
-// passing the moment the isIdentifier gate lands in src/utils/reverseParsers.ts.
-// Remove `.skip` then.
-describe.skip('root-path hosts do not treat site pages as accounts', () => {
+describe('root-path hosts do not treat site pages as accounts', () => {
   const SITE_PATHS = ['about', 'login', 'settings', 'privacy', 'docs', 'new', 'explore'];
 
   it.each([

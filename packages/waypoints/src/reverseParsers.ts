@@ -67,6 +67,17 @@ const SUBDOMAIN_HOSTS: string[] = BLUESKY_FAMILY.filter(f => f.matchSubdomains).
   f => f.hosts,
 );
 
+/**
+ * A repo identifier is always a DID (`did:…`) or a dotted handle. Hosts whose
+ * account pages sit at the path root need this to tell an account from one of
+ * the site's own pages: without it `/about`, `/login` and `/settings` all parse
+ * as accounts and the caller gets a confident result naming a repo that does
+ * not exist.
+ */
+function isIdentifier(seg: string | undefined): boolean {
+  return !!seg && (seg.startsWith('did:') || seg.includes('.'));
+}
+
 function normalizeHost(host: string): string {
   // A trailing dot is a legal fully-qualified name ("bsky.app." is bsky.app),
   // and browsers will hand one over verbatim; without stripping it, a real
@@ -231,7 +242,7 @@ function matchLeaflet(host: string, parts: string[]): ReverseMatch | null {
 
 function matchTangled(host: string, parts: string[]): ReverseMatch | null {
   if (host !== 'tangled.org') return null;
-  if (!parts[0]) return null;
+  if (!isIdentifier(parts[0])) return null;
   const handle = parts[0];
   const did = handle.startsWith('did:') ? handle : undefined;
   return {
@@ -402,7 +413,7 @@ function matchSemble(host: string, parts: string[]): ReverseMatch | null {
 
 function matchStreamplace(host: string, parts: string[]): ReverseMatch | null {
   if (host !== 'stream.place') return null;
-  if (!parts[0]) return null;
+  if (!isIdentifier(parts[0])) return null;
   const handle = parts[0];
   const did = handle.startsWith('did:') ? handle : undefined;
   return {
@@ -461,7 +472,7 @@ function matchSifa(host: string, parts: string[]): ReverseMatch | null {
 
 function matchBlento(host: string, parts: string[]): ReverseMatch | null {
   if (host !== 'blento.app') return null;
-  if (!parts[0]) return null;
+  if (!isIdentifier(parts[0])) return null;
   const handle = parts[0];
   const did = handle.startsWith('did:') ? handle : undefined;
   return {
@@ -521,9 +532,10 @@ function matchFlatRecordHost(
 ): ReverseMatch | null {
   if (host !== target.host) return null;
   const [handle, collection, rkey] = parts;
-  if (!handle || !collection || !rkey) return null;
+  if (!collection || !rkey) return null;
   // Guard against non-record pages (settings, landing, …): a real record path
-  // always carries an NSID collection segment.
+  // carries a repo identifier and an NSID collection segment.
+  if (!isIdentifier(handle)) return null;
   if (!collection.includes('.')) return null;
   const did = handle.startsWith('did:') ? handle : undefined;
   return {
@@ -589,11 +601,8 @@ function matchTaproot(host: string, pathname: string): ReverseMatch | null {
 function matchAturi(host: string, parts: string[]): ReverseMatch | null {
   if (host !== 'aturi.to') return null;
 
-  // A repo identifier is always a DID (`did:…`) or a dotted handle. This rules
-  // out the explorer's own sub-tools — `/explore/lexicons`, `/explore/pds` —
-  // whose first segment is a bare word, not an account.
-  const isIdentifier = (seg: string | undefined): boolean =>
-    !!seg && (seg.startsWith('did:') || seg.includes('.'));
+  // `isIdentifier` (module scope) rules out the explorer's own sub-tools —
+  // `/explore/lexicons`, `/explore/pds` — whose first segment is a bare word.
 
   // Explorer: /explore/<identifier>[/<collection>[/<rkey>]]
   if (parts[0] === 'explore' && isIdentifier(parts[1])) {

@@ -2,6 +2,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type MouseEvent,
 } from 'react';
@@ -211,7 +212,19 @@ export function WaypointPicker({
   }, [categories]);
 
   const [expanded, setExpanded] = useState<Set<string>>(initialExpanded);
-  useEffect(() => setExpanded(initialExpanded), [initialExpanded]);
+
+  // Re-seed only when the target actually changes. Keying this on the
+  // `initialExpanded` Set made it a controlled value derived from a memo, so
+  // anything that produced a new Set — including an unrelated parent re-render,
+  // via the inline array props consumers pass — silently re-opened every
+  // category the user had collapsed. The target is what should reset it.
+  const targetKey = `${type}|${handle}|${collection ?? ''}|${rkey ?? ''}|${did ?? ''}`;
+  const seededFor = useRef(targetKey);
+  useEffect(() => {
+    if (seededFor.current === targetKey) return;
+    seededFor.current = targetKey;
+    setExpanded(initialExpanded);
+  }, [targetKey, initialExpanded]);
 
   const handleCopy = useCallback(
     async (waypoint: WaypointEntry) => {

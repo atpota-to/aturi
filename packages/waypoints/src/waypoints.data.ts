@@ -191,6 +191,12 @@ export type WaypointCategoryData = {
 export type CategorizedWaypointsData = {
   category: WaypointCategoryData;
   waypoints: WaypointData[];
+  /**
+   * Waypoints belonging to this category's own subcategories, grouped the same
+   * way. Nested rather than flattened into `waypoints` so a renderer can keep
+   * the two levels visually distinct — which is what the picker does.
+   */
+  subcategories: CategorizedWaypointsData[];
 };
 
 /**
@@ -945,14 +951,28 @@ export function getCategorizedWaypointsData(type: WaypointType): CategorizedWayp
     }
   }
 
+  // Build a category and everything nested under it. Recursive because a
+  // subcategory may itself declare subcategories; the previous version returned
+  // only the top level's own waypoints, so every waypoint in `blueskyForks`
+  // (blacksky, witchsky, mu, deer) was missing from the result entirely — 24 of
+  // 28 for every type, while blacksky stayed in the recommended set.
+  const build = (category: WaypointCategoryData): CategorizedWaypointsData => ({
+    category,
+    waypoints: availableWaypoints.filter(w => w.category === category.id),
+    subcategories: (category.subcategories ?? [])
+      .map(build)
+      .filter(sub => sub.waypoints.length > 0 || sub.subcategories.length > 0),
+  });
+
   for (const categoryId of CATEGORY_ORDER) {
     if (subcategoryIds.has(categoryId)) continue;
 
     const category = WAYPOINT_CATEGORIES_DATA[categoryId];
-    const waypoints = availableWaypoints.filter(w => w.category === categoryId);
+    if (!category) continue;
+    const entry = build(category);
 
-    if (waypoints.length > 0) {
-      categorized.push({ category, waypoints });
+    if (entry.waypoints.length > 0 || entry.subcategories.length > 0) {
+      categorized.push(entry);
     }
   }
 

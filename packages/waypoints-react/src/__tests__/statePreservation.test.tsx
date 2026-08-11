@@ -62,16 +62,15 @@ function firstCategoryHeader(container: HTMLElement): HTMLButtonElement {
   return header;
 }
 
-// SKIPPED: this is audit finding rank 5, which was not in the approved fix
-// scope (high-severity findings + quick wins). The bug is real and verified —
-// useWaypoints keys its memo on the identity of the `hiddenIds` /
-// `waypointIds` / `customWaypoints` arrays, so an inline array literal (the
-// shape every README example uses) invalidates it on every render, and
-// WaypointPicker then re-seeds `expanded` from the derived default, silently
-// re-opening categories the user collapsed. These assertions are correct and
-// should start passing once the hook keys on primitives and the picker seeds
-// its expansion state once. Remove `.skip` then.
-describe.skip('expand/collapse state', () => {
+/**
+ * useWaypoints used to key its memo on the identity of the `hiddenIds` /
+ * `waypointIds` / `customWaypoints` arrays. An inline array literal — the shape
+ * every README example uses — is a new reference each render, so the memo never
+ * hit, and WaypointPicker re-seeded `expanded` from the derived default. The
+ * user-visible result: an unrelated parent re-render silently re-opened every
+ * category they had collapsed.
+ */
+describe('expand/collapse state', () => {
   it('survives an unrelated parent re-render with inline array props', async () => {
     const user = userEvent.setup();
     const { container, getByRole } = render(<Harness label="rerender" />);

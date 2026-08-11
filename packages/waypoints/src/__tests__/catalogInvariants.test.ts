@@ -272,14 +272,7 @@ function collectIds(groups: readonly CategorizedWaypointsData[]): string[] {
   return ids;
 }
 
-// SKIPPED: this is audit finding rank 12, which was not in the approved fix
-// scope (high-severity findings + quick wins). The bug is real and verified —
-// getCategorizedWaypointsData returns 24 of 28 waypoints for every type,
-// dropping the whole `blueskyForks` subcategory (blacksky, witchsky, mu, deer)
-// even though blacksky is in the recommended set. These assertions are correct
-// and should start passing once the helper carries its subcategory waypoints.
-// Remove `.skip` then.
-describe.skip('getCategorizedWaypointsData', () => {
+describe('getCategorizedWaypointsData', () => {
   it.each(ALL_TYPES)('covers every %s-capable waypoint exactly once', (type) => {
     const seen = collectIds(getCategorizedWaypointsData(type));
     expect(duplicatesOf(seen)).toEqual([]);

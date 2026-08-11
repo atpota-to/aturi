@@ -57,6 +57,15 @@ bump may carry a breaking change while the API settles.
   was applied as a flat id list, but `at.margin.*` records resolve to
   `margin.at/<handle>/<type>/<rkey>` and need no DID. The requirement is now
   determined per target by whether substituting a DID changes the URL.
+- **Site pages no longer parse as accounts.** `tangled.org`, `stream.place`,
+  `blento.app`, `offprint.app` and `pckt.blog` treated any first path segment as
+  a repo identifier, so `resolveUrl('https://tangled.org/about')` returned a
+  successful result for a handle named `about` and a menu of ~20 links to
+  profiles that do not exist. All five now require a DID or a dotted handle.
+- **`getCategorizedWaypointsData` returns every waypoint.** It dropped the whole
+  `blueskyForks` subcategory — blacksky, witchsky, mu and deer — returning 24 of
+  28 for every type, while blacksky remained in the recommended set. Each entry
+  now carries a recursive `subcategories` array.
 - `buildWaypointsForParsed` returns an empty result for input carrying
   `ParsedURI.error` or an empty handle, instead of building ~21 confident-looking
   dead links from it.
@@ -79,3 +88,6 @@ bump may carry a breaking change while the API settles.
   31.5 kB whole-package bundle.
 - `ResolveApiFailure.reason` is typed as a union of the reasons this client
   produces, kept open so the hosted endpoint can send others.
+- **Breaking (type):** `CategorizedWaypointsData` gains a required
+  `subcategories: CategorizedWaypointsData[]`. Code that only reads the shape is
+  unaffected; code that constructs one needs the extra field.

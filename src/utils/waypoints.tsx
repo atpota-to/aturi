@@ -11,6 +11,7 @@ import {
   type WaypointType,
   type WaypointData,
   type WaypointCategoryData,
+  type CategorizedWaypointsData,
 } from './waypoints.data';
 import { WAYPOINT_ICONS } from './waypointIcons';
 
@@ -47,6 +48,7 @@ export type WaypointCategory = WaypointCategoryData;
 export type CategorizedWaypoints = {
   category: WaypointCategory;
   waypoints: Waypoint[];
+  subcategories: CategorizedWaypoints[];
 };
 
 function withIcon(data: WaypointData): Waypoint {
@@ -70,10 +72,12 @@ export function getWaypointCount(): number {
 }
 
 export function getCategorizedWaypoints(type: WaypointType): CategorizedWaypoints[] {
-  return getCategorizedWaypointsData(type).map(({ category, waypoints }) => ({
-    category,
-    waypoints: waypoints.map(withIcon),
-  }));
+  const attachIcons = (entry: CategorizedWaypointsData): CategorizedWaypoints => ({
+    category: entry.category,
+    waypoints: entry.waypoints.map(withIcon),
+    subcategories: entry.subcategories.map(attachIcons),
+  });
+  return getCategorizedWaypointsData(type).map(attachIcons);
 }
 
 export function getRecommendedWaypoints(

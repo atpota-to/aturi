@@ -26,6 +26,13 @@ bump may carry a breaking change while the API settles.
   and documents, so `pdsls`, `atp.tools`, `grain` and `popfeed` were rendered
   with handle-shaped URLs those sites cannot resolve. Both packages now share
   one rule via `requiresDid`.
+- **Collapsing a category sticks.** `useWaypoints` keyed its memo on the
+  identity of the `waypointIds` / `hiddenIds` / `customWaypoints` arrays, so an
+  inline array literal — the shape every README example uses — missed on every
+  render, and `WaypointPicker` re-seeded its expansion state from the derived
+  default. An unrelated parent re-render silently re-opened every category the
+  user had collapsed. The memo is now keyed on content, the returned object is
+  stable, and expansion re-seeds only when the target itself changes.
 - Focus is visible again. No focus styling shipped at all, and `overflow:
   hidden` on the category container clipped the UA ring off the disclosure
   button inside it; that clip is now `clip-path`, which rounds the corner

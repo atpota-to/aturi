@@ -256,7 +256,28 @@ export function useWaypoints(params: UseWaypointsParams): UseWaypointsResult {
     categories.forEach(collect);
 
     return { recommended, categories, waypoints: flat };
-  }, [type, handle, collection, rkey, did, waypointIds, hiddenIds, customWaypoints, composeText]);
+    // Keyed on content, not on array identity. Consumers write these props as
+    // inline literals — every README example does — which gives them a fresh
+    // reference on every render, so an identity-keyed memo never hit and every
+    // consumer of this result saw a new object each time.
+    //
+    // Custom waypoints are keyed by id: changing what an existing id's getUrl
+    // returns without changing the id will not invalidate the memo.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    type,
+    handle,
+    collection,
+    rkey,
+    did,
+    composeText,
+    waypointIds?.join(' '),
+    hiddenIds?.join(' '),
+    customWaypoints?.map((c) => c.id).join(' '),
+  ]);
 
-  return { ...data, copy, open };
+  // `copy` and `open` are already stable, so this keeps the returned object
+  // stable too — otherwise every render handed back a new one and any consumer
+  // memoizing on it re-ran regardless.
+  return useMemo(() => ({ ...data, copy, open }), [data, copy, open]);
 }
