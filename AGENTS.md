@@ -75,6 +75,7 @@ Do not invent URL patterns, NSIDs, or supported record types. Fetch the app and 
 - Change what was asked and nothing else. No opportunistic reformatting, renaming, comment rewriting, or type tightening in files you happened to open.
 - No new dependencies. `@aturi.to/waypoints` is zero-dependency by design and the extension bundle size is a constraint. If a dependency looks necessary, stop and say so.
 - Match surrounding style. This codebase uses explanatory block comments above non-obvious constants and logic. Follow that; do not add line-by-line narration.
+- Read [CLEANER.md](CLEANER.md) before handing back a diff. It covers the AI tells to strip from code, comments, copy, and UI. Where it disagrees with this file or with the surrounding code, this file and the code win.
 - Tests live in `extension/lib/__tests__/` and `packages/waypoints/src/__tests__/`. Add to them when you change parsing, templates, redirect rules, or waypoint data.
 - Never commit `.env` values, tokens, or a real DID/handle used for testing into fixtures.
 - Report failures honestly. A check you did not run is not a check that passed.
