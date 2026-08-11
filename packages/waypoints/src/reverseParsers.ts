@@ -68,12 +68,21 @@ const SUBDOMAIN_HOSTS: string[] = BLUESKY_FAMILY.filter(f => f.matchSubdomains).
 );
 
 function normalizeHost(host: string): string {
-  return host.toLowerCase().replace(/^www\./, '');
+  // A trailing dot is a legal fully-qualified name ("bsky.app." is bsky.app),
+  // and browsers will hand one over verbatim; without stripping it, a real
+  // waypoint link simply failed to match.
+  return host.toLowerCase().replace(/\.$/, '').replace(/^www\./, '');
 }
 
-/** True when `host` is a subdomain of `base` (a real dotted-label boundary). */
+/**
+ * True when `host` is a subdomain of `base`. The label check matters: a bare
+ * `endsWith('.' + base)` also accepts an empty leading label (".anisota.net"),
+ * which is not a host anyone can reach but would still be treated as one.
+ */
 function isSubdomainOf(host: string, base: string): boolean {
-  return host.endsWith(`.${base}`);
+  if (!host.endsWith(`.${base}`)) return false;
+  const prefix = host.slice(0, -(base.length + 1));
+  return prefix.length > 0 && !prefix.startsWith('.') && !prefix.endsWith('.');
 }
 
 /** Exact host match, or a subdomain match when the config opts in. */

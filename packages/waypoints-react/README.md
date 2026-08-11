@@ -34,6 +34,17 @@ the whole entry, reach for [`@aturi.to/waypoints`](../waypoints) directly when y
 need the framework-agnostic helpers (`resolveAtUri`, `buildWaypointsForParsed`,
 the catalog, …) inside a Server Component.
 
+To import from `@aturi.to/waypoints` by name, install it too:
+
+```sh
+npm install @aturi.to/waypoints
+```
+
+It arrives as a transitive dependency either way, so the import often resolves
+without this — but not under pnpm's default isolated `node_modules`, and not in
+any setup that forbids importing undeclared dependencies. Declaring it is the
+difference between "works on my machine" and "works".
+
 ## Three ways to use it
 
 ### 1. Drop-in picker (headless markup, bring your own styles)
@@ -51,7 +62,21 @@ import { WaypointPicker } from '@aturi.to/waypoints-react';
 
 This renders clean semantic markup with no CSS attached. Every element carries
 both a `data-aturi-wp="…"` attribute and an `aturi-wp-*` class so you can style
-it however you like. Map your own classes per slot, or pass `unstyled` to drop
+it however you like.
+
+Each row's primary action is a real `<a href>` — or a real `<button>` when you
+pass `onSelect` — carrying `data-aturi-wp="row-action"`. That is what makes Tab,
+Enter, middle-click, "open in new tab" and the context menu work. If you are
+writing your own styles rather than importing the theme, three rules restore the
+click-anywhere-on-the-card behavior:
+
+```css
+[data-aturi-wp='button']     { position: relative; }
+[data-aturi-wp='row-action']::after { content: ''; position: absolute; inset: 0; }
+[data-aturi-wp='actions']    { position: relative; z-index: 1; }
+```
+
+Without them you get a normally-sized link, which is still fully functional. Map your own classes per slot, or pass `unstyled` to drop
 the built-in class names entirely:
 
 ```tsx

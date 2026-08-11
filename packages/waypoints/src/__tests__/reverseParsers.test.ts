@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { matchSupportedUrl, parseAtUri, isSupportedHost } from '../reverseParsers';
+import { resolveUrl } from '../resolve';
 
 function match(url: string) {
   return matchSupportedUrl(new URL(url));
@@ -153,6 +154,61 @@ describe('matchSupportedUrl - other apps', () => {
 
   it('ignores unsupported hosts', () => {
     expect(match('https://example.com/profile/alice')).toBeNull();
+  });
+});
+
+/**
+ * Regression tests for the hosts whose account pages sit at the path root.
+ * `tangled.org`, `stream.place` and `blento.app` took *any* first segment as a
+ * handle, so `/about` and `/login` returned a successful parse and the picker
+ * rendered ~20 links to https://bsky.app/profile/about. A repo identifier is
+ * always a DID or a dotted handle; a bare word never is.
+ */
+// SKIPPED: this is audit finding rank 7, which was not in the approved fix
+// scope (high-severity findings + quick wins). The bug is real and verified —
+// `resolveUrl('https://tangled.org/about')` currently returns a successful
+// parse with handle "about" — so these assertions are correct and should start
+// passing the moment the isIdentifier gate lands in src/utils/reverseParsers.ts.
+// Remove `.skip` then.
+describe.skip('root-path hosts do not treat site pages as accounts', () => {
+  const SITE_PATHS = ['about', 'login', 'settings', 'privacy', 'docs', 'new', 'explore'];
+
+  it.each([
+    ['tangled.org', 'tangled'],
+    ['stream.place', 'streamplace'],
+    ['blento.app', 'blento'],
+  ])('%s rejects bare site paths', (host, source) => {
+    for (const path of SITE_PATHS) {
+      expect({ url: `https://${host}/${path}`, m: match(`https://${host}/${path}`) }).toEqual({
+        url: `https://${host}/${path}`,
+        m: null,
+      });
+    }
+    // Deeper site routes are just as wrong, and used to parse too.
+    expect(match(`https://${host}/settings/keys`)).toBeNull();
+    // The happy path must not regress: a real account is still recognized.
+    expect(match(`https://${host}/alice.bsky.social`)?.source).toBe(source);
+    expect(match(`https://${host}/did:plc:xyz`)?.source).toBe(source);
+    expect(match(`https://${host}/did:plc:xyz`)?.parsed.did).toBe('did:plc:xyz');
+  });
+
+  it('offprint and pckt reject a non-identifier repo segment', () => {
+    // Same heuristic on the flat `/<identifier>/<collection>/<rkey>` hosts.
+    expect(match('https://offprint.app/settings/site.standard.document/rk')).toBeNull();
+    expect(match('https://pckt.blog/about/pub.leaflet.document/rk')).toBeNull();
+    expect(
+      match('https://offprint.app/alice.bsky.social/site.standard.document/rk')?.source,
+    ).toBe('offprint');
+  });
+
+  it('does not hand resolveUrl a menu of dead links for tangled.org/about', async () => {
+    // The user-visible failure: every waypoint built a profile URL for a
+    // "handle" of `about`, and the caller had no way to tell it apart from a
+    // real account page.
+    expect(await resolveUrl('https://tangled.org/about')).toBeNull();
+    expect(await resolveUrl('https://tangled.org/settings/keys')).toBeNull();
+    const real = await resolveUrl('https://tangled.org/alice.bsky.social');
+    expect(real?.parsed.handle).toBe('alice.bsky.social');
   });
 });
 

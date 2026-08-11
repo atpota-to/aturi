@@ -13,6 +13,8 @@ export type WaypointSlot =
   | 'button'
   | 'icon'
   | 'content'
+  /** The row's primary action: an `<a>`, or a `<button>` when `onSelect` is set. */
+  | 'rowAction'
   | 'name'
   | 'description'
   | 'actions'
@@ -38,6 +40,7 @@ const BASE_CLASS: Record<WaypointSlot, string> = {
   button: 'aturi-wp-button',
   icon: 'aturi-wp-icon',
   content: 'aturi-wp-content',
+  rowAction: 'aturi-wp-row-action',
   name: 'aturi-wp-name',
   description: 'aturi-wp-description',
   actions: 'aturi-wp-actions',

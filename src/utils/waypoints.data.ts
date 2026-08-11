@@ -268,7 +268,7 @@ export const WAYPOINT_DESTINATIONS_DATA: Record<string, WaypointData> = {
     // `url`, `tags`, `channel`, and `title` (and answers `/post` with the same
     // query). What's declared here is the interoperable subset every caller can
     // rely on; the extras are Anisota-only and unrepresentable in this field.
-    composeIntent: socialAppComposeIntent('https://anisota.net'),
+    composeIntent: /* @__PURE__ */ socialAppComposeIntent('https://anisota.net'),
     redirectCompat: ['bluesky-social', 'standard-site'],
     expectedCollections: ['app.bsky.', 'net.anisota.'],
   },
@@ -295,8 +295,13 @@ export const WAYPOINT_DESTINATIONS_DATA: Record<string, WaypointData> = {
     },
     supportedTypes: ['post', 'profile', 'list', 'record'],
     category: 'blueskyClients',
+    // Spelled out rather than spread over socialAppComposeIntent(): an object
+    // spread is an impure expression to a bundler, so it pinned this whole
+    // catalog into any bundle that imported one function from the package
+    // (14.2 kB for a `parseURI`-only import). Same shape, statically analyzable.
     composeIntent: {
-      ...socialAppComposeIntent('https://bsky.app'),
+      url: 'https://bsky.app/intent/compose',
+      textParam: 'text',
       appUrl: 'bluesky://intent/compose',
     },
     redirectCompat: ['bluesky-social'],
@@ -325,7 +330,7 @@ export const WAYPOINT_DESTINATIONS_DATA: Record<string, WaypointData> = {
     },
     supportedTypes: ['post', 'profile', 'list', 'record'],
     category: 'blueskyForks',
-    composeIntent: socialAppComposeIntent('https://blacksky.community'),
+    composeIntent: /* @__PURE__ */ socialAppComposeIntent('https://blacksky.community'),
     redirectCompat: ['bluesky-social'],
     expectedCollections: ['app.bsky.'],
   },
@@ -497,7 +502,7 @@ export const WAYPOINT_DESTINATIONS_DATA: Record<string, WaypointData> = {
     },
     supportedTypes: ['post', 'profile', 'list', 'record'],
     category: 'blueskyForks',
-    composeIntent: socialAppComposeIntent('https://witchsky.app'),
+    composeIntent: /* @__PURE__ */ socialAppComposeIntent('https://witchsky.app'),
     redirectCompat: ['bluesky-social'],
     expectedCollections: ['app.bsky.'],
   },
@@ -524,7 +529,7 @@ export const WAYPOINT_DESTINATIONS_DATA: Record<string, WaypointData> = {
     },
     supportedTypes: ['post', 'profile', 'list', 'record'],
     category: 'blueskyForks',
-    composeIntent: socialAppComposeIntent('https://deer.social'),
+    composeIntent: /* @__PURE__ */ socialAppComposeIntent('https://deer.social'),
     redirectCompat: ['bluesky-social'],
     expectedCollections: ['app.bsky.'],
   },
@@ -551,7 +556,7 @@ export const WAYPOINT_DESTINATIONS_DATA: Record<string, WaypointData> = {
     },
     supportedTypes: ['post', 'profile', 'list', 'record'],
     category: 'blueskyForks',
-    composeIntent: socialAppComposeIntent('https://mu.social'),
+    composeIntent: /* @__PURE__ */ socialAppComposeIntent('https://mu.social'),
     redirectCompat: ['bluesky-social'],
     expectedCollections: ['app.bsky.'],
   },
@@ -756,7 +761,10 @@ export const WAYPOINT_DESTINATIONS_DATA: Record<string, WaypointData> = {
       const identifier = did || handle;
       return `https://offprint.app/${identifier}/${collection}/${rkey}`;
     },
-    supportedTypes: ['post', 'profile', 'list', 'record'],
+    // No 'profile': a profile target carries no collection or rkey, so getUrl
+    // above always returns null for one. Declaring it only made the waypoint
+    // look available in profile views before silently dropping out.
+    supportedTypes: ['post', 'list', 'record'],
     category: 'publications',
     redirectCompat: ['standard-site'],
     expectedCollections: ['pub.leaflet.', 'site.standard.'],
@@ -778,7 +786,8 @@ export const WAYPOINT_DESTINATIONS_DATA: Record<string, WaypointData> = {
       const identifier = did || handle;
       return `https://pckt.blog/${identifier}/${collection}/${rkey}`;
     },
-    supportedTypes: ['post', 'profile', 'list', 'record'],
+    // No 'profile', for the same reason as offprint above.
+    supportedTypes: ['post', 'list', 'record'],
     category: 'publications',
     redirectCompat: ['standard-site'],
     expectedCollections: ['pub.leaflet.', 'site.standard.'],
@@ -864,11 +873,15 @@ export const WAYPOINT_ORDER = [
 export function getWaypointDataForType(type: WaypointType): WaypointData[] {
   return WAYPOINT_ORDER
     .map(id => WAYPOINT_DESTINATIONS_DATA[id])
+    // An id in WAYPOINT_ORDER with no entry in the catalog is a mistake, but it
+    // should surface as a missing row rather than a TypeError thrown from a
+    // getter. Every sibling helper already tolerates it; this one did not.
+    .filter((waypoint): waypoint is WaypointData => !!waypoint)
     .filter(waypoint => waypoint.supportedTypes.includes(type));
 }
 
 export function getWaypointCountData(): number {
-  return WAYPOINT_ORDER.length;
+  return WAYPOINT_ORDER.filter(id => !!WAYPOINT_DESTINATIONS_DATA[id]).length;
 }
 
 export const WAYPOINT_CATEGORIES_DATA: Record<string, WaypointCategoryData> = {

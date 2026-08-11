@@ -89,8 +89,11 @@ describe('getRecommendedWaypointsData', () => {
   });
 
   it('falls back to a default recommendation', () => {
-    const { waypoints } = getRecommendedWaypointsData('unknown');
-    expect(waypoints.length).toBeGreaterThan(0);
+    // `length > 0` here was vacuous: it stayed green if the fallback decayed
+    // to some other client entirely. Pin the identity and the label.
+    const { waypoints, label } = getRecommendedWaypointsData('unknown');
+    expect(waypoints.map((w) => w.id)).toEqual(['bluesky']);
+    expect(label).toBe('Recommended');
   });
 });
 
@@ -174,13 +177,18 @@ describe('compose intents', () => {
   });
 
   it('narrows the list to clients that also render the type', () => {
-    const ids = getComposeIntentWaypoints('list').map((w) => w.id);
-    expect(ids).toContain('bluesky');
-    // Every compose-capable client renders lists, so the filter is only
-    // meaningful once one of them drops a type — assert the shape holds.
-    for (const id of ids) {
-      expect(WAYPOINT_DESTINATIONS_DATA[id].supportedTypes).toContain('list');
-    }
+    // Re-asserting the implementation's own predicate over its own output is
+    // vacuous — it stays green after a compose-capable client stops supporting
+    // lists. Assert the *difference* instead: the type-filtered list has to be
+    // the type-agnostic one minus whatever cannot render that type.
+    const all = getComposeIntentWaypoints();
+    expect(getComposeIntentWaypoints('list').map((w) => w.id)).toEqual(
+      all.filter((w) => w.supportedTypes.includes('list')).map((w) => w.id),
+    );
+    expect(getComposeIntentWaypoints('list').map((w) => w.id)).toContain('bluesky');
+    // 'unknown' is not a type any client claims, so the filter empties the list
+    // rather than falling through to every client.
+    expect(getComposeIntentWaypoints('unknown')).toEqual([]);
   });
 
   it('only claims compose support for clients in the bluesky family', () => {

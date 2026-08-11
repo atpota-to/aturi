@@ -15,8 +15,10 @@ export default defineConfig({
   outExtension({ format }) {
     return { js: format === 'cjs' ? '.cjs' : '.js' };
   },
-  // Post-build: copy the opt-in theme into dist and prepend the "use client"
-  // directive to the bundles. esbuild strips the directive during bundling, so
-  // we re-add it here — see scripts/postbuild.mjs.
+  // Keeps `tsup --watch` producing a complete dist. `onSuccess` fires when the
+  // JS build finishes, which is *before* the declaration build completes — and
+  // that phase clears .d.ts files it did not emit, including the one postbuild
+  // writes for the styles subpath. So `npm run build` runs the script again
+  // after tsup exits; it is idempotent. See scripts/postbuild.mjs.
   onSuccess: 'node scripts/postbuild.mjs',
 });

@@ -49,8 +49,14 @@ const fromUrl = await resolveUrl('https://bsky.app/profile/alice.bsky.social/pos
 - **Reverse resolution**: `matchSupportedUrl`, `parseAtUri`, `SUPPORTED_HOSTS`.
 - **High-level resolvers** (`resolve.ts`):
   - `buildWaypointsForParsed(parsed, { did?, excludeSourceId?, composeText? })`
-  - `resolveAtUri(uri, { composeText? })`
-  - `resolveUrl(url, { fetchHead?, resolveHandle?, composeText? })`
+  - `resolveAtUri(uri, { did?, excludeSourceId?, composeText? })`
+  - `resolveUrl(url, { fetchHead?, resolveHandle?, composeText?,
+    allowPrivateHosts?, isAllowedFetchHost? })`
+  - `requiresDid(waypoint, target, did?)`, `isPublicFetchHost(hostname)`
+
+  `resolveUrl` omits the source app's own waypoint — it can tell where you are
+  from the URL. An AT URI names no app, so `resolveAtUri` omits nothing unless
+  you pass `excludeSourceId` yourself.
   - `resolveViaApi(input, { endpoint? })`: typed client for the hosted
     `aturi.to/api/resolve` endpoint.
 
@@ -108,8 +114,15 @@ client lacks one. If a client you maintain handles compose intents,
 ### DID-only waypoints
 
 A handful of destinations (`pdsls`, `atptools`, `margin`, `grain`, `popfeed`)
-only produce useful URLs when a DID is known. They're filtered out unless a DID
-is available: pass one in, or supply a `resolveHandle` to `resolveUrl`.
+generally need a DID to produce a useful URL, and are filtered out when none is
+known — pass a `did` in, or supply a `resolveHandle` to `resolveUrl`.
+
+The requirement is evaluated per target rather than per waypoint, via the
+exported `requiresDid(waypoint, target, did?)`. A waypoint that can build a
+correct URL from a handle alone for a given record is kept: Margin's own
+`at.margin.*` records resolve to `margin.at/<handle>/<type>/<rkey>`, so Margin
+shows up for those without a DID, and drops out for everything else.
+`@aturi.to/waypoints-react` applies the same function, so both packages agree.
 
 ### Hosted vs. local resolution
 
@@ -118,6 +131,36 @@ flag and `resolveViaApi` let you fall back to fetching the page and probing for 
 `<link href="at://…">`, useful for sites without a recognizable URL shape.
 `resolveViaApi` is the right choice from a browser, where fetching arbitrary
 pages is blocked by CORS.
+
+> **`fetchHead` makes a request to a URL you were handed.** If that URL came
+> from a user, you are fetching on their behalf from wherever your code runs —
+> which on a server means from inside your network. The probe refuses loopback,
+> private, link-local and `.internal` addresses before connecting, re-checks
+> every redirect hop (max 3), and caps the response body at 1 MB. Treat that as
+> a floor. On a server route handling untrusted input, add your own allowlist
+> via `isAllowedFetchHost`:
+>
+> ```ts
+> await resolveUrl(userSuppliedUrl, {
+>   fetchHead: true,
+>   isAllowedFetchHost: (url) => KNOWN_PUBLICATION_HOSTS.has(url.hostname),
+> });
+> ```
+>
+> `allowPrivateHosts: true` turns the address check off, for local development
+> against a dev server. The same address check is exported on its own as
+> `isPublicFetchHost(hostname)`.
+
+`resolveViaApi` returns a result rather than throwing when the endpoint is
+unreachable or answers with something that isn't JSON — check `ok` first:
+
+```ts
+const result = await resolveViaApi({ url });
+if (!result.ok) {
+  // result.reason: 'http_error' | 'invalid_response' | 'network_error' | …
+  console.warn(result.reason, result.message);
+}
+```
 
 There's a second hosted endpoint for the catalog itself — what's in it, and
 which clients can do what — for consumers that aren't installing the package:

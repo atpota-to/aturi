@@ -10,8 +10,13 @@ aturi.to: universal links, an Atmosphere Explorer, and a browser extension for a
 | --- | --- | --- |
 | `src/` | Next.js 16 App Router, React 19, Tailwind v4 | `npm run lint && npm run typecheck && npm run build` |
 | `extension/` | WXT, Preact-aliased React 19, Vitest | `cd extension && npm run compile && npm test` |
-| `packages/waypoints` | tsup, zero runtime deps, MIT | `cd packages && npm run sync:check && npm test && npm run build` |
-| `packages/waypoints-react` | tsup, React peer dep, MIT | `cd packages && npm run typecheck && npm run build` |
+| `packages/waypoints` | tsup, zero runtime deps, MIT | `cd packages && npm run verify` |
+| `packages/waypoints-react` | tsup, React peer dep, MIT | `cd packages && npm run verify` |
+
+`npm run verify` runs sync guard → typecheck → build → test in that order for both
+packages. The order matters: `waypoints-react` resolves the core's types through its
+built `dist/`, so typechecking it before the core is built fails on a fresh clone, and
+its own suite asserts on `dist/`. Run the aggregate rather than the individual scripts.
 
 Node 22+ (`.nvmrc` pins the exact version). Root install is `npm install`; `extension/` and `packages/` have their own lockfiles and need separate installs.
 

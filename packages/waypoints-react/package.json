@@ -7,8 +7,11 @@
   "homepage": "https://aturi.to",
   "repository": {
     "type": "git",
-    "url": "https://github.com/atpota-to/aturi.git",
+    "url": "git+https://github.com/atpota-to/aturi.git",
     "directory": "packages/waypoints-react"
+  },
+  "bugs": {
+    "url": "https://github.com/atpota-to/aturi/issues"
   },
   "keywords": [
     "atproto",
@@ -36,39 +39,51 @@
         "default": "./dist/index.cjs"
       }
     },
-    "./styles.css": "./dist/styles.css",
+    "./styles.css": {
+      "types": "./dist/styles.d.ts",
+      "default": "./dist/styles.css"
+    },
     "./package.json": "./package.json"
   },
   "files": [
     "dist",
     "README.md",
+    "CHANGELOG.md",
     "LICENSE"
   ],
   "engines": {
     "node": ">=18"
   },
   "scripts": {
-    "build": "tsup",
+    "build": "tsup && node scripts/postbuild.mjs",
     "dev": "tsup --watch",
     "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "prepublishOnly": "npm run build"
   },
   "peerDependencies": {
-    "lucide-react": ">=0.300.0",
+    "lucide-react": ">=0.300.0 <1",
     "react": ">=18",
     "react-dom": ">=18"
   },
   "dependencies": {
-    "@aturi.to/waypoints": "^0.1.0"
+    "@aturi.to/waypoints": "^0.1.2"
   },
   "devDependencies": {
+    "@testing-library/dom": "^10.4.0",
+    "@testing-library/react": "^16.3.0",
+    "@testing-library/user-event": "^14.6.1",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "axe-core": "^4.10.3",
+    "jsdom": "^26.1.0",
     "lucide-react": "^0.562.0",
     "react": "^19",
     "react-dom": "^19",
     "tsup": "^8.3.5",
-    "typescript": "^5.7.2"
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
   },
   "publishConfig": {
     "access": "public"

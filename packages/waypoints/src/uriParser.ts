@@ -86,13 +86,41 @@ export type HandleResolution =
   | { did: string; reason?: undefined }
   | { did: null; reason: 'not-found' | 'unavailable' };
 
-export async function resolveHandleStatus(handle: string): Promise<HandleResolution> {
+export type ResolveHandleOptions = {
+  /**
+   * Appview to ask. Defaults to `NEXT_PUBLIC_BSKY_API_URL` when a build has
+   * defined it, otherwise the public Bluesky appview. Browser consumers of the
+   * standalone package have no env var, so this is how they point it elsewhere.
+   */
+  apiUrl?: string;
+};
+
+/**
+ * Read the appview override without assuming `process` exists. The full
+ * `process.env.NEXT_PUBLIC_BSKY_API_URL` expression is kept verbatim because
+ * Next replaces that exact text at build time; the `typeof` guard is what keeps
+ * the same code from throwing in a plain browser bundle, where the resulting
+ * ReferenceError used to be swallowed by the catch below and reported as a
+ * transient 'unavailable' — so handle resolution silently never worked.
+ */
+function defaultApiUrl(): string {
+  const fromEnv =
+    typeof process !== 'undefined' && process.env
+      ? process.env.NEXT_PUBLIC_BSKY_API_URL
+      : undefined;
+  return fromEnv || 'https://public.api.bsky.app';
+}
+
+export async function resolveHandleStatus(
+  handle: string,
+  options: ResolveHandleOptions = {}
+): Promise<HandleResolution> {
   if (handle.startsWith('did:')) {
     return { did: handle };
   }
 
   try {
-    const apiUrl = process.env.NEXT_PUBLIC_BSKY_API_URL || 'https://public.api.bsky.app';
+    const apiUrl = options.apiUrl || defaultApiUrl();
     const response = await upstreamFetch(
       `${apiUrl}/xrpc/com.atproto.identity.resolveHandle?handle=${encodeURIComponent(handle)}`
     );
@@ -104,14 +132,18 @@ export async function resolveHandleStatus(handle: string): Promise<HandleResolut
     const data = await response.json();
     if (data.did) return { did: data.did };
     return { did: null, reason: 'not-found' };
-  } catch (error) {
-    console.error('Error resolving handle:', error);
+  } catch {
+    // Deliberately silent: the returned `reason` already carries the signal,
+    // and a library that logs on its consumer's behalf cannot be turned off.
     return { did: null, reason: 'unavailable' };
   }
 }
 
-export async function resolveHandle(handle: string): Promise<string | null> {
-  return (await resolveHandleStatus(handle)).did;
+export async function resolveHandle(
+  handle: string,
+  options: ResolveHandleOptions = {}
+): Promise<string | null> {
+  return (await resolveHandleStatus(handle, options)).did;
 }
 
 /**
@@ -119,7 +151,10 @@ export async function resolveHandle(handle: string): Promise<string | null> {
  */
 export function getDisplayName(handle: string, did?: string): string {
   if (handle.startsWith('did:')) {
-    return did ? `@${did.slice(0, 16)}...` : 'Unknown';
+    // The handle *is* the DID here, so there is always something to show; the
+    // separate `did` argument is only a preferred source for the same value.
+    const identifier = did || handle;
+    return `@${identifier.slice(0, 16)}...`;
   }
   return `@${handle}`;
 }

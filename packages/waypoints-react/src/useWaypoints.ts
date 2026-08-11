@@ -5,6 +5,7 @@ import {
   getCategorizedWaypointsData,
   getRecommendedWaypointsData,
   getWaypointDataForType,
+  requiresDid,
   type ComposeIntentData,
   type ComposeIntentDescriptor,
   type WaypointCategoryData,
@@ -71,7 +72,11 @@ export type UseWaypointsParams = {
   collection?: string;
   rkey?: string;
   did?: string;
-  /** Allowlist + ordering hint. When set, only these ids are surfaced. */
+  /**
+   * Allowlist. When set, only these ids are surfaced — including among
+   * `customWaypoints`. Order is not taken from this array; entries keep their
+   * catalog order.
+   */
   waypointIds?: string[];
   /** Ids to remove from the result. */
   hiddenIds?: string[];
@@ -150,6 +155,10 @@ export function useWaypoints(params: UseWaypointsParams): UseWaypointsResult {
     const recommendedIds = new Set(recommendedData.waypoints.map((w) => w.id));
 
     const buildBuiltin = (w: WaypointData): WaypointEntry | null => {
+      // Same rule the core resolver applies. Without it the picker offered
+      // pdsls, atp.tools, grain and popfeed handle-shaped URLs those sites
+      // cannot resolve, for any target where the DID was not known.
+      if (requiresDid(w, { handle, collection, rkey }, did)) return null;
       const url = w.getUrl(handle, collection, rkey, did);
       if (!url) return null;
       return {

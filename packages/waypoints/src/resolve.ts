@@ -4,6 +4,7 @@ import {
   describeComposeIntent,
   getRecommendedWaypointsData,
   type ComposeIntentDescriptor,
+  type WaypointData,
   type WaypointType,
 } from './waypoints.data';
 import {
@@ -53,6 +54,53 @@ export const DID_REQUIRED_WAYPOINTS: ReadonlySet<string> = new Set([
   'popfeed',
 ]);
 
+/** Stand-in DID used only to detect whether a waypoint's URL depends on one. */
+const DID_PROBE = 'did:plc:probe';
+
+/** The coordinates a waypoint URL is built from. */
+export type WaypointTarget = {
+  handle: string;
+  collection?: string;
+  rkey?: string;
+};
+
+/**
+ * Whether this waypoint has to be dropped for this target because it needs a
+ * DID and none is known.
+ *
+ * Membership in `DID_REQUIRED_WAYPOINTS` is not the whole answer: a waypoint can
+ * be DID-shaped for most records and still build a perfectly good URL from a
+ * handle for its own. Margin is the live case — `at.margin.*` records resolve to
+ * `margin.at/<handle>/<type>/<rkey>` — so gating on the id alone hid Margin from
+ * exactly the records it owns. Building the URL both ways and comparing asks the
+ * question directly: if substituting a DID changes nothing, none was needed.
+ *
+ * Exported so `@aturi.to/waypoints-react` applies the identical rule. The two
+ * packages previously disagreed about which waypoints exist for a handle-only
+ * target, and only the core's answer was documented.
+ */
+export function requiresDid(
+  waypoint: WaypointData,
+  target: WaypointTarget,
+  did?: string,
+): boolean {
+  if (did) return false;
+  if (!DID_REQUIRED_WAYPOINTS.has(waypoint.id)) return false;
+  const withoutDid = waypoint.getUrl(
+    target.handle,
+    target.collection,
+    target.rkey,
+    undefined,
+  );
+  const withDid = waypoint.getUrl(
+    target.handle,
+    target.collection,
+    target.rkey,
+    DID_PROBE,
+  );
+  return withoutDid !== withDid;
+}
+
 export type BuildWaypointsOptions = {
   /** DID to pass to each waypoint's getUrl. Falls back to `parsed.did`. */
   did?: string;
@@ -72,6 +120,13 @@ export function buildWaypointsForParsed(
   parsed: ParsedURI,
   options: BuildWaypointsOptions = {},
 ): { waypoints: ResolvedWaypoint[]; recommended: ResolvedRecommendation } {
+  // `error` means the other fields describe input we failed to make sense of,
+  // so building links from them yields a menu of confident-looking dead ends.
+  // An empty handle is the same situation one step earlier.
+  if (parsed.error || !parsed.handle) {
+    return { waypoints: [], recommended: { ids: [], label: '' } };
+  }
+
   const did = options.did ?? parsed.did;
   const exclude = options.excludeSourceId;
   const type: WaypointType = parsed.type === 'unknown' ? 'profile' : parsed.type;
@@ -81,9 +136,9 @@ export function buildWaypointsForParsed(
     .filter((w) => w.id !== exclude)
     .filter((w) => w.supportedTypes.includes(type))
     .map((w): ResolvedWaypoint | null => {
-      if (DID_REQUIRED_WAYPOINTS.has(w.id) && !did) return null;
       const url = w.getUrl(parsed.handle, parsed.collection, parsed.rkey, did);
       if (!url) return null;
+      if (requiresDid(w, parsed, did)) return null;
       return {
         id: w.id,
         name: w.name,
@@ -106,21 +161,35 @@ export function buildWaypointsForParsed(
 /**
  * Resolve an AT URI string (e.g. "at://did:plc:abc/app.bsky.feed.post/rkey")
  * directly into its waypoints. Returns null if the string isn't a valid AT URI.
+ *
+ * Unlike {@link resolveUrl}, there is no source app to infer from an AT URI, so
+ * nothing is excluded from the result by default — pass `excludeSourceId` if
+ * you know where the user already is. Pass `did` when you have resolved the
+ * handle yourself, to include the DID-dependent waypoints.
+ *
+ * @example
+ * const result = resolveAtUri('at://alice.bsky.social/app.bsky.feed.post/3k7', {
+ *   did: 'did:plc:abc',
+ *   excludeSourceId: 'bluesky',
+ * });
+ * result?.waypoints.map((w) => w.url);
  */
 export function resolveAtUri(
   uri: string,
-  options: Pick<BuildWaypointsOptions, 'composeText'> = {},
+  options: Pick<
+    BuildWaypointsOptions,
+    'composeText' | 'did' | 'excludeSourceId'
+  > = {},
 ): ResolveResult | null {
   const match = parseAtUri(uri);
   if (!match) return null;
   const { parsed, source } = match;
-  const { waypoints, recommended } = buildWaypointsForParsed(parsed, {
-    composeText: options.composeText,
-  });
+  const did = options.did ?? parsed.did;
+  const { waypoints, recommended } = buildWaypointsForParsed(parsed, options);
   return {
-    parsed,
+    parsed: { ...parsed, did },
     source,
-    did: parsed.did ?? null,
+    did: did ?? null,
     didResolved: false,
     waypoints,
     recommended,
@@ -132,10 +201,31 @@ export type ResolveUrlOptions = {
    * When the URL pattern isn't recognized, fetch the page and look for a
    * `<link href="at://…">` in <head>. Off by default to keep the resolver
    * isomorphic (no network unless explicitly requested).
+   *
+   * SECURITY: this fetches a URL you were handed. If that URL comes from a
+   * user — which is the whole point of a "paste a link" feature — you are
+   * making a request on their behalf from wherever this runs. Private and
+   * link-local addresses are refused by default (see `allowPrivateHosts`),
+   * redirects are followed manually with the same check applied to every hop,
+   * and the response body is capped. Treat those as a floor, not a substitute
+   * for your own allowlist on a server route.
    */
   fetchHead?: boolean;
   /** Timeout for the optional head probe. Defaults to 4000ms. */
   fetchHeadTimeoutMs?: number;
+  /**
+   * Permit the head probe to reach loopback, private, link-local and
+   * internal-suffix hosts. Off by default. Turning this on in a service that
+   * probes user-supplied URLs re-opens the SSRF hole the default closes; it
+   * exists for local development against a dev server.
+   */
+  allowPrivateHosts?: boolean;
+  /**
+   * Final say on whether a URL may be fetched, applied to the initial target
+   * and to every redirect hop. Return false to refuse. Runs in addition to the
+   * private-address check, so it can only narrow what is reachable.
+   */
+  isAllowedFetchHost?: (url: URL) => boolean;
   /**
    * Resolve a handle to a DID so DID-only waypoints (pdsls, atptools, margin,
    * grain, popfeed) are included. Pass `resolveHandle` from this package, or
@@ -171,6 +261,7 @@ export async function resolveUrl(
     const headUri = await detectAtUriInHead(
       target.toString(),
       options.fetchHeadTimeoutMs ?? 4000,
+      options,
     );
     if (headUri) match = parseAtUri(headUri);
   }
@@ -241,12 +332,25 @@ export type ResolveApiSuccess = {
   waypoints: ResolvedWaypoint[];
 };
 
+/**
+ * Failure reasons `resolveViaApi` itself produces. The hosted endpoint may send
+ * others, so the field stays open — this union exists to make the client-side
+ * ones discoverable and spell-checkable, not to close the set.
+ */
+export type ResolveApiFailureReason =
+  /** The endpoint answered with a non-2xx status. */
+  | 'http_error'
+  /** The response was not JSON (an HTML error page, a captive portal). */
+  | 'invalid_response'
+  /** The request never completed (offline, DNS, connection refused). */
+  | 'network_error';
+
 export type ResolveApiFailure = {
   ok: false;
   input?: string | null;
   inputKind?: 'atUri' | 'url';
   isKnownHost?: boolean;
-  reason?: string;
+  reason?: ResolveApiFailureReason | (string & {});
   message?: string;
   error?: string;
 };
@@ -284,22 +388,192 @@ export async function resolveViaApi(
   if (input.headDetect === false) params.set('headDetect', 'false');
   if (input.composeText) params.set('composeText', input.composeText);
 
-  const res = await fetchImpl(`${endpoint}?${params.toString()}`, {
-    method: 'GET',
-    headers: { Accept: 'application/json' },
-    signal: options.signal,
-  });
-  return (await res.json()) as ResolveApiResponse;
+  const inputKind: 'atUri' | 'url' = input.atUri ? 'atUri' : 'url';
+  const echo = input.atUri ?? input.url ?? null;
+
+  let res: Response;
+  try {
+    res = await fetchImpl(`${endpoint}?${params.toString()}`, {
+      method: 'GET',
+      headers: { Accept: 'application/json' },
+      signal: options.signal,
+    });
+  } catch (error) {
+    // An abort is the caller asking to stop, so it propagates. Everything else
+    // is the endpoint being unreachable, which is a result, not an exception:
+    // the declared return type is a union whose whole point is this arm.
+    if (options.signal?.aborted) throw error;
+    return {
+      ok: false,
+      input: echo,
+      inputKind,
+      reason: 'network_error',
+      message: error instanceof Error ? error.message : String(error),
+    };
+  }
+
+  if (!res.ok) {
+    return {
+      ok: false,
+      input: echo,
+      inputKind,
+      reason: 'http_error',
+      message: `HTTP ${res.status}`,
+    };
+  }
+
+  try {
+    return (await res.json()) as ResolveApiResponse;
+  } catch (error) {
+    // A 200 carrying HTML — a captive portal, a proxy error page — used to
+    // throw a raw SyntaxError straight through the union.
+    return {
+      ok: false,
+      input: echo,
+      inputKind,
+      reason: 'invalid_response',
+      message: error instanceof Error ? error.message : String(error),
+    };
+  }
 }
 
 /**
- * Best-effort <head> probe for a `<link href="at://…">`. Reads the response as
- * text, scans the document head, and returns the first AT URI found. Returns
- * null on any error, non-HTML content, or timeout.
+ * Hostnames the head probe refuses by default. This is a string/regex check on
+ * the literal hostname, not a DNS resolution — a name that resolves to a
+ * private address still gets through, which is why a server handling untrusted
+ * URLs wants `isAllowedFetchHost` on top of this. What it does buy is that the
+ * obvious targets (loopback, RFC1918, the cloud metadata endpoint, and the
+ * `.internal`/`.local` suffixes) cost an attacker nothing to try and are
+ * blocked without a request being made.
+ *
+ * Written from scratch rather than shared with the app's `src/utils/ssrfGuard`
+ * — that file is GPL-3.0 and this package is MIT.
+ */
+const PRIVATE_HOST_PATTERNS: RegExp[] = [
+  /^localhost$/,
+  /\.localhost$/,
+  /\.local$/,
+  /\.internal$/,
+  /^0\.0\.0\.0$/,
+  /^127\./,
+  /^10\./,
+  /^192\.168\./,
+  /^169\.254\./,
+  /^172\.(1[6-9]|2\d|3[01])\./,
+];
+
+/**
+ * True when the hostname is safe to fetch by default. IPv6 arrives from
+ * `URL.hostname` wrapped in brackets, so it is unwrapped before the loopback,
+ * unique-local (fc00::/7) and link-local (fe80::/10) checks.
+ */
+export function isPublicFetchHost(hostname: string): boolean {
+  const host = hostname.toLowerCase().replace(/\.$/, '');
+  if (!host) return false;
+
+  if (host.startsWith('[') && host.endsWith(']')) {
+    const v6 = host.slice(1, -1);
+    if (v6 === '::1' || v6 === '::') return false;
+    return !/^f[cd]/.test(v6) && !/^fe[89ab]/.test(v6);
+  }
+
+  return !PRIVATE_HOST_PATTERNS.some((re) => re.test(host));
+}
+
+/** Applies both the default address check and any caller-supplied predicate. */
+function mayFetch(target: URL, options: ResolveUrlOptions): boolean {
+  if (!options.allowPrivateHosts && !isPublicFetchHost(target.hostname)) {
+    return false;
+  }
+  if (options.isAllowedFetchHost && !options.isAllowedFetchHost(target)) {
+    return false;
+  }
+  return true;
+}
+
+/** Hops followed manually so the host guard can be re-applied to each one. */
+const MAX_REDIRECTS = 3;
+
+/**
+ * Largest response the probe will read. Metadata can legitimately land deep in
+ * a streamed document, so this is well past the head of any real page, while
+ * still bounding what a hostile server can make the caller allocate.
+ */
+const MAX_HTML_BYTES = 1024 * 1024;
+
+/**
+ * Read at most `MAX_HTML_BYTES` of the response, then stop pulling and let go
+ * of the stream. `response.text()` would buffer whatever the server chose to
+ * send — a 611 KB gzip response was measured inflating to 1.24 GB — so the
+ * stream path is the one that matters; the `text()` fallback is only for
+ * environments that expose no body.
+ */
+async function readCapped(response: Response): Promise<string> {
+  const body = response.body;
+  if (!body || typeof body.getReader !== 'function') {
+    return (await response.text()).slice(0, MAX_HTML_BYTES);
+  }
+
+  const reader = body.getReader();
+  const decoder = new TextDecoder('utf-8');
+  let out = '';
+  let read = 0;
+  try {
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      if (!value) continue;
+      read += value.byteLength;
+      out += decoder.decode(value, { stream: true });
+      if (read >= MAX_HTML_BYTES) break;
+    }
+    out += decoder.decode();
+  } finally {
+    // Tell the server we are done; without this the connection stays open
+    // for the remainder of a body we have already decided not to read.
+    try {
+      await reader.cancel();
+    } catch {
+      // Already closed or errored; nothing left to release.
+    }
+  }
+  return out.slice(0, MAX_HTML_BYTES);
+}
+
+/**
+ * Locate the document head by scanning rather than matching. The obvious
+ * regex, `/<head[\s\S]*?<\/head>/i`, is quadratic: every `<head` in the input
+ * is a fresh start position from which the lazy body scans to end of input, so
+ * a page of repeated unclosed `<head` openers blocked the event loop for ~9.8
+ * seconds at 300 KB. indexOf is linear and cannot backtrack.
+ */
+function headSlice(html: string): string {
+  const lower = html.toLowerCase();
+  const start = lower.indexOf('<head');
+  if (start === -1) return html;
+  const end = lower.indexOf('</head>', start);
+  return end === -1 ? html.slice(start) : html.slice(start, end);
+}
+
+/**
+ * Bounded so it cannot backtrack: the attribute run is capped and excludes
+ * `<`/`>` (so a match cannot span a tag boundary), and the captured URI
+ * excludes quotes and whitespace. The unbounded original took 5.4s on crafted
+ * input that this scans in single-digit milliseconds.
+ */
+const AT_URI_LINK_RE =
+  /<link\b[^<>]{0,1000}?\bhref\s*=\s*["'](at:\/\/[^"'\s<>]{1,512})["']/gi;
+
+/**
+ * Best-effort <head> probe for a `<link href="at://…">`. Follows redirects
+ * manually so every hop is re-checked against the caller's fetch policy, reads
+ * a bounded prefix of the body, and returns the first AT URI found. Returns
+ * null on any error, refused host, non-HTML content, or timeout.
  */
 async function detectAtUriInHead(
   url: string,
   timeoutMs: number,
+  options: ResolveUrlOptions,
 ): Promise<string | null> {
   if (typeof fetch === 'undefined') return null;
   const controller =
@@ -308,31 +582,54 @@ async function detectAtUriInHead(
     ? setTimeout(() => controller.abort(), timeoutMs)
     : null;
   try {
-    const response = await fetch(url, {
-      signal: controller?.signal,
-      redirect: 'follow',
-      headers: {
-        'User-Agent':
-          'Mozilla/5.0 (compatible; AturiResolver/1.0; +https://aturi.to)',
-        Accept:
-          'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.5',
-      },
-    });
-    if (!response.ok) return null;
+    let current: URL;
+    try {
+      current = new URL(url);
+    } catch {
+      return null;
+    }
+
+    let response: Response | null = null;
+    for (let hop = 0; hop <= MAX_REDIRECTS; hop++) {
+      if (!/^https?:$/.test(current.protocol)) return null;
+      if (!mayFetch(current, options)) return null;
+
+      const hopResponse = await fetch(current.toString(), {
+        signal: controller?.signal,
+        redirect: 'manual',
+        headers: {
+          'User-Agent':
+            'Mozilla/5.0 (compatible; AturiResolver/1.0; +https://aturi.to)',
+          Accept:
+            'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.5',
+        },
+      });
+
+      const location =
+        hopResponse.status >= 300 && hopResponse.status < 400
+          ? hopResponse.headers.get('location')
+          : null;
+      if (!location) {
+        response = hopResponse;
+        break;
+      }
+      try {
+        current = new URL(location, current);
+      } catch {
+        return null;
+      }
+    }
+
+    if (!response || !response.ok) return null;
 
     const ct = response.headers.get('content-type') || '';
     if (!/text\/html|application\/xhtml/i.test(ct)) return null;
 
-    const html = await response.text();
-    const headMatch = html.match(/<head[\s\S]*?<\/head>/i);
-    const haystack = headMatch ? headMatch[0] : html.slice(0, 256 * 1024);
-    const linkRe =
-      /<link\b[^>]*\bhref\s*=\s*["'](at:\/\/[^"']+)["'][^>]*>/gi;
-    let m: RegExpExecArray | null;
-    while ((m = linkRe.exec(haystack)) !== null) {
-      if (m[1].startsWith('at://')) return m[1];
-    }
-    return null;
+    const html = await readCapped(response);
+    const haystack = headSlice(html);
+    AT_URI_LINK_RE.lastIndex = 0;
+    const match = AT_URI_LINK_RE.exec(haystack);
+    return match ? match[1] : null;
   } catch {
     return null;
   } finally {

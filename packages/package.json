@@ -9,8 +9,9 @@
   ],
   "scripts": {
     "build": "npm run build -w @aturi.to/waypoints && npm run build -w @aturi.to/waypoints-react",
-    "test": "npm run test -w @aturi.to/waypoints",
-    "typecheck": "npm run typecheck -w @aturi.to/waypoints && npm run typecheck -w @aturi.to/waypoints-react",
+    "test": "npm run test -w @aturi.to/waypoints && npm run test -w @aturi.to/waypoints-react",
+    "typecheck": "npm run build -w @aturi.to/waypoints && npm run typecheck -w @aturi.to/waypoints && npm run typecheck -w @aturi.to/waypoints-react",
+    "verify": "npm run sync:check && npm run typecheck && npm run build && npm test",
     "sync": "npm run sync -w @aturi.to/waypoints",
     "sync:check": "npm run sync:check -w @aturi.to/waypoints"
   }
