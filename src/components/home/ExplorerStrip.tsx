@@ -29,14 +29,17 @@ const HOME_FEED_COLLECTIONS = [
 ];
 
 /**
- * Strip 3 — Atmosphere Explorer. Two stacked demos on the demo side:
+ * Strip 3 — Atmosphere Explorer. The demo side is the live JetstreamFeed
+ * (the actual component from /explore) so visitors see real network
+ * activity ticking past on the homepage.
  *
- *   1. Live JetstreamFeed (the actual component from /explore) so
- *      visitors see real network activity ticking past on the homepage.
- *   2. SearchBox for jumping into the explorer with any handle.
- *
- * Plus the "Repo at a glance" stat tiles for a stable handle below the
- * copy column — concrete evidence of what the Explorer surfaces.
+ * Everything the visitor can act on stays in the copy column: the
+ * "Start exploring" link, the SearchBox for jumping into the explorer
+ * with any handle, and the "Repo at a glance" stat tiles for a stable
+ * handle — concrete evidence of what the Explorer surfaces. Stacked on
+ * mobile that keeps the strip reading like its two neighbours, one
+ * visual with the section's text under it, instead of opening with an
+ * unlabelled search form above the heading.
  */
 export default function ExplorerStrip() {
   const [demoDid, setDemoDid] = useState<string | null>(null);
@@ -108,6 +111,13 @@ export default function ExplorerStrip() {
             </Link>
           </div>
 
+          {/* Handle lookup, captioned so it reads as an offered action
+              rather than a stray input. */}
+          <div className="explore-small-caps" style={{ marginBottom: '0.5rem' }}>
+            Or look up any account
+          </div>
+          <SearchBox />
+
           {/* Isolated AccountStats row — concrete preview of what the
               explorer shows per repo. Renders for a stable DID we
               resolve at mount; tile placeholders fill the space while
@@ -115,7 +125,6 @@ export default function ExplorerStrip() {
           {demoDid && (
             <div
               style={{
-                marginTop: '1rem',
                 paddingTop: '1rem',
                 borderTop: '1px solid var(--border-subtle)',
               }}
@@ -135,12 +144,7 @@ export default function ExplorerStrip() {
           )}
         </>
       }
-      demo={
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.875rem' }}>
-          <JetstreamFeed initialCollections={HOME_FEED_COLLECTIONS} />
-          <SearchBox />
-        </div>
-      }
+      demo={<JetstreamFeed initialCollections={HOME_FEED_COLLECTIONS} />}
     />
   );
 }

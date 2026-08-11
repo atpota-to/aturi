@@ -226,7 +226,10 @@ export default function ExploreLanding() {
         />
       </AppearIn>
 
-      <AppearIn delay={0.12}>
+      {/* The extra top margin is this page's, not the feed's — it sets the
+          dashboard apart from the marketing sections above it. The homepage
+          strip embeds the same component with no such gap. */}
+      <AppearIn delay={0.12} style={{ marginTop: '2rem' }}>
         {/* Verbose variant for the explorer dashboard: full mutation
             stream (creates + updates + deletes) with op pills and the
             rolling stats footer. The homepage strip uses the minimal
