@@ -61,7 +61,7 @@ const QUESTIONS: SetupQuestion[] = [
     scopes: ['app.bsky.*', 'profile'],
     question: 'Where do you read Bluesky?',
     blurb:
-      'Posts, profiles, lists, and feeds are all records in the app.bsky namespace, and every client below renders them — they differ in how. Pick the one you actually use and shared links will lead with it instead of assuming bsky.app.',
+      'Posts, profiles, lists, and feeds all live in your app.bsky collections, and every client here reads the same records. Today a shared aturi.to link puts bsky.app at the top. Pick what you use and it goes there instead.',
     shortLabel: 'Bluesky',
   },
   {
@@ -70,8 +70,8 @@ const QUESTIONS: SetupQuestion[] = [
     scopes: ['pub.leaflet.*', 'site.standard.*'],
     question: 'Where do you read publications?',
     blurb:
-      'Longform writing on atproto: Leaflet documents and Standard Site pages. Several readers render the same records with different typography and reading tools.',
-    shortLabel: 'Reading',
+      'Longform writing on atproto lives in pub.leaflet and site.standard records. Every reader here opens all of them; what changes is the typography and the page layout, not which documents work.',
+    shortLabel: 'Publications',
   },
   {
     id: 'records',
@@ -81,7 +81,7 @@ const QUESTIONS: SetupQuestion[] = [
     scopes: [PREFERRED_SCOPE_ALL],
     question: 'Where do you inspect raw records?',
     blurb:
-      'When you want the data itself — the JSON, the CID, the collection — instead of a rendered view. This also becomes your fallback for anything the questions above didn’t cover, so a record from an app nobody has built a reader for yet still opens somewhere useful.',
+      'For the times you want the JSON, the CID and the collection rather than a rendered page. This answer doubles as your fallback: any record the questions above left uncovered opens here, including lexicons nobody has written a reader for yet.',
     shortLabel: 'Records',
   },
 ];

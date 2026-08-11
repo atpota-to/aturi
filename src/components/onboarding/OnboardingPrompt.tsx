@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { Compass, X } from 'lucide-react';
 import { usePreferences } from '@/components/PreferencesProvider';
 import { markOnboardingDismissed, shouldOfferOnboarding } from '@/utils/preferences';
+import { setupQuestions } from '@/utils/onboardingQuestions';
 
 /**
  * Invitation into the guided setup. Renders nothing once the user has either
@@ -29,8 +30,9 @@ export default function OnboardingPrompt({ compact = false }: { compact?: boolea
       </span>
 
       <span className="onboarding-prompt-text">
-        <strong>New here?</strong> Tell Aturi which apps you read the Atmosphere
-        in, and they&apos;ll lead every list from now on.
+        Shared links open in whichever client Aturi lists first.{' '}
+        <strong>Answer {setupQuestions().length} questions</strong> and they
+        open in the apps you use.
       </span>
 
       <span className="onboarding-prompt-actions">

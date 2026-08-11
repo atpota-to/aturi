@@ -29,6 +29,7 @@ import { useSignInFlow } from '@/components/oauth/useSignInFlow';
 import { ColorSchemePicker, ThemePicker } from '@/components/account/AppearanceControls';
 import { usePreferredClientsPublisher } from '@/components/account/usePreferredClientsPublisher';
 import Toggle from '@/components/account/Toggle';
+import { COLOR_SCHEMES } from '@/lib/colorScheme';
 import { markOnboardingComplete, markOnboardingDismissed } from '@/utils/preferences';
 import {
   answerFor,
@@ -46,10 +47,10 @@ import ClientChoice from './ClientChoice';
  * The middle of the flow is generated from the waypoint catalog: each
  * question covers one group of apps that render the same data, and an answer
  * writes `preferredClients` rules for the scopes that group owns (see
- * `onboardingQuestions.ts`). That means this file describes the *flow* and
- * nothing about which apps exist.
+ * `onboardingQuestions.ts`). So this file describes the flow and nothing
+ * about which apps exist.
  *
- * Answers are written as they're made rather than batched at the end, so
+ * Answers are written as they are made rather than batched at the end, so
  * abandoning halfway keeps whatever was answered. For a signed-in user the
  * same preferences record syncs to their PDS; the closing step additionally
  * offers to publish the public declaration other Atmosphere apps can read.
@@ -66,26 +67,26 @@ const STEP_IDS: StepId[] = [
   'finish',
 ];
 
-/** Steps that ask the user for something — intro and finish don't. */
-const NUMBERED_STEPS = STEP_IDS.length - 2;
+/** How many client questions there are. The palette step isn't one of them. */
+const NUMBERED_STEPS = QUESTIONS.length;
 
 function stepLabel(id: StepId): string {
   if (id === 'intro') return 'Start';
-  if (id === 'appearance') return 'Look';
-  if (id === 'finish') return 'Save';
+  if (id === 'appearance') return 'Palette';
+  if (id === 'finish') return 'Done';
   return QUESTIONS.find((q) => q.id === id)?.shortLabel ?? String(id);
 }
 
 /**
  * The URL fragment is the flow's source of truth, so a step survives a
- * reload, a shared link, and — the reason it matters — the OAuth round trip,
- * which remembers path + hash and drops the user back where they were.
+ * reload, a shared link, and (the reason it matters) the OAuth round trip,
+ * which remembers path plus hash and drops the user back where they were.
  *
  * Read through `useSyncExternalStore` rather than mirrored into state: the
  * server has no URL to read, and this is the one shape that renders the
  * default on the server and the real step on the client without a mismatch
  * or a setState-in-effect. `replaceState` doesn't emit `hashchange`, so
- * navigation dispatches a synthetic event to close the loop — the same
+ * navigation dispatches a synthetic event to close the loop, the same
  * pattern the theme and font-scale controls use.
  */
 const STEP_EVENT = 'aturi:onboarding-step';
@@ -108,6 +109,11 @@ function getStepServerSnapshot(): StepId {
   return 'intro';
 }
 
+/** Honour the reduce-motion setting for the scroll that follows each step. */
+function prefersReducedMotion(): boolean {
+  return document.documentElement.dataset.reduceMotion === 'true';
+}
+
 export default function OnboardingFlow() {
   const { prefs, update } = usePreferences();
   const { did } = useAtprotoSession();
@@ -119,16 +125,31 @@ export default function OnboardingFlow() {
     getStepServerSnapshot,
   );
   const index = Math.max(0, STEP_IDS.indexOf(stepId));
+  const headingRef = useRef<HTMLHeadingElement>(null);
+  const lastFocusedStep = useRef<StepId | null>(null);
+
+  // Move focus to the new step's heading so the panel swap is announced and
+  // keyboard users don't have to tab back through the rail. Skipped on first
+  // render: stealing focus from a page the user just opened is hostile.
+  useEffect(() => {
+    if (lastFocusedStep.current === null) {
+      lastFocusedStep.current = stepId;
+      return;
+    }
+    if (lastFocusedStep.current === stepId) return;
+    lastFocusedStep.current = stepId;
+    headingRef.current?.focus();
+  }, [stepId]);
 
   const goTo = useCallback((next: StepId) => {
     const url = new URL(window.location.href);
     url.hash = String(next);
-    // `replaceState` rather than a push: the wizard's Back button already
+    // `replaceState` rather than a push: the wizard's own Back button already
     // walks the steps, and stacking six history entries would make the
     // browser's Back button useless for leaving the page.
     window.history.replaceState(null, '', url.toString());
     window.dispatchEvent(new Event(STEP_EVENT));
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    window.scrollTo({ top: 0, behavior: prefersReducedMotion() ? 'auto' : 'smooth' });
   }, []);
 
   const goNext = useCallback(
@@ -141,14 +162,25 @@ export default function OnboardingFlow() {
   );
 
   const question = QUESTIONS.find((q) => q.id === stepId) ?? null;
+  // Which questions already have an answer, for the rail's checkmarks. A step
+  // you walked past without answering shouldn't claim to be done.
+  const answeredIds = useMemo(
+    () => new Set(QUESTIONS.filter((q) => answerFor(prefs, q)).map((q) => q.id)),
+    [prefs],
+  );
 
   return (
     <div className="onboarding">
-      <ProgressRail current={index} onJump={(i) => goTo(STEP_IDS[i])} />
+      <ProgressRail
+        current={index}
+        answeredIds={answeredIds}
+        onJump={(i) => goTo(STEP_IDS[i])}
+      />
 
       <div className="onboarding-panel">
         {stepId === 'intro' && (
           <IntroStep
+            headingRef={headingRef}
             signedIn={Boolean(did)}
             onStart={goNext}
             onSkip={() => update(markOnboardingDismissed)}
@@ -158,11 +190,13 @@ export default function OnboardingFlow() {
         {question && (
           <div className="onboarding-step">
             <StepHead
+              headingRef={headingRef}
               eyebrow={`Question ${index} of ${NUMBERED_STEPS}`}
               title={question.question}
               blurb={question.blurb}
             />
             <ClientChoice
+              name={`setup-${question.id}`}
               label={question.question}
               options={question.options}
               selectedId={answerFor(prefs, question)}
@@ -176,18 +210,19 @@ export default function OnboardingFlow() {
         {stepId === 'appearance' && (
           <div className="onboarding-step">
             <StepHead
-              eyebrow={`Question ${index} of ${NUMBERED_STEPS}`}
-              title="Make it yours"
-              blurb="Aturi ships several palettes, each with a dark and a light variant. The palette travels with the rest of your preferences; dark-vs-light stays on this device, so a bright office and a dim couch can disagree."
+              headingRef={headingRef}
+              eyebrow="Appearance"
+              title="Pick a palette"
+              blurb={`${COLOR_SCHEMES.length} palettes, each with a dark and a light variant. The palette is stored with the rest of your preferences and follows your account. Dark or light is per-device, so a laptop can run light while a phone runs dark.`}
             />
             <div className="onboarding-appearance">
-              <ColorSchemePicker description="Applies as you click — try a few." />
+              <ColorSchemePicker description="Applies as you click." />
               <ThemePicker />
             </div>
           </div>
         )}
 
-        {stepId === 'finish' && <FinishStep />}
+        {stepId === 'finish' && <FinishStep headingRef={headingRef} />}
       </div>
 
       {stepId !== 'intro' && (
@@ -206,7 +241,7 @@ export default function OnboardingFlow() {
             </Link>
           ) : (
             <button type="button" className="onboarding-btn is-primary" onClick={goNext}>
-              Continue
+              {question && !answeredIds.has(question.id) ? 'Skip' : 'Continue'}
               <ArrowRight size={15} aria-hidden />
             </button>
           )}
@@ -218,15 +253,24 @@ export default function OnboardingFlow() {
 
 function ProgressRail({
   current,
+  answeredIds,
   onJump,
 }: {
   current: number;
+  answeredIds: Set<string>;
   onJump: (index: number) => void;
 }) {
   return (
     <ol className="onboarding-rail">
       {STEP_IDS.map((id, i) => {
-        const state = i === current ? 'is-current' : i < current ? 'is-done' : '';
+        const answered = answeredIds.has(String(id));
+        const state = [
+          i === current ? 'is-current' : '',
+          answered ? 'is-answered' : '',
+          i < current ? 'is-visited' : '',
+        ]
+          .filter(Boolean)
+          .join(' ');
         return (
           <li key={String(id)} className={`onboarding-rail-item ${state}`}>
             <button
@@ -235,7 +279,7 @@ function ProgressRail({
               aria-current={i === current ? 'step' : undefined}
             >
               <span className="onboarding-rail-dot" aria-hidden>
-                {i < current ? <Check size={11} /> : i + 1}
+                {answered ? <Check size={11} /> : i + 1}
               </span>
               <span className="onboarding-rail-label">{stepLabel(id)}</span>
             </button>
@@ -246,11 +290,15 @@ function ProgressRail({
   );
 }
 
+type HeadingRef = React.RefObject<HTMLHeadingElement | null>;
+
 function StepHead({
+  headingRef,
   eyebrow,
   title,
   blurb,
 }: {
+  headingRef: HeadingRef;
   eyebrow: string;
   title: string;
   blurb: string;
@@ -258,17 +306,23 @@ function StepHead({
   return (
     <header className="onboarding-head">
       <span className="onboarding-eyebrow">{eyebrow}</span>
-      <h1 className="onboarding-title">{title}</h1>
+      {/* tabIndex -1 so step changes can move focus here without adding a
+          tab stop of their own. */}
+      <h1 className="onboarding-title" ref={headingRef} tabIndex={-1}>
+        {title}
+      </h1>
       <p className="onboarding-blurb">{blurb}</p>
     </header>
   );
 }
 
 function IntroStep({
+  headingRef,
   signedIn,
   onStart,
   onSkip,
 }: {
+  headingRef: HeadingRef;
   signedIn: boolean;
   onStart: () => void;
   onSkip: () => void;
@@ -276,34 +330,35 @@ function IntroStep({
   return (
     <div className="onboarding-step">
       <StepHead
+        headingRef={headingRef}
         eyebrow="Optional setup"
         title="Which apps do you actually use?"
-        blurb="On atproto your posts, articles, and photos are records in your own repository, and any number of apps can render the same record. That's the good part — but it means every shared link has to guess where you want to open it, and the ecosystem's guess is whichever app got there first. Answer that here instead and the guessing stops."
+        blurb={`Your posts, articles and photos are records in your own repository, and more than one app can render any of them. That leaves every shared link answering "open this where?" on your behalf, and today it answers with whichever client the catalog lists first. ${QUESTIONS.length} questions here and the answer is yours.`}
       />
 
       <ul className="onboarding-facts">
         <li>
-          <strong>{QUESTIONS.length} questions.</strong> One per group of apps
-          that render the same kind of record. Skip any of them.
+          <strong>Skippable.</strong> Every question takes an answer or a pass,
+          and each one covers a group of apps that read the same records.
         </li>
         <li>
-          <strong>Not a filter.</strong> Your answer leads the list; every other
-          app stays right underneath it. Nothing gets hidden and nothing locks.
+          <strong>Your answer leads the list, it doesn&apos;t shorten it.</strong>{' '}
+          The apps you didn&apos;t pick stay right underneath, one click away.
         </li>
         <li>
           {signedIn ? (
             <>
-              <strong>Stored in your repository.</strong> Answers are saved to
-              your own PDS, so they follow your account rather than this
-              browser. At the end you can also publish them as a{' '}
-              <code>{PREFERRED_CLIENTS_NSID}</code> record, which any other
-              Atmosphere app can read to route you the same way.
+              <strong>Written to your repository.</strong> Answers go into your{' '}
+              <code>to.aturi.actor.preferences</code> record, so they follow the
+              account instead of this browser. The last step offers to publish
+              them separately as <code>{PREFERRED_CLIENTS_NSID}</code>, which any
+              Atmosphere app can read.
             </>
           ) : (
             <>
-              <strong>No account needed.</strong> Answers are saved in this
-              browser. Sign in at the end and they move to your own repository
-              instead, where other Atmosphere apps can read them too.
+              <strong>No account needed.</strong> Answers are kept in this
+              browser. Sign in at the last step and they move into your own
+              repository instead.
             </>
           )}
         </li>
@@ -315,7 +370,7 @@ function IntroStep({
           Get started
         </button>
         <Link href="/" className="onboarding-btn is-quiet" onClick={onSkip}>
-          Not now
+          No thanks
         </Link>
       </div>
     </div>
@@ -324,17 +379,17 @@ function IntroStep({
 
 /**
  * Closing step: confirm what was chosen, get it somewhere durable, and offer
- * the one thing that makes these answers useful outside Aturi — publishing
- * them where other apps can read them.
+ * the one thing that makes these answers useful outside Aturi, which is
+ * publishing them where other apps can read them.
  */
-function FinishStep() {
+function FinishStep({ headingRef }: { headingRef: HeadingRef }) {
   const { prefs, update, flush } = usePreferences();
   const { did } = useAtprotoSession();
   const profile = useSessionProfile(did);
   const [saveState, setSaveState] = useState<'idle' | 'saving' | FlushResult>('idle');
   const completedRef = useRef(false);
 
-  // Reaching this step means the work is done — every answer is already
+  // Reaching this step means the work is done: every answer is already
   // persisted. Record completion here rather than behind a final button, so
   // closing the tab at the finish line doesn't leave the invitation nagging.
   useEffect(() => {
@@ -343,7 +398,7 @@ function FinishStep() {
     update(markOnboardingComplete);
   }, [update]);
 
-  // Retry path — an event handler, so it can announce 'saving' up front.
+  // Retry path. An event handler, so it can announce 'saving' up front.
   const save = useCallback(async () => {
     setSaveState('saving');
     setSaveState(await flush());
@@ -352,7 +407,7 @@ function FinishStep() {
   // Push to the PDS on arrival, so the confirmation below reports a finished
   // write rather than an intention. The result lands in state from the
   // promise callback rather than synchronously in the effect body; until it
-  // resolves, the initial `idle` already renders as "writing…".
+  // resolves, the initial `idle` already renders as "writing".
   const savedForDid = useRef<string | null>(null);
   useEffect(() => {
     if (!did || savedForDid.current === did) return;
@@ -379,12 +434,13 @@ function FinishStep() {
   return (
     <div className="onboarding-step">
       <StepHead
+        headingRef={headingRef}
         eyebrow="Done"
-        title={answered > 0 ? 'Here’s what you picked' : 'All set'}
+        title={answered > 0 ? 'What you picked' : 'Nothing set'}
         blurb={
           answered > 0
-            ? 'These lead the list whenever a record could open in more than one place — on shared aturi.to links, in the picker, and anywhere else that reads your preferences.'
-            : 'You skipped every question, which is a perfectly good answer. Aturi will keep offering its own recommendations, and Settings is there whenever you change your mind.'
+            ? 'These go first whenever a record could open in more than one place: shared aturi.to links, the picker, and anything else that reads your preferences.'
+            : 'You passed on every question, so the picker carries on with its own recommendations. The same choices are in Settings whenever you want them.'
         }
       />
 
@@ -423,11 +479,10 @@ function FinishStep() {
       )}
 
       <p className="onboarding-footnote">
-        Change any of this any time in{' '}
-        <Link href="/account#clients">Settings → Clients</Link>, where you can
-        also add rules for specific lexicons and set fallbacks. Running the
-        browser extension? Its redirect favorites are separate, under the
-        extension&apos;s own options.
+        <Link href="/account#clients">Settings → Clients</Link> holds the same
+        rules, plus per-lexicon scopes and ordered fallbacks. The browser
+        extension keeps its own redirect targets, in the extension&apos;s
+        options.
       </p>
     </div>
   );
@@ -444,15 +499,16 @@ function SaveStatus({
 }) {
   if (state === 'error') {
     return (
-      <div className="onboarding-status is-error">
+      <div className="onboarding-status is-error" role="status">
         <TriangleAlert size={16} aria-hidden />
         <span>
-          Couldn&apos;t reach your PDS just now. Your answers are safe in this
-          browser and Aturi will keep retrying — or push them up again now.
+          Couldn&apos;t reach your PDS. Your answers are saved in this browser,
+          and the next setting you change will push all of them up. You can also
+          try again now.
         </span>
         <button type="button" className="onboarding-btn is-quiet" onClick={onRetry}>
           <RefreshCw size={14} aria-hidden />
-          Retry
+          Try again
         </button>
       </div>
     );
@@ -460,58 +516,61 @@ function SaveStatus({
 
   if (state === 'saved') {
     return (
-      <div className="onboarding-status is-ok">
+      <div className="onboarding-status is-ok" role="status">
         <Check size={16} aria-hidden />
         <span>
-          Saved to <strong>{handle}</strong>. Your settings live in your own
-          repository, so they travel with the account rather than the browser.
+          Saved to <strong>{handle}</strong>. Your preferences live in your own
+          repository, so they move with the account rather than the browser.
         </span>
       </div>
     );
   }
 
   return (
-    <div className="onboarding-status">
+    <div className="onboarding-status" role="status">
       <RefreshCw size={16} aria-hidden className="onboarding-spin" />
-      <span>Writing your preferences to your PDS…</span>
+      <span>Writing to your PDS…</span>
     </div>
   );
 }
 
 /**
  * The step that makes these answers portable. Settings sync privately by
- * default; this writes a separate, public record other people's software can
- * read — so it's an explicit opt-in with the consequences said plainly, not a
- * checkbox that comes pre-ticked.
+ * default; this writes a separate record other people's software can read, so
+ * it is an explicit opt-in with the consequence stated, not a checkbox that
+ * arrives pre-ticked.
  */
 function PublishOffer({ actor }: { actor: string }) {
   const { prefs } = usePreferences();
   const { state, error, setPublishing } = usePreferredClientsPublisher();
   const published = prefs.publishPreferredClients;
+  const recordUri = `at://${actor}/${PREFERRED_CLIENTS_NSID}/self`;
 
   return (
     <div className="onboarding-publish">
       <Toggle
         id="onboarding-publish"
-        label="Let other Atmosphere apps read these choices"
-        description={`Publishes a public ${PREFERRED_CLIENTS_NSID} record in your repository. Any app that links out to atproto records can read it and send you to the client you picked instead of guessing. It's a public record — anyone can see which apps you prefer. Turning it back off deletes the record.`}
+        label="Let other apps read these choices"
+        description={`Writes a ${PREFERRED_CLIENTS_NSID} record to your repository. Any app that links to atproto records can read it and send you to the client you picked. The record is public: anyone who knows your handle can fetch it and see which apps you use. Switching this off deletes it.`}
         checked={published}
         onChange={setPublishing}
       />
 
       {published && (
-        <p className="onboarding-publish-state">
+        <p className="onboarding-publish-state" role="status">
           {state === 'published' && (
             <>
-              <Globe size={13} aria-hidden /> Published at{' '}
-              <code>{`at://${actor}/${PREFERRED_CLIENTS_NSID}/self`}</code>.
+              <Globe size={13} aria-hidden />
+              <span>Published.</span>
+              <Link href={`/explore/${actor}/${PREFERRED_CLIENTS_NSID}/self`}>
+                Read it back
+              </Link>
+              <code>{recordUri}</code>
             </>
           )}
-          {(state === 'publishing' || state === 'checking') && <>Publishing…</>}
-          {state === 'removing' && <>Removing the published record…</>}
-          {state === 'empty' && (
-            <>Nothing to publish yet — answer a question above first.</>
-          )}
+          {(state === 'publishing' || state === 'checking') && <span>Publishing…</span>}
+          {state === 'removing' && <span>Deleting the published record…</span>}
+          {state === 'empty' && <span>Nothing to publish. Answer a question first.</span>}
           {state === 'error' && (
             <span className="is-error">{error ?? 'Publishing failed.'}</span>
           )}
@@ -522,9 +581,9 @@ function PublishOffer({ actor }: { actor: string }) {
 }
 
 /**
- * The signed-out close. Signing in isn't required to have finished setup —
- * the answers are already in localStorage — so this sells the upgrade rather
- * than blocking on it.
+ * The signed-out close. Signing in isn't required to have finished setup, as
+ * the answers are already in this browser's storage, so this states what an
+ * account adds rather than blocking on it.
  */
 function SignInOffer() {
   const [value, setValue] = useState('');
@@ -552,11 +611,10 @@ function SignInOffer() {
         <div>
           <strong>Saved in this browser</strong>
           <p>
-            Sign in with your handle and the same answers go to your own
-            repository instead — there on your phone, on a new laptop, and
-            available to any other Atmosphere app you let read them. No
-            password: atproto OAuth, and you choose which permissions to grant
-            on the next screen.
+            Sign in and the same answers go to your own repository instead,
+            where they will be waiting on your phone and on the next laptop.
+            Sign-in is atproto OAuth: no password, and you choose which
+            permissions to grant on the next screen.
           </p>
         </div>
       </div>
@@ -579,7 +637,7 @@ function SignInOffer() {
         />
         <button type="submit" className="onboarding-btn is-primary" disabled={!value.trim()}>
           <LogIn size={15} aria-hidden />
-          Sign in &amp; save
+          Sign in and save
         </button>
       </form>
       {error && <p className="onboarding-signin-error">{error}</p>}

@@ -2752,6 +2752,7 @@ html {
 [data-reduce-motion='true'] .cta-button:hover,
 [data-reduce-motion='true'] .parent-card:hover,
 [data-reduce-motion='true'] .featured-waypoint:hover,
+[data-reduce-motion='true'] .client-option:hover,
 [data-reduce-motion='true'] .card:not(.feature-card-primary):not(.feature-card-secondary):not(.cta-card):hover {
   transform: none !important;
 }
@@ -5268,8 +5269,15 @@ body.has-explore-chrome {
   transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
 }
 
+/* Visited but unanswered: dimmer than "todo" would be misleading, so it
+   just loses the muted treatment without claiming to be done. */
+.onboarding-rail-item.is-visited button {
+  color: var(--text-secondary);
+}
+
 .onboarding-rail-item.is-current button {
   color: var(--text-primary);
+  font-weight: 500;
 }
 
 .onboarding-rail-item.is-current .onboarding-rail-dot {
@@ -5277,10 +5285,16 @@ body.has-explore-chrome {
   color: var(--text-accent);
 }
 
-.onboarding-rail-item.is-done .onboarding-rail-dot {
+/* A checkmark means answered, not merely walked past. */
+.onboarding-rail-item.is-answered .onboarding-rail-dot {
   background: var(--accent-moss);
   border-color: var(--accent-moss);
   color: var(--text-on-accent);
+}
+
+.onboarding-rail-item button:focus-visible {
+  outline: 2px solid var(--text-accent);
+  outline-offset: 3px;
 }
 
 .onboarding-panel {
@@ -5359,6 +5373,13 @@ body.has-explore-chrome {
   gap: 0.5rem;
 }
 
+.client-choice-set {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+}
+
 .client-option {
   display: flex;
   align-items: flex-start;
@@ -5372,6 +5393,18 @@ body.has-explore-chrome {
   transition: border-color 0.2s ease, background 0.2s ease, transform 0.2s ease;
 }
 
+/* The radio itself is the accessibility and keyboard story; the label is the
+   visible control. Kept in the layout (not display:none) so it stays
+   focusable and arrow-key navigation works. */
+.client-option-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  margin: 0;
+  pointer-events: none;
+}
+
 .client-option:hover {
   border-color: var(--border-medium);
   transform: translateY(-1px);
@@ -5382,7 +5415,8 @@ body.has-explore-chrome {
   background: var(--bg-primary);
 }
 
-.client-option:focus-visible {
+/* Focus lands on the hidden input, so the ring has to be drawn by the label. */
+.client-option:has(.client-option-input:focus-visible) {
   outline: 2px solid var(--text-accent);
   outline-offset: 2px;
 }
@@ -5446,9 +5480,11 @@ body.has-explore-chrome {
   flex-shrink: 0;
   align-self: center;
   padding: 0.2rem 0.4rem;
+  margin-right: 0.75rem;
   color: var(--text-tertiary);
   font-family: var(--font-serif);
   font-size: 0.72rem;
+  text-decoration: none;
   border: 1px solid transparent;
   cursor: pointer;
   opacity: 0;
@@ -5479,10 +5515,32 @@ body.has-explore-chrome {
   right: 0.45rem;
   display: inline-flex;
   color: var(--text-accent);
+  opacity: 0;
+  transition: opacity 0.15s ease;
 }
 
-.client-option.is-neutral .client-option-icon {
+.client-option.is-selected .client-option-check {
+  opacity: 1;
+}
+
+/* The undo row. Full-width and dashed so it reads as taking the answer back
+   rather than being one more app to choose. */
+.client-option.is-clear {
+  grid-column: 1 / -1;
+  margin-top: 0.25rem;
+  border-style: dashed;
+  background: transparent;
+  font: inherit;
+  color: inherit;
+}
+
+.client-option.is-clear .client-option-icon {
   color: var(--text-tertiary);
+}
+
+.client-option.is-clear:focus-visible {
+  outline: 2px solid var(--text-accent);
+  outline-offset: 2px;
 }
 
 .onboarding-appearance {
@@ -5844,7 +5902,27 @@ body.has-explore-chrome {
   .onboarding-prompt-text {
     flex-basis: 100%;
   }
-  .onboarding-rail-label {
+  /* Six labels don't fit, but stripping all of them leaves bare digits with
+     no idea what they count. Keep the one you're on. */
+  .onboarding-rail-item:not(.is-current) .onboarding-rail-label {
     display: none;
   }
+  .onboarding-rail {
+    gap: 0.35rem 0.5rem;
+  }
+}
+
+/* Content for assistive tech only: present in the accessibility tree, absent
+   from the visual layout. Clip-based rather than display:none, which would
+   remove it from the tree entirely. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
 }

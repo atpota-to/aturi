@@ -112,8 +112,8 @@ function RulesCard() {
             fontSize: '0.85rem',
           }}
         >
-          No preferences yet. <Link href="/welcome#bluesky">Walk through setup</Link>{' '}
-          to answer a few questions, or add a rule by hand below.
+          No rules yet. <Link href="/welcome#bluesky">Answer three questions</Link>{' '}
+          and Aturi writes the common ones for you, or build one by hand below.
         </p>
       ) : (
         <ul
@@ -504,8 +504,8 @@ function PublishCard() {
         <p className="settings-card-sub">
           Writes your rules to a public{' '}
           <code>{PREFERRED_CLIENTS_NSID}</code> record in your repo. Anyone can
-          read it — that&rsquo;s what makes it useful, and it&rsquo;s why
-          it&rsquo;s off until you say so. Turning it back off deletes the
+          read it, which is what makes it useful and why it stays off until you
+          say so. Turning it back off deletes the
           record rather than leaving a stale declaration behind.
         </p>
       </div>
@@ -599,7 +599,7 @@ function StatusLine({
   const [text, tone] = ((): [string, string] => {
     switch (state) {
       case 'anonymous':
-        return ['Not signed in — rules are saved in this browser only.', 'var(--text-tertiary)'];
+        return ['Not signed in. Rules are saved in this browser only.', 'var(--text-tertiary)'];
       case 'checking':
         return ['Checking your repo…', 'var(--text-tertiary)'];
       case 'publishing':
@@ -607,7 +607,7 @@ function StatusLine({
       case 'removing':
         return ['Removing the record…', 'var(--text-tertiary)'];
       case 'empty':
-        return ['Nothing to publish yet — add a rule above.', 'var(--text-tertiary)'];
+        return ['Nothing to publish yet. Add a rule above.', 'var(--text-tertiary)'];
       case 'published':
         return ['Published. Other apps can read this now.', 'var(--text-accent)'];
       case 'error':
