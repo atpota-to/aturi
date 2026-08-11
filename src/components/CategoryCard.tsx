@@ -14,7 +14,7 @@ type CategoryCardProps = {
   did?: string;
   copiedId: string | null;
   onCopy: (url: string, waypointId: string, e: React.MouseEvent) => void;
-  onWaypointClick: (url: string, e: React.MouseEvent) => void;
+  onWaypointClick: (url: string, waypointId: string, e: React.MouseEvent) => void;
   subcategories?: Array<{
     category: WaypointCategory;
     waypoints: Waypoint[];
@@ -76,14 +76,14 @@ export default function CategoryCard({
         role="button"
         tabIndex={0}
         aria-label={`Open in ${waypoint.name}`}
-        onClick={(e) => onWaypointClick(url, e)}
+        onClick={(e) => onWaypointClick(url, waypoint.id, e)}
         onKeyDown={(e) => {
           // Make the card operable by keyboard (Enter/Space), matching native
           // button semantics — previously only the small icon link was
           // reachable. Space is preventDefault'd so the page doesn't scroll.
           if (e.key === 'Enter' || e.key === ' ') {
             e.preventDefault();
-            onWaypointClick(url, e as unknown as React.MouseEvent);
+            onWaypointClick(url, waypoint.id, e as unknown as React.MouseEvent);
           }
         }}
         style={{
@@ -129,7 +129,13 @@ export default function CategoryCard({
             target="_blank"
             rel="noopener noreferrer"
             aria-label={`Open in ${waypoint.name}`}
-            onClick={(e) => e.stopPropagation()}
+            onClick={(e) => {
+              // The row handler bails out on anchor targets, so the link
+              // reports its own open. stopPropagation keeps the row from
+              // opening a second tab on top of this one.
+              e.stopPropagation();
+              onWaypointClick(url, waypoint.id, e);
+            }}
             style={{
               display: 'flex',
               alignItems: 'center',

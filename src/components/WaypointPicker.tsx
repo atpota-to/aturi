@@ -7,6 +7,7 @@ import {
   getRecommendedWaypoints,
   getWaypointsForType,
   WAYPOINT_DESTINATIONS,
+  type Waypoint,
   type WaypointType
 } from '@/utils/waypoints';
 import { waypointActivity } from '@/utils/waypoints.data';
@@ -21,6 +22,18 @@ import {
   markWaypointsKnown,
 } from '@/utils/preferences';
 import {
+  answerFor,
+  applyAnswer,
+  questionForRecord,
+  type SetupQuestion,
+} from '@/utils/onboardingQuestions';
+import {
+  declineSuggestion,
+  hasDeclined,
+  recordWaypointOpen,
+  suggestionThreshold,
+} from '@/utils/waypointUsage';
+import {
   describeScopeInline,
   orderIdsByPreference,
   preferredWaypointFor,
@@ -31,6 +44,7 @@ import ShareButton from './ShareButton';
 import CategoryCard from './CategoryCard';
 import NewWaypointsBanner from './NewWaypointsBanner';
 import OnboardingPrompt from './onboarding/OnboardingPrompt';
+import PreferenceNudge from './onboarding/PreferenceNudge';
 
 type WaypointPickerProps = {
   type: WaypointType;
@@ -62,6 +76,13 @@ export default function WaypointPicker({
   const display = displayName || `@${handle}`;
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const { prefs, update } = usePreferences();
+  // The "make this your default?" offer, raised by opening a record in a
+  // client. Null until a click earns it; see `noteOpen`.
+  const [nudge, setNudge] = useState<{
+    question: SetupQuestion;
+    waypoint: Waypoint;
+    replacing: string | null;
+  } | null>(null);
 
   // Set of collection NSIDs the target repo holds. `null` means "no opinion"
   // (scan failed/not run) — `waypointActivity` returns 'unknown' for everything
@@ -233,18 +254,53 @@ export default function WaypointPicker({
     }
   };
 
-  const handleWaypointClick = (url: string, e: React.MouseEvent) => {
-    // Don't navigate if clicking on interactive elements
+  /**
+   * Count an open, and decide whether it has earned the offer to become a
+   * default. Counting happens in this browser only (see `waypointUsage`); the
+   * preference it might produce is the part that syncs, and only if the user
+   * says yes.
+   *
+   * Three gates, in order of how much they matter: the click has to belong to
+   * a question the setup actually asks, the client has to be a real answer to
+   * that question (opening a Tangled repo in Tangled says nothing about where
+   * "everything else" should go), and the user must not have waved this
+   * question away already.
+   */
+  const noteOpen = useCallback(
+    (waypointId: string) => {
+      const question = questionForRecord(collection, type);
+      if (!question) return;
+      if (!question.options.some((o) => o.id === waypointId)) return;
+
+      const count = recordWaypointOpen(question.id, waypointId);
+      if (hasDeclined(question.id)) return;
+
+      const current = answerFor(prefs, question);
+      if (current === waypointId) return;
+      if (count < suggestionThreshold(Boolean(current))) return;
+
+      const waypoint = WAYPOINT_DESTINATIONS[waypointId];
+      if (!waypoint) return;
+      setNudge({
+        question,
+        waypoint,
+        replacing: current ? WAYPOINT_DESTINATIONS[current]?.name ?? current : null,
+      });
+    },
+    [collection, type, prefs],
+  );
+
+  const handleWaypointClick = (url: string, waypointId: string, e: React.MouseEvent) => {
     const target = e.target as HTMLElement;
-    if (
-      target.closest('button') ||
-      target.closest('a') ||
-      target.tagName === 'BUTTON' ||
-      target.tagName === 'A'
-    ) {
-      return;
-    }
-    // Open in new tab
+    const insideLink = Boolean(target.closest('a')) || target.tagName === 'A';
+    const insideButton = Boolean(target.closest('button')) || target.tagName === 'BUTTON';
+    // The copy button lives inside the row but isn't an open.
+    if (insideButton && !insideLink) return;
+
+    noteOpen(waypointId);
+    // A real link navigates on its own; opening a second tab on top of it
+    // would be a duplicate.
+    if (insideLink) return;
     window.open(url, '_blank', 'noopener,noreferrer');
   };
 
@@ -301,7 +357,7 @@ export default function WaypointPicker({
         </h2>
         <div
           className="waypoint-button featured-waypoint"
-          onClick={(e) => handleWaypointClick(preferred.url, e)}
+          onClick={(e) => handleWaypointClick(preferred.url, preferred.waypointId ?? '', e)}
           style={{ cursor: 'pointer' }}
         >
           <div className="waypoint-icon">
@@ -343,6 +399,7 @@ export default function WaypointPicker({
               target="_blank"
               rel="noopener noreferrer"
               aria-label={`Open in ${preferred.client.name}`}
+              onClick={(e) => e.stopPropagation()}
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -385,7 +442,7 @@ export default function WaypointPicker({
               <div
                 key={waypoint.id}
                 className="waypoint-button featured-waypoint"
-                onClick={(e) => handleWaypointClick(url, e)}
+                onClick={(e) => handleWaypointClick(url, waypoint.id, e)}
                 style={{ 
                   cursor: 'pointer',
                   transform: `rotate(${rotation}deg)`,
@@ -429,6 +486,10 @@ export default function WaypointPicker({
                     target="_blank"
                     rel="noopener noreferrer"
                     aria-label={`Open in ${waypoint.name}`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleWaypointClick(url, waypoint.id, e);
+                    }}
                     style={{
                       display: 'flex',
                       alignItems: 'center',
@@ -449,6 +510,27 @@ export default function WaypointPicker({
 
   return (
     <div id="waypoint-picker">
+      {/* Anchored to the viewport, not this slot: the click that raises it
+          opened another tab, and it has to still be on screen when the user
+          comes back to this one. */}
+      {nudge && (
+        <PreferenceNudge
+          question={nudge.question}
+          waypoint={nudge.waypoint}
+          replacing={nudge.replacing}
+          onAccept={() => {
+            update((p) => applyAnswer(p, nudge.question, nudge.waypoint.id));
+            setNudge(null);
+          }}
+          onDecline={() => {
+            declineSuggestion(nudge.question.id);
+            setNudge(null);
+          }}
+        />
+      )}
+
+      {/* One inline banner at a time: a waypoint that shipped since you last
+          looked outranks the standing invitation to set things up. */}
       {newWaypoints.length > 0 ? (
         <NewWaypointsBanner
           waypoints={newWaypoints}
@@ -456,10 +538,6 @@ export default function WaypointPicker({
           onDismiss={() => update((p) => markWaypointsKnown(p, newWaypointIds))}
         />
       ) : (
-        // Only one banner at a time, and a brand-new waypoint is the more
-        // time-sensitive of the two. This page is where the cost of having no
-        // preference is most visible — the visitor is being asked "open this
-        // where?" right now — so the invitation is worth surfacing here.
         <OnboardingPrompt />
       )}
 

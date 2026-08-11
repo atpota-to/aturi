@@ -23,9 +23,14 @@ import {
   WAYPOINT_DESTINATIONS_DATA,
   WAYPOINT_ORDER,
   type RedirectCompatFamily,
+  type WaypointType,
 } from './waypoints.data';
 import { WAYPOINT_DESTINATIONS, type Waypoint } from './waypoints';
-import { clientFromWaypointId, PREFERRED_SCOPE_ALL } from './preferredClients';
+import {
+  clientFromWaypointId,
+  scopeSpecificity,
+  PREFERRED_SCOPE_ALL,
+} from './preferredClients';
 import {
   preferredClientRuleFor,
   setPreferredClients,
@@ -44,6 +49,15 @@ export type SetupQuestion = {
   blurb: string;
   /** Progress-rail label. Kept to one word where possible. */
   shortLabel: string;
+  /** How to name this group of records in a sentence ("Bluesky posts"). */
+  noun: string;
+  /**
+   * A record shape this question decides, used to show the URL an answer
+   * would actually produce. The records question deliberately names a
+   * collection no other question claims, so its example demonstrates the
+   * fallback rather than duplicating the first question's.
+   */
+  example: { collection: string; rkey: string };
 };
 
 /**
@@ -63,6 +77,8 @@ const QUESTIONS: SetupQuestion[] = [
     blurb:
       'Posts, profiles, lists and feeds are all app.bsky records, and every client here reads them. Shared links open bsky.app first today. Pick what you use and it goes first instead.',
     shortLabel: 'Bluesky',
+    noun: 'Bluesky posts',
+    example: { collection: 'app.bsky.feed.post', rkey: '3kwq7tvxzs22a' },
   },
   {
     id: 'publications',
@@ -72,6 +88,8 @@ const QUESTIONS: SetupQuestion[] = [
     blurb:
       'Longform writing lives in pub.leaflet and site.standard records. Every reader here opens all of them; they differ in typography, not in what they can render.',
     shortLabel: 'Publications',
+    noun: 'publications',
+    example: { collection: 'pub.leaflet.document', rkey: '3l2xk9qmn4c2p' },
   },
   {
     id: 'records',
@@ -83,6 +101,8 @@ const QUESTIONS: SetupQuestion[] = [
     blurb:
       'For when you want the JSON rather than a rendered page. This is also your fallback: anything the questions above missed opens here, including lexicons nobody has written a reader for yet.',
     shortLabel: 'Records',
+    noun: 'everything else',
+    example: { collection: 'social.grain.gallery', rkey: '3m6bqx4rt7k2v' },
   },
 ];
 
@@ -113,6 +133,55 @@ export function setupQuestions(): (SetupQuestion & { options: Waypoint[] })[] {
   return QUESTIONS.map((q) => ({ ...q, options: waypointsInFamily(q.family) })).filter(
     (q) => q.options.length > 1,
   );
+}
+
+/**
+ * Which question decides where a given record opens, by the same
+ * most-specific-wins rule the record itself uses. A Bluesky post lands on the
+ * Bluesky question; a Grain gallery, which nothing claims specifically, lands
+ * on the records question via its `*` scope.
+ *
+ * Used to attribute a click in the picker to the question it should teach.
+ */
+export function questionForRecord(
+  collection?: string,
+  type?: WaypointType,
+): (SetupQuestion & { options: Waypoint[] }) | null {
+  let best: (SetupQuestion & { options: Waypoint[] }) | null = null;
+  let bestScore = 0;
+  for (const question of setupQuestions()) {
+    for (const scope of question.scopes) {
+      const score = scopeSpecificity(scope, { collection, type });
+      if (score > bestScore) {
+        bestScore = score;
+        best = question;
+      }
+    }
+  }
+  return best;
+}
+
+/**
+ * The first question the user hasn't answered, for entry points that should
+ * drop them into the work rather than back at the introduction. Null once
+ * every question has an answer.
+ */
+export function firstUnansweredQuestion(
+  prefs: Preferences,
+): (SetupQuestion & { options: Waypoint[] }) | null {
+  return setupQuestions().find((q) => !answerFor(prefs, q)) ?? null;
+}
+
+/**
+ * Where the guided setup should open for this user: the first unanswered
+ * question, or the introduction when they haven't started. Someone who has
+ * answered everything gets the summary.
+ */
+export function setupEntryHash(prefs: Preferences): string {
+  const answered = setupQuestions().filter((q) => answerFor(prefs, q)).length;
+  if (answered === 0) return 'intro';
+  const next = firstUnansweredQuestion(prefs);
+  return next ? next.id : 'finish';
 }
 
 /**

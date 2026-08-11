@@ -101,6 +101,11 @@ Publishing is opt-in either way, and switching it off deletes the record rather
 than leaving a stale declaration behind. An account that stops declaring should
 read as "no preference", not as "still prefers whatever it said in 2026".
 
+The Aturi browser extension reads it too, from Options → Defaults: give it your
+handle and it maps the rules onto its own redirect favorites. That is the first
+consumer outside this app, and a worked example of the scope-to-app mapping any
+other reader has to do.
+
 ## `to.aturi.actor.preferences`
 
 Aturi's own app settings — waypoint groups, custom waypoints, pinned lexicons,

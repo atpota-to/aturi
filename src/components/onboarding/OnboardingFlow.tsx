@@ -9,6 +9,7 @@ import {
   useSyncExternalStore,
 } from 'react';
 import Link from 'next/link';
+import { track } from '@vercel/analytics';
 import {
   ArrowLeft,
   ArrowRight,
@@ -26,10 +27,8 @@ import { usePreferences, type FlushResult } from '@/components/PreferencesProvid
 import { useSessionProfile } from '@/components/useSessionProfile';
 import ScopeSelector from '@/components/oauth/ScopeSelector';
 import { useSignInFlow } from '@/components/oauth/useSignInFlow';
-import { ColorSchemePicker, ThemePicker } from '@/components/account/AppearanceControls';
 import { usePreferredClientsPublisher } from '@/components/account/usePreferredClientsPublisher';
 import Toggle from '@/components/account/Toggle';
-import { COLOR_SCHEMES } from '@/lib/colorScheme';
 import { markOnboardingComplete, markOnboardingDismissed } from '@/utils/preferences';
 import {
   answerFor,
@@ -40,6 +39,7 @@ import {
 import { PREFERRED_CLIENTS_NSID } from '@/utils/preferredClients';
 import { WAYPOINT_DESTINATIONS } from '@/utils/waypoints';
 import ClientChoice from './ClientChoice';
+import AnswerPreview from './AnswerPreview';
 
 /**
  * Guided setup. Optional, resumable, and skippable at every step.
@@ -58,21 +58,14 @@ import ClientChoice from './ClientChoice';
 
 const QUESTIONS = setupQuestions();
 
-type StepId = 'intro' | 'appearance' | 'finish' | (string & {});
+type StepId = 'intro' | 'finish' | (string & {});
 
-const STEP_IDS: StepId[] = [
-  'intro',
-  ...QUESTIONS.map((q) => q.id),
-  'appearance',
-  'finish',
-];
+const STEP_IDS: StepId[] = ['intro', ...QUESTIONS.map((q) => q.id), 'finish'];
 
-/** How many client questions there are. The palette step isn't one of them. */
 const NUMBERED_STEPS = QUESTIONS.length;
 
 function stepLabel(id: StepId): string {
   if (id === 'intro') return 'Start';
-  if (id === 'appearance') return 'Palette';
   if (id === 'finish') return 'Done';
   return QUESTIONS.find((q) => q.id === id)?.shortLabel ?? String(id);
 }
@@ -141,6 +134,18 @@ export default function OnboardingFlow() {
     headingRef.current?.focus();
   }, [stepId]);
 
+  // Which step each visitor reaches. Three questions is a guess until the
+  // drop-off between them is visible; @vercel/analytics is already on every
+  // page and is cookieless, so this adds a step name and nothing about the
+  // person. Answers are tracked by question and client id in `ClientChoice`'s
+  // handler below, never by what they were reading.
+  const trackedStep = useRef<StepId | null>(null);
+  useEffect(() => {
+    if (trackedStep.current === stepId) return;
+    trackedStep.current = stepId;
+    track('setup_step', { step: String(stepId) });
+  }, [stepId]);
+
   const goTo = useCallback((next: StepId) => {
     const url = new URL(window.location.href);
     url.hash = String(next);
@@ -183,7 +188,10 @@ export default function OnboardingFlow() {
             headingRef={headingRef}
             signedIn={Boolean(did)}
             onStart={goNext}
-            onSkip={() => update(markOnboardingDismissed)}
+            onSkip={() => {
+              update(markOnboardingDismissed);
+              track('setup_dismissed');
+            }}
           />
         )}
 
@@ -200,25 +208,22 @@ export default function OnboardingFlow() {
               label={question.question}
               options={question.options}
               selectedId={answerFor(prefs, question)}
-              onSelect={(id) => update((p) => applyAnswer(p, question, id))}
+              onSelect={(id) => {
+                update((p) => applyAnswer(p, question, id));
+                track(id ? 'setup_answer' : 'setup_clear', {
+                  question: question.id,
+                  ...(id ? { client: id } : {}),
+                });
+              }}
               previewHandle={profile?.handle ?? null}
               previewDid={did}
             />
-          </div>
-        )}
-
-        {stepId === 'appearance' && (
-          <div className="onboarding-step">
-            <StepHead
-              headingRef={headingRef}
-              eyebrow="Appearance"
-              title="Pick a palette"
-              blurb={`${COLOR_SCHEMES.length} palettes, each with a dark and a light variant. The palette follows your account; dark or light stays on this device.`}
+            <AnswerPreview
+              question={question}
+              selectedId={answerFor(prefs, question)}
+              handle={profile?.handle ?? null}
+              did={did}
             />
-            <div className="onboarding-appearance">
-              <ColorSchemePicker description="Applies as you click." />
-              <ThemePicker />
-            </div>
           </div>
         )}
 
@@ -387,14 +392,28 @@ function FinishStep({ headingRef }: { headingRef: HeadingRef }) {
   const [saveState, setSaveState] = useState<'idle' | 'saving' | FlushResult>('idle');
   const completedRef = useRef(false);
 
+  const summary = useMemo(
+    () =>
+      QUESTIONS.map((q) => {
+        const id = answerFor(prefs, q);
+        return { question: q, waypoint: id ? WAYPOINT_DESTINATIONS[id] : null };
+      }),
+    [prefs],
+  );
+  const answered = summary.filter((s) => s.waypoint).length;
+
   // Reaching this step means the work is done: every answer is already
   // persisted. Record completion here rather than behind a final button, so
   // closing the tab at the finish line doesn't leave the invitation nagging.
+  // The count rides along so the funnel can distinguish "finished" from
+  // "clicked through answering nothing". `answered` is a dependency for the
+  // linter's benefit; the ref guard is what makes this fire once.
   useEffect(() => {
     if (completedRef.current) return;
     completedRef.current = true;
     update(markOnboardingComplete);
-  }, [update]);
+    track('setup_complete', { answered });
+  }, [update, answered]);
 
   // Retry path. An event handler, so it can announce 'saving' up front.
   const save = useCallback(async () => {
@@ -418,16 +437,6 @@ function FinishStep({ headingRef }: { headingRef: HeadingRef }) {
       cancelled = true;
     };
   }, [did, flush]);
-
-  const summary = useMemo(
-    () =>
-      QUESTIONS.map((q) => {
-        const id = answerFor(prefs, q);
-        return { question: q, waypoint: id ? WAYPOINT_DESTINATIONS[id] : null };
-      }),
-    [prefs],
-  );
-  const answered = summary.filter((s) => s.waypoint).length;
 
   return (
     <div className="onboarding-step">

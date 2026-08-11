@@ -31,6 +31,7 @@ import {
   getWaypointsForType,
   WAYPOINT_DESTINATIONS,
 } from '@/utils/waypoints';
+import { setupEntryHash } from '@/utils/onboardingQuestions';
 
 /**
  * Clients tab — where a user declares which Atmosphere client they want their
@@ -76,6 +77,9 @@ function seedClientFor(scope: string): PreferredClient | null {
 function RulesCard() {
   const { prefs, update } = usePreferences();
   const rules = prefs.preferredClients;
+  // Deep-link to whichever question is still unanswered rather than the
+  // introduction, which someone already on this screen has no use for.
+  const setupEntry = setupEntryHash(prefs);
 
   const usedScopes = useMemo(() => new Set(rules.map((r) => r.scope)), [rules]);
 
@@ -98,22 +102,26 @@ function RulesCard() {
           picker follows these immediately, and publishing them (below) lets any
           other Atmosphere app do the same.
         </p>
+        {/* Always available, not only while the list is empty: the guided
+            version is the easier way to revisit these answers even for
+            someone who already has rules. */}
+        <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-tertiary)' }}>
+          Prefer to be asked?{' '}
+          <Link href={`/welcome#${setupEntry}`}>Walk through the questions</Link>{' '}
+          and Aturi writes the common rules for you.
+        </p>
       </div>
 
       {rules.length === 0 ? (
-        // An empty rules list is exactly what the guided setup exists to fill,
-        // and answering three questions is a gentler start than composing a
-        // scope from scratch. Offered, not forced — the manual path is still
-        // right below.
         <p
           style={{
             margin: 0,
             color: 'var(--text-tertiary)',
             fontSize: '0.85rem',
+            fontStyle: 'italic',
           }}
         >
-          No rules yet. <Link href="/welcome#bluesky">Answer three questions</Link>{' '}
-          and Aturi writes the common ones, or build one by hand below.
+          No rules yet.
         </p>
       ) : (
         <ul
