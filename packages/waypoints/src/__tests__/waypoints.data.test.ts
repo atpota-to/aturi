@@ -52,9 +52,21 @@ describe('getUrl', () => {
     expect(url).toBe(`${origin}/profile/alice.bsky.social/lists/abc`);
   });
 
-  it('does not advertise list support for reddwarf, which has no list route', () => {
-    expect(WAYPOINT_DESTINATIONS_DATA.reddwarf.supportedTypes).not.toContain('list');
+  it('builds a lea post url', () => {
+    const url = WAYPOINT_DESTINATIONS_DATA.lea.getUrl(
+      'alice.bsky.social',
+      'app.bsky.feed.post',
+      'abc',
+    );
+    expect(url).toBe('https://lea.ac/profile/alice.bsky.social/post/abc');
   });
+
+  it.each([['reddwarf'], ['lea']])(
+    'does not advertise list support for %s, which has no list route',
+    id => {
+      expect(WAYPOINT_DESTINATIONS_DATA[id].supportedTypes).not.toContain('list');
+    },
+  );
 
   it('never sends a list to its author', () => {
     // Waypoints in the bluesky-social family render bsky lists themselves, so
