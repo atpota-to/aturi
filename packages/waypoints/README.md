@@ -63,6 +63,9 @@ const fromUrl = await resolveUrl('https://bsky.app/profile/alice.bsky.social/pos
   - `resolveUrl(url, { fetchHead?, resolveHandle?, composeText? })`
   - `resolveViaApi(input, { endpoint? })`: typed client for the hosted
     `aturi.to/api/resolve` endpoint.
+- **Universal links** (`universalLinks.ts`): `buildUniversalLink`,
+  `parseUniversalLink`, `isUniversalLink`, `describeUniversalLink`,
+  `buildUniversalLinkTags`, `UNIVERSAL_LINK_ORIGIN`.
 
 ### Compose intents
 
@@ -114,6 +117,75 @@ as a bonus rather than a fallback.
 A missing `composeIntent` means "no route we've confirmed", not proof the
 client lacks one. If a client you maintain handles compose intents,
 [open an issue](https://github.com/atpota-to/aturi/issues) and we'll add it.
+
+### Universal links
+
+A universal link is the client-agnostic address of a record: drop an
+`aturi.to/…` URL in a DM or a footer and the recipient gets a preview plus every
+client that can open it, instead of being pushed into whichever app you happen
+to use. `buildUniversalLink` returns that address for anything that names a
+record: an AT URI, a handle, a DID, a page URL from any client in the catalog,
+a `ParsedURI`. It's pure, synchronous, and never fetches.
+
+```ts
+import { buildUniversalLink, describeUniversalLink } from '@aturi.to/waypoints';
+
+buildUniversalLink('at://did:plc:abc/app.bsky.feed.post/3k7');
+// 'https://aturi.to/profile/did:plc:abc/post/3k7'
+buildUniversalLink('https://bsky.app/profile/alice.bsky.social/post/3k7');
+// 'https://aturi.to/profile/alice.bsky.social/post/3k7'
+buildUniversalLink('@alice.bsky.social');
+// 'https://aturi.to/profile/alice.bsky.social'
+```
+
+For a copy button or a share sheet, `describeUniversalLink` returns the strings
+around the link too:
+
+```ts
+const link = describeUniversalLink('at://alice.bsky.social/app.bsky.feed.post/3k7');
+link.url;               // 'https://aturi.to/profile/alice.bsky.social/post/3k7'
+link.label;             // 'Post by @alice.bsky.social'
+link.share;             // { title, text, url }; hand it straight to navigator.share()
+link.snippets.markdown; // '[Post by @alice.bsky.social](https://aturi.to/…)'
+link.oembedUrl;         // hosted oEmbed endpoint (posts only; null otherwise)
+```
+
+Options on both: `origin` (point at your own deployment), `did` + `preferDid`
+(address links by DID, which survives a handle change), and `params` for
+appended query parameters like `{ ref: 'my-app' }`.
+
+Going the other way, `parseUniversalLink` turns an aturi.to URL back into a
+`ParsedURI`. Canonical `/profile/…` links, `/explore/…` views, and the legacy
+bare-path and `at://`-in-path spellings all resolve:
+
+```ts
+parseUniversalLink('https://aturi.to/profile/alice.bsky.social/post/3k7');
+// { type: 'post', handle: 'alice.bsky.social', collection: 'app.bsky.feed.post', rkey: '3k7', … }
+```
+
+#### Making your own pages resolvable
+
+If your app renders atproto records, `buildUniversalLinkTags` writes the
+`<head>` tags that let the rest of the Atmosphere find its way back to them:
+
+```ts
+buildUniversalLinkTags('at://did:plc:abc/app.bsky.feed.post/3k7').html;
+// <meta name="at:canonical" content="at://did:plc:abc/app.bsky.feed.post/3k7" />
+// <meta name="at:author" content="at://did:plc:abc" />
+// <link rel="alternate" href="at://did:plc:abc/app.bsky.feed.post/3k7" />
+// <link rel="alternate" type="application/json+oembed" href="https://aturi.to/api/oembed?url=…" />
+```
+
+`at:canonical` is the [AT Tags proposal](https://tangled.org/chrisshank.com/at-tags/).
+Aturi's browser extension reads it off the live page and `/api/resolve` reads it
+off your HTML, so a link to your page resolves into every other client that can
+open the record, without your app being in the catalog at all. The
+`<link rel="alternate" href="at://…">` beside it is the older spelling of the
+same declaration, kept because the resolver still falls back to it. The oEmbed
+pointer is emitted for posts only, since that's all the endpoint renders.
+
+They're static strings describing a record you already display, and serving
+them hands nothing to aturi.to.
 
 ### DID-only waypoints
 

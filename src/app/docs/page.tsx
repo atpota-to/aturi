@@ -161,11 +161,36 @@ const composeResponse = `{
   }
 }`;
 
-// Escaped so the template literal renders the snippet literally.
-const linkExample = `function toAturiLink(atUri: string): string {
-  const uri = atUri.replace('at://', '');
-  return \`https://aturi.to/profile/\${uri}\`;
-}`;
+const linkExample = `import {
+  buildUniversalLink,
+  describeUniversalLink,
+} from '@aturi.to/waypoints';
+
+// Anything that names a record: an AT URI, a handle, a DID, or a page URL
+// from any client in the catalog.
+buildUniversalLink('at://did:plc:abc/app.bsky.feed.post/3k7');
+// 'https://aturi.to/profile/did:plc:abc/post/3k7'
+buildUniversalLink('https://bsky.app/profile/alice.bsky.social/post/3k7');
+// 'https://aturi.to/profile/alice.bsky.social/post/3k7'
+
+// Everything a copy button or a share sheet needs:
+const link = describeUniversalLink('at://alice.bsky.social/app.bsky.feed.post/3k7');
+link.label;             // 'Post by @alice.bsky.social'
+link.share;             // { title, text, url }; hand it to navigator.share()
+link.snippets.markdown; // '[Post by @alice.bsky.social](https://aturi.to/…)'`;
+
+const linkTagsExample = `import { buildUniversalLinkTags } from '@aturi.to/waypoints';
+
+buildUniversalLinkTags('at://did:plc:abc/app.bsky.feed.post/3k7').html;
+// <meta name="at:canonical" content="at://did:plc:abc/app.bsky.feed.post/3k7" />
+// <meta name="at:author" content="at://did:plc:abc" />
+// <link rel="alternate" href="at://did:plc:abc/app.bsky.feed.post/3k7" />
+// <link rel="alternate" type="application/json+oembed" href="https://aturi.to/api/oembed?url=…" />`;
+
+const linkReactExample = `import { UniversalLinkButton } from '@aturi.to/waypoints-react';
+
+// Native share sheet on phones, clipboard everywhere else.
+<UniversalLinkButton target={post.uri} />`;
 
 export default function DocsPage() {
   return (
@@ -487,11 +512,52 @@ export default function DocsPage() {
         <section id="links" className="card" style={sectionStyle}>
           <h2 style={h2Style}>Build an aturi.to link</h2>
           <p style={pStyle}>
-            Universal links need no SDK at all: just rewrite an AT URI into an{' '}
-            <code>aturi.to/profile/…</code> URL and the recipient picks their
-            client on a friendly landing page.
+            A universal link is the client-agnostic address of a record: paste
+            an <code>aturi.to/…</code> URL anywhere and the recipient gets a
+            preview plus every client that can open it, rather than being
+            pushed into whichever app you happen to use. It&rsquo;s just a URL,
+            so no SDK is required. The core package builds it from anything that
+            names a record, and adds the strings a copy button or a share sheet
+            needs around it.
           </p>
           <CodeBlock label="ts" code={linkExample} />
+          <p style={pStyle}>
+            <code>parseUniversalLink</code> goes the other way, turning an
+            aturi.to URL back into an AT URI. In React,{' '}
+            <code>&lt;UniversalLinkButton&gt;</code> is the whole control: a
+            native share sheet in browsers that implement{' '}
+            <code>navigator.share</code>, the clipboard in the ones that
+            don&rsquo;t. <code>useUniversalLink</code> is the same logic without
+            markup.
+          </p>
+          <CodeBlock label="tsx" code={linkReactExample} />
+
+          <h3 style={h3Style}>Make your own pages resolvable</h3>
+          <p style={pStyle}>
+            If your app renders atproto records,{' '}
+            <code>buildUniversalLinkTags</code> writes the{' '}
+            <code>&lt;head&gt;</code> tags that let the rest of the Atmosphere
+            find its way back to them.
+          </p>
+          <CodeBlock label="ts" code={linkTagsExample} />
+          <p style={{ ...pStyle, margin: 0 }}>
+            <code>at:canonical</code> is the{' '}
+            <a
+              href="https://tangled.org/chrisshank.com/at-tags/"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              AT Tags proposal
+            </a>
+            . The Aturi extension reads it off the live page and{' '}
+            <a href="#resolve-api">the Resolve API</a> reads it off your HTML,
+            so a link to your page resolves into every other client that can
+            open the record, without your app being in the catalog at all. The
+            oEmbed pointer is emitted for posts, so a link to your page
+            previews as the post it is. They&rsquo;re static strings describing
+            a record you already display, and serving them hands nothing to
+            aturi.to.
+          </p>
         </section>
 
         {/* License */}

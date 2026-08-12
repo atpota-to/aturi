@@ -18,7 +18,10 @@ export type WaypointSlot =
   | 'actions'
   | 'copy'
   | 'open'
-  | 'empty';
+  | 'empty'
+  | 'universalLink'
+  | 'universalLinkIcon'
+  | 'universalLinkLabel';
 
 /** Map of slot -> developer-supplied class name(s), merged onto each element. */
 export type WaypointClassNames = Partial<Record<WaypointSlot, string>>;
@@ -44,6 +47,9 @@ const BASE_CLASS: Record<WaypointSlot, string> = {
   copy: 'aturi-wp-copy',
   open: 'aturi-wp-open',
   empty: 'aturi-wp-empty',
+  universalLink: 'aturi-wp-universal-link',
+  universalLinkIcon: 'aturi-wp-universal-link-icon',
+  universalLinkLabel: 'aturi-wp-universal-link-label',
 };
 
 export function cx(
