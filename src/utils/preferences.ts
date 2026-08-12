@@ -71,6 +71,29 @@ export type WaypointGroup = {
   collapsed?: boolean;
 };
 
+/**
+ * How the universal-link picker draws its waypoints.
+ *
+ *   - `dense`   — one line per waypoint: mark, name, host. The default.
+ *   - `grid`    — icon tiles, names only, no descriptions or copy buttons.
+ *   - `classic` — the original full-width cards with descriptions and
+ *                 collapsible category headers (`CategoryCard`).
+ *
+ * A post page offers 29 destinations, and as full cards that is most of a
+ * phone's scroll before the first tap; `dense` fits the same list in about
+ * a third of the height. `classic` stays available for anyone who wants the
+ * descriptions back.
+ */
+export type WaypointLayout = 'dense' | 'grid' | 'classic';
+
+export const WAYPOINT_LAYOUTS: readonly WaypointLayout[] = ['dense', 'grid', 'classic'];
+
+export const DEFAULT_WAYPOINT_LAYOUT: WaypointLayout = 'dense';
+
+export function isWaypointLayout(v: unknown): v is WaypointLayout {
+  return typeof v === 'string' && (WAYPOINT_LAYOUTS as readonly string[]).includes(v);
+}
+
 export type Preferences = {
   /**
    * The app-wide color palette — see `COLOR_SCHEMES` in
@@ -104,6 +127,12 @@ export type Preferences = {
   waypointOrder: string[];
   /** User-defined waypoints. */
   customWaypoints: CustomWaypoint[];
+  /**
+   * Which of the three picker layouts to draw — see `WaypointLayout`.
+   * Anything unrecognised (an older/newer client, a hand-edited PDS record)
+   * falls back to the default rather than rendering nothing.
+   */
+  waypointLayout: WaypointLayout;
   /**
    * Built-in waypoint ids the user has already been notified about. When a
    * new built-in ships, it won't be in this list, so the picker and settings
@@ -242,6 +271,7 @@ export const DEFAULT_PREFERENCES: Preferences = {
   hiddenWaypoints: [],
   waypointOrder: [],
   customWaypoints: [],
+  waypointLayout: DEFAULT_WAYPOINT_LAYOUT,
   knownWaypointIds: [...WAYPOINT_ORDER],
   lastSeenReleaseId: LATEST_RELEASE_ID,
   announceReleases: true,
@@ -339,6 +369,11 @@ export function mergeWithDefaults(input: Partial<Preferences> | null | undefined
     storedGroups.length > 0
       ? storedGroups
       : migrateToGroups({ customWaypoints, hiddenWaypoints, waypointOrder });
+  // Absent means the stored blob predates the layout switch: fall through to
+  // the default, so existing users land on the compact list alongside new ones.
+  const waypointLayout = isWaypointLayout(input.waypointLayout)
+    ? input.waypointLayout
+    : DEFAULT_WAYPOINT_LAYOUT;
   const knownWaypointIds = migrateKnownWaypointIds(input, waypointGroups, hiddenWaypoints);
   // Absent means these preferences predate release notes: leave the cursor
   // empty so `unseenReleases` announces the newest release once, rather than
@@ -410,6 +445,7 @@ export function mergeWithDefaults(input: Partial<Preferences> | null | undefined
     hiddenWaypoints,
     waypointOrder,
     customWaypoints,
+    waypointLayout,
     knownWaypointIds,
     lastSeenReleaseId,
     announceReleases,
@@ -497,6 +533,7 @@ export function preferencesAreEqual(a: Preferences, b: Preferences): boolean {
   return (
     a.updatedAt === b.updatedAt &&
     a.colorScheme === b.colorScheme &&
+    a.waypointLayout === b.waypointLayout &&
     a.pinScope === b.pinScope &&
     a.collectionGroupsCollapsedByDefault === b.collectionGroupsCollapsedByDefault &&
     a.hideRelationshipBar === b.hideRelationshipBar &&
@@ -648,6 +685,15 @@ export function isLikelyPinEntry(input: string): boolean {
   if (segments.length < 2) return false;
   const segRe = /^[a-zA-Z][a-zA-Z0-9-]*$/;
   return segments.every((seg) => segRe.test(seg));
+}
+
+// --- Picker layout ---------------------------------------------------------
+
+export function setWaypointLayout(
+  prefs: Preferences,
+  layout: WaypointLayout,
+): Preferences {
+  return { ...prefs, waypointLayout: layout };
 }
 
 // --- Group helpers ---------------------------------------------------------

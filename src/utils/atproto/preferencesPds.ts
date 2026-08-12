@@ -19,6 +19,7 @@
  *     supportedTypes: string[],
  *     templates: { post?, profile?, list?, record?: string }
  *   }>
+ *   waypointLayout?: 'dense' | 'grid' | 'classic'  // picker layout; unknown → 'dense'
  *   knownWaypointIds?: string[]       // built-ins the user has been notified about
  *   lastSeenReleaseId?: string        // newest release whose notes were seen
  *   announceReleases?: boolean        // show the "What's new" modal after a release
@@ -110,6 +111,7 @@ export async function writePreferencesToPds(
     colorScheme: prefs.colorScheme,
     waypointGroups: prefs.waypointGroups,
     customWaypoints: prefs.customWaypoints,
+    waypointLayout: prefs.waypointLayout,
     knownWaypointIds: prefs.knownWaypointIds,
     lastSeenReleaseId: prefs.lastSeenReleaseId,
     announceReleases: prefs.announceReleases,

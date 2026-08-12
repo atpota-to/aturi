@@ -4044,6 +4044,285 @@ body.has-explore-chrome {
   }
 }
 
+/* ============================================
+   Compact picker layouts (dense / grid)
+   ============================================
+
+   The classic card list runs about 90px per waypoint, and a post page has
+   29 of them — most of a phone's scroll before the first tap. These two
+   layouts render the same groups in the same order at roughly a third and a
+   fifth of that height; `waypointLayout` in preferences picks between them
+   and the classic cards above. */
+
+.waypoint-compact {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.waypoint-group-label {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  margin-bottom: 0.375rem;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+}
+
+/* Hairline that runs from the label out to the count, standing in for the
+   classic layout's full-width category header. */
+.waypoint-group-label i {
+  flex: 1;
+  height: 1px;
+  background: var(--border-subtle);
+}
+
+.waypoint-group-label em {
+  font-style: normal;
+  letter-spacing: 0.04em;
+}
+
+.waypoint-group-label.is-highlighted {
+  color: var(--text-accent);
+}
+
+.waypoint-group-label.is-highlighted i {
+  background: var(--text-accent);
+  opacity: 0.35;
+}
+
+/* --- Dense rows ---------------------------------------------------------- */
+
+/* One border around the set with hairlines between, rather than a border
+   and a gap per row — that alone is ~24px a waypoint. */
+.waypoint-rows {
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-secondary);
+}
+
+.waypoint-row {
+  display: flex;
+  align-items: stretch;
+  border-bottom: 1px solid var(--border-subtle);
+  transition: background 0.2s ease;
+}
+
+.waypoint-rows .waypoint-row:last-child {
+  border-bottom: none;
+}
+
+.waypoint-row:hover {
+  background: var(--bg-tertiary);
+}
+
+.waypoint-row-link {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  flex: 1;
+  min-width: 0;
+  padding: 0.4375rem 0.6875rem;
+  color: var(--text-primary);
+  text-decoration: none;
+  transition: padding-left 0.2s ease;
+}
+
+.waypoint-row:hover .waypoint-row-link {
+  padding-left: 0.9375rem;
+}
+
+.waypoint-row-name {
+  font-size: 0.9375rem;
+  line-height: 1.4;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* The host replaces the description line. Right-aligned so the eye has a
+   straight edge to run down. */
+.waypoint-row-host {
+  margin-left: auto;
+  padding-left: 0.75rem;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+}
+
+.waypoint-row-copy {
+  display: flex;
+  align-items: center;
+  padding: 0 0.6875rem;
+  background: none;
+  border: none;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.2s ease, color 0.2s ease;
+}
+
+.waypoint-row:hover .waypoint-row-copy,
+.waypoint-row:focus-within .waypoint-row-copy {
+  opacity: 1;
+}
+
+.waypoint-row-copy:hover {
+  color: var(--text-accent);
+}
+
+/* --- Icon grid ----------------------------------------------------------- */
+
+.waypoint-tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(5.25rem, 1fr));
+  gap: 0.375rem;
+}
+
+/* Fixed minimum height so a one-line name and a wrapped two-line one
+   ("Standard Reader") sit on the same baseline grid. */
+.waypoint-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4375rem;
+  min-height: 4.75rem;
+  padding: 0.6875rem 0.375rem;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-primary);
+  text-decoration: none;
+  transition: background 0.25s ease, border-color 0.25s ease, transform 0.25s ease;
+}
+
+.waypoint-tile:hover {
+  background: var(--bg-tertiary);
+  border-color: var(--text-accent);
+  transform: translateY(-2px);
+}
+
+/* Two lines, then clip — an ellipsised "Anisota Rea…" is worse than a
+   wrapped one, and the full description is on the tile's title. */
+.waypoint-tile-name {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  font-size: 0.75rem;
+  line-height: 1.25;
+  text-align: center;
+  max-width: 100%;
+}
+
+/* Brand marks ship at 24px; the compact layouts want them smaller, and CSS
+   dimensions beat the width/height attributes on the SVG itself. */
+.waypoint-compact-icon {
+  display: flex;
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  color: var(--text-accent);
+  transition: color 0.3s ease;
+}
+
+.waypoint-tile .waypoint-compact-icon {
+  width: 22px;
+  height: 22px;
+}
+
+.waypoint-compact-icon svg {
+  width: 100%;
+  height: 100%;
+}
+
+.waypoint-row:hover .waypoint-compact-icon,
+.waypoint-tile:hover .waypoint-compact-icon {
+  color: var(--text-primary);
+}
+
+@media (max-width: 600px) {
+  /* No hover on touch, so the copy button has to stay put — and the host
+     is the first thing to go when the row runs out of room. */
+  .waypoint-row-link {
+    padding: 0.5rem 0.6875rem;
+  }
+
+  .waypoint-row:hover .waypoint-row-link {
+    padding-left: 0.6875rem;
+  }
+
+  .waypoint-row-host {
+    display: none;
+  }
+
+  .waypoint-row-copy {
+    opacity: 1;
+    margin-left: auto;
+  }
+}
+
+/* --- Layout switch ------------------------------------------------------- */
+
+.waypoint-layout-bar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.625rem;
+  margin-bottom: 1rem;
+}
+
+.waypoint-layout-bar-label {
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+}
+
+.waypoint-layout-toggle {
+  display: inline-flex;
+  border: 1px solid var(--border-medium);
+  flex-shrink: 0;
+}
+
+.waypoint-layout-option {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4375rem;
+  padding: 0.3125rem 0.5rem;
+  background: transparent;
+  border: none;
+  border-right: 1px solid var(--border-medium);
+  color: var(--text-tertiary);
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.waypoint-layout-toggle.is-labelled .waypoint-layout-option {
+  padding: 0.4rem 0.75rem;
+  font-family: var(--font-serif);
+  font-size: 0.85rem;
+}
+
+.waypoint-layout-option:last-child {
+  border-right: none;
+}
+
+.waypoint-layout-option:hover {
+  color: var(--text-primary);
+}
+
+.waypoint-layout-option.is-active {
+  background: var(--accent-forest);
+  color: var(--text-on-accent);
+}
 
 /* ============================================
    Homepage product strips

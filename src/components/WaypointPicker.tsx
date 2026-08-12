@@ -23,6 +23,8 @@ import {
 import { usePreferences } from './PreferencesProvider';
 import ShareButton from './ShareButton';
 import CategoryCard from './CategoryCard';
+import CompactWaypointGroup from './CompactWaypointGroup';
+import WaypointLayoutToggle from './WaypointLayoutToggle';
 import NewWaypointsBanner from './NewWaypointsBanner';
 
 type WaypointPickerProps = {
@@ -55,6 +57,9 @@ export default function WaypointPicker({
   const display = displayName || `@${handle}`;
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const { prefs, update } = usePreferences();
+  // `dense` and `grid` are drawn by CompactWaypointGroup; `classic` keeps the
+  // CategoryCard path below, collapsible headers and all.
+  const layout = prefs.waypointLayout;
 
   // Set of collection NSIDs the target repo holds. `null` means "no opinion"
   // (scan failed/not run) — `waypointActivity` returns 'unknown' for everything
@@ -344,6 +349,17 @@ export default function WaypointPicker({
         </p>
       </header>
 
+      {/* Layout switch. Sits above the list rather than only in settings so
+          the change is visible where it happens; the choice is saved to
+          preferences and follows the account. Hidden when there's no list to
+          lay out. */}
+      {availableWaypoints.length > 0 && (
+        <div className="waypoint-layout-bar">
+          <span className="waypoint-layout-bar-label">Layout</span>
+          <WaypointLayoutToggle />
+        </div>
+      )}
+
       {/* Waypoint Options */}
       <div
         style={{
@@ -358,6 +374,42 @@ export default function WaypointPicker({
             <p style={{ color: 'var(--text-secondary)' }}>
               No waypoints available for this content type yet.
             </p>
+          </div>
+        ) : layout !== 'classic' ? (
+          /* Compact layouts. Same groups in the same order as below — the
+             recommended block, then every group the user has arranged — just
+             drawn as lines or tiles instead of cards. */
+          <div className={`waypoint-compact is-${layout}`}>
+            {recommendedWaypoints.length > 0 && (
+              <CompactWaypointGroup
+                label={recommendedLabel}
+                waypoints={recommendedWaypoints}
+                layout={layout}
+                type={type}
+                handle={handle}
+                collection={collection}
+                rkey={rkey}
+                did={did}
+                copiedId={copiedId}
+                onCopy={handleCopy}
+                highlighted
+              />
+            )}
+            {categorizedWaypoints.map(({ category, waypoints }) => (
+              <CompactWaypointGroup
+                key={category.id}
+                label={category.name}
+                waypoints={waypoints}
+                layout={layout}
+                type={type}
+                handle={handle}
+                collection={collection}
+                rkey={rkey}
+                did={did}
+                copiedId={copiedId}
+                onCopy={handleCopy}
+              />
+            ))}
           </div>
         ) : (
           <>
