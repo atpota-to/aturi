@@ -21,7 +21,7 @@ export type UseUniversalLinkParams = DescribeUniversalLinkOptions & {
 
 /**
  * What `share()` did. `dismissed` means the user closed the native sheet
- * without sharing — deliberately distinct from `failed`, since silently
+ * without sharing. It's deliberately distinct from `failed`, since silently
  * copying to the clipboard after someone backs out of a share is a surprise.
  */
 export type ShareOutcome = 'shared' | 'copied' | 'dismissed' | 'failed';
@@ -34,12 +34,12 @@ export type UseUniversalLinkResult = {
   copied: boolean;
   /** Copy the link, or any string you pass (e.g. `link.snippets.markdown`). */
   copy: (text?: string) => Promise<boolean>;
-  /** The native share sheet where there is one, the clipboard where there isn't. */
+  /** `navigator.share` where the browser implements it, the clipboard where it doesn't. */
   share: () => Promise<ShareOutcome>;
   /**
-   * Whether this browser has a share sheet. Always false on the server and on
-   * the first client render, so it can't desync hydration — branch on it for
-   * the icon, not for whether to render the control at all.
+   * Whether this browser implements `navigator.share`. Always false on the
+   * server and on the first client render, so it can't desync hydration.
+   * Branch on it for the icon, not for whether to render the control at all.
    */
   canShare: boolean;
 };
@@ -87,8 +87,8 @@ export function useUniversalLink(
     [],
   );
 
-  // Serialized so an inline object literal — `target={{...}}`, `params={{...}}`
-  // — doesn't produce a new link on every render.
+  // Serialized so an inline object literal (`target={{...}}`, `params={{...}}`)
+  // doesn't produce a new link on every render.
   const targetKey = typeof target === 'string' ? target : JSON.stringify(target);
   const queryParamsKey = queryParams ? JSON.stringify(queryParams) : '';
 

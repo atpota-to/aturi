@@ -210,7 +210,7 @@
 
 /*
  * Universal link button. Unlike everything above it, this control is built to
- * stand on its own — in a post footer, a toolbar, a row of actions — so it
+ * stand on its own (in a post footer, a toolbar, a row of actions), so it
  * can't count on inheriting the picker root's tokens. Every value carries a
  * literal fallback for that case and still picks up your `--aturi-wp-*`
  * overrides when it does sit inside a picker.

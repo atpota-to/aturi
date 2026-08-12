@@ -11,13 +11,13 @@ import type { WaypointType } from './waypoints.data';
  * app the sender happened to use.
  *
  * This module is the whole round trip:
- *   - `buildUniversalLink` turns anything that names a record — an AT URI, a
- *     handle, a DID, a URL from any client in the catalog — into that address.
+ *   - `buildUniversalLink` returns that address for anything that names a
+ *     record: an AT URI, a handle, a DID, a URL from any client in the catalog.
  *   - `parseUniversalLink` turns one back into a `ParsedURI`.
  *   - `describeUniversalLink` adds the strings a share sheet or a copy button
  *     needs (a label, a `navigator.share()` payload, markdown/HTML snippets).
  *   - `buildUniversalLinkTags` emits the `<head>` tags that let *other* apps
- *     be resolved back into records — the read side of the same trip.
+ *     be resolved back into records, the read side of the same trip.
  *
  * Everything here is pure and synchronous. Nothing fetches.
  */
@@ -234,9 +234,9 @@ export function describeUniversalLink(
   const did = options.did ?? parsed.did ?? null;
   const collection = parsed.collection ?? null;
   const rkey = parsed.rkey ?? null;
-  // A caller who supplies a DID gets AT URIs addressed by it — that's the
-  // canonical, rename-proof form. Without one, the input's own identifier is
-  // echoed back rather than silently changing what was passed in.
+  // A caller who supplies a DID gets AT URIs addressed by it, the canonical
+  // rename-proof form. Without one, the input's own identifier is echoed back
+  // rather than silently changing what was passed in.
   const authority = did ?? parsed.handle;
   const atUri = collection && rkey
     ? `at://${authority}/${collection}/${rkey}`
@@ -282,7 +282,7 @@ export function describeUniversalLink(
  *     oEmbed endpoint, so a link to your page previews as the post it is.
  *     Emitted for posts only, since that's all the endpoint renders.
  *
- * Serving these does not hand anything to aturi.to — they're static strings
+ * Serving these does not hand anything to aturi.to; they're static strings
  * describing a record you already display.
  */
 export function buildUniversalLinkTags(
@@ -355,7 +355,7 @@ function parseTarget(input: UniversalLinkTarget): ParsedURI | null {
     } catch {
       return null;
     }
-    // Any host can carry an AT URI in its path — `example.com/at://did:plc:…`,
+    // Any host can carry an AT URI in its path: `example.com/at://did:plc:…`,
     // and the single-slash `at:/…` spelling servers and browsers normalize it
     // to. Checked before the catalog's URL patterns because a host in the
     // catalog can serve both shapes.
@@ -370,7 +370,7 @@ function parseTarget(input: UniversalLinkTarget): ParsedURI | null {
 }
 
 /**
- * Parse `{identifier}[/{collection}/{rkey}]` — the shape shared by a bare
+ * Parse `{identifier}[/{collection}/{rkey}]`, the shape shared by a bare
  * handle, a scheme-less AT URI, and aturi.to's legacy bare paths. The
  * identifier must look like a DID or a dotted handle, which is what keeps
  * ordinary site paths (`/docs`, `/explore/lexicons`) from parsing as repos.
@@ -404,7 +404,7 @@ function parsePath(path: string): ParsedURI | null {
 }
 
 /**
- * An `@` in front of a handle is display sugar, never part of the identifier —
+ * An `@` in front of a handle is display sugar, never part of the identifier,
  * but some clients put it in the path (`tangled.org/@alice.example`), so the
  * catalog's reverse parsers hand it back attached. Strip it before it reaches
  * a URL, where it would be escaped to `%40` and address nobody.
@@ -462,7 +462,7 @@ function bareHost(hostname: string): string {
 /**
  * Percent-encode a path segment without touching the characters atproto
  * identifiers are made of. `encodeURIComponent` would turn the colons in
- * `did:plc:…` into `%3A`, and these routes serve DIDs unencoded — an encoded
+ * `did:plc:…` into `%3A`, and these routes serve DIDs unencoded, so an encoded
  * one points at a URL that doesn't exist. DIDs, NSIDs and record keys are
  * drawn from alphabets that need no escaping, so they pass through
  * byte-identical; anything else still gets escaped rather than forming a

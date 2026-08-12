@@ -176,7 +176,7 @@ buildUniversalLink('https://bsky.app/profile/alice.bsky.social/post/3k7');
 // Everything a copy button or a share sheet needs:
 const link = describeUniversalLink('at://alice.bsky.social/app.bsky.feed.post/3k7');
 link.label;             // 'Post by @alice.bsky.social'
-link.share;             // { title, text, url } — hand it to navigator.share()
+link.share;             // { title, text, url }; hand it to navigator.share()
 link.snippets.markdown; // '[Post by @alice.bsky.social](https://aturi.to/…)'`;
 
 const linkTagsExample = `import { buildUniversalLinkTags } from '@aturi.to/waypoints';
@@ -516,22 +516,25 @@ export default function DocsPage() {
             an <code>aturi.to/…</code> URL anywhere and the recipient gets a
             preview plus every client that can open it, rather than being
             pushed into whichever app you happen to use. It&rsquo;s just a URL,
-            so no SDK is required — but the core package builds it from
-            anything that names a record, and adds the strings a copy button or
-            a share sheet needs around it.
+            so no SDK is required. The core package builds it from anything that
+            names a record, and adds the strings a copy button or a share sheet
+            needs around it.
           </p>
           <CodeBlock label="ts" code={linkExample} />
           <p style={pStyle}>
             <code>parseUniversalLink</code> goes the other way, turning an
             aturi.to URL back into an AT URI. In React,{' '}
-            <code>&lt;UniversalLinkButton&gt;</code> is the whole control, and{' '}
-            <code>useUniversalLink</code> is the same logic without markup.
+            <code>&lt;UniversalLinkButton&gt;</code> is the whole control: a
+            native share sheet in browsers that implement{' '}
+            <code>navigator.share</code>, the clipboard in the ones that
+            don&rsquo;t. <code>useUniversalLink</code> is the same logic without
+            markup.
           </p>
           <CodeBlock label="tsx" code={linkReactExample} />
 
           <h3 style={h3Style}>Make your own pages resolvable</h3>
           <p style={pStyle}>
-            The trip runs both ways. If your app renders atproto records,{' '}
+            If your app renders atproto records,{' '}
             <code>buildUniversalLinkTags</code> writes the{' '}
             <code>&lt;head&gt;</code> tags that let the rest of the Atmosphere
             find its way back to them.
@@ -546,14 +549,14 @@ export default function DocsPage() {
             >
               AT Tags proposal
             </a>
-            : the Aturi extension reads it off the live page and{' '}
+            . The Aturi extension reads it off the live page and{' '}
             <a href="#resolve-api">the Resolve API</a> reads it off your HTML,
-            which is what turns your URL into &ldquo;…and here are the 25 other
-            clients that can open this&rdquo; without your app being in the
-            catalog at all. The oEmbed pointer is emitted for posts, so a link
-            to your page previews as the post it is. They&rsquo;re static
-            strings describing a record you already display, and serving them
-            hands nothing to aturi.to.
+            so a link to your page resolves into every other client that can
+            open the record, without your app being in the catalog at all. The
+            oEmbed pointer is emitted for posts, so a link to your page
+            previews as the post it is. They&rsquo;re static strings describing
+            a record you already display, and serving them hands nothing to
+            aturi.to.
           </p>
         </section>
 

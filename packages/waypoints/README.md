@@ -123,9 +123,9 @@ client lacks one. If a client you maintain handles compose intents,
 A universal link is the client-agnostic address of a record: drop an
 `aturi.to/…` URL in a DM or a footer and the recipient gets a preview plus every
 client that can open it, instead of being pushed into whichever app you happen
-to use. `buildUniversalLink` takes anything that names a record — an AT URI, a
-handle, a DID, a page URL from any client in the catalog, a `ParsedURI` — and
-returns that address. It's pure, synchronous, and never fetches.
+to use. `buildUniversalLink` returns that address for anything that names a
+record: an AT URI, a handle, a DID, a page URL from any client in the catalog,
+a `ParsedURI`. It's pure, synchronous, and never fetches.
 
 ```ts
 import { buildUniversalLink, describeUniversalLink } from '@aturi.to/waypoints';
@@ -145,7 +145,7 @@ around the link too:
 const link = describeUniversalLink('at://alice.bsky.social/app.bsky.feed.post/3k7');
 link.url;               // 'https://aturi.to/profile/alice.bsky.social/post/3k7'
 link.label;             // 'Post by @alice.bsky.social'
-link.share;             // { title, text, url } — hand it straight to navigator.share()
+link.share;             // { title, text, url }; hand it straight to navigator.share()
 link.snippets.markdown; // '[Post by @alice.bsky.social](https://aturi.to/…)'
 link.oembedUrl;         // hosted oEmbed endpoint (posts only; null otherwise)
 ```
@@ -155,7 +155,7 @@ Options on both: `origin` (point at your own deployment), `did` + `preferDid`
 appended query parameters like `{ ref: 'my-app' }`.
 
 Going the other way, `parseUniversalLink` turns an aturi.to URL back into a
-`ParsedURI` — canonical `/profile/…` links, `/explore/…` views, and the legacy
+`ParsedURI`. Canonical `/profile/…` links, `/explore/…` views, and the legacy
 bare-path and `at://`-in-path spellings all resolve:
 
 ```ts
@@ -165,9 +165,8 @@ parseUniversalLink('https://aturi.to/profile/alice.bsky.social/post/3k7');
 
 #### Making your own pages resolvable
 
-The trip runs in both directions. If your app renders atproto records, three
-`<head>` tags let the rest of the Atmosphere find its way back to them —
-`buildUniversalLinkTags` writes them:
+If your app renders atproto records, `buildUniversalLinkTags` writes the
+`<head>` tags that let the rest of the Atmosphere find its way back to them:
 
 ```ts
 buildUniversalLinkTags('at://did:plc:abc/app.bsky.feed.post/3k7').html;
@@ -177,10 +176,10 @@ buildUniversalLinkTags('at://did:plc:abc/app.bsky.feed.post/3k7').html;
 // <link rel="alternate" type="application/json+oembed" href="https://aturi.to/api/oembed?url=…" />
 ```
 
-`at:canonical` is the [AT Tags proposal](https://tangled.org/chrisshank.com/at-tags/):
+`at:canonical` is the [AT Tags proposal](https://tangled.org/chrisshank.com/at-tags/).
 Aturi's browser extension reads it off the live page and `/api/resolve` reads it
-off your HTML, which is what turns your URL into "…and here are the 25 other
-clients that can open this" without your app being in the catalog at all. The
+off your HTML, so a link to your page resolves into every other client that can
+open the record, without your app being in the catalog at all. The
 `<link rel="alternate" href="at://…">` beside it is the older spelling of the
 same declaration, kept because the resolver still falls back to it. The oEmbed
 pointer is emitted for posts only, since that's all the endpoint renders.

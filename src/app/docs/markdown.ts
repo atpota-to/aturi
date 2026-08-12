@@ -75,7 +75,7 @@ const fromUrl = await resolveUrl('https://bsky.app/profile/alice.bsky.social/pos
 - **Capabilities:** \`supportsComposeIntent\`, \`getComposeIntentUrl\`,
   \`getComposeIntentWaypoints\` — see "Compose intents" below.
 - **Universal links:** \`buildUniversalLink\`, \`parseUniversalLink\`,
-  \`describeUniversalLink\`, \`buildUniversalLinkTags\` — see "Build an
+  \`describeUniversalLink\`, \`buildUniversalLinkTags\`. See "Build an
   aturi.to link" below.
 
 A handful of destinations (pdsls, atp.tools, Margin, Grain, Popfeed) only
@@ -249,9 +249,9 @@ In React, each \`useWaypoints\` entry carries the same \`composeIntent\`; pass
 A universal link is the client-agnostic address of a record: paste an
 \`aturi.to/…\` URL anywhere and the recipient gets a preview plus every client
 that can open it, rather than being pushed into whichever app you happen to
-use. It's just a URL, so no SDK is required — but the core package builds it
-from anything that names a record, and adds the strings a copy button or a
-share sheet needs around it.
+use. It's just a URL, so no SDK is required. The core package builds it from
+anything that names a record, and adds the strings a copy button or a share
+sheet needs around it.
 
 \`\`\`ts
 import { buildUniversalLink, describeUniversalLink } from '@aturi.to/waypoints';
@@ -264,7 +264,7 @@ buildUniversalLink('https://bsky.app/profile/alice.bsky.social/post/3k7');
 
 const link = describeUniversalLink('at://alice.bsky.social/app.bsky.feed.post/3k7');
 link.label;             // 'Post by @alice.bsky.social'
-link.share;             // { title, text, url } — hand it to navigator.share()
+link.share;             // { title, text, url }; hand it to navigator.share()
 link.snippets.markdown; // '[Post by @alice.bsky.social](https://aturi.to/…)'
 \`\`\`
 
@@ -273,15 +273,14 @@ Options: \`origin\` (point at your own deployment), \`did\` + \`preferDid\`
 appended query parameters. \`parseUniversalLink\` goes the other way, turning
 an aturi.to URL back into an AT URI.
 
-In React, \`<UniversalLinkButton target={post.uri} />\` is the whole control —
-native share sheet where the browser has one, clipboard where it doesn't — and
-\`useUniversalLink\` is the same logic without markup.
+In React, \`<UniversalLinkButton target={post.uri} />\` is the whole control: a
+native share sheet in browsers that implement \`navigator.share\`, the clipboard
+in the ones that don't. \`useUniversalLink\` is the same logic without markup.
 
 ### Make your own pages resolvable
 
-The trip runs both ways. If your app renders atproto records,
-\`buildUniversalLinkTags\` writes the \`<head>\` tags that let the rest of the
-Atmosphere find its way back to them.
+If your app renders atproto records, \`buildUniversalLinkTags\` writes the
+\`<head>\` tags that let the rest of the Atmosphere find its way back to them.
 
 \`\`\`ts
 import { buildUniversalLinkTags } from '@aturi.to/waypoints';
@@ -294,13 +293,12 @@ buildUniversalLinkTags('at://did:plc:abc/app.bsky.feed.post/3k7').html;
 \`\`\`
 
 \`at:canonical\` is the AT Tags proposal
-(https://tangled.org/chrisshank.com/at-tags/): the Aturi extension reads it off
-the live page and the Resolve API reads it off your HTML, which is what turns
-your URL into "…and here are the 25 other clients that can open this" without
-your app being in the catalog at all. The oEmbed pointer is emitted for posts,
-so a link to your page previews as the post it is. They're static strings
-describing a record you already display, and serving them hands nothing to
-aturi.to.
+(https://tangled.org/chrisshank.com/at-tags/). The Aturi extension reads it off
+the live page and the Resolve API reads it off your HTML, so a link to your page
+resolves into every other client that can open the record, without your app
+being in the catalog at all. The oEmbed pointer is emitted for posts, so a link
+to your page previews as the post it is. They're static strings describing a
+record you already display, and serving them hands nothing to aturi.to.
 
 ## License
 

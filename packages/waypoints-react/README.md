@@ -212,11 +212,11 @@ Available tokens: `--aturi-wp-accent`, `--aturi-wp-accent-contrast`,
 The picker asks "where do you want to open this?". A universal link answers the
 same question for someone who isn't here yet: an `aturi.to/…` URL you can paste
 anywhere, where the recipient gets a preview and picks their own client. Two
-pieces ship for offering one from your UI.
+exports offer one from your UI: a button, and the hook behind it.
 
-`<UniversalLinkButton>` is the whole control — it opens the native share sheet
-where the browser has one and copies to the clipboard where it doesn't, with the
-transient "Copied" state already wired up:
+`<UniversalLinkButton>` is the whole control. It opens the native share sheet
+in browsers that implement `navigator.share` and copies to the clipboard in the
+ones that don't, with the transient "Copied" state already wired up:
 
 ```tsx
 import { UniversalLinkButton } from '@aturi.to/waypoints-react';
@@ -232,7 +232,7 @@ resolve, so it's safe to drop into a row whose data is still loading.
 | Prop | Type | Description |
 | --- | --- | --- |
 | `target` | `UniversalLinkTarget` | AT URI, handle, DID, client URL, or `ParsedURI` |
-| `mode` | `'auto' \| 'copy' \| 'share'` | Default `'auto'`: share sheet where there is one, clipboard where there isn't |
+| `mode` | `'auto' \| 'copy' \| 'share'` | Default `'auto'`: share sheet where `navigator.share` exists, clipboard where it doesn't |
 | `label`, `copiedLabel` | `ReactNode?` | Button text; default `Copy link` / `Copied` |
 | `iconOnly` | `boolean?` | Icon only; the label still names the button for assistive tech |
 | `onAction` | `(outcome, link) => void` | `'shared' \| 'copied' \| 'dismissed' \| 'failed' \| 'copy-failed'` |
@@ -254,7 +254,7 @@ const { url, link, copy, copied, share, canShare } = useUniversalLink({
 ```
 
 `link` is the full [`describeUniversalLink`](../waypoints/README.md#universal-links)
-result — label, `navigator.share()` payload, markdown/HTML snippets, oEmbed URL.
+result: label, `navigator.share()` payload, markdown/HTML snippets, oEmbed URL.
 `canShare` is false on the server and on the first client render (it can't be
 read before mount without risking a hydration mismatch), so branch on it for the
 icon, not for whether to render the control.

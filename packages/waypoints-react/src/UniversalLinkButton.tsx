@@ -10,9 +10,9 @@ import { cx, slotClass, type WaypointClassNames } from './styling';
 
 export type UniversalLinkButtonProps = UseUniversalLinkParams & {
   /**
-   * `auto` (default) opens the native share sheet where there is one and
-   * copies where there isn't — the right behavior on phone and desktop from
-   * one control. `copy` and `share` pin it either way.
+   * `auto` (default) opens the native share sheet in browsers that implement
+   * `navigator.share` and copies in the ones that don't, so one control does
+   * the right thing on phone and desktop. `copy` and `share` pin it either way.
    */
   mode?: 'auto' | 'copy' | 'share';
   label?: ReactNode;
