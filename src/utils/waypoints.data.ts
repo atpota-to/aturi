@@ -384,6 +384,31 @@ export const WAYPOINT_DESTINATIONS_DATA: Record<string, WaypointData> = {
     expectedCollections: ['app.bsky.'],
   },
 
+  lea: {
+    id: 'lea',
+    name: 'Lea',
+    description: (collection) => {
+      if (collection === 'app.bsky.feed.post') return 'View post on lea.ac';
+      return 'View profile on lea.ac';
+    },
+    getUrl: (handle, collection, rkey) => {
+      if (collection && rkey) {
+        if (collection === 'app.bsky.feed.post') {
+          return `https://lea.ac/profile/${handle}/post/${rkey}`;
+        }
+        return `https://lea.ac/profile/${handle}`;
+      }
+      return `https://lea.ac/profile/${handle}`;
+    },
+    // No `list`: like Red Dwarf, Lea serves only `/profile/:handle` and
+    // `/profile/:handle/post/:rkey` — `/lists/:rkey` 404s — so claiming list
+    // support would drop the user on an error page instead of the list.
+    supportedTypes: ['post', 'profile', 'record'],
+    category: 'blueskyClients',
+    redirectCompat: ['bluesky-social'],
+    expectedCollections: ['app.bsky.'],
+  },
+
   leaflet: {
     id: 'leaflet',
     name: 'Leaflet',
@@ -859,6 +884,7 @@ export const WAYPOINT_ORDER = [
   'witchsky',
   'mu',
   'deer',
+  'lea',
 ];
 
 export function getWaypointDataForType(type: WaypointType): WaypointData[] {

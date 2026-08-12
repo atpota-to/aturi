@@ -8,6 +8,7 @@ export type SourceApp =
   | 'blacksky'
   | 'reddwarf'
   | 'impro'
+  | 'lea'
   | 'witchsky'
   | 'deer'
   | 'mu'
@@ -53,6 +54,7 @@ const BLUESKY_FAMILY: HostConfig[] = [
   { source: 'blacksky', hosts: ['blacksky.community'] },
   { source: 'reddwarf', hosts: ['reddwarf.app'] },
   { source: 'impro', hosts: ['impro.social'] },
+  { source: 'lea', hosts: ['lea.ac'] },
   { source: 'witchsky', hosts: ['witchsky.app'] },
   { source: 'deer', hosts: ['deer.social'] },
   { source: 'mu', hosts: ['mu.social'] },

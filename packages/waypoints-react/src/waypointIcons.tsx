@@ -58,6 +58,16 @@ export const LeafletSVG = () => (
   </svg>
 );
 
+// Lea's mark is a white "L" on a filled rounded square. Monochrome here: the
+// square takes currentColor and the letterform is knocked out to the page
+// background, the same treatment LeafletSVG uses.
+export const LeaSVG = () => (
+  <svg width="24" height="24" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+    <rect width="32" height="32" rx="6.4" fill="currentColor" />
+    <path d="M9.6 7.04h4.64v13.6h9.44v4.32H9.6z" fill="var(--bg-primary)" />
+  </svg>
+);
+
 export const RedDwarfSVG = () => (
   <svg fill="none" viewBox="0 0 24 24" width="24" height="24">
     <path fill="currentColor" d="M12.001 0A12 12 0 1 0 24 11.999A12.01 12.01 0 0 0 12.001 0m0 2.464a9.53 9.53 0 0 1 9.514 8.889a9.5 9.5 0 0 1-.863 4.649H3.35a9.53 9.53 0 0 1 .616-9.14a9.53 9.53 0 0 1 8.036-4.398" />
@@ -276,6 +286,7 @@ export const WAYPOINT_ICONS: Record<string, ReactNode> = {
   blacksky: <BlackskySVG />,
   reddwarf: <RedDwarfSVG />,
   impro: <ImproSVG />,
+  lea: <LeaSVG />,
   leaflet: <LeafletSVG />,
   pdsls: <PdslsSVG />,
   anisotaReader: <AnisotaLogo width={24} height={24} />,

@@ -13,6 +13,7 @@ const BUILTIN_HOME: Record<string, string> = {
   blacksky: 'https://blacksky.community/',
   reddwarf: 'https://reddwarf.app/',
   impro: 'https://impro.social/',
+  lea: 'https://lea.ac/',
   leaflet: 'https://leaflet.pub/',
   pdsls: 'https://pdsls.dev/',
   anisotaReader: 'https://anisota.net/',
