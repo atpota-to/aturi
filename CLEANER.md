@@ -320,7 +320,7 @@ Ordered by what it costs to get wrong, not by what is easiest to check.
 12. Sentences ending in a trailing `-ing` clause, three-item lists where the third is filler, "not just X but Y", and the measured excess vocabulary.
 13. Assistant chatter, unfilled brackets, `Lorem ipsum`, and any call to action that is no longer a link.
 14. Sentence lengths, section by section: is there one under eight words, and do any three in a row sit within two words of each other?
-15. Count punctuation per hundred words in what you started from and in what you are handing back. If the second number is lower, you merged clauses instead of cutting words, which moves the text toward the machine distribution.
+15. Count commas, semicolons, colons and parentheses per hundred words in what you started from and in what you are handing back. Count those four marks only: full stops and question marks track sentence count, so including them makes any draft pass and tells you nothing. When this document was tested, two agents counted the wide set, reported 16.3 and 14.5, and concluded they had passed while the narrow count sat at 5.6, below the unguided draft of the same page. If the second number is lower than the first, you merged clauses instead of cutting words, which moves the text toward the machine distribution.
 
 16. Read the prose aloud. Any phrase you would not say to a colleague gets rewritten.
 
