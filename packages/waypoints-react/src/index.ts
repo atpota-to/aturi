@@ -23,6 +23,16 @@ export type {
 export { WaypointPicker } from './WaypointPicker';
 export type { WaypointPickerProps } from './WaypointPicker';
 
+export { useUniversalLink } from './useUniversalLink';
+export type {
+  ShareOutcome,
+  UseUniversalLinkParams,
+  UseUniversalLinkResult,
+} from './useUniversalLink';
+
+export { UniversalLinkButton } from './UniversalLinkButton';
+export type { UniversalLinkButtonProps } from './UniversalLinkButton';
+
 export { cx } from './styling';
 export type { WaypointClassNames, WaypointSlot } from './styling';
 

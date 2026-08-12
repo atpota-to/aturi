@@ -207,6 +207,58 @@ Available tokens: `--aturi-wp-accent`, `--aturi-wp-accent-contrast`,
 | `renderWaypoint` | render prop | Replace the row markup |
 | `className` | `string?` | Extra class on the root |
 
+## Universal links
+
+The picker asks "where do you want to open this?". A universal link answers the
+same question for someone who isn't here yet: an `aturi.to/…` URL you can paste
+anywhere, where the recipient gets a preview and picks their own client. Two
+pieces ship for offering one from your UI.
+
+`<UniversalLinkButton>` is the whole control — it opens the native share sheet
+where the browser has one and copies to the clipboard where it doesn't, with the
+transient "Copied" state already wired up:
+
+```tsx
+import { UniversalLinkButton } from '@aturi.to/waypoints-react';
+
+<UniversalLinkButton target={post.uri} />
+<UniversalLinkButton target="https://bsky.app/profile/alice.bsky.social/post/3k7" mode="copy" />
+```
+
+`target` takes anything that names a record: an AT URI, a handle, a DID, a page
+URL from any client in the catalog. The button renders nothing when it doesn't
+resolve, so it's safe to drop into a row whose data is still loading.
+
+| Prop | Type | Description |
+| --- | --- | --- |
+| `target` | `UniversalLinkTarget` | AT URI, handle, DID, client URL, or `ParsedURI` |
+| `mode` | `'auto' \| 'copy' \| 'share'` | Default `'auto'`: share sheet where there is one, clipboard where there isn't |
+| `label`, `copiedLabel` | `ReactNode?` | Button text; default `Copy link` / `Copied` |
+| `iconOnly` | `boolean?` | Icon only; the label still names the button for assistive tech |
+| `onAction` | `(outcome, link) => void` | `'shared' \| 'copied' \| 'dismissed' \| 'failed' \| 'copy-failed'` |
+| `origin`, `did`, `preferDid`, `params`, `title`, `text` | | Passed through to `describeUniversalLink` |
+| `resetAfterMs` | `number?` | How long `Copied` shows. Default `2000`; `0` keeps it |
+| `unstyled`, `classNames`, `className` | | Same styling hooks as the picker |
+
+`useUniversalLink` is the same logic without markup:
+
+```tsx
+const { url, link, copy, copied, share, canShare } = useUniversalLink({
+  target: 'at://alice.bsky.social/app.bsky.feed.post/3k7',
+});
+
+<button onClick={() => (canShare ? share() : copy())}>
+  {copied ? 'Copied' : url}
+</button>
+<button onClick={() => copy(link.snippets.markdown)}>Copy as Markdown</button>
+```
+
+`link` is the full [`describeUniversalLink`](../waypoints/README.md#universal-links)
+result — label, `navigator.share()` payload, markdown/HTML snippets, oEmbed URL.
+`canShare` is false on the server and on the first client render (it can't be
+read before mount without risking a hydration mismatch), so branch on it for the
+icon, not for whether to render the control.
+
 ## Icons
 
 The per-client SVG components and the `WAYPOINT_ICONS` map are exported too:

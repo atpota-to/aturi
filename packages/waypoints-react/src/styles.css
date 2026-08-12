@@ -207,3 +207,62 @@
   border: 1px dashed var(--aturi-wp-border);
   border-radius: var(--aturi-wp-radius);
 }
+
+/*
+ * Universal link button. Unlike everything above it, this control is built to
+ * stand on its own — in a post footer, a toolbar, a row of actions — so it
+ * can't count on inheriting the picker root's tokens. Every value carries a
+ * literal fallback for that case and still picks up your `--aturi-wp-*`
+ * overrides when it does sit inside a picker.
+ */
+.aturi-wp-universal-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.4rem 0.75rem;
+  border: 1px solid var(--aturi-wp-border, #e2e8f0);
+  border-radius: var(--aturi-wp-radius, 12px);
+  background: var(--aturi-wp-bg, #ffffff);
+  color: var(--aturi-wp-text-secondary, #475569);
+  font-family: var(--aturi-wp-font, inherit);
+  font-size: 0.875rem;
+  line-height: 1;
+  cursor: pointer;
+  transition:
+    color 0.15s ease,
+    border-color 0.15s ease,
+    background 0.15s ease;
+}
+
+.aturi-wp-universal-link:hover {
+  color: var(--aturi-wp-accent, #2563eb);
+  background: var(--aturi-wp-surface-hover, #f1f5f9);
+}
+
+.aturi-wp-universal-link[data-copied] {
+  color: var(--aturi-wp-accent, #2563eb);
+  border-color: var(--aturi-wp-accent, #2563eb);
+}
+
+.aturi-wp-universal-link-icon {
+  display: inline-flex;
+  align-items: center;
+}
+
+@media (prefers-color-scheme: dark) {
+  .aturi-wp-universal-link {
+    border-color: var(--aturi-wp-border, #1f2937);
+    background: var(--aturi-wp-bg, #0b1120);
+    color: var(--aturi-wp-text-secondary, #cbd5e1);
+  }
+
+  .aturi-wp-universal-link:hover {
+    color: var(--aturi-wp-accent, #60a5fa);
+    background: var(--aturi-wp-surface-hover, #1f2937);
+  }
+
+  .aturi-wp-universal-link[data-copied] {
+    color: var(--aturi-wp-accent, #60a5fa);
+    border-color: var(--aturi-wp-accent, #60a5fa);
+  }
+}
