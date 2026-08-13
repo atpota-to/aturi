@@ -141,6 +141,8 @@ export default function WaypointPicker({
     return out.filter(isActiveForRepo);
   }, [type, prefs, isActiveForRepo]);
 
+  const hasWaypoints = availableWaypoints.length > 0;
+
   // Smart expansion: Compute initial expanded categories based on compatible waypoints
   const initialExpandedCategories = useMemo(() => {
     const initialExpanded = new Set<string>();
@@ -339,8 +341,14 @@ export default function WaypointPicker({
         />
       )}
 
-      {/* Header */}
-      <header style={{ marginBottom: '2rem', textAlign: 'center' }}>
+      {/* Header. When the layout switch follows it, the switch owns the gap
+          down to the list and the header gives up most of its own. */}
+      <header
+        style={{
+          marginBottom: hasWaypoints ? '1rem' : '2rem',
+          textAlign: 'center',
+        }}
+      >
         <h1 style={{ marginBottom: '1rem', color: 'var(--text-primary)' }}>
           Choose where to view
         </h1>
@@ -353,7 +361,7 @@ export default function WaypointPicker({
           the change is visible where it happens; the choice is saved to
           preferences and follows the account. Hidden when there's no list to
           lay out. */}
-      {availableWaypoints.length > 0 && (
+      {hasWaypoints && (
         <div className="waypoint-layout-bar">
           <span className="waypoint-layout-bar-label">Layout</span>
           <WaypointLayoutToggle />
@@ -369,7 +377,7 @@ export default function WaypointPicker({
           marginBottom: '2rem',
         }}
       >
-        {availableWaypoints.length === 0 ? (
+        {!hasWaypoints ? (
           <div className="card" style={{ textAlign: 'center', padding: '2rem' }}>
             <p style={{ color: 'var(--text-secondary)' }}>
               No waypoints available for this content type yet.
