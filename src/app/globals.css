@@ -4270,12 +4270,14 @@ body.has-explore-chrome {
 
 /* --- Layout switch ------------------------------------------------------- */
 
+/* Centered under the picker's centered header, rather than pulled to the
+   right edge — the switch reads as part of the heading block that way. */
 .waypoint-layout-bar {
   display: flex;
   align-items: center;
-  justify-content: flex-end;
+  justify-content: center;
   gap: 0.625rem;
-  margin-bottom: 1rem;
+  margin-bottom: 2rem;
 }
 
 .waypoint-layout-bar-label {
