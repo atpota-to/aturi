@@ -40,6 +40,7 @@ describe('getUrl', () => {
     ['witchsky', 'https://witchsky.app'],
     ['deer', 'https://deer.social'],
     ['mu', 'https://mu.social'],
+    ['northsky', 'https://northsky.app'],
     ['impro', 'https://impro.social'],
     ['anisota', 'https://anisota.net'],
     ['aturi', 'https://aturi.to'],
@@ -119,6 +120,7 @@ describe('compose intents', () => {
     ['deer', 'https://deer.social/intent/compose?text=hello%20there'],
     ['witchsky', 'https://witchsky.app/intent/compose?text=hello%20there'],
     ['mu', 'https://mu.social/intent/compose?text=hello%20there'],
+    ['northsky', 'https://northsky.app/intent/compose?text=hello%20there'],
   ])('builds a pre-filled %s compose link', (id, expected) => {
     expect(getComposeIntentUrl(WAYPOINT_DESTINATIONS_DATA[id], 'hello there')).toBe(expected);
   });
@@ -182,6 +184,7 @@ describe('compose intents', () => {
       'witchsky',
       'mu',
       'deer',
+      'northsky',
     ]);
   });
 

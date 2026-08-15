@@ -39,6 +39,7 @@ describe('matchSupportedUrl - Bluesky family', () => {
     ['lea.ac', 'lea'],
     ['witchsky.app', 'witchsky'],
     ['deer.social', 'deer'],
+    ['northsky.app', 'northsky'],
     ['anisota.net', 'anisota'],
   ])('parses %s profile', (host, sourceId) => {
     const m = match(`https://${host}/profile/alice.bsky.social`);

@@ -85,7 +85,7 @@ import {
 } from '@aturi.to/waypoints';
 
 getComposeIntentWaypoints().map((w) => w.id);
-// ['anisota', 'bluesky', 'impro', 'blacksky', 'witchsky', 'mu', 'deer']
+// ['anisota', 'bluesky', 'impro', 'blacksky', 'witchsky', 'mu', 'deer', 'northsky']
 
 supportsComposeIntent(WAYPOINT_DESTINATIONS_DATA.pdsls); // false
 getComposeIntentUrl(WAYPOINT_DESTINATIONS_DATA.deer, 'hello from my app');

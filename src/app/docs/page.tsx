@@ -137,7 +137,7 @@ const composeExample = `import {
 
 // Which clients will open a composer for you?
 getComposeIntentWaypoints().map((w) => w.id);
-// ['anisota', 'bluesky', 'impro', 'blacksky', 'witchsky', 'mu', 'deer']
+// ['anisota', 'bluesky', 'impro', 'blacksky', 'witchsky', 'mu', 'deer', 'northsky']
 
 supportsComposeIntent(WAYPOINT_DESTINATIONS_DATA.deer); // true
 getComposeIntentUrl(WAYPOINT_DESTINATIONS_DATA.deer, 'hello from my app');

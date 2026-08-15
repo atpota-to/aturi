@@ -581,6 +581,33 @@ export const WAYPOINT_DESTINATIONS_DATA: Record<string, WaypointData> = {
     expectedCollections: ['app.bsky.'],
   },
 
+  northsky: {
+    id: 'northsky',
+    name: 'Northsky',
+    description: (collection) => {
+      if (collection === 'app.bsky.feed.post') return 'View post on northsky.app';
+      if (collection === 'app.bsky.graph.list') return 'View list on northsky.app';
+      return 'View profile on northsky.app';
+    },
+    getUrl: (handle, collection, rkey) => {
+      if (collection && rkey) {
+        if (collection === 'app.bsky.feed.post') {
+          return `https://northsky.app/profile/${handle}/post/${rkey}`;
+        }
+        if (collection === 'app.bsky.graph.list') {
+          return `https://northsky.app/profile/${handle}/lists/${rkey}`;
+        }
+        return `https://northsky.app/profile/${handle}`;
+      }
+      return `https://northsky.app/profile/${handle}`;
+    },
+    supportedTypes: ['post', 'profile', 'list', 'record'],
+    category: 'blueskyForks',
+    composeIntent: socialAppComposeIntent('https://northsky.app'),
+    redirectCompat: ['bluesky-social'],
+    expectedCollections: ['app.bsky.'],
+  },
+
   tangled: {
     id: 'tangled',
     name: 'Tangled',
@@ -885,6 +912,7 @@ export const WAYPOINT_ORDER = [
   'mu',
   'deer',
   'lea',
+  'northsky',
 ];
 
 export function getWaypointDataForType(type: WaypointType): WaypointData[] {

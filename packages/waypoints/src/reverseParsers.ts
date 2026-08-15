@@ -11,6 +11,7 @@ export type SourceApp =
   | 'lea'
   | 'witchsky'
   | 'deer'
+  | 'northsky'
   | 'mu'
   | 'anisota'
   | 'pinksky'
@@ -57,6 +58,7 @@ const BLUESKY_FAMILY: HostConfig[] = [
   { source: 'lea', hosts: ['lea.ac'] },
   { source: 'witchsky', hosts: ['witchsky.app'] },
   { source: 'deer', hosts: ['deer.social'] },
+  { source: 'northsky', hosts: ['northsky.app'] },
   { source: 'mu', hosts: ['mu.social'] },
   { source: 'anisota', hosts: ['anisota.net'], matchSubdomains: true },
 ];
