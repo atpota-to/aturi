@@ -20,6 +20,7 @@ const BUILTIN_HOME: Record<string, string> = {
   atptools: 'https://atp.tools/',
   witchsky: 'https://witchsky.app/',
   deer: 'https://deer.social/',
+  northsky: 'https://northsky.app/',
   mu: 'https://mu.social/',
   tangled: 'https://tangled.org/',
   pinksky: 'https://pinkleap.app/',

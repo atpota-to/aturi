@@ -16,6 +16,7 @@ export const SOURCE_APPS: SourceDescriptor[] = [
   { id: 'witchsky', name: 'Witchsky', host: 'witchsky.app' },
   { id: 'mu', name: 'Mu', host: 'mu.social' },
   { id: 'deer', name: 'Deer', host: 'deer.social' },
+  { id: 'northsky', name: 'Northsky', host: 'northsky.app' },
   { id: 'anisota', name: 'Anisota', host: 'anisota.net' },
   { id: 'pinksky', name: 'Pinkleap', host: 'pinkleap.app' },
   { id: 'leaflet', name: 'Leaflet', host: 'leaflet.pub' },
