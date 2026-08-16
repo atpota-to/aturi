@@ -186,6 +186,36 @@ GET https://aturi.to/api/waypoints
 GET https://aturi.to/api/waypoints?type=post&capability=compose
 \`\`\`
 
+### Apple Shortcuts: format=map
+
+Add \`&format=map\` and the envelope is dropped for a flat name -> URL object.
+Shortcuts' *Choose from List* action shows a dictionary's keys and hands back
+the matching value, so that one parameter turns a share-sheet Shortcut into
+three actions: fetch, choose, open.
+
+\`\`\`http
+GET https://aturi.to/api/resolve?url=<encoded-page-url>&format=map
+\`\`\`
+
+\`\`\`json
+{
+  "Anisota": "https://anisota.net/profile/bsky.app/post/3lkxq...",
+  "Red Dwarf": "https://reddwarf.app/profile/bsky.app/post/3lkxq...",
+  "Blacksky": "https://blacksky.community/profile/bsky.app/post/3lkxq..."
+}
+\`\`\`
+
+1. **Receive** URLs from the share sheet.
+2. **Get Contents of URL** — \`https://aturi.to/api/resolve?format=map&url=\`
+   with the URL-encoded Shortcut Input appended.
+3. **Choose from List** -> **Open URLs**.
+
+Every failure is an empty object under this format — a bad parameter, a page
+with no atproto data — so nothing has to branch on a response shape. Guard the
+picker with an \`If <count> is 0\` to say "nothing to open here". The full
+\`format=json\` response is the one to reach for when you want \`recommended\`,
+\`parsed\`, or the compose intents.
+
 ## Compose intents
 
 bsky.app can be handed a link that opens its composer pre-filled:

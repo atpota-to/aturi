@@ -255,6 +255,19 @@ GET https://aturi.to/api/waypoints
 GET https://aturi.to/api/waypoints?type=post&capability=compose
 ```
 
+Add `&format=map` to a resolve call and the envelope is dropped for a flat name → URL object, which is the shape Apple Shortcuts can pick from directly (its _Choose from List_ action shows a dictionary's keys and returns the matching value). A share-sheet Shortcut is then three actions — fetch, choose, open — and every failure is an empty object, so nothing has to branch on a response shape:
+
+```
+GET https://aturi.to/api/resolve?url=<encoded-page-url>&format=map
+```
+
+```json
+{
+  "Anisota": "https://anisota.net/profile/bsky.app/post/3lkxq...",
+  "Red Dwarf": "https://reddwarf.app/profile/bsky.app/post/3lkxq..."
+}
+```
+
 ### Compose intents
 
 Clients that inherit Bluesky's [intent links](https://docs.bsky.app/docs/advanced-guides/intent-links) can be handed a URL that opens their composer pre-filled. The catalog tracks which ones do, so every waypoint — in the packages, in both API endpoints, and in the React hook — carries a `composeIntent` (`null` when the client has no confirmed route):

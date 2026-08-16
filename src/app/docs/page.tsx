@@ -128,6 +128,14 @@ import { WaypointPicker } from '@aturi.to/waypoints-react';`;
 const resolveApi = `GET https://aturi.to/api/resolve?url=<encoded-page-url>
 GET https://aturi.to/api/resolve?atUri=at://...`;
 
+const resolveMapApi = `GET https://aturi.to/api/resolve?url=<encoded-page-url>&format=map`;
+
+const resolveMapResponse = `{
+  "Anisota": "https://anisota.net/profile/bsky.app/post/3lkxq...",
+  "Red Dwarf": "https://reddwarf.app/profile/bsky.app/post/3lkxq...",
+  "Blacksky": "https://blacksky.community/profile/bsky.app/post/3lkxq..."
+}`;
+
 const composeExample = `import {
   WAYPOINT_DESTINATIONS_DATA,
   getComposeIntentUrl,
@@ -458,11 +466,44 @@ export default function DocsPage() {
             for this endpoint. It’s the right choice from a browser, where
             fetching arbitrary pages is blocked by CORS.
           </p>
-          <p style={{ ...pStyle, margin: 0 }}>
+          <p style={pStyle}>
             To ask about the catalog itself rather than a specific record —
             what’s in it, and which clients can do what — there’s a companion
             endpoint: <code>GET /api/waypoints</code>, filterable by{' '}
             <code>?type=</code> and <code>?capability=</code>.
+          </p>
+
+          <h3 style={h3Style}>Apple Shortcuts: format=map</h3>
+          <p style={pStyle}>
+            Add <code>&amp;format=map</code> and the envelope is dropped for a
+            flat name → URL object. Shortcuts’ <em>Choose from List</em> action
+            shows a dictionary’s keys and hands back the matching value, so
+            that one parameter turns a share-sheet Shortcut into three actions:
+            fetch, choose, open.
+          </p>
+          <CodeBlock label="http" code={resolveMapApi} />
+          <CodeBlock label="json" code={resolveMapResponse} />
+          <ol style={{ paddingLeft: '1.25rem', margin: '0 0 1rem' }}>
+            <li style={liStyle}>
+              <strong>Receive</strong> URLs from the share sheet.
+            </li>
+            <li style={liStyle}>
+              <strong>Get Contents of URL</strong> —{' '}
+              <code>https://aturi.to/api/resolve?format=map&amp;url=</code>{' '}
+              with the URL-encoded Shortcut Input appended.
+            </li>
+            <li style={liStyle}>
+              <strong>Choose from List</strong> → <strong>Open URLs</strong>.
+            </li>
+          </ol>
+          <p style={{ ...pStyle, margin: 0 }}>
+            Every failure is an empty object under this format — a bad
+            parameter, a page with no atproto data — so nothing has to branch
+            on a response shape. Guard the picker with an{' '}
+            <code>If &lt;count&gt; is 0</code> to say “nothing to open here”.
+            The full <code>format=json</code> response is the one to reach for
+            when you want <code>recommended</code>, <code>parsed</code>, or the
+            compose intents.
           </p>
         </section>
 

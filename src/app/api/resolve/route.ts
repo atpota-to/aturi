@@ -41,6 +41,7 @@ export const runtime = 'edge';
  *  - `url=<encoded-page-url>` (preferred from share sheets)
  *  - `atUri=at://...`         (skips detection entirely)
  *  - `composeText=<text>`     (optional; pre-fills the compose intent links)
+ *  - `format=json|map`        (optional; `map` returns a bare name -> URL object)
  *
  * Either of the first two is accepted; `atUri` wins when both are supplied.
  *
@@ -48,6 +49,14 @@ export const runtime = 'edge';
  * be handed a link that opens its composer
  * (https://docs.bsky.app/docs/advanced-guides/intent-links), null when it
  * can't. Pass `composeText` to get the links back pre-filled.
+ *
+ * `format=map` drops the envelope and returns `{"Anisota": "https://...", ...}`
+ * for clients that can only render a flat dictionary. Apple Shortcuts is the
+ * motivating case: its "Choose from List" action shows a dictionary's keys and
+ * hands back the matching value, so a share-sheet Shortcut becomes fetch ->
+ * choose -> open with no list-building in between. Every failure — a bad
+ * parameter, a page with no atproto data — is an empty object under this
+ * format, so the caller never has to branch on a response shape.
  */
 
 type ResolvedWaypointJson = {
@@ -68,6 +77,9 @@ const DID_REQUIRED_WAYPOINTS = new Set([
 
 const HEAD_FETCH_TIMEOUT_MS = 4000;
 
+const FORMATS = ['json', 'map'] as const;
+type Format = (typeof FORMATS)[number];
+
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET, OPTIONS',
@@ -85,8 +97,16 @@ export async function GET(request: NextRequest) {
   const skipHead = searchParams.get('headDetect') === 'false';
   const composeText = searchParams.get('composeText') || undefined;
 
+  const rawFormat = searchParams.get('format');
+  if (rawFormat && !FORMATS.includes(rawFormat as Format)) {
+    // Reported in the envelope even though the caller asked for something else:
+    // the format they asked for is the thing that's wrong.
+    return jsonError(400, `Unknown format. Expected one of: ${FORMATS.join(', ')}`, 'json');
+  }
+  const format = (rawFormat as Format) || 'json';
+
   if (!rawAtUri && !rawUrl) {
-    return jsonError(400, 'Missing url or atUri parameter');
+    return jsonError(400, 'Missing url or atUri parameter', format);
   }
 
   let match: ReverseMatch | null = null;
@@ -97,18 +117,18 @@ export async function GET(request: NextRequest) {
   if (rawAtUri) {
     inputKind = 'atUri';
     match = parseAtUri(rawAtUri.trim());
-    if (!match) return jsonError(400, 'Invalid atUri');
+    if (!match) return jsonError(400, 'Invalid atUri', format);
     detectedVia = 'atUri';
   } else if (rawUrl) {
     let parsedUrl: URL;
     try {
       parsedUrl = new URL(rawUrl);
     } catch {
-      return jsonError(400, 'Invalid url');
+      return jsonError(400, 'Invalid url', format);
     }
 
     if (!/^https?:$/.test(parsedUrl.protocol)) {
-      return jsonError(400, 'Only http(s) URLs are supported');
+      return jsonError(400, 'Only http(s) URLs are supported', format);
     }
 
     isKnownHost = isSupportedHost(parsedUrl.hostname);
@@ -128,6 +148,9 @@ export async function GET(request: NextRequest) {
   }
 
   if (!match) {
+    if (format === 'map') {
+      return NextResponse.json({}, { status: 200, headers: corsAndCache(60) });
+    }
     return NextResponse.json(
       {
         ok: false,
@@ -188,6 +211,13 @@ export async function GET(request: NextRequest) {
     })
     .filter((w): w is ResolvedWaypointJson => !!w);
 
+  if (format === 'map') {
+    return NextResponse.json(toNameMap(waypoints), {
+      status: 200,
+      headers: corsAndCache(300),
+    });
+  }
+
   const recommendedRaw = getRecommendedWaypointsData(type, parsed.collection);
   const availableIds = new Set(waypoints.map(w => w.id));
   const recommendedIds = recommendedRaw.waypoints
@@ -225,11 +255,31 @@ function corsAndCache(seconds: number) {
   };
 }
 
-function jsonError(status: number, message: string) {
+function jsonError(status: number, message: string, format: Format = 'json') {
   return NextResponse.json(
-    { ok: false, error: message },
+    format === 'map' ? {} : { ok: false, error: message },
     { status, headers: CORS_HEADERS }
   );
+}
+
+/**
+ * Flattens the resolved waypoints into the `format=map` shape: display name ->
+ * URL, in catalog order.
+ *
+ * Names are unique across the catalog today, and a collision would silently
+ * drop a destination from the picker rather than fail anything, so a colliding
+ * name is disambiguated by its id instead of overwriting.
+ */
+function toNameMap(waypoints: ResolvedWaypointJson[]): Record<string, string> {
+  // A Map rather than an object literal: names are catalog data, and assigning
+  // one straight onto an object would let a key like `__proto__` write the
+  // prototype instead of an entry.
+  const map = new Map<string, string>();
+  for (const waypoint of waypoints) {
+    const key = map.has(waypoint.name) ? `${waypoint.name} (${waypoint.id})` : waypoint.name;
+    map.set(key, waypoint.url);
+  }
+  return Object.fromEntries(map);
 }
 
 /**
