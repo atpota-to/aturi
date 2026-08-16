@@ -5,11 +5,11 @@ import UniversalLinksLanding from '@/components/landing/UniversalLinksLanding';
 export const metadata: Metadata = {
   title: 'Universal Links · aturi.to',
   description:
-    'Share one aturi.to link and let your audience pick the Atmosphere client they want to open it in: 25+ supported clients, no lock-in, no sign-up.',
+    'Share one aturi.to link and let whoever opens it pick the Atmosphere client that renders the record.',
   openGraph: {
     title: 'Universal Links · aturi.to',
     description:
-      'Share one aturi.to link and let your audience pick the Atmosphere client they want to open it in: 25+ supported clients, no lock-in, no sign-up.',
+      'Share one aturi.to link and let whoever opens it pick the Atmosphere client that renders the record.',
     images: [
       {
         url: '/og-images/aturi-links.png',
@@ -23,7 +23,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'Universal Links · aturi.to',
     description:
-      'Share one aturi.to link and let your audience pick the Atmosphere client they want to open it in: 25+ supported clients, no lock-in, no sign-up.',
+      'Share one aturi.to link and let whoever opens it pick the Atmosphere client that renders the record.',
     images: ['/og-images/aturi-links.png'],
   },
 };

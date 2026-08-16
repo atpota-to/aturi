@@ -127,9 +127,44 @@
   --margin-annotation-tint: rgba(167, 139, 250, 0.18);
   --margin-annotation-border: rgba(167, 139, 250, 0.36);
 
-  /* Typography scale */
+  /* Font families. The `--font-*` prefix is family only; the size scale
+     below uses `--type-*` because `--text-*` is already the color
+     namespace (--text-primary, --text-secondary, --text-accent). */
   --font-serif: 'Crimson Pro', serif;
   --font-mono: 'IBM Plex Mono', monospace;
+
+  /* Type scale. Six steps, one job each, so a new section can't invent a
+     seventh heading size the way the landing pages drifted into 2.5 /
+     2 / 1.75 / 1.625 / 1.6rem headings.
+
+       --type-display  the one h1 per page      (weight 300, lh 1.15, ls -0.01em)
+       --type-heading  every h2                 (weight 300, lh 1.2,  ls -0.01em)
+       --type-lead     hero lead + sub-heads    (lh 1.6, or 1.4 on a sub-head)
+       --type-body     running copy, list items, button labels (lh 1.65)
+       --type-small    meta lines, captions, chips, footer-weight prose
+       --type-micro    the uppercase serif micro-label (ls 0.12em, lh 1)
+
+     Every value is in rem on purpose: html drops from 16px to 14px at
+     768px (see the html rule and the max-width: 768px block), and a px
+     token would opt the whole scale out of that. For the same reason no
+     @media override may be added for any of these tokens; a per-token
+     override would double-scale against the root change.
+
+     The 0.55rem to 0.72rem sizes inside the bespoke mock visuals are
+     deliberately excluded. Those are artwork simulating a shrunken
+     browser UI at a sub-page scale, not page type, and pulling them onto
+     this scale would blow the mocks up out of proportion.
+
+     Colors flip per theme; these do not. [data-theme='light'], the
+     scheme blocks and the high-contrast blocks redefine colors only, so
+     one :root declaration reaches every palette combination and none of
+     them need a mirrored block. */
+  --type-display: 2.5rem;
+  --type-heading: 1.625rem;
+  --type-lead: 1.05rem;
+  --type-body: 1rem;
+  --type-small: 0.875rem;
+  --type-micro: 0.75rem;
 
   /* Horizontal gutter at the page edges. Trimmed on phones (see the
      max-width: 768px block) and consumed both by the .container classes
@@ -1104,7 +1139,7 @@ code {
 
 pre {
   font-family: var(--font-mono);
-  font-size: 0.875rem;
+  font-size: var(--type-small);
   background: var(--bg-tertiary);
   padding: 1rem;
   overflow-x: auto;
@@ -1436,6 +1471,16 @@ button {
 }
 
 /* Generate button specific styles */
+
+/* The class declared no font-size, which is why all six consumers
+   hand-set one inline. Sizing it here lets them drop that inline
+   declaration and stay on the scale. No !important: the !important on
+   the hover rule below is about beating inline background/color and is
+   unrelated. */
+.generate-button {
+  font-size: var(--type-body);
+}
+
 .generate-button:not(:disabled):hover {
   background: var(--accent-forest) !important;
   color: var(--text-on-accent) !important;
@@ -1476,6 +1521,28 @@ button {
   background: var(--bg-tertiary);
   border-color: var(--border-strong);
   box-shadow: 0 0 40px var(--glow-subtle);
+}
+
+/* Section wrapper on /docs. A `.card` there carries one meaning: this
+   section holds code you can copy. Prose-only sections use
+   `.docs-section` on its own and render without the box.
+
+   The hover reset is required because `.card:hover` adds a glow and a
+   background change, and the preview-card rule further up forces
+   `transform: rotate(0deg) scale(1.005) translateY(-2px) !important` on
+   hover. Docs sections aren't clickable, so a lift-and-glow is a false
+   affordance; the !important on transform is what beats that rule. */
+.docs-section {
+  padding: 2rem;
+  margin-bottom: 1.5rem;
+  scroll-margin-top: 5.5rem;
+}
+
+.card.docs-section:hover {
+  background: var(--bg-secondary);
+  border-color: var(--border-medium);
+  box-shadow: none;
+  transform: none !important;
 }
 
 /* Secondary card style for non-interactive cards */
@@ -2865,7 +2932,7 @@ html {
 
 .explore-small-caps {
   font-family: var(--font-serif);
-  font-size: 0.75rem;
+  font-size: var(--type-micro);
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--text-tertiary);
@@ -4326,70 +4393,6 @@ body.has-explore-chrome {
   color: var(--text-on-accent);
 }
 
-/* ============================================
-   Homepage product strips
-   ============================================ */
-
-.home-product-strip {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: 3rem;
-  align-items: center;
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 4rem 2rem;
-}
-
-/* Desktop: when `data-flip` is set, swap the order so the demo sits on
-   the right side of the viewport while remaining first in the DOM. */
-.home-product-strip[data-flip] .home-product-strip-demo {
-  order: 2;
-}
-
-.home-product-strip-copy h2 {
-  font-size: 2rem;
-  font-weight: 300;
-  letter-spacing: -0.01em;
-  color: var(--text-primary);
-  margin: 0 0 1rem;
-  line-height: 1.15;
-}
-
-.home-product-strip-copy p {
-  font-size: 1.0125rem;
-  line-height: 1.65;
-  color: var(--text-secondary);
-  margin: 0 0 0.875rem;
-}
-
-.home-product-strip-copy p:last-of-type {
-  margin-bottom: 1.5rem;
-}
-
-.home-product-strip-demo {
-  /* Constrain the height of any embedded interactive surface so the
-     strip stays balanced regardless of how the demo renders. */
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
-@media (max-width: 820px) {
-  .home-product-strip {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 1.75rem;
-    /* Match the reduced page-edge gutter used elsewhere on mobile. */
-    padding: 2.5rem 0.875rem;
-  }
-  /* On mobile, demo always above copy regardless of flip. */
-  .home-product-strip[data-flip] .home-product-strip-demo {
-    order: 0;
-  }
-  .home-product-strip-copy h2 {
-    font-size: 1.625rem;
-  }
-}
-
 /* Constrained icon box used inside the auto-redirect / custom-waypoint
    button mocks on the landing pages. Waypoint SVGs are authored at
    24x24 with intrinsic width/height attributes, which inline-style
@@ -4425,7 +4428,7 @@ body.has-explore-chrome {
   .landing-hero {
     grid-template-columns: minmax(0, 1fr) !important;
   }
-  /* Mirror the .landing-feature-visual clamp: the hero visuals (e.g.
+  /* Mirror the .landing-section-visual clamp: the hero visuals (e.g.
      BrowserChrome at maxWidth 520px) need to be clipped to the
      mobile container width so they don't trigger horizontal scroll. */
   .landing-hero > div:last-child > * {
@@ -4433,47 +4436,106 @@ body.has-explore-chrome {
   }
 }
 
-/* Feature row: copy + visual two-column block, flipped order via
-   `data-flip`. Mirrors `.home-product-strip` but tuned for the
-   landing pages' narrower max width and tighter vertical rhythm. */
-.landing-feature {
+/* The one section shape used by home, /links, /extension and /explore.
+   It replaces the two forks it grew out of, `.home-product-strip` and
+   `.landing-feature`, which had drifted to different gaps, different
+   heading sizes and different mobile order rules while drawing the same
+   thing. `data-tone` is the only hierarchy control: `loud` is the
+   two-column row with the visual at full column width, `quiet` is one
+   column with the copy first and any visual sitting under it as a
+   compact row. A page runs one loud section at most.
+
+   Title and body sizes live here rather than inline so no section can
+   invent its own heading weight. See src/components/landing/LandingSection.tsx. */
+.landing-section {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 2.5rem;
   align-items: center;
 }
 
-.landing-feature[data-flip] .landing-feature-visual {
-  order: 2;
+.landing-section[data-tone='quiet'] {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1.25rem;
 }
 
-.landing-feature-visual {
+/* Copy is first in the DOM, so `loud` + `data-flip` is what puts the
+   visual on the left of the viewport. */
+.landing-section[data-flip] .landing-section-visual {
+  order: -1;
+}
+
+.landing-section-visual {
   display: flex;
   justify-content: center;
 }
 
-.landing-feature-body p {
+.landing-section[data-tone='quiet'] .landing-section-visual {
+  justify-content: flex-start;
+}
+
+.landing-section-title {
+  font-size: var(--type-heading);
+  font-weight: 300;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+  color: var(--text-primary);
   margin: 0 0 0.875rem;
 }
 
-.landing-feature-body p:last-child {
+.landing-section-body {
+  font-size: var(--type-body);
+  line-height: 1.65;
+  color: var(--text-secondary);
+}
+
+.landing-section-body p {
+  margin: 0 0 0.875rem;
+}
+
+.landing-section-body p:last-child {
   margin-bottom: 0;
 }
 
 @media (max-width: 820px) {
-  .landing-feature {
+  .landing-section {
     grid-template-columns: minmax(0, 1fr);
     gap: 1.5rem;
   }
-  .landing-feature[data-flip] .landing-feature-visual {
+  .landing-section[data-flip] .landing-section-visual {
     order: 0;
   }
-  /* Clamp every visual to the column width so the 380-460px mocks
+  /* Clamp every visual to the column width so the 380-520px mocks
      don't push horizontal overflow on narrow screens. The inner mocks
      use their own max-widths to stay legible at desktop sizes; this
      just caps them on mobile. */
-  .landing-feature-visual > * {
+  .landing-section-visual > * {
     max-width: 100% !important;
+  }
+}
+
+/* BrowserChrome desktop: size the chrome to the popup it contains.
+   The popup runs ~400px tall against the content area's 20rem floor,
+   and an absolutely-positioned child contributes nothing to its
+   parent's height, so the popup used to spill ~84px past the bottom
+   border and land on the following section's heading. Stacking the
+   fake page content and the popup in a single grid cell makes the
+   content area measure the taller of the two, with no height constant
+   to keep in sync when the popup's contents change. */
+@media (min-width: 821px) {
+  .browser-chrome-content {
+    display: grid;
+  }
+  .browser-chrome-fake-content,
+  .browser-chrome-popup {
+    grid-area: 1 / 1;
+  }
+  /* Reproduces the inline top/right offsets, which stop applying once
+     the popup is no longer positioned. */
+  .browser-chrome-popup {
+    position: static !important;
+    justify-self: end;
+    margin: 0.5rem -1.25rem 0 0 !important;
   }
 }
 
@@ -4647,16 +4709,6 @@ body.has-explore-chrome {
   gap: 0.5rem;
 }
 
-/* Static "Repo at a glance" demo card on /explore. Mirrors the live
-   AccountStats grid: three tiles per row, dropping to two on mobile so the
-   tiles don't get cramped enough to wrap the values ("Aug 2023") or labels. */
-.repo-glance-tiles {
-  padding: 10px;
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 6px;
-}
-
 @media (max-width: 600px) {
   .account-stats-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -4668,10 +4720,6 @@ body.has-explore-chrome {
      instead of wrapping mid-phrase. The icon already eats into the width. */
   .account-stats-grid .explore-small-caps {
     letter-spacing: 0.05em;
-  }
-
-  .repo-glance-tiles {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 

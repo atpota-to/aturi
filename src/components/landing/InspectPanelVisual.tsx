@@ -17,6 +17,10 @@ import {
  * (lexicon), record key — alongside the resolved handle and PDS.
  * Used on the /extension landing page to communicate what the
  * extension surfaces beyond just app-switching.
+ *
+ * The handle and DID are placeholders on purpose. The panel shows a
+ * backlink count, and a made-up count next to a real account would be
+ * a fabricated statistic about that account.
  */
 export default function InspectPanelVisual() {
   return (
@@ -28,7 +32,6 @@ export default function InspectPanelVisual() {
         maxWidth: '420px',
         width: '100%',
         margin: '0 auto',
-        transform: 'rotate(-0.4deg)',
       }}
     >
       {/* Tab strip — mirrors the real popup: Waypoints / Inspect with a
@@ -75,7 +78,7 @@ export default function InspectPanelVisual() {
         }}
       >
         <span style={{ color: 'var(--text-secondary)' }}>at://</span>
-        <span style={{ color: 'var(--text-accent)' }}>did:plc:gq4…23tj</span>
+        <span style={{ color: 'var(--text-accent)' }}>did:plc:exa…turi</span>
         <span style={{ color: 'var(--text-secondary)' }}>/</span>
         app.bsky.feed.post
         <span style={{ color: 'var(--text-secondary)' }}>/</span>
@@ -84,10 +87,10 @@ export default function InspectPanelVisual() {
 
       <div style={{ padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
         <Field icon={<Fingerprint size={12} />} label="Authority">
-          <span style={{ color: 'var(--text-accent)' }}>did:plc:gq4fo3u6tqzzdkjlwzpb23tj</span>
+          <span style={{ color: 'var(--text-accent)' }}>did:plc:exampleaturiexampleaturi</span>
         </Field>
         <Field icon={<Hash size={12} />} label="Handle">
-          @aturi.to
+          @example.com
         </Field>
         <Field icon={<Database size={12} />} label="PDS">
           pds.example.host
@@ -159,7 +162,7 @@ function Tab({
             padding: '0 4px',
             marginLeft: 2,
             background: 'var(--text-accent)',
-            color: 'var(--bg-primary, #000)',
+            color: 'var(--bg-primary)',
             borderRadius: 7,
             fontSize: 9,
             fontWeight: 600,

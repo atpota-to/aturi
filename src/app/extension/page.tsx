@@ -5,11 +5,11 @@ import ExtensionLanding from '@/components/landing/ExtensionLanding';
 export const metadata: Metadata = {
   title: 'Browser Extension · aturi.to',
   description:
-    'Jump between Atmosphere clients in one click, inspect AT URIs anywhere on the web, and auto-redirect to your preferred app per lexicon.',
+    'Jump between Atmosphere clients in one click, inspect AT URIs anywhere on the web, and auto-redirect links to the client you prefer.',
   openGraph: {
     title: 'Browser Extension · aturi.to',
     description:
-      'Jump between Atmosphere clients in one click, inspect AT URIs anywhere on the web, and auto-redirect to your preferred app per lexicon.',
+      'Jump between Atmosphere clients in one click, inspect AT URIs anywhere on the web, and auto-redirect links to the client you prefer.',
     images: [
       {
         url: '/og-images/aturi-extension.png',
@@ -23,7 +23,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'Browser Extension · aturi.to',
     description:
-      'Jump between Atmosphere clients in one click, inspect AT URIs anywhere on the web, and auto-redirect to your preferred app per lexicon.',
+      'Jump between Atmosphere clients in one click, inspect AT URIs anywhere on the web, and auto-redirect links to the client you prefer.',
     images: ['/og-images/aturi-extension.png'],
   },
 };

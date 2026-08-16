@@ -6,7 +6,12 @@ import { Check, Copy } from 'lucide-react';
 interface CodeBlockProps {
   /** The literal code/command to render and copy. */
   code: string;
-  /** Optional small uppercase label shown above the block (e.g. "bash", "tsx"). */
+  /**
+   * Optional small uppercase label shown above the block. Pass one only when
+   * the language isn't obvious from the first token: an `http` block opening
+   * on `GET`, or a bare `json` body. A "bash" label over `npm install` is
+   * texture, not information.
+   */
   label?: string;
 }
 
@@ -35,7 +40,7 @@ export default function CodeBlock({ code, label }: CodeBlockProps) {
         <div
           style={{
             fontFamily: 'var(--font-serif)',
-            fontSize: '0.7rem',
+            fontSize: 'var(--type-micro)',
             letterSpacing: '0.12em',
             textTransform: 'uppercase',
             color: 'var(--text-tertiary)',

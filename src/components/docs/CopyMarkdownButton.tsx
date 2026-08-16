@@ -56,7 +56,7 @@ export default function CopyMarkdownButton({ markdown }: Props) {
         border: '1px solid var(--border-subtle)',
         color: copied ? 'var(--text-accent)' : 'var(--text-secondary)',
         fontFamily: 'var(--font-mono)',
-        fontSize: '0.8125rem',
+        fontSize: 'var(--type-small)',
         cursor: 'pointer',
         transition: 'color 0.2s ease, border-color 0.2s ease',
       }}

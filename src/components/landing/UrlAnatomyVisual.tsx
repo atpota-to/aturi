@@ -14,7 +14,7 @@ const PARTS: Part[] = [
   {
     text: 'aturi.to',
     label: 'Domain',
-    hint: 'The universal link host. Aliases for atpota.to are also supported.',
+    hint: 'The universal link host.',
     accent: 'var(--text-tertiary)',
   },
   {
@@ -38,7 +38,7 @@ const PARTS: Part[] = [
   {
     text: '/3lq9c2fhz3k2v',
     label: 'Record key',
-    hint: 'The TID assigned by the PDS when the record was written.',
+    hint: 'Unique within the collection; usually a timestamp-ordered TID.',
     accent: 'var(--text-primary)',
   },
 ];
@@ -59,7 +59,12 @@ export default function UrlAnatomyVisual() {
         display: 'flex',
         flexDirection: 'column',
         gap: '1.5rem',
-        transform: 'rotate(-0.3deg)',
+        // Capped so this reads as a figure under the copy rather than a
+        // full-bleed block. Without it the flex item sizes to its content
+        // and fills the 800px container, which would leave the page's quiet
+        // section drawn wider than its loud one.
+        maxWidth: '600px',
+        width: '100%',
       }}
     >
       {/* The URL itself, with each segment underlined in its own color. */}

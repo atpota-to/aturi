@@ -2,21 +2,27 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { ArrowUpRight, Cloud, Gauge, Pin, Telescope, User } from 'lucide-react';
+import { User } from 'lucide-react';
 import AppearIn from './AppearIn';
 import SearchBox from './SearchBox';
 import JetstreamFeed from './JetstreamFeed';
 import TrendingLexicons from './TrendingLexicons';
+import AccountStats from '@/components/account/AccountStats';
 import CrossLinkCards from '@/components/landing/CrossLinkCards';
-import FeatureSection from '@/components/landing/FeatureSection';
-import PinnedLexiconsVisual from '@/components/landing/PinnedLexiconsVisual';
-import RepoGlanceVisual from '@/components/landing/RepoGlanceVisual';
+import LandingSection from '@/components/landing/LandingSection';
 import SignedInExploreVisual from '@/components/landing/SignedInExploreVisual';
 import { useAtprotoSession } from '@/components/AtprotoSessionProvider';
 import { getProfile, type AppViewProfile } from '@/utils/atproto/appview';
 import { encodeRepo } from '@/utils/atproto/urls';
 
 const SUGGESTIONS = ['dame.is', 'anisota.net', 'aturi.to', 'atpota.to'];
+
+// aturi.to's DID, hardcoded rather than resolved at mount so the stat tiles
+// render with their own placeholders on first paint instead of arriving a
+// round trip later — or not at all, on the visit where the handle lookup
+// fails. A PLC DID is permanent, so the only thing that could stale this is
+// aturi.to moving to another account.
+const DEMO_DID = 'did:plc:6teuhlkizzebk6wdp42633el';
 
 export default function ExploreLanding() {
   const { did } = useAtprotoSession();
@@ -50,28 +56,12 @@ export default function ExploreLanding() {
     <div style={{ display: 'flex', flexDirection: 'column', gap: '2.5rem' }}>
       <AppearIn rise>
       <header>
-        <div
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '0.5rem',
-            padding: '0.25rem 0.625rem',
-            border: '1px solid var(--border-subtle)',
-            background: 'var(--bg-tertiary)',
-            color: 'var(--text-tertiary)',
-            fontSize: '0.75rem',
-            letterSpacing: '0.08em',
-            textTransform: 'uppercase',
-            fontFamily: 'var(--font-serif)',
-            marginBottom: '1.25rem',
-          }}
-        >
-          <Telescope size={12} /> Atmosphere data explorer
-        </div>
         <h1
           style={{
-            fontSize: '2.5rem',
+            fontSize: 'var(--type-display)',
             fontWeight: 300,
+            lineHeight: 1.15,
+            letterSpacing: '-0.01em',
             marginBottom: '0.75rem',
             color: 'var(--text-primary)',
           }}
@@ -80,16 +70,16 @@ export default function ExploreLanding() {
         </h1>
         <p
           style={{
-            fontSize: '1.05rem',
+            fontSize: 'var(--type-lead)',
             lineHeight: 1.6,
             color: 'var(--text-secondary)',
             maxWidth: '38rem',
             marginBottom: '2rem',
           }}
         >
-          Every account in the Atmosphere keeps its records in a public PDS.
-          Browse collections, inspect identity history, follow backlinks, and
-          edit your own records, all from the browser.
+          Every atproto account keeps its records in a repository on a PDS.
+          Give the explorer a handle, a DID, or an at:// URI and it opens that
+          repository.
         </p>
         <SearchBox />
         <div
@@ -98,7 +88,7 @@ export default function ExploreLanding() {
             flexWrap: 'wrap',
             alignItems: 'center',
             gap: '0.5rem',
-            fontSize: '0.85rem',
+            fontSize: 'var(--type-small)',
             color: 'var(--text-tertiary)',
           }}
         >
@@ -142,88 +132,47 @@ export default function ExploreLanding() {
       </header>
       </AppearIn>
 
+      {/* Runs bare: the widget's own header names it and already carries the
+          "Explore all" link to /explore/lexicons. */}
       <TrendingLexicons />
 
-      <AppearIn delay={0.14}>
-        <Link
-          href="/explore/lexicons"
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '0.3rem',
-            fontFamily: 'var(--font-mono)',
-            fontSize: '0.85rem',
-            color: 'var(--text-accent)',
-            textDecoration: 'none',
-          }}
+      {/* The page's one loud section, and the only one showing a repo page
+          rather than describing it: these are the live AccountStats tiles, the
+          same component /explore/<repo> opens with, so the section is the
+          feature instead of a picture of it. Non-interactive, so the cred.blue
+          link and the multi-MB repo-size download stay off a front door. The
+          width wrapper is needed because .landing-section-visual is a flex
+          container and the tile grid would otherwise size to its content. */}
+      <AppearIn delay={0.12}>
+        <LandingSection
+          tone="loud"
+          title="Repo at a glance"
+          visual={
+            <div style={{ width: '100%' }}>
+              <AccountStats did={DEMO_DID} interactive={false} />
+            </div>
+          }
         >
-          Explore all lexicons <ArrowUpRight size={13} aria-hidden />
-        </Link>
-      </AppearIn>
-
-      {/* Feature spotlights — what the Explorer does that other AT
-          Protocol browsers don't. */}
-      <AppearIn delay={0.12}>
-        <FeatureSection
-          badge={{ icon: <Gauge size={12} />, label: 'Repo at a glance' }}
-          title="Get the tl;dr up top"
-          body={
-            <>
-              <p>
-                Every repo page leads with high-level context so you can orient yourself quickly without having to wade into all the details.
-              </p>
-            </>
-          }
-          visual={<RepoGlanceVisual />}
-        />
+          <p>
+            Every repo page opens on the same tiles: namespace and lexicon
+            counts, audit-log changes, inbound backlinks, account age, and the
+            repo&rsquo;s last commit.
+          </p>
+        </LandingSection>
       </AppearIn>
 
       <AppearIn delay={0.12}>
-        <FeatureSection
-          flip
-          badge={{ icon: <Pin size={12} />, label: 'Pinned lexicons' }}
-          title="Keep the records you care about at the top"
-          body={
-            <>
-              <p>
-                Click the pin on any lexicon (or a whole group header like{' '}
-                <code>app.bsky.feed.*</code>) to lift it out of the
-                hierarchy. Pinned NSIDs sit in their own accent-bordered
-                section at the top of the Lexicons tab, on every account
-                page you visit.
-              </p>
-              <p>
-                Maintain separate pin lists for your own repo and other
-                people&rsquo;s: Anisota records when you&rsquo;re
-                auditing yourself, Bluesky posts when you&rsquo;re
-                reading someone else, both without re-pinning each time.
-              </p>
-            </>
-          }
-          visual={<PinnedLexiconsVisual />}
-        />
-      </AppearIn>
-
-      <AppearIn delay={0.12}>
-        <FeatureSection
-          badge={{ icon: <Cloud size={12} />, label: 'Sign in superpowers' }}
-          title="Your preferences sync. Every repo gets a relationship strip."
-          body={
-            <>
-              <p>
-                By optionally signing in, your preferences (pins, custom waypoints, color scheme, etc) ride with you via your PDS: jump between
-                devices and the Explorer will not forget your settings.
-              </p>
-              <p>
-                On every other account&rsquo;s page, a &ldquo;You +
-                @them&rdquo; strip surfaces what you have in common: the
-                same PDS host, your follow status, mutual followers, and the count of
-                lexicons you have in common.
-              </p>
-            </>
-          }
+        <LandingSection
+          title="Pin what you read, on any device"
           visual={<SignedInExploreVisual />}
-        />
+        >
+          <p>
+            Pin any lexicon, or a whole group like <code>app.bsky.feed.*</code>,
+            and it moves to the top of the Lexicons tab on your own repo. Sign
+            in and those pins travel with your custom waypoints and color scheme
+            as a record in your PDS, so any browser you sign in from loads them.
+          </p>
+        </LandingSection>
       </AppearIn>
 
       <AppearIn delay={0.12}>

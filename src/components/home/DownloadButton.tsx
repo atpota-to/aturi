@@ -79,7 +79,6 @@ export default function DownloadButton({
           border: isPrimary
             ? '1px solid var(--accent-forest)'
             : '1px solid var(--text-accent)',
-          fontSize: '1.0125rem',
           fontWeight: 400,
           textDecoration: 'none',
           transition: 'all 0.3s ease',
@@ -120,7 +119,7 @@ function FallbackList({
         alignItems: 'center',
         flexWrap: 'wrap',
         justifyContent: justify === 'center' ? 'center' : 'flex-start',
-        fontSize: '0.8125rem',
+        fontSize: 'var(--type-small)',
         color: 'var(--text-tertiary)',
       }}
     >

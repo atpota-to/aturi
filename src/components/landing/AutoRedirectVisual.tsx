@@ -3,12 +3,17 @@
 import { Check, ChevronRight } from 'lucide-react';
 import {
   AnisotaLogo,
-  BlueskySVG,
   LeafletSVG,
   TangledSVG,
   GrainSVG,
 } from '@/utils/waypointIcons';
 
+/**
+ * One row per redirect compat family, which is the unit the extension
+ * actually stores a favorite for (`favoriteByFamily` in extension/lib/prefs).
+ * Two rows out of the same family would draw a split the settings page
+ * cannot express.
+ */
 const ROWS: { collection: string; label: string; icon: React.ReactNode; client: string }[] = [
   {
     collection: 'app.bsky.feed.post',
@@ -34,12 +39,6 @@ const ROWS: { collection: string; label: string; icon: React.ReactNode; client: 
     icon: <GrainSVG />,
     client: 'Grain',
   },
-  {
-    collection: 'app.bsky.actor.profile',
-    label: 'Profiles',
-    icon: <BlueskySVG />,
-    client: 'Bluesky',
-  },
 ];
 
 /**
@@ -58,7 +57,6 @@ export default function AutoRedirectVisual() {
         maxWidth: '420px',
         width: '100%',
         margin: '0 auto',
-        transform: 'rotate(0.3deg)',
       }}
     >
       <div

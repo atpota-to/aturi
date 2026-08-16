@@ -97,7 +97,7 @@ export default function SignedInExploreVisual() {
             color: 'var(--text-tertiary)',
           }}
         >
-          You + @aturi.to
+          You + @example.bsky.social
         </div>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px' }}>
           <Chip icon={<Server size={10} aria-hidden />}>
@@ -151,7 +151,7 @@ export default function SignedInExploreVisual() {
               fontWeight: 500,
             }}
           >
-            aturi.to
+            example.bsky.social
           </div>
           <div
             style={{
@@ -163,7 +163,7 @@ export default function SignedInExploreVisual() {
               whiteSpace: 'nowrap',
             }}
           >
-            did:plc:gq4fo3u6tqzzdkjlwzpb23tj
+            did:plc:abc
           </div>
         </div>
       </div>

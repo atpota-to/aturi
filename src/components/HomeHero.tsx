@@ -1,20 +1,19 @@
 'use client';
 
 import Link from 'next/link';
-import { Code2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import SearchBox from './explore/SearchBox';
 import DownloadButton, { BrowserFallbackList } from './home/DownloadButton';
 
 /**
- * Homepage hero: tagline + a full-width Explore search bar (the same one
- * that leads the /explore page), followed by two CTAs (Download +
- * Integrate) and the download's browser-detected fallback list.
+ * Homepage hero: one headline, the Explore search bar (the same component
+ * that leads /explore), and a single primary CTA.
  *
- * The search bar puts the explorer's core action right under the tagline
- * so visitors can jump straight to any repo, while the CTA row anchors the
- * two product entry points: the extension (download) and the developer
- * packages (integrate → docs).
+ * The search bar puts the explorer's core action directly under the
+ * headline so visitors can jump straight to any repo. Download is the only
+ * button; Integrate is a text link, because the developer packages are a
+ * much narrower audience than the extension and a second bordered button
+ * made them look like an even split.
  */
 export default function HomeHero() {
   return (
@@ -31,12 +30,12 @@ export default function HomeHero() {
     >
       <h1
         style={{
-          fontSize: '2.25rem',
+          fontSize: 'var(--type-display)',
           fontWeight: 300,
           letterSpacing: '-0.01em',
           color: 'var(--text-primary)',
           marginBottom: '1.75rem',
-          lineHeight: 1.2,
+          lineHeight: 1.15,
           maxWidth: '38rem',
           marginLeft: 'auto',
           marginRight: 'auto',
@@ -51,53 +50,34 @@ export default function HomeHero() {
             backgroundClip: 'text',
           }}
         >
-          Jump between clients, share universal links, browse any PDS
+          Open any atproto record in the client you use
         </span>
       </h1>
 
-      {/* Full-width Explore search bar — the same component that leads the
-          /explore page. Left-aligned text inside a centered hero, so the
-          typeahead/recommendations dropdown reads naturally. */}
+      {/* Full-width Explore search bar. Left-aligned text inside a centered
+          hero, so the typeahead/recommendations dropdown reads naturally. */}
       <div style={{ textAlign: 'left', marginBottom: '1.5rem' }}>
         <SearchBox />
       </div>
 
-      {/* CTA row — align to the top so the Integrate link doesn't stretch
-          to match the Download column's full height (button + fallback
-          line). Each button keeps its natural size. */}
       <div
         style={{
           display: 'flex',
           flexWrap: 'wrap',
-          alignItems: 'flex-start',
+          alignItems: 'center',
           justifyContent: 'center',
-          gap: '0.75rem',
+          gap: '1.25rem',
           marginBottom: '0.875rem',
         }}
       >
         {/* showFallback omitted — the fallback list lives below the CTA
-            row so it can center relative to both buttons. */}
-        <DownloadButton variant="primary" label="Download" />
-        <Link
-          href="/docs"
-          className="generate-button"
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '0.625rem',
-            padding: '0.875rem 1.5rem',
-            background: 'var(--bg-secondary)',
-            color: 'var(--text-primary)',
-            border: '1px solid var(--text-accent)',
-            fontSize: '1.0125rem',
-            fontWeight: 400,
-            textDecoration: 'none',
-            transition: 'all 0.3s ease',
-            letterSpacing: '0.01em',
-          }}
-        >
-          <Code2 size={18} style={{ color: 'var(--text-accent)' }} />
-          <span>Integrate</span>
+            row so it can center relative to the whole row. The label is left
+            to the component's browser detection rather than overridden to a
+            bare "Download": this is the first thing on the page, and a verb
+            with no object doesn't name what it fetches. */}
+        <DownloadButton variant="primary" />
+        <Link href="/docs" style={{ fontSize: 'var(--type-small)' }}>
+          Integrate
         </Link>
       </div>
 

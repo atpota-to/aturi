@@ -71,11 +71,11 @@ function configFor(page: string): PageConfig {
         eyebrow: 'Universal links',
         title: 'One link, every\nAtmosphere client.',
         tagline:
-          'Share aturi.to/handle/collection/rkey with anyone; they pick where to open it, from a curated list of 25+ clients.',
+          'Share aturi.to/handle/collection/rkey with anyone; they pick where to open it.',
         layout: 'split',
         visual: <PickerVisual />,
         visualText:
-          'aturi.to/dame.is/app.bsky.feed.post/3lq9 Choose where to view Anisota Bluesky Leaflet anisota.net bsky.app leaflet.pub +22 more',
+          'aturi.to/dame.is/app.bsky.feed.post/3lq9 Choose where to view Anisota Bluesky Leaflet anisota.net bsky.app leaflet.pub and the rest of the catalog',
       };
     case 'fork':
       return {
@@ -412,7 +412,7 @@ function PickerVisual() {
           }}
         >
           <MonoLine size={13} color={OG_COLORS.textTertiary}>
-            +22 more
+            and the rest of the catalog
           </MonoLine>
         </div>
       </div>

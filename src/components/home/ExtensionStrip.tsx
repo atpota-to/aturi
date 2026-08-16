@@ -1,77 +1,41 @@
 'use client';
 
-import { MousePointerClick, Repeat } from 'lucide-react';
-import { getWaypointCount } from '@/utils/waypoints';
-import ProductStrip from './ProductStrip';
+import Link from 'next/link';
+import { ArrowRight } from 'lucide-react';
+import LandingSection from '@/components/landing/LandingSection';
 import BrowserChrome from './BrowserChrome';
 import ExtensionPopupVisual from './ExtensionPopupVisual';
-import DownloadButton from './DownloadButton';
 
 /**
- * Strip 2 — Browser extension. Demo is a static visual of the popup
- * (no live extension chrome possible from the web page); copy + the
- * shared DownloadButton on the other side.
+ * The homepage's one loud section and its only bespoke visual, which is
+ * what keeps the other two products from reading as equally-weighted
+ * claims. The pitch, the download button and the client count all live on
+ * /extension; this section names the behaviour and hands off.
  */
 export default function ExtensionStrip() {
-  const waypointCount = getWaypointCount();
   return (
-    <ProductStrip
+    <LandingSection
+      tone="loud"
       flip
-      label="Browser extension"
-      copy={
-        <>
-          <span
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '0.4rem',
-              padding: '0.2rem 0.6rem',
-              border: '1px solid var(--border-subtle)',
-              background: 'var(--bg-tertiary)',
-              color: 'var(--text-tertiary)',
-              fontSize: '0.7rem',
-              letterSpacing: '0.12em',
-              textTransform: 'uppercase',
-              marginBottom: '1rem',
-              lineHeight: 1,
-            }}
-          >
-            <MousePointerClick size={12} aria-hidden />
-            Browser extension
-          </span>
-          <h2>Jump between Atmosphere clients in one click... or zero</h2>
-          <p>
-            Land on a Bluesky post and want to read it in Anisota? Click the
-            leaf in your toolbar. The popup detects the AT URI on the page and
-            offers every app that can render it.
-          </p>
-          <p>
-            Prefer not to click? Auto-redirect opens links in your preferred client. The Inspect
-            tab surfaces the underlying record, PDS, DID, and backlinks for
-            whatever&rsquo;s on screen.
-          </p>
-          <p
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '0.4rem',
-              fontSize: '0.85rem',
-              color: 'var(--text-accent)',
-              fontFamily: 'var(--font-mono)',
-              marginBottom: '1.25rem',
-            }}
-          >
-            <Repeat size={14} />
-            {waypointCount} curated Atmosphere clients
-          </p>
-          <DownloadButton variant="primary" align="start" />
-        </>
-      }
-      demo={
+      title="Click the leaf, pick the client"
+      visual={
         <BrowserChrome>
           <ExtensionPopupVisual />
         </BrowserChrome>
       }
-    />
+    >
+      <p>
+        Land on a Bluesky post and read it in Anisota instead, without copying
+        an AT URI by hand. Set a favorite, turn auto-redirect on, and those
+        links open there with no popup at all.
+      </p>
+      <Link
+        href="/extension"
+        style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
+      >
+        Get the extension
+        <ArrowRight size={14} aria-hidden />
+      </Link>
+    </LandingSection>
   );
 }
