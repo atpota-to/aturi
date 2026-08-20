@@ -18,7 +18,7 @@ import {
   togglePinnedLexicon,
 } from '@/utils/preferences';
 import { groupHierarchically, pinnedKey } from './collectionGrouping';
-import { useChromeBarField } from '../ChromeBarContext';
+import { CHROME_RESULTS_ID, useChromeBarField } from '../ChromeBarContext';
 import GroupHeader from './GroupHeader';
 import LeafRow from './LeafRow';
 
@@ -227,6 +227,7 @@ export default function CollectionsTab({ identity }: { identity: IdentityBundle 
     label: 'Filter lexicons on this repo',
     value: filter,
     onChange: setFilter,
+    resultsId: CHROME_RESULTS_ID,
     status: !collections
       ? null
       : narrowed
@@ -241,7 +242,10 @@ export default function CollectionsTab({ identity }: { identity: IdentityBundle 
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+    <div
+      id={CHROME_RESULTS_ID}
+      style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}
+    >
       <div
         style={{
           display: 'flex',

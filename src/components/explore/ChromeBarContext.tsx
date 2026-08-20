@@ -31,7 +31,23 @@ export type ChromeBarField = {
   onSubmit?: () => void;
   /** Terse readout beside the field, e.g. "12/340". */
   status?: string | null;
+  /**
+   * DOM id of the block this field narrows — normally
+   * {@link CHROME_RESULTS_ID} on the list itself. Typing in the bar brings
+   * that block into view, since a filter you can't see the results of is a
+   * filter you're typing blind. Leave it off when the field navigates
+   * instead of narrowing (a lexicon search), or when there's nothing on the
+   * page it would scroll to.
+   */
+  resultsId?: string;
 };
+
+/**
+ * The id every explorer list uses for the block above. One constant rather
+ * than a per-route name because only one field is published at a time, so
+ * only one such block is ever in the document.
+ */
+export const CHROME_RESULTS_ID = 'explore-chrome-results';
 
 /**
  * A single button the route wants within reach — today the "Edit" affordance
@@ -115,6 +131,7 @@ export function useChromeBarField(field: ChromeBarField | null): void {
   const label = field?.label ?? '';
   const value = field?.value ?? '';
   const status = field?.status ?? null;
+  const resultsId = field?.resultsId;
   const submits = Boolean(field?.onSubmit);
 
   useEffect(() => {
@@ -127,10 +144,11 @@ export function useChromeBarField(field: ChromeBarField | null): void {
       label,
       value,
       status,
+      resultsId,
       onChange: (next) => handlers.current.onChange?.(next),
       onSubmit: submits ? () => handlers.current.onSubmit?.() : undefined,
     });
-  }, [active, placeholder, label, value, status, submits, setField]);
+  }, [active, placeholder, label, value, status, resultsId, submits, setField]);
 
   useEffect(() => () => setField(null), [setField]);
 }
