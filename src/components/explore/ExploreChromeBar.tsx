@@ -354,6 +354,21 @@ const REVEAL_GAP_PX = 12;
 const REVEAL_COOLDOWN_MS = 500;
 
 /**
+ * How long a reveal keeps its grip on the page. One scrollTo is not enough:
+ * the keystroke that triggered it also re-renders the list, and a repo page
+ * is often still streaming in its profile card and its stats — anything that
+ * changes height above the list moves the place we were aiming for, and the
+ * browser re-anchoring to the shift can throw the page back where it
+ * started. So the reveal keeps checking until the page comes to rest on
+ * target, and gives up after this long rather than hanging on to a page that
+ * won't settle.
+ */
+const REVEAL_SETTLE_MS = 1200;
+
+/** Off-by-this-much from the target is close enough to stop correcting. */
+const REVEAL_TOLERANCE_PX = 4;
+
+/**
  * How far you're allowed to have read into the list — a few rows — before the
  * next keystroke counts as typing blind and pulls you back to the top of it.
  * Without this the reveal fights you: it lands the list's first row just
@@ -375,6 +390,62 @@ function navBottom(): number {
 }
 
 /**
+ * Scrolls `el` to just under the nav and holds it there while the page
+ * settles, returning a function that lets go early.
+ *
+ * The holding is the point. Between the scroll starting and the page coming
+ * to rest, the list re-renders under the new filter and any still-loading
+ * block above it can arrive — so the target moves, and a single scroll lands
+ * short or, when the browser re-anchors to the shift, snaps back where it
+ * came from. Each frame the page is at rest, we re-measure and correct;
+ * once it's at rest on target, we're done. A wheel, a touch, or a click is
+ * the visitor taking the page back, and ends it immediately.
+ */
+function holdInView(el: HTMLElement): () => void {
+  const behavior = getReduceMotionSnapshot() ? 'auto' : 'smooth';
+  const deadline = Date.now() + REVEAL_SETTLE_MS;
+  let frame = 0;
+  let lastY = NaN;
+  let atRest = 0;
+
+  const release = () => {
+    cancelAnimationFrame(frame);
+    window.removeEventListener('wheel', release);
+    window.removeEventListener('touchstart', release);
+    window.removeEventListener('pointerdown', release);
+  };
+
+  const correct = () => {
+    const off = el.getBoundingClientRect().top - navBottom() - REVEAL_GAP_PX;
+    if (Math.abs(off) <= REVEAL_TOLERANCE_PX) return true;
+    window.scrollTo({ top: Math.max(0, window.scrollY + off), behavior });
+    return false;
+  };
+
+  const step = () => {
+    // Only judge the position while the page is still: mid-animation it is
+    // meant to be off target, and correcting then would restart the scroll
+    // every frame and never arrive.
+    const y = window.scrollY;
+    atRest = y === lastY ? atRest + 1 : 0;
+    lastY = y;
+    if (atRest >= 2) {
+      if (correct()) return release();
+      atRest = 0;
+    }
+    if (Date.now() > deadline) return release();
+    frame = requestAnimationFrame(step);
+  };
+
+  window.addEventListener('wheel', release, { passive: true });
+  window.addEventListener('touchstart', release, { passive: true });
+  window.addEventListener('pointerdown', release);
+  correct();
+  frame = requestAnimationFrame(step);
+  return release;
+}
+
+/**
  * Brings the list a bar field narrows into view. Typing in a bar pinned to
  * the bottom of the screen otherwise means filtering results you can't see:
  * you'd be somewhere down a long collection, or at the foot of a repo's
@@ -388,6 +459,11 @@ function navBottom(): number {
  */
 function useRevealResults(resultsId: string | undefined) {
   const lastRevealRef = useRef(0);
+  const releaseRef = useRef<(() => void) | null>(null);
+
+  // A reveal outlives the keystroke that started it, so a bar that goes away
+  // mid-flight — a route change, a tab switch — takes its listeners with it.
+  useEffect(() => () => releaseRef.current?.(), []);
 
   return useCallback(() => {
     if (!resultsId) return;
@@ -403,10 +479,8 @@ function useRevealResults(resultsId: string | undefined) {
     if (top >= floor - REVEAL_SLACK_PX && top <= ceiling) return;
 
     lastRevealRef.current = now;
-    window.scrollTo({
-      top: Math.max(0, window.scrollY + top - floor - REVEAL_GAP_PX),
-      behavior: getReduceMotionSnapshot() ? 'auto' : 'smooth',
-    });
+    releaseRef.current?.();
+    releaseRef.current = holdInView(el);
   }, [resultsId]);
 }
 
