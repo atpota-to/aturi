@@ -18,7 +18,7 @@ import { tidToDate, formatTidRelative } from '@/utils/atproto/tid';
 import AppearIn from './AppearIn';
 import CopyButton from './CopyButton';
 import ShareLinkChip from './ShareLinkChip';
-import { useChromeBarField } from './ChromeBarContext';
+import { CHROME_RESULTS_ID, useChromeBarField } from './ChromeBarContext';
 
 type Props = {
   host: string;
@@ -127,6 +127,7 @@ export default function PdsExplorer({ host }: Props) {
     label: 'Search repos on this PDS',
     value: filter,
     onChange: setFilter,
+    resultsId: CHROME_RESULTS_ID,
     status:
       repos.length === 0
         ? null
@@ -148,7 +149,7 @@ export default function PdsExplorer({ host }: Props) {
       </AppearIn>
 
       <AppearIn delay={0.08}>
-        <section>
+        <section id={CHROME_RESULTS_ID}>
           <header
             style={{
               display: 'flex',
