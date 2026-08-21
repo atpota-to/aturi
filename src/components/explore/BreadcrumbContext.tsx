@@ -14,7 +14,7 @@ export type BreadcrumbCrumb = {
   /** Upstream segments link; the current (last) segment usually omits href. */
   href?: string;
   /** Optional leading glyph. Only the PDS segment uses one today. */
-  icon?: 'server';
+  icon?: 'server' | 'user';
 };
 
 type BreadcrumbContextValue = {
