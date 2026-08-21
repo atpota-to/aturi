@@ -69,8 +69,7 @@ export default function SpacesLanding() {
               A space holds records with an authority that checks membership
               before serving them: mutuals-only posts, private bulletin
               boards, notes that never reach the firehose. Sign in and the
-              explorer walks the spaces you write to, the way it walks your
-              public collections.{' '}
+              explorer reveals the spaces you write to.{' '}
               <a
                 href="https://atproto.com/blog/atproto-spaces-alpha"
                 target="_blank"
@@ -221,14 +220,10 @@ function AlphaAccount() {
         <Badge icon={<KeyRound size={12} aria-hidden />}>Try the alpha</Badge>
         <h2 style={sectionTitleStyle}>Get an account on the alpha host</h2>
         <p style={sectionLeadStyle}>
-          Reading a space takes an account on a server that runs the spaces
-          build, and during the alpha exactly one host does:{' '}
-          <code style={{ background: 'transparent', padding: 0, color: 'var(--text-accent)' }}>
-            {SPACES_ALPHA_PDS}
-          </code>
-          . New accounts there take an invite code. Your bsky.network account
-          page has one for you, along with a link to the sign-up form. Create
-          the account, then sign in here with it.
+          Trying Spaces requires an account on a server that runs the spaces
+          build. Bluesky is hosting one for this alpha test. Grab an invite
+          code from Bluesky using the link below, create the account, then
+          sign in here with it.
         </p>
       </div>
       <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'center' }}>
@@ -300,9 +295,10 @@ function FeaturedApps() {
         <Badge icon={<Boxes size={12} aria-hidden />}>Built on spaces</Badge>
         <h2 style={sectionTitleStyle}>Apps to try</h2>
         <p style={sectionLeadStyle}>
-          The explorer reads spaces; it doesn&rsquo;t create them. An account
-          has nothing to browse until an app writes something to a space on
-          its behalf. These three do.
+          The explorer reads spaces, but it doesn&rsquo;t create them. An
+          account will have nothing to browse until you use an app that writes
+          something to a space. Here are some test apps from the community to
+          experiment with:
         </p>
       </div>
       <div
