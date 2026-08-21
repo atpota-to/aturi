@@ -104,7 +104,7 @@ export default function WhatsNewModal() {
           </button>
         </div>
 
-        <WhatsNewContent releases={releases} />
+        <WhatsNewContent releases={releases} onNavigate={() => ref.current?.close()} />
 
         <div className="whats-new-foot">
           <button

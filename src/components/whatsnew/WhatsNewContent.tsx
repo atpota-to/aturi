@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import Link from 'next/link';
 import { Check } from 'lucide-react';
 import { usePreferences } from '@/components/PreferencesProvider';
 import { addWaypointsToDefaultGroups } from '@/utils/preferences';
@@ -16,7 +17,18 @@ import type { Release } from '@/utils/releaseNotes';
  * waypoint that was renamed or dropped after its release note shipped
  * degrades to plain prose instead of rendering a button that adds nothing.
  */
-export default function WhatsNewContent({ releases }: { releases: Release[] }) {
+export default function WhatsNewContent({
+  releases,
+  onNavigate,
+}: {
+  releases: Release[];
+  /**
+   * Called before an entry's link navigates. Both surfaces stay mounted across
+   * a client-side route change, so without this the modal or the popover would
+   * sit on top of the page the reader just asked for.
+   */
+  onNavigate?: () => void;
+}) {
   return (
     <div className="whats-new-body">
       {releases.map((release) => (
@@ -31,6 +43,9 @@ export default function WhatsNewContent({ releases }: { releases: Release[] }) {
                   title={entry.title}
                   body={entry.body}
                   waypointIds={entry.waypointIds}
+                  href={entry.href}
+                  linkLabel={entry.linkLabel}
+                  onNavigate={onNavigate}
                 />
               </li>
             ))}
@@ -45,10 +60,16 @@ function Entry({
   title,
   body,
   waypointIds,
+  href,
+  linkLabel,
+  onNavigate,
 }: {
   title: string;
   body: string;
   waypointIds?: string[];
+  href?: string;
+  linkLabel?: string;
+  onNavigate?: () => void;
 }) {
   const { prefs, update } = usePreferences();
   const [added, setAdded] = useState(false);
@@ -80,6 +101,14 @@ function Entry({
         {waypoints.length > 0 && <span className="whats-new-chip">waypoint</span>}
       </h3>
       <p className="whats-new-item-body">{body}</p>
+
+      {href && (
+        <div className="whats-new-item-action">
+          <Link href={href} className="whats-new-btn" onClick={onNavigate}>
+            {linkLabel ?? 'Take a look'}
+          </Link>
+        </div>
+      )}
 
       {showAdd && (
         <div className="whats-new-item-action">
