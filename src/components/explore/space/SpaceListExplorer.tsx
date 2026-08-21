@@ -7,13 +7,15 @@ import NotFoundPanel from '@/components/NotFoundPanel';
 import { encodeRepo, shortDid, spaceExplorePath } from '@/utils/atproto/urls';
 import { parseSpaceAtUri } from '@/utils/atproto/spaceUri';
 import { collectSpacePages, listSpaces } from '@/utils/atproto/spaceClient';
-import { resolveDidHandle } from '@/utils/atproto/identity';
+import { resolveDidHandle, type IdentityBundle } from '@/utils/atproto/identity';
 import AppearIn from '../AppearIn';
 import Breadcrumb from '../Breadcrumb';
 import { CHROME_RESULTS_ID, useChromeBarField } from '../ChromeBarContext';
 import { formatCount } from '../collectionListHelpers';
 import SpaceAccessPanel from './SpaceAccessPanel';
 import SpaceAuthorityCard from './SpaceAuthorityCard';
+import SpaceGlance from './SpaceGlance';
+import { SpaceTreeList, useSpaceTree } from './SpaceTree';
 import { useOwnPdsTransport, useResolvedIdentity, useSpaceGrant } from './useSpaceAccess';
 
 /** `listSpaces`' page size. Walked to the end, so this is a round-trip count. */
@@ -63,10 +65,101 @@ export default function SpaceListExplorer({ repo }: { repo: string }) {
       <AppearIn delay={0.05}>
         <SpaceAuthorityCard did={identity.did} handle={identity.handle} />
       </AppearIn>
-      <SpaceWrittenList
-        authorityDid={identity.did}
-        accountLabel={identity.handle || identity.did}
-      />
+      <OwnSpacesPanel identity={identity} />
+    </div>
+  );
+}
+
+/** Spaces listed on the dedicated page. Higher than the repo page's, since
+ *  this page exists for exactly this. */
+const OWN_SPACES_LIMIT = 50;
+
+/**
+ * The dedicated spaces page's main content: the same shape as a repo page —
+ * stats, then the things you can click into — but over permissioned data.
+ *
+ * Like everything that reads a permissioned repo, it only works for the
+ * account itself: `listSpaces` reads the caller's own PDS and takes no subject
+ * parameter. The states below say which of the reasons applies rather than
+ * rendering an empty page.
+ */
+function OwnSpacesPanel({ identity }: { identity: IdentityBundle }) {
+  const { did: signedInDid } = useAtprotoSession();
+  const grant = useSpaceGrant();
+
+  const isSelf = Boolean(signedInDid && signedInDid === identity.did);
+  const canList = isSelf && (grant === 'read' || grant === 'read_self');
+  const tree = useSpaceTree({ enabled: canList, limit: OWN_SPACES_LIMIT });
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+      <h2
+        style={{
+          margin: 0,
+          fontFamily: 'var(--font-serif)',
+          fontWeight: 400,
+          fontSize: '1rem',
+          color: 'var(--text-primary)',
+        }}
+      >
+        Spaces this account has written to
+      </h2>
+
+      {grant === 'anonymous' && (
+        <SpaceAccessPanel
+          state={{ status: 'anonymous' }}
+          what="the spaces this account writes to"
+          defaultAccount={identity.handle || identity.did}
+        />
+      )}
+      {grant !== 'anonymous' && !isSelf && grant !== 'unknown' && (
+        <p style={noteStyle}>
+          Only the account itself can list this. A PDS keeps the record of which
+          spaces it has written to for its own account and no one else’s, so
+          there is no way to ask it about somebody else — not even with a
+          whole-space credential.
+          {signedInDid && (
+            <>
+              {' '}
+              <Link href={`/explore/${encodeRepo(signedInDid)}/space`} className="explore-json-link">
+                See your own spaces
+              </Link>
+              .
+            </>
+          )}
+        </p>
+      )}
+
+      {isSelf && grant === 'unknown' && (
+        <p className="explore-placeholder">Checking your access…</p>
+      )}
+      {isSelf && grant === 'none' && <SpaceAccessPanel state={{ status: 'no-grant' }} />}
+
+      {canList && (
+        <>
+          {tree.error && <p className="explore-error">{tree.error}</p>}
+          {!tree.error && tree.loading && tree.uris.length === 0 && (
+            <p className="explore-placeholder">Loading spaces…</p>
+          )}
+          {!tree.error && !tree.loading && tree.uris.length === 0 && (
+            <p className="explore-placeholder">
+              This account hasn’t written to any spaces yet.
+            </p>
+          )}
+          {tree.uris.length > 0 && (
+            <>
+              <SpaceGlance tree={tree} myDid={signedInDid ?? ''} />
+              <SpaceTreeList tree={tree} memberDid={signedInDid ?? ''} />
+            </>
+          )}
+          {tree.more && (
+            <p style={noteStyle}>
+              Showing the first {OWN_SPACES_LIMIT} spaces; the listing was cut
+              off before the end.
+            </p>
+          )}
+        </>
+      )}
     </div>
   );
 }

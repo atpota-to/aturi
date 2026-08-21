@@ -18,6 +18,7 @@ import {
   collectSpacePages,
   credentialTransport,
   listSpaceRepos,
+  listSpaces,
   oauthTransport,
   spaceErrorCode,
   type SpaceTransport,
@@ -172,6 +173,32 @@ export function useResolvedIdentity(input: string): {
 }
 
 /**
+ * Whether the visitor already holds a repo in some space under this authority.
+ *
+ * Reads only the visitor's own PDS — `listSpaces` takes an authority filter and
+ * answers from what that PDS recorded about its own account — so the check
+ * itself discloses nothing to the authority. One matching space is enough, so
+ * it asks for one.
+ *
+ * A false answer is the safe answer: any failure reads as "not known", which
+ * means the visitor gets the prompt rather than a silent mint.
+ */
+async function holdsRepoUnderAuthority(
+  ownPdsFetch: OwnPdsFetch,
+  authorityDid: string,
+): Promise<boolean> {
+  try {
+    const page = await listSpaces(oauthTransport({ fetchHandler: ownPdsFetch }), {
+      did: authorityDid,
+      limit: 1,
+    });
+    return page.spaces.length > 0;
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Resolve what the signed-in visitor may read in `space` (a canonical space
  * ref from `formatSpaceRef`), minting a space credential when the grant allows
  * one. Pass `null` while the ref isn't known yet.
@@ -232,15 +259,40 @@ export function useSpaceAccess(space: string | null): SpaceAccessState {
         return;
       }
       // Minting is the first thing that leaves the browser on this visitor's
-      // behalf, and where it goes is named by the address. Ask first; see the
-      // note on the unlock store in spaceCredential.ts.
+      // behalf, and where it goes is named by the address. See the note on the
+      // unlock store in spaceCredential.ts for what that risks.
+      //
+      // The prompt is for *first contact* with an authority, though, not for
+      // every authority. A prompt that fires on spaces you already belong to
+      // is one you learn to click through, which is precisely the habit the
+      // crafted-link case relies on. So an authority you already have a
+      // relationship with is cleared without asking, on either of two grounds
+      // that can both be checked against your own PDS alone:
+      //
+      //   - it is your own DID, so the token would go to your own host
+      //   - you already hold a repo in one of its spaces, meaning you have
+      //     written there and it already knows your DID — the disclosure the
+      //     prompt exists to prevent has already happened, by your own hand
+      //
+      // `listSpaces` answers the second with its `did` filter, reading only
+      // your own PDS. An authority that fails both still prompts.
       if (!unlockedAuthorities.has(authority.did)) {
-        setCredentialState({
-          status: 'locked',
-          authority,
-          did: signedInDid,
-          unlock: () => unlockSpaceAuthority(authority.did),
-        });
+        const known =
+          authority.did === signedInDid ||
+          (await holdsRepoUnderAuthority(ownPdsFetch, authority.did));
+        if (cancelled) return;
+        if (!known) {
+          setCredentialState({
+            status: 'locked',
+            authority,
+            did: signedInDid,
+            unlock: () => unlockSpaceAuthority(authority.did),
+          });
+          return;
+        }
+        // Recorded so the rest of the session skips the check, and so the
+        // effect re-runs once and falls through to the mint below.
+        unlockSpaceAuthority(authority.did);
         return;
       }
       // Handed to the transport so one stale-credential response mid-page
