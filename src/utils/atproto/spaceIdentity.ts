@@ -20,6 +20,7 @@
 
 import { fetchDidDocument, type DidDocument } from '../didResolver';
 import { TTLMap } from './cache';
+import { getServerHealth } from './pdsServer';
 
 export type SpaceAuthority = {
   did: string;
@@ -167,4 +168,56 @@ export async function resolveSpaceAuthority(did: string): Promise<SpaceAuthority
 
   authorityInflight.set(did, pending);
   return pending;
+}
+
+/* -------------------------------------------------------------------------- *
+ * Does this host run the spaces alpha?
+ * -------------------------------------------------------------------------- */
+
+/**
+ * The `_health` version string the spaces-capable PDS build reports.
+ *
+ * The reference PDS normally reports a commit hash here (bsky.social answers
+ * `88465e21…`); the spaces build reports this name instead. It is the only
+ * capability signal in the protocol that can be read *before* signing in —
+ * OAuth authorization-server metadata says nothing about spaces, and
+ * `scopes_supported` is a fixed list that never enumerates the dynamic atproto
+ * scopes — so it is what tells a visitor whether their server can do this at
+ * all, rather than making them find out from a grant that came back empty.
+ */
+const SPACES_PDS_VERSION = 'permissioned-data';
+
+/**
+ * The hosted alpha PDS, named in the copy that has to tell someone their own
+ * server can't do this yet. During the alpha this is the only host running the
+ * spaces build; when that stops being true the mention is stale but harmless,
+ * because nothing branches on it — the capability check below is the thing
+ * that decides, and it asks the host itself.
+ */
+export const SPACES_ALPHA_PDS = 'spaces-alpha.host.bsky.network';
+
+const SPACES_PDS_TTL = 10 * 60_000;
+const spacesPdsCache = new TTLMap<string, boolean>(SPACES_PDS_TTL);
+
+/**
+ * Whether a PDS runs a spaces-capable build.
+ *
+ * Unreachable, 404, or any other failure answers `false`: `_health` is a
+ * convenience endpoint rather than a lexicon method, so a host that doesn't
+ * serve it tells us nothing, and "we couldn't confirm" and "no" lead to the
+ * same advice. Callers that need to distinguish those should say so in their
+ * copy rather than asking this to carry a third state.
+ */
+export async function pdsSupportsSpaces(pds: string): Promise<boolean> {
+  if (!pds) return false;
+  const cached = spacesPdsCache.get(pds);
+  if (cached !== undefined) return cached;
+  try {
+    const health = await getServerHealth(pds);
+    const supported = health.version === SPACES_PDS_VERSION;
+    spacesPdsCache.set(pds, supported);
+    return supported;
+  } catch {
+    return false;
+  }
 }
