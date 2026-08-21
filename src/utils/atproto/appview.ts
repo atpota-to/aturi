@@ -185,6 +185,39 @@ export async function searchActorsTypeahead(
   }
 }
 
+/**
+ * Minimum query length before the sign-in box will ask the AppView anything.
+ *
+ * Deliberately longer than the explorer's search box (which starts at 2). The
+ * sign-in field is pre-authentication: each request tells a third party
+ * (public.api.bsky.app) which account is about to authenticate, which the
+ * explorer's search box — a public-lookup surface by definition — doesn't
+ * reveal. Three characters is short enough that suggestions still arrive
+ * while a handle is being typed, and long enough that a stray keystroke in a
+ * focused field doesn't broadcast a prefix.
+ */
+export const HANDLE_TYPEAHEAD_MIN_LENGTH = 3;
+
+/**
+ * Whether a sign-in input's current value is worth a typeahead lookup.
+ *
+ * The AppView typeahead is handle/display-name oriented, so DIDs and at://
+ * URIs are skipped outright rather than sent and discarded. A value that
+ * already carries a scheme or a path separator isn't a handle either.
+ *
+ * Note what this does NOT do: returning `false` only means "don't ask the
+ * AppView". Every value remains submittable — handles on a self-hosted or
+ * non-Bluesky PDS never appear in these results at all, so suggestions are
+ * an additive convenience and never a validity check.
+ */
+export function shouldQueryHandleTypeahead(input: string): boolean {
+  const trimmed = input.trim();
+  if (trimmed.length < HANDLE_TYPEAHEAD_MIN_LENGTH) return false;
+  if (trimmed.startsWith('did:') || trimmed.startsWith('at://')) return false;
+  if (trimmed.includes('/') || trimmed.includes(' ')) return false;
+  return true;
+}
+
 export async function getPostThread(
   uri: string,
   opts: { depth?: number; parentHeight?: number } = {},

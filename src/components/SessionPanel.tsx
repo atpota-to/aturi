@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, LogIn, LogOut, Settings, Telescope, User } from 'lucide-react';
 import { useAtprotoSession } from './AtprotoSessionProvider';
+import HandleTypeaheadInput from './oauth/HandleTypeaheadInput';
 import ScopeSelector from './oauth/ScopeSelector';
 import { useSignInFlow } from './oauth/useSignInFlow';
 import { useSessionProfile } from './useSessionProfile';
@@ -95,14 +96,11 @@ export default function SessionPanel({ onNavigate, onSignInActiveChange }: Props
               </div>
             </div>
           </div>
-          <input
-            type="text"
-            autoComplete="username"
-            spellCheck={false}
-            placeholder="handle.bsky.social"
+          <HandleTypeaheadInput
             value={signInValue}
-            onChange={(e) => setSignInValue(e.target.value)}
-            style={inputStyle()}
+            onChange={setSignInValue}
+            placeholder="handle.bsky.social"
+            inputStyle={inputStyle()}
           />
           <button
             type="submit"

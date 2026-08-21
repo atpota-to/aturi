@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { ChevronDown, LogIn, LogOut, Settings, Telescope, User } from 'lucide-react';
 import { useAtprotoSession } from './AtprotoSessionProvider';
+import HandleTypeaheadInput from './oauth/HandleTypeaheadInput';
 import ScopeSelector from './oauth/ScopeSelector';
 import { useSignInFlow } from './oauth/useSignInFlow';
 import { useSessionProfile } from './useSessionProfile';
@@ -219,15 +220,12 @@ function SignInPopover({
         }}
         style={{ padding: '0.625rem 0.75rem 0.75rem' }}
       >
-        <input
-          type="text"
-          autoComplete="username"
-          spellCheck={false}
-          placeholder="handle.bsky.social or did:plc:…"
+        <HandleTypeaheadInput
           value={value}
-          onChange={(e) => onChange(e.target.value)}
+          onChange={onChange}
+          placeholder="handle.bsky.social or did:plc:…"
           disabled={busy}
-          style={{
+          inputStyle={{
             width: '100%',
             padding: '0.5rem 0.625rem',
             background: 'var(--bg-tertiary)',
