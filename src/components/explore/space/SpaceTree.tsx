@@ -234,8 +234,17 @@ export function useSpaceTree({
 }
 
 /**
- * The rendered tree. Spaces start expanded; `collapsed` tracks the ones the
- * visitor has deliberately folded away.
+ * The rendered tree, grouped by space type.
+ *
+ * The type is the application: `at.secretsky.feed` is Secretsky, whoever runs
+ * the particular space. The authority only says *which* Secretsky feed, and
+ * two authorities running the same type are separate spaces holding separate
+ * data, so they can be listed together but never merged.
+ *
+ * Ungrouped, a visitor in five Secretsky feeds got five cards that opened with
+ * someone else's handle, and had to read the type off each one to see they
+ * were the same app. Grouped, the app is the heading and the authority is what
+ * distinguishes the rows under it.
  */
 export function SpaceTreeList({
   tree,
@@ -255,23 +264,95 @@ export function SpaceTreeList({
     });
   }
 
+  // Grouped in the order the types first appear, so the listing keeps whatever
+  // order the PDS returned rather than imposing an alphabetical one on it.
+  const groups: { type: string; uris: string[] }[] = [];
+  const unparsed: string[] = [];
+  for (const uri of tree.uris) {
+    const parts = parseSpaceAtUri(uri);
+    if (!parts) {
+      unparsed.push(uri);
+      continue;
+    }
+    const group = groups.find((g) => g.type === parts.spaceType);
+    if (group) group.uris.push(uri);
+    else groups.push({ type: parts.spaceType, uris: [uri] });
+  }
+
+  function recordsIn(uris: string[]): number | null {
+    let total = 0;
+    let any = false;
+    for (const uri of uris) {
+      const entry = tree.contents.get(uri);
+      if (entry?.status !== 'ready') continue;
+      any = true;
+      for (const node of entry.collections) total += node.count;
+    }
+    return any ? total : null;
+  }
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-      {tree.uris.map((uri) => {
-        const parts = parseSpaceAtUri(uri);
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+      {groups.map((group) => {
+        const records = recordsIn(group.uris);
         return (
-          <SpaceBranch
-            key={uri}
-            uri={uri}
-            memberDid={memberDid}
-            authorityHandle={parts ? tree.handles.get(parts.authority) : undefined}
-            isOwnAuthority={Boolean(parts && parts.authority === memberDid)}
-            open={!collapsed.has(uri)}
-            onToggle={() => toggleSpace(uri)}
-            contents={tree.contents.get(uri)}
-          />
+          <div
+            key={group.type}
+            style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}
+          >
+            <div
+              style={{
+                display: 'flex',
+                flexWrap: 'wrap',
+                alignItems: 'baseline',
+                gap: '0.5rem',
+              }}
+            >
+              <code
+                style={{
+                  background: 'transparent',
+                  padding: 0,
+                  fontSize: '0.85rem',
+                  color: 'var(--text-primary)',
+                  overflowWrap: 'anywhere',
+                }}
+              >
+                {group.type}
+              </code>
+              <span style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)' }}>
+                {group.uris.length === 1 ? '1 space' : `${formatCount(group.uris.length)} spaces`}
+                {records !== null && ` · ${formatCount(records)} records`}
+              </span>
+            </div>
+            {group.uris.map((uri) => {
+              const parts = parseSpaceAtUri(uri);
+              return (
+                <SpaceBranch
+                  key={uri}
+                  uri={uri}
+                  memberDid={memberDid}
+                  authorityHandle={parts ? tree.handles.get(parts.authority) : undefined}
+                  isOwnAuthority={Boolean(parts && parts.authority === memberDid)}
+                  open={!collapsed.has(uri)}
+                  onToggle={() => toggleSpace(uri)}
+                  contents={tree.contents.get(uri)}
+                />
+              );
+            })}
+          </div>
         );
       })}
+
+      {unparsed.map((uri) => (
+        <SpaceBranch
+          key={uri}
+          uri={uri}
+          memberDid={memberDid}
+          open
+          onToggle={() => undefined}
+          contents={undefined}
+        />
+      ))}
     </div>
   );
 }
@@ -356,6 +437,10 @@ function SpaceBranch({
             both unbreakable-ish strings, and competing for one line meant the
             NSID got chopped mid-word on a phone. Vertically each gets the full
             width, and the authority reads as the qualifier it is. */}
+        {/* The authority leads and the type is dropped: the group heading
+            above already names the type, and within a group the authority is
+            the only thing telling two rows apart. The key stays as the
+            qualifier, since one authority can run several spaces of a type. */}
         <span
           style={{
             display: 'flex',
@@ -375,8 +460,11 @@ function SpaceBranch({
               overflowWrap: 'anywhere',
             }}
           >
-            {parts.spaceType}
-            <span style={{ color: 'var(--text-tertiary)' }}>/{parts.skey}</span>
+            {isOwnAuthority
+              ? 'yours'
+              : authorityHandle
+                ? `@${authorityHandle}`
+                : shortDid(parts.authority)}
           </code>
           <span
             style={{
@@ -385,11 +473,7 @@ function SpaceBranch({
               overflowWrap: 'anywhere',
             }}
           >
-            {isOwnAuthority
-              ? 'yours'
-              : authorityHandle
-                ? `@${authorityHandle}`
-                : shortDid(parts.authority)}
+            {parts.skey}
           </span>
         </span>
         {count !== null && (
