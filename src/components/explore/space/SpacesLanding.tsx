@@ -1,11 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useAtprotoSession } from '@/components/AtprotoSessionProvider';
 import HandleTypeaheadInput from '@/components/oauth/HandleTypeaheadInput';
 import ScopeSelector from '@/components/oauth/ScopeSelector';
 import { useSignInFlow } from '@/components/oauth/useSignInFlow';
+import { resolveIdentifier } from '@/utils/atproto/identity';
+import { pdsSupportsSpaces, SPACES_ALPHA_PDS } from '@/utils/atproto/spaceIdentity';
 import { encodeRepo } from '@/utils/atproto/urls';
 import AppearIn from '../AppearIn';
 import { useSpaceGrant } from './useSpaceAccess';
@@ -14,25 +16,17 @@ import { useSpaceGrant } from './useSpaceAccess';
  * `/explore/spaces` — the way in for someone who has heard about atproto
  * spaces and wants to see their own.
  *
- * Signed out it is a sign-in form and nothing else. Signed in it is one
- * button. The page deliberately does not try to explain the protocol: the
- * explaining belongs on the pages that show real data, next to the thing being
- * explained.
+ * Signed out it is a sign-in form; signed in it is one button. The page does
+ * not try to explain the protocol: that belongs next to real data, on the
+ * pages that show it.
  *
- * On "does your PDS support spaces": there is no way to ask before signing in.
- * An authorization server's metadata says nothing about spaces — `scopes_supported`
- * is a fixed list that doesn't enumerate the dynamic atproto scopes — so the
- * only honest signal is whether a `space:` grant came back on the token. A
- * server that has never heard of the scope drops it silently, which is
- * indistinguishable here from a user who left the box unticked. The copy says
- * so rather than guessing at one or the other.
+ * Whether a server can do this at all is checked against its `_health`
+ * version, which is the one capability signal readable before signing in — so
+ * someone on a server that doesn't run the alpha is told that here, rather
+ * than finding out from a grant that came back empty.
  */
 export default function SpacesLanding() {
   const { session, did, loading } = useAtprotoSession();
-  const grant = useSpaceGrant();
-  const [value, setValue] = useState('');
-  const { step, pendingAccount, busy, error, proceedToScopes, backToHandle, submitScopes } =
-    useSignInFlow();
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', maxWidth: '34rem' }}>
@@ -59,70 +53,56 @@ export default function SpacesLanding() {
 
       {loading ? null : session ? (
         <AppearIn delay={0.05}>
-          <SignedIn did={did} grant={grant} />
+          <SignedIn did={did} />
         </AppearIn>
       ) : (
         <AppearIn delay={0.05}>
-          {step === 'scopes' ? (
-            <div
-              style={{
-                padding: '0.75rem',
-                background: 'var(--bg-secondary)',
-                border: '1px solid var(--border-medium)',
-              }}
-            >
-              <ScopeSelector
-                account={pendingAccount}
-                busy={busy}
-                error={error}
-                onBack={backToHandle}
-                onContinue={submitScopes}
-              />
-            </div>
-          ) : (
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                proceedToScopes(value);
-              }}
-              style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem' }}
-            >
-              <HandleTypeaheadInput
-                value={value}
-                onChange={setValue}
-                placeholder="handle.bsky.social"
-                inputStyle={{
-                  width: '100%',
-                  padding: '0.625rem 0.75rem',
-                  background: 'var(--bg-secondary)',
-                  border: '1px solid var(--border-medium)',
-                  color: 'var(--text-primary)',
-                  fontFamily: 'var(--font-mono)',
-                  fontSize: '0.875rem',
-                  outline: 'none',
-                }}
-              />
-              <button type="submit" disabled={!value.trim()} style={primaryButtonStyle(!value.trim())}>
-                Sign in to see your spaces
-              </button>
-              <p style={noteStyle}>
-                You’ll be asked which permissions to grant. Tick a
-                permissioned-data row — without one there is nothing to read.
-              </p>
-            </form>
-          )}
+          <SignedOut />
         </AppearIn>
       )}
     </div>
   );
 }
 
-function SignedIn({ did, grant }: { did: string | null; grant: ReturnType<typeof useSpaceGrant> }) {
-  const { signIn } = useAtprotoSession();
+function SignedIn({ did }: { did: string | null }) {
+  const { pds, signIn } = useAtprotoSession();
+  const grant = useSpaceGrant();
+  const [supported, setSupported] = useState<boolean | null>(null);
   const [busy, setBusy] = useState(false);
 
-  if (grant === 'unknown') {
+  useEffect(() => {
+    let cancelled = false;
+    setSupported(null);
+    if (!pds) return undefined;
+    pdsSupportsSpaces(pds).then((ok) => {
+      if (!cancelled) setSupported(ok);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [pds]);
+
+  if (grant === 'unknown' || supported === null) {
     return <p className="explore-placeholder">Checking your access…</p>;
+  }
+
+  // Server first: a missing grant on a server that can't do spaces isn't the
+  // user's mistake, and offering them a re-grant they can't complete would
+  // send them round a loop.
+  if (!supported) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
+        <p style={noteStyle}>
+          Your server doesn’t run the spaces build yet, so there is nothing to
+          read. Spaces are an alpha, and during it{' '}
+          <code>{SPACES_ALPHA_PDS}</code> is the host running them — an account
+          there is how to try this today.
+        </p>
+        <Link href="/explore/pds/spaces-alpha.host.bsky.network" className="explore-json-link">
+          Look at that server →
+        </Link>
+      </div>
+    );
   }
 
   if (grant === 'read' || grant === 'read_self') {
@@ -130,7 +110,12 @@ function SignedIn({ did, grant }: { did: string | null; grant: ReturnType<typeof
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
         <Link
           href={`/explore/${encodeRepo(did ?? '')}/space`}
-          style={{ ...primaryButtonStyle(false), display: 'block', textAlign: 'center', textDecoration: 'none' }}
+          style={{
+            ...primaryButtonStyle(false),
+            display: 'block',
+            textAlign: 'center',
+            textDecoration: 'none',
+          }}
         >
           View my spaces →
         </Link>
@@ -144,23 +129,18 @@ function SignedIn({ did, grant }: { did: string | null; grant: ReturnType<typeof
     );
   }
 
-  // Granted nothing. Either the server dropped a scope it didn't recognise or
-  // the row was left unticked, and the two are indistinguishable from here —
-  // so offer the retry rather than diagnosing.
+  // Server can do it, so an empty grant really is an unticked box.
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
       <p style={noteStyle}>
-        This session has no permissioned-data grant. Either your server doesn’t
-        support spaces yet — it’s an alpha, and most don’t — or the permission
-        wasn’t granted at sign-in.
+        Your server supports spaces, but this session didn’t ask for
+        permissioned data. Sign in again and tick a permissioned-data row.
       </p>
       <button
         type="button"
         disabled={busy}
         onClick={() => {
           setBusy(true);
-          // Re-runs the flow against the same account, so the picker comes back
-          // up with the permissioned-data rows available to tick.
           void signIn(did ?? '').catch(() => setBusy(false));
         }}
         style={primaryButtonStyle(busy)}
@@ -168,6 +148,119 @@ function SignedIn({ did, grant }: { did: string | null; grant: ReturnType<typeof
         {busy ? 'Redirecting…' : 'Sign in again and grant it'}
       </button>
     </div>
+  );
+}
+
+function SignedOut() {
+  const [value, setValue] = useState('');
+  const [checking, setChecking] = useState(false);
+  const [warning, setWarning] = useState<string | null>(null);
+  const { step, pendingAccount, busy, error, proceedToScopes, backToHandle, submitScopes } =
+    useSignInFlow();
+
+  if (step === 'scopes') {
+    return (
+      <div
+        style={{
+          padding: '0.75rem',
+          background: 'var(--bg-secondary)',
+          border: '1px solid var(--border-medium)',
+        }}
+      >
+        <ScopeSelector
+          account={pendingAccount}
+          busy={busy}
+          error={error}
+          onBack={backToHandle}
+          onContinue={submitScopes}
+        />
+      </div>
+    );
+  }
+
+  // Resolve the handle far enough to ask its PDS whether it runs the spaces
+  // build, before sending anyone through a consent screen for a grant their
+  // server would drop. All of it is public — handle → DID → PDS → `_health` —
+  // and none of it needs a session.
+  async function check() {
+    const account = value.trim();
+    if (!account) return;
+    setChecking(true);
+    setWarning(null);
+    try {
+      const identity = await resolveIdentifier(account);
+      const ok = await pdsSupportsSpaces(identity.pds);
+      if (ok) {
+        proceedToScopes(account);
+        return;
+      }
+      setWarning(
+        `${identity.pds.replace(/^https?:\/\//, '')} doesn’t run the spaces build, so a permissioned-data grant would come back empty. During the alpha, ${SPACES_ALPHA_PDS} is the host running them.`,
+      );
+    } catch {
+      // A handle that won't resolve is the sign-in flow's problem to report,
+      // not this check's — hand it over rather than inventing an error here.
+      proceedToScopes(account);
+    } finally {
+      setChecking(false);
+    }
+  }
+
+  return (
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        void check();
+      }}
+      style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem' }}
+    >
+      <HandleTypeaheadInput
+        value={value}
+        onChange={(next) => {
+          setValue(next);
+          setWarning(null);
+        }}
+        placeholder="handle.bsky.social"
+        inputStyle={{
+          width: '100%',
+          padding: '0.625rem 0.75rem',
+          background: 'var(--bg-secondary)',
+          border: '1px solid var(--border-medium)',
+          color: 'var(--text-primary)',
+          fontFamily: 'var(--font-mono)',
+          fontSize: '0.875rem',
+          outline: 'none',
+        }}
+      />
+      <button
+        type="submit"
+        disabled={!value.trim() || checking}
+        style={primaryButtonStyle(!value.trim() || checking)}
+      >
+        {checking ? 'Checking your server…' : 'Sign in to see your spaces'}
+      </button>
+
+      {warning ? (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+          <p style={noteStyle}>{warning}</p>
+          {/* Still their call: the check reads a convenience endpoint, and a
+              host that doesn't serve it looks the same from here as one that
+              can't do spaces. */}
+          <button
+            type="button"
+            onClick={() => proceedToScopes(value.trim())}
+            style={{ ...primaryButtonStyle(false), background: 'transparent', color: 'var(--text-secondary)', border: '1px solid var(--border-medium)' }}
+          >
+            Sign in anyway
+          </button>
+        </div>
+      ) : (
+        <p style={noteStyle}>
+          You’ll be asked which permissions to grant. Tick a permissioned-data
+          row — without one there is nothing to read.
+        </p>
+      )}
+    </form>
   );
 }
 
