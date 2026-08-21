@@ -2,6 +2,7 @@
 
 import type { ReactNode } from 'react';
 import AtUriLink from '../AtUriLink';
+import LinkifiedJson from '../LinkifiedJson';
 
 /**
  * Field-table view of a permissioned record.
@@ -20,6 +21,14 @@ import AtUriLink from '../AtUriLink';
  * It is the honest ceiling for permissioned data until there is a space-aware
  * blob path, and it covers what a field table is actually for: seeing the
  * shape and the values without reading braces.
+ *
+ * Addresses stay clickable at any depth. A reply's `parent.uri` is nested two
+ * objects down, and dumping that object as JSON text turned the one thing you
+ * would want to follow into plain characters, so nested values go through
+ * <LinkifiedJson> rather than JSON.stringify. It tokenises the seven-segment
+ * space address the same way it tokenises a public one, and the explorer's
+ * AT URI mapper already routes those back into this tree, so a record that
+ * replies to another permissioned record links straight to it.
  */
 
 type Props = { value: Record<string, unknown> };
@@ -117,8 +126,7 @@ function renderValue(value: unknown): ReactNode {
         <Muted>
           {value.length} item{value.length === 1 ? '' : 's'}
         </Muted>
-        {'\n'}
-        {JSON.stringify(value, null, 2)}
+        <LinkifiedJson value={value} style={nestedJsonStyle} />
       </>
     );
   }
@@ -139,11 +147,20 @@ function renderValue(value: unknown): ReactNode {
         </>
       );
     }
-    return JSON.stringify(value, null, 2);
+    return <LinkifiedJson value={value} style={nestedJsonStyle} />;
   }
 
   return String(value);
 }
+
+/** Nested JSON inside a table cell: inherits the cell's type, adds no box. */
+const nestedJsonStyle: React.CSSProperties = {
+  margin: 0,
+  fontFamily: 'inherit',
+  fontSize: 'inherit',
+  whiteSpace: 'pre-wrap',
+  overflowWrap: 'anywhere',
+};
 
 function Muted({ children }: { children: ReactNode }) {
   return <span style={{ color: 'var(--text-tertiary)' }}>{children}</span>;
