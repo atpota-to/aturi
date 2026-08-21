@@ -54,12 +54,19 @@ export default function SpaceGlance({ tree, myDid }: { tree: SpaceTree; myDid: s
   ];
 
   return (
+    // The rules are a 1px gap showing the grid's own background through, with
+    // each cell painting its own. Cell borders can't do it: the column count
+    // comes from auto-fit, so which cell ends a row isn't known here, and a
+    // border-right on every one drew the columns but no row divider and
+    // doubled against the container's edge. A gap draws exactly one line
+    // between each pair of neighbours at whatever count auto-fit lands on.
     <section
       style={{
         display: 'grid',
         gridTemplateColumns: 'repeat(auto-fit, minmax(9rem, 1fr))',
+        gap: '1px',
         border: '1px solid var(--border-medium)',
-        background: 'var(--bg-secondary)',
+        background: 'var(--border-subtle)',
       }}
     >
       {cells.map((cell) => (
@@ -67,7 +74,7 @@ export default function SpaceGlance({ tree, myDid }: { tree: SpaceTree; myDid: s
           key={cell.label}
           style={{
             padding: '0.75rem 1rem',
-            borderRight: '1px solid var(--border-subtle)',
+            background: 'var(--bg-secondary)',
             display: 'flex',
             flexDirection: 'column',
             gap: '0.15rem',
