@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ArrowLeft, Check } from 'lucide-react';
 import {
   buildScopeString,
@@ -10,6 +10,8 @@ import {
   type GranularScope,
   type ScopeId,
 } from '@/lib/oauth/scopes';
+import { resolveIdentifier } from '@/utils/atproto/identity';
+import { pdsSupportsSpaces } from '@/utils/atproto/spaceIdentity';
 
 interface Props {
   account: string;
@@ -41,6 +43,18 @@ const SPACE_SCOPES = GRANULAR_SCOPES.filter((s) => SPACE_SCOPE_IDS.has(s.id));
  * scope string this form submits with nothing touched is byte-identical to
  * the one it submitted before spaces existed. See the block comment above
  * SPACE_READ_SELF_SCOPE in `@/lib/oauth/scopes` for why that matters.
+ *
+ * That default is a hedge against not knowing whether the account's server
+ * understands `space:` at all, and it can be lifted for accounts where we do
+ * know: a PDS running the spaces build says so at `_health`, before any of
+ * this reaches an authorization server. On those accounts the own-records row
+ * is ticked for you, since browsing your own permissioned data is the reason
+ * to be here and asking for it can't surprise a server that advertises it.
+ *
+ * Only that row. The wider one authorizes this app to ask *any* space
+ * authority for a whole-space credential in your name — a real capability
+ * rather than a read of your own repo — and something that reaches other
+ * people's hosts on your behalf should be chosen, not defaulted into.
  */
 export default function ScopeSelector({
   account,
@@ -57,6 +71,39 @@ export default function ScopeSelector({
     for (const id of preselect ?? []) initial.add(id);
     return initial;
   });
+
+  // Whether this account's PDS runs the spaces build. `null` while unknown —
+  // the check is one public request and the form stays usable throughout.
+  //
+  // The tick happens here rather than in a second effect watching the result,
+  // so it lands inside the async callback: it runs exactly once per account,
+  // and only ever adds. A visitor who unticks the row afterwards keeps it
+  // unticked, because nothing re-runs to put it back.
+  const [spacesServer, setSpacesServer] = useState<boolean | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    if (!account) return undefined;
+    (async () => {
+      try {
+        const identity = await resolveIdentifier(account);
+        const supported = await pdsSupportsSpaces(identity.pds);
+        if (cancelled) return;
+        setSpacesServer(supported);
+        if (!supported) return;
+        setSelected((prev) => {
+          if (prev.has('spacesSelf')) return prev;
+          const next = new Set(prev);
+          next.add('spacesSelf');
+          return next;
+        });
+      } catch {
+        if (!cancelled) setSpacesServer(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [account]);
 
   function toggle(id: ScopeId) {
     setSelected((prev) => {
@@ -126,11 +173,30 @@ export default function ScopeSelector({
             lineHeight: 1.4,
           }}
         >
-          Records kept outside your public repo. This is new and most servers
-          don’t support it yet because it is alpha stage. Granting either row
-          lets this app ask a space authority (including one named by a link
-          you open) for a credential on your behalf, so leave them off unless
-          you came here to read a space.
+          {spacesServer === true ? (
+            <>
+              Records kept outside your public repo. Your server runs the
+              spaces build, so reading your own is ticked below. The wider row
+              lets this app ask any space authority (including one named by a
+              link you open) for a credential on your behalf — leave that off
+              unless you came here to read someone else’s space.
+            </>
+          ) : spacesServer === false ? (
+            <>
+              Records kept outside your public repo. Your server doesn’t report
+              running the spaces build, so these would most likely be granted
+              and then have nothing to read. Spaces are alpha and most servers
+              don’t support them yet.
+            </>
+          ) : (
+            <>
+              Records kept outside your public repo. This is new and most
+              servers don’t support it yet because it is alpha stage. Granting
+              either row lets this app ask a space authority (including one
+              named by a link you open) for a credential on your behalf, so
+              leave them off unless you came here to read a space.
+            </>
+          )}
         </p>
         <ul style={listStyle()}>
           {SPACE_SCOPES.map((scope) => (
