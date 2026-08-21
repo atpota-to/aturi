@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { ExternalLink } from 'lucide-react';
 import { useAtprotoSession } from '@/components/AtprotoSessionProvider';
 import HandleTypeaheadInput from '@/components/oauth/HandleTypeaheadInput';
 import ScopeSelector from '@/components/oauth/ScopeSelector';
@@ -35,18 +36,45 @@ export default function SpacesLanding() {
           <h1
             style={{
               margin: 0,
+              display: 'flex',
+              flexWrap: 'wrap',
+              alignItems: 'center',
+              gap: '0.625rem',
               fontFamily: 'var(--font-serif)',
               fontWeight: 400,
               fontSize: '1.75rem',
               color: 'var(--text-primary)',
             }}
           >
-            Atproto spaces
+            Spaces
+            <span
+              style={{
+                fontFamily: 'var(--font-mono)',
+                fontSize: '0.7rem',
+                letterSpacing: '0.08em',
+                textTransform: 'uppercase',
+                padding: '0.15rem 0.5rem',
+                color: 'var(--text-tertiary)',
+                background: 'var(--bg-tertiary)',
+                border: '1px solid var(--border-subtle)',
+              }}
+            >
+              Alpha
+            </span>
           </h1>
           <p style={{ margin: 0, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
-            Records kept outside your public repo — settings, drafts, private
-            boards, anything an app stores where the whole network can’t read
-            it. Sign in to browse your own.
+            Records kept within a permissioned space rather than in a public
+            repo. Sign in to browse your private data if your account is
+            compatible.{' '}
+            <a
+              href="https://atproto.com/blog/atproto-spaces-alpha"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="explore-json-link"
+            >
+              Learn more
+            </a>
+            .
           </p>
         </div>
       </AppearIn>
@@ -60,7 +88,99 @@ export default function SpacesLanding() {
           <SignedOut />
         </AppearIn>
       )}
+
+      <AppearIn delay={0.1}>
+        <FeaturedApps />
+      </AppearIn>
     </div>
+  );
+}
+
+/**
+ * Apps built on spaces, for someone who has nothing in a space yet — which is
+ * everyone until they use one. The explorer can only show data that exists,
+ * so the useful thing to offer an empty account is somewhere to go make some.
+ *
+ * Each description is the app's own, taken from its page rather than written
+ * here, so this doesn't end up characterising someone else's project.
+ */
+const FEATURED_APPS: { name: string; url: string; description: string }[] = [
+  {
+    name: 'secretsky.at',
+    url: 'https://secretsky.at',
+    description: 'Private microblogging for mutual follows, built on ATProto Spaces.',
+  },
+  {
+    name: 'bulletin.my',
+    url: 'https://bulletin.my',
+    description: 'Private bulletin boards for you and your followers.',
+  },
+];
+
+function FeaturedApps() {
+  return (
+    <section style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
+      <h2
+        style={{
+          margin: 0,
+          fontFamily: 'var(--font-serif)',
+          fontWeight: 400,
+          fontSize: '1rem',
+          color: 'var(--text-primary)',
+        }}
+      >
+        Apps to try
+      </h2>
+      <ul
+        style={{
+          listStyle: 'none',
+          margin: 0,
+          padding: 0,
+          border: '1px solid var(--border-medium)',
+          background: 'var(--bg-secondary)',
+        }}
+      >
+        {FEATURED_APPS.map((app, i) => (
+          <li
+            key={app.url}
+            style={{
+              borderBottom:
+                i < FEATURED_APPS.length - 1 ? '1px solid var(--border-subtle)' : 'none',
+            }}
+          >
+            <a
+              href={app.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '0.2rem',
+                padding: '0.625rem 1rem',
+                textDecoration: 'none',
+              }}
+            >
+              <span
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.4rem',
+                  fontFamily: 'var(--font-mono)',
+                  fontSize: '0.85rem',
+                  color: 'var(--text-primary)',
+                }}
+              >
+                {app.name}
+                <ExternalLink size={12} aria-hidden style={{ color: 'var(--text-tertiary)' }} />
+              </span>
+              <span style={{ fontSize: '0.8rem', lineHeight: 1.5, color: 'var(--text-tertiary)' }}>
+                {app.description}
+              </span>
+            </a>
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }
 
