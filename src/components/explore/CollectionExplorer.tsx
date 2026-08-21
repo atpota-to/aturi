@@ -23,7 +23,7 @@ import NotFoundPanel from '@/components/NotFoundPanel';
 import SignInPanel from './SignInPanel';
 import { useAtprotoSession } from '@/components/AtprotoSessionProvider';
 import { useEditBar } from './EditBarContext';
-import { useChromeBarAction, useChromeBarField } from './ChromeBarContext';
+import { CHROME_RESULTS_ID, useChromeBarAction, useChromeBarField } from './ChromeBarContext';
 import { useOffscreen } from './useOffscreen';
 import {
   RECORDS_PER_PAGE,
@@ -531,6 +531,7 @@ function CollectionList({
     label: 'Search records in this collection',
     value: filter,
     onChange: setFilter,
+    resultsId: CHROME_RESULTS_ID,
     status:
       records.length === 0
         ? null
@@ -713,7 +714,7 @@ function CollectionList({
       </div>
       </AppearIn>
 
-      <AppearIn delay={0.1}>
+      <AppearIn delay={0.1} id={CHROME_RESULTS_ID}>
       {error && <p className="explore-error">{error}</p>}
       {/* Only claim the collection is empty once we've actually exhausted it
           (done). While records is empty but more pages remain — the initial

@@ -4,10 +4,41 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { Check, ChevronUp, FilePenLine, Link2, Search, Trash2, X } from 'lucide-react';
 import { resolveSearchPathAsync } from '@/utils/atproto/searchRouting';
+import { getReduceMotionSnapshot } from '@/lib/a11y';
 import { useChromeBar, type ChromeBarAction } from './ChromeBarContext';
 import { useEditBar, type EditBarSnapshot } from './EditBarContext';
 import { useIsNarrow } from './useIsNarrow';
+import { CHROME_OCCLUSION_PX, NAV_OCCLUSION_PX } from './useOffscreen';
 import DeleteProgressBar from './DeleteProgressBar';
+
+/**
+ * Routes under /explore that are entry points rather than explorer views:
+ * the section landings, whose whole job is one big search box and some
+ * recommendations. There's nothing on them to filter, nothing to copy a
+ * deep link to, and their own search is the first thing you see — a second
+ * one floating over the bottom of the page is noise. Everything below these
+ * (a repo, a collection, a record, a lexicon, a namespace, a PDS) is
+ * somewhere you've navigated *to*, and gets the bar.
+ */
+const LANDING_PATHS = new Set(['/explore', '/explore/lexicons']);
+
+/** True on the landing routes above. Tolerates a trailing slash. */
+function isLandingPath(pathname: string): boolean {
+  const normalized =
+    pathname.length > 1 && pathname.endsWith('/') ? pathname.slice(0, -1) : pathname;
+  return LANDING_PATHS.has(normalized);
+}
+
+/**
+ * How many bars are currently mounted. Normally one, but <PageTransition>'s
+ * AnimatePresence keeps the outgoing route alive through the crossfade, so
+ * during a navigation there are two — and React runs the departing one's
+ * cleanup *after* the arriving one's effect. Counting them is what keeps
+ * that cleanup from stripping the body's height reservation off a page that
+ * still has a bar, which would drop the footer under it until the next
+ * reload.
+ */
+let mountedBars = 0;
 
 /**
  * Thin bar pinned to the bottom of the viewport on every explorer route, so
@@ -41,16 +72,24 @@ export default function ExploreChromeBar() {
   const { field, action } = useChromeBar();
   const { bar } = useEditBar();
   const narrow = useIsNarrow();
+  const pathname = usePathname();
   const [panelOpen, setPanelOpen] = useState(false);
   const barRef = useRef<HTMLDivElement>(null);
+
+  // The layout wraps every /explore route, so the landing pages opt out from
+  // here rather than by not rendering the bar.
+  const hidden = isLandingPath(pathname);
 
   // Reserve the bar's real height at the bottom of the document — measured,
   // not assumed, since the row wraps to two lines on narrow screens. The CSS
   // fallback covers first paint (and any browser without ResizeObserver).
+  // Keyed on `hidden` so the reservation follows the bar on and off the
+  // landing routes.
   useEffect(() => {
     const node = barRef.current;
     if (!node) return undefined;
     const root = document.documentElement;
+    mountedBars += 1;
     document.body.classList.add('has-explore-chrome');
     const apply = () => {
       root.style.setProperty('--explore-chrome-h', `${node.offsetHeight}px`);
@@ -60,10 +99,14 @@ export default function ExploreChromeBar() {
     observer.observe(node);
     return () => {
       observer.disconnect();
-      document.body.classList.remove('has-explore-chrome');
-      root.style.removeProperty('--explore-chrome-h');
+      mountedBars -= 1;
+      // Hand the space back only when the last bar goes.
+      if (mountedBars === 0) {
+        document.body.classList.remove('has-explore-chrome');
+        root.style.removeProperty('--explore-chrome-h');
+      }
     };
-  }, []);
+  }, [hidden]);
 
   // Where the selection controls live: inline on a roomy viewport, in the
   // expanding panel on a phone.
@@ -107,6 +150,9 @@ export default function ExploreChromeBar() {
   // whole row: it's a moment that needs the words, and searching mid-delete
   // isn't a thing anyone does.
   const takeover = !narrow && midStep;
+
+  // Below every hook above, which all have to run either way.
+  if (hidden) return null;
 
   return (
     // Structured to mirror the compact header: a container-narrow shell, a
@@ -295,12 +341,157 @@ function ChromePanel({ open, bar }: { open: boolean; bar: EditBarSnapshot }) {
 }
 
 /**
+ * Distance from the nav to leave above the list once it's been scrolled to,
+ * so its first row doesn't sit flush against the nav's lower edge.
+ */
+const REVEAL_GAP_PX = 12;
+
+/**
+ * A scroll that's already running has a moment before the page catches up
+ * with it. Ignore reveals inside that window rather than restarting the
+ * animation on every keystroke.
+ */
+const REVEAL_COOLDOWN_MS = 500;
+
+/**
+ * How long a reveal keeps its grip on the page. One scrollTo is not enough:
+ * the keystroke that triggered it also re-renders the list, and a repo page
+ * is often still streaming in its profile card and its stats — anything that
+ * changes height above the list moves the place we were aiming for, and the
+ * browser re-anchoring to the shift can throw the page back where it
+ * started. So the reveal keeps checking until the page comes to rest on
+ * target, and gives up after this long rather than hanging on to a page that
+ * won't settle.
+ */
+const REVEAL_SETTLE_MS = 1200;
+
+/** Off-by-this-much from the target is close enough to stop correcting. */
+const REVEAL_TOLERANCE_PX = 4;
+
+/**
+ * How far you're allowed to have read into the list — a few rows — before the
+ * next keystroke counts as typing blind and pulls you back to the top of it.
+ * Without this the reveal fights you: it lands the list's first row just
+ * under the nav, so scrolling a single row further and typing again would
+ * snap you straight back.
+ */
+const REVEAL_SLACK_PX = 160;
+
+/**
+ * Where the sticky nav ends, measured rather than assumed: it grows by a row
+ * when the condensed breadcrumb drops into it, and a list scrolled to the
+ * constant alone would have its first line clipped. Falls back to the
+ * constant on a route without that nav.
+ */
+function navBottom(): number {
+  const nav = document.querySelector('.compact-header');
+  const bottom = nav ? nav.getBoundingClientRect().bottom : 0;
+  return Math.max(NAV_OCCLUSION_PX, Math.round(bottom));
+}
+
+/**
+ * Scrolls `el` to just under the nav and holds it there while the page
+ * settles, returning a function that lets go early.
+ *
+ * The holding is the point. Between the scroll starting and the page coming
+ * to rest, the list re-renders under the new filter and any still-loading
+ * block above it can arrive — so the target moves, and a single scroll lands
+ * short or, when the browser re-anchors to the shift, snaps back where it
+ * came from. Each frame the page is at rest, we re-measure and correct;
+ * once it's at rest on target, we're done. A wheel, a touch, or a click is
+ * the visitor taking the page back, and ends it immediately.
+ */
+function holdInView(el: HTMLElement): () => void {
+  const behavior = getReduceMotionSnapshot() ? 'auto' : 'smooth';
+  const deadline = Date.now() + REVEAL_SETTLE_MS;
+  let frame = 0;
+  let lastY = NaN;
+  let atRest = 0;
+
+  const release = () => {
+    cancelAnimationFrame(frame);
+    window.removeEventListener('wheel', release);
+    window.removeEventListener('touchstart', release);
+    window.removeEventListener('pointerdown', release);
+  };
+
+  const correct = () => {
+    const off = el.getBoundingClientRect().top - navBottom() - REVEAL_GAP_PX;
+    if (Math.abs(off) <= REVEAL_TOLERANCE_PX) return true;
+    window.scrollTo({ top: Math.max(0, window.scrollY + off), behavior });
+    return false;
+  };
+
+  const step = () => {
+    // Only judge the position while the page is still: mid-animation it is
+    // meant to be off target, and correcting then would restart the scroll
+    // every frame and never arrive.
+    const y = window.scrollY;
+    atRest = y === lastY ? atRest + 1 : 0;
+    lastY = y;
+    if (atRest >= 2) {
+      if (correct()) return release();
+      atRest = 0;
+    }
+    if (Date.now() > deadline) return release();
+    frame = requestAnimationFrame(step);
+  };
+
+  window.addEventListener('wheel', release, { passive: true });
+  window.addEventListener('touchstart', release, { passive: true });
+  window.addEventListener('pointerdown', release);
+  correct();
+  frame = requestAnimationFrame(step);
+  return release;
+}
+
+/**
+ * Brings the list a bar field narrows into view. Typing in a bar pinned to
+ * the bottom of the screen otherwise means filtering results you can't see:
+ * you'd be somewhere down a long collection, or at the foot of a repo's
+ * lexicons, watching nothing change.
+ *
+ * Only moves when the start of the list is outside the band between the nav
+ * and the bar — the same band <useOffscreen> calls "on screen", opened up at
+ * the top by the slack above. So the first keystroke pulls the list under the
+ * nav (up or down, whichever way you've drifted) and the rest of the query
+ * leaves the page where you put it.
+ */
+function useRevealResults(resultsId: string | undefined) {
+  const lastRevealRef = useRef(0);
+  const releaseRef = useRef<(() => void) | null>(null);
+
+  // A reveal outlives the keystroke that started it, so a bar that goes away
+  // mid-flight — a route change, a tab switch — takes its listeners with it.
+  useEffect(() => () => releaseRef.current?.(), []);
+
+  return useCallback(() => {
+    if (!resultsId) return;
+    const el = document.getElementById(resultsId);
+    if (!el) return;
+
+    const now = Date.now();
+    if (now - lastRevealRef.current < REVEAL_COOLDOWN_MS) return;
+
+    const { top } = el.getBoundingClientRect();
+    const floor = navBottom();
+    const ceiling = window.innerHeight - CHROME_OCCLUSION_PX;
+    if (top >= floor - REVEAL_SLACK_PX && top <= ceiling) return;
+
+    lastRevealRef.current = now;
+    releaseRef.current?.();
+    releaseRef.current = holdInView(el);
+  }, [resultsId]);
+}
+
+/**
  * The route's own filter/search, driven straight from the published snapshot
  * so typing here and typing in the in-page control are the same edit.
  */
 function RouteField() {
   const { field } = useChromeBar();
   const inputRef = useRef<HTMLInputElement>(null);
+  const revealResults = useRevealResults(field?.resultsId);
   if (!field) return null;
 
   return (
@@ -310,7 +501,10 @@ function RouteField() {
       placeholder={field.placeholder}
       value={field.value}
       status={field.status}
-      onChange={field.onChange}
+      onChange={(next) => {
+        field.onChange(next);
+        revealResults();
+      }}
       onSubmit={() => field.onSubmit?.()}
       onClear={() => {
         field.onChange('');

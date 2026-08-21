@@ -289,6 +289,10 @@ function parseAtUriPath(pathname: string): {
   const rest = match[1];
   const segments = rest.split('/').filter(Boolean);
   if (segments.length === 0) return null;
+  // Permissioned space addresses must never be handed to a public explorer;
+  // see the note in matchAturi. The literal is duplicated because this file is
+  // copied verbatim into @aturi.to/waypoints.
+  if (segments[1] === 'space') return null;
   return {
     handle: segments[0],
     collection: segments[1],
@@ -544,6 +548,10 @@ function matchTaproot(host: string, pathname: string): ReverseMatch | null {
   if (!m) return null;
   const segments = m[1].split('/').filter(Boolean);
   if (segments.length === 0) return null;
+  // Permissioned space addresses must never be handed to a public explorer;
+  // see the note in matchAturi. The literal is duplicated because this file is
+  // copied verbatim into @aturi.to/waypoints.
+  if (segments[1] === 'space') return null;
   const handle = segments[0];
   const collection = segments[1];
   const rkey = segments[2];
@@ -592,6 +600,13 @@ function matchAturi(host: string, parts: string[]): ReverseMatch | null {
 
   // Explorer: /explore/<identifier>[/<collection>[/<rkey>]]
   if (parts[0] === 'explore' && isIdentifier(parts[1])) {
+    // `/explore/<did>/space/…` addresses permissioned data. A match here would
+    // be handed to the popup as a record other explorers can open, leaking the
+    // address of private data to public tools, so the tab reads as
+    // unrecognized instead. The marker is a local literal because this file is
+    // copied verbatim into @aturi.to/waypoints, which cannot resolve
+    // src/utils/atproto/*. A real NSID never equals `space` — it needs dots.
+    if (parts[2] === 'space') return null;
     const handle = parts[1];
     const did = handle.startsWith('did:') ? handle : undefined;
     const collection = parts[2];
@@ -718,6 +733,10 @@ export function parseAtUri(uri: string): ReverseMatch | null {
   const rest = uri.slice('at://'.length);
   const segments = rest.split('/').filter(Boolean);
   if (segments.length === 0) return null;
+  // Permissioned space addresses must never be handed to a public explorer;
+  // see the note in matchAturi. The literal is duplicated because this file is
+  // copied verbatim into @aturi.to/waypoints.
+  if (segments[1] === 'space') return null;
 
   const handle = segments[0];
   const did = handle.startsWith('did:') ? handle : undefined;

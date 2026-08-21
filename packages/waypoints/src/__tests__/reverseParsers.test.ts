@@ -201,3 +201,63 @@ describe('parseAtUri', () => {
     expect(parseAtUri('https://bsky.app/profile/alice')).toBeNull();
   });
 });
+
+/**
+ * Permissioned space addresses are private. Reverse-parsing one would offer it
+ * to every public explorer in the waypoint list, so each detector returns null
+ * and the URL reads as unrecognized instead.
+ */
+describe('space addresses are never reverse-matched', () => {
+  it('refuses an aturi.to explorer space path', () => {
+    expect(match('https://aturi.to/explore/did:plc:x/space/com.example.forum/skey1')).toBeNull();
+    expect(
+      match(
+        'https://aturi.to/explore/did:plc:x/space/com.example.forum/skey1/did:plc:y/app.bsky.feed.post/abc',
+      ),
+    ).toBeNull();
+  });
+
+  it('still matches a public collection whose NSID starts with "space"', () => {
+    const m = match('https://aturi.to/explore/did:plc:x/space.example.thing/abc');
+    expect(m?.source).toBe('aturiExplore');
+    expect(m?.parsed.type).toBe('record');
+    expect(m?.parsed.collection).toBe('space.example.thing');
+    expect(m?.parsed.rkey).toBe('abc');
+  });
+
+  it('refuses a taproot space URL', () => {
+    expect(match('https://atproto.at/uri/at://did:plc:x/space/com.example.forum/skey1')).toBeNull();
+  });
+
+  it('refuses a pdsls / atp.tools space URL', () => {
+    // These two share `parseAtUriPath`, so the guard lives there rather than in
+    // each matcher. Without it the address is read as a record in a collection
+    // literally named `space`, with the space type in the rkey slot.
+    expect(match('https://pdsls.dev/at://did:plc:x/space/com.example.forum/skey1')).toBeNull();
+    expect(
+      match(
+        'https://pdsls.dev/at://did:plc:x/space/com.example.forum/skey1/did:plc:y/app.bsky.feed.post/abc',
+      ),
+    ).toBeNull();
+    expect(match('https://atp.tools/at:/did:plc:x/space/com.example.forum/skey1')).toBeNull();
+  });
+
+  it('still matches a pdsls record whose collection starts with "space"', () => {
+    const m = match('https://pdsls.dev/at://did:plc:x/space.example.thing/abc');
+    expect(m?.source).toBe('pdsls');
+    expect(m?.parsed.collection).toBe('space.example.thing');
+  });
+
+  it('refuses a space at-uri found in a <link> tag', () => {
+    expect(
+      parseAtUri('at://did:plc:x/space/com.example.forum/skey1/did:plc:y/app.bsky.feed.post/abc'),
+    ).toBeNull();
+    expect(parseAtUri('at://did:plc:x/space/com.example.forum/skey1')).toBeNull();
+  });
+
+  it('still parses an at-uri whose collection merely starts with "space"', () => {
+    const m = parseAtUri('at://did:plc:x/space.example.thing/abc');
+    expect(m?.parsed.type).toBe('record');
+    expect(m?.parsed.collection).toBe('space.example.thing');
+  });
+});

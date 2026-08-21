@@ -3,7 +3,8 @@
 import { useEffect, useMemo, useRef } from 'react';
 import Link from 'next/link';
 import { ChevronRight, Server } from 'lucide-react';
-import { encodeRepo } from '@/utils/atproto/urls';
+import { encodeRepo, shortDid } from '@/utils/atproto/urls';
+import { SPACE_MARKER } from '@/utils/atproto/spaceUri';
 import { pdsHostname } from '@/utils/atproto/pdsServer';
 import { useBreadcrumbTrail, type BreadcrumbCrumb } from './BreadcrumbContext';
 import ShareLinkChip from './ShareLinkChip';
@@ -26,6 +27,20 @@ type Props = {
   collection?: string;
   rkey?: string;
   /**
+   * True on any page under the `/space` marker. Switches the trail into
+   * permissioned-space mode, where `collection` and `rkey` describe a record
+   * inside a member's permissioned repo rather than one in the public repo
+   * above. Set independently of `spaceType` so the marker page itself — which
+   * names no type yet — still shows where it sits.
+   */
+  spaceRoot?: boolean;
+  /** Space type NSID. Only meaningful alongside `spaceRoot`. */
+  spaceType?: string;
+  /** Space key. Only meaningful alongside `spaceType`. */
+  skey?: string;
+  /** DID of the member whose permissioned repo holds the record. */
+  author?: string;
+  /**
    * When provided, renders a "Copy link" chip at the end of the breadcrumb
    * row. Path or full URL; bare paths get aturi.to prepended.
    */
@@ -33,9 +48,13 @@ type Props = {
 };
 
 /**
- * Hierarchical breadcrumb across the four explore levels:
+ * Hierarchical breadcrumb across the explore levels:
  *
  *   pds host  →  repo (handle/did)  →  collection (NSID)  →  rkey
+ *
+ * and, for a permissioned space address, the deeper trail:
+ *
+ *   pds  →  authority  →  space  →  type  →  key  →  member  →  collection  →  rkey
  *
  * Each upstream segment is clickable. The PDS segment is optional so older
  * call sites without a resolved PDS still render correctly.
@@ -46,6 +65,10 @@ export default function Breadcrumb({
   pds,
   collection,
   rkey,
+  spaceRoot,
+  spaceType,
+  skey,
+  author,
   shareUrl,
 }: Props) {
   const repoSegment = encodeRepo(handle || did);
@@ -69,6 +92,29 @@ export default function Breadcrumb({
       });
     }
     crumbs.push({ label: repoLabel, href: `/explore/${repoSegment}` });
+
+    // Permissioned-space trail. `space` is a literal path marker rather than a
+    // collection NSID, and everything under it is addressed relative to it —
+    // so a collection and rkey in this mode hang off the member's path inside
+    // the space, never off the public repo path.
+    if (spaceRoot || spaceType) {
+      const markerPath = `/explore/${repoSegment}/${SPACE_MARKER}`;
+      crumbs.push({ label: SPACE_MARKER, href: markerPath });
+      if (!spaceType) return crumbs;
+      const typePath = `${markerPath}/${spaceType}`;
+      crumbs.push({ label: spaceType, href: typePath });
+      if (!skey) return crumbs;
+      const spacePath = `${typePath}/${encodeURIComponent(skey)}`;
+      crumbs.push({ label: skey, href: spacePath });
+      if (!author) return crumbs;
+      const authorPath = `${spacePath}/${encodeRepo(author)}`;
+      crumbs.push({ label: shortDid(author), href: authorPath });
+      if (!collection) return crumbs;
+      crumbs.push({ label: collection, href: `${authorPath}/${collection}` });
+      if (rkey) crumbs.push({ label: rkey });
+      return crumbs;
+    }
+
     if (collection) {
       crumbs.push({ label: collection, href: `/explore/${repoSegment}/${collection}` });
     }
@@ -76,7 +122,7 @@ export default function Breadcrumb({
       crumbs.push({ label: rkey });
     }
     return crumbs;
-  }, [pdsHost, repoLabel, repoSegment, collection, rkey]);
+  }, [pdsHost, repoLabel, repoSegment, spaceRoot, spaceType, skey, author, collection, rkey]);
 
   useEffect(() => {
     setTrail(trail);
@@ -135,77 +181,45 @@ export default function Breadcrumb({
         color: 'var(--text-tertiary)',
       }}
     >
-      {pdsHost && (
-        <>
-          <Link
-            href={`/explore/pds/${encodeURIComponent(pdsHost)}`}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '0.3rem',
-              color: 'var(--text-primary)',
-              textDecoration: 'none',
-              transition: 'color 0.2s ease',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.color = 'var(--text-accent)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.color = 'var(--text-primary)';
-            }}
-          >
-            <Server size={12} aria-hidden style={{ opacity: 0.7 }} />
-            {pdsHost}
-          </Link>
-          <ChevronRight size={14} aria-hidden style={{ color: 'var(--text-tertiary)' }} />
-        </>
-      )}
-
-      <Link
-        href={`/explore/${repoSegment}`}
-        style={{
-          color: 'var(--text-primary)',
-          textDecoration: 'none',
-          transition: 'color 0.2s ease',
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.color = 'var(--text-accent)';
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.color = 'var(--text-primary)';
-        }}
-      >
-        {repoLabel}
-      </Link>
-
-      {collection && (
-        <>
-          <ChevronRight size={14} aria-hidden style={{ color: 'var(--text-tertiary)' }} />
-          <Link
-            href={`/explore/${repoSegment}/${collection}`}
-            style={{
-              color: 'var(--text-primary)',
-              textDecoration: 'none',
-              transition: 'color 0.2s ease',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.color = 'var(--text-accent)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.color = 'var(--text-primary)';
-            }}
-          >
-            {collection}
-          </Link>
-        </>
-      )}
-
-      {rkey && (
-        <>
-          <ChevronRight size={14} aria-hidden style={{ color: 'var(--text-tertiary)' }} />
-          <span style={{ color: 'var(--text-tertiary)' }}>{rkey}</span>
-        </>
-      )}
+      {/* Rendered straight off the mirrored trail so the visible row and its
+          condensed twin can never drift apart as levels are added. A crumb
+          without an href is terminal — today only a record key. */}
+      {trail.map((crumb, i) => (
+        <span
+          key={`${i}-${crumb.href ?? crumb.label}`}
+          style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', minWidth: 0 }}
+        >
+          {i > 0 && (
+            <ChevronRight size={14} aria-hidden style={{ color: 'var(--text-tertiary)' }} />
+          )}
+          {crumb.href ? (
+            <Link
+              href={crumb.href}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.3rem',
+                color: 'var(--text-primary)',
+                textDecoration: 'none',
+                transition: 'color 0.2s ease',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.color = 'var(--text-accent)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.color = 'var(--text-primary)';
+              }}
+            >
+              {crumb.icon === 'server' && (
+                <Server size={12} aria-hidden style={{ opacity: 0.7 }} />
+              )}
+              {crumb.label}
+            </Link>
+          ) : (
+            <span style={{ color: 'var(--text-tertiary)' }}>{crumb.label}</span>
+          )}
+        </span>
+      ))}
 
       {shareUrl && (
         <span style={{ marginLeft: 'auto' }}>

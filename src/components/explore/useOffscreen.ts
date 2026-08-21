@@ -6,8 +6,8 @@ import { useEffect, useState } from 'react';
 // the chrome bar roughly this much of the bottom. An element hidden behind
 // either is "not on screen" as far as the visitor is concerned, so both edges
 // are inset before asking whether it's visible.
-const NAV_OCCLUSION_PX = 96;
-const CHROME_OCCLUSION_PX = 64;
+export const NAV_OCCLUSION_PX = 96;
+export const CHROME_OCCLUSION_PX = 64;
 
 /**
  * True while the watched element is out of the usable viewport — scrolled off

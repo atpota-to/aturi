@@ -14,7 +14,7 @@ import {
 } from '@/utils/ufos/config';
 import { formatCount } from '@/utils/ufos/format';
 import { groupPathFor, lexiconPathFor } from '@/utils/ufos/nsid';
-import { useChromeBarField } from '../ChromeBarContext';
+import { CHROME_RESULTS_ID, useChromeBarField } from '../ChromeBarContext';
 
 const PREFIX_LIMIT = 200;
 
@@ -134,7 +134,9 @@ function Frame({
 /** Card wrapping a listing of rows. */
 function ListCard({ children }: { children: React.ReactNode }) {
   return (
-    <AppearIn delay={0.08}>
+    // Both views that render this one publish a filter to the bottom chrome
+    // bar, so this card is what typing down there scrolls to.
+    <AppearIn delay={0.08} id={CHROME_RESULTS_ID}>
       <div
         style={{
           border: '1px solid var(--border-medium)',
@@ -196,6 +198,7 @@ function PrefixView({ prefix }: { prefix: string }) {
     label: `Filter entries under ${prefix}`,
     value: filter,
     onChange: setFilter,
+    resultsId: CHROME_RESULTS_ID,
     status: !children
       ? null
       : query
@@ -321,6 +324,7 @@ function SearchView({ term }: { term: string }) {
     label: `Filter lexicons matching ${term}`,
     value: filter,
     onChange: setFilter,
+    resultsId: CHROME_RESULTS_ID,
     status: !results
       ? null
       : query

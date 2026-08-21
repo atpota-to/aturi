@@ -3,9 +3,11 @@
 import { useState } from 'react';
 import { ArrowLeft, Check } from 'lucide-react';
 import {
-  ALL_SCOPE_IDS,
   buildScopeString,
+  DEFAULT_SCOPE_IDS,
   GRANULAR_SCOPES,
+  SPACE_SCOPE_IDS,
+  type GranularScope,
   type ScopeId,
 } from '@/lib/oauth/scopes';
 
@@ -13,28 +15,48 @@ interface Props {
   account: string;
   busy?: boolean;
   error?: string | null;
+  /**
+   * Rows to tick on top of the defaults. Lets a surface that already knows
+   * what the user is about to do — the space explorer's "your sign-in didn't
+   * include space access" prompt, say — send them into the picker with the
+   * relevant row already on instead of asking them to find it.
+   */
+  preselect?: ScopeId[];
   onBack: () => void;
   onContinue: (scopeString: string) => void | Promise<void>;
 }
 
+const WRITE_SCOPES = GRANULAR_SCOPES.filter((s) => !SPACE_SCOPE_IDS.has(s.id));
+const SPACE_SCOPES = GRANULAR_SCOPES.filter((s) => SPACE_SCOPE_IDS.has(s.id));
+
 /**
  * Step 2 of the sign-in flow: granular permission picker.
  *
- * All four write-side actions default to checked; users can opt out of
- * individual ones to grant a narrower scope than `repo:*`. The atproto
- * OAuth consent screen at the user's PDS will then only show / authorize
- * the subset they actually requested.
+ * The write-side actions default to checked; users can opt out of individual
+ * ones to grant a narrower scope than `repo:*`. The atproto OAuth consent
+ * screen at the user's PDS will then only show / authorize the subset they
+ * actually requested.
+ *
+ * The permissioned-data rows are the exception: they start unticked, so the
+ * scope string this form submits with nothing touched is byte-identical to
+ * the one it submitted before spaces existed. See the block comment above
+ * SPACE_READ_SELF_SCOPE in `@/lib/oauth/scopes` for why that matters.
  */
 export default function ScopeSelector({
   account,
   busy,
   error,
+  preselect,
   onBack,
   onContinue,
 }: Props) {
-  const [selected, setSelected] = useState<Set<ScopeId>>(
-    new Set(ALL_SCOPE_IDS),
-  );
+  // Seeded once: the picker is a form, so later prop changes shouldn't reach
+  // in and re-tick boxes underneath someone who is mid-decision.
+  const [selected, setSelected] = useState<Set<ScopeId>>(() => {
+    const initial = new Set<ScopeId>(DEFAULT_SCOPE_IDS);
+    for (const id of preselect ?? []) initial.add(id);
+    return initial;
+  });
 
   function toggle(id: ScopeId) {
     setSelected((prev) => {
@@ -80,55 +102,49 @@ export default function ScopeSelector({
         </div>
       </div>
 
-      <ul
-        style={{
-          listStyle: 'none',
-          padding: 0,
-          margin: 0,
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '0.375rem',
-        }}
-      >
-        {GRANULAR_SCOPES.map((scope) => {
-          const checked = selected.has(scope.id);
-          return (
-            <li key={scope.id}>
-              <label style={rowStyle(checked, busy)}>
-                <input
-                  type="checkbox"
-                  className="scope-checkbox"
-                  checked={checked}
-                  onChange={() => toggle(scope.id)}
-                  disabled={busy}
-                />
-                <span className="scope-checkbox-box" aria-hidden="true">
-                  <Check size={12} strokeWidth={3} />
-                </span>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div
-                    style={{
-                      fontSize: '0.85rem',
-                      color: 'var(--text-primary)',
-                    }}
-                  >
-                    {scope.label}
-                  </div>
-                  <div
-                    style={{
-                      fontSize: '0.7rem',
-                      color: 'var(--text-tertiary)',
-                      lineHeight: 1.4,
-                    }}
-                  >
-                    {scope.hint}
-                  </div>
-                </div>
-              </label>
-            </li>
-          );
-        })}
+      <ul style={listStyle()}>
+        {WRITE_SCOPES.map((scope) => (
+          <ScopeRow
+            key={scope.id}
+            scope={scope}
+            checked={selected.has(scope.id)}
+            busy={busy}
+            onToggle={toggle}
+          />
+        ))}
       </ul>
+
+      <div
+        style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}
+      >
+        <div className="explore-small-caps">Permissioned data (Spaces)</div>
+        <p
+          style={{
+            margin: 0,
+            fontSize: '0.7rem',
+            color: 'var(--text-tertiary)',
+            lineHeight: 1.4,
+          }}
+        >
+          Records kept outside your public repo. This is new; most servers
+          don’t support it yet, and one that doesn’t understand it simply
+          won’t grant it. Granting either row lets this app ask a space
+          authority — including one named by a link you open — for a
+          credential on your behalf, so leave them off unless you came here
+          to read a space.
+        </p>
+        <ul style={listStyle()}>
+          {SPACE_SCOPES.map((scope) => (
+            <ScopeRow
+              key={scope.id}
+              scope={scope}
+              checked={selected.has(scope.id)}
+              busy={busy}
+              onToggle={toggle}
+            />
+          ))}
+        </ul>
+      </div>
 
       <button
         type="submit"
@@ -171,6 +187,60 @@ export default function ScopeSelector({
       )}
     </form>
   );
+}
+
+function ScopeRow({
+  scope,
+  checked,
+  busy,
+  onToggle,
+}: {
+  scope: GranularScope;
+  checked: boolean;
+  busy?: boolean;
+  onToggle: (id: ScopeId) => void;
+}) {
+  return (
+    <li>
+      <label style={rowStyle(checked, busy)}>
+        <input
+          type="checkbox"
+          className="scope-checkbox"
+          checked={checked}
+          onChange={() => onToggle(scope.id)}
+          disabled={busy}
+        />
+        <span className="scope-checkbox-box" aria-hidden="true">
+          <Check size={12} strokeWidth={3} />
+        </span>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: '0.85rem', color: 'var(--text-primary)' }}>
+            {scope.label}
+          </div>
+          <div
+            style={{
+              fontSize: '0.7rem',
+              color: 'var(--text-tertiary)',
+              lineHeight: 1.4,
+            }}
+          >
+            {scope.hint}
+          </div>
+        </div>
+      </label>
+    </li>
+  );
+}
+
+function listStyle(): React.CSSProperties {
+  return {
+    listStyle: 'none',
+    padding: 0,
+    margin: 0,
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '0.375rem',
+  };
 }
 
 function backButtonStyle(): React.CSSProperties {

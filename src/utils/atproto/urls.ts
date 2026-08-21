@@ -2,10 +2,27 @@
  * AT URI / explorer URL helpers. Pure, no network IO.
  */
 
+import {
+  SPACE_MARKER,
+  isSpaceUri,
+  isValidDid,
+  isValidNsid,
+  isValidRecordKey,
+  parseSpaceAtUri,
+  type SpaceAtUriParts,
+} from './spaceUri';
+
 export type ParsedAtUri = {
   repo: string;
   collection?: string;
   rkey?: string;
+  /**
+   * Present only for permissioned space URIs. When set, `collection` and
+   * `rkey` are deliberately left undefined: a caller that ignores `space`
+   * degrades to the repo level, which is safe, instead of building a public
+   * record path out of space components, which is wrong.
+   */
+  space?: SpaceAtUriParts;
 };
 
 /**
@@ -30,6 +47,9 @@ export function toAtUri({
  */
 export function rkeyFromAtUri(atUri: string | null | undefined): string | null {
   if (!atUri) return null;
+  // A space URI's third segment is the space type, not a record key, so the
+  // public regex below would hand back an NSID. Parse it as what it is.
+  if (isSpaceUri(atUri)) return parseSpaceAtUri(atUri)?.rkey ?? null;
   const m = String(atUri).match(/^at:\/\/[^/]+\/[^/]+\/([^/?#]+)/);
   return m ? m[1] : null;
 }
@@ -39,7 +59,14 @@ export function rkeyFromAtUri(atUri: string | null | undefined): string | null {
  */
 export function parseAtUri(uri: string | null | undefined): ParsedAtUri | null {
   if (!uri) return null;
-  const m = String(uri).match(/^at:\/\/([^/]+)(?:\/([^/?#]+)(?:\/([^/?#]+))?)?/);
+  // Space addresses have their own grammar and their own path depth. A
+  // malformed one returns null rather than falling through to the public
+  // regex, which would silently truncate it to repo/`space`/spaceType.
+  if (isSpaceUri(uri)) {
+    const space = parseSpaceAtUri(uri);
+    return space ? { repo: space.authority, space } : null;
+  }
+  const m = String(uri).match(/^at:\/\/([^/?#]+)(?:\/([^/?#]+)(?:\/([^/?#]+))?)?/);
   if (!m) return null;
   const [, repo, collection, rkey] = m;
   return { repo, collection, rkey };
@@ -53,6 +80,72 @@ export function parseAtUri(uri: string | null | undefined): ParsedAtUri | null {
  */
 export function encodeRepo(input: string | null | undefined): string {
   return String(input || '').replace(/[?#]/g, encodeURIComponent);
+}
+
+/**
+ * Explorer path for a permissioned space address.
+ *
+ *   /explore/{authority}/space/{spaceType}/{skey}
+ *   /explore/{authority}/space/{spaceType}/{skey}/{author}/{collection}/{rkey}
+ *
+ * The authority and the author are both DIDs and both use `encodeRepo`, so
+ * their colons stay raw and match the shape of every other explorer repo path.
+ */
+export function spaceExplorePath(parts: SpaceAtUriParts): string {
+  const base = `/explore/${encodeRepo(parts.authority)}/${SPACE_MARKER}/${parts.spaceType}/${encodeURIComponent(parts.skey)}`;
+  if (parts.author && parts.collection && parts.rkey) {
+    return `${base}/${encodeRepo(parts.author)}/${parts.collection}/${encodeURIComponent(parts.rkey)}`;
+  }
+  return base;
+}
+
+/**
+ * Authority position in an *explorer* path, which is not the same rule as the
+ * at:// grammar's. A space ref is DID-only because a credential's `sub` is
+ * compared byte for byte, but `/explore/{repo}/space/...` resolves its repo
+ * segment through the identity resolver, so a handle addresses the same space.
+ * The space pages build their own share links from `handle || did`, and a
+ * DID-only test here would mean a link aturi.to emitted doesn't route back into
+ * aturi.to. Same shape test the reverse parsers use: a DID, or a dotted name.
+ */
+function isExploreAuthority(value: string): boolean {
+  return value.startsWith('did:') || value.includes('.');
+}
+
+/**
+ * Inverse of {@link spaceExplorePath}, over already-split, already-decoded
+ * path segments starting at the authority — i.e.
+ * `pathname.split('/').filter(Boolean).slice(1)` for an `/explore/...` path.
+ * Returns the canonical explorer path, or null when the segments don't spell an
+ * addressable space page.
+ *
+ * Every depth the route tree serves is accepted, including the two partial ones
+ * — `/explore/{repo}/space` (which spaces an account writes to) and
+ * `/explore/{repo}/space/{type}` (the same, narrowed) — because both are real
+ * pages with their own share links. Only the author position stays DID-only,
+ * which is what the route itself enforces.
+ */
+export function spaceExplorePathFromSegments(segments: string[]): string | null {
+  const [authority, marker, spaceType, skey, author, collection, rkey] = segments;
+  if (marker !== SPACE_MARKER) return null;
+  if (!authority || !isExploreAuthority(authority)) return null;
+  const marked = `/explore/${encodeRepo(authority)}/${SPACE_MARKER}`;
+  if (segments.length === 2) return marked;
+
+  if (!spaceType || !isValidNsid(spaceType)) return null;
+  if (segments.length === 3) return `${marked}/${spaceType}`;
+
+  if (!skey || !isValidRecordKey(skey)) return null;
+  const ref = `${marked}/${spaceType}/${encodeURIComponent(skey)}`;
+  if (segments.length === 4) return ref;
+
+  // Anything between the space ref and a full record address is not an
+  // addressable page, so it is rejected rather than degraded.
+  if (segments.length !== 7) return null;
+  if (!isValidDid(author)) return null;
+  if (!isValidNsid(collection)) return null;
+  if (!isValidRecordKey(rkey)) return null;
+  return `${ref}/${encodeRepo(author)}/${collection}/${encodeURIComponent(rkey)}`;
 }
 
 /**
@@ -70,6 +163,7 @@ export function explorePathFromAtUri(input: string | null | undefined): string |
   if (s.startsWith('did:')) return `/explore/${s}`;
   const parsed = parseAtUri(s);
   if (!parsed) return null;
+  if (parsed.space) return spaceExplorePath(parsed.space);
   const { repo, collection, rkey } = parsed;
   if (rkey) return `/explore/${encodeRepo(repo)}/${collection}/${encodeURIComponent(rkey)}`;
   if (collection) return `/explore/${encodeRepo(repo)}/${collection}`;
