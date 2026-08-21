@@ -180,7 +180,7 @@ export default function ScopeSelector({
           Records kept outside your public repo. Your server runs the spaces
           build, so these are on. The second row lets this app ask any space
           authority (including one named by a link you open) for a credential
-          on your behalf — untick it if you only want your own records.
+          on your behalf. Untick it if you only want your own records.
         </p>
         <ul style={listStyle()}>
           {SPACE_SCOPES.map((scope) => (

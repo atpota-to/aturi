@@ -52,9 +52,9 @@ export default function SpaceAccessPanel({ state, what, defaultAccount }: Props)
           </p>
           <SignInPanel defaultInput={defaultAccount} />
           <p style={noteStyle}>
-            Reading a space needs the permissioned-data permission, which is off
-            by default on the permission screen — tick <em>Read whole spaces</em>{' '}
-            when you get there.
+            Reading a space needs the permissioned-data permission. The
+            permission screen offers it on servers that run the spaces build,
+            already ticked.
           </p>
         </Panel>
       );
@@ -68,7 +68,7 @@ export default function SpaceAccessPanel({ state, what, defaultAccount }: Props)
         >
           <p style={bodyStyle}>
             Permissioned data is a separate permission, and this session was
-            authorized without it — either because it wasn’t ticked, or because
+            authorized without it, either because it wasn’t ticked or because
             your server doesn’t support spaces yet and dropped it. Authorize
             again to try.
           </p>
@@ -103,7 +103,7 @@ export default function SpaceAccessPanel({ state, what, defaultAccount }: Props)
                 {!state.authority.dedicatedHost && (
                   <span className="explore-muted">
                     {' '}
-                    (its PDS — this DID publishes no dedicated space host)
+                    (its PDS; this DID publishes no dedicated space host)
                   </span>
                 )}
               </dd>
@@ -145,8 +145,8 @@ export default function SpaceAccessPanel({ state, what, defaultAccount }: Props)
           <p style={bodyStyle}>
             aturi.to is a public OAuth client with no published signing keys, so
             it cannot present the client attestation an allow-list space
-            requires. There is no configuration that would change that — it
-            can’t be granted access here, by you or by the authority.
+            requires. No configuration changes that. It can’t be granted access
+            here, by you or by the authority.
           </p>
           <Technical detail={state.message} />
         </Panel>
@@ -199,7 +199,7 @@ export default function SpaceAccessPanel({ state, what, defaultAccount }: Props)
             {state.code
               ? `The space host answered ${state.code}.`
               : 'The space host didn’t answer as expected.'}{' '}
-            It might be a temporary problem — try again in a moment.
+            It might be temporary; try again in a moment.
           </p>
           <Technical detail={state.message} />
         </Panel>
@@ -293,7 +293,7 @@ export function SpaceReadErrorPanel({ err, what }: { err: unknown; what: string 
           <p style={bodyStyle}>
             {failure.kind === 'invalid-credential' || failure.kind === 'credential-stale'
               ? 'The space credential was refused. Reloading the page mints a fresh one.'
-              : 'The host returned an error. It might be a temporary problem — try again in a moment.'}
+              : 'The host returned an error. It might be temporary; try again in a moment.'}
           </p>
           <Technical detail={detail} />
         </Panel>
@@ -403,8 +403,8 @@ export function SpaceRepoAccessPanel({
         >
           <p style={bodyStyle}>
             The space host’s own record of who has written here doesn’t include
-            this DID, so there is nothing of theirs to read — and their server is
-            not one this space vouched for, so no credential is sent to it. If
+            this DID, so there is nothing of theirs to read. Their server is not
+            one this space vouched for either, so no credential is sent to it. If
             they are a member who has simply never written, this is what that
             looks like from outside.
           </p>

@@ -116,7 +116,7 @@ function OwnSpacesPanel({ identity }: { identity: IdentityBundle }) {
         <p style={noteStyle}>
           Only the account itself can list this. A PDS keeps the record of which
           spaces it has written to for its own account and no one else’s, so
-          there is no way to ask it about somebody else — not even with a
+          there is no way to ask it about somebody else, not even with a
           whole-space credential.
           {signedInDid && (
             <>
@@ -274,7 +274,7 @@ export function SpaceWrittenList({
           <p style={noteStyle}>
             Only the account itself can list this. A PDS keeps the record of
             which spaces it has written to for its own account and no one
-            else’s, so there is no way to ask it about somebody else — not even
+            else’s, so there is no way to ask it about somebody else, not even
             with a whole-space credential.
             {signedInDid && (
               <>
