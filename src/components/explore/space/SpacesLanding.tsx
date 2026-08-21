@@ -15,6 +15,7 @@ import { resolveIdentifier } from '@/utils/atproto/identity';
 import { pdsSupportsSpaces, SPACES_ALPHA_PDS } from '@/utils/atproto/spaceIdentity';
 import { encodeRepo } from '@/utils/atproto/urls';
 import AppearIn from '../AppearIn';
+import SkeletonSwap from '../skeletons/SkeletonSwap';
 import { useSpaceGrant } from './useSpaceAccess';
 
 /**
@@ -68,8 +69,7 @@ export default function SpacesLanding() {
               A space holds records with an authority that checks membership
               before serving them: mutuals-only posts, private bulletin
               boards, notes that never reach the firehose. Sign in and the
-              explorer walks the spaces you write to, the way it walks your
-              public collections.{' '}
+              explorer reveals the spaces you write to.{' '}
               <a
                 href="https://atproto.com/blog/atproto-spaces-alpha"
                 target="_blank"
@@ -80,7 +80,7 @@ export default function SpacesLanding() {
               </a>
               .
             </p>
-            {loading ? null : session ? <SignedIn did={did} /> : <SignedOut />}
+            <HeroAction loading={loading} signedIn={Boolean(session)} did={did} />
           </div>
           <div>
             <SpacesGlanceVisual />
@@ -128,6 +128,85 @@ export default function SpacesLanding() {
 }
 
 /**
+ * The hero's call to action, and the one box on this page whose contents
+ * aren't known at first paint.
+ *
+ * Which control belongs here depends on whether there is a session, and that
+ * answer is unavoidably async: the OAuth client keeps its sessions in
+ * IndexedDB and the package that reads them is dynamically imported, so
+ * nothing on the first render can tell a signed-in visitor from a signed-out
+ * one. Rendering nothing until it resolves left the hero with a hole in it,
+ * so this holds a stand-in for the form instead and cross-fades whichever
+ * control wins.
+ *
+ * The stand-in is the signed-out form's shape rather than the button's,
+ * because that is the answer for anyone who has not signed in here before.
+ * Guessing wrong costs a signed-in visitor a swap between two boxes of
+ * different heights; guessing the button instead would cost every first-time
+ * visitor the same swap.
+ */
+function HeroAction({
+  loading,
+  signedIn,
+  did,
+}: {
+  loading: boolean;
+  signedIn: boolean;
+  did: string | null;
+}) {
+  return (
+    <SkeletonSwap loading={loading} skeleton={<SignInSkeleton />}>
+      {!loading && (signedIn ? <SignedIn did={did} /> : <SignedOut />)}
+    </SkeletonSwap>
+  );
+}
+
+/**
+ * Stand-in for <SignedOut>'s handle field and submit button.
+ */
+function SignInSkeleton() {
+  return (
+    <div aria-hidden style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
+      <ControlSkeleton control="field" />
+      <ControlSkeleton control="button" />
+    </div>
+  );
+}
+
+/**
+ * A stand-in for one of the slot's controls, built from that control's own
+ * padding, border and type rather than from a height measured off a
+ * screenshot: it holds a blank line and lets the same layout math size it.
+ * A fixed height was 11px too tall here, because the controls set their own
+ * font sizes and a `calc` in `em` resolved against the body's instead. This
+ * also survives a change to the site's font scale, which a pixel height
+ * would not.
+ */
+function ControlSkeleton({ control }: { control: 'field' | 'button' }) {
+  const field = control === 'field';
+  return (
+    <div
+      className="skeleton-shimmer"
+      style={{
+        // Mirrors the field's 0.625rem/0.75rem and the button's
+        // 0.625rem/1rem. Only the block padding decides the height, and the
+        // two agree on it.
+        padding: field ? '0.625rem 0.75rem' : '0.625rem 1rem',
+        border: '1px solid var(--border-medium)',
+        background: 'var(--bg-tertiary)',
+        fontFamily: field ? 'var(--font-mono)' : 'var(--font-serif)',
+        fontSize: field ? '0.875rem' : '0.9375rem',
+        lineHeight: 'normal',
+        color: 'transparent',
+        userSelect: 'none',
+      }}
+    >
+      &nbsp;
+    </div>
+  );
+}
+
+/**
  * Where new accounts for the alpha come from. The atproto blog points at the
  * bsky.network account portal for both the invite code and the sign-up link,
  * so this sends people there rather than paraphrasing a flow we don't run.
@@ -141,14 +220,10 @@ function AlphaAccount() {
         <Badge icon={<KeyRound size={12} aria-hidden />}>Try the alpha</Badge>
         <h2 style={sectionTitleStyle}>Get an account on the alpha host</h2>
         <p style={sectionLeadStyle}>
-          Reading a space takes an account on a server that runs the spaces
-          build, and during the alpha exactly one host does:{' '}
-          <code style={{ background: 'transparent', padding: 0, color: 'var(--text-accent)' }}>
-            {SPACES_ALPHA_PDS}
-          </code>
-          . New accounts there take an invite code. Your bsky.network account
-          page has one for you, along with a link to the sign-up form. Create
-          the account, then sign in here with it.
+          Trying Spaces requires an account on a server that runs the spaces
+          build. Bluesky is hosting one for this alpha test. Grab an invite
+          code from Bluesky using the link below, create the account, then
+          sign in here with it.
         </p>
       </div>
       <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'center' }}>
@@ -220,9 +295,10 @@ function FeaturedApps() {
         <Badge icon={<Boxes size={12} aria-hidden />}>Built on spaces</Badge>
         <h2 style={sectionTitleStyle}>Apps to try</h2>
         <p style={sectionLeadStyle}>
-          The explorer reads spaces; it doesn&rsquo;t create them. An account
-          has nothing to browse until an app writes something to a space on
-          its behalf. These three do.
+          The explorer reads spaces, but it doesn&rsquo;t create them. An
+          account will have nothing to browse until you use an app that writes
+          something to a space. Here are some test apps from the community to
+          experiment with:
         </p>
       </div>
       <div
@@ -298,8 +374,15 @@ function SignedIn({ did }: { did: string | null }) {
     };
   }, [pds]);
 
+  // Same slot, still resolving: this check is a second async hop after the
+  // session one, so it gets the button's box rather than a line of text that
+  // would resize the hero again on its way out.
   if (grant === 'unknown' || supported === null) {
-    return <p className="explore-placeholder">Checking your access…</p>;
+    return (
+      <div role="status" aria-label="Checking your access">
+        <ControlSkeleton control="button" />
+      </div>
+    );
   }
 
   // Server first: a missing grant on a server that can't do spaces isn't the
