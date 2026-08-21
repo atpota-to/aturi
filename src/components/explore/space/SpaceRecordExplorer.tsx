@@ -14,6 +14,8 @@ import type { IdentityBundle } from '@/utils/atproto/identity';
 import { getSpaceRecord } from '@/utils/atproto/spaceClient';
 import AppearIn from '../AppearIn';
 import Breadcrumb from '../Breadcrumb';
+import SkeletonSwap from '../skeletons/SkeletonSwap';
+import { SpaceRecordBodySkeleton, SpaceRecordSkeleton } from '../skeletons/pages';
 import CopyButton from '../CopyButton';
 import LinkifiedJson from '../LinkifiedJson';
 import SpaceRecordFields from './SpaceRecordFields';
@@ -74,19 +76,23 @@ export default function SpaceRecordExplorer({
       />
     );
   }
-  if (!identity || !authorIdentity) {
-    return <p className="explore-placeholder">Resolving identities…</p>;
-  }
 
   return (
-    <SpaceRecordView
-      identity={identity}
-      authorIdentity={authorIdentity}
-      spaceType={spaceType}
-      skey={skey}
-      collection={collection}
-      rkey={rkey}
-    />
+    <SkeletonSwap
+      loading={!identity || !authorIdentity}
+      skeleton={<SpaceRecordSkeleton />}
+    >
+      {identity && authorIdentity && (
+        <SpaceRecordView
+          identity={identity}
+          authorIdentity={authorIdentity}
+          spaceType={spaceType}
+          skey={skey}
+          collection={collection}
+          rkey={rkey}
+        />
+      )}
+    </SkeletonSwap>
   );
 }
 
@@ -186,9 +192,7 @@ function SpaceRecordView({
         </AppearIn>
       )}
 
-      {transport && error == null && !record && (
-        <p className="explore-placeholder">Loading record…</p>
-      )}
+      {transport && error == null && !record && <SpaceRecordBodySkeleton />}
 
       {record && (
         <AppearIn delay={0.05}>

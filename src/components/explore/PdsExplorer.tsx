@@ -18,6 +18,7 @@ import { tidToDate, formatTidRelative } from '@/utils/atproto/tid';
 import AppearIn from './AppearIn';
 import CopyButton from './CopyButton';
 import ShareLinkChip from './ShareLinkChip';
+import { PdsReposSkeleton } from './skeletons/pages';
 import { CHROME_RESULTS_ID, useChromeBarField } from './ChromeBarContext';
 
 type Props = {
@@ -186,9 +187,7 @@ export default function PdsExplorer({ host }: Props) {
           </header>
 
           {reposError && <p className="explore-error">{reposError}</p>}
-          {repos.length === 0 && reposLoading && (
-            <p className="explore-placeholder">Loading repos…</p>
-          )}
+          {repos.length === 0 && reposLoading && <PdsReposSkeleton />}
           {repos.length === 0 && !reposLoading && !reposError && (
             <p className="explore-placeholder">No repos reported by this PDS.</p>
           )}

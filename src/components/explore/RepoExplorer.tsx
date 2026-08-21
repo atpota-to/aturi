@@ -25,6 +25,8 @@ import IdentityTab from './tabs/IdentityTab';
 import AuditTab from './tabs/AuditTab';
 import BacklinksTab from './tabs/BacklinksTab';
 import NotFoundPanel from '@/components/NotFoundPanel';
+import SkeletonSwap from './skeletons/SkeletonSwap';
+import { RepoSkeleton } from './skeletons/pages';
 
 const TABS = [
   { id: 'collections', label: 'Lexicons' },
@@ -38,7 +40,6 @@ type TabId = (typeof TABS)[number]['id'];
 export default function RepoExplorer({ repo }: { repo: string }) {
   const [identity, setIdentity] = useState<IdentityBundle | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const { prefs, update, loading } = usePreferences();
 
   useEffect(() => {
     let cancelled = false;
@@ -66,13 +67,21 @@ export default function RepoExplorer({ repo }: { repo: string }) {
       />
     );
   }
-  if (!identity) {
-    return (
-      <p className="explore-placeholder">
-        Resolving <code>{repo}</code>…
-      </p>
-    );
-  }
+
+  return (
+    <SkeletonSwap loading={!identity} skeleton={<RepoSkeleton />}>
+      {identity && <RepoView identity={identity} />}
+    </SkeletonSwap>
+  );
+}
+
+/**
+ * The repo page proper. Split from the resolver above so the skeleton and the
+ * loaded page are two states of one <SkeletonSwap> rather than two returns
+ * that cut between each other.
+ */
+function RepoView({ identity }: { identity: IdentityBundle }) {
+  const { prefs, update, loading } = usePreferences();
 
   // The repo page renders the user's chosen sections in their chosen order
   // (configurable in Settings → Sections). Until prefs settle we use the

@@ -10,6 +10,9 @@ import { collectSpacePages, listSpaces } from '@/utils/atproto/spaceClient';
 import { resolveDidHandle, type IdentityBundle } from '@/utils/atproto/identity';
 import AppearIn from '../AppearIn';
 import Breadcrumb from '../Breadcrumb';
+import SkeletonSwap from '../skeletons/SkeletonSwap';
+import { SpaceListSkeleton } from '../skeletons/pages';
+import { SkeletonRowList } from '../skeletons/primitives';
 import { CHROME_RESULTS_ID, useChromeBarField } from '../ChromeBarContext';
 import { formatCount } from '../collectionListHelpers';
 import SpaceAccessPanel from './SpaceAccessPanel';
@@ -41,14 +44,20 @@ export default function SpaceListExplorer({ repo }: { repo: string }) {
       />
     );
   }
-  if (!identity) {
-    return (
-      <p className="explore-placeholder">
-        Resolving <code>{repo}</code>…
-      </p>
-    );
-  }
 
+  return (
+    <SkeletonSwap loading={!identity} skeleton={<SpaceListSkeleton />}>
+      {identity && <SpaceListView identity={identity} />}
+    </SkeletonSwap>
+  );
+}
+
+/**
+ * The page proper. Split from the resolver above so the skeleton and the loaded
+ * page are two states of one <SkeletonSwap> rather than two returns that cut
+ * between each other.
+ */
+function SpaceListView({ identity }: { identity: IdentityBundle }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
       <AppearIn rise>
@@ -139,7 +148,7 @@ function OwnSpacesPanel({ identity }: { identity: IdentityBundle }) {
         <>
           {tree.error && <p className="explore-error">{tree.error}</p>}
           {!tree.error && tree.loading && tree.uris.length === 0 && (
-            <p className="explore-placeholder">Loading spaces…</p>
+            <SkeletonRowList rows={4} trailingWidth="5rem" />
           )}
           {!tree.error && !tree.loading && tree.uris.length === 0 && (
             <p className="explore-placeholder">
@@ -297,7 +306,7 @@ export function SpaceWrittenList({
           <>
             {error && <p className="explore-error">{error}</p>}
             {!error && loading && uris.length === 0 && (
-              <p className="explore-placeholder">Loading spaces…</p>
+              <SkeletonRowList rows={4} trailingWidth="5rem" />
             )}
             {!error && !loading && uris.length === 0 && (
               <p className="explore-placeholder">

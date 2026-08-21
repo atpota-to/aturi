@@ -5,6 +5,7 @@ import { ChevronsDownUp, ChevronsUpDown, Pin } from 'lucide-react';
 import { describeRepo } from '@/utils/atproto/pdsClient';
 import { encodeRepo } from '@/utils/atproto/urls';
 import type { IdentityBundle } from '@/utils/atproto/identity';
+import { CollectionsTabSkeleton } from '../skeletons/pages';
 import { useMyCollections } from '../useRepoCollections';
 import { useAtprotoSession } from '@/components/AtprotoSessionProvider';
 import { usePreferences } from '@/components/PreferencesProvider';
@@ -236,7 +237,7 @@ export default function CollectionsTab({ identity }: { identity: IdentityBundle 
   });
 
   if (error) return <p className="explore-error">{error}</p>;
-  if (!collections) return <p className="explore-placeholder">Loading collections…</p>;
+  if (!collections) return <CollectionsTabSkeleton />;
   if (collections.length === 0) {
     return <p className="explore-placeholder">No collections on this repo.</p>;
   }

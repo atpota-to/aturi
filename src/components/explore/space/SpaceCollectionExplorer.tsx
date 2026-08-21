@@ -11,6 +11,9 @@ import { previewFor } from '@/utils/atproto/previewExtractors';
 import { listSpaceRecords, type SpaceRecordRow } from '@/utils/atproto/spaceClient';
 import AppearIn from '../AppearIn';
 import Breadcrumb from '../Breadcrumb';
+import SkeletonSwap from '../skeletons/SkeletonSwap';
+import { SpaceCollectionSkeleton } from '../skeletons/pages';
+import { SkeletonRecordRows } from '../skeletons/primitives';
 import { CHROME_RESULTS_ID, useChromeBarField } from '../ChromeBarContext';
 import { formatCount, listColumns } from '../collectionListHelpers';
 import { SpaceReadErrorPanel, SpaceRepoAccessPanel } from './SpaceAccessPanel';
@@ -63,18 +66,22 @@ export default function SpaceCollectionExplorer({
       />
     );
   }
-  if (!identity || !authorIdentity) {
-    return <p className="explore-placeholder">Resolving identities…</p>;
-  }
 
   return (
-    <SpaceCollectionList
-      identity={identity}
-      authorIdentity={authorIdentity}
-      spaceType={spaceType}
-      skey={skey}
-      collection={collection}
-    />
+    <SkeletonSwap
+      loading={!identity || !authorIdentity}
+      skeleton={<SpaceCollectionSkeleton />}
+    >
+      {identity && authorIdentity && (
+        <SpaceCollectionList
+          identity={identity}
+          authorIdentity={authorIdentity}
+          spaceType={spaceType}
+          skey={skey}
+          collection={collection}
+        />
+      )}
+    </SkeletonSwap>
   );
 }
 
@@ -280,7 +287,7 @@ function SpaceCollectionList({
               <p className="explore-placeholder">No records in this collection.</p>
             )}
             {error == null && records.length === 0 && !done && (
-              <p className="explore-placeholder">Loading records…</p>
+              <SkeletonRecordRows rows={6} />
             )}
             {records.length > 0 && visible.length === 0 && (
               <p className="explore-placeholder">

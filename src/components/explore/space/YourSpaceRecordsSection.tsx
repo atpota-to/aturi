@@ -7,6 +7,7 @@ import { encodeRepo } from '@/utils/atproto/urls';
 import { listSpaceRecords } from '@/utils/atproto/spaceClient';
 import { formatCount } from '../collectionListHelpers';
 import { useOwnPdsTransport } from './useSpaceAccess';
+import { SkeletonRowList } from '../skeletons/primitives';
 
 /**
  * Your own collections in a space, at the top of the space page.
@@ -132,7 +133,7 @@ export default function YourSpaceRecordsSection({
       {transport && error && <p className="explore-error">{error}</p>}
 
       {transport && !error && loading && collections.length === 0 && (
-        <p className="explore-placeholder">Loading your records…</p>
+        <SkeletonRowList rows={3} trailingWidth="4rem" />
       )}
 
       {transport && !error && !loading && collections.length === 0 && (

@@ -18,6 +18,9 @@ import {
 } from '@/utils/atproto/spaceClient';
 import AppearIn from '../AppearIn';
 import Breadcrumb from '../Breadcrumb';
+import SkeletonSwap from '../skeletons/SkeletonSwap';
+import { SpaceRepoSkeleton } from '../skeletons/pages';
+import { SkeletonRowList } from '../skeletons/primitives';
 import CopyButton from '../CopyButton';
 import { CHROME_RESULTS_ID, useChromeBarField } from '../ChromeBarContext';
 import { formatCount } from '../collectionListHelpers';
@@ -71,17 +74,21 @@ export default function SpaceRepoExplorer({
       />
     );
   }
-  if (!identity || !authorIdentity) {
-    return <p className="explore-placeholder">Resolving identities…</p>;
-  }
 
   return (
-    <SpaceRepoView
-      identity={identity}
-      authorIdentity={authorIdentity}
-      spaceType={spaceType}
-      skey={skey}
-    />
+    <SkeletonSwap
+      loading={!identity || !authorIdentity}
+      skeleton={<SpaceRepoSkeleton />}
+    >
+      {identity && authorIdentity && (
+        <SpaceRepoView
+          identity={identity}
+          authorIdentity={authorIdentity}
+          spaceType={spaceType}
+          skey={skey}
+        />
+      )}
+    </SkeletonSwap>
   );
 }
 
@@ -283,7 +290,7 @@ function SpaceRepoView({
             {error == null && (
               <>
                 {loading && records.length === 0 && (
-                  <p className="explore-placeholder">Loading records…</p>
+                  <SkeletonRowList rows={4} trailingWidth="4rem" />
                 )}
                 {!loading && collections.length === 0 && (
                   <p className="explore-placeholder">

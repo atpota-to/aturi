@@ -9,6 +9,7 @@ import {
 import { lexiconPathFor } from '@/utils/ufos/nsid';
 import { explorePathFromAtUri } from '@/utils/atproto/urls';
 import CopyButton from '../CopyButton';
+import { SpaceTypeFieldsSkeleton } from '../skeletons/pages';
 
 /**
  * Tier 0 for the space type: the `space` definition published at an NSID.
@@ -82,7 +83,7 @@ export default function SpaceTypeCard({ nsid }: { nsid: string }) {
         </Link>
       </div>
 
-      {!resolved && <p className="explore-placeholder">Resolving space type…</p>}
+      {!resolved && <SpaceTypeFieldsSkeleton />}
 
       {resolved && !declaration && (
         <p style={noteStyle}>
