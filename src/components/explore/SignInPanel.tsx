@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { LogIn } from 'lucide-react';
+import HandleTypeaheadInput from '@/components/oauth/HandleTypeaheadInput';
 import ScopeSelector from '@/components/oauth/ScopeSelector';
 import { useSignInFlow } from '@/components/oauth/useSignInFlow';
 
@@ -49,16 +50,15 @@ export default function SignInPanel({ defaultInput }: { defaultInput?: string })
         gap: '0.5rem',
       }}
     >
-      <input
-        type="text"
-        autoComplete="username"
-        spellCheck={false}
-        placeholder="handle or DID"
+      {/* The wrapper takes over the flex sizing, since it's now the flex item
+          and the dropdown positions against it. */}
+      <HandleTypeaheadInput
         value={value}
-        onChange={(e) => setValue(e.target.value)}
-        style={{
-          flex: '1 1 220px',
-          minWidth: 0,
+        onChange={setValue}
+        placeholder="handle or DID"
+        wrapperStyle={{ flex: '1 1 220px' }}
+        inputStyle={{
+          width: '100%',
           padding: '0.55rem 0.75rem',
           background: 'var(--bg-tertiary)',
           border: '1px solid var(--border-medium)',

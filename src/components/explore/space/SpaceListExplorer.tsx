@@ -237,7 +237,7 @@ export function SpaceWrittenList({
  * A URI this app cannot parse still gets a row, as text: it is a real space
  * that simply has no page here, and hiding it would be worse than showing it.
  */
-function SpaceRows({ uris }: { uris: string[] }) {
+export function SpaceRows({ uris }: { uris: string[] }) {
   return (
     <ul
       style={{
@@ -253,7 +253,7 @@ function SpaceRows({ uris }: { uris: string[] }) {
         return (
           <li key={uri} style={{ borderBottom: '1px solid var(--border-subtle)' }}>
             {parts ? (
-              <Link href={spaceExplorePath(parts)} style={rowStyle}>
+              <Link href={spaceExplorePath(parts)} style={spaceRowStyle}>
                 <code style={{ background: 'transparent', padding: 0, color: 'var(--text-primary)' }}>
                   {parts.spaceType}
                 </code>
@@ -262,7 +262,7 @@ function SpaceRows({ uris }: { uris: string[] }) {
                 </span>
               </Link>
             ) : (
-              <div style={{ ...rowStyle, color: 'var(--text-tertiary)' }}>
+              <div style={{ ...spaceRowStyle, color: 'var(--text-tertiary)' }}>
                 <code style={{ background: 'transparent', padding: 0 }}>{uri}</code>
                 <span>unrecognised address</span>
               </div>
@@ -274,7 +274,7 @@ function SpaceRows({ uris }: { uris: string[] }) {
   );
 }
 
-const rowStyle: React.CSSProperties = {
+export const spaceRowStyle: React.CSSProperties = {
   display: 'flex',
   flexWrap: 'wrap',
   alignItems: 'baseline',

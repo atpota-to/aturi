@@ -126,12 +126,11 @@ export default function ScopeSelector({
             lineHeight: 1.4,
           }}
         >
-          Records kept outside your public repo. This is new; most servers
-          don’t support it yet, and one that doesn’t understand it simply
-          won’t grant it. Granting either row lets this app ask a space
-          authority — including one named by a link you open — for a
-          credential on your behalf, so leave them off unless you came here
-          to read a space.
+          Records kept outside your public repo. This is new and most servers
+          don’t support it yet because it is alpha stage. Granting either row
+          lets this app ask a space authority (including one named by a link
+          you open) for a credential on your behalf, so leave them off unless
+          you came here to read a space.
         </p>
         <ul style={listStyle()}>
           {SPACE_SCOPES.map((scope) => (
