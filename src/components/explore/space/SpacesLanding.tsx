@@ -59,7 +59,7 @@ export default function SpacesLanding() {
                 border: '1px solid var(--border-subtle)',
               }}
             >
-              Alpha
+              atproto spaces alpha
             </span>
           </h1>
           <p style={{ margin: 0, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
