@@ -24,6 +24,15 @@ export type ReleaseEntry = {
    * is what makes the entry actionable.
    */
   waypointIds?: string[];
+  /**
+   * Where an entry sends a reader who wants the thing it announces. A
+   * root-relative path: the surfaces render it as a link that dismisses
+   * itself on the way out, so an external URL would leave the reader
+   * somewhere this app can't close behind them.
+   */
+  href?: string;
+  /** Label for {@link href}. Ignored without one. */
+  linkLabel?: string;
 };
 
 export type Release = {
@@ -39,6 +48,22 @@ export type Release = {
 
 /** Newest first. The order here is the order readers see. */
 export const RELEASES: Release[] = [
+  {
+    // A second August release rather than another entry under `2026-08`: the
+    // seen-cursor is per release, so anyone who already read that one would
+    // never be shown an entry added to it.
+    id: '2026-08-spaces',
+    label: 'August 2026',
+    entries: [
+      {
+        id: 'spaces',
+        title: 'Atproto spaces',
+        body: 'The explorer now reads permissioned data: the spaces you write to, the collections in them, and the records inside. Your repo page lists them below the public half, and every address links onward the way public records do. Spaces are an alpha, so this needs an account on a server running that build.',
+        href: '/explore/spaces',
+        linkLabel: 'Open spaces',
+      },
+    ],
+  },
   {
     id: '2026-08',
     label: 'August 2026',

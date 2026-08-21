@@ -5706,6 +5706,9 @@ body.has-explore-chrome {
 }
 
 .whats-new-btn {
+  /* Also worn by an entry's link, which needs these two to sit like a button. */
+  display: inline-block;
+  text-decoration: none;
   padding: 0.4rem 0.85rem;
   background: var(--accent-moss);
   color: var(--text-on-accent);

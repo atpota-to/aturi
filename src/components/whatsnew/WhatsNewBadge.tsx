@@ -111,7 +111,7 @@ export default function WhatsNewBadge() {
               <p className="whats-new-date">{shown[0]?.label}</p>
             </div>
           </div>
-          <WhatsNewContent releases={shown} />
+          <WhatsNewContent releases={shown} onNavigate={close} />
           <div className="whats-new-foot">
             <span />
             <button type="button" className="whats-new-btn" onClick={close}>
