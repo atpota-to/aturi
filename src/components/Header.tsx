@@ -7,10 +7,11 @@ import {
   Compass,
   Download,
   Home,
-  Leaf,
+  Menu,
   MessageSquareHeart,
   Search,
   Telescope,
+  X,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import ThemeToggle from './ThemeToggle';
@@ -214,15 +215,24 @@ export default function Header({ simple = false, compact = false }: HeaderProps)
                   border: '1px solid var(--border-medium)',
                   color: 'var(--text-accent)',
                   transition: 'all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)',
-                  transform: isExpanded ? 'rotate(90deg) scale(1.1)' : 'rotate(0deg)',
+                  transform: isExpanded ? 'scale(1.1)' : 'scale(1)',
                 }}
-                aria-label="Toggle menu"
+                // Names the action rather than the control: "Toggle menu" left
+                // a screen-reader user to infer which way it would go.
+                aria-label={isExpanded ? 'Close menu' : 'Open menu'}
                 aria-expanded={isExpanded}
               >
-                <Leaf size={18} style={{
-                  transition: 'all 0.3s ease',
-                  opacity: isExpanded ? 0.6 : 1,
-                }} />
+                {/* A hamburger reads as a button on sight where the old leaf
+                    read as decoration, and swapping it for an X while open is
+                    the other half of that signal. The previous 90° rotation
+                    went with the leaf; spun on a hamburger it just looks like
+                    a broken glyph, so the open state is carried by the icon
+                    swap instead. */}
+                {isExpanded ? (
+                  <X size={18} style={{ transition: 'all 0.3s ease' }} />
+                ) : (
+                  <Menu size={18} style={{ transition: 'all 0.3s ease' }} />
+                )}
               </button>
             </div>
           </div>

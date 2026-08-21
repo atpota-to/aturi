@@ -26,6 +26,7 @@ import { formatCount } from '../collectionListHelpers';
 import SpaceAccessPanel, { SpaceReadErrorPanel } from './SpaceAccessPanel';
 import SpaceAuthorityCard from './SpaceAuthorityCard';
 import SpaceTypeCard from './SpaceTypeCard';
+import YourSpaceRecordsSection from './YourSpaceRecordsSection';
 import {
   useOwnPdsTransport,
   useResolvedIdentity,
@@ -121,6 +122,11 @@ function SpaceView({
   const repoSeg = encodeRepo(identity.handle || identity.did);
   const spacePath = `/explore/${repoSeg}/space/${spaceType}/${encodeURIComponent(skey)}`;
 
+  // Every access state that got as far as identifying the visitor carries
+  // their DID; the rest (anonymous, no-grant, resolving, the terminal
+  // failures) have no repo of their own to show and the section is skipped.
+  const viewerDid = 'did' in access ? access.did : null;
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
       <AppearIn rise>
@@ -165,22 +171,19 @@ function SpaceView({
         </div>
       </AppearIn>
 
-      <AppearIn delay={0.08}>
-        <SpaceAuthorityCard did={identity.did} handle={identity.handle} />
-      </AppearIn>
-      <AppearIn delay={0.12}>
-        <SpaceTypeCard nsid={spaceType} />
-      </AppearIn>
-
-      <AppearIn delay={0.16}>
-        <ConfigSection
-          space={space}
-          spaceHost={authority?.spaceHost ?? null}
-          access={access}
-          isAuthority={isAuthority}
-          ownTransport={ownTransport}
-        />
-      </AppearIn>
+      {/* What you can click into comes first — the same order the public
+          explorer uses, where a repo page opens on its collections and the
+          descriptive material sits underneath. */}
+      {viewerDid && (
+        <AppearIn delay={0.08}>
+          <YourSpaceRecordsSection
+            space={space}
+            spacePath={spacePath}
+            access={access}
+            myDid={viewerDid}
+          />
+        </AppearIn>
+      )}
 
       <MembersSection
         space={space}
@@ -196,16 +199,32 @@ function SpaceView({
           <SpaceAccessPanel state={access} what="this space" />
         </AppearIn>
       )}
+      {/* The "open your own records" link this block used to carry is now the
+          section above, which shows the collections instead of pointing at
+          them. What's left is the part that still needs saying: the rest of
+          the space is out of reach. */}
       {access.status === 'self-only' && (
         <AppearIn delay={0.24}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-            <Link href={`${spacePath}/${encodeRepo(access.did)}`} className="explore-json-link">
-              Open your own records in this space →
-            </Link>
-            <SpaceAccessPanel state={access} what="other members’ records" />
-          </div>
+          <SpaceAccessPanel state={access} what="other members’ records" />
         </AppearIn>
       )}
+
+      {/* Reference material, grouped and last. Everything here describes the
+          space rather than offering a way into it. */}
+      <AppearIn delay={0.28}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+          <h2 style={sectionHeadingStyle}>About this space</h2>
+          <SpaceAuthorityCard did={identity.did} handle={identity.handle} />
+          <SpaceTypeCard nsid={spaceType} />
+          <ConfigSection
+            space={space}
+            spaceHost={authority?.spaceHost ?? null}
+            access={access}
+            isAuthority={isAuthority}
+            ownTransport={ownTransport}
+          />
+        </div>
+      </AppearIn>
     </div>
   );
 }
