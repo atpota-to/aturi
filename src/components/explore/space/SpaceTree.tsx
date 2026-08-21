@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import { ChevronDown, ChevronRight } from 'lucide-react';
+import { ChevronDown, ChevronRight, FolderOpen, Info } from 'lucide-react';
 import { useAtprotoSession } from '@/components/AtprotoSessionProvider';
 import { encodeRepo, shortDid, spaceExplorePath } from '@/utils/atproto/urls';
 import { parseSpaceAtUri } from '@/utils/atproto/spaceUri';
@@ -406,8 +406,17 @@ function SpaceBranch({
       ? contents.collections.reduce((sum, node) => sum + node.count, 0)
       : null;
 
+  const spaceLabel = isOwnAuthority
+    ? `your ${parts.spaceType} space`
+    : `${authorityHandle ? `@${authorityHandle}` : shortDid(parts.authority)}’s ${parts.spaceType} space`;
+
   return (
     <section style={{ border: '1px solid var(--border-medium)', background: 'var(--bg-secondary)' }}>
+      {/* Toggle and the two destinations share the header row, the way the
+          collections list pairs its group header with a pin. They used to be a
+          footer of two underlined sentences on every card, which repeated the
+          same two phrases once per space and cost a row each. */}
+      <div style={{ display: 'flex', alignItems: 'stretch' }}>
       <button
         type="button"
         onClick={onToggle}
@@ -416,7 +425,7 @@ function SpaceBranch({
           display: 'flex',
           alignItems: 'center',
           gap: '0.5rem',
-          width: '100%',
+          flex: 1,
           minWidth: 0,
           padding: '0.625rem 1rem',
           background: 'transparent',
@@ -491,6 +500,23 @@ function SpaceBranch({
           </span>
         )}
       </button>
+        <Link
+          href={memberPath}
+          aria-label={`Your records in ${spaceLabel}`}
+          title="Your records in this space"
+          style={headerIconStyle}
+        >
+          <FolderOpen size={14} aria-hidden />
+        </Link>
+        <Link
+          href={spacePath}
+          aria-label={`About ${spaceLabel}`}
+          title="About this space"
+          style={headerIconStyle}
+        >
+          <Info size={14} aria-hidden />
+        </Link>
+      </div>
 
       {open && (
         <div style={{ borderTop: '1px solid var(--border-subtle)' }}>
@@ -535,26 +561,6 @@ function SpaceBranch({
             </p>
           )}
 
-          {/* Ruled off and set smaller than the rows above: these are ways out
-              of the branch, not more of its contents, and unruled they read as
-              one more entry in the collection list. */}
-          <div
-            style={{
-              display: 'flex',
-              gap: '1rem',
-              flexWrap: 'wrap',
-              padding: '0.5rem 1.5rem',
-              borderTop: '1px solid var(--border-subtle)',
-              fontSize: '0.75rem',
-            }}
-          >
-            <Link href={memberPath} className="explore-json-link">
-              Your repository here →
-            </Link>
-            <Link href={spacePath} className="explore-json-link">
-              About this space →
-            </Link>
-          </div>
         </div>
       )}
     </section>
@@ -645,6 +651,22 @@ function CollectionRow({
   );
 }
 
+
+/**
+ * Icon links in a branch header, modelled on the collections list's pin
+ * button. Padding is tighter than the pin's because two of them sit here and
+ * the space's own handle needs the width: an alpha-PDS handle runs to about
+ * thirty characters, and every pixel these take is one it wraps by.
+ */
+const headerIconStyle: React.CSSProperties = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  padding: '0 0.5rem',
+  color: 'var(--text-tertiary)',
+  flexShrink: 0,
+  transition: 'color 0.15s ease',
+};
 
 const noteStyle: React.CSSProperties = {
   margin: 0,
