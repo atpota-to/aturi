@@ -18,6 +18,7 @@ import Breadcrumb from './Breadcrumb';
 import CopyButton from './CopyButton';
 import ProfileHeader from './ProfileHeader';
 import RelationshipStrip from './RelationshipStrip';
+import RepoSpacesSection from './space/RepoSpacesSection';
 import AccountStats from '@/components/account/AccountStats';
 import CollectionsTab from './tabs/CollectionsTab';
 import IdentityTab from './tabs/IdentityTab';
@@ -134,6 +135,11 @@ export default function RepoExplorer({ repo }: { repo: string }) {
           fixed at the bottom and not configurable. */}
       <AppearIn delay={0.24}>
         <TabbedView identity={identity} />
+      </AppearIn>
+      {/* Permissioned data sits below the public repo entirely, and only for
+          the account itself. Self-suppresses otherwise. */}
+      <AppearIn delay={0.28}>
+        <RepoSpacesSection identity={identity} />
       </AppearIn>
     </div>
   );
