@@ -450,7 +450,19 @@ function SpaceBranch({
             </p>
           )}
 
-          <div style={{ padding: '0.5rem 1.5rem', display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+          {/* Ruled off and set smaller than the rows above: these are ways out
+              of the branch, not more of its contents, and unruled they read as
+              one more entry in the collection list. */}
+          <div
+            style={{
+              display: 'flex',
+              gap: '1rem',
+              flexWrap: 'wrap',
+              padding: '0.5rem 1.5rem',
+              borderTop: '1px solid var(--border-subtle)',
+              fontSize: '0.75rem',
+            }}
+          >
             <Link href={memberPath} className="explore-json-link">
               Your repository here →
             </Link>
