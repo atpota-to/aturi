@@ -1,7 +1,9 @@
 /**
  * Pure halves of the space client. Nothing here touches the network: the
  * DID-document extractors, the space type declaration parser, the URL join,
- * the error classifier and the pagination walker are all deterministic.
+ * the error classifier and the pagination walker are all deterministic, and
+ * the write methods are driven through a stub transport that records what
+ * they would have sent.
  *
  * The extension's Vitest harness is the only node-environment suite in the
  * repo that can reach `src/utils/**` (via the `@aturi` alias), so these modules
@@ -19,9 +21,13 @@ import { joinXrpcUrl } from '@aturi/atproto/spaceCredential';
 import {
   classifySpaceError,
   collectSpacePages,
+  createSpaceRecord,
+  deleteSpaceRecord,
   isCredentialStaleError,
   isScopeMissingError,
+  putSpaceRecord,
   spaceErrorCode,
+  type SpaceTransport,
 } from '@aturi/atproto/spaceClient';
 
 const AUTHORITY = 'did:plc:x';
@@ -348,5 +354,115 @@ describe('collectSpacePages', () => {
       { limit: 1 },
     );
     expect(seen).toEqual([undefined, 'next']);
+  });
+});
+
+describe('space writes', () => {
+  /** Records what a write method sends, and answers the way a PDS would. */
+  function stubTransport(kind: SpaceTransport['kind'] = 'oauth') {
+    const sent: { host: string; path: string; init?: RequestInit }[] = [];
+    const transport: SpaceTransport = {
+      kind,
+      call: async (host, path, init) => {
+        sent.push({ host, path, init });
+        return new Response(
+          JSON.stringify({ uri: 'at://did:plc:me/c/r', cid: 'bafy' }),
+          { status: 200, headers: { 'content-type': 'application/json' } },
+        );
+      },
+    };
+    return { transport, sent };
+  }
+
+  const RECORD = { space: 'at://did:plc:auth/space/my.type/self', repo: 'did:plc:me' };
+
+  it('posts putRecord as JSON with every required field', () => {
+    const { transport, sent } = stubTransport();
+    return putSpaceRecord(transport, {
+      ...RECORD,
+      collection: 'my.bulletin.post',
+      rkey: '3abc',
+      record: { $type: 'my.bulletin.post', text: 'hi' },
+    }).then(() => {
+      expect(sent).toHaveLength(1);
+      expect(sent[0].path).toBe('/xrpc/com.atproto.space.putRecord');
+      expect(sent[0].init?.method).toBe('POST');
+      expect(JSON.parse(String(sent[0].init?.body))).toEqual({
+        space: RECORD.space,
+        repo: RECORD.repo,
+        collection: 'my.bulletin.post',
+        rkey: '3abc',
+        record: { $type: 'my.bulletin.post', text: 'hi' },
+      });
+    });
+  });
+
+  it('omits rkey from createRecord when the host should assign one', () => {
+    const { transport, sent } = stubTransport();
+    return createSpaceRecord(transport, {
+      ...RECORD,
+      collection: 'my.bulletin.post',
+      record: { $type: 'my.bulletin.post' },
+    }).then(() => {
+      const body = JSON.parse(String(sent[0].init?.body));
+      expect('rkey' in body).toBe(false);
+    });
+  });
+
+  it('sends deleteRecord with the key and nothing else', () => {
+    const { transport, sent } = stubTransport();
+    return deleteSpaceRecord(transport, {
+      ...RECORD,
+      collection: 'my.bulletin.post',
+      rkey: '3abc',
+    }).then(() => {
+      expect(sent[0].path).toBe('/xrpc/com.atproto.space.deleteRecord');
+      expect(JSON.parse(String(sent[0].init?.body))).toEqual({
+        space: RECORD.space,
+        repo: RECORD.repo,
+        collection: 'my.bulletin.post',
+        rkey: '3abc',
+      });
+    });
+  });
+
+  it('refuses a credential transport for every write', () => {
+    // A space credential authorizes reading a space; a write is attributed to
+    // its author and takes an OAuth token only. Presenting the credential
+    // would leak an authority-signed capability to a host for no gain.
+    //
+    // The refusal is a synchronous throw, not a rejected promise, matching
+    // how the read methods assert their transport: it is a caller bug rather
+    // than a host verdict, and nothing should have left the browser.
+    const { transport, sent } = stubTransport('credential');
+    const args = { ...RECORD, collection: 'my.bulletin.post', rkey: '3abc' };
+    expect(() => putSpaceRecord(transport, { ...args, record: {} })).toThrow(
+      /requires a oauth transport/,
+    );
+    expect(() => createSpaceRecord(transport, { ...args, record: {} })).toThrow(
+      /requires a oauth transport/,
+    );
+    expect(() => deleteSpaceRecord(transport, args)).toThrow(
+      /requires a oauth transport/,
+    );
+    expect(sent).toHaveLength(0);
+  });
+
+  it('throws the XRPC error rather than resolving on a refusal', async () => {
+    const transport: SpaceTransport = {
+      kind: 'oauth',
+      call: async () =>
+        new Response(JSON.stringify({ error: 'SpaceNotFound', message: 'nope' }), {
+          status: 400,
+          headers: { 'content-type': 'application/json' },
+        }),
+    };
+    await expect(
+      deleteSpaceRecord(transport, {
+        ...RECORD,
+        collection: 'my.bulletin.post',
+        rkey: '3abc',
+      }),
+    ).rejects.toMatchObject({ xrpcError: 'SpaceNotFound' });
   });
 });

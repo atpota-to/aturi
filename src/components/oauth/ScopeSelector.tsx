@@ -178,9 +178,12 @@ export default function ScopeSelector({
           }}
         >
           Records kept outside your public repo. Your server runs the spaces
-          build, so these are on. The second row lets this app ask any space
-          authority (including one named by a link you open) for a credential
-          on your behalf. Untick it if you only want your own records.
+          build, so these are on. Reading a whole space lets this app ask any
+          space authority (including one named by a link you open) for a
+          credential on your behalf; untick it if you only want your own
+          records. Editing only ever reaches your own records: a space write
+          is attributed to its author, so this grant cannot touch anyone
+          else&rsquo;s.
         </p>
         <ul style={listStyle()}>
           {SPACE_SCOPES.map((scope) => (

@@ -1,5 +1,6 @@
 /**
- * The `com.atproto.space` / `com.atproto.simplespace` read methods.
+ * The `com.atproto.space` / `com.atproto.simplespace` methods: the reads, and
+ * the three record writes at the bottom of the file.
  *
  * Two things about these calls are easy to get wrong and expensive to debug,
  * so both are encoded here rather than left to call sites:
@@ -518,6 +519,134 @@ export function listSimpleSpaceMembers(
     space: params.space,
     limit: params.limit,
     cursor: params.cursor,
+  });
+}
+
+/* -------------------------------------------------------------------------- *
+ * Writes
+ * -------------------------------------------------------------------------- */
+
+/**
+ * The write half of the space methods.
+ *
+ * Three properties separate these from every read above, and all three come
+ * from the same fact: a write is attributed to its author.
+ *
+ * **OAuth only, and no host.** A space credential is an authority-signed
+ * capability to *read* a space; it never authorizes a write, and the write
+ * methods refuse it. An OAuth token addresses its own audience, which is the
+ * caller's PDS, which is where their permissioned repo lives — so unlike the
+ * reads there is no host to choose and none is taken.
+ *
+ * **Own repo only.** `repo` is required and must be the authenticated member.
+ * It is still passed rather than inferred because the lexicon requires it, but
+ * a DID other than the token's own earns the same answer a foreign read does.
+ *
+ * **Collection-scoped grant.** Reads are authorized per space; writes are
+ * authorized per collection *within* a space. A grant that covers reading
+ * everything in a space can still refuse a write to one collection in it. See
+ * `spaceWriteActionsFor` in `@/lib/oauth/scopes` for reading that back.
+ *
+ * The authority is not called here. A member's PDS notifies it after the fact
+ * (`notifyWrite`), so nothing on this path waits on the space host, and a
+ * write that lands is durable whether or not that notification is.
+ */
+async function procedure<T>(
+  t: SpaceTransport,
+  nsid: string,
+  body: Record<string, unknown>,
+): Promise<T> {
+  const res = await t.call('', `/xrpc/${nsid}`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', accept: 'application/json' },
+    body: JSON.stringify(body),
+  });
+
+  // No stale-credential retry, unlike `query`: that retry re-mints a space
+  // credential, and these methods never carry one. An OAuth token that needs
+  // refreshing is the session layer's job and happens under `call`.
+  if (!res.ok) throw await readSpaceXrpcError(res, res.url || `/xrpc/${nsid}`);
+
+  // `deleteRecord` answers with an empty object, so this is not always useful —
+  // but it is always JSON.
+  return (await res.json()) as T;
+}
+
+export type SpaceWriteResult = {
+  uri: string;
+  cid: string;
+  validationStatus?: 'valid' | 'unknown';
+};
+
+/**
+ * Create or update one record. `rkey` is required — this is the method the
+ * editor saves through, and it is always editing a record that has one.
+ *
+ * `validate` is left unset deliberately: the PDS then validates against a
+ * lexicon when it knows one and accepts the record when it doesn't, which is
+ * what an explorer wants. Forcing `true` would reject records whose lexicon
+ * this alpha's PDS has never seen; forcing `false` would let a typo through
+ * for a lexicon it does know.
+ */
+export function putSpaceRecord(
+  t: SpaceTransport,
+  params: {
+    space: string;
+    repo: string;
+    collection: string;
+    rkey: string;
+    record: Record<string, unknown>;
+  },
+): Promise<SpaceWriteResult> {
+  assertTransport(t, 'oauth', 'com.atproto.space.putRecord');
+  return procedure(t, 'com.atproto.space.putRecord', {
+    space: params.space,
+    repo: params.repo,
+    collection: params.collection,
+    rkey: params.rkey,
+    record: params.record,
+  });
+}
+
+/**
+ * Create one record, letting the PDS assign the key when none is given.
+ * Refuses with `RecordAlreadyExists` when a key is given and taken, which is
+ * the difference from {@link putSpaceRecord}.
+ */
+export function createSpaceRecord(
+  t: SpaceTransport,
+  params: {
+    space: string;
+    repo: string;
+    collection: string;
+    rkey?: string;
+    record: Record<string, unknown>;
+  },
+): Promise<SpaceWriteResult> {
+  assertTransport(t, 'oauth', 'com.atproto.space.createRecord');
+  return procedure(t, 'com.atproto.space.createRecord', {
+    space: params.space,
+    repo: params.repo,
+    collection: params.collection,
+    ...(params.rkey ? { rkey: params.rkey } : {}),
+    record: params.record,
+  });
+}
+
+/**
+ * Delete one record. Succeeds whether or not it was there, so a double-submit
+ * is not an error and the caller needs no existence check first.
+ */
+export function deleteSpaceRecord(
+  t: SpaceTransport,
+  params: { space: string; repo: string; collection: string; rkey: string },
+): Promise<Record<string, never>> {
+  assertTransport(t, 'oauth', 'com.atproto.space.deleteRecord');
+  return procedure(t, 'com.atproto.space.deleteRecord', {
+    space: params.space,
+    repo: params.repo,
+    collection: params.collection,
+    rkey: params.rkey,
   });
 }
 

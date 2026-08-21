@@ -1,7 +1,10 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { FilePenLine } from 'lucide-react';
 import NotFoundPanel from '@/components/NotFoundPanel';
+import { useAtprotoSession } from '@/components/AtprotoSessionProvider';
 import { encodeRepo, shortDid } from '@/utils/atproto/urls';
 import {
   formatSpaceAtUri,
@@ -18,18 +21,28 @@ import SkeletonSwap from '../skeletons/SkeletonSwap';
 import { SpaceRecordBodySkeleton, SpaceRecordSkeleton } from '../skeletons/pages';
 import CopyButton from '../CopyButton';
 import LinkifiedJson from '../LinkifiedJson';
+import RecordEditor from '../RecordEditor';
+import { spaceRecordBackend } from '../recordBackend';
 import SpaceRecordFields from './SpaceRecordFields';
 import { SpaceReadErrorPanel, SpaceRepoAccessPanel } from './SpaceAccessPanel';
-import { useResolvedIdentity, useSpaceAccess, useSpaceRepoAccess } from './useSpaceAccess';
+import {
+  useOwnPdsTransport,
+  useResolvedIdentity,
+  useSpaceAccess,
+  useSpaceRepoAccess,
+  useSpaceWriteActions,
+} from './useSpaceAccess';
 
 type SpaceRecord = { uri: string; cid: string; value: Record<string, unknown> };
 
 /**
  * L6 — one permissioned record.
  *
- * Read-only on purpose: writing into a space needs the write half of the space
- * scopes and a signing path this app doesn't have, so there is no edit
- * affordance here and offering a disabled one would only be confusing.
+ * Editable on the same terms as a public record, and only then: the space
+ * write methods take an OAuth token and nothing else, so what you can edit
+ * here is your own records and nothing else, however much of the space you can
+ * read. A visitor holding a whole-space credential reads every member's
+ * records through it and still gets no edit button on any of them.
  */
 export default function SpaceRecordExplorer({
   repo,
@@ -125,6 +138,29 @@ function SpaceRecordView({
   const [record, setRecord] = useState<SpaceRecord | null>(null);
   const [error, setError] = useState<unknown>(null);
   const [showRaw, setShowRaw] = useState(false);
+  const [editing, setEditing] = useState(false);
+
+  const router = useRouter();
+  const { did: signedInDid } = useAtprotoSession();
+  // Writes are OAuth-only, so this is deliberately not `repoAccess.transport`:
+  // that one may be a space credential, which authorizes reading a space and
+  // never authorizes a write.
+  const ownTransport = useOwnPdsTransport();
+  const writeActions = useSpaceWriteActions(collection);
+
+  const isOwnRecord = Boolean(signedInDid && signedInDid === authorIdentity.did);
+  const canEdit = Boolean(isOwnRecord && ownTransport && writeActions?.has('update'));
+  const canDelete = Boolean(writeActions?.has('delete'));
+
+  // Memoised because <RecordEditor> keys its read effect on the backend's
+  // identity: a fresh object each render would re-read the record forever.
+  const backend = useMemo(
+    () =>
+      ownTransport
+        ? spaceRecordBackend(ownTransport, space, authorIdentity.did, repoHost)
+        : null,
+    [ownTransport, space, authorIdentity.did, repoHost],
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -159,7 +195,8 @@ function SpaceRecordView({
     rkey,
   });
   const repoSeg = encodeRepo(identity.handle || identity.did);
-  const recordPath = `/explore/${repoSeg}/space/${spaceType}/${encodeURIComponent(skey)}/${encodeRepo(authorIdentity.did)}/${collection}/${encodeURIComponent(rkey)}`;
+  const collectionPath = `/explore/${repoSeg}/space/${spaceType}/${encodeURIComponent(skey)}/${encodeRepo(authorIdentity.did)}/${collection}`;
+  const recordPath = `${collectionPath}/${encodeURIComponent(rkey)}`;
   const memberLabel = authorIdentity.handle ? `@${authorIdentity.handle}` : shortDid(authorIdentity.did);
 
   return (
@@ -192,9 +229,28 @@ function SpaceRecordView({
         </AppearIn>
       )}
 
-      {transport && error == null && !record && <SpaceRecordBodySkeleton />}
+      {transport && error == null && !record && !editing && <SpaceRecordBodySkeleton />}
 
-      {record && (
+      {editing && canEdit && backend && (
+        <AppearIn delay={0.05}>
+          <RecordEditor
+            backend={backend}
+            collection={collection}
+            rkey={rkey}
+            canDelete={canDelete}
+            onSaved={(next) => {
+              setRecord((prev) => (prev ? { ...prev, value: next } : prev));
+            }}
+            onDeleted={() => {
+              setEditing(false);
+              router.push(collectionPath);
+            }}
+            onCancel={() => setEditing(false)}
+          />
+        </AppearIn>
+      )}
+
+      {record && !editing && (
         <AppearIn delay={0.05}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
             {showRaw ? (
@@ -206,6 +262,37 @@ function SpaceRecordView({
               <LinkifiedJson value={record} className="explore-json" />
             ) : (
               <SpaceRecordFields value={record.value} />
+            )}
+            {canEdit && (
+              <button
+                type="button"
+                onClick={() => setEditing(true)}
+                style={{
+                  alignSelf: 'flex-start',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.4rem',
+                  padding: '0.4rem 0.75rem',
+                  background: 'var(--accent-moss)',
+                  color: 'var(--text-on-accent)',
+                  border: '1px solid var(--accent-moss)',
+                  fontFamily: 'var(--font-serif)',
+                  fontSize: '0.8125rem',
+                  cursor: 'pointer',
+                }}
+              >
+                <FilePenLine size={12} aria-hidden /> Edit record
+              </button>
+            )}
+            {/* Your own record, and the grant covers reading it but not
+                writing it. Said once, here, rather than left as an edit button
+                that isn't there — the reason is a box that wasn't ticked at
+                sign-in, which is not something to work out from an absence. */}
+            {isOwnRecord && writeActions !== null && !canEdit && (
+              <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>
+                Editing your permissioned records needs a sign-in that asked for
+                it. Sign in again and tick “Edit your permissioned records”.
+              </p>
             )}
             {/* Session-only, unlike the public record page's equivalent: that
                 one persists a per-view preference, and those preference keys

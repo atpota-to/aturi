@@ -18,6 +18,7 @@ import RichRecordCard, { recordHasRichCard } from './RichRecordCard';
 import BacklinksTab from './tabs/BacklinksTab';
 import LexiconUsageCard from './lexicons/LexiconUsageCard';
 import RecordEditor from './RecordEditor';
+import { repoRecordBackend } from './recordBackend';
 import SignInPanel from './SignInPanel';
 import LinkButton from './LinkButton';
 import { useChromeBarAction } from './ChromeBarContext';
@@ -117,6 +118,12 @@ function RecordView({
   // Resolved up here — ahead of the early returns below — so the chrome-bar
   // hook runs on every render.
   const canEdit = Boolean(agent && signedInDid && signedInDid === identity.did);
+  // Same reason as the space editor's: <RecordEditor> re-reads whenever the
+  // backend's identity changes, so it must not change on every render.
+  const backend = useMemo(
+    () => (agent ? repoRecordBackend(agent, identity.did) : null),
+    [agent, identity.did],
+  );
   useChromeBarAction(
     canEdit && !editing && editChipOffscreen
       ? {
@@ -272,14 +279,13 @@ function RecordView({
   }
 
   // Edit mode: the editor takes the whole body; keep the copy row handy.
-  if (editing && canEdit && agent) {
+  if (editing && canEdit && backend) {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
         {breadcrumb}
         <AppearIn delay={0.05}>
           <RecordEditor
-            agent={agent}
-            did={identity.did}
+            backend={backend}
             collection={collection}
             rkey={decodedRkey}
             onSaved={(next) => {
