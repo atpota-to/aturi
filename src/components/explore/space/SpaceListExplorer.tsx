@@ -13,7 +13,6 @@ import Breadcrumb from '../Breadcrumb';
 import { CHROME_RESULTS_ID, useChromeBarField } from '../ChromeBarContext';
 import { formatCount } from '../collectionListHelpers';
 import SpaceAccessPanel from './SpaceAccessPanel';
-import SpaceAuthorityCard from './SpaceAuthorityCard';
 import SpaceGlance from './SpaceGlance';
 import { SpaceTreeList, useSpaceTree } from './SpaceTree';
 import { useOwnPdsTransport, useResolvedIdentity, useSpaceGrant } from './useSpaceAccess';
@@ -24,11 +23,10 @@ const SPACES_PER_PAGE = 100;
 /**
  * L1 — `/explore/{authority}/space`.
  *
- * The public half is the authority card: who this account is and where its
- * space host lives, all from the DID document. The listing underneath is not
- * public and not general — `listSpaces` reads the caller's *own* PDS and
- * nothing else — so it only appears when the visitor is signed in as the
- * account in the address.
+ * An account's own spaces, and nothing else: stats over them, then the tree.
+ * None of it is public and none of it is general — `listSpaces` reads the
+ * caller's *own* PDS and nothing else — so the whole page has something to
+ * show only when the visitor is signed in as the account in the address.
  */
 export default function SpaceListExplorer({ repo }: { repo: string }) {
   const { identity, error } = useResolvedIdentity(repo);
@@ -62,9 +60,11 @@ export default function SpaceListExplorer({ repo }: { repo: string }) {
           shareUrl={`/explore/${encodeRepo(identity.handle || identity.did)}/space`}
         />
       </AppearIn>
-      <AppearIn delay={0.05}>
-        <SpaceAuthorityCard did={identity.did} handle={identity.handle} />
-      </AppearIn>
+      {/* No authority card here. This page is the account's own spaces, and
+          what it can say about the authority — that it is this same account,
+          and which host answers for it — is fixed for every space on the page
+          and is not why anyone opened it. It still runs at the foot of a
+          space's own page, where it describes that particular space. */}
       <OwnSpacesPanel identity={identity} />
     </div>
   );

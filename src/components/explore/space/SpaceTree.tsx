@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import { ChevronDown, ChevronRight, FolderOpen, Info } from 'lucide-react';
+import { ChevronDown, ChevronRight, Info } from 'lucide-react';
 import { useAtprotoSession } from '@/components/AtprotoSessionProvider';
 import { encodeRepo, shortDid, spaceExplorePath } from '@/utils/atproto/urls';
 import { parseSpaceAtUri } from '@/utils/atproto/spaceUri';
@@ -417,13 +417,17 @@ function SpaceBranch({
 
   return (
     <section style={{ border: '1px solid var(--border-medium)', background: 'var(--bg-secondary)' }}>
-      {/* Toggle, the two destinations and the count share the header row, the
-          way the collections list pairs its group header with a pin. They used
-          to be a footer of two underlined sentences on every card, which
-          repeated the same two phrases once per space and cost a row each.
+      {/* Toggle, the space's own page and the count share the header row, the
+          way the collections list pairs its group header with a pin. These
+          used to be a footer of two underlined sentences on every card, which
+          repeated the same phrases once per space and cost a row each.
           The count sits last so it lands on the same right edge as the counts
-          on the collection rows below; putting the links after it left the
-          column of chips stepped. */}
+          on the collection rows below; putting the link after it left the
+          column of chips stepped.
+
+          There was a second link here, to the member's repo in the space. It
+          went to a page listing the collections this row already has open
+          underneath it, so it pointed at what you were looking at. */}
       <div style={{ display: 'flex', alignItems: 'center' }}>
       <button
         type="button"
@@ -500,14 +504,6 @@ function SpaceBranch({
           </span>
         </span>
       </button>
-        <Link
-          href={memberPath}
-          aria-label={`Your records in ${spaceLabel}`}
-          title="Your records in this space"
-          style={headerIconStyle}
-        >
-          <FolderOpen size={14} aria-hidden />
-        </Link>
         <Link
           href={spacePath}
           aria-label={`About ${spaceLabel}`}

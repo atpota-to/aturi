@@ -20,13 +20,30 @@ import DeleteProgressBar from './DeleteProgressBar';
  * (a repo, a collection, a record, a lexicon, a namespace, a PDS) is
  * somewhere you've navigated *to*, and gets the bar.
  */
-const LANDING_PATHS = new Set(['/explore', '/explore/lexicons']);
+const LANDING_PATHS = new Set(['/explore', '/explore/lexicons', '/explore/spaces']);
 
 /** True on the landing routes above. Tolerates a trailing slash. */
 function isLandingPath(pathname: string): boolean {
   const normalized =
     pathname.length > 1 && pathname.endsWith('/') ? pathname.slice(0, -1) : pathname;
   return LANDING_PATHS.has(normalized);
+}
+
+/**
+ * Space routes, `/explore/{authority}/space[/...]`, which opt out for a
+ * different reason than the landings: their addresses are the private part.
+ * The bar's copy-link button and its jump search both put the current path in
+ * reach of a stray click or a screenshot, and a space address names who is in
+ * which space. Every level here already carries its own share affordance where
+ * one makes sense.
+ *
+ * `space` is matched as a whole segment, the same discriminator the address
+ * grammar uses: a public collection NSID always carries dots, so a repo with a
+ * `space.example.thing` collection is not this.
+ */
+function isSpacePath(pathname: string): boolean {
+  const parts = pathname.split('/').filter(Boolean);
+  return parts[0] === 'explore' && parts[2] === 'space';
 }
 
 /**
@@ -78,7 +95,7 @@ export default function ExploreChromeBar() {
 
   // The layout wraps every /explore route, so the landing pages opt out from
   // here rather than by not rendering the bar.
-  const hidden = isLandingPath(pathname);
+  const hidden = isLandingPath(pathname) || isSpacePath(pathname);
 
   // Reserve the bar's real height at the bottom of the document — measured,
   // not assumed, since the row wraps to two lines on narrow screens. The CSS
