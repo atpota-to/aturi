@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { getPlcDocument, type PlcDocument } from '@/utils/atproto/plc';
 import type { IdentityBundle } from '@/utils/atproto/identity';
+import { IdentityTabSkeleton } from '../skeletons/pages';
 
 export default function IdentityTab({ identity }: { identity: IdentityBundle }) {
   const { did } = identity;
@@ -36,7 +37,7 @@ export default function IdentityTab({ identity }: { identity: IdentityBundle }) 
     );
   }
   if (error) return <p className="explore-error">{error}</p>;
-  if (!doc) return <p className="explore-placeholder">Loading identity…</p>;
+  if (!doc) return <IdentityTabSkeleton />;
 
   const akas = doc.alsoKnownAs || [];
   const services = doc.service || [];

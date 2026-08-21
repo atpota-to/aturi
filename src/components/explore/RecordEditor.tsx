@@ -9,6 +9,7 @@ import {
   type LexiconField,
 } from '@/utils/atproto/lexicons';
 import { rkeyFromAtUri } from '@/utils/atproto/urls';
+import { RecordEditorSkeleton } from './skeletons/pages';
 
 type Props = {
   agent: Agent;
@@ -192,7 +193,7 @@ export default function RecordEditor({
   }
 
   if (loading) {
-    return <p className="explore-placeholder">Loading record…</p>;
+    return <RecordEditorSkeleton />;
   }
 
   return (

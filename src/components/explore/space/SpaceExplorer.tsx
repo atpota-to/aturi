@@ -20,6 +20,9 @@ import {
 } from '@/utils/atproto/spaceClient';
 import AppearIn from '../AppearIn';
 import Breadcrumb from '../Breadcrumb';
+import SkeletonSwap from '../skeletons/SkeletonSwap';
+import { SpaceSkeleton } from '../skeletons/pages';
+import { SkeletonRowList } from '../skeletons/primitives';
 import CopyButton from '../CopyButton';
 import { CHROME_RESULTS_ID, useChromeBarField } from '../ChromeBarContext';
 import { formatCount } from '../collectionListHelpers';
@@ -75,15 +78,12 @@ export default function SpaceExplorer({
       />
     );
   }
-  if (!identity) {
-    return (
-      <p className="explore-placeholder">
-        Resolving <code>{repo}</code>…
-      </p>
-    );
-  }
 
-  return <SpaceView identity={identity} spaceType={spaceType} skey={skey} />;
+  return (
+    <SkeletonSwap loading={!identity} skeleton={<SpaceSkeleton />}>
+      {identity && <SpaceView identity={identity} spaceType={spaceType} skey={skey} />}
+    </SkeletonSwap>
+  );
 }
 
 function SpaceView({
@@ -492,7 +492,9 @@ function MembersSection({
         {active && error != null && <SpaceReadErrorPanel err={error} what="this space" />}
         {active && error == null && (
           <>
-            {loading && rows.length === 0 && <p className="explore-placeholder">Loading members…</p>}
+            {loading && rows.length === 0 && (
+              <SkeletonRowList rows={4} trailingWidth="5rem" />
+            )}
             {!loading && rows.length === 0 && (
               <p className="explore-placeholder">
                 {useAuthorityList

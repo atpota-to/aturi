@@ -23,6 +23,8 @@ import LinkButton from './LinkButton';
 import { useChromeBarAction } from './ChromeBarContext';
 import { useOffscreen } from './useOffscreen';
 import NotFoundPanel from '@/components/NotFoundPanel';
+import SkeletonSwap from './skeletons/SkeletonSwap';
+import { RecordBodySkeleton, RecordSkeleton } from './skeletons/pages';
 import { useAtprotoSession } from '@/components/AtprotoSessionProvider';
 import { usePreferences } from '@/components/PreferencesProvider';
 import {
@@ -39,9 +41,60 @@ type Props = {
 };
 
 export default function RecordExplorer({ repo, collection, rkey }: Props) {
-  const router = useRouter();
   const [identity, setIdentity] = useState<IdentityBundle | null>(null);
   const [identityError, setIdentityError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    setIdentity(null);
+    setIdentityError(null);
+    resolveIdentifier(repo)
+      .then((id) => {
+        if (!cancelled) setIdentity(id);
+      })
+      .catch((err) => {
+        if (!cancelled) setIdentityError(err instanceof Error ? err.message : String(err));
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [repo]);
+
+  if (identityError) {
+    return (
+      <NotFoundPanel
+        eyebrow="Couldn't resolve"
+        headline="That handle didn't resolve."
+        body={`We tried to resolve "${repo}" and the AT Protocol resolver returned: ${identityError}. Try another handle, DID, or AT URI below.`}
+        initialQuery={repo}
+      />
+    );
+  }
+
+  return (
+    <SkeletonSwap loading={!identity} skeleton={<RecordSkeleton />}>
+      {identity && (
+        <RecordView identity={identity} collection={collection} rkey={rkey} />
+      )}
+    </SkeletonSwap>
+  );
+}
+
+/**
+ * The record page proper, once the repo is a resolved identity. Split from the
+ * resolver above so the skeleton and the loaded page are two states of one
+ * <SkeletonSwap> rather than two returns that cut between each other.
+ */
+function RecordView({
+  identity,
+  collection,
+  rkey,
+}: {
+  identity: IdentityBundle;
+  collection: string;
+  rkey: string;
+}) {
+  const router = useRouter();
   const [record, setRecord] = useState<AtRecord | null>(null);
   const [recordError, setRecordError] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
@@ -63,9 +116,7 @@ export default function RecordExplorer({ repo, collection, rkey }: Props) {
   const editChipOffscreen = useOffscreen(editChipEl);
   // Resolved up here — ahead of the early returns below — so the chrome-bar
   // hook runs on every render.
-  const canEdit = Boolean(
-    agent && signedInDid && identity && signedInDid === identity.did,
-  );
+  const canEdit = Boolean(agent && signedInDid && signedInDid === identity.did);
   useChromeBarAction(
     canEdit && !editing && editChipOffscreen
       ? {
@@ -77,23 +128,6 @@ export default function RecordExplorer({ repo, collection, rkey }: Props) {
   );
 
   useEffect(() => {
-    let cancelled = false;
-    setIdentity(null);
-    setIdentityError(null);
-    resolveIdentifier(repo)
-      .then((id) => {
-        if (!cancelled) setIdentity(id);
-      })
-      .catch((err) => {
-        if (!cancelled) setIdentityError(err instanceof Error ? err.message : String(err));
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [repo]);
-
-  useEffect(() => {
-    if (!identity) return undefined;
     let cancelled = false;
     setRecord(null);
     setRecordError(null);
@@ -112,24 +146,6 @@ export default function RecordExplorer({ repo, collection, rkey }: Props) {
       cancelled = true;
     };
   }, [identity, collection, decodedRkey]);
-
-  if (identityError) {
-    return (
-      <NotFoundPanel
-        eyebrow="Couldn't resolve"
-        headline="That handle didn't resolve."
-        body={`We tried to resolve "${repo}" and the AT Protocol resolver returned: ${identityError}. Try another handle, DID, or AT URI below.`}
-        initialQuery={repo}
-      />
-    );
-  }
-  if (!identity) {
-    return (
-      <p className="explore-placeholder">
-        Resolving <code>{repo}</code>…
-      </p>
-    );
-  }
 
   const atUri = `at://${identity.did}/${collection}/${decodedRkey}`;
   const repoSeg = encodeRepo(identity.handle || identity.did);
@@ -281,81 +297,80 @@ export default function RecordExplorer({ repo, collection, rkey }: Props) {
     );
   }
 
-  if (!record) {
-    return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-        {breadcrumb}
-        <p className="explore-placeholder">Loading record…</p>
-      </div>
-    );
-  }
-
   // Read mode: render the user's sections in their chosen order. The three
   // data views (card / field table / raw JSON) keep their inline switch
   // present even when collapsed, so they can be re-shown right on the page;
   // helper sections simply disappear when hidden (re-show via Settings).
-  const recordForPreview = { uri: record.uri, cid: record.cid, value: record.value };
-  const sectionRenderers: Record<RecordSectionId, () => ReactNode> = {
-    richPreview: () =>
-      !hasRichCard ? null : (
-        <div style={sectionGroupStyle}>
-          {!cardHidden && (
-            <RichRecordCard
-              handle={identity.handle || identity.did}
-              did={identity.did}
-              collection={collection}
-              rkey={decodedRkey}
-              record={record}
+  //
+  // Null until the record lands — the breadcrumb below is already real by
+  // then, so only the body waits, behind <RecordBodySkeleton>.
+  const recordForPreview = record
+    ? { uri: record.uri, cid: record.cid, value: record.value }
+    : null;
+  const sectionRenderers: Record<RecordSectionId, () => ReactNode> | null =
+    record && recordForPreview
+      ? {
+        richPreview: () =>
+          !hasRichCard ? null : (
+            <div style={sectionGroupStyle}>
+              {!cardHidden && (
+                <RichRecordCard
+                  handle={identity.handle || identity.did}
+                  did={identity.did}
+                  collection={collection}
+                  rkey={decodedRkey}
+                  record={record}
+                />
+              )}
+              <ViewSwitchButton
+                label={cardHidden ? 'Show rich preview' : 'Hide rich preview'}
+                onToggle={() =>
+                  updatePrefs((p) => setSectionHidden(p, 'record', 'richPreview', !cardHidden))
+                }
+              />
+            </div>
+          ),
+        structuredJson: () => (
+          <div style={sectionGroupStyle}>
+            {!structuredHidden && (
+              <RecordPreview
+                record={recordForPreview}
+                collection={collection}
+                handle={identity.handle || identity.did}
+                rkey={decodedRkey}
+                pds={identity.pds}
+                hideExplorerCtas
+              />
+            )}
+            <ViewSwitchButton
+              label={structuredHidden ? 'Show rich JSON preview' : 'Hide rich JSON preview'}
+              onToggle={() => updatePrefs((p) => toggleRecordDataView(p, 'structuredJson'))}
             />
-          )}
-          <ViewSwitchButton
-            label={cardHidden ? 'Show rich preview' : 'Hide rich preview'}
-            onToggle={() =>
-              updatePrefs((p) => setSectionHidden(p, 'record', 'richPreview', !cardHidden))
-            }
+          </div>
+        ),
+        rawJson: () => (
+          <div style={sectionGroupStyle}>
+            {!rawHidden && <LinkifiedJson value={record} className="explore-json" />}
+            <ViewSwitchButton
+              label={rawHidden ? 'Show raw JSON' : 'Hide raw JSON'}
+              onToggle={() => updatePrefs((p) => toggleRecordDataView(p, 'rawJson'))}
+            />
+          </div>
+        ),
+        engagement: () =>
+          !isPost ? (
+            <EngagementSidecar did={identity.did} collection={collection} atUri={atUri} />
+          ) : null,
+        copyRow: () => copyRowNode,
+        lexiconUsage: () => (
+          <LexiconUsageCard
+            collection={collection === 'com.atproto.lexicon.schema' ? decodedRkey : collection}
           />
-        </div>
-      ),
-    structuredJson: () => (
-      <div style={sectionGroupStyle}>
-        {!structuredHidden && (
-          <RecordPreview
-            record={recordForPreview}
-            collection={collection}
-            handle={identity.handle || identity.did}
-            rkey={decodedRkey}
-            pds={identity.pds}
-            hideExplorerCtas
-          />
-        )}
-        <ViewSwitchButton
-          label={structuredHidden ? 'Show rich JSON preview' : 'Hide rich JSON preview'}
-          onToggle={() => updatePrefs((p) => toggleRecordDataView(p, 'structuredJson'))}
-        />
-      </div>
-    ),
-    rawJson: () => (
-      <div style={sectionGroupStyle}>
-        {!rawHidden && <LinkifiedJson value={record} className="explore-json" />}
-        <ViewSwitchButton
-          label={rawHidden ? 'Show raw JSON' : 'Hide raw JSON'}
-          onToggle={() => updatePrefs((p) => toggleRecordDataView(p, 'rawJson'))}
-        />
-      </div>
-    ),
-    engagement: () =>
-      !isPost ? (
-        <EngagementSidecar did={identity.did} collection={collection} atUri={atUri} />
-      ) : null,
-    copyRow: () => copyRowNode,
-    lexiconUsage: () => (
-      <LexiconUsageCard
-        collection={collection === 'com.atproto.lexicon.schema' ? decodedRkey : collection}
-      />
-    ),
-    backlinks: () => <BacklinksTab target={atUri} showSummary />,
-    signIn: () => signInNode,
-  };
+        ),
+        backlinks: () => <BacklinksTab target={atUri} showSummary />,
+        signIn: () => signInNode,
+      }
+      : null;
 
   const applicable = (id: string): boolean => {
     if (id === 'richPreview') return hasRichCard;
@@ -368,19 +383,26 @@ export default function RecordExplorer({ repo, collection, rkey }: Props) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
       {breadcrumb}
-      {recordSections.map(({ id, hidden }, i) => {
-        if (!applicable(id)) return null;
-        // Data views keep their switch even when collapsed; hidden helpers go.
-        if (!DATA_VIEW_IDS.has(id) && hidden) return null;
-        const node = sectionRenderers[id as RecordSectionId]();
-        if (node == null) return null;
-        return (
-          <AppearIn key={id} delay={Math.min(0.05 + i * 0.02, 0.16)}>
-            {node}
-          </AppearIn>
-        );
-      })}
-      {editChipNode && <AppearIn delay={0.18}>{editChipNode}</AppearIn>}
+      <SkeletonSwap loading={!sectionRenderers} skeleton={<RecordBodySkeleton />}>
+        {sectionRenderers && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            {recordSections.map(({ id, hidden }, i) => {
+              if (!applicable(id)) return null;
+              // Data views keep their switch even when collapsed; hidden
+              // helpers go.
+              if (!DATA_VIEW_IDS.has(id) && hidden) return null;
+              const node = sectionRenderers[id as RecordSectionId]();
+              if (node == null) return null;
+              return (
+                <AppearIn key={id} delay={Math.min(0.05 + i * 0.02, 0.16)}>
+                  {node}
+                </AppearIn>
+              );
+            })}
+            {editChipNode && <AppearIn delay={0.18}>{editChipNode}</AppearIn>}
+          </div>
+        )}
+      </SkeletonSwap>
     </div>
   );
 }

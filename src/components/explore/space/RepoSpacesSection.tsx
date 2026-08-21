@@ -5,6 +5,7 @@ import { useAtprotoSession } from '@/components/AtprotoSessionProvider';
 import { encodeRepo } from '@/utils/atproto/urls';
 import type { IdentityBundle } from '@/utils/atproto/identity';
 import { SpaceTreeList, useSpaceTree } from './SpaceTree';
+import { SkeletonRowList } from '../skeletons/primitives';
 import { useSpaceGrant } from './useSpaceAccess';
 
 /**
@@ -87,7 +88,7 @@ export default function RepoSpacesSection({ identity }: { identity: IdentityBund
         <>
           {tree.error && <p className="explore-error">{tree.error}</p>}
           {!tree.error && tree.loading && tree.uris.length === 0 && (
-            <p className="explore-placeholder">Loading spaces…</p>
+            <SkeletonRowList rows={3} trailingWidth="5rem" />
           )}
           {!tree.error && !tree.loading && tree.uris.length === 0 && (
             <p className="explore-placeholder">

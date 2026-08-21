@@ -8,6 +8,7 @@ import {
   type PlcAuditEntry,
 } from '@/utils/atproto/plc';
 import type { IdentityBundle } from '@/utils/atproto/identity';
+import { AuditTabSkeleton } from '../skeletons/pages';
 
 export default function AuditTab({ identity }: { identity: IdentityBundle }) {
   const { did } = identity;
@@ -40,7 +41,7 @@ export default function AuditTab({ identity }: { identity: IdentityBundle }) {
     );
   }
   if (error) return <p className="explore-error">{error}</p>;
-  if (!log) return <p className="explore-placeholder">Loading audit log…</p>;
+  if (!log) return <AuditTabSkeleton />;
   if (log.length === 0) return <p className="explore-placeholder">No PLC operations recorded.</p>;
 
   // Newest first; pass the chronologically-previous operation so diffs can

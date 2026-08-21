@@ -20,6 +20,9 @@ import Breadcrumb from './Breadcrumb';
 import CollectionEditBar from './CollectionEditBar';
 import CollectionRecordRow from './CollectionRecordRow';
 import NotFoundPanel from '@/components/NotFoundPanel';
+import SkeletonSwap from './skeletons/SkeletonSwap';
+import { CollectionSkeleton } from './skeletons/pages';
+import { SkeletonRecordRows } from './skeletons/primitives';
 import SignInPanel from './SignInPanel';
 import { useAtprotoSession } from '@/components/AtprotoSessionProvider';
 import { useEditBar } from './EditBarContext';
@@ -70,15 +73,11 @@ export default function CollectionExplorer({ repo, collection }: Props) {
       />
     );
   }
-  if (!identity) {
-    return (
-      <p className="explore-placeholder">
-        Resolving <code>{repo}</code>…
-      </p>
-    );
-  }
-
-  return <CollectionList identity={identity} collection={collection} />;
+  return (
+    <SkeletonSwap loading={!identity} skeleton={<CollectionSkeleton />}>
+      {identity && <CollectionList identity={identity} collection={collection} />}
+    </SkeletonSwap>
+  );
 }
 
 function CollectionList({
@@ -268,6 +267,13 @@ function CollectionList({
     () => (query ? records.filter((_, i) => haystacks[i].includes(query)) : records),
     [records, haystacks, query],
   );
+
+  // Show the row skeleton only while the collection could still turn out to
+  // have records: an empty set with pages left is the initial load, or the gap
+  // after a delete clears the page before the auto-fetch refills it. Once
+  // `done` lands with nothing, the empty state below is the truth and a
+  // skeleton would be a lie about what's coming.
+  const awaitingFirstPage = records.length === 0 && !done && !error;
 
   // Select-all targets what you can see, so narrowing the list and then
   // selecting is a way to bulk-delete a subset. Deletes still resolve against
@@ -724,9 +730,6 @@ function CollectionList({
       {records.length === 0 && done && !error && (
         <p className="explore-placeholder">No records in this collection.</p>
       )}
-      {records.length === 0 && !done && !error && (
-        <p className="explore-placeholder">Loading records…</p>
-      )}
       {/* A search only sees what's been fetched, so when it comes up empty
           and the collection still has pages left, say so — otherwise "no
           match" reads as "not in this collection". */}
@@ -737,6 +740,10 @@ function CollectionList({
         </p>
       )}
 
+      <SkeletonSwap
+        loading={awaitingFirstPage}
+        skeleton={<SkeletonRecordRows editing={editing} />}
+      >
       <ul
         style={{
           listStyle: 'none',
@@ -763,6 +770,7 @@ function CollectionList({
           />
         ))}
       </ul>
+      </SkeletonSwap>
       </AppearIn>
     </div>
   );

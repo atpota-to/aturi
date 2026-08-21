@@ -1,10 +1,13 @@
 'use client';
 
 import NotFoundPanel from '@/components/NotFoundPanel';
+import type { IdentityBundle } from '@/utils/atproto/identity';
 import { encodeRepo } from '@/utils/atproto/urls';
 import { isValidNsid } from '@/utils/atproto/spaceUri';
 import AppearIn from '../AppearIn';
 import Breadcrumb from '../Breadcrumb';
+import SkeletonSwap from '../skeletons/SkeletonSwap';
+import { SpaceTypeSkeleton } from '../skeletons/pages';
 import { SpaceWrittenList } from './SpaceListExplorer';
 import SpaceTypeCard from './SpaceTypeCard';
 import { useResolvedIdentity } from './useSpaceAccess';
@@ -50,14 +53,26 @@ export default function SpaceTypeExplorer({
       />
     );
   }
-  if (!identity) {
-    return (
-      <p className="explore-placeholder">
-        Resolving <code>{repo}</code>…
-      </p>
-    );
-  }
 
+  return (
+    <SkeletonSwap loading={!identity} skeleton={<SpaceTypeSkeleton />}>
+      {identity && <SpaceTypeView identity={identity} spaceType={spaceType} />}
+    </SkeletonSwap>
+  );
+}
+
+/**
+ * The page proper. Split from the resolver above so the skeleton and the loaded
+ * page are two states of one <SkeletonSwap> rather than two returns that cut
+ * between each other.
+ */
+function SpaceTypeView({
+  identity,
+  spaceType,
+}: {
+  identity: IdentityBundle;
+  spaceType: string;
+}) {
   const repoSeg = encodeRepo(identity.handle || identity.did);
 
   return (

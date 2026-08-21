@@ -13,6 +13,7 @@ import {
 import { shortDid } from '@/utils/atproto/urls';
 import { formatCount } from '@/utils/ufos/format';
 import AtUriLink from '../AtUriLink';
+import { BacklinksTabSkeleton } from '../skeletons/pages';
 
 /**
  * Inbound-link panel. Used both as a repo-overview tab (target = DID) and
@@ -54,7 +55,7 @@ export default function BacklinksTab({
   }, [target]);
 
   if (!showSummary) {
-    if (sources === undefined) return <p className="explore-placeholder">Loading backlinks…</p>;
+    if (sources === undefined) return <BacklinksTabSkeleton />;
     if (sources === null) return <BacklinksUnavailable />;
     if (sources.length === 0) {
       return <p className="explore-placeholder">No backlinks found.</p>;
@@ -182,11 +183,7 @@ function BacklinksSummaryPanel({
         </span>
       </header>
       <div style={{ padding: '0.75rem' }}>
-        {sources === undefined && (
-          <p className="explore-placeholder" style={{ margin: 0 }}>
-            Loading backlinks…
-          </p>
-        )}
+        {sources === undefined && <BacklinksTabSkeleton />}
         {sources === null && (
           <div style={{ padding: '0.5rem 0.25rem' }}>
             <BacklinksUnavailable />
