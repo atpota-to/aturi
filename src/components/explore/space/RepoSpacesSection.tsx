@@ -13,41 +13,47 @@ import { formatCount } from '../collectionListHelpers';
 import { useOwnPdsTransport, useSpaceGrant } from './useSpaceAccess';
 
 /**
- * Your permissioned data on the repo page, as one tree:
+ * Your permissioned data on the repo page:
  *
- *   space  →  collection  →  record
+ *   space  →  collection      (and a collection links to its records)
  *
- * The same three levels the public half of the page already has, in the same
- * styling, so exploring your own data doesn't mean learning a second shape.
- * Every row links to the full page for that level, but the point is that you
- * shouldn't have to go there to see what you have.
+ * The same shape the public half of the page has, in the same styling, so
+ * exploring your own data doesn't mean learning a second one. Spaces render
+ * expanded: a list of addresses you have to click open one at a time is a
+ * table of contents, not a view of your data. Records stop at the collection
+ * row, because the records list is a page of its own with filtering and
+ * paging, and a nested copy here would go stale against it and drown the
+ * section at any real record count.
  *
  * It renders only for the account itself, and that is a protocol limit rather
  * than a product choice: `listSpaces` reads the caller's own PDS and takes no
  * subject parameter, so no request exists that asks which spaces somebody else
  * writes to.
  *
- * **No credential is involved anywhere in here**, which is what makes the tree
- * expandable without prompting. Reading your own repo in a space needs only
- * the OAuth token: the repo host compares that token's DID against the
- * requested repo, so a `read_self` grant addresses exactly this. The consent
- * gate in `useSpaceAccess` guards the other thing — minting a credential sends
- * a token naming you to a host the *address* chose — and none of that happens
- * on this page, where both the repo and the host are your own.
+ * **No credential is involved anywhere in here.** Reading your own repo in a
+ * space needs only the OAuth token: the repo host compares that token's DID
+ * against the requested repo, so a `read_self` grant addresses exactly this.
+ * The consent gate in `useSpaceAccess` guards the other thing — minting a
+ * credential sends a token naming you to a host the *address* chose — and none
+ * of that happens here, where both the repo and the host are your own.
  */
 
-/** Spaces listed inline. Rows are collapsed, so this can be generous. */
-const SPACE_LIMIT = 25;
+/**
+ * Spaces listed inline. Tighter than it would be if rows opened on click:
+ * every row costs a request at page load now, so this caps what the page
+ * spends up front, not just what it shows.
+ */
+const SPACE_LIMIT = 12;
 
 /**
- * Records pulled per space. One request returns every collection *and* its
- * records, since `listRecords` without a collection spans all of them — so a
- * space costs exactly one round trip to expand, however many collections it
- * turns out to hold.
+ * Records scanned per space to derive its collection list. There is no "list
+ * the collections in a space" method — `listRecords` without a collection
+ * spans all of them — so one request per space yields both the collections and
+ * their counts.
  */
 const RECORDS_PER_SPACE = 200;
 
-type CollectionNode = { collection: string; rkeys: string[] };
+type CollectionNode = { collection: string; count: number };
 
 type SpaceContents =
   | { status: 'loading' }
@@ -64,18 +70,17 @@ export default function RepoSpacesSection({ identity }: { identity: IdentityBund
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const [openSpaces, setOpenSpaces] = useState<ReadonlySet<string>>(new Set());
-  const [openCollections, setOpenCollections] = useState<ReadonlySet<string>>(new Set());
+  // Collapsed, not open: spaces render expanded, and this tracks the ones the
+  // visitor has deliberately folded away.
+  const [collapsed, setCollapsed] = useState<ReadonlySet<string>>(new Set());
   const [contents, setContents] = useState<ReadonlyMap<string, SpaceContents>>(new Map());
-
   const [handles, setHandles] = useState<ReadonlyMap<string, string>>(new Map());
 
   const isSelf = Boolean(signedInDid && signedInDid === identity.did);
   const canList = isSelf && transport !== null && (grant === 'read' || grant === 'read_self');
 
   // Unmount has to stop late responses from writing into a dead tree, and the
-  // per-space fetches are fired from click handlers rather than an effect, so
-  // there is no cleanup function to hang that on.
+  // per-space fetches don't each own an effect to hang that on.
   const alive = useRef(true);
   useEffect(() => {
     alive.current = true;
@@ -84,14 +89,18 @@ export default function RepoSpacesSection({ identity }: { identity: IdentityBund
     };
   }, []);
 
+  // Which spaces a fetch has already been fired for. A ref rather than state
+  // so the load effect doesn't re-run every time a response lands.
+  const requested = useRef<Set<string>>(new Set());
+
   useEffect(() => {
     let cancelled = false;
     setUris([]);
     setMore(false);
     setError(null);
-    setOpenSpaces(new Set());
-    setOpenCollections(new Set());
+    setCollapsed(new Set());
     setContents(new Map());
+    requested.current.clear();
     if (!canList || !transport) return undefined;
 
     setLoading(true);
@@ -116,7 +125,8 @@ export default function RepoSpacesSection({ identity }: { identity: IdentityBund
   }, [canList, transport]);
 
   // Authority handles, resolved once per distinct DID. A space anchored on
-  // someone else's account is the common case here, not the exception.
+  // someone else's account is the common case here, not the exception. Keyed
+  // off a joined string so the effect has one primitive dependency.
   const uriKey = uris.join('\n');
   useEffect(() => {
     const dids = new Set<string>();
@@ -146,8 +156,8 @@ export default function RepoSpacesSection({ identity }: { identity: IdentityBund
       if (!transport || !pds || !signedInDid) return;
       setContents((prev) => new Map(prev).set(uri, { status: 'loading' }));
       try {
-        // `excludeValues`: the tree renders keys, not bodies, and the values
-        // are the expensive half of the response.
+        // `excludeValues`: this derives collection names and counts, and the
+        // values are the expensive half of the response.
         const page = await listSpaceRecords(transport, pds, {
           space: uri,
           repo: signedInDid,
@@ -155,21 +165,15 @@ export default function RepoSpacesSection({ identity }: { identity: IdentityBund
           excludeValues: true,
         });
         if (!alive.current) return;
-        const grouped = new Map<string, string[]>();
+        const counts = new Map<string, number>();
         for (const record of page.records) {
-          const list = grouped.get(record.collection);
-          if (list) list.push(record.rkey);
-          else grouped.set(record.collection, [record.rkey]);
+          counts.set(record.collection, (counts.get(record.collection) ?? 0) + 1);
         }
-        const collections = [...grouped.entries()]
-          .map(([collection, rkeys]) => ({ collection, rkeys }))
+        const collections = [...counts.entries()]
+          .map(([collection, count]) => ({ collection, count }))
           .sort((a, b) => a.collection.localeCompare(b.collection));
         setContents((prev) =>
-          new Map(prev).set(uri, {
-            status: 'ready',
-            collections,
-            complete: !page.cursor,
-          }),
+          new Map(prev).set(uri, { status: 'ready', collections, complete: !page.cursor }),
         );
       } catch (err) {
         if (!alive.current) return;
@@ -184,22 +188,23 @@ export default function RepoSpacesSection({ identity }: { identity: IdentityBund
     [transport, pds, signedInDid],
   );
 
+  // Every listed space is fetched as soon as the list arrives, since they all
+  // render expanded. These are same-origin requests to the visitor's own PDS,
+  // so the browser's per-origin cap paces them without help from here.
+  useEffect(() => {
+    if (!canList) return;
+    for (const uri of uris) {
+      if (requested.current.has(uri)) continue;
+      requested.current.add(uri);
+      void loadSpace(uri);
+    }
+  }, [uris, canList, loadSpace]);
+
   function toggleSpace(uri: string) {
-    setOpenSpaces((prev) => {
+    setCollapsed((prev) => {
       const next = new Set(prev);
       if (next.has(uri)) next.delete(uri);
       else next.add(uri);
-      return next;
-    });
-    // Fetch on first open only; a collapse-and-reopen reuses what came back.
-    if (!contents.has(uri)) void loadSpace(uri);
-  }
-
-  function toggleCollection(key: string) {
-    setOpenCollections((prev) => {
-      const next = new Set(prev);
-      if (next.has(key)) next.delete(key);
-      else next.add(key);
       return next;
     });
   }
@@ -264,22 +269,21 @@ export default function RepoSpacesSection({ identity }: { identity: IdentityBund
 
           {uris.length > 0 && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-              {uris.map((uri) => (
-                <SpaceBranch
-                  key={uri}
-                  uri={uri}
-                  memberDid={signedInDid ?? ''}
-                  authorityHandle={
-                    parseSpaceAtUri(uri) ? handles.get(parseSpaceAtUri(uri)!.authority) : undefined
-                  }
-                  isOwnAuthority={parseSpaceAtUri(uri)?.authority === signedInDid}
-                  open={openSpaces.has(uri)}
-                  onToggle={() => toggleSpace(uri)}
-                  contents={contents.get(uri)}
-                  openCollections={openCollections}
-                  onToggleCollection={toggleCollection}
-                />
-              ))}
+              {uris.map((uri) => {
+                const parts = parseSpaceAtUri(uri);
+                return (
+                  <SpaceBranch
+                    key={uri}
+                    uri={uri}
+                    memberDid={signedInDid ?? ''}
+                    authorityHandle={parts ? handles.get(parts.authority) : undefined}
+                    isOwnAuthority={Boolean(parts && parts.authority === signedInDid)}
+                    open={!collapsed.has(uri)}
+                    onToggle={() => toggleSpace(uri)}
+                    contents={contents.get(uri)}
+                  />
+                );
+              })}
             </div>
           )}
 
@@ -299,9 +303,9 @@ export default function RepoSpacesSection({ identity }: { identity: IdentityBund
 }
 
 /**
- * One space and everything under it. A space whose address this app can't
- * parse still gets a row, as text — it is a real space that simply has no page
- * here, and hiding it would be worse than showing it.
+ * One space and its collections. A space whose address this app can't parse
+ * still gets a row, as text — it is a real space that simply has no page here,
+ * and hiding it would be worse than showing it.
  */
 function SpaceBranch({
   uri,
@@ -311,8 +315,6 @@ function SpaceBranch({
   open,
   onToggle,
   contents,
-  openCollections,
-  onToggleCollection,
 }: {
   uri: string;
   memberDid: string;
@@ -321,8 +323,6 @@ function SpaceBranch({
   open: boolean;
   onToggle: () => void;
   contents: SpaceContents | undefined;
-  openCollections: ReadonlySet<string>;
-  onToggleCollection: (key: string) => void;
 }) {
   const parts = parseSpaceAtUri(uri);
 
@@ -348,76 +348,78 @@ function SpaceBranch({
   const memberPath = `${spacePath}/${encodeRepo(memberDid)}`;
   const count =
     contents?.status === 'ready'
-      ? contents.collections.reduce((sum, c) => sum + c.rkeys.length, 0)
+      ? contents.collections.reduce((sum, node) => sum + node.count, 0)
       : null;
 
   return (
     <section style={{ border: '1px solid var(--border-medium)', background: 'var(--bg-secondary)' }}>
-      <div style={{ display: 'flex', alignItems: 'stretch' }}>
-        <button
-          type="button"
-          onClick={onToggle}
-          aria-expanded={open}
+      <button
+        type="button"
+        onClick={onToggle}
+        aria-expanded={open}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.5rem',
+          width: '100%',
+          minWidth: 0,
+          padding: '0.625rem 1rem',
+          background: 'transparent',
+          border: 0,
+          textAlign: 'left',
+          fontFamily: 'var(--font-mono)',
+          fontSize: '0.875rem',
+          color: 'var(--text-primary)',
+          cursor: 'pointer',
+        }}
+      >
+        {open ? (
+          <ChevronDown size={14} aria-hidden style={{ color: 'var(--text-tertiary)' }} />
+        ) : (
+          <ChevronRight size={14} aria-hidden style={{ color: 'var(--text-tertiary)' }} />
+        )}
+        <code
           style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.5rem',
-            flex: 1,
             minWidth: 0,
-            padding: '0.625rem 1rem',
             background: 'transparent',
-            border: 0,
-            textAlign: 'left',
-            fontFamily: 'var(--font-mono)',
-            fontSize: '0.875rem',
-            color: 'var(--text-primary)',
-            cursor: 'pointer',
+            padding: 0,
+            color: 'var(--text-accent)',
+            wordBreak: 'break-all',
+            overflowWrap: 'anywhere',
           }}
         >
-          {open ? (
-            <ChevronDown size={14} aria-hidden style={{ color: 'var(--text-tertiary)' }} />
-          ) : (
-            <ChevronRight size={14} aria-hidden style={{ color: 'var(--text-tertiary)' }} />
+          {parts.spaceType}
+          <span style={{ color: 'var(--text-tertiary)' }}>/{parts.skey}</span>
+        </code>
+        <span
+          style={{
+            marginLeft: 'auto',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+            flexShrink: 0,
+            fontSize: '0.75rem',
+            color: 'var(--text-tertiary)',
+          }}
+        >
+          {isOwnAuthority
+            ? 'yours'
+            : authorityHandle
+              ? `@${authorityHandle}`
+              : shortDid(parts.authority)}
+          {count !== null && (
+            <span
+              style={{
+                padding: '0.125rem 0.5rem',
+                background: 'var(--bg-tertiary)',
+                border: '1px solid var(--border-subtle)',
+              }}
+            >
+              {formatCount(count)}
+            </span>
           )}
-          <code
-            style={{
-              minWidth: 0,
-              background: 'transparent',
-              padding: 0,
-              color: 'var(--text-accent)',
-              wordBreak: 'break-all',
-              overflowWrap: 'anywhere',
-            }}
-          >
-            {parts.spaceType}
-            <span style={{ color: 'var(--text-tertiary)' }}>/{parts.skey}</span>
-          </code>
-          <span
-            style={{
-              marginLeft: 'auto',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '0.5rem',
-              flexShrink: 0,
-              fontSize: '0.75rem',
-              color: 'var(--text-tertiary)',
-            }}
-          >
-            {isOwnAuthority ? 'yours' : authorityHandle ? `@${authorityHandle}` : shortDid(parts.authority)}
-            {count !== null && (
-              <span
-                style={{
-                  padding: '0.125rem 0.5rem',
-                  background: 'var(--bg-tertiary)',
-                  border: '1px solid var(--border-subtle)',
-                }}
-              >
-                {formatCount(count)}
-              </span>
-            )}
-          </span>
-        </button>
-      </div>
+        </span>
+      </button>
 
       {open && (
         <div style={{ borderTop: '1px solid var(--border-subtle)' }}>
@@ -439,24 +441,25 @@ function SpaceBranch({
             </p>
           )}
 
-          {contents?.status === 'ready' &&
-            contents.collections.map((node) => {
-              const key = `${uri} ${node.collection}`;
-              return (
-                <CollectionBranch
+          {contents?.status === 'ready' && contents.collections.length > 0 && (
+            <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+              {contents.collections.map((node, i) => (
+                <CollectionRow
                   key={node.collection}
                   node={node}
-                  collectionPath={`${memberPath}/${node.collection}`}
-                  open={openCollections.has(key)}
-                  onToggle={() => onToggleCollection(key)}
+                  href={`${memberPath}/${node.collection}`}
+                  complete={contents.complete}
+                  baseBg={i % 2 === 1 ? 'var(--bg-tertiary)' : 'transparent'}
                 />
-              );
-            })}
+              ))}
+            </ul>
+          )}
 
           {contents?.status === 'ready' && !contents.complete && (
             <p style={{ ...noteStyle, padding: '0.5rem 1.5rem' }}>
-              Showing the first {formatCount(RECORDS_PER_SPACE)} records in this
-              space. Open a collection for its full listing.
+              Counted from the first {formatCount(RECORDS_PER_SPACE)} records in
+              this space, so these are lower bounds. Open a collection for its
+              full listing.
             </p>
           )}
 
@@ -474,120 +477,79 @@ function SpaceBranch({
   );
 }
 
-/** One collection inside a space, expanding to its record keys. */
-function CollectionBranch({
+/**
+ * One collection inside a space — a link to its records, not a third level of
+ * tree. The records list is a page with its own filtering and paging, and a
+ * nested copy here would go stale against it.
+ */
+function CollectionRow({
   node,
-  collectionPath,
-  open,
-  onToggle,
+  href,
+  complete,
+  baseBg,
 }: {
   node: CollectionNode;
-  collectionPath: string;
-  open: boolean;
-  onToggle: () => void;
+  href: string;
+  /** False when the count is a lower bound from a truncated scan. */
+  complete: boolean;
+  /** Resting background for zebra striping; mouseleave restores to this. */
+  baseBg: string;
 }) {
   return (
-    <div style={{ borderTop: '1px solid var(--border-subtle)' }}>
-      <div style={{ display: 'flex', alignItems: 'stretch' }}>
-        <button
-          type="button"
-          onClick={onToggle}
-          aria-expanded={open}
+    <li
+      style={{
+        borderTop: '1px solid var(--border-subtle)',
+        background: baseBg,
+        transition: 'background 0.2s ease',
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.background = 'var(--bg-tertiary)';
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.background = baseBg;
+      }}
+    >
+      <Link
+        href={href}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.5rem',
+          padding: '0.55rem 1rem 0.55rem 2.25rem',
+          fontFamily: 'var(--font-mono)',
+          fontSize: '0.8125rem',
+          color: 'var(--text-primary)',
+          textDecoration: 'none',
+        }}
+      >
+        <code
           style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.5rem',
             flex: 1,
             minWidth: 0,
-            padding: '0.55rem 1rem 0.55rem 1.5rem',
             background: 'transparent',
-            border: 0,
-            textAlign: 'left',
-            fontFamily: 'var(--font-mono)',
-            fontSize: '0.8125rem',
-            color: 'var(--text-primary)',
-            cursor: 'pointer',
+            padding: 0,
+            color: 'var(--text-secondary)',
+            wordBreak: 'break-all',
+            overflowWrap: 'anywhere',
           }}
         >
-          {open ? (
-            <ChevronDown size={14} aria-hidden style={{ color: 'var(--text-tertiary)' }} />
-          ) : (
-            <ChevronRight size={14} aria-hidden style={{ color: 'var(--text-tertiary)' }} />
-          )}
-          <code
-            style={{
-              flex: 1,
-              minWidth: 0,
-              background: 'transparent',
-              padding: 0,
-              color: 'var(--text-secondary)',
-              wordBreak: 'break-all',
-              overflowWrap: 'anywhere',
-            }}
-          >
-            {node.collection}
-          </code>
-          <span
-            style={{
-              fontSize: '0.75rem',
-              color: 'var(--text-tertiary)',
-              padding: '0.125rem 0.5rem',
-              background: 'var(--bg-tertiary)',
-              border: '1px solid var(--border-subtle)',
-              flexShrink: 0,
-            }}
-          >
-            {formatCount(node.rkeys.length)}
-          </span>
-        </button>
-        <Link
-          href={collectionPath}
-          aria-label={`Open the full ${node.collection} listing`}
-          title="Open the full listing"
+          {node.collection}
+        </code>
+        <span
           style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            padding: '0 0.75rem',
-            color: 'var(--text-tertiary)',
-            textDecoration: 'none',
             fontSize: '0.75rem',
+            color: 'var(--text-tertiary)',
+            padding: '0.125rem 0.5rem',
+            background: 'var(--bg-tertiary)',
+            border: '1px solid var(--border-subtle)',
             flexShrink: 0,
           }}
         >
-          →
-        </Link>
-      </div>
-
-      {open && (
-        <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
-          {node.rkeys.map((rkey, i) => (
-            <li
-              key={rkey}
-              style={{
-                background: i % 2 === 1 ? 'var(--bg-tertiary)' : 'transparent',
-                transition: 'background 0.2s ease',
-              }}
-            >
-              <Link
-                href={`${collectionPath}/${encodeURIComponent(rkey)}`}
-                style={{
-                  display: 'block',
-                  padding: '0.45rem 1rem 0.45rem 2.5rem',
-                  fontFamily: 'var(--font-mono)',
-                  fontSize: '0.8rem',
-                  color: 'var(--text-secondary)',
-                  textDecoration: 'none',
-                  wordBreak: 'break-all',
-                  overflowWrap: 'anywhere',
-                }}
-              >
-                {rkey}
-              </Link>
-            </li>
-          ))}
-        </ul>
-      )}
-    </div>
+          {formatCount(node.count)}
+          {complete ? '' : '+'}
+        </span>
+      </Link>
+    </li>
   );
 }
 
