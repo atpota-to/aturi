@@ -219,6 +219,7 @@ function SpaceRepoView({
           spaceType={spaceType}
           skey={skey}
           author={authorIdentity.did}
+          authorHandle={authorIdentity.handle}
           shareUrl={authorPath}
         />
       </AppearIn>

@@ -167,6 +167,7 @@ function SpaceRecordView({
           spaceType={spaceType}
           skey={skey}
           author={authorIdentity.did}
+          authorHandle={authorIdentity.handle}
           collection={collection}
           rkey={rkey}
           shareUrl={recordPath}

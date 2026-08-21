@@ -203,6 +203,7 @@ function SpaceCollectionList({
           spaceType={spaceType}
           skey={skey}
           author={authorIdentity.did}
+          authorHandle={authorIdentity.handle}
           collection={collection}
           shareUrl={collectionPath}
         />

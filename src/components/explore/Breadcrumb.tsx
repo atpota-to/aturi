@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef } from 'react';
 import Link from 'next/link';
-import { ChevronRight, Server } from 'lucide-react';
+import { ChevronRight, Server, User } from 'lucide-react';
 import { encodeRepo, shortDid } from '@/utils/atproto/urls';
 import { SPACE_MARKER } from '@/utils/atproto/spaceUri';
 import { pdsHostname } from '@/utils/atproto/pdsServer';
@@ -41,6 +41,12 @@ type Props = {
   /** DID of the member whose permissioned repo holds the record. */
   author?: string;
   /**
+   * The member's handle, when the caller has resolved it. The space trail
+   * shows the authority as a handle, so leaving the member as a raw DID made
+   * two identities in the same trail read as different kinds of thing.
+   */
+  authorHandle?: string | null;
+  /**
    * When provided, renders a "Copy link" chip at the end of the breadcrumb
    * row. Path or full URL; bare paths get aturi.to prepended.
    */
@@ -69,6 +75,7 @@ export default function Breadcrumb({
   spaceType,
   skey,
   author,
+  authorHandle,
   shareUrl,
 }: Props) {
   const repoSegment = encodeRepo(handle || did);
@@ -108,7 +115,15 @@ export default function Breadcrumb({
       crumbs.push({ label: skey, href: spacePath });
       if (!author) return crumbs;
       const authorPath = `${spacePath}/${encodeRepo(author)}`;
-      crumbs.push({ label: shortDid(author), href: authorPath });
+      // Carries the person glyph for the same reason the PDS crumb carries the
+      // server one: everything either side of it in this trail is an address
+      // component, and without the marker a member reads as one more path
+      // segment rather than as whose records these are.
+      crumbs.push({
+        label: authorHandle ? `@${authorHandle}` : shortDid(author),
+        href: authorPath,
+        icon: 'user',
+      });
       if (!collection) return crumbs;
       crumbs.push({ label: collection, href: `${authorPath}/${collection}` });
       if (rkey) crumbs.push({ label: rkey });
@@ -122,7 +137,7 @@ export default function Breadcrumb({
       crumbs.push({ label: rkey });
     }
     return crumbs;
-  }, [pdsHost, repoLabel, repoSegment, spaceRoot, spaceType, skey, author, collection, rkey]);
+  }, [pdsHost, repoLabel, repoSegment, spaceRoot, spaceType, skey, author, authorHandle, collection, rkey]);
 
   useEffect(() => {
     setTrail(trail);
@@ -212,6 +227,9 @@ export default function Breadcrumb({
             >
               {crumb.icon === 'server' && (
                 <Server size={12} aria-hidden style={{ opacity: 0.7 }} />
+              )}
+              {crumb.icon === 'user' && (
+                <User size={12} aria-hidden style={{ opacity: 0.7 }} />
               )}
               {crumb.label}
             </Link>

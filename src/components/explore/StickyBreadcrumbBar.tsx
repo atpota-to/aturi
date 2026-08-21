@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { AnimatePresence, motion } from 'framer-motion';
-import { ChevronRight, Server } from 'lucide-react';
+import { ChevronRight, Server, User } from 'lucide-react';
 import { useBreadcrumbTrail, type BreadcrumbCrumb } from './BreadcrumbContext';
 
 /**
@@ -74,6 +74,9 @@ function Segment({
     <>
       {crumb.icon === 'server' && (
         <Server size={10} aria-hidden style={{ opacity: 0.7, flexShrink: 0 }} />
+      )}
+      {crumb.icon === 'user' && (
+        <User size={10} aria-hidden style={{ opacity: 0.7, flexShrink: 0 }} />
       )}
       <span
         style={{
