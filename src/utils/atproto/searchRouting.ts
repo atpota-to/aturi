@@ -5,7 +5,8 @@
  * falls back to treating the input as a handle/DID for repo lookup.
  */
 
-import { encodeRepo, explorePathFromAtUri } from './urls';
+import { encodeRepo, explorePathFromAtUri, spaceExplorePathFromSegments } from './urls';
+import { SPACE_MARKER } from './spaceUri';
 import { pdsHostname } from './pdsServer';
 import { matchSupportedUrl } from '../reverseParsers';
 import type { ParsedURI } from '../uriParser';
@@ -27,6 +28,20 @@ function explorePathFromParsed(parsed: ParsedURI): string {
 }
 
 /**
+ * `URL.pathname` keeps percent-escapes, and a space key or record key may
+ * legitimately contain a colon that `spaceExplorePath` escaped on the way out.
+ * Decode before validating so a link we produced round-trips. Malformed
+ * escapes are left alone; the validators reject them.
+ */
+function decodeSegment(segment: string): string {
+  try {
+    return decodeURIComponent(segment);
+  } catch {
+    return segment;
+  }
+}
+
+/**
  * Aturi's own links (the main app's `/profile/...` shapes and the explorer's
  * `/explore/...` shapes) route straight back into the explorer. Pasting an
  * `aturi.to` URL should land on the same record rather than being treated as
@@ -39,6 +54,12 @@ function explorePathFromAturiUrl(url: URL): string | null {
 
   // `/explore/<id>[/<collection>[/<rkey>]]` — already an explorer path.
   if (parts[0] === 'explore') {
+    // `/explore/<authority>/space/...` is a permissioned address with a
+    // different path depth. Rebuilding it through the repo/collection/rkey
+    // destructure below would truncate it to the space type.
+    if (parts[2] === SPACE_MARKER) {
+      return spaceExplorePathFromSegments(parts.slice(1).map(decodeSegment));
+    }
     const [, id, collection, rkey] = parts;
     if (!id) return null;
     const repo = encodeRepo(id);
@@ -100,15 +121,13 @@ export function resolveSearchTarget(rawInput: string): SearchTarget | null {
   const v = rawInput.trim();
   if (!v) return null;
 
-  // 1. at:// URIs — drill down as far as the URI allows.
+  // 1. at:// URIs — drill down as far as the URI allows. `explorePathFromAtUri`
+  //    already walks the same repo → collection → rkey ladder, and it is the
+  //    only place that knows the permissioned-space grammar, so routing goes
+  //    through it rather than re-deriving the ladder here.
   if (v.startsWith('at://')) {
-    const m = v.match(/^at:\/\/([^/]+)\/([^/]+)\/([^/?#]+)/);
-    if (m) return match(`/explore/${encodeRepo(m[1])}/${m[2]}/${encodeURIComponent(m[3])}`);
-    const m2 = v.match(/^at:\/\/([^/]+)\/([^/?#]+)/);
-    if (m2) return match(`/explore/${encodeRepo(m2[1])}/${m2[2]}`);
-    const m3 = v.match(/^at:\/\/([^/?#]+)/);
-    if (m3) return match(`/explore/${encodeRepo(m3[1])}`);
-    return null;
+    const path = explorePathFromAtUri(v);
+    return path ? match(path) : null;
   }
 
   // 2. Explicit URL. Anything with a protocol is a URL, not a handle.

@@ -38,6 +38,22 @@ export function parseURI(handle: string, collection?: string, rkey?: string): Pa
     };
   }
 
+  // The literal `space` marker sits where a public collection NSID would in a
+  // permissioned AT URI (at://{did}/space/{type}/{skey}/…). An NSID always
+  // carries at least two dots and the marker carries none, so the two never
+  // collide. A space address needs four or more segments and names private
+  // data, so the three-segment universal-link route can never render one.
+  // Kept as a local literal rather than an import: this file is copied verbatim
+  // into @aturi.to/waypoints, which cannot resolve src/utils/atproto/*.
+  if (collection === 'space') {
+    return {
+      type: 'unknown',
+      uri: '',
+      handle,
+      error: 'Space URIs are not public records',
+    };
+  }
+
   // Record case (has collection and rkey)
   if (collection && rkey) {
     let type: 'post' | 'list' | 'record' = 'record';
