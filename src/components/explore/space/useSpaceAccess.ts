@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { useAtprotoSession } from '@/components/AtprotoSessionProvider';
+import { spaceWriteActionsFor, type SpaceWriteAction } from '@/lib/oauth/scopes';
 import { resolveIdentifier, type IdentityBundle } from '@/utils/atproto/identity';
 import { parseSpaceAtUri } from '@/utils/atproto/spaceUri';
 import { resolveSpaceAuthority, type SpaceAuthority } from '@/utils/atproto/spaceIdentity';
@@ -139,6 +140,43 @@ export function useSpaceGrant(): SpaceGrantState {
   if (spaceGrant === null) return 'none';
   return spaceGrant;
 }
+
+/**
+ * Which write actions the visitor's grant authorizes for one collection, or
+ * `null` while that can't be answered yet.
+ *
+ * Split from {@link useSpaceGrant} rather than folded into it because the two
+ * answer different questions with different shapes: reading a space is one
+ * level per space, writing is a set of verbs per *collection*. A grant can
+ * cover reading a whole space and still refuse a write to one collection in
+ * it, and vice versa — a `read_self` reader may hold every write verb.
+ *
+ * `null` versus the empty set is the same distinction the read grant draws
+ * between `unknown` and `none`: null means don't decide yet, so a member
+ * doesn't watch the edit button appear a beat after the page.
+ */
+export function useSpaceWriteActions(
+  collection: string | null,
+): ReadonlySet<SpaceWriteAction> | null {
+  const { session, grantedScope, loading } = useAtprotoSession();
+  const [scopeSettled, setScopeSettled] = useState(false);
+
+  useEffect(() => {
+    setScopeSettled(false);
+    if (!session) return undefined;
+    const timer = window.setTimeout(() => setScopeSettled(true), SCOPE_SETTLE_MS);
+    return () => window.clearTimeout(timer);
+  }, [session]);
+
+  return useMemo(() => {
+    if (loading || !collection) return null;
+    if (!session) return EMPTY_WRITE_ACTIONS;
+    if (grantedScope === null && !scopeSettled) return null;
+    return spaceWriteActionsFor(grantedScope, collection);
+  }, [loading, session, grantedScope, scopeSettled, collection]);
+}
+
+const EMPTY_WRITE_ACTIONS: ReadonlySet<SpaceWriteAction> = new Set();
 
 /**
  * Resolve a handle / DID to `{ did, handle, pds }`, in the shape every explore

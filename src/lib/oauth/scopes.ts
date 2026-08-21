@@ -21,7 +21,8 @@ export type ScopeId =
   | 'delete'
   | 'blob'
   | 'spacesSelf'
-  | 'spacesAll';
+  | 'spacesAll'
+  | 'spacesWrite';
 
 export type GranularScope = {
   id: ScopeId;
@@ -92,6 +93,36 @@ export type GranularScope = {
 const SPACE_READ_SELF_SCOPE = 'space:*?authority=*&action=read_self';
 const SPACE_READ_SCOPE = 'space:*?authority=*&action=read';
 
+/**
+ * Writing into a space: create, update and delete, over the whole of the
+ * signed-in account's own permissioned repo.
+ *
+ * `collection=*` is the load-bearing part, and the reason this token can't be
+ * folded into either read scope. The three write actions are the only ones the
+ * matcher constrains by collection, and `collection` defaults to *the empty
+ * list*, not to "all" — with `type=*` there is no space-type declaration to
+ * expand that default from, so a token that omits it authorizes no write
+ * target at all. The wildcard is also what keeps issuance cheap: a token that
+ * names its collections skips the declaration lookup that
+ * `withDefaultCollections` would otherwise do.
+ *
+ * A concrete collection list isn't an option here for the same reason the type
+ * stays `*`. The explorer is generic — it renders whatever collection a space
+ * happens to hold, including lexicons published after this build shipped — so
+ * there is no set of NSIDs it could enumerate at sign-in that would still be
+ * right at edit time.
+ *
+ * Actions are serialized in the matcher's own order (read_self, read, create,
+ * update, delete) because its `normalize` re-sorts them into that order before
+ * formatting, and the declared-vs-requested check is byte-exact.
+ *
+ * This is a write grant over permissioned data, so it ships `defaultOn: false`
+ * like the two read rows, for the same reason: an unticked box means the
+ * requested scope string is byte-identical to the pre-spaces one.
+ */
+const SPACE_WRITE_SCOPE =
+  'space:*?authority=*&collection=*&action=create&action=update&action=delete';
+
 export const GRANULAR_SCOPES: GranularScope[] = [
   {
     id: 'create',
@@ -137,6 +168,17 @@ export const GRANULAR_SCOPES: GranularScope[] = [
     hint: 'Read other members’ records in a space. Lets this app ask any space authority for a whole-space credential in your name.',
     defaultOn: false,
   },
+  {
+    id: 'spacesWrite',
+    scope: SPACE_WRITE_SCOPE,
+    // Only ever your own records: a space write is attributed to its author,
+    // so the write methods take an OAuth token and nothing else, and a PDS
+    // answers a write aimed at anyone else's repo the same way it answers a
+    // read — as though the repo weren't there.
+    label: 'Edit your permissioned records',
+    hint: 'Create, update, and delete your own records in a space.',
+    defaultOn: false,
+  },
 ];
 
 /**
@@ -147,6 +189,7 @@ export const GRANULAR_SCOPES: GranularScope[] = [
 export const SPACE_SCOPE_IDS: ReadonlySet<ScopeId> = new Set<ScopeId>([
   'spacesSelf',
   'spacesAll',
+  'spacesWrite',
 ]);
 
 /**
@@ -253,6 +296,68 @@ export function hasSpaceScope(grantedScope: string | null | undefined): boolean 
  * byte-identically, so a narrower authority would mean the server rewrote a
  * request rather than granting or dropping it — which no provider does.
  */
+/** The three space actions that write. `read`/`read_self` are handled above. */
+export type SpaceWriteAction = 'create' | 'update' | 'delete';
+
+const SPACE_WRITE_ACTIONS: readonly SpaceWriteAction[] = ['create', 'update', 'delete'];
+
+/**
+ * Which collections a `space:` token authorizes writes into.
+ *
+ * The default is deliberately empty rather than "all", mirroring the matcher:
+ * a token that names no collection confers no write target, even though its
+ * default action list carries all three write verbs. So a bare `space:*`
+ * grants nothing here, which is exactly what it grants at the PDS.
+ */
+function spaceTokenCollections(token: string): string[] {
+  const q = token.indexOf('?');
+  if (q < 0) return [];
+  return new URLSearchParams(token.slice(q + 1)).getAll('collection');
+}
+
+/**
+ * The write actions a granted scope authorizes for one collection.
+ *
+ * Read back off the token rather than assumed from what was requested, for the
+ * same reason `spaceGrantLevel` is: an authorization server that doesn't
+ * understand `space:` drops the token silently, and a server that understands
+ * it may still narrow the grant. An empty set means every write affordance
+ * stays hidden.
+ *
+ * The collection is a parameter because the matcher checks it per record: this
+ * app asks for `collection=*`, but a token that came back naming collections
+ * authorizes writes to those and no others, and the difference is only visible
+ * once you know which record is being edited.
+ */
+export function spaceWriteActionsFor(
+  grantedScope: string | null | undefined,
+  collection: string,
+): ReadonlySet<SpaceWriteAction> {
+  const granted = new Set<SpaceWriteAction>();
+  for (const token of spaceTokens(grantedScope)) {
+    const collections = spaceTokenCollections(token);
+    if (!collections.includes('*') && !collections.includes(collection)) continue;
+    const actions = spaceTokenActions(token);
+    for (const action of SPACE_WRITE_ACTIONS) {
+      if (actions.includes(action)) granted.add(action);
+    }
+  }
+  return granted;
+}
+
+/**
+ * Whether any space token carries a write action at all, ignoring which
+ * collections it covers. For copy that explains a missing capability, where
+ * naming one collection would be beside the point.
+ */
+export function hasSpaceWriteScope(grantedScope: string | null | undefined): boolean {
+  return spaceTokens(grantedScope).some((token) => {
+    if (spaceTokenCollections(token).length === 0) return false;
+    const actions = spaceTokenActions(token);
+    return SPACE_WRITE_ACTIONS.some((action) => actions.includes(action));
+  });
+}
+
 export function spaceGrantLevel(
   grantedScope: string | null | undefined,
 ): 'read' | 'read_self' | null {

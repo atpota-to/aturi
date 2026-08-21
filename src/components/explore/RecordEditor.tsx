@@ -1,19 +1,22 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import type { Agent } from '@atproto/api';
 import {
   blankRecordFor,
   lexiconFor,
   type Lexicon,
   type LexiconField,
 } from '@/utils/atproto/lexicons';
-import { rkeyFromAtUri } from '@/utils/atproto/urls';
 import { RecordEditorSkeleton } from './skeletons/pages';
+import type { RecordBackend } from './recordBackend';
 
 type Props = {
-  agent: Agent;
-  did: string;
+  /**
+   * Where the record is read from and written back to. `repoRecordBackend`
+   * for a public repo, `spaceRecordBackend` for a permissioned one; the
+   * editor itself is the same either way.
+   */
+  backend: RecordBackend;
   collection: string;
   rkey?: string;
   initialMode?: 'form' | 'raw';
@@ -22,11 +25,16 @@ type Props = {
   onCreated?: (info: { rkey: string | null; record: Record<string, unknown>; uri?: string }) => void;
   /** Dismiss the editor without saving. */
   onCancel?: () => void;
+  /**
+   * Hide the delete button. For a grant that authorizes editing but not
+   * deleting — possible on a space, where the two are separate actions — so
+   * the editor doesn't offer a button whose call would be refused.
+   */
+  canDelete?: boolean;
 };
 
 export default function RecordEditor({
-  agent,
-  did,
+  backend,
   collection,
   rkey,
   initialMode = 'form',
@@ -34,6 +42,7 @@ export default function RecordEditor({
   onDeleted,
   onCreated,
   onCancel,
+  canDelete = true,
 }: Props) {
   const lex = lexiconFor(collection);
   const isNew = !rkey;
@@ -65,12 +74,7 @@ export default function RecordEditor({
       setLoading(true);
       setError(null);
       try {
-        const res = await agent.com.atproto.repo.getRecord({
-          repo: did,
-          collection,
-          rkey: rkey!,
-        });
-        const fetched = ((res?.data || res) as { value?: Record<string, unknown> })?.value || {};
+        const fetched = await backend.read(collection, rkey!);
         if (cancelled) return;
         setValue(structuredClone(fetched));
         setRawText(JSON.stringify(fetched, null, 2));
@@ -84,7 +88,7 @@ export default function RecordEditor({
     return () => {
       cancelled = true;
     };
-  }, [agent, did, collection, rkey, isNew, lex]);
+  }, [backend, collection, rkey, isNew, lex]);
 
   const updateField = useCallback((key: string, next: unknown) => {
     setValue((prev) => ({ ...(prev || {}), [key]: next }));
@@ -127,31 +131,15 @@ export default function RecordEditor({
         if (lex?.rkeyMode === 'fixed') {
           const chosen = rkeyDraft.trim();
           if (!chosen) throw new Error('Pick an rkey for this record.');
-          await agent.com.atproto.repo.putRecord({
-            repo: did,
-            collection,
-            rkey: chosen,
-            record,
-          });
-          onCreated?.({ rkey: chosen, record });
+          const created = await backend.create(collection, record, chosen);
+          onCreated?.({ rkey: created.rkey ?? chosen, record, uri: created.uri });
           return;
         }
-        const res = await agent.com.atproto.repo.createRecord({
-          repo: did,
-          collection,
-          record,
-        });
-        const data = (res?.data || res) as { uri?: string };
-        const newRkey = rkeyFromAtUri(data?.uri || '');
-        onCreated?.({ rkey: newRkey, record, uri: data?.uri });
+        const created = await backend.create(collection, record);
+        onCreated?.({ rkey: created.rkey, record, uri: created.uri });
         return;
       }
-      await agent.com.atproto.repo.putRecord({
-        repo: did,
-        collection,
-        rkey: rkey!,
-        record,
-      });
+      await backend.put(collection, rkey!, record);
       setValue(record);
       setRawText(JSON.stringify(record, null, 2));
       setSavedFlash(true);
@@ -169,7 +157,7 @@ export default function RecordEditor({
     setDeleting(true);
     setError(null);
     try {
-      await agent.com.atproto.repo.deleteRecord({ repo: did, collection, rkey });
+      await backend.remove(collection, rkey);
       onDeleted?.();
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
@@ -300,7 +288,7 @@ export default function RecordEditor({
             Cancel
           </button>
         )}
-        {!isNew && !confirmingDelete && (
+        {!isNew && canDelete && !confirmingDelete && (
           <button
             type="button"
             onClick={() => setConfirmingDelete(true)}
