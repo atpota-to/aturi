@@ -89,6 +89,10 @@ export default function SpacesLanding() {
       </AppearIn>
 
       <AppearIn delay={0.05}>
+        <FeaturedApps />
+      </AppearIn>
+
+      <AppearIn delay={0.05}>
         <FeatureSection
           badge={{ icon: <Link2 size={12} />, label: 'Space addresses' }}
           title="Every level has an address"
@@ -114,10 +118,6 @@ export default function SpacesLanding() {
 
       <AppearIn delay={0.05}>
         <AlphaAccount />
-      </AppearIn>
-
-      <AppearIn delay={0.05}>
-        <FeaturedApps />
       </AppearIn>
 
       <AppearIn delay={0.05}>
@@ -185,9 +185,11 @@ function AlphaAccount() {
 }
 
 /**
- * Apps built on spaces, for someone who has nothing in a space yet — which is
+ * Apps built on spaces, for someone who has nothing in a space yet, which is
  * everyone until they use one. The explorer can only show data that exists,
  * so the useful thing to offer an empty account is somewhere to go make some.
+ * That makes this the first section below the hero: it is the one someone
+ * with no spaces can act on.
  *
  * Each description is the app's own, taken from its page rather than written
  * here, so this doesn't end up characterising someone else's project.
@@ -218,8 +220,9 @@ function FeaturedApps() {
         <Badge icon={<Boxes size={12} aria-hidden />}>Built on spaces</Badge>
         <h2 style={sectionTitleStyle}>Apps to try</h2>
         <p style={sectionLeadStyle}>
-          A new account has nothing in any space until an app writes something
-          there. These apps do.
+          The explorer reads spaces; it doesn&rsquo;t create them. An account
+          has nothing to browse until an app writes something to a space on
+          its behalf. These three do.
         </p>
       </div>
       <div
