@@ -313,7 +313,7 @@ function SpaceBranch({
           overflowWrap: 'anywhere',
         }}
       >
-        {uri} — unrecognised address
+        {uri} (unrecognised address)
       </div>
     );
   }

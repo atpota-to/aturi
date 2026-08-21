@@ -117,7 +117,7 @@ export default function SpaceAuthorityCard({
         <p style={noteStyle}>
           {authority.dedicatedHost
             ? 'Reached at a dedicated #atproto_space_host service entry.'
-            : 'No #atproto_space_host entry is published, so requests go to the account’s PDS — the protocol’s fallback.'}{' '}
+            : 'No #atproto_space_host entry is published, so requests go to the account’s PDS, which is the protocol’s fallback.'}{' '}
           {authority.spaceKeyId === '#atproto_space'
             ? 'Credentials are signed by a dedicated #atproto_space key.'
             : 'Credentials are signed by the account’s ordinary #atproto signing key.'}

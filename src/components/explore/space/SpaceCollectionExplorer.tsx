@@ -232,8 +232,8 @@ function SpaceCollectionList({
                 style={controlStyle(false)}
                 title={
                   ascending
-                    ? 'Listing lowest record key first — switch back'
-                    : 'Listing highest record key first — switch'
+                    ? 'Listing lowest record key first; switch back'
+                    : 'Listing highest record key first; switch'
                 }
               >
                 {ascending ? (

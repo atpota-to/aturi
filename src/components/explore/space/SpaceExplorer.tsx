@@ -292,7 +292,7 @@ function ConfigSection({
       {!loading && error != null && (
         <p style={noteStyle}>
           This space host didn’t return a <code>com.atproto.simplespace</code>{' '}
-          configuration. Spaces are not required to be simplespaces — the
+          configuration. Spaces are not required to be simplespaces; the
           authority may run a different implementation with its own rules.
         </p>
       )}
@@ -337,9 +337,9 @@ function ConfigSection({
 function describePolicy(policy: SimpleSpaceConfig['policy']): string {
   switch (policy?.$type) {
     case SIMPLESPACE_POLICY.public:
-      return 'Public — any account may join and write.';
+      return 'Public: any account may join and write.';
     case SIMPLESPACE_POLICY.memberList:
-      return 'Member list — the authority keeps an explicit list of who belongs.';
+      return 'Member list: the authority keeps an explicit list of who belongs.';
     case SIMPLESPACE_POLICY.managingApp:
       return policy.managingApp
         ? `Managed by an application (${policy.managingApp}), which decides membership.`
@@ -352,9 +352,9 @@ function describePolicy(policy: SimpleSpaceConfig['policy']): string {
 function describeAppAccess(appAccess: SimpleSpaceConfig['appAccess']): string {
   switch (appAccess?.$type) {
     case SIMPLESPACE_APP_ACCESS.open:
-      return 'Open — any application a member authorizes may read the space.';
+      return 'Open: any application a member authorizes may read the space.';
     case SIMPLESPACE_APP_ACCESS.allowList:
-      return `Allow list — only named applications may read${
+      return `Allow list: only named applications may read${
         appAccess.allowed?.length ? ` (${appAccess.allowed.length} listed)` : ''
       }. A public client like aturi.to can never be one of them.`;
     default:
@@ -475,7 +475,7 @@ function MembersSection({
         <h2 style={sectionHeadingStyle}>{useAuthorityList ? 'Members' : 'Repositories in this space'}</h2>
         <p style={noteStyle}>
           {useAuthorityList
-            ? 'The authority’s own membership list. Only the authority can read it — a space credential is refused, whoever holds it.'
+            ? 'The authority’s own membership list. Only the authority can read it; a space credential is refused, whoever holds it.'
             : 'Accounts that have written to this space, as the space host tracks them. This is the sync boundary, not an access list: a member who has never written doesn’t appear here.'}
         </p>
 

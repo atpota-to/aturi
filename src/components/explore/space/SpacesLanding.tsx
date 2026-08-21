@@ -215,7 +215,7 @@ function SignedIn({ did }: { did: string | null }) {
         <p style={noteStyle}>
           Your server doesn’t run the spaces build yet, so there is nothing to
           read. Spaces are an alpha, and during it{' '}
-          <code>{SPACES_ALPHA_PDS}</code> is the host running them — an account
+          <code>{SPACES_ALPHA_PDS}</code> is the host running them. An account
           there is how to try this today.
         </p>
         <Link href="/explore/pds/spaces-alpha.host.bsky.network" className="explore-json-link">
