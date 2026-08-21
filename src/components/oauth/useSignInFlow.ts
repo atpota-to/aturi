@@ -3,6 +3,7 @@
 import { useCallback, useState } from 'react';
 import { useAtprotoSession } from '@/components/AtprotoSessionProvider';
 import { rememberCurrentPathForReturn } from '@/lib/oauth/returnTo';
+import { describeSignInError } from '@/lib/oauth/signInError';
 
 /**
  * The two-step OAuth sign-in flow: enter a handle/DID, pick which scopes to
@@ -54,7 +55,9 @@ export function useSignInFlow(initialStep: SignInStep = 'handle') {
         await signIn(pendingAccount, scopeString);
       } catch (err) {
         setBusy(false);
-        setError(err instanceof Error ? err.message : String(err));
+        // Rewritten where we can place it: a server refusing a scope it has
+        // simply not re-fetched yet reads as permanent otherwise.
+        setError(describeSignInError(err instanceof Error ? err.message : String(err)));
       }
     },
     [pendingAccount, signIn],

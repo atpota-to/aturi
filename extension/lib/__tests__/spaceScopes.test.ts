@@ -27,6 +27,7 @@ import {
   spaceWriteActionsFor,
   type ScopeId,
 } from '../../../src/lib/oauth/scopes';
+import { describeSignInError } from '../../../src/lib/oauth/signInError';
 
 const SPACE_READ_SELF = 'space:*?authority=*&action=read_self';
 const SPACE_READ = 'space:*?authority=*&action=read';
@@ -262,5 +263,37 @@ describe('hasSpaceWriteScope', () => {
     expect(hasSpaceWriteScope(SPACE_READ)).toBe(false);
     expect(hasSpaceWriteScope('space:*')).toBe(false);
     expect(hasSpaceWriteScope(null)).toBe(false);
+  });
+});
+
+describe('describeSignInError', () => {
+  it('explains an undeclared scope by the row that asked for it', () => {
+    const raw =
+      `OAuth "invalid_scope" error: Scope "${SPACE_WRITE}" is not declared in ` +
+      'the client metadata';
+    const out = describeSignInError(raw);
+    // Names the row to untick, and says the wait is what fixes it. The bare
+    // message reads as a permanent misconfiguration of this app.
+    expect(out).toContain('Edit your permissioned records');
+    expect(out).toMatch(/ten minutes/);
+    expect(out).not.toContain('client metadata');
+  });
+
+  it('handles a token with no matching picker row', () => {
+    const out = describeSignInError(
+      'Scope "repo:*?action=frobnicate" is not declared in the client metadata',
+    );
+    expect(out).toContain('that permission');
+  });
+
+  it('passes through anything it cannot place', () => {
+    // A message we can't place is more useful verbatim than paraphrased.
+    for (const raw of [
+      'Network request failed',
+      'OAuth "invalid_request" error: bad redirect_uri',
+      '',
+    ]) {
+      expect(describeSignInError(raw)).toBe(raw);
+    }
   });
 });
