@@ -152,41 +152,16 @@ export default function ScopeSelector({
         </div>
       </div>
 
+      {/* One list, not two with a heading and a paragraph between them. This
+          form is the whole popover on a phone, and the group's explainer ran
+          to six lines there — pushing Continue off the screen on the step
+          whose entire job is to reach Continue. The rows say what they grant,
+          and the one warning that paragraph carried (a whole-space read lets
+          this app ask any authority, including one a link names, for a
+          credential) now lives in that row's own hint. */}
       <ul style={listStyle()}>
-        {WRITE_SCOPES.map((scope) => (
-          <ScopeRow
-            key={scope.id}
-            scope={scope}
-            checked={selected.has(scope.id)}
-            busy={busy}
-            onToggle={toggle}
-          />
-        ))}
-      </ul>
-
-      {spacesServer === true && (
-      <div
-        style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}
-      >
-        <div className="explore-small-caps">Permissioned data (Spaces)</div>
-        <p
-          style={{
-            margin: 0,
-            fontSize: '0.7rem',
-            color: 'var(--text-tertiary)',
-            lineHeight: 1.4,
-          }}
-        >
-          Records kept outside your public repo. Your server runs the spaces
-          build, so these are on. Reading a whole space lets this app ask any
-          space authority (including one named by a link you open) for a
-          credential on your behalf; untick it if you only want your own
-          records. Editing only ever reaches your own records: a space write
-          is attributed to its author, so this grant cannot touch anyone
-          else&rsquo;s.
-        </p>
-        <ul style={listStyle()}>
-          {SPACE_SCOPES.map((scope) => (
+        {(spacesServer === true ? [...WRITE_SCOPES, ...SPACE_SCOPES] : WRITE_SCOPES).map(
+          (scope) => (
             <ScopeRow
               key={scope.id}
               scope={scope}
@@ -194,10 +169,9 @@ export default function ScopeSelector({
               busy={busy}
               onToggle={toggle}
             />
-          ))}
-        </ul>
-      </div>
-      )}
+          ),
+        )}
+      </ul>
 
       <button
         type="submit"

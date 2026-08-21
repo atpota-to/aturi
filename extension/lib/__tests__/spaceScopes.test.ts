@@ -28,6 +28,7 @@ import {
   type ScopeId,
 } from '../../../src/lib/oauth/scopes';
 import { describeSignInError } from '../../../src/lib/oauth/signInError';
+import { isEventOutside } from '../../../src/lib/outsideClick';
 
 const SPACE_READ_SELF = 'space:*?authority=*&action=read_self';
 const SPACE_READ = 'space:*?authority=*&action=read';
@@ -295,5 +296,44 @@ describe('describeSignInError', () => {
     ]) {
       expect(describeSignInError(raw)).toBe(raw);
     }
+  });
+});
+
+describe('isEventOutside', () => {
+  /**
+   * Stubs rather than a DOM: the function only reads `composedPath()`,
+   * `target` and `contains`, and this suite runs in node.
+   */
+  const container = {
+    contains: (node: unknown) => node === 'inside-node',
+  } as unknown as Node;
+
+  const evt = (path: unknown[], target?: unknown) =>
+    ({ composedPath: () => path, target }) as unknown as Event;
+
+  it('reads the dispatch-time path, not the live tree', () => {
+    // The case the fix exists for: React unmounted the clicked row during this
+    // very event, so `contains` would answer false for something that was
+    // plainly inside. The path still names the container.
+    const detached = 'unmounted-li';
+    // 'root' stands in for the document at the end of the path; this suite
+    // runs in node, where there isn't one.
+    expect(isEventOutside(container, evt([detached, container, 'root'], detached))).toBe(
+      false,
+    );
+  });
+
+  it('is still outside when the path does not name the container', () => {
+    expect(isEventOutside(container, evt(['some-other-el', 'root']))).toBe(true);
+  });
+
+  it('falls back to contains when there is no path', () => {
+    expect(isEventOutside(container, evt([], 'inside-node'))).toBe(false);
+    expect(isEventOutside(container, evt([], 'elsewhere'))).toBe(true);
+  });
+
+  it('treats a missing container as not-outside, so nothing closes', () => {
+    expect(isEventOutside(null, evt(['x']))).toBe(false);
+    expect(isEventOutside(undefined, evt(['x']))).toBe(false);
   });
 });
