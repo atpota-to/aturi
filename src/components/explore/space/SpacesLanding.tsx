@@ -360,7 +360,7 @@ function SignedOut() {
         {checking ? 'Checking your server…' : 'Sign in to see your spaces'}
       </button>
 
-      {warning ? (
+      {warning && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
           <p style={noteStyle}>{warning}</p>
           {/* Still their call: the check reads a convenience endpoint, and a
@@ -374,11 +374,6 @@ function SignedOut() {
             Sign in anyway
           </button>
         </div>
-      ) : (
-        <p style={noteStyle}>
-          You’ll be asked which permissions to grant. Tick a permissioned-data
-          row — without one there is nothing to read.
-        </p>
       )}
     </form>
   );
