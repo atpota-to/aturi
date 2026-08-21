@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import { ChevronDown, ChevronRight } from 'lucide-react';
+import { ChevronDown, ChevronRight, FolderOpen, Info } from 'lucide-react';
 import { useAtprotoSession } from '@/components/AtprotoSessionProvider';
 import { encodeRepo, shortDid, spaceExplorePath } from '@/utils/atproto/urls';
 import { parseSpaceAtUri } from '@/utils/atproto/spaceUri';
@@ -406,8 +406,20 @@ function SpaceBranch({
       ? contents.collections.reduce((sum, node) => sum + node.count, 0)
       : null;
 
+  const spaceLabel = isOwnAuthority
+    ? `your ${parts.spaceType} space`
+    : `${authorityHandle ? `@${authorityHandle}` : shortDid(parts.authority)}’s ${parts.spaceType} space`;
+
   return (
     <section style={{ border: '1px solid var(--border-medium)', background: 'var(--bg-secondary)' }}>
+      {/* Toggle, the two destinations and the count share the header row, the
+          way the collections list pairs its group header with a pin. They used
+          to be a footer of two underlined sentences on every card, which
+          repeated the same two phrases once per space and cost a row each.
+          The count sits last so it lands on the same right edge as the counts
+          on the collection rows below; putting the links after it left the
+          column of chips stepped. */}
+      <div style={{ display: 'flex', alignItems: 'center' }}>
       <button
         type="button"
         onClick={onToggle}
@@ -416,9 +428,9 @@ function SpaceBranch({
           display: 'flex',
           alignItems: 'center',
           gap: '0.5rem',
-          width: '100%',
+          flex: 1,
           minWidth: 0,
-          padding: '0.625rem 1rem',
+          padding: '0.625rem 0 0.625rem 1rem',
           background: 'transparent',
           border: 0,
           textAlign: 'left',
@@ -476,10 +488,31 @@ function SpaceBranch({
             {parts.skey}
           </span>
         </span>
+      </button>
+        <Link
+          href={memberPath}
+          aria-label={`Your records in ${spaceLabel}`}
+          title="Your records in this space"
+          style={headerIconStyle}
+        >
+          <FolderOpen size={14} aria-hidden />
+        </Link>
+        <Link
+          href={spacePath}
+          aria-label={`About ${spaceLabel}`}
+          title="About this space"
+          style={headerIconStyle}
+        >
+          <Info size={14} aria-hidden />
+        </Link>
         {count !== null && (
           <span
             style={{
               flexShrink: 0,
+              // Matches the collection rows' trailing padding, so both chips
+              // sit on the same right edge.
+              marginRight: '1rem',
+              marginLeft: '0.25rem',
               fontSize: '0.75rem',
               color: 'var(--text-tertiary)',
               padding: '0.125rem 0.5rem',
@@ -490,7 +523,7 @@ function SpaceBranch({
             {formatCount(count)}
           </span>
         )}
-      </button>
+      </div>
 
       {open && (
         <div style={{ borderTop: '1px solid var(--border-subtle)' }}>
@@ -535,26 +568,6 @@ function SpaceBranch({
             </p>
           )}
 
-          {/* Ruled off and set smaller than the rows above: these are ways out
-              of the branch, not more of its contents, and unruled they read as
-              one more entry in the collection list. */}
-          <div
-            style={{
-              display: 'flex',
-              gap: '1rem',
-              flexWrap: 'wrap',
-              padding: '0.5rem 1.5rem',
-              borderTop: '1px solid var(--border-subtle)',
-              fontSize: '0.75rem',
-            }}
-          >
-            <Link href={memberPath} className="explore-json-link">
-              Your repository here →
-            </Link>
-            <Link href={spacePath} className="explore-json-link">
-              About this space →
-            </Link>
-          </div>
         </div>
       )}
     </section>
@@ -645,6 +658,22 @@ function CollectionRow({
   );
 }
 
+
+/**
+ * Icon links in a branch header, modelled on the collections list's pin
+ * button. Padding is tighter than the pin's because two of them sit here and
+ * the space's own handle needs the width: an alpha-PDS handle runs to about
+ * thirty characters, and every pixel these take is one it wraps by.
+ */
+const headerIconStyle: React.CSSProperties = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  padding: '0 0.5rem',
+  color: 'var(--text-tertiary)',
+  flexShrink: 0,
+  transition: 'color 0.15s ease',
+};
 
 const noteStyle: React.CSSProperties = {
   margin: 0,
