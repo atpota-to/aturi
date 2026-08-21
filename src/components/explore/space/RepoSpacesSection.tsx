@@ -136,7 +136,7 @@ export default function RepoSpacesSection({ identity }: { identity: IdentityBund
               space app will show up here.
             </p>
           )}
-          {uris.length > 0 && <SpaceRows uris={uris} />}
+          {uris.length > 0 && <SpaceRows uris={uris} selfDid={signedInDid} />}
           {more && (
             <p style={noteStyle}>
               Showing the first {INLINE_LIMIT}.{' '}

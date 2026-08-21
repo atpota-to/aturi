@@ -4,9 +4,10 @@ import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useAtprotoSession } from '@/components/AtprotoSessionProvider';
 import NotFoundPanel from '@/components/NotFoundPanel';
-import { encodeRepo, spaceExplorePath } from '@/utils/atproto/urls';
+import { encodeRepo, shortDid, spaceExplorePath } from '@/utils/atproto/urls';
 import { parseSpaceAtUri } from '@/utils/atproto/spaceUri';
 import { collectSpacePages, listSpaces } from '@/utils/atproto/spaceClient';
+import { resolveDidHandle } from '@/utils/atproto/identity';
 import AppearIn from '../AppearIn';
 import Breadcrumb from '../Breadcrumb';
 import { CHROME_RESULTS_ID, useChromeBarField } from '../ChromeBarContext';
@@ -217,7 +218,7 @@ export function SpaceWrittenList({
                 No spaces match <code>{filter.trim()}</code>.
               </p>
             )}
-            {visible.length > 0 && <SpaceRows uris={visible} />}
+            {visible.length > 0 && <SpaceRows uris={visible} selfDid={signedInDid} />}
             {!complete && uris.length > 0 && (
               <p style={noteStyle}>
                 Showing the first {formatCount(uris.length)} spaces; the listing
@@ -232,12 +233,56 @@ export function SpaceWrittenList({
 }
 
 /**
+ * Authority handles for a list of space URIs, resolved once per distinct DID.
+ *
+ * Keyed off a joined string rather than a parsed array so the effect has one
+ * primitive dependency: callers hand us a fresh array on most renders, and a
+ * memo over that array would be re-created just as often.
+ */
+function useAuthorityHandles(uris: string[]): Map<string, string> {
+  const [handles, setHandles] = useState<Map<string, string>>(new Map());
+  const uriKey = uris.join('\n');
+
+  useEffect(() => {
+    const dids = new Set<string>();
+    for (const uri of uriKey ? uriKey.split('\n') : []) {
+      const parts = parseSpaceAtUri(uri);
+      if (parts) dids.add(parts.authority);
+    }
+    if (dids.size === 0) return undefined;
+
+    let cancelled = false;
+    Promise.all(
+      [...dids].map(async (did) => [did, await resolveDidHandle(did)] as const),
+    ).then((pairs) => {
+      if (cancelled) return;
+      const next = new Map<string, string>();
+      for (const [did, handle] of pairs) if (handle) next.set(did, handle);
+      setHandles(next);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [uriKey]);
+
+  return handles;
+}
+
+/**
  * A `spaceView` is a URI and nothing else — no name, no member count, no
  * timestamp — so every column here is parsed back out of the address itself.
  * A URI this app cannot parse still gets a row, as text: it is a real space
  * that simply has no page here, and hiding it would be worse than showing it.
+ *
+ * The authority is a column and not a detail. `listSpaces` returns every space
+ * the account writes to, which spans spaces anchored on other people's DIDs —
+ * so type and key alone collide constantly (everyone's bulletin board is
+ * `my.bulletin.board/self`), and rows for genuinely different spaces would
+ * otherwise be indistinguishable.
  */
-export function SpaceRows({ uris }: { uris: string[] }) {
+export function SpaceRows({ uris, selfDid }: { uris: string[]; selfDid?: string | null }) {
+  const handles = useAuthorityHandles(uris);
   return (
     <ul
       style={{
@@ -259,6 +304,35 @@ export function SpaceRows({ uris }: { uris: string[] }) {
                 </code>
                 <span style={{ color: 'var(--text-tertiary)', overflowWrap: 'anywhere' }}>
                   {parts.skey}
+                </span>
+                <span
+                  style={{
+                    marginLeft: 'auto',
+                    display: 'inline-flex',
+                    alignItems: 'baseline',
+                    gap: '0.5rem',
+                    color: 'var(--text-tertiary)',
+                    overflowWrap: 'anywhere',
+                  }}
+                >
+                  {/* Falls back to the DID until the handle resolves, and stays
+                      on the DID if it never does — an authority with no
+                      bidirectionally valid handle is still a real authority. */}
+                  {handles.get(parts.authority)
+                    ? `@${handles.get(parts.authority)}`
+                    : shortDid(parts.authority)}
+                  {selfDid === parts.authority && (
+                    <span
+                      style={{
+                        fontSize: '0.7rem',
+                        padding: '0.05rem 0.35rem',
+                        border: '1px solid var(--border-subtle)',
+                        color: 'var(--text-tertiary)',
+                      }}
+                    >
+                      yours
+                    </span>
+                  )}
                 </span>
               </Link>
             ) : (

@@ -16,6 +16,7 @@ import AppearIn from '../AppearIn';
 import Breadcrumb from '../Breadcrumb';
 import CopyButton from '../CopyButton';
 import LinkifiedJson from '../LinkifiedJson';
+import SpaceRecordFields from './SpaceRecordFields';
 import { SpaceReadErrorPanel, SpaceRepoAccessPanel } from './SpaceAccessPanel';
 import { useResolvedIdentity, useSpaceAccess, useSpaceRepoAccess } from './useSpaceAccess';
 
@@ -117,6 +118,7 @@ function SpaceRecordView({
 
   const [record, setRecord] = useState<SpaceRecord | null>(null);
   const [error, setError] = useState<unknown>(null);
+  const [showRaw, setShowRaw] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -189,12 +191,46 @@ function SpaceRecordView({
 
       {record && (
         <AppearIn delay={0.05}>
-          {/* LinkifiedJson tokenises the seven-segment space address the same
-              way it tokenises a public one, and the explorer's AT URI mapper
-              already routes those tokens back into this tree — so a record
-              that references another permissioned record links straight to it,
-              with no special casing here. */}
-          <LinkifiedJson value={record} className="explore-json" />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+            {showRaw ? (
+              /* LinkifiedJson tokenises the seven-segment space address the
+                 same way it tokenises a public one, and the explorer's AT URI
+                 mapper already routes those tokens back into this tree — so a
+                 record that references another permissioned record links
+                 straight to it, with no special casing here. */
+              <LinkifiedJson value={record} className="explore-json" />
+            ) : (
+              <SpaceRecordFields value={record.value} />
+            )}
+            {/* Session-only, unlike the public record page's equivalent: that
+                one persists a per-view preference, and those preference keys
+                describe the public record sections. Not worth widening the
+                stored schema for one toggle. */}
+            <button
+              type="button"
+              onClick={() => setShowRaw((v) => !v)}
+              style={{
+                alignSelf: 'flex-start',
+                padding: 0,
+                background: 'transparent',
+                border: 0,
+                cursor: 'pointer',
+                fontFamily: 'var(--font-serif)',
+                fontSize: '0.75rem',
+                letterSpacing: '0.04em',
+                color: 'var(--text-tertiary)',
+                transition: 'color 0.2s ease',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.color = 'var(--text-accent)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.color = 'var(--text-tertiary)';
+              }}
+            >
+              {showRaw ? 'Show fields' : 'Show raw JSON'}
+            </button>
+          </div>
         </AppearIn>
       )}
 
