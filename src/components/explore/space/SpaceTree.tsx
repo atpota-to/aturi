@@ -412,11 +412,14 @@ function SpaceBranch({
 
   return (
     <section style={{ border: '1px solid var(--border-medium)', background: 'var(--bg-secondary)' }}>
-      {/* Toggle and the two destinations share the header row, the way the
-          collections list pairs its group header with a pin. They used to be a
-          footer of two underlined sentences on every card, which repeated the
-          same two phrases once per space and cost a row each. */}
-      <div style={{ display: 'flex', alignItems: 'stretch' }}>
+      {/* Toggle, the two destinations and the count share the header row, the
+          way the collections list pairs its group header with a pin. They used
+          to be a footer of two underlined sentences on every card, which
+          repeated the same two phrases once per space and cost a row each.
+          The count sits last so it lands on the same right edge as the counts
+          on the collection rows below; putting the links after it left the
+          column of chips stepped. */}
+      <div style={{ display: 'flex', alignItems: 'center' }}>
       <button
         type="button"
         onClick={onToggle}
@@ -427,7 +430,7 @@ function SpaceBranch({
           gap: '0.5rem',
           flex: 1,
           minWidth: 0,
-          padding: '0.625rem 1rem',
+          padding: '0.625rem 0 0.625rem 1rem',
           background: 'transparent',
           border: 0,
           textAlign: 'left',
@@ -485,20 +488,6 @@ function SpaceBranch({
             {parts.skey}
           </span>
         </span>
-        {count !== null && (
-          <span
-            style={{
-              flexShrink: 0,
-              fontSize: '0.75rem',
-              color: 'var(--text-tertiary)',
-              padding: '0.125rem 0.5rem',
-              background: 'var(--bg-tertiary)',
-              border: '1px solid var(--border-subtle)',
-            }}
-          >
-            {formatCount(count)}
-          </span>
-        )}
       </button>
         <Link
           href={memberPath}
@@ -516,6 +505,24 @@ function SpaceBranch({
         >
           <Info size={14} aria-hidden />
         </Link>
+        {count !== null && (
+          <span
+            style={{
+              flexShrink: 0,
+              // Matches the collection rows' trailing padding, so both chips
+              // sit on the same right edge.
+              marginRight: '1rem',
+              marginLeft: '0.25rem',
+              fontSize: '0.75rem',
+              color: 'var(--text-tertiary)',
+              padding: '0.125rem 0.5rem',
+              background: 'var(--bg-tertiary)',
+              border: '1px solid var(--border-subtle)',
+            }}
+          >
+            {formatCount(count)}
+          </span>
+        )}
       </div>
 
       {open && (
