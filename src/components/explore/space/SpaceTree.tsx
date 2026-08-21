@@ -352,47 +352,60 @@ function SpaceBranch({
         ) : (
           <ChevronRight size={14} aria-hidden style={{ color: 'var(--text-tertiary)' }} />
         )}
-        <code
-          style={{
-            minWidth: 0,
-            background: 'transparent',
-            padding: 0,
-            color: 'var(--text-accent)',
-            wordBreak: 'break-all',
-            overflowWrap: 'anywhere',
-          }}
-        >
-          {parts.spaceType}
-          <span style={{ color: 'var(--text-tertiary)' }}>/{parts.skey}</span>
-        </code>
+        {/* Stacked rather than side by side: the type and the authority are
+            both unbreakable-ish strings, and competing for one line meant the
+            NSID got chopped mid-word on a phone. Vertically each gets the full
+            width, and the authority reads as the qualifier it is. */}
         <span
           style={{
-            marginLeft: 'auto',
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '0.5rem',
-            flexShrink: 0,
-            fontSize: '0.75rem',
-            color: 'var(--text-tertiary)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '0.15rem',
+            flex: 1,
+            minWidth: 0,
           }}
         >
-          {isOwnAuthority
-            ? 'yours'
-            : authorityHandle
-              ? `@${authorityHandle}`
-              : shortDid(parts.authority)}
-          {count !== null && (
-            <span
-              style={{
-                padding: '0.125rem 0.5rem',
-                background: 'var(--bg-tertiary)',
-                border: '1px solid var(--border-subtle)',
-              }}
-            >
-              {formatCount(count)}
-            </span>
-          )}
+          <code
+            style={{
+              background: 'transparent',
+              padding: 0,
+              color: 'var(--text-accent)',
+              // `anywhere` rather than `break-all`: break only when a segment
+              // genuinely doesn't fit, instead of eagerly at any character.
+              overflowWrap: 'anywhere',
+            }}
+          >
+            {parts.spaceType}
+            <span style={{ color: 'var(--text-tertiary)' }}>/{parts.skey}</span>
+          </code>
+          <span
+            style={{
+              fontSize: '0.7rem',
+              color: 'var(--text-tertiary)',
+              overflowWrap: 'anywhere',
+            }}
+          >
+            {isOwnAuthority
+              ? 'yours'
+              : authorityHandle
+                ? `@${authorityHandle}`
+                : shortDid(parts.authority)}
+          </span>
         </span>
+        {count !== null && (
+          <span
+            style={{
+              flexShrink: 0,
+              fontSize: '0.75rem',
+              color: 'var(--text-tertiary)',
+              padding: '0.125rem 0.5rem',
+              background: 'var(--bg-tertiary)',
+              border: '1px solid var(--border-subtle)',
+            }}
+          >
+            {formatCount(count)}
+          </span>
+        )}
       </button>
 
       {open && (
