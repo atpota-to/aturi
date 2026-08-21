@@ -18,12 +18,14 @@ export const metadata: Metadata = {
     title: 'Atproto spaces · aturi.to',
     description:
       'Browse your permissioned atproto data — records kept outside your public repo.',
+    images: ['/api/og/static?page=spaces'],
   },
   twitter: {
-    card: 'summary',
+    card: 'summary_large_image',
     title: 'Atproto spaces · aturi.to',
     description:
       'Browse your permissioned atproto data — records kept outside your public repo.',
+    images: ['/api/og/static?page=spaces'],
   },
 };
 

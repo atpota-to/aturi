@@ -45,16 +45,20 @@ const SPACE_SCOPES = GRANULAR_SCOPES.filter((s) => SPACE_SCOPE_IDS.has(s.id));
  * SPACE_READ_SELF_SCOPE in `@/lib/oauth/scopes` for why that matters.
  *
  * That default is a hedge against not knowing whether the account's server
- * understands `space:` at all, and it can be lifted for accounts where we do
- * know: a PDS running the spaces build says so at `_health`, before any of
- * this reaches an authorization server. On those accounts the own-records row
- * is ticked for you, since browsing your own permissioned data is the reason
- * to be here and asking for it can't surprise a server that advertises it.
+ * understands `space:` at all. `_health` answers that before any of this
+ * reaches an authorization server, so the group is shown at all only for
+ * accounts whose PDS reports the spaces build — and on those it arrives
+ * ticked, because an account on the alpha host is there for exactly this.
  *
- * Only that row. The wider one authorizes this app to ask *any* space
- * authority for a whole-space credential in your name — a real capability
- * rather than a read of your own repo — and something that reaches other
- * people's hosts on your behalf should be chosen, not defaulted into.
+ * Accounts on every other server never see the rows. There is nothing behind
+ * them on a server that can't serve spaces, and a permission you can grant but
+ * not use is worse than one that isn't offered: it asks people to reason about
+ * a capability that would do nothing. It also means the scope string those
+ * accounts submit stays byte-identical to the pre-spaces one, which is the
+ * property the group's default was protecting in the first place.
+ *
+ * This is deliberately the narrow rollout. When more servers run the build,
+ * the check keeps working and the group simply appears for more people.
  */
 export default function ScopeSelector({
   account,
@@ -91,9 +95,8 @@ export default function ScopeSelector({
         setSpacesServer(supported);
         if (!supported) return;
         setSelected((prev) => {
-          if (prev.has('spacesSelf')) return prev;
           const next = new Set(prev);
-          next.add('spacesSelf');
+          for (const id of SPACE_SCOPE_IDS) next.add(id);
           return next;
         });
       } catch {
@@ -161,6 +164,7 @@ export default function ScopeSelector({
         ))}
       </ul>
 
+      {spacesServer === true && (
       <div
         style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}
       >
@@ -173,30 +177,10 @@ export default function ScopeSelector({
             lineHeight: 1.4,
           }}
         >
-          {spacesServer === true ? (
-            <>
-              Records kept outside your public repo. Your server runs the
-              spaces build, so reading your own is ticked below. The wider row
-              lets this app ask any space authority (including one named by a
-              link you open) for a credential on your behalf — leave that off
-              unless you came here to read someone else’s space.
-            </>
-          ) : spacesServer === false ? (
-            <>
-              Records kept outside your public repo. Your server doesn’t report
-              running the spaces build, so these would most likely be granted
-              and then have nothing to read. Spaces are alpha and most servers
-              don’t support them yet.
-            </>
-          ) : (
-            <>
-              Records kept outside your public repo. This is new and most
-              servers don’t support it yet because it is alpha stage. Granting
-              either row lets this app ask a space authority (including one
-              named by a link you open) for a credential on your behalf, so
-              leave them off unless you came here to read a space.
-            </>
-          )}
+          Records kept outside your public repo. Your server runs the spaces
+          build, so these are on. The second row lets this app ask any space
+          authority (including one named by a link you open) for a credential
+          on your behalf — untick it if you only want your own records.
         </p>
         <ul style={listStyle()}>
           {SPACE_SCOPES.map((scope) => (
@@ -210,6 +194,7 @@ export default function ScopeSelector({
           ))}
         </ul>
       </div>
+      )}
 
       <button
         type="submit"

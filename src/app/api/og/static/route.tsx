@@ -99,6 +99,16 @@ function configFor(page: string): PageConfig {
         visualText:
           "npm i @aturi.to/waypoints import { resolveAtUri } from '@aturi.to/waypoints' const result = resolveAtUri(uri)",
       };
+    case 'spaces':
+      return {
+        eyebrow: 'Permissioned data · alpha',
+        title: 'Browse your\nprivate records.',
+        tagline:
+          'Atproto spaces keep records outside your public repo. Sign in to explore the ones your account can reach.',
+        layout: 'split',
+        visual: <SpacesVisual />,
+        visualText: 'at.secretsky.post my.bulletin.board/self 24 SPACE',
+      };
     case 'home':
     default:
       return {
@@ -490,6 +500,56 @@ function DocsVisual() {
         </MonoLine>
       </div>
     </Panel>
+  );
+}
+
+/**
+ * A space address over two of its collections — the shape the explorer shows,
+ * with no real account in it. Every space route shares this one card, so
+ * nothing about who is in which space reaches an unfurl.
+ */
+function SpacesVisual() {
+  return (
+    <Panel pad={0}>
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '10px',
+          padding: '13px 18px',
+          borderBottom: `1px solid ${OG_COLORS.borderSubtle}`,
+          background: OG_COLORS.bgTertiary,
+        }}
+      >
+        <MonoLine size={14} color={OG_COLORS.accent}>
+          my.bulletin.board/self
+        </MonoLine>
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', padding: '6px 0' }}>
+        <SpaceCollectionLine name="at.secretsky.post" count="24" />
+        <SpaceCollectionLine name="at.secretsky.reaction" count="8" />
+      </div>
+    </Panel>
+  );
+}
+
+function SpaceCollectionLine({ name, count }: { name: string; count: string }) {
+  return (
+    <div
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        padding: '10px 18px',
+      }}
+    >
+      <MonoLine size={14} color={OG_COLORS.textSecondary}>
+        {name}
+      </MonoLine>
+      <MonoLine size={13} color={OG_COLORS.textTertiary}>
+        {count}
+      </MonoLine>
+    </div>
   );
 }
 

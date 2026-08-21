@@ -9,6 +9,7 @@ import {
   Home,
   Menu,
   MessageSquareHeart,
+  Orbit,
   Search,
   Telescope,
   X,
@@ -327,6 +328,10 @@ export default function Header({ simple = false, compact = false }: HeaderProps)
                   <Link href="/explore" className="compact-nav-link">
                     <Telescope size={16} />
                     <span>explore</span>
+                  </Link>
+                  <Link href="/explore/spaces" className="compact-nav-link">
+                    <Orbit size={16} />
+                    <span>spaces</span>
                   </Link>
                   <Link href="/extension" className="compact-nav-link">
                     <Download size={16} />

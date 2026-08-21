@@ -19,6 +19,39 @@ import { takeReturnPath } from '@/lib/oauth/returnTo';
  * with `session = null` and no way to retry without a full reload — that
  * was the "signed in but nav says Sign in" bug.
  */
+/**
+ * Pages that are somewhere to start rather than somewhere you were.
+ *
+ * Signing in from a record, a collection or someone's profile should land you
+ * back on it — that's the whole point of remembering the path. Signing in from
+ * the home page or the nav has no such destination: the stored path is just
+ * "where the button happened to be", and returning to it leaves a freshly
+ * signed-in visitor exactly where they started. Those go to the visitor's own
+ * repo, which is what they now have that they didn't before.
+ */
+const GENERIC_ORIGINS = new Set([
+  '/',
+  '/account',
+  '/explore',
+  '/explore/spaces',
+  '/explore/lexicons',
+  '/docs',
+  '/links',
+  '/extension',
+  '/feedback',
+  '/fork',
+  '/terms',
+]);
+
+function landingFor(returnTo: string | null, did: string): string {
+  const ownRepo = `/explore/${did}`;
+  if (!returnTo) return ownRepo;
+  // Compare on the path alone: a query string or hash doesn't make a landing
+  // page a destination.
+  const path = returnTo.split(/[?#]/)[0].replace(/\/+$/, '') || '/';
+  return GENERIC_ORIGINS.has(path) ? ownRepo : returnTo;
+}
+
 export default function OAuthCallback() {
   const router = useRouter();
   const { did, loading, error } = useAtprotoSession();
@@ -31,7 +64,7 @@ export default function OAuthCallback() {
   // Navigate when the provider's init() resolves with a session.
   useEffect(() => {
     if (loading || !did) return;
-    router.replace(returnTo || '/account');
+    router.replace(landingFor(returnTo, did));
   }, [loading, did, router, returnTo]);
 
   // If init resolves with no session and no error, the URL was probably
