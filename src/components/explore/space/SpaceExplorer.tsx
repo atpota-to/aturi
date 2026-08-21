@@ -179,7 +179,6 @@ function SpaceView({
           <YourSpaceRecordsSection
             space={space}
             spacePath={spacePath}
-            access={access}
             myDid={viewerDid}
           />
         </AppearIn>

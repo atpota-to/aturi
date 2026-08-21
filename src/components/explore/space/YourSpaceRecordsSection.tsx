@@ -6,7 +6,7 @@ import { useAtprotoSession } from '@/components/AtprotoSessionProvider';
 import { encodeRepo } from '@/utils/atproto/urls';
 import { listSpaceRecords } from '@/utils/atproto/spaceClient';
 import { formatCount } from '../collectionListHelpers';
-import { useSpaceRepoAccess, type SpaceAccessState } from './useSpaceAccess';
+import { useOwnPdsTransport } from './useSpaceAccess';
 
 /**
  * Your own collections in a space, at the top of the space page.
@@ -39,18 +39,23 @@ type CollectionSummary = { collection: string; count: number };
 export default function YourSpaceRecordsSection({
   space,
   spacePath,
-  access,
   myDid,
 }: {
   space: string;
   /** `/explore/{authority}/space/{type}/{skey}` — the base every link hangs off. */
   spacePath: string;
-  access: SpaceAccessState;
   myDid: string;
 }) {
   const { pds } = useAtprotoSession();
-  const repoAccess = useSpaceRepoAccess(access, space, myDid);
-  const transport = repoAccess.transport;
+  // The plain OAuth transport, not `useSpaceRepoAccess`. That hook guards
+  // reads of *another* member's repo, where both the DID and the host it
+  // resolves to come out of the address bar — and it withholds a transport
+  // until a space credential exists. Your own repo needs no credential: the
+  // request goes to your own PDS carrying your own token. Routing this
+  // through the credential path made the section sit on "checking what you
+  // can read" until the visitor clicked unlock, for records that were
+  // readable the whole time.
+  const transport = useOwnPdsTransport();
 
   const [collections, setCollections] = useState<CollectionSummary[]>([]);
   const [complete, setComplete] = useState(true);
