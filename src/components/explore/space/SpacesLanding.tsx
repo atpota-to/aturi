@@ -115,6 +115,12 @@ const FEATURED_APPS: { name: string; url: string; description: string }[] = [
     url: 'https://bulletin.my',
     description: 'Private bulletin boards for you and your followers.',
   },
+  {
+    name: 'bulleted.app',
+    url: 'https://bulleted.app',
+    description:
+      'An outliner for lists, notes, and plans, where an outline written in a space stays off the public network.',
+  },
 ];
 
 function FeaturedApps() {
