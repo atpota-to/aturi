@@ -65,11 +65,9 @@ export default function SpacesLanding() {
                 marginBottom: '1.25rem',
               }}
             >
-              Atproto keeps most records in public repos that anyone can read.
-              A space holds records with an authority that checks membership
-              before serving them: mutuals-only posts, private bulletin
-              boards, notes that never reach the firehose. Sign in and the
-              explorer reveals the spaces you write to.{' '}
+              Atproto is evolving. The upcoming Spaces feature lets your PDS
+              contain records with an authority that checks membership before
+              granting read access to them.{' '}
               <a
                 href="https://atproto.com/blog/atproto-spaces-alpha"
                 target="_blank"
