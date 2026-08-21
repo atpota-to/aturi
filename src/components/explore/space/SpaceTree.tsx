@@ -437,6 +437,7 @@ function SpaceBranch({
                   href={`${memberPath}/${node.collection}`}
                   complete={contents.complete}
                   baseBg={i % 2 === 1 ? 'var(--bg-tertiary)' : 'transparent'}
+                  first={i === 0}
                 />
               ))}
             </ul>
@@ -486,6 +487,7 @@ function CollectionRow({
   href,
   complete,
   baseBg,
+  first,
 }: {
   node: CollectionNode;
   href: string;
@@ -493,11 +495,18 @@ function CollectionRow({
   complete: boolean;
   /** Resting background for zebra striping; mouseleave restores to this. */
   baseBg: string;
+  /**
+   * First row in the list. Its rule is dropped because the branch body it
+   * opens already draws one directly above — two adjacent 1px borders paint
+   * as a single 2px line, which is what made this separator look heavier than
+   * every other one in the tree.
+   */
+  first?: boolean;
 }) {
   return (
     <li
       style={{
-        borderTop: '1px solid var(--border-subtle)',
+        borderTop: first ? 'none' : '1px solid var(--border-subtle)',
         background: baseBg,
         transition: 'background 0.2s ease',
       }}
