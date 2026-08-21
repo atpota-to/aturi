@@ -80,7 +80,10 @@ export default function CrossLinkCards({ current }: { current?: ProductKey }) {
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: `repeat(auto-fit, minmax(16rem, 1fr))`,
+          // 14rem keeps all three cards on one row inside container-narrow
+          // when no `current` filters one out (the spaces landing does this);
+          // the two-card pages render two columns either way.
+          gridTemplateColumns: `repeat(auto-fit, minmax(14rem, 1fr))`,
           gap: '1rem',
         }}
       >

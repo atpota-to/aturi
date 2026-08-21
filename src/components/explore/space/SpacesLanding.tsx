@@ -2,8 +2,12 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { ExternalLink } from 'lucide-react';
+import { Boxes, ExternalLink, KeyRound, Link2, Lock } from 'lucide-react';
 import { useAtprotoSession } from '@/components/AtprotoSessionProvider';
+import CrossLinkCards from '@/components/landing/CrossLinkCards';
+import FeatureSection from '@/components/landing/FeatureSection';
+import SpacesGlanceVisual from '@/components/landing/SpacesGlanceVisual';
+import SpaceUriAnatomyVisual from '@/components/landing/SpaceUriAnatomyVisual';
 import HandleTypeaheadInput from '@/components/oauth/HandleTypeaheadInput';
 import ScopeSelector from '@/components/oauth/ScopeSelector';
 import { useSignInFlow } from '@/components/oauth/useSignInFlow';
@@ -17,82 +21,166 @@ import { useSpaceGrant } from './useSpaceAccess';
  * `/explore/spaces` — the way in for someone who has heard about atproto
  * spaces and wants to see their own.
  *
- * Signed out it is a sign-in form; signed in it is one button. The page does
- * not try to explain the protocol: that belongs next to real data, on the
- * pages that show it.
+ * Laid out like the other product landing pages (/links, /extension, the
+ * explore index): full-width hero with the sign-in action and a mock of the
+ * signed-in view, feature sections below, cross-links at the end. The
+ * sign-in states themselves are unchanged: signed out it is a form, signed
+ * in it is one button, and a server that can't do spaces is told so here
+ * rather than through a grant that came back empty.
  *
  * Whether a server can do this at all is checked against its `_health`
- * version, which is the one capability signal readable before signing in — so
- * someone on a server that doesn't run the alpha is told that here, rather
- * than finding out from a grant that came back empty.
+ * version, which is the one capability signal readable before signing in.
  */
 export default function SpacesLanding() {
   const { session, did, loading } = useAtprotoSession();
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', maxWidth: '34rem' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '4rem' }}>
+      {/* Hero */}
       <AppearIn rise>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-          <h1
-            style={{
-              margin: 0,
-              display: 'flex',
-              flexWrap: 'wrap',
-              alignItems: 'center',
-              gap: '0.625rem',
-              fontFamily: 'var(--font-serif)',
-              fontWeight: 400,
-              fontSize: '1.75rem',
-              color: 'var(--text-primary)',
-            }}
-          >
-            Spaces
-            <span
+        <header
+          style={{ display: 'grid', gap: '2.5rem', alignItems: 'center' }}
+          className="landing-hero"
+        >
+          <div>
+            <Badge icon={<Lock size={12} aria-hidden />}>Atproto spaces alpha</Badge>
+            <h1
               style={{
-                fontFamily: 'var(--font-mono)',
-                fontSize: '0.7rem',
-                letterSpacing: '0.08em',
-                textTransform: 'uppercase',
-                padding: '0.15rem 0.5rem',
-                color: 'var(--text-tertiary)',
-                background: 'var(--bg-tertiary)',
-                border: '1px solid var(--border-subtle)',
+                fontSize: '2.5rem',
+                fontWeight: 300,
+                marginBottom: '0.75rem',
+                color: 'var(--text-primary)',
+                lineHeight: 1.15,
               }}
             >
-              atproto spaces alpha
-            </span>
-          </h1>
-          <p style={{ margin: 0, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
-            Records kept within a permissioned space rather than in a public
-            repo. Sign in to browse your private data if your account is
-            compatible.{' '}
-            <a
-              href="https://atproto.com/blog/atproto-spaces-alpha"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="explore-json-link"
+              Browse your permissioned data.
+            </h1>
+            <p
+              style={{
+                fontSize: '1.05rem',
+                lineHeight: 1.6,
+                color: 'var(--text-secondary)',
+                maxWidth: '34rem',
+                marginBottom: '1.25rem',
+              }}
             >
-              Learn more
-            </a>
-            .
-          </p>
-        </div>
+              Atproto keeps most records in public repos that anyone can read.
+              A space holds records with an authority that checks membership
+              before serving them: mutuals-only posts, private bulletin
+              boards, notes that never reach the firehose. Sign in and the
+              explorer walks the spaces you write to, the way it walks your
+              public collections.{' '}
+              <a
+                href="https://atproto.com/blog/atproto-spaces-alpha"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="explore-json-link"
+              >
+                Learn more
+              </a>
+              .
+            </p>
+            {loading ? null : session ? <SignedIn did={did} /> : <SignedOut />}
+          </div>
+          <div>
+            <SpacesGlanceVisual />
+          </div>
+        </header>
       </AppearIn>
 
-      {loading ? null : session ? (
-        <AppearIn delay={0.05}>
-          <SignedIn did={did} />
-        </AppearIn>
-      ) : (
-        <AppearIn delay={0.05}>
-          <SignedOut />
-        </AppearIn>
-      )}
+      <AppearIn delay={0.05}>
+        <FeatureSection
+          badge={{ icon: <Link2 size={12} />, label: 'Space addresses' }}
+          title="Every level has an address"
+          body={
+            <>
+              <p>
+                A space is anchored on an authority DID and named by a type
+                and a key. Members write ordinary records into it, so the
+                address keeps going: through the member who wrote, into a
+                collection, down to a single record.
+              </p>
+              <p>
+                The explorer gives every level its own page, so you can hand
+                a collaborator a link straight into a shared space. Whether
+                they can read it stays the authority&rsquo;s call, not the
+                link&rsquo;s.
+              </p>
+            </>
+          }
+          visual={<SpaceUriAnatomyVisual />}
+        />
+      </AppearIn>
 
-      <AppearIn delay={0.1}>
+      <AppearIn delay={0.05}>
+        <AlphaAccount />
+      </AppearIn>
+
+      <AppearIn delay={0.05}>
         <FeaturedApps />
       </AppearIn>
+
+      <AppearIn delay={0.05}>
+        <CrossLinkCards />
+      </AppearIn>
     </div>
+  );
+}
+
+/**
+ * Where new accounts for the alpha come from. The atproto blog points at the
+ * bsky.network account portal for both the invite code and the sign-up link,
+ * so this sends people there rather than paraphrasing a flow we don't run.
+ */
+const INVITE_URL = 'https://bsky.network/account/';
+
+function AlphaAccount() {
+  return (
+    <section style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+      <div>
+        <Badge icon={<KeyRound size={12} aria-hidden />}>Try the alpha</Badge>
+        <h2 style={sectionTitleStyle}>Get an account on the alpha host</h2>
+        <p style={sectionLeadStyle}>
+          Reading a space takes an account on a server that runs the spaces
+          build, and during the alpha exactly one host does:{' '}
+          <code style={{ background: 'transparent', padding: 0, color: 'var(--text-accent)' }}>
+            {SPACES_ALPHA_PDS}
+          </code>
+          . New accounts there take an invite code. Your bsky.network account
+          page has one for you, along with a link to the sign-up form. Create
+          the account, then sign in here with it.
+        </p>
+      </div>
+      <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'center' }}>
+        <a
+          href={INVITE_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="generate-button"
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+            padding: '0.75rem 1.25rem',
+            background: 'var(--accent-moss)',
+            color: 'var(--text-on-accent)',
+            border: '1px solid var(--accent-forest)',
+            fontSize: '0.95rem',
+            textDecoration: 'none',
+          }}
+        >
+          Get an invite code
+          <ExternalLink size={14} aria-hidden />
+        </a>
+        <Link
+          href={`/explore/pds/${SPACES_ALPHA_PDS}`}
+          className="explore-json-link"
+          style={{ fontSize: '0.9rem' }}
+        >
+          Look at the alpha server →
+        </Link>
+      </div>
+    </section>
   );
 }
 
@@ -125,67 +213,66 @@ const FEATURED_APPS: { name: string; url: string; description: string }[] = [
 
 function FeaturedApps() {
   return (
-    <section style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
-      <h2
+    <section style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+      <div>
+        <Badge icon={<Boxes size={12} aria-hidden />}>Built on spaces</Badge>
+        <h2 style={sectionTitleStyle}>Apps to try</h2>
+        <p style={sectionLeadStyle}>
+          A new account has nothing in any space until an app writes something
+          there. These apps do.
+        </p>
+      </div>
+      <div
         style={{
-          margin: 0,
-          fontFamily: 'var(--font-serif)',
-          fontWeight: 400,
-          fontSize: '1rem',
-          color: 'var(--text-primary)',
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(14rem, 1fr))',
+          gap: '1rem',
         }}
       >
-        Apps to try
-      </h2>
-      <ul
-        style={{
-          listStyle: 'none',
-          margin: 0,
-          padding: 0,
-          border: '1px solid var(--border-medium)',
-          background: 'var(--bg-secondary)',
-        }}
-      >
-        {FEATURED_APPS.map((app, i) => (
-          <li
+        {FEATURED_APPS.map((app) => (
+          <a
             key={app.url}
+            href={app.url}
+            target="_blank"
+            rel="noopener noreferrer"
             style={{
-              borderBottom:
-                i < FEATURED_APPS.length - 1 ? '1px solid var(--border-subtle)' : 'none',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '0.5rem',
+              padding: '1.25rem',
+              border: '1px solid var(--border-medium)',
+              background: 'var(--bg-secondary)',
+              textDecoration: 'none',
+              transition: 'border-color 0.2s ease, background 0.2s ease',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.borderColor = 'var(--text-accent)';
+              e.currentTarget.style.background = 'var(--bg-tertiary)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.borderColor = 'var(--border-medium)';
+              e.currentTarget.style.background = 'var(--bg-secondary)';
             }}
           >
-            <a
-              href={app.url}
-              target="_blank"
-              rel="noopener noreferrer"
+            <span
               style={{
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '0.2rem',
-                padding: '0.625rem 1rem',
-                textDecoration: 'none',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.4rem',
+                fontFamily: 'var(--font-mono)',
+                fontSize: '0.9rem',
+                color: 'var(--text-primary)',
               }}
             >
-              <span
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '0.4rem',
-                  fontFamily: 'var(--font-mono)',
-                  fontSize: '0.85rem',
-                  color: 'var(--text-primary)',
-                }}
-              >
-                {app.name}
-                <ExternalLink size={12} aria-hidden style={{ color: 'var(--text-tertiary)' }} />
-              </span>
-              <span style={{ fontSize: '0.8rem', lineHeight: 1.5, color: 'var(--text-tertiary)' }}>
-                {app.description}
-              </span>
-            </a>
-          </li>
+              {app.name}
+              <ExternalLink size={12} aria-hidden style={{ color: 'var(--text-tertiary)' }} />
+            </span>
+            <span style={{ fontSize: '0.875rem', lineHeight: 1.5, color: 'var(--text-secondary)' }}>
+              {app.description}
+            </span>
+          </a>
         ))}
-      </ul>
+      </div>
     </section>
   );
 }
@@ -224,9 +311,19 @@ function SignedIn({ did }: { did: string | null }) {
           <code>{SPACES_ALPHA_PDS}</code> is the host running them. An account
           there is how to try this today.
         </p>
-        <Link href="/explore/pds/spaces-alpha.host.bsky.network" className="explore-json-link">
-          Look at that server →
-        </Link>
+        <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'baseline' }}>
+          <a
+            href={INVITE_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="explore-json-link explore-json-link-external"
+          >
+            Get an invite code
+          </a>
+          <Link href={`/explore/pds/${SPACES_ALPHA_PDS}`} className="explore-json-link">
+            Look at that server →
+          </Link>
+        </div>
       </div>
     );
   }
@@ -369,21 +466,74 @@ function SignedOut() {
       {warning && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
           <p style={noteStyle}>{warning}</p>
-          {/* Still their call: the check reads a convenience endpoint, and a
-              host that doesn't serve it looks the same from here as one that
-              can't do spaces. */}
-          <button
-            type="button"
-            onClick={() => proceedToScopes(value.trim())}
-            style={{ ...primaryButtonStyle(false), background: 'transparent', color: 'var(--text-secondary)', border: '1px solid var(--border-medium)' }}
-          >
-            Sign in anyway
-          </button>
+          <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'center' }}>
+            {/* Still their call: the check reads a convenience endpoint, and a
+                host that doesn't serve it looks the same from here as one that
+                can't do spaces. */}
+            <button
+              type="button"
+              onClick={() => proceedToScopes(value.trim())}
+              style={{ ...primaryButtonStyle(false), background: 'transparent', color: 'var(--text-secondary)', border: '1px solid var(--border-medium)' }}
+            >
+              Sign in anyway
+            </button>
+            <a
+              href={INVITE_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="explore-json-link explore-json-link-external"
+              style={{ fontSize: '0.85rem' }}
+            >
+              Get an invite code
+            </a>
+          </div>
         </div>
       )}
     </form>
   );
 }
+
+function Badge({ icon, children }: { icon: React.ReactNode; children: React.ReactNode }) {
+  return (
+    <span
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: '0.4rem',
+        padding: '0.25rem 0.625rem',
+        border: '1px solid var(--border-subtle)',
+        background: 'var(--bg-tertiary)',
+        color: 'var(--text-tertiary)',
+        fontSize: '0.75rem',
+        letterSpacing: '0.08em',
+        textTransform: 'uppercase',
+        fontFamily: 'var(--font-serif)',
+        marginBottom: '1.25rem',
+        lineHeight: 1,
+      }}
+    >
+      {icon}
+      {children}
+    </span>
+  );
+}
+
+const sectionTitleStyle: React.CSSProperties = {
+  fontSize: '1.75rem',
+  fontWeight: 300,
+  color: 'var(--text-primary)',
+  margin: '0 0 0.625rem',
+  lineHeight: 1.2,
+  letterSpacing: '-0.01em',
+};
+
+const sectionLeadStyle: React.CSSProperties = {
+  fontSize: '1rem',
+  lineHeight: 1.65,
+  color: 'var(--text-secondary)',
+  maxWidth: '46rem',
+  margin: 0,
+};
 
 function primaryButtonStyle(disabled: boolean): React.CSSProperties {
   return {
