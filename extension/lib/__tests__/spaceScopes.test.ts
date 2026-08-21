@@ -27,6 +27,8 @@ import {
   spaceWriteActionsFor,
   type ScopeId,
 } from '../../../src/lib/oauth/scopes';
+import { describeSignInError } from '../../../src/lib/oauth/signInError';
+import { isEventOutside } from '../../../src/lib/outsideClick';
 
 const SPACE_READ_SELF = 'space:*?authority=*&action=read_self';
 const SPACE_READ = 'space:*?authority=*&action=read';
@@ -262,5 +264,76 @@ describe('hasSpaceWriteScope', () => {
     expect(hasSpaceWriteScope(SPACE_READ)).toBe(false);
     expect(hasSpaceWriteScope('space:*')).toBe(false);
     expect(hasSpaceWriteScope(null)).toBe(false);
+  });
+});
+
+describe('describeSignInError', () => {
+  it('explains an undeclared scope by the row that asked for it', () => {
+    const raw =
+      `OAuth "invalid_scope" error: Scope "${SPACE_WRITE}" is not declared in ` +
+      'the client metadata';
+    const out = describeSignInError(raw);
+    // Names the row to untick, and says the wait is what fixes it. The bare
+    // message reads as a permanent misconfiguration of this app.
+    expect(out).toContain('Edit your permissioned records');
+    expect(out).toMatch(/ten minutes/);
+    expect(out).not.toContain('client metadata');
+  });
+
+  it('handles a token with no matching picker row', () => {
+    const out = describeSignInError(
+      'Scope "repo:*?action=frobnicate" is not declared in the client metadata',
+    );
+    expect(out).toContain('that permission');
+  });
+
+  it('passes through anything it cannot place', () => {
+    // A message we can't place is more useful verbatim than paraphrased.
+    for (const raw of [
+      'Network request failed',
+      'OAuth "invalid_request" error: bad redirect_uri',
+      '',
+    ]) {
+      expect(describeSignInError(raw)).toBe(raw);
+    }
+  });
+});
+
+describe('isEventOutside', () => {
+  /**
+   * Stubs rather than a DOM: the function only reads `composedPath()`,
+   * `target` and `contains`, and this suite runs in node.
+   */
+  const container = {
+    contains: (node: unknown) => node === 'inside-node',
+  } as unknown as Node;
+
+  const evt = (path: unknown[], target?: unknown) =>
+    ({ composedPath: () => path, target }) as unknown as Event;
+
+  it('reads the dispatch-time path, not the live tree', () => {
+    // The case the fix exists for: React unmounted the clicked row during this
+    // very event, so `contains` would answer false for something that was
+    // plainly inside. The path still names the container.
+    const detached = 'unmounted-li';
+    // 'root' stands in for the document at the end of the path; this suite
+    // runs in node, where there isn't one.
+    expect(isEventOutside(container, evt([detached, container, 'root'], detached))).toBe(
+      false,
+    );
+  });
+
+  it('is still outside when the path does not name the container', () => {
+    expect(isEventOutside(container, evt(['some-other-el', 'root']))).toBe(true);
+  });
+
+  it('falls back to contains when there is no path', () => {
+    expect(isEventOutside(container, evt([], 'inside-node'))).toBe(false);
+    expect(isEventOutside(container, evt([], 'elsewhere'))).toBe(true);
+  });
+
+  it('treats a missing container as not-outside, so nothing closes', () => {
+    expect(isEventOutside(null, evt(['x']))).toBe(false);
+    expect(isEventOutside(undefined, evt(['x']))).toBe(false);
   });
 });

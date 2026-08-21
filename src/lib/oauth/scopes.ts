@@ -128,31 +128,31 @@ export const GRANULAR_SCOPES: GranularScope[] = [
     id: 'create',
     scope: 'repo:*?action=create',
     label: 'Create',
-    hint: 'Add new records to any collection in your repo.',
+    hint: 'Add records to your repo.',
   },
   {
     id: 'update',
     scope: 'repo:*?action=update',
     label: 'Update',
-    hint: 'Edit existing records (Record Editor, preferences).',
+    hint: 'Change records you already have.',
   },
   {
     id: 'delete',
     scope: 'repo:*?action=delete',
     label: 'Delete',
-    hint: 'Remove records from your repo.',
+    hint: 'Delete records from your repo.',
   },
   {
     id: 'blob',
     scope: 'blob:*/*',
     label: 'Upload',
-    hint: 'Upload images and other media attachments.',
+    hint: 'Attach images and other media.',
   },
   {
     id: 'spacesSelf',
     scope: SPACE_READ_SELF_SCOPE,
     label: 'Read your permissioned data',
-    hint: 'List your spaces and read your own records in them.',
+    hint: 'Your spaces, and your own records in them.',
     defaultOn: false,
   },
   {
@@ -165,7 +165,11 @@ export const GRANULAR_SCOPES: GranularScope[] = [
     // authority's determination, not the PDS's — so "spaces you belong to" is
     // what you get in practice, not what the grant says. The hint says the
     // thing that is actually true.
-    hint: 'Read other members’ records in a space. Lets this app ask any space authority for a whole-space credential in your name.',
+    //
+    // It is also the longest hint here on purpose. The picker used to carry
+    // this warning in a paragraph above the group; that paragraph is gone for
+    // height, so the row it was warning about states it itself.
+    hint: 'Other members’ records too. Asks any authority, including one a link names, for a credential in your name.',
     defaultOn: false,
   },
   {
@@ -176,7 +180,7 @@ export const GRANULAR_SCOPES: GranularScope[] = [
     // answers a write aimed at anyone else's repo the same way it answers a
     // read — as though the repo weren't there.
     label: 'Edit your permissioned records',
-    hint: 'Create, update, and delete your own records in a space.',
+    hint: 'Write and delete your own records in a space.',
     defaultOn: false,
   },
 ];

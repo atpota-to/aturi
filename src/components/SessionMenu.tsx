@@ -9,6 +9,7 @@ import ScopeSelector from './oauth/ScopeSelector';
 import { useSignInFlow } from './oauth/useSignInFlow';
 import { useSessionProfile } from './useSessionProfile';
 import { encodeRepo } from '@/utils/atproto/urls';
+import { isEventOutside } from '@/lib/outsideClick';
 
 type Variant = 'compact' | 'inline' | 'pill';
 
@@ -39,7 +40,9 @@ export default function SessionMenu({ variant = 'inline' }: { variant?: Variant 
   useEffect(() => {
     if (!open) return;
     function onClick(e: MouseEvent) {
-      if (rootRef.current && !rootRef.current.contains(e.target as Node)) {
+      // See isEventOutside: the sign-in typeahead in here removes the row you
+      // just clicked, and `contains` would call that an outside click.
+      if (isEventOutside(rootRef.current, e)) {
         closePopover();
       }
     }

@@ -20,6 +20,7 @@ import SessionMenu from './SessionMenu';
 import SessionPanel from './SessionPanel';
 import CompactSearchPanel from './CompactSearchPanel';
 import StickyBreadcrumbBar from './explore/StickyBreadcrumbBar';
+import { isEventOutside } from '@/lib/outsideClick';
 import WhatsNewBadge from './whatsnew/WhatsNewBadge';
 
 interface HeaderProps {
@@ -47,7 +48,10 @@ export default function Header({ simple = false, compact = false }: HeaderProps)
     if (!compact || (!isExpanded && !isSearchExpanded)) return;
 
     const handleClickOutside = (event: MouseEvent) => {
-      if (headerRef.current && !headerRef.current.contains(event.target as Node)) {
+      // isEventOutside, not `contains`: picking a typeahead suggestion inside
+      // either panel unmounts the row being clicked, and a detached target
+      // reads as a click on the page behind the nav.
+      if (isEventOutside(headerRef.current, event)) {
         setIsExpanded(false);
         setIsSearchExpanded(false);
       }
