@@ -329,10 +329,6 @@ export default function Header({ simple = false, compact = false }: HeaderProps)
                     <Telescope size={16} />
                     <span>explore</span>
                   </Link>
-                  <Link href="/explore/spaces" className="compact-nav-link">
-                    <Orbit size={16} />
-                    <span>spaces</span>
-                  </Link>
                   <Link href="/extension" className="compact-nav-link">
                     <Download size={16} />
                     <span>extension</span>
@@ -340,6 +336,10 @@ export default function Header({ simple = false, compact = false }: HeaderProps)
                   <Link href="/links" className="compact-nav-link">
                     <Compass size={16} />
                     <span>links</span>
+                  </Link>
+                  <Link href="/explore/spaces" className="compact-nav-link">
+                    <Orbit size={16} />
+                    <span>spaces</span>
                   </Link>
                   <Link href="/docs" className="compact-nav-link">
                     <BookOpen size={16} />
