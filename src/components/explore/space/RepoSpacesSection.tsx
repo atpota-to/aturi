@@ -111,9 +111,8 @@ export default function RepoSpacesSection({ identity }: { identity: IdentityBund
       </div>
 
       <p style={noteStyle}>
-        Records you keep outside your public repo. Only you can see this list —
-        a PDS tracks which spaces its own account has written to and won’t
-        answer that question about anyone else.
+        Records you keep outside your public repo. Only you can see this list
+        when logged in.
       </p>
 
       {grant === 'unknown' && <p className="explore-placeholder">Checking your access…</p>}
