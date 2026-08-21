@@ -406,9 +406,14 @@ function SpaceBranch({
       ? contents.collections.reduce((sum, node) => sum + node.count, 0)
       : null;
 
+  const authorityLabel = isOwnAuthority
+    ? 'yours'
+    : authorityHandle
+      ? `@${authorityHandle}`
+      : shortDid(parts.authority);
   const spaceLabel = isOwnAuthority
     ? `your ${parts.spaceType} space`
-    : `${authorityHandle ? `@${authorityHandle}` : shortDid(parts.authority)}’s ${parts.spaceType} space`;
+    : `${authorityLabel}’s ${parts.spaceType} space`;
 
   return (
     <section style={{ border: '1px solid var(--border-medium)', background: 'var(--bg-secondary)' }}>
@@ -462,27 +467,33 @@ function SpaceBranch({
             minWidth: 0,
           }}
         >
+          {/* Truncated rather than wrapped. A handle on the alpha PDS runs to
+              about thirty characters, and with the icons and the count also on
+              this row it wrapped to a second line for one or two orphan
+              characters. Cutting from the end keeps the part that tells two
+              rows apart: within a group the domain is usually identical and
+              the name is what differs. The full value is on the title. */}
           <code
+            title={authorityLabel}
             style={{
               background: 'transparent',
               padding: 0,
               color: 'var(--text-accent)',
-              // `anywhere` rather than `break-all`: break only when a segment
-              // genuinely doesn't fit, instead of eagerly at any character.
-              overflowWrap: 'anywhere',
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
             }}
           >
-            {isOwnAuthority
-              ? 'yours'
-              : authorityHandle
-                ? `@${authorityHandle}`
-                : shortDid(parts.authority)}
+            {authorityLabel}
           </code>
           <span
+            title={parts.skey}
             style={{
               fontSize: '0.7rem',
               color: 'var(--text-tertiary)',
-              overflowWrap: 'anywhere',
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
             }}
           >
             {parts.skey}
