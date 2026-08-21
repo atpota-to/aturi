@@ -15,6 +15,7 @@ import { resolveIdentifier } from '@/utils/atproto/identity';
 import { pdsSupportsSpaces, SPACES_ALPHA_PDS } from '@/utils/atproto/spaceIdentity';
 import { encodeRepo } from '@/utils/atproto/urls';
 import AppearIn from '../AppearIn';
+import SkeletonSwap from '../skeletons/SkeletonSwap';
 import { useSpaceGrant } from './useSpaceAccess';
 
 /**
@@ -80,7 +81,7 @@ export default function SpacesLanding() {
               </a>
               .
             </p>
-            {loading ? null : session ? <SignedIn did={did} /> : <SignedOut />}
+            <HeroAction loading={loading} signedIn={Boolean(session)} did={did} />
           </div>
           <div>
             <SpacesGlanceVisual />
@@ -123,6 +124,85 @@ export default function SpacesLanding() {
       <AppearIn delay={0.05}>
         <CrossLinkCards />
       </AppearIn>
+    </div>
+  );
+}
+
+/**
+ * The hero's call to action, and the one box on this page whose contents
+ * aren't known at first paint.
+ *
+ * Which control belongs here depends on whether there is a session, and that
+ * answer is unavoidably async: the OAuth client keeps its sessions in
+ * IndexedDB and the package that reads them is dynamically imported, so
+ * nothing on the first render can tell a signed-in visitor from a signed-out
+ * one. Rendering nothing until it resolves left the hero with a hole in it,
+ * so this holds a stand-in for the form instead and cross-fades whichever
+ * control wins.
+ *
+ * The stand-in is the signed-out form's shape rather than the button's,
+ * because that is the answer for anyone who has not signed in here before.
+ * Guessing wrong costs a signed-in visitor a swap between two boxes of
+ * different heights; guessing the button instead would cost every first-time
+ * visitor the same swap.
+ */
+function HeroAction({
+  loading,
+  signedIn,
+  did,
+}: {
+  loading: boolean;
+  signedIn: boolean;
+  did: string | null;
+}) {
+  return (
+    <SkeletonSwap loading={loading} skeleton={<SignInSkeleton />}>
+      {!loading && (signedIn ? <SignedIn did={did} /> : <SignedOut />)}
+    </SkeletonSwap>
+  );
+}
+
+/**
+ * Stand-in for <SignedOut>'s handle field and submit button.
+ */
+function SignInSkeleton() {
+  return (
+    <div aria-hidden style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
+      <ControlSkeleton control="field" />
+      <ControlSkeleton control="button" />
+    </div>
+  );
+}
+
+/**
+ * A stand-in for one of the slot's controls, built from that control's own
+ * padding, border and type rather than from a height measured off a
+ * screenshot: it holds a blank line and lets the same layout math size it.
+ * A fixed height was 11px too tall here, because the controls set their own
+ * font sizes and a `calc` in `em` resolved against the body's instead. This
+ * also survives a change to the site's font scale, which a pixel height
+ * would not.
+ */
+function ControlSkeleton({ control }: { control: 'field' | 'button' }) {
+  const field = control === 'field';
+  return (
+    <div
+      className="skeleton-shimmer"
+      style={{
+        // Mirrors the field's 0.625rem/0.75rem and the button's
+        // 0.625rem/1rem. Only the block padding decides the height, and the
+        // two agree on it.
+        padding: field ? '0.625rem 0.75rem' : '0.625rem 1rem',
+        border: '1px solid var(--border-medium)',
+        background: 'var(--bg-tertiary)',
+        fontFamily: field ? 'var(--font-mono)' : 'var(--font-serif)',
+        fontSize: field ? '0.875rem' : '0.9375rem',
+        lineHeight: 'normal',
+        color: 'transparent',
+        userSelect: 'none',
+      }}
+    >
+      &nbsp;
     </div>
   );
 }
@@ -298,8 +378,15 @@ function SignedIn({ did }: { did: string | null }) {
     };
   }, [pds]);
 
+  // Same slot, still resolving: this check is a second async hop after the
+  // session one, so it gets the button's box rather than a line of text that
+  // would resize the hero again on its way out.
   if (grant === 'unknown' || supported === null) {
-    return <p className="explore-placeholder">Checking your access…</p>;
+    return (
+      <div role="status" aria-label="Checking your access">
+        <ControlSkeleton control="button" />
+      </div>
+    );
   }
 
   // Server first: a missing grant on a server that can't do spaces isn't the
