@@ -87,6 +87,13 @@ describe('getUrl', () => {
   it('returns null for offprint without a record', () => {
     expect(WAYPOINT_DESTINATIONS_DATA.offprint.getUrl('alice.bsky.social')).toBeNull();
   });
+
+  it('returns null for kimbia given a DID it cannot route', () => {
+    expect(WAYPOINT_DESTINATIONS_DATA.kimbia.getUrl('did:plc:xyz')).toBeNull();
+    expect(WAYPOINT_DESTINATIONS_DATA.kimbia.getUrl('alice.bsky.social')).toBe(
+      'https://kimbia.app/alice.bsky.social',
+    );
+  });
 });
 
 describe('getRecommendedWaypointsData', () => {

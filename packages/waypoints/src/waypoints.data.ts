@@ -19,6 +19,7 @@ export type RedirectCompatFamily =
   | 'popfeed'
   | 'sifa'
   | 'blento'
+  | 'kimbia'
   | 'atproto-explorer';
 
 /**
@@ -157,6 +158,11 @@ export const COMPAT_FAMILIES: Record<RedirectCompatFamily, CompatFamilyMeta> = {
     name: 'Blento',
     description: 'Blento profiles.',
   },
+  kimbia: {
+    id: 'kimbia',
+    name: 'Kimbia',
+    description: 'Training activities and adventures on kimbia.app.',
+  },
   'atproto-explorer': {
     id: 'atproto-explorer',
     name: 'Record explorers',
@@ -177,6 +183,7 @@ export const COMPAT_FAMILY_ORDER: RedirectCompatFamily[] = [
   'popfeed',
   'sifa',
   'blento',
+  'kimbia',
   'atproto-explorer',
 ];
 
@@ -768,6 +775,32 @@ export const WAYPOINT_DESTINATIONS_DATA: Record<string, WaypointData> = {
     expectedCollections: ['app.blento.'],
   },
 
+  kimbia: {
+    id: 'kimbia',
+    name: 'Kimbia',
+    description: (collection) => {
+      if (collection === 'app.kimbia.activity') return 'View activity on kimbia.app';
+      if (collection === 'app.kimbia.adventure') return 'View adventure on kimbia.app';
+      return 'View profile on kimbia.app';
+    },
+    // Handle-only, deliberately: Kimbia's routes require a dotted identifier,
+    // so a DID has no page to land on and the picker should hide the waypoint.
+    getUrl: (handle, collection, rkey) => {
+      if (!handle || handle.startsWith('did:')) return null;
+      if (rkey && collection === 'app.kimbia.activity') {
+        return `https://kimbia.app/${handle}/activity/${rkey}`;
+      }
+      if (rkey && collection === 'app.kimbia.adventure') {
+        return `https://kimbia.app/${handle}/adventure/${rkey}`;
+      }
+      return `https://kimbia.app/${handle}`;
+    },
+    supportedTypes: ['profile', 'record'],
+    category: 'atmosphereApps',
+    redirectCompat: ['kimbia'],
+    expectedCollections: ['app.kimbia.'],
+  },
+
   anisotaReader: {
     id: 'anisotaReader',
     name: 'Anisota Reader',
@@ -899,6 +932,7 @@ export const WAYPOINT_ORDER = [
   'popfeed',
   'sifa',
   'blento',
+  'kimbia',
   'anisotaReader',
   'offprint',
   'pckt',
@@ -1059,6 +1093,10 @@ const RECOMMENDED_NAMESPACE_PREFIXES: Record<string, RecommendedConfig> = {
   'social.grain': {
     waypointIds: ['grain', 'pdsls', 'atptools'],
     label: 'Recommended for Grain',
+  },
+  'app.kimbia': {
+    waypointIds: ['kimbia', 'pdsls', 'atptools'],
+    label: 'Recommended for Kimbia',
   },
 };
 

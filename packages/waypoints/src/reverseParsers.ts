@@ -26,6 +26,7 @@ export type SourceApp =
   | 'popfeed'
   | 'sifa'
   | 'blento'
+  | 'kimbia'
   | 'standardReader'
   | 'taproot'
   | 'offprint'
@@ -470,6 +471,38 @@ function matchBlento(host: string, parts: string[]): ReverseMatch | null {
 }
 
 /**
+ * Kimbia: `/<handle>` is an athlete's page, and `/<handle>/activity/<rkey>` /
+ * `/<handle>/adventure/<rkey>` are records. The app routes a first segment as a
+ * handle only when it carries a dot, which is what keeps its own pages (`/join`,
+ * `/pricing`) off the handle route, so the same test guards this parser. A DID
+ * never carries one, hence no `did` here.
+ */
+function matchKimbia(host: string, parts: string[]): ReverseMatch | null {
+  if (host !== 'kimbia.app') return null;
+  const handle = parts[0];
+  if (!handle || !handle.includes('.')) return null;
+
+  if ((parts[1] === 'activity' || parts[1] === 'adventure') && parts[2]) {
+    const collection = `app.kimbia.${parts[1]}`;
+    return {
+      source: 'kimbia',
+      parsed: {
+        type: 'record',
+        uri: `at://${handle}/${collection}/${parts[2]}`,
+        handle,
+        collection,
+        rkey: parts[2],
+      },
+    };
+  }
+
+  return {
+    source: 'kimbia',
+    parsed: { type: 'profile', uri: `at://${handle}`, handle },
+  };
+}
+
+/**
  * Standard Reader: `/u/<identifier>` is a profile (document list) and
  * `/a/<identifier>/<rkey>` is a document. The document route omits the
  * collection NSID, but every `/a/` link is a Standard Site document, so we
@@ -716,6 +749,7 @@ export function matchSupportedUrl(url: URL): ReverseMatch | null {
     matchPopfeed(host, parts) ||
     matchSifa(host, parts) ||
     matchBlento(host, parts) ||
+    matchKimbia(host, parts) ||
     matchStandardReader(host, parts) ||
     matchFlatRecordHost(host, parts, { host: 'offprint.app', source: 'offprint' }) ||
     matchFlatRecordHost(host, parts, { host: 'pckt.blog', source: 'pckt' }) ||
@@ -783,6 +817,7 @@ export const SUPPORTED_HOSTS: string[] = [
   'popfeed.social',
   'sifa.id',
   'blento.app',
+  'kimbia.app',
   'standard-reader.app',
   'offprint.app',
   'pckt.blog',
