@@ -12,7 +12,7 @@ concurrency:
 
 jobs:
   web:
-    name: Web app (lint · typecheck · build)
+    name: Web app (lint · typecheck · test · build)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -23,6 +23,7 @@ jobs:
       - run: npm ci
       - run: npm run lint
       - run: npm run typecheck
+      - run: npm test
       - run: npm run build
         env:
           # Keep the build deterministic; no secrets are required.

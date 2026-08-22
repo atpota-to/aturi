@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { apiErrorBody, type ApiErrorCode } from '@/lib/apiError';
 import { toPublicHttpUrl } from '@/utils/ssrfGuard';
 import { fetchPageHtml } from '@/utils/fetchPageHtml';
 import {
@@ -46,14 +47,16 @@ export async function GET(request: NextRequest) {
   const rawUrl = searchParams.get('url');
 
   if (!rawUrl) {
-    return jsonError(400, 'Missing url parameter');
+    return jsonError(400, 'missing_parameter', 'Missing url parameter',
+      'Pass ?url=<encoded-page-url> of the page whose AT Tags you want.');
   }
 
   // Rejects non-http(s) schemes and loopback/private/link-local hosts so this
   // endpoint can't be used to probe the deployment's internal network.
   const target = toPublicHttpUrl(rawUrl);
   if (!target) {
-    return jsonError(400, 'Invalid or disallowed url');
+    return jsonError(400, 'invalid_parameter', 'Invalid or disallowed url',
+      'Must be an absolute http(s) URL on a public host.');
   }
 
   const html = await fetchPageHtml(target.toString());
@@ -102,6 +105,14 @@ function corsAndCache(seconds: number) {
   };
 }
 
-function jsonError(status: number, message: string) {
-  return NextResponse.json({ ok: false, error: message }, { status, headers: CORS_HEADERS });
+function jsonError(
+  status: number,
+  code: ApiErrorCode,
+  message: string,
+  hint?: string,
+) {
+  return NextResponse.json(apiErrorBody(code, message, hint), {
+    status,
+    headers: CORS_HEADERS,
+  });
 }

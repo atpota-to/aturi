@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { apiErrorBody } from '@/lib/apiError';
 import { resolveHandle } from '@/utils/uriParser';
 import { fetchPostThread } from '@/utils/recordFetcher';
 
@@ -90,29 +91,40 @@ export async function GET(request: NextRequest) {
   }
 
   if (!targetUrl) {
-    return NextResponse.json({ error: 'Missing url parameter' }, { status: 400 });
+    return NextResponse.json(
+      apiErrorBody('missing_parameter', 'Missing url parameter',
+        'Pass ?url=https://aturi.to/profile/<handle>/post/<rkey>.'),
+      { status: 400 },
+    );
   }
 
   // oEmbed spec: servers must support json. xml is optional; we 501 it for now.
   if (format !== 'json') {
     return NextResponse.json(
-      { error: 'Only json format is supported' },
-      { status: 501 }
+      apiErrorBody('unsupported_format', 'Only json format is supported',
+        'Omit ?format or pass format=json; xml is not implemented.'),
+      { status: 501 },
     );
   }
 
   const target = parseTarget(targetUrl);
   if (!target) {
     return NextResponse.json(
-      { error: 'Unrecognized URL. Expected an aturi.to post URL or at:// post URI.' },
-      { status: 404 }
+      apiErrorBody('not_found',
+        'Unrecognized URL. Expected an aturi.to post URL or at:// post URI.',
+        'Supported: /profile/<handle>/post/<rkey>, /<handle>/app.bsky.feed.post/<rkey>, at://<did>/app.bsky.feed.post/<rkey>.'),
+      { status: 404 },
     );
   }
 
   try {
     const did = await resolveHandle(target.identifier);
     if (!did) {
-      return NextResponse.json({ error: 'Could not resolve identifier' }, { status: 404 });
+      return NextResponse.json(
+        apiErrorBody('not_found', 'Could not resolve identifier',
+          'The handle or DID in the URL does not resolve to an account.'),
+        { status: 404 },
+      );
     }
 
     const atUri = `at://${did}/app.bsky.feed.post/${target.rkey}`;
@@ -120,7 +132,11 @@ export async function GET(request: NextRequest) {
     const post = thread?.thread?.[0]?.value?.post;
 
     if (!post) {
-      return NextResponse.json({ error: 'Post not found' }, { status: 404 });
+      return NextResponse.json(
+        apiErrorBody('not_found', 'Post not found',
+          'The account resolved but has no post with that record key.'),
+        { status: 404 },
+      );
     }
 
     const author = post.author;
@@ -177,8 +193,9 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('[oEmbed] Error:', error);
     return NextResponse.json(
-      { error: 'Internal error' },
-      { status: 500 }
+      apiErrorBody('internal_error', 'Internal error',
+        'Unexpected fault while building the oEmbed payload; retry later.'),
+      { status: 500 },
     );
   }
 }

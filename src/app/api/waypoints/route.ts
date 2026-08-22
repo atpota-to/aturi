@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { apiErrorBody, type ApiErrorCode } from '@/lib/apiError';
 import {
   WAYPOINT_CATEGORIES_DATA,
   WAYPOINT_DESTINATIONS_DATA,
@@ -61,13 +62,17 @@ export async function GET(request: NextRequest) {
 
   const rawType = searchParams.get('type');
   if (rawType && !WAYPOINT_TYPES.includes(rawType as WaypointType)) {
-    return jsonError(400, `Unknown type. Expected one of: ${WAYPOINT_TYPES.join(', ')}`);
+    return jsonError(400, 'invalid_parameter',
+      `Unknown type. Expected one of: ${WAYPOINT_TYPES.join(', ')}`,
+      'Omit ?type to get the whole catalog.');
   }
   const type = (rawType as WaypointType) || null;
 
   const rawCapability = searchParams.get('capability');
   if (rawCapability && !CAPABILITIES.includes(rawCapability as Capability)) {
-    return jsonError(400, `Unknown capability. Expected one of: ${CAPABILITIES.join(', ')}`);
+    return jsonError(400, 'invalid_parameter',
+      `Unknown capability. Expected one of: ${CAPABILITIES.join(', ')}`,
+      'Omit ?capability to skip capability filtering.');
   }
   const capability = (rawCapability as Capability) || null;
 
@@ -122,6 +127,14 @@ function corsAndCache(seconds: number) {
   };
 }
 
-function jsonError(status: number, message: string) {
-  return NextResponse.json({ ok: false, error: message }, { status, headers: CORS_HEADERS });
+function jsonError(
+  status: number,
+  code: ApiErrorCode,
+  message: string,
+  hint?: string,
+) {
+  return NextResponse.json(apiErrorBody(code, message, hint), {
+    status,
+    headers: CORS_HEADERS,
+  });
 }

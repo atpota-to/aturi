@@ -18,6 +18,8 @@ import {
 import { FONT_SCALE_INIT_SCRIPT } from "@/lib/fontScale";
 import { A11Y_INIT_SCRIPT } from "@/lib/a11y";
 import { getSiteUrl } from "@/lib/config";
+import { buildSiteJsonLd } from "@/lib/structuredData";
+import { serializeJsonLd } from "@/utils/sanitize";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -28,6 +30,12 @@ export const metadata: Metadata = {
   // and not production. Without this, embeds on staging would render
   // whatever OG image production happened to have built.
   metadataBase: new URL(getSiteUrl()),
+  // A relative canonical resolves against metadataBase *and the current
+  // route*, so every page canonicalizes to itself rather than to the origin.
+  // Routes that need a different target — the profile and record pages, which
+  // canonicalize the handle spelling onto the DID one — set their own and
+  // override this.
+  alternates: { canonical: './' },
   manifest: '/site.webmanifest',
   openGraph: {
     title: "aturi.to: Tour the Atmosphere",
@@ -90,6 +98,13 @@ export default function RootLayout({
         <script dangerouslySetInnerHTML={{ __html: A11Y_INIT_SCRIPT }} />
       </head>
       <body>
+        {/* Site-level identity for machine readers: who runs this, what the
+            site is, what the software does. Record and profile pages add
+            their own more specific JSON-LD alongside it. */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: serializeJsonLd(buildSiteJsonLd()) }}
+        />
         <ThemeSync />
         <FontScaleSync />
         <A11ySync />

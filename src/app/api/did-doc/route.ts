@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { apiErrorBody, type ApiErrorCode } from '@/lib/apiError';
 
 // Node runtime (not edge): the OAuth client falls back to this only when a
 // direct browser fetch of a did:web document is blocked by CORS, and Node's
@@ -55,17 +56,20 @@ export async function OPTIONS() {
 export async function GET(request: NextRequest) {
   const target = request.nextUrl.searchParams.get('url');
   if (!target) {
-    return jsonError(400, 'Missing url parameter');
+    return jsonError(400, 'missing_parameter', 'Missing url parameter',
+      'Pass ?url=https://<host>/.well-known/did.json.');
   }
 
   let parsed: URL;
   try {
     parsed = new URL(target);
   } catch {
-    return jsonError(400, 'Invalid url');
+    return jsonError(400, 'invalid_parameter', 'Invalid url',
+      'Pass a fully-qualified absolute URL.');
   }
   if (!isAllowedDidDocUrl(parsed)) {
-    return jsonError(400, 'URL is not an allowed did:web document');
+    return jsonError(400, 'invalid_parameter', 'URL is not an allowed did:web document',
+      'Must be https, end in /did.json, and sit on a public host.');
   }
 
   const controller = new AbortController();
@@ -77,7 +81,8 @@ export async function GET(request: NextRequest) {
       headers: { accept: 'application/did+ld+json,application/json' },
     });
     if (!upstream.ok) {
-      return jsonError(502, `Upstream returned ${upstream.status}`);
+      return jsonError(502, 'upstream_error', `Upstream returned ${upstream.status}`,
+        'The DID document host answered with an error; retry later.');
     }
     const body = await upstream.text();
     return new NextResponse(body, {
@@ -89,12 +94,21 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch {
-    return jsonError(502, 'Failed to fetch did document');
+    return jsonError(502, 'upstream_error', 'Failed to fetch did document',
+      'The host was unreachable or timed out; retry later.');
   } finally {
     clearTimeout(timeout);
   }
 }
 
-function jsonError(status: number, message: string) {
-  return NextResponse.json({ error: message }, { status, headers: CORS_HEADERS });
+function jsonError(
+  status: number,
+  code: ApiErrorCode,
+  message: string,
+  hint?: string,
+) {
+  return NextResponse.json(apiErrorBody(code, message, hint), {
+    status,
+    headers: CORS_HEADERS,
+  });
 }

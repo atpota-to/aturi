@@ -1,6 +1,6 @@
 import { Metadata } from 'next';
 import { Suspense } from 'react';
-import { redirect } from 'next/navigation';
+import { redirect, notFound } from 'next/navigation';
 import WaypointPicker from '@/components/WaypointPicker';
 import PostPreview from '@/components/PostPreview';
 import PostPreviewSkeleton from '@/components/PostPreviewSkeleton';
@@ -8,7 +8,7 @@ import RecordPreview from '@/components/RecordPreview';
 import ScrollIndicator from '@/components/ScrollIndicator';
 import Header from '@/components/Header';
 import NotFoundPanel from '@/components/NotFoundPanel';
-import { parseURI, resolveHandle, getDisplayName } from '@/utils/uriParser';
+import { parseURI, resolveHandle, resolveHandleStatus, getDisplayName } from '@/utils/uriParser';
 import { fetchRecordData } from '@/utils/recordFetcher';
 import { resolveDidToHandle } from '@/utils/didResolver';
 import { buildPostMetadata, buildPostJsonLd } from '@/utils/postMetadata';
@@ -206,7 +206,20 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
-async function RecordContent({ handle, collection, rkey }: { handle: string; collection: string; rkey: string }) {
+async function RecordContent({
+  handle,
+  collection,
+  rkey,
+  resolvedDid,
+}: {
+  handle: string;
+  collection: string;
+  rkey: string;
+  // Resolved by RecordPage before streaming starts. Null only when the
+  // resolver was unreachable — a handle that definitively doesn't exist
+  // has already become a 404 by the time this renders.
+  resolvedDid: string | null;
+}) {
   try {
     const parsedData = parseURI(handle, collection, rkey);
     
@@ -222,8 +235,6 @@ async function RecordContent({ handle, collection, rkey }: { handle: string; col
       );
     }
 
-    const resolvedDid = await resolveHandle(handle);
-    
     if (!resolvedDid) {
       return (
         <>
@@ -442,6 +453,20 @@ export default async function RecordPage({ params }: Props) {
     handle = cleanHandle;
   }
 
+  // Resolve up front so a record path whose handle definitively doesn't
+  // resolve returns a real HTTP 404 instead of a soft-404 (200 + app shell).
+  // Every three-segment path matches this route, so without the guard an agent
+  // probing /.well-known/mcp/manifest.json — or any other made-up path — gets a
+  // 200 back and concludes the URL exists. A transient resolver outage is NOT a
+  // 404: it falls through with a null DID to the retry panel in RecordContent.
+  // Resolving here rather than inside the Suspense child is what lets the
+  // status be set before streaming begins, mirroring /[handle] and the '@'
+  // redirect above.
+  const resolution = await resolveHandleStatus(handle);
+  if (resolution.reason === 'not-found') {
+    notFound();
+  }
+
   return (
     <Suspense
       fallback={
@@ -453,7 +478,12 @@ export default async function RecordPage({ params }: Props) {
         </>
       }
     >
-      <RecordContent handle={handle} collection={collection} rkey={rkey} />
+      <RecordContent
+        handle={handle}
+        collection={collection}
+        rkey={rkey}
+        resolvedDid={resolution.did}
+      />
     </Suspense>
   );
 }
