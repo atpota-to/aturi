@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { apiErrorBody, type ApiErrorCode } from '@/lib/apiError';
 import {
   matchSupportedUrl,
   parseAtUri,
@@ -86,7 +87,8 @@ export async function GET(request: NextRequest) {
   const composeText = searchParams.get('composeText') || undefined;
 
   if (!rawAtUri && !rawUrl) {
-    return jsonError(400, 'Missing url or atUri parameter');
+    return jsonError(400, 'missing_parameter', 'Missing url or atUri parameter',
+      'Pass ?url=<encoded-page-url> or ?atUri=at://<did>/<collection>/<rkey>.');
   }
 
   let match: ReverseMatch | null = null;
@@ -97,18 +99,21 @@ export async function GET(request: NextRequest) {
   if (rawAtUri) {
     inputKind = 'atUri';
     match = parseAtUri(rawAtUri.trim());
-    if (!match) return jsonError(400, 'Invalid atUri');
+    if (!match) return jsonError(400, 'invalid_parameter', 'Invalid atUri',
+      'Expected at://<did-or-handle>/<collection>/<rkey>.');
     detectedVia = 'atUri';
   } else if (rawUrl) {
     let parsedUrl: URL;
     try {
       parsedUrl = new URL(rawUrl);
     } catch {
-      return jsonError(400, 'Invalid url');
+      return jsonError(400, 'invalid_parameter', 'Invalid url',
+        'Pass a fully-qualified absolute URL, percent-encoded.');
     }
 
     if (!/^https?:$/.test(parsedUrl.protocol)) {
-      return jsonError(400, 'Only http(s) URLs are supported');
+      return jsonError(400, 'invalid_parameter', 'Only http(s) URLs are supported',
+        'Strip non-web schemes; use ?atUri= for at:// input.');
     }
 
     isKnownHost = isSupportedHost(parsedUrl.hostname);
@@ -225,11 +230,16 @@ function corsAndCache(seconds: number) {
   };
 }
 
-function jsonError(status: number, message: string) {
-  return NextResponse.json(
-    { ok: false, error: message },
-    { status, headers: CORS_HEADERS }
-  );
+function jsonError(
+  status: number,
+  code: ApiErrorCode,
+  message: string,
+  hint?: string,
+) {
+  return NextResponse.json(apiErrorBody(code, message, hint), {
+    status,
+    headers: CORS_HEADERS,
+  });
 }
 
 /**

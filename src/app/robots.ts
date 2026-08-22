@@ -8,8 +8,25 @@ export default function robots(): MetadataRoute.Robots {
     rules: [
       {
         userAgent: '*',
-        allow: '/',
-        // API routes (OG generation is expensive to crawl), the OAuth
+        // The five public read endpoints are named explicitly so they survive
+        // the blanket `/api/` disallow below. They're the machine-readable half
+        // of the site — the thing an agent is *supposed* to call — and hiding
+        // them behind robots.txt is why crawler audits conclude aturi.to has no
+        // public API at all. Longest-match wins in every robots parser that
+        // implements Allow, so each of these beats the `/api/` prefix; parsers
+        // that don't implement Allow were already ignoring the whole group.
+        //
+        // /openapi.json and /llms.txt sit at the root, so the bare `/` already
+        // covers them.
+        allow: [
+          '/',
+          '/api/resolve',
+          '/api/waypoints',
+          '/api/at-tags',
+          '/api/did-doc',
+          '/api/oembed',
+        ],
+        // The rest of /api (OG generation is expensive to crawl), the OAuth
         // callback, and the signed-in account page have no crawl value.
         //
         // The two `/explore/*/space` entries are the permissioned-data tree.

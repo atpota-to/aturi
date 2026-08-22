@@ -21,6 +21,41 @@ export const DOCS_MARKDOWN = `# aturi.to: Developer Docs
 - Core package: https://npmx.dev/package/@aturi.to/waypoints
 - Repo: https://github.com/atpota-to/aturi
 - Raw Markdown: https://aturi.to/docs.md
+- OpenAPI spec: https://aturi.to/openapi.json
+- Agent overview: https://aturi.to/llms.txt
+
+## Machine-readable entry points
+
+If you are an agent, or generating a client, start with these rather than this
+page:
+
+| URL | What it is |
+| --- | --- |
+| \`/openapi.json\` | OpenAPI 3.1 spec for all five endpoints: typed parameters, response schemas, and a unique \`operationId\` per operation, so function-calling bridges can convert it directly into tools. |
+| \`/llms.txt\` | Short overview in the llmstxt.org format, including when *not* to use this API. |
+| \`/docs.md\` | This page as plain Markdown. |
+
+Every page listed in \`/llms.txt\` with a Markdown twin also serves it by
+content negotiation: send \`Accept: text/markdown\` and you get the prose
+without the page chrome.
+
+Errors from every endpoint share one shape:
+
+\`\`\`json
+{
+  "ok": false,
+  "code": "missing_parameter",
+  "error": "Missing url or atUri parameter",
+  "hint": "Pass ?url=<encoded-page-url> or ?atUri=at://<did>/<collection>/<rkey>."
+}
+\`\`\`
+
+\`code\` is one of \`missing_parameter\`, \`invalid_parameter\`,
+\`unsupported_format\`, \`not_found\`, \`upstream_error\` or
+\`internal_error\`; branch on it rather than on \`error\`. Note that
+\`/api/resolve\` and \`/api/at-tags\` answer a definite negative with HTTP
+200 and \`ok: false\` — a page with no atproto record is a result, not a
+failure — so check \`ok\` as well as the status code.
 
 ## Overview
 
