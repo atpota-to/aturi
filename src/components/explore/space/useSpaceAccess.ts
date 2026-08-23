@@ -246,8 +246,12 @@ async function holdsRepoUnderAuthority(
  * browser-only deployment.
  */
 function grantAuthorityConsent(did: string): void {
-  unlockSpaceAuthority(did);
-  recordSpaceConsent(did);
+  // Order matters. The in-memory unlock is what re-runs the effect that mints
+  // the credential, and the mint is refused unless the server has already
+  // recorded the consent — so record first, unlock second. `finally` rather
+  // than `then`: a deployment with no backend answers 404 here, and the
+  // browser-only flow must still unlock.
+  void recordSpaceConsent(did).finally(() => unlockSpaceAuthority(did));
 }
 
 /**

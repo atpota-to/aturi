@@ -98,11 +98,13 @@ export async function GET(request: Request) {
     }
 
     if (!appState) {
-      return fail(
-        400,
-        'STATE_NOT_FOUND',
-        'This sign-in has expired',
-        'Authorizations are valid for ten minutes. Start again.',
+      // Not necessarily an attack, and in fact usually not: a user who spends
+      // more than ten minutes on their authorization server lands here. A JSON
+      // body would render as raw JSON on a blank page, so send them home with
+      // the message like every other failure on this route.
+      return redirectWithError(
+        fallbackReturn,
+        'That sign-in took too long. Please try again.',
       );
     }
 
@@ -112,11 +114,9 @@ export async function GET(request: Request) {
     if (appState.client === 'web') {
       const cookie = readCookie(request, flowCookieName(origin));
       if (!cookie || cookie !== appState.flow) {
-        return fail(
-          403,
-          'FLOW_MISMATCH',
-          'This sign-in did not start in this browser',
-          'Start again from the sign-in button.',
+        return redirectWithError(
+          returnBase || fallbackReturn,
+          'That sign-in did not start in this browser. Please try again.',
         );
       }
     }

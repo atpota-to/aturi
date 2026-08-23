@@ -61,6 +61,16 @@ export async function POST(request: Request) {
       return res;
     };
 
+    // A cross-site form POST reaches this route (no preflight, no body read),
+    // and clearing a visitor's cookies on someone else's say-so is a nuisance
+    // logout. Bearer callers — the extension, and local dev — are exempt:
+    // they hold a credential no other site can send.
+    const usingCookie = !request.headers.get('authorization');
+    const site = request.headers.get('sec-fetch-site');
+    if (usingCookie && site && site !== 'same-origin') {
+      return fail(403, 'CROSS_SITE', 'Sign out from the site itself.');
+    }
+
     const actor = await resolveActor(request, origin);
     // No resolvable session is not an error: the caller wanted to end up
     // signed out, and it is.

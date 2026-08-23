@@ -24,7 +24,21 @@
 
 import { getStore, TABLE } from '@/lib/oauth/server/store';
 import { corsPreflight, fail, guarded, json, resolveOrigin } from '@/lib/oauth/server/http';
-import { resolveActor, touchAppSession } from '@/lib/oauth/server/session';
+import {
+  isSecureOrigin,
+  resolveActor,
+  serializeCookie,
+  sessionCookieName,
+  SIGNED_IN_HINT_COOKIE,
+  touchAppSession,
+} from '@/lib/oauth/server/session';
+
+import { readCookie } from '@/lib/oauth/server/session';
+
+/** The raw cookie value, so a slid expiry can be re-issued unchanged. */
+function readSessionCookie(request: Request, origin: string): string {
+  return readCookie(request, sessionCookieName(origin)) ?? '';
+}
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -64,11 +78,7 @@ export async function GET(request: Request) {
       });
     }
 
-    // Sliding expiry, at most hourly. Deliberately not awaited into the
-    // response path's latency budget beyond its own cheap guard.
-    void touchAppSession(actor.tokenHash);
-
-    return json({
+    const res = json({
       ok: true,
       did: actor.userDid,
       client: actor.client,
@@ -76,5 +86,28 @@ export async function GET(request: Request) {
       scope: (grant?.granted_scope as string | null) ?? null,
       pds: (grant?.pds as string | null) ?? null,
     });
+
+    // Sliding expiry, at most hourly — and the cookie has to slide with the
+    // row, or the session still dies on the original schedule no matter how
+    // actively it is used. Cookie callers only: a bearer holder keeps its own
+    // token and has no cookie to refresh.
+    const slid = await touchAppSession(actor.tokenHash);
+    if (slid && !request.headers.get('authorization')) {
+      const secure = isSecureOrigin(origin);
+      const maxAge = Math.max(0, Math.floor((slid.getTime() - Date.now()) / 1000));
+      res.headers.append(
+        'set-cookie',
+        serializeCookie(sessionCookieName(origin), readSessionCookie(request, origin), {
+          maxAge,
+          secure,
+        }),
+      );
+      res.headers.append(
+        'set-cookie',
+        serializeCookie(SIGNED_IN_HINT_COOKIE, '1', { maxAge, secure, httpOnly: false }),
+      );
+    }
+
+    return res;
   });
 }

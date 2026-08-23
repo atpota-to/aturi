@@ -255,6 +255,7 @@ export function AtprotoSessionProvider({ children }: { children: ReactNode }) {
 
   const signOut = useCallback(async () => {
     if (!session) return;
+    const sub = session.sub;
     // Drop space credentials first: they authorize reads of other members'
     // private records and are only ever held in memory, so signing out has to
     // take them with it even if the revoke call below fails.
@@ -263,6 +264,18 @@ export function AtprotoSessionProvider({ children }: { children: ReactNode }) {
       await session.signOut();
     } catch {
       // ignore network errors on revoke; we still drop local state
+    }
+    // Both clients can hold a session for the same account at once — that is
+    // the whole point of honouring an existing browser session while new
+    // sign-ins go to the backend. So signing out has to end BOTH, or the next
+    // page load finds the leftover one in IndexedDB and the user is signed
+    // back in by something they just signed out of.
+    try {
+      const client = await getOauthClient();
+      await client.revoke(sub);
+    } catch {
+      // No browser session for this account, or the revoke failed. Either way
+      // the local state below is what the user sees.
     }
     setSession(null);
   }, [session]);

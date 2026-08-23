@@ -141,6 +141,40 @@ Data API, and setting the variables on staging.
     `cron.schedule` errors on any Postgres without the extension, which is
     exactly the Neon or self-hosted case a fork is most likely to be on.
 
+11. **The extension's session is minted when its code is redeemed**, not at the
+    callback, so `exchange_codes` never holds a credential — the same rule
+    `app_sessions` follows by storing only a hash.
+
+12. **`/api/oauth/login` requires the navigation to have started on this site**
+    (`Sec-Fetch-Site`, with `Referer` as the fallback). Without it a hostile
+    page could navigate a visitor here with a `handle` naming an authorization
+    server it controls: the visitor would see an aturi-branded consent screen
+    on that server and, on authorising, be signed in to an account the attacker
+    owns — writing what they believe is their own content into the attacker's
+    repo. The flow cookie does not catch this; it proves the flow started in
+    this browser, not that the user asked for it. Extension flows are exempt,
+    being cross-site by construction, and are bound by the PKCE verifier
+    instead.
+
+### Accepted limitations
+
+Two things a review flagged that are deliberately not fixed, recorded so nobody
+has to rediscover the reasoning:
+
+- **The encryption envelope carries no key id**, so `ATURI_SESSION_ENC_KEY`
+  cannot be rotated without re-encrypting every row. Adding a `kid` field now
+  would be half a rotation mechanism with no second key to point at; the
+  migration that needs it can add both together. Until then, rotating that key
+  logs everyone out — which the key-handling section already says.
+
+- **Revocation lags by up to 60 seconds across instances.** The token-to-session
+  cache is per-instance, so a session revoked on one instance can still be
+  honoured briefly by another. That is the same trade the reference backend
+  makes, and it is what keeps a warm instance from paying a database round trip
+  on every proxied call. The bound is the cache TTL; shortening it trades
+  latency for promptness, and removing it is the option nobody should take
+  quietly.
+
 ### Still open before this can go live
 
 - Phase 5's legal rewrite is a blocker for enabling the backend at all: the

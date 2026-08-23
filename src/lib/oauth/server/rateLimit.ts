@@ -47,12 +47,19 @@ export async function allow(bucket: string, rule: RateLimitRule): Promise<boolea
 }
 
 /**
- * A coarse client identifier for unauthenticated endpoints. Vercel sets
- * x-forwarded-for; the leftmost entry is the client as seen by the edge.
- * Hashing happens at the call site via the bucket name, so no raw address is
- * stored.
+ * A coarse client identifier for unauthenticated endpoints.
+ *
+ * `x-real-ip` first: Vercel sets it to the address it actually saw, and it is
+ * a single value. The leftmost entry of `x-forwarded-for` is whatever the
+ * client claimed, so a caller can rotate it freely and buy itself an unlimited
+ * number of buckets — using it as the primary key would make the limit
+ * decorative. Kept only as a fallback for a host that sets no `x-real-ip`.
+ *
+ * Hashing happens at the call site, so no raw address is stored.
  */
 export function callerKey(request: Request): string {
+  const real = request.headers.get('x-real-ip')?.trim();
+  if (real) return real;
   const fwd = request.headers.get('x-forwarded-for');
   return (fwd?.split(',')[0] ?? '').trim() || 'unknown';
 }

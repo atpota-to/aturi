@@ -48,6 +48,28 @@ export async function OPTIONS() {
 }
 
 /**
+ * Whether this navigation was started by our own pages.
+ *
+ * `Sec-Fetch-Site: same-origin` is what a browser sends on a same-site
+ * top-level navigation; `none` means the user typed the URL or used a
+ * bookmark, which is also not a cross-site attack but is not a real sign-in
+ * either, so it is refused with a message rather than allowed. Referer is the
+ * fallback for a browser too old to send Sec-Fetch-Site; Origin is not sent on
+ * navigations and is no use here.
+ */
+function startedHere(request: Request, origin: string): boolean {
+  const site = request.headers.get('sec-fetch-site');
+  if (site) return site === 'same-origin';
+  const referer = request.headers.get('referer');
+  if (!referer) return false;
+  try {
+    return new URL(referer).origin === origin;
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Where the user lands after the callback. Web returns take a root-relative
  * path only; extension returns must match an exact entry in
  * ATURI_EXTENSION_RETURN_ORIGINS.
@@ -100,8 +122,30 @@ export async function GET(request: Request) {
     if (!origin) return fail(400, 'UNKNOWN_HOST', 'Unknown host');
     const cfg = requireBffConfig();
 
+    const clientParam = params.get('client') ?? 'web';
+    if (!isOAuthClientKind(clientParam)) {
+      return bail(400, 'INVALID_PARAMETER', 'Unknown sign-in client.');
+    }
+
     if (!(await allow(`login:${sha256Hex(callerKey(request))}`, RATE_LIMITS.login))) {
       return bail(429, 'RATE_LIMITED', 'Too many sign-in attempts', 'Wait a few minutes.');
+    }
+
+    // A sign-in must be started BY THIS SITE. Without that, a hostile page can
+    // navigate a visitor to this route with a `handle` naming an authorization
+    // server it controls: the visitor sees an aturi-branded consent screen on
+    // that server, and authorising leaves them signed in to an account the
+    // attacker owns, writing what they believe is their own content into the
+    // attacker's repo. The flow cookie cannot catch this — it proves the flow
+    // started in this browser, not that the user asked for it.
+    //
+    // Sec-Fetch-Site is the reliable signal on a top-level navigation and is
+    // sent by every current browser; Origin is not sent on navigations at all,
+    // so Referer is the only fallback worth having. Extension flows are
+    // exempt because launchWebAuthFlow is cross-site by construction — they
+    // are bound by the PKCE verifier at /exchange instead.
+    if (clientParam === 'web' && !startedHere(request, origin)) {
+      return bail(403, 'CROSS_SITE_SIGN_IN', 'Start sign-in from the sign-in button.');
     }
 
     const handle = params.get('handle')?.trim();
@@ -115,10 +159,6 @@ export async function GET(request: Request) {
       return bail(400, 'INVALID_PARAMETER', 'That server address is not reachable.');
     }
 
-    const clientParam = params.get('client') ?? 'web';
-    if (!isOAuthClientKind(clientParam)) {
-      return bail(400, 'INVALID_PARAMETER', 'Unknown sign-in client.');
-    }
 
     const rawIds = (params.get('scopes') ?? '').split(',').map((s) => s.trim()).filter(Boolean);
     const validIds = rawIds.filter((id): id is ScopeId => ALL_SCOPE_IDS.has(id as ScopeId));

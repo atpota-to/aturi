@@ -156,7 +156,11 @@ export async function resolveActor(request: Request, origin: string): Promise<Re
  * its sessions expire 30 days after issuance no matter how actively they are
  * used, so a daily user is signed out monthly for no reason.
  */
-export async function touchAppSession(tokenHash: string): Promise<void> {
+/**
+ * Slide the session's expiry, at most once an hour. Returns the new expiry
+ * when it actually moved, so the caller can re-issue the cookie to match.
+ */
+export async function touchAppSession(tokenHash: string): Promise<Date | null> {
   const cfg = requireBffConfig();
   try {
     const row = await getStore().selectOne(
@@ -164,9 +168,9 @@ export async function touchAppSession(tokenHash: string): Promise<void> {
       { token_sha256: tokenHash },
       'last_seen_at',
     );
-    if (!row) return;
+    if (!row) return null;
     const last = new Date(String(row.last_seen_at)).getTime();
-    if (Date.now() - last < 3_600_000) return;
+    if (Date.now() - last < 3_600_000) return null;
     const expiresAt = new Date(Date.now() + cfg.appSessionTtlDays * 86_400_000);
     await getStore().update(
       TABLE.appSessions,
@@ -174,8 +178,14 @@ export async function touchAppSession(tokenHash: string): Promise<void> {
       { last_seen_at: new Date().toISOString(), expires_at: expiresAt.toISOString() },
     );
     appSessionCache.delete(tokenHash);
+    // Returned so the caller can re-issue the cookie. Sliding only the row
+    // would leave the cookie expiring on its original schedule, so a daily
+    // user would still be signed out on day 30 — capping the very thing a
+    // confidential client exists to remove.
+    return expiresAt;
   } catch {
     // Refreshing an expiry is never worth failing a request over.
+    return null;
   }
 }
 

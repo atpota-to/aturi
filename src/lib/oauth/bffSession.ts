@@ -187,11 +187,13 @@ export async function fetchBffSession(
  * nothing. So the click is recorded server-side and the mint endpoint checks
  * there.
  *
- * Fire-and-forget on purpose. On a deployment with no backend this 404s, and
- * the browser-only flow is unaffected and correct as it stands.
+ * Awaited by its caller before the in-memory unlock lands, because the unlock
+ * is what re-runs the effect that mints — record it second and the mint can
+ * arrive first and be refused. Failures are swallowed: on a deployment with no
+ * backend this 404s, and the browser-only flow is correct as it stands.
  */
-export function recordSpaceConsent(authority: string, bearer?: string): void {
-  void fetch(`${bffOrigin()}/api/oauth/space/consent`, {
+export async function recordSpaceConsent(authority: string, bearer?: string): Promise<void> {
+  await fetch(`${bffOrigin()}/api/oauth/space/consent`, {
     method: 'POST',
     credentials: bearer ? 'omit' : 'same-origin',
     headers: { 'content-type': 'application/json', ...authHeaders(bearer) },
