@@ -2,6 +2,8 @@ import { Metadata } from 'next';
 import { Suspense } from 'react';
 import { redirect } from 'next/navigation';
 import WaypointPicker from '@/components/WaypointPicker';
+import AutoRedirect from '@/components/AutoRedirect';
+import AutoRedirectGate from '@/components/AutoRedirectGate';
 import PostPreview from '@/components/PostPreview';
 import PostPreviewSkeleton from '@/components/PostPreviewSkeleton';
 import ScrollIndicator from '@/components/ScrollIndicator';
@@ -108,8 +110,26 @@ async function PostContent({ handle, rkey }: { handle: string; rkey: string }) {
 
     return (
       <>
+        {/* Inside the Suspense boundary rather than in the outer component,
+            because the DID is only known here — and the explorer waypoints
+            can't build a URL without it. One flush later than the other two
+            waypoint pages, still ahead of the picker's markup. */}
+        <AutoRedirect
+          type="post"
+          handle={resolvedHandle}
+          did={resolvedDid}
+          collection={collection}
+          rkey={rkey}
+        />
         <Header compact />
         <div className="container-narrow waypoint-page" style={{ padding: '0 2rem 4rem' }}>
+        <AutoRedirectGate
+          type="post"
+          handle={resolvedHandle}
+          did={resolvedDid}
+          collection={collection}
+          rkey={rkey}
+        />
 
         {/* AT-URI alternate link, mirroring Bluesky's bskyweb template.
             React 19 hoists this to <head>. */}

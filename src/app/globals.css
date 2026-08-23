@@ -5805,3 +5805,41 @@ body.has-explore-chrome {
     width: auto;
   }
 }
+
+/* --- Auto-redirect ------------------------------------------------------ */
+
+/* While a redirect is pending, the page is hidden and the shim takes its
+   place. `visibility` rather than `display`: it inherits, so hiding <main>
+   hides everything inside it, and a descendant can still opt back in — which
+   is exactly what the shim does. `display: none` would offer no way back for
+   an element nested inside the hidden subtree, and would also reflow the page
+   on the way out.
+
+   The attribute is set by the pre-paint script in `src/lib/autoRedirectShim.ts`
+   and cleared by that script's failsafe timer, by its catch block, or by
+   `AutoRedirectGate` — whichever comes first. Nothing here can hide the page
+   on its own. */
+html[data-autoredirect='arming'] main,
+html[data-autoredirect='arming'] footer {
+  visibility: hidden;
+}
+
+html[data-autoredirect='arming'] .autoredirect-shim {
+  visibility: visible;
+}
+
+.autoredirect-shim {
+  visibility: hidden;
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  text-align: center;
+  color: var(--text-secondary);
+  font-family: var(--font-serif);
+  font-size: 1rem;
+  background: var(--bg-primary);
+  z-index: 10;
+}

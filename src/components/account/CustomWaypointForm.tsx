@@ -6,7 +6,12 @@ import {
   newCustomWaypointId,
   type CustomWaypoint,
 } from '@/utils/preferences';
-import type { WaypointType } from '@/utils/waypoints.data';
+import {
+  COMPAT_FAMILIES,
+  COMPAT_FAMILY_ORDER,
+  type RedirectCompatFamily,
+  type WaypointType,
+} from '@/utils/waypoints.data';
 
 const TYPE_OPTIONS: { id: WaypointType; label: string; hint: string }[] = [
   { id: 'profile', label: 'Profile', hint: 'Opens the user’s profile page' },
@@ -45,6 +50,9 @@ export default function CustomWaypointForm({ initial, onSave, onCancel }: Props)
   const [templates, setTemplates] = useState<Partial<Record<WaypointType, string>>>(
     initial?.templates || {},
   );
+  const [families, setFamilies] = useState<Set<RedirectCompatFamily>>(
+    new Set(initial?.redirectCompat || []),
+  );
   const [error, setError] = useState<string | null>(null);
 
   const canSubmit = useMemo(() => {
@@ -62,6 +70,15 @@ export default function CustomWaypointForm({ initial, onSave, onCancel }: Props)
       const next = new Set(prev);
       if (next.has(t)) next.delete(t);
       else next.add(t);
+      return next;
+    });
+  }
+
+  function toggleFamily(f: RedirectCompatFamily) {
+    setFamilies((prev) => {
+      const next = new Set(prev);
+      if (next.has(f)) next.delete(f);
+      else next.add(f);
       return next;
     });
   }
@@ -99,6 +116,7 @@ export default function CustomWaypointForm({ initial, onSave, onCancel }: Props)
       description: description.trim() || undefined,
       supportedTypes: enabledTypes,
       templates: filledTemplates,
+      redirectCompat: families.size > 0 ? Array.from(families) : undefined,
     };
     onSave(waypoint);
   }
@@ -216,6 +234,46 @@ export default function CustomWaypointForm({ initial, onSave, onCancel }: Props)
           />
         </Field>
       ))}
+
+      {/* Optional, and empty is the normal case: a personal bookmark isn't
+          usually something you want links rewritten to. Ticking a family here
+          is what makes this waypoint selectable under Settings → Redirects. */}
+      <Field
+        label="Auto-redirect families"
+        hint="Optional — lets this waypoint be picked as a redirect destination"
+      >
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+          {COMPAT_FAMILY_ORDER.map((f) => {
+            const active = families.has(f);
+            return (
+              <label
+                key={f}
+                title={COMPAT_FAMILIES[f]?.description}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.375rem',
+                  padding: '0.35rem 0.65rem',
+                  background: active ? 'var(--accent-moss)' : 'var(--bg-tertiary)',
+                  color: active ? 'var(--text-on-accent)' : 'var(--text-secondary)',
+                  border: `1px solid ${active ? 'var(--accent-moss)' : 'var(--border-medium)'}`,
+                  fontSize: '0.75rem',
+                  cursor: 'pointer',
+                  userSelect: 'none',
+                }}
+              >
+                <input
+                  type="checkbox"
+                  checked={active}
+                  onChange={() => toggleFamily(f)}
+                  style={{ display: 'none' }}
+                />
+                {COMPAT_FAMILIES[f]?.name ?? f}
+              </label>
+            );
+          })}
+        </div>
+      </Field>
 
       {error && (
         <p style={{ color: 'var(--danger)', fontSize: '0.8125rem', margin: 0 }}>{error}</p>

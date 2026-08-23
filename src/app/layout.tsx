@@ -7,6 +7,7 @@ import Footer from "@/components/Footer";
 import PageTransition from "@/components/PageTransition";
 import ThemeSync from "@/components/ThemeSync";
 import ColorSchemeSync from "@/components/ColorSchemeSync";
+import AutoRedirectSync from "@/components/AutoRedirectSync";
 import WhatsNewModal from "@/components/whatsnew/WhatsNewModal";
 import FontScaleSync from "@/components/FontScaleSync";
 import A11ySync from "@/components/A11ySync";
@@ -111,6 +112,10 @@ export default function RootLayout({
         <AtprotoSessionProvider>
           <PreferencesProvider>
             <ColorSchemeSync />
+            {/* Keeps the pre-paint auto-redirect cache in step with the
+                synced preference, so the next waypoint page can decide
+                before it paints. */}
+            <AutoRedirectSync />
             {/* Self-triggering: decides once, after preferences settle, and
                 renders nothing for a reader who is already caught up. */}
             <WhatsNewModal />
