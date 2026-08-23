@@ -29,6 +29,13 @@ const POST_COLLECTION = 'app.bsky.feed.post';
 /** Total posts a simplified thread may carry, ancestors included. */
 const MAX_THREAD_POSTS = 80;
 
+/** did:<method>:<id> or a dotted handle. The AppView 400s anything else. */
+const AT_DID = /^did:[a-z]+:[A-Za-z0-9._:%-]+$/;
+const AT_HANDLE = /^[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?(\.[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?)+$/;
+function looksLikeAtIdentifier(id: string): boolean {
+  return AT_DID.test(id) || AT_HANDLE.test(id);
+}
+
 function bskyAppUrl(actor: string, rkey?: string): string {
   return rkey
     ? `https://bsky.app/profile/${actor}/post/${rkey}`
@@ -197,10 +204,16 @@ export function registerBskyTools(server: McpServer): void {
     },
     toolHandler(async ({ identifiers }) => {
       const cleaned = identifiers.map((i) => i.trim().replace(/^@/, ''));
-      const found = await getProfiles(cleaned);
+      // getProfiles 400s the WHOLE batch if any one identifier is malformed,
+      // which would drop every valid sibling into notFound. Send only the
+      // syntactically valid ones; route the rest straight to notFound so one
+      // bad identifier can't poison the batch (the tool's documented promise).
+      const valid = cleaned.filter(looksLikeAtIdentifier);
+      const malformed = cleaned.filter((i) => !looksLikeAtIdentifier(i));
+      const found = valid.length ? await getProfiles(valid) : new Map();
       // getProfiles keys by DID; inputs may be handles, and handles compare
       // case-insensitively (the AppView returns them lowercased).
-      const byInput = cleaned.map((input) => {
+      const byInput = valid.map((input) => {
         const needle = input.startsWith('did:') ? input : input.toLowerCase();
         for (const profile of found.values()) {
           if (profile.did === needle || profile.handle?.toLowerCase() === needle) {
@@ -211,7 +224,7 @@ export function registerBskyTools(server: McpServer): void {
       });
       return {
         profiles: byInput.filter((m) => m.profile).map((m) => profileCard(m.profile!)),
-        notFound: byInput.filter((m) => !m.profile).map((m) => m.input),
+        notFound: [...byInput.filter((m) => !m.profile).map((m) => m.input), ...malformed],
       };
     }),
   );

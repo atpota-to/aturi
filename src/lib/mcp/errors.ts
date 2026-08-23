@@ -40,6 +40,10 @@ export type ToolResult = {
 function isUpstreamShaped(err: unknown): boolean {
   if (!(err instanceof Error)) return false;
   if (err.name === 'AbortError' || err.name === 'TimeoutError') return true;
+  // res.json() on a 2xx whose body isn't JSON — a PDS/PLC serving an HTML
+  // maintenance or interstitial page — throws SyntaxError. The tool layer
+  // itself parses no JSON, so any SyntaxError here came from an upstream fetch.
+  if (err.name === 'SyntaxError') return true;
   return /^HTTP \d{3}|fetch failed|network|ECONNRESET|ETIMEDOUT/i.test(err.message);
 }
 

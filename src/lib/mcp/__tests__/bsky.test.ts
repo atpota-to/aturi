@@ -85,6 +85,16 @@ test('the new feed and graph tools bound their inputs', () => {
   assert.equal(eng.safeParse({ uri: 'at://x/y/z', kind: 'likes' }).success, true);
 });
 
+test('get_profile diverts malformed identifiers to notFound without failing the batch', async () => {
+  // All-malformed → no network call, and every input lands in notFound rather
+  // than 400-ing the batch (the poisoning bug the reviewer caught).
+  const result = await tools.get('get_profile')!.handler({ identifiers: ['alice', 'John Doe'] });
+  assert.notEqual(result.isError, true);
+  const body = resultBody(result);
+  assert.deepEqual(body.profiles, []);
+  assert.deepEqual((body.notFound as string[]).sort(), ['John Doe', 'alice'].sort());
+});
+
 test('get_post_engagement rejects a non-at:// uri offline', async () => {
   const result = await tools.get('get_post_engagement')!.handler({
     uri: 'https://bsky.app/profile/dame.is/post/abc',

@@ -32,9 +32,8 @@ export function registerIdentityTools(server: McpServer): void {
       title: 'Resolve an atproto identity',
       description:
         'You have an atproto handle, DID, or at:// URI and need the canonical identity behind it: ' +
-        'the DID, the current handle, and the PDS host where the repo lives. For did:plc accounts ' +
-        'also returns the DID document summary (alsoKnownAs, declared services). Start here when a ' +
-        'later tool needs a DID or a PDS.',
+        'the DID, the current handle, the PDS host where the repo lives, and the DID document ' +
+        'summary (alsoKnownAs, declared services). Start here when a later tool needs a DID or a PDS.',
       inputSchema: z.object({ identifier: identifierSchema }),
       annotations: READ_ONLY,
     },
