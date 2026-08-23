@@ -55,3 +55,59 @@ test('a malformed at:// target answers invalid_parameter, offline', async () => 
   assert.equal(result.isError, true);
   assert.equal(resultBody(result).code, 'invalid_parameter');
 });
+
+test('a root-level source path keeps its dot when rebuilt', async () => {
+  // Constellation reports root-level links with the path ".", and answers
+  // "collection:" (the stripped form) with nothing rather than an error, so
+  // stripping here would silently hide every root-path source.
+  const calls: string[] = [];
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = (async (input: RequestInfo | URL) => {
+    calls.push(String(input));
+    return new Response(JSON.stringify({ total: 0, records: [], cursor: null }), {
+      status: 200,
+      headers: { 'content-type': 'application/json' },
+    });
+  }) as typeof fetch;
+  try {
+    await backlinks!.handler({
+      target: 'did:plc:abc',
+      mode: 'records',
+      source_collection: 'sh.tangled.graph.vouch',
+      source_path: '.',
+    });
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+  const backlinkCall = calls.find((c) => c.includes('getBacklinks'));
+  assert.ok(backlinkCall, 'expected a getBacklinks request');
+  assert.match(
+    decodeURIComponent(backlinkCall!),
+    /source=sh\.tangled\.graph\.vouch:\./,
+    `root path lost its dot: ${backlinkCall}`,
+  );
+});
+
+test('a non-root source path is sent without its leading dot', async () => {
+  const calls: string[] = [];
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = (async (input: RequestInfo | URL) => {
+    calls.push(String(input));
+    return new Response(JSON.stringify({ total: 0, records: [], cursor: null }), {
+      status: 200,
+      headers: { 'content-type': 'application/json' },
+    });
+  }) as typeof fetch;
+  try {
+    await backlinks!.handler({
+      target: 'did:plc:abc',
+      mode: 'records',
+      source_collection: 'app.bsky.graph.follow',
+      source_path: '.subject',
+    });
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+  const backlinkCall = calls.find((c) => c.includes('getBacklinks'));
+  assert.match(decodeURIComponent(backlinkCall!), /source=app\.bsky\.graph\.follow:subject/);
+});

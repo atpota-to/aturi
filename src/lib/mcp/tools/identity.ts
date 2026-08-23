@@ -9,7 +9,7 @@
 
 import { z } from 'zod';
 import type { McpServer } from '@modelcontextprotocol/server';
-import { getPlcAuditLog, diffOps } from '@/utils/atproto/plc';
+import { getPlcAuditLog, diffOps, type PlcOperation } from '@/utils/atproto/plc';
 import { resolveGuardedIdentity } from '@/lib/mcp/identityResolve';
 import { McpToolError } from '@/lib/mcp/errors';
 import { toolHandler, profileLink, exploreLink, READ_ONLY } from '@/lib/mcp/respond';
@@ -24,6 +24,24 @@ const identifierSchema = z
 
 /** Audit logs are usually short; the cap only guards pathological repos. */
 const MAX_AUDIT_ENTRIES = 100;
+
+/**
+ * Accounts created before the v2 PLC operation format record their handle and
+ * PDS as top-level strings (`handle`, `service`) instead of `alsoKnownAs` and
+ * `services`. Reading only the modern shape drops the original handle and
+ * host for every account made in 2022, which is exactly the history someone
+ * asks this tool about.
+ */
+type LegacyPlcFields = { handle?: string; service?: string };
+
+function handlesOf(operation: PlcOperation & LegacyPlcFields): string[] {
+  if (operation.alsoKnownAs?.length) return operation.alsoKnownAs;
+  return operation.handle ? [`at://${operation.handle}`] : [];
+}
+
+function pdsOf(operation: PlcOperation & LegacyPlcFields): string | null {
+  return operation.services?.atproto_pds?.endpoint ?? operation.service ?? null;
+}
 
 export function registerIdentityTools(server: McpServer): void {
   server.registerTool(
@@ -89,8 +107,8 @@ export function registerIdentityTools(server: McpServer): void {
             !prev && log[0] === entry
               ? ['identity created']
               : diffOps(prev?.operation, entry.operation),
-          handles: entry.operation.alsoKnownAs ?? [],
-          pds: entry.operation.services?.atproto_pds?.endpoint ?? null,
+          handles: handlesOf(entry.operation),
+          pds: pdsOf(entry.operation),
         };
       });
 

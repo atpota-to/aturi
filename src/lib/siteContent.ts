@@ -352,7 +352,7 @@ export function buildMcpPage(baseUrl: string): ContentPage {
               `**Claude** (web or desktop): Settings, then Connectors, then Add custom connector, with the URL \`${endpoint}\`.`,
               `**Claude Code**: \`claude mcp add --transport http aturi ${endpoint}\``,
               `**Cursor / VS Code**: add \`{"aturi": {"url": "${endpoint}"}}\` to the editor's MCP servers setting.`,
-              `**Anything else**: any client that speaks Streamable HTTP works, on the 2026-07-28 spec or the 2025 one. stdio-only clients can bridge with \`npx mcp-remote ${endpoint}\`.`,
+              `**Anything else**: any client that speaks Streamable HTTP works; the endpoint negotiates every MCP revision from 2024-10-07 through 2025-11-25. stdio-only clients can bridge with \`npx mcp-remote ${endpoint}\`.`,
             ],
           },
         ],
@@ -400,7 +400,7 @@ export function buildMcpPage(baseUrl: string): ContentPage {
         blocks: [
           {
             kind: 'p',
-            text: 'The server is keyless and stores nothing about callers, like the rest of the [public API](/docs). There is no paid tier, so there is nothing to upgrade to; just be reasonable about volume.',
+            text: 'The server is keyless: no account to make and no database of queries, like the rest of the [public API](/docs). There is no paid tier, so there is nothing to upgrade to; just be reasonable about volume.',
           },
           {
             kind: 'p',

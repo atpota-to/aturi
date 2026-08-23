@@ -1,4 +1,5 @@
 import { getSiteUrl } from '@/lib/config';
+import { toolCountWord } from '@/lib/mcp/catalog';
 
 /**
  * The /llms.txt index, per the llmstxt.org format: an H1 with the site name, a
@@ -71,7 +72,7 @@ failure — so branch on the \`ok\` field rather than on the status code.
 
 If your runtime supports MCP (Model Context Protocol), prefer the tool form over
 scripting the REST endpoints: add \`${origin}/api/mcp\` as a Streamable HTTP server —
-keyless and read-only, same access terms as the REST API. Its twenty-four tools cover
+keyless and read-only, same access terms as the REST API. Its ${toolCountWord()} tools cover
 the REST surface's resolution and catalog and go well past it: identity history,
 whole-repo browsing, network-wide backlinks, Bluesky author feeds, trends, social graph
 and post engagement, lexicon activity stats, and a bounded live-firehose sample. Only

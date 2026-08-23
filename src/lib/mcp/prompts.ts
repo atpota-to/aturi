@@ -6,6 +6,31 @@
 
 import { z } from 'zod';
 import type { McpServer } from '@modelcontextprotocol/server';
+import { McpToolError } from '@/lib/mcp/errors';
+
+/**
+ * A prompt argument is interpolated into text a model reads as instruction, so
+ * anything that is not shaped like an identifier is refused rather than
+ * escaped. Without this, a value carrying newlines and its own sentences
+ * inserts directives ahead of the route the prompt lays out, and the model has
+ * no way to tell them apart from the prompt's own words.
+ *
+ * The accepted shapes are the ones the tools take anyway: a DID, a dotted
+ * handle, or an at:// URI.
+ */
+const SAFE_IDENTIFIER = /^(did:[a-z]+:[A-Za-z0-9._:%-]{1,256}|[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?(\.[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?)+|at:\/\/[A-Za-z0-9._:%-]{1,256}(\/[A-Za-z0-9._~-]{1,256}){0,2})$/;
+
+function assertSafeIdentifier(value: string): string {
+  const trimmed = value.trim();
+  if (!SAFE_IDENTIFIER.test(trimmed)) {
+    throw new McpToolError(
+      'invalid_parameter',
+      'identifier must be a handle, a DID, or an at:// URI',
+      'Prompt arguments are inlined into instructions, so free text is refused.',
+    );
+  }
+  return trimmed;
+}
 
 export function registerPrompts(server: McpServer): void {
   server.registerPrompt(
@@ -29,7 +54,7 @@ export function registerPrompts(server: McpServer): void {
           content: {
             type: 'text' as const,
             text: [
-              `Explore the atproto account "${identifier}" and write up what you find.`,
+              `Explore the atproto account "${assertSafeIdentifier(identifier)}" and write up what you find.`,
               '',
               'Suggested route:',
               '1. resolve_identity to get the DID, handle, and PDS.',

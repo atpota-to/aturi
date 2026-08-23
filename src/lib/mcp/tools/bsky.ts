@@ -23,6 +23,7 @@ import {
   type AppViewThreadNode,
 } from '@/utils/atproto/appview';
 import { POST_COLLECTION, bskyAppUrl, postCard, profileCard } from '@/lib/mcp/cards';
+import { normalizeRecordUri, normalizeRecordUris } from '@/lib/mcp/atUri';
 import { resolveHandle } from '@/utils/atproto/identity';
 import { matchSupportedUrl } from '@/utils/reverseParsers';
 import { parseAtUri, toAtUri } from '@/utils/atproto/urls';
@@ -463,7 +464,7 @@ export function registerBskyTools(server: McpServer): void {
         'You have a Bluesky post and want the accounts that engaged with it: who liked it, who ' +
         'reposted it, or who quoted it (pick one with "kind"). Quote mode returns the quoting posts ' +
         'themselves. Page with the cursor. For the counts alone, get_author_feed and get_thread ' +
-        'already carry them.',
+        'already carry them; for references from outside Bluesky, use get_backlinks.',
       inputSchema: z.object({
         uri: z.string().min(1).max(2048).describe('at:// URI of the post (from any post-returning tool).'),
         kind: z.enum(['likes', 'reposts', 'quotes']).describe('Which engagement to list.'),
@@ -473,14 +474,10 @@ export function registerBskyTools(server: McpServer): void {
       annotations: READ_ONLY,
     },
     toolHandler(async ({ uri, kind, limit, cursor }) => {
-      const trimmed = uri.trim();
-      if (!trimmed.startsWith('at://')) {
-        throw new McpToolError(
-          'invalid_parameter',
-          'get_post_engagement needs an at:// post URI',
-          'Resolve a bsky.app URL with resolve_link first, then pass parsed.uri.',
-        );
-      }
+      // The AppView answers 200-with-nothing for a handle-form URI, so a
+      // caller passing resolve_link's output verbatim would be told the post
+      // has no likers rather than that the identifier needs resolving.
+      const trimmed = await normalizeRecordUri(uri, 'uri');
       const page = await getPostEngagement({ uri: trimmed, kind, limit: limit ?? 25, cursor });
       if (!page) {
         throw new McpToolError('upstream_error', `Could not load ${kind} for the post`, 'Safe to retry shortly.');
@@ -521,16 +518,10 @@ export function registerBskyTools(server: McpServer): void {
       annotations: READ_ONLY,
     },
     toolHandler(async ({ uris }) => {
-      const cleaned = uris.map((u) => u.trim());
-      const bad = cleaned.filter((u) => !u.startsWith('at://'));
-      if (bad.length) {
-        throw new McpToolError(
-          'invalid_parameter',
-          `Not at:// URIs: ${bad.slice(0, 3).join(', ')}`,
-          'Pass post URIs; resolve_link turns a web URL into one.',
-        );
-      }
-      const page = await getPosts(cleaned);
+      // Normalize authorities to DIDs first: the AppView omits handle-form
+      // URIs from its response, which would look like "not indexed" here.
+      const { normalized } = await normalizeRecordUris(uris, 'uris');
+      const page = await getPosts(normalized);
       if (!page) {
         throw new McpToolError('upstream_error', 'Could not hydrate those posts', 'Safe to retry shortly.');
       }
@@ -539,7 +530,7 @@ export function registerBskyTools(server: McpServer): void {
       return {
         count: posts.length,
         posts,
-        notFound: cleaned.filter((u) => !returned.has(u)),
+        notFound: normalized.filter((u) => !returned.has(u)),
       };
     }),
   );

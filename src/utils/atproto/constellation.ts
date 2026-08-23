@@ -37,9 +37,23 @@ type SourcesResponse = {
   links?: Record<string, Record<string, SourceInfo>>;
 };
 
+/**
+ * Every request is bounded. Without a timeout a host that accepts the
+ * connection and never answers holds the serverless invocation until the
+ * platform kills it, which on the MCP route means one caller can occupy a
+ * function slot for the full maxDuration.
+ */
+const REQUEST_TIMEOUT_MS = 8000;
+
+/** The caller's signal, if any, plus the deadline above. */
+function withDeadline(signal?: AbortSignal): AbortSignal {
+  const deadline = AbortSignal.timeout(REQUEST_TIMEOUT_MS);
+  return signal ? AbortSignal.any([signal, deadline]) : deadline;
+}
+
 async function fetchJsonOrNull<T>(url: string): Promise<T | null> {
   try {
-    const res = await fetch(url);
+    const res = await fetch(url, { signal: withDeadline() });
     if (!res.ok) return null;
     return (await res.json()) as T;
   } catch {
@@ -101,9 +115,16 @@ export function flattenSources(
       const count = info?.records ?? info?.count ?? 0;
       const distinctDids = info?.distinct_dids ?? info?.distinctDids ?? null;
       // /links/all returns the path with a leading dot (e.g. ".subject"),
-      // but getBacklinks rejects that — its `source` param uses the
-      // unprefixed form ("app.bsky.graph.follow:subject"). Strip it.
-      const sourcePath = path.startsWith('.') ? path.slice(1) : path;
+      // but getBacklinks' `source` param uses the unprefixed form
+      // ("app.bsky.graph.follow:subject"), so the dot is stripped.
+      //
+      // The exception is a root-level link, whose whole path is "." —
+      // stripping there leaves "collection:", which getBacklinks answers with
+      // nothing at all rather than an error, silently hiding every root-path
+      // source (sh.tangled.graph.vouch and friends). Verified against the
+      // live index: "sh.tangled.graph.vouch:." returns records, and
+      // "sh.tangled.graph.vouch:" returns none.
+      const sourcePath = path === '.' ? path : path.replace(/^\./, '');
       out.push({
         collection,
         path,

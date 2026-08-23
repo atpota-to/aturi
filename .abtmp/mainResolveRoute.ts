@@ -1,23 +1,5 @@
-/**
- * Core of the Atmosphere link resolver: a page URL or at:// URI in, the
- * parsed record plus every waypoint that can render it out. Shared by
- * GET /api/resolve (which owns HTTP status codes, CORS, and caching) and
- * the MCP resolve_link tool (which owns the tool-result envelope), so the
- * two surfaces cannot drift.
- *
- * Edge-safe by construction — the /api/resolve route runs on the edge
- * runtime, so nothing here may import Node-only APIs.
- *
- * Detection has two phases, in order:
- *  1. URL-pattern matching via `matchSupportedUrl` (covers bsky.app, leaflet,
- *     pdsls, atp.tools, the Bluesky-fork family, and friends).
- *  2. Page probing: fetch the page (capped to ~256KB and a short timeout) and
- *     look for the AT Tags it declares about itself
- *     (`<meta name="at:canonical">`, then `at:alternate`), falling back to a
- *     legacy `<link href="at://...">`. Optional; callers can suppress it.
- */
-
-import type { ApiErrorCode } from '@/lib/apiError';
+import { NextRequest, NextResponse } from 'next/server';
+import { apiErrorBody, type ApiErrorCode } from '@/lib/apiError';
 import {
   matchSupportedUrl,
   parseAtUri,
@@ -37,7 +19,39 @@ import { isBlockedFetchHost } from '@/utils/ssrfGuard';
 import { parseAtTagsFromHtml, primaryRecordFromAtTags } from '@/utils/atproto/atTags';
 import { fetchPageHtml } from '@/utils/fetchPageHtml';
 
-export type ResolvedWaypointJson = {
+export const runtime = 'edge';
+
+/**
+ * Resolves a page URL (from a share sheet, an Apple Shortcut, etc.) into the
+ * AT URI it represents and the list of Aturi waypoints that can render it.
+ *
+ * Mirrors the in-popup logic of the browser extension so that a single call
+ * gives a client (Shortcut, bookmarklet, third-party app) everything it needs
+ * to present a "open in..." picker without re-implementing the catalog.
+ *
+ * Detection has two phases, in order:
+ *  1. URL-pattern matching via `matchSupportedUrl` (covers bsky.app, leaflet,
+ *     pdsls, atp.tools, the Bluesky-fork family, and friends).
+ *  2. Page probing: fetch the page (capped to ~256KB and a short timeout) and
+ *     look for the AT Tags it declares about itself
+ *     (`<meta name="at:canonical">`, then `at:alternate`), falling back to a
+ *     legacy `<link href="at://...">`. Optional; callers can suppress with
+ *     `?headDetect=false`.
+ *
+ * Inputs:
+ *  - `url=<encoded-page-url>` (preferred from share sheets)
+ *  - `atUri=at://...`         (skips detection entirely)
+ *  - `composeText=<text>`     (optional; pre-fills the compose intent links)
+ *
+ * Either of the first two is accepted; `atUri` wins when both are supplied.
+ *
+ * Every waypoint carries a `composeIntent` describing whether that client can
+ * be handed a link that opens its composer
+ * (https://docs.bsky.app/docs/advanced-guides/intent-links), null when it
+ * can't. Pass `composeText` to get the links back pre-filled.
+ */
+
+type ResolvedWaypointJson = {
   id: string;
   name: string;
   category: string;
@@ -55,62 +69,26 @@ const DID_REQUIRED_WAYPOINTS = new Set([
 
 const HEAD_FETCH_TIMEOUT_MS = 4000;
 
-export type ResolveLinkInput = {
-  url?: string | null;
-  atUri?: string | null;
-  composeText?: string;
-  /** When false, skip the page-probing phase for unmatched URLs. */
-  headDetect?: boolean;
+const CORS_HEADERS = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET, OPTIONS',
+  'Access-Control-Allow-Headers': 'content-type',
 };
 
-export type ResolveLinkNoData = {
-  ok: false;
-  input: string | null;
-  inputKind: 'atUri' | 'url';
-  isKnownHost: boolean;
-  reason: 'no-atmosphere-data';
-  message: string;
-};
+export async function OPTIONS() {
+  return new NextResponse(null, { status: 204, headers: CORS_HEADERS });
+}
 
-export type ResolveLinkData = {
-  ok: true;
-  inputKind: 'atUri' | 'url';
-  detectedVia: 'atUri' | 'urlPattern' | 'atTags' | 'headLink' | null;
-  source: string;
-  isKnownHost: boolean;
-  parsed: {
-    type: WaypointType;
-    uri: string;
-    handle: string;
-    did: string | null;
-    collection: string | null;
-    rkey: string | null;
-  };
-  didResolved: boolean;
-  recommended: { ids: string[]; label: string };
-  waypoints: ResolvedWaypointJson[];
-};
-
-export type ResolveLinkResult =
-  | { kind: 'invalid'; code: ApiErrorCode; message: string; hint?: string }
-  | { kind: 'no-data'; body: ResolveLinkNoData }
-  | { kind: 'resolved'; body: ResolveLinkData };
-
-export async function resolveAtmosphereLink(
-  input: ResolveLinkInput,
-): Promise<ResolveLinkResult> {
-  const rawAtUri = input.atUri ?? null;
-  const rawUrl = input.url ?? null;
-  const skipHead = input.headDetect === false;
-  const composeText = input.composeText;
+export async function GET(request: NextRequest) {
+  const { searchParams } = new URL(request.url);
+  const rawAtUri = searchParams.get('atUri') || searchParams.get('aturi');
+  const rawUrl = searchParams.get('url');
+  const skipHead = searchParams.get('headDetect') === 'false';
+  const composeText = searchParams.get('composeText') || undefined;
 
   if (!rawAtUri && !rawUrl) {
-    return {
-      kind: 'invalid',
-      code: 'missing_parameter',
-      message: 'Missing url or atUri parameter',
-      hint: 'Pass ?url=<encoded-page-url> or ?atUri=at://<did>/<collection>/<rkey>.',
-    };
+    return jsonError(400, 'missing_parameter', 'Missing url or atUri parameter',
+      'Pass ?url=<encoded-page-url> or ?atUri=at://<did>/<collection>/<rkey>.');
   }
 
   let match: ReverseMatch | null = null;
@@ -121,35 +99,21 @@ export async function resolveAtmosphereLink(
   if (rawAtUri) {
     inputKind = 'atUri';
     match = parseAtUri(rawAtUri.trim());
-    if (!match) {
-      return {
-        kind: 'invalid',
-        code: 'invalid_parameter',
-        message: 'Invalid atUri',
-        hint: 'Expected at://<did-or-handle>/<collection>/<rkey>.',
-      };
-    }
+    if (!match) return jsonError(400, 'invalid_parameter', 'Invalid atUri',
+      'Expected at://<did-or-handle>/<collection>/<rkey>.');
     detectedVia = 'atUri';
   } else if (rawUrl) {
     let parsedUrl: URL;
     try {
       parsedUrl = new URL(rawUrl);
     } catch {
-      return {
-        kind: 'invalid',
-        code: 'invalid_parameter',
-        message: 'Invalid url',
-        hint: 'Pass a fully-qualified absolute URL, percent-encoded.',
-      };
+      return jsonError(400, 'invalid_parameter', 'Invalid url',
+        'Pass a fully-qualified absolute URL, percent-encoded.');
     }
 
     if (!/^https?:$/.test(parsedUrl.protocol)) {
-      return {
-        kind: 'invalid',
-        code: 'invalid_parameter',
-        message: 'Only http(s) URLs are supported',
-        hint: 'Strip non-web schemes; use ?atUri= for at:// input.',
-      };
+      return jsonError(400, 'invalid_parameter', 'Only http(s) URLs are supported',
+        'Strip non-web schemes; use ?atUri= for at:// input.');
     }
 
     isKnownHost = isSupportedHost(parsedUrl.hostname);
@@ -169,9 +133,8 @@ export async function resolveAtmosphereLink(
   }
 
   if (!match) {
-    return {
-      kind: 'no-data',
-      body: {
+    return NextResponse.json(
+      {
         ok: false,
         input: rawAtUri ?? rawUrl,
         inputKind,
@@ -180,7 +143,8 @@ export async function resolveAtmosphereLink(
         message:
           "Couldn't find a supported AT URI for this page (no URL pattern match, no at:canonical meta tag, and no <link href=\"at://...\"> in <head>).",
       },
-    };
+      { status: 200, headers: corsAndCache(60) }
+    );
   }
 
   const { source, parsed } = match;
@@ -235,9 +199,8 @@ export async function resolveAtmosphereLink(
     .map(w => w.id)
     .filter(id => id !== source && availableIds.has(id));
 
-  return {
-    kind: 'resolved',
-    body: {
+  return NextResponse.json(
+    {
       ok: true,
       inputKind,
       detectedVia,
@@ -255,7 +218,28 @@ export async function resolveAtmosphereLink(
       recommended: { ids: recommendedIds, label: recommendedRaw.label },
       waypoints,
     },
+    { status: 200, headers: corsAndCache(300) }
+  );
+}
+
+function corsAndCache(seconds: number) {
+  return {
+    ...CORS_HEADERS,
+    'Cache-Control': `public, max-age=${seconds}, s-maxage=${seconds}, stale-while-revalidate=${seconds * 6}`,
+    'Content-Type': 'application/json; charset=utf-8',
   };
+}
+
+function jsonError(
+  status: number,
+  code: ApiErrorCode,
+  message: string,
+  hint?: string,
+) {
+  return NextResponse.json(apiErrorBody(code, message, hint), {
+    status,
+    headers: CORS_HEADERS,
+  });
 }
 
 /**
@@ -282,15 +266,7 @@ async function detectAtUriInHead(
   if (declared) return { uri: declared, via: 'atTags' };
 
   // 2. Legacy <link href="at://...">.
-  //
-  // The tag body is bounded rather than `[^>]*`. Unbounded, the pattern is
-  // quadratic in page length on input that opens tags it never closes:
-  // '<link ' repeated fills the byte cap and costs minutes of event-loop-
-  // blocking backtracking, which a caller-supplied URL can trigger on demand.
-  // Measured: 20,000 unclosed tags took 2.7s unbounded versus 0.15s bounded,
-  // and the cost grows with the square of the input. No real <link> element
-  // approaches 2,000 characters before its href.
-  const linkRe = /<link\b[^>]{0,2000}?\bhref\s*=\s*["'](at:\/\/[^"']{1,2048})["']/gi;
+  const linkRe = /<link\b[^>]*\bhref\s*=\s*["'](at:\/\/[^"']+)["'][^>]*>/gi;
   let m: RegExpExecArray | null;
   while ((m = linkRe.exec(haystack)) !== null) {
     const href = m[1];

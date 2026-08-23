@@ -71,10 +71,11 @@ export function registerGraphTools(server: McpServer): void {
     {
       title: 'Who links to this, network-wide',
       description:
-        'You have a record (at:// URI) or an account (DID/handle) and want to know what references ' +
-        'it anywhere on the network: likes, replies, follows, mentions in other apps’ lexicons. ' +
-        'Mode "counts" lists every (collection, path) source with totals — call it first. Mode ' +
-        '"records" pages through one source’s linking records; fetch any of them with get_record.',
+        'You have a record (at:// URI) or an account (DID/handle) and want what references it ' +
+        'across every app, including lexicons you have never heard of: vouches, annotations, ' +
+        'mentions, follows. Mode "counts" lists every (collection, path) source with totals; call ' +
+        'it first. Mode "records" pages one source. For Bluesky likes, reposts and quotes with the ' +
+        'accounts attached, get_post_engagement is the direct answer.',
       inputSchema: z.object({
         target: z
           .string()
@@ -133,9 +134,11 @@ export function registerGraphTools(server: McpServer): void {
           'Call with mode "counts" first; each source row carries the collection and path to pass here.',
         );
       }
-      // /links/all reports paths with a leading dot; getBacklinks wants the
-      // bare form in its source param. Accept either from the caller.
-      const source = `${source_collection}:${source_path.replace(/^\./, '')}`;
+      // counts mode reports paths with a leading dot; the source param wants
+      // the bare form, so accept either from the caller. A root-level path is
+      // exactly "." and must keep its dot: "collection:" matches nothing.
+      const bare = source_path === '.' ? source_path : source_path.replace(/^\./, '');
+      const source = `${source_collection}:${bare}`;
       const page = await getBacklinks(normalized, source, { limit: limit ?? 25, cursor });
       if (!page) {
         throw new McpToolError(

@@ -3,6 +3,10 @@ import assert from 'node:assert/strict';
 import { registerAtmosphereServer } from '@/lib/mcp/registry';
 import { CATALOG_TOOL_NAMES, TOOL_COUNT, TOOL_GROUPS, numberWord, toolCountWord } from '@/lib/mcp/catalog';
 import { captureRegistrations } from '@/lib/mcp/__tests__/harness';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+import { buildLlmsTxt } from '@/lib/llmsTxt';
+import { buildMcpPage, renderContentPageMarkdown } from '@/lib/siteContent';
 
 const { tools, prompts } = captureRegistrations(registerAtmosphereServer);
 
@@ -47,4 +51,31 @@ test('the spelled-out counts stay in step with the real ones', () => {
 
 test('both prompts are registered alongside the tools', () => {
   assert.deepEqual([...prompts.keys()].sort(), ['explore_account', 'whats_happening']);
+});
+
+test('no site copy hard-codes a tool count that could drift', () => {
+  // The count reached /mcp, /mcp.md and /llms.txt by hand once already and
+  // went stale the next time the catalog grew. Every surface must derive it.
+  const sources = [
+    'src/lib/llmsTxt.ts',
+    'src/lib/siteContent.ts',
+    'src/components/landing/McpLanding.tsx',
+    'src/app/mcp/page.tsx',
+  ];
+  const written = /\b(sixteen|seventeen|eighteen|nineteen|twenty|twenty-four|thirty|thirty-four|thirty-five)\s+tools\b/i;
+  for (const file of sources) {
+    const text = readFileSync(resolve(process.cwd(), file), 'utf8');
+    const match = text.match(written);
+    assert.equal(match, null, `${file} hard-codes "${match?.[0]}"; interpolate toolCountWord() instead`);
+  }
+});
+
+test('the rendered llms.txt and Markdown twin report the real count', () => {
+  const llms = buildLlmsTxt('https://example.test');
+  assert.ok(
+    llms.includes(`${toolCountWord()} tools`),
+    `llms.txt does not name the current count (${toolCountWord()})`,
+  );
+  const md = renderContentPageMarkdown(buildMcpPage('https://example.test'));
+  assert.ok(md.includes(`## ${TOOL_COUNT} tools`), `mcp.md does not name ${TOOL_COUNT} tools`);
 });

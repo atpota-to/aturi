@@ -49,7 +49,7 @@ export const TOOL_GROUPS: CatalogGroup[] = [
     title: 'Repositories',
     blurb: 'Read any account’s repository directly from its PDS, whatever apps wrote to it.',
     tools: [
-      { name: 'describe_repo', summary: 'Which lexicons an account actually uses, plus size and last write' },
+      { name: 'describe_repo', summary: 'Which lexicons an account actually uses, plus its host and last write' },
       { name: 'list_records', summary: 'Page through any collection in any repo' },
       { name: 'get_record', summary: 'One record by at:// URI, edge-cached with a direct-PDS fallback' },
       { name: 'describe_pds', summary: 'A server’s metadata, version, and a sample of who it hosts' },

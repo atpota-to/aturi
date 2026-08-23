@@ -41,9 +41,23 @@ export type AppViewProfile = {
   createdAt?: string;
 };
 
+/**
+ * Every request is bounded. Without a timeout a host that accepts the
+ * connection and never answers holds the serverless invocation until the
+ * platform kills it, which on the MCP route means one caller can occupy a
+ * function slot for the full maxDuration.
+ */
+const REQUEST_TIMEOUT_MS = 8000;
+
+/** The caller's signal, if any, plus the deadline above. */
+function withDeadline(signal?: AbortSignal): AbortSignal {
+  const deadline = AbortSignal.timeout(REQUEST_TIMEOUT_MS);
+  return signal ? AbortSignal.any([signal, deadline]) : deadline;
+}
+
 async function fetchJsonOrNull<T>(url: string, signal?: AbortSignal): Promise<T | null> {
   try {
-    const res = await fetch(url, { signal });
+    const res = await fetch(url, { signal: withDeadline(signal) });
     if (!res.ok) return null;
     return (await res.json()) as T;
   } catch {
@@ -511,6 +525,10 @@ export async function listFeedGenerators(opts: {
     if (query) params.set('query', query);
     method = 'app.bsky.unspecced.getPopularFeedGenerators';
   } else {
+    // getSuggestedFeeds caps limit at 25 where its two siblings allow 50, and
+    // answers 400 above it. Clamp rather than fail: the caller asked for "as
+    // many as you have", not for an error.
+    params.set('limit', String(Math.min(limit, 25)));
     method = 'app.bsky.unspecced.getSuggestedFeeds';
   }
   return fetchJsonOrNull<FeedGeneratorsPage>(`${APPVIEW}/xrpc/${method}?${params}`, signal);

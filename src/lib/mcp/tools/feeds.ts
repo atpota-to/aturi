@@ -19,6 +19,7 @@ import {
   listFeedGenerators,
 } from '@/utils/atproto/appview';
 import { McpToolError } from '@/lib/mcp/errors';
+import { normalizeRecordUri, normalizeRecordUris } from '@/lib/mcp/atUri';
 import { feedCard, listCard, postCard, profileCard } from '@/lib/mcp/cards';
 import { toolHandler, READ_ONLY } from '@/lib/mcp/respond';
 
@@ -33,18 +34,6 @@ const listUriSchema = z
   .min(1)
   .max(2048)
   .describe('at://<repo>/app.bsky.graph.list/<rkey> — from list_lists or resolve_link.');
-
-function assertAtUri(value: string, what: string): string {
-  const trimmed = value.trim();
-  if (!trimmed.startsWith('at://')) {
-    throw new McpToolError(
-      'invalid_parameter',
-      `${what} must be an at:// URI`,
-      'resolve_link converts a bsky.app feed or list URL into one.',
-    );
-  }
-  return trimmed;
-}
 
 export function registerFeedTools(server: McpServer): void {
   server.registerTool(
@@ -111,7 +100,8 @@ export function registerFeedTools(server: McpServer): void {
       annotations: READ_ONLY,
     },
     toolHandler(async ({ uris }) => {
-      const cleaned = uris.map((u) => assertAtUri(u, 'Each feed URI'));
+      // A feed URI's authority may be a handle; the AppView indexes by DID.
+      const { normalized: cleaned } = await normalizeRecordUris(uris, 'uris');
       const page = await getFeedGenerators(cleaned);
       if (!page) {
         throw new McpToolError('upstream_error', 'Could not describe those feeds', 'Safe to retry shortly.');
@@ -142,7 +132,7 @@ export function registerFeedTools(server: McpServer): void {
       annotations: READ_ONLY,
     },
     toolHandler(async ({ feed, limit, cursor }) => {
-      const uri = assertAtUri(feed, 'feed');
+      const uri = await normalizeRecordUri(feed, 'feed');
       const page = await getFeed({ feed: uri, limit: limit ?? 25, cursor });
       if (!page) {
         throw new McpToolError(
@@ -213,7 +203,7 @@ export function registerFeedTools(server: McpServer): void {
       annotations: READ_ONLY,
     },
     toolHandler(async ({ list, limit, cursor }) => {
-      const uri = assertAtUri(list, 'list');
+      const uri = await normalizeRecordUri(list, 'list');
       const page = await getList({ list: uri, limit: limit ?? 50, cursor });
       if (!page?.list) {
         throw new McpToolError(
@@ -247,7 +237,7 @@ export function registerFeedTools(server: McpServer): void {
       annotations: READ_ONLY,
     },
     toolHandler(async ({ list, limit, cursor }) => {
-      const uri = assertAtUri(list, 'list');
+      const uri = await normalizeRecordUri(list, 'list');
       const page = await getListFeed({ list: uri, limit: limit ?? 25, cursor });
       if (!page) {
         throw new McpToolError(

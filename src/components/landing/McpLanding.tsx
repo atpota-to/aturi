@@ -180,9 +180,10 @@ export default function McpLanding({ endpoint }: { endpoint: string }) {
         body={
           <>
             <p>
-              Any client that speaks Streamable HTTP works, on the 2026 spec or
-              the 2025 one; the same endpoint serves both. Clients that only
-              speak stdio can bridge with{' '}
+              Any client that speaks Streamable HTTP works. The endpoint
+              negotiates whichever MCP revision the client asks for, from
+              2024-10-07 through 2025-11-25. Clients that only speak stdio can
+              bridge with{' '}
               <code style={{ color: 'var(--text-accent)' }}>npx mcp-remote</code>.
             </p>
             <p>
@@ -203,8 +204,9 @@ export default function McpLanding({ endpoint }: { endpoint: string }) {
           <>
             <p>
               No tool here can post, like, follow, or edit anything, and the
-              server holds no credentials to do it with. It stores nothing
-              about who calls it: no accounts, no logs of what you asked.
+              server holds no credentials to do it with. There is no account to
+              make and no database of queries: what you ask is used to answer
+              and then gone.
             </p>
             <p>
               Write access is coming as a package you run on your own machine,

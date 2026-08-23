@@ -52,3 +52,18 @@ test('a port-encoded did:web loopback host is still blocked', async () => {
   assert.equal(result.isError, true);
   assert.equal(resultBody(result).code, 'invalid_parameter');
 });
+
+test('a did:web whose userinfo hides an internal host is blocked', async () => {
+  // The guard must read the host the fetcher would really dial, not a
+  // differently-derived one: everything after did:web: becomes the URL
+  // authority, so userinfo can move the real host past a naive check.
+  for (const did of [
+    'did:web:example.com:@127.0.0.1',
+    'did:web:example.com:@169.254.169.254',
+    'did:web:user:pass@localhost',
+  ]) {
+    const result = await identityTools.get('resolve_identity')!.handler({ identifier: did });
+    assert.equal(result.isError, true, did);
+    assert.equal(resultBody(result).code, 'invalid_parameter', did);
+  }
+});

@@ -72,3 +72,6 @@ export function resultBody(result: ToolResult): Record<string, unknown> {
  * every group's test enforces the same budget.
  */
 export const MAX_DESCRIPTION_LENGTH = 600;
+
+/** Bytes a single tool result may occupy; mirrors respond.ts's own ceiling. */
+export const MAX_RESULT_BYTES = 512_000;

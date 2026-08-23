@@ -28,7 +28,10 @@ export type DescribeRepoResponse = {
 import { upstreamFetch } from '../upstreamFetch';
 
 async function fetchJson<T>(url: string): Promise<T> {
-  const res = await upstreamFetch(url);
+  // The PDS base comes from a DID document, which anyone can author, so a
+  // redirect here would send the request to an unchecked host and hand its
+  // body back to the caller. A PDS serving XRPC never needs to redirect.
+  const res = await upstreamFetch(url, { redirect: 'error' });
   if (!res.ok) {
     const text = await res.text().catch(() => '');
     const err = new Error(

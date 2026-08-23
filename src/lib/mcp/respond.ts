@@ -12,12 +12,45 @@
 
 import { getSiteUrl } from '@/lib/config';
 import { encodeRepo } from '@/utils/atproto/urls';
+import { apiErrorBody } from '@/lib/apiError';
 import { toolFailure, type ToolResult } from '@/lib/mcp/errors';
+
+/**
+ * Ceiling on a single tool result.
+ *
+ * Most payloads are shaped by an upstream this server does not control: a
+ * record is whatever its author wrote, and a repo on an attacker-run PDS can
+ * answer a legal `list_records` call with megabytes. Unbounded, one call
+ * floods the caller's context window and costs them real money. Tools that can
+ * predict their own size trim first (get_lexicon_schema, sample_firehose);
+ * this is the net under all of them, including tools added later.
+ *
+ * Generous enough that no honest call reaches it: the largest legitimate
+ * result measured (100 posts with full records) is about 200KB.
+ */
+const MAX_RESULT_BYTES = 512_000;
 
 export function okResult(data: Record<string, unknown>): ToolResult {
   const body = { ok: true, ...data };
+  const text = JSON.stringify(body, null, 2);
+
+  if (text.length > MAX_RESULT_BYTES) {
+    // Refuse rather than truncate: half a record is worse than none, and the
+    // caller can always ask for less.
+    const overflow = apiErrorBody(
+      'invalid_parameter',
+      `This result is ${Math.round(text.length / 1000)}KB, over the ${Math.round(MAX_RESULT_BYTES / 1000)}KB limit for one call`,
+      'Ask for less: lower `limit`, narrow the collection, or page with the cursor.',
+    );
+    return {
+      content: [{ type: 'text', text: JSON.stringify(overflow, null, 2) }],
+      structuredContent: overflow,
+      isError: true,
+    };
+  }
+
   return {
-    content: [{ type: 'text', text: JSON.stringify(body, null, 2) }],
+    content: [{ type: 'text', text }],
     structuredContent: body,
   };
 }

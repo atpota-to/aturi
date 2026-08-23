@@ -36,8 +36,26 @@ export type ListReposPage = {
   repos: RepoEntry[];
 };
 
+/**
+ * The PDS host reaching this module is caller-influenced: it comes from a DID
+ * document, or straight from an API caller. Two consequences:
+ *
+ * - `redirect: 'error'`. Following a redirect would re-point the request at a
+ *   host nothing has checked, which turns a guarded first hop into an
+ *   unguarded fetch of any address the redirect names (loopback, cloud
+ *   metadata) and returns its body to the caller. A PDS answering XRPC has no
+ *   reason to redirect, so refusing is both safe and correct.
+ * - An explicit timeout. Without one, a host that accepts the connection and
+ *   never answers pins the whole serverless invocation until the platform
+ *   kills it.
+ */
+const PDS_TIMEOUT_MS = 8000;
+
 async function fetchJson<T>(url: string): Promise<T> {
-  const res = await fetch(url);
+  const res = await fetch(url, {
+    redirect: 'error',
+    signal: AbortSignal.timeout(PDS_TIMEOUT_MS),
+  });
   if (!res.ok) {
     const text = await res.text().catch(() => '');
     throw new Error(`HTTP ${res.status} ${res.statusText} :: ${text.slice(0, 200)}`);

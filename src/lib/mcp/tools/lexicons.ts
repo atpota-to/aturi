@@ -9,9 +9,9 @@ import type { McpServer } from '@modelcontextprotocol/server';
 import {
   fetchCollections,
   fetchCollectionStats,
-  fetchRecentRecords,
+  fetchRecentRecordsResult,
   fetchTimeseries,
-  searchLexicons,
+  searchLexiconsResult,
 } from '@/utils/ufos/client';
 import { WINDOWS, type Window } from '@/utils/ufos/windows';
 import { isoAgo, type CollectionOrder, type JustCount } from '@/utils/ufos/config';
@@ -159,7 +159,14 @@ export function registerLexiconTools(server: McpServer): void {
       annotations: READ_ONLY,
     },
     toolHandler(async ({ query }) => {
-      const matches = await searchLexicons(query);
+      const { matches, failed } = await searchLexiconsResult(query);
+      if (failed) {
+        throw new McpToolError(
+          'upstream_error',
+          'The UFOs lexicon index is unavailable',
+          'Retry shortly; an empty answer here would read as "nothing is published under that name", which is not what happened.',
+        );
+      }
       return {
         query,
         count: matches.length,
@@ -186,7 +193,14 @@ export function registerLexiconTools(server: McpServer): void {
     },
     toolHandler(async ({ nsid, limit }) => {
       assertNsid(nsid);
-      const all = await fetchRecentRecords([nsid]);
+      const { records: all, failed } = await fetchRecentRecordsResult([nsid]);
+      if (failed) {
+        throw new McpToolError(
+          'upstream_error',
+          'The UFOs record sampler is unavailable',
+          'Retry shortly; an empty answer here would read as "this lexicon is quiet", which is not what happened.',
+        );
+      }
       const max = limit ?? 10;
       const records = all.slice(0, max).map((r) => ({
         uri: toAtUri({ did: r.did, collection: r.collection, rkey: r.rkey }),

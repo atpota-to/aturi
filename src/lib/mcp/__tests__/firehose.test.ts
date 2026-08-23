@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { registerFirehoseTools } from '@/lib/mcp/tools/firehose';
-import { captureRegistrations, MAX_DESCRIPTION_LENGTH } from '@/lib/mcp/__tests__/harness';
+import { captureRegistrations, resultBody, MAX_DESCRIPTION_LENGTH } from '@/lib/mcp/__tests__/harness';
 
 const { tools } = captureRegistrations(registerFirehoseTools);
 const sample = tools.get('sample_firehose');
@@ -14,8 +14,11 @@ test('carries a title, a bounded description, and read-only annotations', () => 
   assert.ok(sample?.config.title);
   assert.ok((sample?.config.description ?? '').length <= MAX_DESCRIPTION_LENGTH);
   assert.equal(sample?.config.annotations?.readOnlyHint, true);
-  // A live sample is read-only but not idempotent: two calls see different events.
-  assert.equal(sample?.config.annotations?.idempotentHint, false);
+  // idempotentHint is about effects on the environment, not about whether the
+  // answer changes between calls, and the spec treats it as meaningful only
+  // when readOnlyHint is false. A read-only tool claiming non-idempotence
+  // reads to a client as "this one might do something".
+  assert.equal(sample?.config.annotations?.idempotentHint, true);
 });
 
 test('bounds the time budget, event cap, filter arrays, and operations enum', () => {
@@ -40,4 +43,20 @@ test('bounds the time budget, event cap, filter arrays, and operations enum', ()
     }).success,
     true,
   );
+});
+
+test('rejects malformed collection filters before opening a socket', async () => {
+  const result = await sample!.handler({ collections: ['not an nsid'], duration_seconds: 1 });
+  assert.equal(result.isError, true);
+  assert.equal(resultBody(result).code, 'invalid_parameter');
+});
+
+test('rejects handles where Jetstream needs DIDs, before opening a socket', async () => {
+  // The filter is DID-only upstream; passing a handle would be accepted by the
+  // schema and then silently match nothing.
+  const result = await sample!.handler({ dids: ['alice.bsky.social'], duration_seconds: 1 });
+  assert.equal(result.isError, true);
+  const body = resultBody(result);
+  assert.equal(body.code, 'invalid_parameter');
+  assert.match(String(body.hint), /resolve_identity/);
 });

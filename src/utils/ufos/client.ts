@@ -19,9 +19,23 @@ import {
   type UfosMeta,
 } from './config';
 
+/**
+ * Every request is bounded. Without a timeout a host that accepts the
+ * connection and never answers holds the serverless invocation until the
+ * platform kills it, which on the MCP route means one caller can occupy a
+ * function slot for the full maxDuration.
+ */
+const REQUEST_TIMEOUT_MS = 8000;
+
+/** The caller's signal, if any, plus the deadline above. */
+function withDeadline(signal?: AbortSignal): AbortSignal {
+  const deadline = AbortSignal.timeout(REQUEST_TIMEOUT_MS);
+  return signal ? AbortSignal.any([signal, deadline]) : deadline;
+}
+
 async function fetchJsonOrNull<T>(url: string, init?: RequestInit): Promise<T | null> {
   try {
-    const res = await fetch(url, { cache: 'no-store', ...init });
+    const res = await fetch(url, { cache: 'no-store', signal: withDeadline(init?.signal ?? undefined), ...init });
     if (!res.ok) return null;
     return (await res.json()) as T;
   } catch {
@@ -124,6 +138,42 @@ export async function fetchTimeseries(opts: {
  * avoid 400s and return `[]` for too-short or failed queries so the
  * typeahead never needs try/catch.
  */
+/**
+ * Failure-aware variant of {@link searchLexicons}. The plain version collapses
+ * an outage into the same `[]` a genuine zero-match produces, which is fine
+ * for a typeahead that just renders nothing but wrong for a caller that
+ * reports "nothing is published under that name" as a fact.
+ */
+export async function searchLexiconsResult(
+  q: string,
+  signal?: AbortSignal,
+): Promise<{ matches: NsidCount[]; failed: boolean }> {
+  const trimmed = q.trim();
+  const alnum = trimmed.match(/[a-z0-9-]/gi);
+  if (!alnum || alnum.length < 2) return { matches: [], failed: false };
+  const params = new URLSearchParams({ q: trimmed });
+  const data = await fetchJsonOrNull<{ matches?: NsidCount[] }>(
+    `${UFOS_API}/search?${params.toString()}`,
+    { signal },
+  );
+  return { matches: data?.matches ?? [], failed: data === null };
+}
+
+/** Failure-aware variant of {@link fetchRecentRecords}; see searchLexiconsResult. */
+export async function fetchRecentRecordsResult(
+  collections: string[],
+  signal?: AbortSignal,
+): Promise<{ records: ApiRecord[]; failed: boolean }> {
+  if (collections.length === 0) return { records: [], failed: false };
+  const params = new URLSearchParams();
+  for (const c of collections) params.append('collection', c);
+  const data = await fetchJsonOrNull<ApiRecord[]>(
+    `${UFOS_API}/records?${params.toString()}`,
+    { signal },
+  );
+  return { records: Array.isArray(data) ? data : [], failed: data === null };
+}
+
 export async function searchLexicons(q: string, signal?: AbortSignal): Promise<NsidCount[]> {
   const trimmed = q.trim();
   const alnum = trimmed.match(/[a-z0-9-]/gi);

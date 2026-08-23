@@ -76,7 +76,9 @@ export async function fetchDidDocument(did: string): Promise<DidDocument | null>
       const domain = did.replace('did:web:', '');
       const url = `https://${domain}/.well-known/did.json`;
 
-      const response = await upstreamFetch(url);
+      // The host is named by the DID, so it is caller-controlled; a redirect
+      // would move the fetch to an address no guard has seen.
+      const response = await upstreamFetch(url, { redirect: 'error' });
       if (!response.ok) {
         logUpstreamHttpError('did:web document fetch failed', response);
         return null;

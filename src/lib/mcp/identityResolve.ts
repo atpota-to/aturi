@@ -38,14 +38,18 @@ export type GuardedIdentity = {
 };
 
 /**
- * The host (and optional port) of a did:web identity, per the did:web method:
- * everything up to the first path-separating colon, with the port's `%3A`
- * decoded. `did:web:example.com%3A3000:path` → `example.com:3000`.
+ * The URL a did:web document will actually be fetched from.
+ *
+ * Guarding a host derived by a different rule than the fetcher uses is worse
+ * than not guarding at all: it reports safety about an address nobody will
+ * contact. fetchDidDocument() builds `https://<everything after did:web:>/
+ * .well-known/did.json`, so this reproduces that string exactly and lets the
+ * guard read its host. A DID whose remainder carries userinfo
+ * (`did:web:example.com:@127.0.0.1`) therefore presents 127.0.0.1 to the
+ * guard, which is the host that would really be dialled.
  */
-function didWebHost(did: string): string {
-  const rest = did.slice('did:web:'.length);
-  const firstSegment = rest.split(':')[0];
-  return decodeURIComponent(firstSegment);
+function didWebFetchUrl(did: string): string {
+  return `https://${did.slice('did:web:'.length)}/.well-known/did.json`;
 }
 
 function handleFromAka(alsoKnownAs: string[] | undefined): string | null {
@@ -104,9 +108,9 @@ export async function resolveGuardedIdentity(identifier: string): Promise<Guarde
     alsoKnownAs = doc.alsoKnownAs ?? [];
     services = (doc.service ?? []) as DidService[];
   } else if (did.startsWith('did:web:')) {
-    // Guard the host named in the DID before fetching its document — this is
-    // the loopback/link-local vector (did:web:127.0.0.1).
-    assertPublicServiceBase(didWebHost(did), 'The did:web host');
+    // Guard the exact URL the document will be fetched from, before fetching
+    // it — this is the loopback/link-local vector (did:web:127.0.0.1).
+    assertPublicServiceBase(didWebFetchUrl(did), 'The did:web host');
     const doc = await fetchDidDocument(did);
     if (!doc) {
       throw new McpToolError('not_found', `Could not fetch the did:web document for ${did}`);
