@@ -3,6 +3,7 @@
 import { useState, type ReactNode } from 'react';
 import { KeyRound, Lock, ShieldOff, TriangleAlert } from 'lucide-react';
 import ScopeSelector from '@/components/oauth/ScopeSelector';
+import type { ScopeId } from '@/lib/oauth/scopes';
 import { useSignInFlow } from '@/components/oauth/useSignInFlow';
 import { useAtprotoSession } from '@/components/AtprotoSessionProvider';
 import { classifySpaceError } from '@/utils/atproto/spaceClient';
@@ -72,7 +73,7 @@ export default function SpaceAccessPanel({ state, what, defaultAccount }: Props)
             your server doesn’t support spaces yet and dropped it. Authorize
             again to try.
           </p>
-          <ReauthorizeButton />
+          <SpaceReauthorizeButton />
         </Panel>
       );
 
@@ -131,7 +132,7 @@ export default function SpaceAccessPanel({ state, what, defaultAccount }: Props)
             enough to read your own repository in this space but not anyone
             else’s. Reading {target} needs whole-space access.
           </p>
-          <ReauthorizeButton />
+          <SpaceReauthorizeButton />
         </Panel>
       );
 
@@ -302,11 +303,22 @@ export function SpaceReadErrorPanel({ err, what }: { err: unknown; what: string 
 }
 
 /**
- * Re-run the sign-in flow with the whole-space row already ticked. Rendered as
- * a button rather than the form itself so a page that is otherwise readable
- * isn't dominated by a permission picker nobody asked for.
+ * Re-run the sign-in flow with one permission row already ticked. Rendered as a
+ * button rather than the form itself so a page that is otherwise readable isn't
+ * dominated by a permission picker nobody asked for.
+ *
+ * `preselect` is what the caller is short of: a reader needs the whole-space
+ * row, an authority who cannot administer their own space needs the management
+ * row. The picker adds it on top of the defaults rather than replacing them, so
+ * re-authorizing never silently drops a permission the session already had.
  */
-function ReauthorizeButton() {
+export function SpaceReauthorizeButton({
+  preselect = ['spacesAll'],
+  label = 'Authorize space access',
+}: {
+  preselect?: ScopeId[];
+  label?: string;
+} = {}) {
   const { did } = useAtprotoSession();
   const [open, setOpen] = useState(false);
   const { step, pendingAccount, busy, error, proceedToScopes, backToHandle, submitScopes } =
@@ -335,7 +347,7 @@ function ReauthorizeButton() {
           cursor: 'pointer',
         }}
       >
-        <KeyRound size={12} /> Authorize space access
+        <KeyRound size={12} /> {label}
       </button>
     );
   }
@@ -359,7 +371,7 @@ function ReauthorizeButton() {
         account={pendingAccount}
         busy={busy}
         error={error}
-        preselect={['spacesAll']}
+        preselect={preselect}
         onBack={() => {
           backToHandle();
           setOpen(false);
