@@ -9,8 +9,8 @@
 
 import { z } from 'zod';
 import type { McpServer } from '@modelcontextprotocol/server';
-import { resolveIdentifier } from '@/utils/atproto/identity';
-import { getPlcDocument, getPlcAuditLog, diffOps } from '@/utils/atproto/plc';
+import { getPlcAuditLog, diffOps } from '@/utils/atproto/plc';
+import { resolveGuardedIdentity } from '@/lib/mcp/identityResolve';
 import { McpToolError } from '@/lib/mcp/errors';
 import { toolHandler, profileLink, exploreLink, READ_ONLY } from '@/lib/mcp/respond';
 
@@ -39,38 +39,15 @@ export function registerIdentityTools(server: McpServer): void {
       annotations: READ_ONLY,
     },
     toolHandler(async ({ identifier }) => {
-      let bundle;
-      try {
-        bundle = await resolveIdentifier(identifier);
-      } catch {
-        throw new McpToolError(
-          'not_found',
-          `Could not resolve "${identifier}" to an atproto identity`,
-          'Check the spelling. Handles resolve via DNS or their PDS; a freshly created handle can take a minute to propagate.',
-        );
-      }
-
-      // did:web documents live at the domain, not in the PLC directory;
-      // resolution already proved the identity exists, so a missing PLC doc
-      // is a shape of the DID method, not an error.
-      let didDoc: Record<string, unknown> | null = null;
-      if (bundle.did.startsWith('did:plc:')) {
-        try {
-          const doc = await getPlcDocument(bundle.did);
-          didDoc = {
-            alsoKnownAs: doc.alsoKnownAs ?? [],
-            services: doc.service ?? [],
-          };
-        } catch {
-          // Non-fatal: identity still resolved; the PLC mirror may lag.
-        }
-      }
-
+      const bundle = await resolveGuardedIdentity(identifier);
       return {
         did: bundle.did,
         handle: bundle.handle,
         pds: bundle.pds,
-        didDoc,
+        didDoc: {
+          alsoKnownAs: bundle.alsoKnownAs,
+          services: bundle.services,
+        },
         links: {
           profile: profileLink(bundle.handle ?? bundle.did),
           explore: exploreLink(`/${bundle.handle ?? bundle.did}`),
@@ -91,16 +68,7 @@ export function registerIdentityTools(server: McpServer): void {
       annotations: READ_ONLY,
     },
     toolHandler(async ({ identifier }) => {
-      let bundle;
-      try {
-        bundle = await resolveIdentifier(identifier);
-      } catch {
-        throw new McpToolError(
-          'not_found',
-          `Could not resolve "${identifier}" to an atproto identity`,
-          'Check the spelling, or pass the DID directly if you already have it.',
-        );
-      }
+      const bundle = await resolveGuardedIdentity(identifier);
 
       if (!bundle.did.startsWith('did:plc:')) {
         throw new McpToolError(

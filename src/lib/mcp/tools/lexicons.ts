@@ -17,13 +17,13 @@ import { WINDOWS, type Window } from '@/utils/ufos/windows';
 import { isoAgo, type CollectionOrder, type JustCount } from '@/utils/ufos/config';
 import { lexiconPathFor, publisherForNsid, schemaPathFor } from '@/utils/ufos/nsid';
 import { lexiconAuthorityDomain, resolveLexiconDid } from '@/utils/atproto/spaceLexicon';
-import { resolveHandle, resolveIdentifier } from '@/utils/atproto/identity';
+import { resolveHandle } from '@/utils/atproto/identity';
 import { getRecordByUri } from '@/utils/atproto/slingshot';
 import { getRecord as getPdsRecord } from '@/utils/atproto/pdsClient';
 import { isValidNsid } from '@/utils/atproto/spaceUri';
 import { toAtUri } from '@/utils/atproto/urls';
 import { McpToolError } from '@/lib/mcp/errors';
-import { assertPublicServiceBase } from '@/lib/mcp/guard';
+import { resolveGuardedIdentity } from '@/lib/mcp/identityResolve';
 import { toolHandler, exploreLink, recordLink, siteLink, READ_ONLY } from '@/lib/mcp/respond';
 
 const SCHEMA_COLLECTION = 'com.atproto.lexicon.schema';
@@ -245,9 +245,8 @@ export function registerLexiconTools(server: McpServer): void {
         // Slingshot misses new or rarely-read records; the authority's own
         // PDS is the source of truth before declaring the schema unpublished.
         try {
-          const bundle = await resolveIdentifier(did);
-          const pds = assertPublicServiceBase(bundle.pds, 'The resolved PDS endpoint');
-          record = await getPdsRecord(pds, { repo: did, collection: SCHEMA_COLLECTION, rkey: nsid });
+          const bundle = await resolveGuardedIdentity(did);
+          record = await getPdsRecord(bundle.pds, { repo: did, collection: SCHEMA_COLLECTION, rkey: nsid });
         } catch {
           record = null;
         }

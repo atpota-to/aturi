@@ -2,14 +2,14 @@
  * Repository tools: what is in an account's repo, page through a collection,
  * fetch one record, and describe a PDS host.
  *
- * Every PDS base fetched here is either caller-supplied (describe_pds) or
- * resolved from a DID document — both attacker-influenceable — so each one
- * passes assertPublicServiceBase before any request.
+ * Every PDS base fetched here is either caller-supplied (describe_pds, guarded
+ * inline) or resolved from a DID document via resolveGuardedIdentity, which
+ * clears the endpoint through the SSRF guard before returning it — so no
+ * attacker-declared host reaches a fetch.
  */
 
 import { z } from 'zod';
 import type { McpServer } from '@modelcontextprotocol/server';
-import { resolveIdentifier } from '@/utils/atproto/identity';
 import {
   describeRepo,
   getLatestCommit,
@@ -30,6 +30,7 @@ import { isValidNsid, isValidRecordKey } from '@/utils/atproto/spaceUri';
 import { tidToDate } from '@/utils/atproto/tid';
 import { McpToolError } from '@/lib/mcp/errors';
 import { assertPublicServiceBase } from '@/lib/mcp/guard';
+import { resolveGuardedIdentity } from '@/lib/mcp/identityResolve';
 import {
   toolHandler,
   profileLink,
@@ -55,23 +56,6 @@ function hasStatus(err: unknown, status: number): boolean {
   return err instanceof Error && (err as Error & { status?: number }).status === status;
 }
 
-async function resolveOrNotFound(identifier: string) {
-  try {
-    const bundle = await resolveIdentifier(identifier);
-    return {
-      ...bundle,
-      pds: assertPublicServiceBase(bundle.pds, 'The resolved PDS endpoint'),
-    };
-  } catch (err) {
-    if (err instanceof McpToolError) throw err;
-    throw new McpToolError(
-      'not_found',
-      `Could not resolve "${identifier}" to an atproto identity`,
-      'Check the spelling, or pass the DID directly if you already have it.',
-    );
-  }
-}
-
 export function registerRepoTools(server: McpServer): void {
   server.registerTool(
     'describe_repo',
@@ -86,7 +70,7 @@ export function registerRepoTools(server: McpServer): void {
       annotations: READ_ONLY,
     },
     toolHandler(async ({ identifier }) => {
-      const bundle = await resolveOrNotFound(identifier);
+      const bundle = await resolveGuardedIdentity(identifier);
 
       let collections: string[] = [];
       try {
@@ -173,7 +157,7 @@ export function registerRepoTools(server: McpServer): void {
           'Expected a reverse-domain name like app.bsky.feed.post.',
         );
       }
-      const bundle = await resolveOrNotFound(identifier);
+      const bundle = await resolveGuardedIdentity(identifier);
 
       let page;
       try {
@@ -277,7 +261,7 @@ export function registerRepoTools(server: McpServer): void {
 
       // Slingshot misses on brand-new records and unusual hosts; go to the
       // repo's own PDS before concluding the record doesn't exist.
-      const bundle = await resolveOrNotFound(repo);
+      const bundle = await resolveGuardedIdentity(repo);
       let record;
       try {
         record = await getPdsRecord(bundle.pds, { repo: bundle.did, collection: coll, rkey: key });
