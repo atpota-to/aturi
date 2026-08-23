@@ -7,6 +7,7 @@
  * Both responses are cached for 30s to keep multi-tab exploration cheap.
  */
 
+import { withIdentification } from '../requestDeadline';
 import { PLC_DIRECTORY } from './config';
 import { TTLMap } from './cache';
 
@@ -49,22 +50,8 @@ const PLC_TTL = 30_000;
 const docCache = new TTLMap<string, PlcDocument>(PLC_TTL);
 const auditCache = new TTLMap<string, PlcAuditEntry[]>(PLC_TTL);
 
-/**
- * Every request is bounded. Without a timeout a host that accepts the
- * connection and never answers holds the serverless invocation until the
- * platform kills it, which on the MCP route means one caller can occupy a
- * function slot for the full maxDuration.
- */
-const REQUEST_TIMEOUT_MS = 8000;
-
-/** The caller's signal, if any, plus the deadline above. */
-function withDeadline(signal?: AbortSignal): AbortSignal {
-  const deadline = AbortSignal.timeout(REQUEST_TIMEOUT_MS);
-  return signal ? AbortSignal.any([signal, deadline]) : deadline;
-}
-
 async function fetchJson<T>(url: string): Promise<T> {
-  const res = await fetch(url, { signal: withDeadline() });
+  const res = await fetch(url, withIdentification());
   if (!res.ok) {
     const text = await res.text().catch(() => '');
     throw new Error(`HTTP ${res.status} ${res.statusText} :: ${text.slice(0, 200)}`);

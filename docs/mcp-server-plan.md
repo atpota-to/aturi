@@ -1,8 +1,23 @@
 # Plan: an MCP server for the Atmosphere
 
-Status: decided and built. The read-only server (M0 + M1 scope) lives on this
-branch; the sections below are the original proposal, kept as the design
-record. Decisions taken 2026-08-23:
+Status: decided, built, and audited. The read-only server (M0 + M1 scope)
+lives on this branch; the sections below are the original proposal, kept as
+the design record.
+
+A seven-lens adversarial audit ran against the finished surface, with every
+finding independently re-checked before it was acted on. Two defects it found
+were serious enough to name here, because both were reachable by an anonymous
+caller and neither was visible from the tests: PDS-bound fetches followed
+redirects, so a caller-named public host answering 302 could pull an internal
+address's response body into a tool result; and the shared `<link>` scanner
+was quadratic, so one `resolve_link` call against a hostile page burned
+minutes of blocking CPU. Both predate or sit beneath the tool layer, and both
+also affected `/api/resolve`. Fixed and regression-tested. The audit also
+established that this server negotiates MCP 2025-11-25 down to 2024-10-07,
+not the 2026-07-28 revision the early copy claimed; `mcp-handler`'s README
+advertises that revision but the installed SDK does not implement it.
+
+Decisions taken 2026-08-23:
 
 - **D1 (endpoint):** the protocol endpoint is `/api/mcp`; `/mcp` is the
   human landing page, with a Markdown twin at `/mcp.md` behind the same
@@ -253,10 +268,11 @@ Concrete choices:
 - **Observability:** count tool invocations by name and error code, nothing
   else. No payload logging; tool inputs contain whatever people are curious
   about, and the privacy page should be able to keep saying we don't store it.
-- **Identification:** set a descriptive `User-Agent`
-  (`aturi-mcp/<version> (+https://aturi.to/mcp)`) on MCP-originated upstream
-  calls. `upstreamFetch` sets none today; microcosm and Bluesky operators
-  should be able to see and contact us.
+- **Identification:** implemented in `src/utils/requestDeadline.ts`, which
+  sets `aturi.to (+https://aturi.to/mcp)` on the direct-fetch upstream clients
+  along with their 8-second deadline. Set off-browser only, since a browser
+  forbids scripts from setting `User-Agent` and the extension imports the same
+  modules. `upstreamFetch` still sets none.
 
 ## The dependency exception this needs
 

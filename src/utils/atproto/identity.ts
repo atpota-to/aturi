@@ -7,6 +7,7 @@
  *     the canonical identity bundle the explorer pages depend on.
  */
 
+import { withIdentification } from '../requestDeadline';
 import { resolveDidToHandle, resolvePdsEndpoint } from '../didResolver';
 import { APPVIEW, HANDLE_RESOLVER_FALLBACK } from './config';
 import { describeRepo } from './pdsClient';
@@ -21,15 +22,9 @@ export type IdentityBundle = {
 const HANDLE_TTL = 5 * 60_000;
 const handleToDidCache = new TTLMap<string, string>(HANDLE_TTL);
 
-/**
- * Bounded like the other upstream clients: handle resolution runs on the hot
- * path of nearly every tool, so a hung resolver must not hold the invocation.
- */
-const REQUEST_TIMEOUT_MS = 8000;
-
 async function tryFetchJson<T>(url: string): Promise<T | null> {
   try {
-    const res = await fetch(url, { signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS) });
+    const res = await fetch(url, withIdentification());
     if (!res.ok) return null;
     return (await res.json()) as T;
   } catch {

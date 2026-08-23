@@ -4,6 +4,7 @@
  * wrapping every call site in try/catch.
  */
 
+import { withIdentification } from '../requestDeadline';
 import { CONSTELLATION } from './config';
 
 export type BacklinkSource = {
@@ -37,23 +38,9 @@ type SourcesResponse = {
   links?: Record<string, Record<string, SourceInfo>>;
 };
 
-/**
- * Every request is bounded. Without a timeout a host that accepts the
- * connection and never answers holds the serverless invocation until the
- * platform kills it, which on the MCP route means one caller can occupy a
- * function slot for the full maxDuration.
- */
-const REQUEST_TIMEOUT_MS = 8000;
-
-/** The caller's signal, if any, plus the deadline above. */
-function withDeadline(signal?: AbortSignal): AbortSignal {
-  const deadline = AbortSignal.timeout(REQUEST_TIMEOUT_MS);
-  return signal ? AbortSignal.any([signal, deadline]) : deadline;
-}
-
 async function fetchJsonOrNull<T>(url: string): Promise<T | null> {
   try {
-    const res = await fetch(url, { signal: withDeadline() });
+    const res = await fetch(url, withIdentification());
     if (!res.ok) return null;
     return (await res.json()) as T;
   } catch {
