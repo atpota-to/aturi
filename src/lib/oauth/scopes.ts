@@ -262,6 +262,32 @@ export function buildScopeString(selected: ReadonlySet<ScopeId>): string {
 }
 
 /**
+ * The inverse of `buildScopeString`: which granular ids a scope string names.
+ *
+ * The backend sign-in path takes a closed set of ids rather than a scope
+ * string — an open string parameter reaching `authorize()` is a
+ * privilege-escalation surface, and ids are validated by set membership. But
+ * three call sites already hand the session's `signIn` a scope string, so
+ * rather than change each of them (and every future one), the dispatch inverts
+ * the string here and the call sites stay as they are.
+ *
+ * The round trip is stable at the string level, which is the level that
+ * matters: `buildScopeString(scopeIdsFromString(s))` re-produces `s` for any
+ * `s` this app generates. It is not stable at the *set* level, and cannot be —
+ * `buildScopeString` drops `spacesSelf` whenever `spacesAll` is present,
+ * because `read` implies `read_self` in the matcher, so that pair collapses on
+ * the way out and only the survivor comes back.
+ *
+ * Tokens the app doesn't recognise are ignored rather than rejected. This
+ * exists to reconstruct our own output, and the sole caller falls back to the
+ * defaults when it recognises nothing.
+ */
+export function scopeIdsFromString(scopeString: string): Set<ScopeId> {
+  const tokens = new Set(scopeString.split(/\s+/).filter(Boolean));
+  return new Set(GRANULAR_SCOPES.filter((s) => tokens.has(s.scope)).map((s) => s.id));
+}
+
+/**
  * Action list a `space:` token carries when it names none. The parser's
  * default is read + the three write verbs, so a bare `space:*` is a read
  * grant even though it doesn't say so.

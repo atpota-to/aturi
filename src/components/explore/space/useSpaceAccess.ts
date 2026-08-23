@@ -14,6 +14,7 @@ import {
   type OwnPdsFetch,
   type SpaceCredential,
 } from '@/utils/atproto/spaceCredential';
+import { recordSpaceConsent } from '@/lib/oauth/bffSession';
 import {
   classifySpaceError,
   collectSpacePages,
@@ -237,6 +238,19 @@ async function holdsRepoUnderAuthority(
 }
 
 /**
+ * Unlock an authority in both places it now has to be recorded.
+ *
+ * The in-memory set drives this hook and the UI; the server-side record is
+ * what actually gates minting, because the mint is an endpoint that anything
+ * holding a session token can call. The second call is a no-op on a
+ * browser-only deployment.
+ */
+function grantAuthorityConsent(did: string): void {
+  unlockSpaceAuthority(did);
+  recordSpaceConsent(did);
+}
+
+/**
  * Resolve what the signed-in visitor may read in `space` (a canonical space
  * ref from `formatSpaceRef`), minting a space credential when the grant allows
  * one. Pass `null` while the ref isn't known yet.
@@ -324,13 +338,13 @@ export function useSpaceAccess(space: string | null): SpaceAccessState {
             status: 'locked',
             authority,
             did: signedInDid,
-            unlock: () => unlockSpaceAuthority(authority.did),
+            unlock: () => grantAuthorityConsent(authority.did),
           });
           return;
         }
         // Recorded so the rest of the session skips the check, and so the
         // effect re-runs once and falls through to the mint below.
-        unlockSpaceAuthority(authority.did);
+        grantAuthorityConsent(authority.did);
         return;
       }
       // Handed to the transport so one stale-credential response mid-page

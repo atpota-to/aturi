@@ -1,6 +1,8 @@
 # Backend OAuth (BFF) for aturi.to — scope and plan
 
-**Status:** proposal, not yet approved. Nothing here has been implemented.
+**Status:** phases 0–4 are implemented on this branch and unconfigured, so they
+are inert. Phase 5 (rollout, legal copy) and phase 6 (the extension client) are
+not. See **Implementation status** below.
 **Goal:** move aturi.to from a public browser OAuth client to a confidential
 backend client (the BFF pattern anisota-cocoon uses), and design it so the
 browser extension can sign in too.
@@ -56,6 +58,99 @@ Three findings drive the whole design:
 **Cost, stated plainly:** one new runtime dependency (`@atproto/oauth-client-node`),
 the project's first server-side secret, the project's first database, and a
 rewrite of privacy/terms copy that currently promises none of those exist.
+
+---
+
+## Implementation status
+
+Built, and green through `npm run lint && npm run typecheck && npm test &&
+npm run build`, the extension suite (305 tests) and the packages suite:
+
+| Phase | State |
+| --- | --- |
+| 0 — sign-off, `.gitignore` | done |
+| 1 — key generator, keyset, client metadata, JWKS | done |
+| 2 — storage, lock, sessions, login/callback/session/logout/exchange/sessions | done |
+| 3 — XRPC proxy, client shim, auth-mode dispatch | done |
+| 4 — spaces delegation token and consent | done |
+| 5 — rollout, `/account` device list, terms and privacy rewrite | **not started** |
+| 6 — extension client | **not started** (the backend half it needs is done) |
+
+**None of it is live.** Every route answers 503 until `ATURI_OAUTH_JWK_ACTIVE`,
+`ATURI_DB_URL`, `ATURI_DB_SERVICE_KEY` and `ATURI_SESSION_ENC_KEY` are all set,
+and `NEXT_PUBLIC_AUTH_MODE` resolves to `browser` when they are not — so the
+build in CI, every preview, and any fork behave exactly as before. Going live
+means applying `sql/001_oauth_bff.sql`, exposing the `aturi` schema to the
+Data API, and setting the variables on staging.
+
+### Where the implementation diverged from the plan, and why
+
+1. **No `server-only` package.** It resolves through the `react-server` export
+   condition, which plain `node --test` does not set, so it breaks `npm test`
+   for any module a test touches. The substitute is an ESLint
+   `no-restricted-imports` rule (`eslint.config.mjs`) forbidding
+   `@/lib/oauth/server/*` outside the route handlers, plus
+   `scripts/check-env-names.mjs` in `npm run lint`, which fails on a
+   secret-shaped `NEXT_PUBLIC_` name. This also keeps the dependency ask to
+   exactly the one that was approved.
+
+2. **Only the PostgREST driver ships.** `StoreDriver` is the interface the plan
+   described, but a `pg` implementation would be a second dependency, so it is
+   documented rather than bundled and `ATURI_DB_DRIVER=pg` fails loudly instead
+   of falling back.
+
+3. **The CSRF binding lives inside the sealed application state, not in its own
+   column.** Stronger than the planned `flow_sha256` column: it sits inside the
+   AES-GCM envelope, so it cannot be read or forged from the database side
+   either, and it needs no schema surface. `SealedStateStore.peekAppState()`
+   reads it *before* the code exchange, which is also what lets the failure
+   path recover the right return target.
+
+4. **Sign-in dispatch lives in the provider's `signIn`, not in
+   `useSignInFlow`.** The completeness review was right that two surfaces
+   bypass that hook — `AccountTab.tsx:298` and `SpacesLanding.tsx:451` call the
+   context's `signIn` directly — so patching the hook would have left both
+   minting legacy sessions. Dispatching one level down covers all three with no
+   per-surface change.
+
+5. **`ScopeSelector` is untouched.** Rather than widen `onContinue` to carry
+   permission ids, the provider inverts the scope string with
+   `scopeIdsFromString` (new, in `scopes.ts`, with a round-trip test). Callers
+   keep passing what they always passed.
+
+6. **`useSpaceAccess` gained a consent helper, not an `ownPdsFetch` closure.**
+   The shim special-cases `getDelegationToken` internally, so the only change
+   is that unlocking an authority now also records that consent server-side.
+   `spaceCredential.ts`, `spaceDpop.ts` and `spaceClient.ts` are byte-identical.
+
+7. **The request-body cap is 4 MB, not 5.** Vercel rejects a body over 4.5 MB at
+   the platform edge before the handler runs, so a 5 MB cap would be
+   unreachable and anything in between would surface as an opaque platform
+   error rather than a clean 413.
+
+8. **`com.atproto.repo.uploadBlob` is not in the proxy allowlist.** Nothing in
+   the app calls it; allowlisting an authenticated multi-megabyte write
+   endpoint ahead of a caller is free exposure. It goes in with its caller.
+
+9. **`scripts/alias-resolve.mjs` now also resolves extensionless relative
+   imports.** Tests could previously only reach modules whose entire import
+   graph used the `@/` alias — a limit that was invisible until a test imported
+   one that didn't.
+
+10. **The `pg_cron` sweep is a separate file** (`sql/002_cron_supabase.sql`).
+    `cron.schedule` errors on any Postgres without the extension, which is
+    exactly the Neon or self-hosted case a fork is most likely to be on.
+
+### Still open before this can go live
+
+- Phase 5's legal rewrite is a blocker for enabling the backend at all: the
+  terms page states in three places that aturi is a public OAuth client that
+  never receives tokens, and lists no database provider among its
+  sub-processors. All three become false the moment the first variable is set.
+- The `/account` device list has an API (`GET`/`DELETE /api/oauth/sessions`)
+  and no UI.
+- `testing.aturi.to`'s Vercel project still needs confirming, since it decides
+  whether staging shares production's signing key.
 
 ---
 

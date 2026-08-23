@@ -22,3 +22,11 @@ tangled-mirror.pub
 id_ed25519*
 id_rsa*
 *.pem
+
+# The confidential OAuth client's signing key is a JSON JWK, which none of the
+# patterns above match. scripts/generate-oauth-key.mjs prints to stdout and
+# never writes a file, but this repo is force-pushed to the Tangled mirror on
+# every push, so a stray key file must not be committable.
+*.jwk
+*.jwk.json
+oauth-key*.json

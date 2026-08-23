@@ -20,6 +20,41 @@ const eslintConfig = defineConfig([
       "react-hooks/set-state-in-effect": "off",
     },
   },
+  // Server-only OAuth modules read a signing key and a database credential.
+  // Nothing outside the route handlers may import them: a client component
+  // that did would pull a secret into the browser bundle, and this repository
+  // is force-pushed to a public mirror on every push.
+  //
+  // This is the zero-dependency substitute for the `server-only` package. That
+  // package would catch the same mistake at build time rather than lint time,
+  // but it resolves through the `react-server` export condition, which plain
+  // `node --test` does not set — so it breaks `npm test` for any module a test
+  // touches. Lint runs in CI on every push, which is enough.
+  {
+    files: ["src/**/*.{ts,tsx}"],
+    ignores: [
+      "src/app/api/oauth/**",
+      "src/app/oauth/**",
+      "src/lib/oauth/server/**",
+      // Tests run under `node --test` and are never bundled for the browser.
+      "src/**/__tests__/**",
+    ],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: ["@/lib/oauth/server/*", "**/oauth/server/*"],
+              message:
+                "Server-only: reads the OAuth signing key and database credential. " +
+                "Import it from src/app/api/oauth/** or src/app/oauth/** only.",
+            },
+          ],
+        },
+      ],
+    },
+  },
   // Override default ignores of eslint-config-next.
   globalIgnores([
     // Default ignores of eslint-config-next:
