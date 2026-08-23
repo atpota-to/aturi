@@ -316,3 +316,103 @@ export const HOME_PAGE: ContentPage = {
     },
   ],
 };
+
+/**
+ * The /mcp landing page. A builder rather than a const because the copy
+ * names the endpoint URL, which must track the deploy's own origin — a fork
+ * serves an MCP page that points at itself, same rule as llms.txt.
+ */
+export function buildMcpPage(baseUrl: string): ContentPage {
+  const origin = baseUrl.replace(/\/$/, '');
+  const endpoint = `${origin}/api/mcp`;
+
+  return {
+    title: 'MCP server',
+    description:
+      'aturi.to hosts a free, keyless, read-only MCP server: eighteen tools for exploring the Atmosphere — link resolution, identity, repositories, backlinks, search, lexicon activity — that any AI agent can use by adding one URL.',
+    intro:
+      `The Atmosphere Explorer, as tools. Point an MCP-capable agent at \`${endpoint}\` and it can resolve any Atmosphere link, read any repo, trace backlinks across every app, and watch lexicon activity network-wide. No key, no account, nothing to install.`,
+    sections: [
+      {
+        id: 'add',
+        heading: 'Add it to your agent',
+        blocks: [
+          {
+            kind: 'ul',
+            items: [
+              `**Claude** (web or desktop): Settings → Connectors → Add custom connector, with the URL \`${endpoint}\`.`,
+              `**Claude Code**: \`claude mcp add --transport http aturi ${endpoint}\``,
+              `**Cursor / VS Code**: add \`{"aturi": {"url": "${endpoint}"}}\` to the editor's MCP servers setting.`,
+              `**Anything else**: any client that speaks Streamable HTTP works, on the 2026-07-28 spec or the 2025 one. stdio-only clients can bridge with \`npx mcp-remote ${endpoint}\`.`,
+            ],
+          },
+        ],
+      },
+      {
+        id: 'tools',
+        heading: 'Eighteen tools',
+        blocks: [
+          {
+            kind: 'p',
+            text: 'Every tool is read-only, and every answer carries `at://` URIs plus aturi.to universal links, so an agent can always hand a human something to open.',
+          },
+          {
+            kind: 'ul',
+            items: [
+              '**Resolve**: `resolve_link` turns any Atmosphere URL — or a page declaring AT Tags — into the record behind it plus every client that renders it; `list_waypoints` is the client catalog itself.',
+              '**Identity**: `resolve_identity` (handle ↔ DID ↔ PDS) and `get_identity_history` (the PLC audit log: handle changes, migrations, key rotations).',
+              '**Repositories**: `describe_repo` (which lexicons an account actually uses), `list_records`, `get_record`, and `describe_pds`.',
+              '**Network graph**: `get_backlinks` — who references a record or account, across every app, from the Constellation index.',
+              '**Bluesky layer**: `get_profile`, `get_thread`, `search_posts`, `search_actors`, over the public AppView.',
+              '**Lexicon ecosystem**: `list_trending_lexicons`, `get_lexicon_activity`, `search_lexicons`, `sample_recent_records`, and `get_lexicon_schema`, from the UFOs index.',
+            ],
+          },
+        ],
+      },
+      {
+        id: 'questions',
+        heading: 'Questions it answers well',
+        blocks: [
+          {
+            kind: 'ul',
+            items: [
+              '“Who links to this post, anywhere on the network?”',
+              '“What apps does this account actually use?”',
+              '“When did this account migrate PDSes, and from where?”',
+              '“Which lexicons are trending today, and what do their records look like?”',
+              '“Give me a link my friend can open in her own client.”',
+            ],
+          },
+        ],
+      },
+      {
+        id: 'posture',
+        heading: 'No key, no account, read-only',
+        blocks: [
+          {
+            kind: 'p',
+            text: 'The server is keyless and stores nothing about callers, like the rest of the [public API](/docs). There is no paid tier, so there is nothing to upgrade to — just be reasonable about volume.',
+          },
+          {
+            kind: 'p',
+            text: 'It is strictly read-only. Nothing here can post, like, follow, or edit, by design: the hosted surface will never hold write credentials. Write tools are planned as a separate package that runs on your own machine with your own keys.',
+          },
+          {
+            kind: 'p',
+            text: 'Answers come from the same public infrastructure the Explorer reads: the Bluesky public AppView, plc.directory, and microcosm’s Constellation, Slingshot, and UFOs services.',
+          },
+        ],
+      },
+      {
+        id: 'rest',
+        heading: 'The REST twin',
+        blocks: [
+          {
+            kind: 'p',
+            text: 'Building software rather than prompting an agent? The same core answers are plain GET endpoints, typed by [the OpenAPI document](/openapi.json) and explained in the [developer docs](/docs). Both surfaces wrap the same code, so neither drifts from the other.',
+          },
+        ],
+      },
+    ],
+  };
+}

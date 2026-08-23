@@ -1,6 +1,29 @@
 # Plan: an MCP server for the Atmosphere
 
-Status: proposal, for discussion. Nothing here is built yet.
+Status: decided and built. The read-only server (M0 + M1 scope) lives on this
+branch; the sections below are the original proposal, kept as the design
+record. Decisions taken 2026-08-23:
+
+- **D1 (endpoint):** the protocol endpoint is `/api/mcp`; `/mcp` is the
+  human landing page, with a Markdown twin at `/mcp.md` behind the same
+  Accept negotiation as `/about` and `/docs`.
+- **D2 (dependencies):** approved. `mcp-handler` 2.x (Apache-2.0, not MIT as
+  first written below), `@modelcontextprotocol/server` 2.x (MIT), `zod` 4
+  (MIT), web app only.
+- **D3/D4 (catalog):** nothing trimmed; all groups shipped including the
+  `get_lexicon_schema` stretch, which makes the real count **eighteen**
+  tools, not the sixteen the proposal text says. `search_posts` shipped;
+  in testing its upstream (Bluesky search) answers 403 to data-center IPs,
+  so the tool reports an honest `upstream_error` where that applies — watch
+  whether Vercel egress is affected in production.
+- **D5 (writes):** hosted stays read-only; write tools go to a future local
+  companion package (Option A). Option B is parked.
+- **D6 (firehose):** deferred, as proposed; `sample_recent_records` covers
+  the need over UFOs.
+- **D7 (rate limits):** still open — a Vercel WAF rule on `/api/mcp` is a
+  dashboard step at deploy time; in-code fan-out caps shipped.
+- **D8 (naming):** serverInfo name `aturi`, flat unprefixed tool names.
+  Registry namespace (`to.aturi/mcp`) still to be claimed at M2.
 
 The pitch in one line: `https://aturi.to/mcp`, a hosted Model Context Protocol
 server that any AI agent can add by URL, with no key and no account, exposing

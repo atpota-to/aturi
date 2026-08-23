@@ -233,3 +233,102 @@ export async function getPostThread(
     `${APPVIEW}/xrpc/app.bsky.feed.getPostThread?${params}`,
   );
 }
+
+/**
+ * The recursive node shape getPostThread actually returns once depth or
+ * parentHeight is non-zero. AppViewPostThread above types only the top post
+ * (all its existing callers need); consumers that walk the tree read the
+ * response through this instead. `$type` distinguishes real posts from
+ * blocked/not-found placeholders.
+ */
+export type AppViewThreadNode = {
+  $type?: string;
+  post?: {
+    uri: string;
+    cid: string;
+    author?: { did: string; handle?: string; displayName?: string; avatar?: string };
+    record?: Record<string, unknown>;
+    replyCount?: number;
+    repostCount?: number;
+    likeCount?: number;
+    quoteCount?: number;
+    indexedAt?: string;
+  };
+  parent?: AppViewThreadNode;
+  replies?: AppViewThreadNode[];
+};
+
+/** A post as returned by search/feed endpoints. */
+export type AppViewPostView = {
+  uri: string;
+  cid: string;
+  author?: { did: string; handle?: string; displayName?: string; avatar?: string };
+  record?: Record<string, unknown>;
+  replyCount?: number;
+  repostCount?: number;
+  likeCount?: number;
+  quoteCount?: number;
+  indexedAt?: string;
+};
+
+export type SearchPostsPage = {
+  posts?: AppViewPostView[];
+  cursor?: string;
+  hitsTotal?: number;
+};
+
+/**
+ * app.bsky.feed.searchPosts — full-text post search. Public, no auth, but
+ * the most rate-limit-sensitive endpoint this module touches; callers
+ * should keep limits modest and cache where they can. Returns null on any
+ * failure so call sites can distinguish "no results" from "search down".
+ */
+export async function searchPosts(opts: {
+  q: string;
+  sort?: 'top' | 'latest';
+  since?: string;
+  until?: string;
+  author?: string;
+  lang?: string;
+  limit?: number;
+  cursor?: string;
+  signal?: AbortSignal;
+}): Promise<SearchPostsPage | null> {
+  const { q, sort, since, until, author, lang, limit = 25, cursor, signal } = opts;
+  if (!q) return null;
+  const params = new URLSearchParams({ q, limit: String(limit) });
+  if (sort) params.set('sort', sort);
+  if (since) params.set('since', since);
+  if (until) params.set('until', until);
+  if (author) params.set('author', author);
+  if (lang) params.set('lang', lang);
+  if (cursor) params.set('cursor', cursor);
+  return fetchJsonOrNull<SearchPostsPage>(
+    `${APPVIEW}/xrpc/app.bsky.feed.searchPosts?${params}`,
+    signal,
+  );
+}
+
+export type SearchActorsPage = {
+  actors?: AppViewProfile[];
+  cursor?: string;
+};
+
+/**
+ * app.bsky.actor.searchActors — full actor search with complete profiles,
+ * where searchActorsTypeahead above returns prefix suggestions. Returns
+ * null on failure, an empty actors array on a real "no matches".
+ */
+export async function searchActors(
+  q: string,
+  opts: { limit?: number; cursor?: string; signal?: AbortSignal } = {},
+): Promise<SearchActorsPage | null> {
+  if (!q) return null;
+  const { limit = 10, cursor, signal } = opts;
+  const params = new URLSearchParams({ q, limit: String(limit) });
+  if (cursor) params.set('cursor', cursor);
+  return fetchJsonOrNull<SearchActorsPage>(
+    `${APPVIEW}/xrpc/app.bsky.actor.searchActors?${params}`,
+    signal,
+  );
+}

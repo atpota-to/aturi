@@ -67,6 +67,17 @@ on \`code\`, never on the prose. Note that two operations return \`ok: false\` w
 when the answer is a definite negative — a page with no atproto record is a result, not a
 failure — so branch on the \`ok\` field rather than on the status code.
 
+## MCP server
+
+If your runtime supports MCP (Model Context Protocol), prefer the tool form over
+scripting the REST endpoints: add \`${origin}/api/mcp\` as a Streamable HTTP server —
+keyless and read-only, same access terms as the REST API. Its eighteen tools are a
+superset of the REST surface: link resolution and the client catalog, plus identity
+history, whole-repo browsing, network-wide backlinks, Bluesky search, and lexicon
+activity stats.
+
+- [MCP server](${origin}/mcp): the tool list and copy-paste setup for Claude, Cursor, and other clients (Markdown at [/mcp.md](${origin}/mcp.md)).
+
 ## API endpoints
 
 - [GET /api/resolve](${origin}/api/resolve?url=https%3A%2F%2Fbsky.app%2Fprofile%2Faturi.to): resolve a page URL or \`at://\` URI into a record plus every client that can open it.

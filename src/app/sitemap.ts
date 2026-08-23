@@ -16,6 +16,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { path: '/explore', priority: 0.8 },
     { path: '/explore/lexicons', priority: 0.6 },
     { path: '/docs', priority: 0.6 },
+    { path: '/mcp', priority: 0.6 },
     { path: '/about', priority: 0.5 },
     { path: '/contact', priority: 0.5 },
     { path: '/fork', priority: 0.4 },
