@@ -37,9 +37,13 @@ export class PostgrestDriver implements StoreDriver {
     const u = new URL(`${this.baseUrl}/rest/v1/${table}`);
     if (columns) u.searchParams.set('select', columns);
     for (const [k, v] of Object.entries(where ?? {})) {
-      // `eq.` values are matched literally; PostgREST reserves a leading `(`
-      // and comma-splits unquoted lists, so every value is quoted.
-      u.searchParams.set(k, `eq.${v}`);
+      // Every value is double-quoted, which is how PostgREST wants an operand
+      // that could contain one of its reserved characters (comma, parenthesis,
+      // dot, whitespace). No value that reaches here today can — DIDs exclude
+      // them by grammar, hashes are hex, and `client` is a checked enum — but
+      // the escaping rule belongs to the layer that builds the query rather
+      // than to the charset of whatever happens to call it.
+      u.searchParams.set(k, `eq."${v.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`);
     }
     return u.toString();
   }

@@ -29,6 +29,7 @@ import { formatSpaceRef, isSpaceRefParts, parseSpaceAtUri } from '@/utils/atprot
 import { spaceGrantLevel } from '@/lib/oauth/scopes';
 import { getOAuthClient } from '@/lib/oauth/server/client';
 import { CORS_HEADERS, corsPreflight, fail, guarded, resolveOrigin } from '@/lib/oauth/server/http';
+import { bodyForStatus } from '@/lib/oauth/server/upstream';
 import { allow, RATE_LIMITS } from '@/lib/oauth/server/rateLimit';
 import { resolveActor } from '@/lib/oauth/server/session';
 import { getStore, TABLE } from '@/lib/oauth/server/store';
@@ -146,7 +147,7 @@ export async function POST(request: Request) {
     // working unmodified. Never logged: the body is a bearer credential, and
     // it is single-use with a ~60 second life, so it must not be retried
     // either — a spent token comes back as InvalidDelegationToken.
-    const payload = await upstream.arrayBuffer();
+    const payload = bodyForStatus(upstream.status, await upstream.arrayBuffer());
     return new NextResponse(payload, {
       status: upstream.status,
       statusText: upstream.statusText,

@@ -85,3 +85,20 @@ test('a code nested in `cause` is still found', () => {
   });
   assert.ok(isRetriableConnectError(err));
 });
+
+/**
+ * A PDS answering 204 must reach the client as 204. The Response constructor
+ * refuses a body — even an empty one — on a null-body status, so mirroring an
+ * upstream status without this turns a good response into a 500.
+ */
+test('null-body statuses get a null body', async () => {
+  const { bodyForStatus } = await import('@/lib/oauth/server/upstream');
+  const empty = new ArrayBuffer(0);
+  for (const status of [204, 205, 304]) {
+    assert.equal(bodyForStatus(status, empty), null);
+    assert.doesNotThrow(() => new Response(bodyForStatus(status, empty), { status }));
+  }
+  for (const status of [200, 400, 429, 500]) {
+    assert.equal(bodyForStatus(status, empty), empty);
+  }
+});

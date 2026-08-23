@@ -29,6 +29,7 @@
 import { NextResponse } from 'next/server';
 import { getOAuthClient } from '@/lib/oauth/server/client';
 import { corsPreflight, CORS_HEADERS, fail, guarded, resolveOrigin } from '@/lib/oauth/server/http';
+import { bodyForStatus } from '@/lib/oauth/server/upstream';
 import { isRetriableConnectError } from '@/lib/oauth/server/retriable';
 import { allow, RATE_LIMITS } from '@/lib/oauth/server/rateLimit';
 import { resolveActor } from '@/lib/oauth/server/session';
@@ -234,7 +235,7 @@ async function handle(request: Request, nsid: string): Promise<NextResponse> {
     });
     outHeaders.set('Cache-Control', 'no-store');
 
-    return new NextResponse(await upstream.arrayBuffer(), {
+    return new NextResponse(bodyForStatus(upstream.status, await upstream.arrayBuffer()), {
       status: upstream.status,
       statusText: upstream.statusText,
       headers: outHeaders,
