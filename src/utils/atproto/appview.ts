@@ -129,12 +129,28 @@ export async function getProfiles(
   actors: readonly string[],
   opts: { signal?: AbortSignal } = {},
 ): Promise<Map<string, AppViewProfile>> {
+  return (await getProfilesResult(actors, opts)).profiles;
+}
+
+/**
+ * Failure-aware variant of {@link getProfiles}.
+ *
+ * The plain version cannot distinguish "the AppView has never indexed these
+ * accounts" from "the AppView did not answer", because both end as an empty
+ * map. A page rendering avatars can treat those the same; a caller that
+ * reports "not found" as a fact cannot, so this returns whether any chunk
+ * failed.
+ */
+export async function getProfilesResult(
+  actors: readonly string[],
+  opts: { signal?: AbortSignal } = {},
+): Promise<{ profiles: Map<string, AppViewProfile>; failed: boolean }> {
   const out = new Map<string, AppViewProfile>();
   const unique = Array.from(new Set(actors.filter(Boolean)));
   const chunks: string[][] = [];
   for (let i = 0; i < unique.length; i += 25) chunks.push(unique.slice(i, i + 25));
 
-  await Promise.all(
+  const outcomes = await Promise.all(
     chunks.map(async (chunk) => {
       const params = new URLSearchParams();
       chunk.forEach((actor) => params.append('actors', actor));
@@ -145,10 +161,11 @@ export async function getProfiles(
       for (const profile of data?.profiles ?? []) {
         if (profile?.did) out.set(profile.did, profile);
       }
+      return data !== null;
     }),
   );
 
-  return out;
+  return { profiles: out, failed: outcomes.some((ok) => !ok) };
 }
 
 /** Lightweight actor record returned by typeahead/search endpoints. */

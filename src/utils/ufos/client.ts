@@ -71,6 +71,31 @@ export async function fetchCollections(opts: {
  * GET /collections/stats — record stats for one or more collections over
  * a time window. Returned as a Map keyed by NSID for ergonomic `.get`.
  */
+/**
+ * Failure-aware variants of the two calls below; see searchLexiconsResult for
+ * why an empty container is not a safe stand-in for an outage.
+ */
+export async function fetchCollectionStatsResult(opts: {
+  collections: string[];
+  since?: string;
+  until?: string;
+}): Promise<{ stats: Map<string, JustCount>; failed: boolean }> {
+  if (opts.collections.length === 0) return { stats: new Map(), failed: false };
+  const params = new URLSearchParams();
+  for (const c of opts.collections) params.append('collection', c);
+  appendRange(params, opts.since, opts.until);
+  const data = await fetchJsonOrNull<Record<string, JustCount>>(
+    `${UFOS_API}/collections/stats?${params.toString()}`,
+  );
+  const out = new Map<string, JustCount>();
+  if (data) {
+    for (const [nsid, entry] of Object.entries(data)) {
+      if (entry && typeof entry === 'object') out.set(nsid, entry);
+    }
+  }
+  return { stats: out, failed: data === null };
+}
+
 export async function fetchCollectionStats(opts: {
   collections: string[];
   since?: string;

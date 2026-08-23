@@ -25,6 +25,7 @@ export type DescribeRepoResponse = {
   handleIsCorrect?: boolean;
 };
 
+import { readCappedJson } from '../cappedJson';
 import { upstreamFetch } from '../upstreamFetch';
 
 async function fetchJson<T>(url: string): Promise<T> {
@@ -40,7 +41,8 @@ async function fetchJson<T>(url: string): Promise<T> {
     (err as Error & { status?: number }).status = res.status;
     throw err;
   }
-  return (await res.json()) as T;
+  // Bounded: the host is caller-influenced and may answer with anything.
+  return readCappedJson<T>(res);
 }
 
 /**

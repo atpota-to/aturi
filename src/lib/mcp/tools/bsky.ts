@@ -14,7 +14,7 @@ import {
   getPostEngagement,
   getPostThread,
   getPosts,
-  getProfiles,
+  getProfilesResult,
   getSocialGraph,
   getTrends,
   searchActors,
@@ -166,7 +166,16 @@ export function registerBskyTools(server: McpServer): void {
       // bad identifier can't poison the batch (the tool's documented promise).
       const valid = cleaned.filter(looksLikeAtIdentifier);
       const malformed = cleaned.filter((i) => !looksLikeAtIdentifier(i));
-      const found = valid.length ? await getProfiles(valid) : new Map();
+      const { profiles: found, failed } = valid.length
+        ? await getProfilesResult(valid)
+        : { profiles: new Map(), failed: false };
+      if (failed) {
+        throw new McpToolError(
+          'upstream_error',
+          'The Bluesky AppView did not answer',
+          'Retry shortly; reporting these accounts as not found would be wrong, since nothing was actually looked up.',
+        );
+      }
       // getProfiles keys by DID; inputs may be handles, and handles compare
       // case-insensitively (the AppView returns them lowercased).
       const byInput = valid.map((input) => {

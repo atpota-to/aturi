@@ -7,6 +7,7 @@
  * Both wrap public XRPC endpoints; no auth required.
  */
 
+import { readCappedJson } from '../cappedJson';
 export type ServerDescription = {
   /** The PDS's own DID (e.g. did:web:pds.example.com). Returned by recent PDS implementations. */
   did?: string;
@@ -60,7 +61,8 @@ async function fetchJson<T>(url: string): Promise<T> {
     const text = await res.text().catch(() => '');
     throw new Error(`HTTP ${res.status} ${res.statusText} :: ${text.slice(0, 200)}`);
   }
-  return (await res.json()) as T;
+  // Bounded: the host is caller-influenced and may answer with anything.
+  return readCappedJson<T>(res);
 }
 
 /**

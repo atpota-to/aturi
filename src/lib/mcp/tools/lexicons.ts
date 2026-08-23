@@ -8,7 +8,7 @@ import { z } from 'zod';
 import type { McpServer } from '@modelcontextprotocol/server';
 import {
   fetchCollections,
-  fetchCollectionStats,
+  fetchCollectionStatsResult,
   fetchRecentRecordsResult,
   fetchTimeseries,
   searchLexiconsResult,
@@ -120,11 +120,18 @@ export function registerLexiconTools(server: McpServer): void {
       const win: Window = window ?? '7d';
       const since = isoAgo(WINDOWS[win].hours);
 
-      const [stats, timeseries] = await Promise.all([
-        fetchCollectionStats({ collections: [nsid], since }),
+      const [statsResult, timeseries] = await Promise.all([
+        fetchCollectionStatsResult({ collections: [nsid], since }),
         fetchTimeseries({ collection: nsid, since, step: WINDOWS[win].step }),
       ]);
-      const entry = stats.get(nsid) ?? null;
+      if (statsResult.failed) {
+        throw new McpToolError(
+          'upstream_error',
+          'The UFOs lexicon-stats service is unavailable',
+          'Retry shortly; zeroes here would read as "this lexicon is idle", which is not what happened.',
+        );
+      }
+      const entry = statsResult.stats.get(nsid) ?? null;
       const buckets = timeseries.series.get(nsid) ?? [];
       const series = timeseries.range.map((time, i) => ({
         time,
