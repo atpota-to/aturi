@@ -329,7 +329,7 @@ export function buildMcpPage(baseUrl: string): ContentPage {
   return {
     title: 'MCP server',
     description:
-      'aturi.to hosts a free, keyless, read-only MCP server: eighteen tools for exploring the Atmosphere — link resolution, identity, repositories, backlinks, search, lexicon activity — that any AI agent can use by adding one URL.',
+      'aturi.to hosts a free, keyless, read-only MCP server: twenty-four tools for exploring the Atmosphere — link resolution, identity, repositories, network-wide backlinks, Bluesky feeds and trends, lexicon activity, and a live firehose tap — that any AI agent can use by adding one URL.',
     intro:
       `The Atmosphere Explorer, as tools. Point an MCP-capable agent at \`${endpoint}\` and it can resolve any Atmosphere link, read any repo, trace backlinks across every app, and watch lexicon activity network-wide. No key, no account, nothing to install.`,
     sections: [
@@ -350,7 +350,7 @@ export function buildMcpPage(baseUrl: string): ContentPage {
       },
       {
         id: 'tools',
-        heading: 'Eighteen tools',
+        heading: 'Twenty-four tools',
         blocks: [
           {
             kind: 'p',
@@ -363,8 +363,9 @@ export function buildMcpPage(baseUrl: string): ContentPage {
               '**Identity**: `resolve_identity` (handle ↔ DID ↔ PDS) and `get_identity_history` (the PLC audit log: handle changes, migrations, key rotations).',
               '**Repositories**: `describe_repo` (which lexicons an account actually uses), `list_records`, `get_record`, and `describe_pds`.',
               '**Network graph**: `get_backlinks` — who references a record or account, across every app, from the Constellation index.',
-              '**Bluesky layer**: `get_profile`, `get_thread`, `search_posts`, `search_actors`, over the public AppView.',
+              '**Bluesky layer**: `get_profile`, `get_author_feed` (recent posts with engagement counts), `get_thread`, `get_follows` / `get_followers`, `get_post_engagement` (who liked, reposted, or quoted a post), `get_trends`, `search_posts`, and `search_actors`, over the public AppView.',
               '**Lexicon ecosystem**: `list_trending_lexicons`, `get_lexicon_activity`, `search_lexicons`, `sample_recent_records`, and `get_lexicon_schema`, from the UFOs index.',
+              '**Firehose**: `sample_firehose` opens Jetstream for a few seconds and returns live events, filterable by collection, account, and operation.',
             ],
           },
         ],
@@ -376,10 +377,11 @@ export function buildMcpPage(baseUrl: string): ContentPage {
           {
             kind: 'ul',
             items: [
+              '“What has @dame.is been posting about lately, and which posts got the most engagement?”',
               '“Who links to this post, anywhere on the network?”',
-              '“What apps does this account actually use?”',
-              '“When did this account migrate PDSes, and from where?”',
-              '“Which lexicons are trending today, and what do their records look like?”',
+              '“What apps does this account actually use, and when did it migrate PDSes?”',
+              '“What’s trending on Bluesky right now, and who’s driving it?”',
+              '“Show me live `com.whtwnd.blog.entry` records as they’re posted.”',
               '“Give me a link my friend can open in her own client.”',
             ],
           },

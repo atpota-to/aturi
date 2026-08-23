@@ -12,7 +12,17 @@ const { tools } = captureRegistrations(registerBskyTools);
 test('registers exactly the Bluesky-layer tools', () => {
   assert.deepEqual(
     [...tools.keys()].sort(),
-    ['get_profile', 'get_thread', 'search_actors', 'search_posts'],
+    [
+      'get_author_feed',
+      'get_followers',
+      'get_follows',
+      'get_post_engagement',
+      'get_profile',
+      'get_thread',
+      'get_trends',
+      'search_actors',
+      'search_posts',
+    ],
   );
 });
 
@@ -49,6 +59,39 @@ test('search schemas bound query length and page sizes', () => {
   const actors = tools.get('search_actors')!.config.inputSchema!;
   assert.equal(actors.safeParse({ query: 'x'.repeat(101) }).success, false);
   assert.equal(actors.safeParse({ query: 'dame', limit: 25 }).success, true);
+});
+
+test('the new feed and graph tools bound their inputs', () => {
+  const feed = tools.get('get_author_feed')!.config.inputSchema!;
+  assert.equal(feed.safeParse({}).success, false);
+  assert.equal(feed.safeParse({ actor: 'dame.is', limit: 101 }).success, false);
+  assert.equal(feed.safeParse({ actor: 'dame.is', filter: 'everything' }).success, false);
+  assert.equal(feed.safeParse({ actor: 'dame.is', filter: 'posts_no_replies', limit: 100 }).success, true);
+
+  const trends = tools.get('get_trends')!.config.inputSchema!;
+  assert.equal(trends.safeParse({ limit: 26 }).success, false);
+  assert.equal(trends.safeParse({}).success, true);
+
+  for (const name of ['get_follows', 'get_followers']) {
+    const schema = tools.get(name)!.config.inputSchema!;
+    assert.equal(schema.safeParse({}).success, false, name);
+    assert.equal(schema.safeParse({ actor: 'dame.is', limit: 101 }).success, false, name);
+    assert.equal(schema.safeParse({ actor: 'dame.is' }).success, true, name);
+  }
+
+  const eng = tools.get('get_post_engagement')!.config.inputSchema!;
+  assert.equal(eng.safeParse({ uri: 'at://x/y/z' }).success, false, 'kind required');
+  assert.equal(eng.safeParse({ uri: 'at://x/y/z', kind: 'boosts' }).success, false);
+  assert.equal(eng.safeParse({ uri: 'at://x/y/z', kind: 'likes' }).success, true);
+});
+
+test('get_post_engagement rejects a non-at:// uri offline', async () => {
+  const result = await tools.get('get_post_engagement')!.handler({
+    uri: 'https://bsky.app/profile/dame.is/post/abc',
+    kind: 'likes',
+  });
+  assert.equal(result.isError, true);
+  assert.equal(resultBody(result).code, 'invalid_parameter');
 });
 
 test('get_thread rejects addresses that are not Bluesky posts, offline', async () => {

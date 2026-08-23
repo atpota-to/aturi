@@ -332,3 +332,137 @@ export async function searchActors(
     signal,
   );
 }
+
+/** One item in an author feed: a post, optionally reposted or a reply. */
+export type AuthorFeedItem = {
+  post: AppViewPostView;
+  reason?: { $type?: string; by?: { did: string; handle?: string; displayName?: string } };
+  reply?: unknown;
+};
+
+export type AuthorFeedPage = {
+  feed?: AuthorFeedItem[];
+  cursor?: string;
+};
+
+/**
+ * app.bsky.feed.getAuthorFeed — an account's own posts, in reverse
+ * chronological order, each carrying the AppView's engagement counts
+ * (likes/reposts/replies/quotes). Public, no auth. `filter` narrows what the
+ * feed includes; the default matches the AppView's own default.
+ */
+export async function getAuthorFeed(opts: {
+  actor: string;
+  filter?:
+    | 'posts_with_replies'
+    | 'posts_no_replies'
+    | 'posts_with_media'
+    | 'posts_and_author_threads';
+  limit?: number;
+  cursor?: string;
+  signal?: AbortSignal;
+}): Promise<AuthorFeedPage | null> {
+  const { actor, filter, limit = 30, cursor, signal } = opts;
+  if (!actor) return null;
+  const params = new URLSearchParams({ actor, limit: String(limit) });
+  if (filter) params.set('filter', filter);
+  if (cursor) params.set('cursor', cursor);
+  return fetchJsonOrNull<AuthorFeedPage>(
+    `${APPVIEW}/xrpc/app.bsky.feed.getAuthorFeed?${params}`,
+    signal,
+  );
+}
+
+/** A trending topic from getTrends. `link` is an app-relative feed path. */
+export type TrendView = {
+  topic: string;
+  displayName?: string;
+  description?: string;
+  link?: string;
+  startedAt?: string;
+  postCount?: number;
+  status?: string;
+  category?: string;
+  actors?: AppViewProfile[];
+};
+
+export type TrendsPage = { trends?: TrendView[] };
+
+/**
+ * app.bsky.unspecced.getTrends — current trending topics with post volume.
+ * "unspecced" means Bluesky may change or remove it without notice; callers
+ * should treat a null return as "trends unavailable" and not depend on the
+ * exact field set. Public, no auth.
+ */
+export async function getTrends(
+  opts: { limit?: number; signal?: AbortSignal } = {},
+): Promise<TrendsPage | null> {
+  const { limit = 10, signal } = opts;
+  const params = new URLSearchParams({ limit: String(limit) });
+  return fetchJsonOrNull<TrendsPage>(
+    `${APPVIEW}/xrpc/app.bsky.unspecced.getTrends?${params}`,
+    signal,
+  );
+}
+
+export type GraphPage = {
+  subject?: AppViewProfile;
+  follows?: AppViewProfile[];
+  followers?: AppViewProfile[];
+  cursor?: string;
+};
+
+/**
+ * app.bsky.graph.getFollows / getFollowers — the accounts an actor follows,
+ * or that follow the actor. One page. Public, no auth. `direction` picks the
+ * endpoint; the result array is keyed by the same word.
+ */
+export async function getSocialGraph(opts: {
+  actor: string;
+  direction: 'follows' | 'followers';
+  limit?: number;
+  cursor?: string;
+  signal?: AbortSignal;
+}): Promise<GraphPage | null> {
+  const { actor, direction, limit = 50, cursor, signal } = opts;
+  if (!actor) return null;
+  const method = direction === 'follows' ? 'getFollows' : 'getFollowers';
+  const params = new URLSearchParams({ actor, limit: String(limit) });
+  if (cursor) params.set('cursor', cursor);
+  return fetchJsonOrNull<GraphPage>(
+    `${APPVIEW}/xrpc/app.bsky.graph.${method}?${params}`,
+    signal,
+  );
+}
+
+export type PostEngagementPage = {
+  uri?: string;
+  /** getLikes returns {actor, createdAt}; getRepostedBy/getQuotes return profiles/posts. */
+  likes?: Array<{ actor: AppViewProfile; createdAt?: string; indexedAt?: string }>;
+  repostedBy?: AppViewProfile[];
+  posts?: AppViewPostView[];
+  cursor?: string;
+};
+
+/**
+ * The three "who engaged with this post" endpoints:
+ * app.bsky.feed.getLikes / getRepostedBy / getQuotes. One page, public, no
+ * auth. `kind` picks the endpoint and which array in the result is populated.
+ */
+export async function getPostEngagement(opts: {
+  uri: string;
+  kind: 'likes' | 'reposts' | 'quotes';
+  limit?: number;
+  cursor?: string;
+  signal?: AbortSignal;
+}): Promise<PostEngagementPage | null> {
+  const { uri, kind, limit = 25, cursor, signal } = opts;
+  if (!uri) return null;
+  const method = kind === 'likes' ? 'getLikes' : kind === 'reposts' ? 'getRepostedBy' : 'getQuotes';
+  const params = new URLSearchParams({ uri, limit: String(limit) });
+  if (cursor) params.set('cursor', cursor);
+  return fetchJsonOrNull<PostEngagementPage>(
+    `${APPVIEW}/xrpc/app.bsky.feed.${method}?${params}`,
+    signal,
+  );
+}

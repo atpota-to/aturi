@@ -7,8 +7,12 @@
 import { z } from 'zod';
 import type { McpServer } from '@modelcontextprotocol/server';
 import {
+  getAuthorFeed,
+  getPostEngagement,
   getPostThread,
   getProfiles,
+  getSocialGraph,
+  getTrends,
   searchActors,
   searchPosts,
   type AppViewPostView,
@@ -346,6 +350,187 @@ export function registerBskyTools(server: McpServer): void {
         count: page.actors?.length ?? 0,
         actors: (page.actors ?? []).map(profileCard),
       };
+    }),
+  );
+
+  server.registerTool(
+    'get_author_feed',
+    {
+      title: 'What an account has been posting',
+      description:
+        'You want an account\'s recent posts in reverse chronological order, each with its like, ' +
+        'repost, reply, and quote counts — so you can summarize what someone has been posting about ' +
+        'or find their most-engaged posts (sort the results by likeCount). Page with the cursor to ' +
+        'go further back. This is the keyless way to read a timeline; search_posts (by content) is ' +
+        'often blocked.',
+      inputSchema: z.object({
+        actor: z.string().min(1).max(253).describe('Handle or DID of the account.'),
+        filter: z
+          .enum(['posts_with_replies', 'posts_no_replies', 'posts_with_media', 'posts_and_author_threads'])
+          .optional()
+          .describe('Narrow the feed; default includes reposts and top-level posts.'),
+        limit: z.number().int().min(1).max(100).optional().describe('Default 30.'),
+        cursor: z.string().min(1).max(1024).optional(),
+      }),
+      annotations: READ_ONLY,
+    },
+    toolHandler(async ({ actor, filter, limit, cursor }) => {
+      const page = await getAuthorFeed({ actor: actor.trim().replace(/^@/, ''), filter, limit: limit ?? 30, cursor });
+      if (!page) {
+        throw new McpToolError(
+          'upstream_error',
+          `Could not load the author feed for "${actor}"`,
+          'Check the handle/DID; if it is right, the AppView may be rate-limiting — retry shortly.',
+        );
+      }
+      const items = (page.feed ?? []).map((item) => {
+        const card = postCard(item.post);
+        const repostedBy = item.reason?.$type?.includes('reasonRepost') ? item.reason?.by : undefined;
+        return {
+          ...card,
+          isRepost: !!repostedBy,
+          ...(repostedBy
+            ? { repostedBy: { did: repostedBy.did, handle: repostedBy.handle ?? null, displayName: repostedBy.displayName ?? null } }
+            : {}),
+          isReply: !!item.reply,
+        };
+      });
+      return {
+        actor,
+        count: items.length,
+        cursor: page.cursor ?? null,
+        posts: items,
+      };
+    }),
+  );
+
+  server.registerTool(
+    'get_trends',
+    {
+      title: 'Trending on Bluesky right now',
+      description:
+        'You want what is trending on Bluesky at this moment: topics with their post volume, a ' +
+        'category, and a few accounts driving each one. Backed by Bluesky\'s unspecced trends ' +
+        'endpoint, so the shape can change and it covers the Bluesky network specifically, not the ' +
+        'whole Atmosphere — for network-wide lexicon activity use list_trending_lexicons.',
+      inputSchema: z.object({
+        limit: z.number().int().min(1).max(25).optional().describe('Default 10.'),
+      }),
+      annotations: READ_ONLY,
+    },
+    toolHandler(async ({ limit }) => {
+      const page = await getTrends({ limit: limit ?? 10 });
+      if (!page) {
+        throw new McpToolError(
+          'upstream_error',
+          'Bluesky trends are unavailable',
+          'This is an unspecced endpoint Bluesky may have changed or disabled; retry shortly.',
+        );
+      }
+      const trends = (page.trends ?? []).map((t) => ({
+        topic: t.topic,
+        displayName: t.displayName ?? null,
+        description: t.description ?? null,
+        category: t.category ?? null,
+        status: t.status ?? null,
+        postCount: t.postCount ?? null,
+        startedAt: t.startedAt ?? null,
+        actors: (t.actors ?? []).slice(0, 5).map((a) => ({
+          did: a.did,
+          handle: a.handle ?? null,
+          displayName: a.displayName ?? null,
+        })),
+        link: t.link ? `https://bsky.app${t.link}` : null,
+      }));
+      return { count: trends.length, trends };
+    }),
+  );
+
+  for (const direction of ['follows', 'followers'] as const) {
+    server.registerTool(
+      direction === 'follows' ? 'get_follows' : 'get_followers',
+      {
+        title: direction === 'follows' ? 'Who an account follows' : "An account's followers",
+        description:
+          direction === 'follows'
+            ? 'You want the accounts an actor follows: one page of profile cards, with a cursor for ' +
+              'more. The keyless outbound half of the Bluesky social graph. For who follows them, use ' +
+              'get_followers; for network-wide references of any kind, use get_backlinks.'
+            : 'You want the accounts that follow an actor: one page of profile cards, with a cursor for ' +
+              'more. The keyless inbound half of the Bluesky social graph. For who they follow, use ' +
+              'get_follows.',
+        inputSchema: z.object({
+          actor: z.string().min(1).max(253).describe('Handle or DID of the account.'),
+          limit: z.number().int().min(1).max(100).optional().describe('Default 50.'),
+          cursor: z.string().min(1).max(1024).optional(),
+        }),
+        annotations: READ_ONLY,
+      },
+      toolHandler(async ({ actor, limit, cursor }) => {
+        const page = await getSocialGraph({ actor: actor.trim().replace(/^@/, ''), direction, limit: limit ?? 50, cursor });
+        if (!page) {
+          throw new McpToolError(
+            'upstream_error',
+            `Could not load ${direction} for "${actor}"`,
+            'Check the handle/DID; the account may also have this list hidden.',
+          );
+        }
+        const list = (direction === 'follows' ? page.follows : page.followers) ?? [];
+        return {
+          actor,
+          direction,
+          count: list.length,
+          cursor: page.cursor ?? null,
+          accounts: list.map(profileCard),
+        };
+      }),
+    );
+  }
+
+  server.registerTool(
+    'get_post_engagement',
+    {
+      title: 'Who engaged with a post',
+      description:
+        'You have a Bluesky post and want the accounts that engaged with it: who liked it, who ' +
+        'reposted it, or who quoted it (pick one with "kind"). Quote mode returns the quoting posts ' +
+        'themselves. Page with the cursor. For the counts alone, get_author_feed and get_thread ' +
+        'already carry them.',
+      inputSchema: z.object({
+        uri: z.string().min(1).max(2048).describe('at:// URI of the post (from any post-returning tool).'),
+        kind: z.enum(['likes', 'reposts', 'quotes']).describe('Which engagement to list.'),
+        limit: z.number().int().min(1).max(100).optional().describe('Default 25.'),
+        cursor: z.string().min(1).max(1024).optional(),
+      }),
+      annotations: READ_ONLY,
+    },
+    toolHandler(async ({ uri, kind, limit, cursor }) => {
+      const trimmed = uri.trim();
+      if (!trimmed.startsWith('at://')) {
+        throw new McpToolError(
+          'invalid_parameter',
+          'get_post_engagement needs an at:// post URI',
+          'Resolve a bsky.app URL with resolve_link first, then pass parsed.uri.',
+        );
+      }
+      const page = await getPostEngagement({ uri: trimmed, kind, limit: limit ?? 25, cursor });
+      if (!page) {
+        throw new McpToolError('upstream_error', `Could not load ${kind} for the post`, 'Safe to retry shortly.');
+      }
+      if (kind === 'quotes') {
+        return {
+          uri: trimmed,
+          kind,
+          count: page.posts?.length ?? 0,
+          cursor: page.cursor ?? null,
+          posts: (page.posts ?? []).map(postCard),
+        };
+      }
+      const accounts =
+        kind === 'likes'
+          ? (page.likes ?? []).map((l) => profileCard(l.actor))
+          : (page.repostedBy ?? []).map(profileCard);
+      return { uri: trimmed, kind, count: accounts.length, cursor: page.cursor ?? null, accounts };
     }),
   );
 }

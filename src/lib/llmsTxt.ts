@@ -71,10 +71,11 @@ failure — so branch on the \`ok\` field rather than on the status code.
 
 If your runtime supports MCP (Model Context Protocol), prefer the tool form over
 scripting the REST endpoints: add \`${origin}/api/mcp\` as a Streamable HTTP server —
-keyless and read-only, same access terms as the REST API. Its eighteen tools are a
+keyless and read-only, same access terms as the REST API. Its twenty-four tools are a
 superset of the REST surface: link resolution and the client catalog, plus identity
-history, whole-repo browsing, network-wide backlinks, Bluesky search, and lexicon
-activity stats.
+history, whole-repo browsing, network-wide backlinks, Bluesky author feeds, trends,
+social graph and post engagement, lexicon activity stats, and a bounded live-firehose
+sample.
 
 - [MCP server](${origin}/mcp): the tool list and copy-paste setup for Claude, Cursor, and other clients (Markdown at [/mcp.md](${origin}/mcp.md)).
 
