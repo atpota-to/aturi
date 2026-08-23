@@ -12,6 +12,7 @@ import {
 import type { Agent } from '@atproto/api';
 import { getOauthClient, getOauthEvents } from '@/lib/oauth/client';
 import { resolveAuthMode, hasSignedInHint } from '@/lib/oauth/authMode';
+import { describeSignInError } from '@/lib/oauth/signInError';
 import { createBffSession, fetchBffSession, startBffSignIn } from '@/lib/oauth/bffSession';
 import type { AtSession } from '@/lib/oauth/session';
 import {
@@ -91,11 +92,15 @@ export function AtprotoSessionProvider({ children }: { children: ReactNode }) {
 
     (async () => {
       try {
-        // Backend session first, but only when there is a hint that one
-        // exists. The hint carries no secret; without it every anonymous
-        // visitor would pay a serverless round trip on every page load before
-        // the UI could decide anyone is signed out.
-        if (mode === 'bff' && hasSignedInHint()) {
+        // A backend session is honoured whenever one exists, INDEPENDENT of
+        // `mode`. `mode` decides which client a new sign-in uses; it must not
+        // decide whether an existing session counts, or flipping the flag back
+        // to `browser` would sign out everyone who had signed in through the
+        // backend — turning the rollback into the outage it exists to avoid.
+        //
+        // The hint cookie carries no secret and is what keeps this from
+        // costing every anonymous visitor a round trip on every page load.
+        if (hasSignedInHint()) {
           for (let attempt = 0; attempt < 3; attempt += 1) {
             const result = await fetchBffSession();
             if (cancelled) return;
@@ -128,6 +133,21 @@ export function AtprotoSessionProvider({ children }: { children: ReactNode }) {
         if (!cancelled) setLoading(false);
       }
     })();
+
+    // The backend's sign-in route redirects failures back here with a message
+    // rather than rendering raw JSON into a top-level navigation. Pick it up,
+    // then strip it so a reload doesn't resurrect it.
+    try {
+      const url = new URL(window.location.href);
+      const message = url.searchParams.get('oauth_error');
+      if (message) {
+        setError(new Error(describeSignInError(message)));
+        url.searchParams.delete('oauth_error');
+        window.history.replaceState({}, '', url.toString());
+      }
+    } catch {
+      // A malformed location is not worth failing a mount over.
+    }
 
     const events = getOauthEvents();
     const onDeleted = (event: Event) => {

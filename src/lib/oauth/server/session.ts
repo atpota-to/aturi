@@ -26,12 +26,10 @@ import { getStore, TABLE } from './store';
  */
 export const SESSION_COOKIE_SECURE = '__Host-aturi_sid';
 export const SESSION_COOKIE_INSECURE = 'aturi_sid';
-/**
- * A non-HttpOnly companion, carrying no secret. Its only job is to let the
- * client skip the /api/oauth/session round trip for visitors who are not
- * signed in — which is every anonymous visitor, on every page load.
- */
-export const SIGNED_IN_HINT_COOKIE = 'aturi_signed_in';
+// Re-exported rather than redeclared: the client reads this name and the
+// server writes it, and two spellings of it would fail silently — the probe
+// would simply never fire.
+export { SIGNED_IN_HINT_COOKIE } from '../cookies';
 /** Short-lived CSRF binding for an in-flight authorization. */
 export const FLOW_COOKIE_SECURE = '__Host-aturi_flow';
 export const FLOW_COOKIE_INSECURE = 'aturi_flow';

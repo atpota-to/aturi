@@ -102,3 +102,37 @@ test('null-body statuses get a null body', async () => {
     assert.equal(bodyForStatus(status, empty), empty);
   }
 });
+
+/**
+ * `fetchHandler` RETURNS a 401 rather than throwing when the resource server
+ * rejects the token, and it only does so after already attempting a forced
+ * refresh — so this response means the grant is dead, not racing. Checking the
+ * challenge rather than the bare status is what keeps a 401 about one record
+ * from being read as a dead session and signing the user out of the whole app.
+ */
+test('an invalid-token response is told apart from an ordinary 401', async () => {
+  const { isInvalidTokenResponse } = await import('@/lib/oauth/server/upstream');
+
+  const dead = new Response(null, {
+    status: 401,
+    headers: { 'WWW-Authenticate': 'DPoP error="invalid_token", error_description="bad"' },
+  });
+  assert.ok(isInvalidTokenResponse(dead));
+
+  const bearer = new Response(null, {
+    status: 401,
+    headers: { 'WWW-Authenticate': 'Bearer error="invalid_token"' },
+  });
+  assert.ok(isInvalidTokenResponse(bearer));
+
+  // A record the caller may not read. Signing them out for this would turn a
+  // permission error into a logout.
+  const notYours = new Response(null, {
+    status: 401,
+    headers: { 'WWW-Authenticate': 'DPoP error="insufficient_scope"' },
+  });
+  assert.ok(!isInvalidTokenResponse(notYours));
+
+  assert.ok(!isInvalidTokenResponse(new Response(null, { status: 401 })));
+  assert.ok(!isInvalidTokenResponse(new Response(null, { status: 403 })));
+});

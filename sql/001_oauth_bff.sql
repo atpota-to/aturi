@@ -85,11 +85,14 @@ CREATE INDEX IF NOT EXISTS app_sessions_expires_idx ON aturi.app_sessions (expir
 --    URL cannot authenticate it (Firefox randomises the host per install, and
 --    a Chrome id is unstable until publication), so the code alone must be
 --    worthless to whoever observes it.
+--
+--    No token is stored here. The session is minted when the code is redeemed,
+--    so this table never holds a credential — which is the same rule
+--    app_sessions follows by storing only a hash.
 -- ---------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS aturi.exchange_codes (
   code_sha256   text PRIMARY KEY,
   challenge_b64 text NOT NULL,
-  token         text NOT NULL,
   user_did      text NOT NULL,
   expires_at    timestamptz NOT NULL
 );
@@ -161,11 +164,28 @@ BEGIN
   END LOOP;
 END $$;
 
-REVOKE ALL ON SCHEMA aturi FROM anon, authenticated;
-REVOKE ALL ON ALL TABLES IN SCHEMA aturi FROM anon, authenticated;
-ALTER DEFAULT PRIVILEGES IN SCHEMA aturi REVOKE ALL ON TABLES FROM anon, authenticated;
-GRANT USAGE ON SCHEMA aturi TO service_role;
-GRANT ALL ON ALL TABLES IN SCHEMA aturi TO service_role;
+-- Guarded on role existence: anon, authenticated and service_role are
+-- Supabase's, and naming a role that does not exist aborts the whole
+-- migration. A fork on Neon or plain Postgres connects as an ordinary owner,
+-- where there is no anonymous role to revoke from and nothing to grant.
+DO $$
+DECLARE r text;
+BEGIN
+  FOREACH r IN ARRAY ARRAY['anon','authenticated']
+  LOOP
+    IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = r) THEN
+      EXECUTE format('REVOKE ALL ON SCHEMA aturi FROM %I', r);
+      EXECUTE format('REVOKE ALL ON ALL TABLES IN SCHEMA aturi FROM %I', r);
+      EXECUTE format(
+        'ALTER DEFAULT PRIVILEGES IN SCHEMA aturi REVOKE ALL ON TABLES FROM %I', r);
+    END IF;
+  END LOOP;
+
+  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'service_role') THEN
+    EXECUTE 'GRANT USAGE ON SCHEMA aturi TO service_role';
+    EXECUTE 'GRANT ALL ON ALL TABLES IN SCHEMA aturi TO service_role';
+  END IF;
+END $$;
 
 -- ---------------------------------------------------------------------------
 -- Lock functions.
@@ -213,8 +233,24 @@ $$;
 REVOKE EXECUTE ON FUNCTION aturi.acquire_oauth_lock(text,text,int),
                            aturi.release_oauth_lock(text,text),
                            aturi.bump_rate_limit(text,timestamptz)
-  FROM public, anon, authenticated;
-GRANT EXECUTE ON FUNCTION aturi.acquire_oauth_lock(text,text,int),
-                          aturi.release_oauth_lock(text,text),
-                          aturi.bump_rate_limit(text,timestamptz)
-  TO service_role;
+  FROM public;
+
+DO $$
+DECLARE r text;
+BEGIN
+  FOREACH r IN ARRAY ARRAY['anon','authenticated']
+  LOOP
+    IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = r) THEN
+      EXECUTE format(
+        'REVOKE EXECUTE ON FUNCTION aturi.acquire_oauth_lock(text,text,int), '
+        'aturi.release_oauth_lock(text,text), aturi.bump_rate_limit(text,timestamptz) '
+        'FROM %I', r);
+    END IF;
+  END LOOP;
+
+  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'service_role') THEN
+    EXECUTE 'GRANT EXECUTE ON FUNCTION aturi.acquire_oauth_lock(text,text,int), '
+            'aturi.release_oauth_lock(text,text), aturi.bump_rate_limit(text,timestamptz) '
+            'TO service_role';
+  END IF;
+END $$;

@@ -34,7 +34,10 @@ const eslintConfig = defineConfig([
     files: ["src/**/*.{ts,tsx}"],
     ignores: [
       "src/app/api/oauth/**",
-      "src/app/oauth/**",
+      // Only the two route handlers, NOT the whole directory: src/app/oauth/
+      // also holds callback/page.tsx, which is a client component.
+      "src/app/oauth/client-metadata.json/route.ts",
+      "src/app/oauth/jwks.json/route.ts",
       "src/lib/oauth/server/**",
       // Tests run under `node --test` and are never bundled for the browser.
       "src/**/__tests__/**",

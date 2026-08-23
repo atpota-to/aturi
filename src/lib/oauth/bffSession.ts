@@ -59,6 +59,21 @@ function authHeaders(bearer?: string): Record<string, string> {
  */
 const FORWARD_HEADERS = ['content-type', 'accept', 'accept-language', 'atproto-proxy', 'atproto-accept-labelers'];
 
+/**
+ * Header the backend stamps on its own error bodies, naming the failure code.
+ * Kept in step with ERROR_CODE_HEADER in src/lib/oauth/server/http.ts.
+ */
+const ERROR_CODE_HEADER = 'x-aturi-oauth-error';
+
+/** Codes that mean this session is over. `SESSION_TRANSIENT` deliberately is not. */
+const SESSION_ENDED = new Set(['SESSION_INVALID', 'GRANT_MISSING']);
+
+function reportIfSessionEnded(res: Response, onInvalid?: () => void): void {
+  if (!onInvalid) return;
+  const code = res.headers.get(ERROR_CODE_HEADER);
+  if (code && SESSION_ENDED.has(code)) onInvalid();
+}
+
 function pickHeaders(init?: RequestInit): Record<string, string> {
   const out: Record<string, string> = {};
   if (!init?.headers) return out;
@@ -89,12 +104,14 @@ export function createBffSession(info: BffSessionInfo, opts: BffSessionOptions =
     // spaceCredential.ts, spaceDpop.ts and spaceClient.ts at zero diff.
     if (nsid === 'com.atproto.space.getDelegationToken') {
       const space = new URLSearchParams(query).get('space') ?? '';
-      return fetch(`${origin}/api/oauth/space/delegation-token`, {
+      const minted = await fetch(`${origin}/api/oauth/space/delegation-token`, {
         method: 'POST',
         credentials: opts.bearer ? 'omit' : 'same-origin',
         headers: { 'content-type': 'application/json', ...authHeaders(opts.bearer) },
         body: JSON.stringify({ space }),
       });
+      reportIfSessionEnded(minted, opts.onInvalid);
+      return minted;
     }
 
     const url = `${origin}/api/oauth/xrpc/${encodeURIComponent(nsid)}${query ? `?${query}` : ''}`;
@@ -106,10 +123,12 @@ export function createBffSession(info: BffSessionInfo, opts: BffSessionOptions =
       signal: init?.signal,
     });
 
-    // A definitively dead session has to reach the provider, or in-memory
-    // space credentials — which read other members' private records — would
-    // outlive the session that authorised them.
-    if (res.status === 401) opts.onInvalid?.();
+    // Only OUR OWN auth failures end the session. A bare 401 here could just
+    // as easily be the PDS answering about one record; signing the user out of
+    // the whole app for that would be a permission error turning into a
+    // logout. The header is set by the backend's `fail()` and never appears on
+    // a relayed upstream response.
+    reportIfSessionEnded(res, opts.onInvalid);
 
     return res;
   };

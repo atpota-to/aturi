@@ -19,6 +19,13 @@ SELECT cron.schedule('aturi-oauth-sweep', '*/15 * * * *', $sweep$
   DELETE FROM aturi.oauth_locks    WHERE expires_at < now() - interval '5 minutes';
   DELETE FROM aturi.rate_limits    WHERE window_start < now() - interval '1 day';
 
+  -- A grant nobody has used in three months holds a live refresh token for an
+  -- account that stopped using the app. Deleting it costs that user one
+  -- re-authorization if they come back, and removes a standing credential if
+  -- they do not. Deliberately generous: this is the one table whose rows are
+  -- expensive to recreate.
+  DELETE FROM aturi.oauth_sessions WHERE updated_at < now() - interval '90 days';
+
   -- NOT EXISTS, not NOT IN: `NOT IN` against a subquery that yields any NULL
   -- evaluates to NULL for every row and deletes nothing, so consents would
   -- silently outlive the sessions that granted them.

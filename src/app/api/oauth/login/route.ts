@@ -35,6 +35,7 @@ import { getOAuthClient } from '@/lib/oauth/server/client';
 import { randomToken, sha256Hex } from '@/lib/oauth/server/crypto';
 import { isOAuthClientKind, requireBffConfig } from '@/lib/oauth/server/env';
 import { corsPreflight, fail, guarded, resolveOrigin } from '@/lib/oauth/server/http';
+import { NextResponse as Redirect } from 'next/server';
 import type { AppState } from '@/lib/oauth/server/oauthStores';
 import { allow, callerKey, RATE_LIMITS } from '@/lib/oauth/server/rateLimit';
 import { flowCookieName, isSecureOrigin, serializeCookie } from '@/lib/oauth/server/session';
@@ -71,48 +72,64 @@ function validateReturn(
 }
 
 export async function GET(request: Request) {
+  const origin = resolveOrigin(request);
+  const params = new URL(request.url).searchParams;
+
+  /**
+   * This route is reached by a top-level navigation, not by fetch, so a JSON
+   * error body would be rendered to the user as raw JSON on a blank page. Send
+   * them back where they came from with the message instead, and let the app
+   * show it. Extension callers ask for JSON and get it.
+   *
+   * The return target is re-validated here rather than trusted: it is the same
+   * caller-supplied value, and an unvalidated one would make every failure
+   * path an open redirect.
+   */
+  const wantsJson = request.headers.get('accept')?.includes('application/json');
+  const bail = (status: number, code: string, message: string, hint?: string) => {
+    if (wantsJson || !origin) return fail(status, code, message, hint);
+    const back = validateReturn(params.get('return'), 'web', []) ?? '/';
+    const url = new URL(`${origin}${back}`);
+    url.searchParams.set('oauth_error', message);
+    const res = Redirect.redirect(url.toString(), 302);
+    res.headers.set('Cache-Control', 'no-store');
+    return res;
+  };
+
   return guarded(async () => {
-    const origin = resolveOrigin(request);
     if (!origin) return fail(400, 'UNKNOWN_HOST', 'Unknown host');
     const cfg = requireBffConfig();
 
-    const params = new URL(request.url).searchParams;
-
     if (!(await allow(`login:${sha256Hex(callerKey(request))}`, RATE_LIMITS.login))) {
-      return fail(429, 'RATE_LIMITED', 'Too many sign-in attempts', 'Wait a few minutes.');
+      return bail(429, 'RATE_LIMITED', 'Too many sign-in attempts', 'Wait a few minutes.');
     }
 
     const handle = params.get('handle')?.trim();
     if (!handle) {
-      return fail(400, 'MISSING_PARAMETER', 'Missing handle', 'Pass ?handle=<handle|did|pds-url>.');
+      return bail(400, 'MISSING_PARAMETER', 'Enter a handle to sign in.');
     }
     // An https identifier makes the library perform discovery against that host,
     // so it goes through the same guard the rest of the app uses for outbound
     // server-side fetches before it gets there.
     if (/^https?:\/\//i.test(handle) && !toPublicHttpUrl(handle)) {
-      return fail(400, 'INVALID_PARAMETER', 'That server address is not reachable');
+      return bail(400, 'INVALID_PARAMETER', 'That server address is not reachable.');
     }
 
     const clientParam = params.get('client') ?? 'web';
     if (!isOAuthClientKind(clientParam)) {
-      return fail(400, 'INVALID_PARAMETER', 'client must be "web" or "extension"');
+      return bail(400, 'INVALID_PARAMETER', 'Unknown sign-in client.');
     }
 
     const rawIds = (params.get('scopes') ?? '').split(',').map((s) => s.trim()).filter(Boolean);
     const validIds = rawIds.filter((id): id is ScopeId => ALL_SCOPE_IDS.has(id as ScopeId));
     if (validIds.length !== rawIds.length) {
-      return fail(
-        400,
-        'INVALID_PARAMETER',
-        'Unknown permission requested',
-        'Every entry in ?scopes= must be a known permission id.',
-      );
+      return bail(400, 'INVALID_PARAMETER', 'Unknown permission requested.');
     }
     const scope = buildScopeString(new Set(validIds));
 
     const returnTo = validateReturn(params.get('return'), clientParam, cfg.extensionReturnOrigins);
     if (returnTo === null) {
-      return fail(400, 'INVALID_PARAMETER', 'Invalid return target');
+      return bail(400, 'INVALID_PARAMETER', 'Invalid return target.');
     }
 
     const challenge = params.get('challenge')?.trim() || undefined;
@@ -135,11 +152,24 @@ export async function GET(request: Request) {
     };
 
     const { client } = await getOAuthClient(origin, clientParam);
-    const authUrl = await client.authorize(handle, {
-      scope,
-      prompt: 'consent',
-      state: JSON.stringify(appState),
-    });
+    let authUrl: URL;
+    try {
+      authUrl = await client.authorize(handle, {
+        scope,
+        prompt: 'consent',
+        state: JSON.stringify(appState),
+      });
+    } catch (err) {
+      // The commonest failure by far, and the one a user can act on: an
+      // unresolvable handle, or a server refusing a scope it has not
+      // re-fetched yet. Surfaced verbatim — describeSignInError() on the
+      // client rewrites the one case it can place.
+      return bail(
+        400,
+        'AUTHORIZE_FAILED',
+        err instanceof Error ? err.message : 'Could not start sign-in',
+      );
+    }
 
     const secure = isSecureOrigin(origin);
     const res = NextResponse.redirect(authUrl.toString(), 302);

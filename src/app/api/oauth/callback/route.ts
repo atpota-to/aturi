@@ -132,20 +132,18 @@ export async function GET(request: Request) {
     }
 
     const did = session.sub;
-    const label = appState.client === 'extension' ? 'Aturi extension' : 'Browser';
-    const appSession = await mintAppSession(did, appState.client, label);
-
     const clearFlow = clearCookie(flowCookieName(origin), secure);
 
     if (appState.client === 'extension') {
-      // Hand back a one-time code, never the token: the return URL is visible
-      // to whatever opened the auth window. The code is worthless without the
-      // verifier whose hash we stored at /login.
+      // Hand back a one-time code, never a token — the return URL is visible
+      // to whatever opened the auth window. The session is minted at
+      // redemption, so this table never holds a credential at all, which is
+      // the same rule app_sessions follows by storing only a hash. The code is
+      // worthless without the verifier whose hash was stored at /login.
       const code = randomToken();
       await getStore().insert(TABLE.exchangeCodes, {
         code_sha256: sha256Hex(code),
         challenge_b64: appState.challenge ?? '',
-        token: appSession.token,
         user_did: did,
         expires_at: new Date(Date.now() + 60_000).toISOString(),
       });
@@ -159,6 +157,7 @@ export async function GET(request: Request) {
 
     // Web: the cookie is set here, same-origin, so the token never enters a
     // URL, a Location header, an access log, browser history, or a Referer.
+    const appSession = await mintAppSession(did, 'web', 'Browser');
     const maxAge = cfg.appSessionTtlDays * 86_400;
     const res = NextResponse.redirect(`${origin}${landingFor(appState.return, did)}`, 302);
     res.headers.append('set-cookie', clearFlow);

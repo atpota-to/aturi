@@ -29,7 +29,7 @@
 import { NextResponse } from 'next/server';
 import { getOAuthClient } from '@/lib/oauth/server/client';
 import { corsPreflight, CORS_HEADERS, fail, guarded, resolveOrigin } from '@/lib/oauth/server/http';
-import { bodyForStatus } from '@/lib/oauth/server/upstream';
+import { bodyForStatus, isInvalidTokenResponse } from '@/lib/oauth/server/upstream';
 import { isRetriableConnectError } from '@/lib/oauth/server/retriable';
 import { allow, RATE_LIMITS } from '@/lib/oauth/server/rateLimit';
 import { resolveActor } from '@/lib/oauth/server/session';
@@ -62,6 +62,9 @@ const ALLOWED_NSIDS = new Set([
   'com.atproto.repo.listRecords',
   'com.atproto.repo.describeRepo',
   'com.atproto.space.listSpaces',
+  'com.atproto.space.listRepos',
+  'com.atproto.space.listRepoOps',
+  'com.atproto.space.getLatestCommit',
   'com.atproto.space.getRecord',
   'com.atproto.space.listRecords',
   'com.atproto.space.putRecord',
@@ -72,7 +75,9 @@ const ALLOWED_NSIDS = new Set([
   'app.bsky.actor.getProfile',
 ]);
 
-const NSID_SHAPE = /^[a-z][a-z0-9]*(\.[a-zA-Z0-9]+){2,}$/;
+// Hyphens are legal inside the reverse-domain authority (not at a segment
+// edge); the trailing name segment is alphanumeric.
+const NSID_SHAPE = /^[a-z][a-z0-9-]*(\.[a-zA-Z0-9-]+)*\.[a-zA-Z][a-zA-Z0-9]*$/;
 
 /**
  * `atproto-proxy` is validated by VALUE, not merely allowed by name.
@@ -177,7 +182,6 @@ async function handle(request: Request, nsid: string): Promise<NextResponse> {
     return fail(401, 'GRANT_MISSING', 'Re-authorization required');
   }
 
-  let tokenRetried = false;
   let connectRetried = false;
 
   for (;;) {
@@ -189,31 +193,6 @@ async function handle(request: Request, nsid: string): Promise<NextResponse> {
         ...(body ? { body } : {}),
       });
     } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
-
-      if (!tokenRetried && /invalid token/i.test(message)) {
-        // Almost always a rotation race: a concurrent request refreshed and
-        // invalidated our copy. Re-restore forcing a refresh and try once.
-        tokenRetried = true;
-        await new Promise((r) => setTimeout(r, 1200));
-        try {
-          session = await client.restore(actor.userDid, true);
-          continue;
-        } catch {
-          // fall through to the terminal answer below
-        }
-      }
-
-      if (/invalid token/i.test(message)) {
-        // A second failure means the grant is permanently dead — the PDS has
-        // revoked it, typically after seeing a replayed refresh token. Drop
-        // the row so later requests do not pay the restore ladder to reach the
-        // same 401. This is the one place a grant is really deleted; the
-        // store's own del() ignores library-initiated deletes on purpose.
-        await sessionStore.forceDelete(actor.userDid).catch(() => {});
-        return fail(401, 'GRANT_MISSING', 'Re-authorization required');
-      }
-
       if (!connectRetried && isRetriableConnectError(err)) {
         // Connection establishment failed, so the request never left this
         // process and retrying cannot duplicate a write.
@@ -221,8 +200,19 @@ async function handle(request: Request, nsid: string): Promise<NextResponse> {
         await new Promise((r) => setTimeout(r, 500));
         continue;
       }
-
       return fail(502, 'UPSTREAM_UNREACHABLE', 'Could not reach your PDS');
+    }
+
+    // A dead grant arrives as a RESPONSE, not as an exception. fetchHandler
+    // already tried a forced refresh internally and, on a second rejection,
+    // asked the session store to delete — which this store ignores for
+    // library-initiated deletes, on purpose, because the library also deletes
+    // on transient failures. So the real deletion happens here, where the
+    // signal is unambiguous: the resource server said the token is invalid
+    // after a refresh had already been attempted.
+    if (isInvalidTokenResponse(upstream)) {
+      await sessionStore.forceDelete(actor.userDid).catch(() => {});
+      return fail(401, 'GRANT_MISSING', 'Re-authorization required');
     }
 
     // Verbatim status and body. No envelope: three call sites in the app parse

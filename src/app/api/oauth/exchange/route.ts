@@ -15,6 +15,7 @@
  */
 
 import { sha256Base64Url, sha256Hex, safeEqual } from '@/lib/oauth/server/crypto';
+import { mintAppSession } from '@/lib/oauth/server/session';
 import { corsPreflight, fail, guarded, json, resolveOrigin } from '@/lib/oauth/server/http';
 import { allow, callerKey, RATE_LIMITS } from '@/lib/oauth/server/rateLimit';
 import { getStore, TABLE } from '@/lib/oauth/server/store';
@@ -52,7 +53,7 @@ export async function POST(request: Request) {
     const row = await store.selectOne(
       TABLE.exchangeCodes,
       { code_sha256: hash },
-      'challenge_b64,token,user_did,expires_at',
+      'challenge_b64,user_did,expires_at',
     );
 
     // Single use: the row goes whether or not the verifier matches, so a wrong
@@ -66,6 +67,14 @@ export async function POST(request: Request) {
       return fail(400, 'CODE_INVALID', 'That sign-in code is no longer valid');
     }
 
-    return json({ ok: true, token: String(row.token), did: String(row.user_did) });
+    // Minted here rather than at the callback, so the code table never holds a
+    // credential to leak.
+    const session = await mintAppSession(String(row.user_did), 'extension', 'Aturi extension');
+    return json({
+      ok: true,
+      token: session.token,
+      did: session.userDid,
+      expiresAt: session.expiresAt.toISOString(),
+    });
   });
 }

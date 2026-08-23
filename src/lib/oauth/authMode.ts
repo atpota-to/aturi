@@ -3,52 +3,34 @@
 /**
  * Which OAuth client a NEW sign-in uses.
  *
- *   auto (default) — the backend client when the deployment has one,
- *                    the public browser client otherwise
- *   bff            — force the backend client
- *   browser        — force the public browser client
+ *   browser (default) — the public browser client, as it always was
+ *   bff               — the confidential backend client
  *
- * `auto` is the whole migration guarantee, and the important half is what it
- * does NOT do: it never touches an existing browser-client session. Someone
- * signed in today keeps running against the public `client_id` until they sign
- * out of their own accord, and is never logged out or forced to re-authorize.
- * That only works because both clients live in one deployment and one provider
- * can dispatch between them.
+ * There is deliberately no "auto". A browser cannot see whether the server has
+ * a signing key and a database, so an auto mode could only guess — and guessing
+ * "backend" on a deployment that has none sends every sign-in to a route that
+ * answers 503. Whoever sets the server variables sets this one in the same
+ * change.
  *
- * Rollback is this one variable. Already-minted backend sessions stay valid, so
- * flipping back and forth is safe.
+ * `mode` governs NEW sign-ins ONLY. An existing session of either kind is
+ * always honoured, in both directions:
+ *
+ *   - Someone signed in through the browser client today keeps that session
+ *     when the backend is switched on. Nobody is logged out by the migration.
+ *   - Someone signed in through the backend keeps that session when the flag
+ *     is switched back to `browser`. That is what makes the rollback safe
+ *     rather than a mass sign-out.
  */
+
+import { SIGNED_IN_HINT_COOKIE } from './cookies';
 
 export type AuthMode = 'browser' | 'bff';
 
-/**
- * Whether the deployment has a backend at all.
- *
- * This is a public flag, not a secret: it says only that the capability exists.
- * Vercel inlines NEXT_PUBLIC_* at build time, so it must be read as a whole
- * property access rather than through a computed key.
- */
-function bffAvailable(): boolean {
-  return process.env.NEXT_PUBLIC_AUTH_MODE !== undefined
-    ? process.env.NEXT_PUBLIC_AUTH_MODE !== 'browser'
-    : false;
-}
-
 export function resolveAuthMode(): AuthMode {
-  const raw = process.env.NEXT_PUBLIC_AUTH_MODE;
-  if (raw === 'browser') return 'browser';
-  if (raw === 'bff') return 'bff';
-  return bffAvailable() ? 'bff' : 'browser';
+  // Read as a whole property access: Next inlines NEXT_PUBLIC_* at build time
+  // and cannot substitute a computed key.
+  return process.env.NEXT_PUBLIC_AUTH_MODE === 'bff' ? 'bff' : 'browser';
 }
-
-/**
- * A non-HttpOnly companion to the session cookie, carrying no secret.
- *
- * Without it, every visitor — including every anonymous one — would pay a
- * serverless round trip on every page load before the UI could decide whether
- * anyone is signed in.
- */
-export const SIGNED_IN_HINT_COOKIE = 'aturi_signed_in';
 
 export function hasSignedInHint(): boolean {
   if (typeof document === 'undefined') return false;

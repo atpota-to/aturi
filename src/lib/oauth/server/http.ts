@@ -58,8 +58,20 @@ export function json(
   });
 }
 
+/**
+ * Header naming the failure as ours.
+ *
+ * The client has to tell "your session is gone" from "the PDS answered 401
+ * about that particular record", and both arrive as a 401. Without this the
+ * shim signs the user out on any 401 the proxy relays — so a permission error
+ * on one read would log them out of the whole app.
+ */
+export const ERROR_CODE_HEADER = 'x-aturi-oauth-error';
+
 export function fail(status: number, code: string, error: string, hint?: string) {
-  return json(hint ? { ok: false, code, error, hint } : { ok: false, code, error }, status);
+  return json(hint ? { ok: false, code, error, hint } : { ok: false, code, error }, status, {
+    [ERROR_CODE_HEADER]: code,
+  });
 }
 
 /**
