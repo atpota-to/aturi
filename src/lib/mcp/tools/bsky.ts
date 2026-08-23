@@ -7,25 +7,28 @@
 import { z } from 'zod';
 import type { McpServer } from '@modelcontextprotocol/server';
 import {
+  getActorStarterPacks,
   getAuthorFeed,
+  getFollowSuggestions,
+  getLabelerServices,
   getPostEngagement,
   getPostThread,
+  getPosts,
   getProfiles,
   getSocialGraph,
   getTrends,
   searchActors,
   searchPosts,
   type AppViewPostView,
-  type AppViewProfile,
   type AppViewThreadNode,
 } from '@/utils/atproto/appview';
+import { POST_COLLECTION, bskyAppUrl, postCard, profileCard } from '@/lib/mcp/cards';
 import { resolveHandle } from '@/utils/atproto/identity';
 import { matchSupportedUrl } from '@/utils/reverseParsers';
 import { parseAtUri, toAtUri } from '@/utils/atproto/urls';
 import { McpToolError } from '@/lib/mcp/errors';
 import { toolHandler, profileLink, recordLink, READ_ONLY } from '@/lib/mcp/respond';
 
-const POST_COLLECTION = 'app.bsky.feed.post';
 /** Total posts a simplified thread may carry, ancestors included. */
 const MAX_THREAD_POSTS = 80;
 
@@ -34,54 +37,6 @@ const AT_DID = /^did:[a-z]+:[A-Za-z0-9._:%-]+$/;
 const AT_HANDLE = /^[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?(\.[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?)+$/;
 function looksLikeAtIdentifier(id: string): boolean {
   return AT_DID.test(id) || AT_HANDLE.test(id);
-}
-
-function bskyAppUrl(actor: string, rkey?: string): string {
-  return rkey
-    ? `https://bsky.app/profile/${actor}/post/${rkey}`
-    : `https://bsky.app/profile/${actor}`;
-}
-
-function profileCard(p: AppViewProfile) {
-  return {
-    did: p.did,
-    handle: p.handle ?? null,
-    displayName: p.displayName ?? null,
-    description: p.description ?? null,
-    avatar: p.avatar ?? null,
-    followersCount: p.followersCount ?? null,
-    followsCount: p.followsCount ?? null,
-    postsCount: p.postsCount ?? null,
-    createdAt: p.createdAt ?? null,
-    links: {
-      profile: profileLink(p.handle ?? p.did),
-      bsky: bskyAppUrl(p.handle ?? p.did),
-    },
-  };
-}
-
-function postCard(post: AppViewPostView) {
-  const rkey = post.uri.split('/').pop() ?? '';
-  const actor = post.author?.handle ?? post.author?.did ?? '';
-  return {
-    uri: post.uri,
-    cid: post.cid,
-    author: {
-      did: post.author?.did ?? null,
-      handle: post.author?.handle ?? null,
-      displayName: post.author?.displayName ?? null,
-    },
-    text: (post.record as { text?: string } | undefined)?.text ?? null,
-    createdAt: (post.record as { createdAt?: string } | undefined)?.createdAt ?? null,
-    likeCount: post.likeCount ?? 0,
-    repostCount: post.repostCount ?? 0,
-    replyCount: post.replyCount ?? 0,
-    quoteCount: post.quoteCount ?? 0,
-    indexedAt: post.indexedAt ?? null,
-    links: actor
-      ? { aturi: recordLink(actor, POST_COLLECTION, rkey), bsky: bskyAppUrl(actor, rkey) }
-      : {},
-  };
 }
 
 /**
@@ -544,6 +499,181 @@ export function registerBskyTools(server: McpServer): void {
           ? (page.likes ?? []).map((l) => profileCard(l.actor))
           : (page.repostedBy ?? []).map(profileCard);
       return { uri: trimmed, kind, count: accounts.length, cursor: page.cursor ?? null, accounts };
+    }),
+  );
+
+  server.registerTool(
+    'get_posts',
+    {
+      title: 'Hydrate posts by URI',
+      description:
+        'You already have post at:// URIs — from get_backlinks, sample_firehose, list_records, ' +
+        'anywhere — and want them as readable posts with text, author, and engagement counts, up to ' +
+        '25 in one call. This is the Bluesky-layer counterpart to get_record: same posts, but with ' +
+        'the AppView aggregates attached. URIs the AppView has not indexed are simply absent.',
+      inputSchema: z.object({
+        uris: z
+          .array(z.string().min(1).max(2048))
+          .min(1)
+          .max(25)
+          .describe('Post at:// URIs, up to 25 per call.'),
+      }),
+      annotations: READ_ONLY,
+    },
+    toolHandler(async ({ uris }) => {
+      const cleaned = uris.map((u) => u.trim());
+      const bad = cleaned.filter((u) => !u.startsWith('at://'));
+      if (bad.length) {
+        throw new McpToolError(
+          'invalid_parameter',
+          `Not at:// URIs: ${bad.slice(0, 3).join(', ')}`,
+          'Pass post URIs; resolve_link turns a web URL into one.',
+        );
+      }
+      const page = await getPosts(cleaned);
+      if (!page) {
+        throw new McpToolError('upstream_error', 'Could not hydrate those posts', 'Safe to retry shortly.');
+      }
+      const posts = (page.posts ?? []).map(postCard);
+      const returned = new Set(posts.map((p) => p.uri));
+      return {
+        count: posts.length,
+        posts,
+        notFound: cleaned.filter((u) => !returned.has(u)),
+      };
+    }),
+  );
+
+  server.registerTool(
+    'get_suggested_follows',
+    {
+      title: 'Accounts similar to this one',
+      description:
+        'You have an account and want others like it: the "more like this" list Bluesky computes ' +
+        'from the graph, which is a fast way to map a community around someone. Bluesky\'s ' +
+        'network-wide suggestion list needs a signed-in viewer, so it is not offered here; this ' +
+        'tool always answers relative to an actor.',
+      inputSchema: z.object({
+        actor: z
+          .string()
+          .min(1)
+          .max(253)
+          .describe('Handle or DID to find similar accounts to.'),
+      }),
+      annotations: READ_ONLY,
+    },
+    toolHandler(async ({ actor }) => {
+      const page = await getFollowSuggestions({ actor: actor.trim().replace(/^@/, '') });
+      if (!page) {
+        throw new McpToolError(
+          'upstream_error',
+          `Could not load accounts similar to "${actor}"`,
+          'Check the handle/DID, then retry.',
+        );
+      }
+      const accounts = page.suggestions ?? page.actors ?? [];
+      return { similarTo: actor, count: accounts.length, accounts: accounts.map(profileCard) };
+    }),
+  );
+
+  server.registerTool(
+    'get_starter_packs',
+    {
+      title: "An account's starter packs",
+      description:
+        'You want the starter packs an account has published: curated bundles of accounts and feeds ' +
+        'that new people can follow in one action. Each carries its member list URI, which get_list ' +
+        'expands into the actual accounts.',
+      inputSchema: z.object({
+        actor: z.string().min(1).max(253).describe('Handle or DID of the pack author.'),
+        limit: z.number().int().min(1).max(50).optional().describe('Default 25.'),
+        cursor: z.string().min(1).max(1024).optional(),
+      }),
+      annotations: READ_ONLY,
+    },
+    toolHandler(async ({ actor, limit, cursor }) => {
+      const page = await getActorStarterPacks({
+        actor: actor.trim().replace(/^@/, ''),
+        limit: limit ?? 25,
+        cursor,
+      });
+      if (!page) {
+        throw new McpToolError(
+          'upstream_error',
+          `Could not load starter packs for "${actor}"`,
+          'Check the handle/DID, then retry.',
+        );
+      }
+      const packs = (page.starterPacks ?? []).map((pack) => {
+        const record = (pack.record ?? {}) as { name?: string; description?: string; list?: string };
+        const rkey = pack.uri.split('/').pop() ?? '';
+        const creator = pack.creator?.handle ?? pack.creator?.did ?? '';
+        return {
+          uri: pack.uri,
+          name: record.name ?? null,
+          description: record.description ?? null,
+          listUri: record.list ?? null,
+          memberCount: pack.listItemCount ?? null,
+          joinedAllTimeCount: pack.joinedAllTimeCount ?? null,
+          creator: pack.creator
+            ? { did: pack.creator.did, handle: pack.creator.handle ?? null }
+            : null,
+          links: creator
+            ? {
+                aturi: recordLink(creator, 'app.bsky.graph.starterpack', rkey),
+                bsky: `https://bsky.app/starter-pack/${creator}/${rkey}`,
+              }
+            : {},
+        };
+      });
+      return { actor, count: packs.length, cursor: page.cursor ?? null, starterPacks: packs };
+    }),
+  );
+
+  server.registerTool(
+    'get_labeler_services',
+    {
+      title: 'Moderation labelers',
+      description:
+        'You have labeler DIDs and want what those moderation services actually do: the label values ' +
+        'each one publishes and who runs it. Labelers are ordinary atproto accounts, so their DIDs ' +
+        'come from labels on a record or from resolve_identity like any other.',
+      inputSchema: z.object({
+        dids: z
+          .array(z.string().min(1).max(256))
+          .min(1)
+          .max(10)
+          .describe('Labeler DIDs, e.g. did:plc:ar7c4by46qjdydhdevvrndac (Bluesky Moderation).'),
+      }),
+      annotations: READ_ONLY,
+    },
+    toolHandler(async ({ dids }) => {
+      const cleaned = dids.map((d) => d.trim());
+      const bad = cleaned.filter((d) => !d.startsWith('did:'));
+      if (bad.length) {
+        throw new McpToolError(
+          'invalid_parameter',
+          `Not DIDs: ${bad.slice(0, 3).join(', ')}`,
+          'Labelers are addressed by DID; resolve a handle with resolve_identity first.',
+        );
+      }
+      const page = await getLabelerServices({ dids: cleaned, detailed: true });
+      if (!page) {
+        throw new McpToolError('upstream_error', 'Could not load those labeler services', 'Safe to retry shortly.');
+      }
+      const services = (page.views ?? []).map((view) => ({
+        uri: view.uri,
+        did: view.creator?.did ?? null,
+        handle: view.creator?.handle ?? null,
+        displayName: view.creator?.displayName ?? null,
+        description: view.creator?.description ?? null,
+        likeCount: view.likeCount ?? 0,
+        labelValues: view.policies?.labelValues ?? [],
+        links: view.creator
+          ? { profile: profileLink(view.creator.handle ?? view.creator.did) }
+          : {},
+      }));
+      return { count: services.length, services };
     }),
   );
 }

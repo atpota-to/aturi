@@ -12,6 +12,8 @@
  * emits the strings unchanged.
  */
 
+import { TOOL_COUNT, TOOL_GROUPS } from '@/lib/mcp/catalog';
+
 export type ContentBlock =
   | { kind: 'p'; text: string }
   | { kind: 'ul'; items: string[] };
@@ -318,9 +320,16 @@ export const HOME_PAGE: ContentPage = {
 };
 
 /**
- * The /mcp landing page. A builder rather than a const because the copy
- * names the endpoint URL, which must track the deploy's own origin — a fork
- * serves an MCP page that points at itself, same rule as llms.txt.
+ * The Markdown twin of /mcp, at /mcp.md.
+ *
+ * The HTML page is a landing page with visuals; this is the same facts as
+ * plain prose, which is what an agent fetching the page actually wants. The
+ * tool list is generated from src/lib/mcp/catalog.ts rather than retyped, so
+ * the two representations cannot disagree about what the server offers.
+ *
+ * A builder rather than a const because the copy names the endpoint URL,
+ * which must track the deploy's own origin: a fork serves an MCP page that
+ * points at itself.
  */
 export function buildMcpPage(baseUrl: string): ContentPage {
   const origin = baseUrl.replace(/\/$/, '');
@@ -329,9 +338,9 @@ export function buildMcpPage(baseUrl: string): ContentPage {
   return {
     title: 'MCP server',
     description:
-      'aturi.to hosts a free, keyless, read-only MCP server: twenty-four tools for exploring the Atmosphere — link resolution, identity, repositories, network-wide backlinks, Bluesky feeds and trends, lexicon activity, and a live firehose tap — that any AI agent can use by adding one URL.',
+      `aturi.to hosts a free, keyless, read-only MCP server: ${TOOL_COUNT} tools for exploring the Atmosphere, covering link resolution, identity, repositories, network-wide backlinks, the Bluesky social layer, custom feeds and lists, lexicon activity, and a live firehose tap.`,
     intro:
-      `The Atmosphere Explorer, as tools. Point an MCP-capable agent at \`${endpoint}\` and it can resolve any Atmosphere link, read any repo, trace backlinks across every app, and watch lexicon activity network-wide. No key, no account, nothing to install.`,
+      `The Atmosphere Explorer, as tools. Point an MCP-capable agent at \`${endpoint}\` and it can resolve any Atmosphere link, read any repo, trace backlinks across every app, and watch the firehose. No key, no account, nothing to install.`,
     sections: [
       {
         id: 'add',
@@ -340,7 +349,7 @@ export function buildMcpPage(baseUrl: string): ContentPage {
           {
             kind: 'ul',
             items: [
-              `**Claude** (web or desktop): Settings → Connectors → Add custom connector, with the URL \`${endpoint}\`.`,
+              `**Claude** (web or desktop): Settings, then Connectors, then Add custom connector, with the URL \`${endpoint}\`.`,
               `**Claude Code**: \`claude mcp add --transport http aturi ${endpoint}\``,
               `**Cursor / VS Code**: add \`{"aturi": {"url": "${endpoint}"}}\` to the editor's MCP servers setting.`,
               `**Anything else**: any client that speaks Streamable HTTP works, on the 2026-07-28 spec or the 2025 one. stdio-only clients can bridge with \`npx mcp-remote ${endpoint}\`.`,
@@ -350,24 +359,22 @@ export function buildMcpPage(baseUrl: string): ContentPage {
       },
       {
         id: 'tools',
-        heading: 'Twenty-four tools',
+        heading: `${TOOL_COUNT} tools`,
         blocks: [
           {
             kind: 'p',
             text: 'Every tool is read-only, and every answer carries `at://` URIs plus aturi.to universal links, so an agent can always hand a human something to open.',
           },
-          {
-            kind: 'ul',
-            items: [
-              '**Resolve**: `resolve_link` turns any Atmosphere URL — or a page declaring AT Tags — into the record behind it plus every client that renders it; `list_waypoints` is the client catalog itself.',
-              '**Identity**: `resolve_identity` (handle ↔ DID ↔ PDS) and `get_identity_history` (the PLC audit log: handle changes, migrations, key rotations).',
-              '**Repositories**: `describe_repo` (which lexicons an account actually uses), `list_records`, `get_record`, and `describe_pds`.',
-              '**Network graph**: `get_backlinks` — who references a record or account, across every app, from the Constellation index.',
-              '**Bluesky layer**: `get_profile`, `get_author_feed` (recent posts with engagement counts), `get_thread`, `get_follows` / `get_followers`, `get_post_engagement` (who liked, reposted, or quoted a post), `get_trends`, `search_posts`, and `search_actors`, over the public AppView.',
-              '**Lexicon ecosystem**: `list_trending_lexicons`, `get_lexicon_activity`, `search_lexicons`, `sample_recent_records`, and `get_lexicon_schema`, from the UFOs index.',
-              '**Firehose**: `sample_firehose` opens Jetstream for a few seconds and returns live events, filterable by collection, account, and operation.',
-            ],
-          },
+          // One paragraph per group, then its tools as a list: nested lists
+          // aren't part of the ContentBlock vocabulary, and a flat list of
+          // headings and tools reads as one undifferentiated run.
+          ...TOOL_GROUPS.flatMap((group) => [
+            { kind: 'p' as const, text: `**${group.title}.** ${group.blurb}` },
+            {
+              kind: 'ul' as const,
+              items: group.tools.map((tool) => `\`${tool.name}\`: ${tool.summary}`),
+            },
+          ]),
         ],
       },
       {
@@ -377,12 +384,12 @@ export function buildMcpPage(baseUrl: string): ContentPage {
           {
             kind: 'ul',
             items: [
-              '“What has @dame.is been posting about lately, and which posts got the most engagement?”',
-              '“Who links to this post, anywhere on the network?”',
-              '“What apps does this account actually use, and when did it migrate PDSes?”',
-              '“What’s trending on Bluesky right now, and who’s driving it?”',
-              '“Show me live `com.whtwnd.blog.entry` records as they’re posted.”',
-              '“Give me a link my friend can open in her own client.”',
+              '"What has this account been posting about, and which posts got the most engagement?"',
+              '"Who links to this post, anywhere on the network?"',
+              '"What apps does this account actually use, and when did it change servers?"',
+              '"What is trending on Bluesky right now, and who is driving it?"',
+              '"Show me `com.whtwnd.blog.entry` records as they are posted."',
+              '"Give me a link my friend can open in her own client."',
             ],
           },
         ],
@@ -393,15 +400,15 @@ export function buildMcpPage(baseUrl: string): ContentPage {
         blocks: [
           {
             kind: 'p',
-            text: 'The server is keyless and stores nothing about callers, like the rest of the [public API](/docs). There is no paid tier, so there is nothing to upgrade to — just be reasonable about volume.',
+            text: 'The server is keyless and stores nothing about callers, like the rest of the [public API](/docs). There is no paid tier, so there is nothing to upgrade to; just be reasonable about volume.',
           },
           {
             kind: 'p',
-            text: 'It is strictly read-only. Nothing here can post, like, follow, or edit, by design: the hosted surface will never hold write credentials. Write tools are planned as a separate package that runs on your own machine with your own keys.',
+            text: 'It is strictly read-only. Nothing here can post, like, follow, or edit, by design: the hosted surface holds no write credentials. Write tools are planned as a separate package that runs on your own machine with your own keys.',
           },
           {
             kind: 'p',
-            text: 'Answers come from the same public infrastructure the Explorer reads: the Bluesky public AppView, plc.directory, and microcosm’s Constellation, Slingshot, and UFOs services.',
+            text: 'Answers come from the same public infrastructure the Explorer reads: the Bluesky public AppView, plc.directory, Jetstream, and microcosm\u2019s Constellation, Slingshot, and UFOs services.',
           },
         ],
       },
@@ -411,7 +418,7 @@ export function buildMcpPage(baseUrl: string): ContentPage {
         blocks: [
           {
             kind: 'p',
-            text: 'Building software rather than prompting an agent? The same core answers are plain GET endpoints, typed by [the OpenAPI document](/openapi.json) and explained in the [developer docs](/docs). Both surfaces wrap the same code, so neither drifts from the other.',
+            text: 'Building software rather than prompting an agent? The resolution and catalog answers are also plain GET endpoints, typed by [the OpenAPI document](/openapi.json) and explained in the [developer docs](/docs). Both surfaces wrap the same code, so neither drifts from the other.',
           },
         ],
       },

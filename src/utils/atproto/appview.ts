@@ -466,3 +466,253 @@ export async function getPostEngagement(opts: {
     signal,
   );
 }
+
+/** A custom feed generator's public record view. */
+export type FeedGeneratorView = {
+  uri: string;
+  cid: string;
+  did: string;
+  creator?: AppViewProfile;
+  displayName?: string;
+  description?: string;
+  avatar?: string;
+  likeCount?: number;
+  indexedAt?: string;
+};
+
+export type FeedGeneratorsPage = { feeds?: FeedGeneratorView[]; cursor?: string };
+
+/**
+ * The three ways to list feed generators, all public and unauthenticated:
+ * an actor's own feeds (app.bsky.feed.getActorFeeds), the network's most
+ * popular (app.bsky.unspecced.getPopularFeedGenerators), and Bluesky's
+ * editorial suggestions (app.bsky.unspecced.getSuggestedFeeds). The two
+ * unspecced ones may change without notice; `actor` is required only by the
+ * first.
+ */
+export async function listFeedGenerators(opts: {
+  source: 'actor' | 'popular' | 'suggested';
+  actor?: string;
+  query?: string;
+  limit?: number;
+  cursor?: string;
+  signal?: AbortSignal;
+}): Promise<FeedGeneratorsPage | null> {
+  const { source, actor, query, limit = 25, cursor, signal } = opts;
+  const params = new URLSearchParams({ limit: String(limit) });
+  if (cursor) params.set('cursor', cursor);
+
+  let method: string;
+  if (source === 'actor') {
+    if (!actor) return null;
+    params.set('actor', actor);
+    method = 'app.bsky.feed.getActorFeeds';
+  } else if (source === 'popular') {
+    if (query) params.set('query', query);
+    method = 'app.bsky.unspecced.getPopularFeedGenerators';
+  } else {
+    method = 'app.bsky.unspecced.getSuggestedFeeds';
+  }
+  return fetchJsonOrNull<FeedGeneratorsPage>(`${APPVIEW}/xrpc/${method}?${params}`, signal);
+}
+
+/**
+ * app.bsky.feed.getFeedGenerators — hydrate specific feed generator URIs
+ * into their views, including whether the AppView considers each online.
+ */
+export async function getFeedGenerators(
+  uris: readonly string[],
+  opts: { signal?: AbortSignal } = {},
+): Promise<FeedGeneratorsPage | null> {
+  if (!uris.length) return null;
+  const params = new URLSearchParams();
+  for (const uri of uris) params.append('feeds', uri);
+  return fetchJsonOrNull<FeedGeneratorsPage>(
+    `${APPVIEW}/xrpc/app.bsky.feed.getFeedGenerators?${params}`,
+    opts.signal,
+  );
+}
+
+export type FeedSkeletonPage = {
+  feed?: Array<{ post: AppViewPostView; feedContext?: string }>;
+  cursor?: string;
+};
+
+/**
+ * app.bsky.feed.getFeed — the posts a custom feed generator is serving right
+ * now. Public for feeds that don't require auth; a feed whose generator is
+ * offline or gated answers non-2xx, which surfaces here as null.
+ */
+export async function getFeed(opts: {
+  feed: string;
+  limit?: number;
+  cursor?: string;
+  signal?: AbortSignal;
+}): Promise<FeedSkeletonPage | null> {
+  const { feed, limit = 25, cursor, signal } = opts;
+  if (!feed) return null;
+  const params = new URLSearchParams({ feed, limit: String(limit) });
+  if (cursor) params.set('cursor', cursor);
+  return fetchJsonOrNull<FeedSkeletonPage>(`${APPVIEW}/xrpc/app.bsky.feed.getFeed?${params}`, signal);
+}
+
+/**
+ * app.bsky.feed.getListFeed — posts from every member of a curation list,
+ * which is how "list feeds" are read. Same shape as getFeed.
+ */
+export async function getListFeed(opts: {
+  list: string;
+  limit?: number;
+  cursor?: string;
+  signal?: AbortSignal;
+}): Promise<FeedSkeletonPage | null> {
+  const { list, limit = 25, cursor, signal } = opts;
+  if (!list) return null;
+  const params = new URLSearchParams({ list, limit: String(limit) });
+  if (cursor) params.set('cursor', cursor);
+  return fetchJsonOrNull<FeedSkeletonPage>(
+    `${APPVIEW}/xrpc/app.bsky.feed.getListFeed?${params}`,
+    signal,
+  );
+}
+
+/** A curation or moderation list. `purpose` is the lexicon's list purpose. */
+export type ListView = {
+  uri: string;
+  cid: string;
+  name?: string;
+  purpose?: string;
+  description?: string;
+  avatar?: string;
+  listItemCount?: number;
+  indexedAt?: string;
+  creator?: AppViewProfile;
+};
+
+export type ListPage = {
+  list?: ListView;
+  items?: Array<{ uri: string; subject: AppViewProfile }>;
+  cursor?: string;
+};
+
+export type ListsPage = { lists?: ListView[]; cursor?: string };
+
+/** app.bsky.graph.getList — one list's metadata plus a page of its members. */
+export async function getList(opts: {
+  list: string;
+  limit?: number;
+  cursor?: string;
+  signal?: AbortSignal;
+}): Promise<ListPage | null> {
+  const { list, limit = 50, cursor, signal } = opts;
+  if (!list) return null;
+  const params = new URLSearchParams({ list, limit: String(limit) });
+  if (cursor) params.set('cursor', cursor);
+  return fetchJsonOrNull<ListPage>(`${APPVIEW}/xrpc/app.bsky.graph.getList?${params}`, signal);
+}
+
+/** app.bsky.graph.getLists — the lists an actor has created. */
+export async function getLists(opts: {
+  actor: string;
+  limit?: number;
+  cursor?: string;
+  signal?: AbortSignal;
+}): Promise<ListsPage | null> {
+  const { actor, limit = 25, cursor, signal } = opts;
+  if (!actor) return null;
+  const params = new URLSearchParams({ actor, limit: String(limit) });
+  if (cursor) params.set('cursor', cursor);
+  return fetchJsonOrNull<ListsPage>(`${APPVIEW}/xrpc/app.bsky.graph.getLists?${params}`, signal);
+}
+
+/**
+ * app.bsky.feed.getPosts — hydrate up to 25 post URIs into full views with
+ * engagement counts, in one request. The counterpart to get_record for the
+ * Bluesky layer: same posts, but with the AppView's aggregates attached.
+ */
+export async function getPosts(
+  uris: readonly string[],
+  opts: { signal?: AbortSignal } = {},
+): Promise<{ posts?: AppViewPostView[] } | null> {
+  if (!uris.length) return null;
+  const params = new URLSearchParams();
+  for (const uri of uris) params.append('uris', uri);
+  return fetchJsonOrNull<{ posts?: AppViewPostView[] }>(
+    `${APPVIEW}/xrpc/app.bsky.feed.getPosts?${params}`,
+    opts.signal,
+  );
+}
+
+/**
+ * app.bsky.graph.getSuggestedFollowsByActor — accounts the AppView considers
+ * similar to one actor, which is public.
+ *
+ * The sibling app.bsky.actor.getSuggestions (the network-wide starting-point
+ * list) is deliberately not wrapped here: unauthenticated it answers
+ * `{"actors":[]}` every time, so exposing it would only promise something
+ * that never arrives.
+ */
+export async function getFollowSuggestions(opts: {
+  actor: string;
+  signal?: AbortSignal;
+}): Promise<{ actors?: AppViewProfile[]; suggestions?: AppViewProfile[] } | null> {
+  const { actor, signal } = opts;
+  if (!actor) return null;
+  const params = new URLSearchParams({ actor });
+  return fetchJsonOrNull(
+    `${APPVIEW}/xrpc/app.bsky.graph.getSuggestedFollowsByActor?${params}`,
+    signal,
+  );
+}
+
+export type StarterPackView = {
+  uri: string;
+  cid: string;
+  creator?: AppViewProfile;
+  record?: Record<string, unknown>;
+  listItemCount?: number;
+  joinedAllTimeCount?: number;
+  indexedAt?: string;
+};
+
+/** app.bsky.graph.getActorStarterPacks — the starter packs an actor made. */
+export async function getActorStarterPacks(opts: {
+  actor: string;
+  limit?: number;
+  cursor?: string;
+  signal?: AbortSignal;
+}): Promise<{ starterPacks?: StarterPackView[]; cursor?: string } | null> {
+  const { actor, limit = 25, cursor, signal } = opts;
+  if (!actor) return null;
+  const params = new URLSearchParams({ actor, limit: String(limit) });
+  if (cursor) params.set('cursor', cursor);
+  return fetchJsonOrNull(`${APPVIEW}/xrpc/app.bsky.graph.getActorStarterPacks?${params}`, signal);
+}
+
+export type LabelerView = {
+  uri: string;
+  cid: string;
+  creator?: AppViewProfile;
+  likeCount?: number;
+  indexedAt?: string;
+  policies?: { labelValues?: string[]; labelValueDefinitions?: unknown[] };
+};
+
+/**
+ * app.bsky.labeler.getServices — the moderation services behind a set of
+ * DIDs, with `detailed` returning each one's label policy. Labelers are
+ * ordinary atproto accounts, so their DIDs come from the same places any
+ * other DID does.
+ */
+export async function getLabelerServices(opts: {
+  dids: readonly string[];
+  detailed?: boolean;
+  signal?: AbortSignal;
+}): Promise<{ views?: LabelerView[] } | null> {
+  const { dids, detailed = true, signal } = opts;
+  if (!dids.length) return null;
+  const params = new URLSearchParams();
+  for (const did of dids) params.append('dids', did);
+  if (detailed) params.set('detailed', 'true');
+  return fetchJsonOrNull(`${APPVIEW}/xrpc/app.bsky.labeler.getServices?${params}`, signal);
+}

@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { registerBskyTools } from '@/lib/mcp/tools/bsky';
+import { TOOL_GROUPS } from '@/lib/mcp/catalog';
 import {
   captureRegistrations,
   resultBody,
@@ -9,21 +10,9 @@ import {
 
 const { tools } = captureRegistrations(registerBskyTools);
 
-test('registers exactly the Bluesky-layer tools', () => {
-  assert.deepEqual(
-    [...tools.keys()].sort(),
-    [
-      'get_author_feed',
-      'get_followers',
-      'get_follows',
-      'get_post_engagement',
-      'get_profile',
-      'get_thread',
-      'get_trends',
-      'search_actors',
-      'search_posts',
-    ],
-  );
+test('registers exactly the Bluesky-layer tools the catalog documents', () => {
+  const documented = TOOL_GROUPS.find((g) => g.id === 'bluesky')!.tools.map((t) => t.name);
+  assert.deepEqual([...tools.keys()].sort(), [...documented].sort());
 });
 
 test('every tool carries a title, a bounded description, and read-only annotations', () => {
