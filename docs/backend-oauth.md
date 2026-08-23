@@ -175,6 +175,34 @@ has to rediscover the reasoning:
   latency for promptness, and removing it is the option nobody should take
   quietly.
 
+### What the review changed
+
+Five adversarial lenses were run over the implementation and each finding put
+through a refutation pass: 15 of 33 survived, and all 15 are fixed. The two
+worth remembering, because both were cases of guarding against something the
+SDK does not do:
+
+- **`OAuthSession.fetchHandler` returns a 401; it does not throw.** It has
+  already attempted a forced refresh by then, so that response means the grant
+  is dead. The proxy's entire `/invalid token/i` catch branch was unreachable.
+  Detection now reads the `WWW-Authenticate` challenge off the response, and
+  the shim only ends a session on the backend's own error codes — a bare 401
+  relayed from a PDS about one record used to sign the user out of everything.
+
+- **`/api/oauth/login` accepted a cross-site navigation.** A hostile page could
+  send a visitor there with a `handle` naming an authorization server it
+  controls; the flow cookie could not catch it, because the victim's own
+  browser was the thing that minted it. Note that refusing an `https://` handle
+  would not have closed this — a bare handle resolves through DNS to a
+  `did:web` on the same attacker host and reaches the same state. The check has
+  to be on who started the navigation.
+
+A regression test now derives the proxy's allowlist from `spaceClient.ts`
+rather than restating it, in both directions: a method the client can send over
+OAuth but the proxy omits fails, and so does an allowlisted method nothing
+sends. That is the drift that produced the `getLatestCommit` and `listRepoOps`
+gap in the first place.
+
 ### Still open before this can go live
 
 - Phase 5's legal rewrite is a blocker for enabling the backend at all: the

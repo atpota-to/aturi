@@ -56,11 +56,22 @@ function landingFor(returnTo: string, did: string): string {
 }
 
 function redirectWithError(target: string, message: string): NextResponse {
-  const sep = target.includes('?') ? '&' : '?';
-  const res = NextResponse.redirect(
-    `${target}${sep}oauth_error=${encodeURIComponent(message)}`,
-    302,
-  );
+  // Built with URL rather than by appending: a return path may carry a
+  // fragment (`/explore/did:plc:x#records`), and a hand-rolled `?`/`&` would
+  // put the parameter after the `#`, where it is never sent to the server and
+  // never parsed as a query — so the message would silently vanish on exactly
+  // the deep links most worth returning to. Both call sites pass an absolute
+  // target already.
+  let url: URL;
+  try {
+    url = new URL(target);
+  } catch {
+    const res = NextResponse.redirect(target, 302);
+    res.headers.set('Cache-Control', 'no-store');
+    return res;
+  }
+  url.searchParams.set('oauth_error', message);
+  const res = NextResponse.redirect(url.toString(), 302);
   res.headers.set('Cache-Control', 'no-store');
   return res;
 }

@@ -62,7 +62,6 @@ const ALLOWED_NSIDS = new Set([
   'com.atproto.repo.listRecords',
   'com.atproto.repo.describeRepo',
   'com.atproto.space.listSpaces',
-  'com.atproto.space.listRepos',
   'com.atproto.space.listRepoOps',
   'com.atproto.space.getLatestCommit',
   'com.atproto.space.getRecord',

@@ -206,11 +206,25 @@ export async function recordSpaceConsent(authority: string, bearer?: string): Pr
  * browser leaves this page.
  */
 export function startBffSignIn(handle: string, ids: string[], returnTo: string): void {
+  // Web sign-in requires a same-origin backend, and always did: the session is
+  // an HttpOnly cookie set on the backend's origin, and every later call uses
+  // `credentials: 'same-origin'`, which sends nothing cross-origin. A
+  // different NEXT_PUBLIC_BFF_ORIGIN therefore produces a sign-in that appears
+  // to work and then reports the user as signed out. Say so here rather than
+  // letting it surface as the login route's cross-site refusal.
+  const origin = bffOrigin();
+  if (typeof window !== 'undefined' && origin !== window.location.origin) {
+    throw new Error(
+      'Backend sign-in needs the backend on this origin. NEXT_PUBLIC_BFF_ORIGIN ' +
+        'is for bearer callers — the extension, and local development — not for ' +
+        'the web app.',
+    );
+  }
   const params = new URLSearchParams({
     handle,
     client: 'web',
     scopes: ids.join(','),
     return: returnTo,
   });
-  window.location.href = `${bffOrigin()}/api/oauth/login?${params.toString()}`;
+  window.location.href = `${origin}/api/oauth/login?${params.toString()}`;
 }
