@@ -4,10 +4,11 @@ import { applyAppearance } from '../../lib/appearance';
 import DefaultsTab from './tabs/DefaultsTab';
 import VisibilityTab from './tabs/VisibilityTab';
 import CustomTab from './tabs/CustomTab';
+import AccountTab from './tabs/AccountTab';
 import AboutTab from './tabs/AboutTab';
 import DevTab from './tabs/DevTab';
 
-type TabId = 'defaults' | 'visibility' | 'custom' | 'about' | 'dev';
+type TabId = 'defaults' | 'visibility' | 'custom' | 'account' | 'about' | 'dev';
 
 function AturiMark() {
   return (
@@ -32,6 +33,7 @@ const TABS: { id: TabId; label: string }[] = [
   { id: 'defaults', label: 'General' },
   { id: 'visibility', label: 'Waypoints' },
   { id: 'custom', label: 'Custom' },
+  { id: 'account', label: 'Account' },
   { id: 'about', label: 'About' },
   { id: 'dev', label: 'Dev' },
 ];
@@ -44,6 +46,7 @@ const HASH_TO_TAB: Record<string, TabId> = {
   waypoints: 'visibility',
   visibility: 'visibility',
   custom: 'custom',
+  account: 'account',
   about: 'about',
   dev: 'dev',
 };
@@ -119,6 +122,7 @@ export default function App() {
         {tab === 'defaults' && <DefaultsTab prefs={prefs} onChange={update} />}
         {tab === 'visibility' && <VisibilityTab prefs={prefs} onChange={update} />}
         {tab === 'custom' && <CustomTab prefs={prefs} onChange={update} />}
+        {tab === 'account' && <AccountTab prefs={prefs} onUpdate={update} />}
         {tab === 'about' && <AboutTab />}
         {tab === 'dev' && <DevTab prefs={prefs} onChange={update} />}
       </main>

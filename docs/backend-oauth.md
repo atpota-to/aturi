@@ -73,8 +73,8 @@ npm run build`, the extension suite (305 tests) and the packages suite:
 | 2 — storage, lock, sessions, login/callback/session/logout/exchange/sessions | done |
 | 3 — XRPC proxy, client shim, auth-mode dispatch | done |
 | 4 — spaces delegation token and consent | done |
-| 5 — rollout, `/account` device list, terms and privacy rewrite | **not started** |
-| 6 — extension client | **not started** (the backend half it needs is done) |
+| 5 — `/account` device list, terms and privacy rewrite, fork and dev docs | done |
+| 6 — extension client (read-only) | done |
 
 **None of it is live.** Every route answers 503 until `ATURI_OAUTH_JWK_ACTIVE`,
 `ATURI_DB_URL`, `ATURI_DB_SERVICE_KEY` and `ATURI_SESSION_ENC_KEY` are all set,
@@ -203,16 +203,60 @@ OAuth but the proxy omits fails, and so does an allowlisted method nothing
 sends. That is the drift that produced the `getLatestCommit` and `listRepoOps`
 gap in the first place.
 
-### Still open before this can go live
+### Extension sign-in, as built
 
-- Phase 5's legal rewrite is a blocker for enabling the backend at all: the
-  terms page states in three places that aturi is a public OAuth client that
-  never receives tokens, and lists no database provider among its
-  sub-processors. All three become false the moment the first variable is set.
-- The `/account` device list has an API (`GET`/`DELETE /api/oauth/sessions`)
-  and no UI.
-- `testing.aturi.to`'s Vercel project still needs confirming, since it decides
-  whether staging shares production's signing key.
+Read-only, and off unless a user goes looking for it: Settings → Account, a
+handle, and a browser-managed consent window. `?scopes=` is sent empty, which
+yields `atproto` plus the AppView read token and nothing that can write — a
+narrower grant than the website asks for, and a much easier thing to put in
+front of a store reviewer.
+
+What it buys, in v1: importing the waypoint groups and custom waypoints you
+already built on the website, read from your own
+`to.aturi.actor.preferences` record. One-directional on purpose — `putRecord`
+replaces a whole record, and the extension knows about a fraction of the ~25
+fields the web app writes, so an extension that wrote back would silently
+delete the rest. That is also why the grant is read-only rather than the
+read-only-ness being a consequence of the feature.
+
+Three things are enforced rather than documented:
+
+- **Sign-in throws if called from the popup.** `launchWebAuthFlow` opens a
+  separate window, which destroys the popup and collects the pending promise
+  with it. It works in development, where devtools often holds the popup open,
+  and hangs in a real install — so the check is a runtime guard, with a test.
+- **The token is in `storage.local`, never in the prefs object.** `prefs.ts`
+  serialises the whole `Prefs` object to `storage.sync`, which uploads it to
+  Google or Mozilla. A test reads both files and fails if the keys converge or
+  if `session.ts` ever reaches for `storage.sync`.
+- **Only the backend's own auth failures clear the token.** A 401 relayed from
+  a PDS is about the record, not the session.
+
+Store paperwork is done in the same change, which is the only way it stays
+true: `data_collection_permissions` is now `['authenticationInfo']` (and
+deliberately not `websiteContent` — page scanning still never leaves the
+device), and both privacy documents — `extension/PRIVACY.txt` and
+`src/app/extension/privacy/page.tsx`, which had drifted three months apart —
+were rewritten together and now carry a Signing in section. Every no-data
+claim is scoped so it stays true for someone who never signs in, because for
+them it is.
+
+### Still open
+
+- **`testing.aturi.to`'s Vercel project.** Decides whether staging shares
+  production's signing key. Needs a look at the dashboard.
+- **Pin the Chrome extension `key`** in the manifest, from the Web Store
+  item's public key, so a development build and the published one share an id.
+  Without it every developer's unpacked build has a different
+  `chromiumapp.org` origin. Not blocking — the flow does not depend on an
+  allowlisted redirect — but it is the difference between sign-in working
+  first try in development and not.
+- **Chrome Web Store's Privacy practices tab** has to tick "Authentication
+  information" to match the manifest. The store cross-references them.
+- **Safari and Firefox for Android.** Safari Web Extensions do not implement
+  `browser.identity` at all, and Android support is unconfirmed. The extension
+  fails with a clear message rather than hanging, and §8's nonce-and-claim
+  flow is the portable alternative if either becomes a target.
 
 ---
 

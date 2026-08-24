@@ -273,13 +273,34 @@ export default function TermsPage() {
             <h3 style={subHeading}>3. Your account and authentication</h3>
             <p style={paragraph}>
               Aturi authentication is performed entirely through standard
-              atproto OAuth. We do not operate an identity provider, do not
-              issue or store passwords, and do not maintain a centralized
-              user account database. Your atproto identity is administered
-              by your PDS host and any associated identity authority. Your
-              continued ability to sign in depends on those upstream
-              providers.
+              atproto OAuth. We do not operate an identity provider and do
+              not issue or store passwords. Your atproto identity is
+              administered by your PDS host and any associated identity
+              authority. Your continued ability to sign in depends on those
+              upstream providers.
             </p>
+            <p style={paragraph}>
+              Aturi offers two sign-in methods, and which one you use
+              determines whether anything about your session is stored on
+              our servers at all:
+            </p>
+            <ul style={list}>
+              <li>
+                <strong>Browser sign-in</strong> (the original method).
+                Nothing leaves your browser. See the token bullet below.
+              </li>
+              <li>
+                <strong>Backend sign-in.</strong> Your tokens are held by
+                Aturi&rsquo;s server rather than by your browser, which is
+                what allows a sign-in to last indefinitely instead of
+                expiring roughly every two weeks. This requires us to keep
+                a record for each signed-in account: your DID, your OAuth
+                tokens (encrypted at rest), and a row per signed-in device.
+                That record is a user account database in the ordinary
+                sense of the term, and it exists only for accounts that
+                have used this method.
+              </li>
+            </ul>
             <p style={paragraph}>
               When you sign in:
             </p>
@@ -292,13 +313,23 @@ export default function TermsPage() {
                 gated by a scope.
               </li>
               <li>
-                Access and refresh tokens are bound to a DPoP key generated
-                in your browser, stored in your browser&rsquo;s local
-                storage (e.g., IndexedDB), and never transmitted to Aturi
-                servers. Signing out from the Service removes the local
-                session from your browser; it does not revoke tokens
-                upstream. You can revoke tokens at any time through your
-                PDS.
+                Access and refresh tokens are always bound to a DPoP key.
+                With browser sign-in that key is generated in your browser,
+                the tokens are stored in your browser&rsquo;s local storage
+                (e.g., IndexedDB), and neither is transmitted to Aturi
+                servers. With backend sign-in the key and tokens are
+                generated and held by Aturi&rsquo;s server, encrypted at
+                rest, and your browser instead holds an opaque session
+                cookie that carries no atproto credential. In both cases
+                you can revoke Aturi&rsquo;s access at any time through
+                your PDS.
+              </li>
+              <li>
+                Signing out ends the session on the device you used. With
+                backend sign-in you can also see and end each signed-in
+                device individually from your account settings, and
+                &ldquo;sign out everywhere&rdquo; additionally revokes
+                Aturi&rsquo;s access at your PDS.
               </li>
               <li>
                 You are responsible for safeguarding your atproto credentials
@@ -467,6 +498,15 @@ export default function TermsPage() {
               <li>
                 <strong>Vercel</strong>: hosting, edge runtime, and
                 anonymous analytics.
+              </li>
+              <li>
+                <strong>Supabase</strong> (PostgreSQL, us-east-1):{' '}
+                database for backend sign-in only. Holds, per signed-in
+                account, your DID, your OAuth tokens (encrypted at rest
+                with a key held outside the database), the scopes you
+                granted, your PDS address, and one row per signed-in
+                device. Nothing is stored here for visitors who are signed
+                out or who use browser sign-in.
               </li>
               <li>
                 Browser web stores and operating-system vendors (
@@ -808,16 +848,33 @@ export default function TermsPage() {
               of the request.
             </p>
             <p style={paragraph}>
-              <strong>OAuth and session data.</strong> When you sign in
-              with atproto, the OAuth handshake occurs between your browser
-              and your PDS (and any identity authority associated with it).
-              Aturi acts as a public OAuth client. We do not run an
-              identity provider and we do not store your password. Access
-              tokens, refresh tokens, the DPoP key, and the session
-              metadata required to keep you signed in are stored
-              client-side in your browser&rsquo;s local storage (e.g.,
-              IndexedDB) and never transmitted to Aturi&rsquo;s servers.
-              Signing out clears that local session in the browser you used.
+              <strong>OAuth and session data.</strong> We do not run an
+              identity provider and we do not store your password. What
+              happens to your tokens depends on which sign-in you used.
+            </p>
+            <p style={paragraph}>
+              With <strong>browser sign-in</strong>, Aturi acts as a public
+              OAuth client: the handshake occurs between your browser and
+              your PDS, and the access token, refresh token, DPoP key and
+              session metadata are stored client-side in your
+              browser&rsquo;s local storage (e.g., IndexedDB) and never
+              transmitted to Aturi&rsquo;s servers. Signing out clears that
+              local session in the browser you used.
+            </p>
+            <p style={paragraph}>
+              With <strong>backend sign-in</strong>, Aturi acts as a
+              confidential OAuth client: the handshake occurs between
+              Aturi&rsquo;s server and your PDS, and the tokens and DPoP
+              key are held on our server, encrypted at rest, in a database
+              operated by Supabase (see Sub-processors). Your browser holds
+              only an opaque session identifier, which is not an atproto
+              credential and cannot be used against your PDS. Requests you
+              make to your own repository are relayed through
+              Aturi&rsquo;s server, which therefore sees the content of
+              those requests in transit; it does not retain them. We store,
+              for each signed-in account: your DID, the encrypted tokens,
+              the granted scopes, your PDS address, and one row per
+              signed-in device recording when it was created and last used.
             </p>
             <p style={paragraph}>
               <strong>Preferences and personalization.</strong> Non-sensitive
@@ -1007,10 +1064,24 @@ export default function TermsPage() {
               individual visitors.
             </p>
             <p style={paragraph}>
-              <strong>Preferences and OAuth sessions.</strong> Preferences
-              mirrored to your PDS persist until you delete the record;
-              local session data persists in your browser until you sign
-              out or clear your browser data.
+              <strong>Preferences.</strong> Preferences mirrored to your
+              PDS persist until you delete the record.
+            </p>
+            <p style={paragraph}>
+              <strong>Browser sign-in.</strong> Session data persists in
+              your browser until you sign out or clear your browser data.
+              Nothing is retained on our servers.
+            </p>
+            <p style={paragraph}>
+              <strong>Backend sign-in.</strong> Server-side records are
+              swept every fifteen minutes and retained as follows:
+              in-progress sign-in state for ten minutes; a device session
+              for 30 days from its last use, so an actively used session
+              does not expire; the OAuth tokens themselves until you sign
+              out everywhere, or until 90 days without use, whichever comes
+              first. Ending a device session or signing out everywhere
+              deletes the corresponding rows immediately; signing out
+              everywhere also revokes our access at your PDS.
             </p>
             <p style={paragraph}>
               <strong>Atmosphere data.</strong> The Service does not
@@ -1023,8 +1094,10 @@ export default function TermsPage() {
             <p style={paragraph}>
               We use commercially reasonable technical and organizational
               measures to protect the Service, including transport
-              encryption (HTTPS), DPoP-bound OAuth tokens, and the
-              principle of minimum data collection. No system is perfectly
+              encryption (HTTPS), DPoP-bound OAuth tokens, envelope
+              encryption of stored tokens under a key held outside the
+              database, storage of session identifiers only as hashes, and
+              the principle of minimum data collection. No system is perfectly
               secure, however, and we cannot guarantee that the Service
               will be free of unauthorized access. You are responsible for
               keeping your atproto credentials and the device(s) on which

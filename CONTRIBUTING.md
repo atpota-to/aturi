@@ -55,6 +55,30 @@ cd packages
 npm install          # nested workspace, links both packages locally
 ```
 
+### Signing in locally
+
+`npm run dev` uses the public browser OAuth client, which needs no setup — the
+spec has a loopback shortcut for exactly this, so `http://localhost:3000` can
+be an OAuth client without a tunnel or a deployed metadata document. Sign-in
+just works.
+
+The backend OAuth client is the other path (see [docs/backend-oauth.md](docs/backend-oauth.md)),
+and it cannot use that shortcut: the loopback form is defined only for *public*
+clients, and a confidential client has to publish a fetchable metadata document
+and JWKS. There is no confidential equivalent. So:
+
+- **Working on anything else** — do nothing. Local dev runs the browser client,
+  which is also what a fork with no database gets, so it is exercised code
+  rather than a dev-only special case.
+- **Working on the backend itself** — you need a tunnel (`cloudflared`, `ngrok`)
+  so the authorization server can fetch your metadata and reach your callback.
+  Each new tunnel URL is a distinct `client_id`, so you will re-consent each
+  time you restart it.
+
+`NEXT_PUBLIC_BFF_ORIGIN` is not a way around this. It exists for bearer callers
+— the extension — and cannot serve the web app, whose session is a cookie on
+the backend's own origin.
+
 ## Before you open a PR
 
 Run the checks that touch what you changed. These are the same commands CI runs, in `.github/workflows/ci.yml`. Running them locally takes a few minutes and saves a review round trip.

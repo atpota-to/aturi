@@ -9,6 +9,7 @@ import ScopeSelector from '@/components/oauth/ScopeSelector';
 import { getProfile, type AppViewProfile } from '@/utils/atproto/appview';
 import { encodeRepo } from '@/utils/atproto/urls';
 import AccountStats from '../AccountStats';
+import SignedInDevices from '../SignedInDevices';
 
 /**
  * Account tab — identity card (avatar / handle / DID), repo stats,
@@ -140,6 +141,8 @@ export default function AccountTab() {
         </div>
         <AccountStats did={did} />
       </section>
+
+      <SignedInDevices />
 
       <SyncStatus pdsSync={pdsSync} />
     </>

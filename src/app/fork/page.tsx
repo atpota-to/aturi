@@ -279,6 +279,20 @@ NEXT_PUBLIC_REPO_URL=https://github.com/you/your-fork`}</pre>
             <p style={{ color: 'var(--text-tertiary)', fontSize: '0.875rem', lineHeight: 1.6 }}>
               See <code style={{ padding: '0.125rem 0.375rem', background: 'var(--bg-primary)', border: '1px solid var(--border-medium)' }}>.env.example</code> for all available options.
             </p>
+            <p style={{ color: 'var(--text-tertiary)', fontSize: '0.875rem', lineHeight: 1.6, marginTop: '1rem' }}>
+              <strong style={{ color: 'var(--text-secondary)' }}>Optional: longer sign-ins.</strong>{' '}
+              Out of the box your fork signs users in through the browser, which
+              needs no database and no secrets — but the spec caps those sessions
+              at roughly two weeks. Running the backend OAuth client instead makes
+              them effectively unlimited. It costs a Postgres database, one
+              generated key, and applying{' '}
+              <code style={{ padding: '0.125rem 0.375rem', background: 'var(--bg-primary)', border: '1px solid var(--border-medium)' }}>sql/001_oauth_bff.sql</code>.
+              Skipping it costs nothing but session length. See{' '}
+              <code style={{ padding: '0.125rem 0.375rem', background: 'var(--bg-primary)', border: '1px solid var(--border-medium)' }}>docs/backend-oauth.md</code>,
+              and note that a free-tier Supabase project pauses after about a week
+              of inactivity — which for this is a sign-in outage, so a fork with
+              quiet spells is better off on a database that does not sleep.
+            </p>
           </div>
         </div>
       </div>

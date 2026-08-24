@@ -1,23 +1,30 @@
 ATURI BROWSER EXTENSION - PRIVACY POLICY
-Last updated: July 17, 2026
+Last updated: August 23, 2026
 
 Canonical URL: https://aturi.to/extension/privacy
 
 
 SUMMARY
 
-The Aturi browser extension does not collect, transmit, or sell any personal
-data. It has no analytics, no telemetry, no tracking, no advertising, and no
-remote code. Everything you configure stays in your own browser.
+The Aturi browser extension has no analytics, no telemetry, no tracking, no
+advertising, and no remote code. It does not sell data to anyone, ever.
 
-The extension does, however, read limited information from pages you visit
-so it can offer waypoints and inspect AT URIs. Page reading happens entirely
-inside your browser; the extension never sends page contents to
-Aturi-operated servers. The extension also makes anonymous lookups to public
-atproto services (Bluesky AppView, PLC directory, Constellation, and your
-chosen Personal Data Server) when you actively use the waypoint picker or
-the Inspect tab. The details of every network request and every part of the
-page that is read are described below.
+There is exactly one optional feature that involves an Aturi-operated
+server: signing in to aturi.to, which lives in Settings under Account. If
+you never use it, the extension contacts no Aturi server at all and stores
+nothing about you anywhere but your own browser. Section 5 describes what
+signing in does; everything outside that section applies whether you sign
+in or not.
+
+The extension reads limited information from pages you visit so it can
+offer waypoints and inspect AT URIs. Page reading happens entirely inside
+your browser; the extension never sends page contents anywhere -- not to
+Aturi, and not to anyone else -- signed in or not. The extension also makes
+anonymous lookups to public atproto services (Bluesky AppView, PLC
+directory, Constellation, and your chosen Personal Data Server) when you
+actively use the waypoint picker or the Inspect tab. The details of every
+network request and every part of the page that is read are described
+below.
 
 
 1. WHAT THE EXTENSION STORES
@@ -35,6 +42,12 @@ limited to:
     to surface frequently used destinations in the popup. You can disable
     this in the History tab and clear it at any time.
   - UI preferences such as compact mode and open-in-new-tab.
+
+If you sign in (Section 5), the extension additionally stores a session
+token and your DID. Those are kept in browser.storage.local, which is
+DELIBERATELY a different storage area from the preferences above: local
+storage never leaves your device, so the token is not uploaded to your
+browser vendor's sync servers.
 
 No part of this data is sent to Aturi, the developer, or any third party.
 If you are signed into your browser and have extension sync enabled, your
@@ -132,14 +145,21 @@ service, whose own privacy policy applies.
     Constellation index (constellation.microcosm.blue) with the AT URI to
     fetch an aggregate count of public backlinks to that record.
 
+  - Sign-in, and only if you use it. See Section 5 for the full description
+    of the requests to aturi.to that signing in involves. If you do not sign
+    in, the extension makes no request to aturi.to or any other
+    Aturi-operated server.
+
 Auto-redirects do not make network requests. They are implemented with
 chrome.declarativeNetRequest, which lets the browser rewrite URLs locally
 based on static rules the extension generates from your preferences. The
 extension does not see, read, or log the URLs you visit while redirects
 run.
 
-The extension never contacts aturi.to or any other Aturi-operated server
-during normal use.
+Apart from the optional sign-in described in Section 5, the extension does
+not contact aturi.to or any other Aturi-operated server. Browsing,
+redirecting, the waypoint picker and the Inspect tab never do, whether or
+not you are signed in.
 
 
 4. PERMISSIONS AND WHY THEY'RE NEEDED
@@ -154,6 +174,11 @@ during normal use.
     exposing your browsing history to the extension.
   - clipboardWrite - to copy universal Aturi links to your clipboard when
     you use the "copy link" action.
+  - identity - used by one optional feature and nothing else: signing in to
+    aturi.to from the Settings page. It opens a browser-managed
+    authorization window; the extension never sees your password, and this
+    permission grants it no access to your browser profile or your identity
+    in any other browser.
   - host_permissions: <all_urls> - required so the popup can recognize
     Atmosphere pages on any domain (Bluesky, Leaflet, Blacksky, PDSls,
     custom waypoints you define, etc.), so declarativeNetRequest rules
@@ -163,9 +188,58 @@ during normal use.
     page contents off-device.
 
 
-5. WHAT THE EXTENSION DOES NOT DO
+5. SIGNING IN (OPTIONAL)
 
-  - It does not collect or transmit personal information to Aturi.
+The extension can sign in to aturi.to. This is off by default, requires you
+to enter your handle in Settings -> Account, and can be undone at any time
+with Sign out. Nothing else in the extension changes based on whether you
+are signed in.
+
+What it is for. The website lets you build waypoint groups and custom
+waypoints and stores them as a record in your own atproto repository.
+Signing in lets the extension read that record so you do not have to
+recreate the same setup twice.
+
+What access it asks for. Read-only. The grant the extension requests cannot
+create, update or delete anything in your repository, and cannot upload
+files. This is a narrower grant than the website asks for.
+
+What is transmitted, and to whom:
+
+  - When you sign in: the handle you typed goes to aturi.to, which starts a
+    standard atproto OAuth flow. Your browser then opens your own PDS's
+    consent screen in a window the browser manages. Your password is
+    entered there, on your PDS, and is never visible to the extension or to
+    Aturi.
+
+  - After you approve: aturi.to's server holds the resulting atproto tokens
+    -- encrypted -- and hands the extension only an opaque session token,
+    which is not an atproto credential and cannot be used against your PDS
+    by anything but aturi.to. The extension stores that token on your
+    device.
+
+  - When you use "Import waypoint settings": the extension asks aturi.to to
+    read one record from your repository (to.aturi.actor.preferences) and
+    return it. aturi.to relays that request to your PDS and does not retain
+    the result.
+
+What aturi.to stores while you are signed in: your DID, the atproto tokens
+(encrypted at rest), the permissions you granted, your PDS address, and one
+row recording that this extension has a session, when it was created and
+when it was last used. The aturi.to privacy terms at
+https://aturi.to/terms describe this and name the database provider.
+
+How to undo it. "Sign out" in Settings -> Account ends the extension's
+session and deletes the stored token. You can also see and end the
+extension's session from your account settings on aturi.to, and you can
+revoke Aturi's access entirely from your own PDS at any time.
+
+
+6. WHAT THE EXTENSION DOES NOT DO
+
+  - It does not collect or transmit personal information to Aturi, unless
+    you sign in (Section 5), in which case it transmits exactly what that
+    section describes and nothing more.
   - It does not use cookies or any tracking technology.
   - It does not run analytics, telemetry, crash reporting, or A/B testing.
   - It does not load or execute remotely hosted code. All executable code
@@ -178,7 +252,7 @@ during normal use.
   - It does not sell, rent, share, or trade any data with third parties.
 
 
-6. THIRD-PARTY DESTINATIONS AND SERVICES
+7. THIRD-PARTY DESTINATIONS AND SERVICES
 
 When you click a waypoint or follow an auto-redirected link, your browser
 navigates to a third-party Atmosphere client (Bluesky, Blacksky, Leaflet,
@@ -190,14 +264,14 @@ services has its own privacy policy and terms of service, and Aturi has no
 control over them.
 
 
-7. CHILDREN'S PRIVACY
+8. CHILDREN'S PRIVACY
 
 The extension is a general-purpose link-routing and inspection utility and
 is not directed at children. Because it does not collect any personal
 information, it does not knowingly collect data from children under 13.
 
 
-8. DATA RETENTION AND DELETION
+9. DATA RETENTION AND DELETION
 
 Settings persist in your browser's extension storage for as long as the
 extension is installed. You can:
@@ -205,11 +279,15 @@ extension is installed. You can:
   - Clear the recents list at any time from the History tab in the options
     page.
   - Disable history tracking entirely from the History tab.
+  - Sign out from Settings -> Account, which deletes the stored session
+    token from your device and ends the session on aturi.to.
   - Remove all extension data by uninstalling the extension. Your browser
-    may also remove any synced copy via its own sync settings.
+    may also remove any synced copy via its own sync settings. Uninstalling
+    removes the local token; to also end the session on aturi.to, sign out
+    first or revoke it from your account settings there.
 
 
-9. OPEN SOURCE
+10. OPEN SOURCE
 
 Aturi is open source under GPL v3. You can audit the extension's source
 code, including every network request it makes, at:
@@ -217,7 +295,7 @@ code, including every network request it makes, at:
   https://tangled.org/atpota.to/aturi
 
 
-10. CHANGES TO THIS POLICY
+11. CHANGES TO THIS POLICY
 
 This policy may be updated as the extension evolves. Changes will be
 reflected on this page with a new "Last updated" date. Material changes

@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Link from 'next/link';
 import Header from '@/components/Header';
 
 export const metadata: Metadata = {
@@ -39,7 +40,7 @@ export default function ExtensionPrivacyPage() {
           Browser Extension Privacy Policy
         </h1>
         <p style={{ color: 'var(--text-tertiary)', fontSize: '0.875rem' }}>
-          Last updated: May 26, 2026
+          Last updated: August 23, 2026
         </p>
       </header>
 
@@ -53,16 +54,25 @@ export default function ExtensionPrivacyPage() {
           <section style={{ marginBottom: '2rem' }}>
             <h2 style={sectionHeading}>Summary</h2>
             <p style={paragraph}>
-              The Aturi browser extension does not collect, transmit, or sell
-              any personal data. It has no analytics, no telemetry, no
-              tracking, no advertising, and no remote code. Everything you
-              configure stays in your own browser.
+              The Aturi browser extension has no analytics, no telemetry, no
+              tracking, no advertising, and no remote code. It does not sell
+              data to anyone, ever.
             </p>
             <p style={paragraph}>
-              The extension does, however, read limited information from
-              pages you visit so it can offer waypoints and inspect AT URIs.
-              Page reading happens entirely inside your browser; the
-              extension never sends page contents to Aturi-operated servers.
+              There is exactly one optional feature that involves an
+              Aturi-operated server: signing in to aturi.to, which lives in
+              Settings under Account. If you never use it, the extension
+              contacts no Aturi server at all and stores nothing about you
+              anywhere but your own browser. Section&nbsp;5 describes what
+              signing in does; everything outside that section applies
+              whether you sign in or not.
+            </p>
+            <p style={paragraph}>
+              The extension reads limited information from pages you visit
+              so it can offer waypoints and inspect AT URIs. Page reading
+              happens entirely inside your browser; the extension never
+              sends page contents anywhere &mdash; not to Aturi, and not to
+              anyone else &mdash; signed in or not.
               The extension also makes anonymous lookups to public atproto
               services (Bluesky AppView, PLC directory, Constellation, and
               your chosen Personal Data Server) when you actively use the
@@ -221,8 +231,11 @@ export default function ExtensionPrivacyPage() {
               not see, read, or log the URLs you visit while redirects run.
             </p>
             <p style={paragraph}>
-              The extension never contacts <code>aturi.to</code> or any
-              other Aturi-operated server during normal use.
+              Apart from the optional sign-in described in
+              Section&nbsp;5, the extension does not contact{' '}
+              <code>aturi.to</code> or any other Aturi-operated server.
+              Browsing, redirecting, the waypoint picker and the Inspect tab
+              never do, whether or not you are signed in.
             </p>
           </section>
 
@@ -251,6 +264,14 @@ export default function ExtensionPrivacyPage() {
                 link&rdquo; action.
               </li>
               <li>
+                <strong>identity</strong>: used by one optional feature and
+                nothing else &mdash; signing in to aturi.to from the
+                Settings page. It opens a browser-managed authorization
+                window; the extension never sees your password, and this
+                permission grants it no access to your browser profile or
+                your identity in any other browser.
+              </li>
+              <li>
                 <strong>host_permissions: &lt;all_urls&gt;</strong>:
                 required so the popup can recognize Atmosphere pages on any
                 domain (Bluesky, Leaflet, Blacksky, PDSls, custom waypoints
@@ -265,11 +286,83 @@ export default function ExtensionPrivacyPage() {
           </section>
 
           <section style={{ marginBottom: '2rem' }}>
-            <h2 style={sectionHeading}>5. What the extension does not do</h2>
+            <h2 style={sectionHeading}>5. Signing in (optional)</h2>
+            <p style={paragraph}>
+              The extension can sign in to aturi.to. This is off by default,
+              requires you to enter your handle in Settings &rarr; Account,
+              and can be undone at any time with Sign out. Nothing else in
+              the extension changes based on whether you are signed in.
+            </p>
+            <p style={paragraph}>
+              <strong>What it is for.</strong> The website lets you build
+              waypoint groups and custom waypoints and stores them as a
+              record in your own atproto repository. Signing in lets the
+              extension read that record so you do not have to recreate the
+              same setup twice.
+            </p>
+            <p style={paragraph}>
+              <strong>What access it asks for.</strong> Read-only. The grant
+              the extension requests cannot create, update or delete
+              anything in your repository, and cannot upload files. This is
+              a narrower grant than the website asks for.
+            </p>
+            <p style={paragraph}>
+              <strong>What is transmitted, and to whom:</strong>
+            </p>
+            <ul style={list}>
+              <li>
+                When you sign in, the handle you typed goes to aturi.to,
+                which starts a standard atproto OAuth flow. Your browser
+                then opens your own PDS&rsquo;s consent screen in a window
+                the browser manages. Your password is entered there, on your
+                PDS, and is never visible to the extension or to Aturi.
+              </li>
+              <li>
+                After you approve, aturi.to&rsquo;s server holds the
+                resulting atproto tokens &mdash; encrypted &mdash; and hands
+                the extension only an opaque session token, which is not an
+                atproto credential and cannot be used against your PDS by
+                anything but aturi.to. The extension stores that token on
+                your device, in local extension storage, which never syncs
+                to your browser vendor.
+              </li>
+              <li>
+                When you use &ldquo;Import waypoint settings&rdquo;, the
+                extension asks aturi.to to read one record from your
+                repository (<code>to.aturi.actor.preferences</code>) and
+                return it. aturi.to relays that request to your PDS and does
+                not retain the result.
+              </li>
+            </ul>
+            <p style={paragraph}>
+              <strong>What aturi.to stores while you are signed in:</strong>{' '}
+              your DID, the atproto tokens (encrypted at rest), the
+              permissions you granted, your PDS address, and one row
+              recording that this extension has a session, when it was
+              created and when it was last used. The{' '}
+              <Link href="/terms" style={{ color: 'var(--text-accent)' }}>
+                aturi.to terms
+              </Link>{' '}
+              describe this and name the database provider.
+            </p>
+            <p style={paragraph}>
+              <strong>How to undo it.</strong> &ldquo;Sign out&rdquo; in
+              Settings &rarr; Account ends the extension&rsquo;s session and
+              deletes the stored token. You can also see and end the
+              extension&rsquo;s session from your account settings on
+              aturi.to, and you can revoke Aturi&rsquo;s access entirely
+              from your own PDS at any time.
+            </p>
+          </section>
+
+          <section style={{ marginBottom: '2rem' }}>
+            <h2 style={sectionHeading}>6. What the extension does not do</h2>
             <ul style={list}>
               <li>
                 It does not collect or transmit personal information to
-                Aturi.
+                Aturi, unless you sign in (Section&nbsp;5), in which case it
+                transmits exactly what that section describes and nothing
+                more.
               </li>
               <li>It does not use cookies or any tracking technology.</li>
               <li>
@@ -296,7 +389,7 @@ export default function ExtensionPrivacyPage() {
           </section>
 
           <section style={{ marginBottom: '2rem' }}>
-            <h2 style={sectionHeading}>6. Third-party destinations and services</h2>
+            <h2 style={sectionHeading}>7. Third-party destinations and services</h2>
             <p style={paragraph}>
               When you click a waypoint or follow an auto-redirected link,
               your browser navigates to a third-party Atmosphere client
@@ -311,7 +404,7 @@ export default function ExtensionPrivacyPage() {
           </section>
 
           <section style={{ marginBottom: '2rem' }}>
-            <h2 style={sectionHeading}>7. Children&rsquo;s privacy</h2>
+            <h2 style={sectionHeading}>8. Children&rsquo;s privacy</h2>
             <p style={paragraph}>
               The extension is a general-purpose link-routing and
               inspection utility and is not directed at children. Because
@@ -321,7 +414,7 @@ export default function ExtensionPrivacyPage() {
           </section>
 
           <section style={{ marginBottom: '2rem' }}>
-            <h2 style={sectionHeading}>8. Data retention and deletion</h2>
+            <h2 style={sectionHeading}>9. Data retention and deletion</h2>
             <p style={paragraph}>
               Settings persist in your browser&rsquo;s extension storage for
               as long as the extension is installed. You can:
@@ -343,7 +436,7 @@ export default function ExtensionPrivacyPage() {
           </section>
 
           <section style={{ marginBottom: '2rem' }}>
-            <h2 style={sectionHeading}>9. Open source</h2>
+            <h2 style={sectionHeading}>10. Open source</h2>
             <p style={paragraph}>
               Aturi is open source under GPL v3. You can audit the
               extension&rsquo;s source code, including every network request
@@ -364,7 +457,7 @@ export default function ExtensionPrivacyPage() {
           </section>
 
           <section>
-            <h2 style={sectionHeading}>10. Changes to this policy</h2>
+            <h2 style={sectionHeading}>11. Changes to this policy</h2>
             <p style={paragraph}>
               This policy may be updated as the extension evolves. Changes
               will be reflected on this page with a new &ldquo;Last
