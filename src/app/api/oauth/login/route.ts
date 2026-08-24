@@ -190,14 +190,16 @@ export async function GET(request: Request) {
     if (validIds.length !== rawIds.length) {
       return bail(400, 'INVALID_PARAMETER', 'Unknown permission requested.');
     }
-    // The extension's read-only grant is enforced HERE, not by the extension
-    // asking nicely. This route is the one the extension reaches cross-site by
-    // design — launchWebAuthFlow cannot do otherwise — so it is exempt from
-    // the same-site check above, which makes it the one place a caller other
-    // than our own extension could plausibly reach. A client-side convention
-    // would mean anything reaching it could request write scopes and receive a
-    // grant the user believes is read-only, because that is what the
-    // extension's UI and both privacy documents told them.
+    // The extension's read-only grant is enforced HERE rather than by the
+    // extension choosing to send no scopes.
+    //
+    // This is defence in depth, not a hole being closed: grants are keyed
+    // (sub, client), so an extension session can only ever restore tokens
+    // minted by an extension flow, and anyone who ran that flow themselves
+    // would be authorizing their own account. What it buys is that the claim
+    // does not depend on the client. Both privacy documents state plainly
+    // that the extension cannot write, and this is the line that keeps that
+    // true no matter what a future caller of this route sends.
     const scope = buildScopeString(
       clientParam === 'extension' ? new Set<ScopeId>() : new Set(validIds),
     );

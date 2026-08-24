@@ -175,7 +175,32 @@ has to rediscover the reasoning:
   latency for promptness, and removing it is the option nobody should take
   quietly.
 
-### What the review changed
+### The second review pass
+
+Phases 5 and 6 went through the same treatment: four lenses, then a refutation
+pass. 8 of 30 findings survived, all fixed. The two that mattered:
+
+- **Firefox extension sign-in could never have worked.** The return target was
+  an exact-match allowlist, and Firefox derives its redirect host from an
+  internal UUID randomised per install — there is no value to put in a list.
+  Matched by pattern now, restricted to the three hosts browsers reserve and
+  intercept. What makes that safe is what made the exact list unnecessary: the
+  code is worthless without the PKCE verifier, so the redirect was never what
+  authenticated the extension.
+- **Clearing history did not clear what the privacy policy promised.** The
+  History tab called `clearRecents()` only; the repo identifiers the Inspect
+  tab remembers live under their own key and survived. Fixed in the code
+  rather than softened in the document.
+
+One flagged blocker was **refuted**, and the reasoning is worth keeping: the
+extension's read-only grant was called a client-side convention, but grants are
+keyed `(sub, client)`, so an extension session can only ever restore tokens
+minted by an extension flow — and anyone who ran that flow would be authorizing
+their own account. The server-side enforcement was added anyway, as defence in
+depth: both privacy documents state the extension cannot write, and that claim
+should not depend on the client.
+
+### What the first review changed
 
 Five adversarial lenses were run over the implementation and each finding put
 through a refutation pass: 15 of 33 survived, and all 15 are fixed. The two

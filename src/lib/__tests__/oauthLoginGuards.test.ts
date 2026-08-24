@@ -12,14 +12,14 @@ import { resolve } from 'node:path';
 const src = readFileSync(resolve(process.cwd(), 'src/app/api/oauth/login/route.ts'), 'utf8');
 
 /**
- * The extension's read-only grant has to be enforced by the server.
+ * The extension's read-only grant is enforced by the server.
  *
- * This route is exempt from the same-site check — launchWebAuthFlow is
- * cross-site by construction, so it has to be — which makes it the one place a
- * caller other than our own extension could plausibly reach. If the scope came
- * from the caller, anything reaching it could request write access and receive
- * a grant the user believes is read-only, because that is what the extension's
- * UI and both privacy documents told them.
+ * Defence in depth rather than a hole: grants are keyed (sub, client), so an
+ * extension session can only restore tokens minted by an extension flow, and
+ * anyone running that flow authorizes their own account. What this pins is
+ * that the claim does not depend on the client — both privacy documents state
+ * the extension cannot write, and only this line keeps that true regardless of
+ * what a caller sends.
  */
 test('an extension sign-in cannot request any scope', () => {
   const build = /const scope = buildScopeString\(([\s\S]*?)\);/.exec(src);
