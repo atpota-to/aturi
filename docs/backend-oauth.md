@@ -63,6 +63,9 @@ rewrite of privacy/terms copy that currently promises none of those exist.
 
 ## Implementation status
 
+> Turning it on is a separate document: **[backend-oauth-setup.md](backend-oauth-setup.md)**.
+
+
 Built, and green through `npm run lint && npm run typecheck && npm test &&
 npm run build`, the extension suite (305 tests) and the packages suite:
 
