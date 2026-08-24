@@ -29,16 +29,93 @@ const PREFERENCES_NSID = 'to.aturi.actor.preferences';
 
 type PreferencesRecord = {
   value?: {
-    waypointGroups?: WaypointGroup[];
-    customWaypoints?: CustomWaypoint[];
+    waypointGroups?: unknown;
+    customWaypoints?: unknown;
   };
 };
+
+/**
+ * Everything below is a boundary check, not paranoia about the user.
+ *
+ * The record comes from the signed-in account's own repository, so this is not
+ * defending against an attacker — it is defending against a record written by
+ * a newer version of the website, a half-finished edit, or another client
+ * writing the same collection. `mergePrefs` coerces shapes when prefs are READ
+ * back from storage, but this import writes them, and a group whose
+ * `waypointIds` is not an array would break the popup until the next load
+ * quietly repaired it. Drop what does not fit and say how much was dropped.
+ */
+function isRecord(v: unknown): v is Record<string, unknown> {
+  return typeof v === 'object' && v !== null && !Array.isArray(v);
+}
+
+function str(v: unknown): string | null {
+  return typeof v === 'string' && v.length > 0 ? v : null;
+}
+
+function cleanGroups(raw: unknown): WaypointGroup[] {
+  if (!Array.isArray(raw)) return [];
+  const out: WaypointGroup[] = [];
+  for (const g of raw) {
+    if (!isRecord(g)) continue;
+    const id = str(g.id);
+    const name = str(g.name);
+    if (!id || !name) continue;
+    out.push({
+      id,
+      name,
+      waypointIds: Array.isArray(g.waypointIds)
+        ? g.waypointIds.filter((w): w is string => typeof w === 'string')
+        : [],
+      ...(typeof g.collapsed === 'boolean' ? { collapsed: g.collapsed } : {}),
+    });
+  }
+  return out;
+}
+
+function cleanCustom(raw: unknown): CustomWaypoint[] {
+  if (!Array.isArray(raw)) return [];
+  const out: CustomWaypoint[] = [];
+  for (const w of raw) {
+    if (!isRecord(w)) continue;
+    const id = str(w.id);
+    const name = str(w.name);
+    // `templates` is what the popup builds URLs from; a waypoint without one
+    // is an entry that can never open anything.
+    if (!id || !name || !isRecord(w.templates)) continue;
+    const templates: CustomWaypoint['templates'] = {};
+    for (const [type, tpl] of Object.entries(w.templates)) {
+      if (typeof tpl === 'string' && tpl) {
+        templates[type as keyof CustomWaypoint['templates']] = tpl;
+      }
+    }
+    if (Object.keys(templates).length === 0) continue;
+    out.push({
+      id,
+      name,
+      domain: str(w.domain) ?? '',
+      category: str(w.category) ?? 'other',
+      supportedTypes: Array.isArray(w.supportedTypes)
+        ? (w.supportedTypes.filter((t) => typeof t === 'string') as CustomWaypoint['supportedTypes'])
+        : [],
+      templates,
+      ...(Array.isArray(w.redirectCompat)
+        ? {
+            redirectCompat: w.redirectCompat.filter(
+              (f) => typeof f === 'string',
+            ) as CustomWaypoint['redirectCompat'],
+          }
+        : {}),
+    });
+  }
+  return out;
+}
 
 type Status =
   | { kind: 'idle' }
   | { kind: 'busy'; what: 'signin' | 'import' }
   | { kind: 'error'; message: string }
-  | { kind: 'imported'; groups: number; custom: number }
+  | { kind: 'imported'; groups: number; custom: number; skipped: number }
   | { kind: 'empty' };
 
 export default function AccountTab({
@@ -87,12 +164,19 @@ export default function AccountTab({
         collection: PREFERENCES_NSID,
         rkey: 'self',
       });
-      const groups = record.value?.waypointGroups ?? [];
-      const custom = record.value?.customWaypoints ?? [];
+      const rawGroups = Array.isArray(record.value?.waypointGroups)
+        ? record.value.waypointGroups.length
+        : 0;
+      const rawCustom = Array.isArray(record.value?.customWaypoints)
+        ? record.value.customWaypoints.length
+        : 0;
+      const groups = cleanGroups(record.value?.waypointGroups);
+      const custom = cleanCustom(record.value?.customWaypoints);
       if (groups.length === 0 && custom.length === 0) {
         setStatus({ kind: 'empty' });
         return;
       }
+      const skipped = rawGroups - groups.length + (rawCustom - custom.length);
       // Custom waypoints merge by id and the local copy wins: something you
       // edited here should not be silently replaced by an older version from
       // the website. Groups are the ordering, so they are taken wholesale —
@@ -103,7 +187,7 @@ export default function AccountTab({
         ...(groups.length > 0 ? { waypointGroups: groups } : {}),
         customWaypoints: [...byId.values()],
       });
-      setStatus({ kind: 'imported', groups: groups.length, custom: custom.length });
+      setStatus({ kind: 'imported', groups: groups.length, custom: custom.length, skipped });
     } catch (err) {
       setStatus({
         kind: 'error',
@@ -192,6 +276,8 @@ export default function AccountTab({
           <p className="aturi-muted">
             Imported {status.groups} group{status.groups === 1 ? '' : 's'} and{' '}
             {status.custom} custom waypoint{status.custom === 1 ? '' : 's'}.
+            {status.skipped > 0 &&
+              ` Skipped ${status.skipped} entr${status.skipped === 1 ? 'y' : 'ies'} this version doesn't understand.`}
           </p>
         )}
         {status.kind === 'empty' && (

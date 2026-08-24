@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { Loader2, LogOut, Monitor, Puzzle } from 'lucide-react';
+import { useAtprotoSession } from '@/components/AtprotoSessionProvider';
 import { bffOrigin } from '@/lib/oauth/bffSession';
 
 /**
@@ -34,8 +35,10 @@ type State =
   | { status: 'ready'; sessions: DeviceSession[] };
 
 export default function SignedInDevices() {
+  const { signOut } = useAtprotoSession();
   const [state, setState] = useState<State>({ status: 'loading' });
   const [busy, setBusy] = useState<string | null>(null);
+  const [failure, setFailure] = useState<string | null>(null);
 
   const load = useCallback(async (): Promise<void> => {
     try {
@@ -58,35 +61,73 @@ export default function SignedInDevices() {
   }, [load]);
 
   const revoke = useCallback(
-    async (id: string) => {
+    async (id: string, isCurrent: boolean) => {
       setBusy(id);
+      setFailure(null);
       try {
-        await fetch(`${bffOrigin()}/api/oauth/sessions?id=${encodeURIComponent(id)}`, {
-          method: 'DELETE',
-          credentials: 'same-origin',
-        });
+        const res = await fetch(
+          `${bffOrigin()}/api/oauth/sessions?id=${encodeURIComponent(id)}`,
+          { method: 'DELETE', credentials: 'same-origin' },
+        );
+        if (!res.ok) {
+          // Reporting a failure as success is worse here than almost anywhere
+          // else: the row disappears and the user believes a device no longer
+          // has access to their repository.
+          setFailure('That session could not be ended. Try again.');
+          return;
+        }
+        if (isCurrent) {
+          // Ending your own session server-side leaves this tab holding a
+          // cookie for a row that no longer exists — the app would keep
+          // rendering as signed in until something happened to notice. Take
+          // the app's own sign-out path so the UI matches the server.
+          await signOut();
+          return;
+        }
         await load();
+      } catch {
+        setFailure('That session could not be ended. Try again.');
       } finally {
         setBusy(null);
       }
     },
-    [load],
+    [load, signOut],
   );
 
   const signOutEverywhere = useCallback(async () => {
+    if (
+      !window.confirm(
+        'Sign out everywhere and revoke this app\u2019s access at your PDS? ' +
+          'Every browser and extension will be signed out, and you will need to ' +
+          'authorize again next time.',
+      )
+    ) {
+      return;
+    }
     setBusy('all');
+    setFailure(null);
     try {
-      await fetch(`${bffOrigin()}/api/oauth/logout?scope=all`, {
+      const res = await fetch(`${bffOrigin()}/api/oauth/logout?scope=all`, {
         method: 'POST',
         credentials: 'same-origin',
       });
-      // Every session is gone, including this page's — a reload is the honest
-      // way to show that rather than leaving stale UI behind.
-      window.location.reload();
+      if (!res.ok) {
+        setFailure('Could not sign out everywhere. Try again.');
+        return;
+      }
+      // Deliberately the app's own sign-out rather than a reload. A reload
+      // would race the browser's cookie write, and — worse — the provider
+      // honours a leftover browser-client session in IndexedDB, so reloading
+      // could sign the user straight back in through the other client, which
+      // is the opposite of what they just asked for.
+      await signOut();
+      setState({ status: 'ready', sessions: [] });
+    } catch {
+      setFailure('Could not sign out everywhere. Try again.');
     } finally {
       setBusy(null);
     }
-  }, []);
+  }, [signOut]);
 
   if (state.status !== 'ready' || state.sessions.length === 0) return null;
 
@@ -148,7 +189,7 @@ export default function SignedInDevices() {
             <button
               type="button"
               disabled={busy !== null}
-              onClick={() => void revoke(s.id)}
+              onClick={() => void revoke(s.id, s.current)}
               style={rowButtonStyle()}
             >
               {busy === s.id ? <Loader2 size={12} className="explore-spin" /> : null}
@@ -157,6 +198,19 @@ export default function SignedInDevices() {
           </li>
         ))}
       </ul>
+
+      {failure && (
+        <p
+          role="alert"
+          style={{
+            margin: '0.75rem 0 0',
+            fontSize: '0.78rem',
+            color: 'var(--danger)',
+          }}
+        >
+          {failure}
+        </p>
+      )}
 
       <button
         type="button"
@@ -187,9 +241,13 @@ function relativeTime(iso: string): string {
   if (!Number.isFinite(then)) return 'at an unknown time';
   const minutes = Math.round((Date.now() - then) / 60_000);
   if (minutes < 2) return 'just now';
-  if (minutes < 60) return `${minutes} minutes ago`;
-  if (minutes < 60 * 24) return `${Math.round(minutes / 60)} hours ago`;
-  return `${Math.round(minutes / (60 * 24))} days ago`;
+  if (minutes < 60) return plural(minutes, 'minute');
+  if (minutes < 60 * 24) return plural(Math.round(minutes / 60), 'hour');
+  return plural(Math.round(minutes / (60 * 24)), 'day');
+}
+
+function plural(n: number, unit: string): string {
+  return `${n} ${unit}${n === 1 ? '' : 's'} ago`;
 }
 
 function rowButtonStyle(opts?: { danger?: boolean }): React.CSSProperties {

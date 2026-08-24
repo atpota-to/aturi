@@ -1,5 +1,6 @@
 import type { Prefs } from '../../../lib/prefs';
 import { clearRecents } from '../../../lib/prefs';
+import { clearInspectHistory } from '../../../lib/inspectHistory';
 import { findWaypoint } from '../../../lib/catalog';
 
 type Props = {
@@ -24,8 +25,18 @@ function formatDate(ts: number): string {
 
 export default function HistoryTab({ prefs, onChange }: Props) {
   async function handleClear() {
-    if (!confirm('Clear all history? This only affects recents ordering in the popup.')) return;
-    await clearRecents();
+    if (
+      !confirm(
+        'Clear all history? This clears the recents ordering in the popup and the ' +
+          'repo identifiers the Inspect tab remembers.'
+      )
+    )
+      return;
+    // Both, and both are the point. The privacy policy tells people clearing
+    // history removes the repo identifiers the Inspect tab has seen; clearing
+    // only the recents list left that promise untrue, with nothing to notice
+    // it — the identifiers live under their own storage key.
+    await Promise.all([clearRecents(), clearInspectHistory()]);
   }
 
   return (

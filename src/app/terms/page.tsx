@@ -60,7 +60,7 @@ export default function TermsPage() {
           Terms of Service & Privacy Policy
         </h1>
         <p style={{ color: 'var(--text-tertiary)', fontSize: '0.875rem' }}>
-          Last updated: May 26, 2026
+          Last updated: August 23, 2026
         </p>
       </header>
 
@@ -329,7 +329,11 @@ export default function TermsPage() {
                 backend sign-in you can also see and end each signed-in
                 device individually from your account settings, and
                 &ldquo;sign out everywhere&rdquo; additionally revokes
-                Aturi&rsquo;s access at your PDS.
+                Aturi&rsquo;s access at your PDS and deletes the stored
+                tokens. Revoking from your PDS alone stops the tokens
+                working but does not by itself delete our copy; that copy is
+                removed when you sign out, when a request finds the grant
+                revoked, or by the retention sweep described below.
               </li>
               <li>
                 You are responsible for safeguarding your atproto credentials
@@ -504,9 +508,14 @@ export default function TermsPage() {
                 database for backend sign-in only. Holds, per signed-in
                 account, your DID, your OAuth tokens (encrypted at rest
                 with a key held outside the database), the scopes you
-                granted, your PDS address, and one row per signed-in
-                device. Nothing is stored here for visitors who are signed
-                out or who use browser sign-in.
+                granted, your PDS address, one row per signed-in device,
+                and a record of which space authorities you have agreed to
+                contact on your behalf. Starting a sign-in also briefly
+                writes the in-progress authorization state and a
+                rate-limiting counter keyed to a coarse client identifier;
+                both are short-lived and swept. Nothing is stored here for
+                visitors who never begin a backend sign-in, or who use
+                browser sign-in.
               </li>
               <li>
                 Browser web stores and operating-system vendors (
@@ -974,11 +983,22 @@ export default function TermsPage() {
               Aturi does not use cookies for tracking or advertising.
               Vercel Analytics is cookieless. The Service does use your
               browser&rsquo;s local storage technologies (such as
-              localStorage and IndexedDB) to remember your preferences,
-              hold the OAuth session if you sign in, and store the DPoP
-              key bound to your session. You can clear this data at any
-              time via your browser&rsquo;s site-data controls; doing so
-              will sign you out and reset your local preferences.
+              localStorage and IndexedDB) to remember your preferences and,
+              with browser sign-in, to hold the OAuth session and the DPoP
+              key bound to it.
+            </p>
+            <p style={paragraph}>
+              Backend sign-in additionally sets cookies, none of which are
+              used for tracking: a session cookie holding an opaque
+              identifier (not an atproto credential), readable only by the
+              server; a short-lived cookie during sign-in that ties the
+              authorization to the browser that started it, which is what
+              stops a third party from completing a sign-in on your behalf;
+              and a non-secret marker that simply says a session probably
+              exists, so signed-out visitors are not made to wait on a
+              server check. You can clear all of this at any time via your
+              browser&rsquo;s site-data controls; doing so will sign you out
+              and reset your local preferences.
             </p>
 
             <h3 style={subHeading}>5. Where information is processed</h3>

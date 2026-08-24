@@ -35,7 +35,6 @@ import { getOAuthClient } from '@/lib/oauth/server/client';
 import { randomToken, sha256Hex } from '@/lib/oauth/server/crypto';
 import { isOAuthClientKind, requireBffConfig } from '@/lib/oauth/server/env';
 import { corsPreflight, fail, guarded, resolveOrigin } from '@/lib/oauth/server/http';
-import { NextResponse as Redirect } from 'next/server';
 import type { AppState } from '@/lib/oauth/server/oauthStores';
 import { allow, callerKey, RATE_LIMITS } from '@/lib/oauth/server/rateLimit';
 import { flowCookieName, isSecureOrigin, serializeCookie } from '@/lib/oauth/server/session';
@@ -70,13 +69,36 @@ function startedHere(request: Request, origin: string): boolean {
 }
 
 /**
- * Where the user lands after the callback. Web returns take a root-relative
- * path only; extension returns must match an exact entry in
- * ATURI_EXTENSION_RETURN_ORIGINS.
+ * The redirect hosts browsers reserve for `identity.launchWebAuthFlow`.
  *
- * A backslash is rejected alongside a second slash: some URL parsers normalise
- * `/\evil.example` into a protocol-relative URL, which would make this an open
- * redirect carrying a live session.
+ * These are patterns, not exact origins, and that is forced rather than lax:
+ * Firefox derives its host from an internal UUID randomised PER INSTALL, so
+ * there is no value to put in an allowlist — an exact-match list means Firefox
+ * sign-in can never succeed at all. Chrome's id is stable only after store
+ * publication, so every developer's unpacked build differs too.
+ *
+ * What makes a pattern safe here is that the redirect is not what authenticates
+ * the extension: the code delivered to it is worthless without the PKCE
+ * verifier, which never leaves the extension that generated it. Widening this
+ * to any real host, as opposed to these browser-internal ones, would not be
+ * safe on the same reasoning — those resolve to somebody's server.
+ *
+ * Neither host resolves on the network at all; the browser intercepts them.
+ */
+const BROWSER_REDIRECT_HOSTS = [
+  /^https:\/\/[a-z0-9-]+\.chromiumapp\.org\/?$/i,
+  /^https:\/\/[a-z0-9-]+\.extensions\.allizom\.org\/?$/i,
+  // Firefox 86+ also accepts this loopback form.
+  /^http:\/\/127\.0\.0\.1\/mozoauth2\/[a-z0-9-]+\/?$/i,
+];
+
+/**
+ * Where the user lands after the callback.
+ *
+ * Web returns take a root-relative path only. A backslash is rejected
+ * alongside a second slash: some URL parsers normalise `/\evil.example` into a
+ * protocol-relative URL, which would make every failure path an open redirect
+ * carrying a live session.
  */
 function validateReturn(
   raw: string | null,
@@ -85,6 +107,9 @@ function validateReturn(
 ): string | null {
   if (client === 'extension') {
     if (!raw) return null;
+    if (BROWSER_REDIRECT_HOSTS.some((re) => re.test(raw))) return raw;
+    // Anything else must be named explicitly — a Safari build, say, which has
+    // no identity API and needs the nonce-and-claim flow instead.
     return allowedOrigins.includes(raw) ? raw : null;
   }
   if (!raw) return '/';
@@ -113,7 +138,7 @@ export async function GET(request: Request) {
     const back = validateReturn(params.get('return'), 'web', []) ?? '/';
     const url = new URL(`${origin}${back}`);
     url.searchParams.set('oauth_error', message);
-    const res = Redirect.redirect(url.toString(), 302);
+    const res = NextResponse.redirect(url.toString(), 302);
     res.headers.set('Cache-Control', 'no-store');
     return res;
   };
@@ -165,7 +190,17 @@ export async function GET(request: Request) {
     if (validIds.length !== rawIds.length) {
       return bail(400, 'INVALID_PARAMETER', 'Unknown permission requested.');
     }
-    const scope = buildScopeString(new Set(validIds));
+    // The extension's read-only grant is enforced HERE, not by the extension
+    // asking nicely. This route is the one the extension reaches cross-site by
+    // design — launchWebAuthFlow cannot do otherwise — so it is exempt from
+    // the same-site check above, which makes it the one place a caller other
+    // than our own extension could plausibly reach. A client-side convention
+    // would mean anything reaching it could request write scopes and receive a
+    // grant the user believes is read-only, because that is what the
+    // extension's UI and both privacy documents told them.
+    const scope = buildScopeString(
+      clientParam === 'extension' ? new Set<ScopeId>() : new Set(validIds),
+    );
 
     const returnTo = validateReturn(params.get('return'), clientParam, cfg.extensionReturnOrigins);
     if (returnTo === null) {

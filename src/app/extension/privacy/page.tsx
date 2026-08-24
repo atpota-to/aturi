@@ -113,6 +113,14 @@ export default function ExtensionPrivacyPage() {
               <li>UI preferences such as compact mode and open-in-new-tab.</li>
             </ul>
             <p style={paragraph}>
+              If you sign in (Section&nbsp;5), the extension additionally
+              stores a session token and your DID. Those are kept in{' '}
+              <code>browser.storage.local</code>, which is deliberately a
+              different storage area from the preferences above: local
+              storage never leaves your device, so the token is not uploaded
+              to your browser vendor&rsquo;s sync servers.
+            </p>
+            <p style={paragraph}>
               No part of this data is sent to Aturi, the developer, or any
               third party. If you are signed into your browser and have
               extension sync enabled, your browser vendor (Google, Mozilla,
@@ -121,10 +129,16 @@ export default function ExtensionPrivacyPage() {
               has no access to that synced data.
             </p>
             <p style={paragraph}>
-              The Inspect tab does not persist anything. AT URIs found on
-              the page, identity records, record previews, and backlink
-              counts live only in popup memory while the popup is open and
-              are discarded when you close it.
+              Identity records, record previews, and backlink counts fetched
+              by the Inspect tab live only in popup memory while the popup is
+              open and are discarded when you close it. One exception: when
+              history is enabled (the default), the extension remembers the
+              repo identifiers (the DID or handle) of records it saw, so the
+              &ldquo;no AT URIs on this page&rdquo; empty state can suggest
+              repos you recently looked at. These identifiers are stored
+              locally alongside your other preferences, are gated on the same
+              History toggle as the recents list, and are removed when you
+              clear or disable history.
             </p>
           </section>
 
@@ -153,17 +167,33 @@ export default function ExtensionPrivacyPage() {
                 the URL.
               </li>
               <li>
-                <strong>On-demand Inspect scan</strong> (
-                <code>inspect-scan.content.ts</code>). This script does
-                nothing until you open the popup&rsquo;s{' '}
-                <strong>Inspect</strong> tab on the page. When you do, it
-                scans the page for AT URIs (<code>at://&hellip;</code>) in
-                the document head, OpenGraph and Twitter meta tags, anchor
-                hrefs, JSON-LD blocks, and a capped portion (up to about
-                2&nbsp;MB) of the page&rsquo;s visible text. It returns the
-                URIs it finds, deduplicated, along with a short surrounding
-                text snippet for context. It does not log, persist, or
-                transmit any other page content.
+                <strong>Inspect scan</strong> (
+                <code>inspect-scan.content.ts</code>). This script scans the
+                page for AT URIs (<code>at://&hellip;</code>) in the document
+                head, OpenGraph and Twitter meta tags, anchor hrefs, JSON-LD
+                blocks, and a capped portion (up to about 2&nbsp;MB) of the
+                page&rsquo;s visible text. It runs in two modes:
+                <ul style={list}>
+                  <li>
+                    <strong>Passively</strong>, when the
+                    &ldquo;highlight Atmosphere pages&rdquo; badge is enabled
+                    (the default): on each page load and SPA route change it
+                    runs the scan and reports only the <em>count</em> of AT
+                    URIs it found to the extension&rsquo;s own background
+                    worker, which drives the toolbar badge and icon. No page
+                    content leaves the page, only a number. You can turn this
+                    off with the passive-scan toggle in the options page,
+                    after which the script stays idle until you ask for a scan.
+                  </li>
+                  <li>
+                    <strong>On demand</strong>, when you open the
+                    popup&rsquo;s <strong>Inspect</strong> tab: it runs the
+                    same scan and returns the URIs it found, deduplicated,
+                    along with a short surrounding text snippet for context.
+                  </li>
+                </ul>
+                In both modes the scan stays inside your browser and never
+                transmits page content to Aturi-operated servers.
               </li>
             </ul>
             <p style={paragraph}>
@@ -407,9 +437,9 @@ export default function ExtensionPrivacyPage() {
             <h2 style={sectionHeading}>8. Children&rsquo;s privacy</h2>
             <p style={paragraph}>
               The extension is a general-purpose link-routing and
-              inspection utility and is not directed at children. Because
-              it does not collect any personal information, it does not
-              knowingly collect data from children under 13.
+              inspection utility and is not directed at children. It does not
+              knowingly collect data from children under 13. Unless you sign
+              in (Section&nbsp;5), it collects no personal information at all.
             </p>
           </section>
 
@@ -428,9 +458,16 @@ export default function ExtensionPrivacyPage() {
                 Disable history tracking entirely from the History tab.
               </li>
               <li>
-                Remove all extension data by uninstalling the extension.
-                Your browser may also remove any synced copy via its own
-                sync settings.
+                Sign out from Settings &rarr; Account, which deletes the
+                stored session token from your device and ends the session on
+                aturi.to.
+              </li>
+              <li>
+                Remove all extension data by uninstalling the extension. Your
+                browser may also remove any synced copy via its own sync
+                settings. Uninstalling removes the local token; to also end
+                the session on aturi.to, sign out first or revoke it from
+                your account settings there.
               </li>
             </ul>
           </section>

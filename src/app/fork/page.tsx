@@ -284,8 +284,9 @@ NEXT_PUBLIC_REPO_URL=https://github.com/you/your-fork`}</pre>
               Out of the box your fork signs users in through the browser, which
               needs no database and no secrets — but the spec caps those sessions
               at roughly two weeks. Running the backend OAuth client instead makes
-              them effectively unlimited. It costs a Postgres database, one
-              generated key, and applying{' '}
+              them effectively unlimited. It costs a Postgres database, two
+              generated keys &mdash; one to sign with, one to encrypt stored
+              tokens &mdash; and applying{' '}
               <code style={{ padding: '0.125rem 0.375rem', background: 'var(--bg-primary)', border: '1px solid var(--border-medium)' }}>sql/001_oauth_bff.sql</code>.
               Skipping it costs nothing but session length. See{' '}
               <code style={{ padding: '0.125rem 0.375rem', background: 'var(--bg-primary)', border: '1px solid var(--border-medium)' }}>docs/backend-oauth.md</code>,

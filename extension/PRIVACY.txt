@@ -267,8 +267,9 @@ control over them.
 8. CHILDREN'S PRIVACY
 
 The extension is a general-purpose link-routing and inspection utility and
-is not directed at children. Because it does not collect any personal
-information, it does not knowingly collect data from children under 13.
+is not directed at children. It does not knowingly collect data from
+children under 13. Unless you sign in (Section 5), it collects no personal
+information at all.
 
 
 9. DATA RETENTION AND DELETION

@@ -143,10 +143,9 @@ export default function SpaceAccessPanel({ state, what, defaultAccount }: Props)
           headline="This space restricts which applications may read it"
         >
           <p style={bodyStyle}>
-            aturi.to is a public OAuth client with no published signing keys, so
-            it cannot present the client attestation an allow-list space
-            requires. No configuration changes that. It can’t be granted access
-            here, by you or by the authority.
+            An allow-list space admits only applications that present a client
+            attestation, and aturi.to does not send one. It can’t be granted
+            access here, by you or by the authority.
           </p>
           <Technical detail={state.message} />
         </Panel>

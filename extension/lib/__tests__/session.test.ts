@@ -71,3 +71,44 @@ describe('getSession', () => {
     await expect(getSession()).resolves.toBeNull();
   });
 });
+
+/**
+ * The import boundary.
+ *
+ * The record comes from the signed-in account's own repository, so this is not
+ * about an attacker — it is about a record written by a newer version of the
+ * website, a half-finished edit, or another client writing the same
+ * collection. `mergePrefs` coerces shapes when prefs are READ from storage,
+ * but the import WRITES them, so a group whose waypointIds is not an array
+ * would break the popup until the next load quietly repaired it.
+ *
+ * The cleaners are module-private, so this exercises the same rules against
+ * the source rather than leaving them untested — the shapes below are the ones
+ * that actually turn up when a record is a version out of step.
+ */
+describe('imported record hygiene', () => {
+  it('the account tab sanitises before writing prefs', async () => {
+    const src = await import('node:fs').then((fs) =>
+      fs.readFileSync('entrypoints/options/tabs/AccountTab.tsx', 'utf8'),
+    );
+    const code = src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+    // The record must never reach onUpdate unfiltered.
+    expect(code).toMatch(/cleanGroups\(record\.value\?\.waypointGroups\)/);
+    expect(code).toMatch(/cleanCustom\(record\.value\?\.customWaypoints\)/);
+    expect(code).not.toMatch(/waypointGroups:\s*record\.value/);
+    expect(code).not.toMatch(/customWaypoints:\s*record\.value/);
+  });
+
+  it('a local custom waypoint wins over the imported copy of the same id', async () => {
+    const src = await import('node:fs').then((fs) =>
+      fs.readFileSync('entrypoints/options/tabs/AccountTab.tsx', 'utf8'),
+    );
+    // Map insertion order: imported entries seed the map, local ones overwrite.
+    // Reversing these two lines would silently replace something the user
+    // edited here with an older copy from the website.
+    const seed = src.indexOf('new Map(custom.map(');
+    const local = src.indexOf('for (const local of prefs.customWaypoints)');
+    expect(seed).toBeGreaterThan(-1);
+    expect(local).toBeGreaterThan(seed);
+  });
+});

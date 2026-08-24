@@ -1573,8 +1573,12 @@ disclosures match the shipped manifest.
 - **`clientAttestation` for `#allowList` spaces.** `spaceCredential.ts:197-199`
   records that attestation "is never sent: aturi.to is a public OAuth client with
   no published JWKS… A space whose appAccess is #allowList is therefore
-  permanently out of reach." A confidential client publishes a JWKS by definition.
-  Blocked on confirming the wire format against a real space-host implementation.
+  permanently out of reach." A confidential client publishes a JWKS by definition,
+  so the *reason* stops holding even though the capability does not yet exist.
+  `SpaceAccessPanel` no longer tells users this is structurally impossible —
+  it now says only that aturi.to does not send an attestation, which stays true
+  in both configurations. Still blocked on confirming the wire format against a
+  real space-host implementation.
 - **Server-rendered session state.** With an HttpOnly cookie, Server Components
   can read auth at request time and kill the signed-in/signed-out flash. Genuine
   win, but it touches many components — AGENTS.md's "change what was asked and
