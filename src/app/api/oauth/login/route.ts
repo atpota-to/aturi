@@ -77,13 +77,28 @@ function startedHere(request: Request, origin: string): boolean {
  * sign-in can never succeed at all. Chrome's id is stable only after store
  * publication, so every developer's unpacked build differs too.
  *
- * What makes a pattern safe here is that the redirect is not what authenticates
- * the extension: the code delivered to it is worthless without the PKCE
- * verifier, which never leaves the extension that generated it. Widening this
- * to any real host, as opposed to these browser-internal ones, would not be
- * safe on the same reasoning — those resolve to somebody's server.
+ * These are pseudo-hosts the browser intercepts; none resolves on the network.
+ * Widening this to a real host would NOT be safe on the reasoning below — a
+ * real host is somebody's server.
  *
- * Neither host resolves on the network at all; the browser intercepts them.
+ * What the pattern does and does not buy, stated precisely, because the short
+ * version ("the PKCE verifier makes it safe") is only half true:
+ *
+ *   - A hostile extension CANNOT receive another extension's code.
+ *     launchWebAuthFlow resolves only on the calling extension's own redirect
+ *     prefix, and the code is worthless without the verifier that never left
+ *     the extension which generated it. This is the threat an exact-match list
+ *     would otherwise be guarding against, and it is guarded either way.
+ *
+ *   - A hostile extension CAN run its own flow against this route with its own
+ *     challenge, and thereby raise a consent screen carrying aturi.to's name.
+ *     No redirect policy prevents that. What bounds it: `prompt: 'consent'` is
+ *     forced, the screen is served by the user's own authorization server and
+ *     must be approved, and an extension flow is pinned to the read-only scope
+ *     set below — so the worst outcome is a read-only grant obtained by
+ *     borrowing this app's branding. The precondition is an already-installed
+ *     malicious extension, which with host permissions could drive the user's
+ *     existing aturi.to session directly, so this is not an escalation.
  */
 const BROWSER_REDIRECT_HOSTS = [
   /^https:\/\/[a-z0-9-]+\.chromiumapp\.org\/?$/i,
@@ -118,6 +133,18 @@ function validateReturn(
   return raw;
 }
 
+/**
+ * The operator's extra return origins, read without touching the rest of the
+ * configuration — `bail()` runs before `requireBffConfig()` and must not throw
+ * on an unconfigured deployment.
+ */
+function readReturnOrigins(): string[] {
+  return (process.env.ATURI_EXTENSION_RETURN_ORIGINS ?? '')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
 export async function GET(request: Request) {
   const origin = resolveOrigin(request);
   const params = new URL(request.url).searchParams;
@@ -133,8 +160,35 @@ export async function GET(request: Request) {
    * path an open redirect.
    */
   const wantsJson = request.headers.get('accept')?.includes('application/json');
+  const rawClient = params.get('client') ?? 'web';
+
   const bail = (status: number, code: string, message: string, hint?: string) => {
     if (wantsJson || !origin) return fail(status, code, message, hint);
+
+    // An extension failure has to land on the EXTENSION's return target, not
+    // ours. launchWebAuthFlow navigates with Accept: text/html and resolves
+    // only when the navigation reaches the calling extension's own redirect
+    // prefix — so sending it to aturi.to's homepage leaves the auth window
+    // sitting there forever and the promise never settles. The user sees a
+    // hang rather than the message. The target is re-validated here because
+    // it is the same caller-supplied value; when it does not validate there
+    // is nowhere safe to send them and JSON is all that is left.
+    if (rawClient === 'extension') {
+      const target = validateReturn(
+        params.get('return'),
+        'extension',
+        readReturnOrigins(),
+      );
+      if (target) {
+        const url = new URL(target);
+        url.searchParams.set('oauth_error', message);
+        const res = NextResponse.redirect(url.toString(), 302);
+        res.headers.set('Cache-Control', 'no-store');
+        return res;
+      }
+      return fail(status, code, message, hint);
+    }
+
     const back = validateReturn(params.get('return'), 'web', []) ?? '/';
     const url = new URL(`${origin}${back}`);
     url.searchParams.set('oauth_error', message);
@@ -147,7 +201,7 @@ export async function GET(request: Request) {
     if (!origin) return fail(400, 'UNKNOWN_HOST', 'Unknown host');
     const cfg = requireBffConfig();
 
-    const clientParam = params.get('client') ?? 'web';
+    const clientParam = rawClient;
     if (!isOAuthClientKind(clientParam)) {
       return bail(400, 'INVALID_PARAMETER', 'Unknown sign-in client.');
     }

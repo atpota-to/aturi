@@ -78,3 +78,26 @@ test('browser-reserved redirect hosts are matched by pattern', () => {
     assert.ok(!patterns.some((re) => re.test(url)), `should reject ${url}`);
   }
 });
+
+/**
+ * A failed extension sign-in has to land on the EXTENSION's return target.
+ *
+ * launchWebAuthFlow navigates with `Accept: text/html`, so the JSON branch
+ * does not fire, and it resolves only when the navigation reaches the calling
+ * extension's own redirect prefix. Sending the failure to aturi.to's homepage
+ * leaves the auth window sitting there and the promise never settles — the
+ * user sees a hang rather than the message.
+ */
+test('an extension failure redirects to the extension, not to the site', () => {
+  const bail = /const bail = \([\s\S]*?\n  \};/.exec(src);
+  assert.ok(bail, 'bail() is no longer where this test looks');
+  const body = bail[0];
+
+  // The extension branch must come before the web fallback and use the
+  // extension's own validated target.
+  const extBranch = body.indexOf("rawClient === 'extension'");
+  const webFallback = body.indexOf("validateReturn(params.get('return'), 'web'");
+  assert.ok(extBranch > -1, 'no extension branch in bail()');
+  assert.ok(webFallback > extBranch, 'the web fallback must not run first');
+  assert.match(body, /validateReturn\(\s*params\.get\('return'\),\s*'extension',/);
+});

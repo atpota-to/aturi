@@ -184,9 +184,19 @@ pass. 8 of 30 findings survived, all fixed. The two that mattered:
   an exact-match allowlist, and Firefox derives its redirect host from an
   internal UUID randomised per install — there is no value to put in a list.
   Matched by pattern now, restricted to the three hosts browsers reserve and
-  intercept. What makes that safe is what made the exact list unnecessary: the
-  code is worthless without the PKCE verifier, so the redirect was never what
-  authenticated the extension.
+  intercept.
+
+  The short justification — "the PKCE verifier makes the pattern safe" — is
+  only half true, and the route says so in full. The verifier does prevent a
+  hostile extension receiving *another* extension's code, which is the threat
+  the exact list would otherwise guard. It does not prevent a hostile extension
+  running its own flow with its own challenge and raising a consent screen
+  carrying aturi.to's name; no redirect policy prevents that. What bounds that
+  case is the forced `prompt: 'consent'`, the screen being served by the user's
+  own authorization server, and the server-side read-only pinning below — so
+  the worst outcome is a read-only grant obtained by borrowing this app's
+  branding, from a precondition (an already-installed malicious extension)
+  that could drive the user's existing session directly anyway.
 - **Clearing history did not clear what the privacy policy promised.** The
   History tab called `clearRecents()` only; the repo identifiers the Inspect
   tab remembers live under their own key and survived. Fixed in the code
@@ -272,10 +282,12 @@ them it is.
   production's signing key. Needs a look at the dashboard.
 - **Pin the Chrome extension `key`** in the manifest, from the Web Store
   item's public key, so a development build and the published one share an id.
-  Without it every developer's unpacked build has a different
-  `chromiumapp.org` origin. Not blocking — the flow does not depend on an
-  allowlisted redirect — but it is the difference between sign-in working
-  first try in development and not.
+  Not blocking, and no longer a sign-in issue at all now that the browser's
+  reserved redirect hosts are matched by pattern — an unpinned dev build's
+  `chromiumapp.org` origin is accepted like any other. It matters for the
+  ordinary reasons an unstable extension id does: a development build gets a
+  separate session and separate storage from the published one, so testing
+  against a signed-in state means signing in again per build.
 - **Chrome Web Store's Privacy practices tab** has to tick "Authentication
   information" to match the manifest. The store cross-references them.
 - **Safari and Firefox for Android.** Safari Web Extensions do not implement
