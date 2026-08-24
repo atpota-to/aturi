@@ -29,6 +29,8 @@ export default function SpaceDialog({
   error,
   children,
   footer,
+  onSubmit,
+  hasPopover,
 }: {
   open: boolean;
   onClose: () => void;
@@ -40,6 +42,26 @@ export default function SpaceDialog({
   error?: string | null;
   children: ReactNode;
   footer: ReactNode;
+  /**
+   * Makes the body a real `<form>`, so Enter in a field submits it. Pass it
+   * only where that is wanted — a delete confirmation should not be one
+   * keystroke away — and give the affirmative action `type="submit"` when you
+   * do, since implicit submission needs a submit button to aim at.
+   */
+  onSubmit?: () => void;
+  /**
+   * Set when the dialog contains something that draws outside its own box — in
+   * practice a typeahead's suggestion list, which is absolutely positioned under
+   * its input.
+   *
+   * The panel is a scroll container by default so a long form can't run off the
+   * bottom of a phone, and `overflow-y: auto` clips absolutely positioned
+   * descendants whether or not it is currently scrolling. So a dialog gets one
+   * or the other, and the two needs happen not to collide: the forms long
+   * enough to scroll have no popover, and the one with a popover is four
+   * elements tall.
+   */
+  hasPopover?: boolean;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
   const titleId = useId();
@@ -89,8 +111,7 @@ export default function SpaceDialog({
         style={{
           width: '100%',
           maxWidth: '30rem',
-          maxHeight: '85vh',
-          overflowY: 'auto',
+          ...(hasPopover ? {} : { maxHeight: '85vh', overflowY: 'auto' as const }),
           background: 'var(--modal-bg)',
           border: '1px solid var(--border-medium)',
           boxShadow: 'var(--modal-shadow)',
@@ -144,32 +165,34 @@ export default function SpaceDialog({
           </p>
         )}
 
-        {children}
+        <Body onSubmit={onSubmit}>
+          {children}
 
-        {error && (
-          <p
-            role="alert"
+          {error && (
+            <p
+              role="alert"
+              style={{
+                margin: 0,
+                color: 'var(--danger)',
+                fontSize: '0.8rem',
+                lineHeight: 1.5,
+              }}
+            >
+              {error}
+            </p>
+          )}
+
+          <div
             style={{
-              margin: 0,
-              color: 'var(--danger)',
-              fontSize: '0.8rem',
-              lineHeight: 1.5,
+              display: 'flex',
+              flexWrap: 'wrap',
+              justifyContent: 'flex-end',
+              gap: '0.5rem',
             }}
           >
-            {error}
-          </p>
-        )}
-
-        <div
-          style={{
-            display: 'flex',
-            flexWrap: 'wrap',
-            justifyContent: 'flex-end',
-            gap: '0.5rem',
-          }}
-        >
-          {footer}
-        </div>
+            {footer}
+          </div>
+        </Body>
       </div>
 
       <style jsx>{`
@@ -189,6 +212,33 @@ export default function SpaceDialog({
         }
       `}</style>
     </dialog>
+  );
+}
+
+/**
+ * The fields and the actions, as a `<form>` where the caller asked for one and
+ * a plain stack otherwise. Both carry the same layout so a dialog does not
+ * change shape depending on whether Enter submits it.
+ */
+function Body({ onSubmit, children }: { onSubmit?: () => void; children: ReactNode }) {
+  const layout: React.CSSProperties = {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '1rem',
+  };
+  if (!onSubmit) return <div style={layout}>{children}</div>;
+  return (
+    <form
+      style={layout}
+      onSubmit={(e) => {
+        // A `<form>` in a `<dialog>` without `method="dialog"` would otherwise
+        // navigate.
+        e.preventDefault();
+        onSubmit();
+      }}
+    >
+      {children}
+    </form>
   );
 }
 

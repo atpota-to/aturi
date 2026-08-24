@@ -2,6 +2,7 @@
 
 import { useCallback, useId, useState } from 'react';
 import { UserMinus, UserPlus } from 'lucide-react';
+import HandleTypeaheadInput from '@/components/oauth/HandleTypeaheadInput';
 import { resolveIdentifier } from '@/utils/atproto/identity';
 import { isValidDid } from '@/utils/atproto/spaceUri';
 import { shortDid } from '@/utils/atproto/urls';
@@ -103,44 +104,42 @@ export function AddMemberButton({
         title="Add member"
         description="Membership is permission to read the space, not an invitation: nobody is notified, and their repository appears the first time they write."
         error={error}
+        onSubmit={submit}
+        hasPopover
         footer={
           <>
             <DialogButton tone="quiet" onClick={close} disabled={busy}>
               Cancel
             </DialogButton>
-            <DialogButton onClick={submit} disabled={!trimmed || busy} busy={busy}>
+            <DialogButton type="submit" disabled={!trimmed || busy} busy={busy}>
               {busy ? 'Adding…' : 'Add'}
             </DialogButton>
           </>
         }
       >
-        {/* A plain field rather than the sign-in flow's typeahead. That
-            typeahead queries the Bluesky AppView, which indexes neither the
-            spaces alpha host nor most self-hosted servers — precisely where a
-            space's members are — so it would spend a request per pause in
-            typing to show an empty list to this population. */}
         <DialogField
           label="Handle or DID"
           htmlFor={inputId}
           hintId={hintId}
-          hint="A handle is resolved to a DID before it is stored, so membership follows the account rather than the name it is using today."
+          hint="A handle is resolved to a DID before it is stored, so membership follows the account rather than the name it is using today. Suggestions come from the Bluesky AppView, which indexes neither the spaces alpha host nor most self-hosted servers — a handle it has never heard of still works."
         >
-          <input
+          <HandleTypeaheadInput
             id={inputId}
-            className="explore-input"
-            aria-describedby={hintId}
-            autoComplete="off"
-            spellCheck={false}
-            disabled={busy}
-            placeholder="alice.example.com"
-            style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8125rem' }}
+            describedBy={hintId}
             value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && trimmed && !busy) {
-                e.preventDefault();
-                void submit();
-              }
+            onChange={setInput}
+            placeholder="alice.example.com"
+            disabled={busy}
+            listLabel="Matching accounts"
+            inputStyle={{
+              width: '100%',
+              padding: '0.55rem 0.75rem',
+              background: 'var(--bg-tertiary)',
+              border: '1px solid var(--border-medium)',
+              color: 'var(--text-primary)',
+              fontFamily: 'var(--font-mono)',
+              fontSize: '0.8125rem',
+              outline: 'none',
             }}
           />
         </DialogField>
