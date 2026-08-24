@@ -53,7 +53,6 @@ export function AddMemberButton({
   onAdded: () => void;
 }) {
   const inputId = useId();
-  const hintId = useId();
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState('');
   const [busy, setBusy] = useState(false);
@@ -117,15 +116,9 @@ export function AddMemberButton({
           </>
         }
       >
-        <DialogField
-          label="Handle or DID"
-          htmlFor={inputId}
-          hintId={hintId}
-          hint="A handle is resolved to a DID before it is stored, so membership follows the account rather than the name it is using today. Suggestions come from the Bluesky AppView, which indexes neither the spaces alpha host nor most self-hosted servers — a handle it has never heard of still works."
-        >
+        <DialogField label="Handle or DID" htmlFor={inputId}>
           <HandleTypeaheadInput
             id={inputId}
-            describedBy={hintId}
             value={input}
             onChange={setInput}
             placeholder="alice.example.com"

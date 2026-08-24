@@ -258,7 +258,8 @@ export function DialogField({
   hint?: ReactNode;
   children: ReactNode;
   htmlFor: string;
-  hintId: string;
+  /** Required whenever `hint` is given; it is what the field points at. */
+  hintId?: string;
 }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
