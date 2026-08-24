@@ -13,6 +13,7 @@
  */
 
 import { TOOL_COUNT, TOOL_GROUPS } from '@/lib/mcp/catalog';
+import { MCP_LIMITS, MCP_NAME, MCP_STAGE } from '@/lib/mcp/about';
 
 export type ContentBlock =
   | { kind: 'p'; text: string }
@@ -120,7 +121,7 @@ export const ABOUT_PAGE: ContentPage = {
       blocks: [
         {
           kind: 'p',
-          text: 'Four surfaces share one catalog of clients and one URI parser, so they never disagree about where a record can be opened:',
+          text: 'Five surfaces share one catalog of clients and one URI parser, so they never disagree about where a record can be opened:',
         },
         {
           kind: 'ul',
@@ -129,6 +130,7 @@ export const ABOUT_PAGE: ContentPage = {
             '**The [Atmosphere Explorer](/explore).** Browse any account\'s PDS: every collection, every record, identity history, the PLC audit log, inbound backlinks, trending lexicons, and a live view of the firehose. Sign in with atproto OAuth to edit records in your own repo.',
             '**A [browser extension](/extension)** for Chrome, Firefox and Safari. Jump from a post in one client to the same post in another in one click, or flip on auto-redirect and have links rewritten to your preferred client before they load.',
             '**The [waypoints packages](/docs).** The same catalog, link builders and URI resolution the other three run on, published to npm as `@aturi.to/waypoints` (zero runtime dependencies) and `@aturi.to/waypoints-react`, both MIT-licensed, so any app can add the same picker.',
+            '**The [Atmosphere MCP](/mcp).** The same reads, as tools an AI agent can call: resolve a link, read any repository, trace backlinks across every app, sample the firehose. Keyless, read-only, and in beta.',
           ],
         },
       ],
@@ -336,11 +338,11 @@ export function buildMcpPage(baseUrl: string): ContentPage {
   const endpoint = `${origin}/api/mcp`;
 
   return {
-    title: 'MCP server',
+    title: `${MCP_NAME} (${MCP_STAGE})`,
     description:
-      `aturi.to hosts a free, keyless, read-only MCP server: ${TOOL_COUNT} tools for exploring the Atmosphere, covering link resolution, identity, repositories, network-wide backlinks, the Bluesky social layer, custom feeds and lists, lexicon activity, and a live firehose tap.`,
+      `${MCP_NAME} is a free, keyless, read-only MCP server from aturi.to: ${TOOL_COUNT} tools for exploring the Atmosphere, covering link resolution, identity, repositories, network-wide backlinks, the Bluesky social layer, custom feeds and lists, lexicon activity, and a live firehose tap.`,
     intro:
-      `The Atmosphere Explorer, as tools. Point an MCP-capable agent at \`${endpoint}\` and it can resolve any Atmosphere link, read any repo, trace backlinks across every app, and watch the firehose. No key, no account, nothing to install.`,
+      `The Atmosphere Explorer, as tools. Point an MCP-capable agent at \`${endpoint}\` and it can resolve any Atmosphere link, read any repo, trace backlinks across every app, and watch the firehose. No key, no account, nothing to install. It is in ${MCP_STAGE}: read "Before you rely on it" below before building on it.`,
     sections: [
       {
         id: 'add',
@@ -392,6 +394,13 @@ export function buildMcpPage(baseUrl: string): ContentPage {
               '"Give me a link my friend can open in her own client."',
             ],
           },
+        ],
+      },
+      {
+        id: 'limits',
+        heading: 'Before you rely on it',
+        blocks: [
+          { kind: 'ul', items: MCP_LIMITS },
         ],
       },
       {

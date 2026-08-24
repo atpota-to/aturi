@@ -21,7 +21,9 @@ import { registerPrompts } from '@/lib/mcp/prompts';
 export const MCP_SERVER_VERSION = '0.1.0';
 
 export const MCP_SERVER_INFO = {
-  name: 'aturi',
+  // What a client shows in its connector list. The product name is
+  // "Atmosphere MCP"; this is its machine-readable half.
+  name: 'atmosphere',
   version: MCP_SERVER_VERSION,
 } as const;
 

@@ -110,7 +110,7 @@ export async function resolveGuardedIdentity(identifier: string): Promise<Guarde
   } else if (did.startsWith('did:web:')) {
     // Guard the exact URL the document will be fetched from, before fetching
     // it — this is the loopback/link-local vector (did:web:127.0.0.1).
-    assertPublicServiceBase(didWebFetchUrl(did), 'The did:web host');
+    await assertPublicServiceBase(didWebFetchUrl(did), 'The did:web host');
     const doc = await fetchDidDocument(did);
     if (!doc) {
       throw new McpToolError('not_found', `Could not fetch the did:web document for ${did}`);
@@ -135,7 +135,7 @@ export async function resolveGuardedIdentity(identifier: string): Promise<Guarde
   }
   // Guard the PDS host read out of the (attacker-influenceable) document
   // before returning it; every downstream tool trusts this value.
-  const pds = assertPublicServiceBase(rawPds, 'The resolved PDS endpoint');
+  const pds = await assertPublicServiceBase(rawPds, 'The resolved PDS endpoint');
 
   return { did, handle: handleFromAka(alsoKnownAs), pds, alsoKnownAs, services };
 }

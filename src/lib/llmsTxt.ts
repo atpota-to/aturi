@@ -1,5 +1,6 @@
 import { getSiteUrl } from '@/lib/config';
 import { toolCountWord } from '@/lib/mcp/catalog';
+import { MCP_NAME, MCP_STAGE } from '@/lib/mcp/about';
 
 /**
  * The /llms.txt index, per the llmstxt.org format: an H1 with the site name, a
@@ -68,7 +69,7 @@ on \`code\`, never on the prose. Note that two operations return \`ok: false\` w
 when the answer is a definite negative — a page with no atproto record is a result, not a
 failure — so branch on the \`ok\` field rather than on the status code.
 
-## MCP server
+## ${MCP_NAME} (${MCP_STAGE})
 
 If your runtime supports MCP (Model Context Protocol), prefer the tool form over
 scripting the REST endpoints: add \`${origin}/api/mcp\` as a Streamable HTTP server —
@@ -78,7 +79,12 @@ whole-repo browsing, network-wide backlinks, Bluesky author feeds, trends, socia
 and post engagement, lexicon activity stats, and a bounded live-firehose sample. Only
 the oEmbed provider (\`/api/oembed\`) stays REST-only.
 
-- [MCP server](${origin}/mcp): the tool list and copy-paste setup for Claude, Cursor, and other clients (Markdown at [/mcp.md](${origin}/mcp.md)).
+It is in ${MCP_STAGE}: tool names and result shapes can still change, so do not pin to them
+yet. It is strictly read-only, and every answer depends on live third-party services, which
+report an error rather than a guess when they are unavailable. The full list of caveats is
+under "Before you rely on it" on the pages below.
+
+- [${MCP_NAME}](${origin}/mcp): the tool list and copy-paste setup for Claude, Cursor, and other clients (Markdown at [/mcp.md](${origin}/mcp.md)).
 
 ## API endpoints
 

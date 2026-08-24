@@ -7,6 +7,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { buildLlmsTxt } from '@/lib/llmsTxt';
 import { buildMcpPage, renderContentPageMarkdown } from '@/lib/siteContent';
+import { MCP_LIMITS, MCP_NAME, MCP_STAGE } from '@/lib/mcp/about';
 
 const { tools, prompts } = captureRegistrations(registerAtmosphereServer);
 
@@ -78,4 +79,38 @@ test('the rendered llms.txt and Markdown twin report the real count', () => {
   );
   const md = renderContentPageMarkdown(buildMcpPage('https://example.test'));
   assert.ok(md.includes(`## ${TOOL_COUNT} tools`), `mcp.md does not name ${TOOL_COUNT} tools`);
+});
+
+test('the README states the real tool count', () => {
+  // README is static Markdown and cannot interpolate, so the number is typed
+  // by hand. Assert it rather than forbid it: an out-of-date count in the
+  // repo's front door is exactly the drift this file exists to catch.
+  const readme = readFileSync(resolve(process.cwd(), 'README.md'), 'utf8');
+  const stated = readme.match(/^(\w+[- ]?\w*) tools across (\w+) groups/im);
+  assert.ok(stated, 'README no longer states a tool count in the expected shape');
+  assert.equal(
+    stated![1].toLowerCase(),
+    toolCountWord(),
+    `README says "${stated![1]} tools", catalog has ${TOOL_COUNT}`,
+  );
+  assert.equal(
+    stated![2].toLowerCase(),
+    numberWord(TOOL_GROUPS.length),
+    `README says "${stated![2]} groups", catalog has ${TOOL_GROUPS.length}`,
+  );
+});
+
+test('the product name and stage are used, not retyped, across the surfaces', () => {
+  // The name reaching one surface but not another is how a rename half-lands.
+  for (const file of ['src/lib/llmsTxt.ts', 'src/lib/siteContent.ts', 'src/app/mcp/page.tsx', 'src/components/landing/McpLanding.tsx']) {
+    const text = readFileSync(resolve(process.cwd(), file), 'utf8');
+    assert.match(text, /MCP_NAME/, `${file} does not use MCP_NAME`);
+  }
+  assert.equal(MCP_NAME, 'Atmosphere MCP');
+  assert.equal(MCP_STAGE, 'beta');
+  assert.ok(MCP_LIMITS.length >= 5, 'the limits list looks thin');
+  for (const limit of MCP_LIMITS) {
+    assert.ok(limit.length > 40, `a limit is too terse to be useful: "${limit}"`);
+    assert.ok(!limit.includes('—'), 'limits copy should avoid em dashes');
+  }
 });

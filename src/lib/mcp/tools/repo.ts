@@ -308,7 +308,7 @@ export function registerRepoTools(server: McpServer): void {
       annotations: READ_ONLY,
     },
     toolHandler(async ({ host }) => {
-      const base = assertPublicServiceBase(host, 'The host');
+      const base = await assertPublicServiceBase(host, 'The host');
 
       let description;
       try {

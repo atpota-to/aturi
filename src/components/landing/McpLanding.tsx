@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import AppearIn from '@/components/explore/AppearIn';
 import { TOOL_COUNT, TOOL_GROUPS, numberWord, toolCountWord } from '@/lib/mcp/catalog';
+import { MCP_LIMITS, MCP_NAME, MCP_STAGE } from '@/lib/mcp/about';
 import CrossLinkCards from './CrossLinkCards';
 import FeatureSection from './FeatureSection';
 import McpConversationVisual from './McpConversationVisual';
@@ -27,7 +28,35 @@ export default function McpLanding({ endpoint }: { endpoint: string }) {
       <AppearIn rise>
         <header className="landing-hero" style={{ display: 'grid', gap: '2.5rem', alignItems: 'center' }}>
           <div>
-            <Badge icon={<Plug size={12} aria-hidden />}>MCP server</Badge>
+            <span
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                flexWrap: 'wrap',
+                marginBottom: '1.25rem',
+              }}
+            >
+              <Badge icon={<Plug size={12} aria-hidden />} flush>
+                {MCP_NAME}
+              </Badge>
+              <span
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  padding: '0.25rem 0.5rem',
+                  border: '1px solid var(--text-accent)',
+                  color: 'var(--text-accent)',
+                  fontFamily: 'var(--font-mono)',
+                  fontSize: '0.68rem',
+                  letterSpacing: '0.1em',
+                  textTransform: 'uppercase',
+                  lineHeight: 1,
+                }}
+              >
+                {MCP_STAGE}
+              </span>
+            </span>
             <h1
               style={{
                 fontSize: '2.5rem',
@@ -290,8 +319,69 @@ export default function McpLanding({ endpoint }: { endpoint: string }) {
         </section>
       </AppearIn>
 
+      <AppearIn>
+        <section
+          style={{
+            border: '1px solid var(--border-subtle)',
+            borderLeft: '2px solid var(--text-accent)',
+            background: 'var(--bg-secondary)',
+            padding: '1.5rem',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '0.875rem',
+          }}
+          aria-labelledby="mcp-limits"
+        >
+          <h2
+            id="mcp-limits"
+            style={{
+              fontSize: '1.375rem',
+              fontWeight: 300,
+              margin: 0,
+              color: 'var(--text-primary)',
+              letterSpacing: '-0.01em',
+            }}
+          >
+            Before you rely on it
+          </h2>
+          <ul
+            style={{
+              margin: 0,
+              paddingLeft: '1.1rem',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '0.5rem',
+              color: 'var(--text-secondary)',
+              fontSize: '0.95rem',
+              lineHeight: 1.55,
+            }}
+          >
+            {MCP_LIMITS.map((limit) => (
+              <li key={limit}>{renderInlineCode(limit)}</li>
+            ))}
+          </ul>
+          <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-tertiary)', lineHeight: 1.6 }}>
+            Found something wrong? <Link href="/feedback">The feedback board</Link> is the
+            fastest way to reach the maintainer.
+          </p>
+        </section>
+      </AppearIn>
+
       <CrossLinkCards current="mcp" />
     </div>
+  );
+}
+
+/** Render the one inline construct the limits copy uses: `code`. */
+function renderInlineCode(text: string): React.ReactNode {
+  return text.split(/(`[^`]+`)/).map((part, i) =>
+    part.startsWith('`') && part.endsWith('`') ? (
+      <code key={i} style={{ color: 'var(--text-accent)' }}>
+        {part.slice(1, -1)}
+      </code>
+    ) : (
+      part
+    ),
   );
 }
 
@@ -299,7 +389,16 @@ function capitalize(value: string): string {
   return value.charAt(0).toUpperCase() + value.slice(1);
 }
 
-function Badge({ icon, children }: { icon: React.ReactNode; children: React.ReactNode }) {
+function Badge({
+  icon,
+  children,
+  flush,
+}: {
+  icon: React.ReactNode;
+  children: React.ReactNode;
+  /** Drop the standalone bottom margin when the badge sits in a row. */
+  flush?: boolean;
+}) {
   return (
     <span
       style={{
@@ -314,7 +413,7 @@ function Badge({ icon, children }: { icon: React.ReactNode; children: React.Reac
         letterSpacing: '0.08em',
         textTransform: 'uppercase',
         fontFamily: 'var(--font-serif)',
-        marginBottom: '1.25rem',
+        marginBottom: flush ? 0 : '1.25rem',
         lineHeight: 1,
       }}
     >

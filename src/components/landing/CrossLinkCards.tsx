@@ -32,8 +32,8 @@ const CARDS: Card[] = [
     key: 'mcp',
     href: '/mcp',
     icon: <Plug size={18} />,
-    title: 'MCP server',
-    body: 'Point an AI agent at one URL and let it read the network, keyless and read-only.',
+    title: 'Atmosphere MCP',
+    body: 'Point an AI agent at one URL and let it read the network, keyless and read-only. In beta.',
   },
   {
     key: 'explore',
