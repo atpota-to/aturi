@@ -4,12 +4,15 @@ A runbook. The code is on `claude/aturi-backend-oauth-vhr358` and is **inert
 until you do these steps** — every route answers 503 or 404, and sign-in keeps
 using the browser client exactly as it does today.
 
-Ordering is deliberate. Steps 1–5 change nothing a user can see, so you can stop
-after any of them and the site behaves as it always has. Step 6 is the only one
-that switches anything, and it is one variable.
+**Step 1 is already done** — the migration is applied and verified. Start at
+step 2.
 
-Estimated time: about an hour for staging, plus however long you want to soak
-before production.
+Ordering is deliberate. Steps 1–5 change nothing a user can see, so you can
+stop after any of them and the site behaves as it always has. Step 6 is the
+only one that switches anything, and it is one variable.
+
+Estimated time: half an hour or so for staging now that the database is in
+place, plus however long you want to soak before production.
 
 ---
 
@@ -33,49 +36,58 @@ stays signed in, on that client, until they sign out themselves.
 
 ---
 
-## 1. Apply the database migration
+## 1. Apply the database migration — **done**
 
-Two files. Run `sql/001_oauth_bff.sql` against the Supabase project — the SQL
-editor is fine.
+Applied to `zdzjtziydmwkxbzlkwxv` on 24 August 2026 as migration
+`aturi_oauth_bff`, and the sweep scheduled as `pg_cron` job 5
+(`aturi-oauth-sweep`, every 15 minutes). Nothing here is left for you.
 
-It creates the `aturi` schema's seven tables, the lock and rate-limit
-functions, and the grants. It also drops three tables from an earlier
-exploration (`aturi.aturi_oauth_sessions`, `aturi_oauth_state`,
-`aturi_frontend_sessions`). **Those are empty** — I checked, 0 rows each — but
-confirm for yourself before running it if you would rather:
+What landed:
 
-```sql
-select count(*) from aturi.aturi_oauth_sessions;
-```
+- Seven tables in `aturi`: `oauth_sessions`, `oauth_state`, `app_sessions`,
+  `exchange_codes`, `space_consents`, `oauth_locks`, `rate_limits`.
+- Four functions: `acquire_oauth_lock`, `release_oauth_lock`,
+  `bump_rate_limit`, `touch_updated_at` — all with `search_path` pinned.
+- RLS enabled **and forced** on all seven, 13 indexes, `anon` revoked from the
+  schema, `service_role` granted.
+- The three empty tables from the earlier exploration dropped. I checked their
+  exact row counts immediately before dropping: 0, 0, 0.
 
-Then run `sql/002_cron_supabase.sql`, which schedules the expiry sweep. It is
-separate because `cron.schedule` errors on any Postgres without `pg_cron`, and
-a fork is likely to be on one. This project has `pg_cron` and `pgcrypto`
-installed already, so it will work here.
+Verified beyond "it ran", because the lock is the piece whose failure mode is
+silent — it degrades to a no-op exactly when contended, and the symptom is
+users randomly signed out at launch rather than an error:
 
-**Verify:**
+- A second holder is refused while the first one's TTL is live.
+- A non-holder cannot release someone else's lock.
+- The holder can, and the key is then free.
+- An expired lock is stealable, so a crashed instance cannot deadlock the rest.
+- `bump_rate_limit` increments and returns 1, 2, 3 on the same bucket.
+- The sweep body runs clean by hand.
 
-```sql
-select table_name from information_schema.tables
-where table_schema = 'aturi' order by table_name;
--- app_sessions, exchange_codes, oauth_locks, oauth_sessions,
--- oauth_state, rate_limits, space_consents
+The security advisor reports seven `rls_enabled_no_policy` notices against the
+new tables. That is the intended state, not a finding: RLS on with no policies
+is deny-all, the backend reaches them as `service_role` which bypasses RLS, and
+the `REVOKE`s are what actually protect them. Every other app in this project
+carries the same pattern for its own session tables. No `aturi` function
+appears in the mutable-`search_path` warnings — the two that do are anisota's
+copies in `public`.
 
-select jobname, schedule from cron.job where jobname = 'aturi-oauth-sweep';
-```
+`sql/001_oauth_bff.sql` in this repo is what was applied, so a fork gets the
+same thing.
 
-## 2. Expose the schema to the Data API
+## 2. Expose the schema to the Data API — **yours**
 
-**This is the step that costs people an afternoon.** PostgREST only serves
-schemas on its exposed list, and `aturi` is not on it. Skip this and every
-query returns 404 while the code looks completely correct.
+**This is the step that costs people an afternoon**, and it is a dashboard
+setting I cannot reach from here. PostgREST serves only the schemas on its
+exposed list, and `aturi` is not on it. Skip this and every query returns 404
+while the code above looks completely correct.
 
 Supabase → Project Settings → **Data API** (older UI: Settings → API) →
 **Exposed schemas** → add `aturi` → Save.
 
-Leave the rest of that page alone. The tables are unreachable to the anonymous
-key regardless, because the migration revokes it — exposure is only what lets
-the service role reach them over REST.
+Nothing else on that page needs changing. Exposing the schema does not open the
+tables to the anonymous key — step 1's `REVOKE`s already closed that, and I
+confirmed `anon` has no `USAGE` on the schema.
 
 **Verify** — this should return `[]`, not a 404:
 

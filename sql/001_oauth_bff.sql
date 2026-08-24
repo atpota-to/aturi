@@ -137,8 +137,8 @@ CREATE INDEX IF NOT EXISTS rate_limits_window_idx ON aturi.rate_limits (window_s
 -- Triggers
 -- ---------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION aturi.touch_updated_at() RETURNS trigger
-  LANGUAGE plpgsql SET search_path = pg_catalog, pg_temp AS $$
-  BEGIN NEW.updated_at = now(); RETURN NEW; END $$;
+  LANGUAGE plpgsql SET search_path = pg_catalog, pg_temp AS $fn$
+  BEGIN NEW.updated_at = now(); RETURN NEW; END $fn$;
 
 DROP TRIGGER IF EXISTS oauth_sessions_touch ON aturi.oauth_sessions;
 CREATE TRIGGER oauth_sessions_touch BEFORE UPDATE ON aturi.oauth_sessions
@@ -153,7 +153,7 @@ CREATE TRIGGER oauth_sessions_touch BEFORE UPDATE ON aturi.oauth_sessions
 -- anonymous key, and these grants are what stop that. RLS is enabled (and
 -- FORCEd, which also binds the table owner) as a second layer.
 -- ---------------------------------------------------------------------------
-DO $$
+DO $rls$
 DECLARE t text;
 BEGIN
   FOREACH t IN ARRAY ARRAY['oauth_sessions','oauth_state','app_sessions',
@@ -162,13 +162,13 @@ BEGIN
     EXECUTE format('ALTER TABLE aturi.%I ENABLE ROW LEVEL SECURITY', t);
     EXECUTE format('ALTER TABLE aturi.%I FORCE ROW LEVEL SECURITY', t);
   END LOOP;
-END $$;
+END $rls$;
 
 -- Guarded on role existence: anon, authenticated and service_role are
 -- Supabase's, and naming a role that does not exist aborts the whole
 -- migration. A fork on Neon or plain Postgres connects as an ordinary owner,
 -- where there is no anonymous role to revoke from and nothing to grant.
-DO $$
+DO $grants$
 DECLARE r text;
 BEGIN
   FOREACH r IN ARRAY ARRAY['anon','authenticated']
@@ -185,7 +185,7 @@ BEGIN
     EXECUTE 'GRANT USAGE ON SCHEMA aturi TO service_role';
     EXECUTE 'GRANT ALL ON ALL TABLES IN SCHEMA aturi TO service_role';
   END IF;
-END $$;
+END $grants$;
 
 -- ---------------------------------------------------------------------------
 -- Lock functions.
@@ -199,7 +199,7 @@ END $$;
 -- ---------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION aturi.acquire_oauth_lock(p_key text, p_holder text, p_ttl_seconds int)
 RETURNS boolean LANGUAGE sql SECURITY INVOKER
-SET search_path = pg_catalog, aturi, pg_temp AS $$
+SET search_path = pg_catalog, aturi, pg_temp AS $acq$
   WITH upsert AS (
     INSERT INTO aturi.oauth_locks (key, holder, acquired_at, expires_at)
     VALUES (p_key, p_holder, now(), now() + make_interval(secs => p_ttl_seconds))
@@ -211,31 +211,31 @@ SET search_path = pg_catalog, aturi, pg_temp AS $$
     RETURNING holder
   )
   SELECT EXISTS (SELECT 1 FROM upsert WHERE holder = p_holder);
-$$;
+$acq$;
 
 CREATE OR REPLACE FUNCTION aturi.release_oauth_lock(p_key text, p_holder text)
 RETURNS void LANGUAGE sql SECURITY INVOKER
-SET search_path = pg_catalog, aturi, pg_temp AS $$
+SET search_path = pg_catalog, aturi, pg_temp AS $rel$
   DELETE FROM aturi.oauth_locks WHERE key = p_key AND holder = p_holder;
-$$;
+$rel$;
 
 -- Atomic counter increment; returns the new count for this window.
 CREATE OR REPLACE FUNCTION aturi.bump_rate_limit(p_bucket text, p_window_start timestamptz)
 RETURNS integer LANGUAGE sql SECURITY INVOKER
-SET search_path = pg_catalog, aturi, pg_temp AS $$
+SET search_path = pg_catalog, aturi, pg_temp AS $bump$
   INSERT INTO aturi.rate_limits (bucket, window_start, hits)
   VALUES (p_bucket, p_window_start, 1)
   ON CONFLICT (bucket, window_start) DO UPDATE
     SET hits = aturi.rate_limits.hits + 1
   RETURNING hits;
-$$;
+$bump$;
 
 REVOKE EXECUTE ON FUNCTION aturi.acquire_oauth_lock(text,text,int),
                            aturi.release_oauth_lock(text,text),
                            aturi.bump_rate_limit(text,timestamptz)
   FROM public;
 
-DO $$
+DO $fngrants$
 DECLARE r text;
 BEGIN
   FOREACH r IN ARRAY ARRAY['anon','authenticated']
@@ -253,4 +253,4 @@ BEGIN
             'aturi.release_oauth_lock(text,text), aturi.bump_rate_limit(text,timestamptz) '
             'TO service_role';
   END IF;
-END $$;
+END $fngrants$;
