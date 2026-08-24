@@ -132,18 +132,24 @@ export default function McpConversationVisual() {
           >
             at://did:plc:6teuhlkizzebk6wdp42633el/app.bsky.feed.post/3mtkpzxkh5k2e
           </code>
+          {/* An inline-flex box sizes to its content and refuses to shrink, so
+              a long unbroken URL escapes the card. Lay it out as a flex row
+              that may shrink, and let the text itself break. */}
           <span
             style={{
-              display: 'inline-flex',
+              display: 'flex',
               alignItems: 'center',
               gap: '0.3rem',
+              minWidth: 0,
               fontFamily: 'var(--font-mono)',
               fontSize: '0.68rem',
               color: 'var(--text-accent)',
             }}
           >
-            aturi.to/profile/aturi.to/app.bsky.feed.post/3mtkpzxkh5k2e
-            <ArrowRight size={11} aria-hidden />
+            <span style={{ minWidth: 0, wordBreak: 'break-all', lineHeight: 1.4 }}>
+              aturi.to/profile/aturi.to/app.bsky.feed.post/3mtkpzxkh5k2e
+            </span>
+            <ArrowRight size={11} aria-hidden style={{ flexShrink: 0 }} />
           </span>
         </div>
       </div>
