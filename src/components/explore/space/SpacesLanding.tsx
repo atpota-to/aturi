@@ -284,6 +284,11 @@ const FEATURED_APPS: { name: string; url: string; description: string }[] = [
     description:
       'An outliner for lists, notes, and plans, where an outline written in a space stays off the public network.',
   },
+  {
+    name: 'tasked.at',
+    url: 'https://tasked.at',
+    description: 'Private notes and TODOs on AT Protocol.',
+  },
 ];
 
 function FeaturedApps() {
