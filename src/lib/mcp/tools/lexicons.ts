@@ -189,7 +189,7 @@ export function registerLexiconTools(server: McpServer): void {
       title: 'Recent records in a lexicon',
       description:
         'You want to see what activity in a lexicon actually looks like right now: the newest ' +
-        'records network-wide in that collection, straight from the firehose sample, with full ' +
+        'records network-wide in that collection, straight from the live stream sample, with full ' +
         'record values. The concrete follow-up to list_trending_lexicons. An empty result means ' +
         'the lexicon is currently quiet.',
       inputSchema: z.object({

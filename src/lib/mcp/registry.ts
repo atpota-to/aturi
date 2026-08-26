@@ -14,7 +14,7 @@ import { registerGraphTools } from '@/lib/mcp/tools/graph';
 import { registerBskyTools } from '@/lib/mcp/tools/bsky';
 import { registerLexiconTools } from '@/lib/mcp/tools/lexicons';
 import { registerFeedTools } from '@/lib/mcp/tools/feeds';
-import { registerFirehoseTools } from '@/lib/mcp/tools/firehose';
+import { registerJetstreamTools } from '@/lib/mcp/tools/jetstream';
 import { registerPrompts } from '@/lib/mcp/prompts';
 
 /** Version of the MCP tool surface, independent of the site or REST API. */
@@ -35,6 +35,6 @@ export function registerAtmosphereServer(server: McpServer): void {
   registerBskyTools(server);
   registerLexiconTools(server);
   registerFeedTools(server);
-  registerFirehoseTools(server);
+  registerJetstreamTools(server);
   registerPrompts(server);
 }

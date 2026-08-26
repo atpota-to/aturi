@@ -1,13 +1,13 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { registerFirehoseTools } from '@/lib/mcp/tools/firehose';
+import { registerJetstreamTools } from '@/lib/mcp/tools/jetstream';
 import { captureRegistrations, resultBody, MAX_DESCRIPTION_LENGTH } from '@/lib/mcp/__tests__/harness';
 
-const { tools } = captureRegistrations(registerFirehoseTools);
-const sample = tools.get('sample_firehose');
+const { tools } = captureRegistrations(registerJetstreamTools);
+const sample = tools.get('sample_jetstream');
 
-test('registers exactly the firehose tool', () => {
-  assert.deepEqual([...tools.keys()], ['sample_firehose']);
+test('registers exactly the Jetstream tool', () => {
+  assert.deepEqual([...tools.keys()], ['sample_jetstream']);
 });
 
 test('carries a title, a bounded description, and read-only annotations', () => {

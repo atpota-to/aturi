@@ -76,7 +76,7 @@ scripting the REST endpoints: add \`${origin}/api/mcp\` as a Streamable HTTP ser
 keyless and read-only, same access terms as the REST API. Its ${toolCountWord()} tools cover
 the REST surface's resolution and catalog and go well past it: identity history,
 whole-repo browsing, network-wide backlinks, Bluesky author feeds, trends, social graph
-and post engagement, lexicon activity stats, and a bounded live-firehose sample. Only
+and post engagement, lexicon activity stats, and a bounded Jetstream sample. Only
 the oEmbed provider (\`/api/oembed\`) stays REST-only.
 
 It is in ${MCP_STAGE}: tool names and result shapes can still change, so do not pin to them

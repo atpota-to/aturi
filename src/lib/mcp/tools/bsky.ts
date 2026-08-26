@@ -513,7 +513,7 @@ export function registerBskyTools(server: McpServer): void {
     {
       title: 'Hydrate posts by URI',
       description:
-        'You already have post at:// URIs — from get_backlinks, sample_firehose, list_records, ' +
+        'You already have post at:// URIs — from get_backlinks, sample_jetstream, list_records, ' +
         'anywhere — and want them as readable posts with text, author, and engagement counts, up to ' +
         '25 in one call. This is the Bluesky-layer counterpart to get_record: same posts, but with ' +
         'the AppView aggregates attached. URIs the AppView has not indexed are simply absent.',

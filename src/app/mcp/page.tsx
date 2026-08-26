@@ -10,7 +10,7 @@ const title = `${MCP_NAME} · aturi.to`;
 const description =
   `A keyless, read-only MCP server for atproto, in ${MCP_STAGE}: ${TOOL_COUNT} tools that let an AI ` +
   'agent resolve any Atmosphere link, read any repository, trace backlinks across every app, and ' +
-  'sample the live firehose.';
+  'sample Jetstream, the live event stream.';
 
 export const metadata: Metadata = {
   title,

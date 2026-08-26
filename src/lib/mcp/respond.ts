@@ -22,7 +22,7 @@ import { toolFailure, type ToolResult } from '@/lib/mcp/errors';
  * record is whatever its author wrote, and a repo on an attacker-run PDS can
  * answer a legal `list_records` call with megabytes. Unbounded, one call
  * floods the caller's context window and costs them real money. Tools that can
- * predict their own size trim first (get_lexicon_schema, sample_firehose);
+ * predict their own size trim first (get_lexicon_schema, sample_jetstream);
  * this is the net under all of them, including tools added later.
  *
  * Generous enough that no honest call reaches it: the largest legitimate

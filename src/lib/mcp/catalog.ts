@@ -109,11 +109,11 @@ export const TOOL_GROUPS: CatalogGroup[] = [
     ],
   },
   {
-    id: 'firehose',
-    title: 'Firehose',
+    id: 'jetstream',
+    title: 'Jetstream',
     blurb: 'A live window onto the network, bounded so an agent can hold it.',
     tools: [
-      { name: 'sample_firehose', summary: 'Open Jetstream for a few seconds; filter by collection, account, or operation' },
+      { name: 'sample_jetstream', summary: 'Open the live event stream for a few seconds; filter by collection, account, or operation' },
     ],
   },
 ];

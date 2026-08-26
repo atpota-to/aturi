@@ -1,12 +1,23 @@
 'use client';
 
+import CopyButton from '@/components/explore/CopyButton';
+
 /**
  * The three shapes of "add this server", side by side: a settings path for
  * Claude's UI, a CLI command, and the JSON block editors want. Nothing here
  * is aturi-specific except the URL, which is the point.
  */
 
-type Setup = { client: string; kind: 'path' | 'command' | 'json'; body: string };
+type Setup = {
+  client: string;
+  kind: 'path' | 'command' | 'json';
+  body: string;
+  /**
+   * What the button puts on the clipboard, where that differs from what is
+   * shown. Copying a menu path helps nobody; the URL it ends with does.
+   */
+  copy: string;
+};
 
 export default function McpSetupVisual({ endpoint }: { endpoint: string }) {
   const setups: Setup[] = [
@@ -14,16 +25,19 @@ export default function McpSetupVisual({ endpoint }: { endpoint: string }) {
       client: 'Claude',
       kind: 'path',
       body: `Settings › Connectors › Add custom connector\n${endpoint}`,
+      copy: endpoint,
     },
     {
       client: 'Claude Code',
       kind: 'command',
-      body: `claude mcp add --transport http aturi ${endpoint}`,
+      body: `claude mcp add --transport http atmosphere ${endpoint}`,
+      copy: `claude mcp add --transport http atmosphere ${endpoint}`,
     },
     {
       client: 'Cursor, VS Code',
       kind: 'json',
-      body: `{ "aturi": { "url": "${endpoint}" } }`,
+      body: `{ "atmosphere": { "url": "${endpoint}" } }`,
+      copy: `{ "atmosphere": { "url": "${endpoint}" } }`,
     },
   ];
 
@@ -41,18 +55,33 @@ export default function McpSetupVisual({ endpoint }: { endpoint: string }) {
         >
           <div
             style={{
-              padding: '0.45rem 0.75rem',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '0.5rem',
+              padding: '0.35rem 0.35rem 0.35rem 0.75rem',
               borderBottom: '1px solid var(--border-subtle)',
               background: 'var(--bg-tertiary)',
-              fontSize: '0.7rem',
-              letterSpacing: '0.08em',
-              textTransform: 'uppercase',
-              fontFamily: 'var(--font-serif)',
-              color: 'var(--text-tertiary)',
-              lineHeight: 1,
             }}
           >
-            {setup.client}
+            <span
+              style={{
+                fontSize: '0.7rem',
+                letterSpacing: '0.08em',
+                textTransform: 'uppercase',
+                fontFamily: 'var(--font-serif)',
+                color: 'var(--text-tertiary)',
+                lineHeight: 1,
+              }}
+            >
+              {setup.client}
+            </span>
+            <CopyButton
+              value={setup.copy}
+              label={setup.kind === 'path' ? 'Copy URL' : 'Copy'}
+              compact
+              variant="subtle"
+            />
           </div>
           <pre
             style={{

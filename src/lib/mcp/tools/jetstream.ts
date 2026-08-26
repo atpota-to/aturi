@@ -1,8 +1,8 @@
 /**
- * Firehose tool: a bounded, live tap into Jetstream.
+ * Jetstream tool: a bounded, live tap into the network event stream.
  *
  * The MCP protocol is stateless request/response, so this cannot stream — but
- * an agent rarely wants an unbounded stream anyway. sample_firehose opens a
+ * an agent rarely wants an unbounded stream anyway. sample_jetstream opens a
  * Jetstream WebSocket, collects matching events until it hits a small event
  * cap or a short time budget (both well under the route's maxDuration), then
  * closes and returns what it saw. That answers "show me live activity in
@@ -34,7 +34,7 @@ const MAX_PAYLOAD_BYTES = 256_000;
 /**
  * Ceiling on what is read off the socket, as opposed to what is kept. A window
  * with no collection filter and a narrow operation filter (say deletes only)
- * would otherwise stream and parse the entire firehose for its full duration
+ * would otherwise stream and parse the entire stream for its full duration
  * while retaining almost nothing, spending a volunteer-run service's bandwidth
  * to do it. Reaching this ends the window with whatever was collected.
  */
@@ -72,7 +72,7 @@ type JetstreamMessage = {
  * `durationMs`, then close. Resolves with what was collected; a quiet window
  * yields an empty array, which is a valid answer, not an error.
  */
-function collectFirehose(opts: {
+function collectJetstream(opts: {
   collections: string[];
   dids: string[];
   operations: Set<Operation>;
@@ -88,7 +88,7 @@ function collectFirehose(opts: {
 
   return new Promise((resolve, reject) => {
     if (typeof WebSocket === 'undefined') {
-      reject(new McpToolError('internal_error', 'This runtime has no WebSocket; the firehose is unavailable here'));
+      reject(new McpToolError('internal_error', 'This runtime has no WebSocket; Jetstream is unavailable here'));
       return;
     }
 
@@ -183,7 +183,7 @@ function collectFirehose(opts: {
         fail(
           new McpToolError(
             'upstream_error',
-            'Could not connect to the Jetstream firehose',
+            'Could not connect to Jetstream',
             'Safe to retry shortly.',
           ),
         );
@@ -200,7 +200,7 @@ function collectFirehose(opts: {
         fail(
           new McpToolError(
             'upstream_error',
-            'The Jetstream firehose closed the connection',
+            'Jetstream closed the connection',
             'Check that the collections and dids you passed are well formed, then retry.',
           ),
         );
@@ -211,14 +211,14 @@ function collectFirehose(opts: {
   });
 }
 
-export function registerFirehoseTools(server: McpServer): void {
+export function registerJetstreamTools(server: McpServer): void {
   server.registerTool(
-    'sample_firehose',
+    'sample_jetstream',
     {
-      title: 'Tap the live firehose (Jetstream)',
+      title: 'Tap Jetstream, the live event stream',
       description:
-        'You want a live sample of what is happening on the network right now: open the Jetstream ' +
-        'firehose for a few seconds and return the events seen. Filter by collections (which record ' +
+        'You want a live sample of what is happening on the network right now: open Jetstream ' +
+        'for a few seconds and return the events seen. Filter by collections (which record ' +
         'types), by dids (watch specific accounts live), and by operation (create/update/delete). ' +
         'Bounded by a short time budget and an event cap; an empty result means the window was ' +
         'quiet, not an error. Use sample_recent_records for the historical version.',
@@ -286,7 +286,7 @@ export function registerFirehoseTools(server: McpServer): void {
         operations && operations.length ? operations : ['create'],
       );
 
-      const { events, reachedMax } = await collectFirehose({
+      const { events, reachedMax } = await collectJetstream({
         collections: collections ?? [],
         dids: dids ?? [],
         operations: ops,

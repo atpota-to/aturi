@@ -6,6 +6,7 @@ import AppearIn from '@/components/explore/AppearIn';
 import { TOOL_COUNT, toolCountWord } from '@/lib/mcp/catalog';
 import { MCP_LIMITS, MCP_NAME, MCP_STAGE } from '@/lib/mcp/about';
 import { parseInline } from '@/lib/siteContent';
+import CopyButton from '@/components/explore/CopyButton';
 import CrossLinkCards from './CrossLinkCards';
 import FeatureSection from './FeatureSection';
 import McpConversationVisual from './McpConversationVisual';
@@ -76,7 +77,7 @@ export default function McpLanding({ endpoint }: { endpoint: string }) {
               Add <code style={{ color: 'var(--text-accent)' }}>{display}</code> to
               Claude, Cursor, or any MCP client. Your agent can then read any
               account&rsquo;s repository, trace who references what across every
-              app, and watch the firehose live. No key, no account, nothing to
+              app, and follow Jetstream as records land. No key, no account, nothing to
               install.
             </p>
             <p
@@ -123,7 +124,7 @@ export default function McpLanding({ endpoint }: { endpoint: string }) {
             <p>
               Identity and repositories on any personal data server, the network
               graph, the Bluesky social layer, feeds and lists, lexicon
-              activity, and a live firehose tap. Most of it reaches past Bluesky
+              activity, and a live Jetstream tap. Most of it reaches past Bluesky
               into the rest of atproto, which is where the questions get
               interesting.
             </p>
@@ -261,21 +262,34 @@ function Badge({ icon, children }: { icon: React.ReactNode; children: React.Reac
   );
 }
 
-/** The endpoint, shown the way you would paste it. */
+/** The endpoint, shown the way you would paste it, with a one-click copy. */
 function EndpointBlock({ endpoint }: { endpoint: string }) {
   return (
     <div
       style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: '0.75rem',
         border: '1px solid var(--border-medium)',
         background: 'var(--bg-tertiary)',
-        padding: '0.75rem 0.875rem',
-        fontFamily: 'var(--font-mono)',
-        fontSize: '0.9rem',
-        color: 'var(--text-primary)',
-        wordBreak: 'break-all',
+        padding: '0.625rem 0.625rem 0.625rem 0.875rem',
       }}
     >
-      {endpoint}
+      <code
+        style={{
+          minWidth: 0,
+          flex: 1,
+          fontFamily: 'var(--font-mono)',
+          fontSize: '0.9rem',
+          color: 'var(--text-primary)',
+          wordBreak: 'break-all',
+        }}
+      >
+        {endpoint}
+      </code>
+      <span style={{ flexShrink: 0 }}>
+        <CopyButton value={endpoint} label="Copy" compact />
+      </span>
     </div>
   );
 }
