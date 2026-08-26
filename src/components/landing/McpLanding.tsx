@@ -16,8 +16,8 @@ import McpToolCatalogVisual from './McpToolCatalogVisual';
 /** Three questions that need the whole network, not one app. */
 const EXAMPLES = [
   'Who links to this post, from any app?',
-  'What has this account been posting, and which post did best?',
-  'Which lexicons are busiest today?',
+  'What parameters does getAuthorFeed take?',
+  'How do record keys work in atproto?',
 ];
 
 export default function McpLanding({ endpoint }: { endpoint: string }) {
@@ -124,9 +124,9 @@ export default function McpLanding({ endpoint }: { endpoint: string }) {
             <p>
               Identity and repositories on any personal data server, the network
               graph, the Bluesky social layer, feeds and lists, lexicon
-              activity, and a live Jetstream tap. Most of it reaches past Bluesky
-              into the rest of atproto, which is where the questions get
-              interesting.
+              activity, a live Jetstream tap, and the protocol docs themselves.
+              Most of it reaches past Bluesky into the rest of atproto, which is
+              where the questions get interesting.
             </p>
             <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
               {EXAMPLES.map((question) => (

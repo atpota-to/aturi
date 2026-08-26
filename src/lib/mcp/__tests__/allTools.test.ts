@@ -57,6 +57,10 @@ const ARGS: Record<string, Record<string, unknown>> = {
   sample_recent_records: { nsid: 'app.bsky.feed.post' },
   get_lexicon_schema: { nsid: 'app.bsky.feed.post' },
   sample_jetstream: { collections: ['app.bsky.feed.post'], duration_seconds: 1, max_events: 1 },
+  search_atproto_docs: { query: 'lexicon', limit: 1 },
+  read_atproto_doc: { id: 'specs/lexicon' },
+  search_api_methods: { query: 'follow', limit: 2 },
+  get_api_method: { nsid: 'app.bsky.feed.getAuthorFeed' },
 };
 
 test('the argument table covers every registered tool', () => {

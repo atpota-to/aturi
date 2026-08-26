@@ -62,7 +62,7 @@ The Atmosphere Explorer, as tools an agent can call. Add the URL to Claude, Curs
 - *"Which lexicons are busiest today, and what do their records look like?"*
 - *"Show me `com.whtwnd.blog.entry` records as people publish them."*
 
-Thirty-four tools across eight groups: link resolution and the client catalog, identity and PLC history, whole-repository reads on any PDS, network-wide backlinks via Constellation, the Bluesky social layer (feeds, threads, graph, engagement, trends), custom feeds and lists, lexicon activity via UFOs, and a bounded live tap on Jetstream. Every answer carries the `at://` URI and an aturi.to link, so anything an agent mentions is one click from opening in whichever client you use.
+Thirty-eight tools across nine groups: link resolution and the client catalog, identity and PLC history, whole-repository reads on any PDS, network-wide backlinks via Constellation, the Bluesky social layer (feeds, threads, graph, engagement, trends), custom feeds and lists, lexicon activity via UFOs, a bounded live tap on Jetstream, and the protocol documentation itself, searched from atproto.com and docs.bsky.app so an agent can answer "how does this work" with a citation instead of from memory. Every answer carries the `at://` URI and an aturi.to link, so anything an agent mentions is one click from opening in whichever client you use.
 
 ### Before you rely on it
 

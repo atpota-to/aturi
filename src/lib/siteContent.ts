@@ -340,7 +340,7 @@ export function buildMcpPage(baseUrl: string): ContentPage {
   return {
     title: `${MCP_NAME} (${MCP_STAGE})`,
     description:
-      `${MCP_NAME} is a free, keyless, read-only MCP server from aturi.to: ${TOOL_COUNT} tools for exploring the Atmosphere, covering link resolution, identity, repositories, network-wide backlinks, the Bluesky social layer, custom feeds and lists, lexicon activity, and a live Jetstream tap.`,
+      `${MCP_NAME} is a free, keyless, read-only MCP server from aturi.to: ${TOOL_COUNT} tools for exploring the Atmosphere, covering link resolution, identity, repositories, network-wide backlinks, the Bluesky social layer, custom feeds and lists, lexicon activity, a live Jetstream tap, and the protocol documentation itself.`,
     intro:
       `The Atmosphere Explorer, as tools. Point an MCP-capable agent at \`${endpoint}\` and it can resolve any Atmosphere link, read any repo, trace backlinks across every app, and follow Jetstream. No key, no account, nothing to install. It is in ${MCP_STAGE}: read "Before you rely on it" below before building on it.`,
     sections: [
