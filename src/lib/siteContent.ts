@@ -12,6 +12,9 @@
  * emits the strings unchanged.
  */
 
+import { TOOL_COUNT, TOOL_GROUPS } from '@/lib/mcp/catalog';
+import { MCP_LIMITS, MCP_NAME, MCP_STAGE } from '@/lib/mcp/about';
+
 export type ContentBlock =
   | { kind: 'p'; text: string }
   | { kind: 'ul'; items: string[] };
@@ -118,7 +121,7 @@ export const ABOUT_PAGE: ContentPage = {
       blocks: [
         {
           kind: 'p',
-          text: 'Four surfaces share one catalog of clients and one URI parser, so they never disagree about where a record can be opened:',
+          text: 'Five surfaces share one catalog of clients and one URI parser, so they never disagree about where a record can be opened:',
         },
         {
           kind: 'ul',
@@ -127,6 +130,7 @@ export const ABOUT_PAGE: ContentPage = {
             '**The [Atmosphere Explorer](/explore).** Browse any account\'s PDS: every collection, every record, identity history, the PLC audit log, inbound backlinks, trending lexicons, and a live view of the firehose. Sign in with atproto OAuth to edit records in your own repo.',
             '**A [browser extension](/extension)** for Chrome, Firefox and Safari. Jump from a post in one client to the same post in another in one click, or flip on auto-redirect and have links rewritten to your preferred client before they load.',
             '**The [waypoints packages](/docs).** The same catalog, link builders and URI resolution the other three run on, published to npm as `@aturi.to/waypoints` (zero runtime dependencies) and `@aturi.to/waypoints-react`, both MIT-licensed, so any app can add the same picker.',
+            '**The [Atmosphere MCP](/mcp).** The same reads, as tools an AI agent can call: resolve a link, read any repository, trace backlinks across every app, sample the firehose. Keyless, read-only, and in beta.',
           ],
         },
       ],
@@ -316,3 +320,117 @@ export const HOME_PAGE: ContentPage = {
     },
   ],
 };
+
+/**
+ * The Markdown twin of /mcp, at /mcp.md.
+ *
+ * The HTML page is a landing page with visuals; this is the same facts as
+ * plain prose, which is what an agent fetching the page actually wants. The
+ * tool list is generated from src/lib/mcp/catalog.ts rather than retyped, so
+ * the two representations cannot disagree about what the server offers.
+ *
+ * A builder rather than a const because the copy names the endpoint URL,
+ * which must track the deploy's own origin: a fork serves an MCP page that
+ * points at itself.
+ */
+export function buildMcpPage(baseUrl: string): ContentPage {
+  const origin = baseUrl.replace(/\/$/, '');
+  const endpoint = `${origin}/api/mcp`;
+
+  return {
+    title: `${MCP_NAME} (${MCP_STAGE})`,
+    description:
+      `${MCP_NAME} is a free, keyless, read-only MCP server from aturi.to: ${TOOL_COUNT} tools for exploring the Atmosphere, covering link resolution, identity, repositories, network-wide backlinks, the Bluesky social layer, custom feeds and lists, lexicon activity, and a live firehose tap.`,
+    intro:
+      `The Atmosphere Explorer, as tools. Point an MCP-capable agent at \`${endpoint}\` and it can resolve any Atmosphere link, read any repo, trace backlinks across every app, and watch the firehose. No key, no account, nothing to install. It is in ${MCP_STAGE}: read "Before you rely on it" below before building on it.`,
+    sections: [
+      {
+        id: 'add',
+        heading: 'Add it to your agent',
+        blocks: [
+          {
+            kind: 'ul',
+            items: [
+              `**Claude** (web or desktop): Settings, then Connectors, then Add custom connector, with the URL \`${endpoint}\`.`,
+              `**Claude Code**: \`claude mcp add --transport http aturi ${endpoint}\``,
+              `**Cursor / VS Code**: add \`{"aturi": {"url": "${endpoint}"}}\` to the editor's MCP servers setting.`,
+              `**Anything else**: any client that speaks Streamable HTTP works; the endpoint negotiates every MCP revision from 2024-10-07 through 2025-11-25. stdio-only clients can bridge with \`npx mcp-remote ${endpoint}\`.`,
+            ],
+          },
+        ],
+      },
+      {
+        id: 'tools',
+        heading: `${TOOL_COUNT} tools`,
+        blocks: [
+          {
+            kind: 'p',
+            text: 'Every tool is read-only, and every answer carries `at://` URIs plus aturi.to universal links, so an agent can always hand a human something to open.',
+          },
+          // One paragraph per group, then its tools as a list: nested lists
+          // aren't part of the ContentBlock vocabulary, and a flat list of
+          // headings and tools reads as one undifferentiated run.
+          ...TOOL_GROUPS.flatMap((group) => [
+            { kind: 'p' as const, text: `**${group.title}.** ${group.blurb}` },
+            {
+              kind: 'ul' as const,
+              items: group.tools.map((tool) => `\`${tool.name}\`: ${tool.summary}`),
+            },
+          ]),
+        ],
+      },
+      {
+        id: 'questions',
+        heading: 'Questions it answers well',
+        blocks: [
+          {
+            kind: 'ul',
+            items: [
+              '"What has this account been posting about, and which posts got the most engagement?"',
+              '"Who links to this post, anywhere on the network?"',
+              '"What apps does this account actually use, and when did it change servers?"',
+              '"What is trending on Bluesky right now, and who is driving it?"',
+              '"Show me `com.whtwnd.blog.entry` records as they are posted."',
+              '"Give me a link my friend can open in her own client."',
+            ],
+          },
+        ],
+      },
+      {
+        id: 'limits',
+        heading: 'Before you rely on it',
+        blocks: [
+          { kind: 'ul', items: MCP_LIMITS },
+        ],
+      },
+      {
+        id: 'posture',
+        heading: 'No key, no account, read-only',
+        blocks: [
+          {
+            kind: 'p',
+            text: 'The server is keyless: no account to make and no database of queries, like the rest of the [public API](/docs). There is no paid tier, so there is nothing to upgrade to; just be reasonable about volume.',
+          },
+          {
+            kind: 'p',
+            text: 'It is strictly read-only. Nothing here can post, like, follow, or edit, by design: the hosted surface holds no write credentials. Write tools are planned as a separate package that runs on your own machine with your own keys.',
+          },
+          {
+            kind: 'p',
+            text: 'Answers come from the same public infrastructure the Explorer reads: the Bluesky public AppView, plc.directory, Jetstream, and microcosm\u2019s Constellation, Slingshot, and UFOs services.',
+          },
+        ],
+      },
+      {
+        id: 'rest',
+        heading: 'The REST twin',
+        blocks: [
+          {
+            kind: 'p',
+            text: 'Building software rather than prompting an agent? The resolution and catalog answers are also plain GET endpoints, typed by [the OpenAPI document](/openapi.json) and explained in the [developer docs](/docs). Both surfaces wrap the same code, so neither drifts from the other.',
+          },
+        ],
+      },
+    ],
+  };
+}

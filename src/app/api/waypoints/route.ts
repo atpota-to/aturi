@@ -1,16 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { apiErrorBody, type ApiErrorCode } from '@/lib/apiError';
 import {
-  WAYPOINT_CATEGORIES_DATA,
-  WAYPOINT_DESTINATIONS_DATA,
-  WAYPOINT_ORDER,
-  describeComposeIntent,
-  getWaypointDataForType,
-  supportsComposeIntent,
-  type ComposeIntentDescriptor,
-  type WaypointData,
-  type WaypointType,
-} from '@/utils/waypoints.data';
+  buildWaypointCatalog,
+  WAYPOINT_CAPABILITIES,
+  WAYPOINT_TYPES,
+  type WaypointCapability,
+} from '@/lib/waypointCatalog';
+import type { WaypointType } from '@/utils/waypoints.data';
 
 export const runtime = 'edge';
 
@@ -18,6 +14,9 @@ export const runtime = 'edge';
  * The waypoint catalog and what each client can do, without needing a record to
  * resolve first. `/api/resolve` answers "where can I open *this*?"; this answers
  * "what's in the catalog, and which of them support X?".
+ *
+ * The catalog-shaping logic lives in src/lib/waypointCatalog.ts, shared with
+ * the MCP list_waypoints tool; this route owns only the HTTP surface.
  *
  * Inputs (all optional):
  *  - `type=post|profile|list|record`  only clients that render that type
@@ -32,25 +31,10 @@ export const runtime = 'edge';
  * composer.
  */
 
-const WAYPOINT_TYPES: WaypointType[] = ['post', 'profile', 'list', 'record', 'unknown'];
-const CAPABILITIES = ['compose'] as const;
-type Capability = (typeof CAPABILITIES)[number];
-
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET, OPTIONS',
   'Access-Control-Allow-Headers': 'content-type',
-};
-
-type WaypointJson = {
-  id: string;
-  name: string;
-  description: string;
-  category: string;
-  categoryName: string;
-  supportedTypes: WaypointType[];
-  expectedCollections?: string[];
-  composeIntent: ComposeIntentDescriptor | null;
 };
 
 export async function OPTIONS() {
@@ -66,57 +50,21 @@ export async function GET(request: NextRequest) {
       `Unknown type. Expected one of: ${WAYPOINT_TYPES.join(', ')}`,
       'Omit ?type to get the whole catalog.');
   }
-  const type = (rawType as WaypointType) || null;
 
   const rawCapability = searchParams.get('capability');
-  if (rawCapability && !CAPABILITIES.includes(rawCapability as Capability)) {
+  if (rawCapability && !WAYPOINT_CAPABILITIES.includes(rawCapability as WaypointCapability)) {
     return jsonError(400, 'invalid_parameter',
-      `Unknown capability. Expected one of: ${CAPABILITIES.join(', ')}`,
+      `Unknown capability. Expected one of: ${WAYPOINT_CAPABILITIES.join(', ')}`,
       'Omit ?capability to skip capability filtering.');
   }
-  const capability = (rawCapability as Capability) || null;
 
-  const composeText = searchParams.get('text') || undefined;
+  const body = buildWaypointCatalog({
+    type: (rawType as WaypointType) || null,
+    capability: (rawCapability as WaypointCapability) || null,
+    composeText: searchParams.get('text') || undefined,
+  });
 
-  const catalog = type
-    ? getWaypointDataForType(type)
-    : WAYPOINT_ORDER.map(id => WAYPOINT_DESTINATIONS_DATA[id]).filter(Boolean);
-
-  const waypoints = catalog
-    .filter(w => (capability === 'compose' ? supportsComposeIntent(w) : true))
-    .map(w => toJson(w, composeText));
-
-  return NextResponse.json(
-    {
-      ok: true,
-      filters: { type, capability },
-      count: waypoints.length,
-      waypoints,
-    },
-    { status: 200, headers: corsAndCache(3600) }
-  );
-}
-
-function toJson(waypoint: WaypointData, composeText?: string): WaypointJson {
-  const category = WAYPOINT_CATEGORIES_DATA[waypoint.category];
-  const json: WaypointJson = {
-    id: waypoint.id,
-    name: waypoint.name,
-    // The catalog's descriptions vary by record type; with no record in hand,
-    // resolve the profile-level wording.
-    description:
-      typeof waypoint.description === 'function'
-        ? waypoint.description()
-        : waypoint.description,
-    category: waypoint.category,
-    categoryName: category?.name ?? waypoint.category,
-    supportedTypes: waypoint.supportedTypes,
-    composeIntent: describeComposeIntent(waypoint, composeText),
-  };
-  if (waypoint.expectedCollections?.length) {
-    json.expectedCollections = waypoint.expectedCollections;
-  }
-  return json;
+  return NextResponse.json(body, { status: 200, headers: corsAndCache(3600) });
 }
 
 function corsAndCache(seconds: number) {

@@ -4,6 +4,7 @@ import {
   ABOUT_PAGE,
   CONTACT_PAGE,
   HOME_PAGE,
+  buildMcpPage,
   parseInline,
   renderContentPageMarkdown,
   type ContentPage,
@@ -13,6 +14,7 @@ const PAGES: [string, ContentPage][] = [
   ['about', ABOUT_PAGE],
   ['contact', CONTACT_PAGE],
   ['home', HOME_PAGE],
+  ['mcp', buildMcpPage('https://example.test')],
 ];
 
 test('plain text passes through as a single segment', () => {
