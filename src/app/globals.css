@@ -4465,8 +4465,17 @@ body.has-explore-chrome {
     grid-template-columns: minmax(0, 1fr);
     gap: 1.5rem;
   }
-  .landing-feature[data-flip] .landing-feature-visual {
+  /* One column, so left-and-right stops meaning anything and DOM order
+     takes over. Lead with the copy: a mock with no heading above it is a
+     diagram the reader has to reverse-engineer before knowing what it
+     shows. The flipped selector is repeated rather than dropped because
+     the desktop `order: 2` outranks a bare class, media query or not. */
+  .landing-feature-copy {
     order: 0;
+  }
+  .landing-feature-visual,
+  .landing-feature[data-flip] .landing-feature-visual {
+    order: 1;
   }
   /* Clamp every visual to the column width so the 380-460px mocks
      don't push horizontal overflow on narrow screens. The inner mocks
