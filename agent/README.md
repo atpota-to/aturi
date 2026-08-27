@@ -122,38 +122,121 @@ answer, not to add another instruction telling it not to be fooled.
 plainly that it is automated and who runs it; people are entitled to know what
 they are talking to.
 
-**2. Make an app password.** In that account: Settings → Privacy and security
-→ App passwords. Use the app password, never the account password — it is
-revocable on its own and cannot be used to change the account's email or
-password.
+**2. Make an app password.** Signed in as the bot: Settings → Privacy and
+Security → App passwords → Add App Password. Leave *Allow access to your
+direct messages* unchecked — the agent never reads DMs and does not need it.
+The password is shown once and cannot be recovered, so copy it now. Use an app
+password, never the account password: it is revocable on its own and cannot be
+used to change the account's email or password.
 
-**3. Configure and watch it before you trust it.**
+**3. Get an AI Gateway key.** Vercel dashboard → your team → AI Gateway → API
+Keys → Create key. It looks like `vck_…`. While you are there, put a
+[budget](https://vercel.com/docs/ai-gateway/observability-and-spend/budgets)
+on that key — it is the one hard ceiling on what a public bot can spend, and
+the agent's own hourly caps are the soft one.
+
+**4. Run it locally first, without posting.**
 
 ```bash
 cd agent
 npm install
 cp .env.example .env      # BLUESKY_IDENTIFIER, BLUESKY_APP_PASSWORD, AI_GATEWAY_API_KEY
+npm run typecheck && npm test
 
-DRY_RUN=true ALLOWLIST=you.bsky.social npm start
+DRY_RUN=true ALLOWLIST=your-handle.bsky.social npm start
 ```
 
-`ALLOWLIST` restricts the agent to accounts you name, so you can exercise it
-in public without answering strangers. `DRY_RUN` composes the answer and
-prints it — including how many link facets it built — instead of posting.
-Clear both when the replies read the way you want.
+Then tag the bot from the account in `ALLOWLIST` and watch the terminal. A
+`[dry-run]` line shows the exact posts it would publish and how many link
+facets each carries. Nothing is written to the repo. Iterate here — on the
+prompt, on `AGENT_MODEL` — until the replies read the way you want.
 
-## Running it
+## Deploying to a droplet
+
+It is a long-lived process that holds a websocket and writes one cursor file.
+Any supervisor works; the unit in `deploy/` is the one that has been tried.
+
+**Node 22.** `--experimental-transform-types` needs it, and systemd needs an
+absolute path, so install it system-wide rather than under nvm:
+
+```bash
+curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
+sudo apt-get install -y nodejs
+command -v node          # confirm /usr/bin/node; if not, edit ExecStart
+```
+
+**A user and the code.** The service does not need root and should not have
+it:
+
+```bash
+sudo useradd --system --home /opt/aturi --shell /usr/sbin/nologin aturi
+sudo git clone https://github.com/atpota-to/aturi.git /opt/aturi
+sudo chown -R aturi:aturi /opt/aturi
+sudo -u aturi npm --prefix /opt/aturi/agent ci
+```
+
+Until this lands on `main`, check the branch out first — a clone of the
+default branch has no `agent/` directory:
+
+```bash
+sudo -u aturi git -C /opt/aturi checkout claude/bluesky-atmosphere-agent-7f0xr5
+```
+
+**Secrets, outside the repo and outside the unit file:**
+
+```bash
+sudo install -o root -g aturi -m 0640 \
+  /opt/aturi/agent/deploy/aturi-agent.env.example /etc/aturi-agent.env
+sudo -e /etc/aturi-agent.env
+```
+
+Fill in the three credentials. Leave `CURSOR_FILE` pointing inside
+`/var/lib/aturi-agent` — `ProtectSystem=strict` makes the rest of the disk
+read-only to this service, and systemd creates that directory itself. Keep
+`ALLOWLIST` set for the first run.
+
+**Start it:**
+
+```bash
+sudo cp /opt/aturi/agent/deploy/aturi-agent.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now aturi-agent
+journalctl -u aturi-agent -f
+```
+
+A healthy start looks like:
+
+```
+[start] your-bot.bsky.social (did:plc:…) · model anthropic/claude-opus-5 · 38 tools from https://aturi.to/api/mcp
+[jetstream] connected
+```
+
+Tag the account from the allowlisted handle. Within a few seconds you should
+see a `[reply]` line naming the tools the model reached for. When you are
+satisfied, drop `ALLOWLIST` from `/etc/aturi-agent.env` and
+`sudo systemctl restart aturi-agent` to open it up.
+
+**Updating:**
+
+```bash
+sudo -u aturi git -C /opt/aturi pull
+sudo -u aturi npm --prefix /opt/aturi/agent ci
+sudo systemctl restart aturi-agent
+```
+
+A restart resumes from the persisted cursor, so nothing that arrived during
+the restart is lost.
+
+### Running it without systemd
 
 ```bash
 npm start        # holds the Jetstream subscription open; this is the real mode
 npm run tick     # one notification sweep, no stream, then exit
 ```
 
-It is a long-lived process that wants a filesystem for its cursor, which is
-exactly what a droplet is. Any process supervisor works — systemd, pm2, a
-Docker restart policy. `npm run tick` exists for cron and for checking a config
-without leaving a process behind; it skips Jetstream entirely, so it is a
-fallback rather than the intended mode.
+`npm run tick` exists for cron and for checking a config without leaving a
+process behind; it skips Jetstream entirely, so it is a fallback rather than
+the intended mode.
 
 Note that this is a **separate deployment from aturi.to**. The web app is
 keyless and read-only by design; this agent holds a gateway key and
@@ -180,5 +263,6 @@ Two caveats worth knowing:
 | `src/guards.ts` | Rate limits, allow/block lists, instruction-leak check |
 | `src/bluesky.ts` | Login, notifications, dedupe, thread context, posting |
 | `src/config.ts` | Environment |
+| `deploy/` | systemd unit and an environment-file template |
 
 Verify with `npm run typecheck && npm test`.

@@ -1,0 +1,62 @@
+# systemd unit for the Atmosphere agent.
+#
+#   sudo cp agent/deploy/aturi-agent.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now aturi-agent
+#
+# Node is invoked directly rather than through `npm start` on purpose. npm
+# does not forward SIGTERM reliably, and this process handles SIGTERM to
+# finish the reply it is mid-way through before exiting. Going through npm
+# would turn every restart into a chance of a half-written thread.
+
+[Unit]
+Description=Atmosphere agent — answers Bluesky mentions via the aturi.to MCP server
+Documentation=https://github.com/atpota-to/aturi/blob/main/agent/README.md
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=aturi
+Group=aturi
+WorkingDirectory=/opt/aturi/agent
+
+# Secrets live here, not in this file. Keep it root-owned and 0640 so it is
+# readable by the service group and nobody else.
+EnvironmentFile=/etc/aturi-agent.env
+
+# systemd creates and owns /var/lib/aturi-agent, which is the one writable
+# path the service gets. CURSOR_FILE must point inside it — see the env file.
+StateDirectory=aturi-agent
+StateDirectoryMode=0750
+
+ExecStart=/usr/bin/node --experimental-transform-types src/index.ts
+
+Restart=always
+RestartSec=5s
+# Long enough for an in-flight answer to finish and the cursor to be written.
+TimeoutStopSec=60s
+KillSignal=SIGTERM
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=aturi-agent
+
+# The agent reads a websocket, calls two HTTPS APIs, and writes one cursor
+# file. It has no business touching anything else on the box.
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictNamespaces=true
+RestrictSUIDSGID=true
+LockPersonality=true
+MemoryDenyWriteExecute=false
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+
+[Install]
+WantedBy=multi-user.target
