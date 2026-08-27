@@ -39,6 +39,13 @@ const FILES = [
     transform: identity,
   },
   {
+    // upstreamFetch imports this for its deadline and User-Agent; ship it in
+    // the package so the copy builds.
+    from: resolve(repoRoot, 'src/utils/requestDeadline.ts'),
+    to: resolve(coreSrc, 'requestDeadline.ts'),
+    transform: identity,
+  },
+  {
     // uriParser imports this; ship it in the package so the copy builds.
     from: resolve(repoRoot, 'src/utils/upstreamFetch.ts'),
     to: resolve(coreSrc, 'upstreamFetch.ts'),
