@@ -6,10 +6,10 @@ import {
   BookOpen,
   Compass,
   Download,
-  Home,
   Menu,
   MessageSquareHeart,
   Orbit,
+  Plug,
   Search,
   Telescope,
   X,
@@ -325,10 +325,6 @@ export default function Header({ simple = false, compact = false }: HeaderProps)
             {!isSignInActive && (
               <>
                 <div className="compact-nav-grid">
-                  <Link href="/" className="compact-nav-link">
-                    <Home size={16} />
-                    <span>home</span>
-                  </Link>
                   <Link href="/explore" className="compact-nav-link">
                     <Telescope size={16} />
                     <span>explore</span>
@@ -345,9 +341,13 @@ export default function Header({ simple = false, compact = false }: HeaderProps)
                     <Orbit size={16} />
                     <span>spaces</span>
                   </Link>
+                  <Link href="/mcp" className="compact-nav-link">
+                    <Plug size={16} />
+                    <span>mcp</span>
+                  </Link>
                   <Link href="/docs" className="compact-nav-link">
                     <BookOpen size={16} />
-                    <span>docs</span>
+                    <span>integrate</span>
                   </Link>
                   <Link href="/feedback" className="compact-nav-link">
                     <MessageSquareHeart size={16} />
@@ -454,11 +454,6 @@ export default function Header({ simple = false, compact = false }: HeaderProps)
             margin: '0 auto',
           }}
         >
-          <Link href="/" className="nav-link">
-            <Home size={14} />
-            <span>home</span>
-          </Link>
-          <span style={{ color: 'var(--text-tertiary)', fontSize: '0.75rem' }}>·</span>
           <Link href="/explore" className="nav-link">
             <Telescope size={14} />
             <span>explore</span>
@@ -474,9 +469,14 @@ export default function Header({ simple = false, compact = false }: HeaderProps)
             <span>links</span>
           </Link>
           <span style={{ color: 'var(--text-tertiary)', fontSize: '0.75rem' }}>·</span>
+          <Link href="/mcp" className="nav-link">
+            <Plug size={14} />
+            <span>mcp</span>
+          </Link>
+          <span style={{ color: 'var(--text-tertiary)', fontSize: '0.75rem' }}>·</span>
           <Link href="/docs" className="nav-link">
             <BookOpen size={14} />
-            <span>docs</span>
+            <span>integrate</span>
           </Link>
           <span style={{ color: 'var(--text-tertiary)', fontSize: '0.75rem' }}>·</span>
           <ThemeToggle variant="inline" />
@@ -566,11 +566,6 @@ export default function Header({ simple = false, compact = false }: HeaderProps)
           flexWrap: 'wrap',
         }}
       >
-        <Link href="/" className="nav-link">
-          <Home size={16} />
-          <span>home</span>
-        </Link>
-        <span style={{ color: 'var(--text-tertiary)', fontSize: '0.875rem' }}>·</span>
         <Link href="/explore" className="nav-link">
           <Telescope size={16} />
           <span>explore</span>
@@ -586,9 +581,14 @@ export default function Header({ simple = false, compact = false }: HeaderProps)
           <span>links</span>
         </Link>
         <span style={{ color: 'var(--text-tertiary)', fontSize: '0.875rem' }}>·</span>
+        <Link href="/mcp" className="nav-link">
+          <Plug size={16} />
+          <span>mcp</span>
+        </Link>
+        <span style={{ color: 'var(--text-tertiary)', fontSize: '0.875rem' }}>·</span>
         <Link href="/docs" className="nav-link">
           <BookOpen size={16} />
-          <span>docs</span>
+          <span>integrate</span>
         </Link>
         <span style={{ color: 'var(--text-tertiary)', fontSize: '0.875rem' }}>·</span>
         <ThemeToggle variant="inline" />

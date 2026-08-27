@@ -1,15 +1,16 @@
 # aturi.to
 
-**Tour the Atmosphere.** Switch clients, share universal links, discover lexicons, detect URIs, browse any PDS, add Waypoints to any app.
+**Tour the Atmosphere.** Switch clients, share universal links, discover lexicons, detect URIs, browse any PDS, point an AI agent at the network, add Waypoints to any app.
 
 ## What is aturi.to?
 
-aturi.to is a toolkit for navigating the Atmosphere (the network of apps built on atproto). Four surfaces, one shared waypoint catalog and URI parser:
+aturi.to is a toolkit for navigating the Atmosphere (the network of apps built on atproto). Five surfaces, one shared waypoint catalog and URI parser:
 
 - **Browser extension** ([`extension/`](extension/)): jump between Atmosphere clients in one click, auto-redirect every Atmosphere link to your preferred client before it loads, and inspect the AT URI under any page.
 - **Atmosphere Explorer** ([aturi.to/explore](https://aturi.to/explore)). Browse any account's PDS: every collection, every record, identity history, audit log, inbound backlinks, trending lexicons, and a live view of the firehose. Sign in to edit your own records.
 - **Universal links** ([aturi.to/profile/…](https://aturi.to/)): drop an `aturi.to/...` URL anywhere and the recipient lands on a friendly preview of the record, then picks the Atmosphere client they want to open it in. No login, no client lock-in.
 - **Waypoints packages** ([`@aturi.to/waypoints`](packages/waypoints/README.md)): the same catalog, link builders, and URI resolution the other three surfaces run on, published as a zero-dependency npm package, with a headless React picker UI in [`@aturi.to/waypoints-react`](packages/waypoints-react/README.md). MIT-licensed, so you can add waypoints to your own app.
+- **Atmosphere MCP** ([aturi.to/mcp](https://aturi.to/mcp)): a hosted Model Context Protocol server, currently in beta. Add one URL to Claude, Cursor, or any MCP client and an AI agent can resolve any Atmosphere link, read any repository, trace backlinks across every app, and sample Jetstream, the live event stream. Keyless and read-only.
 
 Plus a **[feedback board](#feedback-board)** at [aturi.to/feedback](https://aturi.to/feedback), built on the userinput.app lexicons: post a bug or an idea, vote on someone else's, and every record lands in your own repo.
 
@@ -48,6 +49,32 @@ Available at [aturi.to/explore](https://aturi.to/explore). A read-mostly window 
 Authentication uses standard atproto OAuth: no passwords, no Aturi-side account database. The sign-in flow shows a granular permissions picker so you can grant only the scopes you want (create / update / delete records / upload blobs), and access tokens are DPoP-bound and stored only in your browser. Reads of your own repo are always allowed.
 
 Your personalization (waypoint groups, ordering, pins, custom waypoints, color scheme) is written to a `to.aturi.actor.preferences/self` record in your own PDS, so it migrates with you if you move servers.
+
+## Atmosphere MCP
+
+Available at [aturi.to/mcp](https://aturi.to/mcp), with the endpoint at `https://aturi.to/api/mcp`. **In beta.**
+
+The Atmosphere Explorer, as tools an agent can call. Add the URL to Claude, Cursor, or any client that speaks Streamable HTTP, and ask questions in plain language:
+
+- *"What has this account been posting about, and which post got the most engagement?"*
+- *"Who links to this post, anywhere on the network?"*
+- *"What apps does this account actually use, and when did it change servers?"*
+- *"Which lexicons are busiest today, and what do their records look like?"*
+- *"Show me `com.whtwnd.blog.entry` records as people publish them."*
+
+Thirty-eight tools across nine groups: link resolution and the client catalog, identity and PLC history, whole-repository reads on any PDS, network-wide backlinks via Constellation, the Bluesky social layer (feeds, threads, graph, engagement, trends), custom feeds and lists, lexicon activity via UFOs, a bounded live tap on Jetstream, and the protocol documentation itself, searched from atproto.com, docs.bsky.app and bsky.network so an agent can answer "how does this work" with a citation instead of from memory. Every answer carries the `at://` URI and an aturi.to link, so anything an agent mentions is one click from opening in whichever client you use.
+
+### Before you rely on it
+
+- It reads. No tool can post, like, follow, or edit anything, and the server holds no credentials that could. Write access is planned as a separate package you would run on your own machine with your own keys.
+- Beta means tool names and result shapes can still change. Nothing should pin to them yet.
+- Answers come from live public services: Bluesky's AppView, plc.directory, Jetstream, and microcosm's Constellation, Slingshot and UFOs. When one is down or rate-limiting, the tool says so rather than guessing.
+- Bluesky's post search refuses requests from data-centre networks, so `search_posts` can fail where every other tool works.
+- Posts and records are written by strangers. Treat what comes back as data to read, not as instructions to follow.
+- There is no uptime promise and no support queue.
+
+No API key, no account, and nothing to install. The [OpenAPI](https://aturi.to/openapi.json) REST endpoints remain the right interface for code; MCP is for interactive agents. Both wrap the same resolution core, so neither drifts from the other.
+
 
 ## Universal links
 
@@ -279,6 +306,7 @@ Watch `prefillsText`: one client routes the intent but ignores the text, so the 
 - **`@vercel/og`**: dynamic OpenGraph image generation on the Edge Runtime
 - **`@vercel/analytics`**: privacy-focused, cookieless analytics
 - **Constellation & Slingshot**: microcosm's backlink index and record cache, which the feedback board reads instead of an AppView
+- **`mcp-handler` + `@modelcontextprotocol/server`**: the Atmosphere MCP endpoint, served from a single Next.js route handler
 - **Tailwind CSS v4**: utility-first styling alongside hand-rolled CSS variables
 - **Framer Motion**: page and component animations
 
@@ -301,6 +329,7 @@ Found a security issue? Report it privately. See [SECURITY.md](SECURITY.md).
 ## More resources
 
 - [Developer docs](https://aturi.to/docs): integrate the waypoint packages and the Resolve API into your own app
+- [Atmosphere MCP](https://aturi.to/mcp): the MCP server's tool list and per-client setup (Markdown at [/mcp.md](https://aturi.to/mcp.md))
 - [`@aturi.to/waypoints`](packages/waypoints/README.md) & [`@aturi.to/waypoints-react`](packages/waypoints-react/README.md): the published package READMEs
 - [Contributing Guide](CONTRIBUTING.md): how to contribute back
 - [AGENTS.md](AGENTS.md): repository instructions for coding agents

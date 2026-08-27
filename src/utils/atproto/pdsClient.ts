@@ -25,10 +25,14 @@ export type DescribeRepoResponse = {
   handleIsCorrect?: boolean;
 };
 
+import { readCappedJson } from '../cappedJson';
 import { upstreamFetch } from '../upstreamFetch';
 
 async function fetchJson<T>(url: string): Promise<T> {
-  const res = await upstreamFetch(url);
+  // The PDS base comes from a DID document, which anyone can author, so a
+  // redirect here would send the request to an unchecked host and hand its
+  // body back to the caller. A PDS serving XRPC never needs to redirect.
+  const res = await upstreamFetch(url, { redirect: 'error' });
   if (!res.ok) {
     const text = await res.text().catch(() => '');
     const err = new Error(
@@ -37,7 +41,8 @@ async function fetchJson<T>(url: string): Promise<T> {
     (err as Error & { status?: number }).status = res.status;
     throw err;
   }
-  return (await res.json()) as T;
+  // Bounded: the host is caller-influenced and may answer with anything.
+  return readCappedJson<T>(res);
 }
 
 /**

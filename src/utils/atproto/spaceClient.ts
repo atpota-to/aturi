@@ -1,6 +1,7 @@
 /**
- * The `com.atproto.space` / `com.atproto.simplespace` methods: the reads, and
- * the three record writes at the bottom of the file.
+ * The `com.atproto.space` / `com.atproto.simplespace` methods: the reads, the
+ * three record writes, and the five administrative procedures at the bottom of
+ * the file.
  *
  * Two things about these calls are easy to get wrong and expensive to debug,
  * so both are encoded here rather than left to call sites:
@@ -107,6 +108,26 @@ export const SIMPLESPACE_APP_ACCESS = {
   allowList: 'com.atproto.simplespace.defs#allowList',
 } as const;
 
+/**
+ * The two config unions as a *writer* names them, which is narrower than the
+ * reader's shape above.
+ *
+ * Reading has to survive a `$type` this build has never seen — an authority may
+ * run a policy it invented — so {@link SimpleSpaceConfig} keeps `$type` as a
+ * bare string. Writing may not: `createSpace` and `updateSpace` declare closed
+ * unions, and a host rejects an unlisted variant with `UnsupportedPolicy`
+ * rather than storing a rule it cannot enforce. Sending only the variants the
+ * lexicon names turns that into a compile error here instead.
+ */
+export type SimpleSpacePolicyInput =
+  | { $type: typeof SIMPLESPACE_POLICY.public }
+  | { $type: typeof SIMPLESPACE_POLICY.memberList }
+  | { $type: typeof SIMPLESPACE_POLICY.managingApp; managingApp: string };
+
+export type SimpleSpaceAppAccessInput =
+  | { $type: typeof SIMPLESPACE_APP_ACCESS.open }
+  | { $type: typeof SIMPLESPACE_APP_ACCESS.allowList; allowed: string[] };
+
 /* -------------------------------------------------------------------------- *
  * Transports
  * -------------------------------------------------------------------------- */
@@ -202,6 +223,21 @@ export function spaceErrorCode(err: unknown): string | null {
   if (typeof err !== 'object' || err === null) return null;
   const code = (err as SpaceXrpcError).xrpcError;
   return typeof code === 'string' && code ? code : null;
+}
+
+/**
+ * The text to show a person: the host's own `message` where there was one, the
+ * error's message otherwise, and null for anything that isn't an Error at all.
+ *
+ * Never `Error.message` first. That string is built for a console — status,
+ * URL, and the first 200 bytes of the body — and putting it in front of a user
+ * reads as a crash rather than as the sentence the host actually wrote.
+ */
+export function spaceErrorMessage(err: unknown): string | null {
+  if (typeof err !== 'object' || err === null) return null;
+  const message = (err as SpaceXrpcError).xrpcMessage;
+  if (typeof message === 'string' && message) return message;
+  return err instanceof Error ? err.message : null;
 }
 
 function spaceErrorStatus(err: unknown): number | null {
@@ -551,11 +587,11 @@ export function listSimpleSpaceMembers(
  * (`notifyWrite`), so nothing on this path waits on the space host, and a
  * write that lands is durable whether or not that notification is.
  */
-async function procedure<T>(
+async function post(
   t: SpaceTransport,
   nsid: string,
   body: Record<string, unknown>,
-): Promise<T> {
+): Promise<Response> {
   const res = await t.call('', `/xrpc/${nsid}`, {
     method: 'POST',
     headers: { 'content-type': 'application/json', accept: 'application/json' },
@@ -566,10 +602,33 @@ async function procedure<T>(
   // credential, and these methods never carry one. An OAuth token that needs
   // refreshing is the session layer's job and happens under `call`.
   if (!res.ok) throw await readSpaceXrpcError(res, res.url || `/xrpc/${nsid}`);
+  return res;
+}
+
+async function procedure<T>(
+  t: SpaceTransport,
+  nsid: string,
+  body: Record<string, unknown>,
+): Promise<T> {
+  const res = await post(t, nsid, body);
 
   // `deleteRecord` answers with an empty object, so this is not always useful —
   // but it is always JSON.
   return (await res.json()) as T;
+}
+
+/**
+ * A procedure whose lexicon declares no output. The server answers 200 with an
+ * empty body and no content type, so the response is never read — parsing it
+ * as JSON would throw on the success path, which is the failure mode this
+ * exists to avoid.
+ */
+async function procedureVoid(
+  t: SpaceTransport,
+  nsid: string,
+  body: Record<string, unknown>,
+): Promise<void> {
+  await post(t, nsid, body);
 }
 
 export type SpaceWriteResult = {
@@ -647,6 +706,152 @@ export function deleteSpaceRecord(
     repo: params.repo,
     collection: params.collection,
     rkey: params.rkey,
+  });
+}
+
+/* -------------------------------------------------------------------------- *
+ * Space administration
+ * -------------------------------------------------------------------------- */
+
+/**
+ * The simplespace lifecycle: create a space, change its two rules, delete it,
+ * and maintain the member list the member-list policy consults.
+ *
+ * These differ from every method above in what they are governed by. A read is
+ * authorized per space and a record write per collection *within* a space;
+ * administration is authorized by a `manage` op on the `space:` scope, which is
+ * a separate axis entirely — a grant covering every read and write in a space
+ * still cannot create, reconfigure or delete one. See `spaceManageOpsFor` in
+ * `@/lib/oauth/scopes` for reading that half of a token back.
+ *
+ * All five are OAuth-only and take no host. Only the space's own authority may
+ * call them, the authority is always an account rather than a service here, and
+ * an account's OAuth token addresses its own PDS — which is that authority. A
+ * space credential is refused: it is a capability to *read* a space, issued by
+ * the very authority these methods reconfigure.
+ *
+ * Four of the five declare no output and return nothing. Only `createSpace`
+ * answers with a body, because only it knows something the caller doesn't: the
+ * space key, when the caller let the host generate one.
+ */
+
+/**
+ * Create a space under the signed-in account, which becomes its authority.
+ *
+ * There is no `did` parameter and there is no way to ask for one under someone
+ * else's authority: the host builds the space ref from the token's own DID.
+ *
+ * Omitting `skey` has the host mint a TID, which is what the space type's
+ * declaration usually recommends. Passing one is for the space types whose key
+ * is meaningful — `literal:self`, or a name a companion app expects to find —
+ * and collides with `SpaceAlreadyExists` if that (type, key) pair is taken.
+ *
+ * A space that already has data is not necessarily a space that has a config:
+ * writing to an address materializes a permissioned repo without creating a
+ * simplespace, and `getSpace` answers `SpaceNotFound` until this is called for
+ * it. Creating over such an address adopts it rather than starting a new one.
+ */
+export function createSimpleSpace(
+  t: SpaceTransport,
+  params: {
+    type: string;
+    skey?: string;
+    policy: SimpleSpacePolicyInput;
+    appAccess: SimpleSpaceAppAccessInput;
+  },
+): Promise<{ uri: string }> {
+  assertTransport(t, 'oauth', 'com.atproto.simplespace.createSpace');
+  return procedure(t, 'com.atproto.simplespace.createSpace', {
+    type: params.type,
+    ...(params.skey ? { skey: params.skey } : {}),
+    policy: params.policy,
+    appAccess: params.appAccess,
+  });
+}
+
+/**
+ * Replace one or both of a space's rules. An omitted field is left alone; a
+ * supplied one replaces that rule wholesale, since both are unions rather than
+ * partial objects — there is no way to add a single client to an existing allow
+ * list without sending the whole list back.
+ */
+export function updateSimpleSpace(
+  t: SpaceTransport,
+  params: {
+    space: string;
+    policy?: SimpleSpacePolicyInput;
+    appAccess?: SimpleSpaceAppAccessInput;
+  },
+): Promise<void> {
+  assertTransport(t, 'oauth', 'com.atproto.simplespace.updateSpace');
+  return procedureVoid(t, 'com.atproto.simplespace.updateSpace', {
+    space: params.space,
+    ...(params.policy ? { policy: params.policy } : {}),
+    ...(params.appAccess ? { appAccess: params.appAccess } : {}),
+  });
+}
+
+/**
+ * Delete a space. Idempotent, and not undoable by re-creating: every read and
+ * write against the address fails with `SpaceNotFound` afterwards, and a
+ * syncer that missed the notification learns from `SpaceDeleted` at its next
+ * credential mint.
+ *
+ * What is destroyed is asymmetric and worth saying out loud in any UI that
+ * offers this. The authority's own repo in the space goes with it, because the
+ * space host and that repo's host are the same service. Other members' repos
+ * live on their own PDSes and are flagged as belonging to a deleted space
+ * rather than erased — so this ends the space without erasing what its members
+ * wrote.
+ */
+export function deleteSimpleSpace(
+  t: SpaceTransport,
+  params: { space: string },
+): Promise<void> {
+  assertTransport(t, 'oauth', 'com.atproto.simplespace.deleteSpace');
+  return procedureVoid(t, 'com.atproto.simplespace.deleteSpace', { space: params.space });
+}
+
+/**
+ * Add a DID to the space's member list.
+ *
+ * The member list is host-internal state, consulted when the space's policy is
+ * `memberListPolicy` and inert under either of the other two — adding someone
+ * to a `publicPolicy` space changes nothing, since everyone already qualifies.
+ * It is never synced to the network and never enumerated to anyone but the
+ * authority.
+ *
+ * Nobody is notified. Membership is a permission to mint a credential, not an
+ * invitation, and the member's own PDS materializes their repo the first time
+ * they write.
+ */
+export function addSimpleSpaceMember(
+  t: SpaceTransport,
+  params: { space: string; did: string },
+): Promise<void> {
+  assertTransport(t, 'oauth', 'com.atproto.simplespace.addMember');
+  return procedureVoid(t, 'com.atproto.simplespace.addMember', {
+    space: params.space,
+    did: params.did,
+  });
+}
+
+/**
+ * Drop a DID from the space's member list.
+ *
+ * This governs future credential mints and nothing else. A credential already
+ * in someone's hands stays valid until it expires, and the records they have
+ * written stay in their own repo — removing a member ends their access, it does
+ * not retract their data.
+ */
+export function removeSimpleSpaceMember(
+  t: SpaceTransport,
+  params: { space: string; did: string },
+): Promise<void> {
+  assertTransport(t, 'oauth', 'com.atproto.simplespace.removeMember');
+  return procedureVoid(t, 'com.atproto.simplespace.removeMember', {
+    space: params.space,
+    did: params.did,
   });
 }
 

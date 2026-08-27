@@ -4381,9 +4381,18 @@ body.has-explore-chrome {
     /* Match the reduced page-edge gutter used elsewhere on mobile. */
     padding: 2.5rem 0.875rem;
   }
-  /* On mobile, demo always above copy regardless of flip. */
-  .home-product-strip[data-flip] .home-product-strip-demo {
+  /* One column, so left-and-right stops meaning anything and DOM order
+     takes over. Lead with the copy, matching .landing-feature: a demo with
+     its own heading underneath is something the reader has to work out
+     before knowing what it shows. The flipped selector is repeated rather
+     than dropped because the desktop `order: 2` carries an attribute
+     selector and outranks a bare class, media query or not. */
+  .home-product-strip-copy {
     order: 0;
+  }
+  .home-product-strip-demo,
+  .home-product-strip[data-flip] .home-product-strip-demo {
+    order: 1;
   }
   .home-product-strip-copy h2 {
     font-size: 1.625rem;
@@ -4465,8 +4474,17 @@ body.has-explore-chrome {
     grid-template-columns: minmax(0, 1fr);
     gap: 1.5rem;
   }
-  .landing-feature[data-flip] .landing-feature-visual {
+  /* One column, so left-and-right stops meaning anything and DOM order
+     takes over. Lead with the copy: a mock with no heading above it is a
+     diagram the reader has to reverse-engineer before knowing what it
+     shows. The flipped selector is repeated rather than dropped because
+     the desktop `order: 2` outranks a bare class, media query or not. */
+  .landing-feature-copy {
     order: 0;
+  }
+  .landing-feature-visual,
+  .landing-feature[data-flip] .landing-feature-visual {
+    order: 1;
   }
   /* Clamp every visual to the column width so the 380-460px mocks
      don't push horizontal overflow on narrow screens. The inner mocks

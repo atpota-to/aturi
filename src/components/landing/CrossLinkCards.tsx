@@ -1,9 +1,9 @@
 'use client';
 
 import Link from 'next/link';
-import { Compass, Download, Leaf, Telescope } from 'lucide-react';
+import { Compass, Download, Leaf, Plug, Telescope } from 'lucide-react';
 
-type ProductKey = 'universal-links' | 'extension' | 'explore';
+type ProductKey = 'universal-links' | 'extension' | 'explore' | 'mcp';
 
 type Card = {
   key: ProductKey;
@@ -27,6 +27,13 @@ const CARDS: Card[] = [
     icon: <Download size={18} />,
     title: 'Browser extension',
     body: 'Inspect AT URIs on any page and jump between Atmosphere apps.',
+  },
+  {
+    key: 'mcp',
+    href: '/mcp',
+    icon: <Plug size={18} />,
+    title: 'Atmosphere MCP',
+    body: 'Point an AI agent at one URL and let it read the network, keyless and read-only. In beta.',
   },
   {
     key: 'explore',

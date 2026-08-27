@@ -1,4 +1,6 @@
 import { getSiteUrl } from '@/lib/config';
+import { toolCountWord } from '@/lib/mcp/catalog';
+import { MCP_NAME, MCP_STAGE } from '@/lib/mcp/about';
 
 /**
  * The /llms.txt index, per the llmstxt.org format: an H1 with the site name, a
@@ -66,6 +68,25 @@ Errors are always JSON with a stable machine-readable \`code\` (\`missing_parame
 on \`code\`, never on the prose. Note that two operations return \`ok: false\` with HTTP 200
 when the answer is a definite negative — a page with no atproto record is a result, not a
 failure — so branch on the \`ok\` field rather than on the status code.
+
+## ${MCP_NAME} (${MCP_STAGE})
+
+If your runtime supports MCP (Model Context Protocol), prefer the tool form over
+scripting the REST endpoints: add \`${origin}/api/mcp\` as a Streamable HTTP server —
+keyless and read-only, same access terms as the REST API. Its ${toolCountWord()} tools cover
+the REST surface's resolution and catalog and go well past it: identity history,
+whole-repo browsing, network-wide backlinks, Bluesky author feeds, trends, social graph
+and post engagement, lexicon activity stats, a bounded Jetstream sample, and search over
+the atproto.com, docs.bsky.app and bsky.network documentation plus every lexicon in
+the atproto repo, so protocol questions get a cited answer rather than a recalled
+one. Only the oEmbed provider (\`/api/oembed\`) stays REST-only.
+
+It is in ${MCP_STAGE}: tool names and result shapes can still change, so do not pin to them
+yet. It is strictly read-only, and every answer depends on live third-party services, which
+report an error rather than a guess when they are unavailable. The full list of caveats is
+under "Before you rely on it" in the Markdown page below.
+
+- [${MCP_NAME}](${origin}/mcp): copy-paste setup for Claude, Claude Code, Codex, Cursor, VS Code and opencode. The [Markdown twin](${origin}/mcp.md) adds every tool with its summary, the questions it answers well, and the caveats.
 
 ## API endpoints
 

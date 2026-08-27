@@ -7,6 +7,7 @@
  *     the canonical identity bundle the explorer pages depend on.
  */
 
+import { withIdentification } from '../requestDeadline';
 import { resolveDidToHandle, resolvePdsEndpoint } from '../didResolver';
 import { APPVIEW, HANDLE_RESOLVER_FALLBACK } from './config';
 import { describeRepo } from './pdsClient';
@@ -23,7 +24,7 @@ const handleToDidCache = new TTLMap<string, string>(HANDLE_TTL);
 
 async function tryFetchJson<T>(url: string): Promise<T | null> {
   try {
-    const res = await fetch(url);
+    const res = await fetch(url, withIdentification());
     if (!res.ok) return null;
     return (await res.json()) as T;
   } catch {
