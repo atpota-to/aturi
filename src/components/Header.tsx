@@ -306,7 +306,13 @@ export default function Header({ simple = false, compact = false }: HeaderProps)
             transition: 'all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)',
             pointerEvents: isExpanded ? 'auto' : 'none',
             zIndex: 50,
-            overflow: 'hidden',
+            // Clipped by default, so nothing paints outside the panel's border
+            // while it scales open. The sign-in flow is the exception: its
+            // handle typeahead drops a listbox below the input, taller than
+            // the panel has room for, and clipping cut the suggestions in
+            // half. Relaxed only while the panel is actually open — collapsed,
+            // `opacity: 0` and `inert` still cover anything that would escape.
+            overflow: isExpanded && isSignInActive ? 'visible' : 'hidden',
           }}
         >
           <nav
