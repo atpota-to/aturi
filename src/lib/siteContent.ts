@@ -352,8 +352,10 @@ export function buildMcpPage(baseUrl: string): ContentPage {
             kind: 'ul',
             items: [
               `**Claude** (web or desktop): Settings, then Connectors, then Add custom connector, with the URL \`${endpoint}\`.`,
-              `**Claude Code**: \`claude mcp add --transport http aturi ${endpoint}\``,
-              `**Cursor / VS Code**: add \`{"aturi": {"url": "${endpoint}"}}\` to the editor's MCP servers setting.`,
+              `**Claude Code**: \`claude mcp add --transport http atmosphere ${endpoint}\``,
+              `**Codex**: \`codex mcp add atmosphere --url ${endpoint}\``,
+              `**Cursor / VS Code**: add \`{"atmosphere": {"url": "${endpoint}"}}\` to the editor's MCP servers setting.`,
+              `**opencode**: add \`{"atmosphere": {"type": "remote", "url": "${endpoint}"}}\` under \`mcp\` in your opencode config. Without \`type\` it is read as a local command.`,
               `**Anything else**: any client that speaks Streamable HTTP works; the endpoint negotiates every MCP revision from 2024-10-07 through 2025-11-25. stdio-only clients can bridge with \`npx mcp-remote ${endpoint}\`.`,
             ],
           },

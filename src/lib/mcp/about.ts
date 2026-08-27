@@ -2,9 +2,10 @@
  * What the server is called and what it does not do.
  *
  * Both belong in one place for the same reason the tool catalog does: the
- * name and the caveats appear on the landing page, in its Markdown twin, and
- * in llms.txt, and a limitation that is only stated on one of the three is a
- * limitation most readers never see.
+ * name reaches the landing page, its Markdown twin and llms.txt, and a rename
+ * that lands on only one of the three is worse than no rename. The caveats
+ * render in the Markdown twin and the README; the landing page links to them
+ * rather than restating them, so there is still one copy to keep true.
  */
 
 /** Product name, as a person reads it. */

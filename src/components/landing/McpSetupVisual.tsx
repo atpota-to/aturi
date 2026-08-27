@@ -3,9 +3,10 @@
 import CopyButton from '@/components/explore/CopyButton';
 
 /**
- * The three shapes of "add this server", side by side: a settings path for
- * Claude's UI, a CLI command, and the JSON block editors want. Nothing here
- * is aturi-specific except the URL, which is the point.
+ * The shapes of "add this server", one per client: a settings path for
+ * Claude's UI, a CLI command for the terminal agents, and the JSON fragment
+ * editors want under their own servers key. Nothing here is aturi-specific
+ * except the URL, which is the point.
  */
 
 type Setup = {
@@ -38,6 +39,20 @@ export default function McpSetupVisual({ endpoint }: { endpoint: string }) {
       kind: 'json',
       body: `{ "atmosphere": { "url": "${endpoint}" } }`,
       copy: `{ "atmosphere": { "url": "${endpoint}" } }`,
+    },
+    {
+      client: 'Codex',
+      kind: 'command',
+      body: `codex mcp add atmosphere --url ${endpoint}`,
+      copy: `codex mcp add atmosphere --url ${endpoint}`,
+    },
+    {
+      // opencode keys its servers under `mcp`, and a remote one has to say so
+      // — without `"type": "remote"` it is read as a local stdio command.
+      client: 'opencode',
+      kind: 'json',
+      body: `{ "atmosphere": { "type": "remote", "url": "${endpoint}" } }`,
+      copy: `{ "atmosphere": { "type": "remote", "url": "${endpoint}" } }`,
     },
   ];
 
@@ -85,7 +100,12 @@ export default function McpSetupVisual({ endpoint }: { endpoint: string }) {
           </div>
           <pre
             style={{
+              // globals.css gives every <pre> a border and its own tertiary
+              // background. Inside this card both are redundant, and the
+              // border read as a second, thicker edge around the row.
               margin: 0,
+              border: 'none',
+              background: 'transparent',
               padding: '0.625rem 0.75rem',
               fontFamily: 'var(--font-mono)',
               fontSize: '0.68rem',

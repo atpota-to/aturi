@@ -1,11 +1,10 @@
 'use client';
 
 import Link from 'next/link';
-import { ArrowRight, Boxes, Plug, ShieldCheck } from 'lucide-react';
+import { ArrowRight, Boxes, Plug } from 'lucide-react';
 import AppearIn from '@/components/explore/AppearIn';
 import { TOOL_COUNT, toolCountWord } from '@/lib/mcp/catalog';
-import { MCP_LIMITS, MCP_NAME, MCP_STAGE } from '@/lib/mcp/about';
-import { parseInline } from '@/lib/siteContent';
+import { MCP_NAME, MCP_STAGE } from '@/lib/mcp/about';
 import CopyButton from '@/components/explore/CopyButton';
 import CrossLinkCards from './CrossLinkCards';
 import FeatureSection from './FeatureSection';
@@ -149,63 +148,21 @@ export default function McpLanding({ endpoint }: { endpoint: string }) {
       />
 
       <AppearIn>
-        <section
+        <p
           style={{
-            border: '1px solid var(--border-subtle)',
-            background: 'var(--bg-secondary)',
-            padding: '1.5rem',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '1rem',
+            margin: 0,
+            fontSize: '0.9rem',
+            color: 'var(--text-tertiary)',
+            lineHeight: 1.6,
           }}
         >
-          <span
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '0.4rem',
-              color: 'var(--text-accent)',
-              fontSize: '0.75rem',
-              letterSpacing: '0.12em',
-              textTransform: 'uppercase',
-              fontFamily: 'var(--font-serif)',
-              lineHeight: 1,
-            }}
-          >
-            <ShieldCheck size={14} aria-hidden /> Before you rely on it
-          </span>
-          <ul
-            style={{
-              margin: 0,
-              padding: 0,
-              listStyle: 'none',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '0.6rem',
-            }}
-          >
-            {MCP_LIMITS.map((limit) => (
-              <li
-                key={limit}
-                style={{
-                  color: 'var(--text-secondary)',
-                  fontSize: '0.95rem',
-                  lineHeight: 1.55,
-                  paddingLeft: '0.875rem',
-                  borderLeft: '2px solid var(--border-subtle)',
-                }}
-              >
-                <Inline text={limit} />
-              </li>
-            ))}
-          </ul>
-          <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-tertiary)', lineHeight: 1.6 }}>
-            Building software instead of prompting an agent? The same answers
-            are plain GET endpoints, typed in{' '}
-            <a href="/openapi.json">the OpenAPI document</a> and explained in the{' '}
-            <Link href="/docs">developer docs</Link>.
-          </p>
-        </section>
+          Building software instead of prompting an agent? The same answers are
+          plain GET endpoints, typed in{' '}
+          <a href="/openapi.json">the OpenAPI document</a> and explained in the{' '}
+          <Link href="/docs">developer docs</Link>. What the server does not do,
+          and what can still change while it is in {MCP_STAGE}, is listed in{' '}
+          <Link href="/mcp.md">the Markdown twin of this page</Link>.
+        </p>
       </AppearIn>
 
       <CrossLinkCards current="mcp" />
@@ -222,21 +179,6 @@ function capitalize(value: string): string {
  * inline parser so this page and the Markdown twin read the same strings the
  * same way.
  */
-function Inline({ text }: { text: string }) {
-  return (
-    <>
-      {parseInline(text).map((segment, i) =>
-        segment.kind === 'code' ? (
-          <code key={i} style={{ color: 'var(--text-accent)', fontSize: '0.88em' }}>
-            {segment.text}
-          </code>
-        ) : (
-          <span key={i}>{segment.text}</span>
-        ),
-      )}
-    </>
-  );
-}
 
 function Badge({ icon, children }: { icon: React.ReactNode; children: React.ReactNode }) {
   return (

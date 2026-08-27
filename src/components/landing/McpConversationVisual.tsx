@@ -98,7 +98,6 @@ export default function McpConversationVisual() {
         <div
           style={{
             border: '1px solid var(--border-medium)',
-            borderLeft: '2px solid var(--accent-moss)',
             padding: '0.75rem',
             display: 'flex',
             flexDirection: 'column',

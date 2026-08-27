@@ -84,9 +84,9 @@ one. Only the oEmbed provider (\`/api/oembed\`) stays REST-only.
 It is in ${MCP_STAGE}: tool names and result shapes can still change, so do not pin to them
 yet. It is strictly read-only, and every answer depends on live third-party services, which
 report an error rather than a guess when they are unavailable. The full list of caveats is
-under "Before you rely on it" on the pages below.
+under "Before you rely on it" in the Markdown page below.
 
-- [${MCP_NAME}](${origin}/mcp): the tool list and copy-paste setup for Claude, Cursor, and other clients (Markdown at [/mcp.md](${origin}/mcp.md)).
+- [${MCP_NAME}](${origin}/mcp): copy-paste setup for Claude, Claude Code, Codex, Cursor, VS Code and opencode. The [Markdown twin](${origin}/mcp.md) adds every tool with its summary, the questions it answers well, and the caveats.
 
 ## API endpoints
 
