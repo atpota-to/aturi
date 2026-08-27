@@ -14,15 +14,15 @@ import McpToolCatalogVisual from './McpToolCatalogVisual';
 
 /**
  * Questions that need the whole network, not one app. Spread across the
- * groups on purpose: a backlink, a repo read, PLC history, a Jetstream tap,
- * the docs, and a link to hand a person. Mixed questions and instructions,
- * because that is how people actually talk to an agent.
+ * groups on purpose: a backlink, a repo read, PLC history, a lexicon from an
+ * app that is not Bluesky, the docs, and a link to hand a person. Mixed
+ * questions and instructions, because that is how people talk to an agent.
  */
 const EXAMPLES = [
   'Who links to this post, from any app?',
   'What has this account been posting about, and which post did best?',
   'When did this account last change servers?',
-  'Show me com.whtwnd.blog.entry records as they land.',
+  'What is flushes.app writing to my repo?',
   'What parameters does getAuthorFeed take?',
   'How do record keys work in atproto?',
   'Which version of Jetstream is current?',
