@@ -2,6 +2,8 @@ import { Metadata } from 'next';
 import { Suspense } from 'react';
 import { redirect, notFound } from 'next/navigation';
 import WaypointPicker from '@/components/WaypointPicker';
+import AutoRedirect from '@/components/AutoRedirect';
+import AutoRedirectGate from '@/components/AutoRedirectGate';
 import ProfilePreview from '@/components/ProfilePreview';
 import ProfilePreviewSkeleton from '@/components/ProfilePreviewSkeleton';
 import ScrollIndicator from '@/components/ScrollIndicator';
@@ -117,6 +119,11 @@ async function ProfileContent({ handle, resolvedDid }: { handle: string; resolve
     <>
       <Header compact />
       <div className="container-narrow waypoint-page" style={{ padding: '0 2rem 4rem' }}>
+        {/* `handle` rather than `resolvedHandle`, so the gate resolves exactly
+            the URL the pre-paint script did — the two halves must never send
+            the same visitor to two different spellings of the same page. */}
+        <AutoRedirectGate type="profile" handle={handle} did={resolvedDid} />
+
         {profileData && (
           <div className="content-fade-in">
             <ProfilePreview profile={profileData} />
@@ -183,18 +190,24 @@ export default async function ProfilePage({ params }: Props) {
   }
 
   return (
-    <Suspense
-      fallback={
-        <>
-          <Header compact />
-          <div className="container-narrow waypoint-page" style={{ padding: '0 2rem 4rem' }}>
-            <ProfilePreviewSkeleton />
-          </div>
-        </>
-      }
-    >
-      <ProfileContent handle={handle} resolvedDid={resolution.did} />
-    </Suspense>
+    <>
+      {/* Outside the Suspense boundary on purpose: this goes out in the first
+          flush, so the pre-paint script runs before the picker — or even the
+          skeleton — has a chance to paint. */}
+      <AutoRedirect type="profile" handle={handle} did={resolution.did} />
+      <Suspense
+        fallback={
+          <>
+            <Header compact />
+            <div className="container-narrow waypoint-page" style={{ padding: '0 2rem 4rem' }}>
+              <ProfilePreviewSkeleton />
+            </div>
+          </>
+        }
+      >
+        <ProfileContent handle={handle} resolvedDid={resolution.did} />
+      </Suspense>
+    </>
   );
 }
 
