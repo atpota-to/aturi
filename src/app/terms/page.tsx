@@ -5,7 +5,7 @@ import Header from '@/components/Header';
 export const metadata: Metadata = {
   title: 'Terms & Privacy Policy - aturi.to',
   description:
-    'Terms of service and privacy policy for aturi.to and its associated products, including the web app, Atmosphere Explorer, Record Editor, OAuth sign-in, preference sync, and the Aturi browser extension.',
+    'Terms of service and privacy policy for aturi.to and its associated products, public APIs, and the Aturi browser extension.',
 };
 
 const CONTACT_EMAIL = 'contact@aturi.to';
@@ -60,7 +60,7 @@ export default function TermsPage() {
           Terms of Service & Privacy Policy
         </h1>
         <p style={{ color: 'var(--text-tertiary)', fontSize: '0.875rem' }}>
-          Last updated: May 26, 2026
+          Last updated: August 27, 2026
         </p>
       </header>
 
@@ -95,16 +95,30 @@ export default function TermsPage() {
             <ul style={list}>
               <li>
                 The <strong>aturi.to web app</strong>, including the universal
-                link router, profile and record landing pages, OpenGraph image
-                generation, the public Resolve API, and oEmbed metadata.
+                link router, profile and record landing pages, and OpenGraph
+                image generation.
+              </li>
+              <li>
+                Our <strong>public APIs and machine-readable endpoints</strong>,
+                including the Resolve API, oEmbed metadata, and the{' '}
+                <Link href="/mcp" style={linkStyle}>
+                  Atmosphere MCP server
+                </Link>{' '}
+                (a Model Context Protocol endpoint that lets AI assistants and
+                other tools read public Atmosphere data). These endpoints may
+                be called directly or through third-party software such as
+                share sheets, shortcuts, scripts, or AI assistants and
+                agents. When a tool accesses the Service on your behalf or at
+                your direction, that access is your use of the Service and
+                this Agreement applies to it.
               </li>
               <li>
                 The <strong>Atmosphere Explorer</strong> (the &ldquo;Explore&rdquo;
                 feature), which lets visitors browse public repository data,
-                identity history (via the PLC directory), collections, a live
-                Jetstream commit feed, backlinks (via the Constellation
-                third-party index), and cached reputation scores (via the
-                cred.blue third-party API) for any account on the Atmosphere.
+                identity history, collections, live commit activity,
+                backlinks, and related aggregates for any account on the
+                Atmosphere, using the third-party services described in
+                Section 6 of the Terms.
               </li>
               <li>
                 The <strong>Record Editor</strong> and other authenticated
@@ -120,10 +134,9 @@ export default function TermsPage() {
                 renaming, pinning, and starring waypoints, adding your own
                 custom waypoints, and storing other non-sensitive UI choices.
                 These preferences are written to a record in your own atproto
-                repository (NSID <code>to.aturi.actor.preferences</code>, rkey{' '}
-                <code>self</code>) so they follow you across devices and
-                clients. Any other authenticated functionality offered through
-                aturi.to is also covered.
+                repository so they follow you across devices and clients. Any
+                other authenticated functionality offered through aturi.to is
+                also covered.
               </li>
               <li>
                 The <strong>Aturi browser extension</strong> for Chrome,
@@ -187,20 +200,13 @@ export default function TermsPage() {
               </li>
               <li>
                 <strong>Explore.</strong> The Atmosphere Explorer renders
-                public repository data fetched on demand from public Personal
-                Data Servers, the Bluesky AppView (
-                <code>public.api.bsky.app</code>), the PLC directory (
-                <code>plc.directory</code>) for identity-history lookups,
-                the Constellation third-party backlink index (
-                <code>constellation.microcosm.blue</code>) for incoming-link
-                aggregates, the cred.blue third-party API for cached
-                reputation scores when available, and a public Jetstream
-                relay (a WebSocket firehose of public atproto commits) for
-                live feed views. Aturi does not warehouse this data; we
-                display what those upstream services return, when you
-                request it. Some of these services are operated by third
-                parties and may be unavailable, rate-limited, or removed at
-                any time.
+                public repository data, identity history, backlinks, live
+                commit activity, and related aggregates fetched on demand
+                from the public atproto services and third-party indexes
+                described in Section 6. Aturi does not warehouse this data;
+                we display what those upstream services return, when you
+                request it. Those services are operated by others and may be
+                unavailable, rate-limited, or removed at any time.
               </li>
               <li>
                 <strong>Record Editor and authenticated actions.</strong> When
@@ -222,9 +228,8 @@ export default function TermsPage() {
                 waypoint ordering, hidden/visible/pinned waypoints, custom
                 waypoints you have defined (display name, domain, URL
                 templates, supported record types), and other UI choices,
-                as a record in your own PDS (NSID{' '}
-                <code>to.aturi.actor.preferences</code>, rkey{' '}
-                <code>self</code>). The authoritative copy lives in your
+                as a record in your own PDS (identified in Section 1 of the
+                Privacy Policy). The authoritative copy lives in your
                 repository, under your control. A local copy is kept in your
                 browser&rsquo;s storage for fast access and to support
                 anonymous use. You can delete the preferences record at any
@@ -232,35 +237,28 @@ export default function TermsPage() {
                 maintain a separate copy.
               </li>
               <li>
-                <strong>Resolve API and oEmbed.</strong> Aturi exposes a
-                public Resolve API and oEmbed endpoint that accept an HTTP(S)
-                URL or AT URI and return structured metadata, including a
-                list of waypoint URLs that can render the same content. To
-                detect AT URIs in HTML pages, the Resolve API may fetch a
-                limited portion of the page over standard HTTP(S) using a
-                clearly identified user agent.
+                <strong>Public APIs.</strong> Aturi exposes public, read-only
+                APIs: a Resolve API and oEmbed endpoint that accept an
+                HTTP(S) URL or AT URI and return structured metadata, and
+                the Atmosphere MCP server, which lets AI assistants and
+                other tools run the same kinds of public-data lookups the
+                site offers. To detect AT URIs in HTML pages, the Resolve
+                API may fetch a limited portion of the page over standard
+                HTTP(S) using a clearly identified user agent. API responses
+                are assembled from public network data at request time and
+                are not verified by Aturi; confirm anything important
+                against the source before relying on it.
               </li>
               <li>
                 <strong>Browser extension.</strong> The browser extension is
-                distributed via official browser web stores (Chrome Web
-                Store, Firefox Add-ons, and the Mac App Store for Safari).
-                In addition to one-click waypoint jumping and auto-redirect,
-                the extension offers <strong>AT URI detection</strong> (a
-                content script that passively looks for{' '}
-                <code>&lt;link href=&quot;at://&hellip;&quot;&gt;</code> in
-                the document head on pages you visit, so the popup can offer
-                relevant waypoints) and an <strong>Inspect</strong> view
-                (which, when you open it, scans the active page for AT URIs
-                in head, meta, anchor, JSON-LD, and body text, and then
-                fetches identity, record, and backlink data from public
-                atproto services to display details inline). Its full data
-                handling, network requests, and permissions are described in
-                the{' '}
+                distributed through official browser web stores. Its
+                features, data handling, network requests, and permissions
+                are described in the{' '}
                 <Link href={EXTENSION_PRIVACY_URL} style={linkStyle}>
                   Extension Privacy Policy
                 </Link>
-                . The extension does not transmit data to Aturi-operated
-                servers in normal use.
+                , which controls for the extension. The extension does not
+                transmit data to Aturi-operated servers in normal use.
               </li>
             </ul>
             <p style={paragraph}>
@@ -294,7 +292,7 @@ export default function TermsPage() {
               <li>
                 Access and refresh tokens are bound to a DPoP key generated
                 in your browser, stored in your browser&rsquo;s local
-                storage (e.g., IndexedDB), and never transmitted to Aturi
+                storage (e.g., IndexedDB), and not sent to Aturi
                 servers. Signing out from the Service removes the local
                 session from your browser; it does not revoke tokens
                 upstream. You can revoke tokens at any time through your
@@ -384,8 +382,15 @@ export default function TermsPage() {
               </li>
               <li>
                 Access the Service, or any account or repository, using
-                automated means in a manner that imposes a disproportionate
-                load, or that is not consistent with this Agreement;
+                automated means (including scripts, bots, and AI agents) in
+                a manner that imposes a disproportionate load, or that is
+                not consistent with this Agreement;
+              </li>
+              <li>
+                Use the Service as a backend for bulk data harvesting, use
+                it to evade the rate limits, blocks, or terms of the
+                upstream services it queries, or resell or rebrand access
+                to the hosted Service;
               </li>
               <li>
                 Reverse engineer, decompile, or disassemble any portion of
@@ -424,66 +429,57 @@ export default function TermsPage() {
             </p>
             <ul style={list}>
               <li>
-                The <strong>Bluesky AppView</strong> (
-                <code>public.api.bsky.app</code>): profile lookups,
-                handle resolution, post/list fetches.
+                <strong>Public atproto network services</strong>: your PDS
+                and identity authority, other PDSes, relays, AppViews (such
+                as the Bluesky AppView), and the PLC directory, used for
+                authentication, identity resolution, and repository reads
+                and writes.
               </li>
               <li>
-                The <strong>PLC directory</strong> (
-                <code>plc.directory</code>): DID document and
-                identity-audit-log lookups for Explore.
+                <strong>
+                  Third-party index, aggregation, streaming, and
+                  documentation services
+                </strong>{' '}
+                queried to answer requests: for example, backlink indexes,
+                reputation and lexicon-activity services, Jetstream relays
+                for live commit streams, public DNS resolvers, and protocol
+                documentation hosted on third-party platforms. Depending on
+                the feature, these are contacted by your browser directly
+                or by our servers on your behalf; standard connection
+                metadata (IP address, user agent) is visible to any service
+                your browser contacts directly.
               </li>
               <li>
-                <strong>Constellation</strong> (
-                <code>constellation.microcosm.blue</code>): a
-                third-party backlink index queried for incoming-reference
-                counts on records.
-              </li>
-              <li>
-                <strong>cred.blue</strong> (<code>api.cred.blue</code>): a
-                third-party reputation/score API queried to display a
-                cached score badge on certain profile pages.
-              </li>
-              <li>
-                A public <strong>Jetstream relay</strong> WebSocket (e.g.,{' '}
-                <code>jetstream2.us-east.bsky.network</code>): live
-                stream of public atproto commits used to render the Explore
-                live feed. Standard connection metadata (IP address, user
-                agent) is visible to the relay operator while the connection
-                is open.
-              </li>
-              <li>
-                Your <strong>PDS and identity authority</strong>:{' '}
-                authentication, repository reads and writes, blob
-                uploads.
-              </li>
-              <li>
-                <strong>Third-party Atmosphere clients and waypoints</strong>{' '}
-                (e.g., Bluesky, Anisota, Blacksky, Red Dwarf, Leaflet,
-                Tangled, Margin, Grain, Pinkleap, Semble, Streamplace,
-                Popfeed, Sifa, Blento, PDSls, atp.tools) and{' '}
-                <strong>custom waypoints you define</strong>.
+                <strong>Third-party Atmosphere clients and waypoints</strong>,
+                including custom waypoints you define: the destinations you
+                (or your recipients) choose to open links in.
               </li>
               <li>
                 <strong>Vercel</strong>: hosting, edge runtime, and
                 anonymous analytics.
               </li>
               <li>
-                Browser web stores and operating-system vendors (
-                <strong>Google</strong>, <strong>Mozilla</strong>,{' '}
-                <strong>Apple</strong>) that distribute the extension and
-                may, depending on your settings, sync extension storage
-                across your devices.
+                <strong>Browser web stores and operating-system vendors</strong>{' '}
+                that distribute the extension and may, depending on your
+                settings, sync extension storage across your devices.
+              </li>
+              <li>
+                <strong>Third-party software you use to reach the Service</strong>,
+                including browsers, share sheets, shortcuts, and AI
+                assistants or agents connected to our MCP endpoint. These
+                tools are services of their operators, not of Aturi.
               </li>
             </ul>
             <p style={paragraph}>
               Your use of any third-party service is governed by that
-              service&rsquo;s own terms and privacy policy. Aturi makes no
-              representations or warranties about any third-party service
-              and is not responsible for any third-party content, conduct,
-              or practices, including how a third party handles data we
-              hand off to it when you click a waypoint, follow a redirect,
-              or sign in.
+              service&rsquo;s own terms and privacy policy. The specific
+              third-party services the Service queries may change at any
+              time without notice. Aturi makes no representations or
+              warranties about any third-party service and is not
+              responsible for any third-party content, conduct, or
+              practices, including how a third party handles data we hand
+              off to it when you click a waypoint, follow a redirect, sign
+              in, or call an API.
             </p>
 
             <h3 style={subHeading}>7. Open source and intellectual property</h3>
@@ -595,6 +591,17 @@ export default function TermsPage() {
               recoverable; or that any redirect, link rewrite, or auto-fill
               will produce the intended result.
             </p>
+            <p style={allCapsParagraph}>
+              Data returned by the Service is retrieved from public
+              third-party services at request time and consists of content
+              authored and controlled by third parties. It is provided as
+              data, not as advice or instructions from Aturi. If you access
+              the Service through third-party software, including an AI
+              assistant or agent, that software and its output (including
+              any summary, interpretation, decision, or action it produces
+              from Service responses) are not part of the Service, and
+              Aturi is not responsible for them.
+            </p>
             <p style={paragraph}>
               You assume sole responsibility and all risk arising from your
               use of the Service. Some jurisdictions do not allow the
@@ -647,7 +654,9 @@ export default function TermsPage() {
               actions, liabilities, losses, damages, judgments, settlements,
               costs, and expenses (including reasonable attorneys&rsquo;
               fees and disbursements) arising out of or related to:
-              (a) your access to or use of the Service; (b) your content or
+              (a) your access to or use of the Service, including access by
+              any automated tool or agent acting on your behalf or at your
+              direction; (b) your content or
               any actions you take through the Service, including any
               records you create, update, or delete in your repository;
               (c) your violation of this Agreement; (d) your violation of
@@ -784,8 +793,8 @@ export default function TermsPage() {
               <Link href={EXTENSION_PRIVACY_URL} style={linkStyle}>
                 Extension Privacy Policy
               </Link>
-              ; this section covers the web app and associated server-side
-              features.
+              ; this section covers the web app, our public APIs, and
+              associated server-side features.
             </p>
 
             <h3 style={subHeading}>1. Information we collect</h3>
@@ -816,7 +825,7 @@ export default function TermsPage() {
               tokens, refresh tokens, the DPoP key, and the session
               metadata required to keep you signed in are stored
               client-side in your browser&rsquo;s local storage (e.g.,
-              IndexedDB) and never transmitted to Aturi&rsquo;s servers.
+              IndexedDB) and are not sent to Aturi&rsquo;s servers.
               Signing out clears that local session in the browser you used.
             </p>
             <p style={paragraph}>
@@ -837,28 +846,37 @@ export default function TermsPage() {
             </p>
             <p style={paragraph}>
               <strong>Atmosphere data.</strong> When you use Explore, view a
-              landing page, request an OG image, or call the Resolve or
-              oEmbed APIs, the Service may fetch records, identity
-              documents (including PLC audit logs), blobs, profile data,
-              backlink aggregates, reputation scores, and live commit
-              streams from public atproto services (PDSes, the Bluesky
-              AppView, the PLC directory, Constellation, cred.blue,
-              Jetstream relays, and similar). That data is rendered or
-              returned to you and is not stored by Aturi for any purpose
+              landing page, request an OG image, or call one of our public
+              APIs, the Service may fetch records, identity documents,
+              blobs, profile data, aggregates, and live commit streams from
+              public atproto and related services: for example, PDSes, the
+              Bluesky AppView, the PLC directory, third-party indexes and
+              aggregators, live-stream relays, public DNS resolvers, and
+              public documentation sources. The specific services queried
+              depend on the feature and may change. That data is rendered
+              or returned to you and is not stored by Aturi for any purpose
               other than fulfilling the request (subject to short-lived
               edge caching for performance). The identifiers (handles,
-              DIDs, AT URIs) you supply are necessarily transmitted to the
-              relevant third party so it can answer the query.
+              DIDs, AT URIs) and query terms you supply are necessarily
+              transmitted to the relevant third party so it can answer the
+              query.
             </p>
             <p style={paragraph}>
-              <strong>Resolve API and oEmbed.</strong> When a third-party
-              tool (such as a share sheet, an Apple Shortcut, or another
-              app) calls the Resolve API or oEmbed endpoint with a URL or
-              AT URI, that URL or URI and standard request metadata are
-              processed in order to return a response. If a URL is
+              <strong>Public APIs and automated access.</strong> Third-party
+              software (a share sheet, an Apple Shortcut, a script, or an
+              AI assistant or agent connected to our MCP endpoint) can call
+              our public APIs. The query such a tool sends (a URL, AT URI,
+              handle, or search term) and standard request metadata are
+              processed like any other request in order to return a
+              response; we do not receive the surrounding conversation,
+              prompt, or context the tool is operating in. If a URL is
               provided and AT-URI detection in HTML is enabled, Aturi may
               fetch a limited portion of the page over HTTP(S) using a
-              clearly identified user agent.
+              clearly identified user agent. What a third-party tool does
+              with our responses, including any storage, sharing, or use in
+              AI training by its operator, is governed by that
+              operator&rsquo;s own terms and policies, not by this Privacy
+              Policy.
             </p>
             <p style={paragraph}>
               <strong>Information you choose to send us.</strong> If you
@@ -937,69 +955,60 @@ export default function TermsPage() {
               laws than your own.
             </p>
 
-            <h3 style={subHeading}>6. Sub-processors and third parties</h3>
+            <h3 style={subHeading}>6. Service providers and other third parties</h3>
             <p style={paragraph}>
-              We rely on a set of third parties to operate the Service:
+              <strong>Vercel</strong> hosts and operates the Service on our
+              behalf, including anonymous analytics, and processes request
+              data as our infrastructure provider. Beyond that, answering
+              your requests means querying independent public services:
             </p>
             <ul style={list}>
               <li>
-                <strong>Vercel</strong>: hosting, edge functions, and
-                anonymous analytics.
+                <strong>Public atproto network services</strong>: your PDS
+                and identity authority, other PDSes, relays, AppViews (such
+                as the Bluesky AppView), and the PLC directory.
               </li>
               <li>
-                <strong>Bluesky AppView</strong> (
-                <code>public.api.bsky.app</code>): resolving handles
-                and DIDs, fetching public profile and post data.
+                <strong>
+                  Third-party index, aggregation, streaming, and
+                  documentation services
+                </strong>
+                : for example, backlink indexes, reputation and
+                lexicon-activity services, Jetstream relays, public DNS
+                resolvers, and public documentation sources.
               </li>
               <li>
-                <strong>PLC directory</strong> (<code>plc.directory</code>): DID document and identity-audit-log lookups.
+                <strong>Third-party Atmosphere clients and waypoints</strong>:
+                the destinations you (or your recipients) choose to open
+                links in.
               </li>
               <li>
-                <strong>Constellation</strong> (
-                <code>constellation.microcosm.blue</code>):
-                third-party backlink index.
+                <strong>Browser web stores and OS vendors</strong>: they
+                distribute the extension and, depending on your settings,
+                may sync extension storage across your devices.
               </li>
               <li>
-                <strong>cred.blue</strong> (<code>api.cred.blue</code>):
-                third-party reputation/score API.
-              </li>
-              <li>
-                <strong>Jetstream relays</strong> (e.g.,{' '}
-                <code>jetstream2.us-east.bsky.network</code>): live
-                public-commit firehose used to render Explore live feeds.
-              </li>
-              <li>
-                <strong>Your PDS and identity authority</strong>:
-                authentication, repository reads and writes, blob uploads.
-              </li>
-              <li>
-                <strong>Other public atproto services</strong>: relays,
-                AppViews, and other public endpoints that may be queried to
-                render Explore, OG images, oEmbed, and Resolve responses.
-              </li>
-              <li>
-                <strong>Third-party Atmosphere clients and waypoints</strong>:{' '}
-                the destinations you (or your recipients) choose to
-                open links in. We do not control these services.
-              </li>
-              <li>
-                <strong>Browser web stores and OS vendors</strong> (Google,
-                Mozilla, Apple): distribute the extension and,
-                depending on your settings, may sync extension storage
-                across your devices.
+                <strong>Software you use to reach the Service</strong>:
+                browsers, share sheets, shortcuts, and AI assistants or
+                agents, operated by their own providers.
               </li>
             </ul>
             <p style={paragraph}>
-              Each of these parties is subject to its own privacy policy
-              and terms. We have no control over their practices.
+              These third parties act independently and are not our
+              processors. They receive the query needed to answer a
+              request, plus standard connection metadata when your browser
+              or tool contacts them directly. The specific services queried
+              may change at any time. Each is subject to its own privacy
+              policy and terms, and we have no control over their
+              practices.
             </p>
 
             <h3 style={subHeading}>7. Data retention</h3>
             <p style={paragraph}>
               <strong>Server logs.</strong> Operational logs are retained
-              for a maximum of 30 days, except where a longer period is
-              required for security, abuse investigation, or legal
-              compliance.
+              for a limited period (typically no more than 30 days), except
+              where a longer period is required for security, abuse
+              investigation, or legal compliance.
             </p>
             <p style={paragraph}>
               <strong>Anonymous analytics.</strong> Aggregate analytics may
