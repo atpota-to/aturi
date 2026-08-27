@@ -393,6 +393,8 @@ export function buildMcpPage(baseUrl: string): ContentPage {
               '"What apps does this account actually use, and when did it change servers?"',
               '"What is trending on Bluesky right now, and who is driving it?"',
               '"Show me `com.whtwnd.blog.entry` records as they are posted."',
+              '"What parameters does `app.bsky.feed.getAuthorFeed` take, and which are required?"',
+              '"Which version of Jetstream is current, and what changed in it?"',
               '"Give me a link my friend can open in her own client."',
             ],
           },

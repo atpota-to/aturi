@@ -12,11 +12,21 @@ import McpConversationVisual from './McpConversationVisual';
 import McpSetupVisual from './McpSetupVisual';
 import McpToolCatalogVisual from './McpToolCatalogVisual';
 
-/** Three questions that need the whole network, not one app. */
+/**
+ * Questions that need the whole network, not one app. Spread across the
+ * groups on purpose: a backlink, a repo read, PLC history, a Jetstream tap,
+ * the docs, and a link to hand a person. Mixed questions and instructions,
+ * because that is how people actually talk to an agent.
+ */
 const EXAMPLES = [
   'Who links to this post, from any app?',
+  'What has this account been posting about, and which post did best?',
+  'When did this account last change servers?',
+  'Show me com.whtwnd.blog.entry records as they land.',
   'What parameters does getAuthorFeed take?',
   'How do record keys work in atproto?',
+  'Which version of Jetstream is current?',
+  'Give me a link my friend can open in her own client.',
 ];
 
 export default function McpLanding({ endpoint }: { endpoint: string }) {
@@ -120,12 +130,12 @@ export default function McpLanding({ endpoint }: { endpoint: string }) {
         title={`${capitalize(toolCountWord())} tools`}
         body={
           <>
+            {/* The grid beside this already names all nine groups, so the
+                prose says what the grid cannot. */}
             <p>
-              Identity and repositories on any personal data server, the network
-              graph, the Bluesky social layer, feeds and lists, lexicon
-              activity, a live Jetstream tap, and the protocol docs themselves.
-              Most of it reaches past Bluesky into the rest of atproto, which is
-              where the questions get interesting.
+              Every tool is read-only. Most work against any repository on any
+              PDS, so reading a Leaflet document or a Tangled repo takes the
+              same call as reading a Bluesky post.
             </p>
             <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
               {EXAMPLES.map((question) => (
