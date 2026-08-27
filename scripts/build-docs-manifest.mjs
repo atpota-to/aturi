@@ -8,11 +8,12 @@
  * lexicon. Those change when upstream adds or renames a page, which is rare
  * and worth a deliberate commit rather than a live crawl.
  *
- * Usage, with the three upstream repos cloned somewhere:
+ * Usage, with the four upstream repos cloned somewhere:
  *
  *   node scripts/build-docs-manifest.mjs \
  *     --website  /path/to/atproto-website \
  *     --bskydocs /path/to/bsky-docs \
+ *     --bps      /path/to/bps-website \
  *     --atproto  /path/to/atproto
  *
  * Writes src/lib/mcp/docsManifest.ts and src/lib/mcp/apiManifest.ts.
@@ -26,7 +27,7 @@ const args = Object.fromEntries(
     return acc;
   }, []),
 );
-for (const key of ['website', 'bskydocs', 'atproto']) {
+for (const key of ['website', 'bskydocs', 'bps', 'atproto']) {
   if (!args[key]) {
     console.error(`Missing --${key}. See the usage comment at the top of this file.`);
     process.exit(1);
@@ -61,6 +62,38 @@ function clean(text, max = 220) {
   return flat.length > max ? `${flat.slice(0, max - 1)}…` : flat;
 }
 
+/**
+ * Frontmatter scalars. Every value across these repos is a single-line string
+ * or number, so a line-wise read is enough; a folded or list value would need
+ * a real YAML parser, and pulling one in to read four keys is not worth a
+ * dependency. Empty values are dropped so a caller's `??` fallback still runs.
+ */
+function frontmatter(body) {
+  const block = body.match(/^---\n([\s\S]{0,4000}?)\n---/);
+  if (!block) return {};
+  const out = {};
+  for (const line of block[1].split('\n')) {
+    const match = line.match(/^([a-z_]+):\s*(.*)$/i);
+    if (match?.[2].trim()) out[match[1]] = match[2].trim().replace(/^["']|["']$/g, '');
+  }
+  return out;
+}
+
+/**
+ * The first line a reader would see as prose: not frontmatter, an import, a
+ * heading, a JSX tag or a Docusaurus admonition. Used as a description when
+ * the page declares none.
+ */
+function firstProseLine(body) {
+  return body
+    .replace(/^---[\s\S]{0,4000}?---/, '')
+    .replace(/^import .*$/gm, '')
+    .replace(/^#.*$/gm, '')
+    .split('\n')
+    .map((l) => l.trim())
+    .find((l) => l.length > 40 && !l.startsWith('<') && !l.startsWith(':'));
+}
+
 // --- atproto.com: specs and guides. Blog and off-protocol posts are dated
 // --- announcements rather than reference material, so they stay out: a
 // --- newcomer asking how OAuth works wants the spec, not a 2024 changelog.
@@ -91,13 +124,7 @@ for (const file of walk(bskyRoot).filter((f) => ['.md', '.mdx'].includes(extname
   const slug = relative(bskyRoot, file).replace(/\.mdx?$/, '');
   const body = readFileSync(file, 'utf8');
   const h1 = body.match(/^#\s+(.+?)\s*$/m);
-  const prose = body
-    .replace(/^---[\s\S]*?---/, '')
-    .replace(/^import .*$/gm, '')
-    .replace(/^#.*$/gm, '')
-    .split('\n')
-    .map((l) => l.trim())
-    .find((l) => l.length > 40 && !l.startsWith('<') && !l.startsWith(':'));
+  const prose = firstProseLine(body);
   docs.push({
     id: `bsky/${slug}`,
     source: 'bsky',
@@ -105,6 +132,39 @@ for (const file of walk(bskyRoot).filter((f) => ['.md', '.mdx'].includes(extname
     description: clean(prose ?? ''),
     url: `https://docs.bsky.app/docs/${slug}`,
     raw: `${RAW}/bluesky-social/bsky-docs/main/docs/${relative(bskyRoot, file)}`,
+    headings: headings(body),
+  });
+}
+
+// --- bsky.network: Bluesky Protocol Services. Docusaurus again, but a newer
+// --- one — several pages hide the H1 and carry their title in a <DocsHero>,
+// --- and most declare a frontmatter description worth preferring over sniffed
+// --- prose. Worth indexing because this is where the operational detail
+// --- lives: which endpoints are current, which version they run, what replay
+// --- and snapshotting need. The other two sources describe Jetstream and the
+// --- relays; this one is where they hand off to for the specifics.
+const bpsRoot = join(args.bps, 'docs');
+for (const file of walk(bpsRoot).filter((f) => ['.md', '.mdx'].includes(extname(f)))) {
+  const rel = relative(bpsRoot, file);
+  // Docusaurus ignores underscore-prefixed paths. _snippets/ is content
+  // included into other pages, so it has no URL of its own to cite.
+  if (rel.split('/').some((segment) => segment.startsWith('_'))) continue;
+  const body = readFileSync(file, 'utf8');
+  const front = frontmatter(body);
+  // A frontmatter slug is relative to the plugin's routeBasePath ("docs"),
+  // not to the site root, and an index file stands for its directory.
+  const slug = (front.slug ?? rel.replace(/\.mdx?$/, '').replace(/(^|\/)index$/, '$1'))
+    .replace(/^\/+|\/+$/g, '');
+  const h1 = body.match(/^#\s+(.+?)\s*$/m);
+  const hero = body.match(/<DocsHero[^>]{0,400}?\btitle="([^"]{0,200})"/);
+  const heroLead = body.match(/<DocsHero[^>]{0,400}?>([\s\S]{0,600}?)<\/DocsHero>/);
+  docs.push({
+    id: `bps/${slug}`,
+    source: 'bps',
+    title: clean(front.title ?? h1?.[1] ?? hero?.[1] ?? front.sidebar_label ?? slug, 120),
+    description: clean(front.description ?? heroLead?.[1] ?? firstProseLine(body) ?? ''),
+    url: `https://bsky.network/docs/${slug}`,
+    raw: `${RAW}/bluesky-social/bps-website/main/docs/${rel}`,
     headings: headings(body),
   });
 }
@@ -154,8 +214,8 @@ const banner = (what, count) => `/**
 
 writeFileSync(
   'src/lib/mcp/docsManifest.ts',
-  `${banner('Documentation pages on atproto.com and docs.bsky.app.', docs.length)}
-export type DocSource = 'atproto' | 'bsky';
+  `${banner('Documentation pages on atproto.com, docs.bsky.app and bsky.network.', docs.length)}
+export type DocSource = 'atproto' | 'bsky' | 'bps';
 
 export type DocPage = {
   /** Stable id a caller passes to read_atproto_doc. */
@@ -198,5 +258,6 @@ export const API_METHODS: ApiMethod[] = ${JSON.stringify(api, null, 2)};
 `,
 );
 
-console.log(`docs: ${docs.length} pages (${docs.filter((d) => d.source === 'atproto').length} atproto, ${docs.filter((d) => d.source === 'bsky').length} bsky)`);
+const bySource = (name) => docs.filter((d) => d.source === name).length;
+console.log(`docs: ${docs.length} pages (${bySource('atproto')} atproto, ${bySource('bsky')} bsky, ${bySource('bps')} bps)`);
 console.log(`api:  ${api.length} lexicons`);

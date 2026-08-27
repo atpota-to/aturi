@@ -2,10 +2,10 @@
  * Reader for the upstream documentation and lexicon sources.
  *
  * Everything here comes from raw.githubusercontent.com, which serves the same
- * Markdown that renders on atproto.com and docs.bsky.app and the same JSON the
- * SDKs are generated from. Fetching at request time rather than vendoring a
- * copy means an answer tracks upstream: when a spec changes, the next call
- * sees the change.
+ * Markdown that renders on atproto.com, docs.bsky.app and bsky.network, and
+ * the same JSON the SDKs are generated from. Fetching at request time rather
+ * than vendoring a copy means an answer tracks upstream: when a spec changes,
+ * the next call sees the change.
  *
  * The host is a fixed constant, so no SSRF guard applies; what does apply is
  * the shared request deadline and a byte cap, since a document is still a

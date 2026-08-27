@@ -113,7 +113,7 @@ export const TOOL_GROUPS: CatalogGroup[] = [
     title: 'Protocol documentation',
     blurb: 'How atproto works and what each endpoint takes, read from the current docs rather than memory.',
     tools: [
-      { name: 'search_atproto_docs', summary: 'Search the specs and guides on atproto.com and docs.bsky.app' },
+      { name: 'search_atproto_docs', summary: 'Search the specs and guides on atproto.com, docs.bsky.app and bsky.network' },
       { name: 'read_atproto_doc', summary: 'One documentation page in full' },
       { name: 'search_api_methods', summary: 'Find an XRPC method or record type by name or by what it does' },
       { name: 'get_api_method', summary: 'The exact lexicon: parameters, schemas, and named errors' },

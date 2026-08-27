@@ -30,7 +30,7 @@ test('every tool carries a title, a bounded description, and read-only annotatio
 });
 
 test('the manifests are populated and internally consistent', () => {
-  assert.ok(DOC_PAGES.length > 90, `only ${DOC_PAGES.length} doc pages`);
+  assert.ok(DOC_PAGES.length > 130, `only ${DOC_PAGES.length} doc pages`);
   assert.ok(API_METHODS.length > 300, `only ${API_METHODS.length} lexicons`);
 
   const ids = DOC_PAGES.map((p) => p.id);
@@ -40,7 +40,11 @@ test('the manifests are populated and internally consistent', () => {
 
   for (const page of DOC_PAGES) {
     assert.match(page.raw, /^https:\/\/raw\.githubusercontent\.com\//, `${page.id} raw url`);
-    assert.match(page.url, /^https:\/\/(atproto\.com|docs\.bsky\.app)\//, `${page.id} public url`);
+    assert.match(
+      page.url,
+      /^https:\/\/(atproto\.com|docs\.bsky\.app|bsky\.network)\//,
+      `${page.id} public url`,
+    );
     assert.ok(page.title.length > 0, `${page.id} has no title`);
   }
   for (const method of API_METHODS) {
@@ -50,11 +54,35 @@ test('the manifests are populated and internally consistent', () => {
   }
 });
 
-test('both source sets are represented', () => {
+test('all three source sets are represented', () => {
   assert.ok(DOC_PAGES.some((p) => p.source === 'atproto'), 'no atproto.com pages');
   assert.ok(DOC_PAGES.some((p) => p.source === 'bsky'), 'no docs.bsky.app pages');
+  assert.ok(DOC_PAGES.some((p) => p.source === 'bps'), 'no bsky.network pages');
   // The specs are the reason this exists; a manifest without them is broken.
   for (const id of ['specs/at-uri-scheme', 'specs/lexicon', 'specs/did']) {
+    assert.ok(DOC_PAGES.some((p) => p.id === id), `${id} missing from the manifest`);
+  }
+});
+
+test('each id prefix belongs to exactly one source', () => {
+  // read_atproto_doc looks a page up by id alone, and only the two Docusaurus
+  // sources carry a source prefix — atproto.com pages keep their bare slug.
+  // So the day upstream adds an atproto.com section called "bsky" or "bps",
+  // ids start colliding. Catch that here rather than in a wrong answer.
+  const owners = new Map<string, Set<string>>();
+  for (const page of DOC_PAGES) {
+    const prefix = page.id.split('/')[0];
+    owners.set(prefix, (owners.get(prefix) ?? new Set()).add(page.source));
+  }
+  for (const [prefix, sources] of owners) {
+    assert.equal(sources.size, 1, `prefix "${prefix}" is used by ${[...sources].join(' and ')}`);
+  }
+});
+
+test('the operational sources answer what the specs hand off to them', () => {
+  // The specs describe Jetstream and the relays but do not pin down which
+  // endpoints are current — that is the whole reason bsky.network is indexed.
+  for (const id of ['bps/jetstream', 'bps/relay', 'bps/rate-limits']) {
     assert.ok(DOC_PAGES.some((p) => p.id === id), `${id} missing from the manifest`);
   }
 });

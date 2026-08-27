@@ -83,16 +83,20 @@ export function registerDocsTools(server: McpServer): void {
     {
       title: 'Search the atproto and Bluesky docs',
       description:
-        'You have a question about how atproto works or how to build on it: identity, repositories, ' +
-        'lexicons, OAuth, feeds, moderation, migration. Searches the specs and guides on atproto.com ' +
-        'and the developer docs on docs.bsky.app, and returns the matching passages with the page ' +
-        'URL to cite. Prefer this over answering protocol questions from memory, which goes stale.',
+        'You have a question about how atproto works, how to build on it, or which service to point ' +
+        'at: identity, repositories, lexicons, OAuth, feeds, moderation, Jetstream, the relays. ' +
+        'Searches the specs and guides on atproto.com, the developer docs on docs.bsky.app and the ' +
+        'service docs on bsky.network, and returns the matching passages with the page URL to cite. ' +
+        'Prefer this over answering protocol questions from memory, which goes stale.',
       inputSchema: z.object({
         query: z.string().min(2).max(200).describe('What you want to know, in words from the docs.'),
         source: z
-          .enum(['atproto', 'bsky'])
+          .enum(['atproto', 'bsky', 'bps'])
           .optional()
-          .describe('Limit to protocol docs (atproto) or Bluesky app docs (bsky). Default: both.'),
+          .describe(
+            'Limit to the protocol specs (atproto), the Bluesky app docs (bsky), or the docs for ' +
+            'the services Bluesky runs — Jetstream, the relays, the API hosts (bps). Default: all three.',
+          ),
         limit: z.number().int().min(1).max(MAX_PAGES_READ).optional().describe('Pages to read, default 3.'),
       }),
       annotations: READ_ONLY,
@@ -153,7 +157,7 @@ export function registerDocsTools(server: McpServer): void {
           .string()
           .min(1)
           .max(200)
-          .describe('Page id, e.g. "specs/at-uri-scheme" or "bsky/tutorials/creating-a-post".'),
+          .describe('Page id, e.g. "specs/at-uri-scheme", "bsky/get-started" or "bps/jetstream".'),
       }),
       annotations: READ_ONLY,
     },
