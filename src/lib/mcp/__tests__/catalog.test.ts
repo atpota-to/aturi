@@ -1,7 +1,14 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { registerAtmosphereServer } from '@/lib/mcp/registry';
-import { CATALOG_TOOL_NAMES, TOOL_COUNT, TOOL_GROUPS, numberWord, toolCountWord } from '@/lib/mcp/catalog';
+import {
+  CATALOG_TOOL_NAMES,
+  NUMBER_WORDS,
+  TOOL_COUNT,
+  TOOL_GROUPS,
+  numberWord,
+  toolCountWord,
+} from '@/lib/mcp/catalog';
 import { captureRegistrations } from '@/lib/mcp/__tests__/harness';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
@@ -62,8 +69,14 @@ test('no site copy hard-codes a tool count that could drift', () => {
     'src/lib/siteContent.ts',
     'src/components/landing/McpLanding.tsx',
     'src/app/mcp/page.tsx',
+    'src/app/api/og/static/route.tsx',
   ];
-  const written = /\b(sixteen|seventeen|eighteen|nineteen|twenty|twenty-four|thirty|thirty-four|thirty-five)\s+tools\b/i;
+  // Built from the word list itself rather than a hand-kept alternation: the
+  // previous one stopped at thirty-five, so it had already quietly stopped
+  // covering the current count by the time this ran again. Longest first, so
+  // "thirty-eight" cannot match as a bare "thirty".
+  const words = Object.values(NUMBER_WORDS).sort((a, b) => b.length - a.length);
+  const written = new RegExp(`\\b(${words.join('|')})\\s+tools\\b`, 'i');
   for (const file of sources) {
     const text = readFileSync(resolve(process.cwd(), file), 'utf8');
     const match = text.match(written);

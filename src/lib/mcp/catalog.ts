@@ -139,7 +139,7 @@ export const TOOL_COUNT = CATALOG_TOOL_NAMES.length;
  * numeral. Falls back to the numeral past the range the copy uses, which a
  * test flags so the sentence never ends up mixing the two.
  */
-const NUMBER_WORDS: Record<number, string> = {
+export const NUMBER_WORDS: Record<number, string> = {
   1: 'one', 2: 'two', 3: 'three', 4: 'four', 5: 'five', 6: 'six', 7: 'seven',
   8: 'eight', 9: 'nine', 10: 'ten', 11: 'eleven', 12: 'twelve',
   30: 'thirty', 31: 'thirty-one', 32: 'thirty-two', 33: 'thirty-three',
