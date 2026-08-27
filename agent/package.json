@@ -15,11 +15,13 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.121.0",
-    "@atproto/api": "^0.20.5"
+    "@ai-sdk/gateway": "^4.0.67",
+    "@ai-sdk/mcp": "^2.0.39",
+    "@atproto/api": "^0.20.5",
+    "ai": "^7.0.83"
   },
   "devDependencies": {
-    "@types/node": "^20",
+    "@types/node": "^22",
     "typescript": "^5"
   }
 }

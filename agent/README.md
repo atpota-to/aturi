@@ -1,46 +1,120 @@
 # Atmosphere agent
 
 A Bluesky account that answers `@mentions` about the Atmosphere, using the
-hosted [Atmosphere MCP server](https://aturi.to/mcp) as its only source of
-live network data.
+hosted [Atmosphere MCP server](https://aturi.to/mcp) as its source of live
+network data.
 
-Someone asks the account a question — "who links to this post?", "what
-lexicons is this repo using?", "where else can I open this record?" — and the
-account replies in the thread, having actually looked it up.
+Someone tags the account — "who links to this post?", "what lexicons is this
+repo using?", "where else can I open this record?" — and it replies in the
+thread, seconds later, having actually looked it up.
 
 ## How it works
 
-Three moving parts, and only one of them is interesting:
+```
+Jetstream ──┐
+            ├──▶ queue ──▶ guards ──▶ model + MCP tools ──▶ format ──▶ reply
+notifications ┘
+```
 
-1. **Poll.** `app.bsky.notification.listNotifications` with
-   `reasons: ['mention', 'reply']`, so likes and follows never reach the
-   agent.
-2. **Answer.** One call to the Messages API with `mcp_servers` pointing at
-   `https://aturi.to/api/mcp`. Claude calls the Atmosphere tools *server-side*
-   and returns finished prose. There is no MCP client here and no tool loop —
-   that is the whole reason this codebase is a few hundred lines.
-3. **Reply.** `app.bsky.feed.post` with the right `root`/`parent` refs, split
-   across a short self-thread when one post cannot hold the answer.
+**Two sources, one queue.** Jetstream carries a mention to the queue about as
+fast as the PDS can commit it. The notification API is swept every
+`RECONCILE_MINUTES` as a backstop, because Jetstream is at-least-once, not
+never-miss: a disconnect longer than the server's lookback window drops events
+and nothing would otherwise notice. Latency comes from the stream,
+completeness comes from the API, and shared dedupe means a mention arriving on
+both paths is still answered once.
 
-The MCP server is keyless, public, and **read-only**. Its 38 tools can read
-any repository, resolve any identity, trace backlinks and sample Jetstream;
-none of them can write anything. That property is what makes it safe to put
-behind an account that answers strangers.
+The stream position is persisted to `CURSOR_FILE`, so a restart resumes rather
+than skipping to the live edge. The cursor is inclusive, so resuming replays
+the last event — dedupe absorbs that, which is the safe direction to err in.
 
-## The state problem, and why there is no database
+**Both Jetstream dialects are understood.** v2 serves
+`/xrpc/network.bsky.jetstream.subscribeEvents`, takes `collections`/`kinds`,
+and wraps events as `{$type, payload}` with a monotonic `seq`. v1 serves
+`/subscribe`, takes `wantedCollections`, and sends a flat object keyed on
+`time_us`. `parseEvent` normalises both, so `JETSTREAM_URL` can point at
+whichever instance you already run.
 
-The agent must not answer the same mention twice. It works that out by
-reading its own repository: `com.atproto.repo.listRecords` over its own recent
-posts, collecting every `reply.parent.uri`. Those replies *are* the record of
-what has been answered.
+**The queue is serial.** A thread where several people tag the account at once
+arrives as several events in the same second; answering them in parallel would
+mean concurrent model calls and a rate limiter that only finds out afterwards.
 
-This means a redeploy, a lost disk, or two instances running at once cannot
-produce a double answer, and there is nothing to provision. The cost is one
-extra request per pass — occasionally more, because the walk keeps paging
-until the posts it is reading are older than `LOOKBACK_MINUTES`. A single page
-of 100 posts is only about seven saturated passes, so on a busy day a mention
-could otherwise age out of the dedupe set while still being inside the
-lookback window, and get answered twice.
+## The model provider
+
+Requests go through the [Vercel AI Gateway](https://vercel.com/docs/ai-gateway),
+so `AGENT_MODEL` — `anthropic/claude-opus-5`, `openai/…`, anything the gateway
+routes to — is the only thing that changes when you want to compare models, and
+spend shows up in one dashboard.
+
+That choice has one architectural consequence worth stating. Anthropic's MCP
+connector can run the tool loop server-side, so the agent would never see a
+tool call; but `mcp_servers` is an Anthropic-API parameter that the gateway's
+Messages endpoint does not document, and depending on it would break the
+moment `AGENT_MODEL` named a non-Anthropic provider. So **the tool loop runs
+here**, over an MCP client connected to `MCP_URL`, bounded by `MAX_STEPS`.
+That works with every model the gateway can reach, which is the point.
+
+## Formatting
+
+Bluesky has no rich text. What it has is **facets**: byte ranges over the post
+text that carry a link, a mention, or a tag. Getting them right is most of
+what "formatting a post" means here.
+
+- **Markdown is rendered down.** Asterisks post as asterisks, and a
+  `[label](url)` posts as literal brackets with the URL buried where nobody can
+  click it. Markdown links are unwrapped so the URL lands back in the text
+  where the facet builder can find it; emphasis, headings, and code ticks are
+  stripped; `- ` becomes `• `.
+- **Links are shortened for display and kept whole in the facet.**
+  `https://aturi.to/at/did:plc:…/app.bsky.feed.post/3lxyz` displays as
+  `aturi.to/at/did:plc:…` and still resolves to the full URL when clicked,
+  which buys back graphemes against the 300 cap.
+- **Facets are built by hand, in UTF-8 byte offsets.** Not UTF-16, not
+  characters — four emoji ahead of a link are 8 UTF-16 units and 16 bytes, and
+  a facet measured in the wrong unit points into the middle of an emoji.
+- **A link broken across a post boundary gets no facet** rather than a facet
+  whose range points at the wrong bytes.
+- **Answers split across a short self-thread** on grapheme boundaries. The
+  300-cap counts graphemes, so a family emoji is one unit and `String.length`
+  is the wrong ruler.
+
+## Injection and abuse
+
+The text of a mention is written by a stranger, and the reply is published
+under your handle. That is the threat model, and prompt framing alone is not a
+control — it is an instruction to something that can be argued with. The
+controls that hold are enforced in code.
+
+**No mention or tag facet is ever emitted.** This is the important one. A
+mention facet notifies an account whether or not its handle appears in the
+text, so handing generated text to a facet detector means anything that can
+steer the model can make this account tag arbitrary people. The facet builder
+only produces link facets, so that capability does not exist to be abused.
+Handle-shaped text also loses its `@`, because a list of names still *reads*
+as a pile-on even when it is inert. Replies notify the person who asked on
+their own; no mention facet is needed for the bot to work.
+
+**Tool output is untrusted too.** The MCP tools read public records, so
+whatever they return contains other people's text. The prompt names both the
+`<post>` blocks and the tool results as data rather than instruction.
+
+**The rest:**
+
+- Every tool the agent can reach is read-only. Nothing it can be talked into
+  calling can write to the network.
+- `MAX_REPLIES_PER_AUTHOR_PER_HOUR` stops one person turning the account into
+  their toy; `MAX_REPLIES_PER_HOUR` bounds the bill; `MAX_STEPS` bounds tool
+  calls per mention; link facets are capped per post.
+- `BLOCKLIST` always wins over `ALLOWLIST`, so one entry is enough to stop an
+  account.
+- A reply that quotes the instructions back is dropped and logged — a backstop
+  for a prompt that already refuses, not the reason it refuses.
+- The agent never answers itself, and a DID that merely prefixes the bot's
+  does not match.
+
+What is *not* done: there is no classifier on the way out. If the account
+starts being used as a puppet, the honest fix is to narrow what it will
+answer, not to add another instruction telling it not to be fooled.
 
 ## Setup
 
@@ -53,117 +127,58 @@ they are talking to.
 revocable on its own and cannot be used to change the account's email or
 password.
 
-**3. Configure.**
+**3. Configure and watch it before you trust it.**
 
 ```bash
 cd agent
 npm install
-cp .env.example .env
-# fill in BLUESKY_IDENTIFIER, BLUESKY_APP_PASSWORD, ANTHROPIC_API_KEY
-```
+cp .env.example .env      # BLUESKY_IDENTIFIER, BLUESKY_APP_PASSWORD, AI_GATEWAY_API_KEY
 
-**4. Watch it before you trust it.** Two settings exist for exactly this:
-
-```bash
-DRY_RUN=true ALLOWLIST=you.bsky.social npm run tick
+DRY_RUN=true ALLOWLIST=you.bsky.social npm start
 ```
 
 `ALLOWLIST` restricts the agent to accounts you name, so you can exercise it
 in public without answering strangers. `DRY_RUN` composes the answer and
-prints it instead of posting. Clear both when the replies read the way you
-want.
+prints it — including how many link facets it built — instead of posting.
+Clear both when the replies read the way you want.
 
 ## Running it
 
-Both modes run the identical pass; pick whichever matches your hosting.
-
 ```bash
-npm start        # stays up, polls every POLL_INTERVAL_SECONDS
-npm run tick     # one pass, then exits — for cron or a serverless invocation
+npm start        # holds the Jetstream subscription open; this is the real mode
+npm run tick     # one notification sweep, no stream, then exit
 ```
 
-**A long-running process** (Railway, Fly, Render, a VPS, a Pi under a desk) is
-the least work: set the environment variables, run `npm start`, done.
-
-**Vercel Cron** is worth it if you are already on a Pro plan — the Hobby plan
-caps cron at once per day, which is not a mention bot. It needs a route that
-calls the same tick:
-
-```ts
-// app/api/tick/route.ts, in its own Vercel project rooted at agent/
-import { loadConfig } from '@/src/config.ts';
-import { login } from '@/src/bluesky.ts';
-import { runTick } from '@/src/tick.ts';
-
-export const maxDuration = 60;
-
-export async function GET(request: Request) {
-  if (request.headers.get('authorization') !== `Bearer ${process.env.CRON_SECRET}`) {
-    return new Response('Unauthorized', { status: 401 });
-  }
-  const config = loadConfig();
-  return Response.json(await runTick(await login(config), config));
-}
-```
-
-with `{"crons": [{"path": "/api/tick", "schedule": "* * * * *"}]}` in that
-project's `vercel.json`.
-
-**GitHub Actions** works and costs nothing, but its cron is best-effort and
-routinely runs ten or more minutes late. Fine for a digest, poor for a bot
-someone is waiting on.
+It is a long-lived process that wants a filesystem for its cursor, which is
+exactly what a droplet is. Any process supervisor works — systemd, pm2, a
+Docker restart policy. `npm run tick` exists for cron and for checking a config
+without leaving a process behind; it skips Jetstream entirely, so it is a
+fallback rather than the intended mode.
 
 Note that this is a **separate deployment from aturi.to**. The web app is
-keyless and read-only by design; this agent holds an Anthropic key and
+keyless and read-only by design; this agent holds a gateway key and
 credentials that can write to a repo. Keeping them apart is the point.
 
-## Latency
+Two caveats worth knowing:
 
-Polling means a mention waits up to `POLL_INTERVAL_SECONDS` before the agent
-sees it, plus however long the answer takes to compose. At the default that is
-under two minutes, which is fine for a bot people tag and walk away from.
-
-If that is not fast enough, the replacement is Jetstream: subscribe to
-`app.bsky.feed.post`, filter for the account's DID in the facets, and answer
-on arrival. That needs a process holding a websocket open, so it rules out
-cron and serverless. Start with polling.
-
-## What it costs
-
-One Messages API call per mention, on a model that thinks and calls tools.
-Three things hold the bill down, and all three are worth keeping:
-
-- `MAX_REPLIES_PER_TICK` caps a runaway loop at a known number of calls.
-- The system prompt and the 38 tool definitions are identical on every
-  mention and carry a cache breakpoint, so a burst of questions pays for that
-  prefix roughly once.
-- If you want to cut input tokens further, allowlist the tools the account
-  actually needs. `mcp_toolset` takes `default_config: { enabled: false }`
-  plus a `configs` entry per tool you want on.
-
-## Prompt injection
-
-The post text is written by the public, and the answer is published under your
-handle. That is the whole threat model.
-
-What is done about it: the mention arrives inside a delimited block that the
-system prompt names as untrusted and non-authoritative; the tools reachable
-through MCP cannot write; every reply is length-capped; and `ALLOWLIST` exists
-for when you want the door mostly shut.
-
-What is not done: there is no classifier on the way out. If the account starts
-being used as a puppet, the honest fix is to narrow what it will answer, not
-to add another instruction telling it not to be fooled.
+- **It assumes one instance.** The answered set lives in memory in front of
+  the repo; two agents on one account would each hold their own copy and could
+  both answer the same mention.
+- **Dedupe reads the repo, not a database.** The agent's own replies are the
+  record of what it has answered, so a redeploy or a lost disk cannot cause a
+  double answer. The walk pages until the posts predate `LOOKBACK_MINUTES`.
 
 ## Layout
 
 | File | What it does |
 | --- | --- |
-| `src/index.ts` | CLI: one pass with `--once`, otherwise a polling loop |
-| `src/tick.ts` | One pass: read, answer, reply, mark seen |
+| `src/index.ts` | Wires the stream and the sweep to the queue; shutdown |
+| `src/jetstream.ts` | Subscription, both dialects, cursor, reconnect |
+| `src/process.ts` | The serial queue: dedupe, guards, answer, post |
+| `src/answer.ts` | Gateway call and the client-side MCP tool loop |
+| `src/format.ts` | Markdown, links, facets, grapheme-safe splitting |
+| `src/guards.ts` | Rate limits, allow/block lists, instruction-leak check |
 | `src/bluesky.ts` | Login, notifications, dedupe, thread context, posting |
-| `src/answer.ts` | The single Messages API call, with the MCP connector |
-| `src/thread.ts` | Fitting an answer into 300-grapheme posts |
 | `src/config.ts` | Environment |
 
 Verify with `npm run typecheck && npm test`.

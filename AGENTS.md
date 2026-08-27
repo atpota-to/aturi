@@ -41,17 +41,25 @@ Edit the canonical file, then run `cd packages && npm run sync` and commit both.
 
 **5. `agent/` is the only codebase here that holds write credentials.**
 
-It signs into a Bluesky account with an app password and calls the Anthropic
-API with a key. Everything else in this repo is keyless, and the hosted MCP
-server it consumes is read-only on purpose. Do not move the agent's
+It signs into a Bluesky account with an app password and calls the Vercel AI
+Gateway with a key. Everything else in this repo is keyless, and the hosted
+MCP server it consumes is read-only on purpose. Do not move the agent's
 credentials, or anything that reads them, into `src/` — the web app's blast
 radius is currently "can read public data", and that is worth keeping. The
 agent talks to `https://aturi.to/api/mcp` over HTTPS like any other client;
 there is no in-process coupling to add.
 
 The text of a mention is attacker-controlled and the reply is published under
-the operator's handle. `agent/src/answer.ts` carries the framing that treats
-it as untrusted. Read that file before changing the prompt.
+the operator's handle. Two files carry that weight and neither should be
+changed casually:
+
+- `agent/src/format.ts` builds post facets by hand and emits **only** link
+  facets. A mention facet notifies an account whether or not its handle is in
+  the text, so re-introducing a facet detector (`RichText.detectFacets`, or
+  anything that derives facets from generated text) hands anyone who can steer
+  the model the ability to make this account tag arbitrary people.
+- `agent/src/answer.ts` carries the prompt framing that treats both the
+  mention and the MCP tool output as data rather than instruction.
 
 **6. Do not bump package versions or touch the publish workflow.** Releases are tag-triggered and maintainer-driven. npm trusted publishing pins the credential to `atpota-to/aturi` plus the exact filename `.github/workflows/publish-packages.yml`, so renaming or moving that file breaks publishing until it is re-registered on npm for both packages.
 

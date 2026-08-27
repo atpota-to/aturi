@@ -6,13 +6,9 @@
  * case app passwords exist for, and it keeps the deployment to two secrets.
  */
 
-import {
-  AtpAgent,
-  AppBskyFeedPost,
-  AppBskyFeedDefs,
-  RichText,
-} from '@atproto/api';
+import { AtpAgent, AppBskyFeedPost, AppBskyFeedDefs } from '@atproto/api';
 import type { Config } from './config.ts';
+import type { PreparedPost } from './format.ts';
 
 export type StrongRef = { uri: string; cid: string };
 
@@ -20,7 +16,13 @@ export type Mention = {
   uri: string;
   cid: string;
   authorDid: string;
-  authorHandle: string;
+  /**
+   * Absent on the Jetstream path: a commit carries the author's DID but not
+   * their handle, and resolving one for every event on the firehose would be
+   * a request per stranger's post. Filled in by `resolveHandle` once a
+   * mention has actually cleared the guards.
+   */
+  authorHandle?: string;
   text: string;
   indexedAt: string;
   /** The post the reply chain hangs off. Equals the mention for a top post. */
@@ -35,6 +37,29 @@ export async function login(config: Config): Promise<AtpAgent> {
   });
   if (!agent.did) throw new Error('Login succeeded but no DID on the session');
   return agent;
+}
+
+const handles = new Map<string, string>();
+
+/**
+ * DID to handle, cached for the life of the process. Handles change, but not
+ * within the seconds between reading a mention and answering it, and a stale
+ * one costs a wrong name in a log line rather than a misdirected reply — the
+ * reply is addressed by strongRef, not by handle.
+ */
+export async function resolveHandle(
+  agent: AtpAgent,
+  did: string,
+): Promise<string> {
+  const cached = handles.get(did);
+  if (cached) return cached;
+  try {
+    const profile = await agent.app.bsky.actor.getProfile({ actor: did });
+    handles.set(did, profile.data.handle);
+    return profile.data.handle;
+  } catch {
+    return did;
+  }
 }
 
 /**
@@ -60,13 +85,6 @@ export async function fetchMentions(
   for (const notification of response.data.notifications) {
     if (notification.author.did === agent.did) continue;
     if (new Date(notification.indexedAt).getTime() < cutoff) continue;
-    if (
-      config.allowlist.size > 0 &&
-      !config.allowlist.has(notification.author.handle.toLowerCase()) &&
-      !config.allowlist.has(notification.author.did.toLowerCase())
-    ) {
-      continue;
-    }
 
     // `record` is typed as unknown on the wire, and the lexicon validator is
     // the only thing that turns it into a post rather than a cast that lies.
@@ -189,24 +207,25 @@ export async function threadContext(
 
 /**
  * Post an answer as a reply, chaining any continuation posts onto the one
- * before so the whole answer reads as a single thread. Facets are detected
- * per post, which is what turns a bare at:// or https:// into a real link and
- * a handle into a real mention.
+ * before so the whole answer reads as a single thread.
+ *
+ * The facets are the ones format.ts built and nothing else. Notably this does
+ * *not* call RichText.detectFacets: that would re-derive facets from the
+ * text, which would put back the mention facets the format layer exists to
+ * keep out, and would resolve handles over the network while doing it.
  */
 export async function postReply(
   agent: AtpAgent,
-  chunks: string[],
+  posts: PreparedPost[],
   mention: Mention,
 ): Promise<StrongRef[]> {
   const written: StrongRef[] = [];
   let parent: StrongRef = { uri: mention.uri, cid: mention.cid };
 
-  for (const chunk of chunks) {
-    const rich = new RichText({ text: chunk });
-    await rich.detectFacets(agent);
+  for (const post of posts) {
     const result = await agent.post({
-      text: rich.text,
-      facets: rich.facets,
+      text: post.text,
+      facets: post.facets.length > 0 ? post.facets : undefined,
       langs: ['en'],
       reply: { root: mention.root, parent },
       createdAt: new Date().toISOString(),
@@ -218,8 +237,3 @@ export async function postReply(
   return written;
 }
 
-export async function markSeen(agent: AtpAgent): Promise<void> {
-  await agent.app.bsky.notification.updateSeen({
-    seenAt: new Date().toISOString(),
-  });
-}
