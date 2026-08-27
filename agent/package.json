@@ -1,0 +1,25 @@
+{
+  "name": "aturi-agent",
+  "description": "A Bluesky account that answers @mentions about the Atmosphere, via the aturi.to MCP server",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "license": "GPL-3.0-or-later",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "scripts": {
+    "start": "node --experimental-transform-types src/index.ts",
+    "tick": "node --experimental-transform-types src/index.ts --once",
+    "test": "node --experimental-transform-types --test \"src/**/*.test.ts\"",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.121.0",
+    "@atproto/api": "^0.20.5"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "typescript": "^5"
+  }
+}

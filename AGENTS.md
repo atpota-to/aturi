@@ -4,7 +4,7 @@ Instructions for coding agents working in this repository. Humans should read [C
 
 ## What this repo is
 
-aturi.to: universal links, an Atmosphere Explorer, and a browser extension for atproto. Four codebases in one repo.
+aturi.to: universal links, an Atmosphere Explorer, and a browser extension for atproto. Five codebases in one repo.
 
 | Path | Stack | Verify with |
 | --- | --- | --- |
@@ -12,8 +12,9 @@ aturi.to: universal links, an Atmosphere Explorer, and a browser extension for a
 | `extension/` | WXT, Preact-aliased React 19, Vitest | `cd extension && npm run compile && npm test` |
 | `packages/waypoints` | tsup, zero runtime deps, MIT | `cd packages && npm run sync:check && npm test && npm run build` |
 | `packages/waypoints-react` | tsup, React peer dep, MIT | `cd packages && npm run typecheck && npm run build` |
+| `agent/` | Node 22 type stripping, no build step | `cd agent && npm run typecheck && npm test` |
 
-Node 22+ (`.nvmrc` pins the exact version). Root install is `npm install`; `extension/` and `packages/` have their own lockfiles and need separate installs.
+Node 22+ (`.nvmrc` pins the exact version). Root install is `npm install`; `extension/`, `packages/`, and `agent/` have their own lockfiles and need separate installs.
 
 ## Rules that are not obvious from the code
 
@@ -36,9 +37,23 @@ Edit the canonical file, then run `cd packages && npm run sync` and commit both.
 
 **3. `src/utils/waypoints.tsx` is a re-export shim.** Waypoint data lives in `src/utils/waypoints.data.ts`. Do not add waypoints to `waypoints.tsx`.
 
-**4. Two licenses.** `src/` and `extension/` are GPL-3.0-or-later. `packages/` is MIT. Do not copy code from a GPL dependency into anything the sync script exports to `packages/`.
+**4. Two licenses.** `src/`, `extension/`, and `agent/` are GPL-3.0-or-later. `packages/` is MIT. Do not copy code from a GPL dependency into anything the sync script exports to `packages/`.
 
-**5. Do not bump package versions or touch the publish workflow.** Releases are tag-triggered and maintainer-driven. npm trusted publishing pins the credential to `atpota-to/aturi` plus the exact filename `.github/workflows/publish-packages.yml`, so renaming or moving that file breaks publishing until it is re-registered on npm for both packages.
+**5. `agent/` is the only codebase here that holds write credentials.**
+
+It signs into a Bluesky account with an app password and calls the Anthropic
+API with a key. Everything else in this repo is keyless, and the hosted MCP
+server it consumes is read-only on purpose. Do not move the agent's
+credentials, or anything that reads them, into `src/` — the web app's blast
+radius is currently "can read public data", and that is worth keeping. The
+agent talks to `https://aturi.to/api/mcp` over HTTPS like any other client;
+there is no in-process coupling to add.
+
+The text of a mention is attacker-controlled and the reply is published under
+the operator's handle. `agent/src/answer.ts` carries the framing that treats
+it as untrusted. Read that file before changing the prompt.
+
+**6. Do not bump package versions or touch the publish workflow.** Releases are tag-triggered and maintainer-driven. npm trusted publishing pins the credential to `atpota-to/aturi` plus the exact filename `.github/workflows/publish-packages.yml`, so renaming or moving that file breaks publishing until it is re-registered on npm for both packages.
 
 The same workflow's `github-packages` job then mirrors both builds to GitHub Packages under `@atpota-to`, rewriting only the `name` field at publish time. GitHub rejects the real scope on two counts: it must match the repository owner, and it cannot contain the dot in `aturi.to`. Do not rewrite `@aturi.to/waypoints-react`'s dependency on `@aturi.to/waypoints` to the mirrored scope. The built bundle re-exports the `@aturi.to/waypoints` specifier verbatim, so a rewritten dependency would resolve to a package the bundle never imports.
 
@@ -75,7 +90,7 @@ Do not invent URL patterns, NSIDs, or supported record types. Fetch the app and 
 - Change what was asked and nothing else. No opportunistic reformatting, renaming, comment rewriting, or type tightening in files you happened to open.
 - No new dependencies. `@aturi.to/waypoints` is zero-dependency by design and the extension bundle size is a constraint. If a dependency looks necessary, stop and say so.
 - Match surrounding style. This codebase uses explanatory block comments above non-obvious constants and logic. Follow that; do not add line-by-line narration.
-- Tests live in `extension/lib/__tests__/` and `packages/waypoints/src/__tests__/`. Add to them when you change parsing, templates, redirect rules, or waypoint data.
+- Tests live in `extension/lib/__tests__/`, `packages/waypoints/src/__tests__/`, and `agent/src/__tests__/`. Add to them when you change parsing, templates, redirect rules, or waypoint data.
 - Never commit `.env` values, tokens, or a real DID/handle used for testing into fixtures.
 - Report failures honestly. A check you did not run is not a check that passed.
 
