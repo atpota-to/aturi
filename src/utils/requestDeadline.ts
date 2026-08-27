@@ -32,10 +32,22 @@ export function withDeadline(signal?: AbortSignal | null): AbortSignal {
  */
 export const UPSTREAM_USER_AGENT = 'aturi.to (+https://aturi.to/mcp)';
 
+/**
+ * The identifying headers to merge into an outbound request, or nothing at
+ * all in a browser, where scripts are forbidden from setting User-Agent and
+ * the attempt is either ignored or throws.
+ */
+export function identifyingHeaders(
+  existing?: HeadersInit,
+): Record<string, string> | undefined {
+  const headers = existing as Record<string, string> | undefined;
+  if (typeof window !== 'undefined') return headers;
+  return { ...headers, 'User-Agent': UPSTREAM_USER_AGENT };
+}
+
 export function withIdentification(init?: RequestInit): RequestInit {
   const merged: RequestInit = { ...init, signal: withDeadline(init?.signal) };
-  if (typeof window === 'undefined') {
-    merged.headers = { ...(init?.headers as Record<string, string> | undefined), 'User-Agent': UPSTREAM_USER_AGENT };
-  }
+  const headers = identifyingHeaders(init?.headers);
+  if (headers) merged.headers = headers;
   return merged;
 }

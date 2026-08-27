@@ -14,7 +14,15 @@
  * once on network-level failures (never on HTTP error statuses, which are
  * meaningful responses). Works in Node, edge, and browser runtimes — the
  * extension imports sibling modules from this directory.
+ *
+ * It also identifies the caller. These requests reach personal data servers
+ * and plc.directory, run by individuals and by a small team; an operator
+ * looking at unfamiliar traffic should be able to see whose it is without
+ * having to guess. Without this the requests go out as undici's default
+ * `node`, which says nothing.
  */
+
+import { identifyingHeaders } from './requestDeadline';
 
 export type UpstreamFetchOptions = RequestInit & {
   /** Per-attempt timeout in milliseconds. Defaults to 8000. */
@@ -33,8 +41,10 @@ export async function upstreamFetch(
 
   for (let attempt = 0; attempt <= retries; attempt++) {
     try {
+      const headers = identifyingHeaders(init.headers);
       return await fetch(url, {
         ...init,
+        ...(headers ? { headers } : {}),
         signal: AbortSignal.timeout(timeoutMs),
       });
     } catch (error) {

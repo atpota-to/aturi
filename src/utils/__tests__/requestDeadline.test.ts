@@ -6,6 +6,9 @@ import {
   withDeadline,
   withIdentification,
 } from '@/utils/requestDeadline';
+import { createServer } from 'node:http';
+import type { AddressInfo } from 'node:net';
+import { upstreamFetch } from '@/utils/upstreamFetch';
 
 test('a deadline is always attached, with or without a caller signal', () => {
   assert.ok(withDeadline() instanceof AbortSignal);
@@ -56,4 +59,37 @@ test('caller headers are kept alongside the identification header', () => {
 
 test('the deadline matches upstreamFetch, so the two cannot drift', () => {
   assert.equal(UPSTREAM_TIMEOUT_MS, 8000);
+});
+
+test('upstreamFetch identifies itself on the wire, headers and all', async () => {
+  // The unit assertions above check the object we build. This checks what a
+  // server actually receives, which is the only thing an operator sees, and
+  // it covers upstreamFetch as well as withIdentification: upstreamFetch
+  // spent a while sending undici's default `node` because nothing tested it.
+  const seen: Array<{ path: string; ua: string | undefined; accept: string | undefined }> = [];
+  const server = createServer((req, res) => {
+    seen.push({ path: req.url ?? '', ua: req.headers['user-agent'], accept: req.headers.accept });
+    res.writeHead(200, { 'content-type': 'application/json' });
+    res.end('{}');
+  });
+  await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+  const { port } = server.address() as AddressInfo;
+  const base = `http://127.0.0.1:${port}`;
+
+  try {
+    await fetch(`${base}/with-identification`, withIdentification());
+    await upstreamFetch(`${base}/upstream-fetch`);
+    await upstreamFetch(`${base}/upstream-fetch-with-headers`, {
+      headers: { accept: 'application/json' },
+    });
+  } finally {
+    server.close();
+  }
+
+  assert.equal(seen.length, 3);
+  for (const request of seen) {
+    assert.equal(request.ua, UPSTREAM_USER_AGENT, `${request.path} was not identified`);
+  }
+  // A caller's own headers survive alongside the identification.
+  assert.equal(seen[2].accept, 'application/json');
 });

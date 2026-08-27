@@ -193,7 +193,7 @@ export async function searchActorsTypeahead(
     const params = new URLSearchParams({ q, limit: String(limit) });
     const res = await fetch(
       `${APPVIEW}/xrpc/app.bsky.actor.searchActorsTypeahead?${params}`,
-      { signal },
+      withIdentification({ signal }),
     );
     if (!res.ok) return [];
     const data = (await res.json()) as { actors?: ActorTypeaheadResult[] };
