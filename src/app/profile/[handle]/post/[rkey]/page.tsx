@@ -15,31 +15,6 @@ import { resolveDidToHandle } from '@/utils/didResolver';
 import { buildPostMetadata, buildPostJsonLd } from '@/utils/postMetadata';
 import { serializeJsonLd } from '@/utils/sanitize';
 
-/**
- * ISR. Unlike the /explore shells this route really does fetch on the server —
- * handle resolution and then the record itself, once in generateMetadata and
- * again in RecordContent — so caching the render is what takes those upstream
- * calls off the hot path. The same record is reachable at four spellings (bare
- * and /profile/, handle and DID); the canonical tag consolidates those for
- * ranking but does not stop a crawler fetching all four, so a good share of the
- * pressure here is repeat renders of byte-identical output.
- *
- * Five minutes, and the ceiling is set by what goes stale rather than by what
- * there is to save. A deleted record keeps rendering for up to that long — and
- * so does a transient failure, because fetchRecordData returns null for both a
- * deleted record and an unreachable host, and the "couldn't load a preview"
- * notice is a 200 as far as the cache is concerned. A blip at the wrong moment
- * therefore pins that notice for five minutes instead of for one request. That
- * is the trade, bounded deliberately rather than left open.
- */
-export const revalidate = 300;
-
-// Empty, and required for the `revalidate` above to do anything at all — see
-// `explore/[repo]/page.tsx`.
-export function generateStaticParams() {
-  return [];
-}
-
 type Props = {
   params: Promise<{ handle: string; rkey: string }>;
 };
