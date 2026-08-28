@@ -16,6 +16,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint && node scripts/check-env-names.mjs",
+    "check:oauth": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --import ./scripts/test-setup.mjs scripts/check-oauth-config.mjs",
     "test": "node --import ./scripts/test-setup.mjs --test \"src/**/*.test.ts\"",
     "typecheck": "tsc --noEmit"
   },

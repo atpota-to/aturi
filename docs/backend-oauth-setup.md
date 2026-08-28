@@ -100,80 +100,194 @@ curl -s "https://zdzjtziydmwkxbzlkwxv.supabase.co/rest/v1/app_sessions?select=to
 
 ## 3. Generate the two keys
 
+Two keys, doing different jobs. They must be different values — see the check
+at the end of this step.
+
+### The signing key
+
 ```bash
 node scripts/generate-oauth-key.mjs
 ```
 
-Prints one line of JSON to stdout and never writes a file — this repo is
-force-pushed to a public mirror on every push, so a key in the working tree is
-one `git add .` away from being published. Copy it straight into Vercel.
+Prints exactly one line to stdout — an ES256 (P-256) private JWK — plus some
+guidance on stderr. It **never writes a file**: this repo is force-pushed to a
+public mirror on every push, so a key in the working tree is one `git add .`
+away from being published. Copy the line straight into Vercel.
 
-You also need an encryption key, which is a different thing and must not be
-the database credential — it is what makes a database dump useless:
+The line looks like this (values shortened):
+
+```json
+{"kty":"EC","x":"am269wfcoTTy…","y":"0CD1n4y2VZ9N…","crv":"P-256","d":"PgzPPH1uYKgQ…","alg":"ES256","kid":"aturi-2026-08-24-a1b2c3"}
+```
+
+Three fields matter and the loader rejects the key without them:
+
+- `"alg":"ES256"` — RS256 is not accepted. The reference backend's own
+  `env.example` still documents RSA; following it produces an unusable key.
+- `"kid"` — required, and must be unique per key. It is auto-generated with a
+  date and random suffix; pass `--kid my-label` to choose your own. A key
+  without one is refused rather than defaulted, because defaulting by position
+  is how a rotation silently reuses an identifier for a different key.
+- `"d"` — the private half. This is why the value is a secret. What gets
+  published at `/oauth/jwks.json` is the same key **without** `d`.
+
+If staging is a separate Vercel project, generate a **separate key for it**.
+Sharing one means a staging compromise is a production compromise.
+
+### The encryption key
 
 ```bash
 openssl rand -hex 32
 ```
 
-If staging is a separate Vercel project, generate a **separate pair** for it.
+This encrypts the stored OAuth tokens. It must **not** be the database
+credential — keeping them apart is the entire point: it means a database dump,
+backup, or leaked service key yields ciphertext rather than usable refresh
+tokens.
+
+Accepted formats, verified against the loader: 64 hex characters, or base64 /
+base64url that decodes to 32 bytes. Anything decoding to a different length is
+refused with a message saying so. (A common near-miss: `openssl rand -hex 16`
+gives 32 characters, which is not 64 hex and base64-decodes to 24 bytes — it
+fails, clearly, rather than silently weakening anything.)
+
+**Rotating this key later logs everyone out**, because the envelope carries no
+key id and existing rows cannot be decrypted with a new one. Store it somewhere
+you will not lose it.
 
 ## 4. Set the environment variables
 
 Vercel → project → Settings → Environment Variables.
 
-> **The default is wrong for these.** Vercel ticks Production, Preview and
-> Development. Leave it that way and your OAuth signing key is present in every
-> pull-request preview, where any route can read it. **Tick Production only**
-> (and, on a separate staging project, its own environment only).
+> **Change the environment scope before you save.** Vercel ticks Production,
+> Preview *and* Development by default. Leave that and your OAuth signing key is
+> present in every pull-request preview, where any route can read it — including
+> previews of forks' PRs. **Tick Production only.** On a separate staging
+> project, tick that project's environment only.
 
-| Variable | Value |
-| --- | --- |
-| `ATURI_OAUTH_JWK_ACTIVE` | the JSON line from step 3 |
-| `ATURI_SESSION_ENC_KEY` | the 64 hex chars from step 3 |
-| `ATURI_DB_URL` | `https://zdzjtziydmwkxbzlkwxv.supabase.co` |
-| `ATURI_DB_SERVICE_KEY` | the project's service-role key (`sb_secret_…`, or the legacy `service_role` JWT) |
+Five variables. The first four are secrets; the fifth is public and comes last.
 
-Leave unset for now: `ATURI_DB_SCHEMA` (defaults to `aturi`),
-`ATURI_APP_SESSION_TTL_DAYS` (defaults to 30), `ATURI_OAUTH_JWK_RETIRED` (only
-used while rotating), `ATURI_EXTENSION_RETURN_ORIGINS` (the browsers' own
-redirect hosts are matched by pattern; this is only for a Safari-style build
-that needs naming explicitly).
+| Variable | Value | Notes |
+| --- | --- | --- |
+| `ATURI_OAUTH_JWK_ACTIVE` | the one-line JSON from step 3 | Paste as-is, including the braces. No quotes around it. |
+| `ATURI_SESSION_ENC_KEY` | the 64 hex chars from step 3 | Not the database key. |
+| `ATURI_DB_URL` | `https://zdzjtziydmwkxbzlkwxv.supabase.co` | Project URL, no trailing slash and no `/rest/v1`. |
+| `ATURI_DB_SERVICE_KEY` | the **service-role** key | Supabase → Settings → API Keys. Either the newer `sb_secret_…` or the legacy `service_role` JWT. **Not** the anon/publishable key — that one is rejected, and the preflight below says so explicitly. |
+| `NEXT_PUBLIC_AUTH_MODE` | **leave unset for now** | Step 6. |
 
-**Do not set `NEXT_PUBLIC_AUTH_MODE` yet.** That is step 6.
+Optional, all with working defaults — leave them unset unless you need them:
+
+| Variable | Default | When you would set it |
+| --- | --- | --- |
+| `ATURI_DB_SCHEMA` | `aturi` | Only if you applied the migration to a different schema. |
+| `ATURI_APP_SESSION_TTL_DAYS` | `30` | Session lifetime. Slides on use, so this is "days of inactivity". Clamped to 1–365. |
+| `ATURI_OAUTH_JWK_RETIRED` | — | Only during a key rotation. Published but never signs. |
+| `ATURI_EXTENSION_RETURN_ORIGINS` | — | Only for an extension build whose redirect host is not one the browsers reserve — a Safari build, say. Chrome and Firefox are matched by pattern already. |
+| `ATURI_DB_DRIVER` | `postgrest` | Only `postgrest` ships. Anything else fails loudly. |
+| `NEXT_PUBLIC_BFF_ORIGIN` | — | Bearer callers only (the extension, local dev). The web app cannot use it — its session is a cookie on the backend's own origin. |
+
+### Check them before you deploy
+
+```bash
+npm run check:oauth
+```
+
+Reads the environment it is given and calls the same loaders the running app
+calls, so it cannot drift from what happens at runtime. To check values you are
+about to paste, put them in a local file and run:
+
+```bash
+node --env-file=.env.local --disable-warning=MODULE_TYPELESS_PACKAGE_JSON \
+  --import ./scripts/test-setup.mjs scripts/check-oauth-config.mjs
+```
+
+(`.env` and `.env.*` are gitignored, with `.env.example` excepted.)
+
+A good run:
+
+```
+  ok   ATURI_OAUTH_JWK_ACTIVE             loads as ES256, kid "aturi-2026-08-24-a1b2c3"
+  ok   JWKS                               publishes public halves only
+  ok   ATURI_SESSION_ENC_KEY              decodes to 32 bytes and round-trips
+  ok   ATURI_DB_URL                       https://zdzjtziydmwkxbzlkwxv.supabase.co
+  ok   aturi.app_sessions                 reachable
+  … one line per table …
+  ok   acquire_oauth_lock                 serialises — a second holder is refused
+  note NEXT_PUBLIC_AUTH_MODE              unset — new sign-ins still use the browser client (set it last)
+```
+
+It exits non-zero on any failure, and prints no secret — a key that fails is
+described by what is wrong with it, never by its contents. It also catches the
+two mistakes that are otherwise invisible until something breaks:
+
+- **The schema is not exposed.** Every table answers 404 while the code looks
+  correct. The check says so in one line and names the setting.
+- **The lock does not serialise.** A broken lock degrades to a no-op exactly
+  when contended, and the symptom is users randomly signed out at launch rather
+  than an error anyone sees. The check acquires it twice with different holders
+  and requires the second to be refused.
 
 ## 5. Deploy, and check the client is real
 
-Merge the branch (or deploy it to staging) and let it build.
+Merge the branch, or deploy it to staging, and let it build.
 
-Nothing user-visible changes. `NEXT_PUBLIC_AUTH_MODE` is still unset, so
-`resolveAuthMode()` returns `browser` and every sign-in goes through the public
-client as before. What you have now is a second OAuth client that exists and
-can be validated.
+Nothing user-visible changes yet. `NEXT_PUBLIC_AUTH_MODE` is still unset, so
+sign-in keeps using the public browser client. What you now have is a second
+OAuth client that exists and can be validated by an authorization server.
 
-**Verify** — both must be 200:
+### The two public endpoints
 
 ```bash
 curl -s https://aturi.to/oauth/client-metadata.json | jq
 curl -s https://aturi.to/oauth/jwks.json | jq
 ```
 
-The metadata should show:
+Both must be **200**. The metadata must contain:
 
-- `"client_id": "https://aturi.to/oauth/client-metadata.json"` — matching the
-  URL you fetched it from, which is what makes it a valid client id
-- `"token_endpoint_auth_method": "private_key_jwt"` and
-  `"token_endpoint_auth_signing_alg": "ES256"`
-- `"redirect_uris": ["https://aturi.to/api/oauth/callback"]` — note `/api/`;
-  the existing public client's `/oauth/callback` page is untouched
-- `"jwks_uri"` pointing at the second URL
+```json
+{
+  "client_id": "https://aturi.to/oauth/client-metadata.json",
+  "token_endpoint_auth_method": "private_key_jwt",
+  "token_endpoint_auth_signing_alg": "ES256",
+  "redirect_uris": ["https://aturi.to/api/oauth/callback"],
+  "jwks_uri": "https://aturi.to/oauth/jwks.json",
+  "dpop_bound_access_tokens": true
+}
+```
 
-The JWKS should list your `kid` with `"crv": "P-256"`, `"alg": "ES256"`, and
-**no `d` field**. A `d` there is the private half and means something is very
-wrong; stop and rotate.
+Four things to actually look at:
 
-If either 404s, the four variables are not all set (the code treats partial
-configuration as unconfigured on purpose). If the JWKS 500s while the metadata
-is fine, the origin is not `https://` — that only happens locally.
+1. **`client_id` equals the URL you just fetched.** That identity is what makes
+   it a valid client id, and it is why this document is served per-host.
+2. **`redirect_uris` says `/api/oauth/callback`** — note the `/api/`. The
+   existing public client's `/oauth/callback` page is untouched and still works.
+3. **`jwks_uri` resolves** and lists your `kid` with `"crv":"P-256"`.
+4. **The JWKS has no `d` field.** A `d` there is the private half; stop, rotate
+   the key, and work out how it got published.
+
+```bash
+# Should print nothing. Anything printed is the private half.
+curl -s https://aturi.to/oauth/jwks.json | jq '.keys[] | select(.d)'
+```
+
+### Confirm the routes are alive but idle
+
+```bash
+curl -s -o /dev/null -w '%{http_code}\n' https://aturi.to/api/oauth/session
+```
+
+**401** is correct here — you have no session yet. A **503** means the four
+variables are not all set (partial configuration is treated as unconfigured on
+purpose), and a **404** on the metadata means the same.
+
+### What each failure means
+
+| Symptom | Cause |
+| --- | --- |
+| Metadata and JWKS both 404 | One of the four variables is missing. Re-run `npm run check:oauth` against the deployment. |
+| Metadata 200, JWKS 500 | The origin is not `https://`. Only happens locally, where there is no `x-forwarded-proto` — add `-H 'x-forwarded-proto: https'` when probing a local build. |
+| Either endpoint 400 "Unknown host" | The `Host` is not one of `aturi.to`, `www.aturi.to`, `testing.aturi.to`. Preview deployments land here deliberately: a `client_id` must equal the URL it is served from, so every preview hash would be a distinct OAuth client. |
+| `/api/oauth/session` returns 503 | Same as the first row — not configured. |
 
 ## 6. Switch new sign-ins over
 
