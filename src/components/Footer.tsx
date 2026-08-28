@@ -86,15 +86,17 @@ export default function Footer() {
             </div>
           </div>
 
-          {/* Nav */}
+          {/* Nav — `prefetch={false}` on each link, for the reason spelled out
+              above <Header>: the footer renders on every page, so leaving the
+              default on made these three links a standing cost per render. */}
           <nav className="footer-nav" aria-label="Site">
-            <Link href="/docs" className="footer-link">
+            <Link href="/docs" className="footer-link" prefetch={false}>
               Docs
             </Link>
-            <Link href="/feedback" className="footer-link">
+            <Link href="/feedback" className="footer-link" prefetch={false}>
               Feedback
             </Link>
-            <Link href="/terms" className="footer-link">
+            <Link href="/terms" className="footer-link" prefetch={false}>
               Terms &amp; Privacy
             </Link>
             <div className="footer-source">

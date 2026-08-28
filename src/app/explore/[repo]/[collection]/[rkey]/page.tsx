@@ -1,6 +1,16 @@
 import type { Metadata } from 'next';
 import RecordExplorer from '@/components/explore/RecordExplorer';
 
+// Cached shell — see `explore/[repo]/page.tsx` for why this is safe to serve
+// from cache rather than re-render.
+export const revalidate = 3600;
+
+// Empty, and required for the `revalidate` above to do anything at all — see
+// `explore/[repo]/page.tsx`.
+export function generateStaticParams() {
+  return [];
+}
+
 type Params = { repo: string; collection: string; rkey: string };
 
 export async function generateMetadata({
