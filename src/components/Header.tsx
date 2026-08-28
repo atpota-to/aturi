@@ -28,6 +28,28 @@ interface HeaderProps {
   compact?: boolean; // If true, shows ultra-compact inline header with expandable menu
 }
 
+/**
+ * Every nav link below, in all three variants, sets `prefetch={false}`.
+ *
+ * Next's default prefetches a link once it scrolls into the viewport, and under
+ * the App Router's segment cache each one costs four or five requests — the
+ * route's `_tree`, `_head` and `_index` segments plus the page's own. Between
+ * them this header and the footer render on every page, so a single render
+ * fanned out to roughly forty-five requests across the nine destinations they
+ * point at.
+ *
+ * That is a fair trade when the visitor goes on to click one. It is not when
+ * the visitor is a crawler: they execute JavaScript, so they triggered the
+ * prefetch too, and they never click. Over 24h those nine paths were 4.9M of
+ * the site's 9.7M requests — /terms, which appears only in the footer and below
+ * the fold, was still fetched 204k times. The counts tracked where a link sat
+ * on the page rather than anything a reader did, which is the tell.
+ *
+ * `false` disables hover prefetching as well as viewport prefetching; Next
+ * gates both on the same flag and offers no hover-only setting. So a real
+ * visitor's first click on a nav link is a cold navigation. These are small
+ * pages, and that is the whole of the cost.
+ */
 export default function Header({ simple = false, compact = false }: HeaderProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [isSearchExpanded, setIsSearchExpanded] = useState(false);
@@ -122,6 +144,7 @@ export default function Header({ simple = false, compact = false }: HeaderProps)
             {/* Logo/Wordmark with Tagline */}
             <Link
               href="/"
+              prefetch={false}
               style={{
                 textDecoration: 'none',
                 display: 'flex',
@@ -331,31 +354,31 @@ export default function Header({ simple = false, compact = false }: HeaderProps)
             {!isSignInActive && (
               <>
                 <div className="compact-nav-grid">
-                  <Link href="/explore" className="compact-nav-link">
+                  <Link href="/explore" className="compact-nav-link" prefetch={false}>
                     <Telescope size={16} />
                     <span>explore</span>
                   </Link>
-                  <Link href="/extension" className="compact-nav-link">
+                  <Link href="/extension" className="compact-nav-link" prefetch={false}>
                     <Download size={16} />
                     <span>extension</span>
                   </Link>
-                  <Link href="/links" className="compact-nav-link">
+                  <Link href="/links" className="compact-nav-link" prefetch={false}>
                     <Compass size={16} />
                     <span>links</span>
                   </Link>
-                  <Link href="/explore/spaces" className="compact-nav-link">
+                  <Link href="/explore/spaces" className="compact-nav-link" prefetch={false}>
                     <Orbit size={16} />
                     <span>spaces</span>
                   </Link>
-                  <Link href="/mcp" className="compact-nav-link">
+                  <Link href="/mcp" className="compact-nav-link" prefetch={false}>
                     <Plug size={16} />
                     <span>mcp</span>
                   </Link>
-                  <Link href="/docs" className="compact-nav-link">
+                  <Link href="/docs" className="compact-nav-link" prefetch={false}>
                     <BookOpen size={16} />
                     <span>integrate</span>
                   </Link>
-                  <Link href="/feedback" className="compact-nav-link">
+                  <Link href="/feedback" className="compact-nav-link" prefetch={false}>
                     <MessageSquareHeart size={16} />
                     <span>feedback</span>
                   </Link>
@@ -405,6 +428,7 @@ export default function Header({ simple = false, compact = false }: HeaderProps)
       >
         <Link
           href="/"
+          prefetch={false}
           style={{
             textDecoration: 'none',
           }}
@@ -460,27 +484,27 @@ export default function Header({ simple = false, compact = false }: HeaderProps)
             margin: '0 auto',
           }}
         >
-          <Link href="/explore" className="nav-link">
+          <Link href="/explore" className="nav-link" prefetch={false}>
             <Telescope size={14} />
             <span>explore</span>
           </Link>
           <span style={{ color: 'var(--text-tertiary)', fontSize: '0.75rem' }}>·</span>
-          <Link href="/extension" className="nav-link">
+          <Link href="/extension" className="nav-link" prefetch={false}>
             <Download size={14} />
             <span>extension</span>
           </Link>
           <span style={{ color: 'var(--text-tertiary)', fontSize: '0.75rem' }}>·</span>
-          <Link href="/links" className="nav-link">
+          <Link href="/links" className="nav-link" prefetch={false}>
             <Compass size={14} />
             <span>links</span>
           </Link>
           <span style={{ color: 'var(--text-tertiary)', fontSize: '0.75rem' }}>·</span>
-          <Link href="/mcp" className="nav-link">
+          <Link href="/mcp" className="nav-link" prefetch={false}>
             <Plug size={14} />
             <span>mcp</span>
           </Link>
           <span style={{ color: 'var(--text-tertiary)', fontSize: '0.75rem' }}>·</span>
-          <Link href="/docs" className="nav-link">
+          <Link href="/docs" className="nav-link" prefetch={false}>
             <BookOpen size={14} />
             <span>integrate</span>
           </Link>
@@ -572,27 +596,27 @@ export default function Header({ simple = false, compact = false }: HeaderProps)
           flexWrap: 'wrap',
         }}
       >
-        <Link href="/explore" className="nav-link">
+        <Link href="/explore" className="nav-link" prefetch={false}>
           <Telescope size={16} />
           <span>explore</span>
         </Link>
         <span style={{ color: 'var(--text-tertiary)', fontSize: '0.875rem' }}>·</span>
-        <Link href="/extension" className="nav-link">
+        <Link href="/extension" className="nav-link" prefetch={false}>
           <Download size={16} />
           <span>extension</span>
         </Link>
         <span style={{ color: 'var(--text-tertiary)', fontSize: '0.875rem' }}>·</span>
-        <Link href="/links" className="nav-link">
+        <Link href="/links" className="nav-link" prefetch={false}>
           <Compass size={16} />
           <span>links</span>
         </Link>
         <span style={{ color: 'var(--text-tertiary)', fontSize: '0.875rem' }}>·</span>
-        <Link href="/mcp" className="nav-link">
+        <Link href="/mcp" className="nav-link" prefetch={false}>
           <Plug size={16} />
           <span>mcp</span>
         </Link>
         <span style={{ color: 'var(--text-tertiary)', fontSize: '0.875rem' }}>·</span>
-        <Link href="/docs" className="nav-link">
+        <Link href="/docs" className="nav-link" prefetch={false}>
           <BookOpen size={16} />
           <span>integrate</span>
         </Link>

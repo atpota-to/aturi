@@ -52,8 +52,12 @@ export default function LeafRow({
         e.currentTarget.style.background = baseBg;
       }}
     >
+      {/* `prefetch={false}` + `rel="nofollow"`, per <LinkifiedJson>. One row
+          per collection in the repo, and the repo is any repo in the network. */}
       <Link
         href={href}
+        prefetch={false}
+        rel="nofollow"
         title={inCommon ? 'You have records in this collection too' : undefined}
         style={{
           flex: 1,

@@ -125,8 +125,13 @@ export default function CollectionRecordRow({
           {rowInner}
         </label>
       ) : (
+        // `prefetch={false}` + `rel="nofollow"`, per <LinkifiedJson>. One row
+        // per record in the collection — the deepest and highest-cardinality
+        // tier of the tree, and the one a crawler reaches last and most often.
         <Link
           href={`/explore/${repoSeg}/${collection}/${encodeURIComponent(rkey)}`}
+          prefetch={false}
+          rel="nofollow"
           style={{
             display: 'grid',
             gridColumn: '1 / -1',

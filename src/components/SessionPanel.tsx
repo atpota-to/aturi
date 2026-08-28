@@ -147,9 +147,14 @@ export default function SessionPanel({ onNavigate, onSignInActiveChange }: Props
           <LogIn size={16} />
           <span>sign in</span>
         </button>
+        {/* `prefetch={false}`: this is the signed-out branch, so every
+            anonymous visitor prefetched an account page they have no session
+            for, on every page load. Blocked from crawlers by robots.txt, but
+            it was never worth the request for readers either. */}
         <Link
           href="/account"
           className="compact-nav-link"
+          prefetch={false}
           onClick={onNavigate}
         >
           <Settings size={16} />
@@ -278,6 +283,7 @@ export default function SessionPanel({ onNavigate, onSignInActiveChange }: Props
         <Link
           href="/account"
           className="compact-nav-link compact-nav-link-accent"
+          prefetch={false}
           onClick={onNavigate}
         >
           <Settings size={16} />

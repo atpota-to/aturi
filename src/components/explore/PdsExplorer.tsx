@@ -559,8 +559,14 @@ function RepoRow({
 
   return (
     <li style={{ borderBottom: '1px solid var(--border-subtle)' }}>
+      {/* `prefetch={false}` + `rel="nofollow"`, per <LinkifiedJson>. One row
+          per repo hosted here, and a busy PDS hosts thousands, so this is the
+          widest single fan-out in the explorer: left on the default, rendering
+          one PDS page queued a prefetch for every account on it. */}
       <Link
         href={`/explore/${encodeRepo(handle || repo.did)}`}
+        prefetch={false}
+        rel="nofollow"
         style={{
           display: 'grid',
           gridTemplateColumns: 'minmax(14ch, 24ch) 1fr auto',
