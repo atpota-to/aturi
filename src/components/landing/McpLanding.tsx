@@ -1,6 +1,5 @@
 'use client';
 
-import Link from 'next/link';
 import { ArrowRight, Boxes, Plug } from 'lucide-react';
 import AppearIn from '@/components/explore/AppearIn';
 import { TOOL_COUNT, toolCountWord } from '@/lib/mcp/catalog';
@@ -72,7 +71,7 @@ export default function McpLanding({ endpoint }: { endpoint: string }) {
                 lineHeight: 1.15,
               }}
             >
-              One URL, and your agent can read the Atmosphere
+              One URL makes the Atmosphere more traversable for agents
             </h1>
             <p
               style={{
@@ -84,10 +83,10 @@ export default function McpLanding({ endpoint }: { endpoint: string }) {
               }}
             >
               Add <code style={{ color: 'var(--text-accent)' }}>{display}</code> to
-              Claude, Cursor, or any MCP client. Your agent can then read any
-              account&rsquo;s repository, trace who references what across every
-              app, and follow Jetstream as records land. No key, no account, nothing to
-              install.
+              your AI&rsquo;s interface to get structured and contextual access to
+              the Atmosphere. Analyze any repository, explore backlinks, learn how
+              the protocol works, and ask clarifying questions. No key, no account,
+              nothing to install.
             </p>
             <p
               style={{
@@ -156,24 +155,6 @@ export default function McpLanding({ endpoint }: { endpoint: string }) {
         }
         visual={<McpToolCatalogVisual />}
       />
-
-      <AppearIn>
-        <p
-          style={{
-            margin: 0,
-            fontSize: '0.9rem',
-            color: 'var(--text-tertiary)',
-            lineHeight: 1.6,
-          }}
-        >
-          Building software instead of prompting an agent? The same answers are
-          plain GET endpoints, typed in{' '}
-          <a href="/openapi.json">the OpenAPI document</a> and explained in the{' '}
-          <Link href="/docs">developer docs</Link>. What the server does not do,
-          and what can still change while it is in {MCP_STAGE}, is listed in{' '}
-          <Link href="/mcp.md">the Markdown twin of this page</Link>.
-        </p>
-      </AppearIn>
 
       <CrossLinkCards current="mcp" />
     </div>
