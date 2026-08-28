@@ -13,7 +13,7 @@ test('an ordinary result passes through as text plus structured content', () => 
 test('an oversized result is refused rather than flooding the caller', () => {
   // Stands in for a repo on a hostile PDS answering a legal list_records call
   // with megabytes: the tool code is correct, the upstream is the problem.
-  const huge = { records: Array.from({ length: 400 }, () => ({ value: 'x'.repeat(2000) })) };
+  const huge = { records: Array.from({ length: 800 }, () => ({ value: 'x'.repeat(2000) })) };
   const result = okResult(huge);
   assert.equal(result.isError, true);
   const body = resultBody(result);

@@ -208,7 +208,7 @@ export function registerBskyTools(server: McpServer): void {
           .min(1)
           .max(2048)
           .describe('at://<repo>/app.bsky.feed.post/<rkey> or a Bluesky-family post URL.'),
-        depth: z.number().int().min(1).max(10).optional().describe('Reply depth, default 6.'),
+        depth: z.number().int().min(1).max(1000).optional().describe('Reply depth, default 6.'),
       }),
       annotations: READ_ONLY,
     },
@@ -266,7 +266,7 @@ export function registerBskyTools(server: McpServer): void {
         since: z.string().min(4).max(40).optional().describe('ISO 8601 lower bound, e.g. 2026-08-01.'),
         until: z.string().min(4).max(40).optional().describe('ISO 8601 upper bound.'),
         lang: z.string().min(2).max(10).optional().describe('BCP-47 language, e.g. en, pt-BR.'),
-        limit: z.number().int().min(1).max(50).optional().describe('Default 25.'),
+        limit: z.number().int().min(1).max(100).optional().describe('Default 25.'),
         cursor: z.string().min(1).max(512).optional(),
       }),
       annotations: READ_ONLY,
@@ -310,12 +310,13 @@ export function registerBskyTools(server: McpServer): void {
         'it also covers accounts the Bluesky index has never seen.',
       inputSchema: z.object({
         query: z.string().min(1).max(100),
-        limit: z.number().int().min(1).max(25).optional().describe('Default 10.'),
+        limit: z.number().int().min(1).max(100).optional().describe('Default 10.'),
+        cursor: z.string().min(1).max(1024).optional(),
       }),
       annotations: READ_ONLY,
     },
-    toolHandler(async ({ query, limit }) => {
-      const page = await searchActors(query, { limit: limit ?? 10 });
+    toolHandler(async ({ query, limit, cursor }) => {
+      const page = await searchActors(query, { limit: limit ?? 10, cursor });
       if (!page) {
         throw new McpToolError(
           'upstream_error',
@@ -326,6 +327,7 @@ export function registerBskyTools(server: McpServer): void {
       return {
         query,
         count: page.actors?.length ?? 0,
+        cursor: page.cursor ?? null,
         actors: (page.actors ?? []).map(profileCard),
       };
     }),
@@ -586,7 +588,7 @@ export function registerBskyTools(server: McpServer): void {
         'expands into the actual accounts.',
       inputSchema: z.object({
         actor: z.string().min(1).max(253).describe('Handle or DID of the pack author.'),
-        limit: z.number().int().min(1).max(50).optional().describe('Default 25.'),
+        limit: z.number().int().min(1).max(100).optional().describe('Default 25.'),
         cursor: z.string().min(1).max(1024).optional(),
       }),
       annotations: READ_ONLY,
@@ -639,10 +641,16 @@ export function registerBskyTools(server: McpServer): void {
         'each one publishes and who runs it. Labelers are ordinary atproto accounts, so their DIDs ' +
         'come from labels on a record or from resolve_identity like any other.',
       inputSchema: z.object({
+        // getServices puts no maxLength on `dids`, so this cap is ours: the
+        // DIDs travel in a query string, and an unbounded array is a URL long
+        // enough to be refused before it arrives. 100 is comfortably more
+        // labelers than exist and keeps a batch of did:plc under 5KB of URL.
+        // A batch of unusually long did:web values can still be refused
+        // upstream on length, which surfaces as an upstream error.
         dids: z
           .array(z.string().min(1).max(256))
           .min(1)
-          .max(10)
+          .max(100)
           .describe('Labeler DIDs, e.g. did:plc:ar7c4by46qjdydhdevvrndac (Bluesky Moderation).'),
       }),
       annotations: READ_ONLY,

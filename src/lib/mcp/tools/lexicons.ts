@@ -194,7 +194,7 @@ export function registerLexiconTools(server: McpServer): void {
         'the lexicon is currently quiet.',
       inputSchema: z.object({
         nsid: nsidSchema,
-        limit: z.number().int().min(1).max(25).optional().describe('Default 10.'),
+        limit: z.number().int().min(1).max(100).optional().describe('Default 10.'),
       }),
       annotations: READ_ONLY,
     },

@@ -30,7 +30,7 @@ test('list_feeds bounds its source enum and page size', () => {
   const schema = tools.get('list_feeds')!.config.inputSchema!;
   assert.equal(schema.safeParse({}).success, false, 'source is required');
   assert.equal(schema.safeParse({ source: 'everything' }).success, false);
-  assert.equal(schema.safeParse({ source: 'popular', limit: 51 }).success, false);
+  assert.equal(schema.safeParse({ source: 'popular', limit: 101 }).success, false);
   assert.equal(schema.safeParse({ source: 'popular', query: 'science' }).success, true);
 });
 
