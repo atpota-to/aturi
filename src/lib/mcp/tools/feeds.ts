@@ -49,7 +49,7 @@ export function registerFeedTools(server: McpServer): void {
         source: z.enum(['actor', 'popular', 'suggested']).describe('Where to look for feeds.'),
         actor: z.string().min(1).max(253).optional().describe('Required when source is "actor".'),
         query: z.string().min(1).max(100).optional().describe('Search terms; "popular" only.'),
-        limit: z.number().int().min(1).max(50).optional().describe('Default 25.'),
+        limit: z.number().int().min(1).max(100).optional().describe('Default 25.'),
         cursor: z.string().min(1).max(1024).optional(),
       }),
       annotations: READ_ONLY,
@@ -160,7 +160,7 @@ export function registerFeedTools(server: McpServer): void {
         'two apart. Expand members with get_list, or read their posts with get_list_feed.',
       inputSchema: z.object({
         actor: z.string().min(1).max(253).describe('Handle or DID of the list author.'),
-        limit: z.number().int().min(1).max(50).optional().describe('Default 25.'),
+        limit: z.number().int().min(1).max(100).optional().describe('Default 25.'),
         cursor: z.string().min(1).max(1024).optional(),
       }),
       annotations: READ_ONLY,

@@ -25,10 +25,18 @@ import { toolFailure, type ToolResult } from '@/lib/mcp/errors';
  * predict their own size trim first (get_lexicon_schema, sample_jetstream);
  * this is the net under all of them, including tools added later.
  *
- * Generous enough that no honest call reaches it: the largest legitimate
- * result measured (100 posts with full records) is about 200KB.
+ * A megabyte is deliberately more than one caller's context window can hold,
+ * and that is the right place to draw it. This limit exists to stop a payload
+ * nobody could have wanted, not to size the caller's context — they already
+ * control that with `limit`, and they are the only ones who know their budget.
+ * Drawn tight, it refuses instead: a full page of long-form records (whtwnd
+ * entries, lexicon documents) is an honest request that used to come back as
+ * an error, which is a worse answer than a large one.
+ *
+ * For scale: 100 posts with full records, the largest result measured on the
+ * Bluesky tools, is about 200KB.
  */
-const MAX_RESULT_BYTES = 512_000;
+const MAX_RESULT_BYTES = 1_000_000;
 
 export function okResult(data: Record<string, unknown>): ToolResult {
   const body = { ok: true, ...data };

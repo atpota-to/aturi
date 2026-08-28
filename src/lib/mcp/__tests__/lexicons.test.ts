@@ -42,7 +42,8 @@ test('window and sort are closed enums; limits are bounded', () => {
   assert.equal(trending.safeParse({ window: '7d', sort: 'dids-estimate', limit: 50 }).success, true);
 
   const sample = tools.get('sample_recent_records')!.config.inputSchema!;
-  assert.equal(sample.safeParse({ nsid: 'app.bsky.feed.post', limit: 26 }).success, false);
+  assert.equal(sample.safeParse({ nsid: 'app.bsky.feed.post', limit: 101 }).success, false);
+  assert.equal(sample.safeParse({ nsid: 'app.bsky.feed.post', limit: 100 }).success, true);
 });
 
 test('NSID-taking tools reject non-NSIDs before touching the network', async () => {

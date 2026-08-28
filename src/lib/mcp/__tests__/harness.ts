@@ -74,4 +74,4 @@ export function resultBody(result: ToolResult): Record<string, unknown> {
 export const MAX_DESCRIPTION_LENGTH = 600;
 
 /** Bytes a single tool result may occupy; mirrors respond.ts's own ceiling. */
-export const MAX_RESULT_BYTES = 512_000;
+export const MAX_RESULT_BYTES = 1_000_000;

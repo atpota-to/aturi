@@ -41,13 +41,16 @@ test('search schemas bound query length and page sizes', () => {
   const posts = tools.get('search_posts')!.config.inputSchema!;
   assert.equal(posts.safeParse({}).success, false);
   assert.equal(posts.safeParse({ query: 'x'.repeat(301) }).success, false);
-  assert.equal(posts.safeParse({ query: 'atproto', limit: 51 }).success, false);
+  assert.equal(posts.safeParse({ query: 'atproto', limit: 101 }).success, false);
   assert.equal(posts.safeParse({ query: 'atproto', sort: 'newest' }).success, false);
-  assert.equal(posts.safeParse({ query: 'atproto', sort: 'latest', limit: 50 }).success, true);
+  assert.equal(posts.safeParse({ query: 'atproto', sort: 'latest', limit: 100 }).success, true);
 
   const actors = tools.get('search_actors')!.config.inputSchema!;
   assert.equal(actors.safeParse({ query: 'x'.repeat(101) }).success, false);
-  assert.equal(actors.safeParse({ query: 'dame', limit: 25 }).success, true);
+  assert.equal(actors.safeParse({ query: 'dame', limit: 101 }).success, false);
+  assert.equal(actors.safeParse({ query: 'dame', limit: 100 }).success, true);
+  // The AppView pages actor search, so the cap is a page size, not a wall.
+  assert.equal(actors.safeParse({ query: 'dame', cursor: 'abc' }).success, true);
 });
 
 test('the new feed and graph tools bound their inputs', () => {
