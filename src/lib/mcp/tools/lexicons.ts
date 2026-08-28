@@ -70,6 +70,11 @@ export function registerLexiconTools(server: McpServer): void {
         'activity in a window, ranked by records created or by distinct accounts. This is how you ' +
         'discover what exists in the Atmosphere beyond Bluesky; follow up with ' +
         'sample_recent_records on anything unfamiliar.',
+      // No cursor, and that is upstream's rule rather than an omission: the
+      // UFOs /collections endpoint answers `cursor` alongside `order` with
+      // "`cursor` is mutually exclusive with `order`. ordered results cannot
+      // be paged", and returns no cursor at all on an ordered response. This
+      // is a ranked top-N; `limit` is the only way to widen it.
       inputSchema: z.object({
         window: windowSchema,
         sort: z

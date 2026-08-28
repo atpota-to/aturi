@@ -311,10 +311,16 @@ export function registerRepoTools(server: McpServer): void {
           .max(1000)
           .optional()
           .describe('Repos to sample, default 25. listRepos allows up to 1000.'),
+        cursor: z
+          .string()
+          .min(1)
+          .max(1024)
+          .optional()
+          .describe('Page on from a previous call\'s repoSampleCursor.'),
       }),
       annotations: READ_ONLY,
     },
-    toolHandler(async ({ host, limit }) => {
+    toolHandler(async ({ host, limit, cursor }) => {
       const base = await assertPublicServiceBase(host, 'The host');
 
       let description;
@@ -341,7 +347,7 @@ export function registerRepoTools(server: McpServer): void {
       let repoSample: Array<Record<string, unknown>> = [];
       let repoCursor: string | null = null;
       try {
-        const page = await listRepos(base, { limit: limit ?? 25 });
+        const page = await listRepos(base, { limit: limit ?? 25, cursor });
         repoSample = page.repos.map((r) => ({
           did: r.did,
           active: r.active ?? null,
