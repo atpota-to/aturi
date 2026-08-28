@@ -17,6 +17,21 @@ import { buildAtTagsMetadata } from '@/utils/atproto/atTags';
 import { buildProfileCanonical } from '@/utils/canonicalUrl';
 import { getSiteUrl } from '@/lib/config';
 
+/**
+ * ISR, on the reasoning in `[handle]/[collection]/[rkey]/page.tsx` — including
+ * the part about a transient upstream failure being cacheable. Sixty seconds
+ * rather than five minutes because a profile is mutable in a way a record is
+ * not: display name, avatar and description all change under a stable URL, and
+ * this page renders all three.
+ */
+export const revalidate = 60;
+
+// Empty, and required for the `revalidate` above to do anything at all — see
+// `explore/[repo]/page.tsx`.
+export function generateStaticParams() {
+  return [];
+}
+
 type Props = {
   params: Promise<{ handle: string }>;
 };
