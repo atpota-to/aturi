@@ -40,6 +40,37 @@ Decisions taken 2026-08-23:
 - **D8 (naming):** serverInfo name `aturi`, flat unprefixed tool names.
   Registry namespace (`to.aturi/mcp`) still to be claimed at M2.
 
+Revised 2026-08-28. The catalog is now **thirty-eight** tools across nine
+groups, so the tables below are a subset of what ships as well as being the
+original proposal. Two things in them have since changed:
+
+- **Page-size caps are no longer the numbers in the tables.** Every tool cap
+  was checked against the lexicon it calls and the ones that were tighter
+  than upstream for no recorded reason were raised to match: `search_posts`
+  and `list_feeds`, `list_lists` and `get_starter_packs` 50 → 100,
+  `search_actors` and `sample_recent_records` 25 → 100, `get_thread` depth
+  10 → 1000, `get_labeler_services` 10 → 100 DIDs, and `describe_pds`'s fixed
+  25-repo sample became a `limit` with `listRepos`' own maximum of 1000.
+  Defaults are unchanged: a maximum costs nothing until a caller asks for it.
+  The caps left alone are the network's rather than ours — 100 on the eight
+  tools whose lexicons cap at 100, Constellation's 100 on `get_backlinks`, 25
+  on `get_trends`, and the 25-item batches in `get_profile` and `get_posts`,
+  which are `maxLength` in the lexicon.
+- **`search_actors` takes a cursor.** It was capped at 25 and returned no
+  cursor, so 25 accounts was not a page but the entire reachable set. A sweep
+  of all thirty-eight tools found one other mismatch, `describe_pds` handing
+  back a `repoSampleCursor` it would not accept, and confirmed the rest have
+  no cursor because their upstream has nothing to page. `list_trending_lexicons`
+  is the notable one: UFOs answers `cursor` alongside `order` with "ordered
+  results cannot be paged", so it is a ranked top-N by construction and
+  `limit` is the only way to widen it.
+
+The result ceiling in `respond.ts` went 512KB → 1MB at the same time. It is
+there to stop a payload nobody could have wanted, not to size the caller's
+context — callers do that with `limit` — and at 512KB it refused honest
+requests like one page of long-form records. D7 is unaffected and still open:
+there is still no rate limiting of any kind on `/api/mcp`.
+
 The pitch in one line: `https://aturi.to/mcp`, a hosted Model Context Protocol
 server that any AI agent can add by URL, with no key and no account, exposing
 the Atmosphere Explorer as tools. A person asks their agent "who links to this
