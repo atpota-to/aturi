@@ -25,9 +25,10 @@ import {
  * larger and not ours to predict. Measuring anything else would assert on a
  * number no caller ever sees.
  *
- * Bytes, not tokens, because bytes are exact, tokenizer-independent and need
- * no dependency the rest of this suite does not already have. The harness
- * records the conversion for anyone reading a failure in tokens.
+ * Bytes, not tokens, because bytes are exact and need no dependency the rest
+ * of this suite does not already have. Tokens are model-specific and no
+ * local tokenizer gets Claude right, so the harness records an approximate
+ * conversion and says why it is approximate.
  */
 
 /** The tools array as an MCP client receives it. */
@@ -84,7 +85,7 @@ test('the tool list fits the context budget it is allowed', () => {
   assert.ok(
     total <= MAX_TOOL_LIST_BYTES,
     `tools/list is ${total} bytes over ${tools.length} tools, past the ${MAX_TOOL_LIST_BYTES} budget ` +
-      `(descriptions ${descriptions}, schemas ${schemas}, ~${Math.round(total / 4.1)} tokens). ` +
+      `(descriptions ${descriptions}, schemas ${schemas}, ~${Math.round(total / 3.5)} tokens on Claude). ` +
       `Trim descriptions or schemas, or raise MAX_TOOL_LIST_BYTES and say why in the plan's design record.`,
   );
 });

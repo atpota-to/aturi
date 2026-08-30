@@ -84,15 +84,29 @@ export const MAX_RESULT_BYTES = 1_000_000;
  * conversation; a client that defers schemas holds only the names, which are
  * 659 bytes of the total. Measured 2026-08-30 against the served payload:
  * 33,195 bytes across 38 tools, of which descriptions are 10,901 and input
- * schemas 15,751. That is about 8,100 tokens, or 4.1 bytes per token, if a
- * failure needs converting into the unit a caller actually budgets in.
+ * schemas 15,751.
  *
- * 48,000 leaves room for roughly sixteen more average-sized tools before the
- * budget has to be argued rather than assumed. That is the point of the
- * number: not that 48KB is correct, but that passing it should be a decision
- * someone makes rather than a thing that happens.
+ * Bytes are the unit here because they are exact. Callers budget in tokens,
+ * which are model-specific: an OpenAI tokenizer puts this list at about
+ * 8,100, and Anthropic's guidance is that those undercount Claude by 15-20%,
+ * so call it 9,500 and treat `messages.count_tokens` as the only figure
+ * worth quoting. That is roughly 3.5 bytes per token, which is what the
+ * failure message converts at.
+ *
+ * The ceiling is that conversion applied to a threshold someone else set.
+ * Anthropic's advanced-tool-use guidance says to defer tool schemas once
+ * definitions pass 10K tokens, and Claude Code applies about that number
+ * automatically; the MCP client best-practices doc says the same thing as
+ * 1-5% of the context window. 35,000 bytes is 10K tokens at 3.5, so this
+ * catalog sits just under the line where clients stop loading it eagerly.
+ *
+ * That leaves only about two tools of headroom, which is the intent rather
+ * than an oversight. Crossing 10K is not a bug and deferral is not a
+ * punishment, but it does change what every caller's client does with this
+ * server, and that should be a decision someone makes rather than a thing
+ * that happens. Raising this constant is how that decision gets recorded.
  */
-export const MAX_TOOL_LIST_BYTES = 48_000;
+export const MAX_TOOL_LIST_BYTES = 35_000;
 
 /**
  * Ceiling on a single tool's entry in that payload.
@@ -100,5 +114,10 @@ export const MAX_TOOL_LIST_BYTES = 48_000;
  * Guards the other failure mode: not forty small tools but one tool whose
  * schema grew a hundred-value enum. The mean is 873 bytes and the largest
  * (`sample_jetstream`, which carries three filter arrays) is 1,484.
+ *
+ * For scale, this catalog averages about 250 tokens a tool where Anthropic's
+ * published figures put the GitHub MCP server near 740 and Slack's near
+ * 1,900, so the per-tool budget is generous by the standard of the servers
+ * it is measured against.
  */
 export const MAX_TOOL_BYTES = 2_000;
