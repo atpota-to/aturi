@@ -80,6 +80,17 @@ describe('WAYPOINT_ICON_SVGS', () => {
     },
   );
 
+  it('knocks out to --bg-primary in exactly the documented marks', () => {
+    // The README names these three so consumers know which marks need
+    // `--bg-primary` set on a non-white surface. A new mark using the knockout
+    // has to be added there as well, or the docs are quietly wrong.
+    const knockout = Object.entries(WAYPOINT_ICON_SVGS)
+      .filter(([, svg]) => svg.includes('--bg-primary'))
+      .map(([id]) => id)
+      .sort();
+    expect(knockout).toEqual(['lea', 'leaflet', 'pckt']);
+  });
+
   it('shares one string between waypoints that share a mark', () => {
     // Anisota's mark is ~34KB and two waypoints point at it. Aliasing rather
     // than duplicating is what keeps the icons bundle to roughly one copy.

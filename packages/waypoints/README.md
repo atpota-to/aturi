@@ -239,6 +239,10 @@ Values are markup, not components, so any framework can render them:
 <span dangerouslySetInnerHTML={{ __html: getWaypointIconSvg(id) ?? '' }} />
 ```
 
+The values are static package data, not user input, so none of those three is an
+injection risk. Linters that flag `v-html` or `dangerouslySetInnerHTML` on sight
+will still want an inline exception.
+
 Individual marks are exported by name if you would rather pull one and let the
 rest tree-shake away:
 
@@ -253,14 +257,15 @@ the same catalog as JSX.
 ### Styling
 
 Each mark is 24x24 and paints in `currentColor`, so it takes the colour of the
-surrounding text. Override the size with CSS rather than editing the string:
+surrounding text. A CSS rule beats the width and height baked into the markup,
+so size them from your stylesheet rather than rewriting the string:
 
 ```css
 .waypoint-icon svg { width: 1.25rem; height: 1.25rem; }
 ```
 
-A few marks (Leaflet, Lea, Offprint, Pckt) knock part of the shape out to the
-page background rather than painting it. That colour comes from
+Three marks (Lea, Leaflet, pckt) knock part of the shape out to the page
+background instead of painting it. That colour comes from
 `var(--bg-primary, white)`, so set `--bg-primary` on an ancestor if your surface
 is not white:
 
@@ -272,6 +277,32 @@ is not white:
 supported path; a mark referenced as an external image or data URI through
 `<img src>` or `background-image` is a separate document with no access to your
 text colour, and will paint black.
+
+Every mark fills the same 24x24 box, so a row of them lines up, but the artwork
+inside does not carry equal weight. Painted area runs from roughly a third of
+the box (Impro, Mu, Taproot) to all of it (Lea, Red Dwarf). That is the brands'
+own proportions rather than something the catalog flattens, so nudge individual
+marks in your own CSS if you want them optically even.
+
+### Accessibility
+
+The marks carry no title or description, and a handful set `aria-hidden` while
+most do not. Be explicit at the call site rather than relying on what happens to
+be in the markup.
+
+Beside a visible client name the mark is decorative, so hide it:
+
+```html
+<span class="waypoint-icon" aria-hidden="true"><!-- mark --></span>
+```
+
+Standing alone as the whole of a link or button, it needs an accessible name:
+
+```html
+<a href="…" aria-label="Open in Bluesky">
+  <span class="waypoint-icon"><!-- mark --></span>
+</a>
+```
 
 ### Trademarks
 
