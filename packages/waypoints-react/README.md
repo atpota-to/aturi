@@ -267,6 +267,11 @@ The per-client SVG components and the `WAYPOINT_ICONS` map are exported too:
 import { WAYPOINT_ICONS, BlueskySVG } from '@aturi.to/waypoints-react';
 ```
 
+The same marks are available as plain SVG strings from
+[`@aturi.to/waypoints/icons`](../waypoints#icons), which is the one to reach for
+outside React or when you need markup rather than a component. Both are
+generated from the same catalog.
+
 ## License
 
 MIT © atpotato, LLC.

@@ -14,6 +14,7 @@ import {
 } from 'node:fs';
 import { dirname, resolve, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { renderIconDataModule } from './svgFromJsx.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url)); // packages/waypoints/scripts
 const repoRoot = resolve(here, '../../..'); // repo root
@@ -61,6 +62,16 @@ const FILES = [
     to: resolve(coreSrc, 'reverseParsers.ts'),
     transform: identity,
   },
+  {
+    // The same catalog the React package ships, translated into standalone SVG
+    // markup so the zero-dependency core can offer the marks to consumers that
+    // are not on React. Generated rather than copied: JSX is not valid SVG, and
+    // a hand-kept second catalog would drift. See scripts/svgFromJsx.mjs.
+    from: resolve(repoRoot, 'src/utils/waypointIcons.tsx'),
+    also: [resolve(repoRoot, 'src/components/AnisotaLogo.tsx')],
+    to: resolve(coreSrc, 'waypointIcons.data.ts'),
+    transform: renderIconDataModule,
+  },
   // React icon catalog + its Anisota dependency -> @aturi.to/waypoints-react
   {
     from: resolve(repoRoot, 'src/utils/waypointIcons.tsx'),
@@ -79,11 +90,16 @@ const check = process.argv.includes('--check');
 
 let drift = 0;
 for (const file of FILES) {
-  if (!existsSync(file.from)) {
-    console.error(`missing source: ${rel(file.from)}`);
-    process.exit(1);
+  // `also` lists further canonical inputs a transform needs; their contents are
+  // passed after the primary source.
+  const sources = [file.from, ...(file.also ?? [])];
+  for (const source of sources) {
+    if (!existsSync(source)) {
+      console.error(`missing source: ${rel(source)}`);
+      process.exit(1);
+    }
   }
-  const expected = file.transform(readFileSync(file.from, 'utf8'));
+  const expected = file.transform(...sources.map((s) => readFileSync(s, 'utf8')));
   if (check) {
     const current = existsSync(file.to) ? readFileSync(file.to, 'utf8') : null;
     if (current !== expected) {

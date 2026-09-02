@@ -1,7 +1,7 @@
 {
   "name": "@aturi.to/waypoints",
   "version": "0.1.3",
-  "description": "[Beta] Aturi's curated catalog of Atmosphere (AT Protocol) clients, with per-client \"Open in…\" link builders, recommendations, and URL/AT-URI resolution. Zero runtime dependencies.",
+  "description": "[Beta] Aturi's curated catalog of Atmosphere (AT Protocol) clients, with per-client \"Open in…\" link builders, recommendations, URL/AT-URI resolution, and every client's brand mark as framework-agnostic SVG. Zero runtime dependencies.",
   "license": "MIT",
   "author": "atpotato, LLC",
   "homepage": "https://aturi.to",
@@ -16,7 +16,9 @@
     "bluesky",
     "at-uri",
     "aturi",
-    "waypoints"
+    "waypoints",
+    "icons",
+    "svg"
   ],
   "type": "module",
   "sideEffects": false,
@@ -34,7 +36,24 @@
         "default": "./dist/index.cjs"
       }
     },
+    "./icons": {
+      "import": {
+        "types": "./dist/icons.d.ts",
+        "default": "./dist/icons.js"
+      },
+      "require": {
+        "types": "./dist/icons.d.cts",
+        "default": "./dist/icons.cjs"
+      }
+    },
     "./package.json": "./package.json"
+  },
+  "typesVersions": {
+    "*": {
+      "icons": [
+        "./dist/icons.d.ts"
+      ]
+    }
   },
   "files": [
     "dist",
