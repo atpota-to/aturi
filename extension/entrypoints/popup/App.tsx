@@ -490,26 +490,21 @@ function RedirectControl({ prefs, tabId }: { prefs: Prefs; tabId: number | null 
     }
   }
 
-  const status = !prefs.autoRedirect ? 'Off' : paused ? 'Paused here' : 'On';
+  const showPaused = paused && prefs.autoRedirect;
+  const rowClass = [
+    'popup-redirect',
+    prefs.autoRedirect ? 'is-on' : '',
+    showPaused ? 'is-paused' : '',
+  ]
+    .filter(Boolean)
+    .join(' ');
 
   return (
-    <div className={`popup-redirect ${paused && prefs.autoRedirect ? 'is-paused' : ''}`}>
-      <button
-        type="button"
-        className={`popup-redirect-switch ${prefs.autoRedirect ? 'is-on' : ''}`}
-        onClick={() => void savePrefs({ autoRedirect: !prefs.autoRedirect })}
-        aria-pressed={prefs.autoRedirect}
-        title={
-          prefs.autoRedirect
-            ? 'Turn auto-redirect off everywhere'
-            : 'Turn auto-redirect on'
-        }
-      >
-        <span className="popup-redirect-switch-box" aria-hidden />
-        <Shuffle size={12} aria-hidden />
-        <span className="popup-redirect-label">Auto-redirect</span>
-      </button>
-      <span className="popup-redirect-status">{status}</span>
+    <div className={rowClass}>
+      <Shuffle size={12} className="popup-redirect-icon" aria-hidden />
+      <span className="popup-redirect-label">
+        {showPaused ? 'Paused on this tab' : 'Auto-redirect'}
+      </span>
       {canPause && (
         <button
           type="button"
@@ -519,12 +514,27 @@ function RedirectControl({ prefs, tabId }: { prefs: Prefs; tabId: number | null 
           title={
             paused
               ? 'Redirect links in this tab again'
-              : 'Leave this tab alone until you resume or close it'
+              : 'Leave this tab alone until you resume it or close the tab'
           }
         >
           {paused ? 'Resume here' : 'Pause here'}
         </button>
       )}
+      <button
+        type="button"
+        className={`aturi-switch aturi-switch-sm ${prefs.autoRedirect ? 'on' : ''}`}
+        onClick={() => void savePrefs({ autoRedirect: !prefs.autoRedirect })}
+        aria-pressed={prefs.autoRedirect}
+        aria-label="Auto-redirect"
+        title={
+          prefs.autoRedirect
+            ? 'Turn auto-redirect off everywhere'
+            : 'Turn auto-redirect on'
+        }
+      >
+        <span className="aturi-switch-box" aria-hidden />
+        <span className="aturi-muted">{prefs.autoRedirect ? 'On' : 'Off'}</span>
+      </button>
     </div>
   );
 }

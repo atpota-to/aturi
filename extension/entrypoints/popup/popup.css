@@ -892,119 +892,85 @@ body {
 }
 
 /* ----- Auto-redirect control ---------------------------------------------
-   Slim row under the mode tabs: a switch for the global pref on the left, the
-   current state next to it, and the per-tab pause pushed to the right edge. */
+   Slim chrome row under the mode tabs, laid out like `.options-toggle-row`:
+   label on the left, controls pushed to the right edge. Square corners, serif
+   type and 0.3s transitions to match the rest of the extension; the switch is
+   the shared `.aturi-switch` at its compact size rather than a second one. */
 
 .popup-redirect {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 6px 12px 6px 14px;
+  gap: 10px;
+  padding: 7px 14px;
   border-bottom: 1px solid var(--border-subtle);
   background: var(--bg-primary);
-  font-family: var(--font-sans);
+  font-family: var(--font-serif);
   font-size: var(--fs-xs);
 }
 
+/* A paused tab is the one state you can't read off the switch (auto-redirect
+   is still on globally), so the row itself carries the signal. */
 .popup-redirect.is-paused {
-  background: var(--bg-tertiary);
+  background: var(--bg-secondary);
+  box-shadow: inset 2px 0 0 var(--text-accent);
 }
 
-.popup-redirect-switch {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 2px 0;
-  background: transparent;
-  border: 0;
-  color: var(--text-tertiary);
-  font-family: inherit;
-  font-size: inherit;
-  cursor: pointer;
-  transition: color 0.2s ease;
-}
-
-.popup-redirect-switch:hover {
-  color: var(--text-secondary);
-}
-
-.popup-redirect-switch.is-on {
-  color: var(--text-secondary);
-}
-
-.popup-redirect-switch svg {
+.popup-redirect-icon {
   flex-shrink: 0;
-}
-
-.popup-redirect-switch-box {
-  position: relative;
-  width: 22px;
-  height: 12px;
-  flex-shrink: 0;
-  border-radius: 999px;
-  background: var(--bg-elevated);
-  border: 1px solid var(--border-subtle);
-  transition: background 0.2s ease, border-color 0.2s ease;
-}
-
-.popup-redirect-switch-box::after {
-  content: '';
-  position: absolute;
-  top: 1px;
-  left: 1px;
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--text-tertiary);
-  transition: transform 0.2s ease, background 0.2s ease;
-}
-
-.popup-redirect-switch.is-on .popup-redirect-switch-box {
-  background: var(--text-accent);
-  border-color: var(--text-accent);
-}
-
-.popup-redirect-switch.is-on .popup-redirect-switch-box::after {
-  transform: translateX(10px);
-  background: var(--bg-primary);
-}
-
-.popup-redirect-label {
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  font-weight: 500;
-}
-
-.popup-redirect-status {
-  margin-right: auto;
   color: var(--text-tertiary);
+  transition: color 0.3s ease;
 }
 
-.popup-redirect.is-paused .popup-redirect-status {
+.popup-redirect.is-on .popup-redirect-icon,
+.popup-redirect.is-paused .popup-redirect-icon {
   color: var(--text-accent);
 }
 
+.popup-redirect-label {
+  margin-right: auto;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
 .popup-redirect-pause {
-  padding: 3px 8px;
-  border-radius: 4px;
+  flex-shrink: 0;
+  padding: 3px 9px;
+  background: var(--bg-secondary);
   border: 1px solid var(--border-subtle);
-  background: transparent;
   color: var(--text-tertiary);
-  font-family: inherit;
-  font-size: inherit;
-  cursor: pointer;
-  transition: color 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+  font-family: var(--font-serif);
+  font-size: var(--fs-xs);
+  white-space: nowrap;
+  transition: all 0.3s ease;
 }
 
 .popup-redirect-pause:hover:not(:disabled) {
-  color: var(--text-primary);
-  border-color: var(--text-accent);
   background: var(--bg-tertiary);
+  border-color: var(--text-accent);
+  color: var(--text-primary);
+}
+
+.popup-redirect.is-paused .popup-redirect-pause {
+  border-color: var(--text-accent);
+  color: var(--text-primary);
 }
 
 .popup-redirect-pause:disabled {
   opacity: 0.5;
   cursor: default;
+}
+
+/* Give the switch the same box as the pause button (a 1px border and 3px of
+   vertical padding around identical text) so the row keeps its height whether
+   or not the button is showing. */
+.popup-redirect .aturi-switch {
+  flex-shrink: 0;
+  padding: 3px 0;
+  border: 1px solid transparent;
+  font-size: var(--fs-xs);
 }
 
 /* ----- Inspect card ------------------------------------------------------ */
