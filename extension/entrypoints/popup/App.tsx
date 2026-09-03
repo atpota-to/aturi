@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { browser } from '#imports';
-import { MousePointer2, Telescope } from 'lucide-react';
+import { MousePointer2, Shuffle, Telescope } from 'lucide-react';
 import type { ReverseMatch } from '@aturi/reverseParsers';
 import type { WaypointActivity, WaypointData, WaypointType } from '@aturi/waypoints.data';
 import { matchSupportedUrl, parseAtUri, isSupportedHost } from '@aturi/reverseParsers';
@@ -362,6 +362,7 @@ export default function App() {
           inspectCount={inspectScan.hits.length}
           inspectScanning={inspectScan.scanning}
         />
+        <RedirectControl prefs={prefs} tabId={state.tabId} />
       </div>
       {inner}
     </div>
@@ -423,6 +424,107 @@ function PopupModeTabs({
       >
         <SettingsGearIcon />
       </button>
+    </div>
+  );
+}
+
+/** What the background reports about auto-redirect for one tab. */
+type RedirectScope = { supported: boolean; paused: boolean };
+
+/**
+ * Auto-redirect controls, pinned under the mode tabs.
+ *
+ * The switch is the global `autoRedirect` pref, the same one the options page
+ * owns — flipping it here stays off until you turn it back on. "Pause here" is
+ * the narrower escape hatch: it exempts only the tab you're looking at, lasts
+ * until you resume it or close the tab, and never touches your settings. Use
+ * it when you want to stay put on one page rather than change how redirects
+ * work everywhere.
+ */
+function RedirectControl({ prefs, tabId }: { prefs: Prefs; tabId: number | null }) {
+  const [scope, setScope] = useState<RedirectScope | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    if (tabId == null) {
+      setScope({ supported: false, paused: false });
+      return;
+    }
+    let cancelled = false;
+    void (async () => {
+      try {
+        const res = (await browser.runtime.sendMessage({
+          type: 'aturi:redirect-scope',
+          tabId,
+        })) as RedirectScope | undefined;
+        if (!cancelled) setScope(res ?? { supported: false, paused: false });
+      } catch (err) {
+        debugLog('redirect-scope query failed', err);
+        if (!cancelled) setScope({ supported: false, paused: false });
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [tabId]);
+
+  const paused = scope?.paused === true;
+  // Only offer the per-tab pause once we know the background can actually
+  // scope a rule to this tab — otherwise the button would toggle nothing.
+  const canPause = prefs.autoRedirect && tabId != null && scope?.supported === true;
+
+  async function togglePause() {
+    if (!canPause || busy) return;
+    setBusy(true);
+    try {
+      const res = (await browser.runtime.sendMessage({
+        type: 'aturi:set-tab-pause',
+        tabId,
+        paused: !paused,
+      })) as RedirectScope | undefined;
+      if (res) setScope(res);
+    } catch (err) {
+      console.warn('[aturi:popup] failed to toggle tab pause', err);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const status = !prefs.autoRedirect ? 'Off' : paused ? 'Paused here' : 'On';
+
+  return (
+    <div className={`popup-redirect ${paused && prefs.autoRedirect ? 'is-paused' : ''}`}>
+      <button
+        type="button"
+        className={`popup-redirect-switch ${prefs.autoRedirect ? 'is-on' : ''}`}
+        onClick={() => void savePrefs({ autoRedirect: !prefs.autoRedirect })}
+        aria-pressed={prefs.autoRedirect}
+        title={
+          prefs.autoRedirect
+            ? 'Turn auto-redirect off everywhere'
+            : 'Turn auto-redirect on'
+        }
+      >
+        <span className="popup-redirect-switch-box" aria-hidden />
+        <Shuffle size={12} aria-hidden />
+        <span className="popup-redirect-label">Auto-redirect</span>
+      </button>
+      <span className="popup-redirect-status">{status}</span>
+      {canPause && (
+        <button
+          type="button"
+          className="popup-redirect-pause"
+          onClick={() => void togglePause()}
+          disabled={busy}
+          title={
+            paused
+              ? 'Redirect links in this tab again'
+              : 'Leave this tab alone until you resume or close it'
+          }
+        >
+          {paused ? 'Resume here' : 'Pause here'}
+        </button>
+      )}
     </div>
   );
 }

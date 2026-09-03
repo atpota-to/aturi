@@ -891,6 +891,122 @@ body {
   flex-shrink: 0;
 }
 
+/* ----- Auto-redirect control ---------------------------------------------
+   Slim row under the mode tabs: a switch for the global pref on the left, the
+   current state next to it, and the per-tab pause pushed to the right edge. */
+
+.popup-redirect {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px 6px 14px;
+  border-bottom: 1px solid var(--border-subtle);
+  background: var(--bg-primary);
+  font-family: var(--font-sans);
+  font-size: var(--fs-xs);
+}
+
+.popup-redirect.is-paused {
+  background: var(--bg-tertiary);
+}
+
+.popup-redirect-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 0;
+  background: transparent;
+  border: 0;
+  color: var(--text-tertiary);
+  font-family: inherit;
+  font-size: inherit;
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.popup-redirect-switch:hover {
+  color: var(--text-secondary);
+}
+
+.popup-redirect-switch.is-on {
+  color: var(--text-secondary);
+}
+
+.popup-redirect-switch svg {
+  flex-shrink: 0;
+}
+
+.popup-redirect-switch-box {
+  position: relative;
+  width: 22px;
+  height: 12px;
+  flex-shrink: 0;
+  border-radius: 999px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.popup-redirect-switch-box::after {
+  content: '';
+  position: absolute;
+  top: 1px;
+  left: 1px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--text-tertiary);
+  transition: transform 0.2s ease, background 0.2s ease;
+}
+
+.popup-redirect-switch.is-on .popup-redirect-switch-box {
+  background: var(--text-accent);
+  border-color: var(--text-accent);
+}
+
+.popup-redirect-switch.is-on .popup-redirect-switch-box::after {
+  transform: translateX(10px);
+  background: var(--bg-primary);
+}
+
+.popup-redirect-label {
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-weight: 500;
+}
+
+.popup-redirect-status {
+  margin-right: auto;
+  color: var(--text-tertiary);
+}
+
+.popup-redirect.is-paused .popup-redirect-status {
+  color: var(--text-accent);
+}
+
+.popup-redirect-pause {
+  padding: 3px 8px;
+  border-radius: 4px;
+  border: 1px solid var(--border-subtle);
+  background: transparent;
+  color: var(--text-tertiary);
+  font-family: inherit;
+  font-size: inherit;
+  cursor: pointer;
+  transition: color 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+}
+
+.popup-redirect-pause:hover:not(:disabled) {
+  color: var(--text-primary);
+  border-color: var(--text-accent);
+  background: var(--bg-tertiary);
+}
+
+.popup-redirect-pause:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
 /* ----- Inspect card ------------------------------------------------------ */
 
 .inspect-card {

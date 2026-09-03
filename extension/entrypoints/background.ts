@@ -1,7 +1,14 @@
 import { browser, defineBackground } from '#imports';
 import { loadPrefs, onPrefsChanged, type Prefs } from '../lib/prefs';
 import { buildRules } from '../lib/rules';
-import { buildBypassRule } from '../lib/bypass';
+import { BYPASS_ID_MAX, BYPASS_ID_MIN, buildBypassRule, isBypassRuleId } from '../lib/bypass';
+import {
+  buildTabScopeRules,
+  isBlankTabUrl,
+  isTabScopeRuleId,
+  tabHostFromUrl,
+  type TabScope,
+} from '../lib/tabScope';
 import { debugLog, setLogContext } from '../lib/debugLog';
 
 setLogContext('background');
@@ -105,6 +112,203 @@ async function doSyncRules(prefs: Prefs): Promise<void> {
   }
 }
 
+// Every session-rule writer (bypass arming, bypass teardown, tab-scope sync)
+// goes through one queue. They each read the live rule set with
+// getSessionRules before writing, so running two concurrently lets the second
+// compute its removeRuleIds from a set the first already changed.
+let sessionQueue: Promise<unknown> = Promise.resolve();
+
+function queueSession<T>(task: () => Promise<T>): Promise<T> {
+  const run = () => task();
+  const next = sessionQueue.then(run, run);
+  // Swallow rejections on the chain itself so one failure doesn't reject
+  // every task queued behind it; the caller still sees its own error.
+  sessionQueue = next.then(
+    () => undefined,
+    () => undefined
+  );
+  return next;
+}
+
+// --- Tab-scoped redirect exemptions ------------------------------------------
+//
+// Auto-redirect is declarative: DNR matches a URL and rewrites it, with no
+// idea whether you clicked a link or typed the address yourself. The browser
+// only reports that (via webNavigation's transition types) after a navigation
+// has committed, which is too late to act on without bouncing you off a page
+// that already loaded.
+//
+// So instead of guessing at intent, we use something DNR *can* be told about
+// ahead of the request: which tab it happens in. A tab that is already showing
+// one of the apps involved, or that you just opened and haven't navigated yet,
+// gets a session-scoped `allow` rule covering the relevant hosts. See
+// `lib/tabScope.ts` for what each case means.
+
+const tabScopes = new Map<number, TabScope>();
+
+/** Latest prefs, kept here so tab events can rebuild rules without a reload. */
+let latestPrefs: Prefs | null = null;
+
+/**
+ * Resolves once the initial prefs load and tab sweep have finished. Message
+ * handlers await it so a popup opening against a just-woken service worker
+ * doesn't read an empty `tabScopes`.
+ */
+let readyPromise: Promise<void> = Promise.resolve();
+
+function syncTabScopeRules(): Promise<void> {
+  return queueSession(doSyncTabScopeRules);
+}
+
+/**
+ * Replace the whole tab-scope rule range in one write. Rebuilding every rule
+ * rather than diffing keeps ids meaningful only within a single batch, which
+ * removes the need for an allocator that could leak ids as tabs come and go.
+ */
+async function doSyncTabScopeRules(): Promise<void> {
+  const dnr = getDnr();
+  if (!dnr?.updateSessionRules) return;
+
+  let removeRuleIds: number[] = [];
+  try {
+    const existing = (await dnr.getSessionRules?.()) ?? [];
+    removeRuleIds = existing.map(r => r.id).filter(isTabScopeRuleId);
+  } catch (err) {
+    console.warn('[aturi] getSessionRules unavailable', err);
+  }
+
+  const addRules = latestPrefs ? buildTabScopeRules(latestPrefs, tabScopes) : [];
+
+  try {
+    await dnr.updateSessionRules({ removeRuleIds, addRules });
+  } catch (err) {
+    console.error('[aturi] failed to update tab-scope rules', err);
+  }
+}
+
+/**
+ * Record a tab's scope, resyncing only when something that affects the rules
+ * actually changed. `tabs.onUpdated` fires several times per navigation (title,
+ * favicon, status) and the rule set is identical across most of them.
+ */
+function recordScope(tabId: number, next: TabScope): void {
+  const prev = tabScopes.get(tabId);
+  if (
+    prev &&
+    prev.host === next.host &&
+    prev.fresh === next.fresh &&
+    prev.paused === next.paused
+  ) {
+    return;
+  }
+  tabScopes.set(tabId, next);
+  void syncTabScopeRules();
+}
+
+// Per-tab pauses live in `storage.session`: in-memory, wiped when the browser
+// closes, but survives the MV3 service worker being suspended. Without this a
+// pause would silently lapse the first time the worker idled out.
+const PAUSED_TABS_KEY = 'aturi:pausedTabs';
+
+type SessionArea = {
+  get(keys?: string | string[] | null): Promise<Record<string, unknown>>;
+  set(items: Record<string, unknown>): Promise<void>;
+};
+
+function getSessionArea(): SessionArea | null {
+  const storage = (browser as unknown as { storage?: { session?: SessionArea } }).storage;
+  return storage?.session ?? null;
+}
+
+async function loadPausedTabIds(): Promise<number[]> {
+  const area = getSessionArea();
+  if (!area) return [];
+  try {
+    const items = await area.get(PAUSED_TABS_KEY);
+    const raw = items?.[PAUSED_TABS_KEY];
+    return Array.isArray(raw) ? raw.filter((n): n is number => typeof n === 'number') : [];
+  } catch (err) {
+    console.warn('[aturi] failed to read paused tabs', err);
+    return [];
+  }
+}
+
+async function savePausedTabIds(): Promise<void> {
+  const area = getSessionArea();
+  if (!area) return;
+  const ids = [...tabScopes]
+    .filter(([, scope]) => scope.paused)
+    .map(([tabId]) => tabId);
+  try {
+    await area.set({ [PAUSED_TABS_KEY]: ids });
+  } catch (err) {
+    console.warn('[aturi] failed to persist paused tabs', err);
+  }
+}
+
+/**
+ * Rebuild `tabScopes` from the tabs that are actually open. Runs on every
+ * service worker start, which is also what clears out rules for tabs closed
+ * while the worker was suspended.
+ */
+async function primeTabScopes(): Promise<void> {
+  const paused = new Set(await loadPausedTabIds());
+  try {
+    const tabs = (await browser.tabs.query({})) as Array<{ id?: number; url?: string }>;
+    tabScopes.clear();
+    for (const tab of tabs) {
+      if (typeof tab.id !== 'number') continue;
+      // `fresh` starts false: an untouched new tab is indistinguishable from
+      // one the browser restored, and the safe default is the old behavior.
+      tabScopes.set(tab.id, {
+        host: tabHostFromUrl(tab.url),
+        fresh: false,
+        paused: paused.has(tab.id),
+      });
+    }
+  } catch (err) {
+    console.warn('[aturi] failed to prime tab scopes', err);
+  }
+  await syncTabScopeRules();
+}
+
+/** Reply shape for both popup messages about a tab's redirect state. */
+type TabRedirectState = {
+  /** False when this browser can't scope rules to a tab; popup hides the control. */
+  supported: boolean;
+  paused: boolean;
+};
+
+async function handleRedirectScopeQuery(message: { tabId?: unknown }): Promise<TabRedirectState> {
+  await readyPromise;
+  const supported = getDnr()?.updateSessionRules != null;
+  const tabId = typeof message.tabId === 'number' ? message.tabId : null;
+  if (tabId == null) return { supported, paused: false };
+  return { supported, paused: tabScopes.get(tabId)?.paused === true };
+}
+
+async function handleSetTabPause(message: {
+  tabId?: unknown;
+  paused?: unknown;
+}): Promise<TabRedirectState> {
+  await readyPromise;
+  const supported = getDnr()?.updateSessionRules != null;
+  const tabId = typeof message.tabId === 'number' ? message.tabId : null;
+  if (tabId == null || !supported) return { supported, paused: false };
+
+  const paused = message.paused === true;
+  const prev = tabScopes.get(tabId);
+  tabScopes.set(tabId, {
+    host: prev?.host ?? null,
+    fresh: prev?.fresh ?? false,
+    paused,
+  });
+
+  await savePausedTabIds();
+  await syncTabScopeRules();
+  return { supported, paused };
+}
+
 // --- Redirect bypass for explicit popup picks --------------------------------
 //
 // When the user picks a client in the popup we open it here (rather than from
@@ -115,42 +319,48 @@ async function doSyncRules(prefs: Prefs): Promise<void> {
 // for. Ordinary link clicks are untouched; only this single URL is exempted,
 // and only until it finishes loading.
 
-let nextBypassId = 1;
+let nextBypassId = BYPASS_ID_MIN;
 
 function allocBypassId(): number {
   // Session rules live in their own id space (separate from the dynamic
   // redirect rules). We sweep stale ones before every open, so a small
   // wrapping counter is plenty to keep ids unique between concurrent opens.
-  nextBypassId = nextBypassId >= 1_000_000 ? 1 : nextBypassId + 1;
+  // Staying under BYPASS_ID_MAX keeps these clear of the tab-scope range.
+  nextBypassId = nextBypassId >= BYPASS_ID_MAX ? BYPASS_ID_MIN : nextBypassId + 1;
   return nextBypassId;
 }
 
 /**
- * Remove every session-scoped rule. The only session rules we ever create are
- * transient redirect-bypass rules, so clearing them all is safe. Called on
- * startup (in case one leaked when the service worker was suspended mid-flight)
- * and before arming a fresh bypass.
+ * Remove every bypass rule. Called on startup (in case one leaked when the
+ * service worker was suspended mid-flight) and before arming a fresh bypass.
+ *
+ * Scoped to the bypass id range: tab-scoped exemptions are session rules too,
+ * and clearing the whole session set would drop them until the next tab event.
  */
 async function clearBypassRules(): Promise<void> {
   const dnr = getDnr();
   if (!dnr?.getSessionRules || !dnr.updateSessionRules) return;
-  try {
-    const existing = (await dnr.getSessionRules()) ?? [];
-    const ids = existing.map(r => r.id);
-    if (ids.length > 0) await dnr.updateSessionRules({ removeRuleIds: ids });
-  } catch (err) {
-    console.warn('[aturi] failed to clear bypass rules', err);
-  }
+  await queueSession(async () => {
+    try {
+      const existing = (await dnr.getSessionRules!()) ?? [];
+      const ids = existing.map(r => r.id).filter(isBypassRuleId);
+      if (ids.length > 0) await dnr.updateSessionRules!({ removeRuleIds: ids });
+    } catch (err) {
+      console.warn('[aturi] failed to clear bypass rules', err);
+    }
+  });
 }
 
 async function removeBypassRule(ruleId: number): Promise<void> {
   const dnr = getDnr();
   if (!dnr?.updateSessionRules) return;
-  try {
-    await dnr.updateSessionRules({ removeRuleIds: [ruleId] });
-  } catch (err) {
-    console.warn('[aturi] failed to remove bypass rule', err);
-  }
+  await queueSession(async () => {
+    try {
+      await dnr.updateSessionRules!({ removeRuleIds: [ruleId] });
+    } catch (err) {
+      console.warn('[aturi] failed to remove bypass rule', err);
+    }
+  });
 }
 
 /**
@@ -241,14 +451,18 @@ async function handlePopupOpen(message: OpenWaypointMessage): Promise<{ ok: bool
   let ruleId: number | null = null;
   if (autoRedirect && dnr?.updateSessionRules) {
     ruleId = allocBypassId();
+    const armId = ruleId;
     try {
       // Sweep leftovers from earlier opens (a prior navigation may have
       // finished without our listener firing — e.g. the service worker was
       // suspended) so at most one bypass is ever live, then arm this one.
-      const existing = (await dnr.getSessionRules?.()) ?? [];
-      await dnr.updateSessionRules({
-        removeRuleIds: existing.map(r => r.id),
-        addRules: [buildBypassRule(url, ruleId)],
+      // Only bypass ids are swept; the tab-scope rules are left in place.
+      await queueSession(async () => {
+        const existing = (await dnr.getSessionRules?.()) ?? [];
+        await dnr.updateSessionRules!({
+          removeRuleIds: existing.map(r => r.id).filter(isBypassRuleId),
+          addRules: [buildBypassRule(url, armId)],
+        });
       });
     } catch (err) {
       console.warn('[aturi] failed to arm redirect bypass', err);
@@ -365,22 +579,30 @@ async function primeBadgeDefaults(): Promise<void> {
 export default defineBackground(() => {
   const primeAndSync = async () => {
     const prefs = await loadPrefs();
+    latestPrefs = prefs;
     await syncRules(prefs);
+    await primeTabScopes();
     await primeBadgeDefaults();
   };
 
   browser.runtime.onInstalled.addListener(() => {
     void clearBypassRules();
-    void primeAndSync();
+    readyPromise = primeAndSync();
+    void readyPromise;
   });
 
   browser.runtime.onStartup.addListener(() => {
     void clearBypassRules();
-    void primeAndSync();
+    readyPromise = primeAndSync();
+    void readyPromise;
   });
 
   onPrefsChanged(prefs => {
+    latestPrefs = prefs;
     void syncRules(prefs);
+    // The exemptions are derived from the same prefs as the redirect rules,
+    // so a favorite change has to rebuild both.
+    void syncTabScopeRules();
     // When the user disables passive scanning, sweep every tab's badge so
     // they don't have to reload anything to see the toggle take effect.
     if (!prefs.passiveScanEnabled) {
@@ -414,6 +636,27 @@ export default defineBackground(() => {
         .then(sendResponse);
       return true;
     }
+    // The popup asks whether auto-redirect is paused for the tab it's over,
+    // and toggles it. Both are answered from `tabScopes`, which is the same
+    // state the DNR exemptions are compiled from.
+    if (message?.type === 'aturi:redirect-scope') {
+      handleRedirectScopeQuery(message)
+        .catch(err => {
+          console.error('[aturi] redirect-scope query failed', err);
+          return { supported: false, paused: false };
+        })
+        .then(sendResponse);
+      return true;
+    }
+    if (message?.type === 'aturi:set-tab-pause') {
+      handleSetTabPause(message)
+        .catch(err => {
+          console.error('[aturi] set-tab-pause failed', err);
+          return { supported: false, paused: false };
+        })
+        .then(sendResponse);
+      return true;
+    }
     return undefined;
   });
 
@@ -425,5 +668,36 @@ export default defineBackground(() => {
     }
   });
 
-  void primeAndSync();
+  browser.tabs.onCreated.addListener(tab => {
+    const tabId = tab.id;
+    if (typeof tabId !== 'number') return;
+    const startUrl = (tab as { pendingUrl?: string }).pendingUrl ?? tab.url;
+    // A tab you opened yourself has no opener and parks on the new-tab page.
+    // A link opened in a new tab carries `openerTabId`, and a link handed over
+    // by another application arrives with its target URL already set — so only
+    // the first of the three means "whatever lands here next, I typed".
+    const fresh = tab.openerTabId === undefined && isBlankTabUrl(startUrl);
+    recordScope(tabId, { host: tabHostFromUrl(startUrl), fresh, paused: false });
+  });
+
+  browser.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+    const url = changeInfo.url ?? tab?.url;
+    const prev = tabScopes.get(tabId);
+    recordScope(tabId, {
+      host: tabHostFromUrl(url),
+      // A fresh tab's pass covers one navigation. Once it has committed a real
+      // page, anything after that is an ordinary click on a loaded document.
+      fresh: prev?.fresh === true && isBlankTabUrl(url),
+      paused: prev?.paused ?? false,
+    });
+  });
+
+  browser.tabs.onRemoved.addListener(tabId => {
+    if (!tabScopes.delete(tabId)) return;
+    void savePausedTabIds();
+    void syncTabScopeRules();
+  });
+
+  readyPromise = primeAndSync();
+  void readyPromise;
 });
