@@ -352,7 +352,7 @@ export function SkeletonJson({ lines = 10 }: { lines?: number }) {
 /**
  * Stand-in for <RecordPreview>'s structured field table: `LABEL  value` rows in
  * a card, over the mono CID footer strip. Matches the real card's 140px label
- * column and its rotation, so the swap doesn't tilt the page.
+ * column and, like it, sits square, so the swap doesn't tilt the page.
  */
 export function SkeletonFieldCard({ rows = 5 }: { rows?: number }) {
   const valueWidths = ['64%', '88%', '41%', '73%', '52%', '80%'];
@@ -361,7 +361,6 @@ export function SkeletonFieldCard({ rows = 5 }: { rows?: number }) {
       style={{
         background: 'var(--bg-secondary)',
         border: '1px solid var(--border-medium)',
-        transform: 'rotate(0.2deg)',
       }}
     >
       <div style={{ padding: '1.5rem' }}>
