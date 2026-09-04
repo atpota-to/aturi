@@ -180,27 +180,33 @@ export function BrandMark({ size = 30 }: { size?: number } = {}) {
         <path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z" />
         <path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12" />
       </svg>
-      <span
-        style={{
-          fontSize: `${size}px`,
-          fontWeight: 300,
-          letterSpacing: '-0.01em',
-          color: OG_COLORS.textPrimary,
-          display: 'flex',
-        }}
-      >
-        aturi
-      </span>
-      <span
-        style={{
-          fontSize: `${size}px`,
-          fontWeight: 300,
-          color: OG_COLORS.textTertiary,
-          display: 'flex',
-        }}
-      >
-        .to
-      </span>
+      {/* The wordmark is one word. Its two halves sit in their own row so the
+          gap above separates the leaf from the text and nothing else — as
+          direct children they picked up the same 14px and rendered
+          "aturi .to". */}
+      <div style={{ display: 'flex', alignItems: 'baseline' }}>
+        <span
+          style={{
+            fontSize: `${size}px`,
+            fontWeight: 300,
+            letterSpacing: '-0.01em',
+            color: OG_COLORS.textPrimary,
+            display: 'flex',
+          }}
+        >
+          aturi
+        </span>
+        <span
+          style={{
+            fontSize: `${size}px`,
+            fontWeight: 300,
+            color: OG_COLORS.textTertiary,
+            display: 'flex',
+          }}
+        >
+          .to
+        </span>
+      </div>
     </div>
   );
 }
