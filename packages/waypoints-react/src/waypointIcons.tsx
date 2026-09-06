@@ -241,6 +241,18 @@ export const BlentoSVG = () => (
   </svg>
 );
 
+// Kimbia's K: a stem and two crossing arms, skewed forward. One arm carries a
+// brand red in the app; monochrome here to match the rest of the set.
+export const KimbiaSVG = () => (
+  <svg width="24" height="24" viewBox="-9 -2 93 145" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <g transform="skewX(-7)" fill="currentColor">
+      <rect x="8" width="19" height="130" rx="3" />
+      <rect x="18" y="64" width="82" height="17" rx="3" transform="rotate(-44 18 72.5)" />
+      <rect x="18" y="64" width="96" height="17" rx="3" transform="rotate(40 18 72.5)" />
+    </g>
+  </svg>
+);
+
 export const MuSVG = () => (
   <svg width="24" height="24" viewBox="0 0 1000 712.872" fill="none" xmlns="http://www.w3.org/2000/svg">
     <path fill="currentColor" d="M875.8816,72.7683l.0813,250.1542c-1.1385,38.3852-17.3221,74.3306-44.1592,100.7611-56.3579,55.382-146.3841,56.6019-204.0432,2.2771-5.2861-4.9608-10.1656-10.3282-14.7197-16.0209-19.5992-24.56-31.5539-55.138-31.6352-87.3425l-.3253-197.8626,112.5531-19.8432.1626,215.3473c0,19.1113,17.2408,33.5057,35.0509,33.3431,18.8673-.244,34.075-15.045,34.7256-34.1563V92.5301l112.3092-19.7619Z M560.0171,298.0372v196.1547l-112.5531,19.8432v-212.8263c.8132-19.5992-14.3131-35.6201-33.2617-36.5147-19.1113-.8946-35.7015,13.7438-36.6774,33.3431v228.3592l-112.4718,19.7619v-217.5431c-1.3012-19.5179-17.8101-33.5057-36.4334-32.6925-18.7046.8132-33.7497,16.3462-33.5057,35.7828v226.8954l-112.3092,19.7619v-251.862c1.1385-37.2466,16.3462-72.3788,42.0448-98.728,45.6231-46.5989,116.6194-57.9031,174.2784-27.0811,1.7891.9759,3.8223.5693,4.8795-.6506,60.0988-65.4662,163.2183-63.3518,220.7147,4.1476,1.3825,1.6265,2.765,3.253,4.0662,4.9608,19.5992,25.1293,30.7407,56.1139,31.2286,88.8877Z" />
@@ -317,6 +329,7 @@ export const WAYPOINT_ICONS: Record<string, ReactNode> = {
   popfeed: <PopfeedSVG />,
   sifa: <SifaSVG />,
   blento: <BlentoSVG />,
+  kimbia: <KimbiaSVG />,
   offprint: <OffprintSVG />,
   pckt: <PcktSVG />,
   standardReader: <StandardReaderSVG />,
