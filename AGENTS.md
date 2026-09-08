@@ -19,18 +19,23 @@ Node 22+ (`.nvmrc` pins the exact version). Root install is `npm install`; `exte
 
 **1. `packages/` contains generated copies. Do not hand-edit them.**
 
-These files are copied from `src/` by `packages/waypoints/scripts/sync.mjs`:
+These files are derived from `src/` by `packages/waypoints/scripts/sync.mjs`:
 
-| Canonical | Copy |
+| Canonical | Derived file |
 | --- | --- |
 | `src/utils/waypoints.data.ts` | `packages/waypoints/src/waypoints.data.ts` |
 | `src/utils/uriParser.ts` | `packages/waypoints/src/uriParser.ts` |
 | `src/utils/reverseParsers.ts` | `packages/waypoints/src/reverseParsers.ts` |
 | `src/utils/upstreamFetch.ts` | `packages/waypoints/src/upstreamFetch.ts` |
 | `src/utils/waypointIcons.tsx` | `packages/waypoints-react/src/waypointIcons.tsx` |
+| `src/utils/waypointIcons.tsx` | `packages/waypoints/src/waypointIcons.data.ts` (generated, not copied) |
 | `src/components/AnisotaLogo` | `packages/waypoints-react/src/AnisotaLogo` |
 
 Edit the canonical file, then run `cd packages && npm run sync` and commit both. CI fails on drift via `npm run sync:check`. If you find yourself editing a file in `packages/waypoints/src/` that appears above, you are in the wrong file.
+
+Every row but one is a verbatim copy. `waypointIcons.data.ts` is generated: `scripts/svgFromJsx.mjs` translates the React catalog's JSX into standalone SVG strings for `@aturi.to/waypoints/icons`, so non-React consumers get the marks without a React dependency. The transform throws rather than guessing, so an icon using JSX this repo has not seen before will fail `npm run sync` with the attribute or expression named. Add the SVG spelling to `ATTRIBUTE_RENAMES` or `CAMEL_CASE_SVG_ATTRIBUTES` rather than working around it.
+
+Two constraints on new icons follow from that second consumer: give any `var(--custom-property)` a fallback, because consumers have no Aturi theme and a bare `var()` silently drops the paint; and do not use `id` inside a mark, because inlined markup puts ids in the host document's global scope where two copies collide. `packages/waypoints/src/__tests__/icons.test.ts` enforces both.
 
 **2. `extension/` imports `../src/utils/**` through the `@aturi/*` alias.** A change to a util changes the extension. Run the extension tests after touching anything in `src/utils/`.
 
@@ -48,7 +53,7 @@ Four edits, all required, none of which fail the build if you skip them:
 
 1. Entry in `WAYPOINT_DESTINATIONS_DATA` (`src/utils/waypoints.data.ts`)
 2. Id appended to `WAYPOINT_ORDER` in the same file, or it never renders
-3. Icon keyed by id in `WAYPOINT_ICONS` (`src/utils/waypointIcons.tsx`)
+3. Icon keyed by id in `WAYPOINT_ICONS` (`src/utils/waypointIcons.tsx`), which also feeds the SVG-string catalog the core package ships
 4. `cd packages && npm run sync`
 
 The `WaypointData` shape:

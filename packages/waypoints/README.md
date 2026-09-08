@@ -3,6 +3,7 @@
 Aturi's curated catalog of Atmosphere (AT Protocol) clients ("waypoints") plus
 the logic to turn an AT URI into per-client "Open in…" links, recommend the best
 client for a record type, and reverse-resolve a pasted URL back into an AT URI.
+Each client's brand mark ships too, as framework-agnostic SVG.
 
 Zero runtime dependencies. Works in the browser, Node 18+, and edge runtimes.
 Ships ESM + CJS with full type definitions.
@@ -66,6 +67,9 @@ const fromUrl = await resolveUrl('https://bsky.app/profile/alice.bsky.social/pos
 - **Universal links** (`universalLinks.ts`): `buildUniversalLink`,
   `parseUniversalLink`, `isUniversalLink`, `describeUniversalLink`,
   `buildUniversalLinkTags`, `UNIVERSAL_LINK_ORIGIN`.
+- **Brand marks** (`@aturi.to/waypoints/icons`): `WAYPOINT_ICON_SVGS`,
+  `getWaypointIconSvg`, and a named export per waypoint. See
+  [Icons](#icons).
 
 ### Compose intents
 
@@ -209,13 +213,113 @@ GET https://aturi.to/api/waypoints
 GET https://aturi.to/api/waypoints?type=post&capability=compose
 ```
 
+## Icons
+
+Every waypoint's brand mark ships as plain SVG markup, behind a subpath:
+
+```ts
+import { WAYPOINT_ICON_SVGS, getWaypointIconSvg } from '@aturi.to/waypoints/icons';
+
+getWaypointIconSvg('bluesky'); // '<svg xmlns="…" viewBox="0 0 512 512">…</svg>'
+```
+
+The marks are a subpath rather than part of the main entry because a bundler
+cannot drop unused keys from an object literal. Importing them is opt-in, so
+nothing that only wants link builders pays for roughly 80KB of artwork.
+
+Values are markup, not components, so any framework can render them:
+
+```svelte
+{@html getWaypointIconSvg(id)}
+```
+```vue
+<span v-html="getWaypointIconSvg(id)" />
+```
+```tsx
+<span dangerouslySetInnerHTML={{ __html: getWaypointIconSvg(id) ?? '' }} />
+```
+
+The values are static package data, not user input, so none of those three is an
+injection risk. Linters that flag `v-html` or `dangerouslySetInnerHTML` on sight
+will still want an inline exception.
+
+Individual marks are exported by name if you would rather pull one and let the
+rest tree-shake away:
+
+```ts
+import { blueskyIconSvg, tangledIconSvg } from '@aturi.to/waypoints/icons';
+```
+
+Every id in `WAYPOINT_ORDER` has a mark. React consumers who want components
+instead can use [`@aturi.to/waypoints-react`](../waypoints-react), which ships
+the same catalog as JSX.
+
+### Styling
+
+Each mark is 24x24 and paints in `currentColor`, so it takes the colour of the
+surrounding text. A CSS rule beats the width and height baked into the markup,
+so size them from your stylesheet rather than rewriting the string:
+
+```css
+.waypoint-icon svg { width: 1.25rem; height: 1.25rem; }
+```
+
+Three marks (Lea, Leaflet, pckt) knock part of the shape out to the page
+background instead of painting it. That colour comes from
+`var(--bg-primary, white)`, so set `--bg-primary` on an ancestor if your surface
+is not white:
+
+```css
+.waypoint-icon { --bg-primary: #0c0908; }
+```
+
+`currentColor` only resolves when the SVG is part of the page. Inlining is the
+supported path; a mark referenced as an external image or data URI through
+`<img src>` or `background-image` is a separate document with no access to your
+text colour, and will paint black.
+
+Every mark fills the same 24x24 box, so a row of them lines up, but the artwork
+inside does not carry equal weight. Painted area runs from roughly a third of
+the box (Impro, Mu, Taproot) to all of it (Lea, Red Dwarf). That is the brands'
+own proportions rather than something the catalog flattens, so nudge individual
+marks in your own CSS if you want them optically even.
+
+### Accessibility
+
+The marks carry no title or description, and a handful set `aria-hidden` while
+most do not. Be explicit at the call site rather than relying on what happens to
+be in the markup.
+
+Beside a visible client name the mark is decorative, so hide it:
+
+```html
+<span class="waypoint-icon" aria-hidden="true"><!-- mark --></span>
+```
+
+Standing alone as the whole of a link or button, it needs an accessible name:
+
+```html
+<a href="…" aria-label="Open in Bluesky">
+  <span class="waypoint-icon"><!-- mark --></span>
+</a>
+```
+
+### Trademarks
+
+These are third-party brand marks, reproduced so a picker can identify each
+client. The MIT licence on this package covers the code, not the trademarks.
+Using a mark to identify a client is nominative use; using one to suggest that
+client endorses your product is not. If you represent one of these projects and
+want a mark changed or removed, open an issue.
+
 ## A note on drift
 
-The four canonical logic/icon files (`waypoints.data.ts`, `uriParser.ts`,
+The canonical logic and icon files (`waypoints.data.ts`, `uriParser.ts`,
 `reverseParsers.ts`, and the React icon catalog) are the single source of truth
 inside the [`aturi.to`](https://github.com/atpota-to/aturi) app under `src/`.
 This package ships **copies** so it can build standalone, kept in lockstep by a
-sync script:
+sync script. The SVG strings above are generated from that same React catalog by
+the same script, so the two never disagree about what a waypoint looks like:
 
 ```sh
 npm run sync        # copy the canonical files into the packages
