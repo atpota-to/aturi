@@ -891,6 +891,88 @@ body {
   flex-shrink: 0;
 }
 
+/* ----- Auto-redirect control ---------------------------------------------
+   Slim chrome row under the mode tabs, laid out like `.options-toggle-row`:
+   label on the left, controls pushed to the right edge. Square corners, serif
+   type and 0.3s transitions to match the rest of the extension; the switch is
+   the shared `.aturi-switch` at its compact size rather than a second one. */
+
+.popup-redirect {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 14px;
+  border-bottom: 1px solid var(--border-subtle);
+  background: var(--bg-primary);
+  font-family: var(--font-serif);
+  font-size: var(--fs-xs);
+}
+
+/* A paused tab is the one state you can't read off the switch (auto-redirect
+   is still on globally), so the row itself carries the signal. */
+.popup-redirect.is-paused {
+  background: var(--bg-secondary);
+  box-shadow: inset 2px 0 0 var(--text-accent);
+}
+
+.popup-redirect-icon {
+  flex-shrink: 0;
+  color: var(--text-tertiary);
+  transition: color 0.3s ease;
+}
+
+.popup-redirect.is-on .popup-redirect-icon,
+.popup-redirect.is-paused .popup-redirect-icon {
+  color: var(--text-accent);
+}
+
+.popup-redirect-label {
+  margin-right: auto;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.popup-redirect-pause {
+  flex-shrink: 0;
+  padding: 3px 9px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-tertiary);
+  font-family: var(--font-serif);
+  font-size: var(--fs-xs);
+  white-space: nowrap;
+  transition: all 0.3s ease;
+}
+
+.popup-redirect-pause:hover:not(:disabled) {
+  background: var(--bg-tertiary);
+  border-color: var(--text-accent);
+  color: var(--text-primary);
+}
+
+.popup-redirect.is-paused .popup-redirect-pause {
+  border-color: var(--text-accent);
+  color: var(--text-primary);
+}
+
+.popup-redirect-pause:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* Give the switch the same box as the pause button (a 1px border and 3px of
+   vertical padding around identical text) so the row keeps its height whether
+   or not the button is showing. */
+.popup-redirect .aturi-switch {
+  flex-shrink: 0;
+  padding: 3px 0;
+  border: 1px solid transparent;
+  font-size: var(--fs-xs);
+}
+
 /* ----- Inspect card ------------------------------------------------------ */
 
 .inspect-card {

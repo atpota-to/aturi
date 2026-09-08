@@ -260,6 +260,64 @@ body > * {
   color: var(--text-primary);
 }
 
+/* Switch. Square like the rest of the controls here; the thumb is a square
+   too. Sizes come from custom properties so a compact variant only restates
+   the numbers — the travel is the box's inner width less the thumb and its
+   1px insets, which `calc` derives rather than hard-coding per size. */
+.aturi-switch {
+  --switch-w: 38px;
+  --switch-h: 22px;
+  --switch-thumb: 18px;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  user-select: none;
+  font-family: var(--font-serif);
+}
+
+/* Compact variant, for chrome that has to sit in a slim row. */
+.aturi-switch-sm {
+  --switch-w: 28px;
+  --switch-h: 16px;
+  --switch-thumb: 12px;
+  gap: 8px;
+}
+
+.aturi-switch-box {
+  width: var(--switch-w);
+  height: var(--switch-h);
+  flex-shrink: 0;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-medium);
+  position: relative;
+  transition: all 0.3s ease;
+}
+
+.aturi-switch-box::after {
+  content: '';
+  position: absolute;
+  top: 1px;
+  left: 1px;
+  width: var(--switch-thumb);
+  height: var(--switch-thumb);
+  background: var(--text-secondary);
+  transition: transform 0.3s ease, background 0.3s ease;
+}
+
+.aturi-switch.on .aturi-switch-box {
+  background: var(--accent-forest);
+  border-color: var(--text-accent);
+}
+
+.aturi-switch.on .aturi-switch-box::after {
+  transform: translateX(calc(var(--switch-w) - var(--switch-thumb) - 4px));
+  /* The forest background is dark green in both themes, so we always use
+     a light thumb when on for legibility instead of the accent (which is
+     dark green in light mode and would disappear). */
+  background: #e8e8e6;
+}
+
 .aturi-input,
 .aturi-select {
   display: block;

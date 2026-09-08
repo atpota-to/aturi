@@ -9,8 +9,20 @@ import type { RedirectRule } from './rules';
  */
 export const BYPASS_RULE_PRIORITY = 100;
 
+/**
+ * Session-rule id range reserved for bypass rules. Tab-scoped exemptions use
+ * ids from `TAB_SCOPE_ID_MIN` up, so sweeping stale bypasses can be limited to
+ * this range instead of wiping every session rule we own.
+ */
+export const BYPASS_ID_MIN = 1;
+export const BYPASS_ID_MAX = 99_999;
+
+export function isBypassRuleId(id: number): boolean {
+  return id >= BYPASS_ID_MIN && id <= BYPASS_ID_MAX;
+}
+
 /** Escape a string for safe literal use inside a DNR `regexFilter` (RE2). */
-function escapeRegExp(value: string): string {
+export function escapeRegExp(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 

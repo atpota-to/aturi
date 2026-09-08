@@ -257,6 +257,51 @@ export default function DefaultsTab({ prefs, onChange }: Props) {
         {prefs.autoRedirect && (
           <div className="defaults-favorites-block">
             <div className="aturi-hr" />
+            <div className="options-toggle-row">
+              <div>
+                <div className="aturi-label">Stay put on the app you're using</div>
+                <div className="aturi-subtle" style={{ fontSize: 12 }}>
+                  Don't redirect inside a tab that's already showing one of the
+                  apps involved. Retyping bsky.app after being sent to your
+                  reader takes you to bsky.app, instead of bouncing straight
+                  back. Off: every matching link is redirected, wherever the
+                  tab already is.
+                </div>
+              </div>
+              <button
+                className={`aturi-switch ${prefs.redirectStayOnCurrentApp ? 'on' : ''}`}
+                onClick={() =>
+                  onChange({ redirectStayOnCurrentApp: !prefs.redirectStayOnCurrentApp })
+                }
+                aria-pressed={prefs.redirectStayOnCurrentApp}
+              >
+                <span className="aturi-switch-box" />
+                <span className="aturi-muted">
+                  {prefs.redirectStayOnCurrentApp ? 'On' : 'Off'}
+                </span>
+              </button>
+            </div>
+
+            <div className="options-toggle-row">
+              <div>
+                <div className="aturi-label">Skip the first URL in a new tab</div>
+                <div className="aturi-subtle" style={{ fontSize: 12 }}>
+                  A URL you type or paste into a tab you just opened is left
+                  alone. Links opened in a new tab, and links handed over by
+                  other apps, still redirect.
+                </div>
+              </div>
+              <button
+                className={`aturi-switch ${prefs.redirectSkipNewTab ? 'on' : ''}`}
+                onClick={() => onChange({ redirectSkipNewTab: !prefs.redirectSkipNewTab })}
+                aria-pressed={prefs.redirectSkipNewTab}
+              >
+                <span className="aturi-switch-box" />
+                <span className="aturi-muted">{prefs.redirectSkipNewTab ? 'On' : 'Off'}</span>
+              </button>
+            </div>
+
+            <div className="aturi-hr" />
             <div className="defaults-favorites-intro">
               <div className="aturi-label" style={{ marginBottom: 4 }}>
                 Favorites by compatibility group

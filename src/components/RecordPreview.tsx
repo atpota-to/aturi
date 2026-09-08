@@ -98,12 +98,17 @@ export default function RecordPreview({
 
 
   return (
+    // No resting rotation. Most cards on the site sit a fraction of a degree
+    // off-square and straighten under `.card:hover`, but this one is a tall
+    // wall of record data rather than a small decorative panel: the tilt is
+    // legible as a wonky page, and the hover correction reads as the card
+    // fixing itself. The two skeletons that stand in for it are square for
+    // the same reason, so the swap doesn't tip the page either way.
     <div
       style={{
         background: 'var(--bg-secondary)',
         border: '1px solid var(--border-medium)',
         overflow: 'hidden',
-        transform: 'rotate(0.2deg)',
         transition: 'all 0.4s ease',
       }}
       className="card record-preview-card"
