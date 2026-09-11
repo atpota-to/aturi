@@ -153,6 +153,25 @@ describe('matchSupportedUrl - other apps', () => {
     expect(match('https://pckt.blog/alice.bsky.social/notacollection/rk')).toBeNull();
   });
 
+  it('parses a kimbia activity', () => {
+    const m = match('https://kimbia.app/alice.bsky.social/activity/3mq4vxtxqncje');
+    expect(m?.source).toBe('kimbia');
+    expect(m?.parsed.type).toBe('record');
+    expect(m?.parsed.collection).toBe('app.kimbia.activity');
+    expect(m?.parsed.uri).toBe('at://alice.bsky.social/app.kimbia.activity/3mq4vxtxqncje');
+  });
+
+  it('parses a kimbia adventure', () => {
+    const m = match('https://kimbia.app/alice.bsky.social/adventure/3mo7r2rfg5c2m');
+    expect(m?.source).toBe('kimbia');
+    expect(m?.parsed.collection).toBe('app.kimbia.adventure');
+  });
+
+  it('parses a kimbia profile, and leaves its dotless pages alone', () => {
+    expect(match('https://kimbia.app/alice.bsky.social')?.parsed.type).toBe('profile');
+    expect(match('https://kimbia.app/pricing')).toBeNull();
+  });
+
   it('ignores unsupported hosts', () => {
     expect(match('https://example.com/profile/alice')).toBeNull();
   });
