@@ -3,6 +3,7 @@ import {
   registerAtmosphereServer,
   MCP_SERVER_INFO,
 } from '@/lib/mcp/registry';
+import { currentPhase, watchRequest } from '@/lib/mcp/watchdog';
 
 /**
  * /api/mcp — the Model Context Protocol endpoint, stateless Streamable HTTP.
@@ -60,13 +61,31 @@ const CORS_HEADERS: Record<string, string> = {
 
 const mcpHandler = createMcpHandler(registerAtmosphereServer, {
   serverInfo: MCP_SERVER_INFO,
+  /**
+   * The handler fires this the moment it has parsed an envelope, which is the
+   * only signal from inside it that the body arrived at all. One handler
+   * serves every request, so the phase it annotates comes from the async
+   * context rather than from here.
+   */
+  onEvent(event) {
+    if (event.type !== 'REQUEST_RECEIVED') return;
+    const phase = currentPhase();
+    if (!phase) return;
+
+    phase.stage = 'dispatching';
+    phase.method = event.method;
+    const params = (event.parameters as { params?: { name?: unknown } } | undefined)?.params;
+    if (typeof params?.name === 'string') phase.tool = params.name;
+  },
 });
 
 async function handler(request: Request): Promise<Response> {
-  const response = await mcpHandler(request);
-  // Copy onto the existing response rather than rebuilding it: the transport
-  // sets its own status, body stream and headers, and reconstructing would
-  // break streaming.
+  const response = await watchRequest(request, () => mcpHandler(request));
+  // Set onto whatever response comes back rather than building another one
+  // around it. The transport chooses its own status and headers and answers
+  // with a body still being written, so anything that rebuilds here has to
+  // carry all three across intact; watchRequest does exactly that and is the
+  // only thing in this route allowed to.
   for (const [name, value] of Object.entries(CORS_HEADERS)) {
     response.headers.set(name, value);
   }
