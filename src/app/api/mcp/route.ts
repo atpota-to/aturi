@@ -62,6 +62,39 @@ const CORS_HEADERS: Record<string, string> = {
 const mcpHandler = createMcpHandler(registerAtmosphereServer, {
   serverInfo: MCP_SERVER_INFO,
   /**
+   * This catalog never changes, so say so.
+   *
+   * registerTool turns tools.listChanged on unless it is told otherwise, and
+   * registerPrompt does the same, which is how this endpoint came to advertise
+   * a capability nothing here can exercise: the server is rebuilt per request
+   * from a static registry, and no code path emits a list-changed
+   * notification. A client reading those bits does the reasonable thing and
+   * opens a subscriptions/listen stream to receive them — and that stream is
+   * meant to stay open until the client hangs up, which on a function with a
+   * sixty second ceiling means it is killed instead, roughly a hundred times
+   * an hour, having delivered nothing but keepalives. Every timeout this route
+   * logged came from exactly that, and nothing else.
+   *
+   * Declaring the bits false is the honest fix rather than the workaround: a
+   * long-lived server-to-client channel is not something a stateless function
+   * can hold, and a catalog fixed at build time has nothing to send over one.
+   */
+  capabilities: {
+    tools: { listChanged: false },
+    prompts: { listChanged: false },
+  },
+  /**
+   * And refuse the stream outright, for clients that ask anyway.
+   *
+   * The capability bits are advice; this is the part that cannot be ignored.
+   * A refusal costs the caller a fraction of a second instead of occupying an
+   * invocation until the platform kills it. The SDK spends its own wording on
+   * the rejection ("Subscription limit reached", which is true in the letter
+   * of a zero limit if not the spirit), and that is worth the trade over
+   * hanging.
+   */
+  maxSubscriptions: 0,
+  /**
    * The handler fires this the moment it has parsed an envelope, which is the
    * only signal from inside it that the body arrived at all. One handler
    * serves every request, so the phase it annotates comes from the async
