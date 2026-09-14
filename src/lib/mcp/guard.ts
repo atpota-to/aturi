@@ -24,6 +24,7 @@
 import { lookup } from 'node:dns/promises';
 import { isBlockedFetchHost } from '@/utils/ssrfGuard';
 import { McpToolError } from '@/lib/mcp/errors';
+import { DNS_BUDGET_MS, withBudget } from '@/lib/mcp/budget';
 
 /** IPv4 ranges that must never be dialled, as [first octet match, test]. */
 function isPrivateIpv4(ip: string): boolean {
@@ -101,8 +102,22 @@ export async function assertPublicServiceBase(input: string, what: string): Prom
 
   let addresses: Array<{ address: string }>;
   try {
-    addresses = await lookup(url.hostname, { all: true, verbatim: true });
-  } catch {
+    // Bounded, because dns.lookup is not: it defers to the system resolver,
+    // which waits out several attempts against a nameserver that never
+    // answers, and holds a libuv threadpool slot the whole time. Giving up is
+    // failing closed — a name this server could not resolve is a name it will
+    // not dial — so the timeout costs the guard nothing.
+    addresses = await withBudget(
+      lookup(url.hostname, { all: true, verbatim: true }),
+      DNS_BUDGET_MS,
+      `${what} did not resolve in time`,
+      'The name has a nameserver that is not answering. Retry later, or name the host directly.',
+    );
+  } catch (err) {
+    // Distinguish the two: a name that answered "no such host" is worth
+    // reporting as such, while one that never answered at all has not been
+    // shown not to exist.
+    if (err instanceof McpToolError) throw err;
     // A name that does not resolve cannot be fetched either, so saying so is
     // both safe and more useful than the connection error that would follow.
     throw new McpToolError(
