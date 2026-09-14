@@ -16,9 +16,17 @@ import {
  * anywhere user-facing.
  *
  * Node runtime rather than edge: the tool layer reuses the same protocol
- * clients as the server-rendered explorer pages. Sixty seconds covers the
- * worst tool (a records-mode backlink walk is several sequential upstream
- * calls, each already bounded to 8s by upstreamFetch).
+ * clients as the server-rendered explorer pages.
+ *
+ * Sixty seconds is deliberately not the thing that bounds a tool call — the
+ * 25s budget in lib/mcp/budget.ts is, and it answers the caller rather than
+ * dropping the stream on the floor. This is the outer net, sized for what a
+ * budget cannot cancel: an abandoned dns.lookup is not interruptible, so an
+ * invocation can still be busy for a while after its response has gone out,
+ * and killing it at 30 would put that ordinary tail back in the error log as
+ * a timeout. The platform would allow far more (Pro tops out at 800s), but
+ * nothing here has any business running that long, and a cap that generous
+ * would only let a stuck invocation cost more before it died.
  */
 export const maxDuration = 60;
 

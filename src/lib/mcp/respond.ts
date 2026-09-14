@@ -14,6 +14,7 @@ import { getSiteUrl } from '@/lib/config';
 import { encodeRepo } from '@/utils/atproto/urls';
 import { apiErrorBody } from '@/lib/apiError';
 import { toolFailure, type ToolResult } from '@/lib/mcp/errors';
+import { TOOL_BUDGET_MS, withBudget } from '@/lib/mcp/budget';
 
 /**
  * Ceiling on a single tool result.
@@ -63,12 +64,26 @@ export function okResult(data: Record<string, unknown>): ToolResult {
   };
 }
 
+/**
+ * The budget lives here for the same reason the try/catch does: this is the
+ * one place every tool passes through, so no tool can forget it and none has
+ * to spell it out. A tool that wants a tighter bound than the shared one can
+ * still impose it on itself — sample_jetstream does.
+ */
 export function toolHandler<Args>(
   fn: (args: Args) => Promise<Record<string, unknown>>,
 ): (args: Args) => Promise<ToolResult> {
   return async (args: Args) => {
     try {
-      return okResult(await fn(args));
+      return okResult(
+        await withBudget(
+          fn(args),
+          TOOL_BUDGET_MS,
+          'This call gave up waiting on an upstream atproto service',
+          'One of the hosts behind this answer is slow or unreachable. Safe to retry once; ' +
+            'narrowing the request (a smaller `limit`, a specific collection) also helps.',
+        ),
+      );
     } catch (err) {
       return toolFailure(err);
     }
