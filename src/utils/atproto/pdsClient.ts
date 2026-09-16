@@ -73,6 +73,38 @@ export async function getLatestCommit(pds: string, did: string): Promise<LatestC
   );
 }
 
+export type RepoStatus = {
+  did: string;
+  /** False for a repo the host holds but won't serve records for. */
+  active: boolean;
+  /**
+   * Why it's inactive: 'takendown', 'suspended', 'deactivated', 'deleted',
+   * and others hosts may add. The lexicon leaves the set open, so callers
+   * render whatever came back rather than mapping it to a closed union.
+   * Absent when `active` is true.
+   */
+  status?: string;
+  /** Head commit rev (a TID). Relays return it here; PDS implementations may not. */
+  rev?: string;
+};
+
+/**
+ * com.atproto.sync.getRepoStatus — one host's hosting status for an account.
+ *
+ * The only repo-scoped read that still answers for an inactive account.
+ * describeRepo, listRecords, getLatestCommit, listBlobs and getRepo all fail
+ * with a 400 whose body names the state but which is otherwise just an error;
+ * this returns 200 and the reason as data. `host` is a PDS or a relay — the
+ * lexicon is implemented by both, and the two can legitimately disagree while
+ * an account event is still propagating.
+ */
+export async function getRepoStatus(host: string, did: string): Promise<RepoStatus> {
+  const params = new URLSearchParams({ did });
+  return fetchJson<RepoStatus>(
+    `${host}/xrpc/com.atproto.sync.getRepoStatus?${params}`,
+  );
+}
+
 /**
  * com.atproto.sync.getRepo — downloads the account's full repo export (a CAR
  * file) and returns its size in bytes. Unlike the other account-stats sources
