@@ -19,6 +19,7 @@ import {
   togglePinnedLexicon,
 } from '@/utils/preferences';
 import { groupHierarchically, pinnedKey } from './collectionGrouping';
+import NewRecordButton from '../NewRecordButton';
 import { CHROME_RESULTS_ID, useChromeBarField } from '../ChromeBarContext';
 import GroupHeader from './GroupHeader';
 import LeafRow from './LeafRow';
@@ -336,6 +337,14 @@ export default function CollectionsTab({ identity }: { identity: IdentityBundle 
             })}
           </div>
         )}
+        {/* Top of the collection list: the collection isn't decided yet here,
+            so the composer opens with the NSID field empty and the repo's own
+            collections offered as suggestions. Carries the auto margin that
+            used to sit on the collapse-all button, so the pair stays pinned
+            to the right edge whether or not that button is rendered. */}
+        <span style={{ marginLeft: 'auto', display: 'inline-flex' }}>
+          <NewRecordButton repoDid={identity.did} />
+        </span>
         {groups.length > 0 && (
           <button
             type="button"
@@ -347,7 +356,6 @@ export default function CollectionsTab({ identity }: { identity: IdentityBundle 
               alignItems: 'center',
               justifyContent: 'center',
               padding: '0.45rem',
-              marginLeft: 'auto',
               background: 'var(--bg-tertiary)',
               border: '1px solid var(--border-medium)',
               color: 'var(--text-secondary)',

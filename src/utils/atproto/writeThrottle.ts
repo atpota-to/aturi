@@ -28,6 +28,13 @@ export const THROTTLE_POINT_BUDGET = 4500;
 /** Point cost of a single delete — one applyWrites#delete op. */
 export const DELETE_POINT_COST = 1;
 
+/**
+ * Point cost of a single create. Three times a delete's, so a composer that
+ * didn't report its writes would let a later bulk delete pace itself against a
+ * budget it had already spent.
+ */
+export const CREATE_POINT_COST = 3;
+
 type Spend = { t: number; n: number };
 
 function storageKey(did: string): string {

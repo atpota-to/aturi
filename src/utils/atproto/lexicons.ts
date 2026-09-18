@@ -15,7 +15,8 @@ export type LexiconFieldType =
   | 'tags'
   | 'json'
   | 'boolean'
-  | 'number';
+  | 'number'
+  | 'select';
 
 export type LexiconField = {
   key: string;
@@ -27,6 +28,14 @@ export type LexiconField = {
   placeholder?: string;
   maxLength?: number;
   hint?: string;
+  /** For `select`: the values offered. */
+  options?: string[];
+  /**
+   * For `select`: whether a value outside {@link options} is allowed. Set for
+   * a schema's `knownValues`, which the spec defines as suggestions rather
+   * than a closed set; left unset for `enum`, which is closed.
+   */
+  openOptions?: boolean;
 };
 
 export type Lexicon = {
@@ -140,9 +149,18 @@ export function knownCollections(): string[] {
  */
 export function blankRecordFor(collection: string): Record<string, unknown> {
   const lex = lexiconFor(collection);
+  if (!lex) return {};
+  return blankRecordFrom(lex);
+}
+
+/**
+ * The same, for a form spec that didn't come from the registry — one derived
+ * from a schema the composer fetched. Split out so a generated lexicon and a
+ * hand-written one seed their forms identically.
+ */
+export function blankRecordFrom(lex: Lexicon): Record<string, unknown> {
   const out: Record<string, unknown> = {};
-  if (lex?.typeFieldValue) out.$type = lex.typeFieldValue;
-  if (!lex) return out;
+  if (lex.typeFieldValue) out.$type = lex.typeFieldValue;
   const nowIso = new Date().toISOString();
   for (const f of lex.fields) {
     if (f.default === 'now') {

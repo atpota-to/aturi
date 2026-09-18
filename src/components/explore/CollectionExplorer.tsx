@@ -19,6 +19,7 @@ import AppearIn from './AppearIn';
 import Breadcrumb from './Breadcrumb';
 import CollectionEditBar from './CollectionEditBar';
 import CollectionRecordRow from './CollectionRecordRow';
+import NewRecordButton from './NewRecordButton';
 import NotFoundPanel from '@/components/NotFoundPanel';
 import SkeletonSwap from './skeletons/SkeletonSwap';
 import { CollectionSkeleton } from './skeletons/pages';
@@ -568,6 +569,10 @@ function CollectionList({
         style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+          {/* First in the row, ahead of Edit: this is the only control here
+              that adds something, and the collection you're looking at is
+              what it pre-fills. */}
+          <NewRecordButton collection={collection} repoDid={identity.did} />
           {showEditButton && (
             <button
               type="button"
