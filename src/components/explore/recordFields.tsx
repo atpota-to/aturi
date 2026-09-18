@@ -2,30 +2,48 @@
 
 import { useEffect, useState } from 'react';
 import type { Lexicon, LexiconField } from '@/utils/atproto/lexicons';
+import { graphemeLength, type RecordProblem } from '@/utils/atproto/lexiconValidate';
 
 /**
  * The controls a record form is built from, shared by the two places records
  * are written: <RecordEditor>, which edits one that exists, and
- * <NewRecordDialog>, which composes one that doesn't.
+ * <RecordComposer>, which writes one that doesn't.
  *
  * They were <RecordEditor>'s own until the composer needed the same set. Kept
  * together here for the reason `recordBackend.ts` gives for its interface:
  * these are the parts a user can see, and two copies of them would drift.
+ *
+ * A field's `maxLength` drives the counter and the schema check but is
+ * deliberately NOT set as the DOM `maxlength` attribute. Every limit it comes
+ * from is counted in bytes or in graphemes, and `maxlength` counts UTF-16 code
+ * units — so on a 300-grapheme field the browser would stop accepting input
+ * somewhere short of 300 while the counter underneath still read 148, and a
+ * post of emoji would be silently truncated. The limit is reported instead of
+ * enforced, which is also what the rest of this feature does with the schema.
  */
 
 export function FormEditor({
   lex,
   value,
   onChange,
+  problems,
 }: {
   lex: Lexicon;
   value: Record<string, unknown>;
   onChange: (key: string, v: unknown) => void;
+  /** Schema findings keyed by property, from the composer. Absent on the editor. */
+  problems?: Map<string, RecordProblem[]>;
 }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
       {lex.fields.map((f) => (
-        <Field key={f.key} field={f} value={value[f.key]} onChange={(v) => onChange(f.key, v)} />
+        <Field
+          key={f.key}
+          field={f}
+          value={value[f.key]}
+          onChange={(v) => onChange(f.key, v)}
+          problems={problems?.get(f.key)}
+        />
       ))}
     </div>
   );
@@ -35,10 +53,12 @@ export function Field({
   field,
   value,
   onChange,
+  problems,
 }: {
   field: LexiconField;
   value: unknown;
   onChange: (v: unknown) => void;
+  problems?: RecordProblem[];
 }) {
   let control: React.ReactNode;
   switch (field.type) {
@@ -50,7 +70,6 @@ export function Field({
           value={(value as string) ?? ''}
           onChange={(e) => onChange(e.target.value)}
           placeholder={field.placeholder || ''}
-          maxLength={field.maxLength}
         />
       );
       break;
@@ -136,7 +155,6 @@ export function Field({
           value={(value as string) ?? ''}
           onChange={(e) => onChange(e.target.value)}
           placeholder={field.placeholder || ''}
-          maxLength={field.maxLength}
         />
       );
   }
@@ -148,9 +166,10 @@ export function Field({
       hint={field.hint}
       charCount={
         field.maxLength && typeof value === 'string'
-          ? `${value.length} / ${field.maxLength}`
+          ? `${graphemeLength(value)} / ${field.maxLength}`
           : null
       }
+      problems={problems}
     >
       {control}
     </FieldShell>
@@ -162,12 +181,15 @@ export function FieldShell({
   required,
   hint,
   charCount,
+  problems,
   children,
 }: {
   label: string;
   required?: boolean;
   hint?: string;
   charCount?: string | null;
+  /** Rendered under the control, ahead of the hint. */
+  problems?: RecordProblem[];
   children: React.ReactNode;
 }) {
   // The whole field is a <label> wrapping its control, so every input in the
@@ -185,6 +207,21 @@ export function FieldShell({
         </span>
       )}
       {children}
+      {problems?.map((problem, i) => (
+        <span
+          key={i}
+          style={{
+            display: 'block',
+            margin: 0,
+            fontSize: '0.75rem',
+            lineHeight: 1.45,
+            color: problem.severity === 'error' ? 'var(--danger)' : 'var(--text-secondary)',
+          }}
+        >
+          {problem.severity === 'error' ? '✕ ' : '! '}
+          {problem.message}
+        </span>
+      ))}
       {(hint || charCount) && (
         <span
           style={{

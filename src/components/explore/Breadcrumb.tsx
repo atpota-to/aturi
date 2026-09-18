@@ -51,6 +51,13 @@ type Props = {
    * row. Path or full URL; bare paths get aturi.to prepended.
    */
   shareUrl?: string;
+  /**
+   * A final, unlinked crumb for a page that is a step rather than an address —
+   * the record composer's "new record". Appended after whatever the address
+   * parts above resolved to, so the trail still says where you are when the
+   * collection hasn't been chosen yet.
+   */
+  trailing?: string;
 };
 
 /**
@@ -77,6 +84,7 @@ export default function Breadcrumb({
   author,
   authorHandle,
   shareUrl,
+  trailing,
 }: Props) {
   const repoSegment = encodeRepo(handle || did);
   const repoLabel = handle ? `@${handle}` : did;
@@ -90,6 +98,11 @@ export default function Breadcrumb({
   // chip is intentionally left out — the condensed copy is a path, not a row
   // of actions.
   const trail = useMemo<BreadcrumbCrumb[]>(() => {
+    const crumbs = buildTrail();
+    if (trailing) crumbs.push({ label: trailing });
+    return crumbs;
+
+    function buildTrail(): BreadcrumbCrumb[] {
     const crumbs: BreadcrumbCrumb[] = [];
     if (pdsHost) {
       crumbs.push({
@@ -137,7 +150,8 @@ export default function Breadcrumb({
       crumbs.push({ label: rkey });
     }
     return crumbs;
-  }, [pdsHost, repoLabel, repoSegment, spaceRoot, spaceType, skey, author, authorHandle, collection, rkey]);
+    }
+  }, [pdsHost, repoLabel, repoSegment, spaceRoot, spaceType, skey, author, authorHandle, collection, rkey, trailing]);
 
   useEffect(() => {
     setTrail(trail);

@@ -5861,3 +5861,288 @@ html[data-autoredirect='arming'] .autoredirect-shim {
   background: var(--bg-primary);
   z-index: 10;
 }
+
+/* ---------------------------------------------------------------------------
+   Record composer (/explore/compose)
+
+   Two panes on a wide screen — the address and its form on the left, the
+   record that will be written and a rendering of it on the right — and one
+   column below that. The page breaks out of .container-narrow's 800px reading
+   measure at the same breakpoint, because two panes of record JSON at 380px
+   each is a worse page than one pane at 560.
+
+   Lives here rather than in a styled-jsx block because the composer is several
+   components deep and styled-jsx only scopes the one that declares it; half
+   these rules would have needed :global() to reach the panel headings and the
+   schema note. .explore-* already sets the precedent.
+--------------------------------------------------------------------------- */
+
+.composer-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1.25rem;
+}
+
+.composer-col {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  min-width: 0;
+}
+
+.composer-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.875rem;
+  padding: 1rem;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-medium);
+}
+
+.composer-panel-heading {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+  padding-bottom: 0.625rem;
+  border-bottom: 1px solid var(--border-subtle);
+  font-family: var(--font-serif);
+  font-weight: 400;
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+}
+
+.composer-heading-aside {
+  margin-left: auto;
+  letter-spacing: 0.02em;
+  text-transform: none;
+  font-size: 0.7rem;
+  color: var(--text-tertiary);
+}
+
+.composer-heading-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-left: auto;
+}
+
+.composer-label {
+  font-family: var(--font-serif);
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.composer-note {
+  margin: 0;
+  font-size: 0.75rem;
+  line-height: 1.5;
+  color: var(--text-tertiary);
+}
+
+.composer-note code {
+  background: transparent;
+  padding: 0;
+  color: inherit;
+}
+
+.composer-link {
+  color: var(--text-accent);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.composer-link:hover {
+  text-decoration: underline;
+}
+
+.composer-json {
+  min-height: 15rem;
+  resize: vertical;
+}
+
+.composer-json-error {
+  margin: 0;
+  font-size: 0.75rem;
+  line-height: 1.5;
+  color: var(--danger);
+}
+
+.composer-problems {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+/* The verdict line above the write button. Carries its own colour because it
+   is the one place on the page that says whether anything is wrong at all. */
+.composer-check {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0;
+  font-size: 0.8rem;
+  line-height: 1.5;
+  color: var(--text-tertiary);
+}
+
+.composer-check.is-ok {
+  color: var(--text-accent);
+}
+
+.composer-check.is-warn {
+  color: var(--text-secondary);
+}
+
+.composer-check.is-bad {
+  color: var(--danger);
+}
+
+.composer-segmented {
+  display: inline-flex;
+  align-self: flex-start;
+  border: 1px solid var(--border-medium);
+  background: var(--bg-tertiary);
+  padding: 2px;
+}
+
+.composer-segmented button {
+  padding: 0.35rem 0.75rem;
+  background: transparent;
+  color: var(--text-secondary);
+  border: 0;
+  font-family: var(--font-serif);
+  font-size: 0.8125rem;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.composer-segmented button.is-on {
+  background: var(--accent-moss);
+  color: var(--text-on-accent);
+  cursor: default;
+}
+
+.composer-write {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.5rem 1.1rem;
+  background: var(--accent-moss);
+  color: var(--text-on-accent);
+  border: 1px solid var(--accent-moss);
+  font-family: var(--font-serif);
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+
+.composer-write:disabled {
+  cursor: wait;
+  opacity: 0.6;
+}
+
+.composer-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.45rem 0.75rem;
+  background: transparent;
+  color: var(--text-secondary);
+  border: 1px solid var(--border-medium);
+  font-family: var(--font-serif);
+  font-size: 0.8125rem;
+  cursor: pointer;
+}
+
+.composer-secondary:hover {
+  color: var(--danger);
+  border-color: var(--danger-border);
+}
+
+.composer-tool {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.25rem 0.5rem;
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-subtle);
+  font-family: var(--font-serif);
+  font-size: 0.72rem;
+  letter-spacing: 0.02em;
+  text-transform: none;
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+
+.composer-tool:hover:not(:disabled) {
+  color: var(--text-accent);
+  border-color: var(--text-accent);
+}
+
+.composer-tool:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* RecordPreview is built for a page of its own and brings its own margins;
+   inside a pane it just needs to stop overflowing. */
+.composer-preview {
+  min-width: 0;
+  overflow-x: auto;
+}
+
+@media (min-width: 60rem) {
+  .composer-grid {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 1.5rem;
+  }
+
+  .composer {
+    margin-inline: calc((100% - min(1180px, 100vw - 4rem)) / 2);
+  }
+
+  /* The record and its rendering stay put while the fields scroll, so the
+     thing being written is never off screen. Its own scroll, so a long
+     lexicon's form cannot push the preview below the fold. */
+  .composer-aside {
+    position: sticky;
+    top: 5.5rem;
+    align-self: start;
+    max-height: calc(100dvh - 7rem);
+    overflow-y: auto;
+  }
+}
+
+/* Below the two-pane breakpoint the two columns dissolve, so the five panels
+   can be ordered as one sequence rather than as one column after the other.
+   Source order puts the write button at the end of the left column, which on
+   a phone would sit between the fields and the record pane — and on a lexicon
+   with no published schema, that pane is the only place to type. */
+@media (max-width: 59.99rem) {
+  .composer-col {
+    display: contents;
+  }
+  .composer-where {
+    order: 1;
+  }
+  .composer-fields {
+    order: 2;
+  }
+  .composer-record {
+    order: 3;
+  }
+  .composer-previewed {
+    order: 4;
+  }
+  .composer-actions {
+    order: 5;
+  }
+}
