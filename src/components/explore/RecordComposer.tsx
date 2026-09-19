@@ -5,19 +5,22 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
   AlertTriangle,
+  ArrowLeft,
+  ArrowRight,
   Braces,
   Check,
   ChevronDown,
   Clock,
   IdCard,
   Loader2,
+  PencilLine,
   Trash2,
   Upload,
 } from 'lucide-react';
 import { useAtprotoSession } from '@/components/AtprotoSessionProvider';
 import { resolveIdentifier, type IdentityBundle } from '@/utils/atproto/identity';
 import { isValidNsid } from '@/utils/atproto/spaceUri';
-import { encodeRepo, rkeyFromAtUri } from '@/utils/atproto/urls';
+import { encodeRepo, rkeyFromAtUri, shortDid } from '@/utils/atproto/urls';
 import { lexiconPathFor } from '@/utils/ufos/nsid';
 import { resolveLexiconDocument } from '@/utils/atproto/lexiconDoc';
 import { formFromLexiconDocument } from '@/utils/atproto/lexiconForm';
@@ -28,6 +31,7 @@ import { clearDraft, draftDiffersFrom, loadDraft, saveDraft } from '@/utils/reco
 import RecordPreview from '@/components/RecordPreview';
 import AppearIn from './AppearIn';
 import Breadcrumb from './Breadcrumb';
+import LinkifiedJson from './LinkifiedJson';
 import NsidCombobox from './NsidCombobox';
 import SignInPanel from './SignInPanel';
 import { FormEditor } from './recordFields';
@@ -42,22 +46,25 @@ import { useRepoCollections } from './useRepoCollections';
  * worth having here is what a general atproto client can do and a product
  * client can't.
  *
- * A page rather than a dialog, and a page laid out as two panes rather than two
- * modes. Both follow from what this actually is: not a confirmation step but an
- * authoring session, where the record body is the thing being worked on and
- * should never be hidden behind a toggle to see the fields, or the fields
- * hidden to see the body. The left pane is the address and the form; the right
- * pane is the record that will be written and a rendering of it. Editing either
- * side moves the other, because they are two views of one object and treating
- * them as two documents to reconcile is what makes a mode switch feel lossy.
+ * Three steps, one column. The explorer is a reading-measure site and every
+ * other page in it is a single column you work down; a composer that broke out
+ * into two panes was a different app wearing the same header. The steps follow
+ * the order the decisions actually come in:
+ *
+ *   1. Which collection. Names the lexicon, and so decides everything below.
+ *   2. The record. A form when the lexicon can be turned into one, raw JSON
+ *      when it can't or when that's what you want; the two are views of one
+ *      object and switching between them converts rather than discards.
+ *   3. Review. The address, the exact JSON that will be written, a rendering of
+ *      it, everything the schema disagrees with, and the write.
  *
  * The schema does three jobs, not one. It builds the form, it checks the draft
  * as it is typed, and it says what the record key has to look like — so a
  * missing required field or a datetime without a timezone is something you fix
- * while writing rather than something a 400 tells you about afterwards. None of
- * it blocks: writing a record a published schema would refuse is a legitimate
- * thing to do while designing a lexicon, which is why the PDS validation
- * setting is on the page rather than buried.
+ * on step two rather than something a 400 tells you about after step three.
+ * None of it blocks: writing a record a published schema would refuse is a
+ * legitimate thing to do while designing a lexicon, which is why the PDS
+ * validation setting is on the review step rather than buried.
  *
  * The write goes through `com.atproto.repo.createRecord`, which is create-only:
  * a record key already in use is refused rather than overwritten. Editing what
@@ -70,6 +77,29 @@ type Props = {
   /** From `?rkey=`. Rare; the lexicon usually decides. */
   initialRkey: string;
 };
+
+type Step = 1 | 2 | 3;
+
+const STEPS: { n: Step; label: string; title: string; blurb: string }[] = [
+  {
+    n: 1,
+    label: 'Collection',
+    title: 'Which collection?',
+    blurb: 'The lexicon this record belongs to. Yours are suggested first; any NSID works.',
+  },
+  {
+    n: 2,
+    label: 'Record',
+    title: 'Fill in the record',
+    blurb: 'From the fields the lexicon declares, or as JSON. Either way it is checked as you go.',
+  },
+  {
+    n: 3,
+    label: 'Review',
+    title: 'Review and write',
+    blurb: 'Exactly what will be written, where, and anything the schema disagrees with.',
+  },
+];
 
 /**
  * What the PDS should do about lexicon validation, as the three states the
@@ -110,17 +140,7 @@ export default function RecordComposer({ initialCollection, initialRkey }: Props
   if (!did && !sessionLoading) {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', maxWidth: '32rem' }}>
-        <h1
-          style={{
-            margin: 0,
-            fontFamily: 'var(--font-serif)',
-            fontWeight: 400,
-            fontSize: '1.4rem',
-            color: 'var(--text-primary)',
-          }}
-        >
-          Write a record
-        </h1>
+        <h1 className="composer-title">Write a record</h1>
         <p style={{ margin: 0, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
           Records are written into your own repository, so this needs a signed-in
           account. Sign in and you can create a record of any lexicon — including
@@ -133,7 +153,15 @@ export default function RecordComposer({ initialCollection, initialRkey }: Props
 
   // Keyed on the DID so switching accounts starts a clean composer rather than
   // carrying one account's draft and collection list into another's session.
-  return <Composer key={did || 'anon'} did={did} identity={identity} initialCollection={initialCollection} initialRkey={initialRkey} />;
+  return (
+    <Composer
+      key={did || 'anon'}
+      did={did}
+      identity={identity}
+      initialCollection={initialCollection}
+      initialRkey={initialRkey}
+    />
+  );
 }
 
 function Composer({
@@ -149,10 +177,19 @@ function Composer({
 }) {
   const router = useRouter();
   const { agent } = useAtprotoSession();
+  const topRef = useRef<HTMLDivElement>(null);
   const jsonRef = useRef<HTMLTextAreaElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const collectionFieldId = useId();
   const rkeyFieldId = useId();
+
+  // A collection handed over by the page you came from is a decision already
+  // made, so the composer opens on the record rather than asking again.
+  const startStep: Step = isValidNsid(initialCollection.trim()) ? 2 : 1;
+  const [step, setStep] = useState<Step>(startStep);
+  /** The furthest step visited, which is how far the stepper lets you jump. */
+  const [reached, setReached] = useState<Step>(startStep);
+  const [stepError, setStepError] = useState<string | null>(null);
 
   const [collection, setCollection] = useState(initialCollection);
   const [rkey, setRkey] = useState(initialRkey);
@@ -160,6 +197,7 @@ function Composer({
   const [record, setRecord] = useState<Record<string, unknown>>({});
   const [jsonText, setJsonText] = useState('');
   const [jsonError, setJsonError] = useState<string | null>(null);
+  const [mode, setMode] = useState<'form' | 'json'>('form');
   const [validate, setValidate] = useState<ValidateMode>('unset');
   const [insertOpen, setInsertOpen] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -167,29 +205,29 @@ function Composer({
   const [writeError, setWriteError] = useState<string | null>(null);
   const [draftRestored, setDraftRestored] = useState(false);
   /**
-   * The collection the body on screen was written for, which is not always the
-   * one named above it: changing the collection deliberately leaves a draft in
-   * place rather than destroying it, and the schema check then says plainly
-   * that `$type` and the address disagree.
-   *
-   * Drafts are filed under this rather than under the field, so a body typed
-   * for one collection is never stored as another's.
+   * The collection the body on screen was written for. Drafts are filed under
+   * this rather than under the collection field, so a body typed for one
+   * collection is never stored as another's — and changing the collection can
+   * safely swap the body out, because the old one is already in its own draft.
    */
   const [bodyNsid, setBodyNsid] = useState('');
 
   /**
-   * Which pane last changed the record, so the other can follow without the
+   * Which editor last changed the record, so the other can follow without the
    * two fighting. A ref, because it is read inside the sync effect and must
    * not itself cause one.
    */
   const sourceRef = useRef<'form' | 'json'>('form');
   /**
-   * True once the user has put something of their own into the body.
+   * True once the user has edited the body in this session. A draft restored
+   * from storage does not count: it is protected by being stored, not by being
+   * here, and treating it as an edit would stop the collection field from
+   * swapping in the right body for a lexicon you have only just named.
    *
-   * State and a ref, because it is read in two incompatible ways: the Discard
-   * button renders from it, which a ref cannot drive, and the seeding effect
-   * consults it, which state would make a dependency — re-running the seed on
-   * the keystroke that set it, over the draft it was protecting.
+   * State and a ref, because it is read in two incompatible ways: the discard
+   * affordance renders from it, which a ref cannot drive, and the seeding
+   * effect consults it, which state would make a dependency — re-running the
+   * seed on the keystroke that set it, over the draft it was protecting.
    */
   const [dirty, setDirty] = useState(false);
   const dirtyRef = useRef(false);
@@ -197,8 +235,15 @@ function Composer({
     dirtyRef.current = true;
     setDirty(true);
   }, []);
+  // Mirrors the seeding effect reads without depending on. See `dirtyRef`.
   const rkeyTouchedRef = useRef(rkeyTouched);
   rkeyTouchedRef.current = rkeyTouched;
+  const rkeyRef = useRef(rkey);
+  rkeyRef.current = rkey;
+  const jsonTextRef = useRef(jsonText);
+  jsonTextRef.current = jsonText;
+  const bodyNsidRef = useRef(bodyNsid);
+  bodyNsidRef.current = bodyNsid;
 
   const ownCollections = useRepoCollections(did, identity?.pds);
   const nsid = collection.trim();
@@ -234,7 +279,7 @@ function Composer({
               ? { status: 'resolved', doc: resolved.doc }
               : {
                   status: 'unresolved',
-                  reason: `No published lexicon found for ${nsid}. The record pane still writes whatever you put in it.`,
+                  reason: `No published lexicon found for ${nsid}. You can still write any JSON under it.`,
                 },
           );
         })
@@ -242,7 +287,7 @@ function Composer({
           if (!cancelled) {
             setSchema({
               status: 'unresolved',
-              reason: 'Could not reach that lexicon’s publisher. The record pane still works.',
+              reason: 'Could not reach that lexicon’s publisher. You can still write any JSON under it.',
             });
           }
         });
@@ -259,9 +304,9 @@ function Composer({
    * The form. Aturi's own template wins where it has one — those are curated
    * down to the fields people actually fill, against a published schema for the
    * same NSID that is a wall of facets and embeds — and everything else is
-   * derived from the document above. Where neither yields a form, the record
-   * pane is the whole interface, which is the correct answer for a lexicon with
-   * no schema anywhere.
+   * derived from the document above. Where neither yields a form, JSON is the
+   * whole interface, which is the correct answer for a lexicon with no schema
+   * anywhere.
    */
   const form = useMemo<{ lexicon: Lexicon; source: 'aturi' | 'published' } | null>(() => {
     if (!nsidValid) return null;
@@ -273,6 +318,8 @@ function Composer({
   }, [nsid, nsidValid, schemaDoc]);
 
   const lexicon = form?.lexicon ?? null;
+  // JSON is the only editor there is without a form, whatever was picked.
+  const editor: 'form' | 'json' = lexicon ? mode : 'json';
 
   /** The starting body for this collection: `$type` plus the schema's defaults. */
   const seedText = useMemo(() => {
@@ -284,14 +331,36 @@ function Composer({
     return Object.keys(seed).length ? `${JSON.stringify(seed, null, 2)}\n` : '';
   }, [lexicon, nsid]);
 
-  // Seed the body, or restore the draft that was left for this collection.
-  // Never over a draft in progress: a template is replaceable, work is not.
+  /**
+   * Seed the body for the named collection, or restore the draft left for it.
+   *
+   * Runs when the collection changes and when its lexicon arrives. A body
+   * edited this session is left alone in the second case — a template is
+   * replaceable, work is not — but swapped out in the first, after filing it
+   * under its own collection: naming a different lexicon means a different
+   * record, and the one you were writing is a step back away in its draft.
+   */
   useEffect(() => {
-    if (dirtyRef.current) return;
+    const collectionChanged = bodyNsidRef.current !== nsid;
+    if (!collectionChanged && dirtyRef.current) return;
+
+    // Ahead of the debounced save, which the swap below would otherwise cancel
+    // with the last few hundred milliseconds of typing still unsaved.
+    if (collectionChanged && dirtyRef.current && did && bodyNsidRef.current) {
+      saveDraft(did, {
+        collection: bodyNsidRef.current,
+        rkey: rkeyRef.current,
+        json: jsonTextRef.current,
+      });
+    }
+
     const stored = did && nsid ? loadDraft(did, nsid) : null;
     const text = stored?.json ?? seedText;
 
+    bodyNsidRef.current = nsid;
     setBodyNsid(nsid);
+    dirtyRef.current = false;
+    setDirty(false);
     sourceRef.current = 'json';
     setJsonText(text);
     try {
@@ -303,7 +372,6 @@ function Composer({
     }
 
     if (stored) {
-      markDirty();
       // Only announce a restore that restored something. The seed gets saved
       // like any other body, so a notice over an untouched template would be
       // claiming work that was never done.
@@ -316,7 +384,7 @@ function Composer({
     if (!rkeyTouchedRef.current) {
       setRkey(lexicon?.rkeyMode === 'fixed' ? lexicon.rkeyDefault || '' : '');
     }
-  }, [seedText, lexicon, nsid, did, markDirty]);
+  }, [seedText, lexicon, nsid, did]);
 
   // record → JSON, whenever the form was what moved it.
   useEffect(() => {
@@ -335,42 +403,48 @@ function Composer({
     return () => window.clearTimeout(timer);
   }, [did, bodyNsid, rkey, jsonText, dirty]);
 
-  const updateField = useCallback((key: string, next: unknown) => {
-    markDirty();
-    sourceRef.current = 'form';
-    setRecord((prev) => {
-      // An optional field emptied back out is absent, not an empty string:
-      // "" and missing mean different things in every schema that has both.
-      const out = { ...prev };
-      if (next === undefined || next === '') delete out[key];
-      else out[key] = next;
-      return out;
-    });
-  }, [markDirty]);
+  const updateField = useCallback(
+    (key: string, next: unknown) => {
+      markDirty();
+      sourceRef.current = 'form';
+      setRecord((prev) => {
+        // An optional field emptied back out is absent, not an empty string:
+        // "" and missing mean different things in every schema that has both.
+        const out = { ...prev };
+        if (next === undefined || next === '') delete out[key];
+        else out[key] = next;
+        return out;
+      });
+    },
+    [markDirty],
+  );
 
-  const updateJson = useCallback((next: string) => {
-    markDirty();
-    sourceRef.current = 'json';
-    setJsonText(next);
-    if (!next.trim()) {
-      setRecord({});
-      setJsonError(null);
-      return;
-    }
-    try {
-      const parsed: unknown = JSON.parse(next);
-      if (!isPlainObject(parsed)) {
-        setJsonError('A record has to be a JSON object.');
+  const updateJson = useCallback(
+    (next: string) => {
+      markDirty();
+      sourceRef.current = 'json';
+      setJsonText(next);
+      if (!next.trim()) {
+        setRecord({});
+        setJsonError(null);
         return;
       }
-      setRecord(parsed);
-      setJsonError(null);
-    } catch (err) {
-      setJsonError(err instanceof Error ? err.message : String(err));
-    }
-  }, [markDirty]);
+      try {
+        const parsed: unknown = JSON.parse(next);
+        if (!isPlainObject(parsed)) {
+          setJsonError('A record has to be a JSON object.');
+          return;
+        }
+        setRecord(parsed);
+        setJsonError(null);
+      } catch (err) {
+        setJsonError(err instanceof Error ? err.message : String(err));
+      }
+    },
+    [markDirty],
+  );
 
-  /** Splice text in at the record pane's caret, replacing any selection. */
+  /** Splice text in at the JSON editor's caret, replacing any selection. */
   const insertAtCaret = useCallback(
     (text: string) => {
       const el = jsonRef.current;
@@ -429,42 +503,76 @@ function Composer({
     [nsidValid, schemaDoc, rkey],
   );
 
+  // What the record step shows. The required-field findings wait until the
+  // user has started, so a fresh form isn't red before anything was typed.
+  const shownProblems = useMemo(
+    () => (dirty ? problems : problems.filter((p) => p.code !== 'required')),
+    [problems, dirty],
+  );
+
   const problemsByField = useMemo(() => {
     const map = new Map<string, RecordProblem[]>();
-    for (const problem of problems) {
+    for (const problem of shownProblems) {
       if (!problem.field) continue;
       const list = map.get(problem.field);
       if (list) list.push(problem);
       else map.set(problem.field, [problem]);
     }
     return map;
-  }, [problems]);
+  }, [shownProblems]);
 
-  // Anything the form isn't already showing in place: record-level findings,
-  // and properties with no control of their own. Listing the rest again under
-  // the button would say everything twice.
-  const formKeys = useMemo(
-    () => new Set((lexicon?.fields ?? []).map((f) => f.key)),
-    [lexicon],
-  );
-  const unattached = problems.filter((p) => !p.field || !formKeys.has(p.field));
+  // On the record step the form shows its own fields' findings in place, so
+  // the list under it carries only what has no control: record-level findings
+  // and properties the form doesn't offer. The review step has no fields on
+  // screen and lists everything.
+  const formKeys = useMemo(() => new Set((lexicon?.fields ?? []).map((f) => f.key)), [lexicon]);
+  const unattached = shownProblems.filter((p) => !p.field || !formKeys.has(p.field));
   const errorCount = problems.filter((p) => p.severity === 'error').length;
   const warningCount = problems.length - errorCount;
 
   const repoSeg = identity ? encodeRepo(identity.handle || identity.did) : '';
+  const repoLabel = identity?.handle ? `@${identity.handle}` : did ? shortDid(did) : '';
+
+  /**
+   * Move between steps, refusing to leave one whose answer isn't usable yet.
+   * Forward only through this; the stepper can jump anywhere already reached.
+   */
+  function goTo(next: Step) {
+    if (next > 1 && !nsidValid) {
+      setStepError(
+        nsid
+          ? `“${nsid}” isn’t a valid NSID. Collections look like com.example.thing.`
+          : 'Name the collection to write into.',
+      );
+      return;
+    }
+    if (next > 2 && jsonError) {
+      setStepError(`The JSON doesn’t parse yet: ${jsonError}`);
+      return;
+    }
+    setStepError(null);
+    setWriteError(null);
+    setStep(next);
+    setReached((r) => (next > r ? next : r));
+    // The stepper is at the top and the next step starts there; a long form
+    // otherwise leaves you looking at the bottom of the previous one.
+    topRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  function switchEditor(next: 'form' | 'json') {
+    if (next === mode) return;
+    if (next === 'form' && jsonError) {
+      setStepError(`Fix the JSON before switching to the fields: ${jsonError}`);
+      return;
+    }
+    setStepError(null);
+    setMode(next);
+  }
 
   async function handleWrite() {
     if (!agent || !did || saving) return;
-    if (!nsid) {
-      setWriteError('Name the collection to write into.');
-      return;
-    }
-    if (!nsidValid) {
-      setWriteError(`“${nsid}” isn’t a valid NSID. Collections look like com.example.thing.`);
-      return;
-    }
-    if (jsonError) {
-      setWriteError(`The record pane doesn’t parse: ${jsonError}`);
+    if (!nsidValid || jsonError) {
+      goTo(3);
       return;
     }
 
@@ -503,6 +611,7 @@ function Composer({
       if (bodyNsid) clearDraft(did, bodyNsid);
       if (nsid && nsid !== bodyNsid) clearDraft(did, nsid);
     }
+    bodyNsidRef.current = nsid;
     setBodyNsid(nsid);
     dirtyRef.current = false;
     setDirty(false);
@@ -517,16 +626,21 @@ function Composer({
     setDraftRestored(false);
   }
 
+  const current = STEPS[step - 1];
+  const hasDraft = dirty || draftRestored;
+
   return (
     <div
+      ref={topRef}
       className="composer"
       onKeyDown={(e) => {
-        // The write shortcut every editor has. Bound on the page rather than a
-        // form, because the two panes are not one form and Enter inside either
-        // has to keep meaning "newline" or "pick a suggestion".
+        // One shortcut for "proceed": the next step, or on the last one the
+        // write. Bound on the page rather than a form, because Enter inside a
+        // field has to keep meaning "newline" or "pick a suggestion".
         if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
           e.preventDefault();
-          void handleWrite();
+          if (step === 3) void handleWrite();
+          else goTo((step + 1) as Step);
         }
       }}
     >
@@ -541,98 +655,319 @@ function Composer({
       </AppearIn>
 
       <AppearIn delay={0.05}>
-        <div className="composer-grid">
-          {/* ---------------------------------------------------------- left */}
-          <div className="composer-col">
-            <section className="composer-panel composer-where">
-              <PanelHeading>Where it goes</PanelHeading>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.875rem' }}>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
-                  <label htmlFor={collectionFieldId} className="composer-label">
-                    Collection
-                  </label>
-                  <NsidCombobox
-                    id={collectionFieldId}
-                    value={collection}
-                    onChange={setCollection}
-                    ownCollections={ownCollections}
-                    autoFocus={!initialCollection}
-                  />
-                  <SchemaNote state={schema} nsid={nsid} nsidValid={nsidValid} form={form} />
-                </div>
-
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
-                  <label htmlFor={rkeyFieldId} className="composer-label">
-                    Record key
-                  </label>
-                  <input
-                    id={rkeyFieldId}
-                    className="explore-input explore-mono"
-                    type="text"
-                    value={rkey}
-                    onChange={(e) => {
-                      setRkey(e.target.value);
-                      setRkeyTouched(true);
-                    }}
-                    placeholder="assigned by your PDS"
-                    spellCheck={false}
-                    autoCapitalize="none"
-                    autoComplete="off"
-                    style={{ fontSize: '0.82rem' }}
-                  />
-                  {keyProblem ? (
-                    <ProblemLine problem={keyProblem} />
-                  ) : (
-                    <p className="composer-note">
-                      {rkey.trim()
-                        ? 'This exact key. Creating fails if a record already has it.'
-                        : 'Left empty, your PDS mints a timestamp key.'}
-                    </p>
-                  )}
-                </div>
-              </div>
-            </section>
-
-            <section className="composer-panel composer-fields">
-              <PanelHeading>
-                Fields
-                {lexicon && (
-                  <span className="composer-heading-aside">
-                    {lexicon.fields.length} in this lexicon
+        <ol className="composer-steps" aria-label="Steps">
+          {STEPS.map((s) => {
+            const state =
+              s.n === step ? 'current' : s.n < step ? 'done' : s.n <= reached ? 'open' : 'todo';
+            return (
+              <li
+                key={s.n}
+                className={`composer-step is-${state}`}
+                aria-current={s.n === step ? 'step' : undefined}
+              >
+                <button
+                  type="button"
+                  disabled={s.n > reached || s.n === step}
+                  onClick={() => goTo(s.n)}
+                >
+                  <span className="composer-step-num" aria-hidden>
+                    {state === 'done' ? <Check size={11} /> : s.n}
                   </span>
-                )}
-              </PanelHeading>
+                  <span className="composer-step-label">{s.label}</span>
+                </button>
+              </li>
+            );
+          })}
+        </ol>
+      </AppearIn>
+
+      {/* Keyed on the step so each one fades in fresh rather than morphing
+          out of the last. */}
+      <AppearIn key={step} delay={0.05} rise>
+        <div className="composer-step-head">
+          <h1 className="composer-title">{current.title}</h1>
+          <p className="composer-blurb">{current.blurb}</p>
+        </div>
+
+        {/* ================================================== 1. collection */}
+        {step === 1 && (
+          <section className="composer-panel">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
+              <label htmlFor={collectionFieldId} className="composer-label">
+                Collection
+              </label>
+              <NsidCombobox
+                id={collectionFieldId}
+                value={collection}
+                onChange={(v) => {
+                  setCollection(v);
+                  setStepError(null);
+                }}
+                ownCollections={ownCollections}
+                autoFocus
+              />
+              <SchemaNote state={schema} nsid={nsid} nsidValid={nsidValid} form={form} />
+            </div>
+
+            {nsidValid && (
+              <LexiconGlance
+                state={schema}
+                lexicon={lexicon}
+                source={form?.source ?? null}
+              />
+            )}
+          </section>
+        )}
+
+        {/* ====================================================== 2. record */}
+        {step === 2 && (
+          <section className="composer-panel">
+            <div className="composer-editor-bar">
               {lexicon ? (
+                <div role="radiogroup" aria-label="Editor" className="composer-segmented">
+                  <button
+                    type="button"
+                    role="radio"
+                    aria-checked={editor === 'form'}
+                    className={editor === 'form' ? 'is-on' : undefined}
+                    onClick={() => switchEditor('form')}
+                  >
+                    Fields
+                  </button>
+                  <button
+                    type="button"
+                    role="radio"
+                    aria-checked={editor === 'json'}
+                    className={editor === 'json' ? 'is-on' : undefined}
+                    onClick={() => switchEditor('json')}
+                  >
+                    JSON
+                  </button>
+                </div>
+              ) : (
+                <span className="composer-label">
+                  {schema.status === 'loading' ? 'Looking up the lexicon…' : 'JSON'}
+                </span>
+              )}
+
+              {editor === 'json' && (
+                <span className="composer-heading-actions">
+                  <button
+                    type="button"
+                    className="composer-tool"
+                    onClick={() => {
+                      sourceRef.current = 'form';
+                      setRecord((r) => ({ ...r }));
+                    }}
+                    disabled={Boolean(jsonError)}
+                    title="Re-indent the JSON"
+                  >
+                    <Braces size={12} aria-hidden /> Tidy
+                  </button>
+                  <span style={{ position: 'relative', display: 'inline-flex' }}>
+                    <button
+                      type="button"
+                      className="composer-tool"
+                      aria-expanded={insertOpen}
+                      onClick={() => setInsertOpen((v) => !v)}
+                      disabled={uploading}
+                    >
+                      {uploading ? (
+                        <Loader2 size={12} className="explore-spin" aria-hidden />
+                      ) : (
+                        <ChevronDown size={12} aria-hidden />
+                      )}
+                      {uploading ? 'Uploading…' : 'Insert'}
+                    </button>
+                    {insertOpen && (
+                      <InsertMenu
+                        onDismiss={() => setInsertOpen(false)}
+                        onDid={() => did && insertAtCaret(JSON.stringify(did))}
+                        onTimestamp={() =>
+                          insertAtCaret(JSON.stringify(new Date().toISOString()))
+                        }
+                        onBlob={() => {
+                          setInsertOpen(false);
+                          fileRef.current?.click();
+                        }}
+                      />
+                    )}
+                  </span>
+                </span>
+              )}
+            </div>
+
+            {draftRestored && (
+              <p className="composer-note composer-restored">
+                Restored from a draft you left for this collection.
+                <button type="button" className="composer-inline-action" onClick={discardDraft}>
+                  Start over
+                </button>
+              </p>
+            )}
+
+            {editor === 'form' && lexicon ? (
+              <>
                 <FormEditor
                   lex={lexicon}
                   value={record}
                   onChange={updateField}
                   problems={problemsByField}
                 />
-              ) : (
-                <p className="composer-note" style={{ margin: 0 }}>
-                  {!nsidValid
-                    ? 'Name a collection above and its fields appear here, if its lexicon is published.'
-                    : schema.status === 'loading'
-                      ? 'Looking for a published lexicon…'
-                      : 'No form for this one. Write the record in the pane on the right — it will be accepted exactly as you put it.'}
-                </p>
-              )}
+                {form?.source === 'aturi' && (
+                  <p className="composer-note">
+                    These are the common fields. Anything else this lexicon allows
+                    goes in through JSON.
+                  </p>
+                )}
+              </>
+            ) : (
+              <>
+                {!lexicon && schema.status !== 'loading' && (
+                  <p className="composer-note">
+                    No form for this one — nothing published a schema Aturi could turn
+                    into fields. Whatever you write here is sent exactly as it is.
+                  </p>
+                )}
+                <textarea
+                  ref={jsonRef}
+                  className="explore-input explore-textarea explore-mono composer-json"
+                  value={jsonText}
+                  onChange={(e) => updateJson(e.target.value)}
+                  spellCheck={false}
+                  aria-label="Record JSON"
+                  placeholder={'{\n  "$type": "com.example.record"\n}'}
+                />
+                {jsonError && (
+                  <p className="composer-json-error">Not valid JSON yet: {jsonError}</p>
+                )}
+              </>
+            )}
+
+            {/* Findings with no field to sit under, so they aren't lost until
+                review. In JSON mode that is all of them. */}
+            {(editor === 'json' ? shownProblems : unattached).length > 0 && (
+              <ul className="composer-problems">
+                {(editor === 'json' ? shownProblems : unattached).map((problem, i) => (
+                  <li key={i}>
+                    <ProblemLine problem={problem} showField />
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+        )}
+
+        {/* ====================================================== 3. review */}
+        {step === 3 && (
+          <>
+            <section className="composer-panel">
+              <PanelHeading>Where it goes</PanelHeading>
+              <dl className="composer-dl">
+                <div>
+                  <dt>Repository</dt>
+                  <dd>
+                    <code>{repoLabel}</code>
+                  </dd>
+                </div>
+                <div>
+                  <dt>Collection</dt>
+                  <dd>
+                    <code>{nsid}</code>
+                    <button
+                      type="button"
+                      className="composer-inline-action"
+                      onClick={() => goTo(1)}
+                    >
+                      Change
+                    </button>
+                  </dd>
+                </div>
+                <div>
+                  <dt>
+                    <label htmlFor={rkeyFieldId}>Record key</label>
+                  </dt>
+                  <dd style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
+                    <input
+                      id={rkeyFieldId}
+                      className="explore-input explore-mono"
+                      type="text"
+                      value={rkey}
+                      onChange={(e) => {
+                        setRkey(e.target.value);
+                        setRkeyTouched(true);
+                      }}
+                      placeholder="assigned by your PDS"
+                      spellCheck={false}
+                      autoCapitalize="none"
+                      autoComplete="off"
+                      style={{ fontSize: '0.82rem', maxWidth: '22rem' }}
+                    />
+                    {keyProblem ? (
+                      <ProblemLine problem={keyProblem} />
+                    ) : (
+                      <span className="composer-note">
+                        {rkey.trim()
+                          ? 'This exact key. Creating fails if a record already has it.'
+                          : 'Left empty, your PDS mints a timestamp key.'}
+                      </span>
+                    )}
+                  </dd>
+                </div>
+              </dl>
             </section>
 
-            <section className="composer-panel composer-actions">
+            <section className="composer-panel">
+              <PanelHeading>
+                Record
+                <span className="composer-heading-actions">
+                  <button
+                    type="button"
+                    className="composer-tool"
+                    onClick={() => {
+                      setMode('json');
+                      goTo(2);
+                    }}
+                  >
+                    <PencilLine size={12} aria-hidden /> Edit
+                  </button>
+                </span>
+              </PanelHeading>
+              <LinkifiedJson value={record} className="explore-json" />
+            </section>
+
+            {!isEmptyRecord(record) && (
+              <section className="composer-panel">
+                <PanelHeading>How it renders</PanelHeading>
+                <div className="composer-preview">
+                  <RecordPreview
+                    record={{
+                      uri: `at://${did || ''}/${nsid}/${rkey.trim() || 'new'}`,
+                      cid: '',
+                      value: record,
+                    }}
+                    collection={nsid}
+                    handle={identity?.handle || did || ''}
+                    rkey={rkey.trim() || 'new'}
+                    pds={identity?.pds}
+                    hideExplorerCtas
+                  />
+                </div>
+              </section>
+            )}
+
+            <section className="composer-panel">
               <PanelHeading>Before you write</PanelHeading>
 
               <CheckSummary
-                nsidValid={nsidValid}
                 hasSchema={Boolean(schemaDoc)}
                 errorCount={errorCount}
                 warningCount={warningCount}
               />
 
-              {unattached.length > 0 && (
+              {problems.length > 0 && (
                 <ul className="composer-problems">
-                  {unattached.map((problem, i) => (
+                  {problems.map((problem, i) => (
                     <li key={i}>
                       <ProblemLine problem={problem} showField />
                     </li>
@@ -676,130 +1011,67 @@ function Composer({
                       : 'Your PDS skips the schema check. This is how you write a record a published lexicon would refuse.'}
                 </p>
               </div>
-
-              {writeError && (
-                <p role="alert" className="explore-error" style={{ margin: 0 }}>
-                  {writeError}
-                </p>
-              )}
-
-              <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
-                <button
-                  type="button"
-                  onClick={() => void handleWrite()}
-                  disabled={saving || !agent}
-                  className="composer-write"
-                >
-                  {saving ? (
-                    <Loader2 size={13} className="explore-spin" aria-hidden />
-                  ) : (
-                    <Check size={13} aria-hidden />
-                  )}
-                  {saving ? 'Writing…' : 'Write record'}
-                </button>
-                {dirty && (
-                  <button type="button" onClick={discardDraft} className="composer-secondary">
-                    <Trash2 size={12} aria-hidden /> Discard draft
-                  </button>
-                )}
-                <span className="composer-note" style={{ marginLeft: 'auto' }}>
-                  ⌘↵ writes
-                </span>
-              </div>
             </section>
-          </div>
+          </>
+        )}
 
-          {/* --------------------------------------------------------- right */}
-          <div className="composer-col composer-aside">
-            <section className="composer-panel composer-record">
-              <PanelHeading>
-                Record
-                <span className="composer-heading-actions">
-                  <button
-                    type="button"
-                    className="composer-tool"
-                    onClick={() => {
-                      sourceRef.current = 'form';
-                      setRecord((r) => ({ ...r }));
-                    }}
-                    disabled={Boolean(jsonError)}
-                    title="Re-indent the record"
-                  >
-                    <Braces size={12} aria-hidden /> Tidy
-                  </button>
-                  <span style={{ position: 'relative', display: 'inline-flex' }}>
-                    <button
-                      type="button"
-                      className="composer-tool"
-                      aria-expanded={insertOpen}
-                      onClick={() => setInsertOpen((v) => !v)}
-                      disabled={uploading}
-                    >
-                      {uploading ? (
-                        <Loader2 size={12} className="explore-spin" aria-hidden />
-                      ) : (
-                        <ChevronDown size={12} aria-hidden />
-                      )}
-                      {uploading ? 'Uploading…' : 'Insert'}
-                    </button>
-                    {insertOpen && (
-                      <InsertMenu
-                        onDismiss={() => setInsertOpen(false)}
-                        onDid={() => did && insertAtCaret(JSON.stringify(did))}
-                        onTimestamp={() => insertAtCaret(JSON.stringify(new Date().toISOString()))}
-                        onBlob={() => {
-                          setInsertOpen(false);
-                          fileRef.current?.click();
-                        }}
-                      />
-                    )}
-                  </span>
-                </span>
-              </PanelHeading>
+        {(stepError || writeError) && (
+          <p role="alert" className="explore-error composer-alert">
+            {stepError || writeError}
+          </p>
+        )}
 
-              <textarea
-                ref={jsonRef}
-                className="explore-input explore-textarea explore-mono composer-json"
-                value={jsonText}
-                onChange={(e) => updateJson(e.target.value)}
-                spellCheck={false}
-                aria-label="Record JSON"
-                placeholder={'{\n  "$type": "com.example.record"\n}'}
-              />
-              {jsonError ? (
-                <p className="composer-json-error">Not valid JSON yet: {jsonError}</p>
+        {/* ------------------------------------------------------- nav */}
+        <div className="composer-nav">
+          {step > 1 ? (
+            <button
+              type="button"
+              className="composer-secondary"
+              onClick={() => goTo((step - 1) as Step)}
+              disabled={saving}
+            >
+              <ArrowLeft size={12} aria-hidden /> Back
+            </button>
+          ) : (
+            <span />
+          )}
+
+          <span className="composer-nav-aside">
+            {hasDraft && step === 2 && (
+              <button type="button" className="composer-secondary is-quiet" onClick={discardDraft}>
+                <Trash2 size={12} aria-hidden /> Discard draft
+              </button>
+            )}
+            <span className="composer-note composer-shortcut">
+              {step === 3 ? '⌘↵ writes' : '⌘↵ next'}
+            </span>
+          </span>
+
+          {step < 3 ? (
+            <button
+              type="button"
+              className="composer-write"
+              onClick={() => goTo((step + 1) as Step)}
+              disabled={step === 1 && !nsidValid}
+            >
+              {step === 1 ? 'Next: the record' : 'Next: review'}{' '}
+              <ArrowRight size={13} aria-hidden />
+            </button>
+          ) : (
+            <button
+              type="button"
+              className="composer-write"
+              onClick={() => void handleWrite()}
+              disabled={saving || !agent}
+            >
+              {saving ? (
+                <Loader2 size={13} className="explore-spin" aria-hidden />
               ) : (
-                <p className="composer-note">
-                  Edit here or in the fields — each follows the other.
-                  {draftRestored && ' Restored from a draft you left.'}
-                </p>
+                <Check size={13} aria-hidden />
               )}
-            </section>
-
-            <section className="composer-panel composer-previewed">
-              <PanelHeading>Preview</PanelHeading>
-              {isEmptyRecord(record) ? (
-                <p className="composer-note" style={{ margin: 0 }}>
-                  Nothing to render yet.
-                </p>
-              ) : (
-                <div className="composer-preview">
-                  <RecordPreview
-                    record={{
-                      uri: `at://${did || ''}/${nsid}/${rkey.trim() || 'new'}`,
-                      cid: '',
-                      value: record,
-                    }}
-                    collection={nsid || 'record'}
-                    handle={identity?.handle || did || ''}
-                    rkey={rkey.trim() || 'new'}
-                    pds={identity?.pds}
-                    hideExplorerCtas
-                  />
-                </div>
-              )}
-            </section>
-          </div>
+              {saving ? 'Writing…' : 'Write record'}
+            </button>
+          )}
         </div>
       </AppearIn>
 
@@ -814,7 +1086,6 @@ function Composer({
           if (file) void handleUpload(file);
         }}
       />
-
     </div>
   );
 }
@@ -822,11 +1093,7 @@ function Composer({
 /* ------------------------------------------------------------------ pieces */
 
 function PanelHeading({ children }: { children: React.ReactNode }) {
-  return (
-    <h2 className="composer-panel-heading">
-      {children}
-    </h2>
-  );
+  return <h2 className="composer-panel-heading">{children}</h2>;
 }
 
 /**
@@ -861,7 +1128,7 @@ function SchemaNote({
   return (
     <p className="composer-note">
       {form?.source === 'aturi'
-        ? 'Aturi’s own form for this lexicon: the common fields, not all of them. '
+        ? 'Aturi has its own form for this lexicon: the common fields, not all of them. '
         : form?.source === 'published'
           ? 'Form and checks built from the published lexicon. '
           : state.status === 'unresolved'
@@ -875,6 +1142,68 @@ function SchemaNote({
 }
 
 /**
+ * What choosing this collection commits you to, before you have.
+ *
+ * Three facts a person wants before pressing Next — how much there is to fill
+ * in, how much of it is mandatory, and whether they get to name the record —
+ * pulled up here so the first step isn't a bare field with a button under it.
+ */
+function LexiconGlance({
+  state,
+  lexicon,
+  source,
+}: {
+  state: SchemaState;
+  lexicon: Lexicon | null;
+  source: 'aturi' | 'published' | null;
+}) {
+  if (state.status === 'loading' && !lexicon) return null;
+  if (!lexicon) {
+    return (
+      <dl className="composer-dl">
+        <div>
+          <dt>Fields</dt>
+          <dd>None known. You’ll write the record as JSON.</dd>
+        </div>
+        <div>
+          <dt>Record key</dt>
+          <dd>Yours to choose, or left to your PDS.</dd>
+        </div>
+      </dl>
+    );
+  }
+  const required = lexicon.fields.filter((f) => f.required).length;
+  return (
+    <dl className="composer-dl">
+      <div>
+        <dt>Fields</dt>
+        <dd>
+          {lexicon.fields.length}
+          {required ? `, ${required} required` : ', none required'}
+          {source === 'aturi' ? ' (the common ones)' : ''}
+        </dd>
+      </div>
+      <div>
+        <dt>Record key</dt>
+        <dd>
+          {lexicon.rkeyMode === 'fixed' && lexicon.rkeyDefault
+            ? `Always “${lexicon.rkeyDefault}” — one record of this kind per repo.`
+            : lexicon.rkeyMode === 'fixed'
+              ? 'Yours to choose.'
+              : 'A timestamp, minted by your PDS.'}
+        </dd>
+      </div>
+      {lexicon.summary && (
+        <div>
+          <dt>About</dt>
+          <dd>{lexicon.summary}</dd>
+        </div>
+      )}
+    </dl>
+  );
+}
+
+/**
  * The one-line verdict above the write button.
  *
  * Says what was checked as well as what was found, because "no problems" means
@@ -882,17 +1211,14 @@ function SchemaNote({
  * looked equally confident either way would be lying by omission.
  */
 function CheckSummary({
-  nsidValid,
   hasSchema,
   errorCount,
   warningCount,
 }: {
-  nsidValid: boolean;
   hasSchema: boolean;
   errorCount: number;
   warningCount: number;
 }) {
-  if (!nsidValid) return null;
   if (!hasSchema) {
     return (
       <p className="composer-check">
@@ -941,7 +1267,7 @@ function ProblemLine({ problem, showField }: { problem: RecordProblem; showField
 }
 
 /**
- * The record pane's three insertions — the values that are tedious to produce
+ * The JSON editor's three insertions — the values that are tedious to produce
  * by hand and easy to get subtly wrong.
  *
  * Anchored to its trigger rather than made a dialog, and dismissed on Escape or

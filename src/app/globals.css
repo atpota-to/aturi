@@ -5865,11 +5865,10 @@ html[data-autoredirect='arming'] .autoredirect-shim {
 /* ---------------------------------------------------------------------------
    Record composer (/explore/compose)
 
-   Two panes on a wide screen — the address and its form on the left, the
-   record that will be written and a rendering of it on the right — and one
-   column below that. The page breaks out of .container-narrow's 800px reading
-   measure at the same breakpoint, because two panes of record JSON at 380px
-   each is a worse page than one pane at 560.
+   Three steps down one column, inside the explorer's normal reading measure —
+   the earlier two-pane version broke out to 1180px and read as a different
+   app under the same header. Stepper at the top, one panel per step, the
+   Back / Next row under it.
 
    Lives here rather than in a styled-jsx block because the composer is several
    components deep and styled-jsx only scopes the one that declares it; half
@@ -5877,17 +5876,133 @@ html[data-autoredirect='arming'] .autoredirect-shim {
    schema note. .explore-* already sets the precedent.
 --------------------------------------------------------------------------- */
 
-.composer-grid {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: 1.25rem;
-}
-
-.composer-col {
+.composer {
   display: flex;
   flex-direction: column;
   gap: 1.25rem;
+  /* Step changes scroll the composer's top into view; without this it lands
+     under the sticky compact nav, which is about 96px tall when revealed. */
+  scroll-margin-top: 7rem;
+}
+
+/* The stepper: three cells joined by a hairline, the current one filled. No
+   radius, like every other control on the site. */
+.composer-steps {
+  display: flex;
+  align-items: center;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  gap: 0;
+}
+
+.composer-step {
+  display: flex;
+  align-items: center;
+  flex: 1 1 0;
   min-width: 0;
+}
+
+.composer-step + .composer-step::before {
+  content: '';
+  flex: 1 1 0;
+  height: 1px;
+  margin: 0 0.5rem;
+  background: var(--border-medium);
+}
+
+.composer-step button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0.5rem 0.35rem 0.35rem;
+  background: transparent;
+  border: 0;
+  color: var(--text-tertiary);
+  font-family: var(--font-serif);
+  font-size: 0.8125rem;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.composer-step button:disabled {
+  cursor: default;
+}
+
+.composer-step.is-done button,
+.composer-step.is-open button {
+  color: var(--text-secondary);
+}
+
+.composer-step.is-done button:hover,
+.composer-step.is-open button:hover {
+  color: var(--text-accent);
+}
+
+.composer-step.is-current button {
+  color: var(--text-primary);
+}
+
+.composer-step-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  flex-shrink: 0;
+  border: 1px solid var(--border-medium);
+  background: var(--bg-tertiary);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--text-secondary);
+}
+
+.composer-step.is-current .composer-step-num {
+  background: var(--accent-moss);
+  border-color: var(--accent-moss);
+  color: var(--text-on-accent);
+}
+
+.composer-step.is-done .composer-step-num {
+  color: var(--text-accent);
+  border-color: var(--text-accent);
+}
+
+/* On a phone the labels go and the numbers carry it; the current step's
+   title is right underneath anyway. */
+@media (max-width: 30rem) {
+  .composer-step-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+}
+
+.composer-step-head {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-bottom: 1rem;
+}
+
+.composer-title {
+  margin: 0;
+  font-family: var(--font-serif);
+  font-weight: 400;
+  font-size: 1.4rem;
+  line-height: 1.25;
+  color: var(--text-primary);
+}
+
+.composer-blurb {
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.55;
+  color: var(--text-secondary);
 }
 
 .composer-panel {
@@ -5897,6 +6012,10 @@ html[data-autoredirect='arming'] .autoredirect-shim {
   padding: 1rem;
   background: var(--bg-secondary);
   border: 1px solid var(--border-medium);
+}
+
+.composer-panel + .composer-panel {
+  margin-top: 1rem;
 }
 
 .composer-panel-heading {
@@ -5914,19 +6033,19 @@ html[data-autoredirect='arming'] .autoredirect-shim {
   color: var(--text-tertiary);
 }
 
-.composer-heading-aside {
-  margin-left: auto;
-  letter-spacing: 0.02em;
-  text-transform: none;
-  font-size: 0.7rem;
-  color: var(--text-tertiary);
-}
-
 .composer-heading-actions {
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
   margin-left: auto;
+}
+
+/* The Fields / JSON switch and the JSON tools, on one row above the editor. */
+.composer-editor-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
 }
 
 .composer-label {
@@ -5960,8 +6079,28 @@ html[data-autoredirect='arming'] .autoredirect-shim {
   text-decoration: underline;
 }
 
+/* A text-sized action that sits inside a sentence or next to a value. */
+.composer-inline-action {
+  margin-left: 0.5rem;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  color: var(--text-accent);
+  font-family: var(--font-serif);
+  font-size: inherit;
+  cursor: pointer;
+}
+
+.composer-inline-action:hover {
+  text-decoration: underline;
+}
+
+.composer-restored {
+  color: var(--text-secondary);
+}
+
 .composer-json {
-  min-height: 15rem;
+  min-height: 16rem;
   resize: vertical;
 }
 
@@ -5979,6 +6118,52 @@ html[data-autoredirect='arming'] .autoredirect-shim {
   display: flex;
   flex-direction: column;
   gap: 0.35rem;
+}
+
+/* The review step's facts and the collection step's glance: label on the
+   left, value on the right, the way the repo page lays out an identity. */
+.composer-dl {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin: 0;
+}
+
+.composer-dl > div {
+  display: grid;
+  grid-template-columns: 7rem minmax(0, 1fr);
+  gap: 0.75rem;
+  align-items: baseline;
+}
+
+.composer-dl dt {
+  font-family: var(--font-serif);
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.composer-dl dd {
+  margin: 0;
+  min-width: 0;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: var(--text-primary);
+  overflow-wrap: anywhere;
+}
+
+.composer-dl dd code {
+  background: transparent;
+  padding: 0;
+  font-size: 0.82rem;
+}
+
+@media (max-width: 30rem) {
+  .composer-dl > div {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.25rem;
+  }
 }
 
 /* The verdict line above the write button. Carries its own colour because it
@@ -6030,6 +6215,36 @@ html[data-autoredirect='arming'] .autoredirect-shim {
   cursor: default;
 }
 
+.composer-alert {
+  margin: 1rem 0 0;
+}
+
+/* Back on the left, the forward action on the right, the quiet things
+   between them. */
+.composer-nav {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.composer-nav-aside {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-left: auto;
+}
+
+.composer-shortcut {
+  white-space: nowrap;
+}
+
+@media (max-width: 30rem) {
+  .composer-shortcut {
+    display: none;
+  }
+}
+
 .composer-write {
   display: inline-flex;
   align-items: center;
@@ -6041,11 +6256,12 @@ html[data-autoredirect='arming'] .autoredirect-shim {
   font-family: var(--font-serif);
   font-size: 0.875rem;
   cursor: pointer;
+  white-space: nowrap;
 }
 
 .composer-write:disabled {
-  cursor: wait;
-  opacity: 0.6;
+  cursor: not-allowed;
+  opacity: 0.5;
 }
 
 .composer-secondary {
@@ -6059,11 +6275,27 @@ html[data-autoredirect='arming'] .autoredirect-shim {
   font-family: var(--font-serif);
   font-size: 0.8125rem;
   cursor: pointer;
+  white-space: nowrap;
 }
 
-.composer-secondary:hover {
+.composer-secondary:hover:not(:disabled) {
+  color: var(--text-primary);
+  border-color: var(--text-secondary);
+}
+
+.composer-secondary.is-quiet {
+  border-color: transparent;
+  color: var(--text-tertiary);
+}
+
+.composer-secondary.is-quiet:hover:not(:disabled) {
   color: var(--danger);
   border-color: var(--danger-border);
+}
+
+.composer-secondary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .composer-tool {
@@ -6092,57 +6324,41 @@ html[data-autoredirect='arming'] .autoredirect-shim {
   cursor: not-allowed;
 }
 
+.composer-menu {
+  position: absolute;
+  top: calc(100% + 0.35rem);
+  right: 0;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  min-width: 12rem;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-medium);
+  box-shadow: var(--shadow-overlay);
+}
+
+.composer-menu button {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.7rem;
+  background: transparent;
+  border: 0;
+  color: var(--text-primary);
+  font-family: var(--font-serif);
+  font-size: 0.82rem;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.12s ease;
+}
+
+.composer-menu button:hover {
+  background: var(--bg-tertiary);
+}
+
 /* RecordPreview is built for a page of its own and brings its own margins;
-   inside a pane it just needs to stop overflowing. */
+   inside a panel it just needs to stop overflowing. */
 .composer-preview {
   min-width: 0;
   overflow-x: auto;
-}
-
-@media (min-width: 60rem) {
-  .composer-grid {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    gap: 1.5rem;
-  }
-
-  .composer {
-    margin-inline: calc((100% - min(1180px, 100vw - 4rem)) / 2);
-  }
-
-  /* The record and its rendering stay put while the fields scroll, so the
-     thing being written is never off screen. Its own scroll, so a long
-     lexicon's form cannot push the preview below the fold. */
-  .composer-aside {
-    position: sticky;
-    top: 5.5rem;
-    align-self: start;
-    max-height: calc(100dvh - 7rem);
-    overflow-y: auto;
-  }
-}
-
-/* Below the two-pane breakpoint the two columns dissolve, so the five panels
-   can be ordered as one sequence rather than as one column after the other.
-   Source order puts the write button at the end of the left column, which on
-   a phone would sit between the fields and the record pane — and on a lexicon
-   with no published schema, that pane is the only place to type. */
-@media (max-width: 59.99rem) {
-  .composer-col {
-    display: contents;
-  }
-  .composer-where {
-    order: 1;
-  }
-  .composer-fields {
-    order: 2;
-  }
-  .composer-record {
-    order: 3;
-  }
-  .composer-previewed {
-    order: 4;
-  }
-  .composer-actions {
-    order: 5;
-  }
 }

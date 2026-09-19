@@ -34,6 +34,13 @@ export type RecordProblem = {
   field: string | null;
   message: string;
   severity: ProblemSeverity;
+  /**
+   * Set on the one finding a form should hold back until the user has begun:
+   * an untouched required field is not yet a mistake, and a fresh form that
+   * opens already red for every required field is the classic way to make
+   * people stop reading the red.
+   */
+  code?: 'required';
 };
 
 function asRecord(value: unknown): Record<string, unknown> | null {
@@ -483,7 +490,7 @@ export function checkRecord(nsid: string, doc: unknown, record: unknown): Record
   for (const key of asStringArray(schema.required) ?? []) {
     const value = body[key];
     if (value === undefined || value === null || value === '') {
-      out.push({ field: key, severity: 'error', message: 'Required, and not set.' });
+      out.push({ field: key, severity: 'error', code: 'required', message: 'Required, and not set.' });
     }
   }
 
