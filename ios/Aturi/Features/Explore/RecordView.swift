@@ -226,10 +226,14 @@ private struct RecordScreen: View {
     private var richCard: some View {
         if let card = model.richCard {
             switch card {
-            case .post(let post, parent: _):
-                PostCardView(post: post)
+            case .post(let post, parent: let parent):
+                /* Inside the explorer the card's own "view in the
+                   explorer" footer would point at this very page. */
+                PostCardView(post: post, parent: parent, showsExplorerLink: false)
             case .margin(let type, let record):
-                MarginRecordCard(type: type, record: record, rkey: model.decodedRkey)
+                if let identity = model.identityBundle {
+                    MarginRecordCard(type: type, record: record, identity: identity)
+                }
             }
         } else if model.isPost {
             switch model.postThread {
@@ -554,60 +558,5 @@ private struct LexiconUsageCardView: View {
                 .foregroundStyle(theme.textTertiary)
         }
         .accessibilityElement(children: .combine)
-    }
-}
-
-/// A compact card for the `at.margin.*` lexicons: the type, the record's
-/// title and preview, and the page it annotates when the value names one.
-/// The web renders one bespoke card per margin type; this pass shares one.
-private struct MarginRecordCard: View {
-    let type: MarginLexiconType
-    let record: AtRecord
-    let rkey: String
-
-    @Environment(\.openURL) private var openURL
-    @Environment(\.aturiTheme) private var theme
-
-    private var pageURL: URL? {
-        for key in ["url", "source", "uri"] {
-            if let string = record.value[key]?.stringValue, string.hasPrefix("http"), let url = URL(string: string) {
-                return url
-            }
-        }
-        return nil
-    }
-
-    var body: some View {
-        let preview = RecordPreview.previewFor(record.value)
-        VStack(alignment: .leading, spacing: 8) {
-            Chip(type.displayName, systemImage: "bookmark", style: .accent)
-            Text(RecordPreview.titleFor(record.value, collection: type.rawValue, rkey: rkey))
-                .font(AturiFont.subtitle)
-                .foregroundStyle(theme.textPrimary)
-            if !preview.isEmpty {
-                Text(preview)
-                    .font(.footnote)
-                    .foregroundStyle(theme.textSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            if let pageURL {
-                Button {
-                    openURL(pageURL)
-                } label: {
-                    Label(pageURL.host ?? pageURL.absoluteString, systemImage: "arrow.up.right")
-                        .font(.footnote)
-                        .foregroundStyle(theme.textAccent)
-                        .lineLimit(1)
-                }
-                .buttonStyle(.plain)
-                .accessibilityHint("Opens outside the app")
-            }
-            Text(type.summary)
-                .font(.caption)
-                .foregroundStyle(theme.textTertiary)
-        }
-        .padding(14)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .cardBackground()
     }
 }
