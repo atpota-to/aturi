@@ -1,0 +1,576 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		15D28C9376159F1E0C6F93B0 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 79C948E0E865B5C816C85F4E /* Assets.xcassets */; };
+		170D805E4B9AD3F478C2D147 /* AturiShare.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 5898A7494BC4D49633AF6992 /* AturiShare.appex */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		5B0CE0B36671E29A4A6CE649 /* AturiCore in Frameworks */ = {isa = PBXBuildFile; productRef = E0F95780CB0876F8E53C9378 /* AturiCore */; };
+		CD6490DEC7B52BD19B6D7163 /* AturiCore in Frameworks */ = {isa = PBXBuildFile; productRef = 43ABB11E0D648603A16FE5FB /* AturiCore */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		14EC7CB2B71ABD6535F73D81 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 7EC8C31349019E6F45C76B16 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = C7ECE42DCDCF701BDE1CBCCA;
+			remoteInfo = AturiShare;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		7DC2AC3BCD16251D97875528 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				170D805E4B9AD3F478C2D147 /* AturiShare.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		2764A18FCA8A84BF01EA7AD6 /* AturiCore */ = {isa = PBXFileReference; lastKnownFileType = folder; name = AturiCore; path = Packages/AturiCore; sourceTree = SOURCE_ROOT; };
+		5898A7494BC4D49633AF6992 /* AturiShare.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = AturiShare.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		619DA1FD7180891C737E8B5B /* .keep */ = {isa = PBXFileReference; path = .keep; sourceTree = "<group>"; };
+		79C948E0E865B5C816C85F4E /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		98EFC4DC88D2BA6219B27F74 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		9F923044B3510CBCFEEB2BAE /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		A4C94EE213E2337262D59996 /* Aturi.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Aturi.entitlements; sourceTree = "<group>"; };
+		CDF2C83CE4E42D8CD21CA80E /* .keep */ = {isa = PBXFileReference; path = .keep; sourceTree = "<group>"; };
+		E2C1B2D29AB80D84B9E21885 /* Aturi.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Aturi.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		ED635F00613BB970229EB214 /* AturiShare.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = AturiShare.entitlements; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		6FFEA777C074D6CE3649B034 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				CD6490DEC7B52BD19B6D7163 /* AturiCore in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		FF61F7814036154A4F457039 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				5B0CE0B36671E29A4A6CE649 /* AturiCore in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		048474DD81BB45C18E6EC05E /* Theme */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = Theme;
+			sourceTree = "<group>";
+		};
+		0580697E0A3AC7FC145C3DF8 /* Components */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = Components;
+			sourceTree = "<group>";
+		};
+		2865A1CBA3EDA9FC718E70CD /* Features */ = {
+			isa = PBXGroup;
+			children = (
+				AC3EDCB85C355B8C0545AC25 /* Explore */,
+				D4F3A3CD65FE480BDC2400F6 /* Links */,
+				43E470918FAADD735D2E781D /* Session */,
+				D8BDC701535AECA9ACCE9C4A /* Settings */,
+			);
+			path = Features;
+			sourceTree = "<group>";
+		};
+		43E470918FAADD735D2E781D /* Session */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = Session;
+			sourceTree = "<group>";
+		};
+		46B31CB2A125F54FE210392C /* Packages */ = {
+			isa = PBXGroup;
+			children = (
+				2764A18FCA8A84BF01EA7AD6 /* AturiCore */,
+			);
+			path = Packages;
+			sourceTree = "<group>";
+		};
+		58CC997006C26368F146A06A /* Aturi */ = {
+			isa = PBXGroup;
+			children = (
+				0580697E0A3AC7FC145C3DF8 /* Components */,
+				2865A1CBA3EDA9FC718E70CD /* Features */,
+				E9E5FBC15E1FB90C17E58048 /* Resources */,
+				048474DD81BB45C18E6EC05E /* Theme */,
+				CDF2C83CE4E42D8CD21CA80E /* .keep */,
+				A4C94EE213E2337262D59996 /* Aturi.entitlements */,
+				9F923044B3510CBCFEEB2BAE /* Info.plist */,
+			);
+			path = Aturi;
+			sourceTree = "<group>";
+		};
+		58DB05D302CDB01653798298 = {
+			isa = PBXGroup;
+			children = (
+				58CC997006C26368F146A06A /* Aturi */,
+				91BA0869E2371C9ACFDB3A89 /* AturiShare */,
+				46B31CB2A125F54FE210392C /* Packages */,
+				6342188B0C44B59CCC38521A /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		6342188B0C44B59CCC38521A /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				E2C1B2D29AB80D84B9E21885 /* Aturi.app */,
+				5898A7494BC4D49633AF6992 /* AturiShare.appex */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		91BA0869E2371C9ACFDB3A89 /* AturiShare */ = {
+			isa = PBXGroup;
+			children = (
+				619DA1FD7180891C737E8B5B /* .keep */,
+				ED635F00613BB970229EB214 /* AturiShare.entitlements */,
+				98EFC4DC88D2BA6219B27F74 /* Info.plist */,
+			);
+			path = AturiShare;
+			sourceTree = "<group>";
+		};
+		AC3EDCB85C355B8C0545AC25 /* Explore */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = Explore;
+			sourceTree = "<group>";
+		};
+		D4F3A3CD65FE480BDC2400F6 /* Links */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = Links;
+			sourceTree = "<group>";
+		};
+		D8BDC701535AECA9ACCE9C4A /* Settings */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = Settings;
+			sourceTree = "<group>";
+		};
+		E9E5FBC15E1FB90C17E58048 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				79C948E0E865B5C816C85F4E /* Assets.xcassets */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		81E5FA826CE54D13211DD76C /* Aturi */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A74987D4A6B9CD4C06BA57D8 /* Build configuration list for PBXNativeTarget "Aturi" */;
+			buildPhases = (
+				8939C4EC9E2836FC30A341FD /* Sources */,
+				B2687E132994C492FD819B32 /* Resources */,
+				6FFEA777C074D6CE3649B034 /* Frameworks */,
+				7DC2AC3BCD16251D97875528 /* Embed Foundation Extensions */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				6ED20E72057C47807B51669B /* PBXTargetDependency */,
+			);
+			name = Aturi;
+			packageProductDependencies = (
+				43ABB11E0D648603A16FE5FB /* AturiCore */,
+			);
+			productName = Aturi;
+			productReference = E2C1B2D29AB80D84B9E21885 /* Aturi.app */;
+			productType = "com.apple.product-type.application";
+		};
+		C7ECE42DCDCF701BDE1CBCCA /* AturiShare */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 41525FC6678005E81C52E732 /* Build configuration list for PBXNativeTarget "AturiShare" */;
+			buildPhases = (
+				F5BFB90D763DEEFA2716A0FA /* Sources */,
+				FF61F7814036154A4F457039 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = AturiShare;
+			packageProductDependencies = (
+				E0F95780CB0876F8E53C9378 /* AturiCore */,
+			);
+			productName = AturiShare;
+			productReference = 5898A7494BC4D49633AF6992 /* AturiShare.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		7EC8C31349019E6F45C76B16 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1540;
+				TargetAttributes = {
+					81E5FA826CE54D13211DD76C = {
+						DevelopmentTeam = "";
+						ProvisioningStyle = Automatic;
+					};
+					C7ECE42DCDCF701BDE1CBCCA = {
+						DevelopmentTeam = "";
+						ProvisioningStyle = Automatic;
+					};
+				};
+			};
+			buildConfigurationList = 4E5604A792BEE0E4A65FF855 /* Build configuration list for PBXProject "Aturi" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = 58DB05D302CDB01653798298;
+			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				71B526BF742CF972A8954446 /* XCLocalSwiftPackageReference "Packages/AturiCore" */,
+			);
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 6342188B0C44B59CCC38521A /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				81E5FA826CE54D13211DD76C /* Aturi */,
+				C7ECE42DCDCF701BDE1CBCCA /* AturiShare */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		B2687E132994C492FD819B32 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				15D28C9376159F1E0C6F93B0 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		8939C4EC9E2836FC30A341FD /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		F5BFB90D763DEEFA2716A0FA /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		6ED20E72057C47807B51669B /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = C7ECE42DCDCF701BDE1CBCCA /* AturiShare */;
+			targetProxy = 14EC7CB2B71ABD6535F73D81 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		0F6210CBE041ABB7D1A66A07 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CODE_SIGN_ENTITLEMENTS = AturiShare/AturiShare.entitlements;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = AturiShare/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = to.aturi.app.share;
+				PRODUCT_NAME = AturiShare;
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		185461FBECE43C88533BEC58 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Aturi/Aturi.entitlements;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = Aturi/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = to.aturi.app;
+				PRODUCT_NAME = Aturi;
+				SDKROOT = iphoneos;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		617919653FD8E66DE41571C9 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = "";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 0.1.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_STRICT_CONCURRENCY = minimal;
+				SWIFT_VERSION = 5.9;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		80E0D33F53AC8DF38B1D2351 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Aturi/Aturi.entitlements;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = Aturi/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = to.aturi.app;
+				PRODUCT_NAME = Aturi;
+				SDKROOT = iphoneos;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		91108AF86A226C05B4EE717F /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = "";
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 0.1.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_STRICT_CONCURRENCY = minimal;
+				SWIFT_VERSION = 5.9;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		D6F3ED98359F406088789510 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CODE_SIGN_ENTITLEMENTS = AturiShare/AturiShare.entitlements;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = AturiShare/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = to.aturi.app.share;
+				PRODUCT_NAME = AturiShare;
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		41525FC6678005E81C52E732 /* Build configuration list for PBXNativeTarget "AturiShare" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				0F6210CBE041ABB7D1A66A07 /* Debug */,
+				D6F3ED98359F406088789510 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		4E5604A792BEE0E4A65FF855 /* Build configuration list for PBXProject "Aturi" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				91108AF86A226C05B4EE717F /* Debug */,
+				617919653FD8E66DE41571C9 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		A74987D4A6B9CD4C06BA57D8 /* Build configuration list for PBXNativeTarget "Aturi" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				80E0D33F53AC8DF38B1D2351 /* Debug */,
+				185461FBECE43C88533BEC58 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		71B526BF742CF972A8954446 /* XCLocalSwiftPackageReference "Packages/AturiCore" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = Packages/AturiCore;
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		43ABB11E0D648603A16FE5FB /* AturiCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = AturiCore;
+		};
+		E0F95780CB0876F8E53C9378 /* AturiCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = AturiCore;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = 7EC8C31349019E6F45C76B16 /* Project object */;
+}

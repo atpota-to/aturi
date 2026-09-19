@@ -4,12 +4,13 @@
 
 ## What is aturi.to?
 
-aturi.to is a toolkit for navigating the Atmosphere (the network of apps built on atproto). Five surfaces, one shared waypoint catalog and URI parser:
+aturi.to is a toolkit for navigating the Atmosphere (the network of apps built on atproto). Six surfaces, one shared waypoint catalog and URI parser:
 
 - **Browser extension** ([`extension/`](extension/)): jump between Atmosphere clients in one click, auto-redirect every Atmosphere link to your preferred client before it loads, and inspect the AT URI under any page.
 - **Atmosphere Explorer** ([aturi.to/explore](https://aturi.to/explore)). Browse any account's PDS: every collection, every record, identity history, audit log, inbound backlinks, trending lexicons, and a live view of the firehose. Sign in to edit your own records.
 - **Universal links** ([aturi.to/profile/…](https://aturi.to/)): drop an `aturi.to/...` URL anywhere and the recipient lands on a friendly preview of the record, then picks the Atmosphere client they want to open it in. No login, no client lock-in.
 - **Waypoints packages** ([`@aturi.to/waypoints`](packages/waypoints/README.md)): the same catalog, link builders, and URI resolution the other three surfaces run on, published as a zero-dependency npm package, with a headless React picker UI in [`@aturi.to/waypoints-react`](packages/waypoints-react/README.md). MIT-licensed, so you can add waypoints to your own app.
+- **iOS app** ([`ios/`](ios/README.md)): the explorer, the universal-link picker and your waypoint preferences as a native SwiftUI app. Tap an `aturi.to` link anywhere on the phone and it opens in the app; share a post from any client to jump to another.
 - **Atmosphere MCP** ([aturi.to/mcp](https://aturi.to/mcp)): a hosted Model Context Protocol server, currently in beta. Add one URL to Claude, Cursor, or any MCP client and an AI agent can resolve any Atmosphere link, read any repository, trace backlinks across every app, and sample Jetstream, the live event stream. Keyless and read-only.
 
 Plus a **[feedback board](#feedback-board)** at [aturi.to/feedback](https://aturi.to/feedback), built on the userinput.app lexicons: post a bug or an idea, vote on someone else's, and every record lands in your own repo.
@@ -119,6 +120,17 @@ Building an Atmosphere client or tool and want it added? The quickest route is t
 
 To send a PR instead, follow [the waypoint walkthrough in CONTRIBUTING.md](CONTRIBUTING.md#adding-a-waypoint). It is four edits rather than one: the entry in [`src/utils/waypoints.data.ts`](src/utils/waypoints.data.ts), the id in `WAYPOINT_ORDER`, an icon, and a `npm run sync` so the published packages stay in step. Once merged, the web app and the extension both pick it up.
 
+## iOS app
+
+A native port of the web app, in [`ios/`](ios/). Same catalog, same parsers, same preferences record, written in Swift.
+
+- **Universal links.** With the site's association file published (`IOS_APP_TEAM_ID`), `aturi.to/profile/…`, `/explore/…` and `/at/…` links open in the app. The picker shows the same personalised groups as the web, and auto-redirect is a one-tap "Open in" rather than a silent jump.
+- **Explorer.** Repos, collections, records, identity history, PLC audit log, backlinks, PDS listings, trending lexicons and a live Jetstream tap, all against the same public services the web app reads.
+- **Share sheet.** "Open in Aturi" from any browser or client hands the link to the picker.
+- **Sign in with atproto.** The same OAuth flow, as a native client with DPoP-bound tokens, so preferences sync to `to.aturi.actor.preferences/self` and records can be edited.
+
+The logic lives in a Foundation-only Swift package (`ios/Packages/AturiCore`) that builds and tests on Linux and macOS alike; the SwiftUI app and share extension sit on top. See [`ios/README.md`](ios/README.md) for building, signing and what is verified.
+
 ## Feedback board
 
 Available at [aturi.to/feedback](https://aturi.to/feedback). Bugs, feature requests and ideas, posted and voted on by whoever shows up:
@@ -156,12 +168,13 @@ If that account has no space yet, `/feedback` shows a setup panel instead of an 
 
 ### Repo layout
 
-Four codebases share this repository:
+Five codebases share this repository:
 
 | Path | What it is |
 | --- | --- |
 | `src/` | The Next.js web app: universal links, Atmosphere Explorer, OG images, Resolve API |
 | `extension/` | The browser extension (Chrome, Firefox, Safari) |
+| `ios/` | The iOS app (SwiftUI) and its Foundation-only core package |
 | `packages/waypoints` | Published `@aturi.to/waypoints`, MIT |
 | `packages/waypoints-react` | Published `@aturi.to/waypoints-react`, MIT |
 
