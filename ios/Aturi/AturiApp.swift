@@ -132,7 +132,14 @@ extension EnvironmentValues {
 
 @main
 struct AturiApp: App {
-    @State private var appEnvironment = AppEnvironment()
+    /* The session store and the preferences store must be the same pair
+       the rest of the app sees: signing in merges the PDS record into the
+       preferences store it was handed, so it is built first and passed to
+       both. */
+    @State private var appEnvironment: AppEnvironment = {
+        let preferences = PreferencesStore()
+        return AppEnvironment(session: SessionStore(preferences: preferences), preferences: preferences)
+    }()
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.openURL) private var openURL
 
