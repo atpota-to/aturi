@@ -235,7 +235,8 @@ struct LinksView: View {
     /* Anything `extractAtUriComponents` understands becomes a preview page
        on this tab. Other links the router knows (an aturi.to explorer page)
        go where the router sends them; everything else is refused with the
-       hint rather than handed to Safari. */
+       hint rather than handed to Safari. A preview pushed from here is
+       noted as in-app first, so it never reads as an incoming link. */
     private func open() {
         let value = trimmed
         guard !value.isEmpty else { return }
@@ -245,12 +246,17 @@ struct LinksView: View {
             }
             inputFocused = false
             showsInvalidHint = false
+            LinkNavigation.noteInAppPreview(components)
             router.open(.preview(components), in: .links)
             return
         }
-        if router.handle(string: value) {
+        if let target = DeepLinks.target(for: value) {
+            if case .route(let route, _) = target, case .preview(let components) = route {
+                LinkNavigation.noteInAppPreview(components)
+            }
             inputFocused = false
             showsInvalidHint = false
+            router.handle(string: value)
             return
         }
         showsInvalidHint = true
