@@ -5885,54 +5885,53 @@ html[data-autoredirect='arming'] .autoredirect-shim {
   scroll-margin-top: 7rem;
 }
 
-/* The stepper: three cells joined by a hairline, the current one filled. No
-   radius, like every other control on the site. */
+/* The stepper, drawn the way the repo page draws its tabs: uppercase serif
+   on a hairline, the current step underlined in the accent. Steps behind the
+   current one are links; steps ahead are dimmed and inert. */
 .composer-steps {
   display: flex;
-  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.25rem;
   list-style: none;
   margin: 0;
   padding: 0;
-  gap: 0;
+  border-bottom: 1px solid var(--border-medium);
 }
 
 .composer-step {
-  display: flex;
-  align-items: center;
-  flex: 1 1 0;
-  min-width: 0;
+  color: var(--text-tertiary);
 }
 
-.composer-step + .composer-step::before {
-  content: '';
-  flex: 1 1 0;
-  height: 1px;
-  margin: 0 0.5rem;
-  background: var(--border-medium);
+.composer-step.is-done,
+.composer-step.is-open {
+  color: var(--text-secondary);
+}
+
+.composer-step.is-current {
+  color: var(--text-primary);
 }
 
 .composer-step button {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.35rem 0.5rem 0.35rem 0.35rem;
+  padding: 0.625rem 0.875rem;
   background: transparent;
   border: 0;
-  color: var(--text-tertiary);
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  color: inherit;
   font-family: var(--font-serif);
-  font-size: 0.8125rem;
-  letter-spacing: 0.02em;
+  font-size: 0.875rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
   cursor: pointer;
-  white-space: nowrap;
+  transition: color 0.2s ease, border-color 0.2s ease;
+}
+
+.composer-step.is-current button {
+  border-bottom-color: var(--text-accent);
 }
 
 .composer-step button:disabled {
   cursor: default;
-}
-
-.composer-step.is-done button,
-.composer-step.is-open button {
-  color: var(--text-secondary);
 }
 
 .composer-step.is-done button:hover,
@@ -5940,45 +5939,12 @@ html[data-autoredirect='arming'] .autoredirect-shim {
   color: var(--text-accent);
 }
 
-.composer-step.is-current button {
-  color: var(--text-primary);
-}
-
-.composer-step-num {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 1.5rem;
-  height: 1.5rem;
-  flex-shrink: 0;
-  border: 1px solid var(--border-medium);
-  background: var(--bg-tertiary);
-  font-family: var(--font-mono);
-  font-size: 0.72rem;
-  color: var(--text-secondary);
-}
-
-.composer-step.is-current .composer-step-num {
-  background: var(--accent-moss);
-  border-color: var(--accent-moss);
-  color: var(--text-on-accent);
-}
-
-.composer-step.is-done .composer-step-num {
-  color: var(--text-accent);
-  border-color: var(--text-accent);
-}
-
-/* On a phone the labels go and the numbers carry it; the current step's
-   title is right underneath anyway. */
+/* Three short words fit a phone if they give up a little air. */
 @media (max-width: 30rem) {
-  .composer-step-label {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    overflow: hidden;
-    clip: rect(0 0 0 0);
-    white-space: nowrap;
+  .composer-step button {
+    padding: 0.5rem 0.55rem;
+    font-size: 0.75rem;
+    letter-spacing: 0.06em;
   }
 }
 

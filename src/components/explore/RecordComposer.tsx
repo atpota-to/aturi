@@ -655,6 +655,11 @@ function Composer({
       </AppearIn>
 
       <AppearIn delay={0.05}>
+        {/* Drawn like the repo page's tab strip — the same uppercase serif on
+            a hairline, the current one underlined in the accent — rather than
+            as numbered boxes joined by lines, which is every other site's
+            wizard and nothing this one draws. Steps behind you are links;
+            steps ahead are dimmed and inert until Next reaches them. */}
         <ol className="composer-steps" aria-label="Steps">
           {STEPS.map((s) => {
             const state =
@@ -670,10 +675,7 @@ function Composer({
                   disabled={s.n > reached || s.n === step}
                   onClick={() => goTo(s.n)}
                 >
-                  <span className="composer-step-num" aria-hidden>
-                    {state === 'done' ? <Check size={11} /> : s.n}
-                  </span>
-                  <span className="composer-step-label">{s.label}</span>
+                  {s.label}
                 </button>
               </li>
             );
