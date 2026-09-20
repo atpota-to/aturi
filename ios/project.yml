@@ -91,9 +91,6 @@ targets:
           - CFBundleTypeRole: Viewer
             CFBundleURLName: to.aturi.app.oauth
             CFBundleURLSchemes: [to.aturi]
-        # Compose-intent deep links check whether the Bluesky app is installed
-        # before offering its bluesky:// scheme.
-        LSApplicationQueriesSchemes: [bluesky]
     entitlements:
       path: Aturi/Aturi.entitlements
       properties:
