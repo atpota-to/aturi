@@ -210,7 +210,7 @@ private struct JSONLeafRow: View {
         return nil
     }
 
-    private func open(_ target: LinkTarget) {
+    @MainActor private func open(_ target: LinkTarget) {
         switch target {
         case .route(let route):
             if let router {

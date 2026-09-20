@@ -214,7 +214,7 @@ struct PostFacetText: View {
         run.link = link
         run.foregroundColor = theme.textAccent
         if underline {
-            run.underlineStyle = .single
+            run.underlineStyle = Text.LineStyle.single
         }
         return run
     }

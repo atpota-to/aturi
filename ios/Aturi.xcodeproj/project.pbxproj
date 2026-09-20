@@ -47,7 +47,6 @@
 		8A43B3DA70E1F503EB89E3A0 /* PDSView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 650957C0FA8658DF7313314F /* PDSView.swift */; };
 		8B77EBE95E726FDA363FFE58 /* LinksView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDBA0FC15D8F136483FC5DFF /* LinksView.swift */; };
 		90C48B84F547B759DD3D5C92 /* RecentLinksStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = D398F3D75CA9AE6062D814BE /* RecentLinksStore.swift */; };
-		95598C4D0D998574A4F33107 /* TrendingListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4710CC06BD5E732A954B6CE3 /* TrendingListView.swift */; };
 		97344A22B4E6052A9F0E5858 /* CustomWaypointForm.swift in Sources */ = {isa = PBXBuildFile; fileRef = AEFC548D34A7213F2AF9573C /* CustomWaypointForm.swift */; };
 		9C5C14CCD432A8DDB734C7D9 /* LexiconsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A192578EF80188B2D0B3B661 /* LexiconsView.swift */; };
 		A3030B24D637CB8284B7EA7B /* AturiTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5DA352EBEB66320EDAFFB36D /* AturiTheme.swift */; };
@@ -118,7 +117,6 @@
 		2C6F1A502512FFF0C3C7275B /* SkeletonRows.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SkeletonRows.swift; sourceTree = "<group>"; };
 		34361542B58D29B5DBB606BD /* CopyRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CopyRow.swift; sourceTree = "<group>"; };
 		3A6D6E244471567A3DDBEAC4 /* GeneralSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeneralSettingsView.swift; sourceTree = "<group>"; };
-		4710CC06BD5E732A954B6CE3 /* TrendingListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrendingListView.swift; sourceTree = "<group>"; };
 		4FBFFC79B66E40F635C91D2D /* ImageLightbox.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageLightbox.swift; sourceTree = "<group>"; };
 		53E5D3FF0D9FF3EF07A512E2 /* ProfileCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileCardView.swift; sourceTree = "<group>"; };
 		55250DA1AA8AC6B682144D98 /* SessionBadge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionBadge.swift; sourceTree = "<group>"; };
@@ -328,7 +326,6 @@
 				8200A02F235D071051D6F845 /* LexiconGroupView.swift */,
 				6AD938F45D509EFE475A8B80 /* LexiconSupport.swift */,
 				A192578EF80188B2D0B3B661 /* LexiconsView.swift */,
-				4710CC06BD5E732A954B6CE3 /* TrendingListView.swift */,
 			);
 			path = Lexicons;
 			sourceTree = "<group>";
@@ -426,7 +423,7 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = YES;
-				LastUpgradeCheck = 1540;
+				LastUpgradeCheck = 1600;
 				TargetAttributes = {
 					81E5FA826CE54D13211DD76C = {
 						DevelopmentTeam = "";
@@ -534,7 +531,6 @@
 				30600C949B670EB0D2A1A2A4 /* SettingsView.swift in Sources */,
 				26E984EDFEE367B8EF9F8462 /* SignInSheet.swift in Sources */,
 				DC07C8D68CDAA7FA3F06E361 /* SkeletonRows.swift in Sources */,
-				95598C4D0D998574A4F33107 /* TrendingListView.swift in Sources */,
 				36E98B61895F09D20A5000C3 /* WaypointGroupsView.swift in Sources */,
 				7C952BD1E09E3CD7139FC429 /* WaypointMark.swift in Sources */,
 				13076952E48F2186B33B3F53 /* WaypointPickerView.swift in Sources */,

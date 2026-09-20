@@ -192,11 +192,11 @@ private struct AccountSignedInView: View {
             }
             .padding(.vertical, 2)
         } else {
-            statusRow(
-                systemImage: "checkmark.circle",
-                text: "Preferences synced to your PDS.",
-                color: theme.textAccent
-            )
+            /* The debounce window above is only the wait before a write; the
+               write itself, and whether the last one failed, are the session
+               store's to report. */
+            SessionSyncStatusLabel()
+                .padding(.vertical, 2)
         }
     }
 
