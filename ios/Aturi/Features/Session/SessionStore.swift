@@ -144,6 +144,10 @@ final class SessionStore: SessionStoring, PreferencesSync {
         return granted.contains(.create) || granted.contains(.update)
     }
 
+    var deleteAccess: Bool {
+        state.session?.grantedScopeIds.contains(.delete) ?? false
+    }
+
     func signIn(handle: String, scope: Set<ScopeId>) async throws {
         guard phase == .idle else { throw SessionError.busy }
         defer { phase = .idle }
@@ -220,6 +224,18 @@ final class SessionStore: SessionStoring, PreferencesSync {
     func deleteRecord(collection: String, rkey: String) async throws {
         try await withAuthenticatedPDS { pds in
             try await pds.deleteRecord(collection: collection, rkey: rkey)
+        }
+    }
+
+    func applyWrites(deletes rkeys: [String], collection: String) async throws {
+        try await withAuthenticatedPDS { pds in
+            try await pds.applyWrites(deletes: rkeys, collection: collection)
+        }
+    }
+
+    func profileWithViewer(actor: String) async throws -> BskyProfile? {
+        try await withAuthenticatedPDS { pds in
+            try await pds.getProfileWithViewer(actor)
         }
     }
 

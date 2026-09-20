@@ -23,15 +23,18 @@ struct JetstreamView: View {
     @Environment(\.aturiTheme) private var theme
     @Environment(\.displayScale) private var displayScale
 
-    /// The landing keeps a handful of rows so the page under the strip
-    /// does not crawl; the dashboard keeps the model's full window.
+    /// The landing strip keeps a handful of rows so the page under it does
+    /// not crawl; the dashboard keeps the web's `maxVisible` (20). The
+    /// model's 200-row window is for a screen of its own; embedded in a
+    /// scrolling page, a list that long buries everything beneath it.
     private static let compactRows = 8
+    private static let dashboardRows = 20
 
     init(compact: Bool) {
         self.compact = compact
         _model = State(initialValue: JetstreamModel(
             ops: compact ? [.create] : JetstreamOperation.allCases,
-            maxRows: compact ? JetstreamView.compactRows : JetstreamModel.defaultMaxRows
+            maxRows: compact ? JetstreamView.compactRows : JetstreamView.dashboardRows
         ))
     }
 

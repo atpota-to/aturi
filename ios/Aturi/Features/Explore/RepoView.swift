@@ -39,10 +39,11 @@ private enum RepoTab: String, CaseIterable, Identifiable {
     }
 }
 
-/// Port of `RepoExplorer.tsx` with `ProfileHeader.tsx`, `AccountStats.tsx`
-/// and `RepoStatusNotice.tsx`: breadcrumb, the inactive-repo banner, the
-/// configurable sections (profile card, identity row, repo at a glance),
-/// the waypoint row and the tabbed lexicons / ID / log / backlinks.
+/// Port of `RepoExplorer.tsx` with `ProfileHeader.tsx`, `AccountStats.tsx`,
+/// `RepoStatusNotice.tsx` and `RelationshipStrip.tsx`: breadcrumb, the
+/// inactive-repo banner, the configurable sections (relationship strip,
+/// profile card, identity row, repo at a glance), the waypoint row and the
+/// tabbed lexicons / ID / log / backlinks.
 private struct RepoScreen: View {
     let viewerDid: String?
 
@@ -169,10 +170,26 @@ private struct RepoScreen: View {
             RepoStatusBanner(notice: notice, facts: model.statusFacts)
         }
         /* The sections render in the visitor's saved order (Settings >
-           Sections). The relationship strip needs an authenticated AppView
-           read and is not ported, so its entry draws nothing. */
+           Sections). The relationship strip is silent for the visitor's
+           own repo and when signed out, as on the web; hidden sections
+           come from the saved list, which is the source of truth the
+           `hideRelationshipBar` flag is derived from on write. */
         ForEach(preferences.prefs.sections(for: .repo), id: \.id) { section in
             switch section.id {
+            case "relationship":
+                if !section.hidden, let viewerDid, RelationshipModel.applies(viewerDid: viewerDid, targetDid: identity.did) {
+                    RelationshipStrip(
+                        target: identity,
+                        viewerDid: viewerDid,
+                        targetCollections: model.collections.value,
+                        viewerCollections: model.viewerCollections
+                    ) { destination in
+                        switch destination {
+                        case .identityTab: tab = .identity
+                        case .collectionsTab: tab = .collections
+                        }
+                    }
+                }
             case "profile":
                 profileSection(hidden: section.hidden)
             case "identity":

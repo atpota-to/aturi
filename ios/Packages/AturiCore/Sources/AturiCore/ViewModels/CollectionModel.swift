@@ -58,11 +58,39 @@ public struct CollectionLiveSource: Sendable {
     }
 }
 
+/// How far a bulk delete has got: records settled (deleted or failed) over
+/// the total, so a progress bar advances a chunk at a time.
+public struct DeleteProgress: Hashable, Sendable {
+    public var done: Int
+    public var total: Int
+
+    public init(done: Int, total: Int) {
+        self.done = done
+        self.total = total
+    }
+
+    /// The bar's fill, clamped to [0, 1].
+    public var fraction: Double {
+        total > 0 ? min(1, Double(done) / Double(total)) : 0
+    }
+
+    public var label: String {
+        "\(done) / \(total)"
+    }
+
+    /// The bar's accessibility label.
+    public var accessibilityLabel: String {
+        "Deleting \(done) of \(total) records"
+    }
+}
+
 /// The collection page: one repo's records in one collection, paged from
 /// the PDS, searchable over what has been fetched, optionally streaming
-/// new commits from Jetstream. Port of the read side of
-/// `CollectionExplorer.tsx`; the owner's bulk delete needs an authenticated
-/// agent and lives with the app's session layer.
+/// new commits from Jetstream, and for the repo's owner a selection mode
+/// with a paced bulk delete. Port of `CollectionExplorer.tsx`; the delete
+/// itself is handed in as a closure (`deleteSelected(via:)`) because the
+/// authenticated PDS client, with its token refresh, lives with the app's
+/// session layer.
 @MainActor
 @Observable
 public final class CollectionModel {
@@ -71,6 +99,11 @@ public final class CollectionModel {
     public static let recordsPerPage = 100
     /// How many records live mode keeps in the list.
     public static let liveWindow = 200
+    /// Deletes go out in applyWrites batches of this many.
+    public static let applyWritesMax = AuthenticatedPDS.applyWritesMax
+    /// While paused for the throttle, re-check the budget on this cadence
+    /// so the countdown ticks and a Stop press is picked up within a second.
+    public static let throttleTick: TimeInterval = 1
 
     public let repo: String
     public let collection: String
@@ -91,27 +124,58 @@ public final class CollectionModel {
     /// Client-side search over the records fetched so far.
     public var filter = ""
 
+    /// Selection mode, for the repo's owner.
+    public private(set) var isEditing = false
+    /// URIs of the selected records. Selection outlives the search filter:
+    /// a row that scrolls out of the filter after it was ticked is still
+    /// deleted.
+    public private(set) var selection: Set<String> = []
+    public private(set) var isDeleting = false
+    /// Nil when no delete run is in flight.
+    public private(set) var deleteProgress: DeleteProgress?
+    /// Seconds until the throttle resumes, while a run is paced-paused.
+    /// Nil when actively deleting (or idle).
+    public private(set) var deleteWaitSeconds: Int?
+    /// What went wrong with the last delete run, in the web's words.
+    public private(set) var deleteError: String?
+
     @ObservationIgnored private let resolver: IdentityResolver
     @ObservationIgnored private let pds: PDSClient
     @ObservationIgnored private let liveSource: CollectionLiveSource
+    @ObservationIgnored private let throttle: WriteThrottle
+    @ObservationIgnored private let sleep: @Sendable (TimeInterval) async -> Void
     @ObservationIgnored private var loadTask: Task<Void, Never>?
     @ObservationIgnored private var pageTask: Task<Void, Never>?
     @ObservationIgnored private var liveTask: Task<Void, Never>?
+    @ObservationIgnored private var deleteTask: Task<Void, Never>?
     @ObservationIgnored private var closeLive: (@Sendable () -> Void)?
     @ObservationIgnored private var generation = 0
+    /// Flipped by `stopDelete()` so the in-flight run bails after its
+    /// current batch.
+    @ObservationIgnored private var deleteCancelled = false
 
+    /// - Parameters:
+    ///   - throttle: the write ledger deletes are paced against; tests pass
+    ///     one on a throwaway suite.
+    ///   - sleep: how the pacing loop waits; tests pass a no-op.
     public init(
         repo: String,
         collection: String,
         http: HTTPClient = .shared,
         resolver: IdentityResolver? = nil,
-        liveSource: CollectionLiveSource = .jetstream
+        liveSource: CollectionLiveSource = .jetstream,
+        throttle: WriteThrottle? = nil,
+        sleep: @escaping @Sendable (TimeInterval) async -> Void = { seconds in
+            try? await Task.sleep(nanoseconds: UInt64(max(0, seconds) * 1_000_000_000))
+        }
     ) {
         self.repo = repo
         self.collection = collection
         self.resolver = resolver ?? (http === HTTPClient.shared ? .shared : IdentityResolver(http: http))
         pds = PDSClient(http: http)
         self.liveSource = liveSource
+        self.throttle = throttle ?? WriteThrottle()
+        self.sleep = sleep
     }
 
     // MARK: Loading
@@ -181,7 +245,10 @@ public final class CollectionModel {
         return task
     }
 
-    /// Stop every in-flight read and live mode.
+    /// Stop every in-flight read and live mode. A delete run is left to
+    /// finish its current batch (`stopDelete()`): a commit already sent
+    /// cannot be recalled, and abandoning the bookkeeping mid-batch would
+    /// leave the list claiming records the PDS no longer holds.
     public func cancel() {
         loadTask?.cancel()
         loadTask = nil
@@ -191,12 +258,18 @@ public final class CollectionModel {
         isLoadingPage = false
     }
 
+    /// A fresh record set invalidates any pending selection. Selection
+    /// mode itself stays on: the owner reloading mid-edit is still editing.
     private func resetRecords() {
         replaceRecords([])
         cursor = nil
         done = false
         pageError = nil
         isLoadingPage = false
+        selection = []
+        deleteProgress = nil
+        deleteWaitSeconds = nil
+        deleteError = nil
     }
 
     private func replaceRecords(_ next: [AtRecord]) {
@@ -276,6 +349,262 @@ public final class CollectionModel {
         replaceRecords(Array(([record] + records).prefix(Self.liveWindow)))
     }
 
+    // MARK: Selection mode
+
+    public func startEditing() {
+        isEditing = true
+    }
+
+    /// Leave selection mode and drop everything about the last delete run.
+    public func exitEditing() {
+        guard !isDeleting else { return }
+        isEditing = false
+        selection = []
+        deleteProgress = nil
+        deleteWaitSeconds = nil
+        deleteError = nil
+    }
+
+    public func toggleEditing() {
+        if isEditing { exitEditing() } else { startEditing() }
+    }
+
+    public func isSelected(_ uri: String) -> Bool {
+        selection.contains(uri)
+    }
+
+    public func toggleSelected(_ uri: String) {
+        guard !isDeleting else { return }
+        if selection.contains(uri) {
+            selection.remove(uri)
+        } else {
+            selection.insert(uri)
+        }
+    }
+
+    /// Select-all targets what you can see, so narrowing the list and then
+    /// selecting is a way to bulk-delete a subset.
+    public func selectAllVisible() {
+        guard !isDeleting else { return }
+        for row in visibleRows {
+            selection.insert(row.uri)
+        }
+    }
+
+    public func deselectAll() {
+        guard !isDeleting else { return }
+        selection = []
+    }
+
+    /// Every visible row is ticked (and there is at least one).
+    public var allVisibleSelected: Bool {
+        let visible = visibleRows
+        return !visible.isEmpty && visible.allSatisfy { selection.contains($0.uri) }
+    }
+
+    /// The "N selected" count.
+    public var selectedCount: Int {
+        selection.count
+    }
+
+    /// Whether confirming this delete will hit the throttle and pace
+    /// partway: the selection is bigger than the write budget left this
+    /// hour. Drives the heads-up in the confirm step so a big delete is not
+    /// a surprise.
+    public var willPace: Bool {
+        guard let bundle = identity.value, !isDeleting else { return false }
+        return selection.count > throttle.pointsAvailable(bundle.did)
+    }
+
+    /// The confirm step's question, with the pacing heads-up when it applies.
+    public var deleteConfirmationMessage: String {
+        let count = selection.count
+        var text = "Delete \(count) record\(count == 1 ? "" : "s")? This cannot be undone."
+        if willPace {
+            text += " Aturi will pace this under Bluesky\u{2019}s ~\(JetstreamModel.grouped(WriteThrottle.hourlyPointBudget))/hour write limit, so it may pause partway."
+        }
+        return text
+    }
+
+    /// The status line beside the progress bar.
+    public var deleteStatusLabel: String? {
+        guard isDeleting else { return nil }
+        if let wait = deleteWaitSeconds {
+            return "Paced under the rate limit, resuming in \(wait)s"
+        }
+        return "Deleting\u{2026}"
+    }
+
+    // MARK: Bulk delete
+
+    /// Stop an in-flight delete after the current batch. Whatever has not
+    /// been deleted stays selected.
+    public func stopDelete() {
+        deleteCancelled = true
+    }
+
+    /// Delete the selected records in atomic applyWrites batches, paced
+    /// under the write budget. `deleteBatch` performs one
+    /// `com.atproto.repo.applyWrites` for the rkeys it is given (at most
+    /// `applyWritesMax`); a throw means none of that batch was deleted.
+    /// Nil when there is nothing to delete or a run is already in flight.
+    ///
+    /// Records that were deleted leave the list; the rest stay selected
+    /// with `deleteError` saying why, so the visitor can retry. A run that
+    /// deletes everything leaves selection mode.
+    @discardableResult
+    public func deleteSelected(
+        via deleteBatch: @escaping @Sendable ([String]) async throws -> Void
+    ) -> Task<Void, Never>? {
+        guard !isDeleting, let bundle = identity.value else { return nil }
+        let selectedNow = selection
+        let targets = records.filter { selectedNow.contains($0.uri) }.map(\.uri)
+        guard !targets.isEmpty else { return nil }
+
+        // Resolve each URI to its rkey up front. A URI with no decodable
+        // rkey cannot be deleted, so it is counted as failed without
+        // spending a request.
+        var failed = Set<String>()
+        var deletable: [(uri: String, rkey: String)] = []
+        for uri in targets {
+            if let rkey = rkeyFromAtUri(uri), !rkey.isEmpty {
+                deletable.append((uri, rkey))
+            } else {
+                failed.insert(uri)
+            }
+        }
+        let chunks = stride(from: 0, to: deletable.count, by: Self.applyWritesMax).map {
+            Array(deletable[$0..<min($0 + Self.applyWritesMax, deletable.count)])
+        }
+
+        deleteCancelled = false
+        isDeleting = true
+        deleteError = nil
+        deleteWaitSeconds = nil
+        // Undecodable rows are already settled, so seed the bar with them.
+        var processed = failed.count
+        deleteProgress = DeleteProgress(done: processed, total: targets.count)
+
+        let did = bundle.did
+        let task = Task { [weak self] in
+            guard let self else { return }
+            var firstError: String?
+            // Set once a 429 halts the run. Staying false means no rate
+            // limit was hit.
+            var rateLimited = false
+            // First chunk we did NOT attempt (a Stop or a 429), so the rest
+            // can be swept back into the selection.
+            var stopIndex = chunks.count
+
+            for (index, chunk) in chunks.enumerated() {
+                // Pace against the write budget so we never trip the PDS
+                // limit: wait until spending this batch stays under it,
+                // ticking the countdown and watching for Stop. A fresh
+                // hourly budget means no wait at all.
+                var paused = false
+                while !self.deleteCancelled {
+                    let wait = self.throttle.secondsUntilBudget(did, needed: chunk.count)
+                    if wait <= 0 { break }
+                    paused = true
+                    self.deleteWaitSeconds = Int(wait.rounded(.up))
+                    await self.sleep(min(wait, Self.throttleTick))
+                }
+                if paused {
+                    self.deleteWaitSeconds = nil
+                }
+                if self.deleteCancelled {
+                    stopIndex = index
+                    break
+                }
+
+                // Reserve the points before sending; on failure the
+                // reservation is kept (staying conservative) rather than
+                // risk under-counting.
+                self.throttle.recordSpend(did, points: chunk.count * WriteThrottle.deletePointCost)
+                do {
+                    try await deleteBatch(chunk.map(\.rkey))
+                } catch {
+                    // A batch is atomic: a failed commit deleted none of
+                    // its records, so keep the whole chunk selected.
+                    for job in chunk {
+                        failed.insert(job.uri)
+                    }
+                    if let http = error as? HTTPError, http.status == 429 {
+                        // 429 despite pacing: usually writes from elsewhere
+                        // spent the budget. Stop cleanly and leave the rest
+                        // selected to resume later.
+                        rateLimited = true
+                        processed += chunk.count
+                        self.deleteProgress = DeleteProgress(done: processed, total: targets.count)
+                        stopIndex = index + 1
+                        break
+                    }
+                    if firstError == nil {
+                        firstError = ExploreErrorText.describe(error)
+                    }
+                }
+                processed += chunk.count
+                self.deleteProgress = DeleteProgress(done: processed, total: targets.count)
+            }
+
+            // Sweep any chunks we did not attempt (Stop or 429) back into
+            // the selection.
+            for chunk in chunks.dropFirst(stopIndex) {
+                for job in chunk {
+                    failed.insert(job.uri)
+                }
+            }
+            let cancelled = self.deleteCancelled
+            self.finishDelete(
+                targets: targets,
+                failed: failed,
+                rateLimited: rateLimited,
+                cancelled: cancelled,
+                firstError: firstError
+            )
+        }
+        deleteTask = task
+        return task
+    }
+
+    private func finishDelete(
+        targets: [String],
+        failed: Set<String>,
+        rateLimited: Bool,
+        cancelled: Bool,
+        firstError: String?
+    ) {
+        let targetSet = Set(targets)
+        // Drop the records we deleted; keep any that failed so the visitor
+        // can see what is left and retry.
+        replaceRecords(records.filter { !targetSet.contains($0.uri) || failed.contains($0.uri) })
+        isDeleting = false
+        deleteProgress = nil
+        deleteWaitSeconds = nil
+        deleteTask = nil
+        if failed.isEmpty {
+            exitEditing()
+        } else {
+            selection = failed
+            let deleted = targets.count - failed.count
+            if rateLimited {
+                deleteError = "Hit your PDS\u{2019}s write rate limit after \(deleted) of \(targets.count). \(failed.count) still selected. Try again in a bit."
+            } else if cancelled {
+                deleteError = "Stopped after \(deleted) of \(targets.count). \(failed.count) still selected."
+            } else {
+                let plural = targets.count == 1 ? "" : "s"
+                deleteError = "Couldn\u{2019}t delete \(failed.count) of \(targets.count) record\(plural).\(firstError.map { " \($0)" } ?? "")"
+            }
+        }
+        // If the delete emptied the loaded set while the PDS still has
+        // more pages, pull the next page instead of flashing a false "No
+        // records" state. The cursor sits at the end of what was fetched,
+        // so deleting earlier rows never invalidates it.
+        if records.isEmpty, !done, cursor != nil, pageError == nil {
+            loadMore()
+        }
+    }
+
     // MARK: Derived
 
     private var query: String {
@@ -338,7 +667,9 @@ public final class CollectionModel {
     /// page. Set once the list has settled on one record and the visitor
     /// is not streaming, so the app can navigate.
     public var singleRecordRkey: String? {
-        guard done, !isLoadingPage, !isLive, records.count == 1 else { return nil }
+        /* Not while the visitor is mid-selection either: they may have just
+           deleted the rest and still be working in the list. */
+        guard done, !isLoadingPage, !isLive, !isEditing, records.count == 1 else { return nil }
         return rkeyFromAtUri(records[0].uri)
     }
 

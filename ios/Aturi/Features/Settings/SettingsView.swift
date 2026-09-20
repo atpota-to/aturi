@@ -6,6 +6,7 @@ import AturiCore
 /// page with `router.settingsPath.append(SettingsPage.waypoints)`.
 enum SettingsPage: String, CaseIterable, Identifiable, Hashable {
     case general
+    case sections
     case waypoints
     case redirects
     case custom
@@ -17,6 +18,7 @@ enum SettingsPage: String, CaseIterable, Identifiable, Hashable {
     var title: String {
         switch self {
         case .general: return "General"
+        case .sections: return "Sections"
         case .waypoints: return "Waypoint groups"
         case .redirects: return "Redirects"
         case .custom: return "Custom waypoints"
@@ -27,7 +29,8 @@ enum SettingsPage: String, CaseIterable, Identifiable, Hashable {
 
     var detail: String {
         switch self {
-        case .general: return "Color scheme, dark or light, picker layout"
+        case .general: return "Color scheme, dark or light, picker layout, pinned lexicons"
+        case .sections: return "What the record and repo pages show, and in what order"
         case .waypoints: return "Which clients the picker shows, and in what groups"
         case .redirects: return "Open links straight in a preferred client"
         case .custom: return "Your own destinations, built from URL templates"
@@ -39,6 +42,7 @@ enum SettingsPage: String, CaseIterable, Identifiable, Hashable {
     var systemImage: String {
         switch self {
         case .general: return "paintpalette"
+        case .sections: return "rectangle.split.3x1"
         case .waypoints: return "square.grid.2x2"
         case .redirects: return "arrow.triangle.turn.up.right.diamond"
         case .custom: return "link.badge.plus"
@@ -83,6 +87,7 @@ struct SettingsView: View {
 
             SettingsSection("Preferences") {
                 pageLink(.general)
+                pageLink(.sections)
                 pageLink(.waypoints)
                 pageLink(.redirects)
                 pageLink(.custom)
@@ -120,6 +125,8 @@ struct SettingsPageDestination: View {
         switch page {
         case .general:
             GeneralSettingsView()
+        case .sections:
+            SectionsSettingsView()
         case .waypoints:
             WaypointGroupsView()
         case .redirects:

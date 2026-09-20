@@ -48,7 +48,11 @@ private struct ExploreLandingScreen: View {
                         .foregroundStyle(theme.textAccent)
                 }
                 .buttonStyle(.plain)
-                JetstreamView(compact: true)
+                /* The explorer dashboard variant, as `ExploreLanding.tsx`
+                   mounts it: every operation with its pill, the op and
+                   collection filters and the rolling stats footer. The
+                   compact strip is the homepage's. */
+                JetstreamView(compact: false)
             }
             .padding(16)
         }
@@ -56,6 +60,15 @@ private struct ExploreLandingScreen: View {
         .background(theme.bgPrimary)
         .navigationTitle("Explore")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            /* The web header carries the session menu on every page; the
+               landing is where a visitor arrives, so this is the one place
+               outside Settings that offers sign-in and shows who is signed
+               in. */
+            ToolbarItem(placement: .topBarTrailing) {
+                SessionBadge()
+            }
+        }
         .task {
             if lexicons.ranking.isIdle {
                 lexicons.reloadRanking()

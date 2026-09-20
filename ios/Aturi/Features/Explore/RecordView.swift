@@ -42,10 +42,16 @@ private struct RecordScreen: View {
 
     @State private var model: RecordModel
     @State private var showsEditor = false
+    @State private var showsSignIn = false
+    /// Set by the editor once the PDS confirmed the delete; the pop waits
+    /// for the sheet to finish dismissing so the two do not race.
+    @State private var wasDeleted = false
 
     @Environment(AppRouter.self) private var router
     @Environment(\.openURL) private var openURL
     @Environment(\.aturiTheme) private var theme
+    /// Pops this record off its stack once the owner deletes it.
+    @Environment(\.dismiss) private var popRecord
 
     init(
         repo: String,
@@ -123,10 +129,30 @@ private struct RecordScreen: View {
         }
         .sheet(isPresented: $showsEditor) {
             if let record = model.recordValue {
-                RecordEditorSheet(record: record) { _ in
-                    model.reload()
-                }
+                RecordEditorSheet(
+                    record: record,
+                    onSaved: { _ in
+                        model.reload()
+                    },
+                    onDeleted: {
+                        wasDeleted = true
+                    }
+                )
             }
+        }
+        .onChange(of: showsEditor) { _, presented in
+            /* The record is gone from the PDS; the page under the sheet
+               would only reload into a not-found panel, so leave it for
+               the collection. */
+            if !presented, wasDeleted {
+                popRecord()
+            }
+        }
+        /* The web's `SignInPanel` sits inline, prefilled with the repo's
+           handle; the sheet is the same two-step flow with the same
+           prefill. */
+        .sheet(isPresented: $showsSignIn) {
+            SignInSheet(defaultInput: model.signInDefaultInput)
         }
     }
 
@@ -332,9 +358,7 @@ private struct RecordScreen: View {
                 .font(.footnote)
                 .foregroundStyle(theme.textSecondary)
             Button("Sign in") {
-                /* Sign-in lives on the Settings tab's Account section. */
-                router.popToRoot(.settings)
-                router.select(.settings)
+                showsSignIn = true
             }
             .buttonStyle(.aturiSecondary)
         }

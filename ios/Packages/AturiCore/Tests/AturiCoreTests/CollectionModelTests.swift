@@ -460,4 +460,281 @@ final class CollectionModelTests: XCTestCase {
         XCTAssertTrue(model.records.isEmpty)
         XCTAssertFalse(model.isLoadingPage)
     }
+
+    // MARK: Selection mode and bulk delete
+
+    private func throttleSuite() -> (WriteThrottle, String) {
+        let suite = "aturi.tests.collection.throttle.\(UUID().uuidString)"
+        return (WriteThrottle(defaults: UserDefaults(suiteName: suite)!), suite)
+    }
+
+    private func makeEditableModel(
+        _ transport: CollectionRoutedTransport,
+        throttle: WriteThrottle,
+        sleeps: Sleeps? = nil
+    ) -> CollectionModel {
+        CollectionModel(
+            repo: Self.did,
+            collection: Self.collection,
+            http: HTTPClient(transport: transport),
+            liveSource: CollectionLiveSource { _ in (AsyncStream { $0.finish() }, {}) },
+            throttle: throttle,
+            sleep: { seconds in await sleeps?.record(seconds) }
+        )
+    }
+
+    func testSelectionFollowsTheVisibleRowsAndClearsOnReload() async {
+        var routes = identityRoutes()
+        routes.append(("com.atproto.repo.listRecords", .init(status: 200, body: recordsBody(0..<5))))
+        let transport = CollectionRoutedTransport(routes)
+        let model = makeModel(transport)
+        await model.load().value
+
+        XCTAssertFalse(model.isEditing)
+        model.startEditing()
+        XCTAssertTrue(model.isEditing)
+        XCTAssertEqual(model.selectedCount, 0)
+        XCTAssertFalse(model.allVisibleSelected)
+        XCTAssertNil(model.singleRecordRkey)
+
+        model.toggleSelected(model.rows[0].uri)
+        model.toggleSelected(model.rows[1].uri)
+        XCTAssertEqual(model.selectedCount, 2)
+        XCTAssertTrue(model.isSelected(model.rows[0].uri))
+        model.toggleSelected(model.rows[0].uri)
+        XCTAssertFalse(model.isSelected(model.rows[0].uri))
+
+        model.filter = "post 3"
+        XCTAssertEqual(model.visibleRows.count, 1)
+        model.selectAllVisible()
+        XCTAssertTrue(model.allVisibleSelected)
+        XCTAssertEqual(model.selectedCount, 2, "select-all adds the visible row to the one ticked earlier")
+        model.filter = ""
+        XCTAssertFalse(model.allVisibleSelected)
+        XCTAssertEqual(model.deleteConfirmationMessage, "Delete 2 records? This cannot be undone.")
+
+        model.deselectAll()
+        XCTAssertEqual(model.selectedCount, 0)
+        model.toggleSelected(model.rows[4].uri)
+        XCTAssertEqual(model.deleteConfirmationMessage, "Delete 1 record? This cannot be undone.")
+
+        await model.load().value
+        XCTAssertTrue(model.isEditing, "reloading mid-edit stays in selection mode")
+        XCTAssertEqual(model.selectedCount, 0, "a fresh record set invalidates the selection")
+
+        model.exitEditing()
+        XCTAssertFalse(model.isEditing)
+    }
+
+    func testDeleteSelectedBatchesAtomicallyAndLeavesEditMode() async throws {
+        var routes = identityRoutes()
+        routes.append(("com.atproto.repo.listRecords", .init(status: 200, body: recordsBody(0..<250))))
+        let transport = CollectionRoutedTransport(routes)
+        let (throttle, suite) = throttleSuite()
+        defer { UserDefaults(suiteName: suite)?.removePersistentDomain(forName: suite) }
+        let model = makeEditableModel(transport, throttle: throttle)
+        await model.load().value
+
+        model.startEditing()
+        model.selectAllVisible()
+        model.toggleSelected(model.rows[7].uri)
+        XCTAssertEqual(model.selectedCount, 249)
+
+        let batches = Batches()
+        let task = try XCTUnwrap(model.deleteSelected { rkeys in
+            await batches.record(rkeys)
+        })
+        XCTAssertTrue(model.isDeleting)
+        XCTAssertNil(model.deleteSelected { _ in }, "one run at a time")
+        await task.value
+
+        let sent = await batches.all
+        XCTAssertEqual(sent.map(\.count), [200, 49], "chunked at the applyWrites maximum")
+        XCTAssertFalse(sent.flatMap { $0 }.contains("rkey7"))
+        XCTAssertEqual(model.records.count, 1)
+        XCTAssertEqual(model.rows[0].rkey, "rkey7")
+        XCTAssertFalse(model.isDeleting)
+        XCTAssertFalse(model.isEditing, "everything deleted: selection mode ends")
+        XCTAssertNil(model.deleteProgress)
+        XCTAssertNil(model.deleteError)
+        XCTAssertEqual(throttle.pointsSpent(Self.did), 249, "every delete spends a point")
+        XCTAssertEqual(model.countLabel, "1 record")
+    }
+
+    func testAFailedBatchStaysSelectedWithTheReason() async throws {
+        var routes = identityRoutes()
+        routes.append(("com.atproto.repo.listRecords", .init(status: 200, body: recordsBody(0..<3))))
+        let transport = CollectionRoutedTransport(routes)
+        let (throttle, suite) = throttleSuite()
+        defer { UserDefaults(suiteName: suite)?.removePersistentDomain(forName: suite) }
+        let model = makeEditableModel(transport, throttle: throttle)
+        await model.load().value
+        model.startEditing()
+        model.selectAllVisible()
+
+        let task = try XCTUnwrap(model.deleteSelected { _ in
+            throw HTTPError(status: 400, body: #"{"error":"InvalidRequest","message":"nope"}"#, url: URL(string: "https://pds.example/xrpc/com.atproto.repo.applyWrites")!)
+        })
+        await task.value
+
+        XCTAssertEqual(model.records.count, 3, "an atomic batch that failed deleted nothing")
+        XCTAssertTrue(model.isEditing)
+        XCTAssertEqual(model.selectedCount, 3)
+        let error = try XCTUnwrap(model.deleteError)
+        XCTAssertTrue(error.hasPrefix("Couldn\u{2019}t delete 3 of 3 records. HTTP 400"), error)
+    }
+
+    func testARateLimitStopsTheRunAndKeepsTheRestSelected() async throws {
+        var routes = identityRoutes()
+        routes.append(("com.atproto.repo.listRecords", .init(status: 200, body: recordsBody(0..<450))))
+        let transport = CollectionRoutedTransport(routes)
+        let (throttle, suite) = throttleSuite()
+        defer { UserDefaults(suiteName: suite)?.removePersistentDomain(forName: suite) }
+        let model = makeEditableModel(transport, throttle: throttle)
+        await model.load().value
+        model.startEditing()
+        model.selectAllVisible()
+
+        let batches = Batches()
+        let task = try XCTUnwrap(model.deleteSelected { rkeys in
+            let index = await batches.record(rkeys)
+            if index == 1 {
+                throw HTTPError(status: 429, body: #"{"error":"RateLimitExceeded"}"#, url: URL(string: "https://pds.example/xrpc/com.atproto.repo.applyWrites")!)
+            }
+        })
+        await task.value
+
+        let sent = await batches.all
+        XCTAssertEqual(sent.count, 2, "the third chunk is never attempted after a 429")
+        XCTAssertEqual(model.records.count, 250, "the first chunk's 200 are gone; the 429'd chunk and the unattempted one stay")
+        XCTAssertEqual(model.selectedCount, 250)
+        XCTAssertEqual(model.deleteError, "Hit your PDS\u{2019}s write rate limit after 200 of 450. 250 still selected. Try again in a bit.")
+    }
+
+    func testStopBailsAfterTheCurrentBatch() async throws {
+        var routes = identityRoutes()
+        routes.append(("com.atproto.repo.listRecords", .init(status: 200, body: recordsBody(0..<401))))
+        let transport = CollectionRoutedTransport(routes)
+        let (throttle, suite) = throttleSuite()
+        defer { UserDefaults(suiteName: suite)?.removePersistentDomain(forName: suite) }
+        let model = makeEditableModel(transport, throttle: throttle)
+        await model.load().value
+        model.startEditing()
+        model.selectAllVisible()
+
+        let batches = Batches()
+        let task = try XCTUnwrap(model.deleteSelected { rkeys in
+            _ = await batches.record(rkeys)
+            await model.stopDelete()
+        })
+        await task.value
+
+        let sent = await batches.all
+        XCTAssertEqual(sent.count, 1)
+        XCTAssertEqual(model.records.count, 201)
+        XCTAssertEqual(model.selectedCount, 201)
+        XCTAssertEqual(model.deleteError, "Stopped after 200 of 401. 201 still selected.")
+        XCTAssertTrue(model.isEditing)
+    }
+
+    func testPacingWaitsForTheBudgetAndReportsTheCountdown() async throws {
+        var routes = identityRoutes()
+        routes.append(("com.atproto.repo.listRecords", .init(status: 200, body: recordsBody(0..<10))))
+        let transport = CollectionRoutedTransport(routes)
+        let (throttle, suite) = throttleSuite()
+        defer { UserDefaults(suiteName: suite)?.removePersistentDomain(forName: suite) }
+        // The hour's budget is almost gone: only 5 points left, and 10 are needed.
+        throttle.recordSpend(Self.did, points: WriteThrottle.throttlePointBudget - 5, now: Date().addingTimeInterval(-3000))
+        let sleeps = Sleeps()
+        let model = makeEditableModel(transport, throttle: throttle, sleeps: sleeps)
+        await model.load().value
+        model.startEditing()
+        model.selectAllVisible()
+        XCTAssertTrue(model.willPace)
+        XCTAssertTrue(model.deleteConfirmationMessage.contains("pace this under Bluesky\u{2019}s ~5,000/hour write limit"))
+
+        let batches = Batches()
+        var seenWait: Int?
+        let task = try XCTUnwrap(model.deleteSelected { rkeys in
+            _ = await batches.record(rkeys)
+        })
+        // The first sleep is where the countdown is visible; the fake sleep
+        // returns at once, so poll for the state it leaves behind.
+        _ = await waitUntil { model.deleteWaitSeconds != nil || !model.isDeleting }
+        seenWait = model.deleteWaitSeconds
+        // Free the budget so the run can finish.
+        throttle.clear(Self.did)
+        await task.value
+
+        XCTAssertNotNil(seenWait)
+        XCTAssertGreaterThan(seenWait ?? 0, 0)
+        let waited = await sleeps.all
+        XCTAssertFalse(waited.isEmpty, "the loop slept while paced")
+        XCTAssertTrue(waited.allSatisfy { $0 <= CollectionModel.throttleTick }, "ticks are capped so Stop is picked up quickly")
+        XCTAssertNil(model.deleteWaitSeconds)
+        let sent = await batches.all
+        XCTAssertEqual(sent.map(\.count), [10])
+        XCTAssertTrue(model.records.isEmpty)
+    }
+
+    func testAnEmptiedPageWithACursorFetchesTheNextOne() async throws {
+        var routes = identityRoutes()
+        routes.append(("cursor=c1", .init(status: 200, body: recordsBody(100..<103))))
+        routes.append(("com.atproto.repo.listRecords", .init(status: 200, body: recordsBody(0..<100, cursor: "c1"))))
+        let transport = CollectionRoutedTransport(routes)
+        let (throttle, suite) = throttleSuite()
+        defer { UserDefaults(suiteName: suite)?.removePersistentDomain(forName: suite) }
+        let model = makeEditableModel(transport, throttle: throttle)
+        await model.load().value
+        model.startEditing()
+        model.selectAllVisible()
+
+        let task = try XCTUnwrap(model.deleteSelected { _ in })
+        await task.value
+        let refilled = await waitUntil { !model.isLoadingPage && model.records.count == 3 }
+        XCTAssertTrue(refilled)
+        XCTAssertEqual(transport.count(containing: "cursor=c1"), 1, "the next page was pulled rather than showing an empty list")
+        XCTAssertTrue(model.done)
+    }
+
+    func testARecordWithoutAnRkeyCountsAsFailedWithoutARequest() async throws {
+        var routes = identityRoutes()
+        routes.append(("com.atproto.repo.listRecords", .init(status: 200, body: #"{"records":[{"uri":"at://\#(Self.did)/\#(Self.collection)","cid":"c","value":{}}]}"#)))
+        let transport = CollectionRoutedTransport(routes)
+        let (throttle, suite) = throttleSuite()
+        defer { UserDefaults(suiteName: suite)?.removePersistentDomain(forName: suite) }
+        let model = makeEditableModel(transport, throttle: throttle)
+        await model.load().value
+        model.startEditing()
+        model.selectAllVisible()
+
+        let batches = Batches()
+        let task = try XCTUnwrap(model.deleteSelected { rkeys in _ = await batches.record(rkeys) })
+        await task.value
+        let sent = await batches.all
+        XCTAssertTrue(sent.isEmpty)
+        XCTAssertEqual(model.deleteError, "Couldn\u{2019}t delete 1 of 1 record.")
+        XCTAssertEqual(model.selectedCount, 1)
+    }
+}
+
+/// Records the rkey batches a delete run sent, in order.
+private actor Batches {
+    private(set) var all: [[String]] = []
+
+    /// Returns the index of the batch just recorded.
+    @discardableResult
+    func record(_ rkeys: [String]) -> Int {
+        all.append(rkeys)
+        return all.count - 1
+    }
+}
+
+/// Records how long the pacing loop asked to sleep.
+private actor Sleeps {
+    private(set) var all: [TimeInterval] = []
+
+    func record(_ seconds: TimeInterval) {
+        all.append(seconds)
+    }
 }

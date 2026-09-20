@@ -44,6 +44,7 @@
 		741591A03BA6AF42B11EE879 /* RecordView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3D19A7BE3ECCC1C5F69E38B /* RecordView.swift */; };
 		7C952BD1E09E3CD7139FC429 /* WaypointMark.swift in Sources */ = {isa = PBXBuildFile; fileRef = 885A33F33D8D1E76177DA1CC /* WaypointMark.swift */; };
 		8313E637EE520EE18DCA570B /* ShareViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01452C22764A59A2533DA2A9 /* ShareViewController.swift */; };
+		873FBA2CE1600E778E93EB85 /* SectionsSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1BDFCAA686C097F046AC73A /* SectionsSettingsView.swift */; };
 		8A43B3DA70E1F503EB89E3A0 /* PDSView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 650957C0FA8658DF7313314F /* PDSView.swift */; };
 		8B77EBE95E726FDA363FFE58 /* LinksView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDBA0FC15D8F136483FC5DFF /* LinksView.swift */; };
 		90C48B84F547B759DD3D5C92 /* RecentLinksStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = D398F3D75CA9AE6062D814BE /* RecentLinksStore.swift */; };
@@ -54,6 +55,7 @@
 		A65F71E38F20D8B593F4F9F2 /* JSONTreeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7F38501DEF14B51165C50D5 /* JSONTreeView.swift */; };
 		B1C5E76CA88BBB375955756A /* IdentitySection.swift in Sources */ = {isa = PBXBuildFile; fileRef = C5D882D27D0EFD239BB4CE9D /* IdentitySection.swift */; };
 		B1F7C36E4D51CD5A532101E2 /* AvatarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F33ED664AF4750FC168F11AE /* AvatarView.swift */; };
+		B789B2C6C518027C369AE8E3 /* RelationshipStrip.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1A8EA39AF107A3A4D22D133 /* RelationshipStrip.swift */; };
 		BC848CAEEF1963B347A373FA /* LexiconDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A8FA50E27C04621A1F953B1 /* LexiconDetailView.swift */; };
 		C10B2F0752097F5AB3E23222 /* CollectionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80A287C9A2F1A7DF0F3E7A19 /* CollectionView.swift */; };
 		C155A8ABC2E1A589DFBC2CDB /* RecordEditorSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = C49E841094145B6698624F10 /* RecordEditorSheet.swift */; };
@@ -145,6 +147,7 @@
 		A6CF8DB5957076FF078DD261 /* SignInSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignInSheet.swift; sourceTree = "<group>"; };
 		AEFC548D34A7213F2AF9573C /* CustomWaypointForm.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomWaypointForm.swift; sourceTree = "<group>"; };
 		C08D57249FFC6AC52988233E /* RepoView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RepoView.swift; sourceTree = "<group>"; };
+		C1A8EA39AF107A3A4D22D133 /* RelationshipStrip.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RelationshipStrip.swift; sourceTree = "<group>"; };
 		C269BF2CFB3DC17462A13B71 /* OutboundLinkRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OutboundLinkRow.swift; sourceTree = "<group>"; };
 		C49E841094145B6698624F10 /* RecordEditorSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordEditorSheet.swift; sourceTree = "<group>"; };
 		C5D882D27D0EFD239BB4CE9D /* IdentitySection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IdentitySection.swift; sourceTree = "<group>"; };
@@ -164,6 +167,7 @@
 		ED4C47501FBFA5693EA16A3D /* PostCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PostCardView.swift; sourceTree = "<group>"; };
 		ED635F00613BB970229EB214 /* AturiShare.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = AturiShare.entitlements; sourceTree = "<group>"; };
 		ED9531E181C76E1DE6CCA03B /* RedirectsSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RedirectsSettingsView.swift; sourceTree = "<group>"; };
+		F1BDFCAA686C097F046AC73A /* SectionsSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SectionsSettingsView.swift; sourceTree = "<group>"; };
 		F2E7E2CB43378851FF76C145 /* LinkNavigation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LinkNavigation.swift; sourceTree = "<group>"; };
 		F33ED664AF4750FC168F11AE /* AvatarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AvatarView.swift; sourceTree = "<group>"; };
 		F3D19A7BE3ECCC1C5F69E38B /* RecordView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordView.swift; sourceTree = "<group>"; };
@@ -313,6 +317,7 @@
 				650957C0FA8658DF7313314F /* PDSView.swift */,
 				C49E841094145B6698624F10 /* RecordEditorSheet.swift */,
 				F3D19A7BE3ECCC1C5F69E38B /* RecordView.swift */,
+				C1A8EA39AF107A3A4D22D133 /* RelationshipStrip.swift */,
 				C08D57249FFC6AC52988233E /* RepoView.swift */,
 				79A040B1986C6098009C02A7 /* SearchResultsView.swift */,
 			);
@@ -356,6 +361,7 @@
 				FACE508A994C60A93401625F /* CustomWaypointsView.swift */,
 				3A6D6E244471567A3DDBEAC4 /* GeneralSettingsView.swift */,
 				ED9531E181C76E1DE6CCA03B /* RedirectsSettingsView.swift */,
+				F1BDFCAA686C097F046AC73A /* SectionsSettingsView.swift */,
 				C8909F16924512BE8A69A9BF /* SettingsSupport.swift */,
 				23062C65339819B3CCB71521 /* SettingsView.swift */,
 				724200986D85BFF3F6259125 /* WaypointGroupsView.swift */,
@@ -520,11 +526,13 @@
 				C155A8ABC2E1A589DFBC2CDB /* RecordEditorSheet.swift in Sources */,
 				741591A03BA6AF42B11EE879 /* RecordView.swift in Sources */,
 				5D2821ECC22C4FF66F688CAE /* RedirectsSettingsView.swift in Sources */,
+				B789B2C6C518027C369AE8E3 /* RelationshipStrip.swift in Sources */,
 				723768B7D07C237C8210349A /* RelativeDateText.swift in Sources */,
 				FE7FAE66768C0ABD37022DDD /* RepoView.swift in Sources */,
 				0D7B5567579175464422ABD5 /* RootView.swift in Sources */,
 				C64FC89601DEF28B53A5C0DA /* SearchResultsView.swift in Sources */,
 				C7917DD2CFB663FAEAA5F164 /* SectionHeader.swift in Sources */,
+				873FBA2CE1600E778E93EB85 /* SectionsSettingsView.swift in Sources */,
 				6B9F9A357747C7E44FEB9F31 /* SessionBadge.swift in Sources */,
 				DED7BDD4FB59A1EF4F6E4C0D /* SessionStore.swift in Sources */,
 				C8E0D10FF9922D0D5AC2AAEC /* SettingsSupport.swift in Sources */,

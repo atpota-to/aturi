@@ -351,4 +351,69 @@ final class AuthenticatedPDSTests: XCTestCase {
         _ = try await pds(transport).writePreferencesRecord(["$type": "to.aturi.actor.preferences", "colorScheme": "moss"])
         XCTAssertEqual(requestBody(transport.requests[0])?["record"], ["$type": "to.aturi.actor.preferences", "colorScheme": "moss"])
     }
+
+    // MARK: applyWrites
+
+    func testApplyWritesSendsOneDeletePerRkeyInOneCommit() async throws {
+        let transport = PDSFakeTransport([(200, #"{"commit":{"cid":"bafyc","rev":"3k"},"results":[]}"#, [:])])
+        try await pds(transport).applyWrites(deletes: ["3kaaa", "3kbbb"], collection: "app.bsky.feed.post")
+        let request = try XCTUnwrap(transport.requests.first)
+        XCTAssertEqual(request.httpMethod, "POST")
+        XCTAssertEqual(request.url?.absoluteString, "https://pds.test/xrpc/com.atproto.repo.applyWrites")
+        XCTAssertEqual(request.value(forHTTPHeaderField: "Authorization"), "DPoP access-token-1")
+        let body = try XCTUnwrap(requestBody(request))
+        XCTAssertEqual(body["repo"]?.stringValue, "did:plc:test123")
+        let writes = try XCTUnwrap(body["writes"]?.arrayValue)
+        XCTAssertEqual(writes.count, 2)
+        XCTAssertEqual(writes[0]["$type"]?.stringValue, "com.atproto.repo.applyWrites#delete")
+        XCTAssertEqual(writes[0]["collection"]?.stringValue, "app.bsky.feed.post")
+        XCTAssertEqual(writes[0]["rkey"]?.stringValue, "3kaaa")
+        XCTAssertEqual(writes[1]["rkey"]?.stringValue, "3kbbb")
+        XCTAssertEqual(proofPayload(request)?["htm"]?.stringValue, "POST")
+        XCTAssertEqual(AuthenticatedPDS.applyWritesMax, 200)
+    }
+
+    func testApplyWritesWithNothingToDeleteSendsNothing() async throws {
+        let transport = PDSFakeTransport([])
+        try await pds(transport).applyWrites(deletes: [], collection: "app.bsky.feed.post")
+        XCTAssertTrue(transport.requests.isEmpty)
+    }
+
+    func testApplyWritesSurfacesTheStatus() async throws {
+        let transport = PDSFakeTransport([(429, #"{"error":"RateLimitExceeded"}"#, [:])])
+        do {
+            try await pds(transport).applyWrites(deletes: ["3k"], collection: "c")
+            XCTFail("expected an error")
+        } catch let error as HTTPError {
+            XCTAssertEqual(error.status, 429)
+        }
+    }
+
+    // MARK: AppView through the PDS
+
+    func testGetProfileWithViewerGoesThroughThePdsWithTheProxyHeader() async throws {
+        let transport = PDSFakeTransport([
+            (200, #"{"did":"did:plc:them","handle":"them.test","viewer":{"following":"at://did:plc:test123/app.bsky.graph.follow/3kaaa"},"knownFollowers":{"count":4,"followers":[]}}"#, [:]),
+        ])
+        let profile = try await pds(transport).getProfileWithViewer("did:plc:them")
+        XCTAssertEqual(profile?.did, "did:plc:them")
+        XCTAssertEqual(profile?.viewer?.following, "at://did:plc:test123/app.bsky.graph.follow/3kaaa")
+        XCTAssertEqual(profile?.knownFollowers?.count, 4)
+        let request = try XCTUnwrap(transport.requests.first)
+        XCTAssertEqual(request.httpMethod, "GET")
+        XCTAssertEqual(request.url?.absoluteString, "https://pds.test/xrpc/app.bsky.actor.getProfile?actor=did%3Aplc%3Athem")
+        XCTAssertEqual(request.value(forHTTPHeaderField: "atproto-proxy"), "did:web:api.bsky.app#bsky_appview")
+        XCTAssertEqual(request.value(forHTTPHeaderField: "Authorization"), "DPoP access-token-1")
+        XCTAssertEqual(proofPayload(request)?["htu"]?.stringValue, "https://pds.test/xrpc/app.bsky.actor.getProfile")
+    }
+
+    func testGetProfileWithViewerIsNilForAnEmptyActorOrAProfilelessAnswer() async throws {
+        let transport = PDSFakeTransport([(200, #"{"handle":"no-did"}"#, [:])])
+        let helper = pds(transport)
+        let empty = try await helper.getProfileWithViewer("")
+        XCTAssertNil(empty)
+        XCTAssertTrue(transport.requests.isEmpty)
+        let missing = try await helper.getProfileWithViewer("did:plc:them")
+        XCTAssertNil(missing)
+    }
 }

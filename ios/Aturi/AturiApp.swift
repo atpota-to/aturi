@@ -16,6 +16,9 @@ protocol SessionStoring: AnyObject, Observable {
     /// server may narrow a grant, so this is read off the token, not off
     /// what was requested.
     var writeAccess: Bool { get }
+    /// Whether the granted scope allows deleting records, which the
+    /// collection page's bulk delete and the editor's Delete need.
+    var deleteAccess: Bool { get }
     /// Start the OAuth flow for a handle (or DID) with the picked granular
     /// scopes; the base scope is always added by the store.
     func signIn(handle: String, scope: Set<ScopeId>) async throws
@@ -28,6 +31,12 @@ protocol SessionStoring: AnyObject, Observable {
     /// Returns the new record's `at://` URI. Without an rkey the PDS mints a TID.
     func createRecord(collection: String, rkey: String?, value: JSONValue) async throws -> String
     func deleteRecord(collection: String, rkey: String) async throws
+    /// One atomic `com.atproto.repo.applyWrites` deleting every rkey given,
+    /// at most `AuthenticatedPDS.applyWritesMax` per call.
+    func applyWrites(deletes rkeys: [String], collection: String) async throws
+    /// `app.bsky.actor.getProfile` as the signed-in account, proxied through
+    /// its PDS so the `viewer` and `knownFollowers` blocks are filled in.
+    func profileWithViewer(actor: String) async throws -> BskyProfile?
 }
 
 /// Thrown by `NoSession` for any write or sign-in: nothing is configured.
@@ -48,6 +57,8 @@ final class NoSession: SessionStoring {
 
     var writeAccess: Bool { false }
 
+    var deleteAccess: Bool { false }
+
     func signIn(handle: String, scope: Set<ScopeId>) async throws {
         throw NoSessionError.unavailable
     }
@@ -65,6 +76,14 @@ final class NoSession: SessionStoring {
     }
 
     func deleteRecord(collection: String, rkey: String) async throws {
+        throw NoSessionError.unavailable
+    }
+
+    func applyWrites(deletes rkeys: [String], collection: String) async throws {
+        throw NoSessionError.unavailable
+    }
+
+    func profileWithViewer(actor: String) async throws -> BskyProfile? {
         throw NoSessionError.unavailable
     }
 }

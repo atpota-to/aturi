@@ -20,15 +20,24 @@ public struct PDSWriteResult: Codable, Hashable, Sendable {
 /// Repo writes and reads against the signed-in account's PDS, each carrying
 /// `Authorization: DPoP <token>` and a proof bound to the token (`ath`) and
 /// to the server's nonce. Mirrors what the web does through the
-/// `@atproto/api` Agent the OAuth session hands it, on the four repo
-/// methods the app needs, plus the preferences record helpers from
-/// `src/utils/atproto/preferencesPds.ts`.
+/// `@atproto/api` Agent the OAuth session hands it, on the repo methods the
+/// app needs (the four record calls plus `applyWrites` for bulk deletes),
+/// one AppView read proxied through the PDS, and the preferences record
+/// helpers from `src/utils/atproto/preferencesPds.ts`.
 ///
 /// Redirects are refused: the PDS came from a DID document, and following a
 /// redirect would hand a bearer credential to whatever host it named.
 public struct AuthenticatedPDS: Sendable {
     public static let preferencesCollection = "to.aturi.actor.preferences"
     public static let preferencesRkey = "self"
+    /// com.atproto.repo.applyWrites caps a batch at 200 operations (the
+    /// lexicon's maxLength), so a larger selection is split into chunks.
+    public static let applyWritesMax = 200
+    /// The `atproto-proxy` value that makes the PDS forward an `app.bsky.*`
+    /// call to the Bluesky AppView with a service-auth token naming the
+    /// signed-in account. Without it the PDS still proxies, but anonymously,
+    /// and the AppView leaves the `viewer` block empty.
+    public static let appViewProxy = "did:web:api.bsky.app#bsky_appview"
 
     public let session: OAuthSession
     private let key: DPoPKey
@@ -119,6 +128,46 @@ public struct AuthenticatedPDS: Sendable {
         _ = try await send(method: "POST", nsid: "com.atproto.repo.deleteRecord", query: [], body: .object(body))
     }
 
+    /// com.atproto.repo.applyWrites with one `#delete` per rkey: the whole
+    /// batch lands as one atomic commit, or none of it does. At most
+    /// `applyWritesMax` rkeys per call; the caller chunks a larger set.
+    public func applyWrites(deletes rkeys: [String], collection: String) async throws {
+        precondition(rkeys.count <= Self.applyWritesMax, "applyWrites batch exceeds the lexicon's maxLength")
+        guard !rkeys.isEmpty else { return }
+        let writes: [JSONValue] = rkeys.map { rkey in
+            .object([
+                "$type": .string("com.atproto.repo.applyWrites#delete"),
+                "collection": .string(collection),
+                "rkey": .string(rkey),
+            ])
+        }
+        let body: [String: JSONValue] = [
+            "repo": .string(session.did),
+            "writes": .array(writes),
+        ]
+        _ = try await send(method: "POST", nsid: "com.atproto.repo.applyWrites", query: [], body: .object(body))
+    }
+
+    // MARK: AppView through the PDS
+
+    /// `app.bsky.actor.getProfile` as the signed-in account sees it, with
+    /// the `viewer` and `knownFollowers` blocks the public AppView omits.
+    /// Port of `getProfileWithViewer`: the call goes to the PDS, which
+    /// proxies it to the AppView under the account's service auth because
+    /// of the `atproto-proxy` header. Nil when the AppView has no profile
+    /// for the actor (an account it does not index).
+    public func getProfileWithViewer(_ actor: String) async throws -> BskyProfile? {
+        guard !actor.isEmpty else { return nil }
+        let data = try await send(
+            method: "GET",
+            nsid: "app.bsky.actor.getProfile",
+            query: [("actor", actor)],
+            body: nil,
+            headers: ["atproto-proxy": Self.appViewProxy]
+        )
+        return BskyProfile(json: try JSONValue.parse(data))
+    }
+
     // MARK: Preferences record
 
     /// The `to.aturi.actor.preferences/self` record's value, or nil when it
@@ -184,13 +233,22 @@ public struct AuthenticatedPDS: Sendable {
     /// One XRPC call with the DPoP header pair, the single nonce retry, a
     /// refused redirect, and `HTTPError` for any non-2xx so callers see the
     /// same error shape `PDSClient` produces.
-    private func send(method: String, nsid: String, query: [(String, String)], body: JSONValue?) async throws -> Data {
+    private func send(
+        method: String,
+        nsid: String,
+        query: [(String, String)],
+        body: JSONValue?,
+        headers: [String: String] = [:]
+    ) async throws -> Data {
         let url = makeURL(session.pds, path: "/xrpc/" + nsid, query: query)
         var request = URLRequest(url: url)
         request.httpMethod = method
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         request.setValue("\(session.tokenType) \(session.accessToken)", forHTTPHeaderField: "Authorization")
         request.setValue("1", forHTTPHeaderField: URLSessionTransport.noRedirectHeader)
+        for (name, value) in headers {
+            request.setValue(value, forHTTPHeaderField: name)
+        }
         if let body {
             request.httpBody = Data(body.compactString(sortKeys: true).utf8)
             request.setValue("application/json", forHTTPHeaderField: "Content-Type")
