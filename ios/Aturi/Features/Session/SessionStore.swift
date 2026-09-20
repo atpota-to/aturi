@@ -132,6 +132,7 @@ final class SessionStore: SessionStoring, PreferencesSync {
         self.keychain = keychain
         self.nonces = nonces
         self.client = OAuthClient(http: http, metadata: .native, nonces: nonces)
+        preferences?.sync = self
         restore()
     }
 
@@ -228,9 +229,11 @@ final class SessionStore: SessionStoring, PreferencesSync {
     /// Idempotent; the sign-in sheet and the badge call it with the
     /// environment's store in case the app was wired without one.
     func attach(preferences: PreferencesStore) {
+        /* Ahead of the identity guard, so a store init already holds is
+           (re)pointed at this hook too; the assignment is idempotent. */
+        preferences.sync = self
         guard self.preferences !== preferences else { return }
         self.preferences = preferences
-        preferences.sync = self
         if mergedWithoutStore {
             mergedWithoutStore = false
             preferences.reload()
