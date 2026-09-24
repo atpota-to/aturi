@@ -236,6 +236,24 @@ export default function CollectionsTab({ identity }: { identity: IdentityBundle 
         : `${collections.length}`,
   });
 
+  // An inactive repo fails this read by design, and the status banner at the
+  // top of the page has already explained why. Repeating the PDS's 400 here as
+  // a red error reads as a bug in the explorer, so the tab states the reason
+  // and keeps the raw response one click away for anyone debugging.
+  if (error && identity.repoStatus) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+        <p className="explore-placeholder">
+          No collections to list: this repo is{' '}
+          {identity.repoStatus.status || 'inactive'} and its PDS refuses record reads.
+        </p>
+        <details className="explore-raw-details">
+          <summary>Raw response</summary>
+          <pre className="explore-json">{error}</pre>
+        </details>
+      </div>
+    );
+  }
   if (error) return <p className="explore-error">{error}</p>;
   if (!collections) return <CollectionsTabSkeleton />;
   if (collections.length === 0) {
