@@ -8,6 +8,7 @@
  */
 
 import { z } from 'zod';
+import { URL } from 'node:url';
 import type { McpServer } from '@modelcontextprotocol/server';
 import { getPlcAuditLog, diffOps, type PlcOperation } from '@/utils/atproto/plc';
 import { resolveGuardedIdentity } from '@/lib/mcp/identityResolve';
@@ -24,6 +25,109 @@ const identifierSchema = z
 
 /** Audit logs are usually short; the cap only guards pathological repos. */
 const MAX_AUDIT_ENTRIES = 100;
+const MAX_BATCH_IDENTITIES = 100;
+const BATCH_CONCURRENCY = 4;
+/** Leave time for the MCP tool's 25-second outer budget to serialize the result. */
+const BATCH_BUDGET_MS = 18_000;
+
+type BatchResult =
+  | { did: string; handle: string | null; pdsHost: string; createdAt: string | null; status: 'resolved'; historyError?: string }
+  | { status: 'unresolved'; error: string };
+type BatchIdentity = { input: string } & BatchResult;
+
+/** Keep the lookup dependencies injectable so batch behavior can be tested without network access. */
+export async function resolveIdentitiesBatch(
+  identifiers: string[],
+  resolve: typeof resolveGuardedIdentity = resolveGuardedIdentity,
+  audit: typeof getPlcAuditLog = getPlcAuditLog,
+  budgetMs = BATCH_BUDGET_MS,
+): Promise<{ requested: number; resolved: number; unresolved: number; identities: BatchIdentity[] }> {
+  if (identifiers.length < 1 || identifiers.length > MAX_BATCH_IDENTITIES) {
+    throw new McpToolError('invalid_parameter', `Pass 1 to ${MAX_BATCH_IDENTITIES} identifiers`);
+  }
+
+  const results = new Array<BatchIdentity>(identifiers.length);
+  const pending = new Map<string, Promise<BatchResult>>();
+  let next = 0;
+  let rateLimited = false;
+  let expired = false;
+
+  async function lookup(input: string): Promise<BatchResult> {
+    if (!/^did:(plc|web):\S+$/.test(input)) {
+      return { status: 'unresolved', error: 'Expected a did:plc or did:web identifier' };
+    }
+    try {
+      const bundle = await resolve(input);
+      let createdAt: string | null = null;
+      let historyError: string | undefined;
+      if (bundle.did.startsWith('did:plc:')) {
+        try {
+          const log = await audit(bundle.did);
+          const first = log[0]?.createdAt;
+          if (first && !Number.isNaN(Date.parse(first))) createdAt = first;
+        } catch (err) {
+          if (err instanceof Error && /^HTTP 429\b/.test(err.message)) {
+            rateLimited = true;
+            historyError = 'PLC audit log rate limited this batch; retry later';
+          } else {
+            historyError = 'PLC audit log unavailable';
+          }
+        }
+      }
+      return {
+        did: bundle.did,
+        handle: bundle.handle,
+        pdsHost: new URL(bundle.pds).hostname,
+        createdAt,
+        status: 'resolved',
+        ...(historyError ? { historyError } : {}),
+      };
+    } catch (err) {
+      if (err instanceof McpToolError) return { status: 'unresolved', error: err.message };
+      if (err instanceof Error && /^HTTP 429\b/.test(err.message)) {
+        rateLimited = true;
+        return { status: 'unresolved', error: 'Upstream rate limited this batch; retry later' };
+      }
+      return { status: 'unresolved', error: 'An upstream identity service failed or timed out' };
+    }
+  }
+
+  async function worker(): Promise<void> {
+    while (!expired && next < identifiers.length) {
+      const index = next++;
+      const input = identifiers[index];
+      if (rateLimited) {
+        results[index] = { input, status: 'unresolved', error: 'Upstream rate limited this batch; retry later' };
+        continue;
+      }
+      const key = input.trim();
+      let work = pending.get(key);
+      if (!work) {
+        work = lookup(key);
+        pending.set(key, work);
+      }
+      const value = await work;
+      if (!expired) results[index] = { input, ...value };
+    }
+  }
+
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    await Promise.race([
+      Promise.all(Array.from({ length: Math.min(BATCH_CONCURRENCY, identifiers.length) }, () => worker())),
+      new Promise<void>((done) => { timer = setTimeout(done, budgetMs); }),
+    ]);
+  } finally {
+    clearTimeout(timer);
+  }
+  expired = true;
+  const identities = Array.from({ length: identifiers.length }, (_, index) => results[index] ?? {
+    input: identifiers[index], status: 'unresolved' as const,
+    error: 'Batch time limit reached; retry this identifier',
+  });
+  const resolved = identities.filter((result) => result.status === 'resolved').length;
+  return { requested: identifiers.length, resolved, unresolved: identifiers.length - resolved, identities };
+}
 
 /**
  * Accounts created before the v2 PLC operation format record their handle and
@@ -71,6 +175,25 @@ export function registerIdentityTools(server: McpServer): void {
         },
       };
     }),
+  );
+
+  server.registerTool(
+    'resolve_identities',
+    {
+      title: 'Resolve up to 100 atproto identities',
+      description:
+        'You have 1 to 100 did:plc or did:web identifiers and need their current handles, PDS hosts, ' +
+        'and PLC creation times in one call. Returns one result per input, including duplicates and failures, ' +
+        'with requested/resolved/unresolved counts. createdAt is null for did:web or when PLC history ' +
+        'is unavailable; historyError explains failed PLC lookups. PLC rate limits or the 18-second ' +
+        'batch deadline stop new lookups and mark unfinished inputs unresolved.',
+      inputSchema: z.object({
+        identifiers: z.array(z.string().min(1).max(256)).min(1).max(MAX_BATCH_IDENTITIES)
+          .describe('1 to 100 did:plc or did:web identifiers; duplicates are returned in input order.'),
+      }),
+      annotations: READ_ONLY,
+    },
+    toolHandler(async ({ identifiers }) => resolveIdentitiesBatch(identifiers)),
   );
 
   server.registerTool(

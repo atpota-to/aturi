@@ -41,6 +41,7 @@ export const TOOL_GROUPS: CatalogGroup[] = [
     blurb: 'Who an account is, where its data lives, and how that changed over time.',
     tools: [
       { name: 'resolve_identity', summary: 'Handle to DID to PDS, with the DID document summary' },
+      { name: 'resolve_identities', summary: 'Up to 100 DIDs to handles, PDS hosts, and PLC creation times, with per-item coverage' },
       { name: 'get_identity_history', summary: 'The PLC audit log: handle changes, server migrations, key rotations' },
     ],
   },

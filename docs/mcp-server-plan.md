@@ -192,6 +192,7 @@ routes on.
 | Tool | Input | Output | Upstream |
 | --- | --- | --- | --- |
 | `resolve_identity` | handle or DID | DID, current handle, PDS endpoint, DID document summary | DoH, `.well-known`, PLC |
+| `resolve_identities` | 1–100 did:plc or did:web identifiers | Input-ordered results (including duplicates): DID, current handle, PDS host, PLC creation time or null, per-item failure or history error, requested/resolved/unresolved counts; unfinished inputs marked unresolved after 18 seconds | PLC audit log, DID documents |
 | `get_identity_history` | DID | chronological PLC audit log with per-operation diffs: handle changes, PDS migrations, key rotations, tombstones | plc.directory |
 
 ### Repositories and records

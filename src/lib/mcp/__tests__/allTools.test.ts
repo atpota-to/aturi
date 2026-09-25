@@ -26,6 +26,7 @@ const ARGS: Record<string, Record<string, unknown>> = {
   resolve_link: { atUri: 'at://did:plc:abc/app.bsky.feed.post/3k7' },
   list_waypoints: {},
   resolve_identity: { identifier: 'did:plc:abc' },
+  resolve_identities: { identifiers: ['did:plc:abc'] },
   get_identity_history: { identifier: 'did:plc:abc' },
   describe_repo: { identifier: 'did:plc:abc' },
   list_records: { identifier: 'did:plc:abc', collection: 'app.bsky.feed.post' },
