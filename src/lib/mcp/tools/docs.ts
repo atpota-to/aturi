@@ -16,6 +16,7 @@
 import { z } from 'zod';
 import type { McpServer } from '@modelcontextprotocol/server';
 import { DOC_PAGES, type DocPage } from '@/lib/mcp/docsManifest';
+import { GITHUB_DOC_PAGES, type GithubDocPage } from '@/lib/mcp/githubDocs';
 import { API_METHODS, type ApiMethod } from '@/lib/mcp/apiManifest';
 import {
   fetchRawDoc,
@@ -30,6 +31,7 @@ import { toolHandler, READ_ONLY } from '@/lib/mcp/respond';
 const MAX_PAGES_READ = 4;
 /** A whole page, capped. The longest spec is around 35KB. */
 const MAX_DOC_CHARS = 40_000;
+const SEARCHABLE_PAGES = [...DOC_PAGES, ...GITHUB_DOC_PAGES];
 
 /**
  * Rank a page against the query without fetching it.
@@ -40,7 +42,7 @@ const MAX_DOC_CHARS = 40_000;
  * manifest alone is what keeps a search to a handful of fetches instead of a
  * hundred.
  */
-function scoreDoc(page: DocPage, terms: string[]): number {
+function scoreDoc(page: DocPage | GithubDocPage, terms: string[]): number {
   const title = page.title.toLowerCase();
   const headings = page.headings.join(' \n ').toLowerCase();
   const description = page.description.toLowerCase();
@@ -85,17 +87,18 @@ export function registerDocsTools(server: McpServer): void {
       description:
         'You have a question about how atproto works, how to build on it, or which service to point ' +
         'at: identity, repositories, lexicons, OAuth, feeds, moderation, Jetstream, the relays. ' +
-        'Searches the specs and guides on atproto.com, the developer docs on docs.bsky.app and the ' +
-        'service docs on bsky.network, and returns the matching passages with the page URL to cite. ' +
+        'Searches atproto.com specs, docs.bsky.app developer guides, bsky.network service docs, ' +
+        'and selected Bluesky GitHub repository guides and examples. Returns passages with URLs to cite; ' +
+        'GitHub proposals and starter kits are not current protocol specifications. ' +
         'Prefer this over answering protocol questions from memory, which goes stale.',
       inputSchema: z.object({
         query: z.string().min(2).max(200).describe('What you want to know, in words from the docs.'),
         source: z
-          .enum(['atproto', 'bsky', 'bps'])
+          .enum(['atproto', 'bsky', 'bps', 'github'])
           .optional()
           .describe(
-            'Limit to the protocol specs (atproto), the Bluesky app docs (bsky), or the docs for ' +
-            'the services Bluesky runs — Jetstream, the relays, the API hosts (bps). Default: all three.',
+            'Limit to atproto.com (atproto), docs.bsky.app (bsky), bsky.network (bps), ' +
+            'or selected bluesky-social GitHub guides (github). Default: all four.',
           ),
         limit: z.number().int().min(1).max(MAX_PAGES_READ).optional().describe('Pages to read, default 3.'),
       }),
@@ -107,7 +110,7 @@ export function registerDocsTools(server: McpServer): void {
         throw new McpToolError('invalid_parameter', 'The query has no searchable words');
       }
 
-      const pool = source ? DOC_PAGES.filter((p) => p.source === source) : DOC_PAGES;
+      const pool = source ? SEARCHABLE_PAGES.filter((p) => p.source === source) : SEARCHABLE_PAGES;
       const ranked = pool
         .map((page) => ({ page, score: scoreDoc(page, terms) }))
         .filter((entry) => entry.score > 0)
@@ -132,10 +135,16 @@ export function registerDocsTools(server: McpServer): void {
             title: page.title,
             description: page.description,
             url: page.url,
+            source: page.source,
             // A page that ranked on its title but has no matching section is
             // still worth naming; say so rather than implying it was empty.
             passages,
-            ...(source ? {} : { note: 'The page could not be read just now; open the url.' }),
+            ...(source
+              ? ('note' in page ? { note: page.note } : {})
+              : { note: [
+                  'note' in page ? page.note : null,
+                  'The page could not be read just now; open the url.',
+                ].filter(Boolean).join(' ') }),
           };
         }),
       );
@@ -150,24 +159,24 @@ export function registerDocsTools(server: McpServer): void {
       title: 'Read one documentation page',
       description:
         'You have a page id from search_atproto_docs and want the whole thing rather than the ' +
-        'matching passages: a tutorial you are following step by step, or a spec you need in full. ' +
+        'matching passages: a tutorial, spec, or selected Bluesky GitHub guide. ' +
         'Returns the page as Markdown with its public URL.',
       inputSchema: z.object({
         id: z
           .string()
           .min(1)
           .max(200)
-          .describe('Page id, e.g. "specs/at-uri-scheme", "bsky/get-started" or "bps/jetstream".'),
+          .describe('Page id from search_atproto_docs, e.g. "specs/lexicon", "bps/jetstream", or "github/atproto-lex".'),
       }),
       annotations: READ_ONLY,
     },
     toolHandler(async ({ id }) => {
-      const page = DOC_PAGES.find((p) => p.id === id.trim());
+      const page = SEARCHABLE_PAGES.find((p) => p.id === id.trim());
       if (!page) {
         throw new McpToolError(
           'not_found',
           `No documentation page with the id "${id}"`,
-          'Ids come from search_atproto_docs; they look like "specs/lexicon" or "bsky/tutorials/following".',
+          'Ids come from search_atproto_docs; e.g. "specs/lexicon", "bps/jetstream", or "github/atproto-lex".',
         );
       }
       const raw = await fetchRawDoc(page.raw);
@@ -185,6 +194,7 @@ export function registerDocsTools(server: McpServer): void {
         title: page.title,
         url: page.url,
         source: page.source,
+        ...('note' in page ? { note: page.note } : {}),
         truncated,
         markdown: truncated ? `${markdown.slice(0, MAX_DOC_CHARS)}…` : markdown,
       };
