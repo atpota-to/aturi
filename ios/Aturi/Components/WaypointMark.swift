@@ -1,8 +1,11 @@
 import SwiftUI
 import UIKit
 
-/// A waypoint's brand mark from the `Waypoints` asset folder, tinted like
-/// text. Custom waypoints (`custom:` ids) and any built-in whose mark is
+/// A waypoint's brand mark from the `Waypoints` asset folder. Most marks
+/// are single-colour templates and tint like text; a few (Lea, Leaflet,
+/// pckt) are drawn in full with light and dark variants, so the asset
+/// catalog's own render mode decides rather than forcing a template, which
+/// would flood those into solid shapes. Custom waypoints (`custom:` ids) and any built-in whose mark is
 /// missing fall back to a globe, checked through `UIImage(named:)` so a
 /// missing asset never renders as an empty box.
 struct WaypointMark: View {
@@ -28,7 +31,6 @@ struct WaypointMark: View {
         Group {
             if hasAsset {
                 Image(assetName)
-                    .renderingMode(.template)
                     .resizable()
                     .scaledToFit()
             } else {

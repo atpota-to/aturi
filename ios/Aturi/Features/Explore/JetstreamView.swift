@@ -7,17 +7,22 @@ import AturiCore
 /// pause button. Full is the explorer dashboard: every operation with its
 /// pill, an op filter, a collection filter and the rolling stats footer.
 ///
-/// The socket runs only while the section is on screen and the scene is
-/// active: `.task(id:)` starts it on appear and again when the scene
-/// returns to the foreground, and it stops when the scene backgrounds or
-/// the view goes away, the way the web closes the socket for a hidden
-/// tab. Pausing keeps the socket and the counters running and only stops
-/// rows from surfacing.
+/// Nothing connects until the person taps play: the feed is a firehose,
+/// and opening Explore should not start pulling it by itself. Once on, the
+/// socket runs only while the section is on screen and the scene is
+/// active: `.task(id:)` reconnects on appear and when the scene returns to
+/// the foreground, and it stops when the scene backgrounds or the view
+/// goes away, the way the web closes the socket for a hidden tab. Pause
+/// closes the socket too; the rows and counters stay where they were.
 struct JetstreamView: View {
     let compact: Bool
 
     @State private var model: JetstreamModel
     @State private var collectionFilter = ""
+    /// The person's play/pause choice, which outlives the socket: leaving
+    /// the screen or backgrounding the app closes it, and coming back
+    /// reopens it only if this is still on.
+    @State private var wantsLive = false
 
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.aturiTheme) private var theme
@@ -56,7 +61,9 @@ struct JetstreamView: View {
         .task(id: scenePhase) {
             switch scenePhase {
             case .active:
-                model.start()
+                if wantsLive {
+                    model.start()
+                }
             case .background:
                 model.stop()
             default:
@@ -70,46 +77,78 @@ struct JetstreamView: View {
 
     // MARK: Header
 
+    private func setLive(_ on: Bool) {
+        wantsLive = on
+        if on {
+            model.resume()
+            model.start()
+        } else {
+            model.stop()
+        }
+    }
+
+    private var isLive: Bool {
+        wantsLive && model.isRunning
+    }
+
+    /// The line under the title: what the feed is doing, with the rate
+    /// once events arrive.
     private var statusText: String {
-        if !model.isRunning { return "Off" }
-        return model.isPaused ? "Paused" : "Live"
+        if isLive {
+            if let rate = model.rateLabel {
+                return "Live · \(rate)"
+            }
+            return "Connecting…"
+        }
+        return model.rows.isEmpty ? "Off" : "Paused"
     }
 
     private var header: some View {
         HStack(spacing: 10) {
             Image(systemName: "waveform.path.ecg")
                 .font(.footnote)
-                .foregroundStyle(model.isPaused || !model.isRunning ? theme.textTertiary : theme.textAccent)
+                .foregroundStyle(isLive ? theme.textAccent : theme.textTertiary)
+                .symbolEffect(.pulse, isActive: isLive)
                 .accessibilityHidden(true)
-            Text(JetstreamModel.title)
-                .aturiLabel()
-                .foregroundStyle(theme.textTertiary)
-                .lineLimit(1)
-            Spacer(minLength: 4)
-            if let rate = model.rateLabel {
-                Text(rate)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(JetstreamModel.title)
+                    .aturiLabel()
+                    .foregroundStyle(theme.textTertiary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+                Text(statusText)
                     .font(AturiFont.monoSmall)
                     .monospacedDigit()
-                    .foregroundStyle(theme.textTertiary)
-                    .accessibilityLabel("\(model.eventsPerSecond.formatted()) events per second")
+                    .foregroundStyle(isLive ? theme.textAccent : theme.textTertiary)
+                    .lineLimit(1)
+                    .contentTransition(.numericText())
             }
-            Chip(statusText, style: model.isRunning && !model.isPaused ? .accent : .neutral)
-            Button {
-                model.togglePaused()
-            } label: {
-                Label(model.pauseButtonLabel, systemImage: model.isPaused ? "play.fill" : "pause.fill")
-                    .font(.caption.weight(.medium))
-                    .foregroundStyle(theme.textPrimary)
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 5)
-                    .background(theme.bgTertiary, in: Capsule())
-                    .overlay(Capsule().strokeBorder(theme.borderSubtle, lineWidth: AturiTheme.hairline(displayScale: displayScale)))
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel(model.isPaused ? "Resume the feed" : "Pause the feed")
+            .accessibilityElement(children: .combine)
+            Spacer(minLength: 4)
+            playButton
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 10)
+    }
+
+    /// A round play/pause button. Play is filled in the accent so the
+    /// off state reads as an invitation; pause sits back in the neutral
+    /// fill once the feed is running.
+    private var playButton: some View {
+        Button {
+            setLive(!wantsLive)
+        } label: {
+            Image(systemName: wantsLive ? "pause.fill" : "play.fill")
+                .font(.footnote.weight(.semibold))
+                .foregroundStyle(wantsLive ? theme.textPrimary : theme.textOnAccent)
+                .contentTransition(.symbolEffect(.replace))
+                .frame(width: 34, height: 34)
+                .background(wantsLive ? theme.bgTertiary : theme.accent, in: Circle())
+                .overlay(Circle().strokeBorder(theme.borderSubtle, lineWidth: AturiTheme.hairline(displayScale: displayScale)))
+                .contentShape(Circle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(wantsLive ? "Pause the live feed" : "Start the live feed")
     }
 
     // MARK: Filters (full mode)
@@ -220,7 +259,9 @@ struct JetstreamView: View {
 
     @ViewBuilder
     private var rows: some View {
-        if model.showsSkeleton {
+        if model.rows.isEmpty && !wantsLive {
+            idlePrompt
+        } else if model.showsSkeleton {
             SkeletonRows(count: compact ? 5 : 8)
                 .padding(14)
         } else {
@@ -237,6 +278,32 @@ struct JetstreamView: View {
                 }
             }
         }
+    }
+
+    /// Shown until the feed is first started, in place of the skeleton,
+    /// which would suggest something is already loading.
+    private var idlePrompt: some View {
+        Button {
+            setLive(true)
+        } label: {
+            VStack(spacing: 6) {
+                Text(compact
+                     ? "Watch new records appear across the network as they are created."
+                     : "Watch records being created, updated and deleted across the network as they happen.")
+                    .font(.footnote)
+                    .foregroundStyle(theme.textSecondary)
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
+                Label("Start live feed", systemImage: "play.fill")
+                    .font(.footnote.weight(.medium))
+                    .foregroundStyle(theme.textAccent)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.horizontal, 24)
+            .padding(.vertical, 20)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
     }
 
     // MARK: Stats footer (full mode)

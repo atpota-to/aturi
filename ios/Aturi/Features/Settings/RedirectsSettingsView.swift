@@ -57,13 +57,14 @@ struct RedirectsSettingsView: View {
         .navigationTitle("Redirects")
     }
 
+    /// The family's name and description over a pill that opens the menu
+    /// of clients. A bare `.menu` picker renders its value as tinted text,
+    /// which does not read as something to tap; the pill does, and it
+    /// carries the chosen client's mark.
     private func familyPicker(_ row: FamilyRow) -> some View {
-        Picker(selection: favorite(for: row)) {
-            Text("Don't redirect").tag("")
-            ForEach(row.destinations) { destination in
-                Text(destination.name).tag(destination.id)
-            }
-        } label: {
+        let selection = favorite(for: row)
+        let chosen = row.destinations.first { $0.id == selection.wrappedValue }
+        return VStack(alignment: .leading, spacing: 10) {
             VStack(alignment: .leading, spacing: 3) {
                 Text(row.name)
                     .foregroundStyle(theme.textPrimary)
@@ -74,10 +75,23 @@ struct RedirectsSettingsView: View {
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }
+            Menu {
+                Picker(row.name, selection: selection) {
+                    Text("Don't redirect").tag("")
+                    ForEach(row.destinations) { destination in
+                        Text(destination.name).tag(destination.id)
+                    }
+                }
+                .pickerStyle(.inline)
+            } label: {
+                ClientPill(name: chosen?.name ?? "Don't redirect", waypointId: chosen?.id)
+            }
+            .disabled(!enabled)
+            .opacity(enabled ? 1 : 0.5)
+            .accessibilityLabel("\(row.name) client")
+            .accessibilityValue(chosen?.name ?? "Don't redirect")
         }
-        .pickerStyle(.menu)
-        .disabled(!enabled)
-        .padding(.vertical, 2)
+        .padding(.vertical, 4)
     }
 
     /// The favourite as the picker sees it: the empty tag for none, and
@@ -94,6 +108,38 @@ struct RedirectsSettingsView: View {
                 prefs.setFavorite(for: row.family, waypointId: value.isEmpty ? nil : value)
             }
         )
+    }
+}
+
+/// The menu's face: the chosen client's mark and name with the up-down
+/// chevrons iOS uses for pop-up buttons, in a bordered capsule.
+private struct ClientPill: View {
+    let name: String
+    let waypointId: String?
+
+    @Environment(\.aturiTheme) private var theme
+    @Environment(\.displayScale) private var displayScale
+
+    var body: some View {
+        HStack(spacing: 8) {
+            if let waypointId {
+                WaypointMark(id: waypointId, size: 18)
+                    .foregroundStyle(theme.textPrimary)
+            }
+            Text(name)
+                .font(.subheadline.weight(.medium))
+                .foregroundStyle(theme.textPrimary)
+                .lineLimit(1)
+            Image(systemName: "chevron.up.chevron.down")
+                .font(.caption2.weight(.semibold))
+                .foregroundStyle(theme.textTertiary)
+        }
+        .padding(.leading, waypointId == nil ? 14 : 10)
+        .padding(.trailing, 12)
+        .padding(.vertical, 8)
+        .background(theme.bgTertiary, in: Capsule())
+        .overlay(Capsule().strokeBorder(theme.borderSubtle, lineWidth: AturiTheme.hairline(displayScale: displayScale)))
+        .contentShape(Capsule())
     }
 }
 
