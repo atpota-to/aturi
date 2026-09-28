@@ -106,16 +106,20 @@ final class AppEnvironment {
     ///   here; until then the placeholder keeps the app signed out.
     init(
         session: any SessionStoring = NoSession(),
-        preferences: PreferencesStore = PreferencesStore(),
+        preferences: PreferencesStore? = nil,
         searchHistory: SearchHistoryStore? = nil,
         identity: IdentityResolver = .shared,
-        router: AppRouter = AppRouter()
+        router: AppRouter? = nil
     ) {
+        /* The main-actor stores are built here rather than as default
+           arguments: default arguments are evaluated outside the actor, so
+           Xcode rejects calling their initializers there. */
+        let preferences = preferences ?? PreferencesStore()
         self.session = session
         self.preferences = preferences
         self.searchHistory = searchHistory ?? SearchHistoryStore(defaults: PreferencesStore.appGroupDefaults())
         self.identity = identity
-        self.router = router
+        self.router = router ?? AppRouter()
         /* A session store that mirrors preferences to the PDS conforms to
            PreferencesSync as well; attaching it here keeps the package
            unaware of OAuth while the debounce in PreferencesStore does the

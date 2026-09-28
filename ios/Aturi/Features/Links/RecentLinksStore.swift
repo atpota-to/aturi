@@ -33,9 +33,10 @@ final class RecentLinksStore {
     @ObservationIgnored private let defaults: UserDefaults
     @ObservationIgnored private var loaded = false
 
-    /* Nonisolated so the shared instance can be a static; nothing is read
-       until `reload()` runs on the main actor. */
-    nonisolated init(defaults: UserDefaults = PreferencesStore.appGroupDefaults()) {
+    /* Main-actor like the rest of the class: the shared static is
+       main-actor isolated too, so it can call this. Nothing is read until
+       `reload()` runs. */
+    init(defaults: UserDefaults = PreferencesStore.appGroupDefaults()) {
         self.defaults = defaults
     }
 

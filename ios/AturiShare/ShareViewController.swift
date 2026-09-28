@@ -152,7 +152,7 @@ final class ShareViewController: UIViewController {
     }
 
     private func openThroughResponderChain(_ url: URL) -> Bool {
-        let selector = Selector(("openURL:"))
+        let selector = NSSelectorFromString("openURL:")
         var responder: UIResponder? = self
         while let current = responder {
             if current.responds(to: selector) {
