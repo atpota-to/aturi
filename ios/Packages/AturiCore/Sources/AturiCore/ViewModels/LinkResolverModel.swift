@@ -198,67 +198,29 @@ public final class LinkResolverModel {
     }
 
     private func perform(_ trimmed: String) async {
-        guard var components = extractAtUriComponents(trimmed) else {
-            state = .failed("That doesn't look like an Atmosphere link. Paste an at:// URI, a handle, a DID, or a link from a supported app.")
+        /* The identity half is `LinkResolution`, shared with the Shortcuts
+           actions. It throws only when this task was cancelled between
+           hops, and a cancelled load leaves the state to its successor. */
+        let resolution: LinkResolution
+        do {
+            resolution = try await LinkResolution.resolve(trimmed, identity: identity)
+        } catch {
             return
         }
-        // The pages strip a presentation-only `@` before resolving.
-        if components.identifier.hasPrefix("@") {
-            components.identifier.removeFirst()
-        }
-
-        let parsed = parseURI(handle: components.identifier, collection: components.collection, rkey: components.rkey)
-        if let error = parsed.error {
-            state = .failed(error)
-            return
-        }
-        let type = WaypointType(rawValue: parsed.type.rawValue) ?? .unknown
-
-        // A definitive miss is the web's 404; a resolver that is down is a
-        // retry panel, never "not found".
-        let resolution = await identity.resolveHandleStatus(parsed.handle)
-        guard !Task.isCancelled else { return }
-        let did: String
+        let resolved: ResolvedLink
         switch resolution {
+        case .invalid(let message), .unavailable(let message):
+            state = .failed(message)
+            return
         case .notFound:
             state = .loaded(.notFound)
             return
-        case .unavailable:
-            state = .failed("We couldn't reach the atproto resolver to look up \"\(parsed.handle)\". This is usually temporary; try again in a moment.")
-            return
-        case .did(let resolved):
-            did = resolved
+        case .resolved(let link):
+            resolved = link
         }
-
-        // `resolveDidToHandle(resolvedDid) || handle`: a DID input is shown
-        // by its handle when the DID document names one.
-        var handle = parsed.handle
-        if parsed.handle.hasPrefix("did:") {
-            handle = await identity.resolveDIDHandle(did) ?? parsed.handle
-            guard !Task.isCancelled else { return }
-        }
-
-        let atUri: String
-        if let collection = parsed.collection, let rkey = parsed.rkey {
-            atUri = "at://\(did)/\(collection)/\(rkey)"
-        } else {
-            atUri = "at://\(did)"
-        }
-        let resolved = ResolvedLink(
-            components: components,
-            parsed: parsed,
-            type: type,
-            did: did,
-            handle: handle,
-            displayName: displayName(handle: handle, did: did),
-            collection: parsed.collection,
-            rkey: parsed.rkey,
-            atUri: atUri,
-            aturiLink: generateAturiLink(AtUriComponents(identifier: handle, collection: parsed.collection, rkey: parsed.rkey))
-        )
         link = resolved
 
-        switch type {
+        switch resolved.type {
         case .profile:
             await loadProfile(resolved)
         case .post:
@@ -297,39 +259,17 @@ public final class LinkResolverModel {
     }
 
     private func loadRecord(_ resolved: ResolvedLink) async {
-        guard let collection = resolved.collection, let rkey = resolved.rkey else {
+        guard resolved.isRecord else {
             state = .loaded(.unavailable(LinkResolverModel.unavailableMessage(for: resolved.type)))
             return
         }
-        let fetched = await fetchRecord(resolved, collection: collection, rkey: rkey)
+        let fetched = await resolved.fetchRecord(identity: identity, pds: pds)
         guard !Task.isCancelled else { return }
         if let (record, bundle) = fetched {
             state = .loaded(.record(record, identity: bundle))
         } else {
             state = .loaded(.unavailable(LinkResolverModel.unavailableMessage(for: resolved.type)))
         }
-    }
-
-    /// Port of `fetchRecord`: the account's PDS first, then the public
-    /// AppView's getRecord proxy so a link still renders when the DID
-    /// document cannot be fetched (cold caches and the like). The bundle's
-    /// `pds` names whichever host answered.
-    private func fetchRecord(_ resolved: ResolvedLink, collection: String, rkey: String) async -> (AtRecord, IdentityBundle)? {
-        let claimedHandle = resolved.handle.hasPrefix("did:") ? nil : resolved.handle
-        if let pdsResolution = await identity.resolvePDS(resolved.did) {
-            if Task.isCancelled { return nil }
-            let base = PDSServer.normalizePdsBase(pdsResolution.pdsEndpoint)
-            if let record = try? await pds.getRecord(pds: base, repo: pdsResolution.did, collection: collection, rkey: rkey) {
-                let handle = pdsResolution.didDoc.handle ?? claimedHandle
-                return (record, IdentityBundle(did: pdsResolution.did, handle: handle, pds: base))
-            }
-        }
-        if Task.isCancelled { return nil }
-        let fallback = Endpoints.appView.absoluteString
-        if let record = try? await pds.getRecord(pds: fallback, repo: resolved.did, collection: collection, rkey: rkey) {
-            return (record, IdentityBundle(did: resolved.did, handle: claimedHandle, pds: fallback))
-        }
-        return nil
     }
 
     /// The notice the web shows above the picker when there is no preview.
