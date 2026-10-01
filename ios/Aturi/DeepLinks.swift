@@ -2,8 +2,10 @@ import SwiftUI
 import Observation
 import AturiCore
 
-/// The four top-level destinations, in tab-bar order.
-enum Tab: String, CaseIterable, Identifiable, Hashable {
+/// The four top-level destinations, in tab-bar order. `Sendable` is spelled
+/// out because the App Intents conformance (Intents/NavigationIntents.swift)
+/// requires it, and Swift wants it declared in this file.
+enum Tab: String, CaseIterable, Identifiable, Hashable, Sendable {
     case explore
     case links
     case lexicons
@@ -400,6 +402,11 @@ final class AppRouter {
     var linksPath = NavigationPath()
     var lexiconsPath = NavigationPath()
     var settingsPath = NavigationPath()
+    /// Set by the "Open Copied Link" shortcut, cleared by the Links tab when
+    /// it reads the clipboard. The read waits for the Links tab because iOS
+    /// asks before an app reads what another app copied, and only an app
+    /// that is on screen can be asked.
+    private(set) var clipboardLinkRequested = false
 
     init() {}
 
@@ -461,6 +468,44 @@ final class AppRouter {
     func handle(string: String) -> Bool {
         guard let target = DeepLinks.target(for: string) else { return false }
         apply(target)
+        return true
+    }
+
+    /// Open a link that came from outside the app (a Shortcuts action, the
+    /// clipboard) the way the Links tab opens a pasted one: anything
+    /// `extractAtUriComponents` reads becomes its preview on the Links tab,
+    /// and anything else the deep-link grammar places goes where that sends
+    /// it. Unlike the Links tab's own input it leaves no in-app note, so the
+    /// preview treats it as the incoming link it is and an auto-redirect
+    /// preference applies. False when the input names nothing the app has a
+    /// page for.
+    @discardableResult
+    func openLink(_ input: String) -> Bool {
+        let value = input.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !value.isEmpty else { return false }
+        if var components = extractAtUriComponents(value) {
+            if components.identifier.hasPrefix("@") {
+                components.identifier.removeFirst()
+            }
+            open(.preview(components), in: .links)
+            return true
+        }
+        return handle(string: value)
+    }
+
+    /// Show the Links tab and have it open whatever link is on the
+    /// clipboard (see `clipboardLinkRequested`).
+    func requestClipboardLink() {
+        popToRoot(.links)
+        selectedTab = .links
+        clipboardLinkRequested = true
+    }
+
+    /// True once per request: the Links tab calls this when it is on screen
+    /// and the app is active, then reads the clipboard.
+    func consumeClipboardLinkRequest() -> Bool {
+        guard clipboardLinkRequested else { return false }
+        clipboardLinkRequested = false
         return true
     }
 
