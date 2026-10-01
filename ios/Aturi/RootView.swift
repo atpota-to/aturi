@@ -41,11 +41,18 @@ struct RootView: View {
 }
 
 /// The one place a `Route` value becomes a screen. Every stack registers
-/// the same table, so any route can be pushed on any tab.
+/// the same table, so any route can be pushed on any tab, and every pushed
+/// page is offered to Spotlight, Siri Suggestions and Handoff from here.
 struct RouteDestinationView: View {
     let route: Route
 
     var body: some View {
+        page
+            .advertisesPage(route)
+    }
+
+    @ViewBuilder
+    private var page: some View {
         switch route {
         case .repo(let repo):
             RepoView(repo: repo)

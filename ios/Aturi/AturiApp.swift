@@ -96,6 +96,17 @@ final class NoSession: SessionStoring {
 @MainActor
 @Observable
 final class AppEnvironment {
+    /// The environment the app runs on. Built on first use, by the scene or
+    /// by a Shortcuts action that runs before any scene exists, so the two
+    /// always drive the same router and stores. The session store and the
+    /// preferences store must be the same pair the rest of the app sees:
+    /// signing in merges the PDS record into the preferences store it was
+    /// handed, so it is built first and passed to both.
+    static let shared: AppEnvironment = {
+        let preferences = PreferencesStore()
+        return AppEnvironment(session: SessionStore(preferences: preferences), preferences: preferences)
+    }()
+
     let preferences: PreferencesStore
     let searchHistory: SearchHistoryStore
     let session: any SessionStoring
@@ -155,14 +166,10 @@ extension EnvironmentValues {
 
 @main
 struct AturiApp: App {
-    /* The session store and the preferences store must be the same pair
-       the rest of the app sees: signing in merges the PDS record into the
-       preferences store it was handed, so it is built first and passed to
-       both. */
-    @State private var appEnvironment: AppEnvironment = {
-        let preferences = PreferencesStore()
-        return AppEnvironment(session: SessionStore(preferences: preferences), preferences: preferences)
-    }()
+    /* The shared environment rather than one of the scene's own: the
+       Shortcuts actions (Intents/) reach the router through it, and they
+       must move the same stacks the tab bar shows. */
+    @State private var appEnvironment: AppEnvironment = .shared
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.openURL) private var openURL
 
@@ -180,6 +187,14 @@ struct AturiApp: App {
                     handle(url)
                 }
                 .onContinueUserActivity(NSUserActivityTypeBrowsingWeb) { activity in
+                    guard let url = activity.webpageURL else { return }
+                    handle(url)
+                }
+                /* A page this app advertised (PageActivity.swift), handed
+                   back from Spotlight, a Siri suggestion or Handoff. Its
+                   aturi.to URL is the whole address, and the router reads it
+                   like any universal link. */
+                .onContinueUserActivity(PageActivity.activityType) { activity in
                     guard let url = activity.webpageURL else { return }
                     handle(url)
                 }

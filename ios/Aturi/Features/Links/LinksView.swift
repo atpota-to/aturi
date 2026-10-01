@@ -1,5 +1,6 @@
 import SwiftUI
 import UIKit
+import AppIntents
 import AturiCore
 
 /// The Links tab root: paste anything that names an Atmosphere page and
@@ -9,6 +10,7 @@ import AturiCore
 struct LinksView: View {
     @Environment(AppRouter.self) private var router
     @Environment(\.aturiTheme) private var theme
+    @Environment(\.scenePhase) private var scenePhase
     @State private var input = ""
     @State private var showsInvalidHint = false
     @FocusState private var inputFocused: Bool
@@ -47,6 +49,17 @@ struct LinksView: View {
         .navigationTitle("Links")
         .task {
             recents.reload()
+        }
+        /* The "Open Copied Link" shortcut lands here. A cold launch shows
+           this screen before the app is active, so every one of the three
+           moments that could be the first with both (appearing, the
+           request, the scene becoming active) gets to try. */
+        .onAppear(perform: openRequestedClipboardLink)
+        .onChange(of: router.clipboardLinkRequested) { _, _ in
+            openRequestedClipboardLink()
+        }
+        .onChange(of: scenePhase) { _, _ in
+            openRequestedClipboardLink()
         }
     }
 
@@ -139,6 +152,9 @@ struct LinksView: View {
                 SectionHeader("Recent")
                 Button("Clear") {
                     recents.clear()
+                    /* The pages this app put in Spotlight and Siri
+                       Suggestions (PageActivity.swift) are history too. */
+                    NSUserActivity.deleteAllSavedUserActivities {}
                 }
                 .font(.footnote)
                 .foregroundStyle(theme.textSecondary)
@@ -228,7 +244,28 @@ struct LinksView: View {
         input = text.trimmingCharacters(in: .whitespacesAndNewlines)
         showsInvalidHint = false
         if isValid {
+            /* Tells Siri this is something the person does, so it can offer
+               the "Open Copied Link" shortcut at the moments they tend to. */
+            IntentDonationManager.shared.donate(intent: OpenCopiedLinkIntent())
             open()
+        }
+    }
+
+    /* The shortcut's half of `paste()`: the same clipboard read, opened as
+       a link from outside the app (an auto-redirect preference applies, as
+       it does to the share sheet), and only once the app is active, since
+       iOS asks before the read. A clipboard with no link leaves the text in
+       the field with the hint, and an empty one leaves this screen as is. */
+    private func openRequestedClipboardLink() {
+        guard scenePhase == .active, router.consumeClipboardLinkRequest() else { return }
+        let board = UIPasteboard.general
+        let text = (board.url?.absoluteString ?? board.string)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        guard !text.isEmpty else { return }
+        input = text
+        showsInvalidHint = false
+        inputFocused = false
+        if !router.openLink(text) {
+            showsInvalidHint = true
         }
     }
 

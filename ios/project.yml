@@ -78,6 +78,11 @@ targets:
           - UIInterfaceOrientationLandscapeRight
         UIUserInterfaceStyle: Automatic
         UIApplicationSupportsIndirectInputEvents: true
+        # The activity every page advertises for Spotlight, Siri Suggestions
+        # and Handoff (Aturi/PageActivity.swift). The system only hands an
+        # app back the activity types it lists here.
+        NSUserActivityTypes:
+          - to.aturi.app.page
         # Three URL schemes. `aturi` is the app's own (the share extension
         # hands links over with aturi://open?url=...). `at` lets any app that
         # emits raw AT URIs open them here. `to.aturi` is the OAuth redirect
