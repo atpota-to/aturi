@@ -25,10 +25,14 @@ export type DescribeRepoResponse = {
   handleIsCorrect?: boolean;
 };
 
+import { readCappedJson } from '../cappedJson';
 import { upstreamFetch } from '../upstreamFetch';
 
 async function fetchJson<T>(url: string): Promise<T> {
-  const res = await upstreamFetch(url);
+  // The PDS base comes from a DID document, which anyone can author, so a
+  // redirect here would send the request to an unchecked host and hand its
+  // body back to the caller. A PDS serving XRPC never needs to redirect.
+  const res = await upstreamFetch(url, { redirect: 'error' });
   if (!res.ok) {
     const text = await res.text().catch(() => '');
     const err = new Error(
@@ -37,7 +41,8 @@ async function fetchJson<T>(url: string): Promise<T> {
     (err as Error & { status?: number }).status = res.status;
     throw err;
   }
-  return (await res.json()) as T;
+  // Bounded: the host is caller-influenced and may answer with anything.
+  return readCappedJson<T>(res);
 }
 
 /**
@@ -65,6 +70,38 @@ export async function getLatestCommit(pds: string, did: string): Promise<LatestC
   const params = new URLSearchParams({ did });
   return fetchJson<LatestCommit>(
     `${pds}/xrpc/com.atproto.sync.getLatestCommit?${params}`,
+  );
+}
+
+export type RepoStatus = {
+  did: string;
+  /** False for a repo the host holds but won't serve records for. */
+  active: boolean;
+  /**
+   * Why it's inactive: 'takendown', 'suspended', 'deactivated', 'deleted',
+   * and others hosts may add. The lexicon leaves the set open, so callers
+   * render whatever came back rather than mapping it to a closed union.
+   * Absent when `active` is true.
+   */
+  status?: string;
+  /** Head commit rev (a TID). Relays return it here; PDS implementations may not. */
+  rev?: string;
+};
+
+/**
+ * com.atproto.sync.getRepoStatus — one host's hosting status for an account.
+ *
+ * The only repo-scoped read that still answers for an inactive account.
+ * describeRepo, listRecords, getLatestCommit, listBlobs and getRepo all fail
+ * with a 400 whose body names the state but which is otherwise just an error;
+ * this returns 200 and the reason as data. `host` is a PDS or a relay — the
+ * lexicon is implemented by both, and the two can legitimately disagree while
+ * an account event is still propagating.
+ */
+export async function getRepoStatus(host: string, did: string): Promise<RepoStatus> {
+  const params = new URLSearchParams({ did });
+  return fetchJson<RepoStatus>(
+    `${host}/xrpc/com.atproto.sync.getRepoStatus?${params}`,
   );
 }
 

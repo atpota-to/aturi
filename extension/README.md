@@ -21,6 +21,16 @@ auto-redirect links between them.
   browsing history. An explicit pick in the popup always wins: choosing a client
   there opens *that* client, even when a standing redirect rule would otherwise
   rewrite the same URL.
+- **Knowing when to stand down**: auto-redirect is meant to catch links
+  arriving from outside the Atmosphere, not to steer you off a page you asked
+  for. So it leaves a navigation alone when the tab is already showing one of
+  the apps involved. Retyping `bsky.app` after being sent to your reader takes
+  you to bsky.app instead of bouncing straight back, and editing the address
+  bar while you're on bsky.app keeps you there. It also leaves alone the first
+  URL to land in a tab you opened yourself, since that's one you typed or
+  pasted. Both rules are settings you can turn off. The popup also carries a
+  switch: turn auto-redirect off everywhere, or pause it for just the tab
+  you're on until you resume it or close the tab.
 - **Custom waypoints**: wire up any site that uses a consistent URL structure
   via URL templates (`/profile/{handle}`, `/u/{handle}/p/{rkey}`, etc.).
 - **Recents**: the popup surfaces the waypoints you use most often first.
@@ -105,3 +115,13 @@ whose template uses `{did}`. Those destinations still work great from the
 popup, which resolves the handle on demand. (PDSls and atp.tools can still be
 redirect *sources*: their URLs already contain the DID or handle, so rewriting
 them into another explorer needs no resolution.)
+
+The extension also can't tell a typed URL from a clicked link at the moment it
+has to decide. DNR has no condition for it, and the API that does know
+(`webNavigation`, whose transition types include `typed` and `from_address_bar`)
+reports only after a navigation has committed, and can't cancel one. Acting on
+it would mean loading the wrong client and then bouncing off it. The stand-down
+rules above use the tab's current state instead, which is knowable before the
+request goes out. What they don't cover is typing a fresh URL into a tab that's
+sitting on an unrelated site; the popup's pause switch is the escape hatch
+there.

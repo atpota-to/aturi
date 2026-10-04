@@ -4,6 +4,7 @@
  * wrapping every call site in try/catch.
  */
 
+import { withIdentification } from '../requestDeadline';
 import { CONSTELLATION } from './config';
 
 export type BacklinkSource = {
@@ -39,7 +40,7 @@ type SourcesResponse = {
 
 async function fetchJsonOrNull<T>(url: string): Promise<T | null> {
   try {
-    const res = await fetch(url);
+    const res = await fetch(url, withIdentification());
     if (!res.ok) return null;
     return (await res.json()) as T;
   } catch {
@@ -101,9 +102,16 @@ export function flattenSources(
       const count = info?.records ?? info?.count ?? 0;
       const distinctDids = info?.distinct_dids ?? info?.distinctDids ?? null;
       // /links/all returns the path with a leading dot (e.g. ".subject"),
-      // but getBacklinks rejects that — its `source` param uses the
-      // unprefixed form ("app.bsky.graph.follow:subject"). Strip it.
-      const sourcePath = path.startsWith('.') ? path.slice(1) : path;
+      // but getBacklinks' `source` param uses the unprefixed form
+      // ("app.bsky.graph.follow:subject"), so the dot is stripped.
+      //
+      // The exception is a root-level link, whose whole path is "." —
+      // stripping there leaves "collection:", which getBacklinks answers with
+      // nothing at all rather than an error, silently hiding every root-path
+      // source (sh.tangled.graph.vouch and friends). Verified against the
+      // live index: "sh.tangled.graph.vouch:." returns records, and
+      // "sh.tangled.graph.vouch:" returns none.
+      const sourcePath = path === '.' ? path : path.replace(/^\./, '');
       out.push({
         collection,
         path,

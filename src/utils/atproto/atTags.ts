@@ -218,7 +218,23 @@ export function primaryRecordFromAtTags(result: AtTagsResult): string | null {
   return result.canonical[0] || result.alternate[0] || null;
 }
 
-const META_TAG_REGEX = /<meta\b[^>]*>/gi;
+/**
+ * The tag body is bounded rather than `[^>]*`.
+ *
+ * Unbounded, this is quadratic in page length on input that opens tags it
+ * never closes: at each of the ~175,000 `<meta` positions in a 1MB page of
+ * `'<meta '`, the star consumes to end-of-buffer and backtracks the whole way.
+ * Measured on that payload: 230s unbounded versus 1.4s bounded, and 33s
+ * versus 0.2s on the more realistic shape that also opens an attribute. The
+ * page is caller-supplied on every path that reaches here (`resolve_link`,
+ * `/api/resolve`, `/api/at-tags`), so that is CPU an anonymous request can
+ * spend at will, blocking the whole runtime while it does.
+ *
+ * The lazy 2,000-character bound is far past any real `<meta>` element and
+ * keeps the scan linear. `readAttribute` below then only ever sees tag
+ * strings capped at that length, so its per-tag patterns stay bounded too.
+ */
+const META_TAG_REGEX = /<meta\b[^>]{0,2000}?>/gi;
 
 /** Read one attribute off a raw tag string (double, single, or unquoted). */
 function readAttribute(tag: string, attr: string): string | null {

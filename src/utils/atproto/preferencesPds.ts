@@ -17,8 +17,11 @@
  *   customWaypoints?: Array<{
  *     id, name, domain?, description?,
  *     supportedTypes: string[],
- *     templates: { post?, profile?, list?, record?: string }
+ *     templates: { post?, profile?, list?, record?: string },
+ *     redirectCompat?: string[]     // compat families, for auto-redirect
  *   }>
+ *   autoRedirect?: boolean          // skip the picker and open the favorite client
+ *   favoriteByFamily?: Record<string, string>  // compat family → waypoint id
  *   waypointLayout?: 'dense' | 'grid' | 'classic'  // picker layout; unknown → 'dense'
  *   knownWaypointIds?: string[]       // built-ins the user has been notified about
  *   lastSeenReleaseId?: string        // newest release whose notes were seen
@@ -111,6 +114,10 @@ export async function writePreferencesToPds(
     colorScheme: prefs.colorScheme,
     waypointGroups: prefs.waypointGroups,
     customWaypoints: prefs.customWaypoints,
+    // Auto-redirect. Same field names as the extension's stored prefs, so a
+    // record written here means the same thing when the extension reads it.
+    autoRedirect: prefs.autoRedirect,
+    favoriteByFamily: prefs.favoriteByFamily,
     waypointLayout: prefs.waypointLayout,
     knownWaypointIds: prefs.knownWaypointIds,
     lastSeenReleaseId: prefs.lastSeenReleaseId,

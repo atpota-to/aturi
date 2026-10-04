@@ -78,3 +78,24 @@ jobs:
         working-directory: packages/waypoints-react
       - run: npm run build
         working-directory: packages/waypoints-react
+
+  ios:
+    name: iOS (package tests · app build)
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      # AturiCore is Foundation-only and carries the port's logic; its tests
+      # run under SwiftPM without a simulator.
+      - run: swift test
+        working-directory: ios/Packages/AturiCore
+      # The app and share extension are SwiftUI and only compile on Apple
+      # platforms, so this is the compiler pass the package tests cannot give.
+      # No signing: the build stops short of code signing so no team is needed.
+      - run: >
+          xcodebuild build
+          -project ios/Aturi.xcodeproj
+          -scheme Aturi
+          -destination 'generic/platform=iOS Simulator'
+          CODE_SIGNING_ALLOWED=NO
+          CODE_SIGN_IDENTITY=""
+          DEVELOPMENT_TEAM=""

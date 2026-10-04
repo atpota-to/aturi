@@ -3,6 +3,7 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { resolveIdentifier, type IdentityBundle } from '@/utils/atproto/identity';
+import RepoStatusNotice from './RepoStatusNotice';
 import {
   DEFAULT_REPO_SECTIONS,
   sectionHidden,
@@ -129,6 +130,16 @@ function RepoView({ identity }: { identity: IdentityBundle }) {
           shareUrl={`/profile/${identity.handle || identity.did}`}
         />
       </AppearIn>
+      {/* Above the configurable sections, and only when there's something to
+          say: with the host refusing reads, half the page below comes back
+          empty and the visitor deserves the reason before the blanks. Guarded
+          here rather than inside the component so a healthy repo doesn't pay
+          for an empty wrapper in the column gap. */}
+      {identity.repoStatus && (
+        <AppearIn rise delay={0.02}>
+          <RepoStatusNotice identity={identity} />
+        </AppearIn>
+      )}
       {repoSections.map(({ id, hidden }, i) => {
         // Profile keeps its switch even when collapsed; other sections go.
         if (id !== 'profile' && hidden) return null;

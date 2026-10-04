@@ -1,6 +1,6 @@
 /**
- * OAuth scope construction, including the three permissioned-data ("Spaces")
- * scopes: two reads and one write.
+ * OAuth scope construction, including the four permissioned-data ("Spaces")
+ * scopes: two reads, one write, and one that administers spaces.
  *
  * `src/lib/oauth/scopes.ts` is a pure module with no React or Next imports,
  * and the extension's Vitest harness (node environment) is the only suite in
@@ -24,6 +24,7 @@ import {
   hasSpaceWriteScope,
   METADATA_SCOPE,
   spaceGrantLevel,
+  spaceManageOpsFor,
   spaceWriteActionsFor,
   type ScopeId,
 } from '../../../src/lib/oauth/scopes';
@@ -34,6 +35,8 @@ const SPACE_READ_SELF = 'space:*?authority=*&action=read_self';
 const SPACE_READ = 'space:*?authority=*&action=read';
 const SPACE_WRITE =
   'space:*?authority=*&collection=*&action=create&action=update&action=delete';
+const SPACE_MANAGE =
+  'space:*?authority=*&action=read_self&manage=create&manage=update&manage=delete';
 
 /** The exact scope string aturi requested before permissioned data existed. */
 const DEFAULT_SIGN_IN_SCOPE =
@@ -41,11 +44,12 @@ const DEFAULT_SIGN_IN_SCOPE =
   'repo:*?action=create repo:*?action=update repo:*?action=delete blob:*/*';
 
 describe('METADATA_SCOPE', () => {
-  it('carries all three space literals verbatim', () => {
+  it('carries all four space literals verbatim', () => {
     const tokens = METADATA_SCOPE.split(' ');
     expect(tokens).toContain(SPACE_READ_SELF);
     expect(tokens).toContain(SPACE_READ);
     expect(tokens).toContain(SPACE_WRITE);
+    expect(tokens).toContain(SPACE_MANAGE);
   });
 
   it('serializes the write token the way the matcher formats it', () => {
@@ -60,6 +64,26 @@ describe('METADATA_SCOPE', () => {
       params.append('action', action);
     }
     expect(SPACE_WRITE).toBe(`space:*?${params.toString()}`);
+  });
+
+  it('serializes the manage token the way the matcher formats it', () => {
+    // Same byte-exactness as the write token, plus one thing the write token
+    // can't check: the parameters come out in the schema's own order (type,
+    // authority, skey, collection, action, manage), so `action` precedes
+    // `manage` even though the manage ops are the point of the token.
+    const params = new URLSearchParams();
+    params.set('authority', '*');
+    params.append('action', 'read_self');
+    for (const op of ['create', 'update', 'delete']) params.append('manage', op);
+    expect(SPACE_MANAGE).toBe(`space:*?${params.toString()}`);
+  });
+
+  it('names an action on the manage token', () => {
+    // Omitting `action` does not mean "no actions": it defaults to read plus
+    // the three write verbs, so a manage token that named none would silently
+    // be a whole-space read grant too.
+    expect(SPACE_MANAGE).toContain('action=read_self');
+    expect(spaceGrantLevel(SPACE_MANAGE)).toBe('read_self');
   });
 
   it('leaves `*` and `:` unescaped', () => {
@@ -105,6 +129,7 @@ describe('buildScopeString', () => {
     expect(DEFAULT_SCOPE_IDS.has('spacesSelf')).toBe(false);
     expect(DEFAULT_SCOPE_IDS.has('spacesAll')).toBe(false);
     expect(DEFAULT_SCOPE_IDS.has('spacesWrite')).toBe(false);
+    expect(DEFAULT_SCOPE_IDS.has('spacesManage')).toBe(false);
   });
 
   it('emits the write token only when it is selected', () => {
@@ -153,7 +178,7 @@ describe('GRANULAR_SCOPES', () => {
     const off = GRANULAR_SCOPES.filter((s) => s.defaultOn === false).map(
       (s) => s.id,
     );
-    expect(off).toEqual(['spacesSelf', 'spacesAll', 'spacesWrite']);
+    expect(off).toEqual(['spacesSelf', 'spacesAll', 'spacesWrite', 'spacesManage']);
   });
 });
 
@@ -255,6 +280,42 @@ describe('spaceWriteActionsFor', () => {
       'delete',
       'update',
     ]);
+  });
+});
+
+describe('spaceManageOpsFor', () => {
+  it('reads all three ops off the granted manage token', () => {
+    expect([...spaceManageOpsFor(SPACE_MANAGE)].sort()).toEqual([
+      'create',
+      'delete',
+      'update',
+    ]);
+  });
+
+  it('does not read record-write actions as manage ops', () => {
+    // The two parameters share the verbs create/update/delete and mean
+    // different things by them. Confusing them would put a "new space" button
+    // in front of everyone who granted record writes.
+    expect([...spaceManageOpsFor(SPACE_WRITE)]).toEqual([]);
+    expect([...spaceWriteActionsFor(SPACE_MANAGE, 'my.bulletin.post')]).toEqual([]);
+    expect(hasSpaceWriteScope(SPACE_MANAGE)).toBe(false);
+  });
+
+  it('grants nothing for a bare space:* token', () => {
+    // `manage` has no default op list to fall back on, unlike `action`.
+    expect([...spaceManageOpsFor('space:*')]).toEqual([]);
+    expect([...spaceManageOpsFor(SPACE_READ)]).toEqual([]);
+    expect([...spaceManageOpsFor(SPACE_READ_SELF)]).toEqual([]);
+  });
+
+  it('honours a narrowed manage grant', () => {
+    const narrowed = 'space:*?authority=*&action=read_self&manage=update';
+    expect([...spaceManageOpsFor(narrowed)]).toEqual(['update']);
+  });
+
+  it('grants nothing when the server dropped the space token', () => {
+    expect([...spaceManageOpsFor(DEFAULT_SIGN_IN_SCOPE)]).toEqual([]);
+    expect([...spaceManageOpsFor(null)]).toEqual([]);
   });
 });
 

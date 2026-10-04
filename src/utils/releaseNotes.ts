@@ -49,6 +49,19 @@ export type Release = {
 /** Newest first. The order here is the order readers see. */
 export const RELEASES: Release[] = [
   {
+    id: '2026-08-space-admin',
+    label: 'August 2026',
+    entries: [
+      {
+        id: 'space-admin',
+        title: 'Run your own spaces',
+        body: 'Spaces are no longer read-only here. Create one from your spaces page, choose who may join and which applications may reach it, add and remove members, and delete it when it has served its purpose. Managing a space is its own permission, so tick it at sign-in; everything is anchored on your own account, and only its owner can administer a space.',
+        href: '/explore/spaces',
+        linkLabel: 'Open spaces',
+      },
+    ],
+  },
+  {
     // A second August release rather than another entry under `2026-08`: the
     // seen-cursor is per release, so anyone who already read that one would
     // never be shown an entry added to it.

@@ -192,6 +192,25 @@ export type Prefs = {
    * you open the popup's Inspect tab.
    */
   passiveScanEnabled: boolean;
+  /**
+   * When true (default), auto-redirect stands down inside a tab that is
+   * already showing one of the apps involved in the redirect: the source you
+   * are browsing, or the destination you were just sent to. This is what
+   * makes an address-bar edit stick instead of bouncing you straight back.
+   *
+   * It also means a full page load between two such apps is left alone, so on
+   * a client that routes server-side you keep its internal links. Turn off to
+   * redirect every matching navigation regardless of where the tab already is.
+   */
+  redirectStayOnCurrentApp: boolean;
+  /**
+   * When true (default), the first navigation in a tab you opened yourself
+   * (no opener, started on the new-tab page) is left alone, since a URL that
+   * arrives there is one you typed or pasted. A link opened in a new tab
+   * carries an opener, and a link handed over by another app arrives with its
+   * URL already set, so neither is affected.
+   */
+  redirectSkipNewTab: boolean;
 };
 
 const CUSTOM_GROUP_ID = 'custom';
@@ -223,6 +242,8 @@ export const DEFAULT_PREFS: Prefs = {
   popupModeLastUsedAt: 0,
   pdsRecordScan: true,
   passiveScanEnabled: true,
+  redirectStayOnCurrentApp: true,
+  redirectSkipNewTab: true,
 };
 
 /**

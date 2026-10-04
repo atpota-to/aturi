@@ -24,9 +24,11 @@ import {
 } from '@/lib/colorScheme';
 import {
   CATEGORY_ORDER,
+  COMPAT_FAMILY_ORDER,
   WAYPOINT_CATEGORIES_DATA,
   WAYPOINT_DESTINATIONS_DATA,
   WAYPOINT_ORDER,
+  type RedirectCompatFamily,
   type WaypointType,
 } from './waypoints.data';
 import { LATEST_RELEASE_ID } from './releaseNotes';
@@ -55,6 +57,15 @@ export type CustomWaypoint = {
   supportedTypes: WaypointType[];
   /** URL templates with `{handle}`, `{did}`, `{collection}`, `{rkey}` placeholders. */
   templates: Partial<Record<WaypointType, string>>;
+  /**
+   * Data families this custom waypoint participates in for auto-redirect,
+   * mirroring `redirectCompat` on the built-ins. Unset or empty means the
+   * waypoint is never an auto-redirect destination — the right default, since
+   * a personal bookmark usually isn't a client anyone wants links rewritten
+   * to. Shares the field name with the extension's `CustomWaypoint` so the
+   * PDS record round-trips between the two surfaces.
+   */
+  redirectCompat?: RedirectCompatFamily[];
 };
 
 /**
@@ -127,6 +138,30 @@ export type Preferences = {
   waypointOrder: string[];
   /** User-defined waypoints. */
   customWaypoints: CustomWaypoint[];
+  /**
+   * Master switch for auto-redirect on universal-link pages. When on, landing
+   * on an aturi.to waypoint page sends the visitor straight to their preferred
+   * client for that data family instead of showing the picker.
+   *
+   * Off by default, and deliberately so: turning it on makes aturi's own page —
+   * the preview, the picker, the explorer links — invisible to the person who
+   * set it. That's the point of the feature, and it's also why it's never on
+   * without an explicit choice. `favoriteByFamily` decides where each link
+   * actually goes; this only decides whether that choice is acted on.
+   */
+  autoRedirect: boolean;
+  /**
+   * Preferred waypoint per compat family (see `RedirectCompatFamily` in
+   * `waypoints.data.ts`). A universal link is redirected to the first family
+   * favorite that can actually render the record in question, walking
+   * `COMPAT_FAMILY_ORDER`. `null` means "explicitly no favorite for this
+   * family" and is treated the same as absent.
+   *
+   * The name and shape mirror the extension's `favoriteByFamily`
+   * (`extension/lib/prefs.ts`) exactly, so the two surfaces agree about what a
+   * stored preference means and the PDS record round-trips between them.
+   */
+  favoriteByFamily: Partial<Record<RedirectCompatFamily, string | null>>;
   /**
    * Which of the three picker layouts to draw — see `WaypointLayout`.
    * Anything unrecognised (an older/newer client, a hand-edited PDS record)
@@ -271,6 +306,8 @@ export const DEFAULT_PREFERENCES: Preferences = {
   hiddenWaypoints: [],
   waypointOrder: [],
   customWaypoints: [],
+  autoRedirect: false,
+  favoriteByFamily: {},
   waypointLayout: DEFAULT_WAYPOINT_LAYOUT,
   knownWaypointIds: [...WAYPOINT_ORDER],
   lastSeenReleaseId: LATEST_RELEASE_ID,
@@ -360,6 +397,9 @@ export function mergeWithDefaults(input: Partial<Preferences> | null | undefined
   const customWaypoints = Array.isArray(input.customWaypoints)
     ? input.customWaypoints.filter(isValidCustomWaypoint)
     : [];
+  const autoRedirect =
+    typeof input.autoRedirect === 'boolean' ? input.autoRedirect : false;
+  const favoriteByFamily = sanitizeFavoriteByFamily(input.favoriteByFamily);
   const hiddenWaypoints = Array.isArray(input.hiddenWaypoints) ? input.hiddenWaypoints : [];
   const waypointOrder = Array.isArray(input.waypointOrder) ? input.waypointOrder : [];
   const storedGroups = Array.isArray(input.waypointGroups)
@@ -445,6 +485,8 @@ export function mergeWithDefaults(input: Partial<Preferences> | null | undefined
     hiddenWaypoints,
     waypointOrder,
     customWaypoints,
+    autoRedirect,
+    favoriteByFamily,
     waypointLayout,
     knownWaypointIds,
     lastSeenReleaseId,
@@ -483,8 +525,41 @@ function isValidCustomWaypoint(w: unknown): w is CustomWaypoint {
     // take down the whole waypoint picker. Reject the waypoint instead.
     Object.values(c.templates as Record<string, unknown>).every(
       (t) => typeof t === 'string',
-    )
+    ) &&
+    // Optional, but when present it gates auto-redirect — a non-array (or an
+    // array of objects) would sail through `.includes()` and silently never
+    // match, so reject the waypoint rather than ship a dead preference.
+    (c.redirectCompat === undefined ||
+      (Array.isArray(c.redirectCompat) &&
+        c.redirectCompat.every((f) => typeof f === 'string')))
   );
+}
+
+/**
+ * Keep only entries keyed by a family this build knows about and pointing at a
+ * string waypoint id. Anything else — a family retired since the record was
+ * written, a hand-edited PDS record, a newer client's key — is dropped rather
+ * than carried, because an unrecognised family can never resolve to a
+ * destination anyway. `null` is dropped too: it and "absent" mean the same
+ * thing to every reader, so storing both spellings would be noise.
+ *
+ * Keys are emitted in `COMPAT_FAMILY_ORDER`, not source order, so two equal
+ * maps always serialize identically — `preferencesAreEqual` compares these by
+ * JSON, and insertion order would otherwise read as a change and trigger a
+ * pointless PDS write.
+ */
+function sanitizeFavoriteByFamily(
+  input: unknown,
+): Partial<Record<RedirectCompatFamily, string | null>> {
+  if (!input || typeof input !== 'object') return {};
+  const source = input as Record<string, unknown>;
+  const out: Partial<Record<RedirectCompatFamily, string | null>> = {};
+  for (const family of COMPAT_FAMILY_ORDER) {
+    const id = source[family];
+    if (typeof id !== 'string' || id === '') continue;
+    out[family] = id;
+  }
+  return out;
 }
 
 function isValidWaypointGroup(g: unknown): g is WaypointGroup {
@@ -529,6 +604,46 @@ export function expandTemplate(
   return out;
 }
 
+/**
+ * Which of a custom waypoint's templates renders a given target, and the URL
+ * that comes out of it. A record with a collection and rkey prefers the
+ * template matching that collection (post / list), falls back to the generic
+ * `record` one, and finally to `post`; anything without both is a profile.
+ * `record` and `profile` act as last-resort fallbacks so a waypoint that only
+ * declared one template still produces something rather than nothing.
+ *
+ * Shared by the picker (via `customToWaypoint`) and auto-redirect resolution,
+ * which must agree about where a custom waypoint sends a given record.
+ */
+export function customWaypointUrl(
+  waypoint: CustomWaypoint,
+  ctx: { handle?: string; did?: string; collection?: string; rkey?: string },
+): string | null {
+  const isRecord = Boolean(ctx.collection && ctx.rkey);
+  let key: WaypointType = 'profile';
+  if (isRecord) {
+    if (
+      waypoint.supportedTypes.includes('post') &&
+      ctx.collection === 'app.bsky.feed.post'
+    ) {
+      key = 'post';
+    } else if (
+      waypoint.supportedTypes.includes('list') &&
+      ctx.collection === 'app.bsky.graph.list'
+    ) {
+      key = 'list';
+    } else if (waypoint.supportedTypes.includes('record')) {
+      key = 'record';
+    } else {
+      key = 'post';
+    }
+  }
+  const template =
+    waypoint.templates[key] || waypoint.templates.record || waypoint.templates.profile;
+  if (!template) return null;
+  return expandTemplate(template, ctx);
+}
+
 export function preferencesAreEqual(a: Preferences, b: Preferences): boolean {
   return (
     a.updatedAt === b.updatedAt &&
@@ -546,6 +661,8 @@ export function preferencesAreEqual(a: Preferences, b: Preferences): boolean {
     JSON.stringify(a.repoSections) === JSON.stringify(b.repoSections) &&
     a.hideRichJsonPreview === b.hideRichJsonPreview &&
     a.showRawRecordJson === b.showRawRecordJson &&
+    a.autoRedirect === b.autoRedirect &&
+    JSON.stringify(a.favoriteByFamily) === JSON.stringify(b.favoriteByFamily) &&
     JSON.stringify(a.waypointGroups) === JSON.stringify(b.waypointGroups) &&
     JSON.stringify(a.customWaypoints) === JSON.stringify(b.customWaypoints) &&
     JSON.stringify(a.knownWaypointIds) === JSON.stringify(b.knownWaypointIds) &&
@@ -694,6 +811,48 @@ export function setWaypointLayout(
   layout: WaypointLayout,
 ): Preferences {
   return { ...prefs, waypointLayout: layout };
+}
+
+// --- Auto-redirect ---------------------------------------------------------
+
+export function setAutoRedirect(prefs: Preferences, enabled: boolean): Preferences {
+  return { ...prefs, autoRedirect: enabled };
+}
+
+/**
+ * Set (or, with `null`, clear) the preferred waypoint for one compat family.
+ * Clearing deletes the key rather than storing `null` — see
+ * `sanitizeFavoriteByFamily`. Mirrors the extension's function of the same
+ * name.
+ */
+export function setFavoriteForFamily(
+  prefs: Preferences,
+  family: RedirectCompatFamily,
+  waypointId: string | null,
+): Preferences {
+  const next = { ...(prefs.favoriteByFamily ?? {}) };
+  if (waypointId) {
+    next[family] = waypointId;
+  } else {
+    delete next[family];
+  }
+  return { ...prefs, favoriteByFamily: sanitizeFavoriteByFamily(next) };
+}
+
+/**
+ * Compat families a waypoint id belongs to, built-in or custom. An unknown id,
+ * or one that declares no families, returns `[]` — meaning it can never be an
+ * auto-redirect destination. Mirrors the extension's `getRedirectCompatFor`.
+ */
+export function getRedirectCompatFor(
+  waypointId: string,
+  customWaypoints: CustomWaypoint[],
+): RedirectCompatFamily[] {
+  if (waypointId.startsWith('custom:')) {
+    const custom = customWaypoints.find((c) => c.id === waypointId);
+    return custom?.redirectCompat ?? [];
+  }
+  return WAYPOINT_DESTINATIONS_DATA[waypointId]?.redirectCompat ?? [];
 }
 
 // --- Group helpers ---------------------------------------------------------

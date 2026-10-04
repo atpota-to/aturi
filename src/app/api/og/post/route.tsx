@@ -2,6 +2,7 @@ import { ImageResponse } from '@vercel/og';
 import { NextRequest } from 'next/server';
 import { fetchImageAsDataUrl } from '@/lib/og-image';
 import {
+  BrandMark,
   FooterCta,
   loadGoogleFont,
   OgFooter,
@@ -9,7 +10,6 @@ import {
   OG_COLORS,
   OG_GLYPH_BASELINE,
   sanitizeOgText,
-  TopRow,
 } from '@/lib/og-design';
 import { getEmbedImages } from '@/utils/postEmbeds';
 import type { ReactNode } from 'react';
@@ -83,6 +83,26 @@ function QuoteGlyph({ size = 18 }: { size?: number }) {
   );
 }
 
+function ReplyGlyph({ size = 16 }: { size?: number }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke={OG_COLORS.accent}
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      xmlns="http://www.w3.org/2000/svg"
+      style={{ flexShrink: 0 }}
+    >
+      <path d="M15 10 L20 15 L15 20" />
+      <path d="M4 4v7a4 4 0 0 0 4 4h12" />
+    </svg>
+  );
+}
+
 function LinkGlyph({ size = 16 }: { size?: number }) {
   return (
     <svg
@@ -144,14 +164,19 @@ export async function GET(request: NextRequest) {
     let postData = null;
     let authorData = null;
     let post = null;
+    let parentNode = null;
     let likeCount = 0;
     let replyCount = 0;
     let repostCount = 0;
 
     try {
       const uri = `at://${identifier}/app.bsky.feed.post/${rkey}`;
+      // parentHeight=1 buys the one post a reply needs for context; depth=0
+      // drops the reply subtree, which this card never reads and which the
+      // endpoint otherwise returns six levels deep.
       const response = await fetch(
-        `${apiUrl}/xrpc/app.bsky.feed.getPostThread?uri=${encodeURIComponent(uri)}`,
+        `${apiUrl}/xrpc/app.bsky.feed.getPostThread` +
+          `?uri=${encodeURIComponent(uri)}&depth=0&parentHeight=1`,
         {
           headers: { Accept: 'application/json' },
           signal: AbortSignal.timeout(5000),
@@ -162,6 +187,7 @@ export async function GET(request: NextRequest) {
       if (response.ok) {
         const data = await response.json();
         post = data.thread?.post;
+        parentNode = data.thread?.parent;
         postData = post?.record;
         authorData = post?.author;
         likeCount = post?.likeCount || 0;
@@ -268,6 +294,43 @@ export async function GET(request: NextRequest) {
     const hasMedia = Boolean(media);
     const hasQuote = Boolean(quote);
 
+    // ── Reply context ────────────────────────────────────────────────────
+    // Shared out of context a reply reads as a non-sequitur: "post em!!" over
+    // a byline and three zeroed counters. The card names the relationship in
+    // the chip that used to hold a generic "Bluesky post" label, so the whole
+    // body stays with the post itself.
+    type ThreadNode = {
+      $type?: string;
+      post?: { author?: { displayName?: string; handle?: string } };
+    };
+
+    const replyRef = (postData as { reply?: { parent?: { uri?: string } } } | null)?.reply;
+    const isReply = Boolean(replyRef?.parent?.uri);
+    // The parent's DID is the authority of its AT-URI, so a self-thread is
+    // recognizable even when the parent itself never came back — which is what
+    // happens when it has been deleted, blocked, or detached.
+    const parentDid = /^at:\/\/([^/]+)\//.exec(replyRef?.parent?.uri || '')?.[1] || '';
+    const isSelfThread = isReply && Boolean(parentDid) && parentDid === authorData?.did;
+
+    const parentPost = (parentNode as ThreadNode | null)?.post;
+    // Falling back to the handle needs the @: bare, "cppilgram.bsky.social"
+    // reads as a domain rather than a person.
+    const parentDisplay = sanitizeOgText(parentPost?.author?.displayName || '');
+    const parentHandle = sanitizeOgText(parentPost?.author?.handle || '');
+    const parentAuthor = parentDisplay || (parentHandle ? `@${parentHandle}` : '');
+
+    // Three shapes, in the order they degrade: name whoever is being answered;
+    // failing that say it's a thread; failing that just say it's a reply.
+    const namesParent = isReply && !isSelfThread && Boolean(parentAuthor);
+    const chipLabel = !isReply
+      ? 'Bluesky post'
+      : isSelfThread
+        ? 'Continuing a thread'
+        : namesParent
+          ? 'Replying to'
+          : 'Bluesky reply';
+    const chipName = namesParent ? clamp(parentAuthor, 40) : '';
+
     // Budget the text column: media steals half the width, a quote steals
     // half the height, and both together leave room for a line or two.
     const textCap = hasMedia && hasQuote ? 90 : hasMedia || hasQuote ? 150 : 260;
@@ -286,9 +349,9 @@ export async function GET(request: NextRequest) {
 
     const allText =
       `${displayName} @${handleName} ${truncatedText} ${quoteText} ${quote?.author || ''} ` +
-      `${media?.title || ''} ${media?.host || ''} ` +
+      `${media?.title || ''} ${media?.host || ''} ${chipLabel} ${chipName} ` +
       `${likeCount.toLocaleString()} ${repostCount.toLocaleString()} ${replyCount.toLocaleString()} ` +
-      'likes reposts replies Bluesky post Choose where to view aturi.to ' +
+      'likes reposts replies Choose where to view aturi.to ' +
       OG_GLYPH_BASELINE;
 
     const [crimsonData, monoData] = await Promise.all([
@@ -392,7 +455,51 @@ export async function GET(request: NextRequest) {
             zIndex: 1,
           }}
         >
-          <TopRow eyebrow="Bluesky post" />
+          {/* Top row, reversed against the other cards: what the post *is*
+              leads, the wordmark follows. A shared eyebrow reading "Bluesky
+              post" was worth less than the corner it sat in. */}
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '32px',
+              position: 'relative',
+              zIndex: 1,
+            }}
+          >
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '13px',
+                padding: '9px 18px 9px 15px',
+                background: OG_COLORS.bgTertiary,
+                border: `1px solid ${isReply ? OG_COLORS.borderAccent : OG_COLORS.borderSubtle}`,
+              }}
+            >
+              {isReply && <ReplyGlyph size={17} />}
+              <span
+                style={{
+                  display: 'flex',
+                  fontFamily: 'IBM Plex Mono',
+                  fontSize: '15px',
+                  fontWeight: 500,
+                  letterSpacing: '0.14em',
+                  textTransform: 'uppercase',
+                  color: isReply ? OG_COLORS.accent : OG_COLORS.textTertiary,
+                }}
+              >
+                {chipLabel}
+              </span>
+              {chipName && (
+                <span style={{ display: 'flex', fontSize: '21px', color: OG_COLORS.textPrimary }}>
+                  {chipName}
+                </span>
+              )}
+            </div>
+            <BrandMark size={22} />
+          </div>
 
           {/* Body — byline and copy on the left, media on a fixed right rail.
               alignItems: center puts the two columns on one axis, so the

@@ -8,6 +8,7 @@ import GeneralTab from './tabs/GeneralTab';
 import KeyboardTab from './tabs/KeyboardTab';
 import SectionsTab from './tabs/SectionsTab';
 import WaypointsTab from './tabs/WaypointsTab';
+import RedirectsTab from './tabs/RedirectsTab';
 import CustomTab from './tabs/CustomTab';
 import AboutTab from './tabs/AboutTab';
 
@@ -17,6 +18,7 @@ type TabId =
   | 'keyboard'
   | 'sections'
   | 'waypoints'
+  | 'redirects'
   | 'custom'
   | 'about';
 
@@ -26,6 +28,7 @@ const TABS: { id: TabId; label: string }[] = [
   { id: 'keyboard', label: 'Keyboard' },
   { id: 'sections', label: 'Sections' },
   { id: 'waypoints', label: 'Waypoints' },
+  { id: 'redirects', label: 'Redirects' },
   { id: 'custom', label: 'Custom' },
   { id: 'about', label: 'About' },
 ];
@@ -36,6 +39,7 @@ const HASH_TO_TAB: Record<string, TabId> = {
   keyboard: 'keyboard',
   sections: 'sections',
   waypoints: 'waypoints',
+  redirects: 'redirects',
   custom: 'custom',
   about: 'about',
 };
@@ -104,6 +108,7 @@ export default function SettingsShell() {
         {tab === 'keyboard' && <KeyboardTab />}
         {tab === 'sections' && <SectionsTab />}
         {tab === 'waypoints' && <WaypointsTab />}
+        {tab === 'redirects' && <RedirectsTab />}
         {tab === 'custom' && <CustomTab />}
         {tab === 'about' && <AboutTab />}
       </main>

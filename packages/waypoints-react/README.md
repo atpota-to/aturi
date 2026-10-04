@@ -267,6 +267,19 @@ The per-client SVG components and the `WAYPOINT_ICONS` map are exported too:
 import { WAYPOINT_ICONS, BlueskySVG } from '@aturi.to/waypoints-react';
 ```
 
+The same marks are available as plain SVG strings from
+[`@aturi.to/waypoints/icons`](../waypoints#icons), which is the one to reach for
+outside React or when you need markup rather than a component. Both are
+generated from the same catalog.
+
+Marks render at 24x24 and paint in `currentColor`, so they take the colour of
+the surrounding text and a CSS rule resizes them. Three of them (Lea, Leaflet,
+pckt) knock part of the shape out to `var(--bg-primary, white)`, so set
+`--bg-primary` on an ancestor if your surface is not white. `<WaypointButton>`
+already names itself for assistive tech, but a mark you place yourself does not:
+see the core package's [styling](../waypoints#styling) and
+[accessibility](../waypoints#accessibility) notes, which apply here unchanged.
+
 ## License
 
 MIT © atpotato, LLC.

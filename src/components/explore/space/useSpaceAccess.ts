@@ -2,7 +2,12 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { useAtprotoSession } from '@/components/AtprotoSessionProvider';
-import { spaceWriteActionsFor, type SpaceWriteAction } from '@/lib/oauth/scopes';
+import {
+  spaceManageOpsFor,
+  spaceWriteActionsFor,
+  type SpaceManageOp,
+  type SpaceWriteAction,
+} from '@/lib/oauth/scopes';
 import { resolveIdentifier, type IdentityBundle } from '@/utils/atproto/identity';
 import { parseSpaceAtUri } from '@/utils/atproto/spaceUri';
 import { resolveSpaceAuthority, type SpaceAuthority } from '@/utils/atproto/spaceIdentity';
@@ -177,6 +182,38 @@ export function useSpaceWriteActions(
 }
 
 const EMPTY_WRITE_ACTIONS: ReadonlySet<SpaceWriteAction> = new Set();
+
+/**
+ * Which administrative ops the visitor's grant authorizes, or `null` while that
+ * can't be answered yet — the same three-state shape as
+ * {@link useSpaceWriteActions}, and null for the same reason.
+ *
+ * Unlike write actions this takes no argument. Administration is authorized per
+ * space and not per collection, and every method behind it is refused for
+ * anyone but the space's own authority, so the answer is the same for every
+ * space on a page. Whether the visitor *is* that authority is a separate
+ * question the caller already knows the answer to.
+ */
+export function useSpaceManageOps(): ReadonlySet<SpaceManageOp> | null {
+  const { session, grantedScope, loading } = useAtprotoSession();
+  const [scopeSettled, setScopeSettled] = useState(false);
+
+  useEffect(() => {
+    setScopeSettled(false);
+    if (!session) return undefined;
+    const timer = window.setTimeout(() => setScopeSettled(true), SCOPE_SETTLE_MS);
+    return () => window.clearTimeout(timer);
+  }, [session]);
+
+  return useMemo(() => {
+    if (loading) return null;
+    if (!session) return EMPTY_MANAGE_OPS;
+    if (grantedScope === null && !scopeSettled) return null;
+    return spaceManageOpsFor(grantedScope);
+  }, [loading, session, grantedScope, scopeSettled]);
+}
+
+const EMPTY_MANAGE_OPS: ReadonlySet<SpaceManageOp> = new Set();
 
 /**
  * Resolve a handle / DID to `{ did, handle, pds }`, in the shape every explore

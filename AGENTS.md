@@ -4,7 +4,7 @@ Instructions for coding agents working in this repository. Humans should read [C
 
 ## What this repo is
 
-aturi.to: universal links, an Atmosphere Explorer, and a browser extension for atproto. Four codebases in one repo.
+aturi.to: universal links, an Atmosphere Explorer, a browser extension and an iOS app for atproto. Five codebases in one repo.
 
 | Path | Stack | Verify with |
 | --- | --- | --- |
@@ -12,6 +12,7 @@ aturi.to: universal links, an Atmosphere Explorer, and a browser extension for a
 | `extension/` | WXT, Preact-aliased React 19, Vitest | `cd extension && npm run compile && npm test` |
 | `packages/waypoints` | tsup, zero runtime deps, MIT | `cd packages && npm run sync:check && npm test && npm run build` |
 | `packages/waypoints-react` | tsup, React peer dep, MIT | `cd packages && npm run typecheck && npm run build` |
+| `ios/` | SwiftUI app + `AturiCore` Swift package (Foundation only) | `cd ios/Packages/AturiCore && swift test` (Linux or macOS); `xcodebuild -project ios/Aturi.xcodeproj -scheme Aturi build` (macOS) |
 
 Node 22+ (`.nvmrc` pins the exact version). Root install is `npm install`; `extension/` and `packages/` have their own lockfiles and need separate installs.
 
@@ -19,18 +20,23 @@ Node 22+ (`.nvmrc` pins the exact version). Root install is `npm install`; `exte
 
 **1. `packages/` contains generated copies. Do not hand-edit them.**
 
-These files are copied from `src/` by `packages/waypoints/scripts/sync.mjs`:
+These files are derived from `src/` by `packages/waypoints/scripts/sync.mjs`:
 
-| Canonical | Copy |
+| Canonical | Derived file |
 | --- | --- |
 | `src/utils/waypoints.data.ts` | `packages/waypoints/src/waypoints.data.ts` |
 | `src/utils/uriParser.ts` | `packages/waypoints/src/uriParser.ts` |
 | `src/utils/reverseParsers.ts` | `packages/waypoints/src/reverseParsers.ts` |
 | `src/utils/upstreamFetch.ts` | `packages/waypoints/src/upstreamFetch.ts` |
 | `src/utils/waypointIcons.tsx` | `packages/waypoints-react/src/waypointIcons.tsx` |
+| `src/utils/waypointIcons.tsx` | `packages/waypoints/src/waypointIcons.data.ts` (generated, not copied) |
 | `src/components/AnisotaLogo` | `packages/waypoints-react/src/AnisotaLogo` |
 
 Edit the canonical file, then run `cd packages && npm run sync` and commit both. CI fails on drift via `npm run sync:check`. If you find yourself editing a file in `packages/waypoints/src/` that appears above, you are in the wrong file.
+
+Every row but one is a verbatim copy. `waypointIcons.data.ts` is generated: `scripts/svgFromJsx.mjs` translates the React catalog's JSX into standalone SVG strings for `@aturi.to/waypoints/icons`, so non-React consumers get the marks without a React dependency. The transform throws rather than guessing, so an icon using JSX this repo has not seen before will fail `npm run sync` with the attribute or expression named. Add the SVG spelling to `ATTRIBUTE_RENAMES` or `CAMEL_CASE_SVG_ATTRIBUTES` rather than working around it.
+
+Two constraints on new icons follow from that second consumer: give any `var(--custom-property)` a fallback, because consumers have no Aturi theme and a bare `var()` silently drops the paint; and do not use `id` inside a mark, because inlined markup puts ids in the host document's global scope where two copies collide. `packages/waypoints/src/__tests__/icons.test.ts` enforces both.
 
 **2. `extension/` imports `../src/utils/**` through the `@aturi/*` alias.** A change to a util changes the extension. Run the extension tests after touching anything in `src/utils/`.
 
@@ -42,14 +48,17 @@ Edit the canonical file, then run `cd packages && npm run sync` and commit both.
 
 The same workflow's `github-packages` job then mirrors both builds to GitHub Packages under `@atpota-to`, rewriting only the `name` field at publish time. GitHub rejects the real scope on two counts: it must match the repository owner, and it cannot contain the dot in `aturi.to`. Do not rewrite `@aturi.to/waypoints-react`'s dependency on `@aturi.to/waypoints` to the mirrored scope. The built bundle re-exports the `@aturi.to/waypoints` specifier verbatim, so a rewritten dependency would resolve to a package the bundle never imports.
 
+**6. `ios/` is a port, not a consumer.** The Swift package re-implements `waypoints.data.ts`, `uriParser.ts`, `reverseParsers.ts`, `linkGenerator.ts`, `preferences.ts` and the atproto clients by hand; nothing syncs it. A change to any of those files needs the matching change in `ios/Packages/AturiCore/Sources/AturiCore/` and its tests, or the app and the site disagree. Two more things there are generated: `ios/Aturi.xcodeproj` comes from `ios/project.yml` (`cd ios && xcodegen generate`; edit the yml, not the project), and the waypoint marks under `ios/Aturi/Resources/Assets.xcassets/Waypoints/` come from `node --experimental-strip-types ios/scripts/export-waypoint-icons.mjs`, which reads the synced SVG catalog. Nothing in `ios/` compiles on Linux except the package, so SwiftUI changes need Xcode (or the `ios` CI job) to be verified.
+
 ## Adding a waypoint
 
-Four edits, all required, none of which fail the build if you skip them:
+Five edits, all required, none of which fail the build if you skip them (the fifth fails `swift test` in `ios/`):
 
 1. Entry in `WAYPOINT_DESTINATIONS_DATA` (`src/utils/waypoints.data.ts`)
 2. Id appended to `WAYPOINT_ORDER` in the same file, or it never renders
-3. Icon keyed by id in `WAYPOINT_ICONS` (`src/utils/waypointIcons.tsx`)
+3. Icon keyed by id in `WAYPOINT_ICONS` (`src/utils/waypointIcons.tsx`), which also feeds the SVG-string catalog the core package ships
 4. `cd packages && npm run sync`
+5. The same entry in `WaypointCatalog.swift` under `ios/Packages/AturiCore`, then `node --experimental-strip-types ios/scripts/export-waypoint-icons.mjs` for its mark
 
 The `WaypointData` shape:
 

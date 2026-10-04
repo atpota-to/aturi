@@ -7,7 +7,7 @@ type Props = {
   title: string;
   body: ReactNode;
   visual: ReactNode;
-  /** When true, the visual sits on the left instead of the right. */
+  /** When true, the visual sits on the right instead of the left. */
   flip?: boolean;
 };
 

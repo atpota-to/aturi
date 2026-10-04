@@ -6,12 +6,13 @@ Read the [repo map](#repo-map) and [Before you open a PR](#before-you-open-a-pr)
 
 ## Repo map
 
-Four codebases share one repository:
+Five codebases share one repository:
 
 | Path | What it is | Checks |
 | --- | --- | --- |
 | `src/` | The Next.js 16 web app: universal links, Atmosphere Explorer, OG images, Resolve API | `npm run lint`, `npm run typecheck`, `npm run build` |
 | `extension/` | The browser extension (WXT, Chrome/Firefox/Safari) | `npm run compile`, `npm test` |
+| `ios/` | The iOS app (SwiftUI) over the `AturiCore` Swift package | `swift test` in `ios/Packages/AturiCore`; `xcodebuild` for the app, see [`ios/README.md`](ios/README.md) |
 | `packages/waypoints` | Published `@aturi.to/waypoints`, MIT, zero-dependency core | `npm run sync:check`, `npm run typecheck`, `npm test`, `npm run build` |
 | `packages/waypoints-react` | Published `@aturi.to/waypoints-react`, MIT, headless picker UI | `npm run typecheck`, `npm run build` |
 

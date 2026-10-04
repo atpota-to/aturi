@@ -2,6 +2,8 @@ import { Metadata } from 'next';
 import { Suspense } from 'react';
 import { redirect, notFound } from 'next/navigation';
 import WaypointPicker from '@/components/WaypointPicker';
+import AutoRedirect from '@/components/AutoRedirect';
+import AutoRedirectGate from '@/components/AutoRedirectGate';
 import PostPreview from '@/components/PostPreview';
 import PostPreviewSkeleton from '@/components/PostPreviewSkeleton';
 import RecordPreview from '@/components/RecordPreview';
@@ -286,6 +288,16 @@ async function RecordContent({
       <>
         <Header compact />
         <div className="container-narrow waypoint-page" style={{ padding: '0 2rem 4rem' }}>
+        {/* `handle` rather than `resolvedHandle`, so the gate resolves exactly
+            the URL the pre-paint script did — the two halves must never send
+            the same visitor to two different spellings of the same page. */}
+        <AutoRedirectGate
+          type={parsedData.type}
+          handle={handle}
+          did={resolvedDid}
+          collection={collection}
+          rkey={rkey}
+        />
 
         {/* AT-URI alternate link, mirroring Bluesky's bskyweb template.
             React 19 hoists this to <head>. */}
@@ -467,24 +479,40 @@ export default async function RecordPage({ params }: Props) {
     notFound();
   }
 
+  // `parseURI` is synchronous and side-effect free, so the record type is
+  // available here without waiting on the record fetch — which lets the
+  // pre-paint script ship in the first flush, ahead of the Suspense boundary.
+  const parsed = parseURI(handle, collection, rkey);
+
   return (
-    <Suspense
-      fallback={
-        <>
-          <Header compact />
-          <div className="container-narrow waypoint-page" style={{ padding: '0 2rem 4rem' }}>
-            <PostPreviewSkeleton />
-          </div>
-        </>
-      }
-    >
-      <RecordContent
-        handle={handle}
-        collection={collection}
-        rkey={rkey}
-        resolvedDid={resolution.did}
-      />
-    </Suspense>
+    <>
+      {!parsed.error && (
+        <AutoRedirect
+          type={parsed.type}
+          handle={handle}
+          did={resolution.did ?? undefined}
+          collection={collection}
+          rkey={rkey}
+        />
+      )}
+      <Suspense
+        fallback={
+          <>
+            <Header compact />
+            <div className="container-narrow waypoint-page" style={{ padding: '0 2rem 4rem' }}>
+              <PostPreviewSkeleton />
+            </div>
+          </>
+        }
+      >
+        <RecordContent
+          handle={handle}
+          collection={collection}
+          rkey={rkey}
+          resolvedDid={resolution.did}
+        />
+      </Suspense>
+    </>
   );
 }
 

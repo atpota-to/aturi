@@ -145,7 +145,6 @@ export async function GET(request: NextRequest) {
     const postText = post.record?.text || '';
     const indexedAt = post.indexedAt || post.record?.createdAt || '';
 
-    const profileUrl = `https://aturi.to/profile/${handle}`;
     const avatarThumb = author.avatar
       ? author.avatar.replace('/img/avatar/', '/img/avatar_thumbnail/')
       : '';
@@ -164,11 +163,18 @@ export async function GET(request: NextRequest) {
     // Mostly mirrors Bluesky's response shape, plus `thumbnail_url` which
     // Apple's LinkPresentation framework reads for the avatar in rich-link
     // previews even though it's optional in the oEmbed spec.
+    //
+    // `author_name`/`author_url` are deliberately omitted. Discord is the only
+    // previewer that renders them, and it prints `author_name` in bold on the
+    // line directly above the `og:title` link — which already carries the same
+    // "Display Name (@handle)" byline, so the name appeared twice. The
+    // previewers that read Open Graph instead (Bluesky's card service, Apple
+    // LinkPresentation) never saw these fields, so leaving them out fixes the
+    // Discord embed without touching the others. The byline still ships in
+    // `og:title` and in the blockquote below.
     const body = {
       type: 'rich' as const,
       version: '1.0' as const,
-      author_name: `${displayName} (@${handle})`,
-      author_url: profileUrl,
       provider_name: 'Aturi',
       provider_url: 'https://aturi.to',
       cache_age: 86400,

@@ -279,7 +279,9 @@ function MenuLink({
   onClick: () => void;
 }) {
   return (
-    <Link href={href} onClick={onClick} style={menuItemStyle()}>
+    // `prefetch={false}`: a row in a popover the reader has to open first, so
+    // there is nothing to warm until they do.
+    <Link href={href} prefetch={false} onClick={onClick} style={menuItemStyle()}>
       {icon}
       <span>{label}</span>
     </Link>

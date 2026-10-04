@@ -17,6 +17,7 @@
  *   GET /xrpc/blue.microcosm.identity.resolveMiniDoc?identifier=…
  */
 
+import { withIdentification } from '../requestDeadline';
 import { SLINGSHOT } from './config';
 
 /** The subset of a DID document Slingshot returns: identity + host. */
@@ -35,7 +36,7 @@ export type FetchedRecord<T = Record<string, unknown>> = {
 
 async function fetchJsonOrNull<T>(url: string, signal?: AbortSignal): Promise<T | null> {
   try {
-    const res = await fetch(url, { signal });
+    const res = await fetch(url, withIdentification({ signal }));
     if (!res.ok) return null;
     return (await res.json()) as T;
   } catch {

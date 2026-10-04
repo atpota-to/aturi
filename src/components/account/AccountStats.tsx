@@ -20,7 +20,7 @@ import {
 } from '@/utils/atproto/pdsClient';
 import { tidToDate, formatTidRelative } from '@/utils/atproto/tid';
 import { getPlcAuditLog, type PlcAuditEntry } from '@/utils/atproto/plc';
-import { resolveIdentifier } from '@/utils/atproto/identity';
+import { getInactiveRepoRev, resolveIdentifier } from '@/utils/atproto/identity';
 import {
   flattenSources,
   getBacklinkSources,
@@ -43,12 +43,24 @@ type Props = {
 };
 
 type Stats = {
-  namespaces: number;      // unique 2-segment NSID prefixes (e.g. "net.anisota")
-  collections: number;     // total distinct NSIDs / record types
+  // Both null when the repo won't serve reads. Zero is a real answer — a
+  // repo with no records — and reporting it for a repo nobody is allowed to
+  // read would state as fact something we never learned.
+  namespaces: number | null; // unique 2-segment NSID prefixes (e.g. "net.anisota")
+  collections: number | null; // total distinct NSIDs / record types
   auditOps: number | null; // PLC operations count — null for non-did:plc
   createdAt: string | null;
   backlinks: number | null; // inbound atproto references via Constellation
   headRev: string | null;  // repo head commit rev (TID) — drives "last active"
+  /**
+   * True when `headRev` came from a relay rather than the account's own PDS,
+   * which is the only source left once a repo stops answering. Softens the
+   * tile's wording: it's the newest rev that relay holds, which we read as
+   * the last write without having confirmed nothing else can move it.
+   */
+  headRevFromRelay: boolean;
+  /** Hosting status ('takendown', 'deactivated', …) when the repo is inactive. */
+  inactive: string | null;
 };
 
 /**
@@ -93,7 +105,7 @@ export default function AccountStats({ did, handle, interactive = true }: Props)
         if (cancelled) return;
 
         // Kick off each request independently; failures degrade.
-        const [describe, audit, backlinkSources, latestCommit] =
+        const [describe, audit, backlinkSources, latestCommit, relayRev] =
           await Promise.allSettled([
             describeRepo(identity.pds, identity.did),
             did.startsWith('did:plc:')
@@ -101,9 +113,20 @@ export default function AccountStats({ did, handle, interactive = true }: Props)
               : Promise.resolve<PlcAuditEntry[] | null>(null),
             getBacklinkSources(did),
             getLatestCommit(identity.pds, identity.did),
+            // getLatestCommit is one of the reads an inactive repo refuses, so
+            // for those the head rev has to come from a relay instead. Runs in
+            // the same batch rather than after it, and only for a repo already
+            // known to be inactive.
+            identity.repoStatus
+              ? getInactiveRepoRev(identity.did)
+              : Promise.resolve<string | null>(null),
           ]);
         if (cancelled) return;
 
+        // A repo the host won't serve has no readable collections, as opposed
+        // to none at all; the tiles render "—" for both counts in that case.
+        const inactive = identity.repoStatus?.status || null;
+        const unreadable = identity.repoStatus !== null;
         const collections =
           describe.status === 'fulfilled' && Array.isArray(describe.value.collections)
             ? describe.value.collections
@@ -127,22 +150,26 @@ export default function AccountStats({ did, handle, interactive = true }: Props)
             : null;
         const backlinks = flat ? flat.reduce((acc, s) => acc + (s.count || 0), 0) : null;
 
-        const headRev =
+        const pdsRev =
           latestCommit.status === 'fulfilled' && latestCommit.value.rev
             ? latestCommit.value.rev
             : null;
+        const headRev =
+          pdsRev ?? (relayRev.status === 'fulfilled' ? relayRev.value : null);
 
         setStatsEntry({
           did,
           error: null,
           stats: {
-            namespaces: namespaces.size,
-            collections: collections.length,
+            namespaces: unreadable ? null : namespaces.size,
+            collections: unreadable ? null : collections.length,
             auditOps: auditEntries ? auditEntries.length : null,
             createdAt:
               auditEntries && auditEntries.length > 0 ? auditEntries[0].createdAt : null,
             backlinks,
             headRev,
+            headRevFromRelay: headRev !== null && pdsRev === null,
+            inactive,
           },
         });
       } catch (err) {
@@ -192,6 +219,20 @@ export default function AccountStats({ did, handle, interactive = true }: Props)
   // Cheap pure call; no memo needed (and avoids the compiler bail the other
   // tile memos in this file already trip).
   const lastActiveDate = stats?.headRev ? tidToDate(stats.headRev) : null;
+  // A rev from the account's own PDS is its head commit. A rev from a relay
+  // (the only source once a repo goes inactive) is the newest one that relay
+  // holds, which reads as the last write but isn't the PDS saying so — the
+  // tile says where it came from rather than overstating it.
+  let lastActiveHint: string;
+  if (!lastActiveDate) {
+    lastActiveHint = stats?.inactive
+      ? `No rev available: this repo is ${stats.inactive}`
+      : "Timestamp of the repo's most recent commit (head rev)";
+  } else if (stats?.headRevFromRelay) {
+    lastActiveHint = `Newest rev the relay holds for this repo · ${lastActiveDate.toISOString()}`;
+  } else {
+    lastActiveHint = `Repo's most recent commit · ${lastActiveDate.toISOString()}`;
+  }
 
   if (error) {
     return (
@@ -209,15 +250,25 @@ export default function AccountStats({ did, handle, interactive = true }: Props)
       <StatTile
         icon={<Boxes size={16} />}
         label="Namespaces"
-        hint="Unique top-level NSID prefixes (e.g. net.anisota, app.bsky)"
-        value={stats?.namespaces}
+        hint={
+          stats?.inactive
+            ? `Unreadable: this repo is ${stats.inactive}`
+            : 'Unique top-level NSID prefixes (e.g. net.anisota, app.bsky)'
+        }
+        value={stats?.namespaces ?? undefined}
+        unavailable={stats !== null && stats.namespaces === null}
         interactive={interactive}
       />
       <StatTile
         icon={<Database size={16} />}
         label="Lexicons"
-        hint="Distinct record types / collections across all namespaces"
-        value={stats?.collections}
+        hint={
+          stats?.inactive
+            ? `Unreadable: this repo is ${stats.inactive}`
+            : 'Distinct record types / collections across all namespaces'
+        }
+        value={stats?.collections ?? undefined}
+        unavailable={stats !== null && stats.collections === null}
         interactive={interactive}
       />
       <StatTile
@@ -255,19 +306,21 @@ export default function AccountStats({ did, handle, interactive = true }: Props)
       <StatTile
         icon={<Activity size={16} />}
         label="Last active"
-        hint={
-          lastActiveDate
-            ? `Repo's most recent commit · ${lastActiveDate.toISOString()}`
-            : "Timestamp of the repo's most recent commit (head rev)"
-        }
+        hint={lastActiveHint}
         valueLabel={lastActiveDate ? formatTidRelative(lastActiveDate) : undefined}
+        sublabel={stats?.headRevFromRelay ? 'via relay' : undefined}
         unavailable={stats !== null && lastActiveDate === null}
         interactive={interactive}
       />
       {/* The one stat that isn't fetched on load — measuring it downloads the
           full repo CAR, so it stays behind an explicit button. Keyed on `did`
           so switching repos resets it to idle (and unmounts the old fetch). */}
-      <RepoSizeTile key={did} did={did} interactive={interactive} />
+      <RepoSizeTile
+        key={did}
+        did={did}
+        interactive={interactive}
+        inactive={stats?.inactive ?? null}
+      />
     </section>
   );
 }
@@ -515,7 +568,16 @@ type RepoSizeState =
  * Non-interactive demo surfaces (the homepage strip) render the button as an
  * inert preview so a marketing card never kicks off a multi-MB download.
  */
-function RepoSizeTile({ did, interactive }: { did: string; interactive: boolean }) {
+function RepoSizeTile({
+  did,
+  interactive,
+  inactive,
+}: {
+  did: string;
+  interactive: boolean;
+  /** Hosting status when the repo won't serve reads; null while readable. */
+  inactive: string | null;
+}) {
   const [state, setState] = useState<RepoSizeState>({ status: 'idle' });
   const abortRef = useRef<AbortController | null>(null);
   // Throttle the live counter to ~one paint per 256 KB downloaded — a large
@@ -595,6 +657,17 @@ function RepoSizeTile({ did, interactive }: { did: string; interactive: boolean 
       </>
     );
     titleAttr = interactive ? `Couldn't measure repo: ${state.message}` : undefined;
+  } else if (inactive) {
+    // getRepo is refused for an inactive repo, so the button would only ever
+    // buy the visitor a 400. Show the same "—" the other unreadable tiles do.
+    content = (
+      <div style={TILE_VALUE_STYLE}>
+        <span className="explore-muted" style={{ fontStyle: 'normal' }}>
+          &mdash;
+        </span>
+      </div>
+    );
+    titleAttr = interactive ? `No CAR export: this repo is ${inactive}` : undefined;
   } else {
     content = <MeasureButton interactive={interactive} onClick={measure} />;
     titleAttr = interactive

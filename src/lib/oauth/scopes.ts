@@ -11,8 +11,9 @@
  * are public), but AppView RPC reads now require an explicit `rpc:`
  * grant since the granular-scope rollout — that one is bundled into
  * BASE_SCOPE below so it isn't optional. The picker exposes write-side
- * actions plus the two permissioned-data reads, which are the only
- * granular scopes that ship unticked.
+ * actions plus the four permissioned-data rows — two reads, a record
+ * write, and space administration — which are the only granular scopes
+ * that ship unticked.
  */
 
 export type ScopeId =
@@ -22,7 +23,8 @@ export type ScopeId =
   | 'blob'
   | 'spacesSelf'
   | 'spacesAll'
-  | 'spacesWrite';
+  | 'spacesWrite'
+  | 'spacesManage';
 
 export type GranularScope = {
   id: ScopeId;
@@ -38,6 +40,8 @@ export type GranularScope = {
 
 /**
  * Permissioned data ("Spaces") — two read-only scopes, both default-off.
+ * The write scope and the administration scope follow them below, and the
+ * reasoning here about metadata, defaults and serialization governs all four.
  *
  * Spaces are the atproto proposal for records that live outside the public
  * repo: an authority grants members permission to write into a shared,
@@ -123,6 +127,40 @@ const SPACE_READ_SCOPE = 'space:*?authority=*&action=read';
 const SPACE_WRITE_SCOPE =
   'space:*?authority=*&collection=*&action=create&action=update&action=delete';
 
+/**
+ * Administering a space: creating one, changing its two rules, deleting it, and
+ * maintaining its member list.
+ *
+ * `manage` is a third axis, not a stronger `action`. The matcher branches on it
+ * before it looks at actions or collections at all, so neither read scope nor
+ * the write scope above authorizes any of this, and this scope authorizes no
+ * read and no record write. The three ops map onto the methods as the PDS
+ * asserts them: `create` for createSpace, `update` for updateSpace *and* both
+ * member-list methods (membership is a space-level update), `delete` for
+ * deleteSpace.
+ *
+ * `action=read_self` is load-bearing and is the narrowest action the syntax can
+ * express. Omitting `action` does not mean "no actions" — it defaults to read
+ * plus all three write verbs, so a manage token that named none would quietly
+ * be a whole-space read grant as well. Upstream's own `scopeNeededFor` pairs a
+ * manage op with `read_self` for exactly this reason.
+ *
+ * Its side effect is deliberate rather than tolerated: `listSpaces` asserts
+ * `read_self` against a wildcard target, so this token alone is enough to see
+ * the spaces you administer. Someone who grants management without granting a
+ * read would otherwise be able to create a space and not find it again.
+ *
+ * `authority=*` matches the three tokens above, and costs nothing here: every
+ * one of these methods is refused for anyone but the space's owner, and
+ * `createSpace` anchors the new space on the caller's own DID with no parameter
+ * that could name another. So the wildcard widens what the *string* says
+ * without widening what the grant can do — while `self`, the parameter's
+ * default, would pin the token to a resolved DID and stop satisfying the
+ * wildcard target `listSpaces` asserts against.
+ */
+const SPACE_MANAGE_SCOPE =
+  'space:*?authority=*&action=read_self&manage=create&manage=update&manage=delete';
+
 export const GRANULAR_SCOPES: GranularScope[] = [
   {
     id: 'create',
@@ -183,6 +221,16 @@ export const GRANULAR_SCOPES: GranularScope[] = [
     hint: 'Write and delete your own records in a space.',
     defaultOn: false,
   },
+  {
+    id: 'spacesManage',
+    scope: SPACE_MANAGE_SCOPE,
+    // Only ever spaces you are the authority of: every one of these methods is
+    // owner-only at the PDS, and a created space is always anchored on the
+    // caller's own DID.
+    label: 'Manage your own spaces',
+    hint: 'Create spaces, set who may join, add and remove members, delete them.',
+    defaultOn: false,
+  },
 ];
 
 /**
@@ -194,6 +242,7 @@ export const SPACE_SCOPE_IDS: ReadonlySet<ScopeId> = new Set<ScopeId>([
   'spacesSelf',
   'spacesAll',
   'spacesWrite',
+  'spacesManage',
 ]);
 
 /**
@@ -360,6 +409,40 @@ export function hasSpaceWriteScope(grantedScope: string | null | undefined): boo
     const actions = spaceTokenActions(token);
     return SPACE_WRITE_ACTIONS.some((action) => actions.includes(action));
   });
+}
+
+/** The three administrative ops a `space:` token's `manage` parameter carries. */
+export type SpaceManageOp = 'create' | 'update' | 'delete';
+
+const SPACE_MANAGE_OPS: readonly SpaceManageOp[] = ['create', 'update', 'delete'];
+
+/**
+ * Which administrative ops a granted scope authorizes.
+ *
+ * `manage` is read on its own axis rather than folded into
+ * {@link spaceWriteActionsFor}: the two parameters share the verbs `create`,
+ * `update` and `delete` but mean different things by them, and a token can
+ * carry either without the other. Reading `action=create` as permission to
+ * create a *space* would put a create button in front of anyone who granted
+ * record writes.
+ *
+ * The default is empty, matching the matcher: `manage` has no default op list
+ * to fall back on, so a token that names none — including a bare `space:*` —
+ * authorizes no administration at all.
+ */
+export function spaceManageOpsFor(
+  grantedScope: string | null | undefined,
+): ReadonlySet<SpaceManageOp> {
+  const granted = new Set<SpaceManageOp>();
+  for (const token of spaceTokens(grantedScope)) {
+    const q = token.indexOf('?');
+    if (q < 0) continue;
+    const ops = new URLSearchParams(token.slice(q + 1)).getAll('manage');
+    for (const op of SPACE_MANAGE_OPS) {
+      if (ops.includes(op)) granted.add(op);
+    }
+  }
+  return granted;
 }
 
 export function spaceGrantLevel(

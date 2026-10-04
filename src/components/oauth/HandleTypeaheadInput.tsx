@@ -49,6 +49,14 @@ type Props = {
   autoFocus?: boolean;
   /** Accessible name for the suggestion list, e.g. "Handle suggestions". */
   listLabel?: string;
+  /**
+   * Id for the input itself, so a surface with a real `<label htmlFor>` binds
+   * to it. The sign-in surfaces label their field by surrounding copy and pass
+   * nothing; a form field with its own label needs this.
+   */
+  id?: string;
+  /** Id of the hint that describes the field, for `aria-describedby`. */
+  describedBy?: string;
 };
 
 export default function HandleTypeaheadInput({
@@ -57,6 +65,8 @@ export default function HandleTypeaheadInput({
   placeholder,
   inputStyle,
   wrapperStyle,
+  id,
+  describedBy,
   disabled,
   autoFocus,
   listLabel = 'Matching accounts',
@@ -153,6 +163,8 @@ export default function HandleTypeaheadInput({
     <div ref={wrapRef} style={{ position: 'relative', minWidth: 0, ...wrapperStyle }}>
       <input
         ref={inputRef}
+        id={id}
+        aria-describedby={describedBy}
         type="text"
         autoComplete="username"
         spellCheck={false}

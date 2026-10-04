@@ -53,6 +53,9 @@ export default function ExtensionPopupVisual({
           alignItems: 'center',
           justifyContent: 'space-between',
           padding: '14px 16px 12px',
+          // Rule between the header and the tab strip below it, matching
+          // the real popup's header.
+          borderBottom: '1px solid var(--border-subtle)',
           background:
             'linear-gradient(180deg, var(--bg-secondary), var(--bg-primary))',
         }}

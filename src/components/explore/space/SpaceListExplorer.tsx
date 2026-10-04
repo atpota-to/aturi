@@ -15,10 +15,16 @@ import { SpaceListSkeleton } from '../skeletons/pages';
 import { SkeletonRowList } from '../skeletons/primitives';
 import { CHROME_RESULTS_ID, useChromeBarField } from '../ChromeBarContext';
 import { formatCount } from '../collectionListHelpers';
+import CreateSpaceButton from './CreateSpaceButton';
 import SpaceAccessPanel from './SpaceAccessPanel';
 import SpaceGlance from './SpaceGlance';
 import { SpaceTreeList, useSpaceTree } from './SpaceTree';
-import { useOwnPdsTransport, useResolvedIdentity, useSpaceGrant } from './useSpaceAccess';
+import {
+  useOwnPdsTransport,
+  useResolvedIdentity,
+  useSpaceGrant,
+  useSpaceManageOps,
+} from './useSpaceAccess';
 
 /** `listSpaces`' page size. Walked to the end, so this is a round-trip count. */
 const SPACES_PER_PAGE = 100;
@@ -95,24 +101,42 @@ const OWN_SPACES_LIMIT = 50;
 function OwnSpacesPanel({ identity }: { identity: IdentityBundle }) {
   const { did: signedInDid } = useAtprotoSession();
   const grant = useSpaceGrant();
+  const transport = useOwnPdsTransport();
+  const manageOps = useSpaceManageOps();
 
   const isSelf = Boolean(signedInDid && signedInDid === identity.did);
   const canList = isSelf && (grant === 'read' || grant === 'read_self');
+  // A space is always anchored on the caller's own DID, so this belongs on the
+  // account's own page and nowhere else. It is offered independently of
+  // `canList`: the create grant carries `read_self`, so someone who granted
+  // only management can still make a space and be taken to it — the listing
+  // above just stays empty until the read they didn't grant is granted.
+  const canCreate = isSelf && transport !== null && Boolean(manageOps?.has('create'));
   const tree = useSpaceTree({ enabled: canList, limit: OWN_SPACES_LIMIT });
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-      <h2
-        style={{
-          margin: 0,
-          fontFamily: 'var(--font-serif)',
-          fontWeight: 400,
-          fontSize: '1rem',
-          color: 'var(--text-primary)',
-        }}
-      >
-        Spaces this account has written to
-      </h2>
+      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '0.75rem' }}>
+        <h2
+          style={{
+            margin: 0,
+            fontFamily: 'var(--font-serif)',
+            fontWeight: 400,
+            fontSize: '1rem',
+            color: 'var(--text-primary)',
+          }}
+        >
+          Spaces this account has written to
+        </h2>
+        {canCreate && transport && (
+          <span style={{ marginLeft: 'auto' }}>
+            <CreateSpaceButton
+              transport={transport}
+              authority={identity.handle || identity.did}
+            />
+          </span>
+        )}
+      </div>
 
       {grant === 'anonymous' && (
         <SpaceAccessPanel
