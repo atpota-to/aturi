@@ -115,9 +115,20 @@ export async function loadGoogleFont(font: string, text: string): Promise<ArrayB
 }
 
 /**
- * Full-bleed dark frame with the site's signature radial-gradient wash
- * and SVG grain overlay. Wrap a route's content in this so every OG card
- * shares the same atmosphere.
+ * Full-bleed dark frame. Wrap a route's content in this so every OG card
+ * shares the same ground.
+ *
+ * Deliberately a flat fill. The cards used to carry the site's three-layer
+ * radial-gradient wash, but Satori lowers each CSS gradient to an SVG
+ * <pattern> behind a full-canvas mask, and resvg's wasm build rasterizes
+ * those slowly: in local benchmarks the wash alone was ~700ms of a ~900ms
+ * explore card. A solid colour is resvg's fast path, and every route renders
+ * through this frame. If a wash comes back, bake all layers into one
+ * `url("data:image/svg+xml,…")` background rather than CSS gradients; that
+ * measured about half the cost of the CSS version.
+ *
+ * There was also an feTurbulence grain overlay here. It never rendered:
+ * Satori ignores the `inset` shorthand, so the overlay was a 0×0 box.
  */
 export function OgFrame({ children }: { children: ReactNode }) {
   return (
@@ -128,23 +139,12 @@ export function OgFrame({ children }: { children: ReactNode }) {
         display: 'flex',
         flexDirection: 'column',
         backgroundColor: OG_COLORS.bgPrimary,
-        backgroundImage:
-          'radial-gradient(ellipse at 20% 30%, rgba(138, 154, 127, 0.18) 0%, rgba(10, 10, 10, 0) 85%), radial-gradient(ellipse at 80% 70%, rgba(74, 90, 63, 0.15) 0%, rgba(10, 10, 10, 0) 85%), radial-gradient(ellipse at 50% 50%, rgba(61, 51, 41, 0.12) 0%, rgba(10, 10, 10, 0) 90%)',
         color: OG_COLORS.textPrimary,
         fontFamily: 'Crimson Pro',
         padding: '60px 70px',
         position: 'relative',
       }}
     >
-      <div
-        style={{
-          position: 'absolute',
-          inset: 0,
-          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 800 800' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.8' numOctaves='5' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E")`,
-          opacity: 0.6,
-          display: 'flex',
-        }}
-      />
       {children}
     </div>
   );
