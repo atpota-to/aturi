@@ -64,6 +64,7 @@ export default function UniversalLinksLanding() {
             <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
               <Link
                 href={`/profile/${DEMO_HANDLE}`}
+                prefetch={false}
                 className="generate-button"
                 style={{
                   display: 'inline-flex',

@@ -232,6 +232,7 @@ export default function ProfilePreview({ profile }: ProfilePreviewProps) {
         >
           <Link
             href={`/explore/${encodeRepo(handle)}`}
+            prefetch={false}
             className="profile-explorer-link"
             style={{
               display: 'inline-flex',

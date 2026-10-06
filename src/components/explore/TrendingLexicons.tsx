@@ -375,6 +375,7 @@ function Row({
     >
       <Link
         href={schemaPathFor(row.nsid)}
+        prefetch={false}
         title={`Open the ${row.nsid} lexicon schema`}
         className="lexicon-row-grid"
         style={{

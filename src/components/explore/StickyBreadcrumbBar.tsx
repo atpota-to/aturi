@@ -211,6 +211,7 @@ function Segment({
       {crumb.href && !last ? (
         <Link
           href={crumb.href}
+          prefetch={false}
           style={{
             display: 'inline-flex',
             alignItems: 'center',

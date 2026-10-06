@@ -247,6 +247,7 @@ function AlphaAccount() {
         </a>
         <Link
           href={`/explore/pds/${SPACES_ALPHA_PDS}`}
+          prefetch={false}
           className="explore-json-link"
           style={{ fontSize: '0.9rem' }}
         >
@@ -409,7 +410,7 @@ function SignedIn({ did }: { did: string | null }) {
           >
             Get an invite code
           </a>
-          <Link href={`/explore/pds/${SPACES_ALPHA_PDS}`} className="explore-json-link">
+          <Link href={`/explore/pds/${SPACES_ALPHA_PDS}`} prefetch={false} className="explore-json-link">
             Look at that server →
           </Link>
         </div>
@@ -422,6 +423,7 @@ function SignedIn({ did }: { did: string | null }) {
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
         <Link
           href={`/explore/${encodeRepo(did ?? '')}/space`}
+          prefetch={false}
           style={{
             ...primaryButtonStyle(false),
             display: 'block',

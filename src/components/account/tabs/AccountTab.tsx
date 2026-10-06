@@ -117,7 +117,7 @@ export default function AccountTab() {
             </div>
           </div>
           <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-            <Link href={`/explore/${encodeRepo(did)}`} style={ghostLinkStyle()}>
+            <Link href={`/explore/${encodeRepo(did)}`} prefetch={false} style={ghostLinkStyle()}>
               <Telescope size={13} /> My repo
             </Link>
             <button

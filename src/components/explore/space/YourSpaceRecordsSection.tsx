@@ -121,7 +121,7 @@ export default function YourSpaceRecordsSection({
         >
           Your records in this space
         </h2>
-        <Link href={myRepoPath} className="explore-json-link">
+        <Link href={myRepoPath} prefetch={false} className="explore-json-link">
           Open your repository →
         </Link>
       </div>
@@ -162,6 +162,7 @@ export default function YourSpaceRecordsSection({
             >
               <Link
                 href={`${myRepoPath}/${collection}`}
+                prefetch={false}
                 style={{
                   display: 'flex',
                   flexWrap: 'wrap',

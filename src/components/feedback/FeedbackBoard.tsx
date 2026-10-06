@@ -380,7 +380,7 @@ function BoardIntro({ spaceUri }: { spaceUri?: string }) {
       >
         userinput.app
       </a>{' '}
-      <Link href={USERINPUT_LEXICONS_PATH} style={{ color: 'var(--text-accent)' }}>
+      <Link href={USERINPUT_LEXICONS_PATH} prefetch={false} style={{ color: 'var(--text-accent)' }}>
         lexicons
       </Link>
       , counted by{' '}
@@ -407,6 +407,7 @@ function BoardIntro({ spaceUri }: { spaceUri?: string }) {
           {' '}
           <Link
             href={`/explore/${spaceUri.replace('at://', '')}`}
+            prefetch={false}
             style={{ color: 'var(--text-accent)' }}
           >
             Inspect the space record →

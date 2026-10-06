@@ -274,6 +274,7 @@ export default function ProfileHeader({ identity }: Props) {
       >
         <Link
           href={`/profile/${handle || identity.did}`}
+          prefetch={false}
           className="profile-explorer-link"
           style={{
             display: 'inline-flex',

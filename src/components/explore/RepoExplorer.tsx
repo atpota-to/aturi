@@ -302,6 +302,7 @@ function PdsCell({ pds }: { pds: string }) {
       >
         <Link
           href={`/explore/pds/${encodeURIComponent(host)}`}
+          prefetch={false}
           style={{
             display: 'inline-flex',
             alignItems: 'center',

@@ -9,9 +9,8 @@ import PostPreviewSkeleton from '@/components/PostPreviewSkeleton';
 import ScrollIndicator from '@/components/ScrollIndicator';
 import Header from '@/components/Header';
 import NotFoundPanel from '@/components/NotFoundPanel';
-import { parseURI, resolveHandle, getDisplayName } from '@/utils/uriParser';
-import { fetchRecordData } from '@/utils/recordFetcher';
-import { resolveDidToHandle } from '@/utils/didResolver';
+import { parseURI, getDisplayName } from '@/utils/uriParser';
+import { fetchRecordData, resolveDidToHandle, resolveHandle } from '@/lib/pageData';
 import { buildPostMetadata, buildPostJsonLd } from '@/utils/postMetadata';
 import { serializeJsonLd } from '@/utils/sanitize';
 

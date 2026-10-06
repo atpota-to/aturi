@@ -246,6 +246,7 @@ function SpaceRepoView({
           <Field label="member">
             <Link
               href={`/explore/${encodeRepo(authorIdentity.did)}`}
+              prefetch={false}
               style={{ color: 'var(--text-primary)', textDecoration: 'none', minWidth: 0 }}
             >
               <code style={{ background: 'transparent', padding: 0, color: 'inherit' }}>
@@ -316,6 +317,7 @@ function SpaceRepoView({
                       <li key={nsid} style={{ borderBottom: '1px solid var(--border-subtle)' }}>
                         <Link
                           href={`${authorPath}/${nsid}`}
+                          prefetch={false}
                           style={{
                             display: 'flex',
                             flexWrap: 'wrap',

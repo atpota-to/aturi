@@ -506,6 +506,7 @@ function SpaceBranch({
       </button>
         <Link
           href={spacePath}
+          prefetch={false}
           aria-label={`About ${spaceLabel}`}
           title="About this space"
           style={headerIconStyle}
@@ -623,6 +624,7 @@ function CollectionRow({
     >
       <Link
         href={href}
+        prefetch={false}
         style={{
           display: 'flex',
           alignItems: 'center',

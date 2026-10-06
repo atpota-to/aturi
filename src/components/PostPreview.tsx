@@ -936,6 +936,7 @@ export default function PostPreview({ post, parent, hideExplorerCtas }: PostPrev
           >
             <Link
               href={explorePath}
+              prefetch={false}
               className="profile-explorer-link"
               style={{
                 display: 'inline-flex',
@@ -969,6 +970,7 @@ export default function PostPreview({ post, parent, hideExplorerCtas }: PostPrev
           >
             <Link
               href={postUrl}
+              prefetch={false}
               className="profile-explorer-link"
               style={{
                 display: 'inline-flex',

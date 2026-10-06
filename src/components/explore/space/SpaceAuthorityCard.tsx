@@ -77,7 +77,7 @@ export default function SpaceAuthorityCard({
         }}
       >
         <Field label="authority">
-          <Link href={`/explore/${did}`} style={valueLinkStyle}>
+          <Link href={`/explore/${did}`} prefetch={false} style={valueLinkStyle}>
             <code style={codeStyle}>{handle ? `@${handle}` : did}</code>
           </Link>
           <CopyButton value={did} label="Copy did" compact variant="subtle" />
@@ -90,6 +90,7 @@ export default function SpaceAuthorityCard({
             <>
               <Link
                 href={`/explore/pds/${encodeURIComponent(spaceHostName)}`}
+                prefetch={false}
                 style={valueLinkStyle}
               >
                 <Server size={12} aria-hidden style={{ opacity: 0.7 }} />

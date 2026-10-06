@@ -208,7 +208,7 @@ export default function LexiconDetail({ nsid }: { nsid: string }) {
           >
             <span>
               group{' '}
-              <Link href={groupPathFor(group)} style={{ color: 'var(--text-accent)', textDecoration: 'none' }}>
+              <Link href={groupPathFor(group)} prefetch={false} style={{ color: 'var(--text-accent)', textDecoration: 'none' }}>
                 {group}
               </Link>
             </span>
@@ -219,6 +219,7 @@ export default function LexiconDetail({ nsid }: { nsid: string }) {
           </div>
           <Link
             href={schemaPathFor(nsid)}
+            prefetch={false}
             style={{
               alignSelf: 'flex-start',
               display: 'inline-flex',
@@ -355,6 +356,7 @@ export default function LexiconDetail({ nsid }: { nsid: string }) {
                 >
                   <Link
                     href={lexiconPathFor(c.nsid)}
+                    prefetch={false}
                     style={{
                       display: 'flex',
                       alignItems: 'center',
@@ -403,6 +405,7 @@ export default function LexiconDetail({ nsid }: { nsid: string }) {
           {siblings && siblings.length > 0 && groupPrefix(nsid).includes('.') && (
             <Link
               href={groupPathFor(groupPrefix(nsid))}
+              prefetch={false}
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
@@ -486,6 +489,7 @@ export default function LexiconDetail({ nsid }: { nsid: string }) {
                     {href ? (
                       <Link
                         href={href}
+                        prefetch={false}
                         style={rowStyle}
                         onMouseEnter={(e) => {
                           e.currentTarget.style.background = 'var(--bg-tertiary)';

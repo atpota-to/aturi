@@ -211,6 +211,7 @@ export default function BrowseAllLexicons() {
             >
               <Link
                 href={lexiconPathFor(c.nsid)}
+                prefetch={false}
                 style={{
                   display: 'grid',
                   gridTemplateColumns: 'minmax(0, 1fr) 5rem',

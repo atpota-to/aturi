@@ -223,6 +223,7 @@ export default function RecordPreview({
           {!hideExplorerCtas && (
             <Link
               href={`/explore/${encodeRepo(handle)}/${collection}/${encodeURIComponent(rkey)}`}
+              prefetch={false}
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -613,6 +614,7 @@ function LinkableValue({
     <span style={{ wordBreak: 'break-word' }}>
       <Link
         href={href}
+        prefetch={false}
         title={linkTitle}
         style={{
           color: 'var(--text-accent)',

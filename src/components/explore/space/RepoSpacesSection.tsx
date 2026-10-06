@@ -65,7 +65,7 @@ export default function RepoSpacesSection({ identity }: { identity: IdentityBund
         >
           Permissioned spaces
         </h2>
-        <Link href={`/explore/${repoSegment}/space`} className="explore-json-link">
+        <Link href={`/explore/${repoSegment}/space`} prefetch={false} className="explore-json-link">
           Open spaces explorer →
         </Link>
       </div>
@@ -104,7 +104,7 @@ export default function RepoSpacesSection({ identity }: { identity: IdentityBund
           {tree.more && (
             <p style={noteStyle}>
               Showing the first {SPACE_LIMIT}.{' '}
-              <Link href={`/explore/${repoSegment}/space`} className="explore-json-link">
+              <Link href={`/explore/${repoSegment}/space`} prefetch={false} className="explore-json-link">
                 See all of them
               </Link>
               .
