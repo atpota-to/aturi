@@ -28,6 +28,11 @@ export const OG_COLORS = {
 
 const fontCache = new Map<string, ArrayBuffer>();
 
+// A Fluid instance lives across many requests, so an unbounded cache keeps
+// one ~20KB subset for every distinct character set it has ever rendered.
+// Map iterates in insertion order, which makes eviction oldest-first.
+const FONT_CACHE_LIMIT = 64;
+
 /**
  * Strip glyphs that break @vercel/og image generation from user-supplied
  * text (display names, bios, post text).
@@ -88,7 +93,14 @@ export const OG_GLYPH_BASELINE =
  * has to stay fast even when the font CDN is slow.
  */
 export async function loadGoogleFont(font: string, text: string): Promise<ArrayBuffer> {
-  const cacheKey = `${font}-${text.slice(0, 50)}`;
+  // A subset depends only on which characters it covers, not their order or
+  // how often they repeat, so request and cache by the sorted set. The key
+  // used to be the first 50 characters of `text`: for explore cards that
+  // prefix is the handle and NSID, so nearly every record missed the cache
+  // and paid a Google Fonts round trip, and two cards sharing a prefix could
+  // be handed a subset missing the second card's glyphs.
+  const chars = [...new Set(text)].sort().join('');
+  const cacheKey = `${font}-${chars}`;
   const cached = fontCache.get(cacheKey);
   if (cached) return cached;
 
@@ -96,7 +108,7 @@ export async function loadGoogleFont(font: string, text: string): Promise<ArrayB
   const timeoutId = setTimeout(() => controller.abort(), 3000);
 
   try {
-    const url = `https://fonts.googleapis.com/css2?family=${font}&text=${encodeURIComponent(text)}`;
+    const url = `https://fonts.googleapis.com/css2?family=${font}&text=${encodeURIComponent(chars)}`;
     const css = await fetch(url, { signal: controller.signal }).then((r) => r.text());
     const match = css.match(/src: url\((.+)\) format\('(opentype|truetype)'\)/);
     if (match) {
@@ -104,6 +116,10 @@ export async function loadGoogleFont(font: string, text: string): Promise<ArrayB
       if (res.status === 200) {
         const data = await res.arrayBuffer();
         fontCache.set(cacheKey, data);
+        if (fontCache.size > FONT_CACHE_LIMIT) {
+          const oldest = fontCache.keys().next().value;
+          if (oldest !== undefined) fontCache.delete(oldest);
+        }
         return data;
       }
     }
