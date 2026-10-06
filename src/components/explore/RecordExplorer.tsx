@@ -652,6 +652,7 @@ function RecordErrorPanel({
       {notFound && isSchema && (
         <Link
           href={lexiconPathFor(rkey)}
+          prefetch={false}
           style={{
             alignSelf: 'flex-start',
             display: 'inline-flex',

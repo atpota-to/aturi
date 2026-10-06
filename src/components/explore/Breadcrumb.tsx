@@ -210,6 +210,7 @@ export default function Breadcrumb({
           {crumb.href ? (
             <Link
               href={crumb.href}
+              prefetch={false}
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',

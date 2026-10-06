@@ -94,7 +94,7 @@ export default function SpaceSetup({ onCreated }: { onCreated: () => void }) {
         </h2>
         <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.9rem', lineHeight: 1.6 }}>
           This board reads an <code className="explore-mono">app.userinput.space</code> record from{' '}
-          <Link href={`/explore/${FEEDBACK_OWNER}`} style={{ color: 'var(--text-accent)' }}>
+          <Link href={`/explore/${FEEDBACK_OWNER}`} prefetch={false} style={{ color: 'var(--text-accent)' }}>
             {FEEDBACK_OWNER}
           </Link>
           &rsquo;s repo. There isn&rsquo;t one yet, and only that account can write it.

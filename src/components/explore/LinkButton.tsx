@@ -68,6 +68,7 @@ export default function LinkButton({ href, label, external, title }: Props) {
   return (
     <Link
       href={href}
+      prefetch={false}
       title={title ?? label}
       style={style}
       onMouseEnter={onMouseEnter}

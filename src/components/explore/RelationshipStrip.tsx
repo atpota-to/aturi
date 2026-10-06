@@ -160,6 +160,7 @@ export default function RelationshipStrip({ target }: Props) {
         {mutualCount > 0 && (
           <Link
             href={mutualLink}
+            prefetch={false}
             style={{ textDecoration: 'none' }}
           >
             <Chip icon={<Users size={11} aria-hidden />} tone="neutral">
@@ -171,6 +172,7 @@ export default function RelationshipStrip({ target }: Props) {
         {inCommonCount > 0 && (
           <Link
             href={collectionsLink}
+            prefetch={false}
             style={{ textDecoration: 'none' }}
           >
             <Chip icon={<Layers size={11} aria-hidden />} tone="neutral">

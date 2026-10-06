@@ -167,6 +167,7 @@ export default function DiscussionCard({
           ) : null}
           <Link
             href={discussionPath(discussion.uri)}
+            prefetch={false}
             style={{
               fontFamily: 'var(--font-serif)',
               fontSize: '1.0625rem',
@@ -212,6 +213,7 @@ export default function DiscussionCard({
           />
           <Link
             href={discussionPath(discussion.uri)}
+            prefetch={false}
             style={{
               display: 'inline-flex',
               alignItems: 'center',

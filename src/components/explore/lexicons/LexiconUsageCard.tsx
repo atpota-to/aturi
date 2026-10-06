@@ -60,6 +60,7 @@ export default function LexiconUsageCard({ collection }: { collection: string })
   return (
     <Link
       href={lexiconPathFor(collection)}
+      prefetch={false}
       title={`Explore usage of ${collection} across the atmosphere`}
       style={{
         display: 'flex',

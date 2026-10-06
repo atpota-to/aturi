@@ -107,6 +107,7 @@ export default function ExploreLanding() {
             <Link
               key={myRepo}
               href={`/explore/${encodeRepo(myRepo)}`}
+              prefetch={false}
               title="Your repo"
               style={{
                 display: 'inline-flex',
@@ -127,6 +128,7 @@ export default function ExploreLanding() {
             <Link
               key={s}
               href={`/explore/${s}`}
+              prefetch={false}
               style={{
                 fontFamily: 'var(--font-mono)',
                 color: 'var(--text-accent)',

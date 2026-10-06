@@ -107,6 +107,7 @@ function Frame({
                   ) : (
                     <Link
                       href={groupPathFor(cumulative)}
+                      prefetch={false}
                       style={{ color: 'var(--text-secondary)', textDecoration: 'none' }}
                     >
                       {seg}
@@ -223,6 +224,7 @@ function PrefixView({ prefix }: { prefix: string }) {
             </p>
             <Link
               href={lexiconPathFor(prefix)}
+              prefetch={false}
               style={{ color: 'var(--text-accent)', textDecoration: 'none', fontSize: '0.85rem' }}
             >
               View {prefix} as a lexicon →
@@ -275,7 +277,7 @@ function ChildRow({ child, isLast }: { child: PrefixChild; isLast: boolean }) {
   const Icon = isNamespace ? Folder : FileText;
   return (
     <li style={{ borderBottom: isLast ? undefined : '1px solid var(--border-subtle)' }}>
-      <Link href={href} style={rowStyle} onMouseEnter={hoverOn} onMouseLeave={hoverOff}>
+      <Link href={href} prefetch={false} style={rowStyle} onMouseEnter={hoverOn} onMouseLeave={hoverOff}>
         <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', minWidth: 0 }}>
           <Icon
             size={13}
@@ -352,7 +354,7 @@ function SearchView({ term }: { term: string }) {
                 key={c.nsid}
                 style={{ borderBottom: i === visible.length - 1 ? undefined : '1px solid var(--border-subtle)' }}
               >
-                <Link href={lexiconPathFor(c.nsid)} style={rowStyle} onMouseEnter={hoverOn} onMouseLeave={hoverOff}>
+                <Link href={lexiconPathFor(c.nsid)} prefetch={false} style={rowStyle} onMouseEnter={hoverOn} onMouseLeave={hoverOff}>
                   <span style={nameStyle}>{c.nsid}</span>
                   <Count value={c.creates} />
                 </Link>

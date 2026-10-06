@@ -271,6 +271,7 @@ export default function SessionPanel({ onNavigate, onSignInActiveChange }: Props
         {did && (
           <Link
             href={`/explore/${encodeRepo(did)}`}
+            prefetch={false}
             className="compact-nav-link"
             onClick={onNavigate}
           >

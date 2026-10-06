@@ -814,6 +814,7 @@ function MemberRow({
     >
       <Link
         href={`${spacePath}/${encodeRepo(row.did)}`}
+        prefetch={false}
         style={{
           flex: 1,
           minWidth: 0,

@@ -154,7 +154,7 @@ function OwnSpacesPanel({ identity }: { identity: IdentityBundle }) {
           {signedInDid && (
             <>
               {' '}
-              <Link href={`/explore/${encodeRepo(signedInDid)}/space`} className="explore-json-link">
+              <Link href={`/explore/${encodeRepo(signedInDid)}/space`} prefetch={false} className="explore-json-link">
                 See your own spaces
               </Link>
               .
@@ -312,7 +312,7 @@ export function SpaceWrittenList({
             {signedInDid && (
               <>
                 {' '}
-                <Link href={`/explore/${encodeRepo(signedInDid)}/space`} className="explore-json-link">
+                <Link href={`/explore/${encodeRepo(signedInDid)}/space`} prefetch={false} className="explore-json-link">
                   See your own spaces
                 </Link>
                 .
@@ -424,7 +424,7 @@ export function SpaceRows({ uris, selfDid }: { uris: string[]; selfDid?: string 
         return (
           <li key={uri} style={{ borderBottom: '1px solid var(--border-subtle)' }}>
             {parts ? (
-              <Link href={spaceExplorePath(parts)} style={spaceRowStyle}>
+              <Link href={spaceExplorePath(parts)} prefetch={false} style={spaceRowStyle}>
                 <code style={{ background: 'transparent', padding: 0, color: 'var(--text-primary)' }}>
                   {parts.spaceType}
                 </code>

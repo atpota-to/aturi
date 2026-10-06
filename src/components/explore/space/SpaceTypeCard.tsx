@@ -78,7 +78,7 @@ export default function SpaceTypeCard({ nsid }: { nsid: string }) {
         >
           {declaration ? declaration.name : 'Space type'}
         </h2>
-        <Link href={lexiconPathFor(nsid)} className="explore-json-link">
+        <Link href={lexiconPathFor(nsid)} prefetch={false} className="explore-json-link">
           <code style={{ background: 'transparent', padding: 0 }}>{nsid}</code>
         </Link>
       </div>
@@ -138,6 +138,7 @@ export default function SpaceTypeCard({ nsid }: { nsid: string }) {
                     <Link
                       key={collection}
                       href={lexiconPathFor(collection)}
+                      prefetch={false}
                       className="explore-json-link"
                     >
                       {collection}
@@ -148,7 +149,7 @@ export default function SpaceTypeCard({ nsid }: { nsid: string }) {
             </Field>
             <Field label="declared at">
               {sourcePath ? (
-                <Link href={sourcePath} style={{ color: 'var(--text-primary)', textDecoration: 'none', minWidth: 0 }}>
+                <Link href={sourcePath} prefetch={false} style={{ color: 'var(--text-primary)', textDecoration: 'none', minWidth: 0 }}>
                   <code style={codeStyle}>{declaration.source.uri}</code>
                 </Link>
               ) : (

@@ -296,6 +296,7 @@ export default function ThreadView({ did, rkey }: { did: string; rkey: string })
             ))}
             <Link
               href={`/explore/${discussion.uri.replace('at://', '')}`}
+              prefetch={false}
               style={{
                 color: 'var(--text-tertiary)',
                 fontSize: '0.75rem',

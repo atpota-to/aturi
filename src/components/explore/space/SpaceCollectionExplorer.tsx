@@ -321,6 +321,7 @@ function SpaceCollectionList({
                   >
                     <Link
                       href={`${collectionPath}/${encodeURIComponent(record.rkey)}`}
+                      prefetch={false}
                       style={{
                         display: 'grid',
                         gridColumn: '1 / -1',

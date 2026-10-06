@@ -50,6 +50,8 @@ The same workflow's `github-packages` job then mirrors both builds to GitHub Pac
 
 **6. `ios/` is a port, not a consumer.** The Swift package re-implements `waypoints.data.ts`, `uriParser.ts`, `reverseParsers.ts`, `linkGenerator.ts`, `preferences.ts` and the atproto clients by hand; nothing syncs it. A change to any of those files needs the matching change in `ios/Packages/AturiCore/Sources/AturiCore/` and its tests, or the app and the site disagree. Two more things there are generated: `ios/Aturi.xcodeproj` comes from `ios/project.yml` (`cd ios && xcodegen generate`; edit the yml, not the project), and the waypoint marks under `ios/Aturi/Resources/Assets.xcassets/Waypoints/` come from `node --experimental-strip-types ios/scripts/export-waypoint-icons.mjs`, which reads the synced SVG catalog. Nothing in `ios/` compiles on Linux except the package, so SwiftUI changes need Xcode (or the `ios` CI job) to be verified.
 
+**7. A `<Link>` to a dynamic route sets `prefetch={false}`.** Next prefetches every link that scrolls into view, a prefetch of a dynamic route (`ƒ` in `next build` output) is a function invocation, and crawlers that run JavaScript trigger them without ever clicking. One scrolled view of `/explore/lexicons` once cost 150 of them. `Header.tsx` has the full reasoning. Links to static pages (`○`) can keep prefetching, since those are served from the CDN.
+
 ## Adding a waypoint
 
 Five edits, all required, none of which fail the build if you skip them (the fifth fails `swift test` in `ios/`):

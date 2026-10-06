@@ -28,6 +28,7 @@ export default function SessionBadge() {
     >
       <Link
         href={`/explore/${encodeRepo(did)}`}
+        prefetch={false}
         style={{
           display: 'inline-flex',
           alignItems: 'center',
