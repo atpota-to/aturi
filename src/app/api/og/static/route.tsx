@@ -153,7 +153,6 @@ function Panel({ children, pad = 20 }: { children: ReactNode; pad?: number }) {
         width: `${PANEL_W}px`,
         background: OG_COLORS.bgSecondary,
         border: `1px solid ${OG_COLORS.borderMedium}`,
-        boxShadow: '0 16px 48px rgba(0, 0, 0, 0.4)',
         padding: `${pad}px`,
         gap: '14px',
         overflow: 'hidden',
@@ -297,7 +296,6 @@ function ExtensionVisual() {
         width: `${PANEL_W}px`,
         background: OG_COLORS.bgSecondary,
         border: `1px solid ${OG_COLORS.borderMedium}`,
-        boxShadow: '0 16px 48px rgba(0, 0, 0, 0.4)',
         overflow: 'hidden',
       }}
     >

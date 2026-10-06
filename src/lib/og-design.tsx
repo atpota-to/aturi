@@ -3,8 +3,16 @@
  *
  * @vercel/og's Satori renderer accepts a small subset of CSS + a small set
  * of inline SVGs. These helpers centralize the bits every OG route needs
- * (font loading, the dark gradient + grain background, the brand mark) so
- * the per-page route can focus on the unique product visual it's rendering.
+ * (font loading, the dark background, the brand mark) so the per-page route
+ * can focus on the unique product visual it's rendering.
+ *
+ * Every cache miss renders a card on billed function CPU, and resvg's wasm
+ * build makes some styles expensive. Solid fills, borders and text are
+ * cheap. CSS gradients and `boxShadow` (a blur filter) each cost hundreds of
+ * milliseconds per card, so the cards use neither. `overflow: 'hidden'` puts
+ * a clip and mask on every descendant, so keep it on small boxes that need
+ * it rather than around a whole layout. Each inline <svg> or <img> carries
+ * a clip and mask of its own, roughly 50ms apiece.
  */
 
 import type { ReactNode } from 'react';
@@ -702,11 +710,6 @@ export function WaypointRow({
               background: isActive ? OG_COLORS.bgTertiary : 'transparent',
               border: `1px solid ${isActive ? OG_COLORS.accent : OG_COLORS.borderSubtle}`,
               color: isActive ? OG_COLORS.accent : OG_COLORS.textSecondary,
-              // Satori rejects `boxShadow: undefined`, so only set it when the
-              // cell is highlighted instead of passing an undefined value.
-              ...(isActive
-                ? { boxShadow: '0 0 32px rgba(138, 154, 127, 0.25)' }
-                : {}),
             }}
           >
             {item.node}
