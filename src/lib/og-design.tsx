@@ -3,8 +3,16 @@
  *
  * @vercel/og's Satori renderer accepts a small subset of CSS + a small set
  * of inline SVGs. These helpers centralize the bits every OG route needs
- * (font loading, the dark gradient + grain background, the brand mark) so
- * the per-page route can focus on the unique product visual it's rendering.
+ * (font loading, the dark background, the brand mark) so the per-page route
+ * can focus on the unique product visual it's rendering.
+ *
+ * Every cache miss renders a card on billed function CPU, and resvg's wasm
+ * build makes some styles expensive. Solid fills, borders and text are
+ * cheap. CSS gradients and `boxShadow` (a blur filter) each cost hundreds of
+ * milliseconds per card, so the cards use neither. `overflow: 'hidden'` puts
+ * a clip and mask on every descendant, so keep it on small boxes that need
+ * it rather than around a whole layout. Each inline <svg> or <img> carries
+ * a clip and mask of its own, roughly 50ms apiece.
  */
 
 import type { ReactNode } from 'react';
@@ -27,6 +35,11 @@ export const OG_COLORS = {
 };
 
 const fontCache = new Map<string, ArrayBuffer>();
+
+// A Fluid instance lives across many requests, so an unbounded cache keeps
+// one ~20KB subset for every distinct character set it has ever rendered.
+// Map iterates in insertion order, which makes eviction oldest-first.
+const FONT_CACHE_LIMIT = 64;
 
 /**
  * Strip glyphs that break @vercel/og image generation from user-supplied
@@ -88,7 +101,14 @@ export const OG_GLYPH_BASELINE =
  * has to stay fast even when the font CDN is slow.
  */
 export async function loadGoogleFont(font: string, text: string): Promise<ArrayBuffer> {
-  const cacheKey = `${font}-${text.slice(0, 50)}`;
+  // A subset depends only on which characters it covers, not their order or
+  // how often they repeat, so request and cache by the sorted set. The key
+  // used to be the first 50 characters of `text`: for explore cards that
+  // prefix is the handle and NSID, so nearly every record missed the cache
+  // and paid a Google Fonts round trip, and two cards sharing a prefix could
+  // be handed a subset missing the second card's glyphs.
+  const chars = [...new Set(text)].sort().join('');
+  const cacheKey = `${font}-${chars}`;
   const cached = fontCache.get(cacheKey);
   if (cached) return cached;
 
@@ -96,7 +116,7 @@ export async function loadGoogleFont(font: string, text: string): Promise<ArrayB
   const timeoutId = setTimeout(() => controller.abort(), 3000);
 
   try {
-    const url = `https://fonts.googleapis.com/css2?family=${font}&text=${encodeURIComponent(text)}`;
+    const url = `https://fonts.googleapis.com/css2?family=${font}&text=${encodeURIComponent(chars)}`;
     const css = await fetch(url, { signal: controller.signal }).then((r) => r.text());
     const match = css.match(/src: url\((.+)\) format\('(opentype|truetype)'\)/);
     if (match) {
@@ -104,6 +124,10 @@ export async function loadGoogleFont(font: string, text: string): Promise<ArrayB
       if (res.status === 200) {
         const data = await res.arrayBuffer();
         fontCache.set(cacheKey, data);
+        if (fontCache.size > FONT_CACHE_LIMIT) {
+          const oldest = fontCache.keys().next().value;
+          if (oldest !== undefined) fontCache.delete(oldest);
+        }
         return data;
       }
     }
@@ -115,9 +139,20 @@ export async function loadGoogleFont(font: string, text: string): Promise<ArrayB
 }
 
 /**
- * Full-bleed dark frame with the site's signature radial-gradient wash
- * and SVG grain overlay. Wrap a route's content in this so every OG card
- * shares the same atmosphere.
+ * Full-bleed dark frame. Wrap a route's content in this so every OG card
+ * shares the same ground.
+ *
+ * Deliberately a flat fill. The cards used to carry the site's three-layer
+ * radial-gradient wash, but Satori lowers each CSS gradient to an SVG
+ * <pattern> behind a full-canvas mask, and resvg's wasm build rasterizes
+ * those slowly: in local benchmarks the wash alone was ~700ms of a ~900ms
+ * explore card. A solid colour is resvg's fast path, and every route renders
+ * through this frame. If a wash comes back, bake all layers into one
+ * `url("data:image/svg+xml,…")` background rather than CSS gradients; that
+ * measured about half the cost of the CSS version.
+ *
+ * There was also an feTurbulence grain overlay here. It never rendered:
+ * Satori ignores the `inset` shorthand, so the overlay was a 0×0 box.
  */
 export function OgFrame({ children }: { children: ReactNode }) {
   return (
@@ -128,23 +163,12 @@ export function OgFrame({ children }: { children: ReactNode }) {
         display: 'flex',
         flexDirection: 'column',
         backgroundColor: OG_COLORS.bgPrimary,
-        backgroundImage:
-          'radial-gradient(ellipse at 20% 30%, rgba(138, 154, 127, 0.18) 0%, rgba(10, 10, 10, 0) 85%), radial-gradient(ellipse at 80% 70%, rgba(74, 90, 63, 0.15) 0%, rgba(10, 10, 10, 0) 85%), radial-gradient(ellipse at 50% 50%, rgba(61, 51, 41, 0.12) 0%, rgba(10, 10, 10, 0) 90%)',
         color: OG_COLORS.textPrimary,
         fontFamily: 'Crimson Pro',
         padding: '60px 70px',
         position: 'relative',
       }}
     >
-      <div
-        style={{
-          position: 'absolute',
-          inset: 0,
-          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 800 800' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.8' numOctaves='5' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E")`,
-          opacity: 0.6,
-          display: 'flex',
-        }}
-      />
       {children}
     </div>
   );
@@ -686,11 +710,6 @@ export function WaypointRow({
               background: isActive ? OG_COLORS.bgTertiary : 'transparent',
               border: `1px solid ${isActive ? OG_COLORS.accent : OG_COLORS.borderSubtle}`,
               color: isActive ? OG_COLORS.accent : OG_COLORS.textSecondary,
-              // Satori rejects `boxShadow: undefined`, so only set it when the
-              // cell is highlighted instead of passing an undefined value.
-              ...(isActive
-                ? { boxShadow: '0 0 32px rgba(138, 154, 127, 0.25)' }
-                : {}),
             }}
           >
             {item.node}
