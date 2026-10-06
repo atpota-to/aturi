@@ -721,8 +721,13 @@ export async function GET(request: NextRequest) {
           >
             <TopRow eyebrow={config.eyebrow} />
 
+            {/* No overflow: 'hidden' on these layout boxes. Satori pushes a
+                clip and mask onto every descendant of one, which more than
+                doubled the home card's render CPU, and it was also clipping
+                the top of the home URL pill and the hook of the J in "Jump".
+                The copy here is fixed, so check new pages by eye instead. */}
             {isSplit ? (
-              <div style={{ display: 'flex', flex: 1, gap: '48px', alignItems: 'center', overflow: 'hidden' }}>
+              <div style={{ display: 'flex', flex: 1, gap: '48px', alignItems: 'center' }}>
                 <div style={{ display: 'flex', flex: 1, minWidth: 0 }}>
                   <Headline title={config.title} tagline={config.tagline} size={58} />
                 </div>
@@ -735,7 +740,6 @@ export async function GET(request: NextRequest) {
                   flexDirection: 'column',
                   flex: 1,
                   gap: '30px',
-                  overflow: 'hidden',
                 }}
               >
                 <Headline title={config.title} tagline={config.tagline} />
@@ -745,7 +749,6 @@ export async function GET(request: NextRequest) {
                     flex: 1,
                     alignItems: 'flex-end',
                     justifyContent: 'center',
-                    overflow: 'hidden',
                   }}
                 >
                   {config.visual}
