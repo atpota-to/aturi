@@ -256,6 +256,7 @@ const HOST_BY_SOURCE: Record<SourceApp, string> = {
   popfeed: 'popfeed.social',
   sifa: 'sifa.id',
   blento: 'blento.app',
+  kimbia: 'kimbia.app',
   standardReader: 'standard-reader.app',
   taproot: 'atproto.at',
   offprint: 'offprint.app',

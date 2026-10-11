@@ -31,6 +31,7 @@ const BUILTIN_HOME: Record<string, string> = {
   popfeed: 'https://popfeed.social/',
   sifa: 'https://sifa.id/',
   blento: 'https://blento.app/',
+  kimbia: 'https://kimbia.app/',
   offprint: 'https://offprint.app/',
   pckt: 'https://pckt.blog/',
   standardReader: 'https://standard-reader.app/',
