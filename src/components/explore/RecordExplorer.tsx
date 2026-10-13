@@ -157,7 +157,7 @@ function RecordView({
   const atUri = `at://${identity.did}/${collection}/${decodedRkey}`;
   const repoSeg = encodeRepo(identity.handle || identity.did);
   const isPost = collection === 'app.bsky.feed.post';
-  const hasRichCard = recordHasRichCard(collection);
+  const hasRichCard = recordHasRichCard(collection, decodedRkey);
 
   // The record page renders the user's chosen sections in their chosen order
   // (configurable in Settings → Sections). Until prefs settle we use the
@@ -326,6 +326,7 @@ function RecordView({
                   collection={collection}
                   rkey={decodedRkey}
                   record={record}
+                  identity={identity}
                 />
               )}
               <ViewSwitchButton

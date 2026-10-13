@@ -17,7 +17,8 @@ type ProfileRecordExtras = {
 };
 
 /**
- * Profile header for the explore repo page. Pulls from two sources:
+ * Profile header for the explore repo page, and the rich preview card on the
+ * `app.bsky.actor.profile/self` record page. Pulls from two sources:
  *
  *   1. app.bsky.actor.getProfile (AppView) — gives us avatar URL, display
  *      name, description, pronouns, follower/post counts.
@@ -214,6 +215,9 @@ export default function ProfileHeader({ identity }: Props) {
               lineHeight: 1.55,
               color: 'var(--text-secondary)',
               whiteSpace: 'pre-wrap',
+              // Bios often hold long bare URLs; break them only when a
+              // single token can't fit, so ordinary words wrap normally.
+              overflowWrap: 'anywhere',
             }}
           >
             {description}
