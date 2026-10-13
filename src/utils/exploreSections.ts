@@ -44,7 +44,7 @@ export const RECORD_SECTION_META: SectionMeta[] = [
   {
     id: 'richPreview',
     label: 'Rich preview',
-    description: 'The rendered Bluesky post card (or margin-lexicon card). Records without a card skip this.',
+    description: 'The rendered Bluesky post or profile card (or margin-lexicon card). Records without a card skip this.',
     kind: 'record-data',
   },
   {

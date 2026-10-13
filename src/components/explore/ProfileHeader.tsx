@@ -17,7 +17,8 @@ type ProfileRecordExtras = {
 };
 
 /**
- * Profile header for the explore repo page. Pulls from two sources:
+ * Profile header for the explore repo page, and the rich preview card on the
+ * `app.bsky.actor.profile/self` record page. Pulls from two sources:
  *
  *   1. app.bsky.actor.getProfile (AppView) — gives us avatar URL, display
  *      name, description, pronouns, follower/post counts.
