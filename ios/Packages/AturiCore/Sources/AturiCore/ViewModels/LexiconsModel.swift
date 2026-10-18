@@ -361,8 +361,14 @@ public final class LexiconsModel {
     ///      best for the metric (updates and deletes fall back to
     ///      records-created).
     ///   2. Filter (mode-specific) and dedup by top-2-segment namespace.
-    ///   3. Score by the metric. `/collections` carries creates and
-    ///      dids_estimate directly; updates and deletes need a stats lookup.
+    ///   3. Score by the metric, from `/collections/stats`. The ranked
+    ///      listing carries creates and dids_estimate too, but reads low:
+    ///      in October 2026, 22 of its top 50 by accounts over 7d were more
+    ///      than 1% under what stats reports for the same window, one by
+    ///      32%. Trending compares against stats for the prior window, so
+    ///      the ranked numbers showed drops that never happened. Every
+    ///      pooled NSID had activity, so an empty answer means the lookup
+    ///      failed; the ranked numbers then stand in for creates and dids.
     ///   4. Top: sort by the score. Trending: percent change against the
     ///      prior window, rows without prior data sorted to the back.
     ///   5. A sparkline per picked row, trimmed to the window's buckets.
@@ -386,12 +392,12 @@ public final class LexiconsModel {
         if filtered.isEmpty { return [] }
         let nsids = filtered.map(\.nsid)
 
-        let directlyAvailable = metric == .creates || metric == .dids
+        let statsMap = await statsMetric(client, nsids, since: sinceIso, until: Formatting.isoTimestamp(now), metric: metric)
         let currentMap: [String: Int]
-        if directlyAvailable {
+        if statsMap.isEmpty && (metric == .creates || metric == .dids) {
             currentMap = Dictionary(filtered.map { ($0.nsid, $0.stat(for: metric)) }, uniquingKeysWith: { first, _ in first })
         } else {
-            currentMap = await statsMetric(client, nsids, since: sinceIso, until: Formatting.isoTimestamp(now), metric: metric)
+            currentMap = statsMap
         }
         if Task.isCancelled { return nil }
 
