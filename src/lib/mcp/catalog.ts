@@ -102,7 +102,7 @@ export const TOOL_GROUPS: CatalogGroup[] = [
     title: 'Lexicon ecosystem',
     blurb: 'What the wider network is doing, beyond any single app.',
     tools: [
-      { name: 'list_trending_lexicons', summary: 'Which record types saw the most activity in a window' },
+      { name: 'list_trending_lexicons', summary: 'Which record types saw the most activity in a window, optionally against the window before' },
       { name: 'list_new_lexicons', summary: 'Record types seen for the first time in a window, used by more than one account' },
       { name: 'get_lexicon_activity', summary: 'One lexicon’s volume over time: growing, steady, or a spike' },
       { name: 'search_lexicons', summary: 'Find record types by name when you don’t know the NSID' },

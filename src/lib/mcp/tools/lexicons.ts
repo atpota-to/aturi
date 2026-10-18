@@ -71,14 +71,14 @@ const NEW_LEXICONS_PAGE_SIZE = 200;
 const NEW_LEXICONS_MAX_PAGES = 60;
 
 /**
- * Collections per history request are bounded by URL length, not count:
- * valid NSIDs need no escaping but run to 317 characters, so a fixed count
- * of long ones could reach a length the server refuses, and one refused
- * batch fails the whole call. 2,000 characters fits about fifty typical
- * NSIDs. Four at a time because UFOs is run by a volunteer.
+ * Collections per /collections/stats request are bounded by URL length, not
+ * count: valid NSIDs need no escaping but run to 317 characters, so a fixed
+ * count of long ones could reach a length the server refuses, and one
+ * refused batch fails the whole call. 2,000 characters fits about fifty
+ * typical NSIDs. Four at a time because UFOs is run by a volunteer.
  */
-const HISTORY_BATCH_CHARS = 2_000;
-const HISTORY_CONCURRENCY = 4;
+const STATS_BATCH_CHARS = 2_000;
+const STATS_CONCURRENCY = 4;
 
 /**
  * /collections/stats defaults `since` to a week ago, so the history query
@@ -107,6 +107,29 @@ function batchByLength(nsids: string[], maxChars: number): string[][] {
   return batches;
 }
 
+/**
+ * /collections/stats for any number of NSIDs over one range, or null if any
+ * batch failed. Callers fail the call on null: a missing batch would read as
+ * zeroes, which here means "new" or "fell to nothing", not "unknown".
+ */
+async function statsInBatches(
+  nsids: string[],
+  since: string,
+  until?: string,
+): Promise<Map<string, JustCount> | null> {
+  const results = await mapWithConcurrency(batchByLength(nsids, STATS_BATCH_CHARS), STATS_CONCURRENCY, (batch) =>
+    fetchCollectionStatsResult({ collections: batch, since, until }),
+  );
+  if (results.some((r) => r.failed)) return null;
+  return new Map(results.flatMap((r) => [...r.stats]));
+}
+
+/** Percent change to one decimal; null when there is nothing to compare against. */
+function percentChange(now: number, before: number): number | null {
+  if (!before) return null;
+  return Math.round(((now - before) / before) * 1000) / 10;
+}
+
 function counts(entry: JustCount) {
   return {
     creates: entry.creates ?? 0,
@@ -123,9 +146,10 @@ export function registerLexiconTools(server: McpServer): void {
       title: 'Trending lexicons',
       description:
         'You want the network pulse: which lexicons (record types, i.e. apps) saw the most ' +
-        'activity in a window, ranked by records created or by distinct accounts. This is how you ' +
-        'discover what exists in the Atmosphere beyond Bluesky; follow up with ' +
-        'sample_recent_records on anything unfamiliar.',
+        'activity in a window, ranked by records created or by distinct accounts. Set compare to ' +
+        'add each one\'s counts in the window before (this week against last, for 7d) and the ' +
+        'percent change. This is how you discover what exists in the Atmosphere beyond Bluesky; ' +
+        'follow up with sample_recent_records on anything unfamiliar.',
       // No cursor, and that is upstream's rule rather than an omission: the
       // UFOs /collections endpoint answers `cursor` alongside `order` with
       // "`cursor` is mutually exclusive with `order`. ordered results cannot
@@ -138,14 +162,19 @@ export function registerLexiconTools(server: McpServer): void {
           .optional()
           .describe('Rank by record volume (default) or by distinct accounts.'),
         limit: z.number().int().min(1).max(50).optional().describe('Default 20.'),
+        compare: z
+          .boolean()
+          .optional()
+          .describe('Add counts for the previous window of the same length, and the change. Default false.'),
       }),
       annotations: READ_ONLY,
     },
-    toolHandler(async ({ window, sort, limit }) => {
+    toolHandler(async ({ window, sort, limit, compare }) => {
       const win: Window = window ?? '1d';
+      const since = isoAgo(WINDOWS[win].hours);
       const { collections, failed } = await fetchCollections({
         order: (sort ?? 'records-created') as CollectionOrder,
-        since: isoAgo(WINDOWS[win].hours),
+        since,
         limit: limit ?? 20,
       });
       if (failed) {
@@ -155,10 +184,53 @@ export function registerLexiconTools(server: McpServer): void {
           'Safe to retry; if it persists, ufos-api.microcosm.blue is down.',
         );
       }
+      if (!compare) {
+        return {
+          window: win,
+          sort: sort ?? 'records-created',
+          lexicons: collections.map((c) => ({ nsid: c.nsid, ...counts(c) })),
+          links: { explore: exploreLink('/lexicons') },
+        };
+      }
+
+      // The ranked listing reads low. In October 2026, 22 of the top 50 by
+      // accounts over 7d were more than 1% under what /collections/stats and
+      // the unordered listing both report for the same window, one by 32%.
+      // Comparing its numbers with stats for the window before would invent
+      // changes, so both windows come from stats, the rows are re-sorted by
+      // them, and the ranked listing only chooses which lexicons to compare.
+      const previousSince = isoAgo(WINDOWS[win].hours * 2);
+      const nsids = collections.map((c) => c.nsid);
+      const [current, previous] = await Promise.all([
+        statsInBatches(nsids, since),
+        statsInBatches(nsids, previousSince, since),
+      ]);
+      if (!current || !previous) {
+        throw new McpToolError(
+          'upstream_error',
+          'The UFOs lexicon-stats service is unavailable',
+          'Retry shortly, or call without compare; a missing window would read as a change to or from zero.',
+        );
+      }
+      const metric = sort === 'dids-estimate' ? 'dids_estimate' : 'creates';
+      const rows = collections
+        .map((c) => ({ nsid: c.nsid, now: current.get(c.nsid) ?? c, before: previous.get(c.nsid) }))
+        .sort((a, b) => (b.now[metric] ?? 0) - (a.now[metric] ?? 0));
       return {
         window: win,
         sort: sort ?? 'records-created',
-        lexicons: collections.map((c) => ({ nsid: c.nsid, ...counts(c) })),
+        comparedWith: { since: previousSince, until: since },
+        lexicons: rows.map(({ nsid, now, before }) => ({
+          nsid,
+          ...counts(now),
+          previous: before ? counts(before) : null,
+          change: before
+            ? {
+                creates: percentChange(now.creates ?? 0, before.creates ?? 0),
+                didsEstimate: percentChange(now.dids_estimate ?? 0, before.dids_estimate ?? 0),
+              }
+            : null,
+        })),
         links: { explore: exploreLink('/lexicons') },
       };
     }),
@@ -224,15 +296,12 @@ export function registerLexiconTools(server: McpServer): void {
       const candidates = active.filter(
         (c) => (c.dids_estimate ?? 0) >= threshold && isValidNsid(c.nsid),
       );
-      const history = await mapWithConcurrency(
-        batchByLength(
-          candidates.map((c) => c.nsid),
-          HISTORY_BATCH_CHARS,
-        ),
-        HISTORY_CONCURRENCY,
-        (batch) => fetchCollectionStatsResult({ collections: batch, since: ALL_HISTORY_SINCE, until: since }),
+      const prior = await statsInBatches(
+        candidates.map((c) => c.nsid),
+        ALL_HISTORY_SINCE,
+        since,
       );
-      if (history.some((h) => h.failed)) {
+      if (!prior) {
         throw new McpToolError(
           'upstream_error',
           'The UFOs lexicon-stats service is unavailable',
@@ -242,7 +311,6 @@ export function registerLexiconTools(server: McpServer): void {
 
       // UFOs answers zeroes for an NSID it has never seen. One missing from
       // the answer altogether is unexplained, so it is not called new.
-      const prior = new Map(history.flatMap((h) => [...h.stats]));
       const fresh = candidates
         .filter((c) => {
           const before = prior.get(c.nsid);

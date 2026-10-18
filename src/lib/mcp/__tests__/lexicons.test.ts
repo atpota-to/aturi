@@ -41,6 +41,8 @@ test('window and sort are closed enums; limits are bounded', () => {
   assert.equal(trending.safeParse({ sort: 'most-hype' }).success, false);
   assert.equal(trending.safeParse({ limit: 51 }).success, false);
   assert.equal(trending.safeParse({ window: '7d', sort: 'dids-estimate', limit: 50 }).success, true);
+  assert.equal(trending.safeParse({ compare: 'yes' }).success, false);
+  assert.equal(trending.safeParse({ window: '7d', compare: true }).success, true);
 
   const fresh = tools.get('list_new_lexicons')!.config.inputSchema!;
   assert.equal(fresh.safeParse({ window: '90d' }).success, false);
@@ -229,4 +231,120 @@ test('list_new_lexicons splits the history check into bounded requests', async (
   for (const u of stats) assert.ok(u.search.length < 2_200, `history request is ${u.search.length} characters`);
   assert.deepEqual(stats.flatMap((u) => u.searchParams.getAll('collection')).sort(), [...nsids].sort());
   assert.equal(body.count, 120);
+});
+
+/**
+ * Run list_trending_lexicons against a fake UFOs: `ranked` is the ordered
+ * /collections answer, `current` and `previous` what /collections/stats
+ * reports for the window and the one before it (told apart by `until`).
+ */
+async function runTrending(
+  args: Record<string, unknown>,
+  ufos: {
+    ranked: Array<{ nsid: string; dids_estimate: number; creates: number }>;
+    current: Record<string, typeof ZERO>;
+    previous: Record<string, typeof ZERO>;
+    statsStatus?: number;
+  },
+) {
+  const calls: URL[] = [];
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = (async (input: RequestInfo | URL) => {
+    const url = new URL(String(input));
+    calls.push(url);
+    const json = (body: unknown, status = 200) =>
+      new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json' } });
+    if (url.pathname === '/collections') {
+      return json({ collections: ufos.ranked.map((r) => ({ ...ZERO, ...r })), cursor: null });
+    }
+    if (url.pathname === '/collections/stats') {
+      if (ufos.statsStatus) return json({}, ufos.statsStatus);
+      const source = url.searchParams.has('until') ? ufos.previous : ufos.current;
+      const answer: Record<string, typeof ZERO> = {};
+      for (const nsid of url.searchParams.getAll('collection')) {
+        if (nsid in source) answer[nsid] = source[nsid];
+      }
+      return json(answer);
+    }
+    return json({}, 404);
+  }) as typeof fetch;
+  try {
+    const result = await tools.get('list_trending_lexicons')!.handler(args);
+    return { result, body: resultBody(result), calls };
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+}
+
+const RANKED = [
+  { nsid: 'app.bsky.feed.like', dids_estimate: 1000, creates: 9000 },
+  { nsid: 'com.example.grow.thing', dids_estimate: 50, creates: 400 },
+  { nsid: 'com.example.fresh.thing', dids_estimate: 5, creates: 20 },
+  { nsid: 'com.example.unanswered.thing', dids_estimate: 4, creates: 8 },
+];
+
+test('list_trending_lexicons compares each lexicon with the window before', async () => {
+  const { result, body, calls } = await runTrending(
+    { window: '7d', compare: true },
+    {
+      ranked: RANKED,
+      current: {
+        // Deliberately not the ranked listing's numbers: stats is the source.
+        'app.bsky.feed.like': { creates: 9900, updates: 0, deletes: 0, dids_estimate: 1100 },
+        'com.example.grow.thing': { creates: 400, updates: 0, deletes: 0, dids_estimate: 50 },
+        'com.example.fresh.thing': { creates: 20, updates: 0, deletes: 0, dids_estimate: 5 },
+        // Stats puts this above grow.thing, which the ranked listing did not.
+        'com.example.unanswered.thing': { creates: 500, updates: 0, deletes: 0, dids_estimate: 4 },
+      },
+      previous: {
+        'app.bsky.feed.like': { creates: 10000, updates: 0, deletes: 0, dids_estimate: 1000 },
+        'com.example.grow.thing': { creates: 100, updates: 0, deletes: 0, dids_estimate: 20 },
+        'com.example.fresh.thing': ZERO,
+      },
+    },
+  );
+  assert.equal(result.isError, undefined);
+  const rows = body.lexicons as Array<Record<string, unknown>>;
+  assert.deepEqual(
+    rows.map((r) => r.nsid),
+    ['app.bsky.feed.like', 'com.example.unanswered.thing', 'com.example.grow.thing', 'com.example.fresh.thing'],
+    'rows are ordered by the counts they show',
+  );
+  const row = (nsid: string) => rows.find((r) => r.nsid === nsid)!;
+
+  assert.equal(row('app.bsky.feed.like').didsEstimate, 1100);
+  assert.deepEqual(row('app.bsky.feed.like').change, { creates: -1, didsEstimate: 10 });
+  assert.deepEqual(row('com.example.grow.thing').change, { creates: 300, didsEstimate: 150 });
+  // Nothing last window: there is no percentage to report, not an infinite one.
+  assert.deepEqual(row('com.example.fresh.thing').previous, { creates: 0, updates: 0, deletes: 0, didsEstimate: 0 });
+  assert.deepEqual(row('com.example.fresh.thing').change, { creates: null, didsEstimate: null });
+  assert.equal(row('com.example.unanswered.thing').previous, null);
+  assert.equal(row('com.example.unanswered.thing').change, null);
+
+  const window = body.comparedWith as { since: string; until: string };
+  const stats = calls.filter((u) => u.pathname === '/collections/stats');
+  const before = stats.filter((u) => u.searchParams.has('until'));
+  assert.ok(before.length > 0 && before.length < stats.length, 'expected requests for both windows');
+  for (const u of before) {
+    assert.equal(u.searchParams.get('since'), window.since);
+    assert.equal(u.searchParams.get('until'), window.until);
+  }
+  const span = Date.parse(window.until) - Date.parse(window.since);
+  assert.ok(Math.abs(span - 7 * 24 * 3600 * 1000) < 60_000, 'previous window is the same length');
+});
+
+test('list_trending_lexicons without compare makes no extra requests', async () => {
+  const { body, calls } = await runTrending({}, { ranked: RANKED, current: {}, previous: {} });
+  assert.equal(calls.filter((u) => u.pathname === '/collections/stats').length, 0);
+  assert.equal(body.comparedWith, undefined);
+  assert.equal((body.lexicons as Array<Record<string, unknown>>)[0].previous, undefined);
+});
+
+test('list_trending_lexicons fails a comparison it cannot complete', async () => {
+  const { result, body } = await runTrending(
+    { compare: true },
+    { ranked: RANKED, current: {}, previous: {}, statsStatus: 500 },
+  );
+  assert.equal(result.isError, true);
+  assert.equal(body.code, 'upstream_error');
 });
