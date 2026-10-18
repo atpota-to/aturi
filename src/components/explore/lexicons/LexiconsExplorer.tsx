@@ -6,12 +6,14 @@ import AppearIn from '../AppearIn';
 import TrendingLexicons from '../TrendingLexicons';
 import LexiconSearchBox from './LexiconSearchBox';
 import BrowseAllLexicons from './BrowseAllLexicons';
+import NewLexicons from './NewLexicons';
 import { fetchMeta } from '@/utils/ufos/client';
 
 /**
  * The dedicated lexicons explorer (`/explore/lexicons`). Composes the
- * lexicon search box, the existing trending strip, and the full-catalog
- * browser, with a freshness footnote from the UFOs `/meta` endpoint.
+ * lexicon search box, the existing trending strip, the new-lexicons list,
+ * and the full-catalog browser, with a freshness footnote from the UFOs
+ * `/meta` endpoint.
  */
 export default function LexiconsExplorer() {
   return (
@@ -63,6 +65,8 @@ export default function LexiconsExplorer() {
       </AppearIn>
 
       <TrendingLexicons showExploreAllLink={false} />
+
+      <NewLexicons />
 
       <AppearIn delay={0.08}>
         <BrowseAllLexicons />
