@@ -53,6 +53,7 @@ const ARGS: Record<string, Record<string, unknown>> = {
   get_list: { list: 'at://did:plc:abc/app.bsky.graph.list/lst' },
   get_list_feed: { list: 'at://did:plc:abc/app.bsky.graph.list/lst' },
   list_trending_lexicons: {},
+  list_new_lexicons: {},
   get_lexicon_activity: { nsid: 'app.bsky.feed.post' },
   search_lexicons: { query: 'blog' },
   sample_recent_records: { nsid: 'app.bsky.feed.post' },

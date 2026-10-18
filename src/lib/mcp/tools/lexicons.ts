@@ -14,11 +14,11 @@ import {
   searchLexiconsResult,
 } from '@/utils/ufos/client';
 import { WINDOWS, type Window } from '@/utils/ufos/windows';
-import { isoAgo, type CollectionOrder, type JustCount } from '@/utils/ufos/config';
+import { isoAgo, type CollectionOrder, type JustCount, type NsidCount } from '@/utils/ufos/config';
 import { lexiconPathFor, publisherForNsid, schemaPathFor } from '@/utils/ufos/nsid';
 import { lexiconAuthorityDomain, resolveLexiconDid } from '@/utils/atproto/spaceLexicon';
 import { resolveHandle } from '@/utils/atproto/identity';
-import { getRecordByUri } from '@/utils/atproto/slingshot';
+import { getRecordByUri, mapWithConcurrency } from '@/utils/atproto/slingshot';
 import { getRecord as getPdsRecord } from '@/utils/atproto/pdsClient';
 import { isValidNsid } from '@/utils/atproto/spaceUri';
 import { toAtUri } from '@/utils/atproto/urls';
@@ -49,6 +49,62 @@ function assertNsid(nsid: string): void {
       'Expected a reverse-domain name like app.bsky.feed.post. search_lexicons finds NSIDs from free text.',
     );
   }
+}
+
+/**
+ * list_new_lexicons is a set difference UFOs cannot answer in one request:
+ * the NSIDs active in a window, minus every NSID seen before it began. The
+ * direct route pages both sides, and the "before" side is the network's whole
+ * history. In October 2026 that was 34,764 NSIDs, 174 sequential pages and
+ * 34s, past the tool budget on its own. So only the window is paged (7d was
+ * 2,860 NSIDs in 15 pages, ~3s; 30d was 30 pages), NSIDs under the account
+ * threshold are dropped, and /collections/stats is asked about the rest's
+ * history before the window. Checked against a full two-sided scan of the
+ * same window, this found the same 46 NSIDs, and its history check took
+ * about a second.
+ *
+ * /collections pages only when `order` is absent, at most 200 per page. The
+ * page cap is double what 30d needed; a window busier than that is refused
+ * rather than answered from the first half of the alphabet.
+ */
+const NEW_LEXICONS_PAGE_SIZE = 200;
+const NEW_LEXICONS_MAX_PAGES = 60;
+
+/**
+ * Collections per history request are bounded by URL length, not count:
+ * valid NSIDs need no escaping but run to 317 characters, so a fixed count
+ * of long ones could reach a length the server refuses, and one refused
+ * batch fails the whole call. 2,000 characters fits about fifty typical
+ * NSIDs. Four at a time because UFOs is run by a volunteer.
+ */
+const HISTORY_BATCH_CHARS = 2_000;
+const HISTORY_CONCURRENCY = 4;
+
+/**
+ * /collections/stats defaults `since` to a week ago, so the history query
+ * names a start explicitly. UFOs' rollups actually begin on 2025-04-12, the
+ * first day /timeseries reports any app.bsky.feed.post activity; that date
+ * is what "first seen" is relative to, and it goes in the result's note.
+ */
+const ALL_HISTORY_SINCE = '1970-01-01T00:00:00Z';
+const UFOS_HISTORY_BEGINS = '2025-04-12';
+
+function batchByLength(nsids: string[], maxChars: number): string[][] {
+  const batches: string[][] = [];
+  let current: string[] = [];
+  let chars = 0;
+  for (const nsid of nsids) {
+    const cost = nsid.length + '&collection='.length;
+    if (current.length > 0 && chars + cost > maxChars) {
+      batches.push(current);
+      current = [];
+      chars = 0;
+    }
+    current.push(nsid);
+    chars += cost;
+  }
+  if (current.length > 0) batches.push(current);
+  return batches;
 }
 
 function counts(entry: JustCount) {
@@ -103,6 +159,111 @@ export function registerLexiconTools(server: McpServer): void {
         window: win,
         sort: sort ?? 'records-created',
         lexicons: collections.map((c) => ({ nsid: c.nsid, ...counts(c) })),
+        links: { explore: exploreLink('/lexicons') },
+      };
+    }),
+  );
+
+  server.registerTool(
+    'list_new_lexicons',
+    {
+      title: 'New lexicons',
+      description:
+        'You want what is new in the Atmosphere: lexicons (record types) UFOs saw for the first ' +
+        'time in a window, used by at least minAccounts accounts. This answers "what launched this ' +
+        'week?", which list_trending_lexicons cannot: established types fill its top-N. Most ' +
+        'first-time NSIDs are one developer testing, which the account threshold filters out. ' +
+        'Follow up with get_lexicon_schema to see who publishes one and sample_recent_records ' +
+        'for what its records hold.',
+      inputSchema: z.object({
+        window: windowSchema,
+        // The floor is 2, not 1, because the threshold also sets how many
+        // NSIDs need a history request. In October 2026 a 30d window held
+        // 5,953 active NSIDs, 1,460 of them with two or more accounts.
+        minAccounts: z
+          .number()
+          .int()
+          .min(2)
+          .max(1000)
+          .optional()
+          .describe('Distinct accounts an NSID needs in the window. Default 3.'),
+        limit: z.number().int().min(1).max(200).optional().describe('Default 50.'),
+      }),
+      annotations: READ_ONLY,
+    },
+    toolHandler(async ({ window, minAccounts, limit }) => {
+      const win: Window = window ?? '7d';
+      const threshold = minAccounts ?? 3;
+      const since = isoAgo(WINDOWS[win].hours);
+
+      const active: NsidCount[] = [];
+      let cursor: string | undefined;
+      for (let page = 0; ; page++) {
+        if (page === NEW_LEXICONS_MAX_PAGES) {
+          throw new McpToolError(
+            'invalid_parameter',
+            `More than ${NEW_LEXICONS_MAX_PAGES * NEW_LEXICONS_PAGE_SIZE} lexicons were active in this window, more than one call can page`,
+            'Use a shorter window.',
+          );
+        }
+        const result = await fetchCollections({ cursor, since, limit: NEW_LEXICONS_PAGE_SIZE });
+        if (result.failed) {
+          throw new McpToolError(
+            'upstream_error',
+            'The UFOs lexicon-stats service is unavailable',
+            'Safe to retry; if it persists, ufos-api.microcosm.blue is down.',
+          );
+        }
+        active.push(...result.collections);
+        if (!result.cursor) break;
+        cursor = result.cursor;
+      }
+
+      // UFOs makes no promise that every collection it saw is a valid NSID,
+      // and the follow-up tools reject ones that are not.
+      const candidates = active.filter(
+        (c) => (c.dids_estimate ?? 0) >= threshold && isValidNsid(c.nsid),
+      );
+      const history = await mapWithConcurrency(
+        batchByLength(
+          candidates.map((c) => c.nsid),
+          HISTORY_BATCH_CHARS,
+        ),
+        HISTORY_CONCURRENCY,
+        (batch) => fetchCollectionStatsResult({ collections: batch, since: ALL_HISTORY_SINCE, until: since }),
+      );
+      if (history.some((h) => h.failed)) {
+        throw new McpToolError(
+          'upstream_error',
+          'The UFOs lexicon-stats service is unavailable',
+          'Retry shortly; without their history, established lexicons would be reported as new.',
+        );
+      }
+
+      // UFOs answers zeroes for an NSID it has never seen. One missing from
+      // the answer altogether is unexplained, so it is not called new.
+      const prior = new Map(history.flatMap((h) => [...h.stats]));
+      const fresh = candidates
+        .filter((c) => {
+          const before = prior.get(c.nsid);
+          return before !== undefined && !before.creates && !before.updates && !before.deletes && !before.dids_estimate;
+        })
+        .sort((a, b) => b.dids_estimate - a.dids_estimate || b.creates - a.creates || a.nsid.localeCompare(b.nsid));
+
+      const max = limit ?? 50;
+      return {
+        window: win,
+        since,
+        minAccounts: threshold,
+        activeInWindow: active.length,
+        checked: candidates.length,
+        count: fresh.length,
+        truncated: fresh.length > max,
+        lexicons: fresh.slice(0, max).map((c) => ({ nsid: c.nsid, ...counts(c) })),
+        note:
+          `New means UFOs recorded no activity for the NSID from the start of its history ` +
+          `(${UFOS_HISTORY_BEGINS}) until the window began, so a lexicon idle since before then ` +
+          'also counts. Account counts are estimates.',
         links: { explore: exploreLink('/lexicons') },
       };
     }),
