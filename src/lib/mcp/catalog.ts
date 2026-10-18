@@ -104,6 +104,7 @@ export const TOOL_GROUPS: CatalogGroup[] = [
     tools: [
       { name: 'list_trending_lexicons', summary: 'Which record types saw the most activity in a window, optionally against the window before' },
       { name: 'list_new_lexicons', summary: 'Record types seen for the first time in a window, used by more than one account' },
+      { name: 'list_lexicon_movers', summary: 'Record types whose accounts rose or fell most against the window before, across every lexicon' },
       { name: 'get_lexicon_activity', summary: 'One lexicon’s volume over time: growing, steady, or a spike' },
       { name: 'search_lexicons', summary: 'Find record types by name when you don’t know the NSID' },
       { name: 'sample_recent_records', summary: 'Recent records network-wide in one collection' },
@@ -146,7 +147,8 @@ export const NUMBER_WORDS: Record<number, string> = {
   8: 'eight', 9: 'nine', 10: 'ten', 11: 'eleven', 12: 'twelve',
   30: 'thirty', 31: 'thirty-one', 32: 'thirty-two', 33: 'thirty-three',
   34: 'thirty-four', 35: 'thirty-five', 36: 'thirty-six', 37: 'thirty-seven',
-  38: 'thirty-eight', 39: 'thirty-nine', 40: 'forty',
+  38: 'thirty-eight', 39: 'thirty-nine', 40: 'forty', 41: 'forty-one',
+  42: 'forty-two', 43: 'forty-three', 44: 'forty-four', 45: 'forty-five',
 };
 
 export function numberWord(count: number): string {
