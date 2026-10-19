@@ -13,6 +13,15 @@ import {
   fetchTimeseries,
   searchLexiconsResult,
 } from '@/utils/ufos/client';
+import {
+  findMovers,
+  findNewLexicons,
+  percentChange,
+  sampleRecordAccounts,
+  statsInBatches,
+  UFOS_HISTORY_BEGINS,
+  type Direction,
+} from '@/lib/lexiconTrends';
 import { WINDOWS, type Window } from '@/utils/ufos/windows';
 import { isoAgo, type CollectionOrder, type JustCount } from '@/utils/ufos/config';
 import { lexiconPathFor, publisherForNsid, schemaPathFor } from '@/utils/ufos/nsid';
@@ -51,6 +60,13 @@ function assertNsid(nsid: string): void {
   }
 }
 
+function change(now: JustCount, before: JustCount) {
+  return {
+    creates: percentChange(now.creates ?? 0, before.creates ?? 0),
+    didsEstimate: percentChange(now.dids_estimate ?? 0, before.dids_estimate ?? 0),
+  };
+}
+
 function counts(entry: JustCount) {
   return {
     creates: entry.creates ?? 0,
@@ -67,9 +83,10 @@ export function registerLexiconTools(server: McpServer): void {
       title: 'Trending lexicons',
       description:
         'You want the network pulse: which lexicons (record types, i.e. apps) saw the most ' +
-        'activity in a window, ranked by records created or by distinct accounts. This is how you ' +
-        'discover what exists in the Atmosphere beyond Bluesky; follow up with ' +
-        'sample_recent_records on anything unfamiliar.',
+        'activity in a window, ranked by records created or by distinct accounts. Set compare to ' +
+        'add each one\'s counts in the window before (this week against last, for 7d) and the ' +
+        'percent change. This is how you discover what exists in the Atmosphere beyond Bluesky; ' +
+        'follow up with sample_recent_records on anything unfamiliar.',
       // No cursor, and that is upstream's rule rather than an omission: the
       // UFOs /collections endpoint answers `cursor` alongside `order` with
       // "`cursor` is mutually exclusive with `order`. ordered results cannot
@@ -82,14 +99,19 @@ export function registerLexiconTools(server: McpServer): void {
           .optional()
           .describe('Rank by record volume (default) or by distinct accounts.'),
         limit: z.number().int().min(1).max(50).optional().describe('Default 20.'),
+        compare: z
+          .boolean()
+          .optional()
+          .describe('Add counts for the previous window of the same length, and the change. Default false.'),
       }),
       annotations: READ_ONLY,
     },
-    toolHandler(async ({ window, sort, limit }) => {
+    toolHandler(async ({ window, sort, limit, compare }) => {
       const win: Window = window ?? '1d';
+      const since = isoAgo(WINDOWS[win].hours);
       const { collections, failed } = await fetchCollections({
         order: (sort ?? 'records-created') as CollectionOrder,
-        since: isoAgo(WINDOWS[win].hours),
+        since,
         limit: limit ?? 20,
       });
       if (failed) {
@@ -99,10 +121,182 @@ export function registerLexiconTools(server: McpServer): void {
           'Safe to retry; if it persists, ufos-api.microcosm.blue is down.',
         );
       }
+
+      // The ranked listing reads low. In October 2026, 22 of the top 50 by
+      // accounts over 7d were more than 1% under what /collections/stats and
+      // the unordered listing both report for the same window, one by 32%,
+      // and aligning the window to the hour or the day did not change that.
+      // So the counts shown come from stats, the rows are re-sorted by them,
+      // and the ranked listing only chooses which lexicons appear. Comparing
+      // its numbers with stats for the window before would also have
+      // invented changes.
+      const previousSince = isoAgo(WINDOWS[win].hours * 2);
+      const nsids = collections.map((c) => c.nsid);
+      const [current, previous] = await Promise.all([
+        statsInBatches(nsids, since),
+        compare ? statsInBatches(nsids, previousSince, since) : null,
+      ]);
+      if (compare && (!current || !previous)) {
+        throw new McpToolError(
+          'upstream_error',
+          'The UFOs lexicon-stats service is unavailable',
+          'Retry shortly, or call without compare; a missing window would read as a change to or from zero.',
+        );
+      }
+      const metric = sort === 'dids-estimate' ? 'dids_estimate' : 'creates';
+      const rows = collections
+        .map((c) => ({ nsid: c.nsid, now: current?.get(c.nsid) ?? c, before: previous?.get(c.nsid) }))
+        .sort((a, b) => (b.now[metric] ?? 0) - (a.now[metric] ?? 0));
+      const links = { explore: exploreLink('/lexicons') };
+
+      if (!compare) {
+        return {
+          window: win,
+          sort: sort ?? 'records-created',
+          // Without stats the ranked listing is still a ranking, so this
+          // answers with its numbers rather than failing a call that worked
+          // before the correction existed.
+          ...(current
+            ? {}
+            : { note: 'Counts are from the UFOs ranked listing, which can read low; /collections/stats did not answer.' }),
+          lexicons: rows.map(({ nsid, now }) => ({ nsid, ...counts(now) })),
+          links,
+        };
+      }
       return {
         window: win,
         sort: sort ?? 'records-created',
-        lexicons: collections.map((c) => ({ nsid: c.nsid, ...counts(c) })),
+        comparedWith: { since: previousSince, until: since },
+        lexicons: rows.map(({ nsid, now, before }) => ({
+          nsid,
+          ...counts(now),
+          previous: before ? counts(before) : null,
+          change: before ? change(now, before) : null,
+        })),
+        links,
+      };
+    }),
+  );
+
+  server.registerTool(
+    'list_new_lexicons',
+    {
+      title: 'New lexicons',
+      description:
+        'You want what is new in the Atmosphere: lexicons (record types) UFOs saw for the first ' +
+        'time in a window, used by at least minAccounts accounts. This answers "what launched this ' +
+        'week?", which list_trending_lexicons cannot: established types fill its top-N. Most ' +
+        'first-time NSIDs are one developer testing, which the account threshold filters out; ' +
+        'set sample to see how many accounts wrote each one\'s recent records. Follow up with ' +
+        'get_lexicon_schema for who publishes one and sample_recent_records for its records.',
+      inputSchema: z.object({
+        window: windowSchema,
+        // The floor is 2, not 1, because the threshold also sets how many
+        // NSIDs need a history request. In October 2026 a 30d window held
+        // 5,953 active NSIDs, 1,460 of them with two or more accounts.
+        minAccounts: z
+          .number()
+          .int()
+          .min(2)
+          .max(1000)
+          .optional()
+          .describe('Distinct accounts an NSID needs in the window. Default 3.'),
+        limit: z.number().int().min(1).max(200).optional().describe('Default 50.'),
+        sample: z
+          .boolean()
+          .optional()
+          .describe('Count the accounts behind each result\'s recent records; one request per result. Default false.'),
+      }),
+      annotations: READ_ONLY,
+    },
+    toolHandler(async ({ window, minAccounts, limit, sample }) => {
+      const win: Window = window ?? '7d';
+      const threshold = minAccounts ?? 3;
+      const found = await findNewLexicons(win, threshold);
+      const max = limit ?? 50;
+      const shown = found.lexicons.slice(0, max);
+      const samples = sample ? await sampleRecordAccounts(shown.map((c) => c.nsid)) : null;
+      return {
+        window: win,
+        since: found.since,
+        minAccounts: threshold,
+        activeInWindow: found.activeInWindow,
+        checked: found.checked,
+        count: found.lexicons.length,
+        truncated: found.lexicons.length > max,
+        lexicons: shown.map((c) => ({
+          nsid: c.nsid,
+          ...counts(c),
+          ...(samples ? { recentSample: samples.get(c.nsid) ?? null } : {}),
+        })),
+        note:
+          'New means UFOs recorded no activity for the NSID from the start of its history ' +
+          `(${UFOS_HISTORY_BEGINS}) until the window began, so a lexicon idle since before then ` +
+          'also counts. Account counts are estimates.' +
+          (samples
+            ? ' recentSample counts the accounts behind the newest records UFOs keeps for each ' +
+              'lexicon; one account behind all of them means concentrated activity, not ' +
+              'necessarily a test. Null means the sample did not load.'
+            : ''),
+        links: { explore: exploreLink('/lexicons') },
+      };
+    }),
+  );
+
+  server.registerTool(
+    'list_lexicon_movers',
+    {
+      title: 'Rising and falling lexicons',
+      description:
+        'You want what is growing or fading: lexicons whose account count rose or fell most ' +
+        'against the window of the same length before (this week against last, for 7d), across ' +
+        'every lexicon UFOs saw rather than a top-N. This finds an app taking off before it is ' +
+        'big enough to trend. Lexicons with no accounts last window are left to ' +
+        'list_new_lexicons. Follow up with get_lexicon_activity for the shape of a change.',
+      inputSchema: z.object({
+        window: windowSchema,
+        direction: z.enum(['rising', 'falling']).optional().describe('Default rising.'),
+        minAccounts: z
+          .number()
+          .int()
+          .min(1)
+          .max(100_000)
+          .optional()
+          .describe('Accounts a lexicon needs in the busier of the two windows. Default 10.'),
+        limit: z.number().int().min(1).max(100).optional().describe('Default 25.'),
+      }),
+      annotations: READ_ONLY,
+    },
+    toolHandler(async ({ window, direction, minAccounts, limit }) => {
+      const win: Window = window ?? '7d';
+      const dir: Direction = direction ?? 'rising';
+      const threshold = minAccounts ?? 10;
+      const found = await findMovers(win, dir, threshold);
+      const max = limit ?? 25;
+      return {
+        window: win,
+        direction: dir,
+        minAccounts: threshold,
+        since: found.since,
+        comparedWith: { since: found.previousSince, until: found.since },
+        activeInWindow: found.activeInWindow,
+        activeInPreviousWindow: found.activeInPreviousWindow,
+        ...(dir === 'rising' ? { absentLastWindow: found.absentLastWindow } : {}),
+        count: found.movers.length,
+        truncated: found.movers.length > max,
+        lexicons: found.movers.slice(0, max).map(({ nsid, now, before }) => ({
+          nsid,
+          ...counts(now),
+          previous: counts(before),
+          change: change(now, before),
+        })),
+        note:
+          `Ranked by (accounts now + ${threshold}) / (accounts before + ${threshold}), so a jump ` +
+          'from 1 account to 12 does not outrank one from 46 to 1,144. Account counts are estimates.' +
+          (dir === 'rising'
+            ? ' absentLastWindow counts lexicons over the threshold now that had no accounts last ' +
+              'window; list_new_lexicons says which of them are new.'
+            : ''),
         links: { explore: exploreLink('/lexicons') },
       };
     }),

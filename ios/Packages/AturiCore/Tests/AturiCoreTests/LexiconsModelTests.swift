@@ -121,10 +121,15 @@ final class LexiconsModelTests: XCTestCase {
                 ("sh.tangled.repo", Self.counts(600, updates: 60, dids: 400)),
                 ("com.example.thing", Self.counts(10, updates: 1, dids: 5)),
             ]))),
+            // The current window, as stats reports it. Gallery's 520 accounts
+            // are deliberately not the pool's 500: the ranked listing reads
+            // low, and scores come from stats.
             (["/collections/stats", "since=2025-01-01"], .init(status: 200, body: Self.statsBody([
-                ("app.bsky.feed.post", Self.counts(5000, updates: 50)),
-                ("sh.tangled.repo", Self.counts(300, updates: 30)),
-                ("social.grain.gallery", Self.counts(800, updates: 8)),
+                ("app.bsky.feed.post", Self.counts(5000, updates: 50, dids: 1000)),
+                ("sh.tangled.repo", Self.counts(300, updates: 30, dids: 300)),
+                ("social.grain.gallery", Self.counts(800, updates: 8, dids: 520)),
+                ("net.anisota.harvest.minigame", Self.counts(dids: 50)),
+                ("com.example.thing", Self.counts(dids: 10)),
             ]))),
             (["/timeseries", "collection=social.grain.gallery"], .init(status: 200, body: Self.timeseriesBody("social.grain.gallery", Array(1...16)))),
             (["/timeseries"], .init(status: 200, body: Self.multiTimeseriesBody(["app.bsky.feed.post", "sh.tangled.repo", "net.anisota.harvest.minigame", "com.example.thing"], [1, 2, 3]))),
@@ -216,9 +221,9 @@ final class LexiconsModelTests: XCTestCase {
 
         let rows = model.ranking.value ?? []
         XCTAssertEqual(rows.map(\.nsid), ["social.grain.gallery", "com.example.thing", "sh.tangled.repo", "net.anisota.harvest.minigame"])
-        XCTAssertEqual(rows.map(\.value), [500, 10, 300, 50])
-        XCTAssertEqual(rows.map(\.deltaPct), [100, 100, -25, nil])
-        XCTAssertEqual(rows.map(\.deltaLabel), ["+100%", "+100%", "-25.0%", nil])
+        XCTAssertEqual(rows.map(\.value), [520, 10, 300, 50], "scores come from stats, not the ranked pool")
+        XCTAssertEqual(rows.map(\.deltaPct), [108, 100, -25, nil])
+        XCTAssertEqual(rows.map(\.deltaLabel), ["+108%", "+100%", "-25.0%", nil])
         XCTAssertEqual(rows[0].series, Array(3...16), "trimmed to the 7d bucket count")
         XCTAssertEqual(rows[1].series, [1, 2, 3])
         XCTAssertEqual(model.visibleRanking?.count, 4)
@@ -230,11 +235,14 @@ final class LexiconsModelTests: XCTestCase {
         let poolURL = transport.urls(containing: "limit=50").first ?? ""
         XCTAssertTrue(poolURL.hasSuffix("/collections?order=dids-estimate&limit=50&since=2025-01-01T00%3A00%3A00.000Z"), poolURL)
         let stats = transport.urls(containing: "/collections/stats")
-        XCTAssertEqual(stats.count, 1, "dids come straight from /collections; only the prior window needs a lookup")
-        XCTAssertTrue(stats[0].contains("since=2024-12-25T00%3A00%3A00.000Z&until=2025-01-01T00%3A00%3A00.000Z"), stats[0])
-        XCTAssertTrue(stats[0].contains("collection=social.grain.gallery"))
-        XCTAssertFalse(stats[0].contains("collection=app.bsky.feed.post"), "hidden rows are not scored")
-        XCTAssertFalse(stats[0].contains("collection=social.grain.like"), "deduped rows are not scored")
+        XCTAssertEqual(stats.count, 2, "both windows are scored from stats")
+        XCTAssertTrue(stats[0].contains("since=2025-01-01T00%3A00%3A00.000Z&until=2025-01-08T00%3A00%3A00.000Z"), stats[0])
+        XCTAssertTrue(stats[1].contains("since=2024-12-25T00%3A00%3A00.000Z&until=2025-01-01T00%3A00%3A00.000Z"), stats[1])
+        for url in stats {
+            XCTAssertTrue(url.contains("collection=social.grain.gallery"))
+            XCTAssertFalse(url.contains("collection=app.bsky.feed.post"), "hidden rows are not scored")
+            XCTAssertFalse(url.contains("collection=social.grain.like"), "deduped rows are not scored")
+        }
         XCTAssertEqual(transport.count(containing: "/timeseries"), 4)
         XCTAssertTrue(transport.urls(containing: "/timeseries")[0].contains("step=43200&since=2025-01-01T00%3A00%3A00.000Z"))
     }
@@ -259,7 +267,9 @@ final class LexiconsModelTests: XCTestCase {
 
         let poolURL = transport.urls(containing: "limit=50").first ?? ""
         XCTAssertTrue(poolURL.contains("order=records-created&limit=50&since=2025-01-07T00%3A00%3A00.000Z"), poolURL)
-        XCTAssertEqual(transport.count(containing: "/collections/stats"), 0)
+        // The fixture has no 1d stats, so the lookup comes back empty and the
+        // ranked pool's creates stand in rather than every row scoring zero.
+        XCTAssertEqual(transport.count(containing: "/collections/stats"), 1)
         XCTAssertTrue(transport.urls(containing: "/timeseries")[0].contains("step=7200"))
     }
 
@@ -272,7 +282,7 @@ final class LexiconsModelTests: XCTestCase {
 
         let rows = model.ranking.value ?? []
         XCTAssertEqual(rows.map(\.nsid), ["app.bsky.feed.post", "sh.tangled.repo", "social.grain.gallery", "net.anisota.harvest.minigame", "com.example.thing"])
-        XCTAssertEqual(rows.map(\.value), [50, 30, 8, 0, 0], "rows the stats call did not cover score zero and keep the pool order")
+        XCTAssertEqual(rows.map(\.value), [50, 30, 8, 0, 0], "rows with no updates score zero and keep the pool order")
 
         let poolURL = transport.urls(containing: "limit=50").first ?? ""
         XCTAssertTrue(poolURL.contains("order=records-created"), "updates cannot be sorted server side")

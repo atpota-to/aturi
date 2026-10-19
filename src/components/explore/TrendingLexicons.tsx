@@ -560,17 +560,24 @@ async function fetchRanking(
   const filtered = filterAndDedup(candidates, mode);
   if (filtered.length === 0) return [];
 
-  // 3) Score by the chosen metric. /collections gives us creates +
-  //    dids_estimate directly; updates / deletes need a stats lookup.
-  const directlyAvailable = metric === 'creates' || metric === 'dids';
-  const currentMap = directlyAvailable
-    ? new Map(filtered.map((c) => [c.nsid, statForMetric(c, metric)]))
-    : await fetchStatsMetric(
-        filtered.map((c) => c.nsid),
-        sinceIso,
-        /* until */ new Date().toISOString(),
-        metric,
-      );
+  // 3) Score by the chosen metric, from /collections/stats. The ranked
+  //    listing carries creates and dids_estimate too, but reads low: in
+  //    October 2026, 22 of its top 50 by accounts over 7d were more than 1%
+  //    under what stats reports for the same window, one by 32%. Trending
+  //    compares against stats for the prior window, so taking the ranked
+  //    numbers here showed drops that never happened. Every pooled NSID had
+  //    activity, so an empty answer means the lookup failed; the ranked
+  //    numbers are then the best left for creates and dids.
+  const statsMap = await fetchStatsMetric(
+    filtered.map((c) => c.nsid),
+    sinceIso,
+    /* until */ new Date().toISOString(),
+    metric,
+  );
+  const currentMap =
+    statsMap.size === 0 && (metric === 'creates' || metric === 'dids')
+      ? new Map(filtered.map((c) => [c.nsid, statForMetric(c, metric)]))
+      : statsMap;
 
   if (mode === 'top') {
     const sorted = [...filtered].sort(

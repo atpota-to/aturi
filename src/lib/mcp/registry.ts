@@ -85,8 +85,9 @@ function memoizeJsonSchema(schema: unknown): void {
  *
  * Replay hands every request the same config objects and handlers. Both are
  * safe to share: the SDK reads configs without mutating them, handlers keep
- * no state between calls, and zod schemas are made to be parsed from module
- * scope. A group that starts calling anything else on the server will fail
+ * no per-request state (the one thing kept between calls is lexiconTrends.ts's
+ * short-lived cache of UFOs answers, which is meant to be shared), and zod
+ * schemas are made to be parsed from module scope. A group that starts calling anything else on the server will fail
  * here on its first request rather than misbehave quietly, because the
  * recorder has nothing else to call.
  */
