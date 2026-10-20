@@ -130,6 +130,16 @@ export const TOOL_GROUPS: CatalogGroup[] = [
       { name: 'sample_jetstream', summary: 'Open the live event stream for a few seconds; filter by collection, account, or operation' },
     ],
   },
+  {
+    id: 'atpotato',
+    title: 'Weather and dispatch',
+    blurb: 'From atpota.to: a weather station counting every record on the firehose, and Poe’s weekly roundup of the Atmosphere.',
+    tools: [
+      { name: 'get_atmosphere_weather', summary: 'The last minute of the firehose and today’s almanac: how busy, how mixed, and against usual' },
+      { name: 'get_weather_history', summary: 'Records a second, the diversity index, and the busiest apps over an hour, day, week, month, or year' },
+      { name: 'read_atmosphere_dispatch', summary: 'Poe’s weekly dispatch: the newest issues, and the full text of one' },
+    ],
+  },
 ];
 
 /** Every tool name in the catalog, in group order. */

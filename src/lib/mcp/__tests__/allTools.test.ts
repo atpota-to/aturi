@@ -64,6 +64,9 @@ const ARGS: Record<string, Record<string, unknown>> = {
   read_atproto_doc: { id: 'specs/lexicon' },
   search_api_methods: { query: 'follow', limit: 2 },
   get_api_method: { nsid: 'app.bsky.feed.getAuthorFeed' },
+  get_atmosphere_weather: {},
+  get_weather_history: {},
+  read_atmosphere_dispatch: {},
 };
 
 test('the argument table covers every registered tool', () => {

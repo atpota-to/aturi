@@ -16,6 +16,7 @@ import { registerLexiconTools } from '@/lib/mcp/tools/lexicons';
 import { registerFeedTools } from '@/lib/mcp/tools/feeds';
 import { registerJetstreamTools } from '@/lib/mcp/tools/jetstream';
 import { registerDocsTools } from '@/lib/mcp/tools/docs';
+import { registerAtpotatoTools } from '@/lib/mcp/tools/atpotato';
 import { registerPrompts } from '@/lib/mcp/prompts';
 import { instrumentTools } from '@/lib/mcp/instrument';
 
@@ -114,6 +115,7 @@ function recordCatalog(): Registration[] {
   registerFeedTools(recorder);
   registerJetstreamTools(recorder);
   registerDocsTools(recorder);
+  registerAtpotatoTools(recorder);
   registerPrompts(recorder);
 
   for (const { args } of recorded) {

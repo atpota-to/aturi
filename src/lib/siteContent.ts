@@ -340,7 +340,7 @@ export function buildMcpPage(baseUrl: string): ContentPage {
   return {
     title: `${MCP_NAME} (${MCP_STAGE})`,
     description:
-      `${MCP_NAME} is a free, keyless, read-only MCP server from aturi.to: ${TOOL_COUNT} tools for exploring the Atmosphere, covering link resolution, identity, repositories, network-wide backlinks, the Bluesky social layer, custom feeds and lists, lexicon activity, a live Jetstream tap, and the protocol documentation itself.`,
+      `${MCP_NAME} is a free, keyless, read-only MCP server from aturi.to: ${TOOL_COUNT} tools for exploring the Atmosphere, covering link resolution, identity, repositories, network-wide backlinks, the Bluesky social layer, custom feeds and lists, lexicon activity, a live Jetstream tap, the protocol documentation itself, and atpota.to’s firehose weather report and weekly dispatch.`,
     intro:
       `The Atmosphere Explorer, as tools. Point an MCP-capable agent at \`${endpoint}\` and it can resolve any Atmosphere link, read any repo, trace backlinks across every app, and follow Jetstream. No key, no account, nothing to install. It is in ${MCP_STAGE}: read "Before you rely on it" below before building on it.`,
     sections: [
@@ -392,6 +392,7 @@ export function buildMcpPage(baseUrl: string): ContentPage {
               '"Who links to this post, anywhere on the network?"',
               '"What apps does this account actually use, and when did it change servers?"',
               '"What is trending on Bluesky right now, and who is driving it?"',
+              '"How busy is the network right now, and is that usual for a Tuesday?"',
               '"Show me `com.whtwnd.blog.entry` records as they are posted."',
               '"What parameters does `app.bsky.feed.getAuthorFeed` take, and which are required?"',
               '"Which version of Jetstream is current, and what changed in it?"',
@@ -421,7 +422,7 @@ export function buildMcpPage(baseUrl: string): ContentPage {
           },
           {
             kind: 'p',
-            text: 'Answers come from the same public infrastructure the Explorer reads: the Bluesky public AppView, plc.directory, Jetstream, and microcosm\u2019s Constellation, Slingshot, and UFOs services.',
+            text: 'Answers come from the same public infrastructure the Explorer reads: the Bluesky public AppView, plc.directory, Jetstream, and microcosm\u2019s Constellation, Slingshot, and UFOs services. The weather tools read atpota.to\u2019s weather station.',
           },
         ],
       },
