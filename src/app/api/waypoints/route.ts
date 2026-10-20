@@ -26,7 +26,7 @@ export const runtime = 'edge';
  * The compose intent describes whether a client can be handed a link that opens
  * its composer (https://docs.bsky.app/docs/advanced-guides/intent-links). It's
  * null for clients with no confirmed route — which means "not known to support
- * it", not a proof of absence. `prefillsText` is false for the one client that
+ * it", not a proof of absence. `prefillsText` is false for a client that
  * routes the intent but ignores the text, so a share link would open an empty
  * composer.
  */

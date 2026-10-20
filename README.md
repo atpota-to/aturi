@@ -306,7 +306,7 @@ getComposeIntentUrl(WAYPOINT_DESTINATIONS_DATA.deer, 'hello from my app');
 // 'https://deer.social/intent/compose?text=hello%20from%20my%20app'
 ```
 
-Watch `prefillsText`: one client routes the intent but ignores the text, so the link opens an empty composer. Maintain a client that handles compose intents and isn't listed? Open an issue and we'll add it.
+Watch `prefillsText`: a client that routes the intent but ignores the text gets `false`, and its link opens an empty composer. Maintain a client that handles compose intents and isn't listed? Open an issue and we'll add it.
 
 ## Tech stack
 

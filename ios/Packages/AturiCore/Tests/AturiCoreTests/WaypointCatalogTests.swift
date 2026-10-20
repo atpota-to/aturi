@@ -634,6 +634,7 @@ final class WaypointCatalogTests: XCTestCase {
         // Each of these was confirmed against the client's shipped bundle.
         let cases: [(String, String)] = [
             ("bluesky", "https://bsky.app/intent/compose?text=hello%20there"),
+            ("impro", "https://impro.social/intent/compose?text=hello%20there"),
             ("anisota", "https://anisota.net/intent/compose?text=hello%20there"),
             ("blacksky", "https://blacksky.community/intent/compose?text=hello%20there"),
             ("deer", "https://deer.social/intent/compose?text=hello%20there"),
@@ -647,11 +648,22 @@ final class WaypointCatalogTests: XCTestCase {
     }
 
     func testDropsTheTextForAClientThatIgnoresIt() {
-        let impro = waypoint("impro")
-        XCTAssertTrue(WaypointCatalog.supportsComposeIntent(impro))
-        XCTAssertEqual(WaypointCatalog.composeIntentUrl(impro, text: "hello there"), "https://impro.social/intent/compose")
-        XCTAssertEqual(WaypointCatalog.describeComposeIntent(impro)?.prefillsText, false)
-        XCTAssertNil(WaypointCatalog.describeComposeIntent(impro)?.textParam)
+        // No catalog client does this today, so build one that does.
+        let ignoresText = Waypoint(
+            id: "ignores-text",
+            name: "Ignores Text",
+            describe: { _ in "" },
+            url: { _, _, _, _ in nil },
+            supportedTypes: [.post],
+            category: "blueskyClients",
+            composeIntent: ComposeIntent(url: "https://example.com/intent/compose"),
+            redirectCompat: []
+        )
+        XCTAssertTrue(WaypointCatalog.supportsComposeIntent(ignoresText))
+        XCTAssertEqual(WaypointCatalog.composeIntentUrl(ignoresText, text: "hello there"), "https://example.com/intent/compose")
+        XCTAssertEqual(WaypointCatalog.composeIntentTemplate(ignoresText), "https://example.com/intent/compose")
+        XCTAssertEqual(WaypointCatalog.describeComposeIntent(ignoresText)?.prefillsText, false)
+        XCTAssertNil(WaypointCatalog.describeComposeIntent(ignoresText)?.textParam)
     }
 
     func testReturnsNilForClientsWithNoConfirmedIntentRoute() {
@@ -691,7 +703,6 @@ final class WaypointCatalogTests: XCTestCase {
     func testTemplatesTheTextPlaceholder() {
         XCTAssertEqual(WaypointCatalog.composeIntentTextPlaceholder, "{text}")
         XCTAssertEqual(WaypointCatalog.composeIntentTemplate(waypoint("deer")), "https://deer.social/intent/compose?text={text}")
-        XCTAssertEqual(WaypointCatalog.composeIntentTemplate(waypoint("impro")), "https://impro.social/intent/compose")
     }
 
     func testListsComposeCapableWaypointsInCatalogOrder() {

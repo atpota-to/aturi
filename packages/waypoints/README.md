@@ -113,7 +113,7 @@ waypoints.find((w) => w.id === 'deer')?.composeIntent;
 ```
 
 Two things not to assume. `prefillsText` is `false` for a client that routes
-the intent but drops the text (Impro today), so the link opens an empty
+the intent but drops the text, so the link opens an empty
 composer — fine as a jump, useless as a share. And `appUrl` is only set where
 the client publishes a native scheme (`bluesky://intent/compose`), so treat it
 as a bonus rather than a fallback.
