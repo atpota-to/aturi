@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo } from 'react';
-import { ArrowDownRight, ArrowUpRight } from 'lucide-react';
+import { ArrowDownRight, ArrowUpRight, ExternalLink } from 'lucide-react';
 import { formatPct } from '@/utils/ufos/format';
 
 /**
@@ -163,6 +163,38 @@ export function DeltaPill({ pct }: { pct: number | null }) {
       <Arrow size={11} aria-hidden />
       {formatPct(pct)}
     </span>
+  );
+}
+
+// ─── App site link ──────────────────────────────────────────────────────────
+
+/**
+ * Outbound button to the site a namespace's app most likely lives at (see
+ * `appDomainFor`). Sized to sit beside the detail page's "View schema record"
+ * button. The domain is inferred from the NSID, so the tooltip says so.
+ */
+export function AppSiteLink({ domain }: { domain: string }) {
+  return (
+    <a
+      href={`https://${domain}`}
+      target="_blank"
+      rel="noopener noreferrer"
+      title={`${domain}, inferred from the NSID`}
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: '0.4rem',
+        padding: '0.4rem 0.75rem',
+        background: 'var(--bg-tertiary)',
+        border: '1px solid var(--border-medium)',
+        color: 'var(--text-secondary)',
+        fontFamily: 'var(--font-serif)',
+        fontSize: '0.8125rem',
+        textDecoration: 'none',
+      }}
+    >
+      <ExternalLink size={12} aria-hidden /> Visit {domain}
+    </a>
   );
 }
 

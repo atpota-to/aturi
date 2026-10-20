@@ -43,6 +43,44 @@ export function publisherForNsid(nsid: string): string {
   return `${parts[1]}.${parts[0]}`;
 }
 
+/**
+ * Hosts that give every project its own subdomain. An NSID under one names
+ * its site a label deeper than `<owner>.<tld>`:
+ * `io.github.romiojoseph.blog.post` lives at `romiojoseph.github.io`, not
+ * `github.io`. Only the hosts that turn up in published NSIDs.
+ */
+const PROJECT_HOST_SUFFIXES = new Set(['github.io', 'gitlab.io', 'netlify.app', 'vercel.app', 'pages.dev']);
+
+/** Second-level labels that country TLDs sell names under (`com.ar`, `co.uk`,
+ * `ac.id`), which push the registrable domain a label deeper the same way. */
+const COUNTRY_SECOND_LEVELS = new Set(['ac', 'co', 'com', 'edu', 'gov', 'ne', 'net', 'or', 'org']);
+
+const HOSTNAME_LABEL = /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/;
+
+/**
+ * The domain a namespace's app most likely lives at: the reversed prefix cut
+ * to its registrable domain. `app.voresky` and `app.voresky.feed` ->
+ * `voresky.app`, `ar.com.cabildoabierto` -> `cabildoabierto.com.ar`. Takes
+ * a namespace prefix, not a full NSID, whose final segment is a name rather
+ * than a domain label (pass `groupPrefix(nsid)`). Null when the prefix stops
+ * at a shared suffix (`io.github`) or is not made of hostname labels, so a
+ * free-text group page never links anywhere. A guess from naming convention:
+ * nothing checks that the domain resolves or that its owner wrote the lexicon.
+ */
+export function appDomainFor(prefix: string): string | null {
+  const labels = prefix.toLowerCase().split('.');
+  if (labels.length < 2 || !labels.every((l) => HOSTNAME_LABEL.test(l))) return null;
+  // TLDs are at least two characters and never start with a digit.
+  if (labels[0].length < 2 || !/^[a-z]/.test(labels[0])) return null;
+  const pair = `${labels[1]}.${labels[0]}`;
+  const sharedSuffix =
+    PROJECT_HOST_SUFFIXES.has(pair) ||
+    (labels[0].length === 2 && COUNTRY_SECOND_LEVELS.has(labels[1]));
+  const depth = sharedSuffix ? 3 : 2;
+  if (labels.length < depth) return null;
+  return labels.slice(0, depth).reverse().join('.');
+}
+
 /** Lexicon-schema records live at this collection on the publisher's
  * repo, keyed by the full NSID. The explorer's record page renders them
  * via RecordPreview, falling through to a not-found message when the

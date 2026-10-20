@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { ArrowLeft, FileText, Folder, Layers, Search } from 'lucide-react';
 import AppearIn from '../AppearIn';
 import { Skeleton } from '@/components/SkeletonLoader';
-import { Credit } from './primitives';
+import { AppSiteLink, Credit } from './primitives';
 import { fetchPrefix, searchLexicons } from '@/utils/ufos/client';
 import {
   type JustCount,
@@ -13,7 +13,7 @@ import {
   type PrefixChild,
 } from '@/utils/ufos/config';
 import { formatCount } from '@/utils/ufos/format';
-import { groupPathFor, lexiconPathFor } from '@/utils/ufos/nsid';
+import { appDomainFor, groupPathFor, lexiconPathFor } from '@/utils/ufos/nsid';
 import { CHROME_RESULTS_ID, useChromeBarField } from '../ChromeBarContext';
 
 const PREFIX_LIMIT = 200;
@@ -187,6 +187,7 @@ function PrefixView({ prefix }: { prefix: string }) {
     setLoadingMore(false);
   }
 
+  const appDomain = appDomainFor(prefix);
   const query = filter.trim().toLowerCase();
   const visible = useMemo(() => {
     if (!children) return null;
@@ -212,7 +213,16 @@ function PrefixView({ prefix }: { prefix: string }) {
       prefix={prefix}
       eyebrow="Namespace"
       icon={<Layers size={13} aria-hidden />}
-      headerExtra={<SummaryLine total={total} count={children?.length ?? null} />}
+      headerExtra={
+        <>
+          <SummaryLine total={total} count={children?.length ?? null} />
+          {appDomain && (
+            <div style={{ display: 'flex', marginTop: '0.15rem' }}>
+              <AppSiteLink domain={appDomain} />
+            </div>
+          )}
+        </>
+      }
     >
       <ListCard>
         {children === null || visible === null ? (
