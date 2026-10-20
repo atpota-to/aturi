@@ -63,13 +63,13 @@ The Atmosphere Explorer, as tools an agent can call. Add the URL to Claude, Curs
 - *"Which lexicons are busiest today, and what do their records look like?"*
 - *"Show me `com.whtwnd.blog.entry` records as people publish them."*
 
-Forty-one tools across nine groups: link resolution and the client catalog, identity and PLC history, whole-repository reads on any PDS, network-wide backlinks via Constellation, the Bluesky social layer (feeds, threads, graph, engagement, trends), custom feeds and lists, lexicon activity via UFOs, a bounded live tap on Jetstream, and the protocol documentation itself, searched from atproto.com, docs.bsky.app, bsky.network, and selected Bluesky GitHub guides so an agent can answer "how does this work" with a citation instead of from memory. Every answer carries the `at://` URI and an aturi.to link, so anything an agent mentions is one click from opening in whichever client you use.
+Forty-four tools across ten groups: link resolution and the client catalog, identity and PLC history, whole-repository reads on any PDS, network-wide backlinks via Constellation, the Bluesky social layer (feeds, threads, graph, engagement, trends), custom feeds and lists, lexicon activity via UFOs, a bounded live tap on Jetstream, and the protocol documentation itself, searched from atproto.com, docs.bsky.app, bsky.network, and selected Bluesky GitHub guides so an agent can answer "how does this work" with a citation instead of from memory. The tenth comes from [atpota.to](https://atpota.to): its [weather report](https://atpota.to/weather), from a station that counts every record on the firehose, and Poe's weekly [atmosphere dispatch](https://atpota.to/blog). Every answer carries the `at://` URI and an aturi.to link, so anything an agent mentions is one click from opening in whichever client you use.
 
 ### Before you rely on it
 
 - It reads. No tool can post, like, follow, or edit anything, and the server holds no credentials that could. Write access is planned as a separate package you would run on your own machine with your own keys.
 - Beta means tool names and result shapes can still change. Nothing should pin to them yet.
-- Answers come from live public services: Bluesky's AppView, plc.directory, Jetstream, and microcosm's Constellation, Slingshot and UFOs. When one is down or rate-limiting, the tool says so rather than guessing.
+- Answers come from live public services: Bluesky's AppView, plc.directory, Jetstream, microcosm's Constellation, Slingshot and UFOs, and atpota.to's weather station. When one is down or rate-limiting, the tool says so rather than guessing.
 - Bluesky's post search refuses requests from data-centre networks, so `search_posts` can fail where every other tool works.
 - Posts and records are written by strangers. Treat what comes back as data to read, not as instructions to follow.
 - There is no uptime promise and no support queue.

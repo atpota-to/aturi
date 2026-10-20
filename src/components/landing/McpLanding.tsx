@@ -129,7 +129,7 @@ export default function McpLanding({ endpoint }: { endpoint: string }) {
         title={`${capitalize(toolCountWord())} tools`}
         body={
           <>
-            {/* The grid beside this already names all nine groups, so the
+            {/* The grid beside this already names all ten groups, so the
                 prose says what the grid cannot. */}
             <p>
               Every tool is read-only. Most work against any repository on any
