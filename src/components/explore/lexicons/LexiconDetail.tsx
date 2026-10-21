@@ -7,7 +7,7 @@ import { ArrowLeft, FileText, GitBranch, Layers } from 'lucide-react';
 import AppearIn from '../AppearIn';
 import { useChromeBarField } from '../ChromeBarContext';
 import { Skeleton } from '@/components/SkeletonLoader';
-import { Credit, DeltaPill, Segmented, Sparkline } from './primitives';
+import { AppSiteLink, Credit, DeltaPill, Segmented, Sparkline } from './primitives';
 import {
   fetchCollectionStats,
   fetchPrefix,
@@ -25,6 +25,7 @@ import {
 } from '@/utils/ufos/config';
 import { formatCount } from '@/utils/ufos/format';
 import {
+  appDomainFor,
   groupPathFor,
   groupPrefix,
   lexiconPathFor,
@@ -145,6 +146,7 @@ export default function LexiconDetail({ nsid }: { nsid: string }) {
 
   const publisher = publisherForNsid(nsid);
   const group = namespaceKey(nsid);
+  const appDomain = appDomainFor(groupPrefix(nsid));
   const hasActivity = current ? statTotal(current) > 0 : true;
 
   return (
@@ -217,26 +219,27 @@ export default function LexiconDetail({ nsid }: { nsid: string }) {
               <span style={{ color: 'var(--text-secondary)' }}>{publisher}</span>
             </span>
           </div>
-          <Link
-            href={schemaPathFor(nsid)}
-            prefetch={false}
-            style={{
-              alignSelf: 'flex-start',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '0.4rem',
-              marginTop: '0.15rem',
-              padding: '0.4rem 0.75rem',
-              background: 'var(--bg-tertiary)',
-              border: '1px solid var(--border-medium)',
-              color: 'var(--text-secondary)',
-              fontFamily: 'var(--font-serif)',
-              fontSize: '0.8125rem',
-              textDecoration: 'none',
-            }}
-          >
-            <FileText size={12} aria-hidden /> View schema record
-          </Link>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginTop: '0.15rem' }}>
+            <Link
+              href={schemaPathFor(nsid)}
+              prefetch={false}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.4rem',
+                padding: '0.4rem 0.75rem',
+                background: 'var(--bg-tertiary)',
+                border: '1px solid var(--border-medium)',
+                color: 'var(--text-secondary)',
+                fontFamily: 'var(--font-serif)',
+                fontSize: '0.8125rem',
+                textDecoration: 'none',
+              }}
+            >
+              <FileText size={12} aria-hidden /> View schema record
+            </Link>
+            {appDomain && <AppSiteLink domain={appDomain} />}
+          </div>
         </div>
       </AppearIn>
 
