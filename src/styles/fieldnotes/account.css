@@ -693,6 +693,11 @@
     gap: 4px;
     padding: 0 16px 2px;
     scrollbar-width: none;
+    /* The row runs past the edge with its scrollbar hidden, so fade the
+       edge to say there's more. As wide as the end padding: scrolled to the
+       end, the last tab stops just short of the fade. */
+    -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 16px), transparent);
+    mask-image: linear-gradient(to right, #000 calc(100% - 16px), transparent);
   }
 
   .settings-nav::-webkit-scrollbar {
@@ -979,6 +984,15 @@
   border-radius: 5px;
   background: var(--bg-secondary);
   border-color: var(--border-strong);
+}
+
+/* Every caller styles the field inline, most with `outline: none`, which
+   also beats the global :focus-visible ring; without this the field showed
+   no sign of focus at all. --text-accent rather than the moss fill, which is
+   too dark to see against a dark field. */
+.oauth-typeahead-input:focus {
+  border-color: var(--text-accent) !important;
+  box-shadow: 0 0 0 3px var(--accent-soft);
 }
 
 .oauth-typeahead {

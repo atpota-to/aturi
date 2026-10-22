@@ -153,21 +153,33 @@ export default function PdsExplorer({ host }: Props) {
         <section id={CHROME_RESULTS_ID}>
           <header className="fn-pds-repos-head">
             <h2>Repos on this PDS</h2>
-            <span>
-              {query ? (
-                <>
-                  {visibleRepos.length} of {repos.length} shown
-                </>
-              ) : (
-                <>
-                  {repos.length}
-                  {!done && '+'} loaded
-                </>
-              )}
-            </span>
+            {/* No count when the very first page failed: "0+ loaded" beside
+                the error read as a server with no repos. */}
+            {!(reposError && repos.length === 0) && (
+              <span>
+                {query ? (
+                  <>
+                    {visibleRepos.length} of {repos.length} shown
+                  </>
+                ) : (
+                  <>
+                    {repos.length}
+                    {!done && '+'} loaded
+                  </>
+                )}
+              </span>
+            )}
           </header>
 
-          {reposError && <p className="explore-error">{reposError}</p>}
+          {/* In words, with the raw error kept for anyone who hovers: a bare
+              "Failed to fetch" said nothing about what had been tried. */}
+          {reposError && (
+            <p className="explore-placeholder" title={reposError}>
+              {repos.length === 0
+                ? 'Couldn’t list the repos on this PDS. It may be offline, or it may not allow listing.'
+                : 'Couldn’t load more repos from this PDS.'}
+            </p>
+          )}
           {repos.length === 0 && reposLoading && <PdsReposSkeleton />}
           {repos.length === 0 && !reposLoading && !reposError && (
             <p className="explore-placeholder">No repos reported by this PDS.</p>
@@ -256,7 +268,7 @@ function PdsHeader({
         </div>
         <ShareLinkChip url={`/explore/pds/${encodeURIComponent(host)}`} />
       </div>
-      <h1 className="fn-lexhead-title fn-lexhead-mono" style={{ wordBreak: 'break-all' }}>
+      <h1 className="fn-lexhead-title fn-lexhead-mono" style={{ overflowWrap: 'anywhere' }}>
         {host}
       </h1>
 
@@ -286,7 +298,7 @@ function PdsHeader({
         </Cell>
 
         {info?.did && (
-          <Cell label="server did">
+          <Cell label="server DID">
             <code style={{ background: 'transparent', padding: 0, color: 'var(--text-primary)' }}>
               {info.did}
             </code>
@@ -331,14 +343,7 @@ function PdsHeader({
 
         {info?.inviteCodeRequired !== undefined && (
           <Cell label="invite required">
-            <span
-              style={{
-                fontFamily: 'var(--font-sans)',
-                fontSize: '0.875rem',
-                fontWeight: 600,
-                color: 'var(--text-primary)',
-              }}
-            >
+            <span style={{ color: 'var(--text-primary)' }}>
               {info.inviteCodeRequired ? 'Yes' : 'No'}
             </span>
           </Cell>
@@ -364,9 +369,7 @@ function PdsHeader({
           )}
           {info?.contact?.email && (
             <span style={{ color: 'var(--text-tertiary)' }}>
-              <span className="explore-small-caps" style={{ marginRight: '0.4rem' }}>
-                contact
-              </span>
+              <span style={{ marginRight: '0.4rem', fontWeight: 600 }}>Contact</span>
               <a href={`mailto:${info.contact.email}`} style={{ color: 'var(--text-accent)' }}>
                 {info.contact.email}
               </a>
@@ -389,7 +392,7 @@ function Cell({ label, children }: { label: string; children: React.ReactNode })
           margin: 0,
           fontFamily: 'var(--font-mono)',
           fontSize: '0.8125rem',
-          wordBreak: 'break-all',
+          overflowWrap: 'anywhere',
           display: 'flex',
           alignItems: 'center',
           gap: '0.5rem',

@@ -265,6 +265,23 @@
   color: var(--text-primary);
 }
 
+/* The tree runs on past the frame: fade it out at the bottom edge so the
+   last row reads as "more below" rather than sliced off. An overlay rather
+   than a mask, which would fade the frame's border along with it. */
+.fn-home-sketch:has(> .fn-sketch-tree) {
+  position: relative;
+}
+.fn-home-sketch:has(> .fn-sketch-tree)::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 36px;
+  background: linear-gradient(to bottom, transparent, var(--bg-primary));
+  pointer-events: none;
+}
+
 .fn-home-product-foot {
   margin-top: auto;
   padding-top: 8px;

@@ -3,6 +3,7 @@
 import {
   Cloud,
   Layers,
+  Leaf,
   Server,
   UserCheck,
   Users,
@@ -50,7 +51,9 @@ export default function SignedInExploreVisual() {
         {/* Profile header preview beneath, so the strip reads as a banner
             on top of an account page rather than a floating chip group. */}
         <div className="fl-mock-row">
-          <span className="fl-picker-avatar" data-size="s" aria-hidden />
+          <span className="fl-picker-avatar" data-size="s" aria-hidden>
+            <Leaf size={15} strokeWidth={2.2} />
+          </span>
           <span className="fl-mock-row-text">
             <span className="fl-mock-name">aturi.to</span>
             <span className="fl-mock-sub">did:plc:6teuhlkizzebk6wdp42633el</span>

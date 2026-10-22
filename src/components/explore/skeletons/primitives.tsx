@@ -152,8 +152,11 @@ export function SkeletonAccountCard() {
 }
 
 /**
- * Stand-in for the repository card: the underline tab strip over a filter
- * field and a run of tree rows.
+ * Stand-in for the repository card: the folder tabs standing on a panel that
+ * holds a filter field and a run of tree rows. The tabs and the panel wear
+ * the real card's classes (explorer.css, `.fx-tabs`), so they take its exact
+ * geometry at every width and in the sidebar; each bar sits in a box one
+ * label-line tall, so a tab is as high as it will be with its words in.
  */
 export function SkeletonRepoCard({
   tabWidths,
@@ -165,38 +168,37 @@ export function SkeletonRepoCard({
   compact?: boolean;
 }) {
   return (
-    <SkeletonPanel padding="0">
-      <div
-        style={{
-          display: 'flex',
-          gap: compact ? '14px' : '20px',
-          padding: '14px 16px 12px',
-          borderBottom: '1px solid var(--border-subtle)',
-        }}
-      >
+    <div className="fx-repo" style={{ pointerEvents: 'none' }}>
+      <div className="fx-tabs">
         {tabWidths.map((width, i) => (
-          <SkeletonBar key={i} width={width} height="0.65rem" />
+          <span key={i} className="fx-tab" data-active={i === 0 || undefined}>
+            <span style={{ display: 'flex', alignItems: 'center', height: '1.4em' }}>
+              <SkeletonBar width={width} height="0.65rem" />
+            </span>
+          </span>
         ))}
       </div>
-      <div
-        style={{
-          padding: compact ? '10px 12px' : '16px',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: compact ? '12px' : '14px',
-        }}
-      >
-        <SkeletonBar width={compact ? '100%' : 'min(28rem, 100%)'} height="32px" />
-        {Array.from({ length: rows }).map((_, i) => (
-          <SkeletonBar
-            key={i}
-            width={ROW_WIDTHS[i % ROW_WIDTHS.length]}
-            height="0.65rem"
-            style={{ marginLeft: i % 3 === 0 ? 0 : '18px' }}
-          />
-        ))}
+      <div className="fx-tabpanel" style={{ padding: 0 }}>
+        <div
+          style={{
+            padding: compact ? '10px 12px' : '16px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: compact ? '12px' : '14px',
+          }}
+        >
+          <SkeletonBar width={compact ? '100%' : 'min(28rem, 100%)'} height="32px" />
+          {Array.from({ length: rows }).map((_, i) => (
+            <SkeletonBar
+              key={i}
+              width={ROW_WIDTHS[i % ROW_WIDTHS.length]}
+              height="0.65rem"
+              style={{ marginLeft: i % 3 === 0 ? 0 : '18px' }}
+            />
+          ))}
+        </div>
       </div>
-    </SkeletonPanel>
+    </div>
   );
 }
 

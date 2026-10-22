@@ -528,21 +528,31 @@
   flex: 1;
 }
 
-/* "Hide rich preview" under the card. */
+/* "Hide rich preview" under the card. A quiet control with a real hit area:
+   the padding is handed back through negative margins, so it occupies the
+   same line it did as bare text (and the skeleton's placeholder for it still
+   matches) while the hover surface grows around it. */
 .fx-textlink {
   align-self: flex-start;
-  padding: 0;
-  margin-top: -8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  margin: -12px 0 -4px -8px;
   background: transparent;
   border: 0;
+  border-radius: var(--radius-control);
   cursor: pointer;
   font-family: var(--font-sans);
   font-size: 12.5px;
+  font-weight: 500;
   color: var(--text-tertiary);
-  transition: color 0.15s ease;
+  transition: color 0.15s ease, background-color 0.15s ease;
 }
-.fx-textlink:hover {
-  color: var(--text-accent);
+.fx-textlink:hover,
+.fx-textlink:focus-visible {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
 }
 
 /* Phone account card: the dl goes two-up with labels above values. */
@@ -558,62 +568,117 @@
 
 /* --- repository card + tabs ---------------------------------------------- */
 
+/* Folder tabs. The tabs stand on the page above the panel, which is the card;
+   the open one is the panel's own colour and runs into it through the
+   panel's top border, and the others sit a step lower in the page's recessed
+   tone, like the folders filed behind it. The row is inset by the card
+   radius so no tab ever stands on the panel's rounded corner. */
 .fx-repo {
-  overflow: hidden;
+  min-width: 0;
 }
 .fx-tabs {
+  --fx-tab-filed: var(--bg-tertiary);
+  position: relative;
+  z-index: 1;
   display: flex;
-  flex-wrap: wrap;
-  padding: 0 8px;
-  border-bottom: 1px solid var(--border-subtle);
+  align-items: flex-end;
+  gap: 4px;
+  padding: 0 var(--radius-card);
+  /* Tabs never wrap: a second row of folder tabs would stand on the first. */
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.fx-tabs::-webkit-scrollbar {
+  display: none;
+}
+/* Dark themes lift --bg-tertiary above the card, which would stand the
+   filed-away tabs in front of the open one. Between page and card instead. */
+:root:not([data-theme='light']) .fx-tabs {
+  --fx-tab-filed: color-mix(in srgb, var(--bg-secondary) 45%, var(--bg-primary));
 }
 .fx-tab {
+  position: relative;
   display: inline-flex;
   align-items: center;
+  flex-shrink: 0;
   gap: 6px;
-  margin-bottom: -1px;
-  padding: 11px 10px 9px;
-  background: transparent;
-  border: 0;
-  border-bottom: 2px solid transparent;
+  padding: 8px 14px 8px;
+  background: var(--fx-tab-filed);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-control) var(--radius-control) 0 0;
   font-family: var(--font-sans);
   font-size: 13.5px;
   font-weight: 500;
-  color: var(--text-secondary);
+  line-height: 1.4;
+  color: var(--text-tertiary);
   text-decoration: none;
+  white-space: nowrap;
   cursor: pointer;
-  transition: color 0.15s ease, border-color 0.15s ease;
+  transition: color 0.15s ease, background-color 0.15s ease;
 }
 .fx-tab:hover {
+  background: var(--surface-subtle);
   color: var(--text-primary);
 }
+.fx-tab:focus-visible {
+  outline: 2px solid var(--accent-moss);
+  outline-offset: -3px;
+}
+/* The open tab: three pixels taller than the rest, in the panel's colour,
+   with its bottom edge painted over the panel's top border so the two read
+   as one sheet. */
 .fx-tab[aria-selected='true'],
 .fx-tab[data-active] {
+  z-index: 1;
+  padding-top: 11px;
+  background: var(--bg-secondary);
+  border-bottom-color: var(--bg-secondary);
   color: var(--text-primary);
-  font-weight: 700;
-  border-bottom-color: var(--accent-moss);
+  font-weight: 600;
+  cursor: default;
 }
-:root:not([data-theme='light']) .fx-tab[aria-selected='true'],
-:root:not([data-theme='light']) .fx-tab[data-active] {
-  border-bottom-color: var(--text-accent);
-}
+/* Tucked one pixel up under the tab row, so each tab's bottom edge lies on
+   the panel's top border: the open tab paints it out, the rest repeat it.
+   `clip` rather than `hidden` keeps the rounded corners over edge-to-edge
+   rows without making the panel a scroll container. */
 .fx-tabpanel {
+  position: relative;
+  margin-top: -1px;
   padding: 16px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-card);
+  overflow: hidden;
+  overflow: clip;
+  min-width: 0;
 }
 .fx-side .fx-tabs {
-  padding: 0 6px;
+  gap: 3px;
+  padding: 0 10px;
 }
 .fx-side .fx-tab {
-  padding: 11px 7px 9px;
+  padding: 7px 9px;
   font-size: 13px;
+}
+/* The sidebar's tabs are links that leave the page; the highlighted one is
+   where the current collection lives, but it still goes somewhere. */
+.fx-side .fx-tab[data-active] {
+  padding-top: 10px;
+  cursor: pointer;
 }
 @media (max-width: 640px) {
   .fx-tabs {
-    padding: 0 6px;
+    gap: 3px;
+    padding: 0 10px;
   }
   .fx-tab {
+    min-height: 41px;
+    padding: 0 12px;
+  }
+  .fx-tab[aria-selected='true'],
+  .fx-tab[data-active] {
     min-height: 44px;
-    padding: 0 9px;
+    padding-top: 0;
   }
   .fx-tabpanel {
     padding: 12px;
@@ -1324,6 +1389,29 @@
     margin-left: calc(var(--explore-chrome-cx) - min(800px, var(--explore-chrome-cw)) / 2);
     margin-right: 0;
   }
+
+  /* Only a jump search and copy-link, both already on screen (the header's
+     "go to" field, the page's own share control): not worth covering the
+     page for. It comes back as soon as the route hands it something of its
+     own, like the Edit button once the page's copy scrolls away. */
+  .explore-chrome-bar[data-redundant] {
+    display: none;
+  }
+  /* The bar measures 0 while it's gone, which leaves only the reservation's
+     slack under the footer; hand the footer its own padding back. */
+  body:has(.explore-chrome-bar[data-redundant]) .fn-footer {
+    padding-bottom: 20px;
+  }
+  .explore-chrome-card {
+    animation: fx-chrome-in 0.2s ease-out;
+  }
+}
+
+@keyframes fx-chrome-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
 }
 
 /* Phone: a full-width white strip pinned flush to the bottom edge, with a
@@ -1478,12 +1566,23 @@
   .fx-tree-count {
     display: inline;
   }
+  /* The sidebar copy keeps its filter field, whose placeholder already
+     carries the count; repeating it pushed the collapse button to a line of
+     its own. */
+  .fx-side .fx-tree-count {
+    display: none;
+  }
   .fx-row-inherit {
     display: none;
   }
   /* The tree runs edge to edge inside the card, rows divided by hairlines. */
   .fx-tabpanel:has(> .fx-tree-pane) {
     padding: 0;
+  }
+  /* The tools row carries its own divider here, so the pane's inline 12px
+     gap would only open an empty band between it and the first row. */
+  .fx-tabpanel > .fx-tree-pane {
+    gap: 0 !important;
   }
   .fx-tree-pane .fx-tree-tools {
     padding: 8px 8px 8px 14px;

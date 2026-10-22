@@ -60,13 +60,17 @@ export default function StickyBreadcrumbBar() {
     <AnimatePresence initial={false}>
       {show && (
         <motion.div
-          initial={{ height: 0, opacity: 0 }}
-          animate={{ height: 'auto', opacity: 1 }}
-          exit={{ height: 0, opacity: 0 }}
-          transition={{ duration: 0.24, ease: 'easeOut' }}
-          // A full-width section at the bottom of the (unpadded) nav card; its
-          // border-top reads as a divider connecting it to the row above.
-          style={{ overflow: 'hidden' }}
+          // Slides out from behind the bar rather than growing the header.
+          // The strip overlays the page (chrome.css, `.fn-sticky-crumbs-wrap`)
+          // instead of sitting in flow: a header that changed height pushed
+          // the page down by the strip's height, which carried the in-page
+          // breadcrumb with it and, on a phone, left it below the line that
+          // retracts the strip, so the strip could never leave again.
+          className="fn-sticky-crumbs-wrap"
+          initial={{ y: '-100%', opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          exit={{ y: '-100%', opacity: 0 }}
+          transition={{ duration: 0.2, ease: 'easeOut' }}
         >
           <div
             className="fn-sticky-crumbs"
@@ -79,8 +83,6 @@ export default function StickyBreadcrumbBar() {
               flexWrap: expanded ? 'wrap' : 'nowrap',
               alignItems: 'center',
               gap: '0.3rem',
-              borderTop: '1px solid var(--border-subtle)',
-              background: 'var(--surface-subtle)',
               fontFamily: 'var(--font-mono)',
               fontSize: '0.75rem',
               lineHeight: 1.25,

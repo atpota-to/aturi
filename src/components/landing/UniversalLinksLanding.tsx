@@ -147,7 +147,7 @@ export default function UniversalLinksLanding() {
           visual={
             <div className="fl-mock" data-size="s">
               <div className="fl-mock-head">
-                <span className="fl-mock-head-title">Your favourites</span>
+                <span className="fl-mock-head-title">Your favorites</span>
                 <span className="fl-mock-sub">Signed in as @aturi.to</span>
               </div>
               <div className="fl-mock-body">

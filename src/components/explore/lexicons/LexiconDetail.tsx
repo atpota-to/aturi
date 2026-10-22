@@ -147,7 +147,6 @@ export default function LexiconDetail({ nsid }: { nsid: string }) {
   const publisher = publisherForNsid(nsid);
   const group = namespaceKey(nsid);
   const appDomain = appDomainFor(groupPrefix(nsid));
-  const hasActivity = current ? statTotal(current) > 0 : true;
 
   return (
     <div className="fn-lexdetail">
@@ -249,12 +248,6 @@ export default function LexiconDetail({ nsid }: { nsid: string }) {
         </div>
       </AppearIn>
 
-      {!hasActivity && current && (
-        <p className="explore-muted" style={{ margin: 0, fontSize: '0.85rem' }}>
-          No recorded activity for this lexicon in the last {cfg.label}.
-        </p>
-      )}
-
       {/* Sibling collections */}
       <AppearIn delay={0.12}>
         <Section title="Collections in this group" icon={<GitBranch size={14} aria-hidden />}>
@@ -328,19 +321,13 @@ export default function LexiconDetail({ nsid }: { nsid: string }) {
       </AppearIn>
 
       <AppearIn delay={0.16}>
-        <div className="fn-list-card">
-          <Credit />
-        </div>
+        <Credit standalone />
       </AppearIn>
     </div>
   );
 }
 
 const ZERO: JustCount = { creates: 0, updates: 0, deletes: 0, dids_estimate: 0 };
-
-function statTotal(s: JustCount): number {
-  return s.creates + s.updates + s.deletes + s.dids_estimate;
-}
 
 function StatTile({
   label,

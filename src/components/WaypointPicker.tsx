@@ -574,8 +574,8 @@ export default function WaypointPicker({
           </span>
           <span className="fn-lp-remember-sub">
             {prefs.autoRedirect
-              ? 'Links like this open in your favourite app right away.'
-              : 'Pick a favourite app and links like this open there right away.'}
+              ? 'Links like this open in your favorite app right away.'
+              : 'Pick a favorite app and links like this open there right away.'}
           </span>
         </div>
         <Link href="/account#redirects" className="fn-lp-btn fn-lp-remember-action">

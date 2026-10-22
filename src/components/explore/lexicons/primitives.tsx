@@ -171,9 +171,14 @@ export function AppSiteLink({ domain }: { domain: string }) {
 
 // ─── microcosm.blue credit ──────────────────────────────────────────────────
 
-export function Credit() {
+/**
+ * `standalone` for a page's closing caption rather than a card's footer: the
+ * same line without the rule and padding a footer carries, so it doesn't need
+ * a card of its own to sit in.
+ */
+export function Credit({ standalone = false }: { standalone?: boolean }) {
   return (
-    <div className="fn-credit">
+    <div className={standalone ? 'fn-credit fn-credit-standalone' : 'fn-credit'}>
       <span>Data from</span>
       <a href="https://www.microcosm.blue" target="_blank" rel="noopener noreferrer">
         microcosm.blue

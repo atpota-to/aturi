@@ -36,7 +36,10 @@ export default function SpacesLanding() {
   const { session, did, loading } = useAtprotoSession();
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '4rem', paddingTop: '36px' }}>
+    <div
+      className="fn-spaces-landing"
+      style={{ display: 'flex', flexDirection: 'column', gap: '4rem', paddingTop: '36px' }}
+    >
       {/* Hero */}
       <AppearIn rise>
         <header

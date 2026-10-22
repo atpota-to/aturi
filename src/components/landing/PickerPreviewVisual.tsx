@@ -1,6 +1,6 @@
 'use client';
 
-import { ChevronRight, Star } from 'lucide-react';
+import { ChevronRight, Leaf, Star } from 'lucide-react';
 import {
   AnisotaLogo,
   BlueskySVG,
@@ -56,7 +56,9 @@ export default function PickerPreviewVisual() {
     <div className="fl-mock" data-size="s">
       {/* Pretend ProfilePreview header */}
       <div className="fl-mock-head fl-picker-head">
-        <span className="fl-picker-avatar" aria-hidden />
+        <span className="fl-picker-avatar" aria-hidden>
+          <Leaf size={18} strokeWidth={2.2} />
+        </span>
         <span className="fl-mock-row-text">
           <span className="fl-picker-name">Aturi</span>
           <span className="fl-mock-sub">@aturi.to</span>

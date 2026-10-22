@@ -18,33 +18,35 @@ import Header from '@/components/Header';
 const WHY = [
   {
     icon: <Users size={18} />,
-    title: 'Community-Specific',
+    title: 'Community-specific',
     body: 'Create a version tailored to your community with custom branding and curated platforms.',
   },
   {
     icon: <Globe size={18} />,
-    title: 'Regional Optimization',
+    title: 'Regional optimization',
     body: 'Host closer to your users for faster load times and better performance.',
   },
   {
     icon: <SlidersHorizontal size={18} />,
-    title: 'Full Control',
+    title: 'Full control',
     body: 'Self-host on your infrastructure with complete control over features and data.',
   },
 ];
 
+const REPO_URL = 'https://github.com/atpota-to/aturi';
+
 const RESOURCES = [
   {
-    href: 'https://github.com/yourusername/aturi-to/blob/main/QUICKSTART.md',
-    label: 'Quick Start Guide (10 minutes)',
+    href: `${REPO_URL}#running-locally`,
+    label: 'Running locally (README)',
   },
   {
-    href: 'https://github.com/yourusername/aturi-to/blob/main/FORKING.md',
-    label: 'Complete Forking Guide',
+    href: `${REPO_URL}#deployment`,
+    label: 'Deployment (README)',
   },
   {
-    href: 'https://github.com/yourusername/aturi-to/blob/main/CONTRIBUTING.md',
-    label: 'Contributing Guidelines',
+    href: `${REPO_URL}/blob/main/CONTRIBUTING.md`,
+    label: 'Contributing guidelines',
   },
 ];
 
@@ -61,13 +63,13 @@ export default function ForkPage() {
             </span>
             <h1 className="fl-title">Fork aturi.to</h1>
             <p className="fl-lede">
-              Run your own Atmosphere link sharing service with a custom domain
+              Run your own Atmosphere link sharing service with a custom domain.
             </p>
           </header>
 
           {/* Why fork */}
           <section className="fl-section">
-            <h2 className="fl-cross-title">Why Fork?</h2>
+            <h2 className="fl-cross-title">Why fork?</h2>
             <div className="fl-fork-why">
               {WHY.map((w) => (
                 <div key={w.title} className="fl-card fl-fork-card">
@@ -87,25 +89,24 @@ export default function ForkPage() {
               <span className="fl-kicker">
                 <Zap size={14} aria-hidden /> Get started
               </span>
-              <h2 className="fl-h2">Quick Start</h2>
-              <p className="fl-body">Get your instance up and running in just a few minutes</p>
+              <h2 className="fl-h2">Quick start</h2>
+              <p className="fl-body">Get your instance up and running in a few minutes.</p>
             </div>
             <div className="fl-fork-stack">
               <div className="fl-card fl-fork-card">
-                <h3>Interactive Setup (Recommended)</h3>
+                <h3>Clone and run</h3>
                 <pre className="fl-fork-pre">{`# Clone the repository
-git clone https://github.com/yourusername/aturi-to.git my-instance
+git clone ${REPO_URL}.git my-instance
 cd my-instance
 
-# Run interactive setup
-node scripts/setup-fork.js
-
-# Install and start
+# Configure, install and start
+cp .env.example .env.local
+nvm use
 npm install
 npm run dev`}</pre>
                 <p>
-                  The setup script will ask for your domain, name, and preferences, then create a{' '}
-                  <code className="fl-code">.env.local</code> file with your configuration.
+                  Set your domain, name and links in{' '}
+                  <code className="fl-code">.env.local</code>, then open http://localhost:3000.
                 </p>
               </div>
               <div className="fl-fork-links">
@@ -114,12 +115,12 @@ npm run dev`}</pre>
                     <span className="fl-icon-tile" aria-hidden>
                       <Terminal size={18} />
                     </span>
-                    <h3>Manual Setup</h3>
+                    <h3>Manual setup</h3>
                   </span>
                   <p>Step-by-step instructions</p>
                 </Link>
                 <a
-                  href="https://github.com/yourusername/aturi-to/blob/main/QUICKSTART.md"
+                  href={`${REPO_URL}#running-locally`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="fl-card fl-cross-card"
@@ -128,7 +129,7 @@ npm run dev`}</pre>
                     <span className="fl-icon-tile" aria-hidden>
                       <Settings size={18} />
                     </span>
-                    <h3>Full Guide</h3>
+                    <h3>Full guide</h3>
                   </span>
                   <p>Detailed documentation</p>
                 </a>
@@ -143,7 +144,7 @@ npm run dev`}</pre>
                 <Settings size={14} aria-hidden /> Environment
               </span>
               <h2 className="fl-h2">Configuration</h2>
-              <p className="fl-body">Customize your instance through environment variables</p>
+              <p className="fl-body">Customize your instance through environment variables.</p>
             </div>
             <div className="fl-card fl-fork-card">
               <pre className="fl-fork-pre">{`# .env.local
@@ -164,40 +165,43 @@ NEXT_PUBLIC_REPO_URL=https://github.com/you/your-fork`}</pre>
               <span className="fl-kicker">
                 <Terminal size={14} aria-hidden /> Step by step
               </span>
-              <h2 className="fl-h2">Manual Setup</h2>
+              <h2 className="fl-h2">Manual setup</h2>
             </div>
             <ol className="fl-fork-steps">
               <li className="fl-card fl-fork-card">
                 <h3>
-                  <span className="fl-fork-num">1</span> Clone &amp; Configure
+                  <span className="fl-fork-num">1</span> Clone &amp; configure
                 </h3>
-                <pre className="fl-fork-pre">{`git clone https://github.com/yourusername/aturi-to.git
-cd aturi-to
+                <pre className="fl-fork-pre">{`git clone ${REPO_URL}.git
+cd aturi
 cp .env.example .env.local
 # Edit .env.local with your settings`}</pre>
               </li>
 
               <li className="fl-card fl-fork-card">
                 <h3>
-                  <span className="fl-fork-num">2</span> Customize Waypoints
+                  <span className="fl-fork-num">2</span> Customize waypoints
                 </h3>
                 <p>
-                  Edit <code className="fl-code">src/utils/waypoints.tsx</code> to add/remove platforms:
+                  Add or remove apps in{' '}
+                  <code className="fl-code">src/utils/waypoints.data.ts</code>, and list each
+                  one&rsquo;s id in <code className="fl-code">WAYPOINT_ORDER</code>:
                 </p>
-                <pre className="fl-fork-pre">{`export const waypoints: Waypoint[] = [
-  {
-    id: 'your-platform',
-    name: 'Your Platform',
-    urlPattern: (repo, collection, rkey) => {
-      return \`https://platform.com/\${repo}/\${rkey}\`;
-    },
-  },
-];`}</pre>
+                <pre className="fl-fork-pre">{`'your-platform': {
+  id: 'your-platform',
+  name: 'Your Platform',
+  description: 'Open it in Your Platform',
+  getUrl: (handle, collection, rkey) =>
+    \`https://platform.com/\${handle}/\${rkey}\`,
+  supportedTypes: ['post', 'profile'],
+  category: 'atmosphereApps',
+  redirectCompat: [],
+},`}</pre>
               </li>
 
               <li className="fl-card fl-fork-card">
                 <h3>
-                  <span className="fl-fork-num">3</span> Update Branding
+                  <span className="fl-fork-num">3</span> Update branding
                 </h3>
                 <ul className="fl-fork-list">
                   <li>
@@ -214,7 +218,7 @@ cp .env.example .env.local
 
               <li className="fl-card fl-fork-card">
                 <h3>
-                  <span className="fl-fork-num">4</span> Test &amp; Deploy
+                  <span className="fl-fork-num">4</span> Test &amp; deploy
                 </h3>
                 <pre className="fl-fork-pre">{`npm install
 npm run dev  # Test locally at http://localhost:3000
@@ -233,7 +237,7 @@ vercel
             <span className="fl-kicker">
               <Scale size={14} aria-hidden /> License
             </span>
-            <h2 className="fl-h2">GPL v3 Requirements</h2>
+            <h2 className="fl-h2">GPL v3 requirements</h2>
             <div className="fl-body">
               <p>When forking aturi.to, you must:</p>
               <ul className="fl-fork-list">
@@ -255,7 +259,7 @@ vercel
                 <BookOpen size={14} aria-hidden /> Docs
               </span>
               <h2 className="fl-h2">Resources</h2>
-              <p className="fl-body">Everything you need to get started</p>
+              <p className="fl-body">Everything you need to get started.</p>
             </div>
             <div className="fl-card fl-fork-resources">
               {RESOURCES.map((r) => (
@@ -270,11 +274,11 @@ vercel
           {/* Support */}
           <section className="fl-card fl-fork-help">
             <div>
-              <h2 className="fl-cross-title">Need Help?</h2>
+              <h2 className="fl-cross-title">Need help?</h2>
               <p>Check the documentation or open an issue on GitHub.</p>
             </div>
             <a
-              href="https://github.com/yourusername/aturi-to/issues"
+              href={`${REPO_URL}/issues`}
               target="_blank"
               rel="noopener noreferrer"
               className="fl-button"

@@ -15,12 +15,13 @@ import ShareLinkChip from './ShareLinkChip';
 // this is the fallback when the bar isn't in the DOM.
 const NAV_OFFSET_FALLBACK_PX = 56;
 const HEADER_BAR_SELECTOR = '.fn-header-bar';
-// Dead band between the reveal and retract points. The condensed bar lives
-// inside the sticky nav, so showing it grows the nav and nudges the page
-// (and this breadcrumb) down by the strip's height (~33px); a band taller
-// than that keeps the nudge from carrying the breadcrumb back across the
-// line and strobing the reveal.
-const REVEAL_HYSTERESIS_PX = 72;
+// Dead band between the reveal and retract points. The condensed strip
+// overlays the page rather than growing the nav, so revealing it moves
+// nothing; the band only has to absorb sub-pixel scroll positions. It used to
+// be 72px, to outlast a ~33px push from a strip that sat in flow, and on a
+// phone that put the retract line below where this breadcrumb sits at the
+// top of the page, so the strip never went away.
+const REVEAL_HYSTERESIS_PX = 4;
 
 type Props = {
   handle: string | null;
@@ -158,7 +159,7 @@ export default function Breadcrumb({
   }, [trail, setTrail]);
 
   // Reveal the condensed copy once this breadcrumb sits behind the sticky
-  // nav, and retract it only after scrolling well back up. Two thresholds (a
+  // nav, and retract it as soon as it comes back out. Two thresholds (a
   // dead band) rather than one keep the reveal from oscillating at the
   // boundary — see REVEAL_HYSTERESIS_PX. rAF-throttled, passive listeners.
   useEffect(() => {

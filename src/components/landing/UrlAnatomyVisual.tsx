@@ -36,8 +36,9 @@ const PARTS: Part[] = [
     text: '/app.bsky.feed.post',
     label: 'Collection',
     hint: 'The lexicon NSID of the record being linked.',
-    accent: 'var(--accent-moss)',
-    fg: 'var(--fl-anatomy-fill-fg)',
+    // The dot and underline too: the moss fill nearly vanishes on the dark
+    // strip, and the lifted tone is the same moss in light mode.
+    accent: 'var(--fl-anatomy-fill-fg)',
   },
   {
     text: '/3lq9c2fhz3k2v',

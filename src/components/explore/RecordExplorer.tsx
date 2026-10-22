@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Check, Copy, Pencil, SearchX, TriangleAlert } from 'lucide-react';
+import { Check, Copy, Eye, EyeOff, Pencil, SearchX, TriangleAlert } from 'lucide-react';
 import { getRecord, getRecordUrl, type AtRecord } from '@/utils/atproto/pdsClient';
 import { resolveIdentifier, type IdentityBundle } from '@/utils/atproto/identity';
 import { encodeRepo } from '@/utils/atproto/urls';
@@ -408,6 +408,7 @@ function RecordView({
                 </div>
               )}
               <ViewSwitchButton
+                showing={!cardHidden}
                 label={cardHidden ? 'Show rich preview' : 'Hide rich preview'}
                 onToggle={() =>
                   updatePrefs((p) => setSectionHidden(p, 'record', 'richPreview', !cardHidden))
@@ -559,14 +560,18 @@ function CopyTextButton({ value, label }: { value: string; label: string }) {
  * keeps the hit area tight to the text.
  */
 function ViewSwitchButton({
+  showing,
   label,
   onToggle,
 }: {
+  /** Whether the view it governs is on screen; picks the eye glyph. */
+  showing: boolean;
   label: string;
   onToggle: () => void;
 }) {
   return (
     <button type="button" onClick={onToggle} className="fn-rec-switch">
+      {showing ? <EyeOff size={13} aria-hidden /> : <Eye size={13} aria-hidden />}
       {label}
     </button>
   );

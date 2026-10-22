@@ -69,7 +69,7 @@ export default function ProductCards() {
       kicker: 'Browser extension',
       title: 'Jump between clients in one click, or zero',
       copy:
-        'Click the leaf in your toolbar to open what you’re reading in another app, or let auto-redirect send links to your favourite client. The Inspect tab shows the record, PDS, DID and backlinks behind any page.',
+        'Click the leaf in your toolbar to open what you’re reading in another app, or let auto-redirect send links to your favorite client. The Inspect tab shows the record, PDS, DID and backlinks behind any page.',
       short: 'Jump between clients in a click. For Chrome and Firefox on desktop.',
       icon: <Leaf size={19} />,
       href: '/extension',
@@ -79,7 +79,7 @@ export default function ProductCards() {
     },
     {
       id: 'exp',
-      kicker: 'Atmosphere explorer',
+      kicker: 'Atmosphere Explorer',
       title: 'Browse through any account’s data',
       copy:
         'Read every collection, record, and backlink on any PDS, with identity history and audit logs one tab away. Sign in to edit your own records and sync your preferences.',

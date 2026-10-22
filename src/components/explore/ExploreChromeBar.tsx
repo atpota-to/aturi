@@ -174,6 +174,15 @@ export default function ExploreChromeBar() {
   const phone = useMediaQuery('(max-width: 640px)');
   const routeField = field && (!field.inPage || phone) ? field : null;
 
+  // With nothing of the route's own to carry, the bar is a jump search and a
+  // copy-link button. Wide enough for the header's own "go to" field, that is
+  // a second copy of it floating over the page (the header covers the
+  // search; the page carries its own share control), so CSS drops it at that
+  // width (explorer.css, `[data-redundant]`). Done in CSS rather than here
+  // because the media query has no answer during SSR, and gating on it in JS
+  // would paint the bar on every desktop load and then pull it away.
+  const redundant = !takeover && !routeField && !bar && !action;
+
   // On a two-column explorer page, centre the card on the content column
   // rather than the viewport, so it doesn't run over the sidebar or the
   // record's aside. Measured, since the columns are grid tracks whose
@@ -224,7 +233,7 @@ export default function ExploreChromeBar() {
     // relative anchor for the panel, and the card itself — so the two ends of
     // the screen are the same object, one stuck to the top and one to the
     // bottom.
-    <div ref={barRef} className="explore-chrome-bar">
+    <div ref={barRef} className="explore-chrome-bar" data-redundant={redundant || undefined}>
       <div className="container-narrow explore-chrome-shell">
         <div className="explore-chrome-anchor">
           {inPanel && bar && <ChromePanel open={panelOpen} bar={bar} />}
@@ -443,15 +452,18 @@ const REVEAL_TOLERANCE_PX = 4;
 const REVEAL_SLACK_PX = 160;
 
 /**
- * Where the sticky nav ends, measured rather than assumed: it grows by a row
- * when the condensed breadcrumb drops into it, and a list scrolled to the
- * constant alone would have its first line clipped. Falls back to the
- * constant on a route without that nav.
+ * Where the sticky nav ends, measured rather than assumed: the condensed
+ * breadcrumb hangs a row below it once it drops in, and a list scrolled to
+ * the constant alone would have its first line clipped. The strip overlays
+ * the page outside the header's box, so it is measured on its own. Falls
+ * back to the constant on a route without that nav.
  */
 function navBottom(): number {
-  const nav = document.querySelector('.compact-header');
-  const bottom = nav ? nav.getBoundingClientRect().bottom : 0;
-  return Math.max(NAV_OCCLUSION_PX, Math.round(bottom));
+  const bottoms = ['.compact-header', '.fn-sticky-crumbs-wrap'].map((selector) => {
+    const node = document.querySelector(selector);
+    return node ? node.getBoundingClientRect().bottom : 0;
+  });
+  return Math.max(NAV_OCCLUSION_PX, Math.round(Math.max(...bottoms)));
 }
 
 /**

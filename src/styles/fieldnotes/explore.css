@@ -4,10 +4,12 @@
 
 /* ---------- Page width ----------
    The explore layout wraps every page in .container-narrow (800px). The
-   landing and the lexicons list want the mockup's wider 1240px column, so
-   the container widens only when it holds one of those pages. */
+   section's three landings (explore, lexicons, spaces) want the mockup's
+   wider 1240px column, so the container widens only when it holds one of
+   those pages. */
 .container-narrow:has(> .fn-explore),
-.container-narrow:has(> .fn-lexicons) {
+.container-narrow:has(> .fn-lexicons),
+.container-narrow:has(> .fn-spaces-landing) {
   max-width: 1240px;
 }
 
@@ -83,6 +85,14 @@
 .fn-x-intro-search form,
 .fn-lexicons-intro form {
   margin-bottom: 0 !important;
+}
+
+/* Phones: the button under the field, as the explorer's own search box
+   does (globals.css, .fn-searchbox), so the placeholder isn't cut short. */
+@media (max-width: 640px) {
+  .fn-lexicons-intro form {
+    flex-direction: column;
+  }
 }
 
 .fn-x-tries {
@@ -413,12 +423,14 @@
   color: var(--text-primary);
 }
 
+/* --text-tertiary, not --text-faint: these are words to read, and faint
+   lands near 2.3:1 on paper. */
 .fn-list-card-via {
   font-size: 11px;
   font-weight: 600;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: var(--text-faint);
+  color: var(--text-tertiary);
 }
 
 .fn-list-card-headlink {
@@ -564,7 +576,9 @@
 
 @media (max-width: 600px) {
   .fn-list-card .lexicon-row-grid {
-    grid-template-columns: 1.25rem minmax(0, 1fr) 3rem auto;
+    /* Fixed for the same reason as above; 4.5rem clears the widest
+       figure-and-delta pair (~62px). */
+    grid-template-columns: 1.25rem minmax(0, 1fr) 3rem 4.5rem;
     gap: 8px;
     padding: 6px 12px;
   }
@@ -641,7 +655,12 @@
   font-weight: 600;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: var(--text-faint);
+  color: var(--text-tertiary);
+}
+
+.fn-credit-standalone {
+  padding: 0 4px;
+  border-top: 0;
 }
 
 .fn-credit a {
@@ -701,19 +720,17 @@
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(460px, 100%), 1fr));
   gap: 16px;
-  /* Side by side, the two cards share one height; the credit sits at the
-     foot of each (below). */
-  align-items: stretch;
-}
-.fn-lexicons-grid .fn-list-card > .fn-credit {
-  margin-top: auto;
+  /* Each card is as tall as its own content. Stretched to a shared height,
+     the shorter one opened a blank band above its credit that read as a
+     missing row. */
+  align-items: start;
 }
 
 .fn-freshness {
   margin: 0;
   text-align: center;
   font-size: 12px;
-  color: var(--text-faint);
+  color: var(--text-tertiary);
 }
 
 .fn-browse-head {

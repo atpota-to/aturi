@@ -65,9 +65,12 @@
   --lightbox-chrome-border: rgba(255, 255, 255, 0.14);
   --lightbox-chrome-fg: rgba(245, 245, 245, 0.92);
 
-  /* Opacity for the global noise overlay. Lower in light mode so paper
-     backgrounds don't look gritty. */
-  --noise-opacity: 0;
+  /* The paper grain over the whole page (body::after): one seamless tile of
+     monochrome noise carried in alpha only, so it textures every surface
+     without tinting it. Pale flecks on dark themes, ink on light ones, each
+     kept just under the point where it reads as grit. */
+  --noise-opacity: 0.04;
+  --grain-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='g' x='0' y='0' width='100%25' height='100%25' color-interpolation-filters='sRGB'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.25' numOctaves='3' seed='4' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 2.6 0 0 0 -1.15'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E");
 
   /* Text drawn on the primary buttons / active toggles — i.e. on top of
      --accent-moss and --accent-forest. Most schemes keep those accents dark
@@ -205,7 +208,8 @@
   --modal-pane-vignette: inset 0 0 40px rgba(26, 28, 24, 0.06);
   --modal-bottom-fade: linear-gradient(to top, rgba(255, 255, 255, 0.95), transparent);
 
-  --noise-opacity: 0;
+  --noise-opacity: 0.06;
+  --grain-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='g' x='0' y='0' width='100%25' height='100%25' color-interpolation-filters='sRGB'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.25' numOctaves='3' seed='4' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 2.6 0 0 0 -1.15'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E");
 
   /* Deepened from #b5453e: --danger is shared by every light palette, and
      on the warmer scheme backgrounds (ember's parchment especially) the
@@ -1070,9 +1074,9 @@ body > :has(> main) {
    a medium-weight sans, and the old 1.5px read as faint beside it. */
 
 /* Moody atmospheric glow overlay - beneath all content. Field Notes is a
-   flat paper surface, so the overlay (and the grain in body::after) is
-   switched off below rather than deleted, keeping the motion keyframes
-   available to anything else that names them. */
+   flat paper surface, so the overlay is switched off below rather than
+   deleted, keeping the motion keyframes available to anything else that
+   names them. */
 body::before {
   display: none;
   content: '';
@@ -1503,16 +1507,26 @@ button {
   font-style: italic;
 }
 
-/* Noise texture overlay for depth (off in Field Notes, see body::before) */
+/* Paper grain over everything, cards and chrome included, so the whole page
+   reads as one sheet. Static and composited as plain alpha: a blend mode on a
+   full-viewport layer would be re-blended against the page on every scrolled
+   frame, which is where phones drop frames. The tile is small and stitched,
+   so it repeats without seams and rasterizes once. */
 body::after {
-  display: none;
   content: '';
   position: fixed;
   inset: 0;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 800 800' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.8' numOctaves='5' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+  background-image: var(--grain-image);
+  background-size: 160px 160px;
   opacity: var(--noise-opacity);
   pointer-events: none;
   z-index: 9999;
+}
+
+@media print {
+  body::after {
+    display: none;
+  }
 }
 
 /* High contrast: drop the ambient glow and grain overlays — both soften
@@ -1521,28 +1535,6 @@ body::after {
 [data-high-contrast='true'] body::before,
 [data-high-contrast='true'] body::after {
   display: none;
-}
-
-/* Mobile-only fade for status bar and URL bar */
-@media (max-width: 600px) {
-  body::after {
-    mask-image: linear-gradient(to bottom, 
-      rgba(0, 0, 0, 0) 0%, 
-      rgba(0, 0, 0, 0.5) 3%, 
-      rgba(0, 0, 0, 1) 10%, 
-      rgba(0, 0, 0, 1) 90%, 
-      rgba(0, 0, 0, 0.5) 97%, 
-      rgba(0, 0, 0, 0) 100%
-    );
-    -webkit-mask-image: linear-gradient(to bottom, 
-      rgba(0, 0, 0, 0) 0%, 
-      rgba(0, 0, 0, 0.5) 3%, 
-      rgba(0, 0, 0, 1) 10%, 
-      rgba(0, 0, 0, 1) 90%, 
-      rgba(0, 0, 0, 0.5) 97%, 
-      rgba(0, 0, 0, 0) 100%
-    );
-  }
 }
 
 /* Smooth scroll */
@@ -2742,6 +2734,15 @@ html {
   opacity: 0.75;
 }
 
+/* Phones: the button drops under the field, as it does on home, so the
+   field gets the full width and its placeholder ("Handle, DID, at:// URI
+   or URL") isn't cut short by a button beside it. */
+@media (max-width: 640px) {
+  .fn-searchbox {
+    flex-direction: column;
+  }
+}
+
 /* Outbound-link button (explore/LinkButton.tsx). */
 a.fn-link-btn {
   display: inline-flex;
@@ -3757,9 +3758,11 @@ body.has-explore-chrome .fn-footer {
   }
 
   :root {
-    /* Tighter edge gutter on phones. Drives both the container override
-       below and the inline var(--page-edge) wrappers on home + fork. */
-    --page-edge: 0.875rem;
+    /* Edge gutter on phones. Drives both the container override below and
+       the inline var(--page-edge) wrappers on home + fork. 16px, the phone
+       header's own inset, so page content lines up with the logo above it
+       and every page sits on the same edge. */
+    --page-edge: 1rem;
   }
 
   .container,
@@ -3782,19 +3785,20 @@ body.has-explore-chrome .fn-footer {
     font-size: 2rem;
   }
 
-  /* Force code blocks and inline code to wrap on mobile */
+  /* Force code blocks and inline code to wrap on mobile. `anywhere` breaks
+     a token too long for the line (a DID, a URL) wherever it must, and only
+     then; `break-all` split ordinary words mid-word ("htt|ps", "des|cription")
+     in every snippet that happened to reach the edge. */
   code {
-    word-break: break-all;
-    word-wrap: break-word;
-    overflow-wrap: break-word;
+    word-break: normal;
+    overflow-wrap: anywhere;
     white-space: pre-wrap;
   }
   
   pre {
     white-space: pre-wrap !important;
-    word-break: break-all;
-    word-wrap: break-word;
-    overflow-wrap: break-word;
+    word-break: normal;
+    overflow-wrap: anywhere;
     overflow-x: hidden !important; /* Prevent horizontal scroll */
   }
   

@@ -30,8 +30,9 @@ const PARTS: Part[] = [
     text: '/my.bulletin.board',
     label: 'Space type',
     hint: 'An NSID naming the kind of space, defined by the app that creates them.',
-    accent: 'var(--accent-moss)',
-    fg: 'var(--fl-anatomy-fill-fg)',
+    // The dot and underline too: the moss fill nearly vanishes on the dark
+    // strip, and the lifted tone is the same moss in light mode.
+    accent: 'var(--fl-anatomy-fill-fg)',
   },
   {
     text: '/self',

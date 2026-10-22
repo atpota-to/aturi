@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
+import { Braces } from 'lucide-react';
 import { Skeleton } from '@/components/SkeletonLoader';
 import { Segmented } from './primitives';
 import { fetchCollections } from '@/utils/ufos/client';
@@ -116,9 +117,16 @@ export default function BrowseAllLexicons() {
   return (
     <section className="fn-list-card" aria-labelledby="fn-browse-title">
       <div className="fn-list-card-head fn-browse-head">
-        <h2 id="fn-browse-title" className="fn-list-card-title">
-          Browse all lexicons
-        </h2>
+        {/* The same title row as its sibling cards above it. */}
+        <div className="fn-list-card-title-row">
+          <span className="fn-list-card-icon" aria-hidden>
+            <Braces size={14} />
+          </span>
+          <h2 id="fn-browse-title" className="fn-list-card-title">
+            Browse all lexicons
+          </h2>
+          <span className="fn-list-card-via">via UFOs</span>
+        </div>
         <div className="fn-list-card-controls">
           <Segmented
             ariaLabel="Browse view"

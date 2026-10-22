@@ -1055,7 +1055,7 @@ export default function TermsPage() {
 
           {/* Contact */}
           <section>
-            <h3>Contact</h3>
+            <h2>Contact</h2>
             <p>
               Questions, legal notices, privacy requests, abuse reports, or
               other concerns about Aturi can be sent to{' '}

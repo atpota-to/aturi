@@ -196,7 +196,7 @@ a.fn-c-pill:hover {
   overflow-wrap: break-word;
 }
 .fn-prose > :first-child,
-.fn-prose > section:first-child > :first-child {
+.fn-prose > section > :first-child {
   margin-top: 0;
 }
 .fn-prose p {

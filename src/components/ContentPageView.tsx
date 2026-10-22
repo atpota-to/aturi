@@ -11,10 +11,17 @@ import { parseInline, type ContentPage, type InlineSegment } from '@/lib/siteCon
  * live in src/styles/fieldnotes/content.css (.fn-c-*, .fn-prose).
  */
 
-/** An internal href routes through next/link; anything else is a plain anchor. */
+/**
+ * An internal href routes through next/link; anything else is a plain anchor.
+ * A mailto opens the mail app in place: given a new tab, some browsers leave
+ * an empty one behind.
+ */
 function InlineLink({ href, text }: { href: string; text: string }) {
   if (href.startsWith('/')) {
     return <Link href={href}>{text}</Link>;
+  }
+  if (href.startsWith('mailto:')) {
+    return <a href={href}>{text}</a>;
   }
   return (
     <a href={href} target="_blank" rel="noopener noreferrer">

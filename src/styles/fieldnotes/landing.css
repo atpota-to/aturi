@@ -744,6 +744,14 @@
   color: var(--text-tertiary);
 }
 
+/* One width for every destination chip (the widest is ~84px), so the
+   arrows before them line up down the list instead of zig-zagging. */
+.fl-redirect-arrow + .fl-chip {
+  flex: none;
+  min-width: 92px;
+  box-sizing: border-box;
+}
+
 /* Waypoint groups (settings mock). */
 .fl-group {
   border: 1px solid var(--border-medium);
@@ -1128,6 +1136,9 @@
   border: 0 !important;
   background: none !important;
   color: var(--text-accent) !important;
+  /* .nav-link's own 0.95rem would set the browser name larger than the
+     "Also for" it finishes. */
+  font-size: inherit !important;
   font-weight: 600;
 }
 
@@ -1200,8 +1211,8 @@
   font-size: 15px;
 }
 
-/* --accent-moss is a dark fill in both themes: fine as an underline, but
-   about 2:1 as text on the dark strip, so dark mode lifts the text. */
+/* --accent-moss is a dark fill in both themes, about 2:1 on the dark strip
+   as text, dot or underline alike, so dark mode lifts the moss parts. */
 .fl-anatomy {
   --fl-anatomy-fill-fg: var(--accent-moss);
 }
@@ -1306,12 +1317,18 @@
   justify-content: flex-start;
 }
 
+/* The mocks' account is aturi's own, so its avatar carries the leaf; a bare
+   disc read as an image that hadn't loaded. */
 .fl-picker-avatar {
   width: 40px;
   height: 40px;
   flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   border-radius: 50%;
   background: var(--accent-moss);
+  color: var(--text-on-accent);
 }
 
 .fl-picker-name {
@@ -1730,6 +1747,9 @@
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 16px;
+  /* Steps differ a lot in length (a four-line clone beside a ten-line
+     waypoint entry); stretched, the short one was mostly empty card. */
+  align-items: start;
 }
 
 .fl-fork-num {
@@ -1749,6 +1769,9 @@
 .fl-fork-list {
   margin: 0;
   padding-left: 20px;
+  /* Nested in the steps' <ol>, a bare <ul> falls to the hollow second-level
+     marker. */
+  list-style: disc;
   font-size: 14.5px;
   line-height: 1.9;
   color: var(--text-secondary);

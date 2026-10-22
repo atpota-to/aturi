@@ -5,7 +5,7 @@ import HomeHero from '@/components/HomeHero';
 import { FadeIn } from '@/components/FadeIn';
 import ProductCards from '@/components/home/ProductCards';
 import DeveloperCards from '@/components/home/DeveloperCards';
-import { Code2, GitFork, Mail, Scale } from 'lucide-react';
+import { Code2, GitFork, Mail, MessageCircle, Scale } from 'lucide-react';
 
 /** The example AT URI in "Why aturi?", split into the parts it labels. */
 const URI_PARTS: Array<{ text: string; short?: string; label: string }> = [
@@ -73,6 +73,7 @@ export default function HomePage() {
           <div className="fn-home-pair">
             {/* Submit your app card */}
             <section className="fn-card fn-home-devcard" aria-labelledby="fn-home-submit">
+              <span className="fn-home-kicker">Waypoints</span>
               <h3 id="fn-home-submit">Submit your app as a waypoint</h3>
               <p>
                 Building an Atmosphere client or tool? We&apos;d love to consider
@@ -88,7 +89,7 @@ export default function HomePage() {
                   rel="noopener noreferrer"
                   className="fn-home-button"
                 >
-                  DM on Bluesky
+                  <MessageCircle size={14} aria-hidden /> DM on Bluesky
                 </a>
               </div>
             </section>

@@ -1,8 +1,9 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { CloudOff } from 'lucide-react';
 import { useAtprotoSession } from '@/components/AtprotoSessionProvider';
+import { getReduceMotionSnapshot } from '@/lib/a11y';
 import AccountTab from './tabs/AccountTab';
 import GeneralTab from './tabs/GeneralTab';
 import KeyboardTab from './tabs/KeyboardTab';
@@ -83,12 +84,29 @@ export default function SettingsShell() {
     }
   }
 
+  // On a phone the tabs are one row that scrolls sideways, and a tab opened
+  // from a link (#waypoints) can start out past the edge. Bring the open one
+  // into the row, horizontally only; on wider screens the list is a column
+  // that never overflows, so this does nothing there.
+  const navRef = useRef<HTMLElement>(null);
+  useEffect(() => {
+    const nav = navRef.current;
+    const el = nav?.querySelector<HTMLElement>('[aria-selected="true"]');
+    if (!nav || !el) return;
+    const n = nav.getBoundingClientRect();
+    const r = el.getBoundingClientRect();
+    const delta = r.left < n.left ? r.left - n.left - 16 : r.right > n.right ? r.right - n.right + 16 : 0;
+    if (delta) {
+      nav.scrollBy({ left: delta, behavior: getReduceMotionSnapshot() ? 'auto' : 'smooth' });
+    }
+  }, [tab]);
+
   const current = TABS.find((t) => t.id === tab) ?? TABS[0];
 
   return (
     <div className="settings-shell">
       <header className="settings-header">
-        <nav className="settings-nav" role="tablist">
+        <nav ref={navRef} className="settings-nav" role="tablist">
           {TABS.map((t) => (
             <button
               key={t.id}

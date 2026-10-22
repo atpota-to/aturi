@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useState, type KeyboardEvent, type ReactNode } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { resolveIdentifier, type IdentityBundle } from '@/utils/atproto/identity';
 import RepoStatusNotice from './RepoStatusNotice';
@@ -11,7 +11,7 @@ import {
 } from '@/utils/exploreSections';
 import { setSectionHidden } from '@/utils/preferences';
 import Link from 'next/link';
-import { ChevronRight } from 'lucide-react';
+import { ChevronRight, Eye, EyeOff } from 'lucide-react';
 import { pdsHostname } from '@/utils/atproto/pdsServer';
 import { encodeRepo } from '@/utils/atproto/urls';
 import { usePreferences } from '@/components/PreferencesProvider';
@@ -272,6 +272,7 @@ function ProfileViewSwitch({
 }) {
   return (
     <button type="button" onClick={onToggle} className="fx-textlink">
+      {minimal ? <Eye size={13} aria-hidden /> : <EyeOff size={13} aria-hidden />}
       {minimal ? 'Show rich preview' : 'Hide rich preview'}
     </button>
   );
@@ -338,20 +339,48 @@ function TabbedView({ identity }: { identity: IdentityBundle }) {
     router.replace(qs ? `?${qs}` : '?', { scroll: false });
   }
 
+  // The WAI-ARIA tabs pattern: the strip is one tab stop (the open tab), and
+  // the arrow keys, Home and End move between tabs, opening each as it takes
+  // focus.
+  function onTabKeyDown(e: KeyboardEvent<HTMLDivElement>) {
+    const at = TABS.findIndex((t) => t.id === tab);
+    const next =
+      e.key === 'ArrowRight'
+        ? (at + 1) % TABS.length
+        : e.key === 'ArrowLeft'
+          ? (at - 1 + TABS.length) % TABS.length
+          : e.key === 'Home'
+            ? 0
+            : e.key === 'End'
+              ? TABS.length - 1
+              : -1;
+    if (next < 0) return;
+    e.preventDefault();
+    selectTab(TABS[next].id);
+    document.getElementById(`repo-tab-${TABS[next].id}`)?.focus();
+  }
+
   return (
-    <section aria-label="Repository" className="fx-card fx-repo">
-      <div role="tablist" aria-label="Repository views" className="fx-tabs">
+    <section aria-label="Repository" className="fx-repo">
+      <div
+        role="tablist"
+        aria-label="Repository views"
+        className="fx-tabs"
+        onKeyDown={onTabKeyDown}
+      >
         {TABS.map((t) => {
           const active = tab === t.id;
           return (
             <button
               key={t.id}
+              id={`repo-tab-${t.id}`}
               type="button"
               role="tab"
               aria-selected={active}
+              aria-controls="repo-tabpanel"
+              tabIndex={active ? 0 : -1}
               onClick={() => selectTab(t.id)}
               className="fx-tab explore-tab"
-              data-active={active}
             >
               {t.label}
             </button>
@@ -359,7 +388,12 @@ function TabbedView({ identity }: { identity: IdentityBundle }) {
         })}
       </div>
 
-      <div role="tabpanel" className="fx-tabpanel">
+      <div
+        role="tabpanel"
+        id="repo-tabpanel"
+        aria-labelledby={`repo-tab-${tab}`}
+        className="fx-tabpanel"
+      >
         {tab === 'collections' && <CollectionsTab identity={identity} />}
         {tab === 'identity' && <IdentityTab identity={identity} />}
         {tab === 'audit' && <AuditTab identity={identity} />}
@@ -383,7 +417,7 @@ export function RepoNavCard({
 }) {
   const repoPath = `/explore/${encodeRepo(identity.handle || identity.did)}`;
   return (
-    <section aria-label="Repository" className="fx-card fx-repo">
+    <section aria-label="Repository" className="fx-repo">
       <nav aria-label="Repository views" className="fx-tabs">
         {TABS.map((t) => (
           <Link

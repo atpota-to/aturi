@@ -91,9 +91,7 @@ function Frame({
       {children}
 
       <AppearIn delay={0.12}>
-        <div className="fn-list-card">
-          <Credit />
-        </div>
+        <Credit standalone />
       </AppearIn>
     </div>
   );

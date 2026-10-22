@@ -185,6 +185,7 @@ export default function HandleTypeaheadInput({
         aria-activedescendant={
           activeIndex >= 0 ? `${listId}-${activeIndex}` : undefined
         }
+        className="oauth-typeahead-input"
         style={inputStyle}
       />
 
