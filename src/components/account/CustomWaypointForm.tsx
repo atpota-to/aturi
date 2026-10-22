@@ -124,30 +124,17 @@ export default function CustomWaypointForm({ initial, onSave, onCancel }: Props)
   return (
     <form
       onSubmit={handleSubmit}
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '0.875rem',
-        padding: '1rem',
-        background: 'var(--bg-secondary)',
-        border: '1px solid var(--border-medium)',
-      }}
+      className="cw-form"
     >
-      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
-        <h3 style={{ margin: 0, fontSize: '1rem', color: 'var(--text-primary)' }}>
+      <div className="cw-form-head">
+        <h3 className="cw-form-title">
           {isEditing ? 'Edit waypoint' : 'New custom waypoint'}
         </h3>
         <button
           type="button"
           onClick={onCancel}
           aria-label="Cancel"
-          style={{
-            background: 'transparent',
-            border: 0,
-            color: 'var(--text-tertiary)',
-            cursor: 'pointer',
-            padding: '0.25rem',
-          }}
+          className="settings-icon-btn"
         >
           <X size={14} />
         </button>
@@ -164,7 +151,7 @@ export default function CustomWaypointForm({ initial, onSave, onCancel }: Props)
         />
       </Field>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+      <div className="cw-form-grid">
         <Field label="Domain" hint="Display only">
           <input
             className="explore-input"
@@ -186,25 +173,14 @@ export default function CustomWaypointForm({ initial, onSave, onCancel }: Props)
       </div>
 
       <Field label="Handles" required hint="Which kinds of links this waypoint understands">
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+        <div className="cw-chips">
           {TYPE_OPTIONS.map((t) => {
             const active = types.has(t.id);
             return (
               <label
                 key={t.id}
                 title={t.hint}
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '0.375rem',
-                  padding: '0.4rem 0.75rem',
-                  background: active ? 'var(--accent-moss)' : 'var(--bg-tertiary)',
-                  color: active ? 'var(--text-on-accent)' : 'var(--text-secondary)',
-                  border: `1px solid ${active ? 'var(--accent-moss)' : 'var(--border-medium)'}`,
-                  fontSize: '0.8125rem',
-                  cursor: 'pointer',
-                  userSelect: 'none',
-                }}
+                className={`cw-chip ${active ? 'is-active' : ''}`}
               >
                 <input
                   type="checkbox"
@@ -242,25 +218,14 @@ export default function CustomWaypointForm({ initial, onSave, onCancel }: Props)
         label="Auto-redirect families"
         hint="Optional — lets this waypoint be picked as a redirect destination"
       >
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+        <div className="cw-chips">
           {COMPAT_FAMILY_ORDER.map((f) => {
             const active = families.has(f);
             return (
               <label
                 key={f}
                 title={COMPAT_FAMILIES[f]?.description}
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '0.375rem',
-                  padding: '0.35rem 0.65rem',
-                  background: active ? 'var(--accent-moss)' : 'var(--bg-tertiary)',
-                  color: active ? 'var(--text-on-accent)' : 'var(--text-secondary)',
-                  border: `1px solid ${active ? 'var(--accent-moss)' : 'var(--border-medium)'}`,
-                  fontSize: '0.75rem',
-                  cursor: 'pointer',
-                  userSelect: 'none',
-                }}
+                className={`cw-chip ${active ? 'is-active' : ''}`}
               >
                 <input
                   type="checkbox"
@@ -276,41 +241,21 @@ export default function CustomWaypointForm({ initial, onSave, onCancel }: Props)
       </Field>
 
       {error && (
-        <p style={{ color: 'var(--danger)', fontSize: '0.8125rem', margin: 0 }}>{error}</p>
+        <p className="settings-error">{error}</p>
       )}
 
-      <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+      <div className="cw-form-actions">
         <button
           type="button"
           onClick={onCancel}
-          style={{
-            padding: '0.5rem 0.875rem',
-            background: 'transparent',
-            border: '1px solid var(--border-medium)',
-            color: 'var(--text-secondary)',
-            fontFamily: 'var(--font-serif)',
-            fontSize: '0.875rem',
-            cursor: 'pointer',
-          }}
+          className="settings-btn"
         >
           Cancel
         </button>
         <button
           type="submit"
           disabled={!canSubmit}
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '0.375rem',
-            padding: '0.5rem 0.875rem',
-            background: 'var(--accent-moss)',
-            color: 'var(--text-on-accent)',
-            border: '1px solid var(--accent-moss)',
-            fontFamily: 'var(--font-serif)',
-            fontSize: '0.875rem',
-            cursor: canSubmit ? 'pointer' : 'not-allowed',
-            opacity: canSubmit ? 1 : 0.5,
-          }}
+          className="settings-btn is-primary"
         >
           <Save size={13} />
           {isEditing ? 'Save changes' : 'Add waypoint'}
@@ -332,18 +277,13 @@ function Field({
   children: React.ReactNode;
 }) {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
-      <label
-        className="explore-small-caps"
-        style={{ color: 'var(--text-secondary)', fontSize: '0.7rem' }}
-      >
+    <div className="cw-field">
+      <label className="cw-field-label">
         {label}
-        {required && <span style={{ color: 'var(--danger)' }}> *</span>}
+        {required && <span className="cw-field-required"> *</span>}
       </label>
       {children}
-      {hint && (
-        <p style={{ margin: 0, fontSize: '0.7rem', color: 'var(--text-tertiary)' }}>{hint}</p>
-      )}
+      {hint && <p className="cw-field-hint">{hint}</p>}
     </div>
   );
 }

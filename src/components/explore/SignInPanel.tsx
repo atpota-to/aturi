@@ -18,14 +18,7 @@ export default function SignInPanel({ defaultInput }: { defaultInput?: string })
 
   if (step === 'scopes') {
     return (
-      <div
-        style={{
-          padding: '0.75rem',
-          background: 'var(--bg-secondary)',
-          border: '1px solid var(--border-medium)',
-          maxWidth: '24rem',
-        }}
-      >
+      <div className="signin-panel-scopes">
         <ScopeSelector
           account={pendingAccount}
           busy={busy}
@@ -43,12 +36,7 @@ export default function SignInPanel({ defaultInput }: { defaultInput?: string })
         e.preventDefault();
         proceedToScopes(value);
       }}
-      style={{
-        display: 'flex',
-        flexWrap: 'wrap',
-        alignItems: 'stretch',
-        gap: '0.5rem',
-      }}
+      className="signin-panel"
     >
       {/* The wrapper takes over the flex sizing, since it's now the flex item
           and the dropdown positions against it. */}
@@ -59,46 +47,28 @@ export default function SignInPanel({ defaultInput }: { defaultInput?: string })
         wrapperStyle={{ flex: '1 1 220px' }}
         inputStyle={{
           width: '100%',
-          padding: '0.55rem 0.75rem',
-          background: 'var(--bg-tertiary)',
-          border: '1px solid var(--border-medium)',
+          height: 36,
+          boxSizing: 'border-box',
+          padding: '0 12px',
+          background: 'var(--bg-secondary)',
+          border: '1px solid var(--border-strong)',
+          borderRadius: 'var(--radius-control)',
           color: 'var(--text-primary)',
           fontFamily: 'var(--font-mono)',
-          fontSize: '0.85rem',
+          fontSize: 13,
           outline: 'none',
         }}
       />
       <button
         type="submit"
         disabled={!value.trim()}
-        style={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: '0.4rem',
-          padding: '0.55rem 1rem',
-          background: 'var(--accent-moss)',
-          color: 'var(--text-on-accent)',
-          border: '1px solid var(--accent-moss)',
-          fontFamily: 'var(--font-serif)',
-          fontSize: '0.875rem',
-          cursor: 'pointer',
-          opacity: !value.trim() ? 0.6 : 1,
-        }}
+        className="settings-btn is-primary"
       >
         <LogIn size={14} />
         Sign in
       </button>
       {error && (
-        <p
-          style={{
-            flexBasis: '100%',
-            color: 'var(--danger)',
-            fontSize: '0.8125rem',
-            margin: 0,
-          }}
-        >
-          {error}
-        </p>
+        <p className="signin-panel-error">{error}</p>
       )}
     </form>
   );

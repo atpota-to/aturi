@@ -8,6 +8,6 @@ import type { Prefs } from './prefs';
 export function applyAppearance(prefs: Pick<Prefs, 'theme' | 'fontSize'>): void {
   if (typeof document === 'undefined') return;
   const root = document.documentElement;
-  root.dataset.theme = prefs.theme ?? 'dark';
+  root.dataset.theme = prefs.theme ?? 'light';
   root.dataset.fs = prefs.fontSize ?? 'medium';
 }

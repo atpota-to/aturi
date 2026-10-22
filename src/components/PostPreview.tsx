@@ -25,24 +25,6 @@ type PostPreviewProps = {
   hideExplorerCtas?: boolean;
 };
 
-// Compact, Bluesky-style relative timestamp ("now", "5m", "2h", "3d",
-// "2w", "5mo", "1y"). Keeps the post footer from being squished on narrow
-// screens; the full timestamp is retained on hover via a title tooltip.
-// Future timestamps (clock skew) clamp to "now".
-const formatRelativeTime = (date: Date, now: Date = new Date()): string => {
-  const sec = Math.floor((now.getTime() - date.getTime()) / 1000);
-  if (sec < 60) return 'now';
-  const min = Math.floor(sec / 60);
-  if (min < 60) return `${min}m`;
-  const hr = Math.floor(min / 60);
-  if (hr < 24) return `${hr}h`;
-  const day = Math.floor(hr / 24);
-  if (day < 7) return `${day}d`;
-  if (day < 30) return `${Math.floor(day / 7)}w`;
-  if (day < 365) return `${Math.floor(day / 30)}mo`;
-  return `${Math.floor(day / 365)}y`;
-};
-
 // Build a canonical post URL from an AT URI and the post's author.
 // Returns null if either piece is missing or doesn't sanitize to a valid identifier.
 const buildPostUrl = (uri?: string, author?: { did?: string; handle?: string }): string | null => {
@@ -67,11 +49,19 @@ export default function PostPreview({ post, parent, hideExplorerCtas }: PostPrev
     hour: '2-digit',
     minute: '2-digit',
   });
-  // Compact relative form shown in the footer; the full date above stays
-  // available on hover so no information is lost. Falls back to the full
-  // string for unparseable dates (toISOString would otherwise throw).
+  // Short form for the byline ("22 Oct 2026, 03:00"); the long form above
+  // is the hover title. Unparseable dates fall back to the long string
+  // (toISOString would otherwise throw).
   const validDate = !Number.isNaN(createdAt.getTime());
-  const relativeDate = validDate ? formatRelativeTime(createdAt) : formattedDate;
+  const shortDate = validDate
+    ? createdAt.toLocaleString('en-GB', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      })
+    : formattedDate;
 
   // Quote embeds mix several view shapes (ViewRecord, ViewNotFound,
   // ViewBlocked, nested re-quotes), so field access is dynamic by design.
@@ -81,17 +71,7 @@ export default function PostPreview({ post, parent, hideExplorerCtas }: PostPrev
     // Handle blocked/not found records
     if (quotedPost.notFound || quotedPost.blocked) {
       return (
-        <div
-          style={{
-            border: '1px solid var(--border-medium)',
-            padding: '1rem',
-            marginBottom: '1rem',
-            borderRadius: 'var(--radius-control)',
-            background: 'var(--surface-subtle)',
-            color: 'var(--text-tertiary)',
-            fontSize: '0.875rem',
-          }}
-        >
+        <div className="fn-post-quote" style={{ color: 'var(--text-tertiary)' }}>
           {quotedPost.notFound ? 'Post not found' : 'Post unavailable'}
         </div>
       );
@@ -123,18 +103,11 @@ export default function PostPreview({ post, parent, hideExplorerCtas }: PostPrev
               },
             }
           : {})}
-        style={{
-          border: '1px solid var(--border-medium)',
-          padding: '1rem',
-          marginBottom: '1rem',
-          borderRadius: 'var(--radius-control)',
-          background: 'var(--surface-subtle)',
-          transition: 'border-color 0.2s ease',
-          ...(quoteUrl ? { cursor: 'pointer' } : {}),
-        }}
+        className="fn-post-quote"
+        style={quoteUrl ? { cursor: 'pointer' } : undefined}
       >
         {/* Quoted post author */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', minWidth: 0 }}>
           <a
             href={qAuthor?.did || qAuthor?.handle ? `/${sanitizeDid(qAuthor.did) || sanitizeHandle(qAuthor.handle)}` : '#'}
             onClick={(e) => e.stopPropagation()}
@@ -143,18 +116,18 @@ export default function PostPreview({ post, parent, hideExplorerCtas }: PostPrev
             {qAuthor?.avatar ? (
               <div
                 style={{
-                  width: '24px',
-                  height: '24px',
-                  border: '1px solid var(--border-medium)',
+                  width: '20px',
+                  height: '20px',
                   borderRadius: '50%',
                   overflow: 'hidden',
+                  border: '1px solid transparent',
                   transition: 'border-color 0.2s ease',
                 }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.borderColor = 'var(--text-accent)';
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.borderColor = 'var(--border-medium)';
+                  e.currentTarget.style.borderColor = 'transparent';
                 }}
               >
                 <img
@@ -171,11 +144,11 @@ export default function PostPreview({ post, parent, hideExplorerCtas }: PostPrev
             ) : (
               <div
                 style={{
-                  width: '24px',
-                  height: '24px',
-                  border: '1px solid var(--border-medium)',
+                  width: '20px',
+                  height: '20px',
+                  border: '1px solid transparent',
                   borderRadius: '50%',
-                  background: 'var(--bg-secondary)',
+                  background: 'var(--accent-soft)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -185,19 +158,27 @@ export default function PostPreview({ post, parent, hideExplorerCtas }: PostPrev
                   e.currentTarget.style.borderColor = 'var(--text-accent)';
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.borderColor = 'var(--border-medium)';
+                  e.currentTarget.style.borderColor = 'transparent';
                 }}
               >
-                <User size={14} color="var(--text-tertiary)" />
+                <User size={12} color="var(--accent-soft-fg)" />
               </div>
             )}
           </a>
-          <div style={{ fontSize: '0.875rem' }}>
+          <div
+            style={{
+              fontSize: '13px',
+              minWidth: 0,
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+            }}
+          >
             <a
               href={qAuthor?.did || qAuthor?.handle ? `/${sanitizeDid(qAuthor.did) || sanitizeHandle(qAuthor.handle)}` : '#'}
               onClick={(e) => e.stopPropagation()}
               style={{
-                fontWeight: '600',
+                fontWeight: 700,
                 color: 'var(--text-primary)',
                 textDecoration: 'none',
                 transition: 'color 0.2s ease',
@@ -219,6 +200,8 @@ export default function PostPreview({ post, parent, hideExplorerCtas }: PostPrev
                   onClick={(e) => e.stopPropagation()}
                   style={{
                     color: 'var(--text-tertiary)',
+                    fontFamily: 'var(--font-mono)',
+                    fontSize: '12px',
                     textDecoration: 'none',
                     transition: 'color 0.2s ease',
                   }}
@@ -238,10 +221,10 @@ export default function PostPreview({ post, parent, hideExplorerCtas }: PostPrev
 
         {/* Quoted post text */}
         {qRecord.text && (
-          <div style={{ 
-            fontSize: '0.875rem', 
-            color: 'var(--text-secondary)', 
-            marginBottom: qEmbeds.length > 0 ? '0.5rem' : '0',
+          <div style={{
+            fontSize: '14px',
+            lineHeight: 1.5,
+            color: 'var(--text-primary)',
             whiteSpace: 'pre-wrap',
           }}>
             {qRecord.text}
@@ -258,7 +241,6 @@ export default function PostPreview({ post, parent, hideExplorerCtas }: PostPrev
                 key={idx}
                 images={qImages}
                 gap="0.25rem"
-                marginTop="0.5rem"
                 maxHeight="200px"
                 background="var(--bg-secondary)"
                 boxShadow="none"
@@ -455,6 +437,63 @@ export default function PostPreview({ post, parent, hideExplorerCtas }: PostPrev
     );
   };
 
+  // Profile path for an author, shared by the avatar, name and handle links.
+  const profileHref = (a: { did?: string; handle?: string }) =>
+    `/${sanitizeDid(a.did) || sanitizeHandle(a.handle)}`;
+
+  // Hashtags shown as chips in the footer: the record's own `tags` plus any
+  // tag facets in the text, de-duplicated case-insensitively.
+  const tagChips = (() => {
+    const seen = new Set<string>();
+    const out: string[] = [];
+    const add = (raw: unknown) => {
+      const tag = typeof raw === 'string' ? sanitizeHashtag(raw) : null;
+      if (!tag || seen.has(tag.toLowerCase())) return;
+      seen.add(tag.toLowerCase());
+      out.push(tag);
+    };
+    const ownTags = (record as { tags?: unknown }).tags;
+    if (Array.isArray(ownTags)) ownTags.forEach(add);
+    for (const facet of record.facets ?? []) {
+      for (const feature of facet.features) {
+        if (feature.$type === 'app.bsky.richtext.facet#tag') add(feature.tag);
+      }
+    }
+    return out;
+  })();
+
+  const plural = (n: number, one: string, many: string) => (n === 1 ? one : many);
+  const counts = [
+    { key: 'like', Icon: Heart, n: likeCount || 0, label: plural(likeCount || 0, 'like', 'likes') },
+    { key: 'repost', Icon: Repeat2, n: repostCount || 0, label: plural(repostCount || 0, 'repost', 'reposts') },
+    { key: 'reply', Icon: MessageSquare, n: replyCount || 0, label: plural(replyCount || 0, 'reply', 'replies') },
+    { key: 'quote', Icon: Quote, n: quoteCount || 0, label: plural(quoteCount || 0, 'quote', 'quotes') },
+  ];
+
+  // Cross-product link at the end of the footer: out of the universal link
+  // page into the raw record in the explorer, or (inside the explorer, which
+  // is that link's destination) back out to the shareable universal page.
+  const crossLink = (() => {
+    if (!hideExplorerCtas) {
+      const explorePath = explorePathFromAtUri(post.uri);
+      if (!explorePath) return null;
+      return (
+        <Link href={explorePath} prefetch={false} className="profile-explorer-link fn-post-crosslink">
+          <Telescope size={13} aria-hidden />
+          View record data in the Explorer →
+        </Link>
+      );
+    }
+    const postUrl = buildPostUrl(post.uri, author);
+    if (!postUrl) return null;
+    return (
+      <Link href={postUrl} prefetch={false} className="profile-explorer-link fn-post-crosslink">
+        <Globe size={13} aria-hidden />
+        View the universal link page →
+      </Link>
+    );
+  })();
+
   return (
     <>
       {/* Parent Post Context - shown if this is a reply */}
@@ -475,136 +514,46 @@ export default function PostPreview({ post, parent, hideExplorerCtas }: PostPrev
                 },
               }
             : {})}
-          style={{
-            display: 'block',
-            textDecoration: 'none',
-            color: 'inherit',
-            position: 'relative',
-            marginBottom: '-1.5rem',
-            padding: '1rem 1.25rem',
-            background: 'var(--surface-subtle)',
-            border: '1px solid var(--border-medium)',
-            borderRadius: 'var(--radius-card)',
-            transform: 'scale(0.96)',
-            transformOrigin: 'top center',
-            transition: 'all 0.4s ease',
-            paddingBottom: '3rem',
-            zIndex: 0,
-          }}
-          className="parent-card"
+          className="parent-card fn-post-parent"
         >
-          <div style={{ 
-            display: 'flex', 
-            alignItems: 'center', 
-            gap: '0.5rem',
-            marginBottom: '0.75rem',
-            color: 'var(--text-tertiary)',
-            fontSize: '0.875rem',
-          }}>
-            <CornerDownRight size={14} />
+          <div className="fn-post-parent-kicker">
+            <CornerDownRight size={13} aria-hidden />
             <span>Replying to</span>
           </div>
 
           {/* Parent Author */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', minWidth: 0 }}>
             <a
-              href={`/${sanitizeDid(parent.author.did) || sanitizeHandle(parent.author.handle)}`}
+              href={profileHref(parent.author)}
               onClick={(e) => e.stopPropagation()}
               style={{ textDecoration: 'none', flexShrink: 0 }}
             >
-              {parent.author.avatar ? (
-                <div
-                  style={{
-                    width: '32px',
-                    height: '32px',
-                    border: '1px solid var(--border-medium)',
-                  borderRadius: '50%',
-                    overflow: 'hidden',
-                    transition: 'border-color 0.2s ease',
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.borderColor = 'var(--text-accent)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.borderColor = 'var(--border-medium)';
-                  }}
-                >
+              <span className="fn-post-avatar" style={{ width: 28, height: 28 }}>
+                {parent.author.avatar ? (
                   <img
                     src={sanitizeUrl(parent.author.avatar)}
                     alt={parent.author.displayName || parent.author.handle}
-                    style={{
-                      width: '100%',
-                      height: '100%',
-                      objectFit: 'cover',
-                      display: 'block',
-                    }}
                   />
-                </div>
-              ) : (
-                <div
-                  style={{
-                    width: '32px',
-                    height: '32px',
-                    border: '1px solid var(--border-medium)',
-                  borderRadius: '50%',
-                    background: 'var(--bg-secondary)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    transition: 'border-color 0.2s ease',
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.borderColor = 'var(--text-accent)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.borderColor = 'var(--border-medium)';
-                  }}
-                >
-                  <User size={16} color="var(--text-tertiary)" />
-                </div>
-              )}
+                ) : (
+                  <User size={14} aria-hidden />
+                )}
+              </span>
             </a>
-            <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ minWidth: 0, fontSize: '13px', lineHeight: 1.3 }}>
               <a
-                href={`/${sanitizeDid(parent.author.did) || sanitizeHandle(parent.author.handle)}`}
+                href={profileHref(parent.author)}
                 onClick={(e) => e.stopPropagation()}
-                style={{
-                  fontWeight: '600',
-                  color: 'var(--text-primary)',
-                  textDecoration: 'none',
-                  transition: 'color 0.2s ease',
-                  fontSize: '0.875rem',
-                  display: 'block',
-                  lineHeight: '1.2',
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.color = 'var(--text-accent)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.color = 'var(--text-primary)';
-                }}
+                className="fn-post-name"
               >
                 {parent.author.displayName || parent.author.handle}
+              </a>{' '}
+              <a
+                href={profileHref(parent.author)}
+                onClick={(e) => e.stopPropagation()}
+                className="fn-post-handle"
+              >
+                @{parent.author.handle}
               </a>
-              <div style={{ fontSize: '0.875rem', lineHeight: '1.2' }}>
-                <a
-                  href={`/${sanitizeDid(parent.author.did) || sanitizeHandle(parent.author.handle)}`}
-                  onClick={(e) => e.stopPropagation()}
-                  style={{
-                    color: 'var(--text-tertiary)',
-                    textDecoration: 'none',
-                    transition: 'color 0.2s ease',
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.color = 'var(--text-accent)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.color = 'var(--text-tertiary)';
-                  }}
-                >
-                  @{parent.author.handle}
-                </a>
-              </div>
             </div>
           </div>
 
@@ -612,7 +561,7 @@ export default function PostPreview({ post, parent, hideExplorerCtas }: PostPrev
           {parent.record.text && (
             <div
               style={{
-                fontSize: '0.875rem',
+                fontSize: '14px',
                 color: 'var(--text-secondary)',
                 whiteSpace: 'pre-wrap',
                 overflow: 'hidden',
@@ -620,8 +569,7 @@ export default function PostPreview({ post, parent, hideExplorerCtas }: PostPrev
                 display: '-webkit-box',
                 WebkitLineClamp: 3,
                 WebkitBoxOrient: 'vertical',
-                lineHeight: '1.4',
-                marginBottom: parent.embed ? '0.5rem' : '0',
+                lineHeight: '1.45',
               }}
             >
               {parent.record.text}
@@ -671,127 +619,47 @@ export default function PostPreview({ post, parent, hideExplorerCtas }: PostPrev
         );
       })()}
 
-      <div
-        style={{
-          position: 'relative',
-          marginBottom: '2rem',
-          padding: '1.25rem',
-          background: 'var(--bg-secondary)',
-          border: '1px solid var(--border-medium)',
-          transition: 'all 0.4s ease',
-          boxShadow: 'none',
-          borderRadius: 'var(--radius-card)',
-          zIndex: 1,
-        }}
-        className="card post-preview"
-      >
-      {/* Author Info */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
-        <a
-          href={`/${sanitizeDid(author.did) || sanitizeHandle(author.handle)}`}
-          style={{ textDecoration: 'none', flexShrink: 0 }}
-        >
-          {author.avatar ? (
-            <div
-              style={{
-                width: '48px',
-                height: '48px',
-                border: '1px solid var(--border-medium)',
-                borderRadius: '50%',
-                overflow: 'hidden',
-                transition: 'border-color 0.2s ease',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.borderColor = 'var(--text-accent)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.borderColor = 'var(--border-medium)';
-              }}
-            >
-              <img
-                src={sanitizeUrl(author.avatar)}
-                alt={author.displayName || author.handle}
-                style={{
-                  width: '100%',
-                  height: '100%',
-                  objectFit: 'cover',
-                  background: 'var(--bg-tertiary)',
-                  display: 'block',
-                }}
-              />
-            </div>
-          ) : (
-            <div
-              style={{
-                width: '48px',
-                height: '48px',
-                border: '1px solid var(--border-medium)',
-                borderRadius: '50%',
-                background: 'var(--bg-tertiary)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                transition: 'border-color 0.2s ease',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.borderColor = 'var(--text-accent)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.borderColor = 'var(--border-medium)';
-              }}
-            >
-              <User size={24} color="var(--text-tertiary)" />
-            </div>
-          )}
+      <div className="card post-preview fn-post">
+      {/* Author: avatar, name, then the mono handle and date on one line */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0 }}>
+        <a href={profileHref(author)} style={{ textDecoration: 'none', flexShrink: 0 }}>
+          <span className="fn-post-avatar" style={{ width: 40, height: 40 }}>
+            {author.avatar ? (
+              <img src={sanitizeUrl(author.avatar)} alt={author.displayName || author.handle} />
+            ) : (
+              <User size={20} aria-hidden />
+            )}
+          </span>
         </a>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <a
-            href={`/${sanitizeDid(author.did) || sanitizeHandle(author.handle)}`}
-            style={{
-              fontWeight: '600',
-              color: 'var(--text-primary)',
-              textDecoration: 'none',
-              transition: 'color 0.2s ease',
-              display: 'block',
-              lineHeight: '1.2',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.color = 'var(--text-accent)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.color = 'var(--text-primary)';
-            }}
-          >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1px', minWidth: 0 }}>
+          <a href={profileHref(author)} className="fn-post-name" style={{ fontSize: '15px' }}>
             {author.displayName || author.handle}
             {author.pronouns && (
-              <span style={{ fontWeight: '400', color: 'var(--text-tertiary)', marginLeft: '0.5rem' }}>
+              <span style={{ fontWeight: 400, color: 'var(--text-tertiary)', marginLeft: '0.5rem' }}>
                 {author.pronouns}
               </span>
             )}
           </a>
-          <div style={{ fontSize: '0.8125rem', lineHeight: '1.3', fontFamily: 'var(--font-mono)' }}>
-            <a
-              href={`/${sanitizeDid(author.did) || sanitizeHandle(author.handle)}`}
-              style={{
-                color: 'var(--text-tertiary)',
-                textDecoration: 'none',
-                transition: 'color 0.2s ease',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.color = 'var(--text-accent)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.color = 'var(--text-tertiary)';
-              }}
-            >
+          <div className="fn-post-meta">
+            <a href={profileHref(author)} className="fn-post-handle fn-post-handle-accent">
               @{author.handle}
             </a>
+            <span aria-hidden> · </span>
+            {/* Full timestamp on hover; the local-time string can differ
+                between server and client render, so don't warn about it. */}
+            <time
+              dateTime={validDate ? createdAt.toISOString() : undefined}
+              title={formattedDate}
+              suppressHydrationWarning
+            >
+              {shortDate}
+            </time>
           </div>
         </div>
       </div>
 
       {/* Post Content */}
-      <div style={{ marginBottom: '1rem', color: 'var(--text-primary)', fontSize: '1rem', lineHeight: '1.5', pointerEvents: 'auto' }}>
+      <div className="fn-post-text">
         {renderText()}
       </div>
 
@@ -803,7 +671,6 @@ export default function PostPreview({ post, parent, hideExplorerCtas }: PostPrev
           <EmbedImageGrid
             images={mainImages}
             gap="0.5rem"
-            marginBottom="1rem"
             maxHeight="1000px"
             background="var(--bg-tertiary)"
             boxShadow="none"
@@ -816,7 +683,6 @@ export default function PostPreview({ post, parent, hideExplorerCtas }: PostPrev
         <ExternalEmbedCard
           external={embed.external}
           variant="full"
-          marginBottom="1rem"
           thumbMaxHeight="300px"
         />
       )}
@@ -826,7 +692,6 @@ export default function PostPreview({ post, parent, hideExplorerCtas }: PostPrev
         <VideoEmbed
           video={embed}
           variant="full"
-          marginBottom="1rem"
           videoMaxHeight="500px"
         />
       )}
@@ -847,7 +712,6 @@ export default function PostPreview({ post, parent, hideExplorerCtas }: PostPrev
               <EmbedImageGrid
                 images={mediaImages}
                 gap="0.5rem"
-                marginBottom="1rem"
                 maxHeight="1000px"
                 background="var(--bg-tertiary)"
                 boxShadow="none"
@@ -859,7 +723,6 @@ export default function PostPreview({ post, parent, hideExplorerCtas }: PostPrev
             <ExternalEmbedCard
               external={embed.media.external}
               variant="full"
-              marginBottom="1rem"
               thumbMaxHeight="300px"
             />
           )}
@@ -868,7 +731,6 @@ export default function PostPreview({ post, parent, hideExplorerCtas }: PostPrev
             <VideoEmbed
               video={embed.media}
               variant="full"
-              marginBottom="1rem"
               videoMaxHeight="500px"
             />
           )}
@@ -878,124 +740,28 @@ export default function PostPreview({ post, parent, hideExplorerCtas }: PostPrev
         </>
       )}
 
-      {/* Post Metadata */}
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          // Wrap on narrow screens so the timestamp drops to its own line
-          // intact instead of squishing the row; tighter row gap when it does.
-          flexWrap: 'wrap',
-          gap: '0.5rem 1.5rem',
-          paddingTop: '1rem',
-          borderTop: '1px solid var(--border-subtle)',
-          fontSize: '0.875rem',
-          color: 'var(--text-tertiary)',
-          // Collapse inherited line-height so icons align to the text
-          // midline (body's default of 1.7 was floating them above).
-          lineHeight: 1,
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', flexShrink: 0 }}>
-          <MessageSquare size={16} />
-          <span>{formatCount(replyCount || 0)}</span>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', flexShrink: 0 }}>
-          <Repeat2 size={16} />
-          <span>{formatCount(repostCount || 0)}</span>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', flexShrink: 0 }}>
-          <Heart size={16} />
-          <span>{formatCount(likeCount || 0)}</span>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', flexShrink: 0 }}>
-          <Quote size={16} />
-          <span>{formatCount(quoteCount || 0)}</span>
-        </div>
-        {/* Relative time keeps the footer compact; full timestamp on hover. */}
-        <time
-          dateTime={validDate ? createdAt.toISOString() : undefined}
-          title={formattedDate}
-          // Relative time is computed from "now", so the SSR value may differ
-          // from the client at hydration — expected, don't warn.
-          suppressHydrationWarning
-          style={{
-            marginLeft: 'auto',
-            fontSize: '0.75rem',
-            whiteSpace: 'nowrap',
-            flexShrink: 0,
-          }}
-        >
-          {relativeDate}
-        </time>
+      {/* Footer: tag chips, labelled counts, then the cross-product link */}
+      <div className="fn-post-footer">
+        {tagChips.map((tag) => (
+          <a
+            key={tag}
+            href={`https://bsky.app/hashtag/${tag}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="fn-post-tag"
+          >
+            #{tag}
+          </a>
+        ))}
+        {counts.map(({ key, Icon, n, label }) => (
+          <span key={key} className="fn-post-count">
+            <Icon size={15} aria-hidden />
+            <strong>{formatCount(n)}</strong> {label}
+          </span>
+        ))}
+        {crossLink}
       </div>
-
-      {/* Cross-product: jump to this post's raw record in the explorer */}
-      {!hideExplorerCtas && (() => {
-        const explorePath = explorePathFromAtUri(post.uri);
-        if (!explorePath) return null;
-        return (
-          <div
-            style={{
-              paddingTop: '1rem',
-              marginTop: '1rem',
-              borderTop: '1px solid var(--border-subtle)',
-              fontSize: '0.8125rem',
-            }}
-          >
-            <Link
-              href={explorePath}
-              prefetch={false}
-              className="profile-explorer-link"
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '0.4rem',
-                textDecoration: 'none',
-              }}
-            >
-              <Telescope size={12} />
-              View record data in the Explorer →
-            </Link>
-          </div>
-        );
-      })()}
-
-      {/* Inverse of the universal link page's "View record data in the
-          Explorer →" CTA: inside the explorer, a quiet link back out to the
-          shareable universal link page for this post. Mirrors the explorer
-          profile card's "View the universal link page →". */}
-      {hideExplorerCtas && (() => {
-        const postUrl = buildPostUrl(post.uri, author);
-        if (!postUrl) return null;
-        return (
-          <div
-            style={{
-              paddingTop: '1rem',
-              marginTop: '1rem',
-              borderTop: '1px solid var(--border-subtle)',
-              fontSize: '0.8125rem',
-            }}
-          >
-            <Link
-              href={postUrl}
-              prefetch={false}
-              className="profile-explorer-link"
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '0.4rem',
-                textDecoration: 'none',
-              }}
-            >
-              <Globe size={12} />
-              View the universal link page →
-            </Link>
-          </div>
-        );
-      })()}
     </div>
     </>
   );
 }
-

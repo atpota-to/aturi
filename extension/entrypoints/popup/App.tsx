@@ -628,6 +628,7 @@ function NoAtmosphereView({
                     >
                       <WaypointIcon id={w.id} name={w.name} />
                       <span className="popup-tile-name">{w.name}</span>
+                      <span className="popup-tile-desc">{homePageSubtitle(w, prefs.customWaypoints)}</span>
                     </button>
                     <CopyWaypointButton
                       copied={copiedId === w.id}

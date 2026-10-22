@@ -41,7 +41,7 @@ import {
   DEFAULT_RECORD_SECTIONS,
   sectionHidden,
 } from '@/utils/exploreSections';
-import { setSectionHidden } from '@/utils/preferences';
+import { setSectionHidden, toggleRecordDataView } from '@/utils/preferences';
 
 type Props = {
   repo: string;
@@ -321,11 +321,6 @@ function RecordView({
     ? { uri: record.uri, cid: record.cid, value: record.value }
     : null;
   const recordInMain = !hasRichCard || cardHidden;
-  const showDataView = (view: 'structuredJson' | 'rawJson') =>
-    updatePrefs((p) => {
-      const other = view === 'structuredJson' ? 'rawJson' : 'structuredJson';
-      return setSectionHidden(setSectionHidden(p, 'record', view, false), 'record', other, true);
-    });
   const recordCard =
     record && recordForPreview ? (
       <section className="fn-rec-card fn-rec-data" aria-labelledby="fn-rec-data-title">
@@ -337,18 +332,14 @@ function RecordView({
             <button
               type="button"
               aria-pressed={!structuredHidden}
-              onClick={() => {
-                if (!rawHidden) showDataView('structuredJson');
-              }}
+              onClick={() => updatePrefs((p) => toggleRecordDataView(p, 'structuredJson'))}
             >
               Fields
             </button>
             <button
               type="button"
               aria-pressed={!rawHidden}
-              onClick={() => {
-                if (!structuredHidden) showDataView('rawJson');
-              }}
+              onClick={() => updatePrefs((p) => toggleRecordDataView(p, 'rawJson'))}
             >
               JSON
             </button>

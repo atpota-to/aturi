@@ -626,6 +626,21 @@ body {
   padding: 8px 4px 6px;
 }
 
+/* The home-page subtitle under each tile name; compact mode drops it, as it
+   always has. */
+.popup-tile-desc {
+  max-width: 100%;
+  font-size: var(--fs-xs);
+  color: var(--text-tertiary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.popup-root.is-compact .popup-tile-desc {
+  display: none;
+}
+
 .popup-empty {
   padding: 28px 20px;
   text-align: center;

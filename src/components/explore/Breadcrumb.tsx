@@ -9,14 +9,17 @@ import { pdsHostname } from '@/utils/atproto/pdsServer';
 import { useBreadcrumbTrail, type BreadcrumbCrumb } from './BreadcrumbContext';
 import ShareLinkChip from './ShareLinkChip';
 
-// Approximate height of the sticky compact nav. The condensed breadcrumb
-// reveals the moment the full one slips up behind the nav, so the top ~96px
-// of the viewport counts as occluded when deciding "scrolled past".
-const NAV_OFFSET_PX = 96;
+// The condensed breadcrumb reveals the moment the full one has slipped
+// entirely up behind the sticky header bar, so the bar's own bottom edge is
+// the line. It is measured on each check (56px on desktop, 52px on phones);
+// this is the fallback when the bar isn't in the DOM.
+const NAV_OFFSET_FALLBACK_PX = 56;
+const HEADER_BAR_SELECTOR = '.fn-header-bar';
 // Dead band between the reveal and retract points. The condensed bar lives
 // inside the sticky nav, so showing it grows the nav and nudges the page
-// (and this breadcrumb) down; a band taller than the bar keeps that nudge
-// from carrying the breadcrumb back across the line and strobing the reveal.
+// (and this breadcrumb) down by the strip's height (~33px); a band taller
+// than that keeps the nudge from carrying the breadcrumb back across the
+// line and strobing the reveal.
 const REVEAL_HYSTERESIS_PX = 72;
 
 type Props = {
@@ -165,13 +168,19 @@ export default function Breadcrumb({
     let shown = false;
     let frame = 0;
 
+    const navOffset = () => {
+      const bar = document.querySelector(HEADER_BAR_SELECTOR);
+      return bar ? bar.getBoundingClientRect().bottom : NAV_OFFSET_FALLBACK_PX;
+    };
+
     const evaluate = () => {
       frame = 0;
       const { bottom } = node.getBoundingClientRect();
-      if (!shown && bottom <= NAV_OFFSET_PX) {
+      const offset = navOffset();
+      if (!shown && bottom <= offset) {
         shown = true;
         setScrolledPast(true);
-      } else if (shown && bottom >= NAV_OFFSET_PX + REVEAL_HYSTERESIS_PX) {
+      } else if (shown && bottom >= offset + REVEAL_HYSTERESIS_PX) {
         shown = false;
         setScrolledPast(false);
       }
@@ -181,6 +190,10 @@ export default function Breadcrumb({
       if (!frame) frame = requestAnimationFrame(evaluate);
     };
 
+    // Start from "not scrolled past": the shared flag can still be true from
+    // the page this one replaced, which would open the strip at the top of
+    // a page whose own breadcrumb is in plain view.
+    setScrolledPast(false);
     evaluate();
     window.addEventListener('scroll', onScroll, { passive: true });
     window.addEventListener('resize', onScroll, { passive: true });
@@ -188,6 +201,7 @@ export default function Breadcrumb({
       window.removeEventListener('scroll', onScroll);
       window.removeEventListener('resize', onScroll);
       if (frame) cancelAnimationFrame(frame);
+      setScrolledPast(false);
     };
   }, [setScrolledPast]);
 

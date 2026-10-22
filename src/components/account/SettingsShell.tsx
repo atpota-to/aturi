@@ -22,15 +22,15 @@ type TabId =
   | 'custom'
   | 'about';
 
-const TABS: { id: TabId; label: string }[] = [
-  { id: 'account', label: 'Account' },
-  { id: 'general', label: 'General' },
-  { id: 'keyboard', label: 'Keyboard' },
-  { id: 'sections', label: 'Sections' },
-  { id: 'waypoints', label: 'Waypoints' },
-  { id: 'redirects', label: 'Redirects' },
-  { id: 'custom', label: 'Custom' },
-  { id: 'about', label: 'About' },
+const TABS: { id: TabId; label: string; lede: string }[] = [
+  { id: 'account', label: 'Account', lede: 'Your identity, your repo and where your settings are kept.' },
+  { id: 'general', label: 'General', lede: 'How Aturi looks, what it tells you about, and how the explorer behaves.' },
+  { id: 'keyboard', label: 'Keyboard', lede: 'Shortcuts, chords and the command palette.' },
+  { id: 'sections', label: 'Sections', lede: 'Which sections the explorer pages show, and in what order.' },
+  { id: 'waypoints', label: 'Waypoints', lede: 'The groups and layout of the universal-link picker.' },
+  { id: 'redirects', label: 'Redirects', lede: 'Open links straight in the client you prefer.' },
+  { id: 'custom', label: 'Custom', lede: 'Your own waypoints, written as URL templates.' },
+  { id: 'about', label: 'About', lede: 'What Aturi is, and where to read more.' },
 ];
 
 const HASH_TO_TAB: Record<string, TabId> = {
@@ -83,9 +83,10 @@ export default function SettingsShell() {
     }
   }
 
+  const current = TABS.find((t) => t.id === tab) ?? TABS[0];
+
   return (
     <div className="settings-shell">
-      {!did && <LocalModeBanner onSignIn={() => pick('account')} />}
       <header className="settings-header">
         <nav className="settings-nav" role="tablist">
           {TABS.map((t) => (
@@ -103,6 +104,11 @@ export default function SettingsShell() {
       </header>
 
       <main className="settings-content">
+        <div className="settings-page-head">
+          <h1 className="settings-page-title">{current.label}</h1>
+          <p className="settings-page-lede">{current.lede}</p>
+        </div>
+        {!did && <LocalModeBanner onSignIn={() => pick('account')} />}
         {tab === 'account' && <AccountTab />}
         {tab === 'general' && <GeneralTab />}
         {tab === 'keyboard' && <KeyboardTab />}
@@ -123,37 +129,11 @@ export default function SettingsShell() {
  */
 function LocalModeBanner({ onSignIn }: { onSignIn: () => void }) {
   return (
-    <div
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: '0.625rem',
-        padding: '0.625rem 0.875rem',
-        marginBottom: '1rem',
-        background: 'var(--bg-secondary)',
-        border: '1px solid var(--border-medium)',
-        borderLeft: '3px solid var(--text-accent)',
-        fontSize: '0.85rem',
-        color: 'var(--text-secondary)',
-        flexWrap: 'wrap',
-      }}
-    >
-      <CloudOff size={14} aria-hidden style={{ color: 'var(--text-accent)', flexShrink: 0 }} />
-      <span style={{ flex: 1, minWidth: 0 }}>
+    <div className="settings-local-banner">
+      <CloudOff size={15} aria-hidden className="settings-local-banner-icon" />
+      <span className="settings-local-banner-text">
         Settings are saved in this browser only.{' '}
-        <button
-          type="button"
-          onClick={onSignIn}
-          style={{
-            background: 'transparent',
-            border: 0,
-            color: 'var(--text-accent)',
-            font: 'inherit',
-            padding: 0,
-            cursor: 'pointer',
-            textDecoration: 'underline',
-          }}
-        >
+        <button type="button" onClick={onSignIn} className="settings-local-banner-link">
           Sign in
         </button>{' '}
         to sync them to your PDS and carry them across devices.

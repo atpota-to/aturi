@@ -6,14 +6,15 @@ import { Check, Copy } from 'lucide-react';
 interface CodeBlockProps {
   /** The literal code/command to render and copy. */
   code: string;
-  /** Optional small uppercase label shown above the block (e.g. "bash", "tsx"). */
+  /** Optional language label shown in the block's header strip (e.g. "bash", "tsx"). */
   label?: string;
 }
 
 /**
- * A copy-to-clipboard code block for the docs page. Leans on the site's global
- * `pre`/`code` styling (mono font, --bg-tertiary surface) and adds a small copy
- * button in the corner — the same interaction the waypoints packages expose.
+ * A copy-to-clipboard code block for the docs page: a mono block on the subtle
+ * surface with a header strip holding the language label and a copy button
+ * (styled by .fn-code in src/styles/fieldnotes/content.css) — the same
+ * interaction the waypoints packages expose.
  * No syntax-highlighting dependency; the site has none and we keep it that way.
  */
 export default function CodeBlock({ code, label }: CodeBlockProps) {
@@ -29,56 +30,31 @@ export default function CodeBlock({ code, label }: CodeBlockProps) {
     }
   }, [code]);
 
+  const copyButton = (
+    <button
+      type="button"
+      className="fn-code-copy"
+      onClick={handleCopy}
+      aria-label={copied ? 'Copied' : 'Copy code'}
+      data-done={copied ? '' : undefined}
+    >
+      {copied ? <Check size={14} /> : <Copy size={14} />}
+      {label ? <span aria-hidden>{copied ? 'Copied' : 'Copy'}</span> : null}
+    </button>
+  );
+
   return (
-    <div style={{ position: 'relative', margin: '1rem 0' }}>
+    <div className="fn-code" data-bare={label ? undefined : ''}>
       {label ? (
-        <div
-          style={{
-            fontFamily: 'var(--font-serif)',
-            fontSize: '0.7rem',
-            letterSpacing: '0.12em',
-            textTransform: 'uppercase',
-            color: 'var(--text-tertiary)',
-            marginBottom: '0.4rem',
-          }}
-        >
-          {label}
+        <div className="fn-code-bar">
+          <span className="fn-code-lang">{label}</span>
+          {copyButton}
         </div>
       ) : null}
-      <pre style={{ margin: 0, paddingRight: '3rem' }}>
-        <code
-          style={{
-            display: 'block',
-            background: 'transparent',
-            padding: 0,
-            color: 'var(--text-secondary)',
-            lineHeight: 1.6,
-          }}
-        >
-          {code}
-        </code>
+      <pre>
+        <code>{code}</code>
       </pre>
-      <button
-        type="button"
-        onClick={handleCopy}
-        aria-label={copied ? 'Copied' : 'Copy code'}
-        style={{
-          position: 'absolute',
-          top: label ? '1.9rem' : '0.5rem',
-          right: '0.5rem',
-          display: 'inline-flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          padding: '0.375rem',
-          background: 'var(--bg-secondary)',
-          border: '1px solid var(--border-medium)',
-          color: copied ? 'var(--text-accent)' : 'var(--text-tertiary)',
-          cursor: 'pointer',
-          transition: 'color 0.2s ease, border-color 0.2s ease',
-        }}
-      >
-        {copied ? <Check size={15} /> : <Copy size={15} />}
-      </button>
+      {label ? null : copyButton}
     </div>
   );
 }

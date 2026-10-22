@@ -40,7 +40,7 @@ const NAV_ITEMS = [
   { href: '/extension', label: 'Extension', icon: Download, inline: true },
   { href: '/mcp', label: 'MCP', icon: Plug, inline: true },
   { href: '/docs', label: 'Integrate', icon: BookOpen, inline: true },
-  { href: '/feedback', label: 'Feedback', icon: MessageSquareHeart, inline: false },
+  { href: '/feedback', label: 'Feedback', icon: MessageSquareHeart, inline: true },
 ];
 
 /** Longest prefix first, so /explore/lexicons is Lexicons, not Explore. */

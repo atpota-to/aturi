@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
+import { Lock } from 'lucide-react';
 import { useAtprotoSession } from '@/components/AtprotoSessionProvider';
 import NotFoundPanel from '@/components/NotFoundPanel';
 import { encodeRepo, shortDid, spaceExplorePath } from '@/utils/atproto/urls';
@@ -18,6 +19,7 @@ import { formatCount } from '../collectionListHelpers';
 import CreateSpaceButton from './CreateSpaceButton';
 import SpaceAccessPanel from './SpaceAccessPanel';
 import SpaceGlance from './SpaceGlance';
+import SpaceTitleBar from './SpaceTitleBar';
 import { SpaceTreeList, useSpaceTree } from './SpaceTree';
 import {
   useOwnPdsTransport,
@@ -65,22 +67,40 @@ export default function SpaceListExplorer({ repo }: { repo: string }) {
  */
 function SpaceListView({ identity }: { identity: IdentityBundle }) {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-      <AppearIn rise>
-        <Breadcrumb
-          handle={identity.handle}
-          did={identity.did}
-          pds={identity.pds}
-          spaceRoot
-          shareUrl={`/explore/${encodeRepo(identity.handle || identity.did)}/space`}
-        />
-      </AppearIn>
+    <div className="fx-explorer" data-page="spaces" data-cols="1">
+      <div className="fx-head">
+        <AppearIn rise>
+          <SpaceTitleBar
+            crumbs={
+              <Breadcrumb
+                handle={identity.handle}
+                did={identity.did}
+                pds={identity.pds}
+                spaceRoot
+                titled
+              />
+            }
+            title="space"
+            pill={
+              <span className="fx-pill fx-sp-pill-accent">
+                <Lock size={12} aria-hidden />
+                Permissioned data
+              </span>
+            }
+            shareUrl={`/explore/${encodeRepo(identity.handle || identity.did)}/space`}
+          />
+        </AppearIn>
+      </div>
       {/* No authority card here. This page is the account's own spaces, and
           what it can say about the authority — that it is this same account,
           and which host answers for it — is fixed for every space on the page
-          and is not why anyone opened it. It still runs at the foot of a
-          space's own page, where it describes that particular space. */}
-      <OwnSpacesPanel identity={identity} />
+          and is not why anyone opened it. It still runs beside a space's own
+          page, where it describes that particular space. */}
+      <div className="fx-main">
+        <AppearIn delay={0.06}>
+          <OwnSpacesPanel identity={identity} />
+        </AppearIn>
+      </div>
     </div>
   );
 }
@@ -115,21 +135,11 @@ function OwnSpacesPanel({ identity }: { identity: IdentityBundle }) {
   const tree = useSpaceTree({ enabled: canList, limit: OWN_SPACES_LIMIT });
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '0.75rem' }}>
-        <h2
-          style={{
-            margin: 0,
-            fontFamily: 'var(--font-serif)',
-            fontWeight: 400,
-            fontSize: '1rem',
-            color: 'var(--text-primary)',
-          }}
-        >
-          Spaces this account has written to
-        </h2>
+    <section className="fx-card fx-sp-section">
+      <div className="fx-sp-head">
+        <h2 className="fx-sp-h2">Spaces this account has written to</h2>
         {canCreate && transport && (
-          <span style={{ marginLeft: 'auto' }}>
+          <span className="fx-sp-head-end">
             <CreateSpaceButton
               transport={transport}
               authority={identity.handle || identity.did}
@@ -146,53 +156,63 @@ function OwnSpacesPanel({ identity }: { identity: IdentityBundle }) {
         />
       )}
       {grant !== 'anonymous' && !isSelf && grant !== 'unknown' && (
-        <p style={noteStyle}>
-          Only the account itself can list this. A PDS keeps the record of which
-          spaces it has written to for its own account and no one else’s, so
-          there is no way to ask it about somebody else, not even with a
-          whole-space credential.
-          {signedInDid && (
-            <>
-              {' '}
-              <Link href={`/explore/${encodeRepo(signedInDid)}/space`} prefetch={false} className="explore-json-link">
-                See your own spaces
-              </Link>
-              .
-            </>
-          )}
-        </p>
+        <NotSelfNote signedInDid={signedInDid} />
       )}
 
-      {isSelf && grant === 'unknown' && (
-        <p className="explore-placeholder">Checking your access…</p>
-      )}
+      {isSelf && grant === 'unknown' && <p className="fx-sp-msg">Checking your access…</p>}
       {isSelf && grant === 'none' && <SpaceAccessPanel state={{ status: 'no-grant' }} />}
 
       {canList && (
         <>
-          {tree.error && <p className="explore-error">{tree.error}</p>}
+          {tree.error && <p className="fx-sp-err">{tree.error}</p>}
           {!tree.error && tree.loading && tree.uris.length === 0 && (
-            <SkeletonRowList rows={4} trailingWidth="5rem" />
+            <div className="fx-sp-body">
+              <SkeletonRowList rows={4} trailingWidth="5rem" />
+            </div>
           )}
           {!tree.error && !tree.loading && tree.uris.length === 0 && (
-            <p className="explore-placeholder">
-              This account hasn’t written to any spaces yet.
-            </p>
+            <p className="fx-sp-msg">This account hasn’t written to any spaces yet.</p>
           )}
           {tree.uris.length > 0 && (
-            <>
+            <div className="fx-sp-body">
               <SpaceGlance tree={tree} myDid={signedInDid ?? ''} />
               <SpaceTreeList tree={tree} memberDid={signedInDid ?? ''} />
-            </>
+            </div>
           )}
           {tree.more && (
-            <p style={noteStyle}>
+            <p className="fx-sp-note fx-sp-foot">
               Showing the first {OWN_SPACES_LIMIT} spaces; the listing was cut
               off before the end.
             </p>
           )}
         </>
       )}
+    </section>
+  );
+}
+
+/**
+ * Why a signed-in visitor looking at somebody else's spaces sees no list, with
+ * the way to their own.
+ */
+function NotSelfNote({ signedInDid }: { signedInDid: string | null | undefined }) {
+  return (
+    <div className="fx-sp-body">
+      <p className="fx-sp-note">
+        Only the account itself can list this. A PDS keeps the record of which
+        spaces it has written to for its own account and no one else’s, so
+        there is no way to ask it about somebody else, not even with a
+        whole-space credential.
+        {signedInDid && (
+          <>
+            {' '}
+            <Link href={`/explore/${encodeRepo(signedInDid)}/space`} prefetch={false}>
+              See your own spaces
+            </Link>
+            .
+          </>
+        )}
+      </p>
     </div>
   );
 }
@@ -283,18 +303,13 @@ export function SpaceWrittenList({
 
   return (
     <AppearIn delay={0.1} id={CHROME_RESULTS_ID}>
-      <section style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-        <h2
-          style={{
-            margin: 0,
-            fontFamily: 'var(--font-serif)',
-            fontWeight: 400,
-            fontSize: '1rem',
-            color: 'var(--text-primary)',
-          }}
-        >
-          Spaces this account has written to
-        </h2>
+      <section className="fx-card fx-sp-section">
+        <div className="fx-sp-head">
+          <h2 className="fx-sp-h2">Spaces this account has written to</h2>
+          {uris.length > 0 && (
+            <span className="fx-sp-head-count">{formatCount(uris.length)}</span>
+          )}
+        </div>
 
         {grant === 'anonymous' && (
           <SpaceAccessPanel
@@ -304,49 +319,35 @@ export function SpaceWrittenList({
           />
         )}
         {grant !== 'anonymous' && !isSelf && grant !== 'unknown' && (
-          <p style={noteStyle}>
-            Only the account itself can list this. A PDS keeps the record of
-            which spaces it has written to for its own account and no one
-            else’s, so there is no way to ask it about somebody else, not even
-            with a whole-space credential.
-            {signedInDid && (
-              <>
-                {' '}
-                <Link href={`/explore/${encodeRepo(signedInDid)}/space`} prefetch={false} className="explore-json-link">
-                  See your own spaces
-                </Link>
-                .
-              </>
-            )}
-          </p>
+          <NotSelfNote signedInDid={signedInDid} />
         )}
 
-        {isSelf && grant === 'unknown' && (
-          <p className="explore-placeholder">Checking your access…</p>
-        )}
+        {isSelf && grant === 'unknown' && <p className="fx-sp-msg">Checking your access…</p>}
         {isSelf && grant === 'none' && <SpaceAccessPanel state={{ status: 'no-grant' }} />}
 
         {canList && (
           <>
-            {error && <p className="explore-error">{error}</p>}
+            {error && <p className="fx-sp-err">{error}</p>}
             {!error && loading && uris.length === 0 && (
-              <SkeletonRowList rows={4} trailingWidth="5rem" />
+              <div className="fx-sp-body">
+                <SkeletonRowList rows={4} trailingWidth="5rem" />
+              </div>
             )}
             {!error && !loading && uris.length === 0 && (
-              <p className="explore-placeholder">
+              <p className="fx-sp-msg">
                 {type
                   ? 'No spaces of this type have been written to from this account.'
                   : 'This account hasn’t written to any spaces yet.'}
               </p>
             )}
             {uris.length > 0 && visible.length === 0 && (
-              <p className="explore-placeholder">
+              <p className="fx-sp-msg">
                 No spaces match <code>{filter.trim()}</code>.
               </p>
             )}
             {visible.length > 0 && <SpaceRows uris={visible} selfDid={signedInDid} />}
             {!complete && uris.length > 0 && (
-              <p style={noteStyle}>
+              <p className="fx-sp-note fx-sp-foot">
                 Showing the first {formatCount(uris.length)} spaces; the listing
                 was cut off before the end.
               </p>
@@ -410,61 +411,31 @@ function useAuthorityHandles(uris: string[]): Map<string, string> {
 export function SpaceRows({ uris, selfDid }: { uris: string[]; selfDid?: string | null }) {
   const handles = useAuthorityHandles(uris);
   return (
-    <ul
-      style={{
-        listStyle: 'none',
-        margin: 0,
-        padding: 0,
-        border: '1px solid var(--border-medium)',
-        background: 'var(--bg-secondary)',
-      }}
-    >
+    <ul className="fx-sp-list">
       {uris.map((uri) => {
         const parts = parseSpaceAtUri(uri);
         return (
-          <li key={uri} style={{ borderBottom: '1px solid var(--border-subtle)' }}>
+          <li key={uri}>
             {parts ? (
-              <Link href={spaceExplorePath(parts)} prefetch={false} style={spaceRowStyle}>
-                <code style={{ background: 'transparent', padding: 0, color: 'var(--text-primary)' }}>
-                  {parts.spaceType}
-                </code>
-                <span style={{ color: 'var(--text-tertiary)', overflowWrap: 'anywhere' }}>
-                  {parts.skey}
-                </span>
-                <span
-                  style={{
-                    marginLeft: 'auto',
-                    display: 'inline-flex',
-                    alignItems: 'baseline',
-                    gap: '0.5rem',
-                    color: 'var(--text-tertiary)',
-                    overflowWrap: 'anywhere',
-                  }}
-                >
+              <Link href={spaceExplorePath(parts)} prefetch={false} className="fx-sp-row">
+                <code className="fx-sp-row-main">{parts.spaceType}</code>
+                <span className="fx-sp-row-sub">{parts.skey}</span>
+                <span className="fx-sp-row-end">
                   {/* Falls back to the DID until the handle resolves, and stays
                       on the DID if it never does — an authority with no
                       bidirectionally valid handle is still a real authority. */}
-                  {handles.get(parts.authority)
-                    ? `@${handles.get(parts.authority)}`
-                    : shortDid(parts.authority)}
-                  {selfDid === parts.authority && (
-                    <span
-                      style={{
-                        fontSize: '0.7rem',
-                        padding: '0.05rem 0.35rem',
-                        border: '1px solid var(--border-subtle)',
-                        color: 'var(--text-tertiary)',
-                      }}
-                    >
-                      yours
-                    </span>
-                  )}
+                  <span className="fx-sp-row-mono">
+                    {handles.get(parts.authority)
+                      ? `@${handles.get(parts.authority)}`
+                      : shortDid(parts.authority)}
+                  </span>
+                  {selfDid === parts.authority && <span className="fx-row-you">yours</span>}
                 </span>
               </Link>
             ) : (
-              <div style={{ ...spaceRowStyle, color: 'var(--text-tertiary)' }}>
-                <code style={{ background: 'transparent', padding: 0 }}>{uri}</code>
-                <span>unrecognised address</span>
+              <div className="fx-sp-row" data-muted>
+                <code>{uri}</code>
+                <span className="fx-sp-row-end">unrecognised address</span>
               </div>
             )}
           </li>
@@ -473,23 +444,3 @@ export function SpaceRows({ uris, selfDid }: { uris: string[]; selfDid?: string 
     </ul>
   );
 }
-
-export const spaceRowStyle: React.CSSProperties = {
-  display: 'flex',
-  flexWrap: 'wrap',
-  alignItems: 'baseline',
-  gap: '0.75rem',
-  padding: '0.625rem 1rem',
-  fontFamily: 'var(--font-mono)',
-  fontSize: '0.85rem',
-  color: 'var(--text-primary)',
-  textDecoration: 'none',
-};
-
-const noteStyle: React.CSSProperties = {
-  margin: 0,
-  fontSize: '0.8rem',
-  lineHeight: 1.5,
-  color: 'var(--text-tertiary)',
-  maxWidth: '46rem',
-};

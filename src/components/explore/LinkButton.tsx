@@ -12,11 +12,12 @@ type Props = {
 };
 
 /**
- * An outbound-link button styled to match CopyButton (variant="subtle",
- * compact) so the explorer's copy row reads as one consistent set of
- * pill buttons. The external-link icon signals "navigates away", paired
- * with the copy buttons' copy icon — which is why the row no longer needs
- * a leading "Copy" label to explain itself.
+ * An outbound-link button in the Field Notes button style (sans, 8px corners,
+ * hairline border; styles in globals.css under `.fn-link-btn`), sized to sit
+ * beside the compact CopyButtons in the explorer's copy card. The
+ * external-link icon signals "navigates away", paired with the copy buttons'
+ * copy icon — which is why the row no longer needs a leading "Copy" label to
+ * explain itself.
  */
 export default function LinkButton({ href, label, external, title }: Props) {
   const inner = (
@@ -33,8 +34,7 @@ export default function LinkButton({ href, label, external, title }: Props) {
         target="_blank"
         rel="noreferrer"
         title={title ?? label}
-        className="fx-copy"
-        data-variant="subtle"
+        className="fn-link-btn"
       >
         {inner}
       </a>
@@ -46,8 +46,7 @@ export default function LinkButton({ href, label, external, title }: Props) {
       href={href}
       prefetch={false}
       title={title ?? label}
-      className="fx-copy"
-      data-variant="subtle"
+      className="fn-link-btn"
     >
       {inner}
     </Link>

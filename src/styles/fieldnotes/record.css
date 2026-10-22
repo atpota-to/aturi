@@ -697,34 +697,21 @@
 
 /* --- rich preview (post / profile / margin cards) ------------------------ */
 
-/* PostPreview and the margin cards draw with inline styles of their own (and
-   are shared with the universal link page), so the record page brings them
-   into line here: rounded white card, round avatar, no drop shadows. */
-.fn-rec-preview .card {
+/* PostPreview carries the Field Notes card itself (globals.css, "Post
+   preview"); here it only drops its standalone bottom margin. The profile and
+   margin cards still draw with inline styles of their own, so they are
+   brought into line: rounded white card, no drop shadow. */
+.fn-rec-preview .card.post-preview {
+  margin-bottom: 0;
+}
+.fn-rec-preview .card:not(.post-preview) {
   border-radius: var(--radius-card) !important;
   box-shadow: none !important;
   margin-bottom: 0 !important;
   padding: 20px !important;
 }
-.fn-rec-preview .card img[alt] {
+.fn-rec-preview .card:not(.post-preview) img[alt] {
   border-radius: 10px;
-}
-.fn-rec-preview .card > div:first-child > a:first-child > div {
-  border-radius: 50% !important;
-  border: 0 !important;
-  width: 40px !important;
-  height: 40px !important;
-}
-.fn-rec-preview .card > div:first-child > a:first-child > div img {
-  border-radius: 50%;
-}
-.fn-rec-preview .parent-card {
-  border-radius: var(--radius-card) !important;
-  box-shadow: none !important;
-}
-.fn-rec-preview [role='link'] {
-  border-radius: 10px !important;
-  background: var(--surface-subtle) !important;
 }
 
 /* --- engagement ---------------------------------------------------------- */
@@ -767,15 +754,6 @@
   flex-wrap: wrap;
   gap: 6px;
 }
-.fn-rec-copy-links a {
-  border-radius: 6px;
-  border-color: var(--border-medium) !important;
-  font-family: var(--font-sans) !important;
-  font-size: 12.5px !important;
-  height: 26px;
-  box-sizing: border-box;
-}
-
 .fn-rec-signin {
   padding: 14px 16px;
   display: flex;
@@ -925,7 +903,7 @@
     flex: 1 1 auto;
     height: 36px;
   }
-  .fn-rec-preview .card {
+  .fn-rec-preview .card:not(.post-preview) {
     padding: 14px !important;
   }
   .fn-open-row[data-rank] {

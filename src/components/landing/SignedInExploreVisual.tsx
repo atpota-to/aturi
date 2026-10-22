@@ -19,151 +19,42 @@ import {
  */
 export default function SignedInExploreVisual() {
   return (
-    <div
-      style={{
-        position: 'relative',
-        width: '100%',
-        maxWidth: '460px',
-        margin: '0 auto',
-        background: 'var(--bg-secondary)',
-        border: '1px solid var(--border-medium)',
-        boxShadow: 'var(--shadow-overlay)',
-        fontFamily: 'var(--font-serif)',
-        color: 'var(--text-primary)',
-      }}
-    >
-      {/* Header strip with signed-in pill + Synced indicator. */}
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: '0.5rem',
-          padding: '10px 14px',
-          borderBottom: '1px solid var(--border-subtle)',
-          background:
-            'linear-gradient(180deg, var(--bg-secondary), var(--bg-primary))',
-        }}
-      >
-        <div
-          style={{
-            fontSize: '0.6rem',
-            color: 'var(--text-tertiary)',
-            textTransform: 'uppercase',
-            letterSpacing: '0.12em',
-          }}
-        >
-          Explore · signed in as @you.bsky.social
-        </div>
-        <span
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '4px',
-            padding: '2px 6px',
-            border: '1px solid var(--text-accent)',
-            color: 'var(--text-accent)',
-            fontFamily: 'var(--font-mono)',
-            fontSize: '0.6rem',
-            letterSpacing: '0.04em',
-            background: 'var(--bg-tertiary)',
-          }}
-          title="Preferences sync to your PDS"
-        >
-          <Cloud size={10} aria-hidden />
+    <div className="fl-mock">
+      {/* Header strip with the signed-in account and the Synced indicator. */}
+      <div className="fl-mock-head">
+        <span className="fl-mock-head-stack">
+          <span className="fl-mock-label">Explore · signed in</span>
+          <span className="fl-mock-head-title">@you.bsky.social</span>
+        </span>
+        <span className="fl-chip" data-on="" title="Preferences sync to your PDS">
+          <Cloud size={12} aria-hidden />
           Synced
         </span>
       </div>
 
-      {/* You + @them relationship strip. */}
-      <section
-        style={{
-          margin: '10px',
-          padding: '10px 12px',
-          background: 'var(--bg-secondary)',
-          border: '1px solid var(--border-medium)',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '8px',
-        }}
-      >
-        <div
-          style={{
-            fontFamily: 'var(--font-serif)',
-            fontSize: '0.6rem',
-            letterSpacing: '0.1em',
-            textTransform: 'uppercase',
-            color: 'var(--text-tertiary)',
-          }}
-        >
-          You + @aturi.to
-        </div>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px' }}>
-          <Chip icon={<Server size={10} aria-hidden />}>
-            Same PDS · pds.example.host
-          </Chip>
-          <Chip icon={<UserCheck size={10} aria-hidden />} accent>
-            Mutual follow
-            <span style={{ opacity: 0.7, marginLeft: '0.3rem' }}>
-              · since Mar 14, 2024
-            </span>
-          </Chip>
-          <Chip icon={<Users size={10} aria-hidden />}>
-            42 mutuals
-          </Chip>
-          <Chip icon={<Layers size={10} aria-hidden />}>
-            6 lexicons in common
-          </Chip>
-        </div>
-      </section>
+      <div className="fl-mock-body">
+        {/* You + @them relationship strip. */}
+        <section className="fl-relation">
+          <span className="fl-mock-label">You + @aturi.to</span>
+          <div className="fl-chips">
+            <Chip icon={<Server size={11} aria-hidden />}>Same PDS · pds.example.host</Chip>
+            <Chip icon={<UserCheck size={11} aria-hidden />} accent>
+              Mutual follow
+              <span className="fl-relation-since">· since Mar 14, 2024</span>
+            </Chip>
+            <Chip icon={<Users size={11} aria-hidden />}>42 mutuals</Chip>
+            <Chip icon={<Layers size={11} aria-hidden />}>6 lexicons in common</Chip>
+          </div>
+        </section>
 
-      {/* Profile header preview beneath, so the strip reads as a banner
-          on top of an account page rather than a floating chip group. */}
-      <div
-        style={{
-          margin: '0 10px 10px',
-          padding: '10px 12px',
-          background: 'var(--bg-tertiary)',
-          border: '1px solid var(--border-subtle)',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '10px',
-        }}
-      >
-        <div
-          style={{
-            width: 36,
-            height: 36,
-            borderRadius: '50%',
-            background:
-              'linear-gradient(135deg, var(--text-accent), var(--bg-elevated, var(--bg-secondary)))',
-            border: '1px solid var(--border-subtle)',
-            flexShrink: 0,
-          }}
-          aria-hidden
-        />
-        <div style={{ minWidth: 0 }}>
-          <div
-            style={{
-              fontSize: '0.85rem',
-              color: 'var(--text-primary)',
-              fontWeight: 500,
-            }}
-          >
-            aturi.to
-          </div>
-          <div
-            style={{
-              fontFamily: 'var(--font-mono)',
-              fontSize: '0.65rem',
-              color: 'var(--text-tertiary)',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
-            }}
-          >
-            did:plc:gq4fo3u6tqzzdkjlwzpb23tj
-          </div>
+        {/* Profile header preview beneath, so the strip reads as a banner
+            on top of an account page rather than a floating chip group. */}
+        <div className="fl-mock-row">
+          <span className="fl-picker-avatar" data-size="s" aria-hidden />
+          <span className="fl-mock-row-text">
+            <span className="fl-mock-name">aturi.to</span>
+            <span className="fl-mock-sub">did:plc:gq4fo3u6tqzzdkjlwzpb23tj</span>
+          </span>
         </div>
       </div>
     </div>
@@ -180,21 +71,7 @@ function Chip({
   children: React.ReactNode;
 }) {
   return (
-    <span
-      style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: '4px',
-        padding: '3px 7px',
-        background: 'var(--bg-tertiary)',
-        border: `1px solid ${accent ? 'var(--text-accent)' : 'var(--border-subtle)'}`,
-        color: accent ? 'var(--text-accent)' : 'var(--text-secondary)',
-        fontFamily: 'var(--font-serif)',
-        fontSize: '0.68rem',
-        lineHeight: 1,
-        whiteSpace: 'nowrap',
-      }}
-    >
+    <span className="fl-chip" data-on={accent ? '' : undefined}>
       {icon}
       {children}
     </span>

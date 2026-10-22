@@ -264,8 +264,9 @@ export default function WaypointPicker({
       : waypoint.description;
 
   // Compact layouts: groups that have at least one waypoint able to open this
-  // content. The first is always shown; the rest sit behind the "See all"
-  // disclosure, which counts every distinct app across them.
+  // content. All of them show by default, as they always have; the "Show
+  // fewer" disclosure folds the list down to the first group, and its
+  // collapsed label counts every distinct app across them.
   const compactGroups = useMemo(
     () =>
       categorizedWaypoints.filter(({ waypoints }) =>
@@ -282,7 +283,7 @@ export default function WaypointPicker({
     }
     return ids.size;
   }, [compactGroups, handle, collection, rkey, did]);
-  const [showAllGroups, setShowAllGroups] = useState(false);
+  const [showAllGroups, setShowAllGroups] = useState(true);
   const visibleGroups = showAllGroups ? compactGroups : compactGroups.slice(0, 1);
 
   /**

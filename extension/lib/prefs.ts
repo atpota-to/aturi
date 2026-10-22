@@ -125,7 +125,8 @@ export type Prefs = {
    */
   compactMode: boolean;
   /**
-   * Color theme for the popup and settings page. Dark by default.
+   * Color theme for the popup and settings page. Light by default, matching
+   * the web app's Field Notes look.
    */
   theme: 'dark' | 'light';
   /**
@@ -232,7 +233,7 @@ export const DEFAULT_PREFS: Prefs = {
   showRecents: true,
   openInNewTab: false,
   compactMode: false,
-  theme: 'dark',
+  theme: 'light',
   fontSize: 'medium',
   knownWaypointIds: [...WAYPOINT_ORDER],
   popupMode: 'waypoints',

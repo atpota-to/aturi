@@ -9,6 +9,7 @@ import Breadcrumb from '../Breadcrumb';
 import SkeletonSwap from '../skeletons/SkeletonSwap';
 import { SpaceTypeSkeleton } from '../skeletons/pages';
 import { SpaceWrittenList } from './SpaceListExplorer';
+import SpaceTitleBar from './SpaceTitleBar';
 import SpaceTypeCard from './SpaceTypeCard';
 import { useResolvedIdentity } from './useSpaceAccess';
 
@@ -76,25 +77,38 @@ function SpaceTypeView({
   const repoSeg = encodeRepo(identity.handle || identity.did);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-      <AppearIn rise>
-        <Breadcrumb
-          handle={identity.handle}
-          did={identity.did}
-          pds={identity.pds}
-          spaceRoot
-          spaceType={spaceType}
-          shareUrl={`/explore/${repoSeg}/space/${spaceType}`}
+    <div className="fx-explorer" data-page="space-type">
+      <div className="fx-head">
+        <AppearIn rise>
+          <SpaceTitleBar
+            crumbs={
+              <Breadcrumb
+                handle={identity.handle}
+                did={identity.did}
+                pds={identity.pds}
+                spaceRoot
+                spaceType={spaceType}
+                titled
+              />
+            }
+            title={spaceType}
+            pill={<span className="fx-pill">Space type</span>}
+            shareUrl={`/explore/${repoSeg}/space/${spaceType}`}
+          />
+        </AppearIn>
+      </div>
+      <aside className="fx-side" aria-label="Space type">
+        <AppearIn delay={0.05}>
+          <SpaceTypeCard nsid={spaceType} />
+        </AppearIn>
+      </aside>
+      <div className="fx-main">
+        <SpaceWrittenList
+          authorityDid={identity.did}
+          accountLabel={identity.handle || identity.did}
+          type={spaceType}
         />
-      </AppearIn>
-      <AppearIn delay={0.05}>
-        <SpaceTypeCard nsid={spaceType} />
-      </AppearIn>
-      <SpaceWrittenList
-        authorityDid={identity.did}
-        accountLabel={identity.handle || identity.did}
-        type={spaceType}
-      />
+      </div>
     </div>
   );
 }

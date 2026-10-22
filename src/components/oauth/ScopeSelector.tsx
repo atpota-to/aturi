@@ -123,32 +123,21 @@ export default function ScopeSelector({
         e.preventDefault();
         void onContinue(buildScopeString(selected));
       }}
-      style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem' }}
+      className="oauth-scopes"
     >
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+      <div className="oauth-scopes-head">
         <button
           type="button"
           onClick={onBack}
           disabled={busy}
           aria-label="Back"
-          style={backButtonStyle()}
+          className="oauth-scopes-back"
         >
           <ArrowLeft size={14} />
         </button>
         <div style={{ minWidth: 0 }}>
-          <div style={{ fontSize: '0.875rem', color: 'var(--text-primary)' }}>
-            Select permissions
-          </div>
-          <div
-            style={{
-              fontSize: '0.75rem',
-              color: 'var(--text-tertiary)',
-              fontFamily: 'var(--font-mono)',
-              wordBreak: 'break-all',
-            }}
-          >
-            for {account}
-          </div>
+          <div className="oauth-scopes-title">Select permissions</div>
+          <div className="oauth-scopes-account">for {account}</div>
         </div>
       </div>
 
@@ -159,7 +148,7 @@ export default function ScopeSelector({
           and the one warning that paragraph carried (a whole-space read lets
           this app ask any authority, including one a link names, for a
           credential) now lives in that row's own hint. */}
-      <ul style={listStyle()}>
+      <ul className="oauth-scopes-list">
         {(spacesServer === true ? [...WRITE_SCOPES, ...SPACE_SCOPES] : WRITE_SCOPES).map(
           (scope) => (
             <ScopeRow
@@ -176,42 +165,17 @@ export default function ScopeSelector({
       <button
         type="submit"
         disabled={busy}
-        style={{
-          padding: '0.55rem 1rem',
-          background: 'var(--accent-moss)',
-          color: 'var(--text-on-accent)',
-          border: '1px solid var(--accent-moss)',
-          fontFamily: 'var(--font-serif)',
-          fontSize: '0.875rem',
-          cursor: busy ? 'wait' : 'pointer',
-          opacity: busy ? 0.6 : 1,
-        }}
+        className="settings-btn is-primary oauth-scopes-submit"
+        style={busy ? { cursor: 'wait' } : undefined}
       >
         {busy ? 'Redirecting…' : 'Continue →'}
       </button>
 
-      <p
-        style={{
-          margin: 0,
-          fontSize: '0.7rem',
-          color: 'var(--text-tertiary)',
-          lineHeight: 1.4,
-        }}
-      >
+      <p className="oauth-scopes-note">
         Reading records is always allowed: your repo is public.
       </p>
 
-      {error && (
-        <p
-          style={{
-            margin: 0,
-            color: 'var(--danger)',
-            fontSize: '0.75rem',
-          }}
-        >
-          {error}
-        </p>
-      )}
+      {error && <p className="oauth-scopes-error">{error}</p>}
     </form>
   );
 }
@@ -229,7 +193,10 @@ function ScopeRow({
 }) {
   return (
     <li>
-      <label style={rowStyle(checked, busy)}>
+      <label
+        className={`oauth-scope-row ${checked ? 'is-checked' : ''}`}
+        style={busy ? { cursor: 'wait' } : undefined}
+      >
         <input
           type="checkbox"
           className="scope-checkbox"
@@ -241,59 +208,10 @@ function ScopeRow({
           <Check size={12} strokeWidth={3} />
         </span>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: '0.85rem', color: 'var(--text-primary)' }}>
-            {scope.label}
-          </div>
-          <div
-            style={{
-              fontSize: '0.7rem',
-              color: 'var(--text-tertiary)',
-              lineHeight: 1.4,
-            }}
-          >
-            {scope.hint}
-          </div>
+          <div className="oauth-scope-label">{scope.label}</div>
+          <div className="oauth-scope-hint">{scope.hint}</div>
         </div>
       </label>
     </li>
   );
-}
-
-function listStyle(): React.CSSProperties {
-  return {
-    listStyle: 'none',
-    padding: 0,
-    margin: 0,
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '0.375rem',
-  };
-}
-
-function backButtonStyle(): React.CSSProperties {
-  return {
-    display: 'inline-flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: 24,
-    height: 24,
-    background: 'var(--bg-tertiary)',
-    border: '1px solid var(--border-subtle)',
-    color: 'var(--text-secondary)',
-    cursor: 'pointer',
-    flexShrink: 0,
-  };
-}
-
-function rowStyle(checked: boolean, busy?: boolean): React.CSSProperties {
-  return {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '0.75rem',
-    padding: '0.625rem 0.75rem',
-    background: checked ? 'var(--bg-tertiary)' : 'transparent',
-    border: '1px solid',
-    borderColor: checked ? 'var(--border-medium)' : 'var(--border-subtle)',
-    cursor: busy ? 'wait' : 'pointer',
-  };
 }

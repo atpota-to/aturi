@@ -63,8 +63,8 @@
   color: var(--text-secondary);
 }
 
-/* The shared SearchBox, enlarged to the hero's field. Its controls carry
-   inline styles, hence the !important on the properties being changed. */
+/* The shared SearchBox (globals.css, .fn-searchbox), enlarged to the hero's
+   field. */
 .fn-home-search {
   width: 100%;
   max-width: 600px;
@@ -72,49 +72,25 @@
   text-align: left;
 }
 
-.fn-home-search form {
-  margin-bottom: 0 !important;
-  gap: 8px !important;
+.fn-home-search .fn-searchbox {
+  margin-bottom: 0;
 }
 
-.fn-home-search input[type='text'] {
+.fn-home-search .fn-searchbox-input {
   height: 52px;
-  box-sizing: border-box;
-  padding: 0 16px 0 44px !important;
-  border-radius: 10px;
-  border-color: var(--border-strong) !important;
-  font-family: var(--font-sans) !important;
-  font-size: 15px !important;
+  padding: 0 16px 0 44px;
 }
 
-.fn-home-search input[type='text']:focus {
-  border-color: var(--text-accent) !important;
-}
-
-.fn-home-search input[type='text']::placeholder {
-  color: var(--text-tertiary);
-}
-
-.fn-home-search form > div > svg:first-child {
-  left: 16px !important;
+.fn-home-search .fn-searchbox-icon {
+  left: 16px;
   width: 18px;
   height: 18px;
 }
 
-.fn-home-search button[type='submit'] {
+.fn-home-search .fn-searchbox-submit {
   height: 52px;
-  padding: 0 22px !important;
-  border-radius: 10px;
-  border: 0 !important;
-  font-family: var(--font-sans) !important;
-  font-size: 15px !important;
-  font-weight: 600;
-}
-
-.fn-home-search ul[role='listbox'],
-.fn-home-search form > div > div {
-  border-radius: 10px;
-  overflow: hidden;
+  padding: 0 22px;
+  border: 0;
 }
 
 .fn-home-browsers {
@@ -812,18 +788,18 @@
   .fn-home-search {
     margin-top: 4px;
   }
-  .fn-home-search form {
+  .fn-home-search .fn-searchbox {
     flex-direction: column;
   }
-  .fn-home-search input[type='text'] {
+  .fn-home-search .fn-searchbox-input {
     height: 50px;
-    padding-left: 42px !important;
-    font-size: 16px !important;
+    padding-left: 42px;
+    font-size: 16px;
   }
-  .fn-home-search form > div > svg:first-child {
-    left: 14px !important;
+  .fn-home-search .fn-searchbox-icon {
+    left: 14px;
   }
-  .fn-home-search button[type='submit'] {
+  .fn-home-search .fn-searchbox-submit {
     height: 48px;
     font-weight: 700;
   }

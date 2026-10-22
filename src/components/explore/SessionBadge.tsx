@@ -17,26 +17,11 @@ export default function SessionBadge() {
   if (loading || !did) return null;
 
   return (
-    <div
-      style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: '0.5rem',
-        fontSize: '0.8125rem',
-        color: 'var(--text-secondary)',
-      }}
-    >
+    <div className="session-badge">
       <Link
         href={`/explore/${encodeRepo(did)}`}
         prefetch={false}
-        style={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: '0.375rem',
-          color: 'var(--text-secondary)',
-          textDecoration: 'none',
-          fontFamily: 'var(--font-mono)',
-        }}
+        className="session-badge-link"
         title={did}
       >
         <User size={12} />
@@ -49,21 +34,7 @@ export default function SessionBadge() {
         onClick={() => void signOut()}
         title="Sign out"
         aria-label="Sign out"
-        style={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          padding: '0.25rem',
-          background: 'transparent',
-          border: 0,
-          color: 'var(--text-tertiary)',
-          cursor: 'pointer',
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.color = 'var(--danger)';
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.color = 'var(--text-tertiary)';
-        }}
+        className="session-badge-signout"
       >
         <LogOut size={12} />
       </button>

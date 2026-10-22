@@ -1493,3 +1493,1015 @@
     padding: 14px;
   }
 }
+
+/* ========================================================================== */
+/* --- Spaces -------------------------------------------------------------- */
+/* ========================================================================== */
+/* The permissioned explorer: /explore/{repo}/space/** (list, type, space,
+   member, collection, record) plus the repo page's "Permissioned spaces"
+   section and the space dialogs. Built on the explorer frame above
+   (.fx-explorer / .fx-head / .fx-side / .fx-main, .fx-card, .fx-btn) so a
+   space reads as the same explorer one level further in. */
+
+/* Stacked, the content comes before the descriptive sidebar (the access
+   panel or the list the visitor came for, then the reference cards). */
+.fx-explorer[data-page^='space'] {
+  grid-template-areas:
+    'head'
+    'main'
+    'side';
+}
+@media (min-width: 960px) {
+  .fx-explorer[data-page^='space'] {
+    grid-template-areas:
+      'side head'
+      'side main';
+  }
+}
+/* Pages with nothing for a sidebar: one column, at a reading width. */
+.container-narrow:has(.fx-explorer[data-cols='1']) {
+  max-width: 1088px;
+}
+.fx-explorer[data-cols='1'],
+.fx-explorer[data-cols='1'][data-page^='space'] {
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas:
+    'head'
+    'main';
+}
+
+/* Title bar extras: the lock / person glyph inside the pill, and the full
+   address on its own line under the title. */
+.fx-pill svg {
+  flex: none;
+  color: var(--text-tertiary);
+}
+.fx-sp-pill-accent {
+  background: var(--accent-soft);
+  border-color: var(--accent-soft-border);
+  color: var(--accent-soft-fg);
+}
+.fx-sp-pill-accent svg {
+  color: var(--accent-soft-fg);
+}
+.fx-sp-address {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--text-tertiary);
+  overflow-wrap: anywhere;
+}
+
+/* Moss primary button (unlock, authorize, new space, edit record). */
+.fx-btn.fx-sp-primary {
+  background: var(--accent-moss);
+  border-color: var(--accent-moss);
+  color: var(--text-on-accent);
+  font-weight: 600;
+}
+.fx-btn.fx-sp-primary:hover:not(:disabled) {
+  background: var(--accent-forest);
+  border-color: var(--accent-forest);
+  color: var(--text-on-accent);
+}
+.fx-sp-self-start {
+  align-self: flex-start;
+}
+
+/* --- section cards ------------------------------------------------------- */
+
+/* A titled card: head row (h2, count, actions) over a body. The body either
+   pads itself (.fx-sp-body) or runs a list edge to edge (.fx-sp-list). */
+.fx-sp-section {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.fx-sp-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+  min-height: 52px;
+  padding: 10px 16px;
+  box-sizing: border-box;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.fx-sp-head:last-child {
+  border-bottom: 0;
+}
+.fx-sp-h2 {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: 1.3;
+  color: var(--text-primary);
+  overflow-wrap: anywhere;
+}
+.fx-sp-head-count {
+  font-size: 13px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-tertiary);
+}
+.fx-sp-head-end {
+  margin-left: auto;
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.fx-sp-head-link {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-accent);
+  text-decoration: none;
+  white-space: nowrap;
+}
+.fx-sp-head-link:hover {
+  color: var(--accent-forest);
+}
+.fx-sp-head-link code {
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  font-weight: 500;
+  background: transparent;
+  padding: 0;
+  color: inherit;
+}
+.fx-sp-body {
+  padding: 14px 16px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+.fx-sp-head + .fx-sp-note {
+  padding: 12px 16px 0;
+}
+.fx-sp-note + .fx-sp-list,
+.fx-sp-note + .fx-sp-msg {
+  margin-top: 12px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+/* Notes, quiet messages and the in-card error. */
+.fx-sp-note {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-tertiary);
+  max-width: 46rem;
+}
+.fx-sp-note code,
+.fx-sp-msg code,
+.fx-sp-lede code {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  background: transparent;
+  padding: 0;
+  color: var(--text-secondary);
+}
+.fx-sp-note a,
+.fx-sp-lede a {
+  color: var(--text-accent);
+  font-weight: 600;
+  text-decoration: none;
+}
+.fx-sp-note a:hover,
+.fx-sp-lede a:hover {
+  color: var(--accent-forest);
+}
+.fx-sp-section > .fx-sp-note:last-child {
+  padding-bottom: 14px;
+}
+.fx-sp-list + .fx-sp-note,
+.fx-sp-msg + .fx-sp-note,
+.fx-sp-section > .fx-sp-note.fx-sp-foot {
+  padding: 10px 16px 12px;
+  border-top: 1px solid var(--border-subtle);
+}
+.fx-sp-msg {
+  margin: 0;
+  padding: 18px 16px;
+  font-size: 13.5px;
+  color: var(--text-tertiary);
+}
+/* A message standing on its own (not inside a section card). */
+.fx-sp-msg.fx-card {
+  padding: 16px;
+}
+.fx-sp-body > .fx-sp-msg,
+.fx-sp-panel > .fx-sp-msg {
+  padding: 0;
+}
+.fx-sp-err {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: var(--radius-control);
+  background: var(--danger-soft);
+  border: 1px solid var(--danger-border);
+  color: var(--danger);
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  overflow-wrap: anywhere;
+}
+.fx-sp-section > .fx-sp-err {
+  margin: 12px 16px;
+}
+
+/* --- rows (spaces, members, collections, ops) ---------------------------- */
+
+.fx-sp-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.fx-sp-list > li {
+  display: flex;
+  align-items: stretch;
+  border-bottom: 1px solid var(--border-subtle);
+  min-width: 0;
+}
+.fx-sp-list > li:last-child {
+  border-bottom: 0;
+}
+.fx-sp-row {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 12px;
+  min-height: 40px;
+  padding: 10px 16px;
+  box-sizing: border-box;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--text-primary);
+  text-decoration: none;
+  transition: background 0.12s ease;
+}
+a.fx-sp-row:hover {
+  background: var(--surface-subtle);
+}
+a.fx-sp-row:focus-visible {
+  outline: 2px solid var(--text-accent);
+  outline-offset: -2px;
+}
+.fx-sp-row code {
+  background: transparent;
+  padding: 0;
+  font-size: inherit;
+  color: inherit;
+}
+.fx-sp-row-main {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  color: var(--text-accent);
+}
+.fx-sp-row-plain {
+  color: var(--text-primary);
+}
+.fx-sp-row-sub {
+  min-width: 0;
+  color: var(--text-tertiary);
+  overflow-wrap: anywhere;
+}
+.fx-sp-row-end {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-sans);
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-tertiary);
+  overflow-wrap: anywhere;
+}
+.fx-sp-row-end .fx-row-you {
+  align-self: center;
+}
+.fx-sp-row[data-muted] {
+  color: var(--text-tertiary);
+}
+.fx-sp-row-mono {
+  font-family: var(--font-mono);
+}
+/* A trailing control beside the row's link (remove member). */
+.fx-sp-row-aside {
+  flex: none;
+  display: flex;
+  align-items: center;
+  padding-right: 10px;
+}
+/* Operation log: kind pill, path, rev. */
+.fx-sp-op {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  height: 20px;
+  padding: 0 8px;
+  border-radius: var(--radius-pill);
+  background: var(--accent-soft);
+  color: var(--accent-soft-fg);
+  font-family: var(--font-sans);
+  font-size: 11.5px;
+  font-weight: 600;
+}
+.fx-sp-op[data-kind='delete'] {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
+/* --- field lists (authority, type, member, configuration) ---------------- */
+
+/* Label over value, stacked: these live in the 300px sidebar, where a label
+   column would leave a DID twenty characters wide. */
+.fx-sp-fields {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+.fx-sp-fields > div {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.fx-sp-fields dt {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-tertiary);
+}
+.fx-sp-fields dd {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 6px;
+  min-width: 0;
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  color: var(--text-primary);
+  overflow-wrap: anywhere;
+  word-break: break-all;
+}
+.fx-sp-fields dd.fx-sp-prose {
+  font-family: var(--font-sans);
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+  word-break: normal;
+}
+.fx-sp-fields dd code {
+  background: transparent;
+  padding: 0;
+  font-size: inherit;
+  color: inherit;
+}
+.fx-sp-fields dd a {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  color: var(--text-accent);
+  text-decoration: none;
+}
+.fx-sp-fields dd a:hover {
+  color: var(--accent-forest);
+}
+.fx-sp-fields dd a svg {
+  flex: none;
+  color: var(--text-tertiary);
+}
+.fx-sp-fields .explore-muted {
+  font-family: var(--font-sans);
+  font-style: normal;
+}
+/* Wide placement (main column / phone): two or three across. */
+.fx-main .fx-sp-fields,
+.fx-sp-fields[data-wide] {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  gap: 14px 20px;
+}
+.fx-sp-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-width: 0;
+}
+.fx-sp-tags a {
+  display: inline-flex;
+  align-items: center;
+  height: 24px;
+  padding: 0 9px;
+  border-radius: var(--radius-pill);
+  background: var(--accent-soft);
+  color: var(--accent-soft-fg) !important;
+  font-size: 12px;
+}
+.fx-sp-tags a:hover {
+  background: var(--accent-soft-border);
+}
+.fx-sp-lede {
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: var(--text-secondary);
+}
+
+/* --- access panel -------------------------------------------------------- */
+
+.fx-sp-panel {
+  padding: 18px 20px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+.fx-sp-kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-accent);
+}
+.fx-sp-kicker svg {
+  flex: none;
+}
+.fx-sp-panel-h {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: 19px;
+  font-weight: 700;
+  letter-spacing: -0.015em;
+  line-height: 1.25;
+  color: var(--text-primary);
+}
+.fx-sp-panel-body {
+  margin: 0;
+  max-width: 42rem;
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--text-secondary);
+}
+.fx-sp-panel-body code {
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  background: transparent;
+  padding: 0;
+  color: var(--text-primary);
+}
+.fx-sp-panel .signin-panel {
+  max-width: 34rem;
+}
+.fx-sp-hosts {
+  margin: 2px 0;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: var(--surface-subtle);
+  border: 1px solid var(--border-subtle);
+}
+.fx-sp-hosts.fx-sp-fields {
+  display: flex;
+}
+.fx-sp-tech {
+  margin-top: 2px;
+}
+.fx-sp-tech > summary {
+  width: fit-content;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--text-tertiary);
+  cursor: pointer;
+}
+.fx-sp-tech > summary:hover {
+  color: var(--text-accent);
+}
+.fx-sp-tech .fx-sp-err {
+  margin-top: 8px;
+}
+.fx-sp-scopes {
+  max-width: 26rem;
+  padding: 12px;
+  border-radius: 10px;
+  background: var(--surface-subtle);
+  border: 1px solid var(--border-medium);
+}
+/* Inside a section card the panel is the card's body, not a card of its own. */
+.fx-sp-section .fx-sp-panel,
+.fx-sp-body .fx-sp-panel {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+.fx-sp-body .fx-sp-panel {
+  padding: 2px 0 0;
+}
+
+/* --- spaces at a glance -------------------------------------------------- */
+
+.fx-sp-glance {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+  gap: 10px;
+}
+.fx-sp-glance > div {
+  padding: 12px 14px;
+  border: 1px solid var(--border-medium);
+  border-radius: 10px;
+  background: var(--bg-secondary);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.fx-sp-glance-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-tertiary);
+}
+.fx-sp-glance-value {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
+}
+.fx-sp-glance-hint {
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+
+/* --- space tree (L1 and the repo page) ----------------------------------- */
+
+.fx-sp-tree {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.fx-sp-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.fx-sp-group-label {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+}
+.fx-sp-group-label code {
+  background: transparent;
+  padding: 0;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  overflow-wrap: anywhere;
+}
+.fx-sp-group-label span {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  font-variant-numeric: tabular-nums;
+}
+.fx-sp-branch {
+  border: 1px solid var(--border-medium);
+  border-radius: 10px;
+  background: var(--bg-secondary);
+  overflow: hidden;
+}
+.fx-sp-branch[data-unparsed] {
+  padding: 10px 14px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--text-tertiary);
+  overflow-wrap: anywhere;
+}
+.fx-sp-branch-head {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+.fx-sp-branch-toggle {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 0 9px 12px;
+  background: transparent;
+  border: 0;
+  text-align: left;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--text-primary);
+  cursor: pointer;
+}
+.fx-sp-branch-toggle:focus-visible,
+.fx-sp-branch-info:focus-visible {
+  outline: 2px solid var(--text-accent);
+  outline-offset: -2px;
+  border-radius: 6px;
+}
+.fx-sp-branch-toggle > svg {
+  flex: none;
+  color: var(--text-tertiary);
+  transition: transform 0.15s ease;
+}
+.fx-sp-branch-toggle[aria-expanded='true'] > svg {
+  transform: rotate(90deg);
+}
+.fx-sp-branch-names {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.fx-sp-branch-names code {
+  background: transparent;
+  padding: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-accent);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.fx-sp-branch-names span {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.fx-sp-branch-info {
+  flex: none;
+  align-self: stretch;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  color: var(--text-tertiary);
+  transition: color 0.15s ease;
+}
+.fx-sp-branch-info:hover {
+  color: var(--text-accent);
+}
+.fx-sp-count {
+  flex: none;
+  min-width: 2ch;
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  color: var(--text-tertiary);
+}
+.fx-sp-branch-head > .fx-sp-count {
+  margin-right: 14px;
+}
+.fx-sp-branch-body {
+  border-top: 1px solid var(--border-subtle);
+}
+.fx-sp-branch-body > .fx-sp-msg {
+  padding: 10px 14px 10px 34px;
+}
+.fx-sp-branch-body > .fx-sp-err {
+  margin: 10px 14px 10px 34px;
+}
+.fx-sp-branch-body > .fx-sp-note {
+  padding: 8px 14px 10px 34px;
+  border-top: 1px solid var(--border-subtle);
+}
+.fx-sp-coll {
+  list-style: none;
+  margin: 0;
+  padding: 4px 0;
+}
+.fx-sp-coll a {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 30px;
+  padding: 0 14px 0 34px;
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  color: var(--text-secondary);
+  text-decoration: none;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+.fx-sp-coll a:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+.fx-sp-coll a:focus-visible {
+  outline: 2px solid var(--text-accent);
+  outline-offset: -2px;
+}
+.fx-sp-coll code {
+  flex: 1;
+  min-width: 0;
+  background: transparent;
+  padding: 0;
+  font-size: inherit;
+  color: inherit;
+  overflow-wrap: anywhere;
+}
+@media (max-width: 640px) {
+  .fx-sp-branch-toggle {
+    min-height: 44px;
+  }
+  .fx-sp-branch-info {
+    width: 44px;
+  }
+  .fx-sp-coll a {
+    min-height: 44px;
+    border-top: 1px solid var(--border-subtle);
+  }
+  .fx-sp-coll {
+    padding: 0;
+  }
+  .fx-sp-coll li:first-child a {
+    border-top: 0;
+  }
+}
+
+/* --- collection records (L5) --------------------------------------------- */
+
+/* Two columns here (key, preview): a space record carries no created time
+   the listing could show. */
+.fx-sp-recs {
+  grid-template-columns: fit-content(30ch) minmax(0, 1fr);
+}
+.fx-sp-recs .fx-rec-row > :last-child {
+  text-align: left;
+}
+.fx-sp-recs .fx-rec-text {
+  color: var(--text-secondary);
+}
+@media (max-width: 640px) {
+  .fx-sp-recs .fx-rec-row {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      'key'
+      'text';
+  }
+}
+/* The records card's tool row: order toggle and fetch on the left, the count
+   on the right (the search field is the chrome bar's). */
+.fx-sp-recs-tools .fx-records-tools-meta {
+  margin-left: auto;
+}
+
+/* --- record (L6) --------------------------------------------------------- */
+
+.fx-sp-recfields {
+  margin: 0;
+  display: grid;
+  grid-template-columns: minmax(6rem, max-content) minmax(0, 1fr);
+  font-size: 13px;
+}
+.fx-sp-recfields > div {
+  display: contents;
+}
+.fx-sp-recfields dt,
+.fx-sp-recfields dd {
+  padding: 9px 16px;
+  border-bottom: 1px solid var(--border-subtle);
+  font-family: var(--font-mono);
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+.fx-sp-recfields > div:last-child dt,
+.fx-sp-recfields > div:last-child dd {
+  border-bottom: 0;
+}
+.fx-sp-recfields dt {
+  padding-right: 8px;
+  font-size: 12.5px;
+  color: var(--text-tertiary);
+}
+.fx-sp-recfields dd {
+  margin: 0;
+  padding-left: 8px;
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--text-primary);
+  white-space: pre-wrap;
+}
+.fx-sp-recfields .explore-json-link {
+  color: var(--text-accent);
+}
+.fx-sp-muted {
+  color: var(--text-tertiary);
+}
+@media (max-width: 640px) {
+  .fx-sp-recfields {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .fx-sp-recfields dt {
+    padding: 10px 14px 0;
+    border-bottom: 0;
+  }
+  .fx-sp-recfields dd {
+    padding: 2px 14px 10px;
+  }
+}
+.fx-sp-json {
+  padding: 12px 16px 16px;
+}
+.fx-sp-json .explore-json {
+  margin: 0;
+  border-radius: var(--radius-control);
+}
+
+/* --- details (recent operations) ----------------------------------------- */
+
+.fx-sp-details > summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 52px;
+  padding: 10px 16px;
+  box-sizing: border-box;
+  list-style: none;
+  cursor: pointer;
+  font-family: var(--font-sans);
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--text-primary);
+}
+.fx-sp-details > summary::-webkit-details-marker {
+  display: none;
+}
+.fx-sp-details > summary svg {
+  color: var(--text-tertiary);
+  transition: transform 0.15s ease;
+}
+.fx-sp-details[open] > summary svg {
+  transform: rotate(90deg);
+}
+.fx-sp-details[open] > summary {
+  border-bottom: 1px solid var(--border-subtle);
+}
+.fx-sp-details > summary:focus-visible {
+  outline: 2px solid var(--text-accent);
+  outline-offset: -2px;
+}
+
+/* Standalone messages / errors on space pages get the rounded treatment. */
+.fx-explorer[data-page^='space'] .explore-error {
+  border-radius: var(--radius-control);
+}
+
+/* --- dialogs (create / manage / delete / members) ------------------------ */
+
+.fx-sp-dialog-panel {
+  width: 100%;
+  max-width: 30rem;
+  box-sizing: border-box;
+  background: var(--modal-bg);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-card);
+  box-shadow: var(--modal-shadow);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 20px;
+  font-family: var(--font-sans);
+}
+.fx-sp-dialog-panel[data-scroll] {
+  max-height: 85vh;
+  overflow-y: auto;
+}
+.fx-sp-dialog-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+.fx-sp-dialog-head h2 {
+  margin: 0;
+  flex: 1;
+  min-width: 0;
+  font-family: var(--font-sans);
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.015em;
+  line-height: 1.3;
+  color: var(--text-primary);
+}
+.fx-sp-dialog-head .fx-btn-icon {
+  width: 30px;
+  height: 30px;
+}
+.fx-sp-dialog-body {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.fx-sp-dialog-foot {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+.fx-sp-dialog-note {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--text-tertiary);
+}
+.fx-sp-dialog-note code {
+  font-family: var(--font-mono);
+  background: transparent;
+  padding: 0;
+  overflow-wrap: anywhere;
+}
+.fx-sp-dialog-error {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--danger);
+}
+.fx-sp-dialog-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.fx-sp-dialog-field > label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.fx-sp-dialog-panel .explore-input {
+  height: 36px;
+  box-sizing: border-box;
+  padding: 0 10px;
+  border-radius: var(--radius-control);
+  border: 1px solid var(--border-strong);
+  background: var(--bg-secondary);
+  font-family: var(--font-sans);
+  font-size: 14px;
+}
+.fx-sp-dialog-panel textarea.explore-input {
+  height: auto;
+  padding: 8px 10px;
+}
+.fx-sp-dialog-panel .explore-input.fx-sp-mono {
+  font-family: var(--font-mono);
+  font-size: 13px;
+}
+.fx-sp-dialog-panel select.explore-input {
+  padding-right: 6px;
+}
+.fx-sp-body + .fx-sp-msg,
+.fx-sp-body + .fx-sp-list {
+  border-top: 1px solid var(--border-subtle);
+}
+.fx-sp-dialog-panel .explore-input.explore-textarea {
+  font-family: var(--font-mono);
+  font-size: 13px;
+}
+.fx-sp-dialog-note.fx-sp-dialog-warn {
+  color: var(--danger);
+}
+.fx-sp-dialog-note.fx-sp-mono {
+  font-family: var(--font-mono);
+  overflow-wrap: anywhere;
+}
+.fx-btn.fx-sp-icon-btn {
+  width: 30px;
+  padding: 0;
+  color: var(--text-tertiary);
+}
+.fx-btn.fx-sp-icon-btn:hover:not(:disabled) {
+  color: var(--danger);
+}
+.fx-sp-row-sub.fx-sp-row-plain {
+  color: var(--text-secondary);
+}
+/* A copy chip among the title bar's actions sits at button height. */
+.fx-explorer[data-page^='space'] .fx-actions .fx-copy {
+  height: 34px;
+  padding: 0 12px;
+  border-radius: var(--radius-control);
+  border-color: var(--border-strong);
+  font-size: 13.5px;
+}
+.fx-sp-note code {
+  word-break: normal;
+  overflow-wrap: break-word;
+}
