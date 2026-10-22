@@ -230,9 +230,28 @@
 
 .fn-pulse-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(330px, 100%), 1fr));
+  grid-template-columns: minmax(0, 1fr);
   gap: 16px;
   align-items: stretch;
+}
+
+/* Three cards: two to a row on a tablet with the third spanning both (rather
+   than left alone beside an empty slot), three across once they fit. */
+@media (min-width: 720px) {
+  .fn-pulse-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .fn-pulse-grid > :nth-child(3):last-child {
+    grid-column: 1 / -1;
+  }
+}
+@media (min-width: 1100px) {
+  .fn-pulse-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .fn-pulse-grid > :nth-child(3):last-child {
+    grid-column: auto;
+  }
 }
 
 .fn-pulse-card .fn-list-card-head {
@@ -533,7 +552,10 @@
   min-height: 46px;
   padding: 6px 16px;
   gap: 12px;
-  grid-template-columns: 1.5rem minmax(0, 1fr) 7rem auto;
+  /* A fixed figures column, not auto: each row is its own grid, so an auto
+     track sized to "+5825%" on one row and "+390%" on the next left the
+     sparklines starting at different x. */
+  grid-template-columns: 1.5rem minmax(0, 1fr) 7rem 4.5rem;
 }
 
 .fn-list-card .lexicon-row-nsid {
@@ -679,7 +701,12 @@
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(460px, 100%), 1fr));
   gap: 16px;
-  align-items: start;
+  /* Side by side, the two cards share one height; the credit sits at the
+     foot of each (below). */
+  align-items: stretch;
+}
+.fn-lexicons-grid .fn-list-card > .fn-credit {
+  margin-top: auto;
 }
 
 .fn-freshness {
@@ -971,4 +998,23 @@
 
 .fn-pds section > div:last-child > .fn-btn {
   margin-top: 4px;
+}
+
+/* Touch: the try-chips and segmented options keep their size and get an
+   invisible 40px hit area. */
+@media (pointer: coarse) {
+  .fn-chip,
+  .fn-segmented-option {
+    position: relative;
+  }
+  .fn-chip::after,
+  .fn-segmented-option::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 100%;
+    height: 40px;
+    transform: translate(-50%, -50%);
+  }
 }

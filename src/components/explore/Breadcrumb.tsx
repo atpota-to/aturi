@@ -221,11 +221,6 @@ export default function Breadcrumb({
           without an href is terminal — today only a record key. */}
       {visible.map((crumb, i) => (
         <span key={`${i}-${crumb.href ?? crumb.label}`} className="fx-crumb">
-          {i > 0 && (
-            <span aria-hidden className="fx-crumb-sep">
-              /
-            </span>
-          )}
           {crumb.href ? (
             <Link
               href={crumb.href}
@@ -245,13 +240,17 @@ export default function Breadcrumb({
               {crumb.label}
             </span>
           )}
+          {/* Each separator rides after its crumb (the last one too when the
+              title below carries the final segment), so a row that wraps on
+              a phone ends a line on "/" and starts the next on a crumb, and
+              never leaves a separator alone on a line. */}
+          {(i < visible.length - 1 || visible.length < trail.length) && (
+            <span aria-hidden className="fx-crumb-sep">
+              /
+            </span>
+          )}
         </span>
       ))}
-      {titled && visible.length < trail.length && (
-        <span aria-hidden className="fx-crumb-sep">
-          /
-        </span>
-      )}
 
       {shareUrl && (
         <span className="fx-crumbs-share">

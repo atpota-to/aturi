@@ -231,6 +231,11 @@ a:hover {
   outline-offset: 2px;
 }
 
+/* Moss on the dark surfaces is under 3:1; the light accent reads clearly. */
+[data-theme='dark'] :focus-visible {
+  outline-color: var(--text-accent);
+}
+
 /* Buttons. 36px default, 8px radius, flat fills. */
 .aturi-btn {
   display: inline-flex;
@@ -399,6 +404,11 @@ a:hover {
   outline: none;
   border-color: var(--accent-moss);
   box-shadow: 0 0 0 3px var(--glow-strong);
+}
+
+[data-theme='dark'] .aturi-input:focus,
+[data-theme='dark'] .aturi-select:focus {
+  border-color: var(--text-accent);
 }
 
 .aturi-label {

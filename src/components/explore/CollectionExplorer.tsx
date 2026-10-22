@@ -547,6 +547,7 @@ function CollectionList({
     value: filter,
     onChange: setFilter,
     resultsId: CHROME_RESULTS_ID,
+    inPage: true,
     status:
       records.length === 0
         ? null

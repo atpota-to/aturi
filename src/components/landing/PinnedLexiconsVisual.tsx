@@ -82,8 +82,11 @@ function GroupRow({
       {open &&
         ['feed.post', 'feed.like', 'graph.follow'].map((leaf, i) => (
           <div key={leaf} className="fl-tree-row" data-child="" data-active={i === 0 ? '' : undefined}>
-            <span className="fl-faint">{prefix}.</span>
-            {leaf}
+            {/* One flex item, so the row's gap doesn't split the NSID. */}
+            <span>
+              <span className="fl-faint">{prefix}.</span>
+              {leaf}
+            </span>
           </div>
         ))}
     </>

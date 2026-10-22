@@ -5,7 +5,7 @@
 
 'use client';
 
-import { createContext, useContext, useEffect, useState } from 'react';
+import { Fragment, createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import { GenericRecord } from '@/utils/recordFetcher';
 import { sanitizeHandle, sanitizeUrl } from '@/utils/sanitize';
@@ -258,11 +258,15 @@ function FieldRow({
   // Blob-backed image preview (needs the repo coordinates to build getBlob).
   const blob = suppressBlobImage ? null : imageBlobFromValue(value);
   const blobSrc = blob && pds && did ? getBlobUrl(pds, did, blob.cid) : null;
+  // Free text keeps the sans face; identifiers, datetimes, numbers and the
+  // like are set in mono.
+  const mono =
+    !expandable && value !== null && !(typeof value === 'string' && /\s/.test(value));
   return (
     <div className="fn-field" data-last={isLast || undefined}>
       <div className="field-row-main fn-field-main">
         <div className="field-row-label fn-field-label">{label}</div>
-        <div className="fn-field-value">
+        <div className={mono ? 'fn-field-value is-mono' : 'fn-field-value'}>
           {expandable ? (
             <button
               type="button"
@@ -512,7 +516,7 @@ function CopyableValue({ display, copy }: { display: string; copy: string }) {
         color: copied ? 'var(--text-accent)' : 'inherit',
       }}
     >
-      {display}
+      {/\s/.test(display) ? display : withDotBreaks(display)}
       <span
         style={{
           marginLeft: '0.35rem',
@@ -528,6 +532,21 @@ function CopyableValue({ display, copy }: { display: string; copy: string }) {
       </span>
     </div>
   );
+}
+
+/** Lets an NSID-like token wrap after its dots rather than mid-segment. */
+function withDotBreaks(text: string): ReactNode {
+  const parts = text.split('.');
+  return parts.map((part, i) => (
+    <Fragment key={i}>
+      {part}
+      {i < parts.length - 1 && (
+        <>
+          .<wbr />
+        </>
+      )}
+    </Fragment>
+  ));
 }
 
 function isExpandable(v: unknown): boolean {

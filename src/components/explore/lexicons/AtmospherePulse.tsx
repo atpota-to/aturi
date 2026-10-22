@@ -24,10 +24,28 @@ import { WINDOWS, type Window } from '@/utils/ufos/windows';
  * /explore/lexicons, which each card's footer links to.
  */
 
-const WINDOW_NAMES: Record<Window, { label: string; noun: string; heading: string }> = {
-  '1d': { label: 'Day', noun: 'day', heading: 'Today in the Atmosphere' },
-  '7d': { label: 'Week', noun: 'week', heading: 'This week in the Atmosphere' },
-  '30d': { label: 'Month', noun: 'month', heading: 'This month in the Atmosphere' },
+const WINDOW_NAMES: Record<
+  Window,
+  { label: string; noun: string; heading: string; comparison: string }
+> = {
+  '1d': {
+    label: 'Day',
+    noun: 'day',
+    heading: 'Today in the Atmosphere',
+    comparison: 'yesterday → today',
+  },
+  '7d': {
+    label: 'Week',
+    noun: 'week',
+    heading: 'This week in the Atmosphere',
+    comparison: 'last week → this week',
+  },
+  '30d': {
+    label: 'Month',
+    noun: 'month',
+    heading: 'This month in the Atmosphere',
+    comparison: 'last month → this month',
+  },
 };
 
 /** What each metric counts, for the card subtitles. */
@@ -39,9 +57,9 @@ const METRIC_NOUN: Record<Metric, string> = {
 };
 
 export default function AtmospherePulse() {
-  const [window, setWindow] = useState<Window>('7d');
+  const [timeWindow, setTimeWindow] = useState<Window>('7d');
   const [metric, setMetric] = useState<Metric>('dids');
-  const names = WINDOW_NAMES[window];
+  const names = WINDOW_NAMES[timeWindow];
 
   return (
     <AppearIn delay={0.12}>
@@ -67,22 +85,30 @@ export default function AtmospherePulse() {
                 value: w,
                 label: WINDOW_NAMES[w].label,
               }))}
-              value={window}
-              onChange={(v) => setWindow(v as Window)}
+              value={timeWindow}
+              onChange={(v) => setTimeWindow(v as Window)}
             />
           </div>
         </div>
         <div className="fn-pulse-grid">
-          <RankingCard mode="top" window={window} metric={metric} />
-          <RankingCard mode="trending" window={window} metric={metric} />
-          <NewCard window={window} />
+          <RankingCard mode="top" timeWindow={timeWindow} metric={metric} />
+          <RankingCard mode="trending" timeWindow={timeWindow} metric={metric} />
+          <NewCard timeWindow={timeWindow} />
         </div>
       </section>
     </AppearIn>
   );
 }
 
-function RankingCard({ mode, window, metric }: { mode: Mode; window: Window; metric: Metric }) {
+function RankingCard({
+  mode,
+  timeWindow,
+  metric,
+}: {
+  mode: Mode;
+  timeWindow: Window;
+  metric: Metric;
+}) {
   const [expanded, setExpanded] = useState(false);
   const [rows, setRows] = useState<CollectionRow[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -93,7 +119,7 @@ function RankingCard({ mode, window, metric }: { mode: Mode; window: Window; met
     setError(null);
     // Previous rows stay up while a toggle refetches; the skeleton is for
     // first load only. No sparklines here, so no per-row series requests.
-    fetchRanking(window, mode, metric, limit, { withSeries: false, withPrior: true })
+    fetchRanking(timeWindow, mode, metric, limit, { withSeries: false, withPrior: true })
       .then((next) => {
         if (!cancelled) setRows(next);
       })
@@ -103,7 +129,7 @@ function RankingCard({ mode, window, metric }: { mode: Mode; window: Window; met
     return () => {
       cancelled = true;
     };
-  }, [window, mode, metric, limit]);
+  }, [timeWindow, mode, metric, limit]);
 
   const visible = rows ? rows.slice(0, limit) : null;
   const max = visible ? Math.max(1, ...visible.map((r) => r.value)) : 1;
@@ -122,7 +148,7 @@ function RankingCard({ mode, window, metric }: { mode: Mode; window: Window; met
             ? metric === 'dids'
               ? 'Accounts writing each lexicon'
               : `${noun} in each lexicon`
-            : `${noun} last ${WINDOW_NAMES[window].noun} → this ${WINDOW_NAMES[window].noun}`}
+            : `${noun} ${WINDOW_NAMES[timeWindow].comparison}`}
         </span>
       </div>
       <div className="fn-list-card-body">
@@ -198,12 +224,12 @@ function RankingCard({ mode, window, metric }: { mode: Mode; window: Window; met
   );
 }
 
-function NewCard({ window }: { window: Window }) {
-  const { answer, error } = useNewLexicons(window);
+function NewCard({ timeWindow }: { timeWindow: Window }) {
+  const { answer, error } = useNewLexicons(timeWindow);
   const [expanded, setExpanded] = useState(false);
   const limit = expanded ? NEW_EXPANDED_COUNT : NEW_RESULT_COUNT;
   const visible = answer ? answer.lexicons.slice(0, limit) : null;
-  const noun = WINDOW_NAMES[window].noun;
+  const noun = WINDOW_NAMES[timeWindow].noun;
 
   return (
     <section aria-labelledby="fn-pulse-new" className="fn-list-card fn-pulse-card">
@@ -212,7 +238,7 @@ function NewCard({ window }: { window: Window }) {
           New this {noun}
         </h3>
         <span className="fn-list-card-sub">
-          First seen in the last {WINDOWS[window].label}, by accounts
+          First seen in the last {WINDOWS[timeWindow].label}, by accounts
         </span>
       </div>
       <div className="fn-list-card-body">

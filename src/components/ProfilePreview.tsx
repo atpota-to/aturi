@@ -97,7 +97,9 @@ export default function ProfilePreview({ profile }: ProfilePreviewProps) {
           </div>
 
           <div className="fn-lp-profile-names">
-            <h2 className="fn-lp-profile-name">
+            {/* Not a heading: the card sits above the page's h1 ("Open … in"),
+                so an h2 here would break the outline. */}
+            <p className="fn-lp-profile-name">
               <span>{displayName || handle}</span>
               {isVerified && (
                 <svg
@@ -120,7 +122,7 @@ export default function ProfilePreview({ profile }: ProfilePreviewProps) {
                   />
                 </svg>
               )}
-            </h2>
+            </p>
             <span className="fn-lp-handle">@{handle}</span>
           </div>
         </div>

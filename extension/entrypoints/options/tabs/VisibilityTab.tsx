@@ -177,8 +177,8 @@ export default function VisibilityTab({ prefs, onChange }: Props) {
         <div>
           <h1 className="options-h1">Waypoints</h1>
           <p className="options-lede">
-            Build your own groups of waypoints. Drag to reorder groups or rows, and use the
-            plus button on a group header to add waypoints. The same waypoint can live in
+            Build your own groups of waypoints. Drag to reorder groups or rows, and use Add app
+            on a group to add waypoints. The same waypoint can live in
             multiple groups. Waypoints not in any group are hidden from the popup.
           </p>
         </div>
@@ -552,7 +552,7 @@ function SortableGroup({
         <div className="group-body">
           {group.waypointIds.length === 0 ? (
             <div className="group-empty">
-              No waypoints yet. Use the + button on the header to add some.
+              No waypoints yet. Use Add app on the header to add some.
             </div>
           ) : (
             <DndContext

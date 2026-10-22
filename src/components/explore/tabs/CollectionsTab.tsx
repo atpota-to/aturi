@@ -230,9 +230,10 @@ export default function CollectionsTab({
   // else's repo (own repo is 100% mutual by definition).
   const showCommonFilter = Boolean(myDid) && !isOwnRepo && myCollections !== null;
 
-  // Mirror the filter into the bottom chrome bar so it stays reachable once
-  // the in-page field has scrolled away — same state, so typing in either
-  // moves both. Registered from here rather than from <RepoExplorer> because
+  // Mirror the filter into the bottom chrome bar, which takes it over on
+  // phones (where the in-page field steps aside) — same state, so either
+  // copy moves both. Wider screens keep the in-page field and the bar shows
+  // its jump search (`inPage`). Registered from here rather than from <RepoExplorer> because
   // only this tab has lexicons to narrow; switching to ID / Log / Backlinks
   // unmounts it and the bar falls back to its jump search.
   const shownCount =
@@ -244,6 +245,7 @@ export default function CollectionsTab({
     value: filter,
     onChange: setFilter,
     resultsId: CHROME_RESULTS_ID,
+    inPage: true,
     status: !collections
       ? null
       : narrowed

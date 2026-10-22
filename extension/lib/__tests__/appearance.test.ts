@@ -1,5 +1,5 @@
 import { afterEach, describe, it, expect } from 'vitest';
-import { applyAppearance } from '../appearance';
+import { applyAppearance, applyCachedAppearance } from '../appearance';
 import { DEFAULT_PREFS } from '../prefs';
 
 // vitest runs in node, so stand in a minimal document whose <html> carries a
@@ -10,8 +10,18 @@ function stubDocument(): Record<string, string | undefined> {
   return dataset;
 }
 
+function stubStorage(): Map<string, string> {
+  const store = new Map<string, string>();
+  (globalThis as { localStorage?: unknown }).localStorage = {
+    getItem: (k: string) => store.get(k) ?? null,
+    setItem: (k: string, v: string) => void store.set(k, v),
+  };
+  return store;
+}
+
 afterEach(() => {
   delete (globalThis as { document?: unknown }).document;
+  delete (globalThis as { localStorage?: unknown }).localStorage;
 });
 
 describe('theme defaults', () => {
@@ -42,6 +52,37 @@ describe('applyAppearance', () => {
   });
 
   it('does nothing without a document', () => {
+    expect(() => applyAppearance({ theme: 'dark', fontSize: 'medium' })).not.toThrow();
+  });
+});
+
+describe('applyCachedAppearance', () => {
+  it('re-applies the last appearance before prefs load', () => {
+    stubStorage();
+    stubDocument();
+    applyAppearance({ theme: 'dark', fontSize: 'xlarge' });
+    const dataset = stubDocument();
+    applyCachedAppearance();
+    expect(dataset.theme).toBe('dark');
+    expect(dataset.fs).toBe('xlarge');
+  });
+
+  it('leaves the defaults alone with no cache or a bad one', () => {
+    const store = stubStorage();
+    const dataset = stubDocument();
+    applyCachedAppearance();
+    expect(dataset.theme).toBeUndefined();
+    store.set('aturi.appearance', '{not json');
+    expect(() => applyCachedAppearance()).not.toThrow();
+    store.set('aturi.appearance', JSON.stringify({ theme: 'neon', fontSize: 'huge' }));
+    applyCachedAppearance();
+    expect(dataset.theme).toBeUndefined();
+    expect(dataset.fs).toBeUndefined();
+  });
+
+  it('does not throw without storage', () => {
+    stubDocument();
+    expect(() => applyCachedAppearance()).not.toThrow();
     expect(() => applyAppearance({ theme: 'dark', fontSize: 'medium' })).not.toThrow();
   });
 });

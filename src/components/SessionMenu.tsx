@@ -183,6 +183,7 @@ export default function SessionMenu({ variant = 'inline' }: { variant?: Variant 
               await signOut();
             }}
             className="fn-session-item"
+            data-danger=""
             style={menuItemStyle({ danger: true })}
           >
             <LogOut size={13} />

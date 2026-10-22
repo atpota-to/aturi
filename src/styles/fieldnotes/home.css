@@ -135,6 +135,12 @@
   border-color: var(--text-accent);
 }
 
+/* The detected button already wears the hover border, so it needs a fill
+   to show the pointer. */
+.fn-dl-button[data-detected]:hover {
+  background: var(--accent-soft);
+}
+
 .fn-dl-button[data-variant='primary'] {
   height: 40px;
   padding: 0 16px;
@@ -263,7 +269,10 @@
   margin-top: auto;
   padding-top: 8px;
   display: flex;
-  flex-wrap: wrap;
+  /* Reverse wrap: when the aside doesn't fit beside the link it goes on a
+     line above it, so every card's link stays on the bottom line and the
+     three links share a baseline. */
+  flex-wrap: wrap-reverse;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
@@ -834,5 +843,18 @@
   .fn-home-anatomy {
     flex-basis: 100%;
     font-size: 12.5px;
+  }
+}
+
+/* Touch: the copy button stays 30px to the eye but takes a 42px tap. */
+@media (pointer: coarse) {
+  .fn-home-iconbtn {
+    position: relative;
+  }
+
+  .fn-home-iconbtn::after {
+    content: '';
+    position: absolute;
+    inset: -6px;
   }
 }

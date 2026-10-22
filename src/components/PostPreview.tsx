@@ -5,6 +5,7 @@
 
 'use client';
 
+import { useSyncExternalStore } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { BskyPost, UnknownRecordValue } from '@/utils/recordFetcher';
@@ -35,12 +36,26 @@ const buildPostUrl = (uri?: string, author?: { did?: string; handle?: string }):
   return `/profile/${id}/post/${rkey}`;
 };
 
+// False during SSR and hydration, true once hydrated (and on every render
+// after a client-side navigation). Gates the viewer's local time zone.
+const subscribeNoop = () => () => {};
+const useHydrated = () =>
+  useSyncExternalStore(
+    subscribeNoop,
+    () => true,
+    () => false,
+  );
 
 export default function PostPreview({ post, parent, hideExplorerCtas }: PostPreviewProps) {
   const router = useRouter();
   const { author, record, embed, replyCount, repostCount, likeCount, quoteCount } = post;
 
-  // Format the date nicely
+  // Format the date nicely. The server and the hydration render both use
+  // UTC with a fixed locale, so they produce the same string whatever the
+  // server's and the viewer's time zones; once hydrated, the viewer's own
+  // time zone takes over.
+  const hydrated = useHydrated();
+  const timeZone = hydrated ? undefined : 'UTC';
   const createdAt = new Date(record.createdAt);
   const formattedDate = createdAt.toLocaleDateString('en-US', {
     year: 'numeric',
@@ -48,6 +63,8 @@ export default function PostPreview({ post, parent, hideExplorerCtas }: PostPrev
     day: 'numeric',
     hour: '2-digit',
     minute: '2-digit',
+    timeZone,
+    timeZoneName: hydrated ? undefined : 'short',
   });
   // Short form for the byline ("22 Oct 2026, 03:00"); the long form above
   // is the hover title. Unparseable dates fall back to the long string
@@ -60,6 +77,7 @@ export default function PostPreview({ post, parent, hideExplorerCtas }: PostPrev
         year: 'numeric',
         hour: '2-digit',
         minute: '2-digit',
+        timeZone,
       })
     : formattedDate;
 
@@ -645,13 +663,8 @@ export default function PostPreview({ post, parent, hideExplorerCtas }: PostPrev
               @{author.handle}
             </a>
             <span aria-hidden> · </span>
-            {/* Full timestamp on hover; the local-time string can differ
-                between server and client render, so don't warn about it. */}
-            <time
-              dateTime={validDate ? createdAt.toISOString() : undefined}
-              title={formattedDate}
-              suppressHydrationWarning
-            >
+            {/* Full timestamp on hover. */}
+            <time dateTime={validDate ? createdAt.toISOString() : undefined} title={formattedDate}>
               {shortDate}
             </time>
           </div>

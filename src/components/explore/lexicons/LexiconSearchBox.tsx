@@ -146,7 +146,7 @@ export default function LexiconSearchBox() {
           type="text"
           autoComplete="off"
           spellCheck={false}
-          placeholder="Search lexicons, e.g. app.bsky.feed.post, grain, smokesignal"
+          placeholder="NSID, namespace or app name"
           aria-label="Search lexicons"
           value={value}
           onChange={(e) => {

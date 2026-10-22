@@ -246,23 +246,9 @@
 }
 
 .fl-button:focus-visible,
-.fl-textlink:focus-visible,
 .fl-cross-card:focus-visible {
   outline: 2px solid var(--text-accent);
   outline-offset: 2px;
-}
-
-.fl-textlink {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-weight: 600;
-  color: var(--text-accent);
-  text-decoration: none;
-}
-
-.fl-textlink:hover {
-  color: var(--accent-forest);
 }
 
 /* ---------- Cards ---------- */
@@ -349,13 +335,6 @@
   max-width: 680px;
 }
 
-.fl-band-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 4px;
-}
-
 /* ---------- Cross links ---------- */
 
 .fl-cross {
@@ -419,11 +398,6 @@
   font-size: 14.5px;
   line-height: 1.55;
   color: var(--text-secondary);
-}
-
-.fl-cross-card .fl-textlink {
-  margin-top: auto;
-  font-size: 14px;
 }
 
 /* ---------- Mock windows (the *Visual components) ---------- */
@@ -493,15 +467,6 @@
 
 .fl-mock-head-title svg {
   color: var(--text-accent);
-}
-
-.fl-mock-head-sub {
-  display: block;
-  margin-top: 2px;
-  font-family: var(--font-mono);
-  font-size: 11.5px;
-  font-weight: 400;
-  color: var(--text-tertiary);
 }
 
 .fl-mock-body {
@@ -1235,8 +1200,18 @@
   font-size: 15px;
 }
 
+/* --accent-moss is a dark fill in both themes: fine as an underline, but
+   about 2:1 as text on the dark strip, so dark mode lifts the text. */
+.fl-anatomy {
+  --fl-anatomy-fill-fg: var(--accent-moss);
+}
+
+:root:not([data-theme='light']) .fl-anatomy {
+  --fl-anatomy-fill-fg: color-mix(in srgb, var(--accent-moss) 40%, var(--text-primary));
+}
+
 .fl-anatomy-seg {
-  color: var(--part);
+  color: var(--part-fg, var(--part));
   border-bottom: 2px solid var(--part);
   padding-bottom: 2px;
   font-weight: 500;
@@ -1370,7 +1345,9 @@
   color: var(--text-accent);
   text-decoration: underline;
   text-underline-offset: 3px;
-  word-break: break-all;
+  /* Breaks come from the <wbr> after each slash; anywhere is the fallback
+     for a single segment wider than the card. */
+  overflow-wrap: anywhere;
 }
 
 @media (max-width: 960px) {
@@ -1554,7 +1531,9 @@
   line-height: 1.55;
   color: var(--text-accent);
   white-space: pre-wrap;
-  word-break: break-all;
+  /* Wrap at the spaces between arguments; only split a token (the URL)
+     when it can't fit on a line of its own. */
+  overflow-wrap: anywhere;
 }
 
 .fl-mock pre.fl-setup-code[data-kind='path'] {
@@ -1655,6 +1634,14 @@
   }
   .fl-tools {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* A phone's half column cuts the longer tool names
+   ("list_trending_lexicons") short; one column fits them whole. */
+@media (max-width: 420px) {
+  .fl-tools {
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 
@@ -2144,8 +2131,11 @@
   border-top: 1px solid var(--border-subtle);
 }
 
+/* The authority always takes its own line under type + key: the hero
+   column is too narrow for all three on one line, and letting only the
+   longer rows wrap left the authorities in two different places. */
 .fl-spacerows-auth {
-  margin-left: auto;
+  flex-basis: 100%;
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -2355,5 +2345,18 @@ a.fl-feed-row:hover {
   }
   .fl-anatomy-item dd {
     padding-left: 15px;
+  }
+}
+
+/* Touch: give the feed's pause button a 40px tap without resizing it. */
+@media (pointer: coarse) {
+  .fl-feed-pause {
+    position: relative;
+  }
+
+  .fl-feed-pause::after {
+    content: '';
+    position: absolute;
+    inset: -6px 0;
   }
 }

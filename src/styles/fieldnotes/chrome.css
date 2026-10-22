@@ -61,7 +61,10 @@
   width: 20px;
   height: 20px;
   flex-shrink: 0;
-  color: var(--accent-moss);
+  /* --text-accent, not the --accent-moss fill: the fill is a dark green in
+     both themes and nearly vanishes on the dark header. In light mode the
+     two are the same colour. */
+  color: var(--text-accent);
 }
 
 .fn-wordmark {
@@ -206,6 +209,11 @@
 .fn-session-item:hover {
   background: var(--bg-tertiary) !important;
   color: var(--text-primary) !important;
+}
+
+/* Sign out keeps its danger red under the pointer. */
+.fn-session-item[data-danger]:hover {
+  color: var(--danger) !important;
 }
 
 /* ─── Header panels (menu + search cards under the bar) ─────────────── */
@@ -468,118 +476,6 @@
   padding: 8px 24px;
 }
 
-/* ─── Centered variants (Header simple / default) ───────────────────── */
-
-.fn-header-centered {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.75rem;
-  margin-bottom: 3rem;
-  padding: 2rem 1rem 0;
-  text-align: center;
-  font-family: var(--font-sans);
-}
-
-.fn-header-hero-title {
-  margin: 0;
-  font-size: inherit;
-  line-height: 1;
-}
-
-.fn-brand-simple .fn-wordmark {
-  font-size: 2rem;
-  letter-spacing: -0.03em;
-}
-
-.fn-brand-simple .fn-brand-mark {
-  width: 28px;
-  height: 28px;
-}
-
-.fn-brand-hero {
-  gap: 12px;
-}
-
-.fn-brand-hero .fn-wordmark {
-  font-size: 3.5rem;
-  font-weight: 800;
-  letter-spacing: -0.035em;
-}
-
-.fn-brand-hero .fn-brand-mark {
-  width: 44px;
-  height: 44px;
-}
-
-.fn-header-tagline {
-  margin: 0;
-  color: var(--text-secondary);
-  font-size: 1.125rem;
-  font-weight: 500;
-}
-
-.fn-header-hero .fn-header-tagline {
-  font-size: 1.375rem;
-}
-
-.fn-header-lede {
-  max-width: 560px;
-  margin: 0 auto 0.5rem;
-  color: var(--text-tertiary);
-  font-size: 1.0625rem;
-}
-
-.fn-centered-nav {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  align-items: center;
-  gap: 4px;
-  max-width: 640px;
-}
-
-.fn-header-centered .nav-link {
-  gap: 6px;
-  padding: 6px 12px;
-  border: 0;
-  border-radius: var(--radius-control);
-  background: transparent;
-  color: var(--text-secondary);
-  font-size: 14px;
-  font-weight: 500;
-  transform: none;
-  transition: background 0.15s ease, color 0.15s ease;
-}
-
-.fn-header-centered .nav-link::before {
-  display: none;
-}
-
-.fn-header-centered .nav-link:hover {
-  background: var(--bg-tertiary);
-  color: var(--text-primary);
-  transform: none;
-}
-
-.fn-header-centered .nav-link svg,
-.fn-header-centered .nav-link:hover svg {
-  transform: none;
-}
-
-.fn-header-centered .nav-link[aria-current='page'] {
-  background: var(--accent-soft);
-  color: var(--accent-soft-fg);
-  font-weight: 600;
-}
-
-.fn-header-centered .fn-theme-btn {
-  width: 36px;
-  height: 36px;
-  padding: 0;
-  justify-content: center;
-}
-
 /* ─── Footer ─────────────────────────────────────────────────────────── */
 
 .fn-footer {
@@ -608,7 +504,7 @@
 
 .fn-footer-mark {
   flex-shrink: 0;
-  color: var(--accent-moss);
+  color: var(--text-accent);
 }
 
 .fn-footer-name {
@@ -660,10 +556,8 @@
 }
 
 @media (max-width: 639px) {
-  /* globals.css trims .compact-header's margin with !important on phones;
-     match its specificity rather than fight it. */
-  .fn-header.compact-header {
-    margin-bottom: 1rem !important;
+  .fn-header {
+    margin-bottom: 1rem;
   }
 
   .fn-header-bar {
@@ -730,7 +624,20 @@
     padding: 20px 16px;
   }
 
-  .fn-brand-hero .fn-wordmark {
-    font-size: 2.5rem;
+  /* Two even rows of three instead of a ragged wrap that strands the last
+     link, and each link tall enough to tap. */
+  .fn-footer-nav {
+    display: grid;
+    grid-template-columns: repeat(3, auto);
+    justify-content: start;
+    gap: 0 20px;
   }
+
+  .fn-footer-nav .footer-link {
+    display: inline-flex;
+    align-items: center;
+    min-height: 40px;
+  }
+
+  
 }

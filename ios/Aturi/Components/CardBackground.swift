@@ -1,8 +1,9 @@
 import SwiftUI
 
-/// The web's card: secondary background, hairline border, no shadow.
+/// The web's Field Notes card: the card colour (white in light mode), a
+/// 1px `--border-medium` hairline, 12pt corners, no shadow.
 struct CardBackground: ViewModifier {
-    var cornerRadius: CGFloat = 12
+    var cornerRadius: CGFloat = AturiTheme.cardRadius
 
     @Environment(\.aturiTheme) private var theme
     @Environment(\.displayScale) private var displayScale
@@ -11,12 +12,12 @@ struct CardBackground: ViewModifier {
         let shape = RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
         return content
             .background(theme.bgSecondary, in: shape)
-            .overlay(shape.strokeBorder(theme.borderSubtle, lineWidth: AturiTheme.hairline(displayScale: displayScale)))
+            .overlay(shape.strokeBorder(theme.borderMedium, lineWidth: AturiTheme.hairline(displayScale: displayScale)))
     }
 }
 
 extension View {
-    func cardBackground(cornerRadius: CGFloat = 12) -> some View {
+    func cardBackground(cornerRadius: CGFloat = AturiTheme.cardRadius) -> some View {
         modifier(CardBackground(cornerRadius: cornerRadius))
     }
 }

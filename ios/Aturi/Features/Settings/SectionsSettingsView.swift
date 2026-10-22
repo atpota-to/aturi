@@ -97,11 +97,11 @@ private struct SectionListRows: View {
     var body: some View {
         HStack {
             Text("\(visibleCount) of \(sections.count) shown")
-                .font(.footnote)
+                .font(AturiFont.footnote)
                 .foregroundStyle(theme.textTertiary)
             Spacer(minLength: 0)
             Button("Reset", action: onReset)
-                .font(.footnote.weight(.medium))
+                .font(AturiFont.sans(.footnote, weight: .medium))
                 .buttonStyle(.borderless)
                 .foregroundStyle(theme.textSecondary)
                 .accessibilityLabel("Reset \(page == .record ? "record" : "repo") page sections")
@@ -161,7 +161,7 @@ private struct SectionRow: View {
                     Chip(meta.kind == .recordData ? "content" : "helper")
                 }
                 Text(meta.description)
-                    .font(.footnote)
+                    .font(AturiFont.footnote)
                     .foregroundStyle(theme.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
             }

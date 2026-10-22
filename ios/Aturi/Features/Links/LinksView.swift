@@ -67,9 +67,10 @@ struct LinksView: View {
         VStack(alignment: .leading, spacing: 6) {
             Text("Tour the Atmosphere.")
                 .font(AturiFont.display)
+                .tracking(AturiFont.displayTracking)
                 .foregroundStyle(theme.textPrimary)
             Text("Paste a link from any Atmosphere app, an at:// URI, a handle or a DID. You get a preview and a list of every client that can open it.")
-                .font(.footnote)
+                .font(AturiFont.footnote)
                 .foregroundStyle(theme.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
         }
@@ -88,7 +89,7 @@ struct LinksView: View {
                     .focused($inputFocused)
                     .onSubmit(open)
                     .padding(10)
-                    .background(theme.bgTertiary, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+                    .background(theme.bgTertiary, in: RoundedRectangle(cornerRadius: AturiTheme.controlRadius, style: .continuous))
                 if !input.isEmpty {
                     Button {
                         input = ""
@@ -103,7 +104,7 @@ struct LinksView: View {
             }
             if showsInvalidHint && !trimmed.isEmpty && !isValid {
                 Text("That is not a link this app can open. Try an at:// URI, a handle, a DID, or a link from a supported app.")
-                    .font(.footnote)
+                    .font(AturiFont.footnote)
                     .foregroundStyle(theme.danger)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -156,7 +157,7 @@ struct LinksView: View {
                        Suggestions (PageActivity.swift) are history too. */
                     NSUserActivity.deleteAllSavedUserActivities {}
                 }
-                .font(.footnote)
+                .font(AturiFont.footnote)
                 .foregroundStyle(theme.textSecondary)
             }
             VStack(spacing: 0) {
@@ -195,7 +196,7 @@ struct LinksView: View {
             VStack(alignment: .leading, spacing: 3) {
                 HStack(spacing: 6) {
                     Text(entry.label)
-                        .font(.body)
+                        .font(AturiFont.body)
                         .foregroundStyle(theme.textPrimary)
                         .lineLimit(1)
                     if let detail = entry.detail, !detail.isEmpty {
@@ -207,7 +208,7 @@ struct LinksView: View {
             }
             Spacer(minLength: 0)
             RelativeDateText(date: entry.visitedAt)
-                .font(.caption)
+                .font(AturiFont.caption)
                 .foregroundStyle(theme.textTertiary)
         }
         .padding(.horizontal, 12)
@@ -221,11 +222,11 @@ struct LinksView: View {
                 .font(AturiFont.subtitle)
                 .foregroundStyle(theme.textPrimary)
             Text("An aturi.to link names an account or a record on the AT Protocol rather than one app. Whoever opens it picks the client they prefer, and this app is one of the places it can land.")
-                .font(.footnote)
+                .font(AturiFont.footnote)
                 .foregroundStyle(theme.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
             Text("Every page you preview here has a share button with its aturi.to link, so the people you send it to get the same choice.")
-                .font(.footnote)
+                .font(AturiFont.footnote)
                 .foregroundStyle(theme.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
         }

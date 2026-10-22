@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { Fragment, useCallback, useEffect, useState, type ReactNode } from 'react';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import {
   backlinksFromPage,
@@ -220,21 +220,14 @@ function BacklinkSourceList({
         padding: 0,
         display: 'flex',
         flexDirection: 'column',
-        gap: '0.25rem',
       }}
     >
       {sources.map((s) => {
         const isOpen = open === s.source;
         return (
-          <li
-            key={s.source}
-            style={{
-              border: '1px solid var(--border-medium)',
-              borderRadius: '10px',
-              overflow: 'hidden',
-              background: 'var(--bg-secondary)',
-            }}
-          >
+          // Divided rows inside the panel's own card (fx-backlink-source in
+          // explorer.css), with the row hover the other explorer lists use.
+          <li key={s.source} className="fx-backlink-source">
             <button
               type="button"
               onClick={() => setOpen(isOpen ? null : s.source)}
@@ -243,7 +236,7 @@ function BacklinkSourceList({
                 display: 'grid',
                 gridTemplateColumns: 'auto 1fr auto',
                 gap: '0.5rem',
-                alignItems: 'baseline',
+                alignItems: 'start',
                 width: '100%',
                 textAlign: 'left',
                 padding: '0.625rem 1rem',
@@ -255,7 +248,17 @@ function BacklinkSourceList({
                 color: 'var(--text-primary)',
               }}
             >
-              <span style={{ color: 'var(--text-tertiary)', width: '1ch' }}>
+              {/* One line tall and centred in it, so the chevron sits level
+                  with the NSID rather than on its baseline. */}
+              <span
+                style={{
+                  color: 'var(--text-tertiary)',
+                  width: '1ch',
+                  height: '1lh',
+                  display: 'flex',
+                  alignItems: 'center',
+                }}
+              >
                 {isOpen ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
               </span>
               {/* Collection NSID over its record path, stacked and
@@ -277,20 +280,20 @@ function BacklinkSourceList({
                     background: 'transparent',
                     padding: 0,
                     color: 'var(--text-accent)',
-                    wordBreak: 'break-all',
+                    overflowWrap: 'anywhere',
                   }}
                 >
-                  {s.collection}
+                  {withDotBreaks(s.collection)}
                 </code>
                 <code
                   style={{
                     background: 'transparent',
                     padding: 0,
                     color: 'var(--text-tertiary)',
-                    wordBreak: 'break-all',
+                    overflowWrap: 'anywhere',
                   }}
                 >
-                  {s.path}
+                  {withDotBreaks(s.path)}
                 </code>
               </span>
               {/* Count over distinct-accounts, stacked and abbreviated
@@ -316,12 +319,12 @@ function BacklinkSourceList({
                       color: 'var(--text-tertiary)',
                     }}
                   >
-                    backlinks
+                    {s.count === 1 ? 'backlink' : 'backlinks'}
                   </span>
                 </span>
                 {s.distinctDids != null && (
                   <span style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>
-                    {formatCount(s.distinctDids)} accounts
+                    {formatCount(s.distinctDids)} {s.distinctDids === 1 ? 'account' : 'accounts'}
                   </span>
                 )}
               </span>
@@ -481,4 +484,23 @@ function BacklinkRecords({ target, source }: { target: string; source: string })
       )}
     </div>
   );
+}
+
+/**
+ * Lets an NSID or record path wrap after its dots rather than mid-segment,
+ * the way the record page's fields do (RecordPreview). overflow-wrap still
+ * breaks a single segment too long for the row.
+ */
+function withDotBreaks(text: string): ReactNode {
+  const parts = text.split('.');
+  return parts.map((part, i) => (
+    <Fragment key={i}>
+      {part}
+      {i < parts.length - 1 && (
+        <>
+          .<wbr />
+        </>
+      )}
+    </Fragment>
+  ));
 }

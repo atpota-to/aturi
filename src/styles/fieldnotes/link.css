@@ -212,6 +212,8 @@
   flex-direction: column;
   gap: 0.75rem;
   font-family: var(--font-sans);
+  /* Clear the sticky header when the scroll hint jumps here. */
+  scroll-margin-top: 72px;
 }
 
 .fn-lp-head {
@@ -910,6 +912,19 @@
   .fn-lp-remember {
     bottom: 1rem;
   }
+
+  /* Fill the gap between the floating card and the viewport edge so rows
+     scrolling underneath don't peek out below it. */
+  .fn-lp-remember::after {
+    content: '';
+    position: absolute;
+    top: calc(100% + 1px);
+    left: -1px;
+    right: -1px;
+    height: 1rem;
+    background: var(--bg-primary);
+    pointer-events: none;
+  }
 }
 
 .fn-lp-remember-text {
@@ -940,6 +955,12 @@
     border-width: 1px 0 0;
     border-radius: 0;
   }
+
+  /* The full-bleed band rests directly on the footer at the end of the
+     page instead of leaving an empty strip of page between them. */
+  body:has(.waypoint-page .fn-lp-remember) .fn-footer {
+    margin-top: 0;
+  }
 }
 
 /* --- Scroll hint ---------------------------------------------------------- */
@@ -947,7 +968,7 @@
 .fn-lp-scroll {
   position: fixed;
   left: 50%;
-  bottom: 6rem;
+  bottom: 1.5rem;
   z-index: 30;
   transform: translateX(-50%);
   transition: opacity 0.3s ease;
@@ -972,6 +993,7 @@
   font-weight: 600;
   color: var(--text-secondary);
   white-space: nowrap;
+  box-shadow: var(--shadow-overlay);
   cursor: pointer;
   transition: color 0.15s ease, border-color 0.15s ease;
 }
@@ -983,7 +1005,7 @@
 
 @media (max-width: 600px) {
   .fn-lp-scroll {
-    bottom: calc(5.5rem + env(safe-area-inset-bottom, 0px));
+    bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
   }
 }
 
@@ -1097,5 +1119,33 @@
 
   .fn-lp-notfound-title {
     font-size: 1.625rem;
+  }
+}
+
+/* --- Phone tap targets ---------------------------------------------------- */
+
+@media (max-width: 600px) {
+  .share-button,
+  .fn-lp-btn {
+    height: 40px;
+  }
+}
+
+/* Touch: the layout toggle and the Explorer link keep their size and get an
+   invisible 40px hit area. */
+@media (pointer: coarse) {
+  .waypoint-layout-option,
+  .waypoint-page .profile-explorer-link {
+    position: relative;
+  }
+  .waypoint-layout-option::after,
+  .waypoint-page .profile-explorer-link::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: max(100%, 40px);
+    height: max(100%, 40px);
+    transform: translate(-50%, -50%);
   }
 }

@@ -8,13 +8,14 @@ import FeatureSection from './FeatureSection';
 import LinksHeroVisual from './LinksHeroVisual';
 import UrlAnatomyVisual from './UrlAnatomyVisual';
 import RecordTypesGrid from './RecordTypesGrid';
+import { getWaypointCount } from '@/utils/waypoints';
 import PickerPreviewVisual from './PickerPreviewVisual';
 import SharingScenariosVisual from './SharingScenariosVisual';
 
 const DEMO_HANDLE = 'aturi.to';
 // Aturi's own DID — hardcoded so the carousel can build did-aware URLs
 // without a runtime profile fetch.
-const DEMO_DID = 'did:plc:gq4fo3u6tqzzdkjlwzpb23tj';
+const DEMO_DID = 'did:plc:6teuhlkizzebk6wdp42633el';
 
 export default function UniversalLinksLanding() {
   return (
@@ -33,7 +34,8 @@ export default function UniversalLinksLanding() {
               Drop an <code>aturi.to</code> link anywhere: a DM, a footer, a
               bio. Visitors land on a preview of the record and choose which
               Atmosphere client opens it. No lock-in, no sign-up. Every record,
-              profile, list, and feed resolves across 25+ curated clients.
+              profile, list, and feed resolves across {getWaypointCount()} curated
+              clients.
             </p>
             <div className="fl-hero-actions">
               <Link

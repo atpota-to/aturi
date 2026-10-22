@@ -8,6 +8,9 @@ type Part = {
   hint: string;
   /** Color token used for the label + underline. */
   accent: string;
+  /** Text colour for the segment, when the accent is a fill colour too
+   *  dark to read as text in dark mode. Defaults to the accent. */
+  fg?: string;
 };
 
 const PARTS: Part[] = [
@@ -28,6 +31,7 @@ const PARTS: Part[] = [
     label: 'Space type',
     hint: 'An NSID naming the kind of space, defined by the app that creates them.',
     accent: 'var(--accent-moss)',
+    fg: 'var(--fl-anatomy-fill-fg)',
   },
   {
     text: '/self',
@@ -59,7 +63,7 @@ export default function SpaceUriAnatomyVisual() {
           <span
             key={p.label}
             className="fl-anatomy-seg"
-            style={{ '--part': p.accent } as React.CSSProperties}
+            style={{ '--part': p.accent, '--part-fg': p.fg ?? p.accent } as React.CSSProperties}
           >
             {p.text}
           </span>

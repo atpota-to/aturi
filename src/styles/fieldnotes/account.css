@@ -184,6 +184,7 @@
 .settings-card-sub code,
 .settings-toggle-label-sub code {
   font-family: var(--font-mono);
+  white-space: nowrap;
   font-size: 0.92em;
   padding: 1px 5px;
   border-radius: 4px;
@@ -663,11 +664,6 @@
   font-size: 11.5px;
   font-weight: 600;
   line-height: 1.4;
-}
-
-.settings-pill.is-muted {
-  background: var(--bg-tertiary);
-  color: var(--text-secondary);
 }
 
 /* =========================================================================
@@ -1383,8 +1379,7 @@
   line-height: 1.5;
 }
 
-.reorder-tag-moved,
-.reorder-tag-new {
+.reorder-tag-moved {
   background: var(--accent-soft);
   color: var(--accent-soft-fg);
 }
@@ -1622,6 +1617,10 @@
 
 .kb-row-icon {
   color: var(--text-tertiary);
+}
+
+.kb-slot-placeholder {
+  visibility: hidden;
 }
 
 .kb-row-label {

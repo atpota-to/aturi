@@ -8,6 +8,9 @@ type Part = {
   hint: string;
   /** Colour token used for the label dot + underline. */
   accent: string;
+  /** Text colour for the segment, when the accent is a fill colour too
+   *  dark to read as text in dark mode. Defaults to the accent. */
+  fg?: string;
 };
 
 const PARTS: Part[] = [
@@ -34,6 +37,7 @@ const PARTS: Part[] = [
     label: 'Collection',
     hint: 'The lexicon NSID of the record being linked.',
     accent: 'var(--accent-moss)',
+    fg: 'var(--fl-anatomy-fill-fg)',
   },
   {
     text: '/3lq9c2fhz3k2v',
@@ -59,7 +63,7 @@ export default function UrlAnatomyVisual() {
           <span
             key={p.label}
             className="fl-anatomy-seg"
-            style={{ '--part': p.accent } as React.CSSProperties}
+            style={{ '--part': p.accent, '--part-fg': p.fg ?? p.accent } as React.CSSProperties}
           >
             {p.text}
           </span>

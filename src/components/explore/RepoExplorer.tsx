@@ -142,6 +142,10 @@ function RepoView({ identity }: { identity: IdentityBundle }) {
   return (
     <div className="fx-explorer" data-page="repo">
       <div className="fx-head">
+        {/* The collection and record pages carry a visible h1 title bar; here
+            the account card is the title, so the page's h1 is for assistive
+            tech only and the card keeps its h2. */}
+        <h1 className="fn-sr-only">{identity.handle ? `@${identity.handle}` : identity.did}</h1>
         {/* Breadcrumb at the repo level shows pds → @handle — fixed at the
             top, not part of the configurable section list. */}
         <AppearIn rise>
@@ -387,7 +391,9 @@ export function RepoNavCard({
             href={t.id === 'collections' ? repoPath : `${repoPath}?tab=${t.id}`}
             prefetch={false}
             className="fx-tab"
-            aria-current={t.id === 'collections' ? 'page' : undefined}
+            // The collection being viewed belongs to the Collections view, but
+            // the link leaves this page, so it's highlighted, not aria-current.
+            data-active={t.id === 'collections' || undefined}
           >
             {t.label}
           </Link>

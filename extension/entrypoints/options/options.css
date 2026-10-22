@@ -54,6 +54,20 @@
   color: var(--text-secondary);
 }
 
+.options-header-links {
+  margin-left: auto;
+  display: flex;
+  gap: 18px;
+  font-size: 13.5px;
+  font-weight: 600;
+}
+
+.options-header-links a {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
 /* ---------- Layout ---------- */
 
 .options-layout {
@@ -134,15 +148,10 @@
     position: static;
     flex: none;
     flex-direction: row;
-    overflow-x: auto;
+    /* Wrap rather than scroll, so every section (and the active one) stays
+       in view at phone widths. */
+    flex-wrap: wrap;
     gap: 4px;
-    margin: 0 -16px;
-    padding: 0 16px 4px;
-    scrollbar-width: none;
-  }
-
-  .options-nav::-webkit-scrollbar {
-    display: none;
   }
 
   .options-nav-item {
@@ -676,8 +685,16 @@
   height: 14px;
 }
 
+/* On narrow screens the peek icons would squeeze the group name. */
+@media (max-width: 480px) {
+  .group-peek {
+    display: none;
+  }
+}
+
 .group-actions {
   margin-left: auto;
+  flex: none;
   display: flex;
   align-items: center;
   gap: 4px;
@@ -699,6 +716,7 @@
 
 .group-action-add {
   padding: 0 10px;
+  white-space: nowrap;
   border: 1px solid var(--border-strong);
   background: var(--bg-secondary);
   color: var(--text-primary);
@@ -859,6 +877,14 @@
 .search-select-input:focus {
   border-color: var(--accent-moss);
   box-shadow: 0 0 0 3px var(--glow-strong);
+}
+
+/* Moss is too faint on dark surfaces; match the dark focus ring. */
+[data-theme='dark'] .waypoint-picker-input:focus,
+[data-theme='dark'] .search-select-input:focus,
+[data-theme='dark'] .custom-template-field:focus-within,
+[data-theme='dark'] .dev-select:focus {
+  border-color: var(--text-accent);
 }
 
 .waypoint-picker-list,

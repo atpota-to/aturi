@@ -19,7 +19,7 @@ export default function SharingScenariosVisual() {
         body={
           <>
             check this out:{' '}
-            <Link>aturi.to/profile/aturi.to/post/3lq…</Link>
+            <Link url="aturi.to/profile/aturi.to/post/3lq…" />
           </>
         }
       />
@@ -30,7 +30,7 @@ export default function SharingScenariosVisual() {
         body={
           <>
             writer · gardener · my work lives at{' '}
-            <Link>aturi.to/profile/new-account.bsky.social</Link>
+            <Link url="aturi.to/profile/new-account.bsky.social" />
           </>
         }
       />
@@ -41,7 +41,7 @@ export default function SharingScenariosVisual() {
         body={
           <>
             Follow updates →{' '}
-            <Link>aturi.to/profile/handle/app.bsky.feed.generator/news</Link>
+            <Link url="aturi.to/profile/handle/app.bsky.feed.generator/news" />
           </>
         }
       />
@@ -72,6 +72,22 @@ function Scenario({
   );
 }
 
-function Link({ children }: { children: React.ReactNode }) {
-  return <span className="fl-scenario-link">{children}</span>;
+/** A break opportunity after each slash, so a long URL wraps between path
+ *  segments rather than mid-word. */
+function Link({ url }: { url: string }) {
+  const parts = url.split('/');
+  return (
+    <span className="fl-scenario-link">
+      {parts.map((part, i) => (
+        <span key={i}>
+          {part}
+          {i < parts.length - 1 && (
+            <>
+              /<wbr />
+            </>
+          )}
+        </span>
+      ))}
+    </span>
+  );
 }

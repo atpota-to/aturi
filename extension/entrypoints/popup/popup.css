@@ -61,7 +61,8 @@ body {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: 15px;
+  /* 15px at the medium preset; scales with the text-size setting. */
+  font-size: calc(var(--fs-xl) - 1px);
   font-weight: 700;
   letter-spacing: -0.02em;
   color: var(--text-primary);
@@ -114,7 +115,7 @@ body {
   border-radius: var(--radius-pill);
   background: var(--accent-moss);
   color: var(--text-on-accent);
-  font-size: 11px;
+  font-size: var(--fs-xs);
   font-weight: 700;
   line-height: 1;
   display: inline-flex;
@@ -178,6 +179,13 @@ body {
   display: flex;
   align-items: center;
   transition: background 0.12s ease;
+}
+
+/* The list card clips its rows to its rounded corners, so the rows draw
+   their focus ring inside their own box. */
+.popup-waypoint-main:focus-visible,
+.popup-waypoint-copy:focus-visible {
+  outline-offset: -2px;
 }
 
 .popup-waypoint + .popup-waypoint {
@@ -245,9 +253,12 @@ body {
 }
 
 .popup-waypoint-name {
-  flex: none;
+  flex: 0 1 auto;
+  min-width: 0;
   font-weight: 600;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .popup-waypoint-desc {
@@ -328,7 +339,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 14px;
+  font-size: var(--fs-base);
   font-weight: 700;
 }
 

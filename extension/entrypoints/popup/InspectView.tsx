@@ -5,14 +5,9 @@ import {
   Clock,
   Compass,
   ExternalLink,
-  Heart,
   Hash,
   Link as LinkIcon,
-  MessageCircle,
-  Network,
-  Quote,
   RefreshCw,
-  Repeat2,
   Server,
   Tag,
   Telescope,
@@ -419,7 +414,7 @@ function InspectCard({ hit }: { hit: DetectedAtUri }) {
         )}
         {universalLink && (
           <CopyChip
-            label="Universal link"
+            label="Link"
             icon={<LinkIcon size={11} />}
             value={universalLink}
           />
@@ -558,19 +553,18 @@ function EngagementRow({
   engagement: Engagement | null;
   backlinkCount: number | null;
 }) {
-  const items: Array<{ key: string; icon: React.ReactNode; value: number; label: string; short?: string }> = [];
+  const items: Array<{ key: string; value: number; label: string; short?: string }> = [];
   if (engagement?.replies != null)
-    items.push({ key: 'replies', icon: <MessageCircle size={11} />, value: engagement.replies, label: 'replies' });
+    items.push({ key: 'replies', value: engagement.replies, label: 'replies' });
   if (engagement?.reposts != null)
-    items.push({ key: 'reposts', icon: <Repeat2 size={11} />, value: engagement.reposts, label: 'reposts' });
+    items.push({ key: 'reposts', value: engagement.reposts, label: 'reposts' });
   if (engagement?.likes != null)
-    items.push({ key: 'likes', icon: <Heart size={11} />, value: engagement.likes, label: 'likes' });
+    items.push({ key: 'likes', value: engagement.likes, label: 'likes' });
   if (engagement?.quotes != null)
-    items.push({ key: 'quotes', icon: <Quote size={11} />, value: engagement.quotes, label: 'quotes' });
+    items.push({ key: 'quotes', value: engagement.quotes, label: 'quotes' });
   if (backlinkCount != null && backlinkCount > 0)
     items.push({
       key: 'inbound',
-      icon: <Network size={11} />,
       value: backlinkCount,
       label: 'inbound links across the Atmosphere',
       short: 'links in',

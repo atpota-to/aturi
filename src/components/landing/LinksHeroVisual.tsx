@@ -1,9 +1,14 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Link2 } from 'lucide-react';
 import { getWaypointsForType, getWaypointCount, type Waypoint } from '@/utils/waypoints';
+import {
+  getReduceMotionServerSnapshot,
+  getReduceMotionSnapshot,
+  subscribeReduceMotion,
+} from '@/lib/a11y';
 
 type Props = {
   handle: string;
@@ -40,20 +45,28 @@ export default function LinksHeroVisual({ handle, did }: Props) {
     [allWaypoints],
   );
 
+  // Reduce motion holds the picture still: no hopping highlight, no
+  // rotating rows. Same source PageTransition reads.
+  const reduceMotion = useSyncExternalStore(
+    subscribeReduceMotion,
+    getReduceMotionSnapshot,
+    getReduceMotionServerSnapshot,
+  );
+
   const [active, setActive] = useState(0);
   useEffect(() => {
-    if (chips.length === 0) return undefined;
+    if (reduceMotion || chips.length === 0) return undefined;
     const id = window.setInterval(() => {
       setActive((i) => (i + 1) % chips.length);
     }, HIGHLIGHT_INTERVAL_MS);
     return () => window.clearInterval(id);
-  }, [chips.length]);
+  }, [chips.length, reduceMotion]);
 
   const [slots, setSlots] = useState<Waypoint[]>(() => allWaypoints.slice(0, VISIBLE_SLOTS));
   const nextIndexRef = useRef(VISIBLE_SLOTS);
   const nextSlotRef = useRef(0);
   useEffect(() => {
-    if (allWaypoints.length <= VISIBLE_SLOTS) return undefined;
+    if (reduceMotion || allWaypoints.length <= VISIBLE_SLOTS) return undefined;
     const id = window.setInterval(() => {
       setSlots((prev) => {
         const next = [...prev];
@@ -71,7 +84,7 @@ export default function LinksHeroVisual({ handle, did }: Props) {
       });
     }, ROTATE_INTERVAL_MS);
     return () => window.clearInterval(id);
-  }, [allWaypoints]);
+  }, [allWaypoints, reduceMotion]);
 
   return (
     <div className="fl-mock fl-linkhero" aria-hidden>

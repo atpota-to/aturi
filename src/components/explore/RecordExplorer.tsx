@@ -425,7 +425,11 @@ function RecordView({
       } else if (!hidden) {
         let node: ReactNode = null;
         let column: Placed['column'] = 'main';
-        if (id === 'engagement' && !isPost) {
+        // Posts show their counts in the rich card, and so do profiles
+        // while the rich preview is open, so skip the sidecar for those.
+        const countsInCard =
+          isPost || (collection === 'app.bsky.actor.profile' && hasRichCard && !cardHidden);
+        if (id === 'engagement' && !countsInCard) {
           node = <EngagementSidecar did={identity.did} collection={collection} atUri={atUri} />;
         } else if (id === 'copyRow') {
           node = copyRowNode;

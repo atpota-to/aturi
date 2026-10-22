@@ -37,7 +37,7 @@ export default function InspectPanelVisual() {
       <div className="fl-mock-bar">
         <span className="fl-ellipsis">
           <span className="fl-faint">at://</span>
-          <span className="fl-accent">did:plc:gq4…23tj</span>
+          <span className="fl-accent">did:plc:6te…33el</span>
           <span className="fl-faint">/</span>
           <span className="fl-dim">app.bsky.feed.post</span>
           <span className="fl-faint">/</span>
@@ -47,13 +47,13 @@ export default function InspectPanelVisual() {
 
       <div className="fl-mock-body">
         <Field icon={<Fingerprint size={12} />} label="Authority">
-          <span className="fl-accent">did:plc:gq4fo3u6tqzzdkjlwzpb23tj</span>
+          <span className="fl-accent">did:plc:6teuhlkizzebk6wdp42633el</span>
         </Field>
         <Field icon={<Hash size={12} />} label="Handle">
           @aturi.to
         </Field>
         <Field icon={<Database size={12} />} label="PDS">
-          pds.example.host
+          pds.atpota.to
         </Field>
         <Field icon={<Activity size={12} />} label="Collection">
           app.bsky.feed.post

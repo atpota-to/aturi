@@ -17,7 +17,6 @@ import {
   Telescope,
   X,
 } from 'lucide-react';
-import { motion } from 'framer-motion';
 import ThemeToggle from './ThemeToggle';
 import SessionMenu from './SessionMenu';
 import SessionPanel from './SessionPanel';
@@ -39,7 +38,7 @@ const NAV_ITEMS = [
   { href: '/links', label: 'Links', icon: Compass, inline: true },
   { href: '/extension', label: 'Extension', icon: Download, inline: true },
   { href: '/mcp', label: 'MCP', icon: Plug, inline: true },
-  { href: '/docs', label: 'Integrate', icon: BookOpen, inline: true },
+  { href: '/docs', label: 'Docs', icon: BookOpen, inline: true },
   { href: '/feedback', label: 'Feedback', icon: MessageSquareHeart, inline: true },
 ];
 
@@ -54,10 +53,10 @@ function activeNavHref(pathname: string | null): string | null {
   return hit?.href ?? null;
 }
 
-/** Leaf mark + wordmark, linking home. Shared by all three variants. */
-function Brand({ size = 'bar' }: { size?: 'bar' | 'simple' | 'hero' }) {
+/** Leaf mark + wordmark, linking home. */
+function Brand() {
   return (
-    <Link href="/" prefetch={false} className={`fn-brand fn-brand-${size}`} aria-label="aturi.to home">
+    <Link href="/" prefetch={false} className="fn-brand" aria-label="aturi.to home">
       <Leaf className="fn-brand-mark" aria-hidden strokeWidth={2.2} />
       <span className="fn-wordmark">
         aturi<span className="fn-wordmark-tld">.to</span>
@@ -67,12 +66,16 @@ function Brand({ size = 'bar' }: { size?: 'bar' | 'simple' | 'hero' }) {
 }
 
 interface HeaderProps {
-  simple?: boolean; // If true, shows a smaller version without the tagline
-  compact?: boolean; // If true, shows ultra-compact inline header with expandable menu
+  /**
+   * Every call site passes this; the full-width bar is the only header. The
+   * centered "simple" and "hero" variants it once switched between had no
+   * callers left and were removed.
+   */
+  compact?: boolean;
 }
 
 /**
- * Every nav link below, in all three variants, sets `prefetch={false}`.
+ * Every nav link below sets `prefetch={false}`.
  *
  * Next's default prefetches a link once it scrolls into the viewport, and under
  * the App Router's segment cache each one costs four or five requests — the
@@ -93,7 +96,9 @@ interface HeaderProps {
  * visitor's first click on a nav link is a cold navigation. These are small
  * pages, and that is the whole of the cost.
  */
-export default function Header({ simple = false, compact = false }: HeaderProps) {
+// Takes no props any more; the type keeps `<Header compact />` call sites valid.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export default function Header(_props: HeaderProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [isSearchExpanded, setIsSearchExpanded] = useState(false);
   // When SessionPanel's inline sign-in flow is active, the panel collapses
@@ -113,7 +118,7 @@ export default function Header({ simple = false, compact = false }: HeaderProps)
   // Click outside to close either panel. The menu and search panels are
   // mutually exclusive but share the same outside-click closing behavior.
   useEffect(() => {
-    if (!compact || (!isExpanded && !isSearchExpanded)) return;
+    if (!isExpanded && !isSearchExpanded) return;
 
     const handleClickOutside = (event: MouseEvent) => {
       // isEventOutside, not `contains`: picking a typeahead suggestion inside
@@ -140,239 +145,163 @@ export default function Header({ simple = false, compact = false }: HeaderProps)
       document.removeEventListener('mousedown', handleClickOutside);
       document.removeEventListener('keydown', handleKeyDown);
     };
-  }, [compact, isExpanded, isSearchExpanded]);
+  }, [isExpanded, isSearchExpanded]);
 
-  // Ultra-compact mode: the full-width bar every page renders.
-  if (compact) {
-    return (
-      <header ref={headerRef} className="compact-header fn-header">
-        <div className="fn-header-bar">
-          <Brand />
+  return (
+    <header ref={headerRef} className="compact-header fn-header">
+      <div className="fn-header-bar">
+        <Brand />
 
-          {/* Primary sections inline on wide screens; below the nav
-              breakpoint they move into the menu panel (CSS hides this). */}
-          <nav aria-label="Primary" className="fn-nav">
-            {NAV_ITEMS.filter((item) => item.inline).map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                prefetch={false}
-                className="fn-nav-link"
-                aria-current={activeHref === item.href ? 'page' : undefined}
-              >
-                {item.label}
-              </Link>
-            ))}
-          </nav>
-
-          <div className="fn-header-actions">
-            {/* Explorer pages carry the "go to" field in the bar itself, as
-                the design does; it gives way to the search button below
-                the tablet breakpoint (CSS). */}
-            {onExplorer && (
-              <div className="fn-header-search">
-                <CompactSearchPanel
-                  variant="bar"
-                  active={false}
-                  onDone={() => setIsSearchExpanded(false)}
-                />
-              </div>
-            )}
-
-            {/* Search shortcut: opens an inline search card below the bar
-                so visitors can jump into the explorer without leaving the
-                page. Mutually exclusive with the nav menu. */}
-            <button
-              type="button"
-              className={`fn-icon-btn fn-search-toggle${onExplorer ? ' fn-search-toggle-explorer' : ''}`}
-              onClick={() => {
-                setIsSearchExpanded((v) => !v);
-                setIsExpanded(false);
-              }}
-              aria-label="Search the explorer"
-              aria-expanded={isSearchExpanded}
+        {/* Primary sections inline on wide screens; below the nav
+            breakpoint they move into the menu panel (CSS hides this). */}
+        <nav aria-label="Primary" className="fn-nav">
+          {NAV_ITEMS.filter((item) => item.inline).map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              prefetch={false}
+              className="fn-nav-link"
+              aria-current={activeHref === item.href ? 'page' : undefined}
             >
-              <Search size={18} />
-            </button>
+              {item.label}
+            </Link>
+          ))}
+        </nav>
 
-            {/* Only renders when there are release notes to show. */}
-            <WhatsNewBadge />
-
-            <span className="fn-header-theme">
-              <ThemeToggle variant="inline" />
-            </span>
-
-            <span className="fn-header-session">
-              <SessionMenu variant="compact" />
-            </span>
-
-            {/* Expandable menu button: holds every destination plus the theme
-                and session controls, so it is the whole nav below the
-                desktop breakpoint. */}
-            <button
-              type="button"
-              className="fn-icon-btn fn-menu-toggle"
-              onClick={() => {
-                setIsExpanded((v) => !v);
-                setIsSearchExpanded(false);
-              }}
-              // Names the action rather than the control: "Toggle menu" left
-              // a screen-reader user to infer which way it would go.
-              aria-label={isExpanded ? 'Close menu' : 'Open menu'}
-              aria-expanded={isExpanded}
-            >
-              {/* A hamburger reads as a button on sight, and swapping it for
-                  an X while open is the other half of that signal. */}
-              {isExpanded ? <X size={20} /> : <Menu size={20} />}
-            </button>
-          </div>
-        </div>
-
-        {/* Condensed breadcrumb that drops in once you scroll past the
-            in-page one, keeping the explorer path anchored at the top.
-            A full-width section below the bar; renders nothing off the
-            explorer routes (no trail registered).
-
-            The nav says where you are; what you can do lives at the other
-            end of the screen, in <ExploreChromeBar>. */}
-        <StickyBreadcrumbBar />
-
-        {/* Search card: drops below the bar. Its own card so it and the
-            menu open independently. */}
-        <div
-          // Keep the collapsed search input out of the tab order / a11y tree.
-          inert={!isSearchExpanded}
-          className="fn-header-panel fn-header-search-panel"
-          data-open={isSearchExpanded || undefined}
-        >
-          <CompactSearchPanel
-            active={isSearchExpanded}
-            onDone={() => setIsSearchExpanded(false)}
-          />
-        </div>
-
-        {/* Menu card */}
-        <div
-          // `inert` when collapsed removes the hidden panel's links and
-          // controls from the tab order and accessibility tree. Opacity and
-          // pointerEvents alone left keyboard users tabbing through an
-          // invisible menu.
-          inert={!isExpanded}
-          className="fn-header-panel fn-header-menu-panel"
-          data-open={isExpanded || undefined}
-          // Clipped by default. The sign-in flow is the exception: its handle
-          // typeahead drops a listbox below the input, taller than the panel
-          // has room for, and clipping cut the suggestions in half. Relaxed
-          // only while the panel is actually open; collapsed, `opacity: 0`
-          // and `inert` still cover anything that would escape.
-          style={{ overflow: isExpanded && isSignInActive ? 'visible' : 'hidden' }}
-        >
-          <nav aria-label="Menu" className="fn-menu">
-            {/* When the sign-in flow is active inside SessionPanel, hide the
-                nav rows and theme toggle so the handle input / scope picker
-                can claim the panel's vertical space. */}
-            {!isSignInActive && (
-              <div className="compact-nav-grid">
-                {NAV_ITEMS.map(({ href, label, icon: Icon }) => (
-                  <Link
-                    key={href}
-                    href={href}
-                    className="compact-nav-link"
-                    prefetch={false}
-                    aria-current={activeHref === href ? 'page' : undefined}
-                  >
-                    <Icon size={16} />
-                    <span>{label}</span>
-                  </Link>
-                ))}
-                <ThemeToggle variant="row" />
-              </div>
-            )}
-
-            {/* Session controls: sign in (signed out) OR user info + my repo /
-                account / sign out (signed in). */}
-            <div className={isSignInActive ? undefined : 'fn-menu-session'}>
-              <SessionPanel
-                onNavigate={() => setIsExpanded(false)}
-                onSignInActiveChange={handleSignInActiveChange}
+        <div className="fn-header-actions">
+          {/* Explorer pages carry the "go to" field in the bar itself, as
+              the design does; it gives way to the search button below
+              the tablet breakpoint (CSS). */}
+          {onExplorer && (
+            <div className="fn-header-search">
+              <CompactSearchPanel
+                variant="bar"
+                active={false}
+                onDone={() => setIsSearchExpanded(false)}
               />
             </div>
-          </nav>
+          )}
+
+          {/* Search shortcut: opens an inline search card below the bar
+              so visitors can jump into the explorer without leaving the
+              page. Mutually exclusive with the nav menu. */}
+          <button
+            type="button"
+            className={`fn-icon-btn fn-search-toggle${onExplorer ? ' fn-search-toggle-explorer' : ''}`}
+            onClick={() => {
+              setIsSearchExpanded((v) => !v);
+              setIsExpanded(false);
+            }}
+            aria-label="Search the explorer"
+            aria-expanded={isSearchExpanded}
+          >
+            <Search size={18} />
+          </button>
+
+          {/* Only renders when there are release notes to show. */}
+          <WhatsNewBadge />
+
+          <span className="fn-header-theme">
+            <ThemeToggle variant="inline" />
+          </span>
+
+          <span className="fn-header-session">
+            <SessionMenu variant="compact" />
+          </span>
+
+          {/* Expandable menu button: holds every destination plus the theme
+              and session controls, so it is the whole nav below the
+              desktop breakpoint. */}
+          <button
+            type="button"
+            className="fn-icon-btn fn-menu-toggle"
+            onClick={() => {
+              setIsExpanded((v) => !v);
+              setIsSearchExpanded(false);
+            }}
+            // Names the action rather than the control: "Toggle menu" left
+            // a screen-reader user to infer which way it would go.
+            aria-label={isExpanded ? 'Close menu' : 'Open menu'}
+            aria-expanded={isExpanded}
+          >
+            {/* A hamburger reads as a button on sight, and swapping it for
+                an X while open is the other half of that signal. */}
+            {isExpanded ? <X size={20} /> : <Menu size={20} />}
+          </button>
         </div>
-      </header>
-    );
-  }
+      </div>
 
-  /* The simple and default variants are centered title blocks rather than
-     a bar. They link the same five sections they always have. */
-  const centeredNav = NAV_ITEMS.filter((item) =>
-    ['/explore', '/extension', '/links', '/mcp', '/docs'].includes(item.href),
-  );
-  const navLinks = centeredNav.map(({ href, label, icon: Icon }) => (
-    <Link
-      key={href}
-      href={href}
-      className="nav-link fn-pill-link"
-      prefetch={false}
-      aria-current={activeHref === href ? 'page' : undefined}
-    >
-      <Icon size={15} />
-      <span>{label}</span>
-    </Link>
-  ));
+      {/* Condensed breadcrumb that drops in once you scroll past the
+          in-page one, keeping the explorer path anchored at the top.
+          A full-width section below the bar; renders nothing off the
+          explorer routes (no trail registered).
 
-  if (simple) {
-    return (
-      <header className="fn-header-centered fn-header-simple">
-        <Brand size="simple" />
-        <p className="fn-header-tagline">Tour the Atmosphere</p>
-        <nav aria-label="Primary" className="fn-centered-nav">
-          {navLinks}
-          <ThemeToggle variant="inline" />
-          <SessionMenu variant="inline" />
+          The nav says where you are; what you can do lives at the other
+          end of the screen, in <ExploreChromeBar>. */}
+      <StickyBreadcrumbBar />
+
+      {/* Search card: drops below the bar. Its own card so it and the
+          menu open independently. */}
+      <div
+        // Keep the collapsed search input out of the tab order / a11y tree.
+        inert={!isSearchExpanded}
+        className="fn-header-panel fn-header-search-panel"
+        data-open={isSearchExpanded || undefined}
+      >
+        <CompactSearchPanel
+          active={isSearchExpanded}
+          onDone={() => setIsSearchExpanded(false)}
+        />
+      </div>
+
+      {/* Menu card */}
+      <div
+        // `inert` when collapsed removes the hidden panel's links and
+        // controls from the tab order and accessibility tree. Opacity and
+        // pointerEvents alone left keyboard users tabbing through an
+        // invisible menu.
+        inert={!isExpanded}
+        className="fn-header-panel fn-header-menu-panel"
+        data-open={isExpanded || undefined}
+        // Clipped by default. The sign-in flow is the exception: its handle
+        // typeahead drops a listbox below the input, taller than the panel
+        // has room for, and clipping cut the suggestions in half. Relaxed
+        // only while the panel is actually open; collapsed, `opacity: 0`
+        // and `inert` still cover anything that would escape.
+        style={{ overflow: isExpanded && isSignInActive ? 'visible' : 'hidden' }}
+      >
+        <nav aria-label="Menu" className="fn-menu">
+          {/* When the sign-in flow is active inside SessionPanel, hide the
+              nav rows and theme toggle so the handle input / scope picker
+              can claim the panel's vertical space. */}
+          {!isSignInActive && (
+            <div className="compact-nav-grid">
+              {NAV_ITEMS.map(({ href, label, icon: Icon }) => (
+                <Link
+                  key={href}
+                  href={href}
+                  className="compact-nav-link"
+                  prefetch={false}
+                  aria-current={activeHref === href ? 'page' : undefined}
+                >
+                  <Icon size={16} />
+                  <span>{label}</span>
+                </Link>
+              ))}
+              <ThemeToggle variant="row" />
+            </div>
+          )}
+
+          {/* Session controls: sign in (signed out) OR user info + my repo /
+              account / sign out (signed in). */}
+          <div className={isSignInActive ? undefined : 'fn-menu-session'}>
+            <SessionPanel
+              onNavigate={() => setIsExpanded(false)}
+              onSignInActiveChange={handleSignInActiveChange}
+            />
+          </div>
         </nav>
-      </header>
-    );
-  }
-
-  const ease = [0.34, 1.56, 0.64, 1] as [number, number, number, number];
-  return (
-    <header className="fn-header-centered fn-header-hero">
-      <motion.h1
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, ease }}
-        className="fn-header-hero-title"
-      >
-        <Brand size="hero" />
-      </motion.h1>
-      <motion.p
-        initial={{ opacity: 0, y: -10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, delay: 0.1, ease }}
-        className="fn-header-tagline"
-      >
-        Tour the Atmosphere
-      </motion.p>
-      <motion.p
-        initial={{ opacity: 0, y: -10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, delay: 0.2, ease }}
-        className="fn-header-lede"
-      >
-        Switch between clients, share universal links, and browse through any account&rsquo;s PDS data.
-      </motion.p>
-      <motion.nav
-        aria-label="Primary"
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, delay: 0.3, ease }}
-        className="fn-centered-nav"
-      >
-        {navLinks}
-        <ThemeToggle variant="inline" />
-        <SessionMenu variant="inline" />
-      </motion.nav>
+      </div>
     </header>
   );
 }

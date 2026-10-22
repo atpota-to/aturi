@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { ExternalLink } from 'lucide-react';
 import { loadPrefs, onPrefsChanged, savePrefs, type Prefs } from '../../lib/prefs';
 import { applyAppearance } from '../../lib/appearance';
 import { newBuiltinWaypoints, visibleWaypointIds } from '../../lib/catalog';
@@ -107,6 +108,14 @@ export default function App() {
           <span className="options-brand-divider" aria-hidden="true" />
           <div className="options-brand-sub">Extension settings</div>
         </div>
+        <nav className="options-header-links" aria-label="Elsewhere">
+          <a href="https://aturi.to" target="_blank" rel="noreferrer">
+            aturi.to <ExternalLink size={12} aria-hidden="true" />
+          </a>
+          <a href="https://github.com/atpota-to/aturi/issues" target="_blank" rel="noreferrer">
+            Send feedback
+          </a>
+        </nav>
       </header>
 
       <div className="options-layout">

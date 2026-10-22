@@ -112,7 +112,8 @@
 }
 .fn-rec-pill-icon {
   display: inline-flex;
-  color: #1d6fd8;
+  /* Bluesky's brand blue (globals.css), lifted for the dark theme. */
+  color: var(--brand-bluesky);
 }
 .fn-rec-pill-icon svg {
   width: 12px;
@@ -481,6 +482,10 @@
   font-size: 13px;
   line-height: 1.5;
   word-break: break-word;
+}
+.fn-field-value.is-mono {
+  font-family: var(--font-mono);
+  font-size: 12.5px;
 }
 .fn-field-null {
   color: var(--text-tertiary);
@@ -901,12 +906,44 @@
   }
   .fn-rec-actions .fn-rec-btn {
     flex: 1 1 auto;
-    height: 36px;
+  }
+  .fn-rec-btn,
+  .fn-rec-signin .settings-btn,
+  .fn-rec-signin input {
+    height: 40px;
+  }
+  .fn-rec-seg button {
+    height: 34px;
   }
   .fn-rec-preview .card:not(.post-preview) {
     padding: 14px !important;
   }
   .fn-open-row[data-rank] {
     height: 48px;
+  }
+}
+
+/* Touch: field chips, copy chips, the preview switch and the post's tag and
+   cross-link keep their size and get an invisible 40px hit area. */
+@media (pointer: coarse) {
+  .fn-field-chip,
+  .fn-rec-switch,
+  .fn-post-tag,
+  .fn-post-crosslink,
+  .fn-rec-copy-links .fn-link-btn {
+    position: relative;
+  }
+  .fn-field-chip::after,
+  .fn-rec-switch::after,
+  .fn-post-tag::after,
+  .fn-post-crosslink::after,
+  .fn-rec-copy-links .fn-link-btn::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: max(100%, 40px);
+    height: max(100%, 40px);
+    transform: translate(-50%, -50%);
   }
 }

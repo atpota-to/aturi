@@ -151,6 +151,8 @@
   --accent-soft-border: #34422a;
   --text-faint: #6f7168;
   --status-live: #7fae66;
+  /* Bluesky's brand blue (the "Bluesky post" pill), lifted for dark. */
+  --brand-bluesky: #4f9bff;
   --radius-card: 12px;
   --radius-control: 8px;
   --radius-pill: 999px;
@@ -256,6 +258,7 @@
   --accent-soft-border: #d9e4cc;
   --text-faint: #a3a59c;
   --status-live: #5e8c4a;
+  --brand-bluesky: #1d6fd8;
   --link-hover: var(--accent-forest);
 
   color-scheme: light;
@@ -812,6 +815,22 @@
   --accent-soft: color-mix(in srgb, var(--text-accent) 14%, var(--bg-secondary));
   --accent-soft-fg: var(--text-accent);
   --accent-soft-border: color-mix(in srgb, var(--text-accent) 28%, var(--bg-secondary));
+  /* Same idea for the other Field Notes tokens: the moss strip, faint text
+     and live dot are tinted green-grey, which reads as a stray moss patch on
+     an ember or tide page. These mixes land on the hand-picked moss values
+     when fed moss's own colours. */
+  --surface-subtle: color-mix(in srgb, var(--bg-tertiary) 50%, var(--bg-secondary));
+  --text-faint: color-mix(in srgb, var(--text-tertiary) 65%, var(--bg-secondary));
+  --status-live: var(--text-accent);
+}
+
+[data-theme='light'][data-scheme]:not([data-scheme='moss']) {
+  --surface-overlay-dim: var(--surface-subtle);
+  --modal-backdrop: color-mix(in srgb, var(--text-primary) 45%, transparent);
+  --shadow-overlay: 0 8px 28px color-mix(in srgb, var(--text-primary) 10%, transparent),
+    0 0 0 1px color-mix(in srgb, var(--text-primary) 4%, transparent);
+  --shadow-overlay-hover: 0 12px 36px color-mix(in srgb, var(--text-primary) 14%, transparent),
+    0 0 0 1px color-mix(in srgb, var(--text-primary) 6%, transparent);
 }
 
 /* High-contrast overrides. Layered on top of whichever theme is active, so
@@ -866,6 +885,18 @@
   /* High contrast brightens the salmon further, so the label goes to black
      rather than the white used on the accents. */
   --text-on-danger: #000000;
+
+  /* Field Notes tokens, derived from the high-contrast colours above so
+     they follow both themes and every scheme's accent instead of keeping
+     the moss values: the pill is a firmer tint with full-strength accent
+     text and a visible outline, the strip is the tertiary background, and
+     "faint" text stays at tertiary strength. */
+  --accent-soft: color-mix(in srgb, var(--text-accent) 18%, var(--bg-secondary));
+  --accent-soft-fg: var(--text-accent);
+  --accent-soft-border: color-mix(in srgb, var(--text-accent) 60%, var(--bg-secondary));
+  --surface-subtle: var(--bg-tertiary);
+  --text-faint: var(--text-tertiary);
+  --status-live: var(--text-accent);
 }
 
 :root[data-theme='light'][data-high-contrast='true'] {
@@ -1024,6 +1055,15 @@ body {
   /* Ensure full viewport coverage on mobile */
   min-height: 100vh;
   min-height: 100dvh; /* Dynamic viewport height for mobile browsers */
+  /* Sticky footer: the page wrapper (PageTransition's div around <main>)
+     takes the spare height, so a short page's footer sits at the bottom of
+     the viewport instead of leaving a band of page colour under it. */
+  display: flex;
+  flex-direction: column;
+}
+
+body > :has(> main) {
+  flex: 1 0 auto;
 }
 
 /* Lucide icons keep their stock 2px stroke: Field Notes pairs them with
@@ -1178,153 +1218,6 @@ a:hover {
 
 .footer-link-accent:hover {
   opacity: 0.8;
-}
-
-/* New footer layout (Footer.tsx). Two-row card: brand + nav on top,
-   AT-URI styled credits below. Constrained to the site's content width
-   and stacks at narrow viewports. */
-.footer-inner {
-  max-width: 64rem;
-  margin: 0 auto;
-  padding: 0 1.5rem;
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-}
-
-.footer-grid {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 2rem;
-  align-items: start;
-}
-
-.footer-brand {
-  display: flex;
-  align-items: center;
-  gap: 0.875rem;
-  min-width: 0;
-}
-
-.footer-nav {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 0.4rem;
-  font-family: var(--font-serif);
-  font-size: 0.8125rem;
-  letter-spacing: 0.03em;
-  text-align: right;
-}
-
-.footer-nav .footer-link {
-  color: var(--text-tertiary);
-  text-decoration: none;
-  transition: color 0.2s ease;
-}
-
-.footer-nav .footer-link:hover {
-  color: var(--text-accent) !important;
-}
-
-/* Source-code row inside the footer nav. GitHub and its Tangled mirror share
-   one labelled line so they read as two hosts for the same repo rather than
-   as two unrelated nav items; the primary sits a shade brighter than the
-   mirror, which carries a "mirror" tag. */
-.footer-source {
-  display: flex;
-  align-items: baseline;
-  justify-content: flex-end;
-  flex-wrap: wrap;
-  gap: 0.4rem;
-}
-
-.footer-source-label {
-  font-size: 0.7rem;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--text-tertiary);
-  opacity: 0.85;
-}
-
-.footer-nav .footer-source-primary {
-  color: var(--text-secondary);
-}
-
-.footer-source-sep {
-  color: var(--text-tertiary);
-  opacity: 0.5;
-}
-
-.footer-source-note {
-  margin-left: 0.3rem;
-  font-size: 0.65rem;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  opacity: 0.7;
-}
-
-.footer-credits {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.55rem;
-  padding-top: 1.25rem;
-  border-top: 1px dashed var(--border-subtle);
-  font-family: var(--font-mono);
-  font-size: 0.8125rem;
-  color: var(--text-tertiary);
-}
-
-.footer-credits-label {
-  font-family: var(--font-serif);
-  font-size: 0.7rem;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--text-tertiary);
-  opacity: 0.85;
-}
-
-.footer-uri {
-  display: inline-flex;
-  align-items: baseline;
-  text-decoration: none;
-  color: var(--text-primary);
-  transition: color 0.2s ease;
-}
-
-.footer-uri-scheme {
-  color: var(--text-tertiary);
-  margin-right: 0.05rem;
-}
-
-.footer-uri-handle {
-  color: var(--text-accent);
-  font-weight: 500;
-}
-
-.footer-uri:hover .footer-uri-handle {
-  text-decoration: underline;
-  text-underline-offset: 0.18em;
-  text-decoration-thickness: 1px;
-}
-
-@media (max-width: 640px) {
-  .footer-grid {
-    grid-template-columns: 1fr;
-    gap: 1.25rem;
-  }
-  .footer-nav {
-    flex-direction: row;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: flex-start;
-    gap: 0.4rem 1rem;
-    text-align: left;
-  }
-  .footer-source {
-    justify-content: flex-start;
-  }
 }
 
 /* Navigation Links - Organic Style */
@@ -2559,38 +2452,6 @@ html {
   text-align: center;
 }
 
-/* Profile Preview Styles */
-.profile-stats-container {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  padding-top: 1rem;
-  border-top: 1px solid var(--border-medium);
-}
-
-.profile-stats-row {
-  display: flex;
-  gap: 2rem;
-  flex-wrap: wrap;
-}
-
-.profile-stat-item {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  /* Collapse the inherited line-height (body: 1.7) so the text's line-box
-     matches the icon's geometric height — without this, align-items:
-     center floats the icon above the optical midline of the text. */
-  line-height: 1;
-}
-
-.profile-join-date {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  line-height: 1;
-}
-
 /* "View raw repo in the explorer →" link on the profile preview card.
    Class-based hover so the host (ProfilePreview) can stay a Server
    Component — inline onMouseEnter/Leave would be a function prop on
@@ -2696,16 +2557,6 @@ html {
 .feature-card-primary:hover,
 .feature-card-secondary:hover {
   border-color: var(--border-strong);
-}
-
-/* Example Links with organic animation */
-.example-link {
-  transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
-}
-
-/* CTA Card */
-.cta-card:hover {
-  transform: scale(1.01) !important;
 }
 
 .cta-button {
@@ -3142,8 +2993,6 @@ a.fn-link-btn:focus-visible {
 [data-reduce-motion='true'] .waypoint-button:hover,
 [data-reduce-motion='true'] .feature-card-primary:hover,
 [data-reduce-motion='true'] .feature-card-secondary:hover,
-[data-reduce-motion='true'] .example-link:hover,
-[data-reduce-motion='true'] .cta-card:hover,
 [data-reduce-motion='true'] .cta-button:hover,
 [data-reduce-motion='true'] .parent-card:hover,
 [data-reduce-motion='true'] .featured-waypoint:hover,
@@ -3542,15 +3391,17 @@ a.fn-link-btn:focus-visible {
    reservation is what keeps the bar off the tail of a long list and off the
    site footer: the footer is a sibling of <main> at the same z-index, so it
    would paint OVER the bar rather than slide under it. */
-body.has-explore-chrome {
+body.has-explore-chrome .fn-footer {
   /* The bar's measured height plus a gap. The height alone is enough on
      paper — at pixel-exact maximum scroll the footer's box lands flush
      against the bar and nothing is lost — but that's the only scroll
      position where it's true. Stop a little short of the bottom, which a
      wheel or a trackpad usually does, and the last line of the footer sits
      under the bar. The gap is the slack that makes "scrolled to the end"
-     look finished wherever you actually come to rest. */
-  padding-bottom: calc(var(--explore-chrome-h, 4rem) + 2rem);
+     look finished wherever you actually come to rest.
+     The reservation lives on the footer, not on <body>: the footer is a
+     white card, and body padding left a strip of page colour under it. */
+  padding-bottom: calc(20px + var(--explore-chrome-h, 4rem) + 2rem);
 }
 
 /* The fixed frame. Nothing is drawn here — it only pins the card to the
@@ -3922,40 +3773,15 @@ body.has-explore-chrome {
     padding-right: var(--page-edge) !important;
   }
 
-  /* Sticky compact nav — trim the desktop-sized padding so the nav card
-     hugs the top and screen edges on phones. Its horizontal edges already
-     come from the .container-narrow override above (the card shares that
-     class); here we only tighten the top gap, inner row, and the space
-     below the header. */
-  .compact-header {
-    margin-bottom: 1.25rem !important;
-  }
-  .compact-header-inner {
-    padding-top: 1rem !important;
-  }
-  /* The bottom chrome mirrors that trim, so the pair keeps matching on a
-     phone rather than one hugging its edge more tightly than the other. */
+  /* Trim the bottom chrome's safe-area padding on phones. */
   .explore-chrome-shell {
     padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
-  }
-  .compact-header-row {
-    padding: 0.625rem 0.75rem !important;
   }
 
   h1 {
     font-size: 2rem;
   }
-  
-  /* Mobile profile stats optimization */
-  .profile-stats-row {
-    gap: 1rem;
-  }
-  
-  .profile-stat-item {
-    flex: 1 1 auto;
-    min-width: 0;
-  }
-  
+
   /* Force code blocks and inline code to wrap on mobile */
   code {
     word-break: break-all;
@@ -3990,8 +3816,6 @@ body.has-explore-chrome {
   /* Reset transforms on mobile for simpler layout */
   .feature-card-primary,
   .feature-card-secondary,
-  .example-link,
-  .cta-card,
   .card {
     transform: none !important;
   }
@@ -4022,42 +3846,6 @@ body.has-explore-chrome {
   }
   
   .examples-links {
-    grid-column: unset !important;
-  }
-  
-  /* Stack stats vertically on very small screens */
-  @media (max-width: 480px) {
-    .profile-stats-row {
-      flex-direction: column;
-      gap: 0.75rem;
-    }
-  }
-  
-  /* Fork Page Mobile Styles */
-  .fork-hero-card {
-    padding: 2rem !important;
-  }
-  
-  .fork-hero-content {
-    flex-direction: column !important;
-    align-items: center !important;
-    text-align: center;
-  }
-  
-  .fork-why-grid,
-  .fork-quick-start-grid,
-  .fork-quick-links-grid,
-  .fork-config-grid,
-  .fork-resources-grid {
-    display: flex !important;
-    flex-direction: column !important;
-  }
-  
-  .fork-why-grid .card,
-  .fork-quick-start-grid > *,
-  .fork-quick-links-grid > *,
-  .fork-config-grid > *,
-  .fork-resources-grid > * {
     grid-column: unset !important;
   }
 }
@@ -4653,93 +4441,6 @@ body.has-explore-chrome {
    Homepage product strips
    ============================================ */
 
-.home-product-strip {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: 3rem;
-  align-items: center;
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 4rem 2rem;
-}
-
-/* Desktop: when `data-flip` is set, swap the order so the demo sits on
-   the right side of the viewport while remaining first in the DOM. */
-.home-product-strip[data-flip] .home-product-strip-demo {
-  order: 2;
-}
-
-.home-product-strip-copy h2 {
-  font-size: 2rem;
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  color: var(--text-primary);
-  margin: 0 0 1rem;
-  line-height: 1.15;
-}
-
-.home-product-strip-copy p {
-  font-size: 1.0125rem;
-  line-height: 1.65;
-  color: var(--text-secondary);
-  margin: 0 0 0.875rem;
-}
-
-.home-product-strip-copy p:last-of-type {
-  margin-bottom: 1.5rem;
-}
-
-.home-product-strip-demo {
-  /* Constrain the height of any embedded interactive surface so the
-     strip stays balanced regardless of how the demo renders. */
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
-@media (max-width: 820px) {
-  .home-product-strip {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 1.75rem;
-    /* Match the reduced page-edge gutter used elsewhere on mobile. */
-    padding: 2.5rem 0.875rem;
-  }
-  /* One column, so left-and-right stops meaning anything and DOM order
-     takes over. Lead with the copy, matching .landing-feature: a demo with
-     its own heading underneath is something the reader has to work out
-     before knowing what it shows. The flipped selector is repeated rather
-     than dropped because the desktop `order: 2` carries an attribute
-     selector and outranks a bare class, media query or not. */
-  .home-product-strip-copy {
-    order: 0;
-  }
-  .home-product-strip-demo,
-  .home-product-strip[data-flip] .home-product-strip-demo {
-    order: 1;
-  }
-  .home-product-strip-copy h2 {
-    font-size: 1.625rem;
-  }
-}
-
-/* Constrained icon box used inside the auto-redirect / custom-waypoint
-   button mocks on the landing pages. Waypoint SVGs are authored at
-   24x24 with intrinsic width/height attributes, which inline-style
-   sizing can't override — but a descendant rule like this can. */
-.landing-button-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 16px;
-  height: 16px;
-  color: var(--text-accent);
-  flex-shrink: 0;
-}
-.landing-button-icon svg {
-  width: 100%;
-  height: 100%;
-}
-
 /* ---------- Product landing pages (extension, universal links) ---------- */
 
 /* Hero block on landing pages stacks the copy + a hero visual side-by-side
@@ -4762,88 +4463,6 @@ body.has-explore-chrome {
      mobile container width so they don't trigger horizontal scroll. */
   .landing-hero > div:last-child > * {
     max-width: 100% !important;
-  }
-}
-
-/* Feature row: copy + visual two-column block, flipped order via
-   `data-flip`. Mirrors `.home-product-strip` but tuned for the
-   landing pages' narrower max width and tighter vertical rhythm. */
-.landing-feature {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: 2.5rem;
-  align-items: center;
-}
-
-.landing-feature[data-flip] .landing-feature-visual {
-  order: 2;
-}
-
-.landing-feature-visual {
-  display: flex;
-  justify-content: center;
-}
-
-.landing-feature-body p {
-  margin: 0 0 0.875rem;
-}
-
-.landing-feature-body p:last-child {
-  margin-bottom: 0;
-}
-
-@media (max-width: 820px) {
-  .landing-feature {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 1.5rem;
-  }
-  /* One column, so left-and-right stops meaning anything and DOM order
-     takes over. Lead with the copy: a mock with no heading above it is a
-     diagram the reader has to reverse-engineer before knowing what it
-     shows. The flipped selector is repeated rather than dropped because
-     the desktop `order: 2` outranks a bare class, media query or not. */
-  .landing-feature-copy {
-    order: 0;
-  }
-  .landing-feature-visual,
-  .landing-feature[data-flip] .landing-feature-visual {
-    order: 1;
-  }
-  /* Clamp every visual to the column width so the 380-460px mocks
-     don't push horizontal overflow on narrow screens. The inner mocks
-     use their own max-widths to stay legible at desktop sizes; this
-     just caps them on mobile. */
-  .landing-feature-visual > * {
-    max-width: 100% !important;
-  }
-}
-
-/* BrowserChrome mobile: drop the absolutely-positioned popup
-   overlay. On a phone the chrome's content area can't be tall enough
-   to contain the popup, so we stack the popup inline under the
-   toolbar strip and let the chrome grow with its content. */
-@media (max-width: 820px) {
-  .browser-chrome-content {
-    min-height: 0 !important;
-    padding: 0 !important;
-    background: none !important;
-  }
-  .browser-chrome-fake-content {
-    display: none;
-  }
-  .browser-chrome-popup {
-    position: static !important;
-    max-width: 100% !important;
-    margin: 0 !important;
-    z-index: auto !important;
-  }
-  /* The popup inside has its own max-width + transform; clamp it
-     within the chrome and drop the offset rotation so it lines up
-     cleanly stacked. */
-  .browser-chrome-popup > * {
-    max-width: 100% !important;
-    margin: 0 auto !important;
-    transform: none !important;
   }
 }
 
@@ -4988,31 +4607,10 @@ body.has-explore-chrome {
   gap: 0.5rem;
 }
 
-/* Static "Repo at a glance" demo card on /explore. Mirrors the live
-   AccountStats grid: three tiles per row, dropping to two on mobile so the
-   tiles don't get cramped enough to wrap the values ("Aug 2023") or labels. */
-.repo-glance-tiles {
-  padding: 10px;
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 6px;
-}
-
 @media (max-width: 600px) {
   .account-stats-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 0.4rem;
-  }
-
-  /* The tiles get narrow in the 2-column grid; tighten the small-caps
-     label tracking so two-word labels (Audit changes) sit on one line
-     instead of wrapping mid-phrase. The icon already eats into the width. */
-  .account-stats-grid .explore-small-caps {
-    letter-spacing: 0.05em;
-  }
-
-  .repo-glance-tiles {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 

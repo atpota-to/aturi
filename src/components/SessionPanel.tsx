@@ -171,7 +171,7 @@ export default function SessionPanel({ onNavigate, onSignInActiveChange }: Props
             Settings
             <span
               style={{
-                fontSize: '0.65rem',
+                fontSize: '0.6875rem',
                 letterSpacing: '0.08em',
                 textTransform: 'uppercase',
                 color: 'var(--text-tertiary)',

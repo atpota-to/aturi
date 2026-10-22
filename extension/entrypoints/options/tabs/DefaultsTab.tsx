@@ -309,8 +309,8 @@ export default function DefaultsTab({ prefs, onChange }: Props) {
           onToggle={() => onChange({ compactMode: !prefs.compactMode })}
         >
           {prefs.compactMode
-            ? 'On: the popup uses a denser layout with smaller icons and no description line, so more waypoints fit at once.'
-            : 'Off: the popup shows each waypoint with a larger icon and a secondary description line.'}
+            ? 'On: the popup uses shorter rows and no description line, so more waypoints fit at once.'
+            : 'Off: the popup shows each waypoint with its description.'}
         </ToggleRow>
       </section>
 

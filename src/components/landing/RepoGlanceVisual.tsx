@@ -49,8 +49,8 @@ export default function RepoGlanceVisual() {
       {/* Identity row beneath the tile grid, matching the live page. */}
       <div className="fl-idrow">
         <IdentityCell label="Handle" value="@aturi.to" />
-        <IdentityCell label="DID" value="did:plc:gq4…23tj" />
-        <IdentityCell label="PDS" value="pds.example.host" icon={<Server size={11} />} />
+        <IdentityCell label="DID" value="did:plc:6te…33el" />
+        <IdentityCell label="PDS" value="pds.atpota.to" icon={<Server size={11} />} />
       </div>
     </div>
   );

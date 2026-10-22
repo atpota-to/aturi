@@ -35,7 +35,7 @@ export const NEW_EXPANDED_COUNT = 25;
  * previous answer stays up while a new window loads, so the skeleton only
  * shows on first load. Shared with the /explore landing's "New" card.
  */
-export function useNewLexicons(window: Window) {
+export function useNewLexicons(timeWindow: Window) {
   const [answer, setAnswer] = useState<NewLexiconsAnswer | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -44,7 +44,7 @@ export function useNewLexicons(window: Window) {
     setError(null);
     (async () => {
       try {
-        const res = await fetch(`/api/lexicons/new?window=${window}`);
+        const res = await fetch(`/api/lexicons/new?window=${timeWindow}`);
         const body = await res.json().catch(() => null);
         if (!res.ok || !body?.ok) throw new Error(body?.error ?? `HTTP ${res.status}`);
         if (!cancelled) setAnswer(body as NewLexiconsAnswer);
@@ -55,14 +55,14 @@ export function useNewLexicons(window: Window) {
     return () => {
       cancelled = true;
     };
-  }, [window]);
+  }, [timeWindow]);
 
   return { answer, error };
 }
 
 export default function NewLexicons() {
-  const [window, setWindow] = useState<Window>('7d');
-  const { answer, error } = useNewLexicons(window);
+  const [timeWindow, setTimeWindow] = useState<Window>('7d');
+  const { answer, error } = useNewLexicons(timeWindow);
   const [expanded, setExpanded] = useState(false);
 
   const limit = expanded ? NEW_EXPANDED_COUNT : NEW_RESULT_COUNT;
@@ -88,8 +88,8 @@ export default function NewLexicons() {
             <Segmented
               ariaLabel="Time window"
               options={(Object.keys(WINDOWS) as Window[]).map((w) => ({ value: w, label: WINDOWS[w].label }))}
-              value={window}
-              onChange={(v) => setWindow(v as Window)}
+              value={timeWindow}
+              onChange={(v) => setTimeWindow(v as Window)}
             />
           </div>
         </div>

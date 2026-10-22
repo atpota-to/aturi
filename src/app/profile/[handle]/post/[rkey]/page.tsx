@@ -181,7 +181,7 @@ async function PostContent({ handle, rkey }: { handle: string; rkey: string }) {
           collection={collection}
           rkey={rkey}
           did={resolvedDid}
-          displayName={getDisplayName(resolvedHandle, resolvedDid)}
+          displayName={post?.author.displayName?.trim() || getDisplayName(resolvedHandle, resolvedDid)}
         />
 
         {/* Floating scroll indicator overlay */}

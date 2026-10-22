@@ -588,19 +588,14 @@
   color: var(--text-primary);
 }
 .fx-tab[aria-selected='true'],
-.fx-tab[aria-current='page'] {
+.fx-tab[data-active] {
   color: var(--text-primary);
   font-weight: 700;
   border-bottom-color: var(--accent-moss);
 }
 :root:not([data-theme='light']) .fx-tab[aria-selected='true'],
-:root:not([data-theme='light']) .fx-tab[aria-current='page'] {
+:root:not([data-theme='light']) .fx-tab[data-active] {
   border-bottom-color: var(--text-accent);
-}
-.fx-tab-count {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--text-secondary);
 }
 .fx-tabpanel {
   padding: 16px;
@@ -821,6 +816,12 @@
   max-height: min(70vh, 640px);
   overflow-y: auto;
   overscroll-behavior: contain;
+  /* The tree runs on below the fold of its own scroller: fade the bottom edge
+     so it reads as "more below" rather than cut off, with room at the end so
+     the last row scrolls clear of the fade. */
+  padding-bottom: 32px;
+  -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 48px), transparent);
+  mask-image: linear-gradient(to bottom, #000 calc(100% - 48px), transparent);
 }
 
 /* Phone: 44px rows with hairline dividers, edge to edge in the card. */
@@ -1304,6 +1305,27 @@
   font-family: var(--font-sans);
 }
 
+/* Backlink sources (BacklinksTab): divided rows in the panel's card, not a
+   card per row, with the explorer's row hover. */
+.fx-backlink-source + .fx-backlink-source {
+  border-top: 1px solid var(--border-subtle);
+}
+.fx-backlink-source > button:hover,
+.fx-backlink-source > button:focus-visible {
+  background: var(--bg-tertiary) !important;
+}
+
+/* Two-column explorer pages: ExploreChromeBar centres the card on the
+   content column (it writes the column's centre and width), so the bar
+   never runs over the sidebar or the record's aside. */
+@media (min-width: 769px) {
+  .explore-chrome-bar[data-column] .explore-chrome-shell {
+    width: min(800px, var(--explore-chrome-cw));
+    margin-left: calc(var(--explore-chrome-cx) - min(800px, var(--explore-chrome-cw)) / 2);
+    margin-right: 0;
+  }
+}
+
 /* Phone: a full-width white strip pinned flush to the bottom edge, with a
    44px field — the design's "filter pinned at the bottom". */
 @media (max-width: 768px) {
@@ -1379,6 +1401,13 @@
    row, rounded like the rest of the page. */
 .fx-main .account-stats-grid > * {
   border-radius: 10px;
+}
+/* Two to a row on a tablet: eight tiles make four full rows, where three
+   columns left the last row a tile short. */
+@media (min-width: 769px) and (max-width: 1099px) {
+  .fx-main .account-stats-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 @media (min-width: 1100px) {
   .fx-main .account-stats-grid {
@@ -2504,4 +2533,44 @@ a.fx-sp-row:focus-visible {
 .fx-sp-note code {
   word-break: normal;
   overflow-wrap: break-word;
+}
+
+/* --- phone tap targets ---------------------------------------------------- */
+
+/* Buttons grow to a 40px tap on phones. */
+@media (max-width: 640px) {
+  .fx-btn {
+    height: 40px;
+  }
+  .fx-btn-icon,
+  .fx-tree-pane .fx-tree-tools .fx-btn-icon {
+    width: 40px;
+    height: 40px;
+  }
+  .fx-field {
+    height: 40px;
+  }
+  .fx-field input {
+    align-self: stretch;
+  }
+}
+/* Touch: the compact copy chips and text toggles keep their size and get an
+   invisible 40px hit area instead. */
+@media (pointer: coarse) {
+  .fx-copy,
+  .fx-glance-toggle,
+  .fx-textlink {
+    position: relative;
+  }
+  .fx-copy::after,
+  .fx-glance-toggle::after,
+  .fx-textlink::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: max(100%, 40px);
+    height: max(100%, 40px);
+    transform: translate(-50%, -50%);
+  }
 }

@@ -31,7 +31,13 @@ function Inline({ text }: { text: string }) {
           case 'link':
             return <InlineLink key={i} href={segment.href} text={segment.text} />;
           case 'strong':
-            return <strong key={i}>{segment.text}</strong>;
+            // Bold runs can hold a link ("**The [Explorer](/explore).**"),
+            // so their text goes through the same pass again.
+            return (
+              <strong key={i}>
+                <Inline text={segment.text} />
+              </strong>
+            );
           case 'code':
             return <code key={i}>{segment.text}</code>;
           default:

@@ -683,7 +683,7 @@ function ReduceMotionToggle() {
     <Toggle
       id="reduce-motion"
       label="Reduce motion"
-      description="Stops the drifting background glow and pauses page, hover, and loading animations across the site. Defaults to your system setting."
+      description="Pauses page, hover, and loading animations across the site. Defaults to your system setting."
       checked={on}
       onChange={set}
     />
@@ -712,7 +712,7 @@ function HighContrastToggle() {
     <Toggle
       id="high-contrast"
       label="High contrast"
-      description="Boosts text and border contrast and removes the ambient glow and grain overlays for a sharper, more legible interface. Defaults to your system setting."
+      description="Boosts text and border contrast for a sharper, more legible interface. Defaults to your system setting."
       checked={on}
       onChange={set}
     />

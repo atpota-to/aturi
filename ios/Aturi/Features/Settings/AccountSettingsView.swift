@@ -98,7 +98,7 @@ private struct AccountSignedInView: View {
                         }
                         if profile.isLoading || profile.isIdle {
                             Text("Loading profile")
-                                .font(.caption)
+                                .font(AturiFont.caption)
                                 .foregroundStyle(theme.textTertiary)
                         }
                     }
@@ -187,7 +187,7 @@ private struct AccountSignedInView: View {
                 ProgressView()
                     .controlSize(.small)
                 Text("Syncing preferences to your PDS")
-                    .font(.footnote)
+                    .font(AturiFont.footnote)
                     .foregroundStyle(theme.textSecondary)
             }
             .padding(.vertical, 2)
@@ -203,7 +203,7 @@ private struct AccountSignedInView: View {
     private func statusRow(systemImage: String, text: String, color: Color) -> some View {
         Label {
             Text(text)
-                .font(.footnote)
+                .font(AturiFont.footnote)
                 .foregroundStyle(theme.textSecondary)
         } icon: {
             Image(systemName: systemImage)
@@ -276,7 +276,7 @@ private struct AccountSignInView: View {
                             Text(scope.label)
                                 .foregroundStyle(theme.textPrimary)
                             Text(scope.hint)
-                                .font(.footnote)
+                                .font(AturiFont.footnote)
                                 .foregroundStyle(theme.textSecondary)
                         }
                     }
@@ -302,7 +302,7 @@ private struct AccountSignInView: View {
 
                 if let errorMessage {
                     Text(errorMessage)
-                        .font(.footnote)
+                        .font(AturiFont.footnote)
                         .foregroundStyle(theme.danger)
                         .textSelection(.enabled)
                         .fixedSize(horizontal: false, vertical: true)
@@ -311,7 +311,7 @@ private struct AccountSignInView: View {
                 }
             } footer: {
                 Text("You will be sent to your PDS to authorize Aturi and brought back here. Reads always work because your repo is public.")
-                    .font(.footnote)
+                    .font(AturiFont.footnote)
                     .foregroundStyle(theme.textSecondary)
             }
         }

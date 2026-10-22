@@ -37,7 +37,7 @@ export default function SignedInExploreVisual() {
         <section className="fl-relation">
           <span className="fl-mock-label">You + @aturi.to</span>
           <div className="fl-chips">
-            <Chip icon={<Server size={11} aria-hidden />}>Same PDS · pds.example.host</Chip>
+            <Chip icon={<Server size={11} aria-hidden />}>Same PDS · pds.atpota.to</Chip>
             <Chip icon={<UserCheck size={11} aria-hidden />} accent>
               Mutual follow
               <span className="fl-relation-since">· since Mar 14, 2024</span>
@@ -53,7 +53,7 @@ export default function SignedInExploreVisual() {
           <span className="fl-picker-avatar" data-size="s" aria-hidden />
           <span className="fl-mock-row-text">
             <span className="fl-mock-name">aturi.to</span>
-            <span className="fl-mock-sub">did:plc:gq4fo3u6tqzzdkjlwzpb23tj</span>
+            <span className="fl-mock-sub">did:plc:6teuhlkizzebk6wdp42633el</span>
           </span>
         </div>
       </div>
