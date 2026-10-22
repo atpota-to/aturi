@@ -58,7 +58,6 @@ export default function AutoRedirectVisual() {
         maxWidth: '420px',
         width: '100%',
         margin: '0 auto',
-        transform: 'rotate(0.3deg)',
       }}
     >
       <div

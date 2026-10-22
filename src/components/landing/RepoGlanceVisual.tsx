@@ -30,7 +30,6 @@ export default function RepoGlanceVisual() {
         boxShadow: 'var(--shadow-overlay)',
         fontFamily: 'var(--font-serif)',
         color: 'var(--text-primary)',
-        transform: 'rotate(0.4deg)',
       }}
     >
       <div

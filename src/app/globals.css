@@ -1,42 +1,42 @@
-@import url('https://fonts.googleapis.com/css2?family=Crimson+Pro:wght@300;400;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap');
 
 :root {
   /* Dark, moody, natural color palette */
-  --bg-primary: #0a0a0a;
-  --bg-secondary: #151515;
-  --bg-tertiary: #1a1a1a;
-  --bg-elevated: #202020;
+  --bg-primary: #141512;
+  --bg-secondary: #1c1d19;
+  --bg-tertiary: #24261f;
+  --bg-elevated: #22241e;
 
   /* Natural, organic accent colors */
-  --accent-moss: #4a5a3f;
-  --accent-forest: #2d3a28;
-  --accent-bark: #3d3329;
-  --accent-stone: #4a4a46;
+  --accent-moss: #3f5e2e;
+  --accent-forest: #4f7139;
+  --accent-bark: #5a4b3a;
+  --accent-stone: #4a4c44;
 
   /* Text colors. Secondary and tertiary were bumped from #a8a8a6/#686866 so
      supporting copy clears WCAG AA on the very dark backgrounds — `#686866`
      was around 4.0:1 on --bg-primary, well under threshold for body text. */
-  --text-primary: #f0f0ee;
-  --text-secondary: #c4c4c0;
-  --text-tertiary: #9a9a96;
-  --text-accent: #a8b89c;
+  --text-primary: #edeee8;
+  --text-secondary: #bfc1b8;
+  --text-tertiary: #959789;
+  --text-accent: #a9c48f;
 
   /* Ambient glow effects */
-  --glow-subtle: rgba(168, 184, 156, 0.06);
-  --glow-medium: rgba(168, 184, 156, 0.12);
-  --glow-strong: rgba(168, 184, 156, 0.22);
+  --glow-subtle: rgba(169, 196, 143, 0.04);
+  --glow-medium: rgba(169, 196, 143, 0.08);
+  --glow-strong: rgba(169, 196, 143, 0.14);
 
   /* Borders - subtle and organic */
-  --border-subtle: rgba(240, 240, 238, 0.12);
-  --border-medium: rgba(240, 240, 238, 0.18);
-  --border-strong: rgba(240, 240, 238, 0.24);
+  --border-subtle: #2a2c26;
+  --border-medium: #33352e;
+  --border-strong: #43463d;
 
   /* Page-level ambient glow used by body::before. Tuned moodier than the
      standard glow tokens so the dark backdrop reads atmospheric; overridden
      in [data-theme='light'] below. */
-  --page-glow-a: rgba(138, 154, 127, 0.25);
-  --page-glow-b: rgba(74, 90, 63, 0.22);
-  --page-glow-c: rgba(138, 154, 127, 0.18);
+  --page-glow-a: transparent;
+  --page-glow-b: transparent;
+  --page-glow-c: transparent;
 
   /* Translucent floating-element backdrop used behind backdrop-filter blurs
      (e.g. the scroll-to-choose indicator). Tracks --bg-primary's hue so the
@@ -67,13 +67,13 @@
 
   /* Opacity for the global noise overlay. Lower in light mode so paper
      backgrounds don't look gritty. */
-  --noise-opacity: 0.6;
+  --noise-opacity: 0;
 
   /* Text drawn on the primary buttons / active toggles — i.e. on top of
      --accent-moss and --accent-forest. Most schemes keep those accents dark
      in both themes, so this stays near-white; a scheme that fills with pale
      accents instead (trans) flips it to ink. */
-  --text-on-accent: #f0f0ee;
+  --text-on-accent: #ffffff;
 
   /* Text drawn on a --danger fill (the confirm-delete buttons). Separate
      from --text-on-accent because the two backgrounds move independently:
@@ -127,8 +127,11 @@
   --margin-annotation-tint: rgba(167, 139, 250, 0.18);
   --margin-annotation-border: rgba(167, 139, 250, 0.36);
 
-  /* Typography scale */
-  --font-serif: 'Crimson Pro', serif;
+  /* Typography scale. Field Notes sets everything in Figtree; --font-serif
+     is kept as an alias because ~170 components still name it inline, and
+     pointing it at the sans stack restyles them all without touching each. */
+  --font-sans: 'Figtree', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-serif: var(--font-sans);
   --font-mono: 'IBM Plex Mono', monospace;
 
   /* Horizontal gutter at the page edges. Trimmed on phones (see the
@@ -137,55 +140,70 @@
      page section wrappers that don't use those classes. */
   --page-edge: 2rem;
 
+  /* Field Notes surface tokens. --surface-subtle is the off-white strip
+     used for table heads, inset metadata rows and hover fills;
+     --accent-soft / --accent-soft-fg are the pale green pill (active nav
+     item, selected tree row, chips) and --accent-soft-border its outline.
+     Radii: cards are 12px, controls 8px, pills fully round. */
+  --surface-subtle: #20221d;
+  --accent-soft: #26301f;
+  --accent-soft-fg: #c5dbb2;
+  --accent-soft-border: #34422a;
+  --text-faint: #6f7168;
+  --status-live: #7fae66;
+  --radius-card: 12px;
+  --radius-control: 8px;
+  --radius-pill: 999px;
+
   color-scheme: dark;
 }
 
 [data-theme='light'] {
-  --bg-primary: #faf8f3;
-  --bg-secondary: #f1ede4;
-  --bg-tertiary: #e8e2d4;
+  --bg-primary: #f6f4ee;
+  --bg-secondary: #ffffff;
+  --bg-tertiary: #f1eee6;
   --bg-elevated: #ffffff;
 
   /* Darker than it looks like it needs to be: --accent-moss is a filled
      button background under --text-on-accent, and the old #6c7c5f only
      reached 3.9:1 against it. */
-  --accent-moss: #5d6b51;
-  --accent-forest: #4d5a48;
+  --accent-moss: #3f5e2e;
+  --accent-forest: #2b4320;
   --accent-bark: #6e5f4c;
-  --accent-stone: #76766f;
+  --accent-stone: #6b6d64;
 
-  --text-primary: #1a1c18;
-  --text-secondary: #3e3f3a;
-  --text-tertiary: #5c5d56;
-  --text-accent: #4d5e3f;
+  --text-primary: #1c1e19;
+  --text-secondary: #4a4c44;
+  --text-tertiary: #6b6d64;
+  --text-accent: #3f5e2e;
 
-  --glow-subtle: rgba(77, 94, 63, 0.05);
-  --glow-medium: rgba(77, 94, 63, 0.1);
-  --glow-strong: rgba(77, 94, 63, 0.18);
+  --glow-subtle: rgba(63, 94, 46, 0.04);
+  --glow-medium: rgba(63, 94, 46, 0.08);
+  --glow-strong: rgba(63, 94, 46, 0.14);
 
-  --border-subtle: rgba(26, 28, 24, 0.14);
-  --border-medium: rgba(26, 28, 24, 0.22);
-  --border-strong: rgba(26, 28, 24, 0.32);
+  --border-subtle: #edeae2;
+  --border-medium: #e2ded3;
+  --border-strong: #d9d4c7;
 
   /* Softer page glow so the paper backdrop reads warm but not muddy. */
-  --page-glow-a: rgba(77, 94, 63, 0.14);
-  --page-glow-b: rgba(110, 95, 76, 0.12);
-  --page-glow-c: rgba(77, 94, 63, 0.1);
+  --page-glow-a: transparent;
+  --page-glow-b: transparent;
+  --page-glow-c: transparent;
 
-  --bg-overlay: rgba(250, 248, 243, 0.85);
-  --bg-overlay-hover: rgba(241, 237, 228, 0.92);
-  --shadow-overlay: 0 8px 32px rgba(26, 28, 24, 0.12), 0 0 0 1px rgba(26, 28, 24, 0.04);
-  --shadow-overlay-hover: 0 12px 40px rgba(26, 28, 24, 0.16), 0 0 0 1px rgba(26, 28, 24, 0.06);
+  --bg-overlay: rgba(255, 255, 255, 0.92);
+  --bg-overlay-hover: rgba(250, 249, 245, 0.96);
+  --shadow-overlay: 0 8px 28px rgba(28, 30, 25, 0.1), 0 0 0 1px rgba(28, 30, 25, 0.04);
+  --shadow-overlay-hover: 0 12px 36px rgba(28, 30, 25, 0.14), 0 0 0 1px rgba(28, 30, 25, 0.06);
 
   --modal-backdrop: rgba(26, 28, 24, 0.45);
-  --modal-bg: linear-gradient(145deg, rgba(255, 255, 255, 0.98) 0%, rgba(241, 237, 228, 0.99) 100%);
+  --modal-bg: #ffffff;
   --modal-shadow: 0 20px 60px rgba(26, 28, 24, 0.18), 0 0 80px var(--glow-subtle);
   --modal-header-bg: rgba(26, 28, 24, 0.05);
   --modal-pane-bg: rgba(26, 28, 24, 0.04);
   --modal-pane-vignette: inset 0 0 40px rgba(26, 28, 24, 0.06);
-  --modal-bottom-fade: linear-gradient(to top, rgba(241, 237, 228, 0.95), transparent);
+  --modal-bottom-fade: linear-gradient(to top, rgba(255, 255, 255, 0.95), transparent);
 
-  --noise-opacity: 0.25;
+  --noise-opacity: 0;
 
   /* Deepened from #b5453e: --danger is shared by every light palette, and
      on the warmer scheme backgrounds (ember's parchment especially) the
@@ -199,7 +217,7 @@
   /* Almost-invisible warm strip — the previous rgba(0,0,0,0.2) inset
      disappeared on the cream backdrop. This gives the at:// row a faint
      ink-on-paper feel without going muddy. */
-  --surface-overlay-dim: rgba(26, 28, 24, 0.06);
+  --surface-overlay-dim: #faf9f5;
 
   /* Darker, more saturated equivalents of the dark-mode margin accents.
      Each `-fg` clears WCAG AA against --bg-secondary (#f1ede4); tints stay
@@ -231,6 +249,14 @@
   --margin-annotation-fg: #6543c6;
   --margin-annotation-tint: rgba(101, 67, 198, 0.1);
   --margin-annotation-border: rgba(101, 67, 198, 0.28);
+
+  --surface-subtle: #faf9f5;
+  --accent-soft: #e5ecdc;
+  --accent-soft-fg: #2b4320;
+  --accent-soft-border: #d9e4cc;
+  --text-faint: #a3a59c;
+  --status-live: #5e8c4a;
+  --link-hover: var(--accent-forest);
 
   color-scheme: light;
 }
@@ -977,24 +1003,27 @@ html {
 }
 
 body {
-  font-family: var(--font-serif);
-  font-weight: 300;
+  font-family: var(--font-sans);
+  font-weight: 400;
+  font-size: 0.875rem;
   color: var(--text-primary);
   background: var(--bg-primary);
-  line-height: 1.7;
+  line-height: 1.55;
   overflow-x: hidden;
   /* Ensure full viewport coverage on mobile */
   min-height: 100vh;
   min-height: 100dvh; /* Dynamic viewport height for mobile browsers */
 }
 
-/* Lucide Icons - Thinner stroke for a more refined look */
-svg {
-  stroke-width: 1.5;
-}
+/* Lucide icons keep their stock 2px stroke: Field Notes pairs them with
+   a medium-weight sans, and the old 1.5px read as faint beside it. */
 
-/* Moody atmospheric glow overlay - beneath all content */
+/* Moody atmospheric glow overlay - beneath all content. Field Notes is a
+   flat paper surface, so the overlay (and the grain in body::after) is
+   switched off below rather than deleted, keeping the motion keyframes
+   available to anything else that names them. */
 body::before {
+  display: none;
   content: '';
   position: fixed;
   top: 0;
@@ -1064,7 +1093,7 @@ body::before {
 
 /* Typography */
 h1, h2, h3, h4, h5, h6 {
-  font-weight: 400;
+  font-weight: 700;
   /* Tightened from 1.3 — display serif at these sizes spaces too far
      apart at 1.3 and the wrapped second line drifts away from the
      first. 1.2 keeps multi-line headings reading as a single block. */
@@ -1073,9 +1102,9 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 h1 {
-  font-size: 2.5rem;
-  font-weight: 300;
-  letter-spacing: -0.03em;
+  font-size: 2.25rem;
+  font-weight: 700;
+  letter-spacing: -0.025em;
   /* Even tighter for the display-sized h1 — matches the homepage hero
      and keeps long titles like "Browse through any repository." from
      splitting into two visually disconnected lines. */
@@ -1083,11 +1112,13 @@ h1 {
 }
 
 h2 {
-  font-size: 2rem;
+  font-size: 1.3125rem;
+  letter-spacing: -0.015em;
 }
 
 h3 {
-  font-size: 1.5rem;
+  font-size: 1rem;
+  letter-spacing: -0.005em;
 }
 
 p {
@@ -1098,7 +1129,8 @@ code {
   font-family: var(--font-mono);
   font-size: 0.9em;
   background: var(--bg-tertiary);
-  padding: 0.2em 0.4em;
+  padding: 0.15em 0.4em;
+  border-radius: 5px;
   color: var(--text-accent);
 }
 
@@ -1110,6 +1142,7 @@ pre {
   overflow-x: auto;
   margin: 1rem 0;
   border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-control);
 }
 
 /* Links */
@@ -1120,7 +1153,7 @@ a {
 }
 
 a:hover {
-  color: var(--text-primary);
+  color: var(--link-hover, var(--text-primary));
 }
 
 .branding-link:hover {
@@ -1426,8 +1459,8 @@ a:hover {
 
 /* Buttons */
 button {
-  font-family: var(--font-serif);
-  font-weight: 400;
+  font-family: var(--font-sans);
+  font-weight: 500;
   cursor: pointer;
   border: none;
   background: none;
@@ -1460,12 +1493,13 @@ button {
   padding: 0 2rem;
 }
 
-/* Card styling - no border radius */
+/* Card styling: Field Notes white panel, hairline border, 12px corners */
 .card {
   background: var(--bg-secondary);
   border: 1px solid var(--border-medium);
+  border-radius: var(--radius-card);
   padding: 2rem;
-  transition: all 0.3s ease;
+  transition: border-color 0.15s ease, background 0.15s ease;
 }
 
 .record-preview-card {
@@ -1473,9 +1507,7 @@ button {
 }
 
 .card:hover {
-  background: var(--bg-tertiary);
   border-color: var(--border-strong);
-  box-shadow: 0 0 40px var(--glow-subtle);
 }
 
 /* Secondary card style for non-interactive cards */
@@ -1572,8 +1604,9 @@ button {
   font-style: italic;
 }
 
-/* Noise texture overlay for depth */
+/* Noise texture overlay for depth (off in Field Notes, see body::before) */
 body::after {
+  display: none;
   content: '';
   position: fixed;
   inset: 0;
@@ -2655,12 +2688,12 @@ html {
 }
 
 .feature-card-primary:hover {
-  transform: rotate(-0.5deg) translateY(-4px) !important;
+  transform: translateY(-4px) !important;
   box-shadow: 0 8px 60px var(--glow-medium);
 }
 
 .feature-card-secondary:hover {
-  transform: rotate(0.5deg) translateY(-2px) !important;
+  transform: translateY(-2px) !important;
   box-shadow: 0 4px 40px var(--glow-subtle);
 }
 
@@ -2675,7 +2708,7 @@ html {
 
 /* CTA Card */
 .cta-card:hover {
-  transform: rotate(-0.2deg) scale(1.01) !important;
+  transform: scale(1.01) !important;
 }
 
 .cta-button {
@@ -2783,7 +2816,7 @@ html {
 .parent-card:hover {
   background: var(--bg-elevated);
   border-color: var(--border-strong);
-  transform: rotate(-0.3deg) scale(0.97) !important;
+  transform: scale(0.97) !important;
 }
 
 /* Reduced motion. Driven by the `data-reduce-motion` attribute on <html>,
@@ -3262,7 +3295,7 @@ body.has-explore-chrome {
   background: var(--bg-secondary);
   border: 1px solid var(--border-medium);
   box-shadow: var(--shadow-overlay);
-  transform: rotate(-0.2deg);
+  transform: none;
   transition: all 0.3s ease;
 }
 
@@ -3414,7 +3447,7 @@ body.has-explore-chrome {
 }
 
 .explore-chrome-panel[data-open] {
-  transform: scaleY(1) translateY(0) rotate(-0.3deg);
+  transform: scaleY(1) translateY(0);
   opacity: 1;
   pointer-events: auto;
 }
@@ -3889,7 +3922,7 @@ body.has-explore-chrome {
   top: 0.25rem;
   left: 0.25rem;
   right: -0.25rem;
-  transform: rotate(-0.5deg) scale(0.98);
+  transform: scale(0.98);
   z-index: -1;
 }
 
@@ -3903,7 +3936,7 @@ body.has-explore-chrome {
 }
 
 .stacked-cards:hover::before {
-  transform: rotate(-0.5deg) scale(0.98) translateY(-2px);
+  transform: scale(0.98) translateY(-2px);
   opacity: 0.8;
 }
 

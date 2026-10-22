@@ -65,7 +65,6 @@ export default function PickerPreviewVisual() {
         display: 'flex',
         flexDirection: 'column',
         gap: '0.875rem',
-        transform: 'rotate(0.4deg)',
       }}
     >
       {/* Pretend ProfilePreview header */}

@@ -1,0 +1,3 @@
+/* Field Notes: link styles. Tokens live in src/app/globals.css (:root and
+   [data-theme='light']); use them rather than raw hex so dark mode and the
+   colour schemes keep working. */

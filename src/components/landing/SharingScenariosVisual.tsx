@@ -75,7 +75,6 @@ function Scenario({
         display: 'flex',
         flexDirection: 'column',
         gap: '0.625rem',
-        transform: 'rotate(-0.15deg)',
       }}
     >
       <div

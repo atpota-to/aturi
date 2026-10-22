@@ -29,7 +29,6 @@ export default function BrowserChrome({ children }: { children: ReactNode }) {
         border: '1px solid var(--border-medium)',
         boxShadow: 'var(--shadow-overlay)',
         // Slight rotation so the chrome reads as a depth surface, not a UI.
-        transform: 'rotate(0.6deg)',
         transition: 'transform 0.4s ease',
         overflow: 'visible',
       }}

@@ -47,7 +47,6 @@ export default function HomePage() {
               background: 'var(--bg-secondary)',
               border: '1px solid var(--border-medium)',
               position: 'relative',
-              transform: 'rotate(-0.4deg)',
               transition: 'all 0.4s ease',
               marginBottom: '4rem',
               maxWidth: '900px',
@@ -124,7 +123,6 @@ export default function HomePage() {
               background: 'var(--bg-secondary)',
               border: '1px solid var(--border-medium)',
               position: 'relative',
-              transform: 'rotate(0.3deg)',
               transition: 'all 0.4s ease',
               marginTop: '3rem',
               textAlign: 'center',
@@ -215,7 +213,6 @@ export default function HomePage() {
               background: 'var(--bg-secondary)',
               border: '1px solid var(--border-medium)',
               position: 'relative',
-              transform: 'rotate(-0.2deg)',
               transition: 'all 0.4s ease',
               marginTop: '3rem',
             }}

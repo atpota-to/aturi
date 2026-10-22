@@ -34,7 +34,6 @@ export default function WaypointGroupsVisual() {
         boxShadow: 'var(--shadow-overlay)',
         fontFamily: 'var(--font-serif)',
         color: 'var(--text-primary)',
-        transform: 'rotate(-0.4deg)',
       }}
     >
       {/* Settings page title strip — anchors the mock as a window inside

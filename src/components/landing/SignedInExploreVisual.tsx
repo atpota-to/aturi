@@ -30,7 +30,6 @@ export default function SignedInExploreVisual() {
         boxShadow: 'var(--shadow-overlay)',
         fontFamily: 'var(--font-serif)',
         color: 'var(--text-primary)',
-        transform: 'rotate(-0.3deg)',
       }}
     >
       {/* Header strip with signed-in pill + Synced indicator. */}

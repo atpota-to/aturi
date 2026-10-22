@@ -59,7 +59,6 @@ export default function SpaceUriAnatomyVisual() {
         display: 'flex',
         flexDirection: 'column',
         gap: '1.5rem',
-        transform: 'rotate(-0.3deg)',
       }}
     >
       {/* The address itself, with each segment underlined in its own color. */}

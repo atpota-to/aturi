@@ -62,7 +62,6 @@ export default function NotFoundPanel({
           textTransform: 'uppercase',
           fontFamily: 'var(--font-serif)',
           marginBottom: '1.25rem',
-          transform: 'rotate(-0.4deg)',
         }}
       >
         <Leaf size={11} aria-hidden style={{ color: 'var(--text-accent)' }} />

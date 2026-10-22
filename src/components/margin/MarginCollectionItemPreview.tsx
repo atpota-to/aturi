@@ -52,7 +52,6 @@ export default function MarginCollectionItemPreview({
           background: 'var(--bg-secondary)',
           border: '1px solid var(--border-medium)',
           overflow: 'hidden',
-          transform: 'rotate(0.2deg)',
           transition: 'all 0.4s ease',
         }}
         className="margin-collection-item-card"

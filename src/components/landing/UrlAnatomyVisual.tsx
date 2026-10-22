@@ -59,7 +59,6 @@ export default function UrlAnatomyVisual() {
         display: 'flex',
         flexDirection: 'column',
         gap: '1.5rem',
-        transform: 'rotate(-0.3deg)',
       }}
     >
       {/* The URL itself, with each segment underlined in its own color. */}

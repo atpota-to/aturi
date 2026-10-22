@@ -19,7 +19,6 @@ export default function ForkPage() {
           className="card fork-hero-card"
           style={{ 
             padding: '3.5rem',
-            transform: 'rotate(-0.3deg)',
             transition: 'all 0.4s ease',
             marginBottom: '3rem'
           }}
@@ -64,7 +63,6 @@ export default function ForkPage() {
             style={{ 
               gridColumn: 'span 4',
               padding: '2.5rem',
-              transform: 'rotate(0.4deg)',
               transition: 'all 0.4s ease',
             }}
           >
@@ -81,7 +79,6 @@ export default function ForkPage() {
             style={{ 
               gridColumn: 'span 4',
               padding: '2.5rem',
-              transform: 'rotate(-0.3deg)',
               transition: 'all 0.4s ease',
             }}
           >
@@ -98,7 +95,6 @@ export default function ForkPage() {
             style={{ 
               gridColumn: 'span 4',
               padding: '2.5rem',
-              transform: 'rotate(0.2deg)',
               transition: 'all 0.4s ease',
             }}
           >
@@ -141,7 +137,6 @@ export default function ForkPage() {
             style={{ 
               gridColumn: '6 / span 7',
               padding: '2.5rem',
-              transform: 'rotate(-0.4deg)',
               transition: 'all 0.4s ease',
             }}
           >
@@ -193,7 +188,6 @@ npm run dev`}</pre>
               color: 'inherit',
               cursor: 'pointer',
               transition: 'all 0.4s ease',
-              transform: 'rotate(0.3deg)',
             }}
           >
             <Terminal size={24} style={{ color: 'var(--text-accent)', marginBottom: '0.75rem' }} />
@@ -215,7 +209,6 @@ npm run dev`}</pre>
               color: 'inherit',
               cursor: 'pointer',
               transition: 'all 0.4s ease',
-              transform: 'rotate(-0.2deg)',
             }}
           >
             <Settings size={24} style={{ color: 'var(--text-accent)', marginBottom: '0.75rem' }} />
@@ -258,7 +251,6 @@ npm run dev`}</pre>
             style={{ 
               gridColumn: '7 / span 6',
               padding: '2.5rem',
-              transform: 'rotate(0.3deg)',
               transition: 'all 0.4s ease',
             }}
           >
@@ -304,7 +296,6 @@ NEXT_PUBLIC_REPO_URL=https://github.com/you/your-fork`}</pre>
             className="card" 
             style={{ 
               padding: '2.5rem',
-              transform: 'rotate(0.3deg)',
               transition: 'all 0.4s ease',
             }}
           >
@@ -328,7 +319,6 @@ cp .env.example .env.local
             className="card" 
             style={{ 
               padding: '2.5rem',
-              transform: 'rotate(-0.4deg)',
               transition: 'all 0.4s ease',
             }}
           >
@@ -360,7 +350,6 @@ cp .env.example .env.local
             className="card" 
             style={{ 
               padding: '2.5rem',
-              transform: 'rotate(0.2deg)',
               transition: 'all 0.4s ease',
             }}
           >
@@ -384,7 +373,6 @@ cp .env.example .env.local
             className="card" 
             style={{ 
               padding: '2.5rem',
-              transform: 'rotate(-0.3deg)',
               transition: 'all 0.4s ease',
             }}
           >
@@ -425,7 +413,6 @@ vercel
             padding: '3rem',
             background: 'var(--bg-elevated)',
             borderLeft: '3px solid var(--text-accent)',
-            transform: 'rotate(-0.2deg)',
             transition: 'all 0.4s ease',
           }}
         >
@@ -483,7 +470,6 @@ vercel
             style={{ 
               gridColumn: '6 / span 7',
               padding: '2.5rem',
-              transform: 'rotate(0.3deg)',
               transition: 'all 0.4s ease',
             }}
           >
@@ -553,7 +539,6 @@ vercel
             padding: '3rem',
             background: 'var(--bg-elevated)', 
             textAlign: 'center',
-            transform: 'rotate(-0.2deg)',
             transition: 'all 0.4s ease',
           }}
         >

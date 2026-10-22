@@ -36,7 +36,6 @@ export default function SpacesGlanceVisual() {
         boxShadow: 'var(--shadow-overlay)',
         fontFamily: 'var(--font-serif)',
         color: 'var(--text-primary)',
-        transform: 'rotate(0.3deg)',
       }}
     >
       <div

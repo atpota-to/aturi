@@ -222,7 +222,6 @@ export default function UniversalLinksLanding() {
                 display: 'flex',
                 flexDirection: 'column',
                 gap: '0.75rem',
-                transform: 'rotate(-0.3deg)',
               }}
             >
               <div

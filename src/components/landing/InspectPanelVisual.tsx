@@ -28,7 +28,6 @@ export default function InspectPanelVisual() {
         maxWidth: '420px',
         width: '100%',
         margin: '0 auto',
-        transform: 'rotate(-0.4deg)',
       }}
     >
       {/* Tab strip — mirrors the real popup: Waypoints / Inspect with a

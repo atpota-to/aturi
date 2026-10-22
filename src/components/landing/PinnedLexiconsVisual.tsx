@@ -25,7 +25,6 @@ export default function PinnedLexiconsVisual() {
         boxShadow: 'var(--shadow-overlay)',
         fontFamily: 'var(--font-serif)',
         color: 'var(--text-primary)',
-        transform: 'rotate(-0.4deg)',
       }}
     >
       {/* Header strip — anchors the mock as the Lexicons tab inside a

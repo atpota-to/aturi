@@ -126,7 +126,6 @@ export default function Header({ simple = false, compact = false }: HeaderProps)
             flexDirection: 'column',
             background: 'var(--bg-secondary)',
             border: '1px solid var(--border-medium)',
-            transform: 'rotate(-0.2deg)',
             transition: 'all 0.3s ease',
             boxShadow: 'var(--shadow-overlay)',
           }}
@@ -290,7 +289,7 @@ export default function Header({ simple = false, compact = false }: HeaderProps)
             border: '1px solid var(--border-medium)',
             transformOrigin: 'top center',
             transform: isSearchExpanded
-              ? 'scaleY(1) translateY(0) rotate(-0.3deg)'
+              ? 'scaleY(1) translateY(0)'
               : 'scaleY(0) translateY(-10px) rotate(0deg)',
             opacity: isSearchExpanded ? 1 : 0,
             transition: 'all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)',
@@ -323,7 +322,7 @@ export default function Header({ simple = false, compact = false }: HeaderProps)
             border: '1px solid var(--border-medium)',
             transformOrigin: 'top center',
             transform: isExpanded
-              ? 'scaleY(1) translateY(0) rotate(0.3deg)'
+              ? 'scaleY(1) translateY(0)'
               : 'scaleY(0) translateY(-10px) rotate(0deg)',
             opacity: isExpanded ? 1 : 0,
             transition: 'all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)',

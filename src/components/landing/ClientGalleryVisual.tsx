@@ -54,7 +54,6 @@ export default function ClientGalleryVisual() {
         maxWidth: '460px',
         width: '100%',
         margin: '0 auto',
-        transform: 'rotate(-0.4deg)',
       }}
     >
       {/* AT URI strip — names the lexicon the picker is filtering for */}

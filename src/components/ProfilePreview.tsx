@@ -66,7 +66,6 @@ export default function ProfilePreview({ profile }: ProfilePreviewProps) {
         overflow: 'hidden',
         background: 'var(--bg-secondary)',
         border: '1px solid var(--border-medium)',
-        transform: 'rotate(-0.3deg)',
         transition: 'all 0.4s ease',
       }}
       className="card"

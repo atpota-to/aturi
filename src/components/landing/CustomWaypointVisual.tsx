@@ -23,7 +23,6 @@ export default function CustomWaypointVisual() {
         maxWidth: '440px',
         width: '100%',
         margin: '0 auto',
-        transform: 'rotate(0.3deg)',
       }}
     >
       <div
