@@ -8,7 +8,7 @@ import SearchBox from '@/components/explore/SearchBox';
 type Props = {
   /** Small uppercase chip text. Defaults to "404 · NOT FOUND". */
   eyebrow?: string;
-  /** Big gradient-serif headline. */
+  /** Headline. */
   headline?: string;
   /** Body copy under the headline. */
   body?: string;
@@ -35,117 +35,37 @@ export default function NotFoundPanel({
 }: Props) {
   return (
     <motion.section
-      initial={{ opacity: 0, y: 16 }}
+      initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, ease: [0.34, 1.56, 0.64, 1] }}
-      style={{
-        // Constrains text width but lets the parent layout handle the
-        // horizontal gutter — the explore routes are already inside a
-        // container-narrow with its own 2rem of side padding, and adding
-        // more here doubled the inset. The standalone /not-found route
-        // wraps this in its own padded container.
-        maxWidth: '40rem',
-        margin: '3rem auto 4rem',
-      }}
+      transition={{ duration: 0.35, ease: 'easeOut' }}
+      // Constrains text width but lets the parent layout handle the
+      // horizontal gutter — the explore routes are already inside a
+      // container-narrow with its own side padding, and adding more here
+      // doubled the inset. The standalone /not-found route wraps this in its
+      // own padded container.
+      className="fn-lp-notfound"
     >
-      <div
-        style={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: '0.5rem',
-          padding: '0.3rem 0.7rem',
-          border: '1px solid var(--border-subtle)',
-          background: 'var(--bg-tertiary)',
-          color: 'var(--text-tertiary)',
-          fontSize: '0.7rem',
-          letterSpacing: '0.12em',
-          textTransform: 'uppercase',
-          fontFamily: 'var(--font-serif)',
-          marginBottom: '1.25rem',
-        }}
-      >
-        <Leaf size={11} aria-hidden style={{ color: 'var(--text-accent)' }} />
+      <div className="fn-lp-notfound-eyebrow">
+        <Leaf size={12} aria-hidden />
         {eyebrow}
       </div>
 
-      <h1
-        style={{
-          fontSize: '2.75rem',
-          fontWeight: 300,
-          letterSpacing: '-0.02em',
-          color: 'var(--text-primary)',
-          marginBottom: '0.75rem',
-          lineHeight: 1.05,
-        }}
-      >
-        <span
-          style={{
-            background:
-              'linear-gradient(135deg, var(--text-primary) 0%, var(--text-accent) 100%)',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-            backgroundClip: 'text',
-          }}
-        >
-          {headline}
-        </span>
-      </h1>
+      <h1 className="fn-lp-notfound-title">{headline}</h1>
 
-      <p
-        style={{
-          fontSize: '1.0625rem',
-          color: 'var(--text-secondary)',
-          lineHeight: 1.6,
-          marginBottom: '1.5rem',
-        }}
-      >
-        {body}
-      </p>
+      <p className="fn-lp-notfound-body">{body}</p>
 
-      <div style={{ marginBottom: '1.25rem' }}>
+      <div className="fn-lp-notfound-search">
         <SearchBox initial={initialQuery} />
       </div>
 
-      <div
-        style={{
-          display: 'flex',
-          flexWrap: 'wrap',
-          gap: '0.625rem',
-        }}
-      >
-        <Link href="/" style={primaryBtn}>
-          <ArrowLeft size={14} aria-hidden /> Home
+      <div className="fn-lp-notfound-actions">
+        <Link href="/" className="fn-lp-btn is-primary">
+          <ArrowLeft size={15} aria-hidden /> Home
         </Link>
-        <Link href="/explore" style={ghostBtn}>
-          <Telescope size={14} aria-hidden /> Explore
+        <Link href="/explore" className="fn-lp-btn">
+          <Telescope size={15} aria-hidden /> Explore
         </Link>
       </div>
     </motion.section>
   );
 }
-
-const primaryBtn: React.CSSProperties = {
-  display: 'inline-flex',
-  alignItems: 'center',
-  gap: '0.4rem',
-  padding: '0.55rem 1rem',
-  background: 'var(--accent-moss)',
-  color: 'var(--text-on-accent)',
-  border: '1px solid var(--accent-moss)',
-  fontFamily: 'var(--font-serif)',
-  fontSize: '0.875rem',
-  textDecoration: 'none',
-};
-
-const ghostBtn: React.CSSProperties = {
-  display: 'inline-flex',
-  alignItems: 'center',
-  gap: '0.4rem',
-  padding: '0.55rem 1rem',
-  background: 'var(--bg-tertiary)',
-  color: 'var(--text-primary)',
-  border: '1px solid var(--border-medium)',
-  fontFamily: 'var(--font-serif)',
-  fontSize: '0.875rem',
-  textDecoration: 'none',
-};

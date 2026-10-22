@@ -19,9 +19,10 @@ export default function PostPreviewSkeleton({
       className="skeleton-container"
       style={{
         marginBottom: '2rem',
-        padding: '1.5rem',
+        padding: '1.25rem',
         background: 'var(--bg-secondary)',
         border: '1px solid var(--border-medium)',
+        borderRadius: 'var(--radius-card)',
       }}
     >
       {/* Author Info skeleton */}

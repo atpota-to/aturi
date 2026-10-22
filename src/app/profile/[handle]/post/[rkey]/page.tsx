@@ -80,7 +80,7 @@ async function PostContent({ handle, rkey }: { handle: string; rkey: string }) {
       return (
         <>
           <Header compact />
-          <div className="container-narrow waypoint-page" style={{ padding: '0 2rem 4rem' }}>
+          <div className="container-narrow waypoint-page">
             <NotFoundPanel
               eyebrow="Couldn't resolve"
               headline="That handle didn't resolve."
@@ -121,7 +121,7 @@ async function PostContent({ handle, rkey }: { handle: string; rkey: string }) {
           rkey={rkey}
         />
         <Header compact />
-        <div className="container-narrow waypoint-page" style={{ padding: '0 2rem 4rem' }}>
+        <div className="container-narrow waypoint-page">
         <AutoRedirectGate
           type="post"
           handle={resolvedHandle}
@@ -158,6 +158,7 @@ async function PostContent({ handle, rkey }: { handle: string; rkey: string }) {
             className="content-fade-in"
             style={{
               border: '1px solid var(--border-medium)',
+              borderRadius: 'var(--radius-card)',
               background: 'var(--bg-secondary)',
               padding: '1rem 1.25rem',
               marginBottom: '1.5rem',
@@ -226,7 +227,7 @@ export default async function PostPage({ params }: Props) {
       fallback={
         <>
           <Header compact />
-          <div className="container-narrow waypoint-page" style={{ padding: '0 2rem 4rem' }}>
+          <div className="container-narrow waypoint-page">
             <PostPreviewSkeleton />
           </div>
         </>

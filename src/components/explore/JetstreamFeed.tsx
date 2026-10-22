@@ -232,6 +232,8 @@ export default function JetstreamFeed({
       style={{
         marginTop: '2rem',
         border: '1px solid var(--border-medium)',
+        borderRadius: 'var(--radius-card)',
+        overflow: 'hidden',
         background: 'var(--bg-secondary)',
       }}
     >
@@ -272,12 +274,15 @@ export default function JetstreamFeed({
               display: 'inline-flex',
               alignItems: 'center',
               gap: '0.4rem',
-              padding: '0.25rem 0.625rem',
-              background: 'transparent',
-              border: '1px solid var(--border-medium)',
+              height: '28px',
+              padding: '0 10px',
+              borderRadius: 'var(--radius-control)',
+              background: 'var(--bg-secondary)',
+              border: '1px solid var(--border-strong)',
               color: 'var(--text-secondary)',
-              fontFamily: 'var(--font-serif)',
-              fontSize: '0.75rem',
+              fontFamily: 'var(--font-sans)',
+              fontSize: '12.5px',
+              fontWeight: 500,
               cursor: 'pointer',
             }}
           >

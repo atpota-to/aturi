@@ -59,16 +59,12 @@ export default function CategoryCard({
   const hasMultiple = waypoints && waypoints.length > 1;
   const hasWaypoints = waypoints && waypoints.length > 0;
 
-  const renderWaypointCard = (waypoint: Waypoint, index: number) => {
+  const renderWaypointCard = (waypoint: Waypoint) => {
     const url = waypoint.getUrl(handle, collection, rkey, did);
     if (!url) return null;
     
     const isCopied = copiedId === waypoint.id;
     
-    // Organic rotation for each button
-    const rotations = [0.3, -0.2, 0.4, -0.3, 0.2, -0.1, 0.35, -0.25];
-    const rotation = rotations[index % rotations.length];
-
     return (
       <div
         key={waypoint.id}
@@ -86,12 +82,7 @@ export default function CategoryCard({
             onWaypointClick(url, e as unknown as React.MouseEvent);
           }
         }}
-        style={{
-          cursor: 'pointer',
-          transform: `rotate(${rotation}deg)`,
-          // @ts-expect-error - CSS custom property
-          '--button-rotation': `rotate(${rotation}deg)`
-        }}
+        style={{ cursor: 'pointer' }}
       >
         <div className="waypoint-icon">{waypoint.icon}</div>
         <div className="waypoint-content">
@@ -102,26 +93,16 @@ export default function CategoryCard({
               : waypoint.description}
           </div>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+        <div className="waypoint-button-actions">
           <button
             onClick={(e) => { e.stopPropagation(); onCopy(url, waypoint.id, e); }}
             aria-label="Copy link"
             className="copy-button"
-            style={{
-              background: 'none',
-              border: 'none',
-              padding: '0.25rem',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              color: 'var(--text-tertiary)',
-              transition: 'color 0.2s ease',
-            }}
           >
             {isCopied ? (
-              <Check size={20} style={{ color: 'var(--text-accent)' }} />
+              <Check size={18} style={{ color: 'var(--text-accent)' }} />
             ) : (
-              <Copy size={20} />
+              <Copy size={18} />
             )}
           </button>
           <a
@@ -130,14 +111,9 @@ export default function CategoryCard({
             rel="noopener noreferrer"
             aria-label={`Open in ${waypoint.name}`}
             onClick={(e) => e.stopPropagation()}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              color: 'var(--text-tertiary)',
-              transition: 'color 0.2s ease',
-            }}
+            className="waypoint-open-link"
           >
-            <ExternalLink size={20} />
+            <ExternalLink size={18} />
           </a>
         </div>
       </div>
@@ -146,7 +122,7 @@ export default function CategoryCard({
 
   if (!alwaysShowCategoryHeader && !hasMultiple && !hasSubcategories && hasWaypoints) {
     // Single waypoint with no subcategories - render it directly without category wrapper
-    return renderWaypointCard(waypoints![0], 0);
+    return renderWaypointCard(waypoints![0]);
   }
 
   return (
@@ -184,7 +160,7 @@ export default function CategoryCard({
         {!isExpanded && compatibleDefaultWaypoint && (
           // Collapsed: Show only default with stacked effect
           <div className="stacked-cards">
-            {renderWaypointCard(compatibleDefaultWaypoint, 0)}
+            {renderWaypointCard(compatibleDefaultWaypoint)}
           </div>
         )}
         {isExpanded && (
@@ -200,7 +176,7 @@ export default function CategoryCard({
                     animationDelay: `${index * 50}ms`,
                   }}
                 >
-                  {renderWaypointCard(waypoint, index)}
+                  {renderWaypointCard(waypoint)}
                 </div>
               ))}
 

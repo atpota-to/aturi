@@ -1,56 +1,136 @@
-@import url('https://fonts.googleapis.com/css2?family=Crimson+Pro:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap');
 
-:root {
-  /* Aturi design tokens — mirrors aturi-to/src/app/globals.css */
-  --bg-primary: #0a0a0a;
-  --bg-secondary: #151515;
-  --bg-tertiary: #1a1a1a;
-  --bg-elevated: #202020;
+/* Aturi design tokens. Mirrors src/app/globals.css: the Field Notes light
+   palette is the default (paper page, white cards, moss accent), and
+   [data-theme='dark'] is the matching dark set. Both blocks define every
+   token so either attribute value wins cleanly over :root. */
+:root,
+[data-theme='light'] {
+  --bg-primary: #f6f4ee;
+  --bg-secondary: #ffffff;
+  --bg-tertiary: #f1eee6;
+  --bg-elevated: #ffffff;
 
-  --accent-moss: #4a5a3f;
-  --accent-forest: #2d3a28;
-  --accent-bark: #3d3329;
-  --accent-stone: #4a4a46;
+  --accent-moss: #3f5e2e;
+  --accent-forest: #2b4320;
+  --accent-bark: #6e5f4c;
+  --accent-stone: #6b6d64;
 
-  /* Text colors — secondary and tertiary brightened from #a8a8a6/#686866
-     so secondary copy and "subtle" labels remain legible against the very
-     dark backgrounds. */
-  --text-primary: #f0f0ee;
-  --text-secondary: #c4c4c0;
-  --text-tertiary: #9a9a96;
-  --text-accent: #a8b89c;
+  --text-primary: #1c1e19;
+  --text-secondary: #4a4c44;
+  --text-tertiary: #6b6d64;
+  --text-faint: #a3a59c;
+  --text-accent: #3f5e2e;
 
-  --glow-subtle: rgba(168, 184, 156, 0.06);
-  --glow-medium: rgba(168, 184, 156, 0.12);
-  --glow-strong: rgba(168, 184, 156, 0.22);
+  --glow-subtle: rgba(63, 94, 46, 0.04);
+  --glow-medium: rgba(63, 94, 46, 0.08);
+  --glow-strong: rgba(63, 94, 46, 0.14);
 
-  --border-subtle: rgba(240, 240, 238, 0.12);
-  --border-medium: rgba(240, 240, 238, 0.18);
-  --border-strong: rgba(240, 240, 238, 0.24);
+  --border-subtle: #edeae2;
+  --border-medium: #e2ded3;
+  --border-strong: #d9d4c7;
+
+  --surface-subtle: #faf9f5;
+  --accent-soft: #e5ecdc;
+  --accent-soft-fg: #2b4320;
+  --accent-soft-border: #d9e4cc;
+  --accent-soft-panel: #eef2e7;
+  --status-live: #5e8c4a;
+
+  /* Amber "paused" strip in the popup footer. */
+  --warn-bg: #fbf4e6;
+  --warn-border: #ebddbf;
+  --warn-control-border: #d9c69a;
+  --warn-fg: #5c430d;
+  --warn-fg-muted: #6e5520;
+  --warn-icon: #7a5a14;
+
+  --danger: #a83c35;
+  --danger-soft: rgba(168, 60, 53, 0.1);
+  --danger-border: rgba(168, 60, 53, 0.3);
+
+  /* Text drawn on --accent-moss / --accent-forest fills. Both stay dark
+     green in both themes, so this stays near-white in both. */
+  --text-on-accent: #ffffff;
+
+  --shadow: 0 1px 2px rgba(28, 30, 25, 0.06);
+  --shadow-pop: 0 8px 28px rgba(28, 30, 25, 0.12), 0 0 0 1px rgba(28, 30, 25, 0.04);
+  color-scheme: light;
+}
+
+[data-theme='dark'] {
+  --bg-primary: #141512;
+  --bg-secondary: #1c1d19;
+  --bg-tertiary: #24261f;
+  --bg-elevated: #22241e;
+
+  --accent-moss: #3f5e2e;
+  --accent-forest: #4f7139;
+  --accent-bark: #5a4b3a;
+  --accent-stone: #4a4c44;
+
+  --text-primary: #edeee8;
+  --text-secondary: #bfc1b8;
+  --text-tertiary: #959789;
+  --text-faint: #6f7168;
+  --text-accent: #a9c48f;
+
+  --glow-subtle: rgba(169, 196, 143, 0.04);
+  --glow-medium: rgba(169, 196, 143, 0.08);
+  --glow-strong: rgba(169, 196, 143, 0.14);
+
+  --border-subtle: #2a2c26;
+  --border-medium: #33352e;
+  --border-strong: #43463d;
+
+  --surface-subtle: #20221d;
+  --accent-soft: #26301f;
+  --accent-soft-fg: #c5dbb2;
+  --accent-soft-border: #34422a;
+  --accent-soft-panel: #1f271a;
+  --status-live: #7fae66;
+
+  --warn-bg: #2a2214;
+  --warn-border: #4a3b1c;
+  --warn-control-border: #5e4b22;
+  --warn-fg: #f0d9a6;
+  --warn-fg-muted: #cdb784;
+  --warn-icon: #e0b860;
 
   --danger: #d97070;
-  --danger-soft: rgba(217, 112, 112, 0.18);
+  --danger-soft: rgba(217, 112, 112, 0.12);
+  --danger-border: rgba(217, 112, 112, 0.32);
 
-  /* Text on the dark accent backgrounds (primary buttons, active segmented
-     controls). --accent-forest is dark green in both themes, so this token
-     intentionally stays light in both themes too. */
-  --text-on-accent: #f0f0ee;
+  --text-on-accent: #ffffff;
 
-  --font-serif: 'Crimson Pro', Georgia, 'Times New Roman', serif;
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-pop: 0 8px 32px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(255, 255, 255, 0.04);
+  color-scheme: dark;
+}
+
+:root {
+  /* Field Notes sets everything in Figtree; --font-serif stays as an alias
+     so older rules that name it pick up the sans stack. */
+  --font-sans: 'Figtree', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-serif: var(--font-sans);
   --font-mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
 
-  /* Font-size scale. Overridden per-element below; the [data-fs] selectors
-     bump everything up or down together so the popup and settings page
-     respond to the user's font-size preset in one place. */
+  --radius-card: 12px;
+  --radius-control: 8px;
+  --radius-pill: 999px;
+
+  /* Font-size scale. The [data-fs] selectors bump everything up or down
+     together so the popup and settings page respond to the user's
+     font-size preset in one place. */
   --fs-xs: 11px;
   --fs-sm: 12px;
   --fs-md: 13px;
-  --fs-base: 15px;
+  --fs-base: 14px;
   --fs-lg: 14px;
   --fs-xl: 16px;
-  --fs-2xl: 19px;
-  --fs-display-sm: 22px;
-  --fs-display: 30px;
+  --fs-2xl: 18px;
+  --fs-display-sm: 20px;
+  --fs-display: 26px;
 
   --bg: var(--bg-primary);
   --bg-muted: var(--bg-secondary);
@@ -59,9 +139,7 @@
   --fg-subtle: var(--text-tertiary);
   --border: var(--border-subtle);
   --accent: var(--text-accent);
-  --accent-fg: var(--bg-primary);
-  --shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
-  color-scheme: dark;
+  --accent-fg: var(--text-on-accent);
 }
 
 [data-fs='small'] {
@@ -70,65 +148,34 @@
   --fs-md: 12px;
   --fs-base: 13px;
   --fs-lg: 13px;
-  --fs-xl: 14px;
-  --fs-2xl: 17px;
-  --fs-display-sm: 19px;
-  --fs-display: 26px;
+  --fs-xl: 15px;
+  --fs-2xl: 16px;
+  --fs-display-sm: 18px;
+  --fs-display: 23px;
 }
 
 [data-fs='large'] {
   --fs-xs: 12px;
   --fs-sm: 13px;
   --fs-md: 14px;
-  --fs-base: 17px;
-  --fs-lg: 16px;
+  --fs-base: 15.5px;
+  --fs-lg: 15.5px;
   --fs-xl: 18px;
-  --fs-2xl: 22px;
-  --fs-display-sm: 25px;
-  --fs-display: 34px;
+  --fs-2xl: 20px;
+  --fs-display-sm: 22px;
+  --fs-display: 29px;
 }
 
 [data-fs='xlarge'] {
-  --fs-xs: 14px;
-  --fs-sm: 15px;
-  --fs-md: 16px;
-  --fs-base: 19px;
-  --fs-lg: 18px;
+  --fs-xs: 13.5px;
+  --fs-sm: 14.5px;
+  --fs-md: 15.5px;
+  --fs-base: 17px;
+  --fs-lg: 17px;
   --fs-xl: 20px;
-  --fs-2xl: 25px;
-  --fs-display-sm: 28px;
-  --fs-display: 38px;
-}
-
-[data-theme='light'] {
-  --bg-primary: #faf8f3;
-  --bg-secondary: #f1ede4;
-  --bg-tertiary: #e8e2d4;
-  --bg-elevated: #ffffff;
-
-  --accent-moss: #6c7c5f;
-  --accent-forest: #4d5a48;
-  --accent-bark: #6e5f4c;
-  --accent-stone: #76766f;
-
-  --text-primary: #1a1c18;
-  --text-secondary: #3e3f3a;
-  --text-tertiary: #5c5d56;
-  --text-accent: #4d5e3f;
-
-  --glow-subtle: rgba(77, 94, 63, 0.05);
-  --glow-medium: rgba(77, 94, 63, 0.1);
-  --glow-strong: rgba(77, 94, 63, 0.18);
-
-  --border-subtle: rgba(26, 28, 24, 0.14);
-  --border-medium: rgba(26, 28, 24, 0.22);
-  --border-strong: rgba(26, 28, 24, 0.32);
-
-  --danger: #b5453e;
-  --danger-soft: rgba(181, 69, 62, 0.12);
-
-  --shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
-  color-scheme: light;
+  --fs-2xl: 22px;
+  --fs-display-sm: 25px;
+  --fs-display: 32px;
 }
 
 * {
@@ -141,21 +188,16 @@ body {
   padding: 0;
   background: var(--bg-primary);
   color: var(--text-primary);
-  font-family: var(--font-serif);
+  font-family: var(--font-sans);
   font-weight: 400;
   font-size: var(--fs-base);
-  line-height: 1.55;
+  line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-svg {
-  stroke-width: 1.5;
-}
-
 button {
   font: inherit;
-  font-family: var(--font-serif);
   color: inherit;
   background: none;
   border: none;
@@ -167,79 +209,75 @@ input,
 select,
 textarea {
   font: inherit;
-  font-family: var(--font-serif);
   color: inherit;
 }
 
 a {
   color: var(--text-accent);
   text-decoration: none;
-  transition: color 0.2s ease;
+  transition: color 0.15s ease;
 }
 
 a:hover {
+  color: var(--accent-forest);
+}
+
+[data-theme='dark'] a:hover {
   color: var(--text-primary);
 }
 
-/* Atmospheric glow — softer than the main app since extension surfaces are small */
-body::before {
-  content: '';
-  position: fixed;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-  background:
-    radial-gradient(circle at 20% 20%, var(--glow-medium) 0%, transparent 60%),
-    radial-gradient(circle at 80% 80%, var(--glow-subtle) 0%, transparent 60%);
-  filter: blur(60px);
-  opacity: 0.9;
+:focus-visible {
+  outline: 2px solid var(--accent-moss);
+  outline-offset: 2px;
 }
 
-body > * {
-  position: relative;
-  z-index: 1;
-}
-
+/* Buttons. 36px default, 8px radius, flat fills. */
 .aturi-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 6px;
-  padding: 8px 14px;
+  min-height: 36px;
+  padding: 0 14px;
   background: var(--bg-secondary);
   color: var(--text-primary);
-  border: 1px solid var(--border-subtle);
-  font-family: var(--font-serif);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-control);
+  font-family: var(--font-sans);
   font-size: var(--fs-md);
-  font-weight: 400;
+  font-weight: 600;
+  line-height: 1.2;
   cursor: pointer;
-  transition: all 0.3s ease;
-  position: relative;
-  overflow: hidden;
+  text-decoration: none;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 }
 
 .aturi-btn:hover {
-  background: var(--bg-tertiary);
-  border-color: var(--text-accent);
+  background: var(--surface-subtle);
+  border-color: var(--text-faint);
   color: var(--text-primary);
 }
 
+.aturi-btn:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
 .aturi-btn-primary {
-  background: var(--accent-forest);
+  background: var(--accent-moss);
+  border-color: var(--accent-moss);
   color: var(--text-on-accent);
-  border-color: var(--text-accent);
 }
 
 .aturi-btn-primary:hover {
-  background: var(--accent-moss);
+  background: var(--accent-forest);
+  border-color: var(--accent-forest);
   color: var(--text-on-accent);
-  box-shadow: 0 4px 20px var(--glow-medium);
-  transform: translateY(-1px);
 }
 
 .aturi-btn-danger {
   color: var(--danger);
-  border-color: rgba(196, 97, 97, 0.3);
+  border-color: var(--danger-border);
 }
 
 .aturi-btn-danger:hover {
@@ -255,17 +293,16 @@ body > * {
 }
 
 .aturi-btn-ghost:hover {
-  background: var(--bg-secondary);
-  border-color: var(--border-subtle);
+  background: var(--bg-tertiary);
+  border-color: transparent;
   color: var(--text-primary);
 }
 
-/* Switch. Square like the rest of the controls here; the thumb is a square
-   too. Sizes come from custom properties so a compact variant only restates
-   the numbers — the travel is the box's inner width less the thumb and its
-   1px insets, which `calc` derives rather than hard-coding per size. */
+/* Switch: a pill track with a round white thumb. Sizes come from custom
+   properties so the compact variant only restates the numbers; the travel
+   is the track width less the thumb and its 2px insets. */
 .aturi-switch {
-  --switch-w: 38px;
+  --switch-w: 40px;
   --switch-h: 22px;
   --switch-thumb: 18px;
   display: inline-flex;
@@ -273,14 +310,12 @@ body > * {
   gap: 10px;
   cursor: pointer;
   user-select: none;
-  font-family: var(--font-serif);
 }
 
-/* Compact variant, for chrome that has to sit in a slim row. */
 .aturi-switch-sm {
-  --switch-w: 28px;
-  --switch-h: 16px;
-  --switch-thumb: 12px;
+  --switch-w: 36px;
+  --switch-h: 20px;
+  --switch-thumb: 16px;
   gap: 8px;
 }
 
@@ -288,87 +323,90 @@ body > * {
   width: var(--switch-w);
   height: var(--switch-h);
   flex-shrink: 0;
-  background: var(--bg-tertiary);
-  border: 1px solid var(--border-medium);
+  background: var(--border-strong);
+  border-radius: var(--radius-pill);
   position: relative;
-  transition: all 0.3s ease;
+  transition: background 0.2s ease;
 }
 
 .aturi-switch-box::after {
   content: '';
   position: absolute;
-  top: 1px;
-  left: 1px;
+  top: 2px;
+  left: 2px;
   width: var(--switch-thumb);
   height: var(--switch-thumb);
-  background: var(--text-secondary);
-  transition: transform 0.3s ease, background 0.3s ease;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+  transition: transform 0.2s ease;
 }
 
 .aturi-switch.on .aturi-switch-box {
-  background: var(--accent-forest);
-  border-color: var(--text-accent);
+  background: var(--accent-moss);
+}
+
+[data-theme='dark'] .aturi-switch:not(.on) .aturi-switch-box {
+  background: var(--border-strong);
+}
+
+[data-theme='dark'] .aturi-switch:not(.on) .aturi-switch-box::after {
+  background: var(--text-tertiary);
 }
 
 .aturi-switch.on .aturi-switch-box::after {
   transform: translateX(calc(var(--switch-w) - var(--switch-thumb) - 4px));
-  /* The forest background is dark green in both themes, so we always use
-     a light thumb when on for legibility instead of the accent (which is
-     dark green in light mode and would disappear). */
-  background: #e8e8e6;
 }
 
 .aturi-input,
 .aturi-select {
   display: block;
   width: 100%;
-  padding: 8px 12px;
+  min-height: 38px;
+  padding: 7px 12px;
   background: var(--bg-secondary);
   color: var(--text-primary);
-  border: 1px solid var(--border-subtle);
-  font-family: var(--font-serif);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-control);
+  font-family: var(--font-sans);
   font-size: var(--fs-md);
-  transition: border-color 0.2s ease, background 0.2s ease;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
 .aturi-select {
   appearance: none;
   -webkit-appearance: none;
-  /* Chevron is drawn with two diagonal linear-gradients so it picks up the
-     current `--text-accent` in both themes instead of being baked into a
-     data-URI SVG. */
+  /* Chevron drawn with two diagonal gradients so it follows the theme's
+     --text-tertiary instead of being baked into a data-URI SVG. */
   background-image:
-    linear-gradient(45deg, transparent 50%, var(--text-accent) 50%),
-    linear-gradient(135deg, var(--text-accent) 50%, transparent 50%);
+    linear-gradient(45deg, transparent 50%, var(--text-tertiary) 50%),
+    linear-gradient(135deg, var(--text-tertiary) 50%, transparent 50%);
   background-position:
     calc(100% - 16px) calc(50% + 1px),
     calc(100% - 12px) calc(50% + 1px);
-  background-size: 5px 5px, 5px 5px;
+  background-size: 4px 4px, 4px 4px;
   background-repeat: no-repeat;
-  padding-right: 30px;
+  padding-right: 32px;
 }
 
 .aturi-input:hover,
 .aturi-select:hover {
-  border-color: var(--border-medium);
+  border-color: var(--text-faint);
 }
 
 .aturi-input:focus,
 .aturi-select:focus {
   outline: none;
-  border-color: var(--text-accent);
-  background: var(--bg-tertiary);
+  border-color: var(--accent-moss);
+  box-shadow: 0 0 0 3px var(--glow-strong);
 }
 
 .aturi-label {
   display: block;
-  font-size: var(--fs-xs);
+  font-size: var(--fs-md);
   font-weight: 600;
-  color: var(--text-secondary);
+  color: var(--text-primary);
   margin-bottom: 6px;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  font-family: var(--font-serif);
 }
 
 .aturi-muted {
@@ -388,23 +426,25 @@ body > * {
 }
 
 ::placeholder {
-  color: var(--text-tertiary);
+  color: var(--text-faint);
   opacity: 1;
 }
 
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 10px;
+  height: 10px;
 }
 
 ::-webkit-scrollbar-track {
-  background: var(--bg-secondary);
+  background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--border-medium);
+  background: var(--border-strong);
+  border-radius: 999px;
+  border: 2px solid var(--bg-primary);
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--text-accent);
+  background: var(--text-faint);
 }

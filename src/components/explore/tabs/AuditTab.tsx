@@ -49,16 +49,7 @@ export default function AuditTab({ identity }: { identity: IdentityBundle }) {
   const ordered = [...log].reverse();
 
   return (
-    <ol
-      style={{
-        listStyle: 'none',
-        margin: 0,
-        padding: 0,
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '0.75rem',
-      }}
-    >
+    <ol className="fx-log">
       {ordered.map((entry, i) => (
         <AuditEntryRow
           key={entry.cid || `${entry.createdAt}-${i}`}
@@ -82,30 +73,21 @@ function AuditEntryRow({
   const changes = diffOps(prev?.operation, op);
 
   return (
-    <li
-      style={{
-        border: '1px solid var(--border-medium)',
-        borderLeft: '3px solid var(--text-accent)',
-        background: 'var(--bg-secondary)',
-        padding: '0.875rem 1rem',
-      }}
-    >
+    <li className="fx-log-entry">
       <div
         style={{
           display: 'flex',
-          alignItems: 'baseline',
+          alignItems: 'center',
           justifyContent: 'space-between',
           gap: '0.75rem',
         }}
       >
-        <span className="explore-small-caps" style={{ color: 'var(--text-secondary)' }}>
-          {type}
-        </span>
+        <span className="fx-log-type">{type}</span>
         <time
           style={{
-            fontFamily: 'var(--font-mono)',
-            fontSize: '0.75rem',
-            color: 'var(--text-tertiary)',
+            fontSize: '12.5px',
+            fontVariantNumeric: 'tabular-nums',
+            color: 'var(--text-secondary)',
           }}
         >
           {formatPlcTime(entry.createdAt)}
@@ -118,7 +100,7 @@ function AuditEntryRow({
             margin: '0.5rem 0 0',
             padding: 0,
             fontFamily: 'var(--font-mono)',
-            fontSize: '0.85rem',
+            fontSize: '12.5px',
           }}
         >
           {changes.map((c, idx) => (

@@ -19,32 +19,9 @@ type Props = {
  * a leading "Copy" label to explain itself.
  */
 export default function LinkButton({ href, label, external, title }: Props) {
-  const style: React.CSSProperties = {
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: '0.4rem',
-    padding: '0.25rem 0.5rem',
-    background: 'transparent',
-    border: '1px solid var(--border-subtle)',
-    color: 'var(--text-secondary)',
-    fontFamily: 'var(--font-mono)',
-    fontSize: '0.75rem',
-    textDecoration: 'none',
-    cursor: 'pointer',
-    transition: 'color 0.2s ease, border-color 0.2s ease',
-  };
-  const onMouseEnter = (e: React.MouseEvent<HTMLElement>) => {
-    e.currentTarget.style.color = 'var(--text-primary)';
-    e.currentTarget.style.borderColor = 'var(--border-medium)';
-  };
-  const onMouseLeave = (e: React.MouseEvent<HTMLElement>) => {
-    e.currentTarget.style.color = 'var(--text-secondary)';
-    e.currentTarget.style.borderColor = 'var(--border-subtle)';
-  };
-
   const inner = (
     <>
-      <ExternalLink size={12} />
+      <ExternalLink size={12} aria-hidden />
       <span>{label}</span>
     </>
   );
@@ -56,9 +33,8 @@ export default function LinkButton({ href, label, external, title }: Props) {
         target="_blank"
         rel="noreferrer"
         title={title ?? label}
-        style={style}
-        onMouseEnter={onMouseEnter}
-        onMouseLeave={onMouseLeave}
+        className="fx-copy"
+        data-variant="subtle"
       >
         {inner}
       </a>
@@ -70,9 +46,8 @@ export default function LinkButton({ href, label, external, title }: Props) {
       href={href}
       prefetch={false}
       title={title ?? label}
-      style={style}
-      onMouseEnter={onMouseEnter}
-      onMouseLeave={onMouseLeave}
+      className="fx-copy"
+      data-variant="subtle"
     >
       {inner}
     </Link>

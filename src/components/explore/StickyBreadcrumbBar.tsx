@@ -69,6 +69,7 @@ export default function StickyBreadcrumbBar() {
           style={{ overflow: 'hidden' }}
         >
           <div
+            className="fn-sticky-crumbs"
             style={{
               display: 'flex',
               // Folded, the row is one line and the crumbs inside it shrink to
@@ -78,10 +79,10 @@ export default function StickyBreadcrumbBar() {
               flexWrap: expanded ? 'wrap' : 'nowrap',
               alignItems: 'center',
               gap: '0.3rem',
-              padding: '0.5rem 1rem',
               borderTop: '1px solid var(--border-subtle)',
+              background: 'var(--surface-subtle)',
               fontFamily: 'var(--font-mono)',
-              fontSize: '0.6875rem',
+              fontSize: '0.75rem',
               lineHeight: 1.25,
               color: 'var(--text-tertiary)',
               minWidth: 0,
@@ -130,9 +131,10 @@ function FoldButton({ count, onClick }: { count: number; onClick: () => void }) 
         title={`Show ${count} hidden path ${count === 1 ? 'segment' : 'segments'}`}
         aria-label={`Show ${count} hidden path ${count === 1 ? 'segment' : 'segments'}`}
         style={{
-          padding: '0 0.25rem',
+          padding: '0 0.3rem',
           background: 'var(--bg-tertiary)',
           border: '1px solid var(--border-subtle)',
+          borderRadius: 4,
           color: 'var(--text-secondary)',
           fontFamily: 'var(--font-mono)',
           fontSize: '0.6875rem',

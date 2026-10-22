@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef } from 'react';
 import Link from 'next/link';
-import { ChevronRight, Server, User } from 'lucide-react';
+import { Server, User } from 'lucide-react';
 import { encodeRepo, shortDid } from '@/utils/atproto/urls';
 import { SPACE_MARKER } from '@/utils/atproto/spaceUri';
 import { pdsHostname } from '@/utils/atproto/pdsServer';
@@ -51,6 +51,14 @@ type Props = {
    * row. Path or full URL; bare paths get aturi.to prepended.
    */
   shareUrl?: string;
+  /**
+   * The page renders the last crumb itself, as its <h1> under this row (the
+   * Field Notes title bar). The visible row then stops one short and ends on
+   * a trailing separator; the condensed copy in the nav keeps the full trail.
+   */
+  titled?: boolean;
+  /** Drop the row's own bottom margin, for parents that space with `gap`. */
+  flush?: boolean;
 };
 
 /**
@@ -77,6 +85,8 @@ export default function Breadcrumb({
   author,
   authorHandle,
   shareUrl,
+  titled,
+  flush,
 }: Props) {
   const repoSegment = encodeRepo(handle || did);
   const repoLabel = handle ? `@${handle}` : did;
@@ -181,50 +191,32 @@ export default function Breadcrumb({
     };
   }, [setScrolledPast]);
 
+  // With a title below the row, the last crumb is the title: show the trail
+  // up to it, each segment followed by its separator.
+  const visible = titled && trail.length > 1 ? trail.slice(0, -1) : trail;
+
   return (
     <nav
       ref={navRef}
       aria-label="Breadcrumb"
-      style={{
-        display: 'flex',
-        flexWrap: 'wrap',
-        alignItems: 'center',
-        gap: '0.5rem',
-        marginBottom: '1.5rem',
-        fontFamily: 'var(--font-mono)',
-        fontSize: '0.875rem',
-        color: 'var(--text-tertiary)',
-      }}
+      className="fx-crumbs"
+      style={{ marginBottom: titled || flush ? 0 : '1.5rem' }}
     >
       {/* Rendered straight off the mirrored trail so the visible row and its
           condensed twin can never drift apart as levels are added. A crumb
           without an href is terminal — today only a record key. */}
-      {trail.map((crumb, i) => (
-        <span
-          key={`${i}-${crumb.href ?? crumb.label}`}
-          style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', minWidth: 0 }}
-        >
+      {visible.map((crumb, i) => (
+        <span key={`${i}-${crumb.href ?? crumb.label}`} className="fx-crumb">
           {i > 0 && (
-            <ChevronRight size={14} aria-hidden style={{ color: 'var(--text-tertiary)' }} />
+            <span aria-hidden className="fx-crumb-sep">
+              /
+            </span>
           )}
           {crumb.href ? (
             <Link
               href={crumb.href}
               prefetch={false}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '0.3rem',
-                color: 'var(--text-primary)',
-                textDecoration: 'none',
-                transition: 'color 0.2s ease',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.color = 'var(--text-accent)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.color = 'var(--text-primary)';
-              }}
+              aria-current={!titled && i === visible.length - 1 ? 'page' : undefined}
             >
               {crumb.icon === 'server' && (
                 <Server size={12} aria-hidden style={{ opacity: 0.7 }} />
@@ -235,13 +227,20 @@ export default function Breadcrumb({
               {crumb.label}
             </Link>
           ) : (
-            <span style={{ color: 'var(--text-tertiary)' }}>{crumb.label}</span>
+            <span className="fx-crumb-here" aria-current="page">
+              {crumb.label}
+            </span>
           )}
         </span>
       ))}
+      {titled && visible.length < trail.length && (
+        <span aria-hidden className="fx-crumb-sep">
+          /
+        </span>
+      )}
 
       {shareUrl && (
-        <span style={{ marginLeft: 'auto' }}>
+        <span className="fx-crumbs-share">
           <ShareLinkChip url={shareUrl} />
         </span>
       )}

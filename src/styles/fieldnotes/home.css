@@ -1,3 +1,862 @@
 /* Field Notes: home styles. Tokens live in src/app/globals.css (:root and
    [data-theme='light']); use them rather than raw hex so dark mode and the
    colour schemes keep working. */
+
+.fn-home {
+  position: relative;
+  overflow-x: clip;
+  font-family: var(--font-sans);
+}
+
+.fn-home .fn-mono {
+  font-family: var(--font-mono);
+}
+
+/* ---------- Hero ---------- */
+
+.fn-home-hero {
+  width: 100%;
+  max-width: 860px;
+  margin: 0 auto;
+  box-sizing: border-box;
+  padding: 56px 24px 48px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+  text-align: center;
+}
+
+.fn-home-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--accent-soft-fg);
+  background: var(--accent-soft);
+  padding: 5px 12px;
+  border-radius: var(--radius-pill);
+}
+
+.fn-home-title {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: 52px;
+  line-height: 1.06;
+  font-weight: 800;
+  letter-spacing: -0.035em;
+  color: var(--text-primary);
+  text-wrap: balance;
+}
+
+.fn-home-title-accent {
+  color: var(--text-accent);
+}
+
+.fn-home-lede {
+  margin: 0;
+  max-width: 600px;
+  font-size: 17px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+/* The shared SearchBox, enlarged to the hero's field. Its controls carry
+   inline styles, hence the !important on the properties being changed. */
+.fn-home-search {
+  width: 100%;
+  max-width: 600px;
+  margin-top: 10px;
+  text-align: left;
+}
+
+.fn-home-search form {
+  margin-bottom: 0 !important;
+  gap: 8px !important;
+}
+
+.fn-home-search input[type='text'] {
+  height: 52px;
+  box-sizing: border-box;
+  padding: 0 16px 0 44px !important;
+  border-radius: 10px;
+  border-color: var(--border-strong) !important;
+  font-family: var(--font-sans) !important;
+  font-size: 15px !important;
+}
+
+.fn-home-search input[type='text']:focus {
+  border-color: var(--text-accent) !important;
+}
+
+.fn-home-search input[type='text']::placeholder {
+  color: var(--text-tertiary);
+}
+
+.fn-home-search form > div > svg:first-child {
+  left: 16px !important;
+  width: 18px;
+  height: 18px;
+}
+
+.fn-home-search button[type='submit'] {
+  height: 52px;
+  padding: 0 22px !important;
+  border-radius: 10px;
+  border: 0 !important;
+  font-family: var(--font-sans) !important;
+  font-size: 15px !important;
+  font-weight: 600;
+}
+
+.fn-home-search ul[role='listbox'],
+.fn-home-search form > div > div {
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.fn-home-browsers {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 8px 12px;
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+/* ---------- Buttons ---------- */
+
+.fn-dl-button,
+.fn-home-button {
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 14px;
+  box-sizing: border-box;
+  border-radius: var(--radius-control);
+  border: 1px solid var(--border-strong);
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
+}
+
+.fn-dl-button:hover,
+.fn-home-button:hover {
+  border-color: var(--text-accent);
+  color: var(--text-primary);
+}
+
+.fn-dl-button[data-detected] {
+  border-color: var(--text-accent);
+}
+
+.fn-dl-button[data-variant='primary'] {
+  height: 40px;
+  padding: 0 16px;
+  background: var(--accent-moss);
+  border-color: var(--accent-moss);
+  color: var(--text-on-accent);
+}
+
+.fn-dl-button[data-variant='primary']:hover {
+  background: var(--accent-forest);
+  border-color: var(--accent-forest);
+  color: var(--text-on-accent);
+}
+
+.fn-dl-button:focus-visible,
+.fn-home-button:focus-visible,
+.fn-home-textlink:focus-visible,
+.fn-home-row:focus-visible,
+.fn-home-iconbtn:focus-visible {
+  outline: 2px solid var(--text-accent);
+  outline-offset: 2px;
+}
+
+/* ---------- Body ---------- */
+
+.fn-home-body {
+  width: 100%;
+  max-width: 1240px;
+  margin: 0 auto;
+  box-sizing: border-box;
+  padding: 0 24px 48px;
+  display: flex;
+  flex-direction: column;
+  gap: 40px;
+}
+
+.fn-home .fn-card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-card);
+  box-sizing: border-box;
+  min-width: 0;
+}
+
+.fn-home-kicker {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.fn-home-textlink {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: 600;
+  color: var(--text-accent);
+  text-decoration: none;
+}
+
+.fn-home-textlink:hover {
+  color: var(--accent-forest);
+}
+
+.fn-home-icon-tile {
+  width: 36px;
+  height: 36px;
+  flex: none;
+  border-radius: 9px;
+  background: var(--accent-soft);
+  color: var(--accent-soft-fg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Products */
+
+.fn-home-products {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  align-items: stretch;
+}
+
+.fn-home-product {
+  padding: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.fn-home-product h2 {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: 21px;
+  line-height: 1.25;
+  font-weight: 700;
+  letter-spacing: -0.015em;
+  color: var(--text-primary);
+}
+
+.fn-home-product p {
+  margin: 0;
+  font-size: 14.5px;
+  line-height: 1.55;
+  color: var(--text-secondary);
+}
+
+.fn-home-sketch {
+  order: -1;
+  margin-bottom: 8px;
+  height: 196px;
+  box-sizing: border-box;
+  border-radius: 10px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-medium);
+  padding: 12px;
+  overflow: hidden;
+  font-size: 13px;
+  color: var(--text-primary);
+}
+
+.fn-home-product-foot {
+  margin-top: auto;
+  padding-top: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.fn-home-card-aside {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+/* Sketch: extension popup */
+
+.fn-sketch-popup {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.fn-sketch-popup-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 4px 4px;
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.fn-sketch-brand {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.fn-sketch-brand svg {
+  color: var(--text-accent);
+}
+
+.fn-sketch-popup-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 40px;
+  padding: 0 10px;
+  box-sizing: border-box;
+  border-radius: var(--radius-control);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-medium);
+  min-width: 0;
+}
+
+.fn-sketch-popup-row[data-default] {
+  border-color: var(--border-strong);
+}
+
+.fn-sketch-popup-row .fn-mono {
+  font-size: 11px;
+  color: var(--text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fn-sketch-popup-name {
+  flex: 1;
+  min-width: 0;
+  font-weight: 600;
+}
+
+.fn-sketch-mark {
+  width: 16px;
+  height: 16px;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.fn-sketch-mark svg,
+.fn-sketch-mark img {
+  width: 100%;
+  height: 100%;
+}
+
+.fn-home .fn-pill {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--accent-soft-fg);
+  background: var(--accent-soft);
+  padding: 1px 8px;
+  border-radius: var(--radius-pill);
+}
+
+/* Sketch: explorer tree */
+
+.fn-sketch-tree {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.fn-sketch-tree-path {
+  font-size: 11.5px;
+  color: var(--text-secondary);
+  padding: 0 4px 6px;
+}
+
+.fn-sketch-tree-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  flex: none;
+  padding: 0 10px;
+  border-radius: 6px;
+  background: var(--bg-secondary);
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  color: var(--text-primary);
+}
+
+.fn-sketch-tree-chev {
+  flex: none;
+  color: var(--text-tertiary);
+}
+
+.fn-sketch-tree-row[data-state='open'] .fn-sketch-tree-chev {
+  transform: rotate(90deg);
+}
+
+.fn-sketch-tree-row[data-state='child'] {
+  background: var(--accent-soft);
+  color: var(--accent-soft-fg);
+  font-weight: 600;
+  padding-left: 30px;
+}
+
+.fn-sketch-tree-row[data-state='child'] .fn-sketch-tree-chev {
+  display: none;
+}
+
+.fn-sketch-tree-ns {
+  flex: 1;
+  min-width: 0;
+}
+
+.fn-sketch-tree-count {
+  font-family: var(--font-sans);
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+/* Sketch: universal link */
+
+.fn-sketch-link {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 2px;
+}
+
+.fn-sketch-link-url {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  padding: 0 12px;
+  box-sizing: border-box;
+  border-radius: var(--radius-pill);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-strong);
+  font-size: 12.5px;
+}
+
+.fn-sketch-link-url svg {
+  color: var(--text-accent);
+}
+
+.fn-sketch-link-title {
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.fn-sketch-link-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.fn-sketch-chip {
+  display: inline-flex;
+  align-items: center;
+  height: 32px;
+  padding: 0 12px;
+  box-sizing: border-box;
+  border-radius: var(--radius-control);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-medium);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.fn-sketch-chip[data-active] {
+  background: var(--accent-moss);
+  border-color: var(--accent-moss);
+  color: var(--text-on-accent);
+}
+
+.fn-sketch-chip[data-more] {
+  font-weight: 400;
+  color: var(--text-secondary);
+}
+
+/* Phone product rows (hidden above 640px) */
+
+.fn-home-rows {
+  display: none;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.fn-home-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 12px 12px 14px;
+  border-radius: var(--radius-card);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-medium);
+  color: var(--text-primary);
+  text-decoration: none;
+}
+
+.fn-home-row:hover {
+  border-color: var(--border-strong);
+  color: var(--text-primary);
+}
+
+.fn-home-row .fn-home-icon-tile {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+}
+
+.fn-home-row-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.fn-home-row-title {
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.fn-home-row-desc {
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--text-secondary);
+}
+
+.fn-home-row-chevron {
+  flex: none;
+  color: var(--text-tertiary);
+}
+
+/* Developers */
+
+.fn-home-section {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.fn-home-section-title {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: 19px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--text-primary);
+}
+
+.fn-home-devgrid,
+.fn-home-pair {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.fn-home-devcard {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.fn-home-devcard > * {
+  max-width: 100%;
+}
+
+.fn-home-devcard-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.fn-home-devcard h3 {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: -0.005em;
+  color: var(--text-primary);
+}
+
+.fn-home-devcard p {
+  margin: 0;
+  font-size: 14.5px;
+  line-height: 1.55;
+  color: var(--text-secondary);
+}
+
+.fn-home-devcard p a {
+  color: var(--text-accent);
+}
+
+.fn-home-copyrow {
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 40px;
+  padding: 0 6px 0 12px;
+  box-sizing: border-box;
+  border-radius: var(--radius-control);
+  background: var(--bg-primary);
+  border: 1px solid var(--border-medium);
+  min-width: 0;
+}
+
+.fn-home-copyrow code {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--text-primary);
+  background: transparent;
+  padding: 0;
+}
+
+.fn-home-iconbtn {
+  width: 30px;
+  height: 30px;
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 0;
+}
+
+.fn-home-iconbtn:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+.fn-home-iconbtn[data-copied] {
+  color: var(--text-accent);
+}
+
+.fn-home-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: auto;
+}
+
+/* Why aturi? */
+
+.fn-home-why {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 24px 48px;
+  padding: 28px;
+  border-radius: var(--radius-card);
+  background: color-mix(in srgb, var(--accent-soft) 55%, var(--bg-secondary));
+  border: 1px solid var(--accent-soft-border);
+}
+
+.fn-home-why-copy {
+  flex: 1 1 380px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.fn-home-why h2 {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: 21px;
+  font-weight: 700;
+  letter-spacing: -0.015em;
+  color: var(--accent-soft-fg);
+}
+
+.fn-home-why p {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--text-secondary);
+}
+
+.fn-home-why strong {
+  color: var(--text-primary);
+}
+
+.fn-home-anatomy {
+  flex: 1 1 520px;
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  font-family: var(--font-mono);
+  font-size: 13.5px;
+  color: var(--text-primary);
+}
+
+.fn-home-anatomy-part {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.fn-home-anatomy-text {
+  padding: 8px 10px;
+  border-radius: var(--radius-control);
+  background: var(--bg-secondary);
+  border: 1px solid var(--accent-soft-border);
+  overflow-wrap: anywhere;
+}
+
+.fn-home-anatomy-label {
+  font-family: var(--font-sans);
+  font-size: 12px;
+  color: var(--text-secondary);
+  padding-left: 2px;
+}
+
+/* ---------- Responsive ---------- */
+
+/* Tablet: one product per row, sketch beside the text. */
+@media (max-width: 960px) {
+  .fn-home-products {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .fn-home-product {
+    display: grid;
+    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1fr);
+    grid-auto-rows: min-content;
+    column-gap: 24px;
+    row-gap: 10px;
+    align-content: start;
+  }
+  .fn-home-sketch {
+    grid-column: 1;
+    grid-row: 1 / span 4;
+    margin-bottom: 0;
+  }
+  .fn-home-product > :not(.fn-home-sketch) {
+    grid-column: 2;
+  }
+}
+
+@media (max-width: 760px) {
+  .fn-home-devgrid,
+  .fn-home-pair {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .fn-home-title {
+    font-size: 42px;
+  }
+}
+
+/* Phone: left-aligned hero, products as tappable rows. */
+@media (max-width: 640px) {
+  .fn-home-hero {
+    padding: 28px 16px 0;
+    align-items: stretch;
+    text-align: left;
+    gap: 14px;
+  }
+  .fn-home-pill {
+    align-self: flex-start;
+    font-size: 12.5px;
+    padding: 4px 11px;
+  }
+  .fn-home-title {
+    font-size: 32px;
+    line-height: 1.08;
+  }
+  .fn-home-lede {
+    font-size: 15px;
+  }
+  .fn-home-search {
+    margin-top: 4px;
+  }
+  .fn-home-search form {
+    flex-direction: column;
+  }
+  .fn-home-search input[type='text'] {
+    height: 50px;
+    padding-left: 42px !important;
+    font-size: 16px !important;
+  }
+  .fn-home-search form > div > svg:first-child {
+    left: 14px !important;
+  }
+  .fn-home-search button[type='submit'] {
+    height: 48px;
+    font-weight: 700;
+  }
+  .fn-home-browsers {
+    justify-content: flex-start;
+    font-size: 13.5px;
+  }
+  .fn-home-browsers > span:first-child {
+    flex-basis: 100%;
+  }
+  .fn-home-body {
+    padding: 28px 16px 32px;
+    gap: 28px;
+  }
+  .fn-home-products {
+    display: none;
+  }
+  .fn-home-rows {
+    display: flex;
+  }
+  .fn-home-why {
+    padding: 18px;
+    gap: 16px;
+  }
+  .fn-home-why h2 {
+    font-size: 17px;
+  }
+  .fn-home-why p {
+    font-size: 14px;
+    line-height: 1.55;
+  }
+  .fn-home-anatomy {
+    flex-basis: 100%;
+    font-size: 12.5px;
+  }
+}

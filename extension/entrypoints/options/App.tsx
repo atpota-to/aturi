@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { loadPrefs, onPrefsChanged, savePrefs, type Prefs } from '../../lib/prefs';
 import { applyAppearance } from '../../lib/appearance';
+import { newBuiltinWaypoints, visibleWaypointIds } from '../../lib/catalog';
 import DefaultsTab from './tabs/DefaultsTab';
 import VisibilityTab from './tabs/VisibilityTab';
 import CustomTab from './tabs/CustomTab';
@@ -12,12 +13,12 @@ type TabId = 'defaults' | 'visibility' | 'custom' | 'about' | 'dev';
 function AturiMark() {
   return (
     <svg
-      width="18"
-      height="18"
+      width="20"
+      height="20"
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
-      strokeWidth="2"
+      strokeWidth="2.2"
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden="true"
@@ -31,7 +32,7 @@ function AturiMark() {
 const TABS: { id: TabId; label: string }[] = [
   { id: 'defaults', label: 'General' },
   { id: 'visibility', label: 'Waypoints' },
-  { id: 'custom', label: 'Custom' },
+  { id: 'custom', label: 'Custom waypoints' },
   { id: 'about', label: 'About' },
   { id: 'dev', label: 'Dev' },
 ];
@@ -90,17 +91,26 @@ export default function App() {
     );
   }
 
+  // Same count the Waypoints tab's "new waypoints" card shows: built-ins
+  // added since the user last looked that sit in no group yet.
+  const visible = visibleWaypointIds(prefs);
+  const newCount = newBuiltinWaypoints(prefs).filter(w => !visible.has(w.id)).length;
+
   return (
     <div className="options-root">
       <header className="options-header">
         <div className="options-brand">
           <div className="options-brand-title">
             <AturiMark />
-            <span>Aturi</span>
+            <span>aturi</span>
           </div>
-          <div className="options-brand-sub">Settings</div>
+          <span className="options-brand-divider" aria-hidden="true" />
+          <div className="options-brand-sub">Extension settings</div>
         </div>
-        <nav className="options-nav" role="tablist">
+      </header>
+
+      <div className="options-layout">
+        <nav className="options-nav" role="tablist" aria-label="Settings sections">
           {TABS.map(t => (
             <button
               key={t.id}
@@ -110,18 +120,21 @@ export default function App() {
               onClick={() => setTab(t.id)}
             >
               {t.label}
+              {t.id === 'visibility' && newCount > 0 && (
+                <span className="options-nav-badge">{newCount} new</span>
+              )}
             </button>
           ))}
         </nav>
-      </header>
 
-      <main className="options-content">
-        {tab === 'defaults' && <DefaultsTab prefs={prefs} onChange={update} />}
-        {tab === 'visibility' && <VisibilityTab prefs={prefs} onChange={update} />}
-        {tab === 'custom' && <CustomTab prefs={prefs} onChange={update} />}
-        {tab === 'about' && <AboutTab />}
-        {tab === 'dev' && <DevTab prefs={prefs} onChange={update} />}
-      </main>
+        <main className="options-content">
+          {tab === 'defaults' && <DefaultsTab prefs={prefs} onChange={update} />}
+          {tab === 'visibility' && <VisibilityTab prefs={prefs} onChange={update} />}
+          {tab === 'custom' && <CustomTab prefs={prefs} onChange={update} />}
+          {tab === 'about' && <AboutTab />}
+          {tab === 'dev' && <DevTab prefs={prefs} onChange={update} />}
+        </main>
+      </div>
     </div>
   );
 }

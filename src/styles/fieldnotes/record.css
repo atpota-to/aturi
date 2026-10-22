@@ -1,3 +1,934 @@
 /* Field Notes: record styles. Tokens live in src/app/globals.css (:root and
    [data-theme='light']); use them rather than raw hex so dark mode and the
-   colour schemes keep working. */
+   colour schemes keep working.
+
+   Covers the single-record view /explore/{repo}/{collection}/{rkey}
+   (RecordExplorer and what it draws), the record editor, and the field
+   table (RecordPreview) wherever it appears. */
+
+/* --- page frame ---------------------------------------------------------- */
+
+/* The explore layout wraps every route in .container-narrow (800px). The
+   record page is two columns, so it widens its own container. */
+.container-narrow:has(.fn-rec) {
+  max-width: 1228px;
+}
+@media (min-width: 769px) {
+  .container-narrow:has(.fn-rec) {
+    padding-left: 24px !important;
+    padding-right: 24px !important;
+  }
+}
+
+.fn-rec {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding-top: 8px;
+  font-family: var(--font-sans);
+  color: var(--text-primary);
+}
+.fn-rec-stack,
+.fn-rec-main,
+.fn-rec-aside {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+.fn-rec-body {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 16px 24px;
+}
+.fn-rec-main {
+  flex: 999 1 520px;
+}
+.fn-rec-aside {
+  flex: 1 1 320px;
+  max-width: 360px;
+}
+/* One column below 920px: the two columns dissolve (display: contents) so
+   their slots can interleave by the `order` RecordExplorer gives them —
+   preview, open-in, record data, then the rest. */
+@media (max-width: 920px) {
+  .fn-rec-body {
+    flex-direction: column;
+    flex-wrap: nowrap;
+    align-items: stretch;
+    gap: 16px;
+  }
+  .fn-rec-main,
+  .fn-rec-aside {
+    display: contents;
+  }
+}
+
+/* --- title bar ----------------------------------------------------------- */
+
+.fn-rec-titlebar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px 16px;
+}
+.fn-rec-titletext {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.fn-rec-titlerow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  min-width: 0;
+}
+.fn-rec-h1 {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 22px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  line-height: 1.25;
+  color: var(--text-primary);
+  overflow-wrap: anywhere;
+}
+.fn-rec-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 24px;
+  padding: 0 9px;
+  border-radius: var(--radius-pill);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-medium);
+  font-size: 12.5px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+.fn-rec-pill-icon {
+  display: inline-flex;
+  color: #1d6fd8;
+}
+.fn-rec-pill-icon svg {
+  width: 12px;
+  height: 12px;
+}
+.fn-rec-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.fn-rec-btn {
+  height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 0 12px;
+  box-sizing: border-box;
+  border-radius: var(--radius-control);
+  border: 1px solid var(--border-strong);
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: 13.5px;
+  font-weight: 500;
+  line-height: 1;
+  white-space: nowrap;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+.fn-rec-btn:hover:not(:disabled) {
+  background: var(--surface-subtle);
+  border-color: var(--text-tertiary);
+  color: var(--text-primary);
+}
+.fn-rec-btn:focus-visible {
+  outline: 2px solid var(--text-accent);
+  outline-offset: 2px;
+}
+.fn-rec-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.fn-rec-btn[data-copied] {
+  background: var(--accent-soft);
+  border-color: var(--accent-soft-border);
+  color: var(--accent-soft-fg);
+}
+.fn-rec-btn[data-variant='primary'] {
+  background: var(--accent-moss);
+  border-color: var(--accent-moss);
+  color: var(--text-on-accent);
+  font-weight: 600;
+}
+.fn-rec-btn[data-variant='primary']:hover:not(:disabled) {
+  background: var(--accent-forest);
+  border-color: var(--accent-forest);
+  color: var(--text-on-accent);
+}
+.fn-rec-btn[data-variant='danger'] {
+  background: var(--danger-soft);
+  border-color: var(--danger-border);
+  color: var(--danger);
+}
+.fn-rec-btn[data-variant='danger']:hover:not(:disabled) {
+  background: var(--danger-soft);
+  border-color: var(--danger);
+  color: var(--danger);
+}
+.fn-rec-btn[data-variant='danger-solid'] {
+  background: var(--danger);
+  border-color: var(--danger);
+  color: var(--text-on-danger);
+}
+.fn-rec-btn[data-variant='danger-solid']:hover:not(:disabled) {
+  background: var(--danger);
+  border-color: var(--danger);
+  color: var(--text-on-danger);
+  filter: brightness(0.95);
+}
+.fn-rec-btn[data-wait] {
+  cursor: wait;
+}
+
+/* --- cards --------------------------------------------------------------- */
+
+.fn-rec-card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-card);
+  min-width: 0;
+}
+.fn-rec-h2 {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: -0.005em;
+  color: var(--text-primary);
+}
+.fn-rec-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.fn-rec-switch {
+  align-self: flex-start;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  font-family: var(--font-sans);
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--text-tertiary);
+  transition: color 0.15s ease;
+}
+.fn-rec-switch:hover,
+.fn-rec-switch:focus-visible {
+  color: var(--text-accent);
+}
+
+/* --- open in ------------------------------------------------------------- */
+
+.fn-open {
+  padding: 14px 12px 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.fn-open > .fn-rec-h2 {
+  padding: 0 4px 4px;
+}
+.fn-open-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 40px;
+  padding: 0 12px;
+  box-sizing: border-box;
+  border-radius: var(--radius-control);
+  border: 1px solid transparent;
+  color: var(--text-primary);
+  text-decoration: none;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+.fn-open-row:hover {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+}
+.fn-open-row:focus-visible {
+  outline: 2px solid var(--text-accent);
+  outline-offset: 1px;
+}
+.fn-open-row[data-rank] {
+  height: 44px;
+}
+.fn-open-row[data-rank='primary'] {
+  background: var(--accent-moss);
+  border-color: var(--accent-moss);
+  color: var(--text-on-accent);
+}
+.fn-open-row[data-rank='primary']:hover {
+  background: var(--accent-forest);
+  border-color: var(--accent-forest);
+  color: var(--text-on-accent);
+}
+.fn-open-row[data-rank='secondary'] {
+  border-color: var(--border-strong);
+}
+.fn-open-icon {
+  width: 16px;
+  height: 16px;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.fn-open-icon svg,
+.fn-open-icon img {
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+}
+.fn-open-name {
+  flex: 1;
+  min-width: 0;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.fn-open-row[data-rank] .fn-open-name {
+  font-weight: 600;
+}
+.fn-open-note {
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+.fn-open-row[data-rank='primary'] .fn-open-note {
+  color: inherit;
+  opacity: 0.9;
+}
+.fn-open-domain {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+}
+.fn-open-more {
+  display: flex;
+  flex-direction: column;
+  margin-top: 4px;
+}
+.fn-open-all {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 38px;
+  margin: 2px -12px 0;
+  border-top: 1px solid var(--border-subtle);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-accent);
+  text-decoration: none;
+}
+.fn-open-all:hover {
+  color: var(--accent-forest);
+}
+
+/* --- record card (fields / json) ----------------------------------------- */
+
+.fn-rec-data {
+  overflow: hidden;
+}
+.fn-rec-data-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px 10px 16px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.fn-rec-seg {
+  display: flex;
+  padding: 3px;
+  border-radius: var(--radius-control);
+  background: var(--bg-tertiary);
+}
+.fn-rec-seg button {
+  height: 26px;
+  padding: 0 12px;
+  border-radius: 6px;
+  border: 0;
+  background: transparent;
+  color: var(--text-secondary);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.fn-rec-seg button:hover {
+  color: var(--text-primary);
+}
+.fn-rec-seg button[aria-pressed='true'] {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font-weight: 600;
+  box-shadow: 0 0 0 1px var(--border-subtle);
+}
+.fn-rec-seg button:focus-visible {
+  outline: 2px solid var(--text-accent);
+  outline-offset: 1px;
+}
+
+.fn-rec-ids {
+  margin: 0;
+  padding: 8px 12px 8px 16px;
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr);
+  gap: 2px 10px;
+  align-items: center;
+  font-size: 12.5px;
+  background: var(--surface-subtle);
+  border-bottom: 1px solid var(--border-subtle);
+}
+.fn-rec-ids dt {
+  color: var(--text-tertiary);
+}
+.fn-rec-ids dd {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+.fn-rec-ids-value {
+  flex: 1;
+  min-width: 0;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.fn-rec-json {
+  padding: 12px 16px 16px;
+}
+.fn-rec-data .fn-fields-bare + .fn-rec-json {
+  border-top: 1px solid var(--border-subtle);
+}
+.fn-rec-json .explore-json {
+  margin: 0;
+  padding: 12px 14px;
+  border-radius: var(--radius-control);
+  background: var(--surface-subtle);
+  border: 1px solid var(--border-subtle);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+/* --- field table (RecordPreview) ----------------------------------------- */
+
+.fn-fields .fn-field {
+  border-bottom: 1px solid var(--border-subtle);
+}
+.fn-fields .fn-field[data-last] {
+  border-bottom: 0;
+}
+.fn-fields-bare .fn-fields > .fn-field:last-child {
+  border-bottom: 0;
+}
+.fn-field-main {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 9px 0;
+}
+.fn-fields-bare .fn-fields > .fn-field > .fn-field-main,
+.fn-fields-bare .fn-fields > .fn-field > .fn-field-thumb,
+.fn-fields-bare .fn-fields > .fn-field > .fn-field-drawer {
+  padding-left: 16px;
+  padding-right: 16px;
+}
+.fn-field-label {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--text-tertiary);
+  padding-top: 1px;
+  word-break: break-all;
+}
+.record-fields .fn-field-label {
+  min-width: 100px;
+  max-width: 100px;
+}
+.fn-field-value {
+  flex: 1;
+  min-width: 0;
+  color: var(--text-primary);
+  font-size: 13px;
+  line-height: 1.5;
+  word-break: break-word;
+}
+.fn-field-null {
+  color: var(--text-tertiary);
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+}
+.fn-field-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 10px;
+  border-radius: 6px;
+  border: 1px solid var(--border-medium);
+  background: var(--surface-subtle);
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  cursor: pointer;
+  user-select: none;
+  transition: border-color 0.15s ease;
+}
+.fn-field-chip svg {
+  color: var(--text-tertiary);
+}
+.fn-field-chip:hover {
+  border-color: var(--border-strong);
+}
+.fn-field-chip:focus-visible {
+  outline: 2px solid var(--text-accent);
+  outline-offset: 1px;
+}
+.fn-field-thumb {
+  padding-bottom: 10px;
+}
+.fn-field-drawer {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.25s ease;
+}
+.fn-field-drawer[data-open] {
+  grid-template-rows: 1fr;
+}
+.fn-field-drawer-inner {
+  overflow: hidden;
+  min-height: 0;
+}
+.fn-field-drawer[data-open] > .fn-field-drawer-inner {
+  padding-bottom: 8px;
+}
+.fn-field-nest {
+  margin-left: 4px;
+  padding-left: 12px;
+  border-left: 2px solid var(--border-subtle);
+}
+.fn-field-nest .fn-field-main {
+  padding: 7px 0;
+}
+.fn-field-nest .record-fields .fn-field-label,
+.fn-field-nest .fn-field-label {
+  min-width: 84px;
+  max-width: 84px;
+}
+/* globals.css stacks label over value once the table is under 460px. The
+   record page's aside is narrower than that by design, and its 100px mono
+   label column still leaves the value room, so the bare table keeps the two
+   side by side until it is really cramped. */
+@container (max-width: 460px) {
+  .fn-fields-bare .record-fields .fn-field-main {
+    flex-direction: row;
+    gap: 10px;
+  }
+  .fn-fields-bare .record-fields .fn-field-label {
+    padding-top: 1px;
+  }
+  .fn-fields-card .record-fields .fn-field-main {
+    gap: 2px;
+  }
+  .fn-fields-card .record-fields .fn-field-label {
+    min-width: 0;
+    max-width: none;
+  }
+}
+@container (max-width: 260px) {
+  .fn-fields-bare .record-fields .fn-field-main {
+    flex-direction: column;
+    gap: 2px;
+  }
+  .fn-fields-bare .record-fields .fn-field-label {
+    min-width: 0;
+    max-width: none;
+  }
+}
+
+.fn-fields-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 10px 16px;
+  background: var(--surface-subtle);
+  border-top: 1px solid var(--border-subtle);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+.fn-fields-cid {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+  flex: 1;
+  word-break: break-all;
+}
+.fn-fields-cid-label {
+  flex: none;
+  font-family: var(--font-sans);
+  color: var(--text-tertiary);
+}
+.fn-fields-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex: none;
+}
+
+/* The standalone card the universal link pages show. */
+.fn-fields-card {
+  overflow: hidden;
+  padding: 0;
+}
+.fn-fields-head {
+  padding: 16px 20px;
+  background: var(--surface-subtle);
+  border-bottom: 1px solid var(--border-subtle);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.fn-fields-uri {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  color: var(--text-secondary);
+  overflow-wrap: anywhere;
+}
+.fn-fields-faint {
+  color: var(--text-faint);
+}
+.fn-fields-handle {
+  color: var(--text-accent);
+  font-weight: 500;
+  text-decoration: none;
+}
+.fn-fields-handle:hover {
+  color: var(--accent-forest);
+}
+.fn-fields-type {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.fn-fields-pill {
+  display: inline-flex;
+  align-items: center;
+  height: 24px;
+  padding: 0 10px;
+  border-radius: var(--radius-pill);
+  background: var(--accent-soft);
+  color: var(--accent-soft-fg);
+  font-size: 12.5px;
+  font-weight: 600;
+}
+.fn-fields-date {
+  font-size: 13px;
+  color: var(--text-tertiary);
+}
+.fn-fields-body {
+  padding: 8px 20px 16px;
+}
+.fn-fields-body .fn-fields {
+  margin-bottom: 16px;
+}
+.fn-fields-cta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  height: 40px;
+  box-sizing: border-box;
+  border-radius: var(--radius-control);
+  border: 1px solid var(--border-strong);
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+.fn-fields-cta svg {
+  color: var(--text-accent);
+}
+.fn-fields-cta:hover {
+  background: var(--surface-subtle);
+  border-color: var(--text-tertiary);
+  color: var(--text-primary);
+}
+
+/* --- rich preview (post / profile / margin cards) ------------------------ */
+
+/* PostPreview and the margin cards draw with inline styles of their own (and
+   are shared with the universal link page), so the record page brings them
+   into line here: rounded white card, round avatar, no drop shadows. */
+.fn-rec-preview .card {
+  border-radius: var(--radius-card) !important;
+  box-shadow: none !important;
+  margin-bottom: 0 !important;
+  padding: 20px !important;
+}
+.fn-rec-preview .card img[alt] {
+  border-radius: 10px;
+}
+.fn-rec-preview .card > div:first-child > a:first-child > div {
+  border-radius: 50% !important;
+  border: 0 !important;
+  width: 40px !important;
+  height: 40px !important;
+}
+.fn-rec-preview .card > div:first-child > a:first-child > div img {
+  border-radius: 50%;
+}
+.fn-rec-preview .parent-card {
+  border-radius: var(--radius-card) !important;
+  box-shadow: none !important;
+}
+.fn-rec-preview [role='link'] {
+  border-radius: 10px !important;
+  background: var(--surface-subtle) !important;
+}
+
+/* --- engagement ---------------------------------------------------------- */
+
+.fn-engage {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 18px;
+  padding: 12px 16px;
+  font-size: 13.5px;
+  color: var(--text-secondary);
+}
+.fn-engage-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  line-height: 1;
+}
+.fn-engage-item svg {
+  color: var(--text-tertiary);
+}
+.fn-engage-item strong {
+  color: var(--text-primary);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+/* --- copy row & sign-in -------------------------------------------------- */
+
+.fn-rec-copy {
+  padding: 12px 14px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.fn-rec-copy-chips,
+.fn-rec-copy-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.fn-rec-copy-links a {
+  border-radius: 6px;
+  border-color: var(--border-medium) !important;
+  font-family: var(--font-sans) !important;
+  font-size: 12.5px !important;
+  height: 26px;
+  box-sizing: border-box;
+}
+
+.fn-rec-signin {
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.fn-rec-signin > p {
+  margin: 0;
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+/* --- error panel --------------------------------------------------------- */
+
+.fn-rec-error {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.fn-rec-error-kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+.fn-rec-error-kicker svg {
+  color: var(--text-accent);
+}
+.fn-rec-error h2 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.015em;
+  color: var(--text-primary);
+}
+.fn-rec-error p {
+  margin: 0;
+  font-size: 14.5px;
+  line-height: 1.6;
+  color: var(--text-secondary);
+  max-width: 42rem;
+}
+.fn-rec-error code {
+  font-family: var(--font-mono);
+  font-size: 0.92em;
+}
+.fn-rec-error-link {
+  align-self: flex-start;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-accent);
+  text-decoration: none;
+}
+.fn-rec-error-link:hover {
+  color: var(--accent-forest);
+}
+
+/* --- record editor ------------------------------------------------------ */
+
+.fn-editor {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  font-family: var(--font-sans);
+}
+.fn-editor-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.fn-editor-lex {
+  font-size: 13px;
+  color: var(--text-tertiary);
+}
+.fn-editor-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.fn-editor-label {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+.fn-editor-hint {
+  display: block;
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+.fn-editor .explore-input {
+  box-sizing: border-box;
+  border-radius: var(--radius-control);
+  border-color: var(--border-strong);
+  background: var(--bg-secondary);
+  font-family: var(--font-sans);
+  font-size: 14px;
+}
+.fn-editor .explore-input.explore-textarea,
+.fn-editor .explore-input.explore-mono {
+  font-family: var(--font-mono);
+  font-size: 13px;
+}
+.fn-editor .explore-input:focus {
+  border-color: var(--text-accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+.fn-editor-saved {
+  margin: 0;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--text-accent);
+}
+.fn-editor-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border-subtle);
+}
+.fn-editor-confirm {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+/* --- phone --------------------------------------------------------------- */
+
+@media (max-width: 640px) {
+  .fn-rec {
+    gap: 12px;
+  }
+  .fn-rec-h1 {
+    font-size: 18px;
+  }
+  .fn-rec-actions {
+    width: 100%;
+  }
+  .fn-rec-actions .fn-rec-btn {
+    flex: 1 1 auto;
+    height: 36px;
+  }
+  .fn-rec-preview .card {
+    padding: 14px !important;
+  }
+  .fn-open-row[data-rank] {
+    height: 48px;
+  }
+}

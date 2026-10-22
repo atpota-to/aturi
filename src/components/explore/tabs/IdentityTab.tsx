@@ -112,7 +112,7 @@ export default function IdentityTab({ identity }: { identity: IdentityBundle }) 
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <section>
+    <section className="fx-idsec">
       <h3 className="explore-small-caps" style={{ marginBottom: '0.5rem' }}>
         {title}
       </h3>

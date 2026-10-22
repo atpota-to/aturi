@@ -240,7 +240,7 @@ async function RecordContent({
       return (
         <>
           <Header compact />
-          <div className="container-narrow waypoint-page" style={{ padding: '0 2rem 4rem' }}>
+          <div className="container-narrow waypoint-page">
             <NotFoundPanel
               eyebrow="Couldn't resolve"
               headline="That handle didn't resolve."
@@ -286,7 +286,7 @@ async function RecordContent({
     return (
       <>
         <Header compact />
-        <div className="container-narrow waypoint-page" style={{ padding: '0 2rem 4rem' }}>
+        <div className="container-narrow waypoint-page">
         {/* `handle` rather than `resolvedHandle`, so the gate resolves exactly
             the URL the pre-paint script did — the two halves must never send
             the same visitor to two different spellings of the same page. */}
@@ -400,6 +400,7 @@ async function RecordContent({
             className="content-fade-in"
             style={{
               border: '1px solid var(--border-medium)',
+              borderRadius: 'var(--radius-card)',
               background: 'var(--bg-secondary)',
               padding: '1rem 1.25rem',
               marginBottom: '1.5rem',
@@ -498,7 +499,7 @@ export default async function RecordPage({ params }: Props) {
         fallback={
           <>
             <Header compact />
-            <div className="container-narrow waypoint-page" style={{ padding: '0 2rem 4rem' }}>
+            <div className="container-narrow waypoint-page">
               <PostPreviewSkeleton />
             </div>
           </>

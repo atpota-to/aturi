@@ -114,6 +114,8 @@ function BacklinksSummaryPanel({
     <section
       style={{
         border: '1px solid var(--border-medium)',
+        borderRadius: 'var(--radius-card)',
+        overflow: 'hidden',
         background: 'var(--bg-secondary)',
       }}
     >
@@ -121,8 +123,7 @@ function BacklinksSummaryPanel({
         style={{
           padding: '1rem 1.25rem',
           borderBottom: '1px solid var(--border-medium)',
-          background:
-            'linear-gradient(135deg, var(--bg-tertiary) 0%, var(--bg-secondary) 100%)',
+          background: 'var(--surface-subtle)',
           display: 'flex',
           alignItems: 'baseline',
           gap: '0.75rem',
@@ -229,6 +230,8 @@ function BacklinkSourceList({
             key={s.source}
             style={{
               border: '1px solid var(--border-medium)',
+              borderRadius: '10px',
+              overflow: 'hidden',
               background: 'var(--bg-secondary)',
             }}
           >

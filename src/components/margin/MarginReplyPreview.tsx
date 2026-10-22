@@ -58,6 +58,7 @@ export default function MarginReplyPreview({
           marginBottom: '2rem',
           background: 'var(--bg-secondary)',
           border: '1px solid var(--border-medium)',
+          borderRadius: 'var(--radius-card)',
           overflow: 'hidden',
           transition: 'all 0.4s ease',
         }}

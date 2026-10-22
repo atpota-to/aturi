@@ -1,6 +1,7 @@
 body {
   width: 380px;
   min-height: 220px;
+  font-size: var(--fs-base);
 }
 
 [data-fs='large'] body {
@@ -19,39 +20,50 @@ body {
   width: 360px;
 }
 
-.popup-root {
+/* The body scrolls. The top bar and the auto-redirect footer are sticky so
+   they stay put while the waypoint list scrolls between them; the shell's
+   min-height keeps the footer on the bottom edge when the list is short. */
+.popup-shell {
   display: flex;
   flex-direction: column;
+  min-height: 100vh;
   background: var(--bg-primary);
 }
 
-/* `.popup-topbar` stacks the title bar and the mode tabs so they scroll
-   together as a single sticky unit. Previously each was independently
-   `position: sticky` and they overlapped when the popup content scrolled. */
+.popup-body {
+  flex: 1;
+}
+
+.popup-root {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 12px 12px 16px;
+}
+
+/* ---------- Top bar ---------- */
+
 .popup-topbar {
   position: sticky;
   top: 0;
   z-index: 3;
-  background: var(--bg-primary);
-}
-
-.popup-header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 14px 18px 12px;
-  border-bottom: 1px solid var(--border-subtle);
-  background: linear-gradient(180deg, var(--bg-secondary), var(--bg-primary));
+  gap: 8px;
+  height: 48px;
+  flex: none;
+  padding: 0 6px 0 14px;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-medium);
 }
 
 .popup-title {
-  font-family: var(--font-serif);
-  font-weight: 500;
-  font-size: var(--fs-2xl);
-  letter-spacing: -0.01em;
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
   color: var(--text-primary);
 }
 
@@ -59,221 +71,121 @@ body {
   color: var(--text-accent);
 }
 
-.popup-header-actions {
+.popup-mode-tabs {
+  margin-left: auto;
+  display: flex;
+  padding: 3px;
+  border-radius: var(--radius-control);
+  background: var(--bg-tertiary);
+}
+
+.popup-mode-tab {
+  height: 28px;
   display: inline-flex;
   align-items: center;
   gap: 6px;
-}
-
-.popup-tagline {
-  font-family: var(--font-sans);
-  font-size: var(--fs-xs);
+  padding: 0 11px;
+  border-radius: 6px;
   color: var(--text-secondary);
-  text-align: right;
-  white-space: nowrap;
-  letter-spacing: 0;
-}
-
-.popup-header-copy {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  height: 22px;
-  padding: 0 9px;
-  background: transparent;
-  border: 1px solid var(--border-subtle);
-  color: var(--text-secondary);
-  font-family: var(--font-sans);
-  font-size: var(--fs-xs);
+  font-size: var(--fs-md);
   font-weight: 500;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.popup-mode-tab:hover {
+  color: var(--text-primary);
+}
+
+.popup-mode-tab.is-active {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font-weight: 600;
+  box-shadow: var(--shadow);
+}
+
+[data-theme='dark'] .popup-mode-tab.is-active {
+  background: var(--border-medium);
+}
+
+.popup-mode-tab-badge {
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: var(--radius-pill);
+  background: var(--accent-moss);
+  color: var(--text-on-accent);
+  font-size: 11px;
+  font-weight: 700;
   line-height: 1;
-  letter-spacing: 0;
-  cursor: pointer;
-  transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
-  white-space: nowrap;
-}
-
-.popup-header-copy:hover {
-  background: var(--bg-tertiary);
-  border-color: var(--text-accent);
-  color: var(--text-accent);
-}
-
-.popup-header-copy:active {
-  background: var(--bg-elevated);
-}
-
-.popup-header-copy.is-copied {
-  background: var(--glow-subtle);
-  border-color: var(--text-accent);
-  color: var(--text-accent);
-}
-
-.popup-header-copy svg {
-  flex-shrink: 0;
-}
-
-.popup-header-settings {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  flex-shrink: 0;
-  width: 24px;
-  height: 22px;
-  padding: 0;
-  background: transparent;
-  border: 1px solid var(--border-subtle);
-  color: var(--text-secondary);
-  cursor: pointer;
-  transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
 }
 
-.popup-header-settings:hover {
-  background: var(--bg-tertiary);
-  border-color: var(--text-accent);
-  color: var(--text-accent);
-}
-
-.popup-header-settings:active {
-  background: var(--bg-elevated);
-}
-
-.popup-header-settings svg {
-  flex-shrink: 0;
-}
-
-.popup-source {
-  font-size: var(--fs-sm);
-  color: var(--text-secondary);
+.popup-topbar-actions {
   display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 6px;
-  max-width: 65%;
-  font-family: var(--font-mono);
+  align-items: center;
 }
 
-.popup-source-handle {
+.popup-icon-btn {
+  width: 32px;
+  height: 32px;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-control);
   color: var(--text-secondary);
-  font-weight: 500;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  max-width: 200px;
-  letter-spacing: -0.01em;
+  transition: background 0.15s ease, color 0.15s ease;
 }
 
-.popup-source-collection {
-  color: var(--text-tertiary);
-  font-weight: 400;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  max-width: 100%;
-  letter-spacing: 0;
-  font-size: var(--fs-xs);
-  opacity: 0.95;
+.popup-icon-btn:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
 }
+
+.popup-theme-toggle {
+  width: 28px;
+  color: var(--text-tertiary);
+}
+
+/* ---------- Sections and rows ---------- */
 
 .popup-section {
-  padding: 14px 18px 18px;
-}
-
-.popup-section + .popup-section {
-  border-top: 1px solid var(--border-subtle);
-}
-
-.popup-notice {
-  padding: 12px 18px;
-  border-bottom: 1px solid var(--border-subtle);
-  font-size: var(--fs-md);
-  line-height: 1.45;
-  color: var(--text-secondary);
-  font-family: var(--font-serif);
-}
-
-.popup-notice-title {
-  font-weight: 500;
-  color: var(--text-primary);
-  margin-bottom: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
 
 .popup-section-label {
-  font-size: var(--fs-xs);
-  font-weight: 600;
+  margin: 0;
+  padding: 0 2px;
+  font-size: var(--fs-sm);
+  font-weight: 700;
   color: var(--text-secondary);
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  margin-bottom: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  font-family: var(--font-serif);
 }
 
 .popup-waypoints {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-medium);
+  border-radius: 10px;
+  overflow: hidden;
 }
 
-/* The waypoint row is a div container holding two buttons: a primary
-   "navigate" button on the left and a small copy-link button on the right.
-   Visual row styling (border, background, hover lift) lives on the wrapper
-   so both controls feel like part of one card. */
 .popup-waypoint {
   display: flex;
-  align-items: stretch;
-  background: var(--bg-secondary);
-  border: 1px solid var(--border-subtle);
-  width: 100%;
-  transition: background 0.3s ease, border-color 0.3s ease,
-    transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-  position: relative;
-  overflow: hidden;
-  font-family: var(--font-serif);
+  align-items: center;
+  transition: background 0.12s ease;
 }
 
-.popup-waypoint::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(90deg, transparent, var(--glow-subtle), transparent);
-  opacity: 0;
-  transition: opacity 0.3s ease;
-  pointer-events: none;
+.popup-waypoint + .popup-waypoint {
+  border-top: 1px solid var(--border-subtle);
 }
 
 .popup-waypoint:hover {
-  background: var(--bg-tertiary);
-  border-color: var(--text-accent);
-  transform: translateX(3px);
-}
-
-.popup-waypoint:hover::before {
-  opacity: 1;
-}
-
-.popup-waypoint:has(.popup-waypoint-main:disabled) {
-  opacity: 0.5;
-  transform: none;
-}
-
-/* PDS-scan came back without a matching collection in the target repo —
-   the row stays clickable (we don't know that the user wouldn't want to
-   open the app anyway) but reads quietly. The caption switches to
-   "No records found on this repo" so the dimming is explained inline. */
-.popup-waypoint.is-absent {
-  opacity: 0.5;
-}
-
-.popup-waypoint.is-absent:hover {
-  opacity: 0.85;
-}
-
-.popup-waypoint.is-absent .popup-waypoint-desc {
-  font-style: italic;
-  color: var(--text-tertiary);
+  background: var(--surface-subtle);
 }
 
 .popup-waypoint-main {
@@ -281,969 +193,926 @@ body {
   min-width: 0;
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 10px 12px;
-  background: transparent;
-  border: 0;
+  gap: 10px;
+  min-height: 40px;
+  padding: 0 4px 0 12px;
+  color: var(--text-primary);
   text-align: left;
-  cursor: pointer;
-  font: inherit;
-  color: inherit;
 }
 
 .popup-waypoint-main:disabled {
-  cursor: wait;
+  cursor: progress;
+  opacity: 0.6;
 }
 
-.popup-waypoint-copy {
-  display: inline-flex;
+.popup-waypoint.is-absent .popup-waypoint-main {
+  opacity: 0.5;
+}
+
+.popup-waypoint.is-absent .popup-waypoint-desc {
+  font-style: italic;
+}
+
+.popup-waypoint-icon {
+  width: 16px;
+  height: 16px;
+  flex: none;
+  display: flex;
   align-items: center;
   justify-content: center;
-  flex-shrink: 0;
-  width: 32px;
-  padding: 0;
-  background: transparent;
-  border: 0;
-  border-left: 1px solid var(--border-subtle);
-  color: var(--text-secondary);
-  cursor: pointer;
-  transition: background 0.2s ease, color 0.2s ease;
-}
-
-.popup-waypoint-copy:hover {
-  background: var(--bg-elevated);
   color: var(--text-accent);
 }
 
-.popup-waypoint-copy:active {
+.popup-waypoint-icon svg,
+.popup-waypoint-icon img {
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+}
+
+.popup-icon-letter {
+  width: 16px;
+  height: 16px;
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
   background: var(--bg-tertiary);
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+
+.popup-waypoint-name {
+  flex: none;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.popup-waypoint-desc {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--fs-xs);
+  color: var(--text-tertiary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.popup-waypoint-copy {
+  width: 32px;
+  height: 32px;
+  margin-right: 4px;
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  color: var(--text-faint);
+  transition: background 0.12s ease, color 0.12s ease;
+}
+
+.popup-waypoint-copy:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
 }
 
 .popup-waypoint-copy.is-copied {
   color: var(--text-accent);
-  background: var(--glow-subtle);
 }
 
-.popup-waypoint-icon {
-  width: 24px;
-  height: 24px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--text-accent);
-  flex-shrink: 0;
-  transition: color 0.3s ease;
-}
-
-.popup-waypoint:hover .popup-waypoint-icon {
-  color: var(--text-primary);
-}
-
-.popup-waypoint-text {
-  flex: 1;
-  min-width: 0;
-}
-
-.popup-waypoint-name {
-  font-weight: 500;
-  font-size: var(--fs-lg);
-  color: var(--text-primary);
-  letter-spacing: -0.01em;
-}
-
-.popup-waypoint-desc {
-  font-size: var(--fs-sm);
-  color: var(--text-secondary);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  margin-top: 1px;
-}
-
-.popup-empty {
-  padding: 28px 20px;
-  text-align: center;
-  color: var(--text-secondary);
-  font-size: var(--fs-lg);
-  font-family: var(--font-serif);
-}
-
-/* Empty state for the Inspect tab. Replaces the dead-end "Scan again"
-   button with a primary CTA into the website explorer + a list of
-   frequently-seen repos pulled from local history. */
-.inspect-empty {
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  gap: 14px;
-  padding: 6px 0 4px;
-}
-
-.inspect-empty-message {
-  text-align: center;
-  color: var(--text-secondary);
-  font-family: var(--font-serif);
-  font-size: var(--fs-md);
-  padding: 4px 4px 0;
-}
-
-.inspect-empty-cta {
-  width: 100%;
-  justify-content: center;
-}
-
-.inspect-empty-recents {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  padding-top: 8px;
-  border-top: 1px solid var(--border-subtle);
-}
-
-.inspect-empty-recents-label {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  font-family: var(--font-serif);
-  font-size: var(--fs-xs);
-  font-weight: 600;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--text-secondary);
-}
-
-.inspect-empty-recents-list {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.inspect-empty-recent {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 10px;
-  background: var(--bg-secondary);
-  border: 1px solid var(--border-subtle);
-  color: var(--text-primary);
-  font-family: var(--font-mono, var(--font-sans));
-  font-size: var(--fs-sm);
-  text-decoration: none;
-  cursor: pointer;
-  transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
-  min-width: 0;
-}
-
-.inspect-empty-recent:hover {
-  background: var(--bg-tertiary);
-  border-color: var(--text-accent);
-  transform: translateX(2px);
-}
-
-.inspect-empty-recent-label {
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.inspect-empty-recent-count {
-  flex-shrink: 0;
-  padding: 1px 6px;
-  background: var(--glow-subtle);
-  color: var(--text-accent);
-  font-family: var(--font-sans);
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  border: 1px solid var(--border-subtle);
-}
-
-.inspect-empty-recent-icon {
-  flex-shrink: 0;
-  color: var(--text-secondary);
-}
-
-.inspect-empty-recent:hover .inspect-empty-recent-icon {
-  color: var(--text-accent);
-}
-
-.inspect-empty-rescan {
-  align-self: center;
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  margin-top: 2px;
-  padding: 6px 10px;
-  background: transparent;
-  border: none;
-  color: var(--text-secondary);
-  font-family: var(--font-sans);
-  font-size: var(--fs-xs);
-  cursor: pointer;
-  transition: color 0.2s ease;
-}
-
-.inspect-empty-rescan:hover {
-  color: var(--text-accent);
-}
-
-.popup-footer {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  padding: 10px 18px;
-  border-top: 1px solid var(--border-subtle);
-  background: var(--bg-secondary);
-  font-size: var(--fs-sm);
-  position: sticky;
-  bottom: 0;
-  z-index: 2;
-}
-
-.popup-footer-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+/* Compact: shorter rows, no description line, so more waypoints fit. */
+.popup-root.is-compact {
   gap: 10px;
-  min-width: 0;
-}
-
-/* Inline update banner shown above the footer action row when the catalog
-   has grown since the user last opened the popup. Highlights new built-in
-   waypoints with an "Add" link to Settings → Waypoints and a dismiss X. */
-.popup-update-banner {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 8px 6px 10px;
-  background: var(--glow-subtle);
-  border: 1px solid var(--text-accent);
-  color: var(--text-primary);
-  font-family: var(--font-serif);
-  font-size: var(--fs-xs);
-  line-height: 1.3;
-}
-
-.popup-update-banner-icon {
-  display: inline-flex;
-  flex-shrink: 0;
-  color: var(--text-accent);
-}
-
-/* Clicking the summary opens Settings → Waypoints, where each new waypoint
-   can be placed individually; the Add button next to it takes them all. */
-.popup-update-banner-text {
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  padding: 0;
-  background: none;
-  border: 0;
-  font: inherit;
-  color: inherit;
-  text-align: left;
-  cursor: pointer;
-}
-
-.popup-update-banner-text:hover {
-  text-decoration: underline;
-}
-
-.popup-update-banner-action {
-  flex-shrink: 0;
-  padding: 2px 8px;
-  background: transparent;
-  border: 1px solid var(--text-accent);
-  color: var(--text-accent);
-  font-family: var(--font-sans);
-  font-size: var(--fs-xs);
-  font-weight: 600;
-  letter-spacing: 0.02em;
-  cursor: pointer;
-  transition: background 0.2s ease, color 0.2s ease;
-}
-
-.popup-update-banner-action:hover {
-  background: var(--text-accent);
-  color: var(--bg-primary);
-}
-
-.popup-update-banner-dismiss {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  width: 20px;
-  height: 20px;
-  padding: 0;
-  background: transparent;
-  border: 0;
-  color: var(--text-secondary);
-  cursor: pointer;
-  transition: color 0.2s ease, background 0.2s ease;
-}
-
-.popup-update-banner-dismiss:hover {
-  background: var(--bg-tertiary);
-  color: var(--text-primary);
-}
-
-.popup-theme-toggle {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  width: 28px;
-  height: 24px;
-  padding: 0;
-  background: transparent;
-  border: 1px solid var(--border-subtle);
-  color: var(--text-secondary);
-  cursor: pointer;
-  transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
-}
-
-.popup-theme-toggle:hover {
-  background: var(--bg-tertiary);
-  border-color: var(--text-accent);
-  color: var(--text-accent);
-}
-
-.popup-theme-toggle:active {
-  background: var(--bg-elevated);
-}
-
-.popup-theme-toggle svg {
-  flex-shrink: 0;
-}
-
-.popup-uri {
-  flex: 1;
-  min-width: 0;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 10px;
-  background: transparent;
-  border: 1px solid transparent;
-  color: var(--text-secondary);
-  font-size: var(--fs-xs);
-  font-family: var(--font-mono);
-  text-align: left;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.popup-uri:hover {
-  background: var(--bg-tertiary);
-  border-color: var(--border-subtle);
-  color: var(--text-primary);
-}
-
-.popup-uri:active {
-  background: var(--bg-elevated);
-}
-
-.popup-uri-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  color: var(--text-secondary);
-}
-
-.popup-uri:hover .popup-uri-icon {
-  color: var(--text-accent);
-}
-
-.popup-uri-text {
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.popup-uri.is-copied {
-  color: var(--text-accent);
-  border-color: var(--text-accent);
-  background: var(--glow-subtle);
-}
-
-.popup-uri.is-copied .popup-uri-icon {
-  color: var(--text-accent);
-}
-
-.popup-recents-row {
-  display: flex;
-  gap: 6px;
-  overflow-x: auto;
-  /* Vertical padding gives the hover translate room to breathe — overflow-x:auto
-     also clips the y-axis, so without padding the lifted card would get cropped
-     at the top. */
-  padding: 4px 0 6px;
-  scrollbar-width: thin;
-}
-
-.popup-recent {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-  padding: 10px 12px;
-  min-width: 76px;
-  border: 1px solid var(--border-subtle);
-  background: var(--bg-secondary);
-  cursor: pointer;
-  transition: background 0.25s ease, border-color 0.25s ease, color 0.25s ease,
-    transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-  font-family: var(--font-serif);
-}
-
-.popup-recent:hover {
-  background: var(--bg-tertiary);
-  border-color: var(--text-accent);
-  transform: translateY(-2px);
-}
-
-.popup-recent .popup-waypoint-icon {
-  color: var(--text-accent);
-}
-
-.popup-recent:hover .popup-waypoint-icon {
-  color: var(--text-primary);
-}
-
-.popup-recent-name {
-  font-size: var(--fs-xs);
-  font-weight: 500;
-  color: var(--text-primary);
-  text-align: center;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  max-width: 100%;
-  letter-spacing: 0.01em;
-}
-
-.popup-recent:hover .popup-recent-name {
-  color: var(--text-primary);
-}
-
-.popup-icon-letter {
-  width: 24px;
-  height: 24px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--bg-tertiary);
-  border: 1px solid var(--border-subtle);
-  font-family: var(--font-serif);
-  font-weight: 600;
-  font-size: var(--fs-sm);
-  color: var(--text-accent);
-}
-
-/* Compact mode: smaller icons, tighter rows, no description line so more
-   waypoints fit in the popup at once. */
-.popup-root.is-compact .popup-section {
-  padding: 8px 18px 12px;
-}
-
-.popup-root.is-compact .popup-section-label {
-  margin-bottom: 6px;
-}
-
-.popup-root.is-compact .popup-waypoints {
-  gap: 2px;
 }
 
 .popup-root.is-compact .popup-waypoint-main {
-  padding: 6px 10px;
-  gap: 10px;
+  min-height: 32px;
 }
 
 .popup-root.is-compact .popup-waypoint-copy {
   width: 28px;
-}
-
-.popup-root.is-compact .popup-waypoint-icon {
-  width: 18px;
-  height: 18px;
-}
-
-.popup-root.is-compact .popup-waypoint-icon svg,
-.popup-root.is-compact .popup-waypoint-icon img {
-  width: 18px;
-  height: 18px;
-}
-
-.popup-root.is-compact .popup-icon-letter {
-  width: 18px;
-  height: 18px;
-  font-size: var(--fs-xs);
-}
-
-.popup-root.is-compact .popup-waypoint-name {
-  font-size: var(--fs-md);
+  height: 28px;
 }
 
 .popup-root.is-compact .popup-waypoint-desc {
   display: none;
 }
 
-.popup-root.is-compact .popup-waypoint:hover {
-  transform: translateX(2px);
-}
+/* ---------- This page card ---------- */
 
-/* Popup mode tabs (Waypoints / Inspect) — sit above both views */
-.popup-shell {
+.popup-page {
   display: flex;
   flex-direction: column;
-  background: var(--bg-primary);
-}
-
-/* Sticky behavior lives on `.popup-topbar` now — see above. */
-.popup-mode-tabs {
-  display: flex;
-  align-items: stretch;
-  border-bottom: 1px solid var(--border-subtle);
+  gap: 10px;
+  padding: 12px;
   background: var(--bg-secondary);
+  border: 1px solid var(--border-medium);
+  border-radius: 10px;
 }
 
-.popup-mode-tab {
+.popup-page-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.popup-page-avatar {
+  width: 32px;
+  height: 32px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--accent-soft-border);
+  color: var(--accent-soft-fg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.popup-page-text {
   flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.popup-page-title {
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.popup-page-meta {
+  font-size: var(--fs-sm);
+  color: var(--text-tertiary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.popup-source-collection {
+  font-family: var(--font-mono);
+  font-size: 0.95em;
+}
+
+.popup-page-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.popup-page-btn {
+  flex: 1;
+  min-width: 0;
+  height: 30px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 6px;
-  padding: 10px 12px;
-  background: transparent;
-  border: 0;
-  border-bottom: 2px solid transparent;
-  margin-bottom: -1px;
-  color: var(--text-tertiary);
-  font-family: var(--font-sans);
-  font-size: var(--fs-xs);
-  font-weight: 500;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  cursor: pointer;
-  transition: color 0.2s ease, border-color 0.2s ease, background 0.2s ease;
-}
-
-/* Vertical dividers between adjacent tab-bar items (including the settings
-   gear on the right). The first item has no left border so the divider
-   pattern only renders between siblings. */
-.popup-mode-tab + .popup-mode-tab,
-.popup-mode-tab + .popup-mode-tab-settings,
-.popup-mode-tab-settings + .popup-mode-tab,
-.popup-mode-tab-settings + .popup-mode-tab-settings {
-  border-left: 1px solid var(--border-subtle);
-}
-
-.popup-mode-tab:hover {
-  color: var(--text-secondary);
-  background: var(--bg-tertiary);
-}
-
-.popup-mode-tab.is-active {
+  padding: 0 8px;
+  border-radius: 7px;
+  border: 1px solid var(--border-strong);
+  background: var(--bg-secondary);
   color: var(--text-primary);
-  border-bottom-color: var(--text-accent);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  white-space: nowrap;
+  transition: background 0.12s ease, border-color 0.12s ease;
 }
 
-.popup-mode-tab svg {
-  flex-shrink: 0;
+.popup-page-btn:hover {
+  background: var(--surface-subtle);
+  border-color: var(--text-faint);
 }
 
-/* The settings gear sits at the right edge of the tab bar — narrow,
-   icon-only, never "active" since it opens a separate page. Visually
-   it shares the tab-bar treatment (same height, same divider). */
-.popup-mode-tab-settings {
-  flex: 0 0 auto;
-  width: 40px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  background: transparent;
-  border: 0;
-  border-bottom: 2px solid transparent;
-  margin-bottom: -1px;
-  color: var(--text-tertiary);
-  cursor: pointer;
-  transition: color 0.2s ease, background 0.2s ease;
+.popup-page-btn.is-copied {
+  border-color: var(--accent-soft-border);
+  background: var(--accent-soft);
+  color: var(--accent-soft-fg);
 }
 
-.popup-mode-tab-settings:hover {
-  color: var(--text-accent);
-  background: var(--bg-tertiary);
+.popup-page-btn span {
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.popup-mode-tab-settings:active {
-  background: var(--bg-elevated);
-}
+/* ---------- New waypoints notice ---------- */
 
-.popup-mode-tab-settings svg {
-  flex-shrink: 0;
-}
-
-/* ----- Auto-redirect control ---------------------------------------------
-   Slim chrome row under the mode tabs, laid out like `.options-toggle-row`:
-   label on the left, controls pushed to the right edge. Square corners, serif
-   type and 0.3s transitions to match the rest of the extension; the switch is
-   the shared `.aturi-switch` at its compact size rather than a second one. */
-
-.popup-redirect {
+.popup-update-banner {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 7px 14px;
-  border-bottom: 1px solid var(--border-subtle);
-  background: var(--bg-primary);
-  font-family: var(--font-serif);
-  font-size: var(--fs-xs);
+  padding: 8px 6px 8px 12px;
+  border-radius: 10px;
+  background: var(--accent-soft-panel);
+  border: 1px solid var(--accent-soft-border);
 }
 
-/* A paused tab is the one state you can't read off the switch (auto-redirect
-   is still on globally), so the row itself carries the signal. */
-.popup-redirect.is-paused {
+.popup-update-banner-icon {
+  display: flex;
+  flex: none;
+}
+
+.popup-update-banner-mark {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 7px;
   background: var(--bg-secondary);
-  box-shadow: inset 2px 0 0 var(--text-accent);
+  border: 1px solid var(--accent-soft-border);
+}
+
+.popup-update-banner-mark + .popup-update-banner-mark {
+  margin-left: -6px;
+}
+
+.popup-update-banner-text {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--text-primary);
+  text-align: left;
+}
+
+.popup-update-banner-text:hover {
+  color: var(--text-accent);
+}
+
+.popup-update-banner-action {
+  height: 28px;
+  padding: 0 10px;
+  border-radius: 7px;
+  background: var(--accent-moss);
+  color: var(--text-on-accent);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+}
+
+.popup-update-banner-action:hover {
+  background: var(--accent-forest);
+}
+
+.popup-update-banner-dismiss {
+  width: 28px;
+  height: 28px;
+}
+
+/* ---------- Recents ---------- */
+
+.popup-recents-row,
+.popup-tiles {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.popup-recent,
+.popup-tile {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  border-radius: 10px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-medium);
+  color: var(--text-primary);
+  transition: border-color 0.12s ease, background 0.12s ease;
+}
+
+.popup-recent {
+  gap: 6px;
+  padding: 12px 4px 10px;
+}
+
+.popup-recent:hover,
+.popup-tile:hover {
+  border-color: var(--border-strong);
+  background: var(--surface-subtle);
+}
+
+.popup-recent .popup-waypoint-icon,
+.popup-tile .popup-waypoint-icon,
+.popup-recent .popup-waypoint-icon svg,
+.popup-recent .popup-waypoint-icon img,
+.popup-tile .popup-waypoint-icon svg,
+.popup-tile .popup-waypoint-icon img {
+  width: 20px;
+  height: 20px;
+}
+
+.popup-recent .popup-icon-letter,
+.popup-tile .popup-icon-letter {
+  width: 20px;
+  height: 20px;
+}
+
+.popup-recent-name,
+.popup-tile-name {
+  max-width: 100%;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ---------- No-Atmosphere view ---------- */
+
+.popup-notice {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px 0;
+  text-align: center;
+}
+
+.popup-notice-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--accent-soft);
+  color: var(--accent-soft-fg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.popup-notice-title {
+  margin: 0;
+  font-size: var(--fs-xl);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.popup-notice-body {
+  margin: 0;
+  font-size: var(--fs-md);
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+.popup-notice-body code {
+  font-family: var(--font-mono);
+  font-size: 0.92em;
+}
+
+.popup-jump-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 4px 2px 0;
+  margin-bottom: -4px;
+}
+
+.popup-jump-title {
+  margin: 0;
+  font-size: var(--fs-md);
+  font-weight: 700;
+}
+
+.popup-jump-note {
+  font-size: var(--fs-xs);
+  color: var(--text-tertiary);
+}
+
+.popup-tile-main {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 4px 10px;
+  color: inherit;
+}
+
+.popup-tile-main:disabled {
+  cursor: progress;
+  opacity: 0.6;
+}
+
+/* The per-tile copy button sits in the corner and only shows on hover or
+   keyboard focus, so the grid reads as plain app tiles. */
+.popup-tile .popup-waypoint-copy {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 24px;
+  height: 24px;
+  margin: 0;
+  opacity: 0;
+}
+
+.popup-tile:hover .popup-waypoint-copy,
+.popup-tile .popup-waypoint-copy:focus-visible,
+.popup-tile .popup-waypoint-copy.is-copied {
+  opacity: 1;
+}
+
+.popup-tile .popup-waypoint-copy svg {
+  width: 12px;
+  height: 12px;
+}
+
+.popup-root.is-compact .popup-tile-main {
+  padding: 8px 4px 6px;
+}
+
+.popup-empty {
+  padding: 28px 20px;
+  text-align: center;
+  color: var(--text-secondary);
+}
+
+.popup-alert {
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--danger-soft);
+  border: 1px solid var(--danger-border);
+  color: var(--text-primary);
+  font-size: var(--fs-sm);
+}
+
+.popup-alert-title {
+  font-weight: 700;
+  color: var(--danger);
+}
+
+/* ---------- Auto-redirect footer ---------- */
+
+.popup-redirect {
+  position: sticky;
+  bottom: 0;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 48px;
+  padding: 6px 12px 6px 14px;
+  background: var(--bg-secondary);
+  border-top: 1px solid var(--border-medium);
 }
 
 .popup-redirect-icon {
-  flex-shrink: 0;
+  flex: none;
   color: var(--text-tertiary);
-  transition: color 0.3s ease;
 }
 
-.popup-redirect.is-on .popup-redirect-icon,
-.popup-redirect.is-paused .popup-redirect-icon {
+.popup-redirect.is-on .popup-redirect-icon {
   color: var(--text-accent);
 }
 
 .popup-redirect-label {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
   margin-right: auto;
+}
+
+.popup-redirect-title {
   font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--text-secondary);
-  white-space: nowrap;
+}
+
+.popup-redirect-sub {
+  font-size: var(--fs-xs);
+  color: var(--warn-fg-muted);
 }
 
 .popup-redirect-pause {
-  flex-shrink: 0;
-  padding: 3px 9px;
-  background: var(--bg-secondary);
-  border: 1px solid var(--border-subtle);
-  color: var(--text-tertiary);
-  font-family: var(--font-serif);
-  font-size: var(--fs-xs);
+  height: 28px;
+  padding: 0 8px;
+  border-radius: 6px;
+  color: var(--text-accent);
+  font-size: var(--fs-sm);
+  font-weight: 600;
   white-space: nowrap;
-  transition: all 0.3s ease;
 }
 
 .popup-redirect-pause:hover:not(:disabled) {
   background: var(--bg-tertiary);
-  border-color: var(--text-accent);
-  color: var(--text-primary);
-}
-
-.popup-redirect.is-paused .popup-redirect-pause {
-  border-color: var(--text-accent);
-  color: var(--text-primary);
 }
 
 .popup-redirect-pause:disabled {
   opacity: 0.5;
-  cursor: default;
+  cursor: progress;
 }
 
-/* Give the switch the same box as the pause button (a 1px border and 3px of
-   vertical padding around identical text) so the row keeps its height whether
-   or not the button is showing. */
-.popup-redirect .aturi-switch {
-  flex-shrink: 0;
-  padding: 3px 0;
-  border: 1px solid transparent;
-  font-size: var(--fs-xs);
+.popup-redirect-state {
+  font-size: var(--fs-sm);
+  color: var(--text-secondary);
 }
 
-/* ----- Inspect card ------------------------------------------------------ */
+.popup-redirect.is-paused {
+  background: var(--warn-bg);
+  border-top-color: var(--warn-border);
+}
+
+.popup-redirect.is-paused .popup-redirect-icon {
+  color: var(--warn-icon);
+}
+
+.popup-redirect.is-paused .popup-redirect-title {
+  font-weight: 700;
+  color: var(--warn-fg);
+}
+
+.popup-redirect.is-paused .popup-redirect-pause {
+  height: 30px;
+  padding: 0 12px;
+  border-radius: 7px;
+  border: 1px solid var(--warn-control-border);
+  background: var(--bg-secondary);
+  color: var(--warn-fg);
+  font-weight: 700;
+}
+
+.popup-redirect.is-paused .popup-redirect-state {
+  color: var(--warn-fg-muted);
+}
+
+/* ---------- Inspect ---------- */
+
+.inspect-root {
+  gap: 10px;
+}
+
+.inspect-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 28px;
+}
+
+.inspect-rescan {
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0 8px;
+  border-radius: 6px;
+  color: var(--text-accent);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+}
+
+.inspect-rescan:hover:not(:disabled) {
+  background: var(--bg-tertiary);
+}
+
+.inspect-rescan:disabled {
+  opacity: 0.6;
+}
 
 .inspect-card {
   display: flex;
   flex-direction: column;
-  margin-bottom: 8px;
+  gap: 10px;
+  padding: 12px;
   background: var(--bg-secondary);
   border: 1px solid var(--border-medium);
-  font-family: var(--font-serif);
+  border-radius: 10px;
+  min-width: 0;
 }
 
-.inspect-card + .inspect-card {
-  margin-top: 4px;
-}
-
-/* The breadcrumb sits as a distinct header section at the top of the
-   card — own background, own padding, divider below — so it reads as a
-   "this is what record you're looking at" banner rather than just the
-   first row in a uniform stack. */
-.inspect-breadcrumb {
+.inspect-card-top {
   display: flex;
   align-items: center;
-  flex-wrap: wrap;
-  gap: 4px;
-  font-size: 11px;
-  padding: 10px 14px;
-  background: var(--bg-tertiary);
-  border-bottom: 1px solid var(--border-subtle);
+  justify-content: space-between;
+  gap: 8px;
 }
 
-.inspect-card-body {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  padding: 12px 14px;
-}
-
-.inspect-breadcrumb-segment {
+.inspect-where,
+.inspect-relation {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  padding: 2px 5px;
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+  background: var(--bg-tertiary);
   color: var(--text-secondary);
-  text-decoration: none;
-  font-family: var(--font-mono);
-  letter-spacing: 0;
-  border-radius: 0;
-  transition: color 0.15s ease, background 0.15s ease;
-  max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  font-size: var(--fs-xs);
+  font-weight: 700;
   white-space: nowrap;
+}
+
+.inspect-where.is-url,
+.inspect-relation {
+  background: var(--accent-soft);
+  color: var(--accent-soft-fg);
+}
+
+.inspect-kind {
+  font-size: var(--fs-sm);
+  color: var(--text-tertiary);
+}
+
+.inspect-breadcrumb {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px 5px;
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+  min-width: 0;
+}
+
+.inspect-breadcrumb-segment {
+  color: var(--text-secondary);
+  overflow-wrap: anywhere;
 }
 
 .inspect-breadcrumb-segment:hover {
   color: var(--text-accent);
-  background: var(--bg-tertiary);
+  text-decoration: underline;
 }
 
-.inspect-breadcrumb-segment.is-handle {
+.inspect-breadcrumb-segment.is-rkey {
   color: var(--text-primary);
   font-weight: 500;
 }
 
-.inspect-breadcrumb-segment.is-collection,
-.inspect-breadcrumb-segment.is-pds {
-  color: var(--text-tertiary);
-}
-
-.inspect-breadcrumb-segment.is-rkey {
-  color: var(--text-tertiary);
-  font-family: var(--font-mono);
-  padding: 2px 5px;
-  max-width: 160px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+.inspect-breadcrumb-segment.is-rkey:hover {
+  color: var(--text-primary);
+  text-decoration: none;
 }
 
 .inspect-breadcrumb-sep {
-  color: var(--text-tertiary);
-  opacity: 0.6;
-  flex-shrink: 0;
+  color: var(--text-faint);
 }
 
-/* AT Tags relation badge — labels a detection that came from an explicit
-   `<meta name="at:...">` declaration (canonical / author / me / namespaced).
-   Sits at the head of the breadcrumb as a small accent pill. */
-.inspect-relation {
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
-  flex-shrink: 0;
-  padding: 1px 6px;
-  font-family: var(--font-mono);
-  font-size: 9px;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--text-accent);
-  background: var(--bg-accent-subtle, rgba(120, 120, 200, 0.12));
-  border: 1px solid var(--border-subtle);
-  border-radius: 0;
+.inspect-sample {
+  font-size: var(--fs-sm);
+  font-style: italic;
+  color: var(--text-tertiary);
 }
 
 .inspect-preview {
-  font-size: 12px;
+  font-size: var(--fs-md);
+  line-height: 1.45;
   color: var(--text-secondary);
-  font-family: var(--font-serif);
-  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  overflow-wrap: anywhere;
 }
 
 .inspect-engagement {
   display: flex;
   flex-wrap: wrap;
-  gap: 14px;
-  padding: 6px 0;
-  border-top: 1px solid var(--border-subtle);
-  border-bottom: 1px solid var(--border-subtle);
+  gap: 4px 14px;
+  font-size: var(--fs-sm);
   color: var(--text-secondary);
 }
 
-.inspect-engagement-item {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 11px;
-  font-family: var(--font-mono);
+.inspect-engagement-item strong {
+  font-weight: 600;
+  color: var(--text-primary);
 }
 
-.inspect-engagement-item svg {
-  color: var(--text-tertiary);
-  flex-shrink: 0;
-}
-
-.inspect-cta {
-  width: 100%;
-  padding: 8px 12px;
-  font-size: 12px;
-  text-decoration: none;
-  margin-top: 2px;
+.inspect-error {
+  font-size: var(--fs-sm);
+  color: var(--danger);
 }
 
 .inspect-copy-row {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border-subtle);
 }
 
 .inspect-copy-label {
-  font-size: 9px;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--text-tertiary);
-  font-family: var(--font-serif);
   margin-right: 2px;
+  font-size: var(--fs-sm);
+  color: var(--text-tertiary);
 }
 
 .inspect-chip {
+  height: 26px;
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  padding: 3px 7px;
-  background: transparent;
-  border: 1px solid var(--border-subtle);
-  color: var(--text-secondary);
-  font-family: var(--font-mono);
-  font-size: 10px;
-  cursor: pointer;
-  transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
-  white-space: nowrap;
+  gap: 5px;
+  padding: 0 9px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--border-strong);
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  transition: background 0.12s ease, border-color 0.12s ease;
+}
+
+.inspect-chip svg {
+  color: var(--text-tertiary);
 }
 
 .inspect-chip:hover {
-  color: var(--text-accent);
-  border-color: var(--text-accent);
-  background: var(--bg-tertiary);
-}
-
-.inspect-chip.is-ghost {
-  border-color: transparent;
-}
-
-.inspect-chip.is-ghost:hover {
-  border-color: var(--border-subtle);
+  background: var(--surface-subtle);
+  border-color: var(--text-faint);
 }
 
 .inspect-chip.is-copied {
-  color: var(--text-accent);
-  border-color: var(--text-accent);
+  background: var(--accent-soft);
+  border-color: var(--accent-soft-border);
+  color: var(--accent-soft-fg);
+}
+
+.inspect-chip.is-copied svg {
+  color: currentColor;
+}
+
+.inspect-chip.is-ghost {
+  height: 22px;
+  padding: 0 4px;
+  border-color: transparent;
+  background: transparent;
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+  font-weight: 400;
+  color: var(--text-tertiary);
+}
+
+.inspect-chip.is-ghost:hover {
+  color: var(--text-primary);
+  background: var(--bg-tertiary);
 }
 
 .inspect-footer {
   display: flex;
-  flex-direction: column;
-  gap: 6px;
-  padding-top: 6px;
-  border-top: 1px solid var(--border-subtle);
-}
-
-.inspect-footer-meta {
-  display: flex;
   flex-wrap: wrap;
   align-items: center;
-  justify-content: space-between;
-  gap: 6px;
+  gap: 4px 12px;
 }
 
 .inspect-footer-link {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  font-family: var(--font-mono);
-  font-size: 10px;
-  color: var(--text-tertiary);
-  text-decoration: none;
-  padding: 3px 5px;
-  transition: color 0.15s ease;
+  font-size: var(--fs-sm);
+  color: var(--text-secondary);
 }
 
-.inspect-footer-link:hover {
+.inspect-cta {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--fs-sm);
+  font-weight: 600;
   color: var(--text-accent);
-}
-
-.inspect-json {
-  font-size: 11px;
 }
 
 .inspect-json > summary {
   cursor: pointer;
-  color: var(--text-tertiary);
-  font-family: var(--font-serif);
-  font-size: 11px;
-  padding: 2px 0;
-  user-select: none;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--text-secondary);
 }
 
 .inspect-json > summary:hover {
-  color: var(--text-secondary);
+  color: var(--text-primary);
 }
 
 .inspect-json-pre {
-  margin: 6px 0 0;
-  padding: 8px 10px;
-  background: var(--bg-tertiary);
+  margin: 8px 0 0;
+  max-height: 220px;
+  overflow: auto;
+  padding: 10px;
+  border-radius: var(--radius-control);
+  background: var(--surface-subtle);
   border: 1px solid var(--border-subtle);
   font-family: var(--font-mono);
-  font-size: 10px;
-  line-height: 1.45;
-  color: var(--text-secondary);
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--text-primary);
   white-space: pre-wrap;
-  word-break: break-all;
-  max-height: 280px;
-  overflow-y: auto;
+  overflow-wrap: anywhere;
 }
 
-.popup-mode-tab-badge {
+/* Inspect: nothing found. */
+.inspect-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 8px 4px;
+  text-align: center;
+}
+
+.inspect-empty-message {
+  font-size: var(--fs-xl);
+  font-weight: 700;
+}
+
+.inspect-empty-cta {
+  text-decoration: none;
+}
+
+.inspect-empty-recents {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  text-align: left;
+}
+
+.inspect-empty-recents-label {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0 2px;
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+
+.inspect-empty-recents-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.inspect-empty-recent {
+  height: 28px;
   display: inline-flex;
   align-items: center;
-  justify-content: center;
+  gap: 6px;
+  max-width: 100%;
+  padding: 0 10px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--border-medium);
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font-size: var(--fs-sm);
+}
+
+.inspect-empty-recent:hover {
+  border-color: var(--border-strong);
+  color: var(--text-primary);
+}
+
+.inspect-empty-recent-label {
+  font-family: var(--font-mono);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.inspect-empty-recent-count {
   min-width: 16px;
-  height: 16px;
-  padding: 0 5px;
-  margin-left: 2px;
-  background: var(--text-accent);
-  color: var(--bg-primary, #000);
-  border-radius: 8px;
-  font-size: 10px;
+  padding: 0 4px;
+  border-radius: var(--radius-pill);
+  background: var(--accent-soft);
+  color: var(--accent-soft-fg);
+  font-size: 10.5px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.inspect-empty-recent-icon {
+  color: var(--text-faint);
+}
+
+.inspect-empty-rescan {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 28px;
+  padding: 0 8px;
+  border-radius: 6px;
+  color: var(--text-accent);
+  font-size: var(--fs-sm);
   font-weight: 600;
-  letter-spacing: 0;
-  line-height: 1;
-  text-transform: none;
+}
+
+.inspect-empty-rescan:hover {
+  background: var(--bg-tertiary);
+}
+
+/* Chips read as plain labels; the icon only appears as the copied tick. */
+.inspect-chip:not(.is-copied):not(.is-ghost) svg {
+  display: none;
+}
+
+/* Paused: the strip carries a two-line message, so the On/Off word gives
+   way and the subtitle stays on one line. */
+.popup-redirect.is-paused .popup-redirect-state {
+  display: none;
+}
+
+.popup-redirect.is-paused .popup-redirect-sub {
+  white-space: nowrap;
 }

@@ -182,12 +182,12 @@ export default function SearchBox({ initial }: { initial?: string }) {
         }}
       >
         <Search
-          size={16}
+          size={17}
           style={{
             position: 'absolute',
             top: '50%',
             transform: 'translateY(-50%)',
-            left: '0.875rem',
+            left: '14px',
             color: 'var(--text-tertiary)',
             pointerEvents: 'none',
           }}
@@ -196,7 +196,8 @@ export default function SearchBox({ initial }: { initial?: string }) {
           type="text"
           autoComplete="off"
           spellCheck={false}
-          placeholder="handle, DID, at:// URI, or URL"
+          placeholder="Handle, DID, at:// URI or URL"
+          aria-label="Handle, DID, at:// URI or URL"
           value={value}
           onChange={(e) => {
             setValue(e.target.value);
@@ -210,7 +211,7 @@ export default function SearchBox({ initial }: { initial?: string }) {
             e.currentTarget.style.borderColor = 'var(--text-accent)';
           }}
           onBlur={(e) => {
-            e.currentTarget.style.borderColor = 'var(--border-medium)';
+            e.currentTarget.style.borderColor = 'var(--border-strong)';
           }}
           onKeyDown={onKeyDown}
           role="combobox"
@@ -222,12 +223,15 @@ export default function SearchBox({ initial }: { initial?: string }) {
           }
           style={{
             width: '100%',
-            padding: '0.75rem 0.875rem 0.75rem 2.5rem',
+            height: '48px',
+            boxSizing: 'border-box',
+            padding: '0 14px 0 41px',
             background: 'var(--bg-secondary)',
-            border: '1px solid var(--border-medium)',
+            border: '1px solid var(--border-strong)',
+            borderRadius: '10px',
             color: 'var(--text-primary)',
-            fontFamily: 'var(--font-mono)',
-            fontSize: '0.8rem',
+            fontFamily: 'var(--font-sans)',
+            fontSize: '15px',
             outline: 'none',
             transition: 'border-color 0.2s ease',
           }}
@@ -247,6 +251,8 @@ export default function SearchBox({ initial }: { initial?: string }) {
               padding: 0,
               background: 'var(--bg-secondary)',
               border: '1px solid var(--border-medium)',
+              borderRadius: '10px',
+              overflow: 'hidden',
               boxShadow: 'var(--shadow-overlay)',
               zIndex: 30,
               maxHeight: '22rem',
@@ -292,6 +298,7 @@ export default function SearchBox({ initial }: { initial?: string }) {
                       style={{
                         width: 26,
                         height: 26,
+                        borderRadius: '50%',
                         objectFit: 'cover',
                         background: 'var(--bg-tertiary)',
                         flexShrink: 0,
@@ -302,6 +309,7 @@ export default function SearchBox({ initial }: { initial?: string }) {
                       style={{
                         width: 26,
                         height: 26,
+                        borderRadius: '50%',
                         background: 'var(--bg-tertiary)',
                         flexShrink: 0,
                       }}
@@ -350,6 +358,8 @@ export default function SearchBox({ initial }: { initial?: string }) {
               right: 0,
               background: 'var(--bg-secondary)',
               border: '1px solid var(--border-medium)',
+              borderRadius: '10px',
+              overflow: 'hidden',
               boxShadow: 'var(--shadow-overlay)',
               zIndex: 30,
               maxHeight: '22rem',
@@ -370,12 +380,15 @@ export default function SearchBox({ initial }: { initial?: string }) {
         type="submit"
         disabled={resolving}
         style={{
-          padding: '0.75rem 1.25rem',
+          height: '48px',
+          padding: '0 20px',
           background: 'var(--accent-moss)',
           color: 'var(--text-on-accent)',
           border: '1px solid var(--accent-moss)',
-          fontFamily: 'var(--font-serif)',
-          fontSize: '0.95rem',
+          borderRadius: '10px',
+          fontFamily: 'var(--font-sans)',
+          fontSize: '15px',
+          fontWeight: 600,
           cursor: resolving ? 'progress' : 'pointer',
           opacity: resolving ? 0.75 : 1,
           whiteSpace: 'nowrap',

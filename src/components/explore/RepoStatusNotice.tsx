@@ -65,7 +65,8 @@ export default function RepoStatusNotice({ identity }: { identity: IdentityBundl
         display: 'flex',
         gap: '0.875rem',
         alignItems: 'flex-start',
-        padding: '1.125rem 1.25rem',
+        padding: '14px 16px',
+        borderRadius: 'var(--radius-card)',
         border: '1px solid var(--danger-border)',
         background: 'var(--danger-soft)',
       }}

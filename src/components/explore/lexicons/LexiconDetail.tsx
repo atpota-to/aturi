@@ -150,93 +150,35 @@ export default function LexiconDetail({ nsid }: { nsid: string }) {
   const hasActivity = current ? statTotal(current) > 0 : true;
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+    <div className="fn-lexdetail">
       <AppearIn rise>
-        <Link
-          href="/explore/lexicons"
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '0.3rem',
-            fontSize: '0.8125rem',
-            color: 'var(--text-accent)',
-            textDecoration: 'none',
-            fontFamily: 'var(--font-serif)',
-          }}
-        >
-          <ArrowLeft size={13} aria-hidden /> All lexicons
+        <Link href="/explore/lexicons" className="fn-backlink">
+          <ArrowLeft size={14} aria-hidden /> All lexicons
         </Link>
       </AppearIn>
 
       {/* Header card */}
       <AppearIn delay={0.04}>
-        <div
-          style={{
-            border: '1px solid var(--border-medium)',
-            background: 'var(--bg-secondary)',
-            padding: '1.25rem 1.25rem 1rem',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '0.6rem',
-          }}
-        >
-          <div className="explore-small-caps" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}>
-            <Layers size={13} aria-hidden style={{ color: 'var(--text-accent)' }} />
+        <div className="fn-lexhead">
+          <span className="fn-kicker fn-lexhead-kicker">
+            <Layers size={13} aria-hidden />
             Lexicon
-          </div>
-          <h1
-            style={{
-              margin: 0,
-              fontFamily: 'var(--font-mono)',
-              fontSize: '1.35rem',
-              fontWeight: 500,
-              color: 'var(--text-primary)',
-              wordBreak: 'break-word',
-              lineHeight: 1.2,
-            }}
-          >
-            {nsid}
-          </h1>
-          <div
-            style={{
-              display: 'flex',
-              flexWrap: 'wrap',
-              gap: '0.5rem 1.25rem',
-              alignItems: 'center',
-              fontSize: '0.8125rem',
-              color: 'var(--text-tertiary)',
-              fontFamily: 'var(--font-mono)',
-            }}
-          >
+          </span>
+          <h1 className="fn-lexhead-title fn-lexhead-mono">{nsid}</h1>
+          <div className="fn-lexhead-meta">
             <span>
               group{' '}
-              <Link href={groupPathFor(group)} prefetch={false} style={{ color: 'var(--text-accent)', textDecoration: 'none' }}>
+              <Link href={groupPathFor(group)} prefetch={false}>
                 {group}
               </Link>
             </span>
             <span>
-              publisher{' '}
-              <span style={{ color: 'var(--text-secondary)' }}>{publisher}</span>
+              publisher <strong>{publisher}</strong>
             </span>
           </div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginTop: '0.15rem' }}>
-            <Link
-              href={schemaPathFor(nsid)}
-              prefetch={false}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '0.4rem',
-                padding: '0.4rem 0.75rem',
-                background: 'var(--bg-tertiary)',
-                border: '1px solid var(--border-medium)',
-                color: 'var(--text-secondary)',
-                fontFamily: 'var(--font-serif)',
-                fontSize: '0.8125rem',
-                textDecoration: 'none',
-              }}
-            >
-              <FileText size={12} aria-hidden /> View schema record
+          <div className="fn-lexhead-actions">
+            <Link href={schemaPathFor(nsid)} prefetch={false} className="fn-btn">
+              <FileText size={13} aria-hidden /> View schema record
             </Link>
             {appDomain && <AppSiteLink domain={appDomain} />}
           </div>
@@ -245,7 +187,7 @@ export default function LexiconDetail({ nsid }: { nsid: string }) {
 
       {/* Window toggle */}
       <AppearIn delay={0.06}>
-        <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+        <div className="fn-lexdetail-window">
           <Segmented
             ariaLabel="Time window"
             options={(Object.keys(WINDOWS) as Window[]).map((w) => ({
@@ -260,15 +202,7 @@ export default function LexiconDetail({ nsid }: { nsid: string }) {
 
       {/* Stat tiles */}
       <AppearIn delay={0.08}>
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(8rem, 1fr))',
-            gap: '1px',
-            background: 'var(--border-subtle)',
-            border: '1px solid var(--border-medium)',
-          }}
-        >
+        <div className="fn-stat-grid">
           {METRIC_ORDER.map((m) => (
             <StatTile
               key={m}
@@ -282,28 +216,11 @@ export default function LexiconDetail({ nsid }: { nsid: string }) {
 
       {/* Trend chart */}
       <AppearIn delay={0.1}>
-        <div
-          style={{
-            border: '1px solid var(--border-medium)',
-            background: 'var(--bg-secondary)',
-            padding: '1rem 1.25rem 1.25rem',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '0.875rem',
-          }}
-        >
-          <div
-            style={{
-              display: 'flex',
-              flexWrap: 'wrap',
-              gap: '0.5rem',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-            }}
-          >
-            <span className="explore-small-caps">
+        <div className="fn-list-card fn-chart-card">
+          <div className="fn-chart-head">
+            <h2 className="fn-list-card-title">
               {METRIC_LABEL[metric]} over the last {cfg.label}
-            </span>
+            </h2>
             <Segmented
               ariaLabel="Metric"
               options={METRIC_ORDER.map((m) => ({ value: m, label: METRIC_LABEL[m] }))}
@@ -340,64 +257,20 @@ export default function LexiconDetail({ nsid }: { nsid: string }) {
 
       {/* Sibling collections */}
       <AppearIn delay={0.12}>
-        <Section title="Collections in this group" icon={<GitBranch size={13} aria-hidden />}>
+        <Section title="Collections in this group" icon={<GitBranch size={14} aria-hidden />}>
           {siblings === null ? (
             <SkeletonList rows={4} />
           ) : siblings.length === 0 ? (
-            <p className="explore-placeholder" style={{ margin: 0 }}>
+            <p className="explore-placeholder fn-list-card-msg">
               No sibling collections found in {groupPrefix(nsid)}.
             </p>
           ) : (
-            <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
-              {siblings.map((c, i) => (
-                <li
-                  key={c.nsid}
-                  style={{
-                    borderBottom:
-                      i === siblings.length - 1 ? undefined : '1px solid var(--border-subtle)',
-                  }}
-                >
-                  <Link
-                    href={lexiconPathFor(c.nsid)}
-                    prefetch={false}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      gap: '0.875rem',
-                      padding: '0.625rem 1rem',
-                      textDecoration: 'none',
-                      color: 'var(--text-primary)',
-                      transition: 'background 0.2s ease',
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.background = 'var(--bg-tertiary)';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.background = 'transparent';
-                    }}
-                  >
-                    <span
-                      style={{
-                        fontFamily: 'var(--font-mono)',
-                        fontSize: '0.8125rem',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap',
-                      }}
-                    >
-                      {c.nsid}
-                    </span>
-                    <span
-                      title={`${c.creates.toLocaleString()} creates`}
-                      style={{
-                        fontFamily: 'var(--font-mono)',
-                        fontSize: '0.75rem',
-                        color: 'var(--text-tertiary)',
-                        fontVariantNumeric: 'tabular-nums',
-                        whiteSpace: 'nowrap',
-                      }}
-                    >
+            <ul className="fn-list-rows">
+              {siblings.map((c) => (
+                <li key={c.nsid}>
+                  <Link href={lexiconPathFor(c.nsid)} prefetch={false} className="fn-row fn-browse-grid">
+                    <span className="fn-row-nsid">{c.nsid}</span>
+                    <span className="fn-row-count" title={`${c.creates.toLocaleString()} creates`}>
                       {formatCount(c.creates)}
                     </span>
                   </Link>
@@ -406,21 +279,7 @@ export default function LexiconDetail({ nsid }: { nsid: string }) {
             </ul>
           )}
           {siblings && siblings.length > 0 && groupPrefix(nsid).includes('.') && (
-            <Link
-              href={groupPathFor(groupPrefix(nsid))}
-              prefetch={false}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '0.3rem',
-                padding: '0.625rem 1rem',
-                borderTop: '1px solid var(--border-subtle)',
-                fontSize: '0.8125rem',
-                color: 'var(--text-accent)',
-                textDecoration: 'none',
-                fontFamily: 'var(--font-serif)',
-              }}
-            >
+            <Link href={groupPathFor(groupPrefix(nsid))} prefetch={false} className="fn-list-card-foot">
               Browse all of {groupPrefix(nsid)} →
             </Link>
           )}
@@ -429,82 +288,36 @@ export default function LexiconDetail({ nsid }: { nsid: string }) {
 
       {/* Recent samples */}
       <AppearIn delay={0.14}>
-        <Section title="Recent records" icon={<FileText size={13} aria-hidden />}>
+        <Section title="Recent records" icon={<FileText size={14} aria-hidden />}>
           {samples === null ? (
             <SkeletonList rows={5} />
           ) : samples.length === 0 ? (
-            <p className="explore-placeholder" style={{ margin: 0 }}>
+            <p className="explore-placeholder fn-list-card-msg">
               No recent records sampled for this lexicon.
             </p>
           ) : (
-            <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+            <ul className="fn-list-rows">
               {samples.slice(0, SAMPLE_LIMIT).map((r, i) => {
                 const href = explorePathFromAtUri(
                   `at://${r.did}/${r.collection}/${r.rkey}`,
                 );
                 const inner = (
                   <>
-                    <span
-                      style={{
-                        fontFamily: 'var(--font-mono)',
-                        fontSize: '0.75rem',
-                        color: 'var(--text-secondary)',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap',
-                      }}
-                    >
+                    <span className="fn-row-nsid">
                       {shortDid(r.did)}
                       <span style={{ color: 'var(--text-tertiary)' }}> / {r.rkey}</span>
                     </span>
-                    <span
-                      style={{
-                        fontFamily: 'var(--font-mono)',
-                        fontSize: '0.7rem',
-                        color: 'var(--text-tertiary)',
-                        whiteSpace: 'nowrap',
-                      }}
-                    >
-                      {relativeTime(r.time_us / 1000)}
-                    </span>
+                    <span className="fn-row-time">{relativeTime(r.time_us / 1000)}</span>
                   </>
                 );
-                const rowStyle: React.CSSProperties = {
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  gap: '0.875rem',
-                  padding: '0.55rem 1rem',
-                  textDecoration: 'none',
-                  color: 'var(--text-primary)',
-                  transition: 'background 0.2s ease',
-                };
                 return (
-                  <li
-                    key={`${r.did}-${r.rkey}-${i}`}
-                    style={{
-                      borderBottom:
-                        i === Math.min(samples.length, SAMPLE_LIMIT) - 1
-                          ? undefined
-                          : '1px solid var(--border-subtle)',
-                    }}
-                  >
+                  <li key={`${r.did}-${r.rkey}-${i}`}>
                     {href ? (
-                      <Link
-                        href={href}
-                        prefetch={false}
-                        style={rowStyle}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.background = 'var(--bg-tertiary)';
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.background = 'transparent';
-                        }}
-                      >
+                      <Link href={href} prefetch={false} className="fn-row fn-sample-row">
                         {inner}
                       </Link>
                     ) : (
-                      <div style={rowStyle}>{inner}</div>
+                      <div className="fn-sample-row">{inner}</div>
                     )}
                   </li>
                 );
@@ -515,7 +328,7 @@ export default function LexiconDetail({ nsid }: { nsid: string }) {
       </AppearIn>
 
       <AppearIn delay={0.16}>
-        <div style={{ border: '1px solid var(--border-medium)', background: 'var(--bg-secondary)' }}>
+        <div className="fn-list-card">
           <Credit />
         </div>
       </AppearIn>
@@ -543,25 +356,11 @@ function StatTile({
       ? ((current - prior) / prior) * 100
       : null;
   return (
-    <div
-      style={{
-        background: 'var(--bg-secondary)',
-        padding: '0.875rem 1rem',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '0.35rem',
-      }}
-    >
-      <span className="explore-small-caps">{label}</span>
+    <div className="fn-stat">
+      <span className="fn-stat-label">{label}</span>
       <span
+        className="fn-stat-value"
         title={current != null ? current.toLocaleString() : undefined}
-        style={{
-          fontFamily: 'var(--font-serif)',
-          fontSize: '1.35rem',
-          color: 'var(--text-primary)',
-          fontVariantNumeric: 'tabular-nums',
-          lineHeight: 1.1,
-        }}
       >
         {current == null ? (
           <Skeleton width="3rem" height="1.1rem" />
@@ -588,38 +387,25 @@ function Section({
   children: React.ReactNode;
 }) {
   return (
-    <div style={{ border: '1px solid var(--border-medium)', background: 'var(--bg-secondary)' }}>
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '0.4rem',
-          padding: '0.75rem 1rem',
-          borderBottom: '1px solid var(--border-subtle)',
-        }}
-        className="explore-small-caps"
-      >
-        <span style={{ color: 'var(--text-accent)', display: 'inline-flex' }}>{icon}</span>
-        {title}
+    <section className="fn-list-card">
+      <div className="fn-list-card-head">
+        <div className="fn-list-card-title-row">
+          <span className="fn-list-card-icon" aria-hidden>
+            {icon}
+          </span>
+          <h2 className="fn-list-card-title">{title}</h2>
+        </div>
       </div>
       {children}
-    </div>
+    </section>
   );
 }
 
 function SkeletonList({ rows }: { rows: number }) {
   return (
-    <ul aria-hidden style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+    <ul aria-hidden className="fn-list-rows">
       {Array.from({ length: rows }).map((_, i) => (
-        <li
-          key={i}
-          style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            padding: '0.625rem 1rem',
-            borderBottom: i === rows - 1 ? undefined : '1px solid var(--border-subtle)',
-          }}
-        >
+        <li key={i} className="fn-sample-row">
           <Skeleton width={`${50 + ((i * 7) % 30)}%`} height="0.75rem" />
           <Skeleton width="2.5rem" height="0.75rem" />
         </li>

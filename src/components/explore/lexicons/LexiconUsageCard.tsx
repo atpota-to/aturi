@@ -67,21 +67,31 @@ export default function LexiconUsageCard({ collection }: { collection: string })
         flexWrap: 'wrap',
         alignItems: 'center',
         gap: '1.25rem',
-        padding: '0.875rem 1rem',
+        padding: '14px 16px',
         border: '1px solid var(--border-medium)',
+        borderRadius: 'var(--radius-card)',
         background: 'var(--bg-secondary)',
         textDecoration: 'none',
         color: 'var(--text-primary)',
         transition: 'background 0.2s ease',
       }}
       onMouseEnter={(e) => {
-        e.currentTarget.style.background = 'var(--bg-tertiary)';
+        e.currentTarget.style.background = 'var(--surface-subtle)';
       }}
       onMouseLeave={(e) => {
         e.currentTarget.style.background = 'var(--bg-secondary)';
       }}
     >
-      <span className="explore-small-caps" style={{ flexBasis: '100%' }}>
+      <span
+        style={{
+          flexBasis: '100%',
+          fontSize: '12px',
+          fontWeight: 700,
+          letterSpacing: '0.06em',
+          textTransform: 'uppercase',
+          color: 'var(--text-accent)',
+        }}
+      >
         Lexicon usage · across the atmosphere · 7d
       </span>
 
@@ -110,7 +120,7 @@ export default function LexiconUsageCard({ collection }: { collection: string })
           marginLeft: series.some((v) => v > 0) ? undefined : 'auto',
           fontSize: '0.8125rem',
           color: 'var(--text-accent)',
-          fontFamily: 'var(--font-serif)',
+          fontWeight: 600,
           whiteSpace: 'nowrap',
         }}
       >
@@ -135,7 +145,7 @@ function Stat({
       title={label}
     >
       <span style={{ color: 'var(--text-tertiary)', display: 'inline-flex' }}>{icon}</span>
-      <span style={{ fontVariantNumeric: 'tabular-nums', color: 'var(--text-primary)' }}>
+      <span style={{ fontVariantNumeric: 'tabular-nums', color: 'var(--text-primary)', fontWeight: 600 }}>
         {value ?? '—'}
       </span>
       <span style={{ color: 'var(--text-tertiary)', fontSize: '0.8125rem' }}>{label}</span>

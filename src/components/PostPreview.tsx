@@ -86,7 +86,8 @@ export default function PostPreview({ post, parent, hideExplorerCtas }: PostPrev
             border: '1px solid var(--border-medium)',
             padding: '1rem',
             marginBottom: '1rem',
-            background: 'var(--bg-tertiary)',
+            borderRadius: 'var(--radius-control)',
+            background: 'var(--surface-subtle)',
             color: 'var(--text-tertiary)',
             fontSize: '0.875rem',
           }}
@@ -126,7 +127,8 @@ export default function PostPreview({ post, parent, hideExplorerCtas }: PostPrev
           border: '1px solid var(--border-medium)',
           padding: '1rem',
           marginBottom: '1rem',
-          background: 'var(--bg-tertiary)',
+          borderRadius: 'var(--radius-control)',
+          background: 'var(--surface-subtle)',
           transition: 'border-color 0.2s ease',
           ...(quoteUrl ? { cursor: 'pointer' } : {}),
         }}
@@ -143,7 +145,8 @@ export default function PostPreview({ post, parent, hideExplorerCtas }: PostPrev
                 style={{
                   width: '24px',
                   height: '24px',
-                  border: '1px solid var(--accent-stone)',
+                  border: '1px solid var(--border-medium)',
+                  borderRadius: '50%',
                   overflow: 'hidden',
                   transition: 'border-color 0.2s ease',
                 }}
@@ -151,7 +154,7 @@ export default function PostPreview({ post, parent, hideExplorerCtas }: PostPrev
                   e.currentTarget.style.borderColor = 'var(--text-accent)';
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.borderColor = 'var(--accent-stone)';
+                  e.currentTarget.style.borderColor = 'var(--border-medium)';
                 }}
               >
                 <img
@@ -170,7 +173,8 @@ export default function PostPreview({ post, parent, hideExplorerCtas }: PostPrev
                 style={{
                   width: '24px',
                   height: '24px',
-                  border: '1px solid var(--accent-stone)',
+                  border: '1px solid var(--border-medium)',
+                  borderRadius: '50%',
                   background: 'var(--bg-secondary)',
                   display: 'flex',
                   alignItems: 'center',
@@ -181,7 +185,7 @@ export default function PostPreview({ post, parent, hideExplorerCtas }: PostPrev
                   e.currentTarget.style.borderColor = 'var(--text-accent)';
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.borderColor = 'var(--accent-stone)';
+                  e.currentTarget.style.borderColor = 'var(--border-medium)';
                 }}
               >
                 <User size={14} color="var(--text-tertiary)" />
@@ -257,7 +261,7 @@ export default function PostPreview({ post, parent, hideExplorerCtas }: PostPrev
                 marginTop="0.5rem"
                 maxHeight="200px"
                 background="var(--bg-secondary)"
-                boxShadow="0 2px 8px rgba(0, 0, 0, 0.3)"
+                boxShadow="none"
                 stopPropagation
               />
             );
@@ -478,8 +482,9 @@ export default function PostPreview({ post, parent, hideExplorerCtas }: PostPrev
             position: 'relative',
             marginBottom: '-1.5rem',
             padding: '1rem 1.25rem',
-            background: 'var(--bg-tertiary)',
+            background: 'var(--surface-subtle)',
             border: '1px solid var(--border-medium)',
+            borderRadius: 'var(--radius-card)',
             transform: 'scale(0.96)',
             transformOrigin: 'top center',
             transition: 'all 0.4s ease',
@@ -512,7 +517,8 @@ export default function PostPreview({ post, parent, hideExplorerCtas }: PostPrev
                   style={{
                     width: '32px',
                     height: '32px',
-                    border: '1px solid var(--accent-stone)',
+                    border: '1px solid var(--border-medium)',
+                  borderRadius: '50%',
                     overflow: 'hidden',
                     transition: 'border-color 0.2s ease',
                   }}
@@ -520,7 +526,7 @@ export default function PostPreview({ post, parent, hideExplorerCtas }: PostPrev
                     e.currentTarget.style.borderColor = 'var(--text-accent)';
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.borderColor = 'var(--accent-stone)';
+                    e.currentTarget.style.borderColor = 'var(--border-medium)';
                   }}
                 >
                   <img
@@ -539,7 +545,8 @@ export default function PostPreview({ post, parent, hideExplorerCtas }: PostPrev
                   style={{
                     width: '32px',
                     height: '32px',
-                    border: '1px solid var(--accent-stone)',
+                    border: '1px solid var(--border-medium)',
+                  borderRadius: '50%',
                     background: 'var(--bg-secondary)',
                     display: 'flex',
                     alignItems: 'center',
@@ -550,7 +557,7 @@ export default function PostPreview({ post, parent, hideExplorerCtas }: PostPrev
                     e.currentTarget.style.borderColor = 'var(--text-accent)';
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.borderColor = 'var(--accent-stone)';
+                    e.currentTarget.style.borderColor = 'var(--border-medium)';
                   }}
                 >
                   <User size={16} color="var(--text-tertiary)" />
@@ -634,7 +641,7 @@ export default function PostPreview({ post, parent, hideExplorerCtas }: PostPrev
                     gap="0.25rem"
                     maxHeight="120px"
                     background="var(--bg-secondary)"
-                    boxShadow="0 2px 8px rgba(0, 0, 0, 0.3)"
+                    boxShadow="none"
                     limit={2}
                     stopPropagation
                   />
@@ -668,14 +675,15 @@ export default function PostPreview({ post, parent, hideExplorerCtas }: PostPrev
         style={{
           position: 'relative',
           marginBottom: '2rem',
-          padding: '1.5rem',
+          padding: '1.25rem',
           background: 'var(--bg-secondary)',
           border: '1px solid var(--border-medium)',
           transition: 'all 0.4s ease',
-          boxShadow: parent ? '0 8px 24px rgba(0, 0, 0, 0.4)' : 'none',
+          boxShadow: 'none',
+          borderRadius: 'var(--radius-card)',
           zIndex: 1,
         }}
-        className="card"
+        className="card post-preview"
       >
       {/* Author Info */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
@@ -688,7 +696,8 @@ export default function PostPreview({ post, parent, hideExplorerCtas }: PostPrev
               style={{
                 width: '48px',
                 height: '48px',
-                border: '2px solid var(--accent-stone)',
+                border: '1px solid var(--border-medium)',
+                borderRadius: '50%',
                 overflow: 'hidden',
                 transition: 'border-color 0.2s ease',
               }}
@@ -696,7 +705,7 @@ export default function PostPreview({ post, parent, hideExplorerCtas }: PostPrev
                 e.currentTarget.style.borderColor = 'var(--text-accent)';
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.borderColor = 'var(--accent-stone)';
+                e.currentTarget.style.borderColor = 'var(--border-medium)';
               }}
             >
               <img
@@ -716,7 +725,8 @@ export default function PostPreview({ post, parent, hideExplorerCtas }: PostPrev
               style={{
                 width: '48px',
                 height: '48px',
-                border: '2px solid var(--accent-stone)',
+                border: '1px solid var(--border-medium)',
+                borderRadius: '50%',
                 background: 'var(--bg-tertiary)',
                 display: 'flex',
                 alignItems: 'center',
@@ -727,7 +737,7 @@ export default function PostPreview({ post, parent, hideExplorerCtas }: PostPrev
                 e.currentTarget.style.borderColor = 'var(--text-accent)';
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.borderColor = 'var(--accent-stone)';
+                e.currentTarget.style.borderColor = 'var(--border-medium)';
               }}
             >
               <User size={24} color="var(--text-tertiary)" />
@@ -759,7 +769,7 @@ export default function PostPreview({ post, parent, hideExplorerCtas }: PostPrev
               </span>
             )}
           </a>
-          <div style={{ fontSize: '0.875rem', lineHeight: '1.2' }}>
+          <div style={{ fontSize: '0.8125rem', lineHeight: '1.3', fontFamily: 'var(--font-mono)' }}>
             <a
               href={`/${sanitizeDid(author.did) || sanitizeHandle(author.handle)}`}
               style={{
@@ -796,7 +806,7 @@ export default function PostPreview({ post, parent, hideExplorerCtas }: PostPrev
             marginBottom="1rem"
             maxHeight="1000px"
             background="var(--bg-tertiary)"
-            boxShadow="0 4px 12px rgba(0, 0, 0, 0.4)"
+            boxShadow="none"
           />
         );
       })()}
@@ -840,7 +850,7 @@ export default function PostPreview({ post, parent, hideExplorerCtas }: PostPrev
                 marginBottom="1rem"
                 maxHeight="1000px"
                 background="var(--bg-tertiary)"
-                boxShadow="0 4px 12px rgba(0, 0, 0, 0.4)"
+                boxShadow="none"
               />
             );
           })()}

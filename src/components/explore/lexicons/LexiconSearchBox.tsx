@@ -132,12 +132,12 @@ export default function LexiconSearchBox() {
     <form onSubmit={onSubmit} style={{ display: 'flex', alignItems: 'stretch', gap: '0.5rem', position: 'relative' }}>
       <div ref={wrapRef} style={{ flex: 1, minWidth: 0, position: 'relative' }}>
         <Search
-          size={16}
+          size={17}
           style={{
             position: 'absolute',
             top: '50%',
             transform: 'translateY(-50%)',
-            left: '0.875rem',
+            left: '14px',
             color: 'var(--text-tertiary)',
             pointerEvents: 'none',
           }}
@@ -146,7 +146,8 @@ export default function LexiconSearchBox() {
           type="text"
           autoComplete="off"
           spellCheck={false}
-          placeholder="search lexicons, e.g. app.bsky.feed.post, grain, smokesignal"
+          placeholder="Search lexicons, e.g. app.bsky.feed.post, grain, smokesignal"
+          aria-label="Search lexicons"
           value={value}
           onChange={(e) => {
             setValue(e.target.value);
@@ -157,7 +158,7 @@ export default function LexiconSearchBox() {
             e.currentTarget.style.borderColor = 'var(--text-accent)';
           }}
           onBlur={(e) => {
-            e.currentTarget.style.borderColor = 'var(--border-medium)';
+            e.currentTarget.style.borderColor = 'var(--border-strong)';
           }}
           onKeyDown={onKeyDown}
           role="combobox"
@@ -169,12 +170,15 @@ export default function LexiconSearchBox() {
           }
           style={{
             width: '100%',
-            padding: '0.75rem 0.875rem 0.75rem 2.5rem',
+            height: '48px',
+            boxSizing: 'border-box',
+            padding: '0 14px 0 41px',
             background: 'var(--bg-secondary)',
-            border: '1px solid var(--border-medium)',
+            border: '1px solid var(--border-strong)',
+            borderRadius: '10px',
             color: 'var(--text-primary)',
-            fontFamily: 'var(--font-mono)',
-            fontSize: '0.8rem',
+            fontFamily: 'var(--font-sans)',
+            fontSize: '15px',
             outline: 'none',
             transition: 'border-color 0.2s ease',
           }}
@@ -189,6 +193,7 @@ export default function LexiconSearchBox() {
               right: 0,
               background: 'var(--bg-secondary)',
               border: '1px solid var(--border-medium)',
+              borderRadius: '10px',
               boxShadow: 'var(--shadow-overlay)',
               zIndex: 30,
               maxHeight: '24rem',
@@ -301,12 +306,15 @@ export default function LexiconSearchBox() {
       <button
         type="submit"
         style={{
-          padding: '0.75rem 1.25rem',
+          height: '48px',
+          padding: '0 20px',
           background: 'var(--accent-moss)',
           color: 'var(--text-on-accent)',
           border: '1px solid var(--accent-moss)',
-          fontFamily: 'var(--font-serif)',
-          fontSize: '0.95rem',
+          borderRadius: '10px',
+          fontFamily: 'var(--font-sans)',
+          fontSize: '15px',
+          fontWeight: 600,
           cursor: 'pointer',
           transition: 'background 0.2s ease',
         }}
