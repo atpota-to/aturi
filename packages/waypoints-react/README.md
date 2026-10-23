@@ -155,8 +155,8 @@ const { waypoints } = useWaypoints({
   ))}
 ```
 
-The `prefillsText` filter matters: one client routes the intent but ignores the
-text, so without it a share button would open an empty composer. Drop the filter
+The `prefillsText` filter matters: a client that routes the intent but ignores
+the text would turn a share button into an empty composer. Drop the filter
 when you just want to send someone to a composer. Custom waypoints can declare a
 `composeIntent` of their own and they'll surface the same way.
 

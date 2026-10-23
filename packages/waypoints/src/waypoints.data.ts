@@ -382,9 +382,7 @@ export const WAYPOINT_DESTINATIONS_DATA: Record<string, WaypointData> = {
     },
     supportedTypes: ['post', 'profile', 'list', 'record'],
     category: 'blueskyClients',
-    // Impro routes /intent/compose to its home view, which opens the composer
-    // for a signed-in user — but it never reads `?text`, so no textParam here.
-    composeIntent: { url: 'https://impro.social/intent/compose' },
+    composeIntent: socialAppComposeIntent('https://impro.social'),
     redirectCompat: ['bluesky-social'],
     expectedCollections: ['app.bsky.'],
   },

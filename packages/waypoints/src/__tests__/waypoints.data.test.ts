@@ -110,12 +110,12 @@ describe('getRecommendedWaypointsData', () => {
 
 describe('compose intents', () => {
   // Each of these was confirmed against the client's shipped bundle: the
-  // social-app forks all parse `/intent/compose?text=`, Impro routes the path
-  // but drops the text. Anisota is the exception — its route is in flight, so
+  // social-app forks and Impro all parse `/intent/compose?text=`. Anisota is the exception — its route is in flight, so
   // this asserts the shape we agreed on, not something already deployed.
   // Anything not listed here has no confirmed route.
   it.each([
     ['bluesky', 'https://bsky.app/intent/compose?text=hello%20there'],
+    ['impro', 'https://impro.social/intent/compose?text=hello%20there'],
     ['anisota', 'https://anisota.net/intent/compose?text=hello%20there'],
     ['blacksky', 'https://blacksky.community/intent/compose?text=hello%20there'],
     ['deer', 'https://deer.social/intent/compose?text=hello%20there'],
@@ -127,12 +127,17 @@ describe('compose intents', () => {
   });
 
   it('drops the text for a client that ignores it', () => {
-    const impro = WAYPOINT_DESTINATIONS_DATA.impro;
-    expect(supportsComposeIntent(impro)).toBe(true);
-    expect(getComposeIntentUrl(impro, 'hello there')).toBe(
-      'https://impro.social/intent/compose',
+    // No catalog client does this today, but custom waypoints can declare it.
+    const waypoint = {
+      ...WAYPOINT_DESTINATIONS_DATA.bluesky,
+      composeIntent: { url: 'https://example.com/intent/compose' },
+    };
+    expect(supportsComposeIntent(waypoint)).toBe(true);
+    expect(getComposeIntentUrl(waypoint, 'hello there')).toBe(
+      'https://example.com/intent/compose',
     );
-    expect(describeComposeIntent(impro)?.prefillsText).toBe(false);
+    expect(getComposeIntentTemplate(waypoint)).toBe('https://example.com/intent/compose');
+    expect(describeComposeIntent(waypoint)?.prefillsText).toBe(false);
   });
 
   it('returns null for clients with no confirmed intent route', () => {
@@ -169,10 +174,6 @@ describe('compose intents', () => {
   it('templates the text placeholder for callers that build their own links', () => {
     expect(getComposeIntentTemplate(WAYPOINT_DESTINATIONS_DATA.deer)).toBe(
       'https://deer.social/intent/compose?text={text}',
-    );
-    // No placeholder when the client won't read it.
-    expect(getComposeIntentTemplate(WAYPOINT_DESTINATIONS_DATA.impro)).toBe(
-      'https://impro.social/intent/compose',
     );
   });
 
