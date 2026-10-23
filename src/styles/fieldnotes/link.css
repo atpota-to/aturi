@@ -416,24 +416,27 @@
   color: var(--text-tertiary);
 }
 
+/* Same values as .fn-segmented (explore.css), the site's one segmented
+   control: it had its own bordered white track and a pale-green chosen
+   option, so the two toggles on the settings page looked unrelated. */
 .waypoint-layout-toggle {
   display: inline-flex;
-  gap: 2px;
-  padding: 2px;
-  border: 1px solid var(--border-medium);
+  gap: 0;
+  padding: 3px;
+  border: 0;
   border-radius: var(--radius-control);
-  background: var(--bg-secondary);
+  background: var(--bg-tertiary);
 }
 
 .waypoint-layout-option {
-  min-width: 30px;
+  min-width: 32px;
   min-height: 28px;
   justify-content: center;
   padding: 0.25rem 0.5rem;
   border: none;
   border-right: none;
   border-radius: 6px;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 
 .waypoint-layout-toggle.is-labelled .waypoint-layout-option {
@@ -444,14 +447,19 @@
 }
 
 .waypoint-layout-option:hover {
-  background: var(--bg-tertiary);
+  background: transparent;
   color: var(--text-primary);
 }
 
 .waypoint-layout-option.is-active,
 .waypoint-layout-option.is-active:hover {
-  background: var(--accent-soft);
-  color: var(--accent-soft-fg);
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  box-shadow: 0 1px 2px rgb(28 30 25 / 0.12);
+}
+
+:root:not([data-theme='light']) .waypoint-layout-option.is-active {
+  background: var(--border-strong);
 }
 
 /* --- Groups -------------------------------------------------------------- */
@@ -478,10 +486,12 @@
   display: none;
 }
 
+/* The group's count is read, so it takes --text-tertiary; --text-faint is
+   about 2.3:1 on paper. */
 .fn-lp-picker .waypoint-group-label em {
   font-style: normal;
   font-weight: 500;
-  color: var(--text-faint);
+  color: var(--text-tertiary);
 }
 
 .fn-lp-picker .waypoint-group-label.is-highlighted {
@@ -534,11 +544,13 @@
   color: var(--text-accent);
 }
 
+/* --text-tertiary rather than faint: on touch this button is always shown
+   (below), and a control needs 3:1 against the row to be found. */
 .fn-lp-picker .waypoint-row-copy {
   width: 40px;
   justify-content: center;
   padding: 0;
-  color: var(--text-faint);
+  color: var(--text-tertiary);
 }
 
 .fn-lp-picker .waypoint-row-copy:hover {
@@ -553,7 +565,7 @@
   opacity: 1;
 }
 
-/* Touch: no hover to reveal the copy button, so it stays, faint. The host
+/* Touch: no hover to reveal the copy button, so it stays. The host
    stays too (the design keeps it at phone width); it ellipsises first. */
 @media (hover: none), (max-width: 600px) {
   .fn-lp-picker .waypoint-row-copy {
@@ -1102,6 +1114,12 @@
   font-size: 0.9375rem;
   line-height: 1.55;
   color: var(--text-secondary);
+}
+
+/* The raw resolver error, folded away under the plain-language body. Its
+   box needs its own gap above the search field it sits on. */
+.fn-lp-notfound-details {
+  margin: -0.5rem 0 1.25rem;
 }
 
 .fn-lp-notfound-search {

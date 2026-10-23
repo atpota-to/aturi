@@ -262,7 +262,13 @@ export default function ThreadView({ did, rkey }: { did: string; rkey: string })
         <p className="fn-fb-locked">
           <Lock size={14} />
           This thread was locked. Replies posted after{' '}
-          <time dateTime={lockedAt}>{new Date(lockedAt).toLocaleDateString()}</time> aren&rsquo;t
+          <time dateTime={lockedAt}>
+            {new Date(lockedAt).toLocaleDateString('en-US', {
+              month: 'short',
+              day: 'numeric',
+              year: 'numeric',
+            })}
+          </time> aren&rsquo;t
           shown.
         </p>
       ) : null}

@@ -18,6 +18,12 @@ type Props = {
    * what they just typed.
    */
   initialQuery?: string;
+  /**
+   * The raw error behind a resolve failure, shown collapsed under
+   * "Technical details" (as the record-not-found card does) so the body can
+   * say what happened in plain words.
+   */
+  details?: string | null;
 };
 
 /**
@@ -30,8 +36,9 @@ type Props = {
 export default function NotFoundPanel({
   eyebrow = '404 · Not found',
   headline = 'Lost in the Atmosphere.',
-  body = "The path you tried didn't resolve. Search for a handle, DID, or AT URI to keep looking, or head home.",
+  body = 'The path you tried didn’t resolve. Search for a handle, DID, or AT URI to keep looking, or head home.',
   initialQuery,
+  details,
 }: Props) {
   return (
     <motion.section
@@ -53,6 +60,15 @@ export default function NotFoundPanel({
       <h1 className="fn-lp-notfound-title">{headline}</h1>
 
       <p className="fn-lp-notfound-body">{body}</p>
+
+      {details && (
+        <details className="explore-section fn-lp-notfound-details">
+          <summary>Technical details</summary>
+          <p className="explore-error" style={{ marginTop: '0.5rem' }}>
+            {details}
+          </p>
+        </details>
+      )}
 
       <div className="fn-lp-notfound-search">
         <SearchBox initial={initialQuery} />

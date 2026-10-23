@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { ArrowUpRight, Boxes, Users } from 'lucide-react';
 import { Sparkline } from './primitives';
-import { fetchCollectionStats, fetchTimeseries } from '@/utils/ufos/client';
+import { fetchCollectionStatsResult, fetchTimeseries } from '@/utils/ufos/client';
 import { isoAgo, type JustCount } from '@/utils/ufos/config';
 import { formatCount } from '@/utils/ufos/format';
 import { lexiconPathFor } from '@/utils/ufos/nsid';
@@ -33,16 +33,19 @@ export default function LexiconUsageCard({ collection }: { collection: string })
     const sinceIso = isoAgo(WINDOW_HOURS);
     (async () => {
       const [statsRes, tsRes] = await Promise.allSettled([
-        fetchCollectionStats({ collections: [collection], since: sinceIso }),
+        // The failure-aware call: the plain one answers an outage with an
+        // empty map, which read here as "0 creates · 0 repos" for even the
+        // busiest lexicon in the network.
+        fetchCollectionStatsResult({ collections: [collection], since: sinceIso }),
         fetchTimeseries({ collection, since: sinceIso, step: SERIES_STEP }),
       ]);
       if (cancelled) return;
-      if (statsRes.status === 'fulfilled' && statsRes.value.has(collection)) {
-        setStats(statsRes.value.get(collection)!);
-      } else if (statsRes.status === 'fulfilled') {
-        setStats({ creates: 0, updates: 0, deletes: 0, dids_estimate: 0 });
-      } else {
+      if (statsRes.status === 'rejected' || statsRes.value.failed) {
         setFailed(true);
+      } else if (statsRes.value.stats.has(collection)) {
+        setStats(statsRes.value.stats.get(collection)!);
+      } else {
+        setStats({ creates: 0, updates: 0, deletes: 0, dids_estimate: 0 });
       }
       if (tsRes.status === 'fulfilled') {
         setSeries(tsRes.value.series.get(collection)?.map((b) => b.creates) ?? []);

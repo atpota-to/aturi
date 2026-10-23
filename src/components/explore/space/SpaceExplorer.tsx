@@ -80,8 +80,8 @@ export default function SpaceExplorer({
     return (
       <NotFoundPanel
         eyebrow="Not a space address"
-        headline="That isn't a space address."
-        body={`A space is addressed as at://{did}/space/{type}/{key}, where the type is a lexicon NSID and the key is a record key. "${spaceType}/${skey}" isn't one.`}
+        headline="That isn’t a space address."
+        body={`A space is addressed as at://{did}/space/{type}/{key}, where the type is a lexicon NSID and the key is a record key. "${spaceType}/${skey}" isn’t one.`}
         initialQuery={spaceType}
       />
     );
@@ -89,9 +89,10 @@ export default function SpaceExplorer({
   if (error) {
     return (
       <NotFoundPanel
-        eyebrow="Couldn't resolve"
-        headline="That handle didn't resolve."
-        body={`We tried to resolve "${repo}" and the AT Protocol resolver returned: ${error}. Try another handle, DID, or AT URI below.`}
+        eyebrow="Couldn’t resolve"
+        headline="That handle didn’t resolve."
+        body={`We couldn’t find an account for “${repo}”. Check the spelling, or try a DID or an at:// URI below.`}
+        details={error}
         initialQuery={repo}
       />
     );

@@ -47,7 +47,9 @@ export default function BacklinksTab({
         setSources(null);
         return;
       }
-      setSources(flattenSources(raw) || []);
+      // A source with no links behind it is not a source: listed, it read
+      // as "0 backlinks · 0 accounts" and inflated "across N sources".
+      setSources((flattenSources(raw) || []).filter((s) => s.count > 0));
     });
     return () => {
       cancelled = true;
@@ -109,6 +111,7 @@ function BacklinksSummaryPanel({
     ? sources!.reduce((sum, s) => sum + (s.distinctDids ?? 0), 0)
     : 0;
   const sourceCount = ready ? sources.length : 0;
+  const empty = ready && sourceCount === 0;
 
   return (
     <section
@@ -122,7 +125,7 @@ function BacklinksSummaryPanel({
       <header
         style={{
           padding: '1rem 1.25rem',
-          borderBottom: '1px solid var(--border-medium)',
+          borderBottom: empty ? undefined : '1px solid var(--border-medium)',
           background: 'var(--surface-subtle)',
           display: 'flex',
           alignItems: 'baseline',
@@ -183,20 +186,19 @@ function BacklinksSummaryPanel({
           </a>
         </span>
       </header>
-      <div style={{ padding: '0.75rem' }}>
-        {sources === undefined && <BacklinksTabSkeleton />}
-        {sources === null && (
-          <div style={{ padding: '0.5rem 0.25rem' }}>
-            <BacklinksUnavailable />
-          </div>
-        )}
-        {Array.isArray(sources) && sources.length === 0 && (
-          <p className="explore-muted" style={{ margin: 0, padding: '0.5rem 0.25rem' }}>
-            Nothing references this record yet.
-          </p>
-        )}
-        {children}
-      </div>
+      {/* With nothing to list, the header's "no records reference this
+          yet" is the whole message; a body saying it again added a band. */}
+      {!empty && (
+        <div style={{ padding: '0.75rem' }}>
+          {sources === undefined && <BacklinksTabSkeleton />}
+          {sources === null && (
+            <div style={{ padding: '0.5rem 0.25rem' }}>
+              <BacklinksUnavailable />
+            </div>
+          )}
+          {children}
+        </div>
+      )}
     </section>
   );
 }

@@ -309,8 +309,10 @@
   background: var(--bg-tertiary);
 }
 
+/* Same values as .fn-segmented (explore.css), the site's one segmented
+   control. */
 .settings-seg-option {
-  height: 30px;
+  height: 28px;
   padding: 0 12px;
   border: 0;
   border-radius: 6px;
@@ -332,11 +334,16 @@
   background: var(--bg-secondary);
   color: var(--text-primary);
   font-weight: 600;
-  box-shadow: 0 1px 2px rgba(28, 30, 25, 0.12);
+  box-shadow: 0 1px 2px rgb(28 30 25 / 0.12);
 }
 
 :root:not([data-theme='light']) .settings-seg-option.is-active {
   background: var(--border-strong);
+}
+
+.settings-seg-option:focus-visible {
+  outline: 2px solid var(--text-accent);
+  outline-offset: 1px;
 }
 
 /* Shared buttons for the settings surfaces. */
@@ -550,6 +557,11 @@
 .scheme-option-hint {
   font-size: 12px;
   color: var(--text-tertiary);
+}
+
+/* On the pale-green selected card, tertiary falls to about 4.3:1. */
+.scheme-option.is-active .scheme-option-hint {
+  color: var(--text-secondary);
 }
 
 .scheme-swatch {
@@ -1572,6 +1584,8 @@
 }
 
 .cw-chip {
+  /* Anchors the visually hidden checkbox (.fn-sr-only is absolute). */
+  position: relative;
   display: inline-flex;
   align-items: center;
   height: 30px;
@@ -1585,6 +1599,13 @@
   cursor: pointer;
   user-select: none;
   transition: background 0.12s ease, color 0.12s ease, border-color 0.12s ease;
+}
+
+/* The checkbox inside is visually hidden but stays in the tab order, so the
+   chip shows its focus. */
+.cw-chip:has(input:focus-visible) {
+  outline: 2px solid var(--text-accent);
+  outline-offset: 2px;
 }
 
 .cw-chip:hover {
@@ -1881,11 +1902,25 @@
   font-size: 12.5px;
 }
 
+/* Tertiary on the active row's pale green is about 4.3:1; secondary holds. */
+.cmdk-item.is-active .cmdk-item-desc {
+  color: var(--text-secondary);
+}
+
 .cmdk-footer {
   gap: 14px;
   padding: 8px 14px;
   background: var(--surface-subtle);
   border-top: 1px solid var(--border-medium);
+}
+
+/* Touch screens have no keyboard to use the shortcut hints with, and on a
+   phone they took the width each row's description needed. */
+@media (hover: none) {
+  .cmdk-item-kbd,
+  .cmdk-footer {
+    display: none;
+  }
 }
 
 .cmdk-hint {
@@ -2084,6 +2119,18 @@
   background: var(--accent-forest);
   border-color: var(--accent-forest);
   color: var(--text-on-accent);
+}
+
+.whats-new-btn.is-secondary {
+  background: var(--bg-secondary);
+  border-color: var(--border-strong);
+  color: var(--text-primary);
+}
+
+.whats-new-btn.is-secondary:hover {
+  background: var(--bg-tertiary);
+  border-color: var(--border-strong);
+  color: var(--text-primary);
 }
 
 .whats-new-optout {

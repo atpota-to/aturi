@@ -59,8 +59,8 @@ export default function SpaceRepoExplorer({
     return (
       <NotFoundPanel
         eyebrow="Not a space address"
-        headline="That isn't a space address."
-        body={`Inside a space, a member is named by DID: at://{authority}/space/${spaceType}/${skey}/{did}. "${author}" isn't a DID, so there is no repository it could name.`}
+        headline="That isn’t a space address."
+        body={`Inside a space, a member is named by DID: at://{authority}/space/${spaceType}/${skey}/{did}. "${author}" isn’t a DID, so there is no repository it could name.`}
         initialQuery={author}
       />
     );
@@ -69,9 +69,10 @@ export default function SpaceRepoExplorer({
     const failed = error ? repo : author;
     return (
       <NotFoundPanel
-        eyebrow="Couldn't resolve"
-        headline="That identifier didn't resolve."
-        body={`We tried to resolve "${failed}" and the AT Protocol resolver returned: ${error || authorError}. Try another handle, DID, or AT URI below.`}
+        eyebrow="Couldn’t resolve"
+        headline="That identifier didn’t resolve."
+        body={`We couldn’t find an account for “${failed}”. Check the spelling, or try a DID or an at:// URI below.`}
+        details={error || authorError}
         initialQuery={failed}
       />
     );

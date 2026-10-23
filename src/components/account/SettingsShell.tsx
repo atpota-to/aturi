@@ -101,17 +101,47 @@ export default function SettingsShell() {
     }
   }, [tab]);
 
+  // The WAI-ARIA tabs pattern, as on the explorer's repository tabs: the
+  // list is one tab stop, and the arrow keys (either axis, since the list is
+  // a column on desktop and a row on phones), Home and End move between
+  // tabs, opening each as it takes focus.
+  function onTabKeyDown(e: React.KeyboardEvent<HTMLElement>) {
+    const at = TABS.findIndex((t) => t.id === tab);
+    const step: Record<string, number> = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 };
+    const next =
+      e.key in step
+        ? (at + step[e.key] + TABS.length) % TABS.length
+        : e.key === 'Home'
+          ? 0
+          : e.key === 'End'
+            ? TABS.length - 1
+            : -1;
+    if (next < 0) return;
+    e.preventDefault();
+    pick(TABS[next].id);
+    document.getElementById(`settings-tab-${TABS[next].id}`)?.focus();
+  }
+
   const current = TABS.find((t) => t.id === tab) ?? TABS[0];
 
   return (
     <div className="settings-shell">
       <header className="settings-header">
-        <nav ref={navRef} className="settings-nav" role="tablist">
+        <nav
+          ref={navRef}
+          className="settings-nav"
+          role="tablist"
+          aria-label="Settings sections"
+          onKeyDown={onTabKeyDown}
+        >
           {TABS.map((t) => (
             <button
               key={t.id}
+              id={`settings-tab-${t.id}`}
               role="tab"
               aria-selected={tab === t.id}
+              aria-controls="settings-panel"
+              tabIndex={tab === t.id ? 0 : -1}
               className={`settings-nav-item ${tab === t.id ? 'is-active' : ''}`}
               onClick={() => pick(t.id)}
             >
@@ -121,7 +151,14 @@ export default function SettingsShell() {
         </nav>
       </header>
 
-      <main className="settings-content">
+      {/* The tab panel, not a second <main>: the layout already provides
+          the page's main landmark, and this one sat nested inside it. */}
+      <div
+        id="settings-panel"
+        role="tabpanel"
+        aria-labelledby={`settings-tab-${tab}`}
+        className="settings-content"
+      >
         <div className="settings-page-head">
           <h1 className="settings-page-title">{current.label}</h1>
           <p className="settings-page-lede">{current.lede}</p>
@@ -135,7 +172,7 @@ export default function SettingsShell() {
         {tab === 'redirects' && <RedirectsTab />}
         {tab === 'custom' && <CustomTab />}
         {tab === 'about' && <AboutTab />}
-      </main>
+      </div>
     </div>
   );
 }

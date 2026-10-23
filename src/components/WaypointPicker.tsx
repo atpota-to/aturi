@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import Link from 'next/link';
-import { ExternalLink, Copy, Check, ArrowRight, ChevronDown, ChevronUp } from 'lucide-react';
+import { Copy, Check, ArrowRight, ChevronDown, ChevronUp } from 'lucide-react';
 import {
   getCategorizedWaypoints,
   getRecommendedWaypoints,
@@ -336,61 +336,6 @@ export default function WaypointPicker({
     );
   };
 
-  const renderRecommendedWaypoints = () => {
-    if (!recommendedWaypoints || recommendedWaypoints.length === 0) return null;
-
-    return (
-      <div className="featured-section">
-        <h2 className="section-header">{recommendedLabel}</h2>
-        <div className="fn-lp-stack">
-          {recommendedWaypoints.map((waypoint) => {
-            const url = waypoint.getUrl(handle, collection, rkey, did);
-            if (!url) return null;
-
-            const isCopied = copiedId === waypoint.id;
-
-            return (
-              <div
-                key={waypoint.id}
-                className="waypoint-button featured-waypoint"
-                onClick={(e) => handleWaypointClick(url, e)}
-                style={{ cursor: 'pointer' }}
-              >
-                <div className="waypoint-icon">{waypoint.icon}</div>
-                <div className="waypoint-content">
-                  <div className="waypoint-name">{waypoint.name}</div>
-                  <div className="waypoint-description">{describe(waypoint)}</div>
-                </div>
-                <div className="waypoint-button-actions">
-                  <button
-                    onClick={(e) => handleCopy(url, waypoint.id, e)}
-                    aria-label="Copy link"
-                    className="copy-button"
-                  >
-                    {isCopied ? (
-                      <Check size={18} style={{ color: 'var(--text-accent)' }} />
-                    ) : (
-                      <Copy size={18} />
-                    )}
-                  </button>
-                  <a
-                    href={url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    aria-label={`Open in ${waypoint.name}`}
-                    className="waypoint-open-link"
-                  >
-                    <ExternalLink size={18} />
-                  </a>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-    );
-  };
-
   return (
     <div id="waypoint-picker" className="fn-lp-picker">
       {newWaypoints.length > 0 && (
@@ -460,13 +405,15 @@ export default function WaypointPicker({
         </>
       ) : (
         <>
+          {/* The same recommended rows, above the switch, as the other
+              layouts: Cards used to drop them below it as a separate
+              titled block. */}
+          {renderRecommendedRows()}
+
           <div className="waypoint-layout-bar">
             <span className="waypoint-layout-bar-label">Layout</span>
             <WaypointLayoutToggle />
           </div>
-
-          {/* Recommended Waypoints */}
-          {renderRecommendedWaypoints()}
 
           {/* More Options Section */}
           {(() => {
@@ -518,10 +465,6 @@ export default function WaypointPicker({
 
             return (
               <div className="more-options-section">
-                {recommendedWaypoints.length > 0 && (
-                  <h2 className="section-header">More options</h2>
-                )}
-
                 <div className="fn-lp-stack">
                   {filteredCategories.map(({ category, waypoints, subcategoriesData }) => (
                     <CategoryCard

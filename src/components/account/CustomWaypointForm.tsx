@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { cloneElement, isValidElement, useId, useMemo, useState } from 'react';
 import { Save, X } from 'lucide-react';
 import {
   newCustomWaypointId,
@@ -172,7 +172,7 @@ export default function CustomWaypointForm({ initial, onSave, onCancel }: Props)
         </Field>
       </div>
 
-      <Field label="Handles" required hint="Which kinds of links this waypoint understands">
+      <Field group label="Handles" required hint="Which kinds of links this waypoint understands">
         <div className="cw-chips">
           {TYPE_OPTIONS.map((t) => {
             const active = types.has(t.id);
@@ -186,7 +186,7 @@ export default function CustomWaypointForm({ initial, onSave, onCancel }: Props)
                   type="checkbox"
                   checked={active}
                   onChange={() => toggleType(t.id)}
-                  style={{ display: 'none' }}
+                  className="fn-sr-only"
                 />
                 {t.label}
               </label>
@@ -215,6 +215,7 @@ export default function CustomWaypointForm({ initial, onSave, onCancel }: Props)
           usually something you want links rewritten to. Ticking a family here
           is what makes this waypoint selectable under Settings → Redirects. */}
       <Field
+        group
         label="Auto-redirect families"
         hint="Optional — lets this waypoint be picked as a redirect destination"
       >
@@ -231,7 +232,7 @@ export default function CustomWaypointForm({ initial, onSave, onCancel }: Props)
                   type="checkbox"
                   checked={active}
                   onChange={() => toggleFamily(f)}
-                  style={{ display: 'none' }}
+                  className="fn-sr-only"
                 />
                 {COMPAT_FAMILIES[f]?.name ?? f}
               </label>
@@ -265,25 +266,61 @@ export default function CustomWaypointForm({ initial, onSave, onCancel }: Props)
   );
 }
 
+/**
+ * A labelled form row. A single input is tied to its label (`htmlFor` and an
+ * id handed to the input) and described by the hint; a set of chips is
+ * labelled as a group instead, since one <label> can only name one control.
+ * The label used to sit beside its input unattached, so screen readers
+ * announced every field here as a bare "edit text".
+ */
 function Field({
   label,
   hint,
   required,
+  group,
   children,
 }: {
   label: string;
   hint?: string;
   required?: boolean;
+  /** The children are several controls (chips), not one input. */
+  group?: boolean;
   children: React.ReactNode;
 }) {
+  const id = useId();
+  const labelId = `${id}-label`;
+  const hintId = hint ? `${id}-hint` : undefined;
+  const text = (
+    <>
+      {label}
+      {required && <span className="cw-field-required"> *</span>}
+    </>
+  );
   return (
     <div className="cw-field">
-      <label className="cw-field-label">
-        {label}
-        {required && <span className="cw-field-required"> *</span>}
-      </label>
-      {children}
-      {hint && <p className="cw-field-hint">{hint}</p>}
+      {group ? (
+        <span id={labelId} className="cw-field-label">
+          {text}
+        </span>
+      ) : (
+        <label htmlFor={id} className="cw-field-label">
+          {text}
+        </label>
+      )}
+      {group ? (
+        <div role="group" aria-labelledby={labelId} aria-describedby={hintId}>
+          {children}
+        </div>
+      ) : isValidElement<{ id?: string; 'aria-describedby'?: string }>(children) ? (
+        cloneElement(children, { id, 'aria-describedby': hintId })
+      ) : (
+        children
+      )}
+      {hint && (
+        <p id={hintId} className="cw-field-hint">
+          {hint}
+        </p>
+      )}
     </div>
   );
 }

@@ -2949,11 +2949,21 @@ a.fn-link-btn:focus-visible {
   font-variant-numeric: tabular-nums;
 }
 
+/* The strip runs to the card's edges: the negative margins undo the card's
+   padding (20px, 16px on phones) and the corners follow its radius. */
+.fn-post-foot {
+  margin: -4px -20px -20px;
+  padding: 10px 20px;
+  border-top: 1px solid var(--border-subtle);
+  border-radius: 0 0 calc(var(--radius-card) - 1px) calc(var(--radius-card) - 1px);
+  background: var(--surface-subtle);
+  font-size: 13px;
+}
+
 .fn-post-crosslink.profile-explorer-link {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  margin-left: auto;
   color: var(--text-accent);
   font-weight: 600;
   text-decoration: none;
@@ -2973,9 +2983,9 @@ a.fn-link-btn:focus-visible {
     font-size: 15px;
   }
 
-  .fn-post-crosslink.profile-explorer-link {
-    margin-left: 0;
-    flex-basis: 100%;
+  .fn-post-foot {
+    margin: -2px -16px -16px;
+    padding: 10px 16px;
   }
 }
 
@@ -5310,7 +5320,7 @@ body.has-explore-chrome .fn-footer {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 3.25rem 1rem 1rem;
+  padding: 3.25rem 1rem calc(1rem + var(--lightbox-alt-h, 0px));
   overflow: auto;
   overscroll-behavior: contain;
 }
@@ -5343,7 +5353,7 @@ body.has-explore-chrome .fn-footer {
   width: auto;
   height: auto;
   max-width: 100%;
-  max-height: calc(100dvh - 5rem);
+  max-height: calc(100dvh - 5rem - var(--lightbox-alt-h, 0px));
   object-fit: contain;
   cursor: zoom-in;
   border: 1px solid var(--lightbox-chrome-border);
@@ -5418,8 +5428,11 @@ body.has-explore-chrome .fn-footer {
   border-color: rgba(255, 255, 255, 0.3);
 }
 
+/* The lightbox is dark in both themes, so its focus rings use its own light
+   chrome colour; light mode's --text-accent is a dark moss that all but
+   vanished against the backdrop. */
 .lightbox-btn:focus-visible {
-  outline: 2px solid var(--text-accent);
+  outline: 2px solid var(--lightbox-chrome-fg);
   outline-offset: 2px;
 }
 
@@ -5453,7 +5466,7 @@ body.has-explore-chrome .fn-footer {
 }
 
 .lightbox-nav:focus-visible {
-  outline: 2px solid var(--text-accent);
+  outline: 2px solid var(--lightbox-chrome-fg);
   outline-offset: 2px;
 }
 
@@ -5492,7 +5505,7 @@ body.has-explore-chrome .fn-footer {
 
 @media (max-width: 640px) {
   .lightbox-stage {
-    padding: 3.25rem 0.5rem 0.5rem;
+    padding: 3.25rem 0.5rem calc(0.5rem + var(--lightbox-alt-h, 0px));
   }
   /* Swiping is the navigation gesture on touch; the arrows shrink out of the
      image's way rather than disappearing (a stylus/mouse may still be used). */

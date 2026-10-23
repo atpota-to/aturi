@@ -82,9 +82,9 @@ async function PostContent({ handle, rkey }: { handle: string; rkey: string }) {
           <Header compact />
           <div className="container-narrow waypoint-page">
             <NotFoundPanel
-              eyebrow="Couldn't resolve"
-              headline="That handle didn't resolve."
-              body={`We tried to resolve "${handle}" as an Atmosphere handle and didn't find anything. Try a different handle, DID, or AT URI below.`}
+              eyebrow="Couldn’t resolve"
+              headline="That handle didn’t resolve."
+              body={`We couldn’t find an account for “${handle}”. Check the spelling, or try a DID or an at:// URI below.`}
               initialQuery={handle}
             />
           </div>

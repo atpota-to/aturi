@@ -586,11 +586,15 @@
 
 /* ---------- Shared controls ---------- */
 
+/* The site's one segmented control: a recessed track, 28px options, and a
+   raised thumb on the chosen one (--border-strong in dark, where a white
+   thumb would be darker than its track). The settings, record and picker
+   toggles carry the same values under their own class names. */
 .fn-segmented {
   display: inline-flex;
   padding: 3px;
   border-radius: var(--radius-control);
-  background: var(--border-subtle);
+  background: var(--bg-tertiary);
 }
 
 .fn-segmented-option {
@@ -602,6 +606,7 @@
   color: var(--text-secondary);
   font-family: var(--font-sans);
   font-size: 13px;
+  font-weight: 500;
   cursor: pointer;
   transition: background 0.15s ease, color 0.15s ease;
 }
@@ -615,7 +620,16 @@
   color: var(--text-primary);
   font-weight: 600;
   cursor: default;
-  box-shadow: 0 1px 1px rgb(0 0 0 / 0.04);
+  box-shadow: 0 1px 2px rgb(28 30 25 / 0.12);
+}
+
+:root:not([data-theme='light']) .fn-segmented-option[aria-pressed='true'] {
+  background: var(--border-strong);
+}
+
+.fn-segmented-option:focus-visible {
+  outline: 2px solid var(--text-accent);
+  outline-offset: 1px;
 }
 
 .fn-btn {

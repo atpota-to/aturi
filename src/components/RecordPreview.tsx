@@ -156,7 +156,9 @@ export default function RecordPreview({
           <span className="fn-fields-faint">/</span>
           <span>{collection}</span>
           <span className="fn-fields-faint">/</span>
-          <span className="fn-fields-faint">{rkey}</span>
+          {/* The rkey is content, so it isn't faint: only the scheme and the
+              separators are. */}
+          <span>{rkey}</span>
         </div>
         <div className="fn-fields-type">
           <span className="fn-fields-pill">{displayType}</span>
@@ -265,7 +267,9 @@ function FieldRow({
   return (
     <div className="fn-field" data-last={isLast || undefined}>
       <div className="field-row-main fn-field-main">
-        <div className="field-row-label fn-field-label">{label}</div>
+        <div className="field-row-label fn-field-label">
+          {typeof label === 'string' ? withCamelBreaks(label) : label}
+        </div>
         <div className={mono ? 'fn-field-value is-mono' : 'fn-field-value'}>
           {expandable ? (
             <button
@@ -506,12 +510,15 @@ function CopyableValue({ display, copy }: { display: string; copy: string }) {
       tabIndex={0}
       onClick={onClick}
       onKeyDown={onKeyDown}
-      aria-label={copied ? 'Copied' : 'Click to copy'}
+      // Names the value, not just the action: a bare "Click to copy" took
+      // the place of the text, so a screen reader never heard what it was.
+      // No inline `outline: none`, so the global focus ring shows on each of
+      // these stops.
+      aria-label={copied ? `Copied ${display}` : `Copy ${display}`}
       title={copied ? 'Copied!' : 'Click to copy'}
       style={{
         cursor: 'pointer',
         wordBreak: 'break-word',
-        outline: 'none',
         transition: 'color 0.2s ease',
         color: copied ? 'var(--text-accent)' : 'inherit',
       }}
@@ -532,6 +539,24 @@ function CopyableValue({ display, copy }: { display: string; copy: string }) {
       </span>
     </div>
   );
+}
+
+/**
+ * Lets a camelCase field name wrap between its words ("lastActivity" / "At")
+ * in the narrow label column, which otherwise broke it anywhere
+ * ("lastActivit" / "yAt").
+ */
+function withCamelBreaks(text: string): ReactNode {
+  // Marked then split, not split on a lookbehind, which older Safari can't
+  // parse at all.
+  const parts = text.replace(/([a-z0-9])([A-Z])/g, '$1\u0000$2').split('\u0000');
+  if (parts.length < 2) return text;
+  return parts.map((part, i) => (
+    <Fragment key={i}>
+      {i > 0 && <wbr />}
+      {part}
+    </Fragment>
+  ));
 }
 
 /** Lets an NSID-like token wrap after its dots rather than mid-segment. */

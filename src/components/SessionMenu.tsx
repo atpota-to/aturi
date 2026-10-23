@@ -344,7 +344,9 @@ function pillStyle(variant: Variant): React.CSSProperties {
 function menuStyle(extra?: React.CSSProperties): React.CSSProperties {
   return {
     position: 'absolute',
-    top: 'calc(100% + 0.5rem)',
+    // In the header, opens level with its other panels (chrome.css,
+    // --fn-drop-offset); anywhere else, just under the trigger.
+    top: 'calc(100% + var(--fn-drop-offset, 0.5rem))',
     right: 0,
     minWidth: '15rem',
     maxWidth: 'calc(100vw - 2rem)',

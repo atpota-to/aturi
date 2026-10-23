@@ -107,7 +107,7 @@ export default function CompactSearchPanel({ active, onDone, variant = 'panel' }
         limit: 6,
         signal: controller.signal,
       });
-      setSuggestions(results);
+      setSuggestions(rankByHandle(results, trimmed));
       setHighlightIndex(-1);
     }, TYPEAHEAD_DEBOUNCE_MS);
     return () => {
@@ -150,6 +150,13 @@ export default function CompactSearchPanel({ active, onDone, variant = 'panel' }
     e.preventDefault();
     if (highlightIndex >= 0 && suggestions[highlightIndex]) {
       goToActor(suggestions[highlightIndex]);
+      return;
+    }
+    // A bare word ("dame") can't be a handle, DID, at:// URI or URL, all of
+    // which carry a dot, colon or slash, so resolving it only ever ended on
+    // "That handle didn't resolve." Take the best suggestion instead.
+    if (!/[.:/]/.test(value.trim()) && suggestions.length > 0) {
+      goToActor(suggestions[0]);
       return;
     }
     if (resolvingRef.current) return;
@@ -299,4 +306,23 @@ export default function CompactSearchPanel({ active, onDone, variant = 'panel' }
       )}
     </form>
   );
+}
+
+/**
+ * Typeahead results with the handles that match what was typed moved to the
+ * front: an exact handle, then handles whose first label is the query
+ * ("dame" → dame.is), then other prefixes, then the search's own order.
+ * The search ranks by its own relevance, which put @dame.is third for
+ * "dame". The sort is stable, so ties keep that order.
+ */
+function rankByHandle(results: ActorTypeaheadResult[], query: string): ActorTypeaheadResult[] {
+  const q = query.toLowerCase().replace(/^@/, '');
+  const rank = (actor: ActorTypeaheadResult) => {
+    const handle = actor.handle.toLowerCase();
+    if (handle === q) return 0;
+    if (handle.startsWith(`${q}.`)) return 1;
+    if (handle.startsWith(q)) return 2;
+    return 3;
+  };
+  return [...results].sort((a, b) => rank(a) - rank(b));
 }

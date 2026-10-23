@@ -374,8 +374,10 @@
   border-radius: var(--radius-control);
   background: var(--bg-tertiary);
 }
+/* Same values as .fn-segmented (explore.css), the site's one segmented
+   control. */
 .fn-rec-seg button {
-  height: 26px;
+  height: 28px;
   padding: 0 12px;
   border-radius: 6px;
   border: 0;
@@ -394,7 +396,10 @@
   background: var(--bg-secondary);
   color: var(--text-primary);
   font-weight: 600;
-  box-shadow: 0 0 0 1px var(--border-subtle);
+  box-shadow: 0 1px 2px rgb(28 30 25 / 0.12);
+}
+:root:not([data-theme='light']) .fn-rec-seg button[aria-pressed='true'] {
+  background: var(--border-strong);
 }
 .fn-rec-seg button:focus-visible {
   outline: 2px solid var(--text-accent);
@@ -477,7 +482,10 @@
   font-weight: 400;
   color: var(--text-tertiary);
   padding-top: 1px;
-  word-break: break-all;
+  /* Wraps at the camelCase breaks RecordPreview inserts; breaking anywhere
+     is only the last resort for a single word wider than the column. */
+  word-break: normal;
+  overflow-wrap: anywhere;
 }
 .record-fields .fn-field-label {
   min-width: 100px;

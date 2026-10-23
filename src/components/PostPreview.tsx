@@ -66,17 +66,20 @@ export default function PostPreview({ post, parent, hideExplorerCtas }: PostPrev
     timeZone,
     timeZoneName: hydrated ? undefined : 'short',
   });
-  // Short form for the byline ("22 Oct 2026, 03:00"); the long form above
-  // is the hover title. Unparseable dates fall back to the long string
-  // (toISOString would otherwise throw).
+  // Short form for the byline ("Oct 22, 2026, 03:00"); the long form above
+  // is the hover title. Month first, as every other date on the site, and a
+  // 24-hour clock to stay as compact as the day-first form it replaced.
+  // Unparseable dates fall back to the long string (toISOString would
+  // otherwise throw).
   const validDate = !Number.isNaN(createdAt.getTime());
   const shortDate = validDate
-    ? createdAt.toLocaleString('en-GB', {
+    ? createdAt.toLocaleString('en-US', {
         day: 'numeric',
         month: 'short',
         year: 'numeric',
         hour: '2-digit',
         minute: '2-digit',
+        hourCycle: 'h23',
         timeZone,
       })
     : formattedDate;
@@ -753,7 +756,7 @@ export default function PostPreview({ post, parent, hideExplorerCtas }: PostPrev
         </>
       )}
 
-      {/* Footer: tag chips, labelled counts, then the cross-product link */}
+      {/* Footer: tag chips and labelled counts */}
       <div className="fn-post-footer">
         {tagChips.map((tag) => (
           <a
@@ -772,8 +775,11 @@ export default function PostPreview({ post, parent, hideExplorerCtas }: PostPrev
             <strong>{formatCount(n)}</strong> {label}
           </span>
         ))}
-        {crossLink}
       </div>
+
+      {/* The cross-product link in a tinted strip across the foot of the
+          card, as on the profile card, rather than trailing the counts. */}
+      {crossLink && <div className="fn-post-foot">{crossLink}</div>}
     </div>
     </>
   );

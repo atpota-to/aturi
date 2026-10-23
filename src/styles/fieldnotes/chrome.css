@@ -26,6 +26,12 @@
 /* ─── Header bar ─────────────────────────────────────────────────────── */
 
 .fn-header {
+  /* How far below its 36px trigger a dropdown opens so it lands where the
+     header's own panels do (`top: calc(100% + 8px)` of the header): half of
+     the 56px bar the trigger is centred in, plus that 8px. The what's-new
+     popover and the session menu both use it, so all three open at one
+     height instead of three. */
+  --fn-drop-offset: calc((56px - 36px) / 2 + 8px);
   position: sticky;
   top: 0;
   z-index: 40;
@@ -190,7 +196,7 @@
 }
 
 .fn-header .whats-new-popover {
-  top: calc(100% + 10px);
+  top: calc(100% + var(--fn-drop-offset));
   border-radius: var(--radius-card);
   box-shadow: var(--shadow-overlay);
 }

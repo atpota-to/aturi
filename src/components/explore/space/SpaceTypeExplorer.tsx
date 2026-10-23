@@ -37,8 +37,8 @@ export default function SpaceTypeExplorer({
     return (
       <NotFoundPanel
         eyebrow="Not a space type"
-        headline="That isn't a space type."
-        body={`A space type is a lexicon NSID like "com.example.forum". "${spaceType}" isn't one, so there is no space it could name.`}
+        headline="That isn’t a space type."
+        body={`A space type is a lexicon NSID like "com.example.forum". "${spaceType}" isn’t one, so there is no space it could name.`}
         initialQuery={spaceType}
       />
     );
@@ -47,9 +47,10 @@ export default function SpaceTypeExplorer({
   if (error) {
     return (
       <NotFoundPanel
-        eyebrow="Couldn't resolve"
-        headline="That handle didn't resolve."
-        body={`We tried to resolve "${repo}" and the AT Protocol resolver returned: ${error}. Try another handle, DID, or AT URI below.`}
+        eyebrow="Couldn’t resolve"
+        headline="That handle didn’t resolve."
+        body={`We couldn’t find an account for “${repo}”. Check the spelling, or try a DID or an at:// URI below.`}
+        details={error}
         initialQuery={repo}
       />
     );

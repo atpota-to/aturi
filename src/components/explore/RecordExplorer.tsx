@@ -72,9 +72,10 @@ export default function RecordExplorer({ repo, collection, rkey }: Props) {
   if (identityError) {
     return (
       <NotFoundPanel
-        eyebrow="Couldn't resolve"
-        headline="That handle didn't resolve."
-        body={`We tried to resolve "${repo}" and the AT Protocol resolver returned: ${identityError}. Try another handle, DID, or AT URI below.`}
+        eyebrow="Couldn’t resolve"
+        headline="That handle didn’t resolve."
+        body={`We couldn’t find an account for “${repo}”. Check the spelling, or try a DID or an at:// URI below.`}
+        details={identityError}
         initialQuery={repo}
       />
     );

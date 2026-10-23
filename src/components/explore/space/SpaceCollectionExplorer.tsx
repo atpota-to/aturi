@@ -50,8 +50,8 @@ export default function SpaceCollectionExplorer({
     return (
       <NotFoundPanel
         eyebrow="Not a space address"
-        headline="That isn't a space address."
-        body="A permissioned record is addressed as at://{authority}/space/{type}/{key}/{did}/{collection}/{rkey}, with a lexicon NSID for both the type and the collection and a DID for the member. One of those parts isn't valid here."
+        headline="That isn’t a space address."
+        body="A permissioned record is addressed as at://{authority}/space/{type}/{key}/{did}/{collection}/{rkey}, with a lexicon NSID for both the type and the collection and a DID for the member. One of those parts isn’t valid here."
         initialQuery={collection}
       />
     );
@@ -60,9 +60,10 @@ export default function SpaceCollectionExplorer({
     const failed = error ? repo : author;
     return (
       <NotFoundPanel
-        eyebrow="Couldn't resolve"
-        headline="That identifier didn't resolve."
-        body={`We tried to resolve "${failed}" and the AT Protocol resolver returned: ${error || authorError}. Try another handle, DID, or AT URI below.`}
+        eyebrow="Couldn’t resolve"
+        headline="That identifier didn’t resolve."
+        body={`We couldn’t find an account for “${failed}”. Check the spelling, or try a DID or an at:// URI below.`}
+        details={error || authorError}
         initialQuery={failed}
       />
     );

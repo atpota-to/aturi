@@ -19,9 +19,18 @@ export function discussionPath(uri: string): string {
   return `/feedback/${encodeURIComponent(did)}/${encodeURIComponent(rkey)}`;
 }
 
+/**
+ * "5m ago" for recent activity, then a written date ("Aug 12, 2026") once
+ * it's two weeks old. The shared helper falls back to an ISO date there,
+ * which read as a different format from every other date on the site.
+ */
 function relative(iso: string): string {
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return '';
+  const ageMs = Date.now() - date.getTime();
+  if (ageMs < 0 || ageMs >= 14 * 24 * 60 * 60 * 1000) {
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  }
   return formatTidRelative(date);
 }
 

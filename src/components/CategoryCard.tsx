@@ -1,6 +1,6 @@
 'use client';
 
-import { ExternalLink, Copy, Check, ChevronDown, ChevronUp } from 'lucide-react';
+import { ArrowRight, Copy, Check, ChevronDown, ChevronUp } from 'lucide-react';
 import type { WaypointCategory, Waypoint } from '@/utils/waypoints';
 
 type CategoryCardProps = {
@@ -93,18 +93,10 @@ export default function CategoryCard({
               : waypoint.description}
           </div>
         </div>
+        {/* Open, then copy, with the same arrow as the Compact and Grid
+            rows: the layouts are views of one list, so a row's actions
+            shouldn't swap places or glyphs when the view changes. */}
         <div className="waypoint-button-actions">
-          <button
-            onClick={(e) => { e.stopPropagation(); onCopy(url, waypoint.id, e); }}
-            aria-label="Copy link"
-            className="copy-button"
-          >
-            {isCopied ? (
-              <Check size={18} style={{ color: 'var(--text-accent)' }} />
-            ) : (
-              <Copy size={18} />
-            )}
-          </button>
           <a
             href={url}
             target="_blank"
@@ -113,8 +105,19 @@ export default function CategoryCard({
             onClick={(e) => e.stopPropagation()}
             className="waypoint-open-link"
           >
-            <ExternalLink size={18} />
+            <ArrowRight size={18} />
           </a>
+          <button
+            onClick={(e) => { e.stopPropagation(); onCopy(url, waypoint.id, e); }}
+            aria-label={`Copy ${waypoint.name} link`}
+            className="copy-button"
+          >
+            {isCopied ? (
+              <Check size={18} style={{ color: 'var(--text-accent)' }} />
+            ) : (
+              <Copy size={18} />
+            )}
+          </button>
         </div>
       </div>
     );
