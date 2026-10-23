@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { Fragment, useCallback, useEffect, useState, type ReactNode } from 'react';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import {
   backlinksFromPage,
@@ -47,7 +47,9 @@ export default function BacklinksTab({
         setSources(null);
         return;
       }
-      setSources(flattenSources(raw) || []);
+      // A source with no links behind it is not a source: listed, it read
+      // as "0 backlinks · 0 accounts" and inflated "across N sources".
+      setSources((flattenSources(raw) || []).filter((s) => s.count > 0));
     });
     return () => {
       cancelled = true;
@@ -109,20 +111,22 @@ function BacklinksSummaryPanel({
     ? sources!.reduce((sum, s) => sum + (s.distinctDids ?? 0), 0)
     : 0;
   const sourceCount = ready ? sources.length : 0;
+  const empty = ready && sourceCount === 0;
 
   return (
     <section
       style={{
         border: '1px solid var(--border-medium)',
+        borderRadius: 'var(--radius-card)',
+        overflow: 'hidden',
         background: 'var(--bg-secondary)',
       }}
     >
       <header
         style={{
           padding: '1rem 1.25rem',
-          borderBottom: '1px solid var(--border-medium)',
-          background:
-            'linear-gradient(135deg, var(--bg-tertiary) 0%, var(--bg-secondary) 100%)',
+          borderBottom: empty ? undefined : '1px solid var(--border-medium)',
+          background: 'var(--surface-subtle)',
           display: 'flex',
           alignItems: 'baseline',
           gap: '0.75rem',
@@ -182,20 +186,19 @@ function BacklinksSummaryPanel({
           </a>
         </span>
       </header>
-      <div style={{ padding: '0.75rem' }}>
-        {sources === undefined && <BacklinksTabSkeleton />}
-        {sources === null && (
-          <div style={{ padding: '0.5rem 0.25rem' }}>
-            <BacklinksUnavailable />
-          </div>
-        )}
-        {Array.isArray(sources) && sources.length === 0 && (
-          <p className="explore-muted" style={{ margin: 0, padding: '0.5rem 0.25rem' }}>
-            Nothing references this record yet.
-          </p>
-        )}
-        {children}
-      </div>
+      {/* With nothing to list, the header's "no records reference this
+          yet" is the whole message; a body saying it again added a band. */}
+      {!empty && (
+        <div style={{ padding: '0.75rem' }}>
+          {sources === undefined && <BacklinksTabSkeleton />}
+          {sources === null && (
+            <div style={{ padding: '0.5rem 0.25rem' }}>
+              <BacklinksUnavailable />
+            </div>
+          )}
+          {children}
+        </div>
+      )}
     </section>
   );
 }
@@ -219,19 +222,14 @@ function BacklinkSourceList({
         padding: 0,
         display: 'flex',
         flexDirection: 'column',
-        gap: '0.25rem',
       }}
     >
       {sources.map((s) => {
         const isOpen = open === s.source;
         return (
-          <li
-            key={s.source}
-            style={{
-              border: '1px solid var(--border-medium)',
-              background: 'var(--bg-secondary)',
-            }}
-          >
+          // Divided rows inside the panel's own card (fx-backlink-source in
+          // explorer.css), with the row hover the other explorer lists use.
+          <li key={s.source} className="fx-backlink-source">
             <button
               type="button"
               onClick={() => setOpen(isOpen ? null : s.source)}
@@ -240,7 +238,7 @@ function BacklinkSourceList({
                 display: 'grid',
                 gridTemplateColumns: 'auto 1fr auto',
                 gap: '0.5rem',
-                alignItems: 'baseline',
+                alignItems: 'start',
                 width: '100%',
                 textAlign: 'left',
                 padding: '0.625rem 1rem',
@@ -252,7 +250,17 @@ function BacklinkSourceList({
                 color: 'var(--text-primary)',
               }}
             >
-              <span style={{ color: 'var(--text-tertiary)', width: '1ch' }}>
+              {/* One line tall and centred in it, so the chevron sits level
+                  with the NSID rather than on its baseline. */}
+              <span
+                style={{
+                  color: 'var(--text-tertiary)',
+                  width: '1ch',
+                  height: '1lh',
+                  display: 'flex',
+                  alignItems: 'center',
+                }}
+              >
                 {isOpen ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
               </span>
               {/* Collection NSID over its record path, stacked and
@@ -274,20 +282,20 @@ function BacklinkSourceList({
                     background: 'transparent',
                     padding: 0,
                     color: 'var(--text-accent)',
-                    wordBreak: 'break-all',
+                    overflowWrap: 'anywhere',
                   }}
                 >
-                  {s.collection}
+                  {withDotBreaks(s.collection)}
                 </code>
                 <code
                   style={{
                     background: 'transparent',
                     padding: 0,
                     color: 'var(--text-tertiary)',
-                    wordBreak: 'break-all',
+                    overflowWrap: 'anywhere',
                   }}
                 >
-                  {s.path}
+                  {withDotBreaks(s.path)}
                 </code>
               </span>
               {/* Count over distinct-accounts, stacked and abbreviated
@@ -313,12 +321,12 @@ function BacklinkSourceList({
                       color: 'var(--text-tertiary)',
                     }}
                   >
-                    backlinks
+                    {s.count === 1 ? 'backlink' : 'backlinks'}
                   </span>
                 </span>
                 {s.distinctDids != null && (
                   <span style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>
-                    {formatCount(s.distinctDids)} accounts
+                    {formatCount(s.distinctDids)} {s.distinctDids === 1 ? 'account' : 'accounts'}
                   </span>
                 )}
               </span>
@@ -478,4 +486,23 @@ function BacklinkRecords({ target, source }: { target: string; source: string })
       )}
     </div>
   );
+}
+
+/**
+ * Lets an NSID or record path wrap after its dots rather than mid-segment,
+ * the way the record page's fields do (RecordPreview). overflow-wrap still
+ * breaks a single segment too long for the row.
+ */
+function withDotBreaks(text: string): ReactNode {
+  const parts = text.split('.');
+  return parts.map((part, i) => (
+    <Fragment key={i}>
+      {part}
+      {i < parts.length - 1 && (
+        <>
+          .<wbr />
+        </>
+      )}
+    </Fragment>
+  ));
 }

@@ -89,16 +89,7 @@ export function Segmented<T extends string>({
   onChange: (v: T) => void;
 }) {
   return (
-    <div
-      role="group"
-      aria-label={ariaLabel}
-      style={{
-        display: 'inline-flex',
-        border: '1px solid var(--border-medium)',
-        background: 'var(--bg-tertiary)',
-        padding: '2px',
-      }}
-    >
+    <div role="group" aria-label={ariaLabel} className="fn-segmented">
       {options.map(({ value: v, label }) => {
         const active = v === value;
         return (
@@ -107,16 +98,7 @@ export function Segmented<T extends string>({
             type="button"
             onClick={() => v !== value && onChange(v)}
             aria-pressed={active}
-            style={{
-              padding: '0.3rem 0.7rem',
-              background: active ? 'var(--accent-moss)' : 'transparent',
-              color: active ? 'var(--text-on-accent)' : 'var(--text-secondary)',
-              border: 0,
-              fontFamily: 'var(--font-serif)',
-              fontSize: '0.8125rem',
-              cursor: active ? 'default' : 'pointer',
-              transition: 'background 0.15s ease, color 0.15s ease',
-            }}
+            className="fn-segmented-option"
           >
             {label}
           </button>
@@ -133,7 +115,7 @@ export function DeltaPill({ pct }: { pct: number | null }) {
     return (
       <span
         style={{
-          fontFamily: 'var(--font-mono)',
+          fontFamily: 'var(--font-sans)',
           fontSize: '0.75rem',
           color: 'var(--text-tertiary)',
           textAlign: 'right',
@@ -153,7 +135,7 @@ export function DeltaPill({ pct }: { pct: number | null }) {
         alignItems: 'center',
         justifyContent: 'flex-end',
         gap: '0.25rem',
-        fontFamily: 'var(--font-mono)',
+        fontFamily: 'var(--font-sans)',
         fontSize: '0.75rem',
         color,
         fontVariantNumeric: 'tabular-nums',
@@ -180,50 +162,25 @@ export function AppSiteLink({ domain }: { domain: string }) {
       target="_blank"
       rel="noopener noreferrer"
       title={`${domain}, inferred from the NSID`}
-      style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: '0.4rem',
-        padding: '0.4rem 0.75rem',
-        background: 'var(--bg-tertiary)',
-        border: '1px solid var(--border-medium)',
-        color: 'var(--text-secondary)',
-        fontFamily: 'var(--font-serif)',
-        fontSize: '0.8125rem',
-        textDecoration: 'none',
-      }}
+      className="fn-btn"
     >
-      <ExternalLink size={12} aria-hidden /> Visit {domain}
+      <ExternalLink size={13} aria-hidden /> Visit {domain}
     </a>
   );
 }
 
 // ─── microcosm.blue credit ──────────────────────────────────────────────────
 
-export function Credit() {
+/**
+ * `standalone` for a page's closing caption rather than a card's footer: the
+ * same line without the rule and padding a footer carries, so it doesn't need
+ * a card of its own to sit in.
+ */
+export function Credit({ standalone = false }: { standalone?: boolean }) {
   return (
-    <div
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'flex-end',
-        gap: '0.4rem',
-        padding: '0.625rem 1rem',
-        borderTop: '1px solid var(--border-subtle)',
-        fontSize: '0.7rem',
-        color: 'var(--text-tertiary)',
-        letterSpacing: '0.06em',
-        textTransform: 'uppercase',
-        fontFamily: 'var(--font-serif)',
-      }}
-    >
+    <div className={standalone ? 'fn-credit fn-credit-standalone' : 'fn-credit'}>
       <span>Data from</span>
-      <a
-        href="https://www.microcosm.blue"
-        target="_blank"
-        rel="noopener noreferrer"
-        style={{ color: 'var(--text-accent)', textDecoration: 'none' }}
-      >
+      <a href="https://www.microcosm.blue" target="_blank" rel="noopener noreferrer">
         microcosm.blue
       </a>
     </div>

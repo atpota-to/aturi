@@ -40,14 +40,14 @@ struct OutboundLinkRow: View {
                         .foregroundStyle(theme.textPrimary)
                         .lineLimit(1)
                     Text(secondary)
-                        .font(.footnote)
+                        .font(AturiFont.footnote)
                         .foregroundStyle(theme.textSecondary)
                         .lineLimit(1)
                         .truncationMode(.middle)
                 }
                 Spacer(minLength: 0)
                 Image(systemName: systemImage)
-                    .font(.footnote.weight(.medium))
+                    .font(AturiFont.sans(.footnote, weight: .medium))
                     .foregroundStyle(theme.textTertiary)
             }
             .padding(.vertical, 8)

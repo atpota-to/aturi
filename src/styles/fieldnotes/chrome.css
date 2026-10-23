@@ -1,0 +1,676 @@
+/* Field Notes: chrome styles. Tokens live in src/app/globals.css (:root and
+   [data-theme='light']); use them rather than raw hex so dark mode and the
+   colour schemes keep working.
+
+   Covers the header (Header.tsx: the full-width bar plus the centered
+   `simple` / default variants), its panels (menu, search, session, what's
+   new), the sticky breadcrumb strip, and the footer. Rules that restyle a
+   shared global class (.compact-nav-link, .nav-link, .whats-new-*) are scoped
+   under .fn-header so other users of those classes are left alone.
+
+   Breakpoints:
+     ≤1180px  inline nav folds into the menu button
+     ≤767px   the explorer "go to" field becomes a search button
+     ≤639px   phone bar: 52px, 44px icon buttons, theme + session move into
+              the menu panel */
+
+.fn-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* ─── Header bar ─────────────────────────────────────────────────────── */
+
+.fn-header {
+  /* How far below its 36px trigger a dropdown opens so it lands where the
+     header's own panels do (`top: calc(100% + 8px)` of the header): half of
+     the 56px bar the trigger is centred in, plus that 8px. The what's-new
+     popover and the session menu both use it, so all three open at one
+     height instead of three. */
+  --fn-drop-offset: calc((56px - 36px) / 2 + 8px);
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  margin-bottom: 1.5rem;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-medium);
+  font-family: var(--font-sans);
+}
+
+.fn-header-bar {
+  /* Above the sticky breadcrumb strip, which slides out from behind it. */
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px 28px;
+  min-height: 56px;
+  padding: 8px 24px;
+  box-sizing: border-box;
+  background: var(--bg-secondary);
+}
+
+.fn-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  color: var(--text-primary);
+  text-decoration: none;
+}
+
+.fn-brand:hover {
+  color: var(--text-primary);
+}
+
+.fn-brand-mark {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  /* --text-accent, not the --accent-moss fill: the fill is a dark green in
+     both themes and nearly vanishes on the dark header. In light mode the
+     two are the same colour. */
+  color: var(--text-accent);
+}
+
+.fn-wordmark {
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.fn-wordmark-tld {
+  color: var(--text-tertiary);
+  font-weight: 500;
+}
+
+.fn-nav {
+  display: flex;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.fn-nav-link {
+  padding: 6px 12px;
+  border-radius: var(--radius-control);
+  color: var(--text-secondary);
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.5;
+  white-space: nowrap;
+  text-decoration: none;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.fn-nav-link:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+.fn-nav-link[aria-current='page'],
+.fn-nav-link[aria-current='page']:hover {
+  background: var(--accent-soft);
+  color: var(--accent-soft-fg);
+  font-weight: 600;
+}
+
+.fn-header-actions {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 4px;
+}
+
+.fn-header-search {
+  flex: 0 1 360px;
+  min-width: 180px;
+  margin-right: 6px;
+}
+
+.fn-header-session {
+  display: inline-flex;
+  margin-left: 6px;
+}
+
+.fn-header-theme {
+  display: inline-flex;
+}
+
+/* Icon buttons in the bar: search, menu, theme, what's new. */
+.fn-icon-btn,
+.fn-header .fn-theme-btn,
+.fn-header .whats-new-badge-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  overflow: visible;
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius-control);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transform: none;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.fn-icon-btn:hover,
+.fn-icon-btn[aria-expanded='true'],
+.fn-header .fn-theme-btn:hover,
+.fn-header .whats-new-badge-btn:hover,
+.fn-header .whats-new-badge-btn[aria-expanded='true'] {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  border-color: transparent;
+  transform: none;
+}
+
+.fn-header .fn-theme-btn::before {
+  display: none;
+}
+
+.fn-header .fn-theme-btn svg,
+.fn-header .fn-theme-btn:hover svg {
+  transform: none;
+}
+
+.fn-header .whats-new-badge-dot {
+  top: 7px;
+  right: 7px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent-moss);
+  border: 2px solid var(--bg-secondary);
+}
+
+.fn-header .whats-new-popover {
+  top: calc(100% + var(--fn-drop-offset));
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-overlay);
+}
+
+/* Only one search affordance at a time: on explorer pages the bar field
+   wins until the tablet breakpoint; the menu button appears once the nav
+   folds. */
+.fn-search-toggle-explorer,
+.fn-menu-toggle {
+  display: none;
+}
+
+/* Session control (SessionMenu) */
+.fn-session-trigger:hover,
+.fn-session-trigger[aria-expanded='true'] {
+  background: var(--surface-subtle) !important;
+  border-color: var(--text-faint) !important;
+}
+
+.fn-session-item:hover {
+  background: var(--bg-tertiary) !important;
+  color: var(--text-primary) !important;
+}
+
+/* Sign out keeps its danger red under the pointer. */
+.fn-session-item[data-danger]:hover {
+  color: var(--danger) !important;
+}
+
+/* ─── Header panels (menu + search cards under the bar) ─────────────── */
+
+.fn-header-panel {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 16px;
+  width: min(24rem, calc(100vw - 32px));
+  box-sizing: border-box;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-overlay);
+  z-index: 50;
+  overflow: hidden;
+  opacity: 0;
+  transform: translateY(-6px);
+  pointer-events: none;
+  transition: opacity 0.16s ease, transform 0.16s ease;
+}
+
+.fn-header-panel[data-open] {
+  opacity: 1;
+  transform: none;
+  pointer-events: auto;
+}
+
+.fn-header-search-panel {
+  width: min(28rem, calc(100vw - 32px));
+  padding: 12px;
+}
+
+.fn-menu {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px;
+}
+
+.fn-menu-session {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 4px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.fn-header .compact-nav-grid {
+  gap: 6px;
+}
+
+/* Each destination is its own tile: the page's paper on the white panel,
+   with a hairline, so the menu reads as a set of buttons rather than a
+   run of loose labels. */
+.fn-header .compact-nav-link {
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-control);
+  background: var(--bg-primary);
+  color: var(--text-secondary);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.4;
+  transform: none;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.fn-header .compact-nav-link::before {
+  display: none;
+}
+
+.fn-header .compact-nav-link:hover {
+  background: var(--bg-tertiary);
+  border-color: var(--border-medium);
+  color: var(--text-primary);
+  transform: none;
+}
+
+.fn-header .compact-nav-link svg,
+.fn-header .compact-nav-link:hover svg {
+  color: var(--text-tertiary);
+  transform: none;
+}
+
+.fn-header .compact-nav-link[aria-current='page'] {
+  background: var(--accent-soft);
+  border-color: var(--accent-soft-border);
+  color: var(--accent-soft-fg);
+  font-weight: 600;
+}
+
+.fn-header .compact-nav-link[aria-current='page'] svg {
+  color: var(--accent-soft-fg);
+}
+
+.fn-header .compact-nav-link.compact-nav-link-accent {
+  background: var(--accent-moss);
+  border-color: var(--accent-moss);
+  color: var(--text-on-accent);
+  font-weight: 600;
+}
+
+.fn-header .compact-nav-link.compact-nav-link-accent:hover {
+  background: var(--accent-forest);
+  border-color: var(--accent-forest);
+  color: var(--text-on-accent);
+}
+
+.fn-header .compact-nav-link.compact-nav-link-accent svg {
+  color: var(--text-on-accent);
+}
+
+/* ─── Search (CompactSearchPanel) ────────────────────────────────────── */
+
+.fn-search {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-family: var(--font-sans);
+}
+
+.fn-search-field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 36px;
+  padding: 0 8px 0 12px;
+  box-sizing: border-box;
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-control);
+  background: var(--bg-primary);
+  color: var(--text-tertiary);
+  cursor: text;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.fn-search-panel .fn-search-field {
+  height: 40px;
+}
+
+.fn-search-field:focus-within {
+  border-color: var(--accent-moss);
+  background: var(--bg-secondary);
+}
+
+.fn-search-icon {
+  flex-shrink: 0;
+}
+
+.fn-search-input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--text-primary);
+  font: inherit;
+  font-size: 13.5px;
+  outline: none;
+}
+
+.fn-search-input::placeholder {
+  color: var(--text-tertiary);
+  opacity: 1;
+}
+
+.fn-search-panel .fn-search-input {
+  font-family: var(--font-mono);
+  font-size: 13px;
+}
+
+.fn-kbd {
+  flex-shrink: 0;
+  padding: 1px 6px;
+  border: 1px solid var(--border-medium);
+  border-radius: 5px;
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.fn-search-dropdown {
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-control);
+  background: var(--surface-subtle);
+  overflow: hidden;
+}
+
+.fn-search-bar .fn-search-dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  min-width: 18rem;
+  z-index: 60;
+  background: var(--bg-secondary);
+  border-color: var(--border-medium);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-overlay);
+}
+
+.fn-search-list {
+  list-style: none;
+  margin: 0;
+  padding: 4px;
+  max-height: 18rem;
+  overflow-y: auto;
+}
+
+.fn-search-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.fn-search-option[data-active] {
+  background: var(--bg-tertiary);
+}
+
+.fn-search-avatar {
+  display: block;
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  object-fit: cover;
+  background: var(--bg-tertiary);
+}
+
+.fn-search-name {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fn-search-handle {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-tertiary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fn-search-recs {
+  max-height: 20rem;
+  overflow-y: auto;
+}
+
+/* ─── Sticky breadcrumb strip ───────────────────────────────────────── */
+
+/* Hangs off the bottom of the header and overlays the page, so revealing it
+   never changes the header's height or moves the page under it (see
+   StickyBreadcrumbBar). `top: 100%` lands on the header's own bottom border,
+   and the strip draws its replacement below itself. */
+.fn-sticky-crumbs-wrap {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 0;
+  background: var(--surface-subtle);
+  border-top: 1px solid var(--border-subtle);
+  border-bottom: 1px solid var(--border-medium);
+  box-shadow: 0 6px 12px -10px rgb(0 0 0 / 0.25);
+}
+
+.fn-sticky-crumbs {
+  padding: 8px 24px;
+}
+
+/* ─── Footer ─────────────────────────────────────────────────────────── */
+
+.fn-footer {
+  position: relative;
+  z-index: 1;
+  margin-top: 4rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px 24px;
+  padding: 20px 24px;
+  background: var(--bg-secondary);
+  border-top: 1px solid var(--border-medium);
+  color: var(--text-secondary);
+  font-family: var(--font-sans);
+  font-size: 13.5px;
+}
+
+.fn-footer-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.fn-footer-mark {
+  flex-shrink: 0;
+  color: var(--text-accent);
+}
+
+.fn-footer-name {
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.fn-footer-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 20px;
+}
+
+.fn-footer-nav .footer-link {
+  color: var(--text-primary);
+  text-decoration: none;
+}
+
+.fn-footer-nav .footer-link:hover {
+  color: var(--text-accent) !important;
+}
+
+.fn-footer-handle {
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  color: var(--text-accent);
+}
+
+/* ─── Responsive ─────────────────────────────────────────────────────── */
+
+@media (max-width: 1180px) {
+  .fn-nav {
+    display: none;
+  }
+
+  .fn-menu-toggle {
+    display: inline-flex;
+  }
+}
+
+@media (max-width: 767px) {
+  .fn-header-search {
+    display: none;
+  }
+
+  .fn-search-toggle-explorer {
+    display: inline-flex;
+  }
+}
+
+@media (max-width: 639px) {
+  .fn-header {
+    margin-bottom: 1rem;
+  }
+
+  .fn-header-bar {
+    min-height: 52px;
+    padding: 4px 4px 4px 16px;
+    gap: 8px;
+  }
+
+  .fn-brand {
+    gap: 7px;
+  }
+
+  .fn-brand-mark {
+    width: 18px;
+    height: 18px;
+  }
+
+  .fn-wordmark {
+    font-size: 17px;
+  }
+
+  .fn-header-actions {
+    gap: 0;
+  }
+
+  .fn-header-theme,
+  .fn-header-session {
+    display: none;
+  }
+
+  .fn-icon-btn,
+  .fn-header .whats-new-badge-btn {
+    width: 44px;
+    height: 44px;
+    color: var(--text-primary);
+  }
+
+  .fn-header .whats-new-badge-dot {
+    top: 10px;
+    right: 10px;
+  }
+
+  .fn-header-panel,
+  .fn-header-search-panel {
+    left: 8px;
+    right: 8px;
+    width: auto;
+    top: calc(100% + 6px);
+  }
+
+  .fn-header .whats-new-popover {
+    top: 60px;
+    left: 8px;
+    right: 8px;
+  }
+
+  .fn-sticky-crumbs {
+    padding: 8px 16px;
+  }
+
+  .fn-footer {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 20px 16px;
+  }
+
+  /* Two even rows of three instead of a ragged wrap that strands the last
+     link, and each link tall enough to tap. */
+  .fn-footer-nav {
+    display: grid;
+    grid-template-columns: repeat(3, auto);
+    justify-content: start;
+    gap: 0 20px;
+  }
+
+  .fn-footer-nav .footer-link {
+    display: inline-flex;
+    align-items: center;
+    min-height: 40px;
+  }
+
+  
+}

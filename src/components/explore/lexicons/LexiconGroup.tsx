@@ -49,53 +49,20 @@ function Frame({
 }) {
   const segments = prefix.split('.');
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+    <div className="fn-lexdetail">
       <AppearIn rise>
-        <Link
-          href="/explore/lexicons"
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '0.3rem',
-            fontSize: '0.8125rem',
-            color: 'var(--text-accent)',
-            textDecoration: 'none',
-            fontFamily: 'var(--font-serif)',
-          }}
-        >
-          <ArrowLeft size={13} aria-hidden /> All lexicons
+        <Link href="/explore/lexicons" className="fn-backlink">
+          <ArrowLeft size={14} aria-hidden /> All lexicons
         </Link>
       </AppearIn>
 
       <AppearIn delay={0.04}>
-        <div
-          style={{
-            border: '1px solid var(--border-medium)',
-            background: 'var(--bg-secondary)',
-            padding: '1.25rem',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '0.6rem',
-          }}
-        >
-          <div
-            className="explore-small-caps"
-            style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
-          >
-            <span style={{ color: 'var(--text-accent)', display: 'inline-flex' }}>{icon}</span>
+        <div className="fn-lexhead">
+          <span className="fn-kicker fn-lexhead-kicker">
+            {icon}
             {eyebrow}
-          </div>
-          <h1
-            style={{
-              margin: 0,
-              fontFamily: 'var(--font-mono)',
-              fontSize: '1.35rem',
-              fontWeight: 500,
-              color: 'var(--text-primary)',
-              wordBreak: 'break-word',
-              lineHeight: 1.2,
-            }}
-          >
+          </span>
+          <h1 className="fn-lexhead-title fn-lexhead-mono">
             {segments.map((seg, i) => {
               const cumulative = segments.slice(0, i + 1).join('.');
               const last = i === segments.length - 1;
@@ -124,9 +91,7 @@ function Frame({
       {children}
 
       <AppearIn delay={0.12}>
-        <div style={{ border: '1px solid var(--border-medium)', background: 'var(--bg-secondary)' }}>
-          <Credit />
-        </div>
+        <Credit standalone />
       </AppearIn>
     </div>
   );
@@ -138,15 +103,7 @@ function ListCard({ children }: { children: React.ReactNode }) {
     // Both views that render this one publish a filter to the bottom chrome
     // bar, so this card is what typing down there scrolls to.
     <AppearIn delay={0.08} id={CHROME_RESULTS_ID}>
-      <div
-        style={{
-          border: '1px solid var(--border-medium)',
-          background: 'var(--bg-secondary)',
-          padding: '0.25rem 1rem',
-        }}
-      >
-        {children}
-      </div>
+      <div className="fn-list-card">{children}</div>
     </AppearIn>
   );
 }
@@ -228,7 +185,7 @@ function PrefixView({ prefix }: { prefix: string }) {
         {children === null || visible === null ? (
           <ListSkeleton />
         ) : children.length === 0 ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', padding: '0.75rem 0' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', padding: '0.75rem 16px' }}>
             <p className="explore-muted" style={{ margin: 0 }}>
               Nothing is published under <code>{prefix}</code>.
             </p>
@@ -241,7 +198,7 @@ function PrefixView({ prefix }: { prefix: string }) {
             </Link>
           </div>
         ) : visible.length === 0 ? (
-          <p className="explore-muted" style={{ margin: 0, padding: '0.75rem 0' }}>
+          <p className="explore-muted" style={{ margin: 0, padding: '0.75rem 16px' }}>
             No entries under <code>{prefix}</code> match “{filter.trim()}”.
           </p>
         ) : (
@@ -266,14 +223,14 @@ function PrefixView({ prefix }: { prefix: string }) {
 function SummaryLine({ total, count }: { total: JustCount | null; count: number | null }) {
   if (!total) return <Skeleton width="14rem" height="0.85rem" />;
   return (
-    <p style={{ margin: 0, fontFamily: 'var(--font-mono)', fontSize: '0.8rem', color: 'var(--text-tertiary)' }}>
-      <span style={{ color: 'var(--text-secondary)' }}>{formatCount(total.creates)}</span> creates
+    <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-tertiary)' }}>
+      <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{formatCount(total.creates)}</span> creates
       {' · '}
-      <span style={{ color: 'var(--text-secondary)' }}>{formatCount(total.dids_estimate)}</span> repos
+      <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{formatCount(total.dids_estimate)}</span> repos
       {count != null && (
         <>
           {' · '}
-          <span style={{ color: 'var(--text-secondary)' }}>{count}</span> entries
+          <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{count}</span> entries
         </>
       )}
     </p>
@@ -350,11 +307,11 @@ function SearchView({ term }: { term: string }) {
         {results === null || visible === null ? (
           <ListSkeleton />
         ) : results.length === 0 ? (
-          <p className="explore-muted" style={{ margin: 0, padding: '0.75rem 0' }}>
+          <p className="explore-muted" style={{ margin: 0, padding: '0.75rem 16px' }}>
             No lexicons matched “{term}”.
           </p>
         ) : visible.length === 0 ? (
-          <p className="explore-muted" style={{ margin: 0, padding: '0.75rem 0' }}>
+          <p className="explore-muted" style={{ margin: 0, padding: '0.75rem 16px' }}>
             No results match “{filter.trim()}”.
           </p>
         ) : (
@@ -384,7 +341,9 @@ const rowStyle: React.CSSProperties = {
   gridTemplateColumns: 'minmax(0, 1fr) 5rem',
   gap: '0.875rem',
   alignItems: 'center',
-  padding: '0.55rem 0',
+  minHeight: '42px',
+  boxSizing: 'border-box',
+  padding: '6px 16px',
   textDecoration: 'none',
   color: 'var(--text-primary)',
   transition: 'background 0.2s ease',
@@ -392,14 +351,14 @@ const rowStyle: React.CSSProperties = {
 
 const nameStyle: React.CSSProperties = {
   fontFamily: 'var(--font-mono)',
-  fontSize: '0.8125rem',
+  fontSize: '12.5px',
   overflow: 'hidden',
   textOverflow: 'ellipsis',
   whiteSpace: 'nowrap',
 };
 
 function hoverOn(e: React.MouseEvent<HTMLElement>) {
-  e.currentTarget.style.background = 'var(--bg-tertiary)';
+  e.currentTarget.style.background = 'var(--surface-subtle)';
 }
 function hoverOff(e: React.MouseEvent<HTMLElement>) {
   e.currentTarget.style.background = 'transparent';
@@ -407,17 +366,7 @@ function hoverOff(e: React.MouseEvent<HTMLElement>) {
 
 function Count({ value }: { value: number }) {
   return (
-    <span
-      title={`${value.toLocaleString()} creates`}
-      style={{
-        fontFamily: 'var(--font-mono)',
-        fontSize: '0.75rem',
-        color: 'var(--text-tertiary)',
-        fontVariantNumeric: 'tabular-nums',
-        textAlign: 'right',
-        whiteSpace: 'nowrap',
-      }}
-    >
+    <span className="fn-row-count" title={`${value.toLocaleString()} creates`}>
       {formatCount(value)}
     </span>
   );
@@ -434,14 +383,18 @@ function sortChildren(children: PrefixChild[]): PrefixChild[] {
 
 function loadMoreStyle(loading: boolean): React.CSSProperties {
   return {
-    margin: '0.5rem 0',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
     width: '100%',
-    padding: '0.5rem',
-    background: 'var(--bg-tertiary)',
-    border: '1px solid var(--border-medium)',
-    color: 'var(--text-secondary)',
-    fontFamily: 'var(--font-serif)',
-    fontSize: '0.8125rem',
+    height: '42px',
+    border: 0,
+    borderTop: '1px solid var(--border-subtle)',
+    background: 'transparent',
+    color: 'var(--text-accent)',
+    fontFamily: 'var(--font-sans)',
+    fontSize: '13px',
+    fontWeight: 600,
     cursor: loading ? 'default' : 'pointer',
   };
 }
@@ -456,7 +409,7 @@ function ListSkeleton() {
           style={{
             display: 'flex',
             justifyContent: 'space-between',
-            padding: '0.55rem 0',
+            padding: '0.8rem 16px',
             borderBottom: i === widths.length - 1 ? undefined : '1px solid var(--border-subtle)',
           }}
         >

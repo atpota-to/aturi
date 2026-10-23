@@ -1,42 +1,42 @@
-@import url('https://fonts.googleapis.com/css2?family=Crimson+Pro:wght@300;400;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap');
 
 :root {
   /* Dark, moody, natural color palette */
-  --bg-primary: #0a0a0a;
-  --bg-secondary: #151515;
-  --bg-tertiary: #1a1a1a;
-  --bg-elevated: #202020;
+  --bg-primary: #141512;
+  --bg-secondary: #1c1d19;
+  --bg-tertiary: #24261f;
+  --bg-elevated: #22241e;
 
   /* Natural, organic accent colors */
-  --accent-moss: #4a5a3f;
-  --accent-forest: #2d3a28;
-  --accent-bark: #3d3329;
-  --accent-stone: #4a4a46;
+  --accent-moss: #3f5e2e;
+  --accent-forest: #4f7139;
+  --accent-bark: #5a4b3a;
+  --accent-stone: #4a4c44;
 
   /* Text colors. Secondary and tertiary were bumped from #a8a8a6/#686866 so
      supporting copy clears WCAG AA on the very dark backgrounds — `#686866`
      was around 4.0:1 on --bg-primary, well under threshold for body text. */
-  --text-primary: #f0f0ee;
-  --text-secondary: #c4c4c0;
-  --text-tertiary: #9a9a96;
-  --text-accent: #a8b89c;
+  --text-primary: #edeee8;
+  --text-secondary: #bfc1b8;
+  --text-tertiary: #959789;
+  --text-accent: #a9c48f;
 
   /* Ambient glow effects */
-  --glow-subtle: rgba(168, 184, 156, 0.06);
-  --glow-medium: rgba(168, 184, 156, 0.12);
-  --glow-strong: rgba(168, 184, 156, 0.22);
+  --glow-subtle: rgba(169, 196, 143, 0.04);
+  --glow-medium: rgba(169, 196, 143, 0.08);
+  --glow-strong: rgba(169, 196, 143, 0.14);
 
   /* Borders - subtle and organic */
-  --border-subtle: rgba(240, 240, 238, 0.12);
-  --border-medium: rgba(240, 240, 238, 0.18);
-  --border-strong: rgba(240, 240, 238, 0.24);
+  --border-subtle: #2a2c26;
+  --border-medium: #33352e;
+  --border-strong: #43463d;
 
   /* Page-level ambient glow used by body::before. Tuned moodier than the
      standard glow tokens so the dark backdrop reads atmospheric; overridden
      in [data-theme='light'] below. */
-  --page-glow-a: rgba(138, 154, 127, 0.25);
-  --page-glow-b: rgba(74, 90, 63, 0.22);
-  --page-glow-c: rgba(138, 154, 127, 0.18);
+  --page-glow-a: transparent;
+  --page-glow-b: transparent;
+  --page-glow-c: transparent;
 
   /* Translucent floating-element backdrop used behind backdrop-filter blurs
      (e.g. the scroll-to-choose indicator). Tracks --bg-primary's hue so the
@@ -67,13 +67,13 @@
 
   /* Opacity for the global noise overlay. Lower in light mode so paper
      backgrounds don't look gritty. */
-  --noise-opacity: 0.6;
+  --noise-opacity: 0;
 
   /* Text drawn on the primary buttons / active toggles — i.e. on top of
      --accent-moss and --accent-forest. Most schemes keep those accents dark
      in both themes, so this stays near-white; a scheme that fills with pale
      accents instead (trans) flips it to ink. */
-  --text-on-accent: #f0f0ee;
+  --text-on-accent: #ffffff;
 
   /* Text drawn on a --danger fill (the confirm-delete buttons). Separate
      from --text-on-accent because the two backgrounds move independently:
@@ -127,8 +127,11 @@
   --margin-annotation-tint: rgba(167, 139, 250, 0.18);
   --margin-annotation-border: rgba(167, 139, 250, 0.36);
 
-  /* Typography scale */
-  --font-serif: 'Crimson Pro', serif;
+  /* Typography scale. Field Notes sets everything in Figtree; --font-serif
+     is kept as an alias because ~170 components still name it inline, and
+     pointing it at the sans stack restyles them all without touching each. */
+  --font-sans: 'Figtree', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-serif: var(--font-sans);
   --font-mono: 'IBM Plex Mono', monospace;
 
   /* Horizontal gutter at the page edges. Trimmed on phones (see the
@@ -137,55 +140,78 @@
      page section wrappers that don't use those classes. */
   --page-edge: 2rem;
 
+  /* Field Notes surface tokens. --surface-subtle is the off-white strip
+     used for table heads, inset metadata rows and hover fills;
+     --accent-soft / --accent-soft-fg are the pale green pill (active nav
+     item, selected tree row, chips) and --accent-soft-border its outline.
+     Radii: cards are 12px, controls 8px, pills fully round. */
+  --surface-subtle: #20221d;
+  --accent-soft: #26301f;
+  --accent-soft-fg: #c5dbb2;
+  --accent-soft-border: #34422a;
+  /* The outline every soft pill wears (eyebrows, kind chips, tags), so it
+     holds its edge on paper and on white alike. Firmer than
+     --accent-soft-border, which outlines selected rows and stays quiet.
+     Derived here on :root, where data-theme and data-scheme also live, so
+     it follows every theme and scheme without its own copy in each. */
+  --accent-soft-ring: color-mix(in srgb, var(--text-accent) 26%, var(--accent-soft));
+  --text-faint: #6f7168;
+  --status-live: #7fae66;
+  /* Bluesky's brand blue (the "Bluesky post" pill), lifted for dark. */
+  --brand-bluesky: #4f9bff;
+  --radius-card: 12px;
+  --radius-control: 8px;
+  --radius-pill: 999px;
+
   color-scheme: dark;
 }
 
 [data-theme='light'] {
-  --bg-primary: #faf8f3;
-  --bg-secondary: #f1ede4;
-  --bg-tertiary: #e8e2d4;
+  --bg-primary: #f6f4ee;
+  --bg-secondary: #ffffff;
+  --bg-tertiary: #f1eee6;
   --bg-elevated: #ffffff;
 
   /* Darker than it looks like it needs to be: --accent-moss is a filled
      button background under --text-on-accent, and the old #6c7c5f only
      reached 3.9:1 against it. */
-  --accent-moss: #5d6b51;
-  --accent-forest: #4d5a48;
+  --accent-moss: #3f5e2e;
+  --accent-forest: #2b4320;
   --accent-bark: #6e5f4c;
-  --accent-stone: #76766f;
+  --accent-stone: #6b6d64;
 
-  --text-primary: #1a1c18;
-  --text-secondary: #3e3f3a;
-  --text-tertiary: #5c5d56;
-  --text-accent: #4d5e3f;
+  --text-primary: #1c1e19;
+  --text-secondary: #4a4c44;
+  --text-tertiary: #6b6d64;
+  --text-accent: #3f5e2e;
 
-  --glow-subtle: rgba(77, 94, 63, 0.05);
-  --glow-medium: rgba(77, 94, 63, 0.1);
-  --glow-strong: rgba(77, 94, 63, 0.18);
+  --glow-subtle: rgba(63, 94, 46, 0.04);
+  --glow-medium: rgba(63, 94, 46, 0.08);
+  --glow-strong: rgba(63, 94, 46, 0.14);
 
-  --border-subtle: rgba(26, 28, 24, 0.14);
-  --border-medium: rgba(26, 28, 24, 0.22);
-  --border-strong: rgba(26, 28, 24, 0.32);
+  --border-subtle: #edeae2;
+  --border-medium: #e2ded3;
+  --border-strong: #d9d4c7;
 
   /* Softer page glow so the paper backdrop reads warm but not muddy. */
-  --page-glow-a: rgba(77, 94, 63, 0.14);
-  --page-glow-b: rgba(110, 95, 76, 0.12);
-  --page-glow-c: rgba(77, 94, 63, 0.1);
+  --page-glow-a: transparent;
+  --page-glow-b: transparent;
+  --page-glow-c: transparent;
 
-  --bg-overlay: rgba(250, 248, 243, 0.85);
-  --bg-overlay-hover: rgba(241, 237, 228, 0.92);
-  --shadow-overlay: 0 8px 32px rgba(26, 28, 24, 0.12), 0 0 0 1px rgba(26, 28, 24, 0.04);
-  --shadow-overlay-hover: 0 12px 40px rgba(26, 28, 24, 0.16), 0 0 0 1px rgba(26, 28, 24, 0.06);
+  --bg-overlay: rgba(255, 255, 255, 0.92);
+  --bg-overlay-hover: rgba(250, 249, 245, 0.96);
+  --shadow-overlay: 0 8px 28px rgba(28, 30, 25, 0.1), 0 0 0 1px rgba(28, 30, 25, 0.04);
+  --shadow-overlay-hover: 0 12px 36px rgba(28, 30, 25, 0.14), 0 0 0 1px rgba(28, 30, 25, 0.06);
 
   --modal-backdrop: rgba(26, 28, 24, 0.45);
-  --modal-bg: linear-gradient(145deg, rgba(255, 255, 255, 0.98) 0%, rgba(241, 237, 228, 0.99) 100%);
+  --modal-bg: #ffffff;
   --modal-shadow: 0 20px 60px rgba(26, 28, 24, 0.18), 0 0 80px var(--glow-subtle);
   --modal-header-bg: rgba(26, 28, 24, 0.05);
   --modal-pane-bg: rgba(26, 28, 24, 0.04);
   --modal-pane-vignette: inset 0 0 40px rgba(26, 28, 24, 0.06);
-  --modal-bottom-fade: linear-gradient(to top, rgba(241, 237, 228, 0.95), transparent);
+  --modal-bottom-fade: linear-gradient(to top, rgba(255, 255, 255, 0.95), transparent);
 
-  --noise-opacity: 0.25;
+  --noise-opacity: 0;
 
   /* Deepened from #b5453e: --danger is shared by every light palette, and
      on the warmer scheme backgrounds (ember's parchment especially) the
@@ -199,7 +225,7 @@
   /* Almost-invisible warm strip — the previous rgba(0,0,0,0.2) inset
      disappeared on the cream backdrop. This gives the at:// row a faint
      ink-on-paper feel without going muddy. */
-  --surface-overlay-dim: rgba(26, 28, 24, 0.06);
+  --surface-overlay-dim: #faf9f5;
 
   /* Darker, more saturated equivalents of the dark-mode margin accents.
      Each `-fg` clears WCAG AA against --bg-secondary (#f1ede4); tints stay
@@ -231,6 +257,15 @@
   --margin-annotation-fg: #6543c6;
   --margin-annotation-tint: rgba(101, 67, 198, 0.1);
   --margin-annotation-border: rgba(101, 67, 198, 0.28);
+
+  --surface-subtle: #faf9f5;
+  --accent-soft: #e5ecdc;
+  --accent-soft-fg: #2b4320;
+  --accent-soft-border: #d9e4cc;
+  --text-faint: #a3a59c;
+  --status-live: #5e8c4a;
+  --brand-bluesky: #1d6fd8;
+  --link-hover: var(--accent-forest);
 
   color-scheme: light;
 }
@@ -777,6 +812,33 @@
   --modal-bottom-fade: linear-gradient(to top, rgba(242, 242, 242, 0.95), transparent);
 }
 
+/* Field Notes soft-accent tokens for the non-moss schemes. The moss values
+   in :root and [data-theme='light'] are hand-picked; every other scheme
+   derives its pale pill, pill text and pill outline from its own accent and
+   card colour, so a scheme's chips and active states follow its hue without
+   a hand-tuned trio per block above. */
+[data-scheme]:not([data-scheme='moss']) {
+  --accent-soft: color-mix(in srgb, var(--text-accent) 14%, var(--bg-secondary));
+  --accent-soft-fg: var(--text-accent);
+  --accent-soft-border: color-mix(in srgb, var(--text-accent) 28%, var(--bg-secondary));
+  /* Same idea for the other Field Notes tokens: the moss strip, faint text
+     and live dot are tinted green-grey, which reads as a stray moss patch on
+     an ember or tide page. These mixes land on the hand-picked moss values
+     when fed moss's own colours. */
+  --surface-subtle: color-mix(in srgb, var(--bg-tertiary) 50%, var(--bg-secondary));
+  --text-faint: color-mix(in srgb, var(--text-tertiary) 65%, var(--bg-secondary));
+  --status-live: var(--text-accent);
+}
+
+[data-theme='light'][data-scheme]:not([data-scheme='moss']) {
+  --surface-overlay-dim: var(--surface-subtle);
+  --modal-backdrop: color-mix(in srgb, var(--text-primary) 45%, transparent);
+  --shadow-overlay: 0 8px 28px color-mix(in srgb, var(--text-primary) 10%, transparent),
+    0 0 0 1px color-mix(in srgb, var(--text-primary) 4%, transparent);
+  --shadow-overlay-hover: 0 12px 36px color-mix(in srgb, var(--text-primary) 14%, transparent),
+    0 0 0 1px color-mix(in srgb, var(--text-primary) 6%, transparent);
+}
+
 /* High-contrast overrides. Layered on top of whichever theme is active, so
    they only touch the tokens that need more separation: pure-black/white
    backgrounds and text, opaque borders, and brighter accents. Everything
@@ -829,6 +891,18 @@
   /* High contrast brightens the salmon further, so the label goes to black
      rather than the white used on the accents. */
   --text-on-danger: #000000;
+
+  /* Field Notes tokens, derived from the high-contrast colours above so
+     they follow both themes and every scheme's accent instead of keeping
+     the moss values: the pill is a firmer tint with full-strength accent
+     text and a visible outline, the strip is the tertiary background, and
+     "faint" text stays at tertiary strength. */
+  --accent-soft: color-mix(in srgb, var(--text-accent) 18%, var(--bg-secondary));
+  --accent-soft-fg: var(--text-accent);
+  --accent-soft-border: color-mix(in srgb, var(--text-accent) 60%, var(--bg-secondary));
+  --surface-subtle: var(--bg-tertiary);
+  --text-faint: var(--text-tertiary);
+  --status-live: var(--text-accent);
 }
 
 :root[data-theme='light'][data-high-contrast='true'] {
@@ -977,24 +1051,36 @@ html {
 }
 
 body {
-  font-family: var(--font-serif);
-  font-weight: 300;
+  font-family: var(--font-sans);
+  font-weight: 400;
+  font-size: 0.875rem;
   color: var(--text-primary);
   background: var(--bg-primary);
-  line-height: 1.7;
+  line-height: 1.55;
   overflow-x: hidden;
   /* Ensure full viewport coverage on mobile */
   min-height: 100vh;
   min-height: 100dvh; /* Dynamic viewport height for mobile browsers */
+  /* Sticky footer: the page wrapper (PageTransition's div around <main>)
+     takes the spare height, so a short page's footer sits at the bottom of
+     the viewport instead of leaving a band of page colour under it. */
+  display: flex;
+  flex-direction: column;
 }
 
-/* Lucide Icons - Thinner stroke for a more refined look */
-svg {
-  stroke-width: 1.5;
+body > :has(> main) {
+  flex: 1 0 auto;
 }
 
-/* Moody atmospheric glow overlay - beneath all content */
+/* Lucide icons keep their stock 2px stroke: Field Notes pairs them with
+   a medium-weight sans, and the old 1.5px read as faint beside it. */
+
+/* Moody atmospheric glow overlay - beneath all content. Field Notes is a
+   flat paper surface, so the overlay (and the grain in body::after) is
+   switched off below rather than deleted, keeping the motion keyframes
+   available to anything else that names them. */
 body::before {
+  display: none;
   content: '';
   position: fixed;
   top: 0;
@@ -1064,7 +1150,7 @@ body::before {
 
 /* Typography */
 h1, h2, h3, h4, h5, h6 {
-  font-weight: 400;
+  font-weight: 700;
   /* Tightened from 1.3 — display serif at these sizes spaces too far
      apart at 1.3 and the wrapped second line drifts away from the
      first. 1.2 keeps multi-line headings reading as a single block. */
@@ -1073,9 +1159,9 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 h1 {
-  font-size: 2.5rem;
-  font-weight: 300;
-  letter-spacing: -0.03em;
+  font-size: 2.25rem;
+  font-weight: 700;
+  letter-spacing: -0.025em;
   /* Even tighter for the display-sized h1 — matches the homepage hero
      and keeps long titles like "Browse through any repository." from
      splitting into two visually disconnected lines. */
@@ -1083,11 +1169,13 @@ h1 {
 }
 
 h2 {
-  font-size: 2rem;
+  font-size: 1.3125rem;
+  letter-spacing: -0.015em;
 }
 
 h3 {
-  font-size: 1.5rem;
+  font-size: 1rem;
+  letter-spacing: -0.005em;
 }
 
 p {
@@ -1098,7 +1186,8 @@ code {
   font-family: var(--font-mono);
   font-size: 0.9em;
   background: var(--bg-tertiary);
-  padding: 0.2em 0.4em;
+  padding: 0.15em 0.4em;
+  border-radius: 5px;
   color: var(--text-accent);
 }
 
@@ -1110,6 +1199,7 @@ pre {
   overflow-x: auto;
   margin: 1rem 0;
   border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-control);
 }
 
 /* Links */
@@ -1120,7 +1210,7 @@ a {
 }
 
 a:hover {
-  color: var(--text-primary);
+  color: var(--link-hover, var(--text-primary));
 }
 
 .branding-link:hover {
@@ -1134,153 +1224,6 @@ a:hover {
 
 .footer-link-accent:hover {
   opacity: 0.8;
-}
-
-/* New footer layout (Footer.tsx). Two-row card: brand + nav on top,
-   AT-URI styled credits below. Constrained to the site's content width
-   and stacks at narrow viewports. */
-.footer-inner {
-  max-width: 64rem;
-  margin: 0 auto;
-  padding: 0 1.5rem;
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-}
-
-.footer-grid {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 2rem;
-  align-items: start;
-}
-
-.footer-brand {
-  display: flex;
-  align-items: center;
-  gap: 0.875rem;
-  min-width: 0;
-}
-
-.footer-nav {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 0.4rem;
-  font-family: var(--font-serif);
-  font-size: 0.8125rem;
-  letter-spacing: 0.03em;
-  text-align: right;
-}
-
-.footer-nav .footer-link {
-  color: var(--text-tertiary);
-  text-decoration: none;
-  transition: color 0.2s ease;
-}
-
-.footer-nav .footer-link:hover {
-  color: var(--text-accent) !important;
-}
-
-/* Source-code row inside the footer nav. GitHub and its Tangled mirror share
-   one labelled line so they read as two hosts for the same repo rather than
-   as two unrelated nav items; the primary sits a shade brighter than the
-   mirror, which carries a "mirror" tag. */
-.footer-source {
-  display: flex;
-  align-items: baseline;
-  justify-content: flex-end;
-  flex-wrap: wrap;
-  gap: 0.4rem;
-}
-
-.footer-source-label {
-  font-size: 0.7rem;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--text-tertiary);
-  opacity: 0.85;
-}
-
-.footer-nav .footer-source-primary {
-  color: var(--text-secondary);
-}
-
-.footer-source-sep {
-  color: var(--text-tertiary);
-  opacity: 0.5;
-}
-
-.footer-source-note {
-  margin-left: 0.3rem;
-  font-size: 0.65rem;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  opacity: 0.7;
-}
-
-.footer-credits {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.55rem;
-  padding-top: 1.25rem;
-  border-top: 1px dashed var(--border-subtle);
-  font-family: var(--font-mono);
-  font-size: 0.8125rem;
-  color: var(--text-tertiary);
-}
-
-.footer-credits-label {
-  font-family: var(--font-serif);
-  font-size: 0.7rem;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--text-tertiary);
-  opacity: 0.85;
-}
-
-.footer-uri {
-  display: inline-flex;
-  align-items: baseline;
-  text-decoration: none;
-  color: var(--text-primary);
-  transition: color 0.2s ease;
-}
-
-.footer-uri-scheme {
-  color: var(--text-tertiary);
-  margin-right: 0.05rem;
-}
-
-.footer-uri-handle {
-  color: var(--text-accent);
-  font-weight: 500;
-}
-
-.footer-uri:hover .footer-uri-handle {
-  text-decoration: underline;
-  text-underline-offset: 0.18em;
-  text-decoration-thickness: 1px;
-}
-
-@media (max-width: 640px) {
-  .footer-grid {
-    grid-template-columns: 1fr;
-    gap: 1.25rem;
-  }
-  .footer-nav {
-    flex-direction: row;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: flex-start;
-    gap: 0.4rem 1rem;
-    text-align: left;
-  }
-  .footer-source {
-    justify-content: flex-start;
-  }
 }
 
 /* Navigation Links - Organic Style */
@@ -1312,7 +1255,6 @@ a:hover {
   color: var(--text-primary);
   border-color: var(--text-accent);
   background: var(--bg-tertiary);
-  transform: translateY(-2px);
 }
 
 .nav-link:hover::before {
@@ -1361,7 +1303,6 @@ a:hover {
   color: var(--text-primary);
   background: var(--bg-elevated);
   border-color: var(--border-medium);
-  transform: translateX(4px);
 }
 
 .compact-nav-link:hover::before {
@@ -1426,8 +1367,8 @@ a:hover {
 
 /* Buttons */
 button {
-  font-family: var(--font-serif);
-  font-weight: 400;
+  font-family: var(--font-sans);
+  font-weight: 500;
   cursor: pointer;
   border: none;
   background: none;
@@ -1439,8 +1380,6 @@ button {
 .generate-button:not(:disabled):hover {
   background: var(--accent-forest) !important;
   color: var(--text-on-accent) !important;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 20px var(--glow-medium);
 }
 
 .generate-button:active:not(:disabled) {
@@ -1460,12 +1399,13 @@ button {
   padding: 0 2rem;
 }
 
-/* Card styling - no border radius */
+/* Card styling: Field Notes white panel, hairline border, 12px corners */
 .card {
   background: var(--bg-secondary);
   border: 1px solid var(--border-medium);
+  border-radius: var(--radius-card);
   padding: 2rem;
-  transition: all 0.3s ease;
+  transition: border-color 0.15s ease, background 0.15s ease;
 }
 
 .record-preview-card {
@@ -1473,9 +1413,7 @@ button {
 }
 
 .card:hover {
-  background: var(--bg-tertiary);
   border-color: var(--border-strong);
-  box-shadow: 0 0 40px var(--glow-subtle);
 }
 
 /* Secondary card style for non-interactive cards */
@@ -1523,7 +1461,6 @@ button {
 .waypoint-button:hover {
   background: var(--bg-tertiary);
   border-color: var(--text-accent);
-  transform: translateX(4px) var(--button-rotation, rotate(0deg));
 }
 
 .waypoint-button:hover::before {
@@ -1572,8 +1509,9 @@ button {
   font-style: italic;
 }
 
-/* Noise texture overlay for depth */
+/* Noise texture overlay for depth (off in Field Notes, see body::before) */
 body::after {
+  display: none;
   content: '';
   position: fixed;
   inset: 0;
@@ -2520,38 +2458,6 @@ html {
   text-align: center;
 }
 
-/* Profile Preview Styles */
-.profile-stats-container {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  padding-top: 1rem;
-  border-top: 1px solid var(--border-medium);
-}
-
-.profile-stats-row {
-  display: flex;
-  gap: 2rem;
-  flex-wrap: wrap;
-}
-
-.profile-stat-item {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  /* Collapse the inherited line-height (body: 1.7) so the text's line-box
-     matches the icon's geometric height — without this, align-items:
-     center floats the icon above the optical midline of the text. */
-  line-height: 1;
-}
-
-.profile-join-date {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  line-height: 1;
-}
-
 /* "View raw repo in the explorer →" link on the profile preview card.
    Class-based hover so the host (ProfilePreview) can stay a Server
    Component — inline onMouseEnter/Leave would be a function prop on
@@ -2654,28 +2560,9 @@ html {
   background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-tertiary) 100%);
 }
 
-.feature-card-primary:hover {
-  transform: rotate(-0.5deg) translateY(-4px) !important;
-  box-shadow: 0 8px 60px var(--glow-medium);
-}
-
+.feature-card-primary:hover,
 .feature-card-secondary:hover {
-  transform: rotate(0.5deg) translateY(-2px) !important;
-  box-shadow: 0 4px 40px var(--glow-subtle);
-}
-
-/* Example Links with organic animation */
-.example-link {
-  transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-
-.example-link:hover {
-  transform: rotate(0deg) translateX(8px) scale(1.02) !important;
-}
-
-/* CTA Card */
-.cta-card:hover {
-  transform: rotate(-0.2deg) scale(1.01) !important;
+  border-color: var(--border-strong);
 }
 
 .cta-button {
@@ -2699,8 +2586,6 @@ html {
 .cta-button:hover {
   background: var(--accent-forest) !important;
   color: var(--text-on-accent) !important;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 20px var(--glow-medium);
 }
 
 /* Floating animation for decorative elements */
@@ -2730,16 +2615,8 @@ html {
   transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-/* Preview cards - subtle organic rotation on hover */
-.card:not(.feature-card-primary):not(.feature-card-secondary):not(.cta-card) {
-  will-change: transform;
-  transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-
-.card:not(.feature-card-primary):not(.feature-card-secondary):not(.cta-card):hover {
-  transform: rotate(0deg) scale(1.005) translateY(-2px) !important;
-  box-shadow: 0 4px 40px var(--glow-subtle);
-}
+/* Preview cards: Field Notes cards stay put on hover; .card:hover only
+   firms up the border. */
 
 /* Waypoint button organic animations */
 .waypoint-button {
@@ -2767,23 +2644,349 @@ html {
 }
 
 .waypoint-button:hover {
-  transform: translateX(4px) rotate(0deg) !important;
   border-color: var(--text-accent);
 }
 
-/* Parent post card - layered behind reply card */
+/* Parent post card: the post being replied to, a quiet tinted card above
+   the reply. */
 .parent-card {
-  background: var(--bg-tertiary);
+  background: var(--surface-subtle);
   border: 1px solid var(--border-medium);
-  transition: all 0.4s ease;
-  will-change: transform;
+  transition: border-color 0.15s ease;
   cursor: pointer;
 }
 
 .parent-card:hover {
-  background: var(--bg-elevated);
   border-color: var(--border-strong);
-  transform: rotate(-0.3deg) scale(0.97) !important;
+}
+
+/* Explorer search field (explore/SearchBox.tsx): 48px white field with a
+   leading icon and a moss "Look up" button. Hosts resize it from their own
+   sheet via the wrapper or SearchBox's className. */
+.fn-searchbox {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+  margin-bottom: 2rem;
+}
+
+.fn-searchbox-field {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+}
+
+.fn-searchbox-icon {
+  position: absolute;
+  top: 50%;
+  left: 14px;
+  transform: translateY(-50%);
+  color: var(--text-tertiary);
+  pointer-events: none;
+}
+
+.fn-searchbox-input {
+  width: 100%;
+  height: 48px;
+  box-sizing: border-box;
+  padding: 0 14px 0 41px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-strong);
+  border-radius: 10px;
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: 15px;
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+
+.fn-searchbox-input::placeholder {
+  color: var(--text-tertiary);
+}
+
+.fn-searchbox-input:focus {
+  border-color: var(--text-accent);
+}
+
+.fn-searchbox-pop {
+  position: absolute;
+  top: calc(100% + 0.25rem);
+  left: 0;
+  right: 0;
+  z-index: 30;
+  max-height: 22rem;
+  overflow-x: hidden;
+  overflow-y: auto;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-medium);
+  border-radius: 10px;
+  box-shadow: var(--shadow-overlay);
+}
+
+.fn-searchbox-submit {
+  height: 48px;
+  padding: 0 20px;
+  background: var(--accent-moss);
+  color: var(--text-on-accent);
+  border: 1px solid var(--accent-moss);
+  border-radius: 10px;
+  font-family: var(--font-sans);
+  font-size: 15px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 0.2s ease, opacity 0.2s ease;
+}
+
+.fn-searchbox-submit:hover {
+  background: var(--accent-forest);
+}
+
+.fn-searchbox-submit:disabled {
+  cursor: progress;
+  opacity: 0.75;
+}
+
+/* Phones: the button drops under the field, as it does on home, so the
+   field gets the full width and its placeholder ("Handle, DID, at:// URI
+   or URL") isn't cut short by a button beside it. */
+@media (max-width: 640px) {
+  .fn-searchbox {
+    flex-direction: column;
+  }
+}
+
+/* Outbound-link button (explore/LinkButton.tsx). */
+a.fn-link-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 10px;
+  flex: none;
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-control);
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  font-family: var(--font-sans);
+  font-size: 12.5px;
+  font-weight: 500;
+  line-height: 1;
+  white-space: nowrap;
+  text-decoration: none;
+  transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+}
+
+a.fn-link-btn:hover {
+  background: var(--surface-subtle);
+  border-color: var(--border-strong);
+  color: var(--text-primary);
+}
+
+a.fn-link-btn:focus-visible {
+  outline: 2px solid var(--text-accent);
+  outline-offset: 1px;
+}
+
+/* ─── Post preview (PostPreview.tsx) ─────────────────────────────────────
+   Shared by the explorer record page and the universal link post page.
+   Flat white card: 40px round avatar, name over a mono @handle + date,
+   15.5px text, 10px-radius embeds, and a footer of tag chips and labelled
+   counts. Pages adjust spacing only (record.css, link.css). */
+.card.post-preview {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 2rem;
+  padding: 20px;
+  min-width: 0;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-card);
+  box-shadow: none;
+  font-family: var(--font-sans);
+}
+
+.fn-post-parent {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 8px;
+  padding: 14px 16px;
+  border-radius: var(--radius-card);
+  font-family: var(--font-sans);
+}
+
+.fn-post-parent-kicker {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-tertiary);
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+.fn-post-avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  overflow: hidden;
+  border-radius: 50%;
+  background: var(--accent-soft);
+  color: var(--accent-soft-fg);
+}
+
+.fn-post-avatar img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.fn-post-name {
+  color: var(--text-primary);
+  font-weight: 700;
+  line-height: 1.3;
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+
+.fn-post-name:hover {
+  color: var(--text-accent);
+}
+
+.fn-post-meta {
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--text-tertiary);
+  overflow-wrap: anywhere;
+}
+
+.fn-post-handle {
+  color: var(--text-tertiary);
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  text-decoration: none;
+}
+
+.fn-post-handle-accent {
+  color: var(--text-accent);
+}
+
+.fn-post-handle:hover {
+  color: var(--text-accent);
+  text-decoration: underline;
+}
+
+.fn-post-text {
+  color: var(--text-primary);
+  font-size: 15.5px;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+}
+
+.fn-post-quote {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 14px;
+  border: 1px solid var(--border-medium);
+  border-radius: 10px;
+  background: var(--surface-subtle);
+  color: var(--text-primary);
+  font-size: 14px;
+  transition: border-color 0.15s ease;
+}
+
+.fn-post-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 18px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border-subtle);
+  font-size: 13.5px;
+  line-height: 1.3;
+  color: var(--text-secondary);
+}
+
+.fn-post-tag {
+  padding: 2px 10px;
+  border-radius: var(--radius-pill);
+  background: var(--accent-soft);
+  box-shadow: inset 0 0 0 1px var(--accent-soft-ring);
+  color: var(--accent-soft-fg);
+  font-size: 12.5px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.fn-post-tag:hover {
+  color: var(--accent-soft-fg);
+  text-decoration: underline;
+}
+
+.fn-post-count {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.fn-post-count svg {
+  color: var(--text-tertiary);
+  flex-shrink: 0;
+}
+
+.fn-post-count strong {
+  color: var(--text-primary);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+/* The strip runs to the card's edges: the negative margins undo the card's
+   padding (20px, 16px on phones) and the corners follow its radius. */
+.fn-post-foot {
+  margin: -4px -20px -20px;
+  padding: 10px 20px;
+  border-top: 1px solid var(--border-subtle);
+  border-radius: 0 0 calc(var(--radius-card) - 1px) calc(var(--radius-card) - 1px);
+  background: var(--surface-subtle);
+  font-size: 13px;
+}
+
+.fn-post-crosslink.profile-explorer-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--text-accent);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.fn-post-crosslink.profile-explorer-link:hover {
+  color: var(--accent-forest);
+}
+
+@media (max-width: 640px) {
+  .card.post-preview {
+    gap: 14px;
+    padding: 16px;
+  }
+
+  .fn-post-text {
+    font-size: 15px;
+  }
+
+  .fn-post-foot {
+    margin: -2px -16px -16px;
+    padding: 10px 16px;
+  }
 }
 
 /* Reduced motion. Driven by the `data-reduce-motion` attribute on <html>,
@@ -2816,8 +3019,6 @@ html {
 [data-reduce-motion='true'] .waypoint-button:hover,
 [data-reduce-motion='true'] .feature-card-primary:hover,
 [data-reduce-motion='true'] .feature-card-secondary:hover,
-[data-reduce-motion='true'] .example-link:hover,
-[data-reduce-motion='true'] .cta-card:hover,
 [data-reduce-motion='true'] .cta-button:hover,
 [data-reduce-motion='true'] .parent-card:hover,
 [data-reduce-motion='true'] .featured-waypoint:hover,
@@ -2864,11 +3065,12 @@ html {
 }
 
 .explore-small-caps {
-  font-family: var(--font-serif);
+  font-family: var(--font-sans);
   font-size: 0.75rem;
-  letter-spacing: 0.12em;
+  font-weight: 700;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 
 .explore-muted {
@@ -3058,10 +3260,9 @@ html {
 
 .explore-raw-details summary {
   cursor: pointer;
-  color: var(--text-tertiary);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  font-size: 0.75rem;
+  color: var(--text-secondary);
+  font-weight: 600;
+  font-size: 0.8125rem;
   padding: 0.25rem 0;
 }
 
@@ -3107,21 +3308,21 @@ html {
 
 .explore-section > summary {
   cursor: pointer;
-  font-family: var(--font-serif);
-  font-size: 0.75rem;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--text-tertiary);
+  font-family: var(--font-sans);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--text-secondary);
   padding: 0.5rem 0;
 }
 
 .explore-input {
   width: 100%;
   padding: 0.55rem 0.75rem;
-  background: var(--bg-tertiary);
+  background: var(--bg-secondary);
   border: 1px solid var(--border-medium);
+  border-radius: var(--radius-control);
   color: var(--text-primary);
-  font-family: var(--font-serif);
+  font-family: var(--font-sans);
   font-size: 0.9rem;
   outline: none;
   transition: border-color 0.2s ease;
@@ -3216,15 +3417,17 @@ html {
    reservation is what keeps the bar off the tail of a long list and off the
    site footer: the footer is a sibling of <main> at the same z-index, so it
    would paint OVER the bar rather than slide under it. */
-body.has-explore-chrome {
+body.has-explore-chrome .fn-footer {
   /* The bar's measured height plus a gap. The height alone is enough on
      paper — at pixel-exact maximum scroll the footer's box lands flush
      against the bar and nothing is lost — but that's the only scroll
      position where it's true. Stop a little short of the bottom, which a
      wheel or a trackpad usually does, and the last line of the footer sits
      under the bar. The gap is the slack that makes "scrolled to the end"
-     look finished wherever you actually come to rest. */
-  padding-bottom: calc(var(--explore-chrome-h, 4rem) + 2rem);
+     look finished wherever you actually come to rest.
+     The reservation lives on the footer, not on <body>: the footer is a
+     white card, and body padding left a strip of page colour under it. */
+  padding-bottom: calc(20px + var(--explore-chrome-h, 4rem) + 2rem);
 }
 
 /* The fixed frame. Nothing is drawn here — it only pins the card to the
@@ -3262,7 +3465,7 @@ body.has-explore-chrome {
   background: var(--bg-secondary);
   border: 1px solid var(--border-medium);
   box-shadow: var(--shadow-overlay);
-  transform: rotate(-0.2deg);
+  transform: none;
   transition: all 0.3s ease;
 }
 
@@ -3414,7 +3617,7 @@ body.has-explore-chrome {
 }
 
 .explore-chrome-panel[data-open] {
-  transform: scaleY(1) translateY(0) rotate(-0.3deg);
+  transform: scaleY(1) translateY(0);
   opacity: 1;
   pointer-events: auto;
 }
@@ -3580,9 +3783,11 @@ body.has-explore-chrome {
   }
 
   :root {
-    /* Tighter edge gutter on phones. Drives both the container override
-       below and the inline var(--page-edge) wrappers on home + fork. */
-    --page-edge: 0.875rem;
+    /* Edge gutter on phones. Drives both the container override below and
+       the inline var(--page-edge) wrappers on home + fork. 16px, the phone
+       header's own inset, so page content lines up with the logo above it
+       and every page sits on the same edge. */
+    --page-edge: 1rem;
   }
 
   .container,
@@ -3596,53 +3801,29 @@ body.has-explore-chrome {
     padding-right: var(--page-edge) !important;
   }
 
-  /* Sticky compact nav — trim the desktop-sized padding so the nav card
-     hugs the top and screen edges on phones. Its horizontal edges already
-     come from the .container-narrow override above (the card shares that
-     class); here we only tighten the top gap, inner row, and the space
-     below the header. */
-  .compact-header {
-    margin-bottom: 1.25rem !important;
-  }
-  .compact-header-inner {
-    padding-top: 1rem !important;
-  }
-  /* The bottom chrome mirrors that trim, so the pair keeps matching on a
-     phone rather than one hugging its edge more tightly than the other. */
+  /* Trim the bottom chrome's safe-area padding on phones. */
   .explore-chrome-shell {
     padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
-  }
-  .compact-header-row {
-    padding: 0.625rem 0.75rem !important;
   }
 
   h1 {
     font-size: 2rem;
   }
-  
-  /* Mobile profile stats optimization */
-  .profile-stats-row {
-    gap: 1rem;
-  }
-  
-  .profile-stat-item {
-    flex: 1 1 auto;
-    min-width: 0;
-  }
-  
-  /* Force code blocks and inline code to wrap on mobile */
+
+  /* Force code blocks and inline code to wrap on mobile. `anywhere` breaks
+     a token too long for the line (a DID, a URL) wherever it must, and only
+     then; `break-all` split ordinary words mid-word ("htt|ps", "des|cription")
+     in every snippet that happened to reach the edge. */
   code {
-    word-break: break-all;
-    word-wrap: break-word;
-    overflow-wrap: break-word;
+    word-break: normal;
+    overflow-wrap: anywhere;
     white-space: pre-wrap;
   }
   
   pre {
     white-space: pre-wrap !important;
-    word-break: break-all;
-    word-wrap: break-word;
-    overflow-wrap: break-word;
+    word-break: normal;
+    overflow-wrap: anywhere;
     overflow-x: hidden !important; /* Prevent horizontal scroll */
   }
   
@@ -3664,8 +3845,6 @@ body.has-explore-chrome {
   /* Reset transforms on mobile for simpler layout */
   .feature-card-primary,
   .feature-card-secondary,
-  .example-link,
-  .cta-card,
   .card {
     transform: none !important;
   }
@@ -3696,42 +3875,6 @@ body.has-explore-chrome {
   }
   
   .examples-links {
-    grid-column: unset !important;
-  }
-  
-  /* Stack stats vertically on very small screens */
-  @media (max-width: 480px) {
-    .profile-stats-row {
-      flex-direction: column;
-      gap: 0.75rem;
-    }
-  }
-  
-  /* Fork Page Mobile Styles */
-  .fork-hero-card {
-    padding: 2rem !important;
-  }
-  
-  .fork-hero-content {
-    flex-direction: column !important;
-    align-items: center !important;
-    text-align: center;
-  }
-  
-  .fork-why-grid,
-  .fork-quick-start-grid,
-  .fork-quick-links-grid,
-  .fork-config-grid,
-  .fork-resources-grid {
-    display: flex !important;
-    flex-direction: column !important;
-  }
-  
-  .fork-why-grid .card,
-  .fork-quick-start-grid > *,
-  .fork-quick-links-grid > *,
-  .fork-config-grid > *,
-  .fork-resources-grid > * {
     grid-column: unset !important;
   }
 }
@@ -3823,8 +3966,7 @@ body.has-explore-chrome {
 
 .featured-waypoint {
   border: 2px solid var(--text-accent);
-  background: linear-gradient(135deg, var(--bg-secondary), var(--bg-tertiary));
-  box-shadow: 0 0 20px var(--glow-medium);
+  background: var(--bg-secondary);
   position: relative;
   overflow: hidden;
 }
@@ -3848,8 +3990,7 @@ body.has-explore-chrome {
 }
 
 .featured-waypoint:hover {
-  transform: translateX(4px) scale(1.02);
-  box-shadow: 0 0 30px var(--glow-strong);
+  border-color: var(--accent-forest);
 }
 
 /* More Options Section */
@@ -3889,7 +4030,7 @@ body.has-explore-chrome {
   top: 0.25rem;
   left: 0.25rem;
   right: -0.25rem;
-  transform: rotate(-0.5deg) scale(0.98);
+  transform: scale(0.98);
   z-index: -1;
 }
 
@@ -3903,7 +4044,7 @@ body.has-explore-chrome {
 }
 
 .stacked-cards:hover::before {
-  transform: rotate(-0.5deg) scale(0.98) translateY(-2px);
+  transform: scale(0.98) translateY(-2px);
   opacity: 0.8;
 }
 
@@ -4197,13 +4338,12 @@ body.has-explore-chrome {
   border: 1px solid var(--border-subtle);
   color: var(--text-primary);
   text-decoration: none;
-  transition: background 0.25s ease, border-color 0.25s ease, transform 0.25s ease;
+  transition: background 0.25s ease, border-color 0.25s ease;
 }
 
 .waypoint-tile:hover {
   background: var(--bg-tertiary);
   border-color: var(--text-accent);
-  transform: translateY(-2px);
 }
 
 /* Two lines, then clip — an ellipsised "Anisota Rea…" is worse than a
@@ -4330,93 +4470,6 @@ body.has-explore-chrome {
    Homepage product strips
    ============================================ */
 
-.home-product-strip {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: 3rem;
-  align-items: center;
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 4rem 2rem;
-}
-
-/* Desktop: when `data-flip` is set, swap the order so the demo sits on
-   the right side of the viewport while remaining first in the DOM. */
-.home-product-strip[data-flip] .home-product-strip-demo {
-  order: 2;
-}
-
-.home-product-strip-copy h2 {
-  font-size: 2rem;
-  font-weight: 300;
-  letter-spacing: -0.01em;
-  color: var(--text-primary);
-  margin: 0 0 1rem;
-  line-height: 1.15;
-}
-
-.home-product-strip-copy p {
-  font-size: 1.0125rem;
-  line-height: 1.65;
-  color: var(--text-secondary);
-  margin: 0 0 0.875rem;
-}
-
-.home-product-strip-copy p:last-of-type {
-  margin-bottom: 1.5rem;
-}
-
-.home-product-strip-demo {
-  /* Constrain the height of any embedded interactive surface so the
-     strip stays balanced regardless of how the demo renders. */
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
-@media (max-width: 820px) {
-  .home-product-strip {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 1.75rem;
-    /* Match the reduced page-edge gutter used elsewhere on mobile. */
-    padding: 2.5rem 0.875rem;
-  }
-  /* One column, so left-and-right stops meaning anything and DOM order
-     takes over. Lead with the copy, matching .landing-feature: a demo with
-     its own heading underneath is something the reader has to work out
-     before knowing what it shows. The flipped selector is repeated rather
-     than dropped because the desktop `order: 2` carries an attribute
-     selector and outranks a bare class, media query or not. */
-  .home-product-strip-copy {
-    order: 0;
-  }
-  .home-product-strip-demo,
-  .home-product-strip[data-flip] .home-product-strip-demo {
-    order: 1;
-  }
-  .home-product-strip-copy h2 {
-    font-size: 1.625rem;
-  }
-}
-
-/* Constrained icon box used inside the auto-redirect / custom-waypoint
-   button mocks on the landing pages. Waypoint SVGs are authored at
-   24x24 with intrinsic width/height attributes, which inline-style
-   sizing can't override — but a descendant rule like this can. */
-.landing-button-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 16px;
-  height: 16px;
-  color: var(--text-accent);
-  flex-shrink: 0;
-}
-.landing-button-icon svg {
-  width: 100%;
-  height: 100%;
-}
-
 /* ---------- Product landing pages (extension, universal links) ---------- */
 
 /* Hero block on landing pages stacks the copy + a hero visual side-by-side
@@ -4439,88 +4492,6 @@ body.has-explore-chrome {
      mobile container width so they don't trigger horizontal scroll. */
   .landing-hero > div:last-child > * {
     max-width: 100% !important;
-  }
-}
-
-/* Feature row: copy + visual two-column block, flipped order via
-   `data-flip`. Mirrors `.home-product-strip` but tuned for the
-   landing pages' narrower max width and tighter vertical rhythm. */
-.landing-feature {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: 2.5rem;
-  align-items: center;
-}
-
-.landing-feature[data-flip] .landing-feature-visual {
-  order: 2;
-}
-
-.landing-feature-visual {
-  display: flex;
-  justify-content: center;
-}
-
-.landing-feature-body p {
-  margin: 0 0 0.875rem;
-}
-
-.landing-feature-body p:last-child {
-  margin-bottom: 0;
-}
-
-@media (max-width: 820px) {
-  .landing-feature {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 1.5rem;
-  }
-  /* One column, so left-and-right stops meaning anything and DOM order
-     takes over. Lead with the copy: a mock with no heading above it is a
-     diagram the reader has to reverse-engineer before knowing what it
-     shows. The flipped selector is repeated rather than dropped because
-     the desktop `order: 2` outranks a bare class, media query or not. */
-  .landing-feature-copy {
-    order: 0;
-  }
-  .landing-feature-visual,
-  .landing-feature[data-flip] .landing-feature-visual {
-    order: 1;
-  }
-  /* Clamp every visual to the column width so the 380-460px mocks
-     don't push horizontal overflow on narrow screens. The inner mocks
-     use their own max-widths to stay legible at desktop sizes; this
-     just caps them on mobile. */
-  .landing-feature-visual > * {
-    max-width: 100% !important;
-  }
-}
-
-/* BrowserChrome mobile: drop the absolutely-positioned popup
-   overlay. On a phone the chrome's content area can't be tall enough
-   to contain the popup, so we stack the popup inline under the
-   toolbar strip and let the chrome grow with its content. */
-@media (max-width: 820px) {
-  .browser-chrome-content {
-    min-height: 0 !important;
-    padding: 0 !important;
-    background: none !important;
-  }
-  .browser-chrome-fake-content {
-    display: none;
-  }
-  .browser-chrome-popup {
-    position: static !important;
-    max-width: 100% !important;
-    margin: 0 !important;
-    z-index: auto !important;
-  }
-  /* The popup inside has its own max-width + transform; clamp it
-     within the chrome and drop the offset rotation so it lines up
-     cleanly stacked. */
-  .browser-chrome-popup > * {
-    max-width: 100% !important;
-    margin: 0 auto !important;
-    transform: none !important;
   }
 }
 
@@ -4665,31 +4636,10 @@ body.has-explore-chrome {
   gap: 0.5rem;
 }
 
-/* Static "Repo at a glance" demo card on /explore. Mirrors the live
-   AccountStats grid: three tiles per row, dropping to two on mobile so the
-   tiles don't get cramped enough to wrap the values ("Aug 2023") or labels. */
-.repo-glance-tiles {
-  padding: 10px;
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 6px;
-}
-
 @media (max-width: 600px) {
   .account-stats-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 0.4rem;
-  }
-
-  /* The tiles get narrow in the 2-column grid; tighten the small-caps
-     label tracking so two-word labels (Audit changes) sit on one line
-     instead of wrapping mid-phrase. The icon already eats into the width. */
-  .account-stats-grid .explore-small-caps {
-    letter-spacing: 0.05em;
-  }
-
-  .repo-glance-tiles {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
@@ -5370,7 +5320,7 @@ body.has-explore-chrome {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 3.25rem 1rem 1rem;
+  padding: 3.25rem 1rem calc(1rem + var(--lightbox-alt-h, 0px));
   overflow: auto;
   overscroll-behavior: contain;
 }
@@ -5403,7 +5353,7 @@ body.has-explore-chrome {
   width: auto;
   height: auto;
   max-width: 100%;
-  max-height: calc(100dvh - 5rem);
+  max-height: calc(100dvh - 5rem - var(--lightbox-alt-h, 0px));
   object-fit: contain;
   cursor: zoom-in;
   border: 1px solid var(--lightbox-chrome-border);
@@ -5478,8 +5428,11 @@ body.has-explore-chrome {
   border-color: rgba(255, 255, 255, 0.3);
 }
 
+/* The lightbox is dark in both themes, so its focus rings use its own light
+   chrome colour; light mode's --text-accent is a dark moss that all but
+   vanished against the backdrop. */
 .lightbox-btn:focus-visible {
-  outline: 2px solid var(--text-accent);
+  outline: 2px solid var(--lightbox-chrome-fg);
   outline-offset: 2px;
 }
 
@@ -5513,7 +5466,7 @@ body.has-explore-chrome {
 }
 
 .lightbox-nav:focus-visible {
-  outline: 2px solid var(--text-accent);
+  outline: 2px solid var(--lightbox-chrome-fg);
   outline-offset: 2px;
 }
 
@@ -5552,7 +5505,7 @@ body.has-explore-chrome {
 
 @media (max-width: 640px) {
   .lightbox-stage {
-    padding: 3.25rem 0.5rem 0.5rem;
+    padding: 3.25rem 0.5rem calc(0.5rem + var(--lightbox-alt-h, 0px));
   }
   /* Swiping is the navigation gesture on touch; the arrows shrink out of the
      image's way rather than disappearing (a stylus/mouse may still be used). */

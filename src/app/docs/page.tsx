@@ -25,40 +25,6 @@ export const metadata: Metadata = {
   },
 };
 
-// Shared inline styles — mirrors the CSS-variable + inline-style approach used
-// across the site's content pages (see src/app/terms/page.tsx).
-const sectionStyle: React.CSSProperties = {
-  padding: '2rem',
-  marginBottom: '1.5rem',
-  scrollMarginTop: '5.5rem',
-};
-const h2Style: React.CSSProperties = {
-  fontSize: '1.6rem',
-  fontWeight: 400,
-  color: 'var(--text-primary)',
-  letterSpacing: '-0.01em',
-  lineHeight: 1.2,
-  margin: '0 0 1rem',
-};
-const h3Style: React.CSSProperties = {
-  fontSize: '1.05rem',
-  fontWeight: 600,
-  color: 'var(--text-primary)',
-  margin: '1.75rem 0 0.5rem',
-};
-const pStyle: React.CSSProperties = {
-  color: 'var(--text-secondary)',
-  fontSize: '1rem',
-  lineHeight: 1.7,
-  margin: '0 0 1rem',
-};
-const liStyle: React.CSSProperties = {
-  color: 'var(--text-secondary)',
-  fontSize: '1rem',
-  lineHeight: 1.6,
-  marginBottom: '0.4rem',
-};
-
 // The published core package, linked from the page header rather than buried
 // in the "Core package" section: the first thing a developer wants off this
 // page is somewhere to go look at the thing before installing it.
@@ -196,390 +162,324 @@ export default function DocsPage() {
   return (
     <>
       <Header compact />
-      <div
-        className="container-narrow"
-        style={{ padding: '0 2rem 4rem', minHeight: '80dvh' }}
-      >
+      <div className="fn-c-wrap">
         {/* Page header */}
-        <header style={{ textAlign: 'center', margin: '0 auto 2.5rem', maxWidth: '40rem' }}>
-          <h1
-            style={{
-              fontSize: '2.5rem',
-              fontWeight: 300,
-              letterSpacing: '-0.01em',
-              lineHeight: 1.15,
-              margin: '0 0 1rem',
-            }}
-          >
-            Developer docs
-          </h1>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '1.125rem', lineHeight: 1.6, margin: 0 }}>
+        <header className="fn-c-head fn-docs-head">
+          <h1 className="fn-c-title">Developer docs</h1>
+          <p className="fn-c-lede">
             Add Atmosphere “Open in…” links, smart client recommendations,
             compose intents, and AT-URI resolution to your own app, with two
             MIT-licensed packages and a public API.
           </p>
-          {/* Color is left to the global `a` rule so the chip picks up the
-              accent color and its hover transition — this page is a Server
-              Component, so the inline hover handlers used by the Copy button
-              below aren't available here. */}
-          <a
-            href={NPMX_CORE_URL}
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '0.45rem',
-              marginTop: '1.5rem',
-              padding: '0.45rem 0.85rem',
-              border: '1px solid var(--border-subtle)',
-              background: 'var(--bg-tertiary)',
-              fontFamily: 'var(--font-mono)',
-              fontSize: '0.8125rem',
-            }}
-          >
-            <Package size={14} strokeWidth={1.5} aria-hidden />
-            <span>@aturi.to/waypoints</span>
-            <span style={{ color: 'var(--text-tertiary)' }}>on npmx ↗</span>
-          </a>
-          <div
-            style={{
-              display: 'flex',
-              flexWrap: 'wrap',
-              justifyContent: 'center',
-              alignItems: 'center',
-              gap: '0.75rem',
-              marginTop: '1.5rem',
-            }}
-          >
-            <CopyMarkdownButton markdown={DOCS_MARKDOWN} />
+          <div className="fn-docs-actions">
             <a
-              href="/docs.md"
-              style={{
-                fontSize: '0.8125rem',
-                color: 'var(--text-tertiary)',
-                fontFamily: 'var(--font-mono)',
-              }}
+              href={NPMX_CORE_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="fn-c-pill"
             >
+              <Package size={14} aria-hidden />
+              <span>@aturi.to/waypoints</span>
+              <span className="fn-c-pill-dim">on npmx ↗</span>
+            </a>
+            <CopyMarkdownButton markdown={DOCS_MARKDOWN} />
+            <a href="/docs.md" className="fn-docs-raw">
               View raw .md →
             </a>
           </div>
-          <p
-            style={{
-              color: 'var(--text-tertiary)',
-              fontSize: '0.8125rem',
-              lineHeight: 1.5,
-              margin: '0.75rem 0 0',
-            }}
-          >
+          <p className="fn-docs-note">
             Building with an LLM or coding agent? Grab the whole page as Markdown.
           </p>
         </header>
 
-        {/* Table of contents */}
-        <nav
-          aria-label="On this page"
-          style={{
-            display: 'flex',
-            flexWrap: 'wrap',
-            justifyContent: 'center',
-            gap: '0.5rem',
-            marginBottom: '2.5rem',
-          }}
-        >
-          {TOC.map((item) => (
-            <a
-              key={item.id}
-              href={`#${item.id}`}
-              style={{
-                fontSize: '0.8125rem',
-                padding: '0.3rem 0.7rem',
-                border: '1px solid var(--border-subtle)',
-                background: 'var(--bg-secondary)',
-                color: 'var(--text-tertiary)',
-              }}
-            >
-              {item.label}
-            </a>
-          ))}
-        </nav>
+        <div className="fn-docs-layout">
+          {/* Table of contents */}
+          <nav aria-label="On this page" className="fn-docs-toc">
+            <span className="fn-docs-toc-label" aria-hidden>
+              On this page
+            </span>
+            <ol>
+              {TOC.map((item) => (
+                <li key={item.id}>
+                  <a href={`#${item.id}`}>{item.label}</a>
+                </li>
+              ))}
+            </ol>
+          </nav>
 
-        {/* Overview */}
-        <section id="overview" className="card" style={sectionStyle}>
-          <h2 style={h2Style}>Overview</h2>
-          <p style={pStyle}>
-            The same waypoint catalog, recommendations, and link logic that
-            power aturi.to are published as two standalone, MIT-licensed npm
-            packages so you can drop them into any Atmosphere (AT Protocol)
-            app:
-          </p>
-          <ul style={{ paddingLeft: '1.25rem', margin: '0 0 1rem' }}>
-            <li style={liStyle}>
-              <code>@aturi.to/waypoints</code>, a zero-dependency,
-              framework-agnostic core: the client catalog, per-client
-              “Open in…” link builders, recommendations, and URL ⇄ AT-URI
-              resolution. Works in the browser, Node 18+, and edge runtimes.
-            </li>
-            <li style={liStyle}>
-              <code>@aturi.to/waypoints-react</code>: a headless-first React
-              picker UI plus client icons, built on the core. Ships zero CSS
-              by default and is fully themeable.
-            </li>
-          </ul>
-          <p style={{ ...pStyle, margin: 0 }}>
-            Both are dual-licensed <strong>MIT</strong> (the aturi.to app
-            itself is GPL-3.0) to remove the adoption barrier. Prefer not to
-            install anything? The hosted{' '}
-            <a href="#resolve-api">Resolve API</a> does the same work over
-            HTTP.
-          </p>
-        </section>
+          <article className="fn-c-sheet fn-prose">
+            {/* Overview */}
+            <section id="overview">
+              <h2>Overview</h2>
+              <p>
+                The same waypoint catalog, recommendations, and link logic that
+                power aturi.to are published as two standalone, MIT-licensed npm
+                packages so you can drop them into any Atmosphere (AT Protocol)
+                app:
+              </p>
+              <ul>
+                <li>
+                  <code>@aturi.to/waypoints</code>, a zero-dependency,
+                  framework-agnostic core: the client catalog, per-client
+                  “Open in…” link builders, recommendations, and URL ⇄ AT-URI
+                  resolution. Works in the browser, Node 18+, and edge runtimes.
+                </li>
+                <li>
+                  <code>@aturi.to/waypoints-react</code>: a headless-first React
+                  picker UI plus client icons, built on the core. Ships zero CSS
+                  by default and is fully themeable.
+                </li>
+              </ul>
+              <p>
+                Both are dual-licensed <strong>MIT</strong> (the aturi.to app
+                itself is GPL-3.0) to remove the adoption barrier. Prefer not to
+                install anything? The hosted{' '}
+                <a href="#resolve-api">Resolve API</a> does the same work over
+                HTTP.
+              </p>
+            </section>
 
-        {/* Core package */}
-        <section id="core" className="card" style={sectionStyle}>
-          <h2 style={h2Style}>
-            <code>@aturi.to/waypoints</code>
-          </h2>
-          <p style={pStyle}>
-            The zero-dependency core. Turn an AT URI into per-client links,
-            recommend the best client for a record type, and reverse-resolve a
-            pasted URL back into an AT URI.
-          </p>
-          <CodeBlock label="bash" code={coreInstall} />
+            {/* Core package */}
+            <section id="core">
+              <h2>
+                <code>@aturi.to/waypoints</code>
+              </h2>
+              <p>
+                The zero-dependency core. Turn an AT URI into per-client links,
+                recommend the best client for a record type, and reverse-resolve a
+                pasted URL back into an AT URI.
+              </p>
+              <CodeBlock label="bash" code={coreInstall} />
 
-          <h3 style={h3Style}>Resolve an AT URI or a pasted URL</h3>
-          <CodeBlock label="ts" code={coreExample} />
+              <h3>Resolve an AT URI or a pasted URL</h3>
+              <CodeBlock label="ts" code={coreExample} />
 
-          <h3 style={h3Style}>What’s included</h3>
-          <ul style={{ paddingLeft: '1.25rem', margin: '0 0 1rem' }}>
-            <li style={liStyle}>
-              <strong>High-level resolvers:</strong> <code>resolveAtUri</code>,{' '}
-              <code>resolveUrl</code>, <code>buildWaypointsForParsed</code>,
-              and <code>resolveViaApi</code> (a typed client for the hosted
-              endpoint).
-            </li>
-            <li style={liStyle}>
-              <strong>Catalog &amp; recommendations:</strong>{' '}
-              <code>getWaypointDataForType</code>,{' '}
-              <code>getCategorizedWaypointsData</code>,{' '}
-              <code>getRecommendedWaypointsData</code>, and the raw{' '}
-              <code>WAYPOINT_DESTINATIONS_DATA</code> catalog.
-            </li>
-            <li style={liStyle}>
-              <strong>Parsing:</strong> <code>parseURI</code>,{' '}
-              <code>parseAtUri</code>, <code>matchSupportedUrl</code>,{' '}
-              <code>resolveHandle</code>.
-            </li>
-            <li style={liStyle}>
-              <strong>Capabilities:</strong> <code>supportsComposeIntent</code>,{' '}
-              <code>getComposeIntentUrl</code>,{' '}
-              <code>getComposeIntentWaypoints</code> — see{' '}
-              <a href="#compose">compose intents</a>.
-            </li>
-          </ul>
-          <p style={{ ...pStyle, margin: 0 }}>
-            A handful of destinations (pdsls, atp.tools, Margin, Grain,
-            Popfeed) only produce useful URLs when a DID is known; they’re
-            filtered out unless a DID is available, so pass one in or supply a{' '}
-            <code>resolveHandle</code> to <code>resolveUrl</code>. Full
-            reference in the{' '}
-            <a
-              href="https://github.com/atpota-to/aturi/blob/main/packages/waypoints/README.md"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              package README
-            </a>
-            .
-          </p>
-        </section>
+              <h3>What’s included</h3>
+              <ul>
+                <li>
+                  <strong>High-level resolvers:</strong> <code>resolveAtUri</code>,{' '}
+                  <code>resolveUrl</code>, <code>buildWaypointsForParsed</code>,
+                  and <code>resolveViaApi</code> (a typed client for the hosted
+                  endpoint).
+                </li>
+                <li>
+                  <strong>Catalog &amp; recommendations:</strong>{' '}
+                  <code>getWaypointDataForType</code>,{' '}
+                  <code>getCategorizedWaypointsData</code>,{' '}
+                  <code>getRecommendedWaypointsData</code>, and the raw{' '}
+                  <code>WAYPOINT_DESTINATIONS_DATA</code> catalog.
+                </li>
+                <li>
+                  <strong>Parsing:</strong> <code>parseURI</code>,{' '}
+                  <code>parseAtUri</code>, <code>matchSupportedUrl</code>,{' '}
+                  <code>resolveHandle</code>.
+                </li>
+                <li>
+                  <strong>Capabilities:</strong> <code>supportsComposeIntent</code>,{' '}
+                  <code>getComposeIntentUrl</code>,{' '}
+                  <code>getComposeIntentWaypoints</code> — see{' '}
+                  <a href="#compose">compose intents</a>.
+                </li>
+              </ul>
+              <p>
+                A handful of destinations (pdsls, atp.tools, Margin, Grain,
+                Popfeed) only produce useful URLs when a DID is known; they’re
+                filtered out unless a DID is available, so pass one in or supply a{' '}
+                <code>resolveHandle</code> to <code>resolveUrl</code>. Full
+                reference in the{' '}
+                <a
+                  href="https://github.com/atpota-to/aturi/blob/main/packages/waypoints/README.md"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  package README
+                </a>
+                .
+              </p>
+            </section>
 
-        {/* React picker */}
-        <section id="react" className="card" style={sectionStyle}>
-          <h2 style={h2Style}>
-            <code>@aturi.to/waypoints-react</code>
-          </h2>
-          <p style={pStyle}>
-            A drop-in React “Open in…” picker. Headless-first: it ships zero
-            CSS and emits stable, namespaced styling hooks, so you can use your
-            own design system, opt into the polished theme, or drop down to a
-            hook and render everything yourself. It re-exports the entire core,
-            so a single install gives you the components and the resolvers.
-          </p>
-          <CodeBlock label="bash" code={reactInstall} />
+            {/* React picker */}
+            <section id="react">
+              <h2>
+                <code>@aturi.to/waypoints-react</code>
+              </h2>
+              <p>
+                A drop-in React “Open in…” picker. Headless-first: it ships zero
+                CSS and emits stable, namespaced styling hooks, so you can use your
+                own design system, opt into the polished theme, or drop down to a
+                hook and render everything yourself. It re-exports the entire core,
+                so a single install gives you the components and the resolvers.
+              </p>
+              <CodeBlock label="bash" code={reactInstall} />
 
-          <h3 style={h3Style}>1. Drop-in picker</h3>
-          <p style={pStyle}>
-            Renders clean semantic markup with no CSS attached. Every element
-            carries a <code>data-aturi-wp</code> attribute and an{' '}
-            <code>aturi-wp-*</code> class; map your own via <code>classNames</code>,
-            pass <code>unstyled</code> to drop the built-ins, or replace rows
-            with the <code>renderWaypoint</code> prop.
-          </p>
-          <CodeBlock label="tsx" code={reactPicker} />
+              <h3>1. Drop-in picker</h3>
+              <p>
+                Renders clean semantic markup with no CSS attached. Every element
+                carries a <code>data-aturi-wp</code> attribute and an{' '}
+                <code>aturi-wp-*</code> class; map your own via <code>classNames</code>,
+                pass <code>unstyled</code> to drop the built-ins, or replace rows
+                with the <code>renderWaypoint</code> prop.
+              </p>
+              <CodeBlock label="tsx" code={reactPicker} />
 
-          <h3 style={h3Style}>2. The useWaypoints hook</h3>
-          <p style={pStyle}>
-            For full control, the hook returns render-ready data plus{' '}
-            <code>copy</code> / <code>open</code> helpers: no markup at all.
-          </p>
-          <CodeBlock label="tsx" code={reactHook} />
+              <h3>2. The useWaypoints hook</h3>
+              <p>
+                For full control, the hook returns render-ready data plus{' '}
+                <code>copy</code> / <code>open</code> helpers: no markup at all.
+              </p>
+              <CodeBlock label="tsx" code={reactHook} />
 
-          <h3 style={h3Style}>3. The polished theme (opt-in)</h3>
-          <p style={pStyle}>
-            Want the Aturi look without writing CSS? Import the stylesheet
-            once. It targets the namespaced classes and is fully themeable via{' '}
-            <code>--aturi-wp-*</code> CSS custom properties (with light/dark
-            defaults).
-          </p>
-          <CodeBlock label="tsx" code={reactTheme} />
+              <h3>3. The polished theme (opt-in)</h3>
+              <p>
+                Want the Aturi look without writing CSS? Import the stylesheet
+                once. It targets the namespaced classes and is fully themeable via{' '}
+                <code>--aturi-wp-*</code> CSS custom properties (with light/dark
+                defaults).
+              </p>
+              <CodeBlock label="tsx" code={reactTheme} />
 
-          <p style={{ ...pStyle, margin: '1rem 0 0' }}>
-            <strong>Server vs. client:</strong> the package is a client
-            component (it carries <code>&quot;use client&quot;</code>), so it
-            works out of the box in the Next.js App Router. For framework-agnostic
-            helpers inside a Server Component, import them from{' '}
-            <code>@aturi.to/waypoints</code> directly.
-          </p>
-        </section>
+              <p>
+                <strong>Server vs. client:</strong> the package is a client
+                component (it carries <code>&quot;use client&quot;</code>), so it
+                works out of the box in the Next.js App Router. For framework-agnostic
+                helpers inside a Server Component, import them from{' '}
+                <code>@aturi.to/waypoints</code> directly.
+              </p>
+            </section>
 
-        {/* Resolve API */}
-        <section id="resolve-api" className="card" style={sectionStyle}>
-          <h2 style={h2Style}>Resolve API</h2>
-          <p style={pStyle}>
-            Don’t want to install anything? Hit the hosted endpoint from a
-            share sheet, an Apple Shortcut, or any client: no login, no API
-            keys. It returns the resolved waypoints and recommendations for a
-            page URL or an AT URI.
-          </p>
-          <CodeBlock label="http" code={resolveApi} />
-          <p style={pStyle}>
-            The core package’s <code>resolveViaApi()</code> is a typed client
-            for this endpoint. It’s the right choice from a browser, where
-            fetching arbitrary pages is blocked by CORS.
-          </p>
-          <p style={{ ...pStyle, margin: 0 }}>
-            To ask about the catalog itself rather than a specific record —
-            what’s in it, and which clients can do what — there’s a companion
-            endpoint: <code>GET /api/waypoints</code>, filterable by{' '}
-            <code>?type=</code> and <code>?capability=</code>.
-          </p>
-        </section>
+            {/* Resolve API */}
+            <section id="resolve-api">
+              <h2>Resolve API</h2>
+              <p>
+                Don’t want to install anything? Hit the hosted endpoint from a
+                share sheet, an Apple Shortcut, or any client: no login, no API
+                keys. It returns the resolved waypoints and recommendations for a
+                page URL or an AT URI.
+              </p>
+              <CodeBlock label="http" code={resolveApi} />
+              <p>
+                The core package’s <code>resolveViaApi()</code> is a typed client
+                for this endpoint. It’s the right choice from a browser, where
+                fetching arbitrary pages is blocked by CORS.
+              </p>
+              <p>
+                To ask about the catalog itself rather than a specific record —
+                what’s in it, and which clients can do what — there’s a companion
+                endpoint: <code>GET /api/waypoints</code>, filterable by{' '}
+                <code>?type=</code> and <code>?capability=</code>.
+              </p>
+            </section>
 
-        {/* Compose intents */}
-        <section id="compose" className="card" style={sectionStyle}>
-          <h2 style={h2Style}>Compose intents</h2>
-          <p style={pStyle}>
-            bsky.app can be handed a link that opens its composer pre-filled:{' '}
-            <code>/intent/compose?text=…</code> (see the{' '}
-            <a
-              href="https://docs.bsky.app/docs/advanced-guides/intent-links"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              intent link docs
-            </a>
-            ). Clients forked from the official social app inherit the same
-            route, so the catalog records which ones do — and every waypoint
-            carries a <code>composeIntent</code>, <code>null</code> when the
-            client has no confirmed route.
-          </p>
-          <CodeBlock label="ts" code={composeExample} />
-          <p style={pStyle}>
-            Two nuances worth reading off the data rather than assuming.{' '}
-            <code>prefillsText</code> is <code>false</code> for a client that
-            routes the intent but ignores the text, so a “share this” link would
-            open an empty composer — fine as a jump, useless as a share. And{' '}
-            <code>appUrl</code> appears only where the client publishes a native
-            scheme, so it’s a bonus, not a fallback.
-          </p>
-          <p style={pStyle}>
-            Over HTTP, the same data comes back on both endpoints. Pass the text
-            to get finished links, or take <code>urlTemplate</code> and
-            substitute the URL-encoded text for <code>{'{text}'}</code>{' '}
-            yourself.
-          </p>
-          <CodeBlock label="http" code={composeApi} />
-          <CodeBlock label="json" code={composeResponse} />
-          <p style={{ ...pStyle, margin: 0 }}>
-            In React, each <code>useWaypoints</code> entry carries the same{' '}
-            <code>composeIntent</code>; pass <code>composeText</code> to the
-            hook to have the links built for you.
-          </p>
-        </section>
+            {/* Compose intents */}
+            <section id="compose">
+              <h2>Compose intents</h2>
+              <p>
+                bsky.app can be handed a link that opens its composer pre-filled:{' '}
+                <code>/intent/compose?text=…</code> (see the{' '}
+                <a
+                  href="https://docs.bsky.app/docs/advanced-guides/intent-links"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  intent link docs
+                </a>
+                ). Clients forked from the official social app inherit the same
+                route, so the catalog records which ones do — and every waypoint
+                carries a <code>composeIntent</code>, <code>null</code> when the
+                client has no confirmed route.
+              </p>
+              <CodeBlock label="ts" code={composeExample} />
+              <p>
+                Two nuances worth reading off the data rather than assuming.{' '}
+                <code>prefillsText</code> is <code>false</code> for a client that
+                routes the intent but ignores the text, so a “share this” link would
+                open an empty composer — fine as a jump, useless as a share. And{' '}
+                <code>appUrl</code> appears only where the client publishes a native
+                scheme, so it’s a bonus, not a fallback.
+              </p>
+              <p>
+                Over HTTP, the same data comes back on both endpoints. Pass the text
+                to get finished links, or take <code>urlTemplate</code> and
+                substitute the URL-encoded text for <code>{'{text}'}</code>{' '}
+                yourself.
+              </p>
+              <CodeBlock label="http" code={composeApi} />
+              <CodeBlock label="json" code={composeResponse} />
+              <p>
+                In React, each <code>useWaypoints</code> entry carries the same{' '}
+                <code>composeIntent</code>; pass <code>composeText</code> to the
+                hook to have the links built for you.
+              </p>
+            </section>
 
-        {/* Universal links */}
-        <section id="links" className="card" style={sectionStyle}>
-          <h2 style={h2Style}>Build an aturi.to link</h2>
-          <p style={pStyle}>
-            A universal link is the client-agnostic address of a record: paste
-            an <code>aturi.to/…</code> URL anywhere and the recipient gets a
-            preview plus every client that can open it, rather than being
-            pushed into whichever app you happen to use. It&rsquo;s just a URL,
-            so no SDK is required. The core package builds it from anything that
-            names a record, and adds the strings a copy button or a share sheet
-            needs around it.
-          </p>
-          <CodeBlock label="ts" code={linkExample} />
-          <p style={pStyle}>
-            <code>parseUniversalLink</code> goes the other way, turning an
-            aturi.to URL back into an AT URI. In React,{' '}
-            <code>&lt;UniversalLinkButton&gt;</code> is the whole control: a
-            native share sheet in browsers that implement{' '}
-            <code>navigator.share</code>, the clipboard in the ones that
-            don&rsquo;t. <code>useUniversalLink</code> is the same logic without
-            markup.
-          </p>
-          <CodeBlock label="tsx" code={linkReactExample} />
+            {/* Universal links */}
+            <section id="links">
+              <h2>Build an aturi.to link</h2>
+              <p>
+                A universal link is the client-agnostic address of a record: paste
+                an <code>aturi.to/…</code> URL anywhere and the recipient gets a
+                preview plus every client that can open it, rather than being
+                pushed into whichever app you happen to use. It&rsquo;s just a URL,
+                so no SDK is required. The core package builds it from anything that
+                names a record, and adds the strings a copy button or a share sheet
+                needs around it.
+              </p>
+              <CodeBlock label="ts" code={linkExample} />
+              <p>
+                <code>parseUniversalLink</code> goes the other way, turning an
+                aturi.to URL back into an AT URI. In React,{' '}
+                <code>&lt;UniversalLinkButton&gt;</code> is the whole control: a
+                native share sheet in browsers that implement{' '}
+                <code>navigator.share</code>, the clipboard in the ones that
+                don&rsquo;t. <code>useUniversalLink</code> is the same logic without
+                markup.
+              </p>
+              <CodeBlock label="tsx" code={linkReactExample} />
 
-          <h3 style={h3Style}>Make your own pages resolvable</h3>
-          <p style={pStyle}>
-            If your app renders atproto records,{' '}
-            <code>buildUniversalLinkTags</code> writes the{' '}
-            <code>&lt;head&gt;</code> tags that let the rest of the Atmosphere
-            find its way back to them.
-          </p>
-          <CodeBlock label="ts" code={linkTagsExample} />
-          <p style={{ ...pStyle, margin: 0 }}>
-            <code>at:canonical</code> is the{' '}
-            <a
-              href="https://tangled.org/chrisshank.com/at-tags/"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              AT Tags proposal
-            </a>
-            . The Aturi extension reads it off the live page and{' '}
-            <a href="#resolve-api">the Resolve API</a> reads it off your HTML,
-            so a link to your page resolves into every other client that can
-            open the record, without your app being in the catalog at all. The
-            oEmbed pointer is emitted for posts, so a link to your page
-            previews as the post it is. They&rsquo;re static strings describing
-            a record you already display, and serving them hands nothing to
-            aturi.to.
-          </p>
-        </section>
+              <h3>Make your own pages resolvable</h3>
+              <p>
+                If your app renders atproto records,{' '}
+                <code>buildUniversalLinkTags</code> writes the{' '}
+                <code>&lt;head&gt;</code> tags that let the rest of the Atmosphere
+                find its way back to them.
+              </p>
+              <CodeBlock label="ts" code={linkTagsExample} />
+              <p>
+                <code>at:canonical</code> is the{' '}
+                <a
+                  href="https://tangled.org/chrisshank.com/at-tags/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  AT Tags proposal
+                </a>
+                . The Aturi extension reads it off the live page and{' '}
+                <a href="#resolve-api">the Resolve API</a> reads it off your HTML,
+                so a link to your page resolves into every other client that can
+                open the record, without your app being in the catalog at all. The
+                oEmbed pointer is emitted for posts, so a link to your page
+                previews as the post it is. They&rsquo;re static strings describing
+                a record you already display, and serving them hands nothing to
+                aturi.to.
+              </p>
+            </section>
 
-        {/* License */}
-        <section id="license" className="card" style={sectionStyle}>
-          <h2 style={h2Style}>License</h2>
-          <p style={{ ...pStyle, margin: 0 }}>
-            <code>@aturi.to/waypoints</code> and{' '}
-            <code>@aturi.to/waypoints-react</code> are MIT © atpotato, LLC. The
-            aturi.to web app and browser extension are licensed GPL-3.0; the
-            packages are intentionally dual-licensed MIT so other Atmosphere
-            developers can adopt them freely.
-          </p>
-        </section>
+            {/* License */}
+            <section id="license">
+              <h2>License</h2>
+              <p>
+                <code>@aturi.to/waypoints</code> and{' '}
+                <code>@aturi.to/waypoints-react</code> are MIT © atpotato, LLC. The
+                aturi.to web app and browser extension are licensed GPL-3.0; the
+                packages are intentionally dual-licensed MIT so other Atmosphere
+                developers can adopt them freely.
+              </p>
+            </section>
 
-        <p
-          style={{
-            textAlign: 'center',
-            color: 'var(--text-tertiary)',
-            fontSize: '0.9rem',
-            marginTop: '2rem',
-          }}
-        >
+          </article>
+        </div>
+
+        <p className="fn-docs-foot">
           Building an Atmosphere client and want it in the catalog?{' '}
           <Link href="/links">See the supported waypoints</Link> or open a PR.
         </p>

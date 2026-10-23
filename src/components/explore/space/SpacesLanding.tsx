@@ -36,7 +36,10 @@ export default function SpacesLanding() {
   const { session, did, loading } = useAtprotoSession();
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '4rem' }}>
+    <div
+      className="fn-spaces-landing"
+      style={{ display: 'flex', flexDirection: 'column', gap: '4rem', paddingTop: '36px' }}
+    >
       {/* Hero */}
       <AppearIn rise>
         <header
@@ -47,11 +50,12 @@ export default function SpacesLanding() {
             <Badge icon={<Lock size={12} aria-hidden />}>Atproto spaces alpha</Badge>
             <h1
               style={{
-                fontSize: '2.5rem',
-                fontWeight: 300,
+                fontSize: '2.25rem',
+                fontWeight: 700,
+                letterSpacing: '-0.025em',
                 marginBottom: '0.75rem',
                 color: 'var(--text-primary)',
-                lineHeight: 1.15,
+                lineHeight: 1.1,
               }}
             >
               Browse your permissioned data.
@@ -186,14 +190,15 @@ function ControlSkeleton({ control }: { control: 'field' | 'button' }) {
     <div
       className="skeleton-shimmer"
       style={{
-        // Mirrors the field's 0.625rem/0.75rem and the button's
-        // 0.625rem/1rem. Only the block padding decides the height, and the
-        // two agree on it.
-        padding: field ? '0.625rem 0.75rem' : '0.625rem 1rem',
+        // Mirrors the field and the button: both are 40px tall controls.
+        height: '40px',
+        boxSizing: 'border-box',
+        padding: field ? '0 12px' : '0 16px',
         border: '1px solid var(--border-medium)',
+        borderRadius: 'var(--radius-control)',
         background: 'var(--bg-tertiary)',
-        fontFamily: field ? 'var(--font-mono)' : 'var(--font-serif)',
-        fontSize: field ? '0.875rem' : '0.9375rem',
+        fontFamily: field ? 'var(--font-mono)' : 'var(--font-sans)',
+        fontSize: field ? '0.875rem' : '14px',
         lineHeight: 'normal',
         color: 'transparent',
         userSelect: 'none',
@@ -234,11 +239,15 @@ function AlphaAccount() {
             display: 'inline-flex',
             alignItems: 'center',
             gap: '0.5rem',
-            padding: '0.75rem 1.25rem',
+            height: '40px',
+            boxSizing: 'border-box',
+            padding: '0 16px',
             background: 'var(--accent-moss)',
             color: 'var(--text-on-accent)',
-            border: '1px solid var(--accent-forest)',
-            fontSize: '0.95rem',
+            border: '1px solid var(--accent-moss)',
+            borderRadius: 'var(--radius-control)',
+            fontSize: '14px',
+            fontWeight: 600,
             textDecoration: 'none',
           }}
         >
@@ -322,15 +331,16 @@ function FeaturedApps() {
               display: 'flex',
               flexDirection: 'column',
               gap: '0.5rem',
-              padding: '1.25rem',
+              padding: '16px 18px',
               border: '1px solid var(--border-medium)',
+              borderRadius: 'var(--radius-card)',
               background: 'var(--bg-secondary)',
               textDecoration: 'none',
               transition: 'border-color 0.2s ease, background 0.2s ease',
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.borderColor = 'var(--text-accent)';
-              e.currentTarget.style.background = 'var(--bg-tertiary)';
+              e.currentTarget.style.borderColor = 'var(--border-strong)';
+              e.currentTarget.style.background = 'var(--surface-subtle)';
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.borderColor = 'var(--border-medium)';
@@ -479,6 +489,7 @@ function SignedOut() {
           padding: '0.75rem',
           background: 'var(--bg-secondary)',
           border: '1px solid var(--border-medium)',
+          borderRadius: 'var(--radius-card)',
         }}
       >
         <ScopeSelector
@@ -537,9 +548,12 @@ function SignedOut() {
         placeholder="handle.bsky.social"
         inputStyle={{
           width: '100%',
-          padding: '0.625rem 0.75rem',
+          height: '40px',
+          boxSizing: 'border-box',
+          padding: '0 12px',
           background: 'var(--bg-secondary)',
-          border: '1px solid var(--border-medium)',
+          border: '1px solid var(--border-strong)',
+          borderRadius: 'var(--radius-control)',
           color: 'var(--text-primary)',
           fontFamily: 'var(--font-mono)',
           fontSize: '0.875rem',
@@ -591,15 +605,13 @@ function Badge({ icon, children }: { icon: React.ReactNode; children: React.Reac
         display: 'inline-flex',
         alignItems: 'center',
         gap: '0.4rem',
-        padding: '0.25rem 0.625rem',
-        border: '1px solid var(--border-subtle)',
-        background: 'var(--bg-tertiary)',
-        color: 'var(--text-tertiary)',
-        fontSize: '0.75rem',
-        letterSpacing: '0.08em',
+        color: 'var(--text-accent)',
+        fontSize: '12px',
+        fontWeight: 700,
+        letterSpacing: '0.06em',
         textTransform: 'uppercase',
-        fontFamily: 'var(--font-serif)',
-        marginBottom: '1.25rem',
+        fontFamily: 'var(--font-sans)',
+        marginBottom: '0.75rem',
         lineHeight: 1,
       }}
     >
@@ -610,12 +622,12 @@ function Badge({ icon, children }: { icon: React.ReactNode; children: React.Reac
 }
 
 const sectionTitleStyle: React.CSSProperties = {
-  fontSize: '1.75rem',
-  fontWeight: 300,
+  fontSize: '1.5rem',
+  fontWeight: 700,
   color: 'var(--text-primary)',
   margin: '0 0 0.625rem',
   lineHeight: 1.2,
-  letterSpacing: '-0.01em',
+  letterSpacing: '-0.02em',
 };
 
 const sectionLeadStyle: React.CSSProperties = {
@@ -628,12 +640,15 @@ const sectionLeadStyle: React.CSSProperties = {
 
 function primaryButtonStyle(disabled: boolean): React.CSSProperties {
   return {
-    padding: '0.625rem 1rem',
+    minHeight: '40px',
+    padding: '0 16px',
     background: 'var(--accent-moss)',
     color: 'var(--text-on-accent)',
     border: '1px solid var(--accent-moss)',
-    fontFamily: 'var(--font-serif)',
-    fontSize: '0.9375rem',
+    borderRadius: 'var(--radius-control)',
+    fontFamily: 'var(--font-sans)',
+    fontSize: '14px',
+    fontWeight: 600,
     cursor: disabled ? 'not-allowed' : 'pointer',
     opacity: disabled ? 0.6 : 1,
   };

@@ -1,19 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Activity,
+  Braces,
   Check,
-  ChevronRight,
   Clock,
   Compass,
   ExternalLink,
-  Heart,
   Hash,
   Link as LinkIcon,
-  MessageCircle,
-  Network,
-  Quote,
   RefreshCw,
-  Repeat2,
   Server,
   Tag,
   Telescope,
@@ -60,10 +55,25 @@ type Props = {
 export default function InspectView({ prefs, scan }: Props) {
   const { hits, scanning, error: scanError, rescan } = scan;
   return (
-    <div className="popup-section">
-      <div className="popup-section-label" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-        <Telescope size={12} aria-hidden /> Detected AT URIs on this page
-      </div>
+    <div className="popup-root inspect-root">
+      {/* The count heading only makes sense once there is something to
+          count; the empty state carries its own heading. */}
+      {hits.length > 0 && (
+        <div className="inspect-head">
+          <h2 className="popup-section-label">
+            {hits.length} {plural(hits.length, 'AT URI', 'AT URIs')} on this page
+          </h2>
+          <button
+            type="button"
+            className="inspect-rescan"
+            onClick={() => rescan()}
+            disabled={scanning}
+          >
+            <RefreshCw size={13} aria-hidden />
+            {scanning ? 'Scanning…' : 'Scan again'}
+          </button>
+        </div>
+      )}
 
       {scanning && hits.length === 0 && (
         <div className="popup-empty">
@@ -79,29 +89,13 @@ export default function InspectView({ prefs, scan }: Props) {
         />
       )}
 
-      {hits.length > 0 && (
-        <>
-          {hits.map((hit) => (
-            <InspectCard key={`${hit.uri}-${hit.where}`} hit={hit} />
-          ))}
-          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 8 }}>
-            <button
-              type="button"
-              className="aturi-btn"
-              onClick={() => rescan()}
-              style={{ fontSize: 11 }}
-              disabled={scanning}
-            >
-              <RefreshCw size={11} aria-hidden style={{ marginRight: 4 }} />
-              {scanning ? 'Scanning…' : 'Scan again'}
-            </button>
-          </div>
-        </>
-      )}
+      {hits.map((hit) => (
+        <InspectCard key={`${hit.uri}-${hit.where}`} hit={hit} />
+      ))}
 
       {scanError && (
-        <div className="popup-notice">
-          <div className="popup-notice-title">Scan error</div>
+        <div className="popup-alert">
+          <div className="popup-alert-title">Scan error</div>
           <div>{scanError}</div>
         </div>
       )}
@@ -147,7 +141,12 @@ function InspectEmptyState({
 
   return (
     <div className="inspect-empty">
-      <div className="inspect-empty-message">No AT URIs detected on this page.</div>
+      <span className="popup-notice-icon" aria-hidden="true">
+        <Telescope size={21} />
+      </span>
+      {/* Same heading treatment as the Waypoints view's "No Atmosphere data
+          on this page". */}
+      <h1 className="popup-notice-title">No AT URIs detected on this page</h1>
 
       <a
         href={`${ATURI_BASE}/explore`}
@@ -158,7 +157,7 @@ function InspectEmptyState({
           window.setTimeout(() => window.close(), 50);
         }}
       >
-        <Compass size={12} aria-hidden />
+        <Compass size={14} aria-hidden />
         Open Aturi Explorer
       </a>
 
@@ -339,29 +338,34 @@ function InspectCard({ hit }: { hit: DetectedAtUri }) {
       : null;
 
   return (
-    <div className="inspect-card">
-      {/* Breadcrumb: PDS host › @handle › collection › rkey. Each segment
-          is a deep link into the explorer at the appropriate depth. A
-          leading relation pill appears when the page declared this URI via
-          the AT Tags proposal (at:canonical / at:author / …). */}
-      <div className="inspect-breadcrumb">
-        {hit.relation && (
+    <article className="inspect-card">
+      <div className="inspect-card-top">
+        {/* Where the URI came from. AT Tags hits carry the relation the
+            page declared (at:canonical / at:author / …) instead. */}
+        {hit.relation ? (
           <span
             className="inspect-relation"
             title={`Declared by this page via AT Tags: at:${hit.relation}`}
           >
-            <Tag size={9} aria-hidden />
+            <Tag size={10} aria-hidden />
             {hit.relation}
           </span>
+        ) : (
+          <span className={`inspect-where ${hit.where === 'url' ? 'is-url' : ''}`}>
+            {WHERE_LABEL[hit.where] ?? hit.where}
+          </span>
         )}
+        {parsed?.collection && COLLECTION_LABEL[parsed.collection] && (
+          <span className="inspect-kind">{COLLECTION_LABEL[parsed.collection]}</span>
+        )}
+      </div>
+
+      {/* Breadcrumb: PDS host / @handle / collection / rkey. Each segment
+          is a deep link into the explorer at the appropriate depth. */}
+      <nav className="inspect-breadcrumb" aria-label="Record path">
         {effectivePdsHost && pdsExplorerUrl && (
           <>
-            <BreadcrumbSegment
-              href={pdsExplorerUrl}
-              label={effectivePdsHost}
-              icon={<Server size={10} aria-hidden />}
-              kind="pds"
-            />
+            <BreadcrumbSegment href={pdsExplorerUrl} label={effectivePdsHost} kind="pds" />
             <BreadcrumbSeparator />
           </>
         )}
@@ -390,130 +394,134 @@ function InspectCard({ hit }: { hit: DetectedAtUri }) {
             {parsed.rkey}
           </span>
         )}
-      </div>
+      </nav>
 
-      {/* Card body — everything below the breadcrumb. Wrapped so the
-          breadcrumb above can read as a distinct attached header
-          (different background, bottom border) instead of just another
-          row in a uniform stack. */}
-      <div className="inspect-card-body">
-      {hit.sample && (
-        <div className="aturi-subtle" style={{ fontSize: 11, fontStyle: 'italic' }}>
-          “{hit.sample}”
-        </div>
-      )}
+      {hit.sample && <div className="inspect-sample">“{hit.sample}”</div>}
 
-      {preview && (
-        <div className="inspect-preview">{preview}</div>
-      )}
+      {preview && <div className="inspect-preview">{preview}</div>}
 
       {(engagement || (backlinkCount !== null && backlinkCount > 0)) && (
         <EngagementRow engagement={engagement} backlinkCount={backlinkCount} />
       )}
 
-      {resolution.error && (
-        <div className="aturi-subtle" style={{ fontSize: 11, color: 'var(--danger, #d97070)' }}>
-          {resolution.error}
-        </div>
-      )}
+      {resolution.error && <div className="inspect-error">{resolution.error}</div>}
 
-      {/* Primary CTA. Full-width, accent color, visually dominant. */}
-      {primaryExplorerUrl && (
-        <a
-          href={primaryExplorerUrl}
-          target="_blank"
-          rel="noreferrer"
-          className="aturi-btn aturi-btn-primary inspect-cta"
-          onClick={() => {
-            window.setTimeout(() => window.close(), 50);
-          }}
-        >
-          <ExternalLink size={12} aria-hidden />
-          Open in Explorer
-        </a>
-      )}
-
-      {/* Compact copy chips. Subtle, secondary to the CTA above. */}
       <div className="inspect-copy-row">
         <span className="inspect-copy-label">Copy</span>
-        <CopyChip label="AT URI" icon={<LinkIcon size={10} />} value={hit.uri} />
+        <CopyChip label="AT URI" icon={<LinkIcon size={11} />} value={hit.uri} />
         {effectiveDid && (
-          <CopyChip label="DID" icon={<Hash size={10} />} value={effectiveDid} />
+          <CopyChip label="DID" icon={<Hash size={11} />} value={effectiveDid} />
         )}
         {effectivePds && (
-          <CopyChip label="PDS" icon={<Server size={10} />} value={effectivePds} />
+          <CopyChip label="PDS" icon={<Server size={11} />} value={effectivePds} />
         )}
         {universalLink && (
           <CopyChip
-            label="Universal link"
-            icon={<LinkIcon size={10} />}
+            label="Link"
+            icon={<LinkIcon size={11} />}
             value={universalLink}
           />
         )}
         {record && (
           <CopyChip
             label="JSON"
-            icon={<Hash size={10} />}
+            icon={<Hash size={11} />}
             value={JSON.stringify(record, null, 2)}
           />
         )}
       </div>
 
-      {/* Footer: raw JSON disclosure + CID + secondary PDS links. */}
-      {(record || pdsExplorerUrl || pdsRecordUrl) && (
-        <div className="inspect-footer">
-          {record && (
-            <details className="inspect-json">
-              <summary>Raw record JSON</summary>
-              <pre className="inspect-json-pre">
-                {JSON.stringify(record.value, null, 2)}
-              </pre>
-            </details>
-          )}
+      {record && (
+        <details className="inspect-json">
+          <summary>Raw record JSON</summary>
+          <pre className="inspect-json-pre">{JSON.stringify(record.value, null, 2)}</pre>
+        </details>
+      )}
+
+      {/* Footer: the CID and the two PDS links share a row, and the
+          Explorer link runs full width beneath them. Every link leads with
+          an icon. The labels say where each one goes: the PDS's own page in
+          the Aturi Explorer, and this record's JSON served by the PDS. */}
+      <div className="inspect-footer">
+        {(record?.cid || pdsExplorerUrl || pdsRecordUrl) && (
           <div className="inspect-footer-meta">
             {record?.cid && (
               <CopyChip
-                label={`cid: ${shortCid(record.cid)}`}
-                icon={<Hash size={10} />}
+                label={`cid ${shortCid(record.cid)}`}
+                icon={<Hash size={11} />}
                 value={record.cid}
                 variant="ghost"
               />
             )}
-            {pdsExplorerUrl && (
-              <a
-                href={pdsExplorerUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="inspect-footer-link"
-                title={`Inspect ${effectivePdsHost} on aturi.to`}
-                onClick={() => {
-                  window.setTimeout(() => window.close(), 50);
-                }}
-              >
-                <Server size={10} aria-hidden /> Open PDS
-              </a>
-            )}
-            {pdsRecordUrl && (
-              <a
-                href={pdsRecordUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="inspect-footer-link"
-                title="Open the raw record JSON on the PDS"
-                onClick={() => {
-                  window.setTimeout(() => window.close(), 50);
-                }}
-              >
-                <ExternalLink size={10} aria-hidden /> View on PDS
-              </a>
+            {(pdsExplorerUrl || pdsRecordUrl) && (
+              <div className="inspect-footer-links">
+                {pdsExplorerUrl && (
+                  <a
+                    href={pdsExplorerUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inspect-footer-link"
+                    title={`Inspect the PDS ${effectivePdsHost} in the Aturi Explorer`}
+                    onClick={() => {
+                      window.setTimeout(() => window.close(), 50);
+                    }}
+                  >
+                    <Server size={11} aria-hidden /> PDS in Explorer
+                  </a>
+                )}
+                {pdsRecordUrl && (
+                  <a
+                    href={pdsRecordUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inspect-footer-link"
+                    title="Open this record's raw JSON, straight from the PDS"
+                    onClick={() => {
+                      window.setTimeout(() => window.close(), 50);
+                    }}
+                  >
+                    <Braces size={11} aria-hidden /> Raw JSON
+                  </a>
+                )}
+              </div>
             )}
           </div>
-        </div>
-      )}
+        )}
+        {primaryExplorerUrl && (
+          <a
+            href={primaryExplorerUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="inspect-cta"
+            onClick={() => {
+              window.setTimeout(() => window.close(), 50);
+            }}
+          >
+            <Compass size={13} aria-hidden /> Open in Explorer
+          </a>
+        )}
       </div>
-    </div>
+    </article>
   );
 }
+
+const WHERE_LABEL: Record<string, string> = {
+  url: 'In the address bar',
+  'at-tags': 'Declared by the page',
+  head: 'In the page head',
+  meta: 'In a meta tag',
+  link: 'Linked on the page',
+  jsonld: 'In structured data',
+  text: 'In the page text',
+};
+
+const COLLECTION_LABEL: Record<string, string> = {
+  'app.bsky.feed.post': 'Bluesky post',
+  'app.bsky.actor.profile': 'Profile',
+  'app.bsky.graph.list': 'List',
+  'app.bsky.feed.generator': 'Feed',
+  'app.bsky.graph.starterpack': 'Starter pack',
+};
 
 function BreadcrumbSegment({
   href,
@@ -544,7 +552,11 @@ function BreadcrumbSegment({
 }
 
 function BreadcrumbSeparator() {
-  return <ChevronRight size={10} aria-hidden className="inspect-breadcrumb-sep" />;
+  return (
+    <span aria-hidden className="inspect-breadcrumb-sep">
+      /
+    </span>
+  );
 }
 
 function EngagementRow({
@@ -554,29 +566,44 @@ function EngagementRow({
   engagement: Engagement | null;
   backlinkCount: number | null;
 }) {
-  const items: Array<{ key: string; icon: React.ReactNode; value: number; label: string }> = [];
+  const items: Array<{ key: string; value: number; label: string; short?: string }> = [];
   if (engagement?.replies != null)
-    items.push({ key: 'replies', icon: <MessageCircle size={11} />, value: engagement.replies, label: 'replies' });
+    items.push({
+      key: 'replies',
+      value: engagement.replies,
+      label: plural(engagement.replies, 'reply', 'replies'),
+    });
   if (engagement?.reposts != null)
-    items.push({ key: 'reposts', icon: <Repeat2 size={11} />, value: engagement.reposts, label: 'reposts' });
+    items.push({
+      key: 'reposts',
+      value: engagement.reposts,
+      label: plural(engagement.reposts, 'repost', 'reposts'),
+    });
   if (engagement?.likes != null)
-    items.push({ key: 'likes', icon: <Heart size={11} />, value: engagement.likes, label: 'likes' });
+    items.push({
+      key: 'likes',
+      value: engagement.likes,
+      label: plural(engagement.likes, 'like', 'likes'),
+    });
   if (engagement?.quotes != null)
-    items.push({ key: 'quotes', icon: <Quote size={11} />, value: engagement.quotes, label: 'quotes' });
+    items.push({
+      key: 'quotes',
+      value: engagement.quotes,
+      label: plural(engagement.quotes, 'quote', 'quotes'),
+    });
   if (backlinkCount != null && backlinkCount > 0)
     items.push({
       key: 'inbound',
-      icon: <Network size={11} />,
       value: backlinkCount,
-      label: 'inbound links across the Atmosphere',
+      label: `${plural(backlinkCount, 'inbound link', 'inbound links')} across the Atmosphere`,
+      short: plural(backlinkCount, 'link in', 'links in'),
     });
   if (items.length === 0) return null;
   return (
     <div className="inspect-engagement">
       {items.map((it) => (
         <span key={it.key} className="inspect-engagement-item" title={it.label}>
-          {it.icon}
-          {it.value.toLocaleString()}
+          <strong>{it.value.toLocaleString()}</strong> {it.short ?? it.label}
         </span>
       ))}
     </div>
@@ -626,10 +653,15 @@ function CopyChip({
       }}
       title={copied ? 'Copied!' : label}
     >
-      {copied ? <Check size={10} /> : icon}
+      {copied ? <Check size={11} /> : icon}
       {copied ? 'Copied' : label}
     </button>
   );
+}
+
+/** Singular for a count of exactly 1, plural otherwise (0 likes, 1 like). */
+function plural(count: number, one: string, many: string): string {
+  return count === 1 ? one : many;
 }
 
 function shortCid(cid: string): string {

@@ -61,8 +61,8 @@ export default function MarginHighlightPreview({
           marginBottom: '2rem',
           background: 'var(--bg-secondary)',
           border: '1px solid var(--border-medium)',
+          borderRadius: 'var(--radius-card)',
           overflow: 'hidden',
-          transform: 'rotate(0.2deg)',
           transition: 'all 0.4s ease',
         }}
         className="margin-highlight-card"

@@ -36,11 +36,14 @@ import {
   setGroupCollapsed,
   setGroupWaypointOrder,
   setWaypointGroups,
+  type CustomWaypoint,
   type Prefs,
   type WaypointGroup,
 } from '../../../lib/prefs';
 import { allWaypoints, newBuiltinWaypoints } from '../../../lib/catalog';
 import { describeWaypoint } from '../../../lib/describe';
+import { homePageSubtitle } from '../../../lib/homePage';
+import { WaypointIcon } from '../../../lib/Icons';
 
 type Props = {
   prefs: Prefs;
@@ -169,23 +172,57 @@ export default function VisibilityTab({ prefs, onChange }: Props) {
   const shownNew = showAllNew ? unplacedNew : unplacedNew.slice(0, NEW_PREVIEW_COUNT);
 
   return (
-    <div>
-      <h1 className="options-h1">Waypoints</h1>
-      <p className="options-lede">
-        Build your own groups of waypoints. Drag to reorder groups or rows, and use the
-        plus button on a group header to add waypoints. The same waypoint can live in
-        multiple groups. Waypoints not in any group are hidden from the popup.
-      </p>
+    <div className="options-page">
+      <div className="options-page-head has-actions">
+        <div>
+          <h1 className="options-h1">Waypoints</h1>
+          <p className="options-lede">
+            Build your own groups of waypoints. Drag to reorder groups or rows, and use Add app
+            on a group to add waypoints. The same waypoint can live in
+            multiple groups. Waypoints not in any group are hidden from the popup.
+          </p>
+        </div>
+        <div className="options-page-actions">
+          <button type="button" className="aturi-btn aturi-btn-ghost" onClick={handleResetGroups}>
+            <ResetIcon />
+            Reset to defaults
+          </button>
+          <button type="button" className="aturi-btn" onClick={handleAddGroup}>
+            <PlusIcon />
+            New group
+          </button>
+        </div>
+      </div>
 
       {unplacedNew.length > 0 && (
-        <div className="options-card new-waypoints-card">
-          <div className="options-card-title">
-            {unplacedNew.length} new waypoint{unplacedNew.length === 1 ? '' : 's'}
-          </div>
-          <div className="options-card-sub">
-            Added to Aturi since you last looked. They stay out of the popup until
-            you add them. Adding one puts it at the end of that group and leaves
-            everything else where it is.
+        <section className="options-card is-rows new-waypoints-card" aria-labelledby="new-waypoints-title">
+          <div className="new-waypoints-head">
+            <div>
+              <h2 className="options-card-title" id="new-waypoints-title">
+                {unplacedNew.length} new waypoint{unplacedNew.length === 1 ? '' : 's'}
+              </h2>
+              <p className="options-card-sub">
+                Added to Aturi since you last looked. They stay out of the popup until
+                you add them. Adding one puts it at the end of that group and leaves
+                everything else where it is.
+              </p>
+            </div>
+            <div className="adopt-bulk">
+              <button
+                className="aturi-btn aturi-btn-ghost"
+                type="button"
+                onClick={() => commit(markKnown(prefs, unplacedNew.map(w => w.id)))}
+              >
+                Dismiss all
+              </button>
+              <button
+                className="aturi-btn aturi-btn-primary"
+                type="button"
+                onClick={() => handleAdoptAll(unplacedNew.map(w => w.id))}
+              >
+                Add all
+              </button>
+            </div>
           </div>
 
           <div className="adopt-list">
@@ -209,128 +246,93 @@ export default function VisibilityTab({ prefs, onChange }: Props) {
               </button>
             )}
           </div>
+        </section>
+      )}
 
-          <div className="adopt-bulk">
-            <button
-              className="aturi-btn aturi-btn-primary"
-              type="button"
-              onClick={() => handleAdoptAll(unplacedNew.map(w => w.id))}
-            >
-              Add all
-            </button>
-            <button
-              className="aturi-btn aturi-btn-ghost"
-              type="button"
-              onClick={() => commit(markKnown(prefs, unplacedNew.map(w => w.id)))}
-            >
-              Dismiss all
-            </button>
+      <div className="groups-summary">
+        {groups.length === 0 ? (
+          'No groups yet. Create one below.'
+        ) : (
+          <>
+            {groups.length} {groups.length === 1 ? 'group' : 'groups'} ·{' '}
+            {totalVisible} visible
+            {hiddenCount > 0 && (
+              <>
+                {' · '}
+                <button
+                  type="button"
+                  className="hidden-toggle"
+                  aria-expanded={hiddenOpen}
+                  onClick={() => setHiddenOpen(o => !o)}
+                >
+                  {hiddenCount} hidden
+                </button>
+              </>
+            )}
+          </>
+        )}
+      </div>
+
+      {hiddenOpen && hiddenCount > 0 && (
+        <section className="options-card hidden-panel" aria-label="Hidden waypoints">
+          <div className="hidden-panel-head">
+            These are in no group, so the popup, redirect rules, and
+            recommendations all skip them.
           </div>
+          <div className="adopt-list">
+            {hiddenWaypoints.map(w => (
+              <AdoptRow
+                key={w.id}
+                waypoint={w}
+                target={adoptTargetFor(prefs, w.id)}
+                isNew={newIds.has(w.id)}
+                onAdopt={() => handleAdopt(w.id)}
+              />
+            ))}
+          </div>
+        </section>
+      )}
+
+      <DndContext
+        sensors={groupSensors}
+        collisionDetection={closestCenter}
+        onDragEnd={handleGroupDragEnd}
+      >
+        <SortableContext items={groups.map(g => g.id)} strategy={verticalListSortingStrategy}>
+          <div className="group-list">
+            {groups.map(group => (
+              <SortableGroup
+                key={group.id}
+                group={group}
+                lookup={lookup}
+                allWaypoints={allWps}
+                newIds={newIds}
+                customWaypoints={prefs.customWaypoints}
+                onRename={name => handleRenameGroup(group.id, name)}
+                onRemove={() => handleRemoveGroup(group.id)}
+                onToggleCollapsed={collapsed => handleToggleCollapsed(group.id, collapsed)}
+                onAddWaypoint={waypointId => handleAddWaypointToGroup(group.id, waypointId)}
+                onRemoveWaypoint={waypointId =>
+                  handleRemoveWaypointFromGroup(group.id, waypointId)
+                }
+                onReorder={ids => handleReorderInGroup(group.id, ids)}
+              />
+            ))}
+          </div>
+        </SortableContext>
+      </DndContext>
+
+      {groups.length === 0 && (
+        <div>
+          <button className="aturi-btn aturi-btn-primary" onClick={handleAddGroup}>
+            Create your first group
+          </button>
         </div>
       )}
 
-      <div className="options-card">
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'flex-start',
-            gap: 16,
-            marginBottom: 8,
-          }}
-        >
-          <div>
-            <div className="options-card-title">Your groups</div>
-            <div className="options-card-sub">
-              {groups.length === 0 ? (
-                'No groups yet. Create one below.'
-              ) : (
-                <>
-                  {groups.length} {groups.length === 1 ? 'group' : 'groups'} ·{' '}
-                  {totalVisible} visible
-                  {hiddenCount > 0 && (
-                    <>
-                      {' · '}
-                      <button
-                        type="button"
-                        className="hidden-toggle"
-                        aria-expanded={hiddenOpen}
-                        onClick={() => setHiddenOpen(o => !o)}
-                      >
-                        {hiddenCount} hidden
-                      </button>
-                    </>
-                  )}
-                </>
-              )}
-            </div>
-          </div>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <button className="aturi-btn" onClick={handleResetGroups}>
-              Reset
-            </button>
-            <button className="aturi-btn aturi-btn-primary" onClick={handleAddGroup}>
-              New
-            </button>
-          </div>
-        </div>
-
-        {hiddenOpen && hiddenCount > 0 && (
-          <div className="hidden-panel">
-            <div className="hidden-panel-head">
-              These are in no group, so the popup, redirect rules, and
-              recommendations all skip them.
-            </div>
-            <div className="adopt-list">
-              {hiddenWaypoints.map(w => (
-                <AdoptRow
-                  key={w.id}
-                  waypoint={w}
-                  target={adoptTargetFor(prefs, w.id)}
-                  isNew={newIds.has(w.id)}
-                  onAdopt={() => handleAdopt(w.id)}
-                />
-              ))}
-            </div>
-          </div>
-        )}
-
-        <DndContext
-          sensors={groupSensors}
-          collisionDetection={closestCenter}
-          onDragEnd={handleGroupDragEnd}
-        >
-          <SortableContext items={groups.map(g => g.id)} strategy={verticalListSortingStrategy}>
-            <div className="group-list">
-              {groups.map(group => (
-                <SortableGroup
-                  key={group.id}
-                  group={group}
-                  lookup={lookup}
-                  allWaypoints={allWps}
-                  newIds={newIds}
-                  onRename={name => handleRenameGroup(group.id, name)}
-                  onRemove={() => handleRemoveGroup(group.id)}
-                  onToggleCollapsed={collapsed => handleToggleCollapsed(group.id, collapsed)}
-                  onAddWaypoint={waypointId => handleAddWaypointToGroup(group.id, waypointId)}
-                  onRemoveWaypoint={waypointId =>
-                    handleRemoveWaypointFromGroup(group.id, waypointId)
-                  }
-                  onReorder={ids => handleReorderInGroup(group.id, ids)}
-                />
-              ))}
-            </div>
-          </SortableContext>
-        </DndContext>
-
-        {groups.length === 0 && (
-          <div style={{ marginTop: 12 }}>
-            <button className="aturi-btn aturi-btn-primary" onClick={handleAddGroup}>
-              Create your first group
-            </button>
-          </div>
-        )}
-      </div>
+      <p className="options-footnote">
+        Drag groups or apps to reorder them. An app can live in more than one group.
+      </p>
     </div>
   );
 }
@@ -350,14 +352,17 @@ type AdoptRowProps = {
 function AdoptRow({ waypoint, target, isNew, onAdopt, onIgnore }: AdoptRowProps) {
   return (
     <div className="adopt-row">
-      <span className="adopt-name">
-        {waypoint.name}
-        {isNew && <span className="reorder-tag reorder-tag-new">new</span>}
+      <WaypointIcon id={waypoint.id} name={waypoint.name} />
+      <span className="adopt-text">
+        <span className="adopt-name">
+          {waypoint.name}
+          {isNew && <span className="reorder-tag reorder-tag-new">new</span>}
+        </span>
+        <span className="adopt-desc">{describeWaypoint(waypoint)}</span>
       </span>
-      <span className="adopt-desc">{describeWaypoint(waypoint)}</span>
       <div className="adopt-actions">
         <button
-          className="aturi-btn aturi-btn-primary"
+          className="aturi-btn adopt-add"
           type="button"
           onClick={onAdopt}
           title={
@@ -385,6 +390,7 @@ type SortableGroupProps = {
   lookup: Map<string, WaypointData>;
   allWaypoints: WaypointData[];
   newIds: Set<string>;
+  customWaypoints: CustomWaypoint[];
   onRename: (name: string) => void;
   onRemove: () => void;
   onToggleCollapsed: (collapsed: boolean) => void;
@@ -398,6 +404,7 @@ function SortableGroup({
   lookup,
   allWaypoints,
   newIds,
+  customWaypoints,
   onRename,
   onRemove,
   onToggleCollapsed,
@@ -507,8 +514,17 @@ function SortableGroup({
         )}
 
         <span className="group-count" aria-hidden="true">
-          {group.waypointIds.length}
+          {group.waypointIds.length} {group.waypointIds.length === 1 ? 'app' : 'apps'}
         </span>
+
+        {collapsed && group.waypointIds.length > 0 && (
+          <span className="group-peek" aria-hidden="true">
+            {group.waypointIds.slice(0, 8).map(id => {
+              const w = lookup.get(id);
+              return w ? <WaypointIcon key={id} id={id} name={w.name} /> : null;
+            })}
+          </span>
+        )}
 
         <div className="group-actions">
           <button
@@ -519,6 +535,7 @@ function SortableGroup({
             title="Add waypoint"
           >
             <PlusIcon />
+            <span className="group-action-label">Add app</span>
           </button>
           <button
             className="group-action group-action-delete"
@@ -536,7 +553,7 @@ function SortableGroup({
         <div className="group-body">
           {group.waypointIds.length === 0 ? (
             <div className="group-empty">
-              No waypoints yet. Use the + button on the header to add some.
+              No waypoints yet. Use Add app on the header to add some.
             </div>
           ) : (
             <DndContext
@@ -561,6 +578,7 @@ function SortableGroup({
                         key={id}
                         id={id}
                         name={w.name}
+                        domain={homePageSubtitle(w, customWaypoints)}
                         isCustom={isCustom}
                         isMoved={isMoved}
                         isNew={newIds.has(id)}
@@ -593,13 +611,15 @@ function SortableGroup({
 type SortableRowProps = {
   id: string;
   name: string;
+  /** Host label shown after the name, e.g. "anisota.net". */
+  domain: string;
   isCustom: boolean;
   isMoved: boolean;
   isNew: boolean;
   onRemove: () => void;
 };
 
-function SortableRow({ id, name, isCustom, isMoved, isNew, onRemove }: SortableRowProps) {
+function SortableRow({ id, name, domain, isCustom, isMoved, isNew, onRemove }: SortableRowProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id });
   const style: React.CSSProperties = {
@@ -622,8 +642,10 @@ function SortableRow({ id, name, isCustom, isMoved, isNew, onRemove }: SortableR
       >
         <DragHandleIcon />
       </span>
+      <WaypointIcon id={id} name={name} />
       <span className="group-row-name">
-        {name}
+        <span className="group-row-label">{name}</span>
+        <span className="group-row-domain">{domain}</span>
         {isCustom && <span className="reorder-tag">custom</span>}
         {isMoved && !isCustom && (
           <span className="reorder-tag reorder-tag-moved">moved</span>
@@ -726,6 +748,7 @@ function WaypointPicker({ candidates, memberIds, newIds, onPick, onClose }: Pick
                 }}
                 disabled={isMember}
               >
+                <WaypointIcon id={w.id} name={w.name} />
                 <span className="waypoint-picker-name">
                   {w.name}
                   {isCustom && <span className="reorder-tag">custom</span>}
@@ -747,7 +770,7 @@ function WaypointPicker({ candidates, memberIds, newIds, onPick, onClose }: Pick
 
 function DragHandleIcon() {
   return (
-    <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
       <circle cx="9" cy="6" r="1.5" />
       <circle cx="15" cy="6" r="1.5" />
       <circle cx="9" cy="12" r="1.5" />
@@ -785,6 +808,17 @@ function PlusIcon() {
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
       <line x1="12" y1="5" x2="12" y2="19" />
       <line x1="5" y1="12" x2="19" y2="12" />
+    </svg>
+  );
+}
+
+/** Counter-clockwise arrow for "Reset to defaults", sized like PlusIcon so
+    the two header actions match. */
+function ResetIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+      <path d="M3 3v5h5" />
     </svg>
   );
 }

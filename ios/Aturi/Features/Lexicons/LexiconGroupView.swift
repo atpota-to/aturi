@@ -144,7 +144,7 @@ struct LexiconGroupView: View {
                     if let label = model.emptyLexiconLinkLabel {
                         NavigationLink(value: Route.lexicon(nsid: model.prefix)) {
                             Text(label)
-                                .font(.footnote)
+                                .font(AturiFont.footnote)
                                 .foregroundStyle(theme.textAccent)
                         }
                         .buttonStyle(.plain)
@@ -182,7 +182,7 @@ struct LexiconGroupView: View {
     private func entryRow(_ entry: LexiconGroupEntry) -> some View {
         let label = HStack(spacing: 10) {
             Image(systemName: entry.isNamespace ? "folder" : "doc.text")
-                .font(.footnote)
+                .font(AturiFont.footnote)
                 .foregroundStyle(entry.isNamespace ? theme.textAccent : theme.textTertiary)
                 .frame(width: 16)
                 .accessibilityHidden(true)

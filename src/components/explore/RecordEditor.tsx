@@ -185,47 +185,16 @@ export default function RecordEditor({
   }
 
   return (
-    <div
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '1rem',
-        padding: '1rem',
-        background: 'var(--bg-secondary)',
-        border: '1px solid var(--border-medium)',
-      }}
-    >
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '0.75rem',
-          flexWrap: 'wrap',
-          justifyContent: 'space-between',
-        }}
-      >
+    <div className="fn-rec-card fn-editor">
+      <div className="fn-editor-head">
         {lex ? (
           <ModeToggle mode={rawMode ? 'json' : 'form'} onChange={toggleRawMode} />
         ) : (
           // No registered lexicon means there's no form to switch to —
           // editor stays in JSON mode and we just label the row.
-          <span
-            style={{
-              fontFamily: 'var(--font-serif)',
-              fontSize: '0.8125rem',
-              color: 'var(--text-tertiary)',
-              letterSpacing: '0.08em',
-              textTransform: 'uppercase',
-            }}
-          >
-            Edit JSON
-          </span>
+          <span className="fn-rec-h2">Edit JSON</span>
         )}
-        {lex && (
-          <span style={{ color: 'var(--text-tertiary)', fontSize: '0.8125rem' }}>
-            {lex.label}
-          </span>
-        )}
+        {lex && <span className="fn-editor-lex">{lex.label}</span>}
       </div>
 
       {isNew && lex?.rkeyMode === 'fixed' && (
@@ -247,25 +216,16 @@ export default function RecordEditor({
       )}
 
       {error && <p className="explore-error">{error}</p>}
-      {savedFlash && (
-        <p style={{ color: 'var(--text-accent)', margin: 0, fontStyle: 'italic' }}>Saved.</p>
-      )}
+      {savedFlash && <p className="fn-editor-saved">Saved.</p>}
 
-      <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'center' }}>
+      <div className="fn-editor-actions">
         <button
           type="button"
           onClick={handleSave}
           disabled={saving || deleting}
-          style={{
-            padding: '0.55rem 1rem',
-            background: 'var(--accent-moss)',
-            color: 'var(--text-on-accent)',
-            border: '1px solid var(--accent-moss)',
-            fontFamily: 'var(--font-serif)',
-            fontSize: '0.875rem',
-            cursor: saving || deleting ? 'wait' : 'pointer',
-            opacity: saving || deleting ? 0.6 : 1,
-          }}
+          className="fn-rec-btn"
+          data-variant="primary"
+          data-wait={saving || deleting || undefined}
         >
           {saving ? 'Saving…' : isNew ? 'Create' : 'Save'}
         </button>
@@ -274,16 +234,7 @@ export default function RecordEditor({
             type="button"
             onClick={onCancel}
             disabled={saving || deleting}
-            style={{
-              padding: '0.55rem 1rem',
-              background: 'transparent',
-              color: 'var(--text-secondary)',
-              border: '1px solid var(--border-medium)',
-              fontFamily: 'var(--font-serif)',
-              fontSize: '0.875rem',
-              cursor: saving || deleting ? 'not-allowed' : 'pointer',
-              opacity: saving || deleting ? 0.6 : 1,
-            }}
+            className="fn-rec-btn"
           >
             Cancel
           </button>
@@ -293,37 +244,24 @@ export default function RecordEditor({
             type="button"
             onClick={() => setConfirmingDelete(true)}
             disabled={saving || deleting}
-            style={{
-              padding: '0.55rem 1rem',
-              background: 'var(--danger-soft)',
-              color: 'var(--danger)',
-              border: '1px solid var(--danger-border)',
-              fontFamily: 'var(--font-serif)',
-              fontSize: '0.875rem',
-              cursor: 'pointer',
-            }}
+            className="fn-rec-btn"
+            data-variant="danger"
           >
             Delete
           </button>
         )}
         {confirmingDelete && (
           <>
-            <span style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>
+            <span className="fn-editor-confirm">
               Delete {collection}/{rkey}? This cannot be undone.
             </span>
             <button
               type="button"
               onClick={handleDelete}
               disabled={deleting}
-              style={{
-                padding: '0.4rem 0.75rem',
-                background: 'var(--danger)',
-                color: 'var(--text-on-danger)',
-                border: '1px solid var(--danger)',
-                fontFamily: 'var(--font-serif)',
-                fontSize: '0.8125rem',
-                cursor: deleting ? 'wait' : 'pointer',
-              }}
+              className="fn-rec-btn"
+              data-variant="danger-solid"
+              data-wait={deleting || undefined}
             >
               {deleting ? 'Deleting…' : 'Confirm delete'}
             </button>
@@ -331,15 +269,7 @@ export default function RecordEditor({
               type="button"
               onClick={() => setConfirmingDelete(false)}
               disabled={deleting}
-              style={{
-                padding: '0.4rem 0.75rem',
-                background: 'transparent',
-                color: 'var(--text-secondary)',
-                border: '1px solid var(--border-medium)',
-                fontFamily: 'var(--font-serif)',
-                fontSize: '0.8125rem',
-                cursor: 'pointer',
-              }}
+              className="fn-rec-btn"
             >
               Cancel
             </button>
@@ -500,26 +430,16 @@ function FieldShell({
   // editor gets an implicit programmatic label (previously the caption was a
   // bare <label> with no htmlFor, leaving each control announced as unlabeled).
   return (
-    <label style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
+    <label className="fn-editor-field">
       {label && (
-        <span
-          className="explore-small-caps"
-          style={{ color: 'var(--text-secondary)', fontSize: '0.75rem' }}
-        >
+        <span className="fn-editor-label">
           {label}
           {required && <span style={{ color: 'var(--danger)' }}> *</span>}
         </span>
       )}
       {children}
       {(hint || charCount) && (
-        <span
-          style={{
-            display: 'block',
-            margin: 0,
-            fontSize: '0.75rem',
-            color: 'var(--text-tertiary)',
-          }}
-        >
+        <span className="fn-editor-hint">
           {hint}
           {hint && charCount ? ' · ' : ''}
           {charCount}
@@ -662,16 +582,7 @@ function ModeToggle({
   onChange: () => void;
 }) {
   return (
-    <div
-      role="group"
-      aria-label="Editor mode"
-      style={{
-        display: 'inline-flex',
-        border: '1px solid var(--border-medium)',
-        background: 'var(--bg-tertiary)',
-        padding: '2px',
-      }}
-    >
+    <div role="group" aria-label="Editor mode" className="fn-rec-seg">
       <ModeToggleButton
         active={mode === 'form'}
         onClick={() => mode !== 'form' && onChange()}
@@ -698,21 +609,7 @@ function ModeToggleButton({
   children: React.ReactNode;
 }) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-pressed={active}
-      style={{
-        padding: '0.35rem 0.75rem',
-        background: active ? 'var(--accent-moss)' : 'transparent',
-        color: active ? 'var(--text-on-accent)' : 'var(--text-secondary)',
-        border: 0,
-        fontFamily: 'var(--font-serif)',
-        fontSize: '0.8125rem',
-        cursor: active ? 'default' : 'pointer',
-        transition: 'background 0.15s ease, color 0.15s ease',
-      }}
-    >
+    <button type="button" onClick={onClick} aria-pressed={active}>
       {children}
     </button>
   );

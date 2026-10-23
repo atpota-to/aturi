@@ -154,12 +154,7 @@ function ExplorerCard() {
         <div
           role="radiogroup"
           aria-label="Pin scope"
-          style={{
-            display: 'inline-flex',
-            border: '1px solid var(--border-medium)',
-            overflow: 'hidden',
-            flexShrink: 0,
-          }}
+          className="settings-seg"
         >
           {(
             [
@@ -176,18 +171,7 @@ function ExplorerCard() {
                 role="radio"
                 aria-checked={active}
                 onClick={() => pickScope(value)}
-                style={{
-                  padding: '0.4rem 0.875rem',
-                  fontSize: '0.85rem',
-                  background: active ? 'var(--accent-forest)' : 'transparent',
-                  color: active ? 'var(--text-on-accent)' : 'var(--text-secondary)',
-                  border: 'none',
-                  cursor: 'pointer',
-                  transition: 'background 0.2s ease, color 0.2s ease',
-                  textTransform: 'lowercase',
-                  letterSpacing: '0.02em',
-                  fontFamily: 'var(--font-serif)',
-                }}
+                className={`settings-seg-option ${active ? 'is-active' : ''}`}
               >
                 {label}
               </button>
@@ -359,25 +343,11 @@ function PinnedList({
   }
 
   return (
-    <div style={{ marginTop: '1rem' }}>
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '0.4rem',
-          fontFamily: 'var(--font-serif)',
-          fontSize: '0.75rem',
-          letterSpacing: '0.08em',
-          textTransform: 'uppercase',
-          color: 'var(--text-tertiary)',
-          marginBottom: '0.5rem',
-        }}
-      >
+    <div className="settings-pins">
+      <div className="settings-kicker">
         <Pin size={12} aria-hidden />
         {title}
-        <span style={{ marginLeft: 'auto', letterSpacing: '0.04em' }}>
-          {list.length}
-        </span>
+        <span className="settings-count">{list.length}</span>
       </div>
 
       <form
@@ -386,14 +356,9 @@ function PinnedList({
           submit();
         }}
         ref={containerRef}
-        style={{
-          display: 'flex',
-          gap: '0.5rem',
-          marginBottom: '0.5rem',
-          position: 'relative',
-        }}
+        className="settings-pin-form"
       >
-        <div style={{ flex: 1, minWidth: 0, position: 'relative' }}>
+        <div className="settings-pin-field">
           <input
             type="text"
             inputMode="text"
@@ -420,36 +385,13 @@ function PinnedList({
               suggestionsOpen ? `pinned-suggestion-${target}-${activeIdx}` : undefined
             }
             role="combobox"
-            style={{
-              width: '100%',
-              padding: '0.45rem 0.65rem',
-              background: 'var(--bg-tertiary)',
-              border: `1px solid ${err ? 'var(--danger)' : 'var(--border-medium)'}`,
-              color: 'var(--text-primary)',
-              fontFamily: 'var(--font-mono)',
-              fontSize: '0.85rem',
-              outline: 'none',
-            }}
+            className={`settings-input is-mono ${err ? 'is-invalid' : ''}`}
           />
           {suggestionsOpen && (
             <ul
               id={`pinned-suggestions-${target}`}
               role="listbox"
-              style={{
-                listStyle: 'none',
-                margin: 0,
-                padding: 0,
-                position: 'absolute',
-                top: 'calc(100% + 2px)',
-                left: 0,
-                right: 0,
-                zIndex: 5,
-                background: 'var(--bg-secondary)',
-                border: '1px solid var(--border-medium)',
-                maxHeight: '16rem',
-                overflowY: 'auto',
-                boxShadow: '0 6px 18px rgba(0,0,0,0.25)',
-              }}
+              className="settings-suggest"
             >
               {suggestions.map((nsid, i) => (
                 <li
@@ -462,19 +404,7 @@ function PinnedList({
                     pin(nsid);
                   }}
                   onMouseEnter={() => setActiveIdx(i)}
-                  style={{
-                    padding: '0.4rem 0.65rem',
-                    fontFamily: 'var(--font-mono)',
-                    fontSize: '0.8rem',
-                    background:
-                      i === activeIdx ? 'var(--bg-tertiary)' : 'transparent',
-                    color:
-                      i === activeIdx
-                        ? 'var(--text-accent)'
-                        : 'var(--text-primary)',
-                    cursor: 'pointer',
-                    wordBreak: 'break-all',
-                  }}
+                  className={`settings-suggest-item ${i === activeIdx ? 'is-active' : ''}`}
                 >
                   {highlightMatch(nsid, draft)}
                 </li>
@@ -485,107 +415,31 @@ function PinnedList({
         <button
           type="submit"
           disabled={draft.trim().length === 0}
-          style={{
-            padding: '0.45rem 0.9rem',
-            background: 'var(--accent-forest)',
-            color: 'var(--text-on-accent)',
-            border: 0,
-            cursor: draft.trim() ? 'pointer' : 'not-allowed',
-            fontFamily: 'var(--font-serif)',
-            fontSize: '0.85rem',
-            opacity: draft.trim() ? 1 : 0.5,
-          }}
+          className="settings-btn is-primary"
         >
           Pin
         </button>
       </form>
-      {err && (
-        <p
-          style={{
-            margin: '0 0 0.5rem 0',
-            fontSize: '0.75rem',
-            color: 'var(--danger)',
-          }}
-        >
-          {err}
-        </p>
-      )}
+      {err && <p className="settings-error">{err}</p>}
 
       {list.length === 0 ? (
-        <p
-          style={{
-            fontSize: '0.85rem',
-            color: 'var(--text-tertiary)',
-            fontStyle: 'italic',
-            margin: 0,
-          }}
-        >
+        <p className="settings-empty">
           Nothing pinned yet. Add an NSID or a group wildcard (e.g.
           app.bsky.feed.*) above, or use the pin button on rows and group
           headers in any repo&apos;s Collections tab.
         </p>
       ) : (
-        <ul
-          style={{
-            listStyle: 'none',
-            margin: 0,
-            padding: 0,
-            border: '1px solid var(--border-medium)',
-          }}
-        >
-          {list.map((nsid, i) => (
-            <li
-              key={nsid}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.5rem',
-                padding: '0.45rem 0.75rem',
-                background: i % 2 === 0 ? 'var(--bg-primary)' : 'transparent',
-                fontFamily: 'var(--font-mono)',
-                fontSize: '0.85rem',
-                wordBreak: 'break-all',
-              }}
-            >
+        <ul className="settings-list">
+          {list.map((nsid) => (
+            <li key={nsid} className="settings-list-item is-mono">
               <span style={{ flex: 1, minWidth: 0 }}>{nsid}</span>
-              {isPinGroup(nsid) && (
-                <span
-                  style={{
-                    flexShrink: 0,
-                    fontFamily: 'var(--font-serif)',
-                    fontSize: '0.65rem',
-                    letterSpacing: '0.06em',
-                    textTransform: 'uppercase',
-                    color: 'var(--text-accent)',
-                    border: '1px solid var(--text-accent)',
-                    padding: '0.05rem 0.35rem',
-                  }}
-                >
-                  group
-                </span>
-              )}
+              {isPinGroup(nsid) && <span className="settings-pill">group</span>}
               <button
                 type="button"
                 onClick={() => unpin(nsid)}
                 aria-label={`Unpin ${nsid}`}
                 title="Remove pin"
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  padding: '0.25rem',
-                  background: 'transparent',
-                  border: 0,
-                  color: 'var(--text-tertiary)',
-                  cursor: 'pointer',
-                  flexShrink: 0,
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.color = 'var(--text-accent)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.color = 'var(--text-tertiary)';
-                }}
+                className="settings-icon-btn"
               >
                 <X size={14} aria-hidden />
               </button>
@@ -628,9 +482,7 @@ function highlightMatch(nsid: string, query: string): React.ReactNode {
   return (
     <>
       {nsid.slice(0, idx)}
-      <strong style={{ color: 'var(--text-accent)', fontWeight: 600 }}>
-        {nsid.slice(idx, idx + q.length)}
-      </strong>
+      <strong>{nsid.slice(idx, idx + q.length)}</strong>
       {nsid.slice(idx + q.length)}
     </>
   );
@@ -718,12 +570,7 @@ function ThemePicker() {
       <div
         role="radiogroup"
         aria-label="Dark or light"
-        style={{
-          display: 'inline-flex',
-          border: '1px solid var(--border-medium)',
-          overflow: 'hidden',
-          flexShrink: 0,
-        }}
+        className="settings-seg"
       >
         {(['dark', 'light'] as const).map((value) => {
           const active = theme === value;
@@ -734,18 +581,7 @@ function ThemePicker() {
               role="radio"
               aria-checked={active}
               onClick={() => pick(value)}
-              style={{
-                padding: '0.4rem 0.875rem',
-                fontSize: '0.85rem',
-                background: active ? 'var(--accent-forest)' : 'transparent',
-                color: active ? 'var(--text-on-accent)' : 'var(--text-secondary)',
-                border: 'none',
-                cursor: 'pointer',
-                transition: 'background 0.2s ease, color 0.2s ease',
-                textTransform: 'lowercase',
-                letterSpacing: '0.02em',
-                fontFamily: 'var(--font-serif)',
-              }}
+              className={`settings-seg-option ${active ? 'is-active' : ''}`}
             >
               {value}
             </button>
@@ -803,12 +639,7 @@ function FontScalePicker() {
       <div
         role="radiogroup"
         aria-label="Font size"
-        style={{
-          display: 'inline-flex',
-          border: '1px solid var(--border-medium)',
-          overflow: 'hidden',
-          flexShrink: 0,
-        }}
+        className="settings-seg"
       >
         {FONT_SCALE_OPTIONS.map(({ value, label }) => {
           const active = scale === value;
@@ -819,18 +650,7 @@ function FontScalePicker() {
               role="radio"
               aria-checked={active}
               onClick={() => pick(value)}
-              style={{
-                padding: '0.4rem 0.875rem',
-                fontSize: '0.85rem',
-                background: active ? 'var(--accent-forest)' : 'transparent',
-                color: active ? 'var(--text-on-accent)' : 'var(--text-secondary)',
-                border: 'none',
-                cursor: 'pointer',
-                transition: 'background 0.2s ease, color 0.2s ease',
-                textTransform: 'lowercase',
-                letterSpacing: '0.02em',
-                fontFamily: 'var(--font-serif)',
-              }}
+              className={`settings-seg-option ${active ? 'is-active' : ''}`}
             >
               {label}
             </button>
@@ -863,7 +683,7 @@ function ReduceMotionToggle() {
     <Toggle
       id="reduce-motion"
       label="Reduce motion"
-      description="Stops the drifting background glow and pauses page, hover, and loading animations across the site. Defaults to your system setting."
+      description="Pauses page, hover, and loading animations across the site. Defaults to your system setting."
       checked={on}
       onChange={set}
     />
@@ -892,7 +712,7 @@ function HighContrastToggle() {
     <Toggle
       id="high-contrast"
       label="High contrast"
-      description="Boosts text and border contrast and removes the ambient glow and grain overlays for a sharper, more legible interface. Defaults to your system setting."
+      description="Boosts text and border contrast for a sharper, more legible interface. Defaults to your system setting."
       checked={on}
       onChange={set}
     />

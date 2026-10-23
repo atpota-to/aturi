@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { browser } from '#imports';
-import { MousePointer2, Shuffle, Telescope } from 'lucide-react';
+import { Check, Compass, Copy, Link2, Moon, Pause, Shuffle, Sun, X } from 'lucide-react';
 import type { ReverseMatch } from '@aturi/reverseParsers';
 import type { WaypointActivity, WaypointData, WaypointType } from '@aturi/waypoints.data';
 import { matchSupportedUrl, parseAtUri, isSupportedHost } from '@aturi/reverseParsers';
@@ -290,38 +290,6 @@ export default function App() {
 
   const prefs = state.prefs;
 
-  // The Ready+Waypoints combo shows the universal-link copy chip + the
-  // current collection in the right side of the title bar. Other phases /
-  // modes show a static tagline instead. Computed up here so the title bar
-  // is rendered once for all modes (the user explicitly asked for the
-  // title bar to appear on Inspect too, like it does on Waypoints).
-  const ready = state.phase === 'ready' ? state : null;
-  const aturiLink = useMemo(() => {
-    if (!ready || mode !== 'waypoints') return null;
-    const aturi = findWaypoint(ready.prefs, 'aturi');
-    if (!aturi) return null;
-    const { parsed } = ready.match;
-    return (
-      aturi.getUrl(parsed.handle, parsed.collection, parsed.rkey, parsed.did) ?? null
-    );
-  }, [ready, mode]);
-
-  const titleAccessory =
-    ready && mode === 'waypoints' ? (
-      <>
-        <div className="popup-header-actions">
-          {aturiLink && <HeaderCopyLinkButton url={aturiLink} />}
-        </div>
-        <div className="popup-source-collection" title={ready.match.parsed.uri}>
-          {ready.match.parsed.collection ?? (ready.match.parsed.type === 'unknown' ? 'profile' : ready.match.parsed.type)}
-        </div>
-      </>
-    ) : (
-      <div className="popup-header-actions">
-        <span className="popup-tagline">Tour the Atmosphere</span>
-      </div>
-    );
-
   const inner =
     mode === 'inspect' ? (
       <InspectView prefs={prefs} scan={inspectScan} />
@@ -347,24 +315,32 @@ export default function App() {
 
   return (
     <div className={`popup-shell ${prefs.compactMode ? 'is-compact' : ''}`}>
-      <div className="popup-topbar">
-        <div className="popup-header">
-          <div className="popup-title">
-            <AturiMark />
-            <span>Aturi</span>
-          </div>
-          <div className="popup-source">{titleAccessory}</div>
+      <header className="popup-topbar">
+        <div className="popup-title">
+          <AturiMark />
+          <span>aturi</span>
         </div>
         <PopupModeTabs
           mode={mode}
           onSelect={selectMode}
-          onOpenSettings={() => void openOptionsPage()}
           inspectCount={inspectScan.hits.length}
           inspectScanning={inspectScan.scanning}
         />
-        <RedirectControl prefs={prefs} tabId={state.tabId} />
-      </div>
-      {inner}
+        <div className="popup-topbar-actions">
+          <ThemeToggle theme={prefs.theme} />
+          <button
+            type="button"
+            className="popup-icon-btn popup-mode-tab-settings"
+            onClick={() => void openOptionsPage()}
+            title="Open settings"
+            aria-label="Open extension settings"
+          >
+            <SettingsIcon />
+          </button>
+        </div>
+      </header>
+      <main className="popup-body">{inner}</main>
+      <RedirectControl prefs={prefs} tabId={state.tabId} />
     </div>
   );
 }
@@ -372,13 +348,11 @@ export default function App() {
 function PopupModeTabs({
   mode,
   onSelect,
-  onOpenSettings,
   inspectCount,
   inspectScanning,
 }: {
   mode: PopupMode;
   onSelect: (next: PopupMode) => void;
-  onOpenSettings: () => void;
   /** Number of AT URIs detected on the active tab. Drives the badge. */
   inspectCount: number;
   /** While the scan is in flight we hide the badge to avoid flicker. */
@@ -394,7 +368,6 @@ function PopupModeTabs({
         className={`popup-mode-tab ${mode === 'waypoints' ? 'is-active' : ''}`}
         onClick={() => onSelect('waypoints')}
       >
-        <MousePointer2 size={12} aria-hidden />
         Waypoints
       </button>
       <button
@@ -404,7 +377,6 @@ function PopupModeTabs({
         className={`popup-mode-tab ${mode === 'inspect' ? 'is-active' : ''}`}
         onClick={() => onSelect('inspect')}
       >
-        <Telescope size={12} aria-hidden />
         Inspect
         {showInspectBadge && (
           <span
@@ -415,15 +387,6 @@ function PopupModeTabs({
           </span>
         )}
       </button>
-      <button
-        type="button"
-        className="popup-mode-tab-settings"
-        onClick={onOpenSettings}
-        title="Open settings"
-        aria-label="Open extension settings"
-      >
-        <SettingsGearIcon />
-      </button>
     </div>
   );
 }
@@ -432,14 +395,14 @@ function PopupModeTabs({
 type RedirectScope = { supported: boolean; paused: boolean };
 
 /**
- * Auto-redirect controls, pinned under the mode tabs.
+ * Auto-redirect controls, pinned to the bottom of the popup.
  *
  * The switch is the global `autoRedirect` pref, the same one the options page
- * owns — flipping it here stays off until you turn it back on. "Pause here" is
- * the narrower escape hatch: it exempts only the tab you're looking at, lasts
- * until you resume it or close the tab, and never touches your settings. Use
- * it when you want to stay put on one page rather than change how redirects
- * work everywhere.
+ * owns — flipping it here stays off until you turn it back on. "Pause on this
+ * tab" is the narrower escape hatch: it exempts only the tab you're looking
+ * at, lasts until you resume it or close the tab, and never touches your
+ * settings. Use it when you want to stay put on one page rather than change
+ * how redirects work everywhere.
  */
 function RedirectControl({ prefs, tabId }: { prefs: Prefs; tabId: number | null }) {
   const [scope, setScope] = useState<RedirectScope | null>(null);
@@ -500,10 +463,19 @@ function RedirectControl({ prefs, tabId }: { prefs: Prefs; tabId: number | null 
     .join(' ');
 
   return (
-    <div className={rowClass}>
-      <Shuffle size={12} className="popup-redirect-icon" aria-hidden />
+    <footer className={rowClass}>
+      {showPaused ? (
+        <Pause size={15} className="popup-redirect-icon" aria-hidden />
+      ) : (
+        <Shuffle size={15} className="popup-redirect-icon" aria-hidden />
+      )}
       <span className="popup-redirect-label">
-        {showPaused ? 'Paused on this tab' : 'Auto-redirect'}
+        <span className="popup-redirect-title">
+          {showPaused ? 'Paused on this tab' : 'Auto-redirect'}
+        </span>
+        {showPaused && (
+          <span className="popup-redirect-sub">Auto-redirect still works in your other tabs</span>
+        )}
       </span>
       {canPause && (
         <button
@@ -517,7 +489,7 @@ function RedirectControl({ prefs, tabId }: { prefs: Prefs; tabId: number | null 
               : 'Leave this tab alone until you resume it or close the tab'
           }
         >
-          {paused ? 'Resume here' : 'Pause here'}
+          {paused ? 'Resume' : 'Pause on this tab'}
         </button>
       )}
       <button
@@ -532,10 +504,10 @@ function RedirectControl({ prefs, tabId }: { prefs: Prefs; tabId: number | null 
             : 'Turn auto-redirect on'
         }
       >
+        <span className="popup-redirect-state">{prefs.autoRedirect ? 'On' : 'Off'}</span>
         <span className="aturi-switch-box" aria-hidden />
-        <span className="aturi-muted">{prefs.autoRedirect ? 'On' : 'Off'}</span>
       </button>
-    </div>
+    </footer>
   );
 }
 
@@ -567,7 +539,7 @@ function AturiMark() {
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
-      strokeWidth="2"
+      strokeWidth="2.2"
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden="true"
@@ -609,16 +581,22 @@ function NoAtmosphereView({
   return (
     <div className={`popup-root ${prefs.compactMode ? 'is-compact' : ''}`}>
       {!isKnownHost && (
-        <div className="popup-notice">
-          <div className="popup-notice-title">No Atmosphere data on this page</div>
-          <div>
+        <section className="popup-notice" aria-labelledby="popup-notice-title">
+          <span className="popup-notice-icon" aria-hidden="true">
+            <Compass size={21} />
+          </span>
+          <h1 className="popup-notice-title" id="popup-notice-title">
+            No Atmosphere data on this page
+          </h1>
+          <p className="popup-notice-body">
             We couldn&apos;t find a supported AT URI for this tab (from the address or an{' '}
-            <code style={{ fontSize: 12 }}>at://</code> link in the page head). Your destinations
-            below open each app&apos;s home page. On a supported profile or post, this popup will
-            offer context-aware links instead.
-          </div>
-        </div>
+            <code>at://</code> link in the page head). On a supported profile or post, this
+            popup offers context-aware links instead.
+          </p>
+        </section>
       )}
+
+      <NewWaypointsNotice prefs={prefs} />
 
       {shortcutGroups.length === 0 ? (
         <div className="popup-empty">
@@ -631,27 +609,26 @@ function NoAtmosphereView({
         </div>
       ) : (
         <>
+          <div className="popup-jump-head">
+            <h2 className="popup-jump-title">Jump to an app</h2>
+            <span className="popup-jump-note">Shortcuts open each app&apos;s home page</span>
+          </div>
           {shortcutGroups.map(group => (
-            <div className="popup-section" key={group.category.id}>
-              <div className="popup-section-label">{group.category.name}</div>
-              <div className="popup-waypoints">
+            <section className="popup-section" key={group.category.id}>
+              <h3 className="popup-section-label">{group.category.name}</h3>
+              <div className="popup-tiles">
                 {group.waypoints.map(w => (
-                  <div key={w.id} className="popup-waypoint">
+                  <div key={w.id} className="popup-tile">
                     <button
                       type="button"
-                      className="popup-waypoint-main"
+                      className="popup-tile-main"
                       onClick={() => onOpenHome(w)}
                       disabled={pendingId === w.id}
+                      title={homePageSubtitle(w, prefs.customWaypoints)}
                     >
                       <WaypointIcon id={w.id} name={w.name} />
-                      <div className="popup-waypoint-text">
-                        <div className="popup-waypoint-name">{w.name}</div>
-                        {!prefs.compactMode && (
-                          <div className="popup-waypoint-desc">
-                            {homePageSubtitle(w, prefs.customWaypoints)}
-                          </div>
-                        )}
-                      </div>
+                      <span className="popup-tile-name">{w.name}</span>
+                      <span className="popup-tile-desc">{homePageSubtitle(w, prefs.customWaypoints)}</span>
                     </button>
                     <CopyWaypointButton
                       copied={copiedId === w.id}
@@ -661,16 +638,8 @@ function NoAtmosphereView({
                   </div>
                 ))}
               </div>
-            </div>
+            </section>
           ))}
-          <PopupFooter
-            prefs={prefs}
-            leading={
-              <span className="aturi-subtle" style={{ fontSize: 11 }}>
-                Shortcuts open each app&apos;s home page
-              </span>
-            }
-          />
         </>
       )}
     </div>
@@ -765,9 +734,13 @@ function Ready({ match, prefs, pendingId, copiedId, onOpen, onCopy }: ReadyProps
 
   return (
     <div className={`popup-root ${prefs.compactMode ? 'is-compact' : ''}`}>
+      <PageCard match={match} prefs={prefs} />
+
+      <NewWaypointsNotice prefs={prefs} />
+
       {prefs.historyEnabled && recents.length > 0 && (
-        <div className="popup-section">
-          <div className="popup-section-label">Recents</div>
+        <section className="popup-section">
+          <h2 className="popup-section-label">Recents</h2>
           <div className="popup-recents-row">
             {recents.map(w => (
               <button
@@ -778,16 +751,16 @@ function Ready({ match, prefs, pendingId, copiedId, onOpen, onCopy }: ReadyProps
                 aria-label={w.name}
               >
                 <WaypointIcon id={w.id} name={w.name} />
-                <div className="popup-recent-name">{w.name}</div>
+                <span className="popup-recent-name">{w.name}</span>
               </button>
             ))}
           </div>
-        </div>
+        </section>
       )}
 
       {prefs.smartRecommendations && recommended.waypoints.length > 0 && (
-        <div className="popup-section">
-          <div className="popup-section-label">{recommended.label}</div>
+        <section className="popup-section">
+          <h2 className="popup-section-label">{recommended.label}</h2>
           <div className="popup-waypoints">
             {recommended.waypoints
               .filter(w => w.id !== source)
@@ -805,7 +778,7 @@ function Ready({ match, prefs, pendingId, copiedId, onOpen, onCopy }: ReadyProps
                 />
               ))}
           </div>
-        </div>
+        </section>
       )}
 
       {categorized.map(group => {
@@ -814,8 +787,8 @@ function Ready({ match, prefs, pendingId, copiedId, onOpen, onCopy }: ReadyProps
         );
         if (waypoints.length === 0) return null;
         return (
-          <div className="popup-section" key={group.category.id}>
-            <div className="popup-section-label">{group.category.name}</div>
+          <section className="popup-section" key={group.category.id}>
+            <h2 className="popup-section-label">{group.category.name}</h2>
             <div className="popup-waypoints">
               {waypoints.map(w => (
                 <WaypointButton
@@ -831,21 +804,66 @@ function Ready({ match, prefs, pendingId, copiedId, onOpen, onCopy }: ReadyProps
                 />
               ))}
             </div>
-          </div>
+          </section>
         );
       })}
-
-      <PopupFooter prefs={prefs} leading={<CopyUriButton uri={parsed.uri} />} />
     </div>
   );
 }
 
-// Footer renders the per-view leading content (URI button or shortcuts note)
-// alongside the appearance toggle, and stacks a dismissable "new waypoints"
-// banner above when the catalog has grown since the user last opened the
-// popup. The Settings button moved to the header gear long ago — this is
-// where the theme toggle lives now.
-function PopupFooter({ prefs, leading }: { prefs: Prefs; leading: React.ReactNode }) {
+const TYPE_LABEL: Record<string, string> = {
+  post: 'Post',
+  profile: 'Profile',
+  list: 'List',
+  record: 'Record',
+};
+
+/**
+ * Summary of what the current tab shows: the record kind, whose it is and
+ * which app it is open in, plus the two copy actions (the aturi.to universal
+ * link and the raw at:// URI).
+ */
+function PageCard({ match, prefs }: { match: ReverseMatch; prefs: Prefs }) {
+  const { parsed, source } = match;
+  const aturiLink = useMemo(() => {
+    const aturi = findWaypoint(prefs, 'aturi');
+    if (!aturi) return null;
+    return aturi.getUrl(parsed.handle, parsed.collection, parsed.rkey, parsed.did) ?? null;
+  }, [prefs, parsed.handle, parsed.collection, parsed.rkey, parsed.did]);
+
+  const kind = parsed.type === 'unknown' ? 'profile' : parsed.type;
+  const who = parsed.handle || parsed.did || '';
+  const title = kind === 'profile' ? who : `${TYPE_LABEL[kind] ?? 'Record'} by ${who}`;
+  const sourceName = findWaypoint(prefs, source)?.name ?? null;
+  const initial = (who.replace(/^did:[a-z]+:/, '')[0] ?? '?').toUpperCase();
+
+  return (
+    <section className="popup-page" aria-label="This page">
+      <div className="popup-page-head">
+        <span className="popup-page-avatar" aria-hidden="true">
+          {initial}
+        </span>
+        <span className="popup-page-text">
+          <span className="popup-page-title">{title}</span>
+          <span className="popup-page-meta" title={parsed.uri}>
+            <span className="popup-source-collection">
+              {parsed.collection ?? (parsed.type === 'unknown' ? 'profile' : parsed.type)}
+            </span>
+            {sourceName && <> · on {sourceName}</>}
+          </span>
+        </span>
+      </div>
+      <div className="popup-page-actions">
+        {aturiLink && <HeaderCopyLinkButton url={aturiLink} />}
+        <CopyUriButton uri={parsed.uri} />
+      </div>
+    </section>
+  );
+}
+
+// Dismissable "new waypoints" notice, shown when the catalog has grown since
+// the user last opened the popup.
+function NewWaypointsNotice({ prefs }: { prefs: Prefs }) {
   const newWaypoints = useMemo(() => newBuiltinWaypoints(prefs), [prefs]);
 
   useEffect(() => {
@@ -854,30 +872,23 @@ function PopupFooter({ prefs, leading }: { prefs: Prefs; leading: React.ReactNod
     }
   }, [newWaypoints]);
 
+  if (newWaypoints.length === 0) return null;
   return (
-    <div className="popup-footer">
-      {newWaypoints.length > 0 && (
-        <NewWaypointsBanner
-          waypoints={newWaypoints}
-          onAdd={() => {
-            debugLog('banner: Add clicked', { ids: newWaypoints.map(w => w.id) });
-            void adoptWaypoints(newWaypoints.map(w => w.id));
-          }}
-          onReview={() => {
-            debugLog('banner: review clicked', { ids: newWaypoints.map(w => w.id) });
-            void openOptionsPage('waypoints');
-          }}
-          onDismiss={() => {
-            debugLog('banner: dismissed', { ids: newWaypoints.map(w => w.id) });
-            void markWaypointsKnown(newWaypoints.map(w => w.id));
-          }}
-        />
-      )}
-      <div className="popup-footer-row">
-        {leading}
-        <ThemeToggle theme={prefs.theme} />
-      </div>
-    </div>
+    <NewWaypointsBanner
+      waypoints={newWaypoints}
+      onAdd={() => {
+        debugLog('banner: Add clicked', { ids: newWaypoints.map(w => w.id) });
+        void adoptWaypoints(newWaypoints.map(w => w.id));
+      }}
+      onReview={() => {
+        debugLog('banner: review clicked', { ids: newWaypoints.map(w => w.id) });
+        void openOptionsPage('waypoints');
+      }}
+      onDismiss={() => {
+        debugLog('banner: dismissed', { ids: newWaypoints.map(w => w.id) });
+        void markWaypointsKnown(newWaypoints.map(w => w.id));
+      }}
+    />
   );
 }
 
@@ -904,16 +915,11 @@ function NewWaypointsBanner({
   return (
     <div className="popup-update-banner" role="status">
       <span className="popup-update-banner-icon" aria-hidden="true">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M12 2v4" />
-          <path d="M12 18v4" />
-          <path d="m4.93 4.93 2.83 2.83" />
-          <path d="m16.24 16.24 2.83 2.83" />
-          <path d="M2 12h4" />
-          <path d="M18 12h4" />
-          <path d="m4.93 19.07 2.83-2.83" />
-          <path d="m16.24 7.76 2.83-2.83" />
-        </svg>
+        {waypoints.slice(0, 2).map(w => (
+          <span key={w.id} className="popup-update-banner-mark">
+            <WaypointIcon id={w.id} name={w.name} />
+          </span>
+        ))}
       </span>
       <button
         type="button"
@@ -937,15 +943,12 @@ function NewWaypointsBanner({
       </button>
       <button
         type="button"
-        className="popup-update-banner-dismiss"
+        className="popup-icon-btn popup-update-banner-dismiss"
         onClick={onDismiss}
         aria-label="Dismiss new waypoints notification"
         title="Dismiss"
       >
-        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true">
-          <line x1="6" y1="6" x2="18" y2="18" />
-          <line x1="18" y1="6" x2="6" y2="18" />
-        </svg>
+        <X size={14} aria-hidden />
       </button>
     </div>
   );
@@ -956,30 +959,13 @@ function ThemeToggle({ theme }: { theme: Prefs['theme'] }) {
   return (
     <button
       type="button"
-      className="popup-theme-toggle"
+      className="popup-icon-btn popup-theme-toggle"
       onClick={() => void savePrefs({ theme: isDark ? 'light' : 'dark' })}
       title={isDark ? 'Switch to light theme' : 'Switch to dark theme'}
       aria-label={isDark ? 'Switch to light theme' : 'Switch to dark theme'}
     >
-      {isDark ? (
-        // Sun – we're in dark mode, click to go light.
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-          <circle cx="12" cy="12" r="4" />
-          <path d="M12 2v2" />
-          <path d="M12 20v2" />
-          <path d="m4.93 4.93 1.41 1.41" />
-          <path d="m17.66 17.66 1.41 1.41" />
-          <path d="M2 12h2" />
-          <path d="M20 12h2" />
-          <path d="m6.34 17.66-1.41 1.41" />
-          <path d="m19.07 4.93-1.41 1.41" />
-        </svg>
-      ) : (
-        // Moon – we're in light mode, click to go dark.
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
-        </svg>
-      )}
+      {/* Sun in dark mode (click to go light), moon in light mode. */}
+      {isDark ? <Sun size={16} aria-hidden /> : <Moon size={16} aria-hidden />}
     </button>
   );
 }
@@ -996,24 +982,13 @@ function CopyUriButton({ uri }: { uri: string }) {
   return (
     <button
       type="button"
-      className={`popup-uri ${copied ? 'is-copied' : ''}`}
+      className={`popup-page-btn popup-uri ${copied ? 'is-copied' : ''}`}
       onClick={handleCopy}
-      title={copied ? 'Copied!' : 'Click to copy'}
+      title={copied ? 'Copied!' : `Click to copy\n${uri}`}
       aria-label={copied ? 'Copied to clipboard' : 'Copy Atmosphere URI to clipboard'}
     >
-      <span className="popup-uri-icon" aria-hidden="true">
-        {copied ? (
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-            <polyline points="20 6 9 17 4 12" />
-          </svg>
-        ) : (
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <rect x="9" y="9" width="13" height="13" rx="0" />
-            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
-          </svg>
-        )}
-      </span>
-      <span className="popup-uri-text">{copied ? 'Copied!' : uri}</span>
+      {copied ? <Check size={13} aria-hidden /> : <Copy size={13} aria-hidden />}
+      <span>{copied ? 'Copied!' : 'Copy at:// URI'}</span>
     </button>
   );
 }
@@ -1044,6 +1019,9 @@ function WaypointButton({
   onCopy: (w: WaypointData) => void;
 }) {
   const isAbsent = activity === 'absent';
+  const desc = isAbsent
+    ? 'No records found on this repo'
+    : describeWaypoint(waypoint, collection, type);
   return (
     <div className={`popup-waypoint ${isAbsent ? 'is-absent' : ''}`}>
       <button
@@ -1054,18 +1032,12 @@ function WaypointButton({
         title={
           isAbsent
             ? `No records under ${(waypoint.expectedCollections ?? []).join(' / ')} on this repo`
-            : undefined
+            : desc
         }
       >
         <WaypointIcon id={waypoint.id} name={waypoint.name} />
-        <div className="popup-waypoint-text">
-          <div className="popup-waypoint-name">{waypoint.name}</div>
-          <div className="popup-waypoint-desc">
-            {isAbsent
-              ? 'No records found on this repo'
-              : describeWaypoint(waypoint, collection, type)}
-          </div>
-        </div>
+        <span className="popup-waypoint-name">{waypoint.name}</span>
+        <span className="popup-waypoint-desc">{desc}</span>
       </button>
       <CopyWaypointButton
         copied={copied}
@@ -1076,11 +1048,14 @@ function WaypointButton({
   );
 }
 
-function SettingsGearIcon() {
+/** Sliders glyph for the settings button. */
+function SettingsIcon() {
   return (
-    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <circle cx="12" cy="12" r="3" />
-      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M20 7h-9" />
+      <path d="M14 17H5" />
+      <circle cx="17" cy="17" r="3" />
+      <circle cx="7" cy="7" r="3" />
     </svg>
   );
 }
@@ -1097,22 +1072,13 @@ function HeaderCopyLinkButton({ url }: { url: string }) {
   return (
     <button
       type="button"
-      className={`popup-header-copy ${copied ? 'is-copied' : ''}`}
+      className={`popup-page-btn popup-header-copy ${copied ? 'is-copied' : ''}`}
       onClick={handleCopy}
       title={copied ? 'Copied!' : `Copy aturi.to link\n${url}`}
       aria-label={copied ? 'Copied aturi.to link to clipboard' : 'Copy aturi.to universal link'}
     >
-      {copied ? (
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-          <polyline points="20 6 9 17 4 12" />
-        </svg>
-      ) : (
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-          <rect x="9" y="9" width="13" height="13" rx="0" />
-          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
-        </svg>
-      )}
-      <span>{copied ? 'Copied!' : 'Copy universal link'}</span>
+      {copied ? <Check size={13} aria-hidden /> : <Link2 size={13} aria-hidden />}
+      <span>{copied ? 'Copied!' : 'Copy aturi.to link'}</span>
     </button>
   );
 }
@@ -1134,16 +1100,7 @@ function CopyWaypointButton({
       title={copied ? 'Copied!' : 'Copy link'}
       aria-label={copied ? 'Copied to clipboard' : label}
     >
-      {copied ? (
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-          <polyline points="20 6 9 17 4 12" />
-        </svg>
-      ) : (
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-          <rect x="9" y="9" width="13" height="13" rx="0" />
-          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
-        </svg>
-      )}
+      {copied ? <Check size={14} aria-hidden /> : <Link2 size={14} aria-hidden />}
     </button>
   );
 }

@@ -107,60 +107,22 @@ export default function SpaceDialog({
         if (e.target === ref.current && !busy) onClose();
       }}
     >
-      <div
-        style={{
-          width: '100%',
-          maxWidth: '30rem',
-          ...(hasPopover ? {} : { maxHeight: '85vh', overflowY: 'auto' as const }),
-          background: 'var(--modal-bg)',
-          border: '1px solid var(--border-medium)',
-          boxShadow: 'var(--modal-shadow)',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '1rem',
-          padding: '1.25rem',
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem' }}>
-          <h2
-            id={titleId}
-            style={{
-              margin: 0,
-              flex: 1,
-              minWidth: 0,
-              fontFamily: 'var(--font-serif)',
-              fontWeight: 400,
-              fontSize: '1.05rem',
-              color: 'var(--text-primary)',
-            }}
-          >
-            {title}
-          </h2>
+      <div className="fx-sp-dialog-panel" data-scroll={hasPopover ? undefined : ''}>
+        <div className="fx-sp-dialog-head">
+          <h2 id={titleId}>{title}</h2>
           <button
             type="button"
             onClick={onClose}
             disabled={busy}
             aria-label="Close"
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              width: 24,
-              height: 24,
-              flexShrink: 0,
-              background: 'var(--bg-tertiary)',
-              border: '1px solid var(--border-subtle)',
-              color: 'var(--text-secondary)',
-              cursor: busy ? 'not-allowed' : 'pointer',
-              opacity: busy ? 0.5 : 1,
-            }}
+            className="fx-btn fx-btn-icon"
           >
             <X size={14} />
           </button>
         </div>
 
         {description && (
-          <p id={descriptionId} style={dialogNoteStyle}>
+          <p id={descriptionId} className="fx-sp-dialog-note">
             {description}
           </p>
         )}
@@ -169,29 +131,12 @@ export default function SpaceDialog({
           {children}
 
           {error && (
-            <p
-              role="alert"
-              style={{
-                margin: 0,
-                color: 'var(--danger)',
-                fontSize: '0.8rem',
-                lineHeight: 1.5,
-              }}
-            >
+            <p role="alert" className="fx-sp-dialog-error">
               {error}
             </p>
           )}
 
-          <div
-            style={{
-              display: 'flex',
-              flexWrap: 'wrap',
-              justifyContent: 'flex-end',
-              gap: '0.5rem',
-            }}
-          >
-            {footer}
-          </div>
+          <div className="fx-sp-dialog-foot">{footer}</div>
         </Body>
       </div>
 
@@ -221,15 +166,10 @@ export default function SpaceDialog({
  * change shape depending on whether Enter submits it.
  */
 function Body({ onSubmit, children }: { onSubmit?: () => void; children: ReactNode }) {
-  const layout: React.CSSProperties = {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '1rem',
-  };
-  if (!onSubmit) return <div style={layout}>{children}</div>;
+  if (!onSubmit) return <div className="fx-sp-dialog-body">{children}</div>;
   return (
     <form
-      style={layout}
+      className="fx-sp-dialog-body"
       onSubmit={(e) => {
         // A `<form>` in a `<dialog>` without `method="dialog"` would otherwise
         // navigate.
@@ -262,29 +202,17 @@ export function DialogField({
   hintId?: string;
 }) {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
-      <label
-        htmlFor={htmlFor}
-        style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}
-      >
-        {label}
-      </label>
+    <div className="fx-sp-dialog-field">
+      <label htmlFor={htmlFor}>{label}</label>
       {children}
       {hint && (
-        <p id={hintId} style={dialogNoteStyle}>
+        <p id={hintId} className="fx-sp-dialog-note">
           {hint}
         </p>
       )}
     </div>
   );
 }
-
-export const dialogNoteStyle: React.CSSProperties = {
-  margin: 0,
-  fontSize: '0.75rem',
-  lineHeight: 1.5,
-  color: 'var(--text-tertiary)',
-};
 
 /** The affirmative action. `tone` swaps it for the destructive palette. */
 export function DialogButton({
@@ -302,43 +230,19 @@ export function DialogButton({
   tone?: 'accent' | 'danger' | 'quiet';
   type?: 'button' | 'submit';
 }) {
-  const palette =
-    tone === 'danger'
-      ? {
-          background: 'var(--danger-soft)',
-          color: 'var(--danger)',
-          borderColor: 'var(--danger-border)',
-        }
-      : tone === 'quiet'
-        ? {
-            background: 'var(--bg-tertiary)',
-            color: 'var(--text-secondary)',
-            borderColor: 'var(--border-subtle)',
-          }
-        : {
-            background: 'var(--accent-moss)',
-            color: 'var(--text-on-accent)',
-            borderColor: 'var(--accent-moss)',
-          };
+  const tones = {
+    accent: 'fx-btn fx-sp-primary',
+    danger: 'fx-btn fx-btn-danger-solid',
+    quiet: 'fx-btn',
+  } as const;
 
   return (
     <button
       type={type}
       onClick={onClick}
       disabled={disabled}
-      style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: '0.4rem',
-        padding: '0.45rem 0.9rem',
-        background: palette.background,
-        color: palette.color,
-        border: `1px solid ${palette.borderColor}`,
-        fontFamily: 'var(--font-serif)',
-        fontSize: '0.8125rem',
-        cursor: disabled ? 'not-allowed' : busy ? 'wait' : 'pointer',
-        opacity: disabled ? 0.5 : 1,
-      }}
+      data-wait={busy || undefined}
+      className={tones[tone]}
     >
       {children}
     </button>

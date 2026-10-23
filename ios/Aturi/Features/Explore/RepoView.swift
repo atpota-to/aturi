@@ -256,7 +256,7 @@ private struct RepoScreen: View {
             } label: {
                 HStack(spacing: 6) {
                     Image(systemName: isGlanceCollapsed ? "chevron.right" : "chevron.down")
-                        .font(.caption)
+                        .font(AturiFont.caption)
                         .foregroundStyle(theme.textTertiary)
                     Text("Repo at a glance")
                         .font(AturiFont.subtitle)
@@ -309,7 +309,7 @@ private struct RepoStatusBanner: View {
     @Environment(\.aturiTheme) private var theme
 
     var body: some View {
-        let shape = RoundedRectangle(cornerRadius: 12, style: .continuous)
+        let shape = RoundedRectangle(cornerRadius: AturiTheme.cardRadius, style: .continuous)
         HStack(alignment: .top, spacing: 12) {
             Image(systemName: "circle.slash")
                 .foregroundStyle(theme.danger)
@@ -317,13 +317,13 @@ private struct RepoStatusBanner: View {
                 .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 10) {
                 Text(notice.headline)
-                    .font(.body.weight(.medium))
+                    .font(AturiFont.sans(.body, weight: .medium))
                     .foregroundStyle(theme.textPrimary)
                 Text(notice.detail)
-                    .font(.footnote)
+                    .font(AturiFont.footnote)
                     .foregroundStyle(theme.textSecondary)
                 Text(RepoStatusNotice.reassurance)
-                    .font(.footnote)
+                    .font(AturiFont.footnote)
                     .foregroundStyle(theme.textSecondary)
                 if let facts {
                     LazyVGrid(columns: [GridItem(.adaptive(minimum: 140), spacing: 12, alignment: .topLeading)], alignment: .leading, spacing: 10) {
@@ -354,7 +354,7 @@ private struct RepoStatusBanner: View {
                 .lineLimit(2)
                 .truncationMode(.middle)
             Text(note)
-                .font(.caption2)
+                .font(AturiFont.caption2)
                 .foregroundStyle(theme.textTertiary)
         }
     }
@@ -378,6 +378,7 @@ private struct RepoProfileCard: View {
                         if let name = header.displayName {
                             Text(name)
                                 .font(AturiFont.title)
+                                .tracking(AturiFont.titleTracking)
                                 .foregroundStyle(theme.textPrimary)
                         }
                         if let pronouns = header.pronouns {
@@ -391,7 +392,7 @@ private struct RepoProfileCard: View {
             }
             if let description = header.description {
                 Text(description)
-                    .font(.footnote)
+                    .font(AturiFont.footnote)
                     .foregroundStyle(theme.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -411,7 +412,7 @@ private struct RepoProfileCard: View {
             Divider()
             Button(action: onUniversalLink) {
                 Label("View the universal link page", systemImage: "globe")
-                    .font(.footnote)
+                    .font(AturiFont.footnote)
                     .foregroundStyle(theme.textAccent)
             }
             .buttonStyle(.plain)
@@ -436,7 +437,7 @@ private struct RepoProfileCard: View {
                             .font(AturiFont.monoSmall)
                             .foregroundStyle(theme.textAccent)
                         Image(systemName: "arrow.up.right")
-                            .font(.caption2)
+                            .font(AturiFont.caption2)
                             .foregroundStyle(theme.textTertiary)
                     }
                 }
@@ -454,14 +455,14 @@ private struct RepoProfileCard: View {
     private func stat(_ systemImage: String, _ value: Int, _ label: String) -> some View {
         HStack(spacing: 4) {
             Image(systemName: systemImage)
-                .font(.caption)
+                .font(AturiFont.caption)
                 .foregroundStyle(theme.textTertiary)
             Text(value.formatted())
-                .font(.footnote)
+                .font(AturiFont.footnote)
                 .monospacedDigit()
                 .foregroundStyle(theme.textPrimary)
             Text(label)
-                .font(.footnote)
+                .font(AturiFont.footnote)
                 .foregroundStyle(theme.textTertiary)
         }
         .accessibilityElement(children: .combine)
@@ -486,7 +487,7 @@ private struct RepoIdentityRow: View {
                         .aturiLabel()
                         .foregroundStyle(theme.textTertiary)
                     Text("unknown")
-                        .font(.footnote)
+                        .font(AturiFont.footnote)
                         .foregroundStyle(theme.textTertiary)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -500,14 +501,14 @@ private struct RepoIdentityRow: View {
             NavigationLink(value: Route.pds(host: host)) {
                 HStack(spacing: 8) {
                     Image(systemName: "server.rack")
-                        .font(.footnote)
+                        .font(AturiFont.footnote)
                         .foregroundStyle(theme.textTertiary)
                     Text("Browse \(host)")
-                        .font(.footnote)
+                        .font(AturiFont.footnote)
                         .foregroundStyle(theme.textAccent)
                     Spacer(minLength: 0)
                     Image(systemName: "chevron.right")
-                        .font(.caption2)
+                        .font(AturiFont.caption2)
                         .foregroundStyle(theme.textTertiary)
                 }
                 .padding(.vertical, 10)
@@ -677,7 +678,7 @@ private struct RepoStatTile: View {
                 .lineLimit(1)
             if let value {
                 Text(value)
-                    .font(.system(.title3, design: .serif))
+                    .font(AturiFont.sans(.title3, weight: .medium))
                     .monospacedDigit()
                     .foregroundStyle(theme.textPrimary)
                     .lineLimit(1)
@@ -727,7 +728,7 @@ private struct RepoCollectionsTab: View {
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .padding(.top, 6)
                     }
-                    .font(.footnote)
+                    .font(AturiFont.footnote)
                     .foregroundStyle(theme.textTertiary)
                 } else {
                     ErrorPanel(message: message) {
@@ -763,10 +764,10 @@ private struct RepoCollectionsTab: View {
                         model.toggleAllOpen()
                     } label: {
                         Image(systemName: model.anyOpen ? "rectangle.compress.vertical" : "rectangle.expand.vertical")
-                            .font(.footnote)
+                            .font(AturiFont.footnote)
                             .foregroundStyle(theme.textSecondary)
                             .frame(width: 36, height: 36)
-                            .background(theme.bgTertiary, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+                            .background(theme.bgTertiary, in: RoundedRectangle(cornerRadius: AturiTheme.controlRadius, style: .continuous))
                     }
                     .buttonStyle(.plain)
                     .accessibilityLabel(model.anyOpen ? "Collapse all groups" : "Expand all groups")
@@ -798,7 +799,7 @@ private struct RepoCollectionsTab: View {
                     .foregroundStyle(theme.textAccent)
                 Spacer(minLength: 0)
                 Text("\(partition.count)")
-                    .font(.caption2)
+                    .font(AturiFont.caption2)
                     .foregroundStyle(theme.textTertiary)
             }
             .padding(.horizontal, 12)
@@ -833,7 +834,7 @@ private struct RepoCollectionsTab: View {
             }
         }
         .cardBackground()
-        .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).strokeBorder(theme.textAccent, lineWidth: 1))
+        .overlay(RoundedRectangle(cornerRadius: AturiTheme.cardRadius, style: .continuous).strokeBorder(theme.textAccent, lineWidth: 1))
     }
 
     private func groupCard(_ group: CollectionGrouping.MajorGroup) -> some View {
@@ -890,7 +891,7 @@ private struct RepoCollectionsTab: View {
             Button(action: toggle) {
                 HStack(spacing: 8) {
                     Image(systemName: open ? "chevron.down" : "chevron.right")
-                        .font(.caption)
+                        .font(AturiFont.caption)
                         .foregroundStyle(theme.textTertiary)
                         .frame(width: 12)
                     dimmedText(prefix, dim: dim ?? "", tail: ".*")
@@ -958,7 +959,7 @@ private struct RepoCollectionsTab: View {
     private func pinButton(pinned: Bool, name: String, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Image(systemName: pinned ? "pin.slash" : "pin")
-                .font(.footnote)
+                .font(AturiFont.footnote)
                 .foregroundStyle(pinned ? theme.textAccent : theme.textTertiary)
                 .frame(width: 40, height: 36)
                 .contentShape(Rectangle())

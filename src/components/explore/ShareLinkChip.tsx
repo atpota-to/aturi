@@ -10,6 +10,8 @@ type Props = {
   label?: string;
   /** Visual hint string for the tooltip / aria-label. Defaults to the resolved URL. */
   title?: string;
+  /** A 36px square icon button (the account card's copy-link) instead of a chip. */
+  iconOnly?: boolean;
 };
 
 const PRODUCTION_ORIGIN = 'https://aturi.to';
@@ -38,7 +40,7 @@ async function writeToClipboard(text: string): Promise<void> {
  * Compact "copy this page's link" button used throughout the explorer.
  * Accepts a path (gets prefixed with aturi.to) or a full URL.
  */
-export default function ShareLinkChip({ url, label = 'Copy link', title }: Props) {
+export default function ShareLinkChip({ url, label = 'Copy link', title, iconOnly }: Props) {
   const [copied, setCopied] = useState(false);
 
   const resolvedUrl = url.startsWith('http')
@@ -57,33 +59,12 @@ export default function ShareLinkChip({ url, label = 'Copy link', title }: Props
       onClick={onClick}
       title={title || (copied ? 'Copied!' : resolvedUrl)}
       aria-label={copied ? `${label} copied` : label}
-      style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: '0.35rem',
-        padding: '0.3rem 0.625rem',
-        background: copied ? 'var(--bg-tertiary)' : 'transparent',
-        border: '1px solid var(--border-subtle)',
-        color: copied ? 'var(--text-accent)' : 'var(--text-tertiary)',
-        fontFamily: 'var(--font-serif)',
-        fontSize: '0.75rem',
-        lineHeight: 1,
-        cursor: 'pointer',
-        transition: 'color 0.2s ease, border-color 0.2s ease, background 0.2s ease',
-      }}
-      onMouseEnter={(e) => {
-        if (copied) return;
-        e.currentTarget.style.color = 'var(--text-primary)';
-        e.currentTarget.style.borderColor = 'var(--border-medium)';
-      }}
-      onMouseLeave={(e) => {
-        if (copied) return;
-        e.currentTarget.style.color = 'var(--text-tertiary)';
-        e.currentTarget.style.borderColor = 'var(--border-subtle)';
-      }}
+      className={iconOnly ? 'fx-btn fx-btn-icon' : 'fx-copy'}
+      data-copied={copied || undefined}
+      data-active={iconOnly && copied ? true : undefined}
     >
-      {copied ? <Check size={11} /> : <Link2 size={11} />}
-      <span>{copied ? 'Copied' : label}</span>
+      {copied ? <Check size={iconOnly ? 15 : 12} aria-hidden /> : <Link2 size={iconOnly ? 15 : 12} aria-hidden />}
+      {!iconOnly && <span>{copied ? 'Copied' : label}</span>}
     </button>
   );
 }

@@ -72,7 +72,7 @@ export default function ThemeToggle({ variant = 'inline' }: ThemeToggleProps) {
         style={{ font: 'inherit', textAlign: 'left', width: '100%' }}
       >
         {theme === 'dark' ? <Moon size={16} /> : <Sun size={16} />}
-        <span>theme</span>
+        <span>Theme</span>
       </button>
     );
   }
@@ -84,12 +84,9 @@ export default function ThemeToggle({ variant = 'inline' }: ThemeToggleProps) {
       onClick={() => pick(next)}
       aria-label={`Switch to ${next} mode`}
       title={`Switch to ${next} mode`}
-      className="nav-link"
-      style={{
-        padding: '0.5rem',
-      }}
+      className="nav-link fn-theme-btn"
     >
-      {theme === 'dark' ? <Sun size={14} /> : <Moon size={14} />}
+      {theme === 'dark' ? <Sun size={17} /> : <Moon size={17} />}
     </button>
   );
 }

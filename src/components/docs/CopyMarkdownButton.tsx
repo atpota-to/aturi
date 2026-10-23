@@ -47,29 +47,8 @@ export default function CopyMarkdownButton({ markdown }: Props) {
       onClick={onClick}
       title={copied ? 'Copied!' : 'Copy these docs as Markdown'}
       aria-label={copied ? 'Docs copied as Markdown' : 'Copy docs as Markdown'}
-      style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: '0.45rem',
-        padding: '0.45rem 0.85rem',
-        background: 'var(--bg-tertiary)',
-        border: '1px solid var(--border-subtle)',
-        color: copied ? 'var(--text-accent)' : 'var(--text-secondary)',
-        fontFamily: 'var(--font-mono)',
-        fontSize: '0.8125rem',
-        cursor: 'pointer',
-        transition: 'color 0.2s ease, border-color 0.2s ease',
-      }}
-      onMouseEnter={(e) => {
-        e.currentTarget.style.color = 'var(--text-primary)';
-        e.currentTarget.style.borderColor = 'var(--border-medium)';
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.color = copied
-          ? 'var(--text-accent)'
-          : 'var(--text-secondary)';
-        e.currentTarget.style.borderColor = 'var(--border-subtle)';
-      }}
+      className="fn-c-btn"
+      data-done={copied ? '' : undefined}
     >
       {copied ? <Check size={14} /> : <Copy size={14} />}
       <span>{copied ? 'Copied' : 'Copy as Markdown'}</span>

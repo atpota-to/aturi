@@ -48,9 +48,10 @@ struct AboutView: View {
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Aturi")
                         .font(AturiFont.display)
+                        .tracking(AturiFont.displayTracking)
                         .foregroundStyle(theme.textPrimary)
                     Text("A toolkit for exploring the atproto atmosphere: deep-link any record, browse repos, jump across apps with waypoints.")
-                        .font(.body)
+                        .font(AturiFont.body)
                         .foregroundStyle(theme.textSecondary)
                         .fixedSize(horizontal: false, vertical: true)
                 }
@@ -70,7 +71,7 @@ struct AboutView: View {
                 footer: "The iOS app, the web app and the extension share one codebase and one licence."
             ) {
                 Text("Aturi is free software, released under the GNU General Public License, version 3 or later. You may study, change and redistribute it under the same terms.")
-                    .font(.footnote)
+                    .font(AturiFont.footnote)
                     .foregroundStyle(theme.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
                     .padding(.vertical, 2)
@@ -79,7 +80,7 @@ struct AboutView: View {
             SettingsSection("Privacy") {
                 ForEach(Array(Self.privacyParagraphs.enumerated()), id: \.offset) { _, paragraph in
                     Text(paragraph)
-                        .font(.footnote)
+                        .font(AturiFont.footnote)
                         .foregroundStyle(theme.textSecondary)
                         .fixedSize(horizontal: false, vertical: true)
                         .padding(.vertical, 2)
