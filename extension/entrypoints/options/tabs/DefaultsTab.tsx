@@ -293,7 +293,7 @@ export default function DefaultsTab({ prefs, onChange }: Props) {
                 className="aturi-btn defaults-clear-recents"
                 onClick={handleClearRecents}
               >
-                Clear Recents ({prefs.recents.length})
+                Clear recents ({prefs.recents.length})
               </button>
             ) : null
           }

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ExternalLink } from 'lucide-react';
 import { loadPrefs, onPrefsChanged, savePrefs, type Prefs } from '../../lib/prefs';
 import { applyAppearance } from '../../lib/appearance';
@@ -79,6 +79,33 @@ export default function App() {
     if (prefs) applyAppearance(prefs);
   }, [prefs?.theme, prefs?.fontSize]);
 
+  // At narrow widths the tabs are one row that scrolls sideways, and a tab
+  // opened from a link (#dev from the popup, say) can start out past the
+  // edge. Bring the open one into the row, horizontally only, as the site's
+  // settings page does. The row's 16px end padding is also where the edge
+  // fade sits, so a tab counts as in view only inside that inset. On wider
+  // screens the nav is a column that never overflows, so this does nothing.
+  const navRef = useRef<HTMLElement>(null);
+  const loaded = prefs !== null;
+  useEffect(() => {
+    const nav = navRef.current;
+    const el = nav?.querySelector<HTMLElement>('[aria-selected="true"]');
+    if (!nav || !el) return;
+    const inset = 16;
+    const n = nav.getBoundingClientRect();
+    const r = el.getBoundingClientRect();
+    const delta =
+      r.left < n.left + inset
+        ? r.left - n.left - inset
+        : r.right > n.right - inset
+          ? r.right - n.right + inset
+          : 0;
+    if (delta) {
+      const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+      nav.scrollBy({ left: delta, behavior: reduceMotion ? 'auto' : 'smooth' });
+    }
+  }, [tab, loaded]);
+
   async function update(partial: Partial<Prefs>) {
     const next = await savePrefs(partial);
     setPrefs(next);
@@ -119,7 +146,7 @@ export default function App() {
       </header>
 
       <div className="options-layout">
-        <nav className="options-nav" role="tablist" aria-label="Settings sections">
+        <nav ref={navRef} className="options-nav" role="tablist" aria-label="Settings sections">
           {TABS.map(t => (
             <button
               key={t.id}

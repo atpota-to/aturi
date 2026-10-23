@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Activity,
+  Braces,
   Check,
   Clock,
   Compass,
@@ -55,13 +56,13 @@ export default function InspectView({ prefs, scan }: Props) {
   const { hits, scanning, error: scanError, rescan } = scan;
   return (
     <div className="popup-root inspect-root">
-      <div className="inspect-head">
-        <h2 className="popup-section-label">
-          {hits.length > 0
-            ? `${hits.length} AT URI${hits.length === 1 ? '' : 's'} on this page`
-            : 'Detected AT URIs on this page'}
-        </h2>
-        {hits.length > 0 && (
+      {/* The count heading only makes sense once there is something to
+          count; the empty state carries its own heading. */}
+      {hits.length > 0 && (
+        <div className="inspect-head">
+          <h2 className="popup-section-label">
+            {hits.length} {plural(hits.length, 'AT URI', 'AT URIs')} on this page
+          </h2>
           <button
             type="button"
             className="inspect-rescan"
@@ -71,8 +72,8 @@ export default function InspectView({ prefs, scan }: Props) {
             <RefreshCw size={13} aria-hidden />
             {scanning ? 'Scanning…' : 'Scan again'}
           </button>
-        )}
-      </div>
+        </div>
+      )}
 
       {scanning && hits.length === 0 && (
         <div className="popup-empty">
@@ -143,7 +144,9 @@ function InspectEmptyState({
       <span className="popup-notice-icon" aria-hidden="true">
         <Telescope size={21} />
       </span>
-      <div className="inspect-empty-message">No AT URIs detected on this page.</div>
+      {/* Same heading treatment as the Waypoints view's "No Atmosphere data
+          on this page". */}
+      <h1 className="popup-notice-title">No AT URIs detected on this page</h1>
 
       <a
         href={`${ATURI_BASE}/explore`}
@@ -435,43 +438,54 @@ function InspectCard({ hit }: { hit: DetectedAtUri }) {
         </details>
       )}
 
-      {/* Footer: CID, secondary PDS links and the Explorer link. */}
+      {/* Footer: the CID and the two PDS links share a row, and the
+          Explorer link runs full width beneath them. Every link leads with
+          an icon. The labels say where each one goes: the PDS's own page in
+          the Aturi Explorer, and this record's JSON served by the PDS. */}
       <div className="inspect-footer">
-        {record?.cid && (
-          <CopyChip
-            label={`cid ${shortCid(record.cid)}`}
-            icon={<Hash size={11} />}
-            value={record.cid}
-            variant="ghost"
-          />
-        )}
-        {pdsExplorerUrl && (
-          <a
-            href={pdsExplorerUrl}
-            target="_blank"
-            rel="noreferrer"
-            className="inspect-footer-link"
-            title={`Inspect ${effectivePdsHost} on aturi.to`}
-            onClick={() => {
-              window.setTimeout(() => window.close(), 50);
-            }}
-          >
-            <Server size={11} aria-hidden /> Open PDS
-          </a>
-        )}
-        {pdsRecordUrl && (
-          <a
-            href={pdsRecordUrl}
-            target="_blank"
-            rel="noreferrer"
-            className="inspect-footer-link"
-            title="Open the raw record JSON on the PDS"
-            onClick={() => {
-              window.setTimeout(() => window.close(), 50);
-            }}
-          >
-            View on PDS
-          </a>
+        {(record?.cid || pdsExplorerUrl || pdsRecordUrl) && (
+          <div className="inspect-footer-meta">
+            {record?.cid && (
+              <CopyChip
+                label={`cid ${shortCid(record.cid)}`}
+                icon={<Hash size={11} />}
+                value={record.cid}
+                variant="ghost"
+              />
+            )}
+            {(pdsExplorerUrl || pdsRecordUrl) && (
+              <div className="inspect-footer-links">
+                {pdsExplorerUrl && (
+                  <a
+                    href={pdsExplorerUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inspect-footer-link"
+                    title={`Inspect the PDS ${effectivePdsHost} in the Aturi Explorer`}
+                    onClick={() => {
+                      window.setTimeout(() => window.close(), 50);
+                    }}
+                  >
+                    <Server size={11} aria-hidden /> PDS in Explorer
+                  </a>
+                )}
+                {pdsRecordUrl && (
+                  <a
+                    href={pdsRecordUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inspect-footer-link"
+                    title="Open this record's raw JSON, straight from the PDS"
+                    onClick={() => {
+                      window.setTimeout(() => window.close(), 50);
+                    }}
+                  >
+                    <Braces size={11} aria-hidden /> Raw JSON
+                  </a>
+                )}
+              </div>
+            )}
+          </div>
         )}
         {primaryExplorerUrl && (
           <a
@@ -483,8 +497,7 @@ function InspectCard({ hit }: { hit: DetectedAtUri }) {
               window.setTimeout(() => window.close(), 50);
             }}
           >
-            Open in Explorer
-            <ExternalLink size={12} aria-hidden />
+            <Compass size={13} aria-hidden /> Open in Explorer
           </a>
         )}
       </div>
@@ -555,19 +568,35 @@ function EngagementRow({
 }) {
   const items: Array<{ key: string; value: number; label: string; short?: string }> = [];
   if (engagement?.replies != null)
-    items.push({ key: 'replies', value: engagement.replies, label: 'replies' });
+    items.push({
+      key: 'replies',
+      value: engagement.replies,
+      label: plural(engagement.replies, 'reply', 'replies'),
+    });
   if (engagement?.reposts != null)
-    items.push({ key: 'reposts', value: engagement.reposts, label: 'reposts' });
+    items.push({
+      key: 'reposts',
+      value: engagement.reposts,
+      label: plural(engagement.reposts, 'repost', 'reposts'),
+    });
   if (engagement?.likes != null)
-    items.push({ key: 'likes', value: engagement.likes, label: 'likes' });
+    items.push({
+      key: 'likes',
+      value: engagement.likes,
+      label: plural(engagement.likes, 'like', 'likes'),
+    });
   if (engagement?.quotes != null)
-    items.push({ key: 'quotes', value: engagement.quotes, label: 'quotes' });
+    items.push({
+      key: 'quotes',
+      value: engagement.quotes,
+      label: plural(engagement.quotes, 'quote', 'quotes'),
+    });
   if (backlinkCount != null && backlinkCount > 0)
     items.push({
       key: 'inbound',
       value: backlinkCount,
-      label: 'inbound links across the Atmosphere',
-      short: 'links in',
+      label: `${plural(backlinkCount, 'inbound link', 'inbound links')} across the Atmosphere`,
+      short: plural(backlinkCount, 'link in', 'links in'),
     });
   if (items.length === 0) return null;
   return (
@@ -628,6 +657,11 @@ function CopyChip({
       {copied ? 'Copied' : label}
     </button>
   );
+}
+
+/** Singular for a count of exactly 1, plural otherwise (0 likes, 1 like). */
+function plural(count: number, one: string, many: string): string {
+  return count === 1 ? one : many;
 }
 
 function shortCid(cid: string): string {

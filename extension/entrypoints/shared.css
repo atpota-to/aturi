@@ -363,11 +363,14 @@ a:hover {
   transform: translateX(calc(var(--switch-w) - var(--switch-thumb) - 4px));
 }
 
+/* Text fields and selects share one size with the settings page's other
+   controls (SearchSelect trigger, picker search): 36px tall, --fs-md, and
+   regular weight, since what sits inside is a value rather than a label. */
 .aturi-input,
 .aturi-select {
   display: block;
   width: 100%;
-  min-height: 38px;
+  min-height: 36px;
   padding: 7px 12px;
   background: var(--bg-secondary);
   color: var(--text-primary);
@@ -375,6 +378,7 @@ a:hover {
   border-radius: var(--radius-control);
   font-family: var(--font-sans);
   font-size: var(--fs-md);
+  font-weight: 400;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
@@ -435,8 +439,10 @@ a:hover {
   margin: 16px 0;
 }
 
+/* Placeholders are words someone has to read, so they take the tertiary
+   text colour; --text-faint is for rules and decoration. */
 ::placeholder {
-  color: var(--text-faint);
+  color: var(--text-tertiary);
   opacity: 1;
 }
 

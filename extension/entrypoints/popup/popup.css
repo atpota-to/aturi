@@ -158,11 +158,6 @@ body {
   color: var(--text-primary);
 }
 
-.popup-theme-toggle {
-  width: 28px;
-  color: var(--text-tertiary);
-}
-
 /* ---------- Sections and rows ---------- */
 
 .popup-section {
@@ -184,7 +179,7 @@ body {
   flex-direction: column;
   background: var(--bg-secondary);
   border: 1px solid var(--border-medium);
-  border-radius: 10px;
+  border-radius: var(--radius-card);
   overflow: hidden;
 }
 
@@ -226,11 +221,20 @@ body {
   opacity: 0.6;
 }
 
-.popup-waypoint.is-absent .popup-waypoint-main {
-  opacity: 0.5;
+/* A waypoint with no records on this repo stays readable: only its mark
+   fades to grey, and the words step down one text tone each rather than
+   the whole row going translucent, which took the name under 4.5:1. */
+.popup-waypoint.is-absent .popup-waypoint-icon {
+  opacity: 0.45;
+  filter: grayscale(1);
+}
+
+.popup-waypoint.is-absent .popup-waypoint-name {
+  color: var(--text-secondary);
 }
 
 .popup-waypoint.is-absent .popup-waypoint-desc {
+  color: var(--text-tertiary);
   font-style: italic;
 }
 
@@ -292,8 +296,8 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 6px;
-  color: var(--text-faint);
+  border-radius: var(--radius-control);
+  color: var(--text-tertiary);
   transition: background 0.12s ease, color 0.12s ease;
 }
 
@@ -333,7 +337,7 @@ body {
   padding: 12px;
   background: var(--bg-secondary);
   border: 1px solid var(--border-medium);
-  border-radius: 10px;
+  border-radius: var(--radius-card);
 }
 
 .popup-page-head {
@@ -397,7 +401,7 @@ body {
   justify-content: center;
   gap: 6px;
   padding: 0 8px;
-  border-radius: 7px;
+  border-radius: var(--radius-control);
   border: 1px solid var(--border-strong);
   background: var(--bg-secondary);
   color: var(--text-primary);
@@ -430,7 +434,7 @@ body {
   align-items: center;
   gap: 10px;
   padding: 8px 6px 8px 12px;
-  border-radius: 10px;
+  border-radius: var(--radius-card);
   background: var(--accent-soft-panel);
   border: 1px solid var(--accent-soft-border);
 }
@@ -446,7 +450,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 7px;
+  border-radius: var(--radius-control);
   background: var(--bg-secondary);
   border: 1px solid var(--accent-soft-border);
 }
@@ -472,7 +476,7 @@ body {
 .popup-update-banner-action {
   height: 28px;
   padding: 0 10px;
-  border-radius: 7px;
+  border-radius: var(--radius-control);
   background: var(--accent-moss);
   color: var(--text-on-accent);
   font-size: var(--fs-sm);
@@ -503,7 +507,7 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  border-radius: 10px;
+  border-radius: var(--radius-card);
   background: var(--bg-secondary);
   border: 1px solid var(--border-medium);
   color: var(--text-primary);
@@ -673,7 +677,7 @@ body {
 
 .popup-alert {
   padding: 10px 12px;
-  border-radius: 10px;
+  border-radius: var(--radius-card);
   background: var(--danger-soft);
   border: 1px solid var(--danger-border);
   color: var(--text-primary);
@@ -728,7 +732,7 @@ body {
 .popup-redirect-pause {
   height: 28px;
   padding: 0 8px;
-  border-radius: 6px;
+  border-radius: var(--radius-control);
   color: var(--text-accent);
   font-size: var(--fs-sm);
   font-weight: 600;
@@ -766,7 +770,7 @@ body {
 .popup-redirect.is-paused .popup-redirect-pause {
   height: 30px;
   padding: 0 12px;
-  border-radius: 7px;
+  border-radius: var(--radius-control);
   border: 1px solid var(--warn-control-border);
   background: var(--bg-secondary);
   color: var(--warn-fg);
@@ -796,7 +800,7 @@ body {
   align-items: center;
   gap: 5px;
   padding: 0 8px;
-  border-radius: 6px;
+  border-radius: var(--radius-control);
   color: var(--text-accent);
   font-size: var(--fs-sm);
   font-weight: 600;
@@ -817,7 +821,7 @@ body {
   padding: 12px;
   background: var(--bg-secondary);
   border: 1px solid var(--border-medium);
-  border-radius: 10px;
+  border-radius: var(--radius-card);
   min-width: 0;
 }
 
@@ -991,9 +995,33 @@ body {
 
 .inspect-footer {
   display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* The cid on the left and the two PDS links on the right. The links keep
+   to one line as a group; at the larger text sizes, where the row cannot
+   hold all three, the group drops under the cid instead of splitting. */
+.inspect-footer-meta {
+  display: flex;
   flex-wrap: wrap;
   align-items: center;
+  justify-content: space-between;
   gap: 4px 12px;
+}
+
+/* The ghost chip's own padding would set the cid glyph in from the card's
+   text edge. */
+.inspect-footer-meta > .inspect-chip.is-ghost {
+  margin-left: -4px;
+}
+
+.inspect-footer-links {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  white-space: nowrap;
 }
 
 .inspect-footer-link {
@@ -1004,14 +1032,41 @@ body {
   color: var(--text-secondary);
 }
 
+.inspect-footer-link svg {
+  flex: none;
+  color: var(--text-tertiary);
+}
+
+.inspect-footer-link:hover svg {
+  color: currentColor;
+}
+
+/* The way into the Explorer is the card's main action, so it gets the
+   card's bottom edge as its own full-width band rather than competing for
+   room on the cid row. The negative margins run it to the card's border;
+   its corners sit one pixel inside the card's. */
 .inspect-cta {
-  margin-left: auto;
-  display: inline-flex;
+  display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
+  min-height: 38px;
+  margin: 0 -12px -12px;
+  padding: 0 12px;
+  border-top: 1px solid var(--border-subtle);
+  border-radius: 0 0 calc(var(--radius-card) - 1px) calc(var(--radius-card) - 1px);
+  background: var(--surface-subtle);
   font-size: var(--fs-sm);
   font-weight: 600;
   color: var(--text-accent);
+  transition: background 0.12s ease;
+}
+
+.inspect-cta:hover {
+  background: var(--bg-tertiary);
+}
+
+.inspect-cta:focus-visible {
+  outline-offset: -2px;
 }
 
 .inspect-json > summary {
@@ -1051,17 +1106,15 @@ body {
   text-align: center;
 }
 
-.inspect-empty-message {
-  font-size: var(--fs-xl);
-  font-weight: 700;
-}
-
 .inspect-empty-cta {
   text-decoration: none;
 }
 
+/* Out past the empty state's side padding, so the panel spans the popup
+   like the cards in the other views do. */
 .inspect-empty-recents {
-  width: 100%;
+  width: calc(100% + 16px);
+  margin: 0 -8px;
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -1078,51 +1131,64 @@ body {
   color: var(--text-secondary);
 }
 
+/* Frequently seen repos are destinations, drawn as the site's menu tiles:
+   a white panel holding a column of tiles in the page's paper, each with a
+   hairline. A tile spans the panel, so a handle gets the whole row and
+   wraps rather than truncating; the count and the external mark stay
+   pinned to the right. */
 .inspect-empty-recents-list {
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
   gap: 6px;
+  padding: 8px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-card);
 }
 
 .inspect-empty-recent {
-  height: 28px;
-  display: inline-flex;
+  display: flex;
   align-items: center;
-  gap: 6px;
-  max-width: 100%;
-  padding: 0 10px;
-  border-radius: var(--radius-pill);
-  border: 1px solid var(--border-medium);
-  background: var(--bg-secondary);
-  color: var(--text-primary);
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-control);
+  background: var(--bg-primary);
+  color: var(--text-secondary);
   font-size: var(--fs-sm);
+  line-height: 1.4;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
 }
 
 .inspect-empty-recent:hover {
-  border-color: var(--border-strong);
+  background: var(--bg-tertiary);
+  border-color: var(--border-medium);
   color: var(--text-primary);
 }
 
 .inspect-empty-recent-label {
+  flex: 1;
+  min-width: 0;
   font-family: var(--font-mono);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
 }
 
 .inspect-empty-recent-count {
+  flex: none;
   min-width: 16px;
-  padding: 0 4px;
+  padding: 0 5px;
   border-radius: var(--radius-pill);
   background: var(--accent-soft);
   color: var(--accent-soft-fg);
   font-size: 10.5px;
   font-weight: 700;
+  line-height: 16px;
   text-align: center;
 }
 
 .inspect-empty-recent-icon {
-  color: var(--text-faint);
+  flex: none;
+  color: var(--text-tertiary);
 }
 
 .inspect-empty-rescan {
@@ -1131,7 +1197,7 @@ body {
   gap: 5px;
   height: 28px;
   padding: 0 8px;
-  border-radius: 6px;
+  border-radius: var(--radius-control);
   color: var(--text-accent);
   font-size: var(--fs-sm);
   font-weight: 600;

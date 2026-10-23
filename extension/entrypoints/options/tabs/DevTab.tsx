@@ -116,7 +116,7 @@ export default function DevTab({ prefs, onChange }: Props) {
       </p>
 
       <div className="options-card">
-        <div className="options-card-title">New-waypoints banner</div>
+        <h2 className="options-card-title">New-waypoints banner</h2>
         <div className="options-card-sub">
           The popup banner is driven by <code>knownWaypointIds</code>: anything
           in <code>WAYPOINT_ORDER</code> but missing from that list shows up as
@@ -143,7 +143,7 @@ export default function DevTab({ prefs, onChange }: Props) {
         </div>
         <div className="dev-actions">
           <select
-            className="dev-select"
+            className="aturi-select dev-select"
             value={forgetId}
             onChange={e => setForgetId(e.target.value)}
             aria-label="Waypoint to forget"
@@ -166,7 +166,7 @@ export default function DevTab({ prefs, onChange }: Props) {
       </div>
 
       <div className="options-card">
-        <div className="options-card-title">Current preferences</div>
+        <h2 className="options-card-title">Current preferences</h2>
         <div className="options-card-sub">
           Raw JSON snapshot of what <code>loadPrefs()</code> returned. Copy this
           when filing bugs.
@@ -186,10 +186,10 @@ export default function DevTab({ prefs, onChange }: Props) {
       </div>
 
       <div className="options-card">
-        <div className="options-card-title">Debug log</div>
+        <h2 className="options-card-title">Debug log</h2>
         <div className="options-card-sub">
-          In-memory ring buffer (last 200 entries) persisted to
-          <code> chrome.storage.local</code> so popup, options, and background
+          In-memory ring buffer (last 200 entries) persisted to{' '}
+          <code>chrome.storage.local</code> so popup, options, and background
           events all show up here. Refreshes live.
         </div>
         <pre className="dev-code dev-log">
@@ -218,7 +218,7 @@ export default function DevTab({ prefs, onChange }: Props) {
       </div>
 
       <div className="options-card">
-        <div className="options-card-title">Environment</div>
+        <h2 className="options-card-title">Environment</h2>
         <div className="dev-info">
           <div className="dev-info-row">
             <span className="dev-info-label">Extension</span>
