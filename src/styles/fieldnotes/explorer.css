@@ -803,6 +803,7 @@
   padding: 0 6px;
   border-radius: var(--radius-pill);
   background: var(--accent-soft);
+  box-shadow: inset 0 0 0 1px var(--accent-soft-ring);
   color: var(--accent-soft-fg);
   font-family: var(--font-sans);
   font-size: 11px;
@@ -1280,6 +1281,7 @@
   padding: 0 9px;
   border-radius: var(--radius-pill);
   background: var(--accent-soft);
+  box-shadow: inset 0 0 0 1px var(--accent-soft-ring);
   color: var(--accent-soft-fg);
   font-size: 12px;
   font-weight: 600;
@@ -1935,6 +1937,7 @@ a.fx-sp-row:focus-visible {
   padding: 0 8px;
   border-radius: var(--radius-pill);
   background: var(--accent-soft);
+  box-shadow: inset 0 0 0 1px var(--accent-soft-ring);
   color: var(--accent-soft-fg);
   font-family: var(--font-sans);
   font-size: 11.5px;
@@ -2032,6 +2035,7 @@ a.fx-sp-row:focus-visible {
   padding: 0 9px;
   border-radius: var(--radius-pill);
   background: var(--accent-soft);
+  box-shadow: inset 0 0 0 1px var(--accent-soft-ring);
   color: var(--accent-soft-fg) !important;
   font-size: 12px;
 }

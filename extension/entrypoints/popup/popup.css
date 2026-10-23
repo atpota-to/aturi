@@ -72,40 +72,53 @@ body {
   color: var(--text-accent);
 }
 
+/* Folder tabs, as on the site's repository card and settings page. They
+   stand on the top bar's bottom edge, and the body below is the open
+   folder: the open tab takes the body's colour and runs into it through
+   the bar's border, while the other sits a step lower in a recessed tone.
+   The one-pixel overhang lands each tab's bottom edge on that border. */
 .popup-mode-tabs {
+  --popup-tab-filed: var(--bg-tertiary);
   margin-left: auto;
+  align-self: flex-end;
+  margin-bottom: -1px;
   display: flex;
-  padding: 3px;
-  border-radius: var(--radius-control);
-  background: var(--bg-tertiary);
+  align-items: flex-end;
+  gap: 3px;
+}
+
+/* Dark lifts --bg-tertiary above the body; filed tabs go darker instead. */
+[data-theme='dark'] .popup-mode-tabs {
+  --popup-tab-filed: color-mix(in srgb, var(--bg-primary) 55%, #000);
 }
 
 .popup-mode-tab {
-  height: 28px;
+  height: 32px;
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 0 11px;
-  border-radius: 6px;
-  color: var(--text-secondary);
+  padding: 0 12px;
+  box-sizing: border-box;
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-control) var(--radius-control) 0 0;
+  background: var(--popup-tab-filed);
+  color: var(--text-tertiary);
   font-size: var(--fs-md);
   font-weight: 500;
   transition: background 0.15s ease, color 0.15s ease;
 }
 
 .popup-mode-tab:hover {
+  background: var(--surface-subtle);
   color: var(--text-primary);
 }
 
 .popup-mode-tab.is-active {
-  background: var(--bg-secondary);
+  height: 35px;
+  background: var(--bg-primary);
+  border-bottom-color: var(--bg-primary);
   color: var(--text-primary);
   font-weight: 600;
-  box-shadow: var(--shadow);
-}
-
-[data-theme='dark'] .popup-mode-tab.is-active {
-  background: var(--border-medium);
 }
 
 .popup-mode-tab-badge {

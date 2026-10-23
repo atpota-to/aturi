@@ -149,6 +149,12 @@
   --accent-soft: #26301f;
   --accent-soft-fg: #c5dbb2;
   --accent-soft-border: #34422a;
+  /* The outline every soft pill wears (eyebrows, kind chips, tags), so it
+     holds its edge on paper and on white alike. Firmer than
+     --accent-soft-border, which outlines selected rows and stays quiet.
+     Derived here on :root, where data-theme and data-scheme also live, so
+     it follows every theme and scheme without its own copy in each. */
+  --accent-soft-ring: color-mix(in srgb, var(--text-accent) 26%, var(--accent-soft));
   --text-faint: #6f7168;
   --status-live: #7fae66;
   /* Bluesky's brand blue (the "Bluesky post" pill), lifted for dark. */
@@ -2913,6 +2919,7 @@ a.fn-link-btn:focus-visible {
   padding: 2px 10px;
   border-radius: var(--radius-pill);
   background: var(--accent-soft);
+  box-shadow: inset 0 0 0 1px var(--accent-soft-ring);
   color: var(--accent-soft-fg);
   font-size: 12.5px;
   font-weight: 600;

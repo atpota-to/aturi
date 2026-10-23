@@ -36,6 +36,7 @@
   line-height: 1.3;
   color: var(--accent-soft-fg);
   background: var(--accent-soft);
+  box-shadow: inset 0 0 0 1px var(--accent-soft-ring);
   padding: 5px 12px;
   border-radius: var(--radius-pill);
 }
@@ -381,6 +382,7 @@
   font-weight: 600;
   color: var(--accent-soft-fg);
   background: var(--accent-soft);
+  box-shadow: inset 0 0 0 1px var(--accent-soft-ring);
   padding: 1px 8px;
   border-radius: var(--radius-pill);
 }
