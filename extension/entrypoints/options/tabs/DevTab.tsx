@@ -108,12 +108,14 @@ export default function DevTab({ prefs, onChange }: Props) {
   }
 
   return (
-    <div>
-      <h1 className="options-h1">Dev</h1>
-      <p className="options-lede">
-        Tools for testing the popup, prefs migrations, and the new-waypoints
-        banner. Some actions wipe data, so be deliberate.
-      </p>
+    <div className="options-page">
+      <div className="options-page-head">
+        <h1 className="options-h1">Dev</h1>
+        <p className="options-lede">
+          Tools for testing the popup, prefs migrations, and the new-waypoints
+          banner. Some actions wipe data, so be deliberate.
+        </p>
+      </div>
 
       <div className="options-card">
         <h2 className="options-card-title">New-waypoints banner</h2>
@@ -134,34 +136,34 @@ export default function DevTab({ prefs, onChange }: Props) {
           </button>
         </div>
 
-        <div className="aturi-hr" />
-
-        <div className="dev-card-subhead">Forget a specific waypoint</div>
-        <div className="dev-card-sub">
-          Removes one id from <code>knownWaypointIds</code> so just that
-          waypoint shows up as "new" in the popup banner.
-        </div>
-        <div className="dev-actions">
-          <select
-            className="aturi-select dev-select"
-            value={forgetId}
-            onChange={e => setForgetId(e.target.value)}
-            aria-label="Waypoint to forget"
-          >
-            <option value="">Pick a waypoint…</option>
-            {forgetCandidates.map(id => (
-              <option key={id} value={id}>
-                {id}
-              </option>
-            ))}
-          </select>
-          <button
-            className="aturi-btn"
-            onClick={forgetOne}
-            disabled={!forgetId}
-          >
-            Forget
-          </button>
+        <div className="dev-card-section">
+          <div className="dev-card-subhead">Forget a specific waypoint</div>
+          <div className="dev-card-sub">
+            Removes one id from <code>knownWaypointIds</code> so just that
+            waypoint shows up as "new" in the popup banner.
+          </div>
+          <div className="dev-actions">
+            <select
+              className="aturi-select dev-select"
+              value={forgetId}
+              onChange={e => setForgetId(e.target.value)}
+              aria-label="Waypoint to forget"
+            >
+              <option value="">Pick a waypoint…</option>
+              {forgetCandidates.map(id => (
+                <option key={id} value={id}>
+                  {id}
+                </option>
+              ))}
+            </select>
+            <button
+              className="aturi-btn"
+              onClick={forgetOne}
+              disabled={!forgetId}
+            >
+              Forget
+            </button>
+          </div>
         </div>
       </div>
 

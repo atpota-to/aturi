@@ -75,10 +75,14 @@ export default function InspectView({ prefs, scan }: Props) {
         </div>
       )}
 
+      {/* The same skeleton as the empty state, so the icon and title do
+          not jump when the scan lands on nothing. */}
       {scanning && hits.length === 0 && (
-        <div className="popup-empty">
-          <Activity size={14} style={{ marginRight: 6, verticalAlign: 'middle' }} />
-          Scanning…
+        <div className="inspect-empty" aria-busy="true">
+          <span className="popup-notice-icon" aria-hidden="true">
+            <Activity size={21} />
+          </span>
+          <h1 className="popup-notice-title">Scanning…</h1>
         </div>
       )}
 
@@ -652,9 +656,10 @@ function CopyChip({
         window.setTimeout(() => setCopied(false), 1200);
       }}
       title={copied ? 'Copied!' : label}
+      aria-label={copied ? 'Copied' : undefined}
     >
-      {copied ? <Check size={11} /> : icon}
-      {copied ? 'Copied' : label}
+      {copied ? <Check size={11} aria-hidden /> : icon}
+      <span className="inspect-chip-label">{label}</span>
     </button>
   );
 }

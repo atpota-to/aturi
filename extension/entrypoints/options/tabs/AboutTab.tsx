@@ -28,13 +28,15 @@ export default function AboutTab() {
   const version = getExtensionVersion();
 
   return (
-    <div>
-      <h1 className="options-h1">About</h1>
-      <p className="options-lede">
-        Aturi makes Atmosphere links shareable with anyone. Drop a person an
-        Aturi link and they pick the client they prefer (Bluesky, Anisota,
-        Leaflet, Red Dwarf, and more) instead of being locked into yours.
-      </p>
+    <div className="options-page">
+      <div className="options-page-head">
+        <h1 className="options-h1">About</h1>
+        <p className="options-lede">
+          Aturi makes Atmosphere links shareable with anyone. Drop a person an
+          Aturi link and they pick the client they prefer (Bluesky, Anisota,
+          Leaflet, Red Dwarf, and more) instead of being locked into yours.
+        </p>
+      </div>
 
       <div className="options-card">
         <h2 className="options-card-title">Aturi</h2>

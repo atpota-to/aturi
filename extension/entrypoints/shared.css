@@ -31,6 +31,10 @@
   --border-strong: #d9d4c7;
 
   --surface-subtle: #faf9f5;
+  /* Folders filed behind the open one: a step below the page (the site's
+     --surface-filed). Light uses the recessed tertiary; dark takes the page
+     toward black, since there --bg-tertiary sits above the page. */
+  --surface-filed: var(--bg-tertiary);
   --accent-soft: #e5ecdc;
   --accent-soft-fg: #2b4320;
   --accent-soft-border: #d9e4cc;
@@ -84,6 +88,7 @@
   --border-strong: #43463d;
 
   --surface-subtle: #20221d;
+  --surface-filed: color-mix(in srgb, var(--bg-primary) 62%, #000);
   --accent-soft: #26301f;
   --accent-soft-fg: #c5dbb2;
   --accent-soft-border: #34422a;
@@ -236,6 +241,35 @@ a:hover {
   outline-color: var(--text-accent);
 }
 
+/* The switch's ring traces the pill, not the button around it (the site's
+   account.css does the same): the button also holds a label, and a square
+   ring around label and pill read as one odd box. */
+.aturi-switch:focus-visible {
+  outline: none;
+}
+
+.aturi-switch:focus-visible .aturi-switch-box {
+  outline: 2px solid var(--accent-moss);
+  outline-offset: 2px;
+}
+
+[data-theme='dark'] .aturi-switch:focus-visible .aturi-switch-box {
+  outline-color: var(--text-accent);
+}
+
+/* The extension has no in-app reduce-motion setting, so the OS one is the
+   hook, for everything: the !important is what beats the drag library's
+   inline transitions on the group manager's cards and rows. The popup's
+   tabs keep their own copy of this rule from tabs.css. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}
+
 /* Buttons. 36px default, 8px radius, flat fills. */
 .aturi-btn {
   display: inline-flex;
@@ -379,6 +413,7 @@ a:hover {
   font-family: var(--font-sans);
   font-size: var(--fs-md);
   font-weight: 400;
+  text-overflow: ellipsis;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
@@ -444,6 +479,8 @@ a:hover {
 ::placeholder {
   color: var(--text-tertiary);
   opacity: 1;
+  /* Firefox draws the placeholder as its own box, so it ellipsises here too. */
+  text-overflow: ellipsis;
 }
 
 ::-webkit-scrollbar {

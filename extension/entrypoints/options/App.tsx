@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
 import { ExternalLink } from 'lucide-react';
 import { loadPrefs, onPrefsChanged, savePrefs, type Prefs } from '../../lib/prefs';
 import { applyAppearance } from '../../lib/appearance';
@@ -111,18 +111,36 @@ export default function App() {
     setPrefs(next);
   }
 
-  if (!prefs) {
-    return (
-      <div className="options-root">
-        <div className="options-content">Loading...</div>
-      </div>
-    );
+  // The WAI-ARIA tabs pattern, as on the site's settings page: the list is
+  // one tab stop, and the arrow keys (either axis, since the list is a
+  // column on wide windows and a row on narrow ones), Home and End move
+  // between tabs, opening each as it takes focus.
+  function onTabKeyDown(e: KeyboardEvent<HTMLElement>) {
+    const step: Record<string, number> = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 };
+    const at = TABS.findIndex(t => t.id === tab);
+    const next =
+      e.key in step
+        ? (at + step[e.key] + TABS.length) % TABS.length
+        : e.key === 'Home'
+          ? 0
+          : e.key === 'End'
+            ? TABS.length - 1
+            : -1;
+    if (next < 0) return;
+    e.preventDefault();
+    setTab(TABS[next].id);
+    document.getElementById(`options-tab-${TABS[next].id}`)?.focus();
   }
 
   // Same count the Waypoints tab's "new waypoints" card shows: built-ins
   // added since the user last looked that sit in no group yet.
-  const visible = visibleWaypointIds(prefs);
-  const newCount = newBuiltinWaypoints(prefs).filter(w => !visible.has(w.id)).length;
+  const newCount = prefs
+    ? (() => {
+        const visible = visibleWaypointIds(prefs);
+        return newBuiltinWaypoints(prefs).filter(w => !visible.has(w.id)).length;
+      })()
+    : 0;
+  const current = TABS.find(t => t.id === tab) ?? TABS[0];
 
   return (
     <div className="options-root">
@@ -146,16 +164,31 @@ export default function App() {
       </header>
 
       <div className="options-layout">
-        <nav ref={navRef} className="options-nav" role="tablist" aria-label="Settings sections">
+        {/* The site's folder tabs (options.css): a column of side tabs
+            against the content's spine on wide windows, a row on a baseline
+            below 821px. The open tab is the one with aria-selected. */}
+        <nav
+          ref={navRef}
+          className="options-nav"
+          role="tablist"
+          aria-label="Settings sections"
+          onKeyDown={onTabKeyDown}
+        >
           {TABS.map(t => (
             <button
               key={t.id}
+              id={`options-tab-${t.id}`}
+              type="button"
               role="tab"
               aria-selected={tab === t.id}
+              aria-controls="options-panel"
+              tabIndex={tab === t.id ? 0 : -1}
               className={`options-nav-item ${tab === t.id ? 'active' : ''}`}
               onClick={() => setTab(t.id)}
             >
-              {t.label}
+              <span className="options-nav-label" data-label={t.label}>
+                {t.label}
+              </span>
               {t.id === 'visibility' && newCount > 0 && (
                 <span className="options-nav-badge">{newCount} new</span>
               )}
@@ -163,12 +196,30 @@ export default function App() {
           ))}
         </nav>
 
+        {/* The landmark stays <main>; the tab panel is the box inside it.
+            While prefs load it holds the page head only, so the header and
+            the nav are on screen from the first paint and nothing jumps. */}
         <main className="options-content">
-          {tab === 'defaults' && <DefaultsTab prefs={prefs} onChange={update} />}
-          {tab === 'visibility' && <VisibilityTab prefs={prefs} onChange={update} />}
-          {tab === 'custom' && <CustomTab prefs={prefs} onChange={update} />}
-          {tab === 'about' && <AboutTab />}
-          {tab === 'dev' && <DevTab prefs={prefs} onChange={update} />}
+          <div
+            id="options-panel"
+            className="options-panel"
+            role="tabpanel"
+            aria-labelledby={`options-tab-${tab}`}
+            aria-busy={prefs ? undefined : true}
+          >
+            {!prefs && (
+              <div className="options-page">
+                <div className="options-page-head">
+                  <h1 className="options-h1">{current.label}</h1>
+                </div>
+              </div>
+            )}
+            {prefs && tab === 'defaults' && <DefaultsTab prefs={prefs} onChange={update} />}
+            {prefs && tab === 'visibility' && <VisibilityTab prefs={prefs} onChange={update} />}
+            {prefs && tab === 'custom' && <CustomTab prefs={prefs} onChange={update} />}
+            {prefs && tab === 'about' && <AboutTab />}
+            {prefs && tab === 'dev' && <DevTab prefs={prefs} onChange={update} />}
+          </div>
         </main>
       </div>
     </div>

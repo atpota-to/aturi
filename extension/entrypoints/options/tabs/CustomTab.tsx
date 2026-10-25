@@ -231,6 +231,7 @@ export default function CustomTab({ prefs, onChange }: Props) {
 
       {draft && (
         <DraftEditor
+          key={draft.id}
           draft={draft}
           existing={prefs.customWaypoints}
           groupOptions={groupOptions}
@@ -254,10 +255,15 @@ type DraftEditorProps = {
 
 function DraftEditor({ draft, existing, groupOptions, onChange, onCancel, onSave }: DraftEditorProps) {
   const [sampleUrl, setSampleUrl] = useState('');
+  // A fresh form is not wrong yet: the errors show once a field has been
+  // left or a template touched (Save stays disabled until they clear). The
+  // editor is keyed by draft id, so this resets for a different draft.
+  const [touched, setTouched] = useState(false);
 
   const errors = useMemo(() => validate(draft, existing), [draft, existing]);
 
   function toggleType(type: WaypointType, enabled: boolean) {
+    setTouched(true);
     const supportedTypes = enabled
       ? Array.from(new Set([...draft.supportedTypes, type]))
       : draft.supportedTypes.filter(t => t !== type);
@@ -268,6 +274,7 @@ function DraftEditor({ draft, existing, groupOptions, onChange, onCancel, onSave
   }
 
   function setTemplate(type: WaypointType, value: string) {
+    setTouched(true);
     onChange({ ...draft, templates: { ...draft.templates, [type]: value } });
   }
 
@@ -338,6 +345,7 @@ function DraftEditor({ draft, existing, groupOptions, onChange, onCancel, onSave
               value={draft.name}
               placeholder="My App"
               onChange={e => onChange({ ...draft, name: e.target.value })}
+              onBlur={() => setTouched(true)}
             />
           </div>
           <div>
@@ -348,6 +356,7 @@ function DraftEditor({ draft, existing, groupOptions, onChange, onCancel, onSave
               value={draft.domain}
               placeholder="myapp.com"
               onChange={e => onChange({ ...draft, domain: e.target.value })}
+              onBlur={() => setTouched(true)}
             />
           </div>
           <div>
@@ -389,15 +398,17 @@ function DraftEditor({ draft, existing, groupOptions, onChange, onCancel, onSave
             const enabled = draft.supportedTypes.includes(type);
             return (
               <div key={type} className={`custom-template-row ${enabled ? 'is-on' : ''}`}>
-                <label className="custom-template-label">
-                  <input
-                    type="checkbox"
-                    className="visibility-checkbox"
-                    checked={enabled}
-                    onChange={e => toggleType(type, e.target.checked)}
-                  />
+                {/* The site's switch, the name clickable as part of it. */}
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={enabled}
+                  className={`aturi-switch aturi-switch-sm custom-template-label ${enabled ? 'on' : ''}`}
+                  onClick={() => toggleType(type, !enabled)}
+                >
+                  <span className="aturi-switch-box" aria-hidden />
                   <span>{type}</span>
-                </label>
+                </button>
                 {enabled ? (
                   <span className="custom-template-field">
                     <span className="custom-template-prefix" aria-hidden="true">
@@ -455,12 +466,12 @@ function DraftEditor({ draft, existing, groupOptions, onChange, onCancel, onSave
         </section>
       </div>
 
-      {errors.length > 0 && (
-        <div className="validation-error">
-          {errors.map((e, i) => (
-            <div key={i}>- {e}</div>
+      {touched && errors.length > 0 && (
+        <ul className="validation-error" aria-live="polite">
+          {errors.map(e => (
+            <li key={e}>{e}</li>
           ))}
-        </div>
+        </ul>
       )}
 
       <div className="custom-form-actions">

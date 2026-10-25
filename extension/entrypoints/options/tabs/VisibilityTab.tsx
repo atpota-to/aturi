@@ -173,25 +173,13 @@ export default function VisibilityTab({ prefs, onChange }: Props) {
 
   return (
     <div className="options-page">
-      <div className="options-page-head has-actions">
-        <div>
-          <h1 className="options-h1">Waypoints</h1>
-          <p className="options-lede">
-            Build your own groups of waypoints. Drag to reorder groups or rows, and use Add app
-            on a group to add waypoints. The same waypoint can live in
-            multiple groups. Waypoints not in any group are hidden from the popup.
-          </p>
-        </div>
-        <div className="options-page-actions">
-          <button type="button" className="aturi-btn aturi-btn-ghost" onClick={handleResetGroups}>
-            <ResetIcon />
-            Reset to defaults
-          </button>
-          <button type="button" className="aturi-btn" onClick={handleAddGroup}>
-            <PlusIcon />
-            New group
-          </button>
-        </div>
+      <div className="options-page-head">
+        <h1 className="options-h1">Waypoints</h1>
+        <p className="options-lede">
+          Build your own groups of waypoints. Drag to reorder groups or rows, and use Add app
+          on a group to add waypoints. The same waypoint can live in
+          multiple groups. Waypoints not in any group are hidden from the popup.
+        </p>
       </div>
 
       {unplacedNew.length > 0 && (
@@ -249,28 +237,43 @@ export default function VisibilityTab({ prefs, onChange }: Props) {
         </section>
       )}
 
-      <div className="groups-summary">
-        {groups.length === 0 ? (
-          'No groups yet. Create one below.'
-        ) : (
-          <>
-            {groups.length} {groups.length === 1 ? 'group' : 'groups'} ·{' '}
-            {totalVisible} visible
-            {hiddenCount > 0 && (
-              <>
-                {' · '}
-                <button
-                  type="button"
-                  className="hidden-toggle"
-                  aria-expanded={hiddenOpen}
-                  onClick={() => setHiddenOpen(o => !o)}
-                >
-                  {hiddenCount} hidden
-                </button>
-              </>
-            )}
-          </>
-        )}
+      {/* The page's actions ride the summary line, directly above the first
+          group, and New group is the one filled button on the page, as on
+          the site's settings page. */}
+      <div className="groups-toolbar">
+        <p className="groups-summary">
+          {groups.length === 0 ? (
+            'No groups yet. Create one below.'
+          ) : (
+            <>
+              {groups.length} {groups.length === 1 ? 'group' : 'groups'} ·{' '}
+              {totalVisible} visible
+              {hiddenCount > 0 && (
+                <>
+                  {' · '}
+                  <button
+                    type="button"
+                    className="hidden-toggle"
+                    aria-expanded={hiddenOpen}
+                    onClick={() => setHiddenOpen(o => !o)}
+                  >
+                    {hiddenCount} hidden
+                  </button>
+                </>
+              )}
+            </>
+          )}
+        </p>
+        <div className="options-page-actions">
+          <button type="button" className="aturi-btn aturi-btn-ghost" onClick={handleResetGroups}>
+            <ResetIcon />
+            Reset to defaults
+          </button>
+          <button type="button" className="aturi-btn aturi-btn-primary" onClick={handleAddGroup}>
+            <PlusIcon />
+            New group
+          </button>
+        </div>
       </div>
 
       {hiddenOpen && hiddenCount > 0 && (

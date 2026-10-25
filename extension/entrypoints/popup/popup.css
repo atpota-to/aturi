@@ -37,7 +37,7 @@ body {
 .popup-root {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 12px;
   padding: 12px 12px 16px;
 }
 
@@ -84,19 +84,13 @@ body {
    can draw that hairline crisply. */
 .popup-mode-tabs {
   --popup-tab-open: var(--bg-primary);
-  --popup-tab-filed: var(--bg-tertiary);
+  --popup-tab-filed: var(--surface-filed);
   margin-left: auto;
   align-self: flex-end;
   margin-bottom: -1px;
   display: flex;
   align-items: flex-end;
   gap: 5px;
-}
-
-/* Dark lifts --bg-tertiary above the body: a step below it is the body
-   taken toward black (the site's --surface-filed formula). */
-[data-theme='dark'] .popup-mode-tabs {
-  --popup-tab-filed: color-mix(in srgb, var(--bg-primary) 62%, #000);
 }
 
 .popup-mode-tab {
@@ -116,6 +110,7 @@ body {
   font-size: var(--fs-md);
   font-weight: 500;
   line-height: 20px;
+  white-space: nowrap;
   transition: background-color 0.15s ease, color 0.15s ease;
 }
 
@@ -176,8 +171,9 @@ body {
   }
 }
 
+/* Width and colour come from shared.css: moss in light, --text-accent in
+   dark, where moss on the filed tone is under 3:1. */
 .popup-mode-tab:focus-visible {
-  outline: 2px solid var(--accent-moss);
   outline-offset: -3px;
 }
 
@@ -188,6 +184,7 @@ body {
   border-bottom-color: var(--popup-tab-open);
   color: var(--text-primary);
   font-weight: 600;
+  cursor: default;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -249,6 +246,41 @@ body {
   font-size: var(--fs-sm);
   font-weight: 700;
   color: var(--text-secondary);
+}
+
+/* The group's name is the tab on its drawer, as on the site's picker
+   (link.css .fn-lp-picker .waypoint-group-label: 18px line, 4px pad, a
+   28px box). One step smaller here, as the popup's mode tabs are to the
+   site's: 18px line, 3px pad, 2px border = a 26px box. Only sections that
+   stand on a sheet (.is-sheet) get it; the no-data notice and the Inspect
+   head keep the plain label. */
+.popup-section.is-sheet {
+  gap: 0;
+}
+
+.popup-section.is-sheet > .popup-section-label {
+  position: relative;
+  z-index: 1;
+  width: fit-content;
+  max-width: calc(100% - 2 * var(--radius-card));
+  margin: 0 0 -1px var(--radius-card);
+  padding: 3px 10px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-medium);
+  border-bottom-color: var(--bg-secondary);
+  border-radius: var(--radius-control) var(--radius-control) 0 0;
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  line-height: 18px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* The lead group's tab in the accent, as the site's picker. */
+.popup-section.is-sheet > .popup-section-label.is-highlighted {
+  color: var(--text-accent);
 }
 
 .popup-waypoints {
@@ -325,6 +357,18 @@ body {
   color: var(--text-accent);
 }
 
+/* In a row the mark sits in ink and lights up with the row, as the site's
+   picker rows do; the tiles keep the accent at rest. */
+.popup-waypoint .popup-waypoint-icon {
+  color: var(--text-primary);
+  transition: color 0.12s ease;
+}
+
+.popup-waypoint:hover .popup-waypoint-icon,
+.popup-waypoint:focus-within .popup-waypoint-icon {
+  color: var(--text-accent);
+}
+
 .popup-waypoint-icon svg,
 .popup-waypoint-icon img {
   width: 16px;
@@ -358,7 +402,7 @@ body {
 .popup-waypoint-desc {
   flex: 1;
   min-width: 0;
-  font-size: var(--fs-xs);
+  font-size: max(11px, var(--fs-xs));
   color: var(--text-tertiary);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -375,21 +419,36 @@ body {
   justify-content: center;
   border-radius: var(--radius-control);
   color: var(--text-tertiary);
-  transition: background 0.12s ease, color 0.12s ease;
+  transition: opacity 0.12s ease, background 0.12s ease, color 0.12s ease;
 }
 
 .popup-waypoint-copy:hover {
   background: var(--bg-tertiary);
-  color: var(--text-primary);
+  color: var(--text-accent);
 }
 
 .popup-waypoint-copy.is-copied {
   color: var(--text-accent);
 }
 
+/* On a pointer device the row's copy button shows when the row is touched
+   or focused, as on the site's picker rows: thirty glyphs at rest were
+   noise. The 32px box stays, so nothing shifts. Touch keeps it visible. */
+@media (hover: hover) {
+  .popup-waypoint .popup-waypoint-copy {
+    opacity: 0;
+  }
+
+  .popup-waypoint:hover .popup-waypoint-copy,
+  .popup-waypoint:focus-within .popup-waypoint-copy,
+  .popup-waypoint .popup-waypoint-copy.is-copied {
+    opacity: 1;
+  }
+}
+
 /* Compact: shorter rows, no description line, so more waypoints fit. */
 .popup-root.is-compact {
-  gap: 10px;
+  gap: 8px;
 }
 
 .popup-root.is-compact .popup-waypoint-main {
@@ -466,23 +525,23 @@ body {
 
 .popup-page-actions {
   display: flex;
-  gap: 6px;
+  gap: 8px;
 }
 
 .popup-page-btn {
   flex: 1;
   min-width: 0;
-  height: 30px;
+  height: 32px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 6px;
-  padding: 0 8px;
+  padding: 0 10px;
   border-radius: var(--radius-control);
   border: 1px solid var(--border-strong);
   background: var(--bg-secondary);
   color: var(--text-primary);
-  font-size: var(--fs-sm);
+  font-size: var(--fs-md);
   font-weight: 600;
   white-space: nowrap;
   transition: background 0.12s ease, border-color 0.12s ease;
@@ -506,13 +565,15 @@ body {
 
 /* ---------- New waypoints notice ---------- */
 
+/* The site's remember-my-choice bar: the accent-soft family, 32px
+   controls, a 48px band. */
 .popup-update-banner {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   padding: 8px 6px 8px 12px;
   border-radius: var(--radius-card);
-  background: var(--accent-soft-panel);
+  background: var(--accent-soft);
   border: 1px solid var(--accent-soft-border);
 }
 
@@ -542,18 +603,19 @@ body {
   font-size: var(--fs-sm);
   font-weight: 600;
   line-height: 1.35;
-  color: var(--text-primary);
+  color: var(--accent-soft-fg);
   text-align: left;
 }
 
 .popup-update-banner-text:hover {
-  color: var(--text-accent);
+  color: var(--text-primary);
 }
 
 .popup-update-banner-action {
-  height: 28px;
-  padding: 0 10px;
+  height: 32px;
+  padding: 0 9px;
   border-radius: var(--radius-control);
+  border: 1px solid var(--accent-moss);
   background: var(--accent-moss);
   color: var(--text-on-accent);
   font-size: var(--fs-sm);
@@ -562,20 +624,44 @@ body {
 
 .popup-update-banner-action:hover {
   background: var(--accent-forest);
+  border-color: var(--accent-forest);
 }
 
 .popup-update-banner-dismiss {
-  width: 28px;
-  height: 28px;
+  width: 32px;
+  height: 32px;
+  color: var(--accent-soft-fg);
+}
+
+.popup-update-banner-dismiss:hover {
+  background: var(--bg-secondary);
+  color: var(--accent-soft-fg);
 }
 
 /* ---------- Recents ---------- */
 
+/* Tiles sit in a white panel on the paper, as the site's grid layout
+   boxes its tiles (link.css .fn-lp-picker .waypoint-tiles): the drawer the
+   section's tab stands on. Tiles take the inner radius, as the Inspect
+   panel's do. Three columns for the shortcuts, so every built-in name and
+   host fits whole at the medium preset; four for the recents, which carry
+   a name only. */
 .popup-recents-row,
 .popup-tiles {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 8px;
+  padding: 8px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-card);
+}
+
+.popup-recents-row {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.popup-tiles {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .popup-recent,
@@ -584,9 +670,9 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  border-radius: var(--radius-card);
-  background: var(--bg-secondary);
-  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-control);
+  background: var(--bg-primary);
+  border: 1px solid var(--border-subtle);
   color: var(--text-primary);
   transition: border-color 0.12s ease, background 0.12s ease;
 }
@@ -599,7 +685,7 @@ body {
 .popup-recent:hover,
 .popup-tile:hover {
   border-color: var(--border-strong);
-  background: var(--surface-subtle);
+  background: var(--bg-secondary);
 }
 
 .popup-recent .popup-waypoint-icon,
@@ -618,14 +704,32 @@ body {
   height: 20px;
 }
 
-.popup-recent-name,
-.popup-tile-name {
+.popup-recent-name {
   max-width: 100%;
   font-size: var(--fs-sm);
   font-weight: 600;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+/* A tile's name wraps to two lines rather than cutting "Standard Reader"
+   to "Standard R…" (the site's tiles clamp the same way). */
+.popup-tile-name {
+  max-width: 100%;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  text-align: center;
+  line-height: 1.3;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.popup-tile-main {
+  flex: 1;
+  justify-content: center;
 }
 
 /* ---------- No-Atmosphere view ---------- */
@@ -873,6 +977,9 @@ body {
 
 .inspect-rescan {
   height: 28px;
+  /* The label's right edge ends 2px inside the card edge, as the heading's
+     2px padding does on the left. */
+  margin-right: -6px;
   display: inline-flex;
   align-items: center;
   gap: 5px;
@@ -940,7 +1047,7 @@ body {
   align-items: center;
   gap: 2px 5px;
   font-family: var(--font-mono);
-  font-size: 11.5px;
+  font-size: var(--fs-sm);
   line-height: 1.5;
   color: var(--text-secondary);
   min-width: 0;
@@ -1020,19 +1127,23 @@ body {
   color: var(--text-tertiary);
 }
 
+/* Copy chips: the site's quiet rounded rectangles (explorer.css .fx-copy),
+   not pills, and a copied chip keeps its width while a centred tick
+   replaces the label, so the row never shifts. */
 .inspect-chip {
-  height: 26px;
+  position: relative;
+  height: 28px;
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  padding: 0 9px;
-  border-radius: var(--radius-pill);
-  border: 1px solid var(--border-strong);
+  padding: 0 8px;
+  border-radius: var(--radius-control);
+  border: 1px solid var(--border-medium);
   background: var(--bg-secondary);
-  color: var(--text-primary);
+  color: var(--text-secondary);
   font-size: var(--fs-sm);
-  font-weight: 600;
-  transition: background 0.12s ease, border-color 0.12s ease;
+  font-weight: 500;
+  transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
 }
 
 .inspect-chip svg {
@@ -1040,17 +1151,26 @@ body {
 }
 
 .inspect-chip:hover {
-  background: var(--surface-subtle);
-  border-color: var(--text-faint);
+  background: var(--bg-secondary);
+  border-color: var(--border-strong);
+  color: var(--text-primary);
 }
 
 .inspect-chip.is-copied {
   background: var(--accent-soft);
   border-color: var(--accent-soft-border);
-  color: var(--accent-soft-fg);
+  color: var(--text-accent);
 }
 
-.inspect-chip.is-copied svg {
+.inspect-chip.is-copied .inspect-chip-label {
+  visibility: hidden;
+}
+
+.inspect-chip.is-copied > svg {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  display: block;
   color: currentColor;
 }
 
@@ -1148,6 +1268,9 @@ body {
 
 .inspect-json > summary {
   cursor: pointer;
+  /* A taller hit area without moving the line. */
+  padding: 5px 0;
+  margin: -5px 0;
   font-size: var(--fs-sm);
   font-weight: 600;
   color: var(--text-secondary);
@@ -1166,7 +1289,7 @@ body {
   background: var(--surface-subtle);
   border: 1px solid var(--border-subtle);
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: var(--fs-xs);
   line-height: 1.5;
   color: var(--text-primary);
   white-space: pre-wrap;
@@ -1178,20 +1301,21 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 12px;
-  padding: 16px 8px 4px;
+  gap: 8px;
+  padding: 8px 12px 0;
   text-align: center;
 }
 
 .inspect-empty-cta {
+  margin-top: 4px;
   text-decoration: none;
 }
 
 /* Out past the empty state's side padding, so the panel spans the popup
    like the cards in the other views do. */
 .inspect-empty-recents {
-  width: calc(100% + 16px);
-  margin: 0 -8px;
+  width: calc(100% + 24px);
+  margin: 0 -12px;
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -1257,7 +1381,7 @@ body {
   border-radius: var(--radius-pill);
   background: var(--accent-soft);
   color: var(--accent-soft-fg);
-  font-size: 10.5px;
+  font-size: var(--fs-xs);
   font-weight: 700;
   line-height: 16px;
   text-align: center;
@@ -1297,4 +1421,37 @@ body {
 
 .popup-redirect.is-paused .popup-redirect-sub {
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Touch (Firefox for Android opens the popup as a sheet): the dense
+   controls grow to a thumb's width; the is-paused pause button needs its
+   own line because its 30px rule is the more specific one. */
+@media (hover: none) {
+  .inspect-chip,
+  .inspect-rescan,
+  .inspect-empty-rescan,
+  .popup-redirect-pause,
+  .popup-redirect.is-paused .popup-redirect-pause,
+  .popup-update-banner-action,
+  .popup-update-banner-dismiss {
+    height: 36px;
+  }
+
+  .popup-update-banner-dismiss {
+    width: 36px;
+  }
+
+  .inspect-chip.is-ghost {
+    height: 32px;
+  }
+
+  .inspect-json > summary {
+    padding: 8px 0;
+  }
+
+  .popup-tile .popup-waypoint-copy {
+    opacity: 1;
+  }
 }

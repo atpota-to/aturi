@@ -42,7 +42,7 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  font-size: 18px;
+  font-size: var(--fs-2xl);
   font-weight: 700;
   letter-spacing: -0.02em;
 }
@@ -53,7 +53,7 @@
 
 .options-brand-divider {
   width: 1px;
-  height: 20px;
+  height: var(--fs-display-sm);
   background: var(--border-medium);
 }
 
@@ -66,7 +66,7 @@
   margin-left: auto;
   display: flex;
   gap: 18px;
-  font-size: 13.5px;
+  font-size: var(--fs-md);
   font-weight: 600;
 }
 
@@ -88,48 +88,136 @@
   gap: 24px 40px;
 }
 
+/* Folder tabs, as on the site's settings page (src/styles/fieldnotes/tabs.css
+   and account.css; the numbers are mirrored by hand because the extension
+   has its own build, so keep them in step with each other and with
+   popup.css .popup-mode-tab). The base is shared: from 821px the folder
+   lies on its side against the content's left hairline, the tabs standing
+   against it like binder dividers; under that they stand on a baseline. */
 .options-nav {
   position: sticky;
   top: 24px;
-  flex: 0 0 200px;
   display: flex;
   flex-direction: column;
-  gap: 2px;
 }
 
 .options-nav-item {
+  position: relative;
+  /* Its own stacking context, so the wedges (row only) sit under the label. */
+  z-index: 0;
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 8px;
-  min-height: 36px;
-  padding: 0 12px;
-  border-radius: var(--radius-control);
-  color: var(--text-secondary);
+  border: 1px solid var(--border-medium);
+  background: var(--surface-filed);
+  color: var(--text-tertiary);
+  /* 14px at medium; scales with the text presets, unlike the site's fixed 14. */
+  font-size: var(--fs-base);
   font-weight: 500;
-  text-align: left;
+  /* An integer line box keeps every hairline on a whole pixel. */
+  line-height: 20px;
   white-space: nowrap;
-  transition: background 0.15s ease, color 0.15s ease;
-}
-
-.options-nav-item:hover {
-  background: var(--bg-tertiary);
-  color: var(--text-primary);
+  text-align: left;
+  cursor: pointer;
+  transition: color 0.15s ease, background-color 0.15s ease;
 }
 
 .options-nav-item.active {
-  background: var(--accent-soft);
-  color: var(--accent-soft-fg);
-  font-weight: 700;
+  z-index: 1;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-weight: 600;
+  cursor: default;
+}
+
+/* Width and colour come from shared.css: moss in light, --text-accent in
+   dark, where moss on the filed tone is under 3:1. */
+.options-nav-item:focus-visible {
+  outline-offset: -3px;
+}
+
+/* A label never changes width when its weight does: a hidden, zero-height
+   copy in the open weight reserves the room, so the badge beside it and the
+   row below never jitter as tabs open. */
+.options-nav-label {
+  display: inline-block;
+}
+
+.options-nav-label::after {
+  content: attr(data-label);
+  display: block;
+  height: 0;
+  overflow: hidden;
+  font-weight: 600;
+  visibility: hidden;
+  pointer-events: none;
 }
 
 .options-nav-badge {
+  margin-left: auto;
   padding: 1px 7px;
   border-radius: var(--radius-pill);
   background: var(--accent-moss);
   color: var(--text-on-accent);
-  font-size: 11.5px;
+  font-size: var(--fs-xs);
   font-weight: 700;
+}
+
+/* The folder on its side: the content column's left hairline is the spine,
+   the open tab is 3px further out in the page colour with its right edge
+   painted out, so it runs into the content. No cut on a column: 2px over
+   180px reads as uneven gaps rather than a taper. 180px rather than the
+   site's 160 because the labels scale with the text presets. */
+@media (min-width: 821px) {
+  .options-layout {
+    /* The content, and so the spine, is never shorter than the tabs; the
+       gap moves into the content's padding, behind the spine. */
+    align-items: stretch;
+    gap: 0;
+  }
+
+  .options-nav {
+    /* Above the content, so the open tab paints over the spine. */
+    z-index: 1;
+    align-self: flex-start;
+    flex: 0 0 180px;
+    align-items: stretch;
+    gap: 6px;
+    padding: 4px 0 0;
+    /* Every tab's right edge lies on the content's left hairline. */
+    margin-right: -1px;
+  }
+
+  .options-nav-item {
+    height: 36px;
+    padding: 0 12px;
+    justify-content: flex-start;
+    border-radius: var(--radius-control) 0 0 var(--radius-control);
+  }
+
+  /* A side tab keeps its bottom hairline and opens through its right edge. */
+  .options-nav-item.active {
+    padding-left: 15px;
+    margin-left: -3px;
+    border-right-color: var(--bg-primary);
+  }
+
+  .options-content {
+    border-left: 1px solid var(--border-medium);
+    padding-left: 32px;
+  }
+}
+
+/* Touched: comes forward 1px outward, the label anchored to the spine, and
+   its tone lifts halfway toward the page, so in dark it sits between filed
+   and open. Pointer devices only: a tapped tab opens. */
+@media (min-width: 821px) and (hover: hover) {
+  .options-nav-item:hover:not(.active) {
+    padding-left: 13px;
+    margin-left: -1px;
+    background: color-mix(in srgb, var(--surface-filed) 50%, var(--bg-primary));
+    color: var(--text-primary);
+  }
 }
 
 .options-content {
@@ -139,7 +227,7 @@
 }
 
 /* Each tab's root column. */
-.options-content > div {
+.options-panel > div {
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -157,20 +245,20 @@
     padding: 16px var(--options-gutter) 40px;
   }
 
-  /* Folder tabs, as on the site's settings page at phone widths, standing
-     on a full-width baseline. The page itself is the open folder, so the
+  /* The folder tabs as a row on a full-width baseline, as on the site's
+     settings page under 821px (tabs.css numbers, kept in step with
+     popup.css .popup-mode-tab). The page itself is the open folder, so the
      open tab takes the page's colour and opens onto it through the
-     baseline, and the rest sit a step lower in a recessed tone. The
-     baseline is an inset shadow rather than a border the tabs overlap:
-     the row scrolls, and a scroller clips anything hanging past its edge. */
+     baseline, an inset shadow rather than a border the tabs overlap: the
+     row scrolls, and a scroller clips anything hanging past its edge.
+     42px filed, 43px hovered, 45px open, so each is a tap target. */
   .options-nav {
-    --options-tab-filed: var(--bg-tertiary);
     position: static;
     flex: none;
     flex-direction: row;
     align-items: flex-end;
     overflow-x: auto;
-    gap: 3px;
+    gap: 6px;
     margin: 0 calc(-1 * var(--options-gutter));
     padding: 0 var(--options-gutter);
     box-shadow: inset 0 -1px 0 var(--border-medium);
@@ -186,44 +274,67 @@
     display: none;
   }
 
-  /* Dark lifts --bg-tertiary above the page; the filed tabs belong behind
-     it, so they go darker instead. */
-  [data-theme='dark'] .options-nav {
-    --options-tab-filed: color-mix(in srgb, var(--bg-primary) 55%, #000);
-  }
-
   .options-nav-item {
     flex: none;
-    min-height: 0;
-    padding: 9px 14px 8px;
-    border: 1px solid var(--border-medium);
+    padding: 10px 14px;
     border-radius: var(--radius-control) var(--radius-control) 0 0;
-    background: var(--options-tab-filed);
-    color: var(--text-tertiary);
-    font-weight: 500;
-    line-height: 1.4;
   }
 
-  /* The scroller clips an outside ring along its top edge. */
-  .options-nav-item:focus-visible {
-    outline-offset: -2px;
+  /* The cut: below the shoulder each side leans out 4°, drawn by two
+     wedges that inherit the tab's fill and edge, so hover, open and theme
+     need no extra rules. Only where a 4° hairline draws crisply; at 1x the
+     sides stay vertical. */
+  @media (min-resolution: 1.5dppx) {
+    .options-nav-item::before,
+    .options-nav-item::after {
+      content: '';
+      position: absolute;
+      z-index: -1;
+      top: calc(var(--radius-control) - 1px);
+      bottom: -1px;
+      width: 10px;
+      background: inherit;
+      border: 0 solid;
+      border-color: inherit;
+      border-bottom-width: 1px;
+      pointer-events: none;
+      transition: background-color 0.15s ease;
+    }
+
+    .options-nav-item::before {
+      left: -1px;
+      border-left-width: 1px;
+      transform-origin: top left;
+      transform: skewX(-4deg);
+    }
+
+    .options-nav-item::after {
+      right: -1px;
+      border-right-width: 1px;
+      transform-origin: top right;
+      transform: skewX(4deg);
+    }
   }
 
-  .options-nav-item:hover {
-    background: var(--surface-subtle);
-    color: var(--text-primary);
-  }
-
+  /* Open: three pixels higher, its bottom edge painted in the page colour
+     over the baseline so tab and page read as one sheet. */
   .options-nav-item.active {
-    padding-top: 12px;
-    background: var(--bg-primary);
+    padding-top: 13px;
     border-bottom-color: var(--bg-primary);
-    color: var(--text-primary);
-    font-weight: 600;
   }
 
   .options-content {
     max-width: none;
+  }
+}
+
+/* Touched: comes forward one pixel and its tone lifts halfway toward the
+   page. Pointer devices only. */
+@media (max-width: 820px) and (hover: hover) {
+  .options-nav-item:hover:not(.active) {
+    padding-top: 11px;
+    background: color-mix(in srgb, var(--surface-filed) 50%, var(--bg-primary));
+    color: var(--text-primary);
   }
 }
 
@@ -242,22 +353,6 @@
   margin-bottom: 4px;
 }
 
-.options-page-head.has-actions {
-  flex-direction: row;
-  flex-wrap: wrap;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.options-page-head.has-actions > div:first-child {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  flex: 1 1 360px;
-  max-width: 560px;
-}
-
 .options-page-actions {
   display: flex;
   gap: 8px;
@@ -271,15 +366,18 @@
   line-height: 1.2;
 }
 
-.options-lede {
-  margin: 0;
-  color: var(--text-secondary);
-  line-height: 1.5;
+/* A step down beside the tab row, as the site's settings title does. */
+@media (max-width: 820px) {
+  .options-h1 {
+    font-size: calc(var(--fs-display) - 4px);
+  }
 }
 
-/* About / Dev put h1 and lede straight into the tab column. */
-.options-content > div > .options-h1 + .options-lede {
-  margin-top: -12px;
+.options-lede {
+  margin: 0;
+  max-width: 68ch;
+  color: var(--text-secondary);
+  line-height: 1.5;
 }
 
 .options-footnote {
@@ -314,11 +412,13 @@
   font-size: var(--fs-xl);
   font-weight: 700;
   letter-spacing: -0.01em;
+  line-height: 1.3;
   color: var(--text-primary);
 }
 
 .options-card-sub {
   margin: 2px 0 0;
+  max-width: 68ch;
   font-size: var(--fs-md);
   line-height: 1.5;
   color: var(--text-secondary);
@@ -343,6 +443,7 @@
 
 .options-card-subhead p {
   margin: 2px 0 0;
+  max-width: 68ch;
   font-size: var(--fs-md);
   line-height: 1.45;
   color: var(--text-tertiary);
@@ -353,7 +454,7 @@
   flex-wrap: wrap;
   align-items: center;
   gap: 10px 16px;
-  padding: 12px 18px;
+  padding: 14px 18px;
   border-top: 1px solid var(--border-subtle);
 }
 
@@ -374,6 +475,7 @@
 }
 
 .options-row-desc {
+  max-width: 68ch;
   font-size: var(--fs-md);
   line-height: 1.45;
   color: var(--text-secondary);
@@ -444,6 +546,7 @@
 }
 
 .defaults-family-desc {
+  max-width: 68ch;
   font-size: var(--fs-md);
   color: var(--text-tertiary);
 }
@@ -467,11 +570,12 @@
 }
 
 .appearance-segment {
-  height: 30px;
+  height: 28px;
   padding: 0 12px;
   border-radius: 6px;
   color: var(--text-secondary);
   font-size: var(--fs-md);
+  font-weight: 500;
   transition: background 0.15s ease, color 0.15s ease;
 }
 
@@ -483,7 +587,7 @@
   background: var(--bg-secondary);
   color: var(--text-primary);
   font-weight: 600;
-  box-shadow: var(--shadow);
+  box-shadow: 0 1px 2px rgb(28 30 25 / 0.12);
 }
 
 /* The site's dark segmented control: --border-medium sat too close to the
@@ -528,8 +632,9 @@
 }
 
 .adopt-bulk .aturi-btn,
+.adopt-actions .aturi-btn,
 .adopt-add {
-  min-height: 30px;
+  min-height: 32px;
   padding: 0 12px;
   border-radius: var(--radius-control);
 }
@@ -574,6 +679,7 @@
 }
 
 .adopt-desc {
+  max-width: 68ch;
   font-size: var(--fs-md);
   color: var(--text-secondary);
 }
@@ -606,10 +712,22 @@
   text-decoration: underline;
 }
 
+/* The summary line carries the page's actions, directly above the first
+   group, so the head is only a head (as the site's settings page). */
+.groups-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+  margin: -4px 0;
+}
+
 .groups-summary {
+  margin: 0;
+  padding-left: 2px;
   font-size: var(--fs-md);
   color: var(--text-tertiary);
-  margin: -4px 0 -4px 2px;
 }
 
 .hidden-toggle {
@@ -625,6 +743,7 @@
 }
 
 .hidden-panel-head {
+  max-width: 68ch;
   padding: 14px 18px;
   font-size: var(--fs-md);
   color: var(--text-secondary);
@@ -644,16 +763,28 @@
   border-radius: var(--radius-card);
 }
 
+.group-card:hover {
+  border-color: var(--border-strong);
+}
+
 .group-card.is-dragging {
   box-shadow: var(--shadow-pop);
 }
 
+/* The header is a band on the subtle surface, as the site's group cards;
+   the first row's top hairline is its bottom edge. */
 .group-header {
   display: flex;
   align-items: center;
   gap: 8px;
   min-height: 48px;
   padding: 4px 10px 4px 8px;
+  background: var(--surface-subtle);
+  border-radius: calc(var(--radius-card) - 1px) calc(var(--radius-card) - 1px) 0 0;
+}
+
+.group-card.is-collapsed .group-header {
+  border-radius: calc(var(--radius-card) - 1px);
 }
 
 .group-handle,
@@ -729,8 +860,13 @@
 
 .group-count {
   flex: none;
-  font-size: var(--fs-sm);
-  color: var(--text-tertiary);
+  padding: 1px 8px;
+  border-radius: var(--radius-pill);
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  line-height: 1.5;
 }
 
 .group-peek {
@@ -763,8 +899,8 @@
 }
 
 .group-action {
-  height: 30px;
-  min-width: 30px;
+  height: 32px;
+  min-width: 32px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -822,7 +958,11 @@
 }
 
 .group-rows > .group-row:last-child {
-  border-radius: 0 0 var(--radius-card) var(--radius-card);
+  border-radius: 0 0 calc(var(--radius-card) - 1px) calc(var(--radius-card) - 1px);
+}
+
+.group-row:hover {
+  background: var(--surface-subtle);
 }
 
 .group-row.is-dragging {
@@ -841,6 +981,9 @@
 .group-row-label {
   font-weight: 600;
   white-space: nowrap;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .group-row-domain {
@@ -854,8 +997,8 @@
 }
 
 .group-row-remove {
-  width: 30px;
-  height: 30px;
+  width: 32px;
+  height: 32px;
   flex: none;
   display: flex;
   align-items: center;
@@ -881,14 +1024,16 @@
   line-height: 1.5;
 }
 
+/* Information, not a warning: moss-soft for "moved", solid moss for "new".
+   Amber stays reserved for the popup's paused strip. */
 .reorder-tag-moved {
-  background: var(--warn-bg);
-  color: var(--warn-fg-muted);
+  background: var(--accent-soft);
+  color: var(--accent-soft-fg);
 }
 
 .reorder-tag-new {
-  background: var(--accent-soft);
-  color: var(--accent-soft-fg);
+  background: var(--accent-moss);
+  color: var(--text-on-accent);
 }
 
 /* Waypoint picker popover. */
@@ -1132,6 +1277,11 @@
   font-weight: 600;
 }
 
+/* The option the arrow keys are on. */
+.search-select-item.is-active:not(.is-selected) {
+  background: var(--surface-subtle);
+}
+
 .search-select-item.is-fixed {
   color: var(--text-tertiary);
 }
@@ -1197,8 +1347,8 @@
 .custom-item-editing {
   padding: 1px 7px;
   border-radius: var(--radius-pill);
-  background: var(--warn-bg);
-  color: var(--warn-fg-muted);
+  background: var(--accent-soft);
+  color: var(--accent-soft-fg);
   font-size: var(--fs-sm);
   font-weight: 600;
 }
@@ -1220,10 +1370,6 @@
   padding: 0 12px;
 }
 
-.custom-item-remove {
-  color: var(--danger);
-}
-
 .custom-item-remove:hover {
   color: var(--danger);
   background: var(--danger-soft);
@@ -1237,7 +1383,7 @@
   min-height: 44px;
   padding: 0 18px;
   border-top: 1px solid var(--border-subtle);
-  border-radius: 0 0 var(--radius-card) var(--radius-card);
+  border-radius: 0 0 calc(var(--radius-card) - 1px) calc(var(--radius-card) - 1px);
   background: var(--surface-subtle);
   color: var(--text-accent);
   font-weight: 600;
@@ -1289,6 +1435,7 @@
 .custom-templates-help {
   clear: both;
   margin: 0 0 12px;
+  max-width: 68ch;
   font-size: var(--fs-md);
   line-height: 1.5;
   color: var(--text-secondary);
@@ -1339,13 +1486,6 @@
 
 .custom-template-row.is-on .custom-template-label {
   color: var(--text-primary);
-}
-
-.visibility-checkbox {
-  width: 16px;
-  height: 16px;
-  margin: 0;
-  accent-color: var(--accent-moss);
 }
 
 .custom-template-field {
@@ -1439,12 +1579,17 @@
 
 .validation-error {
   margin: 0 18px 16px;
-  padding: 10px 12px;
+  padding: 10px 12px 10px 28px;
+  list-style: disc;
   border-radius: var(--radius-control);
   background: var(--danger-soft);
   border: 1px solid var(--danger-border);
   color: var(--danger);
   font-size: var(--fs-md);
+}
+
+.validation-error li + li {
+  margin-top: 2px;
 }
 
 .custom-form-actions {
@@ -1453,7 +1598,7 @@
   gap: 8px;
   padding: 12px 18px;
   border-top: 1px solid var(--border-subtle);
-  border-radius: 0 0 var(--radius-card) var(--radius-card);
+  border-radius: 0 0 calc(var(--radius-card) - 1px) calc(var(--radius-card) - 1px);
   background: var(--surface-subtle);
 }
 
@@ -1510,13 +1655,17 @@
   overflow-wrap: anywhere;
 }
 
-.about-code {
-  padding: 1px 6px;
-  border-radius: 4px;
-  background: var(--bg-tertiary);
+/* Inline identifiers in card copy: the site's mono chip. */
+.options-card-sub code,
+.dev-card-sub code {
   font-family: var(--font-mono);
-  font-size: var(--fs-sm);
-  color: var(--text-secondary);
+  font-size: 0.92em;
+  white-space: nowrap;
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: var(--surface-subtle);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-primary);
 }
 
 .about-version {
@@ -1535,9 +1684,20 @@
   margin-top: 12px;
 }
 
+/* A section within a Dev card: its divider runs to the card's edges. */
+.dev-card-section {
+  margin: 16px -18px 0;
+  padding: 14px 18px 0;
+  border-top: 1px solid var(--border-subtle);
+}
+
 .dev-card-subhead {
   margin-top: 6px;
   font-weight: 700;
+}
+
+.dev-card-section > .dev-card-subhead {
+  margin-top: 0;
 }
 
 .dev-card-sub {
@@ -1566,7 +1726,7 @@
   border: 1px solid var(--border-subtle);
   background: var(--surface-subtle);
   font-family: var(--font-mono);
-  font-size: var(--fs-xs);
+  font-size: var(--fs-sm);
   line-height: 1.5;
   color: var(--text-primary);
   white-space: pre;
@@ -1621,4 +1781,28 @@
 
 .dev-info-row code {
   color: var(--text-accent);
+}
+
+/* Touch: the dense in-card controls grow to a thumb's width, as on the
+   site's settings page; the 48px header and 44px rows have the room. */
+@media (hover: none) {
+  .group-row-remove,
+  .group-chevron {
+    width: 36px;
+    height: 36px;
+  }
+
+  .group-handle,
+  .group-row-handle {
+    width: 32px;
+  }
+
+  .group-action {
+    height: 36px;
+    min-width: 36px;
+  }
+
+  .group-actions {
+    gap: 8px;
+  }
 }

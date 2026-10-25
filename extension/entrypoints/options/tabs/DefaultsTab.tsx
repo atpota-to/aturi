@@ -138,11 +138,14 @@ export default function DefaultsTab({ prefs, onChange }: Props) {
                   return (
                     <div className="options-row defaults-family-row" key={family}>
                       <div className="defaults-family-meta">
-                        <div className="defaults-family-name">{meta.name}</div>
+                        <div className="defaults-family-name" id={`favorite-${family}-name`}>
+                          {meta.name}
+                        </div>
                         <div className="defaults-family-desc">{meta.description}</div>
                       </div>
                       <SearchSelect
                         id={`favorite-${family}`}
+                        labelledBy={`favorite-${family}-name`}
                         options={options}
                         value={current}
                         onChange={val => setFamilyFavorite(family, val)}
@@ -392,9 +395,10 @@ function ToggleRow({
       {action}
       <button
         type="button"
+        role="switch"
         className={`aturi-switch ${on ? 'on' : ''}`}
         onClick={onToggle}
-        aria-pressed={on}
+        aria-checked={on}
         aria-label={title}
       >
         <span className="aturi-switch-box" />

@@ -284,8 +284,25 @@ export default function App() {
     }, 1400);
   }
 
+  // The chrome paints on the first frame: the bar, the tabs and a blank
+  // slot where the theme toggle will sit, so nothing jumps when prefs land.
   if (state.phase === 'loading') {
-    return <div className="popup-empty">Loading...</div>;
+    return (
+      <div className="popup-shell">
+        <TopBar
+          mode={mode}
+          onSelect={selectMode}
+          inspectCount={inspectScan.hits.length}
+          inspectScanning={inspectScan.scanning}
+          theme={null}
+        />
+        <main className="popup-body">
+          <div className="popup-empty" aria-busy="true">
+            Loading...
+          </div>
+        </main>
+      </div>
+    );
   }
 
   const prefs = state.prefs;
@@ -315,33 +332,58 @@ export default function App() {
 
   return (
     <div className={`popup-shell ${prefs.compactMode ? 'is-compact' : ''}`}>
-      <header className="popup-topbar">
-        <div className="popup-title">
-          <AturiMark />
-          <span>aturi</span>
-        </div>
-        <PopupModeTabs
-          mode={mode}
-          onSelect={selectMode}
-          inspectCount={inspectScan.hits.length}
-          inspectScanning={inspectScan.scanning}
-        />
-        <div className="popup-topbar-actions">
-          <ThemeToggle theme={prefs.theme} />
-          <button
-            type="button"
-            className="popup-icon-btn popup-mode-tab-settings"
-            onClick={() => void openOptionsPage()}
-            title="Open settings"
-            aria-label="Open extension settings"
-          >
-            <SettingsIcon />
-          </button>
-        </div>
-      </header>
+      <TopBar
+        mode={mode}
+        onSelect={selectMode}
+        inspectCount={inspectScan.hits.length}
+        inspectScanning={inspectScan.scanning}
+        theme={prefs.theme}
+      />
       <main className="popup-body">{inner}</main>
       <RedirectControl prefs={prefs} tabId={state.tabId} />
     </div>
+  );
+}
+
+function TopBar({
+  mode,
+  onSelect,
+  inspectCount,
+  inspectScanning,
+  theme,
+}: {
+  mode: PopupMode;
+  onSelect: (next: PopupMode) => void;
+  inspectCount: number;
+  inspectScanning: boolean;
+  /** null while prefs load: a blank slot keeps the tabs in place. */
+  theme: Prefs['theme'] | null;
+}) {
+  return (
+    <header className="popup-topbar">
+      <div className="popup-title">
+        <AturiMark />
+        <span>aturi</span>
+      </div>
+      <PopupModeTabs
+        mode={mode}
+        onSelect={onSelect}
+        inspectCount={inspectCount}
+        inspectScanning={inspectScanning}
+      />
+      <div className="popup-topbar-actions">
+        {theme ? <ThemeToggle theme={theme} /> : <span className="popup-icon-btn" aria-hidden="true" />}
+        <button
+          type="button"
+          className="popup-icon-btn popup-mode-tab-settings"
+          onClick={() => void openOptionsPage()}
+          title="Open settings"
+          aria-label="Open extension settings"
+        >
+          <SettingsIcon />
+        </button>
+      </div>
+    </header>
   );
 }
 
@@ -359,12 +401,34 @@ function PopupModeTabs({
   inspectScanning: boolean;
 }) {
   const showInspectBadge = !inspectScanning && inspectCount > 0;
+  // One tab stop; the arrow keys, Home and End move between the two tabs
+  // and open each as it takes focus (the WAI-ARIA tabs pattern, as on the
+  // site's repository card).
+  const order: PopupMode[] = ['waypoints', 'inspect'];
+  function onKeyDown(e: React.KeyboardEvent<HTMLDivElement>) {
+    const at = order.indexOf(mode);
+    const next =
+      e.key === 'ArrowRight'
+        ? (at + 1) % order.length
+        : e.key === 'ArrowLeft'
+          ? (at - 1 + order.length) % order.length
+          : e.key === 'Home'
+            ? 0
+            : e.key === 'End'
+              ? order.length - 1
+              : -1;
+    if (next < 0) return;
+    e.preventDefault();
+    onSelect(order[next]);
+    (e.currentTarget.children[next] as HTMLElement | undefined)?.focus();
+  }
   return (
-    <div className="popup-mode-tabs" role="tablist" aria-label="Popup mode">
+    <div className="popup-mode-tabs" role="tablist" aria-label="Popup mode" onKeyDown={onKeyDown}>
       <button
         type="button"
         role="tab"
         aria-selected={mode === 'waypoints'}
+        tabIndex={mode === 'waypoints' ? 0 : -1}
         className={`popup-mode-tab ${mode === 'waypoints' ? 'is-active' : ''}`}
         onClick={() => onSelect('waypoints')}
       >
@@ -376,6 +440,7 @@ function PopupModeTabs({
         type="button"
         role="tab"
         aria-selected={mode === 'inspect'}
+        tabIndex={mode === 'inspect' ? 0 : -1}
         className={`popup-mode-tab ${mode === 'inspect' ? 'is-active' : ''}`}
         onClick={() => onSelect('inspect')}
       >
@@ -498,9 +563,10 @@ function RedirectControl({ prefs, tabId }: { prefs: Prefs; tabId: number | null 
       )}
       <button
         type="button"
+        role="switch"
         className={`aturi-switch aturi-switch-sm ${prefs.autoRedirect ? 'on' : ''}`}
         onClick={() => void savePrefs({ autoRedirect: !prefs.autoRedirect })}
-        aria-pressed={prefs.autoRedirect}
+        aria-checked={prefs.autoRedirect}
         aria-label="Auto-redirect"
         title={
           prefs.autoRedirect
@@ -618,7 +684,7 @@ function NoAtmosphereView({
             <span className="popup-jump-note">Shortcuts open each app&apos;s home page</span>
           </div>
           {shortcutGroups.map(group => (
-            <section className="popup-section" key={group.category.id}>
+            <section className="popup-section is-sheet" key={group.category.id}>
               <h3 className="popup-section-label">{group.category.name}</h3>
               <div className="popup-tiles">
                 {group.waypoints.map(w => (
@@ -628,7 +694,7 @@ function NoAtmosphereView({
                       className="popup-tile-main"
                       onClick={() => onOpenHome(w)}
                       disabled={pendingId === w.id}
-                      title={homePageSubtitle(w, prefs.customWaypoints)}
+                      title={`${w.name} · ${homePageSubtitle(w, prefs.customWaypoints)}`}
                     >
                       <WaypointIcon id={w.id} name={w.name} />
                       <span className="popup-tile-name">{w.name}</span>
@@ -743,7 +809,7 @@ function Ready({ match, prefs, pendingId, copiedId, onOpen, onCopy }: ReadyProps
       <NewWaypointsNotice prefs={prefs} />
 
       {prefs.historyEnabled && recents.length > 0 && (
-        <section className="popup-section">
+        <section className="popup-section is-sheet">
           <h2 className="popup-section-label">Recents</h2>
           <div className="popup-recents-row">
             {recents.map(w => (
@@ -763,8 +829,8 @@ function Ready({ match, prefs, pendingId, copiedId, onOpen, onCopy }: ReadyProps
       )}
 
       {prefs.smartRecommendations && recommended.waypoints.length > 0 && (
-        <section className="popup-section">
-          <h2 className="popup-section-label">{recommended.label}</h2>
+        <section className="popup-section is-sheet">
+          <h2 className="popup-section-label is-highlighted">{recommended.label}</h2>
           <div className="popup-waypoints">
             {recommended.waypoints
               .filter(w => w.id !== source)
@@ -791,7 +857,7 @@ function Ready({ match, prefs, pendingId, copiedId, onOpen, onCopy }: ReadyProps
         );
         if (waypoints.length === 0) return null;
         return (
-          <section className="popup-section" key={group.category.id}>
+          <section className="popup-section is-sheet" key={group.category.id}>
             <h2 className="popup-section-label">{group.category.name}</h2>
             <div className="popup-waypoints">
               {waypoints.map(w => (
@@ -1104,7 +1170,7 @@ function CopyWaypointButton({
       title={copied ? 'Copied!' : 'Copy link'}
       aria-label={copied ? 'Copied to clipboard' : label}
     >
-      {copied ? <Check size={14} aria-hidden /> : <Link2 size={14} aria-hidden />}
+      {copied ? <Check size={14} aria-hidden /> : <Copy size={14} aria-hidden />}
     </button>
   );
 }
