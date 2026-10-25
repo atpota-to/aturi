@@ -637,8 +637,14 @@ function CollectionList({
                   {editing ? 'Done' : 'Edit'}
                 </button>
               )}
-              {/* No universal link route for collections — share the explorer URL. */}
-              <ShareLinkChip url={`/explore/${repoSeg}/${collection}`} iconOnly />
+              {/* No universal link route for collections — share the explorer URL.
+                  Hidden on phones, where the bottom bar's copy-link is on
+                  screen at the same time (explorer.css). */}
+              <ShareLinkChip
+                url={`/explore/${repoSeg}/${collection}`}
+                iconOnly
+                className="fx-title-share"
+              />
             </div>
           </div>
         </AppearIn>

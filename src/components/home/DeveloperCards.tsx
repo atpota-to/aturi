@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useState, type ReactNode } from 'react';
-import { Bot, Check, ChevronRight, Code2, Copy } from 'lucide-react';
+import { Check, ChevronRight, Code2, Copy, Plug } from 'lucide-react';
 import { config } from '@/lib/config';
 
 // Built from the configured domain rather than getSiteUrl(): the latter
@@ -89,7 +89,7 @@ export default function DeveloperCards() {
         For developers and agents
       </h2>
       <div className="fn-home-devgrid">
-        <DevCard id="fn-home-mcp" icon={<Bot size={18} />} title="MCP server">
+        <DevCard id="fn-home-mcp" icon={<Plug size={18} />} title="MCP server">
           <p>
             One URL makes the Atmosphere more traversable for agents. Every tool
             is read-only: no key, no account, nothing to install.

@@ -59,20 +59,21 @@ export default function ThemeToggle({ variant = 'inline' }: ThemeToggleProps) {
   }
 
   if (variant === 'row') {
-    // Match the other compact-menu rows exactly: an icon + label button using
-    // the shared .compact-nav-link styling. Clicking toggles dark/light; the
-    // moon/sun icon reflects the current theme.
+    // A full-width row under the destinations, in the same tile styling,
+    // that says which theme is on (the icon and a trailing tag) rather than
+    // posing as another place to go. Clicking toggles dark/light.
     const rowNext: Theme = theme === 'dark' ? 'light' : 'dark';
     return (
       <button
         type="button"
         onClick={() => pick(rowNext)}
         aria-label={`Switch to ${rowNext} mode`}
-        className="compact-nav-link"
-        style={{ font: 'inherit', textAlign: 'left', width: '100%' }}
+        className="compact-nav-link compact-nav-link-wide"
+        style={{ textAlign: 'left', width: '100%' }}
       >
         {theme === 'dark' ? <Moon size={16} /> : <Sun size={16} />}
         <span>Theme</span>
+        <span className="compact-nav-tag">{theme === 'dark' ? 'Dark' : 'Light'}</span>
       </button>
     );
   }

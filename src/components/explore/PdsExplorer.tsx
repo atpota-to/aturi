@@ -122,20 +122,30 @@ export default function PdsExplorer({ host }: Props) {
     [repos, handles, query],
   );
 
-  // The PDS page's find action: search the repos this server hosts.
-  useChromeBarField({
-    placeholder: 'Search repos…',
-    label: 'Search repos on this PDS',
-    value: filter,
-    onChange: setFilter,
-    resultsId: CHROME_RESULTS_ID,
-    status:
-      repos.length === 0
-        ? null
-        : query
-          ? `${visibleRepos.length}/${repos.length}`
-          : `${repos.length}${done ? '' : '+'}`,
-  });
+  // The PDS page's find action: search the repos this server hosts. Only
+  // while there is, or may yet be, something to search: `done` stays false
+  // from first render through the first page (no flash), turns true on an
+  // empty listing, and `reposError` covers a first page that failed. A host
+  // that refuses to list (bsky.social does) otherwise left a field over the
+  // notice saying so; without one the bar falls back to the jump search.
+  const searchable = repos.length > 0 || (!reposError && !done);
+  useChromeBarField(
+    searchable
+      ? {
+          placeholder: 'Search repos…',
+          label: 'Search repos on this PDS',
+          value: filter,
+          onChange: setFilter,
+          resultsId: CHROME_RESULTS_ID,
+          status:
+            repos.length === 0
+              ? null
+              : query
+                ? `${visibleRepos.length}/${repos.length}`
+                : `${repos.length}${done ? '' : '+'}`,
+        }
+      : null,
+  );
 
   return (
     <div className="fn-lexdetail fn-pds">

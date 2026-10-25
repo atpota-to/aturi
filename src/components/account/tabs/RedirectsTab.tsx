@@ -78,7 +78,7 @@ export default function RedirectsTab() {
           const meta = COMPAT_FAMILIES[family];
           const current = prefs.favoriteByFamily?.[family] ?? '';
           return (
-            <div className="settings-toggle-row" key={family}>
+            <div className={`settings-toggle-row${enabled ? '' : ' is-gated'}`} key={family}>
               <label className="settings-toggle-label" htmlFor={`redirect-${family}`}>
                 <span className="settings-toggle-label-text">{meta?.name ?? family}</span>
                 {meta?.description && (

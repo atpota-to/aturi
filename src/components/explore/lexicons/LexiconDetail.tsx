@@ -7,7 +7,7 @@ import { ArrowLeft, FileText, GitBranch, Layers } from 'lucide-react';
 import AppearIn from '../AppearIn';
 import { useChromeBarField } from '../ChromeBarContext';
 import { Skeleton } from '@/components/SkeletonLoader';
-import { AppSiteLink, Credit, DeltaPill, Segmented, Sparkline } from './primitives';
+import { AppSiteLink, Credit, DeltaPill, Nsid, Segmented, Sparkline } from './primitives';
 import {
   fetchCollectionStats,
   fetchPrefix,
@@ -47,6 +47,9 @@ const SAMPLE_LIMIT = 8;
  * and recent record samples — all from the UFOs API. Renders for any
  * string; unknown NSIDs simply show empty states rather than erroring.
  */
+/** How wide each chart bucket is, by window step (utils/ufos/windows.ts). */
+const BUCKET_LABEL: Record<number, string> = { 7200: '2h', 43200: '12h', 86400: 'day' };
+
 export default function LexiconDetail({ nsid }: { nsid: string }) {
   const router = useRouter();
   const [window, setWindow] = useState<Window>('7d');
@@ -163,7 +166,9 @@ export default function LexiconDetail({ nsid }: { nsid: string }) {
             <Layers size={13} aria-hidden />
             Lexicon
           </span>
-          <h1 className="fn-lexhead-title fn-lexhead-mono">{nsid}</h1>
+          <h1 className="fn-lexhead-title fn-lexhead-mono">
+            <Nsid value={nsid} />
+          </h1>
           <div className="fn-lexhead-meta">
             <span>
               group{' '}
@@ -184,9 +189,12 @@ export default function LexiconDetail({ nsid }: { nsid: string }) {
         </div>
       </AppearIn>
 
-      {/* Window toggle */}
+      {/* Window toggle, labelled: it governs the tiles and the chart below. */}
       <AppearIn delay={0.06}>
         <div className="fn-lexdetail-window">
+          <span className="fn-lexdetail-window-label">
+            Last {cfg.label} · change vs the {cfg.label} before
+          </span>
           <Segmented
             ariaLabel="Time window"
             options={(Object.keys(WINDOWS) as Window[]).map((w) => ({
@@ -245,6 +253,18 @@ export default function LexiconDetail({ nsid }: { nsid: string }) {
               </p>
             )}
           </div>
+          {/* The line's scale: the chart is normalised to its own range, so
+              without this a flat week and a wild one look the same. */}
+          {buckets !== null && series.some((v) => v > 0) && (
+            <div className="fn-chart-axis">
+              <span>{cfg.label} ago</span>
+              <span>
+                low {formatCount(Math.min(...series))} · high {formatCount(Math.max(...series))} per{' '}
+                {BUCKET_LABEL[cfg.step] ?? `${cfg.step / 3600}h`}
+              </span>
+              <span>now</span>
+            </div>
+          )}
         </div>
       </AppearIn>
 
@@ -259,10 +279,16 @@ export default function LexiconDetail({ nsid }: { nsid: string }) {
             </p>
           ) : (
             <ul className="fn-list-rows">
+              <li className="fn-col-head fn-browse-grid" aria-hidden>
+                <span>Collection</span>
+                <span style={{ textAlign: 'right' }}>Creates</span>
+              </li>
               {siblings.map((c) => (
                 <li key={c.nsid}>
                   <Link href={lexiconPathFor(c.nsid)} prefetch={false} className="fn-row fn-browse-grid">
-                    <span className="fn-row-nsid">{c.nsid}</span>
+                    <span className="fn-row-nsid" title={c.nsid}>
+                      <Nsid value={c.nsid} />
+                    </span>
                     <span className="fn-row-count" title={`${c.creates.toLocaleString()} creates`}>
                       {formatCount(c.creates)}
                     </span>

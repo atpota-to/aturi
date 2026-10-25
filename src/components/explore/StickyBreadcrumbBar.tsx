@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { AnimatePresence, motion } from 'framer-motion';
-import { ChevronRight, Server, User } from 'lucide-react';
+import { Server, User } from 'lucide-react';
 import { useBreadcrumbTrail, type BreadcrumbCrumb } from './BreadcrumbContext';
 
 /**
@@ -122,11 +122,9 @@ export default function StickyBreadcrumbBar() {
 function FoldButton({ count, onClick }: { count: number; onClick: () => void }) {
   return (
     <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', flexShrink: 0 }}>
-      <ChevronRight
-        size={11}
-        aria-hidden
-        style={{ color: 'var(--text-tertiary)', opacity: 0.6, flexShrink: 0 }}
-      />
+      <span aria-hidden className="fx-crumb-sep" style={{ flexShrink: 0 }}>
+        /
+      </span>
       <button
         type="button"
         onClick={onClick}
@@ -206,11 +204,9 @@ function Segment({
       }}
     >
       {!first && (
-        <ChevronRight
-          size={11}
-          aria-hidden
-          style={{ color: 'var(--text-tertiary)', opacity: 0.6, flexShrink: 0 }}
-        />
+        <span aria-hidden className="fx-crumb-sep" style={{ flexShrink: 0 }}>
+          /
+        </span>
       )}
       {crumb.href && !last ? (
         <Link

@@ -42,8 +42,10 @@
   align-items: flex-start;
   gap: 16px 24px;
 }
+/* Free space is shared 3:1, so the aside reaches its 360px from about
+   1070px up instead of being starved at 320px while the main column grows. */
 .fn-rec-main {
-  flex: 999 1 520px;
+  flex: 3 1 520px;
 }
 .fn-rec-aside {
   flex: 1 1 320px;
@@ -127,7 +129,7 @@
 }
 
 .fn-rec-btn {
-  height: 34px;
+  height: 36px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -368,38 +370,38 @@
   padding: 10px 12px 10px 16px;
   border-bottom: 1px solid var(--border-subtle);
 }
+/* Fields / JSON are two independent toggles (both can be on; only hiding
+   both is refused), so they are drawn as two chips with the site's "on"
+   fill, not as a segmented switch that promises one or the other. */
 .fn-rec-seg {
-  display: flex;
-  padding: 3px;
-  border-radius: var(--radius-control);
-  background: var(--bg-tertiary);
+  display: inline-flex;
+  gap: 4px;
 }
-/* Same values as .fn-segmented (explore.css), the site's one segmented
-   control. */
 .fn-rec-seg button {
   height: 28px;
-  padding: 0 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0 10px;
   border-radius: 6px;
-  border: 0;
-  background: transparent;
+  border: 1px solid var(--border-medium);
+  background: var(--bg-secondary);
   color: var(--text-secondary);
   font-family: var(--font-sans);
-  font-size: 13px;
+  font-size: 12.5px;
   font-weight: 500;
   cursor: pointer;
-  transition: background 0.15s ease, color 0.15s ease;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
 }
 .fn-rec-seg button:hover {
   color: var(--text-primary);
+  border-color: var(--border-strong);
 }
 .fn-rec-seg button[aria-pressed='true'] {
-  background: var(--bg-secondary);
-  color: var(--text-primary);
+  background: var(--accent-soft);
+  border-color: var(--accent-soft-border);
+  color: var(--accent-soft-fg);
   font-weight: 600;
-  box-shadow: 0 1px 2px rgb(28 30 25 / 0.12);
-}
-:root:not([data-theme='light']) .fn-rec-seg button[aria-pressed='true'] {
-  background: var(--border-strong);
 }
 .fn-rec-seg button:focus-visible {
   outline: 2px solid var(--text-accent);
@@ -491,6 +493,12 @@
   min-width: 100px;
   max-width: 100px;
 }
+/* In the aside the top-level labels take the 84px the nested rows already
+   use: one label rhythm, and 16px more for the values. */
+.fn-rec-aside .record-fields .fn-field-label {
+  min-width: 84px;
+  max-width: 84px;
+}
 .fn-field-value {
   flex: 1;
   min-width: 0;
@@ -502,6 +510,25 @@
 .fn-field-value.is-mono {
   font-family: var(--font-mono);
   font-size: 12.5px;
+}
+/* Prose in the wide column keeps a readable measure. */
+.fn-rec-main .fn-field-value:not(.is-mono) {
+  max-width: 68ch;
+}
+/* The copy glyph after a value: faint until the value is hovered or
+   focused, the accent once copied. */
+.fn-field-copy {
+  color: var(--text-tertiary);
+  opacity: 0.4;
+  transition: opacity 0.15s ease, color 0.15s ease;
+}
+.fn-field-value:hover .fn-field-copy,
+.fn-field-value:focus-within .fn-field-copy {
+  opacity: 1;
+}
+.fn-field-copy[data-copied] {
+  opacity: 1;
+  color: var(--text-accent);
 }
 .fn-field-null {
   color: var(--text-tertiary);
@@ -576,6 +603,17 @@
   }
   .fn-fields-bare .record-fields .fn-field-label {
     padding-top: 1px;
+  }
+  /* A paragraph takes the whole row rather than a ribbon beside an empty
+     label column; short values keep the two columns. */
+  .fn-fields-bare .fn-field[data-prose] > .fn-field-main {
+    flex-direction: column;
+    gap: 3px;
+  }
+  .fn-fields-bare .fn-field[data-prose] > .fn-field-main > .fn-field-label {
+    min-width: 0;
+    max-width: none;
+    padding-top: 0;
   }
   .fn-fields-card .record-fields .fn-field-main {
     gap: 2px;
@@ -735,6 +773,12 @@
 .fn-rec-preview .card:not(.post-preview) img[alt] {
   border-radius: 10px;
 }
+/* About 80 characters a line: the post and its quote share one measure so
+   their right edges line up; images and link cards keep the card's width. */
+.fn-rec-preview .fn-post-text,
+.fn-rec-preview .fn-post-quote {
+  max-width: 36rem;
+}
 
 /* --- engagement ---------------------------------------------------------- */
 
@@ -776,11 +820,19 @@
   flex-wrap: wrap;
   gap: 6px;
 }
+.fn-rec-copy-chips .fx-copy {
+  height: 28px;
+  border-radius: var(--radius-control);
+}
 .fn-rec-signin {
   padding: 14px 16px;
   display: flex;
   flex-direction: column;
   gap: 10px;
+}
+/* A handle is rarely 30 characters; the form sizes like the settings one. */
+.fn-rec-signin .signin-panel {
+  max-width: 32rem;
 }
 .fn-rec-signin > p {
   margin: 0;
@@ -921,9 +973,6 @@
   .fn-rec-actions {
     width: 100%;
   }
-  .fn-rec-actions .fn-rec-btn {
-    flex: 1 1 auto;
-  }
   .fn-rec-btn,
   .fn-rec-signin .settings-btn,
   .fn-rec-signin input {
@@ -962,5 +1011,8 @@
     width: max(100%, 40px);
     height: max(100%, 40px);
     transform: translate(-50%, -50%);
+  }
+  .fn-field-copy {
+    opacity: 0.6;
   }
 }

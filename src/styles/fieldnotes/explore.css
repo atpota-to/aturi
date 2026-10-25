@@ -24,9 +24,10 @@
 }
 
 /* Spotlights, the live feed and cross-links below the pulse keep their own
-   layout; give them the old breathing room. */
+   layout; 64px between them, the rhythm the spaces landing uses, where the
+   intro, tiles and pulse above stay one group at the base gap. */
 .fn-explore > :nth-child(n + 4) {
-  margin-top: 12px;
+  margin-top: 36px;
 }
 
 .fn-kicker {
@@ -148,7 +149,7 @@
 .fn-x-tiles {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 12px;
+  gap: 16px;
 }
 
 .fn-x-tile {
@@ -182,10 +183,21 @@
 }
 
 .fn-x-tile-text {
+  flex: 1;
   display: flex;
   flex-direction: column;
   gap: 1px;
   min-width: 0;
+}
+
+/* The chevron says "link" on touch screens, where the hover border can't. */
+.fn-x-tile-chev {
+  flex: none;
+  color: var(--text-tertiary);
+}
+
+.fn-x-tile:hover .fn-x-tile-chev {
+  color: var(--text-accent);
 }
 
 .fn-x-tile-title {
@@ -498,6 +510,17 @@
   color: var(--text-primary);
 }
 
+.fn-row:focus-visible {
+  outline: 2px solid var(--text-accent);
+  outline-offset: -2px;
+}
+
+/* A column head leading the card, or the list, needs no rule above it. */
+.fn-list-card > .fn-col-head:first-child,
+.fn-list-rows > .fn-col-head:first-child {
+  border-top: 0;
+}
+
 .fn-row-rank {
   font-family: var(--font-sans);
   font-size: 12px;
@@ -581,6 +604,27 @@
     grid-template-columns: 1.25rem minmax(0, 1fr) 3rem 4.5rem;
     gap: 8px;
     padding: 6px 12px;
+  }
+
+  /* The trending card's three controls: the short pair (Trending/Top and
+     1d/7d/30d) share a row and the wide metric picker takes its own, instead
+     of three ragged rows. */
+  #trending .fn-list-card-controls > .fn-segmented:nth-child(2) {
+    order: 1;
+  }
+
+  /* Browse rows: an NSID wraps at its dots (primitives.tsx, Nsid) rather
+     than losing its last segment to an ellipsis; the figures column
+     narrows to what a count needs. */
+  .fn-browse-grid {
+    grid-template-columns: minmax(0, 1fr) 4rem;
+    gap: 10px;
+    padding: 6px 12px;
+  }
+  .fn-browse-grid .fn-row-nsid {
+    white-space: normal;
+    overflow-wrap: anywhere;
+    line-height: 1.35;
   }
 }
 
@@ -692,6 +736,10 @@
     gap: 22px;
   }
 
+  .fn-explore > :nth-child(n + 4) {
+    margin-top: 26px;
+  }
+
   .fn-x-intro-copy h1,
   .fn-lexicons-intro h1 {
     font-size: 30px;
@@ -700,6 +748,90 @@
   .fn-x-intro-copy,
   .fn-x-intro-search {
     flex-basis: 100%;
+  }
+
+  /* Ranked rows kept desktop padding and a 76px figures column, which left
+     the identifier about 20 characters at 390px. */
+  .fn-pulse-row {
+    padding: 6px 12px;
+  }
+  .fn-pulse-row-ranked {
+    grid-template-columns: 16px minmax(0, 1fr) 72px;
+    gap: 10px;
+  }
+}
+
+/* ---------- Spaces landing ----------
+   The page is laid out in SpacesLanding.tsx; these are the pieces that
+   change with the viewport, which inline styles can't. */
+
+.fn-sp-landing-title {
+  margin: 0 0 0.75rem;
+  font-size: 36px;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  line-height: 1.1;
+  color: var(--text-primary);
+}
+
+/* The measure: 75-80 characters at 16px. */
+.fn-sp-lead {
+  max-width: 38rem;
+}
+
+.fn-spaces-landing .oauth-typeahead-input {
+  height: 40px;
+  font-size: 14px;
+}
+
+.fn-sp-signin-btn {
+  min-height: 40px;
+}
+
+.fn-sp-apps {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.fn-sp-app {
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-card);
+  background: var(--bg-secondary);
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.fn-sp-app:hover {
+  border-color: var(--border-strong);
+  background: var(--surface-subtle);
+}
+
+@media (max-width: 960px) {
+  .fn-sp-apps {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  /* Under 16px, iOS Safari zooms the page when the field takes focus. */
+  .fn-spaces-landing .oauth-typeahead-input {
+    height: 48px;
+    font-size: 16px;
+  }
+  .fn-sp-signin-btn {
+    min-height: 48px;
+  }
+}
+
+@media (max-width: 600px) {
+  .fn-sp-landing-title {
+    font-size: 30px;
+  }
+}
+
+@media (max-width: 560px) {
+  .fn-sp-apps {
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 
@@ -863,7 +995,9 @@
   letter-spacing: -0.02em;
   line-height: 1.15;
   color: var(--text-primary);
-  word-break: break-word;
+  /* The NSID carries a break after every dot (primitives.tsx, Nsid); this
+     is only the backstop for a single segment wider than the column. */
+  overflow-wrap: anywhere;
 }
 
 .fn-lexhead-mono {
@@ -907,7 +1041,17 @@
 
 .fn-lexdetail-window {
   display: flex;
-  justify-content: flex-end;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px 12px;
+  margin: 4px 0 -4px;
+}
+
+.fn-lexdetail-window-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-tertiary);
 }
 
 .fn-stat-grid {
@@ -955,6 +1099,23 @@
   align-items: center;
   justify-content: space-between;
   gap: 8px;
+}
+
+/* The chart's scale, under the line: when it starts, its range, when it
+   ends. Pulled up a little so it reads as the line's caption. */
+.fn-chart-axis {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 4px 12px;
+  margin-top: -6px;
+  font-size: 11px;
+  color: var(--text-tertiary);
+  font-variant-numeric: tabular-nums;
+}
+
+.fn-chart-axis > :nth-child(2) {
+  text-align: center;
 }
 
 .fn-sample-row {
@@ -1035,11 +1196,17 @@
    invisible 40px hit area. */
 @media (pointer: coarse) {
   .fn-chip,
-  .fn-segmented-option {
+  .fn-segmented-option,
+  .fn-toggle,
+  .fn-btn,
+  .fn-backlink {
     position: relative;
   }
   .fn-chip::after,
-  .fn-segmented-option::after {
+  .fn-segmented-option::after,
+  .fn-toggle::after,
+  .fn-btn::after,
+  .fn-backlink::after {
     content: '';
     position: absolute;
     top: 50%;
@@ -1047,5 +1214,9 @@
     width: 100%;
     height: 40px;
     transform: translate(-50%, -50%);
+  }
+  .fn-btn::after,
+  .fn-backlink::after {
+    height: 44px;
   }
 }

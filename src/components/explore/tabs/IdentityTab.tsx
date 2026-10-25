@@ -92,7 +92,7 @@ export default function IdentityTab({ identity }: { identity: IdentityBundle }) 
               {v.publicKeyMultibase && (
                 <div className="explore-id-row">
                   <span className="explore-small-caps">key</span>
-                  <code style={{ fontSize: '0.75rem', wordBreak: 'break-all' }}>
+                  <code style={{ fontSize: '0.75rem' }}>
                     {v.publicKeyMultibase}
                   </code>
                 </div>

@@ -212,6 +212,8 @@ export default function LexiconSearchBox() {
                   alignItems: 'center',
                   gap: '0.5rem',
                   width: '100%',
+                  minHeight: '40px',
+                  boxSizing: 'border-box',
                   padding: '0.5rem 0.75rem',
                   background: 'transparent',
                   border: 0,
@@ -262,6 +264,8 @@ export default function LexiconSearchBox() {
                     alignItems: 'center',
                     justifyContent: 'space-between',
                     gap: '0.75rem',
+                    minHeight: '40px',
+                    boxSizing: 'border-box',
                     padding: '0.5rem 0.75rem',
                     background: active ? 'var(--bg-tertiary)' : 'transparent',
                     borderBottom:

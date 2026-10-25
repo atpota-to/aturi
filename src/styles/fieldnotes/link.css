@@ -269,7 +269,7 @@
   display: flex;
   align-items: stretch;
   min-height: 56px;
-  border-radius: 10px;
+  border-radius: var(--radius-card);
   background: var(--bg-secondary);
   border: 1px solid var(--border-strong);
   color: var(--text-primary);
@@ -300,7 +300,7 @@
   padding: 0.5rem 0.25rem 0.5rem 1rem;
   color: inherit;
   text-decoration: none;
-  border-radius: 10px;
+  border-radius: var(--radius-card);
 }
 
 .fn-lp-hero-link:hover {
@@ -468,17 +468,31 @@
   gap: 1.25rem;
 }
 
+/* The group's name is the tab on its drawer: a small folder tab in the
+   box's own colour, standing on the box's top edge and painting its border
+   out, the way the repository card's open tab does (tabs.css). 18px line,
+   8px padding, 2px border: a 28px box on whole pixels. Mirror tabs.css if
+   the radius or hairline token ever change. */
 .fn-lp-picker .waypoint-group-label {
+  position: relative;
+  z-index: 1;
   display: flex;
   align-items: baseline;
   gap: 0.5rem;
-  margin: 0 0 0.5rem;
+  width: fit-content;
+  max-width: calc(100% - 2 * var(--radius-card));
+  margin: 0 0 -1px var(--radius-card);
+  padding: 4px 12px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-medium);
+  border-bottom-color: var(--bg-secondary);
+  border-radius: var(--radius-control) var(--radius-control) 0 0;
   font-family: var(--font-sans);
   font-size: 0.8125rem;
   font-weight: 700;
   letter-spacing: 0;
   text-transform: none;
-  line-height: 1.3;
+  line-height: 18px;
   color: var(--text-secondary);
 }
 
@@ -581,17 +595,21 @@
 .fn-lp-picker .waypoint-tiles {
   grid-template-columns: repeat(auto-fill, minmax(5.75rem, 1fr));
   gap: 0.5rem;
-}
-
-.fn-lp-picker .waypoint-tile {
+  padding: 0.5rem;
   border: 1px solid var(--border-medium);
   border-radius: var(--radius-card);
   background: var(--bg-secondary);
+}
+
+.fn-lp-picker .waypoint-tile {
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-card);
+  background: var(--bg-primary);
   min-height: 5rem;
 }
 
 .fn-lp-picker .waypoint-tile:hover {
-  background: var(--surface-subtle);
+  background: var(--bg-secondary);
   border-color: var(--border-strong);
   transform: none;
 }
@@ -676,6 +694,27 @@
 .fn-lp-picker .waypoint-button:hover {
   background: var(--surface-subtle);
   border-color: var(--border-strong);
+}
+
+/* The arrow anchor covers the whole card (the card is already positioned
+   and clipped, globals.css), so one tab stop opens the app; the copy button
+   stays above it. The ring is drawn on the card, since the anchor's box is
+   now the card's. */
+.fn-lp-picker .waypoint-open-link::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+}
+.fn-lp-picker .waypoint-button-actions .copy-button {
+  position: relative;
+  z-index: 1;
+}
+.fn-lp-picker .waypoint-open-link:focus-visible {
+  outline: none;
+}
+.fn-lp-picker .waypoint-button:has(.waypoint-open-link:focus-visible) {
+  outline: 2px solid var(--text-accent);
+  outline-offset: 2px;
 }
 
 .fn-lp-picker .featured-waypoint {
@@ -764,6 +803,12 @@
   letter-spacing: -0.005em;
   text-transform: none;
   color: var(--text-primary);
+}
+.fn-lp-picker .category-title h3 em {
+  margin-left: 0.5rem;
+  font-style: normal;
+  font-weight: 500;
+  color: var(--text-tertiary);
 }
 
 .fn-lp-picker .category-description {
@@ -922,8 +967,11 @@
 }
 
 @media (min-width: 601px) {
+  /* Floating over the list it covers, so it wears the overlay shadow the
+     header's panels do: without it the card read as one more row. */
   .fn-lp-remember {
     bottom: 1rem;
+    box-shadow: var(--shadow-overlay);
   }
 
   /* Fill the gap between the floating card and the viewport edge so rows

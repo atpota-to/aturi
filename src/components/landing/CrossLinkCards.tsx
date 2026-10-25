@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Compass, Download, Leaf, Plug, Telescope } from 'lucide-react';
+import { ChevronRight, Download, Leaf, Link2, Plug, Telescope } from 'lucide-react';
 
 type ProductKey = 'universal-links' | 'extension' | 'explore' | 'mcp';
 
@@ -10,16 +10,24 @@ type Card = {
   href: string;
   icon: React.ReactNode;
   title: string;
-  body: string;
+  body: React.ReactNode;
 };
 
 const CARDS: Card[] = [
   {
     key: 'universal-links',
     href: '/links',
-    icon: <Compass size={18} />,
+    icon: <Link2 size={18} />,
     title: 'Universal links',
-    body: 'Share aturi.to/handle/collection/rkey. Visitors choose which Atmosphere app opens it.',
+    body: (
+      <>
+        Share{' '}
+        <code>
+          aturi.to/<wbr />handle/<wbr />collection/<wbr />rkey
+        </code>
+        . Visitors choose which Atmosphere app opens it.
+      </>
+    ),
   },
   {
     key: 'extension',
@@ -76,7 +84,7 @@ function CrossLinkCard({
 }: {
   icon: React.ReactNode;
   title: string;
-  body: string;
+  body: React.ReactNode;
   href: string;
 }) {
   return (
@@ -86,6 +94,7 @@ function CrossLinkCard({
           {icon}
         </span>
         <h3>{title}</h3>
+        <ChevronRight size={16} aria-hidden className="fl-cross-card-chev" />
       </span>
       <p>{body}</p>
     </Link>

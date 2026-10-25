@@ -201,21 +201,6 @@ export default function WaypointPicker({
     }
   };
 
-  const handleWaypointClick = (url: string, e: React.MouseEvent) => {
-    // Don't navigate if clicking on interactive elements
-    const target = e.target as HTMLElement;
-    if (
-      target.closest('button') ||
-      target.closest('a') ||
-      target.tagName === 'BUTTON' ||
-      target.tagName === 'A'
-    ) {
-      return;
-    }
-    // Open in new tab
-    window.open(url, '_blank', 'noopener,noreferrer');
-  };
-
   const toggleCategory = (categoryId: string) => {
     setExpandedCategories(prev => {
       const next = new Set(prev);
@@ -479,7 +464,6 @@ export default function WaypointPicker({
                       did={did}
                       copiedId={copiedId}
                       onCopy={handleCopy}
-                      onWaypointClick={handleWaypointClick}
                       subcategories={subcategoriesData}
                       alwaysShowCategoryHeader={true}
                     />

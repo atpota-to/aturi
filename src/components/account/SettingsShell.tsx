@@ -127,9 +127,12 @@ export default function SettingsShell() {
   return (
     <div className="settings-shell">
       <header className="settings-header">
+        {/* The site's folder tabs (tabs.css): a row on a baseline on phones,
+            a column of side tabs against the content's spine from 821px
+            (account.css). The open tab is the one with aria-selected. */}
         <nav
           ref={navRef}
-          className="settings-nav"
+          className="fx-tabs settings-nav"
           role="tablist"
           aria-label="Settings sections"
           onKeyDown={onTabKeyDown}
@@ -138,14 +141,17 @@ export default function SettingsShell() {
             <button
               key={t.id}
               id={`settings-tab-${t.id}`}
+              type="button"
               role="tab"
               aria-selected={tab === t.id}
               aria-controls="settings-panel"
               tabIndex={tab === t.id ? 0 : -1}
-              className={`settings-nav-item ${tab === t.id ? 'is-active' : ''}`}
+              className="fx-tab"
               onClick={() => pick(t.id)}
             >
-              {t.label}
+              <span className="fx-tab-label" data-label={t.label}>
+                {t.label}
+              </span>
             </button>
           ))}
         </nav>
@@ -163,7 +169,9 @@ export default function SettingsShell() {
           <h1 className="settings-page-title">{current.label}</h1>
           <p className="settings-page-lede">{current.lede}</p>
         </div>
-        {!did && <LocalModeBanner onSignIn={() => pick('account')} />}
+        {/* Not on the Account tab: there the sign-in card is the page, and
+            the note's link would only re-select the tab it is on. */}
+        {!did && tab !== 'account' && <LocalModeBanner onSignIn={() => pick('account')} />}
         {tab === 'account' && <AccountTab />}
         {tab === 'general' && <GeneralTab />}
         {tab === 'keyboard' && <KeyboardTab />}

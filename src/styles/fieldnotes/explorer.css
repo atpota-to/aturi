@@ -527,6 +527,18 @@
 .fx-acct-actions .fx-btn-lg {
   flex: 1;
 }
+/* Tablets stack the account card full width: three stat columns 450px
+   apart read as three cards, so the stats flow in a row there. */
+@media (min-width: 641px) and (max-width: 959px) {
+  .fx-stats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 28px;
+  }
+  .fx-dl .fx-trunc {
+    flex: 0 1 auto;
+  }
+}
 
 /* "Hide rich preview" under the card. A quiet control with a real hit area:
    the padding is handed back through negative margins, so it occupies the
@@ -568,117 +580,36 @@
 
 /* --- repository card + tabs ---------------------------------------------- */
 
-/* Folder tabs. The tabs stand on the page above the panel, which is the card;
-   the open one is the panel's own colour and runs into it through the
-   panel's top border, and the others sit a step lower in the page's recessed
-   tone, like the folders filed behind it. The row is inset by the card
-   radius so no tab ever stands on the panel's rounded corner. */
+/* The folder tabs themselves (.fx-tabs / .fx-tab / .fx-tabpanel) live in
+   tabs.css; here only what the repository card and its sidebar copy set on
+   them. */
 .fx-repo {
   min-width: 0;
 }
-.fx-tabs {
-  --fx-tab-filed: var(--bg-tertiary);
-  position: relative;
-  z-index: 1;
-  display: flex;
-  align-items: flex-end;
-  gap: 4px;
-  padding: 0 var(--radius-card);
-  /* Tabs never wrap: a second row of folder tabs would stand on the first. */
-  overflow-x: auto;
-  scrollbar-width: none;
-}
-.fx-tabs::-webkit-scrollbar {
-  display: none;
-}
-/* Dark themes lift --bg-tertiary above the card, which would stand the
-   filed-away tabs in front of the open one. Between page and card instead. */
-:root:not([data-theme='light']) .fx-tabs {
-  --fx-tab-filed: color-mix(in srgb, var(--bg-secondary) 45%, var(--bg-primary));
-}
-.fx-tab {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  flex-shrink: 0;
-  gap: 6px;
-  padding: 8px 14px 8px;
-  background: var(--fx-tab-filed);
-  border: 1px solid var(--border-medium);
-  border-radius: var(--radius-control) var(--radius-control) 0 0;
-  font-family: var(--font-sans);
-  font-size: 13.5px;
-  font-weight: 500;
-  line-height: 1.4;
-  color: var(--text-tertiary);
-  text-decoration: none;
-  white-space: nowrap;
-  cursor: pointer;
-  transition: color 0.15s ease, background-color 0.15s ease;
-}
-.fx-tab:hover {
-  background: var(--surface-subtle);
-  color: var(--text-primary);
-}
-.fx-tab:focus-visible {
-  outline: 2px solid var(--accent-moss);
-  outline-offset: -3px;
-}
-/* The open tab: three pixels taller than the rest, in the panel's colour,
-   with its bottom edge painted over the panel's top border so the two read
-   as one sheet. */
-.fx-tab[aria-selected='true'],
-.fx-tab[data-active] {
-  z-index: 1;
-  padding-top: 11px;
-  background: var(--bg-secondary);
-  border-bottom-color: var(--bg-secondary);
-  color: var(--text-primary);
-  font-weight: 600;
-  cursor: default;
-}
-/* Tucked one pixel up under the tab row, so each tab's bottom edge lies on
-   the panel's top border: the open tab paints it out, the rest repeat it.
-   `clip` rather than `hidden` keeps the rounded corners over edge-to-edge
-   rows without making the panel a scroll container. */
-.fx-tabpanel {
-  position: relative;
-  margin-top: -1px;
-  padding: 16px;
-  background: var(--bg-secondary);
-  border: 1px solid var(--border-medium);
-  border-radius: var(--radius-card);
-  overflow: hidden;
-  overflow: clip;
-  min-width: 0;
-}
+/* The sidebar's copy is narrower: smaller type and a tighter inset so the
+   four labels, bold widths reserved, fit the 300px column without
+   scrolling (34px filed, 37px open). */
 .fx-side .fx-tabs {
-  gap: 3px;
-  padding: 0 10px;
-}
-.fx-side .fx-tab {
-  padding: 7px 9px;
-  font-size: 13px;
+  --tab-gap: 5px;
+  --tab-inset: 8px;
+  --tab-pad-x: 8px;
+  --tab-pad-y: 6px;
+  --tab-size: 13px;
 }
 /* The sidebar's tabs are links that leave the page; the highlighted one is
    where the current collection lives, but it still goes somewhere. */
 .fx-side .fx-tab[data-active] {
-  padding-top: 10px;
   cursor: pointer;
 }
 @media (max-width: 640px) {
+  /* Tall enough to tap: 42px filed, 45px open. */
+  .fx-tabs,
+  .fx-side .fx-tabs {
+    --tab-pad-y: 10px;
+  }
   .fx-tabs {
-    gap: 3px;
-    padding: 0 10px;
-  }
-  .fx-tab {
-    min-height: 41px;
-    padding: 0 12px;
-  }
-  .fx-tab[aria-selected='true'],
-  .fx-tab[data-active] {
-    min-height: 44px;
-    padding-top: 0;
+    --tab-inset: 10px;
+    --tab-pad-x: 12px;
   }
   .fx-tabpanel {
     padding: 12px;
@@ -889,6 +820,45 @@
   -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 48px), transparent);
   mask-image: linear-gradient(to bottom, #000 calc(100% - 48px), transparent);
 }
+/* Stacked under the records, the tree is part of the page: one scroll, not
+   a nested one a thumb gets caught in. The collapsed groups keep it short. */
+@media (max-width: 959px) {
+  .fx-side .fx-tree-scroll {
+    max-height: none;
+    overflow: visible;
+    overscroll-behavior: auto;
+    padding-bottom: 0;
+    -webkit-mask-image: none;
+    mask-image: none;
+  }
+}
+
+/* The wide main column: a count 850px from its name is a count nobody
+   reads, so it trails the name at the row's gap and a spacer keeps the
+   whole row the hit area, pin at the end. The filter row stays put while
+   the tree scrolls under it, and the collapse-all button sits beside the
+   field it acts with. */
+@media (min-width: 960px) {
+  .fx-main .fx-tree-pane .fx-row-text {
+    flex: 0 1 auto;
+  }
+  .fx-main .fx-tree-pane .fx-row-main::after {
+    content: '';
+    flex: 1;
+  }
+  .fx-main .fx-tree-tools .fx-btn-icon {
+    margin-left: 0;
+  }
+  .fx-main .fx-tree-pane .fx-tree-tools {
+    position: sticky;
+    top: 92px;
+    z-index: 2;
+    margin: -16px -16px 0;
+    padding: 16px 16px 10px;
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border-subtle);
+  }
+}
 
 /* Phone: 44px rows with hairline dividers, edge to edge in the card. */
 @media (max-width: 640px) {
@@ -912,6 +882,28 @@
   .fx-main .fx-tree-pane .fx-row[data-current],
   .fx-side .fx-row[data-current] {
     background: var(--accent-soft);
+  }
+  /* A leaf is a link: full-strength text and a trailing chevron, since the
+     hover that says so on desktop never comes on a phone. */
+  .fx-main .fx-tree-pane .fx-row[data-kind='leaf'] .fx-row-main,
+  .fx-side .fx-row[data-kind='leaf'] .fx-row-main {
+    color: var(--text-primary);
+  }
+  .fx-row[data-kind='leaf'] .fx-row-main:last-child {
+    padding-right: 14px;
+  }
+  .fx-row[data-kind='leaf'] .fx-row-main:last-child::after {
+    content: '';
+    flex: none;
+    width: 7px;
+    height: 7px;
+    margin-left: 8px;
+    border-right: 1.5px solid var(--text-faint);
+    border-bottom: 1.5px solid var(--text-faint);
+    transform: rotate(-45deg);
+  }
+  .fx-row[data-current] .fx-row-main:last-child::after {
+    border-color: var(--accent-soft-fg);
   }
   .fx-row-pin {
     width: 40px;
@@ -1103,6 +1095,12 @@
   .fx-rec-text {
     grid-area: text;
     color: var(--text-secondary);
+    /* Two lines of the post, not one line of 44 characters. */
+    white-space: normal;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-height: 1.4;
   }
   .fx-rec-time {
     grid-area: time;
@@ -1234,6 +1232,27 @@
   width: 26px;
   padding: 0;
 }
+/* Touch screens: the dense secondary controls grow to a comfortable tap
+   (36px) and the pin, which only appears on hover elsewhere, is always
+   visible. */
+@media (hover: none) {
+  .fx-row-pin {
+    color: var(--text-tertiary);
+    width: 40px;
+  }
+  .fx-row-main,
+  .fx-side .fx-row-main {
+    min-height: 36px;
+  }
+  .fx-copy[data-icon-only] {
+    width: 36px;
+    height: 36px;
+  }
+  .fx-btn-sm,
+  .fx-chip {
+    height: 36px;
+  }
+}
 
 /* --- repo glance, tabs content, notices ---------------------------------- */
 
@@ -1259,20 +1278,34 @@
   transform: rotate(90deg);
 }
 
-/* Log tab entries: rounded cards instead of the old accent-edged slabs. */
+/* Log tab entries: divided rows in the panel, not cards inside the card.
+   What an operation added is in the accent, what it removed in the danger
+   red; the time sits beside the type rather than across the panel. */
 .fx-log {
   list-style: none;
   margin: 0;
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 0;
 }
 .fx-log-entry {
-  border: 1px solid var(--border-medium);
-  border-radius: 10px;
-  background: var(--bg-secondary);
-  padding: 12px 14px;
+  border-top: 1px solid var(--border-subtle);
+  padding: 12px 2px;
+}
+.fx-log-entry:first-child {
+  border-top: 0;
+  padding-top: 2px;
+}
+.fx-log-change {
+  padding: 2px 0;
+  color: var(--text-secondary);
+}
+.fx-log-change[data-op='add'] {
+  color: var(--text-accent);
+}
+.fx-log-change[data-op='remove'] {
+  color: var(--danger);
 }
 .fx-log-type {
   display: inline-flex;
@@ -1378,6 +1411,16 @@
   border-top: 1px solid var(--border-subtle);
 }
 .fx-backlink-source > button:hover,
+/* The linking records inside an expanded source: a hover and focus colour,
+   the DID underlined, so a row reads as the link it is. */
+.fx-backlink-record:hover,
+.fx-backlink-record:focus-visible {
+  color: var(--text-accent);
+}
+.fx-backlink-record:hover code:first-child {
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+}
 .fx-backlink-source > button:focus-visible {
   background: var(--bg-tertiary) !important;
 }
@@ -1434,7 +1477,14 @@
   .explore-chrome-form {
     height: 44px;
     padding: 0 8px 0 14px;
-    border-radius: 10px;
+    border-radius: var(--radius-control);
+  }
+  /* A comfortable secondary target inside the 44px field. */
+  .explore-chrome-clear {
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    justify-content: center;
   }
   .explore-chrome-input {
     font-size: 16px;
@@ -1492,9 +1542,15 @@
 .fx-main .account-stats-grid > * {
   border-radius: 10px;
 }
-/* Two to a row on a tablet: eight tiles make four full rows, where three
-   columns left the last row a tile short. */
-@media (min-width: 769px) and (max-width: 1099px) {
+/* Four across on a tablet, where the column is the whole page; two across
+   between 960 and 1100, where the sidebar leaves the column narrow. Eight
+   tiles fill either, where three columns left the last row a tile short. */
+@media (min-width: 769px) and (max-width: 959px) {
+  .fx-main .account-stats-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+@media (min-width: 960px) and (max-width: 1099px) {
   .fx-main .account-stats-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -1516,14 +1572,43 @@
   .fx-records-tools-meta {
     margin-left: 0;
   }
+  /* The bar's pinned copy-link is the one copy-link while both are on
+     screen. */
+  .fx-title-share {
+    display: none;
+  }
 }
 
 /* Tab content inside the repository card: rounded inner cards, sentence-case
    section heads, quieter raw-JSON toggles. Scoped so the record page keeps
    its own treatment of the shared classes. */
+.fx-tabpanel .explore-identity-list {
+  gap: 0;
+}
 .fx-tabpanel .explore-identity-card {
-  border-radius: 10px;
-  padding: 12px 14px;
+  border: 0;
+  border-top: 1px solid var(--border-subtle);
+  border-radius: 0;
+  background: transparent;
+  padding: 10px 0 12px;
+}
+.fx-tabpanel .explore-identity-card:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+.fx-tabpanel .explore-id-row {
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr);
+  gap: 2px 10px;
+  margin-top: 6px;
+}
+.fx-tabpanel .explore-id-row .explore-small-caps {
+  font-size: 11px;
+  color: var(--text-tertiary);
+}
+.fx-tabpanel .explore-identity-list li {
+  word-break: normal;
+  overflow-wrap: anywhere;
 }
 .fx-tabpanel .explore-identity-list > li:not(.explore-identity-card) code {
   background: transparent;
@@ -1548,6 +1633,38 @@
 }
 .fx-tabpanel .explore-raw-details summary:hover {
   color: var(--text-accent);
+}
+/* The same turning chevron the tree groups and the glance toggle use, in
+   place of the browser's triangle. */
+.fx-tabpanel .explore-raw-details summary {
+  list-style: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 4px 0;
+}
+.fx-tabpanel .explore-raw-details summary::-webkit-details-marker {
+  display: none;
+}
+.fx-tabpanel .explore-raw-details summary::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  transform: rotate(-45deg);
+  transition: transform 0.15s ease;
+}
+.fx-tabpanel .explore-raw-details[open] > summary::before {
+  transform: rotate(45deg);
+}
+[data-reduce-motion='true'] .fx-tabpanel .explore-raw-details summary::before {
+  transition: none;
+}
+.fx-tabpanel .explore-raw-details summary:focus-visible {
+  outline: 2px solid var(--text-accent);
+  outline-offset: 2px;
+  border-radius: 4px;
 }
 .fx-tabpanel .explore-json {
   border-radius: var(--radius-control);
@@ -1592,8 +1709,8 @@
     border-bottom: 1px solid var(--border-subtle);
   }
   .fx-tree-pane .fx-tree-tools .fx-btn-icon {
-    width: 36px;
-    height: 36px;
+    width: 40px;
+    height: 40px;
   }
   .fx-tree-pane .fx-tree-block + .fx-tree-block {
     margin-top: 0;
@@ -2640,10 +2757,14 @@ a.fx-sp-row:focus-visible {
 
 /* --- phone tap targets ---------------------------------------------------- */
 
-/* Buttons grow to a 40px tap on phones. */
+/* Buttons grow to a 40px tap on phones; the account card's one primary
+   action to 44px. */
 @media (max-width: 640px) {
   .fx-btn {
     height: 40px;
+  }
+  .fx-acct-actions .fx-btn-lg {
+    height: 44px;
   }
   .fx-btn-icon,
   .fx-tree-pane .fx-tree-tools .fx-btn-icon {

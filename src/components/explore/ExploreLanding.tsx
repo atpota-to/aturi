@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { BookOpen, Bot, Cloud, Gauge, Layers, Pin, User } from 'lucide-react';
+import { BookOpen, ChevronRight, Cloud, Gauge, Layers, Pin, Plug, User } from 'lucide-react';
 import AppearIn from './AppearIn';
 import SearchBox from './SearchBox';
 import JetstreamFeed from './JetstreamFeed';
@@ -23,7 +23,7 @@ const SUGGESTIONS = ['dame.is', 'anisota.net', 'aturi.to', 'atpota.to'];
 const TILES = [
   { href: '/explore/lexicons', title: 'Lexicons', desc: 'Search every record type', Icon: BookOpen },
   { href: '/explore/spaces', title: 'Spaces', desc: 'Browse shared spaces', Icon: Layers },
-  { href: '/mcp', title: 'MCP server', desc: 'Read-only tools for your AI', Icon: Bot },
+  { href: '/mcp', title: 'MCP server', desc: 'Read-only tools for your AI', Icon: Plug },
 ];
 
 export default function ExploreLanding() {
@@ -103,6 +103,7 @@ export default function ExploreLanding() {
                 <span className="fn-x-tile-title">{title}</span>
                 <span className="fn-x-tile-desc">{desc}</span>
               </span>
+              <ChevronRight size={16} aria-hidden className="fn-x-tile-chev" />
             </Link>
           ))}
         </nav>

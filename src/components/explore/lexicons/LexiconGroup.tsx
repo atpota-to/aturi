@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { ArrowLeft, FileText, Folder, Layers, Search } from 'lucide-react';
 import AppearIn from '../AppearIn';
 import { Skeleton } from '@/components/SkeletonLoader';
-import { AppSiteLink, Credit } from './primitives';
+import { AppSiteLink, Credit, Nsid } from './primitives';
 import { fetchPrefix, searchLexicons } from '@/utils/ufos/client';
 import {
   type JustCount,
@@ -68,7 +68,11 @@ function Frame({
               const last = i === segments.length - 1;
               return (
                 <span key={cumulative}>
-                  {i > 0 && <span style={{ color: 'var(--text-tertiary)' }}>.</span>}
+                  {i > 0 && (
+                    <span style={{ color: 'var(--text-tertiary)' }}>
+                      .<wbr />
+                    </span>
+                  )}
                   {last ? (
                     seg
                   ) : (
@@ -97,13 +101,22 @@ function Frame({
   );
 }
 
-/** Card wrapping a listing of rows. */
-function ListCard({ children }: { children: React.ReactNode }) {
+/**
+ * Card wrapping a listing of rows, headed by a column row that names the
+ * figures: a bare number column read as a ranking before.
+ */
+function ListCard({ nameLabel, children }: { nameLabel: string; children: React.ReactNode }) {
   return (
     // Both views that render this one publish a filter to the bottom chrome
     // bar, so this card is what typing down there scrolls to.
     <AppearIn delay={0.08} id={CHROME_RESULTS_ID}>
-      <div className="fn-list-card">{children}</div>
+      <div className="fn-list-card">
+        <div className="fn-col-head fn-browse-grid">
+          <span>{nameLabel}</span>
+          <span style={{ textAlign: 'right' }}>Creates</span>
+        </div>
+        {children}
+      </div>
     </AppearIn>
   );
 }
@@ -181,7 +194,7 @@ function PrefixView({ prefix }: { prefix: string }) {
         </>
       }
     >
-      <ListCard>
+      <ListCard nameLabel="Entry">
         {children === null || visible === null ? (
           <ListSkeleton />
         ) : children.length === 0 ? (
@@ -203,13 +216,19 @@ function PrefixView({ prefix }: { prefix: string }) {
           </p>
         ) : (
           <>
-            <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+            <ul className="fn-list-rows">
               {visible.map((c, i) => (
-                <ChildRow key={`${childName(c)}-${i}`} child={c} isLast={i === visible.length - 1} />
+                <ChildRow key={`${childName(c)}-${i}`} child={c} />
               ))}
             </ul>
             {cursor && (
-              <button type="button" onClick={loadMore} disabled={loadingMore} style={loadMoreStyle(loadingMore)}>
+              <button
+                type="button"
+                onClick={loadMore}
+                disabled={loadingMore}
+                className="fn-list-card-foot"
+                style={{ cursor: loadingMore ? 'default' : 'pointer' }}
+              >
                 {loadingMore ? 'Loading…' : 'Load more'}
               </button>
             )}
@@ -237,22 +256,22 @@ function SummaryLine({ total, count }: { total: JustCount | null; count: number 
   );
 }
 
-function ChildRow({ child, isLast }: { child: PrefixChild; isLast: boolean }) {
+function ChildRow({ child }: { child: PrefixChild }) {
   const isNamespace = child.type === 'prefix';
   const name = childName(child);
   const href = isNamespace ? groupPathFor(name) : lexiconPathFor(name);
   const Icon = isNamespace ? Folder : FileText;
   return (
-    <li style={{ borderBottom: isLast ? undefined : '1px solid var(--border-subtle)' }}>
-      <Link href={href} prefetch={false} style={rowStyle} onMouseEnter={hoverOn} onMouseLeave={hoverOff}>
+    <li>
+      <Link href={href} prefetch={false} className="fn-row fn-browse-grid">
         <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', minWidth: 0 }}>
           <Icon
             size={13}
             aria-hidden
             style={{ color: isNamespace ? 'var(--text-accent)' : 'var(--text-tertiary)', flexShrink: 0 }}
           />
-          <span style={nameStyle}>
-            {name}
+          <span className="fn-row-nsid" title={name}>
+            <Nsid value={name} />
             {isNamespace && <span style={{ color: 'var(--text-tertiary)' }}>.*</span>}
           </span>
         </span>
@@ -303,7 +322,7 @@ function SearchView({ term }: { term: string }) {
 
   return (
     <Frame prefix={term} eyebrow="Search results" icon={<Search size={13} aria-hidden />}>
-      <ListCard>
+      <ListCard nameLabel="Lexicon">
         {results === null || visible === null ? (
           <ListSkeleton />
         ) : results.length === 0 ? (
@@ -315,14 +334,13 @@ function SearchView({ term }: { term: string }) {
             No results match “{filter.trim()}”.
           </p>
         ) : (
-          <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
-            {visible.map((c, i) => (
-              <li
-                key={c.nsid}
-                style={{ borderBottom: i === visible.length - 1 ? undefined : '1px solid var(--border-subtle)' }}
-              >
-                <Link href={lexiconPathFor(c.nsid)} prefetch={false} style={rowStyle} onMouseEnter={hoverOn} onMouseLeave={hoverOff}>
-                  <span style={nameStyle}>{c.nsid}</span>
+          <ul className="fn-list-rows">
+            {visible.map((c) => (
+              <li key={c.nsid}>
+                <Link href={lexiconPathFor(c.nsid)} prefetch={false} className="fn-row fn-browse-grid">
+                  <span className="fn-row-nsid" title={c.nsid}>
+                    <Nsid value={c.nsid} />
+                  </span>
                   <Count value={c.creates} />
                 </Link>
               </li>
@@ -335,34 +353,6 @@ function SearchView({ term }: { term: string }) {
 }
 
 // ─── shared bits ─────────────────────────────────────────────────────────────
-
-const rowStyle: React.CSSProperties = {
-  display: 'grid',
-  gridTemplateColumns: 'minmax(0, 1fr) 5rem',
-  gap: '0.875rem',
-  alignItems: 'center',
-  minHeight: '42px',
-  boxSizing: 'border-box',
-  padding: '6px 16px',
-  textDecoration: 'none',
-  color: 'var(--text-primary)',
-  transition: 'background 0.2s ease',
-};
-
-const nameStyle: React.CSSProperties = {
-  fontFamily: 'var(--font-mono)',
-  fontSize: '12.5px',
-  overflow: 'hidden',
-  textOverflow: 'ellipsis',
-  whiteSpace: 'nowrap',
-};
-
-function hoverOn(e: React.MouseEvent<HTMLElement>) {
-  e.currentTarget.style.background = 'var(--surface-subtle)';
-}
-function hoverOff(e: React.MouseEvent<HTMLElement>) {
-  e.currentTarget.style.background = 'transparent';
-}
 
 function Count({ value }: { value: number }) {
   return (
@@ -381,40 +371,14 @@ function sortChildren(children: PrefixChild[]): PrefixChild[] {
   return [...children].sort((a, b) => b.creates - a.creates);
 }
 
-function loadMoreStyle(loading: boolean): React.CSSProperties {
-  return {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: '100%',
-    height: '42px',
-    border: 0,
-    borderTop: '1px solid var(--border-subtle)',
-    background: 'transparent',
-    color: 'var(--text-accent)',
-    fontFamily: 'var(--font-sans)',
-    fontSize: '13px',
-    fontWeight: 600,
-    cursor: loading ? 'default' : 'pointer',
-  };
-}
-
 function ListSkeleton() {
   const widths = ['58%', '72%', '46%', '64%', '52%'];
   return (
-    <ul aria-hidden style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+    <ul aria-hidden className="fn-list-rows">
       {widths.map((w, i) => (
-        <li
-          key={i}
-          style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            padding: '0.8rem 16px',
-            borderBottom: i === widths.length - 1 ? undefined : '1px solid var(--border-subtle)',
-          }}
-        >
+        <li key={i} className="fn-browse-grid">
           <Skeleton width={w} height="0.75rem" />
-          <Skeleton width="2.5rem" height="0.75rem" />
+          <Skeleton width="2.5rem" height="0.75rem" style={{ justifySelf: 'end' }} />
         </li>
       ))}
     </ul>

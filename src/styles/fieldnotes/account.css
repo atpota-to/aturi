@@ -24,53 +24,80 @@
   font-style: normal;
 }
 
-.settings-shell {
-  flex-direction: row;
-  align-items: flex-start;
-  gap: 24px 40px;
-}
+/* The settings nav is the shared folder tabs (tabs.css, .fx-tabs / .fx-tab).
+   On phones they are a row standing on a full-width baseline (the 820px
+   block below); from 821px the folder turns on its side: the content
+   column's left hairline is the spine, the tabs stand against it like binder
+   dividers, and the open one is 3px further out in the page colour with its
+   right edge painted out, so it runs into the content. Settings reads the
+   same way at every width. */
+@media (min-width: 821px) {
+  .settings-shell {
+    flex-direction: row;
+    /* The content, and so the spine, is never shorter than the tabs. */
+    align-items: stretch;
+    /* The gap moves into the content's padding, behind the spine. */
+    gap: 24px 0;
+  }
 
-.settings-header {
-  position: sticky;
-  top: 80px;
-  flex: 0 0 200px;
-  padding: 0;
-  margin: 0;
-  border: 0;
-  gap: 0;
-}
+  .settings-header {
+    position: sticky;
+    top: 80px;
+    /* Above the content, so the open tab paints over the spine. */
+    z-index: 1;
+    /* Sticky needs the item to be shorter than the shell. */
+    align-self: flex-start;
+    flex: 0 0 160px;
+    padding: 0;
+    margin: 0;
+    border: 0;
+    gap: 0;
+  }
 
-.settings-nav {
-  flex-direction: column;
-  flex-wrap: nowrap;
-  gap: 2px;
-  margin: 0;
-}
+  /* Every tab's right edge lies on the content's left hairline (the nav
+     overhangs the column by 1px). No cut on a column: 2px over 160px is
+     0.7°, which reads as uneven gaps rather than a taper. */
+  .settings-nav {
+    --tab-open: var(--bg-primary);
+    --tab-gap: 6px;
+    --tab-size: 14px;
+    flex-direction: column;
+    align-items: stretch;
+    padding: 4px 0 0;
+    margin: 0 -1px 0 0;
+    overflow: visible;
+  }
 
-.settings-nav-item {
-  display: flex;
-  align-items: center;
-  height: 36px;
-  padding: 0 12px;
-  margin: 0;
-  border: 0;
-  border-radius: var(--radius-control);
-  font-family: var(--font-sans);
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--text-secondary);
-  text-align: left;
-}
+  .settings-nav .fx-tab {
+    height: 36px;
+    padding: 0 12px;
+    justify-content: flex-start;
+    border-radius: var(--tab-radius) 0 0 var(--tab-radius);
+  }
 
-.settings-nav-item:hover {
-  background: var(--bg-tertiary);
-  color: var(--text-primary);
-}
+  .settings-nav .fx-tab::before,
+  .settings-nav .fx-tab::after {
+    display: none;
+  }
 
-.settings-nav-item.is-active {
-  background: var(--accent-soft);
-  color: var(--accent-soft-fg);
-  font-weight: 700;
+  /* Comes forward 1px outward, the label anchored to the spine. */
+  .settings-nav .fx-tab:hover:not([aria-selected='true']) {
+    padding: 0 12px 0 13px;
+    margin-left: -1px;
+  }
+
+  .settings-nav .fx-tab[aria-selected='true'] {
+    padding: 0 12px 0 calc(12px + var(--tab-rise));
+    margin-left: calc(-1 * var(--tab-rise));
+    /* A side tab keeps its bottom hairline and opens through its right edge. */
+    border-bottom-color: var(--tab-line);
+    border-right-color: var(--tab-open);
+  }
+
+  .settings-content {
+    border-left: 1px solid var(--border-medium);
+    padding-left: 32px;
+  }
 }
 
 .settings-content {
@@ -104,23 +131,27 @@
   color: var(--text-secondary);
 }
 
-/* Signed-out notice above the cards. */
+/* Signed-out notice above the cards: a quiet note on the subtle surface.
+   The pale green pair is for the selected thing (tree row, chip), and the
+   note is not selected; green also made it the loudest block on every
+   phone sheet. The link keeps the accent. */
 .settings-local-banner {
   display: flex;
   align-items: flex-start;
   gap: 10px;
   padding: 12px 16px;
-  background: var(--accent-soft);
-  border: 1px solid var(--accent-soft-border);
+  background: var(--surface-subtle);
+  border: 1px solid var(--border-medium);
   border-radius: var(--radius-card);
   font-size: 13.5px;
   line-height: 1.5;
-  color: var(--accent-soft-fg);
+  color: var(--text-secondary);
 }
 
 .settings-local-banner-icon {
   flex-shrink: 0;
   margin-top: 2px;
+  color: var(--text-tertiary);
 }
 
 .settings-local-banner-text {
@@ -134,7 +165,7 @@
   border: 0;
   font: inherit;
   font-weight: 700;
-  color: inherit;
+  color: var(--text-accent);
   text-decoration: underline;
   text-underline-offset: 2px;
   cursor: pointer;
@@ -239,6 +270,7 @@
 }
 
 .settings-toggle-label-sub {
+  max-width: 68ch;
   font-size: 13px;
   line-height: 1.45;
   color: var(--text-secondary);
@@ -254,6 +286,24 @@
 .settings-toggle-row > select,
 .settings-toggle-row > .waypoint-layout-toggle {
   align-self: center;
+}
+
+/* ...and the row wraps around them: the label keeps a 36ch basis, so on a
+   tablet column the control drops under the text rather than squeezing a
+   description into six ragged lines. Switch rows never wrap, and the
+   stacked rows and the phone block (below) set their own direction. */
+@media (min-width: 561px) {
+  .settings-toggle-row:not(.is-stacked):has(> [role='radiogroup']),
+  .settings-toggle-row:not(.is-stacked):has(> select),
+  .settings-toggle-row:not(.is-stacked):has(> .waypoint-layout-toggle) {
+    flex-wrap: wrap;
+  }
+
+  .settings-toggle-row:not(.is-stacked):has(> [role='radiogroup']) > .settings-toggle-label,
+  .settings-toggle-row:not(.is-stacked):has(> select) > .settings-toggle-label,
+  .settings-toggle-row:not(.is-stacked):has(> .waypoint-layout-toggle) > .settings-toggle-label {
+    flex: 1 1 36ch;
+  }
 }
 
 .settings-toggle-row.is-stacked {
@@ -455,8 +505,13 @@
   font-size: 13px;
 }
 
+.settings-input {
+  text-overflow: ellipsis;
+}
+
 .settings-input::placeholder {
   color: var(--text-tertiary);
+  text-overflow: ellipsis;
 }
 
 .settings-input:focus,
@@ -484,7 +539,14 @@
 
 .settings-select:disabled {
   opacity: 0.55;
+  background: var(--surface-subtle);
   cursor: not-allowed;
+}
+
+/* A row gated by a master switch dims as a whole, the way the Keyboard
+   tab's bindings card does, so the field does not read as empty. */
+.settings-toggle-row.is-gated > .settings-toggle-label {
+  opacity: 0.55;
 }
 
 /* Small-caps kicker used above in-card lists. */
@@ -700,62 +762,22 @@
     margin: 0 -16px;
   }
 
-  /* Folder tabs, as on the repository card, standing on a full-width
-     baseline. Here the page itself is the open folder, so the open tab
-     takes the page's colour and opens onto it through the baseline, and
-     the rest sit a step lower in a recessed tone. The baseline is an inset
-     shadow rather than a border the tabs overlap: the row scrolls, and a
-     scroller clips anything hanging past its edge. */
+  /* Folder tabs (tabs.css) on a full-width baseline. Here the page itself
+     is the open folder, so the open tab takes the page's colour and opens
+     onto it through the baseline, an inset shadow rather than a border the
+     tabs overlap: the row scrolls, and a scroller clips anything hanging
+     past its edge. 42px filed, 45px open, so each is a tap target. */
   .settings-nav {
-    --settings-tab-filed: var(--bg-tertiary);
-    flex-direction: row;
-    align-items: flex-end;
-    overflow-x: auto;
-    gap: 3px;
-    padding: 0 16px;
-    box-shadow: inset 0 -1px 0 var(--border-medium);
-    scrollbar-width: none;
+    --tab-open: var(--bg-primary);
+    --tab-inset: 16px;
+    --tab-pad-y: 10px;
+    --tab-size: 14px;
+    box-shadow: inset 0 -1px 0 var(--tab-line);
     /* The row runs past the edge with its scrollbar hidden, so fade the
        edge to say there's more. As wide as the end padding: scrolled to the
        end, the last tab stops just short of the fade. */
     -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 16px), transparent);
     mask-image: linear-gradient(to right, #000 calc(100% - 16px), transparent);
-  }
-
-  .settings-nav::-webkit-scrollbar {
-    display: none;
-  }
-
-  /* Dark themes lift --bg-tertiary above the page; the filed tabs belong
-     behind it, so they go darker instead. */
-  :root:not([data-theme='light']) .settings-nav {
-    --settings-tab-filed: color-mix(in srgb, var(--bg-primary) 55%, #000);
-  }
-
-  .settings-nav-item {
-    flex: none;
-    height: auto;
-    margin: 0;
-    padding: 9px 14px 8px;
-    border: 1px solid var(--border-medium);
-    border-radius: var(--radius-control) var(--radius-control) 0 0;
-    background: var(--settings-tab-filed);
-    color: var(--text-tertiary);
-    font-weight: 500;
-    line-height: 1.4;
-  }
-
-  .settings-nav-item:hover {
-    background: var(--surface-subtle);
-    color: var(--text-primary);
-  }
-
-  .settings-nav-item.is-active {
-    padding-top: 12px;
-    background: var(--bg-primary);
-    border-bottom-color: var(--bg-primary);
-    color: var(--text-primary);
-    font-weight: 600;
   }
 
   .settings-content {
@@ -1279,6 +1301,7 @@
 
 .settings-section-desc {
   display: block;
+  max-width: 68ch;
   margin-top: 2px;
   font-size: 13px;
   line-height: 1.45;
@@ -1392,6 +1415,10 @@
   padding: 9px 12px;
   background: var(--bg-secondary);
   font-family: var(--font-sans);
+  /* globals locks the whole row (touch-action: none) for dragging, but
+     only the handle carries the drag listeners, and it has its own lock;
+     on the row it just stopped the page from panning. */
+  touch-action: auto;
 }
 
 .group-row:hover {
@@ -1417,6 +1444,44 @@
 
 .group-row-remove:hover {
   background: var(--danger-soft);
+}
+
+/* Touch: the remove control cannot be hovered into view, so it is always
+   shown, and the handles, chevrons and small buttons grow to a thumb's
+   width. Desktop keeps its density. */
+@media (hover: none) {
+  .group-row-remove {
+    opacity: 1;
+    width: 32px;
+    height: 32px;
+  }
+
+  .group-row-handle {
+    width: 32px;
+    height: 32px;
+    margin-left: -6px;
+  }
+
+  .group-handle,
+  .group-chevron {
+    width: 32px;
+    height: 32px;
+    margin: -5px 0;
+  }
+
+  .group-action {
+    width: 36px;
+    height: 36px;
+  }
+
+  .group-actions {
+    gap: 8px;
+  }
+
+  .settings-btn.is-small {
+    height: 32px;
+    padding: 0 12px;
+  }
 }
 
 .settings-sortable > .group-row:last-child,
@@ -1446,6 +1511,14 @@
 .reorder-tag-moved {
   background: var(--accent-soft);
   color: var(--accent-soft-fg);
+}
+
+/* The lock on a section whose switch cannot be turned off. */
+.reorder-tag-lock {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 1px 6px;
 }
 
 /* Add-waypoint popover. */
@@ -1730,12 +1803,22 @@
   font-family: var(--font-sans);
   font-size: 12.5px;
   font-weight: 600;
-  color: var(--text-tertiary);
+  /* A step darker than the "Not set" label beside it, so an enabled Clear
+     and an empty slot are not the same grey. */
+  color: var(--text-secondary);
 }
 
 .kb-text-button:hover:not(:disabled) {
   background: var(--bg-tertiary);
   color: var(--text-primary);
+}
+
+@media (hover: none) {
+  .kb-edit-button,
+  .kb-text-button {
+    height: 36px;
+    padding: 0 12px;
+  }
 }
 
 .kb-reset-all {
@@ -1764,6 +1847,13 @@
 
   .kb-row {
     padding: 10px 16px;
+  }
+
+  /* Each launcher takes the line (or an equal share of it) rather than
+     hugging the left edge at two different widths. */
+  .kb-launch-button {
+    flex: 1 1 auto;
+    justify-content: center;
   }
 }
 
@@ -1974,6 +2064,12 @@
 .shortcuts-body {
   padding: 6px 18px 18px;
   gap: 14px;
+}
+
+/* Focused on open (ShortcutsHelp.tsx), so no ring: the sheet's frame is the
+   focus indication. */
+.shortcuts-body:focus {
+  outline: none;
 }
 
 .shortcuts-group-label {

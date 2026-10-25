@@ -78,7 +78,7 @@ function AuditEntryRow({
         style={{
           display: 'flex',
           alignItems: 'center',
-          justifyContent: 'space-between',
+          justifyContent: 'flex-start',
           gap: '0.75rem',
         }}
       >
@@ -87,7 +87,7 @@ function AuditEntryRow({
           style={{
             fontSize: '12.5px',
             fontVariantNumeric: 'tabular-nums',
-            color: 'var(--text-secondary)',
+            color: 'var(--text-tertiary)',
           }}
         >
           {formatPlcTime(entry.createdAt)}
@@ -104,7 +104,13 @@ function AuditEntryRow({
           }}
         >
           {changes.map((c, idx) => (
-            <li key={idx} style={{ padding: '2px 0', color: 'var(--text-secondary)' }}>
+            // diffOps writes "+ " and "\u2212 " (minus) in front of what came
+            // and went; the colour says the same so the two read apart.
+            <li
+              key={idx}
+              className="fx-log-change"
+              data-op={c.startsWith('+ ') ? 'add' : c.startsWith('\u2212 ') ? 'remove' : undefined}
+            >
               {c}
             </li>
           ))}

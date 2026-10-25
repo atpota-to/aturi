@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { Braces } from 'lucide-react';
 import { Skeleton } from '@/components/SkeletonLoader';
-import { Segmented } from './primitives';
+import { Nsid, Segmented } from './primitives';
 import { fetchCollections } from '@/utils/ufos/client';
 import { type CollectionOrder, type NsidCount } from '@/utils/ufos/config';
 import { formatCount } from '@/utils/ufos/format';
@@ -181,7 +181,9 @@ export default function BrowseAllLexicons() {
                 prefetch={false}
                 className="fn-row fn-browse-grid"
               >
-                <span className="fn-row-nsid">{c.nsid}</span>
+                <span className="fn-row-nsid" title={c.nsid}>
+                  <Nsid value={c.nsid} />
+                </span>
                 <Count value={statFor(c)} />
               </Link>
             </li>

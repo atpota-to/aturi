@@ -282,7 +282,7 @@
    run of loose labels. */
 .fn-header .compact-nav-link {
   gap: 10px;
-  padding: 10px 12px;
+  padding: 11px 12px;
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-control);
   background: var(--bg-primary);
@@ -321,6 +321,21 @@
 
 .fn-header .compact-nav-link[aria-current='page'] svg {
   color: var(--accent-soft-fg);
+}
+
+/* The Theme row: a status row rather than another destination. Full width
+   under the grid, with the current theme named at its end in the same tag
+   the Settings row wears ("LOCAL"). */
+.fn-header .compact-nav-link-wide {
+  grid-column: 1 / -1;
+}
+
+.fn-header .compact-nav-tag {
+  margin-left: auto;
+  font-size: 0.6875rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
 }
 
 .fn-header .compact-nav-link.compact-nav-link-accent {
@@ -394,11 +409,6 @@
 .fn-search-input::placeholder {
   color: var(--text-tertiary);
   opacity: 1;
-}
-
-.fn-search-panel .fn-search-input {
-  font-family: var(--font-mono);
-  font-size: 13px;
 }
 
 .fn-kbd {
@@ -568,6 +578,15 @@
 
 /* ─── Responsive ─────────────────────────────────────────────────────── */
 
+/* Just above the nav fold the go-to field is at its narrowest and the
+   shortcut chip was clipping the placeholder; the shortcut is still named
+   in the palette's footer and the shortcuts sheet. */
+@media (max-width: 1240px) {
+  .fn-header-search .fn-kbd {
+    display: none;
+  }
+}
+
 @media (max-width: 1180px) {
   .fn-nav {
     display: none;
@@ -585,6 +604,20 @@
 
   .fn-search-toggle-explorer {
     display: inline-flex;
+  }
+}
+
+/* Tablets: the three footer groups don't fit one row and wrapped into an
+   accidental two, nav orphaned on the right. Brand and credits take the
+   first row, the nav its own line on the same gutter. */
+@media (min-width: 640px) and (max-width: 959px) {
+  .fn-footer-nav {
+    order: 3;
+    flex-basis: 100%;
+  }
+
+  .fn-footer-credits {
+    white-space: nowrap;
   }
 }
 

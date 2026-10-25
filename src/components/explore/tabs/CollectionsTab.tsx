@@ -1,12 +1,13 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { ChevronsDownUp, ChevronsUpDown, Pin, Search } from 'lucide-react';
 import { describeRepo } from '@/utils/atproto/pdsClient';
 import { encodeRepo } from '@/utils/atproto/urls';
 import type { IdentityBundle } from '@/utils/atproto/identity';
 import { CollectionsTabSkeleton } from '../skeletons/pages';
 import { useMyCollections } from '../useRepoCollections';
+import { useMediaQuery } from '../useIsNarrow';
 import { useAtprotoSession } from '@/components/AtprotoSessionProvider';
 import { usePreferences } from '@/components/PreferencesProvider';
 import {
@@ -187,13 +188,38 @@ export default function CollectionsTab({
 
   const repoSeg = encodeRepo(identity.handle || identity.did);
 
-  const defaultOpen = !prefs.collectionGroupsCollapsedByDefault;
-  function isOpen(key: string): boolean {
-    return openOverrides[key] ?? defaultOpen;
+  // On a phone the tree starts folded whatever the preference says: open,
+  // 179 collections make a page some 12,000px tall with nothing to hold on
+  // to. Taps and the expand-all button still open groups (openOverrides),
+  // a preference of "collapsed" is still honoured, and the server snapshot
+  // is false, so wider layouts render exactly as before.
+  const isPhone = useMediaQuery('(max-width: 640px)');
+  const defaultOpen = !prefs.collectionGroupsCollapsedByDefault && !isPhone;
+  // In the sidebar, beside a collection's records, only the groups on the
+  // way to that collection start open: the tree is there to say where you
+  // are, and 39 open namespaces said nothing. `prefix` is the dotted
+  // namespace a key stands for (a pinned group's key is not its prefix).
+  function isOpen(key: string, prefix = key): boolean {
+    return (
+      openOverrides[key] ??
+      (sidebar && current ? current.startsWith(`${prefix}.`) : defaultOpen)
+    );
   }
-  function toggle(key: string) {
-    setOpenOverrides((prev) => ({ ...prev, [key]: !isOpen(key) }));
+  function toggle(key: string, prefix = key) {
+    setOpenOverrides((prev) => ({ ...prev, [key]: !isOpen(key, prefix) }));
   }
+
+  // The sidebar's tree is its own scroller on wide screens; bring the row
+  // for the current collection into it. The scroller alone moves, never the
+  // window (scrollIntoView would also scroll the page on a phone).
+  const scrollRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const scroller = scrollRef.current;
+    const row = scroller?.querySelector<HTMLElement>('.fx-row[data-current]');
+    if (!sidebar || !scroller || !row || scroller.scrollHeight <= scroller.clientHeight) return;
+    scroller.scrollTop =
+      row.getBoundingClientRect().top - scroller.getBoundingClientRect().top + scroller.scrollTop - 12;
+  }, [sidebar, current, collections]);
 
   // Collect every group key currently rendered so the "expand/collapse all"
   // button can target the visible set, not stale keys from a previous filter.
@@ -358,7 +384,7 @@ export default function CollectionsTab({
           )}
         </div>
 
-        <div className="fx-tree-scroll">
+        <div className="fx-tree-scroll" ref={scrollRef}>
           {hasAnyPinned && (
             <section className="fx-tree-pinned" aria-label="Pinned collections">
               <div className="fx-tree-label">
@@ -371,12 +397,12 @@ export default function CollectionsTab({
                   in the header. Their members are plain links; the group is
                   the unit you pin/unpin. */}
               {pinnedGroups.map((g) => {
-                const open = isOpen(pinnedKey(g.entry));
+                const open = isOpen(pinnedKey(g.entry), g.prefix);
                 return (
                   <div key={g.entry} className="fx-tree-block">
                     <GroupHeader
                       open={open}
-                      onToggle={() => toggle(pinnedKey(g.entry))}
+                      onToggle={() => toggle(pinnedKey(g.entry), g.prefix)}
                       prefix={g.prefix}
                       count={g.items.length}
                       emphasize

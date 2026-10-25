@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Check, Copy } from 'lucide-react';
 
 interface CodeBlockProps {
@@ -19,6 +19,24 @@ interface CodeBlockProps {
  */
 export default function CodeBlock({ code, label }: CodeBlockProps) {
   const [copied, setCopied] = useState(false);
+
+  // A block wider than its box scrolls sideways (content.css keeps the
+  // lines whole), and nothing on a phone shows that it does: no scrollbar
+  // until it moves, and the cut falls at the padding edge. So the bar says
+  // "scrolls" while the block overflows and has not been scrolled yet, and
+  // the block becomes a tab stop so a keyboard can scroll it.
+  const preRef = useRef<HTMLPreElement>(null);
+  const [overflows, setOverflows] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+  useEffect(() => {
+    const pre = preRef.current;
+    if (!pre) return;
+    const check = () => setOverflows(pre.scrollWidth > pre.clientWidth + 1);
+    check();
+    const observer = new ResizeObserver(check);
+    observer.observe(pre);
+    return () => observer.disconnect();
+  }, [code]);
 
   const handleCopy = useCallback(async () => {
     try {
@@ -48,10 +66,19 @@ export default function CodeBlock({ code, label }: CodeBlockProps) {
       {label ? (
         <div className="fn-code-bar">
           <span className="fn-code-lang">{label}</span>
+          {overflows && !scrolled ? (
+            <span className="fn-code-scrollhint" aria-hidden>
+              scrolls &rarr;
+            </span>
+          ) : null}
           {copyButton}
         </div>
       ) : null}
-      <pre>
+      <pre
+        ref={preRef}
+        tabIndex={overflows ? 0 : undefined}
+        onScroll={scrolled ? undefined : () => setScrolled(true)}
+      >
         <code>{code}</code>
       </pre>
       {label ? null : copyButton}

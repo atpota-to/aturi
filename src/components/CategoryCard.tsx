@@ -14,7 +14,6 @@ type CategoryCardProps = {
   did?: string;
   copiedId: string | null;
   onCopy: (url: string, waypointId: string, e: React.MouseEvent) => void;
-  onWaypointClick: (url: string, e: React.MouseEvent) => void;
   subcategories?: Array<{
     category: WaypointCategory;
     waypoints: Waypoint[];
@@ -35,7 +34,6 @@ export default function CategoryCard({
   did,
   copiedId,
   onCopy,
-  onWaypointClick,
   subcategories,
   alwaysShowCategoryHeader = false,
 }: CategoryCardProps) {
@@ -65,25 +63,12 @@ export default function CategoryCard({
     
     const isCopied = copiedId === waypoint.id;
     
+    // The card is one link: the arrow anchor's ::after is stretched over
+    // the card (link.css), so the whole card opens the app with one tab
+    // stop and one announcement, and the copy button sits above it. A
+    // div-button wrapper around the same anchor cost three stops a card.
     return (
-      <div
-        key={waypoint.id}
-        className="waypoint-button"
-        role="button"
-        tabIndex={0}
-        aria-label={`Open in ${waypoint.name}`}
-        onClick={(e) => onWaypointClick(url, e)}
-        onKeyDown={(e) => {
-          // Make the card operable by keyboard (Enter/Space), matching native
-          // button semantics — previously only the small icon link was
-          // reachable. Space is preventDefault'd so the page doesn't scroll.
-          if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault();
-            onWaypointClick(url, e as unknown as React.MouseEvent);
-          }
-        }}
-        style={{ cursor: 'pointer' }}
-      >
+      <div key={waypoint.id} className="waypoint-button">
         <div className="waypoint-icon">{waypoint.icon}</div>
         <div className="waypoint-content">
           <div className="waypoint-name">{waypoint.name}</div>
@@ -123,6 +108,12 @@ export default function CategoryCard({
     );
   };
 
+  // The header carries the count the compact layouts show: how many of the
+  // group's apps can open this record.
+  const compatibleCount = (waypoints ?? []).filter(
+    (w) => w.getUrl(handle, collection, rkey, did) !== null,
+  ).length;
+
   if (!alwaysShowCategoryHeader && !hasMultiple && !hasSubcategories && hasWaypoints) {
     // Single waypoint with no subcategories - render it directly without category wrapper
     return renderWaypointCard(waypoints![0]);
@@ -136,7 +127,12 @@ export default function CategoryCard({
           when the button itself is clicked. */}
       <div className="category-header" onClick={onToggle}>
         <div className="category-title">
-          <h3>{category.name}</h3>
+          <h3>
+            {category.name}
+            {compatibleCount > 0 && (
+              <em aria-label={`${compatibleCount} apps`}>{compatibleCount}</em>
+            )}
+          </h3>
           {category.description && (
             <p className="category-description">{category.description}</p>
           )}
@@ -199,7 +195,6 @@ export default function CategoryCard({
                     did={did}
                     copiedId={copiedId}
                     onCopy={onCopy}
-                    onWaypointClick={onWaypointClick}
                   />
                 ))}
               </div>

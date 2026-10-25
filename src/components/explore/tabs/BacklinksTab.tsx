@@ -429,6 +429,7 @@ function BacklinkRecords({ target, source }: { target: string; source: string })
             >
               <AtUriLink
                 uri={atUri}
+                className="fx-backlink-record"
                 style={{
                   display: 'grid',
                   gridTemplateColumns: 'minmax(14ch, 22ch) 1fr',
@@ -440,11 +441,11 @@ function BacklinkRecords({ target, source }: { target: string; source: string })
                   textDecoration: 'none',
                 }}
               >
+                {/* No colour of its own, so the row's hover colour reaches it. */}
                 <code
                   style={{
                     background: 'transparent',
                     padding: 0,
-                    color: 'var(--text-primary)',
                     wordBreak: 'break-all',
                   }}
                 >
@@ -476,9 +477,10 @@ function BacklinkRecords({ target, source }: { target: string; source: string })
             border: 0,
             color: 'var(--text-accent)',
             fontSize: '0.8125rem',
-            fontFamily: 'var(--font-serif)',
+            fontFamily: 'var(--font-sans)',
+            fontWeight: 600,
             cursor: loading ? 'wait' : 'pointer',
-            padding: '0.25rem 0',
+            padding: '0.35rem 0',
           }}
         >
           {loading ? 'Loading…' : 'Load more'}

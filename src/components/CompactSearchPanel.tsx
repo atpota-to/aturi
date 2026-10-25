@@ -214,7 +214,7 @@ export default function CompactSearchPanel({ active, onDone, variant = 'panel' }
           type="text"
           autoComplete="off"
           spellCheck={false}
-          placeholder={isBar ? 'Go to a handle, DID or at:// URI' : 'handle, DID, or URL'}
+          placeholder="Go to a handle, DID or at:// URI"
           value={value}
           onChange={(e) => setValue(e.target.value)}
           onKeyDown={onKeyDown}

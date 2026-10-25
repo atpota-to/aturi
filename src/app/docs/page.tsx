@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { Package } from 'lucide-react';
 import Header from '@/components/Header';
 import CodeBlock from '@/components/docs/CodeBlock';
+import DocsToc from '@/components/docs/DocsToc';
 import CopyMarkdownButton from '@/components/docs/CopyMarkdownButton';
 import { DOCS_MARKDOWN } from './markdown';
 
@@ -193,19 +194,8 @@ export default function DocsPage() {
         </header>
 
         <div className="fn-docs-layout">
-          {/* Table of contents */}
-          <nav aria-label="On this page" className="fn-docs-toc">
-            <span className="fn-docs-toc-label" aria-hidden>
-              On this page
-            </span>
-            <ol>
-              {TOC.map((item) => (
-                <li key={item.id}>
-                  <a href={`#${item.id}`}>{item.label}</a>
-                </li>
-              ))}
-            </ol>
-          </nav>
+          {/* Table of contents; marks the section in view. */}
+          <DocsToc items={TOC} />
 
           <article className="fn-c-sheet fn-prose">
             {/* Overview */}

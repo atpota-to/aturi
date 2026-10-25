@@ -264,8 +264,12 @@ function FieldRow({
   // like are set in mono.
   const mono =
     !expandable && value !== null && !(typeof value === 'string' && /\s/.test(value));
+  // A paragraph of prose takes the whole row in a narrow table (record.css,
+  // data-prose) rather than a ribbon beside an empty label column; short
+  // values keep the two-column rhythm.
+  const prose = typeof value === 'string' && /\s/.test(value) && value.length > 48;
   return (
-    <div className="fn-field" data-last={isLast || undefined}>
+    <div className="fn-field" data-last={isLast || undefined} data-prose={prose || undefined}>
       <div className="field-row-main fn-field-main">
         <div className="field-row-label fn-field-label">
           {typeof label === 'string' ? withCamelBreaks(label) : label}
@@ -462,22 +466,23 @@ function LinkableValue({
         {display}
       </Link>
       {suffix}
+      {/* A no-break space: the glyph stays on the line with the last token
+          instead of dropping to a line of its own. */}
+      {'\u00a0'}
       <button
         type="button"
         onClick={onCopy}
         aria-label={copied ? 'Copied' : copyLabel}
         title={copied ? 'Copied!' : copyLabel}
+        className="fn-field-copy"
+        data-copied={copied || undefined}
         style={{
-          marginLeft: '0.35rem',
           display: 'inline-flex',
           verticalAlign: 'middle',
           background: 'transparent',
           border: 0,
           padding: 0,
-          color: copied ? 'var(--text-accent)' : 'var(--text-tertiary)',
-          opacity: copied ? 1 : 0.45,
           cursor: 'pointer',
-          transition: 'opacity 0.2s ease, color 0.2s ease',
         }}
       >
         {copied ? <Check size={12} /> : <Copy size={12} />}
@@ -523,16 +528,17 @@ function CopyableValue({ display, copy }: { display: string; copy: string }) {
         color: copied ? 'var(--text-accent)' : 'inherit',
       }}
     >
-      {/\s/.test(display) ? display : withDotBreaks(display)}
+      {/* Prose wraps at its spaces; an ISO datetime stays whole (a break at
+          its dots split "2026-10-25T15:04:33." from "892Z"); anything else
+          may wrap after a dot. */}
+      {/\s/.test(display) || /^\d{4}-\d{2}-\d{2}T/.test(display)
+        ? display
+        : withDotBreaks(display)}
+      {'\u00a0'}
       <span
-        style={{
-          marginLeft: '0.35rem',
-          display: 'inline-block',
-          verticalAlign: 'middle',
-          color: copied ? 'var(--text-accent)' : 'var(--text-tertiary)',
-          opacity: copied ? 1 : 0.35,
-          transition: 'opacity 0.2s ease, color 0.2s ease',
-        }}
+        className="fn-field-copy"
+        data-copied={copied || undefined}
+        style={{ display: 'inline-block', verticalAlign: 'middle' }}
         aria-hidden
       >
         {copied ? <Check size={12} /> : <Copy size={12} />}

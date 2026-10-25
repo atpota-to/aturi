@@ -383,7 +383,9 @@ function TabbedView({ identity }: { identity: IdentityBundle }) {
               onClick={() => selectTab(t.id)}
               className="fx-tab explore-tab"
             >
-              {t.label}
+              <span className="fx-tab-label" data-label={t.label}>
+                {t.label}
+              </span>
             </button>
           );
         })}
@@ -430,7 +432,9 @@ export function RepoNavCard({
             // the link leaves this page, so it's highlighted, not aria-current.
             data-active={t.id === 'collections' || undefined}
           >
-            {t.label}
+            <span className="fx-tab-label" data-label={t.label}>
+              {t.label}
+            </span>
           </Link>
         ))}
       </nav>

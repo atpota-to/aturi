@@ -146,6 +146,12 @@
      item, selected tree row, chips) and --accent-soft-border its outline.
      Radii: cards are 12px, controls 8px, pills fully round. */
   --surface-subtle: #20221d;
+  /* Folders filed behind the open one (the folder tabs, tabs.css): a step
+     below the page in both themes. Dark lifts --bg-tertiary above the page,
+     so there the step is the page taken toward black. #000 is a shade, not
+     a colour: every scheme and both high-contrast variants darken in their
+     own hue, and the tone no longer depends on which sheet is open. */
+  --surface-filed: color-mix(in srgb, var(--bg-primary) 62%, #000);
   --accent-soft: #26301f;
   --accent-soft-fg: #c5dbb2;
   --accent-soft-border: #34422a;
@@ -259,6 +265,7 @@
   --margin-annotation-border: rgba(101, 67, 198, 0.28);
 
   --surface-subtle: #faf9f5;
+  --surface-filed: var(--bg-tertiary);
   --accent-soft: #e5ecdc;
   --accent-soft-fg: #2b4320;
   --accent-soft-border: #d9e4cc;
@@ -1702,38 +1709,6 @@ html {
   font-family: var(--font-serif);
 }
 
-.settings-nav {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 2px;
-  margin: 0 -6px;
-}
-
-.settings-nav-item {
-  background: transparent;
-  border: none;
-  color: var(--text-secondary);
-  cursor: pointer;
-  font-family: var(--font-serif);
-  font-size: 0.95rem;
-  font-weight: 400;
-  padding: 8px 12px 10px;
-  border-bottom: 2px solid transparent;
-  margin-bottom: -1px;
-  transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
-  white-space: nowrap;
-}
-
-.settings-nav-item:hover {
-  color: var(--text-primary);
-  background: var(--bg-tertiary);
-}
-
-.settings-nav-item.is-active {
-  color: var(--text-primary);
-  border-bottom-color: var(--text-accent);
-  font-weight: 500;
-}
 
 .settings-content {
   display: flex;
@@ -2044,9 +2019,6 @@ html {
 }
 
 @media (max-width: 560px) {
-  .settings-nav-item {
-    padding: 8px 10px 10px;
-  }
   .settings-card {
     padding: 18px 16px;
   }
@@ -2705,8 +2677,11 @@ html {
   color: var(--text-tertiary);
 }
 
+/* The site's 2px focus perimeter, drawn as the border plus an inset ring so
+   it stays flat: no halo, and it holds in dark since it uses the token. */
 .fn-searchbox-input:focus {
   border-color: var(--text-accent);
+  box-shadow: inset 0 0 0 1px var(--text-accent);
 }
 
 .fn-searchbox-pop {
@@ -2754,6 +2729,10 @@ html {
 @media (max-width: 640px) {
   .fn-searchbox {
     flex-direction: column;
+  }
+  /* Under 16px, iOS Safari zooms the page when the field takes focus. */
+  .fn-searchbox-input {
+    font-size: 16px;
   }
 }
 
@@ -2973,10 +2952,22 @@ a.fn-link-btn:focus-visible {
   color: var(--accent-forest);
 }
 
+.fn-post-counts {
+  display: contents;
+}
+
 @media (max-width: 640px) {
   .card.post-preview {
     gap: 14px;
     padding: 16px;
+  }
+
+  /* Four counts in two even columns, not three on a line and one orphan. */
+  .fn-post-counts {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px 12px;
+    width: 100%;
   }
 
   .fn-post-text {
@@ -4582,49 +4573,6 @@ body.has-explore-chrome .fn-footer {
 .profile-preview-banner {
   width: 100%;
   height: 200px;
-}
-
-/* Universal-link (waypoint) pages ran large on phones — the preview card,
-   the "choose where to view" header, and the waypoint rows were all sized
-   for desktop, so the page felt zoomed in versus the rest of the app. On
-   small screens tighten the gutters and scale the big elements down a notch
-   so more fits on screen without the user having to pinch-zoom out. */
-@media (max-width: 600px) {
-  .waypoint-page {
-    padding-left: 1.25rem;
-    padding-right: 1.25rem;
-  }
-
-  .waypoint-page #waypoint-picker > header {
-    margin-bottom: 1.5rem;
-  }
-
-  .waypoint-page #waypoint-picker > header h1 {
-    font-size: 1.875rem;
-  }
-
-  .waypoint-page #waypoint-picker > header p {
-    font-size: 1rem !important;
-  }
-
-  .waypoint-page .waypoint-button {
-    padding: 1rem 1.125rem;
-    gap: 0.75rem;
-  }
-
-  .waypoint-page .waypoint-name {
-    font-size: 1rem;
-  }
-
-  .waypoint-page .waypoint-description {
-    font-size: 0.8125rem;
-  }
-
-  /* Trim the profile banner — at 200px it ate roughly a third of the
-     viewport before any content showed. */
-  .profile-preview-banner {
-    height: 130px;
-  }
 }
 
 /* "Repo at a glance" stat tiles. On wide screens the tiles flow as many-per-row

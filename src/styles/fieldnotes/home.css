@@ -191,7 +191,7 @@
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: var(--text-secondary);
+  color: var(--text-accent);
 }
 
 .fn-home-textlink {
@@ -820,9 +820,8 @@
     flex-direction: column;
   }
   .fn-home-search .fn-searchbox-input {
-    height: 50px;
+    height: 48px;
     padding-left: 42px;
-    font-size: 16px;
   }
   .fn-home-search .fn-searchbox-icon {
     left: 14px;

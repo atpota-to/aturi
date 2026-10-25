@@ -329,12 +329,16 @@ function RecordView({
           <h2 id="fn-rec-data-title" className="fn-rec-h2">
             Record
           </h2>
+          {/* Two toggles, not a switch: both views can be on at once (only
+              hiding both is refused), so each is a chip with the site's "on"
+              fill and a check, like a copied chip. */}
           <div role="group" aria-label="Record view" className="fn-rec-seg">
             <button
               type="button"
               aria-pressed={!structuredHidden}
               onClick={() => updatePrefs((p) => toggleRecordDataView(p, 'structuredJson'))}
             >
+              {!structuredHidden && <Check size={12} aria-hidden />}
               Fields
             </button>
             <button
@@ -342,6 +346,7 @@ function RecordView({
               aria-pressed={!rawHidden}
               onClick={() => updatePrefs((p) => toggleRecordDataView(p, 'rawJson'))}
             >
+              {!rawHidden && <Check size={12} aria-hidden />}
               JSON
             </button>
           </div>

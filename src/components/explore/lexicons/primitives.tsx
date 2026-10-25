@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { Fragment, useMemo } from 'react';
 import { ArrowDownRight, ArrowUpRight, ExternalLink } from 'lucide-react';
 import { formatPct } from '@/utils/ufos/format';
 
@@ -69,9 +69,36 @@ export function Sparkline({
           strokeWidth={strokeWidth}
           strokeLinecap="round"
           strokeLinejoin="round"
+          // A stretched viewBox would otherwise stretch the stroke with it.
+          vectorEffect="non-scaling-stroke"
         />
       )}
     </svg>
+  );
+}
+
+// ─── NSID ───────────────────────────────────────────────────────────────────
+
+/**
+ * An NSID with a break opportunity after every dot, so a long one wraps at a
+ * segment boundary on a phone rather than being cut mid-word or ending in an
+ * ellipsis that hides the one segment that tells two apart.
+ */
+export function Nsid({ value }: { value: string }) {
+  const segments = value.split('.');
+  return (
+    <>
+      {segments.map((seg, i) => (
+        <Fragment key={i}>
+          {i > 0 && (
+            <>
+              .<wbr />
+            </>
+          )}
+          {seg}
+        </Fragment>
+      ))}
+    </>
   );
 }
 

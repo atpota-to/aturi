@@ -18,7 +18,7 @@
   min-height: 70dvh;
 }
 .fn-c-wrap[data-width='article'] {
-  max-width: 808px;
+  max-width: 760px;
 }
 .fn-c-wrap[data-width='board'] {
   max-width: 848px;
@@ -184,13 +184,14 @@ a.fn-c-pill:hover {
 }
 
 /* --- prose ----------------------------------------------------------------
-   Long-form body copy: Figtree 15.5px/1.65 on a ~680px measure, clear h2/h3
+   Long-form body copy: Figtree 16px/1.65 on a measure of about 80
+   characters (the article wrap less the sheet's padding), clear h2/h3
    steps, mono inline code on the subtle surface. */
 
 .fn-prose {
   max-width: 680px;
   font-family: var(--font-sans);
-  font-size: 15.5px;
+  font-size: 16px;
   line-height: 1.65;
   color: var(--text-secondary);
   overflow-wrap: break-word;
@@ -402,6 +403,15 @@ a.fn-c-pill:hover {
 .fn-code-copy[data-done] {
   color: var(--text-accent);
 }
+/* "scrolls" beside the language while the block overflows and has not
+   been scrolled (CodeBlock.tsx); the auto margin keeps it by the label. */
+.fn-code-scrollhint {
+  margin-left: 10px;
+  margin-right: auto;
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: var(--text-tertiary);
+}
 /* No label: the copy button floats in the corner of the block. */
 .fn-code[data-bare] {
   position: relative;
@@ -429,10 +439,21 @@ a.fn-c-pill:hover {
   overflow-wrap: normal !important;
   overflow-x: auto !important;
   tab-size: 2;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-strong) transparent;
 }
+.fn-code pre:focus-visible {
+  outline: 2px solid var(--text-accent);
+  outline-offset: -2px;
+}
+/* Sized to the longest line so the last characters get 24px of air
+   before the scroll edge instead of ending flush against it. */
 .fn-code pre code {
-  display: block;
-  padding: 0;
+  display: inline-block;
+  min-width: 100%;
+  box-sizing: border-box;
+  vertical-align: top;
+  padding: 0 24px 0 0;
   background: transparent;
   border: 0;
   border-radius: 0;
@@ -481,6 +502,7 @@ a.fn-c-pill:hover {
   grid-template-columns: minmax(0, 1fr);
   gap: 20px;
   align-items: start;
+  max-width: 988px;
 }
 @media (min-width: 1000px) {
   .fn-docs-layout {
@@ -530,10 +552,28 @@ a.fn-c-pill:hover {
     top: 88px;
     padding-top: 6px;
   }
+  /* The rail is each entry's own left edge, so the current one (DocsToc
+     sets aria-current) can sit on it in the sheet's white with a moss
+     edge, the filed ones staying on the paper. */
   .fn-docs-toc ol {
-    border-left: 1px solid var(--border-medium);
-    padding-left: 8px;
+    gap: 0;
   }
+  .fn-docs-toc a {
+    padding: 6px 10px 6px 17px;
+    border-left: 1px solid var(--border-medium);
+    border-radius: 0 var(--radius-control) var(--radius-control) 0;
+  }
+  .fn-docs-toc a[aria-current] {
+    padding-left: 16px;
+    border-left: 2px solid var(--accent-moss);
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    font-weight: 600;
+  }
+}
+.fn-docs-toc a:focus-visible {
+  outline: 2px solid var(--text-accent);
+  outline-offset: -2px;
 }
 /* Narrow: the contents become a wrapping row of pills. */
 @media (max-width: 999px) {
@@ -543,13 +583,13 @@ a.fn-c-pill:hover {
   .fn-docs-toc ol {
     flex-direction: row;
     flex-wrap: wrap;
-    gap: 6px;
+    gap: 8px;
   }
   .fn-docs-toc a {
-    height: 30px;
+    height: 36px;
     display: inline-flex;
     align-items: center;
-    padding: 0 11px;
+    padding: 0 13px;
     border-radius: var(--radius-pill);
     border: 1px solid var(--border-medium);
     background: var(--bg-secondary);
@@ -557,6 +597,11 @@ a.fn-c-pill:hover {
   }
   .fn-docs-toc a:hover {
     border-color: var(--border-strong);
+  }
+}
+@media (pointer: coarse) and (max-width: 999px) {
+  .fn-docs-toc a {
+    height: 40px;
   }
 }
 
@@ -587,6 +632,15 @@ a.fn-c-pill:hover {
 }
 .fn-c-error-wrap .fn-lp-notfound {
   margin-bottom: 32px;
+}
+.fn-c-error-wrap .fn-lp-notfound-actions .fn-lp-btn {
+  height: 40px;
+}
+@media (max-width: 600px) {
+  .fn-c-error-wrap .fn-lp-notfound-actions .fn-lp-btn {
+    flex: 1 1 0;
+    height: 44px;
+  }
 }
 .fn-c-error-pill {
   background: var(--danger-soft);
@@ -645,6 +699,10 @@ a.fn-c-pill:hover {
 }
 .fn-c-next a:hover {
   background: var(--surface-subtle);
+}
+.fn-c-next a:focus-visible {
+  outline: 2px solid var(--text-accent);
+  outline-offset: -2px;
 }
 .fn-c-next-path {
   min-width: 120px;
@@ -821,41 +879,17 @@ a.fn-c-pill:hover {
   overflow: hidden;
   min-width: 0;
 }
+/* The sort is the site's segmented control (.fn-segmented, explore.css):
+   it re-orders one list rather than opening another, so it is not a tab
+   row. Padding fits the 34px control in the head. */
 .fn-fb-tools {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: 8px 12px;
-  padding: 0 10px 0 8px;
+  padding: 8px 10px 8px 12px;
   border-bottom: 1px solid var(--border-medium);
-}
-.fn-fb-sorts {
-  display: flex;
-}
-.fn-fb-sort {
-  margin-bottom: -1px;
-  padding: 12px 10px 10px;
-  background: transparent;
-  border: 0;
-  border-bottom: 2px solid transparent;
-  font-family: var(--font-sans);
-  font-size: 13.5px;
-  font-weight: 500;
-  color: var(--text-secondary);
-  cursor: pointer;
-  transition: color 0.15s ease, border-color 0.15s ease;
-}
-.fn-fb-sort:hover {
-  color: var(--text-primary);
-}
-.fn-fb-sort[aria-pressed='true'] {
-  color: var(--text-primary);
-  font-weight: 700;
-  border-bottom-color: var(--accent-moss);
-}
-:root:not([data-theme='light']) .fn-fb-sort[aria-pressed='true'] {
-  border-bottom-color: var(--text-accent);
 }
 .fn-fb-filters {
   display: flex;
@@ -893,10 +927,18 @@ a.fn-c-pill:hover {
   background: var(--accent-soft);
   color: var(--accent-soft-fg);
 }
-.fn-fb-chip:focus-visible,
-.fn-fb-sort:focus-visible {
+.fn-fb-chip:focus-visible {
   outline: 2px solid var(--text-accent);
   outline-offset: -2px;
+}
+@media (pointer: coarse) {
+  .fn-fb-chips {
+    gap: 8px;
+  }
+  .fn-fb-chip {
+    height: 36px;
+    padding: 0 13px;
+  }
 }
 
 .fn-fb-list {
@@ -1123,7 +1165,7 @@ a.fn-c-pill:hover {
   align-items: center;
   justify-content: center;
   width: 30px;
-  height: 22px;
+  height: 28px;
   padding: 0;
   border: 0;
   border-radius: 6px;
@@ -1152,6 +1194,17 @@ a.fn-c-pill:hover {
 .fn-fb-vote button:focus-visible {
   outline: 2px solid var(--text-accent);
   outline-offset: 0;
+}
+/* Touch: the arrows sit either side of the score, so a low thumb flipped
+   the vote at 22px. The pills grow with them. */
+@media (pointer: coarse) {
+  .fn-fb-vote button,
+  .fn-fb-vote[data-orientation='horizontal'] button {
+    height: 32px;
+  }
+  .fn-fb-vote[data-orientation='horizontal'] {
+    height: 36px;
+  }
 }
 .fn-fb-score {
   min-width: 20px;
@@ -1402,7 +1455,7 @@ a.fn-c-pill:hover {
   .fn-fb-post > .fn-fb-vote[data-orientation='vertical'] {
     flex-direction: row;
     width: auto;
-    height: 30px;
+    height: 36px;
     padding: 0 3px;
     border-radius: var(--radius-pill);
   }

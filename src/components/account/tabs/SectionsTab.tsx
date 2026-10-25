@@ -26,7 +26,7 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { GripVertical } from 'lucide-react';
+import { GripVertical, Lock } from 'lucide-react';
 import { usePreferences } from '@/components/PreferencesProvider';
 import Toggle from '../Toggle';
 import {
@@ -192,6 +192,17 @@ function SectionRow({
         <span className="settings-section-name">
           <span>{label}</span>
           <span className="reorder-tag">{kind === 'record-data' ? 'content' : 'helper'}</span>
+          {toggleDisabled && (
+            // The switch is locked (this is the last data view), and a hover
+            // title never shows on touch, so the lock says so on sight.
+            <span
+              className="reorder-tag reorder-tag-lock"
+              title="At least one data view must stay visible"
+            >
+              <Lock size={11} aria-hidden />
+              <span className="fn-sr-only">always shown</span>
+            </span>
+          )}
         </span>
         <span className="settings-section-desc">{description}</span>
       </label>

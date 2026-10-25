@@ -133,6 +133,9 @@ function RankingCard({
 
   const visible = rows ? rows.slice(0, limit) : null;
   const max = visible ? Math.max(1, ...visible.map((r) => r.value)) : 1;
+  // Log scale: app.bsky.feed.like sits two orders of magnitude above the
+  // rest, and a linear bar drew rows 2 to 10 as the same 2px stub.
+  const scale = (v: number) => Math.log10(v + 1) / Math.log10(max + 1);
   const id = `fn-pulse-${mode}`;
   const noun = METRIC_NOUN[metric];
   const unit = noun.toLowerCase();
@@ -173,8 +176,8 @@ function RankingCard({
                       <span className="fn-row-rank">{i + 1}</span>
                       <span className="fn-pulse-nsid-bar">
                         <span className="fn-pulse-nsid">{row.nsid}</span>
-                        <span className="fn-pulse-bar" aria-hidden>
-                          <span style={{ width: `${Math.max(1, Math.round((row.value / max) * 100))}%` }} />
+                        <span className="fn-pulse-bar" aria-hidden title="Bar length is on a log scale">
+                          <span style={{ width: `${Math.max(2, Math.round(scale(row.value) * 100))}%` }} />
                         </span>
                       </span>
                       <span className="fn-row-figures">

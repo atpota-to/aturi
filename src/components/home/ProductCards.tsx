@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import type { ReactNode } from 'react';
-import { ChevronRight, Compass, Leaf, Link2 } from 'lucide-react';
+import { ChevronRight, Download, Leaf, Link2, Telescope } from 'lucide-react';
 import {
   WAYPOINT_DESTINATIONS,
   getWaypointCount,
@@ -71,7 +71,7 @@ export default function ProductCards() {
       copy:
         'Click the leaf in your toolbar to open what you’re reading in another app, or let auto-redirect send links to your favorite client. The Inspect tab shows the record, PDS, DID and backlinks behind any page.',
       short: 'Jump between clients in a click. For Chrome and Firefox on desktop.',
-      icon: <Leaf size={19} />,
+      icon: <Download size={19} />,
       href: '/extension',
       linkLabel: 'How the extension works',
       aside: <span className="fn-home-card-aside">{waypointCount} curated clients</span>,
@@ -84,7 +84,7 @@ export default function ProductCards() {
       copy:
         'Read every collection, record, and backlink on any PDS, with identity history and audit logs one tab away. Sign in to edit your own records and sync your preferences.',
       short: 'Browse any account’s collections, records, and backlinks.',
-      icon: <Compass size={19} />,
+      icon: <Telescope size={19} />,
       href: '/explore',
       linkLabel: 'Start exploring',
       visual: <TreeSketch />,

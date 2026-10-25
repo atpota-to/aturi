@@ -72,32 +72,42 @@ body {
   color: var(--text-accent);
 }
 
-/* Folder tabs, as on the site's repository card and settings page. They
+/* Folder tabs, as on the site's repository card and settings page (the
+   site's src/styles/fieldnotes/tabs.css; the numbers are mirrored by hand
+   here because the popup has its own build, so keep the two in step). They
    stand on the top bar's bottom edge, and the body below is the open
    folder: the open tab takes the body's colour and runs into it through
-   the bar's border, while the other sits a step lower in a recessed tone.
-   The one-pixel overhang lands each tab's bottom edge on that border. */
+   the bar's border, while the other sits a step below the body. The
+   one-pixel overhang lands each tab's bottom edge on that border. Each tab
+   is cut, not stamped: below the shoulder its sides lean out 4°, drawn by
+   two skewed wedges that inherit the tab's fill and edge, on displays that
+   can draw that hairline crisply. */
 .popup-mode-tabs {
+  --popup-tab-open: var(--bg-primary);
   --popup-tab-filed: var(--bg-tertiary);
   margin-left: auto;
   align-self: flex-end;
   margin-bottom: -1px;
   display: flex;
   align-items: flex-end;
-  gap: 3px;
+  gap: 5px;
 }
 
-/* Dark lifts --bg-tertiary above the body; filed tabs go darker instead. */
+/* Dark lifts --bg-tertiary above the body: a step below it is the body
+   taken toward black (the site's --surface-filed formula). */
 [data-theme='dark'] .popup-mode-tabs {
-  --popup-tab-filed: color-mix(in srgb, var(--bg-primary) 55%, #000);
+  --popup-tab-filed: color-mix(in srgb, var(--bg-primary) 62%, #000);
 }
 
 .popup-mode-tab {
-  height: 32px;
+  position: relative;
+  /* Its own stacking context, so the wedges sit under the label. */
+  z-index: 0;
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 0 12px;
+  /* 32px filed, 33px hovered, 35px open, on a 20px line box. */
+  padding: 5px 12px;
   box-sizing: border-box;
   border: 1px solid var(--border-medium);
   border-radius: var(--radius-control) var(--radius-control) 0 0;
@@ -105,20 +115,87 @@ body {
   color: var(--text-tertiary);
   font-size: var(--fs-md);
   font-weight: 500;
-  transition: background 0.15s ease, color 0.15s ease;
+  line-height: 20px;
+  transition: background-color 0.15s ease, color 0.15s ease;
 }
 
-.popup-mode-tab:hover {
-  background: var(--surface-subtle);
-  color: var(--text-primary);
+@media (min-resolution: 1.5dppx) {
+  .popup-mode-tab::before,
+  .popup-mode-tab::after {
+    content: '';
+    position: absolute;
+    z-index: -1;
+    top: calc(var(--radius-control) - 1px);
+    bottom: -1px;
+    width: 10px;
+    background: inherit;
+    border: 0 solid;
+    border-color: inherit;
+    border-bottom-width: 1px;
+    pointer-events: none;
+    transition: background-color 0.15s ease;
+  }
+  .popup-mode-tab::before {
+    left: -1px;
+    border-left-width: 1px;
+    transform-origin: top left;
+    transform: skewX(-4deg);
+  }
+  .popup-mode-tab::after {
+    right: -1px;
+    border-right-width: 1px;
+    transform-origin: top right;
+    transform: skewX(4deg);
+  }
+}
+
+/* A label never changes width when its weight does: a hidden, zero-height
+   copy in the open weight reserves the room. */
+.popup-mode-tab-label {
+  display: inline-block;
+  text-align: center;
+}
+
+.popup-mode-tab-label::after {
+  content: attr(data-label);
+  display: block;
+  height: 0;
+  overflow: hidden;
+  font-weight: 600;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+/* Touched: the tab comes forward one pixel and its tone lifts halfway
+   toward the body, so in dark it sits between filed and open. */
+@media (hover: hover) {
+  .popup-mode-tab:hover:not(.is-active) {
+    padding-top: 6px;
+    background: color-mix(in srgb, var(--popup-tab-filed) 50%, var(--popup-tab-open));
+    color: var(--text-primary);
+  }
+}
+
+.popup-mode-tab:focus-visible {
+  outline: 2px solid var(--accent-moss);
+  outline-offset: -3px;
 }
 
 .popup-mode-tab.is-active {
-  height: 35px;
-  background: var(--bg-primary);
-  border-bottom-color: var(--bg-primary);
+  z-index: 1;
+  padding-top: 8px;
+  background: var(--popup-tab-open);
+  border-bottom-color: var(--popup-tab-open);
   color: var(--text-primary);
   font-weight: 600;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .popup-mode-tab,
+  .popup-mode-tab::before,
+  .popup-mode-tab::after {
+    transition: none;
+  }
 }
 
 .popup-mode-tab-badge {

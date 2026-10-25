@@ -769,12 +769,16 @@ export default function PostPreview({ post, parent, hideExplorerCtas }: PostPrev
             #{tag}
           </a>
         ))}
-        {counts.map(({ key, Icon, n, label }) => (
-          <span key={key} className="fn-post-count">
-            <Icon size={15} aria-hidden />
-            <strong>{formatCount(n)}</strong> {label}
-          </span>
-        ))}
+        {/* One wrapper so the phone block can lay the four counts out two
+            by two instead of three and an orphan. */}
+        <span className="fn-post-counts">
+          {counts.map(({ key, Icon, n, label }) => (
+            <span key={key} className="fn-post-count">
+              <Icon size={15} aria-hidden />
+              <strong>{formatCount(n)}</strong> {label}
+            </span>
+          ))}
+        </span>
       </div>
 
       {/* The cross-product link in a tinted strip across the foot of the

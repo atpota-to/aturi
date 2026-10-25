@@ -1,3 +1,4 @@
+import { Fragment } from 'react';
 import {
   BookOpen,
   Camera,
@@ -16,6 +17,9 @@ type RecordType = {
   collection: string;
   example: string;
 };
+
+/** Every example starts with this; the part after it is what differs. */
+const EXAMPLE_BASE = 'aturi.to/profile/handle';
 
 const TYPES: RecordType[] = [
   {
@@ -96,7 +100,22 @@ export default function RecordTypesGrid() {
             <span className="fl-type-label">{t.label}</span>
           </div>
           <span className="fl-type-nsid fl-ellipsis">{t.collection}</span>
-          <span className="fl-type-example fl-ellipsis">{t.example}</span>
+          {/* Wraps after each slash rather than ending in an ellipsis that
+              left only the constant prefix on the long NSIDs. */}
+          <span className="fl-type-example">
+            <span className="fl-type-example-base">{EXAMPLE_BASE}</span>
+            {t.example
+              .slice(EXAMPLE_BASE.length)
+              .split('/')
+              .map((seg, i) =>
+                i === 0 ? null : (
+                  <Fragment key={i}>
+                    /<wbr />
+                    {seg}
+                  </Fragment>
+                ),
+              )}
+          </span>
         </div>
       ))}
     </div>

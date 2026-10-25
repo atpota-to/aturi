@@ -626,7 +626,7 @@ function JumpField() {
     <FieldForm
       inputRef={inputRef}
       label="Go to a handle, DID, or at:// URI"
-      placeholder="Go to handle, DID, at:// URI…"
+      placeholder="Go to a handle, DID or at:// URI"
       value={value}
       onChange={setValue}
       onSubmit={submit}
@@ -703,7 +703,7 @@ function FieldForm({
           title="Clear"
           className="explore-chrome-clear"
         >
-          <X size={12} aria-hidden />
+          <X size={14} aria-hidden />
         </button>
       )}
     </form>

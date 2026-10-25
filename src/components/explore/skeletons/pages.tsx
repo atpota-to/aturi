@@ -99,16 +99,35 @@ export function CollectionSkeleton() {
  * is still in flight.
  */
 export function RecordBodySkeleton() {
+  // The loaded page's own frame (record.css, .fn-rec-body): the preview and
+  // its helpers in the wide column, the open-in rows, the Record card and
+  // the copy chips in the aside, so nothing jumps when the record lands.
+  // The `order` values are the slots RecordExplorer gives the same pieces,
+  // which is what interleaves them in one column under 920px.
   return (
-    <div style={column('1rem')}>
-      <SkeletonSectionGroup switchWidth="10.5rem">
-        <SkeletonFieldCard />
-      </SkeletonSectionGroup>
-      <SkeletonViewSwitch width="7rem" />
-      <SkeletonChipRow widths={['5.5rem', '4.5rem', '5rem', '7rem']} />
-      <div style={column('0.75rem')}>
-        <SkeletonHeading width="11rem" />
-        <SkeletonRowList rows={3} />
+    <div className="fn-rec-body">
+      <div className="fn-rec-main">
+        <div style={{ ...column('1rem'), order: 0 }}>
+          <SkeletonSectionGroup switchWidth="10.5rem">
+            <SkeletonFieldCard rows={4} />
+          </SkeletonSectionGroup>
+          <SkeletonViewSwitch width="7rem" />
+        </div>
+        <div style={{ ...column('0.75rem'), order: 3 }}>
+          <SkeletonHeading width="11rem" />
+          <SkeletonRowList rows={3} />
+        </div>
+      </div>
+      <div className="fn-rec-aside">
+        <div style={{ order: 1 }}>
+          <SkeletonRowList rows={4} trailingWidth="5rem" />
+        </div>
+        <div style={{ order: 2 }}>
+          <SkeletonFieldCard rows={5} />
+        </div>
+        <div style={{ order: 3 }}>
+          <SkeletonChipRow widths={['4rem', '3rem', '3rem', '6.5rem', '3.5rem']} />
+        </div>
       </div>
     </div>
   );
@@ -117,7 +136,7 @@ export function RecordBodySkeleton() {
 /** `/explore/{repo}/{collection}/{rkey}`. */
 export function RecordSkeleton() {
   return (
-    <div style={column('1rem')}>
+    <div className="fn-rec">
       <SkeletonBreadcrumb widths={[PDS_CRUMB, REPO_CRUMB, NSID_CRUMB, RKEY_CRUMB]} />
       <RecordBodySkeleton />
     </div>

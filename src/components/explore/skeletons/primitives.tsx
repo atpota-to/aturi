@@ -154,9 +154,10 @@ export function SkeletonAccountCard() {
 /**
  * Stand-in for the repository card: the folder tabs standing on a panel that
  * holds a filter field and a run of tree rows. The tabs and the panel wear
- * the real card's classes (explorer.css, `.fx-tabs`), so they take its exact
+ * the real card's classes (tabs.css, `.fx-tabs`), so they take its exact
  * geometry at every width and in the sidebar; each bar sits in a box one
- * label-line tall, so a tab is as high as it will be with its words in.
+ * label-line tall (the tab's 20px line box), so a tab is as high as it will
+ * be with its words in.
  */
 export function SkeletonRepoCard({
   tabWidths,
@@ -172,7 +173,7 @@ export function SkeletonRepoCard({
       <div className="fx-tabs">
         {tabWidths.map((width, i) => (
           <span key={i} className="fx-tab" data-active={i === 0 || undefined}>
-            <span style={{ display: 'flex', alignItems: 'center', height: '1.4em' }}>
+            <span style={{ display: 'flex', alignItems: 'center', height: '20px' }}>
               <SkeletonBar width={width} height="0.65rem" />
             </span>
           </span>

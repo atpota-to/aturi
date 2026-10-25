@@ -145,14 +145,16 @@ export default function FeedbackBoard() {
 
       <section className="fn-fb-board" aria-label="Discussions">
         <div className="fn-fb-tools">
-          <div className="fn-fb-sorts">
+          {/* A sort re-orders one list rather than opening another, so it is
+              the segmented control (explore.css), not a tab row. */}
+          <div className="fn-segmented" role="group" aria-label="Sort discussions">
             {SORTS.map((option) => (
               <button
                 key={option.id}
                 type="button"
                 aria-pressed={sort === option.id}
                 onClick={() => setSort(option.id)}
-                className="fn-fb-sort"
+                className="fn-segmented-option"
               >
                 {option.label}
               </button>

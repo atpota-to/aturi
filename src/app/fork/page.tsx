@@ -3,7 +3,9 @@
 import Link from 'next/link';
 import {
   ArrowRight,
+  ArrowUpRight,
   BookOpen,
+  ChevronRight,
   GitFork,
   Globe,
   Scale,
@@ -14,6 +16,7 @@ import {
   Zap,
 } from 'lucide-react';
 import Header from '@/components/Header';
+import CodeBlock from '@/components/docs/CodeBlock';
 
 const WHY = [
   {
@@ -69,7 +72,12 @@ export default function ForkPage() {
 
           {/* Why fork */}
           <section className="fl-section">
-            <h2 className="fl-cross-title">Why fork?</h2>
+            <div className="fl-section-head">
+              <span className="fl-kicker">
+                <Users size={14} aria-hidden /> Reasons
+              </span>
+              <h2 className="fl-h2">Why fork?</h2>
+            </div>
             <div className="fl-fork-why">
               {WHY.map((w) => (
                 <div key={w.title} className="fl-card fl-fork-card">
@@ -95,7 +103,9 @@ export default function ForkPage() {
             <div className="fl-fork-stack">
               <div className="fl-card fl-fork-card">
                 <h3>Clone and run</h3>
-                <pre className="fl-fork-pre">{`# Clone the repository
+                <CodeBlock
+                  label="bash"
+                  code={`# Clone the repository
 git clone ${REPO_URL}.git my-instance
 cd my-instance
 
@@ -103,7 +113,8 @@ cd my-instance
 cp .env.example .env.local
 nvm use
 npm install
-npm run dev`}</pre>
+npm run dev`}
+                />
                 <p>
                   Set your domain, name and links in{' '}
                   <code className="fl-code">.env.local</code>, then open http://localhost:3000.
@@ -116,6 +127,7 @@ npm run dev`}</pre>
                       <Terminal size={18} />
                     </span>
                     <h3>Manual setup</h3>
+                    <ChevronRight size={16} aria-hidden className="fl-cross-card-chev" />
                   </span>
                   <p>Step-by-step instructions</p>
                 </Link>
@@ -130,6 +142,7 @@ npm run dev`}</pre>
                       <Settings size={18} />
                     </span>
                     <h3>Full guide</h3>
+                    <ArrowUpRight size={16} aria-hidden className="fl-cross-card-chev" />
                   </span>
                   <p>Detailed documentation</p>
                 </a>
@@ -147,12 +160,15 @@ npm run dev`}</pre>
               <p className="fl-body">Customize your instance through environment variables.</p>
             </div>
             <div className="fl-card fl-fork-card">
-              <pre className="fl-fork-pre">{`# .env.local
+              <CodeBlock
+                label="dotenv"
+                code={`# .env.local
 NEXT_PUBLIC_DOMAIN=yourdomain.com
 NEXT_PUBLIC_SITE_NAME=Your Site Name
 NEXT_PUBLIC_SITE_DESCRIPTION=Your description
 NEXT_PUBLIC_AUTHOR_NAME=Your Name
-NEXT_PUBLIC_REPO_URL=https://github.com/you/your-fork`}</pre>
+NEXT_PUBLIC_REPO_URL=https://github.com/you/your-fork`}
+              />
               <p>
                 See <code className="fl-code">.env.example</code> for all available options.
               </p>
@@ -172,10 +188,13 @@ NEXT_PUBLIC_REPO_URL=https://github.com/you/your-fork`}</pre>
                 <h3>
                   <span className="fl-fork-num">1</span> Clone &amp; configure
                 </h3>
-                <pre className="fl-fork-pre">{`git clone ${REPO_URL}.git
+                <CodeBlock
+                  label="bash"
+                  code={`git clone ${REPO_URL}.git
 cd aturi
 cp .env.example .env.local
-# Edit .env.local with your settings`}</pre>
+# Edit .env.local with your settings`}
+                />
               </li>
 
               <li className="fl-card fl-fork-card">
@@ -187,7 +206,9 @@ cp .env.example .env.local
                   <code className="fl-code">src/utils/waypoints.data.ts</code>, and list each
                   one&rsquo;s id in <code className="fl-code">WAYPOINT_ORDER</code>:
                 </p>
-                <pre className="fl-fork-pre">{`'your-platform': {
+                <CodeBlock
+                  label="ts"
+                  code={`'your-platform': {
   id: 'your-platform',
   name: 'Your Platform',
   description: 'Open it in Your Platform',
@@ -196,7 +217,8 @@ cp .env.example .env.local
   supportedTypes: ['post', 'profile'],
   category: 'atmosphereApps',
   redirectCompat: [],
-},`}</pre>
+},`}
+                />
               </li>
 
               <li className="fl-card fl-fork-card">
@@ -220,13 +242,16 @@ cp .env.example .env.local
                 <h3>
                   <span className="fl-fork-num">4</span> Test &amp; deploy
                 </h3>
-                <pre className="fl-fork-pre">{`npm install
+                <CodeBlock
+                  label="bash"
+                  code={`npm install
 npm run dev  # Test locally at http://localhost:3000
 
 # Deploy to Vercel
 vercel
 # Add env vars in Vercel dashboard
-# Add custom domain in Vercel settings`}</pre>
+# Add custom domain in Vercel settings`}
+                />
                 <p>Test profile links and post links to ensure everything works before going live.</p>
               </li>
             </ol>

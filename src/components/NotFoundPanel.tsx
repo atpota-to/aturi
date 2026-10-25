@@ -75,7 +75,9 @@ export default function NotFoundPanel({
       </div>
 
       <div className="fn-lp-notfound-actions">
-        <Link href="/" className="fn-lp-btn is-primary">
+        {/* Outline, like Explore: the search's Look up is the one filled
+            control, and the copy ranks searching first. */}
+        <Link href="/" className="fn-lp-btn">
           <ArrowLeft size={15} aria-hidden /> Home
         </Link>
         <Link href="/explore" className="fn-lp-btn">

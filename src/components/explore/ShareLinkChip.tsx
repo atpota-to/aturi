@@ -12,6 +12,8 @@ type Props = {
   title?: string;
   /** A 36px square icon button (the account card's copy-link) instead of a chip. */
   iconOnly?: boolean;
+  /** Extra class for the host to place or hide the chip. */
+  className?: string;
 };
 
 const PRODUCTION_ORIGIN = 'https://aturi.to';
@@ -40,7 +42,13 @@ async function writeToClipboard(text: string): Promise<void> {
  * Compact "copy this page's link" button used throughout the explorer.
  * Accepts a path (gets prefixed with aturi.to) or a full URL.
  */
-export default function ShareLinkChip({ url, label = 'Copy link', title, iconOnly }: Props) {
+export default function ShareLinkChip({
+  url,
+  label = 'Copy link',
+  title,
+  iconOnly,
+  className,
+}: Props) {
   const [copied, setCopied] = useState(false);
 
   const resolvedUrl = url.startsWith('http')
@@ -59,7 +67,7 @@ export default function ShareLinkChip({ url, label = 'Copy link', title, iconOnl
       onClick={onClick}
       title={title || (copied ? 'Copied!' : resolvedUrl)}
       aria-label={copied ? `${label} copied` : label}
-      className={iconOnly ? 'fx-btn fx-btn-icon' : 'fx-copy'}
+      className={`${iconOnly ? 'fx-btn fx-btn-icon' : 'fx-copy'}${className ? ` ${className}` : ''}`}
       data-copied={copied || undefined}
       data-active={iconOnly && copied ? true : undefined}
     >

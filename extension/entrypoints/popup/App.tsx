@@ -368,7 +368,9 @@ function PopupModeTabs({
         className={`popup-mode-tab ${mode === 'waypoints' ? 'is-active' : ''}`}
         onClick={() => onSelect('waypoints')}
       >
-        Waypoints
+        <span className="popup-mode-tab-label" data-label="Waypoints">
+          Waypoints
+        </span>
       </button>
       <button
         type="button"
@@ -377,7 +379,9 @@ function PopupModeTabs({
         className={`popup-mode-tab ${mode === 'inspect' ? 'is-active' : ''}`}
         onClick={() => onSelect('inspect')}
       >
-        Inspect
+        <span className="popup-mode-tab-label" data-label="Inspect">
+          Inspect
+        </span>
         {showInspectBadge && (
           <span
             className="popup-mode-tab-badge"

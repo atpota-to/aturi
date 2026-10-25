@@ -27,6 +27,8 @@ import "./globals.css";
 import "@/styles/fieldnotes/chrome.css";
 import "@/styles/fieldnotes/home.css";
 import "@/styles/fieldnotes/explore.css";
+// The folder tabs, before the surfaces that place them (explorer, account).
+import "@/styles/fieldnotes/tabs.css";
 import "@/styles/fieldnotes/explorer.css";
 import "@/styles/fieldnotes/record.css";
 import "@/styles/fieldnotes/link.css";

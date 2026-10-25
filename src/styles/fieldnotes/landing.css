@@ -401,6 +401,26 @@
   color: var(--text-secondary);
 }
 
+/* The example address in the universal-links card: an identifier, so mono,
+   with no chip around it; <wbr>s in the markup let it break at its slashes. */
+.fl-cross-card p code {
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+  background: transparent;
+  padding: 0;
+}
+
+/* The chevron says "link" on touch screens, where the hover border can't. */
+.fl-cross-card-chev {
+  margin-left: auto;
+  flex: none;
+  color: var(--text-tertiary);
+}
+
+.fl-cross-card:hover .fl-cross-card-chev {
+  color: var(--text-accent);
+}
+
 /* ---------- Mock windows (the *Visual components) ---------- */
 
 .fl-mock {
@@ -703,15 +723,17 @@
 }
 
 /* Popup tab strip (Waypoints / Inspect): folder tabs, as in the real popup
-   and on the repository card. The strip is the recessed paper; the open tab
-   takes the colour of whatever sits under the strip and runs into it
-   through the strip's bottom border, and the other sits a step lower. */
+   and on the repository card (tabs.css; the numbers are mirrored by hand,
+   since these are static spans with no hover). The strip is the recessed
+   paper; the open tab takes the colour of whatever sits under the strip and
+   runs into it through the strip's bottom border, and the other sits a step
+   below the page. */
 .fl-mock-tabs {
   --fl-tab-open: var(--bg-secondary);
-  --fl-tab-filed: var(--bg-tertiary);
+  --fl-tab-filed: var(--surface-filed);
   display: flex;
   align-items: flex-end;
-  gap: 4px;
+  gap: 5px;
   padding: 8px 10px 0;
   background: var(--bg-primary);
   border-bottom: 1px solid var(--border-medium);
@@ -722,18 +744,15 @@
   --fl-tab-open: var(--surface-subtle);
 }
 
-/* Dark lifts --bg-tertiary above the card; between page and card instead. */
-:root:not([data-theme='light']) .fl-mock-tabs {
-  --fl-tab-filed: color-mix(in srgb, var(--bg-secondary) 45%, var(--bg-primary));
-}
-
 .fl-mock-tab {
+  position: relative;
+  z-index: 0;
   flex: 1;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 6px;
-  height: 30px;
+  padding: 4px 10px;
   margin-bottom: -1px;
   box-sizing: border-box;
   border: 1px solid var(--border-medium);
@@ -742,14 +761,47 @@
   color: var(--text-tertiary);
   font-size: 12.5px;
   font-weight: 500;
+  line-height: 20px;
 }
 
 .fl-mock-tab[data-active] {
-  height: 33px;
+  z-index: 1;
+  padding-top: 7px;
   background: var(--fl-tab-open);
   border-bottom-color: var(--fl-tab-open);
   color: var(--text-primary);
   font-weight: 600;
+}
+
+/* The cut, as on the real tabs: two skewed wedges below the shoulder that
+   inherit the tab's fill and edge, on displays that can draw a 4° hairline. */
+@media (min-resolution: 1.5dppx) {
+  .fl-mock-tab::before,
+  .fl-mock-tab::after {
+    content: '';
+    position: absolute;
+    z-index: -1;
+    top: calc(var(--radius-control) - 1px);
+    bottom: -1px;
+    width: 10px;
+    background: inherit;
+    border: 0 solid;
+    border-color: inherit;
+    border-bottom-width: 1px;
+    pointer-events: none;
+  }
+  .fl-mock-tab::before {
+    left: -1px;
+    border-left-width: 1px;
+    transform-origin: top left;
+    transform: skewX(-4deg);
+  }
+  .fl-mock-tab::after {
+    right: -1px;
+    border-right-width: 1px;
+    transform-origin: top right;
+    transform: skewX(4deg);
+  }
 }
 
 .fl-mock-tab-gear {
@@ -1335,6 +1387,13 @@
 .fl-type-example {
   font-family: var(--font-mono);
   font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.fl-type-example-base {
   color: var(--text-tertiary);
 }
 
@@ -1752,18 +1811,10 @@
   gap: 16px;
 }
 
-.fl-card pre.fl-fork-pre {
+/* The docs' code block, stretched to the card's width. */
+.fl-fork-card .fn-code {
   align-self: stretch;
   margin: 0;
-  padding: 14px 16px;
-  border: 1px solid var(--border-medium);
-  border-radius: var(--radius-control);
-  background: var(--surface-subtle);
-  font-family: var(--font-mono);
-  font-size: 13px;
-  line-height: 1.65;
-  color: var(--text-primary);
-  overflow: auto;
 }
 
 .fl-fork-steps {
@@ -1844,6 +1895,12 @@
   background: var(--surface-subtle);
 }
 
+/* The rows fill the card to its clipped edge, so the ring sits inside. */
+.fl-fork-resources a:focus-visible {
+  outline: 2px solid var(--text-accent);
+  outline-offset: -2px;
+}
+
 .fl-fork-help {
   display: flex;
   flex-wrap: wrap;
@@ -1876,98 +1933,6 @@
   }
   .fl-fork-card {
     padding: 18px;
-  }
-}
-
-/* ---------- Long-form documents (extension privacy policy) ---------- */
-
-.fl-doc-page {
-  max-width: 800px;
-  margin: 0 auto;
-  gap: 28px;
-}
-
-.fl-doc-date {
-  margin: 0;
-  font-size: 14px;
-  color: var(--text-tertiary);
-}
-
-.fl-doc {
-  padding: 36px 40px;
-  font-size: 15.5px;
-  line-height: 1.7;
-  color: var(--text-secondary);
-}
-
-.fl-doc section + section {
-  margin-top: 32px;
-  padding-top: 28px;
-  border-top: 1px solid var(--border-subtle);
-}
-
-.fl-doc h2 {
-  margin: 0 0 12px;
-  font-family: var(--font-sans);
-  font-size: 21px;
-  font-weight: 700;
-  letter-spacing: -0.015em;
-  line-height: 1.3;
-  color: var(--text-primary);
-}
-
-.fl-doc h3 {
-  margin: 24px 0 8px;
-  font-family: var(--font-sans);
-  font-size: 16px;
-  font-weight: 700;
-  color: var(--text-primary);
-}
-
-.fl-doc p,
-.fl-doc ul {
-  margin: 0 0 14px;
-}
-
-.fl-doc ul {
-  padding-left: 22px;
-}
-
-.fl-doc li + li {
-  margin-top: 6px;
-}
-
-.fl-doc p:last-child,
-.fl-doc ul:last-child {
-  margin-bottom: 0;
-}
-
-.fl-doc strong {
-  color: var(--text-primary);
-  font-weight: 600;
-}
-
-.fl-doc a {
-  color: var(--text-accent);
-  text-decoration: underline;
-  text-underline-offset: 3px;
-}
-
-.fl-doc code {
-  font-family: var(--font-mono);
-  font-size: 0.86em;
-  padding: 1px 6px;
-  border-radius: 5px;
-  background: var(--surface-subtle);
-  border: 1px solid var(--border-subtle);
-  color: var(--text-primary);
-  word-break: break-word;
-}
-
-@media (max-width: 640px) {
-  .fl-doc {
-    padding: 22px 18px;
-    font-size: 15px;
   }
 }
 
@@ -2397,8 +2362,14 @@ a.fl-feed-row:hover {
   }
 }
 
-/* Touch: give the feed's pause button a 40px tap without resizing it. */
+/* Touch: the hero's filled button grows to a thumb; the feed's pause
+   button gets a 40px tap without resizing. */
 @media (pointer: coarse) {
+  .fl-button[data-variant='primary'] {
+    height: 44px;
+    padding: 0 18px;
+  }
+
   .fl-feed-pause {
     position: relative;
   }
