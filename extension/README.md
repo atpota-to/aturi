@@ -107,6 +107,10 @@ green background). The master SVG lives at `assets/icon.svg`; run
 `npm run icons` after editing it to regenerate the 16/32/48/96/128 px PNGs in
 `public/icon/` that WXT packages.
 
+## Design
+
+The next popup design (a record card with folder tabs per record, a Copy ledger, Seen lately and a header search) is mocked up under `design/popup/`, with the briefs, the alternatives it was chosen over and the panel verdicts. See `design/popup/README.md` before implementing it.
+
 ## Known limitations
 
 Auto-redirect uses static DNR rules, so it can't rewrite *to* destinations that
