@@ -122,23 +122,33 @@ export default function PdsExplorer({ host }: Props) {
     [repos, handles, query],
   );
 
-  // The PDS page's find action: search the repos this server hosts.
-  useChromeBarField({
-    placeholder: 'Search repos…',
-    label: 'Search repos on this PDS',
-    value: filter,
-    onChange: setFilter,
-    resultsId: CHROME_RESULTS_ID,
-    status:
-      repos.length === 0
-        ? null
-        : query
-          ? `${visibleRepos.length}/${repos.length}`
-          : `${repos.length}${done ? '' : '+'}`,
-  });
+  // The PDS page's find action: search the repos this server hosts. Only
+  // while there is, or may yet be, something to search: `done` stays false
+  // from first render through the first page (no flash), turns true on an
+  // empty listing, and `reposError` covers a first page that failed. A host
+  // that refuses to list (bsky.social does) otherwise left a field over the
+  // notice saying so; without one the bar falls back to the jump search.
+  const searchable = repos.length > 0 || (!reposError && !done);
+  useChromeBarField(
+    searchable
+      ? {
+          placeholder: 'Search repos…',
+          label: 'Search repos on this PDS',
+          value: filter,
+          onChange: setFilter,
+          resultsId: CHROME_RESULTS_ID,
+          status:
+            repos.length === 0
+              ? null
+              : query
+                ? `${visibleRepos.length}/${repos.length}`
+                : `${repos.length}${done ? '' : '+'}`,
+        }
+      : null,
+  );
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+    <div className="fn-lexdetail fn-pds">
       <AppearIn rise>
         <PdsHeader
           host={host}
@@ -151,42 +161,35 @@ export default function PdsExplorer({ host }: Props) {
 
       <AppearIn delay={0.08}>
         <section id={CHROME_RESULTS_ID}>
-          <header
-            style={{
-              display: 'flex',
-              alignItems: 'baseline',
-              justifyContent: 'space-between',
-              gap: '0.75rem',
-              flexWrap: 'wrap',
-              paddingBottom: '0.5rem',
-              borderBottom: '1px solid var(--border-subtle)',
-              marginBottom: '0.75rem',
-            }}
-          >
-            <h2 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 400 }}>
-              Repos on this PDS
-            </h2>
-            <span
-              style={{
-                fontSize: '0.8125rem',
-                color: 'var(--text-tertiary)',
-                fontFamily: 'var(--font-mono)',
-              }}
-            >
-              {query ? (
-                <>
-                  {visibleRepos.length} of {repos.length} shown
-                </>
-              ) : (
-                <>
-                  {repos.length}
-                  {!done && '+'} loaded
-                </>
-              )}
-            </span>
+          <header className="fn-pds-repos-head">
+            <h2>Repos on this PDS</h2>
+            {/* No count when the very first page failed: "0+ loaded" beside
+                the error read as a server with no repos. */}
+            {!(reposError && repos.length === 0) && (
+              <span>
+                {query ? (
+                  <>
+                    {visibleRepos.length} of {repos.length} shown
+                  </>
+                ) : (
+                  <>
+                    {repos.length}
+                    {!done && '+'} loaded
+                  </>
+                )}
+              </span>
+            )}
           </header>
 
-          {reposError && <p className="explore-error">{reposError}</p>}
+          {/* In words, with the raw error kept for anyone who hovers: a bare
+              "Failed to fetch" said nothing about what had been tried. */}
+          {reposError && (
+            <p className="explore-placeholder" title={reposError}>
+              {repos.length === 0
+                ? 'Couldn’t list the repos on this PDS. It may be offline, or it may not allow listing.'
+                : 'Couldn’t load more repos from this PDS.'}
+            </p>
+          )}
           {repos.length === 0 && reposLoading && <PdsReposSkeleton />}
           {repos.length === 0 && !reposLoading && !reposError && (
             <p className="explore-placeholder">No repos reported by this PDS.</p>
@@ -202,11 +205,14 @@ export default function PdsExplorer({ host }: Props) {
           )}
 
           <ul
+            className="fn-pds-repos"
             style={{
               listStyle: 'none',
               margin: 0,
               padding: 0,
               border: visibleRepos.length ? '1px solid var(--border-medium)' : 0,
+              borderRadius: 'var(--radius-card)',
+              overflow: 'hidden',
               background: 'var(--bg-secondary)',
               display: visibleRepos.length ? 'flex' : undefined,
               flexDirection: 'column',
@@ -229,15 +235,8 @@ export default function PdsExplorer({ host }: Props) {
                 type="button"
                 onClick={() => loadPage(cursor)}
                 disabled={reposLoading}
-                style={{
-                  padding: '0.5rem 1rem',
-                  background: 'var(--bg-tertiary)',
-                  border: '1px solid var(--border-medium)',
-                  color: 'var(--text-primary)',
-                  fontFamily: 'var(--font-serif)',
-                  fontSize: '0.875rem',
-                  cursor: reposLoading ? 'wait' : 'pointer',
-                }}
+                className="fn-btn"
+                style={{ cursor: reposLoading ? 'wait' : 'pointer' }}
               >
                 {reposLoading ? 'Loading…' : 'Load more'}
               </button>
@@ -263,16 +262,7 @@ function PdsHeader({
   pdsBase: string;
 }) {
   return (
-    <section
-      style={{
-        padding: '1.25rem',
-        background: 'var(--bg-secondary)',
-        border: '1px solid var(--border-medium)',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '0.875rem',
-      }}
-    >
+    <section className="fn-lexhead" style={{ gap: '14px' }}>
       <div
         style={{
           display: 'flex',
@@ -282,34 +272,13 @@ function PdsHeader({
           flexWrap: 'wrap',
         }}
       >
-        <div
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '0.4rem',
-            color: 'var(--text-tertiary)',
-            fontSize: '0.7rem',
-            letterSpacing: '0.12em',
-            textTransform: 'uppercase',
-            fontFamily: 'var(--font-serif)',
-          }}
-        >
-          <Server size={12} />
+        <div className="fn-kicker fn-lexhead-kicker">
+          <Server size={13} aria-hidden />
           Personal Data Server
         </div>
         <ShareLinkChip url={`/explore/pds/${encodeURIComponent(host)}`} />
       </div>
-      <h1
-        style={{
-          margin: 0,
-          fontSize: '1.875rem',
-          fontWeight: 300,
-          color: 'var(--text-primary)',
-          lineHeight: 1.15,
-          fontFamily: 'var(--font-mono)',
-          wordBreak: 'break-all',
-        }}
-      >
+      <h1 className="fn-lexhead-title fn-lexhead-mono" style={{ overflowWrap: 'anywhere' }}>
         {host}
       </h1>
 
@@ -339,7 +308,7 @@ function PdsHeader({
         </Cell>
 
         {info?.did && (
-          <Cell label="server did">
+          <Cell label="server DID">
             <code style={{ background: 'transparent', padding: 0, color: 'var(--text-primary)' }}>
               {info.did}
             </code>
@@ -368,9 +337,10 @@ function PdsHeader({
                 <code
                   key={d}
                   style={{
-                    background: 'var(--bg-tertiary)',
-                    color: 'var(--text-accent)',
-                    padding: '0.1rem 0.4rem',
+                    background: 'var(--accent-soft)',
+                    color: 'var(--accent-soft-fg)',
+                    padding: '0.1rem 0.5rem',
+                    borderRadius: 'var(--radius-pill)',
                     fontSize: '0.75rem',
                   }}
                 >
@@ -383,13 +353,7 @@ function PdsHeader({
 
         {info?.inviteCodeRequired !== undefined && (
           <Cell label="invite required">
-            <span
-              style={{
-                fontFamily: 'var(--font-serif)',
-                fontSize: '0.875rem',
-                color: 'var(--text-primary)',
-              }}
-            >
+            <span style={{ color: 'var(--text-primary)' }}>
               {info.inviteCodeRequired ? 'Yes' : 'No'}
             </span>
           </Cell>
@@ -415,9 +379,7 @@ function PdsHeader({
           )}
           {info?.contact?.email && (
             <span style={{ color: 'var(--text-tertiary)' }}>
-              <span className="explore-small-caps" style={{ marginRight: '0.4rem' }}>
-                contact
-              </span>
+              <span style={{ marginRight: '0.4rem', fontWeight: 600 }}>Contact</span>
               <a href={`mailto:${info.contact.email}`} style={{ color: 'var(--text-accent)' }}>
                 {info.contact.email}
               </a>
@@ -432,7 +394,7 @@ function PdsHeader({
 function Cell({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div>
-      <dt className="explore-small-caps" style={{ marginBottom: '0.25rem' }}>
+      <dt className="fn-dt">
         {label}
       </dt>
       <dd
@@ -440,7 +402,7 @@ function Cell({ label, children }: { label: string; children: React.ReactNode })
           margin: 0,
           fontFamily: 'var(--font-mono)',
           fontSize: '0.8125rem',
-          wordBreak: 'break-all',
+          overflowWrap: 'anywhere',
           display: 'flex',
           alignItems: 'center',
           gap: '0.5rem',
@@ -572,15 +534,17 @@ function RepoRow({
           gridTemplateColumns: 'minmax(14ch, 24ch) 1fr auto',
           gap: '0.75rem',
           alignItems: 'center',
-          padding: '0.55rem 1rem',
+          minHeight: '50px',
+          boxSizing: 'border-box',
+          padding: '7px 16px',
           fontFamily: 'var(--font-mono)',
-          fontSize: '0.8125rem',
+          fontSize: '12.5px',
           color: 'var(--text-primary)',
           textDecoration: 'none',
           transition: 'background 0.2s ease',
         }}
         onMouseEnter={(e) => {
-          e.currentTarget.style.background = 'var(--bg-tertiary)';
+          e.currentTarget.style.background = 'var(--surface-subtle)';
         }}
         onMouseLeave={(e) => {
           e.currentTarget.style.background = 'transparent';
@@ -608,9 +572,9 @@ function RepoRow({
               style={{
                 display: 'block',
                 marginTop: '0.125rem',
-                fontSize: '0.7rem',
+                fontSize: '12px',
                 color: 'var(--text-tertiary)',
-                fontFamily: 'var(--font-mono)',
+                fontFamily: 'var(--font-sans)',
               }}
             >
               updated {formatTidRelative(revDate)}
@@ -638,6 +602,7 @@ function RepoRow({
               fontFamily: 'var(--font-mono)',
               color: 'var(--danger)',
               border: '1px solid var(--danger)',
+              borderRadius: 'var(--radius-pill)',
               background: 'transparent',
               whiteSpace: 'nowrap',
               textTransform: 'lowercase',

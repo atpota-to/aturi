@@ -36,7 +36,10 @@ export default function SpacesLanding() {
   const { session, did, loading } = useAtprotoSession();
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '4rem' }}>
+    <div
+      className="fn-spaces-landing"
+      style={{ display: 'flex', flexDirection: 'column', gap: '4rem', paddingTop: '36px' }}
+    >
       {/* Hero */}
       <AppearIn rise>
         <header
@@ -45,17 +48,7 @@ export default function SpacesLanding() {
         >
           <div>
             <Badge icon={<Lock size={12} aria-hidden />}>Atproto spaces alpha</Badge>
-            <h1
-              style={{
-                fontSize: '2.5rem',
-                fontWeight: 300,
-                marginBottom: '0.75rem',
-                color: 'var(--text-primary)',
-                lineHeight: 1.15,
-              }}
-            >
-              Browse your permissioned data.
-            </h1>
+            <h1 className="fn-sp-landing-title">Browse your permissioned data.</h1>
             <p
               style={{
                 fontSize: '1.05rem',
@@ -186,14 +179,15 @@ function ControlSkeleton({ control }: { control: 'field' | 'button' }) {
     <div
       className="skeleton-shimmer"
       style={{
-        // Mirrors the field's 0.625rem/0.75rem and the button's
-        // 0.625rem/1rem. Only the block padding decides the height, and the
-        // two agree on it.
-        padding: field ? '0.625rem 0.75rem' : '0.625rem 1rem',
+        // Mirrors the field and the button: both are 40px tall controls.
+        height: '40px',
+        boxSizing: 'border-box',
+        padding: field ? '0 12px' : '0 16px',
         border: '1px solid var(--border-medium)',
+        borderRadius: 'var(--radius-control)',
         background: 'var(--bg-tertiary)',
-        fontFamily: field ? 'var(--font-mono)' : 'var(--font-serif)',
-        fontSize: field ? '0.875rem' : '0.9375rem',
+        fontFamily: field ? 'var(--font-mono)' : 'var(--font-sans)',
+        fontSize: field ? '0.875rem' : '14px',
         lineHeight: 'normal',
         color: 'transparent',
         userSelect: 'none',
@@ -217,7 +211,7 @@ function AlphaAccount() {
       <div>
         <Badge icon={<KeyRound size={12} aria-hidden />}>Try the alpha</Badge>
         <h2 style={sectionTitleStyle}>Get an account on the alpha host</h2>
-        <p style={sectionLeadStyle}>
+        <p className="fn-sp-lead" style={sectionLeadStyle}>
           Trying Spaces requires an account on a server that runs the spaces
           build. Bluesky is hosting one for this alpha test. Grab an invite
           code from Bluesky using the link below, create the account, then
@@ -234,11 +228,15 @@ function AlphaAccount() {
             display: 'inline-flex',
             alignItems: 'center',
             gap: '0.5rem',
-            padding: '0.75rem 1.25rem',
+            height: '40px',
+            boxSizing: 'border-box',
+            padding: '0 16px',
             background: 'var(--accent-moss)',
             color: 'var(--text-on-accent)',
-            border: '1px solid var(--accent-forest)',
-            fontSize: '0.95rem',
+            border: '1px solid var(--accent-moss)',
+            borderRadius: 'var(--radius-control)',
+            fontSize: '14px',
+            fontWeight: 600,
             textDecoration: 'none',
           }}
         >
@@ -298,43 +296,27 @@ function FeaturedApps() {
       <div>
         <Badge icon={<Boxes size={12} aria-hidden />}>Built on spaces</Badge>
         <h2 style={sectionTitleStyle}>Apps to try</h2>
-        <p style={sectionLeadStyle}>
+        <p className="fn-sp-lead" style={sectionLeadStyle}>
           The explorer reads spaces, but it doesn&rsquo;t create them. An
           account will have nothing to browse until you use an app that writes
           something to a space. Here are some test apps from the community to
           experiment with:
         </p>
       </div>
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(14rem, 1fr))',
-          gap: '1rem',
-        }}
-      >
+      <div className="fn-sp-apps">
         {FEATURED_APPS.map((app) => (
           <a
             key={app.url}
             href={app.url}
             target="_blank"
             rel="noopener noreferrer"
+            className="fn-sp-app"
             style={{
               display: 'flex',
               flexDirection: 'column',
               gap: '0.5rem',
-              padding: '1.25rem',
-              border: '1px solid var(--border-medium)',
-              background: 'var(--bg-secondary)',
+              padding: '16px 18px',
               textDecoration: 'none',
-              transition: 'border-color 0.2s ease, background 0.2s ease',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.borderColor = 'var(--text-accent)';
-              e.currentTarget.style.background = 'var(--bg-tertiary)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.borderColor = 'var(--border-medium)';
-              e.currentTarget.style.background = 'var(--bg-secondary)';
             }}
           >
             <span
@@ -479,6 +461,7 @@ function SignedOut() {
           padding: '0.75rem',
           background: 'var(--bg-secondary)',
           border: '1px solid var(--border-medium)',
+          borderRadius: 'var(--radius-card)',
         }}
       >
         <ScopeSelector
@@ -535,21 +518,29 @@ function SignedOut() {
           setWarning(null);
         }}
         placeholder="handle.bsky.social"
+        // Height and size come from explore.css (.fn-spaces-landing
+        // .oauth-typeahead-input), which takes the phone scale: 48px and 16px
+        // there, so iOS Safari doesn't zoom the page on focus.
         inputStyle={{
           width: '100%',
-          padding: '0.625rem 0.75rem',
+          boxSizing: 'border-box',
+          padding: '0 12px',
           background: 'var(--bg-secondary)',
-          border: '1px solid var(--border-medium)',
+          border: '1px solid var(--border-strong)',
+          borderRadius: 'var(--radius-control)',
           color: 'var(--text-primary)',
           fontFamily: 'var(--font-mono)',
-          fontSize: '0.875rem',
           outline: 'none',
         }}
       />
+      {/* Enabled while empty like every other primary button on the site;
+          check() returns early on an empty value. Only the check itself
+          holds the button. */}
       <button
         type="submit"
-        disabled={!value.trim() || checking}
-        style={primaryButtonStyle(!value.trim() || checking)}
+        className="fn-sp-signin-btn"
+        disabled={checking}
+        style={primaryButtonStyle(checking)}
       >
         {checking ? 'Checking your server…' : 'Sign in to see your spaces'}
       </button>
@@ -591,15 +582,13 @@ function Badge({ icon, children }: { icon: React.ReactNode; children: React.Reac
         display: 'inline-flex',
         alignItems: 'center',
         gap: '0.4rem',
-        padding: '0.25rem 0.625rem',
-        border: '1px solid var(--border-subtle)',
-        background: 'var(--bg-tertiary)',
-        color: 'var(--text-tertiary)',
-        fontSize: '0.75rem',
-        letterSpacing: '0.08em',
+        color: 'var(--text-accent)',
+        fontSize: '12px',
+        fontWeight: 700,
+        letterSpacing: '0.06em',
         textTransform: 'uppercase',
-        fontFamily: 'var(--font-serif)',
-        marginBottom: '1.25rem',
+        fontFamily: 'var(--font-sans)',
+        marginBottom: '0.75rem',
         lineHeight: 1,
       }}
     >
@@ -610,32 +599,37 @@ function Badge({ icon, children }: { icon: React.ReactNode; children: React.Reac
 }
 
 const sectionTitleStyle: React.CSSProperties = {
-  fontSize: '1.75rem',
-  fontWeight: 300,
+  fontSize: '1.5rem',
+  fontWeight: 700,
   color: 'var(--text-primary)',
   margin: '0 0 0.625rem',
   lineHeight: 1.2,
-  letterSpacing: '-0.01em',
+  letterSpacing: '-0.02em',
 };
 
+// The measure (max-width) is .fn-sp-lead in explore.css.
 const sectionLeadStyle: React.CSSProperties = {
   fontSize: '1rem',
   lineHeight: 1.65,
   color: 'var(--text-secondary)',
-  maxWidth: '46rem',
   margin: 0,
 };
 
+// Height is .fn-sp-signin-btn in explore.css (48px on phones). Disabled
+// mirrors .fn-searchbox-submit:disabled: a busy cursor and a light dim, the
+// label already says what is happening.
 function primaryButtonStyle(disabled: boolean): React.CSSProperties {
   return {
-    padding: '0.625rem 1rem',
+    padding: '0 16px',
     background: 'var(--accent-moss)',
     color: 'var(--text-on-accent)',
     border: '1px solid var(--accent-moss)',
-    fontFamily: 'var(--font-serif)',
-    fontSize: '0.9375rem',
-    cursor: disabled ? 'not-allowed' : 'pointer',
-    opacity: disabled ? 0.6 : 1,
+    borderRadius: 'var(--radius-control)',
+    fontFamily: 'var(--font-sans)',
+    fontSize: '14px',
+    fontWeight: 600,
+    cursor: disabled ? 'progress' : 'pointer',
+    opacity: disabled ? 0.75 : 1,
   };
 }
 

@@ -73,11 +73,11 @@ export default function CompactWaypointGroup({
 
   return (
     <div className="waypoint-group">
-      <div className={`waypoint-group-label${highlighted ? ' is-highlighted' : ''}`}>
+      <h2 className={`waypoint-group-label${highlighted ? ' is-highlighted' : ''}`}>
         <span>{label}</span>
         <i aria-hidden="true" />
-        <em>{entries.length}</em>
-      </div>
+        <em aria-label={`${entries.length} apps`}>{entries.length}</em>
+      </h2>
 
       {layout === 'grid' ? (
         <div className="waypoint-tiles">

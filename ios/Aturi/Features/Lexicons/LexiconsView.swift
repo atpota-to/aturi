@@ -110,9 +110,10 @@ struct LexiconsView: View {
                 .foregroundStyle(theme.textTertiary)
             Text("Every lexicon in the Atmosphere.")
                 .font(AturiFont.display)
+                .tracking(AturiFont.displayTracking)
                 .foregroundStyle(theme.textPrimary)
             Text("Search any collection NSID, watch what\u{2019}s trending, and browse the full catalog of record types seen across the AT Protocol firehose.")
-                .font(.body)
+                .font(AturiFont.body)
                 .foregroundStyle(theme.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
         }
@@ -234,7 +235,7 @@ struct LexiconsView: View {
                     .pickerStyle(.segmented)
                     Toggle("One per group", isOn: $model.onePerGroup)
                         .toggleStyle(.button)
-                        .font(.footnote)
+                        .font(AturiFont.footnote)
                         .accessibilityHint("Shows only the top lexicon from each namespace")
                 }
             }
@@ -369,7 +370,7 @@ struct LexiconsView: View {
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 10)
-            .cardBackground(cornerRadius: 10)
+            .cardBackground(cornerRadius: AturiTheme.controlRadius)
 
             if model.showsSearchDropdown {
                 suggestionList
@@ -399,7 +400,7 @@ struct LexiconsView: View {
                 Button(action: browseNamespace) {
                     HStack(spacing: 10) {
                         Image(systemName: "folder")
-                            .font(.footnote)
+                            .font(AturiFont.footnote)
                             .foregroundStyle(theme.textAccent)
                             .frame(width: 16)
                             .accessibilityHidden(true)
@@ -410,7 +411,7 @@ struct LexiconsView: View {
                                 .lineLimit(1)
                                 .truncationMode(.middle)
                             Text("Every collection under this namespace")
-                                .font(.caption)
+                                .font(AturiFont.caption)
                                 .foregroundStyle(theme.textTertiary)
                         }
                         Spacer(minLength: 0)

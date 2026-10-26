@@ -1,0 +1,504 @@
+/* Inspect, final. The page's own record is one index card under the lead
+   drawer tab: a title line, a ledger of identifiers one per ruled row, the
+   whole row the copy button, and one band out to aturi.to. Everything else
+   the page references is filed in a second drawer, one line per record;
+   a line opens into the same ledger at a smaller size.
+
+   Loaded after popup.css. Shipped classes used as they are: the drawer
+   tabs (.popup-section.is-sheet > .popup-section-label, .is-highlighted),
+   the list sheet (.popup-waypoints), the row copy button
+   (.popup-waypoint-copy), the band (.inspect-cta) and Scan again
+   (.inspect-rescan). Everything below is tokens from tokens.css. */
+
+.fi-root {
+  gap: 12px;
+}
+
+/* Announces "DID copied" to a screen reader; the visible swap is only a
+   visibility change. Filled by the implementation on each copy. */
+.fi-live {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* ---------- Lead drawer: tab on the left, Scan again on the right ---------- */
+
+.fi-lead {
+  position: relative;
+}
+
+/* The shipped 28px control on the tab's 26px line; its label ends on the
+   card's text edge (5px in, then its own 8px pad). */
+.fi-rescan {
+  position: absolute;
+  top: -1px;
+  right: 5px;
+  margin-right: 0;
+  z-index: 2;
+}
+
+/* ---------- The card ---------- */
+
+.fi-card {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-card);
+  overflow: hidden;
+}
+
+/* What it is, whose it is, how the page declared it. The first ledger row
+   draws the rule beneath. */
+.fi-head {
+  padding: 10px 12px 9px;
+}
+
+.fi-title {
+  margin: 0;
+  font-size: var(--fs-base);
+  font-weight: 700;
+  line-height: 20px;
+  color: var(--text-primary);
+  overflow-wrap: anywhere;
+}
+
+.fi-title-by {
+  font-weight: 400;
+  color: var(--text-tertiary);
+}
+
+.fi-declared {
+  margin: 1px 0 0;
+  font-size: var(--fs-sm);
+  line-height: 16px;
+  color: var(--text-tertiary);
+}
+
+/* ---------- The ledger ---------- */
+
+/* Three columns shared by every row through subgrid: the label column is
+   exactly as wide as the widest label at the current text preset, the
+   value takes the rest, the last 34px is the action column (a 28px glyph
+   box, 6px in from the card edge, centred on the same x as the Waypoints
+   rows' copy buttons). */
+.fi-ledger {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr) 34px;
+}
+
+/* A whole row is the copy button: a 32px box over a 1px rule (content-box,
+   so the rule never takes a half pixel from the glyph's centring). */
+.fi-row {
+  box-sizing: content-box;
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: 6em minmax(0, 1fr) 34px;
+  grid-template-columns: subgrid;
+  align-items: center;
+  min-height: 32px;
+  border-top: 1px solid var(--border-subtle);
+  text-align: left;
+  color: var(--text-primary);
+  transition: background 0.12s ease;
+}
+
+.fi-row:hover {
+  background: var(--surface-subtle);
+}
+
+/* The card clips its corners, so the ring draws inside the row. */
+.fi-row:focus-visible {
+  outline-offset: -2px;
+}
+
+/* The label beside its value, as the explorer's own definition labels
+   (12px/700, tertiary, sentence case). "Copied" sits in the same cell,
+   hidden until the row is copied, so the swap never moves the value. */
+.fi-label {
+  display: grid;
+  padding: 0 6px 0 12px;
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  line-height: 16px;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+}
+
+.fi-label > span {
+  grid-area: 1 / 1;
+}
+
+.fi-label-done {
+  visibility: hidden;
+  color: var(--text-accent);
+}
+
+.fi-value {
+  min-width: 0;
+  font-family: var(--font-mono);
+  font-size: var(--fs-md);
+  line-height: 18px;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* A path (the AT URI, the aturi.to link) runs under its label on the
+   card's full width, so it can break at its slashes instead of losing its
+   middle, and carries its own hierarchy: the repo part quiet, the
+   collection a tone up, the record's own identifiers in ink. */
+.fi-row.is-path {
+  grid-template-rows: auto auto;
+}
+
+.fi-row.is-path .fi-label {
+  grid-area: 1 / 1 / 2 / 3;
+  padding-top: 6px;
+}
+
+.fi-row.is-path .fi-value {
+  grid-area: 2 / 1 / 3 / 3;
+  padding: 1px 0 5px 12px;
+  white-space: normal;
+  overflow: visible;
+  overflow-wrap: anywhere;
+}
+
+.fi-row.is-path .fi-glyph {
+  grid-area: 1 / 3 / 3 / 4;
+}
+
+.fi-dim {
+  color: var(--text-tertiary);
+}
+
+.fi-coll {
+  color: var(--text-secondary);
+}
+
+.fi-sep {
+  color: var(--text-faint);
+}
+
+.fi-id {
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+/* A handle or host wraps before a dot (the markup's <wbr>) rather than
+   losing its end; a Bluesky-hosted PDS breaks before ".host.bsky.network". */
+.fi-value.is-dots {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+/* Head … tail, flush. The row snaps down to a whole number of characters
+   (plus half a pixel of slack for sub-pixel advances) so the ellipsis
+   lands against the tail; without round() support the row is auto width
+   and only the gap returns. A DID fits whole at every preset; the CID
+   keeps its first characters and its last six. */
+.fi-mid {
+  display: flex;
+  min-width: 0;
+  max-width: 100%;
+  width: calc(round(down, 100%, 1ch) + 0.5px);
+}
+
+.fi-mid-head {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fi-mid-tail {
+  flex: none;
+  white-space: nowrap;
+}
+
+/* The action column: a 28px box for the glyph, justified to the column's
+   start so it ends 6px from the card edge. */
+.fi-glyph {
+  justify-self: start;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-control);
+  color: var(--text-tertiary);
+  transition: background 0.12s ease, color 0.12s ease;
+}
+
+.fi-glyph svg {
+  display: block;
+}
+
+.fi-glyph .fi-glyph-done {
+  display: none;
+}
+
+.fi-row:hover .fi-glyph,
+.fi-row:focus-visible .fi-glyph {
+  color: var(--text-accent);
+}
+
+/* Copied: the label reads "Copied", the glyph becomes a tick on the soft
+   accent. Same cells, same widths. */
+.fi-row.is-copied .fi-label-text {
+  visibility: hidden;
+}
+
+.fi-row.is-copied .fi-label-done {
+  visibility: visible;
+}
+
+.fi-row.is-copied .fi-glyph {
+  background: var(--accent-soft);
+  color: var(--accent-soft-fg);
+}
+
+.fi-row.is-copied .fi-glyph .fi-glyph-copy {
+  display: none;
+}
+
+.fi-row.is-copied .fi-glyph .fi-glyph-done {
+  display: block;
+}
+
+/* ---------- The way out ---------- */
+
+/* The shipped band, flush to the card (the card has no padding to undo)
+   with a hint of what the website holds and the outward glyph in the
+   action column. Its 38px stand over the rule, as the ledger rows do. */
+.fi-cta {
+  box-sizing: content-box;
+  margin: 0;
+  padding: 0 0 0 12px;
+  border-radius: 0;
+  gap: 6px;
+}
+
+.fi-cta-text {
+  flex: none;
+}
+
+.fi-cta-hint {
+  flex: 1;
+  min-width: 0;
+  font-weight: 400;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.fi-cta .fi-glyph {
+  flex: none;
+  margin-right: 6px;
+  color: var(--text-tertiary);
+}
+
+.fi-cta:hover .fi-glyph {
+  color: currentColor;
+}
+
+/* ---------- Also on this page ---------- */
+
+.fi-refs {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.fi-ref + .fi-ref {
+  border-top: 1px solid var(--border-subtle);
+}
+
+.fi-ref-head {
+  display: flex;
+  align-items: center;
+  transition: background 0.12s ease;
+}
+
+.fi-ref-head:hover {
+  background: var(--surface-subtle);
+}
+
+/* The row's main area opens it; the chevron is its disclosure. One line:
+   the handle, the kind only when the drawer holds more than one, the rkey. */
+.fi-ref-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 36px;
+  padding: 0 4px 0 12px;
+  text-align: left;
+  color: var(--text-primary);
+}
+
+.fi-ref-main:focus-visible,
+.fi-ref-more:focus-visible,
+.fi-ref-open:focus-visible {
+  outline-offset: -2px;
+}
+
+.fi-ref-chev {
+  flex: none;
+  color: var(--text-faint);
+  transition: transform 0.12s ease, color 0.12s ease;
+}
+
+.fi-ref-head:hover .fi-ref-chev {
+  color: var(--text-tertiary);
+}
+
+.fi-ref.is-open .fi-ref-chev {
+  transform: rotate(90deg);
+  color: var(--text-accent);
+}
+
+.fi-ref-handle {
+  flex: 0 1 auto;
+  min-width: 0;
+  font-size: var(--fs-md);
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.fi-ref-kind {
+  flex: none;
+  font-size: var(--fs-xs);
+  color: var(--text-tertiary);
+  white-space: nowrap;
+}
+
+.fi-ref-rkey {
+  flex: none;
+  margin-left: auto;
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+  color: var(--text-secondary);
+}
+
+/* The row's one copy at rest (its AT URI) is the shipped row copy button,
+   visible here because copying is the job. */
+.fi-ref-copy svg {
+  display: block;
+}
+
+/* Open: the same ledger a step below the row, on the subtle surface, with
+   the record's way to the website as its last line. */
+.fi-ref-body {
+  padding: 4px 0 6px;
+  border-top: 1px solid var(--border-subtle);
+  background: var(--surface-subtle);
+}
+
+.fi-ref-body[hidden] {
+  display: none;
+}
+
+.fi-ledger.is-nested .fi-row {
+  min-height: 28px;
+  border-top: 0;
+}
+
+.fi-ledger.is-nested .fi-row:hover {
+  background: var(--bg-tertiary);
+}
+
+.fi-ledger.is-nested .fi-row.is-path .fi-label {
+  padding-top: 4px;
+}
+
+.fi-ledger.is-nested .fi-row.is-path .fi-value {
+  padding-bottom: 3px;
+}
+
+.fi-ref-open {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 28px;
+  margin-top: 2px;
+  padding: 0 0 0 12px;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--text-accent);
+  transition: background 0.12s ease;
+}
+
+.fi-ref-open:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-accent);
+}
+
+.fi-ref-open > span:first-of-type {
+  flex: 1;
+  min-width: 0;
+}
+
+.fi-ref-open .fi-glyph {
+  margin-right: 6px;
+}
+
+.fi-ref-open:hover .fi-glyph {
+  color: currentColor;
+}
+
+/* Forty hits: the list shows eight rows and a last row that reveals the
+   rest in place. */
+.fi-ref-more {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 36px;
+  padding: 0 12px;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--text-accent);
+  text-align: left;
+  transition: background 0.12s ease;
+}
+
+.fi-ref-more:hover {
+  background: var(--surface-subtle);
+}
+
+.fi-ref-more .fi-ref-chev {
+  color: currentColor;
+}
+
+/* Touch: the dense controls grow to a thumb's height, as popup.css does. */
+@media (hover: none) {
+  .fi-row {
+    min-height: 40px;
+  }
+
+  .fi-ledger.is-nested .fi-row {
+    min-height: 36px;
+  }
+
+  .fi-ref-main,
+  .fi-ref-more {
+    min-height: 44px;
+  }
+
+  .fi-ref-open {
+    min-height: 36px;
+  }
+}

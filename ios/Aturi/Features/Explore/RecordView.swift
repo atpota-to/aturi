@@ -323,14 +323,14 @@ private struct RecordScreen: View {
                 } label: {
                     HStack(spacing: 8) {
                         Image(systemName: "globe")
-                            .font(.footnote)
+                            .font(AturiFont.footnote)
                             .foregroundStyle(theme.textTertiary)
                         Text(RecordModel.universalLinkPageLabel)
-                            .font(.footnote)
+                            .font(AturiFont.footnote)
                             .foregroundStyle(theme.textAccent)
                         Spacer(minLength: 0)
                         Image(systemName: "chevron.right")
-                            .font(.caption2)
+                            .font(AturiFont.caption2)
                             .foregroundStyle(theme.textTertiary)
                     }
                     .padding(.vertical, 10)
@@ -355,7 +355,7 @@ private struct RecordScreen: View {
     private var signInPrompt: some View {
         VStack(alignment: .leading, spacing: 10) {
             Text(RecordModel.signInPrompt)
-                .font(.footnote)
+                .font(AturiFont.footnote)
                 .foregroundStyle(theme.textSecondary)
             Button("Sign in") {
                 showsSignIn = true
@@ -426,15 +426,16 @@ private struct RecordFailurePanel: View {
                 .foregroundStyle(theme.textAccent)
             Text(failure.headline)
                 .font(AturiFont.title)
+                .tracking(AturiFont.titleTracking)
                 .foregroundStyle(theme.textPrimary)
             Text(failure.body)
-                .font(.footnote)
+                .font(AturiFont.footnote)
                 .foregroundStyle(theme.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
             if let path = failure.lexiconPath, let label = failure.lexiconLinkLabel, let route = Route(explorePath: path) {
                 NavigationLink(value: route) {
                     Label(label, systemImage: "arrow.right")
-                        .font(.footnote)
+                        .font(AturiFont.footnote)
                         .foregroundStyle(theme.textAccent)
                 }
                 .buttonStyle(.plain)
@@ -451,7 +452,7 @@ private struct RecordFailurePanel: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.top, 6)
             }
-            .font(.footnote)
+            .font(AturiFont.footnote)
             .foregroundStyle(theme.textTertiary)
         }
         .padding(16)
@@ -513,14 +514,14 @@ private struct EngagementStrip: View {
                 ForEach(stats) { stat in
                     HStack(spacing: 5) {
                         Image(systemName: symbol(for: stat.kind))
-                            .font(.caption)
+                            .font(AturiFont.caption)
                             .foregroundStyle(theme.textTertiary)
                         Text(stat.value.formatted())
-                            .font(.footnote)
+                            .font(AturiFont.footnote)
                             .monospacedDigit()
                             .foregroundStyle(theme.textPrimary)
                         Text(stat.label)
-                            .font(.footnote)
+                            .font(AturiFont.footnote)
                             .foregroundStyle(theme.textTertiary)
                     }
                     .accessibilityElement(children: .combine)
@@ -556,7 +557,7 @@ private struct LexiconUsageCardView: View {
                     }
                 }
                 Label(LexiconUsageSummary.linkLabel, systemImage: "arrow.up.right")
-                    .font(.footnote)
+                    .font(AturiFont.footnote)
                     .foregroundStyle(theme.textAccent)
             }
             .padding(14)
@@ -571,14 +572,14 @@ private struct LexiconUsageCardView: View {
     private func stat(_ systemImage: String, _ value: String, _ label: String) -> some View {
         HStack(spacing: 5) {
             Image(systemName: systemImage)
-                .font(.caption)
+                .font(AturiFont.caption)
                 .foregroundStyle(theme.textTertiary)
             Text(value)
-                .font(.footnote)
+                .font(AturiFont.footnote)
                 .monospacedDigit()
                 .foregroundStyle(theme.textPrimary)
             Text(label)
-                .font(.footnote)
+                .font(AturiFont.footnote)
                 .foregroundStyle(theme.textTertiary)
         }
         .accessibilityElement(children: .combine)

@@ -25,12 +25,18 @@ export default function ShortcutsHelp({
   platform: Platform;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
+  // showModal() focuses the first control, which drew the focus ring on
+  // Close as the sheet opened. Focus the scrolling body instead: arrow keys
+  // scroll the list, Tab reaches the footer link, Shift+Tab reaches Close.
+  const bodyRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const dlg = ref.current;
     if (!dlg) return;
-    if (open && !dlg.open) dlg.showModal();
-    else if (!open && dlg.open) dlg.close();
+    if (open && !dlg.open) {
+      dlg.showModal();
+      bodyRef.current?.focus({ preventScroll: true });
+    } else if (!open && dlg.open) dlg.close();
   }, [open]);
 
   useEffect(() => {
@@ -68,7 +74,7 @@ export default function ShortcutsHelp({
           </button>
         </div>
 
-        <div className="shortcuts-body">
+        <div className="shortcuts-body" ref={bodyRef} tabIndex={-1}>
           {COMMAND_GROUPS.map((group) => {
             const rows = commands.filter(
               (c) => c.meta.group === group.id && c.available,

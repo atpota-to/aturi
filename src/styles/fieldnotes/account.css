@@ -1,0 +1,2241 @@
+/* Field Notes: /account settings, the sign-in surfaces, the command palette,
+   the shortcuts sheet, What's new and the shared skeletons. Follows the
+   extension settings mockups: a left nav column, then white section cards
+   whose rows are full-width bands split by hairlines. Tokens live in
+   src/app/globals.css; several rules here override the older .settings-*,
+   .scheme-*, .group-*, .kb-*, .cmdk-* and .whats-new-* blocks there. */
+
+/* =========================================================================
+   Page + shell
+   ========================================================================= */
+
+.fn-account-page {
+  width: 100%;
+  max-width: 1080px;
+  margin: 0 auto;
+  box-sizing: border-box;
+  padding: 32px 24px 64px;
+  min-height: 80dvh;
+  font-family: var(--font-sans);
+}
+
+.fn-account-page > .explore-placeholder {
+  border-radius: var(--radius-card);
+  font-style: normal;
+}
+
+/* The settings nav is the shared folder tabs (tabs.css, .fx-tabs / .fx-tab).
+   On phones they are a row standing on a full-width baseline (the 820px
+   block below); from 821px the folder turns on its side: the content
+   column's left hairline is the spine, the tabs stand against it like binder
+   dividers, and the open one is 3px further out in the page colour with its
+   right edge painted out, so it runs into the content. Settings reads the
+   same way at every width. */
+@media (min-width: 821px) {
+  .settings-shell {
+    flex-direction: row;
+    /* The content, and so the spine, is never shorter than the tabs. */
+    align-items: stretch;
+    /* The gap moves into the content's padding, behind the spine. */
+    gap: 24px 0;
+  }
+
+  .settings-header {
+    position: sticky;
+    top: 80px;
+    /* Above the content, so the open tab paints over the spine. */
+    z-index: 1;
+    /* Sticky needs the item to be shorter than the shell. */
+    align-self: flex-start;
+    flex: 0 0 160px;
+    padding: 0;
+    margin: 0;
+    border: 0;
+    gap: 0;
+  }
+
+  /* Every tab's right edge lies on the content's left hairline (the nav
+     overhangs the column by 1px). No cut on a column: 2px over 160px is
+     0.7°, which reads as uneven gaps rather than a taper. */
+  .settings-nav {
+    --tab-open: var(--bg-primary);
+    --tab-gap: 6px;
+    --tab-size: 14px;
+    flex-direction: column;
+    align-items: stretch;
+    padding: 4px 0 0;
+    margin: 0 -1px 0 0;
+    overflow: visible;
+  }
+
+  .settings-nav .fx-tab {
+    height: 36px;
+    padding: 0 12px;
+    justify-content: flex-start;
+    border-radius: var(--tab-radius) 0 0 var(--tab-radius);
+  }
+
+  .settings-nav .fx-tab::before,
+  .settings-nav .fx-tab::after {
+    display: none;
+  }
+
+  /* Comes forward 1px outward, the label anchored to the spine. */
+  .settings-nav .fx-tab:hover:not([aria-selected='true']) {
+    padding: 0 12px 0 13px;
+    margin-left: -1px;
+  }
+
+  .settings-nav .fx-tab[aria-selected='true'] {
+    padding: 0 12px 0 calc(12px + var(--tab-rise));
+    margin-left: calc(-1 * var(--tab-rise));
+    /* A side tab keeps its bottom hairline and opens through its right edge. */
+    border-bottom-color: var(--tab-line);
+    border-right-color: var(--tab-open);
+  }
+
+  .settings-content {
+    border-left: 1px solid var(--border-medium);
+    padding-left: 32px;
+  }
+}
+
+.settings-content {
+  flex: 1 1 auto;
+  max-width: 760px;
+  gap: 16px;
+  font-size: 14px;
+}
+
+.settings-page-head {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 4px;
+}
+
+.settings-page-title {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+}
+
+.settings-page-lede {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+/* Signed-out notice above the cards: a quiet note on the subtle surface.
+   The pale green pair is for the selected thing (tree row, chip), and the
+   note is not selected; green also made it the loudest block on every
+   phone sheet. The link keeps the accent. */
+.settings-local-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 16px;
+  background: var(--surface-subtle);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-card);
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+.settings-local-banner-icon {
+  flex-shrink: 0;
+  margin-top: 2px;
+  color: var(--text-tertiary);
+}
+
+.settings-local-banner-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.settings-local-banner-link {
+  padding: 0;
+  background: transparent;
+  border: 0;
+  font: inherit;
+  font-weight: 700;
+  color: var(--text-accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+.settings-local-banner-link:hover {
+  color: var(--text-primary);
+}
+
+/* =========================================================================
+   Cards and rows
+   ========================================================================= */
+
+.settings-card {
+  gap: 0;
+  padding: 0;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-card);
+  transition: none;
+}
+
+.settings-card:hover {
+  border-color: var(--border-medium);
+}
+
+.settings-card-head {
+  gap: 4px;
+  padding: 18px 18px 14px;
+}
+
+.settings-card-title {
+  font-family: var(--font-sans);
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+}
+
+.settings-card-sub {
+  font-family: var(--font-sans);
+  font-size: 13.5px;
+  line-height: 1.5;
+  max-width: 68ch;
+}
+
+.settings-card-sub code,
+.settings-toggle-label-sub code {
+  font-family: var(--font-mono);
+  white-space: nowrap;
+  font-size: 0.92em;
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: var(--surface-subtle);
+  border: 1px solid var(--border-subtle);
+}
+
+/* Everything after the head is a full-width band split by a hairline. */
+.settings-card > :not(.settings-card-head) {
+  margin: 0;
+  padding: 14px 18px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.settings-card > :not(.settings-card-head):last-child {
+  border-bottom-left-radius: calc(var(--radius-card) - 1px);
+  border-bottom-right-radius: calc(var(--radius-card) - 1px);
+}
+
+.settings-card > p.settings-card-sub {
+  max-width: none;
+  color: var(--text-tertiary);
+}
+
+/* A card's closing note: smaller and on the off-white strip. */
+.settings-card > .settings-card-note {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-tertiary);
+  background: var(--surface-subtle);
+}
+
+/* Row: text on the left, control on the right. */
+.settings-toggle-row {
+  align-items: flex-start;
+  gap: 10px 16px;
+}
+
+.settings-toggle-row + .settings-toggle-row {
+  padding-top: 14px;
+}
+
+.settings-toggle-label {
+  gap: 2px;
+}
+
+.settings-toggle-label-text {
+  font-family: var(--font-sans);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.settings-toggle-label-sub {
+  max-width: 68ch;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--text-secondary);
+}
+
+.settings-toggle-row > .settings-switch {
+  margin-top: 1px;
+}
+
+/* Controls wider than a switch (segmented pickers, selects) centre on the
+   row instead of hanging off its first line. */
+.settings-toggle-row > [role='radiogroup']:not(.scheme-picker),
+.settings-toggle-row > select,
+.settings-toggle-row > .waypoint-layout-toggle {
+  align-self: center;
+}
+
+/* ...and the row wraps around them: the label keeps a 36ch basis, so on a
+   tablet column the control drops under the text rather than squeezing a
+   description into six ragged lines. Switch rows never wrap, and the
+   stacked rows and the phone block (below) set their own direction. */
+@media (min-width: 561px) {
+  .settings-toggle-row:not(.is-stacked):has(> [role='radiogroup']),
+  .settings-toggle-row:not(.is-stacked):has(> select),
+  .settings-toggle-row:not(.is-stacked):has(> .waypoint-layout-toggle) {
+    flex-wrap: wrap;
+  }
+
+  .settings-toggle-row:not(.is-stacked):has(> [role='radiogroup']) > .settings-toggle-label,
+  .settings-toggle-row:not(.is-stacked):has(> select) > .settings-toggle-label,
+  .settings-toggle-row:not(.is-stacked):has(> .waypoint-layout-toggle) > .settings-toggle-label {
+    flex: 1 1 36ch;
+  }
+}
+
+.settings-toggle-row.is-stacked {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 12px;
+}
+
+/* Pill switch, as in the mockup: moss track, white knob. */
+.settings-switch {
+  width: 40px;
+  height: 22px;
+}
+
+.settings-switch-box {
+  background: var(--border-strong);
+  border: 0;
+  border-radius: var(--radius-pill);
+}
+
+.settings-switch-box::after {
+  top: 2px;
+  left: 2px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--bg-secondary);
+  box-shadow: 0 1px 2px rgba(28, 30, 25, 0.18);
+  transition: transform 0.2s ease;
+}
+
+.settings-switch input:checked + .settings-switch-box {
+  background: var(--accent-moss);
+}
+
+.settings-switch input:checked + .settings-switch-box::after {
+  transform: translateX(18px);
+  background: var(--text-on-accent);
+}
+
+.settings-switch input:focus-visible + .settings-switch-box {
+  outline-offset: 2px;
+}
+
+/* Segmented control (theme, font size, pin scope, picker layout). */
+.settings-seg {
+  display: inline-flex;
+  flex-wrap: wrap;
+  flex-shrink: 0;
+  padding: 3px;
+  gap: 0;
+  border-radius: var(--radius-control);
+  background: var(--bg-tertiary);
+}
+
+/* Same values as .fn-segmented (explore.css), the site's one segmented
+   control. */
+.settings-seg-option {
+  height: 28px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-secondary);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.settings-seg-option:hover {
+  color: var(--text-primary);
+}
+
+.settings-seg-option.is-active {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font-weight: 600;
+  box-shadow: 0 1px 2px rgb(28 30 25 / 0.12);
+}
+
+:root:not([data-theme='light']) .settings-seg-option.is-active {
+  background: var(--border-strong);
+}
+
+.settings-seg-option:focus-visible {
+  outline: 2px solid var(--text-accent);
+  outline-offset: 1px;
+}
+
+/* Shared buttons for the settings surfaces. */
+.settings-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 14px;
+  border-radius: var(--radius-control);
+  border: 1px solid var(--border-strong);
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: 13.5px;
+  font-weight: 600;
+  line-height: 1;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.settings-btn:hover:not(:disabled) {
+  background: var(--surface-subtle);
+  border-color: var(--text-tertiary);
+  color: var(--text-primary);
+}
+
+.settings-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.settings-btn.is-primary {
+  background: var(--accent-moss);
+  border-color: var(--accent-moss);
+  color: var(--text-on-accent);
+}
+
+.settings-btn.is-primary:hover:not(:disabled) {
+  background: var(--accent-forest);
+  border-color: var(--accent-forest);
+  color: var(--text-on-accent);
+}
+
+.settings-btn.is-danger {
+  color: var(--danger);
+}
+
+.settings-btn.is-danger:hover:not(:disabled) {
+  background: var(--danger-soft);
+  border-color: var(--danger-border);
+  color: var(--danger);
+}
+
+.settings-btn.is-small {
+  height: 28px;
+  padding: 0 10px;
+  border-radius: 7px;
+  font-size: 12.5px;
+}
+
+.settings-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border-radius: var(--radius-control);
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.settings-icon-btn:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+.settings-icon-btn.is-danger:hover {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
+/* Text inputs and selects. */
+.settings-input,
+.settings-select {
+  height: 36px;
+  box-sizing: border-box;
+  padding: 0 12px;
+  border-radius: var(--radius-control);
+  border: 1px solid var(--border-strong);
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: 13.5px;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.settings-input.is-mono {
+  font-family: var(--font-mono);
+  font-size: 13px;
+}
+
+.settings-input {
+  text-overflow: ellipsis;
+}
+
+.settings-input::placeholder {
+  color: var(--text-tertiary);
+  text-overflow: ellipsis;
+}
+
+.settings-input:focus,
+.settings-select:focus {
+  border-color: var(--text-accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.settings-input.is-invalid {
+  border-color: var(--danger);
+}
+
+.settings-select {
+  width: 220px;
+  max-width: 100%;
+  padding-right: 32px;
+  appearance: none;
+  background-image: linear-gradient(45deg, transparent 50%, var(--text-tertiary) 50%),
+    linear-gradient(135deg, var(--text-tertiary) 50%, transparent 50%);
+  background-position: calc(100% - 17px) 15px, calc(100% - 12px) 15px;
+  background-size: 5px 5px, 5px 5px;
+  background-repeat: no-repeat;
+  cursor: pointer;
+}
+
+.settings-select:disabled {
+  opacity: 0.55;
+  background: var(--surface-subtle);
+  cursor: not-allowed;
+}
+
+/* A row gated by a master switch dims as a whole, the way the Keyboard
+   tab's bindings card does, so the field does not read as empty. */
+.settings-toggle-row.is-gated > .settings-toggle-label {
+  opacity: 0.55;
+}
+
+/* Small-caps kicker used above in-card lists. */
+.settings-kicker {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+}
+
+.settings-count {
+  margin-left: auto;
+  font-family: var(--font-mono);
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-tertiary);
+}
+
+.settings-empty {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-tertiary);
+}
+
+/* =========================================================================
+   General tab
+   ========================================================================= */
+
+.scheme-picker {
+  grid-template-columns: repeat(auto-fill, minmax(165px, 1fr));
+  gap: 8px;
+}
+
+.scheme-option {
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-control);
+  background: var(--bg-secondary);
+  font-family: var(--font-sans);
+  font-size: 13.5px;
+  color: var(--text-secondary);
+}
+
+.scheme-option:hover {
+  border-color: var(--border-strong);
+  background: var(--surface-subtle);
+}
+
+.scheme-option.is-active {
+  background: var(--accent-soft);
+  border-color: var(--accent-moss);
+  box-shadow: inset 0 0 0 1px var(--accent-moss);
+  color: var(--text-primary);
+}
+
+.scheme-option-name {
+  font-weight: 600;
+  color: var(--text-primary);
+  letter-spacing: 0;
+}
+
+.scheme-option-hint {
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+
+/* On the pale-green selected card, tertiary falls to about 4.3:1. */
+.scheme-option.is-active .scheme-option-hint {
+  color: var(--text-secondary);
+}
+
+.scheme-swatch {
+  width: 40px;
+  height: 24px;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+/* Pinned lexicons list (Explorer card). */
+.settings-pins {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.settings-pin-form {
+  display: flex;
+  gap: 8px;
+  position: relative;
+}
+
+.settings-pin-field {
+  flex: 1;
+  min-width: 0;
+  position: relative;
+}
+
+.settings-pin-field .settings-input {
+  width: 100%;
+}
+
+.settings-suggest {
+  list-style: none;
+  margin: 0;
+  padding: 4px;
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: 5;
+  max-height: 16rem;
+  overflow-y: auto;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-control);
+  box-shadow: var(--shadow-overlay);
+}
+
+.settings-suggest-item {
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  color: var(--text-primary);
+  cursor: pointer;
+  word-break: break-all;
+}
+
+.settings-suggest-item.is-active {
+  background: var(--accent-soft);
+  color: var(--accent-soft-fg);
+}
+
+.settings-suggest-item strong {
+  font-weight: 600;
+  color: var(--text-accent);
+}
+
+.settings-error {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--danger);
+}
+
+.settings-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-control);
+  overflow: hidden;
+}
+
+.settings-list-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 40px;
+  padding: 4px 6px 4px 12px;
+  border-top: 1px solid var(--border-subtle);
+  font-size: 13.5px;
+}
+
+.settings-list-item:first-child {
+  border-top: 0;
+}
+
+.settings-list-item.is-mono > span:first-child {
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  word-break: break-all;
+}
+
+.settings-pill {
+  flex-shrink: 0;
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+  background: var(--accent-soft);
+  box-shadow: inset 0 0 0 1px var(--accent-soft-ring);
+  color: var(--accent-soft-fg);
+  font-family: var(--font-sans);
+  font-size: 11.5px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+/* =========================================================================
+   Responsive
+   ========================================================================= */
+
+@media (max-width: 820px) {
+  .fn-account-page {
+    padding: 16px 16px 48px;
+  }
+
+  .settings-shell {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 16px;
+  }
+
+  .settings-header {
+    position: static;
+    flex: none;
+    margin: 0 -16px;
+  }
+
+  /* Folder tabs (tabs.css) on a full-width baseline. Here the page itself
+     is the open folder, so the open tab takes the page's colour and opens
+     onto it through the baseline, an inset shadow rather than a border the
+     tabs overlap: the row scrolls, and a scroller clips anything hanging
+     past its edge. 42px filed, 45px open, so each is a tap target. */
+  .settings-nav {
+    --tab-open: var(--bg-primary);
+    --tab-inset: 16px;
+    --tab-pad-y: 10px;
+    --tab-size: 14px;
+    box-shadow: inset 0 -1px 0 var(--tab-line);
+    /* The row runs past the edge with its scrollbar hidden, so fade the
+       edge to say there's more. As wide as the end padding: scrolled to the
+       end, the last tab stops just short of the fade. */
+    -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 16px), transparent);
+    mask-image: linear-gradient(to right, #000 calc(100% - 16px), transparent);
+  }
+
+  .settings-content {
+    max-width: none;
+  }
+
+  .settings-page-title {
+    font-size: 22px;
+  }
+}
+
+@media (max-width: 560px) {
+  .settings-card-head {
+    padding: 16px 16px 12px;
+  }
+
+  .settings-card > :not(.settings-card-head) {
+    padding: 12px 16px;
+  }
+
+  .settings-toggle-row {
+    flex-direction: row;
+    align-items: flex-start;
+  }
+
+  /* Wide controls drop under their label; switches stay beside it. */
+  .settings-toggle-row:has(> [role='radiogroup']),
+  .settings-toggle-row:has(> select),
+  .settings-toggle-row:has(> .waypoint-layout-toggle) {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .settings-toggle-row > [role='radiogroup']:not(.scheme-picker),
+  .settings-toggle-row > select,
+  .settings-toggle-row > .waypoint-layout-toggle {
+    align-self: flex-start;
+  }
+
+  .settings-toggle-row > .settings-select {
+    width: 100%;
+  }
+
+  .scheme-picker {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .scheme-option {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+}
+
+.settings-seg-option::first-letter {
+  text-transform: uppercase;
+}
+
+/* =========================================================================
+   Account tab
+   ========================================================================= */
+
+.settings-identity {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px 16px;
+}
+
+.settings-identity-avatar {
+  width: 48px;
+  height: 48px;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  object-fit: cover;
+  border-radius: 50%;
+  border: 1px solid var(--border-medium);
+  background: var(--bg-tertiary);
+  color: var(--text-tertiary);
+}
+
+.settings-identity-text {
+  flex: 1 1 14rem;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.settings-identity-name {
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--text-primary);
+}
+
+.settings-identity-handle,
+.settings-identity-did {
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  color: var(--text-secondary);
+  word-break: break-all;
+}
+
+.settings-identity-did {
+  font-size: 11.5px;
+  color: var(--text-tertiary);
+}
+
+.settings-identity-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.settings-card .account-stats-grid > * {
+  border-radius: 10px;
+}
+
+.settings-sync {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  align-self: flex-start;
+  padding: 4px 12px;
+  border-radius: var(--radius-pill);
+  background: var(--bg-tertiary);
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.settings-sync.is-ok {
+  background: var(--accent-soft);
+  color: var(--accent-soft-fg);
+}
+
+.settings-sync.is-error {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
+.settings-signin-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.settings-signin-form .settings-input {
+  flex: 1 1 260px;
+  min-width: 0;
+}
+
+.settings-signin-scopes > .oauth-scopes {
+  max-width: 34rem;
+}
+
+/* =========================================================================
+   OAuth: permission picker, handle typeahead, compact sign-in panel
+   ========================================================================= */
+
+.oauth-scopes {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  font-family: var(--font-sans);
+}
+
+.oauth-scopes-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.oauth-scopes-back {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border-radius: var(--radius-control);
+  border: 1px solid var(--border-strong);
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.oauth-scopes-back:hover:not(:disabled) {
+  background: var(--surface-subtle);
+  color: var(--text-primary);
+}
+
+.oauth-scopes-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.oauth-scopes-account {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-tertiary);
+  word-break: break-all;
+}
+
+.oauth-scopes-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-control);
+  overflow: hidden;
+}
+
+.oauth-scopes-list > li + li {
+  border-top: 1px solid var(--border-subtle);
+}
+
+.oauth-scope-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  background: var(--bg-secondary);
+  cursor: pointer;
+  transition: background 0.12s ease;
+}
+
+.oauth-scope-row:hover {
+  background: var(--surface-subtle);
+}
+
+.oauth-scope-label {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.oauth-scope-hint {
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--text-tertiary);
+}
+
+.oauth-scopes-submit {
+  width: 100%;
+}
+
+.oauth-scopes-note {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--text-tertiary);
+}
+
+.oauth-scopes-error,
+.signin-panel-error {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--danger);
+}
+
+.signin-panel-error {
+  flex-basis: 100%;
+}
+
+/* The scope checkbox, rounded to match. */
+.scope-checkbox-box {
+  border-radius: 5px;
+  background: var(--bg-secondary);
+  border-color: var(--border-strong);
+}
+
+/* Every caller styles the field inline, most with `outline: none`, which
+   also beats the global :focus-visible ring; without this the field showed
+   no sign of focus at all. --text-accent rather than the moss fill, which is
+   too dark to see against a dark field. */
+.oauth-typeahead-input:focus {
+  border-color: var(--text-accent) !important;
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.oauth-typeahead {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: 30;
+  list-style: none;
+  margin: 0;
+  padding: 4px;
+  max-height: 16rem;
+  overflow-y: auto;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-control);
+  box-shadow: var(--shadow-overlay);
+}
+
+.oauth-typeahead-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.12s ease;
+}
+
+.oauth-typeahead-item.is-active {
+  background: var(--accent-soft);
+}
+
+.oauth-typeahead-avatar {
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  object-fit: cover;
+  border-radius: 50%;
+  background: var(--bg-tertiary);
+}
+
+.oauth-typeahead-text {
+  min-width: 0;
+  line-height: 1.25;
+}
+
+.oauth-typeahead-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.oauth-typeahead-handle {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: var(--text-tertiary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.signin-panel {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  gap: 8px;
+}
+
+.signin-panel-scopes {
+  max-width: 26rem;
+  padding: 14px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-card);
+}
+
+.session-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.session-badge-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 10px;
+  border-radius: var(--radius-pill);
+  background: var(--accent-soft);
+  box-shadow: inset 0 0 0 1px var(--accent-soft-ring);
+  color: var(--accent-soft-fg);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  text-decoration: none;
+}
+
+.session-badge-link:hover {
+  color: var(--accent-soft-fg);
+  text-decoration: underline;
+}
+
+.session-badge-signout {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-control);
+  background: transparent;
+  color: var(--text-tertiary);
+  cursor: pointer;
+}
+
+.session-badge-signout:hover {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
+/* =========================================================================
+   In-card lists: toolbars, link rows, sortable rows, custom waypoints
+   ========================================================================= */
+
+.settings-list-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+  margin-bottom: 12px;
+}
+
+.settings-list-summary {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-tertiary);
+}
+
+.settings-list-actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.settings-list-after {
+  margin-top: 12px;
+}
+
+.settings-list-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.settings-list-meta {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+
+/* About: links as rows. */
+.settings-card > .settings-link-list {
+  list-style: none;
+  padding: 0;
+}
+
+.settings-link-list > li + li {
+  border-top: 1px solid var(--border-subtle);
+}
+
+.settings-link-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 0 18px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  text-decoration: none;
+  transition: background 0.12s ease;
+}
+
+.settings-link-row:hover {
+  background: var(--surface-subtle);
+  color: var(--text-accent);
+}
+
+.settings-link-list > li:last-child .settings-link-row {
+  border-bottom-left-radius: calc(var(--radius-card) - 1px);
+  border-bottom-right-radius: calc(var(--radius-card) - 1px);
+}
+
+.settings-link-icon {
+  display: inline-flex;
+  width: 16px;
+  justify-content: center;
+  color: var(--text-tertiary);
+}
+
+.settings-link-label {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Sections tab + waypoint groups: sortable rows. */
+.settings-sortable {
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-control);
+  overflow: hidden;
+}
+
+.settings-section-label {
+  flex: 1;
+  min-width: 0;
+  cursor: pointer;
+}
+
+.settings-section-name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.settings-section-desc {
+  display: block;
+  max-width: 68ch;
+  margin-top: 2px;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--text-secondary);
+}
+
+.group-list {
+  gap: 10px;
+}
+
+.group-card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-control);
+}
+
+.group-card:hover {
+  border-color: var(--border-strong);
+}
+
+.group-card.is-dragging {
+  border-color: var(--accent-moss);
+  box-shadow: var(--shadow-overlay-hover);
+}
+
+.group-header {
+  gap: 6px;
+  padding: 6px 8px;
+  background: var(--surface-subtle);
+  border-bottom: 1px solid var(--border-subtle);
+  border-radius: calc(var(--radius-control) - 1px) calc(var(--radius-control) - 1px) 0 0;
+}
+
+.group-card.is-collapsed .group-header {
+  border-radius: calc(var(--radius-control) - 1px);
+}
+
+.group-handle,
+.group-row-handle {
+  color: var(--text-faint);
+}
+
+.group-card:hover .group-handle,
+.group-row:hover .group-row-handle {
+  color: var(--text-secondary);
+}
+
+.group-name,
+.group-name-input {
+  font-family: var(--font-sans);
+  font-size: 14px;
+  font-weight: 700;
+  text-transform: none;
+  letter-spacing: -0.01em;
+  border-radius: 6px;
+}
+
+.group-name:hover {
+  background: var(--bg-secondary);
+  border-color: var(--border-medium);
+}
+
+.group-name-input {
+  background: var(--bg-secondary);
+  border-color: var(--text-accent);
+}
+
+.group-count {
+  padding: 1px 8px;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: var(--bg-tertiary);
+  font-size: 11.5px;
+}
+
+.group-action {
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-control);
+}
+
+.group-action:hover {
+  border-color: transparent;
+  background: var(--bg-tertiary);
+}
+
+.group-action-add:hover {
+  border-color: transparent;
+  background: var(--accent-soft);
+  color: var(--accent-soft-fg);
+}
+
+.group-action-delete:hover {
+  border-color: transparent;
+  background: var(--danger-soft);
+}
+
+.group-body {
+  padding: 0;
+}
+
+.group-empty {
+  font-family: var(--font-sans);
+  font-style: normal;
+  font-size: 13px;
+  color: var(--text-tertiary);
+}
+
+.group-row {
+  gap: 10px;
+  padding: 9px 12px;
+  background: var(--bg-secondary);
+  font-family: var(--font-sans);
+  /* globals locks the whole row (touch-action: none) for dragging, but
+     only the handle carries the drag listeners, and it has its own lock;
+     on the row it just stopped the page from panning. */
+  touch-action: auto;
+}
+
+.group-row:hover {
+  background: var(--surface-subtle);
+}
+
+.group-row.is-dragging {
+  background: var(--bg-secondary);
+  box-shadow: var(--shadow-overlay-hover);
+}
+
+.group-row-name {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.group-row-remove {
+  width: 26px;
+  height: 26px;
+  border: 0;
+  border-radius: 6px;
+}
+
+.group-row-remove:hover {
+  background: var(--danger-soft);
+}
+
+/* Touch: the remove control cannot be hovered into view, so it is always
+   shown, and the handles, chevrons and small buttons grow to a thumb's
+   width. Desktop keeps its density. */
+@media (hover: none) {
+  .group-row-remove {
+    opacity: 1;
+    width: 32px;
+    height: 32px;
+  }
+
+  .group-row-handle {
+    width: 32px;
+    height: 32px;
+    margin-left: -6px;
+  }
+
+  .group-handle,
+  .group-chevron {
+    width: 32px;
+    height: 32px;
+    margin: -5px 0;
+  }
+
+  .group-action {
+    width: 36px;
+    height: 36px;
+  }
+
+  .group-actions {
+    gap: 8px;
+  }
+
+  .settings-btn.is-small {
+    height: 32px;
+    padding: 0 12px;
+  }
+}
+
+.settings-sortable > .group-row:last-child,
+.group-rows > .group-row:last-child {
+  border-bottom: 0;
+}
+
+.group-rows > .group-row:last-child {
+  border-radius: 0 0 calc(var(--radius-control) - 1px) calc(var(--radius-control) - 1px);
+}
+
+/* "moved" / "new" / "custom" / "content" / "helper" tags as quiet pills. */
+.reorder-tag {
+  padding: 1px 8px;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+  font-family: var(--font-sans);
+  font-size: 11.5px;
+  font-weight: 600;
+  text-transform: none;
+  letter-spacing: 0;
+  line-height: 1.5;
+}
+
+.reorder-tag-moved {
+  background: var(--accent-soft);
+  color: var(--accent-soft-fg);
+}
+
+/* The lock on a section whose switch cannot be turned off. */
+.reorder-tag-lock {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 1px 6px;
+}
+
+/* Add-waypoint popover. */
+.waypoint-picker {
+  top: 44px;
+  right: 8px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-overlay-hover);
+  overflow: hidden;
+}
+
+.waypoint-picker-head {
+  align-items: center;
+  padding: 8px;
+}
+
+.waypoint-picker-input {
+  height: 32px;
+  padding: 0 10px;
+  border-radius: var(--radius-control);
+  border: 1px solid var(--border-strong);
+  background: var(--bg-secondary);
+  font-family: var(--font-sans);
+  font-size: 13.5px;
+}
+
+.waypoint-picker-item {
+  padding: 8px 12px;
+  font-family: var(--font-sans);
+  font-size: 13.5px;
+}
+
+.waypoint-picker-item:hover:not(:disabled) {
+  background: var(--surface-subtle);
+}
+
+.waypoint-picker-status {
+  font-family: var(--font-sans);
+  font-size: 11.5px;
+  font-weight: 600;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.waypoint-picker-empty {
+  font-family: var(--font-sans);
+  font-style: normal;
+  font-size: 13px;
+}
+
+.settings-card > .new-waypoints-banner {
+  margin: 0;
+  border-radius: 0;
+  border-width: 1px 0 0;
+}
+
+/* Custom waypoint form. */
+.cw-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  background: var(--surface-subtle);
+}
+
+.cw-form-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.cw-form-title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--text-primary);
+}
+
+.cw-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.cw-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+}
+
+.cw-field-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.cw-field-required {
+  color: var(--danger);
+}
+
+.cw-field-hint {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+
+.cw-form .explore-input {
+  height: 36px;
+  box-sizing: border-box;
+  padding: 0 12px;
+  border-radius: var(--radius-control);
+  border: 1px solid var(--border-strong);
+  background: var(--bg-secondary);
+  font-family: var(--font-sans);
+  font-size: 13.5px;
+}
+
+.cw-form .explore-input.explore-mono {
+  font-family: var(--font-mono);
+  font-size: 13px;
+}
+
+.cw-form .explore-input:focus {
+  border-color: var(--text-accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.cw-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.cw-chip {
+  /* Anchors the visually hidden checkbox (.fn-sr-only is absolute). */
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  height: 30px;
+  padding: 0 12px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--border-strong);
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.12s ease, color 0.12s ease, border-color 0.12s ease;
+}
+
+/* The checkbox inside is visually hidden but stays in the tab order, so the
+   chip shows its focus. */
+.cw-chip:has(input:focus-visible) {
+  outline: 2px solid var(--text-accent);
+  outline-offset: 2px;
+}
+
+.cw-chip:hover {
+  border-color: var(--text-tertiary);
+  color: var(--text-primary);
+}
+
+.cw-chip.is-active {
+  background: var(--accent-soft);
+  border-color: var(--accent-soft-border);
+  color: var(--accent-soft-fg);
+  font-weight: 600;
+}
+
+.cw-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+@media (max-width: 560px) {
+  .cw-form-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* =========================================================================
+   Keyboard tab: launchers, binding groups as banded rows
+   ========================================================================= */
+
+.kb-launchers {
+  gap: 8px;
+}
+
+.kb-launch-button {
+  height: 36px;
+  padding: 0 14px;
+  gap: 8px;
+  border-radius: var(--radius-control);
+  border: 1px solid var(--border-strong);
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: 13.5px;
+  font-weight: 600;
+}
+
+.kb-launch-button:hover {
+  background: var(--surface-subtle);
+  border-color: var(--text-tertiary);
+}
+
+.settings-card > .kb-group {
+  padding: 0;
+}
+
+.kb-group + .kb-group {
+  margin-top: 0;
+}
+
+.kb-group-label {
+  margin: 0;
+  padding: 10px 18px 8px;
+  background: var(--surface-subtle);
+  border-bottom: 1px solid var(--border-subtle);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--text-secondary);
+}
+
+.kb-rows {
+  border: 0;
+}
+
+.kb-row {
+  gap: 12px;
+  padding: 10px 18px;
+}
+
+.kb-row-icon {
+  color: var(--text-tertiary);
+}
+
+.kb-slot-placeholder {
+  visibility: hidden;
+}
+
+.kb-row-label {
+  font-family: var(--font-sans);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.kb-row-desc {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.kb-edit-button {
+  height: 28px;
+  padding: 0 10px;
+  border-radius: 7px;
+  border: 1px solid var(--border-strong);
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+.kb-edit-button:hover:not(:disabled) {
+  background: var(--surface-subtle);
+}
+
+.kb-text-button {
+  height: 28px;
+  padding: 0 8px;
+  border-radius: 7px;
+  font-family: var(--font-sans);
+  font-size: 12.5px;
+  font-weight: 600;
+  /* A step darker than the "Not set" label beside it, so an enabled Clear
+     and an empty slot are not the same grey. */
+  color: var(--text-secondary);
+}
+
+.kb-text-button:hover:not(:disabled) {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+@media (hover: none) {
+  .kb-edit-button,
+  .kb-text-button {
+    height: 36px;
+    padding: 0 12px;
+  }
+}
+
+.kb-reset-all {
+  background: var(--surface-subtle);
+}
+
+.kb-recorder-box {
+  min-height: 30px;
+  padding: 0 10px;
+  border-radius: var(--radius-control);
+  border: 1px dashed var(--accent-moss);
+  background: var(--accent-soft);
+}
+
+.kb-recorder-hint {
+  font-family: var(--font-sans);
+  font-style: normal;
+  font-size: 12.5px;
+  color: var(--accent-soft-fg);
+}
+
+@media (max-width: 560px) {
+  .kb-group-label {
+    padding: 10px 16px 8px;
+  }
+
+  .kb-row {
+    padding: 10px 16px;
+  }
+
+  /* Each launcher takes the line (or an equal share of it) rather than
+     hugging the left edge at two different widths. */
+  .kb-launch-button {
+    flex: 1 1 auto;
+    justify-content: center;
+  }
+}
+
+/* =========================================================================
+   Keycaps
+   ========================================================================= */
+
+.kbd {
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  box-sizing: border-box;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  background: var(--surface-subtle);
+  border: 1px solid var(--border-strong);
+  border-bottom-width: 1px;
+  border-radius: 5px;
+  box-shadow: 0 1px 0 var(--border-strong);
+}
+
+.kbd-plus {
+  font-size: 11px;
+}
+
+.kbd-then,
+.kbd-or,
+.kbd-unset {
+  font-family: var(--font-sans);
+  font-style: normal;
+  font-size: 11.5px;
+  color: var(--text-tertiary);
+}
+
+.kbd-unset {
+  font-size: 12.5px;
+}
+
+.kbd-toast {
+  padding: 8px 14px;
+  border-radius: var(--radius-pill);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+/* =========================================================================
+   Command palette, shortcuts sheet and What's new (shared modal shell)
+   ========================================================================= */
+
+.cmdk-dialog {
+  animation: cmdk-fade-in 0.18s ease-out;
+}
+
+.cmdk-dialog::backdrop {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+.cmdk-panel {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-card);
+  box-shadow: 0 24px 64px rgba(28, 30, 25, 0.22), 0 0 0 1px rgba(28, 30, 25, 0.03);
+  font-family: var(--font-sans);
+}
+
+.cmdk-search {
+  gap: 10px;
+  min-height: 56px;
+  padding: 0 16px;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-medium);
+}
+
+.cmdk-input {
+  font-family: var(--font-sans);
+  font-size: 16px;
+}
+
+.cmdk-list {
+  padding: 6px;
+}
+
+.cmdk-empty {
+  font-family: var(--font-sans);
+  font-size: 13.5px;
+}
+
+.cmdk-group-label {
+  padding: 10px 10px 6px;
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--text-tertiary);
+}
+
+.cmdk-item {
+  gap: 12px;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: var(--radius-control);
+}
+
+.cmdk-item.is-active {
+  background: var(--accent-soft);
+}
+
+.cmdk-item-icon {
+  width: 30px;
+  height: 30px;
+  border-radius: var(--radius-control);
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+}
+
+.cmdk-item.is-active .cmdk-item-icon {
+  background: var(--bg-secondary);
+  color: var(--text-accent);
+}
+
+.cmdk-item-label {
+  font-family: var(--font-sans);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.cmdk-item.is-active .cmdk-item-label {
+  color: var(--accent-soft-fg);
+}
+
+.cmdk-item-desc {
+  font-size: 12.5px;
+}
+
+/* Tertiary on the active row's pale green is about 4.3:1; secondary holds. */
+.cmdk-item.is-active .cmdk-item-desc {
+  color: var(--text-secondary);
+}
+
+.cmdk-footer {
+  gap: 14px;
+  padding: 8px 14px;
+  background: var(--surface-subtle);
+  border-top: 1px solid var(--border-medium);
+}
+
+/* Touch screens have no keyboard to use the shortcut hints with, and on a
+   phone they took the width each row's description needed. */
+@media (hover: none) {
+  .cmdk-item-kbd,
+  .cmdk-footer {
+    display: none;
+  }
+}
+
+.cmdk-hint {
+  gap: 5px;
+  font-family: var(--font-sans);
+  font-size: 12px;
+}
+
+.cmdk-hint-button:hover {
+  color: var(--text-primary);
+}
+
+.shortcuts-head {
+  align-items: center;
+  padding: 16px 18px;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-medium);
+}
+
+.shortcuts-title {
+  margin: 0 0 2px;
+  font-family: var(--font-sans);
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.shortcuts-sub {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.shortcuts-close,
+.whats-new-close {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-control);
+  background: transparent;
+  color: var(--text-tertiary);
+}
+
+.shortcuts-close:hover,
+.whats-new-close:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  border: 0;
+}
+
+.shortcuts-body {
+  padding: 6px 18px 18px;
+  gap: 14px;
+}
+
+/* Focused on open (ShortcutsHelp.tsx), so no ring: the sheet's frame is the
+   focus indication. */
+.shortcuts-body:focus {
+  outline: none;
+}
+
+.shortcuts-group-label {
+  margin: 10px 0 4px;
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--text-tertiary);
+}
+
+.shortcuts-row {
+  gap: 10px;
+  min-height: 40px;
+  padding: 6px 0;
+}
+
+.shortcuts-row-icon {
+  color: var(--text-tertiary);
+}
+
+.shortcuts-row-label {
+  font-family: var(--font-sans);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.shortcuts-foot {
+  padding: 12px 18px;
+  background: var(--surface-subtle);
+  border-top: 1px solid var(--border-medium);
+}
+
+.shortcuts-customize {
+  gap: 6px;
+  font-family: var(--font-sans);
+  font-size: 13.5px;
+  font-weight: 600;
+}
+
+/* What's new: body styles are shared by the modal and the header popover. */
+.whats-new-head {
+  align-items: center;
+  padding: 16px 18px;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-medium);
+}
+
+.whats-new-title {
+  font-family: var(--font-sans);
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.whats-new-date,
+.whats-new-release-label {
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--text-tertiary);
+}
+
+.whats-new-date {
+  margin-top: 2px;
+  color: var(--text-accent);
+}
+
+.whats-new-body {
+  padding: 0 18px;
+}
+
+.whats-new-release-label {
+  margin-top: 14px;
+}
+
+.whats-new-item {
+  padding: 14px 0;
+}
+
+.whats-new-item-title {
+  font-family: var(--font-sans);
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.whats-new-item-icon {
+  width: 20px;
+  height: 20px;
+}
+
+.whats-new-chip {
+  padding: 1px 8px;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: var(--accent-soft);
+  box-shadow: inset 0 0 0 1px var(--accent-soft-ring);
+  color: var(--accent-soft-fg);
+  font-family: var(--font-sans);
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.whats-new-item-body {
+  font-size: 13.5px;
+}
+
+.whats-new-item-action {
+  margin-top: 10px;
+}
+
+.whats-new-item-added {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.whats-new-foot {
+  padding: 12px 18px;
+  background: var(--surface-subtle);
+  border-top: 1px solid var(--border-medium);
+}
+
+.whats-new-btn {
+  display: inline-flex;
+  align-items: center;
+  height: 36px;
+  padding: 0 14px;
+  border-radius: var(--radius-control);
+  border: 1px solid var(--accent-moss);
+  background: var(--accent-moss);
+  color: var(--text-on-accent);
+  font-family: var(--font-sans);
+  font-size: 13.5px;
+  font-weight: 600;
+}
+
+.whats-new-btn:hover {
+  filter: none;
+  background: var(--accent-forest);
+  border-color: var(--accent-forest);
+  color: var(--text-on-accent);
+}
+
+.whats-new-btn.is-secondary {
+  background: var(--bg-secondary);
+  border-color: var(--border-strong);
+  color: var(--text-primary);
+}
+
+.whats-new-btn.is-secondary:hover {
+  background: var(--bg-tertiary);
+  border-color: var(--border-strong);
+  color: var(--text-primary);
+}
+
+.whats-new-optout {
+  font-family: var(--font-sans);
+  font-size: 12.5px;
+  text-underline-offset: 2px;
+}
+
+/* Dark: a lighter knob on the off track so the switch doesn't vanish. */
+:root:not([data-theme='light']) .settings-switch input:not(:checked) + .settings-switch-box::after {
+  background: var(--text-secondary);
+}

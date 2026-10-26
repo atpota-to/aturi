@@ -145,7 +145,7 @@ struct CustomWaypointForm: View {
                 if let errorMessage {
                     SettingsSection {
                         Text(errorMessage)
-                            .font(.footnote)
+                            .font(AturiFont.footnote)
                             .foregroundStyle(theme.danger)
                     }
                 }
@@ -316,7 +316,7 @@ private struct FormField<Content: View>: View {
             content
             if let hint, !hint.isEmpty {
                 Text(hint)
-                    .font(.caption)
+                    .font(AturiFont.caption)
                     .foregroundStyle(theme.textTertiary)
             }
         }

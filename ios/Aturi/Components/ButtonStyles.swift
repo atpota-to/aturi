@@ -1,40 +1,42 @@
 import SwiftUI
 
-/// Filled accent button for the one main action on a screen.
+/// Filled accent button for the one main action on a screen: the web's
+/// Field Notes primary, accent fill, white text, 8pt corners.
 struct PrimaryButtonStyle: ButtonStyle {
     @Environment(\.aturiTheme) private var theme
     @Environment(\.isEnabled) private var isEnabled
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .font(.body.weight(.medium))
+            .font(AturiFont.sans(.body, weight: .medium))
             .foregroundStyle(theme.textOnAccent)
             .padding(.vertical, 12)
             .padding(.horizontal, 16)
             .frame(maxWidth: .infinity)
             .background(
                 configuration.isPressed ? theme.accentDeep : theme.accent,
-                in: RoundedRectangle(cornerRadius: 10, style: .continuous)
+                in: RoundedRectangle(cornerRadius: AturiTheme.controlRadius, style: .continuous)
             )
             .opacity(isEnabled ? 1 : 0.5)
     }
 }
 
-/// Quiet bordered button for everything else.
+/// Quiet bordered button for everything else: the card colour with a
+/// `--border-medium` hairline.
 struct SecondaryButtonStyle: ButtonStyle {
     @Environment(\.aturiTheme) private var theme
     @Environment(\.isEnabled) private var isEnabled
     @Environment(\.displayScale) private var displayScale
 
     func makeBody(configuration: Configuration) -> some View {
-        let shape = RoundedRectangle(cornerRadius: 10, style: .continuous)
+        let shape = RoundedRectangle(cornerRadius: AturiTheme.controlRadius, style: .continuous)
         return configuration.label
-            .font(.body.weight(.medium))
+            .font(AturiFont.sans(.body, weight: .medium))
             .foregroundStyle(theme.textPrimary)
             .padding(.vertical, 10)
             .padding(.horizontal, 14)
-            .background(configuration.isPressed ? theme.bgElevated : theme.bgTertiary, in: shape)
-            .overlay(shape.strokeBorder(theme.borderSubtle, lineWidth: AturiTheme.hairline(displayScale: displayScale)))
+            .background(configuration.isPressed ? theme.surfaceSubtle : theme.bgSecondary, in: shape)
+            .overlay(shape.strokeBorder(configuration.isPressed ? theme.borderStrong : theme.borderMedium, lineWidth: AturiTheme.hairline(displayScale: displayScale)))
             .opacity(isEnabled ? 1 : 0.5)
     }
 }

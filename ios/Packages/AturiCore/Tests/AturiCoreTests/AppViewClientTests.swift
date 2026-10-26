@@ -471,8 +471,10 @@ final class AppViewClientTests: XCTestCase {
 
     func testLiveGetPostThreadOfARecentBskyAppPost() async throws {
         let appView = AppViewClient()
-        try await skipUnlessAppViewReachable(appView, "app.bsky.feed.getAuthorFeed", query: [("actor", "bsky.app"), ("limit", "5")])
-        let feed = await appView.getAuthorFeed(actor: "bsky.app", filter: .postsNoReplies, limit: 5)
+        // bsky.app reposts in runs (five in a row in October 2026), so read a
+        // full page, the client's default, to reach one of its own posts.
+        try await skipUnlessAppViewReachable(appView, "app.bsky.feed.getAuthorFeed", query: [("actor", "bsky.app"), ("limit", "30")])
+        let feed = await appView.getAuthorFeed(actor: "bsky.app", filter: .postsNoReplies, limit: 30)
         let page = try XCTUnwrap(feed, "the author feed should decode")
         let own = try XCTUnwrap(page.items.first { $0.reason == nil }?.post, "expected at least one of bsky.app's own posts")
         XCTAssertEqual(own.author.did, "did:plc:z72i7hdynmk6r22z27h6tvur")

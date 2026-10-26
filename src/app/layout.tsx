@@ -22,6 +22,19 @@ import { getSiteUrl } from "@/lib/config";
 import { buildSiteJsonLd } from "@/lib/structuredData";
 import { serializeJsonLd } from "@/utils/sanitize";
 import "./globals.css";
+// Field Notes styles, one sheet per surface. Loaded after globals.css so a
+// surface's rules win over the shared base at equal specificity.
+import "@/styles/fieldnotes/chrome.css";
+import "@/styles/fieldnotes/home.css";
+import "@/styles/fieldnotes/explore.css";
+// The folder tabs, before the surfaces that place them (explorer, account).
+import "@/styles/fieldnotes/tabs.css";
+import "@/styles/fieldnotes/explorer.css";
+import "@/styles/fieldnotes/record.css";
+import "@/styles/fieldnotes/link.css";
+import "@/styles/fieldnotes/content.css";
+import "@/styles/fieldnotes/landing.css";
+import "@/styles/fieldnotes/account.css";
 
 export const metadata: Metadata = {
   title: "aturi.to: Tour the Atmosphere",

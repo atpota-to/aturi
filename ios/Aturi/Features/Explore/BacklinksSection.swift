@@ -37,7 +37,7 @@ struct BacklinksSection: View {
         VStack(alignment: .leading, spacing: 4) {
             HStack(alignment: .firstTextBaseline, spacing: 6) {
                 Text(model.countText)
-                    .font(.system(.title, design: .serif, weight: .semibold))
+                    .font(AturiFont.sans(.title, weight: .bold))
                     .foregroundStyle(theme.textAccent)
                     .monospacedDigit()
                 Text("backlinks")
@@ -46,19 +46,19 @@ struct BacklinksSection: View {
                 Spacer(minLength: 0)
                 HStack(spacing: 3) {
                     Text("via")
-                        .font(.caption2)
+                        .font(AturiFont.caption2)
                         .foregroundStyle(theme.textTertiary)
                     Button("Microcosm") {
                         openURL(BacklinksModel.microcosmURL)
                     }
-                    .font(.caption2)
+                    .font(AturiFont.caption2)
                     .buttonStyle(.plain)
                     .foregroundStyle(theme.textAccent)
                     .accessibilityHint("Opens outside the app")
                 }
             }
             Text(model.summaryText)
-                .font(.footnote)
+                .font(AturiFont.footnote)
                 .foregroundStyle(theme.textTertiary)
         }
         .padding(14)
@@ -98,7 +98,7 @@ struct BacklinksSection: View {
                 Button("constellation") {
                     openURL(BacklinksModel.constellationURL)
                 }
-                .font(.footnote)
+                .font(AturiFont.footnote)
                 .buttonStyle(.plain)
                 .foregroundStyle(theme.textAccent)
                 .accessibilityHint("Opens outside the app")
@@ -119,7 +119,7 @@ struct BacklinksSection: View {
             } label: {
                 HStack(alignment: .top, spacing: 8) {
                     Image(systemName: isOpen ? "chevron.down" : "chevron.right")
-                        .font(.caption2)
+                        .font(AturiFont.caption2)
                         .foregroundStyle(theme.textTertiary)
                         .frame(width: 12)
                         .padding(.top, 4)
@@ -137,15 +137,15 @@ struct BacklinksSection: View {
                     VStack(alignment: .trailing, spacing: 2) {
                         HStack(alignment: .firstTextBaseline, spacing: 3) {
                             Text(BacklinksModel.compactCount(source.count))
-                                .font(AturiFont.monoSmall.weight(.semibold))
+                                .font(AturiFont.monoFont(.footnote, weight: .semibold))
                                 .foregroundStyle(theme.textPrimary)
                             Text("backlinks")
-                                .font(.caption2)
+                                .font(AturiFont.caption2)
                                 .foregroundStyle(theme.textTertiary)
                         }
                         if let accounts = source.distinctDids {
                             Text("\(BacklinksModel.compactCount(accounts)) accounts")
-                                .font(.caption2)
+                                .font(AturiFont.caption2)
                                 .foregroundStyle(theme.textTertiary)
                         }
                     }
@@ -174,13 +174,13 @@ struct BacklinksSection: View {
         let rows = model.rows(for: source)
         if page?.errored == true {
             Text(BacklinksModel.recordsErrorMessage)
-                .font(.footnote)
+                .font(AturiFont.footnote)
                 .foregroundStyle(theme.textSecondary)
         } else {
             VStack(alignment: .leading, spacing: 0) {
                 if rows.isEmpty {
                     Text(page?.isLoading == true ? BacklinksModel.loadingMessage : BacklinksModel.noRecordsMessage)
-                        .font(.footnote)
+                        .font(AturiFont.footnote)
                         .foregroundStyle(theme.textSecondary)
                         .padding(.vertical, 4)
                 }
@@ -192,7 +192,7 @@ struct BacklinksSection: View {
                     Button(page.isLoading ? BacklinksModel.loadingMessage : BacklinksModel.loadMoreLabel) {
                         model.loadMore(source: source)
                     }
-                    .font(.footnote)
+                    .font(AturiFont.footnote)
                     .buttonStyle(.plain)
                     .foregroundStyle(theme.textAccent)
                     .disabled(page.isLoading)
@@ -219,7 +219,7 @@ struct BacklinksSection: View {
                     .truncationMode(.middle)
                 if let preview = row.preview, !preview.isEmpty {
                     Text(preview)
-                        .font(.footnote)
+                        .font(AturiFont.footnote)
                         .foregroundStyle(theme.textSecondary)
                         .lineLimit(2)
                 }

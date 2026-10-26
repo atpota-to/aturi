@@ -35,7 +35,7 @@ struct ProfileCardView: View {
                 header
                 if let description = profile.description, !description.isEmpty {
                     Text(description)
-                        .font(.body)
+                        .font(AturiFont.body)
                         .foregroundStyle(theme.textPrimary)
                         .textSelection(.enabled)
                         .fixedSize(horizontal: false, vertical: true)
@@ -53,7 +53,7 @@ struct ProfileCardView: View {
                         LinkNavigation.open(.repo(profile.did), router: router, openURL: openURL)
                     } label: {
                         Label("View repo in the Explorer", systemImage: "binoculars")
-                            .font(.footnote)
+                            .font(AturiFont.sans(.subheadline, weight: .semibold))
                             .foregroundStyle(theme.textAccent)
                     }
                     .buttonStyle(.plain)
@@ -62,7 +62,7 @@ struct ProfileCardView: View {
             .padding(16)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: AturiTheme.cardRadius, style: .continuous))
         .cardBackground()
     }
 
@@ -97,6 +97,7 @@ struct ProfileCardView: View {
             HStack(alignment: .firstTextBaseline, spacing: 6) {
                 Text(profile.displayLabel)
                     .font(AturiFont.title)
+                    .tracking(AturiFont.titleTracking)
                     .foregroundStyle(theme.textPrimary)
                     .fixedSize(horizontal: false, vertical: true)
                 if profile.verification?.isVerified == true {
@@ -107,11 +108,11 @@ struct ProfileCardView: View {
             }
 
             HStack(spacing: 8) {
-                IdentifierText("@\(profile.handle)", font: AturiFont.mono)
-                    .foregroundStyle(theme.textTertiary)
+                IdentifierText("@\(profile.handle)", font: AturiFont.monoSmall)
+                    .foregroundStyle(theme.textAccent)
                 if let pronouns = profile.pronouns, !pronouns.isEmpty {
                     Text(pronouns)
-                        .font(.footnote)
+                        .font(AturiFont.footnote)
                         .foregroundStyle(theme.textTertiary)
                 }
             }
@@ -156,7 +157,7 @@ struct ProfileCardView: View {
                     Image(systemName: "calendar")
                     Text("Joined ") + Text(joined, format: .dateTime.year().month(.abbreviated))
                 }
-                .font(.footnote)
+                .font(AturiFont.footnote)
                 .foregroundStyle(theme.textTertiary)
                 .accessibilityElement(children: .combine)
             }
@@ -181,10 +182,10 @@ struct ProfileCardView: View {
             Image(systemName: systemImage)
                 .foregroundStyle(theme.textTertiary)
             Text(count.formatted())
-                .font(.footnote.weight(.semibold))
+                .font(AturiFont.sans(.footnote, weight: .semibold))
                 .foregroundStyle(theme.textPrimary)
             Text(noun)
-                .font(.footnote)
+                .font(AturiFont.footnote)
                 .foregroundStyle(theme.textTertiary)
         }
         .accessibilityElement(children: .combine)
@@ -202,7 +203,7 @@ struct ProfileCardView: View {
                 associatedItem(packs, singular: "starter pack", plural: "starter packs")
             }
         }
-        .font(.footnote)
+        .font(AturiFont.footnote)
         .foregroundStyle(theme.textSecondary)
     }
 

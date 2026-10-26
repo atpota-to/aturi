@@ -98,7 +98,7 @@ struct WaypointGroupsView: View {
                 footer: "Drag rows to reorder groups, or to move a waypoint within or between groups. Use the plus on a group to add waypoints from the catalog. The same waypoint can live in several groups; anything in no group is hidden from the picker."
             ) {
                 Text(summary)
-                    .font(.footnote)
+                    .font(AturiFont.footnote)
                     .foregroundStyle(theme.textTertiary)
                 ForEach(rows) { row in
                     rowView(row)
@@ -376,7 +376,7 @@ private struct GroupHeaderRow: View {
         HStack(alignment: .center, spacing: 10) {
             Button(action: onToggleCollapsed) {
                 Image(systemName: "chevron.down")
-                    .font(.caption.weight(.semibold))
+                    .font(AturiFont.sans(.caption, weight: .semibold))
                     .foregroundStyle(theme.textTertiary)
                     .rotationEffect(.degrees(collapsed ? -90 : 0))
                     .frame(width: 22, height: 22)
@@ -392,7 +392,7 @@ private struct GroupHeaderRow: View {
                         .foregroundStyle(theme.textPrimary)
                         .lineLimit(1)
                     Text(countText)
-                        .font(.caption)
+                        .font(AturiFont.caption)
                         .foregroundStyle(theme.textTertiary)
                 }
             }
@@ -403,7 +403,7 @@ private struct GroupHeaderRow: View {
 
             Button(action: onAdd) {
                 Image(systemName: "plus.circle")
-                    .font(.body)
+                    .font(AturiFont.body)
                     .foregroundStyle(theme.textAccent)
                     .frame(width: 28, height: 28)
                     .contentShape(Rectangle())
@@ -420,7 +420,7 @@ private struct GroupHeaderRow: View {
                 }
             } label: {
                 Image(systemName: "ellipsis.circle")
-                    .font(.body)
+                    .font(AturiFont.body)
                     .foregroundStyle(theme.textSecondary)
                     .frame(width: 28, height: 28)
                     .contentShape(Rectangle())
@@ -457,7 +457,7 @@ private struct GroupWaypointRow: View {
             Spacer(minLength: 0)
             Button(action: onRemove) {
                 Image(systemName: "xmark")
-                    .font(.caption.weight(.semibold))
+                    .font(AturiFont.sans(.caption, weight: .semibold))
                     .foregroundStyle(theme.textTertiary)
                     .frame(width: 28, height: 28)
                     .contentShape(Rectangle())
@@ -501,7 +501,7 @@ private struct NewWaypointsNotice: View {
                 }
                 .foregroundStyle(theme.textPrimary)
                 Text(summary)
-                    .font(.footnote)
+                    .font(AturiFont.footnote)
                     .foregroundStyle(theme.textPrimary)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -510,7 +510,7 @@ private struct NewWaypointsNotice: View {
                     .buttonStyle(.aturiSecondary)
                 Button("Dismiss", action: onDismiss)
                     .buttonStyle(.plain)
-                    .font(.footnote)
+                    .font(AturiFont.footnote)
                     .foregroundStyle(theme.textSecondary)
             }
         }
@@ -559,7 +559,7 @@ private struct WaypointCatalogSheet: View {
                 if candidates.isEmpty {
                     SettingsSection {
                         Text("No matches.")
-                            .font(.footnote)
+                            .font(AturiFont.footnote)
                             .foregroundStyle(theme.textTertiary)
                     }
                 } else {
@@ -612,11 +612,11 @@ private struct WaypointCatalogSheet: View {
                 Spacer(minLength: 0)
                 if added {
                     Label("Added", systemImage: "checkmark")
-                        .font(.footnote)
+                        .font(AturiFont.footnote)
                         .foregroundStyle(theme.textTertiary)
                 } else {
                     Image(systemName: "plus.circle")
-                        .font(.body)
+                        .font(AturiFont.body)
                         .foregroundStyle(theme.textAccent)
                 }
             }
