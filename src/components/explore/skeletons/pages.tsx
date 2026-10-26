@@ -201,9 +201,58 @@ export function AuditTabSkeleton() {
   );
 }
 
-/** The Backlinks tab, and the backlinks section on a record page. */
+/** The backlinks section on a record page: its per-source rows. */
 export function BacklinksTabSkeleton() {
   return <SkeletonRowList rows={4} trailingWidth="3.5rem" />;
+}
+
+/**
+ * Linking-record rows (BacklinkRow): avatar, a name-length bar, a time. On
+ * the real `.fx-bl-row` tracks, so the rows land where the people will.
+ */
+export function BacklinkRowsSkeleton({ rows = 5 }: { rows?: number }) {
+  return (
+    <ul className="fx-bl-list" aria-hidden>
+      {Array.from({ length: rows }).map((_, i) => (
+        <li key={i} className="fx-bl-row">
+          <span className="fx-bl-row-link" style={{ alignItems: 'center' }}>
+            <span className="fx-bl-avatar" data-empty />
+            <span className="fx-bl-row-body">
+              <SkeletonBar width={['9rem', '12rem', '7rem', '10rem', '8rem'][i % 5]} />
+            </span>
+            <SkeletonBar width="2.5rem" height="0.6rem" />
+          </span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+/**
+ * The Backlinks tab on a repo page: a row of relationship tiles, the open
+ * relationship's heading, its first rows. Four tiles, the most accounts
+ * show; more wrap to a second row once the counts arrive.
+ */
+export function BacklinkRelationsSkeleton() {
+  return (
+    <div className="fx-bl" aria-hidden>
+      <div className="fx-bl-tiles">
+        {['4.5rem', '4rem', '3rem', '3.5rem'].map((width, i) => (
+          <div key={i} className="fx-bl-tile" style={{ cursor: 'default' }}>
+            <SkeletonBar width={width} height="0.55rem" />
+            <div style={{ display: 'flex', alignItems: 'center', height: '1.45rem' }}>
+              <SkeletonBar width={['5rem', '3.5rem', '3rem', '2.5rem'][i]} height="0.9rem" />
+            </div>
+            <SkeletonBar width="6rem" height="0.5rem" />
+          </div>
+        ))}
+      </div>
+      <div className="fx-bl-detail">
+        <SkeletonHeading width="10rem" />
+        <BacklinkRowsSkeleton />
+      </div>
+    </div>
+  );
 }
 
 // ─── Spaces ────────────────────────────────────────────────────────────────

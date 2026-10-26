@@ -1,19 +1,35 @@
 'use client';
 
-import { Fragment, useCallback, useEffect, useState, type ReactNode } from 'react';
-import { ChevronDown, ChevronRight } from 'lucide-react';
+import { Fragment, useEffect, useMemo, useState, type ReactNode } from 'react';
 import {
-  backlinksFromPage,
+  AtSign,
+  BadgeCheck,
+  ChevronDown,
+  ChevronRight,
+  Handshake,
+  Layers,
+  Link2,
+  List,
+  ShieldBan,
+  UserPlus,
+  type LucideIcon,
+} from 'lucide-react';
+import {
   flattenSources,
-  getBacklinks,
   getBacklinkSources,
-  type BacklinkRecord,
   type BacklinkSource,
 } from '@/utils/atproto/constellation';
-import { shortDid } from '@/utils/atproto/urls';
+import {
+  appForCollection,
+  backlinkPathLabels,
+  bucketSources,
+  type BacklinkRelation,
+  type RelationBucket,
+} from '@/utils/atproto/backlinkRelations';
+import { parseAtUri } from '@/utils/atproto/urls';
 import { formatCount } from '@/utils/ufos/format';
-import AtUriLink from '../AtUriLink';
-import { BacklinksTabSkeleton } from '../skeletons/pages';
+import { BacklinkRelationsSkeleton, BacklinksTabSkeleton } from '../skeletons/pages';
+import { AppMark, BacklinkRowList, useMergedBacklinks } from './BacklinkRows';
 
 /**
  * Inbound-link panel. Used both as a repo-overview tab (target = DID) and
@@ -23,9 +39,11 @@ import { BacklinksTabSkeleton } from '../skeletons/pages';
  *   null      → constellation unavailable / failed
  *   []        → no inbound links found
  *
- * When `showSummary` is set, the panel wraps itself in a card with a
- * prominent count header — used on the record page where backlinks are
- * featured content rather than one tab among many.
+ * A DID target gets the relationships view: a tile per kind of link
+ * (followers, mentions, lists…) over one merged list of the records behind
+ * it. The classification rules are written for accounts, so a record
+ * target keeps the per-source list, inside the summary card the record page
+ * features it in (`showSummary`).
  */
 export default function BacklinksTab({
   target,
@@ -57,12 +75,13 @@ export default function BacklinksTab({
   }, [target]);
 
   if (!showSummary) {
-    if (sources === undefined) return <BacklinksTabSkeleton />;
+    if (sources === undefined) return <BacklinkRelationsSkeleton />;
     if (sources === null) return <BacklinksUnavailable />;
     if (sources.length === 0) {
       return <p className="explore-placeholder">No backlinks found.</p>;
     }
-    return <BacklinkSourceList sources={sources} open={open} setOpen={setOpen} target={target} />;
+    // Keyed on the target so a new repo starts on its own first tile.
+    return <BacklinkRelations key={target} target={target} sources={sources} />;
   }
 
   return (
@@ -88,6 +107,237 @@ function BacklinksUnavailable() {
       </a>
       ).
     </p>
+  );
+}
+
+/** What each tile is called, its glyph, and the line under the list's heading. */
+const RELATIONS: Record<BacklinkRelation, { label: string; icon: LucideIcon; about: string }> = {
+  follow: { label: 'Followers', icon: UserPlus, about: 'Accounts that follow this one, in any app.' },
+  mention: { label: 'Mentions', icon: AtSign, about: 'Posts, documents and lists that mention this account.' },
+  list: { label: 'Lists', icon: List, about: 'Lists, starter packs and groups this account is in.' },
+  block: { label: 'Blocks', icon: ShieldBan, about: 'Accounts that block this one.' },
+  verify: {
+    label: 'Verifications',
+    icon: BadgeCheck,
+    about: 'Verification records that name this account, by others or by itself.',
+  },
+  endorse: {
+    label: 'Vouches',
+    icon: Handshake,
+    about: 'Endorsements, vouches, top-friends slots and contact cards.',
+  },
+  embed: {
+    label: 'Embedded copies',
+    icon: Layers,
+    about: 'Records that keep a copy of this account’s details, like a starter pack showing a feed it made.',
+  },
+  other: { label: 'Other links', icon: Link2, about: 'Links from fields the groups above don’t cover.' },
+};
+
+/** Narrowing within a relationship: one app, or one raw source. */
+type Narrow = { app: string | null; source: string | null };
+const WHOLE: Narrow = { app: null, source: null };
+
+function BacklinkRelations({ target, sources }: { target: string; sources: BacklinkSource[] }) {
+  const buckets = useMemo(() => bucketSources(sources), [sources]);
+  const [relation, setRelation] = useState<BacklinkRelation>(buckets[0].relation);
+  const [narrow, setNarrow] = useState<Narrow>(WHOLE);
+  const bucket = buckets.find((b) => b.relation === relation) ?? buckets[0];
+
+  const active = useMemo(
+    () =>
+      bucket.sources.filter((s) =>
+        narrow.source
+          ? s.source === narrow.source
+          : narrow.app
+            ? appForCollection(s.collection).key === narrow.app
+            : true,
+      ),
+    [bucket, narrow],
+  );
+  const activeKeys = useMemo(() => active.map((s) => s.source), [active]);
+  const merged = useMergedBacklinks(target, activeKeys);
+  const total = active.reduce((sum, s) => sum + s.count, 0);
+  const about = RELATIONS[bucket.relation];
+  const narrowedTo = narrow.source ? active[0] : null;
+  const showApps = bucket.apps.length > 1;
+
+  function choose(next: BacklinkRelation) {
+    setRelation(next);
+    setNarrow(WHOLE);
+  }
+
+  return (
+    <div className="fx-bl">
+      <div className="fx-bl-tiles" role="group" aria-label="Kinds of backlink">
+        {buckets.map((b) => (
+          <RelationTile
+            key={b.relation}
+            bucket={b}
+            pressed={b.relation === bucket.relation}
+            onPress={() => choose(b.relation)}
+          />
+        ))}
+      </div>
+
+      <section className="fx-bl-detail" aria-labelledby="fx-bl-heading">
+        <div className="fx-bl-detail-head">
+          <h3 id="fx-bl-heading">{about.label}</h3>
+          <p>{about.about}</p>
+        </div>
+
+        {showApps && (
+          <div className="fx-bl-apps" role="group" aria-label="Filter by app">
+            <button
+              type="button"
+              className="fx-chip"
+              aria-pressed={!narrow.app && !narrow.source}
+              onClick={() => setNarrow(WHOLE)}
+            >
+              All <span className="fx-bl-chip-count">{formatCount(bucket.count)}</span>
+            </button>
+            {bucket.apps.map(({ app, count }) => (
+              <button
+                key={app.key}
+                type="button"
+                className="fx-chip"
+                aria-pressed={narrow.app === app.key}
+                onClick={() => setNarrow({ app: app.key, source: null })}
+              >
+                <AppMark app={app} />
+                {app.name} <span className="fx-bl-chip-count">{formatCount(count)}</span>
+              </button>
+            ))}
+          </div>
+        )}
+
+        {narrowedTo && (
+          <div className="fx-bl-narrow">
+            <span>Only</span>
+            <code>{withDotBreaks(`${narrowedTo.collection}${narrowedTo.path === '.' ? '' : narrowedTo.path}`)}</code>
+            <button type="button" className="fx-btn fx-btn-sm" onClick={() => setNarrow(WHOLE)}>
+              Show all {about.label.toLowerCase()}
+            </button>
+          </div>
+        )}
+
+        <BacklinkRowList
+          merged={merged}
+          total={total}
+          selfDid={target}
+          selfLabel="this account"
+          showApp={showApps && !narrow.app && !narrow.source}
+        />
+
+        <RelationSources
+          bucket={bucket}
+          narrowed={narrow.source}
+          onNarrow={(source) => setNarrow(source === narrow.source ? WHOLE : { app: null, source })}
+        />
+      </section>
+
+      <p className="fx-bl-credit">
+        Links indexed by{' '}
+        <a href="https://constellation.microcosm.blue" target="_blank" rel="noreferrer noopener">
+          Constellation
+        </a>
+        , via{' '}
+        <a href="https://www.microcosm.blue" target="_blank" rel="noreferrer noopener">
+          Microcosm
+        </a>
+        .
+      </p>
+    </div>
+  );
+}
+
+function RelationTile({
+  bucket,
+  pressed,
+  onPress,
+}: {
+  bucket: RelationBucket;
+  pressed: boolean;
+  onPress: () => void;
+}) {
+  const { label, icon: Icon } = RELATIONS[bucket.relation];
+  const sourceCount = bucket.sources.length;
+  const apps = bucket.apps.length;
+  // Accounts are distinct per source, summed: say so wherever two sources
+  // could share an account.
+  const hint =
+    `${bucket.count.toLocaleString()} ${bucket.count === 1 ? 'link' : 'links'} through ${sourceCount} ${sourceCount === 1 ? 'source' : 'sources'}` +
+    (sourceCount > 1 ? '. Accounts are counted per source, so one account linking through two counts twice.' : '.');
+  const sub = bucket.accounts
+    ? `${formatCount(bucket.accounts)} ${bucket.accounts === 1 ? 'account' : 'accounts'}`
+    : `${sourceCount} ${sourceCount === 1 ? 'source' : 'sources'}`;
+  return (
+    <button type="button" className="fx-bl-tile" aria-pressed={pressed} onClick={onPress} title={hint}>
+      <span className="fx-bl-tile-label">
+        <Icon size={16} aria-hidden />
+        {label}
+      </span>
+      <span className="fx-bl-tile-value">{bucket.count.toLocaleString()}</span>
+      <span className="fx-bl-tile-sub">
+        {sub}
+        {apps > 1 ? ` · ${apps} apps` : ''}
+      </span>
+    </button>
+  );
+}
+
+/**
+ * The collection + path pairs behind a relationship, folded away by default.
+ * Each one narrows the list to itself, which is how a reader gets back to
+ * a single Constellation source.
+ */
+function RelationSources({
+  bucket,
+  narrowed,
+  onNarrow,
+}: {
+  bucket: RelationBucket;
+  narrowed: string | null;
+  onNarrow: (source: string) => void;
+}) {
+  const labels = useMemo(() => {
+    const byCollection = new Map<string, string[]>();
+    for (const s of bucket.sources) {
+      byCollection.set(s.collection, [...(byCollection.get(s.collection) ?? []), s.path]);
+    }
+    const out = new Map<string, string>();
+    for (const [collection, paths] of byCollection) {
+      for (const [path, label] of backlinkPathLabels(paths)) out.set(`${collection}:${path}`, label);
+    }
+    return out;
+  }, [bucket]);
+  const n = bucket.sources.length;
+  return (
+    <details className="fx-bl-sources">
+      <summary>
+        <ChevronRight size={12} aria-hidden />
+        {n} {n === 1 ? 'source' : 'sources'} behind {RELATIONS[bucket.relation].label.toLowerCase()}
+      </summary>
+      <ul className="fx-bl-source-list">
+        {bucket.sources.map((s) => (
+          <li key={s.source}>
+            <button
+              type="button"
+              className="fx-bl-source"
+              aria-pressed={narrowed === s.source}
+              onClick={() => onNarrow(s.source)}
+              title={`${s.collection} ${s.path}`}
+            >
+              <AppMark app={appForCollection(s.collection)} />
+              <code>
+                {withDotBreaks(s.collection)} <span>{withDotBreaks(labels.get(`${s.collection}:${s.path}`) ?? s.path)}</span>
+              </code>
+              <span className="fx-bl-source-count">{formatCount(s.count)}</span>
+            </button>
+          </li>
+        ))}
+      </ul>
+    </details>
   );
 }
 
@@ -331,7 +581,7 @@ function BacklinkSourceList({
                 )}
               </span>
             </button>
-            {isOpen && <BacklinkRecords target={target} source={s.source} />}
+            {isOpen && <BacklinkRecords target={target} source={s} />}
           </li>
         );
       })}
@@ -339,153 +589,23 @@ function BacklinkSourceList({
   );
 }
 
-function BacklinkRecords({ target, source }: { target: string; source: string }) {
-  const [records, setRecords] = useState<BacklinkRecord[]>([]);
-  const [cursor, setCursor] = useState<string | null>(null);
-  const [done, setDone] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [errored, setErrored] = useState(false);
-
-  const loadPage = useCallback(
-    async (after: string | null) => {
-      setLoading(true);
-      const res = await getBacklinks(target, source, {
-        limit: 25,
-        cursor: after || undefined,
-      });
-      if (res === null) {
-        setErrored(true);
-        setLoading(false);
-        setDone(true);
-        return;
-      }
-      const batch = backlinksFromPage(res);
-      setRecords((prev) => (after ? [...prev, ...batch] : batch));
-      setCursor(res.cursor || null);
-      if (!res.cursor || batch.length === 0) setDone(true);
-      setLoading(false);
-    },
-    [target, source],
-  );
-
-  useEffect(() => {
-    setRecords([]);
-    setCursor(null);
-    setDone(false);
-    setErrored(false);
-    loadPage(null);
-  }, [loadPage]);
-
-  if (errored) {
-    return (
-      <p
-        className="explore-muted"
-        style={{
-          margin: 0,
-          padding: '0.625rem 1rem',
-          borderTop: '1px solid var(--border-subtle)',
-        }}
-      >
-        Couldn&rsquo;t load linking records.
-      </p>
-    );
-  }
-
+/**
+ * An open source on the record page: its linking records as people and
+ * what they wrote. The record's own author is marked, since a self-reply or
+ * a self-quote reads differently from someone else's.
+ */
+function BacklinkRecords({ target, source }: { target: string; source: BacklinkSource }) {
+  const keys = useMemo(() => [source.source], [source.source]);
+  const merged = useMergedBacklinks(target, keys, 25);
+  const author = parseAtUri(target)?.repo ?? '';
   return (
     <div
       style={{
         borderTop: '1px solid var(--border-subtle)',
-        padding: '0.5rem 1rem 0.875rem',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '0.5rem',
+        padding: '0.375rem 0.5rem 0.75rem',
       }}
     >
-      {records.length === 0 && loading && (
-        <p className="explore-placeholder" style={{ margin: 0 }}>
-          Loading…
-        </p>
-      )}
-      {records.length === 0 && !loading && (
-        <p className="explore-muted" style={{ margin: 0 }}>
-          No linking records to show.
-        </p>
-      )}
-      <ul
-        style={{
-          listStyle: 'none',
-          margin: 0,
-          padding: 0,
-          display: 'flex',
-          flexDirection: 'column',
-        }}
-      >
-        {records.map((r) => {
-          const atUri = `at://${r.did}/${r.collection}/${r.rkey}`;
-          return (
-            <li
-              key={atUri}
-              style={{ borderBottom: '1px solid var(--border-subtle)' }}
-            >
-              <AtUriLink
-                uri={atUri}
-                className="fx-backlink-record"
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'minmax(14ch, 22ch) 1fr',
-                  gap: '0.75rem',
-                  padding: '0.4rem 0',
-                  fontFamily: 'var(--font-mono)',
-                  fontSize: '0.8125rem',
-                  color: 'var(--text-primary)',
-                  textDecoration: 'none',
-                }}
-              >
-                {/* No colour of its own, so the row's hover colour reaches it. */}
-                <code
-                  style={{
-                    background: 'transparent',
-                    padding: 0,
-                    wordBreak: 'break-all',
-                  }}
-                >
-                  {shortDid(r.did)}
-                </code>
-                <code
-                  style={{
-                    background: 'transparent',
-                    padding: 0,
-                    color: 'var(--text-tertiary)',
-                    wordBreak: 'break-all',
-                  }}
-                >
-                  {r.rkey}
-                </code>
-              </AtUriLink>
-            </li>
-          );
-        })}
-      </ul>
-      {!done && records.length > 0 && (
-        <button
-          type="button"
-          onClick={() => loadPage(cursor)}
-          disabled={loading}
-          style={{
-            alignSelf: 'flex-start',
-            background: 'transparent',
-            border: 0,
-            color: 'var(--text-accent)',
-            fontSize: '0.8125rem',
-            fontFamily: 'var(--font-sans)',
-            fontWeight: 600,
-            cursor: loading ? 'wait' : 'pointer',
-            padding: '0.35rem 0',
-          }}
-        >
-          {loading ? 'Loading…' : 'Load more'}
-        </button>
-      )}
+      <BacklinkRowList merged={merged} total={source.count} selfDid={author} selfLabel="author" />
     </div>
   );
 }
