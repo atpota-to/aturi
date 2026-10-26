@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   COMPAT_FAMILIES,
   COMPAT_FAMILY_ORDER,
@@ -11,6 +11,7 @@ import {
   type Prefs,
 } from '../../../lib/prefs';
 import { allWaypoints, DID_REQUIRED_WAYPOINTS, visibleWaypointIds } from '../../../lib/catalog';
+import { clearSeenLately, loadSeenLately } from '../../../lib/seenLately';
 import SearchSelect, { type SearchSelectOption } from '../components/SearchSelect';
 
 type Props = {
@@ -78,11 +79,35 @@ export default function DefaultsTab({ prefs, onChange }: Props) {
     onChange({ favoriteByFamily: next.favoriteByFamily });
   }
 
+  // Seen lately lives in local storage beside the prefs, so its size is
+  // read here to know whether there is any history to clear.
+  const [seenCount, setSeenCount] = useState(0);
+  useEffect(() => {
+    void loadSeenLately().then(entries => setSeenCount(entries.length));
+  }, []);
+
   async function handleClearRecents() {
-    if (!confirm('Clear your Recents list? This only affects the Recents row in the popup.')) {
+    if (
+      !confirm(
+        'Clear your Recents and Seen lately lists? This only affects those two lists in the popup.'
+      )
+    ) {
       return;
     }
     await clearRecents();
+    await clearSeenLately();
+    setSeenCount(0);
+  }
+
+  function toggleHistory() {
+    const next = !prefs.historyEnabled;
+    onChange({ historyEnabled: next });
+    // Turning history off forgets the accounts seen on pages; the waypoint
+    // recents stay, as they always have, for when it comes back on.
+    if (!next) {
+      void clearSeenLately();
+      setSeenCount(0);
+    }
   }
 
   return (
@@ -191,60 +216,6 @@ export default function DefaultsTab({ prefs, onChange }: Props) {
           <h2 className="options-card-title" id="general-popup">Popup</h2>
         </div>
 
-        <div className="options-row appearance-row">
-          <div className="options-row-text">
-            <div className="options-row-title">Default view</div>
-            <div className="options-row-desc">
-              The Waypoints view jumps between Atmosphere apps for the current page; the
-              Inspect view surfaces the AT URIs detected on the page.
-            </div>
-          </div>
-          <Segmented
-            label="Default popup view"
-            value={prefs.popupModeDefault}
-            options={[
-              { value: 'waypoints', label: 'Waypoints' },
-              { value: 'inspect', label: 'Inspect' },
-            ]}
-            onSelect={value => onChange({ popupModeDefault: value })}
-          />
-        </div>
-
-        <ToggleRow
-          title="Remember last-used view"
-          on={prefs.popupModeRemember}
-          onToggle={() => onChange({ popupModeRemember: !prefs.popupModeRemember })}
-        >
-          {prefs.popupModeRemember
-            ? `On: after you switch between the Waypoints and Inspect views, the popup reopens to whichever you used last for the next ${prefs.popupModeRememberMinutes} minutes, then reverts to the default.`
-            : 'Off: every popup launch starts on the default view above.'}
-        </ToggleRow>
-
-        {prefs.popupModeRemember && (
-          <div className="options-row appearance-row">
-            <div className="options-row-title">Remember for</div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <input
-                type="number"
-                className="aturi-input"
-                min={5}
-                max={1440}
-                step={5}
-                value={prefs.popupModeRememberMinutes}
-                style={{ width: 90 }}
-                aria-label="Remember for, in minutes"
-                onChange={e => {
-                  const raw = Number(e.currentTarget.value);
-                  if (!Number.isFinite(raw)) return;
-                  const next = Math.min(1440, Math.max(5, Math.round(raw)));
-                  onChange({ popupModeRememberMinutes: next });
-                }}
-              />
-              <span className="aturi-subtle">minutes (5–1440)</span>
-            </div>
-          </div>
-        )}
-
         <ToggleRow
           title="Smart recommendations"
           on={prefs.smartRecommendations}
@@ -272,7 +243,7 @@ export default function DefaultsTab({ prefs, onChange }: Props) {
         >
           {prefs.passiveScanEnabled
             ? 'On: every page you visit is checked for AT URIs (in meta tags, head links, and anchors), and a count badge appears on the toolbar icon when any are found.'
-            : "Off: the toolbar icon stays neutral. The popup's Inspect tab still scans on demand when you open it."}
+            : 'Off: the toolbar icon stays neutral. The popup still scans the page for records when you open it.'}
         </ToggleRow>
 
         <ToggleRow
@@ -286,24 +257,24 @@ export default function DefaultsTab({ prefs, onChange }: Props) {
         </ToggleRow>
 
         <ToggleRow
-          title="Recents"
+          title="Recents and Seen lately"
           on={prefs.historyEnabled}
-          onToggle={() => onChange({ historyEnabled: !prefs.historyEnabled })}
+          onToggle={toggleHistory}
           action={
-            prefs.historyEnabled && prefs.recents.length > 0 ? (
+            prefs.historyEnabled && (prefs.recents.length > 0 || seenCount > 0) ? (
               <button
                 type="button"
                 className="aturi-btn defaults-clear-recents"
                 onClick={handleClearRecents}
               >
-                Clear recents ({prefs.recents.length})
+                Clear history
               </button>
             ) : null
           }
         >
           {prefs.historyEnabled
-            ? 'On: the popup shows a Recents row at the top with the waypoints you reach for most often.'
-            : 'Off: the popup hides the Recents row and stops recording new picks.'}
+            ? 'On: the popup shows a Recents row with the waypoints you reach for most often, and Seen lately lists the accounts you have come across on pages (kept on this device only).'
+            : 'Off: the popup hides Recents and Seen lately and stops recording.'}
         </ToggleRow>
 
         <ToggleRow

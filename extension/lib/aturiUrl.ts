@@ -1,6 +1,6 @@
 /**
  * Base URL helper for cross-product deep links. The extension links into the
- * web app's /explore views from the Inspect tab. In dev we usually want
+ * web app's /explore views from the popup's record card. In dev we usually want
  * those to hit localhost so the developer can test changes end-to-end
  * without bouncing through aturi.to.
  *

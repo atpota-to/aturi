@@ -1,6 +1,6 @@
 # Popup design, October 2026
 
-Mockups, notes and panel verdicts for the next version of the extension's popup. Nothing here is built into the extension; it is the design the next implementation session works from. Everything renders on the extension's own stylesheets (`entrypoints/shared.css` and `entrypoints/popup/popup.css`), so the mockups drift only when those do.
+Mockups, notes and panel verdicts for the extension's popup. The copy-menu-v2 direction is now built (see "Built" below); the mockups stay as the design record. They render on the extension's own stylesheets (`entrypoints/shared.css` and `entrypoints/popup/popup.css`), and those stylesheets now carry the built classes rather than the mockups' `cm2-*` ones, so a fresh render of these folders will drift from the committed renders.
 
 ## The decision
 
@@ -37,3 +37,27 @@ node render-inspect.mjs inspect-ledger  # the older body-only frame
 ```
 
 Each state renders at 380x600 CSS pixels at 2x, light and dark, plus a flow-order full-page capture when it is taller than the popup. The generated `*.index.html` pages and the fresh renders are ignored by git; the committed renders live under each folder's `renders/`.
+
+## Built
+
+Implemented in `entrypoints/popup/` (`App.tsx`, `RecordCard.tsx`, `Search.tsx`) with `lib/pageRecords.ts` (the record model: references, labels, joints, the +N count) and `lib/seenLately.ts` (the log). The mockups' `cm2-*` rules live in `popup.css` under `popup-*` names. The Inspect tab, the theme toggle and the auto-redirect footer are gone; Settings lost its "Default view" and "Remember last-used view" rows.
+
+How the open questions were answered:
+
+- **Copy ledger**: unfolds inside the card, as drawn. It stays open across tab switches; a copy lasts 1.5s and clears on a tab switch.
+- **+N**: counts the references not fully in view, recomputed on scroll and resize, as drawn. With nothing hidden there is no +N tab and no list.
+- **"This page"**: stays "This page" even when the page's author is also a reference; the tab's title names the record.
+- **Records list**: stays open after a pick (a disclosure, like the ledger). Picking scrolls the run sideways only, so the popup does not jump back up from deep in a long list.
+- **Seen lately**: built on the local history the Inspect tab already kept (same storage key, so existing entries carry over), extended with DID, handle and PDS host, and counting pages rather than popup opens (a hash of the last page counted, never the address). Written when the popup opens on a page with records; read before that write, so the current page does not head its own suggestions. Entries for one account seen by handle and by DID merge onto the DID once the popup resolves it. Clearing or turning off history in Settings removes it. The drawer shows five, the no-data sheet eight; there is no "All recent repos on aturi.to" row, since the site has no such page.
+
+Decisions the mockups did not cover:
+
+- **Waypoints follow the open tab.** With a reference open, the drawers under the card open that record (and the page's own app is no longer filtered out, since the reference is not on it).
+- **Open on aturi.to goes to the explorer** (`/explore/<repo>/<collection>/<rkey>`), the view with the record, raw JSON, PDS and inbound links. The mockups' link pointed at the `/profile/…` universal link, which is what the ledger's Link row copies.
+- **A page with references but no record of its own** gets the tab strip with a "This page" sheet saying so, over the go-to field; opening a reference shows its card and waypoints. On a known app with no record (bsky.app's home) the notice reads "No record on this page."
+- **The per-page band** also shows on the no-data card while auto-redirect is on, since the pause is per tab and not per record.
+- **References wait for the page's DID** (up to 1.5s) before they show, so the page's own record, often declared by DID while the address names a handle, does not flash up as a reference.
+- **Pending ledger rows** read "Looking up…" and are disabled; a value the lookups could not supply drops its row.
+
+Checked in the built popup (`npm run build`, then `.output/chrome-mv3/popup.html` driven by Playwright with stubbed `chrome.*` APIs and fixture atproto responses): every state above at rest, dark, small and xlarge presets; the search drawer's keys (`/`, arrows, Enter, Esc twice, scrim click); the tab strip's arrows, Home/End and wheel; Tab · Enter · Enter to copy the AT URI and Esc back to Copy; forty references with a pick from deep in the list; pause and resume on the band. Not checked: the real extension in Chrome or Firefox against live pages, and Firefox's popup.
+

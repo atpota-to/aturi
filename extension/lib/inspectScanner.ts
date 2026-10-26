@@ -1,5 +1,5 @@
 /**
- * Page-scanning helpers for the Inspect tab. The scanner runs inside a
+ * Page-scanning helpers for the popup's record tabs. The scanner runs inside a
  * content script (with full DOM access) and returns a deduplicated array
  * of detected AT URIs back to the popup for display.
  *
