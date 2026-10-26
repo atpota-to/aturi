@@ -10,6 +10,7 @@ import KeyboardTab from './tabs/KeyboardTab';
 import SectionsTab from './tabs/SectionsTab';
 import WaypointsTab from './tabs/WaypointsTab';
 import RedirectsTab from './tabs/RedirectsTab';
+import ClientsTab from './tabs/ClientsTab';
 import CustomTab from './tabs/CustomTab';
 import AboutTab from './tabs/AboutTab';
 
@@ -20,6 +21,7 @@ type TabId =
   | 'sections'
   | 'waypoints'
   | 'redirects'
+  | 'clients'
   | 'custom'
   | 'about';
 
@@ -30,6 +32,7 @@ const TABS: { id: TabId; label: string; lede: string }[] = [
   { id: 'sections', label: 'Sections', lede: 'Which sections the explorer pages show, and in what order.' },
   { id: 'waypoints', label: 'Waypoints', lede: 'The groups and layout of the universal-link picker.' },
   { id: 'redirects', label: 'Redirects', lede: 'Open links straight in the client you prefer.' },
+  { id: 'clients', label: 'Clients', lede: 'Tell other Atmosphere apps which clients you use.' },
   { id: 'custom', label: 'Custom', lede: 'Your own waypoints, written as URL templates.' },
   { id: 'about', label: 'About', lede: 'What Aturi is, and where to read more.' },
 ];
@@ -41,6 +44,7 @@ const HASH_TO_TAB: Record<string, TabId> = {
   sections: 'sections',
   waypoints: 'waypoints',
   redirects: 'redirects',
+  clients: 'clients',
   custom: 'custom',
   about: 'about',
 };
@@ -170,14 +174,19 @@ export default function SettingsShell() {
           <p className="settings-page-lede">{current.lede}</p>
         </div>
         {/* Not on the Account tab: there the sign-in card is the page, and
-            the note's link would only re-select the tab it is on. */}
-        {!did && tab !== 'account' && <LocalModeBanner onSignIn={() => pick('account')} />}
+            the note's link would only re-select the tab it is on. Not on
+            Clients either: nothing there is saved in the browser, so the
+            note would be wrong, and the tab asks for sign-in itself. */}
+        {!did && tab !== 'account' && tab !== 'clients' && (
+          <LocalModeBanner onSignIn={() => pick('account')} />
+        )}
         {tab === 'account' && <AccountTab />}
         {tab === 'general' && <GeneralTab />}
         {tab === 'keyboard' && <KeyboardTab />}
         {tab === 'sections' && <SectionsTab />}
         {tab === 'waypoints' && <WaypointsTab />}
         {tab === 'redirects' && <RedirectsTab />}
+        {tab === 'clients' && <ClientsTab onSignIn={() => pick('account')} />}
         {tab === 'custom' && <CustomTab />}
         {tab === 'about' && <AboutTab />}
       </div>

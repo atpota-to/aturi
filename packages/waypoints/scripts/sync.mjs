@@ -63,6 +63,11 @@ const FILES = [
     transform: identity,
   },
   {
+    from: resolve(repoRoot, 'src/utils/preferredClients.ts'),
+    to: resolve(coreSrc, 'preferredClients.ts'),
+    transform: identity,
+  },
+  {
     // The same catalog the React package ships, translated into standalone SVG
     // markup so the zero-dependency core can offer the marks to consumers that
     // are not on React. Generated rather than copied: JSX is not valid SVG, and

@@ -27,6 +27,7 @@ These files are derived from `src/` by `packages/waypoints/scripts/sync.mjs`:
 | `src/utils/waypoints.data.ts` | `packages/waypoints/src/waypoints.data.ts` |
 | `src/utils/uriParser.ts` | `packages/waypoints/src/uriParser.ts` |
 | `src/utils/reverseParsers.ts` | `packages/waypoints/src/reverseParsers.ts` |
+| `src/utils/preferredClients.ts` | `packages/waypoints/src/preferredClients.ts` |
 | `src/utils/upstreamFetch.ts` | `packages/waypoints/src/upstreamFetch.ts` |
 | `src/utils/waypointIcons.tsx` | `packages/waypoints-react/src/waypointIcons.tsx` |
 | `src/utils/waypointIcons.tsx` | `packages/waypoints/src/waypointIcons.data.ts` (generated, not copied) |

@@ -3,3 +3,4 @@ export * from './uriParser';
 export * from './reverseParsers';
 export * from './resolve';
 export * from './universalLinks';
+export * from './preferredClients';
