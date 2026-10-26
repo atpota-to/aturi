@@ -12,13 +12,16 @@ const BUILTIN_HOME: Record<string, string> = {
   bluepy: 'https://bluepy.social/',
   blacksky: 'https://blacksky.community/',
   reddwarf: 'https://reddwarf.app/',
+  impro: 'https://impro.social/',
+  lea: 'https://lea.ac/',
   leaflet: 'https://leaflet.pub/',
   pdsls: 'https://pdsls.dev/',
   anisotaReader: 'https://anisota.net/',
   atptools: 'https://atp.tools/',
   witchsky: 'https://witchsky.app/',
-  catsky: 'https://catsky.social/',
   deer: 'https://deer.social/',
+  northsky: 'https://northsky.app/',
+  mu: 'https://mu.social/',
   tangled: 'https://tangled.org/',
   pinksky: 'https://pinkleap.app/',
   margin: 'https://margin.at/',
@@ -30,6 +33,8 @@ const BUILTIN_HOME: Record<string, string> = {
   blento: 'https://blento.app/',
   offprint: 'https://offprint.app/',
   pckt: 'https://pckt.blog/',
+  standardReader: 'https://standard-reader.app/',
+  taproot: 'https://atproto.at/',
 };
 
 function hostLabel(url: string): string {

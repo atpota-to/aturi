@@ -1,9 +1,12 @@
 import { useCallback, useMemo } from 'react';
 import type { ReactNode } from 'react';
 import {
+  describeComposeIntent,
   getCategorizedWaypointsData,
   getRecommendedWaypointsData,
   getWaypointDataForType,
+  type ComposeIntentData,
+  type ComposeIntentDescriptor,
   type WaypointCategoryData,
   type WaypointData,
   type WaypointType,
@@ -23,6 +26,12 @@ export type WaypointEntry = {
   category: string;
   icon: ReactNode;
   isRecommended: boolean;
+  /**
+   * Link that opens this client's composer, pre-filled with `composeText` when
+   * the client reads it. Null when the client has no compose intent route, so
+   * `entry.composeIntent && <ComposeButton …/>` is enough to gate the UI.
+   */
+  composeIntent: ComposeIntentDescriptor | null;
 };
 
 export type WaypointCategoryEntry = {
@@ -46,6 +55,8 @@ export type CustomWaypoint = {
   category?: string;
   supportedTypes?: WaypointType[];
   icon?: ReactNode;
+  /** Declare a compose intent route so the entry surfaces one like a built-in. */
+  composeIntent?: ComposeIntentData;
   getUrl: (
     handle: string,
     collection?: string,
@@ -66,6 +77,11 @@ export type UseWaypointsParams = {
   hiddenIds?: string[];
   /** Extra developer-defined destinations, grouped under a "Custom" category. */
   customWaypoints?: CustomWaypoint[];
+  /**
+   * Text to pre-fill into each entry's compose intent link. Leave unset when
+   * you only want to know which clients support one.
+   */
+  composeText?: string;
 };
 
 export type UseWaypointsResult = {
@@ -103,6 +119,7 @@ export function useWaypoints(params: UseWaypointsParams): UseWaypointsResult {
     waypointIds,
     hiddenIds,
     customWaypoints,
+    composeText,
   } = params;
 
   const copy = useCallback(async (url: string): Promise<boolean> => {
@@ -144,6 +161,7 @@ export function useWaypoints(params: UseWaypointsParams): UseWaypointsResult {
         category: w.category,
         icon: WAYPOINT_ICONS[w.id] ?? null,
         isRecommended: recommendedIds.has(w.id),
+        composeIntent: describeComposeIntent(w, composeText),
       };
     };
 
@@ -160,6 +178,7 @@ export function useWaypoints(params: UseWaypointsParams): UseWaypointsResult {
         category: c.category ?? 'custom',
         icon: c.icon ?? null,
         isRecommended: recommendedIds.has(c.id),
+        composeIntent: describeComposeIntent(c, composeText),
       };
     };
 
@@ -228,7 +247,7 @@ export function useWaypoints(params: UseWaypointsParams): UseWaypointsResult {
     categories.forEach(collect);
 
     return { recommended, categories, waypoints: flat };
-  }, [type, handle, collection, rkey, did, waypointIds, hiddenIds, customWaypoints]);
+  }, [type, handle, collection, rkey, did, waypointIds, hiddenIds, customWaypoints, composeText]);
 
   return { ...data, copy, open };
 }

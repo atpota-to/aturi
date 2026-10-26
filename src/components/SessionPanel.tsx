@@ -4,9 +4,10 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, LogIn, LogOut, Settings, Telescope, User } from 'lucide-react';
 import { useAtprotoSession } from './AtprotoSessionProvider';
+import HandleTypeaheadInput from './oauth/HandleTypeaheadInput';
 import ScopeSelector from './oauth/ScopeSelector';
-import { rememberCurrentPathForReturn } from '@/lib/oauth/returnTo';
-import { getProfile, type AppViewProfile } from '@/utils/atproto/appview';
+import { useSignInFlow } from './oauth/useSignInFlow';
+import { useSessionProfile } from './useSessionProfile';
 import { encodeRepo } from '@/utils/atproto/urls';
 
 type Props = {
@@ -21,8 +22,6 @@ type Props = {
   onSignInActiveChange?: (active: boolean) => void;
 };
 
-type SignInStep = 'idle' | 'handle' | 'scopes';
-
 /**
  * Inline session UI for the compact header's expanding menu panel. Renders
  * as a stack of compact-nav-link rows, NOT a dropdown (the parent panel
@@ -33,13 +32,20 @@ type SignInStep = 'idle' | 'handle' | 'scopes';
  * sign-out.
  */
 export default function SessionPanel({ onNavigate, onSignInActiveChange }: Props) {
-  const { session, did, signIn, signOut, loading } = useAtprotoSession();
-  const [profile, setProfile] = useState<AppViewProfile | null>(null);
-  const [signInStep, setSignInStep] = useState<SignInStep>('idle');
+  const { session, did, signOut, loading } = useAtprotoSession();
+  const profile = useSessionProfile(did);
+  const {
+    step: signInStep,
+    setStep: setSignInStep,
+    pendingAccount,
+    busy,
+    error,
+    setError,
+    proceedToScopes,
+    backToHandle,
+    submitScopes,
+  } = useSignInFlow('idle');
   const [signInValue, setSignInValue] = useState('');
-  const [pendingAccount, setPendingAccount] = useState('');
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   // Mirror the flow's active/idle status up to the parent so it can
   // hide adjacent nav rows while the form is taking over the panel.
@@ -48,20 +54,6 @@ export default function SessionPanel({ onNavigate, onSignInActiveChange }: Props
   useEffect(() => {
     onSignInActiveChange?.(signInStep !== 'idle');
   }, [signInStep, onSignInActiveChange]);
-
-  useEffect(() => {
-    if (!did) {
-      setProfile(null);
-      return undefined;
-    }
-    let cancelled = false;
-    getProfile(did).then((p) => {
-      if (!cancelled) setProfile(p);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [did]);
 
   if (loading) return null;
 
@@ -72,19 +64,16 @@ export default function SessionPanel({ onNavigate, onSignInActiveChange }: Props
         <form
           onSubmit={(e) => {
             e.preventDefault();
-            const v = signInValue.trim();
-            if (!v) return;
-            setError(null);
-            setPendingAccount(v);
-            setSignInStep('scopes');
+            proceedToScopes(signInValue);
           }}
           style={{
             display: 'flex',
             flexDirection: 'column',
             gap: '0.5rem',
             padding: '0.625rem 0.75rem',
-            background: 'var(--bg-tertiary)',
+            background: 'var(--surface-subtle)',
             border: '1px solid var(--border-subtle)',
+            borderRadius: 'var(--radius-control)',
           }}
         >
           <div style={headerRowStyle()}>
@@ -100,7 +89,7 @@ export default function SessionPanel({ onNavigate, onSignInActiveChange }: Props
               <ArrowLeft size={14} />
             </button>
             <div style={{ minWidth: 0 }}>
-              <div style={{ fontSize: '0.875rem', color: 'var(--text-primary)' }}>
+              <div style={{ fontSize: '0.9375rem', fontWeight: 700, color: 'var(--text-primary)' }}>
                 Sign in with your handle
               </div>
               <div style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)' }}>
@@ -108,14 +97,11 @@ export default function SessionPanel({ onNavigate, onSignInActiveChange }: Props
               </div>
             </div>
           </div>
-          <input
-            type="text"
-            autoComplete="username"
-            spellCheck={false}
-            placeholder="handle.bsky.social or did:plc:…"
+          <HandleTypeaheadInput
             value={signInValue}
-            onChange={(e) => setSignInValue(e.target.value)}
-            style={inputStyle()}
+            onChange={setSignInValue}
+            placeholder="handle.bsky.social"
+            inputStyle={inputStyle()}
           />
           <button
             type="submit"
@@ -133,51 +119,44 @@ export default function SessionPanel({ onNavigate, onSignInActiveChange }: Props
         <div
           style={{
             padding: '0.625rem 0.75rem',
-            background: 'var(--bg-tertiary)',
+            background: 'var(--surface-subtle)',
             border: '1px solid var(--border-subtle)',
+            borderRadius: 'var(--radius-control)',
           }}
         >
           <ScopeSelector
             account={pendingAccount}
             busy={busy}
             error={error}
-            onBack={() => {
-              setSignInStep('handle');
-              setError(null);
-            }}
-            onContinue={async (scopeString) => {
-              setBusy(true);
-              setError(null);
-              try {
-                rememberCurrentPathForReturn();
-                await signIn(pendingAccount, scopeString);
-              } catch (err) {
-                setBusy(false);
-                setError(err instanceof Error ? err.message : String(err));
-              }
-            }}
+            onBack={backToHandle}
+            onContinue={submitScopes}
           />
         </div>
       );
     }
 
     return (
-      <>
+      <div className="compact-nav-grid">
         <button
           type="button"
           onClick={() => {
             setError(null);
             setSignInStep('handle');
           }}
-          className="compact-nav-link"
+          className="compact-nav-link compact-nav-link-accent"
           style={{ font: 'inherit', textAlign: 'left', width: '100%' }}
         >
           <LogIn size={16} />
-          <span>sign in</span>
+          <span>Sign in</span>
         </button>
+        {/* `prefetch={false}`: this is the signed-out branch, so every
+            anonymous visitor prefetched an account page they have no session
+            for, on every page load. Blocked from crawlers by robots.txt, but
+            it was never worth the request for readers either. */}
         <Link
-          href="/account#general"
+          href="/account"
           className="compact-nav-link"
+          prefetch={false}
           onClick={onNavigate}
         >
           <Settings size={16} />
@@ -189,10 +168,10 @@ export default function SessionPanel({ onNavigate, onSignInActiveChange }: Props
               flexWrap: 'wrap',
             }}
           >
-            settings
+            Settings
             <span
               style={{
-                fontSize: '0.65rem',
+                fontSize: '0.6875rem',
                 letterSpacing: '0.08em',
                 textTransform: 'uppercase',
                 color: 'var(--text-tertiary)',
@@ -202,7 +181,7 @@ export default function SessionPanel({ onNavigate, onSignInActiveChange }: Props
             </span>
           </span>
         </Link>
-      </>
+      </div>
     );
   }
 
@@ -225,8 +204,9 @@ export default function SessionPanel({ onNavigate, onSignInActiveChange }: Props
           alignItems: 'center',
           gap: '0.75rem',
           padding: '0.625rem 0.75rem',
-          background: 'var(--bg-tertiary)',
+          background: 'var(--surface-subtle)',
           border: '1px solid var(--border-subtle)',
+          borderRadius: 'var(--radius-control)',
         }}
       >
         {avatar ? (
@@ -239,6 +219,7 @@ export default function SessionPanel({ onNavigate, onSignInActiveChange }: Props
             style={{
               width: 32,
               height: 32,
+              borderRadius: '50%',
               objectFit: 'cover',
               flexShrink: 0,
               background: 'var(--bg-secondary)',
@@ -249,11 +230,12 @@ export default function SessionPanel({ onNavigate, onSignInActiveChange }: Props
             style={{
               width: 32,
               height: 32,
+              borderRadius: '50%',
               display: 'inline-flex',
               alignItems: 'center',
               justifyContent: 'center',
-              background: 'var(--bg-secondary)',
-              color: 'var(--text-tertiary)',
+              background: 'var(--accent-soft)',
+              color: 'var(--accent-soft-fg)',
               flexShrink: 0,
             }}
           >
@@ -263,7 +245,8 @@ export default function SessionPanel({ onNavigate, onSignInActiveChange }: Props
         <div style={{ minWidth: 0, lineHeight: 1.25, flex: 1 }}>
           <div
             style={{
-              fontSize: '0.875rem',
+              fontSize: '0.9375rem',
+              fontWeight: 700,
               color: 'var(--text-primary)',
               overflow: 'hidden',
               textOverflow: 'ellipsis',
@@ -290,20 +273,30 @@ export default function SessionPanel({ onNavigate, onSignInActiveChange }: Props
         </div>
       </div>
 
-      {did && (
+      <div className="compact-nav-grid">
+        {did && (
+          <Link
+            href={`/explore/${encodeRepo(did)}`}
+            prefetch={false}
+            className="compact-nav-link"
+            onClick={onNavigate}
+          >
+            <Telescope size={16} />
+            <span>My repo</span>
+          </Link>
+        )}
+        {/* Same slot as "sign in" once you're signed in: the way into your
+            own account, so it carries the same accent. */}
         <Link
-          href={`/explore/${encodeRepo(did)}`}
-          className="compact-nav-link"
+          href="/account"
+          className="compact-nav-link compact-nav-link-accent"
+          prefetch={false}
           onClick={onNavigate}
         >
-          <Telescope size={16} />
-          <span>my repo</span>
+          <Settings size={16} />
+          <span>Settings</span>
         </Link>
-      )}
-      <Link href="/account" className="compact-nav-link" onClick={onNavigate}>
-        <Settings size={16} />
-        <span>settings</span>
-      </Link>
+      </div>
       <button
         type="button"
         onClick={async () => {
@@ -321,7 +314,7 @@ export default function SessionPanel({ onNavigate, onSignInActiveChange }: Props
         }}
       >
         <LogOut size={16} />
-        <span>sign out</span>
+        <span>Sign out</span>
       </button>
     </>
   );
@@ -342,10 +335,11 @@ function iconBackButtonStyle(): React.CSSProperties {
     display: 'inline-flex',
     alignItems: 'center',
     justifyContent: 'center',
-    width: 24,
-    height: 24,
+    width: 28,
+    height: 28,
     background: 'var(--bg-secondary)',
-    border: '1px solid var(--border-subtle)',
+    border: '1px solid var(--border-medium)',
+    borderRadius: 'var(--radius-control)',
     color: 'var(--text-secondary)',
     cursor: 'pointer',
     flexShrink: 0,
@@ -355,9 +349,12 @@ function iconBackButtonStyle(): React.CSSProperties {
 function inputStyle(): React.CSSProperties {
   return {
     width: '100%',
-    padding: '0.5rem 0.625rem',
+    height: 36,
+    boxSizing: 'border-box',
+    padding: '0 0.75rem',
     background: 'var(--bg-secondary)',
-    border: '1px solid var(--border-medium)',
+    border: '1px solid var(--border-strong)',
+    borderRadius: 'var(--radius-control)',
     color: 'var(--text-primary)',
     fontFamily: 'var(--font-mono)',
     fontSize: '0.8125rem',
@@ -367,12 +364,15 @@ function inputStyle(): React.CSSProperties {
 
 function primaryButtonStyle({ disabled }: { disabled?: boolean } = {}): React.CSSProperties {
   return {
-    padding: '0.5rem',
+    height: 36,
+    padding: '0 0.875rem',
     background: 'var(--accent-moss)',
     color: 'var(--text-on-accent)',
     border: '1px solid var(--accent-moss)',
-    fontFamily: 'var(--font-serif)',
+    borderRadius: 'var(--radius-control)',
+    fontFamily: 'var(--font-sans)',
     fontSize: '0.875rem',
+    fontWeight: 600,
     cursor: disabled ? 'not-allowed' : 'pointer',
     opacity: disabled ? 0.6 : 1,
   };

@@ -1,17 +1,22 @@
 import { Metadata } from 'next';
 import { Suspense } from 'react';
-import { redirect } from 'next/navigation';
+import { redirect, notFound } from 'next/navigation';
 import WaypointPicker from '@/components/WaypointPicker';
+import AutoRedirect from '@/components/AutoRedirect';
+import AutoRedirectGate from '@/components/AutoRedirectGate';
 import PostPreview from '@/components/PostPreview';
 import PostPreviewSkeleton from '@/components/PostPreviewSkeleton';
 import RecordPreview from '@/components/RecordPreview';
 import ScrollIndicator from '@/components/ScrollIndicator';
 import Header from '@/components/Header';
 import NotFoundPanel from '@/components/NotFoundPanel';
-import { parseURI, resolveHandle, getDisplayName } from '@/utils/uriParser';
-import { fetchRecordData } from '@/utils/recordFetcher';
-import { resolveDidToHandle } from '@/utils/didResolver';
-import { getPostOgImage } from '@/utils/postOgImage';
+import { parseURI, getDisplayName } from '@/utils/uriParser';
+import { fetchRecordData, resolveDidToHandle, resolveHandle, resolveHandleStatus } from '@/lib/pageData';
+import { buildPostMetadata, buildPostJsonLd } from '@/utils/postMetadata';
+import { serializeJsonLd } from '@/utils/sanitize';
+import { buildAtTagsMetadata } from '@/utils/atproto/atTags';
+import { buildRecordCanonical } from '@/utils/canonicalUrl';
+import { getSiteUrl } from '@/lib/config';
 import { getMarginLexiconType, getMarginLexiconDisplayName, getMarginLexiconDescription } from '@/utils/marginLexicons';
 import {
   MarginAnnotationPreview,
@@ -61,110 +66,20 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
       if (recordData.type === 'post' && recordData.data.thread[0]?.value.post) {
         const post = recordData.data.thread[0].value.post;
-        const author = post.author;
-        const authorByline = author.displayName
-          ? `${author.displayName} (@${author.handle})`
-          : `@${author.handle}`;
-        const pageTitle = `@${author.handle} on Bluesky — View on Aturi`;
-        const postText = post.record?.text || '';
-        const postDescription = postText || 'View this post in your preferred Atmosphere client';
-        const avatarThumb = author.avatar
-          ? author.avatar.replace('/img/avatar/', '/img/avatar_thumbnail/')
-          : '';
-
-        // Prefer the post's embedded media (photo/video/external thumb) so
-        // rich-link previewers (iMessage, Twitter, Slack, etc.) render the
-        // large image like bsky.app does. Fall back to the avatar thumbnail
-        // for text-only or quote-only posts.
-        const postOgImage = getPostOgImage(post);
-        const ogImage = postOgImage
-          ? {
-              url: postOgImage.url,
-              ...(postOgImage.alt ? { alt: postOgImage.alt } : {}),
-              ...(postOgImage.width && postOgImage.height
-                ? { width: postOgImage.width, height: postOgImage.height }
-                : {}),
-            }
-          : avatarThumb
-          ? { url: avatarThumb }
-          : null;
-        const twitterCard = postOgImage ? 'summary_large_image' : 'summary';
-
-        const canonicalUrl = `https://aturi.to/profile/${author.handle}/post/${rkey}`;
-        const atUri = `at://${resolvedDid}/${collection}/${rkey}`;
-        const oembedUrl = `https://aturi.to/api/oembed?format=json&url=${encodeURIComponent(atUri)}`;
-        const publishedTime = post.indexedAt || post.record?.createdAt;
-
-        // We MUST set openGraph and twitter blocks here to override the root
-        // layout's site-wide defaults. Without this, the root layout's
-        // og:title="aturi.to - Universal links" and og:image=/api/og/static
-        // bleed through and create conflicting tags that confuse Apple's
-        // LinkPresentation framework and other rich-link previewers.
-        return {
-          title: pageTitle,
-          description: postDescription,
-          alternates: {
-            canonical: canonicalUrl,
-            types: {
-              'application/json+oembed': oembedUrl,
-            },
-          },
-          openGraph: {
-            title: authorByline,
-            description: postText || postDescription,
-            type: 'article',
-            url: canonicalUrl,
-            siteName: 'Aturi',
-            ...(publishedTime ? { publishedTime } : {}),
-            ...(ogImage ? { images: [ogImage] } : {}),
-          },
-          twitter: {
-            card: twitterCard,
-            title: authorByline,
-            description: postText || postDescription,
-            ...(ogImage ? { images: [ogImage.url] } : {}),
-          },
-          other: {
-            'profile:username': author.handle,
-            ...(publishedTime
-              ? {
-                  'twitter:label1': 'Posted At',
-                  'twitter:value1': publishedTime,
-                }
-              : {}),
-            ...(post.likeCount
-              ? {
-                  'twitter:label2': 'Likes',
-                  'twitter:value2': String(post.likeCount),
-                }
-              : {}),
-            ...(post.replyCount
-              ? {
-                  'twitter:label3': 'Replies',
-                  'twitter:value3': String(post.replyCount),
-                }
-              : {}),
-            ...(post.repostCount
-              ? {
-                  'twitter:label4': 'Reposts',
-                  'twitter:value4': String(post.repostCount),
-                }
-              : {}),
-          },
-        };
+        return buildPostMetadata(post, { resolvedDid, collection, rkey });
       } else if (recordData.type === 'record') {
         const record = recordData.data;
         const marginLexiconType = getMarginLexiconType(collection);
         
         if (collection === 'app.bsky.graph.list' || collection.endsWith('.list')) {
           title = record.value?.name 
-            ? `${record.value.name} — Atmosphere List by @${displayHandle}`
+            ? `${record.value.name}: Atmosphere List by @${displayHandle}`
             : `Atmosphere List by @${displayHandle}`;
           description = record.value?.description 
             ? record.value.description.slice(0, 160)
             : 'View this list in your preferred Atmosphere client';
           
-          const ogUrl = new URL('/api/og/list', 'https://aturi.to');
+          const ogUrl = new URL('/api/og/list', getSiteUrl());
           ogUrl.searchParams.set('handle', resolvedDid);
           ogUrl.searchParams.set('rkey', rkey);
           ogImageUrl = ogUrl.toString();
@@ -177,7 +92,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
             case 'at.margin.annotation':
               title = record.value?.target?.title
                 ? `Annotation on "${record.value.target.title}" by @${displayHandle}`
-                : `Annotation by @${displayHandle} — View on Aturi`;
+                : `Annotation by @${displayHandle}: View on Aturi`;
               description = record.value?.body?.value
                 ? record.value.body.value.slice(0, 160)
                 : lexiconDescription;
@@ -185,7 +100,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
             case 'at.margin.bookmark':
               title = record.value?.title
                 ? `Bookmark: ${record.value.title} by @${displayHandle}`
-                : `Bookmark by @${displayHandle} — View on Aturi`;
+                : `Bookmark by @${displayHandle}: View on Aturi`;
               description = record.value?.description
                 ? record.value.description.slice(0, 160)
                 : record.value?.source || lexiconDescription;
@@ -193,45 +108,67 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
             case 'at.margin.highlight':
               title = record.value?.target?.title
                 ? `Highlight on "${record.value.target.title}" by @${displayHandle}`
-                : `Highlight by @${displayHandle} — View on Aturi`;
+                : `Highlight by @${displayHandle}: View on Aturi`;
               description = record.value?.target?.selector?.exact
                 ? record.value.target.selector.exact.slice(0, 160)
                 : lexiconDescription;
               break;
             case 'at.margin.collection':
               title = record.value?.name
-                ? `${record.value.name} — Margin Collection by @${displayHandle}`
+                ? `${record.value.name}: Margin Collection by @${displayHandle}`
                 : `Margin Collection by @${displayHandle}`;
               description = record.value?.description
                 ? record.value.description.slice(0, 160)
                 : lexiconDescription;
               break;
             case 'at.margin.reply':
-              title = `Reply by @${displayHandle} — View on Aturi`;
+              title = `Reply by @${displayHandle}: View on Aturi`;
               description = record.value?.text
                 ? record.value.text.slice(0, 160)
                 : lexiconDescription;
               break;
             case 'at.margin.like':
             case 'at.margin.collectionItem':
-              title = `${lexiconDisplayName} by @${displayHandle} — View on Aturi`;
+              title = `${lexiconDisplayName} by @${displayHandle}: View on Aturi`;
               description = lexiconDescription;
               break;
             default:
-              title = `${lexiconDisplayName} by @${displayHandle} — View on Aturi`;
+              title = `${lexiconDisplayName} by @${displayHandle}: View on Aturi`;
               description = lexiconDescription;
           }
         } else {
           // Generic record type
           const collectionName = collection.split('.').pop() || collection;
-          title = `${collection} record by ${displayHandle} (@${displayHandle}) — View on Aturi`;
+          title = `${collection} record by ${displayHandle} (@${displayHandle}): View on Aturi`;
           description = `View this ${collectionName} record in your preferred Atmosphere client`;
         }
+
+        // Everything that isn't a post or a list — margin annotations, lexicon
+        // schemas, any custom collection — used to ship no og:image at all, so
+        // sharing one produced a bare text unfurl. Fall back to the record card,
+        // which names the handle and the NSID.
+        if (!ogImageUrl) {
+          const ogUrl = new URL('/api/og/explore', getSiteUrl());
+          ogUrl.searchParams.set('repo', resolvedDid);
+          ogUrl.searchParams.set('collection', collection);
+          ogUrl.searchParams.set('rkey', rkey);
+          ogUrl.searchParams.set('context', 'link');
+          ogImageUrl = ogUrl.toString();
+        }
       }
-      
+
       return {
         title,
         description,
+        // Served at both `/{handle}/{collection}/{rkey}` and the canonical
+        // `/profile/...` form, with either a handle or a DID in the first
+        // segment. Point them all at the DID form so crawlers collapse the
+        // spellings into one page — the record URL space is unbounded, so
+        // leaving the duplicates unconsolidated multiplies crawl volume.
+        // (Posts return early via `buildPostMetadata`, which sets its own.)
+        alternates: {
+          canonical: buildRecordCanonical(resolvedDid, collection, rkey),
+        },
         openGraph: {
           title,
           description,
@@ -251,6 +188,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
           description,
           images: ogImageUrl ? [ogImageUrl] : undefined,
         },
+        // AT Tags (https://tangled.org/chrisshank.com/at-tags/): this page
+        // renders the record at `at://{did}/{collection}/{rkey}`, authored by
+        // {did}, so declare both for extensions/crawlers/verifiers.
+        other: buildAtTagsMetadata({
+          canonical: `at://${resolvedDid}/${collection}/${rkey}`,
+          author: `at://${resolvedDid}`,
+        }),
       };
     }
   } catch (error) {
@@ -258,36 +202,49 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   }
 
   return {
-    title: `Record — View on Aturi`,
+    title: `Record: View on Aturi`,
     description: 'Tour the Atmosphere',
   };
 }
 
-async function RecordContent({ handle, collection, rkey }: { handle: string; collection: string; rkey: string }) {
+async function RecordContent({
+  handle,
+  collection,
+  rkey,
+  resolvedDid,
+}: {
+  handle: string;
+  collection: string;
+  rkey: string;
+  // Resolved by RecordPage before streaming starts. Null only when the
+  // resolver was unreachable — a handle that definitively doesn't exist
+  // has already become a 404 by the time this renders.
+  resolvedDid: string | null;
+}) {
   try {
     const parsedData = parseURI(handle, collection, rkey);
     
     if (parsedData.error) {
       return (
-        <div className="container-narrow" style={{ padding: '2rem 2rem 4rem', textAlign: 'center' }}>
+        <>
           <Header compact />
-          <h1 style={{ marginBottom: '1rem', color: 'var(--text-primary)' }}>Error</h1>
-          <p style={{ color: 'var(--text-secondary)' }}>{parsedData.error}</p>
-        </div>
+          <div className="container-narrow" style={{ padding: '0 2rem 4rem', textAlign: 'center' }}>
+            <h1 style={{ marginBottom: '1rem', color: 'var(--text-primary)' }}>Error</h1>
+            <p style={{ color: 'var(--text-secondary)' }}>{parsedData.error}</p>
+          </div>
+        </>
       );
     }
 
-    const resolvedDid = await resolveHandle(handle);
-    
     if (!resolvedDid) {
       return (
         <>
           <Header compact />
-          <div className="container-narrow" style={{ padding: '0 2rem 4rem' }}>
+          <div className="container-narrow waypoint-page">
             <NotFoundPanel
-              eyebrow="Couldn't resolve"
-              headline="That handle didn't resolve."
-              body={`We tried to resolve "${handle}" as an Atmosphere handle and didn't find anything. Try a different handle, DID, or AT URI below.`}
+              eyebrow="Couldn’t resolve"
+              headline="That handle didn’t resolve."
+              body={`We couldn’t find an account for “${handle}”. Check the spelling, or try a DID or an at:// URI below.`}
               initialQuery={handle}
             />
           </div>
@@ -303,11 +260,13 @@ async function RecordContent({ handle, collection, rkey }: { handle: string; col
 
     if (parsedData.type === 'unknown') {
       return (
-        <div className="container-narrow" style={{ padding: '2rem 2rem 4rem', textAlign: 'center' }}>
+        <>
           <Header compact />
-          <h1 style={{ marginBottom: '1rem', color: 'var(--text-primary)' }}>Error</h1>
-          <p style={{ color: 'var(--text-secondary)' }}>Invalid or unsupported URI</p>
-        </div>
+          <div className="container-narrow" style={{ padding: '0 2rem 4rem', textAlign: 'center' }}>
+            <h1 style={{ marginBottom: '1rem', color: 'var(--text-primary)' }}>Error</h1>
+            <p style={{ color: 'var(--text-secondary)' }}>Invalid or unsupported URI</p>
+          </div>
+        </>
       );
     }
 
@@ -320,47 +279,24 @@ async function RecordContent({ handle, collection, rkey }: { handle: string; col
       recordData && recordData.type === 'post' && recordData.data.thread[0]?.value.post
         ? recordData.data.thread[0].value.post
         : null;
-    const jsonLd = post
-      ? {
-          '@context': 'https://schema.org',
-          '@type': 'DiscussionForumPosting',
-          author: {
-            '@type': 'Person',
-            ...(post.author.displayName
-              ? {
-                  name: post.author.displayName,
-                  alternateName: `@${post.author.handle}`,
-                }
-              : { name: `@${post.author.handle}` }),
-            url: `https://aturi.to/profile/${post.author.handle}`,
-          },
-          ...(post.record?.text ? { text: post.record.text } : {}),
-          datePublished: post.indexedAt || post.record?.createdAt,
-          interactionStatistic: [
-            {
-              '@type': 'InteractionCounter',
-              interactionType: 'https://schema.org/LikeAction',
-              userInteractionCount: post.likeCount || 0,
-            },
-            {
-              '@type': 'InteractionCounter',
-              interactionType: 'https://schema.org/CommentAction',
-              userInteractionCount: post.replyCount || 0,
-            },
-            {
-              '@type': 'InteractionCounter',
-              interactionType: 'https://schema.org/ShareAction',
-              userInteractionCount: (post.repostCount || 0) + (post.quoteCount || 0),
-            },
-          ],
-        }
-      : null;
+    const jsonLd = post ? buildPostJsonLd(post) : null;
 
     const postAtUri = post?.uri || '';
 
     return (
-      <div className="container-narrow" style={{ padding: '2rem 2rem 4rem' }}>
+      <>
         <Header compact />
+        <div className="container-narrow waypoint-page">
+        {/* `handle` rather than `resolvedHandle`, so the gate resolves exactly
+            the URL the pre-paint script did — the two halves must never send
+            the same visitor to two different spellings of the same page. */}
+        <AutoRedirectGate
+          type={parsedData.type}
+          handle={handle}
+          did={resolvedDid}
+          collection={collection}
+          rkey={rkey}
+        />
 
         {/* AT-URI alternate link, mirroring Bluesky's bskyweb template.
             React 19 hoists this to <head>. */}
@@ -369,7 +305,7 @@ async function RecordContent({ handle, collection, rkey }: { handle: string; col
         {jsonLd && (
           <script
             type="application/ld+json"
-            dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+            dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }}
           />
         )}
 
@@ -454,27 +390,57 @@ async function RecordContent({ handle, collection, rkey }: { handle: string; col
           </div>
         )}
 
+        {/* The record fetch returns null for both a deleted/nonexistent record
+            and a transient host failure, so this notice covers both honestly
+            rather than silently showing the picker with no preview and no
+            explanation. The picker still renders below — its client links work
+            if the record exists elsewhere or the host recovers. */}
+        {!recordData && (
+          <div
+            className="content-fade-in"
+            style={{
+              border: '1px solid var(--border-medium)',
+              borderRadius: 'var(--radius-card)',
+              background: 'var(--bg-secondary)',
+              padding: '1rem 1.25rem',
+              marginBottom: '1.5rem',
+              color: 'var(--text-secondary)',
+              fontSize: '0.9375rem',
+              lineHeight: 1.5,
+            }}
+          >
+            <strong style={{ color: 'var(--text-primary)' }}>
+              We couldn&rsquo;t load a preview for this record.
+            </strong>{' '}
+            It may have been deleted, or the account&rsquo;s host server may be
+            temporarily unavailable. You can still try opening it in a client below.
+          </div>
+        )}
+
         <WaypointPicker
           type={parsedData.type}
           handle={resolvedHandle}
           collection={collection}
           rkey={rkey}
           did={resolvedDid}
-          displayName={getDisplayName(resolvedHandle, resolvedDid)}
+          displayName={post?.author.displayName?.trim() || getDisplayName(resolvedHandle, resolvedDid)}
         />
 
         {/* Floating scroll indicator overlay */}
         <ScrollIndicator />
-      </div>
+        </div>
+      </>
     );
   } catch (error) {
     console.error('Error loading record:', error);
     return (
-      <div className="container-narrow" style={{ padding: '2rem 2rem 4rem', textAlign: 'center' }}>
+      <>
         <Header compact />
-        <h1 style={{ marginBottom: '1rem', color: 'var(--text-primary)' }}>Error</h1>
-        <p style={{ color: 'var(--text-secondary)' }}>Error processing URI</p>
-      </div>
+        <div className="container-narrow" style={{ padding: '0 2rem 4rem', textAlign: 'center' }}>
+          <h1 style={{ marginBottom: '1rem', color: 'var(--text-primary)' }}>Error</h1>
+          <p style={{ color: 'var(--text-secondary)' }}>Error processing URI</p>
+        </div>
+      </>
     );
   }
 }
@@ -499,17 +465,54 @@ export default async function RecordPage({ params }: Props) {
     handle = cleanHandle;
   }
 
+  // Resolve up front so a record path whose handle definitively doesn't
+  // resolve returns a real HTTP 404 instead of a soft-404 (200 + app shell).
+  // Every three-segment path matches this route, so without the guard an agent
+  // probing /.well-known/mcp/manifest.json — or any other made-up path — gets a
+  // 200 back and concludes the URL exists. A transient resolver outage is NOT a
+  // 404: it falls through with a null DID to the retry panel in RecordContent.
+  // Resolving here rather than inside the Suspense child is what lets the
+  // status be set before streaming begins, mirroring /[handle] and the '@'
+  // redirect above.
+  const resolution = await resolveHandleStatus(handle);
+  if (resolution.reason === 'not-found') {
+    notFound();
+  }
+
+  // `parseURI` is synchronous and side-effect free, so the record type is
+  // available here without waiting on the record fetch — which lets the
+  // pre-paint script ship in the first flush, ahead of the Suspense boundary.
+  const parsed = parseURI(handle, collection, rkey);
+
   return (
-    <Suspense
-      fallback={
-        <div className="container-narrow" style={{ padding: '2rem 2rem 4rem' }}>
-          <Header compact />
-          <PostPreviewSkeleton />
-        </div>
-      }
-    >
-      <RecordContent handle={handle} collection={collection} rkey={rkey} />
-    </Suspense>
+    <>
+      {!parsed.error && (
+        <AutoRedirect
+          type={parsed.type}
+          handle={handle}
+          did={resolution.did ?? undefined}
+          collection={collection}
+          rkey={rkey}
+        />
+      )}
+      <Suspense
+        fallback={
+          <>
+            <Header compact />
+            <div className="container-narrow waypoint-page">
+              <PostPreviewSkeleton />
+            </div>
+          </>
+        }
+      >
+        <RecordContent
+          handle={handle}
+          collection={collection}
+          rkey={rkey}
+          resolvedDid={resolution.did}
+        />
+      </Suspense>
+    </>
   );
 }
 

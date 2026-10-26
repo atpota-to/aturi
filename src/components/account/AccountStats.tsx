@@ -1,19 +1,26 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   Activity,
   Boxes,
   CalendarDays,
   Database,
+  Download,
   Gauge,
+  HardDrive,
   History,
   Link as LinkIcon,
 } from 'lucide-react';
-import { describeRepo, getLatestCommit } from '@/utils/atproto/pdsClient';
+import {
+  describeRepo,
+  getLatestCommit,
+  getRepoSize,
+  getRepoUrl,
+} from '@/utils/atproto/pdsClient';
 import { tidToDate, formatTidRelative } from '@/utils/atproto/tid';
 import { getPlcAuditLog, type PlcAuditEntry } from '@/utils/atproto/plc';
-import { resolveIdentifier } from '@/utils/atproto/identity';
+import { getInactiveRepoRev, resolveIdentifier } from '@/utils/atproto/identity';
 import {
   flattenSources,
   getBacklinkSources,
@@ -36,12 +43,24 @@ type Props = {
 };
 
 type Stats = {
-  namespaces: number;      // unique 2-segment NSID prefixes (e.g. "net.anisota")
-  collections: number;     // total distinct NSIDs / record types
+  // Both null when the repo won't serve reads. Zero is a real answer — a
+  // repo with no records — and reporting it for a repo nobody is allowed to
+  // read would state as fact something we never learned.
+  namespaces: number | null; // unique 2-segment NSID prefixes (e.g. "net.anisota")
+  collections: number | null; // total distinct NSIDs / record types
   auditOps: number | null; // PLC operations count — null for non-did:plc
   createdAt: string | null;
   backlinks: number | null; // inbound atproto references via Constellation
   headRev: string | null;  // repo head commit rev (TID) — drives "last active"
+  /**
+   * True when `headRev` came from a relay rather than the account's own PDS,
+   * which is the only source left once a repo stops answering. Softens the
+   * tile's wording: it's the newest rev that relay holds, which we read as
+   * the last write without having confirmed nothing else can move it.
+   */
+  headRevFromRelay: boolean;
+  /** Hosting status ('takendown', 'deactivated', …) when the repo is inactive. */
+  inactive: string | null;
 };
 
 /**
@@ -52,19 +71,31 @@ type Stats = {
  *   - PLC audit log → operation count + create timestamp (did:plc only).
  *   - Constellation → total inbound backlink count.
  *
- * Each fetch is independent; one failure doesn't block the others.
+ * Each fetch is independent; one failure doesn't block the others. The repo
+ * size tile is the exception — it downloads the full repo CAR and so is only
+ * measured on an explicit button press, never on load (see `RepoSizeTile`).
  */
 export default function AccountStats({ did, handle, interactive = true }: Props) {
-  const [stats, setStats] = useState<Stats | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [credBlue, setCredBlue] = useState<
-    { status: 'loading' } | { status: 'ready'; score: CredBlueScore | null }
-  >({ status: 'loading' });
+  // Both stats and the cred.blue score are keyed by their inputs, so when
+  // the account changes the derived values below reset on their own — no
+  // synchronous reset-setState inside the effects.
+  const [statsEntry, setStatsEntry] = useState<
+    { did: string; stats: Stats | null; error: string | null } | null
+  >(null);
+  const [credBlueEntry, setCredBlueEntry] = useState<
+    { id: string; score: CredBlueScore | null } | null
+  >(null);
+
+  const stats = statsEntry && statsEntry.did === did ? statsEntry.stats : null;
+  const error = statsEntry && statsEntry.did === did ? statsEntry.error : null;
+  const credBlueId = handle || did;
+  const credBlue: { status: 'loading' } | { status: 'ready'; score: CredBlueScore | null } =
+    credBlueEntry && credBlueEntry.id === credBlueId
+      ? { status: 'ready', score: credBlueEntry.score }
+      : { status: 'loading' };
 
   useEffect(() => {
     let cancelled = false;
-    setStats(null);
-    setError(null);
 
     (async () => {
       try {
@@ -74,7 +105,7 @@ export default function AccountStats({ did, handle, interactive = true }: Props)
         if (cancelled) return;
 
         // Kick off each request independently; failures degrade.
-        const [describe, audit, backlinkSources, latestCommit] =
+        const [describe, audit, backlinkSources, latestCommit, relayRev] =
           await Promise.allSettled([
             describeRepo(identity.pds, identity.did),
             did.startsWith('did:plc:')
@@ -82,9 +113,20 @@ export default function AccountStats({ did, handle, interactive = true }: Props)
               : Promise.resolve<PlcAuditEntry[] | null>(null),
             getBacklinkSources(did),
             getLatestCommit(identity.pds, identity.did),
+            // getLatestCommit is one of the reads an inactive repo refuses, so
+            // for those the head rev has to come from a relay instead. Runs in
+            // the same batch rather than after it, and only for a repo already
+            // known to be inactive.
+            identity.repoStatus
+              ? getInactiveRepoRev(identity.did)
+              : Promise.resolve<string | null>(null),
           ]);
         if (cancelled) return;
 
+        // A repo the host won't serve has no readable collections, as opposed
+        // to none at all; the tiles render "—" for both counts in that case.
+        const inactive = identity.repoStatus?.status || null;
+        const unreadable = identity.repoStatus !== null;
         const collections =
           describe.status === 'fulfilled' && Array.isArray(describe.value.collections)
             ? describe.value.collections
@@ -108,22 +150,31 @@ export default function AccountStats({ did, handle, interactive = true }: Props)
             : null;
         const backlinks = flat ? flat.reduce((acc, s) => acc + (s.count || 0), 0) : null;
 
-        const headRev =
+        const pdsRev =
           latestCommit.status === 'fulfilled' && latestCommit.value.rev
             ? latestCommit.value.rev
             : null;
+        const headRev =
+          pdsRev ?? (relayRev.status === 'fulfilled' ? relayRev.value : null);
 
-        setStats({
-          namespaces: namespaces.size,
-          collections: collections.length,
-          auditOps: auditEntries ? auditEntries.length : null,
-          createdAt:
-            auditEntries && auditEntries.length > 0 ? auditEntries[0].createdAt : null,
-          backlinks,
-          headRev,
+        setStatsEntry({
+          did,
+          error: null,
+          stats: {
+            namespaces: unreadable ? null : namespaces.size,
+            collections: unreadable ? null : collections.length,
+            auditOps: auditEntries ? auditEntries.length : null,
+            createdAt:
+              auditEntries && auditEntries.length > 0 ? auditEntries[0].createdAt : null,
+            backlinks,
+            headRev,
+            headRevFromRelay: headRev !== null && pdsRev === null,
+            inactive,
+          },
         });
       } catch (err) {
-        if (!cancelled) setError(err instanceof Error ? err.message : String(err));
+        if (!cancelled)
+          setStatsEntry({ did, stats: null, error: err instanceof Error ? err.message : String(err) });
       }
     })();
 
@@ -134,43 +185,54 @@ export default function AccountStats({ did, handle, interactive = true }: Props)
 
   useEffect(() => {
     let cancelled = false;
-    setCredBlue({ status: 'loading' });
     const identifier = handle || did;
     fetchCachedCredBlueScore(identifier).then((score) => {
-      if (!cancelled) setCredBlue({ status: 'ready', score });
+      if (!cancelled) setCredBlueEntry({ id: identifier, score });
     });
     return () => {
       cancelled = true;
     };
   }, [handle, did]);
 
-  const createdLabel = useMemo(() => {
-    if (!stats?.createdAt) return null;
+  // Plain computation — the React Compiler memoizes these itself, and the
+  // manual useMemo wrappers made it bail ("could not preserve existing
+  // manual memoization") once `stats` became a derived value.
+  // Month + year only ("Aug 2023"). The tile is narrow in the 2-column
+  // mobile grid, and the relative age sublabel already carries the
+  // finer-grained "how long ago" — a full day-level date just wrapped.
+  let createdLabel: string | null = null;
+  let createdRelative: string | null = null;
+  if (stats?.createdAt) {
     try {
       const d = new Date(stats.createdAt);
-      return d.toLocaleDateString(undefined, {
+      createdLabel = d.toLocaleDateString(undefined, {
         year: 'numeric',
         month: 'short',
-        day: 'numeric',
       });
+      createdRelative = relativeAge(d);
     } catch {
-      return null;
+      // Unparseable timestamp — leave both labels empty.
     }
-  }, [stats?.createdAt]);
-
-  const createdRelative = useMemo(() => {
-    if (!stats?.createdAt) return null;
-    try {
-      return relativeAge(new Date(stats.createdAt));
-    } catch {
-      return null;
-    }
-  }, [stats?.createdAt]);
+  }
 
   // Decode the head commit rev (a TID) into the account's last-active time.
   // Cheap pure call; no memo needed (and avoids the compiler bail the other
   // tile memos in this file already trip).
   const lastActiveDate = stats?.headRev ? tidToDate(stats.headRev) : null;
+  // A rev from the account's own PDS is its head commit. A rev from a relay
+  // (the only source once a repo goes inactive) is the newest one that relay
+  // holds, which reads as the last write but isn't the PDS saying so — the
+  // tile says where it came from rather than overstating it.
+  let lastActiveHint: string;
+  if (!lastActiveDate) {
+    lastActiveHint = stats?.inactive
+      ? `No rev available: this repo is ${stats.inactive}`
+      : "Timestamp of the repo's most recent commit (head rev)";
+  } else if (stats?.headRevFromRelay) {
+    lastActiveHint = `Newest rev the relay holds for this repo · ${lastActiveDate.toISOString()}`;
+  } else {
+    lastActiveHint = `Repo's most recent commit · ${lastActiveDate.toISOString()}`;
+  }
 
   if (error) {
     return (
@@ -184,25 +246,29 @@ export default function AccountStats({ did, handle, interactive = true }: Props)
   }
 
   return (
-    <section
-      style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(11rem, 1fr))',
-        gap: '0.5rem',
-      }}
-    >
+    <section className="account-stats-grid">
       <StatTile
         icon={<Boxes size={16} />}
         label="Namespaces"
-        hint="Unique top-level NSID prefixes (e.g. net.anisota, app.bsky)"
-        value={stats?.namespaces}
+        hint={
+          stats?.inactive
+            ? `Unreadable: this repo is ${stats.inactive}`
+            : 'Unique top-level NSID prefixes (e.g. net.anisota, app.bsky)'
+        }
+        value={stats?.namespaces ?? undefined}
+        unavailable={stats !== null && stats.namespaces === null}
         interactive={interactive}
       />
       <StatTile
         icon={<Database size={16} />}
         label="Lexicons"
-        hint="Distinct record types / collections across all namespaces"
-        value={stats?.collections}
+        hint={
+          stats?.inactive
+            ? `Unreadable: this repo is ${stats.inactive}`
+            : 'Distinct record types / collections across all namespaces'
+        }
+        value={stats?.collections ?? undefined}
+        unavailable={stats !== null && stats.collections === null}
         interactive={interactive}
       />
       <StatTile
@@ -215,7 +281,7 @@ export default function AccountStats({ did, handle, interactive = true }: Props)
       />
       <StatTile
         icon={<LinkIcon size={16} />}
-        label="Inbound links"
+        label="Backlinks"
         hint="Records across the Atmosphere pointing at this DID"
         value={stats?.backlinks ?? undefined}
         unavailable={stats !== null && stats.backlinks === null}
@@ -223,28 +289,37 @@ export default function AccountStats({ did, handle, interactive = true }: Props)
       />
       <StatTile
         icon={<CalendarDays size={16} />}
-        label="Account created"
+        label="Created"
         hint="Earliest PLC operation timestamp"
         valueLabel={createdLabel || (stats !== null && !createdLabel ? '—' : undefined)}
         sublabel={createdRelative || undefined}
         interactive={interactive}
       />
-      <StatTile
-        icon={<Activity size={16} />}
-        label="Last active"
-        hint={
-          lastActiveDate
-            ? `Repo's most recent commit · ${lastActiveDate.toISOString()}`
-            : "Timestamp of the repo's most recent commit (head rev)"
-        }
-        valueLabel={lastActiveDate ? formatTidRelative(lastActiveDate) : undefined}
-        unavailable={stats !== null && lastActiveDate === null}
-        interactive={interactive}
-      />
+      {/* Score sits directly after Created so the two pair up on the same row
+          in the 2-column mobile grid; Last active + Repo size then pair up on
+          the final row. */}
       <CredBlueTile
         state={credBlue}
         handle={handle || did}
         interactive={interactive}
+      />
+      <StatTile
+        icon={<Activity size={16} />}
+        label="Last active"
+        hint={lastActiveHint}
+        valueLabel={lastActiveDate ? formatTidRelative(lastActiveDate) : undefined}
+        sublabel={stats?.headRevFromRelay ? 'via relay' : undefined}
+        unavailable={stats !== null && lastActiveDate === null}
+        interactive={interactive}
+      />
+      {/* The one stat that isn't fetched on load — measuring it downloads the
+          full repo CAR, so it stays behind an explicit button. Keyed on `did`
+          so switching repos resets it to idle (and unmounts the old fetch). */}
+      <RepoSizeTile
+        key={did}
+        did={did}
+        interactive={interactive}
+        inactive={stats?.inactive ?? null}
       />
     </section>
   );
@@ -265,7 +340,7 @@ function CredBlueTile({
     ? `${CRED_BLUE_BASE}/${encodeURIComponent(handle.replace(/^@/, ''))}`
     : undefined;
   const icon = <Gauge size={16} />;
-  const label = 'cred.blue score';
+  const label = 'Score';
 
   if (state.status === 'loading') {
     return <StatTile icon={icon} label={label} href={href} interactive={interactive} />;
@@ -275,7 +350,7 @@ function CredBlueTile({
       <StatTile
         icon={icon}
         label={label}
-        hint="This account hasn't been scored yet on cred.blue — click to generate one."
+        hint="This account hasn't been scored yet on cred.blue. Click to generate one."
         href={href}
         valueLabel="—"
         sublabel="not scored yet"
@@ -378,53 +453,11 @@ function StatTile({
   }
   const body = (
     <>
-      <div
-        className="explore-small-caps"
-        style={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: '0.4rem',
-          color: 'var(--text-tertiary)',
-        }}
-      >
-        <span style={{ color: 'var(--text-accent)' }}>{icon}</span>
-        <span>{label}</span>
-      </div>
-      <div
-        style={{
-          fontFamily: 'var(--font-serif)',
-          fontSize: '1.25rem',
-          fontWeight: 400,
-          color: 'var(--text-primary)',
-          fontVariantNumeric: 'tabular-nums',
-          lineHeight: 1.1,
-        }}
-      >
-        {display}
-      </div>
-      {sublabel && (
-        <div
-          style={{
-            fontSize: '0.7rem',
-            color: 'var(--text-tertiary)',
-            fontFamily: 'var(--font-mono)',
-            marginTop: '-0.15rem',
-          }}
-        >
-          {sublabel}
-        </div>
-      )}
+      <TileLabel icon={icon} label={label} />
+      <div style={TILE_VALUE_STYLE}>{display}</div>
+      {sublabel && <div style={TILE_SUBLABEL_STYLE}>{sublabel}</div>}
     </>
   );
-
-  const baseStyle: React.CSSProperties = {
-    padding: '0.75rem 0.875rem',
-    background: 'var(--bg-secondary)',
-    border: '1px solid var(--border-medium)',
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '0.4rem',
-  };
 
   const titleAttr = interactive ? hint : undefined;
 
@@ -436,7 +469,7 @@ function StatTile({
         rel="noreferrer"
         title={titleAttr}
         style={{
-          ...baseStyle,
+          ...TILE_BASE_STYLE,
           color: 'inherit',
           textDecoration: 'none',
           transition: 'border-color 0.2s ease',
@@ -454,8 +487,295 @@ function StatTile({
   }
 
   return (
-    <div title={titleAttr} style={baseStyle}>
+    <div title={titleAttr} style={TILE_BASE_STYLE}>
       {body}
     </div>
   );
+}
+
+/** Shared tile chrome — the flat card container every stat tile sits in. */
+const TILE_BASE_STYLE: React.CSSProperties = {
+  padding: '0.75rem 0.875rem',
+  background: 'var(--bg-secondary)',
+  border: '1px solid var(--border-medium)',
+  display: 'flex',
+  flexDirection: 'column',
+  gap: '0.4rem',
+};
+
+/** The value line (numbers, dates, sizes). */
+const TILE_VALUE_STYLE: React.CSSProperties = {
+  fontFamily: 'var(--font-sans)',
+  fontSize: '1.25rem',
+  fontWeight: 700,
+  letterSpacing: '-0.02em',
+  color: 'var(--text-primary)',
+  fontVariantNumeric: 'tabular-nums',
+  lineHeight: 1.15,
+  // Keep short values (esp. the "Aug 2023" date) on one line instead of
+  // breaking at the space in the narrow mobile tiles.
+  whiteSpace: 'nowrap',
+};
+
+/** The small mono sublabel under the value (relative age, exact bytes). */
+const TILE_SUBLABEL_STYLE: React.CSSProperties = {
+  fontSize: '0.7rem',
+  color: 'var(--text-tertiary)',
+  fontFamily: 'var(--font-mono)',
+  marginTop: '-0.15rem',
+};
+
+/** The icon + sentence-case label row shared by every tile. */
+function TileLabel({ icon, label }: { icon: React.ReactNode; label: string }) {
+  return (
+    <div
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: '0.4rem',
+        fontFamily: 'var(--font-sans)',
+        fontSize: '0.75rem',
+        fontWeight: 600,
+        color: 'var(--text-secondary)',
+      }}
+    >
+      {/* inline-flex so the wrapper hugs the 16px glyph instead of inheriting
+          the inline SVG's descender space — otherwise the icon box is taller
+          than the icon and align-items:center pushes it optically above the
+          label text. */}
+      <span style={{ display: 'inline-flex', color: 'var(--text-accent)' }}>
+        {icon}
+      </span>
+      <span>{label}</span>
+    </div>
+  );
+}
+
+type RepoSizeState =
+  | { status: 'idle' }
+  | { status: 'loading'; bytes: number }
+  // `href` is the PDS getRepo URL we just streamed. Kept on the state so the
+  // ready tile can offer the CAR as a download without re-resolving identity.
+  | { status: 'ready'; bytes: number; href: string }
+  | { status: 'error'; message: string };
+
+/**
+ * Repo-size tile — the one stat that isn't fetched on page load. Measuring it
+ * means downloading the account's entire repo export (com.atproto.sync.getRepo,
+ * a CAR file that can run to many MB), so it stays behind an explicit button.
+ * On click we resolve the PDS, stream the CAR, and count bytes as they arrive
+ * — the value ticks up live, then settles on the exact size.
+ *
+ * The in-flight download is tied to an AbortController so switching repos (or
+ * unmounting) cancels it instead of leaking the fetch and updating dead state.
+ * Non-interactive demo surfaces (the homepage strip) render the button as an
+ * inert preview so a marketing card never kicks off a multi-MB download.
+ */
+function RepoSizeTile({
+  did,
+  interactive,
+  inactive,
+}: {
+  did: string;
+  interactive: boolean;
+  /** Hosting status when the repo won't serve reads; null while readable. */
+  inactive: string | null;
+}) {
+  const [state, setState] = useState<RepoSizeState>({ status: 'idle' });
+  const abortRef = useRef<AbortController | null>(null);
+  // Throttle the live counter to ~one paint per 256 KB downloaded — a large
+  // CAR streams in thousands of small chunks and a setState per chunk would
+  // thrash. The final size still comes from the exact total getRepoSize returns.
+  const lastShownRef = useRef(0);
+
+  // Abort an in-flight download if the tile unmounts — the parent re-keys this
+  // component on `did`, so switching repos unmounts the old one and stops it
+  // pulling a multi-MB CAR (and updating dead state) mid-stream.
+  useEffect(() => () => abortRef.current?.abort(), []);
+
+  async function measure() {
+    if (state.status === 'loading') return;
+    const controller = new AbortController();
+    abortRef.current = controller;
+    lastShownRef.current = 0;
+    setState({ status: 'loading', bytes: 0 });
+    try {
+      const identity = await resolveIdentifier(did);
+      const bytes = await getRepoSize(identity.pds, identity.did, {
+        signal: controller.signal,
+        onProgress: (b) => {
+          if (controller.signal.aborted) return;
+          if (b - lastShownRef.current >= 262_144) {
+            lastShownRef.current = b;
+            setState({ status: 'loading', bytes: b });
+          }
+        },
+      });
+      if (!controller.signal.aborted) {
+        setState({
+          status: 'ready',
+          bytes,
+          href: getRepoUrl(identity.pds, identity.did),
+        });
+      }
+    } catch (err) {
+      if (controller.signal.aborted) return;
+      setState({
+        status: 'error',
+        message: err instanceof Error ? err.message : String(err),
+      });
+    }
+  }
+
+  let content: React.ReactNode;
+  let titleAttr: string | undefined;
+  if (state.status === 'ready') {
+    content = (
+      <>
+        <div style={TILE_VALUE_STYLE}>{formatBytes(state.bytes)}</div>
+        {/* Once measured, the exact byte count has served its purpose, so the
+            subline becomes the useful next action: grab the CAR itself. The
+            demo surfaces keep the inert byte count rather than offering a
+            live multi-MB download from a marketing card. */}
+        {interactive ? (
+          <DownloadCarLink href={state.href} bytes={state.bytes} />
+        ) : (
+          <div style={TILE_SUBLABEL_STYLE}>{state.bytes.toLocaleString()} bytes</div>
+        )}
+      </>
+    );
+    titleAttr = interactive ? 'Uncompressed size of the full repo CAR' : undefined;
+  } else if (state.status === 'loading') {
+    content = (
+      <>
+        <div style={TILE_VALUE_STYLE}>{formatBytes(state.bytes)}</div>
+        <div style={TILE_SUBLABEL_STYLE}>downloading CAR…</div>
+      </>
+    );
+  } else if (state.status === 'error') {
+    content = (
+      <>
+        <MeasureButton interactive={interactive} onClick={measure} label="Retry" />
+        <div style={TILE_SUBLABEL_STYLE}>couldn&rsquo;t measure</div>
+      </>
+    );
+    titleAttr = interactive ? `Couldn't measure repo: ${state.message}` : undefined;
+  } else if (inactive) {
+    // getRepo is refused for an inactive repo, so the button would only ever
+    // buy the visitor a 400. Show the same "—" the other unreadable tiles do.
+    content = (
+      <div style={TILE_VALUE_STYLE}>
+        <span className="explore-muted" style={{ fontStyle: 'normal' }}>
+          &mdash;
+        </span>
+      </div>
+    );
+    titleAttr = interactive ? `No CAR export: this repo is ${inactive}` : undefined;
+  } else {
+    content = <MeasureButton interactive={interactive} onClick={measure} />;
+    titleAttr = interactive
+      ? 'Downloads the full repo (com.atproto.sync.getRepo) to measure its CAR size'
+      : undefined;
+  }
+
+  return (
+    <div title={titleAttr} style={TILE_BASE_STYLE}>
+      <TileLabel icon={<HardDrive size={16} />} label="Repo size" />
+      {content}
+    </div>
+  );
+}
+
+/**
+ * The "Download CAR" subline shown once a repo has been measured. Sits where
+ * the exact byte count used to, in the same small mono style, so the tile
+ * gains an action without gaining visual weight. The byte count isn't lost —
+ * it moves into the link's tooltip.
+ *
+ * Deliberately no `download` attribute: the PDS is a different origin, so
+ * browsers ignore the filename hint and fall back to the server's
+ * Content-Disposition anyway. Opens in a new tab so a large download never
+ * navigates the visitor out of the explorer.
+ */
+function DownloadCarLink({ href, bytes }: { href: string; bytes: number }) {
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noreferrer"
+      title={`Download the full repo as a CAR file (${bytes.toLocaleString()} bytes)`}
+      style={{
+        ...TILE_SUBLABEL_STYLE,
+        alignSelf: 'flex-start',
+        color: 'var(--text-secondary)',
+        textDecoration: 'underline',
+        textUnderlineOffset: '0.2em',
+        cursor: 'pointer',
+        transition: 'color 0.2s ease',
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.color = 'var(--text-accent)';
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.color = 'var(--text-secondary)';
+      }}
+    >
+      Download CAR
+    </a>
+  );
+}
+
+/**
+ * The tap target that kicks off (or retries) a repo-size measurement. On
+ * non-interactive demo surfaces it renders as an inert, look-alike preview so
+ * a marketing card never triggers a real multi-MB download.
+ */
+function MeasureButton({
+  interactive,
+  onClick,
+  label = 'Measure',
+}: {
+  interactive: boolean;
+  onClick: () => void;
+  label?: string;
+}) {
+  const inner = (
+    <>
+      <Download size={13} aria-hidden />
+      {label}
+    </>
+  );
+  // The explorer's shared small button (.fx-btn.fx-btn-sm).
+  const style: React.CSSProperties = {
+    alignSelf: 'flex-start',
+    cursor: interactive ? 'pointer' : 'default',
+  };
+
+  if (!interactive) {
+    return (
+      <span className="fx-btn fx-btn-sm" style={style} aria-hidden>
+        {inner}
+      </span>
+    );
+  }
+
+  return (
+    <button type="button" className="fx-btn fx-btn-sm" onClick={onClick} style={style}>
+      {inner}
+    </button>
+  );
+}
+
+/**
+ * Human-readable byte size using binary units (1 KB = 1024 B), matching how
+ * PDS/repo tooling reports CAR sizes. Shows one decimal from MB up (two for
+ * GB) and drops the decimal for whole-ish KB so tiny repos stay tidy.
+ */
+function formatBytes(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  const kb = bytes / 1024;
+  if (kb < 1024) return `${kb.toFixed(kb < 10 ? 1 : 0)} KB`;
+  const mb = kb / 1024;
+  if (mb < 1024) return `${mb.toFixed(1)} MB`;
+  return `${(mb / 1024).toFixed(2)} GB`;
 }

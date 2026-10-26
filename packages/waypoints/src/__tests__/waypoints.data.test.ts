@@ -1,9 +1,16 @@
 import { describe, it, expect } from 'vitest';
 import {
+  COMPAT_FAMILY_ORDER,
   WAYPOINT_DESTINATIONS_DATA,
+  describeComposeIntent,
+  getComposeIntentAppUrl,
+  getComposeIntentTemplate,
+  getComposeIntentUrl,
+  getComposeIntentWaypoints,
   getRecommendedWaypointsData,
   getWaypointDataForType,
   getFeaturedWaypointData,
+  supportsComposeIntent,
 } from '../waypoints.data';
 
 describe('getUrl', () => {
@@ -23,6 +30,59 @@ describe('getUrl', () => {
       'abc',
     );
     expect(url).toBe('https://anisota.net/profile/alice.bsky.social/post/abc');
+  });
+
+  // Regression: these clients advertised `list` support but had no
+  // `app.bsky.graph.list` branch, so every list URL collapsed to its author's
+  // profile.
+  it.each([
+    ['bluesky', 'https://bsky.app'],
+    ['blacksky', 'https://blacksky.community'],
+    ['witchsky', 'https://witchsky.app'],
+    ['deer', 'https://deer.social'],
+    ['mu', 'https://mu.social'],
+    ['northsky', 'https://northsky.app'],
+    ['impro', 'https://impro.social'],
+    ['anisota', 'https://anisota.net'],
+    ['aturi', 'https://aturi.to'],
+  ])('builds a %s list url', (id, origin) => {
+    const url = WAYPOINT_DESTINATIONS_DATA[id].getUrl(
+      'alice.bsky.social',
+      'app.bsky.graph.list',
+      'abc',
+    );
+    expect(url).toBe(`${origin}/profile/alice.bsky.social/lists/abc`);
+  });
+
+  it('builds a lea post url', () => {
+    const url = WAYPOINT_DESTINATIONS_DATA.lea.getUrl(
+      'alice.bsky.social',
+      'app.bsky.feed.post',
+      'abc',
+    );
+    expect(url).toBe('https://lea.ac/profile/alice.bsky.social/post/abc');
+  });
+
+  it.each([['reddwarf'], ['lea']])(
+    'does not advertise list support for %s, which has no list route',
+    id => {
+      expect(WAYPOINT_DESTINATIONS_DATA[id].supportedTypes).not.toContain('list');
+    },
+  );
+
+  it('never sends a list to its author', () => {
+    // Waypoints in the bluesky-social family render bsky lists themselves, so
+    // one claiming `list` support has to address the list rather than fall back
+    // to the author's profile. (Apps outside the family — Leaflet, Tangled, and
+    // friends — legitimately fall back: they can't render a bsky list at all,
+    // and the picker offers them as "find this person over there" jumps.)
+    for (const waypoint of Object.values(WAYPOINT_DESTINATIONS_DATA)) {
+      if (!waypoint.redirectCompat.includes('bluesky-social')) continue;
+      if (!waypoint.supportedTypes.includes('list')) continue;
+      const list = waypoint.getUrl('alice.bsky.social', 'app.bsky.graph.list', 'abc');
+      const profile = waypoint.getUrl('alice.bsky.social');
+      expect({ id: waypoint.id, list }).not.toEqual({ id: waypoint.id, list: profile });
+    }
   });
 
   it('returns null for offprint without a record', () => {
@@ -45,6 +105,156 @@ describe('getRecommendedWaypointsData', () => {
   it('falls back to a default recommendation', () => {
     const { waypoints } = getRecommendedWaypointsData('unknown');
     expect(waypoints.length).toBeGreaterThan(0);
+  });
+});
+
+describe('compose intents', () => {
+  // Each of these was confirmed against the client's shipped bundle: the
+  // social-app forks all parse `/intent/compose?text=`, Impro routes the path
+  // but drops the text. Anisota is the exception — its route is in flight, so
+  // this asserts the shape we agreed on, not something already deployed.
+  // Anything not listed here has no confirmed route.
+  it.each([
+    ['bluesky', 'https://bsky.app/intent/compose?text=hello%20there'],
+    ['anisota', 'https://anisota.net/intent/compose?text=hello%20there'],
+    ['blacksky', 'https://blacksky.community/intent/compose?text=hello%20there'],
+    ['deer', 'https://deer.social/intent/compose?text=hello%20there'],
+    ['witchsky', 'https://witchsky.app/intent/compose?text=hello%20there'],
+    ['mu', 'https://mu.social/intent/compose?text=hello%20there'],
+    ['northsky', 'https://northsky.app/intent/compose?text=hello%20there'],
+  ])('builds a pre-filled %s compose link', (id, expected) => {
+    expect(getComposeIntentUrl(WAYPOINT_DESTINATIONS_DATA[id], 'hello there')).toBe(expected);
+  });
+
+  it('drops the text for a client that ignores it', () => {
+    const impro = WAYPOINT_DESTINATIONS_DATA.impro;
+    expect(supportsComposeIntent(impro)).toBe(true);
+    expect(getComposeIntentUrl(impro, 'hello there')).toBe(
+      'https://impro.social/intent/compose',
+    );
+    expect(describeComposeIntent(impro)?.prefillsText).toBe(false);
+  });
+
+  it('returns null for clients with no confirmed intent route', () => {
+    for (const id of ['bluepy', 'reddwarf', 'pinksky', 'pdsls', 'leaflet']) {
+      const waypoint = WAYPOINT_DESTINATIONS_DATA[id];
+      expect(supportsComposeIntent(waypoint)).toBe(false);
+      expect(getComposeIntentUrl(waypoint, 'hi')).toBeNull();
+      expect(describeComposeIntent(waypoint)).toBeNull();
+    }
+  });
+
+  it('omits the query string when no text is passed', () => {
+    expect(getComposeIntentUrl(WAYPOINT_DESTINATIONS_DATA.bluesky)).toBe(
+      'https://bsky.app/intent/compose',
+    );
+  });
+
+  it('url-encodes the text', () => {
+    const url = getComposeIntentUrl(
+      WAYPOINT_DESTINATIONS_DATA.bluesky,
+      'a & b?c=d #tag',
+    );
+    expect(url).toBe('https://bsky.app/intent/compose?text=a%20%26%20b%3Fc%3Dd%20%23tag');
+    expect(new URL(url!).searchParams.get('text')).toBe('a & b?c=d #tag');
+  });
+
+  it('exposes the native deep link only where a scheme is published', () => {
+    expect(getComposeIntentAppUrl(WAYPOINT_DESTINATIONS_DATA.bluesky, 'hi')).toBe(
+      'bluesky://intent/compose?text=hi',
+    );
+    expect(getComposeIntentAppUrl(WAYPOINT_DESTINATIONS_DATA.deer, 'hi')).toBeNull();
+  });
+
+  it('templates the text placeholder for callers that build their own links', () => {
+    expect(getComposeIntentTemplate(WAYPOINT_DESTINATIONS_DATA.deer)).toBe(
+      'https://deer.social/intent/compose?text={text}',
+    );
+    // No placeholder when the client won't read it.
+    expect(getComposeIntentTemplate(WAYPOINT_DESTINATIONS_DATA.impro)).toBe(
+      'https://impro.social/intent/compose',
+    );
+  });
+
+  it('lists compose-capable waypoints in catalog order', () => {
+    expect(getComposeIntentWaypoints().map((w) => w.id)).toEqual([
+      'anisota',
+      'bluesky',
+      'impro',
+      'blacksky',
+      'witchsky',
+      'mu',
+      'deer',
+      'northsky',
+    ]);
+  });
+
+  it('narrows the list to clients that also render the type', () => {
+    const ids = getComposeIntentWaypoints('list').map((w) => w.id);
+    expect(ids).toContain('bluesky');
+    // Every compose-capable client renders lists, so the filter is only
+    // meaningful once one of them drops a type — assert the shape holds.
+    for (const id of ids) {
+      expect(WAYPOINT_DESTINATIONS_DATA[id].supportedTypes).toContain('list');
+    }
+  });
+
+  it('only claims compose support for clients in the bluesky family', () => {
+    for (const waypoint of getComposeIntentWaypoints()) {
+      expect(waypoint.redirectCompat).toContain('bluesky-social');
+    }
+  });
+
+  it('points every intent at the client’s own origin', () => {
+    for (const waypoint of getComposeIntentWaypoints()) {
+      const intentOrigin = new URL(waypoint.composeIntent!.url).origin;
+      const profileOrigin = new URL(waypoint.getUrl('alice.bsky.social')!).origin;
+      expect({ id: waypoint.id, intentOrigin }).toEqual({
+        id: waypoint.id,
+        intentOrigin: profileOrigin,
+      });
+    }
+  });
+});
+
+describe('redirect compat families', () => {
+  /**
+   * The host a waypoint's links land on, probed rather than declared: the
+   * catalog stores URL builders, and some only answer for the collections they
+   * render (Offprint returns null without a record).
+   */
+  function hostOf(waypoint: (typeof WAYPOINT_DESTINATIONS_DATA)[string]): string | null {
+    const probes: Array<[string | undefined, string | undefined]> = [
+      [undefined, undefined],
+      ['app.bsky.feed.post', 'probe'],
+      ['site.standard.document', 'probe'],
+      ['com.example.probe', 'probe'],
+    ];
+    for (const [collection, rkey] of probes) {
+      const url = waypoint.getUrl('probe.example', collection, rkey, 'did:plc:probe');
+      if (url) return new URL(url).host;
+    }
+    return null;
+  }
+
+  it('gives each site one entry per family', () => {
+    // Both settings UIs list a family's members as the destinations you can
+    // favor, so two waypoints on the same host in the same family read as a
+    // duplicate — which is what listing Anisota (the Bluesky client) alongside
+    // Anisota Reader under Publications looked like. A site that plays two
+    // roles splits them by family: `anisota` is `bluesky-social`,
+    // `anisotaReader` is `standard-site`.
+    for (const family of COMPAT_FAMILY_ORDER) {
+      const byHost = new Map<string, string[]>();
+      for (const waypoint of Object.values(WAYPOINT_DESTINATIONS_DATA)) {
+        if (!waypoint.redirectCompat.includes(family)) continue;
+        const host = hostOf(waypoint);
+        if (!host) continue;
+        byHost.set(host, [...(byHost.get(host) ?? []), waypoint.id]);
+      }
+      const duplicates = [...byHost].filter(([, ids]) => ids.length > 1);
+      expect({ family, duplicates }).toEqual({ family, duplicates: [] });
+    }
   });
 });
 

@@ -11,12 +11,42 @@ import {
   type Theme,
   DEFAULT_THEME,
 } from '@/lib/theme';
+import {
+  applyColorScheme,
+  COLOR_SCHEMES,
+  type ColorScheme,
+} from '@/lib/colorScheme';
+import {
+  applyFontScale,
+  getStoredFontScale,
+  isFontScale,
+  setStoredFontScale,
+  FONT_SCALE_OPTIONS,
+  FONT_SCALE_STORAGE_KEY,
+  type FontScale,
+  DEFAULT_FONT_SCALE,
+} from '@/lib/fontScale';
+import {
+  applyHighContrast,
+  applyReduceMotion,
+  getHighContrastServerSnapshot,
+  getHighContrastSnapshot,
+  getReduceMotionServerSnapshot,
+  getReduceMotionSnapshot,
+  HIGH_CONTRAST_STORAGE_KEY,
+  REDUCE_MOTION_STORAGE_KEY,
+  setStoredHighContrast,
+  setStoredReduceMotion,
+  subscribeHighContrast,
+  subscribeReduceMotion,
+} from '@/lib/a11y';
 import { usePreferences } from '@/components/PreferencesProvider';
 import { useMyCollections } from '@/components/explore/useRepoCollections';
 import Toggle from '../Toggle';
 import {
   addPinnedLexicon,
-  isLikelyNsid,
+  isLikelyPinEntry,
+  isPinGroup,
   removePinnedLexicon,
   setPinScope,
   type PinTarget,
@@ -25,26 +55,68 @@ import {
 
 /**
  * General settings — appearance and other app-wide toggles. The schema
- * for non-theme feature toggles lives in `src/utils/preferences.ts`;
- * extend it (and surface a <Toggle> row here) when adding new ones.
+ * for synced settings (the color scheme, feature toggles) lives in
+ * `src/utils/preferences.ts`; extend it (and surface a <Toggle> row here)
+ * when adding new ones. Dark/light, font size and the accessibility
+ * switches stay browser-local — they're per-device choices.
  */
 export default function GeneralTab() {
   return (
     <>
-      <section className="settings-card">
-        <div className="settings-card-head">
-          <h2 className="settings-card-title">Appearance</h2>
-          <p className="settings-card-sub">
-            Switch between dark and light themes. The page chrome and accent
-            palette flip together; explorer panels, embeds, and the home strip
-            all follow.
-          </p>
-        </div>
-        <ThemePicker />
-      </section>
-
+      <AppearanceCard />
+      <UpdatesCard />
       <ExplorerCard />
     </>
+  );
+}
+
+/**
+ * Counterpart to the "Don't show these again" button on the What's new modal,
+ * so turning it off isn't a one-way door.
+ */
+function UpdatesCard() {
+  const { prefs, update } = usePreferences();
+
+  return (
+    <section className="settings-card">
+      <div className="settings-card-head">
+        <h2 className="settings-card-title">Updates</h2>
+        <p className="settings-card-sub">
+          When Aturi ships something new — a client joining the catalog, a new
+          feature — it can tell you about it the next time you visit.
+        </p>
+      </div>
+
+      <Toggle
+        id="announce-releases"
+        label="Announce new releases"
+        description="Show a summary of what changed the first time you visit after an update. The bell in the header always keeps the notes available, whether this is on or off."
+        checked={prefs.announceReleases}
+        onChange={(next) => update((p) => ({ ...p, announceReleases: next }))}
+      />
+    </section>
+  );
+}
+
+function AppearanceCard() {
+  return (
+    <section className="settings-card">
+      <div className="settings-card-head">
+        <h2 className="settings-card-title">Appearance</h2>
+        <p className="settings-card-sub">
+          Pick a color scheme, flip it between dark and light, tune the text
+          size, and dial in accessibility options. The page chrome and accent
+          palette move together; explorer panels, embeds, and the home strip
+          all follow. Choose which explorer sections appear (and in what
+          order) under the <strong>Sections</strong> tab.
+        </p>
+      </div>
+      <ColorSchemePicker />
+      <ThemePicker />
+      <FontScalePicker />
+      <ReduceMotionToggle />
+      <HighContrastToggle />
+    </section>
   );
 }
 
@@ -60,9 +132,9 @@ function ExplorerCard() {
       <div className="settings-card-head">
         <h2 className="settings-card-title">Explorer</h2>
         <p className="settings-card-sub">
-          Pin lexicons from any repo's collections tab to surface them at the
-          top of the list. Useful for jumping straight to the records you
-          touch most.
+          Pin lexicons (or entire NSID groups like <code>app.bsky.feed.*</code>)
+          from any repo&apos;s collections tab to surface them at the top of the
+          list. Useful for jumping straight to the records you touch most.
         </p>
       </div>
 
@@ -75,19 +147,14 @@ function ExplorerCard() {
             <em>My repo</em> shows the Pinned section only on your own account
             page. <em>Every repo</em> bubbles a single shared list up on
             every page that has a match. <em>Separate</em> lets you keep
-            two different lists — one for your repo, another for everyone
-            else's.
+            two different lists: one for your repo, another for everyone
+            else&apos;s.
           </span>
         </div>
         <div
           role="radiogroup"
           aria-label="Pin scope"
-          style={{
-            display: 'inline-flex',
-            border: '1px solid var(--border-medium)',
-            overflow: 'hidden',
-            flexShrink: 0,
-          }}
+          className="settings-seg"
         >
           {(
             [
@@ -104,18 +171,7 @@ function ExplorerCard() {
                 role="radio"
                 aria-checked={active}
                 onClick={() => pickScope(value)}
-                style={{
-                  padding: '0.4rem 0.875rem',
-                  fontSize: '0.85rem',
-                  background: active ? 'var(--accent-forest)' : 'transparent',
-                  color: active ? 'var(--text-on-accent)' : 'var(--text-secondary)',
-                  border: 'none',
-                  cursor: 'pointer',
-                  transition: 'background 0.2s ease, color 0.2s ease',
-                  textTransform: 'lowercase',
-                  letterSpacing: '0.02em',
-                  fontFamily: 'var(--font-serif)',
-                }}
+                className={`settings-seg-option ${active ? 'is-active' : ''}`}
               >
                 {label}
               </button>
@@ -166,7 +222,11 @@ function PinnedList({
   const [draft, setDraft] = useState('');
   const [err, setErr] = useState<string | null>(null);
   const [focused, setFocused] = useState(false);
-  const [activeIdx, setActiveIdx] = useState(0);
+  // Active suggestion index, keyed by the (draft, list-length) shape it was
+  // set against. When the filtered suggestions change the derived index
+  // resets to 0 on its own — replaces the old reset-on-change effect that
+  // tripped react-hooks/set-state-in-effect.
+  const [activeEntry, setActiveEntry] = useState<{ key: string; idx: number } | null>(null);
   const containerRef = useRef<HTMLFormElement>(null);
 
   // Source for autocomplete: NSIDs on the signed-in user's own repo.
@@ -174,10 +234,33 @@ function PinnedList({
   // to a pure free-text input.
   const myCollections = useMyCollections();
   const pinnedSet = useMemo(() => new Set(list), [list]);
-  const suggestions = useMemo(() => {
+  // Suggestion pool: every NSID on the user's own repo, plus group
+  // wildcards (`prefix.*`) for any major/sub prefix shared by two or more
+  // collections — a one-member group isn't worth offering.
+  const candidatePool = useMemo(() => {
     if (!myCollections) return [] as string[];
+    const nsids = Array.from(myCollections);
+    const counts = new Map<string, number>();
+    for (const n of nsids) {
+      const segs = n.split('.');
+      if (segs.length >= 2) {
+        const major = `${segs[0]}.${segs[1]}`;
+        counts.set(major, (counts.get(major) ?? 0) + 1);
+      }
+      if (segs.length >= 4) {
+        const sub = `${segs[0]}.${segs[1]}.${segs[2]}`;
+        counts.set(sub, (counts.get(sub) ?? 0) + 1);
+      }
+    }
+    const groups = Array.from(counts.entries())
+      .filter(([, c]) => c >= 2)
+      .map(([p]) => `${p}.*`);
+    return [...nsids, ...groups];
+  }, [myCollections]);
+  const suggestions = useMemo(() => {
+    if (candidatePool.length === 0) return [] as string[];
     const q = draft.trim().toLowerCase();
-    const candidates = Array.from(myCollections).filter((n) => !pinnedSet.has(n));
+    const candidates = candidatePool.filter((n) => !pinnedSet.has(n));
     candidates.sort();
     if (!q) return candidates.slice(0, SUGGESTION_LIMIT);
     // Rank: prefix match first, then any substring match.
@@ -187,7 +270,7 @@ function PinnedList({
       .filter(([, l]) => !l.startsWith(q) && l.includes(q))
       .map(([n]) => n);
     return [...prefix, ...contains].slice(0, SUGGESTION_LIMIT);
-  }, [myCollections, draft, pinnedSet]);
+  }, [candidatePool, draft, pinnedSet]);
 
   // Close suggestions on outside click.
   useEffect(() => {
@@ -201,19 +284,22 @@ function PinnedList({
     return () => document.removeEventListener('mousedown', onClick);
   }, [focused]);
 
-  // Reset active suggestion whenever the filtered set changes shape.
-  useEffect(() => {
-    setActiveIdx(0);
-  }, [draft, suggestions.length]);
-
   const suggestionsOpen = focused && suggestions.length > 0;
+
+  // Derived: whenever the filtered set changes shape the key changes and the
+  // index falls back to 0 without a reset effect.
+  const activeKey = `${draft}|${suggestions.length}`;
+  const activeIdx = activeEntry && activeEntry.key === activeKey ? activeEntry.idx : 0;
+  function setActiveIdx(next: number | ((i: number) => number)) {
+    setActiveEntry({ key: activeKey, idx: typeof next === 'function' ? next(activeIdx) : next });
+  }
 
   function pin(value: string) {
     const v = value.trim().toLowerCase();
     if (!v) return;
-    if (!isLikelyNsid(v)) {
+    if (!isLikelyPinEntry(v)) {
       setErr(
-        'That doesn’t look like a valid NSID. Expected lowercase, dotted (e.g. app.bsky.feed.post).',
+        'That doesn’t look like a valid NSID. Expected lowercase, dotted (e.g. app.bsky.feed.post), or a group wildcard (e.g. app.bsky.feed.*).',
       );
       return;
     }
@@ -257,25 +343,11 @@ function PinnedList({
   }
 
   return (
-    <div style={{ marginTop: '1rem' }}>
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '0.4rem',
-          fontFamily: 'var(--font-serif)',
-          fontSize: '0.75rem',
-          letterSpacing: '0.08em',
-          textTransform: 'uppercase',
-          color: 'var(--text-tertiary)',
-          marginBottom: '0.5rem',
-        }}
-      >
+    <div className="settings-pins">
+      <div className="settings-kicker">
         <Pin size={12} aria-hidden />
         {title}
-        <span style={{ marginLeft: 'auto', letterSpacing: '0.04em' }}>
-          {list.length}
-        </span>
+        <span className="settings-count">{list.length}</span>
       </div>
 
       <form
@@ -284,14 +356,9 @@ function PinnedList({
           submit();
         }}
         ref={containerRef}
-        style={{
-          display: 'flex',
-          gap: '0.5rem',
-          marginBottom: '0.5rem',
-          position: 'relative',
-        }}
+        className="settings-pin-form"
       >
-        <div style={{ flex: 1, minWidth: 0, position: 'relative' }}>
+        <div className="settings-pin-field">
           <input
             type="text"
             inputMode="text"
@@ -307,8 +374,8 @@ function PinnedList({
             onKeyDown={onKeyDown}
             placeholder={
               myCollections
-                ? 'Search your repo or type an NSID…'
-                : 'app.bsky.feed.post'
+                ? 'Search, or type an NSID / group (app.bsky.feed.*)…'
+                : 'app.bsky.feed.post or app.bsky.feed.*'
             }
             aria-label={`Add lexicon to ${title}`}
             aria-autocomplete="list"
@@ -318,36 +385,13 @@ function PinnedList({
               suggestionsOpen ? `pinned-suggestion-${target}-${activeIdx}` : undefined
             }
             role="combobox"
-            style={{
-              width: '100%',
-              padding: '0.45rem 0.65rem',
-              background: 'var(--bg-tertiary)',
-              border: `1px solid ${err ? 'var(--text-error, #b94a4a)' : 'var(--border-medium)'}`,
-              color: 'var(--text-primary)',
-              fontFamily: 'var(--font-mono)',
-              fontSize: '0.85rem',
-              outline: 'none',
-            }}
+            className={`settings-input is-mono ${err ? 'is-invalid' : ''}`}
           />
           {suggestionsOpen && (
             <ul
               id={`pinned-suggestions-${target}`}
               role="listbox"
-              style={{
-                listStyle: 'none',
-                margin: 0,
-                padding: 0,
-                position: 'absolute',
-                top: 'calc(100% + 2px)',
-                left: 0,
-                right: 0,
-                zIndex: 5,
-                background: 'var(--bg-secondary)',
-                border: '1px solid var(--border-medium)',
-                maxHeight: '16rem',
-                overflowY: 'auto',
-                boxShadow: '0 6px 18px rgba(0,0,0,0.25)',
-              }}
+              className="settings-suggest"
             >
               {suggestions.map((nsid, i) => (
                 <li
@@ -360,19 +404,7 @@ function PinnedList({
                     pin(nsid);
                   }}
                   onMouseEnter={() => setActiveIdx(i)}
-                  style={{
-                    padding: '0.4rem 0.65rem',
-                    fontFamily: 'var(--font-mono)',
-                    fontSize: '0.8rem',
-                    background:
-                      i === activeIdx ? 'var(--bg-tertiary)' : 'transparent',
-                    color:
-                      i === activeIdx
-                        ? 'var(--text-accent)'
-                        : 'var(--text-primary)',
-                    cursor: 'pointer',
-                    wordBreak: 'break-all',
-                  }}
+                  className={`settings-suggest-item ${i === activeIdx ? 'is-active' : ''}`}
                 >
                   {highlightMatch(nsid, draft)}
                 </li>
@@ -383,90 +415,31 @@ function PinnedList({
         <button
           type="submit"
           disabled={draft.trim().length === 0}
-          style={{
-            padding: '0.45rem 0.9rem',
-            background: 'var(--accent-forest)',
-            color: 'var(--text-on-accent)',
-            border: 0,
-            cursor: draft.trim() ? 'pointer' : 'not-allowed',
-            fontFamily: 'var(--font-serif)',
-            fontSize: '0.85rem',
-            opacity: draft.trim() ? 1 : 0.5,
-          }}
+          className="settings-btn is-primary"
         >
           Pin
         </button>
       </form>
-      {err && (
-        <p
-          style={{
-            margin: '0 0 0.5rem 0',
-            fontSize: '0.75rem',
-            color: 'var(--text-error, #b94a4a)',
-          }}
-        >
-          {err}
-        </p>
-      )}
+      {err && <p className="settings-error">{err}</p>}
 
       {list.length === 0 ? (
-        <p
-          style={{
-            fontSize: '0.85rem',
-            color: 'var(--text-tertiary)',
-            fontStyle: 'italic',
-            margin: 0,
-          }}
-        >
-          Nothing pinned yet. Add an NSID above, or use the pin button on rows
-          in any repo's Collections tab.
+        <p className="settings-empty">
+          Nothing pinned yet. Add an NSID or a group wildcard (e.g.
+          app.bsky.feed.*) above, or use the pin button on rows and group
+          headers in any repo&apos;s Collections tab.
         </p>
       ) : (
-        <ul
-          style={{
-            listStyle: 'none',
-            margin: 0,
-            padding: 0,
-            border: '1px solid var(--border-medium)',
-          }}
-        >
-          {list.map((nsid, i) => (
-            <li
-              key={nsid}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.5rem',
-                padding: '0.45rem 0.75rem',
-                background: i % 2 === 0 ? 'var(--bg-primary)' : 'transparent',
-                fontFamily: 'var(--font-mono)',
-                fontSize: '0.85rem',
-                wordBreak: 'break-all',
-              }}
-            >
+        <ul className="settings-list">
+          {list.map((nsid) => (
+            <li key={nsid} className="settings-list-item is-mono">
               <span style={{ flex: 1, minWidth: 0 }}>{nsid}</span>
+              {isPinGroup(nsid) && <span className="settings-pill">group</span>}
               <button
                 type="button"
                 onClick={() => unpin(nsid)}
                 aria-label={`Unpin ${nsid}`}
                 title="Remove pin"
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  padding: '0.25rem',
-                  background: 'transparent',
-                  border: 0,
-                  color: 'var(--text-tertiary)',
-                  cursor: 'pointer',
-                  flexShrink: 0,
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.color = 'var(--text-accent)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.color = 'var(--text-tertiary)';
-                }}
+                className="settings-icon-btn"
               >
                 <X size={14} aria-hidden />
               </button>
@@ -509,11 +482,68 @@ function highlightMatch(nsid: string, query: string): React.ReactNode {
   return (
     <>
       {nsid.slice(0, idx)}
-      <strong style={{ color: 'var(--text-accent)', fontWeight: 600 }}>
-        {nsid.slice(idx, idx + q.length)}
-      </strong>
+      <strong>{nsid.slice(idx, idx + q.length)}</strong>
       {nsid.slice(idx + q.length)}
     </>
+  );
+}
+
+/**
+ * Palette picker. Unlike the rest of this card, the scheme lives in the
+ * synced preferences record rather than localStorage, so it travels with
+ * the account. `applyColorScheme` runs here for instant feedback;
+ * `ColorSchemeSync` re-applies from prefs and updates the pre-paint cache.
+ */
+function ColorSchemePicker() {
+  const { prefs, update } = usePreferences();
+
+  function pick(next: ColorScheme) {
+    applyColorScheme(next);
+    update((p) => ({ ...p, colorScheme: next }));
+  }
+
+  return (
+    <div className="settings-toggle-row is-stacked">
+      <div className="settings-toggle-label">
+        <span className="settings-toggle-label-text">Color scheme</span>
+        <span className="settings-toggle-label-sub">
+          The palette the whole app is painted in. Every scheme has a dark and
+          a light variant — the row below picks which one you see. Saved with
+          the rest of your settings, so it follows you to other devices when
+          you&apos;re signed in.
+        </span>
+      </div>
+      <div
+        role="radiogroup"
+        aria-label="Color scheme"
+        className="scheme-picker"
+      >
+        {COLOR_SCHEMES.map(({ value, label, hint }) => {
+          const active = prefs.colorScheme === value;
+          return (
+            <button
+              key={value}
+              type="button"
+              role="radio"
+              aria-checked={active}
+              onClick={() => pick(value)}
+              className={`scheme-option ${active ? 'is-active' : ''}`}
+            >
+              {/* Two-tone chip: dark variant on the left, light on the
+                  right, so both are visible whichever one is active. */}
+              <span className="scheme-swatch" data-scheme={value} aria-hidden>
+                <span />
+                <span />
+              </span>
+              <span style={{ minWidth: 0 }}>
+                <span className="scheme-option-name">{label}</span>
+                <span className="scheme-option-hint">{hint}</span>
+              </span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
   );
 }
 
@@ -531,20 +561,16 @@ function ThemePicker() {
   return (
     <div className="settings-toggle-row">
       <div className="settings-toggle-label">
-        <span className="settings-toggle-label-text">Theme</span>
+        <span className="settings-toggle-label-text">Dark or light</span>
         <span className="settings-toggle-label-sub">
-          Choose dark or light. Saved in this browser.
+          Which variant of the scheme above to show. Saved in this browser, so
+          you can run light here and dark on your phone.
         </span>
       </div>
       <div
         role="radiogroup"
-        aria-label="Color theme"
-        style={{
-          display: 'inline-flex',
-          border: '1px solid var(--border-medium)',
-          overflow: 'hidden',
-          flexShrink: 0,
-        }}
+        aria-label="Dark or light"
+        className="settings-seg"
       >
         {(['dark', 'light'] as const).map((value) => {
           const active = theme === value;
@@ -555,18 +581,7 @@ function ThemePicker() {
               role="radio"
               aria-checked={active}
               onClick={() => pick(value)}
-              style={{
-                padding: '0.4rem 0.875rem',
-                fontSize: '0.85rem',
-                background: active ? 'var(--accent-forest)' : 'transparent',
-                color: active ? 'var(--text-on-accent)' : 'var(--text-secondary)',
-                border: 'none',
-                cursor: 'pointer',
-                transition: 'background 0.2s ease, color 0.2s ease',
-                textTransform: 'lowercase',
-                letterSpacing: '0.02em',
-                fontFamily: 'var(--font-serif)',
-              }}
+              className={`settings-seg-option ${active ? 'is-active' : ''}`}
             >
               {value}
             </button>
@@ -574,5 +589,132 @@ function ThemePicker() {
         })}
       </div>
     </div>
+  );
+}
+
+function subscribeFontScale(onChange: () => void): () => void {
+  function handler(event: StorageEvent) {
+    if (event.key === FONT_SCALE_STORAGE_KEY) onChange();
+  }
+  window.addEventListener('storage', handler);
+  return () => window.removeEventListener('storage', handler);
+}
+
+function getFontScaleSnapshot(): FontScale {
+  const attr = document.documentElement.dataset.fontScale;
+  if (isFontScale(attr)) return attr;
+  return getStoredFontScale();
+}
+
+function getFontScaleServerSnapshot(): FontScale {
+  return DEFAULT_FONT_SCALE;
+}
+
+function FontScalePicker() {
+  const scale = useSyncExternalStore(
+    subscribeFontScale,
+    getFontScaleSnapshot,
+    getFontScaleServerSnapshot,
+  );
+
+  function pick(next: FontScale) {
+    setStoredFontScale(next);
+    applyFontScale(next);
+    window.dispatchEvent(
+      new StorageEvent('storage', {
+        key: FONT_SCALE_STORAGE_KEY,
+        newValue: next,
+      }),
+    );
+  }
+
+  return (
+    <div className="settings-toggle-row">
+      <div className="settings-toggle-label">
+        <span className="settings-toggle-label-text">Font size</span>
+        <span className="settings-toggle-label-sub">
+          Adjusts text size across the app. Saved in this browser.
+        </span>
+      </div>
+      <div
+        role="radiogroup"
+        aria-label="Font size"
+        className="settings-seg"
+      >
+        {FONT_SCALE_OPTIONS.map(({ value, label }) => {
+          const active = scale === value;
+          return (
+            <button
+              key={value}
+              type="button"
+              role="radio"
+              aria-checked={active}
+              onClick={() => pick(value)}
+              className={`settings-seg-option ${active ? 'is-active' : ''}`}
+            >
+              {label}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function ReduceMotionToggle() {
+  const on = useSyncExternalStore(
+    subscribeReduceMotion,
+    getReduceMotionSnapshot,
+    getReduceMotionServerSnapshot,
+  );
+
+  function set(next: boolean) {
+    setStoredReduceMotion(next);
+    applyReduceMotion(next);
+    window.dispatchEvent(
+      new StorageEvent('storage', {
+        key: REDUCE_MOTION_STORAGE_KEY,
+        newValue: next ? 'true' : 'false',
+      }),
+    );
+  }
+
+  return (
+    <Toggle
+      id="reduce-motion"
+      label="Reduce motion"
+      description="Pauses page, hover, and loading animations across the site. Defaults to your system setting."
+      checked={on}
+      onChange={set}
+    />
+  );
+}
+
+function HighContrastToggle() {
+  const on = useSyncExternalStore(
+    subscribeHighContrast,
+    getHighContrastSnapshot,
+    getHighContrastServerSnapshot,
+  );
+
+  function set(next: boolean) {
+    setStoredHighContrast(next);
+    applyHighContrast(next);
+    window.dispatchEvent(
+      new StorageEvent('storage', {
+        key: HIGH_CONTRAST_STORAGE_KEY,
+        newValue: next ? 'true' : 'false',
+      }),
+    );
+  }
+
+  return (
+    <Toggle
+      id="high-contrast"
+      label="High contrast"
+      description="Boosts text and border contrast for a sharper, more legible interface. Defaults to your system setting."
+      checked={on}
+      onChange={set}
+    />
   );
 }

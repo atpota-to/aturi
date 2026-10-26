@@ -26,25 +26,37 @@ import {
 import {
   addWaypointGroup,
   addWaypointToGroup,
+  adoptTargetFor,
+  adoptWaypoint,
   defaultWaypointGroups,
+  markKnown,
   removeWaypointFromGroup,
   removeWaypointGroup,
   renameWaypointGroup,
   setGroupCollapsed,
   setGroupWaypointOrder,
   setWaypointGroups,
+  type CustomWaypoint,
   type Prefs,
   type WaypointGroup,
 } from '../../../lib/prefs';
 import { allWaypoints, newBuiltinWaypoints } from '../../../lib/catalog';
+import { describeWaypoint } from '../../../lib/describe';
+import { homePageSubtitle } from '../../../lib/homePage';
+import { WaypointIcon } from '../../../lib/Icons';
 
 type Props = {
   prefs: Prefs;
   onChange: (partial: Partial<Prefs>) => void;
 };
 
+/** How many new waypoints the card lists before collapsing behind "Show N more". */
+const NEW_PREVIEW_COUNT = 6;
+
 export default function VisibilityTab({ prefs, onChange }: Props) {
   const groups = prefs.waypointGroups;
+  const [hiddenOpen, setHiddenOpen] = useState(false);
+  const [showAllNew, setShowAllNew] = useState(false);
 
   const allWps = useMemo(() => allWaypoints(prefs.customWaypoints), [prefs.customWaypoints]);
   const lookup = useMemo(() => {
@@ -53,18 +65,23 @@ export default function VisibilityTab({ prefs, onChange }: Props) {
     return m;
   }, [allWps]);
 
-  const newIds = useMemo(
-    () => new Set(newBuiltinWaypoints(prefs).map(w => w.id)),
-    [prefs.knownWaypointIds]
-  );
+  const newWaypoints = useMemo(() => newBuiltinWaypoints(prefs), [prefs.knownWaypointIds]);
+  const newIds = useMemo(() => new Set(newWaypoints.map(w => w.id)), [newWaypoints]);
 
   const groupSensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
 
+  // Forward `knownWaypointIds` alongside the groups: `addWaypointToGroup` and
+  // `adoptWaypoint` both clear the "new" flag for the waypoint being placed,
+  // and dropping that half of the update left the badge (and the popup banner)
+  // up forever even after the user had added the waypoint.
   function commit(next: Prefs) {
-    onChange({ waypointGroups: next.waypointGroups });
+    onChange({
+      waypointGroups: next.waypointGroups,
+      knownWaypointIds: next.knownWaypointIds,
+    });
   }
 
   function handleGroupDragEnd(event: DragEndEvent) {
@@ -112,85 +129,257 @@ export default function VisibilityTab({ prefs, onChange }: Props) {
     commit(setGroupWaypointOrder(prefs, groupId, ids));
   }
 
-  const totalVisible = useMemo(() => {
+  function handleAdopt(waypointId: string) {
+    commit(adoptWaypoint(prefs, waypointId));
+  }
+
+  function handleAdoptAll(ids: string[]) {
+    let next = prefs;
+    for (const id of ids) next = adoptWaypoint(next, id);
+    commit(next);
+  }
+
+  function handleIgnore(waypointId: string) {
+    commit(markKnown(prefs, [waypointId]));
+  }
+
+  const visibleIds = useMemo(() => {
     const ids = new Set<string>();
     for (const g of groups) for (const id of g.waypointIds) ids.add(id);
-    return ids.size;
+    return ids;
   }, [groups]);
-  const totalAvailable = allWps.length;
-  const hiddenCount = Math.max(0, totalAvailable - totalVisible);
+  const totalVisible = visibleIds.size;
+
+  // Everything the user owns but has in no group. New built-ins land here by
+  // definition (we never auto-add to an existing arrangement), which is what
+  // made them invisible with no way back short of Reset.
+  const hiddenWaypoints = useMemo(
+    () => allWps.filter(w => !visibleIds.has(w.id)),
+    [allWps, visibleIds]
+  );
+  const hiddenCount = hiddenWaypoints.length;
+
+  // The card above the groups only calls out genuinely new built-ins. Anything
+  // else the user has hidden is their own doing and lives behind the disclosure.
+  const unplacedNew = useMemo(
+    () => newWaypoints.filter(w => !visibleIds.has(w.id)),
+    [newWaypoints, visibleIds]
+  );
+
+  // A normal release adds a handful. Someone returning after several releases
+  // (or a first upgrade past a big batch) shouldn't get a card that buries
+  // their own groups off-screen, so show a slice until they ask for the rest.
+  const shownNew = showAllNew ? unplacedNew : unplacedNew.slice(0, NEW_PREVIEW_COUNT);
 
   return (
-    <div>
-      <h1 className="options-h1">Waypoints</h1>
-      <p className="options-lede">
-        Build your own groups of waypoints. Drag to reorder groups or rows, and use the
-        plus button on a group header to add waypoints. The same waypoint can live in
-        multiple groups. Waypoints not in any group are hidden from the popup.
-      </p>
+    <div className="options-page">
+      <div className="options-page-head">
+        <h1 className="options-h1">Waypoints</h1>
+        <p className="options-lede">
+          Build your own groups of waypoints. Drag to reorder groups or rows, and use Add app
+          on a group to add waypoints. The same waypoint can live in
+          multiple groups. Waypoints not in any group are hidden from the popup.
+        </p>
+      </div>
 
-      <div className="options-card">
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'flex-start',
-            gap: 16,
-            marginBottom: 8,
-          }}
-        >
-          <div>
-            <div className="options-card-title">Your groups</div>
-            <div className="options-card-sub">
-              {groups.length === 0
-                ? 'No groups yet — create one below.'
-                : `${groups.length} ${groups.length === 1 ? 'group' : 'groups'} · ${totalVisible} visible${hiddenCount > 0 ? ` · ${hiddenCount} hidden` : ''}`}
+      {unplacedNew.length > 0 && (
+        <section className="options-card is-rows new-waypoints-card" aria-labelledby="new-waypoints-title">
+          <div className="new-waypoints-head">
+            <div>
+              <h2 className="options-card-title" id="new-waypoints-title">
+                {unplacedNew.length} new waypoint{unplacedNew.length === 1 ? '' : 's'}
+              </h2>
+              <p className="options-card-sub">
+                Added to Aturi since you last looked. They stay out of the popup until
+                you add them. Adding one puts it at the end of that group and leaves
+                everything else where it is.
+              </p>
+            </div>
+            <div className="adopt-bulk">
+              <button
+                className="aturi-btn aturi-btn-ghost"
+                type="button"
+                onClick={() => commit(markKnown(prefs, unplacedNew.map(w => w.id)))}
+              >
+                Dismiss all
+              </button>
+              <button
+                className="aturi-btn aturi-btn-primary"
+                type="button"
+                onClick={() => handleAdoptAll(unplacedNew.map(w => w.id))}
+              >
+                Add all
+              </button>
             </div>
           </div>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <button className="aturi-btn" onClick={handleResetGroups}>
-              Reset
-            </button>
-            <button className="aturi-btn aturi-btn-primary" onClick={handleAddGroup}>
-              New
-            </button>
+
+          <div className="adopt-list">
+            {shownNew.map(w => (
+              <AdoptRow
+                key={w.id}
+                waypoint={w}
+                target={adoptTargetFor(prefs, w.id)}
+                isNew
+                onAdopt={() => handleAdopt(w.id)}
+                onIgnore={() => handleIgnore(w.id)}
+              />
+            ))}
+            {unplacedNew.length > shownNew.length && (
+              <button
+                type="button"
+                className="adopt-more"
+                onClick={() => setShowAllNew(true)}
+              >
+                Show {unplacedNew.length - shownNew.length} more
+              </button>
+            )}
           </div>
+        </section>
+      )}
+
+      {/* The page's actions ride the summary line, directly above the first
+          group, and New group is the one filled button on the page, as on
+          the site's settings page. */}
+      <div className="groups-toolbar">
+        <p className="groups-summary">
+          {groups.length === 0 ? (
+            'No groups yet. Create one below.'
+          ) : (
+            <>
+              {groups.length} {groups.length === 1 ? 'group' : 'groups'} ·{' '}
+              {totalVisible} visible
+              {hiddenCount > 0 && (
+                <>
+                  {' · '}
+                  <button
+                    type="button"
+                    className="hidden-toggle"
+                    aria-expanded={hiddenOpen}
+                    onClick={() => setHiddenOpen(o => !o)}
+                  >
+                    {hiddenCount} hidden
+                  </button>
+                </>
+              )}
+            </>
+          )}
+        </p>
+        <div className="options-page-actions">
+          <button type="button" className="aturi-btn aturi-btn-ghost" onClick={handleResetGroups}>
+            <ResetIcon />
+            Reset to defaults
+          </button>
+          <button type="button" className="aturi-btn aturi-btn-primary" onClick={handleAddGroup}>
+            <PlusIcon />
+            New group
+          </button>
         </div>
+      </div>
 
-        <DndContext
-          sensors={groupSensors}
-          collisionDetection={closestCenter}
-          onDragEnd={handleGroupDragEnd}
-        >
-          <SortableContext items={groups.map(g => g.id)} strategy={verticalListSortingStrategy}>
-            <div className="group-list">
-              {groups.map(group => (
-                <SortableGroup
-                  key={group.id}
-                  group={group}
-                  lookup={lookup}
-                  allWaypoints={allWps}
-                  newIds={newIds}
-                  onRename={name => handleRenameGroup(group.id, name)}
-                  onRemove={() => handleRemoveGroup(group.id)}
-                  onToggleCollapsed={collapsed => handleToggleCollapsed(group.id, collapsed)}
-                  onAddWaypoint={waypointId => handleAddWaypointToGroup(group.id, waypointId)}
-                  onRemoveWaypoint={waypointId =>
-                    handleRemoveWaypointFromGroup(group.id, waypointId)
-                  }
-                  onReorder={ids => handleReorderInGroup(group.id, ids)}
-                />
-              ))}
-            </div>
-          </SortableContext>
-        </DndContext>
-
-        {groups.length === 0 && (
-          <div style={{ marginTop: 12 }}>
-            <button className="aturi-btn aturi-btn-primary" onClick={handleAddGroup}>
-              Create your first group
-            </button>
+      {hiddenOpen && hiddenCount > 0 && (
+        <section className="options-card hidden-panel" aria-label="Hidden waypoints">
+          <div className="hidden-panel-head">
+            These are in no group, so the popup, redirect rules, and
+            recommendations all skip them.
           </div>
+          <div className="adopt-list">
+            {hiddenWaypoints.map(w => (
+              <AdoptRow
+                key={w.id}
+                waypoint={w}
+                target={adoptTargetFor(prefs, w.id)}
+                isNew={newIds.has(w.id)}
+                onAdopt={() => handleAdopt(w.id)}
+              />
+            ))}
+          </div>
+        </section>
+      )}
+
+      <DndContext
+        sensors={groupSensors}
+        collisionDetection={closestCenter}
+        onDragEnd={handleGroupDragEnd}
+      >
+        <SortableContext items={groups.map(g => g.id)} strategy={verticalListSortingStrategy}>
+          <div className="group-list">
+            {groups.map(group => (
+              <SortableGroup
+                key={group.id}
+                group={group}
+                lookup={lookup}
+                allWaypoints={allWps}
+                newIds={newIds}
+                customWaypoints={prefs.customWaypoints}
+                onRename={name => handleRenameGroup(group.id, name)}
+                onRemove={() => handleRemoveGroup(group.id)}
+                onToggleCollapsed={collapsed => handleToggleCollapsed(group.id, collapsed)}
+                onAddWaypoint={waypointId => handleAddWaypointToGroup(group.id, waypointId)}
+                onRemoveWaypoint={waypointId =>
+                  handleRemoveWaypointFromGroup(group.id, waypointId)
+                }
+                onReorder={ids => handleReorderInGroup(group.id, ids)}
+              />
+            ))}
+          </div>
+        </SortableContext>
+      </DndContext>
+
+      {groups.length === 0 && (
+        <div>
+          <button className="aturi-btn aturi-btn-primary" onClick={handleAddGroup}>
+            Create your first group
+          </button>
+        </div>
+      )}
+
+      <p className="options-footnote">
+        Drag groups or apps to reorder them. An app can live in more than one group.
+      </p>
+    </div>
+  );
+}
+
+// --- Unplaced waypoint row ---------------------------------------------------
+
+type AdoptRowProps = {
+  waypoint: WaypointData;
+  /** Group this waypoint would land in, per `adoptTargetFor`. */
+  target: { id: string; name: string; created: boolean };
+  isNew: boolean;
+  onAdopt: () => void;
+  /** Omitted in the hidden-waypoints panel, where "new" isn't the framing. */
+  onIgnore?: () => void;
+};
+
+function AdoptRow({ waypoint, target, isNew, onAdopt, onIgnore }: AdoptRowProps) {
+  return (
+    <div className="adopt-row">
+      <WaypointIcon id={waypoint.id} name={waypoint.name} />
+      <span className="adopt-text">
+        <span className="adopt-name">
+          {waypoint.name}
+          {isNew && <span className="reorder-tag reorder-tag-new">new</span>}
+        </span>
+        <span className="adopt-desc">{describeWaypoint(waypoint)}</span>
+      </span>
+      <div className="adopt-actions">
+        <button
+          className="aturi-btn adopt-add"
+          type="button"
+          onClick={onAdopt}
+          title={
+            target.created
+              ? `Creates a "${target.name}" group and adds ${waypoint.name} to it`
+              : `Adds ${waypoint.name} to the end of your ${target.name} group`
+          }
+        >
+          Add to {target.name}
+        </button>
+        {onIgnore && (
+          <button className="aturi-btn aturi-btn-ghost" type="button" onClick={onIgnore}>
+            Dismiss
+          </button>
         )}
       </div>
     </div>
@@ -204,6 +393,7 @@ type SortableGroupProps = {
   lookup: Map<string, WaypointData>;
   allWaypoints: WaypointData[];
   newIds: Set<string>;
+  customWaypoints: CustomWaypoint[];
   onRename: (name: string) => void;
   onRemove: () => void;
   onToggleCollapsed: (collapsed: boolean) => void;
@@ -217,6 +407,7 @@ function SortableGroup({
   lookup,
   allWaypoints,
   newIds,
+  customWaypoints,
   onRename,
   onRemove,
   onToggleCollapsed,
@@ -326,8 +517,17 @@ function SortableGroup({
         )}
 
         <span className="group-count" aria-hidden="true">
-          {group.waypointIds.length}
+          {group.waypointIds.length} {group.waypointIds.length === 1 ? 'app' : 'apps'}
         </span>
+
+        {collapsed && group.waypointIds.length > 0 && (
+          <span className="group-peek" aria-hidden="true">
+            {group.waypointIds.slice(0, 8).map(id => {
+              const w = lookup.get(id);
+              return w ? <WaypointIcon key={id} id={id} name={w.name} /> : null;
+            })}
+          </span>
+        )}
 
         <div className="group-actions">
           <button
@@ -338,6 +538,7 @@ function SortableGroup({
             title="Add waypoint"
           >
             <PlusIcon />
+            <span className="group-action-label">Add app</span>
           </button>
           <button
             className="group-action group-action-delete"
@@ -355,7 +556,7 @@ function SortableGroup({
         <div className="group-body">
           {group.waypointIds.length === 0 ? (
             <div className="group-empty">
-              No waypoints yet. Use the + button on the header to add some.
+              No waypoints yet. Use Add app on the header to add some.
             </div>
           ) : (
             <DndContext
@@ -380,6 +581,7 @@ function SortableGroup({
                         key={id}
                         id={id}
                         name={w.name}
+                        domain={homePageSubtitle(w, customWaypoints)}
                         isCustom={isCustom}
                         isMoved={isMoved}
                         isNew={newIds.has(id)}
@@ -412,13 +614,15 @@ function SortableGroup({
 type SortableRowProps = {
   id: string;
   name: string;
+  /** Host label shown after the name, e.g. "anisota.net". */
+  domain: string;
   isCustom: boolean;
   isMoved: boolean;
   isNew: boolean;
   onRemove: () => void;
 };
 
-function SortableRow({ id, name, isCustom, isMoved, isNew, onRemove }: SortableRowProps) {
+function SortableRow({ id, name, domain, isCustom, isMoved, isNew, onRemove }: SortableRowProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id });
   const style: React.CSSProperties = {
@@ -441,8 +645,10 @@ function SortableRow({ id, name, isCustom, isMoved, isNew, onRemove }: SortableR
       >
         <DragHandleIcon />
       </span>
+      <WaypointIcon id={id} name={name} />
       <span className="group-row-name">
-        {name}
+        <span className="group-row-label">{name}</span>
+        <span className="group-row-domain">{domain}</span>
         {isCustom && <span className="reorder-tag">custom</span>}
         {isMoved && !isCustom && (
           <span className="reorder-tag reorder-tag-moved">moved</span>
@@ -495,13 +701,18 @@ function WaypointPicker({ candidates, memberIds, newIds, onPick, onClose }: Pick
   }, [onClose]);
 
   const q = query.trim().toLowerCase();
-  const filtered = useMemo(
-    () =>
-      candidates.filter(w =>
-        q ? w.name.toLowerCase().includes(q) || w.id.toLowerCase().includes(q) : true
-      ),
-    [candidates, q]
-  );
+  // New built-ins float to the top of an otherwise catalog-ordered list —
+  // spotting a small "new" tag somewhere in a list of 28 was not a real way
+  // to find the waypoint that just shipped.
+  const filtered = useMemo(() => {
+    const matches = candidates.filter(w =>
+      q ? w.name.toLowerCase().includes(q) || w.id.toLowerCase().includes(q) : true
+    );
+    const fresh = matches.filter(w => newIds.has(w.id) && !memberIds.has(w.id));
+    if (fresh.length === 0) return matches;
+    const freshIds = new Set(fresh.map(w => w.id));
+    return [...fresh, ...matches.filter(w => !freshIds.has(w.id))];
+  }, [candidates, q, newIds, memberIds]);
 
   return (
     <div ref={containerRef} className="waypoint-picker" role="dialog" aria-label="Add waypoint">
@@ -540,6 +751,7 @@ function WaypointPicker({ candidates, memberIds, newIds, onPick, onClose }: Pick
                 }}
                 disabled={isMember}
               >
+                <WaypointIcon id={w.id} name={w.name} />
                 <span className="waypoint-picker-name">
                   {w.name}
                   {isCustom && <span className="reorder-tag">custom</span>}
@@ -561,7 +773,7 @@ function WaypointPicker({ candidates, memberIds, newIds, onPick, onClose }: Pick
 
 function DragHandleIcon() {
   return (
-    <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
       <circle cx="9" cy="6" r="1.5" />
       <circle cx="15" cy="6" r="1.5" />
       <circle cx="9" cy="12" r="1.5" />
@@ -599,6 +811,17 @@ function PlusIcon() {
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
       <line x1="12" y1="5" x2="12" y2="19" />
       <line x1="5" y1="12" x2="19" y2="12" />
+    </svg>
+  );
+}
+
+/** Counter-clockwise arrow for "Reset to defaults", sized like PlusIcon so
+    the two header actions match. */
+function ResetIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+      <path d="M3 3v5h5" />
     </svg>
   );
 }

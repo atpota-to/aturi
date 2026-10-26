@@ -17,10 +17,13 @@ export async function generateMetadata({
   const isPost = decodedCollection === 'app.bsky.feed.post';
   const ogPath = isPost
     ? `/api/og/post?handle=${encodeURIComponent(decodedRepo)}&rkey=${encodeURIComponent(decodedRkey)}`
-    : `/api/og/static?page=explore`;
+    : `/api/og/explore?repo=${encodeURIComponent(decodedRepo)}&collection=${encodeURIComponent(decodedCollection)}&rkey=${encodeURIComponent(decodedRkey)}`;
   return {
     title,
     description,
+    // Unbounded, client-rendered inspection view — see `explore/[repo]/page.tsx`.
+    // The same record has a canonical, server-rendered home under `/profile/`.
+    robots: { index: false, follow: true },
     openGraph: {
       title,
       description,

@@ -8,7 +8,7 @@ and client icons to your app in a few lines.
 namespaced styling hooks. Use your own design system, opt into the polished Aturi
 theme, or drop down to a hook and render everything yourself.
 
-> **Beta — early release.** This is a `0.x` package that hasn't been
+> **Beta: early release.** This is a `0.x` package that hasn't been
 > thoroughly tested in production yet. Expect rough edges, and possible
 > breaking changes between minor versions while the API settles. Bug reports
 > and feedback are very welcome at
@@ -25,9 +25,23 @@ npm install react react-dom lucide-react
 `@aturi.to/waypoints-react` re-exports everything from `@aturi.to/waypoints`, so a
 single install gives you the components *and* the catalog/resolvers.
 
+Also mirrored to GitHub Packages as `@atpota-to/waypoints-react` (GitHub only
+accepts a scope matching the repository owner, and it rejects the dot in
+`aturi.to`). Installing from there needs an `.npmrc`, because GitHub Packages
+requires a token even for public packages:
+
+```sh
+@atpota-to:registry=https://npm.pkg.github.com
+//npm.pkg.github.com/:_authToken=${GITHUB_TOKEN}   # PAT with read:packages
+```
+
+The mirror keeps its dependency on `@aturi.to/waypoints` from npm rather than
+pointing at the mirrored core, because the published bundle re-exports that exact
+specifier. npm resolves it from npmjs with no token involved.
+
 ## Server vs. client components
 
-This is a **client** package — its entry carries the `"use client"` directive,
+This is a **client** package: its entry carries the `"use client"` directive,
 so the components work out of the box in the Next.js App Router and other React
 Server Components setups (no wrapper needed). Because the directive applies to
 the whole entry, reach for [`@aturi.to/waypoints`](../waypoints) directly when you
@@ -115,7 +129,36 @@ function MyPicker() {
 }
 ```
 
-Each entry carries `{ id, name, label, description, url, icon, category, isRecommended }`.
+Each entry carries `{ id, name, label, description, url, icon, category, isRecommended, composeIntent }`.
+
+#### Compose intents
+
+`composeIntent` is a link that opens that client's own composer
+([Bluesky's intent links](https://docs.bsky.app/docs/advanced-guides/intent-links)),
+or `null` when the client has no confirmed route — enough on its own to gate a
+"post this over there" button. Pass `composeText` to have the links built for
+you:
+
+```tsx
+const { waypoints } = useWaypoints({
+  type: 'post',
+  handle: 'alice.bsky.social',
+  composeText: 'found via my app',
+});
+
+{waypoints
+  .filter((w) => w.composeIntent?.prefillsText)
+  .map((w) => (
+    <button key={w.id} onClick={() => open(w.composeIntent!.url)}>
+      Post in {w.name}
+    </button>
+  ))}
+```
+
+The `prefillsText` filter matters: one client routes the intent but ignores the
+text, so without it a share button would open an empty composer. Drop the filter
+when you just want to send someone to a composer. Custom waypoints can declare a
+`composeIntent` of their own and they'll surface the same way.
 
 ### 3. The polished theme (opt-in)
 
@@ -155,6 +198,7 @@ Available tokens: `--aturi-wp-accent`, `--aturi-wp-accent-contrast`,
 | `waypointIds` | `string[]?` | Allowlist of waypoint ids to surface |
 | `hiddenIds` | `string[]?` | Ids to remove |
 | `customWaypoints` | `CustomWaypoint[]?` | Your own destinations |
+| `composeText` | `string?` | Pre-fills each entry's `composeIntent` link |
 | `showRecommended` | `boolean?` | Default `true` |
 | `showCopy` | `boolean?` | Default `true` |
 | `onSelect` | `(waypoint, event) => void` | Override open-in-new-tab |
@@ -162,6 +206,58 @@ Available tokens: `--aturi-wp-accent`, `--aturi-wp-accent-contrast`,
 | `classNames` | `WaypointClassNames?` | Per-slot class map |
 | `renderWaypoint` | render prop | Replace the row markup |
 | `className` | `string?` | Extra class on the root |
+
+## Universal links
+
+The picker asks "where do you want to open this?". A universal link answers the
+same question for someone who isn't here yet: an `aturi.to/…` URL you can paste
+anywhere, where the recipient gets a preview and picks their own client. Two
+exports offer one from your UI: a button, and the hook behind it.
+
+`<UniversalLinkButton>` is the whole control. It opens the native share sheet
+in browsers that implement `navigator.share` and copies to the clipboard in the
+ones that don't, with the transient "Copied" state already wired up:
+
+```tsx
+import { UniversalLinkButton } from '@aturi.to/waypoints-react';
+
+<UniversalLinkButton target={post.uri} />
+<UniversalLinkButton target="https://bsky.app/profile/alice.bsky.social/post/3k7" mode="copy" />
+```
+
+`target` takes anything that names a record: an AT URI, a handle, a DID, a page
+URL from any client in the catalog. The button renders nothing when it doesn't
+resolve, so it's safe to drop into a row whose data is still loading.
+
+| Prop | Type | Description |
+| --- | --- | --- |
+| `target` | `UniversalLinkTarget` | AT URI, handle, DID, client URL, or `ParsedURI` |
+| `mode` | `'auto' \| 'copy' \| 'share'` | Default `'auto'`: share sheet where `navigator.share` exists, clipboard where it doesn't |
+| `label`, `copiedLabel` | `ReactNode?` | Button text; default `Copy link` / `Copied` |
+| `iconOnly` | `boolean?` | Icon only; the label still names the button for assistive tech |
+| `onAction` | `(outcome, link) => void` | `'shared' \| 'copied' \| 'dismissed' \| 'failed' \| 'copy-failed'` |
+| `origin`, `did`, `preferDid`, `params`, `title`, `text` | | Passed through to `describeUniversalLink` |
+| `resetAfterMs` | `number?` | How long `Copied` shows. Default `2000`; `0` keeps it |
+| `unstyled`, `classNames`, `className` | | Same styling hooks as the picker |
+
+`useUniversalLink` is the same logic without markup:
+
+```tsx
+const { url, link, copy, copied, share, canShare } = useUniversalLink({
+  target: 'at://alice.bsky.social/app.bsky.feed.post/3k7',
+});
+
+<button onClick={() => (canShare ? share() : copy())}>
+  {copied ? 'Copied' : url}
+</button>
+<button onClick={() => copy(link.snippets.markdown)}>Copy as Markdown</button>
+```
+
+`link` is the full [`describeUniversalLink`](../waypoints/README.md#universal-links)
+result: label, `navigator.share()` payload, markdown/HTML snippets, oEmbed URL.
+`canShare` is false on the server and on the first client render (it can't be
+read before mount without risking a hydration mismatch), so branch on it for the
+icon, not for whether to render the control.
 
 ## Icons
 
@@ -171,6 +267,19 @@ The per-client SVG components and the `WAYPOINT_ICONS` map are exported too:
 import { WAYPOINT_ICONS, BlueskySVG } from '@aturi.to/waypoints-react';
 ```
 
+The same marks are available as plain SVG strings from
+[`@aturi.to/waypoints/icons`](../waypoints#icons), which is the one to reach for
+outside React or when you need markup rather than a component. Both are
+generated from the same catalog.
+
+Marks render at 24x24 and paint in `currentColor`, so they take the colour of
+the surrounding text and a CSS rule resizes them. Three of them (Lea, Leaflet,
+pckt) knock part of the shape out to `var(--bg-primary, white)`, so set
+`--bg-primary` on an ancestor if your surface is not white. `<WaypointButton>`
+already names itself for assistive tech, but a mark you place yourself does not:
+see the core package's [styling](../waypoints#styling) and
+[accessibility](../waypoints#accessibility) notes, which apply here unchanged.
+
 ## License
 
-MIT © dame.art.
+MIT © atpotato, LLC.

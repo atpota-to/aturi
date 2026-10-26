@@ -4,6 +4,8 @@
  * Based on ATProto specs
  */
 
+import { upstreamFetch, logUpstreamHttpError } from './upstreamFetch';
+
 export type DidDocument = {
   id: string;
   alsoKnownAs?: string[];
@@ -32,19 +34,24 @@ export async function resolveHandleToDid(handle: string): Promise<string | null>
     }
 
     // Use the Bluesky public API for handle resolution
-    const response = await fetch(
+    const response = await upstreamFetch(
       `https://public.api.bsky.app/xrpc/com.atproto.identity.resolveHandle?handle=${encodeURIComponent(handle)}`
     );
 
     if (!response.ok) {
-      console.error(`Failed to resolve handle ${handle}: HTTP ${response.status}`);
+      logUpstreamHttpError(`Failed to resolve handle ${handle}`, response);
       return null;
     }
 
     const data = await response.json();
     return data.did || null;
   } catch (error) {
-    console.error(`Error resolving handle ${handle}:`, error);
+    // Network-level failure after retry (timeout, connection reset) — the
+    // upstream is unhealthy, not the user's input.
+    // The handle is a caller-supplied value on MCP paths, and the plan's
+    // posture is that no payload reaches the logs; record the failure, not
+    // what was asked.
+    console.error('Handle resolution failed:', error);
     return null;
   }
 }
@@ -59,9 +66,9 @@ export async function fetchDidDocument(did: string): Promise<DidDocument | null>
       // For did:plc, query the PLC directory
       const url = `https://plc.directory/${did}`;
 
-      const response = await fetch(url);
+      const response = await upstreamFetch(url);
       if (!response.ok) {
-        console.error(`PLC directory lookup failed: HTTP ${response.status}`);
+        logUpstreamHttpError('PLC directory lookup failed', response);
         return null;
       }
 
@@ -72,20 +79,22 @@ export async function fetchDidDocument(did: string): Promise<DidDocument | null>
       const domain = did.replace('did:web:', '');
       const url = `https://${domain}/.well-known/did.json`;
 
-      const response = await fetch(url);
+      // The host is named by the DID, so it is caller-controlled; a redirect
+      // would move the fetch to an address no guard has seen.
+      const response = await upstreamFetch(url, { redirect: 'error' });
       if (!response.ok) {
-        console.error(`did:web document fetch failed: HTTP ${response.status}`);
+        logUpstreamHttpError('did:web document fetch failed', response);
         return null;
       }
 
       const didDoc = await response.json();
       return didDoc;
     } else {
-      console.error(`Unsupported DID method: ${did}`);
+      console.error(`Unsupported DID method: ${did.split(':')[1] ?? 'unknown'}`);
       return null;
     }
   } catch (error) {
-    console.error(`Failed to fetch DID document for ${did}:`, error);
+    console.error('DID document fetch failed:', error);
     return null;
   }
 }
@@ -132,7 +141,7 @@ export async function resolveDidToHandle(did: string): Promise<string | null> {
 
     return null;
   } catch (error) {
-    console.error(`Failed to resolve DID ${did} to handle:`, error);
+    console.error('DID to handle resolution failed:', error);
     return null;
   }
 }
@@ -172,7 +181,7 @@ export async function resolvePdsEndpoint(
       didDoc,
     };
   } catch (error) {
-    console.error(`Failed to resolve PDS endpoint for ${actorHandleOrDid}:`, error);
+    console.error('PDS endpoint resolution failed:', error);
     return null;
   }
 }

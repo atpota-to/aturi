@@ -1,20 +1,15 @@
 'use client';
 
-import { useEffect, useState } from 'react';
 import { Download, Chrome } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { detectBrowser, EXTENSION_URLS, BROWSER_LABELS, SUPPORTED_BROWSERS, type Browser } from '@/utils/browserDetect';
+import { useDetectedBrowser, EXTENSION_URLS, BROWSER_LABELS, SUPPORTED_BROWSERS, type Browser } from '@/utils/browserDetect';
 
 interface DownloadCTAProps {
   variant?: 'hero' | 'compact';
 }
 
 export default function DownloadCTA({ variant = 'hero' }: DownloadCTAProps) {
-  const [browser, setBrowser] = useState<Browser | null>(null);
-
-  useEffect(() => {
-    setBrowser(detectBrowser());
-  }, []);
+  const browser = useDetectedBrowser();
 
   // Default to Chrome label/URL during SSR or while detecting, so the button is
   // immediately useful even before hydration completes.

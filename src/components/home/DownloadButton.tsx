@@ -1,12 +1,11 @@
 'use client';
 
-import { useEffect, useState } from 'react';
 import { Chrome, Download } from 'lucide-react';
 import {
   BROWSER_LABELS,
   EXTENSION_URLS,
   SUPPORTED_BROWSERS,
-  detectBrowser,
+  useDetectedBrowser,
   type Browser,
 } from '@/utils/browserDetect';
 
@@ -21,6 +20,11 @@ type Props = {
   showFallback?: boolean;
   /** Cross-axis alignment of the button + fallback within the container. */
   align?: 'center' | 'start';
+  /**
+   * Override the button text. Defaults to the browser-detected
+   * "Download for ${browser}" / "Download the Extension" copy.
+   */
+  label?: string;
 };
 
 /**
@@ -32,12 +36,9 @@ export default function DownloadButton({
   variant = 'primary',
   showFallback = false,
   align = 'center',
+  label: labelOverride,
 }: Props) {
-  const [browser, setBrowser] = useState<Browser | null>(null);
-
-  useEffect(() => {
-    setBrowser(detectBrowser());
-  }, []);
+  const browser = useDetectedBrowser();
 
   const detected: Browser = browser ?? 'chrome';
   const isSupported = SUPPORTED_BROWSERS.includes(detected);
@@ -45,13 +46,12 @@ export default function DownloadButton({
   const primaryLabel = BROWSER_LABELS[detected];
   const showFallbackLinks = !isSupported;
   const label =
-    browser === null
+    labelOverride ??
+    (browser === null
       ? 'Download the Extension'
       : showFallbackLinks
         ? 'Download the Extension'
-        : `Download for ${primaryLabel}`;
-
-  const isPrimary = variant === 'primary';
+        : `Download for ${primaryLabel}`);
 
   return (
     <div
@@ -66,25 +66,10 @@ export default function DownloadButton({
         href={primaryUrl}
         target="_blank"
         rel="noopener noreferrer"
-        className="generate-button"
-        style={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: '0.625rem',
-          padding: '0.875rem 1.5rem',
-          background: isPrimary ? 'var(--accent-moss)' : 'var(--bg-secondary)',
-          color: isPrimary ? 'var(--text-on-accent)' : 'var(--text-primary)',
-          border: isPrimary
-            ? '1px solid var(--accent-forest)'
-            : '1px solid var(--text-accent)',
-          fontSize: '1.0125rem',
-          fontWeight: 400,
-          textDecoration: 'none',
-          transition: 'all 0.3s ease',
-          letterSpacing: '0.01em',
-        }}
+        className="fn-dl-button"
+        data-variant={variant}
       >
-        {detected === 'firefox' ? <Download size={18} /> : <Chrome size={18} />}
+        {detected === 'firefox' ? <Download size={16} /> : <Chrome size={16} />}
         <span>{label}</span>
       </a>
       {showFallback &&
@@ -152,11 +137,7 @@ export function BrowserFallbackList({
 }: {
   justify?: 'start' | 'center';
 } = {}) {
-  const [browser, setBrowser] = useState<Browser | null>(null);
-
-  useEffect(() => {
-    setBrowser(detectBrowser());
-  }, []);
+  const browser = useDetectedBrowser();
 
   const detected: Browser = browser ?? 'chrome';
   const isSupported = SUPPORTED_BROWSERS.includes(detected);
@@ -171,5 +152,47 @@ export function BrowserFallbackList({
       browsers={SUPPORTED_BROWSERS.filter((b) => b !== detected)}
       justify={justify}
     />
+  );
+}
+
+/**
+ * One download button per supported browser, behind a single caption:
+ * the hero's "Get the browser extension for [Chrome] [Firefox]" row.
+ *
+ * Detection still decides the emphasis: the visitor's own browser comes
+ * first and takes the moss outline, so a Firefox visitor sees Firefox
+ * leading. On an unsupported browser (Safari, Edge) nothing is
+ * emphasised and the caption says the extension is available for the
+ * listed ones instead.
+ */
+export function ExtensionBrowserLinks() {
+  const browser = useDetectedBrowser();
+  const isSupported = browser !== null && SUPPORTED_BROWSERS.includes(browser);
+  const ordered = isSupported
+    ? [browser, ...SUPPORTED_BROWSERS.filter((b) => b !== browser)]
+    : SUPPORTED_BROWSERS;
+
+  return (
+    <div className="fn-home-browsers">
+      <span>
+        {browser !== null && !isSupported
+          ? 'The browser extension is available for'
+          : 'Get the browser extension for'}
+      </span>
+      {ordered.map((b) => (
+        <a
+          key={b}
+          href={EXTENSION_URLS[b]!}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="fn-dl-button"
+          data-variant="outline"
+          data-detected={isSupported && b === browser ? '' : undefined}
+        >
+          <Download size={15} aria-hidden />
+          {BROWSER_LABELS[b]}
+        </a>
+      ))}
+    </div>
   );
 }

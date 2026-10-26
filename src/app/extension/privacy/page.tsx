@@ -7,53 +7,29 @@ export const metadata: Metadata = {
     'Privacy policy for the Aturi browser extension. What data it stores, what permissions it uses, and why.',
 };
 
-const headingPrimary = {
-  color: 'var(--text-primary)',
-  fontSize: '1.125rem',
-  marginTop: '1.5rem',
-  marginBottom: '0.75rem',
-} as const;
-
-const sectionHeading = {
-  color: 'var(--text-primary)',
-  fontSize: '1.5rem',
-  marginBottom: '1rem',
-} as const;
-
-const paragraph = { marginBottom: '1rem' } as const;
-
-const list = { marginBottom: '1rem', paddingLeft: '1.5rem' } as const;
-
 export default function ExtensionPrivacyPage() {
   return (
-    <div className="container-narrow" style={{ padding: '2rem 2rem 4rem' }}>
+    <>
       <Header compact />
 
-      <header style={{ marginBottom: '3rem', textAlign: 'center' }}>
-        <h1 style={{ marginBottom: '1rem', color: 'var(--text-primary)' }}>
-          Browser Extension Privacy Policy
-        </h1>
-        <p style={{ color: 'var(--text-tertiary)', fontSize: '0.875rem' }}>
-          Last updated: May 26, 2026
-        </p>
-      </header>
+      {/* The article template /terms uses (content.css), so the two
+          policies read as one document family. */}
+      <div className="fn-c-wrap" data-width="article">
+        <header className="fn-c-head">
+          <h1 className="fn-c-title">Browser Extension Privacy Policy</h1>
+          <p className="fn-c-meta">Last updated: May 26, 2026</p>
+        </header>
 
-      <div
-        className="card"
-        style={{ padding: '2rem', maxWidth: '48rem', margin: '0 auto' }}
-      >
-        <article
-          style={{ color: 'var(--text-secondary)', lineHeight: '1.7' }}
-        >
-          <section style={{ marginBottom: '2rem' }}>
-            <h2 style={sectionHeading}>Summary</h2>
-            <p style={paragraph}>
+        <article className="fn-c-sheet fn-prose">
+          <section>
+            <h2>Summary</h2>
+            <p>
               The Aturi browser extension does not collect, transmit, or sell
               any personal data. It has no analytics, no telemetry, no
               tracking, no advertising, and no remote code. Everything you
               configure stays in your own browser.
             </p>
-            <p style={paragraph}>
+            <p>
               The extension does, however, read limited information from
               pages you visit so it can offer waypoints and inspect AT URIs.
               Page reading happens entirely inside your browser; the
@@ -67,16 +43,16 @@ export default function ExtensionPrivacyPage() {
             </p>
           </section>
 
-          <section style={{ marginBottom: '2rem' }}>
-            <h2 style={sectionHeading}>1. What the extension stores</h2>
-            <p style={paragraph}>
+          <section>
+            <h2>1. What the extension stores</h2>
+            <p>
               The extension saves your preferences locally using your
               browser&rsquo;s built-in extension storage (
               <code>chrome.storage.sync</code>, with a fallback to{' '}
               <code>chrome.storage.local</code> if the sync quota is
               exceeded). The data stored is limited to:
             </p>
-            <ul style={list}>
+            <ul>
               <li>
                 Your auto-redirect preferences (whether it&rsquo;s on, your
                 favorite waypoint per content family, and per-source
@@ -97,7 +73,7 @@ export default function ExtensionPrivacyPage() {
               </li>
               <li>UI preferences such as compact mode and open-in-new-tab.</li>
             </ul>
-            <p style={paragraph}>
+            <p>
               No part of this data is sent to Aturi, the developer, or any
               third party. If you are signed into your browser and have
               extension sync enabled, your browser vendor (Google, Mozilla,
@@ -105,7 +81,7 @@ export default function ExtensionPrivacyPage() {
               their own infrastructure under their own privacy policy. Aturi
               has no access to that synced data.
             </p>
-            <p style={paragraph}>
+            <p>
               The Inspect tab does not persist anything. AT URIs found on
               the page, identity records, record previews, and backlink
               counts live only in popup memory while the popup is open and
@@ -113,16 +89,16 @@ export default function ExtensionPrivacyPage() {
             </p>
           </section>
 
-          <section style={{ marginBottom: '2rem' }}>
-            <h2 style={sectionHeading}>2. What the extension reads from pages</h2>
-            <p style={paragraph}>
+          <section>
+            <h2>2. What the extension reads from pages</h2>
+            <p>
               The extension includes two content scripts that run on
               ordinary web pages. Both run entirely inside your browser. No
               data they read is ever sent to Aturi-operated servers; the
               extension only uses what they read to render the popup and
               Inspect tab locally.
             </p>
-            <ul style={list}>
+            <ul>
               <li>
                 <strong>Passive head detection</strong> (
                 <code>detect-head.content.ts</code>). On every page load, a
@@ -151,7 +127,7 @@ export default function ExtensionPrivacyPage() {
                 transmit any other page content.
               </li>
             </ul>
-            <p style={paragraph}>
+            <p>
               Neither script injects content into pages you visit, modifies
               the DOM, intercepts form input, executes remote code, or
               participates in any cross-origin tracking. You can disable
@@ -161,21 +137,21 @@ export default function ExtensionPrivacyPage() {
             </p>
           </section>
 
-          <section style={{ marginBottom: '2rem' }}>
-            <h2 style={sectionHeading}>3. Network requests</h2>
-            <p style={paragraph}>
+          <section>
+            <h2>3. Network requests</h2>
+            <p>
               The extension makes a small number of well-defined network
               requests, each tied to a specific user action. None of these
               requests go to Aturi-operated servers; they go directly from
               your browser to the relevant public atproto service, whose
               own privacy policy applies.
             </p>
-            <ul style={list}>
+            <ul>
               <li>
                 <strong>Handle resolution.</strong> When the popup needs to
                 turn a handle (e.g. <code>example.bsky.social</code>) into
-                a DID &mdash; for example, because a waypoint you clicked
-                requires a DID &mdash; the extension calls{' '}
+                a DID (for example, because a waypoint you clicked
+                requires a DID), the extension calls{' '}
                 <code>
                   public.api.bsky.app/xrpc/com.atproto.identity.resolveHandle
                 </code>
@@ -207,7 +183,7 @@ export default function ExtensionPrivacyPage() {
                 record.
               </li>
             </ul>
-            <p style={paragraph}>
+            <p>
               <strong>Auto-redirects do not make network requests.</strong>{' '}
               They are implemented with{' '}
               <code>chrome.declarativeNetRequest</code>, which lets the
@@ -215,38 +191,38 @@ export default function ExtensionPrivacyPage() {
               extension generates from your preferences. The extension does
               not see, read, or log the URLs you visit while redirects run.
             </p>
-            <p style={paragraph}>
+            <p>
               The extension never contacts <code>aturi.to</code> or any
               other Aturi-operated server during normal use.
             </p>
           </section>
 
-          <section style={{ marginBottom: '2rem' }}>
-            <h2 style={sectionHeading}>4. Permissions and why they&rsquo;re needed</h2>
-            <ul style={list}>
+          <section>
+            <h2>4. Permissions and why they&rsquo;re needed</h2>
+            <ul>
               <li>
-                <strong>storage</strong> &mdash; to persist your preferences,
+                <strong>storage</strong>: to persist your preferences,
                 custom waypoints, and recents list.
               </li>
               <li>
-                <strong>tabs</strong> &mdash; to read the URL (and, for
+                <strong>tabs</strong>: to read the URL (and, for
                 Inspect, the tab id) of the current tab when you open the
                 popup, so the extension can offer waypoints that match the
                 page you&rsquo;re on and route the Inspect scan request to
                 the right tab.
               </li>
               <li>
-                <strong>declarativeNetRequest</strong> &mdash; to perform
+                <strong>declarativeNetRequest</strong>: to perform
                 local URL redirects without exposing your browsing history
                 to the extension.
               </li>
               <li>
-                <strong>clipboardWrite</strong> &mdash; to copy universal
+                <strong>clipboardWrite</strong>: to copy universal
                 Aturi links to your clipboard when you use the &ldquo;copy
                 link&rdquo; action.
               </li>
               <li>
-                <strong>host_permissions: &lt;all_urls&gt;</strong> &mdash;
+                <strong>host_permissions: &lt;all_urls&gt;</strong>:
                 required so the popup can recognize Atmosphere pages on any
                 domain (Bluesky, Leaflet, Blacksky, PDSls, custom waypoints
                 you define, etc.), so <code>declarativeNetRequest</code>{' '}
@@ -259,9 +235,9 @@ export default function ExtensionPrivacyPage() {
             </ul>
           </section>
 
-          <section style={{ marginBottom: '2rem' }}>
-            <h2 style={sectionHeading}>5. What the extension does not do</h2>
-            <ul style={list}>
+          <section>
+            <h2>5. What the extension does not do</h2>
+            <ul>
               <li>
                 It does not collect or transmit personal information to
                 Aturi.
@@ -290,9 +266,9 @@ export default function ExtensionPrivacyPage() {
             </ul>
           </section>
 
-          <section style={{ marginBottom: '2rem' }}>
-            <h2 style={sectionHeading}>6. Third-party destinations and services</h2>
-            <p style={paragraph}>
+          <section>
+            <h2>6. Third-party destinations and services</h2>
+            <p>
               When you click a waypoint or follow an auto-redirected link,
               your browser navigates to a third-party Atmosphere client
               (Bluesky, Blacksky, Leaflet, Tangled, Margin, Grain, PDSls,
@@ -305,9 +281,9 @@ export default function ExtensionPrivacyPage() {
             </p>
           </section>
 
-          <section style={{ marginBottom: '2rem' }}>
-            <h2 style={sectionHeading}>7. Children&rsquo;s privacy</h2>
-            <p style={paragraph}>
+          <section>
+            <h2>7. Children&rsquo;s privacy</h2>
+            <p>
               The extension is a general-purpose link-routing and
               inspection utility and is not directed at children. Because
               it does not collect any personal information, it does not
@@ -315,13 +291,13 @@ export default function ExtensionPrivacyPage() {
             </p>
           </section>
 
-          <section style={{ marginBottom: '2rem' }}>
-            <h2 style={sectionHeading}>8. Data retention and deletion</h2>
-            <p style={paragraph}>
+          <section>
+            <h2>8. Data retention and deletion</h2>
+            <p>
               Settings persist in your browser&rsquo;s extension storage for
               as long as the extension is installed. You can:
             </p>
-            <ul style={list}>
+            <ul>
               <li>
                 Clear the recents list at any time from the History tab in
                 the options page.
@@ -337,59 +313,47 @@ export default function ExtensionPrivacyPage() {
             </ul>
           </section>
 
-          <section style={{ marginBottom: '2rem' }}>
-            <h2 style={sectionHeading}>9. Open source</h2>
-            <p style={paragraph}>
+          <section>
+            <h2>9. Open source</h2>
+            <p>
               Aturi is open source under GPL v3. You can audit the
               extension&rsquo;s source code, including every network request
               it makes, at{' '}
               <a
-                href="https://tangled.org/atpota.to/aturi"
+                href="https://github.com/atpota-to/aturi"
                 target="_blank"
                 rel="noopener noreferrer"
-                style={{
-                  color: 'var(--text-accent)',
-                  textDecoration: 'none',
-                }}
               >
-                tangled.org/atpota.to/aturi
+                github.com/atpota-to/aturi
               </a>
               .
             </p>
           </section>
 
           <section>
-            <h2 style={sectionHeading}>10. Changes to this policy</h2>
-            <p style={paragraph}>
+            <h2>10. Changes to this policy</h2>
+            <p>
               This policy may be updated as the extension evolves. Changes
               will be reflected on this page with a new &ldquo;Last
               updated&rdquo; date. Material changes (for example, the
               addition of any new outbound network request) will also be
               noted in the extension&rsquo;s release notes.
             </p>
-            <h3 style={headingPrimary}>Contact</h3>
-            <p style={paragraph}>
+            <h3>Contact</h3>
+            <p>
               Questions or concerns? File an issue at{' '}
               <a
-                href="https://tangled.org/atpota.to/aturi/issues"
+                href="https://github.com/atpota-to/aturi/issues"
                 target="_blank"
                 rel="noopener noreferrer"
-                style={{
-                  color: 'var(--text-accent)',
-                  textDecoration: 'none',
-                }}
               >
-                tangled.org/atpota.to/aturi/issues
+                github.com/atpota-to/aturi/issues
               </a>{' '}
               or contact{' '}
               <a
                 href="https://bsky.app/profile/atpota.to"
                 target="_blank"
                 rel="noopener noreferrer"
-                style={{
-                  color: 'var(--text-accent)',
-                  textDecoration: 'none',
-                }}
               >
                 @atpota.to
               </a>
@@ -398,6 +362,6 @@ export default function ExtensionPrivacyPage() {
           </section>
         </article>
       </div>
-    </div>
+    </>
   );
 }

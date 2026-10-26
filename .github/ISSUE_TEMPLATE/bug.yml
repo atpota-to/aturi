@@ -1,0 +1,57 @@
+name: Bug report
+description: Something is broken
+labels: ["bug"]
+body:
+  - type: dropdown
+    id: surface
+    attributes:
+      label: Where
+      options:
+        - Universal links (aturi.to/profile/...)
+        - Atmosphere Explorer (aturi.to/explore)
+        - Browser extension
+        - "@aturi.to/waypoints or @aturi.to/waypoints-react"
+        - Not sure
+    validations:
+      required: true
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What you did, what you expected, and what you got instead.
+    validations:
+      required: true
+
+  - type: input
+    id: uri
+    attributes:
+      label: Link or AT URI
+      description: >
+        The exact aturi.to URL, at:// URI, or page you were on. Most bugs here are specific to one
+        record or one lexicon, and without this there is usually nothing to reproduce.
+      placeholder: at://did:plc:.../app.bsky.feed.post/3k7qw...
+    validations:
+      required: true
+
+  - type: input
+    id: browser
+    attributes:
+      label: Browser and version
+      description: >
+        Required for extension bugs. Chrome, Firefox, and Safari differ in how they handle
+        declarativeNetRequest, so a redirect bug in one often does not exist in the others.
+      placeholder: Firefox 133 on macOS 15.2
+
+  - type: input
+    id: extension-version
+    attributes:
+      label: Extension version
+      description: Shown at the bottom of the extension's options page.
+
+  - type: textarea
+    id: console
+    attributes:
+      label: Console output
+      description: Any errors from the browser console or the extension's background page.
+      render: text

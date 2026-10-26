@@ -9,84 +9,42 @@ export const metadata: Metadata = {
 };
 
 const CONTACT_EMAIL = 'contact@aturi.to';
-const REPO_URL = 'https://tangled.org/atpota.to/aturi';
-const ISSUES_URL = 'https://tangled.org/atpota.to/aturi/issues';
+// GitHub is the primary repository; tangled.org/atpota.to/aturi mirrors it.
+const REPO_URL = 'https://github.com/atpota-to/aturi';
+const ISSUES_URL = 'https://github.com/atpota-to/aturi/issues';
 const BSKY_PROFILE_URL = 'https://bsky.app/profile/atpota.to';
 const EXTENSION_PRIVACY_URL = '/extension/privacy';
 
-const sectionHeading = {
-  color: 'var(--text-primary)',
-  fontSize: '1.5rem',
-  marginBottom: '1rem',
-} as const;
-
-const subHeading = {
-  color: 'var(--text-primary)',
-  fontSize: '1.125rem',
-  marginTop: '1.5rem',
-  marginBottom: '0.75rem',
-} as const;
-
-const paragraph = { marginBottom: '1rem' } as const;
-
-const list = { marginBottom: '1rem', paddingLeft: '1.5rem' } as const;
-
-const allCapsParagraph = {
-  marginBottom: '1rem',
-  textTransform: 'uppercase' as const,
-  fontSize: '0.85rem',
-  letterSpacing: '0.02em',
-  lineHeight: 1.7,
-};
-
-const linkStyle = {
-  color: 'var(--text-accent)',
-  textDecoration: 'none',
-} as const;
-
 export default function TermsPage() {
   return (
-    <div className="container-narrow" style={{ padding: '2rem 2rem 4rem' }}>
+    <div style={{ position: 'relative', overflowX: 'clip' }}>
+      {/* Header is a direct child of the page wrapper — matching the home,
+          explore, profile, and account pages — so it uses its normal full
+          width instead of being boxed into (and pushed down by) the narrow
+          content column. */}
       <Header compact />
 
-      <header style={{ marginBottom: '3rem', textAlign: 'center' }}>
-        <h1 style={{ marginBottom: '1rem', color: 'var(--text-primary)' }}>
-          Terms of Service & Privacy Policy
-        </h1>
-        <p style={{ color: 'var(--text-tertiary)', fontSize: '0.875rem' }}>
-          Last updated: May 26, 2026
-        </p>
-      </header>
+      <div className="fn-c-wrap" data-width="article">
+        <header className="fn-c-head">
+          <h1 className="fn-c-title">Terms of Service &amp; Privacy Policy</h1>
+          <p className="fn-c-meta">Last updated: May 26, 2026</p>
+        </header>
 
-      {/* Content */}
-      <div
-        className="card"
-        style={{
-          padding: '2rem',
-          maxWidth: '48rem',
-          margin: '0 auto',
-        }}
-      >
-        <article
-          style={{
-            color: 'var(--text-secondary)',
-            lineHeight: '1.7',
-          }}
-        >
+        <article className="fn-c-sheet fn-prose">
           {/* Overview */}
-          <section style={{ marginBottom: '3rem' }}>
-            <h2 style={sectionHeading}>Overview</h2>
-            <p style={paragraph}>
+          <section>
+            <h2>Overview</h2>
+            <p>
               aturi.to (&ldquo;<strong>Aturi</strong>,&rdquo; &ldquo;
               <strong>we</strong>,&rdquo; &ldquo;<strong>us</strong>,&rdquo; or
               &ldquo;<strong>our</strong>&rdquo;) is a free, open-source
-              ecosystem of tools for navigating the Atmosphere &mdash; the
+              ecosystem of tools for navigating the Atmosphere: the
               federated network of services built on the AT Protocol
               (atproto). These Terms of Service and Privacy Policy (together,
               this &ldquo;<strong>Agreement</strong>&rdquo;) govern your use
               of all Aturi products, including:
             </p>
-            <ul style={list}>
+            <ul>
               <li>
                 The <strong>aturi.to web app</strong>, including the universal
                 link router, profile and record landing pages, OpenGraph image
@@ -124,7 +82,7 @@ export default function TermsPage() {
                 Firefox, Safari, and other supported browsers, including its
                 detection, Inspect, auto-redirect, and waypoint-jump features.
                 The extension is also governed by its dedicated{' '}
-                <Link href={EXTENSION_PRIVACY_URL} style={linkStyle}>
+                <Link href={EXTENSION_PRIVACY_URL}>
                   Extension Privacy Policy
                 </Link>
                 , which controls in case of any conflict with this Agreement.
@@ -136,25 +94,25 @@ export default function TermsPage() {
                 &ldquo;<strong>Service</strong>&rdquo;).
               </li>
             </ul>
-            <p style={paragraph}>
+            <p>
               By accessing or using any part of the Service, you agree to be
               bound by this Agreement. If you do not agree, do not use the
               Service. If you are using the Service on behalf of an entity,
               you represent that you have authority to bind that entity, and
               &ldquo;you&rdquo; refers to that entity.
             </p>
-            <p style={paragraph}>
+            <p>
               The Service is provided free of charge. We may add, change, or
               remove features at any time and without notice.
             </p>
           </section>
 
           {/* Terms of Service */}
-          <section style={{ marginBottom: '3rem' }}>
-            <h2 style={sectionHeading}>Terms of Service</h2>
+          <section>
+            <h2>Terms of Service</h2>
 
-            <h3 style={subHeading}>1. Eligibility</h3>
-            <p style={paragraph}>
+            <h3>1. Eligibility</h3>
+            <p>
               You must be at least 13 years of age (or the minimum age of
               digital consent in your jurisdiction, if higher) to use the
               Service. By using the Service, you represent and warrant that
@@ -165,13 +123,13 @@ export default function TermsPage() {
               you have with a third party.
             </p>
 
-            <h3 style={subHeading}>2. The Service</h3>
-            <p style={paragraph}>
+            <h3>2. The Service</h3>
+            <p>
               Aturi is, in substance, a routing and inspection layer over
               public data and identities that already exist on the Atmosphere.
               You should understand the following before using it:
             </p>
-            <ul style={list}>
+            <ul>
               <li>
                 <strong>Universal link routing.</strong> aturi.to URLs resolve
                 to a landing page that lets the recipient pick which
@@ -211,12 +169,12 @@ export default function TermsPage() {
               </li>
               <li>
                 <strong>Preference sync and personalization.</strong> If you
-                sign in, the Service may store non-sensitive preferences
-                &mdash; including waypoint groups (name and order), per-group
+                sign in, the Service may store non-sensitive preferences,
+                including waypoint groups (name and order), per-group
                 waypoint ordering, hidden/visible/pinned waypoints, custom
                 waypoints you have defined (display name, domain, URL
-                templates, supported record types), and other UI choices
-                &mdash; as a record in your own PDS (NSID{' '}
+                templates, supported record types), and other UI choices,
+                as a record in your own PDS (NSID{' '}
                 <code>to.aturi.actor.preferences</code>, rkey{' '}
                 <code>self</code>). The authoritative copy lives in your
                 repository, under your control. A local copy is kept in your
@@ -250,22 +208,22 @@ export default function TermsPage() {
                 atproto services to display details inline). Its full data
                 handling, network requests, and permissions are described in
                 the{' '}
-                <Link href={EXTENSION_PRIVACY_URL} style={linkStyle}>
+                <Link href={EXTENSION_PRIVACY_URL}>
                   Extension Privacy Policy
                 </Link>
                 . The extension does not transmit data to Aturi-operated
                 servers in normal use.
               </li>
             </ul>
-            <p style={paragraph}>
+            <p>
               Atmosphere data is, by its nature, public. Records you publish
               to the AT Protocol are visible to anyone with access to your
               PDS or the relevant AppView, regardless of whether you use
               Aturi.
             </p>
 
-            <h3 style={subHeading}>3. Your account and authentication</h3>
-            <p style={paragraph}>
+            <h3>3. Your account and authentication</h3>
+            <p>
               Aturi authentication is performed entirely through standard
               atproto OAuth. We do not operate an identity provider, do not
               issue or store passwords, and do not maintain a centralized
@@ -274,10 +232,10 @@ export default function TermsPage() {
               continued ability to sign in depends on those upstream
               providers.
             </p>
-            <p style={paragraph}>
+            <p>
               When you sign in:
             </p>
-            <ul style={list}>
+            <ul>
               <li>
                 You authorize Aturi to act as an OAuth client against your
                 PDS within the scopes you grant at the consent screen
@@ -308,8 +266,8 @@ export default function TermsPage() {
               </li>
             </ul>
 
-            <h3 style={subHeading}>4. Your content and your repository</h3>
-            <p style={paragraph}>
+            <h3>4. Your content and your repository</h3>
+            <p>
               The Service does not host user content. When you create,
               update, or delete records or upload blobs while signed in, you
               are doing so against your own atproto repository on your own
@@ -318,10 +276,10 @@ export default function TermsPage() {
               PDS, AppView, and downstream services that store and propagate
               it.
             </p>
-            <p style={paragraph}>
+            <p>
               You represent and warrant that:
             </p>
-            <ul style={list}>
+            <ul>
               <li>
                 You have all rights necessary to create, modify, and publish
                 any content you operate on through the Service.
@@ -340,7 +298,7 @@ export default function TermsPage() {
                 those third parties.
               </li>
             </ul>
-            <p style={paragraph}>
+            <p>
               To the extent any content you create or modify through the
               Service is processed by or briefly transits Aturi
               infrastructure in the course of operating the Service (for
@@ -350,9 +308,9 @@ export default function TermsPage() {
               the Service to you. No other license is granted.
             </p>
 
-            <h3 style={subHeading}>5. Acceptable use</h3>
-            <p style={paragraph}>You agree that you will not, and will not attempt to:</p>
-            <ul style={list}>
+            <h3>5. Acceptable use</h3>
+            <p>You agree that you will not, and will not attempt to:</p>
+            <ul>
               <li>Violate any applicable law, regulation, or court order;</li>
               <li>
                 Use the Service to harass, threaten, defame, dox, stalk, or
@@ -402,7 +360,7 @@ export default function TermsPage() {
                 broader atproto ecosystem.
               </li>
             </ul>
-            <p style={paragraph}>
+            <p>
               We may investigate suspected violations, cooperate with law
               enforcement, and take any action we deem appropriate,
               including blocking IP addresses, refusing service to specific
@@ -411,44 +369,44 @@ export default function TermsPage() {
               notice and at our sole discretion.
             </p>
 
-            <h3 style={subHeading}>6. Third-party services and destinations</h3>
-            <p style={paragraph}>
+            <h3>6. Third-party services and destinations</h3>
+            <p>
               The Service interoperates with and routes to third-party
               services that we do not control, including without limitation:
             </p>
-            <ul style={list}>
+            <ul>
               <li>
                 The <strong>Bluesky AppView</strong> (
-                <code>public.api.bsky.app</code>) &mdash; profile lookups,
+                <code>public.api.bsky.app</code>): profile lookups,
                 handle resolution, post/list fetches.
               </li>
               <li>
                 The <strong>PLC directory</strong> (
-                <code>plc.directory</code>) &mdash; DID document and
+                <code>plc.directory</code>): DID document and
                 identity-audit-log lookups for Explore.
               </li>
               <li>
                 <strong>Constellation</strong> (
-                <code>constellation.microcosm.blue</code>) &mdash; a
+                <code>constellation.microcosm.blue</code>): a
                 third-party backlink index queried for incoming-reference
                 counts on records.
               </li>
               <li>
-                <strong>cred.blue</strong> (<code>api.cred.blue</code>) &mdash;
-                a third-party reputation/score API queried to display a
+                <strong>cred.blue</strong> (<code>api.cred.blue</code>): a
+                third-party reputation/score API queried to display a
                 cached score badge on certain profile pages.
               </li>
               <li>
                 A public <strong>Jetstream relay</strong> WebSocket (e.g.,{' '}
-                <code>jetstream2.us-east.bsky.network</code>) &mdash; live
+                <code>jetstream2.us-east.bsky.network</code>): live
                 stream of public atproto commits used to render the Explore
                 live feed. Standard connection metadata (IP address, user
                 agent) is visible to the relay operator while the connection
                 is open.
               </li>
               <li>
-                Your <strong>PDS and identity authority</strong>{' '}
-                &mdash; authentication, repository reads and writes, blob
+                Your <strong>PDS and identity authority</strong>:{' '}
+                authentication, repository reads and writes, blob
                 uploads.
               </li>
               <li>
@@ -459,7 +417,7 @@ export default function TermsPage() {
                 <strong>custom waypoints you define</strong>.
               </li>
               <li>
-                <strong>Vercel</strong> &mdash; hosting, edge runtime, and
+                <strong>Vercel</strong>: hosting, edge runtime, and
                 anonymous analytics.
               </li>
               <li>
@@ -470,7 +428,7 @@ export default function TermsPage() {
                 across your devices.
               </li>
             </ul>
-            <p style={paragraph}>
+            <p>
               Your use of any third-party service is governed by that
               service&rsquo;s own terms and privacy policy. Aturi makes no
               representations or warranties about any third-party service
@@ -480,8 +438,8 @@ export default function TermsPage() {
               or sign in.
             </p>
 
-            <h3 style={subHeading}>7. Open source and intellectual property</h3>
-            <p style={paragraph}>
+            <h3>7. Open source and intellectual property</h3>
+            <p>
               The Aturi source code is licensed under the GNU General Public
               License version 3 or later. You may inspect, fork, modify, and
               redistribute the source code subject to that license. The
@@ -489,7 +447,7 @@ export default function TermsPage() {
               this Agreement governs only your use of the hosted Service we
               operate at aturi.to.
             </p>
-            <p style={paragraph}>
+            <p>
               All rights, title, and interest in and to the Service,
               including all related intellectual property rights, are and
               will remain the exclusive property of Aturi and its
@@ -498,7 +456,7 @@ export default function TermsPage() {
               non-transferable license to access and use the Service in
               accordance with this Agreement.
             </p>
-            <p style={paragraph}>
+            <p>
               The names &ldquo;aturi&rdquo; and &ldquo;aturi.to&rdquo; and
               any associated logos or marks are the property of their owner
               and may not be used to imply endorsement of, or affiliation
@@ -507,15 +465,15 @@ export default function TermsPage() {
               licensing terms set out in the source repository.
             </p>
 
-            <h3 style={subHeading}>8. Copyright and DMCA-style notices</h3>
-            <p style={paragraph}>
+            <h3>8. Copyright and DMCA-style notices</h3>
+            <p>
               Because Aturi does not host atproto content and acts only as a
               client and router, takedown requests for underlying records
               must be directed to the operator of the PDS, AppView, or other
               service that hosts or surfaces the record in question. If you
               believe a routing link or rendered page on aturi.to itself
               infringes your rights, you may send a notice to{' '}
-              <a href={`mailto:${CONTACT_EMAIL}`} style={linkStyle}>
+              <a href={`mailto:${CONTACT_EMAIL}`}>
                 {CONTACT_EMAIL}
               </a>{' '}
               that includes (i) identification of the work, (ii)
@@ -530,15 +488,15 @@ export default function TermsPage() {
               appropriate.
             </p>
 
-            <h3 style={subHeading}>9. Fees</h3>
-            <p style={paragraph}>
+            <h3>9. Fees</h3>
+            <p>
               The Service is currently provided free of charge. We reserve
               the right to introduce paid features in the future, but no
               charge will be incurred without your express consent.
             </p>
 
-            <h3 style={subHeading}>10. Service availability and changes</h3>
-            <p style={paragraph}>
+            <h3>10. Service availability and changes</h3>
+            <p>
               The Service is provided on an as-available basis. We may
               modify, suspend, throttle, rate-limit, discontinue, or
               terminate the Service, any feature, any API, any waypoint, or
@@ -550,8 +508,8 @@ export default function TermsPage() {
               which the Service depends.
             </p>
 
-            <h3 style={subHeading}>11. Termination and suspension</h3>
-            <p style={paragraph}>
+            <h3>11. Termination and suspension</h3>
+            <p>
               You may stop using the Service at any time. We may suspend or
               terminate your access, in whole or in part, at any time and
               for any reason, including suspected violations of this
@@ -564,8 +522,8 @@ export default function TermsPage() {
               provisions) will survive.
             </p>
 
-            <h3 style={subHeading}>12. Disclaimers</h3>
-            <p style={allCapsParagraph}>
+            <h3>12. Disclaimers</h3>
+            <p className="fn-prose-legal">
               The Service, including all features, content, software, and
               data made available through it, is provided &ldquo;AS IS&rdquo;
               and &ldquo;AS AVAILABLE,&rdquo; with all faults and without
@@ -578,7 +536,7 @@ export default function TermsPage() {
               warranties arising from course of dealing, course of
               performance, or usage of trade.
             </p>
-            <p style={allCapsParagraph}>
+            <p className="fn-prose-legal">
               Without limiting the foregoing, Aturi does not warrant that
               the Service will be uninterrupted, secure, timely, accurate,
               or error-free; that defects will be corrected; that any
@@ -589,7 +547,7 @@ export default function TermsPage() {
               recoverable; or that any redirect, link rewrite, or auto-fill
               will produce the intended result.
             </p>
-            <p style={paragraph}>
+            <p>
               You assume sole responsibility and all risk arising from your
               use of the Service. Some jurisdictions do not allow the
               exclusion of certain warranties, so some of the above
@@ -598,8 +556,8 @@ export default function TermsPage() {
               law.
             </p>
 
-            <h3 style={subHeading}>13. Limitation of liability</h3>
-            <p style={allCapsParagraph}>
+            <h3>13. Limitation of liability</h3>
+            <p className="fn-prose-legal">
               To the maximum extent permitted by applicable law, in no event
               will Aturi or its contributors, affiliates, officers,
               directors, employees, agents, suppliers, or licensors be
@@ -613,7 +571,7 @@ export default function TermsPage() {
               other legal theory, and whether or not Aturi has been advised
               of the possibility of such damages.
             </p>
-            <p style={allCapsParagraph}>
+            <p className="fn-prose-legal">
               To the maximum extent permitted by applicable law, the
               aggregate liability of Aturi and its contributors, affiliates,
               officers, directors, employees, agents, suppliers, and
@@ -623,7 +581,7 @@ export default function TermsPage() {
               event giving rise to the claim, and (b) fifty US dollars
               (US$50.00).
             </p>
-            <p style={paragraph}>
+            <p>
               The exclusions and limitations in this section apply
               regardless of the cause of action or the form of damages
               sought, and survive any failure of essential purpose of any
@@ -633,8 +591,8 @@ export default function TermsPage() {
               of Aturi is limited to the smallest extent permitted by law.
             </p>
 
-            <h3 style={subHeading}>14. Indemnification</h3>
-            <p style={paragraph}>
+            <h3>14. Indemnification</h3>
+            <p>
               You agree to defend, indemnify, and hold harmless Aturi and
               its contributors, affiliates, officers, directors, employees,
               and agents from and against any and all claims, demands,
@@ -653,8 +611,8 @@ export default function TermsPage() {
               cooperate with our defense.
             </p>
 
-            <h3 style={subHeading}>15. Beta and experimental features</h3>
-            <p style={paragraph}>
+            <h3>15. Beta and experimental features</h3>
+            <p>
               From time to time we may make available features that are
               identified as beta, preview, experimental, or otherwise not
               ready for general use. Such features are provided for
@@ -664,8 +622,8 @@ export default function TermsPage() {
               at your own risk.
             </p>
 
-            <h3 style={subHeading}>16. Force majeure</h3>
-            <p style={paragraph}>
+            <h3>16. Force majeure</h3>
+            <p>
               Aturi will not be liable for any failure or delay in
               performance to the extent caused by events beyond its
               reasonable control, including acts of God, natural disasters,
@@ -676,8 +634,8 @@ export default function TermsPage() {
               similar events.
             </p>
 
-            <h3 style={subHeading}>17. Changes to this Agreement</h3>
-            <p style={paragraph}>
+            <h3>17. Changes to this Agreement</h3>
+            <p>
               We may update this Agreement from time to time. The
               &ldquo;Last updated&rdquo; date at the top of this page
               indicates when this Agreement was last revised. Material
@@ -689,11 +647,11 @@ export default function TermsPage() {
               must stop using the Service.
             </p>
 
-            <h3 style={subHeading}>18. Dispute resolution and governing law</h3>
-            <p style={paragraph}>
+            <h3>18. Dispute resolution and governing law</h3>
+            <p>
               Before filing any formal action, you agree to first attempt to
               resolve any dispute informally by contacting us at{' '}
-              <a href={`mailto:${CONTACT_EMAIL}`} style={linkStyle}>
+              <a href={`mailto:${CONTACT_EMAIL}`}>
                 {CONTACT_EMAIL}
               </a>{' '}
               and providing a written description of the dispute, your
@@ -701,7 +659,7 @@ export default function TermsPage() {
               in good faith to resolve the dispute within sixty (60) days
               of receipt.
             </p>
-            <p style={paragraph}>
+            <p>
               The parties have not selected an exclusive forum or governing
               law for disputes arising out of or related to this Agreement
               or the Service. Each party reserves all rights, remedies, and
@@ -712,8 +670,8 @@ export default function TermsPage() {
               arising out of or related to this Agreement or the Service.
             </p>
 
-            <h3 style={subHeading}>19. Miscellaneous</h3>
-            <p style={paragraph}>
+            <h3>19. Miscellaneous</h3>
+            <p>
               <strong>Entire agreement.</strong> This Agreement, together
               with any other terms expressly referenced in it (including
               the Extension Privacy Policy), constitutes the entire
@@ -721,45 +679,45 @@ export default function TermsPage() {
               supersedes all prior or contemporaneous understandings on
               that subject.
             </p>
-            <p style={paragraph}>
+            <p>
               <strong>Severability.</strong> If any provision of this
               Agreement is held to be invalid or unenforceable, that
               provision will be limited or eliminated to the minimum extent
               necessary, and the remaining provisions will remain in full
               force and effect.
             </p>
-            <p style={paragraph}>
+            <p>
               <strong>No waiver.</strong> Our failure to enforce any right
               or provision will not be deemed a waiver of that right or
               provision. Any waiver must be in writing and signed by us to
               be effective.
             </p>
-            <p style={paragraph}>
+            <p>
               <strong>Assignment.</strong> You may not assign or transfer
               this Agreement or any rights or obligations under it without
               our prior written consent. We may freely assign this
               Agreement, including to a successor in interest. Any
               prohibited assignment is null and void.
             </p>
-            <p style={paragraph}>
+            <p>
               <strong>No third-party beneficiaries.</strong> This Agreement
               does not create any third-party beneficiary rights.
             </p>
-            <p style={paragraph}>
+            <p>
               <strong>Relationship.</strong> Nothing in this Agreement
               creates any partnership, joint venture, employment, agency,
               or franchise relationship between you and Aturi.
             </p>
-            <p style={paragraph}>
+            <p>
               <strong>Notices.</strong> We may provide notices to you by
               posting on the Service or by sending to any email address you
               provide. You may send notices to us at{' '}
-              <a href={`mailto:${CONTACT_EMAIL}`} style={linkStyle}>
+              <a href={`mailto:${CONTACT_EMAIL}`}>
                 {CONTACT_EMAIL}
               </a>
               .
             </p>
-            <p style={paragraph}>
+            <p>
               <strong>Headings.</strong> Section headings are for
               convenience only and have no legal effect.
             </p>
@@ -767,23 +725,23 @@ export default function TermsPage() {
 
           {/* Privacy Policy */}
           <section>
-            <h2 style={sectionHeading}>Privacy Policy</h2>
+            <h2>Privacy Policy</h2>
 
-            <p style={paragraph}>
+            <p>
               Aturi is designed to collect as little personal data as
               possible. This Privacy Policy explains what information we
               and our infrastructure providers process when you use the
               Service, why, and what your choices are. The Aturi browser
               extension is covered by its own dedicated{' '}
-              <Link href={EXTENSION_PRIVACY_URL} style={linkStyle}>
+              <Link href={EXTENSION_PRIVACY_URL}>
                 Extension Privacy Policy
               </Link>
               ; this section covers the web app and associated server-side
               features.
             </p>
 
-            <h3 style={subHeading}>1. Information we collect</h3>
-            <p style={paragraph}>
+            <h3>1. Information we collect</h3>
+            <p>
               <strong>Anonymous analytics.</strong> We use Vercel Analytics
               to collect aggregate, anonymous usage statistics, which may
               include page views and visitor counts, referrer source,
@@ -793,7 +751,7 @@ export default function TermsPage() {
               visitors across days or websites. Visitor data is anonymized
               using temporary daily identifiers that reset.
             </p>
-            <p style={paragraph}>
+            <p>
               <strong>Server logs.</strong> Our hosting and edge-compute
               provider (Vercel) may temporarily log standard request
               metadata to operate, secure, and debug the Service. This may
@@ -801,7 +759,7 @@ export default function TermsPage() {
               user agent, response status, and the originating geography
               of the request.
             </p>
-            <p style={paragraph}>
+            <p>
               <strong>OAuth and session data.</strong> When you sign in
               with atproto, the OAuth handshake occurs between your browser
               and your PDS (and any identity authority associated with it).
@@ -813,23 +771,23 @@ export default function TermsPage() {
               IndexedDB) and never transmitted to Aturi&rsquo;s servers.
               Signing out clears that local session in the browser you used.
             </p>
-            <p style={paragraph}>
+            <p>
               <strong>Preferences and personalization.</strong> Non-sensitive
-              preferences &mdash; including waypoint groups, per-group
+              preferences, including waypoint groups, per-group
               ordering, pinned/visible/hidden waypoints, custom waypoints
               you create (display name, domain, URL templates, supported
-              record types), and other UI choices &mdash; are stored
+              record types), and other UI choices, are stored
               locally in your browser. If you are signed in, we also mirror
               those preferences as a record in your own PDS (NSID{' '}
               <code>to.aturi.actor.preferences</code>, rkey{' '}
               <code>self</code>) so they sync across your devices. The
               authoritative copy lives in your repository, under your
               control; we do not maintain a separate copy. The PDS record
-              is technically public &mdash; like all atproto records &mdash;
+              is technically public, like all atproto records,
               and may be visible to anyone with access to your PDS or
               relays that ingest your repository.
             </p>
-            <p style={paragraph}>
+            <p>
               <strong>Atmosphere data.</strong> When you use Explore, view a
               landing page, request an OG image, or call the Resolve or
               oEmbed APIs, the Service may fetch records, identity
@@ -844,7 +802,7 @@ export default function TermsPage() {
               DIDs, AT URIs) you supply are necessarily transmitted to the
               relevant third party so it can answer the query.
             </p>
-            <p style={paragraph}>
+            <p>
               <strong>Resolve API and oEmbed.</strong> When a third-party
               tool (such as a share sheet, an Apple Shortcut, or another
               app) calls the Resolve API or oEmbed endpoint with a URL or
@@ -854,21 +812,21 @@ export default function TermsPage() {
               fetch a limited portion of the page over HTTP(S) using a
               clearly identified user agent.
             </p>
-            <p style={paragraph}>
+            <p>
               <strong>Information you choose to send us.</strong> If you
               email us, file an issue in our public repository, or contact
               us through any other channel, we will process the
               information you provide so that we can respond.
             </p>
-            <p style={paragraph}>
+            <p>
               We do not use tracking pixels, advertising SDKs, third-party
               advertising cookies, fingerprinting, session replay, or
               behavioral profiling on the Service.
             </p>
 
-            <h3 style={subHeading}>2. How we use information</h3>
-            <p style={paragraph}>Information processed in connection with the Service is used to:</p>
-            <ul style={list}>
+            <h3>2. How we use information</h3>
+            <p>Information processed in connection with the Service is used to:</p>
+            <ul>
               <li>Operate, maintain, secure, and improve the Service;</li>
               <li>
                 Resolve, route, and render Atmosphere content you (or your
@@ -888,15 +846,15 @@ export default function TermsPage() {
               </li>
               <li>Comply with applicable law and respond to lawful requests.</li>
             </ul>
-            <p style={paragraph}>
+            <p>
               We do not sell, rent, or trade your personal information. We
               do not share your information with third parties for their
               own marketing purposes. We do not use your information to
               train machine-learning models.
             </p>
 
-            <h3 style={subHeading}>3. Legal bases (EEA/UK users)</h3>
-            <p style={paragraph}>
+            <h3>3. Legal bases (EEA/UK users)</h3>
+            <p>
               If you are located in the European Economic Area, the United
               Kingdom, or a jurisdiction with similar law, our legal bases
               for processing your personal data are: (a) our legitimate
@@ -906,8 +864,8 @@ export default function TermsPage() {
               obligations.
             </p>
 
-            <h3 style={subHeading}>4. Cookies and local storage</h3>
-            <p style={paragraph}>
+            <h3>4. Cookies and local storage</h3>
+            <p>
               Aturi does not use cookies for tracking or advertising.
               Vercel Analytics is cookieless. The Service does use your
               browser&rsquo;s local storage technologies (such as
@@ -918,8 +876,8 @@ export default function TermsPage() {
               will sign you out and reset your local preferences.
             </p>
 
-            <h3 style={subHeading}>5. Where information is processed</h3>
-            <p style={paragraph}>
+            <h3>5. Where information is processed</h3>
+            <p>
               The Service is hosted on Vercel&rsquo;s global edge
               infrastructure, and requests are typically served from the
               region closest to you. As a result, information may be
@@ -931,91 +889,90 @@ export default function TermsPage() {
               laws than your own.
             </p>
 
-            <h3 style={subHeading}>6. Sub-processors and third parties</h3>
-            <p style={paragraph}>
+            <h3>6. Sub-processors and third parties</h3>
+            <p>
               We rely on a set of third parties to operate the Service:
             </p>
-            <ul style={list}>
+            <ul>
               <li>
-                <strong>Vercel</strong> &mdash; hosting, edge functions, and
+                <strong>Vercel</strong>: hosting, edge functions, and
                 anonymous analytics.
               </li>
               <li>
                 <strong>Bluesky AppView</strong> (
-                <code>public.api.bsky.app</code>) &mdash; resolving handles
+                <code>public.api.bsky.app</code>): resolving handles
                 and DIDs, fetching public profile and post data.
               </li>
               <li>
-                <strong>PLC directory</strong> (<code>plc.directory</code>)
-                &mdash; DID document and identity-audit-log lookups.
+                <strong>PLC directory</strong> (<code>plc.directory</code>): DID document and identity-audit-log lookups.
               </li>
               <li>
                 <strong>Constellation</strong> (
-                <code>constellation.microcosm.blue</code>) &mdash;
+                <code>constellation.microcosm.blue</code>):
                 third-party backlink index.
               </li>
               <li>
-                <strong>cred.blue</strong> (<code>api.cred.blue</code>) &mdash;
+                <strong>cred.blue</strong> (<code>api.cred.blue</code>):
                 third-party reputation/score API.
               </li>
               <li>
                 <strong>Jetstream relays</strong> (e.g.,{' '}
-                <code>jetstream2.us-east.bsky.network</code>) &mdash; live
+                <code>jetstream2.us-east.bsky.network</code>): live
                 public-commit firehose used to render Explore live feeds.
               </li>
               <li>
-                <strong>Your PDS and identity authority</strong> &mdash;
+                <strong>Your PDS and identity authority</strong>:
                 authentication, repository reads and writes, blob uploads.
               </li>
               <li>
-                <strong>Other public atproto services</strong> &mdash; relays,
+                <strong>Other public atproto services</strong>: relays,
                 AppViews, and other public endpoints that may be queried to
                 render Explore, OG images, oEmbed, and Resolve responses.
               </li>
               <li>
-                <strong>Third-party Atmosphere clients and waypoints</strong>{' '}
-                &mdash; the destinations you (or your recipients) choose to
+                <strong>Third-party Atmosphere clients and waypoints</strong>:{' '}
+                the destinations you (or your recipients) choose to
                 open links in. We do not control these services.
               </li>
               <li>
                 <strong>Browser web stores and OS vendors</strong> (Google,
-                Mozilla, Apple) &mdash; distribute the extension and,
+                Mozilla, Apple): distribute the extension and,
                 depending on your settings, may sync extension storage
                 across your devices.
               </li>
             </ul>
-            <p style={paragraph}>
+            <p>
               Each of these parties is subject to its own privacy policy
               and terms. We have no control over their practices.
             </p>
 
-            <h3 style={subHeading}>7. Data retention</h3>
-            <p style={paragraph}>
+            <h3>7. Data retention</h3>
+            <p>
               <strong>Server logs.</strong> Operational logs are retained
               for a maximum of 30 days, except where a longer period is
               required for security, abuse investigation, or legal
               compliance.
             </p>
-            <p style={paragraph}>
+            <p>
               <strong>Anonymous analytics.</strong> Aggregate analytics may
               be retained indefinitely; this data does not identify
               individual visitors.
             </p>
-            <p style={paragraph}>
+            <p>
               <strong>Preferences and OAuth sessions.</strong> Preferences
               mirrored to your PDS persist until you delete the record;
               local session data persists in your browser until you sign
               out or clear your browser data.
             </p>
-            <p style={paragraph}>
+            <p>
               <strong>Atmosphere data.</strong> The Service does not
               persist atproto records, blobs, or identity documents fetched
               from upstream services beyond what is required to serve the
               request and apply short-lived edge cache.
             </p>
 
-            <h3 style={subHeading}>8. Security</h3>
-            <p style={paragraph}>
+            <h3>8. Security</h3>
+            <p>
               We use commercially reasonable technical and organizational
               measures to protect the Service, including transport
               encryption (HTTPS), DPoP-bound OAuth tokens, and the
@@ -1026,8 +983,8 @@ export default function TermsPage() {
               you use the Service secure.
             </p>
 
-            <h3 style={subHeading}>9. Your rights</h3>
-            <p style={paragraph}>
+            <h3>9. Your rights</h3>
+            <p>
               Because we collect very little personal data on our own
               infrastructure, the practical scope of access, correction, or
               deletion requests is limited. Subject to applicable law, you
@@ -1037,15 +994,15 @@ export default function TermsPage() {
               restrict certain processing, (e) request portability, and
               (f) lodge a complaint with a supervisory authority. To
               exercise these rights, contact{' '}
-              <a href={`mailto:${CONTACT_EMAIL}`} style={linkStyle}>
+              <a href={`mailto:${CONTACT_EMAIL}`}>
                 {CONTACT_EMAIL}
               </a>
-              . Many requests &mdash; especially those relating to records
-              in your atproto repository &mdash; are best made directly to
+              . Many requests, especially those relating to records
+              in your atproto repository, are best made directly to
               your PDS, since that is where the authoritative copy of your
               data lives.
             </p>
-            <p style={paragraph}>
+            <p>
               California residents may have additional rights under the
               California Consumer Privacy Act (CCPA) and the California
               Privacy Rights Act (CPRA), including the right to know,
@@ -1056,39 +1013,39 @@ export default function TermsPage() {
               rights.
             </p>
 
-            <h3 style={subHeading}>10. Children&rsquo;s privacy</h3>
-            <p style={paragraph}>
+            <h3>10. Children&rsquo;s privacy</h3>
+            <p>
               The Service is not directed to children under 13 (or the
               minimum age of digital consent in your jurisdiction, if
               higher), and we do not knowingly collect personal information
               from children. If you believe a child has provided us with
               personal information, please contact{' '}
-              <a href={`mailto:${CONTACT_EMAIL}`} style={linkStyle}>
+              <a href={`mailto:${CONTACT_EMAIL}`}>
                 {CONTACT_EMAIL}
               </a>{' '}
               and we will take appropriate steps to delete it.
             </p>
 
-            <h3 style={subHeading}>11. Do Not Track</h3>
-            <p style={paragraph}>
+            <h3>11. Do Not Track</h3>
+            <p>
               Aturi does not perform cross-site behavioral tracking and
               therefore does not respond differently to Do Not Track
               signals.
             </p>
 
-            <h3 style={subHeading}>12. Browser extension</h3>
-            <p style={paragraph}>
+            <h3>12. Browser extension</h3>
+            <p>
               The Aturi browser extension is covered by its own dedicated
               privacy policy. Please see the{' '}
-              <Link href={EXTENSION_PRIVACY_URL} style={linkStyle}>
+              <Link href={EXTENSION_PRIVACY_URL}>
                 Extension Privacy Policy
               </Link>{' '}
               for the full description of what the extension stores, what
               network requests it makes, and what permissions it uses.
             </p>
 
-            <h3 style={subHeading}>13. Changes to this Privacy Policy</h3>
-            <p style={paragraph}>
+            <h3>13. Changes to this Privacy Policy</h3>
+            <p>
               We may update this Privacy Policy from time to time. Changes
               will be reflected on this page with an updated &ldquo;Last
               updated&rdquo; date. Material changes will be made apparent
@@ -1097,18 +1054,12 @@ export default function TermsPage() {
           </section>
 
           {/* Contact */}
-          <section
-            style={{
-              marginTop: '3rem',
-              paddingTop: '2rem',
-              borderTop: '1px solid var(--border-subtle)',
-            }}
-          >
-            <h3 style={subHeading}>Contact</h3>
-            <p style={paragraph}>
+          <section>
+            <h2>Contact</h2>
+            <p>
               Questions, legal notices, privacy requests, abuse reports, or
               other concerns about Aturi can be sent to{' '}
-              <a href={`mailto:${CONTACT_EMAIL}`} style={linkStyle}>
+              <a href={`mailto:${CONTACT_EMAIL}`}>
                 {CONTACT_EMAIL}
               </a>
               . You can also file a public issue in our{' '}
@@ -1116,7 +1067,6 @@ export default function TermsPage() {
                 href={ISSUES_URL}
                 target="_blank"
                 rel="noopener noreferrer"
-                style={linkStyle}
               >
                 source repository
               </a>{' '}
@@ -1125,7 +1075,6 @@ export default function TermsPage() {
                 href={BSKY_PROFILE_URL}
                 target="_blank"
                 rel="noopener noreferrer"
-                style={linkStyle}
               >
                 @atpota.to
               </a>
@@ -1134,9 +1083,8 @@ export default function TermsPage() {
                 href={REPO_URL}
                 target="_blank"
                 rel="noopener noreferrer"
-                style={linkStyle}
               >
-                tangled.org/atpota.to/aturi
+                github.com/atpota-to/aturi
               </a>
               .
             </p>

@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { getPlcDocument, type PlcDocument } from '@/utils/atproto/plc';
 import type { IdentityBundle } from '@/utils/atproto/identity';
+import { IdentityTabSkeleton } from '../skeletons/pages';
 
 export default function IdentityTab({ identity }: { identity: IdentityBundle }) {
   const { did } = identity;
@@ -30,13 +31,13 @@ export default function IdentityTab({ identity }: { identity: IdentityBundle }) 
   if (!isPlc) {
     return (
       <p className="explore-placeholder">
-        <code>{did}</code> isn&rsquo;t a <code>did:plc:</code> &mdash; PLC directory data isn&rsquo;t
+        <code>{did}</code> isn&rsquo;t a <code>did:plc:</code>. PLC directory data isn&rsquo;t
         available for this method.
       </p>
     );
   }
   if (error) return <p className="explore-error">{error}</p>;
-  if (!doc) return <p className="explore-placeholder">Loading identity…</p>;
+  if (!doc) return <IdentityTabSkeleton />;
 
   const akas = doc.alsoKnownAs || [];
   const services = doc.service || [];
@@ -91,7 +92,7 @@ export default function IdentityTab({ identity }: { identity: IdentityBundle }) 
               {v.publicKeyMultibase && (
                 <div className="explore-id-row">
                   <span className="explore-small-caps">key</span>
-                  <code style={{ fontSize: '0.75rem', wordBreak: 'break-all' }}>
+                  <code style={{ fontSize: '0.75rem' }}>
                     {v.publicKeyMultibase}
                   </code>
                 </div>
@@ -111,7 +112,7 @@ export default function IdentityTab({ identity }: { identity: IdentityBundle }) 
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <section>
+    <section className="fx-idsec">
       <h3 className="explore-small-caps" style={{ marginBottom: '0.5rem' }}>
         {title}
       </h3>

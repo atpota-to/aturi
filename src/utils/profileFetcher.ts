@@ -16,7 +16,7 @@ export type BskyProfile = {
   createdAt?: string;
   labels?: Array<{
     val: string;
-    [key: string]: any;
+    [key: string]: unknown;
   }>;
   verification?: {
     verifications?: Array<{
@@ -40,6 +40,8 @@ export type BskyProfile = {
   };
 };
 
+import { upstreamFetch, logUpstreamHttpError } from './upstreamFetch';
+
 /**
  * Fetches a Bluesky profile using app.bsky.actor.getProfile
  */
@@ -50,9 +52,9 @@ export async function fetchProfile(actor: string): Promise<BskyProfile | null> {
       actor
     )}`;
 
-    const response = await fetch(url);
+    const response = await upstreamFetch(url);
     if (!response.ok) {
-      console.error(`Failed to fetch profile: HTTP ${response.status}`);
+      logUpstreamHttpError('Failed to fetch profile', response);
       return null;
     }
 

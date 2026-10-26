@@ -1,0 +1,244 @@
+'use client';
+
+import { useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
+import { Braces } from 'lucide-react';
+import { Skeleton } from '@/components/SkeletonLoader';
+import { Nsid, Segmented } from './primitives';
+import { fetchCollections } from '@/utils/ufos/client';
+import { type CollectionOrder, type NsidCount } from '@/utils/ufos/config';
+import { formatCount } from '@/utils/ufos/format';
+import { lexiconPathFor, namespaceKey } from '@/utils/ufos/nsid';
+
+type View = 'top' | 'all';
+
+const TOP_FETCH = 200; // pull a deep pool so "one per group" has enough to dedupe
+const TOP_DISPLAY = 50; // …but only show this many when not deduping
+const PAGE_LIMIT = 100;
+
+/**
+ * Full-catalog browser for the lexicons explorer.
+ *
+ *   - Top:  a ranked list (by creates or repos/DID-estimate).
+ *   - All:  the entire catalog, cursor-paginated with "Load more".
+ *
+ * The "One per group" filter (on by default) collapses the list to a
+ * single row per 2-segment namespace (the highest-ranked one), so a
+ * project with many collections — e.g. hundreds of app.bsky.* — doesn't
+ * swamp the view.
+ *
+ * Only one stat column is shown at a time — the one picked by the
+ * Repos/Creates toggle — so the NSID column keeps as much width as
+ * possible. In Top that toggle is also the sort key, and it defaults to
+ * repos: how many accounts publish a lexicon says more about reach than
+ * raw record volume, which a handful of chatty repos can dominate.
+ *
+ * `order` and `cursor` are mutually exclusive in the API, so Top never
+ * paginates and All never sorts.
+ */
+export default function BrowseAllLexicons() {
+  const [view, setView] = useState<View>('top');
+  const [order, setOrder] = useState<CollectionOrder>('dids-estimate');
+  const [dedupe, setDedupe] = useState(true);
+  const [rows, setRows] = useState<NsidCount[] | null>(null);
+  const [cursor, setCursor] = useState<string | null>(null);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Top view: a ranked pool sorted by the selected metric, so a metric change
+  // is a re-sort and must refetch. We over-fetch (TOP_FETCH) so "one per group"
+  // still has a deep pool to dedupe from. Keep previous rows visible on toggle.
+  useEffect(() => {
+    if (view !== 'top') return;
+    let cancelled = false;
+    (async () => {
+      const res = await fetchCollections({ order, limit: TOP_FETCH });
+      if (cancelled) return;
+      // Surface a real API failure instead of rendering it as "No lexicons
+      // found." (an empty result the user would read as authoritative).
+      if (res.failed) {
+        setError('the UFOs API is unavailable');
+        setRows((prev) => prev ?? []);
+        return;
+      }
+      setError(null);
+      setRows(res.collections);
+      setCursor(null);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [view, order]);
+
+  // All view: the unsorted catalog, cursor-paginated. The metric only picks
+  // which stat column shows here, so it deliberately isn't a dependency —
+  // otherwise switching Repos/Creates would discard every "Load more" page.
+  useEffect(() => {
+    if (view !== 'all') return;
+    let cancelled = false;
+    (async () => {
+      const res = await fetchCollections({ limit: PAGE_LIMIT });
+      if (cancelled) return;
+      if (res.failed) {
+        setError('the UFOs API is unavailable');
+        setRows((prev) => prev ?? []);
+        return;
+      }
+      setError(null);
+      setRows(res.collections);
+      setCursor(res.cursor);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [view]);
+
+  const displayed = useMemo(() => {
+    if (!rows) return null;
+    if (dedupe) return dedupeByNamespace(rows);
+    return view === 'top' ? rows.slice(0, TOP_DISPLAY) : rows;
+  }, [rows, dedupe, view]);
+
+  // Only one stat column is shown at a time (chosen by the Repos/Creates
+  // toggle) so the NSID column gets the freed-up width.
+  const showCreates = order === 'records-created';
+  const metricLabel = showCreates ? 'Creates' : 'Repos';
+  const statFor = (c: NsidCount) => (showCreates ? c.creates : c.dids_estimate);
+
+  async function loadMore() {
+    if (!cursor || loadingMore) return;
+    setLoadingMore(true);
+    const res = await fetchCollections({ cursor, limit: PAGE_LIMIT });
+    setRows((prev) => [...(prev ?? []), ...res.collections]);
+    setCursor(res.cursor);
+    setLoadingMore(false);
+  }
+
+  return (
+    <section className="fn-list-card" aria-labelledby="fn-browse-title">
+      <div className="fn-list-card-head fn-browse-head">
+        {/* The same title row as its sibling cards above it. */}
+        <div className="fn-list-card-title-row">
+          <span className="fn-list-card-icon" aria-hidden>
+            <Braces size={14} />
+          </span>
+          <h2 id="fn-browse-title" className="fn-list-card-title">
+            Browse all lexicons
+          </h2>
+          <span className="fn-list-card-via">via UFOs</span>
+        </div>
+        <div className="fn-list-card-controls">
+          <Segmented
+            ariaLabel="Browse view"
+            options={[
+              { value: 'top', label: 'Top' },
+              { value: 'all', label: 'All' },
+            ]}
+            value={view}
+            onChange={(v) => setView(v as View)}
+          />
+          <Segmented
+            ariaLabel={view === 'top' ? 'Rank by' : 'Show metric'}
+            options={[
+              { value: 'dids-estimate', label: 'Repos' },
+              { value: 'records-created', label: 'Creates' },
+            ]}
+            value={order}
+            onChange={(v) => setOrder(v as CollectionOrder)}
+          />
+          <button
+            type="button"
+            onClick={() => setDedupe((v) => !v)}
+            aria-pressed={dedupe}
+            title="Show only the top lexicon from each namespace"
+            className="fn-toggle"
+          >
+            One per group
+          </button>
+        </div>
+      </div>
+
+      {/* Column header */}
+      <div className="fn-col-head fn-browse-grid">
+        <span>Lexicon</span>
+        <span style={{ textAlign: 'right' }}>{metricLabel}</span>
+      </div>
+
+      {error && (displayed === null || displayed.length === 0) ? (
+        <div className="explore-error fn-list-card-msg">
+          Couldn&rsquo;t reach the UFOs API: {error}
+        </div>
+      ) : displayed === null ? (
+        <BrowseSkeleton />
+      ) : displayed.length === 0 ? (
+        <p className="explore-placeholder fn-list-card-msg">No lexicons found.</p>
+      ) : (
+        <ul className="fn-list-rows">
+          {displayed.map((c, i) => (
+            <li key={`${c.nsid}-${i}`}>
+              <Link
+                href={lexiconPathFor(c.nsid)}
+                prefetch={false}
+                className="fn-row fn-browse-grid"
+              >
+                <span className="fn-row-nsid" title={c.nsid}>
+                  <Nsid value={c.nsid} />
+                </span>
+                <Count value={statFor(c)} />
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {view === 'all' && cursor && displayed && displayed.length > 0 && (
+        <button
+          type="button"
+          onClick={loadMore}
+          disabled={loadingMore}
+          className="fn-list-card-foot"
+          style={{ cursor: loadingMore ? 'default' : 'pointer' }}
+        >
+          {loadingMore ? 'Loading…' : 'Load more'}
+        </button>
+      )}
+    </section>
+  );
+}
+
+/** Keep the first (highest-ranked) collection per 2-segment namespace. */
+function dedupeByNamespace(rows: NsidCount[]): NsidCount[] {
+  const seen = new Set<string>();
+  const out: NsidCount[] = [];
+  for (const c of rows) {
+    const key = namespaceKey(c.nsid);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(c);
+  }
+  return out;
+}
+
+function Count({ value }: { value: number }) {
+  return (
+    <span className="fn-row-count" title={value.toLocaleString()}>
+      {formatCount(value)}
+    </span>
+  );
+}
+
+function BrowseSkeleton() {
+  const widths = ['64%', '48%', '72%', '56%', '40%', '68%', '52%', '60%'];
+  return (
+    <ul aria-hidden className="fn-list-rows">
+      {widths.map((w, i) => (
+        <li key={i} className="fn-browse-grid">
+          <Skeleton width={w} height="0.75rem" />
+          <span style={{ display: 'flex', justifyContent: 'flex-end' }}>
+            <Skeleton width="2.5rem" height="0.75rem" />
+          </span>
+        </li>
+      ))}
+    </ul>
+  );
+}

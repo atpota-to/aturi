@@ -1,18 +1,22 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import type { Agent } from '@atproto/api';
 import {
   blankRecordFor,
   lexiconFor,
   type Lexicon,
   type LexiconField,
 } from '@/utils/atproto/lexicons';
-import { rkeyFromAtUri } from '@/utils/atproto/urls';
+import { RecordEditorSkeleton } from './skeletons/pages';
+import type { RecordBackend } from './recordBackend';
 
 type Props = {
-  agent: Agent;
-  did: string;
+  /**
+   * Where the record is read from and written back to. `repoRecordBackend`
+   * for a public repo, `spaceRecordBackend` for a permissioned one; the
+   * editor itself is the same either way.
+   */
+  backend: RecordBackend;
   collection: string;
   rkey?: string;
   initialMode?: 'form' | 'raw';
@@ -21,11 +25,16 @@ type Props = {
   onCreated?: (info: { rkey: string | null; record: Record<string, unknown>; uri?: string }) => void;
   /** Dismiss the editor without saving. */
   onCancel?: () => void;
+  /**
+   * Hide the delete button. For a grant that authorizes editing but not
+   * deleting — possible on a space, where the two are separate actions — so
+   * the editor doesn't offer a button whose call would be refused.
+   */
+  canDelete?: boolean;
 };
 
 export default function RecordEditor({
-  agent,
-  did,
+  backend,
   collection,
   rkey,
   initialMode = 'form',
@@ -33,6 +42,7 @@ export default function RecordEditor({
   onDeleted,
   onCreated,
   onCancel,
+  canDelete = true,
 }: Props) {
   const lex = lexiconFor(collection);
   const isNew = !rkey;
@@ -64,12 +74,7 @@ export default function RecordEditor({
       setLoading(true);
       setError(null);
       try {
-        const res = await agent.com.atproto.repo.getRecord({
-          repo: did,
-          collection,
-          rkey: rkey!,
-        });
-        const fetched = ((res?.data || res) as { value?: Record<string, unknown> })?.value || {};
+        const fetched = await backend.read(collection, rkey!);
         if (cancelled) return;
         setValue(structuredClone(fetched));
         setRawText(JSON.stringify(fetched, null, 2));
@@ -83,7 +88,7 @@ export default function RecordEditor({
     return () => {
       cancelled = true;
     };
-  }, [agent, did, collection, rkey, isNew, lex]);
+  }, [backend, collection, rkey, isNew, lex]);
 
   const updateField = useCallback((key: string, next: unknown) => {
     setValue((prev) => ({ ...(prev || {}), [key]: next }));
@@ -126,31 +131,15 @@ export default function RecordEditor({
         if (lex?.rkeyMode === 'fixed') {
           const chosen = rkeyDraft.trim();
           if (!chosen) throw new Error('Pick an rkey for this record.');
-          await agent.com.atproto.repo.putRecord({
-            repo: did,
-            collection,
-            rkey: chosen,
-            record,
-          });
-          onCreated?.({ rkey: chosen, record });
+          const created = await backend.create(collection, record, chosen);
+          onCreated?.({ rkey: created.rkey ?? chosen, record, uri: created.uri });
           return;
         }
-        const res = await agent.com.atproto.repo.createRecord({
-          repo: did,
-          collection,
-          record,
-        });
-        const data = (res?.data || res) as { uri?: string };
-        const newRkey = rkeyFromAtUri(data?.uri || '');
-        onCreated?.({ rkey: newRkey, record, uri: data?.uri });
+        const created = await backend.create(collection, record);
+        onCreated?.({ rkey: created.rkey, record, uri: created.uri });
         return;
       }
-      await agent.com.atproto.repo.putRecord({
-        repo: did,
-        collection,
-        rkey: rkey!,
-        record,
-      });
+      await backend.put(collection, rkey!, record);
       setValue(record);
       setRawText(JSON.stringify(record, null, 2));
       setSavedFlash(true);
@@ -168,7 +157,7 @@ export default function RecordEditor({
     setDeleting(true);
     setError(null);
     try {
-      await agent.com.atproto.repo.deleteRecord({ repo: did, collection, rkey });
+      await backend.remove(collection, rkey);
       onDeleted?.();
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
@@ -192,51 +181,20 @@ export default function RecordEditor({
   }
 
   if (loading) {
-    return <p className="explore-placeholder">Loading record…</p>;
+    return <RecordEditorSkeleton />;
   }
 
   return (
-    <div
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '1rem',
-        padding: '1rem',
-        background: 'var(--bg-secondary)',
-        border: '1px solid var(--border-medium)',
-      }}
-    >
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '0.75rem',
-          flexWrap: 'wrap',
-          justifyContent: 'space-between',
-        }}
-      >
+    <div className="fn-rec-card fn-editor">
+      <div className="fn-editor-head">
         {lex ? (
           <ModeToggle mode={rawMode ? 'json' : 'form'} onChange={toggleRawMode} />
         ) : (
           // No registered lexicon means there's no form to switch to —
           // editor stays in JSON mode and we just label the row.
-          <span
-            style={{
-              fontFamily: 'var(--font-serif)',
-              fontSize: '0.8125rem',
-              color: 'var(--text-tertiary)',
-              letterSpacing: '0.08em',
-              textTransform: 'uppercase',
-            }}
-          >
-            Edit JSON
-          </span>
+          <span className="fn-rec-h2">Edit JSON</span>
         )}
-        {lex && (
-          <span style={{ color: 'var(--text-tertiary)', fontSize: '0.8125rem' }}>
-            {lex.label}
-          </span>
-        )}
+        {lex && <span className="fn-editor-lex">{lex.label}</span>}
       </div>
 
       {isNew && lex?.rkeyMode === 'fixed' && (
@@ -258,25 +216,16 @@ export default function RecordEditor({
       )}
 
       {error && <p className="explore-error">{error}</p>}
-      {savedFlash && (
-        <p style={{ color: 'var(--text-accent)', margin: 0, fontStyle: 'italic' }}>Saved.</p>
-      )}
+      {savedFlash && <p className="fn-editor-saved">Saved.</p>}
 
-      <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'center' }}>
+      <div className="fn-editor-actions">
         <button
           type="button"
           onClick={handleSave}
           disabled={saving || deleting}
-          style={{
-            padding: '0.55rem 1rem',
-            background: 'var(--accent-moss)',
-            color: 'var(--text-on-accent)',
-            border: '1px solid var(--accent-moss)',
-            fontFamily: 'var(--font-serif)',
-            fontSize: '0.875rem',
-            cursor: saving || deleting ? 'wait' : 'pointer',
-            opacity: saving || deleting ? 0.6 : 1,
-          }}
+          className="fn-rec-btn"
+          data-variant="primary"
+          data-wait={saving || deleting || undefined}
         >
           {saving ? 'Saving…' : isNew ? 'Create' : 'Save'}
         </button>
@@ -285,56 +234,34 @@ export default function RecordEditor({
             type="button"
             onClick={onCancel}
             disabled={saving || deleting}
-            style={{
-              padding: '0.55rem 1rem',
-              background: 'transparent',
-              color: 'var(--text-secondary)',
-              border: '1px solid var(--border-medium)',
-              fontFamily: 'var(--font-serif)',
-              fontSize: '0.875rem',
-              cursor: saving || deleting ? 'not-allowed' : 'pointer',
-              opacity: saving || deleting ? 0.6 : 1,
-            }}
+            className="fn-rec-btn"
           >
             Cancel
           </button>
         )}
-        {!isNew && !confirmingDelete && (
+        {!isNew && canDelete && !confirmingDelete && (
           <button
             type="button"
             onClick={() => setConfirmingDelete(true)}
             disabled={saving || deleting}
-            style={{
-              padding: '0.55rem 1rem',
-              background: 'var(--danger-soft)',
-              color: 'var(--danger)',
-              border: '1px solid var(--danger-border)',
-              fontFamily: 'var(--font-serif)',
-              fontSize: '0.875rem',
-              cursor: 'pointer',
-            }}
+            className="fn-rec-btn"
+            data-variant="danger"
           >
             Delete
           </button>
         )}
         {confirmingDelete && (
           <>
-            <span style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>
+            <span className="fn-editor-confirm">
               Delete {collection}/{rkey}? This cannot be undone.
             </span>
             <button
               type="button"
               onClick={handleDelete}
               disabled={deleting}
-              style={{
-                padding: '0.4rem 0.75rem',
-                background: 'var(--danger)',
-                color: 'var(--text-on-accent)',
-                border: '1px solid var(--danger)',
-                fontFamily: 'var(--font-serif)',
-                fontSize: '0.8125rem',
-                cursor: deleting ? 'wait' : 'pointer',
-              }}
+              className="fn-rec-btn"
+              data-variant="danger-solid"
+              data-wait={deleting || undefined}
             >
               {deleting ? 'Deleting…' : 'Confirm delete'}
             </button>
@@ -342,15 +269,7 @@ export default function RecordEditor({
               type="button"
               onClick={() => setConfirmingDelete(false)}
               disabled={deleting}
-              style={{
-                padding: '0.4rem 0.75rem',
-                background: 'transparent',
-                color: 'var(--text-secondary)',
-                border: '1px solid var(--border-medium)',
-                fontFamily: 'var(--font-serif)',
-                fontSize: '0.8125rem',
-                cursor: 'pointer',
-              }}
+              className="fn-rec-btn"
             >
               Cancel
             </button>
@@ -507,32 +426,26 @@ function FieldShell({
   charCount?: string | null;
   children: React.ReactNode;
 }) {
+  // The whole field is a <label> wrapping its control, so every input in the
+  // editor gets an implicit programmatic label (previously the caption was a
+  // bare <label> with no htmlFor, leaving each control announced as unlabeled).
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
+    <label className="fn-editor-field">
       {label && (
-        <label
-          className="explore-small-caps"
-          style={{ color: 'var(--text-secondary)', fontSize: '0.75rem' }}
-        >
+        <span className="fn-editor-label">
           {label}
           {required && <span style={{ color: 'var(--danger)' }}> *</span>}
-        </label>
+        </span>
       )}
       {children}
       {(hint || charCount) && (
-        <p
-          style={{
-            margin: 0,
-            fontSize: '0.75rem',
-            color: 'var(--text-tertiary)',
-          }}
-        >
+        <span className="fn-editor-hint">
           {hint}
           {hint && charCount ? ' · ' : ''}
           {charCount}
-        </p>
+        </span>
       )}
-    </div>
+    </label>
   );
 }
 
@@ -669,16 +582,7 @@ function ModeToggle({
   onChange: () => void;
 }) {
   return (
-    <div
-      role="group"
-      aria-label="Editor mode"
-      style={{
-        display: 'inline-flex',
-        border: '1px solid var(--border-medium)',
-        background: 'var(--bg-tertiary)',
-        padding: '2px',
-      }}
-    >
+    <div role="group" aria-label="Editor mode" className="fn-rec-seg">
       <ModeToggleButton
         active={mode === 'form'}
         onClick={() => mode !== 'form' && onChange()}
@@ -705,21 +609,7 @@ function ModeToggleButton({
   children: React.ReactNode;
 }) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-pressed={active}
-      style={{
-        padding: '0.35rem 0.75rem',
-        background: active ? 'var(--accent-moss)' : 'transparent',
-        color: active ? 'var(--text-on-accent)' : 'var(--text-secondary)',
-        border: 0,
-        fontFamily: 'var(--font-serif)',
-        fontSize: '0.8125rem',
-        cursor: active ? 'default' : 'pointer',
-        transition: 'background 0.15s ease, color 0.15s ease',
-      }}
-    >
+    <button type="button" onClick={onClick} aria-pressed={active}>
       {children}
     </button>
   );

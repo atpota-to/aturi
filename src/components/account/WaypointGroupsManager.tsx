@@ -117,29 +117,15 @@ export default function WaypointGroupsManager() {
 
   return (
     <div>
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'flex-start',
-          gap: 16,
-          marginBottom: 12,
-        }}
-      >
-        <p
-          style={{
-            margin: 0,
-            fontSize: '0.8rem',
-            color: 'var(--text-tertiary)',
-          }}
-        >
+      <div className="settings-list-toolbar">
+        <p className="settings-list-summary">
           {groups.length === 0
-            ? 'No groups yet — create one to start surfacing waypoints.'
+            ? 'No groups yet. Create one to start surfacing waypoints.'
             : `${groups.length} ${groups.length === 1 ? 'group' : 'groups'} · ${totalVisible} visible${
                 hiddenCount > 0 ? ` · ${hiddenCount} hidden` : ''
               }`}
         </p>
-        <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
+        <div className="settings-list-actions">
           <button
             type="button"
             onClick={() => {
@@ -153,14 +139,14 @@ export default function WaypointGroupsManager() {
                 setWaypointGroups(prev, defaultWaypointGroups(prev.customWaypoints)),
               );
             }}
-            style={ghostBtn()}
+            className="settings-btn is-small"
           >
             Reset
           </button>
           <button
             type="button"
             onClick={() => update((prev) => addWaypointGroup(prev, 'New group'))}
-            style={primaryBtn()}
+            className="settings-btn is-small is-primary"
           >
             <Plus size={13} /> New group
           </button>
@@ -214,11 +200,11 @@ export default function WaypointGroupsManager() {
       </DndContext>
 
       {groups.length === 0 && (
-        <div style={{ marginTop: 12 }}>
+        <div className="settings-list-after">
           <button
             type="button"
             onClick={() => update((prev) => addWaypointGroup(prev, 'New group'))}
-            style={primaryBtn()}
+            className="settings-btn is-small is-primary"
           >
             <Plus size={13} /> Create your first group
           </button>
@@ -553,7 +539,7 @@ function WaypointPickerPopover({
           value={query}
           onChange={(e) => setQuery(e.target.value)}
         />
-        <button type="button" onClick={onClose} aria-label="Close" style={ghostBtn()}>
+        <button type="button" onClick={onClose} aria-label="Close" className="settings-icon-btn">
           Done
         </button>
       </div>
@@ -587,36 +573,4 @@ function WaypointPickerPopover({
       </div>
     </div>
   );
-}
-
-// --- Styles ---------------------------------------------------------------
-
-function ghostBtn(): React.CSSProperties {
-  return {
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: '0.35rem',
-    padding: '0.35rem 0.75rem',
-    background: 'transparent',
-    border: '1px solid var(--border-medium)',
-    color: 'var(--text-secondary)',
-    fontFamily: 'var(--font-serif)',
-    fontSize: '0.8rem',
-    cursor: 'pointer',
-  };
-}
-
-function primaryBtn(): React.CSSProperties {
-  return {
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: '0.35rem',
-    padding: '0.4rem 0.75rem',
-    background: 'var(--accent-moss)',
-    color: 'var(--text-on-accent)',
-    border: '1px solid var(--accent-moss)',
-    fontFamily: 'var(--font-serif)',
-    fontSize: '0.85rem',
-    cursor: 'pointer',
-  };
 }

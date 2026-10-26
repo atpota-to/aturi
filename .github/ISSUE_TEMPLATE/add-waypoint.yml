@@ -1,0 +1,118 @@
+name: Add a waypoint
+description: Request that an Atmosphere client or dev tool be added to the catalog
+title: "Add waypoint: "
+labels: ["waypoint"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        You do not need to open a PR to get a client listed. Fill this in and it can be added for you.
+
+        Search existing issues first; waypoint requests tend to arrive twice.
+
+  - type: input
+    id: name
+    attributes:
+      label: App name
+      placeholder: Grain
+    validations:
+      required: true
+
+  - type: input
+    id: url
+    attributes:
+      label: Homepage
+      placeholder: https://grain.social
+    validations:
+      required: true
+
+  - type: textarea
+    id: url-patterns
+    attributes:
+      label: URL patterns
+      description: >
+        One line per record type the app renders, with a real link that works right now.
+        A reviewer will click these.
+      placeholder: |
+        Profile: https://grain.social/profile/alice.bsky.social
+        Gallery: https://grain.social/profile/alice.bsky.social/gallery/3k7qw...
+    validations:
+      required: true
+
+  - type: input
+    id: collections
+    attributes:
+      label: Lexicon collections
+      description: >
+        The NSIDs this app publishes or reads. A namespace prefix is fine.
+        Used to hide the waypoint for accounts that have no matching records.
+      placeholder: social.grain.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: identifier
+    attributes:
+      label: Does the app accept DIDs in its URLs, or only handles?
+      description: DIDs are preferred where supported, because they survive handle changes.
+      options:
+        - Both DIDs and handles
+        - Handles only
+        - DIDs only
+        - Not sure
+    validations:
+      required: true
+
+  - type: dropdown
+    id: category
+    attributes:
+      label: Category
+      options:
+        - Bluesky client
+        - Bluesky fork
+        - Publication reader
+        - Atmosphere app
+        - Dev tool
+    validations:
+      required: true
+
+  - type: textarea
+    id: redirect
+    attributes:
+      label: Auto-redirect
+      description: >
+        The extension can silently rewrite links from other clients to this one, but only between
+        apps that render the same underlying records. Which existing clients show the same records
+        as yours? Say "none" if this is a standalone app or a generic explorer.
+      placeholder: Renders the same app.bsky.feed.post records as Bluesky and Anisota.
+
+  - type: dropdown
+    id: compose-intent
+    attributes:
+      label: Compose intent
+      description: >
+        Does the app handle a link that opens its composer, the way bsky.app takes
+        /intent/compose?text=… (https://docs.bsky.app/docs/advanced-guides/intent-links)?
+        Apps forked from the official social app usually inherit it. If the route lives at a
+        different path, say so in the auto-redirect box above.
+      options:
+        - Yes, and it pre-fills the text
+        - Yes, but it ignores the text and opens an empty composer
+        - No
+        - Not sure
+    validations:
+      required: true
+
+  - type: input
+    id: icon
+    attributes:
+      label: Icon
+      description: Link to an SVG, or say if you would like one drawn.
+
+  - type: checkboxes
+    id: affiliation
+    attributes:
+      label: Affiliation
+      options:
+        - label: I work on this app
+        - label: I am a user of this app, not a maintainer

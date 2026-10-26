@@ -7,8 +7,9 @@
 
 import { useState } from 'react';
 import { GenericRecord } from '@/utils/recordFetcher';
-import { sanitizeHandle } from '@/utils/sanitize';
-import { X, ExternalLink, Tag, Calendar } from 'lucide-react';
+import { sanitizeUrl } from '@/utils/sanitize';
+import { ExternalLink, Tag, Calendar } from 'lucide-react';
+import JsonModal from './JsonModal';
 
 type MarginAnnotationPreviewProps = {
   record: GenericRecord;
@@ -23,7 +24,8 @@ type AnnotationRecord = {
     source: string;
     title?: string;
     sourceHash?: string;
-    selector?: any;
+    /** W3C-style text quote selector — margin records store the picked text here. */
+    selector?: { exact?: string; prefix?: string; suffix?: string };
   };
   body?: {
     value?: string;
@@ -41,7 +43,7 @@ export default function MarginAnnotationPreview({
   handle,
   rkey,
 }: MarginAnnotationPreviewProps) {
-  const { value, cid } = record;
+  const { value } = record;
   const annotation = value as AnnotationRecord;
   const [showJsonModal, setShowJsonModal] = useState(false);
 
@@ -64,8 +66,8 @@ export default function MarginAnnotationPreview({
           marginBottom: '2rem',
           background: 'var(--bg-secondary)',
           border: '1px solid var(--border-medium)',
+          borderRadius: 'var(--radius-card)',
           overflow: 'hidden',
-          transform: 'rotate(0.2deg)',
           transition: 'all 0.4s ease',
         }}
         className="margin-annotation-card"
@@ -122,7 +124,7 @@ export default function MarginAnnotationPreview({
 
           {/* Source URL */}
           <a
-            href={annotation.target.source}
+            href={sanitizeUrl(annotation.target.source)}
             target="_blank"
             rel="noopener noreferrer"
             style={{
@@ -296,132 +298,13 @@ export default function MarginAnnotationPreview({
         </div>
       </div>
 
-      {/* Full JSON Modal */}
-      {showJsonModal && (
-        <div
-          style={{
-            position: 'fixed',
-            inset: 0,
-            background: 'var(--modal-backdrop)',
-            backdropFilter: 'blur(12px)',
-            WebkitBackdropFilter: 'blur(12px)',
-            zIndex: 1000,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '2rem',
-            animation: 'modal-fade-in 0.3s ease-out',
-          }}
-          onClick={() => setShowJsonModal(false)}
-        >
-          <div
-            style={{
-              width: '100%',
-              maxWidth: '900px',
-              maxHeight: '85vh',
-              background: 'var(--modal-bg)',
-              border: '1px solid var(--border-medium)',
-              boxShadow: 'var(--modal-shadow)',
-              display: 'flex',
-              flexDirection: 'column',
-              animation: 'modal-slide-up 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)',
-              position: 'relative',
-              overflow: 'hidden',
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div
-              style={{
-                padding: '1.75rem 2rem',
-                borderBottom: '1px solid var(--border-subtle)',
-                display: 'flex',
-                alignItems: 'flex-start',
-                justifyContent: 'space-between',
-                background: 'var(--modal-header-bg)',
-                position: 'relative',
-                zIndex: 1,
-              }}
-            >
-              <div style={{ flex: 1, paddingRight: '1rem' }}>
-                <div
-                  style={{
-                    fontSize: '1.25rem',
-                    fontWeight: '300',
-                    color: 'var(--text-primary)',
-                    marginBottom: '0.5rem',
-                    letterSpacing: '-0.01em',
-                  }}
-                >
-                  Raw Annotation Data
-                </div>
-                <div
-                  style={{
-                    fontSize: '0.8125rem',
-                    color: 'var(--text-tertiary)',
-                    fontFamily: 'var(--font-mono)',
-                    wordBreak: 'break-all',
-                  }}
-                >
-                  at.margin.annotation
-                </div>
-              </div>
-              <button
-                onClick={() => setShowJsonModal(false)}
-                aria-label="Close raw annotation data"
-                style={{
-                  padding: '0.625rem',
-                  background: 'var(--modal-pane-bg)',
-                  border: '1px solid var(--border-subtle)',
-                  color: 'var(--text-tertiary)',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  transition: 'all 0.2s ease',
-                  flexShrink: 0,
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = 'var(--bg-tertiary)';
-                  e.currentTarget.style.color = 'var(--text-primary)';
-                  e.currentTarget.style.borderColor = 'var(--border-medium)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = 'var(--modal-pane-bg)';
-                  e.currentTarget.style.color = 'var(--text-tertiary)';
-                  e.currentTarget.style.borderColor = 'var(--border-subtle)';
-                }}
-              >
-                <X size={20} />
-              </button>
-            </div>
-
-            <div
-              style={{
-                flex: 1,
-                overflow: 'auto',
-                padding: '2rem',
-                position: 'relative',
-                zIndex: 1,
-              }}
-            >
-              <pre
-                style={{
-                  margin: 0,
-                  padding: '1.5rem',
-                  background: 'var(--modal-pane-bg)',
-                  border: '1px solid var(--border-subtle)',
-                  fontSize: '0.875rem',
-                  lineHeight: '1.7',
-                  color: 'var(--text-primary)',
-                  fontFamily: 'var(--font-mono)',
-                  boxShadow: 'var(--modal-pane-vignette)',
-                }}
-              >
-                {JSON.stringify(value, null, 2)}
-              </pre>
-            </div>
-          </div>
-        </div>
-      )}
+      <JsonModal
+        open={showJsonModal}
+        onClose={() => setShowJsonModal(false)}
+        title="Raw Annotation Data"
+        subtitle="at.margin.annotation"
+        value={value}
+      />
 
       <style jsx>{`
         @keyframes modal-fade-in {

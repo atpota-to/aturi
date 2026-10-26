@@ -125,7 +125,8 @@ export type Prefs = {
    */
   compactMode: boolean;
   /**
-   * Color theme for the popup and settings page. Dark by default.
+   * Color theme for the popup and settings page. Light by default, matching
+   * the web app's Field Notes look.
    */
   theme: 'dark' | 'light';
   /**
@@ -145,38 +146,6 @@ export type Prefs = {
    */
   knownWaypointIds: string[];
   /**
-   * The popup tab the user landed on last. The popup has two modes: the
-   * existing Waypoints view (jump between Atmosphere apps) and the
-   * Inspect view (surface AT URIs on the current page). Only honored
-   * when `popupModeRemember` is true and `popupModeLastUsedAt` is within
-   * the TTL window — otherwise the popup opens to `popupModeDefault`.
-   */
-  popupMode?: 'waypoints' | 'inspect';
-  /**
-   * The tab the popup opens to by default. Used when there's no
-   * remembered last-used tab, when the remember-window has expired, or
-   * when remember is turned off entirely.
-   */
-  popupModeDefault: 'waypoints' | 'inspect';
-  /**
-   * When true (default), the popup reopens to whichever tab the user was
-   * last on, subject to `popupModeRememberMinutes`. When false, every
-   * popup launch starts on `popupModeDefault`.
-   */
-  popupModeRemember: boolean;
-  /**
-   * How long (in minutes) the remembered last-used tab stays in effect
-   * before the popup falls back to `popupModeDefault`. Default 30.
-   * Valid range: 5–1440 minutes.
-   */
-  popupModeRememberMinutes: number;
-  /**
-   * Timestamp (ms since epoch) of the last time the user clicked a popup
-   * tab. Used together with `popupModeRememberMinutes` to decide whether
-   * `popupMode` is still fresh enough to honor on the next launch.
-   */
-  popupModeLastUsedAt: number;
-  /**
    * When true (default), the popup calls describeRepo on the target DID
    * and uses the resulting collection list to (a) dim waypoints whose
    * expectedCollections aren't in the repo with a "no records found"
@@ -189,9 +158,28 @@ export type Prefs = {
    * When true (default), a content script scans every page you visit for
    * AT URIs (head/meta/link tags, plus URL pattern) and surfaces a count
    * badge on the toolbar icon. Turn off if you'd rather only scan when
-   * you open the popup's Inspect tab.
+   * you open the popup.
    */
   passiveScanEnabled: boolean;
+  /**
+   * When true (default), auto-redirect stands down inside a tab that is
+   * already showing one of the apps involved in the redirect: the source you
+   * are browsing, or the destination you were just sent to. This is what
+   * makes an address-bar edit stick instead of bouncing you straight back.
+   *
+   * It also means a full page load between two such apps is left alone, so on
+   * a client that routes server-side you keep its internal links. Turn off to
+   * redirect every matching navigation regardless of where the tab already is.
+   */
+  redirectStayOnCurrentApp: boolean;
+  /**
+   * When true (default), the first navigation in a tab you opened yourself
+   * (no opener, started on the new-tab page) is left alone, since a URL that
+   * arrives there is one you typed or pasted. A link opened in a new tab
+   * carries an opener, and a link handed over by another app arrives with its
+   * URL already set, so neither is affected.
+   */
+  redirectSkipNewTab: boolean;
 };
 
 const CUSTOM_GROUP_ID = 'custom';
@@ -213,16 +201,13 @@ export const DEFAULT_PREFS: Prefs = {
   showRecents: true,
   openInNewTab: false,
   compactMode: false,
-  theme: 'dark',
+  theme: 'light',
   fontSize: 'medium',
   knownWaypointIds: [...WAYPOINT_ORDER],
-  popupMode: 'waypoints',
-  popupModeDefault: 'waypoints',
-  popupModeRemember: true,
-  popupModeRememberMinutes: 30,
-  popupModeLastUsedAt: 0,
   pdsRecordScan: true,
   passiveScanEnabled: true,
+  redirectStayOnCurrentApp: true,
+  redirectSkipNewTab: true,
 };
 
 /**
@@ -465,22 +450,30 @@ function migrateFavoriteByFamily(
   return next;
 }
 
-async function readFrom(area: StorageArea | null): Promise<Prefs | null> {
+async function readFrom(
+  area: StorageArea | null
+): Promise<{ prefs: Prefs; savedAt: number } | null> {
   if (!area) return null;
   try {
     const items = (await area.get(STORAGE_KEY)) as Record<string, unknown> | undefined;
-    const raw = items?.[STORAGE_KEY] as Partial<Prefs> | undefined;
-    return raw ? mergePrefs(raw) : null;
+    const raw = items?.[STORAGE_KEY] as (Partial<Prefs> & { _savedAt?: number }) | undefined;
+    if (!raw) return null;
+    const savedAt = typeof raw._savedAt === 'number' ? raw._savedAt : 0;
+    return { prefs: mergePrefs(raw), savedAt };
   } catch (err) {
     console.warn('[aturi:prefs] read failed', err);
     return null;
   }
 }
 
-async function writeTo(area: StorageArea | null, prefs: Prefs): Promise<boolean> {
+async function writeTo(
+  area: StorageArea | null,
+  prefs: Prefs,
+  savedAt: number
+): Promise<boolean> {
   if (!area) return false;
   try {
-    await area.set({ [STORAGE_KEY]: prefs });
+    await area.set({ [STORAGE_KEY]: { ...prefs, _savedAt: savedAt } });
     return true;
   } catch (err) {
     console.warn('[aturi:prefs] write failed', err);
@@ -494,13 +487,20 @@ async function writeTo(area: StorageArea | null, prefs: Prefs): Promise<boolean>
  * user has many custom waypoints).
  */
 export async function loadPrefs(): Promise<Prefs> {
-  const synced = await readFrom(getSyncArea());
-  if (synced) return synced;
+  const [synced, local] = await Promise.all([
+    readFrom(getSyncArea()),
+    readFrom(getLocalArea()),
+  ]);
 
-  const local = await readFrom(getLocalArea());
-  if (local) return local;
-
-  return { ...DEFAULT_PREFS };
+  // Prefer whichever area was written most recently. This is what makes the
+  // local fallback actually work: when a sync write fails on quota (the "many
+  // custom waypoints" case) and falls back to local, the local copy is newer
+  // and wins here — otherwise loadPrefs would keep returning the stale synced
+  // copy and every later edit would silently revert on the next load.
+  if (synced && local) {
+    return (local.savedAt > synced.savedAt ? local : synced).prefs;
+  }
+  return (synced ?? local)?.prefs ?? { ...DEFAULT_PREFS };
 }
 
 /**
@@ -508,7 +508,20 @@ export async function loadPrefs(): Promise<Prefs> {
  * `chrome.storage.sync` when possible; falls back to `local` if the sync
  * quota is hit.
  */
-export async function savePrefs(update: Partial<Prefs>): Promise<Prefs> {
+// Serialize writes through a single promise chain. Callers fire savePrefs
+// without awaiting from several places (popup + options, rapid toggles); run
+// concurrently they would each read the same base via loadPrefs and the last
+// write would clobber the others. Chaining guarantees each save re-reads the
+// freshest prefs inside its own turn.
+let saveQueue: Promise<Prefs> = Promise.resolve({ ...DEFAULT_PREFS });
+
+export function savePrefs(update: Partial<Prefs>): Promise<Prefs> {
+  const run = () => doSavePrefs(update);
+  saveQueue = saveQueue.then(run, run);
+  return saveQueue;
+}
+
+async function doSavePrefs(update: Partial<Prefs>): Promise<Prefs> {
   const current = await loadPrefs();
   const next: Prefs = {
     ...current,
@@ -531,9 +544,10 @@ export async function savePrefs(update: Partial<Prefs>): Promise<Prefs> {
     knownWaypointIds: update.knownWaypointIds ?? current.knownWaypointIds,
   };
 
-  const syncOk = await writeTo(getSyncArea(), next);
+  const savedAt = Date.now();
+  const syncOk = await writeTo(getSyncArea(), next, savedAt);
   if (!syncOk) {
-    await writeTo(getLocalArea(), next);
+    await writeTo(getLocalArea(), next, savedAt);
   }
 
   debugLog('savePrefs', { keys: Object.keys(update), storedTo: syncOk ? 'sync' : 'local' });
@@ -791,20 +805,119 @@ export function addWaypointToGroup(
   groupId: string,
   waypointId: string
 ): Prefs {
-  const isBuiltin = !waypointId.startsWith('custom:');
-  const knownWaypointIds =
-    isBuiltin && !prefs.knownWaypointIds.includes(waypointId)
-      ? [...prefs.knownWaypointIds, waypointId]
-      : prefs.knownWaypointIds;
+  const withKnown = markKnown(prefs, [waypointId]);
   return {
-    ...prefs,
-    knownWaypointIds,
-    waypointGroups: prefs.waypointGroups.map(g => {
+    ...withKnown,
+    waypointGroups: withKnown.waypointGroups.map(g => {
       if (g.id !== groupId) return g;
       if (g.waypointIds.includes(waypointId)) return g;
       return { ...g, waypointIds: [...g.waypointIds, waypointId] };
     }),
   };
+}
+
+/**
+ * The group a waypoint belongs in when we place it on the user's behalf: its
+ * built-in category (custom waypoints go to the Custom group). Returns the
+ * group id plus the name to use if that group has to be created.
+ */
+export function nativeGroupFor(
+  waypointId: string,
+  customWaypoints: CustomWaypoint[] = []
+): { id: string; name: string } {
+  if (waypointId.startsWith('custom:')) {
+    return { id: CUSTOM_GROUP_ID, name: CUSTOM_GROUP_NAME };
+  }
+  const category = WAYPOINT_DESTINATIONS_DATA[waypointId]?.category;
+  if (!category) return { id: CUSTOM_GROUP_ID, name: CUSTOM_GROUP_NAME };
+  return {
+    id: category,
+    name: WAYPOINT_CATEGORIES_DATA[category]?.name ?? prettyGroupName(category),
+  };
+}
+
+/**
+ * Resolve the group a waypoint would be added to by `adoptWaypoint`, given
+ * the user's current groups. Returns the existing group when one matches the
+ * waypoint's native category, otherwise a `created: true` placeholder so the
+ * UI can say "Add to Publications" for a group that doesn't exist yet.
+ */
+export function adoptTargetFor(
+  prefs: Prefs,
+  waypointId: string
+): { id: string; name: string; created: boolean } {
+  const native = nativeGroupFor(waypointId, prefs.customWaypoints);
+  const existing = prefs.waypointGroups.find(g => g.id === native.id);
+  if (existing) return { id: existing.id, name: existing.name, created: false };
+  return { ...native, created: true };
+}
+
+/**
+ * Place a waypoint into its native category group and mark it known. Creates
+ * the group when the user no longer has one for that category, slotting it
+ * into `CATEGORY_ORDER` position relative to their other category groups so a
+ * recreated group doesn't just land at the bottom.
+ *
+ * This is the "one click and it's in the popup" path used by the new-waypoints
+ * card in Settings and the popup banner — it never touches the order or
+ * membership of anything the user already arranged.
+ */
+export function adoptWaypoint(prefs: Prefs, waypointId: string): Prefs {
+  const target = adoptTargetFor(prefs, waypointId);
+  const withKnown = markKnown(prefs, [waypointId]);
+
+  if (!target.created) {
+    return {
+      ...withKnown,
+      waypointGroups: withKnown.waypointGroups.map(g =>
+        g.id === target.id && !g.waypointIds.includes(waypointId)
+          ? { ...g, waypointIds: [...g.waypointIds, waypointId] }
+          : g
+      ),
+    };
+  }
+
+  const group: WaypointGroup = {
+    id: target.id,
+    name: target.name,
+    waypointIds: [waypointId],
+  };
+  // Slot it before the first *category* group that sorts after it. Groups the
+  // user made themselves have no rank and are never used as an anchor, so a
+  // recreated group lands among its peers rather than jumping the queue ahead
+  // of someone's hand-built group.
+  const groups = [...withKnown.waypointGroups];
+  const targetRank = CATEGORY_ORDER.indexOf(target.id);
+  const insertAt =
+    targetRank === -1
+      ? -1
+      : groups.findIndex(g => {
+          const rank = CATEGORY_ORDER.indexOf(g.id);
+          return rank !== -1 && rank > targetRank;
+        });
+  if (insertAt === -1) groups.push(group);
+  else groups.splice(insertAt, 0, group);
+
+  return { ...withKnown, waypointGroups: groups };
+}
+
+/**
+ * Pure counterpart to `markWaypointsKnown` for the options UI, which edits a
+ * prefs object and hands the diff back through `onChange`. Custom waypoint
+ * ids are never tracked.
+ */
+export function markKnown(prefs: Prefs, ids: string[]): Prefs {
+  const set = new Set(prefs.knownWaypointIds);
+  let changed = false;
+  for (const id of ids) {
+    if (id.startsWith('custom:')) continue;
+    if (!set.has(id)) {
+      set.add(id);
+      changed = true;
+    }
+  }
+  if (!changed) return prefs;
+  return { ...prefs, knownWaypointIds: Array.from(set) };
 }
 
 /**
@@ -827,6 +940,23 @@ export async function markWaypointsKnown(ids: string[]): Promise<void> {
   if (newlyMarked.length === 0) return;
   debugLog('markWaypointsKnown', { ids: newlyMarked });
   await savePrefs({ knownWaypointIds: Array.from(set) });
+}
+
+/**
+ * Add the given waypoints to their native category groups and mark them
+ * known, in one write. Backs the popup banner's "Add" button, which used to
+ * only deep-link into Settings and leave the actual work to the user.
+ */
+export async function adoptWaypoints(ids: string[]): Promise<void> {
+  if (ids.length === 0) return;
+  const current = await loadPrefs();
+  let next = current;
+  for (const id of ids) next = adoptWaypoint(next, id);
+  debugLog('adoptWaypoints', { ids });
+  await savePrefs({
+    waypointGroups: next.waypointGroups,
+    knownWaypointIds: next.knownWaypointIds,
+  });
 }
 
 export function removeWaypointFromGroup(

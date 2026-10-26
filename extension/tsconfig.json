@@ -13,7 +13,6 @@
   "include": [
     "**/*.ts",
     "**/*.tsx",
-    "../src/utils/**/*",
     ".wxt/wxt.d.ts",
     ".wxt/types/**/*.d.ts"
   ]

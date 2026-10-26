@@ -20,6 +20,23 @@ describe('resolveAtUri', () => {
   it('returns null for an invalid at-uri', () => {
     expect(resolveAtUri('https://bsky.app/x')).toBeNull();
   });
+
+  it('reports compose intent support per waypoint', () => {
+    const r = resolveAtUri('at://did:plc:x/app.bsky.feed.post/abc', {
+      composeText: 'look at this',
+    });
+    const bsky = r!.waypoints.find((w) => w.id === 'bluesky');
+    expect(bsky?.composeIntent).toMatchObject({
+      url: 'https://bsky.app/intent/compose?text=look%20at%20this',
+      urlTemplate: 'https://bsky.app/intent/compose?text={text}',
+      textParam: 'text',
+      prefillsText: true,
+      appUrl: 'bluesky://intent/compose?text=look%20at%20this',
+    });
+    // A viewer with no composer of its own reports null rather than omitting
+    // the key, so callers can branch without knowing the catalog.
+    expect(r!.waypoints.find((w) => w.id === 'pdsls')?.composeIntent).toBeNull();
+  });
 });
 
 describe('buildWaypointsForParsed', () => {

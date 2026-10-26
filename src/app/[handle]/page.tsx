@@ -1,15 +1,20 @@
 import { Metadata } from 'next';
 import { Suspense } from 'react';
-import { redirect } from 'next/navigation';
+import { redirect, notFound } from 'next/navigation';
 import WaypointPicker from '@/components/WaypointPicker';
+import AutoRedirect from '@/components/AutoRedirect';
+import AutoRedirectGate from '@/components/AutoRedirectGate';
 import ProfilePreview from '@/components/ProfilePreview';
 import ProfilePreviewSkeleton from '@/components/ProfilePreviewSkeleton';
 import ScrollIndicator from '@/components/ScrollIndicator';
 import Header from '@/components/Header';
 import NotFoundPanel from '@/components/NotFoundPanel';
-import { resolveHandle, getDisplayName } from '@/utils/uriParser';
-import { resolveDidToHandle } from '@/utils/didResolver';
-import { fetchProfile } from '@/utils/profileFetcher';
+import { getDisplayName } from '@/utils/uriParser';
+import { fetchProfile, resolveDidToHandle, resolveHandle, resolveHandleStatus } from '@/lib/pageData';
+import { fetchRepoCollections } from '@/utils/atproto/identity';
+import { buildAtTagsMetadata } from '@/utils/atproto/atTags';
+import { buildProfileCanonical } from '@/utils/canonicalUrl';
+import { getSiteUrl } from '@/lib/config';
 
 type Props = {
   params: Promise<{ handle: string }>;
@@ -44,13 +49,20 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
         ? profile.description.slice(0, 160) 
         : `View @${displayHandle}'s profile in your preferred Atmosphere client`;
       
-      // Generate OG image URL - hardcode production domain
-      const ogImageUrl = new URL('/api/og/profile', 'https://aturi.to');
+      // Absolute OG image URL, built from the site's own base so previews and
+      // forks point at the deployment that's actually serving the page.
+      const ogImageUrl = new URL('/api/og/profile', getSiteUrl());
       ogImageUrl.searchParams.set('handle', resolvedDid);
       
       return {
         title,
         description,
+        // This page is served at both `/{handle}` and `/profile/{handle}`, with
+        // either a handle or a DID — point every spelling at the DID form so
+        // crawlers consolidate them into one page instead of crawling each.
+        alternates: {
+          canonical: buildProfileCanonical(resolvedDid),
+        },
         openGraph: {
           title,
           description,
@@ -70,6 +82,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
           description,
           images: [ogImageUrl.toString()],
         },
+        // AT Tags (https://tangled.org/chrisshank.com/at-tags/): this page is
+        // about a single atproto identity, so point `at:author` at its DID.
+        other: buildAtTagsMetadata({
+          author: `at://${resolvedDid}`,
+        }),
       };
     }
   } catch (error) {
@@ -82,51 +99,48 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
-async function ProfileContent({ handle }: { handle: string }) {
-  const resolvedDid = await resolveHandle(handle);
-  
-  if (!resolvedDid) {
-    return (
-      <>
-        <Header compact />
-        <div className="container-narrow" style={{ padding: '0 2rem 4rem' }}>
-          <NotFoundPanel
-            eyebrow="Couldn't resolve"
-            headline="That handle didn't resolve."
-            body={`We tried to resolve "${handle}" as an Atmosphere handle and didn't find anything. If you meant a different account, search for a handle, DID, or AT URI below.`}
-            initialQuery={handle}
-          />
-        </div>
-      </>
-    );
-  }
-
+async function ProfileContent({ handle, resolvedDid }: { handle: string; resolvedDid: string }) {
   const resolvedHandle = handle.startsWith('did:')
     ? await resolveDidToHandle(resolvedDid) || handle
     : handle;
 
-  const profileData = await fetchProfile(resolvedDid);
+  // Fetch the Bluesky profile and the repo's collection list together. The
+  // collections feed the waypoint picker so it can hide clients the account
+  // has no records for (e.g. no Tangled waypoint when there are no
+  // sh.tangled.* records). A null result (failed scan) leaves every waypoint
+  // visible rather than wrongly hiding them.
+  const [profileData, repoCollections] = await Promise.all([
+    fetchProfile(resolvedDid),
+    fetchRepoCollections(resolvedDid),
+  ]);
 
   return (
-    <div className="container-narrow" style={{ padding: '2rem 2rem 4rem' }}>
+    <>
       <Header compact />
+      <div className="container-narrow waypoint-page">
+        {/* `handle` rather than `resolvedHandle`, so the gate resolves exactly
+            the URL the pre-paint script did — the two halves must never send
+            the same visitor to two different spellings of the same page. */}
+        <AutoRedirectGate type="profile" handle={handle} did={resolvedDid} />
 
-      {profileData && (
-        <div className="content-fade-in">
-          <ProfilePreview profile={profileData} />
-        </div>
-      )}
+        {profileData && (
+          <div className="content-fade-in">
+            <ProfilePreview profile={profileData} />
+          </div>
+        )}
 
-      <WaypointPicker
-        type="profile"
-        handle={resolvedHandle}
-        did={resolvedDid}
-        displayName={getDisplayName(resolvedHandle, resolvedDid)}
-      />
+        <WaypointPicker
+          type="profile"
+          handle={resolvedHandle}
+          did={resolvedDid}
+          displayName={profileData?.displayName?.trim() || getDisplayName(resolvedHandle, resolvedDid)}
+          repoCollections={repoCollections}
+        />
 
-      {/* Floating scroll indicator overlay */}
-      <ScrollIndicator />
-    </div>
+        {/* Floating scroll indicator overlay */}
+        <ScrollIndicator />
+      </div>
+    </>
   );
 }
 
@@ -138,27 +152,61 @@ export default async function ProfilePage({ params }: Props) {
   if (handle.startsWith('@')) {
     const cleanHandle = handle.slice(1);
     const resolvedDid = await resolveHandle(cleanHandle);
-    
+
     if (resolvedDid) {
       // Redirect to canonical /profile/{did} URL
       redirect(`/profile/${resolvedDid}`);
     }
-    
+
     // If resolution fails, continue with cleaned handle
     handle = cleanHandle;
   }
 
-  return (
-    <Suspense
-      fallback={
-        <div className="container-narrow" style={{ padding: '2rem 2rem 4rem' }}>
-          <Header compact />
-          <ProfilePreviewSkeleton />
+  // Resolve up front so /[handle] returns a real HTTP 404 for handles that
+  // definitively don't resolve (scanners, typos) instead of a soft-404 (200)
+  // that crawlers index. A transient resolver outage is NOT a 404 — it falls
+  // through to a retry panel below. (Resolving here rather than inside the
+  // Suspense child is what lets the 404 status be set before streaming begins,
+  // mirroring the '@' redirect path above.)
+  const resolution = await resolveHandleStatus(handle);
+  if (resolution.reason === 'not-found') {
+    notFound();
+  }
+  if (!resolution.did) {
+    return (
+      <>
+        <Header compact />
+        <div className="container-narrow waypoint-page">
+          <NotFoundPanel
+            eyebrow="Couldn't reach the resolver"
+            headline="We couldn't look that up right now."
+            body={`We couldn't reach the atproto resolver to look up "${handle}". This is usually temporary. Try again in a moment, or search for a handle, DID, or AT URI below.`}
+            initialQuery={handle}
+          />
         </div>
-      }
-    >
-      <ProfileContent handle={handle} />
-    </Suspense>
+      </>
+    );
+  }
+
+  return (
+    <>
+      {/* Outside the Suspense boundary on purpose: this goes out in the first
+          flush, so the pre-paint script runs before the picker — or even the
+          skeleton — has a chance to paint. */}
+      <AutoRedirect type="profile" handle={handle} did={resolution.did} />
+      <Suspense
+        fallback={
+          <>
+            <Header compact />
+            <div className="container-narrow waypoint-page">
+              <ProfilePreviewSkeleton />
+            </div>
+          </>
+        }
+      >
+        <ProfileContent handle={handle} resolvedDid={resolution.did} />
+      </Suspense>
+    </>
   );
 }
 

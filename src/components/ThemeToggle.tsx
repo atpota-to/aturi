@@ -59,67 +59,22 @@ export default function ThemeToggle({ variant = 'inline' }: ThemeToggleProps) {
   }
 
   if (variant === 'row') {
+    // A full-width row under the destinations, in the same tile styling,
+    // that says which theme is on (the icon and a trailing tag) rather than
+    // posing as another place to go. Clicking toggles dark/light.
+    const rowNext: Theme = theme === 'dark' ? 'light' : 'dark';
     return (
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: '0.75rem',
-          padding: '0.625rem 0.875rem',
-          background: 'var(--bg-tertiary)',
-          border: '1px solid var(--border-subtle)',
-        }}
+      <button
+        type="button"
+        onClick={() => pick(rowNext)}
+        aria-label={`Switch to ${rowNext} mode`}
+        className="compact-nav-link compact-nav-link-wide"
+        style={{ textAlign: 'left', width: '100%' }}
       >
-        <span
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '0.5rem',
-            color: 'var(--text-secondary)',
-            fontSize: '0.85rem',
-            letterSpacing: '0.02em',
-          }}
-        >
-          {theme === 'light' ? <Sun size={14} /> : <Moon size={14} />}
-          <span>theme</span>
-        </span>
-        <div
-          role="radiogroup"
-          aria-label="Color theme"
-          style={{
-            display: 'inline-flex',
-            border: '1px solid var(--border-medium)',
-            overflow: 'hidden',
-          }}
-        >
-          {(['dark', 'light'] as const).map((value) => {
-            const active = theme === value;
-            return (
-              <button
-                key={value}
-                type="button"
-                role="radio"
-                aria-checked={active}
-                onClick={() => pick(value)}
-                style={{
-                  padding: '0.3rem 0.75rem',
-                  fontSize: '0.8rem',
-                  background: active ? 'var(--accent-forest)' : 'transparent',
-                  color: active ? 'var(--text-on-accent)' : 'var(--text-secondary)',
-                  border: 'none',
-                  cursor: 'pointer',
-                  transition: 'background 0.2s ease, color 0.2s ease',
-                  textTransform: 'lowercase',
-                  letterSpacing: '0.02em',
-                }}
-              >
-                {value}
-              </button>
-            );
-          })}
-        </div>
-      </div>
+        {theme === 'dark' ? <Moon size={16} /> : <Sun size={16} />}
+        <span>Theme</span>
+        <span className="compact-nav-tag">{theme === 'dark' ? 'Dark' : 'Light'}</span>
+      </button>
     );
   }
 
@@ -130,12 +85,9 @@ export default function ThemeToggle({ variant = 'inline' }: ThemeToggleProps) {
       onClick={() => pick(next)}
       aria-label={`Switch to ${next} mode`}
       title={`Switch to ${next} mode`}
-      className="nav-link"
-      style={{
-        padding: '0.5rem',
-      }}
+      className="nav-link fn-theme-btn"
     >
-      {theme === 'dark' ? <Sun size={14} /> : <Moon size={14} />}
+      {theme === 'dark' ? <Sun size={17} /> : <Moon size={17} />}
     </button>
   );
 }

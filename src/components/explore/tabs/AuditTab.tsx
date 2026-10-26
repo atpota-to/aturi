@@ -8,6 +8,7 @@ import {
   type PlcAuditEntry,
 } from '@/utils/atproto/plc';
 import type { IdentityBundle } from '@/utils/atproto/identity';
+import { AuditTabSkeleton } from '../skeletons/pages';
 
 export default function AuditTab({ identity }: { identity: IdentityBundle }) {
   const { did } = identity;
@@ -40,7 +41,7 @@ export default function AuditTab({ identity }: { identity: IdentityBundle }) {
     );
   }
   if (error) return <p className="explore-error">{error}</p>;
-  if (!log) return <p className="explore-placeholder">Loading audit log…</p>;
+  if (!log) return <AuditTabSkeleton />;
   if (log.length === 0) return <p className="explore-placeholder">No PLC operations recorded.</p>;
 
   // Newest first; pass the chronologically-previous operation so diffs can
@@ -48,16 +49,7 @@ export default function AuditTab({ identity }: { identity: IdentityBundle }) {
   const ordered = [...log].reverse();
 
   return (
-    <ol
-      style={{
-        listStyle: 'none',
-        margin: 0,
-        padding: 0,
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '0.75rem',
-      }}
-    >
+    <ol className="fx-log">
       {ordered.map((entry, i) => (
         <AuditEntryRow
           key={entry.cid || `${entry.createdAt}-${i}`}
@@ -81,29 +73,20 @@ function AuditEntryRow({
   const changes = diffOps(prev?.operation, op);
 
   return (
-    <li
-      style={{
-        border: '1px solid var(--border-medium)',
-        borderLeft: '3px solid var(--text-accent)',
-        background: 'var(--bg-secondary)',
-        padding: '0.875rem 1rem',
-      }}
-    >
+    <li className="fx-log-entry">
       <div
         style={{
           display: 'flex',
-          alignItems: 'baseline',
-          justifyContent: 'space-between',
+          alignItems: 'center',
+          justifyContent: 'flex-start',
           gap: '0.75rem',
         }}
       >
-        <span className="explore-small-caps" style={{ color: 'var(--text-secondary)' }}>
-          {type}
-        </span>
+        <span className="fx-log-type">{type}</span>
         <time
           style={{
-            fontFamily: 'var(--font-mono)',
-            fontSize: '0.75rem',
+            fontSize: '12.5px',
+            fontVariantNumeric: 'tabular-nums',
             color: 'var(--text-tertiary)',
           }}
         >
@@ -117,11 +100,17 @@ function AuditEntryRow({
             margin: '0.5rem 0 0',
             padding: 0,
             fontFamily: 'var(--font-mono)',
-            fontSize: '0.85rem',
+            fontSize: '12.5px',
           }}
         >
           {changes.map((c, idx) => (
-            <li key={idx} style={{ padding: '2px 0', color: 'var(--text-secondary)' }}>
+            // diffOps writes "+ " and "\u2212 " (minus) in front of what came
+            // and went; the colour says the same so the two read apart.
+            <li
+              key={idx}
+              className="fx-log-change"
+              data-op={c.startsWith('+ ') ? 'add' : c.startsWith('\u2212 ') ? 'remove' : undefined}
+            >
               {c}
             </li>
           ))}

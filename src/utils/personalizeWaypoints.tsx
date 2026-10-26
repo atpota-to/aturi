@@ -15,7 +15,7 @@
 
 import { Globe } from 'lucide-react';
 import {
-  expandTemplate,
+  customWaypointUrl,
   type CustomWaypoint,
   type Preferences,
 } from './preferences';
@@ -40,22 +40,9 @@ export function customToWaypoint(c: CustomWaypoint): Waypoint {
     description: c.description || (c.domain ? `Open on ${c.domain}` : 'Custom waypoint'),
     supportedTypes: c.supportedTypes,
     category: 'custom',
-    redirectCompat: [] as RedirectCompatFamily[],
-    getUrl: (handle, collection, rkey, did) => {
-      const tplKey: WaypointType =
-        collection && rkey
-          ? c.supportedTypes.includes('post' as WaypointType) && collection === 'app.bsky.feed.post'
-            ? ('post' as WaypointType)
-            : c.supportedTypes.includes('list' as WaypointType) && collection === 'app.bsky.graph.list'
-              ? ('list' as WaypointType)
-              : c.supportedTypes.includes('record' as WaypointType)
-                ? ('record' as WaypointType)
-                : ('post' as WaypointType)
-          : ('profile' as WaypointType);
-      const template = c.templates[tplKey] || c.templates.record || c.templates.profile;
-      if (!template) return null;
-      return expandTemplate(template, { handle, did, collection, rkey });
-    },
+    redirectCompat: c.redirectCompat ?? ([] as RedirectCompatFamily[]),
+    getUrl: (handle, collection, rkey, did) =>
+      customWaypointUrl(c, { handle, did, collection, rkey }),
     icon: (
       <Globe
         size={20}

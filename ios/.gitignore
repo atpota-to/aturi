@@ -1,0 +1,9 @@
+# Xcode
+xcuserdata/
+*.xcuserstate
+DerivedData/
+*.xcworkspace/xcshareddata/swiftpm/
+# SwiftPM
+.build/
+.swiftpm/
+Package.resolved

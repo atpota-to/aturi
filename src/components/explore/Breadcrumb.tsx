@@ -1,10 +1,27 @@
 'use client';
 
+import { useEffect, useMemo, useRef } from 'react';
 import Link from 'next/link';
-import { ChevronRight, Server } from 'lucide-react';
-import { encodeRepo } from '@/utils/atproto/urls';
+import { Server, User } from 'lucide-react';
+import { encodeRepo, shortDid } from '@/utils/atproto/urls';
+import { SPACE_MARKER } from '@/utils/atproto/spaceUri';
 import { pdsHostname } from '@/utils/atproto/pdsServer';
+import { useBreadcrumbTrail, type BreadcrumbCrumb } from './BreadcrumbContext';
 import ShareLinkChip from './ShareLinkChip';
+
+// The condensed breadcrumb reveals the moment the full one has slipped
+// entirely up behind the sticky header bar, so the bar's own bottom edge is
+// the line. It is measured on each check (56px on desktop, 52px on phones);
+// this is the fallback when the bar isn't in the DOM.
+const NAV_OFFSET_FALLBACK_PX = 56;
+const HEADER_BAR_SELECTOR = '.fn-header-bar';
+// Dead band between the reveal and retract points. The condensed strip
+// overlays the page rather than growing the nav, so revealing it moves
+// nothing; the band only has to absorb sub-pixel scroll positions. It used to
+// be 72px, to outlast a ~33px push from a strip that sat in flow, and on a
+// phone that put the retract line below where this breadcrumb sits at the
+// top of the page, so the strip never went away.
+const REVEAL_HYSTERESIS_PX = 4;
 
 type Props = {
   handle: string | null;
@@ -14,16 +31,48 @@ type Props = {
   collection?: string;
   rkey?: string;
   /**
+   * True on any page under the `/space` marker. Switches the trail into
+   * permissioned-space mode, where `collection` and `rkey` describe a record
+   * inside a member's permissioned repo rather than one in the public repo
+   * above. Set independently of `spaceType` so the marker page itself — which
+   * names no type yet — still shows where it sits.
+   */
+  spaceRoot?: boolean;
+  /** Space type NSID. Only meaningful alongside `spaceRoot`. */
+  spaceType?: string;
+  /** Space key. Only meaningful alongside `spaceType`. */
+  skey?: string;
+  /** DID of the member whose permissioned repo holds the record. */
+  author?: string;
+  /**
+   * The member's handle, when the caller has resolved it. The space trail
+   * shows the authority as a handle, so leaving the member as a raw DID made
+   * two identities in the same trail read as different kinds of thing.
+   */
+  authorHandle?: string | null;
+  /**
    * When provided, renders a "Copy link" chip at the end of the breadcrumb
    * row. Path or full URL; bare paths get aturi.to prepended.
    */
   shareUrl?: string;
+  /**
+   * The page renders the last crumb itself, as its <h1> under this row (the
+   * Field Notes title bar). The visible row then stops one short and ends on
+   * a trailing separator; the condensed copy in the nav keeps the full trail.
+   */
+  titled?: boolean;
+  /** Drop the row's own bottom margin, for parents that space with `gap`. */
+  flush?: boolean;
 };
 
 /**
- * Hierarchical breadcrumb across the four explore levels:
+ * Hierarchical breadcrumb across the explore levels:
  *
  *   pds host  →  repo (handle/did)  →  collection (NSID)  →  rkey
+ *
+ * and, for a permissioned space address, the deeper trail:
+ *
+ *   pds  →  authority  →  space  →  type  →  key  →  member  →  collection  →  rkey
  *
  * Each upstream segment is clickable. The PDS segment is optional so older
  * call sites without a resolved PDS still render correctly.
@@ -34,100 +83,178 @@ export default function Breadcrumb({
   pds,
   collection,
   rkey,
+  spaceRoot,
+  spaceType,
+  skey,
+  author,
+  authorHandle,
   shareUrl,
+  titled,
+  flush,
 }: Props) {
   const repoSegment = encodeRepo(handle || did);
   const repoLabel = handle ? `@${handle}` : did;
   const pdsHost = pds ? pdsHostname(pds) : null;
 
+  const navRef = useRef<HTMLElement>(null);
+  const { setTrail, setScrolledPast } = useBreadcrumbTrail();
+
+  // Mirror the visible trail into shared context so the floating nav can
+  // re-render it in miniature once this breadcrumb scrolls away. The share
+  // chip is intentionally left out — the condensed copy is a path, not a row
+  // of actions.
+  const trail = useMemo<BreadcrumbCrumb[]>(() => {
+    const crumbs: BreadcrumbCrumb[] = [];
+    if (pdsHost) {
+      crumbs.push({
+        label: pdsHost,
+        href: `/explore/pds/${encodeURIComponent(pdsHost)}`,
+        icon: 'server',
+      });
+    }
+    crumbs.push({ label: repoLabel, href: `/explore/${repoSegment}` });
+
+    // Permissioned-space trail. `space` is a literal path marker rather than a
+    // collection NSID, and everything under it is addressed relative to it —
+    // so a collection and rkey in this mode hang off the member's path inside
+    // the space, never off the public repo path.
+    if (spaceRoot || spaceType) {
+      const markerPath = `/explore/${repoSegment}/${SPACE_MARKER}`;
+      crumbs.push({ label: SPACE_MARKER, href: markerPath });
+      if (!spaceType) return crumbs;
+      const typePath = `${markerPath}/${spaceType}`;
+      crumbs.push({ label: spaceType, href: typePath });
+      if (!skey) return crumbs;
+      const spacePath = `${typePath}/${encodeURIComponent(skey)}`;
+      crumbs.push({ label: skey, href: spacePath });
+      if (!author) return crumbs;
+      const authorPath = `${spacePath}/${encodeRepo(author)}`;
+      // Carries the person glyph for the same reason the PDS crumb carries the
+      // server one: everything either side of it in this trail is an address
+      // component, and without the marker a member reads as one more path
+      // segment rather than as whose records these are.
+      crumbs.push({
+        label: authorHandle ? `@${authorHandle}` : shortDid(author),
+        href: authorPath,
+        icon: 'user',
+      });
+      if (!collection) return crumbs;
+      crumbs.push({ label: collection, href: `${authorPath}/${collection}` });
+      if (rkey) crumbs.push({ label: rkey });
+      return crumbs;
+    }
+
+    if (collection) {
+      crumbs.push({ label: collection, href: `/explore/${repoSegment}/${collection}` });
+    }
+    if (rkey) {
+      crumbs.push({ label: rkey });
+    }
+    return crumbs;
+  }, [pdsHost, repoLabel, repoSegment, spaceRoot, spaceType, skey, author, authorHandle, collection, rkey]);
+
+  useEffect(() => {
+    setTrail(trail);
+    return () => setTrail(null);
+  }, [trail, setTrail]);
+
+  // Reveal the condensed copy once this breadcrumb sits behind the sticky
+  // nav, and retract it as soon as it comes back out. Two thresholds (a
+  // dead band) rather than one keep the reveal from oscillating at the
+  // boundary — see REVEAL_HYSTERESIS_PX. rAF-throttled, passive listeners.
+  useEffect(() => {
+    const node = navRef.current;
+    if (!node) return;
+
+    let shown = false;
+    let frame = 0;
+
+    const navOffset = () => {
+      const bar = document.querySelector(HEADER_BAR_SELECTOR);
+      return bar ? bar.getBoundingClientRect().bottom : NAV_OFFSET_FALLBACK_PX;
+    };
+
+    const evaluate = () => {
+      frame = 0;
+      const { bottom } = node.getBoundingClientRect();
+      const offset = navOffset();
+      if (!shown && bottom <= offset) {
+        shown = true;
+        setScrolledPast(true);
+      } else if (shown && bottom >= offset + REVEAL_HYSTERESIS_PX) {
+        shown = false;
+        setScrolledPast(false);
+      }
+    };
+
+    const onScroll = () => {
+      if (!frame) frame = requestAnimationFrame(evaluate);
+    };
+
+    // Start from "not scrolled past": the shared flag can still be true from
+    // the page this one replaced, which would open the strip at the top of
+    // a page whose own breadcrumb is in plain view.
+    setScrolledPast(false);
+    evaluate();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', onScroll, { passive: true });
+    return () => {
+      window.removeEventListener('scroll', onScroll);
+      window.removeEventListener('resize', onScroll);
+      if (frame) cancelAnimationFrame(frame);
+      setScrolledPast(false);
+    };
+  }, [setScrolledPast]);
+
+  // With a title below the row, the last crumb is the title: show the trail
+  // up to it, each segment followed by its separator.
+  const visible = titled && trail.length > 1 ? trail.slice(0, -1) : trail;
+
   return (
     <nav
+      ref={navRef}
       aria-label="Breadcrumb"
-      style={{
-        display: 'flex',
-        flexWrap: 'wrap',
-        alignItems: 'center',
-        gap: '0.5rem',
-        marginBottom: '1.5rem',
-        fontFamily: 'var(--font-mono)',
-        fontSize: '0.875rem',
-        color: 'var(--text-tertiary)',
-      }}
+      className="fx-crumbs"
+      style={{ marginBottom: titled || flush ? 0 : '1.5rem' }}
     >
-      {pdsHost && (
-        <>
-          <Link
-            href={`/explore/pds/${encodeURIComponent(pdsHost)}`}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '0.3rem',
-              color: 'var(--text-primary)',
-              textDecoration: 'none',
-              transition: 'color 0.2s ease',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.color = 'var(--text-accent)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.color = 'var(--text-primary)';
-            }}
-          >
-            <Server size={12} aria-hidden style={{ opacity: 0.7 }} />
-            {pdsHost}
-          </Link>
-          <ChevronRight size={14} aria-hidden style={{ color: 'var(--text-tertiary)' }} />
-        </>
-      )}
-
-      <Link
-        href={`/explore/${repoSegment}`}
-        style={{
-          color: 'var(--text-primary)',
-          textDecoration: 'none',
-          transition: 'color 0.2s ease',
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.color = 'var(--text-accent)';
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.color = 'var(--text-primary)';
-        }}
-      >
-        {repoLabel}
-      </Link>
-
-      {collection && (
-        <>
-          <ChevronRight size={14} aria-hidden style={{ color: 'var(--text-tertiary)' }} />
-          <Link
-            href={`/explore/${repoSegment}/${collection}`}
-            style={{
-              color: 'var(--text-primary)',
-              textDecoration: 'none',
-              transition: 'color 0.2s ease',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.color = 'var(--text-accent)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.color = 'var(--text-primary)';
-            }}
-          >
-            {collection}
-          </Link>
-        </>
-      )}
-
-      {rkey && (
-        <>
-          <ChevronRight size={14} aria-hidden style={{ color: 'var(--text-tertiary)' }} />
-          <span style={{ color: 'var(--text-tertiary)' }}>{rkey}</span>
-        </>
-      )}
+      {/* Rendered straight off the mirrored trail so the visible row and its
+          condensed twin can never drift apart as levels are added. A crumb
+          without an href is terminal — today only a record key. */}
+      {visible.map((crumb, i) => (
+        <span key={`${i}-${crumb.href ?? crumb.label}`} className="fx-crumb">
+          {crumb.href ? (
+            <Link
+              href={crumb.href}
+              prefetch={false}
+              aria-current={!titled && i === visible.length - 1 ? 'page' : undefined}
+            >
+              {crumb.icon === 'server' && (
+                <Server size={12} aria-hidden style={{ opacity: 0.7 }} />
+              )}
+              {crumb.icon === 'user' && (
+                <User size={12} aria-hidden style={{ opacity: 0.7 }} />
+              )}
+              {crumb.label}
+            </Link>
+          ) : (
+            <span className="fx-crumb-here" aria-current="page">
+              {crumb.label}
+            </span>
+          )}
+          {/* Each separator rides after its crumb (the last one too when the
+              title below carries the final segment), so a row that wraps on
+              a phone ends a line on "/" and starts the next on a crumb, and
+              never leaves a separator alone on a line. */}
+          {(i < visible.length - 1 || visible.length < trail.length) && (
+            <span aria-hidden className="fx-crumb-sep">
+              /
+            </span>
+          )}
+        </span>
+      ))}
 
       {shareUrl && (
-        <span style={{ marginLeft: 'auto' }}>
+        <span className="fx-crumbs-share">
           <ShareLinkChip url={shareUrl} />
         </span>
       )}

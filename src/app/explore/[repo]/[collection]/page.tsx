@@ -13,19 +13,22 @@ export async function generateMetadata({
   const decodedCollection = decodeURIComponent(collection);
   const title = `${decodedCollection} on ${decodedRepo} · Atmosphere Explorer`;
   const description = `Browse ${decodedCollection} records on ${decodedRepo}.`;
+  const ogPath = `/api/og/explore?repo=${encodeURIComponent(decodedRepo)}&collection=${encodeURIComponent(decodedCollection)}`;
   return {
     title,
     description,
+    // Unbounded, client-rendered inspection view — see `explore/[repo]/page.tsx`.
+    robots: { index: false, follow: true },
     openGraph: {
       title,
       description,
-      images: [`/api/og/static?page=explore`],
+      images: [ogPath],
     },
     twitter: {
       card: 'summary_large_image',
       title,
       description,
-      images: [`/api/og/static?page=explore`],
+      images: [ogPath],
     },
   };
 }

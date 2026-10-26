@@ -1,6 +1,6 @@
 'use client';
 
-import { ExternalLink, Github } from 'lucide-react';
+import { ArrowRight, ExternalLink, Github } from 'lucide-react';
 
 const LINKS: { label: string; href: string; icon?: React.ReactNode }[] = [
   {
@@ -19,7 +19,7 @@ const LINKS: { label: string; href: string; icon?: React.ReactNode }[] = [
   },
   {
     label: 'Universal links',
-    href: '/universal-links',
+    href: '/links',
   },
   {
     label: 'Terms & privacy',
@@ -37,29 +37,19 @@ export default function AboutTab() {
           browse repos, jump across apps with waypoints.
         </p>
       </div>
-      <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+      <ul className="settings-link-list">
         {LINKS.map((l) => (
           <li key={l.href}>
             <a
               href={l.href}
               target={l.href.startsWith('http') ? '_blank' : undefined}
               rel={l.href.startsWith('http') ? 'noreferrer noopener' : undefined}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '0.5rem',
-                padding: '0.5rem 0.75rem',
-                background: 'var(--bg-tertiary)',
-                border: '1px solid var(--border-subtle)',
-                color: 'var(--text-secondary)',
-                fontFamily: 'var(--font-serif)',
-                fontSize: '0.875rem',
-                textDecoration: 'none',
-                transition: 'border-color 0.2s ease, color 0.2s ease',
-              }}
+              className="settings-link-row"
             >
-              {l.icon}
-              <span>{l.label}</span>
+              <span className="settings-link-icon" aria-hidden>
+                {l.icon ?? <ArrowRight size={13} />}
+              </span>
+              <span className="settings-link-label">{l.label}</span>
             </a>
           </li>
         ))}

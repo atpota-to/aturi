@@ -1,6 +1,5 @@
 'use client';
 
-import Link from 'next/link';
 import {
   Compass,
   Eye,
@@ -12,11 +11,10 @@ import {
   Zap,
 } from 'lucide-react';
 import AppearIn from '@/components/explore/AppearIn';
-import BrowserChrome from '@/components/home/BrowserChrome';
-import ExtensionPopupVisual from '@/components/home/ExtensionPopupVisual';
 import DownloadButton, { BrowserFallbackList } from '@/components/home/DownloadButton';
 import { getWaypointCount } from '@/utils/waypoints';
 import CrossLinkCards from './CrossLinkCards';
+import ExtensionHeroVisual from './ExtensionHeroVisual';
 import InspectPanelVisual from './InspectPanelVisual';
 import AutoRedirectVisual from './AutoRedirectVisual';
 import ClientGalleryVisual from './ClientGalleryVisual';
@@ -27,68 +25,35 @@ import WaypointGroupsVisual from './WaypointGroupsVisual';
 export default function ExtensionLanding() {
   const waypointCount = getWaypointCount();
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '4rem' }}>
-      {/* Hero: badge + headline + copy + CTA on the left, popup demo on the right */}
+    <div className="fl-page">
+      {/* Hero: pill + headline + copy + CTA on the left, popup demo on the right */}
       <AppearIn rise>
-        <header
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'minmax(0, 1fr)',
-            gap: '2.5rem',
-            alignItems: 'center',
-          }}
-          className="landing-hero"
-        >
-          <div>
-            <Badge icon={<MousePointerClick size={12} aria-hidden />}>Browser extension</Badge>
-            <h1
-              style={{
-                fontSize: '2.5rem',
-                fontWeight: 300,
-                marginBottom: '0.75rem',
-                color: 'var(--text-primary)',
-                lineHeight: 1.15,
-              }}
-            >
-              Jump between Atmosphere clients in one click
+        <header className="fl-hero">
+          <div className="fl-hero-copy">
+            <span className="fl-pill">
+              <MousePointerClick size={13} aria-hidden /> Browser extension
+            </span>
+            <h1 className="fl-title">
+              Jump between Atmosphere clients{' '}
+              <span className="fl-title-accent">in one click</span>
             </h1>
-            <p
-              style={{
-                fontSize: '1.05rem',
-                lineHeight: 1.6,
-                color: 'var(--text-secondary)',
-                maxWidth: '34rem',
-                marginBottom: '1rem',
-              }}
-            >
+            <p className="fl-lede">
               Land on a Bluesky post and want to read it in Anisota? Click the
               leaf in your toolbar. The popup detects the AT URI on the page
               and offers every app that can render it. Pick a favorite once,
               then auto-redirect handles the rest.
             </p>
-            <p
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '0.4rem',
-                fontSize: '0.85rem',
-                color: 'var(--text-accent)',
-                fontFamily: 'var(--font-mono)',
-                marginBottom: '1.25rem',
-              }}
-            >
+            <p className="fl-meta">
               <Repeat size={14} />
               {waypointCount} curated Atmosphere clients
             </p>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
+            <div className="fl-hero-actions">
               <DownloadButton variant="primary" align="start" />
               <BrowserFallbackList justify="start" />
             </div>
           </div>
-          <div>
-            <BrowserChrome>
-              <ExtensionPopupVisual />
-            </BrowserChrome>
+          <div className="fl-hero-visual">
+            <ExtensionHeroVisual />
           </div>
         </header>
       </AppearIn>
@@ -171,7 +136,7 @@ export default function ExtensionLanding() {
               <p>
                 If the catalog doesn&rsquo;t cover an app you use, wire it up
                 yourself. Name it, give it a URL template like{' '}
-                <code style={{ color: 'var(--text-accent)' }}>
+                <code>
                   example.com/u/{'{handle}'}/posts/{'{rkey}'}
                 </code>
                 , and tell the extension which record types it supports.
@@ -205,7 +170,7 @@ export default function ExtensionLanding() {
                 The same waypoint can live in more than one group, so
                 Anisota can sit in both Reading and Favorites without
                 duplicating preferences. Anything you leave out of every
-                group stays hidden from the popup — your groups <em>are</em>{' '}
+                group stays hidden from the popup: your groups <em>are</em>{' '}
                 your visibility settings.
               </p>
             </>
@@ -215,53 +180,16 @@ export default function ExtensionLanding() {
       </AppearIn>
 
       <AppearIn delay={0.05}>
-        <section
-          style={{
-            padding: '2rem',
-            border: '1px solid var(--border-medium)',
-            background: 'var(--bg-secondary)',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '1rem',
-            alignItems: 'flex-start',
-          }}
-        >
-          <div
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '0.5rem',
-              color: 'var(--text-accent)',
-              fontSize: '0.75rem',
-              letterSpacing: '0.12em',
-              textTransform: 'uppercase',
-              fontFamily: 'var(--font-serif)',
-            }}
-          >
+        <section className="fl-band">
+          <span className="fl-kicker">
             <ShieldCheck size={14} aria-hidden /> Local-first
+          </span>
+          <h2 className="fl-h2">No account, no telemetry, no background network calls.</h2>
+          <div className="fl-body">
+            <p>
+              The extension is read-only and never uploads anything. Preferences live in your browser&rsquo;s local storage.
+            </p>
           </div>
-          <h2
-            style={{
-              fontSize: '1.625rem',
-              fontWeight: 300,
-              color: 'var(--text-primary)',
-              margin: 0,
-              lineHeight: 1.2,
-            }}
-          >
-            No account, no telemetry, no background network calls.
-          </h2>
-          <p
-            style={{
-              color: 'var(--text-secondary)',
-              fontSize: '1rem',
-              lineHeight: 1.65,
-              margin: 0,
-              maxWidth: '46rem',
-            }}
-          >
-            The extension is read-only and never uploads anything. Preferences live in your browser&rsquo;s local storage.
-          </p>
           <DownloadButton variant="outline" align="start" />
         </section>
       </AppearIn>
@@ -270,30 +198,5 @@ export default function ExtensionLanding() {
         <CrossLinkCards current="extension" />
       </AppearIn>
     </div>
-  );
-}
-
-function Badge({ icon, children }: { icon: React.ReactNode; children: React.ReactNode }) {
-  return (
-    <span
-      style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: '0.4rem',
-        padding: '0.25rem 0.625rem',
-        border: '1px solid var(--border-subtle)',
-        background: 'var(--bg-tertiary)',
-        color: 'var(--text-tertiary)',
-        fontSize: '0.75rem',
-        letterSpacing: '0.08em',
-        textTransform: 'uppercase',
-        fontFamily: 'var(--font-serif)',
-        marginBottom: '1.25rem',
-        lineHeight: 1,
-      }}
-    >
-      {icon}
-      {children}
-    </span>
   );
 }

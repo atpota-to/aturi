@@ -3,8 +3,16 @@
  *
  * @vercel/og's Satori renderer accepts a small subset of CSS + a small set
  * of inline SVGs. These helpers centralize the bits every OG route needs
- * (font loading, the dark gradient + grain background, the brand mark) so
- * the per-page route can focus on the unique product visual it's rendering.
+ * (font loading, the dark background, the brand mark) so the per-page route
+ * can focus on the unique product visual it's rendering.
+ *
+ * Every cache miss renders a card on billed function CPU, and resvg's wasm
+ * build makes some styles expensive. Solid fills, borders and text are
+ * cheap. CSS gradients and `boxShadow` (a blur filter) each cost hundreds of
+ * milliseconds per card, so the cards use neither. `overflow: 'hidden'` puts
+ * a clip and mask on every descendant, so keep it on small boxes that need
+ * it rather than around a whole layout. Each inline <svg> or <img> carries
+ * a clip and mask of its own, roughly 50ms apiece.
  */
 
 import type { ReactNode } from 'react';
@@ -28,13 +36,79 @@ export const OG_COLORS = {
 
 const fontCache = new Map<string, ArrayBuffer>();
 
+// A Fluid instance lives across many requests, so an unbounded cache keeps
+// one ~20KB subset for every distinct character set it has ever rendered.
+// Map iterates in insertion order, which makes eviction oldest-first.
+const FONT_CACHE_LIMIT = 64;
+
+/**
+ * Strip glyphs that break @vercel/og image generation from user-supplied
+ * text (display names, bios, post text).
+ *
+ * When the rendered text contains characters missing from the Crimson Pro
+ * subset, Satori asks Google Fonts for a dynamic fallback subset. For
+ * decorative symbols — arrows, stars, geometric shapes (U+2190–U+2BFF) —
+ * that request returns HTTP 400 and @vercel/og throws, failing the WHOLE
+ * image (observed in production for display names like "⊱⋅⊰⋆⟡─"). Letters
+ * in real scripts (CJK, Cyrillic, Arabic…) resolve fine via Noto fallbacks,
+ * so only the symbol blocks are stripped.
+ */
+export function sanitizeOgText(text: string): string {
+  return text
+    // Take the whole ZWJ sequence when one of its parts is in range, rather
+    // than just the offending codepoint: 🏳️‍⚧️ is flag + ZWJ + ⚧ + VS16, and
+    // dropping only the ⚧ left a plain white flag standing in for a trans
+    // flag — a wrong glyph is worse than no glyph.
+    .replace(/(?:\p{Extended_Pictographic}️?‍)?[←-⯿]️?/gu, '')
+    .replace(/ {2,}/g, ' ');
+}
+
+/**
+ * Largest font size at which `len` monospace characters still fit inside
+ * `maxWidth`, accounting for the chip's own horizontal padding.
+ *
+ * IBM Plex Mono advances exactly 0.6em per character, so the fit is closed
+ * form — no measuring pass needed, which matters because Satori gives us no
+ * way to measure text before layout.
+ */
+export function fitMonoSize(
+  len: number,
+  cap: number,
+  { maxWidth = 1060, padEm = 0.34, min = 18 }: { maxWidth?: number; padEm?: number; min?: number } = {},
+): number {
+  const size = maxWidth / (0.6 * len + 2 * padEm);
+  return Math.max(min, Math.min(cap, Math.floor(size)));
+}
+
+/**
+ * Every ASCII letter + digit. Append this to a route's font-subset request
+ * text so the subset always carries glyphs for CSS-transformed copy.
+ *
+ * Satori applies `text-transform` *after* the Google Fonts subset has been
+ * built from the literal `&text=` characters, so an uppercased `Eyebrow`
+ * (e.g. "Atmosphere data explorer" → "ATMOSPHERE DATA EXPLORER") asks the
+ * renderer for capital glyphs — O, E, H, X… — that never appear verbatim in
+ * the card's copy and are therefore missing from the subset. The renderer
+ * then falls back to mismatched glyphs, which is the jumbled-caps look on
+ * the eyebrow chip. Including the full alphabet guarantees coverage.
+ */
+export const OG_GLYPH_BASELINE =
+  'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+
 /**
  * Fetch a Google Font subset for the characters in `text`. Cached in
  * module memory and short-circuited on a 3s timeout — image generation
  * has to stay fast even when the font CDN is slow.
  */
 export async function loadGoogleFont(font: string, text: string): Promise<ArrayBuffer> {
-  const cacheKey = `${font}-${text.slice(0, 50)}`;
+  // A subset depends only on which characters it covers, not their order or
+  // how often they repeat, so request and cache by the sorted set. The key
+  // used to be the first 50 characters of `text`: for explore cards that
+  // prefix is the handle and NSID, so nearly every record missed the cache
+  // and paid a Google Fonts round trip, and two cards sharing a prefix could
+  // be handed a subset missing the second card's glyphs.
+  const chars = [...new Set(text)].sort().join('');
+  const cacheKey = `${font}-${chars}`;
   const cached = fontCache.get(cacheKey);
   if (cached) return cached;
 
@@ -42,7 +116,7 @@ export async function loadGoogleFont(font: string, text: string): Promise<ArrayB
   const timeoutId = setTimeout(() => controller.abort(), 3000);
 
   try {
-    const url = `https://fonts.googleapis.com/css2?family=${font}&text=${encodeURIComponent(text)}`;
+    const url = `https://fonts.googleapis.com/css2?family=${font}&text=${encodeURIComponent(chars)}`;
     const css = await fetch(url, { signal: controller.signal }).then((r) => r.text());
     const match = css.match(/src: url\((.+)\) format\('(opentype|truetype)'\)/);
     if (match) {
@@ -50,6 +124,10 @@ export async function loadGoogleFont(font: string, text: string): Promise<ArrayB
       if (res.status === 200) {
         const data = await res.arrayBuffer();
         fontCache.set(cacheKey, data);
+        if (fontCache.size > FONT_CACHE_LIMIT) {
+          const oldest = fontCache.keys().next().value;
+          if (oldest !== undefined) fontCache.delete(oldest);
+        }
         return data;
       }
     }
@@ -61,9 +139,20 @@ export async function loadGoogleFont(font: string, text: string): Promise<ArrayB
 }
 
 /**
- * Full-bleed dark frame with the site's signature radial-gradient wash
- * and SVG grain overlay. Wrap a route's content in this so every OG card
- * shares the same atmosphere.
+ * Full-bleed dark frame. Wrap a route's content in this so every OG card
+ * shares the same ground.
+ *
+ * Deliberately a flat fill. The cards used to carry the site's three-layer
+ * radial-gradient wash, but Satori lowers each CSS gradient to an SVG
+ * <pattern> behind a full-canvas mask, and resvg's wasm build rasterizes
+ * those slowly: in local benchmarks the wash alone was ~700ms of a ~900ms
+ * explore card. A solid colour is resvg's fast path, and every route renders
+ * through this frame. If a wash comes back, bake all layers into one
+ * `url("data:image/svg+xml,…")` background rather than CSS gradients; that
+ * measured about half the cost of the CSS version.
+ *
+ * There was also an feTurbulence grain overlay here. It never rendered:
+ * Satori ignores the `inset` shorthand, so the overlay was a 0×0 box.
  */
 export function OgFrame({ children }: { children: ReactNode }) {
   return (
@@ -74,23 +163,12 @@ export function OgFrame({ children }: { children: ReactNode }) {
         display: 'flex',
         flexDirection: 'column',
         backgroundColor: OG_COLORS.bgPrimary,
-        backgroundImage:
-          'radial-gradient(ellipse at 20% 30%, rgba(138, 154, 127, 0.18) 0%, rgba(10, 10, 10, 0) 85%), radial-gradient(ellipse at 80% 70%, rgba(74, 90, 63, 0.15) 0%, rgba(10, 10, 10, 0) 85%), radial-gradient(ellipse at 50% 50%, rgba(61, 51, 41, 0.12) 0%, rgba(10, 10, 10, 0) 90%)',
         color: OG_COLORS.textPrimary,
         fontFamily: 'Crimson Pro',
         padding: '60px 70px',
         position: 'relative',
       }}
     >
-      <div
-        style={{
-          position: 'absolute',
-          inset: 0,
-          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 800 800' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.8' numOctaves='5' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E")`,
-          opacity: 0.6,
-          display: 'flex',
-        }}
-      />
       {children}
     </div>
   );
@@ -126,27 +204,33 @@ export function BrandMark({ size = 30 }: { size?: number } = {}) {
         <path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z" />
         <path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12" />
       </svg>
-      <span
-        style={{
-          fontSize: `${size}px`,
-          fontWeight: 300,
-          letterSpacing: '-0.01em',
-          color: OG_COLORS.textPrimary,
-          display: 'flex',
-        }}
-      >
-        aturi
-      </span>
-      <span
-        style={{
-          fontSize: `${size}px`,
-          fontWeight: 300,
-          color: OG_COLORS.textTertiary,
-          display: 'flex',
-        }}
-      >
-        .to
-      </span>
+      {/* The wordmark is one word. Its two halves sit in their own row so the
+          gap above separates the leaf from the text and nothing else — as
+          direct children they picked up the same 14px and rendered
+          "aturi .to". */}
+      <div style={{ display: 'flex', alignItems: 'baseline' }}>
+        <span
+          style={{
+            fontSize: `${size}px`,
+            fontWeight: 300,
+            letterSpacing: '-0.01em',
+            color: OG_COLORS.textPrimary,
+            display: 'flex',
+          }}
+        >
+          aturi
+        </span>
+        <span
+          style={{
+            fontSize: `${size}px`,
+            fontWeight: 300,
+            color: OG_COLORS.textTertiary,
+            display: 'flex',
+          }}
+        >
+          .to
+        </span>
+      </div>
     </div>
   );
 }
@@ -192,6 +276,178 @@ export function TopRow({ eyebrow }: { eyebrow?: ReactNode }) {
     >
       <BrandMark />
       {eyebrow ? <Eyebrow>{eyebrow}</Eyebrow> : <div style={{ display: 'flex' }} />}
+    </div>
+  );
+}
+
+/**
+ * Small-caps mono label — the accent-coloured kicker that names what kind of
+ * thing the card is about ("COLLECTION", "RECORD", "BLUESKY POST").
+ */
+export function ContextLabel({ children }: { children: ReactNode }) {
+  return (
+    <div
+      style={{
+        display: 'flex',
+        fontFamily: 'IBM Plex Mono',
+        fontSize: '20px',
+        fontWeight: 500,
+        letterSpacing: '0.18em',
+        textTransform: 'uppercase',
+        color: OG_COLORS.accent,
+      }}
+    >
+      {children}
+    </div>
+  );
+}
+
+/** Stacked-drive glyph, used wherever a PDS hostname appears. */
+export function ServerGlyph({ size = 22, color = OG_COLORS.textTertiary }: IconProps = {}) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke={color}
+      strokeWidth={1.8}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      xmlns="http://www.w3.org/2000/svg"
+      style={{ flexShrink: 0 }}
+    >
+      <rect width="20" height="8" x="2" y="2" rx="2" ry="2" />
+      <rect width="20" height="8" x="2" y="14" rx="2" ry="2" />
+      <path d="M6 6h.01" />
+      <path d="M6 18h.01" />
+    </svg>
+  );
+}
+
+/**
+ * The card's headline unit: a shrink-wrapped mono chip carrying one segment of
+ * an AT URI (a handle, an NSID, an rkey).
+ *
+ * Every chip wears identical chrome — same background, same hairline border —
+ * so the only things separating them are size and text colour. That keeps the
+ * hierarchy readable at unfurl scale: the segment the route actually points at
+ * is the biggest and the brightest, and everything above it steps back.
+ */
+export function IdentityChip({
+  text,
+  size,
+  tone = 'primary',
+  icon,
+}: {
+  text: string;
+  size: number;
+  /** Distance from the leaf: `primary` is the leaf, then `accent`, then `muted`. */
+  tone?: 'primary' | 'accent' | 'muted';
+  icon?: ReactNode;
+}) {
+  const color =
+    tone === 'accent'
+      ? OG_COLORS.accent
+      : tone === 'muted'
+      ? OG_COLORS.textTertiary
+      : OG_COLORS.textPrimary;
+
+  return (
+    <div
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: `${Math.round(size * 0.3)}px`,
+        padding: `${Math.round(size * 0.2)}px ${Math.round(size * 0.34)}px`,
+        background: OG_COLORS.bgSecondary,
+        border: `1px solid ${OG_COLORS.borderSubtle}`,
+        fontFamily: 'IBM Plex Mono',
+        fontSize: `${size}px`,
+        fontWeight: 500,
+        color,
+        lineHeight: 1.1,
+      }}
+    >
+      {icon}
+      <span style={{ display: 'flex' }}>{text}</span>
+    </div>
+  );
+}
+
+/**
+ * Path separator set outside the chips, between one segment and the next.
+ * The chips stack rather than run inline (an NSID at headline size is wider
+ * than the card), so the slash is what tells you you're reading a trail.
+ */
+export function ChipSlash({ size }: { size: number }) {
+  return (
+    <div
+      style={{
+        display: 'flex',
+        flexShrink: 0,
+        fontFamily: 'IBM Plex Mono',
+        fontSize: `${Math.round(size * 0.86)}px`,
+        fontWeight: 500,
+        color: OG_COLORS.textTertiary,
+        lineHeight: 1.1,
+      }}
+    >
+      /
+    </div>
+  );
+}
+
+/**
+ * Hairline rule + a left/right row, pinned to the bottom of a card. Gives
+ * every data card the same closing line so the bottom third stops reading as
+ * unused space.
+ */
+export function OgFooter({ left, right }: { left?: ReactNode; right?: ReactNode }) {
+  return (
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '18px',
+        position: 'relative',
+        zIndex: 1,
+      }}
+    >
+      <div style={{ display: 'flex', height: '1px', background: OG_COLORS.borderSubtle }} />
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: '32px',
+        }}
+      >
+        {left ?? <div style={{ display: 'flex' }} />}
+        {right ?? <div style={{ display: 'flex' }} />}
+      </div>
+    </div>
+  );
+}
+
+/** Right-hand footer CTA: "Open in any Atmosphere client →". */
+export function FooterCta({ children }: { children: ReactNode }) {
+  return (
+    <div
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: '10px',
+        flexShrink: 0,
+        fontFamily: 'Crimson Pro',
+        fontSize: '24px',
+        fontWeight: 300,
+        fontStyle: 'italic',
+        color: OG_COLORS.textTertiary,
+      }}
+    >
+      <span style={{ display: 'flex' }}>{children}</span>
+      <ArrowRight size={22} color={OG_COLORS.textTertiary} />
     </div>
   );
 }
@@ -327,7 +583,10 @@ export function UrlPill({ url, fontSize = 26 }: { url: string; fontSize?: number
   return (
     <div
       style={{
-        display: 'inline-flex',
+        // Satori only supports flex/block/none/-webkit-box — "inline-flex"
+        // throws and 500s the whole card. The parent centers this row, so
+        // plain "flex" reads identically.
+        display: 'flex',
         alignItems: 'center',
         gap: '14px',
         padding: '16px 22px',
@@ -363,19 +622,44 @@ export function UrlPill({ url, fontSize = 26 }: { url: string; fontSize?: number
  * mirroring the WaypointJumpVisual on the home page.
  */
 export function DropChevron({ color = OG_COLORS.accent }: { color?: string } = {}) {
+  // Inline SVG rather than the '▾' glyph: Crimson Pro has no glyph for it,
+  // which forces Satori into a Google Fonts dynamic-subset request that 400s
+  // and kills the whole image (seen in production on /api/og/static).
   return (
     <div
       style={{
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        color,
-        fontSize: '32px',
-        lineHeight: 1,
       }}
     >
-      ▾
+      <svg width="26" height="26" viewBox="0 0 24 24" fill={color} xmlns="http://www.w3.org/2000/svg">
+        <path d="M6 9l6 7 6-7z" />
+      </svg>
     </div>
+  );
+}
+
+/**
+ * Right arrow for "Open in …" CTAs. SVG for the same reason as DropChevron —
+ * a literal '→' has no Crimson Pro glyph and trips the dynamic-font 400.
+ */
+export function ArrowRight({ size = 22, color = 'currentColor' }: { size?: number; color?: string } = {}) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke={color}
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <line x1="4" y1="12" x2="20" y2="12" />
+      <polyline points="13 5 20 12 13 19" />
+    </svg>
   );
 }
 
@@ -392,7 +676,10 @@ export function WaypointRow({
 }) {
   const items: { key: string; node: ReactNode }[] = [
     { key: 'bluesky', node: <BlueskyIcon size={iconSize} /> },
-    { key: 'anisota', node: <AnisotaIcon height={iconSize} /> },
+    // Anisota's mark is a single tall hairline stroke — matched to the others
+    // on height it reads as a smudge, so give it ~30% more and let it run
+    // taller than the square marks to even out the optical weight.
+    { key: 'anisota', node: <AnisotaIcon height={Math.round(iconSize * 1.3)} /> },
     { key: 'leaflet', node: <LeafletIcon size={iconSize} /> },
     { key: 'tangled', node: <TangledIcon size={iconSize} /> },
     { key: 'margin', node: <MarginIcon size={iconSize} /> },
@@ -423,7 +710,6 @@ export function WaypointRow({
               background: isActive ? OG_COLORS.bgTertiary : 'transparent',
               border: `1px solid ${isActive ? OG_COLORS.accent : OG_COLORS.borderSubtle}`,
               color: isActive ? OG_COLORS.accent : OG_COLORS.textSecondary,
-              boxShadow: isActive ? '0 0 32px rgba(138, 154, 127, 0.25)' : undefined,
             }}
           >
             {item.node}
@@ -443,11 +729,17 @@ export function WaypointRow({
 export function Headline({
   title,
   tagline,
+  size = 78,
+  taglineSize,
 }: {
   title: string;
   tagline?: string;
+  /** Display size. Split layouts pass a smaller value to fit a half-width column. */
+  size?: number;
+  taglineSize?: number;
 }) {
   const lines = title.split('\n');
+  const subSize = taglineSize ?? Math.max(22, Math.round(size * 0.36));
   return (
     <div
       style={{
@@ -461,7 +753,7 @@ export function Headline({
         style={{
           display: 'flex',
           flexDirection: 'column',
-          fontSize: '78px',
+          fontSize: `${size}px`,
           fontWeight: 300,
           letterSpacing: '-0.02em',
           color: OG_COLORS.textPrimary,
@@ -478,7 +770,7 @@ export function Headline({
         <div
           style={{
             marginTop: '18px',
-            fontSize: '28px',
+            fontSize: `${subSize}px`,
             fontWeight: 300,
             color: OG_COLORS.textSecondary,
             lineHeight: 1.4,

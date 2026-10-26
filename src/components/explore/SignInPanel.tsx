@@ -2,9 +2,9 @@
 
 import { useState } from 'react';
 import { LogIn } from 'lucide-react';
-import { useAtprotoSession } from '@/components/AtprotoSessionProvider';
+import HandleTypeaheadInput from '@/components/oauth/HandleTypeaheadInput';
 import ScopeSelector from '@/components/oauth/ScopeSelector';
-import { rememberCurrentPathForReturn } from '@/lib/oauth/returnTo';
+import { useSignInFlow } from '@/components/oauth/useSignInFlow';
 
 /**
  * Compact sign-in form used inside the record view's action row. Accepts a
@@ -12,42 +12,19 @@ import { rememberCurrentPathForReturn } from '@/lib/oauth/returnTo';
  * flow that lets the user pick which permissions to grant.
  */
 export default function SignInPanel({ defaultInput }: { defaultInput?: string }) {
-  const { signIn } = useAtprotoSession();
   const [value, setValue] = useState(defaultInput || '');
-  const [step, setStep] = useState<'handle' | 'scopes'>('handle');
-  const [pendingAccount, setPendingAccount] = useState('');
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const { step, pendingAccount, busy, error, proceedToScopes, backToHandle, submitScopes } =
+    useSignInFlow();
 
   if (step === 'scopes') {
     return (
-      <div
-        style={{
-          padding: '0.75rem',
-          background: 'var(--bg-secondary)',
-          border: '1px solid var(--border-medium)',
-          maxWidth: '24rem',
-        }}
-      >
+      <div className="signin-panel-scopes">
         <ScopeSelector
           account={pendingAccount}
           busy={busy}
           error={error}
-          onBack={() => {
-            setStep('handle');
-            setError(null);
-          }}
-          onContinue={async (scopeString) => {
-            setBusy(true);
-            setError(null);
-            try {
-              rememberCurrentPathForReturn();
-              await signIn(pendingAccount, scopeString);
-            } catch (err) {
-              setBusy(false);
-              setError(err instanceof Error ? err.message : String(err));
-            }
-          }}
+          onBack={backToHandle}
+          onContinue={submitScopes}
         />
       </div>
     );
@@ -57,69 +34,41 @@ export default function SignInPanel({ defaultInput }: { defaultInput?: string })
     <form
       onSubmit={(e) => {
         e.preventDefault();
-        const v = value.trim();
-        if (!v) return;
-        setError(null);
-        setPendingAccount(v);
-        setStep('scopes');
+        proceedToScopes(value);
       }}
-      style={{
-        display: 'flex',
-        flexWrap: 'wrap',
-        alignItems: 'stretch',
-        gap: '0.5rem',
-      }}
+      className="signin-panel"
     >
-      <input
-        type="text"
-        autoComplete="username"
-        spellCheck={false}
-        placeholder="handle or DID"
+      {/* The wrapper takes over the flex sizing, since it's now the flex item
+          and the dropdown positions against it. */}
+      <HandleTypeaheadInput
         value={value}
-        onChange={(e) => setValue(e.target.value)}
-        style={{
-          flex: '1 1 220px',
-          minWidth: 0,
-          padding: '0.55rem 0.75rem',
-          background: 'var(--bg-tertiary)',
-          border: '1px solid var(--border-medium)',
+        onChange={setValue}
+        placeholder="handle or DID"
+        wrapperStyle={{ flex: '1 1 220px' }}
+        inputStyle={{
+          width: '100%',
+          height: 36,
+          boxSizing: 'border-box',
+          padding: '0 12px',
+          background: 'var(--bg-secondary)',
+          border: '1px solid var(--border-strong)',
+          borderRadius: 'var(--radius-control)',
           color: 'var(--text-primary)',
           fontFamily: 'var(--font-mono)',
-          fontSize: '0.85rem',
+          fontSize: 13,
           outline: 'none',
         }}
       />
       <button
         type="submit"
         disabled={!value.trim()}
-        style={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: '0.4rem',
-          padding: '0.55rem 1rem',
-          background: 'var(--accent-moss)',
-          color: 'var(--text-on-accent)',
-          border: '1px solid var(--accent-moss)',
-          fontFamily: 'var(--font-serif)',
-          fontSize: '0.875rem',
-          cursor: 'pointer',
-          opacity: !value.trim() ? 0.6 : 1,
-        }}
+        className="settings-btn is-primary"
       >
         <LogIn size={14} />
         Sign in
       </button>
       {error && (
-        <p
-          style={{
-            flexBasis: '100%',
-            color: 'var(--danger)',
-            fontSize: '0.8125rem',
-            margin: 0,
-          }}
-        >
-          {error}
-        </p>
+        <p className="signin-panel-error">{error}</p>
       )}
     </form>
   );

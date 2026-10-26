@@ -15,6 +15,11 @@ export async function generateMetadata({
   return {
     title,
     description,
+    // The explorer is a live inspection tool, not content: it spans every repo
+    // in the network (an unbounded URL space) and renders its data client-side,
+    // so a crawler only ever sees an empty shell. Keep it out of the index while
+    // still letting crawlers follow through to the pages that are worth having.
+    robots: { index: false, follow: true },
     openGraph: {
       title,
       description,

@@ -25,8 +25,14 @@ export type DescribeRepoResponse = {
   handleIsCorrect?: boolean;
 };
 
+import { readCappedJson } from '../cappedJson';
+import { upstreamFetch } from '../upstreamFetch';
+
 async function fetchJson<T>(url: string): Promise<T> {
-  const res = await fetch(url);
+  // The PDS base comes from a DID document, which anyone can author, so a
+  // redirect here would send the request to an unchecked host and hand its
+  // body back to the caller. A PDS serving XRPC never needs to redirect.
+  const res = await upstreamFetch(url, { redirect: 'error' });
   if (!res.ok) {
     const text = await res.text().catch(() => '');
     const err = new Error(
@@ -35,7 +41,8 @@ async function fetchJson<T>(url: string): Promise<T> {
     (err as Error & { status?: number }).status = res.status;
     throw err;
   }
-  return (await res.json()) as T;
+  // Bounded: the host is caller-influenced and may answer with anything.
+  return readCappedJson<T>(res);
 }
 
 /**
@@ -64,6 +71,98 @@ export async function getLatestCommit(pds: string, did: string): Promise<LatestC
   return fetchJson<LatestCommit>(
     `${pds}/xrpc/com.atproto.sync.getLatestCommit?${params}`,
   );
+}
+
+export type RepoStatus = {
+  did: string;
+  /** False for a repo the host holds but won't serve records for. */
+  active: boolean;
+  /**
+   * Why it's inactive: 'takendown', 'suspended', 'deactivated', 'deleted',
+   * and others hosts may add. The lexicon leaves the set open, so callers
+   * render whatever came back rather than mapping it to a closed union.
+   * Absent when `active` is true.
+   */
+  status?: string;
+  /** Head commit rev (a TID). Relays return it here; PDS implementations may not. */
+  rev?: string;
+};
+
+/**
+ * com.atproto.sync.getRepoStatus — one host's hosting status for an account.
+ *
+ * The only repo-scoped read that still answers for an inactive account.
+ * describeRepo, listRecords, getLatestCommit, listBlobs and getRepo all fail
+ * with a 400 whose body names the state but which is otherwise just an error;
+ * this returns 200 and the reason as data. `host` is a PDS or a relay — the
+ * lexicon is implemented by both, and the two can legitimately disagree while
+ * an account event is still propagating.
+ */
+export async function getRepoStatus(host: string, did: string): Promise<RepoStatus> {
+  const params = new URLSearchParams({ did });
+  return fetchJson<RepoStatus>(
+    `${host}/xrpc/com.atproto.sync.getRepoStatus?${params}`,
+  );
+}
+
+/**
+ * com.atproto.sync.getRepo — downloads the account's full repo export (a CAR
+ * file) and returns its size in bytes. Unlike the other account-stats sources
+ * this can run to many megabytes, so callers only ever trigger it from an
+ * explicit user action, never on page load.
+ *
+ * The body is streamed and counted chunk-by-chunk — each chunk is dropped as
+ * soon as it's measured — so even a large repo never sits in memory whole. An
+ * optional `onProgress` receives the running byte total to drive a live
+ * counter; `signal` lets the caller abort an in-flight download. Falls back to
+ * a single `arrayBuffer` measure when the runtime doesn't expose a readable
+ * response body.
+ */
+export async function getRepoSize(
+  pds: string,
+  did: string,
+  opts?: { onProgress?: (bytes: number) => void; signal?: AbortSignal },
+): Promise<number> {
+  const res = await fetch(getRepoUrl(pds, did), {
+    signal: opts?.signal,
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    const err = new Error(
+      `HTTP ${res.status} ${res.statusText} for com.atproto.sync.getRepo :: ${text.slice(0, 200)}`,
+    );
+    (err as Error & { status?: number }).status = res.status;
+    throw err;
+  }
+
+  // Stream the CAR so we can report progress and avoid buffering the whole
+  // export; not every runtime gives us a readable body, so fall back if absent.
+  if (res.body) {
+    const reader = res.body.getReader();
+    let total = 0;
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      if (value) {
+        total += value.byteLength;
+        opts?.onProgress?.(total);
+      }
+    }
+    return total;
+  }
+
+  const buf = await res.arrayBuffer();
+  return buf.byteLength;
+}
+
+/**
+ * Build the public PDS XRPC URL for an account's full repo export (the CAR
+ * file). Shared by `getRepoSize`, which streams it to measure the size, and by
+ * the "Download CAR" link the explorer offers once a repo has been measured.
+ */
+export function getRepoUrl(pds: string, did: string): string {
+  const params = new URLSearchParams({ did });
+  return `${pds}/xrpc/com.atproto.sync.getRepo?${params}`;
 }
 
 /**

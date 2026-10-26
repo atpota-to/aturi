@@ -176,5 +176,14 @@ export async function getOauthClient(): Promise<BrowserOAuthClient> {
     return client;
   })();
 
+  // If initialization rejects (dynamic import failure, offline, blocked
+  // metadata fetch), clear the cached promise so the next getOauthClient()
+  // call retries from scratch. Without this, one transient failure would
+  // pin a rejected promise here and break sign-in for the whole tab session.
+  // The side-effect catch doesn't alter the promise callers receive.
+  pending.catch(() => {
+    pending = null;
+  });
+
   return pending;
 }

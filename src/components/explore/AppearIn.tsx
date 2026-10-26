@@ -11,6 +11,8 @@ type Props = {
   rise?: boolean;
   className?: string;
   style?: React.CSSProperties;
+  /** DOM id on the wrapper — used to make a block a scroll target. */
+  id?: string;
 };
 
 /**
@@ -29,6 +31,7 @@ export default function AppearIn({
   rise = false,
   className,
   style,
+  id,
 }: Props) {
   return (
     <motion.div
@@ -41,6 +44,7 @@ export default function AppearIn({
       }}
       className={className}
       style={style}
+      id={id}
     >
       {children}
     </motion.div>

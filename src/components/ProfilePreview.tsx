@@ -6,7 +6,7 @@
 import Link from 'next/link';
 import { BskyProfile } from '@/utils/profileFetcher';
 import { sanitizeUrl } from '@/utils/sanitize';
-import { User, Calendar, Users, MessageSquare, Telescope } from 'lucide-react';
+import { User, Calendar, Telescope } from 'lucide-react';
 import { encodeRepo } from '@/utils/atproto/urls';
 
 type ProfilePreviewProps = {
@@ -58,94 +58,59 @@ export default function ProfilePreview({ profile }: ProfilePreviewProps) {
     );
   };
 
+  const stats = [
+    { value: followersCount, label: 'followers' },
+    { value: followsCount, label: 'following' },
+    { value: postsCount, label: 'posts' },
+  ].filter((stat): stat is { value: number; label: string } => stat.value !== undefined);
+
+  const extras = [
+    { value: associated?.lists, one: 'list', many: 'lists' },
+    { value: associated?.feedgens, one: 'feed', many: 'feeds' },
+    { value: associated?.starterPacks, one: 'starter pack', many: 'starter packs' },
+  ].filter((extra): extra is { value: number; one: string; many: string } =>
+    extra.value !== undefined && extra.value > 0,
+  );
+
   return (
-    <div
-      style={{
-        marginBottom: '2rem',
-        padding: 0,
-        overflow: 'hidden',
-        background: 'var(--bg-secondary)',
-        border: '1px solid var(--border-medium)',
-        transform: 'rotate(-0.3deg)',
-        transition: 'all 0.4s ease',
-      }}
-      className="card"
-    >
-      {/* Banner */}
-      {banner ? (
+    <section aria-label="Profile" className="card fn-lp-preview fn-lp-profile">
+      {/* Banner: only when the account has one. The Field Notes card is a
+          plain white panel, so there's no stand-in gradient. */}
+      {banner && (
         <div
+          className="profile-preview-banner"
           style={{
-            width: '100%',
-            height: '200px',
             background: `url(${sanitizeUrl(banner)}) center/cover`,
             backgroundColor: 'var(--bg-tertiary)',
           }}
         />
-      ) : (
-        <div
-          style={{
-            width: '100%',
-            height: '200px',
-            background: 'linear-gradient(135deg, var(--accent-moss) 0%, var(--accent-forest) 100%)',
-          }}
-        />
       )}
 
-      <div style={{ padding: '1.5rem' }}>
-        {/* Avatar and Name Section */}
-        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem', marginTop: '-4rem', marginBottom: '1rem' }}>
-          {avatar ? (
-            <div
-              style={{
-                width: '96px',
-                height: '96px',
-                border: '2px solid var(--accent-stone)',
-                overflow: 'hidden',
-                flexShrink: 0,
-                background: 'var(--bg-tertiary)',
-              }}
-            >
-              <img
-                src={sanitizeUrl(avatar)}
-                alt={displayName || handle}
-                style={{
-                  width: '100%',
-                  height: '100%',
-                  objectFit: 'cover',
-                  display: 'block',
-                }}
-              />
-            </div>
-          ) : (
-            <div
-              style={{
-                width: '96px',
-                height: '96px',
-                border: '2px solid var(--accent-stone)',
-                background: 'var(--bg-tertiary)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0,
-              }}
-            >
-              <User size={48} color="var(--text-tertiary)" />
-            </div>
-          )}
-          
-          <div style={{ flex: 1, minWidth: 0, paddingTop: '3.5rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
-              <h2 style={{ fontSize: '1.5rem', fontWeight: '600', color: 'var(--text-primary)', margin: 0 }}>
-                {displayName || handle}
-              </h2>
+      <div className="fn-lp-profile-body">
+        <div className="fn-lp-profile-id">
+          <div className="fn-lp-avatar">
+            {avatar ? (
+              <img src={sanitizeUrl(avatar)} alt={displayName || handle} />
+            ) : (
+              <User size={24} color="var(--accent-forest)" aria-hidden />
+            )}
+          </div>
+
+          <div className="fn-lp-profile-names">
+            {/* Not a heading: the card sits above the page's h1 ("Open … in"),
+                so an h2 here would break the outline. */}
+            <p className="fn-lp-profile-name">
+              <span>{displayName || handle}</span>
               {isVerified && (
                 <svg
-                  width="20"
-                  height="20"
+                  width="18"
+                  height="18"
                   viewBox="0 0 24 24"
                   fill="none"
                   xmlns="http://www.w3.org/2000/svg"
                   style={{ flexShrink: 0 }}
+                  aria-label="Verified"
+                  role="img"
                 >
                   <circle cx="12" cy="12" r="10" fill="var(--text-accent)" />
                   <path
@@ -157,132 +122,52 @@ export default function ProfilePreview({ profile }: ProfilePreviewProps) {
                   />
                 </svg>
               )}
-            </div>
-            <div style={{ fontSize: '1rem', color: 'var(--text-tertiary)' }}>@{handle}</div>
+            </p>
+            <span className="fn-lp-handle">@{handle}</span>
           </div>
         </div>
 
-        {/* Description */}
-        {description && (
-          <div
-            style={{
-              marginBottom: '1.5rem',
-              color: 'var(--text-primary)',
-              fontSize: '1rem',
-              lineHeight: '1.5',
-            }}
-          >
-            {renderDescription()}
+        {description && <div className="fn-lp-profile-bio">{renderDescription()}</div>}
+
+        {(stats.length > 0 || joinDate) && (
+          <div className="fn-lp-profile-stats">
+            {stats.map((stat, i) => (
+              <span key={stat.label}>
+                {i > 0 && <span aria-hidden="true"> · </span>}
+                <strong>{stat.value.toLocaleString()}</strong> {stat.label}
+              </span>
+            ))}
+            {joinDate && (
+              <span className="fn-lp-profile-joined">
+                <Calendar size={13} aria-hidden />
+                Joined {joinDate}
+              </span>
+            )}
           </div>
         )}
 
-        {/* Stats */}
-        <div className="profile-stats-container">
-          <div className="profile-stats-row">
-            {followersCount !== undefined && (
-              <div className="profile-stat-item">
-                <Users size={18} color="var(--text-tertiary)" />
-                <div>
-                  <span style={{ fontWeight: '600', color: 'var(--text-primary)' }}>
-                    {followersCount.toLocaleString()}
-                  </span>
-                  <span style={{ color: 'var(--text-tertiary)', marginLeft: '0.25rem' }}>followers</span>
-                </div>
-              </div>
-            )}
-            {followsCount !== undefined && (
-              <div className="profile-stat-item">
-                <Users size={18} color="var(--text-tertiary)" />
-                <div>
-                  <span style={{ fontWeight: '600', color: 'var(--text-primary)' }}>
-                    {followsCount.toLocaleString()}
-                  </span>
-                  <span style={{ color: 'var(--text-tertiary)', marginLeft: '0.25rem' }}>following</span>
-                </div>
-              </div>
-            )}
-            {postsCount !== undefined && (
-              <div className="profile-stat-item">
-                <MessageSquare size={18} color="var(--text-tertiary)" />
-                <div>
-                  <span style={{ fontWeight: '600', color: 'var(--text-primary)' }}>
-                    {postsCount.toLocaleString()}
-                  </span>
-                  <span style={{ color: 'var(--text-tertiary)', marginLeft: '0.25rem' }}>posts</span>
-                </div>
-              </div>
-            )}
-          </div>
-          {joinDate && (
-            <div className="profile-join-date">
-              <Calendar size={18} color="var(--text-tertiary)" />
-              <span style={{ fontSize: '0.875rem', color: 'var(--text-tertiary)' }}>
-                Joined {joinDate}
+        {extras.length > 0 && (
+          <div className="fn-lp-profile-extras">
+            {extras.map((extra) => (
+              <span key={extra.one}>
+                <strong>{extra.value}</strong> {extra.value !== 1 ? extra.many : extra.one}
               </span>
-            </div>
-          )}
-        </div>
+            ))}
+          </div>
+        )}
 
         {/* Cross-product: view this profile's raw repo in the explorer */}
-        <div
-          style={{
-            paddingTop: '1rem',
-            marginTop: '1rem',
-            borderTop: '1px solid var(--border-subtle)',
-            fontSize: '0.8125rem',
-          }}
-        >
+        <div className="fn-lp-preview-foot">
           <Link
             href={`/explore/${encodeRepo(handle)}`}
+            prefetch={false}
             className="profile-explorer-link"
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '0.4rem',
-              textDecoration: 'none',
-            }}
           >
-            <Telescope size={12} />
+            <Telescope size={13} aria-hidden />
             View repo in the Explorer →
           </Link>
         </div>
-
-        {/* Additional Info */}
-        {associated && (
-          (associated.lists && associated.lists > 0) || 
-          (associated.feedgens && associated.feedgens > 0) || 
-          (associated.starterPacks && associated.starterPacks > 0)
-        ) ? (
-          <div
-            style={{
-              display: 'flex',
-              gap: '1.5rem',
-              paddingTop: '1rem',
-              marginTop: '1rem',
-              borderTop: '1px solid var(--border-subtle)',
-              fontSize: '0.875rem',
-              color: 'var(--text-secondary)',
-            }}
-          >
-            {associated.lists !== undefined && associated.lists > 0 && (
-              <div>
-                <span style={{ fontWeight: '600' }}>{associated.lists}</span> list{associated.lists !== 1 ? 's' : ''}
-              </div>
-            )}
-            {associated.feedgens !== undefined && associated.feedgens > 0 && (
-              <div>
-                <span style={{ fontWeight: '600' }}>{associated.feedgens}</span> feed{associated.feedgens !== 1 ? 's' : ''}
-              </div>
-            )}
-            {associated.starterPacks !== undefined && associated.starterPacks > 0 && (
-              <div>
-                <span style={{ fontWeight: '600' }}>{associated.starterPacks}</span> starter pack{associated.starterPacks !== 1 ? 's' : ''}
-              </div>
-            )}
-          </div>
-        ) : null}
       </div>
-    </div>
+    </section>
   );
 }
-

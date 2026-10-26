@@ -18,7 +18,41 @@ export type RedirectCompatFamily =
   | 'streamplace'
   | 'popfeed'
   | 'sifa'
-  | 'blento';
+  | 'blento'
+  | 'atproto-explorer';
+
+/**
+ * A client's support for Bluesky-style *compose intent links*: a URL that opens
+ * the app's composer, optionally pre-filled with text.
+ * See https://docs.bsky.app/docs/advanced-guides/intent-links.
+ *
+ * bsky.app established `/intent/compose?text=…`, and the social-app forks in the
+ * catalog inherit the same route, so a link built for one works on any of them.
+ * Only add an entry once the client's own route has been confirmed — a link to
+ * a client that doesn't handle it lands the user on a 404 or an empty home feed.
+ */
+export type ComposeIntentData = {
+  /**
+   * The compose route, absolute and free of any query string
+   * (e.g. `https://bsky.app/intent/compose`).
+   */
+  url: string;
+  /**
+   * Query parameter carrying the pre-filled post text. Omitted when the client
+   * routes the intent but ignores the text: the link still opens a composer,
+   * just an empty one. Check this before offering a "share this to…" affordance,
+   * since there the text is the whole point.
+   *
+   * Bluesky's post limit is 300 grapheme clusters; longer text is the caller's
+   * problem to truncate.
+   */
+  textParam?: string;
+  /**
+   * Deep link into the client's native app for the same intent, when it
+   * publishes a scheme (e.g. `bluesky://intent/compose`).
+   */
+  appUrl?: string;
+};
 
 export type WaypointData = {
   id: string;
@@ -27,6 +61,12 @@ export type WaypointData = {
   getUrl: (handle: string, collection?: string, rkey?: string, did?: string) => string | null;
   supportedTypes: WaypointType[];
   category: string;
+  /**
+   * Compose intent support, when the client has a confirmed intent route.
+   * Absent means "no known support" rather than a proven absence — read it with
+   * `supportsComposeIntent` / `getComposeIntentUrl`.
+   */
+  composeIntent?: ComposeIntentData;
   /**
    * Data families this waypoint participates in. Auto-redirect rules are only
    * emitted between waypoints that share at least one family. An empty array
@@ -117,6 +157,12 @@ export const COMPAT_FAMILIES: Record<RedirectCompatFamily, CompatFamilyMeta> = {
     name: 'Blento',
     description: 'Blento profiles.',
   },
+  'atproto-explorer': {
+    id: 'atproto-explorer',
+    name: 'Record explorers',
+    description:
+      'Raw AT Protocol record explorers (pdsls, atp.tools, Aturi Explore) that render any record by its AT URI.',
+  },
 };
 
 export const COMPAT_FAMILY_ORDER: RedirectCompatFamily[] = [
@@ -131,6 +177,7 @@ export const COMPAT_FAMILY_ORDER: RedirectCompatFamily[] = [
   'popfeed',
   'sifa',
   'blento',
+  'atproto-explorer',
 ];
 
 export type WaypointCategoryData = {
@@ -145,6 +192,14 @@ export type CategorizedWaypointsData = {
   category: WaypointCategoryData;
   waypoints: WaypointData[];
 };
+
+/**
+ * The `/intent/compose?text=…` shape bsky.app established and every social-app
+ * fork inherits verbatim, down to the parameter name.
+ */
+function socialAppComposeIntent(origin: string): ComposeIntentData {
+  return { url: `${origin}/intent/compose`, textParam: 'text' };
+}
 
 export const WAYPOINT_DESTINATIONS_DATA: Record<string, WaypointData> = {
   aturi: {
@@ -209,7 +264,17 @@ export const WAYPOINT_DESTINATIONS_DATA: Record<string, WaypointData> = {
     },
     supportedTypes: ['post', 'profile', 'list', 'record'],
     category: 'blueskyClients',
-    redirectCompat: ['bluesky-social', 'standard-site'],
+    // Anisota implements the Bluesky shape deliberately, then extends it with
+    // `url`, `tags`, `channel`, and `title` (and answers `/post` with the same
+    // query). What's declared here is the interoperable subset every caller can
+    // rely on; the extras are Anisota-only and unrepresentable in this field.
+    composeIntent: socialAppComposeIntent('https://anisota.net'),
+    // Bluesky-shaped records only. anisota.net also reads Standard Site and
+    // Leaflet documents, but that role belongs to `anisotaReader`: listing both
+    // under `standard-site` put two entries for the same site in every
+    // "Publications" destination list, and this one's `expectedCollections`
+    // already says it does not claim those collections.
+    redirectCompat: ['bluesky-social'],
     expectedCollections: ['app.bsky.', 'net.anisota.'],
   },
 
@@ -226,12 +291,19 @@ export const WAYPOINT_DESTINATIONS_DATA: Record<string, WaypointData> = {
         if (collection === 'app.bsky.feed.post') {
           return `https://bsky.app/profile/${handle}/post/${rkey}`;
         }
+        if (collection === 'app.bsky.graph.list') {
+          return `https://bsky.app/profile/${handle}/lists/${rkey}`;
+        }
         return `https://bsky.app/profile/${handle}`;
       }
       return `https://bsky.app/profile/${handle}`;
     },
     supportedTypes: ['post', 'profile', 'list', 'record'],
     category: 'blueskyClients',
+    composeIntent: {
+      ...socialAppComposeIntent('https://bsky.app'),
+      appUrl: 'bluesky://intent/compose',
+    },
     redirectCompat: ['bluesky-social'],
     expectedCollections: ['app.bsky.'],
   },
@@ -249,12 +321,16 @@ export const WAYPOINT_DESTINATIONS_DATA: Record<string, WaypointData> = {
         if (collection === 'app.bsky.feed.post') {
           return `https://blacksky.community/profile/${handle}/post/${rkey}`;
         }
+        if (collection === 'app.bsky.graph.list') {
+          return `https://blacksky.community/profile/${handle}/lists/${rkey}`;
+        }
         return `https://blacksky.community/profile/${handle}`;
       }
       return `https://blacksky.community/profile/${handle}`;
     },
     supportedTypes: ['post', 'profile', 'list', 'record'],
     category: 'blueskyForks',
+    composeIntent: socialAppComposeIntent('https://blacksky.community'),
     redirectCompat: ['bluesky-social'],
     expectedCollections: ['app.bsky.'],
   },
@@ -264,7 +340,6 @@ export const WAYPOINT_DESTINATIONS_DATA: Record<string, WaypointData> = {
     name: 'Red Dwarf',
     description: (collection) => {
       if (collection === 'app.bsky.feed.post') return 'View post on reddwarf.app';
-      if (collection === 'app.bsky.graph.list') return 'View list on reddwarf.app';
       return 'View profile on reddwarf.app';
     },
     getUrl: (handle, collection, rkey) => {
@@ -276,8 +351,65 @@ export const WAYPOINT_DESTINATIONS_DATA: Record<string, WaypointData> = {
       }
       return `https://reddwarf.app/profile/${handle}`;
     },
+    // No `list`: unlike the social-app forks in this family, Red Dwarf has no
+    // `/profile/:handle/lists/:rkey` route, so offering it for a list would
+    // silently land the user on the list's author instead.
+    supportedTypes: ['post', 'profile', 'record'],
+    category: 'blueskyClients',
+    redirectCompat: ['bluesky-social'],
+    expectedCollections: ['app.bsky.'],
+  },
+
+  impro: {
+    id: 'impro',
+    name: 'Impro',
+    description: (collection) => {
+      if (collection === 'app.bsky.feed.post') return 'View post on impro.social';
+      if (collection === 'app.bsky.graph.list') return 'View list on impro.social';
+      return 'View profile on impro.social';
+    },
+    getUrl: (handle, collection, rkey) => {
+      if (collection && rkey) {
+        if (collection === 'app.bsky.feed.post') {
+          return `https://impro.social/profile/${handle}/post/${rkey}`;
+        }
+        if (collection === 'app.bsky.graph.list') {
+          return `https://impro.social/profile/${handle}/lists/${rkey}`;
+        }
+        return `https://impro.social/profile/${handle}`;
+      }
+      return `https://impro.social/profile/${handle}`;
+    },
     supportedTypes: ['post', 'profile', 'list', 'record'],
-    category: 'blueskyForks',
+    category: 'blueskyClients',
+    // Impro routes /intent/compose to its home view, which opens the composer
+    // for a signed-in user — but it never reads `?text`, so no textParam here.
+    composeIntent: { url: 'https://impro.social/intent/compose' },
+    redirectCompat: ['bluesky-social'],
+    expectedCollections: ['app.bsky.'],
+  },
+
+  lea: {
+    id: 'lea',
+    name: 'Lea',
+    description: (collection) => {
+      if (collection === 'app.bsky.feed.post') return 'View post on lea.ac';
+      return 'View profile on lea.ac';
+    },
+    getUrl: (handle, collection, rkey) => {
+      if (collection && rkey) {
+        if (collection === 'app.bsky.feed.post') {
+          return `https://lea.ac/profile/${handle}/post/${rkey}`;
+        }
+        return `https://lea.ac/profile/${handle}`;
+      }
+      return `https://lea.ac/profile/${handle}`;
+    },
+    // No `list`: like Red Dwarf, Lea serves only `/profile/:handle` and
+    // `/profile/:handle/post/:rkey` — `/lists/:rkey` 404s — so claiming list
+    // support would drop the user on an error page instead of the list.
+    supportedTypes: ['post', 'profile', 'record'],
+    category: 'blueskyClients',
     redirectCompat: ['bluesky-social'],
     expectedCollections: ['app.bsky.'],
   },
@@ -308,7 +440,7 @@ export const WAYPOINT_DESTINATIONS_DATA: Record<string, WaypointData> = {
     },
     supportedTypes: ['post', 'profile', 'list', 'record'],
     category: 'devTools',
-    redirectCompat: [],
+    redirectCompat: ['atproto-explorer'],
   },
 
   aturiExplore: {
@@ -332,7 +464,7 @@ export const WAYPOINT_DESTINATIONS_DATA: Record<string, WaypointData> = {
     },
     supportedTypes: ['post', 'profile', 'list', 'record'],
     category: 'devTools',
-    redirectCompat: [],
+    redirectCompat: ['atproto-explorer'],
   },
 
   atptools: {
@@ -348,7 +480,7 @@ export const WAYPOINT_DESTINATIONS_DATA: Record<string, WaypointData> = {
     },
     supportedTypes: ['post', 'profile', 'list', 'record'],
     category: 'devTools',
-    redirectCompat: [],
+    redirectCompat: ['atproto-explorer'],
   },
 
   bluepy: {
@@ -386,35 +518,16 @@ export const WAYPOINT_DESTINATIONS_DATA: Record<string, WaypointData> = {
         if (collection === 'app.bsky.feed.post') {
           return `https://witchsky.app/profile/${handle}/post/${rkey}`;
         }
+        if (collection === 'app.bsky.graph.list') {
+          return `https://witchsky.app/profile/${handle}/lists/${rkey}`;
+        }
         return `https://witchsky.app/profile/${handle}`;
       }
       return `https://witchsky.app/profile/${handle}`;
     },
     supportedTypes: ['post', 'profile', 'list', 'record'],
     category: 'blueskyForks',
-    redirectCompat: ['bluesky-social'],
-    expectedCollections: ['app.bsky.'],
-  },
-
-  catsky: {
-    id: 'catsky',
-    name: 'Catsky',
-    description: (collection) => {
-      if (collection === 'app.bsky.feed.post') return 'View post on catsky.social';
-      if (collection === 'app.bsky.graph.list') return 'View list on catsky.social';
-      return 'View profile on catsky.social';
-    },
-    getUrl: (handle, collection, rkey) => {
-      if (collection && rkey) {
-        if (collection === 'app.bsky.feed.post') {
-          return `https://catsky.social/profile/${handle}/post/${rkey}`;
-        }
-        return `https://catsky.social/profile/${handle}`;
-      }
-      return `https://catsky.social/profile/${handle}`;
-    },
-    supportedTypes: ['post', 'profile', 'list', 'record'],
-    category: 'blueskyForks',
+    composeIntent: socialAppComposeIntent('https://witchsky.app'),
     redirectCompat: ['bluesky-social'],
     expectedCollections: ['app.bsky.'],
   },
@@ -432,12 +545,70 @@ export const WAYPOINT_DESTINATIONS_DATA: Record<string, WaypointData> = {
         if (collection === 'app.bsky.feed.post') {
           return `https://deer.social/profile/${handle}/post/${rkey}`;
         }
+        if (collection === 'app.bsky.graph.list') {
+          return `https://deer.social/profile/${handle}/lists/${rkey}`;
+        }
         return `https://deer.social/profile/${handle}`;
       }
       return `https://deer.social/profile/${handle}`;
     },
     supportedTypes: ['post', 'profile', 'list', 'record'],
     category: 'blueskyForks',
+    composeIntent: socialAppComposeIntent('https://deer.social'),
+    redirectCompat: ['bluesky-social'],
+    expectedCollections: ['app.bsky.'],
+  },
+
+  mu: {
+    id: 'mu',
+    name: 'Mu',
+    description: (collection) => {
+      if (collection === 'app.bsky.feed.post') return 'View post on mu.social';
+      if (collection === 'app.bsky.graph.list') return 'View list on mu.social';
+      return 'View profile on mu.social';
+    },
+    getUrl: (handle, collection, rkey) => {
+      if (collection && rkey) {
+        if (collection === 'app.bsky.feed.post') {
+          return `https://mu.social/profile/${handle}/post/${rkey}`;
+        }
+        if (collection === 'app.bsky.graph.list') {
+          return `https://mu.social/profile/${handle}/lists/${rkey}`;
+        }
+        return `https://mu.social/profile/${handle}`;
+      }
+      return `https://mu.social/profile/${handle}`;
+    },
+    supportedTypes: ['post', 'profile', 'list', 'record'],
+    category: 'blueskyForks',
+    composeIntent: socialAppComposeIntent('https://mu.social'),
+    redirectCompat: ['bluesky-social'],
+    expectedCollections: ['app.bsky.'],
+  },
+
+  northsky: {
+    id: 'northsky',
+    name: 'Northsky',
+    description: (collection) => {
+      if (collection === 'app.bsky.feed.post') return 'View post on northsky.app';
+      if (collection === 'app.bsky.graph.list') return 'View list on northsky.app';
+      return 'View profile on northsky.app';
+    },
+    getUrl: (handle, collection, rkey) => {
+      if (collection && rkey) {
+        if (collection === 'app.bsky.feed.post') {
+          return `https://northsky.app/profile/${handle}/post/${rkey}`;
+        }
+        if (collection === 'app.bsky.graph.list') {
+          return `https://northsky.app/profile/${handle}/lists/${rkey}`;
+        }
+        return `https://northsky.app/profile/${handle}`;
+      }
+      return `https://northsky.app/profile/${handle}`;
+    },
+    supportedTypes: ['post', 'profile', 'list', 'record'],
+    category: 'blueskyForks',
+    composeIntent: socialAppComposeIntent('https://northsky.app'),
     redirectCompat: ['bluesky-social'],
     expectedCollections: ['app.bsky.'],
   },
@@ -669,14 +840,60 @@ export const WAYPOINT_DESTINATIONS_DATA: Record<string, WaypointData> = {
     redirectCompat: ['standard-site'],
     expectedCollections: ['pub.leaflet.', 'site.standard.'],
   },
+
+  standardReader: {
+    id: 'standardReader',
+    name: 'Standard Reader',
+    description: (collection) => {
+      if (collection?.startsWith('site.standard.') || collection?.startsWith('pub.leaflet.')) {
+        return 'Read document on standard-reader.app';
+      }
+      return 'View documents on standard-reader.app';
+    },
+    getUrl: (handle, collection, rkey, did) => {
+      const identifier = did || handle;
+      if (
+        collection &&
+        rkey &&
+        (collection.startsWith('site.standard.') || collection.startsWith('pub.leaflet.'))
+      ) {
+        return `https://standard-reader.app/a/${identifier}/${rkey}`;
+      }
+      return `https://standard-reader.app/u/${identifier}`;
+    },
+    supportedTypes: ['post', 'profile', 'list', 'record'],
+    category: 'publications',
+    redirectCompat: ['standard-site'],
+    expectedCollections: ['pub.leaflet.', 'site.standard.'],
+  },
+
+  taproot: {
+    id: 'taproot',
+    name: 'Taproot',
+    description: (collection) => {
+      if (collection) return 'Inspect record on atproto.at';
+      return 'Browse repo on atproto.at';
+    },
+    getUrl: (handle, collection, rkey, did) => {
+      const identifier = did || handle;
+      if (collection && rkey) {
+        return `https://atproto.at/uri/at://${identifier}/${collection}/${rkey}`;
+      }
+      return `https://atproto.at/uri/at://${identifier}`;
+    },
+    supportedTypes: ['post', 'profile', 'list', 'record'],
+    category: 'devTools',
+    redirectCompat: [],
+  },
 };
 
 export const WAYPOINT_ORDER = [
   'anisota',
   'bluesky',
   'bluepy',
-  'blacksky',
   'reddwarf',
+  'impro',
+  'blacksky',
   'leaflet',
   'aturi',
   'pinksky',
@@ -690,13 +907,17 @@ export const WAYPOINT_ORDER = [
   'anisotaReader',
   'offprint',
   'pckt',
+  'standardReader',
   'aturiExplore',
   'pdsls',
   'tangled',
   'atptools',
+  'taproot',
   'witchsky',
-  'catsky',
+  'mu',
   'deer',
+  'lea',
+  'northsky',
 ];
 
 export function getWaypointDataForType(type: WaypointType): WaypointData[] {
@@ -811,7 +1032,7 @@ const RECOMMENDED_WAYPOINTS: Record<string, RecommendedConfig> = {
     label: 'Recommended for Repos',
   },
   'record': {
-    waypointIds: ['aturiExplore', 'pdsls', 'atptools'],
+    waypointIds: ['aturiExplore', 'pdsls', 'atptools', 'taproot'],
     label: 'Recommended for Records',
   },
 };
@@ -825,7 +1046,7 @@ const RECOMMENDED_WAYPOINTS: Record<string, RecommendedConfig> = {
  */
 const RECOMMENDED_NAMESPACE_PREFIXES: Record<string, RecommendedConfig> = {
   'site.standard': {
-    waypointIds: ['leaflet', 'anisotaReader', 'offprint', 'pckt', 'pdsls'],
+    waypointIds: ['leaflet', 'standardReader', 'anisotaReader', 'offprint', 'pckt', 'pdsls'],
     label: 'Recommended for Publications',
   },
   'pub.leaflet': {
@@ -929,4 +1150,117 @@ export function waypointActivity(
     }
   }
   return 'absent';
+}
+
+/** Placeholder a compose intent template leaves for the caller's post text. */
+export const COMPOSE_INTENT_TEXT_PLACEHOLDER = '{text}';
+
+/** Whether the client can be handed a link that opens its composer. */
+export function supportsComposeIntent(
+  waypoint: Pick<WaypointData, 'composeIntent'>,
+): boolean {
+  return !!waypoint.composeIntent;
+}
+
+/**
+ * Build a link that opens the client's composer, pre-filled with `text` when
+ * the client reads it. Returns null when the client has no known intent route.
+ *
+ *   getComposeIntentUrl(WAYPOINT_DESTINATIONS_DATA.deer, 'hello!')
+ *   // 'https://deer.social/intent/compose?text=hello!'
+ */
+export function getComposeIntentUrl(
+  waypoint: Pick<WaypointData, 'composeIntent'>,
+  text?: string,
+): string | null {
+  const intent = waypoint.composeIntent;
+  if (!intent) return null;
+  return appendComposeText(intent.url, intent.textParam, text);
+}
+
+/**
+ * The native-app flavour of `getComposeIntentUrl`. Null unless the client
+ * publishes a scheme of its own — most web clients don't, so fall back to the
+ * https link rather than treating null as "unsupported".
+ */
+export function getComposeIntentAppUrl(
+  waypoint: Pick<WaypointData, 'composeIntent'>,
+  text?: string,
+): string | null {
+  const intent = waypoint.composeIntent;
+  if (!intent?.appUrl) return null;
+  return appendComposeText(intent.appUrl, intent.textParam, text);
+}
+
+/**
+ * The client's intent URL with a literal `{text}` where the post text goes, for
+ * handing to consumers that build their own links (JSON APIs, docs, templates).
+ * Substitute the placeholder with URL-encoded text. Clients that ignore the
+ * text get a template with no placeholder at all.
+ */
+export function getComposeIntentTemplate(
+  waypoint: Pick<WaypointData, 'composeIntent'>,
+): string | null {
+  const intent = waypoint.composeIntent;
+  if (!intent) return null;
+  if (!intent.textParam) return intent.url;
+  return `${intent.url}?${intent.textParam}=${COMPOSE_INTENT_TEXT_PLACEHOLDER}`;
+}
+
+/**
+ * Catalog-ordered list of every client with a compose intent route, optionally
+ * narrowed to those that also render a given record type.
+ */
+export function getComposeIntentWaypoints(type?: WaypointType): WaypointData[] {
+  const waypoints = type
+    ? getWaypointDataForType(type)
+    : WAYPOINT_ORDER.map(id => WAYPOINT_DESTINATIONS_DATA[id]).filter(Boolean);
+  return waypoints.filter(supportsComposeIntent);
+}
+
+/**
+ * JSON-safe view of a client's compose intent, for surfaces that can't ship a
+ * function (HTTP responses, the extension's message passing, docs tables).
+ */
+export type ComposeIntentDescriptor = {
+  /** Ready to open. Pre-filled when `text` was supplied and the client reads it. */
+  url: string;
+  /** The same URL with a literal `{text}` where the post text goes. */
+  urlTemplate: string;
+  /** Query parameter carrying the text; null when the client ignores it. */
+  textParam: string | null;
+  /**
+   * False when the composer opens empty no matter what you pass — the link is
+   * still a valid "start a post over there" jump, just not a share.
+   */
+  prefillsText: boolean;
+  /** Native-app deep link for the same intent, when the client publishes one. */
+  appUrl?: string;
+};
+
+/** Serialize a waypoint's compose intent. Null when it has none. */
+export function describeComposeIntent(
+  waypoint: Pick<WaypointData, 'composeIntent'>,
+  text?: string,
+): ComposeIntentDescriptor | null {
+  const intent = waypoint.composeIntent;
+  if (!intent) return null;
+  const descriptor: ComposeIntentDescriptor = {
+    url: getComposeIntentUrl(waypoint, text)!,
+    urlTemplate: getComposeIntentTemplate(waypoint)!,
+    textParam: intent.textParam ?? null,
+    prefillsText: !!intent.textParam,
+  };
+  const appUrl = getComposeIntentAppUrl(waypoint, text);
+  if (appUrl) descriptor.appUrl = appUrl;
+  return descriptor;
+}
+
+function appendComposeText(
+  base: string,
+  textParam: string | undefined,
+  text: string | undefined,
+): string {
+  if (!textParam || !text) return base;
+  return `${base}?${textParam}=${encodeURIComponent(text)}`;
 }

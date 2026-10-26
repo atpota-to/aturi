@@ -21,7 +21,6 @@ export {
   PdslsSVG,
   LeafletSVG,
   RedDwarfSVG,
-  CatskySVG,
   WitchskySVG,
   DeerSVG,
   TangledSVG,

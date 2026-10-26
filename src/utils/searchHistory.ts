@@ -41,6 +41,85 @@ function isEntry(value: unknown): value is SearchHistoryEntry {
   );
 }
 
+const EXPLORE_PREFIX = '/explore/';
+
+/**
+ * Canonicalize a stored path for dedup. Only the leading actor segment is
+ * touched — its `@` prefix is stripped and it's lowercased so `/explore/@Dame.is`,
+ * `/explore/dame.is`, and `/explore/DAME.IS` collapse to one key. The
+ * collection/rkey tail is left byte-for-byte intact because rkeys are
+ * case-sensitive and must stay distinct.
+ */
+function normalizePathKey(path: string): string {
+  if (!path.startsWith(EXPLORE_PREFIX)) return path;
+  const rest = path.slice(EXPLORE_PREFIX.length);
+  const slash = rest.indexOf('/');
+  const rawSeg = slash >= 0 ? rest.slice(0, slash) : rest;
+  const tail = slash >= 0 ? rest.slice(slash) : '';
+  let actor = rawSeg;
+  try {
+    actor = decodeURIComponent(rawSeg);
+  } catch {
+    // keep the raw segment if it isn't valid percent-encoding
+  }
+  actor = actor.replace(/^@+/, '').toLowerCase();
+  return `${EXPLORE_PREFIX}${actor}${tail}`;
+}
+
+/** An `/explore/<actor>` path with no collection/rkey tail — the only shape
+ *  where a shared DID means "the same destination" and merging is safe. */
+function isActorLevelPath(pathKey: string): boolean {
+  return (
+    pathKey.startsWith(EXPLORE_PREFIX) &&
+    !pathKey.slice(EXPLORE_PREFIX.length).includes('/')
+  );
+}
+
+/** Combine two entries for the same destination: newest wins for display
+ *  metadata, counts sum, recency is the later of the two. */
+function mergeEntries(a: SearchHistoryEntry, b: SearchHistoryEntry): SearchHistoryEntry {
+  const newest = b.lastVisited >= a.lastVisited ? b : a;
+  const oldest = newest === b ? a : b;
+  return {
+    path: newest.path,
+    label: newest.label || oldest.label,
+    sublabel: newest.sublabel ?? oldest.sublabel,
+    avatar: newest.avatar ?? oldest.avatar,
+    did: newest.did ?? oldest.did,
+    handle: newest.handle ?? oldest.handle,
+    count: a.count + b.count,
+    lastVisited: Math.max(a.lastVisited, b.lastVisited),
+  };
+}
+
+/**
+ * Collapse entries that point at the same account. Two things create split
+ * entries the old exact-path dedup missed: (1) handle vs `@handle` vs casing,
+ * and (2) the same actor visited once by handle and once by DID. We fold both —
+ * first by canonical path, then by shared DID for actor-level paths — so a
+ * profile shows up once no matter how it was reached. Record-level paths never
+ * merge across DIDs so distinct records of one author stay separate.
+ */
+function dedupeEntries(entries: SearchHistoryEntry[]): SearchHistoryEntry[] {
+  const byKey = new Map<string, SearchHistoryEntry>();
+  const didToKey = new Map<string, string>();
+
+  for (const raw of entries) {
+    const pathKey = normalizePathKey(raw.path);
+    const didKey =
+      isActorLevelPath(pathKey) && raw.did ? raw.did.toLowerCase() : null;
+
+    let key = pathKey;
+    if (didKey && didToKey.has(didKey)) key = didToKey.get(didKey)!;
+
+    const prev = byKey.get(key);
+    byKey.set(key, prev ? mergeEntries(prev, raw) : { ...raw });
+    if (didKey && !didToKey.has(didKey)) didToKey.set(didKey, key);
+  }
+
+  return [...byKey.values()];
+}
+
 export function readSearchHistory(): SearchHistoryEntry[] {
   if (typeof window === 'undefined') return [];
   try {
@@ -48,7 +127,7 @@ export function readSearchHistory(): SearchHistoryEntry[] {
     if (!raw) return [];
     const parsed = JSON.parse(raw);
     if (!Array.isArray(parsed)) return [];
-    return parsed.filter(isEntry);
+    return dedupeEntries(parsed.filter(isEntry));
   } catch {
     return [];
   }
@@ -128,13 +207,27 @@ type SearchVisitInput = {
  * previously-known avatar/displayName is kept if the new visit lacks one).
  */
 function recordVisit(input: SearchVisitInput): void {
-  const path = input.path?.trim();
+  const rawPath = input.path?.trim();
   const label = input.label?.trim();
-  if (!path || !label) return;
+  if (!rawPath || !label) return;
+
+  // Store the canonical path so trivial variants (@handle, casing) never
+  // create a second entry in the first place.
+  const path = normalizePathKey(rawPath);
 
   const entries = readSearchHistory();
   const now = Date.now();
-  const existing = entries.findIndex((e) => e.path === path);
+  const inDid = input.did?.toLowerCase();
+  // Match an existing entry by canonical path, or by DID when we know it — the
+  // latter folds a handle visit into a prior DID visit (and vice-versa).
+  const existing = entries.findIndex(
+    (e) =>
+      normalizePathKey(e.path) === path ||
+      (inDid != null &&
+        e.did != null &&
+        e.did.toLowerCase() === inDid &&
+        isActorLevelPath(normalizePathKey(e.path))),
+  );
 
   if (existing >= 0) {
     const prev = entries[existing];

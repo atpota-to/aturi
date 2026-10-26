@@ -48,7 +48,7 @@ const COMMON_TIMESTAMPS: LexiconField[] = [
 export const LEXICONS: Record<string, Lexicon> = {
   'app.bsky.feed.post': {
     label: 'Bluesky post',
-    summary: 'Plain text posts. Embeds are out of scope for the templated editor — use raw JSON.',
+    summary: 'Plain text posts. Embeds are out of scope for the templated editor; use raw JSON.',
     rkeyMode: 'tid',
     typeFieldValue: 'app.bsky.feed.post',
     fields: [

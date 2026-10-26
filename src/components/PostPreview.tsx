@@ -5,11 +5,15 @@
 
 'use client';
 
+import { useSyncExternalStore } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { BskyPost } from '@/utils/recordFetcher';
+import { BskyPost, UnknownRecordValue } from '@/utils/recordFetcher';
+import { getEmbedImages } from '@/utils/postEmbeds';
+import { EmbedImageGrid, ExternalEmbedCard, VideoEmbed } from './PostEmbeds';
+import { formatCount } from '@/utils/ufos/format';
 import { sanitizeFacetLink, sanitizeDid, sanitizeHashtag, sanitizeUrl, sanitizeHandle } from '@/utils/sanitize';
-import { User, MessageSquare, Repeat2, Heart, Quote, Play, CornerDownRight, Telescope } from 'lucide-react';
+import { User, MessageSquare, Repeat2, Heart, Quote, CornerDownRight, Telescope, Globe } from 'lucide-react';
 import { explorePathFromAtUri } from '@/utils/atproto/urls';
 
 type PostPreviewProps = {
@@ -32,11 +36,26 @@ const buildPostUrl = (uri?: string, author?: { did?: string; handle?: string }):
   return `/profile/${id}/post/${rkey}`;
 };
 
+// False during SSR and hydration, true once hydrated (and on every render
+// after a client-side navigation). Gates the viewer's local time zone.
+const subscribeNoop = () => () => {};
+const useHydrated = () =>
+  useSyncExternalStore(
+    subscribeNoop,
+    () => true,
+    () => false,
+  );
+
 export default function PostPreview({ post, parent, hideExplorerCtas }: PostPreviewProps) {
   const router = useRouter();
   const { author, record, embed, replyCount, repostCount, likeCount, quoteCount } = post;
 
-  // Format the date nicely
+  // Format the date nicely. The server and the hydration render both use
+  // UTC with a fixed locale, so they produce the same string whatever the
+  // server's and the viewer's time zones; once hydrated, the viewer's own
+  // time zone takes over.
+  const hydrated = useHydrated();
+  const timeZone = hydrated ? undefined : 'UTC';
   const createdAt = new Date(record.createdAt);
   const formattedDate = createdAt.toLocaleDateString('en-US', {
     year: 'numeric',
@@ -44,25 +63,36 @@ export default function PostPreview({ post, parent, hideExplorerCtas }: PostPrev
     day: 'numeric',
     hour: '2-digit',
     minute: '2-digit',
+    timeZone,
+    timeZoneName: hydrated ? undefined : 'short',
   });
+  // Short form for the byline ("Oct 22, 2026, 03:00"); the long form above
+  // is the hover title. Month first, as every other date on the site, and a
+  // 24-hour clock to stay as compact as the day-first form it replaced.
+  // Unparseable dates fall back to the long string (toISOString would
+  // otherwise throw).
+  const validDate = !Number.isNaN(createdAt.getTime());
+  const shortDate = validDate
+    ? createdAt.toLocaleString('en-US', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        hourCycle: 'h23',
+        timeZone,
+      })
+    : formattedDate;
 
-  // Render a quoted post card
-  const renderQuotedPost = (quotedPost: any) => {
+  // Quote embeds mix several view shapes (ViewRecord, ViewNotFound,
+  // ViewBlocked, nested re-quotes), so field access is dynamic by design.
+  const renderQuotedPost = (quotedPost: UnknownRecordValue) => {
     if (!quotedPost) return null;
 
     // Handle blocked/not found records
     if (quotedPost.notFound || quotedPost.blocked) {
       return (
-        <div
-          style={{
-            border: '1px solid var(--border-medium)',
-            padding: '1rem',
-            marginBottom: '1rem',
-            background: 'var(--bg-tertiary)',
-            color: 'var(--text-tertiary)',
-            fontSize: '0.875rem',
-          }}
-        >
+        <div className="fn-post-quote" style={{ color: 'var(--text-tertiary)' }}>
           {quotedPost.notFound ? 'Post not found' : 'Post unavailable'}
         </div>
       );
@@ -94,17 +124,11 @@ export default function PostPreview({ post, parent, hideExplorerCtas }: PostPrev
               },
             }
           : {})}
-        style={{
-          border: '1px solid var(--border-medium)',
-          padding: '1rem',
-          marginBottom: '1rem',
-          background: 'var(--bg-tertiary)',
-          transition: 'border-color 0.2s ease',
-          ...(quoteUrl ? { cursor: 'pointer' } : {}),
-        }}
+        className="fn-post-quote"
+        style={quoteUrl ? { cursor: 'pointer' } : undefined}
       >
         {/* Quoted post author */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', minWidth: 0 }}>
           <a
             href={qAuthor?.did || qAuthor?.handle ? `/${sanitizeDid(qAuthor.did) || sanitizeHandle(qAuthor.handle)}` : '#'}
             onClick={(e) => e.stopPropagation()}
@@ -113,17 +137,18 @@ export default function PostPreview({ post, parent, hideExplorerCtas }: PostPrev
             {qAuthor?.avatar ? (
               <div
                 style={{
-                  width: '24px',
-                  height: '24px',
-                  border: '1px solid var(--accent-stone)',
+                  width: '20px',
+                  height: '20px',
+                  borderRadius: '50%',
                   overflow: 'hidden',
+                  border: '1px solid transparent',
                   transition: 'border-color 0.2s ease',
                 }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.borderColor = 'var(--text-accent)';
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.borderColor = 'var(--accent-stone)';
+                  e.currentTarget.style.borderColor = 'transparent';
                 }}
               >
                 <img
@@ -140,10 +165,11 @@ export default function PostPreview({ post, parent, hideExplorerCtas }: PostPrev
             ) : (
               <div
                 style={{
-                  width: '24px',
-                  height: '24px',
-                  border: '1px solid var(--accent-stone)',
-                  background: 'var(--bg-secondary)',
+                  width: '20px',
+                  height: '20px',
+                  border: '1px solid transparent',
+                  borderRadius: '50%',
+                  background: 'var(--accent-soft)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -153,19 +179,27 @@ export default function PostPreview({ post, parent, hideExplorerCtas }: PostPrev
                   e.currentTarget.style.borderColor = 'var(--text-accent)';
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.borderColor = 'var(--accent-stone)';
+                  e.currentTarget.style.borderColor = 'transparent';
                 }}
               >
-                <User size={14} color="var(--text-tertiary)" />
+                <User size={12} color="var(--accent-soft-fg)" />
               </div>
             )}
           </a>
-          <div style={{ fontSize: '0.875rem' }}>
+          <div
+            style={{
+              fontSize: '13px',
+              minWidth: 0,
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+            }}
+          >
             <a
               href={qAuthor?.did || qAuthor?.handle ? `/${sanitizeDid(qAuthor.did) || sanitizeHandle(qAuthor.handle)}` : '#'}
               onClick={(e) => e.stopPropagation()}
               style={{
-                fontWeight: '600',
+                fontWeight: 700,
                 color: 'var(--text-primary)',
                 textDecoration: 'none',
                 transition: 'color 0.2s ease',
@@ -187,6 +221,8 @@ export default function PostPreview({ post, parent, hideExplorerCtas }: PostPrev
                   onClick={(e) => e.stopPropagation()}
                   style={{
                     color: 'var(--text-tertiary)',
+                    fontFamily: 'var(--font-mono)',
+                    fontSize: '12px',
                     textDecoration: 'none',
                     transition: 'color 0.2s ease',
                   }}
@@ -206,10 +242,10 @@ export default function PostPreview({ post, parent, hideExplorerCtas }: PostPrev
 
         {/* Quoted post text */}
         {qRecord.text && (
-          <div style={{ 
-            fontSize: '0.875rem', 
-            color: 'var(--text-secondary)', 
-            marginBottom: qEmbeds.length > 0 ? '0.5rem' : '0',
+          <div style={{
+            fontSize: '14px',
+            lineHeight: 1.5,
+            color: 'var(--text-primary)',
             whiteSpace: 'pre-wrap',
           }}>
             {qRecord.text}
@@ -217,143 +253,46 @@ export default function PostPreview({ post, parent, hideExplorerCtas }: PostPrev
         )}
 
         {/* Quoted post embeds - render them properly */}
-        {qEmbeds.map((qEmbed: any, idx: number) => {
-          // Images
-          if (qEmbed.$type === 'app.bsky.embed.images#view' && qEmbed.images) {
+        {qEmbeds.map((qEmbed: UnknownRecordValue, idx: number) => {
+          // Images — classic images embed (1–4) or gallery embed (5+).
+          const qImages = getEmbedImages(qEmbed);
+          if (qImages) {
             return (
-              <div
+              <EmbedImageGrid
                 key={idx}
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: qEmbed.images.length === 1 ? '1fr' : 'repeat(2, 1fr)',
-                  gap: '0.25rem',
-                  marginTop: '0.5rem',
-                }}
-              >
-                {qEmbed.images.map((image: any, i: number) => {
-                  const sanitizedFullsize = sanitizeUrl(image.fullsize);
-                  const sanitizedThumb = sanitizeUrl(image.thumb);
-                  
-                  return (
-                    <a
-                      key={i}
-                      href={sanitizedFullsize}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      onClick={(e) => e.stopPropagation()}
-                      style={{
-                        display: 'block',
-                        overflow: 'hidden',
-                      }}
-                    >
-                      <img
-                        src={sanitizedThumb}
-                        alt={image.alt}
-                        style={{
-                          width: '100%',
-                          height: 'auto',
-                          maxHeight: '200px',
-                          objectFit: 'cover',
-                          background: 'var(--bg-secondary)',
-                          display: 'block',
-                          border: '1px solid var(--border-medium)',
-                          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.3)',
-                        }}
-                      />
-                    </a>
-                  );
-                })}
-              </div>
+                images={qImages}
+                gap="0.25rem"
+                maxHeight="200px"
+                background="var(--bg-secondary)"
+                boxShadow="none"
+                stopPropagation
+              />
             );
           }
 
           // External link
           if (qEmbed.$type === 'app.bsky.embed.external#view' && qEmbed.external) {
-            const sanitizedExtUrl = sanitizeUrl(qEmbed.external.uri);
-            if (sanitizedExtUrl === '#') return null; // Skip invalid URLs
-
             return (
-              <a
+              <ExternalEmbedCard
                 key={idx}
-                href={sanitizedExtUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={(e) => e.stopPropagation()}
-                style={{
-                  display: 'block',
-                  marginTop: '0.5rem',
-                  border: '1px solid var(--border-medium)',
-                  textDecoration: 'none',
-                  color: 'inherit',
-                  overflow: 'hidden',
-                  fontSize: '0.75rem',
-                  boxShadow: '0 2px 8px rgba(0, 0, 0, 0.2)',
-                }}
-              >
-                {qEmbed.external.thumb && (
-                  <img
-                    src={sanitizeUrl(qEmbed.external.thumb)}
-                    alt=""
-                    style={{
-                      width: '100%',
-                      height: 'auto',
-                      maxHeight: '150px',
-                      objectFit: 'cover',
-                      background: 'var(--bg-secondary)',
-                      display: 'block',
-                      borderBottom: '1px solid var(--border-medium)',
-                    }}
-                  />
-                )}
-                <div style={{ padding: '0.5rem' }}>
-                  <div style={{ fontWeight: '600', marginBottom: '0.25rem', color: 'var(--text-primary)' }}>
-                    {qEmbed.external.title}
-                  </div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>
-                    {(() => {
-                      try {
-                        return new URL(sanitizedExtUrl).hostname;
-                      } catch {
-                        return '';
-                      }
-                    })()}
-                  </div>
-                </div>
-              </a>
+                external={qEmbed.external}
+                variant="compact"
+                marginTop="0.5rem"
+                thumbMaxHeight="150px"
+              />
             );
           }
 
           // Video
           if (qEmbed.$type === 'app.bsky.embed.video#view' && qEmbed.playlist) {
-            const sanitizedPlaylist = sanitizeUrl(qEmbed.playlist);
-            const sanitizedThumbnail = sanitizeUrl(qEmbed.thumbnail);
-            
-            if (sanitizedPlaylist === '#') return null; // Skip invalid video URLs
-            
             return (
-              <div
+              <VideoEmbed
                 key={idx}
-                onClick={(e) => e.stopPropagation()}
-                style={{
-                  marginTop: '0.5rem',
-                  background: 'var(--bg-secondary)',
-                  overflow: 'hidden',
-                  border: '1px solid var(--border-medium)',
-                  boxShadow: '0 2px 8px rgba(0, 0, 0, 0.3)',
-                }}
-              >
-                <video
-                  controls
-                  poster={sanitizedThumbnail}
-                  style={{
-                    width: '100%',
-                    maxHeight: '200px',
-                    display: 'block',
-                  }}
-                >
-                  <source src={sanitizedPlaylist} type="application/x-mpegURL" />
-                </video>
-              </div>
+                video={qEmbed}
+                variant="compact"
+                marginTop="0.5rem"
+                videoMaxHeight="200px"
+              />
             );
           }
 
@@ -364,6 +303,7 @@ export default function PostPreview({ post, parent, hideExplorerCtas }: PostPrev
         {qEmbeds.length === 0 && quotedPost.embed && (
           <div style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)', marginTop: '0.5rem' }}>
             {quotedPost.embed.$type === 'app.bsky.embed.images#view' && '📷 Images'}
+            {quotedPost.embed.$type === 'app.bsky.embed.gallery#view' && '📷 Images'}
             {quotedPost.embed.$type === 'app.bsky.embed.external#view' && '🔗 Link'}
             {quotedPost.embed.$type === 'app.bsky.embed.video#view' && '🎥 Video'}
             {quotedPost.embed.$type === 'app.bsky.embed.record#view' && '💬 Quote'}
@@ -413,7 +353,8 @@ export default function PostPreview({ post, parent, hideExplorerCtas }: PostPrev
       return <p style={{ margin: 0, whiteSpace: 'pre-wrap' }}>{record.text}</p>;
     }
 
-    const segments: Array<{ text: string; facet?: any }> = [];
+    type FacetFeature = NonNullable<BskyPost['record']['facets']>[number]['features'][number];
+    const segments: Array<{ text: string; facet?: FacetFeature }> = [];
     let lastIndex = 0;
 
     // Sort facets by start index
@@ -517,6 +458,63 @@ export default function PostPreview({ post, parent, hideExplorerCtas }: PostPrev
     );
   };
 
+  // Profile path for an author, shared by the avatar, name and handle links.
+  const profileHref = (a: { did?: string; handle?: string }) =>
+    `/${sanitizeDid(a.did) || sanitizeHandle(a.handle)}`;
+
+  // Hashtags shown as chips in the footer: the record's own `tags` plus any
+  // tag facets in the text, de-duplicated case-insensitively.
+  const tagChips = (() => {
+    const seen = new Set<string>();
+    const out: string[] = [];
+    const add = (raw: unknown) => {
+      const tag = typeof raw === 'string' ? sanitizeHashtag(raw) : null;
+      if (!tag || seen.has(tag.toLowerCase())) return;
+      seen.add(tag.toLowerCase());
+      out.push(tag);
+    };
+    const ownTags = (record as { tags?: unknown }).tags;
+    if (Array.isArray(ownTags)) ownTags.forEach(add);
+    for (const facet of record.facets ?? []) {
+      for (const feature of facet.features) {
+        if (feature.$type === 'app.bsky.richtext.facet#tag') add(feature.tag);
+      }
+    }
+    return out;
+  })();
+
+  const plural = (n: number, one: string, many: string) => (n === 1 ? one : many);
+  const counts = [
+    { key: 'like', Icon: Heart, n: likeCount || 0, label: plural(likeCount || 0, 'like', 'likes') },
+    { key: 'repost', Icon: Repeat2, n: repostCount || 0, label: plural(repostCount || 0, 'repost', 'reposts') },
+    { key: 'reply', Icon: MessageSquare, n: replyCount || 0, label: plural(replyCount || 0, 'reply', 'replies') },
+    { key: 'quote', Icon: Quote, n: quoteCount || 0, label: plural(quoteCount || 0, 'quote', 'quotes') },
+  ];
+
+  // Cross-product link at the end of the footer: out of the universal link
+  // page into the raw record in the explorer, or (inside the explorer, which
+  // is that link's destination) back out to the shareable universal page.
+  const crossLink = (() => {
+    if (!hideExplorerCtas) {
+      const explorePath = explorePathFromAtUri(post.uri);
+      if (!explorePath) return null;
+      return (
+        <Link href={explorePath} prefetch={false} className="profile-explorer-link fn-post-crosslink">
+          <Telescope size={13} aria-hidden />
+          View record data in the Explorer →
+        </Link>
+      );
+    }
+    const postUrl = buildPostUrl(post.uri, author);
+    if (!postUrl) return null;
+    return (
+      <Link href={postUrl} prefetch={false} className="profile-explorer-link fn-post-crosslink">
+        <Globe size={13} aria-hidden />
+        View the universal link page →
+      </Link>
+    );
+  })();
+
   return (
     <>
       {/* Parent Post Context - shown if this is a reply */}
@@ -537,133 +535,46 @@ export default function PostPreview({ post, parent, hideExplorerCtas }: PostPrev
                 },
               }
             : {})}
-          style={{
-            display: 'block',
-            textDecoration: 'none',
-            color: 'inherit',
-            position: 'relative',
-            marginBottom: '-1.5rem',
-            padding: '1rem 1.25rem',
-            background: 'var(--bg-tertiary)',
-            border: '1px solid var(--border-medium)',
-            transform: 'rotate(-0.3deg) scale(0.96)',
-            transformOrigin: 'top center',
-            transition: 'all 0.4s ease',
-            paddingBottom: '3rem',
-            zIndex: 0,
-          }}
-          className="parent-card"
+          className="parent-card fn-post-parent"
         >
-          <div style={{ 
-            display: 'flex', 
-            alignItems: 'center', 
-            gap: '0.5rem',
-            marginBottom: '0.75rem',
-            color: 'var(--text-tertiary)',
-            fontSize: '0.875rem',
-          }}>
-            <CornerDownRight size={14} />
+          <div className="fn-post-parent-kicker">
+            <CornerDownRight size={13} aria-hidden />
             <span>Replying to</span>
           </div>
 
           {/* Parent Author */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', minWidth: 0 }}>
             <a
-              href={`/${sanitizeDid(parent.author.did) || sanitizeHandle(parent.author.handle)}`}
+              href={profileHref(parent.author)}
               onClick={(e) => e.stopPropagation()}
               style={{ textDecoration: 'none', flexShrink: 0 }}
             >
-              {parent.author.avatar ? (
-                <div
-                  style={{
-                    width: '32px',
-                    height: '32px',
-                    border: '1px solid var(--accent-stone)',
-                    overflow: 'hidden',
-                    transition: 'border-color 0.2s ease',
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.borderColor = 'var(--text-accent)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.borderColor = 'var(--accent-stone)';
-                  }}
-                >
+              <span className="fn-post-avatar" style={{ width: 28, height: 28 }}>
+                {parent.author.avatar ? (
                   <img
                     src={sanitizeUrl(parent.author.avatar)}
                     alt={parent.author.displayName || parent.author.handle}
-                    style={{
-                      width: '100%',
-                      height: '100%',
-                      objectFit: 'cover',
-                      display: 'block',
-                    }}
                   />
-                </div>
-              ) : (
-                <div
-                  style={{
-                    width: '32px',
-                    height: '32px',
-                    border: '1px solid var(--accent-stone)',
-                    background: 'var(--bg-secondary)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    transition: 'border-color 0.2s ease',
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.borderColor = 'var(--text-accent)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.borderColor = 'var(--accent-stone)';
-                  }}
-                >
-                  <User size={16} color="var(--text-tertiary)" />
-                </div>
-              )}
+                ) : (
+                  <User size={14} aria-hidden />
+                )}
+              </span>
             </a>
-            <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ minWidth: 0, fontSize: '13px', lineHeight: 1.3 }}>
               <a
-                href={`/${sanitizeDid(parent.author.did) || sanitizeHandle(parent.author.handle)}`}
+                href={profileHref(parent.author)}
                 onClick={(e) => e.stopPropagation()}
-                style={{
-                  fontWeight: '600',
-                  color: 'var(--text-primary)',
-                  textDecoration: 'none',
-                  transition: 'color 0.2s ease',
-                  fontSize: '0.875rem',
-                  display: 'block',
-                  lineHeight: '1.2',
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.color = 'var(--text-accent)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.color = 'var(--text-primary)';
-                }}
+                className="fn-post-name"
               >
                 {parent.author.displayName || parent.author.handle}
+              </a>{' '}
+              <a
+                href={profileHref(parent.author)}
+                onClick={(e) => e.stopPropagation()}
+                className="fn-post-handle"
+              >
+                @{parent.author.handle}
               </a>
-              <div style={{ fontSize: '0.875rem', lineHeight: '1.2' }}>
-                <a
-                  href={`/${sanitizeDid(parent.author.did) || sanitizeHandle(parent.author.handle)}`}
-                  onClick={(e) => e.stopPropagation()}
-                  style={{
-                    color: 'var(--text-tertiary)',
-                    textDecoration: 'none',
-                    transition: 'color 0.2s ease',
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.color = 'var(--text-accent)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.color = 'var(--text-tertiary)';
-                  }}
-                >
-                  @{parent.author.handle}
-                </a>
-              </div>
             </div>
           </div>
 
@@ -671,7 +582,7 @@ export default function PostPreview({ post, parent, hideExplorerCtas }: PostPrev
           {parent.record.text && (
             <div
               style={{
-                fontSize: '0.875rem',
+                fontSize: '14px',
                 color: 'var(--text-secondary)',
                 whiteSpace: 'pre-wrap',
                 overflow: 'hidden',
@@ -679,8 +590,7 @@ export default function PostPreview({ post, parent, hideExplorerCtas }: PostPrev
                 display: '-webkit-box',
                 WebkitLineClamp: 3,
                 WebkitBoxOrient: 'vertical',
-                lineHeight: '1.4',
-                marginBottom: parent.embed ? '0.5rem' : '0',
+                lineHeight: '1.45',
               }}
             >
               {parent.record.text}
@@ -690,112 +600,39 @@ export default function PostPreview({ post, parent, hideExplorerCtas }: PostPrev
           {/* Parent Post Embeds - Show images/video/external links */}
           {parent.embed && (
             <>
-              {/* Images */}
-              {parent.embed.$type === 'app.bsky.embed.images#view' && parent.embed.images && (
-                <div
-                  style={{
-                    display: 'grid',
-                    gridTemplateColumns: parent.embed.images.length === 1 ? '1fr' : 'repeat(2, 1fr)',
-                    gap: '0.25rem',
-                  }}
-                >
-                  {parent.embed.images.slice(0, 2).map((image: any, i: number) => (
-                    <a
-                      key={i}
-                      href={image.fullsize}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      onClick={(e) => e.stopPropagation()}
-                      style={{
-                        display: 'block',
-                        overflow: 'hidden',
-                      }}
-                    >
-                      <img
-                        src={image.thumb}
-                        alt={image.alt}
-                        style={{
-                          width: '100%',
-                          height: 'auto',
-                          maxHeight: '120px',
-                          objectFit: 'cover',
-                          background: 'var(--bg-secondary)',
-                          display: 'block',
-                          border: '1px solid var(--border-medium)',
-                          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.3)',
-                        }}
-                      />
-                    </a>
-                  ))}
-                </div>
-              )}
+              {/* Images — classic images embed (1–4) or gallery embed (5+). */}
+              {(() => {
+                const parentImages = getEmbedImages(parent.embed);
+                if (!parentImages) return null;
+                return (
+                  <EmbedImageGrid
+                    images={parentImages}
+                    gap="0.25rem"
+                    maxHeight="120px"
+                    background="var(--bg-secondary)"
+                    boxShadow="none"
+                    limit={2}
+                    stopPropagation
+                  />
+                );
+              })()}
 
               {/* External link */}
               {parent.embed.$type === 'app.bsky.embed.external#view' && parent.embed.external && (
-                <a
-                  href={parent.embed.external.uri}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={(e) => e.stopPropagation()}
-                  style={{
-                    display: 'block',
-                    border: '1px solid var(--border-medium)',
-                    textDecoration: 'none',
-                    color: 'inherit',
-                    overflow: 'hidden',
-                    fontSize: '0.75rem',
-                    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.2)',
-                  }}
-                >
-                  {parent.embed.external.thumb && (
-                    <img
-                      src={parent.embed.external.thumb}
-                      alt=""
-                      style={{
-                        width: '100%',
-                        height: 'auto',
-                        maxHeight: '100px',
-                        objectFit: 'cover',
-                        background: 'var(--bg-secondary)',
-                        display: 'block',
-                        borderBottom: '1px solid var(--border-medium)',
-                      }}
-                    />
-                  )}
-                  <div style={{ padding: '0.5rem' }}>
-                    <div style={{ fontWeight: '600', marginBottom: '0.25rem', color: 'var(--text-primary)' }}>
-                      {parent.embed.external.title}
-                    </div>
-                    <div style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>
-                      {new URL(parent.embed.external.uri).hostname}
-                    </div>
-                  </div>
-                </a>
+                <ExternalEmbedCard
+                  external={parent.embed.external}
+                  variant="compact"
+                  thumbMaxHeight="100px"
+                />
               )}
 
               {/* Video */}
               {parent.embed.$type === 'app.bsky.embed.video#view' && parent.embed.playlist && (
-                <div
-                  onClick={(e) => e.stopPropagation()}
-                  style={{
-                    background: 'var(--bg-secondary)',
-                    overflow: 'hidden',
-                    border: '1px solid var(--border-medium)',
-                    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.3)',
-                  }}
-                >
-                  <video
-                    controls
-                    poster={parent.embed.thumbnail}
-                    style={{
-                      width: '100%',
-                      maxHeight: '150px',
-                      display: 'block',
-                    }}
-                  >
-                    <source src={parent.embed.playlist} type="application/x-mpegURL" />
-                  </video>
-                </div>
+                <VideoEmbed
+                  video={parent.embed}
+                  variant="compact"
+                  videoMaxHeight="150px"
+                />
               )}
             </>
           )}
@@ -803,276 +640,77 @@ export default function PostPreview({ post, parent, hideExplorerCtas }: PostPrev
         );
       })()}
 
-      <div
-        style={{
-          position: 'relative',
-          marginBottom: '2rem',
-          padding: '1.5rem',
-          background: 'var(--bg-secondary)',
-          border: '1px solid var(--border-medium)',
-          transform: 'rotate(0.4deg)',
-          transition: 'all 0.4s ease',
-          boxShadow: parent ? '0 8px 24px rgba(0, 0, 0, 0.4)' : 'none',
-          zIndex: 1,
-        }}
-        className="card"
-      >
-      {/* Author Info */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
-        <a
-          href={`/${sanitizeDid(author.did) || sanitizeHandle(author.handle)}`}
-          style={{ textDecoration: 'none', flexShrink: 0 }}
-        >
-          {author.avatar ? (
-            <div
-              style={{
-                width: '48px',
-                height: '48px',
-                border: '2px solid var(--accent-stone)',
-                overflow: 'hidden',
-                transition: 'border-color 0.2s ease',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.borderColor = 'var(--text-accent)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.borderColor = 'var(--accent-stone)';
-              }}
-            >
-              <img
-                src={sanitizeUrl(author.avatar)}
-                alt={author.displayName || author.handle}
-                style={{
-                  width: '100%',
-                  height: '100%',
-                  objectFit: 'cover',
-                  background: 'var(--bg-tertiary)',
-                  display: 'block',
-                }}
-              />
-            </div>
-          ) : (
-            <div
-              style={{
-                width: '48px',
-                height: '48px',
-                border: '2px solid var(--accent-stone)',
-                background: 'var(--bg-tertiary)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                transition: 'border-color 0.2s ease',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.borderColor = 'var(--text-accent)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.borderColor = 'var(--accent-stone)';
-              }}
-            >
-              <User size={24} color="var(--text-tertiary)" />
-            </div>
-          )}
+      <div className="card post-preview fn-post">
+      {/* Author: avatar, name, then the mono handle and date on one line */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0 }}>
+        <a href={profileHref(author)} style={{ textDecoration: 'none', flexShrink: 0 }}>
+          <span className="fn-post-avatar" style={{ width: 40, height: 40 }}>
+            {author.avatar ? (
+              <img src={sanitizeUrl(author.avatar)} alt={author.displayName || author.handle} />
+            ) : (
+              <User size={20} aria-hidden />
+            )}
+          </span>
         </a>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <a
-            href={`/${sanitizeDid(author.did) || sanitizeHandle(author.handle)}`}
-            style={{
-              fontWeight: '600',
-              color: 'var(--text-primary)',
-              textDecoration: 'none',
-              transition: 'color 0.2s ease',
-              display: 'block',
-              lineHeight: '1.2',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.color = 'var(--text-accent)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.color = 'var(--text-primary)';
-            }}
-          >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1px', minWidth: 0 }}>
+          <a href={profileHref(author)} className="fn-post-name" style={{ fontSize: '15px' }}>
             {author.displayName || author.handle}
             {author.pronouns && (
-              <span style={{ fontWeight: '400', color: 'var(--text-tertiary)', marginLeft: '0.5rem' }}>
+              <span style={{ fontWeight: 400, color: 'var(--text-tertiary)', marginLeft: '0.5rem' }}>
                 {author.pronouns}
               </span>
             )}
           </a>
-          <div style={{ fontSize: '0.875rem', lineHeight: '1.2' }}>
-            <a
-              href={`/${sanitizeDid(author.did) || sanitizeHandle(author.handle)}`}
-              style={{
-                color: 'var(--text-tertiary)',
-                textDecoration: 'none',
-                transition: 'color 0.2s ease',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.color = 'var(--text-accent)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.color = 'var(--text-tertiary)';
-              }}
-            >
+          <div className="fn-post-meta">
+            <a href={profileHref(author)} className="fn-post-handle fn-post-handle-accent">
               @{author.handle}
             </a>
+            <span aria-hidden> · </span>
+            {/* Full timestamp on hover. */}
+            <time dateTime={validDate ? createdAt.toISOString() : undefined} title={formattedDate}>
+              {shortDate}
+            </time>
           </div>
         </div>
       </div>
 
       {/* Post Content */}
-      <div style={{ marginBottom: '1rem', color: 'var(--text-primary)', fontSize: '1rem', lineHeight: '1.5', pointerEvents: 'auto' }}>
+      <div className="fn-post-text">
         {renderText()}
       </div>
 
-      {/* Embed - Images */}
-      {embed?.$type === 'app.bsky.embed.images#view' && embed.images && (
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: embed.images.length === 1 ? '1fr' : 'repeat(2, 1fr)',
-            gap: '0.5rem',
-            marginBottom: '1rem',
-          }}
-        >
-          {embed.images.map((image, i) => {
-            const sanitizedFullsize = sanitizeUrl(image.fullsize);
-            const sanitizedThumb = sanitizeUrl(image.thumb);
-            
-            return (
-              <a
-                key={i}
-                href={sanitizedFullsize}
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{ 
-                  display: 'block',
-                  overflow: 'hidden',
-                }}
-              >
-                <img
-                  src={sanitizedThumb}
-                  alt={image.alt}
-                  style={{
-                    width: '100%',
-                    height: 'auto',
-                    maxHeight: '1000px',
-                    objectFit: 'cover',
-                    background: 'var(--bg-tertiary)',
-                    display: 'block',
-                    border: '1px solid var(--border-medium)',
-                    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.4)',
-                  }}
-                />
-              </a>
-            );
-          })}
-        </div>
-      )}
+      {/* Embed - Images (classic images embed 1–4 or gallery embed 5+) */}
+      {(() => {
+        const mainImages = getEmbedImages(embed);
+        if (!mainImages) return null;
+        return (
+          <EmbedImageGrid
+            images={mainImages}
+            gap="0.5rem"
+            maxHeight="1000px"
+            background="var(--bg-tertiary)"
+            boxShadow="none"
+          />
+        );
+      })()}
 
       {/* Embed - External Link */}
-      {embed?.$type === 'app.bsky.embed.external#view' && embed.external && (() => {
-        const sanitizedExtUri = sanitizeUrl(embed.external.uri);
-        const sanitizedExtThumb = sanitizeUrl(embed.external.thumb);
-        
-        if (sanitizedExtUri === '#') return null; // Skip invalid URLs
-        
-        return (
-          <a
-            href={sanitizedExtUri}
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{
-              display: 'block',
-              marginBottom: '1rem',
-              border: '1px solid var(--border-medium)',
-              textDecoration: 'none',
-              color: 'inherit',
-              overflow: 'hidden',
-              transition: 'border-color 0.2s ease',
-              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
-            }}
-            className="external-link-card"
-          >
-            {embed.external.thumb && (
-              <img
-                src={sanitizedExtThumb}
-                alt=""
-                style={{
-                  width: '100%',
-                  height: 'auto',
-                  maxHeight: '300px',
-                  objectFit: 'cover',
-                  background: 'var(--bg-tertiary)',
-                  display: 'block',
-                  borderBottom: '1px solid var(--border-medium)',
-                }}
-              />
-            )}
-            <div style={{ padding: '1rem' }}>
-              <div style={{ fontWeight: '600', marginBottom: '0.25rem', color: 'var(--text-primary)' }}>
-                {embed.external.title}
-              </div>
-              <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
-                {embed.external.description}
-              </div>
-              <div style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)', marginTop: '0.5rem' }}>
-                {(() => {
-                  try {
-                    return new URL(sanitizedExtUri).hostname;
-                  } catch {
-                    return '';
-                  }
-                })()}
-              </div>
-            </div>
-          </a>
-        );
-      })()}
+      {embed?.$type === 'app.bsky.embed.external#view' && embed.external && (
+        <ExternalEmbedCard
+          external={embed.external}
+          variant="full"
+          thumbMaxHeight="300px"
+        />
+      )}
 
       {/* Embed - Video */}
-      {embed?.$type === 'app.bsky.embed.video#view' && embed.playlist && (() => {
-        const sanitizedPlaylist = sanitizeUrl(embed.playlist);
-        const sanitizedThumbnail = sanitizeUrl(embed.thumbnail);
-        
-        if (sanitizedPlaylist === '#') return null; // Skip invalid video URLs
-        
-        return (
-          <div
-            style={{
-              position: 'relative',
-              marginBottom: '1rem',
-              background: 'var(--bg-tertiary)',
-              overflow: 'hidden',
-              border: '1px solid var(--border-medium)',
-              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.4)',
-            }}
-          >
-            <video
-              controls
-              poster={sanitizedThumbnail}
-              style={{
-                width: '100%',
-                maxHeight: '500px',
-                display: 'block',
-              }}
-            >
-              <source src={sanitizedPlaylist} type="application/x-mpegURL" />
-              Your browser does not support the video tag.
-            </video>
-            {embed.alt && (
-              <div style={{ 
-                padding: '0.5rem', 
-                fontSize: '0.875rem', 
-                color: 'var(--text-tertiary)',
-                background: 'var(--bg-secondary)',
-              }}>
-                {embed.alt}
-              </div>
-            )}
-          </div>
-        );
-      })()}
+      {embed?.$type === 'app.bsky.embed.video#view' && embed.playlist && (
+        <VideoEmbed
+          video={embed}
+          variant="full"
+          videoMaxHeight="500px"
+        />
+      )}
 
       {/* Embed - Quote Post (Record) */}
       {embed?.$type === 'app.bsky.embed.record#view' && embed.record && (
@@ -1082,223 +720,71 @@ export default function PostPreview({ post, parent, hideExplorerCtas }: PostPrev
       {/* Embed - Record with Media (Quote + Link/Image/Video) */}
       {embed?.$type === 'app.bsky.embed.recordWithMedia#view' && (
         <>
-          {/* Render the media first */}
-          {embed.media?.$type === 'app.bsky.embed.images#view' && embed.media.images && (
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: embed.media.images.length === 1 ? '1fr' : 'repeat(2, 1fr)',
-                gap: '0.5rem',
-                marginBottom: '1rem',
-              }}
-            >
-              {embed.media.images.map((image: any, i: number) => {
-                const sanitizedFullsize = sanitizeUrl(image.fullsize);
-                const sanitizedThumb = sanitizeUrl(image.thumb);
-                
-                return (
-                  <a
-                    key={i}
-                    href={sanitizedFullsize}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    style={{ 
-                      display: 'block',
-                      overflow: 'hidden',
-                    }}
-                  >
-                    <img
-                      src={sanitizedThumb}
-                      alt={image.alt}
-                      style={{
-                        width: '100%',
-                        height: 'auto',
-                        maxHeight: '1000px',
-                        objectFit: 'cover',
-                        background: 'var(--bg-tertiary)',
-                        display: 'block',
-                        border: '1px solid var(--border-medium)',
-                        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.4)',
-                      }}
-                    />
-                  </a>
-                );
-              })}
-            </div>
+          {/* Render the media first (images embed 1–4 or gallery embed 5+) */}
+          {(() => {
+            const mediaImages = getEmbedImages(embed.media);
+            if (!mediaImages) return null;
+            return (
+              <EmbedImageGrid
+                images={mediaImages}
+                gap="0.5rem"
+                maxHeight="1000px"
+                background="var(--bg-tertiary)"
+                boxShadow="none"
+              />
+            );
+          })()}
+
+          {embed.media?.$type === 'app.bsky.embed.external#view' && embed.media.external && (
+            <ExternalEmbedCard
+              external={embed.media.external}
+              variant="full"
+              thumbMaxHeight="300px"
+            />
           )}
 
-          {embed.media?.$type === 'app.bsky.embed.external#view' && embed.media.external && (() => {
-            const sanitizedMediaExtUri = sanitizeUrl(embed.media.external.uri);
-            const sanitizedMediaExtThumb = sanitizeUrl(embed.media.external.thumb);
-            
-            if (sanitizedMediaExtUri === '#') return null; // Skip invalid URLs
-            
-            return (
-              <a
-                href={sanitizedMediaExtUri}
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{
-                  display: 'block',
-                  marginBottom: '1rem',
-                  border: '1px solid var(--border-medium)',
-                  textDecoration: 'none',
-                  color: 'inherit',
-                  overflow: 'hidden',
-                  transition: 'border-color 0.2s ease',
-                  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
-                }}
-                className="external-link-card"
-              >
-                {embed.media.external.thumb && (
-                  <img
-                    src={sanitizedMediaExtThumb}
-                    alt=""
-                    style={{
-                      width: '100%',
-                      height: 'auto',
-                      maxHeight: '300px',
-                      objectFit: 'cover',
-                      background: 'var(--bg-tertiary)',
-                      display: 'block',
-                      borderBottom: '1px solid var(--border-medium)',
-                    }}
-                  />
-                )}
-                <div style={{ padding: '1rem' }}>
-                  <div style={{ fontWeight: '600', marginBottom: '0.25rem', color: 'var(--text-primary)' }}>
-                    {embed.media.external.title}
-                  </div>
-                  <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
-                    {embed.media.external.description}
-                  </div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)', marginTop: '0.5rem' }}>
-                    {(() => {
-                      try {
-                        return new URL(sanitizedMediaExtUri).hostname;
-                      } catch {
-                        return '';
-                      }
-                    })()}
-                  </div>
-                </div>
-              </a>
-            );
-          })()}
-
-          {embed.media?.$type === 'app.bsky.embed.video#view' && embed.media.playlist && (() => {
-            const sanitizedMediaPlaylist = sanitizeUrl(embed.media.playlist);
-            const sanitizedMediaThumbnail = sanitizeUrl(embed.media.thumbnail);
-            
-            if (sanitizedMediaPlaylist === '#') return null; // Skip invalid video URLs
-            
-            return (
-              <div
-                style={{
-                  position: 'relative',
-                  marginBottom: '1rem',
-                  background: 'var(--bg-tertiary)',
-                  overflow: 'hidden',
-                  border: '1px solid var(--border-medium)',
-                  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.4)',
-                }}
-              >
-                <video
-                  controls
-                  poster={sanitizedMediaThumbnail}
-                  style={{
-                    width: '100%',
-                    maxHeight: '500px',
-                    display: 'block',
-                  }}
-                >
-                  <source src={sanitizedMediaPlaylist} type="application/x-mpegURL" />
-                  Your browser does not support the video tag.
-                </video>
-                {embed.media.alt && (
-                  <div style={{ 
-                    padding: '0.5rem', 
-                    fontSize: '0.875rem', 
-                    color: 'var(--text-tertiary)',
-                    background: 'var(--bg-secondary)',
-                  }}>
-                    {embed.media.alt}
-                  </div>
-                )}
-              </div>
-            );
-          })()}
+          {embed.media?.$type === 'app.bsky.embed.video#view' && embed.media.playlist && (
+            <VideoEmbed
+              video={embed.media}
+              variant="full"
+              videoMaxHeight="500px"
+            />
+          )}
 
           {/* Then render the quoted record */}
           {embed.record?.record && renderQuotedPost(embed.record.record)}
         </>
       )}
 
-      {/* Post Metadata */}
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '1.5rem',
-          paddingTop: '1rem',
-          borderTop: '1px solid var(--border-color)',
-          fontSize: '0.875rem',
-          color: 'var(--text-tertiary)',
-          // Collapse inherited line-height so icons align to the text
-          // midline (body's default of 1.7 was floating them above).
-          lineHeight: 1,
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
-          <MessageSquare size={16} />
-          <span>{replyCount || 0}</span>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
-          <Repeat2 size={16} />
-          <span>{repostCount || 0}</span>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
-          <Heart size={16} />
-          <span>{likeCount || 0}</span>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
-          <Quote size={16} />
-          <span>{quoteCount || 0}</span>
-        </div>
-        <div style={{ marginLeft: 'auto', fontSize: '0.75rem' }}>{formattedDate}</div>
+      {/* Footer: tag chips and labelled counts */}
+      <div className="fn-post-footer">
+        {tagChips.map((tag) => (
+          <a
+            key={tag}
+            href={`https://bsky.app/hashtag/${tag}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="fn-post-tag"
+          >
+            #{tag}
+          </a>
+        ))}
+        {/* One wrapper so the phone block can lay the four counts out two
+            by two instead of three and an orphan. */}
+        <span className="fn-post-counts">
+          {counts.map(({ key, Icon, n, label }) => (
+            <span key={key} className="fn-post-count">
+              <Icon size={15} aria-hidden />
+              <strong>{formatCount(n)}</strong> {label}
+            </span>
+          ))}
+        </span>
       </div>
 
-      {/* Cross-product: jump to this post's raw record in the explorer */}
-      {!hideExplorerCtas && (() => {
-        const explorePath = explorePathFromAtUri(post.uri);
-        if (!explorePath) return null;
-        return (
-          <div
-            style={{
-              paddingTop: '1rem',
-              marginTop: '1rem',
-              borderTop: '1px solid var(--border-subtle)',
-              fontSize: '0.8125rem',
-            }}
-          >
-            <Link
-              href={explorePath}
-              className="profile-explorer-link"
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '0.4rem',
-                textDecoration: 'none',
-              }}
-            >
-              <Telescope size={12} />
-              View record data in the Explorer →
-            </Link>
-          </div>
-        );
-      })()}
+      {/* The cross-product link in a tinted strip across the foot of the
+          card, as on the profile card, rather than trailing the counts. */}
+      {crossLink && <div className="fn-post-foot">{crossLink}</div>}
     </div>
     </>
   );
 }
-

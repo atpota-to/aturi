@@ -38,13 +38,19 @@ function sourceRecipes(sourceId: SourceApp | string): SourceRecipe[] {
     case 'bluesky':
     case 'blacksky':
     case 'reddwarf':
+    case 'impro':
+    case 'lea':
     case 'witchsky':
-    case 'catsky':
     case 'deer':
+    case 'mu':
+    case 'northsky':
     case 'anisota': {
       const host = HOST_BY_SOURCE[sourceId as SourceApp];
       if (!host) return [];
-      const base = `^https://${escapeHost(host)}/profile/([^/]+)`;
+      // Exclude ?, # (and /) from the handle capture. `[^/]+` would otherwise
+      // swallow a trailing query string (e.g. /profile/alice?foo=bar) into the
+      // handle and redirect to a mangled destination.
+      const base = `^https://${escapeHost(host)}/profile/([^/?#]+)`;
       return [
         {
           regexFilter: `${base}/post/([^/?#]+).*`,
@@ -191,19 +197,52 @@ function sourceRecipes(sourceId: SourceApp | string): SourceRecipe[] {
       ];
     }
 
+    case 'pdsls':
+    case 'atptools': {
+      const host = HOST_BY_SOURCE[sourceId as SourceApp];
+      if (!host) return [];
+      // Both raw explorers address records by AT URI:
+      // `/at://<identifier>/<collection>/<rkey>`. atp.tools uses a single slash
+      // after `at:` and pdsls a double, so `at:/+` accepts either. The
+      // identifier (a DID or handle) sits verbatim in the path and passes
+      // straight through to the destination explorer, which also keys its URLs
+      // by identifier — so unlike handle-only sources, no DID resolution is
+      // needed and the record's own collection (`\2`) rides along untouched.
+      const base = `^https://${escapeHost(host)}/at:/+([^/?#]+)`;
+      return [
+        {
+          regexFilter: `${base}/([^/?#]+)/([^/?#]+).*`,
+          capturesLabel: `${sourceId}:record`,
+          tokens: { handle: 1, collection: 2, rkey: 3 },
+          type: 'record',
+        },
+        {
+          regexFilter: `${base}/?$`,
+          capturesLabel: `${sourceId}:profile`,
+          tokens: { handle: 1 },
+          type: 'profile',
+        },
+      ];
+    }
+
     default:
       return [];
   }
 }
 
 const HOST_BY_SOURCE: Record<SourceApp, string> = {
+  aturi: 'aturi.to',
+  aturiExplore: 'aturi.to',
   bluesky: 'bsky.app',
   bluepy: 'bluepy.social',
   blacksky: 'blacksky.community',
   reddwarf: 'reddwarf.app',
+  impro: 'impro.social',
+  lea: 'lea.ac',
   witchsky: 'witchsky.app',
-  catsky: 'catsky.social',
   deer: 'deer.social',
+  northsky: 'northsky.app',
+  mu: 'mu.social',
   anisota: 'anisota.net',
   pinksky: 'pinkleap.app',
   leaflet: 'leaflet.pub',
@@ -217,6 +256,8 @@ const HOST_BY_SOURCE: Record<SourceApp, string> = {
   popfeed: 'popfeed.social',
   sifa: 'sifa.id',
   blento: 'blento.app',
+  standardReader: 'standard-reader.app',
+  taproot: 'atproto.at',
   offprint: 'offprint.app',
   pckt: 'pckt.blog',
   headDetected: '',
@@ -266,6 +307,13 @@ function buildSubstitution(
   const url = waypoint.getUrl(PH.handle, collection, rkey, undefined);
   if (!url) return null;
 
+  // A destination that doesn't recognize this collection typically falls back
+  // to its profile URL, dropping the rkey on the floor. Rewriting to that would
+  // silently strand the user on the *author* of the record they clicked (e.g.
+  // `bsky.app/profile/alice/lists/xyz` -> `example.app/profile/alice`), so drop
+  // the rule and leave the source URL alone instead.
+  if (rkey && !url.includes(PH.rkey)) return null;
+
   let substitution = url;
 
   const handleIdx = recipe.tokens.handle;
@@ -295,17 +343,25 @@ export type BuildRulesOptions = {
 };
 
 /**
- * Compile user prefs into a list of declarativeNetRequest rules. Hidden
- * waypoints are excluded entirely. DID-required destinations (and custom
- * waypoints whose templates use `{did}`) are skipped because we can't fill
- * that in declaratively.
+ * One source->destination redirect the current prefs would emit a rule for,
+ * after every visibility / compat / DID / cycle check has been applied.
  */
-export function buildRules(prefs: Prefs, opts: BuildRulesOptions = {}): RedirectRule[] {
+type RedirectCandidate = {
+  source: string;
+  destinationId: string;
+  recipe: SourceRecipe;
+  substitution: string;
+};
+
+/**
+ * Work out which redirects are live for these prefs. Shared by `buildRules`
+ * (which turns them into DNR rules) and `redirectEdges` (which the tab-scoped
+ * exemptions read) so the two can never disagree about what redirects where.
+ */
+function collectCandidates(prefs: Prefs): RedirectCandidate[] {
   if (!prefs.autoRedirect) return [];
 
   const visible = visibleWaypointIds(prefs);
-  const rules: RedirectRule[] = [];
-  let nextId = opts.baseId ?? 1;
 
   // Sources to consider: every source we have a recipe for. We don't want a
   // missing entry in `defaults` to suppress favorite-driven redirects.
@@ -314,6 +370,14 @@ export function buildRules(prefs: Prefs, opts: BuildRulesOptions = {}): Redirect
     ...Object.keys(prefs.defaults),
     ...prefs.customWaypoints.map(c => c.id),
   ]));
+
+  // Pass 1: collect every eligible source->destination edge (after all
+  // visibility/compat/DID checks) without assigning rule ids yet. Neither a
+  // record type nor a waypoint id can contain a space, so a space is an
+  // unambiguous key separator.
+  const candidates: RedirectCandidate[] = [];
+  const edgeKey = (type: string, src: string) => `${type} ${src}`;
+  const edge = new Map<string, string>();
 
   for (const source of sources) {
     if (!visible.has(source)) continue;
@@ -342,24 +406,145 @@ export function buildRules(prefs: Prefs, opts: BuildRulesOptions = {}): Redirect
       const substitution = buildSubstitution(destinationId, recipe, prefs.customWaypoints);
       if (!substitution) continue;
 
-      rules.push({
-        id: nextId++,
-        priority: 1,
-        action: {
-          type: 'redirect' as chrome.declarativeNetRequest.RuleActionType,
-          redirect: {
-            regexSubstitution: substitution,
-          },
-        },
-        condition: {
-          regexFilter: recipe.regexFilter,
-          resourceTypes: ['main_frame'] as chrome.declarativeNetRequest.ResourceType[],
-        },
-      });
+      candidates.push({ source, destinationId, recipe, substitution });
+      edge.set(edgeKey(recipe.type, source), destinationId);
     }
   }
 
-  return rules;
+  // Following the redirect chain for `start`+`type`, does it lead back to
+  // `target`? A per-source default combined with a family favorite can emit
+  // mutual A->B and B->A rules; DNR re-evaluates on each hop, so both firing
+  // ping-pongs the browser into ERR_TOO_MANY_REDIRECTS. Dropping the edges
+  // that close a loop keeps both sites reachable.
+  const leadsBackTo = (type: string, start: string, target: string): boolean => {
+    let cur = start;
+    const seen = new Set<string>();
+    while (edge.has(edgeKey(type, cur))) {
+      if (seen.has(cur)) return false; // pre-existing loop not involving target
+      seen.add(cur);
+      const next = edge.get(edgeKey(type, cur))!;
+      if (next === target) return true;
+      cur = next;
+    }
+    return false;
+  };
+
+  // Pass 2: drop any edge that would close a redirect cycle.
+  return candidates.filter(c => !leadsBackTo(c.recipe.type, c.destinationId, c.source));
+}
+
+/**
+ * Compile user prefs into a list of declarativeNetRequest rules. Hidden
+ * waypoints are excluded entirely. DID-required destinations (and custom
+ * waypoints whose templates use `{did}`) are skipped because we can't fill
+ * that in declaratively.
+ */
+export function buildRules(prefs: Prefs, opts: BuildRulesOptions = {}): RedirectRule[] {
+  let nextId = opts.baseId ?? 1;
+
+  return collectCandidates(prefs).map(c => ({
+    id: nextId++,
+    priority: 1,
+    action: {
+      type: 'redirect' as chrome.declarativeNetRequest.RuleActionType,
+      redirect: {
+        regexSubstitution: c.substitution,
+      },
+    },
+    condition: {
+      regexFilter: c.recipe.regexFilter,
+      resourceTypes: ['main_frame'] as chrome.declarativeNetRequest.ResourceType[],
+    },
+  }));
+}
+
+/** A live redirect, reduced to the two hosts involved. */
+export type RedirectEdge = {
+  sourceId: string;
+  sourceHost: string;
+  destinationId: string;
+  destinationHost: string;
+};
+
+/**
+ * The host pairs the active redirect rules move traffic between, deduplicated
+ * (several record types usually share one source/destination pair).
+ *
+ * Callers use this to reason about a redirect without re-deriving the prefs
+ * logic. Knowing that bsky.app currently lands on anisota.net is what lets us
+ * tell "this navigation would put you where you already are" apart from a
+ * genuine hop between two apps.
+ */
+export function redirectEdges(prefs: Prefs): RedirectEdge[] {
+  const seen = new Set<string>();
+  const edges: RedirectEdge[] = [];
+
+  for (const c of collectCandidates(prefs)) {
+    const sourceHost = waypointHost(c.source, prefs.customWaypoints);
+    const destinationHost = waypointHost(c.destinationId, prefs.customWaypoints);
+    if (!sourceHost || !destinationHost) continue;
+    if (sourceHost === destinationHost) continue;
+
+    const key = `${sourceHost} ${destinationHost}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+
+    edges.push({
+      sourceId: c.source,
+      sourceHost,
+      destinationId: c.destinationId,
+      destinationHost,
+    });
+  }
+
+  return edges;
+}
+
+/** Handle fed to `getUrl` purely so we can read a host back off the result. */
+const HOST_PROBE_HANDLE = 'example.invalid';
+
+/**
+ * The host a waypoint's pages live on.
+ *
+ * `HOST_BY_SOURCE` is authoritative for anything that can act as a redirect
+ * source, since the rule regexes are built from that same table. Destinations
+ * that never act as a source aren't in it, so we fall back to asking the
+ * waypoint to build a URL and reading the host off that.
+ */
+export function waypointHost(
+  waypointId: string,
+  customWaypoints: CustomWaypoint[] = []
+): string | null {
+  if (waypointId.startsWith('custom:')) {
+    const cw = customWaypoints.find(c => c.id === waypointId);
+    return cw ? normalizeHost(cw.domain) : null;
+  }
+
+  const known = HOST_BY_SOURCE[waypointId as SourceApp];
+  if (known) return normalizeHost(known);
+
+  const waypoint = WAYPOINT_DESTINATIONS_DATA[waypointId];
+  if (!waypoint) return null;
+  const probe =
+    waypoint.getUrl(HOST_PROBE_HANDLE) ??
+    waypoint.getUrl(HOST_PROBE_HANDLE, 'app.bsky.feed.post', 'probe');
+  if (!probe) return null;
+  try {
+    return normalizeHost(new URL(probe).hostname);
+  } catch {
+    return null;
+  }
+}
+
+/** Reduce a domain or URL-ish string to a bare lowercase host. */
+function normalizeHost(raw: string): string | null {
+  const host = raw
+    .trim()
+    .toLowerCase()
+    .replace(/^[a-z]+:\/\//, '')
+    .replace(/\/.*$/, '')
+    .replace(/:\d+$/, '');
+  return host.length > 0 ? host : null;
 }
 
 const ALL_KNOWN_SOURCES: SourceApp[] = [
@@ -367,9 +552,12 @@ const ALL_KNOWN_SOURCES: SourceApp[] = [
   'bluepy',
   'blacksky',
   'reddwarf',
+  'impro',
+  'lea',
   'witchsky',
-  'catsky',
   'deer',
+  'mu',
+  'northsky',
   'anisota',
   'pinksky',
   'leaflet',
@@ -380,4 +568,6 @@ const ALL_KNOWN_SOURCES: SourceApp[] = [
   'popfeed',
   'sifa',
   'blento',
+  'pdsls',
+  'atptools',
 ];

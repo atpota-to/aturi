@@ -95,7 +95,7 @@ export default function DevTab({ prefs, onChange }: Props) {
   function resetAll() {
     if (
       !confirm(
-        'Reset ALL preferences to defaults? This wipes custom waypoints, groups, recents, redirect favorites — everything. Are you sure?'
+        'Reset ALL preferences to defaults? This wipes everything: custom waypoints, groups, recents, and redirect favorites. Are you sure?'
       )
     ) {
       return;
@@ -108,15 +108,17 @@ export default function DevTab({ prefs, onChange }: Props) {
   }
 
   return (
-    <div>
-      <h1 className="options-h1">Dev</h1>
-      <p className="options-lede">
-        Tools for testing the popup, prefs migrations, and the new-waypoints
-        banner. Some actions wipe data — be deliberate.
-      </p>
+    <div className="options-page">
+      <div className="options-page-head">
+        <h1 className="options-h1">Dev</h1>
+        <p className="options-lede">
+          Tools for testing the popup, prefs migrations, and the new-waypoints
+          banner. Some actions wipe data, so be deliberate.
+        </p>
+      </div>
 
       <div className="options-card">
-        <div className="options-card-title">New-waypoints banner</div>
+        <h2 className="options-card-title">New-waypoints banner</h2>
         <div className="options-card-sub">
           The popup banner is driven by <code>knownWaypointIds</code>: anything
           in <code>WAYPOINT_ORDER</code> but missing from that list shows up as
@@ -134,39 +136,39 @@ export default function DevTab({ prefs, onChange }: Props) {
           </button>
         </div>
 
-        <div className="aturi-hr" />
-
-        <div className="dev-card-subhead">Forget a specific waypoint</div>
-        <div className="dev-card-sub">
-          Removes one id from <code>knownWaypointIds</code> so just that
-          waypoint shows up as "new" in the popup banner.
-        </div>
-        <div className="dev-actions">
-          <select
-            className="dev-select"
-            value={forgetId}
-            onChange={e => setForgetId(e.target.value)}
-            aria-label="Waypoint to forget"
-          >
-            <option value="">— pick a waypoint —</option>
-            {forgetCandidates.map(id => (
-              <option key={id} value={id}>
-                {id}
-              </option>
-            ))}
-          </select>
-          <button
-            className="aturi-btn"
-            onClick={forgetOne}
-            disabled={!forgetId}
-          >
-            Forget
-          </button>
+        <div className="dev-card-section">
+          <div className="dev-card-subhead">Forget a specific waypoint</div>
+          <div className="dev-card-sub">
+            Removes one id from <code>knownWaypointIds</code> so just that
+            waypoint shows up as "new" in the popup banner.
+          </div>
+          <div className="dev-actions">
+            <select
+              className="aturi-select dev-select"
+              value={forgetId}
+              onChange={e => setForgetId(e.target.value)}
+              aria-label="Waypoint to forget"
+            >
+              <option value="">Pick a waypoint…</option>
+              {forgetCandidates.map(id => (
+                <option key={id} value={id}>
+                  {id}
+                </option>
+              ))}
+            </select>
+            <button
+              className="aturi-btn"
+              onClick={forgetOne}
+              disabled={!forgetId}
+            >
+              Forget
+            </button>
+          </div>
         </div>
       </div>
 
       <div className="options-card">
-        <div className="options-card-title">Current preferences</div>
+        <h2 className="options-card-title">Current preferences</h2>
         <div className="options-card-sub">
           Raw JSON snapshot of what <code>loadPrefs()</code> returned. Copy this
           when filing bugs.
@@ -186,10 +188,10 @@ export default function DevTab({ prefs, onChange }: Props) {
       </div>
 
       <div className="options-card">
-        <div className="options-card-title">Debug log</div>
+        <h2 className="options-card-title">Debug log</h2>
         <div className="options-card-sub">
-          In-memory ring buffer (last 200 entries) persisted to
-          <code> chrome.storage.local</code> so popup, options, and background
+          In-memory ring buffer (last 200 entries) persisted to{' '}
+          <code>chrome.storage.local</code> so popup, options, and background
           events all show up here. Refreshes live.
         </div>
         <pre className="dev-code dev-log">
@@ -218,7 +220,7 @@ export default function DevTab({ prefs, onChange }: Props) {
       </div>
 
       <div className="options-card">
-        <div className="options-card-title">Environment</div>
+        <h2 className="options-card-title">Environment</h2>
         <div className="dev-info">
           <div className="dev-info-row">
             <span className="dev-info-label">Extension</span>

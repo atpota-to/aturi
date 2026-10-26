@@ -2,15 +2,17 @@ import { Metadata } from 'next';
 import { Suspense } from 'react';
 import { redirect } from 'next/navigation';
 import WaypointPicker from '@/components/WaypointPicker';
+import AutoRedirect from '@/components/AutoRedirect';
+import AutoRedirectGate from '@/components/AutoRedirectGate';
 import PostPreview from '@/components/PostPreview';
 import PostPreviewSkeleton from '@/components/PostPreviewSkeleton';
 import ScrollIndicator from '@/components/ScrollIndicator';
 import Header from '@/components/Header';
 import NotFoundPanel from '@/components/NotFoundPanel';
-import { parseURI, resolveHandle, getDisplayName } from '@/utils/uriParser';
-import { fetchRecordData } from '@/utils/recordFetcher';
-import { resolveDidToHandle } from '@/utils/didResolver';
-import { getPostOgImage } from '@/utils/postOgImage';
+import { parseURI, getDisplayName } from '@/utils/uriParser';
+import { fetchRecordData, resolveDidToHandle, resolveHandle } from '@/lib/pageData';
+import { buildPostMetadata, buildPostJsonLd } from '@/utils/postMetadata';
+import { serializeJsonLd } from '@/utils/sanitize';
 
 type Props = {
   params: Promise<{ handle: string; rkey: string }>;
@@ -39,110 +41,17 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     // Parse and fetch post data
     parseURI(handle, collection, rkey); // Validate URI format
     const recordData = await fetchRecordData(resolvedDid, collection, rkey);
-    const displayHandle = handle.startsWith('did:') 
-      ? await resolveDidToHandle(resolvedDid) || handle
-      : handle;
-    
+
     if (recordData && recordData.type === 'post' && recordData.data.thread[0]?.value.post) {
       const post = recordData.data.thread[0].value.post;
-      const author = post.author;
-      const authorByline = author.displayName
-        ? `${author.displayName} (@${author.handle})`
-        : `@${author.handle}`;
-      const pageTitle = `@${author.handle} on Bluesky — View on Aturi`;
-      const postText = post.record?.text || '';
-      const description = postText || 'View this post in your preferred Atmosphere client';
-      const avatarThumb = author.avatar
-        ? author.avatar.replace('/img/avatar/', '/img/avatar_thumbnail/')
-        : '';
-
-      // Prefer the post's embedded media (photo/video/external thumb) so
-      // rich-link previewers (iMessage, Twitter, Slack, etc.) render the
-      // large image like bsky.app does. Fall back to the avatar thumbnail
-      // for text-only or quote-only posts.
-      const postOgImage = getPostOgImage(post);
-      const ogImage = postOgImage
-        ? {
-            url: postOgImage.url,
-            ...(postOgImage.alt ? { alt: postOgImage.alt } : {}),
-            ...(postOgImage.width && postOgImage.height
-              ? { width: postOgImage.width, height: postOgImage.height }
-              : {}),
-          }
-        : avatarThumb
-        ? { url: avatarThumb }
-        : null;
-      const twitterCard = postOgImage ? 'summary_large_image' : 'summary';
-
-      const canonicalUrl = `https://aturi.to/profile/${author.handle}/post/${rkey}`;
-      const atUri = `at://${resolvedDid}/${collection}/${rkey}`;
-      const oembedUrl = `https://aturi.to/api/oembed?format=json&url=${encodeURIComponent(atUri)}`;
-      const publishedTime = post.indexedAt || post.record?.createdAt;
-
-      // We MUST set openGraph and twitter blocks here to override the root
-      // layout's site-wide defaults. Without this, the root layout's
-      // og:title="aturi.to - Universal links" and og:image=/api/og/static
-      // bleed through and create conflicting tags that confuse Apple's
-      // LinkPresentation framework and other rich-link previewers.
-      return {
-        title: pageTitle,
-        description,
-        alternates: {
-          canonical: canonicalUrl,
-          types: {
-            'application/json+oembed': oembedUrl,
-          },
-        },
-        openGraph: {
-          title: authorByline,
-          description: postText || description,
-          type: 'article',
-          url: canonicalUrl,
-          siteName: 'Aturi',
-          ...(publishedTime ? { publishedTime } : {}),
-          ...(ogImage ? { images: [ogImage] } : {}),
-        },
-        twitter: {
-          card: twitterCard,
-          title: authorByline,
-          description: postText || description,
-          ...(ogImage ? { images: [ogImage.url] } : {}),
-        },
-        other: {
-          'profile:username': author.handle,
-          ...(publishedTime
-            ? {
-                'twitter:label1': 'Posted At',
-                'twitter:value1': publishedTime,
-              }
-            : {}),
-          ...(post.likeCount
-            ? {
-                'twitter:label2': 'Likes',
-                'twitter:value2': String(post.likeCount),
-              }
-            : {}),
-          ...(post.replyCount
-            ? {
-                'twitter:label3': 'Replies',
-                'twitter:value3': String(post.replyCount),
-              }
-            : {}),
-          ...(post.repostCount
-            ? {
-                'twitter:label4': 'Reposts',
-                'twitter:value4': String(post.repostCount),
-              }
-            : {}),
-        },
-      };
+      return buildPostMetadata(post, { resolvedDid, collection, rkey });
     }
   } catch (error) {
     console.error('Error generating metadata:', error);
   }
 
   return {
-    title: `Post — View on Aturi`,
+    title: `Post: View on Aturi`,
     description: 'Tour the Atmosphere',
   };
 }
@@ -155,11 +64,13 @@ async function PostContent({ handle, rkey }: { handle: string; rkey: string }) {
     
     if (parsedData.error) {
       return (
-        <div className="container-narrow" style={{ padding: '2rem 2rem 4rem', textAlign: 'center' }}>
+        <>
           <Header compact />
-          <h1 style={{ marginBottom: '1rem', color: 'var(--text-primary)' }}>Error</h1>
-          <p style={{ color: 'var(--text-secondary)' }}>{parsedData.error}</p>
-        </div>
+          <div className="container-narrow" style={{ padding: '0 2rem 4rem', textAlign: 'center' }}>
+            <h1 style={{ marginBottom: '1rem', color: 'var(--text-primary)' }}>Error</h1>
+            <p style={{ color: 'var(--text-secondary)' }}>{parsedData.error}</p>
+          </div>
+        </>
       );
     }
 
@@ -169,11 +80,11 @@ async function PostContent({ handle, rkey }: { handle: string; rkey: string }) {
       return (
         <>
           <Header compact />
-          <div className="container-narrow" style={{ padding: '0 2rem 4rem' }}>
+          <div className="container-narrow waypoint-page">
             <NotFoundPanel
-              eyebrow="Couldn't resolve"
-              headline="That handle didn't resolve."
-              body={`We tried to resolve "${handle}" as an Atmosphere handle and didn't find anything. Try a different handle, DID, or AT URI below.`}
+              eyebrow="Couldn’t resolve"
+              headline="That handle didn’t resolve."
+              body={`We couldn’t find an account for “${handle}”. Check the spelling, or try a DID or an at:// URI below.`}
               initialQuery={handle}
             />
           </div>
@@ -192,47 +103,32 @@ async function PostContent({ handle, rkey }: { handle: string; rkey: string }) {
         ? recordData.data.thread[0].value.post
         : null;
 
-    const jsonLd = post
-      ? {
-          '@context': 'https://schema.org',
-          '@type': 'DiscussionForumPosting',
-          author: {
-            '@type': 'Person',
-            ...(post.author.displayName
-              ? {
-                  name: post.author.displayName,
-                  alternateName: `@${post.author.handle}`,
-                }
-              : { name: `@${post.author.handle}` }),
-            url: `https://aturi.to/profile/${post.author.handle}`,
-          },
-          ...(post.record?.text ? { text: post.record.text } : {}),
-          datePublished: post.indexedAt || post.record?.createdAt,
-          interactionStatistic: [
-            {
-              '@type': 'InteractionCounter',
-              interactionType: 'https://schema.org/LikeAction',
-              userInteractionCount: post.likeCount || 0,
-            },
-            {
-              '@type': 'InteractionCounter',
-              interactionType: 'https://schema.org/CommentAction',
-              userInteractionCount: post.replyCount || 0,
-            },
-            {
-              '@type': 'InteractionCounter',
-              interactionType: 'https://schema.org/ShareAction',
-              userInteractionCount: (post.repostCount || 0) + (post.quoteCount || 0),
-            },
-          ],
-        }
-      : null;
+    const jsonLd = post ? buildPostJsonLd(post) : null;
 
     const atUri = post?.uri || '';
 
     return (
-      <div className="container-narrow" style={{ padding: '2rem 2rem 4rem' }}>
+      <>
+        {/* Inside the Suspense boundary rather than in the outer component,
+            because the DID is only known here — and the explorer waypoints
+            can't build a URL without it. One flush later than the other two
+            waypoint pages, still ahead of the picker's markup. */}
+        <AutoRedirect
+          type="post"
+          handle={resolvedHandle}
+          did={resolvedDid}
+          collection={collection}
+          rkey={rkey}
+        />
         <Header compact />
+        <div className="container-narrow waypoint-page">
+        <AutoRedirectGate
+          type="post"
+          handle={resolvedHandle}
+          did={resolvedDid}
+          collection={collection}
+          rkey={rkey}
+        />
 
         {/* AT-URI alternate link, mirroring Bluesky's bskyweb template.
             React 19 hoists this to <head>. */}
@@ -241,16 +137,41 @@ async function PostContent({ handle, rkey }: { handle: string; rkey: string }) {
         {jsonLd && (
           <script
             type="application/ld+json"
-            dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+            dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }}
           />
         )}
 
         {post && recordData && recordData.type === 'post' && (
           <div className="content-fade-in">
-            <PostPreview 
-              post={post} 
+            <PostPreview
+              post={post}
               parent={recordData.data.parent}
             />
+          </div>
+        )}
+
+        {/* Covers both a deleted post and a transient host failure (the fetch
+            returns null for both), so the visitor isn't shown a bare picker
+            with no explanation. The picker still renders below. */}
+        {!post && (
+          <div
+            className="content-fade-in"
+            style={{
+              border: '1px solid var(--border-medium)',
+              borderRadius: 'var(--radius-card)',
+              background: 'var(--bg-secondary)',
+              padding: '1rem 1.25rem',
+              marginBottom: '1.5rem',
+              color: 'var(--text-secondary)',
+              fontSize: '0.9375rem',
+              lineHeight: 1.5,
+            }}
+          >
+            <strong style={{ color: 'var(--text-primary)' }}>
+              We couldn&rsquo;t load a preview for this post.
+            </strong>{' '}
+            It may have been deleted, or the account&rsquo;s host server may be
+            temporarily unavailable. You can still try opening it in a client below.
           </div>
         )}
 
@@ -260,21 +181,24 @@ async function PostContent({ handle, rkey }: { handle: string; rkey: string }) {
           collection={collection}
           rkey={rkey}
           did={resolvedDid}
-          displayName={getDisplayName(resolvedHandle, resolvedDid)}
+          displayName={post?.author.displayName?.trim() || getDisplayName(resolvedHandle, resolvedDid)}
         />
 
         {/* Floating scroll indicator overlay */}
         <ScrollIndicator />
-      </div>
+        </div>
+      </>
     );
   } catch (error) {
     console.error('Error loading post:', error);
     return (
-      <div className="container-narrow" style={{ padding: '2rem 2rem 4rem', textAlign: 'center' }}>
+      <>
         <Header compact />
-        <h1 style={{ marginBottom: '1rem', color: 'var(--text-primary)' }}>Error</h1>
-        <p style={{ color: 'var(--text-secondary)' }}>Error loading post</p>
-      </div>
+        <div className="container-narrow" style={{ padding: '0 2rem 4rem', textAlign: 'center' }}>
+          <h1 style={{ marginBottom: '1rem', color: 'var(--text-primary)' }}>Error</h1>
+          <p style={{ color: 'var(--text-secondary)' }}>Error loading post</p>
+        </div>
+      </>
     );
   }
 }
@@ -301,10 +225,12 @@ export default async function PostPage({ params }: Props) {
   return (
     <Suspense
       fallback={
-        <div className="container-narrow" style={{ padding: '2rem 2rem 4rem' }}>
+        <>
           <Header compact />
-          <PostPreviewSkeleton />
-        </div>
+          <div className="container-narrow waypoint-page">
+            <PostPreviewSkeleton />
+          </div>
+        </>
       }
     >
       <PostContent handle={handle} rkey={rkey} />

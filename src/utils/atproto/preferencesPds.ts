@@ -5,6 +5,9 @@
  * Lexicon (informal):
  *
  *   $type: to.aturi.actor.preferences
+ *   // app-wide palette; unknown values fall back to 'moss' on read
+ *   colorScheme?: 'moss' | 'ember' | 'tide' | 'dusk'
+ *               | 'sol' | 'bloom' | 'trans' | 'noir'
  *   waypointGroups?: Array<{
  *     id: string,
  *     name: string,
@@ -14,12 +17,28 @@
  *   customWaypoints?: Array<{
  *     id, name, domain?, description?,
  *     supportedTypes: string[],
- *     templates: { post?, profile?, list?, record?: string }
+ *     templates: { post?, profile?, list?, record?: string },
+ *     redirectCompat?: string[]     // compat families, for auto-redirect
  *   }>
+ *   autoRedirect?: boolean          // skip the picker and open the favorite client
+ *   favoriteByFamily?: Record<string, string>  // compat family → waypoint id
+ *   waypointLayout?: 'dense' | 'grid' | 'classic'  // picker layout; unknown → 'dense'
+ *   knownWaypointIds?: string[]       // built-ins the user has been notified about
+ *   lastSeenReleaseId?: string        // newest release whose notes were seen
+ *   announceReleases?: boolean        // show the "What's new" modal after a release
  *   pinnedLexicons?: string[]         // NSIDs pinned in the explorer
  *   pinnedLexiconsOthers?: string[]   // separate list for others' repos in split mode
  *   pinScope?: 'own' | 'all' | 'split'
  *   collectionGroupsCollapsedByDefault?: boolean
+ *   hideRelationshipBar?: boolean         // hide the explorer relationship strip
+ *   hideRepoGlance?: boolean              // hide the "Repo at a glance" section
+ *   repoGlanceCollapsedByDefault?: boolean // start that section collapsed
+ *   recordSections?: Array<{ id: string, hidden: boolean }>  // record-page layout (source of truth)
+ *   repoSections?: Array<{ id: string, hidden: boolean }>    // repo-page layout (source of truth)
+ *   minimalProfile?: boolean              // derived: profile card hidden on repo pages
+ *   hideRichPreview?: boolean             // derived: rich preview card hidden on record pages
+ *   hideRichJsonPreview?: boolean         // derived: field table hidden on record pages
+ *   showRawRecordJson?: boolean           // derived: raw JSON shown on record pages
  *   updatedAt: datetime
  *
  *   // Legacy — still written for back-compat with older Aturi clients
@@ -35,6 +54,7 @@ import {
   mergeWithDefaults,
   type Preferences,
 } from '../preferences';
+import { sectionHidden } from '../exploreSections';
 
 export const PREFERENCES_NSID = 'to.aturi.actor.preferences';
 export const PREFERENCES_RKEY = 'self';
@@ -64,10 +84,16 @@ export async function readPreferencesFromPds(
     return { status: 'ok', prefs };
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    // The PDS responds with `RecordNotFound` (HTTP 400 / NotFound) when the
-    // record simply hasn't been created yet. Treat that as "no prefs in
-    // PDS" rather than an error worth surfacing.
-    if (/RecordNotFound|Could not locate record/i.test(msg) || /\b400\b/.test(msg)) {
+    const errName = (err as { error?: string })?.error ?? '';
+    // The PDS responds with `RecordNotFound` when the record simply hasn't
+    // been created yet. Treat ONLY that as "no prefs in PDS". A bare HTTP 400
+    // must NOT be treated as missing: the caller writes local prefs to the PDS
+    // on a `missing` result, so misclassifying a transient InvalidRequest/rate
+    // limit as missing would overwrite the user's saved preferences.
+    if (
+      /RecordNotFound/i.test(errName) ||
+      /RecordNotFound|Could not locate record/i.test(msg)
+    ) {
       return { status: 'missing' };
     }
     return { status: 'error', error: msg };
@@ -85,12 +111,33 @@ export async function writePreferencesToPds(
 ): Promise<void> {
   const record = {
     $type: PREFERENCES_NSID,
+    colorScheme: prefs.colorScheme,
     waypointGroups: prefs.waypointGroups,
     customWaypoints: prefs.customWaypoints,
+    // Auto-redirect. Same field names as the extension's stored prefs, so a
+    // record written here means the same thing when the extension reads it.
+    autoRedirect: prefs.autoRedirect,
+    favoriteByFamily: prefs.favoriteByFamily,
+    waypointLayout: prefs.waypointLayout,
+    knownWaypointIds: prefs.knownWaypointIds,
+    lastSeenReleaseId: prefs.lastSeenReleaseId,
+    announceReleases: prefs.announceReleases,
     pinnedLexicons: prefs.pinnedLexicons,
     pinnedLexiconsOthers: prefs.pinnedLexiconsOthers,
     pinScope: prefs.pinScope,
     collectionGroupsCollapsedByDefault: prefs.collectionGroupsCollapsedByDefault,
+    repoGlanceCollapsedByDefault: prefs.repoGlanceCollapsedByDefault,
+    // Section layout — the source of truth for explore-page visibility/order.
+    recordSections: prefs.recordSections,
+    repoSections: prefs.repoSections,
+    // Per-section visibility booleans, derived from the section lists so
+    // older clients (and the browser extension) that read them stay in sync.
+    hideRelationshipBar: sectionHidden(prefs.repoSections, 'relationship'),
+    hideRepoGlance: sectionHidden(prefs.repoSections, 'repoGlance'),
+    minimalProfile: sectionHidden(prefs.repoSections, 'profile'),
+    hideRichPreview: sectionHidden(prefs.recordSections, 'richPreview'),
+    hideRichJsonPreview: sectionHidden(prefs.recordSections, 'structuredJson'),
+    showRawRecordJson: !sectionHidden(prefs.recordSections, 'rawJson'),
     // Legacy fields kept for back-compat with older clients.
     hiddenWaypoints: prefs.hiddenWaypoints,
     waypointOrder: prefs.waypointOrder,

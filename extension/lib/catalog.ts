@@ -290,6 +290,8 @@ export const DID_REQUIRED_WAYPOINTS = new Set<string>([
   'margin',
   'grain',
   'popfeed',
+  'taproot',
+  'standardReader',
 ]);
 
 /**

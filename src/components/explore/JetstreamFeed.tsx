@@ -122,7 +122,28 @@ export default function JetstreamFeed({
     uniqueCollections: new Set<string>(),
   });
 
+  // Read `paused` inside tick() via a ref so toggling it doesn't tear down and
+  // reopen the websocket (which dropped the buffer and hammered the Jetstream
+  // server on every click). Pause now just stops rendering rows while the
+  // socket — and the live throughput counter — keep running.
+  const pausedRef = useRef(paused);
+  pausedRef.current = paused;
+
+  // Close the socket while the tab is backgrounded. Unlike timers, websockets
+  // are NOT throttled in hidden tabs, so an unattended background tab would
+  // otherwise keep pulling the full firehose (bandwidth, CPU, mobile data,
+  // battery) indefinitely. Reconnecting when the user returns is cheap.
+  const [hidden, setHidden] = useState(
+    typeof document !== 'undefined' && document.hidden,
+  );
   useEffect(() => {
+    const onVis = () => setHidden(document.hidden);
+    document.addEventListener('visibilitychange', onVis);
+    return () => document.removeEventListener('visibilitychange', onVis);
+  }, []);
+
+  useEffect(() => {
+    if (hidden) return; // hold the socket closed while the tab is backgrounded
     const dispose = createJetstreamConnection(
       { wantedCollections: collections, wantedOps: ops },
       (evt: JetstreamCommit) => {
@@ -175,7 +196,7 @@ export default function JetstreamFeed({
         });
       }
 
-      if (!paused && buffer.current.length > 0) {
+      if (!pausedRef.current && buffer.current.length > 0) {
         // Take only the most recent N from the buffer — older events drop.
         const buf = buffer.current;
         const take = buf.slice(-MAX_INSERTS_PER_FLUSH).reverse();
@@ -202,63 +223,25 @@ export default function JetstreamFeed({
       buffer.current = [];
       epsCounter.current = [];
     };
-  }, [collections, ops, paused, showStats, maxVisible]);
+    // `paused` intentionally excluded — handled via pausedRef so pausing
+    // doesn't reconnect. `hidden` gates the socket for tab visibility.
+  }, [collections, ops, hidden, showStats, maxVisible]);
 
   return (
-    <section
-      style={{
-        marginTop: '2rem',
-        border: '1px solid var(--border-medium)',
-        background: 'var(--bg-secondary)',
-      }}
-    >
-      <header
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '0.75rem',
-          padding: '0.75rem 1rem',
-          borderBottom: '1px solid var(--border-subtle)',
-        }}
-      >
-        <Activity
-          size={14}
-          style={{ color: paused ? 'var(--text-tertiary)' : 'var(--text-accent)' }}
-        />
-        <span className="explore-small-caps" style={{ flex: 1 }}>
-          Live across the Atmosphere
+    <section className="fl-feed">
+      <header className="fl-feed-head">
+        <span className="fl-feed-live" data-paused={paused ? '' : undefined} aria-hidden>
+          <Activity size={14} />
         </span>
+        <span className="fl-feed-title">Live across the Atmosphere</span>
         {showRate && eps > 0 && (
-          <span
-            style={{
-              fontFamily: 'var(--font-mono)',
-              fontSize: '0.75rem',
-              color: 'var(--text-tertiary)',
-              fontVariantNumeric: 'tabular-nums',
-            }}
-            title="Events per second across the live network feed"
-          >
+          <span className="fl-feed-rate" title="Events per second across the live network feed">
             ~{eps.toLocaleString()}/s
           </span>
         )}
         {showPauseButton && (
-          <button
-            type="button"
-            onClick={() => setPaused((p) => !p)}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '0.4rem',
-              padding: '0.25rem 0.625rem',
-              background: 'transparent',
-              border: '1px solid var(--border-medium)',
-              color: 'var(--text-secondary)',
-              fontFamily: 'var(--font-serif)',
-              fontSize: '0.75rem',
-              cursor: 'pointer',
-            }}
-          >
-            {paused ? <Play size={10} /> : <Pause size={10} />}
+          <button type="button" onClick={() => setPaused((p) => !p)} className="fl-feed-pause">
+            {paused ? <Play size={11} /> : <Pause size={11} />}
             {paused ? 'Resume' : 'Pause'}
           </button>
         )}
@@ -319,58 +302,25 @@ function FeedRow({ row, showOpLabel }: { row: Row; showOpLabel: boolean }) {
   const rowContents = (
     <>
       {showOpLabel && <OpPill op={row.op} />}
-      <code
-        style={{
-          background: 'transparent',
-          padding: 0,
-          color: 'var(--text-tertiary)',
-          whiteSpace: 'nowrap',
-          overflow: 'hidden',
-          textOverflow: 'ellipsis',
-        }}
-        title={row.did}
-      >
+      <code className="fl-feed-did" title={row.did}>
         {shortDid(row.did)}
       </code>
-      <code
-        style={{
-          background: 'transparent',
-          padding: 0,
-          color: 'var(--text-accent)',
-          whiteSpace: 'nowrap',
-          overflow: 'hidden',
-          textOverflow: 'ellipsis',
-        }}
-        title={row.collection}
-      >
+      <code className="fl-feed-nsid" title={row.collection}>
         {tail}
       </code>
     </>
   );
 
-  const rowGridStyle: React.CSSProperties = {
-    display: 'grid',
-    gridTemplateColumns: showOpLabel
-      ? 'auto minmax(14ch, 22ch) 1fr'
-      : 'minmax(14ch, 22ch) 1fr',
-    gap: '0.75rem',
-    padding: '0.5rem 1rem',
-    borderBottom: '1px solid var(--border-subtle)',
-    fontFamily: 'var(--font-mono)',
-    fontSize: '0.8125rem',
-    color: 'var(--text-primary)',
-    textDecoration: 'none',
-    alignItems: 'baseline',
-  };
+  const rowClass = 'fl-feed-row' + (showOpLabel ? ' fl-feed-row-ops' : '');
 
   return (
     <li data-fresh="" className="explore-jetstream-row">
       {explorerHref ? (
-        <AtUriLink uri={row.uri} style={rowGridStyle}>
+        <AtUriLink uri={row.uri} className={rowClass}>
           {rowContents}
         </AtUriLink>
       ) : (
-        <div style={rowGridStyle}>{rowContents}</div>
+        <div className={rowClass}>{rowContents}</div>
       )}
     </li>
   );
@@ -382,46 +332,14 @@ function FeedRow({ row, showOpLabel }: { row: Row; showOpLabel: boolean }) {
  * updates/deletes pop without screaming.
  */
 function OpPill({ op }: { op: Op }) {
-  const meta: Record<Op, { label: string; fg: string; bg: string; title: string }> = {
-    create: {
-      label: '+',
-      fg: 'var(--accent-moss-fg, var(--text-accent))',
-      bg: 'var(--glow-subtle)',
-      title: 'create',
-    },
-    update: {
-      label: '~',
-      fg: 'var(--text-primary)',
-      bg: 'var(--bg-tertiary)',
-      title: 'update',
-    },
-    delete: {
-      label: '×',
-      fg: 'var(--text-primary)',
-      bg: 'var(--bg-tertiary)',
-      title: 'delete',
-    },
+  const meta: Record<Op, { label: string; title: string }> = {
+    create: { label: '+', title: 'create' },
+    update: { label: '~', title: 'update' },
+    delete: { label: '×', title: 'delete' },
   };
   const m = meta[op];
   return (
-    <span
-      aria-label={m.title}
-      title={m.title}
-      style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        width: '1.4ch',
-        minWidth: '1.4ch',
-        padding: '0 0.4ch',
-        background: m.bg,
-        color: m.fg,
-        fontFamily: 'var(--font-mono)',
-        fontSize: '0.8125rem',
-        lineHeight: 1,
-        border: '1px solid var(--border-subtle)',
-      }}
-    >
+    <span aria-label={m.title} title={m.title} className="fl-feed-op" data-op={op}>
       {m.label}
     </span>
   );
@@ -435,36 +353,13 @@ function OpPill({ op }: { op: Op }) {
  */
 function StatsFooter({ stats }: { stats: Stats }) {
   const item = (label: string, value: string, hint?: string) => (
-    <span
-      style={{ display: 'inline-flex', gap: '0.4ch', alignItems: 'baseline' }}
-      title={hint}
-    >
-      <span
-        style={{
-          color: 'var(--text-primary)',
-          fontVariantNumeric: 'tabular-nums',
-        }}
-      >
-        {value}
-      </span>
-      <span style={{ color: 'var(--text-tertiary)' }}>{label}</span>
+    <span className="fl-feed-stat" title={hint}>
+      <strong>{value}</strong>
+      {label}
     </span>
   );
   return (
-    <footer
-      style={{
-        display: 'flex',
-        flexWrap: 'wrap',
-        alignItems: 'center',
-        gap: '1rem',
-        padding: '0.5rem 1rem',
-        borderTop: '1px solid var(--border-subtle)',
-        background: 'var(--bg-tertiary)',
-        fontFamily: 'var(--font-mono)',
-        fontSize: '0.75rem',
-        color: 'var(--text-secondary)',
-      }}
-    >
+    <footer className="fl-feed-foot">
       {item('total', stats.total.toLocaleString(), 'Events received since the feed loaded')}
       {item('users', stats.uniqueDids.toLocaleString(), 'Distinct DIDs spotted')}
       {item('lexicons', stats.uniqueCollections.toLocaleString(), 'Distinct NSIDs spotted')}
@@ -484,24 +379,14 @@ function SkeletonRows({ showOpColumn }: { showOpColumn: boolean }) {
   // 14 rows fills the 32rem viewport without overflowing it (each row is
   // about 1.5rem tall including border).
   const rows = Array.from({ length: 14 });
-  const gridTemplateColumns = showOpColumn
-    ? 'auto minmax(14ch, 22ch) 1fr'
-    : 'minmax(14ch, 22ch) 1fr';
   return (
     <>
       {rows.map((_, i) => (
         <li
           key={i}
           aria-hidden
-          style={{
-            display: 'grid',
-            gridTemplateColumns,
-            gap: '0.75rem',
-            alignItems: 'center',
-            padding: '0.5rem 1rem',
-            borderBottom: '1px solid var(--border-subtle)',
-            opacity: 0.9 - i * 0.04,
-          }}
+          className={'fl-feed-row' + (showOpColumn ? ' fl-feed-row-ops' : '')}
+          style={{ opacity: 0.9 - i * 0.04 }}
         >
           {showOpColumn && <SkeletonBar widthCh={2} />}
           <SkeletonBar widthCh={16} />
@@ -521,14 +406,8 @@ function SkeletonBar({
 }) {
   return (
     <span
-      className="skeleton-shimmer"
-      style={{
-        display: 'block',
-        height: '0.65rem',
-        width: widthPct || `${widthCh}ch`,
-        background: 'var(--bg-tertiary)',
-        borderRadius: 0,
-      }}
+      className="skeleton-shimmer fl-feed-bar"
+      style={{ width: widthPct || `${widthCh}ch` }}
     />
   );
 }
