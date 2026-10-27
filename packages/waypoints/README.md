@@ -70,7 +70,8 @@ const fromUrl = await resolveUrl('https://bsky.app/profile/alice.bsky.social/pos
 - **Preferred clients** (`preferredClients.ts`): `parsePreferredClients`,
   `getPreferredClient`, `getPreferredClientUrl`, `clientFromWaypoint`,
   `buildPreferredClientsRecord`, `getWaypointLinkTemplates`,
-  `PREFERRED_CLIENTS_NSID`. See [Preferred clients](#preferred-clients).
+  `clientPlatformFromUserAgent`, `PREFERRED_CLIENTS_NSID`. See
+  [Preferred clients](#preferred-clients).
 - **Brand marks** (`@aturi.to/waypoints/icons`): `WAYPOINT_ICON_SVGS`,
   `getWaypointIconSvg`, and a named export per waypoint. See
   [Icons](#icons).
@@ -228,7 +229,9 @@ Two categories are defined so far: `bluesky-social` (Bluesky posts, profiles
 and lists, in a Bluesky client) and `atproto-explorer` (any record or repo, in
 a raw record explorer). Each preference has a `client` for any device, and may
 add `mobile` and `desktop` overrides. Pass `platform` when you know the
-viewer's device; without it, only `client` counts.
+viewer's device (`clientPlatformFromUserAgent(navigator.userAgent,
+navigator.maxTouchPoints)` is a reasonable guess in a browser, and counts tablets
+as mobile); without it, only `client` counts.
 
 Every declared client carries its own URL templates, so you don't need this
 package to act on a record: `{handle}`, `{did}`, `{actor}` (DID, else handle),
@@ -240,7 +243,8 @@ To write a declaration, `clientFromWaypoint('blacksky')` turns a catalog
 entry into a declared client (templates included), and
 `buildPreferredClientsRecord` stamps the result ready for `putRecord`.
 Signed-in users can also publish one from the Clients tab at
-[aturi.to/account#clients](https://aturi.to/account#clients).
+[aturi.to/account#clients](https://aturi.to/account#clients), and aturi.to's own
+auto-redirect follows it wherever they haven't picked a favorite.
 
 ### DID-only waypoints
 

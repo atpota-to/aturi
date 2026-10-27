@@ -38,6 +38,7 @@ const TOC: { id: string; label: string }[] = [
   { id: 'resolve-api', label: 'Resolve API' },
   { id: 'compose', label: 'Compose intents' },
   { id: 'links', label: 'Universal links' },
+  { id: 'preferred-clients', label: 'Preferred clients' },
   { id: 'license', label: 'License' },
 ];
 
@@ -153,6 +154,45 @@ buildUniversalLinkTags('at://did:plc:abc/app.bsky.feed.post/3k7').html;
 // <meta name="at:author" content="at://did:plc:abc" />
 // <link rel="alternate" href="at://did:plc:abc/app.bsky.feed.post/3k7" />
 // <link rel="alternate" type="application/json+oembed" href="https://aturi.to/api/oembed?url=…" />`;
+
+const preferredClientsExample = `import {
+  PREFERRED_CLIENTS_NSID,
+  getPreferredClient,
+  getPreferredClientUrl,
+  parsePreferredClients,
+} from '@aturi.to/waypoints';
+
+// The signed-in viewer's declaration: one getRecord on their own repo.
+const res = await agent.com.atproto.repo
+  .getRecord({ repo: viewerDid, collection: PREFERRED_CLIENTS_NSID, rkey: 'self' })
+  .catch(() => null); // not declared, or unreachable: keep your default
+const declaration = parsePreferredClients(res?.data.value);
+
+const client = getPreferredClient(declaration, 'bluesky-social', { platform: 'mobile' });
+const href = client && getPreferredClientUrl(client, 'at://did:plc:abc/app.bsky.feed.post/3k7');
+// 'https://blacksky.community/profile/did:plc:abc/post/3k7', or null`;
+
+const preferredClientsRecord = `{
+  "$type": "to.aturi.actor.preferredClients",
+  "preferences": [
+    {
+      "category": "bluesky-social",
+      "client": {
+        "url": "https://bsky.app",
+        "name": "Bluesky",
+        "waypoint": "bluesky",
+        "templates": {
+          "profile": "https://bsky.app/profile/{handle}",
+          "post": "https://bsky.app/profile/{handle}/post/{rkey}",
+          "list": "https://bsky.app/profile/{handle}/lists/{rkey}"
+        }
+      },
+      "mobile": { "url": "https://blacksky.community", "name": "Blacksky", … }
+    },
+    { "category": "atproto-explorer", "client": { "url": "https://pdsls.dev", … } }
+  ],
+  "updatedAt": "2026-10-27T12:00:00.000Z"
+}`;
 
 const linkReactExample = `import { UniversalLinkButton } from '@aturi.to/waypoints-react';
 
@@ -451,6 +491,58 @@ export default function DocsPage() {
                 previews as the post it is. They&rsquo;re static strings describing
                 a record you already display, and serving them hands nothing to
                 aturi.to.
+              </p>
+            </section>
+
+            {/* Preferred clients */}
+            <section id="preferred-clients">
+              <h2>Preferred clients</h2>
+              <p>
+                People can publish which client they use for each kind of link, as
+                a public <code>to.aturi.actor.preferredClients/self</code> record in
+                their own repository (
+                <a
+                  href="https://github.com/atpota-to/aturi/blob/testing/lexicons/to/aturi/actor/preferredClients.json"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  schema
+                </a>
+                ). If your app links out to Bluesky posts or atproto records, read
+                the signed-in viewer&rsquo;s declaration and send them straight to
+                their client, instead of bsky.app or a picker.
+              </p>
+              <CodeBlock label="ts" code={preferredClientsExample} />
+              <p>
+                Two categories are defined so far: <code>bluesky-social</code>{' '}
+                (Bluesky posts, profiles and lists, in a Bluesky client) and{' '}
+                <code>atproto-explorer</code> (any record or repository, in a raw
+                record explorer). Each preference has a <code>client</code> for any
+                device and may add <code>mobile</code> and <code>desktop</code>{' '}
+                overrides. Pass <code>platform</code> when you know the
+                viewer&rsquo;s device (<code>clientPlatformFromUserAgent</code>{' '}
+                reads one off a user agent); without it, only <code>client</code>{' '}
+                counts.
+              </p>
+              <CodeBlock label="json" code={preferredClientsRecord} />
+              <p>
+                Every declared client carries its own URL templates, so you
+                don&rsquo;t need the package to act on a record:{' '}
+                <code>{'{handle}'}</code>, <code>{'{did}'}</code>,{' '}
+                <code>{'{actor}'}</code> (the DID, else the handle),{' '}
+                <code>{'{collection}'}</code> and <code>{'{rkey}'}</code>, filled
+                with percent-encoded values. Follow the result only if it&rsquo;s an
+                http(s) URL: the record is the viewer&rsquo;s to write, and{' '}
+                <code>getPreferredClientUrl</code> already refuses anything else.
+              </p>
+              <p>
+                To write one, <code>clientFromWaypoint(&apos;blacksky&apos;)</code>{' '}
+                turns a catalog entry into a declared client, templates included,
+                and <code>buildPreferredClientsRecord</code> stamps the result ready
+                for <code>putRecord</code>. Signed-in visitors can publish theirs
+                from the <Link href="/account#clients">Clients</Link> settings tab,
+                and aturi.to&rsquo;s own auto-redirect follows it wherever they
+                haven&rsquo;t picked a favorite.
               </p>
             </section>
 
