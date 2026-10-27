@@ -59,11 +59,19 @@ export default function FeedbackBoard() {
     return sortDiscussions(filtered, sort);
   }, [discussions, sort, statusFilter, tagFilter]);
 
-  if (loading && !space) return <BoardSkeleton rows={4} />;
+  if (loading && !space) {
+    return (
+      <div className="fn-fb">
+        <div className="fn-fb-board">
+          <BoardSkeleton rows={4} />
+        </div>
+      </div>
+    );
+  }
 
   if (!space) {
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+      <div className="fn-fb">
         <BoardIntro />
         {error ? <p className="explore-error">{error}</p> : null}
         <SpaceSetup onCreated={refresh} />
@@ -73,45 +81,23 @@ export default function FeedbackBoard() {
 
   const icon = space.iconUrl ? sanitizeUrl(space.iconUrl) : '';
   const statusCounts = countByStatus(discussions);
+  const tags = space.record.tags ?? [];
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-      <header style={{ display: 'flex', gap: '1rem', alignItems: 'flex-start' }}>
+    <div className="fn-fb">
+      <header className="fn-fb-head">
         {icon ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={icon}
-            alt=""
-            width={44}
-            height={44}
-            style={{ width: 44, height: 44, objectFit: 'cover', flexShrink: 0 }}
-          />
+          <img src={icon} alt="" width={48} height={48} className="fn-fb-icon" />
         ) : null}
-        <div style={{ minWidth: 0 }}>
-          <h1
-            style={{
-              margin: '0 0 0.35rem',
-              fontFamily: 'var(--font-serif)',
-              fontSize: '1.75rem',
-              lineHeight: 1.2,
-              color: 'var(--text-primary)',
-            }}
-          >
+        <div className="fn-fb-head-text">
+          <h1 className="fn-c-title">
             {/* The page is titled by what it's for, not by the space record's
                 own name: on aturi.to that name would just read "Aturi". */}
             Feedback
           </h1>
           {space.record.description ? (
-            <p
-              style={{
-                margin: 0,
-                color: 'var(--text-secondary)',
-                fontSize: '0.9375rem',
-                lineHeight: 1.6,
-              }}
-            >
-              {space.record.description}
-            </p>
+            <p className="fn-c-lede">{space.record.description}</p>
           ) : null}
         </div>
       </header>
@@ -122,7 +108,7 @@ export default function FeedbackBoard() {
         composing ? (
           <Composer
             space={spaceRef(space)}
-            tags={space.record.tags ?? []}
+            tags={tags}
             onPosted={() => {
               setComposing(false);
               // Give Constellation a beat to index the new record before the
@@ -134,160 +120,134 @@ export default function FeedbackBoard() {
           <button
             type="button"
             onClick={() => setComposing(true)}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '0.5rem',
-              alignSelf: 'flex-start',
-              padding: '0.55rem 1rem',
-              background: 'var(--accent-moss)',
-              border: '1px solid var(--accent-moss)',
-              color: 'var(--text-on-accent)',
-              fontFamily: 'var(--font-serif)',
-              fontSize: '0.9rem',
-              cursor: 'pointer',
-            }}
+            className="fn-c-btn fn-c-btn-primary"
+            style={{ alignSelf: 'flex-start' }}
           >
             <MessageSquarePlus size={15} />
             Share feedback
           </button>
         )
       ) : (
-        <div
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '0.5rem',
-            padding: '1rem 1.125rem',
-            background: 'var(--bg-secondary)',
-            border: '1px solid var(--border-subtle)',
-          }}
-        >
-          <span className="explore-small-caps">Sign in to post and vote</span>
-          <p style={{ margin: 0, color: 'var(--text-tertiary)', fontSize: '0.8125rem' }}>
-            Your feedback is written to your own repo, so it travels with you and you can delete it
-            any time.
-          </p>
+        <div className="fn-fb-card">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+            <span className="explore-small-caps">Sign in to post and vote</span>
+            <p className="fn-fb-hint">
+              Your feedback is written to your own repo, so it travels with you and you can delete
+              it any time.
+            </p>
+          </div>
           <SignInPanel />
         </div>
       )}
 
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          flexWrap: 'wrap',
-          gap: '0.75rem',
-        }}
-      >
-        <div style={{ display: 'flex', gap: '0.35rem' }}>
-          {SORTS.map((option) => (
-            <FilterButton
-              key={option.id}
-              active={sort === option.id}
-              onClick={() => setSort(option.id)}
-            >
-              {option.label}
-            </FilterButton>
-          ))}
-        </div>
-        <button
-          type="button"
-          onClick={refresh}
-          disabled={loading}
-          aria-label="Refresh"
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '0.35rem',
-            padding: '0.25rem 0.6rem',
-            background: 'transparent',
-            border: '1px solid var(--border-subtle)',
-            color: 'var(--text-tertiary)',
-            fontSize: '0.75rem',
-            cursor: loading ? 'wait' : 'pointer',
-          }}
-        >
-          <RefreshCw size={12} className={loading ? 'explore-spin' : undefined} />
-          Refresh
-        </button>
-      </div>
-
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem' }}>
-        <FilterButton active={statusFilter === 'open'} onClick={() => setStatusFilter('open')}>
-          Open
-        </FilterButton>
-        <FilterButton active={statusFilter === 'all'} onClick={() => setStatusFilter('all')}>
-          All
-        </FilterButton>
-        {(Object.keys(UI_STATE_META) as UiState[])
-          .filter((state) => state !== 'open' && (statusCounts.get(state) ?? 0) > 0)
-          .map((state) => (
-            <FilterButton
-              key={state}
-              active={statusFilter === state}
-              onClick={() => setStatusFilter(state)}
-            >
-              {UI_STATE_META[state].label} ({statusCounts.get(state)})
-            </FilterButton>
-          ))}
-      </div>
-
-      {(space.record.tags ?? []).length ? (
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem' }}>
-          <FilterButton active={tagFilter === null} onClick={() => setTagFilter(null)}>
-            All categories
-          </FilterButton>
-          {(space.record.tags ?? []).map((tag) => (
-            <FilterButton
-              key={tag.value}
-              active={tagFilter === tag.value}
-              onClick={() => setTagFilter(tagFilter === tag.value ? null : tag.value)}
-            >
-              {tag.label}
-            </FilterButton>
-          ))}
-        </div>
-      ) : null}
-
       {error ? <p className="explore-error">{error}</p> : null}
       {voting.error ? <p className="explore-error">{voting.error}</p> : null}
 
-      {loading ? (
-        <BoardSkeleton rows={3} />
-      ) : visible.length === 0 ? (
-        <p className="explore-placeholder">
-          {discussions.length === 0
-            ? 'No feedback yet. Be the first to post something.'
-            : 'Nothing matches these filters.'}
-        </p>
-      ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-          {visible.map((discussion) => (
-            <DiscussionCard
-              key={discussion.uri}
-              discussion={discussion}
-              author={authors.get(discussion.authorDid)}
-              tagLabels={tagLabels}
-              vote={voting.directionFor(discussion.uri)}
-              canVote={Boolean(did) && !voting.pending.has(discussion.uri)}
-              voteDisabledReason={did ? 'Saving…' : 'Sign in to vote'}
-              onVote={(next) =>
-                voting.cast({ uri: discussion.uri, cid: discussion.cid }, next)
-              }
-            />
-          ))}
+      <section className="fn-fb-board" aria-label="Discussions">
+        <div className="fn-fb-tools">
+          {/* A sort re-orders one list rather than opening another, so it is
+              the segmented control (explore.css), not a tab row. */}
+          <div className="fn-segmented" role="group" aria-label="Sort discussions">
+            {SORTS.map((option) => (
+              <button
+                key={option.id}
+                type="button"
+                aria-pressed={sort === option.id}
+                onClick={() => setSort(option.id)}
+                className="fn-segmented-option"
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+          <button
+            type="button"
+            onClick={refresh}
+            disabled={loading}
+            aria-label="Refresh"
+            className="fn-c-btn fn-c-btn-sm"
+            data-wait={loading ? '' : undefined}
+          >
+            <RefreshCw size={13} className={loading ? 'explore-spin' : undefined} />
+            Refresh
+          </button>
         </div>
-      )}
 
-      {ctx && discussions.length > 0 ? (
-        <p style={{ margin: 0, color: 'var(--text-tertiary)', fontSize: '0.75rem' }}>
-          {discussions.length} discussion{discussions.length === 1 ? '' : 's'} ·{' '}
-          {ctx.moderatorDids.size} moderator{ctx.moderatorDids.size === 1 ? '' : 's'}
-          {ctx.hiddenUris.size ? ` · ${ctx.hiddenUris.size} hidden` : ''}
-        </p>
-      ) : null}
+        <div className="fn-fb-filters">
+          <div className="fn-fb-chips">
+            <FilterButton active={statusFilter === 'open'} onClick={() => setStatusFilter('open')}>
+              Open
+            </FilterButton>
+            <FilterButton active={statusFilter === 'all'} onClick={() => setStatusFilter('all')}>
+              All
+            </FilterButton>
+            {(Object.keys(UI_STATE_META) as UiState[])
+              .filter((state) => state !== 'open' && (statusCounts.get(state) ?? 0) > 0)
+              .map((state) => (
+                <FilterButton
+                  key={state}
+                  active={statusFilter === state}
+                  onClick={() => setStatusFilter(state)}
+                >
+                  {UI_STATE_META[state].label} ({statusCounts.get(state)})
+                </FilterButton>
+              ))}
+          </div>
+
+          {tags.length ? (
+            <div className="fn-fb-chips">
+              <FilterButton active={tagFilter === null} onClick={() => setTagFilter(null)}>
+                All categories
+              </FilterButton>
+              {tags.map((tag) => (
+                <FilterButton
+                  key={tag.value}
+                  active={tagFilter === tag.value}
+                  onClick={() => setTagFilter(tagFilter === tag.value ? null : tag.value)}
+                >
+                  {tag.label}
+                </FilterButton>
+              ))}
+            </div>
+          ) : null}
+        </div>
+
+        {loading ? (
+          <BoardSkeleton rows={3} />
+        ) : visible.length === 0 ? (
+          <p className="explore-placeholder">
+            {discussions.length === 0
+              ? 'No feedback yet. Be the first to post something.'
+              : 'Nothing matches these filters.'}
+          </p>
+        ) : (
+          <ul className="fn-fb-list">
+            {visible.map((discussion) => (
+              <li key={discussion.uri}>
+                <DiscussionCard
+                  discussion={discussion}
+                  author={authors.get(discussion.authorDid)}
+                  tagLabels={tagLabels}
+                  vote={voting.directionFor(discussion.uri)}
+                  canVote={Boolean(did) && !voting.pending.has(discussion.uri)}
+                  voteDisabledReason={did ? 'Saving…' : 'Sign in to vote'}
+                  onVote={(next) =>
+                    voting.cast({ uri: discussion.uri, cid: discussion.cid }, next)
+                  }
+                />
+              </li>
+            ))}
+          </ul>
+        )}
+
+        {ctx && discussions.length > 0 ? (
+          <p className="fn-fb-foot">
+            {discussions.length} discussion{discussions.length === 1 ? '' : 's'} ·{' '}
+            {ctx.moderatorDids.size} moderator{ctx.moderatorDids.size === 1 ? '' : 's'}
+            {ctx.hiddenUris.size ? ` · ${ctx.hiddenUris.size} hidden` : ''}
+          </p>
+        ) : null}
+      </section>
     </div>
   );
 }
@@ -295,20 +255,11 @@ export default function FeedbackBoard() {
 /** Placeholder rows shaped like the real ones, so the list doesn't jump. */
 function BoardSkeleton({ rows }: { rows: number }) {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+    <div>
       {Array.from({ length: rows }, (_, i) => (
-        <div
-          key={i}
-          style={{
-            display: 'flex',
-            gap: '0.875rem',
-            padding: '1rem 1.125rem',
-            background: 'var(--bg-secondary)',
-            border: '1px solid var(--border-subtle)',
-          }}
-        >
-          <Skeleton width="1.75rem" height="3rem" />
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+        <div key={i} className="fn-fb-skel">
+          <Skeleton width="44px" height="3.5rem" />
+          <div className="fn-fb-skel-main">
             <Skeleton width="60%" height="1.125rem" />
             <Skeleton width="90%" height="0.75rem" />
             <Skeleton width="35%" height="0.75rem" />
@@ -335,20 +286,7 @@ function FilterButton({
   children: React.ReactNode;
 }) {
   return (
-    <button
-      type="button"
-      aria-pressed={active}
-      onClick={onClick}
-      style={{
-        padding: '0.25rem 0.65rem',
-        background: active ? 'var(--bg-elevated)' : 'transparent',
-        border: `1px solid ${active ? 'var(--border-strong)' : 'var(--border-subtle)'}`,
-        color: active ? 'var(--text-primary)' : 'var(--text-tertiary)',
-        fontFamily: 'var(--font-serif)',
-        fontSize: '0.8125rem',
-        cursor: 'pointer',
-      }}
-    >
+    <button type="button" aria-pressed={active} onClick={onClick} className="fn-fb-chip">
       {children}
     </button>
   );
@@ -360,55 +298,27 @@ function FilterButton({
  */
 function BoardIntro({ spaceUri }: { spaceUri?: string }) {
   return (
-    <p
-      style={{
-        margin: 0,
-        padding: '0.75rem 1rem',
-        background: 'var(--bg-tertiary)',
-        border: '1px solid var(--border-subtle)',
-        color: 'var(--text-tertiary)',
-        fontSize: '0.8125rem',
-        lineHeight: 1.65,
-      }}
-    >
+    <p className="fn-fb-intro">
       Every post, reply and vote is a record in your repo, not ours. Built on the{' '}
-      <a
-        href={USERINPUT_HOME}
-        target="_blank"
-        rel="noopener noreferrer"
-        style={{ color: 'var(--text-accent)' }}
-      >
+      <a href={USERINPUT_HOME} target="_blank" rel="noopener noreferrer">
         userinput.app
       </a>{' '}
-      <Link href={USERINPUT_LEXICONS_PATH} style={{ color: 'var(--text-accent)' }}>
+      <Link href={USERINPUT_LEXICONS_PATH} prefetch={false}>
         lexicons
       </Link>
       , counted by{' '}
-      <a
-        href="https://constellation.microcosm.blue"
-        target="_blank"
-        rel="noopener noreferrer"
-        style={{ color: 'var(--text-accent)' }}
-      >
+      <a href="https://constellation.microcosm.blue" target="_blank" rel="noopener noreferrer">
         Constellation
       </a>
       , read through{' '}
-      <a
-        href="https://slingshot.microcosm.blue"
-        target="_blank"
-        rel="noopener noreferrer"
-        style={{ color: 'var(--text-accent)' }}
-      >
+      <a href="https://slingshot.microcosm.blue" target="_blank" rel="noopener noreferrer">
         Slingshot
       </a>
       .
       {spaceUri ? (
         <>
           {' '}
-          <Link
-            href={`/explore/${spaceUri.replace('at://', '')}`}
-            style={{ color: 'var(--text-accent)' }}
-          >
+          <Link href={`/explore/${spaceUri.replace('at://', '')}`} prefetch={false}>
             Inspect the space record →
           </Link>
         </>

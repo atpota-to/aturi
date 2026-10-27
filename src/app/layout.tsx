@@ -7,6 +7,7 @@ import Footer from "@/components/Footer";
 import PageTransition from "@/components/PageTransition";
 import ThemeSync from "@/components/ThemeSync";
 import ColorSchemeSync from "@/components/ColorSchemeSync";
+import AutoRedirectSync from "@/components/AutoRedirectSync";
 import WhatsNewModal from "@/components/whatsnew/WhatsNewModal";
 import FontScaleSync from "@/components/FontScaleSync";
 import A11ySync from "@/components/A11ySync";
@@ -21,6 +22,19 @@ import { getSiteUrl } from "@/lib/config";
 import { buildSiteJsonLd } from "@/lib/structuredData";
 import { serializeJsonLd } from "@/utils/sanitize";
 import "./globals.css";
+// Field Notes styles, one sheet per surface. Loaded after globals.css so a
+// surface's rules win over the shared base at equal specificity.
+import "@/styles/fieldnotes/chrome.css";
+import "@/styles/fieldnotes/home.css";
+import "@/styles/fieldnotes/explore.css";
+// The folder tabs, before the surfaces that place them (explorer, account).
+import "@/styles/fieldnotes/tabs.css";
+import "@/styles/fieldnotes/explorer.css";
+import "@/styles/fieldnotes/record.css";
+import "@/styles/fieldnotes/link.css";
+import "@/styles/fieldnotes/content.css";
+import "@/styles/fieldnotes/landing.css";
+import "@/styles/fieldnotes/account.css";
 
 export const metadata: Metadata = {
   title: "aturi.to: Tour the Atmosphere",
@@ -111,6 +125,10 @@ export default function RootLayout({
         <AtprotoSessionProvider>
           <PreferencesProvider>
             <ColorSchemeSync />
+            {/* Keeps the pre-paint auto-redirect cache in step with the
+                synced preference, so the next waypoint page can decide
+                before it paints. */}
+            <AutoRedirectSync />
             {/* Self-triggering: decides once, after preferences settle, and
                 renders nothing for a reader who is already caught up. */}
             <WhatsNewModal />

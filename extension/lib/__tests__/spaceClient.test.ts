@@ -2,8 +2,8 @@
  * Pure halves of the space client. Nothing here touches the network: the
  * DID-document extractors, the space type declaration parser, the URL join,
  * the error classifier and the pagination walker are all deterministic, and
- * the write methods are driven through a stub transport that records what
- * they would have sent.
+ * the write and administrative methods are driven through a stub transport
+ * that records what they would have sent.
  *
  * The extension's Vitest harness is the only node-environment suite in the
  * repo that can reach `src/utils/**` (via the `@aturi` alias), so these modules
@@ -19,14 +19,19 @@ import {
 } from '@aturi/atproto/spaceLexicon';
 import { joinXrpcUrl } from '@aturi/atproto/spaceCredential';
 import {
+  addSimpleSpaceMember,
   classifySpaceError,
   collectSpacePages,
+  createSimpleSpace,
   createSpaceRecord,
+  deleteSimpleSpace,
   deleteSpaceRecord,
   isCredentialStaleError,
   isScopeMissingError,
   putSpaceRecord,
+  removeSimpleSpaceMember,
   spaceErrorCode,
+  updateSimpleSpace,
   type SpaceTransport,
 } from '@aturi/atproto/spaceClient';
 
@@ -464,5 +469,150 @@ describe('space writes', () => {
         rkey: '3abc',
       }),
     ).rejects.toMatchObject({ xrpcError: 'SpaceNotFound' });
+  });
+});
+
+describe('space administration', () => {
+  const SPACE = 'at://did:plc:auth/space/my.type/self';
+  const MEMBER_LIST = { $type: 'com.atproto.simplespace.defs#memberListPolicy' } as const;
+  const OPEN = { $type: 'com.atproto.simplespace.defs#open' } as const;
+
+  /**
+   * Four of the five methods declare no output, and a PDS answers those with a
+   * bare 200 — no body and no content type. That is not a detail: reading it as
+   * JSON throws on the *success* path, so the stub reproduces it exactly rather
+   * than returning an empty object the way the record writes do.
+   */
+  function stubTransport(
+    kind: SpaceTransport['kind'] = 'oauth',
+    body: string | null = null,
+  ) {
+    const sent: { host: string; path: string; init?: RequestInit }[] = [];
+    const transport: SpaceTransport = {
+      kind,
+      call: async (host, path, init) => {
+        sent.push({ host, path, init });
+        return new Response(body, {
+          status: 200,
+          headers: body ? { 'content-type': 'application/json' } : {},
+        });
+      },
+    };
+    return { transport, sent };
+  }
+
+  it('creates a space with the key the caller chose', async () => {
+    const { transport, sent } = stubTransport('oauth', JSON.stringify({ uri: SPACE }));
+    const result = await createSimpleSpace(transport, {
+      type: 'my.type',
+      skey: 'self',
+      policy: MEMBER_LIST,
+      appAccess: OPEN,
+    });
+    expect(result).toEqual({ uri: SPACE });
+    expect(sent[0].host).toBe('');
+    expect(sent[0].path).toBe('/xrpc/com.atproto.simplespace.createSpace');
+    expect(sent[0].init?.method).toBe('POST');
+    expect(JSON.parse(String(sent[0].init?.body))).toEqual({
+      type: 'my.type',
+      skey: 'self',
+      policy: MEMBER_LIST,
+      appAccess: OPEN,
+    });
+  });
+
+  it('omits skey so the host generates a TID', async () => {
+    // Sending `skey: undefined` would serialize to no key either, but sending
+    // an empty string would ask for a space literally keyed "".
+    const { transport, sent } = stubTransport('oauth', JSON.stringify({ uri: SPACE }));
+    await createSimpleSpace(transport, { type: 'my.type', policy: MEMBER_LIST, appAccess: OPEN });
+    expect('skey' in JSON.parse(String(sent[0].init?.body))).toBe(false);
+  });
+
+  it('sends only the rules updateSpace was given', async () => {
+    // An omitted rule is left alone and a supplied one is replaced wholesale,
+    // so sending a rule the caller didn't touch would rewrite it.
+    const { transport, sent } = stubTransport();
+    await updateSimpleSpace(transport, { space: SPACE, appAccess: OPEN });
+    expect(sent[0].path).toBe('/xrpc/com.atproto.simplespace.updateSpace');
+    expect(JSON.parse(String(sent[0].init?.body))).toEqual({
+      space: SPACE,
+      appAccess: OPEN,
+    });
+  });
+
+  it('resolves the no-output procedures on an empty 200', async () => {
+    // The regression this exists for: parsing the empty body as JSON rejects a
+    // call that in fact succeeded.
+    const { transport } = stubTransport();
+    await expect(updateSimpleSpace(transport, { space: SPACE, policy: MEMBER_LIST })).resolves
+      .toBeUndefined();
+    await expect(deleteSimpleSpace(transport, { space: SPACE })).resolves.toBeUndefined();
+    await expect(
+      addSimpleSpaceMember(transport, { space: SPACE, did: 'did:plc:bob' }),
+    ).resolves.toBeUndefined();
+    await expect(
+      removeSimpleSpaceMember(transport, { space: SPACE, did: 'did:plc:bob' }),
+    ).resolves.toBeUndefined();
+  });
+
+  it('sends deleteSpace with the space and nothing else', async () => {
+    const { transport, sent } = stubTransport();
+    await deleteSimpleSpace(transport, { space: SPACE });
+    expect(sent[0].path).toBe('/xrpc/com.atproto.simplespace.deleteSpace');
+    expect(JSON.parse(String(sent[0].init?.body))).toEqual({ space: SPACE });
+  });
+
+  it('sends the member methods with the space and the DID', async () => {
+    const { transport, sent } = stubTransport();
+    await addSimpleSpaceMember(transport, { space: SPACE, did: 'did:plc:bob' });
+    await removeSimpleSpaceMember(transport, { space: SPACE, did: 'did:plc:bob' });
+    expect(sent.map((s) => s.path)).toEqual([
+      '/xrpc/com.atproto.simplespace.addMember',
+      '/xrpc/com.atproto.simplespace.removeMember',
+    ]);
+    for (const call of sent) {
+      expect(JSON.parse(String(call.init?.body))).toEqual({
+        space: SPACE,
+        did: 'did:plc:bob',
+      });
+    }
+  });
+
+  it('refuses a credential transport for every administrative method', () => {
+    // A space credential is a capability to READ a space, issued by the very
+    // authority these methods reconfigure. Presenting it here would offer an
+    // authority-signed token to a host that will refuse it anyway.
+    const { transport, sent } = stubTransport('credential');
+    expect(() =>
+      createSimpleSpace(transport, { type: 'my.type', policy: MEMBER_LIST, appAccess: OPEN }),
+    ).toThrow(/requires a oauth transport/);
+    expect(() => updateSimpleSpace(transport, { space: SPACE, policy: MEMBER_LIST })).toThrow(
+      /requires a oauth transport/,
+    );
+    expect(() => deleteSimpleSpace(transport, { space: SPACE })).toThrow(
+      /requires a oauth transport/,
+    );
+    expect(() => addSimpleSpaceMember(transport, { space: SPACE, did: 'did:plc:bob' })).toThrow(
+      /requires a oauth transport/,
+    );
+    expect(() => removeSimpleSpaceMember(transport, { space: SPACE, did: 'did:plc:bob' })).toThrow(
+      /requires a oauth transport/,
+    );
+    expect(sent).toHaveLength(0);
+  });
+
+  it('throws the XRPC error rather than resolving on a refusal', async () => {
+    const transport: SpaceTransport = {
+      kind: 'oauth',
+      call: async () =>
+        new Response(JSON.stringify({ error: 'SpaceAlreadyExists', message: 'taken' }), {
+          status: 400,
+          headers: { 'content-type': 'application/json' },
+        }),
+    };
+    await expect(
+      createSimpleSpace(transport, { type: 'my.type', skey: 'self', policy: MEMBER_LIST, appAccess: OPEN }),
+    ).rejects.toMatchObject({ xrpcError: 'SpaceAlreadyExists' });
   });
 });

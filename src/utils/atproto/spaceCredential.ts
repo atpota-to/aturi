@@ -70,7 +70,17 @@ export type OwnPdsFetch = (path: string, init?: RequestInit) => Promise<Response
  * parses exactly that shape — and `xrpcError` carries the machine-readable
  * `error` field from the JSON body, which is what callers should branch on.
  */
-export type SpaceXrpcError = Error & { status?: number; xrpcError?: string };
+export type SpaceXrpcError = Error & {
+  status?: number;
+  xrpcError?: string;
+  /**
+   * The XRPC body's human-readable `message`, when it carried one. Separate
+   * from `Error.message`, which is a diagnostic line carrying the status, the
+   * URL and the first 200 bytes of the body — useful in a console and unusable
+   * on screen. This is the half a host wrote for a person to read.
+   */
+  xrpcMessage?: string;
+};
 
 /**
  * Build the thrown error for a non-OK space response. Consumes the body, so it
@@ -84,8 +94,9 @@ export async function readSpaceXrpcError(res: Response, url: string): Promise<Sp
   err.status = res.status;
 
   try {
-    const body = JSON.parse(text) as { error?: unknown };
+    const body = JSON.parse(text) as { error?: unknown; message?: unknown };
     if (typeof body?.error === 'string') err.xrpcError = body.error;
+    if (typeof body?.message === 'string' && body.message) err.xrpcMessage = body.message;
   } catch {
     // A non-JSON body (a proxy error page, an empty 502) is not an XRPC error
     // and leaves `xrpcError` unset. Callers treat that as "transport failure".

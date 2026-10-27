@@ -1,8 +1,7 @@
 /**
- * Centralized "scan the active tab for AT URIs" logic. Used by the
- * popup's Inspect tab to render hits AND by the popup header to badge
- * the tab with a detected-URI count even before the user clicks into
- * the Inspect view.
+ * Centralized "scan the active tab for AT URIs" logic. The popup turns the
+ * hits into the record tabs on its card: one per record the page carries
+ * besides its own.
  *
  * The scan itself is a pure async function — no React, no setState —
  * so it can be called from anywhere. The `useInspectScan` hook adds
@@ -14,8 +13,6 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 import { browser } from '#imports';
 import { matchSupportedUrl } from '@aturi/reverseParsers';
 import { dedupeByUri, type DetectedAtUri } from './inspectScanner';
-import { recordInspectHits } from './inspectHistory';
-import { loadPrefs } from './prefs';
 
 export type ActiveTab = { url?: string; id?: number; active?: boolean; [k: string]: unknown };
 
@@ -82,21 +79,9 @@ export async function scanForAtUris(): Promise<ScanOutcome> {
     }
   }
 
+  // The popup records the repos it saw in Seen lately itself, after it has
+  // read the log, so this page's repos do not head its own suggestions.
   const hits = dedupeByUri(out);
-
-  // Persist the repos we just saw so the empty-state on the next "no URIs
-  // here" page can recommend them. Gated on the same `historyEnabled` pref
-  // that controls the waypoint recents list.
-  if (hits.length > 0) {
-    try {
-      const prefs = await loadPrefs();
-      if (prefs.historyEnabled) {
-        void recordInspectHits(hits);
-      }
-    } catch {
-      /* prefs read shouldn't block the scan returning */
-    }
-  }
 
   return { hits, tab: t, error };
 }
@@ -110,8 +95,7 @@ export type UseInspectScanResult = {
 };
 
 /**
- * Runs `scanForAtUris` once on mount. Re-running is opt-in via
- * `rescan()` (e.g. the popup's "Scan again" button).
+ * Runs `scanForAtUris` once on mount. Re-running is opt-in via `rescan()`.
  */
 export function useInspectScan(): UseInspectScanResult {
   const [hits, setHits] = useState<DetectedAtUri[]>([]);

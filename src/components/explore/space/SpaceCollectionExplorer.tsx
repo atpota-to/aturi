@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { ArrowDownWideNarrow, ArrowUpNarrowWide, Loader2, Plus } from 'lucide-react';
+import { ArrowDownWideNarrow, ArrowUpNarrowWide, Loader2, Plus, User } from 'lucide-react';
 import NotFoundPanel from '@/components/NotFoundPanel';
 import { encodeRepo, shortDid } from '@/utils/atproto/urls';
 import { formatSpaceRef, isValidDid, isValidNsid, isValidRecordKey } from '@/utils/atproto/spaceUri';
@@ -15,8 +15,9 @@ import SkeletonSwap from '../skeletons/SkeletonSwap';
 import { SpaceCollectionSkeleton } from '../skeletons/pages';
 import { SkeletonRecordRows } from '../skeletons/primitives';
 import { CHROME_RESULTS_ID, useChromeBarField } from '../ChromeBarContext';
-import { formatCount, listColumns } from '../collectionListHelpers';
+import { formatCount } from '../collectionListHelpers';
 import { SpaceReadErrorPanel, SpaceRepoAccessPanel } from './SpaceAccessPanel';
+import SpaceTitleBar from './SpaceTitleBar';
 import { useResolvedIdentity, useSpaceAccess, useSpaceRepoAccess } from './useSpaceAccess';
 
 const RECORDS_PER_PAGE = 100;
@@ -49,8 +50,8 @@ export default function SpaceCollectionExplorer({
     return (
       <NotFoundPanel
         eyebrow="Not a space address"
-        headline="That isn't a space address."
-        body="A permissioned record is addressed as at://{authority}/space/{type}/{key}/{did}/{collection}/{rkey}, with a lexicon NSID for both the type and the collection and a DID for the member. One of those parts isn't valid here."
+        headline="That isn’t a space address."
+        body="A permissioned record is addressed as at://{authority}/space/{type}/{key}/{did}/{collection}/{rkey}, with a lexicon NSID for both the type and the collection and a DID for the member. One of those parts isn’t valid here."
         initialQuery={collection}
       />
     );
@@ -59,9 +60,10 @@ export default function SpaceCollectionExplorer({
     const failed = error ? repo : author;
     return (
       <NotFoundPanel
-        eyebrow="Couldn't resolve"
-        headline="That identifier didn't resolve."
-        body={`We tried to resolve "${failed}" and the AT Protocol resolver returned: ${error || authorError}. Try another handle, DID, or AT URI below.`}
+        eyebrow="Couldn’t resolve"
+        headline="That identifier didn’t resolve."
+        body={`We couldn’t find an account for “${failed}”. Check the spelling, or try a DID or an at:// URI below.`}
+        details={error || authorError}
         initialQuery={failed}
       />
     );
@@ -200,182 +202,130 @@ function SpaceCollectionList({
   const memberLabel = authorIdentity.handle ? `@${authorIdentity.handle}` : shortDid(authorIdentity.did);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-      <AppearIn rise>
-        <Breadcrumb
-          handle={identity.handle}
-          did={identity.did}
-          pds={identity.pds}
-          spaceRoot
-          spaceType={spaceType}
-          skey={skey}
-          author={authorIdentity.did}
-          authorHandle={authorIdentity.handle}
-          collection={collection}
-          shareUrl={collectionPath}
-        />
-      </AppearIn>
-
-      {!transport && (
-        <AppearIn delay={0.05}>
-          <SpaceRepoAccessPanel access={access} repo={repoAccess} what={`${memberLabel}’s ${collection} records`} />
+    <div className="fx-explorer" data-page="space-collection" data-cols="1">
+      <div className="fx-head">
+        <AppearIn rise>
+          <SpaceTitleBar
+            crumbs={
+              <Breadcrumb
+                handle={identity.handle}
+                did={identity.did}
+                pds={identity.pds}
+                spaceRoot
+                spaceType={spaceType}
+                skey={skey}
+                author={authorIdentity.did}
+                authorHandle={authorIdentity.handle}
+                collection={collection}
+                titled
+              />
+            }
+            title={collection}
+            pill={
+              <span className="fx-pill">
+                <User size={12} aria-hidden />
+                {memberLabel}
+              </span>
+            }
+            shareUrl={collectionPath}
+          />
         </AppearIn>
-      )}
+      </div>
 
-      {transport && (
-        <>
+      <div className="fx-main">
+        {!transport && (
           <AppearIn delay={0.05}>
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.75rem',
-                flexWrap: 'wrap',
-              }}
-            >
-              <button
-                type="button"
-                onClick={() => setAscending((v) => !v)}
-                style={controlStyle(false)}
-                title={
-                  ascending
-                    ? 'Listing lowest record key first; switch back'
-                    : 'Listing highest record key first; switch'
-                }
-              >
-                {ascending ? (
-                  <ArrowUpNarrowWide size={12} />
-                ) : (
-                  <ArrowDownWideNarrow size={12} />
-                )}
-                {ascending ? 'Oldest first' : 'Newest first'}
-              </button>
-              {!done && records.length > 0 && (
+            <SpaceRepoAccessPanel access={access} repo={repoAccess} what={`${memberLabel}’s ${collection} records`} />
+          </AppearIn>
+        )}
+
+        {transport && (
+          <AppearIn delay={0.05} id={CHROME_RESULTS_ID}>
+            <section className="fx-card fx-records">
+              <div className="fx-records-tools fx-sp-recs-tools">
                 <button
                   type="button"
-                  onClick={() => void loadPage(cursor)}
-                  disabled={loading}
-                  style={controlStyle(loading)}
-                  title={`Fetch the next ${RECORDS_PER_PAGE} records`}
+                  onClick={() => setAscending((v) => !v)}
+                  className="fx-btn fx-btn-sm"
+                  title={
+                    ascending
+                      ? 'Listing lowest record key first; switch back'
+                      : 'Listing highest record key first; switch'
+                  }
                 >
-                  {loading ? <Loader2 size={12} className="explore-spin" /> : <Plus size={12} />}
-                  Fetch
+                  {ascending ? (
+                    <ArrowUpNarrowWide size={13} />
+                  ) : (
+                    <ArrowDownWideNarrow size={13} />
+                  )}
+                  {ascending ? 'Oldest first' : 'Newest first'}
                 </button>
-              )}
-              <span
-                style={{
-                  marginLeft: 'auto',
-                  color: 'var(--text-tertiary)',
-                  fontSize: '0.8125rem',
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                {records.length === 0 && !done
-                  ? 'Loading…'
-                  : query
-                    ? `${formatCount(visible.length)} of ${formatCount(records.length)}`
-                    : `${formatCount(records.length)} record${records.length === 1 ? '' : 's'}`}
-              </span>
-            </div>
-          </AppearIn>
-
-          <AppearIn delay={0.1} id={CHROME_RESULTS_ID}>
-            {error != null && <SpaceReadErrorPanel err={error} what={`${memberLabel}’s records`} />}
-            {/* Only claim the collection is empty once the host has actually
-                run out; an in-flight first page is not an empty collection. */}
-            {error == null && records.length === 0 && done && (
-              <p className="explore-placeholder">No records in this collection.</p>
-            )}
-            {error == null && records.length === 0 && !done && (
-              <SkeletonRecordRows rows={6} />
-            )}
-            {records.length > 0 && visible.length === 0 && (
-              <p className="explore-placeholder">
-                No loaded records match <code>{filter.trim()}</code>.
-                {!done && ' Fetch more to search further.'}
-              </p>
-            )}
-
-            {visible.length > 0 && (
-              <ul
-                style={{
-                  listStyle: 'none',
-                  margin: 0,
-                  padding: 0,
-                  border: '1px solid var(--border-medium)',
-                  background: 'var(--bg-secondary)',
-                  display: 'grid',
-                  gridTemplateColumns: listColumns(false),
-                  columnGap: '1rem',
-                }}
-              >
-                {visible.map((record) => (
-                  <li
-                    key={record.rkey}
-                    style={{
-                      gridColumn: '1 / -1',
-                      display: 'grid',
-                      gridTemplateColumns: 'subgrid',
-                      borderBottom: '1px solid var(--border-subtle)',
-                    }}
+                {!done && records.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => void loadPage(cursor)}
+                    disabled={loading}
+                    data-wait={loading || undefined}
+                    className="fx-btn fx-btn-sm"
+                    title={`Fetch the next ${RECORDS_PER_PAGE} records`}
                   >
-                    <Link
-                      href={`${collectionPath}/${encodeURIComponent(record.rkey)}`}
-                      style={{
-                        display: 'grid',
-                        gridColumn: '1 / -1',
-                        gridTemplateColumns: 'subgrid',
-                        padding: '0.625rem 1rem',
-                        fontFamily: 'var(--font-mono)',
-                        fontSize: '0.85rem',
-                        color: 'var(--text-primary)',
-                        textDecoration: 'none',
-                      }}
-                    >
-                      <code
-                        style={{
-                          background: 'transparent',
-                          padding: 0,
-                          color: 'inherit',
-                          overflowWrap: 'anywhere',
-                          wordBreak: 'break-word',
-                        }}
-                      >
-                        {record.rkey}
-                      </code>
-                      <span
-                        style={{
-                          color: 'var(--text-tertiary)',
-                          whiteSpace: 'nowrap',
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                        }}
-                      >
-                        {previewFor(record.value)}
-                      </span>
-                    </Link>
+                    {loading ? <Loader2 size={13} className="explore-spin" /> : <Plus size={13} />}
+                    Fetch
+                  </button>
+                )}
+                <span className="fx-records-tools-meta">
+                  {records.length === 0 && !done
+                    ? 'Loading…'
+                    : query
+                      ? `${formatCount(visible.length)} of ${formatCount(records.length)}`
+                      : `${formatCount(records.length)} record${records.length === 1 ? '' : 's'}`}
+                </span>
+              </div>
+
+              {error != null && (
+                <div className="fx-sp-body">
+                  <SpaceReadErrorPanel err={error} what={`${memberLabel}’s records`} />
+                </div>
+              )}
+              {/* Only claim the collection is empty once the host has actually
+                  run out; an in-flight first page is not an empty collection. */}
+              {error == null && records.length === 0 && done && (
+                <p className="fx-records-msg">No records in this collection.</p>
+              )}
+              {error == null && records.length === 0 && !done && (
+                <SkeletonRecordRows rows={6} />
+              )}
+              {records.length > 0 && visible.length === 0 && (
+                <p className="fx-records-msg">
+                  No loaded records match <code>{filter.trim()}</code>.
+                  {!done && ' Fetch more to search further.'}
+                </p>
+              )}
+
+              {visible.length > 0 && (
+                <ul className="fx-rec-list fx-sp-recs">
+                  <li className="fx-rec-head" aria-hidden>
+                    <span>Record key</span>
+                    <span>Preview</span>
                   </li>
-                ))}
-              </ul>
-            )}
+                  {visible.map((record) => (
+                    <li key={record.rkey} className="fx-rec-item">
+                      <Link
+                        href={`${collectionPath}/${encodeURIComponent(record.rkey)}`}
+                        prefetch={false}
+                        className="fx-rec-row"
+                      >
+                        <code className="fx-rec-key">{record.rkey}</code>
+                        <span className="fx-rec-text">{previewFor(record.value)}</span>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
           </AppearIn>
-        </>
-      )}
+        )}
+      </div>
     </div>
   );
-}
-
-function controlStyle(busy: boolean): React.CSSProperties {
-  return {
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: '0.4rem',
-    padding: '0.4rem 0.75rem',
-    background: 'var(--bg-tertiary)',
-    color: 'var(--text-secondary)',
-    border: '1px solid var(--border-medium)',
-    fontFamily: 'var(--font-serif)',
-    fontSize: '0.8125rem',
-    cursor: busy ? 'wait' : 'pointer',
-  };
 }

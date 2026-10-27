@@ -2,22 +2,26 @@
 
 import { useEffect, useMemo, useRef } from 'react';
 import Link from 'next/link';
-import { ChevronRight, Server, User } from 'lucide-react';
+import { Server, User } from 'lucide-react';
 import { encodeRepo, shortDid } from '@/utils/atproto/urls';
 import { SPACE_MARKER } from '@/utils/atproto/spaceUri';
 import { pdsHostname } from '@/utils/atproto/pdsServer';
 import { useBreadcrumbTrail, type BreadcrumbCrumb } from './BreadcrumbContext';
 import ShareLinkChip from './ShareLinkChip';
 
-// Approximate height of the sticky compact nav. The condensed breadcrumb
-// reveals the moment the full one slips up behind the nav, so the top ~96px
-// of the viewport counts as occluded when deciding "scrolled past".
-const NAV_OFFSET_PX = 96;
-// Dead band between the reveal and retract points. The condensed bar lives
-// inside the sticky nav, so showing it grows the nav and nudges the page
-// (and this breadcrumb) down; a band taller than the bar keeps that nudge
-// from carrying the breadcrumb back across the line and strobing the reveal.
-const REVEAL_HYSTERESIS_PX = 72;
+// The condensed breadcrumb reveals the moment the full one has slipped
+// entirely up behind the sticky header bar, so the bar's own bottom edge is
+// the line. It is measured on each check (56px on desktop, 52px on phones);
+// this is the fallback when the bar isn't in the DOM.
+const NAV_OFFSET_FALLBACK_PX = 56;
+const HEADER_BAR_SELECTOR = '.fn-header-bar';
+// Dead band between the reveal and retract points. The condensed strip
+// overlays the page rather than growing the nav, so revealing it moves
+// nothing; the band only has to absorb sub-pixel scroll positions. It used to
+// be 72px, to outlast a ~33px push from a strip that sat in flow, and on a
+// phone that put the retract line below where this breadcrumb sits at the
+// top of the page, so the strip never went away.
+const REVEAL_HYSTERESIS_PX = 4;
 
 type Props = {
   handle: string | null;
@@ -51,6 +55,14 @@ type Props = {
    * row. Path or full URL; bare paths get aturi.to prepended.
    */
   shareUrl?: string;
+  /**
+   * The page renders the last crumb itself, as its <h1> under this row (the
+   * Field Notes title bar). The visible row then stops one short and ends on
+   * a trailing separator; the condensed copy in the nav keeps the full trail.
+   */
+  titled?: boolean;
+  /** Drop the row's own bottom margin, for parents that space with `gap`. */
+  flush?: boolean;
 };
 
 /**
@@ -77,6 +89,8 @@ export default function Breadcrumb({
   author,
   authorHandle,
   shareUrl,
+  titled,
+  flush,
 }: Props) {
   const repoSegment = encodeRepo(handle || did);
   const repoLabel = handle ? `@${handle}` : did;
@@ -145,7 +159,7 @@ export default function Breadcrumb({
   }, [trail, setTrail]);
 
   // Reveal the condensed copy once this breadcrumb sits behind the sticky
-  // nav, and retract it only after scrolling well back up. Two thresholds (a
+  // nav, and retract it as soon as it comes back out. Two thresholds (a
   // dead band) rather than one keep the reveal from oscillating at the
   // boundary — see REVEAL_HYSTERESIS_PX. rAF-throttled, passive listeners.
   useEffect(() => {
@@ -155,13 +169,19 @@ export default function Breadcrumb({
     let shown = false;
     let frame = 0;
 
+    const navOffset = () => {
+      const bar = document.querySelector(HEADER_BAR_SELECTOR);
+      return bar ? bar.getBoundingClientRect().bottom : NAV_OFFSET_FALLBACK_PX;
+    };
+
     const evaluate = () => {
       frame = 0;
       const { bottom } = node.getBoundingClientRect();
-      if (!shown && bottom <= NAV_OFFSET_PX) {
+      const offset = navOffset();
+      if (!shown && bottom <= offset) {
         shown = true;
         setScrolledPast(true);
-      } else if (shown && bottom >= NAV_OFFSET_PX + REVEAL_HYSTERESIS_PX) {
+      } else if (shown && bottom >= offset + REVEAL_HYSTERESIS_PX) {
         shown = false;
         setScrolledPast(false);
       }
@@ -171,6 +191,10 @@ export default function Breadcrumb({
       if (!frame) frame = requestAnimationFrame(evaluate);
     };
 
+    // Start from "not scrolled past": the shared flag can still be true from
+    // the page this one replaced, which would open the strip at the top of
+    // a page whose own breadcrumb is in plain view.
+    setScrolledPast(false);
     evaluate();
     window.addEventListener('scroll', onScroll, { passive: true });
     window.addEventListener('resize', onScroll, { passive: true });
@@ -178,52 +202,31 @@ export default function Breadcrumb({
       window.removeEventListener('scroll', onScroll);
       window.removeEventListener('resize', onScroll);
       if (frame) cancelAnimationFrame(frame);
+      setScrolledPast(false);
     };
   }, [setScrolledPast]);
+
+  // With a title below the row, the last crumb is the title: show the trail
+  // up to it, each segment followed by its separator.
+  const visible = titled && trail.length > 1 ? trail.slice(0, -1) : trail;
 
   return (
     <nav
       ref={navRef}
       aria-label="Breadcrumb"
-      style={{
-        display: 'flex',
-        flexWrap: 'wrap',
-        alignItems: 'center',
-        gap: '0.5rem',
-        marginBottom: '1.5rem',
-        fontFamily: 'var(--font-mono)',
-        fontSize: '0.875rem',
-        color: 'var(--text-tertiary)',
-      }}
+      className="fx-crumbs"
+      style={{ marginBottom: titled || flush ? 0 : '1.5rem' }}
     >
       {/* Rendered straight off the mirrored trail so the visible row and its
           condensed twin can never drift apart as levels are added. A crumb
           without an href is terminal — today only a record key. */}
-      {trail.map((crumb, i) => (
-        <span
-          key={`${i}-${crumb.href ?? crumb.label}`}
-          style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', minWidth: 0 }}
-        >
-          {i > 0 && (
-            <ChevronRight size={14} aria-hidden style={{ color: 'var(--text-tertiary)' }} />
-          )}
+      {visible.map((crumb, i) => (
+        <span key={`${i}-${crumb.href ?? crumb.label}`} className="fx-crumb">
           {crumb.href ? (
             <Link
               href={crumb.href}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '0.3rem',
-                color: 'var(--text-primary)',
-                textDecoration: 'none',
-                transition: 'color 0.2s ease',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.color = 'var(--text-accent)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.color = 'var(--text-primary)';
-              }}
+              prefetch={false}
+              aria-current={!titled && i === visible.length - 1 ? 'page' : undefined}
             >
               {crumb.icon === 'server' && (
                 <Server size={12} aria-hidden style={{ opacity: 0.7 }} />
@@ -234,13 +237,24 @@ export default function Breadcrumb({
               {crumb.label}
             </Link>
           ) : (
-            <span style={{ color: 'var(--text-tertiary)' }}>{crumb.label}</span>
+            <span className="fx-crumb-here" aria-current="page">
+              {crumb.label}
+            </span>
+          )}
+          {/* Each separator rides after its crumb (the last one too when the
+              title below carries the final segment), so a row that wraps on
+              a phone ends a line on "/" and starts the next on a crumb, and
+              never leaves a separator alone on a line. */}
+          {(i < visible.length - 1 || visible.length < trail.length) && (
+            <span aria-hidden className="fx-crumb-sep">
+              /
+            </span>
           )}
         </span>
       ))}
 
       {shareUrl && (
-        <span style={{ marginLeft: 'auto' }}>
+        <span className="fx-crumbs-share">
           <ShareLinkChip url={shareUrl} />
         </span>
       )}

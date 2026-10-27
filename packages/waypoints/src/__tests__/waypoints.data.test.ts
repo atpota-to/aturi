@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
+  COMPAT_FAMILY_ORDER,
   WAYPOINT_DESTINATIONS_DATA,
   describeComposeIntent,
   getComposeIntentAppUrl,
@@ -212,6 +213,47 @@ describe('compose intents', () => {
         id: waypoint.id,
         intentOrigin: profileOrigin,
       });
+    }
+  });
+});
+
+describe('redirect compat families', () => {
+  /**
+   * The host a waypoint's links land on, probed rather than declared: the
+   * catalog stores URL builders, and some only answer for the collections they
+   * render (Offprint returns null without a record).
+   */
+  function hostOf(waypoint: (typeof WAYPOINT_DESTINATIONS_DATA)[string]): string | null {
+    const probes: Array<[string | undefined, string | undefined]> = [
+      [undefined, undefined],
+      ['app.bsky.feed.post', 'probe'],
+      ['site.standard.document', 'probe'],
+      ['com.example.probe', 'probe'],
+    ];
+    for (const [collection, rkey] of probes) {
+      const url = waypoint.getUrl('probe.example', collection, rkey, 'did:plc:probe');
+      if (url) return new URL(url).host;
+    }
+    return null;
+  }
+
+  it('gives each site one entry per family', () => {
+    // Both settings UIs list a family's members as the destinations you can
+    // favor, so two waypoints on the same host in the same family read as a
+    // duplicate — which is what listing Anisota (the Bluesky client) alongside
+    // Anisota Reader under Publications looked like. A site that plays two
+    // roles splits them by family: `anisota` is `bluesky-social`,
+    // `anisotaReader` is `standard-site`.
+    for (const family of COMPAT_FAMILY_ORDER) {
+      const byHost = new Map<string, string[]>();
+      for (const waypoint of Object.values(WAYPOINT_DESTINATIONS_DATA)) {
+        if (!waypoint.redirectCompat.includes(family)) continue;
+        const host = hostOf(waypoint);
+        if (!host) continue;
+        byHost.set(host, [...(byHost.get(host) ?? []), waypoint.id]);
+      }
+      const duplicates = [...byHost].filter(([, ids]) => ids.length > 1);
+      expect({ family, duplicates }).toEqual({ family, duplicates: [] });
     }
   });
 });

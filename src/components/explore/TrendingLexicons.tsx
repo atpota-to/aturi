@@ -22,11 +22,11 @@ import { formatCount } from '@/utils/ufos/format';
 import { namespaceKey, schemaPathFor, splitNsid } from '@/utils/ufos/nsid';
 import { WINDOWS, type Window } from '@/utils/ufos/windows';
 
-type Mode = 'top' | 'trending';
+export type Mode = 'top' | 'trending';
 
-const RESULT_COUNT = 10;
+export const RESULT_COUNT = 10;
 /** Row count after "Show more". */
-const EXPANDED_COUNT = 20;
+export const EXPANDED_COUNT = 20;
 /**
  * Pull more candidates than we'll display so the filter (drop app.bsky.*
  * in trending) + dedup (one row per top-2-segment namespace) still leaves
@@ -34,13 +34,24 @@ const EXPANDED_COUNT = 20;
  */
 const CANDIDATE_POOL_FACTOR = 5;
 
-type CollectionRow = {
+export type CollectionRow = {
   nsid: string;
   /** Metric value in the current window — what gets displayed in Top mode. */
   value: number;
   series: number[];
   /** % change vs the equivalent prior window; null when prior is 0 or unknown. */
   deltaPct: number | null;
+  /** Metric value in the prior window, when it was fetched (always for
+   * Trending; for Top only with `withPrior`). */
+  prior: number | null;
+};
+
+export type RankingOptions = {
+  /** Fetch a sparkline series per row (one request each). Default true. */
+  withSeries?: boolean;
+  /** In Top mode, also fetch the prior window so rows carry a delta.
+   * Trending always does. Default false. */
+  withPrior?: boolean;
 };
 
 /**
@@ -101,12 +112,7 @@ export default function TrendingLexicons({
 
   return (
     <AppearIn delay={0.12}>
-      <section
-        style={{
-          border: '1px solid var(--border-medium)',
-          background: 'var(--bg-secondary)',
-        }}
-      >
+      <section id="trending" className="fn-list-card" aria-labelledby="fn-trending-title">
         <Header
           mode={mode}
           setMode={setMode}
@@ -116,22 +122,19 @@ export default function TrendingLexicons({
           setWindow={setWindow}
           showExploreAllLink={showExploreAllLink}
         />
-        <div style={{ borderTop: '1px solid var(--border-subtle)' }}>
+        <div className="fn-list-card-body">
           {error ? (
-            <div className="explore-error" style={{ padding: '1rem' }}>
+            <div className="explore-error fn-list-card-msg">
               Couldn&rsquo;t reach the UFOs API: {error}
             </div>
           ) : visible ? (
             visible.length === 0 ? (
-              <p
-                className="explore-placeholder"
-                style={{ padding: '1rem', margin: 0 }}
-              >
+              <p className="explore-placeholder fn-list-card-msg">
                 No lexicons matched in this window.
               </p>
             ) : (
               <>
-                <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+                <ul className="fn-list-rows">
                   {visible.map((row, i) => (
                     <Row
                       key={row.nsid}
@@ -140,7 +143,6 @@ export default function TrendingLexicons({
                       mode={mode}
                       metric={metric}
                       window={window}
-                      isLast={i === visible.length - 1}
                     />
                   ))}
                 </ul>
@@ -186,61 +188,22 @@ function Header({
 }) {
   const Icon = mode === 'trending' ? Sparkles : BarChart3;
   return (
-    <div
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '0.625rem',
-        padding: '0.875rem 1rem',
-      }}
-    >
-      <div
-        style={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: '0.5rem',
-          fontFamily: 'var(--font-serif)',
-          color: 'var(--text-primary)',
-          fontSize: '0.9375rem',
-        }}
-      >
-        <Icon size={14} aria-hidden style={{ color: 'var(--text-accent)' }} />
-        {mode === 'trending' ? 'Trending lexicons' : 'Top lexicons'}
-        <span
-          style={{
-            marginLeft: '0.25rem',
-            fontSize: '0.7rem',
-            color: 'var(--text-tertiary)',
-            letterSpacing: '0.08em',
-            textTransform: 'uppercase',
-          }}
-        >
-          via UFOs
+    <div className="fn-list-card-head">
+      <div className="fn-list-card-title-row">
+        <span className="fn-list-card-icon" aria-hidden>
+          <Icon size={14} />
         </span>
+        <h2 id="fn-trending-title" className="fn-list-card-title">
+          {mode === 'trending' ? 'Trending lexicons' : 'Top lexicons'}
+        </h2>
+        <span className="fn-list-card-via">via UFOs</span>
         {showExploreAllLink && (
-          <Link
-            href="/explore/lexicons"
-            style={{
-              marginLeft: 'auto',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '0.2rem',
-              fontSize: '0.8125rem',
-              color: 'var(--text-accent)',
-              textDecoration: 'none',
-            }}
-          >
+          <Link href="/explore/lexicons" className="fn-list-card-headlink">
             Explore all <ArrowUpRight size={12} aria-hidden />
           </Link>
         )}
       </div>
-      <div
-        style={{
-          display: 'flex',
-          flexWrap: 'wrap',
-          gap: '0.5rem',
-        }}
-      >
+      <div className="fn-list-card-controls">
         <Segmented
           ariaLabel="View mode"
           options={[
@@ -276,25 +239,14 @@ function Header({
 /** Expand / collapse control under the table. */
 function ShowMore({ expanded, onToggle }: { expanded: boolean; onToggle: () => void }) {
   return (
-    <div style={{ padding: '0.75rem 1rem', borderTop: '1px solid var(--border-subtle)' }}>
-      <button
-        type="button"
-        onClick={onToggle}
-        aria-expanded={expanded}
-        style={{
-          width: '100%',
-          padding: '0.5rem',
-          background: 'var(--bg-tertiary)',
-          border: '1px solid var(--border-medium)',
-          color: 'var(--text-secondary)',
-          fontFamily: 'var(--font-serif)',
-          fontSize: '0.8125rem',
-          cursor: 'pointer',
-        }}
-      >
-        {expanded ? `Show top ${RESULT_COUNT}` : `Show top ${EXPANDED_COUNT}`}
-      </button>
-    </div>
+    <button
+      type="button"
+      onClick={onToggle}
+      aria-expanded={expanded}
+      className="fn-list-card-foot"
+    >
+      {expanded ? `Show top ${RESULT_COUNT}` : `Show top ${EXPANDED_COUNT}`}
+    </button>
   );
 }
 
@@ -310,14 +262,9 @@ function SkeletonRows({ mode, count }: { mode: Mode; count: number }) {
   // stack of identical bars.
   const nsidWidths = ['62%', '78%', '52%', '70%', '46%', '82%', '58%', '66%', '50%', '74%'];
   return (
-    <ul aria-hidden style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+    <ul aria-hidden className="fn-list-rows">
       {Array.from({ length: count }).map((_, i) => (
-        <li
-          key={i}
-          style={{
-            borderBottom: i === count - 1 ? undefined : '1px solid var(--border-subtle)',
-          }}
-        >
+        <li key={i}>
           <div className="lexicon-row-grid">
             <Skeleton width="1.25rem" height="0.75rem" />
             {/* Mirror the NSID cell: a single bar on wide screens, two
@@ -358,47 +305,22 @@ function Row({
   mode,
   metric,
   window,
-  isLast,
 }: {
   row: CollectionRow;
   rank: number;
   mode: Mode;
   metric: Metric;
   window: Window;
-  isLast: boolean;
 }) {
   return (
-    <li
-      style={{
-        borderBottom: isLast ? undefined : '1px solid var(--border-subtle)',
-      }}
-    >
+    <li>
       <Link
         href={schemaPathFor(row.nsid)}
+        prefetch={false}
         title={`Open the ${row.nsid} lexicon schema`}
-        className="lexicon-row-grid"
-        style={{
-          textDecoration: 'none',
-          color: 'var(--text-primary)',
-          transition: 'background 0.2s ease',
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.background = 'var(--bg-tertiary)';
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.background = 'transparent';
-        }}
+        className="lexicon-row-grid fn-row"
       >
-        <span
-          style={{
-            fontFamily: 'var(--font-mono)',
-            fontSize: '0.75rem',
-            color: 'var(--text-tertiary)',
-            fontVariantNumeric: 'tabular-nums',
-          }}
-        >
-          {rank.toString().padStart(2, '0')}
-        </span>
+        <span className="fn-row-rank">{rank}</span>
         <NsidLabel nsid={row.nsid} />
         <span className="lexicon-row-spark">
           <Sparkline
@@ -409,14 +331,7 @@ function Row({
         {mode === 'trending' ? (
           // Trending shows both the absolute count for the window and the
           // % change vs the prior window — count on top, delta below.
-          <span
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'flex-end',
-              gap: '0.2rem',
-            }}
-          >
+          <span className="fn-row-figures">
             <CountValue value={row.value} metric={metric} />
             <DeltaPill pct={row.deltaPct} />
           </span>
@@ -435,7 +350,7 @@ function Row({
  * stays readable instead of ellipsizing. The joining dot is a `::before` on
  * the tail so it only shows inline, not as a stray leading dot when stacked.
  */
-function NsidLabel({ nsid }: { nsid: string }) {
+export function NsidLabel({ nsid }: { nsid: string }) {
   const { head, tail } = splitNsid(nsid);
   return (
     <span className="lexicon-row-nsid" title={nsid}>
@@ -448,15 +363,8 @@ function NsidLabel({ nsid }: { nsid: string }) {
 function CountValue({ value, metric }: { value: number; metric: Metric }) {
   return (
     <span
+      className="fn-row-count"
       title={`${value.toLocaleString()} ${METRIC_LABEL[metric].toLowerCase()}`}
-      style={{
-        fontFamily: 'var(--font-mono)',
-        fontSize: '0.75rem',
-        color: 'var(--text-tertiary)',
-        fontVariantNumeric: 'tabular-nums',
-        whiteSpace: 'nowrap',
-        textAlign: 'right',
-      }}
     >
       {formatCount(value)}
     </span>
@@ -531,11 +439,12 @@ async function fetchSeries(
   return bucket.slice(-bucketCount).map((b) => statForMetric(b, metric));
 }
 
-async function fetchRanking(
+export async function fetchRanking(
   window: Window,
   mode: Mode,
   metric: Metric,
   resultCount: number,
+  { withSeries = true, withPrior = false }: RankingOptions = {},
 ): Promise<CollectionRow[]> {
   const cfg = WINDOWS[window];
   const sinceIso = isoAgo(cfg.hours);
@@ -559,34 +468,58 @@ async function fetchRanking(
   const filtered = filterAndDedup(candidates, mode);
   if (filtered.length === 0) return [];
 
-  // 3) Score by the chosen metric. /collections gives us creates +
-  //    dids_estimate directly; updates / deletes need a stats lookup.
-  const directlyAvailable = metric === 'creates' || metric === 'dids';
-  const currentMap = directlyAvailable
-    ? new Map(filtered.map((c) => [c.nsid, statForMetric(c, metric)]))
-    : await fetchStatsMetric(
-        filtered.map((c) => c.nsid),
-        sinceIso,
-        /* until */ new Date().toISOString(),
-        metric,
-      );
+  // 3) Score by the chosen metric, from /collections/stats. The ranked
+  //    listing carries creates and dids_estimate too, but reads low: in
+  //    October 2026, 22 of its top 50 by accounts over 7d were more than 1%
+  //    under what stats reports for the same window, one by 32%. Trending
+  //    compares against stats for the prior window, so taking the ranked
+  //    numbers here showed drops that never happened. Every pooled NSID had
+  //    activity, so an empty answer means the lookup failed; the ranked
+  //    numbers are then the best left for creates and dids.
+  const statsMap = await fetchStatsMetric(
+    filtered.map((c) => c.nsid),
+    sinceIso,
+    /* until */ new Date().toISOString(),
+    metric,
+  );
+  const currentMap =
+    statsMap.size === 0 && (metric === 'creates' || metric === 'dids')
+      ? new Map(filtered.map((c) => [c.nsid, statForMetric(c, metric)]))
+      : statsMap;
 
   if (mode === 'top') {
     const sorted = [...filtered].sort(
       (a, b) => (currentMap.get(b.nsid) ?? 0) - (currentMap.get(a.nsid) ?? 0),
     );
     const picked = sorted.slice(0, resultCount);
-    const series = await Promise.all(
-      picked.map((c) =>
-        fetchSeries(c.nsid, sinceIso, cfg.step, cfg.bucketCount, metric),
-      ),
-    );
-    return picked.map((c, i) => ({
-      nsid: c.nsid,
-      value: currentMap.get(c.nsid) ?? 0,
-      series: series[i],
-      deltaPct: null,
-    }));
+    const [series, priorTop] = await Promise.all([
+      withSeries
+        ? Promise.all(
+            picked.map((c) =>
+              fetchSeries(c.nsid, sinceIso, cfg.step, cfg.bucketCount, metric),
+            ),
+          )
+        : Promise.resolve(picked.map(() => [] as number[])),
+      withPrior && picked.length > 0
+        ? fetchStatsMetric(
+            picked.map((c) => c.nsid),
+            isoAgo(cfg.hours * 2),
+            sinceIso,
+            metric,
+          )
+        : Promise.resolve(null),
+    ]);
+    return picked.map((c, i) => {
+      const value = currentMap.get(c.nsid) ?? 0;
+      const prior = priorTop ? (priorTop.get(c.nsid) ?? 0) : null;
+      return {
+        nsid: c.nsid,
+        value,
+        series: series[i],
+        deltaPct: prior ? ((value - prior) / prior) * 100 : null,
+        prior,
+      };
+    });
   }
 
   // Trending: pull prior-window metric values, compute % change.
@@ -603,7 +536,7 @@ async function fetchRanking(
     const current = currentMap.get(c.nsid) ?? 0;
     const prior = priorMap.get(c.nsid) ?? 0;
     const deltaPct = prior > 0 ? ((current - prior) / prior) * 100 : null;
-    return { nsid: c.nsid, value: current, deltaPct };
+    return { nsid: c.nsid, value: current, deltaPct, prior };
   });
 
   // Rank by delta desc; null deltas (no prior data) sort to the back.
@@ -618,15 +551,18 @@ async function fetchRanking(
     })
     .slice(0, resultCount);
 
-  const series = await Promise.all(
-    ranked.map((c) =>
-      fetchSeries(c.nsid, sinceIso, cfg.step, cfg.bucketCount, metric),
-    ),
-  );
+  const series = withSeries
+    ? await Promise.all(
+        ranked.map((c) =>
+          fetchSeries(c.nsid, sinceIso, cfg.step, cfg.bucketCount, metric),
+        ),
+      )
+    : ranked.map(() => [] as number[]);
   return ranked.map((c, i) => ({
     nsid: c.nsid,
     value: c.value,
     series: series[i],
     deltaPct: c.deltaPct,
+    prior: c.prior,
   }));
 }

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import PostPreview from '@/components/PostPreview';
+import ProfileHeader from './ProfileHeader';
 import {
   MarginAnnotationPreview,
   MarginBookmarkPreview,
@@ -18,6 +19,7 @@ import {
   type PostThread,
 } from '@/utils/recordFetcher';
 import type { AtRecord } from '@/utils/atproto/pdsClient';
+import type { IdentityBundle } from '@/utils/atproto/identity';
 
 type Props = {
   handle: string;
@@ -26,26 +28,42 @@ type Props = {
   rkey: string;
   /** PDS-fetched record; the source for the margin previews. */
   record: AtRecord | null;
+  /** The repo's resolved identity (DID, handle, PDS) for the profile card. */
+  identity: IdentityBundle;
 };
 
 /**
- * Whether a record type has a "rich preview" card — a rendered view distinct
- * from the structured field table (RecordPreview). Posts get the Bluesky post
- * card; the at.margin.* lexicons get their bespoke cards. Generic records have
- * no such card: their rich view *is* the structured field table, so the
- * explorer skips the card section (and its toggle) entirely for them.
+ * The account's Bluesky profile record. Its lexicon keys it `literal:self`,
+ * and the card drawn for it is the AppView's view of the account rather than
+ * this record, so only the `self` record gets one. A record under any other
+ * rkey (only possible with validation off) would otherwise be shown as the
+ * account's real profile.
  */
-export function recordHasRichCard(collection: string): boolean {
+function isProfileRecord(collection: string, rkey: string): boolean {
+  return collection === 'app.bsky.actor.profile' && rkey === 'self';
+}
+
+/**
+ * Whether a record has a "rich preview" card — a rendered view distinct from
+ * the structured field table (RecordPreview). Posts get the Bluesky post card;
+ * the profile record gets the explorer's profile card; the at.margin.*
+ * lexicons get their bespoke cards. Generic records have no such card: their
+ * rich view *is* the structured field table, so the explorer skips the card
+ * section (and its toggle) entirely for them.
+ */
+export function recordHasRichCard(collection: string, rkey: string): boolean {
   if (collection === 'app.bsky.feed.post') return true;
+  if (isProfileRecord(collection, rkey)) return true;
   if (getMarginLexiconType(collection)) return true;
   return false;
 }
 
 /**
  * Renders ONLY the rich preview card for a record — the Bluesky post card for
- * posts (via the AppView thread, for author/embeds/counts), and the bespoke
- * at.margin.* cards for margin lexicons. Returns null for generic records (no
- * card) and while a post's thread is still loading.
+ * posts (via the AppView thread, for author/embeds/counts), the profile card
+ * for the profile record, and the bespoke at.margin.* cards for margin
+ * lexicons. Returns null for generic records (no card) and while a post's
+ * thread or the profile is still loading.
  *
  * The structured field table (RecordPreview) and the raw JSON are separate,
  * independently-toggleable sections that RecordExplorer renders alongside this
@@ -57,6 +75,7 @@ export default function RichRecordCard({
   collection,
   rkey,
   record,
+  identity,
 }: Props) {
   const marginType = getMarginLexiconType(collection);
   const isPost = collection === 'app.bsky.feed.post';
@@ -86,6 +105,14 @@ export default function RichRecordCard({
     const post = postThread?.thread[0]?.value.post;
     if (!post) return null;
     return <PostPreview post={post} parent={postThread?.parent} hideExplorerCtas />;
+  }
+
+  // The profile record's own universal link (`/profile/{handle}/
+  // app.bsky.actor.profile/self`) renders as a generic record, so the card's
+  // "View the universal link page →" is the one route out to the shareable
+  // profile page, the same way a post's card links to its post page.
+  if (isProfileRecord(collection, rkey)) {
+    return <ProfileHeader identity={identity} />;
   }
 
   if (!recordForLegacy) return null;

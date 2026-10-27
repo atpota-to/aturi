@@ -117,7 +117,7 @@ type DohAnswer = { name?: string; type?: number; data?: string };
  * TXT answers arrive quoted and may be split into several character strings,
  * so the quotes are stripped and the pieces joined before matching.
  */
-async function resolveLexiconDid(domain: string): Promise<string | null> {
+export async function resolveLexiconDid(domain: string): Promise<string | null> {
   const url = `${DOH_RESOLVER}?name=${encodeURIComponent(`_lexicon.${domain}`)}&type=TXT`;
   try {
     const res = await upstreamFetch(url, { headers: { accept: 'application/dns-json' } });

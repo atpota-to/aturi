@@ -1,14 +1,29 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import Link from 'next/link';
-import { ExternalLink, Globe, Heart, MessageSquare, Users } from 'lucide-react';
+import { ExternalLink } from 'lucide-react';
 import { getProfile, type AppViewProfile } from '@/utils/atproto/appview';
 import { getRecord } from '@/utils/atproto/pdsClient';
 import type { IdentityBundle } from '@/utils/atproto/identity';
+import ShareLinkChip from './ShareLinkChip';
 
 type Props = {
   identity: IdentityBundle;
+  /**
+   * False skips the AppView profile entirely (the visitor hid the rich
+   * preview) and renders only `children`, so the card still carries the
+   * technical identity rows.
+   */
+  showProfile?: boolean;
+  /**
+   * Rendered inside the same card under the profile — the explorer's
+   * DID / PDS list. With children, the card renders even for accounts with
+   * no Bluesky profile.
+   */
+  children?: ReactNode;
+  /** Adds an icon button beside "Open profile in…" that copies this link. */
+  shareUrl?: string;
 };
 
 type ProfileRecordExtras = {
@@ -17,7 +32,8 @@ type ProfileRecordExtras = {
 };
 
 /**
- * Profile header for the explore repo page. Pulls from two sources:
+ * Profile header for the explore repo page, and the rich preview card on the
+ * `app.bsky.actor.profile/self` record page. Pulls from two sources:
  *
  *   1. app.bsky.actor.getProfile (AppView) — gives us avatar URL, display
  *      name, description, pronouns, follower/post counts.
@@ -27,7 +43,12 @@ type ProfileRecordExtras = {
  * Either fetch failing is non-fatal: the header degrades to whatever it
  * has, and the identity row below it still renders the technical bits.
  */
-export default function ProfileHeader({ identity }: Props) {
+export default function ProfileHeader({
+  identity,
+  showProfile = true,
+  children,
+  shareUrl,
+}: Props) {
   const [profile, setProfile] = useState<AppViewProfile | null | undefined>(undefined);
   const [extras, setExtras] = useState<ProfileRecordExtras>({});
 
@@ -35,6 +56,7 @@ export default function ProfileHeader({ identity }: Props) {
     let cancelled = false;
     setProfile(undefined);
     setExtras({});
+    if (!showProfile) return undefined;
 
     getProfile(identity.did).then((p) => {
       if (cancelled) return;
@@ -63,18 +85,40 @@ export default function ProfileHeader({ identity }: Props) {
     return () => {
       cancelled = true;
     };
-  }, [identity.did, identity.pds]);
+  }, [identity.did, identity.pds, showProfile]);
 
-  // Don't render anything at all for non-Bluesky DIDs / accounts with no
-  // profile — the technical identity row below covers them.
-  if (profile === undefined) return null;
-  if (profile === null) return null;
+  const handle = identity.handle || profile?.handle;
+  const actions = (
+    // "Open profile in…" is the universal link page, where the visitor picks
+    // which client to open the profile in.
+    <div className="fx-acct-actions">
+      <Link
+        href={`/profile/${handle || identity.did}`}
+        prefetch={false}
+        className="fx-btn fx-btn-lg profile-explorer-link"
+      >
+        Open profile in…
+      </Link>
+      {shareUrl && <ShareLinkChip url={shareUrl} label="Copy universal link" iconOnly />}
+    </div>
+  );
+
+  // No profile to show (hidden, still loading, a non-Bluesky DID, or an
+  // account with no profile record): the card is just its children, when the
+  // caller gave it any.
+  const bare = children ? (
+    <section aria-label="Account" className="fx-card fx-acct">
+      {children}
+      {shareUrl && actions}
+    </section>
+  ) : null;
+
+  if (!showProfile || profile === undefined || profile === null) return bare;
 
   const displayName = profile.displayName?.trim();
   const description = profile.description?.trim();
   const pronouns = profile.pronouns?.trim() || extras.pronouns?.trim();
   const website = extras.website?.trim();
-  const handle = identity.handle || profile.handle;
   // Website resolution: prefer the explicit `website` field on the profile
   // record; otherwise fall back to `https://<handle>` when the handle looks
   // like a real domain. Many self-hosted handles (certified.app, dame.is,
@@ -90,243 +134,83 @@ export default function ProfileHeader({ identity }: Props) {
   // Bail entirely if there's nothing interesting to show — this is the
   // signal that this DID isn't a Bluesky-style account.
   if (!displayName && !description && !profile.avatar && !pronouns && !website) {
-    return null;
+    return bare;
   }
 
-  return (
-    <section
-      style={{
-        display: 'flex',
-        gap: '1.25rem',
-        alignItems: 'flex-start',
-        padding: '1.25rem',
-        border: '1px solid var(--border-medium)',
-        background: 'var(--bg-secondary)',
-        flexWrap: 'wrap',
-      }}
-    >
-      {profile.avatar && (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={profile.avatar}
-          alt={displayName || handle || ''}
-          width={72}
-          height={72}
-          style={{
-            width: '72px',
-            height: '72px',
-            objectFit: 'cover',
-            border: '1px solid var(--border-medium)',
-            flexShrink: 0,
-            background: 'var(--bg-tertiary)',
-          }}
-        />
-      )}
+  const initial = (displayName || handle || '?').replace(/^@/, '').charAt(0);
 
-      <div style={{ flex: '1 1 18rem', minWidth: 0 }}>
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'baseline',
-            flexWrap: 'wrap',
-            gap: '0.5rem 0.75rem',
-            marginBottom: '0.25rem',
-          }}
-        >
-          {displayName && (
-            <h2
-              style={{
-                margin: 0,
-                fontSize: '1.375rem',
-                fontWeight: 400,
-                color: 'var(--text-primary)',
-                lineHeight: 1.2,
-              }}
-            >
-              {displayName}
-            </h2>
-          )}
-          {pronouns && (
-            <span
-              style={{
-                fontSize: '0.75rem',
-                color: 'var(--text-tertiary)',
-                fontFamily: 'var(--font-serif)',
-                fontStyle: 'italic',
-              }}
-            >
-              {pronouns}
-            </span>
+  return (
+    <section aria-label="Account" className="fx-card fx-acct">
+      <div className="fx-acct-top">
+        {profile.avatar ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={profile.avatar}
+            alt={displayName || handle || ''}
+            width={44}
+            height={44}
+            className="fx-avatar"
+          />
+        ) : (
+          <div aria-hidden className="fx-avatar">
+            {initial}
+          </div>
+        )}
+        <div className="fx-acct-names">
+          <div className="fx-acct-name-row">
+            {displayName && <h2 className="fx-acct-name">{displayName}</h2>}
+            {pronouns && <span className="fx-acct-pronouns">{pronouns}</span>}
+          </div>
+          {handle && (
+            <div className="fx-acct-handle">
+              {websiteHref ? (
+                // Handle doubles as the website link when the profile has one.
+                // The trailing ExternalLink icon signals that the tap leaves
+                // the site, since the handle alone reads as an identifier.
+                <a
+                  href={websiteHref}
+                  target="_blank"
+                  rel="noreferrer noopener"
+                  title={websiteLabel ?? websiteHref}
+                >
+                  <span>@{handle}</span>
+                  <ExternalLink size={11} aria-hidden />
+                </a>
+              ) : (
+                <>@{handle}</>
+              )}
+            </div>
           )}
         </div>
-
-        {handle && (
-          <div
-            style={{
-              fontFamily: 'var(--font-mono)',
-              fontSize: '0.875rem',
-              color: 'var(--text-tertiary)',
-              marginBottom: description ? '0.75rem' : 0,
-              wordBreak: 'break-all',
-            }}
-          >
-            {websiteHref ? (
-              // Handle doubles as the website link when the profile has one.
-              // Trailing ExternalLink icon signals that the tap leaves the
-              // current site, since the handle text alone reads as an
-              // identifier (no underline / no obvious "link" affordance).
-              <a
-                href={websiteHref}
-                target="_blank"
-                rel="noreferrer noopener"
-                title={websiteLabel ?? websiteHref}
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'baseline',
-                  gap: '0.3rem',
-                  color: 'var(--text-accent)',
-                  textDecoration: 'none',
-                }}
-              >
-                <span>@{handle}</span>
-                <ExternalLink
-                  size={11}
-                  aria-hidden
-                  style={{
-                    color: 'var(--text-tertiary)',
-                    opacity: 0.7,
-                    flexShrink: 0,
-                    transform: 'translateY(1px)',
-                  }}
-                />
-              </a>
-            ) : (
-              <>@{handle}</>
-            )}
-          </div>
-        )}
-
-        {description && (
-          <p
-            style={{
-              margin: 0,
-              fontSize: '0.95rem',
-              lineHeight: 1.55,
-              color: 'var(--text-secondary)',
-              whiteSpace: 'pre-wrap',
-            }}
-          >
-            {description}
-          </p>
-        )}
-
-        {hasStats(profile) && (
-          <div
-            style={{
-              display: 'flex',
-              flexWrap: 'wrap',
-              alignItems: 'center',
-              gap: '1rem',
-              marginTop: '0.875rem',
-              fontSize: '0.8125rem',
-              color: 'var(--text-tertiary)',
-              // Collapse line-height so the row's icons align with their
-              // text midline — body's 1.7 line-height was inflating each
-              // span's box and floating the icons above center.
-              lineHeight: 1,
-            }}
-          >
-            {profile.followersCount != null && (
-              <Stat
-                icon={<Heart size={13} />}
-                value={profile.followersCount}
-                label="followers"
-              />
-            )}
-            {profile.followsCount != null && (
-              <Stat
-                icon={<Users size={13} />}
-                value={profile.followsCount}
-                label="following"
-              />
-            )}
-            {profile.postsCount != null && (
-              <Stat
-                icon={<MessageSquare size={13} />}
-                value={profile.postsCount}
-                label="posts"
-              />
-            )}
-          </div>
-        )}
       </div>
 
-      {/* Inverse of the universal link page's "View repo in the Explorer →"
-          CTA: a quiet text link at the foot of the preview back out to the
-          shareable universal link page for this profile. */}
-      <div
-        style={{
-          flexBasis: '100%',
-          paddingTop: '1rem',
-          borderTop: '1px solid var(--border-subtle)',
-          fontSize: '0.8125rem',
-        }}
-      >
-        <Link
-          href={`/profile/${handle || identity.did}`}
-          className="profile-explorer-link"
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '0.4rem',
-            textDecoration: 'none',
-          }}
-        >
-          <Globe size={12} />
-          View the universal link page →
-        </Link>
-      </div>
+      {description && <p className="fx-acct-bio">{description}</p>}
+
+      {hasStats(profile) && (
+        <div className="fx-stats">
+          {profile.followersCount != null && (
+            <Stat value={profile.followersCount} label="followers" />
+          )}
+          {profile.followsCount != null && (
+            <Stat value={profile.followsCount} label="following" />
+          )}
+          {profile.postsCount != null && <Stat value={profile.postsCount} label="posts" />}
+        </div>
+      )}
+
+      {children}
+
+      {actions}
     </section>
   );
 }
 
-function Stat({
-  icon,
-  value,
-  label,
-}: {
-  icon: React.ReactNode;
-  value: number;
-  label: string;
-}) {
+function Stat({ value, label }: { value: number; label: string }) {
   return (
-    <span
-      style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: '0.35rem',
-        lineHeight: 1,
-      }}
-    >
-      <span
-        style={{
-          color: 'var(--text-tertiary)',
-          display: 'inline-flex',
-          alignItems: 'center',
-        }}
-      >
-        {icon}
-      </span>
-      <span
-        style={{
-          fontVariantNumeric: 'tabular-nums',
-          color: 'var(--text-primary)',
-        }}
-      >
-        {value.toLocaleString()}
-      </span>
-      <span>{label}</span>
-    </span>
+    <div className="fx-stat">
+      <span className="fx-stat-value">{value.toLocaleString()}</span>
+      <span className="fx-stat-label">{label}</span>
+    </div>
   );
 }
 

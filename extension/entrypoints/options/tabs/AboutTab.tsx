@@ -28,16 +28,18 @@ export default function AboutTab() {
   const version = getExtensionVersion();
 
   return (
-    <div>
-      <h1 className="options-h1">About</h1>
-      <p className="options-lede">
-        Aturi makes Atmosphere links shareable with anyone. Drop a person an
-        Aturi link and they pick the client they prefer (Bluesky, Anisota,
-        Leaflet, Red Dwarf, and more) instead of being locked into yours.
-      </p>
+    <div className="options-page">
+      <div className="options-page-head">
+        <h1 className="options-h1">About</h1>
+        <p className="options-lede">
+          Aturi makes Atmosphere links shareable with anyone. Drop a person an
+          Aturi link and they pick the client they prefer (Bluesky, Anisota,
+          Leaflet, Red Dwarf, and more) instead of being locked into yours.
+        </p>
+      </div>
 
       <div className="options-card">
-        <div className="options-card-title">Aturi</div>
+        <h2 className="options-card-title">Aturi</h2>
         <div className="options-card-sub">
           Tour the Atmosphere. The web app and this extension are part of the
           same project. The extension is a quick way to jump between
@@ -69,7 +71,7 @@ export default function AboutTab() {
       </div>
 
       <div className="options-card">
-        <div className="options-card-title">People</div>
+        <h2 className="options-card-title">People</h2>
         <div className="options-card-sub">
           Aturi is built by Dame and stewarded under the @{STEWARD_HANDLE}{' '}
           umbrella on the Atmosphere. Give them a follow for updates, releases,
@@ -98,7 +100,7 @@ export default function AboutTab() {
       </div>
 
       <div className="options-card">
-        <div className="options-card-title">Feedback</div>
+        <h2 className="options-card-title">Feedback</h2>
         <div className="options-card-sub">
           Found a bug, want to suggest a new waypoint, or have an idea for the
           popup? File an issue or open a pull request on GitHub. Aturi is

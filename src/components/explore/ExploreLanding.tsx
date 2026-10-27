@@ -2,11 +2,11 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { ArrowUpRight, Cloud, Gauge, Pin, Telescope, User } from 'lucide-react';
+import { BookOpen, ChevronRight, Cloud, Gauge, Layers, Pin, Plug, User } from 'lucide-react';
 import AppearIn from './AppearIn';
 import SearchBox from './SearchBox';
 import JetstreamFeed from './JetstreamFeed';
-import TrendingLexicons from './TrendingLexicons';
+import AtmospherePulse from './lexicons/AtmospherePulse';
 import CrossLinkCards from '@/components/landing/CrossLinkCards';
 import FeatureSection from '@/components/landing/FeatureSection';
 import PinnedLexiconsVisual from '@/components/landing/PinnedLexiconsVisual';
@@ -17,6 +17,14 @@ import { getProfile, type AppViewProfile } from '@/utils/atproto/appview';
 import { encodeRepo } from '@/utils/atproto/urls';
 
 const SUGGESTIONS = ['dame.is', 'anisota.net', 'aturi.to', 'atpota.to'];
+
+/** Other ways into the explorer. All three are static pages, so they keep
+ * Next's default prefetch. */
+const TILES = [
+  { href: '/explore/lexicons', title: 'Lexicons', desc: 'Search every record type', Icon: BookOpen },
+  { href: '/explore/spaces', title: 'Spaces', desc: 'Browse shared spaces', Icon: Layers },
+  { href: '/mcp', title: 'MCP server', desc: 'Read-only tools for your AI', Icon: Plug },
+];
 
 export default function ExploreLanding() {
   const { did } = useAtprotoSession();
@@ -47,119 +55,61 @@ export default function ExploreLanding() {
     : SUGGESTIONS;
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '2.5rem' }}>
+    <div className="fn-explore">
       <AppearIn rise>
-      <header>
-        <div
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '0.5rem',
-            padding: '0.25rem 0.625rem',
-            border: '1px solid var(--border-subtle)',
-            background: 'var(--bg-tertiary)',
-            color: 'var(--text-tertiary)',
-            fontSize: '0.75rem',
-            letterSpacing: '0.08em',
-            textTransform: 'uppercase',
-            fontFamily: 'var(--font-serif)',
-            marginBottom: '1.25rem',
-          }}
-        >
-          <Telescope size={12} /> Atmosphere data explorer
-        </div>
-        <h1
-          style={{
-            fontSize: '2.5rem',
-            fontWeight: 300,
-            marginBottom: '0.75rem',
-            color: 'var(--text-primary)',
-          }}
-        >
-          Browse any repository.
-        </h1>
-        <p
-          style={{
-            fontSize: '1.05rem',
-            lineHeight: 1.6,
-            color: 'var(--text-secondary)',
-            maxWidth: '38rem',
-            marginBottom: '2rem',
-          }}
-        >
-          Every account in the Atmosphere keeps its records in a public PDS.
-          Browse collections, inspect identity history, follow backlinks, and
-          edit your own records, all from the browser.
-        </p>
-        <SearchBox />
-        <div
-          style={{
-            display: 'flex',
-            flexWrap: 'wrap',
-            alignItems: 'center',
-            gap: '0.5rem',
-            fontSize: '0.85rem',
-            color: 'var(--text-tertiary)',
-          }}
-        >
-          <span>Try:</span>
-          {myRepo && (
-            <Link
-              key={myRepo}
-              href={`/explore/${encodeRepo(myRepo)}`}
-              title="Your repo"
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '0.3rem',
-                fontFamily: 'var(--font-mono)',
-                color: 'var(--text-accent)',
-                padding: '0.125rem 0.5rem',
-                border: '1px solid var(--text-accent)',
-                background: 'var(--bg-tertiary)',
-                textDecoration: 'none',
-              }}
-            >
-              <User size={11} aria-hidden /> {myRepo}
-            </Link>
-          )}
-          {otherSuggestions.map((s) => (
-            <Link
-              key={s}
-              href={`/explore/${s}`}
-              style={{
-                fontFamily: 'var(--font-mono)',
-                color: 'var(--text-accent)',
-                padding: '0.125rem 0.5rem',
-                border: '1px solid var(--border-subtle)',
-                textDecoration: 'none',
-              }}
-            >
-              {s}
+        <header className="fn-x-intro" aria-labelledby="fn-x-title">
+          <div className="fn-x-intro-copy">
+            <span className="fn-kicker">Atmosphere explorer</span>
+            <h1 id="fn-x-title">Browse any repository</h1>
+            <p>
+              Every account in the Atmosphere keeps its records in a public PDS.
+              Browse collections, inspect identity history, follow backlinks, and
+              edit your own records, all from the browser.
+            </p>
+          </div>
+          <div className="fn-x-intro-search">
+            <SearchBox />
+            <div className="fn-x-tries">
+              <span>Try</span>
+              {myRepo && (
+                <Link
+                  key={myRepo}
+                  href={`/explore/${encodeRepo(myRepo)}`}
+                  prefetch={false}
+                  title="Your repo"
+                  className="fn-chip fn-chip-mine"
+                >
+                  <User size={12} aria-hidden /> {myRepo}
+                </Link>
+              )}
+              {otherSuggestions.map((s) => (
+                <Link key={s} href={`/explore/${s}`} prefetch={false} className="fn-chip">
+                  {s}
+                </Link>
+              ))}
+            </div>
+          </div>
+        </header>
+      </AppearIn>
+
+      <AppearIn delay={0.06}>
+        <nav aria-label="More ways in" className="fn-x-tiles">
+          {TILES.map(({ href, title, desc, Icon }) => (
+            <Link key={href} href={href} className="fn-x-tile">
+              <span aria-hidden className="fn-x-tile-icon">
+                <Icon size={18} />
+              </span>
+              <span className="fn-x-tile-text">
+                <span className="fn-x-tile-title">{title}</span>
+                <span className="fn-x-tile-desc">{desc}</span>
+              </span>
+              <ChevronRight size={16} aria-hidden className="fn-x-tile-chev" />
             </Link>
           ))}
-        </div>
-      </header>
+        </nav>
       </AppearIn>
 
-      <TrendingLexicons />
-
-      <AppearIn delay={0.14}>
-        <Link
-          href="/explore/lexicons"
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '0.3rem',
-            fontFamily: 'var(--font-mono)',
-            fontSize: '0.85rem',
-            color: 'var(--text-accent)',
-            textDecoration: 'none',
-          }}
-        >
-          Explore all lexicons <ArrowUpRight size={13} aria-hidden />
-        </Link>
-      </AppearIn>
+      <AtmospherePulse />
 
       {/* Feature spotlights — what the Explorer does that other AT
           Protocol browsers don't. */}

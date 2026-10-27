@@ -160,7 +160,6 @@ export async function GET(request: NextRequest) {
                   flexShrink: 0,
                   background: OG_COLORS.bgTertiary,
                   border: `1px solid ${OG_COLORS.borderAccent}`,
-                  boxShadow: '0 0 50px rgba(138, 154, 127, 0.16)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',

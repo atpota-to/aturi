@@ -8,6 +8,8 @@ type Props = {
   label: string;
   compact?: boolean;
   variant?: 'default' | 'subtle';
+  /** Glyph only; the label stays as the accessible name and tooltip. */
+  iconOnly?: boolean;
 };
 
 async function writeToClipboard(text: string): Promise<void> {
@@ -30,7 +32,13 @@ async function writeToClipboard(text: string): Promise<void> {
   }
 }
 
-export default function CopyButton({ value, label, compact = false, variant = 'default' }: Props) {
+export default function CopyButton({
+  value,
+  label,
+  compact = false,
+  variant = 'default',
+  iconOnly = false,
+}: Props) {
   const [copied, setCopied] = useState(false);
 
   async function onClick() {
@@ -39,37 +47,20 @@ export default function CopyButton({ value, label, compact = false, variant = 'd
     window.setTimeout(() => setCopied(false), 1400);
   }
 
-  const isSubtle = variant === 'subtle';
   return (
     <button
       type="button"
       onClick={onClick}
       title={copied ? 'Copied!' : label}
       aria-label={copied ? `${label} copied` : label}
-      style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: '0.4rem',
-        padding: compact ? '0.25rem 0.5rem' : '0.4rem 0.75rem',
-        background: isSubtle ? 'transparent' : 'var(--bg-tertiary)',
-        border: '1px solid var(--border-subtle)',
-        color: copied ? 'var(--text-accent)' : 'var(--text-secondary)',
-        fontFamily: 'var(--font-mono)',
-        fontSize: compact ? '0.75rem' : '0.8125rem',
-        cursor: 'pointer',
-        transition: 'color 0.2s ease, border-color 0.2s ease',
-      }}
-      onMouseEnter={(e) => {
-        e.currentTarget.style.color = 'var(--text-primary)';
-        e.currentTarget.style.borderColor = 'var(--border-medium)';
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.color = copied ? 'var(--text-accent)' : 'var(--text-secondary)';
-        e.currentTarget.style.borderColor = 'var(--border-subtle)';
-      }}
+      className="fx-copy"
+      data-size={compact ? undefined : 'lg'}
+      data-variant={variant}
+      data-icon-only={iconOnly || undefined}
+      data-copied={copied || undefined}
     >
-      {copied ? <Check size={compact ? 12 : 14} /> : <Copy size={compact ? 12 : 14} />}
-      <span>{copied ? 'Copied' : label}</span>
+      {copied ? <Check size={compact ? 12 : 14} aria-hidden /> : <Copy size={compact ? 12 : 14} aria-hidden />}
+      {!iconOnly && <span>{copied ? 'Copied' : label}</span>}
     </button>
   );
 }

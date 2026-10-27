@@ -22,6 +22,21 @@ import type { ReactNode } from 'react';
 export const runtime = 'edge';
 export const revalidate = 3600;
 
+// ─── CDN lifetimes ──────────────────────────────────────────────────────────
+// Every render is a function invocation, and a render costs real CPU, so
+// each kind of card stays in Vercel's CDN as long as its content allows.
+// Vercel keys that cache on the deployment, so a deploy starts every card
+// fresh and design changes never wait on these.
+//
+// Lexicon, namespace, PDS, and fallback cards are built from the URL alone,
+// so nothing short of a deploy can change them.
+const CDN_MAX_AGE_STATIC = 60 * 60 * 24 * 365;
+// Repo cards show a handle and a PDS host, which change rarely.
+const CDN_MAX_AGE_RESOLVED = 60 * 60 * 24;
+// A repo card whose identity lookup failed or timed out shows a bare DID and
+// no PDS. Keep that one short so a slow plc.directory doesn't pin it.
+const CDN_MAX_AGE_DEGRADED = 60 * 60;
+
 // ─── Identity resolution ────────────────────────────────────────────────────
 // Best-effort, PDS-agnostic resolution so the card names the account the way
 // the app does (@handle, not a raw DID). Every step is guarded; we render with
@@ -246,6 +261,9 @@ export async function GET(request: NextRequest) {
     const isLink = searchParams.get('context') === 'link';
 
     let card: Card | null = null;
+    // How long Vercel's CDN may keep the rendered card. See the response
+    // headers below for why each kind of card gets the lifetime it does.
+    let cdnMaxAge = CDN_MAX_AGE_STATIC;
 
     if (hostParam && !repo) {
       card = {
@@ -274,6 +292,9 @@ export async function GET(request: NextRequest) {
       } finally {
         clearTimeout(timeoutId);
       }
+      // pdsHost only lands once the DID document was read, so its absence
+      // means resolution fell short and the card is the degraded one.
+      cdnMaxAge = resolved.pdsHost ? CDN_MAX_AGE_RESOLVED : CDN_MAX_AGE_DEGRADED;
 
       const handle = resolved.handle
         ? `@${resolved.handle}`
@@ -410,9 +431,10 @@ export async function GET(request: NextRequest) {
         { name: 'IBM Plex Mono', data: monoData, weight: 500, style: 'normal' },
       ],
       headers: {
-        // Explore cards show live repo data — cache for an hour, not
-        // @vercel/og's immutable year.
-        'Cache-Control': 'public, max-age=3600, s-maxage=3600, stale-while-revalidate=86400',
+        // Not @vercel/og's immutable year: clients and downstream caches
+        // keep an hour. The CDN lifetime varies by card (see the constants
+        // at the top of the route).
+        'Cache-Control': `public, max-age=3600, s-maxage=${cdnMaxAge}, stale-while-revalidate=86400`,
       },
     });
   } catch (error) {

@@ -1,7 +1,7 @@
 'use client';
 
-import { useMemo } from 'react';
-import { ArrowDownRight, ArrowUpRight } from 'lucide-react';
+import { Fragment, useMemo } from 'react';
+import { ArrowDownRight, ArrowUpRight, ExternalLink } from 'lucide-react';
 import { formatPct } from '@/utils/ufos/format';
 
 /**
@@ -69,9 +69,36 @@ export function Sparkline({
           strokeWidth={strokeWidth}
           strokeLinecap="round"
           strokeLinejoin="round"
+          // A stretched viewBox would otherwise stretch the stroke with it.
+          vectorEffect="non-scaling-stroke"
         />
       )}
     </svg>
+  );
+}
+
+// ─── NSID ───────────────────────────────────────────────────────────────────
+
+/**
+ * An NSID with a break opportunity after every dot, so a long one wraps at a
+ * segment boundary on a phone rather than being cut mid-word or ending in an
+ * ellipsis that hides the one segment that tells two apart.
+ */
+export function Nsid({ value }: { value: string }) {
+  const segments = value.split('.');
+  return (
+    <>
+      {segments.map((seg, i) => (
+        <Fragment key={i}>
+          {i > 0 && (
+            <>
+              .<wbr />
+            </>
+          )}
+          {seg}
+        </Fragment>
+      ))}
+    </>
   );
 }
 
@@ -89,16 +116,7 @@ export function Segmented<T extends string>({
   onChange: (v: T) => void;
 }) {
   return (
-    <div
-      role="group"
-      aria-label={ariaLabel}
-      style={{
-        display: 'inline-flex',
-        border: '1px solid var(--border-medium)',
-        background: 'var(--bg-tertiary)',
-        padding: '2px',
-      }}
-    >
+    <div role="group" aria-label={ariaLabel} className="fn-segmented">
       {options.map(({ value: v, label }) => {
         const active = v === value;
         return (
@@ -107,16 +125,7 @@ export function Segmented<T extends string>({
             type="button"
             onClick={() => v !== value && onChange(v)}
             aria-pressed={active}
-            style={{
-              padding: '0.3rem 0.7rem',
-              background: active ? 'var(--accent-moss)' : 'transparent',
-              color: active ? 'var(--text-on-accent)' : 'var(--text-secondary)',
-              border: 0,
-              fontFamily: 'var(--font-serif)',
-              fontSize: '0.8125rem',
-              cursor: active ? 'default' : 'pointer',
-              transition: 'background 0.15s ease, color 0.15s ease',
-            }}
+            className="fn-segmented-option"
           >
             {label}
           </button>
@@ -133,7 +142,7 @@ export function DeltaPill({ pct }: { pct: number | null }) {
     return (
       <span
         style={{
-          fontFamily: 'var(--font-mono)',
+          fontFamily: 'var(--font-sans)',
           fontSize: '0.75rem',
           color: 'var(--text-tertiary)',
           textAlign: 'right',
@@ -153,7 +162,7 @@ export function DeltaPill({ pct }: { pct: number | null }) {
         alignItems: 'center',
         justifyContent: 'flex-end',
         gap: '0.25rem',
-        fontFamily: 'var(--font-mono)',
+        fontFamily: 'var(--font-sans)',
         fontSize: '0.75rem',
         color,
         fontVariantNumeric: 'tabular-nums',
@@ -166,32 +175,39 @@ export function DeltaPill({ pct }: { pct: number | null }) {
   );
 }
 
+// ─── App site link ──────────────────────────────────────────────────────────
+
+/**
+ * Outbound button to the site a namespace's app most likely lives at (see
+ * `appDomainFor`). Sized to sit beside the detail page's "View schema record"
+ * button. The domain is inferred from the NSID, so the tooltip says so.
+ */
+export function AppSiteLink({ domain }: { domain: string }) {
+  return (
+    <a
+      href={`https://${domain}`}
+      target="_blank"
+      rel="noopener noreferrer"
+      title={`${domain}, inferred from the NSID`}
+      className="fn-btn"
+    >
+      <ExternalLink size={13} aria-hidden /> Visit {domain}
+    </a>
+  );
+}
+
 // ─── microcosm.blue credit ──────────────────────────────────────────────────
 
-export function Credit() {
+/**
+ * `standalone` for a page's closing caption rather than a card's footer: the
+ * same line without the rule and padding a footer carries, so it doesn't need
+ * a card of its own to sit in.
+ */
+export function Credit({ standalone = false }: { standalone?: boolean }) {
   return (
-    <div
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'flex-end',
-        gap: '0.4rem',
-        padding: '0.625rem 1rem',
-        borderTop: '1px solid var(--border-subtle)',
-        fontSize: '0.7rem',
-        color: 'var(--text-tertiary)',
-        letterSpacing: '0.06em',
-        textTransform: 'uppercase',
-        fontFamily: 'var(--font-serif)',
-      }}
-    >
+    <div className={standalone ? 'fn-credit fn-credit-standalone' : 'fn-credit'}>
       <span>Data from</span>
-      <a
-        href="https://www.microcosm.blue"
-        target="_blank"
-        rel="noopener noreferrer"
-        style={{ color: 'var(--text-accent)', textDecoration: 'none' }}
-      >
+      <a href="https://www.microcosm.blue" target="_blank" rel="noopener noreferrer">
         microcosm.blue
       </a>
     </div>

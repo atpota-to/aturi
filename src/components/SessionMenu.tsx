@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import { ChevronDown, LogIn, LogOut, Settings, Telescope, User } from 'lucide-react';
+import { ChevronDown, LogOut, Settings, Telescope, User } from 'lucide-react';
 import { useAtprotoSession } from './AtprotoSessionProvider';
 import HandleTypeaheadInput from './oauth/HandleTypeaheadInput';
 import ScopeSelector from './oauth/ScopeSelector';
@@ -61,9 +61,9 @@ export default function SessionMenu({ variant = 'inline' }: { variant?: Variant 
           onClick={() => (open ? closePopover() : setOpen(true))}
           aria-expanded={open}
           aria-haspopup="dialog"
+          className="fn-session-trigger"
           style={triggerButtonStyle(variant)}
         >
-          <LogIn size={variant === 'inline' ? 14 : 12} />
           <span>Sign in</span>
         </button>
         {open && step === 'handle' && (
@@ -105,6 +105,7 @@ export default function SessionMenu({ variant = 'inline' }: { variant?: Variant 
         aria-expanded={open}
         aria-haspopup="menu"
         title={handle || ''}
+        className="fn-session-trigger"
         style={pillStyle(variant)}
       >
         {avatar ? (
@@ -112,20 +113,21 @@ export default function SessionMenu({ variant = 'inline' }: { variant?: Variant 
           <img
             src={avatar}
             alt=""
-            width={20}
-            height={20}
-            style={{ width: 20, height: 20, objectFit: 'cover', flexShrink: 0 }}
+            width={26}
+            height={26}
+            style={{ width: 26, height: 26, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }}
           />
         ) : (
           <span
             style={{
-              width: 20,
-              height: 20,
+              width: 26,
+              height: 26,
+              borderRadius: '50%',
               display: 'inline-flex',
               alignItems: 'center',
               justifyContent: 'center',
-              background: 'var(--bg-tertiary)',
-              color: 'var(--text-tertiary)',
+              background: 'var(--accent-soft)',
+              color: 'var(--accent-soft-fg)',
               flexShrink: 0,
             }}
           >
@@ -148,7 +150,7 @@ export default function SessionMenu({ variant = 'inline' }: { variant?: Variant 
       {open && did && (
         <div role="menu" style={menuStyle()}>
           <div style={menuHeaderStyle()}>
-            <div style={{ fontSize: '0.875rem', color: 'var(--text-primary)' }}>
+            <div style={{ fontSize: '0.9375rem', fontWeight: 700, color: 'var(--text-primary)' }}>
               {displayName}
             </div>
             <div
@@ -180,6 +182,8 @@ export default function SessionMenu({ variant = 'inline' }: { variant?: Variant 
               setOpen(false);
               await signOut();
             }}
+            className="fn-session-item"
+            data-danger=""
             style={menuItemStyle({ danger: true })}
           >
             <LogOut size={13} />
@@ -209,7 +213,7 @@ function SignInPopover({
   return (
     <div role="dialog" aria-label="Sign in to Aturi" style={menuStyle({ width: '20rem' })}>
       <div style={menuHeaderStyle()}>
-        <div style={{ fontSize: '0.875rem', color: 'var(--text-primary)' }}>
+        <div style={{ fontSize: '0.9375rem', fontWeight: 700, color: 'var(--text-primary)' }}>
           Sign in with your atproto handle
         </div>
         <div style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>
@@ -230,9 +234,12 @@ function SignInPopover({
           disabled={busy}
           inputStyle={{
             width: '100%',
-            padding: '0.5rem 0.625rem',
-            background: 'var(--bg-tertiary)',
-            border: '1px solid var(--border-medium)',
+            height: 36,
+            boxSizing: 'border-box',
+            padding: '0 0.75rem',
+            background: 'var(--surface-subtle)',
+            border: '1px solid var(--border-strong)',
+            borderRadius: 'var(--radius-control)',
             color: 'var(--text-primary)',
             fontFamily: 'var(--font-mono)',
             fontSize: '0.8125rem',
@@ -245,12 +252,15 @@ function SignInPopover({
           style={{
             marginTop: '0.5rem',
             width: '100%',
-            padding: '0.5rem',
+            height: 36,
+            padding: '0 0.875rem',
             background: 'var(--accent-moss)',
             color: 'var(--text-on-accent)',
             border: '1px solid var(--accent-moss)',
-            fontFamily: 'var(--font-serif)',
+            borderRadius: 'var(--radius-control)',
+            fontFamily: 'var(--font-sans)',
             fontSize: '0.875rem',
+            fontWeight: 600,
             cursor: busy ? 'wait' : 'pointer',
             opacity: busy || !value.trim() ? 0.6 : 1,
           }}
@@ -279,7 +289,9 @@ function MenuLink({
   onClick: () => void;
 }) {
   return (
-    <Link href={href} onClick={onClick} style={menuItemStyle()}>
+    // `prefetch={false}`: a row in a popover the reader has to open first, so
+    // there is nothing to warm until they do.
+    <Link href={href} prefetch={false} onClick={onClick} className="fn-session-item" style={menuItemStyle()}>
       {icon}
       <span>{label}</span>
     </Link>
@@ -289,60 +301,76 @@ function MenuLink({
 // ─── Style helpers ─────────────────────────────────────────────────────────
 
 function triggerButtonStyle(variant: Variant): React.CSSProperties {
-  const base: React.CSSProperties = {
+  return {
     display: 'inline-flex',
     alignItems: 'center',
     gap: '0.375rem',
-    background: 'var(--bg-tertiary)',
-    border: '1px solid var(--border-subtle)',
-    color: 'var(--text-secondary)',
-    fontFamily: 'var(--font-serif)',
+    height: 36,
+    padding: variant === 'inline' ? '0 1rem' : '0 0.875rem',
+    boxSizing: 'border-box',
+    background: 'var(--bg-secondary)',
+    border: '1px solid var(--border-strong)',
+    borderRadius: 'var(--radius-control)',
+    color: 'var(--text-primary)',
+    fontFamily: 'var(--font-sans)',
+    fontSize: '0.875rem',
+    fontWeight: 600,
+    whiteSpace: 'nowrap',
     cursor: 'pointer',
-    transition: 'border-color 0.2s ease, color 0.2s ease',
+    transition: 'border-color 0.15s ease, background 0.15s ease',
   };
-  if (variant === 'inline') {
-    return { ...base, padding: '0.5rem 0.875rem', fontSize: '0.95rem' };
-  }
-  return { ...base, padding: '0.35rem 0.625rem', fontSize: '0.8125rem' };
 }
 
 function pillStyle(variant: Variant): React.CSSProperties {
-  const base: React.CSSProperties = {
+  return {
     display: 'inline-flex',
     alignItems: 'center',
-    gap: '0.4rem',
-    padding: variant === 'inline' ? '0.4rem 0.625rem' : '0.3rem 0.5rem',
-    background: 'var(--bg-tertiary)',
-    border: '1px solid var(--border-subtle)',
-    color: 'var(--text-secondary)',
-    fontFamily: 'var(--font-serif)',
-    fontSize: variant === 'inline' ? '0.9rem' : '0.8125rem',
+    gap: '0.5rem',
+    height: 36,
+    padding: variant === 'inline' ? '0 0.75rem 0 0.3rem' : '0 0.625rem 0 0.3rem',
+    boxSizing: 'border-box',
+    background: 'var(--bg-secondary)',
+    border: '1px solid var(--border-strong)',
+    borderRadius: 'var(--radius-control)',
+    color: 'var(--text-primary)',
+    fontFamily: 'var(--font-sans)',
+    fontSize: '0.875rem',
+    fontWeight: 600,
     cursor: 'pointer',
-    transition: 'border-color 0.2s ease, color 0.2s ease',
+    transition: 'border-color 0.15s ease, background 0.15s ease',
   };
-  return base;
 }
 
 function menuStyle(extra?: React.CSSProperties): React.CSSProperties {
   return {
     position: 'absolute',
-    top: 'calc(100% + 0.5rem)',
+    // In the header, opens level with its other panels (chrome.css,
+    // --fn-drop-offset); anywhere else, just under the trigger.
+    top: 'calc(100% + var(--fn-drop-offset, 0.5rem))',
     right: 0,
-    minWidth: '14rem',
+    minWidth: '15rem',
+    maxWidth: 'calc(100vw - 2rem)',
     background: 'var(--bg-secondary)',
     border: '1px solid var(--border-medium)',
+    borderRadius: 'var(--radius-card)',
     boxShadow: 'var(--shadow-overlay)',
     zIndex: 60,
     display: 'flex',
     flexDirection: 'column',
+    padding: '0.25rem',
+    textAlign: 'left',
     ...extra,
   };
 }
 
 function menuHeaderStyle(): React.CSSProperties {
   return {
-    padding: '0.625rem 0.75rem',
+    padding: '0.625rem 0.75rem 0.75rem',
+    marginBottom: '0.25rem',
     borderBottom: '1px solid var(--border-subtle)',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '0.15rem',
   };
 }
 
@@ -354,9 +382,11 @@ function menuItemStyle({ danger }: { danger?: boolean } = {}): React.CSSProperti
     padding: '0.5rem 0.75rem',
     background: 'transparent',
     border: 0,
+    borderRadius: 'calc(var(--radius-control) - 2px)',
     color: danger ? 'var(--danger)' : 'var(--text-secondary)',
-    fontFamily: 'var(--font-serif)',
-    fontSize: '0.8125rem',
+    fontFamily: 'var(--font-sans)',
+    fontSize: '0.875rem',
+    fontWeight: 500,
     cursor: 'pointer',
     textDecoration: 'none',
     textAlign: 'left',

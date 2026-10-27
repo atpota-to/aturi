@@ -14,7 +14,7 @@ export default function RecordPreviewSkeleton() {
         padding: '1.5rem',
         background: 'var(--bg-secondary)',
         border: '1px solid var(--border-medium)',
-        transform: 'rotate(0.2deg)',
+        borderRadius: 'var(--radius-card)',
       }}
     >
       {/* Record Type Header */}

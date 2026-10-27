@@ -14,100 +14,39 @@ import {
  */
 export default function PinnedLexiconsVisual() {
   return (
-    <div
-      style={{
-        position: 'relative',
-        width: '100%',
-        maxWidth: '440px',
-        margin: '0 auto',
-        background: 'var(--bg-secondary)',
-        border: '1px solid var(--border-medium)',
-        boxShadow: 'var(--shadow-overlay)',
-        fontFamily: 'var(--font-serif)',
-        color: 'var(--text-primary)',
-        transform: 'rotate(-0.4deg)',
-      }}
-    >
-      {/* Header strip — anchors the mock as the Lexicons tab inside a
-          repo page. */}
-      <div
-        style={{
-          padding: '12px 16px 10px',
-          borderBottom: '1px solid var(--border-subtle)',
-          background:
-            'linear-gradient(180deg, var(--bg-secondary), var(--bg-primary))',
-        }}
-      >
-        <div
-          style={{
-            fontSize: '0.6rem',
-            color: 'var(--text-tertiary)',
-            textTransform: 'uppercase',
-            letterSpacing: '0.12em',
-            marginBottom: '3px',
-          }}
-        >
-          Explore · @aturi.to
-        </div>
-        <div
-          style={{
-            fontSize: '0.95rem',
-            fontWeight: 500,
-            letterSpacing: '-0.01em',
-          }}
-        >
-          Lexicons
-        </div>
+    <div className="fl-mock" data-size="s">
+      {/* Header: anchors the mock as the Lexicons tab inside a repo page. */}
+      <div className="fl-mock-head">
+        <span className="fl-mock-head-stack">
+          <span className="fl-mock-label">Explore · @aturi.to</span>
+          <span className="fl-mock-head-title">Lexicons</span>
+        </span>
       </div>
 
-      {/* Pinned section — highlighted with an accent border to mirror the
-          real explorer. */}
-      <section
-        style={{
-          margin: '10px',
-          border: '1px solid var(--text-accent)',
-          background: 'var(--bg-primary)',
-        }}
-      >
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
-            padding: '6px 10px',
-            fontSize: '0.6rem',
-            letterSpacing: '0.1em',
-            textTransform: 'uppercase',
-            color: 'var(--text-accent)',
-          }}
-        >
-          <Pin size={11} aria-hidden />
-          Pinned
-          <span
-            style={{
-              marginLeft: 'auto',
-              fontSize: '0.62rem',
-              letterSpacing: '0.04em',
-              color: 'var(--text-tertiary)',
-              textTransform: 'none',
-            }}
-          >
-            3
-          </span>
-        </div>
-        <ul style={{ margin: 0, padding: 0, listStyle: 'none', borderTop: '1px solid var(--border-subtle)' }}>
-          <PinnedRow nsid="app.bsky.feed.post" />
-          <PinnedRow nsid="net.anisota.identity" />
-          <PinnedRow nsid="is.dame.now" />
-        </ul>
-      </section>
+      <div className="fl-mock-body">
+        {/* Pinned section, set apart in the accent tint as in the explorer. */}
+        <section className="fl-pinned">
+          <div className="fl-pinned-head">
+            <span className="fl-mock-label" data-accent="">
+              <Pin size={11} aria-hidden />
+              Pinned
+            </span>
+            <span className="fl-count">3</span>
+          </div>
+          <ul>
+            <PinnedRow nsid="app.bsky.feed.post" />
+            <PinnedRow nsid="net.anisota.identity" />
+            <PinnedRow nsid="is.dame.now" />
+          </ul>
+        </section>
 
-      {/* Regular hierarchical lexicon tree below the pinned section. */}
-      <div style={{ padding: '0 10px 10px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-        <GroupRow prefix="app.bsky" count={14} open />
-        <GroupRow prefix="net.anisota" count={5} />
-        <GroupRow prefix="is.dame" count={2} />
-        <GroupRow prefix="sh.tangled" count={6} />
+        {/* Regular hierarchical lexicon tree below the pinned section. */}
+        <div className="fl-tree">
+          <GroupRow prefix="app.bsky" count={14} open />
+          <GroupRow prefix="net.anisota" count={5} />
+          <GroupRow prefix="is.dame" count={2} />
+          <GroupRow prefix="sh.tangled" count={6} />
+        </div>
       </div>
     </div>
   );
@@ -115,24 +54,9 @@ export default function PinnedLexiconsVisual() {
 
 function PinnedRow({ nsid }: { nsid: string }) {
   return (
-    <li
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: '8px',
-        padding: '7px 10px',
-        borderBottom: '1px solid var(--border-subtle)',
-        fontFamily: 'var(--font-mono)',
-        fontSize: '0.72rem',
-        color: 'var(--text-primary)',
-      }}
-    >
-      <span style={{ color: 'var(--text-accent)' }}>
-        <Pin size={10} aria-hidden style={{ fill: 'currentColor' }} />
-      </span>
-      <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-        {nsid}
-      </span>
+    <li>
+      <Pin size={11} aria-hidden className="fl-pin-icon" />
+      <span className="fl-ellipsis">{nsid}</span>
     </li>
   );
 }
@@ -147,84 +71,24 @@ function GroupRow({
   open?: boolean;
 }) {
   return (
-    <div
-      style={{
-        border: '1px solid var(--border-subtle)',
-        background: 'var(--bg-tertiary)',
-      }}
-    >
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '6px',
-          padding: '7px 10px',
-        }}
-      >
-        <span
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            width: 14,
-            height: 14,
-            color: 'var(--text-tertiary)',
-          }}
-          aria-hidden
-        >
-          {open ? <ChevronDown size={11} /> : <ChevronRight size={11} />}
+    <>
+      <div className="fl-tree-row" data-open={open ? '' : undefined}>
+        <span className="fl-tree-chev" aria-hidden>
+          {open ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
         </span>
-        <span
-          style={{
-            flex: 1,
-            fontFamily: 'var(--font-mono)',
-            fontSize: '0.72rem',
-            color: 'var(--text-primary)',
-          }}
-        >
-          {prefix}
-        </span>
-        <span
-          style={{
-            fontFamily: 'var(--font-mono)',
-            fontSize: '0.6rem',
-            color: 'var(--text-secondary)',
-            padding: '1px 6px',
-            border: '1px solid var(--border-subtle)',
-            background: 'var(--bg-secondary)',
-          }}
-        >
-          {count}
-        </span>
+        <span className="fl-grow">{prefix}</span>
+        <span className="fl-tree-count">{count}</span>
       </div>
-      {open && (
-        <ul
-          style={{
-            margin: 0,
-            padding: 0,
-            listStyle: 'none',
-            borderTop: '1px solid var(--border-subtle)',
-          }}
-        >
-          {['feed.post', 'feed.like', 'graph.follow'].map((leaf, i) => (
-            <li
-              key={leaf}
-              style={{
-                padding: '5px 10px 5px 28px',
-                fontFamily: 'var(--font-mono)',
-                fontSize: '0.68rem',
-                color: 'var(--text-secondary)',
-                borderTop: i > 0 ? '1px solid var(--border-subtle)' : undefined,
-                background:
-                  i % 2 === 0 ? 'var(--bg-primary)' : 'transparent',
-              }}
-            >
-              <span style={{ color: 'var(--text-tertiary)' }}>{prefix}.</span>
+      {open &&
+        ['feed.post', 'feed.like', 'graph.follow'].map((leaf, i) => (
+          <div key={leaf} className="fl-tree-row" data-child="" data-active={i === 0 ? '' : undefined}>
+            {/* One flex item, so the row's gap doesn't split the NSID. */}
+            <span>
+              <span className="fl-faint">{prefix}.</span>
               {leaf}
-            </li>
-          ))}
-        </ul>
-      )}
-    </div>
+            </span>
+          </div>
+        ))}
+    </>
   );
 }

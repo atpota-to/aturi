@@ -1,5 +1,3 @@
-import type { CSSProperties } from 'react';
-
 // listRecords' XRPC max — request the full page on each call so users see
 // as many records as possible per fetch.
 export const RECORDS_PER_PAGE = 100;
@@ -65,19 +63,4 @@ export function rateLimitResetMinutes(err: unknown): number | null {
     if (Number.isFinite(secs) && secs > 0) return Math.max(1, Math.ceil(secs / 60));
   }
   return null;
-}
-
-// Shared look for the quiet "Select all" / "Deselect all" buttons in the
-// bulk-edit toolbar — neutral chips that dim when their action is a no-op.
-export function selectionButtonStyle(disabled: boolean): CSSProperties {
-  return {
-    padding: '0.4rem 0.75rem',
-    background: 'var(--bg-tertiary)',
-    color: 'var(--text-secondary)',
-    border: '1px solid var(--border-medium)',
-    fontFamily: 'var(--font-serif)',
-    fontSize: '0.8125rem',
-    cursor: disabled ? 'not-allowed' : 'pointer',
-    opacity: disabled ? 0.5 : 1,
-  };
 }

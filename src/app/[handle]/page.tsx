@@ -2,14 +2,15 @@ import { Metadata } from 'next';
 import { Suspense } from 'react';
 import { redirect, notFound } from 'next/navigation';
 import WaypointPicker from '@/components/WaypointPicker';
+import AutoRedirect from '@/components/AutoRedirect';
+import AutoRedirectGate from '@/components/AutoRedirectGate';
 import ProfilePreview from '@/components/ProfilePreview';
 import ProfilePreviewSkeleton from '@/components/ProfilePreviewSkeleton';
 import ScrollIndicator from '@/components/ScrollIndicator';
 import Header from '@/components/Header';
 import NotFoundPanel from '@/components/NotFoundPanel';
-import { resolveHandle, resolveHandleStatus, getDisplayName } from '@/utils/uriParser';
-import { resolveDidToHandle } from '@/utils/didResolver';
-import { fetchProfile } from '@/utils/profileFetcher';
+import { getDisplayName } from '@/utils/uriParser';
+import { fetchProfile, resolveDidToHandle, resolveHandle, resolveHandleStatus } from '@/lib/pageData';
 import { fetchRepoCollections } from '@/utils/atproto/identity';
 import { buildAtTagsMetadata } from '@/utils/atproto/atTags';
 import { buildProfileCanonical } from '@/utils/canonicalUrl';
@@ -116,7 +117,12 @@ async function ProfileContent({ handle, resolvedDid }: { handle: string; resolve
   return (
     <>
       <Header compact />
-      <div className="container-narrow waypoint-page" style={{ padding: '0 2rem 4rem' }}>
+      <div className="container-narrow waypoint-page">
+        {/* `handle` rather than `resolvedHandle`, so the gate resolves exactly
+            the URL the pre-paint script did — the two halves must never send
+            the same visitor to two different spellings of the same page. */}
+        <AutoRedirectGate type="profile" handle={handle} did={resolvedDid} />
+
         {profileData && (
           <div className="content-fade-in">
             <ProfilePreview profile={profileData} />
@@ -127,7 +133,7 @@ async function ProfileContent({ handle, resolvedDid }: { handle: string; resolve
           type="profile"
           handle={resolvedHandle}
           did={resolvedDid}
-          displayName={getDisplayName(resolvedHandle, resolvedDid)}
+          displayName={profileData?.displayName?.trim() || getDisplayName(resolvedHandle, resolvedDid)}
           repoCollections={repoCollections}
         />
 
@@ -170,7 +176,7 @@ export default async function ProfilePage({ params }: Props) {
     return (
       <>
         <Header compact />
-        <div className="container-narrow waypoint-page" style={{ padding: '0 2rem 4rem' }}>
+        <div className="container-narrow waypoint-page">
           <NotFoundPanel
             eyebrow="Couldn't reach the resolver"
             headline="We couldn't look that up right now."
@@ -183,18 +189,24 @@ export default async function ProfilePage({ params }: Props) {
   }
 
   return (
-    <Suspense
-      fallback={
-        <>
-          <Header compact />
-          <div className="container-narrow waypoint-page" style={{ padding: '0 2rem 4rem' }}>
-            <ProfilePreviewSkeleton />
-          </div>
-        </>
-      }
-    >
-      <ProfileContent handle={handle} resolvedDid={resolution.did} />
-    </Suspense>
+    <>
+      {/* Outside the Suspense boundary on purpose: this goes out in the first
+          flush, so the pre-paint script runs before the picker — or even the
+          skeleton — has a chance to paint. */}
+      <AutoRedirect type="profile" handle={handle} did={resolution.did} />
+      <Suspense
+        fallback={
+          <>
+            <Header compact />
+            <div className="container-narrow waypoint-page">
+              <ProfilePreviewSkeleton />
+            </div>
+          </>
+        }
+      >
+        <ProfileContent handle={handle} resolvedDid={resolution.did} />
+      </Suspense>
+    </>
   );
 }
 

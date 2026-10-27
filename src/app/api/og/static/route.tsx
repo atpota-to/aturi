@@ -2,6 +2,7 @@ import { ImageResponse } from '@vercel/og';
 import { NextRequest } from 'next/server';
 import {
   AnisotaIcon,
+  ArrowRight,
   BlueskyIcon,
   DropChevron,
   Headline,
@@ -15,6 +16,8 @@ import {
   UrlPill,
   WaypointRow,
 } from '@/lib/og-design';
+import { TOOL_COUNT } from '@/lib/mcp/catalog';
+import { MCP_STAGE } from '@/lib/mcp/about';
 import type { ReactNode } from 'react';
 
 export const runtime = 'edge';
@@ -99,6 +102,19 @@ function configFor(page: string): PageConfig {
         visualText:
           "npm i @aturi.to/waypoints import { resolveAtUri } from '@aturi.to/waypoints' const result = resolveAtUri(uri)",
       };
+    case 'mcp':
+      return {
+        eyebrow: `Model Context Protocol · ${MCP_STAGE}`,
+        title: 'Let your agent read\nthe Atmosphere.',
+        tagline:
+          'Add aturi.to/api/mcp to Claude, Cursor, or any MCP client — no key, no account. ' +
+          'Repositories, identity, backlinks, Jetstream, and the protocol docs themselves.',
+        layout: 'split',
+        visual: <McpVisual />,
+        visualText:
+          `aturi.to/api/mcp ${TOOL_COUNT} tools What has @aturi.to been posting about, ` +
+          'and which post landed best? resolve_identity get_author_feed did:plc:6teuh 8 posts',
+      };
     case 'spaces':
       return {
         eyebrow: 'Permissioned data · alpha',
@@ -137,7 +153,6 @@ function Panel({ children, pad = 20 }: { children: ReactNode; pad?: number }) {
         width: `${PANEL_W}px`,
         background: OG_COLORS.bgSecondary,
         border: `1px solid ${OG_COLORS.borderMedium}`,
-        boxShadow: '0 16px 48px rgba(0, 0, 0, 0.4)',
         padding: `${pad}px`,
         gap: '14px',
         overflow: 'hidden',
@@ -281,7 +296,6 @@ function ExtensionVisual() {
         width: `${PANEL_W}px`,
         background: OG_COLORS.bgSecondary,
         border: `1px solid ${OG_COLORS.borderMedium}`,
-        boxShadow: '0 16px 48px rgba(0, 0, 0, 0.4)',
         overflow: 'hidden',
       }}
     >
@@ -590,6 +604,84 @@ function RowChip({
   );
 }
 
+function McpToolCall({ name, detail }: { name: string; detail: string }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: '9px' }}>
+      {/* Fixed width, so the arrow and its detail line up down the column
+          instead of stepping in and out with each tool name's length. */}
+      <div
+        style={{
+          display: 'flex',
+          width: '152px',
+          padding: '4px 8px',
+          background: OG_COLORS.bgTertiary,
+          border: `1px solid ${OG_COLORS.borderSubtle}`,
+        }}
+      >
+        <MonoLine size={14} color={OG_COLORS.accent}>
+          {name}
+        </MonoLine>
+      </div>
+      {/* An SVG arrow, not "\u2192". Satori asks Google Fonts for a dynamic
+          subset when a glyph is missing, and that request 400s for the
+          symbol blocks (U+2190–U+2BFF), failing the whole image. */}
+      <ArrowRight size={12} color={OG_COLORS.textTertiary} />
+      <MonoLine size={14} color={OG_COLORS.textTertiary}>
+        {detail}
+      </MonoLine>
+    </div>
+  );
+}
+
+function McpVisual() {
+  // The landing page's hero visual, compressed to what survives a thumbnail:
+  // the endpoint being advertised, a question in plain language, and the two
+  // tools an agent picks to answer it. The count comes from the catalog, so
+  // the card cannot claim a tool surface the server does not serve.
+  return (
+    <Panel pad={0}>
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '13px 18px',
+          borderBottom: `1px solid ${OG_COLORS.borderSubtle}`,
+          background: OG_COLORS.bgTertiary,
+        }}
+      >
+        <MonoLine size={14} color={OG_COLORS.accent}>
+          aturi.to/api/mcp
+        </MonoLine>
+        <MonoLine size={13} color={OG_COLORS.textTertiary}>
+          {TOOL_COUNT} tools
+        </MonoLine>
+      </div>
+      {/* Panel contributes its own 14px gap above this block, so the top
+          padding is trimmed by that much to keep the inset even. */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', padding: '4px 18px 18px' }}>
+        <div
+          style={{
+            display: 'flex',
+            padding: '11px 13px',
+            background: OG_COLORS.bgTertiary,
+            border: `1px solid ${OG_COLORS.borderSubtle}`,
+            fontSize: '17px',
+            lineHeight: 1.4,
+            color: OG_COLORS.textPrimary,
+          }}
+        >
+          What has @aturi.to been posting about, and which post landed best?
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <McpToolCall name="resolve_identity" detail="did:plc:6teuh" />
+          <McpToolCall name="get_author_feed" detail="8 posts" />
+        </div>
+      </div>
+    </Panel>
+  );
+}
+
 // ─── Route ────────────────────────────────────────────────────────────────
 
 export async function GET(request: NextRequest) {
@@ -629,8 +721,13 @@ export async function GET(request: NextRequest) {
           >
             <TopRow eyebrow={config.eyebrow} />
 
+            {/* No overflow: 'hidden' on these layout boxes. Satori pushes a
+                clip and mask onto every descendant of one, which more than
+                doubled the home card's render CPU, and it was also clipping
+                the top of the home URL pill and the hook of the J in "Jump".
+                The copy here is fixed, so check new pages by eye instead. */}
             {isSplit ? (
-              <div style={{ display: 'flex', flex: 1, gap: '48px', alignItems: 'center', overflow: 'hidden' }}>
+              <div style={{ display: 'flex', flex: 1, gap: '48px', alignItems: 'center' }}>
                 <div style={{ display: 'flex', flex: 1, minWidth: 0 }}>
                   <Headline title={config.title} tagline={config.tagline} size={58} />
                 </div>
@@ -643,7 +740,6 @@ export async function GET(request: NextRequest) {
                   flexDirection: 'column',
                   flex: 1,
                   gap: '30px',
-                  overflow: 'hidden',
                 }}
               >
                 <Headline title={config.title} tagline={config.tagline} />
@@ -653,7 +749,6 @@ export async function GET(request: NextRequest) {
                     flex: 1,
                     alignItems: 'flex-end',
                     justifyContent: 'center',
-                    overflow: 'hidden',
                   }}
                 >
                   {config.visual}

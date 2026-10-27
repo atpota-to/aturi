@@ -97,5 +97,5 @@ export const config = {
   // literal spelling of MARKDOWN_VARIANTS' keys. markdownVariantFor() is still
   // the authority on what negotiates — this just keeps middleware off the
   // other 99% of requests. Keep the two in step; a test asserts they match.
-  matcher: ['/', '/docs', '/about', '/contact'],
+  matcher: ['/', '/docs', '/about', '/contact', '/mcp'],
 };

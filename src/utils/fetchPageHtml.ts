@@ -25,6 +25,8 @@
  * than as "no tags here".
  */
 
+import { isBlockedFetchHost } from './ssrfGuard';
+
 /**
  * Stop reading here. Sized to cover a fully-streamed app-framework page (the
  * 304KB record page above) with headroom, since late-flushed metadata means a
@@ -32,6 +34,15 @@
  */
 export const PAGE_HTML_MAX_BYTES = 1024 * 1024;
 const PAGE_FETCH_TIMEOUT_MS = 5000;
+
+/**
+ * Cap on redirect hops. Each hop's host is re-checked against the SSRF guard,
+ * because `redirect: 'follow'` would otherwise chase a Location header from a
+ * public page straight into a private/loopback address — the guard the caller
+ * ran on the *first* URL protects nothing past the first response.
+ */
+const MAX_REDIRECTS = 5;
+const REDIRECT_STATUSES = new Set([301, 302, 303, 307, 308]);
 
 export async function fetchPageHtml(
   url: string,
@@ -44,17 +55,49 @@ export async function fetchPageHtml(
     opts?.timeoutMs ?? PAGE_FETCH_TIMEOUT_MS,
   );
   try {
-    const response = await fetch(url, {
-      signal: controller.signal,
-      redirect: 'follow',
-      headers: {
-        // Some atmosphere apps (Leaflet, Offprint, pckt) gate on UA; identify
-        // ourselves plainly and ask for HTML.
-        'User-Agent': 'Mozilla/5.0 (compatible; AturiResolver/1.0; +https://aturi.to)',
-        Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.5',
-      },
-    });
-    if (!response.ok || !response.body) return null;
+    const headers = {
+      // Some atmosphere apps (Leaflet, Offprint, pckt) gate on UA; identify
+      // ourselves plainly and ask for HTML.
+      'User-Agent': 'Mozilla/5.0 (compatible; AturiResolver/1.0; +https://aturi.to)',
+      Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.5',
+    };
+
+    // Follow redirects by hand so each hop's host can be re-guarded. `redirect:
+    // 'manual'` returns the 3xx as a real response on server runtimes (undici,
+    // the Next edge runtime); a runtime that instead opaque-filters it to
+    // status 0 fails closed here, which is the safe direction.
+    let current = url;
+    let response: Response | null = null;
+    for (let hop = 0; hop <= MAX_REDIRECTS; hop++) {
+      let parsed: URL;
+      try {
+        parsed = new URL(current);
+      } catch {
+        return null;
+      }
+      if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return null;
+      if (isBlockedFetchHost(parsed.hostname)) return null;
+
+      const res = await fetch(current, {
+        signal: controller.signal,
+        redirect: 'manual',
+        headers,
+      });
+
+      if (REDIRECT_STATUSES.has(res.status)) {
+        const location = res.headers.get('location');
+        if (!location) return null;
+        // Resolve relative Location against the current URL, then loop to
+        // re-guard the destination host before the next fetch.
+        current = new URL(location, current).toString();
+        continue;
+      }
+      if (res.status === 0) return null; // opaque-redirect on a filtering runtime
+      response = res;
+      break;
+    }
+
+    if (!response || !response.ok || !response.body) return null;
 
     const contentType = response.headers.get('content-type') || '';
     if (!/text\/html|application\/xhtml/i.test(contentType)) return null;

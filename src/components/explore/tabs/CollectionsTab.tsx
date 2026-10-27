@@ -1,12 +1,13 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
-import { ChevronsDownUp, ChevronsUpDown, Pin } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { ChevronsDownUp, ChevronsUpDown, Pin, Search } from 'lucide-react';
 import { describeRepo } from '@/utils/atproto/pdsClient';
 import { encodeRepo } from '@/utils/atproto/urls';
 import type { IdentityBundle } from '@/utils/atproto/identity';
 import { CollectionsTabSkeleton } from '../skeletons/pages';
 import { useMyCollections } from '../useRepoCollections';
+import { useMediaQuery } from '../useIsNarrow';
 import { useAtprotoSession } from '@/components/AtprotoSessionProvider';
 import { usePreferences } from '@/components/PreferencesProvider';
 import {
@@ -19,11 +20,26 @@ import {
   togglePinnedLexicon,
 } from '@/utils/preferences';
 import { groupHierarchically, pinnedKey } from './collectionGrouping';
-import { CHROME_RESULTS_ID, useChromeBarField } from '../ChromeBarContext';
+import { CHROME_RESULTS_ID, useChromeBarField, type ChromeBarField } from '../ChromeBarContext';
 import GroupHeader from './GroupHeader';
 import LeafRow from './LeafRow';
 
-export default function CollectionsTab({ identity }: { identity: IdentityBundle }) {
+export default function CollectionsTab({
+  identity,
+  variant = 'page',
+  current,
+}: {
+  identity: IdentityBundle;
+  /**
+   * `page` is the repo page's Collections tab. `sidebar` is the compact tree
+   * beside a collection's records: it leaves the bottom chrome bar to the
+   * record search and drops the pin buttons (pinning lives on the repo page).
+   */
+  variant?: 'page' | 'sidebar';
+  /** The collection being viewed, highlighted in the tree. */
+  current?: string;
+}) {
+  const sidebar = variant === 'sidebar';
   const [collections, setCollections] = useState<string[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState('');
@@ -75,7 +91,7 @@ export default function CollectionsTab({ identity }: { identity: IdentityBundle 
   const isOwnRepo = isSignedIn && myDid === identity.did;
   // Pin buttons work without sign-in: prefs are local-first and only
   // sync to the PDS once the user signs in.
-  const canPin = true;
+  const canPin = !sidebar;
   // Signed-out users have no "mine vs others" distinction, so pin
   // toggles always target the primary list (`pinnedLexicons`). When
   // signed in, the scope picker decides.
@@ -172,13 +188,38 @@ export default function CollectionsTab({ identity }: { identity: IdentityBundle 
 
   const repoSeg = encodeRepo(identity.handle || identity.did);
 
-  const defaultOpen = !prefs.collectionGroupsCollapsedByDefault;
-  function isOpen(key: string): boolean {
-    return openOverrides[key] ?? defaultOpen;
+  // On a phone the tree starts folded whatever the preference says: open,
+  // 179 collections make a page some 12,000px tall with nothing to hold on
+  // to. Taps and the expand-all button still open groups (openOverrides),
+  // a preference of "collapsed" is still honoured, and the server snapshot
+  // is false, so wider layouts render exactly as before.
+  const isPhone = useMediaQuery('(max-width: 640px)');
+  const defaultOpen = !prefs.collectionGroupsCollapsedByDefault && !isPhone;
+  // In the sidebar, beside a collection's records, only the groups on the
+  // way to that collection start open: the tree is there to say where you
+  // are, and 39 open namespaces said nothing. `prefix` is the dotted
+  // namespace a key stands for (a pinned group's key is not its prefix).
+  function isOpen(key: string, prefix = key): boolean {
+    return (
+      openOverrides[key] ??
+      (sidebar && current ? current.startsWith(`${prefix}.`) : defaultOpen)
+    );
   }
-  function toggle(key: string) {
-    setOpenOverrides((prev) => ({ ...prev, [key]: !isOpen(key) }));
+  function toggle(key: string, prefix = key) {
+    setOpenOverrides((prev) => ({ ...prev, [key]: !isOpen(key, prefix) }));
   }
+
+  // The sidebar's tree is its own scroller on wide screens; bring the row
+  // for the current collection into it. The scroller alone moves, never the
+  // window (scrollIntoView would also scroll the page on a phone).
+  const scrollRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const scroller = scrollRef.current;
+    const row = scroller?.querySelector<HTMLElement>('.fx-row[data-current]');
+    if (!sidebar || !scroller || !row || scroller.scrollHeight <= scroller.clientHeight) return;
+    scroller.scrollTop =
+      row.getBoundingClientRect().top - scroller.getBoundingClientRect().top + scroller.scrollTop - 12;
+  }, [sidebar, current, collections]);
 
   // Collect every group key currently rendered so the "expand/collapse all"
   // button can target the visible set, not stale keys from a previous filter.
@@ -215,357 +256,307 @@ export default function CollectionsTab({ identity }: { identity: IdentityBundle 
   // else's repo (own repo is 100% mutual by definition).
   const showCommonFilter = Boolean(myDid) && !isOwnRepo && myCollections !== null;
 
-  // Mirror the filter into the bottom chrome bar so it stays reachable once
-  // the in-page field has scrolled away — same state, so typing in either
-  // moves both. Registered from here rather than from <RepoExplorer> because
+  // Mirror the filter into the bottom chrome bar, which takes it over on
+  // phones (where the in-page field steps aside) — same state, so either
+  // copy moves both. Wider screens keep the in-page field and the bar shows
+  // its jump search (`inPage`). Registered from here rather than from <RepoExplorer> because
   // only this tab has lexicons to narrow; switching to ID / Log / Backlinks
   // unmounts it and the bar falls back to its jump search.
   const shownCount =
     pinnedCount + groups.reduce((acc, g) => acc + g.totalCount, 0);
   const narrowed = filter.trim() !== '' || commonFilter !== 'all';
-  useChromeBarField({
-    placeholder: 'Filter lexicons…',
+  const chromeField: ChromeBarField = {
+    placeholder: 'Filter collections…',
     label: 'Filter lexicons on this repo',
     value: filter,
     onChange: setFilter,
     resultsId: CHROME_RESULTS_ID,
+    inPage: true,
     status: !collections
       ? null
       : narrowed
         ? `${shownCount}/${collections.length}`
         : `${collections.length}`,
-  });
+  };
+  // The sidebar copy never registers: the collection page's bar belongs to
+  // its record search, and a second registration would clobber it.
+  const bridge = sidebar ? null : <ChromeFieldBridge field={chromeField} />;
 
-  if (error) return <p className="explore-error">{error}</p>;
-  if (!collections) return <CollectionsTabSkeleton />;
+  // An inactive repo fails this read by design, and the status banner at the
+  // top of the page has already explained why. Repeating the PDS's 400 here as
+  // a red error reads as a bug in the explorer, so the tab states the reason
+  // and keeps the raw response one click away for anyone debugging.
+  if (error && identity.repoStatus) {
+    return (
+      <>{bridge}<div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+        <p className="explore-placeholder">
+          No collections to list: this repo is{' '}
+          {identity.repoStatus.status || 'inactive'} and its PDS refuses record reads.
+        </p>
+        <details className="explore-raw-details">
+          <summary>Raw response</summary>
+          <pre className="explore-json">{error}</pre>
+        </details>
+      </div></>
+    );
+  }
+  if (error) return <>{bridge}<p className="explore-error">{error}</p></>;
+  if (!collections) return <>{bridge}<CollectionsTabSkeleton /></>;
   if (collections.length === 0) {
-    return <p className="explore-placeholder">No collections on this repo.</p>;
+    return <>{bridge}<p className="explore-placeholder">No collections on this repo.</p></>;
   }
 
+  const leafHref = (nsid: string) => `/explore/${repoSeg}/${nsid}`;
+
   return (
-    <div
-      id={CHROME_RESULTS_ID}
-      style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}
-    >
+    <>
+      {bridge}
       <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '0.75rem',
-          flexWrap: 'wrap',
-        }}
+        id={sidebar ? undefined : CHROME_RESULTS_ID}
+        className="fx-tree-pane"
+        style={{ display: 'flex', flexDirection: 'column', gap: sidebar ? 0 : '12px' }}
       >
-        <input
-          type="text"
-          placeholder="Filter lexicons…"
-          value={filter}
-          onChange={(e) => setFilter(e.target.value)}
-          style={{
-            flex: '1 1 16rem',
-            maxWidth: '24rem',
-            padding: '0.5rem 0.75rem',
-            background: 'var(--bg-tertiary)',
-            border: '1px solid var(--border-medium)',
-            color: 'var(--text-primary)',
-            fontFamily: 'var(--font-mono)',
-            fontSize: '0.78rem',
-            outline: 'none',
-          }}
-        />
-        {showCommonFilter && (
-          <div
-            role="radiogroup"
-            aria-label="Filter by what you have in common"
-            style={{
-              display: 'inline-flex',
-              border: '1px solid var(--border-medium)',
-              overflow: 'hidden',
-              flexShrink: 0,
-            }}
-          >
-            {(
-              [
-                { value: 'all', label: 'all' },
-                { value: 'mutual', label: 'in common' },
-                { value: 'notMine', label: "i don't have" },
-              ] as const
-            ).map(({ value, label }) => {
-              const active = commonFilter === value;
-              return (
-                <button
-                  key={value}
-                  type="button"
-                  role="radio"
-                  aria-checked={active}
-                  onClick={() => setCommonFilter(value)}
-                  style={{
-                    padding: '0.4rem 0.75rem',
-                    fontSize: '0.8rem',
-                    background: active ? 'var(--accent-forest)' : 'transparent',
-                    color: active ? 'var(--text-on-accent)' : 'var(--text-secondary)',
-                    border: 'none',
-                    cursor: 'pointer',
-                    transition: 'background 0.2s ease, color 0.2s ease',
-                    textTransform: 'lowercase',
-                    letterSpacing: '0.02em',
-                    fontFamily: 'var(--font-serif)',
-                    whiteSpace: 'nowrap',
-                  }}
-                >
-                  {label}
-                </button>
-              );
-            })}
-          </div>
-        )}
-        {groups.length > 0 && (
-          <button
-            type="button"
-            onClick={() => setAllOpen(!anyOpen)}
-            aria-label={anyOpen ? 'Collapse all groups' : 'Expand all groups'}
-            title={anyOpen ? 'Collapse all groups' : 'Expand all groups'}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              padding: '0.45rem',
-              marginLeft: 'auto',
-              background: 'var(--bg-tertiary)',
-              border: '1px solid var(--border-medium)',
-              color: 'var(--text-secondary)',
-              cursor: 'pointer',
-              transition: 'color 0.15s ease, border-color 0.15s ease',
-              flexShrink: 0,
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.color = 'var(--text-accent)';
-              e.currentTarget.style.borderColor = 'var(--text-accent)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.color = 'var(--text-secondary)';
-              e.currentTarget.style.borderColor = 'var(--border-medium)';
-            }}
-          >
-            {anyOpen ? (
-              <ChevronsDownUp size={14} aria-hidden />
-            ) : (
-              <ChevronsUpDown size={14} aria-hidden />
+        <div className="fx-tree-tools">
+          <label className="fx-field">
+            <Search size={14} aria-hidden />
+            <span className="fx-sr">Filter collections</span>
+            <input
+              type="text"
+              placeholder={`Filter ${collections.length} collection${collections.length === 1 ? '' : 's'}`}
+              value={filter}
+              onChange={(e) => setFilter(e.target.value)}
+            />
+            {narrowed && (
+              <span className="fx-field-status">
+                {shownCount}/{collections.length}
+              </span>
             )}
-          </button>
-        )}
-      </div>
-
-      {hasAnyPinned && (
-        <section
-          style={{
-            border: '1px solid var(--text-accent)',
-            background: 'var(--bg-secondary)',
-          }}
-        >
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5rem',
-              padding: '0.55rem 1rem',
-              fontFamily: 'var(--font-serif)',
-              fontSize: '0.75rem',
-              letterSpacing: '0.08em',
-              textTransform: 'uppercase',
-              color: 'var(--text-accent)',
-            }}
-          >
-            <Pin size={12} aria-hidden />
-            Pinned
-            <span
-              style={{
-                marginLeft: 'auto',
-                fontSize: '0.7rem',
-                letterSpacing: '0.04em',
-                color: 'var(--text-tertiary)',
-                textTransform: 'none',
-              }}
+          </label>
+          {/* Phone only: the field above is hidden there (the bottom bar
+              carries it), so the row says what it's listing instead. */}
+          <span className="fx-tree-count" aria-hidden>
+            {narrowed ? `${shownCount} of ${collections.length}` : collections.length} collection
+            {collections.length === 1 ? '' : 's'}
+          </span>
+          {showCommonFilter && (
+            <div
+              role="radiogroup"
+              aria-label="Filter by what you have in common"
+              style={{ display: 'inline-flex', flexWrap: 'wrap', gap: '4px' }}
             >
-              {pinnedCount}
-            </span>
-          </div>
-
-          {/* Pinned NSID groups — collapsible, with a group-level unpin in
-              the header. Their members are plain links; the group is the
-              unit you pin/unpin. */}
-          {pinnedGroups.map((g) => {
-            const open = isOpen(pinnedKey(g.entry));
-            return (
-              <div
-                key={g.entry}
-                style={{ borderTop: '1px solid var(--border-subtle)' }}
-              >
-                <GroupHeader
-                  open={open}
-                  onToggle={() => toggle(pinnedKey(g.entry))}
-                  prefix={g.prefix}
-                  count={g.items.length}
-                  emphasize
-                  pinnable={canPin}
-                  pinned
-                  onTogglePin={() => toggleGroupPin(g.prefix)}
-                />
-                {open && (
-                  <ul
-                    style={{
-                      ...listStyle(),
-                      borderTop: '1px solid var(--border-subtle)',
-                    }}
+              {(
+                [
+                  { value: 'all', label: 'All' },
+                  { value: 'mutual', label: 'In common' },
+                  { value: 'notMine', label: "I don't have" },
+                ] as const
+              ).map(({ value, label }) => {
+                const active = commonFilter === value;
+                return (
+                  <button
+                    key={value}
+                    type="button"
+                    role="radio"
+                    aria-checked={active}
+                    onClick={() => setCommonFilter(value)}
+                    className="fx-chip"
                   >
-                    {g.items.map((nsid, i) => (
-                      <LeafRow
-                        key={nsid}
-                        nsid={nsid}
-                        href={`/explore/${repoSeg}/${nsid}`}
-                        dimPrefix={`${g.prefix}.`}
-                        baseBg={i % 2 === 0 ? 'var(--bg-primary)' : 'transparent'}
-                        inCommon={myCollections?.has(nsid)}
-                      />
-                    ))}
-                  </ul>
-                )}
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+          {groups.length > 0 && (
+            <button
+              type="button"
+              onClick={() => setAllOpen(!anyOpen)}
+              aria-label={anyOpen ? 'Collapse all groups' : 'Expand all groups'}
+              title={anyOpen ? 'Collapse all groups' : 'Expand all groups'}
+              className="fx-btn fx-btn-icon"
+            >
+              {anyOpen ? (
+                <ChevronsDownUp size={14} aria-hidden />
+              ) : (
+                <ChevronsUpDown size={14} aria-hidden />
+              )}
+            </button>
+          )}
+        </div>
+
+        <div className="fx-tree-scroll" ref={scrollRef}>
+          {hasAnyPinned && (
+            <section className="fx-tree-pinned" aria-label="Pinned collections">
+              <div className="fx-tree-label">
+                <Pin size={12} aria-hidden />
+                Pinned
+                <span>{pinnedCount}</span>
               </div>
-            );
-          })}
 
-          {/* Individually-pinned lexicons. */}
-          {pinnedSingles.length > 0 && (
-            <ul
-              style={{ ...listStyle(), borderTop: '1px solid var(--border-subtle)' }}
-            >
-              {pinnedSingles.map((nsid, i) => (
-                <LeafRow
-                  key={nsid}
-                  nsid={nsid}
-                  href={`/explore/${repoSeg}/${nsid}`}
-                  baseBg={i % 2 === 0 ? 'var(--bg-primary)' : 'transparent'}
-                  inCommon={myCollections?.has(nsid)}
-                  pinnable={canPin}
-                  pinned
-                  onTogglePin={() => togglePin(nsid)}
-                />
-              ))}
-            </ul>
-          )}
-        </section>
-      )}
+              {/* Pinned NSID groups — collapsible, with a group-level unpin
+                  in the header. Their members are plain links; the group is
+                  the unit you pin/unpin. */}
+              {pinnedGroups.map((g) => {
+                const open = isOpen(pinnedKey(g.entry), g.prefix);
+                return (
+                  <div key={g.entry} className="fx-tree-block">
+                    <GroupHeader
+                      open={open}
+                      onToggle={() => toggle(pinnedKey(g.entry), g.prefix)}
+                      prefix={g.prefix}
+                      count={g.items.length}
+                      emphasize
+                      pinnable={canPin}
+                      pinned
+                      onTogglePin={() => toggleGroupPin(g.prefix)}
+                    />
+                    {open && (
+                      <ul style={listStyle()}>
+                        {g.items.map((nsid) => (
+                          <LeafRow
+                            key={nsid}
+                            nsid={nsid}
+                            href={leafHref(nsid)}
+                            dimPrefix={`${g.prefix}.`}
+                            inCommon={myCollections?.has(nsid)}
+                            current={nsid === current}
+                          />
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                );
+              })}
 
-      {groups.length === 0 && !hasAnyPinned ? (
-        <p className="explore-placeholder">
-          {commonFilter === 'mutual' ? (
-            'No collections in common with this repo.'
-          ) : commonFilter === 'notMine' ? (
-            'You already have every collection this repo has.'
-          ) : (
-            <>
-              No collections match <code>{filter}</code>.
-            </>
+              {/* Individually-pinned lexicons. */}
+              {pinnedSingles.length > 0 && (
+                <ul style={listStyle()}>
+                  {pinnedSingles.map((nsid) => (
+                    <LeafRow
+                      key={nsid}
+                      nsid={nsid}
+                      href={leafHref(nsid)}
+                      flat
+                      inCommon={myCollections?.has(nsid)}
+                      pinnable={canPin}
+                      pinned
+                      onTogglePin={() => togglePin(nsid)}
+                      current={nsid === current}
+                    />
+                  ))}
+                </ul>
+              )}
+            </section>
           )}
-        </p>
-      ) : groups.length === 0 ? null : (
-        groups.map((g) => {
-          const majorOpen = isOpen(g.key);
-          return (
-            <section
-              key={g.key}
-              style={{
-                border: '1px solid var(--border-medium)',
-                background: 'var(--bg-secondary)',
-              }}
-            >
-              <GroupHeader
-                open={majorOpen}
-                onToggle={() => toggle(g.key)}
-                prefix={g.key}
-                count={g.totalCount}
-                emphasize
-                pinnable={canPin}
-                pinned={isGroupPinned(g.key)}
-                onTogglePin={() => toggleGroupPin(g.key)}
-              />
-              {majorOpen && (
-                <div style={{ borderTop: '1px solid var(--border-subtle)' }}>
-                  {/* Direct leaves (3-segment NSIDs) come first. */}
-                  {g.directItems.length > 0 && (
-                    <ul style={listStyle()}>
-                      {g.directItems.map((nsid, i) => (
-                        <LeafRow
-                          key={nsid}
-                          nsid={nsid}
-                          href={`/explore/${repoSeg}/${nsid}`}
-                          dimPrefix={`${g.key}.`}
-                          baseBg={i % 2 === 0 ? 'var(--bg-primary)' : 'transparent'}
-                          inCommon={myCollections?.has(nsid)}
-                          pinnable={canPin}
-                          pinned={activePinSet.has(nsid)}
-                          onTogglePin={() => togglePin(nsid)}
-                        />
-                      ))}
-                    </ul>
-                  )}
-                  {/* Then collapsible sub-groups. */}
-                  {g.subgroups.map((sub) => {
-                    const subOpen = isOpen(sub.fullKey);
-                    return (
-                      <div
-                        key={sub.fullKey}
-                        style={{
-                          borderTop:
-                            g.directItems.length > 0 || g.subgroups.indexOf(sub) > 0
-                              ? '1px solid var(--border-subtle)'
-                              : undefined,
-                        }}
-                      >
-                        <GroupHeader
-                          open={subOpen}
-                          onToggle={() => toggle(sub.fullKey)}
-                          prefix={sub.fullKey}
-                          dimPrefix={`${g.key}.`}
-                          count={sub.items.length}
-                          indent
-                          pinnable={canPin}
-                          pinned={isGroupPinned(sub.fullKey)}
-                          onTogglePin={() => toggleGroupPin(sub.fullKey)}
-                        />
-                        {subOpen && (
-                          <ul
-                            style={{
-                              ...listStyle(),
-                              borderTop: '1px solid var(--border-subtle)',
-                            }}
-                          >
-                            {sub.items.map((nsid, i) => (
+
+          {groups.length === 0 && !hasAnyPinned ? (
+            <p className="fx-empty">
+              {commonFilter === 'mutual' ? (
+                'No collections in common with this repo.'
+              ) : commonFilter === 'notMine' ? (
+                'You already have every collection this repo has.'
+              ) : (
+                <>
+                  No collections match <code>{filter}</code>.
+                </>
+              )}
+            </p>
+          ) : groups.length === 0 ? null : (
+            <div className="fx-tree">
+              {groups.map((g) => {
+                const majorOpen = isOpen(g.key);
+                return (
+                  <section key={g.key} className="fx-tree-block">
+                    <GroupHeader
+                      open={majorOpen}
+                      onToggle={() => toggle(g.key)}
+                      prefix={g.key}
+                      count={g.totalCount}
+                      emphasize
+                      pinnable={canPin}
+                      pinned={isGroupPinned(g.key)}
+                      onTogglePin={() => toggleGroupPin(g.key)}
+                    />
+                    {majorOpen && (
+                      <div>
+                        {/* Direct leaves (3-segment NSIDs) come first. */}
+                        {g.directItems.length > 0 && (
+                          <ul style={listStyle()}>
+                            {g.directItems.map((nsid) => (
                               <LeafRow
                                 key={nsid}
                                 nsid={nsid}
-                                href={`/explore/${repoSeg}/${nsid}`}
-                                deepIndent
-                                dimPrefix={`${sub.fullKey}.`}
-                                baseBg={i % 2 === 0 ? 'var(--bg-primary)' : 'transparent'}
+                                href={leafHref(nsid)}
+                                dimPrefix={`${g.key}.`}
                                 inCommon={myCollections?.has(nsid)}
                                 pinnable={canPin}
                                 pinned={activePinSet.has(nsid)}
                                 onTogglePin={() => togglePin(nsid)}
+                                current={nsid === current}
                               />
                             ))}
                           </ul>
                         )}
+                        {/* Then collapsible sub-groups. */}
+                        {g.subgroups.map((sub) => {
+                          const subOpen = isOpen(sub.fullKey);
+                          return (
+                            <div key={sub.fullKey}>
+                              <GroupHeader
+                                open={subOpen}
+                                onToggle={() => toggle(sub.fullKey)}
+                                prefix={sub.fullKey}
+                                dimPrefix={`${g.key}.`}
+                                count={sub.items.length}
+                                indent
+                                pinnable={canPin}
+                                pinned={isGroupPinned(sub.fullKey)}
+                                onTogglePin={() => toggleGroupPin(sub.fullKey)}
+                              />
+                              {subOpen && (
+                                <ul style={listStyle()}>
+                                  {sub.items.map((nsid) => (
+                                    <LeafRow
+                                      key={nsid}
+                                      nsid={nsid}
+                                      href={leafHref(nsid)}
+                                      deepIndent
+                                      dimPrefix={`${sub.fullKey}.`}
+                                      inCommon={myCollections?.has(nsid)}
+                                      pinnable={canPin}
+                                      pinned={activePinSet.has(nsid)}
+                                      onTogglePin={() => togglePin(nsid)}
+                                      current={nsid === current}
+                                    />
+                                  ))}
+                                </ul>
+                              )}
+                            </div>
+                          );
+                        })}
                       </div>
-                    );
-                  })}
-                </div>
-              )}
-            </section>
-          );
-        })
-      )}
-    </div>
+                    )}
+                  </section>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </div>
+    </>
   );
+}
+
+/**
+ * Mirrors the filter into the bottom chrome bar so it stays reachable once the
+ * in-page field has scrolled away — same state, so typing in either moves
+ * both. A component rather than a call in <CollectionsTab> so the sidebar copy
+ * can leave the bar alone: the hook clears the bar when passed null, which
+ * would wipe the record search the collection page publishes.
+ */
+function ChromeFieldBridge({ field }: { field: ChromeBarField }) {
+  useChromeBarField(field);
+  return null;
 }
 
 function listStyle(): React.CSSProperties {

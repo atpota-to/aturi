@@ -44,82 +44,60 @@ export default function RepoSpacesSection({ identity }: { identity: IdentityBund
   const repoSegment = encodeRepo(identity.handle || identity.did);
 
   return (
-    <section
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '0.75rem',
-        borderTop: '1px solid var(--border-medium)',
-        paddingTop: '1.25rem',
-      }}
-    >
-      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'baseline', gap: '0.75rem' }}>
-        <h2
-          style={{
-            margin: 0,
-            fontFamily: 'var(--font-serif)',
-            fontWeight: 400,
-            fontSize: '1rem',
-            color: 'var(--text-primary)',
-          }}
-        >
-          Permissioned spaces
-        </h2>
-        <Link href={`/explore/${repoSegment}/space`} className="explore-json-link">
-          Open spaces explorer →
-        </Link>
+    <section className="fx-card fx-sp-section">
+      <div className="fx-sp-head">
+        <h2 className="fx-sp-h2">Permissioned spaces</h2>
+        <span className="fx-sp-head-end">
+          <Link href={`/explore/${repoSegment}/space`} prefetch={false} className="fx-sp-head-link">
+            Open spaces explorer →
+          </Link>
+        </span>
       </div>
 
-      <p style={noteStyle}>
-        Records you keep outside your public repo. Only you can see this list
-        when logged in.
-      </p>
-
-      {grant === 'unknown' && <p className="explore-placeholder">Checking your access…</p>}
-
-      {grant === 'none' && (
-        <p style={noteStyle}>
-          Your session has no space permission, so there’s nothing to read.
-          Sign in again and tick a permissioned-data row to grant one.
+      <div className="fx-sp-body">
+        <p className="fx-sp-note">
+          Records you keep outside your public repo. Only you can see this list
+          when logged in.
         </p>
-      )}
 
-      {canList && (
-        <>
-          {tree.error && <p className="explore-error">{tree.error}</p>}
-          {!tree.error && tree.loading && tree.uris.length === 0 && (
-            <SkeletonRowList rows={3} trailingWidth="5rem" />
-          )}
-          {!tree.error && !tree.loading && tree.uris.length === 0 && (
-            <p className="explore-placeholder">
-              You haven’t written to any spaces yet. Anything you write in a
-              space app will show up here.
-            </p>
-          )}
+        {grant === 'unknown' && <p className="fx-sp-msg">Checking your access…</p>}
 
-          {tree.uris.length > 0 && (
-            <SpaceTreeList tree={tree} memberDid={signedInDid ?? ''} />
-          )}
+        {grant === 'none' && (
+          <p className="fx-sp-note">
+            Your session has no space permission, so there’s nothing to read.
+            Sign in again and tick a permissioned-data row to grant one.
+          </p>
+        )}
 
-          {tree.more && (
-            <p style={noteStyle}>
-              Showing the first {SPACE_LIMIT}.{' '}
-              <Link href={`/explore/${repoSegment}/space`} className="explore-json-link">
-                See all of them
-              </Link>
-              .
-            </p>
-          )}
-        </>
-      )}
+        {canList && (
+          <>
+            {tree.error && <p className="fx-sp-err">{tree.error}</p>}
+            {!tree.error && tree.loading && tree.uris.length === 0 && (
+              <SkeletonRowList rows={3} trailingWidth="5rem" />
+            )}
+            {!tree.error && !tree.loading && tree.uris.length === 0 && (
+              <p className="fx-sp-msg">
+                You haven’t written to any spaces yet. Anything you write in a
+                space app will show up here.
+              </p>
+            )}
+
+            {tree.uris.length > 0 && (
+              <SpaceTreeList tree={tree} memberDid={signedInDid ?? ''} />
+            )}
+
+            {tree.more && (
+              <p className="fx-sp-note">
+                Showing the first {SPACE_LIMIT}.{' '}
+                <Link href={`/explore/${repoSegment}/space`} prefetch={false}>
+                  See all of them
+                </Link>
+                .
+              </p>
+            )}
+          </>
+        )}
+      </div>
     </section>
   );
 }
-
-const noteStyle: React.CSSProperties = {
-  margin: 0,
-  fontSize: '0.8rem',
-  lineHeight: 1.5,
-  color: 'var(--text-tertiary)',
-  maxWidth: '46rem',
-};

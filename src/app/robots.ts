@@ -58,6 +58,27 @@ export default function robots(): MetadataRoute.Robots {
           '/api/',
           '/oauth/',
           '/account',
+          // Vercel's Web Analytics beacon. A crawler that renders JavaScript
+          // runs the analytics script like any other client and posts a
+          // pageview per render, which put /_vercel/insights/view among the
+          // most-requested paths on the site — 1.2M in a 10.4M sample, none of
+          // it a reader.
+          //
+          // Disallowing it works because Googlebot applies robots.txt to every
+          // URL it fetches while rendering a page, not only to links it decides
+          // to follow. /account is the proof: it is prefetched on every page
+          // load (SessionPanel renders it in the signed-out branch) and appears
+          // nowhere in the traffic data, alone among the prefetched links.
+          //
+          // Real visitors are unaffected — browsers don't read robots.txt — so
+          // analytics keeps working for the traffic it is meant to measure, and
+          // is rid of pageviews from clients that were never reading.
+          //
+          // Safe as a whole-prefix block: /_vercel/insights/script.js is the
+          // only thing under here the pages actually request, and nothing on
+          // the critical rendering path lives here. Next's image optimizer is
+          // /_next/image, which this does not match.
+          '/_vercel/',
           '/explore/*/space$',
           '/explore/*/space/',
           '/at/',

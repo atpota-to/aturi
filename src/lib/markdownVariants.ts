@@ -28,6 +28,7 @@ export const MARKDOWN_VARIANTS: Readonly<Record<string, string>> = {
   '/docs': '/docs.md',
   '/about': '/about.md',
   '/contact': '/contact.md',
+  '/mcp': '/mcp.md',
 };
 
 /**

@@ -7,7 +7,7 @@ import { resolveSearchPathAsync } from '@/utils/atproto/searchRouting';
 import { getReduceMotionSnapshot } from '@/lib/a11y';
 import { useChromeBar, type ChromeBarAction } from './ChromeBarContext';
 import { useEditBar, type EditBarSnapshot } from './EditBarContext';
-import { useIsNarrow } from './useIsNarrow';
+import { useIsNarrow, useMediaQuery } from './useIsNarrow';
 import { CHROME_OCCLUSION_PX, NAV_OCCLUSION_PX } from './useOffscreen';
 import DeleteProgressBar from './DeleteProgressBar';
 
@@ -51,8 +51,8 @@ function isSpacePath(pathname: string): boolean {
  * AnimatePresence keeps the outgoing route alive through the crossfade, so
  * during a navigation there are two — and React runs the departing one's
  * cleanup *after* the arriving one's effect. Counting them is what keeps
- * that cleanup from stripping the body's height reservation off a page that
- * still has a bar, which would drop the footer under it until the next
+ * that cleanup from stripping the footer's height reservation off a page
+ * that still has a bar, which would drop the footer under it until the next
  * reload.
  */
 let mountedBars = 0;
@@ -79,9 +79,9 @@ let mountedBars = 0;
  * selection controls expand upward out of the bar as a panel — the mirror of
  * the nav's menu expanding downward out of the header.
  *
- * The bar reserves its own height as padding on <body> (see
- * `.has-explore-chrome` in globals.css), so it never covers the end of a
- * list or the site footer. The panel is deliberately left out of that
+ * The bar reserves its own height as bottom padding on the site footer
+ * (`.fn-footer`, under `body.has-explore-chrome` in globals.css), so it
+ * never covers the end of a list or the footer's own links. The panel is deliberately left out of that
  * measurement: like the nav's, it floats over the page rather than pushing
  * it around.
  */
@@ -168,6 +168,63 @@ export default function ExploreChromeBar() {
   // isn't a thing anyone does.
   const takeover = !narrow && midStep;
 
+  // A route field the page also shows in place is the bar's only on a phone,
+  // where the in-page copy steps aside (explorer.css, `max-width: 640px`).
+  // Wider, the bar keeps its jump search so the filter isn't shown twice.
+  const phone = useMediaQuery('(max-width: 640px)');
+  const routeField = field && (!field.inPage || phone) ? field : null;
+
+  // With nothing of the route's own to carry, the bar is a jump search and a
+  // copy-link button. Wide enough for the header's own "go to" field, that is
+  // a second copy of it floating over the page (the header covers the
+  // search; the page carries its own share control), so CSS drops it at that
+  // width (explorer.css, `[data-redundant]`). Done in CSS rather than here
+  // because the media query has no answer during SSR, and gating on it in JS
+  // would paint the bar on every desktop load and then pull it away.
+  const redundant = !takeover && !routeField && !bar && !action;
+
+  // On a two-column explorer page, centre the card on the content column
+  // rather than the viewport, so it doesn't run over the sidebar or the
+  // record's aside. Measured, since the columns are grid tracks whose
+  // position depends on the page; re-measured whenever the page's DOM or
+  // the viewport changes (the column mounts after the data loads).
+  useEffect(() => {
+    const node = barRef.current;
+    if (!node || hidden) return undefined;
+    let frame = 0;
+    const measure = () => {
+      frame = 0;
+      const column = document.querySelector<HTMLElement>('.fx-main, .fn-rec-main');
+      const rect = column?.getBoundingClientRect();
+      // Only when the column is narrower than the page, i.e. there's a
+      // sidebar beside it; a stacked layout keeps the default centring.
+      if (!rect || rect.width === 0 || rect.width > window.innerWidth * 0.8) {
+        delete node.dataset.column;
+        node.style.removeProperty('--explore-chrome-cx');
+        node.style.removeProperty('--explore-chrome-cw');
+        return;
+      }
+      node.dataset.column = '';
+      node.style.setProperty('--explore-chrome-cx', `${rect.left + rect.width / 2}px`);
+      node.style.setProperty('--explore-chrome-cw', `${rect.width}px`);
+    };
+    const schedule = () => {
+      if (!frame) frame = requestAnimationFrame(measure);
+    };
+    measure();
+    const mutations = new MutationObserver(schedule);
+    mutations.observe(document.body, { childList: true, subtree: true });
+    window.addEventListener('resize', schedule);
+    return () => {
+      if (frame) cancelAnimationFrame(frame);
+      mutations.disconnect();
+      window.removeEventListener('resize', schedule);
+      delete node.dataset.column;
+      node.style.removeProperty('--explore-chrome-cx');
+      node.style.removeProperty('--explore-chrome-cw');
+    };
+  }, [hidden, pathname]);
+
   // Below every hook above, which all have to run either way.
   if (hidden) return null;
 
@@ -176,7 +233,7 @@ export default function ExploreChromeBar() {
     // relative anchor for the panel, and the card itself — so the two ends of
     // the screen are the same object, one stuck to the top and one to the
     // bottom.
-    <div ref={barRef} className="explore-chrome-bar">
+    <div ref={barRef} className="explore-chrome-bar" data-redundant={redundant || undefined}>
       <div className="container-narrow explore-chrome-shell">
         <div className="explore-chrome-anchor">
           {inPanel && bar && <ChromePanel open={panelOpen} bar={bar} />}
@@ -186,7 +243,7 @@ export default function ExploreChromeBar() {
                 <DeleteSteps bar={bar} />
               ) : (
                 <>
-                  {field ? <RouteField key="route" /> : <JumpField key="jump" />}
+                  {routeField ? <RouteField key="route" /> : <JumpField key="jump" />}
                   {bar && !inPanel && <SelectionControls bar={bar} />}
                   {inPanel && bar && (
                     <PanelToggle
@@ -395,15 +452,18 @@ const REVEAL_TOLERANCE_PX = 4;
 const REVEAL_SLACK_PX = 160;
 
 /**
- * Where the sticky nav ends, measured rather than assumed: it grows by a row
- * when the condensed breadcrumb drops into it, and a list scrolled to the
- * constant alone would have its first line clipped. Falls back to the
- * constant on a route without that nav.
+ * Where the sticky nav ends, measured rather than assumed: the condensed
+ * breadcrumb hangs a row below it once it drops in, and a list scrolled to
+ * the constant alone would have its first line clipped. The strip overlays
+ * the page outside the header's box, so it is measured on its own. Falls
+ * back to the constant on a route without that nav.
  */
 function navBottom(): number {
-  const nav = document.querySelector('.compact-header');
-  const bottom = nav ? nav.getBoundingClientRect().bottom : 0;
-  return Math.max(NAV_OCCLUSION_PX, Math.round(bottom));
+  const bottoms = ['.compact-header', '.fn-sticky-crumbs-wrap'].map((selector) => {
+    const node = document.querySelector(selector);
+    return node ? node.getBoundingClientRect().bottom : 0;
+  });
+  return Math.max(NAV_OCCLUSION_PX, Math.round(Math.max(...bottoms)));
 }
 
 /**
@@ -566,7 +626,7 @@ function JumpField() {
     <FieldForm
       inputRef={inputRef}
       label="Go to a handle, DID, or at:// URI"
-      placeholder="Go to handle, DID, at:// URI…"
+      placeholder="Go to a handle, DID or at:// URI"
       value={value}
       onChange={setValue}
       onSubmit={submit}
@@ -643,7 +703,7 @@ function FieldForm({
           title="Clear"
           className="explore-chrome-clear"
         >
-          <X size={12} aria-hidden />
+          <X size={14} aria-hidden />
         </button>
       )}
     </form>

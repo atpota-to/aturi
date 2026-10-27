@@ -1,6 +1,7 @@
 body {
   width: 380px;
   min-height: 220px;
+  font-size: var(--fs-base);
 }
 
 [data-fs='large'] body {
@@ -19,39 +20,60 @@ body {
   width: 360px;
 }
 
+/* The body scrolls under the sticky top bar. */
+.popup-shell {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background: var(--bg-primary);
+}
+
+.popup-body {
+  flex: 1;
+}
+
 .popup-root {
   display: flex;
   flex-direction: column;
-  background: var(--bg-primary);
+  gap: 12px;
+  padding: 12px 12px 16px;
 }
 
-/* `.popup-topbar` stacks the title bar and the mode tabs so they scroll
-   together as a single sticky unit. Previously each was independently
-   `position: sticky` and they overlapped when the popup content scrolled. */
-.popup-topbar {
+/* ---------- Top bar ----------
+   Brand, the global auto-redirect switch, the search glyph and settings.
+   The sticky wrapper holds the bar, its search drawer and the scrim; the
+   inner box is the positioned one, so the drawer hangs from the bar's
+   bottom edge. */
+
+.popup-bar {
   position: sticky;
   top: 0;
   z-index: 3;
-  background: var(--bg-primary);
 }
 
-.popup-header {
+.popup-bar-inner {
+  position: relative;
+}
+
+.popup-topbar {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 14px 18px 12px;
-  border-bottom: 1px solid var(--border-subtle);
-  background: linear-gradient(180deg, var(--bg-secondary), var(--bg-primary));
+  gap: 8px;
+  height: 48px;
+  flex: none;
+  padding: 0 6px 0 14px;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-medium);
 }
 
 .popup-title {
-  font-family: var(--font-serif);
-  font-weight: 500;
-  font-size: var(--fs-2xl);
-  letter-spacing: -0.01em;
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
+  /* 15px at the medium preset; scales with the text-size setting. */
+  font-size: calc(var(--fs-xl) - 1px);
+  font-weight: 700;
+  letter-spacing: -0.02em;
   color: var(--text-primary);
 }
 
@@ -59,221 +81,495 @@ body {
   color: var(--text-accent);
 }
 
-.popup-header-actions {
-  display: inline-flex;
+.popup-topbar-actions {
+  margin-left: auto;
+  display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 2px;
 }
 
-.popup-tagline {
-  font-family: var(--font-sans);
-  font-size: var(--fs-xs);
-  color: var(--text-secondary);
-  text-align: right;
-  white-space: nowrap;
-  letter-spacing: 0;
-}
-
-.popup-header-copy {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  height: 22px;
-  padding: 0 9px;
-  background: transparent;
-  border: 1px solid var(--border-subtle);
-  color: var(--text-secondary);
-  font-family: var(--font-sans);
-  font-size: var(--fs-xs);
-  font-weight: 500;
-  line-height: 1;
-  letter-spacing: 0;
-  cursor: pointer;
-  transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
-  white-space: nowrap;
-}
-
-.popup-header-copy:hover {
-  background: var(--bg-tertiary);
-  border-color: var(--text-accent);
-  color: var(--text-accent);
-}
-
-.popup-header-copy:active {
-  background: var(--bg-elevated);
-}
-
-.popup-header-copy.is-copied {
-  background: var(--glow-subtle);
-  border-color: var(--text-accent);
-  color: var(--text-accent);
-}
-
-.popup-header-copy svg {
-  flex-shrink: 0;
-}
-
-.popup-header-settings {
+.popup-icon-btn {
+  width: 32px;
+  height: 32px;
+  flex: none;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  flex-shrink: 0;
-  width: 24px;
-  height: 22px;
-  padding: 0;
-  background: transparent;
-  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-control);
   color: var(--text-secondary);
-  cursor: pointer;
-  transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+  transition: background 0.15s ease, color 0.15s ease;
 }
 
-.popup-header-settings:hover {
+.popup-icon-btn:hover {
   background: var(--bg-tertiary);
-  border-color: var(--text-accent);
+  color: var(--text-primary);
+}
+
+/* The search glyph, pressed while its drawer is open. */
+.popup-icon-btn.is-pressed,
+.popup-icon-btn.is-pressed:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+/* The switch keeps its label at every text preset: the bar's right-hand
+   group is 223px at small (360) and 245px at xlarge (460). */
+.popup-redirect-switch {
+  height: 32px;
+  margin-right: 4px;
+  padding: 0 8px;
+  border-radius: var(--radius-control);
+  color: var(--text-secondary);
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.popup-redirect-switch:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+.popup-redirect-icon {
+  flex: none;
+  color: var(--text-tertiary);
+}
+
+.popup-redirect-switch.on {
+  color: var(--text-primary);
+}
+
+.popup-redirect-switch.on .popup-redirect-icon {
   color: var(--text-accent);
 }
 
-.popup-header-settings:active {
-  background: var(--bg-elevated);
-}
-
-.popup-header-settings svg {
-  flex-shrink: 0;
-}
-
-.popup-source {
+.popup-redirect-label {
   font-size: var(--fs-sm);
-  color: var(--text-secondary);
+  font-weight: 600;
+  line-height: 16px;
+  white-space: nowrap;
+}
+
+/* ---------- The search drawer ----------
+   Pressing the glyph pulls a drawer out from under the bar: the site's
+   36px go-to field at full width, Seen lately beneath it as suggestions,
+   and once something is typed, a "Go to … on aturi.to" row on top. It is
+   the one thing that floats, so the one thing with a shadow. It covers the
+   bar's hairline so bar and drawer read as one grown bar. Below it a scrim
+   dims the page: the drawer is a mode, and a click on the scrim leaves it. */
+
+.popup-search {
+  position: absolute;
+  top: calc(100% - 1px);
+  left: 0;
+  right: 0;
+  z-index: 4;
   display: flex;
   flex-direction: column;
-  align-items: flex-end;
   gap: 6px;
-  max-width: 65%;
-  font-family: var(--font-mono);
+  padding: 6px 12px 8px;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-medium);
+  box-shadow: var(--shadow-pop);
 }
 
-.popup-source-handle {
-  color: var(--text-secondary);
-  font-weight: 500;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  max-width: 200px;
-  letter-spacing: -0.01em;
+.popup-scrim {
+  position: fixed;
+  inset: 48px 0 0;
+  z-index: 3;
+  background: color-mix(in srgb, var(--bg-primary) 60%, transparent);
 }
 
-.popup-source-collection {
+/* The field: the site's header go-to field. */
+.popup-field {
+  display: flex;
+  align-items: center;
+  height: 36px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-control);
+  background: var(--bg-secondary);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.popup-field:hover {
+  border-color: var(--text-faint);
+}
+
+.popup-field:focus-within {
+  border-color: var(--accent-moss);
+  box-shadow: 0 0 0 3px var(--glow-strong);
+}
+
+[data-theme='dark'] .popup-field:focus-within {
+  border-color: var(--text-accent);
+}
+
+.popup-field > svg {
+  flex: none;
+  margin-left: 10px;
   color: var(--text-tertiary);
-  font-weight: 400;
+}
+
+.popup-field-input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  padding: 0 8px;
+  border: 0;
+  background: transparent;
+  font-family: var(--font-sans);
+  font-size: var(--fs-md);
+  color: var(--text-primary);
+}
+
+.popup-field-input:focus {
+  outline: none;
+}
+
+.popup-field-input::placeholder {
+  color: var(--text-tertiary);
+}
+
+/* The close sits 4px inside the 8px field, so its corner is the nested
+   4px, as the letter marks and keycaps. */
+.popup-field-close {
+  flex: none;
+  width: 28px;
+  height: 28px;
+  margin-right: 3px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: calc(var(--radius-control) - 4px);
+  color: var(--text-tertiary);
+  transition: background 0.12s ease, color 0.12s ease;
+}
+
+.popup-field-close:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+/* A keycap: Enter on the go row, "/" at the end of the no-data field. */
+.popup-kbd {
+  flex: none;
+  padding: 1px 5px;
+  border: 1px solid var(--border-medium);
+  border-radius: 4px;
+  font-family: var(--font-sans);
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 14px;
+  color: var(--text-tertiary);
+}
+
+/* The "/" hint sits in the field at rest and goes when the field has focus:
+   it says how to get here, and once here it has nothing to say. */
+.popup-field > .popup-kbd {
+  margin-right: 10px;
+  color: var(--text-faint);
+}
+
+.popup-field:focus-within > .popup-kbd {
+  display: none;
+}
+
+/* Suggestions under the field: one listbox the field owns. */
+.popup-sugg,
+.popup-sugg-group {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.popup-sugg[hidden] {
+  display: none;
+}
+
+.popup-sugg-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px 2px;
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  color: var(--text-tertiary);
+}
+
+.popup-sugg-head > svg {
+  color: var(--text-faint);
+}
+
+/* A row is the shipped waypoint row's height, with the handle at the
+   row's size, so Seen lately reads the same here and in its sheet. */
+.popup-sugg-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 40px;
+  padding: 0 8px;
+  border-radius: var(--radius-control);
+  color: var(--text-primary);
+  transition: background 0.12s ease;
+}
+
+.popup-sugg-row:hover,
+.popup-sugg-row[aria-selected='true'],
+[data-theme='dark'] .popup-sugg-row:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+.popup-sugg-row:focus-visible {
+  outline-offset: -2px;
+}
+
+.popup-sugg-handle {
+  flex: none;
+  max-width: 60%;
+  font-weight: 600;
+  white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.popup-sugg-host {
+  flex: 1;
+  min-width: 0;
+  font-size: max(11px, var(--fs-xs));
+  color: var(--text-tertiary);
   white-space: nowrap;
-  max-width: 100%;
-  letter-spacing: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.popup-sugg-count {
+  flex: none;
   font-size: var(--fs-xs);
-  opacity: 0.95;
+  color: var(--text-faint);
+  white-space: nowrap;
 }
 
-.popup-section {
-  padding: 14px 18px 18px;
-}
-
-.popup-section + .popup-section {
-  border-top: 1px solid var(--border-subtle);
-}
-
-.popup-notice {
-  padding: 12px 18px;
-  border-bottom: 1px solid var(--border-subtle);
+/* The go row: what Enter does, spelled out, with what was typed in mono. */
+.popup-sugg-row.is-go,
+.popup-sugg-row.is-go:hover,
+[data-theme='dark'] .popup-sugg-row.is-go:hover {
+  color: var(--text-accent);
   font-size: var(--fs-md);
-  line-height: 1.45;
-  color: var(--text-secondary);
-  font-family: var(--font-serif);
+  font-weight: 600;
 }
 
-.popup-notice-title {
+.popup-sugg-row.is-go {
+  margin-top: 2px;
+}
+
+.popup-sugg-row.is-go > svg {
+  flex: none;
+}
+
+.popup-sugg-go {
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.popup-sugg-typed {
+  font-family: var(--font-mono);
   font-weight: 500;
   color: var(--text-primary);
-  margin-bottom: 4px;
+}
+
+/* Folder tabs, as on the site's repository card and settings page (the
+   site's src/styles/fieldnotes/tabs.css; the numbers are mirrored by hand
+   here because the popup has its own build, so keep the two in step). They
+   stand on the record card's top edge, and the card is the open folder:
+   the open tab takes the card's colour and runs into it through the card's
+   border, while the others sit a step below the page. The one-pixel
+   overhang lands each tab's bottom edge on that border. Each tab is cut,
+   not stamped: below the shoulder its sides lean out 4°, drawn by two
+   skewed wedges that inherit the tab's fill and edge, on displays that can
+   draw that hairline crisply. */
+.popup-mode-tab {
+  position: relative;
+  /* Its own stacking context, so the wedges sit under the label. */
+  z-index: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  /* 32px filed, 33px hovered, 35px open, on a 20px line box. */
+  padding: 5px 12px;
+  box-sizing: border-box;
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-control) var(--radius-control) 0 0;
+  background: var(--popup-tab-filed);
+  color: var(--text-tertiary);
+  font-size: var(--fs-md);
+  font-weight: 500;
+  line-height: 20px;
+  white-space: nowrap;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+@media (min-resolution: 1.5dppx) {
+  .popup-mode-tab::before,
+  .popup-mode-tab::after {
+    content: '';
+    position: absolute;
+    z-index: -1;
+    top: calc(var(--radius-control) - 1px);
+    bottom: -1px;
+    width: 10px;
+    background: inherit;
+    border: 0 solid;
+    border-color: inherit;
+    border-bottom-width: 1px;
+    pointer-events: none;
+    transition: background-color 0.15s ease;
+  }
+  .popup-mode-tab::before {
+    left: -1px;
+    border-left-width: 1px;
+    transform-origin: top left;
+    transform: skewX(-4deg);
+  }
+  .popup-mode-tab::after {
+    right: -1px;
+    border-right-width: 1px;
+    transform-origin: top right;
+    transform: skewX(4deg);
+  }
+}
+
+/* A label never changes width when its weight does: a hidden, zero-height
+   copy in the open weight reserves the room. */
+.popup-mode-tab-label {
+  display: inline-block;
+  text-align: center;
+}
+
+.popup-mode-tab-label::after {
+  content: attr(data-label);
+  display: block;
+  height: 0;
+  overflow: hidden;
+  font-weight: 600;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+/* Touched: the tab comes forward one pixel and its tone lifts halfway
+   toward the body, so in dark it sits between filed and open. */
+@media (hover: hover) {
+  .popup-mode-tab:hover:not(.is-active) {
+    padding-top: 6px;
+    background: color-mix(in srgb, var(--popup-tab-filed) 50%, var(--popup-tab-open));
+    color: var(--text-primary);
+  }
+}
+
+/* Width and colour come from shared.css: moss in light, --text-accent in
+   dark, where moss on the filed tone is under 3:1. */
+.popup-mode-tab:focus-visible {
+  outline-offset: -3px;
+}
+
+.popup-mode-tab.is-active {
+  z-index: 1;
+  padding-top: 8px;
+  background: var(--popup-tab-open);
+  border-bottom-color: var(--popup-tab-open);
+  color: var(--text-primary);
+  font-weight: 600;
+  cursor: default;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .popup-mode-tab,
+  .popup-mode-tab::before,
+  .popup-mode-tab::after {
+    transition: none;
+  }
+}
+
+/* ---------- Sections and rows ---------- */
+
+.popup-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
 
 .popup-section-label {
-  font-size: var(--fs-xs);
-  font-weight: 600;
+  margin: 0;
+  padding: 0 2px;
+  font-size: var(--fs-sm);
+  font-weight: 700;
   color: var(--text-secondary);
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  margin-bottom: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  font-family: var(--font-serif);
+}
+
+/* The group's name is the tab on its drawer, as on the site's picker
+   (link.css .fn-lp-picker .waypoint-group-label: 18px line, 4px pad, a
+   28px box). One step smaller here, as the popup's mode tabs are to the
+   site's: 18px line, 3px pad, 2px border = a 26px box. Only sections that
+   stand on a sheet (.is-sheet) get it; the no-data notice and the Inspect
+   head keep the plain label. */
+.popup-section.is-sheet {
+  gap: 0;
+}
+
+.popup-section.is-sheet > .popup-section-label {
+  position: relative;
+  z-index: 1;
+  width: fit-content;
+  max-width: calc(100% - 2 * var(--radius-card));
+  margin: 0 0 -1px var(--radius-card);
+  padding: 3px 10px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-medium);
+  border-bottom-color: var(--bg-secondary);
+  border-radius: var(--radius-control) var(--radius-control) 0 0;
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  line-height: 18px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* The lead group's tab in the accent, as the site's picker. */
+.popup-section.is-sheet > .popup-section-label.is-highlighted {
+  color: var(--text-accent);
 }
 
 .popup-waypoints {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-card);
+  overflow: hidden;
 }
 
-/* The waypoint row is a div container holding two buttons: a primary
-   "navigate" button on the left and a small copy-link button on the right.
-   Visual row styling (border, background, hover lift) lives on the wrapper
-   so both controls feel like part of one card. */
 .popup-waypoint {
   display: flex;
-  align-items: stretch;
-  background: var(--bg-secondary);
-  border: 1px solid var(--border-subtle);
-  width: 100%;
-  transition: background 0.3s ease, border-color 0.3s ease,
-    transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-  position: relative;
-  overflow: hidden;
-  font-family: var(--font-serif);
+  align-items: center;
+  transition: background 0.12s ease;
 }
 
-.popup-waypoint::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(90deg, transparent, var(--glow-subtle), transparent);
-  opacity: 0;
-  transition: opacity 0.3s ease;
-  pointer-events: none;
+/* The list card clips its rows to its rounded corners, so the rows draw
+   their focus ring inside their own box. */
+.popup-waypoint-main:focus-visible,
+.popup-waypoint-copy:focus-visible {
+  outline-offset: -2px;
+}
+
+.popup-waypoint + .popup-waypoint {
+  border-top: 1px solid var(--border-subtle);
 }
 
 .popup-waypoint:hover {
-  background: var(--bg-tertiary);
-  border-color: var(--text-accent);
-  transform: translateX(3px);
-}
-
-.popup-waypoint:hover::before {
-  opacity: 1;
-}
-
-.popup-waypoint:has(.popup-waypoint-main:disabled) {
-  opacity: 0.5;
-  transform: none;
-}
-
-/* PDS-scan came back without a matching collection in the target repo —
-   the row stays clickable (we don't know that the user wouldn't want to
-   open the app anyway) but reads quietly. The caption switches to
-   "No records found on this repo" so the dimming is explained inline. */
-.popup-waypoint.is-absent {
-  opacity: 0.5;
-}
-
-.popup-waypoint.is-absent:hover {
-  opacity: 0.85;
-}
-
-.popup-waypoint.is-absent .popup-waypoint-desc {
-  font-style: italic;
-  color: var(--text-tertiary);
+  background: var(--surface-subtle);
 }
 
 .popup-waypoint-main {
@@ -281,887 +577,854 @@ body {
   min-width: 0;
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 10px 12px;
-  background: transparent;
-  border: 0;
+  gap: 10px;
+  min-height: 40px;
+  padding: 0 4px 0 12px;
+  color: var(--text-primary);
   text-align: left;
-  cursor: pointer;
-  font: inherit;
-  color: inherit;
 }
 
 .popup-waypoint-main:disabled {
-  cursor: wait;
+  cursor: progress;
+  opacity: 0.6;
 }
 
-.popup-waypoint-copy {
-  display: inline-flex;
+/* A waypoint with no records on this repo stays readable: only its mark
+   fades to grey, and the words step down one text tone each rather than
+   the whole row going translucent, which took the name under 4.5:1. */
+.popup-waypoint.is-absent .popup-waypoint-icon {
+  opacity: 0.45;
+  filter: grayscale(1);
+}
+
+.popup-waypoint.is-absent .popup-waypoint-name {
+  color: var(--text-secondary);
+}
+
+.popup-waypoint.is-absent .popup-waypoint-desc {
+  color: var(--text-tertiary);
+  font-style: italic;
+}
+
+.popup-waypoint-icon {
+  width: 16px;
+  height: 16px;
+  flex: none;
+  display: flex;
   align-items: center;
   justify-content: center;
-  flex-shrink: 0;
-  width: 32px;
-  padding: 0;
-  background: transparent;
-  border: 0;
-  border-left: 1px solid var(--border-subtle);
-  color: var(--text-secondary);
-  cursor: pointer;
-  transition: background 0.2s ease, color 0.2s ease;
-}
-
-.popup-waypoint-copy:hover {
-  background: var(--bg-elevated);
   color: var(--text-accent);
 }
 
-.popup-waypoint-copy:active {
+/* In a row the mark sits in ink and lights up with the row, as the site's
+   picker rows do; the tiles keep the accent at rest. */
+.popup-waypoint .popup-waypoint-icon {
+  color: var(--text-primary);
+  transition: color 0.12s ease;
+}
+
+.popup-waypoint:hover .popup-waypoint-icon,
+.popup-waypoint:focus-within .popup-waypoint-icon {
+  color: var(--text-accent);
+}
+
+.popup-waypoint-icon svg,
+.popup-waypoint-icon img {
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+}
+
+.popup-icon-letter {
+  width: 16px;
+  height: 16px;
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
   background: var(--bg-tertiary);
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+
+.popup-waypoint-name {
+  flex: 0 1 auto;
+  min-width: 0;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.popup-waypoint-desc {
+  flex: 1;
+  min-width: 0;
+  font-size: max(11px, var(--fs-xs));
+  color: var(--text-tertiary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.popup-waypoint-copy {
+  width: 32px;
+  height: 32px;
+  margin-right: 4px;
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-control);
+  color: var(--text-tertiary);
+  transition: opacity 0.12s ease, background 0.12s ease, color 0.12s ease;
+}
+
+.popup-waypoint-copy:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-accent);
 }
 
 .popup-waypoint-copy.is-copied {
   color: var(--text-accent);
-  background: var(--glow-subtle);
 }
 
-.popup-waypoint-icon {
-  width: 24px;
-  height: 24px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--text-accent);
-  flex-shrink: 0;
-  transition: color 0.3s ease;
+/* On a pointer device the row's copy button shows when the row is touched
+   or focused, as on the site's picker rows: thirty glyphs at rest were
+   noise. The 32px box stays, so nothing shifts. Touch keeps it visible. */
+@media (hover: hover) {
+  .popup-waypoint .popup-waypoint-copy {
+    opacity: 0;
+  }
+
+  .popup-waypoint:hover .popup-waypoint-copy,
+  .popup-waypoint:focus-within .popup-waypoint-copy,
+  .popup-waypoint .popup-waypoint-copy.is-copied {
+    opacity: 1;
+  }
 }
 
-.popup-waypoint:hover .popup-waypoint-icon {
-  color: var(--text-primary);
-}
-
-.popup-waypoint-text {
-  flex: 1;
-  min-width: 0;
-}
-
-.popup-waypoint-name {
-  font-weight: 500;
-  font-size: var(--fs-lg);
-  color: var(--text-primary);
-  letter-spacing: -0.01em;
-}
-
-.popup-waypoint-desc {
-  font-size: var(--fs-sm);
-  color: var(--text-secondary);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  margin-top: 1px;
-}
-
-.popup-empty {
-  padding: 28px 20px;
-  text-align: center;
-  color: var(--text-secondary);
-  font-size: var(--fs-lg);
-  font-family: var(--font-serif);
-}
-
-/* Empty state for the Inspect tab. Replaces the dead-end "Scan again"
-   button with a primary CTA into the website explorer + a list of
-   frequently-seen repos pulled from local history. */
-.inspect-empty {
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  gap: 14px;
-  padding: 6px 0 4px;
-}
-
-.inspect-empty-message {
-  text-align: center;
-  color: var(--text-secondary);
-  font-family: var(--font-serif);
-  font-size: var(--fs-md);
-  padding: 4px 4px 0;
-}
-
-.inspect-empty-cta {
-  width: 100%;
-  justify-content: center;
-}
-
-.inspect-empty-recents {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  padding-top: 8px;
-  border-top: 1px solid var(--border-subtle);
-}
-
-.inspect-empty-recents-label {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  font-family: var(--font-serif);
-  font-size: var(--fs-xs);
-  font-weight: 600;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--text-secondary);
-}
-
-.inspect-empty-recents-list {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.inspect-empty-recent {
-  display: inline-flex;
-  align-items: center;
+/* Compact: shorter rows, no description line, so more waypoints fit. */
+.popup-root.is-compact {
   gap: 8px;
-  padding: 8px 10px;
-  background: var(--bg-secondary);
-  border: 1px solid var(--border-subtle);
-  color: var(--text-primary);
-  font-family: var(--font-mono, var(--font-sans));
-  font-size: var(--fs-sm);
-  text-decoration: none;
-  cursor: pointer;
-  transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
-  min-width: 0;
-}
-
-.inspect-empty-recent:hover {
-  background: var(--bg-tertiary);
-  border-color: var(--text-accent);
-  transform: translateX(2px);
-}
-
-.inspect-empty-recent-label {
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.inspect-empty-recent-count {
-  flex-shrink: 0;
-  padding: 1px 6px;
-  background: var(--glow-subtle);
-  color: var(--text-accent);
-  font-family: var(--font-sans);
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  border: 1px solid var(--border-subtle);
-}
-
-.inspect-empty-recent-icon {
-  flex-shrink: 0;
-  color: var(--text-secondary);
-}
-
-.inspect-empty-recent:hover .inspect-empty-recent-icon {
-  color: var(--text-accent);
-}
-
-.inspect-empty-rescan {
-  align-self: center;
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  margin-top: 2px;
-  padding: 6px 10px;
-  background: transparent;
-  border: none;
-  color: var(--text-secondary);
-  font-family: var(--font-sans);
-  font-size: var(--fs-xs);
-  cursor: pointer;
-  transition: color 0.2s ease;
-}
-
-.inspect-empty-rescan:hover {
-  color: var(--text-accent);
-}
-
-.popup-footer {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  padding: 10px 18px;
-  border-top: 1px solid var(--border-subtle);
-  background: var(--bg-secondary);
-  font-size: var(--fs-sm);
-  position: sticky;
-  bottom: 0;
-  z-index: 2;
-}
-
-.popup-footer-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 10px;
-  min-width: 0;
-}
-
-/* Inline update banner shown above the footer action row when the catalog
-   has grown since the user last opened the popup. Highlights new built-in
-   waypoints with an "Add" link to Settings → Waypoints and a dismiss X. */
-.popup-update-banner {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 8px 6px 10px;
-  background: var(--glow-subtle);
-  border: 1px solid var(--text-accent);
-  color: var(--text-primary);
-  font-family: var(--font-serif);
-  font-size: var(--fs-xs);
-  line-height: 1.3;
-}
-
-.popup-update-banner-icon {
-  display: inline-flex;
-  flex-shrink: 0;
-  color: var(--text-accent);
-}
-
-/* Clicking the summary opens Settings → Waypoints, where each new waypoint
-   can be placed individually; the Add button next to it takes them all. */
-.popup-update-banner-text {
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  padding: 0;
-  background: none;
-  border: 0;
-  font: inherit;
-  color: inherit;
-  text-align: left;
-  cursor: pointer;
-}
-
-.popup-update-banner-text:hover {
-  text-decoration: underline;
-}
-
-.popup-update-banner-action {
-  flex-shrink: 0;
-  padding: 2px 8px;
-  background: transparent;
-  border: 1px solid var(--text-accent);
-  color: var(--text-accent);
-  font-family: var(--font-sans);
-  font-size: var(--fs-xs);
-  font-weight: 600;
-  letter-spacing: 0.02em;
-  cursor: pointer;
-  transition: background 0.2s ease, color 0.2s ease;
-}
-
-.popup-update-banner-action:hover {
-  background: var(--text-accent);
-  color: var(--bg-primary);
-}
-
-.popup-update-banner-dismiss {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  width: 20px;
-  height: 20px;
-  padding: 0;
-  background: transparent;
-  border: 0;
-  color: var(--text-secondary);
-  cursor: pointer;
-  transition: color 0.2s ease, background 0.2s ease;
-}
-
-.popup-update-banner-dismiss:hover {
-  background: var(--bg-tertiary);
-  color: var(--text-primary);
-}
-
-.popup-theme-toggle {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  width: 28px;
-  height: 24px;
-  padding: 0;
-  background: transparent;
-  border: 1px solid var(--border-subtle);
-  color: var(--text-secondary);
-  cursor: pointer;
-  transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
-}
-
-.popup-theme-toggle:hover {
-  background: var(--bg-tertiary);
-  border-color: var(--text-accent);
-  color: var(--text-accent);
-}
-
-.popup-theme-toggle:active {
-  background: var(--bg-elevated);
-}
-
-.popup-theme-toggle svg {
-  flex-shrink: 0;
-}
-
-.popup-uri {
-  flex: 1;
-  min-width: 0;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 10px;
-  background: transparent;
-  border: 1px solid transparent;
-  color: var(--text-secondary);
-  font-size: var(--fs-xs);
-  font-family: var(--font-mono);
-  text-align: left;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.popup-uri:hover {
-  background: var(--bg-tertiary);
-  border-color: var(--border-subtle);
-  color: var(--text-primary);
-}
-
-.popup-uri:active {
-  background: var(--bg-elevated);
-}
-
-.popup-uri-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  color: var(--text-secondary);
-}
-
-.popup-uri:hover .popup-uri-icon {
-  color: var(--text-accent);
-}
-
-.popup-uri-text {
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.popup-uri.is-copied {
-  color: var(--text-accent);
-  border-color: var(--text-accent);
-  background: var(--glow-subtle);
-}
-
-.popup-uri.is-copied .popup-uri-icon {
-  color: var(--text-accent);
-}
-
-.popup-recents-row {
-  display: flex;
-  gap: 6px;
-  overflow-x: auto;
-  /* Vertical padding gives the hover translate room to breathe — overflow-x:auto
-     also clips the y-axis, so without padding the lifted card would get cropped
-     at the top. */
-  padding: 4px 0 6px;
-  scrollbar-width: thin;
-}
-
-.popup-recent {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-  padding: 10px 12px;
-  min-width: 76px;
-  border: 1px solid var(--border-subtle);
-  background: var(--bg-secondary);
-  cursor: pointer;
-  transition: background 0.25s ease, border-color 0.25s ease, color 0.25s ease,
-    transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-  font-family: var(--font-serif);
-}
-
-.popup-recent:hover {
-  background: var(--bg-tertiary);
-  border-color: var(--text-accent);
-  transform: translateY(-2px);
-}
-
-.popup-recent .popup-waypoint-icon {
-  color: var(--text-accent);
-}
-
-.popup-recent:hover .popup-waypoint-icon {
-  color: var(--text-primary);
-}
-
-.popup-recent-name {
-  font-size: var(--fs-xs);
-  font-weight: 500;
-  color: var(--text-primary);
-  text-align: center;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  max-width: 100%;
-  letter-spacing: 0.01em;
-}
-
-.popup-recent:hover .popup-recent-name {
-  color: var(--text-primary);
-}
-
-.popup-icon-letter {
-  width: 24px;
-  height: 24px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--bg-tertiary);
-  border: 1px solid var(--border-subtle);
-  font-family: var(--font-serif);
-  font-weight: 600;
-  font-size: var(--fs-sm);
-  color: var(--text-accent);
-}
-
-/* Compact mode: smaller icons, tighter rows, no description line so more
-   waypoints fit in the popup at once. */
-.popup-root.is-compact .popup-section {
-  padding: 8px 18px 12px;
-}
-
-.popup-root.is-compact .popup-section-label {
-  margin-bottom: 6px;
-}
-
-.popup-root.is-compact .popup-waypoints {
-  gap: 2px;
 }
 
 .popup-root.is-compact .popup-waypoint-main {
-  padding: 6px 10px;
-  gap: 10px;
+  min-height: 32px;
 }
 
 .popup-root.is-compact .popup-waypoint-copy {
   width: 28px;
-}
-
-.popup-root.is-compact .popup-waypoint-icon {
-  width: 18px;
-  height: 18px;
-}
-
-.popup-root.is-compact .popup-waypoint-icon svg,
-.popup-root.is-compact .popup-waypoint-icon img {
-  width: 18px;
-  height: 18px;
-}
-
-.popup-root.is-compact .popup-icon-letter {
-  width: 18px;
-  height: 18px;
-  font-size: var(--fs-xs);
-}
-
-.popup-root.is-compact .popup-waypoint-name {
-  font-size: var(--fs-md);
+  height: 28px;
 }
 
 .popup-root.is-compact .popup-waypoint-desc {
   display: none;
 }
 
-.popup-root.is-compact .popup-waypoint:hover {
-  transform: translateX(2px);
-}
+/* ---------- This page card ---------- */
 
-/* Popup mode tabs (Waypoints / Inspect) — sit above both views */
-.popup-shell {
-  display: flex;
-  flex-direction: column;
-  background: var(--bg-primary);
-}
-
-/* Sticky behavior lives on `.popup-topbar` now — see above. */
-.popup-mode-tabs {
-  display: flex;
-  align-items: stretch;
-  border-bottom: 1px solid var(--border-subtle);
-  background: var(--bg-secondary);
-}
-
-.popup-mode-tab {
-  flex: 1;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  padding: 10px 12px;
-  background: transparent;
-  border: 0;
-  border-bottom: 2px solid transparent;
-  margin-bottom: -1px;
-  color: var(--text-tertiary);
-  font-family: var(--font-sans);
-  font-size: var(--fs-xs);
-  font-weight: 500;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  cursor: pointer;
-  transition: color 0.2s ease, border-color 0.2s ease, background 0.2s ease;
-}
-
-/* Vertical dividers between adjacent tab-bar items (including the settings
-   gear on the right). The first item has no left border so the divider
-   pattern only renders between siblings. */
-.popup-mode-tab + .popup-mode-tab,
-.popup-mode-tab + .popup-mode-tab-settings,
-.popup-mode-tab-settings + .popup-mode-tab,
-.popup-mode-tab-settings + .popup-mode-tab-settings {
-  border-left: 1px solid var(--border-subtle);
-}
-
-.popup-mode-tab:hover {
-  color: var(--text-secondary);
-  background: var(--bg-tertiary);
-}
-
-.popup-mode-tab.is-active {
-  color: var(--text-primary);
-  border-bottom-color: var(--text-accent);
-}
-
-.popup-mode-tab svg {
-  flex-shrink: 0;
-}
-
-/* The settings gear sits at the right edge of the tab bar — narrow,
-   icon-only, never "active" since it opens a separate page. Visually
-   it shares the tab-bar treatment (same height, same divider). */
-.popup-mode-tab-settings {
-  flex: 0 0 auto;
-  width: 40px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  background: transparent;
-  border: 0;
-  border-bottom: 2px solid transparent;
-  margin-bottom: -1px;
-  color: var(--text-tertiary);
-  cursor: pointer;
-  transition: color 0.2s ease, background 0.2s ease;
-}
-
-.popup-mode-tab-settings:hover {
-  color: var(--text-accent);
-  background: var(--bg-tertiary);
-}
-
-.popup-mode-tab-settings:active {
-  background: var(--bg-elevated);
-}
-
-.popup-mode-tab-settings svg {
-  flex-shrink: 0;
-}
-
-/* ----- Inspect card ------------------------------------------------------ */
-
-.inspect-card {
-  display: flex;
-  flex-direction: column;
-  margin-bottom: 8px;
-  background: var(--bg-secondary);
-  border: 1px solid var(--border-medium);
-  font-family: var(--font-serif);
-}
-
-.inspect-card + .inspect-card {
-  margin-top: 4px;
-}
-
-/* The breadcrumb sits as a distinct header section at the top of the
-   card — own background, own padding, divider below — so it reads as a
-   "this is what record you're looking at" banner rather than just the
-   first row in a uniform stack. */
-.inspect-breadcrumb {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 4px;
-  font-size: 11px;
-  padding: 10px 14px;
-  background: var(--bg-tertiary);
-  border-bottom: 1px solid var(--border-subtle);
-}
-
-.inspect-card-body {
+.popup-page {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  padding: 12px 14px;
+  padding: 12px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-card);
 }
 
-.inspect-breadcrumb-segment {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 2px 5px;
-  color: var(--text-secondary);
-  text-decoration: none;
-  font-family: var(--font-mono);
-  letter-spacing: 0;
-  border-radius: 0;
-  transition: color 0.15s ease, background 0.15s ease;
-  max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.inspect-breadcrumb-segment:hover {
-  color: var(--text-accent);
-  background: var(--bg-tertiary);
-}
-
-.inspect-breadcrumb-segment.is-handle {
-  color: var(--text-primary);
-  font-weight: 500;
-}
-
-.inspect-breadcrumb-segment.is-collection,
-.inspect-breadcrumb-segment.is-pds {
-  color: var(--text-tertiary);
-}
-
-.inspect-breadcrumb-segment.is-rkey {
-  color: var(--text-tertiary);
-  font-family: var(--font-mono);
-  padding: 2px 5px;
-  max-width: 160px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.inspect-breadcrumb-sep {
-  color: var(--text-tertiary);
-  opacity: 0.6;
-  flex-shrink: 0;
-}
-
-/* AT Tags relation badge — labels a detection that came from an explicit
-   `<meta name="at:...">` declaration (canonical / author / me / namespaced).
-   Sits at the head of the breadcrumb as a small accent pill. */
-.inspect-relation {
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
-  flex-shrink: 0;
-  padding: 1px 6px;
-  font-family: var(--font-mono);
-  font-size: 9px;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--text-accent);
-  background: var(--bg-accent-subtle, rgba(120, 120, 200, 0.12));
-  border: 1px solid var(--border-subtle);
-  border-radius: 0;
-}
-
-.inspect-preview {
-  font-size: 12px;
-  color: var(--text-secondary);
-  font-family: var(--font-serif);
-  line-height: 1.4;
-}
-
-.inspect-engagement {
+.popup-page-head {
   display: flex;
-  flex-wrap: wrap;
-  gap: 14px;
-  padding: 6px 0;
-  border-top: 1px solid var(--border-subtle);
-  border-bottom: 1px solid var(--border-subtle);
-  color: var(--text-secondary);
-}
-
-.inspect-engagement-item {
-  display: inline-flex;
   align-items: center;
-  gap: 4px;
-  font-size: 11px;
-  font-family: var(--font-mono);
+  gap: 10px;
 }
 
-.inspect-engagement-item svg {
-  color: var(--text-tertiary);
-  flex-shrink: 0;
-}
-
-.inspect-cta {
-  width: 100%;
-  padding: 8px 12px;
-  font-size: 12px;
-  text-decoration: none;
-  margin-top: 2px;
-}
-
-.inspect-copy-row {
+.popup-page-avatar {
+  width: 32px;
+  height: 32px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--accent-soft-border);
+  color: var(--accent-soft-fg);
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
-  gap: 4px;
+  justify-content: center;
+  font-size: var(--fs-base);
+  font-weight: 700;
 }
 
-.inspect-copy-label {
-  font-size: 9px;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--text-tertiary);
-  font-family: var(--font-serif);
-  margin-right: 2px;
-}
-
-.inspect-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 3px 7px;
-  background: transparent;
-  border: 1px solid var(--border-subtle);
-  color: var(--text-secondary);
-  font-family: var(--font-mono);
-  font-size: 10px;
-  cursor: pointer;
-  transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
-  white-space: nowrap;
-}
-
-.inspect-chip:hover {
-  color: var(--text-accent);
-  border-color: var(--text-accent);
-  background: var(--bg-tertiary);
-}
-
-.inspect-chip.is-ghost {
-  border-color: transparent;
-}
-
-.inspect-chip.is-ghost:hover {
-  border-color: var(--border-subtle);
-}
-
-.inspect-chip.is-copied {
-  color: var(--text-accent);
-  border-color: var(--text-accent);
-}
-
-.inspect-footer {
+.popup-page-text {
+  flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  padding-top: 6px;
-  border-top: 1px solid var(--border-subtle);
 }
 
-.inspect-footer-meta {
+.popup-page-title {
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.popup-page-meta {
+  font-size: var(--fs-sm);
+  color: var(--text-tertiary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.popup-source-collection {
+  font-family: var(--font-mono);
+  font-size: 0.95em;
+}
+
+.popup-page-actions {
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 6px;
+  gap: 8px;
 }
 
-.inspect-footer-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-family: var(--font-mono);
-  font-size: 10px;
-  color: var(--text-tertiary);
-  text-decoration: none;
-  padding: 3px 5px;
-  transition: color 0.15s ease;
-}
-
-.inspect-footer-link:hover {
-  color: var(--text-accent);
-}
-
-.inspect-json {
-  font-size: 11px;
-}
-
-.inspect-json > summary {
-  cursor: pointer;
-  color: var(--text-tertiary);
-  font-family: var(--font-serif);
-  font-size: 11px;
-  padding: 2px 0;
-  user-select: none;
-}
-
-.inspect-json > summary:hover {
-  color: var(--text-secondary);
-}
-
-.inspect-json-pre {
-  margin: 6px 0 0;
-  padding: 8px 10px;
-  background: var(--bg-tertiary);
-  border: 1px solid var(--border-subtle);
-  font-family: var(--font-mono);
-  font-size: 10px;
-  line-height: 1.45;
-  color: var(--text-secondary);
-  white-space: pre-wrap;
-  word-break: break-all;
-  max-height: 280px;
-  overflow-y: auto;
-}
-
-.popup-mode-tab-badge {
+.popup-page-btn {
+  flex: 1;
+  min-width: 0;
+  height: 32px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 16px;
-  height: 16px;
-  padding: 0 5px;
-  margin-left: 2px;
-  background: var(--text-accent);
-  color: var(--bg-primary, #000);
-  border-radius: 8px;
-  font-size: 10px;
+  gap: 6px;
+  padding: 0 10px;
+  border-radius: var(--radius-control);
+  border: 1px solid var(--border-strong);
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font-size: var(--fs-md);
   font-weight: 600;
-  letter-spacing: 0;
-  line-height: 1;
-  text-transform: none;
+  white-space: nowrap;
+  transition: background 0.12s ease, border-color 0.12s ease;
+}
+
+.popup-page-btn:hover {
+  background: var(--surface-subtle);
+  border-color: var(--text-faint);
+}
+
+.popup-page-btn.is-copied {
+  border-color: var(--accent-soft-border);
+  background: var(--accent-soft);
+  color: var(--accent-soft-fg);
+}
+
+.popup-page-btn span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ---------- The record card and its tabs ----------
+   Each record on the page is a folder tab on the card: "This page" first,
+   pinned, then one per referenced record labelled by its author's handle,
+   in a run that scrolls sideways and fades at its ends. The +N tab at the
+   right end, outside the run, counts what the strip is not showing and
+   opens the list of all of them under the card. */
+
+.popup-card-section {
+  gap: 0;
+}
+
+.popup-record-tabs {
+  --popup-tab-open: var(--bg-secondary);
+  --popup-tab-filed: var(--surface-filed);
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: flex-end;
+  gap: 5px;
+  margin: 0 var(--radius-card) -1px;
+}
+
+.popup-record-tablist {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: flex-end;
+  gap: 5px;
+}
+
+.popup-record-tab {
+  flex: none;
+  scroll-snap-align: start;
+}
+
+/* A long handle (a did:web, a subdomain chain) ellipsises so no one tab
+   can take the whole strip. */
+.popup-record-tab .popup-mode-tab-label {
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* The pinned tab carries a window glyph, so when it is filed it still
+   reads as the page itself and not one more handle. */
+.popup-record-tab.is-pinned > svg {
+  flex: none;
+  margin-left: -2px;
+  color: var(--text-tertiary);
+}
+
+.popup-record-tab.is-pinned.is-active > svg {
+  color: var(--text-accent);
+}
+
+/* On a page with no record the open folder is empty, so its glyph stays
+   quiet. */
+.popup-record-tab.is-pinned.is-empty > svg {
+  color: var(--text-tertiary);
+}
+
+/* The run: scrolls sideways, rests on whole tabs, and keeps the tab it
+   scrolls to clear of the 40px fades at either end. */
+.popup-tabs-run {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: flex-end;
+  gap: 5px;
+  /* 1px of room each side for the wedges and the hover lift; the bottom
+     pixel is where the wedges' bottom edge lands, as on the bar. */
+  padding: 1px;
+  margin-bottom: -1px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  scroll-snap-type: x proximity;
+  scroll-padding-inline: 40px;
+}
+
+.popup-tabs-run::-webkit-scrollbar {
+  display: none;
+}
+
+/* The fades. At rest the run dissolves into its end; scrolled, its start
+   is fully clear for the width of the gap (so no fragment butts against
+   "This page") and dissolves over the next 34px; at the end of the run
+   only the start fades. */
+.popup-tabs-run.is-overflowing {
+  -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 40px), transparent);
+  mask-image: linear-gradient(to right, #000 calc(100% - 40px), transparent);
+}
+
+.popup-tabs-run.is-overflowing.is-scrolled {
+  -webkit-mask-image: linear-gradient(to right, transparent 6px, #000 40px, #000 calc(100% - 40px), transparent);
+  mask-image: linear-gradient(to right, transparent 6px, #000 40px, #000 calc(100% - 40px), transparent);
+}
+
+.popup-tabs-run.is-overflowing.is-scrolled.is-at-end {
+  -webkit-mask-image: linear-gradient(to right, transparent 6px, #000 40px);
+  mask-image: linear-gradient(to right, transparent 6px, #000 40px);
+}
+
+/* The +N tab: filed tab furniture, a count of the references not fully in
+   view, and a disclosure for the list below the card. Open, it comes
+   forward the hover step, since it is not the card's sheet. */
+.popup-tab-more {
+  padding-inline: 9px;
+  font-variant-numeric: tabular-nums;
+}
+
+.popup-tab-more.is-expanded,
+.popup-tab-more.is-expanded:hover {
+  padding-top: 6px;
+  background: color-mix(in srgb, var(--popup-tab-filed) 50%, var(--popup-tab-open));
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+/* The list of every referenced record, as a sheet under the card. */
+.popup-ref .popup-waypoint-main {
+  padding-right: 12px;
+}
+
+.popup-ref .popup-waypoint-main[aria-current] .popup-waypoint-name {
+  color: var(--text-accent);
+}
+
+.popup-ref-current {
+  flex: none;
+  display: inline-flex;
+  color: var(--text-accent);
+}
+
+.popup-record-preview {
+  margin: -2px 0 0;
+  font-size: var(--fs-sm);
+  line-height: 1.45;
+  color: var(--text-tertiary);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+}
+
+/* The two verbs. Open is a link, so it keeps the button's ink on hover. */
+a.popup-page-btn,
+a.popup-page-btn:hover,
+[data-theme='dark'] a.popup-page-btn:hover {
+  color: var(--text-primary);
+}
+
+.popup-copy-btn > svg:last-child,
+.popup-open-btn > svg:last-child {
+  flex: none;
+  color: var(--text-tertiary);
+}
+
+.popup-copy-btn > svg:last-child {
+  margin-left: -2px;
+}
+
+.popup-copy-btn.is-open {
+  background: var(--bg-tertiary);
+  border-color: var(--border-strong);
+}
+
+/* For the length of a copy the button itself says so (the shipped
+   is-copied tint); the chevron stays, the ledger stays open. */
+.popup-copy-btn.is-open.is-copied {
+  background: var(--accent-soft);
+  border-color: var(--accent-soft-border);
+  color: var(--accent-soft-fg);
+}
+
+.popup-copy-btn.is-copied > svg:last-child {
+  color: var(--accent-soft-fg);
+}
+
+/* ---------- The Copy ledger ----------
+   Copy unfolds the record's identifiers inside the card, below the verbs:
+   a ledger of six rows, label then value in mono, each row a button that
+   copies. It is a disclosure, not a menu: it stays open after a pick and
+   across tab switches, Tab moves between rows, Esc folds it. It pushes the
+   drawers down instead of covering them. Long values wrap at a slash or a
+   dot (the <wbr>s in the markup); a CID wraps where it must. */
+
+.popup-ledger {
+  display: flex;
+  flex-direction: column;
+  margin: 2px -12px -12px;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--border-subtle);
+  border-radius: 0 0 calc(var(--radius-card) - 1px) calc(var(--radius-card) - 1px);
+  overflow: hidden;
+}
+
+/* Above the per-page band the ledger stops at the band's hairline. */
+.popup-ledger.is-above-band {
+  margin-bottom: -10px;
+  border-radius: 0;
+}
+
+.popup-ledger > li {
+  display: block;
+}
+
+.popup-ledger > li + li {
+  border-top: 1px solid var(--border-subtle);
+}
+
+.popup-ledger-row {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  width: 100%;
+  min-height: 34px;
+  padding: 8px 10px 8px 12px;
+  text-align: left;
+  transition: background 0.12s ease;
+}
+
+.popup-ledger-row:hover:not(:disabled),
+.popup-ledger-row:focus-visible {
+  background: var(--surface-subtle);
+}
+
+.popup-ledger-row:focus-visible {
+  outline-offset: -2px;
+}
+
+.popup-ledger-row:disabled {
+  cursor: default;
+}
+
+.popup-ledger-key {
+  flex: none;
+  width: 50px;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  line-height: 18px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.popup-ledger-val {
+  flex: 1;
+  min-width: 0;
+  font-family: var(--font-mono);
+  font-size: var(--fs-sm);
+  line-height: 18px;
+  color: var(--text-secondary);
+  overflow-wrap: anywhere;
+}
+
+.popup-ledger-pending {
+  font-family: var(--font-sans);
+  color: var(--text-faint);
+}
+
+.popup-rkey {
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.popup-ledger-row:hover:not(:disabled) .popup-ledger-key,
+.popup-ledger-row:hover:not(:disabled) .popup-ledger-val,
+.popup-ledger-row:focus-visible .popup-ledger-key,
+.popup-ledger-row:focus-visible .popup-ledger-val {
+  color: var(--text-primary);
+}
+
+/* Copied: the row keeps its name and takes the accent-soft family for a
+   moment, with a tick at the end of its last line. The tick is out of
+   flow: the AT URI's DID segment fills its line to within 2px, so anything
+   in flow at the row's end would re-wrap the value for the length of the
+   state. Nothing moves, so a second copy is one more click. */
+.popup-ledger-row.is-copied,
+.popup-ledger-row.is-copied:hover {
+  background: var(--accent-soft);
+}
+
+.popup-ledger-row.is-copied .popup-ledger-key,
+.popup-ledger-row.is-copied .popup-ledger-val,
+.popup-ledger-row.is-copied .popup-rkey {
+  color: var(--accent-soft-fg);
+}
+
+.popup-ledger-tick {
+  position: absolute;
+  right: 10px;
+  bottom: 8px;
+  height: 18px;
+  display: inline-flex;
+  align-items: center;
+  color: var(--accent-soft-fg);
+}
+
+/* ---------- Per-page band on the card (auto-redirect on) ---------- */
+
+.popup-band {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 34px;
+  margin: 0 -12px -12px;
+  padding: 0 6px 0 12px;
+  border-top: 1px solid var(--border-subtle);
+  border-radius: 0 0 calc(var(--radius-card) - 1px) calc(var(--radius-card) - 1px);
+  background: var(--surface-subtle);
+  font-size: var(--fs-sm);
+  color: var(--text-secondary);
+}
+
+.popup-band > svg {
+  flex: none;
+  color: var(--text-accent);
+}
+
+.popup-band-text {
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.popup-band-action {
+  flex: none;
+  height: 28px;
+  padding: 0 8px;
+  border-radius: var(--radius-control);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--text-accent);
+}
+
+.popup-band-action:hover:not(:disabled) {
+  background: var(--bg-tertiary);
+}
+
+.popup-band-action:disabled {
+  opacity: 0.5;
+  cursor: progress;
+}
+
+.popup-band.is-paused {
+  background: var(--warn-bg);
+  border-top-color: var(--warn-border);
+  color: var(--warn-fg);
+}
+
+.popup-band.is-paused > svg {
+  color: var(--warn-icon);
+}
+
+.popup-band.is-paused .popup-band-text {
+  font-weight: 600;
+}
+
+.popup-band.is-paused .popup-band-action {
+  color: var(--warn-fg);
+}
+
+/* ---------- New waypoints notice ---------- */
+
+/* The site's remember-my-choice bar: the accent-soft family, 32px
+   controls, a 48px band. */
+.popup-update-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 6px 8px 12px;
+  border-radius: var(--radius-card);
+  background: var(--accent-soft);
+  border: 1px solid var(--accent-soft-border);
+}
+
+.popup-update-banner-icon {
+  display: flex;
+  flex: none;
+}
+
+.popup-update-banner-mark {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-control);
+  background: var(--bg-secondary);
+  border: 1px solid var(--accent-soft-border);
+}
+
+.popup-update-banner-mark + .popup-update-banner-mark {
+  margin-left: -6px;
+}
+
+.popup-update-banner-text {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--accent-soft-fg);
+  text-align: left;
+}
+
+.popup-update-banner-text:hover {
+  color: var(--text-primary);
+}
+
+.popup-update-banner-action {
+  height: 32px;
+  padding: 0 9px;
+  border-radius: var(--radius-control);
+  border: 1px solid var(--accent-moss);
+  background: var(--accent-moss);
+  color: var(--text-on-accent);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+}
+
+.popup-update-banner-action:hover {
+  background: var(--accent-forest);
+  border-color: var(--accent-forest);
+}
+
+.popup-update-banner-dismiss {
+  width: 32px;
+  height: 32px;
+  color: var(--accent-soft-fg);
+}
+
+.popup-update-banner-dismiss:hover {
+  background: var(--bg-secondary);
+  color: var(--accent-soft-fg);
+}
+
+/* ---------- Recents ---------- */
+
+/* Tiles sit in a white panel on the paper, as the site's grid layout
+   boxes its tiles (link.css .fn-lp-picker .waypoint-tiles): the drawer the
+   section's tab stands on. Tiles take the inner radius; four to a row, as
+   each carries a name only. */
+.popup-recents-row {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  padding: 8px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-card);
+}
+
+.popup-recent {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 4px 10px;
+  border-radius: var(--radius-control);
+  background: var(--bg-primary);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-primary);
+  transition: border-color 0.12s ease, background 0.12s ease;
+}
+
+.popup-recent:hover {
+  border-color: var(--border-strong);
+  background: var(--bg-secondary);
+}
+
+.popup-recent .popup-waypoint-icon,
+.popup-recent .popup-waypoint-icon svg,
+.popup-recent .popup-waypoint-icon img {
+  width: 20px;
+  height: 20px;
+}
+
+.popup-recent .popup-icon-letter {
+  width: 20px;
+  height: 20px;
+}
+
+.popup-recent-name {
+  max-width: 100%;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ---------- No record on this page ---------- */
+
+.popup-nodata {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: var(--fs-md);
+  line-height: 20px;
+  color: var(--text-secondary);
+}
+
+.popup-nodata > svg {
+  flex: none;
+  color: var(--text-accent);
+}
+
+.popup-lookup {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+}
+
+/* Seen lately: the repos the extension has met on pages lately, as rows
+   in a sheet of their own; the count sits at the end of the row, inside
+   the link, so the whole row opens the repo. */
+.popup-seen .popup-waypoint-main {
+  padding-right: 10px;
+}
+
+.popup-seen .popup-waypoint-main:hover,
+[data-theme='dark'] .popup-seen .popup-waypoint-main:hover {
+  color: var(--text-primary);
+}
+
+/* Pulled 4px closer than the row's gap: a long PDS host fills its column
+   to the pixel at the medium preset. */
+.popup-repo-count {
+  flex: none;
+  margin-left: -4px;
+  font-size: var(--fs-xs);
+  color: var(--text-faint);
+  white-space: nowrap;
+}
+
+.popup-jump-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 4px 2px 0;
+  margin-bottom: -4px;
+}
+
+.popup-jump-title {
+  margin: 0;
+  font-size: var(--fs-md);
+  font-weight: 700;
+}
+
+.popup-jump-note {
+  font-size: var(--fs-xs);
+  color: var(--text-tertiary);
+}
+
+.popup-empty {
+  padding: 28px 20px;
+  text-align: center;
+  color: var(--text-secondary);
+}
+
+/* Visually hidden, read aloud: the ledger's live region. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Touch (Firefox for Android opens the popup as a sheet): the dense
+   controls grow to a thumb's width. */
+@media (hover: none) {
+  .popup-band-action,
+  .popup-update-banner-action,
+  .popup-update-banner-dismiss {
+    height: 36px;
+  }
+
+  .popup-update-banner-dismiss {
+    width: 36px;
+  }
+
+  .popup-field-close {
+    width: 32px;
+    height: 32px;
+    margin-right: 1px;
+  }
 }

@@ -19,30 +19,23 @@ export function discussionPath(uri: string): string {
   return `/feedback/${encodeURIComponent(did)}/${encodeURIComponent(rkey)}`;
 }
 
+/**
+ * "5m ago" for recent activity, then a written date ("Aug 12, 2026") once
+ * it's two weeks old. The shared helper falls back to an ISO date there,
+ * which read as a different format from every other date on the site.
+ */
 function relative(iso: string): string {
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return '';
+  const ageMs = Date.now() - date.getTime();
+  if (ageMs < 0 || ageMs >= 14 * 24 * 60 * 60 * 1000) {
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  }
   return formatTidRelative(date);
 }
 
 export function TagChip({ label }: { label: string }) {
-  return (
-    <span
-      style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        padding: '0.1rem 0.4rem',
-        background: 'var(--bg-tertiary)',
-        border: '1px solid var(--border-subtle)',
-        color: 'var(--text-tertiary)',
-        fontFamily: 'var(--font-mono)',
-        fontSize: '0.6875rem',
-        whiteSpace: 'nowrap',
-      }}
-    >
-      {label}
-    </span>
-  );
+  return <span className="fn-fb-tag">{label}</span>;
 }
 
 export function AuthorLine({
@@ -57,44 +50,20 @@ export function AuthorLine({
   size?: 'sm' | 'md';
 }) {
   const avatar = author.avatar ? sanitizeUrl(author.avatar) : '';
-  const px = size === 'sm' ? 14 : 16;
+  const px = size === 'sm' ? 18 : 20;
   return (
-    <span
-      style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: '0.4rem',
-        color: 'var(--text-tertiary)',
-        fontSize: size === 'sm' ? '0.75rem' : '0.8125rem',
-        minWidth: 0,
-      }}
-    >
+    <span className="fn-fb-author">
       {avatar ? (
         // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={avatar}
-          alt=""
-          width={px}
-          height={px}
-          style={{ width: px, height: px, objectFit: 'cover', flexShrink: 0 }}
-        />
+        <img src={avatar} alt="" width={px} height={px} style={{ width: px, height: px }} />
       ) : null}
-      <span
-        style={{
-          fontFamily: 'var(--font-mono)',
-          overflow: 'hidden',
-          textOverflow: 'ellipsis',
-          whiteSpace: 'nowrap',
-        }}
-      >
-        {authorLabel(author)}
-      </span>
+      <span className="fn-fb-author-name">{authorLabel(author)}</span>
       <span aria-hidden>·</span>
-      <time dateTime={at} title={at} style={{ whiteSpace: 'nowrap' }}>
+      <time dateTime={at} title={at}>
         {relative(at)}
       </time>
       {edited ? (
-        <span title={`Edited ${edited}`} style={{ fontStyle: 'italic' }}>
+        <span title={`Edited ${edited}`} className="fn-fb-author-edited">
           edited
         </span>
       ) : null}
@@ -128,18 +97,7 @@ export default function DiscussionCard({
   const excerpt = discussion.body.trim().replace(/\s+/g, ' ');
 
   return (
-    <article
-      style={{
-        display: 'flex',
-        gap: '0.875rem',
-        padding: '1rem 1.125rem',
-        background: 'var(--bg-secondary)',
-        border: '1px solid var(--border-subtle)',
-        borderLeft: discussion.pinned
-          ? '2px solid var(--text-accent)'
-          : '1px solid var(--border-subtle)',
-      }}
-    >
+    <article className="fn-fb-row" data-pinned={discussion.pinned ? '' : undefined}>
       <VoteButtons
         score={discussion.counts.score}
         vote={vote}
@@ -148,63 +106,20 @@ export default function DiscussionCard({
         disabledReason={voteDisabledReason}
       />
 
-      <div style={{ minWidth: 0, flex: 1 }}>
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'baseline',
-            flexWrap: 'wrap',
-            gap: '0.5rem',
-            marginBottom: '0.35rem',
-          }}
-        >
+      <div className="fn-fb-row-main">
+        <div className="fn-fb-row-title">
           {discussion.pinned ? (
-            <Pin
-              size={13}
-              aria-label="Pinned"
-              style={{ color: 'var(--text-accent)', flexShrink: 0 }}
-            />
+            <Pin size={14} aria-label="Pinned" className="fn-fb-pin" />
           ) : null}
-          <Link
-            href={discussionPath(discussion.uri)}
-            style={{
-              fontFamily: 'var(--font-serif)',
-              fontSize: '1.0625rem',
-              lineHeight: 1.3,
-              color: 'var(--text-primary)',
-              textDecoration: 'none',
-            }}
-          >
+          <Link href={discussionPath(discussion.uri)} prefetch={false}>
             {discussion.title}
           </Link>
           <StatusChip state={discussion.status} size="sm" />
         </div>
 
-        {excerpt ? (
-          <p
-            style={{
-              margin: '0 0 0.5rem',
-              color: 'var(--text-secondary)',
-              fontSize: '0.875rem',
-              lineHeight: 1.5,
-              display: '-webkit-box',
-              WebkitLineClamp: 2,
-              WebkitBoxOrient: 'vertical',
-              overflow: 'hidden',
-            }}
-          >
-            {excerpt}
-          </p>
-        ) : null}
+        {excerpt ? <p className="fn-fb-excerpt">{excerpt}</p> : null}
 
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            flexWrap: 'wrap',
-            gap: '0.5rem 0.75rem',
-          }}
-        >
+        <div className="fn-fb-meta">
           <AuthorLine
             author={author ?? fallbackAuthor(discussion.authorDid)}
             at={discussion.createdAt}
@@ -212,14 +127,8 @@ export default function DiscussionCard({
           />
           <Link
             href={discussionPath(discussion.uri)}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '0.3rem',
-              color: 'var(--text-tertiary)',
-              fontSize: '0.8125rem',
-              textDecoration: 'none',
-            }}
+            prefetch={false}
+            className="fn-fb-replies"
           >
             <MessageSquare size={13} />
             {discussion.counts.replies}

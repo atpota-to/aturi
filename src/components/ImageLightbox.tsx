@@ -78,6 +78,27 @@ export default function ImageLightbox({
   const stillLoading = needsPreload && !resolved;
   const displaySrc = fullsizeReady ? fullsize : thumb;
 
+  // The alt caption's height, reserved under the image (the stage's bottom
+  // padding and the image's max height both subtract it), so a long
+  // description sits below the photo instead of over its lower edge.
+  // Written straight onto the dialog as a CSS variable: it only feeds
+  // layout, so it needn't round-trip through React state.
+  const altRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const dialog = dialogRef.current;
+    const node = altRef.current;
+    if (!dialog) return undefined;
+    if (!node) {
+      dialog.style.removeProperty('--lightbox-alt-h');
+      return undefined;
+    }
+    const apply = () => dialog.style.setProperty('--lightbox-alt-h', `${node.offsetHeight}px`);
+    apply();
+    const observer = new ResizeObserver(apply);
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [image?.alt]);
+
   // Always dismiss through close(): the browser restores focus to whatever
   // opened the dialog (the thumbnail), which unmounting alone would not.
   const dismiss = useCallback(() => {
@@ -291,7 +312,7 @@ export default function ImageLightbox({
       )}
 
       {image.alt && (
-        <div className="lightbox-alt">
+        <div ref={altRef} className="lightbox-alt">
           <p className="lightbox-alt-text">{image.alt}</p>
         </div>
       )}

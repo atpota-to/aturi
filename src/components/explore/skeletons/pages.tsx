@@ -7,12 +7,12 @@ import {
   SkeletonHeading,
   SkeletonJson,
   SkeletonPanel,
-  SkeletonProfileCard,
+  SkeletonAccountCard,
   SkeletonRecordRows,
+  SkeletonRepoCard,
   SkeletonRowList,
   SkeletonSectionGroup,
   SkeletonStatTiles,
-  SkeletonTabs,
   SkeletonViewSwitch,
 } from './primitives';
 
@@ -41,35 +41,53 @@ const NSID_CRUMB = '11rem';
 const RKEY_CRUMB = '7rem';
 const SPACE_CRUMB = '3.25rem';
 
-/** `/explore/{repo}` — profile card, identity row, glance, tabs. */
+/** `/explore/{repo}` — account sidebar; breadcrumb, glance, repository card. */
 export function RepoSkeleton() {
   return (
-    <div style={column('1.5rem')}>
-      <SkeletonBreadcrumb widths={[PDS_CRUMB, REPO_CRUMB]} />
-      <div style={column('0.5rem')}>
-        <SkeletonProfileCard />
-        <SkeletonViewSwitch width="8.5rem" />
+    <div className="fx-explorer" data-page="repo">
+      <div className="fx-head">
+        <SkeletonBreadcrumb widths={[PDS_CRUMB, REPO_CRUMB]} share={false} titled />
       </div>
-      <SkeletonFieldGrid
-        labels={['handle', 'did', 'pds']}
-        valueWidths={['9rem', '13rem', '11rem']}
-      />
-      <div style={column('0.625rem')}>
-        <SkeletonHeading width="9rem" />
-        <SkeletonStatTiles />
+      <div className="fx-side">
+        <SkeletonAccountCard />
+        <SkeletonViewSwitch width="7rem" />
       </div>
-      <SkeletonTabs tabWidths={['4.25rem', '1.5rem', '2rem', '4.5rem']} />
+      <div className="fx-main">
+        <div style={column('10px')}>
+          <SkeletonHeading width="9rem" />
+          <SkeletonStatTiles />
+        </div>
+        <SkeletonRepoCard tabWidths={['5rem', '3.5rem', '1.75rem', '4.25rem']} />
+      </div>
     </div>
   );
 }
 
-/** `/explore/{repo}/{collection}` — the Edit/Live/Fetch cluster over the list. */
+/** `/explore/{repo}/{collection}` — title bar, records card, sidebar. */
 export function CollectionSkeleton() {
   return (
-    <div style={column('1.5rem')}>
-      <SkeletonBreadcrumb widths={[PDS_CRUMB, REPO_CRUMB, NSID_CRUMB]} />
-      <SkeletonChipRow widths={['4.25rem', '4.5rem']} trailingWidth="5rem" />
-      <SkeletonRecordRows />
+    <div className="fx-explorer" data-page="collection">
+      <div className="fx-head">
+        <div className="fx-titlebar">
+          <div className="fx-titlebar-text">
+            <SkeletonBreadcrumb widths={[PDS_CRUMB, REPO_CRUMB]} share={false} titled />
+            <SkeletonBar width="12rem" height="1.4rem" />
+          </div>
+          <SkeletonChipRow widths={['4.5rem', '5.75rem', '4.25rem', '2.25rem']} />
+        </div>
+      </div>
+      <div className="fx-side">
+        <SkeletonAccountCard />
+        <SkeletonRepoCard tabWidths={['4.5rem', '3rem', '1.5rem', '4rem']} rows={10} compact />
+      </div>
+      <div className="fx-main">
+        <SkeletonPanel padding="0" style={{ overflow: 'hidden' }}>
+          <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border-medium)' }}>
+            <SkeletonBar width="min(320px, 100%)" height="32px" />
+          </div>
+          <SkeletonRecordRows />
+        </SkeletonPanel>
+      </div>
     </div>
   );
 }
@@ -81,16 +99,35 @@ export function CollectionSkeleton() {
  * is still in flight.
  */
 export function RecordBodySkeleton() {
+  // The loaded page's own frame (record.css, .fn-rec-body): the preview and
+  // its helpers in the wide column, the open-in rows, the Record card and
+  // the copy chips in the aside, so nothing jumps when the record lands.
+  // The `order` values are the slots RecordExplorer gives the same pieces,
+  // which is what interleaves them in one column under 920px.
   return (
-    <div style={column('1rem')}>
-      <SkeletonSectionGroup switchWidth="10.5rem">
-        <SkeletonFieldCard />
-      </SkeletonSectionGroup>
-      <SkeletonViewSwitch width="7rem" />
-      <SkeletonChipRow widths={['5.5rem', '4.5rem', '5rem', '7rem']} />
-      <div style={column('0.75rem')}>
-        <SkeletonHeading width="11rem" />
-        <SkeletonRowList rows={3} />
+    <div className="fn-rec-body">
+      <div className="fn-rec-main">
+        <div style={{ ...column('1rem'), order: 0 }}>
+          <SkeletonSectionGroup switchWidth="10.5rem">
+            <SkeletonFieldCard rows={4} />
+          </SkeletonSectionGroup>
+          <SkeletonViewSwitch width="7rem" />
+        </div>
+        <div style={{ ...column('0.75rem'), order: 3 }}>
+          <SkeletonHeading width="11rem" />
+          <SkeletonRowList rows={3} />
+        </div>
+      </div>
+      <div className="fn-rec-aside">
+        <div style={{ order: 1 }}>
+          <SkeletonRowList rows={4} trailingWidth="5rem" />
+        </div>
+        <div style={{ order: 2 }}>
+          <SkeletonFieldCard rows={5} />
+        </div>
+        <div style={{ order: 3 }}>
+          <SkeletonChipRow widths={['4rem', '3rem', '3rem', '6.5rem', '3.5rem']} />
+        </div>
       </div>
     </div>
   );
@@ -99,7 +136,7 @@ export function RecordBodySkeleton() {
 /** `/explore/{repo}/{collection}/{rkey}`. */
 export function RecordSkeleton() {
   return (
-    <div style={column('1rem')}>
+    <div className="fn-rec">
       <SkeletonBreadcrumb widths={[PDS_CRUMB, REPO_CRUMB, NSID_CRUMB, RKEY_CRUMB]} />
       <RecordBodySkeleton />
     </div>
@@ -137,8 +174,8 @@ export function IdentityTabSkeleton() {
 }
 
 /**
- * The Log tab: PLC operations as accent-edged cards. The left rule is the real
- * one — it is what makes the stack read as a log rather than as a list.
+ * The Log tab: PLC operations as a stack of rounded cards, the same
+ * `.fx-log-entry` box the loaded entries use.
  */
 export function AuditTabSkeleton() {
   return (
@@ -146,15 +183,10 @@ export function AuditTabSkeleton() {
       {Array.from({ length: 4 }).map((_, i) => (
         <div
           key={i}
-          style={{
-            border: '1px solid var(--border-medium)',
-            borderLeft: '3px solid var(--text-accent)',
-            background: 'var(--bg-secondary)',
-            padding: '0.875rem 1rem',
-          }}
+          className="fx-log-entry"
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <SkeletonBar width="4rem" height="0.65rem" />
+            <SkeletonBar width="6.5rem" height="22px" style={{ borderRadius: '999px' }} />
             <span style={{ marginLeft: 'auto' }}>
               <SkeletonBar width="8rem" height="0.6rem" />
             </span>
@@ -267,7 +299,9 @@ export function SpaceCollectionSkeleton() {
     <div style={column('1.5rem')}>
       <SkeletonBreadcrumb widths={SPACE_COLLECTION_TRAIL} />
       <SkeletonChipRow widths={['4.5rem']} trailingWidth="5rem" />
-      <SkeletonRecordRows rows={6} />
+      <SkeletonPanel padding="0" style={{ overflow: 'hidden' }}>
+        <SkeletonRecordRows rows={6} />
+      </SkeletonPanel>
     </div>
   );
 }

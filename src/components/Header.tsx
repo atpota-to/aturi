@@ -2,19 +2,21 @@
 
 import { useCallback, useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import {
   BookOpen,
-  Compass,
+  Braces,
   Download,
-  Home,
+  Leaf,
+  Link2,
   Menu,
   MessageSquareHeart,
   Orbit,
+  Plug,
   Search,
   Telescope,
   X,
 } from 'lucide-react';
-import { motion } from 'framer-motion';
 import ThemeToggle from './ThemeToggle';
 import SessionMenu from './SessionMenu';
 import SessionPanel from './SessionPanel';
@@ -23,12 +25,80 @@ import StickyBreadcrumbBar from './explore/StickyBreadcrumbBar';
 import { isEventOutside } from '@/lib/outsideClick';
 import WhatsNewBadge from './whatsnew/WhatsNewBadge';
 
-interface HeaderProps {
-  simple?: boolean; // If true, shows a smaller version without the tagline
-  compact?: boolean; // If true, shows ultra-compact inline header with expandable menu
+/**
+ * Every destination the header links to. `inline` ones sit in the bar on wide
+ * screens; all of them are in the menu panel. Lexicons and Spaces live under
+ * /explore, so they are listed before Explore in ACTIVE_ORDER below to claim
+ * their own paths first.
+ */
+const NAV_ITEMS = [
+  { href: '/explore', label: 'Explore', icon: Telescope, inline: true },
+  { href: '/explore/lexicons', label: 'Lexicons', icon: Braces, inline: true },
+  { href: '/explore/spaces', label: 'Spaces', icon: Orbit, inline: true },
+  { href: '/links', label: 'Links', icon: Link2, inline: true },
+  { href: '/extension', label: 'Extension', icon: Download, inline: true },
+  { href: '/mcp', label: 'MCP', icon: Plug, inline: true },
+  { href: '/docs', label: 'Docs', icon: BookOpen, inline: true },
+  { href: '/feedback', label: 'Feedback', icon: MessageSquareHeart, inline: true },
+];
+
+/** Longest prefix first, so /explore/lexicons is Lexicons, not Explore. */
+const ACTIVE_ORDER = [...NAV_ITEMS].sort((a, b) => b.href.length - a.href.length);
+
+function activeNavHref(pathname: string | null): string | null {
+  if (!pathname) return null;
+  const hit = ACTIVE_ORDER.find(
+    (item) => pathname === item.href || pathname.startsWith(`${item.href}/`),
+  );
+  return hit?.href ?? null;
 }
 
-export default function Header({ simple = false, compact = false }: HeaderProps) {
+/** Leaf mark + wordmark, linking home. */
+function Brand() {
+  return (
+    <Link href="/" prefetch={false} className="fn-brand" aria-label="aturi.to home">
+      <Leaf className="fn-brand-mark" aria-hidden strokeWidth={2.2} />
+      <span className="fn-wordmark">
+        aturi<span className="fn-wordmark-tld">.to</span>
+      </span>
+    </Link>
+  );
+}
+
+interface HeaderProps {
+  /**
+   * Every call site passes this; the full-width bar is the only header. The
+   * centered "simple" and "hero" variants it once switched between had no
+   * callers left and were removed.
+   */
+  compact?: boolean;
+}
+
+/**
+ * Every nav link below sets `prefetch={false}`.
+ *
+ * Next's default prefetches a link once it scrolls into the viewport, and under
+ * the App Router's segment cache each one costs four or five requests — the
+ * route's `_tree`, `_head` and `_index` segments plus the page's own. Between
+ * them this header and the footer render on every page, so a single render
+ * fanned out to roughly forty-five requests across the nine destinations they
+ * point at.
+ *
+ * That is a fair trade when the visitor goes on to click one. It is not when
+ * the visitor is a crawler: they execute JavaScript, so they triggered the
+ * prefetch too, and they never click. Over 24h those nine paths were 4.9M of
+ * the site's 9.7M requests — /terms, which appears only in the footer and below
+ * the fold, was still fetched 204k times. The counts tracked where a link sat
+ * on the page rather than anything a reader did, which is the tell.
+ *
+ * `false` disables hover prefetching as well as viewport prefetching; Next
+ * gates both on the same flag and offers no hover-only setting. So a real
+ * visitor's first click on a nav link is a cold navigation. These are small
+ * pages, and that is the whole of the cost.
+ */
+// Takes no props any more; the type keeps `<Header compact />` call sites valid.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export default function Header(_props: HeaderProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [isSearchExpanded, setIsSearchExpanded] = useState(false);
   // When SessionPanel's inline sign-in flow is active, the panel collapses
@@ -41,11 +111,14 @@ export default function Header({ simple = false, compact = false }: HeaderProps)
     setIsSignInActive(active);
   }, []);
   const headerRef = useRef<HTMLElement>(null);
+  const pathname = usePathname();
+  const activeHref = activeNavHref(pathname);
+  const onExplorer = pathname === '/explore' || !!pathname?.startsWith('/explore/');
 
   // Click outside to close either panel. The menu and search panels are
   // mutually exclusive but share the same outside-click closing behavior.
   useEffect(() => {
-    if (!compact || (!isExpanded && !isSearchExpanded)) return;
+    if (!isExpanded && !isSearchExpanded) return;
 
     const handleClickOutside = (event: MouseEvent) => {
       // isEventOutside, not `contains`: picking a typeahead suggestion inside
@@ -72,530 +145,163 @@ export default function Header({ simple = false, compact = false }: HeaderProps)
       document.removeEventListener('mousedown', handleClickOutside);
       document.removeEventListener('keydown', handleKeyDown);
     };
-  }, [compact, isExpanded, isSearchExpanded]);
-
-  // Ultra-compact mode for link preview pages
-  if (compact) {
-    return (
-      <header
-        ref={headerRef}
-        className="compact-header"
-        style={{
-          position: 'sticky',
-          top: 0,
-          zIndex: 40,
-          marginBottom: '2rem',
-        }}
-      >
-        <div
-          className="container-narrow compact-header-inner"
-          style={{
-            padding: '2rem 2rem 0.75rem',
-          }}
-        >
-        <div style={{ position: 'relative' }}>
-        <div
-          style={{
-            display: 'flex',
-            // Column so the condensed breadcrumb can sit as a full-width
-            // section beneath the logo/menu row. The card itself is unpadded
-            // so that section's top border reaches both edges — the row and
-            // the breadcrumb each carry their own padding instead.
-            flexDirection: 'column',
-            background: 'var(--bg-secondary)',
-            border: '1px solid var(--border-medium)',
-            transform: 'rotate(-0.2deg)',
-            transition: 'all 0.3s ease',
-            boxShadow: 'var(--shadow-overlay)',
-          }}
-        >
-          <div
-            className="compact-header-row"
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              gap: '1rem',
-              padding: '0.75rem 1rem',
-            }}
-          >
-            {/* Logo/Wordmark with Tagline */}
-            <Link
-              href="/"
-              style={{
-                textDecoration: 'none',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.625rem',
-                flex: 1,
-                minWidth: 0,
-              }}
-            >
-              <span
-                style={{
-                  fontSize: '1.25rem',
-                  fontWeight: 300,
-                  letterSpacing: '-0.01em',
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                <span
-                  style={{
-                    background: 'linear-gradient(135deg, var(--text-primary) 0%, var(--text-accent) 100%)',
-                    WebkitBackgroundClip: 'text',
-                    WebkitTextFillColor: 'transparent',
-                    backgroundClip: 'text',
-                  }}
-                >
-                  aturi
-                </span>
-                <span
-                  style={{
-                    color: 'var(--text-tertiary)',
-                    opacity: 0.5,
-                  }}
-                >
-                  .to
-                </span>
-              </span>
-              <span
-                style={{
-                  fontSize: '0.8rem',
-                  fontWeight: 300,
-                  color: 'var(--text-tertiary)',
-                  letterSpacing: '0.01em',
-                  whiteSpace: 'nowrap',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                }}
-              >
-                tour the atmosphere
-              </span>
-            </Link>
-
-            {/* Search shortcut — opens an inline search bar below the header
-                so visitors can jump into the explorer without leaving the
-                page. Mutually exclusive with the nav menu. */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-              {/* Only renders when there's unread news, so the row stays at
-                  two buttons the rest of the time. */}
-              <WhatsNewBadge />
-
-              <button
-                onClick={() => {
-                  setIsSearchExpanded((v) => !v);
-                  setIsExpanded(false);
-                }}
-                style={{
-                  padding: '0.5rem',
-                  background: 'var(--bg-tertiary)',
-                  border: '1px solid var(--border-medium)',
-                  color: 'var(--text-accent)',
-                  transition: 'all 0.3s ease',
-                  transform: isSearchExpanded ? 'scale(1.08)' : 'scale(1)',
-                }}
-                aria-label="Search the explorer"
-                aria-expanded={isSearchExpanded}
-              >
-                <Search
-                  size={18}
-                  style={{
-                    transition: 'all 0.3s ease',
-                    opacity: isSearchExpanded ? 0.7 : 1,
-                  }}
-                />
-              </button>
-
-              {/* Expandable menu button — session controls live INSIDE the panel,
-                  not in the always-visible row, so the compact header stays
-                  minimal at this level. */}
-              <button
-                onClick={() => {
-                  setIsExpanded((v) => !v);
-                  setIsSearchExpanded(false);
-                }}
-                style={{
-                  padding: '0.5rem',
-                  background: 'var(--bg-tertiary)',
-                  border: '1px solid var(--border-medium)',
-                  color: 'var(--text-accent)',
-                  transition: 'all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)',
-                  transform: isExpanded ? 'scale(1.1)' : 'scale(1)',
-                }}
-                // Names the action rather than the control: "Toggle menu" left
-                // a screen-reader user to infer which way it would go.
-                aria-label={isExpanded ? 'Close menu' : 'Open menu'}
-                aria-expanded={isExpanded}
-              >
-                {/* A hamburger reads as a button on sight where the old leaf
-                    read as decoration, and swapping it for an X while open is
-                    the other half of that signal. The previous 90° rotation
-                    went with the leaf; spun on a hamburger it just looks like
-                    a broken glyph, so the open state is carried by the icon
-                    swap instead. */}
-                {isExpanded ? (
-                  <X size={18} style={{ transition: 'all 0.3s ease' }} />
-                ) : (
-                  <Menu size={18} style={{ transition: 'all 0.3s ease' }} />
-                )}
-              </button>
-            </div>
-          </div>
-
-          {/* Condensed breadcrumb that drops in once you scroll past the
-              in-page one, keeping the explorer path anchored at the top.
-              A full-width section below the row; renders nothing off the
-              explorer routes (no trail registered).
-
-              The nav says where you are; what you can do lives at the other
-              end of the screen, in <ExploreChromeBar>. */}
-          <StickyBreadcrumbBar />
-        </div>
-
-        {/* Search panel — sits in the same expanding region as the menu
-            panel but is its own card so the two slide independently. */}
-        <div
-          // Keep the collapsed search input out of the tab order / a11y tree.
-          inert={!isSearchExpanded}
-          style={{
-            position: 'absolute',
-            top: '100%',
-            left: 0,
-            right: 0,
-            marginTop: '0.5rem',
-            background: 'var(--bg-secondary)',
-            border: '1px solid var(--border-medium)',
-            transformOrigin: 'top center',
-            transform: isSearchExpanded
-              ? 'scaleY(1) translateY(0) rotate(-0.3deg)'
-              : 'scaleY(0) translateY(-10px) rotate(0deg)',
-            opacity: isSearchExpanded ? 1 : 0,
-            transition: 'all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)',
-            pointerEvents: isSearchExpanded ? 'auto' : 'none',
-            zIndex: 50,
-            overflow: 'hidden',
-            padding: '0.75rem',
-          }}
-        >
-          <CompactSearchPanel
-            active={isSearchExpanded}
-            onDone={() => setIsSearchExpanded(false)}
-          />
-        </div>
-
-        {/* Expanding organic nav panel */}
-        <div
-          // `inert` when collapsed removes the hidden panel's links and
-          // controls from the tab order and accessibility tree. scaleY(0) +
-          // opacity + pointerEvents alone left keyboard users tabbing through
-          // an invisible menu.
-          inert={!isExpanded}
-          style={{
-            position: 'absolute',
-            top: '100%',
-            left: 0,
-            right: 0,
-            marginTop: '0.5rem',
-            background: 'var(--bg-secondary)',
-            border: '1px solid var(--border-medium)',
-            transformOrigin: 'top center',
-            transform: isExpanded
-              ? 'scaleY(1) translateY(0) rotate(0.3deg)'
-              : 'scaleY(0) translateY(-10px) rotate(0deg)',
-            opacity: isExpanded ? 1 : 0,
-            transition: 'all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)',
-            pointerEvents: isExpanded ? 'auto' : 'none',
-            zIndex: 50,
-            overflow: 'hidden',
-          }}
-        >
-          <nav
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '0.25rem',
-              padding: '0.75rem',
-            }}
-          >
-            {/* When the sign-in flow is active inside SessionPanel, hide the
-                nav rows and theme toggle so the handle input / scope
-                picker can claim the panel's vertical space. The session
-                controls below carry their own visual chrome (input field,
-                scope-picker list) so we drop the divider rule too. */}
-            {!isSignInActive && (
-              <>
-                <div className="compact-nav-grid">
-                  <Link href="/" className="compact-nav-link">
-                    <Home size={16} />
-                    <span>home</span>
-                  </Link>
-                  <Link href="/explore" className="compact-nav-link">
-                    <Telescope size={16} />
-                    <span>explore</span>
-                  </Link>
-                  <Link href="/extension" className="compact-nav-link">
-                    <Download size={16} />
-                    <span>extension</span>
-                  </Link>
-                  <Link href="/links" className="compact-nav-link">
-                    <Compass size={16} />
-                    <span>links</span>
-                  </Link>
-                  <Link href="/explore/spaces" className="compact-nav-link">
-                    <Orbit size={16} />
-                    <span>spaces</span>
-                  </Link>
-                  <Link href="/docs" className="compact-nav-link">
-                    <BookOpen size={16} />
-                    <span>docs</span>
-                  </Link>
-                  <Link href="/feedback" className="compact-nav-link">
-                    <MessageSquareHeart size={16} />
-                    <span>feedback</span>
-                  </Link>
-                  <ThemeToggle variant="row" />
-                </div>
-              </>
-            )}
-
-            {/* Session controls: sign in (signed out) OR user info + my repo /
-                account / sign out (signed in). Lives inside the expanded
-                panel so the compact header stays uncluttered. */}
-            <div
-              style={
-                isSignInActive
-                  ? undefined
-                  : {
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: '0.25rem',
-                      marginTop: '0.5rem',
-                      paddingTop: '0.5rem',
-                      borderTop: '1px solid var(--border-subtle)',
-                    }
-              }
-            >
-              <SessionPanel
-                onNavigate={() => setIsExpanded(false)}
-                onSignInActiveChange={handleSignInActiveChange}
-              />
-            </div>
-          </nav>
-        </div>
-        </div>
-        </div>
-      </header>
-    );
-  }
-
-  if (simple) {
-    return (
-      <header
-        style={{
-          textAlign: 'center',
-          marginBottom: '3rem',
-          paddingTop: '2rem',
-        }}
-      >
-        <Link
-          href="/"
-          style={{
-            textDecoration: 'none',
-          }}
-        >
-          <h1
-            style={{
-              fontSize: '2rem',
-              marginBottom: '0.5rem',
-              fontWeight: 300,
-              letterSpacing: '-0.01em',
-            }}
-          >
-            <span
-              style={{
-                background: 'linear-gradient(135deg, var(--text-primary) 0%, var(--text-accent) 100%)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-                backgroundClip: 'text',
-              }}
-            >
-              aturi
-            </span>
-            <span
-              style={{
-                color: 'var(--text-tertiary)',
-                opacity: 0.5,
-              }}
-            >
-              .to
-            </span>
-          </h1>
-        </Link>
-        <p
-          style={{
-            fontSize: '1rem',
-            color: 'var(--text-secondary)',
-            fontWeight: 300,
-            marginBottom: '2rem',
-          }}
-        >
-          Tour the Atmosphere
-        </p>
-
-        {/* Organic Navigation */}
-        <nav
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '0.5rem',
-            flexWrap: 'wrap',
-            maxWidth: '500px',
-            margin: '0 auto',
-          }}
-        >
-          <Link href="/" className="nav-link">
-            <Home size={14} />
-            <span>home</span>
-          </Link>
-          <span style={{ color: 'var(--text-tertiary)', fontSize: '0.75rem' }}>·</span>
-          <Link href="/explore" className="nav-link">
-            <Telescope size={14} />
-            <span>explore</span>
-          </Link>
-          <span style={{ color: 'var(--text-tertiary)', fontSize: '0.75rem' }}>·</span>
-          <Link href="/extension" className="nav-link">
-            <Download size={14} />
-            <span>extension</span>
-          </Link>
-          <span style={{ color: 'var(--text-tertiary)', fontSize: '0.75rem' }}>·</span>
-          <Link href="/links" className="nav-link">
-            <Compass size={14} />
-            <span>links</span>
-          </Link>
-          <span style={{ color: 'var(--text-tertiary)', fontSize: '0.75rem' }}>·</span>
-          <Link href="/docs" className="nav-link">
-            <BookOpen size={14} />
-            <span>docs</span>
-          </Link>
-          <span style={{ color: 'var(--text-tertiary)', fontSize: '0.75rem' }}>·</span>
-          <ThemeToggle variant="inline" />
-          <span style={{ color: 'var(--text-tertiary)', fontSize: '0.75rem' }}>·</span>
-          <SessionMenu variant="inline" />
-        </nav>
-      </header>
-    );
-  }
+  }, [isExpanded, isSearchExpanded]);
 
   return (
-    <header
-      style={{
-        textAlign: 'center',
-        marginBottom: '3rem',
-        paddingTop: '2rem',
-      }}
-    >
-      <motion.h1
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, ease: [0.34, 1.56, 0.64, 1] as [number, number, number, number] }}
-        style={{
-          fontSize: '3.5rem',
-          marginBottom: '1rem',
-          fontWeight: 300,
-          letterSpacing: '-0.01em',
-        }}
-      >
-        <span
-          style={{
-            background: 'linear-gradient(135deg, var(--text-primary) 0%, var(--text-accent) 100%)',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-            backgroundClip: 'text',
-          }}
-        >
-          aturi
-        </span>
-        <span
-          style={{
-            color: 'var(--text-tertiary)',
-            opacity: 0.5,
-          }}
-        >
-          .to
-        </span>
-      </motion.h1>
-      <motion.p
-        initial={{ opacity: 0, y: -10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, delay: 0.1, ease: [0.34, 1.56, 0.64, 1] as [number, number, number, number] }}
-        style={{
-          fontSize: '1.5rem',
-          color: 'var(--text-secondary)',
-          maxWidth: '600px',
-          margin: '0 auto 1.5rem',
-          fontWeight: 300,
-        }}
-      >
-        Tour the Atmosphere
-      </motion.p>
-      <motion.p
-        initial={{ opacity: 0, y: -10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, delay: 0.2, ease: [0.34, 1.56, 0.64, 1] as [number, number, number, number] }}
-        style={{
-          fontSize: '1.125rem',
-          color: 'var(--text-tertiary)',
-          maxWidth: '560px',
-          margin: '0 auto 2rem',
-        }}
-      >
-        Switch between clients, share universal links, and browse through any account&rsquo;s PDS data.
-      </motion.p>
+    <header ref={headerRef} className="compact-header fn-header">
+      <div className="fn-header-bar">
+        <Brand />
 
-      {/* Organic Navigation */}
-      <motion.nav
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, delay: 0.3, ease: [0.34, 1.56, 0.64, 1] as [number, number, number, number] }}
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: '0.75rem',
-          flexWrap: 'wrap',
-        }}
+        {/* Primary sections inline on wide screens; below the nav
+            breakpoint they move into the menu panel (CSS hides this). */}
+        <nav aria-label="Primary" className="fn-nav">
+          {NAV_ITEMS.filter((item) => item.inline).map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              prefetch={false}
+              className="fn-nav-link"
+              aria-current={activeHref === item.href ? 'page' : undefined}
+            >
+              {item.label}
+            </Link>
+          ))}
+        </nav>
+
+        <div className="fn-header-actions">
+          {/* Explorer pages carry the "go to" field in the bar itself, as
+              the design does; it gives way to the search button below
+              the tablet breakpoint (CSS). */}
+          {onExplorer && (
+            <div className="fn-header-search">
+              <CompactSearchPanel
+                variant="bar"
+                active={false}
+                onDone={() => setIsSearchExpanded(false)}
+              />
+            </div>
+          )}
+
+          {/* Search shortcut: opens an inline search card below the bar
+              so visitors can jump into the explorer without leaving the
+              page. Mutually exclusive with the nav menu. */}
+          <button
+            type="button"
+            className={`fn-icon-btn fn-search-toggle${onExplorer ? ' fn-search-toggle-explorer' : ''}`}
+            onClick={() => {
+              setIsSearchExpanded((v) => !v);
+              setIsExpanded(false);
+            }}
+            aria-label="Search the explorer"
+            aria-expanded={isSearchExpanded}
+          >
+            <Search size={18} />
+          </button>
+
+          {/* Only renders when there are release notes to show. */}
+          <WhatsNewBadge />
+
+          <span className="fn-header-theme">
+            <ThemeToggle variant="inline" />
+          </span>
+
+          <span className="fn-header-session">
+            <SessionMenu variant="compact" />
+          </span>
+
+          {/* Expandable menu button: holds every destination plus the theme
+              and session controls, so it is the whole nav below the
+              desktop breakpoint. */}
+          <button
+            type="button"
+            className="fn-icon-btn fn-menu-toggle"
+            onClick={() => {
+              setIsExpanded((v) => !v);
+              setIsSearchExpanded(false);
+            }}
+            // Names the action rather than the control: "Toggle menu" left
+            // a screen-reader user to infer which way it would go.
+            aria-label={isExpanded ? 'Close menu' : 'Open menu'}
+            aria-expanded={isExpanded}
+          >
+            {/* A hamburger reads as a button on sight, and swapping it for
+                an X while open is the other half of that signal. */}
+            {isExpanded ? <X size={20} /> : <Menu size={20} />}
+          </button>
+        </div>
+      </div>
+
+      {/* Condensed breadcrumb that drops in once you scroll past the
+          in-page one, keeping the explorer path anchored at the top.
+          A full-width section below the bar; renders nothing off the
+          explorer routes (no trail registered).
+
+          The nav says where you are; what you can do lives at the other
+          end of the screen, in <ExploreChromeBar>. */}
+      <StickyBreadcrumbBar />
+
+      {/* Search card: drops below the bar. Its own card so it and the
+          menu open independently. */}
+      <div
+        // Keep the collapsed search input out of the tab order / a11y tree.
+        inert={!isSearchExpanded}
+        className="fn-header-panel fn-header-search-panel"
+        data-open={isSearchExpanded || undefined}
       >
-        <Link href="/" className="nav-link">
-          <Home size={16} />
-          <span>home</span>
-        </Link>
-        <span style={{ color: 'var(--text-tertiary)', fontSize: '0.875rem' }}>·</span>
-        <Link href="/explore" className="nav-link">
-          <Telescope size={16} />
-          <span>explore</span>
-        </Link>
-        <span style={{ color: 'var(--text-tertiary)', fontSize: '0.875rem' }}>·</span>
-        <Link href="/extension" className="nav-link">
-          <Download size={16} />
-          <span>extension</span>
-        </Link>
-        <span style={{ color: 'var(--text-tertiary)', fontSize: '0.875rem' }}>·</span>
-        <Link href="/links" className="nav-link">
-          <Compass size={16} />
-          <span>links</span>
-        </Link>
-        <span style={{ color: 'var(--text-tertiary)', fontSize: '0.875rem' }}>·</span>
-        <Link href="/docs" className="nav-link">
-          <BookOpen size={16} />
-          <span>docs</span>
-        </Link>
-        <span style={{ color: 'var(--text-tertiary)', fontSize: '0.875rem' }}>·</span>
-        <ThemeToggle variant="inline" />
-        <span style={{ color: 'var(--text-tertiary)', fontSize: '0.875rem' }}>·</span>
-        <SessionMenu variant="inline" />
-      </motion.nav>
+        <CompactSearchPanel
+          active={isSearchExpanded}
+          onDone={() => setIsSearchExpanded(false)}
+        />
+      </div>
+
+      {/* Menu card */}
+      <div
+        // `inert` when collapsed removes the hidden panel's links and
+        // controls from the tab order and accessibility tree. Opacity and
+        // pointerEvents alone left keyboard users tabbing through an
+        // invisible menu.
+        inert={!isExpanded}
+        className="fn-header-panel fn-header-menu-panel"
+        data-open={isExpanded || undefined}
+        // Clipped by default. The sign-in flow is the exception: its handle
+        // typeahead drops a listbox below the input, taller than the panel
+        // has room for, and clipping cut the suggestions in half. Relaxed
+        // only while the panel is actually open; collapsed, `opacity: 0`
+        // and `inert` still cover anything that would escape.
+        style={{ overflow: isExpanded && isSignInActive ? 'visible' : 'hidden' }}
+      >
+        <nav aria-label="Menu" className="fn-menu">
+          {/* When the sign-in flow is active inside SessionPanel, hide the
+              nav rows and theme toggle so the handle input / scope picker
+              can claim the panel's vertical space. */}
+          {!isSignInActive && (
+            <div className="compact-nav-grid">
+              {NAV_ITEMS.map(({ href, label, icon: Icon }) => (
+                <Link
+                  key={href}
+                  href={href}
+                  className="compact-nav-link"
+                  prefetch={false}
+                  aria-current={activeHref === href ? 'page' : undefined}
+                >
+                  <Icon size={16} />
+                  <span>{label}</span>
+                </Link>
+              ))}
+              <ThemeToggle variant="row" />
+            </div>
+          )}
+
+          {/* Session controls: sign in (signed out) OR user info + my repo /
+              account / sign out (signed in). */}
+          <div className={isSignInActive ? undefined : 'fn-menu-session'}>
+            <SessionPanel
+              onNavigate={() => setIsExpanded(false)}
+              onSignInActiveChange={handleSignInActiveChange}
+            />
+          </div>
+        </nav>
+      </div>
     </header>
   );
 }
-

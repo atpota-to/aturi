@@ -576,12 +576,10 @@ export function buildOpenApiDocument(baseUrl: string = getSiteUrl()) {
           type: 'object',
           title: 'OembedRich',
           description: 'An oEmbed 1.0 response of type `rich`.',
-          required: ['type', 'version', 'author_name', 'author_url', 'provider_name', 'provider_url', 'html'],
+          required: ['type', 'version', 'provider_name', 'provider_url', 'html'],
           properties: {
             type: { type: 'string', const: 'rich' },
             version: { type: 'string', const: '1.0' },
-            author_name: { type: 'string' },
-            author_url: { type: 'string', format: 'uri' },
             provider_name: { type: 'string' },
             provider_url: { type: 'string', format: 'uri' },
             cache_age: { type: 'integer' },

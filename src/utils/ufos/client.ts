@@ -9,6 +9,7 @@
  * original TrendingLexicons fetchers.
  */
 
+import { withIdentification } from '../requestDeadline';
 import {
   UFOS_API,
   type ApiRecord,
@@ -21,7 +22,7 @@ import {
 
 async function fetchJsonOrNull<T>(url: string, init?: RequestInit): Promise<T | null> {
   try {
-    const res = await fetch(url, { cache: 'no-store', ...init });
+    const res = await fetch(url, { cache: 'no-store', ...withIdentification(init) });
     if (!res.ok) return null;
     return (await res.json()) as T;
   } catch {
@@ -70,6 +71,31 @@ export async function fetchCollections(opts: {
  * GET /collections/stats — record stats for one or more collections over
  * a time window. Returned as a Map keyed by NSID for ergonomic `.get`.
  */
+/**
+ * Failure-aware variants of the two calls below; see searchLexiconsResult for
+ * why an empty container is not a safe stand-in for an outage.
+ */
+export async function fetchCollectionStatsResult(opts: {
+  collections: string[];
+  since?: string;
+  until?: string;
+}): Promise<{ stats: Map<string, JustCount>; failed: boolean }> {
+  if (opts.collections.length === 0) return { stats: new Map(), failed: false };
+  const params = new URLSearchParams();
+  for (const c of opts.collections) params.append('collection', c);
+  appendRange(params, opts.since, opts.until);
+  const data = await fetchJsonOrNull<Record<string, JustCount>>(
+    `${UFOS_API}/collections/stats?${params.toString()}`,
+  );
+  const out = new Map<string, JustCount>();
+  if (data) {
+    for (const [nsid, entry] of Object.entries(data)) {
+      if (entry && typeof entry === 'object') out.set(nsid, entry);
+    }
+  }
+  return { stats: out, failed: data === null };
+}
+
 export async function fetchCollectionStats(opts: {
   collections: string[];
   since?: string;
@@ -124,6 +150,42 @@ export async function fetchTimeseries(opts: {
  * avoid 400s and return `[]` for too-short or failed queries so the
  * typeahead never needs try/catch.
  */
+/**
+ * Failure-aware variant of {@link searchLexicons}. The plain version collapses
+ * an outage into the same `[]` a genuine zero-match produces, which is fine
+ * for a typeahead that just renders nothing but wrong for a caller that
+ * reports "nothing is published under that name" as a fact.
+ */
+export async function searchLexiconsResult(
+  q: string,
+  signal?: AbortSignal,
+): Promise<{ matches: NsidCount[]; failed: boolean }> {
+  const trimmed = q.trim();
+  const alnum = trimmed.match(/[a-z0-9-]/gi);
+  if (!alnum || alnum.length < 2) return { matches: [], failed: false };
+  const params = new URLSearchParams({ q: trimmed });
+  const data = await fetchJsonOrNull<{ matches?: NsidCount[] }>(
+    `${UFOS_API}/search?${params.toString()}`,
+    { signal },
+  );
+  return { matches: data?.matches ?? [], failed: data === null };
+}
+
+/** Failure-aware variant of {@link fetchRecentRecords}; see searchLexiconsResult. */
+export async function fetchRecentRecordsResult(
+  collections: string[],
+  signal?: AbortSignal,
+): Promise<{ records: ApiRecord[]; failed: boolean }> {
+  if (collections.length === 0) return { records: [], failed: false };
+  const params = new URLSearchParams();
+  for (const c of collections) params.append('collection', c);
+  const data = await fetchJsonOrNull<ApiRecord[]>(
+    `${UFOS_API}/records?${params.toString()}`,
+    { signal },
+  );
+  return { records: Array.isArray(data) ? data : [], failed: data === null };
+}
+
 export async function searchLexicons(q: string, signal?: AbortSignal): Promise<NsidCount[]> {
   const trimmed = q.trim();
   const alnum = trimmed.match(/[a-z0-9-]/gi);

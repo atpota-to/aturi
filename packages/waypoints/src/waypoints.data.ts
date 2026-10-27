@@ -269,7 +269,12 @@ export const WAYPOINT_DESTINATIONS_DATA: Record<string, WaypointData> = {
     // query). What's declared here is the interoperable subset every caller can
     // rely on; the extras are Anisota-only and unrepresentable in this field.
     composeIntent: socialAppComposeIntent('https://anisota.net'),
-    redirectCompat: ['bluesky-social', 'standard-site'],
+    // Bluesky-shaped records only. anisota.net also reads Standard Site and
+    // Leaflet documents, but that role belongs to `anisotaReader`: listing both
+    // under `standard-site` put two entries for the same site in every
+    // "Publications" destination list, and this one's `expectedCollections`
+    // already says it does not claim those collections.
+    redirectCompat: ['bluesky-social'],
     expectedCollections: ['app.bsky.', 'net.anisota.'],
   },
 

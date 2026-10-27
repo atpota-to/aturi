@@ -7,6 +7,7 @@
  * Both responses are cached for 30s to keep multi-tab exploration cheap.
  */
 
+import { withIdentification } from '../requestDeadline';
 import { PLC_DIRECTORY } from './config';
 import { TTLMap } from './cache';
 
@@ -50,7 +51,7 @@ const docCache = new TTLMap<string, PlcDocument>(PLC_TTL);
 const auditCache = new TTLMap<string, PlcAuditEntry[]>(PLC_TTL);
 
 async function fetchJson<T>(url: string): Promise<T> {
-  const res = await fetch(url);
+  const res = await fetch(url, withIdentification());
   if (!res.ok) {
     const text = await res.text().catch(() => '');
     throw new Error(`HTTP ${res.status} ${res.statusText} :: ${text.slice(0, 200)}`);

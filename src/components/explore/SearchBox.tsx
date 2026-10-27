@@ -29,7 +29,21 @@ const TYPEAHEAD_DEBOUNCE_MS = 180;
 const RECENTS_LIMIT = 6;
 const FREQUENT_LIMIT = 4;
 
-export default function SearchBox({ initial }: { initial?: string }) {
+const DEFAULT_PLACEHOLDER = 'Handle, DID, at:// URI or URL';
+
+type Props = {
+  initial?: string;
+  /**
+   * Extra class on the <form>, so a host can restyle the field from its own
+   * sheet (the shape lives in globals.css under `.fn-searchbox`, with no inline
+   * styles to fight).
+   */
+  className?: string;
+  /** Visible placeholder; the accessible name stays the full description. */
+  placeholder?: string;
+};
+
+export default function SearchBox({ initial, className, placeholder }: Props) {
   const router = useRouter();
   const [value, setValue] = useState(initial || '');
   const [suggestions, setSuggestions] = useState<ActorTypeaheadResult[]>([]);
@@ -165,52 +179,27 @@ export default function SearchBox({ initial }: { initial?: string }) {
   return (
     <form
       onSubmit={onSubmit}
-      style={{
-        display: 'flex',
-        alignItems: 'stretch',
-        gap: '0.5rem',
-        marginBottom: '2rem',
-        position: 'relative',
-      }}
+      className={className ? `fn-searchbox ${className}` : 'fn-searchbox'}
     >
-      <div
-        ref={wrapRef}
-        style={{
-          flex: 1,
-          minWidth: 0,
-          position: 'relative',
-        }}
-      >
-        <Search
-          size={16}
-          style={{
-            position: 'absolute',
-            top: '50%',
-            transform: 'translateY(-50%)',
-            left: '0.875rem',
-            color: 'var(--text-tertiary)',
-            pointerEvents: 'none',
-          }}
-        />
+      <div ref={wrapRef} className="fn-searchbox-field">
+        <Search size={17} aria-hidden className="fn-searchbox-icon" />
         <input
           type="text"
           autoComplete="off"
           spellCheck={false}
-          placeholder="handle, DID, at:// URI, or URL"
+          className="fn-searchbox-input"
+          placeholder={placeholder ?? DEFAULT_PLACEHOLDER}
+          aria-label={DEFAULT_PLACEHOLDER}
           value={value}
           onChange={(e) => {
             setValue(e.target.value);
             setShowSuggestions(true);
           }}
-          onFocus={(e) => {
+          onFocus={() => {
             setShowSuggestions(true);
             // Refresh so visits recorded since mount (this tab or another)
             // show up.
             setHistory(readSearchHistory());
-            e.currentTarget.style.borderColor = 'var(--text-accent)';
-          }}
-          onBlur={(e) => {
-            e.currentTarget.style.borderColor = 'var(--border-medium)';
           }}
           onKeyDown={onKeyDown}
           role="combobox"
@@ -220,38 +209,14 @@ export default function SearchBox({ initial }: { initial?: string }) {
           aria-activedescendant={
             highlightIndex >= 0 ? `search-typeahead-${highlightIndex}` : undefined
           }
-          style={{
-            width: '100%',
-            padding: '0.75rem 0.875rem 0.75rem 2.5rem',
-            background: 'var(--bg-secondary)',
-            border: '1px solid var(--border-medium)',
-            color: 'var(--text-primary)',
-            fontFamily: 'var(--font-mono)',
-            fontSize: '0.8rem',
-            outline: 'none',
-            transition: 'border-color 0.2s ease',
-          }}
         />
 
         {showList && (
           <ul
             id="search-typeahead-list"
             role="listbox"
-            style={{
-              position: 'absolute',
-              top: 'calc(100% + 0.25rem)',
-              left: 0,
-              right: 0,
-              listStyle: 'none',
-              margin: 0,
-              padding: 0,
-              background: 'var(--bg-secondary)',
-              border: '1px solid var(--border-medium)',
-              boxShadow: 'var(--shadow-overlay)',
-              zIndex: 30,
-              maxHeight: '22rem',
-              overflowY: 'auto',
-            }}
+            className="fn-searchbox-pop"
+            style={{ listStyle: 'none', margin: 0, padding: 0 }}
           >
             {suggestions.map((actor, i) => {
               const active = i === highlightIndex;
@@ -292,6 +257,7 @@ export default function SearchBox({ initial }: { initial?: string }) {
                       style={{
                         width: 26,
                         height: 26,
+                        borderRadius: '50%',
                         objectFit: 'cover',
                         background: 'var(--bg-tertiary)',
                         flexShrink: 0,
@@ -302,6 +268,7 @@ export default function SearchBox({ initial }: { initial?: string }) {
                       style={{
                         width: 26,
                         height: 26,
+                        borderRadius: '50%',
                         background: 'var(--bg-tertiary)',
                         flexShrink: 0,
                       }}
@@ -313,7 +280,7 @@ export default function SearchBox({ initial }: { initial?: string }) {
                         style={{
                           fontSize: '0.875rem',
                           color: 'var(--text-primary)',
-                          fontFamily: 'var(--font-serif)',
+                          fontWeight: 600,
                           overflow: 'hidden',
                           textOverflow: 'ellipsis',
                           whiteSpace: 'nowrap',
@@ -342,20 +309,7 @@ export default function SearchBox({ initial }: { initial?: string }) {
         )}
 
         {showRecommendations && (
-          <div
-            style={{
-              position: 'absolute',
-              top: 'calc(100% + 0.25rem)',
-              left: 0,
-              right: 0,
-              background: 'var(--bg-secondary)',
-              border: '1px solid var(--border-medium)',
-              boxShadow: 'var(--shadow-overlay)',
-              zIndex: 30,
-              maxHeight: '22rem',
-              overflowY: 'auto',
-            }}
-          >
+          <div className="fn-searchbox-pop">
             <SearchRecommendations
               recents={recents}
               frequent={frequent}
@@ -366,28 +320,7 @@ export default function SearchBox({ initial }: { initial?: string }) {
         )}
       </div>
 
-      <button
-        type="submit"
-        disabled={resolving}
-        style={{
-          padding: '0.75rem 1.25rem',
-          background: 'var(--accent-moss)',
-          color: 'var(--text-on-accent)',
-          border: '1px solid var(--accent-moss)',
-          fontFamily: 'var(--font-serif)',
-          fontSize: '0.95rem',
-          cursor: resolving ? 'progress' : 'pointer',
-          opacity: resolving ? 0.75 : 1,
-          whiteSpace: 'nowrap',
-          transition: 'background 0.2s ease, opacity 0.2s ease',
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.background = 'var(--accent-forest)';
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.background = 'var(--accent-moss)';
-        }}
-      >
+      <button type="submit" disabled={resolving} className="fn-searchbox-submit">
         {resolving ? 'Looking…' : 'Look up'}
       </button>
     </form>

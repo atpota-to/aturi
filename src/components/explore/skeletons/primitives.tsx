@@ -1,7 +1,5 @@
 import type { CSSProperties, ReactNode } from 'react';
-import { ChevronRight } from 'lucide-react';
 import { Skeleton } from '@/components/SkeletonLoader';
-import { listColumns } from '../collectionListHelpers';
 
 /**
  * Shared shapes for the explore route skeletons.
@@ -46,6 +44,7 @@ export function SkeletonPanel({
       style={{
         padding,
         border: '1px solid var(--border-medium)',
+        borderRadius: 'var(--radius-card)',
         background: 'var(--bg-secondary)',
         ...style,
       }}
@@ -65,36 +64,33 @@ export function SkeletonPanel({
 export function SkeletonBreadcrumb({
   widths,
   share = true,
+  titled = false,
 }: {
   widths: string[];
   share?: boolean;
+  /** Mirrors <Breadcrumb titled>: no bottom margin, trailing separator. */
+  titled?: boolean;
 }) {
   return (
     <div
-      style={{
-        display: 'flex',
-        flexWrap: 'wrap',
-        alignItems: 'center',
-        gap: '0.5rem',
-        marginBottom: '1.5rem',
-        minHeight: '1.5rem',
-      }}
+      className="fx-crumbs"
+      style={{ marginBottom: titled ? 0 : '1.5rem', minHeight: '1.5rem' }}
     >
       {widths.map((width, i) => (
-        <span
-          key={i}
-          style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', minWidth: 0 }}
-        >
+        <span key={i} className="fx-crumb">
           {i > 0 && (
-            <ChevronRight
-              size={14}
-              aria-hidden
-              style={{ color: 'var(--text-tertiary)', opacity: 0.4, flexShrink: 0 }}
-            />
+            <span aria-hidden className="fx-crumb-sep">
+              /
+            </span>
           )}
           <SkeletonBar width={width} />
         </span>
       ))}
+      {titled && (
+        <span aria-hidden className="fx-crumb-sep">
+          /
+        </span>
+      )}
       {share && (
         <span style={{ marginLeft: 'auto' }}>
           <SkeletonBar width="5.5rem" height="1.6rem" />
@@ -105,44 +101,105 @@ export function SkeletonBreadcrumb({
 }
 
 /**
- * Stand-in for <ProfileHeader>: square avatar, name, handle, two lines of bio
- * and the follower/following/posts strip, over the universal-link footer.
+ * Stand-in for the explorer's account card (<ProfileHeader> with the identity
+ * rows): round avatar, name and handle, two lines of bio, the three stats,
+ * the DID / handle / PDS list and the "Open profile in…" row.
  */
-export function SkeletonProfileCard() {
+export function SkeletonAccountCard() {
   return (
-    <SkeletonPanel
-      padding="1.25rem"
-      style={{ display: 'flex', gap: '1.25rem', alignItems: 'flex-start', flexWrap: 'wrap' }}
-    >
-      <Skeleton width="72px" height="72px" style={{ flexShrink: 0 }} />
-      <div style={{ flex: '1 1 18rem', minWidth: 0 }}>
-        <SkeletonBar width="11rem" height="1.1rem" style={{ marginBottom: '0.6rem' }} />
-        <SkeletonBar width="8rem" style={{ marginBottom: '0.9rem' }} />
+    <SkeletonPanel padding="16px" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <Skeleton width="44px" height="44px" style={{ flexShrink: 0, borderRadius: '50%' }} />
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <SkeletonBar width="7rem" height="0.95rem" style={{ marginBottom: '0.45rem' }} />
+          <SkeletonBar width="6rem" />
+        </div>
+      </div>
+      <div>
         <SkeletonBar width="100%" style={{ marginBottom: '0.4rem' }} />
         <SkeletonBar width="72%" />
-        <div
-          style={{
-            display: 'flex',
-            flexWrap: 'wrap',
-            gap: '1rem',
-            marginTop: '0.875rem',
-          }}
-        >
-          <SkeletonBar width="5.5rem" height="0.65rem" />
-          <SkeletonBar width="5.5rem" height="0.65rem" />
-          <SkeletonBar width="4.5rem" height="0.65rem" />
-        </div>
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
+        {[0, 1, 2].map((i) => (
+          <div key={i}>
+            <SkeletonBar width="3rem" height="0.85rem" style={{ marginBottom: '0.35rem' }} />
+            <SkeletonBar width="3.5rem" height="0.55rem" />
+          </div>
+        ))}
       </div>
       <div
         style={{
-          flexBasis: '100%',
-          paddingTop: '1rem',
+          display: 'grid',
+          gridTemplateColumns: '56px 1fr',
+          gap: '12px 10px',
+          paddingTop: '14px',
           borderTop: '1px solid var(--border-subtle)',
         }}
       >
-        <SkeletonBar width="13rem" height="0.65rem" />
+        {['78%', '60%', '66%'].map((w, i) => (
+          <span key={i} style={{ display: 'contents' }}>
+            <SkeletonBar width="2rem" height="0.6rem" />
+            <SkeletonBar width={w} height="0.6rem" />
+          </span>
+        ))}
+      </div>
+      <div style={{ display: 'flex', gap: '8px' }}>
+        <Skeleton height="36px" style={{ flex: 1, borderRadius: 'var(--radius-control)' }} />
+        <Skeleton width="36px" height="36px" style={{ borderRadius: 'var(--radius-control)' }} />
       </div>
     </SkeletonPanel>
+  );
+}
+
+/**
+ * Stand-in for the repository card: the folder tabs standing on a panel that
+ * holds a filter field and a run of tree rows. The tabs and the panel wear
+ * the real card's classes (tabs.css, `.fx-tabs`), so they take its exact
+ * geometry at every width and in the sidebar; each bar sits in a box one
+ * label-line tall (the tab's 20px line box), so a tab is as high as it will
+ * be with its words in.
+ */
+export function SkeletonRepoCard({
+  tabWidths,
+  rows = 8,
+  compact = false,
+}: {
+  tabWidths: string[];
+  rows?: number;
+  compact?: boolean;
+}) {
+  return (
+    <div className="fx-repo" style={{ pointerEvents: 'none' }}>
+      <div className="fx-tabs">
+        {tabWidths.map((width, i) => (
+          <span key={i} className="fx-tab" data-active={i === 0 || undefined}>
+            <span style={{ display: 'flex', alignItems: 'center', height: '20px' }}>
+              <SkeletonBar width={width} height="0.65rem" />
+            </span>
+          </span>
+        ))}
+      </div>
+      <div className="fx-tabpanel" style={{ padding: 0 }}>
+        <div
+          style={{
+            padding: compact ? '10px 12px' : '16px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: compact ? '12px' : '14px',
+          }}
+        >
+          <SkeletonBar width={compact ? '100%' : 'min(28rem, 100%)'} height="32px" />
+          {Array.from({ length: rows }).map((_, i) => (
+            <SkeletonBar
+              key={i}
+              width={ROW_WIDTHS[i % ROW_WIDTHS.length]}
+              height="0.65rem"
+              style={{ marginLeft: i % 3 === 0 ? 0 : '18px' }}
+            />
+          ))}
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -180,36 +237,6 @@ export function SkeletonFieldGrid({
         </div>
       ))}
     </SkeletonPanel>
-  );
-}
-
-/**
- * Stand-in for the repo page's tab strip and whatever the open tab renders.
- * The bar under the tabs is the real border, so the strip reads as tabs rather
- * than as four loose blocks.
- */
-export function SkeletonTabs({ tabWidths }: { tabWidths: string[] }) {
-  return (
-    <div>
-      <div
-        style={{
-          display: 'flex',
-          flexWrap: 'wrap',
-          gap: '0.25rem',
-          borderBottom: '1px solid var(--border-medium)',
-        }}
-      >
-        {tabWidths.map((width, i) => (
-          <div key={i} style={{ padding: '0.625rem 0.875rem' }}>
-            <SkeletonBar width={width} height="0.65rem" />
-          </div>
-        ))}
-      </div>
-      <div style={{ marginTop: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-        <SkeletonBar width="min(24rem, 100%)" height="2.15rem" />
-        <SkeletonRowList rows={6} />
-      </div>
-    </div>
   );
 }
 
@@ -266,9 +293,10 @@ export function SkeletonRowList({
 }
 
 /**
- * Stand-in for a collection listing. Adopts `listColumns()` — the same tracks
- * the real list uses — so the rkey and preview columns land where the records
- * will put them, and each row carries the TID timestamp's second line.
+ * Stand-in for a collection listing: the records card's column header and
+ * rows (key, preview, created) on the same `.fx-rec-list` tracks the real list
+ * uses, so the columns land where the records will put them. Unframed — it
+ * sits inside the records card (wrap it in a panel elsewhere).
  */
 export function SkeletonRecordRows({
   rows = 8,
@@ -280,40 +308,31 @@ export function SkeletonRecordRows({
   const rkeyWidths = ['13ch', '13ch', '9ch', '13ch', '11ch', '13ch', '13ch', '7ch'];
   const previewWidths = ['68%', '41%', '77%', '52%', '35%', '61%', '44%', '70%'];
   return (
-    <ul
-      style={{
-        listStyle: 'none',
-        margin: 0,
-        padding: 0,
-        border: '1px solid var(--border-medium)',
-        background: 'var(--bg-secondary)',
-        display: 'grid',
-        gridTemplateColumns: listColumns(editing),
-        columnGap: '1rem',
-      }}
-    >
+    <ul className="fx-rec-list" data-editing={editing || undefined} aria-hidden>
+      <li className="fx-rec-head">
+        {editing && <span />}
+        <span>Record key</span>
+        <span>Preview</span>
+        <span>Created</span>
+      </li>
       {Array.from({ length: rows }).map((_, i) => (
-        <li
-          key={i}
-          style={{
-            gridColumn: '1 / -1',
-            display: 'grid',
-            gridTemplateColumns: 'subgrid',
-            alignItems: 'center',
-            padding: '0.625rem 1rem',
-            borderBottom: '1px solid var(--border-subtle)',
-          }}
-        >
-          {editing && <SkeletonBar width="1rem" height="1rem" />}
-          <div style={{ minWidth: 0 }}>
-            <SkeletonBar width={rkeyWidths[i % rkeyWidths.length]} />
-            <SkeletonBar
-              width="6ch"
-              height="0.55rem"
-              style={{ marginTop: '0.3rem' }}
-            />
+        <li key={i} className="fx-rec-item">
+          <div className="fx-rec-row fx-rec-skel" data-editing={editing || undefined}>
+            {editing && (
+              <span className="fx-rec-check">
+                <SkeletonBar width="16px" height="16px" />
+              </span>
+            )}
+            <span className="fx-rec-key">
+              <SkeletonBar width={rkeyWidths[i % rkeyWidths.length]} />
+            </span>
+            <span className="fx-rec-text" style={{ overflow: 'visible' }}>
+              <SkeletonBar width={previewWidths[i % previewWidths.length]} />
+            </span>
+            <span className="fx-rec-time">
+              <SkeletonBar width="2rem" />
+            </span>
           </div>
-          <SkeletonBar width={previewWidths[i % previewWidths.length]} />
         </li>
       ))}
     </ul>
@@ -352,7 +371,7 @@ export function SkeletonJson({ lines = 10 }: { lines?: number }) {
 /**
  * Stand-in for <RecordPreview>'s structured field table: `LABEL  value` rows in
  * a card, over the mono CID footer strip. Matches the real card's 140px label
- * column and its rotation, so the swap doesn't tilt the page.
+ * column and, like it, sits square, so the swap doesn't tilt the page.
  */
 export function SkeletonFieldCard({ rows = 5 }: { rows?: number }) {
   const valueWidths = ['64%', '88%', '41%', '73%', '52%', '80%'];
@@ -361,7 +380,6 @@ export function SkeletonFieldCard({ rows = 5 }: { rows?: number }) {
       style={{
         background: 'var(--bg-secondary)',
         border: '1px solid var(--border-medium)',
-        transform: 'rotate(0.2deg)',
       }}
     >
       <div style={{ padding: '1.5rem' }}>

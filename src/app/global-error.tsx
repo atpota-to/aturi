@@ -3,7 +3,8 @@
 /**
  * Last-resort error boundary — catches errors thrown by the root layout
  * itself, where globals.css and the site chrome may not be available.
- * Everything is inline-styled for that reason.
+ * Everything is inline-styled for that reason, with the Field Notes paper
+ * palette written out literally (the CSS tokens may not exist here).
  */
 export default function GlobalError({
   error,
@@ -21,28 +22,52 @@ export default function GlobalError({
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          background: '#0a0a0a',
-          color: '#e8e8e6',
-          fontFamily: 'Georgia, serif',
+          padding: '16px',
+          boxSizing: 'border-box',
+          background: '#f6f4ee',
+          color: '#1c1e19',
+          fontFamily: "Figtree, system-ui, -apple-system, 'Segoe UI', sans-serif",
         }}
       >
-        <div style={{ maxWidth: '32rem', padding: '2rem', textAlign: 'center' }}>
-          <h1 style={{ fontSize: '1.5rem', marginBottom: '0.75rem' }}>
+        <div
+          style={{
+            maxWidth: '28rem',
+            width: '100%',
+            padding: '28px',
+            boxSizing: 'border-box',
+            background: '#ffffff',
+            border: '1px solid #e2ded3',
+            borderRadius: '12px',
+          }}
+        >
+          <h1
+            style={{
+              margin: '0 0 8px',
+              fontSize: '22px',
+              fontWeight: 700,
+              letterSpacing: '-0.02em',
+              lineHeight: 1.25,
+            }}
+          >
             aturi.to hit an unexpected error.
           </h1>
-          <p style={{ color: '#b8b8b6', lineHeight: 1.6, marginBottom: '1.5rem' }}>
+          <p style={{ margin: '0 0 20px', color: '#4a4c44', fontSize: '15px', lineHeight: 1.6 }}>
             Reloading usually fixes it.
             {error.digest ? ` (Reference: ${error.digest})` : ''}
           </p>
           <button
             onClick={() => reset()}
             style={{
-              padding: '0.6rem 1.2rem',
-              border: '1px solid #4a5a3f',
-              background: '#1a1a1a',
-              color: '#e8e8e6',
+              height: '36px',
+              padding: '0 16px',
+              border: '1px solid #3f5e2e',
+              borderRadius: '8px',
+              background: '#3f5e2e',
+              color: '#ffffff',
+              fontFamily: 'inherit',
+              fontSize: '14px',
+              fontWeight: 600,
               cursor: 'pointer',
-              font: 'inherit',
             }}
           >
             Reload

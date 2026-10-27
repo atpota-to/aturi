@@ -1,13 +1,22 @@
 'use client';
 
-import { useEffect, useMemo, useState, type CSSProperties, type ReactNode } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { FilePenLine, SearchX, TriangleAlert } from 'lucide-react';
+import { Check, Copy, Eye, EyeOff, Pencil, SearchX, TriangleAlert } from 'lucide-react';
 import { getRecord, getRecordUrl, type AtRecord } from '@/utils/atproto/pdsClient';
 import { resolveIdentifier, type IdentityBundle } from '@/utils/atproto/identity';
 import { encodeRepo } from '@/utils/atproto/urls';
 import { lexiconPathFor } from '@/utils/ufos/nsid';
+import { getMarginLexiconDisplayName, getMarginLexiconType } from '@/utils/marginLexicons';
+import { parseURI } from '@/utils/uriParser';
+import {
+  BlueskySVG,
+  getRecommendedWaypoints,
+  getWaypointsForType,
+  type Waypoint,
+} from '@/utils/waypoints';
+import { customToWaypoint, personalizeRecommended } from '@/utils/personalizeWaypoints';
 import AppearIn from './AppearIn';
 import Breadcrumb from './Breadcrumb';
 import CopyButton from './CopyButton';
@@ -31,7 +40,6 @@ import { usePreferences } from '@/components/PreferencesProvider';
 import {
   DEFAULT_RECORD_SECTIONS,
   sectionHidden,
-  type RecordSectionId,
 } from '@/utils/exploreSections';
 import { setSectionHidden, toggleRecordDataView } from '@/utils/preferences';
 
@@ -64,9 +72,10 @@ export default function RecordExplorer({ repo, collection, rkey }: Props) {
   if (identityError) {
     return (
       <NotFoundPanel
-        eyebrow="Couldn't resolve"
-        headline="That handle didn't resolve."
-        body={`We tried to resolve "${repo}" and the AT Protocol resolver returned: ${identityError}. Try another handle, DID, or AT URI below.`}
+        eyebrow="Couldn’t resolve"
+        headline="That handle didn’t resolve."
+        body={`We couldn’t find an account for “${repo}”. Check the spelling, or try a DID or an at:// URI below.`}
+        details={identityError}
         initialQuery={repo}
       />
     );
@@ -113,7 +122,7 @@ function RecordView({
   // The in-page "Edit record" chip, watched so the chrome bar can offer the
   // same action exactly while it isn't on screen. Its place on the page is
   // the visitor's choice (Settings → Sections), so it could be anywhere.
-  const [editChipEl, setEditChipEl] = useState<HTMLDivElement | null>(null);
+  const [editChipEl, setEditChipEl] = useState<HTMLButtonElement | null>(null);
   const editChipOffscreen = useOffscreen(editChipEl);
   // Resolved up here — ahead of the early returns below — so the chrome-bar
   // hook runs on every render.
@@ -157,7 +166,7 @@ function RecordView({
   const atUri = `at://${identity.did}/${collection}/${decodedRkey}`;
   const repoSeg = encodeRepo(identity.handle || identity.did);
   const isPost = collection === 'app.bsky.feed.post';
-  const hasRichCard = recordHasRichCard(collection);
+  const hasRichCard = recordHasRichCard(collection, decodedRkey);
 
   // The record page renders the user's chosen sections in their chosen order
   // (configurable in Settings → Sections). Until prefs settle we use the
@@ -182,40 +191,52 @@ function RecordView({
     rkey: decodedRkey,
   });
 
-  // Edit affordance is a standalone chip rendered beneath the view sections —
-  // the sections are independently toggleable, so the button can't live inside
-  // any one of them (it would vanish when that section is hidden).
-  const editButton =
-    canEdit && !editing ? (
-      <button
-        type="button"
-        onClick={() => setEditing(true)}
-        style={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: '0.4rem',
-          padding: '0.4rem 0.75rem',
-          background: 'var(--accent-moss)',
-          color: 'var(--text-on-accent)',
-          border: '1px solid var(--accent-moss)',
-          fontFamily: 'var(--font-serif)',
-          fontSize: '0.8125rem',
-          cursor: 'pointer',
-        }}
-      >
-        <FilePenLine size={12} /> Edit record
-      </button>
-    ) : null;
+  const recordLabel = recordTypeLabel(collection);
 
   const breadcrumb = (
     <AppearIn rise>
-      <Breadcrumb
-        handle={identity.handle}
-        did={identity.did}
-        pds={identity.pds}
-        collection={collection}
-        rkey={decodedRkey}
-      />
+      <div className="fn-rec-titlebar">
+        <div className="fn-rec-titletext">
+          <Breadcrumb
+            handle={identity.handle}
+            did={identity.did}
+            pds={identity.pds}
+            collection={collection}
+            rkey={decodedRkey}
+            titled
+            flush
+          />
+          <div className="fn-rec-titlerow">
+            <h1 className="fn-rec-h1">{decodedRkey}</h1>
+            {recordLabel && (
+              <span className="fn-rec-pill">
+                {recordLabel.bluesky && (
+                  <span aria-hidden className="fn-rec-pill-icon">
+                    <BlueskySVG />
+                  </span>
+                )}
+                {recordLabel.text}
+              </span>
+            )}
+          </div>
+        </div>
+        <div className="fn-rec-actions">
+          <CopyTextButton value={atUri} label="Copy at:// URI" />
+          {/* The Edit button stays watched (setEditChipEl) so the chrome bar
+              offers the same action exactly while it isn't on screen. */}
+          {canEdit && !editing && (
+            <button
+              ref={setEditChipEl}
+              type="button"
+              className="fn-rec-btn"
+              onClick={() => setEditing(true)}
+              title="Edit this record"
+            >
+              <Pencil size={14} aria-hidden /> Edit
+            </button>
+          )}
+        </div>
+      </div>
     </AppearIn>
   );
   const copyRowNode = (
@@ -230,50 +251,32 @@ function RecordView({
     />
   );
   const signInNode = !session ? (
-    <div
-      style={{
-        padding: '0.875rem 1rem',
-        border: '1px solid var(--border-medium)',
-        background: 'var(--bg-secondary)',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '0.5rem',
-      }}
-    >
-      <p style={{ margin: 0, fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
-        Sign in with your handle to edit your own records.
-      </p>
+    <div className="fn-rec-card fn-rec-signin">
+      <p>Sign in with your handle to edit your own records.</p>
       <SignInPanel defaultInput={identity.handle || ''} />
-    </div>
-  ) : null;
-  const editChipNode = editButton ? (
-    <div
-      ref={setEditChipEl}
-      style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', alignItems: 'center' }}
-    >
-      {editButton}
     </div>
   ) : null;
 
   // Load error: error panel + the helper sections that still make sense.
   if (recordError) {
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+      <div className="fn-rec">
         {breadcrumb}
-        <AppearIn delay={0.05}>
-          <RecordErrorPanel
-            raw={recordError}
-            collection={collection}
-            rkey={decodedRkey}
-            handle={identity.handle || identity.did}
-          />
-        </AppearIn>
-        <AppearIn delay={0.07}>
-          <BacklinksTab target={atUri} showSummary />
-        </AppearIn>
-        <AppearIn delay={0.09}>{copyRowNode}</AppearIn>
-        {editChipNode && <AppearIn delay={0.1}>{editChipNode}</AppearIn>}
-        {signInNode && <AppearIn delay={0.11}>{signInNode}</AppearIn>}
+        <div className="fn-rec-stack">
+          <AppearIn delay={0.05}>
+            <RecordErrorPanel
+              raw={recordError}
+              collection={collection}
+              rkey={decodedRkey}
+              handle={identity.handle || identity.did}
+            />
+          </AppearIn>
+          <AppearIn delay={0.07}>
+            <BacklinksTab target={atUri} showSummary />
+          </AppearIn>
+          <AppearIn delay={0.09}>{copyRowNode}</AppearIn>
+          {signInNode && <AppearIn delay={0.11}>{signInNode}</AppearIn>}
+        </div>
       </div>
     );
   }
@@ -281,54 +284,137 @@ function RecordView({
   // Edit mode: the editor takes the whole body; keep the copy row handy.
   if (editing && canEdit && backend) {
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+      <div className="fn-rec">
         {breadcrumb}
-        <AppearIn delay={0.05}>
-          <RecordEditor
-            backend={backend}
-            collection={collection}
-            rkey={decodedRkey}
-            onSaved={(next) => {
-              setRecord((prev) => (prev ? { ...prev, value: next } : prev));
-            }}
-            onDeleted={() => {
-              setEditing(false);
-              router.push(`/explore/${repoSeg}/${collection}`);
-            }}
-            onCancel={() => setEditing(false)}
-          />
-        </AppearIn>
-        <AppearIn delay={0.07}>{copyRowNode}</AppearIn>
+        <div className="fn-rec-stack">
+          <AppearIn delay={0.05}>
+            <RecordEditor
+              backend={backend}
+              collection={collection}
+              rkey={decodedRkey}
+              onSaved={(next) => {
+                setRecord((prev) => (prev ? { ...prev, value: next } : prev));
+              }}
+              onDeleted={() => {
+                setEditing(false);
+                router.push(`/explore/${repoSeg}/${collection}`);
+              }}
+              onCancel={() => setEditing(false)}
+            />
+          </AppearIn>
+          <AppearIn delay={0.07}>{copyRowNode}</AppearIn>
+        </div>
       </div>
     );
   }
 
-  // Read mode: render the user's sections in their chosen order. The three
-  // data views (card / field table / raw JSON) keep their inline switch
-  // present even when collapsed, so they can be re-shown right on the page;
-  // helper sections simply disappear when hidden (re-show via Settings).
+  // Read mode: the user's sections in their chosen order, split over two
+  // columns. The preview and the helpers that read about the record
+  // (engagement, backlinks, lexicon usage, sign-in) take the wide column; the
+  // "Open in" panel, the Record card (field table and raw JSON behind one
+  // Fields/JSON switch) and the copy row take the aside. A record with no
+  // rich card, or whose card is hidden, has nothing to preview, so its Record
+  // card moves into the wide column where long values have room.
   //
-  // Null until the record lands — the breadcrumb below is already real by
+  // Null until the record lands — the title bar above is already real by
   // then, so only the body waits, behind <RecordBodySkeleton>.
   const recordForPreview = record
     ? { uri: record.uri, cid: record.cid, value: record.value }
     : null;
-  const sectionRenderers: Record<RecordSectionId, () => ReactNode> | null =
-    record && recordForPreview
-      ? {
-        richPreview: () =>
-          !hasRichCard ? null : (
-            <div style={sectionGroupStyle}>
+  const recordInMain = !hasRichCard || cardHidden;
+  const recordCard =
+    record && recordForPreview ? (
+      <section className="fn-rec-card fn-rec-data" aria-labelledby="fn-rec-data-title">
+        <div className="fn-rec-data-head">
+          <h2 id="fn-rec-data-title" className="fn-rec-h2">
+            Record
+          </h2>
+          {/* Two toggles, not a switch: both views can be on at once (only
+              hiding both is refused), so each is a chip with the site's "on"
+              fill and a check, like a copied chip. */}
+          <div role="group" aria-label="Record view" className="fn-rec-seg">
+            <button
+              type="button"
+              aria-pressed={!structuredHidden}
+              onClick={() => updatePrefs((p) => toggleRecordDataView(p, 'structuredJson'))}
+            >
+              {!structuredHidden && <Check size={12} aria-hidden />}
+              Fields
+            </button>
+            <button
+              type="button"
+              aria-pressed={!rawHidden}
+              onClick={() => updatePrefs((p) => toggleRecordDataView(p, 'rawJson'))}
+            >
+              {!rawHidden && <Check size={12} aria-hidden />}
+              JSON
+            </button>
+          </div>
+        </div>
+        <dl className="fn-rec-ids">
+          <dt>URI</dt>
+          <dd>
+            <span className="fn-rec-ids-value" title={atUri}>
+              {atUri}
+            </span>
+            <CopyButton value={atUri} label="Copy at:// URI" compact variant="subtle" iconOnly />
+          </dd>
+          {record.cid && (
+            <>
+              <dt>CID</dt>
+              <dd>
+                <span className="fn-rec-ids-value" title={record.cid}>
+                  {record.cid}
+                </span>
+                <CopyButton value={record.cid} label="Copy CID" compact variant="subtle" iconOnly />
+              </dd>
+            </>
+          )}
+        </dl>
+        {!structuredHidden && (
+          <RecordPreview
+            record={recordForPreview}
+            collection={collection}
+            handle={identity.handle || identity.did}
+            rkey={decodedRkey}
+            pds={identity.pds}
+            hideExplorerCtas
+          />
+        )}
+        {!rawHidden && (
+          <div className="fn-rec-json">
+            <LinkifiedJson value={record} className="explore-json" />
+          </div>
+        )}
+      </section>
+    ) : null;
+
+  type Placed = { id: string; column: 'main' | 'aside'; node: ReactNode };
+  const placed: Placed[] = [];
+  if (record && recordForPreview) {
+    let recordPlaced = false;
+    for (const { id, hidden } of recordSections) {
+      if (id === 'richPreview') {
+        if (!hasRichCard) continue;
+        placed.push({
+          id,
+          column: 'main',
+          node: (
+            <div className="fn-rec-group">
               {!cardHidden && (
-                <RichRecordCard
-                  handle={identity.handle || identity.did}
-                  did={identity.did}
-                  collection={collection}
-                  rkey={decodedRkey}
-                  record={record}
-                />
+                <div className="fn-rec-preview">
+                  <RichRecordCard
+                    handle={identity.handle || identity.did}
+                    did={identity.did}
+                    collection={collection}
+                    rkey={decodedRkey}
+                    record={record}
+                    identity={identity}
+                  />
+                </div>
               )}
               <ViewSwitchButton
+                showing={!cardHidden}
                 label={cardHidden ? 'Show rich preview' : 'Hide rich preview'}
                 onToggle={() =>
                   updatePrefs((p) => setSectionHidden(p, 'record', 'richPreview', !cardHidden))
@@ -336,76 +422,77 @@ function RecordView({
               />
             </div>
           ),
-        structuredJson: () => (
-          <div style={sectionGroupStyle}>
-            {!structuredHidden && (
-              <RecordPreview
-                record={recordForPreview}
-                collection={collection}
-                handle={identity.handle || identity.did}
-                rkey={decodedRkey}
-                pds={identity.pds}
-                hideExplorerCtas
-              />
-            )}
-            <ViewSwitchButton
-              label={structuredHidden ? 'Show rich JSON preview' : 'Hide rich JSON preview'}
-              onToggle={() => updatePrefs((p) => toggleRecordDataView(p, 'structuredJson'))}
+        });
+      } else if (id === 'structuredJson' || id === 'rawJson') {
+        // Both data views live in the one Record card, placed where the
+        // first of them sits in the visitor's order.
+        if (recordPlaced) continue;
+        recordPlaced = true;
+        placed.push({ id: 'record', column: recordInMain ? 'main' : 'aside', node: recordCard });
+      } else if (!hidden) {
+        let node: ReactNode = null;
+        let column: Placed['column'] = 'main';
+        // Posts show their counts in the rich card, and so do profiles
+        // while the rich preview is open, so skip the sidecar for those.
+        const countsInCard =
+          isPost || (collection === 'app.bsky.actor.profile' && hasRichCard && !cardHidden);
+        if (id === 'engagement' && !countsInCard) {
+          node = <EngagementSidecar did={identity.did} collection={collection} atUri={atUri} />;
+        } else if (id === 'copyRow') {
+          node = copyRowNode;
+          column = 'aside';
+        } else if (id === 'lexiconUsage') {
+          node = (
+            <LexiconUsageCard
+              collection={collection === 'com.atproto.lexicon.schema' ? decodedRkey : collection}
             />
-          </div>
-        ),
-        rawJson: () => (
-          <div style={sectionGroupStyle}>
-            {!rawHidden && <LinkifiedJson value={record} className="explore-json" />}
-            <ViewSwitchButton
-              label={rawHidden ? 'Show raw JSON' : 'Hide raw JSON'}
-              onToggle={() => updatePrefs((p) => toggleRecordDataView(p, 'rawJson'))}
-            />
-          </div>
-        ),
-        engagement: () =>
-          !isPost ? (
-            <EngagementSidecar did={identity.did} collection={collection} atUri={atUri} />
-          ) : null,
-        copyRow: () => copyRowNode,
-        lexiconUsage: () => (
-          <LexiconUsageCard
-            collection={collection === 'com.atproto.lexicon.schema' ? decodedRkey : collection}
-          />
-        ),
-        backlinks: () => <BacklinksTab target={atUri} showSummary />,
-        signIn: () => signInNode,
+          );
+        } else if (id === 'backlinks') {
+          node = <BacklinksTab target={atUri} showSummary />;
+        } else if (id === 'signIn') {
+          node = signInNode;
+        }
+        if (node != null) placed.push({ id, column, node });
       }
-      : null;
-
-  const applicable = (id: string): boolean => {
-    if (id === 'richPreview') return hasRichCard;
-    if (id === 'engagement') return !isPost;
-    if (id === 'signIn') return !session;
-    return true;
-  };
-  const DATA_VIEW_IDS = new Set(['richPreview', 'structuredJson', 'rawJson']);
+    }
+  }
+  const openInNode = (
+    <OpenInPanel
+      handle={identity.handle || identity.did}
+      did={identity.did}
+      collection={collection}
+      rkey={decodedRkey}
+      universalPath={aturiUniversalPath}
+      isPost={isPost}
+    />
+  );
+  const renderColumn = (column: Placed['column']) =>
+    placed
+      .filter((p) => p.column === column)
+      .map((p, i) => (
+        <AppearIn
+          key={p.id}
+          delay={Math.min(0.05 + i * 0.03, 0.16)}
+          className="fn-rec-slot"
+          style={{ order: SLOT_ORDER[p.id] ?? 3 }}
+        >
+          {p.node}
+        </AppearIn>
+      ));
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+    <div className="fn-rec">
       {breadcrumb}
-      <SkeletonSwap loading={!sectionRenderers} skeleton={<RecordBodySkeleton />}>
-        {sectionRenderers && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            {recordSections.map(({ id, hidden }, i) => {
-              if (!applicable(id)) return null;
-              // Data views keep their switch even when collapsed; hidden
-              // helpers go.
-              if (!DATA_VIEW_IDS.has(id) && hidden) return null;
-              const node = sectionRenderers[id as RecordSectionId]();
-              if (node == null) return null;
-              return (
-                <AppearIn key={id} delay={Math.min(0.05 + i * 0.02, 0.16)}>
-                  {node}
-                </AppearIn>
-              );
-            })}
-            {editChipNode && <AppearIn delay={0.18}>{editChipNode}</AppearIn>}
+      <SkeletonSwap loading={!record} skeleton={<RecordBodySkeleton />}>
+        {record && (
+          <div className="fn-rec-body">
+            <div className="fn-rec-main">{renderColumn('main')}</div>
+            <aside className="fn-rec-aside" aria-label="Open and copy this record">
+              <AppearIn delay={0.05} className="fn-rec-slot" style={{ order: 1 }}>
+                {openInNode}
+              </AppearIn>
+              {renderColumn('aside')}
+            </aside>
           </div>
         )}
       </SkeletonSwap>
@@ -414,64 +501,205 @@ function RecordView({
 }
 
 /**
- * A section + its view-switch share a tight vertical group (0.5rem) so the
- * toggle reads as belonging to the content directly above it, while groups sit
- * a full 1rem apart from each other in the page column.
+ * Stacking order once the two columns collapse into one (phones and narrow
+ * tablets, see .fn-rec-body in record.css): the preview, then where to open
+ * it, then its data, then everything else in the visitor's own order. The
+ * columns ignore it; each holds a single kind of slot.
  */
-const sectionGroupStyle: CSSProperties = {
-  display: 'flex',
-  flexDirection: 'column',
-  gap: '0.5rem',
-};
+const SLOT_ORDER: Record<string, number> = { richPreview: 0, record: 2 };
 
 /**
- * Quiet text toggle sitting beneath each record-body section (rich preview
- * card, rich JSON preview, raw JSON). Mirrors the repo page's ProfileViewSwitch
- * styling; callers own the persisted pref each one flips and supply a
- * state-dependent label. `alignSelf` keeps the hit area tight to the text even
- * though the group stretches its content sections full-width.
+ * The pill beside the rkey: what kind of record this is, in words, for the
+ * collections the site knows how to name. Others get no pill; the
+ * breadcrumb already names their collection.
+ */
+function recordTypeLabel(collection: string): { text: string; bluesky: boolean } | null {
+  const bsky: Record<string, string> = {
+    'app.bsky.feed.post': 'Bluesky post',
+    'app.bsky.actor.profile': 'Bluesky profile',
+    'app.bsky.feed.like': 'Bluesky like',
+    'app.bsky.feed.repost': 'Bluesky repost',
+    'app.bsky.graph.follow': 'Bluesky follow',
+    'app.bsky.graph.list': 'Bluesky list',
+    'app.bsky.graph.block': 'Bluesky block',
+    'app.bsky.feed.generator': 'Bluesky feed',
+  };
+  if (bsky[collection]) return { text: bsky[collection], bluesky: true };
+  if (getMarginLexiconType(collection)) {
+    return { text: getMarginLexiconDisplayName(collection), bluesky: false };
+  }
+  return null;
+}
+
+/**
+ * "Copy at:// URI" in the title bar: a full-size button with a label, which
+ * the compact copy chips elsewhere on the page are not.
+ */
+function CopyTextButton({ value, label }: { value: string; label: string }) {
+  const [copied, setCopied] = useState(false);
+  async function onClick() {
+    try {
+      await navigator.clipboard.writeText(value);
+    } catch {
+      return;
+    }
+    setCopied(true);
+    window.setTimeout(() => setCopied(false), 1400);
+  }
+  return (
+    <button
+      type="button"
+      className="fn-rec-btn"
+      onClick={onClick}
+      data-copied={copied || undefined}
+      aria-label={copied ? `${label}: copied` : label}
+    >
+      {copied ? <Check size={14} aria-hidden /> : <Copy size={14} aria-hidden />}
+      {copied ? 'Copied' : label}
+    </button>
+  );
+}
+
+/**
+ * Quiet text toggle sitting beneath the rich preview card. Callers own the
+ * persisted pref it flips and supply a state-dependent label. `alignSelf`
+ * keeps the hit area tight to the text.
  */
 function ViewSwitchButton({
+  showing,
   label,
   onToggle,
 }: {
+  /** Whether the view it governs is on screen; picks the eye glyph. */
+  showing: boolean;
   label: string;
   onToggle: () => void;
 }) {
   return (
-    <button
-      type="button"
-      onClick={onToggle}
-      style={{
-        alignSelf: 'flex-start',
-        padding: 0,
-        background: 'transparent',
-        border: 0,
-        cursor: 'pointer',
-        fontFamily: 'var(--font-serif)',
-        fontSize: '0.75rem',
-        letterSpacing: '0.04em',
-        color: 'var(--text-tertiary)',
-        transition: 'color 0.2s ease',
-      }}
-      onMouseEnter={(e) => {
-        e.currentTarget.style.color = 'var(--text-accent)';
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.color = 'var(--text-tertiary)';
-      }}
-    >
+    <button type="button" onClick={onToggle} className="fn-rec-switch">
+      {showing ? <EyeOff size={13} aria-hidden /> : <Eye size={13} aria-hidden />}
       {label}
     </button>
   );
 }
 
 /**
- * Single-row of compact copy buttons for the values a record-page
- * visitor might want to grab. Replaces the older RecordMeta + per-cell
- * copy + standalone "Copy JSON" + outbound "Universal link" cluster.
- * Values themselves aren't displayed — the URI elements are in the
- * breadcrumb above, and CID/DID/PDS are visible in the raw JSON below.
+ * "Open this record in": the record's recommended apps first (the top one
+ * filled), then a few more from the visitor's own waypoint groups, then a link
+ * to the universal link page, which lists every app. The same personalisation
+ * as the universal link page's picker: a waypoint no group shows is left out.
+ * Aturi's own waypoints are skipped, since they lead back here.
+ */
+function OpenInPanel({
+  handle,
+  did,
+  collection,
+  rkey,
+  universalPath,
+  isPost,
+}: {
+  handle: string;
+  did: string;
+  collection: string;
+  rkey: string;
+  universalPath: string;
+  isPost: boolean;
+}) {
+  const { prefs } = usePreferences();
+  const { recommended, more } = useMemo(() => {
+    const type = parseURI(handle, collection, rkey).type;
+    const withUrl = (w: Waypoint) => {
+      const url = w.getUrl(handle, collection, rkey, did);
+      return url ? { waypoint: w, url } : null;
+    };
+    const skip = new Set(['aturi', 'aturiExplore']);
+    const rec = personalizeRecommended(getRecommendedWaypoints(type, collection).waypoints, prefs)
+      .filter((w) => !skip.has(w.id))
+      .map(withUrl)
+      .filter((x): x is { waypoint: Waypoint; url: string } => x !== null)
+      .slice(0, 2);
+    const taken = new Set(rec.map((r) => r.waypoint.id));
+    const builtins = new Map(getWaypointsForType(type).map((w) => [w.id, w]));
+    const customs = new Map(prefs.customWaypoints.map((c) => [c.id, c]));
+    const rest: { waypoint: Waypoint; url: string }[] = [];
+    for (const group of prefs.waypointGroups) {
+      for (const id of group.waypointIds) {
+        if (rest.length >= 3) break;
+        if (taken.has(id) || skip.has(id)) continue;
+        taken.add(id);
+        const custom = customs.get(id);
+        const w = custom
+          ? custom.supportedTypes.includes(type)
+            ? customToWaypoint(custom)
+            : null
+          : builtins.get(id) ?? null;
+        const entry = w ? withUrl(w) : null;
+        if (entry) rest.push(entry);
+      }
+    }
+    return { recommended: rec, more: rest };
+  }, [handle, did, collection, rkey, prefs]);
+
+  return (
+    <section className="fn-rec-card fn-open" aria-labelledby="fn-open-title">
+      <h2 id="fn-open-title" className="fn-rec-h2">
+        Open this {isPost ? 'post' : 'record'} in
+      </h2>
+      {recommended.map(({ waypoint, url }, i) => (
+        <a
+          key={waypoint.id}
+          href={url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="fn-open-row"
+          data-rank={i === 0 ? 'primary' : 'secondary'}
+        >
+          <span aria-hidden className="fn-open-icon">
+            {waypoint.icon}
+          </span>
+          <span className="fn-open-name">{waypoint.name}</span>
+          <span className="fn-open-note">Recommended</span>
+        </a>
+      ))}
+      {more.length > 0 && (
+        <div className="fn-open-more">
+          {more.map(({ waypoint, url }) => (
+            <a
+              key={waypoint.id}
+              href={url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="fn-open-row"
+            >
+              <span aria-hidden className="fn-open-icon">
+                {waypoint.icon}
+              </span>
+              <span className="fn-open-name">{waypoint.name}</span>
+              <span className="fn-open-domain">{hostOf(url)}</span>
+            </a>
+          ))}
+        </div>
+      )}
+      <Link href={universalPath} prefetch={false} className="fn-open-all">
+        More apps
+      </Link>
+    </section>
+  );
+}
+
+function hostOf(url: string): string {
+  try {
+    return new URL(url).hostname.replace(/^www\./, '');
+  } catch {
+    return '';
+  }
+}
+
+/**
+ * The values a record-page visitor might want to grab, as compact copy chips,
+ * plus the two ways out (the universal link page and the raw record on the
+ * PDS). The URI and CID also sit in the Record card with their own copy
+ * buttons; this row keeps the rest together.
  */
 function CopyRow({
   atUri,
@@ -493,36 +721,28 @@ function CopyRow({
   /** Direct PDS XRPC URL — `View raw on PDS` lands on the raw JSON. */
   pdsRecordUrl: string;
 }) {
-  // CID intentionally omitted — the preview card's footer surfaces it
-  // visibly with click-to-copy, so a second copy chip here would
-  // duplicate the affordance.
   return (
-    <div
-      style={{
-        display: 'flex',
-        flexWrap: 'wrap',
-        alignItems: 'center',
-        gap: '0.5rem',
-        padding: '0.75rem 1rem',
-        border: '1px solid var(--border-medium)',
-        background: 'var(--bg-secondary)',
-      }}
-    >
-      <CopyButton value={atUri} label="AT URI" compact variant="subtle" />
-      <CopyButton value={did} label="DID" compact variant="subtle" />
-      <CopyButton value={pds} label="PDS" compact variant="subtle" />
-      <CopyButton value={universalLink} label="Universal link" compact variant="subtle" />
-      {recordJson && (
-        <CopyButton value={recordJson} label="JSON" compact variant="subtle" />
-      )}
-      <LinkButton href={universalPath} label="Universal link page" />
-      <LinkButton
-        href={pdsRecordUrl}
-        label="View on PDS"
-        external
-        title="Fetch the raw record JSON from the PDS"
-      />
-    </div>
+    <section className="fn-rec-card fn-rec-copy" aria-label="Copy">
+      <h2 className="fn-rec-h2">Copy</h2>
+      <div className="fn-rec-copy-chips">
+        <CopyButton value={atUri} label="AT URI" compact variant="subtle" />
+        <CopyButton value={did} label="DID" compact variant="subtle" />
+        <CopyButton value={pds} label="PDS" compact variant="subtle" />
+        <CopyButton value={universalLink} label="Universal link" compact variant="subtle" />
+        {recordJson && (
+          <CopyButton value={recordJson} label="JSON" compact variant="subtle" />
+        )}
+      </div>
+      <div className="fn-rec-copy-links">
+        <LinkButton href={universalPath} label="Universal link page" />
+        <LinkButton
+          href={pdsRecordUrl}
+          label="View on PDS"
+          external
+          title="Fetch the raw record JSON from the PDS"
+        />
+      </div>
+    </section>
   );
 }
 
@@ -610,59 +830,15 @@ function RecordErrorPanel({
   }
 
   return (
-    <div
-      style={{
-        border: '1px solid var(--border-medium)',
-        background: 'var(--bg-secondary)',
-        padding: '1.5rem 1.25rem',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '0.6rem',
-      }}
-    >
-      <div
-        className="explore-small-caps"
-        style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
-      >
-        <Icon size={13} aria-hidden style={{ color: 'var(--text-accent)' }} />
+    <div className="fn-rec-card fn-rec-error">
+      <div className="fn-rec-error-kicker">
+        <Icon size={14} aria-hidden />
         {notFound ? 'Not found' : 'Error'}
       </div>
-      <h2
-        style={{
-          margin: 0,
-          fontFamily: 'var(--font-serif)',
-          fontWeight: 400,
-          fontSize: '1.25rem',
-          color: 'var(--text-primary)',
-        }}
-      >
-        {headline}
-      </h2>
-      <p
-        style={{
-          margin: 0,
-          fontSize: '0.9rem',
-          lineHeight: 1.6,
-          color: 'var(--text-secondary)',
-          maxWidth: '42rem',
-        }}
-      >
-        {body}
-      </p>
+      <h2>{headline}</h2>
+      <p>{body}</p>
       {notFound && isSchema && (
-        <Link
-          href={lexiconPathFor(rkey)}
-          style={{
-            alignSelf: 'flex-start',
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '0.3rem',
-            fontSize: '0.85rem',
-            color: 'var(--text-accent)',
-            textDecoration: 'none',
-            fontFamily: 'var(--font-serif)',
-          }}
-        >
+        <Link href={lexiconPathFor(rkey)} prefetch={false} className="fn-rec-error-link">
           See how {rkey} is used across the atmosphere →
         </Link>
       )}
