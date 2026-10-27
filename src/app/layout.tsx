@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Analytics } from "@vercel/analytics/next";
 import { AtprotoSessionProvider } from "@/components/AtprotoSessionProvider";
 import { PreferencesProvider } from "@/components/PreferencesProvider";
+import { PreferredClientsProvider } from "@/components/PreferredClientsProvider";
 import { KeyboardShortcutsProvider } from "@/components/KeyboardShortcutsProvider";
 import Footer from "@/components/Footer";
 import PageTransition from "@/components/PageTransition";
@@ -124,24 +125,28 @@ export default function RootLayout({
         <A11ySync />
         <AtprotoSessionProvider>
           <PreferencesProvider>
-            <ColorSchemeSync />
-            {/* Keeps the pre-paint auto-redirect cache in step with the
-                synced preference, so the next waypoint page can decide
-                before it paints. */}
-            <AutoRedirectSync />
-            {/* Self-triggering: decides once, after preferences settle, and
-                renders nothing for a reader who is already caught up. */}
-            <WhatsNewModal />
-            <KeyboardShortcutsProvider>
-              <PageTransition>
-                {/* Above the footer (z 1), not just the motion background
-                    (z 0): the explorer's chrome bar is fixed inside <main>
-                    and overlaps the footer near the end of a page. At equal
-                    z-index the footer would win on DOM order and swallow
-                    clicks meant for the bar. */}
-                <main style={{ position: 'relative', zIndex: 2 }}>{children}</main>
-              </PageTransition>
-            </KeyboardShortcutsProvider>
+            {/* The account's public preferred-clients declaration, which
+                auto-redirect follows where no favorite is set. */}
+            <PreferredClientsProvider>
+              <ColorSchemeSync />
+              {/* Keeps the pre-paint auto-redirect cache in step with the
+                  synced preference, so the next waypoint page can decide
+                  before it paints. */}
+              <AutoRedirectSync />
+              {/* Self-triggering: decides once, after preferences settle, and
+                  renders nothing for a reader who is already caught up. */}
+              <WhatsNewModal />
+              <KeyboardShortcutsProvider>
+                <PageTransition>
+                  {/* Above the footer (z 1), not just the motion background
+                      (z 0): the explorer's chrome bar is fixed inside <main>
+                      and overlaps the footer near the end of a page. At equal
+                      z-index the footer would win on DOM order and swallow
+                      clicks meant for the bar. */}
+                  <main style={{ position: 'relative', zIndex: 2 }}>{children}</main>
+                </PageTransition>
+              </KeyboardShortcutsProvider>
+            </PreferredClientsProvider>
           </PreferencesProvider>
         </AtprotoSessionProvider>
         <Footer />

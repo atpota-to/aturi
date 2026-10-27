@@ -163,6 +163,16 @@ export type Preferences = {
    */
   favoriteByFamily: Partial<Record<RedirectCompatFamily, string | null>>;
   /**
+   * Whether auto-redirect falls back to the clients the signed-in account
+   * declared in its public `to.aturi.client.declaration` record, for any
+   * family `favoriteByFamily` leaves empty. On by default: publishing "my
+   * Bluesky client is Blacksky" is the same answer this setting would ask
+   * for, and the master switch still decides whether anything redirects at
+   * all. Off is for someone who declares clients for other apps' sake but
+   * wants aturi.to to redirect only where they picked a favorite here.
+   */
+  followDeclaredClients: boolean;
+  /**
    * Which of the three picker layouts to draw — see `WaypointLayout`.
    * Anything unrecognised (an older/newer client, a hand-edited PDS record)
    * falls back to the default rather than rendering nothing.
@@ -308,6 +318,7 @@ export const DEFAULT_PREFERENCES: Preferences = {
   customWaypoints: [],
   autoRedirect: false,
   favoriteByFamily: {},
+  followDeclaredClients: true,
   waypointLayout: DEFAULT_WAYPOINT_LAYOUT,
   knownWaypointIds: [...WAYPOINT_ORDER],
   lastSeenReleaseId: LATEST_RELEASE_ID,
@@ -400,6 +411,8 @@ export function mergeWithDefaults(input: Partial<Preferences> | null | undefined
   const autoRedirect =
     typeof input.autoRedirect === 'boolean' ? input.autoRedirect : false;
   const favoriteByFamily = sanitizeFavoriteByFamily(input.favoriteByFamily);
+  const followDeclaredClients =
+    typeof input.followDeclaredClients === 'boolean' ? input.followDeclaredClients : true;
   const hiddenWaypoints = Array.isArray(input.hiddenWaypoints) ? input.hiddenWaypoints : [];
   const waypointOrder = Array.isArray(input.waypointOrder) ? input.waypointOrder : [];
   const storedGroups = Array.isArray(input.waypointGroups)
@@ -487,6 +500,7 @@ export function mergeWithDefaults(input: Partial<Preferences> | null | undefined
     customWaypoints,
     autoRedirect,
     favoriteByFamily,
+    followDeclaredClients,
     waypointLayout,
     knownWaypointIds,
     lastSeenReleaseId,
@@ -663,6 +677,7 @@ export function preferencesAreEqual(a: Preferences, b: Preferences): boolean {
     a.showRawRecordJson === b.showRawRecordJson &&
     a.autoRedirect === b.autoRedirect &&
     JSON.stringify(a.favoriteByFamily) === JSON.stringify(b.favoriteByFamily) &&
+    a.followDeclaredClients === b.followDeclaredClients &&
     JSON.stringify(a.waypointGroups) === JSON.stringify(b.waypointGroups) &&
     JSON.stringify(a.customWaypoints) === JSON.stringify(b.customWaypoints) &&
     JSON.stringify(a.knownWaypointIds) === JSON.stringify(b.knownWaypointIds) &&
@@ -817,6 +832,10 @@ export function setWaypointLayout(
 
 export function setAutoRedirect(prefs: Preferences, enabled: boolean): Preferences {
   return { ...prefs, autoRedirect: enabled };
+}
+
+export function setFollowDeclaredClients(prefs: Preferences, follow: boolean): Preferences {
+  return { ...prefs, followDeclaredClients: follow };
 }
 
 /**

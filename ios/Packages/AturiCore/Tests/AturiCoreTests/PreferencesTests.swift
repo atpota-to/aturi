@@ -245,7 +245,7 @@ final class PreferencesTests: XCTestCase {
     func testRecordValueCarriesTheWebKeys() {
         let record = customized.toRecordValue(now: Date(timeIntervalSince1970: 1_758_276_000))
         let expectedKeys: Set<String> = [
-            "$type", "colorScheme", "waypointGroups", "customWaypoints", "autoRedirect", "favoriteByFamily", "waypointLayout",
+            "$type", "colorScheme", "waypointGroups", "customWaypoints", "autoRedirect", "favoriteByFamily", "followDeclaredClients", "waypointLayout",
             "knownWaypointIds", "lastSeenReleaseId", "announceReleases", "pinnedLexicons", "pinnedLexiconsOthers", "pinScope",
             "collectionGroupsCollapsedByDefault", "repoGlanceCollapsedByDefault", "recordSections", "repoSections",
             "hideRelationshipBar", "hideRepoGlance", "minimalProfile", "hideRichPreview", "hideRichJsonPreview", "showRawRecordJson",

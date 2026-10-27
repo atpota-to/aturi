@@ -147,7 +147,7 @@ struct WaypointPickerView: View {
     /// "just show the picker". The same pure decision the model makes.
     private var autoRedirectTarget: AutoRedirectTarget? {
         let context = AutoRedirectContext(type: type, handle: handle, did: did, collection: collection, rkey: rkey)
-        return resolveAutoRedirect(prefs, context: context, selfHost: LinkResolverModel.selfHost)
+        return resolveAutoRedirect(prefs, context: context, selfHost: LinkResolverModel.selfHost, declared: preferences.declaredClients)
     }
 
     /// `getContextText`: the line under the heading.
@@ -212,7 +212,7 @@ struct WaypointPickerView: View {
     @ViewBuilder
     private var primaryAction: some View {
         if let target = autoRedirectTarget {
-            let name = LinkResolverModel.waypointName(target.waypointId, customWaypoints: prefs.customWaypoints)
+            let name = LinkResolverModel.targetName(target, customWaypoints: prefs.customWaypoints, declared: preferences.declaredClients)
             let family = WaypointCatalog.compatFamilies[target.family]?.name ?? target.family.rawValue
             VStack(alignment: .leading, spacing: 10) {
                 Text(openedFromLink

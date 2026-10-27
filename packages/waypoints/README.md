@@ -67,6 +67,11 @@ const fromUrl = await resolveUrl('https://bsky.app/profile/alice.bsky.social/pos
 - **Universal links** (`universalLinks.ts`): `buildUniversalLink`,
   `parseUniversalLink`, `isUniversalLink`, `describeUniversalLink`,
   `buildUniversalLinkTags`, `UNIVERSAL_LINK_ORIGIN`.
+- **Preferred clients** (`preferredClients.ts`): `parsePreferredClients`,
+  `getPreferredClient`, `getPreferredClientUrl`, `clientFromWaypoint`,
+  `buildPreferredClientsRecord`, `getWaypointLinkTemplates`,
+  `clientPlatformFromUserAgent`, `PREFERRED_CLIENTS_NSID`. See
+  [Preferred clients](#preferred-clients).
 - **Brand marks** (`@aturi.to/waypoints/icons`): `WAYPOINT_ICON_SVGS`,
   `getWaypointIconSvg`, and a named export per waypoint. See
   [Icons](#icons).
@@ -190,6 +195,56 @@ pointer is emitted for posts only, since that's all the endpoint renders.
 
 They're static strings describing a record you already display, and serving
 them hands nothing to aturi.to.
+
+### Preferred clients
+
+People can declare which client they use for each kind of link, in a public
+`to.aturi.client.declaration/self` record in their own repository
+([schema](https://github.com/atpota-to/aturi/blob/testing/lexicons/to/aturi/client/declaration.json)).
+If your app links out to Bluesky posts or atproto records, read the signed-in
+viewer's declaration and send them straight to their client instead of
+bsky.app or a picker:
+
+```ts
+import {
+  PREFERRED_CLIENTS_NSID,
+  getPreferredClient,
+  getPreferredClientUrl,
+  parsePreferredClients,
+} from '@aturi.to/waypoints';
+
+const res = await agent.com.atproto.repo.getRecord({
+  repo: viewerDid,
+  collection: PREFERRED_CLIENTS_NSID,
+  rkey: 'self',
+}).catch(() => null); // not declared, or unreachable: keep your default
+const declaration = parsePreferredClients(res?.data.value);
+
+const client = getPreferredClient(declaration, 'bluesky-social', { platform: 'mobile' });
+const href = client && getPreferredClientUrl(client, 'at://did:plc:abc/app.bsky.feed.post/3k7');
+// 'https://blacksky.community/profile/did:plc:abc/post/3k7', or null: use your default
+```
+
+Two categories are defined so far: `bluesky-social` (Bluesky posts, profiles
+and lists, in a Bluesky client) and `atproto-explorer` (any record or repo, in
+a raw record explorer). Each preference has a `client` for any device, and may
+add `mobile` and `desktop` overrides. Pass `platform` when you know the
+viewer's device (`clientPlatformFromUserAgent(navigator.userAgent,
+navigator.maxTouchPoints)` is a reasonable guess in a browser, and counts tablets
+as mobile); without it, only `client` counts.
+
+Every declared client carries its own URL templates, so you don't need this
+package to act on a record: `{handle}`, `{did}`, `{actor}` (DID, else handle),
+`{collection}` and `{rkey}`, filled with percent-encoded values. Whatever you
+build from one, follow it only if it's an http(s) URL. The record is the
+viewer's to write, and `getPreferredClientUrl` already refuses anything else.
+
+To write a declaration, `clientFromWaypoint('blacksky')` turns a catalog
+entry into a declared client (templates included), and
+`buildPreferredClientsRecord` stamps the result ready for `putRecord`.
+Signed-in users can also publish one from the Clients tab at
+[aturi.to/account#clients](https://aturi.to/account#clients), and aturi.to's own
+auto-redirect follows it wherever they haven't picked a favorite.
 
 ### DID-only waypoints
 

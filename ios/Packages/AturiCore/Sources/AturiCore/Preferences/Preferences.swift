@@ -506,6 +506,10 @@ public struct Preferences: Hashable, Sendable {
     /// Preferred waypoint per compat family. Absent means no favourite; the
     /// web's explicit `null` spelling is dropped on read.
     public var favoriteByFamily: [RedirectCompatFamily: String]
+    /// Whether auto-redirect falls back to the account's declared clients
+    /// (`to.aturi.client.declaration`) for families with no favourite.
+    /// On by default; an absent field reads as on.
+    public var followDeclaredClients: Bool
     public var waypointLayout: WaypointLayout
     /// Built-in ids the user has been notified about; a new built-in is one
     /// missing from this list.
@@ -544,6 +548,7 @@ public struct Preferences: Hashable, Sendable {
         customWaypoints: [CustomWaypoint] = [],
         autoRedirect: Bool = false,
         favoriteByFamily: [RedirectCompatFamily: String] = [:],
+        followDeclaredClients: Bool = true,
         waypointLayout: WaypointLayout = .default,
         knownWaypointIds: [String]? = nil,
         lastSeenReleaseId: String = "",
@@ -571,6 +576,7 @@ public struct Preferences: Hashable, Sendable {
         self.customWaypoints = customWaypoints
         self.autoRedirect = autoRedirect
         self.favoriteByFamily = favoriteByFamily
+        self.followDeclaredClients = followDeclaredClients
         self.waypointLayout = waypointLayout
         self.knownWaypointIds = knownWaypointIds ?? WaypointCatalog.order
         self.lastSeenReleaseId = lastSeenReleaseId
@@ -609,6 +615,7 @@ public struct Preferences: Hashable, Sendable {
         let customWaypoints = (input["customWaypoints"]?.arrayValue ?? []).compactMap(CustomWaypoint.init(json:))
         let autoRedirect = input["autoRedirect"]?.boolValue ?? false
         let favoriteByFamily = sanitizeFavoriteByFamily(input["favoriteByFamily"])
+        let followDeclaredClients = input["followDeclaredClients"]?.boolValue ?? true
         let hiddenWaypoints = stringArray(input["hiddenWaypoints"])
         let waypointOrder = stringArray(input["waypointOrder"])
         let storedGroups = (input["waypointGroups"]?.arrayValue ?? []).compactMap(WaypointGroup.init(json:))
@@ -671,6 +678,7 @@ public struct Preferences: Hashable, Sendable {
             customWaypoints: customWaypoints,
             autoRedirect: autoRedirect,
             favoriteByFamily: favoriteByFamily,
+            followDeclaredClients: followDeclaredClients,
             waypointLayout: waypointLayout,
             knownWaypointIds: knownWaypointIds,
             lastSeenReleaseId: lastSeenReleaseId,
@@ -755,6 +763,7 @@ public struct Preferences: Hashable, Sendable {
             "customWaypoints": .array(customWaypoints.map(\.jsonValue)),
             "autoRedirect": .bool(autoRedirect),
             "favoriteByFamily": favoriteByFamilyValue,
+            "followDeclaredClients": .bool(followDeclaredClients),
             "waypointLayout": .string(waypointLayout.rawValue),
             "knownWaypointIds": .array(knownWaypointIds.map { .string($0) }),
             "lastSeenReleaseId": .string(lastSeenReleaseId),
@@ -789,6 +798,7 @@ public struct Preferences: Hashable, Sendable {
             "customWaypoints": .array(customWaypoints.map(\.jsonValue)),
             "autoRedirect": .bool(autoRedirect),
             "favoriteByFamily": favoriteByFamilyValue,
+            "followDeclaredClients": .bool(followDeclaredClients),
             "waypointLayout": .string(waypointLayout.rawValue),
             "knownWaypointIds": .array(knownWaypointIds.map { .string($0) }),
             "lastSeenReleaseId": .string(lastSeenReleaseId),
@@ -842,6 +852,7 @@ public struct Preferences: Hashable, Sendable {
             && a.showRawRecordJson == b.showRawRecordJson
             && a.autoRedirect == b.autoRedirect
             && a.favoriteByFamily == b.favoriteByFamily
+            && a.followDeclaredClients == b.followDeclaredClients
             && a.waypointGroups == b.waypointGroups
             && a.customWaypoints == b.customWaypoints
             && a.knownWaypointIds == b.knownWaypointIds
@@ -889,6 +900,10 @@ public struct Preferences: Hashable, Sendable {
         } else {
             favoriteByFamily.removeValue(forKey: family)
         }
+    }
+
+    public mutating func setFollowDeclaredClients(_ follow: Bool) {
+        followDeclaredClients = follow
     }
 
     public mutating func setWaypointLayout(_ layout: WaypointLayout) {

@@ -17,7 +17,7 @@ export default function ExtensionPrivacyPage() {
       <div className="fn-c-wrap" data-width="article">
         <header className="fn-c-head">
           <h1 className="fn-c-title">Browser Extension Privacy Policy</h1>
-          <p className="fn-c-meta">Last updated: May 26, 2026</p>
+          <p className="fn-c-meta">Last updated: October 27, 2026</p>
         </header>
 
         <article className="fn-c-sheet fn-prose">
@@ -37,7 +37,8 @@ export default function ExtensionPrivacyPage() {
               The extension also makes anonymous lookups to public atproto
               services (Bluesky AppView, PLC directory, Constellation, and
               your chosen Personal Data Server) when you actively use the
-              waypoint picker or the Inspect tab. The details of every
+              waypoint picker or the Inspect tab, or import your declared
+              clients in its settings. The details of every
               network request and every part of the page that is read are
               described below.
             </p>
@@ -181,6 +182,19 @@ export default function ExtensionPrivacyPage() {
                 <code>constellation.microcosm.blue</code>) with the AT URI
                 to fetch an aggregate count of public backlinks to that
                 record.
+              </li>
+              <li>
+                <strong>Preferred clients import.</strong> When you press
+                Look up under &ldquo;Import your declared clients&rdquo; in the
+                extension&rsquo;s settings, the extension resolves the handle
+                or DID you entered (through the same AppView and DID document
+                lookups as above), calls{' '}
+                <code>com.atproto.repo.describeRepo</code> on that
+                account&rsquo;s PDS, and calls{' '}
+                <code>com.atproto.repo.getRecord</code> there for its{' '}
+                <code>to.aturi.client.declaration</code> record. Nothing
+                is fetched until you press the button, and nothing from the
+                record is kept beyond the favorites you choose to set.
               </li>
             </ul>
             <p>

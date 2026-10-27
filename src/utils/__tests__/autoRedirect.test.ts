@@ -5,6 +5,7 @@ import {
   AUTO_REDIRECT_CACHE_KEY,
   BREADCRUMB_TTL_MS,
   autoRedirectCacheFor,
+  effectiveFavorites,
   breadcrumbSuppresses,
   buildAutoRedirectCandidates,
   hasStayParam,
@@ -16,6 +17,7 @@ import {
   waypointHost,
   type AutoRedirectCandidate,
   type AutoRedirectContext,
+  type DeclaredClients,
 } from '@/utils/autoRedirect';
 import { buildAutoRedirectScript } from '@/lib/autoRedirectShim';
 import { WAYPOINT_DESTINATIONS_DATA } from '@/utils/waypoints.data';
@@ -24,8 +26,15 @@ import {
   mergeWithDefaults,
   preferencesAreEqual,
   setFavoriteForFamily,
+  setFollowDeclaredClients,
   type Preferences,
 } from '@/utils/preferences';
+import {
+  buildPreferredClientsRecord,
+  clientFromWaypoint,
+  type ClientPreference,
+  type DeclaredClient,
+} from '@/utils/preferredClients';
 
 const HANDLE = 'alice.test';
 const DID = 'did:plc:example000000000000000';
@@ -567,4 +576,136 @@ test('no waypoint URL can break out of the inline script element', () => {
     cache: { enabled: true, byFamily: { 'bluesky-social': 'evil' } },
   });
   assert.equal(result.replaced, hostile[0].url);
+});
+
+// --- Declared clients ------------------------------------------------------
+
+const ON = prefsWith({ autoRedirect: true });
+
+function declared(preferences: ClientPreference[], platform: 'mobile' | 'desktop' = 'desktop'): DeclaredClients {
+  return { record: buildPreferredClientsRecord(preferences), platform };
+}
+
+/** A Bluesky client the catalog has never heard of, known only by its templates. */
+const SKYLARK: DeclaredClient = {
+  url: 'https://skylark.example',
+  name: 'Skylark',
+  templates: {
+    profile: 'https://skylark.example/u/{handle}',
+    post: 'https://skylark.example/u/{handle}/p/{rkey}',
+  },
+};
+
+/** An explorer outside the catalog. */
+const LENS: DeclaredClient = {
+  url: 'https://lens.example',
+  name: 'Lens',
+  templates: {
+    profile: 'https://lens.example/{did}',
+    record: 'https://lens.example/{did}/{collection}/{rkey}',
+  },
+};
+
+test('a declared catalog client fills a family with no favorite, under its catalog id', () => {
+  const blacksky = declared([{ category: 'bluesky-social', client: clientFromWaypoint('blacksky')! }]);
+  assert.deepEqual(effectiveFavorites(ON, blacksky), { 'bluesky-social': 'blacksky' });
+  assert.equal(
+    resolveAutoRedirect(ON, POST, 'aturi.to', blacksky)?.url,
+    `https://blacksky.community/profile/${HANDLE}/post/${RKEY}`,
+  );
+});
+
+test('a favorite always beats the declaration, even one that cannot open the page', () => {
+  const blacksky = declared([{ category: 'bluesky-social', client: clientFromWaypoint('blacksky')! }]);
+  const prefs = setFavoriteForFamily(ON, 'bluesky-social', 'deer');
+  assert.deepEqual(effectiveFavorites(prefs, blacksky), { 'bluesky-social': 'deer' });
+  assert.equal(resolveAutoRedirect(prefs, POST, 'aturi.to', blacksky)?.waypointId, 'deer');
+
+  // A favorite the catalog no longer has opens nothing, and the declaration
+  // does not step in behind it.
+  const stale = setFavoriteForFamily(ON, 'bluesky-social', 'retired-client');
+  assert.equal(resolveAutoRedirect(stale, POST, 'aturi.to', blacksky), null);
+});
+
+test('followDeclaredClients off ignores the declaration; the master switch still rules', () => {
+  const blacksky = declared([{ category: 'bluesky-social', client: clientFromWaypoint('blacksky')! }]);
+  assert.equal(resolveAutoRedirect(setFollowDeclaredClients(ON, false), POST, 'aturi.to', blacksky), null);
+  assert.equal(resolveAutoRedirect(prefsWith({ autoRedirect: false }), POST, 'aturi.to', blacksky), null);
+});
+
+test('the device decides between the mobile, desktop and general clients', () => {
+  const split: ClientPreference[] = [
+    {
+      category: 'bluesky-social',
+      client: clientFromWaypoint('bluesky')!,
+      mobile: clientFromWaypoint('blacksky')!,
+    },
+  ];
+  assert.equal(resolveAutoRedirect(ON, POST, 'aturi.to', declared(split, 'mobile'))?.waypointId, 'blacksky');
+  assert.equal(resolveAutoRedirect(ON, POST, 'aturi.to', declared(split, 'desktop'))?.waypointId, 'bluesky');
+});
+
+test('a declared client outside the catalog opens what its templates and family cover', () => {
+  const mine = declared([
+    { category: 'bluesky-social', client: SKYLARK },
+    { category: 'atproto-explorer', client: LENS },
+  ]);
+  assert.deepEqual(effectiveFavorites(ON, mine), {
+    'bluesky-social': 'declared:bluesky-social',
+    'atproto-explorer': 'declared:atproto-explorer',
+  });
+
+  const post = resolveAutoRedirect(ON, POST, 'aturi.to', mine);
+  assert.equal(post?.waypointId, 'declared:bluesky-social');
+  assert.equal(post?.url, `https://skylark.example/u/${HANDLE}/p/${RKEY}`);
+
+  // A Tangled repo is outside what a Bluesky client covers, so the explorer
+  // takes it, by its record template.
+  const repo = resolveAutoRedirect(ON, TANGLED, 'aturi.to', mine);
+  assert.equal(repo?.waypointId, 'declared:atproto-explorer');
+  assert.equal(repo?.url, `https://lens.example/${DID}/sh.tangled.repo/${RKEY}`);
+});
+
+test('a template-only client counts only for the families that can scope it', () => {
+  const reader = declared([{ category: 'standard-site', client: SKYLARK }]);
+  assert.deepEqual(effectiveFavorites(ON, reader), {});
+});
+
+test('declared clients pass the same safety checks as everything else', () => {
+  const selfLoop = declared([
+    {
+      category: 'atproto-explorer',
+      client: { url: 'https://aturi.to', templates: { record: 'https://aturi.to/x/{collection}/{rkey}' } },
+    },
+  ]);
+  assert.equal(resolveAutoRedirect(ON, TANGLED, 'aturi.to', selfLoop), null);
+
+  // Aturi Explore is a catalog explorer on aturi.to: refused the same way.
+  const explore = declared([{ category: 'atproto-explorer', client: clientFromWaypoint('aturiExplore')! }]);
+  assert.equal(resolveAutoRedirect(ON, TANGLED, 'aturi.to', explore), null);
+});
+
+test('the pre-paint cache carries declared clients, and the script waits on template-only ones', () => {
+  const mine = declared([
+    { category: 'bluesky-social', client: SKYLARK },
+    { category: 'atproto-explorer', client: clientFromWaypoint('pdsls')! },
+  ]);
+  const cache = autoRedirectCacheFor(ON, mine);
+  assert.deepEqual(cache.byFamily, {
+    'bluesky-social': 'declared:bluesky-social',
+    'atproto-explorer': 'pdsls',
+  });
+  const result = runScript(buildAutoRedirectCandidates(POST), { cache });
+  assert.equal(result.replaced, null);
+  assert.equal(result.attribute, 'arming');
+});
+
+test('followDeclaredClients defaults on, round-trips, and counts as a change', () => {
+  assert.equal(DEFAULT_PREFERENCES.followDeclaredClients, true);
+  assert.equal(mergeWithDefaults({}).followDeclaredClients, true);
+  assert.equal(mergeWithDefaults({ followDeclaredClients: false }).followDeclaredClients, false);
+  assert.equal(
+    preferencesAreEqual(DEFAULT_PREFERENCES, setFollowDeclaredClients(DEFAULT_PREFERENCES, false)),
+    false,
+  );
 });

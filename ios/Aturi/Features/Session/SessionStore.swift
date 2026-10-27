@@ -316,6 +316,53 @@ final class SessionStore: SessionStoring, PreferencesSync {
                 syncStatus = .failed(ExploreErrorText.describe(error))
             }
         }
+        await loadDeclaration()
+    }
+
+    // MARK: Preferred clients
+
+    /// Read the account's `to.aturi.client.declaration` record into
+    /// the preferences store, where auto-redirect and the Clients screen
+    /// read it. Runs after every preferences sync, so on launch and on each
+    /// sign-in.
+    private func loadDeclaration() async {
+        guard state.isSignedIn else { return }
+        preferences?.setDeclaration(.loading)
+        do {
+            let value = try await withAuthenticatedPDS { pds in
+                try await pds.readPreferredClientsRecord()
+            }
+            guard state.isSignedIn else { return }
+            if let value {
+                preferences?.setDeclaration(PreferredClientsRecord(recordValue: value).map(DeclarationState.loaded) ?? .invalid)
+            } else {
+                preferences?.setDeclaration(.missing)
+            }
+        } catch {
+            if state.isSignedIn {
+                preferences?.setDeclaration(.failed(ExploreErrorText.describe(error)))
+            }
+        }
+    }
+
+    func publishDeclaration(_ entries: [ClientPreference]) async throws {
+        let record = PreferredClientsRecord.build(entries)
+        guard !record.preferences.isEmpty else {
+            try await removeDeclaration()
+            return
+        }
+        let value = record.toRecordValue()
+        _ = try await withAuthenticatedPDS { pds in
+            try await pds.putRecord(collection: PreferredClients.collection, rkey: PreferredClients.recordKey, record: value)
+        }
+        preferences?.setDeclaration(.loaded(record))
+    }
+
+    func removeDeclaration() async throws {
+        try await withAuthenticatedPDS { pds in
+            try await pds.deleteRecord(collection: PreferredClients.collection, rkey: PreferredClients.recordKey)
+        }
+        preferences?.setDeclaration(.missing)
     }
 
     // MARK: Session lifecycle
@@ -355,6 +402,7 @@ final class SessionStore: SessionStoring, PreferencesSync {
         key = nil
         state = .signedOut
         syncStatus = .idle
+        preferences?.setDeclaration(.idle)
         try? keychain.delete(account: Self.sessionAccount)
     }
 

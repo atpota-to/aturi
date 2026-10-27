@@ -13,11 +13,12 @@
  * allowlist to drift out of step with the router.
  *
  * It is a cut-down `resolveAutoRedirectTarget`: same family order, same
- * eligibility rules, minus custom waypoints (whose templates the server can't
- * see). When a custom waypoint is configured for a family it stops walking and
- * leaves the page hidden for `AutoRedirectGate` to finish, rather than
- * skipping past that family and landing somewhere the gate wouldn't have
- * chosen. A test asserts the two agree.
+ * eligibility rules, minus custom waypoints and declared clients from outside
+ * the catalog (whose templates the server can't see). When one of those is
+ * configured for a family it stops walking and leaves the page hidden for
+ * `AutoRedirectGate` to finish, rather than skipping past that family and
+ * landing somewhere the gate wouldn't have chosen. A test asserts the two
+ * agree.
  *
  * Mirrors the shape of `COLOR_SCHEME_INIT_SCRIPT` in `src/lib/colorScheme.ts`:
  * a standalone string with every constant inlined, since it executes with no
@@ -29,6 +30,7 @@ import {
   AUTO_REDIRECT_CACHE_KEY,
   AUTO_REDIRECT_STAY_PARAM,
   BREADCRUMB_TTL_MS,
+  DECLARED_CLIENT_ID_PREFIX,
   type AutoRedirectCandidate,
 } from '@/utils/autoRedirect';
 import { COMPAT_FAMILY_ORDER } from '@/utils/waypoints.data';
@@ -79,7 +81,7 @@ var f=s.byFamily||{},o=${order},a=${payload},hit=null,wait=false;
 for(var i=0;i<o.length;i++){
 var id=f[o[i]];
 if(!id)continue;
-if(id.indexOf('custom:')===0){wait=true;break}
+if(id.indexOf('custom:')===0||id.indexOf(${JSON.stringify(DECLARED_CLIENT_ID_PREFIX)})===0){wait=true;break}
 for(var j=0;j<a.length;j++){if(a[j].i===id&&a[j].f.indexOf(o[i])>=0){hit=a[j];break}}
 if(hit)break}
 if(!hit&&!wait)return;
