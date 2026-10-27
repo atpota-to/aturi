@@ -6,8 +6,13 @@ import AturiCore
 /// the picker leads with the favourite as a one-tap button, and only a
 /// link that arrives from outside the app opens there by itself, after a
 /// countdown that any touch cancels.
+///
+/// A signed-in account's declared clients (the Clients screen) fill any
+/// family left on "Don't redirect", unless the follow switch is off; that
+/// family's empty option names the client that will be used instead.
 struct RedirectsSettingsView: View {
     @Environment(PreferencesStore.self) private var preferences
+    @Environment(\.sessionStore) private var sessionStore
     @Environment(\.aturiTheme) private var theme
 
     private var prefs: Preferences {
@@ -22,6 +27,24 @@ struct RedirectsSettingsView: View {
         preferences.settingsBinding({ $0.autoRedirect }, { $0.setAutoRedirect($1) })
     }
 
+    private var followDeclared: Binding<Bool> {
+        preferences.settingsBinding({ $0.followDeclaredClients }, { $0.setFollowDeclaredClients($1) })
+    }
+
+    private var declaresAny: Bool {
+        guard let declared = preferences.declaredClients else { return false }
+        return WaypointCatalog.compatFamilyOrder.contains { declaredFavorite(declared, family: $0) != nil }
+    }
+
+    /// What a family's empty choice means: the declared client that fills
+    /// it when there is one, else no redirect.
+    private func emptyLabel(for family: RedirectCompatFamily) -> String {
+        guard prefs.followDeclaredClients, let declared = preferences.declaredClients,
+              let fill = declaredFavorite(declared, family: family)
+        else { return "Don't redirect" }
+        return "Your declared client (\(fill.client.displayName))"
+    }
+
     var body: some View {
         let rows = FamilyRow.rows(for: prefs)
         List {
@@ -34,6 +57,16 @@ struct RedirectsSettingsView: View {
                     detail: "Off by default. Nothing is redirected until you choose a client below.",
                     isOn: autoRedirect
                 )
+                if sessionStore.state.isSignedIn {
+                    SettingsToggleRow(
+                        "Use the clients you declared",
+                        detail: declaresAny
+                            ? "Families you haven't picked a client for below open in the ones you published on the Clients screen."
+                            : "You haven't declared any clients yet. Publish them on the Clients screen and they fill in here.",
+                        isOn: followDeclared
+                    )
+                    .disabled(!enabled)
+                }
             }
 
             if rows.isEmpty {
@@ -64,6 +97,7 @@ struct RedirectsSettingsView: View {
     private func familyPicker(_ row: FamilyRow) -> some View {
         let selection = favorite(for: row)
         let chosen = row.destinations.first { $0.id == selection.wrappedValue }
+        let empty = emptyLabel(for: row.family)
         return VStack(alignment: .leading, spacing: 10) {
             VStack(alignment: .leading, spacing: 3) {
                 Text(row.name)
@@ -77,19 +111,19 @@ struct RedirectsSettingsView: View {
             }
             Menu {
                 Picker(row.name, selection: selection) {
-                    Text("Don't redirect").tag("")
+                    Text(empty).tag("")
                     ForEach(row.destinations) { destination in
                         Text(destination.name).tag(destination.id)
                     }
                 }
                 .pickerStyle(.inline)
             } label: {
-                ClientPill(name: chosen?.name ?? "Don't redirect", waypointId: chosen?.id)
+                ClientPill(name: chosen?.name ?? empty, waypointId: chosen?.id)
             }
             .disabled(!enabled)
             .opacity(enabled ? 1 : 0.5)
             .accessibilityLabel("\(row.name) client")
-            .accessibilityValue(chosen?.name ?? "Don't redirect")
+            .accessibilityValue(chosen?.name ?? empty)
         }
         .padding(.vertical, 4)
     }
@@ -196,5 +230,232 @@ private struct FamilyRow: Identifiable {
             ))
         }
         return rows
+    }
+}
+
+/// Port of `ClientsTab.tsx`: the public `to.aturi.actor.preferredClients`
+/// declaration other apps read to open this person's links in the clients
+/// they use. Drafted here and written only on Publish; the form's logic is
+/// `PreferredClientsDraft` in AturiCore, where it is tested. Lives beside
+/// Redirects, whose favourites it starts from and whose empty families it
+/// fills.
+struct ClientsSettingsView: View {
+    @Environment(PreferencesStore.self) private var preferences
+    @Environment(\.sessionStore) private var sessionStore
+    @Environment(\.aturiTheme) private var theme
+
+    @State private var draft: PreferredClientsDraft?
+    @State private var busy = false
+    @State private var errorMessage: String?
+
+    private var published: PreferredClientsRecord? {
+        preferences.declaration.record
+    }
+
+    private var options: [RedirectCompatFamily: [DeclaredClientOption]] {
+        PreferredClientsDraft.options(customWaypoints: preferences.prefs.customWaypoints, published: published)
+    }
+
+    var body: some View {
+        List {
+            if !sessionStore.state.isSignedIn {
+                SettingsSection(footer: "Your preferred clients are published to your own repository, where other Atmosphere apps can read them. That needs you signed in; nothing on this screen is kept on the device.") {
+                    NavigationLink(value: SettingsPage.account) {
+                        SettingsRowLabel("Sign in to publish", systemImage: SettingsPage.account.systemImage)
+                    }
+                }
+            } else if let draft {
+                form(draft)
+            } else if case .failed(let message) = preferences.declaration {
+                SettingsSection(
+                    "Couldn't read your declaration",
+                    footer: "Your PDS didn't answer, so the form stays closed rather than risk publishing over a declaration it couldn't see."
+                ) {
+                    Text(message)
+                        .font(AturiFont.footnote)
+                        .foregroundStyle(theme.danger)
+                }
+            } else {
+                SettingsSection {
+                    HStack(spacing: 8) {
+                        ProgressView()
+                        Text("Reading your declaration...")
+                            .foregroundStyle(theme.textSecondary)
+                    }
+                }
+            }
+        }
+        .settingsList()
+        .navigationTitle("Clients")
+        .onAppear(perform: seed)
+        .onChange(of: preferences.declaration) { _, state in
+            // Signing out drops the draft, so the next account starts fresh
+            // rather than being offered the last one's choices.
+            if state == .idle { draft = nil }
+            seed()
+        }
+    }
+
+    /// Open the draft once the PDS has answered: from the published record,
+    /// or with none, from the Redirects favourites.
+    private func seed() {
+        guard draft == nil, preferences.declaration.isSettled else { return }
+        draft = PreferredClientsDraft(published: published, options: options, favorites: preferences.prefs.favoriteByFamily)
+    }
+
+    @ViewBuilder
+    private func form(_ current: PreferredClientsDraft) -> some View {
+        let options = self.options
+        let next = current.preferences(options: options, published: published)
+        let dirty = !PreferredClientsDraft.samePreferences(next, published?.preferences ?? [])
+        let exists: Bool = {
+            switch preferences.declaration {
+            case .loaded, .invalid: return true
+            default: return false
+            }
+        }()
+
+        SettingsSection(footer: "Apps that read this open your Bluesky links and record links in your choice instead of a default or a list. Apps that can tell your device apart use the mobile and desktop choices; the rest use the one above them.") {
+            Text(status(dirty: dirty))
+                .font(AturiFont.footnote)
+                .foregroundStyle(theme.textSecondary)
+        }
+
+        ForEach(PreferredClients.categories, id: \.self) { category in
+            let copy = Self.copy(for: category)
+            let slots = current.slots[category] ?? DeclaredClientSlots()
+            let choices = options[category] ?? []
+            SettingsSection(copy.title, footer: copy.sub) {
+                clientMenu("Everywhere", category: category, slot: \.client, choices: choices, emptyLabel: "Not declared")
+                SettingsToggleRow("Different on mobile or desktop", isOn: splitBinding(category))
+                if slots.split {
+                    let fallback = slots.client.isEmpty ? "Not declared" : "Same as everywhere"
+                    clientMenu("On mobile", category: category, slot: \.mobile, choices: choices, emptyLabel: fallback)
+                    clientMenu("On desktop", category: category, slot: \.desktop, choices: choices, emptyLabel: fallback)
+                }
+            }
+        }
+
+        SettingsSection(footer: "Publishing writes a public record, to.aturi.actor.preferredClients/self, to your repository. It doesn't change where Aturi sends you; that's Redirects.") {
+            Button {
+                publish(next)
+            } label: {
+                HStack(spacing: 8) {
+                    if busy { ProgressView() }
+                    Text("Publish")
+                }
+            }
+            .disabled(busy || !dirty)
+            if exists {
+                Button("Remove declaration", role: .destructive, action: remove)
+                    .disabled(busy)
+            }
+            if let errorMessage {
+                Text(errorMessage)
+                    .font(AturiFont.footnote)
+                    .foregroundStyle(theme.danger)
+            }
+        }
+    }
+
+    private func status(dirty: Bool) -> String {
+        switch preferences.declaration {
+        case .invalid:
+            return "Your existing record couldn't be read. Publishing replaces it."
+        case .loaded(let record) where !dirty:
+            if let updatedAt = record.updatedAt, let date = Formatting.isoDate(updatedAt) {
+                return "Published \(date.formatted(date: .abbreviated, time: .omitted))."
+            }
+            return "Published."
+        case .loaded:
+            return "Unpublished changes."
+        default:
+            return dirty ? "Not published yet." : "Nothing declared."
+        }
+    }
+
+    private static func copy(for category: RedirectCompatFamily) -> (title: String, sub: String) {
+        switch category {
+        case .blueskySocial: return ("Bluesky client", "Where Bluesky posts, profiles and lists open.")
+        case .atprotoExplorer: return ("Atmosphere explorer", "Where any record or repository opens, raw.")
+        default: return (WaypointCatalog.compatFamilies[category]?.name ?? category.rawValue, "")
+        }
+    }
+
+    private func splitBinding(_ category: RedirectCompatFamily) -> Binding<Bool> {
+        Binding(
+            get: { draft?.slots[category]?.split ?? false },
+            set: { value in
+                draft?.slots[category, default: DeclaredClientSlots()].split = value
+                errorMessage = nil
+            }
+        )
+    }
+
+    private func slotBinding(_ category: RedirectCompatFamily, _ slot: WritableKeyPath<DeclaredClientSlots, String>) -> Binding<String> {
+        Binding(
+            get: { draft?.slots[category]?[keyPath: slot] ?? "" },
+            set: { value in
+                draft?.slots[category, default: DeclaredClientSlots()][keyPath: slot] = value
+                errorMessage = nil
+            }
+        )
+    }
+
+    /// A row's label over the same pill menu the Redirects rows use.
+    private func clientMenu(
+        _ title: String,
+        category: RedirectCompatFamily,
+        slot: WritableKeyPath<DeclaredClientSlots, String>,
+        choices: [DeclaredClientOption],
+        emptyLabel: String
+    ) -> some View {
+        let selection = slotBinding(category, slot)
+        let chosen = choices.first { $0.id == selection.wrappedValue }
+        return VStack(alignment: .leading, spacing: 10) {
+            Text(title)
+                .foregroundStyle(theme.textPrimary)
+            Menu {
+                Picker(title, selection: selection) {
+                    Text(emptyLabel).tag("")
+                    ForEach(choices) { option in
+                        Text(option.label).tag(option.id)
+                    }
+                }
+                .pickerStyle(.inline)
+            } label: {
+                ClientPill(name: chosen?.label ?? emptyLabel, waypointId: chosen?.client.waypoint)
+            }
+            .accessibilityLabel("\(Self.copy(for: category).title), \(title)")
+            .accessibilityValue(chosen?.label ?? emptyLabel)
+        }
+        .padding(.vertical, 4)
+    }
+
+    private func publish(_ entries: [ClientPreference]) {
+        busy = true
+        errorMessage = nil
+        Task { @MainActor in
+            do {
+                try await sessionStore.publishDeclaration(entries)
+            } catch {
+                errorMessage = ExploreErrorText.describe(error)
+            }
+            busy = false
+        }
+    }
+
+    private func remove() {
+        busy = true
+        errorMessage = nil
+        Task { @MainActor in
+            do {
+                try await sessionStore.removeDeclaration()
+                draft = PreferredClientsDraft(published: nil, options: options, favorites: [:])
+            } catch {
+                errorMessage = ExploreErrorText.describe(error)
+            }
+            busy = false
+        }
     }
 }

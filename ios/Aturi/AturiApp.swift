@@ -37,6 +37,12 @@ protocol SessionStoring: AnyObject, Observable {
     /// `app.bsky.actor.getProfile` as the signed-in account, proxied through
     /// its PDS so the `viewer` and `knownFollowers` blocks are filled in.
     func profileWithViewer(actor: String) async throws -> BskyProfile?
+    /// Publish the account's `to.aturi.actor.preferredClients` declaration,
+    /// replacing any earlier one (an empty list removes it), and hand the
+    /// result to the preferences store so auto-redirect follows it at once.
+    func publishDeclaration(_ preferences: [ClientPreference]) async throws
+    /// Delete the declaration.
+    func removeDeclaration() async throws
 }
 
 /// Thrown by `NoSession` for any write or sign-in: nothing is configured.
@@ -84,6 +90,14 @@ final class NoSession: SessionStoring {
     }
 
     func profileWithViewer(actor: String) async throws -> BskyProfile? {
+        throw NoSessionError.unavailable
+    }
+
+    func publishDeclaration(_ preferences: [ClientPreference]) async throws {
+        throw NoSessionError.unavailable
+    }
+
+    func removeDeclaration() async throws {
         throw NoSessionError.unavailable
     }
 }

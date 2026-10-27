@@ -191,6 +191,18 @@ public struct AuthenticatedPDS: Sendable {
         try await putRecord(collection: Self.preferencesCollection, rkey: Self.preferencesRkey, record: value)
     }
 
+    /// The `to.aturi.actor.preferredClients/self` record's value, or nil when
+    /// nothing is declared. Only `RecordNotFound` counts as missing, as for
+    /// the preferences record.
+    public func readPreferredClientsRecord() async throws -> JSONValue? {
+        do {
+            let record = try await getRecord(collection: PreferredClients.collection, rkey: PreferredClients.recordKey)
+            return record.value
+        } catch let error as HTTPError where Self.isRecordNotFound(error) {
+            return nil
+        }
+    }
+
     /// The PDS answers `RecordNotFound` ("Could not locate record") when
     /// the record simply does not exist.
     public static func isRecordNotFound(_ error: HTTPError) -> Bool {

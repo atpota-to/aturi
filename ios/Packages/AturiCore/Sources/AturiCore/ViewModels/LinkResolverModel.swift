@@ -435,20 +435,30 @@ public final class LinkResolverModel {
     /// universal link, the countdown below.
     public var autoRedirectTarget: AutoRedirectTarget? {
         guard let link else { return nil }
-        return resolveAutoRedirect(prefs, context: link.autoRedirectContext, selfHost: LinkResolverModel.selfHost)
+        return resolveAutoRedirect(prefs, context: link.autoRedirectContext, selfHost: LinkResolverModel.selfHost, declared: preferences.declaredClients)
     }
 
     /// The favourite's display name for the "Open in <name>" button,
     /// built-in or custom (`SuppressedNotice` on the web).
     public var autoRedirectTargetName: String? {
         guard let target = autoRedirectTarget else { return nil }
-        return LinkResolverModel.waypointName(target.waypointId, customWaypoints: prefs.customWaypoints)
+        return LinkResolverModel.targetName(target, customWaypoints: prefs.customWaypoints, declared: preferences.declaredClients)
     }
 
     /// The compat family's display name for the same notice.
     public var autoRedirectFamilyName: String? {
         guard let target = autoRedirectTarget else { return nil }
         return WaypointCatalog.compatFamilies[target.family]?.name ?? target.family.rawValue
+    }
+
+    /// The name of an auto-redirect target: a built-in, a custom waypoint,
+    /// or a declared client from outside the catalog.
+    public nonisolated static func targetName(_ target: AutoRedirectTarget, customWaypoints: [CustomWaypoint], declared: DeclaredClients?) -> String {
+        if target.waypointId.hasPrefix(declaredClientIdPrefix), let declared,
+           let client = declaredFavorite(declared, family: target.family)?.client {
+            return client.displayName
+        }
+        return waypointName(target.waypointId, customWaypoints: customWaypoints)
     }
 
     /// The name of a waypoint id, built-in or custom, with the web's

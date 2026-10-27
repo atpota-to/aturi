@@ -9,6 +9,7 @@ enum SettingsPage: String, CaseIterable, Identifiable, Hashable {
     case sections
     case waypoints
     case redirects
+    case clients
     case custom
     case account
     case about
@@ -21,6 +22,7 @@ enum SettingsPage: String, CaseIterable, Identifiable, Hashable {
         case .sections: return "Sections"
         case .waypoints: return "Waypoint groups"
         case .redirects: return "Redirects"
+        case .clients: return "Clients"
         case .custom: return "Custom waypoints"
         case .account: return "Account"
         case .about: return "About"
@@ -33,6 +35,7 @@ enum SettingsPage: String, CaseIterable, Identifiable, Hashable {
         case .sections: return "What the record and repo pages show, and in what order"
         case .waypoints: return "Which clients the picker shows, and in what groups"
         case .redirects: return "Open links straight in a preferred client"
+        case .clients: return "Tell other Atmosphere apps which clients you use"
         case .custom: return "Your own destinations, built from URL templates"
         case .account: return "Sign in to sync settings to your PDS"
         case .about: return "Version, links, licence and privacy"
@@ -45,6 +48,7 @@ enum SettingsPage: String, CaseIterable, Identifiable, Hashable {
         case .sections: return "rectangle.split.3x1"
         case .waypoints: return "square.grid.2x2"
         case .redirects: return "arrow.triangle.turn.up.right.diamond"
+        case .clients: return "megaphone"
         case .custom: return "link.badge.plus"
         case .account: return "person.crop.circle"
         case .about: return "info.circle"
@@ -90,6 +94,7 @@ struct SettingsView: View {
                 pageLink(.sections)
                 pageLink(.waypoints)
                 pageLink(.redirects)
+                pageLink(.clients)
                 pageLink(.custom)
             }
 
@@ -131,6 +136,8 @@ struct SettingsPageDestination: View {
             WaypointGroupsView()
         case .redirects:
             RedirectsSettingsView()
+        case .clients:
+            ClientsSettingsView()
         case .custom:
             CustomWaypointsView()
         case .account:

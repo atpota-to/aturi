@@ -6,6 +6,10 @@ import Foundation
 // and back/forward suppression are browser concerns and are not ported; on
 // iOS the app surfaces the target as a one-tap button and a cancellable
 // countdown instead of navigating without a tap.
+//
+// A signed-in account's `to.aturi.actor.preferredClients` declaration fills
+// any family it has no favourite for (`effectiveFavorites`); it never
+// overrides a favourite, and the master switch still decides.
 
 /// The record a universal-link page is about.
 public struct AutoRedirectContext: Hashable, Sendable {
@@ -82,6 +86,67 @@ public struct AutoRedirectCache: Hashable, Sendable {
         for (family, id) in byFamily { families[family.rawValue] = .string(id) }
         return .object(["enabled": .bool(enabled), "byFamily": .object(families)])
     }
+}
+
+/// The signed-in account's declaration as auto-redirect reads it: the
+/// record, and which half of each mobile/desktop split applies here.
+public struct DeclaredClients: Hashable, Sendable {
+    public var record: PreferredClientsRecord
+    public var platform: ClientPlatform
+
+    public init(record: PreferredClientsRecord, platform: ClientPlatform) {
+        self.record = record
+        self.platform = platform
+    }
+}
+
+/// Prefix of the favourite id a declared client stands under when it isn't a
+/// catalog waypoint, e.g. `declared:bluesky-social`.
+public let declaredClientIdPrefix = "declared:"
+
+/// Families a declared client from outside the catalog may serve. Catalog
+/// clients bring their own `expectedCollections`; these bring only
+/// templates, so the family's scope stands in. Any other family counts a
+/// declaration only when it names a catalog waypoint.
+private let templateClientFamilies: Set<RedirectCompatFamily> = [.blueskySocial, .atprotoExplorer]
+
+private func declaredTemplatesCover(_ family: RedirectCompatFamily, collection: String?) -> Bool {
+    if family == .blueskySocial {
+        guard let collection, !collection.isEmpty else { return true }
+        return collection.hasPrefix("app.bsky.")
+    }
+    return templateClientFamilies.contains(family)
+}
+
+/// The declared client auto-redirect would follow for a family, and the
+/// favourite id it stands under: the catalog id when the client is a
+/// catalog waypoint of that family, else a `declared:` id for the families
+/// a template-only client may serve.
+public func declaredFavorite(_ declared: DeclaredClients, family: RedirectCompatFamily) -> (id: String, client: DeclaredClient)? {
+    guard let client = declared.record.client(for: family.rawValue, platform: declared.platform) else { return nil }
+    if let waypoint = client.waypoint, WaypointCatalog.all[waypoint]?.redirectCompat.contains(family) == true {
+        return (waypoint, client)
+    }
+    if templateClientFamilies.contains(family) {
+        return (declaredClientIdPrefix + family.rawValue, client)
+    }
+    return nil
+}
+
+/// The favourites auto-redirect acts on: the user's own, with declared
+/// clients filling the families left empty when `followDeclaredClients`
+/// allows. A favourite always wins, even one that can't render the page.
+public func effectiveFavorites(_ prefs: Preferences, declared: DeclaredClients?) -> [RedirectCompatFamily: String] {
+    var out: [RedirectCompatFamily: String] = [:]
+    for family in WaypointCatalog.compatFamilyOrder {
+        if let own = prefs.favoriteByFamily[family], !own.isEmpty {
+            out[family] = own
+            continue
+        }
+        guard let declared, prefs.followDeclaredClients, let fill = declaredFavorite(declared, family: family) else { continue }
+        out[family] = fill.id
+    }
+    return out
 }
 
 /// Whether a resolved destination is safe to open without a tap. Custom
@@ -165,19 +230,37 @@ private func buildCustomAutoRedirectCandidates(_ customWaypoints: [CustomWaypoin
     return out
 }
 
-/// The full decision: master switch, then built-ins, then customs.
-public func resolveAutoRedirect(_ prefs: Preferences, context: AutoRedirectContext, selfHost: String? = nil) -> AutoRedirectTarget? {
-    guard prefs.autoRedirect else { return nil }
-    var candidates = buildAutoRedirectCandidates(context, selfHost: selfHost)
-    candidates.append(contentsOf: buildCustomAutoRedirectCandidates(prefs.customWaypoints, context: context, selfHost: selfHost))
-    return resolveAutoRedirectTarget(favoriteByFamily: prefs.favoriteByFamily, candidates: candidates)
+/// Candidates for the declared clients standing under `declared:` ids,
+/// built from the record's own templates. Catalog clients stand under their
+/// catalog id and are already among the built-in candidates.
+private func buildDeclaredAutoRedirectCandidates(_ declared: DeclaredClients, favorites: [RedirectCompatFamily: String], context: AutoRedirectContext, selfHost: String?) -> [AutoRedirectCandidate] {
+    var out: [AutoRedirectCandidate] = []
+    for family in WaypointCatalog.compatFamilyOrder {
+        let id = declaredClientIdPrefix + family.rawValue
+        guard favorites[family] == id, declaredTemplatesCover(family, collection: context.collection),
+              let client = declaredFavorite(declared, family: family)?.client
+        else { continue }
+        let target = CustomWaypointContext(handle: context.handle, did: context.did, collection: context.collection, rkey: context.rkey)
+        guard let url = preferredClientUrl(client, target: target), isSafeRedirectUrl(url, selfHost: selfHost) else { continue }
+        out.append(AutoRedirectCandidate(id: id, url: url, families: [family]))
+    }
+    return out
 }
 
-/// The cache slice of a preferences value.
-public func autoRedirectCacheFor(_ prefs: Preferences) -> AutoRedirectCache {
-    var byFamily: [RedirectCompatFamily: String] = [:]
-    for family in WaypointCatalog.compatFamilyOrder {
-        if let id = prefs.favoriteByFamily[family], !id.isEmpty { byFamily[family] = id }
+/// The full decision: master switch, then built-ins, customs and declared
+/// clients, over the effective favourites.
+public func resolveAutoRedirect(_ prefs: Preferences, context: AutoRedirectContext, selfHost: String? = nil, declared: DeclaredClients? = nil) -> AutoRedirectTarget? {
+    guard prefs.autoRedirect else { return nil }
+    let favorites = effectiveFavorites(prefs, declared: declared)
+    var candidates = buildAutoRedirectCandidates(context, selfHost: selfHost)
+    candidates.append(contentsOf: buildCustomAutoRedirectCandidates(prefs.customWaypoints, context: context, selfHost: selfHost))
+    if let declared {
+        candidates.append(contentsOf: buildDeclaredAutoRedirectCandidates(declared, favorites: favorites, context: context, selfHost: selfHost))
     }
-    return AutoRedirectCache(enabled: prefs.autoRedirect, byFamily: byFamily)
+    return resolveAutoRedirectTarget(favoriteByFamily: favorites, candidates: candidates)
+}
+
+/// The cache slice of a preferences value: the effective favourites.
+public func autoRedirectCacheFor(_ prefs: Preferences, declared: DeclaredClients? = nil) -> AutoRedirectCache {
+    AutoRedirectCache(enabled: prefs.autoRedirect, byFamily: effectiveFavorites(prefs, declared: declared))
 }
