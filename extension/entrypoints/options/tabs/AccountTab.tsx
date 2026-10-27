@@ -205,14 +205,16 @@ export default function AccountTab({
   const busy = status.kind === 'busy';
 
   return (
-    <div>
-      <h1 className="options-h1">Account</h1>
-      <p className="options-lede">
-        Optional. Everything else in this extension works signed out and contacts no
-        Aturi server &mdash; signing in is only for pulling the waypoint setup you
-        already have on the website. The extension asks for read-only access and can
-        never write to your repository.
-      </p>
+    <div className="options-page">
+      <div className="options-page-head">
+        <h1 className="options-h1">Account</h1>
+        <p className="options-lede">
+          Optional. Everything else in this extension works signed out and contacts no
+          Aturi server &mdash; signing in is only for pulling the waypoint setup you
+          already have on the website. The extension asks for read-only access and can
+          never write to your repository.
+        </p>
+      </div>
 
       <div className="options-card">
 

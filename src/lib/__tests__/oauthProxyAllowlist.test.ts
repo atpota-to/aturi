@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { readdirSync, readFileSync } from 'node:fs';
+import { resolve, sep } from 'node:path';
 
 /**
  * The XRPC proxy serves a literal allowlist, so a space method the client
@@ -76,8 +76,55 @@ test('the allowlist carries no space method that cannot reach it', () => {
   assert.deepEqual(extra, [], `allowlisted but never sent over OAuth: ${extra.join(', ')}`);
 });
 
-test('the proxy allowlists no write method the app never calls', () => {
-  // uploadBlob is the specific one: an authenticated multi-megabyte write
-  // endpoint with no caller in this codebase.
-  assert.ok(!allowlisted().has('com.atproto.repo.uploadBlob'));
+const UPLOAD_BLOB = 'com.atproto.repo.uploadBlob';
+
+/** Every non-test source file under src/, as [relative path, contents]. */
+function sourceFiles(): [string, string][] {
+  const dir = resolve(root, 'src');
+  return (readdirSync(dir, { recursive: true }) as string[])
+    .filter((f) => /\.tsx?$/.test(f) && !f.split(sep).includes('__tests__'))
+    .map((f) => [f.split(sep).join('/'), readFileSync(resolve(dir, f), 'utf8')]);
+}
+
+/**
+ * Repo and AppView methods the app calls through an Agent, read off the call
+ * sites (`agent.com.atproto.repo.putRecord(`, `proxied.app.bsky.actor...`).
+ *
+ * The space test above covers only spaceClient.ts, and that is how the
+ * space-administration methods went missing while this branch sat unmerged:
+ * features land on other branches, call through the signed-in Agent, and
+ * work in browser mode, which never touches the proxy.
+ */
+function calledThroughAgents(): Set<string> {
+  const called = new Set<string>();
+  for (const [, src] of sourceFiles()) {
+    for (const m of src.matchAll(/\.((?:com\.atproto|app\.bsky|chat\.bsky)\.[a-z]+\.[a-zA-Z]+)\(/g)) {
+      called.add(m[1]);
+    }
+  }
+  return called;
+}
+
+test('every repo and AppView method the app calls through an Agent is proxied', () => {
+  const allowed = allowlisted();
+  // uploadBlob has its own rule, below.
+  const missing = [...calledThroughAgents()].filter(
+    (nsid) => nsid !== UPLOAD_BLOB && !allowed.has(nsid),
+  );
+  assert.deepEqual(missing, [], `these would 403 at the proxy: ${missing.join(', ')}`);
+});
+
+test('uploadBlob is proxied exactly when something uploads', () => {
+  // An authenticated multi-megabyte write endpoint, so allowlisting it ahead
+  // of a caller is reach granted for nothing. Its one call site is
+  // `uploadImage` in userinput/writes.ts, which nothing uses yet; once
+  // something does, every attachment would 403 without it.
+  const used = sourceFiles().some(
+    ([path, src]) => path !== 'utils/userinput/writes.ts' && /\buploadImage\s*\(/.test(src),
+  );
+  assert.equal(
+    allowlisted().has(UPLOAD_BLOB),
+    used,
+    used ? 'uploadImage is called, so the proxy must allowlist uploadBlob' : 'nothing uploads, so uploadBlob must stay off the allowlist',
+  );
 });

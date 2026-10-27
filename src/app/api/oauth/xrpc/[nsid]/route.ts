@@ -48,7 +48,9 @@ export const dynamic = 'force-dynamic';
  *
  * `com.atproto.repo.uploadBlob` is absent because nothing calls it yet;
  * allowlisting an authenticated 4MB write endpoint ahead of a caller is free
- * exposure. Add it in the change that adds the caller.
+ * exposure. Add it in the change that adds the caller. `uploadImage` in
+ * src/utils/userinput/writes.ts is written but not yet wired to anything, and
+ * the allowlist test fails the day it is, until this list gains the method.
  *
  * `com.atproto.space.getDelegationToken` is absent on purpose — it has its own
  * consent-gated endpoint and must not be reachable generically.
@@ -71,6 +73,11 @@ const ALLOWED_NSIDS = new Set([
   'com.atproto.space.deleteRecord',
   'com.atproto.simplespace.listMembers',
   'com.atproto.simplespace.getSpace',
+  'com.atproto.simplespace.createSpace',
+  'com.atproto.simplespace.updateSpace',
+  'com.atproto.simplespace.deleteSpace',
+  'com.atproto.simplespace.addMember',
+  'com.atproto.simplespace.removeMember',
   'app.bsky.actor.getProfile',
 ]);
 
