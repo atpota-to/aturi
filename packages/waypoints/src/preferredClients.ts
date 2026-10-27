@@ -53,6 +53,22 @@ export type ClientPlatform = 'mobile' | 'desktop';
 
 export const CLIENT_PLATFORMS: readonly ClientPlatform[] = ['mobile', 'desktop'];
 
+/**
+ * Which half of a device split applies to the device a user agent describes,
+ * for readers that have nothing better to go on. Tablets count as mobile, as
+ * the lexicon says. iPadOS asks for desktop sites and reports itself as a
+ * Mac, so a "Macintosh" with a touchscreen is read as the tablet it is: pass
+ * `navigator.maxTouchPoints` in a browser to get that right.
+ */
+export function clientPlatformFromUserAgent(
+  userAgent: string,
+  maxTouchPoints = 0,
+): ClientPlatform {
+  if (/Mobi|Android|iPhone|iPad|iPod/i.test(userAgent)) return 'mobile';
+  if (/Macintosh/i.test(userAgent) && maxTouchPoints > 1) return 'mobile';
+  return 'desktop';
+}
+
 export type ClientLinkTemplateKind = 'profile' | 'post' | 'list' | 'record';
 
 /**

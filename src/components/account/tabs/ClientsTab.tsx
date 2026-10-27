@@ -6,6 +6,10 @@ import { CheckCircle2, CircleAlert, CircleDashed, Loader2 } from 'lucide-react';
 import { useAtprotoSession } from '@/components/AtprotoSessionProvider';
 import { usePreferences } from '@/components/PreferencesProvider';
 import {
+  usePreferredClients,
+  type PreferredClientsLoad,
+} from '@/components/PreferredClientsProvider';
+import {
   CLIENT_PLATFORMS,
   PREFERRED_CLIENTS_NSID,
   PREFERRED_CLIENTS_RKEY,
@@ -20,7 +24,6 @@ import {
 } from '@/utils/preferredClients';
 import {
   deletePreferredClientsFromPds,
-  readPreferredClientsFromPds,
   writePreferredClientsToPds,
 } from '@/utils/atproto/preferredClientsPds';
 import { WAYPOINT_DESTINATIONS_DATA, WAYPOINT_ORDER } from '@/utils/waypoints.data';
@@ -38,6 +41,10 @@ import Toggle from '../Toggle';
  * so it is drafted here and only written when Publish is pressed. The draft
  * starts from the published record, or, when there isn't one, from the
  * Redirects favorites, since those are usually the same answer.
+ *
+ * The record itself is read once per session by `PreferredClientsProvider`,
+ * and a publish goes back through it, so auto-redirect follows the new
+ * declaration on the very next link.
  */
 
 const CATEGORY_COPY: Record<PreferredClientCategory, { title: string; sub: string; split: string }> = {
@@ -64,37 +71,21 @@ type Slots = { client: string; mobile: string; desktop: string; split: boolean }
 
 type Draft = Record<PreferredClientCategory, Slots>;
 
-type Load =
-  | { status: 'loading' }
-  | { status: 'missing' }
-  | { status: 'ok'; record: PreferredClientsRecord }
-  | { status: 'invalid' }
-  | { status: 'error'; error: string };
-
 const EMPTY_SLOTS: Slots = { client: '', mobile: '', desktop: '', split: false };
 
 export default function ClientsTab({ onSignIn }: { onSignIn: () => void }) {
   const { agent, did, loading } = useAtprotoSession();
   const { prefs } = usePreferences();
-  const [load, setLoad] = useState<Load>({ status: 'loading' });
-  const [draft, setDraft] = useState<Draft | null>(null);
+  const { load, setPublished } = usePreferredClients();
+  // Tagged with the account it was drafted for, so signing in as someone else
+  // starts a fresh draft rather than offering to publish the last one's.
+  const [drafted, setDrafted] = useState<{ did: string; draft: Draft } | null>(null);
+  const draft = drafted && drafted.did === did ? drafted.draft : null;
   const [busy, setBusy] = useState(false);
   const [writeError, setWriteError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!agent || !did) return undefined;
-    let cancelled = false;
-    setLoad({ status: 'loading' });
-    setDraft(null);
-    readPreferredClientsFromPds(agent, did).then((result) => {
-      if (!cancelled) setLoad(result);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [agent, did]);
-
   const published = load.status === 'ok' ? load.record : null;
+  const settled = load.status !== 'idle' && load.status !== 'loading' && load.status !== 'error';
 
   const options = useMemo(
     () => buildOptions(prefs.customWaypoints, published),
@@ -104,9 +95,9 @@ export default function ClientsTab({ onSignIn }: { onSignIn: () => void }) {
   // Seed the draft once per load. Later changes to the Redirects favorites
   // must not reach in and rewrite a form someone is halfway through.
   useEffect(() => {
-    if (draft || load.status === 'loading' || load.status === 'error') return;
-    setDraft(seedDraft(published, options, prefs.favoriteByFamily));
-  }, [draft, load.status, published, options, prefs.favoriteByFamily]);
+    if (draft || !did || !settled) return;
+    setDrafted({ did, draft: seedDraft(published, options, prefs.favoriteByFamily) });
+  }, [draft, did, settled, published, options, prefs.favoriteByFamily]);
 
   if (!did) {
     return (
@@ -128,7 +119,7 @@ export default function ClientsTab({ onSignIn }: { onSignIn: () => void }) {
     );
   }
 
-  if (loading || load.status === 'loading' || (load.status !== 'error' && !draft)) {
+  if (loading || (load.status !== 'error' && !draft)) {
     return (
       <section className="settings-card">
         <div>
@@ -163,7 +154,9 @@ export default function ClientsTab({ onSignIn }: { onSignIn: () => void }) {
   const recordPath = `/explore/${encodeRepo(did)}/${PREFERRED_CLIENTS_NSID}/${PREFERRED_CLIENTS_RKEY}`;
 
   function setSlots(category: PreferredClientCategory, patch: Partial<Slots>) {
-    setDraft((d) => (d ? { ...d, [category]: { ...d[category], ...patch } } : d));
+    setDrafted((d) =>
+      d ? { ...d, draft: { ...d.draft, [category]: { ...d.draft[category], ...patch } } } : d,
+    );
     setWriteError(null);
   }
 
@@ -174,10 +167,9 @@ export default function ClientsTab({ onSignIn }: { onSignIn: () => void }) {
     try {
       if (next.length === 0) {
         await deletePreferredClientsFromPds(agent, did);
-        setLoad({ status: 'missing' });
+        setPublished(null);
       } else {
-        const record = await writePreferredClientsToPds(agent, did, next);
-        setLoad({ status: 'ok', record });
+        setPublished(await writePreferredClientsToPds(agent, did, next));
       }
     } catch (err) {
       setWriteError(err instanceof Error ? err.message : String(err));
@@ -192,8 +184,8 @@ export default function ClientsTab({ onSignIn }: { onSignIn: () => void }) {
     setWriteError(null);
     try {
       await deletePreferredClientsFromPds(agent, did);
-      setLoad({ status: 'missing' });
-      setDraft(emptyDraft());
+      setPublished(null);
+      setDrafted({ did, draft: emptyDraft() });
     } catch (err) {
       setWriteError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -269,7 +261,7 @@ export default function ClientsTab({ onSignIn }: { onSignIn: () => void }) {
   );
 }
 
-function PublishStatus({ load, dirty }: { load: Load; dirty: boolean }) {
+function PublishStatus({ load, dirty }: { load: PreferredClientsLoad; dirty: boolean }) {
   let icon: React.ReactNode;
   let label: string;
   let tone: string;

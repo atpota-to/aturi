@@ -4,7 +4,10 @@ import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import {
   AUTO_REDIRECT_LATE_WINDOW_MS,
+  DECLARED_CLIENT_ID_PREFIX,
   breadcrumbSuppresses,
+  currentClientPlatform,
+  declaredFavoriteFor,
   hasStayParam,
   isBackForwardNavigation,
   readBreadcrumb,
@@ -15,17 +18,20 @@ import {
 } from '@/utils/autoRedirect';
 import { COMPAT_FAMILIES, WAYPOINT_DESTINATIONS_DATA } from '@/utils/waypoints.data';
 import { usePreferences } from './PreferencesProvider';
+import { usePreferredClients } from './PreferredClientsProvider';
 import { AUTO_REDIRECT_ARMING, AUTO_REDIRECT_ATTR } from '@/lib/autoRedirectShim';
+import type { PreferredClientsRecord } from '@/utils/preferredClients';
 
 /**
  * The React half of auto-redirect, and the page's way back into view.
  *
  * The inline script in `AutoRedirect` handles the common case before paint.
- * This covers everything it can't: custom waypoints, whose URL templates the
- * server never sees, and a preference that arrives after the page has already
- * rendered — a signed-in visitor's PDS record landing on a browser that had no
- * local copy. It is also what clears `data-autoredirect` when no redirect is
- * happening, so the content becomes visible again.
+ * This covers everything it can't: custom waypoints and declared clients from
+ * outside the catalog, whose URL templates the server never sees, and a
+ * preference that arrives after the page has already rendered — a signed-in
+ * visitor's PDS record, or their preferred-clients declaration, landing on a
+ * browser that had no local copy. It is also what clears `data-autoredirect`
+ * when no redirect is happening, so the content becomes visible again.
  *
  * Everything here is written on the assumption that hiding the page is
  * dangerous: the attribute is cleared on every path that isn't an imminent
@@ -35,6 +41,7 @@ import { AUTO_REDIRECT_ARMING, AUTO_REDIRECT_ATTR } from '@/lib/autoRedirectShim
 export default function AutoRedirectGate(props: AutoRedirectContext) {
   const { type, handle, did, collection, rkey } = props;
   const { prefs, loading } = usePreferences();
+  const { record } = usePreferredClients();
   const [suppressed, setSuppressed] = useState<AutoRedirectTarget | null>(null);
 
   const settledRef = useRef(false);
@@ -72,8 +79,9 @@ export default function AutoRedirectGate(props: AutoRedirectContext) {
     if (loading) return;
 
     try {
+      const declared = record ? { record, platform: currentClientPlatform() } : null;
       const target = resolveAutoRedirect(prefs, { type, handle, did, collection, rkey },
-        window.location.host);
+        window.location.host, declared);
 
       if (!target) {
         unhide();
@@ -112,11 +120,17 @@ export default function AutoRedirectGate(props: AutoRedirectContext) {
       settledRef.current = true;
       unhide();
     }
-  }, [prefs, loading, type, handle, did, collection, rkey]);
+  }, [prefs, record, loading, type, handle, did, collection, rkey]);
 
   if (!suppressed) return null;
 
-  return <SuppressedNotice target={suppressed} customNames={prefs.customWaypoints} />;
+  return (
+    <SuppressedNotice
+      target={suppressed}
+      customNames={prefs.customWaypoints}
+      declaration={record}
+    />
+  );
 }
 
 function unhide(): void {
@@ -156,13 +170,22 @@ function suppressionReason(): string | null {
 function SuppressedNotice({
   target,
   customNames,
+  declaration,
 }: {
   target: AutoRedirectTarget;
   customNames: { id: string; name: string }[];
+  declaration: PreferredClientsRecord | null;
 }) {
+  const declaredClient =
+    declaration && target.waypointId.startsWith(DECLARED_CLIENT_ID_PREFIX)
+      ? declaredFavoriteFor({ record: declaration, platform: currentClientPlatform() }, target.family)
+          ?.client
+      : undefined;
+  const declaredName = declaredClient?.name ?? (declaredClient && new URL(declaredClient.url).host);
   const name =
     WAYPOINT_DESTINATIONS_DATA[target.waypointId]?.name ??
     customNames.find((c) => c.id === target.waypointId)?.name ??
+    declaredName ??
     'your preferred client';
   const family = COMPAT_FAMILIES[target.family]?.name ?? target.family;
 

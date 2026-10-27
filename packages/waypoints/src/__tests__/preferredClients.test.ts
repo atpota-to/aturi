@@ -4,6 +4,7 @@ import {
   PREFERRED_CLIENT_CATEGORIES,
   buildPreferredClientsRecord,
   clientFromWaypoint,
+  clientPlatformFromUserAgent,
   getPreferredClient,
   getPreferredClientUrl,
   getWaypointLinkTemplates,
@@ -245,6 +246,25 @@ describe('parsePreferredClients', () => {
       { category: 'bluesky-social', client: BLACKSKY },
     ]);
     expect(record.preferences).toEqual([{ category: 'bluesky-social', client: DEER }]);
+  });
+});
+
+describe('clientPlatformFromUserAgent', () => {
+  it('reads phones and tablets as mobile, the rest as desktop', () => {
+    const iphone =
+      'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1';
+    const androidTablet =
+      'Mozilla/5.0 (Linux; Android 14; SM-X710) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36';
+    const mac =
+      'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Safari/605.1.15';
+    const windows =
+      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36';
+    expect(clientPlatformFromUserAgent(iphone)).toBe('mobile');
+    expect(clientPlatformFromUserAgent(androidTablet)).toBe('mobile');
+    expect(clientPlatformFromUserAgent(windows)).toBe('desktop');
+    expect(clientPlatformFromUserAgent(mac)).toBe('desktop');
+    // iPadOS sends the Mac string; only the touchscreen gives it away.
+    expect(clientPlatformFromUserAgent(mac, 5)).toBe('mobile');
   });
 });
 
