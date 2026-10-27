@@ -1404,7 +1404,7 @@ browser OAuth client, exactly as it always has. A fork does not need a database.
 # ATURI_SESSION_ENC_KEY=           # 32 bytes hex or base64 — AES-256-GCM at rest
 # ATURI_EXTENSION_RETURN_ORIGINS=  # exact-match list (Chrome); pattern only for Firefox
 # ATURI_APP_SESSION_TTL_DAYS=30
-# NEXT_PUBLIC_AUTH_MODE=auto       # auto | bff | browser
+# NEXT_PUBLIC_AUTH_MODE=browser    # browser | bff
 ```
 
 ### `vercel.json`
@@ -1700,8 +1700,12 @@ Each has a recommendation, but each is genuinely the maintainer's.
 
 6. **Does staging share production's signing key?** Depends on whether
    `testing.aturi.to` is an alias on the same Vercel project. If it is, they share
-   the env var and a staging compromise is a production key compromise. **Needs a
-   fact check.**
+   the env var and a staging compromise is a production key compromise.
+   **Answered (October 2026):** it is a domain on the same project, bound to the
+   `testing` git branch, so its deployments run in the Preview environment. It
+   can still have its own key: set staging's values for Preview scoped to the
+   `testing` branch, and production's for Production. It also needs its own
+   schema — see `sql/staging/aturi_staging.sql` for why.
 
 7. **`prompt: 'consent'` always, or only on widening?** **Recommendation: always
    in v1**, revisit in Phase 7.

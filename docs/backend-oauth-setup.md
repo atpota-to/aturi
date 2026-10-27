@@ -1,115 +1,135 @@
 # Turning backend OAuth on
 
-A runbook. The code is on `claude/aturi-backend-oauth-vhr358` and is **inert
-until you do these steps** — every route answers 503 or 404, and sign-in keeps
-using the browser client exactly as it does today.
+A runbook. The code ships **inert**: until the steps below are done every
+backend route answers 503 or 404, and sign-in keeps using the browser client
+exactly as it does today. Merging it changes nothing anyone can see.
 
-**Step 1 is already done** — the migration is applied and verified. Start at
-step 2.
+The order is staging first, then production. Staging is `testing.aturi.to`;
+production is `aturi.to`. Every step until the last one in each part changes
+nothing a user can see, so you can stop after any of them. The switch itself is
+one variable, and rolling it back signs nobody out.
 
-Ordering is deliberate. Steps 1–5 change nothing a user can see, so you can
-stop after any of them and the site behaves as it always has. Step 6 is the
-only one that switches anything, and it is one variable.
-
-Estimated time: half an hour or so for staging now that the database is in
-place, plus however long you want to soak before production.
+Estimated time: about half an hour for staging, then the same again for
+production once you are happy with it.
 
 ---
 
-## Before you start
+## Where things stand (checked 27 October 2026)
 
-You need:
+| | Staging (`testing.aturi.to`) | Production (`aturi.to`) |
+| --- | --- | --- |
+| Code deployed | When this branch merges into `testing` | When `testing` merges into `main` |
+| Database schema | `aturi_staging`: **not applied yet** (step A1) | `aturi`: **done**: 7 tables, sweep job active |
+| Schema exposed to the Data API | **No** (step A2) | **No** (step A2, same setting) |
+| Keys generated | No (A3) | No (B1) |
+| Vercel variables | None set (A4) | None set (B2) |
+| Switched on | No (A6) | No (B4) |
+
+The exposed-schemas list on the Supabase project is currently
+`public, graphql_public, trackerapp, credblue, typesapp, turtleme, mod`.
+
+### Two facts that shape everything below
+
+**1. `testing.aturi.to` is a branch domain, not a separate project.** It is
+attached to the `aturi` Vercel project with Git branch `testing`, so its
+deployments run in Vercel's **Preview** environment, not Production. That means:
+
+- Staging's variables go under **Preview**, restricted to the **`testing`**
+  branch. Variables marked "Production only" never reach it.
+- Never scope a secret to *all* Preview branches. Every pull-request preview,
+  including previews of forks' pull requests, would then hold your signing key.
+- Staging and production can still have different keys: same variable name,
+  one value for Preview (`testing`) and another for Production. Do that. Sharing
+  one means a staging compromise is a production compromise.
+
+**2. Staging needs its own database schema.** `oauth_sessions` is keyed by
+account and client type (`web` or `extension`), with no notion of which site
+issued the grant. If staging and production shared the `aturi` tables, signing
+in on `testing.aturi.to` would overwrite that person's production grant, and
+they would be signed out of `aturi.to`. So staging uses `aturi_staging`, set
+with `ATURI_DB_SCHEMA`. Same Supabase project, separate tables.
+
+### What you need
 
 - Access to the Supabase project `atpota.to` (`zdzjtziydmwkxbzlkwxv`).
 - Access to the Vercel project `aturi` (team `atpotato`).
-- To know whether `testing.aturi.to` is a domain on that same Vercel project or
-  a separate project. **Check this first** — it decides step 3:
-  - Vercel → `aturi` → Settings → Domains. If `testing.aturi.to` is listed,
-    it is the same project and shares its environment variables.
-  - If it is not listed, it is a separate project with its own variables, and
-    staging and production can have separate signing keys. That is the better
-    arrangement; if they share, a staging compromise is a production key
-    compromise.
+- Node 22 and a checkout of this repo, to generate the signing keys.
 
 Nothing below touches the existing public OAuth client. Anyone signed in today
 stays signed in, on that client, until they sign out themselves.
 
 ---
 
-## 1. Apply the database migration — **done**
+# Part A: staging on testing.aturi.to
 
-Applied to `zdzjtziydmwkxbzlkwxv` on 24 August 2026 as migration
-`aturi_oauth_bff`, and the sweep scheduled as `pg_cron` job 5
-(`aturi-oauth-sweep`, every 15 minutes). Nothing here is left for you.
+## A0. Merge this branch into `testing`
 
-What landed:
+Merge the pull request and let Vercel deploy `testing`. With no variables set,
+nothing changes on `testing.aturi.to`. You can confirm the new routes are there
+but idle:
 
-- Seven tables in `aturi`: `oauth_sessions`, `oauth_state`, `app_sessions`,
-  `exchange_codes`, `space_consents`, `oauth_locks`, `rate_limits`.
-- Four functions: `acquire_oauth_lock`, `release_oauth_lock`,
-  `bump_rate_limit`, `touch_updated_at` — all with `search_path` pinned.
-- RLS enabled **and forced** on all seven, 13 indexes, `anon` revoked from the
-  schema, `service_role` granted.
-- The three empty tables from the earlier exploration dropped. I checked their
-  exact row counts immediately before dropping: 0, 0, 0.
+```bash
+curl -s -o /dev/null -w '%{http_code}\n' https://testing.aturi.to/api/oauth/session
+# 503: deployed and unconfigured, which is correct for now
+```
 
-Verified beyond "it ran", because the lock is the piece whose failure mode is
-silent — it degrades to a no-op exactly when contended, and the symptom is
-users randomly signed out at launch rather than an error:
+## A1. Create the staging schema
 
-- A second holder is refused while the first one's TTL is live.
-- A non-holder cannot release someone else's lock.
-- The holder can, and the key is then free.
-- An expired lock is stealable, so a crashed instance cannot deadlock the rest.
-- `bump_rate_limit` increments and returns 1, 2, 3 on the same bucket.
-- The sweep body runs clean by hand.
+`sql/staging/aturi_staging.sql` is the production migration with the schema
+renamed to `aturi_staging`, plus its own 15-minute sweep job. It only creates
+things; nothing else in the database refers to it.
 
-The security advisor reports seven `rls_enabled_no_policy` notices against the
-new tables. That is the intended state, not a finding: RLS on with no policies
-is deny-all, the backend reaches them as `service_role` which bypasses RLS, and
-the `REVOKE`s are what actually protect them. Every other app in this project
-carries the same pattern for its own session tables. No `aturi` function
-appears in the mutable-`search_path` warnings — the two that do are anisota's
-copies in `public`.
+Supabase → **SQL Editor** → New query → paste the whole file → **Run**.
 
-`sql/001_oauth_bff.sql` in this repo is what was applied, so a fork gets the
-same thing.
+(Or ask Claude to apply it: it is ready to go through the Supabase connector,
+which asks you to confirm first.)
 
-## 2. Expose the schema to the Data API — **yours**
+**Verify:**
 
-**This is the step that costs people an afternoon**, and it is a dashboard
-setting I cannot reach from here. PostgREST serves only the schemas on its
-exposed list, and `aturi` is not on it. Skip this and every query returns 404
-while the code above looks completely correct.
+```sql
+select count(*) from information_schema.tables where table_schema = 'aturi_staging';
+-- 7
+select jobname, schedule, active from cron.job where jobname like 'aturi%';
+-- aturi-oauth-sweep and aturi-staging-oauth-sweep, both active
+```
+
+## A2. Expose both schemas to the Data API
+
+**This is the step that costs people an afternoon.** PostgREST serves only the
+schemas on its exposed list. Skip this and every query returns 404 while the
+code looks completely correct.
 
 Supabase → Project Settings → **Data API** (older UI: Settings → API) →
-**Exposed schemas** → add `aturi` → Save.
+**Exposed schemas** → add **`aturi`** and **`aturi_staging`** → Save. Leave the
+schemas already on the list as they are.
 
-Nothing else on that page needs changing. Exposing the schema does not open the
-tables to the anonymous key — step 1's `REVOKE`s already closed that, and I
-confirmed `anon` has no `USAGE` on the schema.
+This does not open the tables to the anonymous key. The migrations revoke
+`anon` and `authenticated` from both schemas; only the service role can reach
+them.
 
-**Verify** — this should return `[]`, not a 404:
-
-```bash
-curl -s "https://zdzjtziydmwkxbzlkwxv.supabase.co/rest/v1/app_sessions?select=token_sha256" \
-  -H "apikey: $SERVICE_KEY" \
-  -H "Authorization: Bearer $SERVICE_KEY" \
-  -H "Accept-Profile: aturi"
-```
-
-## 3. Generate the two keys
-
-Two keys, doing different jobs. They must be different values — see the check
-at the end of this step.
-
-### The signing key
+**Verify.** Both should print `[]`, not a 404 or a "schema must be one of"
+error:
 
 ```bash
-node scripts/generate-oauth-key.mjs
+SERVICE_KEY='…service-role key…'
+for schema in aturi aturi_staging; do
+  curl -s "https://zdzjtziydmwkxbzlkwxv.supabase.co/rest/v1/app_sessions?select=token_sha256" \
+    -H "apikey: $SERVICE_KEY" -H "Authorization: Bearer $SERVICE_KEY" \
+    -H "Accept-Profile: $schema"; echo
+done
 ```
 
-Prints exactly one line to stdout — an ES256 (P-256) private JWK — plus some
+## A3. Generate staging's two keys
+
+Two keys doing different jobs. They must be different values.
+
+**The signing key:**
+
+```bash
+node scripts/generate-oauth-key.mjs --kid aturi-staging-2026-10
+```
+
+This prints exactly one line to stdout, an ES256 (P-256) private JWK, plus some
 guidance on stderr. It **never writes a file**: this repo is force-pushed to a
 public mirror on every push, so a key in the working tree is one `git add .`
 away from being published. Copy the line straight into Vercel.
@@ -117,253 +137,277 @@ away from being published. Copy the line straight into Vercel.
 The line looks like this (values shortened):
 
 ```json
-{"kty":"EC","x":"am269wfcoTTy…","y":"0CD1n4y2VZ9N…","crv":"P-256","d":"PgzPPH1uYKgQ…","alg":"ES256","kid":"aturi-2026-08-24-a1b2c3"}
+{"kty":"EC","x":"am269wfcoTTy…","y":"0CD1n4y2VZ9N…","crv":"P-256","d":"PgzPPH1uYKgQ…","alg":"ES256","kid":"aturi-staging-2026-10"}
 ```
 
-Three fields matter and the loader rejects the key without them:
+The loader rejects a key without `"alg":"ES256"` (RS256 is not accepted), a
+`"kid"` (unique per key), and `"d"` (the private half, which is why this is a
+secret). What gets published at `/oauth/jwks.json` is the same key without `d`.
 
-- `"alg":"ES256"` — RS256 is not accepted. The reference backend's own
-  `env.example` still documents RSA; following it produces an unusable key.
-- `"kid"` — required, and must be unique per key. It is auto-generated with a
-  date and random suffix; pass `--kid my-label` to choose your own. A key
-  without one is refused rather than defaulted, because defaulting by position
-  is how a rotation silently reuses an identifier for a different key.
-- `"d"` — the private half. This is why the value is a secret. What gets
-  published at `/oauth/jwks.json` is the same key **without** `d`.
-
-If staging is a separate Vercel project, generate a **separate key for it**.
-Sharing one means a staging compromise is a production compromise.
-
-### The encryption key
+**The encryption key:**
 
 ```bash
 openssl rand -hex 32
 ```
 
 This encrypts the stored OAuth tokens. It must **not** be the database
-credential — keeping them apart is the entire point: it means a database dump,
-backup, or leaked service key yields ciphertext rather than usable refresh
-tokens.
+credential: keeping them apart means a database dump, backup or leaked service
+key yields ciphertext rather than usable refresh tokens. Accepted: 64 hex
+characters, or base64/base64url decoding to 32 bytes. (`openssl rand -hex 16`
+is the common near-miss, and it is refused.)
 
-Accepted formats, verified against the loader: 64 hex characters, or base64 /
-base64url that decodes to 32 bytes. Anything decoding to a different length is
-refused with a message saying so. (A common near-miss: `openssl rand -hex 16`
-gives 32 characters, which is not 64 hex and base64-decodes to 24 bytes — it
-fails, clearly, rather than silently weakening anything.)
+**Rotating this key later signs everyone out**, because existing rows cannot be
+decrypted with a new one. Store it somewhere you will not lose it.
 
-**Rotating this key later logs everyone out**, because the envelope carries no
-key id and existing rows cannot be decrypted with a new one. Store it somewhere
-you will not lose it.
+## A4. Set staging's variables in Vercel
 
-## 4. Set the environment variables
+Vercel → `aturi` → Settings → **Environment Variables** → Add.
 
-Vercel → project → Settings → Environment Variables.
+For **each** variable below:
 
-> **Change the environment scope before you save.** Vercel ticks Production,
-> Preview *and* Development by default. Leave that and your OAuth signing key is
-> present in every pull-request preview, where any route can read it — including
-> previews of forks' PRs. **Tick Production only.** On a separate staging
-> project, tick that project's environment only.
+1. Untick **Production** and **Development**. Leave only **Preview** ticked.
+2. In the Preview branch field, choose **`testing`**. Not "All Preview
+   branches": that puts the key in every pull-request preview.
+3. Mark the four secrets **Sensitive**.
 
-Five variables. The first four are secrets; the fifth is public and comes last.
-
-| Variable | Value | Notes |
+| Variable | Staging value | Notes |
 | --- | --- | --- |
-| `ATURI_OAUTH_JWK_ACTIVE` | the one-line JSON from step 3 | Paste as-is, including the braces. No quotes around it. |
-| `ATURI_SESSION_ENC_KEY` | the 64 hex chars from step 3 | Not the database key. |
-| `ATURI_DB_URL` | `https://zdzjtziydmwkxbzlkwxv.supabase.co` | Project URL, no trailing slash and no `/rest/v1`. |
-| `ATURI_DB_SERVICE_KEY` | the **service-role** key | Supabase → Settings → API Keys. Either the newer `sb_secret_…` or the legacy `service_role` JWT. **Not** the anon/publishable key — that one is rejected, and the preflight below says so explicitly. |
-| `NEXT_PUBLIC_AUTH_MODE` | **leave unset for now** | Step 6. |
+| `ATURI_OAUTH_JWK_ACTIVE` | the one-line JSON from A3 | Paste as-is, braces included, no quotes around it. |
+| `ATURI_SESSION_ENC_KEY` | the 64 hex characters from A3 | Not the database key. |
+| `ATURI_DB_URL` | `https://zdzjtziydmwkxbzlkwxv.supabase.co` | No trailing slash, no `/rest/v1`. |
+| `ATURI_DB_SERVICE_KEY` | the **service-role** key | Supabase → Settings → API Keys: the `sb_secret_…` key or the legacy `service_role` JWT. **Not** the anon/publishable key, which is rejected. |
+| `ATURI_DB_SCHEMA` | `aturi_staging` | **Required for staging.** Without it staging writes to production's tables. |
+| `NEXT_PUBLIC_AUTH_MODE` | **leave unset for now** | Step A6. |
 
-Optional, all with working defaults — leave them unset unless you need them:
+Optional, all with working defaults. Leave them unset unless you need them:
 
 | Variable | Default | When you would set it |
 | --- | --- | --- |
-| `ATURI_DB_SCHEMA` | `aturi` | Only if you applied the migration to a different schema. |
-| `ATURI_APP_SESSION_TTL_DAYS` | `30` | Session lifetime. Slides on use, so this is "days of inactivity". Clamped to 1–365. |
-| `ATURI_OAUTH_JWK_RETIRED` | — | Only during a key rotation. Published but never signs. |
-| `ATURI_EXTENSION_RETURN_ORIGINS` | — | Only for an extension build whose redirect host is not one the browsers reserve — a Safari build, say. Chrome and Firefox are matched by pattern already. |
-| `ATURI_DB_DRIVER` | `postgrest` | Only `postgrest` ships. Anything else fails loudly. |
-| `NEXT_PUBLIC_BFF_ORIGIN` | — | Bearer callers only (the extension, local dev). The web app cannot use it — its session is a cookie on the backend's own origin. |
+| `ATURI_APP_SESSION_TTL_DAYS` | `30` | Session lifetime, as days of inactivity (it slides on use). Clamped to 1–365. |
+| `ATURI_OAUTH_JWK_RETIRED` | — | Only during a key rotation. Published but never used to sign. |
+| `ATURI_EXTENSION_RETURN_ORIGINS` | — | Only for an extension build whose redirect host the browsers do not reserve, a Safari build for example. Chrome and Firefox are matched by pattern already. |
+| `ATURI_DB_DRIVER` | `postgrest` | Only `postgrest` ships. |
+| `NEXT_PUBLIC_BFF_ORIGIN` | — | Bearer callers only (the extension, local dev). The web app cannot use it. |
 
-### Check them before you deploy
+### Check the values before you deploy
 
-```bash
-npm run check:oauth
-```
-
-Reads the environment it is given and calls the same loaders the running app
-calls, so it cannot drift from what happens at runtime. To check values you are
-about to paste, put them in a local file and run:
+Put the same values in a local file that git ignores (`.env` and `.env.*` are
+ignored, except `.env.example`), say `.env.staging.local`, then:
 
 ```bash
-node --env-file=.env.local --disable-warning=MODULE_TYPELESS_PACKAGE_JSON \
+node --env-file=.env.staging.local --disable-warning=MODULE_TYPELESS_PACKAGE_JSON \
   --import ./scripts/test-setup.mjs scripts/check-oauth-config.mjs
 ```
 
-(`.env` and `.env.*` are gitignored, with `.env.example` excepted.)
-
-A good run:
+This calls the same loaders the running app calls, so it cannot drift from what
+happens at runtime. It prints no secrets, and exits non-zero on any failure. A
+good run:
 
 ```
-  ok   ATURI_OAUTH_JWK_ACTIVE             loads as ES256, kid "aturi-2026-08-24-a1b2c3"
+  ok   ATURI_OAUTH_JWK_ACTIVE             loads as ES256, kid "aturi-staging-2026-10"
   ok   JWKS                               publishes public halves only
   ok   ATURI_SESSION_ENC_KEY              decodes to 32 bytes and round-trips
   ok   ATURI_DB_URL                       https://zdzjtziydmwkxbzlkwxv.supabase.co
-  ok   aturi.app_sessions                 reachable
+  ok   aturi_staging.app_sessions         reachable
   … one line per table …
   ok   acquire_oauth_lock                 serialises — a second holder is refused
   note NEXT_PUBLIC_AUTH_MODE              unset — new sign-ins still use the browser client (set it last)
 ```
 
-It exits non-zero on any failure, and prints no secret — a key that fails is
-described by what is wrong with it, never by its contents. It also catches the
-two mistakes that are otherwise invisible until something breaks:
+It catches the two mistakes that are otherwise invisible until something breaks:
+a schema that is not exposed (every table 404s), and a lock that does not
+serialise (it degrades to a no-op under contention, and the symptom is people
+randomly signed out rather than an error).
 
-- **The schema is not exposed.** Every table answers 404 while the code looks
-  correct. The check says so in one line and names the setting.
-- **The lock does not serialise.** A broken lock degrades to a no-op exactly
-  when contended, and the symptom is users randomly signed out at launch rather
-  than an error anyone sees. The check acquires it twice with different holders
-  and requires the second to be refused.
+Delete the local file afterwards.
 
-## 5. Deploy, and check the client is real
+## A5. Redeploy staging, and check the client is real
 
-Merge the branch, or deploy it to staging, and let it build.
+Environment variables apply to new deployments only. Vercel → Deployments →
+the latest `testing` deployment → **⋯ → Redeploy**.
 
-Nothing user-visible changes yet. `NEXT_PUBLIC_AUTH_MODE` is still unset, so
-sign-in keeps using the public browser client. What you now have is a second
-OAuth client that exists and can be validated by an authorization server.
-
-### The two public endpoints
+Nothing user-visible changes yet. What you now have is a second OAuth client
+that an authorization server can validate.
 
 ```bash
-curl -s https://aturi.to/oauth/client-metadata.json | jq
-curl -s https://aturi.to/oauth/jwks.json | jq
+curl -s https://testing.aturi.to/oauth/client-metadata.json | jq
+curl -s https://testing.aturi.to/oauth/jwks.json | jq
 ```
 
 Both must be **200**. The metadata must contain:
 
 ```json
 {
-  "client_id": "https://aturi.to/oauth/client-metadata.json",
+  "client_id": "https://testing.aturi.to/oauth/client-metadata.json",
   "token_endpoint_auth_method": "private_key_jwt",
   "token_endpoint_auth_signing_alg": "ES256",
-  "redirect_uris": ["https://aturi.to/api/oauth/callback"],
-  "jwks_uri": "https://aturi.to/oauth/jwks.json",
+  "redirect_uris": ["https://testing.aturi.to/api/oauth/callback"],
+  "jwks_uri": "https://testing.aturi.to/oauth/jwks.json",
   "dpop_bound_access_tokens": true
 }
 ```
 
-Four things to actually look at:
+Check four things:
 
-1. **`client_id` equals the URL you just fetched.** That identity is what makes
-   it a valid client id, and it is why this document is served per-host.
-2. **`redirect_uris` says `/api/oauth/callback`** — note the `/api/`. The
-   existing public client's `/oauth/callback` page is untouched and still works.
-3. **`jwks_uri` resolves** and lists your `kid` with `"crv":"P-256"`.
-4. **The JWKS has no `d` field.** A `d` there is the private half; stop, rotate
-   the key, and work out how it got published.
+1. **`client_id` equals the URL you just fetched.** That is what makes it a
+   valid client id, and why the document is served per host.
+2. **`redirect_uris` says `/api/oauth/callback`**, with the `/api/`. The
+   existing public client's `/oauth/callback` page is untouched.
+3. **The JWKS lists your `kid`** with `"crv":"P-256"`.
+4. **The JWKS has no `d` field.** This must print nothing:
+
+   ```bash
+   curl -s https://testing.aturi.to/oauth/jwks.json | jq '.keys[] | select(.d)'
+   ```
+
+   Anything printed is the private half: stop, rotate the key, and work out how
+   it got published.
+
+Then:
 
 ```bash
-# Should print nothing. Anything printed is the private half.
-curl -s https://aturi.to/oauth/jwks.json | jq '.keys[] | select(.d)'
+curl -s -o /dev/null -w '%{http_code}\n' https://testing.aturi.to/api/oauth/session
 ```
 
-### Confirm the routes are alive but idle
-
-```bash
-curl -s -o /dev/null -w '%{http_code}\n' https://aturi.to/api/oauth/session
-```
-
-**401** is correct here — you have no session yet. A **503** means the four
-variables are not all set (partial configuration is treated as unconfigured on
-purpose), and a **404** on the metadata means the same.
-
-### What each failure means
+**401** is correct: configured, and you have no session yet. **503** means the
+four required variables are not all reaching this deployment. Partial
+configuration counts as unconfigured on purpose.
 
 | Symptom | Cause |
 | --- | --- |
-| Metadata and JWKS both 404 | One of the four variables is missing. Re-run `npm run check:oauth` against the deployment. |
-| Metadata 200, JWKS 500 | The origin is not `https://`. Only happens locally, where there is no `x-forwarded-proto` — add `-H 'x-forwarded-proto: https'` when probing a local build. |
-| Either endpoint 400 "Unknown host" | The `Host` is not one of `aturi.to`, `www.aturi.to`, `testing.aturi.to`. Preview deployments land here deliberately: a `client_id` must equal the URL it is served from, so every preview hash would be a distinct OAuth client. |
-| `/api/oauth/session` returns 503 | Same as the first row — not configured. |
+| Metadata and JWKS both 404, session 503 | A variable is missing from this deployment. Usually it was scoped to Production, or to all Preview branches but added after this deployment was built. Check the scope, then redeploy. |
+| Either endpoint 400 "Unknown host" | You fetched a deployment's own `*.vercel.app` URL. Only `aturi.to`, `www.aturi.to` and `testing.aturi.to` can serve the client, because a `client_id` must equal the URL it is served from. |
+| Metadata 200, JWKS 500 | The origin is not `https://`. Only happens locally; add `-H 'x-forwarded-proto: https'`. |
 
-## 6. Switch new sign-ins over
+## A6. Switch staging's sign-ins over
 
-Set one more variable, **Production only**:
+Add one more variable, with the same scope as the others (Preview, branch
+`testing`):
 
 ```
 NEXT_PUBLIC_AUTH_MODE = bff
 ```
 
-Then **redeploy**. This one is not read at runtime — Next inlines
+Then **redeploy `testing` again**. This one is not read at runtime: Next inlines
 `NEXT_PUBLIC_*` at build time, so changing it without rebuilding does nothing.
+Only the exact string `bff` selects the backend; any other value is the
+browser client.
 
-What changes: new sign-ins go through the backend. What does not: anyone
-already signed in through the browser client keeps that session until they sign
-out, and a backend session is honoured even if you later set this back to
-`browser`.
+**Verify, in a private window on `testing.aturi.to`:**
 
-**Verify, in a private window:**
-
-1. Sign in. The PDS consent screen should appear (it is forced — a confidential
-   client otherwise loses it).
+1. Sign in. Your PDS's consent screen should appear. It always does for this
+   client, by design.
 2. You land back where you started, signed in.
-3. `/account` now shows a **Where you're signed in** card listing this browser.
-4. Read a record, then edit one, then change a preference and confirm it
-   round-trips to your PDS.
-5. In `/explore`, confirm the relationship strip shows mutual-follow state —
-   that proves the `atproto-proxy` header survived the hop, which is the one
-   failure that looks like success.
-6. Sign out, and confirm you are actually signed out after a reload.
+3. `/account` shows a **Where you're signed in** card listing this browser.
+4. Read a record, edit one, then change a preference and confirm it reaches your
+   PDS.
+5. In `/explore`, open a profile you follow and confirm the relationship strip
+   shows mutual-follow state. That proves the `atproto-proxy` header survived
+   the hop, and losing it is the one failure that looks like success.
+6. If you tick the space permissions at sign-in: open a space, and create then
+   delete one under "Manage your own spaces".
+7. Sign out, reload, and confirm you are actually signed out.
 
-Then leave it a few days before deciding it is fine.
+Then leave it a few days. In Supabase, `aturi_staging.app_sessions` should hold
+a row per signed-in browser, and `aturi.app_sessions` should still be empty.
 
-## 7. Rolling back
+---
 
-Set `NEXT_PUBLIC_AUTH_MODE=browser` and redeploy. New sign-ins go back to the
-public client immediately.
+# Part B: production on aturi.to
+
+Do this once staging has soaked and `testing` has merged into `main`, so the
+code is live on `aturi.to` (and still inert there).
+
+## B1. Generate production's keys
+
+The same two commands as A3, with a different label:
+
+```bash
+node scripts/generate-oauth-key.mjs --kid aturi-prod-2026-10
+openssl rand -hex 32
+```
+
+Use **new** values. Do not reuse staging's.
+
+## B2. Set production's variables
+
+Vercel → `aturi` → Settings → Environment Variables. The same variable names as
+A4, but this time tick **Production only**: untick Preview and Development,
+which Vercel ticks by default. Mark the secrets Sensitive.
+
+| Variable | Production value |
+| --- | --- |
+| `ATURI_OAUTH_JWK_ACTIVE` | the JWK from B1 |
+| `ATURI_SESSION_ENC_KEY` | the hex key from B1 |
+| `ATURI_DB_URL` | `https://zdzjtziydmwkxbzlkwxv.supabase.co` |
+| `ATURI_DB_SERVICE_KEY` | the service-role key |
+| `ATURI_DB_SCHEMA` | leave unset (defaults to `aturi`), or set `aturi` explicitly |
+| `NEXT_PUBLIC_AUTH_MODE` | **leave unset for now** |
+
+Run the same preflight as A4 against a local copy of these values. It should
+report `aturi.app_sessions reachable` and so on.
+
+## B3. Redeploy production, and check the client
+
+Redeploy production, then run the A5 checks against `https://aturi.to`. The
+`client_id` must be `https://aturi.to/oauth/client-metadata.json`,
+`/api/oauth/session` must answer 401, and the JWKS must list
+`aturi-prod-2026-10` with no `d`.
+
+## B4. Switch production's sign-ins over
+
+Add `NEXT_PUBLIC_AUTH_MODE = bff`, **Production only**, and redeploy. Run the A6
+checks on `aturi.to`.
+
+Anyone already signed in through the browser client keeps that session until
+they sign out. New sign-ins go through the backend.
+
+---
+
+## Rolling back
+
+On either site: set `NEXT_PUBLIC_AUTH_MODE` to `browser` (or delete it) in that
+environment's scope, and redeploy. New sign-ins go back to the public client
+immediately.
 
 Nobody is signed out by this. Backend sessions already minted stay valid,
-because the provider honours an existing session of either kind — the flag only
-decides which client a *new* sign-in uses. That is deliberate: a rollback that
-logged everyone out would be worse than whatever prompted it.
+because an existing session of either kind is always honoured. The flag only
+decides which client a *new* sign-in uses. A rollback that logged everyone out
+would be worse than whatever prompted it.
 
-If you need to go further and end every backend session, delete the rows:
+To end every backend session as well, delete the rows (use `aturi_staging` for
+staging):
 
 ```sql
 delete from aturi.app_sessions;
 delete from aturi.oauth_sessions;
 ```
 
-That signs those users out; it does not revoke at their PDS. To revoke too,
-they use "sign out everywhere" on `/account`, or revoke Aturi from their own
-PDS.
+That signs those people out; it does not revoke at their PDS. To revoke too,
+they use "sign out everywhere" on `/account`, or revoke Aturi from their own PDS.
 
 ---
 
 ## The extension, later
 
-Deliberately its own release. The backend half is done and needs nothing
-further; what is left is store process:
+Deliberately its own release. The backend half is done; what is left is store
+process:
 
 1. **Pin the Chrome `key`** in `extension/wxt.config.ts` from the Web Store
    item's public key, so a development build and the published one share an id.
-   Not required for sign-in to work — the browsers' reserved redirect hosts are
-   matched by pattern — but without it a dev build gets its own separate
-   session and storage.
+   Sign-in works without it, because the browsers' reserved redirect hosts are
+   matched by pattern, but a dev build would get its own separate session.
 2. **Chrome Web Store → Privacy practices** must tick **Authentication
-   information** to match the manifest's new declaration. The store
-   cross-references the two, and a mismatch is a rejection.
+   information** to match the manifest's new `identity` permission. The store
+   cross-references the two, and a mismatch gets the item rejected.
 3. **AMO** reads the linked privacy policy against the declared permissions.
-   `extension/PRIVACY.txt` and `/extension/privacy` are already rewritten to
-   match, both with a "Signing in (optional)" section.
-4. Ship it. Sign-in lives at Settings → Account and is read-only: the grant it
-   requests cannot write to a repository, enforced server-side rather than by
-   the extension asking nicely.
+   `extension/PRIVACY.txt` and `/extension/privacy` already describe sign-in in
+   their "Signing in (optional)" section.
+4. Build with `NEXT_PUBLIC_BFF_ORIGIN=https://aturi.to` and ship. Sign-in lives at
+   Settings → Account and is read-only: the server pins the extension to the
+   base scope, so it cannot write to a repository whatever it asks for.
 
-Safari has no `browser.identity` at all, so extension sign-in will not work
+Safari has no `browser.identity` at all, so extension sign-in does not work
 there; the extension says so rather than hanging. Firefox for Android is
 unconfirmed.
 
@@ -373,17 +417,19 @@ unconfirmed.
 
 | What you see | Cause |
 | --- | --- |
-| Every route 404 / 503, metadata absent | One of the four variables is unset. Partial config is treated as unconfigured. |
-| Everything 404s from PostgREST, code looks right | `aturi` is not in the Data API's exposed schemas (step 2). |
-| `Sign-in must start from the app` | The sign-in did not begin as a same-origin navigation. Deliberate — it stops a hostile page starting a flow against a server it names. Use the sign-in button. |
-| `This sign-in did not start in this browser` | The flow cookie is missing or stale. Usually cookies blocked, or a flow resumed after more than ten minutes. |
-| Signed in, but writes fail | The scopes the user ticked did not include them. Check `scope` on `/api/oauth/session`. |
+| Every route 404/503, metadata absent | A required variable is not reaching this deployment. Check its environment scope and branch, then redeploy. |
+| PostgREST 404s everywhere, code looks right | The schema is not in the Data API's exposed schemas (A2). |
+| Signed in on staging, then signed out of production | Staging is on the `aturi` schema. Set `ATURI_DB_SCHEMA=aturi_staging` for Preview (`testing`) and redeploy. |
+| `Sign-in must start from the app` | The sign-in did not begin as a same-origin navigation. Deliberate: it stops a hostile page starting a flow. Use the sign-in button. |
+| `This sign-in did not start in this browser` | The flow cookie is missing or stale: cookies blocked, or more than ten minutes between starting and finishing. |
+| Signed in, but writes fail | The permissions ticked at sign-in did not include them. Check `scope` on `/api/oauth/session`. |
+| A feature works with browser sign-in but 403s with backend sign-in | Its XRPC method is not on the proxy allowlist in `src/app/api/oauth/xrpc/[nsid]/route.ts`. `src/lib/__tests__/oauthProxyAllowlist.test.ts` is meant to catch this in CI. |
 | Relationship strip renders but shows nothing | `atproto-proxy` is being dropped somewhere. |
-| Sign-ins work, then stop after ~30 days of no use | Expected: sessions slide on use and expire otherwise. |
-| Users randomly signed out at launch | The refresh lock is not working. Check `aturi.oauth_locks` exists and `acquire_oauth_lock` is executable by the service role. |
+| Signed out after ~30 days of not visiting | Expected: sessions slide on use and expire otherwise. |
+| People randomly signed out at launch | The refresh lock is not working. Check the schema's `oauth_locks` table exists and `acquire_oauth_lock` is executable by the service role. |
 
 Two known limits, both written up in `docs/backend-oauth.md`: the encryption
 envelope carries no key id, so rotating `ATURI_SESSION_ENC_KEY` without
-re-encrypting logs everyone out; and revocation can lag up to a minute across
-serverless instances, which is the cost of not hitting the database on every
-proxied call.
+re-encrypting signs everyone out; and revocation can lag up to a minute across
+serverless instances, the cost of not hitting the database on every proxied
+call.
