@@ -1,5 +1,5 @@
 ATURI BROWSER EXTENSION - PRIVACY POLICY
-Last updated: October 26, 2026
+Last updated: October 27, 2026
 
 Canonical URL: https://aturi.to/extension/privacy
 
@@ -16,8 +16,9 @@ happens entirely inside your browser; the extension never sends page
 contents to Aturi-operated servers. The extension also makes anonymous
 lookups to public atproto services (Bluesky AppView, PLC directory, and the
 Personal Data Servers that hold the records) when you open the popup on a
-page with records, or use the waypoint picker. The details of every network
-request and every part of the page that is read are described below.
+page with records, use the waypoint picker, or import your declared clients
+in its settings. The details of every network request and every part of the
+page that is read are described below.
 
 
 1. WHAT THE EXTENSION STORES
@@ -129,6 +130,15 @@ service, whose own privacy policy applies.
     calls com.atproto.repo.getRecord on that PDS to fetch the open record
     itself, for its CID (one of the identifiers the Copy list offers) and,
     for a record the page references, a short preview.
+
+  - Preferred clients import. When you press Look up under "Import your
+    declared clients" in the extension's settings, the extension resolves
+    the handle or DID you entered (through the same AppView and DID
+    document lookups as above), calls com.atproto.repo.describeRepo on that
+    account's PDS, and calls com.atproto.repo.getRecord there for its
+    to.aturi.actor.preferredClients record. Nothing is fetched until you
+    press the button, and nothing from the record is kept beyond the
+    favorites you choose to set.
 
 Auto-redirects do not make network requests. They are implemented with
 chrome.declarativeNetRequest, which lets the browser rewrite URLs locally
