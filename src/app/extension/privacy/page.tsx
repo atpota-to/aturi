@@ -192,7 +192,7 @@ export default function ExtensionPrivacyPage() {
                 <code>com.atproto.repo.describeRepo</code> on that
                 account&rsquo;s PDS, and calls{' '}
                 <code>com.atproto.repo.getRecord</code> there for its{' '}
-                <code>to.aturi.actor.preferredClients</code> record. Nothing
+                <code>to.aturi.client.declaration</code> record. Nothing
                 is fetched until you press the button, and nothing from the
                 record is kept beyond the favorites you choose to set.
               </li>

@@ -233,7 +233,7 @@ private struct FamilyRow: Identifiable {
     }
 }
 
-/// Port of `ClientsTab.tsx`: the public `to.aturi.actor.preferredClients`
+/// Port of `ClientsTab.tsx`: the public `to.aturi.client.declaration`
 /// declaration other apps read to open this person's links in the clients
 /// they use. Drafted here and written only on Publish; the form's logic is
 /// `PreferredClientsDraft` in AturiCore, where it is tested. Lives beside
@@ -336,7 +336,7 @@ struct ClientsSettingsView: View {
             }
         }
 
-        SettingsSection(footer: "Publishing writes a public record, to.aturi.actor.preferredClients/self, to your repository. It doesn't change where Aturi sends you; that's Redirects.") {
+        SettingsSection(footer: "Publishing writes a public record, to.aturi.client.declaration/self, to your repository. It doesn't change where Aturi sends you; that's Redirects.") {
             Button {
                 publish(next)
             } label: {

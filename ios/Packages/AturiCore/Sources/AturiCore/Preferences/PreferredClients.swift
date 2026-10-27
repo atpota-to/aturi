@@ -2,8 +2,8 @@ import Foundation
 
 // Port of src/utils/preferredClients.ts: an account's public declaration of
 // which app it wants each kind of atproto link opened in, stored as
-// `at://<did>/to.aturi.actor.preferredClients/self`. The schema is
-// lexicons/to/aturi/actor/preferredClients.json at the repo root.
+// `at://<did>/to.aturi.client.declaration/self`. The schema is
+// lexicons/to/aturi/client/declaration.json at the repo root.
 //
 // Each declared client carries its own URL templates, so any reader can act
 // on it; the catalog id rides along as a hint, and `declaredClient(fromWaypoint:)`
@@ -12,7 +12,7 @@ import Foundation
 // ClientsTab.tsx kept out of SwiftUI so it can be tested.
 
 public enum PreferredClients {
-    public static let collection = "to.aturi.actor.preferredClients"
+    public static let collection = "to.aturi.client.declaration"
     public static let recordKey = "self"
 
     /// The categories Aturi writes and documents. The lexicon leaves

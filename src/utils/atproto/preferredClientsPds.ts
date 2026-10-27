@@ -1,5 +1,5 @@
 /**
- * Read / write the signed-in account's `to.aturi.actor.preferredClients/self`
+ * Read / write the signed-in account's `to.aturi.client.declaration/self`
  * record: the public declaration of which client they use for each kind of
  * link. The record's shape and the helpers for acting on it live in
  * `../preferredClients`, which ships in `@aturi.to/waypoints` too.

@@ -20,7 +20,7 @@ import {
 } from '@/utils/preferredClients';
 
 /**
- * The signed-in account's `to.aturi.actor.preferredClients` declaration,
+ * The signed-in account's `to.aturi.client.declaration` record,
  * shared by the Clients tab, which edits it, and auto-redirect, which follows
  * it. One read per session, and a publish from the tab reaches the redirect
  * without a second one.

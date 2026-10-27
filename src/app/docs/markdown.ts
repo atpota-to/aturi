@@ -338,8 +338,8 @@ record you already display, and serving them hands nothing to aturi.to.
 ## Preferred clients
 
 People can publish which client they use for each kind of link, as a public
-\`to.aturi.actor.preferredClients/self\` record in their own repository (schema:
-https://github.com/atpota-to/aturi/blob/testing/lexicons/to/aturi/actor/preferredClients.json).
+\`to.aturi.client.declaration/self\` record in their own repository (schema:
+https://github.com/atpota-to/aturi/blob/testing/lexicons/to/aturi/client/declaration.json).
 If your app links out to Bluesky posts or atproto records, read the signed-in
 viewer's declaration and send them straight to their client, instead of
 bsky.app or a picker.
@@ -372,7 +372,7 @@ agent); without it, only \`client\` counts.
 
 \`\`\`json
 {
-  "$type": "to.aturi.actor.preferredClients",
+  "$type": "to.aturi.client.declaration",
   "preferences": [
     {
       "category": "bluesky-social",

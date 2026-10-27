@@ -7,7 +7,7 @@ import Foundation
 // iOS the app surfaces the target as a one-tap button and a cancellable
 // countdown instead of navigating without a tap.
 //
-// A signed-in account's `to.aturi.actor.preferredClients` declaration fills
+// A signed-in account's `to.aturi.client.declaration` record fills
 // any family it has no favourite for (`effectiveFavorites`); it never
 // overrides a favourite, and the master switch still decides.
 

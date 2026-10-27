@@ -18,7 +18,7 @@ import { DID_REQUIRED_WAYPOINTS, isWaypointVisible } from './catalog';
 import { adoptWaypoint, setFavoriteForFamily, type Prefs } from './prefs';
 
 /**
- * Importing a `to.aturi.actor.preferredClients` declaration as favorites.
+ * Importing a `to.aturi.client.declaration` record as favorites.
  *
  * The site follows a signed-in account's declaration live. The extension has
  * no account and makes no background requests, so it takes the declaration

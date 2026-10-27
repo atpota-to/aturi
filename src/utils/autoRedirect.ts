@@ -21,7 +21,7 @@
  * A universal link has no source site, only a record, so we invert it — walk
  * the user's family favorites and take the first that can render this record.
  *
- * A signed-in visitor's public `to.aturi.actor.preferredClients` declaration
+ * A signed-in visitor's public `to.aturi.client.declaration` record
  * fills in any family they haven't picked a favorite for here (see
  * `effectiveFavorites`). It never overrides a favorite, and the master switch
  * still decides whether anything redirects at all.

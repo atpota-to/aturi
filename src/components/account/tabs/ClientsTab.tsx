@@ -32,7 +32,7 @@ import { encodeRepo } from '@/utils/atproto/urls';
 import Toggle from '../Toggle';
 
 /**
- * Preferred clients: the public `to.aturi.actor.preferredClients/self`
+ * Preferred clients: the public `to.aturi.client.declaration/self`
  * declaration, which other apps read to open this person's links in the
  * clients they use. See `src/utils/preferredClients.ts` for the record.
  *

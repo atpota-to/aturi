@@ -136,7 +136,7 @@ service, whose own privacy policy applies.
     the handle or DID you entered (through the same AppView and DID
     document lookups as above), calls com.atproto.repo.describeRepo on that
     account's PDS, and calls com.atproto.repo.getRecord there for its
-    to.aturi.actor.preferredClients record. Nothing is fetched until you
+    to.aturi.client.declaration record. Nothing is fetched until you
     press the button, and nothing from the record is kept beyond the
     favorites you choose to set.
 

@@ -164,7 +164,7 @@ export type Preferences = {
   favoriteByFamily: Partial<Record<RedirectCompatFamily, string | null>>;
   /**
    * Whether auto-redirect falls back to the clients the signed-in account
-   * declared in its public `to.aturi.actor.preferredClients` record, for any
+   * declared in its public `to.aturi.client.declaration` record, for any
    * family `favoriteByFamily` leaves empty. On by default: publishing "my
    * Bluesky client is Blacksky" is the same answer this setting would ask
    * for, and the master switch still decides whether anything redirects at

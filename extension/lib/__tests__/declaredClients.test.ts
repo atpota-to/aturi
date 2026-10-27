@@ -117,7 +117,7 @@ describe('fetchDeclaration', () => {
           return Response.json({ handle: 'alice.example.com', did: DID, collections: [] });
         }
         if (url.startsWith(`${PDS}/xrpc/com.atproto.repo.getRecord`)) {
-          expect(url).toContain('collection=to.aturi.actor.preferredClients');
+          expect(url).toContain('collection=to.aturi.client.declaration');
           expect(url).toContain('rkey=self');
           return getRecord();
         }
@@ -132,7 +132,7 @@ describe('fetchDeclaration', () => {
 
   it('reads the record off the account’s own PDS', async () => {
     stubNetwork(() =>
-      Response.json({ uri: `at://${DID}/to.aturi.actor.preferredClients/self`, cid: 'bafy', value: record }),
+      Response.json({ uri: `at://${DID}/to.aturi.client.declaration/self`, cid: 'bafy', value: record }),
     );
     const found = await fetchDeclaration(DID);
     expect(found.did).toBe(DID);

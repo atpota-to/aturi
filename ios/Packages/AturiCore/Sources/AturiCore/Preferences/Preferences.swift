@@ -507,7 +507,7 @@ public struct Preferences: Hashable, Sendable {
     /// web's explicit `null` spelling is dropped on read.
     public var favoriteByFamily: [RedirectCompatFamily: String]
     /// Whether auto-redirect falls back to the account's declared clients
-    /// (`to.aturi.actor.preferredClients`) for families with no favourite.
+    /// (`to.aturi.client.declaration`) for families with no favourite.
     /// On by default; an absent field reads as on.
     public var followDeclaredClients: Bool
     public var waypointLayout: WaypointLayout

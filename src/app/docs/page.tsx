@@ -173,7 +173,7 @@ const href = client && getPreferredClientUrl(client, 'at://did:plc:abc/app.bsky.
 // 'https://blacksky.community/profile/did:plc:abc/post/3k7', or null`;
 
 const preferredClientsRecord = `{
-  "$type": "to.aturi.actor.preferredClients",
+  "$type": "to.aturi.client.declaration",
   "preferences": [
     {
       "category": "bluesky-social",
@@ -499,10 +499,10 @@ export default function DocsPage() {
               <h2>Preferred clients</h2>
               <p>
                 People can publish which client they use for each kind of link, as
-                a public <code>to.aturi.actor.preferredClients/self</code> record in
+                a public <code>to.aturi.client.declaration/self</code> record in
                 their own repository (
                 <a
-                  href="https://github.com/atpota-to/aturi/blob/testing/lexicons/to/aturi/actor/preferredClients.json"
+                  href="https://github.com/atpota-to/aturi/blob/testing/lexicons/to/aturi/client/declaration.json"
                   target="_blank"
                   rel="noopener noreferrer"
                 >

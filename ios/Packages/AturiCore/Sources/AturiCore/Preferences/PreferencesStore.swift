@@ -34,7 +34,7 @@ public final class PreferencesStore {
     public nonisolated static let syncDebounce: TimeInterval = 1.5
 
     public private(set) var prefs: Preferences
-    /// The signed-in account's `to.aturi.actor.preferredClients` declaration,
+    /// The signed-in account's `to.aturi.client.declaration` record,
     /// as the session layer last read it. Held here, beside the preferences,
     /// because everything that decides an auto-redirect already reads this
     /// store. Not persisted: it lives in the account's repository and the

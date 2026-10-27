@@ -137,7 +137,7 @@ final class PreferredClientsTests: XCTestCase {
 
     func testDropsMalformedEntriesAndUnsafeClients() throws {
         let raw = #"""
-        {"$type":"to.aturi.actor.preferredClients","preferences":[
+        {"$type":"to.aturi.client.declaration","preferences":[
           "nope",
           {"client":{"url":"https://bsky.app"}},
           {"category":"bluesky-social","client":{"url":"javascript:alert(1)"}},

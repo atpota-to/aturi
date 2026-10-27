@@ -12,10 +12,10 @@ import {
  * Aturi's own favorites (`favoriteByFamily` in `to.aturi.actor.preferences`)
  * answer that question for aturi.to alone. This record answers it for any app
  * that links out to atproto content: read
- * `at://<did>/to.aturi.actor.preferredClients/self` for the signed-in viewer
+ * `at://<did>/to.aturi.client.declaration/self` for the signed-in viewer
  * and send their Bluesky links to Blacksky rather than bsky.app, or their
  * record links to the explorer they actually use, without showing a picker.
- * The schema is `lexicons/to/aturi/actor/preferredClients.json`.
+ * The schema is `lexicons/to/aturi/client/declaration.json`.
  *
  * Each declared client carries its own URL templates, so a reader needs
  * nothing from this module, or from Aturi's catalog, to act on it. The
@@ -27,7 +27,7 @@ import {
  * read.
  */
 
-export const PREFERRED_CLIENTS_NSID = 'to.aturi.actor.preferredClients';
+export const PREFERRED_CLIENTS_NSID = 'to.aturi.client.declaration';
 export const PREFERRED_CLIENTS_RKEY = 'self';
 
 /**
@@ -196,7 +196,7 @@ function hasAnyClient(preference: ClientPreference): boolean {
 }
 
 /**
- * Read a `to.aturi.actor.preferredClients` record value (what `getRecord`
+ * Read a `to.aturi.client.declaration` record value (what `getRecord`
  * returns as `value`) into a typed declaration. Returns null when the value
  * isn't one at all: not an object, another `$type`, or no `preferences`
  * array. Malformed entries inside an otherwise valid record are dropped one

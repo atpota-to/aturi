@@ -37,7 +37,7 @@ protocol SessionStoring: AnyObject, Observable {
     /// `app.bsky.actor.getProfile` as the signed-in account, proxied through
     /// its PDS so the `viewer` and `knownFollowers` blocks are filled in.
     func profileWithViewer(actor: String) async throws -> BskyProfile?
-    /// Publish the account's `to.aturi.actor.preferredClients` declaration,
+    /// Publish the account's `to.aturi.client.declaration` record,
     /// replacing any earlier one (an empty list removes it), and hand the
     /// result to the preferences store so auto-redirect follows it at once.
     func publishDeclaration(_ preferences: [ClientPreference]) async throws

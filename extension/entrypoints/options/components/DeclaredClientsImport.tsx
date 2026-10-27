@@ -29,7 +29,7 @@ const REASON: Record<NonNullable<DeclaredFavoritePlan['reason']>, string> = {
 
 /**
  * "Import from your declared clients": the extension's way into a
- * `to.aturi.actor.preferredClients` record. One fetch, when Import is
+ * `to.aturi.client.declaration` record. One fetch, when Import is
  * pressed, then a preview of the favorites it would set and a button to set
  * them. See `lib/declaredClients.ts` for why it is an import and not a sync.
  */

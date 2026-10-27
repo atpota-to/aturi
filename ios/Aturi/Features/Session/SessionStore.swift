@@ -321,7 +321,7 @@ final class SessionStore: SessionStoring, PreferencesSync {
 
     // MARK: Preferred clients
 
-    /// Read the account's `to.aturi.actor.preferredClients` declaration into
+    /// Read the account's `to.aturi.client.declaration` record into
     /// the preferences store, where auto-redirect and the Clients screen
     /// read it. Runs after every preferences sync, so on launch and on each
     /// sign-in.

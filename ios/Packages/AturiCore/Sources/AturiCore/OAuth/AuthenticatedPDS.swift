@@ -191,7 +191,7 @@ public struct AuthenticatedPDS: Sendable {
         try await putRecord(collection: Self.preferencesCollection, rkey: Self.preferencesRkey, record: value)
     }
 
-    /// The `to.aturi.actor.preferredClients/self` record's value, or nil when
+    /// The `to.aturi.client.declaration/self` record's value, or nil when
     /// nothing is declared. Only `RecordNotFound` counts as missing, as for
     /// the preferences record.
     public func readPreferredClientsRecord() async throws -> JSONValue? {
