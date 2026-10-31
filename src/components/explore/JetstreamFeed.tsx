@@ -370,10 +370,10 @@ function StatsFooter({ stats }: { stats: Stats }) {
 /**
  * Skeleton placeholder rows shown until the first jetstream event arrives.
  * Mirrors the live row grid (DID column / collection column / preview
- * column) so the layout is stable as real rows replace them. Uses the
- * site's existing .skeleton-shimmer sweep for the placeholder bars and
- * varies the third-column width by index so the stack reads as a list
- * of distinct items rather than a uniform pattern.
+ * column) so the layout is stable as real rows replace them. The bars are
+ * the site's shared .fn-skel, and the third-column width varies by index
+ * so the stack reads as a list of distinct items rather than a uniform
+ * pattern.
  */
 function SkeletonRows({ showOpColumn }: { showOpColumn: boolean }) {
   // 14 rows fills the 32rem viewport without overflowing it (each row is
@@ -406,7 +406,7 @@ function SkeletonBar({
 }) {
   return (
     <span
-      className="skeleton-shimmer fl-feed-bar"
+      className="fn-skel fl-feed-bar"
       style={{ width: widthPct || `${widthCh}ch` }}
     />
   );

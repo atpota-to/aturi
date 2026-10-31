@@ -25,12 +25,14 @@
   }
 }
 
-.waypoint-page > .content-fade-in {
+.waypoint-page > .content-fade-in,
+.waypoint-page > .skeleton-container {
   margin-bottom: 1.5rem;
 }
 
 .waypoint-page > .content-fade-in > .card,
-.waypoint-page > .content-fade-in > div > .card {
+.waypoint-page > .content-fade-in > div > .card,
+.waypoint-page > .skeleton-container > .card {
   margin-bottom: 0 !important;
 }
 
@@ -216,6 +218,13 @@
   scroll-margin-top: 72px;
 }
 
+/* Fades in with the preview card above it (.content-fade-in), so card and
+   picker resolve out of their skeletons together rather than the picker
+   cutting in under a fading card. */
+.waypoint-page > .fn-lp-picker {
+  animation: content-appear 0.36s ease-out;
+}
+
 .fn-lp-head {
   display: flex;
   flex-direction: column;
@@ -223,7 +232,8 @@
   margin-top: 0.25rem;
 }
 
-.fn-lp-head h1 {
+.fn-lp-head h1,
+.fn-lp-head-title {
   margin: 0;
   font-family: var(--font-sans);
   font-size: 1.625rem;
@@ -234,18 +244,21 @@
   overflow-wrap: anywhere;
 }
 
-.fn-lp-head p {
+.fn-lp-head p,
+.fn-lp-head-sub {
   margin: 0;
   font-size: 0.9375rem;
   color: var(--text-secondary);
 }
 
 @media (max-width: 600px) {
-  .fn-lp-head h1 {
+  .fn-lp-head h1,
+  .fn-lp-head-title {
     font-size: 1.375rem;
   }
 
-  .fn-lp-head p {
+  .fn-lp-head p,
+  .fn-lp-head-sub {
     font-size: 0.84375rem;
   }
 }

@@ -2339,11 +2339,9 @@ a.fl-feed-row:hover {
   font-variant-numeric: tabular-nums;
 }
 
+/* A .fn-skel bar (account.css) at the feed's line height. */
 .fl-feed-bar {
-  display: block;
   height: 9px;
-  border-radius: var(--radius-pill);
-  background: var(--surface-subtle);
 }
 
 /* The anatomy mocks sit in columns from ~280px (the spaces page) to

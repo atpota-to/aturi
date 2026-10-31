@@ -177,15 +177,14 @@ function ControlSkeleton({ control }: { control: 'field' | 'button' }) {
   const field = control === 'field';
   return (
     <div
-      className="skeleton-shimmer"
+      className="fn-skel"
+      data-shape="control"
       style={{
         // Mirrors the field and the button: both are 40px tall controls.
         height: '40px',
         boxSizing: 'border-box',
         padding: field ? '0 12px' : '0 16px',
-        border: '1px solid var(--border-medium)',
-        borderRadius: 'var(--radius-control)',
-        background: 'var(--bg-tertiary)',
+        border: '1px solid transparent',
         fontFamily: field ? 'var(--font-mono)' : 'var(--font-sans)',
         fontSize: field ? '0.875rem' : '14px',
         lineHeight: 'normal',

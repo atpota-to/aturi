@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { ArrowLeft, FileText, GitBranch, Layers } from 'lucide-react';
 import AppearIn from '../AppearIn';
 import { useChromeBarField } from '../ChromeBarContext';
-import { Skeleton } from '@/components/SkeletonLoader';
+import { Skeleton, SkeletonLine } from '@/components/SkeletonLoader';
 import { AppSiteLink, Credit, DeltaPill, Nsid, Segmented, Sparkline } from './primitives';
 import {
   fetchCollectionStats,
@@ -237,7 +237,7 @@ export default function LexiconDetail({ nsid }: { nsid: string }) {
           </div>
           <div style={{ height: 120, width: '100%' }}>
             {buckets === null ? (
-              <Skeleton width="100%" height="120px" />
+              <Skeleton width="100%" height="120px" shape="block" />
             ) : series.some((v) => v > 0) ? (
               <Sparkline
                 data={series}
@@ -255,6 +255,14 @@ export default function LexiconDetail({ nsid }: { nsid: string }) {
           </div>
           {/* The line's scale: the chart is normalised to its own range, so
               without this a flat week and a wild one look the same. */}
+          {/* Held while the series loads, so the card doesn't grow a line. */}
+          {buckets === null && (
+            <div className="fn-chart-axis" aria-hidden>
+              <SkeletonLine width="2.5rem" />
+              <SkeletonLine width="9rem" />
+              <SkeletonLine width="1.75rem" />
+            </div>
+          )}
           {buckets !== null && series.some((v) => v > 0) && (
             <div className="fn-chart-axis">
               <span>{cfg.label} ago</span>
@@ -272,7 +280,7 @@ export default function LexiconDetail({ nsid }: { nsid: string }) {
       <AppearIn delay={0.12}>
         <Section title="Collections in this group" icon={<GitBranch size={14} aria-hidden />}>
           {siblings === null ? (
-            <SkeletonList rows={4} />
+            <SkeletonList rows={4} head={['Collection', 'Creates']} />
           ) : siblings.length === 0 ? (
             <p className="explore-placeholder fn-list-card-msg">
               No sibling collections found in {groupPrefix(nsid)}.
@@ -376,11 +384,20 @@ function StatTile({
         title={current != null ? current.toLocaleString() : undefined}
       >
         {current == null ? (
-          <Skeleton width="3rem" height="1.1rem" />
+          // Inline-block keeps the value's line box, so the tile is already
+          // the height the number will give it.
+          <Skeleton
+            width="3rem"
+            height="1.1rem"
+            style={{ display: 'inline-block', verticalAlign: 'middle' }}
+          />
         ) : (
           formatCount(current)
         )}
       </span>
+      {/* The change line under the value: a bar while the counts load, so
+          the tiles don't grow a line when they arrive. */}
+      {current == null && <SkeletonLine width="3.25rem" height="0.5rem" style={{ fontSize: '0.75rem' }} />}
       {current != null && deltaPct != null && (
         <span style={{ display: 'inline-flex' }}>
           <DeltaPill pct={deltaPct} />
@@ -414,9 +431,16 @@ function Section({
   );
 }
 
-function SkeletonList({ rows }: { rows: number }) {
+function SkeletonList({ rows, head }: { rows: number; head?: [string, string] }) {
   return (
     <ul aria-hidden className="fn-list-rows">
+      {/* The loaded list's column head; its labels are fixed, so real. */}
+      {head && (
+        <li className="fn-col-head fn-browse-grid">
+          <span>{head[0]}</span>
+          <span style={{ textAlign: 'right' }}>{head[1]}</span>
+        </li>
+      )}
       {Array.from({ length: rows }).map((_, i) => (
         <li key={i} className="fn-sample-row">
           <Skeleton width={`${50 + ((i * 7) % 30)}%`} height="0.75rem" />

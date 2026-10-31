@@ -301,7 +301,7 @@ export default function CollectionsTab({
     );
   }
   if (error) return <>{bridge}<p className="explore-error">{error}</p></>;
-  if (!collections) return <>{bridge}<CollectionsTabSkeleton /></>;
+  if (!collections) return <>{bridge}<CollectionsTabSkeleton sidebar={sidebar} /></>;
   if (collections.length === 0) {
     return <>{bridge}<p className="explore-placeholder">No collections on this repo.</p></>;
   }

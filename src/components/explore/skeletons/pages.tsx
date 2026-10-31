@@ -1,3 +1,6 @@
+import { Fragment } from 'react';
+import PostPreviewSkeleton from '@/components/PostPreviewSkeleton';
+import { SkeletonLine } from '@/components/SkeletonLoader';
 import {
   SkeletonBar,
   SkeletonBreadcrumb,
@@ -11,8 +14,8 @@ import {
   SkeletonRecordRows,
   SkeletonRepoCard,
   SkeletonRowList,
-  SkeletonSectionGroup,
   SkeletonStatTiles,
+  SkeletonTreePane,
   SkeletonViewSwitch,
 } from './primitives';
 
@@ -83,7 +86,7 @@ export function CollectionSkeleton() {
       <div className="fx-main">
         <SkeletonPanel padding="0" style={{ overflow: 'hidden' }}>
           <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border-medium)' }}>
-            <SkeletonBar width="min(320px, 100%)" height="32px" />
+            <SkeletonBar width="min(320px, 100%)" height="32px" shape="control" />
           </div>
           <SkeletonRecordRows />
         </SkeletonPanel>
@@ -93,40 +96,82 @@ export function CollectionSkeleton() {
 }
 
 /**
- * The body of a record page: the field table and its switch, the raw-JSON
- * switch (raw JSON is collapsed by default), the copy row, and the lexicon
- * usage card. Used on its own once the breadcrumb is real and only the record
- * is still in flight.
+ * What a record page's skeleton can know from its URL alone: whether a rich
+ * card (post, profile, margin) will lead the page, whether that card is a
+ * post, and whether the title carries a kind pill. RecordExplorer works
+ * these out from the collection and rkey before anything is fetched.
  */
-export function RecordBodySkeleton() {
-  // The loaded page's own frame (record.css, .fn-rec-body): the preview and
-  // its helpers in the wide column, the open-in rows, the Record card and
-  // the copy chips in the aside, so nothing jumps when the record lands.
-  // The `order` values are the slots RecordExplorer gives the same pieces,
-  // which is what interleaves them in one column under 920px.
+export type RecordSkeletonShape = {
+  richCard: boolean;
+  isPost: boolean;
+  isProfile: boolean;
+  pill: boolean;
+};
+
+const PLAIN_RECORD: RecordSkeletonShape = {
+  richCard: false,
+  isPost: false,
+  isProfile: false,
+  pill: false,
+};
+
+/**
+ * The body of a record page, on the loaded page's own frame (record.css,
+ * `.fn-rec-body`): the rich card when one is coming, the "Open in" card,
+ * the Record card and the Copy card, then the lexicon usage and backlinks
+ * cards. A record with no rich card puts its Record card in the wide column,
+ * as the page does. The `order` values are the slots RecordExplorer gives the
+ * same pieces, which interleave them in one column under 920px. Used on its
+ * own once the title bar is real and only the record is still in flight.
+ */
+export function RecordBodySkeleton({ shape = PLAIN_RECORD }: { shape?: RecordSkeletonShape }) {
+  const record = <RecordDataCardSkeleton rows={shape.richCard ? 4 : 6} />;
   return (
     <div className="fn-rec-body">
       <div className="fn-rec-main">
-        <div style={{ ...column('1rem'), order: 0 }}>
-          <SkeletonSectionGroup switchWidth="10.5rem">
-            <SkeletonFieldCard rows={4} />
-          </SkeletonSectionGroup>
-          <SkeletonViewSwitch width="7rem" />
+        {shape.richCard && (
+          <div className="fn-rec-slot" style={{ order: 0 }}>
+            <div className="fn-rec-group">
+              <div className="fn-rec-preview">
+                {shape.isPost ? (
+                  <PostPreviewSkeleton />
+                ) : shape.isProfile ? (
+                  <SkeletonAccountCard />
+                ) : (
+                  <SkeletonPanel padding="20px" style={column('0.75rem')}>
+                    <SkeletonBar width="9rem" height="0.85rem" />
+                    <SkeletonBar width="100%" />
+                    <SkeletonBar width="72%" />
+                  </SkeletonPanel>
+                )}
+              </div>
+              <SkeletonViewSwitch width="7.5rem" />
+            </div>
+          </div>
+        )}
+        {!shape.richCard && (
+          <div className="fn-rec-slot" style={{ order: 2 }}>
+            {record}
+          </div>
+        )}
+        <div className="fn-rec-slot" style={{ order: 3 }}>
+          <LexiconUsageSkeleton />
         </div>
-        <div style={{ ...column('0.75rem'), order: 3 }}>
-          <SkeletonHeading width="11rem" />
-          <SkeletonRowList rows={3} />
+        <div className="fn-rec-slot" style={{ order: 3 }}>
+          <BacklinksSummarySkeleton />
         </div>
       </div>
       <div className="fn-rec-aside">
-        <div style={{ order: 1 }}>
-          <SkeletonRowList rows={4} trailingWidth="5rem" />
+        <div className="fn-rec-slot" style={{ order: 1 }}>
+          <OpenInSkeleton isPost={shape.isPost} />
         </div>
-        <div style={{ order: 2 }}>
-          <SkeletonFieldCard rows={5} />
-        </div>
-        <div style={{ order: 3 }}>
-          <SkeletonChipRow widths={['4rem', '3rem', '3rem', '6.5rem', '3.5rem']} />
+        {shape.richCard && (
+          <div className="fn-rec-slot" style={{ order: 2 }}>
+            {record}
+          </div>
+        )}
+        <div className="fn-rec-slot" style={{ order: 3 }}>
+          <CopyCardSkeleton />
         </div>
       </div>
     </div>
@@ -134,76 +179,366 @@ export function RecordBodySkeleton() {
 }
 
 /** `/explore/{repo}/{collection}/{rkey}`. */
-export function RecordSkeleton() {
+export function RecordSkeleton({ shape = PLAIN_RECORD }: { shape?: RecordSkeletonShape }) {
   return (
     <div className="fn-rec">
-      <SkeletonBreadcrumb widths={[PDS_CRUMB, REPO_CRUMB, NSID_CRUMB, RKEY_CRUMB]} />
-      <RecordBodySkeleton />
+      {/* The title bar: the trail down to the collection, the rkey as the
+          title with its kind pill, and the copy button. */}
+      <div className="fn-rec-titlebar">
+        <div className="fn-rec-titletext">
+          <SkeletonBreadcrumb widths={[PDS_CRUMB, REPO_CRUMB, NSID_CRUMB]} share={false} titled />
+          <div className="fn-rec-titlerow">
+            <SkeletonLine className="fn-rec-h1" width="9.5rem" height="1.1rem" />
+            {shape.pill && <SkeletonBar width="6.5rem" height="24px" />}
+          </div>
+        </div>
+        <div className="fn-rec-actions">
+          <SkeletonBar width="8.75rem" height="36px" shape="control" />
+        </div>
+      </div>
+      <RecordBodySkeleton shape={shape} />
+    </div>
+  );
+}
+
+/** The aside's "Open this … in" card: the two recommended rows (the first
+ *  filled), three more apps with their domains, and "More apps". */
+function OpenInSkeleton({ isPost }: { isPost: boolean }) {
+  return (
+    <section className="fn-rec-card fn-open">
+      <h2 className="fn-rec-h2">Open this {isPost ? 'post' : 'record'} in</h2>
+      <SkeletonBar width="100%" height="44px" shape="control" />
+      <div className="fn-open-row" data-rank="secondary">
+        <SkeletonBar width="16px" height="16px" shape="circle" />
+        <SkeletonBar width="5rem" height="0.7rem" />
+      </div>
+      <div className="fn-open-more">
+        {['4.5rem', '5.5rem', '4rem'].map((width) => (
+          <div key={width} className="fn-open-row">
+            <SkeletonBar width="16px" height="16px" shape="circle" />
+            <SkeletonBar width={width} height="0.7rem" />
+            <span style={{ marginLeft: 'auto' }}>
+              <SkeletonBar width="5.5rem" height="0.55rem" />
+            </span>
+          </div>
+        ))}
+      </div>
+      <div className="fn-open-all">
+        <SkeletonBar width="4.5rem" height="0.6rem" />
+      </div>
+    </section>
+  );
+}
+
+/** The Record card: its head with the Fields / JSON chips, the URI and CID
+ *  strip, then field rows. */
+function RecordDataCardSkeleton({ rows }: { rows: number }) {
+  const valueWidths = ['78%', '52%', '64%', '40%', '70%', '46%'];
+  return (
+    <section className="fn-rec-card fn-rec-data">
+      <div className="fn-rec-data-head">
+        <h2 className="fn-rec-h2">Record</h2>
+        <span className="fn-rec-seg">
+          <SkeletonBar width="4.25rem" height="28px" shape="control" />
+          <SkeletonBar width="3.5rem" height="28px" shape="control" />
+        </span>
+      </div>
+      <dl className="fn-rec-ids">
+        {['URI', 'CID'].map((label) => (
+          <Fragment key={label}>
+            <dt>{label}</dt>
+            <dd style={{ height: '26px' }}>
+              <SkeletonBar width="88%" height="0.6rem" />
+            </dd>
+          </Fragment>
+        ))}
+      </dl>
+      <div style={{ padding: '4px 16px' }}>
+        {Array.from({ length: rows }).map((_, i) => (
+          <div
+            key={i}
+            style={{
+              display: 'grid',
+              gridTemplateColumns: '5.5rem minmax(0, 1fr)',
+              alignItems: 'center',
+              gap: '12px',
+              minHeight: '40px',
+              borderTop: i === 0 ? undefined : '1px solid var(--border-subtle)',
+            }}
+          >
+            <SkeletonBar width="3.5rem" height="0.55rem" />
+            <SkeletonBar width={valueWidths[i % valueWidths.length]} height="0.65rem" />
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+/** The Copy card: five copy chips over the two links out. */
+function CopyCardSkeleton() {
+  return (
+    <section className="fn-rec-card fn-rec-copy">
+      <h2 className="fn-rec-h2">Copy</h2>
+      <div className="fn-rec-copy-chips">
+        {['4.75rem', '3.75rem', '3.75rem', '7.25rem', '4rem'].map((width, i) => (
+          <SkeletonBar key={i} width={width} height="28px" shape="control" />
+        ))}
+      </div>
+      <div className="fn-rec-copy-links">
+        {['9.25rem', '7rem'].map((width) => (
+          <SkeletonBar key={width} width={width} height="28px" shape="control" />
+        ))}
+      </div>
+    </section>
+  );
+}
+
+/** <LexiconUsageCard>: the eyebrow, the two counts, the sparkline and link. */
+function LexiconUsageSkeleton() {
+  return (
+    <SkeletonPanel
+      padding="14px 16px"
+      style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '1.25rem' }}
+    >
+      <span style={{ flexBasis: '100%', display: 'flex', alignItems: 'center', height: '18px' }}>
+        <SkeletonBar width="min(19rem, 90%)" height="0.55rem" />
+      </span>
+      <SkeletonBar width="6rem" height="0.75rem" />
+      <SkeletonBar width="5rem" height="0.75rem" />
+      <span style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', height: '24px' }}>
+        <SkeletonBar width="8rem" height="0.65rem" />
+      </span>
+    </SkeletonPanel>
+  );
+}
+
+/** The record page's backlinks card: the count header strip over the
+ *  per-source rows (BacklinksTab with `showSummary`). */
+function BacklinksSummarySkeleton() {
+  return (
+    <div
+      style={{
+        border: '1px solid var(--border-medium)',
+        borderRadius: 'var(--radius-card)',
+        overflow: 'hidden',
+        background: 'var(--bg-secondary)',
+      }}
+    >
+      <div
+        style={{
+          padding: '1rem 1.25rem',
+          borderBottom: '1px solid var(--border-medium)',
+          background: 'var(--surface-subtle)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.75rem',
+          minHeight: '1.875rem',
+          boxSizing: 'content-box',
+        }}
+      >
+        <SkeletonBar width="7.5rem" height="1.25rem" />
+        <SkeletonBar width="min(14rem, 40%)" height="0.6rem" />
+      </div>
+      <div style={{ padding: '0.75rem' }}>
+        <BacklinksTabSkeleton />
+      </div>
     </div>
   );
 }
 
 /** The repo listing on `/explore/pds/{host}`. The header above it needs no
- *  skeleton: it renders the host and endpoint from the URL immediately. */
+ *  skeleton: it renders the host and endpoint from the URL immediately. Rows
+ *  copy PdsExplorer's RepoRow: the handle over its "updated" line, then the
+ *  DID, at the row's 50px. */
 export function PdsReposSkeleton() {
-  return <SkeletonRowList rows={8} trailingWidth="6rem" />;
-}
-
-/** The collections list under the repo page's Lexicons tab. */
-export function CollectionsTabSkeleton() {
+  const handles = ['11rem', '9rem', '12.5rem', '8.5rem', '10rem', '13rem', '9.5rem', '11.5rem'];
   return (
-    <div style={column('1rem')}>
-      <SkeletonBar width="min(24rem, 100%)" height="2.15rem" />
-      <SkeletonRowList rows={7} />
-    </div>
+    <ul
+      aria-hidden
+      style={{
+        listStyle: 'none',
+        margin: 0,
+        padding: 0,
+        border: '1px solid var(--border-medium)',
+        borderRadius: 'var(--radius-card)',
+        overflow: 'hidden',
+        background: 'var(--bg-secondary)',
+      }}
+    >
+      {handles.map((handle, i) => (
+        <li
+          key={i}
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'minmax(14ch, 24ch) 1fr',
+            gap: '0.75rem',
+            alignItems: 'center',
+            minHeight: '50px',
+            boxSizing: 'border-box',
+            padding: '7px 16px',
+            fontFamily: 'var(--font-mono)',
+            fontSize: '12.5px',
+            borderBottom: i === handles.length - 1 ? undefined : '1px solid var(--border-subtle)',
+          }}
+        >
+          <span style={{ display: 'flex', flexDirection: 'column', gap: '0.125rem', minWidth: 0 }}>
+            <SkeletonLine width={handle} />
+            <SkeletonLine width="6.5rem" height="0.5rem" style={{ fontSize: '12px' }} />
+          </span>
+          <SkeletonLine width="min(22rem, 100%)" />
+        </li>
+      ))}
+    </ul>
   );
 }
 
-/** The ID tab: also-known-as, services and verification methods. */
+/** The collections tree under the repo page's Collections tab, in the
+ *  main column or the sidebar copy. */
+export function CollectionsTabSkeleton({ sidebar = false }: { sidebar?: boolean }) {
+  return <SkeletonTreePane rows={sidebar ? 10 : 12} sidebar={sidebar} />;
+}
+
+/**
+ * The Identity tab: also-known-as, then a service and a verification method
+ * as hairline entries with their `type` / `endpoint` / `key` rows. On the
+ * tab's own classes (explorer.css, `.fx-idsec`, `.explore-identity-*`); the
+ * section titles and row labels are fixed, so they are drawn for real.
+ */
 export function IdentityTabSkeleton() {
+  const entry = (id: string, rows: [string, string][]) => (
+    <ul className="explore-identity-list">
+      <li className="explore-identity-card">
+        <SkeletonLine width={id} />
+        {rows.map(([label, width]) => (
+          <div key={label} className="explore-id-row">
+            <span className="explore-small-caps">{label}</span>
+            <SkeletonLine width={width} />
+          </div>
+        ))}
+      </li>
+    </ul>
+  );
   return (
-    <div style={column('1.5rem')}>
-      {[2, 1, 2].map((rows, i) => (
-        <div key={i} style={column('0.5rem')}>
-          <SkeletonBar width="9rem" height="0.55rem" />
-          <SkeletonRowList rows={rows} trailingWidth={null} />
-        </div>
-      ))}
+    <div style={column('1.5rem')} aria-hidden>
+      <section className="fx-idsec">
+        <h3 className="explore-small-caps" style={{ marginBottom: '0.5rem' }}>
+          Also known as
+        </h3>
+        <ul className="explore-identity-list">
+          <li>
+            <SkeletonLine width="8rem" />
+          </li>
+        </ul>
+      </section>
+      <section className="fx-idsec">
+        <h3 className="explore-small-caps" style={{ marginBottom: '0.5rem' }}>
+          Services
+        </h3>
+        {entry('7.5rem', [
+          ['type', '15rem'],
+          ['endpoint', 'min(20rem, 100%)'],
+        ])}
+      </section>
+      <section className="fx-idsec">
+        <h3 className="explore-small-caps" style={{ marginBottom: '0.5rem' }}>
+          Verification methods
+        </h3>
+        {entry('min(19rem, 100%)', [
+          ['type', '5rem'],
+          ['key', 'min(24rem, 100%)'],
+        ])}
+      </section>
+      <SkeletonBar width="8.5rem" height="0.6rem" />
     </div>
   );
 }
 
 /**
- * The Log tab: PLC operations as a stack of rounded cards, the same
- * `.fx-log-entry` box the loaded entries use.
+ * The Log tab: PLC operations as hairline entries on the loaded list's own
+ * classes (`.fx-log`, `.fx-log-entry`): the type pill beside its date, the
+ * changed fields in mono, and the "Raw operation" toggle.
  */
+const LOG_CHANGES = [['42%'], [], ['36%', '48%'], ['44%', '30%', '26%']];
+
 export function AuditTabSkeleton() {
   return (
-    <div style={column('0.75rem')}>
-      {Array.from({ length: 4 }).map((_, i) => (
-        <div
-          key={i}
-          className="fx-log-entry"
-        >
+    <ol className="fx-log" aria-hidden>
+      {LOG_CHANGES.map((changes, i) => (
+        <li key={i} className="fx-log-entry">
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <SkeletonBar width="6.5rem" height="22px" style={{ borderRadius: '999px' }} />
-            <span style={{ marginLeft: 'auto' }}>
-              <SkeletonBar width="8rem" height="0.6rem" />
-            </span>
+            <SkeletonBar width="6.5rem" height="22px" />
+            <SkeletonBar width="9.5rem" height="0.6rem" />
           </div>
-          <SkeletonBar
-            width={['62%', '45%', '71%', '38%'][i % 4]}
-            style={{ marginTop: '0.75rem' }}
-          />
-        </div>
+          {changes.length > 0 && (
+            <ul
+              style={{
+                listStyle: 'none',
+                margin: '0.5rem 0 0',
+                padding: 0,
+                fontFamily: 'var(--font-mono)',
+                fontSize: '12.5px',
+              }}
+            >
+              {changes.map((width, j) => (
+                <li key={j} className="fx-log-change">
+                  <SkeletonLine width={width} />
+                </li>
+              ))}
+            </ul>
+          )}
+          <div style={{ marginTop: '0.5rem', padding: '4px 0', fontSize: '12.5px' }}>
+            <SkeletonLine width="7rem" />
+          </div>
+        </li>
       ))}
-    </div>
+    </ol>
   );
 }
 
-/** The backlinks section on a record page: its per-source rows. */
+/**
+ * The backlinks section on a record page: its per-source rows, each the
+ * linking collection over its path with the counts stacked at the right, on
+ * the loaded rows' own padding and hairlines (`.fx-backlink-source`).
+ */
 export function BacklinksTabSkeleton() {
-  return <SkeletonRowList rows={4} trailingWidth="3.5rem" />;
+  const widths = [
+    ['10rem', '7rem'],
+    ['11rem', '9rem'],
+    ['9.5rem', '8rem'],
+    ['10.5rem', '9.5rem'],
+  ];
+  return (
+    <ul aria-hidden style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+      {widths.map(([collection, path], i) => (
+        <li key={i} className="fx-backlink-source">
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: '1ch minmax(0, 1fr) auto',
+              gap: '0.5rem',
+              alignItems: 'start',
+              padding: '0.625rem 1rem',
+              fontFamily: 'var(--font-mono)',
+              fontSize: '0.85rem',
+            }}
+          >
+            <span />
+            <span style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem', minWidth: 0 }}>
+              <SkeletonLine width={collection} />
+              <SkeletonLine width={path} />
+            </span>
+            <span
+              style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.15rem' }}
+            >
+              <SkeletonLine width="6rem" />
+              <SkeletonLine width="5rem" />
+            </span>
+          </div>
+        </li>
+      ))}
+    </ul>
+  );
 }
 
 /**
@@ -430,15 +765,15 @@ export function RecordEditorSkeleton() {
   return (
     <SkeletonPanel style={column('1rem')}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-        <SkeletonBar width="9rem" height="1.85rem" />
+        <SkeletonBar width="9rem" height="1.85rem" shape="control" />
         <span style={{ marginLeft: 'auto' }}>
           <SkeletonBar width="6rem" height="0.65rem" />
         </span>
       </div>
       <SkeletonJson lines={9} />
       <div style={{ display: 'flex', gap: '0.5rem' }}>
-        <SkeletonBar width="5rem" height="1.85rem" />
-        <SkeletonBar width="4.5rem" height="1.85rem" />
+        <SkeletonBar width="5rem" height="1.85rem" shape="control" />
+        <SkeletonBar width="4.5rem" height="1.85rem" shape="control" />
       </div>
     </SkeletonPanel>
   );

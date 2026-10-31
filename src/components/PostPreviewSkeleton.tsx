@@ -1,113 +1,58 @@
 /**
  * PostPreviewSkeleton Component
- * Loading state for PostPreview with organic shimmer animation
+ * Loading state for PostPreview. It wears the post card's own classes
+ * (globals.css, "Post preview"), so the frame, padding and gaps are the
+ * card's at every width and only the words and counts are bars.
  */
 
-import { Skeleton, SkeletonCircle, SkeletonText, SkeletonImage } from './SkeletonLoader';
+import { Skeleton, SkeletonCircle, SkeletonImage, SkeletonLine } from './SkeletonLoader';
 
 interface PostPreviewSkeletonProps {
   withImage?: boolean;
-  withExternalLink?: boolean;
+  /** The tinted cross-link strip across the card's foot. */
+  withFoot?: boolean;
 }
 
-export default function PostPreviewSkeleton({ 
+export default function PostPreviewSkeleton({
   withImage = false,
-  withExternalLink = false,
+  withFoot = true,
 }: PostPreviewSkeletonProps) {
   return (
-    <div
-      className="skeleton-container"
-      style={{
-        marginBottom: '2rem',
-        padding: '1.25rem',
-        background: 'var(--bg-secondary)',
-        border: '1px solid var(--border-medium)',
-        borderRadius: 'var(--radius-card)',
-      }}
-    >
-      {/* Author Info skeleton */}
-      <div 
-        style={{ 
-          display: 'flex', 
-          alignItems: 'center', 
-          gap: '0.75rem', 
-          marginBottom: '1rem' 
-        }}
-      >
-        <SkeletonCircle size="48px" />
-        
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <Skeleton height="1rem" width="180px" style={{ marginBottom: '0.375rem' }} />
-          <Skeleton height="0.875rem" width="140px" />
+    <div aria-hidden className="card post-preview fn-post">
+      {/* Author: 40px avatar, the name over the mono handle and date */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0 }}>
+        <SkeletonCircle size="40px" />
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1px', minWidth: 0 }}>
+          <SkeletonLine className="fn-post-name" width="7.5rem" height="0.75rem" style={{ fontSize: '15px' }} />
+          <SkeletonLine className="fn-post-meta" width="11rem" height="0.55rem" />
         </div>
       </div>
 
-      {/* Post content skeleton */}
-      <div style={{ marginBottom: '1rem' }}>
-        <SkeletonText lines={3} lastLineWidth="80%" />
+      <div className="fn-post-text">
+        <SkeletonLine width="100%" height="0.7rem" />
+        <SkeletonLine width="94%" height="0.7rem" />
+        <SkeletonLine width="58%" height="0.7rem" />
       </div>
 
-      {/* Optional image embed */}
-      {withImage && (
-        <div style={{ marginBottom: '1rem' }}>
-          <SkeletonImage height="300px" />
+      {withImage && <SkeletonImage height="300px" />}
+
+      {/* The four labelled counts */}
+      <div className="fn-post-footer">
+        <span className="fn-post-counts">
+          {['3.25rem', '4.5rem', '4rem', '3.75rem'].map((width) => (
+            <span key={width} className="fn-post-count">
+              <Skeleton width="15px" height="15px" shape="circle" />
+              <SkeletonLine width={width} height="0.6rem" />
+            </span>
+          ))}
+        </span>
+      </div>
+
+      {withFoot && (
+        <div className="fn-post-foot">
+          <SkeletonLine width="11rem" height="0.6rem" style={{ minHeight: '24px' }} />
         </div>
       )}
-
-      {/* Optional external link embed */}
-      {withExternalLink && (
-        <div 
-          style={{ 
-            marginBottom: '1rem',
-            border: '1px solid var(--border-medium)',
-            overflow: 'hidden',
-          }}
-        >
-          <SkeletonImage height="200px" />
-          <div style={{ padding: '1rem' }}>
-            <Skeleton height="1rem" width="80%" style={{ marginBottom: '0.5rem' }} />
-            <Skeleton height="0.875rem" width="100%" style={{ marginBottom: '0.25rem' }} />
-            <Skeleton height="0.875rem" width="60%" style={{ marginBottom: '0.5rem' }} />
-            <Skeleton height="0.75rem" width="120px" />
-          </div>
-        </div>
-      )}
-
-      {/* Post metadata skeleton */}
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          // Mirror the real footer: wrap on narrow screens so the fixed-width
-          // stat/date placeholders never spill past the card's right edge.
-          flexWrap: 'wrap',
-          gap: '0.5rem 1.5rem',
-          paddingTop: '1rem',
-          borderTop: '1px solid var(--border-medium)',
-        }}
-      >
-        {/* Stat icons */}
-        {[1, 2, 3, 4].map((i) => (
-          <div
-            key={i}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.375rem',
-              flexShrink: 0,
-            }}
-          >
-            <Skeleton width="16px" height="16px" />
-            <Skeleton width="24px" height="0.875rem" />
-          </div>
-        ))}
-
-        {/* Date skeleton — compact, matching the relative timestamp. */}
-        <div style={{ marginLeft: 'auto', flexShrink: 0 }}>
-          <Skeleton width="40px" height="0.75rem" />
-        </div>
-      </div>
     </div>
   );
 }
-

@@ -11,7 +11,7 @@ import { useBoard } from './useBoard';
 import { useVoting } from './useVoting';
 import { useAtprotoSession } from '@/components/AtprotoSessionProvider';
 import SignInPanel from '@/components/explore/SignInPanel';
-import { Skeleton } from '@/components/SkeletonLoader';
+import { Skeleton, SkeletonLine } from '@/components/SkeletonLoader';
 import { sanitizeUrl } from '@/utils/sanitize';
 import { spaceRef, sortDiscussions, type DiscussionSort } from '@/utils/userinput/client';
 import { USERINPUT_HOME, USERINPUT_LEXICONS_PATH } from '@/utils/userinput/config';
@@ -59,17 +59,11 @@ export default function FeedbackBoard() {
     return sortDiscussions(filtered, sort);
   }, [discussions, sort, statusFilter, tagFilter]);
 
-  if (loading && !space) {
-    return (
-      <div className="fn-fb">
-        <div className="fn-fb-board">
-          <BoardSkeleton rows={4} />
-        </div>
-      </div>
-    );
-  }
-
-  if (!space) {
+  // While the space is first loading, the board below renders with what it
+  // already knows (the title, the intro, sign-in, the sort bar) and holds
+  // skeletons only where the space's own data goes, so the page doesn't
+  // swap a column of bars for a different layout when it lands.
+  if (!space && !loading) {
     return (
       <div className="fn-fb">
         <BoardIntro />
@@ -79,9 +73,9 @@ export default function FeedbackBoard() {
     );
   }
 
-  const icon = space.iconUrl ? sanitizeUrl(space.iconUrl) : '';
+  const icon = space?.iconUrl ? sanitizeUrl(space.iconUrl) : '';
   const statusCounts = countByStatus(discussions);
-  const tags = space.record.tags ?? [];
+  const tags = space?.record.tags ?? [];
 
   return (
     <div className="fn-fb">
@@ -96,16 +90,16 @@ export default function FeedbackBoard() {
                 own name: on aturi.to that name would just read "Aturi". */}
             Feedback
           </h1>
-          {space.record.description ? (
+          {space?.record.description ? (
             <p className="fn-c-lede">{space.record.description}</p>
           ) : null}
         </div>
       </header>
 
-      <BoardIntro spaceUri={space.uri} />
+      <BoardIntro spaceUri={space?.uri} />
 
       {did ? (
-        composing ? (
+        composing && space ? (
           <Composer
             space={spaceRef(space)}
             tags={tags}
@@ -120,6 +114,7 @@ export default function FeedbackBoard() {
           <button
             type="button"
             onClick={() => setComposing(true)}
+            disabled={!space}
             className="fn-c-btn fn-c-btn-primary"
             style={{ alignSelf: 'flex-start' }}
           >
@@ -194,7 +189,13 @@ export default function FeedbackBoard() {
               ))}
           </div>
 
-          {tags.length ? (
+          {!space ? (
+            <div className="fn-fb-chips" aria-hidden>
+              {['6.75rem', '2.75rem', '4rem', '3rem', '4.75rem'].map((width) => (
+                <Skeleton key={width} width={width} height="28px" />
+              ))}
+            </div>
+          ) : tags.length ? (
             <div className="fn-fb-chips">
               <FilterButton active={tagFilter === null} onClick={() => setTagFilter(null)}>
                 All categories
@@ -252,21 +253,36 @@ export default function FeedbackBoard() {
   );
 }
 
-/** Placeholder rows shaped like the real ones, so the list doesn't jump. */
+/**
+ * Placeholder rows shaped like the real ones (DiscussionCard), so the list
+ * doesn't jump: the vote column's box, the title, two lines of excerpt and
+ * the author line with its avatar, each a line of that text tall.
+ */
 function BoardSkeleton({ rows }: { rows: number }) {
   return (
-    <div>
+    <ul className="fn-fb-list" aria-hidden>
       {Array.from({ length: rows }, (_, i) => (
-        <div key={i} className="fn-fb-skel">
-          <Skeleton width="44px" height="3.5rem" />
-          <div className="fn-fb-skel-main">
-            <Skeleton width="60%" height="1.125rem" />
-            <Skeleton width="90%" height="0.75rem" />
-            <Skeleton width="35%" height="0.75rem" />
+        <li key={i}>
+          <div className="fn-fb-row">
+            <Skeleton width="44px" height="78px" shape="control" style={{ flex: 'none' }} />
+            <div className="fn-fb-row-main">
+              <SkeletonLine className="fn-fb-skel-title" width={['58%', '44%', '66%', '50%'][i % 4]} height="0.8rem" />
+              {/* The excerpt's type, without its line clamp. */}
+              <div style={{ fontSize: '13.5px', lineHeight: 1.5 }}>
+                <SkeletonLine width="100%" />
+                <SkeletonLine width={['72%', '48%', '81%', '60%'][i % 4]} />
+              </div>
+              {/* As tall as the tag chip the real line usually carries. */}
+              <div className="fn-fb-meta" style={{ minHeight: '22px' }}>
+                <Skeleton width="18px" height="18px" shape="circle" />
+                <Skeleton width="9rem" height="0.55rem" />
+                <Skeleton width="2.5rem" height="0.55rem" />
+              </div>
+            </div>
           </div>
-        </div>
+        </li>
       ))}
-    </div>
+    </ul>
   );
 }
 

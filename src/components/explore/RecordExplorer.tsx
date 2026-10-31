@@ -34,7 +34,11 @@ import { useChromeBarAction } from './ChromeBarContext';
 import { useOffscreen } from './useOffscreen';
 import NotFoundPanel from '@/components/NotFoundPanel';
 import SkeletonSwap from './skeletons/SkeletonSwap';
-import { RecordBodySkeleton, RecordSkeleton } from './skeletons/pages';
+import {
+  RecordBodySkeleton,
+  RecordSkeleton,
+  type RecordSkeletonShape,
+} from './skeletons/pages';
 import { useAtprotoSession } from '@/components/AtprotoSessionProvider';
 import { usePreferences } from '@/components/PreferencesProvider';
 import {
@@ -52,6 +56,12 @@ type Props = {
 export default function RecordExplorer({ repo, collection, rkey }: Props) {
   const [identity, setIdentity] = useState<IdentityBundle | null>(null);
   const [identityError, setIdentityError] = useState<string | null>(null);
+  const { prefs, loading: prefsLoading } = usePreferences();
+  const skeletonShape = recordSkeletonShape(
+    collection,
+    decodeRkey(rkey),
+    sectionHidden(prefsLoading ? DEFAULT_RECORD_SECTIONS : prefs.recordSections, 'richPreview'),
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -82,7 +92,7 @@ export default function RecordExplorer({ repo, collection, rkey }: Props) {
   }
 
   return (
-    <SkeletonSwap loading={!identity} skeleton={<RecordSkeleton />}>
+    <SkeletonSwap loading={!identity} skeleton={<RecordSkeleton shape={skeletonShape} />}>
       {identity && (
         <RecordView identity={identity} collection={collection} rkey={rkey} />
       )}
@@ -111,13 +121,7 @@ function RecordView({
   const { agent, did: signedInDid, session } = useAtprotoSession();
   const { prefs, update: updatePrefs, loading: prefsLoading } = usePreferences();
 
-  const decodedRkey = useMemo(() => {
-    try {
-      return decodeURIComponent(rkey);
-    } catch {
-      return rkey;
-    }
-  }, [rkey]);
+  const decodedRkey = useMemo(() => decodeRkey(rkey), [rkey]);
 
   // The in-page "Edit record" chip, watched so the chrome bar can offer the
   // same action exactly while it isn't on screen. Its place on the page is
@@ -483,7 +487,14 @@ function RecordView({
   return (
     <div className="fn-rec">
       {breadcrumb}
-      <SkeletonSwap loading={!record} skeleton={<RecordBodySkeleton />}>
+      <SkeletonSwap
+        loading={!record}
+        skeleton={
+          <RecordBodySkeleton
+            shape={recordSkeletonShape(collection, decodedRkey, cardHidden)}
+          />
+        }
+      >
         {record && (
           <div className="fn-rec-body">
             <div className="fn-rec-main">{renderColumn('main')}</div>
@@ -498,6 +509,33 @@ function RecordView({
       </SkeletonSwap>
     </div>
   );
+}
+
+function decodeRkey(rkey: string): string {
+  try {
+    return decodeURIComponent(rkey);
+  } catch {
+    return rkey;
+  }
+}
+
+/**
+ * What the skeletons can know from the URL and the visitor's sections before
+ * anything is fetched: whether a rich card leads the page (and which kind),
+ * and whether the title carries a kind pill. Mirrors the read-mode layout
+ * below, so each skeleton holds the columns the page will fill.
+ */
+function recordSkeletonShape(
+  collection: string,
+  rkey: string,
+  cardHidden: boolean,
+): RecordSkeletonShape {
+  return {
+    richCard: recordHasRichCard(collection, rkey) && !cardHidden,
+    isPost: collection === 'app.bsky.feed.post',
+    isProfile: collection === 'app.bsky.actor.profile' && rkey === 'self',
+    pill: recordTypeLabel(collection) !== null,
+  };
 }
 
 /**

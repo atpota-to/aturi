@@ -161,6 +161,12 @@
      Derived here on :root, where data-theme and data-scheme also live, so
      it follows every theme and scheme without its own copy in each. */
   --accent-soft-ring: color-mix(in srgb, var(--text-accent) 26%, var(--accent-soft));
+  /* Loading placeholders (.fn-skel, account.css). The hairline tone made
+     part-transparent, so a bar reads on a white card, the paper page, a
+     filed tab or a tinted strip alike instead of vanishing into whichever
+     of them is nearest its own colour. Derived on :root like the ring above,
+     so it follows every theme, scheme and contrast setting. */
+  --skeleton-fill: color-mix(in srgb, var(--border-strong) 72%, transparent);
   --text-faint: #6f7168;
   --status-live: #7fae66;
   /* Bluesky's brand blue (the "Bluesky post" pill), lifted for dark. */
@@ -2443,66 +2449,34 @@ html {
   color: var(--text-accent);
 }
 
-/* Skeleton Loading Styles */
-.skeleton-shimmer {
-  position: relative;
-  overflow: hidden;
-}
-
-.skeleton-shimmer::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(
-    110deg,
-    transparent 0%,
-    transparent 40%,
-    var(--glow-medium) 50%,
-    transparent 60%,
-    transparent 100%
-  );
-  animation: skeleton-shimmer 2.5s ease-in-out infinite;
-  transform: translateX(-100%);
-}
-
-@keyframes skeleton-shimmer {
-  0% {
-    transform: translateX(-100%);
-  }
-  100% {
-    transform: translateX(100%);
-  }
-}
-
-/* Skeleton container fade-in */
+/* Skeleton bars are .fn-skel (account.css). These two fade a server-streamed
+   skeleton in and the content that replaces it after. Opacity only, as in
+   PageTransition: the content lands where its skeleton stood, so a rise
+   would read as it dropping and climbing back into place. */
 .skeleton-container {
-  animation: skeleton-fade-in 0.4s ease-out;
+  animation: skeleton-fade-in 0.3s ease-out;
 }
 
 @keyframes skeleton-fade-in {
   0% {
     opacity: 0;
-    transform: translateY(8px);
   }
   100% {
     opacity: 1;
-    transform: translateY(0);
   }
 }
 
 /* Content fade-in after loading */
 .content-fade-in {
-  animation: content-appear 0.5s ease-out;
+  animation: content-appear 0.36s ease-out;
 }
 
 @keyframes content-appear {
   0% {
     opacity: 0;
-    transform: translateY(12px);
   }
   100% {
     opacity: 1;
-    transform: translateY(0);
   }
 }
 
@@ -3197,7 +3171,7 @@ a.fn-link-btn:focus-visible {
 
   /* The skeleton's sparkline block is a fixed 90px wide; let it fill the
      smaller column on mobile instead of overflowing it. */
-  .lexicon-row-spark .skeleton-shimmer {
+  .lexicon-row-spark .fn-skel {
     width: 100% !important;
   }
 }

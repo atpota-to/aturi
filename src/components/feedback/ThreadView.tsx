@@ -12,7 +12,7 @@ import { fallbackAuthor, useAuthors } from './useAuthors';
 import { useVoting } from './useVoting';
 import { useAtprotoSession } from '@/components/AtprotoSessionProvider';
 import SignInPanel from '@/components/explore/SignInPanel';
-import { Skeleton } from '@/components/SkeletonLoader';
+import { Skeleton, SkeletonLine } from '@/components/SkeletonLoader';
 import { getBlobUrl } from '@/utils/recordImages';
 import { resolveMiniDoc } from '@/utils/atproto/slingshot';
 import { sanitizeUrl } from '@/utils/sanitize';
@@ -156,15 +156,7 @@ export default function ThreadView({ did, rkey }: { did: string; rkey: string })
     [ctx],
   );
 
-  if (loading) {
-    return (
-      <div className="fn-fb">
-        <Skeleton width="40%" height="1.75rem" />
-        <Skeleton width="100%" height="6rem" />
-        <Skeleton width="100%" height="4rem" />
-      </div>
-    );
-  }
+  if (loading) return <ThreadSkeleton />;
 
   if (error || !thread || !ctx) {
     return (
@@ -315,6 +307,54 @@ export default function ThreadView({ did, rkey }: { did: string; rkey: string })
           }}
         />
       ) : null}
+    </div>
+  );
+}
+
+/**
+ * The thread while it loads, on the loaded view's own classes: the back link
+ * (real, it goes somewhere already), the post card with its vote column,
+ * title, body and author line, then the replies card with two replies.
+ */
+function ThreadSkeleton() {
+  return (
+    <div className="fn-fb">
+      <BackLink />
+      <div className="fn-fb-post" aria-hidden>
+        <Skeleton width="44px" height="78px" shape="control" style={{ flex: 'none' }} />
+        <div className="fn-fb-post-main">
+          <div className="fn-fb-post-title">
+            <SkeletonLine className="fn-fb-skel-h1" width="min(22rem, 85%)" height="1.15rem" />
+          </div>
+          <div className="fn-fb-body">
+            <SkeletonLine width="100%" height="0.7rem" />
+            <SkeletonLine width="96%" height="0.7rem" />
+            <SkeletonLine width="52%" height="0.7rem" />
+          </div>
+          <div className="fn-fb-meta">
+            <Skeleton width="18px" height="18px" shape="circle" />
+            <Skeleton width="10rem" height="0.55rem" />
+          </div>
+        </div>
+      </div>
+      <section className="fn-fb-replies-card" aria-hidden>
+        <div className="fn-fb-replies-head">
+          <SkeletonLine width="3.5rem" height="0.55rem" />
+        </div>
+        {['88%', '64%'].map((width) => (
+          <div key={width} className="fn-fb-reply">
+            <div className="fn-fb-reply-inner">
+              <div className="fn-fb-meta">
+                <Skeleton width="18px" height="18px" shape="circle" />
+                <Skeleton width="8rem" height="0.55rem" />
+              </div>
+              <div className="fn-fb-body" style={{ fontSize: '14.5px' }}>
+                <SkeletonLine width={width} height="0.65rem" />
+              </div>
+            </div>
+          </div>
+        ))}
+      </section>
     </div>
   );
 }

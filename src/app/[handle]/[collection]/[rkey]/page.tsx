@@ -6,6 +6,7 @@ import AutoRedirect from '@/components/AutoRedirect';
 import AutoRedirectGate from '@/components/AutoRedirectGate';
 import PostPreview from '@/components/PostPreview';
 import PostPreviewSkeleton from '@/components/PostPreviewSkeleton';
+import WaypointPickerSkeleton from '@/components/WaypointPickerSkeleton';
 import RecordPreview from '@/components/RecordPreview';
 import ScrollIndicator from '@/components/ScrollIndicator';
 import Header from '@/components/Header';
@@ -500,7 +501,10 @@ export default async function RecordPage({ params }: Props) {
           <>
             <Header compact />
             <div className="container-narrow waypoint-page">
-              <PostPreviewSkeleton />
+              <div className="skeleton-container">
+                <PostPreviewSkeleton />
+              </div>
+              <WaypointPickerSkeleton />
             </div>
           </>
         }

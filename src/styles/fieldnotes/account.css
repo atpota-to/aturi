@@ -2239,3 +2239,52 @@
 :root:not([data-theme='light']) .settings-switch input:not(:checked) + .settings-switch-box::after {
   background: var(--text-secondary);
 }
+
+/* =========================================================================
+   Skeletons
+   ========================================================================= */
+
+/* The one loading bar (<Skeleton> in SkeletonLoader.tsx, and everything the
+   explore skeletons build from it). Lines are pills, like the placeholder
+   lines in the landing mocks; data-shape gives a control, a media block or an
+   avatar the corners of the thing it stands in for, so the swap keeps its
+   silhouette.
+
+   It breathes rather than sweeps. A sweep crosses each bar at a speed set by
+   that bar's width, so a page of bars shimmers out of step; a pulse keeps
+   every bar mounted together in time, and opacity is cheap to animate. The
+   keyframes start and end at full strength, so under reduced motion (which
+   cuts every animation to one near-instant run) the bar simply holds still. */
+.fn-skel {
+  display: block;
+  max-width: 100%;
+  background: var(--skeleton-fill);
+  border-radius: var(--radius-pill);
+  animation: fn-skel-pulse 1.6s ease-in-out infinite;
+}
+
+.fn-skel[data-shape='control'] {
+  border-radius: var(--radius-control);
+}
+
+.fn-skel[data-shape='block'] {
+  border-radius: 10px;
+}
+
+.fn-skel[data-shape='circle'] {
+  border-radius: 50%;
+}
+
+.fn-skel[data-still] {
+  animation: none;
+}
+
+@keyframes fn-skel-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.45;
+  }
+}
