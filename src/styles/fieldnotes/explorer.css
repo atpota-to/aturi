@@ -1410,19 +1410,421 @@
 .fx-backlink-source + .fx-backlink-source {
   border-top: 1px solid var(--border-subtle);
 }
-.fx-backlink-source > button:hover,
-/* The linking records inside an expanded source: a hover and focus colour,
-   the DID underlined, so a row reads as the link it is. */
-.fx-backlink-record:hover,
-.fx-backlink-record:focus-visible {
+.fx-backlink-source > button:hover {
   color: var(--text-accent);
-}
-.fx-backlink-record:hover code:first-child {
-  text-decoration: underline;
-  text-underline-offset: 0.15em;
 }
 .fx-backlink-source > button:focus-visible {
   background: var(--bg-tertiary) !important;
+}
+
+/* Backlinks tab on a repo page: a tile per relationship (followers,
+   mentions, lists…) over one merged list of the records behind it. The
+   tiles are the "Repo at a glance" tiles (AccountStats) made pressable, at
+   the same sizes, so the tab reads as part of the page above it. */
+.fx-bl {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.fx-bl-tiles {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+/* Two across on a phone, and between 960 and 1100 where the sidebar leaves
+   the column narrow: the glance grid's breakpoints. */
+@media (max-width: 640px), (min-width: 960px) and (max-width: 1099px) {
+  .fx-bl-tiles {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+.fx-bl-tile {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  min-width: 0;
+  padding: 0.75rem 0.875rem;
+  border: 1px solid var(--border-medium);
+  border-radius: 10px;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+.fx-bl-tile:hover {
+  border-color: var(--border-strong);
+  background: var(--surface-subtle);
+}
+.fx-bl-tile:focus-visible {
+  outline: 2px solid var(--text-accent);
+  outline-offset: 2px;
+}
+.fx-bl-tile[aria-pressed='true'] {
+  border-color: var(--accent-moss);
+  background: var(--accent-soft);
+}
+.fx-bl-tile-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+.fx-bl-tile-label svg {
+  flex: none;
+  color: var(--text-accent);
+}
+.fx-bl-tile-value {
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.fx-bl-tile-sub {
+  margin-top: -0.15rem;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--text-tertiary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.fx-bl-tile[aria-pressed='true'] .fx-bl-tile-label,
+.fx-bl-tile[aria-pressed='true'] .fx-bl-tile-value,
+.fx-bl-tile[aria-pressed='true'] .fx-bl-tile-sub {
+  color: var(--accent-soft-fg);
+}
+
+.fx-bl-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.fx-bl-detail-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 12px;
+}
+.fx-bl-detail-head h3 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 650;
+  color: var(--text-primary);
+}
+.fx-bl-detail-head p {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-tertiary);
+}
+.fx-bl-apps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.fx-bl-apps .fx-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.fx-bl-chip-count {
+  font-size: 12px;
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+  opacity: 0.8;
+}
+/* Narrowed to one source from the Sources list: says which, with a way
+   back to the whole relationship. */
+.fx-bl-narrow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+  padding: 8px 10px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-control);
+  background: var(--surface-subtle);
+  font-size: 12.5px;
+  color: var(--text-secondary);
+}
+.fx-bl-narrow code {
+  min-width: 0;
+  padding: 0.15em 0.4em;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-primary);
+  overflow-wrap: anywhere;
+}
+.fx-bl-narrow .fx-btn {
+  margin-left: auto;
+}
+
+/* An app's waypoint mark, or a monogram where the catalogue has none. */
+.fx-bl-mark {
+  flex: none;
+  display: inline-grid;
+  place-items: center;
+  width: 14px;
+  height: 14px;
+  border-radius: 4px;
+  overflow: hidden;
+  color: var(--text-primary);
+}
+.fx-bl-mark svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.fx-bl-mark[data-mono] {
+  background: var(--bg-tertiary);
+  box-shadow: inset 0 0 0 1px var(--border-medium);
+  color: var(--text-tertiary);
+  font-family: var(--font-sans);
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+/* A linking record: avatar, name and handle, a line of what it says, and
+   when. The whole row is the link to the record. */
+.fx-bl-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.fx-bl-row + .fx-bl-row {
+  border-top: 1px solid var(--border-subtle);
+}
+.fx-bl-row-link {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: start;
+  padding: 9px 8px;
+  border-radius: 8px;
+  color: var(--text-primary);
+  text-decoration: none;
+}
+.fx-bl-row-link:hover {
+  background: var(--surface-subtle);
+}
+.fx-bl-row-link:hover .fx-bl-row-name {
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+}
+.fx-bl-row-link:focus-visible {
+  outline: 2px solid var(--text-accent);
+  outline-offset: -2px;
+}
+.fx-bl-avatar {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: var(--bg-tertiary);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-tertiary);
+}
+.fx-bl-avatar[data-empty] {
+  box-shadow: inset 0 0 0 1px var(--border-medium);
+}
+.fx-bl-row-body {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.fx-bl-row-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 7px;
+  min-width: 0;
+  font-size: 13.5px;
+  line-height: 1.35;
+}
+.fx-bl-row-name {
+  min-width: 0;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.fx-bl-row-name[data-mono] {
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  font-weight: 500;
+}
+.fx-bl-row-name[data-pending] {
+  color: var(--text-tertiary);
+}
+.fx-bl-row-handle {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-tertiary);
+  overflow-wrap: anywhere;
+}
+/* Two lines of a post or a title, then an ellipsis. */
+.fx-bl-row-ctx {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--text-secondary);
+}
+.fx-bl-row-kind {
+  margin-right: 0.4em;
+  color: var(--text-tertiary);
+}
+.fx-bl-row-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding-top: 1px;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+}
+.fx-bl-pill {
+  display: inline-flex;
+  align-items: center;
+  height: 18px;
+  padding: 0 6px;
+  border-radius: var(--radius-pill);
+  background: var(--bg-tertiary);
+  box-shadow: inset 0 0 0 1px var(--border-medium);
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+.fx-bl-pill[data-tone='accent'] {
+  background: var(--accent-soft);
+  box-shadow: inset 0 0 0 1px var(--accent-soft-ring);
+  color: var(--accent-soft-fg);
+}
+.fx-bl-more {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 14px;
+  padding: 4px 8px 0;
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-tertiary);
+}
+
+/* The raw sources behind a relationship, for anyone who wants the
+   collection and path: each narrows the list to itself. */
+.fx-bl-sources {
+  padding-top: 8px;
+  border-top: 1px solid var(--border-subtle);
+}
+.fx-bl-sources > summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 0;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  list-style: none;
+  cursor: pointer;
+}
+.fx-bl-sources > summary::-webkit-details-marker {
+  display: none;
+}
+.fx-bl-sources > summary:hover {
+  color: var(--text-primary);
+}
+.fx-bl-sources > summary:focus-visible {
+  outline: 2px solid var(--text-accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+.fx-bl-sources > summary svg {
+  color: var(--text-tertiary);
+  transition: transform 0.15s ease;
+}
+.fx-bl-sources[open] > summary svg {
+  transform: rotate(90deg);
+}
+.fx-bl-source-list {
+  list-style: none;
+  margin: 4px 0 0;
+  padding: 0;
+}
+.fx-bl-source {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+  width: 100%;
+  padding: 5px 8px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  font: inherit;
+  text-align: left;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+.fx-bl-source:hover {
+  background: var(--bg-tertiary);
+}
+.fx-bl-source:focus-visible {
+  outline: 2px solid var(--text-accent);
+  outline-offset: -2px;
+}
+.fx-bl-source[aria-pressed='true'] {
+  background: var(--accent-soft);
+  color: var(--accent-soft-fg);
+}
+/* Plain text in the row, not the global inline-code chip. */
+.fx-bl-source code {
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: inherit;
+  overflow-wrap: anywhere;
+}
+.fx-bl-source code span {
+  color: var(--text-tertiary);
+}
+.fx-bl-source[aria-pressed='true'] code span {
+  color: inherit;
+}
+.fx-bl-source-count {
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-tertiary);
+}
+.fx-bl-credit {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+.fx-bl-credit a {
+  color: var(--text-accent);
+}
+@media (prefers-reduced-motion: reduce) {
+  .fx-bl-tile,
+  .fx-bl-sources > summary svg {
+    transition: none;
+  }
 }
 
 /* Two-column explorer pages: ExploreChromeBar centres the card on the
