@@ -37,13 +37,16 @@ export class PostgrestDriver implements StoreDriver {
     const u = new URL(`${this.baseUrl}/rest/v1/${table}`);
     if (columns) u.searchParams.set('select', columns);
     for (const [k, v] of Object.entries(where ?? {})) {
-      // Every value is double-quoted, which is how PostgREST wants an operand
-      // that could contain one of its reserved characters (comma, parenthesis,
-      // dot, whitespace). No value that reaches here today can — DIDs exclude
-      // them by grammar, hashes are hex, and `client` is a checked enum — but
-      // the escaping rule belongs to the layer that builds the query rather
-      // than to the charset of whatever happens to call it.
-      u.searchParams.set(k, `eq."${v.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`);
+      // Unquoted, deliberately. PostgREST takes everything after `eq.` as the
+      // literal operand, double quotes included: quoting is only parsed inside
+      // `in.(…)` lists and `or=(…)` trees, where commas and parentheses are
+      // syntax. A quoted `eq."x"` therefore compares against the string `"x"`
+      // and matches nothing, which made every filtered read, update and delete
+      // here a silent no-op (checked against the live project: the same row
+      // comes back for `eq.v` and not for `eq."v"`). Reserved characters are
+      // safe in this position: a DID's colons and an at:// URI's dots are
+      // matched as written.
+      u.searchParams.set(k, `eq.${v}`);
     }
     return u.toString();
   }
