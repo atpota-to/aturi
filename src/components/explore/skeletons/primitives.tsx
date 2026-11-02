@@ -250,10 +250,18 @@ export function SkeletonTreePane({
         {Array.from({ length: rows }).map((_, i) => {
           const row = TREE_SHAPE[i % TREE_SHAPE.length];
           return (
-            <div key={i} className="fx-row" data-kind={row.kind} data-depth={row.depth}>
+            <div
+              key={i}
+              className="fx-row"
+              data-kind={row.kind}
+              data-depth={row.depth}
+              data-stripe={i % 2 === 1 || undefined}
+            >
               <span className="fx-row-main">
                 {/* The group's chevron: its 12px, so the names line up. */}
                 {row.kind === 'group' && <span style={{ width: 12, flex: 'none' }} />}
+                {/* A top-level group's icon slot, as the empty tile it loads into. */}
+                {row.kind === 'group' && row.depth === 0 && <span className="fx-favicon" />}
                 <SkeletonBar width={row.width} height="0.6rem" />
               </span>
             </div>

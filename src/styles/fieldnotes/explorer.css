@@ -30,6 +30,13 @@
   gap: 16px;
   align-items: start;
   font-family: var(--font-sans);
+  /* Zebra striping for the collections tree and the records list. The band
+     sits most of the way to the theme's hover fill, and the hover over a list
+     with bands goes a step past that fill, so a hovered row still stands out
+     whether or not it is banded. Both mix the theme's own tokens, so every
+     scheme gets bands in its own tint. */
+  --fx-stripe: color-mix(in srgb, var(--bg-tertiary) 70%, var(--bg-secondary));
+  --fx-stripe-hover: color-mix(in srgb, var(--bg-tertiary), var(--text-primary) 6%);
 }
 /* On a collection the records come first when stacked: the sidebar is
    navigation, and a phone shouldn't have to scroll past a tree to reach the
@@ -679,6 +686,17 @@
 .fx-row:hover {
   background: var(--bg-tertiary);
 }
+/* Every other row as drawn is banded; CollectionsTab does the counting,
+   since the rows sit in nested lists `:nth-child` can't count across. Phones
+   keep their own scheme below: hairlines between rows and filled leaves. */
+@media (min-width: 641px) {
+  .fx-row[data-stripe] {
+    background: var(--fx-stripe);
+  }
+  .fx-row:hover {
+    background: var(--fx-stripe-hover);
+  }
+}
 .fx-row-main {
   flex: 1;
   min-width: 0;
@@ -709,6 +727,39 @@
 }
 .fx-row-main[aria-expanded='true'] .fx-row-chev {
   transform: rotate(90deg);
+}
+/* A top-level group's site icon (LexiconFavicon). The slot is fixed, so
+   names line up whether it holds the icon, a letter tile for a namespace
+   with no site or no icon, or the empty tile an icon fades in over. */
+.fx-favicon {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--text-primary) 9%, transparent);
+  color: var(--text-secondary);
+  font-family: var(--font-sans);
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 1;
+}
+.fx-favicon img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+.fx-favicon[data-state='loaded'] {
+  background: transparent;
+}
+.fx-favicon[data-state='loaded'] img {
+  opacity: 1;
 }
 .fx-row-text {
   flex: 1;
@@ -1005,7 +1056,12 @@
   min-width: 0;
 }
 .fx-rec-row:hover {
-  background: var(--surface-subtle);
+  background: var(--fx-stripe-hover);
+}
+/* Zebra striping, every other record banded. `of .fx-rec-item` skips the
+   column-head row, so the first record is never the banded one. */
+.fx-rec-item:nth-child(even of .fx-rec-item) {
+  background: var(--fx-stripe);
 }
 .fx-rec-row:focus-visible {
   outline: 2px solid var(--text-accent);

@@ -307,6 +307,11 @@ export default function CollectionsTab({
   }
 
   const leafHref = (nsid: string) => `/explore/${repoSeg}/${nsid}`;
+  // Zebra striping counts the rows as drawn, headers and leaves alike, so it
+  // runs on unbroken through nested groups where `:nth-child` would restart
+  // in every list. Each section starts its own count.
+  const pinnedStripe = stripeCounter();
+  const treeStripe = stripeCounter();
 
   return (
     <>
@@ -406,6 +411,8 @@ export default function CollectionsTab({
                       prefix={g.prefix}
                       count={g.items.length}
                       emphasize
+                      favicon
+                      stripe={pinnedStripe()}
                       pinnable={canPin}
                       pinned
                       onTogglePin={() => toggleGroupPin(g.prefix)}
@@ -420,6 +427,7 @@ export default function CollectionsTab({
                             dimPrefix={`${g.prefix}.`}
                             inCommon={myCollections?.has(nsid)}
                             current={nsid === current}
+                            stripe={pinnedStripe()}
                           />
                         ))}
                       </ul>
@@ -442,6 +450,7 @@ export default function CollectionsTab({
                       pinned
                       onTogglePin={() => togglePin(nsid)}
                       current={nsid === current}
+                      stripe={pinnedStripe()}
                     />
                   ))}
                 </ul>
@@ -473,6 +482,8 @@ export default function CollectionsTab({
                       prefix={g.key}
                       count={g.totalCount}
                       emphasize
+                      favicon
+                      stripe={treeStripe()}
                       pinnable={canPin}
                       pinned={isGroupPinned(g.key)}
                       onTogglePin={() => toggleGroupPin(g.key)}
@@ -493,6 +504,7 @@ export default function CollectionsTab({
                                 pinned={activePinSet.has(nsid)}
                                 onTogglePin={() => togglePin(nsid)}
                                 current={nsid === current}
+                                stripe={treeStripe()}
                               />
                             ))}
                           </ul>
@@ -509,6 +521,7 @@ export default function CollectionsTab({
                                 dimPrefix={`${g.key}.`}
                                 count={sub.items.length}
                                 indent
+                                stripe={treeStripe()}
                                 pinnable={canPin}
                                 pinned={isGroupPinned(sub.fullKey)}
                                 onTogglePin={() => toggleGroupPin(sub.fullKey)}
@@ -527,6 +540,7 @@ export default function CollectionsTab({
                                       pinned={activePinSet.has(nsid)}
                                       onTogglePin={() => togglePin(nsid)}
                                       current={nsid === current}
+                                      stripe={treeStripe()}
                                     />
                                   ))}
                                 </ul>
@@ -557,6 +571,12 @@ export default function CollectionsTab({
 function ChromeFieldBridge({ field }: { field: ChromeBarField }) {
   useChromeBarField(field);
   return null;
+}
+
+/** Alternates false, true, false… one call per row drawn. */
+function stripeCounter(): () => boolean {
+  let row = 0;
+  return () => row++ % 2 === 1;
 }
 
 function listStyle(): React.CSSProperties {
