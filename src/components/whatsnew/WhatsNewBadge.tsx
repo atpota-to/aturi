@@ -13,6 +13,13 @@ import {
 import WhatsNewContent from './WhatsNewContent';
 
 /**
+ * Window event the command palette's "What's new" command dispatches. The bell
+ * opens its notes and cancels the event, which tells the palette the request
+ * landed; uncanceled means no bell is mounted on this page.
+ */
+export const OPEN_WHATS_NEW_EVENT = 'aturi:open-whats-new';
+
+/**
  * Header bell with an unread dot, opening the same notes the modal shows.
  *
  * This is the passive half of the pair: it never interrupts, works on every
@@ -67,6 +74,18 @@ export default function WhatsNewBadge() {
         : { ...p, lastSeenReleaseId: LATEST_RELEASE_ID },
     );
   }, [open, close, available, update]);
+
+  useEffect(() => {
+    function onRequest(e: Event) {
+      // No notes means no button below, so nothing to open: leave the event
+      // uncanceled and the palette reports it.
+      if (available.length === 0) return;
+      e.preventDefault();
+      if (!open) toggle();
+    }
+    window.addEventListener(OPEN_WHATS_NEW_EVENT, onRequest);
+    return () => window.removeEventListener(OPEN_WHATS_NEW_EVENT, onRequest);
+  }, [open, toggle, available.length]);
 
   useEffect(() => {
     if (!open) return;
