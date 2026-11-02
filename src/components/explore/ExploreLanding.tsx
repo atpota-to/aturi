@@ -7,6 +7,7 @@ import AppearIn from './AppearIn';
 import SearchBox from './SearchBox';
 import JetstreamFeed from './JetstreamFeed';
 import AtmospherePulse from './lexicons/AtmospherePulse';
+import AtmosphericConditions from './AtmosphericConditions';
 import CrossLinkCards from '@/components/landing/CrossLinkCards';
 import FeatureSection from '@/components/landing/FeatureSection';
 import PinnedLexiconsVisual from '@/components/landing/PinnedLexiconsVisual';
@@ -108,6 +109,8 @@ export default function ExploreLanding() {
           ))}
         </nav>
       </AppearIn>
+
+      <AtmosphericConditions />
 
       <AtmospherePulse />
 
