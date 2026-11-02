@@ -9,6 +9,7 @@
    under .fn-header so other users of those classes are left alone.
 
    Breakpoints:
+     ≥1440px  the tagline shows beside the wordmark
      ≤1180px  inline nav folds into the menu button
      ≤767px   the explorer "go to" field becomes a search button
      ≤639px   phone bar: 52px, 44px icon buttons, theme + session move into
@@ -54,6 +55,15 @@
   background: var(--bg-secondary);
 }
 
+/* Brand link plus the tagline; one flex item of the bar, so the tagline sits
+   on its own 12px gap rather than the bar's 28px one. */
+.fn-header-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
 .fn-brand {
   display: inline-flex;
   align-items: center;
@@ -88,6 +98,19 @@
 .fn-wordmark-tld {
   color: var(--text-tertiary);
   font-weight: 500;
+}
+
+/* Hidden until the wide-screen query below. --text-tertiary and the rule
+   keep it reading as a caption to the wordmark, not a ninth nav link. */
+.fn-tagline {
+  display: none;
+  padding-left: 12px;
+  border-left: 1px solid var(--border-medium);
+  color: var(--text-tertiary);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 18px;
+  white-space: nowrap;
 }
 
 .fn-nav {
@@ -577,6 +600,15 @@
 }
 
 /* ─── Responsive ─────────────────────────────────────────────────────── */
+
+/* The tagline costs the bar about 150px. On explorer pages that comes out of
+   the go-to field, and below 1440px it would push the field under the width
+   at which its shortcut chip already has to hide (see the next query). */
+@media (min-width: 1440px) {
+  .fn-tagline {
+    display: inline;
+  }
+}
 
 /* Just above the nav fold the go-to field is at its narrowest and the
    shortcut chip was clipping the placeholder; the shortcut is still named

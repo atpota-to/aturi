@@ -53,15 +53,23 @@ function activeNavHref(pathname: string | null): string | null {
   return hit?.href ?? null;
 }
 
-/** Leaf mark + wordmark, linking home. */
+/**
+ * Leaf mark + wordmark, linking home, then the tagline. The tagline sits
+ * outside the link: it is not part of the link's name, and the click target
+ * stays the mark. CSS shows it only on wide screens, where the bar has room
+ * for it without squeezing the explorer's go-to field.
+ */
 function Brand() {
   return (
-    <Link href="/" prefetch={false} className="fn-brand" aria-label="aturi.to home">
-      <Leaf className="fn-brand-mark" aria-hidden strokeWidth={2.2} />
-      <span className="fn-wordmark">
-        aturi<span className="fn-wordmark-tld">.to</span>
-      </span>
-    </Link>
+    <div className="fn-header-brand">
+      <Link href="/" prefetch={false} className="fn-brand" aria-label="aturi.to home">
+        <Leaf className="fn-brand-mark" aria-hidden strokeWidth={2.2} />
+        <span className="fn-wordmark">
+          aturi<span className="fn-wordmark-tld">.to</span>
+        </span>
+      </Link>
+      <span className="fn-tagline">Tour the Atmosphere</span>
+    </div>
   );
 }
 
