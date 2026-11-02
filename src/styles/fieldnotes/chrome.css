@@ -10,10 +10,11 @@
 
    Breakpoints:
      ≥1440px  the tagline shows beside the wordmark
-     ≤1180px  inline nav folds into the menu button
+     ≤1180px  inline nav folds into the menu button; the tagline shows
+              again in the room that leaves
      ≤767px   the explorer "go to" field becomes a search button
      ≤639px   phone bar: 52px, 44px icon buttons, theme + session move into
-              the menu panel */
+              the menu panel; the tagline hides */
 
 .fn-sr-only {
   position: absolute;
@@ -100,8 +101,8 @@
   font-weight: 500;
 }
 
-/* Hidden until the wide-screen query below. --text-tertiary and the rule
-   keep it reading as a caption to the wordmark, not a ninth nav link. */
+/* Hidden unless the query under Responsive finds room for it. --text-tertiary
+   and the rule keep it reading as a caption to the wordmark, not a nav link. */
 .fn-tagline {
   display: none;
   padding-left: 12px;
@@ -601,10 +602,14 @@
 
 /* ─── Responsive ─────────────────────────────────────────────────────── */
 
-/* The tagline costs the bar about 150px. On explorer pages that comes out of
-   the go-to field, and below 1440px it would push the field under the width
-   at which its shortcut chip already has to hide (see the next query). */
-@media (min-width: 1440px) {
+/* The tagline costs the bar about 150px. With the nav inline, on explorer
+   pages that comes out of the go-to field, and below 1440px it would push the
+   field under the width at which its shortcut chip already has to hide (see
+   the next query). Once the nav folds into the menu there is room again, down
+   to the phone bar, where the 44px buttons need it. Written as where it shows
+   rather than where it hides, so a fractional width between two queries
+   leaves it hidden instead of crowding the bar. */
+@media (min-width: 1440px), (min-width: 640px) and (max-width: 1180px) {
   .fn-tagline {
     display: inline;
   }

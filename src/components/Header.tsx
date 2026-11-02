@@ -56,8 +56,8 @@ function activeNavHref(pathname: string | null): string | null {
 /**
  * Leaf mark + wordmark, linking home, then the tagline. The tagline sits
  * outside the link: it is not part of the link's name, and the click target
- * stays the mark. CSS shows it only on wide screens, where the bar has room
- * for it without squeezing the explorer's go-to field.
+ * stays the mark. CSS shows it only where the bar has room for it: on wide
+ * screens, and from tablet width up once the nav has folded into the menu.
  */
 function Brand() {
   return (
