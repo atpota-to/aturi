@@ -493,12 +493,6 @@
   min-width: 100px;
   max-width: 100px;
 }
-/* In the aside the top-level labels take the 84px the nested rows already
-   use: one label rhythm, and 16px more for the values. */
-.fn-rec-aside .record-fields .fn-field-label {
-  min-width: 84px;
-  max-width: 84px;
-}
 .fn-field-value {
   flex: 1;
   min-width: 0;
@@ -593,7 +587,7 @@
   max-width: 84px;
 }
 /* globals.css stacks label over value once the table is under 460px. The
-   record page's aside is narrower than that by design, and its 100px mono
+   record page's column is narrower than that on a phone, and its 100px mono
    label column still leaves the value room, so the bare table keeps the two
    side by side until it is really cramped. */
 @container (max-width: 460px) {

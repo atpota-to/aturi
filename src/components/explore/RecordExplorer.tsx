@@ -313,19 +313,17 @@ function RecordView({
   }
 
   // Read mode: the user's sections in their chosen order, split over two
-  // columns. The preview and the helpers that read about the record
-  // (engagement, backlinks, lexicon usage, sign-in) take the wide column; the
-  // "Open in" panel, the Record card (field table and raw JSON behind one
-  // Fields/JSON switch) and the copy row take the aside. A record with no
-  // rich card, or whose card is hidden, has nothing to preview, so its Record
-  // card moves into the wide column where long values have room.
+  // columns. The record itself takes the wide column: the preview, then the
+  // Record card (field table and raw JSON behind one Fields/JSON switch),
+  // where long values have room, then engagement and sign-in. What sits
+  // around the record takes the aside: the "Open in" panel, the copy row,
+  // lexicon usage and backlinks.
   //
   // Null until the record lands — the title bar above is already real by
   // then, so only the body waits, behind <RecordBodySkeleton>.
   const recordForPreview = record
     ? { uri: record.uri, cid: record.cid, value: record.value }
     : null;
-  const recordInMain = !hasRichCard || cardHidden;
   const recordCard =
     record && recordForPreview ? (
       <section className="fn-rec-card fn-rec-data" aria-labelledby="fn-rec-data-title">
@@ -432,7 +430,7 @@ function RecordView({
         // first of them sits in the visitor's order.
         if (recordPlaced) continue;
         recordPlaced = true;
-        placed.push({ id: 'record', column: recordInMain ? 'main' : 'aside', node: recordCard });
+        placed.push({ id: 'record', column: 'main', node: recordCard });
       } else if (!hidden) {
         let node: ReactNode = null;
         let column: Placed['column'] = 'main';
@@ -451,8 +449,10 @@ function RecordView({
               collection={collection === 'com.atproto.lexicon.schema' ? decodedRkey : collection}
             />
           );
+          column = 'aside';
         } else if (id === 'backlinks') {
           node = <BacklinksTab target={atUri} showSummary />;
+          column = 'aside';
         } else if (id === 'signIn') {
           node = signInNode;
         }
@@ -478,7 +478,7 @@ function RecordView({
           key={p.id}
           delay={Math.min(0.05 + i * 0.03, 0.16)}
           className="fn-rec-slot"
-          style={{ order: SLOT_ORDER[p.id] ?? 3 }}
+          style={{ order: SLOT_ORDER[p.id] ?? 3 + placed.indexOf(p) }}
         >
           {p.node}
         </AppearIn>
@@ -498,7 +498,7 @@ function RecordView({
         {record && (
           <div className="fn-rec-body">
             <div className="fn-rec-main">{renderColumn('main')}</div>
-            <aside className="fn-rec-aside" aria-label="Open and copy this record">
+            <aside className="fn-rec-aside" aria-label="Open, copy and links to this record">
               <AppearIn delay={0.05} className="fn-rec-slot" style={{ order: 1 }}>
                 {openInNode}
               </AppearIn>
@@ -541,8 +541,9 @@ function recordSkeletonShape(
 /**
  * Stacking order once the two columns collapse into one (phones and narrow
  * tablets, see .fn-rec-body in record.css): the preview, then where to open
- * it, then its data, then everything else in the visitor's own order. The
- * columns ignore it; each holds a single kind of slot.
+ * it, then its data, then everything else in the visitor's own order (3 plus
+ * its place in that order, since those slots come from both columns). The
+ * same values order the slots within each column on wider screens.
  */
 const SLOT_ORDER: Record<string, number> = { richPreview: 0, record: 2 };
 

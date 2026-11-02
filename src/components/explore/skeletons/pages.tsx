@@ -117,15 +117,14 @@ const PLAIN_RECORD: RecordSkeletonShape = {
 
 /**
  * The body of a record page, on the loaded page's own frame (record.css,
- * `.fn-rec-body`): the rich card when one is coming, the "Open in" card,
- * the Record card and the Copy card, then the lexicon usage and backlinks
- * cards. A record with no rich card puts its Record card in the wide column,
- * as the page does. The `order` values are the slots RecordExplorer gives the
- * same pieces, which interleave them in one column under 920px. Used on its
- * own once the title bar is real and only the record is still in flight.
+ * `.fn-rec-body`): the rich card when one is coming and the Record card in
+ * the wide column; the "Open in" card, the Copy card, then the lexicon usage
+ * and backlinks cards in the aside. The `order` values are the slots
+ * RecordExplorer gives the same pieces, which interleave them in one column
+ * under 920px. Used on its own once the title bar is real and only the
+ * record is still in flight.
  */
 export function RecordBodySkeleton({ shape = PLAIN_RECORD }: { shape?: RecordSkeletonShape }) {
-  const record = <RecordDataCardSkeleton rows={shape.richCard ? 4 : 6} />;
   return (
     <div className="fn-rec-body">
       <div className="fn-rec-main">
@@ -149,29 +148,22 @@ export function RecordBodySkeleton({ shape = PLAIN_RECORD }: { shape?: RecordSke
             </div>
           </div>
         )}
-        {!shape.richCard && (
-          <div className="fn-rec-slot" style={{ order: 2 }}>
-            {record}
-          </div>
-        )}
-        <div className="fn-rec-slot" style={{ order: 3 }}>
-          <LexiconUsageSkeleton />
-        </div>
-        <div className="fn-rec-slot" style={{ order: 3 }}>
-          <BacklinksSummarySkeleton />
+        <div className="fn-rec-slot" style={{ order: 2 }}>
+          <RecordDataCardSkeleton rows={shape.richCard ? 4 : 6} />
         </div>
       </div>
       <div className="fn-rec-aside">
         <div className="fn-rec-slot" style={{ order: 1 }}>
           <OpenInSkeleton isPost={shape.isPost} />
         </div>
-        {shape.richCard && (
-          <div className="fn-rec-slot" style={{ order: 2 }}>
-            {record}
-          </div>
-        )}
         <div className="fn-rec-slot" style={{ order: 3 }}>
           <CopyCardSkeleton />
+        </div>
+        <div className="fn-rec-slot" style={{ order: 3 }}>
+          <LexiconUsageSkeleton />
+        </div>
+        <div className="fn-rec-slot" style={{ order: 3 }}>
+          <BacklinksSummarySkeleton />
         </div>
       </div>
     </div>

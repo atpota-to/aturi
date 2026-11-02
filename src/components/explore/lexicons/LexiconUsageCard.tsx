@@ -14,7 +14,7 @@ const SERIES_STEP = 60 * 60 * 12; // 12h buckets over a week
 
 /**
  * Compact "how much is this lexicon used across the atmosphere" card for
- * the bottom of a record page. Given the record's collection NSID, pulls
+ * a record page's aside. Given the record's collection NSID, pulls
  * 7-day creates / DID-estimate from the UFOs API plus a small sparkline,
  * and links into the lexicon's detail page. Renders nothing if the data
  * can't be reached so it never disrupts the record view.
