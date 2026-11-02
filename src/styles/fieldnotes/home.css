@@ -864,6 +864,18 @@
   }
 }
 
+/* On a phone the header's masthead already reads "Tour the Atmosphere" right
+   above the hero (chrome.css, Phone toolbar), so the pill would say it twice,
+   and the masthead's own height stands in for the hero's top padding. */
+@media (max-width: 639px) {
+  .fn-home-hero {
+    padding-top: 12px;
+  }
+  .fn-home-pill {
+    display: none;
+  }
+}
+
 /* Touch: the copy button stays 30px to the eye but takes a 42px tap. */
 @media (pointer: coarse) {
   .fn-home-iconbtn {

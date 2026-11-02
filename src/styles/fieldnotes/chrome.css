@@ -13,8 +13,10 @@
      ≤1180px  inline nav folds into the menu button; the tagline shows
               again in the room that leaves
      ≤767px   the explorer "go to" field becomes a search button
-     ≤639px   phone bar: 52px, 44px icon buttons, theme + session move into
-              the menu panel; the tagline hides */
+     ≤639px   phone: the bar gives way to a toolbar pinned to the bottom of
+              the screen (Phone toolbar, at the end of this file), the
+              menu becomes a sheet rising out of it, and landing pages
+              open with a masthead in place of the bar */
 
 .fn-sr-only {
   position: absolute;
@@ -687,12 +689,6 @@
     margin-bottom: 1rem;
   }
 
-  .fn-header-bar {
-    min-height: 52px;
-    padding: 4px 4px 4px 16px;
-    gap: 8px;
-  }
-
   .fn-brand {
     gap: 7px;
   }
@@ -706,39 +702,16 @@
     font-size: 17px;
   }
 
-  .fn-header-actions {
-    gap: 0;
-  }
-
   .fn-header-theme,
   .fn-header-session {
     display: none;
   }
 
-  .fn-icon-btn,
-  .fn-header .whats-new-badge-btn {
-    width: 44px;
-    height: 44px;
-    color: var(--text-primary);
-  }
-
-  .fn-header .whats-new-badge-dot {
-    top: 10px;
-    right: 10px;
-  }
-
-  .fn-header-panel,
   .fn-header-search-panel {
     left: 8px;
     right: 8px;
     width: auto;
     top: calc(100% + 6px);
-  }
-
-  .fn-header .whats-new-popover {
-    top: 60px;
-    left: 8px;
-    right: 8px;
   }
 
   .fn-sticky-crumbs {
@@ -765,6 +738,264 @@
     align-items: center;
     min-height: 40px;
   }
+}
 
-  
+/* ─── Phone toolbar ──────────────────────────────────────────────────── */
+
+/* Below 640px the header's bar steps aside and its job moves to the bottom
+   of the screen, where a thumb can reach it: a toolbar with the menu button
+   and a search field, and the menu itself as a sheet rising out of it.
+
+   Two components draw that toolbar. On explorer routes it is
+   <ExploreChromeBar>, which already sat at the bottom carrying the route's
+   filter and actions, and gains the menu button here. Everywhere else it is
+   .fn-phone-bar in Header.tsx, built from the same .explore-chrome-* classes
+   so the two read as one object; it hides wherever the explorer's bar is up
+   (`body.has-explore-chrome`).
+
+   --fn-phone-bar-h is the toolbar's resting height, which the menu sheet,
+   the what's-new sheet and anything else pinned to the bottom stand on.
+   The header's toolbar is a fixed 65px (a 44px field, 10px above and below,
+   the 1px top rule) plus the home-indicator inset; the explorer's is
+   measured, since a confirm step can make it taller. */
+
+:root {
+  --fn-phone-bar-h: calc(65px + env(safe-area-inset-bottom, 0px));
+}
+
+body.has-explore-chrome {
+  --fn-phone-bar-h: var(--explore-chrome-h, calc(65px + env(safe-area-inset-bottom, 0px)));
+}
+
+.fn-masthead,
+.fn-phone-bar,
+.fn-site-menu-btn,
+.fn-menu-grabber,
+.fn-menu-home,
+.fn-menu-whatsnew,
+.fn-menu-scrim {
+  display: none;
+}
+
+@media (max-width: 639px) {
+  /* The header keeps its place at the top of the page with nothing drawn:
+     it is still the sticky anchor the condensed breadcrumb hangs from, and
+     still holds the menu and the what's-new bell. Zero height, so the bar's
+     bottom edge, which the breadcrumb measures to decide when to drop its
+     condensed copy in, is the top of the screen. */
+  .fn-header {
+    background: transparent;
+    border-bottom: 0;
+  }
+
+  .fn-header-bar {
+    min-height: 0;
+    padding: 0;
+    background: transparent;
+  }
+
+  .fn-header-bar > .fn-header-brand,
+  .fn-header .fn-search-toggle,
+  .fn-header .fn-menu-toggle,
+  .fn-header .whats-new-badge-btn {
+    display: none;
+  }
+
+  /* Landing pages only (LANDING_PATHS in Header.tsx): the logo and tagline,
+     on the page rather than stuck over it. Tool pages start at their own
+     content. */
+  .fn-masthead {
+    display: flex;
+    align-items: center;
+    padding: 16px 16px 0;
+    font-family: var(--font-sans);
+  }
+
+  .fn-masthead .fn-tagline {
+    display: inline;
+  }
+
+  .fn-phone-bar {
+    display: block;
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+  }
+
+  body.has-explore-chrome .fn-phone-bar {
+    display: none;
+  }
+
+  /* The explorer bar's footer reservation (globals.css), for the header's
+     toolbar on every other page. */
+  body:has(.fn-phone-bar):not(.has-explore-chrome) .fn-footer {
+    padding-bottom: calc(20px + var(--fn-phone-bar-h) + 1rem);
+  }
+
+  .fn-site-menu-btn {
+    display: inline-flex;
+    position: relative;
+    color: var(--text-primary);
+  }
+
+  /* Specific enough to outlast the chips' hover fill (explorer.css), which
+     on a touch screen sticks to the button after the tap that opened it. */
+  .explore-chrome-inner .explore-chrome-button.fn-site-menu-btn[data-open] {
+    background: var(--accent-soft);
+    border-color: var(--accent-soft-border);
+    color: var(--accent-soft-fg);
+  }
+
+  .fn-site-menu-dot {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--text-accent);
+    border: 2px solid var(--bg-secondary);
+  }
+
+  /* Slim while scrolling down a page (useCondenseOnScroll): only the field
+     stays, shorter and without its box, the way Safari folds its own bar.
+     The field is still live, so a tap on it starts a search, and focusing
+     it brings the full bar back. */
+  .explore-chrome-inner {
+    transition: padding 0.2s ease;
+  }
+
+  .explore-chrome-form {
+    transition: height 0.2s ease, background-color 0.2s ease, border-color 0.2s ease;
+  }
+
+  .explore-chrome-bar[data-condensed] .explore-chrome-inner,
+  .fn-phone-bar[data-condensed] .explore-chrome-inner {
+    padding-top: 4px;
+    padding-bottom: calc(4px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .explore-chrome-bar[data-condensed] .explore-chrome-inner > :not(.explore-chrome-form),
+  .fn-phone-bar[data-condensed] .explore-chrome-inner > :not(.explore-chrome-form) {
+    display: none;
+  }
+
+  .explore-chrome-bar[data-condensed] .explore-chrome-form,
+  .fn-phone-bar[data-condensed] .explore-chrome-form {
+    height: 32px;
+    background: transparent;
+    border-color: transparent;
+  }
+
+  /* The menu, as a sheet standing on the toolbar. Fixed rather than hung off
+     the header, and capped so a tall menu (the sign-in flow) scrolls inside
+     the sheet instead of running off the top of the screen. */
+  .fn-header-menu-panel {
+    position: fixed;
+    top: auto;
+    right: 0;
+    bottom: var(--fn-phone-bar-h);
+    left: 0;
+    width: auto;
+    max-height: calc(100dvh - var(--fn-phone-bar-h) - 24px);
+    /* Over the inline overflow the panel sets for the wider dropdown. */
+    overflow-y: auto !important;
+    overscroll-behavior: contain;
+    border-width: 1px 0 0;
+    border-radius: 18px 18px 0 0;
+    box-shadow: 0 -10px 30px rgb(0 0 0 / 0.12);
+    transform: translateY(16px);
+  }
+
+  .fn-menu {
+    padding: 6px 12px 12px;
+  }
+
+  .fn-menu-grabber {
+    display: block;
+    width: 36px;
+    height: 5px;
+    margin: 8px auto 0;
+    border-radius: var(--radius-pill);
+    background: var(--border-strong);
+  }
+
+  /* Home, led by the logo: the header bar's job, in the one place on a phone
+     that still has the logo on every page. Full width, over the grid. */
+  .fn-header .compact-nav-link.fn-menu-home {
+    display: flex;
+    color: var(--text-primary);
+  }
+
+  .fn-header .compact-nav-link.fn-menu-home svg {
+    color: var(--text-accent);
+  }
+
+  .fn-menu-home .fn-wordmark {
+    font-size: 16px;
+  }
+
+  /* What's new beside Theme, so the grid's last row is a pair like every
+     other row rather than one full-width row under another. */
+  .fn-header .compact-nav-link.fn-menu-whatsnew {
+    display: flex;
+    width: 100%;
+    text-align: left;
+  }
+
+  .fn-header .compact-nav-link-wide {
+    grid-column: auto;
+  }
+
+  .fn-menu-dot {
+    flex-shrink: 0;
+    width: 8px;
+    height: 8px;
+    margin-left: auto;
+    border-radius: 50%;
+    background: var(--text-accent);
+  }
+
+  /* The page behind the sheet, dimmed. It stops at the toolbar, which stays
+     live: its menu button is how the sheet closes. `visibility` holds it
+     through the fade-out so the press that closed the menu can't fall
+     through to a link underneath. */
+  .fn-menu-scrim {
+    display: block;
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: var(--fn-phone-bar-h);
+    left: 0;
+    z-index: 35;
+    background: var(--modal-backdrop);
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.16s ease, visibility 0s linear 0.16s;
+  }
+
+  .fn-menu-scrim[data-open] {
+    opacity: 1;
+    visibility: visible;
+    transition: opacity 0.16s ease;
+  }
+
+  /* The bell's notes, which the menu's "What's new" row opens, as a sheet
+     over the toolbar like the menu. */
+  .fn-header .whats-new-popover {
+    position: fixed;
+    top: auto;
+    right: 8px;
+    bottom: calc(var(--fn-phone-bar-h) + 8px);
+    left: 8px;
+    width: auto;
+    max-height: calc(100dvh - var(--fn-phone-bar-h) - 32px);
+  }
+}
+
+[data-reduce-motion='true'] .explore-chrome-inner,
+[data-reduce-motion='true'] .explore-chrome-form,
+[data-reduce-motion='true'] .fn-menu-scrim {
+  transition: none;
 }
