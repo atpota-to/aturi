@@ -761,33 +761,15 @@ export function LeafletIcon({ size = 28, color = OG_COLORS.textPrimary }: IconPr
   );
 }
 
-/**
- * The universal-link chip from the home page's visual: a white pill with a
- * hairline edge, a green link glyph and the URL in mono.
- */
-export function UrlPill({ url, fontSize = 22 }: { url: string; fontSize?: number }) {
+export function DeerIcon({ size = 28, color = OG_COLORS.textPrimary }: IconProps = {}) {
   return (
-    <div
-      style={{
-        // Satori only supports flex/block/none/-webkit-box — "inline-flex"
-        // throws and 500s the whole card. The parent centers this row, so
-        // plain "flex" reads identically.
-        display: 'flex',
-        alignItems: 'center',
-        gap: '12px',
-        padding: '12px 24px',
-        background: OG_COLORS.bgSecondary,
-        border: `1px solid ${OG_COLORS.borderStrong}`,
-        borderRadius: `${OG_RADIUS.pill}px`,
-        fontFamily: 'IBM Plex Mono',
-        fontSize: `${fontSize}px`,
-        fontWeight: 500,
-        color: OG_COLORS.textPrimary,
-      }}
-    >
-      <LinkGlyph size={Math.round(fontSize * 0.95)} />
-      <span style={{ display: 'flex' }}>{url}</span>
-    </div>
+    <svg width={size} height={size} viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+      <path
+        fill={color}
+        d="m 149.96484,186.56641 46.09766,152.95898 c 0,0 -6.30222,-9.61174 -15.60547,-17.47656 -8.87322,-7.50128 -28.4082,-4.04492 -28.4082,-4.04492 0,0 6.14721,39.88867 15.53125,44.39843 10.71251,5.1482 22.19726,0.16993 22.19726,0.16993 0,0 11.7613,-4.87282 22.82032,31.82421 5.26534,17.47196 15.33258,50.877 20.9707,69.58594 2.16717,7.1913 8.83789,7.25781 8.83789,7.25781 0,0 6.67072,-0.0665 8.83789,-7.25781 5.63812,-18.70894 15.70536,-52.11398 20.9707,-69.58594 11.05902,-36.69703 22.82032,-31.82421 22.82032,-31.82421 0,0 11.48475,4.97827 22.19726,-0.16993 9.38404,-4.50976 15.5332,-44.39843 15.5332,-44.39843 0,0 -19.53693,-3.45636 -28.41015,4.04492 -9.30325,7.86482 -15.60547,17.47656 -15.60547,17.47656 l 46.09766,-152.95898 -49.32618,83.84179 -20.34375,-31.1914 6.35547,54.96875 -23.1582,39.36132 c 0,0 -2.97595,5.06226 -5.94336,4.68946 -0.009,-0.001 -0.0169,0.003 -0.0254,0.01 -0.008,-0.007 -0.0167,-0.0109 -0.0254,-0.01 -2.96741,0.3728 -5.94336,-4.68946 -5.94336,-4.68946 l -23.1582,-39.36132 6.35547,-54.96875 -20.34375,31.1914 z"
+        transform="matrix(2.6921023,0,0,1.7145911,-396.58283,-308.01527)"
+      />
+    </svg>
   );
 }
 
@@ -817,49 +799,6 @@ export function ArrowRight({ size = 22, color = 'currentColor' }: { size?: numbe
 }
 
 /**
- * The home page's "Open dame's profile in…" choice: a row of client chips,
- * the picked one filled moss with white type, the rest white with a
- * hairline, a muted "+N" closing the row. Names only, as on the site.
- */
-export function ClientChoiceRow({
-  clients = ['Anisota', 'Bluesky', 'Leaflet', 'Deer', 'Grain'],
-  picked = 0,
-  more = 25,
-  size = 22,
-}: {
-  clients?: string[];
-  picked?: number;
-  more?: number;
-  size?: number;
-}) {
-  const chip = (isPicked: boolean) => ({
-    display: 'flex',
-    alignItems: 'center',
-    padding: `${Math.round(size * 0.55)}px ${Math.round(size * 0.9)}px`,
-    background: isPicked ? OG_COLORS.accentFill : OG_COLORS.bgSecondary,
-    border: `1px solid ${isPicked ? OG_COLORS.accentFill : OG_COLORS.borderStrong}`,
-    borderRadius: `${OG_RADIUS.control}px`,
-    fontSize: `${size}px`,
-    fontWeight: 600,
-    lineHeight: 1.2,
-  });
-
-  return (
-    <div style={{ display: 'flex', gap: '12px', alignItems: 'center', justifyContent: 'center' }}>
-      {clients.map((name, i) => (
-        <div
-          key={name}
-          style={{ ...chip(i === picked), color: i === picked ? OG_COLORS.textOnAccent : OG_COLORS.textPrimary }}
-        >
-          {name}
-        </div>
-      ))}
-      {more > 0 && <div style={{ ...chip(false), color: OG_COLORS.textTertiary }}>{`+${more}`}</div>}
-    </div>
-  );
-}
-
-/**
  * Headline + subhead block used by every product OG, in the landing pages'
  * title style (.fl-title): Figtree 800, tight tracking, with the closing
  * phrase in green (.fl-title-accent).
@@ -875,29 +814,24 @@ export function Headline({
   tagline,
   size = 74,
   taglineSize,
-  align = 'left',
 }: {
   title: string;
   tagline?: string;
   /** Display size. Split layouts pass a smaller value to fit a half-width column. */
   size?: number;
   taglineSize?: number;
-  /** `center` for a hero stacked over the visual, as on the site's home page. */
-  align?: 'left' | 'center';
 }) {
-  const centered = align === 'center';
   const lines = title.split('\n').map((line) => {
     const accent = line.length > 2 && line.startsWith('*') && line.endsWith('*');
     return { text: accent ? line.slice(1, -1) : line, accent };
   });
   const subSize = taglineSize ?? Math.max(22, Math.round(size * 0.36));
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: centered ? 'center' : 'flex-start' }}>
+    <div style={{ display: 'flex', flexDirection: 'column' }}>
       <div
         style={{
           display: 'flex',
           flexDirection: 'column',
-          alignItems: centered ? 'center' : 'flex-start',
           fontSize: `${size}px`,
           fontWeight: 800,
           letterSpacing: '-0.035em',
@@ -926,7 +860,6 @@ export function Headline({
             lineHeight: 1.5,
             maxWidth: '900px',
             display: 'flex',
-            textAlign: centered ? 'center' : 'left',
           }}
         >
           {tagline}

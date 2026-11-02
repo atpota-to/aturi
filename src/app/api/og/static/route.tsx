@@ -5,7 +5,7 @@ import {
   ArrowRight,
   BlueskyIcon,
   BrandMark,
-  ClientChoiceRow,
+  DeerIcon,
   Headline,
   Kicker,
   LeafGlyph,
@@ -17,7 +17,6 @@ import {
   OG_RADIUS,
   ServerGlyph,
   SoftPill,
-  UrlPill,
 } from '@/lib/og-design';
 import { TOOL_COUNT } from '@/lib/mcp/catalog';
 import { MCP_STAGE } from '@/lib/mcp/about';
@@ -30,16 +29,15 @@ type PageConfig = {
   eyebrow: string;
   /** Lines split on '\n'; a line wrapped in asterisks is set in the accent. */
   title: string;
-  tagline: string;
+  tagline?: string;
+  /** Short facts set as white pills under the headline, in place of a tagline. */
+  facts?: { lead?: string; text: string }[];
   /**
-   * `split` puts the headline and the visual side by side; `center` stacks a
-   * centred headline over the visual, like the site's home hero. Tall
-   * visuals must use `split` — Satori paints an overflowing block straight
-   * over its neighbours, which is how the extension popup once ended up
-   * sitting on top of its own tagline.
+   * Promotional product visual, set beside the headline. Keep it within the
+   * card's height: Satori paints an overflowing block straight over its
+   * neighbours, which is how the extension popup once ended up sitting on
+   * top of its own tagline.
    */
-  layout: 'split' | 'center';
-  /** Promotional product visual. */
   visual: ReactNode;
   /** Extra glyphs the Figtree subset needs for text baked into the visual. */
   visualText?: string;
@@ -62,7 +60,6 @@ function configFor(page: string): PageConfig {
         title: 'Browse\n*every PDS.*',
         tagline:
           'Records, identity history, backlinks, and a live view of network activity. For any account in the Atmosphere.',
-        layout: 'split',
         visual: <ExploreVisual />,
         visualText: 'Record key Created ' + EXPLORE_ROWS.map((r) => r[1]).join(' '),
         visualMono: 'pds.atpota.to @dame.is app.bsky.feed.post ' + EXPLORE_ROWS.map((r) => r[0]).join(' '),
@@ -73,7 +70,6 @@ function configFor(page: string): PageConfig {
         title: 'Jump between\n*clients in one click.*',
         tagline:
           'Land on any post and pop open the curated picker. Auto-redirect by lexicon, inspect the underlying AT URI, copy a universal link.',
-        layout: 'split',
         visual: <ExtensionVisual />,
         visualText: 'aturi Waypoints Inspect Recommended for posts Or open in Anisota Default Bluesky Leaflet',
         visualMono: 'app.bsky.feed.post at://dame.is/ 3lq9… anisota.net bsky.app leaflet.pub',
@@ -84,7 +80,6 @@ function configFor(page: string): PageConfig {
         title: 'One link, every\n*Atmosphere client.*',
         tagline:
           'Share aturi.to/handle/collection/rkey with anyone; they pick where to open it, from a curated list of 25+ clients.',
-        layout: 'split',
         visual: <PickerVisual />,
         visualText: 'Open dame’s post in… Pick an app. They all show the same post. Recommended Anisota Bluesky Leaflet +22 more clients',
         visualMono: 'aturi.to/dame.is/app.bsky.feed.post/3lq9 anisota.net bsky.app leaflet.pub',
@@ -95,7 +90,6 @@ function configFor(page: string): PageConfig {
         title: 'Run your own\n*instance.*',
         tagline:
           'Open source, environment-driven branding, and ready to deploy on a custom domain.',
-        layout: 'split',
         visual: <ForkVisual />,
         visualMono:
           '.env.local NEXT_PUBLIC_DOMAIN NEXT_PUBLIC_SITE_NAME NEXT_PUBLIC_AUTHOR_NAME = moss.link moss you',
@@ -106,7 +100,6 @@ function configFor(page: string): PageConfig {
         title: 'Add Atmosphere\n*links to your app.*',
         tagline:
           'Drop-in npm packages (a zero-dependency core and a headless React picker) for client links, recommendations, and AT-URI resolution.',
-        layout: 'split',
         visual: <DocsVisual />,
         visualText: 'Terminal',
         visualMono:
@@ -119,7 +112,6 @@ function configFor(page: string): PageConfig {
         tagline:
           'Add aturi.to/api/mcp to Claude, Cursor, or any MCP client — no key, no account. ' +
           'Repositories, identity, backlinks, Jetstream, and the protocol docs themselves.',
-        layout: 'split',
         visual: <McpVisual />,
         visualText: 'What has @aturi.to been posting about, and which post landed best? read-only tools',
         visualMono: `agent · aturi.to/api/mcp ${TOOL_COUNT} resolve_identity get_author_feed did:plc:6teuh… 8 posts`,
@@ -130,7 +122,6 @@ function configFor(page: string): PageConfig {
         title: 'Browse your\n*private records.*',
         tagline:
           'Atproto spaces keep records outside your public repo. Sign in to explore the ones your account can reach.',
-        layout: 'split',
         visual: <SpacesVisual />,
         visualText: 'Space Collections Records',
         visualMono: 'my.bulletin.board/self at.secretsky.post at.secretsky.reaction 24 8',
@@ -138,14 +129,13 @@ function configFor(page: string): PageConfig {
     case 'home':
     default:
       return {
-        eyebrow: 'Atmosphere fast travel',
-        title: 'Tour the\n*Atmosphere.*',
-        tagline:
-          'Travel between clients with the browser extension, share universal links, and explore any account’s PDS data.',
-        layout: 'center',
+        eyebrow: 'Tour the Atmosphere',
+        title: 'Jump between\nclients, share\nuniversal links,\n*browse any PDS.*',
+        facts: [{ lead: '30', text: 'Atmosphere clients' }, { text: 'Chrome & Firefox' }, { text: 'Open source' }],
         visual: <HomeVisual />,
-        visualText: 'Open dame’s profile in… Anisota Bluesky Leaflet Deer Grain +25',
-        visualMono: 'aturi.to/dame.is',
+        visualText:
+          'aturi Open in Inspect 3 Post by dame Suggested Anisota Default Bluesky Deer Auto-redirect',
+        visualMono: 'bsky.app/profile/dame.is/post/3lq9c2fhz3k2v @dame.is · on anisota.net deer.social',
       };
   }
 }
@@ -155,7 +145,7 @@ function configFor(page: string): PageConfig {
 const PANEL_W = 470;
 
 /**
- * White sheet every split-layout visual sits on: the site's card, with an
+ * White sheet most visuals sit on: the site's card, with an
  * optional off-white header strip (the "agent · aturi.to/api/mcp" row on the
  * MCP page, the table head in the explorer).
  */
@@ -300,12 +290,302 @@ function AnisotaMark({ size, color }: { size: number; color: string }) {
 // ─── Page visuals ──────────────────────────────────────────────────────────
 
 function HomeVisual() {
-  // The home page's universal-links card: one aturi.to link, the question it
-  // answers, and the row of clients with the reader's pick filled in.
+  // The home page's OG image in miniature: a Bluesky post open in the
+  // browser, and the aturi popup offering the other clients that show it.
+  return <BrowserScene />;
+}
+
+const BROWSER_W = 500;
+
+/** A row in the popup's client list: mark, name over a mono host, a badge. */
+function PopupClient({
+  name,
+  host,
+  icon,
+  suggested,
+}: {
+  name: string;
+  host: string;
+  icon: ReactNode;
+  suggested?: boolean;
+}) {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '18px' }}>
-      <UrlPill url="aturi.to/dame.is" />
-      <ClientChoiceRow picked={0} />
+    <div
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: '11px',
+        padding: '8px 11px',
+        background: suggested ? OG_COLORS.accentSoft : OG_COLORS.bgSecondary,
+        border: `1px solid ${suggested ? OG_COLORS.accentSoftRing : OG_COLORS.borderMedium}`,
+        borderRadius: '10px',
+      }}
+    >
+      <div style={{ display: 'flex', width: 24, justifyContent: 'center' }}>{icon}</div>
+      <div style={{ display: 'flex', flexDirection: 'column', flex: 1, lineHeight: 1.25 }}>
+        <span style={{ display: 'flex', fontSize: '15px', fontWeight: 600 }}>{name}</span>
+        <MonoLine size={11} color={OG_COLORS.textTertiary}>
+          {host}
+        </MonoLine>
+      </div>
+      {suggested && (
+        <div
+          style={{
+            display: 'flex',
+            padding: '2px 9px',
+            background: OG_COLORS.bgSecondary,
+            border: `1px solid ${OG_COLORS.accentSoftRing}`,
+            borderRadius: `${OG_RADIUS.pill}px`,
+            fontSize: '12px',
+            fontWeight: 600,
+            color: OG_COLORS.accentSoftFg,
+          }}
+        >
+          Default
+        </div>
+      )}
+    </div>
+  );
+}
+
+/**
+ * The browser window from the extension landing page: a bsky.app post, its
+ * page sketched as skeleton lines, and the aturi popup open over it with its
+ * folder tabs, the suggested clients, and the auto-redirect switch.
+ */
+function BrowserScene() {
+  const tab = (label: ReactNode, open: boolean) => (
+    <div
+      style={{
+        display: 'flex',
+        flex: 1,
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: '7px',
+        height: '32px',
+        marginBottom: '-1px',
+        background: open ? OG_COLORS.bgSecondary : OG_COLORS.bgTertiary,
+        borderTop: `1px solid ${OG_COLORS.borderMedium}`,
+        borderLeft: `1px solid ${OG_COLORS.borderMedium}`,
+        borderRight: `1px solid ${OG_COLORS.borderMedium}`,
+        borderBottom: open ? 'none' : `1px solid ${OG_COLORS.borderMedium}`,
+        borderTopLeftRadius: '9px',
+        borderTopRightRadius: '9px',
+        fontSize: '14px',
+        fontWeight: open ? 600 : 500,
+        color: open ? OG_COLORS.textPrimary : OG_COLORS.textTertiary,
+      }}
+    >
+      {label}
+    </div>
+  );
+
+  return (
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        width: `${BROWSER_W}px`,
+        height: '450px',
+        position: 'relative',
+        background: OG_COLORS.bgSecondary,
+        border: `1px solid ${OG_COLORS.borderMedium}`,
+        borderRadius: `${OG_RADIUS.card}px`,
+      }}
+    >
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '12px',
+          height: '46px',
+          padding: '0 14px',
+          background: OG_COLORS.surfaceSubtle,
+          borderBottom: `1px solid ${OG_COLORS.borderSubtle}`,
+          borderTopLeftRadius: `${OG_RADIUS.card - 1}px`,
+          borderTopRightRadius: `${OG_RADIUS.card - 1}px`,
+        }}
+      >
+        <div style={{ display: 'flex', gap: '6px' }}>
+          {[0, 1, 2].map((i) => (
+            <div key={i} style={{ display: 'flex', width: 10, height: 10, borderRadius: 5, background: OG_COLORS.borderStrong }} />
+          ))}
+        </div>
+        <div
+          style={{
+            display: 'flex',
+            flex: 1,
+            alignItems: 'center',
+            height: '28px',
+            padding: '0 11px',
+            background: OG_COLORS.bgSecondary,
+            border: `1px solid ${OG_COLORS.borderMedium}`,
+            borderRadius: '8px',
+          }}
+        >
+          <MonoLine size={12} color={OG_COLORS.textSecondary}>
+            bsky.app/profile/dame.is/post/3lq9c2fhz3k2v
+          </MonoLine>
+        </div>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: 30,
+            height: 30,
+            background: OG_COLORS.accentSoft,
+            border: `1px solid ${OG_COLORS.accentSoftRing}`,
+            borderRadius: '8px',
+          }}
+        >
+          <LeafGlyph size={16} />
+        </div>
+      </div>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', padding: '26px 20px' }}>
+        {[86, 170, 140, 112, 160].map((w, i) => (
+          <div key={i} style={{ display: 'flex', width: w, height: 10, borderRadius: 5, background: OG_COLORS.bgTertiary }} />
+        ))}
+      </div>
+
+      <div
+        style={{
+          position: 'absolute',
+          top: '58px',
+          right: '14px',
+          width: '296px',
+          display: 'flex',
+          flexDirection: 'column',
+          background: OG_COLORS.bgSecondary,
+          border: `1px solid ${OG_COLORS.borderStrong}`,
+          borderRadius: '14px',
+        }}
+      >
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            padding: '12px 14px',
+            fontSize: '16px',
+            fontWeight: 700,
+          }}
+        >
+          <LeafGlyph size={16} />
+          <span style={{ display: 'flex' }}>aturi</span>
+        </div>
+        <div
+          style={{
+            display: 'flex',
+            gap: '6px',
+            padding: '0 10px',
+            borderBottom: `1px solid ${OG_COLORS.borderMedium}`,
+          }}
+        >
+          {tab('Open in', true)}
+          {/* An array, not a fragment: Satori lays a fragment out as a box
+              of its own, which drops the tab's gap between label and count. */}
+          {tab(
+            [
+              <span key="label" style={{ display: 'flex' }}>
+                Inspect
+              </span>,
+              <span
+                key="count"
+                style={{
+                  display: 'flex',
+                  padding: '0 6px',
+                  background: OG_COLORS.bgSecondary,
+                  borderRadius: `${OG_RADIUS.pill}px`,
+                  fontSize: '11px',
+                  fontWeight: 600,
+                  color: OG_COLORS.textSecondary,
+                }}
+              >
+                3
+              </span>,
+            ],
+            false,
+          )}
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '7px', padding: '10px 11px 12px' }}>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px',
+              padding: '8px 10px',
+              background: OG_COLORS.surfaceSubtle,
+              borderRadius: '10px',
+            }}
+          >
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: 28,
+                height: 28,
+                borderRadius: 14,
+                background: OG_COLORS.accentFill,
+                color: OG_COLORS.textOnAccent,
+                fontSize: '14px',
+                fontWeight: 700,
+              }}
+            >
+              d
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.25 }}>
+              <span style={{ display: 'flex', fontSize: '14px', fontWeight: 600 }}>Post by dame</span>
+              <MonoLine size={11} color={OG_COLORS.textTertiary}>
+                @dame.is · on bsky.app
+              </MonoLine>
+            </div>
+          </div>
+          <Kicker size={11} color={OG_COLORS.textTertiary}>
+            Suggested
+          </Kicker>
+          <PopupClient
+            name="Anisota"
+            host="anisota.net"
+            suggested
+            icon={<AnisotaMark size={20} color={OG_COLORS.textPrimary} />}
+          />
+          <PopupClient name="Bluesky" host="bsky.app" icon={<BlueskyIcon size={19} />} />
+          <PopupClient name="Deer" host="deer.social" icon={<DeerIcon size={20} />} />
+        </div>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '10px 14px',
+            background: OG_COLORS.surfaceSubtle,
+            borderTop: `1px solid ${OG_COLORS.borderSubtle}`,
+            borderBottomLeftRadius: '13px',
+            borderBottomRightRadius: '13px',
+            fontSize: '13px',
+            color: OG_COLORS.textSecondary,
+          }}
+        >
+          <span style={{ display: 'flex' }}>Auto-redirect</span>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'flex-end',
+              width: 34,
+              height: 19,
+              padding: '0 2px',
+              background: OG_COLORS.accentFill,
+              borderRadius: 10,
+            }}
+          >
+            <div style={{ display: 'flex', width: 15, height: 15, borderRadius: 8, background: OG_COLORS.bgSecondary }} />
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
@@ -610,6 +890,34 @@ function McpVisual() {
   );
 }
 
+/** Facts under a headline, as white hairline pills with an optional bold lead. */
+function FactPills({ facts }: { facts: { lead?: string; text: string }[] }) {
+  return (
+    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginTop: '2px' }}>
+      {facts.map((f) => (
+        <div
+          key={f.text}
+          style={{
+            display: 'flex',
+            alignItems: 'baseline',
+            gap: '7px',
+            padding: '7px 15px',
+            background: OG_COLORS.bgSecondary,
+            border: `1px solid ${OG_COLORS.borderStrong}`,
+            borderRadius: `${OG_RADIUS.pill}px`,
+            fontSize: '17px',
+            fontWeight: 600,
+            color: OG_COLORS.textSecondary,
+          }}
+        >
+          {f.lead && <span style={{ display: 'flex', color: OG_COLORS.textPrimary, fontWeight: 700 }}>{f.lead}</span>}
+          <span style={{ display: 'flex' }}>{f.text}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 // ─── Route ────────────────────────────────────────────────────────────────
 
 export async function GET(request: NextRequest) {
@@ -617,10 +925,10 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const page = searchParams.get('page') || 'home';
     const config = configFor(page);
-    const isSplit = config.layout === 'split';
 
     const fonts = await loadOgFonts(
-      `${config.title} ${config.tagline} ${config.eyebrow} ${config.visualText || ''}`,
+      `${config.title} ${config.tagline ?? ''} ${config.eyebrow} ${config.visualText || ''} ` +
+        (config.facts ?? []).map((f) => `${f.lead ?? ''} ${f.text}`).join(' '),
       config.visualMono || '',
     );
 
@@ -633,46 +941,18 @@ export async function GET(request: NextRequest) {
             {/* No overflow: 'hidden' on these layout boxes. Satori pushes a
                 clip and mask onto every descendant of one, which more than
                 doubled the home card's render CPU, and it was also clipping
-                the top of the home URL pill and the hook of the J in "Jump".
+                the top of a URL pill and the hook of the J in "Jump".
                 The copy here is fixed, so check new pages by eye instead. */}
-            {isSplit ? (
-              <div style={{ display: 'flex', flex: 1, gap: '44px', alignItems: 'center', paddingBottom: '18px' }}>
-                <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0, gap: '24px' }}>
-                  <div style={{ display: 'flex' }}>
-                    <SoftPill>{config.eyebrow}</SoftPill>
-                  </div>
-                  <Headline title={config.title} tagline={config.tagline} size={54} taglineSize={22} />
+            <div style={{ display: 'flex', flex: 1, gap: '44px', alignItems: 'center', paddingBottom: '10px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0, gap: '24px' }}>
+                <div style={{ display: 'flex' }}>
+                  <SoftPill>{config.eyebrow}</SoftPill>
                 </div>
-                <div style={{ display: 'flex', flexShrink: 0 }}>{config.visual}</div>
+                <Headline title={config.title} tagline={config.tagline} size={54} taglineSize={22} />
+                {config.facts && <FactPills facts={config.facts} />}
               </div>
-            ) : (
-              // Centred on the canvas rather than the space under the
-              // wordmark, so the hero sits where the eye expects it; the
-              // negative margin hands back the wordmark row's height.
-              <div
-                style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  flex: 1,
-                  gap: '22px',
-                  marginTop: '-48px',
-                }}
-              >
-                <SoftPill>{config.eyebrow}</SoftPill>
-                <Headline
-                  title={config.title}
-                  tagline={config.tagline}
-                  size={64}
-                  taglineSize={24}
-                  align="center"
-                />
-                <div style={{ display: 'flex', justifyContent: 'center', marginTop: '14px' }}>
-                  {config.visual}
-                </div>
-              </div>
-            )}
+              <div style={{ display: 'flex', flexShrink: 0 }}>{config.visual}</div>
+            </div>
           </div>
         </OgFrame>
       ),
