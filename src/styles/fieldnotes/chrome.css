@@ -240,6 +240,30 @@
   border-color: var(--text-faint) !important;
 }
 
+/* The signed-in chip rests on --bg-primary (pillStyle), so the shared
+   hover above would lighten it back toward the bar. Step it a shade the
+   other way instead, as the menu tiles do. */
+.fn-session-account:hover,
+.fn-session-account[aria-expanded='true'] {
+  background: var(--bg-tertiary) !important;
+}
+
+/* The chip's avatar: a rounded square nested in the 8px control rather
+   than a circle, so its corners follow the chip's. 6px is the control
+   radius less the gap around it, as the menu rows do. Where corner-shape
+   ships, a squircle instead: its superellipse corner reads about as round
+   as that 6px arc at 10px, with no visible join where curve meets edge. */
+.fn-session-avatar {
+  border-radius: calc(var(--radius-control) - 2px);
+}
+
+@supports (corner-shape: squircle) {
+  .fn-session-avatar {
+    border-radius: calc(var(--radius-control) + 2px);
+    corner-shape: squircle;
+  }
+}
+
 .fn-session-item:hover {
   background: var(--bg-tertiary) !important;
   color: var(--text-primary) !important;

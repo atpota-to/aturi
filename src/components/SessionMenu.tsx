@@ -105,7 +105,7 @@ export default function SessionMenu({ variant = 'inline' }: { variant?: Variant 
         aria-expanded={open}
         aria-haspopup="menu"
         title={handle || ''}
-        className="fn-session-trigger"
+        className="fn-session-trigger fn-session-account"
         style={pillStyle(variant)}
       >
         {avatar ? (
@@ -115,14 +115,15 @@ export default function SessionMenu({ variant = 'inline' }: { variant?: Variant 
             alt=""
             width={26}
             height={26}
-            style={{ width: 26, height: 26, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }}
+            className="fn-session-avatar"
+            style={{ width: 26, height: 26, objectFit: 'cover', flexShrink: 0 }}
           />
         ) : (
           <span
+            className="fn-session-avatar"
             style={{
               width: 26,
               height: 26,
-              borderRadius: '50%',
               display: 'inline-flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -329,7 +330,10 @@ function pillStyle(variant: Variant): React.CSSProperties {
     height: 36,
     padding: variant === 'inline' ? '0 0.75rem 0 0.3rem' : '0 0.625rem 0 0.3rem',
     boxSizing: 'border-box',
-    background: 'var(--bg-secondary)',
+    // The page's paper, not the bar's own --bg-secondary: on the bar it sat
+    // flush and read as a label with a border. Same fill as the go-to field
+    // beside it (.fn-search-field), so the two read as one set of controls.
+    background: 'var(--bg-primary)',
     border: '1px solid var(--border-strong)',
     borderRadius: 'var(--radius-control)',
     color: 'var(--text-primary)',
