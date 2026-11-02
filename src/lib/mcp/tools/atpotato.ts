@@ -35,9 +35,7 @@ import { listRecordsPage, type AtRecord } from '@/utils/atproto/pdsClient';
 import { McpToolError } from '@/lib/mcp/errors';
 import { resolveGuardedIdentity } from '@/lib/mcp/identityResolve';
 import { toolHandler, recordLink, READ_ONLY } from '@/lib/mcp/respond';
-
-const ATPOTATO = 'https://atpota.to';
-const WEATHER_PAGE = `${ATPOTATO}/weather`;
+import { ATPOTATO, WEATHER_REPORT as WEATHER_PAGE, compareWithUsual, diversityLevel } from '@/utils/atpotatoWeather';
 
 /** atpota.to's repo. It also holds the guides, which are documents but not the dispatch. */
 const ATPOTATO_DID = 'did:plc:qntsxa2i4sb24noi45fx4np2';
@@ -72,19 +70,6 @@ const SCALE = {
     'The percent of new records written outside Bluesky’s lexicons (app.bsky.*, chat.bsky.*). A ratio of ' +
     'counts, not the diversity index: one app writing in bulk moves it on its own.',
 } as const;
-
-/** atpota.to's levels for the diversity index (server/atmosphere.ts DIVERSITY_LEVELS). */
-const DIVERSITY_LEVELS = [
-  ['extreme', 11],
-  ['very high', 8],
-  ['high', 6],
-  ['moderate', 3],
-] as const;
-
-function diversityLevel(index: number): string {
-  for (const [name, from] of DIVERSITY_LEVELS) if (index >= from) return name;
-  return 'low';
-}
 
 /**
  * The page compares an hour's diversity index with usual only once this many
@@ -247,11 +232,9 @@ function againstUsual(normal: unknown): Json | null {
     recordsOutsideBlueskyPercent: share(now.elsewhere, now.creates),
   };
   const listeningSince = str(normal.historyStart);
-  // The same weekday once there is one to compare with, the same hour on the
-  // days before until then; and nothing on less than half an hour of now.
-  const basis = weeks.windows > 0 ? weeks : days.windows > 0 ? days : null;
-  const diversity = hourDiversity(normal.diversity, basis === weeks ? 'weeks' : basis === days ? 'days' : null);
-  if (!basis || basis.seconds <= 0 || now.seconds < 1_800) {
+  const compared = compareWithUsual(now, days, weeks);
+  const diversity = hourDiversity(normal.diversity, compared?.basis ?? null);
+  if (!compared) {
     return {
       lastHour,
       verdict: null,
@@ -262,23 +245,17 @@ function againstUsual(normal: unknown): Json | null {
       listeningSince,
     };
   }
-  const ratio = now.creates / now.seconds / (basis.creates / basis.seconds);
-  const verdict =
-    ratio >= 1.25 ? 'much busier than usual'
-      : ratio >= 1.08 ? 'busier than usual'
-        : ratio <= 0.8 ? 'much quieter than usual'
-          : ratio <= 0.93 ? 'quieter than usual'
-            : 'about as busy as usual';
+  const basis = compared.basis === 'weeks' ? weeks : days;
   return {
     lastHour,
     usual: {
-      basis: basis === weeks ? 'the same hour on the same weekday, earlier weeks' : 'the same hour, earlier days',
+      basis: compared.basis === 'weeks' ? 'the same hour on the same weekday, earlier weeks' : 'the same hour, earlier days',
       windows: basis.windows,
       recordsPerSecond: perSecond(basis.creates, basis.seconds),
       recordsOutsideBlueskyPercent: share(basis.elsewhere, basis.creates),
     },
-    changePercent: Math.round((ratio - 1) * 100),
-    verdict,
+    changePercent: compared.changePercent,
+    verdict: compared.verdict,
     ...(diversity ? { diversity } : {}),
     listeningSince,
   };
