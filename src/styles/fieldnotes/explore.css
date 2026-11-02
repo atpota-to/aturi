@@ -420,15 +420,28 @@
   color: var(--accent-forest);
 }
 
+/* The time and the way out to the full report, on the heading's right; under
+   it once the heading takes the row. */
+.fn-wx-headside {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 14px;
+}
+
 .fn-wx-updated {
   font-size: 12px;
   color: var(--text-tertiary);
   font-variant-numeric: tabular-nums;
 }
 
+.fn-wx-headside .fn-list-card-headlink {
+  margin-left: 0;
+}
+
 /* Hairlines between the stats from the grid's own background, as .fn-stat-grid
    draws them; two to a row on a phone so none is left beside an empty slot.
-   No bottom border: the footer's top border is the line under them. */
+   No bottom border: the card's own edge is the line under them. */
 .fn-wx-grid {
   margin: 0;
   display: grid;
@@ -487,10 +500,6 @@
   font-size: 12.5px;
   line-height: 1.45;
   color: var(--text-secondary);
-}
-
-.fn-wx .fn-pulse-foot > a {
-  gap: 6px;
 }
 
 /* ---------- List card (shared by the landing and the lexicon pages) ---------- */

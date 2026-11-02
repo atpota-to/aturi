@@ -198,11 +198,17 @@ export default function AtmosphericConditions() {
               &rsquo;s weather station
             </p>
           </div>
-          {updated && (
-            <span className="fn-wx-updated">
-              Updated <time dateTime={reading!.measuredAt}>{updated}</time>
-            </span>
-          )}
+          <div className="fn-wx-headside">
+            {updated && (
+              <span className="fn-wx-updated">
+                Updated <time dateTime={reading!.measuredAt}>{updated}</time>
+              </span>
+            )}
+            <a href={WEATHER_REPORT} target="_blank" rel="noreferrer noopener" className="fn-list-card-headlink">
+              Full weather report
+              <ExternalLink size={12} aria-hidden />
+            </a>
+          </div>
         </div>
 
         {down ? (
@@ -259,13 +265,6 @@ export default function AtmosphericConditions() {
             />
           </dl>
         )}
-
-        <div className="fn-pulse-foot">
-          <a href={WEATHER_REPORT} target="_blank" rel="noreferrer noopener">
-            Full weather report on atpota.to
-            <ExternalLink size={13} aria-hidden />
-          </a>
-        </div>
       </section>
     </AppearIn>
   );
