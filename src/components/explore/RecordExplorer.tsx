@@ -9,14 +9,7 @@ import { resolveIdentifier, type IdentityBundle } from '@/utils/atproto/identity
 import { encodeRepo } from '@/utils/atproto/urls';
 import { lexiconPathFor } from '@/utils/ufos/nsid';
 import { getMarginLexiconDisplayName, getMarginLexiconType } from '@/utils/marginLexicons';
-import { parseURI } from '@/utils/uriParser';
-import {
-  BlueskySVG,
-  getRecommendedWaypoints,
-  getWaypointsForType,
-  type Waypoint,
-} from '@/utils/waypoints';
-import { customToWaypoint, personalizeRecommended } from '@/utils/personalizeWaypoints';
+import { BlueskySVG } from '@/utils/waypoints';
 import AppearIn from './AppearIn';
 import Breadcrumb from './Breadcrumb';
 import CopyButton from './CopyButton';
@@ -316,8 +309,9 @@ function RecordView({
   // columns. The record itself takes the wide column: the preview, then the
   // Record card (field table and raw JSON behind one Fields/JSON switch),
   // where long values have room, then engagement and sign-in. What sits
-  // around the record takes the aside: the "Open in" panel, the copy row,
-  // lexicon usage and backlinks.
+  // around the record takes the aside: the copy row, lexicon usage and
+  // backlinks. Which app to open it in is the universal link page's job,
+  // which the copy row and the rich card link to.
   //
   // Null until the record lands — the title bar above is already real by
   // then, so only the body waits, behind <RecordBodySkeleton>.
@@ -460,16 +454,6 @@ function RecordView({
       }
     }
   }
-  const openInNode = (
-    <OpenInPanel
-      handle={identity.handle || identity.did}
-      did={identity.did}
-      collection={collection}
-      rkey={decodedRkey}
-      universalPath={aturiUniversalPath}
-      isPost={isPost}
-    />
-  );
   const renderColumn = (column: Placed['column']) =>
     placed
       .filter((p) => p.column === column)
@@ -478,7 +462,7 @@ function RecordView({
           key={p.id}
           delay={Math.min(0.05 + i * 0.03, 0.16)}
           className="fn-rec-slot"
-          style={{ order: SLOT_ORDER[p.id] ?? 3 + placed.indexOf(p) }}
+          style={{ order: SLOT_ORDER[p.id] ?? 2 + placed.indexOf(p) }}
         >
           {p.node}
         </AppearIn>
@@ -498,10 +482,7 @@ function RecordView({
         {record && (
           <div className="fn-rec-body">
             <div className="fn-rec-main">{renderColumn('main')}</div>
-            <aside className="fn-rec-aside" aria-label="Open, copy and links to this record">
-              <AppearIn delay={0.05} className="fn-rec-slot" style={{ order: 1 }}>
-                {openInNode}
-              </AppearIn>
+            <aside className="fn-rec-aside" aria-label="Copy and links to this record">
               {renderColumn('aside')}
             </aside>
           </div>
@@ -540,12 +521,12 @@ function recordSkeletonShape(
 
 /**
  * Stacking order once the two columns collapse into one (phones and narrow
- * tablets, see .fn-rec-body in record.css): the preview, then where to open
- * it, then its data, then everything else in the visitor's own order (3 plus
- * its place in that order, since those slots come from both columns). The
- * same values order the slots within each column on wider screens.
+ * tablets, see .fn-rec-body in record.css): the preview, then its data,
+ * then everything else in the visitor's own order (2 plus its place in that
+ * order, since those slots come from both columns). The same values order
+ * the slots within each column on wider screens.
  */
-const SLOT_ORDER: Record<string, number> = { richPreview: 0, record: 2 };
+const SLOT_ORDER: Record<string, number> = { richPreview: 0, record: 1 };
 
 /**
  * The pill beside the rkey: what kind of record this is, in words, for the
@@ -620,118 +601,6 @@ function ViewSwitchButton({
       {label}
     </button>
   );
-}
-
-/**
- * "Open this record in": the record's recommended apps first (the top one
- * filled), then a few more from the visitor's own waypoint groups, then a link
- * to the universal link page, which lists every app. The same personalisation
- * as the universal link page's picker: a waypoint no group shows is left out.
- * Aturi's own waypoints are skipped, since they lead back here.
- */
-function OpenInPanel({
-  handle,
-  did,
-  collection,
-  rkey,
-  universalPath,
-  isPost,
-}: {
-  handle: string;
-  did: string;
-  collection: string;
-  rkey: string;
-  universalPath: string;
-  isPost: boolean;
-}) {
-  const { prefs } = usePreferences();
-  const { recommended, more } = useMemo(() => {
-    const type = parseURI(handle, collection, rkey).type;
-    const withUrl = (w: Waypoint) => {
-      const url = w.getUrl(handle, collection, rkey, did);
-      return url ? { waypoint: w, url } : null;
-    };
-    const skip = new Set(['aturi', 'aturiExplore']);
-    const rec = personalizeRecommended(getRecommendedWaypoints(type, collection).waypoints, prefs)
-      .filter((w) => !skip.has(w.id))
-      .map(withUrl)
-      .filter((x): x is { waypoint: Waypoint; url: string } => x !== null)
-      .slice(0, 2);
-    const taken = new Set(rec.map((r) => r.waypoint.id));
-    const builtins = new Map(getWaypointsForType(type).map((w) => [w.id, w]));
-    const customs = new Map(prefs.customWaypoints.map((c) => [c.id, c]));
-    const rest: { waypoint: Waypoint; url: string }[] = [];
-    for (const group of prefs.waypointGroups) {
-      for (const id of group.waypointIds) {
-        if (rest.length >= 3) break;
-        if (taken.has(id) || skip.has(id)) continue;
-        taken.add(id);
-        const custom = customs.get(id);
-        const w = custom
-          ? custom.supportedTypes.includes(type)
-            ? customToWaypoint(custom)
-            : null
-          : builtins.get(id) ?? null;
-        const entry = w ? withUrl(w) : null;
-        if (entry) rest.push(entry);
-      }
-    }
-    return { recommended: rec, more: rest };
-  }, [handle, did, collection, rkey, prefs]);
-
-  return (
-    <section className="fn-rec-card fn-open" aria-labelledby="fn-open-title">
-      <h2 id="fn-open-title" className="fn-rec-h2">
-        Open this {isPost ? 'post' : 'record'} in
-      </h2>
-      {recommended.map(({ waypoint, url }, i) => (
-        <a
-          key={waypoint.id}
-          href={url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="fn-open-row"
-          data-rank={i === 0 ? 'primary' : 'secondary'}
-        >
-          <span aria-hidden className="fn-open-icon">
-            {waypoint.icon}
-          </span>
-          <span className="fn-open-name">{waypoint.name}</span>
-          <span className="fn-open-note">Recommended</span>
-        </a>
-      ))}
-      {more.length > 0 && (
-        <div className="fn-open-more">
-          {more.map(({ waypoint, url }) => (
-            <a
-              key={waypoint.id}
-              href={url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="fn-open-row"
-            >
-              <span aria-hidden className="fn-open-icon">
-                {waypoint.icon}
-              </span>
-              <span className="fn-open-name">{waypoint.name}</span>
-              <span className="fn-open-domain">{hostOf(url)}</span>
-            </a>
-          ))}
-        </div>
-      )}
-      <Link href={universalPath} prefetch={false} className="fn-open-all">
-        More apps
-      </Link>
-    </section>
-  );
-}
-
-function hostOf(url: string): string {
-  try {
-    return new URL(url).hostname.replace(/^www\./, '');
-  } catch {
-    return '';
-  }
 }
 
 /**

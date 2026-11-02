@@ -53,7 +53,7 @@
 }
 /* One column below 920px: the two columns dissolve (display: contents) so
    their slots can interleave by the `order` RecordExplorer gives them —
-   preview, open-in, record data, then the rest. */
+   preview, record data, then the rest. */
 @media (max-width: 920px) {
   .fn-rec-body {
     flex-direction: column;
@@ -247,114 +247,6 @@
 .fn-rec-switch:focus-visible {
   background: var(--bg-tertiary);
   color: var(--text-primary);
-}
-
-/* --- open in ------------------------------------------------------------- */
-
-.fn-open {
-  padding: 14px 12px 6px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-.fn-open > .fn-rec-h2 {
-  padding: 0 4px 4px;
-}
-.fn-open-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  height: 40px;
-  padding: 0 12px;
-  box-sizing: border-box;
-  border-radius: var(--radius-control);
-  border: 1px solid transparent;
-  color: var(--text-primary);
-  text-decoration: none;
-  transition: background 0.15s ease, border-color 0.15s ease;
-}
-.fn-open-row:hover {
-  background: var(--bg-primary);
-  color: var(--text-primary);
-}
-.fn-open-row:focus-visible {
-  outline: 2px solid var(--text-accent);
-  outline-offset: 1px;
-}
-.fn-open-row[data-rank] {
-  height: 44px;
-}
-.fn-open-row[data-rank='primary'] {
-  background: var(--accent-moss);
-  border-color: var(--accent-moss);
-  color: var(--text-on-accent);
-}
-.fn-open-row[data-rank='primary']:hover {
-  background: var(--accent-forest);
-  border-color: var(--accent-forest);
-  color: var(--text-on-accent);
-}
-.fn-open-row[data-rank='secondary'] {
-  border-color: var(--border-strong);
-}
-.fn-open-icon {
-  width: 16px;
-  height: 16px;
-  flex: none;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-.fn-open-icon svg,
-.fn-open-icon img {
-  width: 16px;
-  height: 16px;
-  object-fit: contain;
-}
-.fn-open-name {
-  flex: 1;
-  min-width: 0;
-  font-weight: 500;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.fn-open-row[data-rank] .fn-open-name {
-  font-weight: 600;
-}
-.fn-open-note {
-  font-size: 12px;
-  color: var(--text-tertiary);
-}
-.fn-open-row[data-rank='primary'] .fn-open-note {
-  color: inherit;
-  opacity: 0.9;
-}
-.fn-open-domain {
-  font-family: var(--font-mono);
-  font-size: 12px;
-  color: var(--text-tertiary);
-  white-space: nowrap;
-}
-.fn-open-more {
-  display: flex;
-  flex-direction: column;
-  margin-top: 4px;
-}
-.fn-open-all {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 38px;
-  margin: 2px -12px 0;
-  border-top: 1px solid var(--border-subtle);
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text-accent);
-  text-decoration: none;
-}
-.fn-open-all:hover {
-  color: var(--accent-forest);
 }
 
 /* --- record card (fields / json) ----------------------------------------- */
@@ -977,9 +869,6 @@
   }
   .fn-rec-preview .card:not(.post-preview) {
     padding: 14px !important;
-  }
-  .fn-open-row[data-rank] {
-    height: 48px;
   }
 }
 
