@@ -118,8 +118,8 @@ const PLAIN_RECORD: RecordSkeletonShape = {
 /**
  * The body of a record page, on the loaded page's own frame (record.css,
  * `.fn-rec-body`): the rich card when one is coming and the Record card in
- * the wide column; the "Open in" card, the Copy card, then the lexicon usage
- * and backlinks cards in the aside. The `order` values are the slots
+ * the wide column; the Copy card, then the lexicon usage and backlinks cards
+ * in the aside. The `order` values are the slots
  * RecordExplorer gives the same pieces, which interleave them in one column
  * under 920px. Used on its own once the title bar is real and only the
  * record is still in flight.
@@ -148,21 +148,18 @@ export function RecordBodySkeleton({ shape = PLAIN_RECORD }: { shape?: RecordSke
             </div>
           </div>
         )}
-        <div className="fn-rec-slot" style={{ order: 2 }}>
+        <div className="fn-rec-slot" style={{ order: 1 }}>
           <RecordDataCardSkeleton rows={shape.richCard ? 4 : 6} />
         </div>
       </div>
       <div className="fn-rec-aside">
-        <div className="fn-rec-slot" style={{ order: 1 }}>
-          <OpenInSkeleton isPost={shape.isPost} />
-        </div>
-        <div className="fn-rec-slot" style={{ order: 3 }}>
+        <div className="fn-rec-slot" style={{ order: 2 }}>
           <CopyCardSkeleton />
         </div>
-        <div className="fn-rec-slot" style={{ order: 3 }}>
+        <div className="fn-rec-slot" style={{ order: 2 }}>
           <LexiconUsageSkeleton />
         </div>
-        <div className="fn-rec-slot" style={{ order: 3 }}>
+        <div className="fn-rec-slot" style={{ order: 2 }}>
           <BacklinksSummarySkeleton />
         </div>
       </div>
@@ -190,35 +187,6 @@ export function RecordSkeleton({ shape = PLAIN_RECORD }: { shape?: RecordSkeleto
       </div>
       <RecordBodySkeleton shape={shape} />
     </div>
-  );
-}
-
-/** The aside's "Open this … in" card: the two recommended rows (the first
- *  filled), three more apps with their domains, and "More apps". */
-function OpenInSkeleton({ isPost }: { isPost: boolean }) {
-  return (
-    <section className="fn-rec-card fn-open">
-      <h2 className="fn-rec-h2">Open this {isPost ? 'post' : 'record'} in</h2>
-      <SkeletonBar width="100%" height="44px" shape="control" />
-      <div className="fn-open-row" data-rank="secondary">
-        <SkeletonBar width="16px" height="16px" shape="circle" />
-        <SkeletonBar width="5rem" height="0.7rem" />
-      </div>
-      <div className="fn-open-more">
-        {['4.5rem', '5.5rem', '4rem'].map((width) => (
-          <div key={width} className="fn-open-row">
-            <SkeletonBar width="16px" height="16px" shape="circle" />
-            <SkeletonBar width={width} height="0.7rem" />
-            <span style={{ marginLeft: 'auto' }}>
-              <SkeletonBar width="5.5rem" height="0.55rem" />
-            </span>
-          </div>
-        ))}
-      </div>
-      <div className="fn-open-all">
-        <SkeletonBar width="4.5rem" height="0.6rem" />
-      </div>
-    </section>
   );
 }
 

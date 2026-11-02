@@ -4811,6 +4811,104 @@ body.has-explore-chrome .fn-footer {
   color: var(--text-accent);
 }
 
+/* Drilled-in list ("Open in", "Color scheme"): a back chip where the search
+   glyph sits, naming the list the input now filters. */
+.cmdk-scope {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  flex-shrink: 0;
+  padding: 0.2rem 0.5rem;
+  border: 1px solid var(--border-medium);
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+  font-family: var(--font-serif);
+  font-size: 0.78rem;
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+
+.cmdk-scope:hover {
+  color: var(--text-accent);
+  border-color: var(--text-accent);
+}
+
+.cmdk-avatar {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+}
+
+/* Waypoint marks come at whatever size their SVG declares; fit the slot. */
+.cmdk-waypoint-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+}
+
+.cmdk-waypoint-icon > svg,
+.cmdk-waypoint-icon > img {
+  width: 100%;
+  height: 100%;
+}
+
+.cmdk-swatch {
+  width: 26px;
+  height: 18px;
+}
+
+.cmdk-item-mono {
+  font-family: var(--font-mono);
+}
+
+.cmdk-status {
+  padding: 0.5rem 0.65rem;
+  font-size: 0.76rem;
+  color: var(--text-tertiary);
+}
+
+.cmdk-footer {
+  flex-wrap: wrap;
+}
+
+.cmdk-modes {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.cmdk-mode {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.1rem 0.35rem;
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--text-tertiary);
+  font-family: var(--font-serif);
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+
+.cmdk-mode:hover,
+.cmdk-mode.is-active {
+  color: var(--text-accent);
+}
+
+.cmdk-mode.is-active {
+  border-color: var(--border-medium);
+}
+
+.shortcuts-note {
+  margin: 0.75rem 0 0;
+  font-size: 0.8rem;
+  color: var(--text-tertiary);
+}
+
 /* --- shortcuts help sheet specifics -------------------------------------- */
 .shortcuts-panel {
   max-height: 84vh;

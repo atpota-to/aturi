@@ -60,7 +60,7 @@ export const metadata: Metadata = {
         url: '/og-images/aturi-home.png',
         width: 1200,
         height: 672,
-        alt: 'aturi.to: three tools for one Atmosphere',
+        alt: 'aturi.to: jump between clients, share universal links, browse any PDS',
       },
     ],
   },
