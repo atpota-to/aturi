@@ -18,6 +18,13 @@
  * doing that arithmetic, so these tools do it, with the page's own rules for
  * when a comparison is fair: the station has gaps, and a window it heard half
  * of, compared by count, reads as a collapse that never happened.
+ *
+ * Two measures of "how much isn't Bluesky" come back, and they are kept apart
+ * by name. The diversity index is atpota.to's, by accounts, and is only ever
+ * passed through from what atpota.to worked out, never recomputed here: it
+ * needs each app's accounts, which only the station has. The share of new
+ * records written outside Bluesky is a plain ratio of counts, which one busy
+ * app can move on its own, so it is never called the index.
  */
 
 import { z } from 'zod';
@@ -57,9 +64,34 @@ const SCALE = {
     'New records a second, every app: calm under 300, light from 300, breezy from 400, gusty from 500, ' +
     'stormy from 600. A usual afternoon is about 450.',
   diversityIndex:
-    'The percent of new records written outside Bluesky’s lexicons (app.bsky.*, chat.bsky.*): low under 3, ' +
-    'moderate from 3, high from 6, very high from 8, extreme from 11.',
+    'How much of the Atmosphere isn’t Bluesky, by who is writing: the percent of active accounts that wrote ' +
+    'with an app outside Bluesky’s lexicons (share), times the square root of how many apps they are spread ' +
+    'across as an effective number (spread), so one busy app counts once. Low under 3, moderate from 3, high ' +
+    'from 6, very high from 8, extreme from 11. A usual minute in October 2026 was about 2.',
+  recordsOutsideBlueskyPercent:
+    'The percent of new records written outside Bluesky’s lexicons (app.bsky.*, chat.bsky.*). A ratio of ' +
+    'counts, not the diversity index: one app writing in bulk moves it on its own.',
 } as const;
+
+/** atpota.to's levels for the diversity index (server/atmosphere.ts DIVERSITY_LEVELS). */
+const DIVERSITY_LEVELS = [
+  ['extreme', 11],
+  ['very high', 8],
+  ['high', 6],
+  ['moderate', 3],
+] as const;
+
+function diversityLevel(index: number): string {
+  for (const [name, from] of DIVERSITY_LEVELS) if (index >= from) return name;
+  return 'low';
+}
+
+/**
+ * The page compares an hour's diversity index with usual only once this many
+ * accounts wrote outside Bluesky in it; fewer, and a handful of people moves
+ * it (atpota.to's src/scripts/weather-almanac.ts).
+ */
+const MIN_ELSEWHERE_ACCOUNTS = 50;
 
 const RANGES = {
   hour: { bucket: 'minute', bucketSeconds: 60, spanSeconds: 3_600, earlier: 'the same hour a day earlier' },
@@ -132,6 +164,11 @@ function numbers<K extends string>(value: unknown, keys: readonly K[]): Record<K
 function countsOf(value: unknown): Counts | null {
   const c = numbers(value, [...COUNT_KEYS, 'seconds']);
   return c && c.seconds > 0 ? c : null;
+}
+
+/** The diversity index and its parts, as atpota.to sent them, or null. */
+function diversityOf(value: unknown): { index: number; share: number; spread: number } | null {
+  return numbers(value, ['index', 'share', 'spread'] as const);
 }
 
 async function readWeather(path: string): Promise<unknown> {
@@ -207,12 +244,13 @@ function againstUsual(normal: unknown): Json | null {
   const lastHour = {
     heardSeconds: now.seconds,
     recordsPerSecond: perSecond(now.creates, now.seconds),
-    diversityIndex: share(now.elsewhere, now.creates),
+    recordsOutsideBlueskyPercent: share(now.elsewhere, now.creates),
   };
   const listeningSince = str(normal.historyStart);
   // The same weekday once there is one to compare with, the same hour on the
   // days before until then; and nothing on less than half an hour of now.
   const basis = weeks.windows > 0 ? weeks : days.windows > 0 ? days : null;
+  const diversity = hourDiversity(normal.diversity, basis === weeks ? 'weeks' : basis === days ? 'days' : null);
   if (!basis || basis.seconds <= 0 || now.seconds < 1_800) {
     return {
       lastHour,
@@ -220,6 +258,7 @@ function againstUsual(normal: unknown): Json | null {
       note:
         'The station is still learning what usual looks like. After a day it compares with the same hour on ' +
         'earlier days, and after a week with the same weekday.',
+      ...(diversity ? { diversity } : {}),
       listeningSince,
     };
   }
@@ -236,12 +275,45 @@ function againstUsual(normal: unknown): Json | null {
       basis: basis === weeks ? 'the same hour on the same weekday, earlier weeks' : 'the same hour, earlier days',
       windows: basis.windows,
       recordsPerSecond: perSecond(basis.creates, basis.seconds),
-      diversityIndex: share(basis.elsewhere, basis.creates),
+      recordsOutsideBlueskyPercent: share(basis.elsewhere, basis.creates),
     },
     changePercent: Math.round((ratio - 1) * 100),
     verdict,
+    ...(diversity ? { diversity } : {}),
     listeningSince,
   };
+}
+
+/**
+ * The diversity index of the last whole clock hour, as atpota.to worked it
+ * out from the station's hourly account counts, against the same hour on the
+ * days or weeks the records comparison used. Clock hours, not the last 60
+ * minutes, because that is how the station keeps accounts. The comparison is
+ * left out where the page leaves it out: no usual for the records yet, no
+ * earlier hours, or too few accounts outside Bluesky for the index to mean much.
+ */
+function hourDiversity(raw: unknown, basis: 'weeks' | 'days' | null): Json | null {
+  if (!isObj(raw)) return null;
+  const hour = str(raw.hour);
+  const now = numbers(raw.now, ['index', 'share', 'spread', 'elsewhere'] as const);
+  if (!hour || !now) return null;
+  const was = basis ? numbers(raw[basis], ['windows', 'index'] as const) : null;
+  const comparable = !!was && was.windows > 0 && was.index > 0 && now.elsewhere >= MIN_ELSEWHERE_ACCOUNTS;
+  const out: Json = {
+    hour,
+    index: now.index,
+    level: diversityLevel(now.index),
+    share: now.share,
+    spread: now.spread,
+    accountsOutsideBluesky: now.elsewhere,
+  };
+  if (was && comparable) {
+    const ratio = now.index / was.index;
+    out.usual = { windows: was.windows, index: was.index };
+    out.changePercent = Math.round((ratio - 1) * 100);
+    out.verdict = ratio >= 1.3 ? 'more mixed than usual' : ratio <= 0.77 ? 'less mixed than usual' : 'about as mixed as usual';
+  }
+  return out;
 }
 
 function shapeHours(heatmap: unknown): Json | null {
@@ -283,7 +355,7 @@ function shapeAlmanac(body: unknown, timeZone: string): Json | null {
       records: today.creates,
       posts: today.posts,
       recordsPerSecond: perSecond(today.creates, today.seconds),
-      diversityIndex: share(today.elsewhere, today.creates),
+      recordsOutsideBlueskyPercent: share(today.elsewhere, today.creates),
       busiestMinute: extreme(body.today.high),
       quietestMinute: extreme(body.today.low),
     };
@@ -347,7 +419,7 @@ function shapeHistory(body: unknown, range: Range): Json | null {
     },
     totals: Object.fromEntries(COUNT_KEYS.map((k) => [k, total[k]])),
     averagePerSecond: average,
-    diversityIndex: share(total.elsewhere, total.creates),
+    recordsOutsideBlueskyPercent: share(total.elsewhere, total.creates),
     busiest: extreme(byRate[0]),
     quietest: extreme(byRate[byRate.length - 1]),
     points: points.map(({ t, c }) => ({
@@ -355,7 +427,7 @@ function shapeHistory(body: unknown, range: Range): Json | null {
       seconds: c.seconds,
       recordsPerSecond: perSecond(c.creates, c.seconds),
       postsPerSecond: perSecond(c.posts, c.seconds),
-      diversityIndex: share(c.elsewhere, c.creates),
+      recordsOutsideBlueskyPercent: share(c.elsewhere, c.creates),
     })),
   };
 
@@ -399,15 +471,24 @@ function shapeHistory(body: unknown, range: Range): Json | null {
   const accountTotal = numbers(accounts?.total, ['active', 'bluesky', 'elsewhere'] as const);
   if (accounts && heard && accountTotal) {
     const fair = heard.seconds > 0 && heard.prevSeconds >= heard.seconds * 0.9 && heard.prevSeconds <= heard.seconds * 1.1;
+    const index = diversityOf(accounts.total);
+    // atpota.to sends the earlier window's index only when that window was
+    // heard live, so its presence is the page's test for a fair comparison.
+    const earlier = diversityOf(accounts.prev);
+    if (index) out.diversityIndex = index.index;
     out.accounts = {
       heardSeconds: heard.seconds,
       earlierHeardSeconds: heard.prevSeconds,
       comparable: fair,
       ...accountTotal,
-      diversityIndex: share(accountTotal.elsewhere, accountTotal.active),
+      ...(index ? { diversity: { ...index, level: diversityLevel(index.index) } } : {}),
+      ...(index && earlier ? { earlierDiversityIndex: earlier.index } : {}),
       points: (Array.isArray(accounts.points) ? accounts.points : []).flatMap((p) => {
         const c = numbers(p, ['seconds', 'active'] as const);
-        return c && isObj(p) && str(p.t) ? [{ t: p.t, seconds: c.seconds, active: c.active }] : [];
+        const d = diversityOf(p);
+        return c && isObj(p) && str(p.t)
+          ? [{ t: p.t, seconds: c.seconds, active: c.active, ...(d ? { diversityIndex: d.index } : {}) }]
+          : [];
       }),
       busiestApps: (Array.isArray(accounts.apps) ? accounts.apps : []).flatMap((app) => {
         const c = numbers(app, ['active', 'prevActive'] as const);
@@ -523,9 +604,10 @@ export function registerAtpotatoTools(server: McpServer): void {
       description:
         'You want how busy the Atmosphere is right now. atpotato’s weather station counts every record on the ' +
         'firehose; this returns its last 60 seconds (a condition from calm to stormy, records a second, the ' +
-        'diversity index: the share written by apps other than Bluesky, the busiest of those apps, active ' +
-        'accounts) and today’s almanac in a time zone: high and low, the last hour against usual, apps heard ' +
-        'for the first time, the busiest hours of the week. For trends over a range, get_weather_history.',
+        'diversity index: how much of the network is apps other than Bluesky, by who is writing, the busiest ' +
+        'of those apps, active accounts) and today’s almanac in a time zone: high and low, the last hour ' +
+        'against usual, apps heard for the first time, the busiest hours of the week. For trends, ' +
+        'get_weather_history.',
       inputSchema: z.object({
         timeZone: z
           .string()
@@ -569,10 +651,10 @@ export function registerAtpotatoTools(server: McpServer): void {
       title: 'Atmosphere weather history',
       description:
         'You want how the Atmosphere’s activity has moved over the last hour, day, week, month or year, from ' +
-        'atpotato’s weather station. Returns records a second and the diversity index per bucket with the ' +
-        'range’s average, busiest and quietest buckets, the busiest apps outside Bluesky against the window ' +
-        'before, apps heard per bucket, and active accounts. Check coverage first: the station has gaps, and a ' +
-        'range it heard little of says less. For right now, get_atmosphere_weather.',
+        'atpotato’s weather station. Returns records a second per bucket with the range’s average, busiest ' +
+        'and quietest buckets, the busiest apps outside Bluesky against the window before, apps heard per ' +
+        'bucket, and active accounts with the diversity index they make. Check coverage first: the station ' +
+        'has gaps, and a range it heard little of says less. For right now, get_atmosphere_weather.',
       inputSchema: z.object({
         range: z
           .enum(['hour', 'day', 'week', 'month', 'year'])
