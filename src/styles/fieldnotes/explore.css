@@ -308,6 +308,13 @@
   gap: 12px;
 }
 
+/* Rank on the flex rows (Rising, New). 20px is the ranked rows' 18px column
+   plus the 2px their 12px grid gap has over this row's 10px, so identifiers
+   start at the same offset in all three cards. */
+.fn-pulse-row > .fn-row-rank {
+  flex: 0 0 20px;
+}
+
 .fn-pulse-nsid-bar {
   min-width: 0;
   display: flex;
@@ -872,6 +879,9 @@
   .fn-pulse-row-ranked {
     grid-template-columns: 16px minmax(0, 1fr) 72px;
     gap: 10px;
+  }
+  .fn-pulse-row > .fn-row-rank {
+    flex-basis: 16px;
   }
 }
 
