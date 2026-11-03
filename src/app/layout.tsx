@@ -11,6 +11,7 @@ import AutoRedirectSync from "@/components/AutoRedirectSync";
 import WhatsNewModal from "@/components/whatsnew/WhatsNewModal";
 import FontScaleSync from "@/components/FontScaleSync";
 import A11ySync from "@/components/A11ySync";
+import KeyChipPress from "@/components/KeyChipPress";
 import { DEFAULT_THEME, THEME_INIT_SCRIPT } from "@/lib/theme";
 import {
   COLOR_SCHEME_INIT_SCRIPT,
@@ -35,6 +36,8 @@ import "@/styles/fieldnotes/link.css";
 import "@/styles/fieldnotes/content.css";
 import "@/styles/fieldnotes/landing.css";
 import "@/styles/fieldnotes/account.css";
+// Motion shared across surfaces, last so it can restate their transitions.
+import "@/styles/fieldnotes/motion.css";
 
 export const metadata: Metadata = {
   title: "aturi.to: Tour the Atmosphere",
@@ -142,6 +145,7 @@ export default function RootLayout({
         <ThemeSync />
         <FontScaleSync />
         <A11ySync />
+        <KeyChipPress />
         <AtprotoSessionProvider>
           <PreferencesProvider>
             <ColorSchemeSync />

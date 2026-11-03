@@ -1,8 +1,10 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import AppearIn from '../AppearIn';
+import Odometer from '@/components/Odometer';
+import { useListMotion } from '@/components/useListMotion';
 import { Skeleton } from '@/components/SkeletonLoader';
 import { DeltaPill, Segmented } from './primitives';
 import { useNewLexicons, NEW_EXPANDED_COUNT, NEW_RESULT_COUNT } from './NewLexicons';
@@ -113,6 +115,10 @@ function RankingCard({
   const [rows, setRows] = useState<CollectionRow[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const limit = expanded ? EXPANDED_COUNT : RESULT_COUNT;
+  // Rows land one by one out of the skeleton, then glide to their new rank
+  // when the window or metric changes; bars and figures ease along with them.
+  const listRef = useRef<HTMLOListElement>(null);
+  useListMotion(listRef);
 
   useEffect(() => {
     let cancelled = false;
@@ -163,9 +169,9 @@ function RankingCard({
           visible.length === 0 ? (
             <p className="explore-placeholder fn-list-card-msg">No lexicons matched in this window.</p>
           ) : (
-            <ol className="fn-list-rows">
+            <ol ref={listRef} className="fn-list-rows">
               {visible.map((row, i) => (
-                <li key={row.nsid}>
+                <li key={row.nsid} data-key={row.nsid}>
                   {mode === 'top' ? (
                     <Link
                       href={schemaPathFor(row.nsid)}
@@ -185,7 +191,7 @@ function RankingCard({
                           className="fn-row-count"
                           title={`${row.value.toLocaleString()} ${unit}`}
                         >
-                          {row.value.toLocaleString('en-US')}
+                          <Odometer value={row.value} />
                         </span>
                         <DeltaPill pct={row.deltaPct} />
                       </span>
@@ -203,8 +209,12 @@ function RankingCard({
                         className="fn-pulse-before-now"
                         title={`${(row.prior ?? 0).toLocaleString()} → ${row.value.toLocaleString()} ${unit}`}
                       >
-                        <span>{(row.prior ?? 0).toLocaleString('en-US')} →</span>{' '}
-                        <strong>{row.value.toLocaleString('en-US')}</strong>
+                        <span>
+                          <Odometer value={row.prior ?? 0} /> →
+                        </span>{' '}
+                        <strong>
+                          <Odometer value={row.value} />
+                        </strong>
                       </span>
                     </Link>
                   )}
@@ -234,6 +244,8 @@ function NewCard({ timeWindow }: { timeWindow: Window }) {
   const limit = expanded ? NEW_EXPANDED_COUNT : NEW_RESULT_COUNT;
   const visible = answer ? answer.lexicons.slice(0, limit) : null;
   const noun = WINDOW_NAMES[timeWindow].noun;
+  const listRef = useRef<HTMLOListElement>(null);
+  useListMotion(listRef);
 
   return (
     <section aria-labelledby="fn-pulse-new" className="fn-list-card fn-pulse-card">
@@ -254,9 +266,9 @@ function NewCard({ timeWindow }: { timeWindow: Window }) {
               Nothing new with three or more accounts in this window.
             </p>
           ) : (
-            <ol className="fn-list-rows">
+            <ol ref={listRef} className="fn-list-rows">
               {visible.map((lexicon, i) => (
-                <li key={lexicon.nsid}>
+                <li key={lexicon.nsid} data-key={lexicon.nsid}>
                   <Link
                     href={lexiconPathFor(lexicon.nsid)}
                     prefetch={false}
@@ -269,7 +281,7 @@ function NewCard({ timeWindow }: { timeWindow: Window }) {
                       className="fn-row-count"
                       title={`${lexicon.didsEstimate.toLocaleString()} accounts, ${lexicon.creates.toLocaleString()} records`}
                     >
-                      {lexicon.didsEstimate.toLocaleString('en-US')}
+                      <Odometer value={lexicon.didsEstimate} />
                     </span>
                   </Link>
                 </li>

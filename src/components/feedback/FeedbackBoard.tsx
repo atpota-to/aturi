@@ -10,6 +10,7 @@ import { useAuthors } from './useAuthors';
 import { useBoard } from './useBoard';
 import { useVoting } from './useVoting';
 import { useAtprotoSession } from '@/components/AtprotoSessionProvider';
+import SegmentThumb from '@/components/SegmentThumb';
 import SignInPanel from '@/components/explore/SignInPanel';
 import { Skeleton, SkeletonLine } from '@/components/SkeletonLoader';
 import { sanitizeUrl } from '@/utils/sanitize';
@@ -143,6 +144,7 @@ export default function FeedbackBoard() {
           {/* A sort re-orders one list rather than opening another, so it is
               the segmented control (explore.css), not a tab row. */}
           <div className="fn-segmented" role="group" aria-label="Sort discussions">
+            <SegmentThumb active={sort} />
             {SORTS.map((option) => (
               <button
                 key={option.id}

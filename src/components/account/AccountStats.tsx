@@ -28,6 +28,7 @@ import {
 import { fetchCachedCredBlueScore, type CredBlueScore } from '@/utils/credBlueScore';
 import { CRED_BLUE_BASE } from '@/utils/atproto/config';
 import { Skeleton } from '@/components/SkeletonLoader';
+import Odometer from '@/components/Odometer';
 
 type Props = {
   did: string;
@@ -447,7 +448,9 @@ function StatTile({
       />
     );
   } else {
-    display = value.toLocaleString();
+    // Each figure replaces its own placeholder as its fetch lands, its
+    // digits rolling up from 0.
+    display = <Odometer value={value} format={(n) => n.toLocaleString()} rollIn />;
   }
   const body = (
     <>

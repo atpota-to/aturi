@@ -2,6 +2,7 @@
 
 import { LayoutGrid, List, Rows3 } from 'lucide-react';
 import { usePreferences } from './PreferencesProvider';
+import SegmentThumb from './SegmentThumb';
 import { setWaypointLayout, type WaypointLayout } from '@/utils/preferences';
 
 /**
@@ -44,6 +45,7 @@ export default function WaypointLayoutToggle({
       aria-label="Waypoint layout"
       className={`waypoint-layout-toggle${variant === 'labels' ? ' is-labelled' : ''}`}
     >
+      <SegmentThumb active={prefs.waypointLayout} />
       {WAYPOINT_LAYOUT_OPTIONS.map(({ value, label, hint, Icon }) => {
         const active = prefs.waypointLayout === value;
         return (

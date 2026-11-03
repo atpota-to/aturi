@@ -246,14 +246,9 @@
 .fx-dot[data-live] {
   background: var(--status-live);
 }
-[aria-pressed='true'] > .fx-dot {
-  animation: fx-pulse 1.6s ease-in-out infinite;
-}
-@keyframes fx-pulse {
-  50% {
-    opacity: 0.35;
-  }
-}
+/* Live, the dot holds still: it ripples once each time a record arrives
+   (CollectionExplorer.tsx, motion.css "Live indicator") rather than
+   blinking on a timer whatever the stream is doing. */
 [data-reduce-motion='true'] .fx-dot {
   animation: none !important;
 }

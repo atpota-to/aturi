@@ -218,11 +218,54 @@
   scroll-margin-top: 72px;
 }
 
-/* Fades in with the preview card above it (.content-fade-in), so card and
-   picker resolve out of their skeletons together rather than the picker
-   cutting in under a fading card. */
-.waypoint-page > .fn-lp-picker {
-  animation: content-appear 0.36s ease-out;
+/* Arrival: a quiet cascade. The picker resolves out of its skeleton with
+   the preview card above it (.content-fade-in), then reads top to bottom:
+   the heading, the recommended rows 36ms apart, and each group after the
+   one above it, its rows 36ms apart. Opacity only, nothing moves. Rows set
+   their place as --i and groups as --g (WaypointPicker.tsx,
+   CompactWaypointGroup.tsx); the caps keep a long list from trailing.
+   Reduced motion drops the cascade in motion.css, since a delay survives
+   the global clamp on durations. */
+.waypoint-page > .fn-lp-picker :is(
+    .fn-lp-head,
+    .fn-lp-hero,
+    .waypoint-layout-bar,
+    .waypoint-group-label,
+    .waypoint-row,
+    .waypoint-tile,
+    .fn-lp-see-all
+  ) {
+  animation: picker-arrive 320ms ease-out backwards;
+}
+
+.waypoint-page > .fn-lp-picker .fn-lp-hero {
+  animation-delay: calc(60ms + min(var(--i, 0), 6) * 36ms);
+}
+
+.waypoint-page > .fn-lp-picker .waypoint-group {
+  --picker-group-at: calc(200ms + min(var(--g, 0), 3) * 90ms);
+}
+
+.waypoint-page > .fn-lp-picker .waypoint-layout-bar {
+  animation-delay: 160ms;
+}
+
+.waypoint-page > .fn-lp-picker .waypoint-group-label {
+  animation-delay: var(--picker-group-at);
+}
+
+.waypoint-page > .fn-lp-picker :is(.waypoint-row, .waypoint-tile) {
+  animation-delay: calc(var(--picker-group-at) + 36ms + min(var(--i, 0), 8) * 36ms);
+}
+
+.waypoint-page > .fn-lp-picker .fn-lp-see-all {
+  animation-delay: 420ms;
+}
+
+@keyframes picker-arrive {
+  from {
+    opacity: 0;
+  }
 }
 
 .fn-lp-head {
@@ -367,6 +410,12 @@
 .fn-lp-hero-arrow {
   flex: none;
   color: var(--text-tertiary);
+  transition: transform var(--motion-quick) var(--ease-soft);
+}
+
+/* The arrow leans toward the app it opens. */
+.fn-lp-hero-link:hover .fn-lp-hero-arrow {
+  transform: translateX(3px);
 }
 
 .fn-lp-hero.is-primary .fn-lp-hero-arrow {

@@ -27,6 +27,7 @@ import CollectionEditBar from './CollectionEditBar';
 import CollectionRecordRow from './CollectionRecordRow';
 import NotFoundPanel from '@/components/NotFoundPanel';
 import SkeletonSwap from './skeletons/SkeletonSwap';
+import { replay } from '@/lib/motion';
 import { CollectionSkeleton } from './skeletons/pages';
 import { SkeletonRecordRows } from './skeletons/primitives';
 import SignInPanel from './SignInPanel';
@@ -209,6 +210,11 @@ function CollectionList({
     loadPage(cursor);
   }, [records.length, loading, error, done, cursor, loadPage]);
 
+  // Pulse on data: the Live dot holds still and ripples once when a record
+  // arrives (motion.css). A burst of commits ripples once, not once each.
+  const liveDotRef = useRef<HTMLSpanElement>(null);
+  const lastBlip = useRef(0);
+
   // Live mode: jetstream subscription filtered to this collection+DID. New
   // commits are prepended to the list (capped to a sensible window).
   useEffect(() => {
@@ -219,6 +225,10 @@ function CollectionList({
         if (evt.commit.collection !== collection) return;
         if (evt.did !== identity.did) return;
         const atUri = `at://${evt.did}/${evt.commit.collection}/${evt.commit.rkey}`;
+        if (Date.now() - lastBlip.current > 1200) {
+          lastBlip.current = Date.now();
+          replay(liveDotRef.current, 'data-blip');
+        }
         const cid = evt.commit.cid || '';
         const value = (evt.commit.record as Record<string, unknown>) || {};
         setRecords((prev) => {
@@ -599,7 +609,7 @@ function CollectionList({
                 className="fx-btn"
                 title={live ? 'Pause live stream' : 'Stream new records as they arrive'}
               >
-                <span aria-hidden className="fx-dot" />
+                <span ref={liveDotRef} aria-hidden className="fx-dot" />
                 Live
               </button>
               <Link

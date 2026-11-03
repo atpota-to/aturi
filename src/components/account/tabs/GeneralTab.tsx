@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { Pin, X } from 'lucide-react';
+import SegmentThumb from '@/components/SegmentThumb';
 import {
   applyTheme,
   getStoredTheme,
@@ -156,6 +157,7 @@ function ExplorerCard() {
           aria-label="Pin scope"
           className="settings-seg"
         >
+          <SegmentThumb active={prefs.pinScope} />
           {(
             [
               { value: 'own', label: 'my repo' },
@@ -572,6 +574,7 @@ function ThemePicker() {
         aria-label="Dark or light"
         className="settings-seg"
       >
+        <SegmentThumb active={theme} />
         {(['dark', 'light'] as const).map((value) => {
           const active = theme === value;
           return (
@@ -641,6 +644,7 @@ function FontScalePicker() {
         aria-label="Font size"
         className="settings-seg"
       >
+        <SegmentThumb active={scale} />
         {FONT_SCALE_OPTIONS.map(({ value, label }) => {
           const active = scale === value;
           return (

@@ -90,6 +90,23 @@
   color: var(--text-accent);
 }
 
+/* The leaf sways once from its stem when the wordmark is hovered. */
+@media (hover: hover) {
+  .fn-brand:hover .fn-brand-mark {
+    transform-origin: 10% 88%;
+    animation: leaf-sway 700ms var(--ease-soft);
+  }
+}
+
+@keyframes leaf-sway {
+  30% {
+    transform: rotate(-12deg);
+  }
+  62% {
+    transform: rotate(5deg);
+  }
+}
+
 .fn-wordmark {
   font-size: 18px;
   font-weight: 700;
@@ -144,6 +161,59 @@
   background: var(--accent-soft);
   color: var(--accent-soft-fg);
   font-weight: 600;
+}
+
+/* Gliding pills (PrimaryNav in Header.tsx). Once the header has measured its
+   links it sets data-glide, and two shared shapes take over from each link's
+   own fill: the hover pill follows the pointer from link to link and fades
+   when it leaves the bar, and the green active pill slides from the section
+   you were on to the one you opened. Before that (and without script) the
+   links paint their own fills above, so the bar looks the same either way. */
+.fn-nav {
+  position: relative;
+}
+
+.fn-nav-link {
+  position: relative;
+  z-index: 1;
+}
+
+.fn-nav-pill {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 0;
+  border-radius: var(--radius-control);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.fn-nav-pill-hover {
+  background: var(--bg-tertiary);
+  transition:
+    transform var(--motion-panel) var(--ease-soft),
+    width var(--motion-panel) var(--ease-soft),
+    opacity var(--motion-quick) ease;
+}
+
+.fn-nav-pill-active {
+  background: var(--accent-soft);
+  transition:
+    transform 280ms var(--ease-soft),
+    width 280ms var(--ease-soft),
+    opacity var(--motion-quick) ease;
+}
+
+.fn-nav[data-hovering] .fn-nav-pill-hover,
+.fn-nav-pill-active[data-on] {
+  opacity: 1;
+}
+
+.fn-nav[data-glide] .fn-nav-link:hover,
+.fn-nav[data-glide] .fn-nav-link[aria-current='page'],
+.fn-nav[data-glide] .fn-nav-link[aria-current='page']:hover {
+  background: transparent;
 }
 
 .fn-header-actions {
@@ -290,16 +360,25 @@
   box-shadow: var(--shadow-overlay);
   z-index: 50;
   overflow: hidden;
+  /* Grows from the corner nearest its button and shrinks back there a
+     little faster than it came. The open state's transition times the
+     opening, this one the closing. */
   opacity: 0;
-  transform: translateY(-6px);
+  transform: scale(0.96);
+  transform-origin: top right;
   pointer-events: none;
-  transition: opacity 0.16s ease, transform 0.16s ease;
+  transition:
+    opacity var(--motion-press) ease-in,
+    transform var(--motion-press) ease-in;
 }
 
 .fn-header-panel[data-open] {
   opacity: 1;
   transform: none;
   pointer-events: auto;
+  transition:
+    opacity 160ms ease-out,
+    transform 160ms var(--ease-soft);
 }
 
 .fn-header-search-panel {
@@ -427,7 +506,11 @@
   background: var(--bg-primary);
   color: var(--text-tertiary);
   cursor: text;
-  transition: border-color 0.15s ease, background 0.15s ease;
+  transition:
+    border-color var(--motion-quick) ease,
+    background var(--motion-quick) ease,
+    color var(--motion-quick) ease,
+    box-shadow var(--motion-panel) var(--ease-soft);
 }
 
 .fn-search-panel .fn-search-field {
@@ -437,6 +520,10 @@
 .fn-search-field:focus-within {
   border-color: var(--accent-moss);
   background: var(--bg-secondary);
+  /* The soft halo the home search wears, and the icon (currentColor) warms
+     to the accent with it. */
+  box-shadow: 0 0 0 3px var(--accent-soft);
+  color: var(--text-accent);
 }
 
 .fn-search-icon {

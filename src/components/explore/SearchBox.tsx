@@ -6,6 +6,7 @@ import {
   useEffect,
   useRef,
   useState,
+  useSyncExternalStore,
   type KeyboardEvent,
 } from 'react';
 import { Search } from 'lucide-react';
@@ -24,12 +25,27 @@ import {
   type SearchHistoryEntry,
 } from '@/utils/searchHistory';
 import SearchRecommendations from './SearchRecommendations';
+import KindChip from '@/components/KindChip';
+import PlaceholderRoll from '@/components/PlaceholderRoll';
+import { getReduceMotionSnapshot, subscribeReduceMotion } from '@/lib/a11y';
 
 const TYPEAHEAD_DEBOUNCE_MS = 180;
 const RECENTS_LIMIT = 6;
 const FREQUENT_LIMIT = 4;
 
 const DEFAULT_PLACEHOLDER = 'Handle, DID, at:// URI or URL';
+
+/**
+ * What the empty field cycles through: the description first, then one of
+ * each kind of thing it accepts, as you'd paste it.
+ */
+const PLACEHOLDER_ROLL = [
+  DEFAULT_PLACEHOLDER,
+  'dame.is',
+  'did:plc:…',
+  'at://anisota.net/app.bsky.feed.post/…',
+  'https://bsky.app/profile/aturi.to',
+] as const;
 
 type Props = {
   initial?: string;
@@ -55,6 +71,16 @@ export default function SearchBox({ initial, className, placeholder }: Props) {
   const [resolving, setResolving] = useState(false);
   const resolvingRef = useRef(false);
   const wrapRef = useRef<HTMLDivElement>(null);
+  const [focused, setFocused] = useState(false);
+  // The rolling placeholder takes over from the native one after hydration,
+  // unless motion is reduced or the host set its own placeholder. The server
+  // snapshot keeps the native placeholder in the HTML.
+  const motionOk = useSyncExternalStore(
+    subscribeReduceMotion,
+    () => !getReduceMotionSnapshot(),
+    () => false,
+  );
+  const roll = motionOk && !placeholder;
 
   useEffect(() => {
     setValue(initial || '');
@@ -188,7 +214,7 @@ export default function SearchBox({ initial, className, placeholder }: Props) {
           autoComplete="off"
           spellCheck={false}
           className="fn-searchbox-input"
-          placeholder={placeholder ?? DEFAULT_PLACEHOLDER}
+          placeholder={roll ? '' : (placeholder ?? DEFAULT_PLACEHOLDER)}
           aria-label={DEFAULT_PLACEHOLDER}
           value={value}
           onChange={(e) => {
@@ -196,11 +222,13 @@ export default function SearchBox({ initial, className, placeholder }: Props) {
             setShowSuggestions(true);
           }}
           onFocus={() => {
+            setFocused(true);
             setShowSuggestions(true);
             // Refresh so visits recorded since mount (this tab or another)
             // show up.
             setHistory(readSearchHistory());
           }}
+          onBlur={() => setFocused(false)}
           onKeyDown={onKeyDown}
           role="combobox"
           aria-expanded={showList}
@@ -210,6 +238,14 @@ export default function SearchBox({ initial, className, placeholder }: Props) {
             highlightIndex >= 0 ? `search-typeahead-${highlightIndex}` : undefined
           }
         />
+        {roll && value === '' && (
+          <PlaceholderRoll
+            items={PLACEHOLDER_ROLL}
+            paused={focused}
+            className="fn-searchbox-roll"
+          />
+        )}
+        <KindChip value={value} />
 
         {showList && (
           <ul

@@ -346,6 +346,17 @@
   background: var(--accent-moss);
 }
 
+/* Bars ease to their new length when the window or metric changes, as the
+   rows glide to their new rank (useListMotion). */
+.fn-pulse-bar > span {
+  transition: width 480ms var(--ease-soft);
+}
+
+/* The rows' offset parent, so re-rank measures positions within the list. */
+.fn-pulse-card .fn-list-rows {
+  position: relative;
+}
+
 .fn-pulse-before-now {
   font-size: 13px;
   white-space: nowrap;
@@ -795,6 +806,49 @@
 .fn-segmented-option:focus-visible {
   outline: 2px solid var(--text-accent);
   outline-offset: 1px;
+}
+
+/* Sliding thumb (SegmentThumb.tsx), for every toggle with the segmented
+   look: this one, .settings-seg and .waypoint-layout-toggle. Once placed,
+   the track carries data-thumb and one raised thumb slides between options;
+   the chosen option's own fill and shadow step aside for it. !important
+   because each toggle states its chosen fill at its own specificity, the
+   dark-theme ones higher still. */
+[data-thumb] {
+  position: relative;
+}
+
+.fn-seg-thumb {
+  display: none;
+}
+
+[data-thumb] > .fn-seg-thumb {
+  display: block;
+  position: absolute;
+  top: 0;
+  left: 0;
+  border-radius: 6px;
+  background: var(--bg-secondary);
+  box-shadow: 0 1px 2px rgb(28 30 25 / 0.12);
+  pointer-events: none;
+  transition:
+    transform var(--motion-panel) var(--ease-soft),
+    width var(--motion-panel) var(--ease-soft),
+    height var(--motion-panel) var(--ease-soft);
+}
+
+:root:not([data-theme='light']) [data-thumb] > .fn-seg-thumb {
+  background: var(--border-strong);
+}
+
+[data-thumb] > :not(.fn-seg-thumb) {
+  position: relative;
+  z-index: 1;
+}
+
+[data-thumb] > :is([aria-pressed='true'], .is-active) {
+  background: transparent !important;
+  box-shadow: none !important;
 }
 
 .fn-btn {

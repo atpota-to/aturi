@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { ChevronsDownUp, ChevronsUpDown, Pin, Search } from 'lucide-react';
 import { describeRepo } from '@/utils/atproto/pdsClient';
 import { encodeRepo } from '@/utils/atproto/urls';
@@ -22,6 +22,7 @@ import {
 import { groupHierarchically, pinnedKey } from './collectionGrouping';
 import { CHROME_RESULTS_ID, useChromeBarField, type ChromeBarField } from '../ChromeBarContext';
 import GroupHeader from './GroupHeader';
+import { animate, MOTION, unfoldIn } from '@/lib/motion';
 import LeafRow from './LeafRow';
 
 export default function CollectionsTab({
@@ -199,6 +200,13 @@ export default function CollectionsTab({
   // way to that collection start open: the tree is there to say where you
   // are, and 39 open namespaces said nothing. `prefix` is the dotted
   // namespace a key stands for (a pinned group's key is not its prefix).
+  // Opening a group unfolds it: the children grow to their height and the
+  // first rows drift down into place (unfoldIn). Only for the group just
+  // opened (or every group, for expand all), never for groups that render
+  // open on load. Children unmount when a group closes, so closing stays
+  // instant: keeping them mounted would also draw them into the zebra
+  // count. Cleared after each commit, so a later re-render doesn't replay.
+  const unfolding = useRef<string | null>(null);
   function isOpen(key: string, prefix = key): boolean {
     return (
       openOverrides[key] ??
@@ -206,6 +214,7 @@ export default function CollectionsTab({
     );
   }
   function toggle(key: string, prefix = key) {
+    unfolding.current = isOpen(key, prefix) ? null : key;
     setOpenOverrides((prev) => ({ ...prev, [key]: !isOpen(key, prefix) }));
   }
 
@@ -221,6 +230,26 @@ export default function CollectionsTab({
       row.getBoundingClientRect().top - scroller.getBoundingClientRect().top + scroller.scrollTop - 12;
   }, [sidebar, current, collections]);
 
+  // Row by row: when the collections first replace the skeleton, the tree's
+  // first rows land top to bottom, 70ms apart, each rising 4px.
+  const arrived = useRef(!!collections);
+  useLayoutEffect(() => {
+    if (arrived.current || !collections) return;
+    arrived.current = true;
+    Array.from(scrollRef.current?.querySelectorAll('.fx-row') ?? [])
+      .slice(0, 10)
+      .forEach((row, i) =>
+        animate(
+          row,
+          [
+            { opacity: 0, transform: 'translateY(4px)' },
+            { opacity: 1, transform: 'none' },
+          ],
+          { duration: MOTION.panel, delay: i * 70 },
+        ),
+      );
+  }, [collections]);
+
   // Collect every group key currently rendered so the "expand/collapse all"
   // button can target the visible set, not stale keys from a previous filter.
   const allGroupKeys = useMemo(() => {
@@ -234,12 +263,19 @@ export default function CollectionsTab({
   }, [groups, pinnedGroups]);
   const anyOpen = allGroupKeys.some((k) => isOpen(k));
   function setAllOpen(open: boolean) {
+    unfolding.current = open ? '*' : null;
     setOpenOverrides((prev) => {
       const next = { ...prev };
       for (const k of allGroupKeys) next[k] = open;
       return next;
     });
   }
+  useEffect(() => {
+    unfolding.current = null;
+  });
+  const unfoldRef = (key: string) => (el: HTMLElement | null) => {
+    if (el && (unfolding.current === key || unfolding.current === '*')) unfoldIn(el);
+  };
 
   function togglePin(nsid: string) {
     update((p) => togglePinnedLexicon(p, nsid, pinTarget));
@@ -418,7 +454,7 @@ export default function CollectionsTab({
                       onTogglePin={() => toggleGroupPin(g.prefix)}
                     />
                     {open && (
-                      <ul style={listStyle()}>
+                      <ul ref={unfoldRef(pinnedKey(g.entry))} style={listStyle()}>
                         {g.items.map((nsid) => (
                           <LeafRow
                             key={nsid}
@@ -489,7 +525,7 @@ export default function CollectionsTab({
                       onTogglePin={() => toggleGroupPin(g.key)}
                     />
                     {majorOpen && (
-                      <div>
+                      <div ref={unfoldRef(g.key)}>
                         {/* Direct leaves (3-segment NSIDs) come first. */}
                         {g.directItems.length > 0 && (
                           <ul style={listStyle()}>
@@ -527,7 +563,7 @@ export default function CollectionsTab({
                                 onTogglePin={() => toggleGroupPin(sub.fullKey)}
                               />
                               {subOpen && (
-                                <ul style={listStyle()}>
+                                <ul ref={unfoldRef(sub.fullKey)} style={listStyle()}>
                                   {sub.items.map((nsid) => (
                                     <LeafRow
                                       key={nsid}

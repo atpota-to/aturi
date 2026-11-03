@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Activity, Pause, Play } from 'lucide-react';
 import {
   createJetstreamConnection,
@@ -8,6 +8,7 @@ import {
 } from '@/utils/atproto/jetstream';
 import { explorePathFromAtUri, shortDid } from '@/utils/atproto/urls';
 import AtUriLink from './AtUriLink';
+import Odometer from '@/components/Odometer';
 
 type Op = 'create' | 'update' | 'delete';
 
@@ -236,7 +237,7 @@ export default function JetstreamFeed({
         <span className="fl-feed-title">Live across the Atmosphere</span>
         {showRate && eps > 0 && (
           <span className="fl-feed-rate" title="Events per second across the live network feed">
-            ~{eps.toLocaleString()}/s
+            ~<Odometer value={eps} format={(n) => n.toLocaleString()} duration={450} />/s
           </span>
         )}
         {showPauseButton && (
@@ -352,7 +353,11 @@ function OpPill({ op }: { op: Op }) {
  * the user-visible signal that they're past the cap.
  */
 function StatsFooter({ stats }: { stats: Stats }) {
-  const item = (label: string, value: string, hint?: string) => (
+  // The counters tick every flush (750ms), so their digits roll quickly.
+  const count = (n: number) => (
+    <Odometer value={n} format={(v) => v.toLocaleString()} duration={450} />
+  );
+  const item = (label: string, value: ReactNode, hint?: string) => (
     <span className="fl-feed-stat" title={hint}>
       <strong>{value}</strong>
       {label}
@@ -360,9 +365,9 @@ function StatsFooter({ stats }: { stats: Stats }) {
   );
   return (
     <footer className="fl-feed-foot">
-      {item('total', stats.total.toLocaleString(), 'Events received since the feed loaded')}
-      {item('users', stats.uniqueDids.toLocaleString(), 'Distinct DIDs spotted')}
-      {item('lexicons', stats.uniqueCollections.toLocaleString(), 'Distinct NSIDs spotted')}
+      {item('total', count(stats.total), 'Events received since the feed loaded')}
+      {item('users', count(stats.uniqueDids), 'Distinct DIDs spotted')}
+      {item('lexicons', count(stats.uniqueCollections), 'Distinct NSIDs spotted')}
     </footer>
   );
 }
