@@ -45,6 +45,12 @@ const HASH_TO_TAB: Record<string, TabId> = {
   about: 'about',
 };
 
+/**
+ * Where the tabs move to the bottom of the screen, onto the phone toolbar.
+ * Paired with the `max-width: 639px` block in account.css.
+ */
+const BOTTOM_TABS_QUERY = '(max-width: 639px)';
+
 function tabFromHash(): TabId | null {
   if (typeof window === 'undefined') return null;
   const hash = window.location.hash.replace(/^#/, '').toLowerCase();
@@ -81,6 +87,10 @@ export default function SettingsShell() {
       const url = new URL(window.location.href);
       url.hash = id;
       window.history.replaceState(null, '', url.toString());
+      // On a phone the tabs sit at the bottom of the screen and can be used
+      // from anywhere down a long tab. Open the new one at its start, as a
+      // tab bar does, rather than partway down its content.
+      if (window.matchMedia(BOTTOM_TABS_QUERY).matches) window.scrollTo(0, 0);
     }
   }
 
@@ -127,8 +137,9 @@ export default function SettingsShell() {
   return (
     <div className="settings-shell">
       <header className="settings-header">
-        {/* The site's folder tabs (tabs.css): a row on a baseline on phones,
-            a column of side tabs against the content's spine from 821px
+        {/* The site's folder tabs (tabs.css): on phones a row hanging from
+            the page onto the bottom toolbar, on tablets a row on a baseline,
+            and from 821px a column of side tabs against the content's spine
             (account.css). The open tab is the one with aria-selected. */}
         <nav
           ref={navRef}
