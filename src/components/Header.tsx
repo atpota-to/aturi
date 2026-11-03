@@ -70,8 +70,24 @@ function activeNavHref(pathname: string | null): string | null {
  * a universal link, settings, the feedback board) start straight at their
  * own content instead: the top of a small screen is what the reader came
  * for, and the menu one tap away at the bottom has the logo and Home.
+ *
+ * /explore/spaces counts as a landing despite living under /explore: it is
+ * a product page built like /extension and /links, not an explorer view. A
+ * space itself is at /explore/{repo}/space, so the prefix match below
+ * reaches nothing else.
  */
-const LANDING_PATHS = ['/', '/extension', '/links', '/mcp', '/docs', '/about', '/contact', '/terms', '/fork'];
+const LANDING_PATHS = [
+  '/',
+  '/extension',
+  '/links',
+  '/mcp',
+  '/explore/spaces',
+  '/docs',
+  '/about',
+  '/contact',
+  '/terms',
+  '/fork',
+];
 
 function isLandingPath(pathname: string | null): boolean {
   if (!pathname) return false;

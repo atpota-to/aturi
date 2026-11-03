@@ -4,12 +4,12 @@
 
 /* ---------- Page width ----------
    The explore layout wraps every page in .container-narrow (800px). The
-   section's three landings (explore, lexicons, spaces) want the mockup's
-   wider 1240px column, so the container widens only when it holds one of
-   those pages. */
+   section's two tool landings (explore, lexicons) want the mockup's wider
+   1240px column, so the container widens only when it holds one of those
+   pages. The spaces landing takes the product landings' frame instead; see
+   "Spaces landing" below. */
 .container-narrow:has(> .fn-explore),
-.container-narrow:has(> .fn-lexicons),
-.container-narrow:has(> .fn-spaces-landing) {
+.container-narrow:has(> .fn-lexicons) {
   max-width: 1240px;
 }
 
@@ -24,8 +24,8 @@
 }
 
 /* Spotlights, the live feed and cross-links below the pulse keep their own
-   layout; 64px between them, the rhythm the spaces landing uses, where the
-   intro, tiles, conditions and pulse above stay one group at the base gap. */
+   layout; 64px between them, where the intro, tiles, conditions and pulse
+   above stay one group at the base gap. */
 .fn-explore > :nth-child(n + 5) {
   margin-top: 36px;
 }
@@ -876,21 +876,35 @@
 }
 
 /* ---------- Spaces landing ----------
-   The page is laid out in SpacesLanding.tsx; these are the pieces that
-   change with the viewport, which inline styles can't. */
+   A product landing like /extension, /links and /mcp, built from their
+   .fl-* classes (landing.css). These are the pieces those don't cover. */
 
-.fn-sp-landing-title {
-  margin: 0 0 0.75rem;
-  font-size: 36px;
-  font-weight: 700;
-  letter-spacing: -0.025em;
-  line-height: 1.1;
-  color: var(--text-primary);
+/* Their page frame, .container-narrow.fl-container: a 1120px column with a
+   24px gutter and 72px under the cross-links (48px on phones). The explore
+   layout sets its padding inline, hence the !important, the same override
+   the account explorer makes in explorer.css. At 768px and under the shared
+   16px phone gutter in globals.css applies, as it does on theirs. */
+.container-narrow:has(> .fn-spaces-landing) {
+  max-width: 1120px;
+  padding-bottom: 72px !important;
 }
 
-/* The measure: 75-80 characters at 16px. */
-.fn-sp-lead {
-  max-width: 38rem;
+@media (min-width: 769px) {
+  .container-narrow:has(> .fn-spaces-landing) {
+    padding-left: 24px !important;
+    padding-right: 24px !important;
+  }
+}
+
+/* The sign-in form in the hero. .fl-hero-actions sizes its children to
+   their content, which suits a lone button; a form wants a field's width,
+   so this one stretches to the copy column, short of a line too long to
+   read as one control. Both classes, because landing.css loads after this
+   file and its own align-items would otherwise win. */
+.fl-hero-actions.fn-sp-hero-action {
+  align-self: stretch;
+  align-items: stretch;
+  max-width: 440px;
 }
 
 .fn-spaces-landing .oauth-typeahead-input {
@@ -927,6 +941,9 @@
 }
 
 @media (max-width: 640px) {
+  .container-narrow:has(> .fn-spaces-landing) {
+    padding-bottom: 48px !important;
+  }
   /* Under 16px, iOS Safari zooms the page when the field takes focus. */
   .fn-spaces-landing .oauth-typeahead-input {
     height: 48px;
@@ -934,12 +951,6 @@
   }
   .fn-sp-signin-btn {
     min-height: 48px;
-  }
-}
-
-@media (max-width: 600px) {
-  .fn-sp-landing-title {
-    font-size: 30px;
   }
 }
 

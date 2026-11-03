@@ -22,12 +22,14 @@ import { useSpaceGrant } from './useSpaceAccess';
  * `/explore/spaces` — the way in for someone who has heard about atproto
  * spaces and wants to see their own.
  *
- * Laid out like the other product landing pages (/links, /extension, the
- * explore index): full-width hero with the sign-in action and a mock of the
- * signed-in view, feature sections below, cross-links at the end. The
- * sign-in states themselves are unchanged: signed out it is a form, signed
- * in it is one button, and a server that can't do spaces is told so here
- * rather than through a grant that came back empty.
+ * Built from the same pieces as the other product landing pages (/links,
+ * /extension, /mcp): the `fl-*` classes in landing.css for the hero, section
+ * heads and callout band, so the type scale, spacing and phone layout are
+ * theirs rather than a copy that drifts. It lives under /explore only
+ * because that is where its signed-in view is; explore.css gives it their
+ * page frame too. The sign-in states themselves are unchanged: signed out it
+ * is a form, signed in it is one button, and a server that can't do spaces
+ * is told so here rather than through a grant that came back empty.
  *
  * Whether a server can do this at all is checked against its `_health`
  * version, which is the one capability signal readable before signing in.
@@ -36,28 +38,19 @@ export default function SpacesLanding() {
   const { session, did, loading } = useAtprotoSession();
 
   return (
-    <div
-      className="fn-spaces-landing"
-      style={{ display: 'flex', flexDirection: 'column', gap: '4rem', paddingTop: '36px' }}
-    >
+    <div className="fl-page fn-spaces-landing">
       {/* Hero */}
       <AppearIn rise>
-        <header
-          style={{ display: 'grid', gap: '2.5rem', alignItems: 'center' }}
-          className="landing-hero"
-        >
-          <div>
-            <Badge icon={<Lock size={12} aria-hidden />}>Atproto spaces alpha</Badge>
-            <h1 className="fn-sp-landing-title">Browse your permissioned data.</h1>
-            <p
-              style={{
-                fontSize: '1.05rem',
-                lineHeight: 1.6,
-                color: 'var(--text-secondary)',
-                maxWidth: '34rem',
-                marginBottom: '1.25rem',
-              }}
-            >
+        <header className="fl-hero">
+          <div className="fl-hero-copy">
+            <span className="fl-pill">
+              <Lock size={13} aria-hidden /> Atproto spaces
+              <span className="fl-pill-tag">alpha</span>
+            </span>
+            <h1 className="fl-title">
+              Browse your <span className="fl-title-accent">permissioned data</span>
+            </h1>
+            <p className="fl-lede">
               Atproto is evolving. The upcoming Spaces feature lets your PDS
               contain records with an authority that checks membership before
               granting read access to them.{' '}
@@ -71,9 +64,11 @@ export default function SpacesLanding() {
               </a>
               .
             </p>
-            <HeroAction loading={loading} signedIn={Boolean(session)} did={did} />
+            <div className="fl-hero-actions fn-sp-hero-action">
+              <HeroAction loading={loading} signedIn={Boolean(session)} did={did} />
+            </div>
           </div>
-          <div>
+          <div className="fl-hero-visual">
             <SpacesGlanceVisual />
           </div>
         </header>
@@ -204,13 +199,19 @@ function ControlSkeleton({ control }: { control: 'field' | 'button' }) {
  */
 const INVITE_URL = 'https://bsky.network/account/';
 
+/**
+ * The page's closing callout, in the same band the extension page ends on
+ * before its cross-links.
+ */
 function AlphaAccount() {
   return (
-    <section style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-      <div>
-        <Badge icon={<KeyRound size={12} aria-hidden />}>Try the alpha</Badge>
-        <h2 style={sectionTitleStyle}>Get an account on the alpha host</h2>
-        <p className="fn-sp-lead" style={sectionLeadStyle}>
+    <section className="fl-band">
+      <span className="fl-kicker">
+        <KeyRound size={14} aria-hidden /> Try the alpha
+      </span>
+      <h2 className="fl-h2">Get an account on the alpha host</h2>
+      <div className="fl-body">
+        <p>
           Trying Spaces requires an account on a server that runs the spaces
           build. Bluesky is hosting one for this alpha test. Grab an invite
           code from Bluesky using the link below, create the account, then
@@ -222,22 +223,8 @@ function AlphaAccount() {
           href={INVITE_URL}
           target="_blank"
           rel="noopener noreferrer"
-          className="generate-button"
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '0.5rem',
-            height: '40px',
-            boxSizing: 'border-box',
-            padding: '0 16px',
-            background: 'var(--accent-moss)',
-            color: 'var(--text-on-accent)',
-            border: '1px solid var(--accent-moss)',
-            borderRadius: 'var(--radius-control)',
-            fontSize: '14px',
-            fontWeight: 600,
-            textDecoration: 'none',
-          }}
+          className="fl-button"
+          data-variant="primary"
         >
           Get an invite code
           <ExternalLink size={14} aria-hidden />
@@ -291,11 +278,13 @@ const FEATURED_APPS: { name: string; url: string; description: string }[] = [
 
 function FeaturedApps() {
   return (
-    <section style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-      <div>
-        <Badge icon={<Boxes size={12} aria-hidden />}>Built on spaces</Badge>
-        <h2 style={sectionTitleStyle}>Apps to try</h2>
-        <p className="fn-sp-lead" style={sectionLeadStyle}>
+    <section className="fl-section">
+      <div className="fl-section-head">
+        <span className="fl-kicker">
+          <Boxes size={14} aria-hidden /> Built on spaces
+        </span>
+        <h2 className="fl-h2">Apps to try</h2>
+        <p className="fl-body">
           The explorer reads spaces, but it doesn&rsquo;t create them. An
           account will have nothing to browse until you use an app that writes
           something to a space. Here are some test apps from the community to
@@ -573,46 +562,6 @@ function SignedOut() {
     </form>
   );
 }
-
-function Badge({ icon, children }: { icon: React.ReactNode; children: React.ReactNode }) {
-  return (
-    <span
-      style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: '0.4rem',
-        color: 'var(--text-accent)',
-        fontSize: '12px',
-        fontWeight: 700,
-        letterSpacing: '0.06em',
-        textTransform: 'uppercase',
-        fontFamily: 'var(--font-sans)',
-        marginBottom: '0.75rem',
-        lineHeight: 1,
-      }}
-    >
-      {icon}
-      {children}
-    </span>
-  );
-}
-
-const sectionTitleStyle: React.CSSProperties = {
-  fontSize: '1.5rem',
-  fontWeight: 700,
-  color: 'var(--text-primary)',
-  margin: '0 0 0.625rem',
-  lineHeight: 1.2,
-  letterSpacing: '-0.02em',
-};
-
-// The measure (max-width) is .fn-sp-lead in explore.css.
-const sectionLeadStyle: React.CSSProperties = {
-  fontSize: '1rem',
-  lineHeight: 1.65,
-  color: 'var(--text-secondary)',
-  margin: 0,
-};
 
 // Height is .fn-sp-signin-btn in explore.css (48px on phones). Disabled
 // mirrors .fn-searchbox-submit:disabled: a busy cursor and a light dim, the
