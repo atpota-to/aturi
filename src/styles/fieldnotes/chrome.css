@@ -743,8 +743,9 @@
 /* ─── Phone toolbar ──────────────────────────────────────────────────── */
 
 /* Below 640px the header's bar steps aside and its job moves to the bottom
-   of the screen, where a thumb can reach it: a toolbar with the menu button
-   and a search field, and the menu itself as a sheet rising out of it.
+   of the screen, where a thumb can reach it: a toolbar with a search field,
+   Back and Home, and the menu button, and the menu itself as a sheet rising
+   out of it.
 
    Two components draw that toolbar. On explorer routes it is
    <ExploreChromeBar>, which already sat at the bottom carrying the route's
@@ -770,6 +771,7 @@ body.has-explore-chrome {
 .fn-masthead,
 .fn-phone-bar,
 .fn-site-menu-btn,
+.fn-site-nav,
 .fn-menu-grabber,
 .fn-menu-home,
 .fn-menu-whatsnew,
@@ -837,6 +839,66 @@ body.has-explore-chrome {
     display: inline-flex;
     position: relative;
     color: var(--text-primary);
+  }
+
+  /* One line, always: with the field first and three chips after it, a
+     narrow phone or a larger text size would otherwise wrap the row under
+     the field's 12rem basis. The field gives up the width instead. */
+  .explore-chrome-inner {
+    flex-wrap: nowrap;
+  }
+
+  .explore-chrome-form {
+    flex-basis: 0;
+  }
+
+  /* At rest the field is narrower than its placeholder; end it on an
+     ellipsis rather than mid-word. */
+  .explore-chrome-input {
+    text-overflow: ellipsis;
+  }
+
+  /* Back and Home (SiteNavButtons.tsx), between the field and the menu.
+     Its width is set, two 44px chips and the gap between them, so it can
+     fold to nothing and back on a transition. */
+  .fn-site-nav {
+    display: flex;
+    flex-shrink: 0;
+    gap: 8px;
+    max-width: 96px;
+    transition: max-width 0.22s ease, margin-left 0.22s ease;
+  }
+
+  /* Home is a link, so no underline. */
+  .fn-site-nav-btn {
+    color: var(--text-primary);
+    text-decoration: none;
+    transition: color 0.2s ease, opacity 0.16s ease, transform 0.22s ease;
+  }
+
+  .fn-site-nav-btn[aria-current='page'] {
+    color: var(--text-accent);
+  }
+
+  /* While the field is in use the pair folds away and the field grows to
+     the right into its room; the negative margin takes the row's gap with
+     it. The chips shrink and fade where they stand rather than being
+     clipped, so nothing cuts off a focus ring. The menu button stays. */
+  .explore-chrome-inner:has(.explore-chrome-form:focus-within) .fn-site-nav {
+    max-width: 0;
+    margin-left: -8px;
+    pointer-events: none;
+  }
+
+  .explore-chrome-inner:has(.explore-chrome-form:focus-within) .fn-site-nav-btn {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+
+  /* Back and Home take copy link's room on a phone, where the browser's
+     share sheet copies the page's address anyway. */
+  .explore-chrome-inner .explore-chrome-copy {
+    display: none;
   }
 
   /* Specific enough to outlast the chips' hover fill (explorer.css), which
@@ -996,6 +1058,8 @@ body.has-explore-chrome {
 
 [data-reduce-motion='true'] .explore-chrome-inner,
 [data-reduce-motion='true'] .explore-chrome-form,
+[data-reduce-motion='true'] .fn-site-nav,
+[data-reduce-motion='true'] .fn-site-nav-btn,
 [data-reduce-motion='true'] .fn-menu-scrim {
   transition: none;
 }

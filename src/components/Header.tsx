@@ -28,6 +28,7 @@ import { useMediaQuery } from './explore/useIsNarrow';
 import { isEventOutside } from '@/lib/outsideClick';
 import { SITE_MENU_TOGGLE_ATTR, setSiteMenuOpen, toggleSiteMenu } from '@/lib/siteMenu';
 import SiteMenuButton, { useSiteMenuOpen } from './SiteMenuButton';
+import SiteNavButtons from './SiteNavButtons';
 import { useCondenseOnScroll } from './useCondenseOnScroll';
 import WhatsNewBadge, {
   OPEN_WHATS_NEW_EVENT,
@@ -431,8 +432,9 @@ export default function Header(_props: HeaderProps) {
           </nav>
         </div>
 
-        {/* Phone toolbar: the menu button and the jump search, pinned to the
-            bottom of the screen where a thumb rests. Explorer routes hide it
+        {/* Phone toolbar: the jump search, Back and Home, and the menu
+            button, pinned to the bottom of the screen where a thumb rests.
+            Explorer routes hide it
             for <ExploreChromeBar>, which is the same toolbar with the route's
             own field and actions in it; this one serves every other page.
             Built from that bar's classes so the two are one object. */}
@@ -446,8 +448,9 @@ export default function Header(_props: HeaderProps) {
         >
           <div className="explore-chrome-card">
             <div className="explore-chrome-inner">
-              <SiteMenuButton />
               <JumpField />
+              <SiteNavButtons />
+              <SiteMenuButton />
             </div>
           </div>
         </div>
