@@ -1,0 +1,94 @@
+/* Field Notes: motion that crosses surfaces. Tokens live in
+   src/app/globals.css (--motion-*, --ease-soft, --shadow-lift); use them
+   rather than raw values so every surface moves alike.
+
+   Loaded last, after every surface sheet, so a rule here can restate a
+   component's `transition` list with the motion properties added without
+   raising its specificity. Motion that belongs to one component (the folder
+   tabs, the collection tree, the nav pills) lives with that component's
+   styles instead; this sheet holds what many components share.
+
+   Reduced motion: the [data-reduce-motion] block in globals.css collapses
+   every transition and keyframe animation. Transforms that hold while
+   hovered are not transitions, so the rules that set them are undone at the
+   end of this sheet. */
+
+/* ─── Buttons: lift ──────────────────────────────────────────────────────
+   Text buttons rise 1px onto a soft shadow under the pointer and set back
+   down while pressed. Icon buttons and menu rows keep their fill-only hover:
+   a lift reads as "this is a button", and those already say so. */
+
+:is(
+    .fn-home-button,
+    .fn-dl-button,
+    .fn-searchbox-submit,
+    .fx-btn,
+    .fn-btn,
+    .fn-c-btn,
+    .fl-button,
+    .fn-lp-btn,
+    .share-button,
+    .settings-btn,
+    .fn-rec-btn
+  ) {
+  transition:
+    background-color var(--motion-quick) ease,
+    border-color var(--motion-quick) ease,
+    color var(--motion-quick) ease,
+    opacity var(--motion-quick) ease,
+    box-shadow var(--motion-quick) var(--ease-soft),
+    transform var(--motion-quick) var(--ease-soft);
+}
+
+:is(
+    .fn-home-button,
+    .fn-dl-button,
+    .fn-searchbox-submit,
+    .fx-btn,
+    .fn-btn,
+    .fn-c-btn,
+    .fl-button,
+    .fn-lp-btn,
+    .share-button,
+    .settings-btn,
+    .fn-rec-btn
+  ):hover:not(:disabled, [aria-disabled='true']) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px -4px var(--shadow-lift);
+}
+
+:is(
+    .fn-home-button,
+    .fn-dl-button,
+    .fn-searchbox-submit,
+    .fx-btn,
+    .fn-btn,
+    .fn-c-btn,
+    .fl-button,
+    .fn-lp-btn,
+    .share-button,
+    .settings-btn,
+    .fn-rec-btn
+  ):active:not(:disabled, [aria-disabled='true']) {
+  transform: none;
+  box-shadow: 0 1px 2px var(--shadow-lift);
+  transition-duration: var(--motion-press);
+}
+
+/* ─── Reduced motion ─────────────────────────────────────────────────── */
+
+[data-reduce-motion='true'] :is(
+    .fn-home-button,
+    .fn-dl-button,
+    .fn-searchbox-submit,
+    .fx-btn,
+    .fn-btn,
+    .fn-c-btn,
+    .fl-button,
+    .fn-lp-btn,
+    .share-button,
+    .settings-btn,
+    .fn-rec-btn
+  ):is(:hover, :active) {
+  transform: none !important;
+}

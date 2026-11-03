@@ -45,6 +45,9 @@
   --bg-overlay-hover: rgba(18, 18, 18, 0.9);
   --shadow-overlay: 0 8px 32px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.03);
   --shadow-overlay-hover: 0 12px 40px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.05);
+  /* The soft shadow a button stands on while it lifts under the pointer
+     (motion.css). */
+  --shadow-lift: rgba(0, 0, 0, 0.45);
 
   /* Raw-JSON / preview modals across PostPreview, RecordPreview, and the
      margin/* previews share the same look. Themed once here so the modals
@@ -175,6 +178,19 @@
   --radius-control: 8px;
   --radius-pill: 999px;
 
+  /* Motion. One soft ease-out (the curve FadeIn already used) and four
+     durations: a press, a hover or colour change, a panel or tab, and an
+     arrival. Distances stay small: 1–3px for controls, 4–6px for things
+     arriving. Nothing here needs a reduced-motion copy: the
+     [data-reduce-motion] block further down collapses every transition and
+     keyframe animation, and script-driven effects check the same flag
+     through src/lib/motion.ts. */
+  --motion-press: 120ms;
+  --motion-quick: 180ms;
+  --motion-panel: 240ms;
+  --motion-arrive: 360ms;
+  --ease-soft: cubic-bezier(0.22, 1, 0.36, 1);
+
   color-scheme: dark;
 }
 
@@ -214,6 +230,7 @@
   --bg-overlay-hover: rgba(250, 249, 245, 0.96);
   --shadow-overlay: 0 8px 28px rgba(28, 30, 25, 0.1), 0 0 0 1px rgba(28, 30, 25, 0.04);
   --shadow-overlay-hover: 0 12px 36px rgba(28, 30, 25, 0.14), 0 0 0 1px rgba(28, 30, 25, 0.06);
+  --shadow-lift: rgba(28, 30, 25, 0.16);
 
   --modal-backdrop: rgba(26, 28, 24, 0.45);
   --modal-bg: #ffffff;
@@ -850,6 +867,7 @@
     0 0 0 1px color-mix(in srgb, var(--text-primary) 4%, transparent);
   --shadow-overlay-hover: 0 12px 36px color-mix(in srgb, var(--text-primary) 14%, transparent),
     0 0 0 1px color-mix(in srgb, var(--text-primary) 6%, transparent);
+  --shadow-lift: color-mix(in srgb, var(--text-primary) 16%, transparent);
 }
 
 /* High-contrast overrides. Layered on top of whichever theme is active, so
@@ -1627,16 +1645,28 @@ html {
   opacity: 1;
 }
 
-/* Selection */
+/* Selection: the pale green of the site's pills, so selected text reads
+   as marked up rather than as a filled button. */
 ::selection {
-  background: var(--accent-moss);
-  color: var(--text-on-accent);
+  background: var(--accent-soft);
+  color: var(--accent-soft-fg);
 }
 
-/* Focus styles */
+/* Focus styles. The ring settles in: it starts a few pixels out and clear,
+   and tightens onto the control as it takes its colour. Components that
+   draw their own outline keep their colour and offset; the settle runs
+   toward whatever they set. */
 :focus-visible {
   outline: 2px solid var(--text-accent);
   outline-offset: 2px;
+  animation: focus-settle 280ms var(--ease-soft);
+}
+
+@keyframes focus-settle {
+  from {
+    outline-offset: 6px;
+    outline-color: transparent;
+  }
 }
 
 /* Scope picker checkbox — native input hidden, indicator rendered as a

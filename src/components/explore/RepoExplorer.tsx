@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, type KeyboardEvent, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { resolveIdentifier, type IdentityBundle } from '@/utils/atproto/identity';
 import RepoStatusNotice from './RepoStatusNotice';
@@ -28,6 +28,7 @@ import AuditTab from './tabs/AuditTab';
 import BacklinksTab from './tabs/BacklinksTab';
 import NotFoundPanel from '@/components/NotFoundPanel';
 import SkeletonSwap from './skeletons/SkeletonSwap';
+import { useFadeOnChange } from '@/components/useFadeOnChange';
 import { RepoSkeleton } from './skeletons/pages';
 
 const TABS = [
@@ -331,6 +332,9 @@ function TabbedView({ identity }: { identity: IdentityBundle }) {
   const searchParams = useSearchParams();
   const tabParam = (searchParams.get('tab') || 'collections') as TabId;
   const tab: TabId = TABS.find((t) => t.id === tabParam) ? tabParam : 'collections';
+  // The open folder's sheet fades its new contents in as the tab rises.
+  const panelRef = useRef<HTMLDivElement>(null);
+  useFadeOnChange(panelRef, tab);
 
   function selectTab(id: TabId) {
     const next = new URLSearchParams(searchParams.toString());
@@ -392,6 +396,7 @@ function TabbedView({ identity }: { identity: IdentityBundle }) {
       </div>
 
       <div
+        ref={panelRef}
         role="tabpanel"
         id="repo-tabpanel"
         aria-labelledby={`repo-tab-${tab}`}

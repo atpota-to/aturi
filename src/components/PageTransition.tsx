@@ -2,15 +2,55 @@
 
 import { motion, AnimatePresence, MotionConfig } from 'framer-motion';
 import { usePathname } from 'next/navigation';
-import { ReactNode, useEffect, useSyncExternalStore } from 'react';
+import { ReactNode, useEffect, useLayoutEffect, useRef, useSyncExternalStore } from 'react';
 import {
   getReduceMotionServerSnapshot,
   getReduceMotionSnapshot,
   subscribeReduceMotion,
 } from '@/lib/a11y';
+import { animate, MOTION } from '@/lib/motion';
 
 interface PageTransitionProps {
   children: ReactNode;
+}
+
+/**
+ * Bars pinned to the viewport from inside the page. A block that holds one is
+ * left still: a transform on it would pin the bar to the block while it
+ * moves.
+ */
+const FIXED_INSIDE = '.explore-chrome-bar, .fn-lp-scroll, .settings-header';
+
+/**
+ * The new page's first few blocks: whatever follows the header, opened up
+ * while it is a single wrapper (the explorer's container, a page's root
+ * div), and only those that start on screen.
+ */
+function settleBlocks(page: HTMLElement): HTMLElement[] {
+  const header = page.querySelector('.fn-header');
+  let blocks: Element[] = [];
+  if (header) {
+    for (let el = header.nextElementSibling; el; el = el.nextElementSibling) blocks.push(el);
+  } else {
+    blocks = Array.from(page.querySelector('main')?.children ?? []);
+  }
+  for (let depth = 0; depth < 3 && blocks.length === 1; depth++) {
+    blocks = Array.from(blocks[0].children);
+  }
+  // Measured from the page's own top: the window still holds the last
+  // page's scroll until the reset below runs.
+  const top = page.getBoundingClientRect().top;
+  return blocks
+    .filter((el): el is HTMLElement => el instanceof HTMLElement)
+    .filter(
+      (el) =>
+        el.offsetHeight > 0 &&
+        el.getBoundingClientRect().top - top < window.innerHeight &&
+        !el.matches(FIXED_INSIDE) &&
+        !el.querySelector(FIXED_INSIDE) &&
+        getComputedStyle(el).position !== 'fixed',
+    )
+    .slice(0, 5);
 }
 
 /**
@@ -19,10 +59,13 @@ interface PageTransitionProps {
  *
  * Tuned for subtlety:
  *
- *   - opacity-only (no y-slide) — slides drag the eye and amplify the
- *     "content jumped" feeling, especially on touch where you've already
- *     committed motion via the tap.
- *   - 220ms — long enough to read as intentional, short enough not to feel
+ *   - opacity-only on the page itself (no y-slide) — sliding the whole
+ *     page drags the eye and amplifies the "content jumped" feeling,
+ *     especially on touch where you've already committed motion via the
+ *     tap. Instead the new page's first few blocks settle: each rises 6px
+ *     as it fades in, 40ms after the one above (settleBlocks). The header
+ *     stays still, so the bar never seems to move.
+ *   - 200ms — long enough to read as intentional, short enough not to feel
  *     like a transition you're waiting through.
  *   - `mode="popLayout"` — incoming page is rendered alongside the outgoing
  *     one during the crossfade, so the layout doesn't collapse to zero
@@ -63,6 +106,29 @@ export default function PageTransition({ children }: PageTransitionProps) {
     window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
   }, [pathname]);
 
+  // Settle the incoming page's blocks. Not on the first load (the page is
+  // already there), and before paint, so no block shows at rest for a frame
+  // before it drops back to start its rise.
+  const settledPath = useRef(pathname);
+  useLayoutEffect(() => {
+    if (settledPath.current === pathname) return;
+    settledPath.current = pathname;
+    const page = document.querySelector<HTMLElement>(
+      `[data-page-key="${CSS.escape(pathname ?? '')}"]`,
+    );
+    if (!page) return;
+    settleBlocks(page).forEach((el, i) =>
+      animate(
+        el,
+        [
+          { opacity: 0, transform: 'translateY(6px)' },
+          { opacity: 1, transform: 'none' },
+        ],
+        { duration: MOTION.arrive, delay: 60 + i * 40 },
+      ),
+    );
+  }, [pathname]);
+
   return (
     <MotionConfig reducedMotion={reduceMotion ? 'always' : 'never'}>
       <AnimatePresence mode="popLayout" initial={false}>
@@ -72,9 +138,10 @@ export default function PageTransition({ children }: PageTransitionProps) {
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{
-            duration: 0.22,
+            duration: 0.2,
             ease: 'easeOut',
           }}
+          data-page-key={pathname ?? ''}
           // Hold the page area open while routing so the footer can't ride
           // up into the viewport mid-transition. Just under one screen so
           // short pages still look balanced.

@@ -75,7 +75,12 @@
   text-decoration: none;
   white-space: nowrap;
   cursor: pointer;
-  transition: color 0.15s ease, background-color 0.15s ease;
+  /* The rise: opening a tab eases its top edge up the 3px instead of
+     snapping, and the tab it replaces settles back the same way. */
+  transition:
+    color 0.15s ease,
+    background-color 0.15s ease,
+    padding-top var(--motion-panel) var(--ease-soft);
 }
 
 /* The cut. Each wedge starts where the shoulder's curve turns vertical and

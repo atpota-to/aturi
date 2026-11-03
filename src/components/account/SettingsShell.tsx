@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { CloudOff } from 'lucide-react';
 import { useAtprotoSession } from '@/components/AtprotoSessionProvider';
 import { getReduceMotionSnapshot } from '@/lib/a11y';
+import { useFadeOnChange } from '@/components/useFadeOnChange';
 import AccountTab from './tabs/AccountTab';
 import GeneralTab from './tabs/GeneralTab';
 import KeyboardTab from './tabs/KeyboardTab';
@@ -133,6 +134,8 @@ export default function SettingsShell() {
   }
 
   const current = TABS.find((t) => t.id === tab) ?? TABS[0];
+  const panelRef = useRef<HTMLDivElement>(null);
+  useFadeOnChange(panelRef, tab);
 
   return (
     <div className="settings-shell">
@@ -171,6 +174,7 @@ export default function SettingsShell() {
       {/* The tab panel, not a second <main>: the layout already provides
           the page's main landmark, and this one sat nested inside it. */}
       <div
+        ref={panelRef}
         id="settings-panel"
         role="tabpanel"
         aria-labelledby={`settings-tab-${tab}`}

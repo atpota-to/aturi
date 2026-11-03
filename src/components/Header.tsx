@@ -1,6 +1,13 @@
 'use client';
 
-import { useCallback, useState, useEffect, useRef } from 'react';
+import {
+  useCallback,
+  useState,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  type PointerEvent as ReactPointerEvent,
+} from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
@@ -26,6 +33,7 @@ import StickyBreadcrumbBar from './explore/StickyBreadcrumbBar';
 import { JumpField } from './explore/ChromeField';
 import { useMediaQuery } from './explore/useIsNarrow';
 import { isEventOutside } from '@/lib/outsideClick';
+import { motionAllowed } from '@/lib/motion';
 import { SITE_MENU_TOGGLE_ATTR, setSiteMenuOpen, toggleSiteMenu } from '@/lib/siteMenu';
 import SiteMenuButton, { useSiteMenuOpen } from './SiteMenuButton';
 import SiteNavButtons from './SiteNavButtons';
@@ -125,6 +133,104 @@ function Brand() {
       </Link>
       <span className="fn-tagline">Tour the Atmosphere</span>
     </div>
+  );
+}
+
+/**
+ * Where the last header's active pill sat. Every page mounts its own header,
+ * so the pill can't slide inside one instance; the next header reads this
+ * and slides from the section you left to the one you opened.
+ */
+let lastActivePill: { x: number; w: number } | null = null;
+
+function placePill(pill: HTMLElement, at: { x: number; w: number }, instant: boolean) {
+  if (instant) pill.style.transition = 'none';
+  pill.style.transform = `translateX(${at.x}px)`;
+  pill.style.width = `${at.w}px`;
+  if (instant) {
+    void pill.offsetWidth;
+    pill.style.transition = '';
+  }
+}
+
+/**
+ * The inline section links, with two shared shapes behind them (chrome.css,
+ * "Gliding pills"): a hover pill that follows the pointer from link to link,
+ * and the green active pill. Until this has measured the links, each link
+ * paints its own fills, so the bar reads the same before hydration.
+ */
+function PrimaryNav({ activeHref }: { activeHref: string | null }) {
+  const navRef = useRef<HTMLElement>(null);
+  const hoverRef = useRef<HTMLSpanElement>(null);
+  const activeRef = useRef<HTMLSpanElement>(null);
+
+  useLayoutEffect(() => {
+    const nav = navRef.current;
+    const pill = activeRef.current;
+    if (!nav || !pill) return;
+    const place = (from: { x: number; w: number } | null) => {
+      const link = nav.querySelector<HTMLElement>('.fn-nav-link[aria-current="page"]');
+      // Below the nav breakpoint the bar is hidden (width 0): nothing to place.
+      if (!link || link.offsetWidth === 0) {
+        pill.removeAttribute('data-on');
+        return;
+      }
+      const to = { x: link.offsetLeft, w: link.offsetWidth };
+      const slide = !!from && motionAllowed() && (from.x !== to.x || from.w !== to.w);
+      placePill(pill, slide && from ? from : to, true);
+      pill.setAttribute('data-on', '');
+      if (slide) placePill(pill, to, false);
+      lastActivePill = to;
+    };
+    place(lastActivePill);
+    nav.setAttribute('data-glide', '');
+    // Fonts landing and the breakpoint both change the links' widths; the
+    // first callback reports the size we already measured and is skipped.
+    let width = nav.offsetWidth;
+    const ro = new ResizeObserver(() => {
+      if (nav.offsetWidth === width) return;
+      width = nav.offsetWidth;
+      pill.removeAttribute('data-on');
+      place(null);
+    });
+    ro.observe(nav);
+    return () => ro.disconnect();
+  }, [activeHref]);
+
+  const onLinkEnter = (event: ReactPointerEvent<HTMLAnchorElement>) => {
+    const nav = navRef.current;
+    const pill = hoverRef.current;
+    if (!nav || !pill || event.pointerType !== 'mouse') return;
+    const link = event.currentTarget;
+    // Arriving from outside the bar, the pill appears under the link rather
+    // than sliding in from wherever it last faded out.
+    const arriving = !nav.hasAttribute('data-hovering');
+    placePill(pill, { x: link.offsetLeft, w: link.offsetWidth }, arriving);
+    nav.setAttribute('data-hovering', '');
+  };
+
+  return (
+    <nav
+      ref={navRef}
+      aria-label="Primary"
+      className="fn-nav"
+      onPointerLeave={() => navRef.current?.removeAttribute('data-hovering')}
+    >
+      <span ref={hoverRef} className="fn-nav-pill fn-nav-pill-hover" aria-hidden />
+      <span ref={activeRef} className="fn-nav-pill fn-nav-pill-active" aria-hidden />
+      {NAV_ITEMS.filter((item) => item.inline).map((item) => (
+        <Link
+          key={item.href}
+          href={item.href}
+          prefetch={false}
+          className="fn-nav-link"
+          aria-current={activeHref === item.href ? 'page' : undefined}
+          onPointerEnter={onLinkEnter}
+        >
+          {item.label}
+        </Link>
+      ))}
+    </nav>
   );
 }
 
@@ -254,19 +360,7 @@ export default function Header(_props: HeaderProps) {
 
           {/* Primary sections inline on wide screens; below the nav
               breakpoint they move into the menu panel (CSS hides this). */}
-          <nav aria-label="Primary" className="fn-nav">
-            {NAV_ITEMS.filter((item) => item.inline).map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                prefetch={false}
-                className="fn-nav-link"
-                aria-current={activeHref === item.href ? 'page' : undefined}
-              >
-                {item.label}
-              </Link>
-            ))}
-          </nav>
+          <PrimaryNav activeHref={activeHref} />
 
           <div className="fn-header-actions">
             {/* Explorer pages carry the "go to" field in the bar itself, as
