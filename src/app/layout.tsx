@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Analytics } from "@vercel/analytics/next";
 import { AtprotoSessionProvider } from "@/components/AtprotoSessionProvider";
 import { PreferencesProvider } from "@/components/PreferencesProvider";
@@ -70,6 +70,26 @@ export const metadata: Metadata = {
     description: "Travel between clients with the browser extension, share universal Atmosphere links, and explore any account's PDS data.",
     images: ['/og-images/aturi-home.png'],
   },
+};
+
+/**
+ * `viewportFit: 'cover'` lets the page run under the iPhone's home indicator
+ * and rounded corners, which is the only way iOS will report how much of the
+ * screen they take: without it every `env(safe-area-inset-*)` reads 0.
+ *
+ * The phone toolbar needs that number. It sits on the bottom edge and pads
+ * itself by `env(safe-area-inset-bottom)` (chrome.css, Phone toolbar), and
+ * in a home-screen install there is no Safari toolbar under it to lift it
+ * clear of the home indicator, so without the inset it sat under the bar.
+ *
+ * Width and scale restate Next's defaults, which a `viewport` export
+ * replaces rather than extends. The sides are put back inside the safe area
+ * on <body> (globals.css), so landscape keeps the inset Safari used to add.
+ */
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  viewportFit: 'cover',
 };
 
 export default function RootLayout({

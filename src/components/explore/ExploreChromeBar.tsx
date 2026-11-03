@@ -1,12 +1,14 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { usePathname, useRouter } from 'next/navigation';
-import { Check, ChevronUp, FilePenLine, Link2, Search, Trash2, X } from 'lucide-react';
-import { resolveSearchPathAsync } from '@/utils/atproto/searchRouting';
+import { usePathname } from 'next/navigation';
+import { Check, ChevronUp, FilePenLine, Link2, Trash2, X } from 'lucide-react';
 import { getReduceMotionSnapshot } from '@/lib/a11y';
+import SiteMenuButton, { useSiteMenuOpen } from '@/components/SiteMenuButton';
+import { useCondenseOnScroll } from '@/components/useCondenseOnScroll';
 import { useChromeBar, type ChromeBarAction } from './ChromeBarContext';
 import { useEditBar, type EditBarSnapshot } from './EditBarContext';
+import { FieldForm, JumpField } from './ChromeField';
 import { useIsNarrow, useMediaQuery } from './useIsNarrow';
 import { CHROME_OCCLUSION_PX, NAV_OCCLUSION_PX } from './useOffscreen';
 import DeleteProgressBar from './DeleteProgressBar';
@@ -79,6 +81,12 @@ let mountedBars = 0;
  * selection controls expand upward out of the bar as a panel — the mirror of
  * the nav's menu expanding downward out of the header.
  *
+ * On a phone the header's bar steps aside entirely and this is the only
+ * toolbar on the screen, so it also carries the site menu button at its left
+ * end (the same toolbar <Header> draws on every other page). Scrolling down
+ * a page slims it to just the field; scrolling back up brings the rest back
+ * (useCondenseOnScroll).
+ *
  * The bar reserves its own height as bottom padding on the site footer
  * (`.fn-footer`, under `body.has-explore-chrome` in globals.css), so it
  * never covers the end of a list or the footer's own links. The panel is deliberately left out of that
@@ -109,6 +117,10 @@ export default function ExploreChromeBar() {
     mountedBars += 1;
     document.body.classList.add('has-explore-chrome');
     const apply = () => {
+      // The slim scrolling state is a lull, not a new size: reserving it
+      // would shrink the page under a reader mid-scroll, and the bar is
+      // always full again by the time they reach the end of the page.
+      if (node.dataset.condensed !== undefined) return;
       root.style.setProperty('--explore-chrome-h', `${node.offsetHeight}px`);
     };
     apply();
@@ -183,6 +195,17 @@ export default function ExploreChromeBar() {
   // would paint the bar on every desktop load and then pull it away.
   const redundant = !takeover && !routeField && !bar && !action;
 
+  // Slims while the reader scrolls down a page on a phone, unless the bar is
+  // in use: a field being typed in, the site menu or the selection panel
+  // open, or selection mode on at all, since its controls are what the bar is
+  // holding in reach.
+  const toolbarPhone = useMediaQuery('(max-width: 639px)');
+  const menuOpen = useSiteMenuOpen();
+  const [focused, setFocused] = useState(false);
+  const condensed = useCondenseOnScroll(
+    toolbarPhone && !hidden && !menuOpen && !focused && !bar && !panelOpen,
+  );
+
   // On a two-column explorer page, centre the card on the content column
   // rather than the viewport, so it doesn't run over the sidebar or the
   // record's aside. Measured, since the columns are grid tracks whose
@@ -233,7 +256,16 @@ export default function ExploreChromeBar() {
     // relative anchor for the panel, and the card itself — so the two ends of
     // the screen are the same object, one stuck to the top and one to the
     // bottom.
-    <div ref={barRef} className="explore-chrome-bar" data-redundant={redundant || undefined}>
+    <div
+      ref={barRef}
+      className="explore-chrome-bar"
+      data-redundant={redundant || undefined}
+      data-condensed={condensed || undefined}
+      onFocus={() => setFocused(true)}
+      onBlur={(e) => {
+        if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setFocused(false);
+      }}
+    >
       <div className="container-narrow explore-chrome-shell">
         <div className="explore-chrome-anchor">
           {inPanel && bar && <ChromePanel open={panelOpen} bar={bar} />}
@@ -243,6 +275,8 @@ export default function ExploreChromeBar() {
                 <DeleteSteps bar={bar} />
               ) : (
                 <>
+                  {/* Phone only (chrome.css); wider, the header has its own. */}
+                  <SiteMenuButton />
                   {routeField ? <RouteField key="route" /> : <JumpField key="jump" />}
                   {bar && !inPanel && <SelectionControls bar={bar} />}
                   {inPanel && bar && (
@@ -588,125 +622,6 @@ function RouteField() {
         inputRef.current?.focus();
       }}
     />
-  );
-}
-
-/**
- * Fallback for routes with no list to narrow — a single record, a lexicon,
- * the explorer landing. Same routing as the header search: handles, DIDs,
- * at:// URIs, and client URLs all resolve to their explorer page.
- */
-function JumpField() {
-  const router = useRouter();
-  const pathname = usePathname();
-  const [value, setValue] = useState('');
-  const inputRef = useRef<HTMLInputElement>(null);
-  // Guards a second Enter while an unrecognized URL is being resolved
-  // through /api/at-tags.
-  const resolvingRef = useRef(false);
-
-  // A landed navigation is the end of that query — don't leave it sitting in
-  // the bar on the page it took you to.
-  useEffect(() => {
-    setValue('');
-  }, [pathname]);
-
-  async function submit() {
-    if (resolvingRef.current) return;
-    resolvingRef.current = true;
-    try {
-      const path = await resolveSearchPathAsync(value);
-      if (path) router.push(path);
-    } finally {
-      resolvingRef.current = false;
-    }
-  }
-
-  return (
-    <FieldForm
-      inputRef={inputRef}
-      label="Go to a handle, DID, or at:// URI"
-      placeholder="Go to a handle, DID or at:// URI"
-      value={value}
-      onChange={setValue}
-      onSubmit={submit}
-      onClear={() => {
-        setValue('');
-        inputRef.current?.focus();
-      }}
-    />
-  );
-}
-
-function FieldForm({
-  inputRef,
-  label,
-  placeholder,
-  value,
-  status,
-  onChange,
-  onSubmit,
-  onClear,
-}: {
-  inputRef: React.RefObject<HTMLInputElement | null>;
-  label: string;
-  placeholder: string;
-  value: string;
-  status?: string | null;
-  onChange: (value: string) => void;
-  onSubmit: () => void;
-  onClear: () => void;
-}) {
-  return (
-    <form
-      role="search"
-      aria-label={label}
-      className="explore-chrome-form"
-      onSubmit={(e) => {
-        e.preventDefault();
-        onSubmit();
-      }}
-    >
-      <Search size={13} aria-hidden className="explore-chrome-search-icon" />
-      <input
-        ref={inputRef}
-        type="text"
-        autoComplete="off"
-        spellCheck={false}
-        enterKeyHint="search"
-        aria-label={label}
-        placeholder={placeholder}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        onKeyDown={(e) => {
-          // Escape clears rather than closes — the bar is permanent chrome,
-          // so there's nothing to dismiss.
-          if (e.key === 'Escape' && value) {
-            e.preventDefault();
-            onClear();
-          }
-        }}
-        className="explore-chrome-input"
-      />
-      {status && (
-        // Read as one unit so a mid-type update doesn't get announced
-        // digit by digit.
-        <span aria-live="polite" aria-atomic className="explore-chrome-status">
-          {status}
-        </span>
-      )}
-      {value && (
-        <button
-          type="button"
-          onClick={onClear}
-          aria-label="Clear"
-          title="Clear"
-          className="explore-chrome-clear"
-        >
-          <X size={14} aria-hidden />
-        </button>
-      )}
-    </form>
   );
 }
 

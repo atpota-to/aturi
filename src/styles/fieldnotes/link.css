@@ -1083,6 +1083,24 @@
   }
 }
 
+/* On a phone the site toolbar is pinned to the bottom edge (chrome.css,
+   Phone toolbar), so the remember bar and the scroll hint stand on it rather
+   than on the edge of the screen. The full-bleed bar also hands the
+   home-indicator inset to the toolbar, which now owns that edge. */
+@media (max-width: 639px) {
+  .fn-lp-remember,
+  .fn-lp-scroll {
+    bottom: calc(var(--fn-phone-bar-h) + 1rem);
+  }
+}
+
+@media (max-width: 600px) {
+  .fn-lp-remember {
+    bottom: var(--fn-phone-bar-h);
+    padding-bottom: 0.875rem;
+  }
+}
+
 /* --- New-waypoints banner (picker + account settings) --------------------- */
 
 .new-waypoints-banner {

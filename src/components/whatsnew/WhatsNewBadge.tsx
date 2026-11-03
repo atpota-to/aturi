@@ -20,6 +20,19 @@ import WhatsNewContent from './WhatsNewContent';
 export const OPEN_WHATS_NEW_EVENT = 'aturi:open-whats-new';
 
 /**
+ * Unread release-note entries, for the dot shown away from the bell. On a
+ * phone the bell is folded into the site menu, so the dot moves to the
+ * toolbar button that opens it and to the menu's own "What's new" tile.
+ */
+export function useUnreadReleaseCount(): number {
+  const { prefs } = usePreferences();
+  return useMemo(
+    () => countEntries(unseenReleases(prefs.lastSeenReleaseId)),
+    [prefs.lastSeenReleaseId],
+  );
+}
+
+/**
  * Header bell with an unread dot, opening the same notes the modal shows.
  *
  * This is the passive half of the pair: it never interrupts, works on every

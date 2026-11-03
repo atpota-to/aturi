@@ -1074,6 +1074,13 @@ body {
   /* Ensure full viewport coverage on mobile */
   min-height: 100vh;
   min-height: 100dvh; /* Dynamic viewport height for mobile browsers */
+  /* The layout opts into viewport-fit=cover so the bottom toolbar can learn
+     the home indicator's height (layout.tsx). That also lets the page run
+     under a landscape iPhone's sensor housing; these put the content back
+     inside the safe area there, as Safari did on its own before. Both are
+     0 in portrait and on every other screen. */
+  padding-left: env(safe-area-inset-left, 0px);
+  padding-right: env(safe-area-inset-right, 0px);
   /* Sticky footer: the page wrapper (PageTransition's div around <main>)
      takes the spare height, so a short page's footer sits at the bottom of
      the viewport instead of leaving a band of page colour under it. */
