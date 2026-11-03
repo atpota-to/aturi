@@ -197,6 +197,7 @@ function RankingCard({
                       title={`Open the ${row.nsid} lexicon schema`}
                       className="fn-row fn-pulse-row"
                     >
+                      <span className="fn-row-rank">{i + 1}</span>
                       <span className="fn-pulse-nsid">{row.nsid}</span>
                       <span
                         className="fn-pulse-before-now"
@@ -254,7 +255,7 @@ function NewCard({ timeWindow }: { timeWindow: Window }) {
             </p>
           ) : (
             <ol className="fn-list-rows">
-              {visible.map((lexicon) => (
+              {visible.map((lexicon, i) => (
                 <li key={lexicon.nsid}>
                   <Link
                     href={lexiconPathFor(lexicon.nsid)}
@@ -262,6 +263,7 @@ function NewCard({ timeWindow }: { timeWindow: Window }) {
                     title={`Open ${lexicon.nsid} in the lexicons explorer`}
                     className="fn-row fn-pulse-row"
                   >
+                    <span className="fn-row-rank">{i + 1}</span>
                     <span className="fn-pulse-nsid">{lexicon.nsid}</span>
                     <span
                       className="fn-row-count"
