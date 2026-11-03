@@ -4442,31 +4442,6 @@ body.has-explore-chrome .fn-footer {
    Homepage product strips
    ============================================ */
 
-/* ---------- Product landing pages (extension, universal links) ---------- */
-
-/* Hero block on landing pages stacks the copy + a hero visual side-by-side
-   on desktop, and stacks the visual above the copy on mobile. */
-.landing-hero {
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
-}
-
-.landing-hero > div:last-child {
-  display: flex;
-  justify-content: center;
-}
-
-@media (max-width: 820px) {
-  .landing-hero {
-    grid-template-columns: minmax(0, 1fr) !important;
-  }
-  /* Mirror the .landing-feature-visual clamp: the hero visuals (e.g.
-     BrowserChrome at maxWidth 520px) need to be clipped to the
-     mobile container width so they don't trigger horizontal scroll. */
-  .landing-hero > div:last-child > * {
-    max-width: 100% !important;
-  }
-}
-
 /* New-waypoints notification banner (universal-link picker + account settings) */
 .new-waypoints-banner {
   display: flex;
