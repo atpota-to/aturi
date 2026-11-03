@@ -25,12 +25,13 @@
 }
 
 /* The settings nav is the shared folder tabs (tabs.css, .fx-tabs / .fx-tab).
-   On phones they are a row standing on a full-width baseline (the 820px
-   block below); from 821px the folder turns on its side: the content
-   column's left hairline is the spine, the tabs stand against it like binder
-   dividers, and the open one is 3px further out in the page colour with its
-   right edge painted out, so it runs into the content. Settings reads the
-   same way at every width. */
+   On tablets they are a row standing on a full-width baseline (the 820px
+   block below); on phones that row turns upside down and hangs from the page
+   onto the bottom toolbar (the 639px block); from 821px the folder turns on
+   its side: the content column's left hairline is the spine, the tabs stand
+   against it like binder dividers, and the open one is 3px further out in
+   the page colour with its right edge painted out, so it runs into the
+   content. Settings reads the same way at every width. */
 @media (min-width: 821px) {
   .settings-shell {
     flex-direction: row;
@@ -787,6 +788,119 @@
   .settings-page-title {
     font-size: 22px;
   }
+}
+
+/* Phone: the tabs hang from the bottom of the page onto the toolbar
+   (chrome.css), where a thumb reaches them from anywhere down a long tab.
+   The folder turns upside down: the page above is the open sheet, the tabs
+   are cut from its bottom edge, and the open one, in the page's colour, runs
+   up into it through the rule. The strip they hang in is the toolbar's own
+   surface, and that rule is the one line over both, so the toolbar drops its
+   top border while the tabs are up.
+
+   While the toolbar slims for reading (useCondenseOnScroll) the tabs tuck
+   away behind it, and they come back with it on the first scroll up. A tab
+   can now be picked from anywhere down the page, so SettingsShell scrolls
+   to the top on a pick, as a tab bar opens each tab at its start.
+
+   --settings-tabs-h is the strip's height: the open tab (45px) and the 6px
+   under it. Fixed, since the tabs are sized in px and the font-size setting
+   scales rem. */
+@media (max-width: 639px) {
+  :root {
+    --settings-tabs-h: 51px;
+  }
+
+  .settings-header {
+    position: fixed;
+    right: 0;
+    bottom: var(--fn-phone-bar-h);
+    left: 0;
+    /* Under the menu's scrim (35), and under the toolbar (the header, 40),
+       which it slides behind. */
+    z-index: 30;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: var(--bg-secondary);
+    box-shadow: inset 0 1px 0 var(--border-medium);
+    transition: transform 0.2s ease, opacity 0.2s ease, visibility 0s linear 0s;
+  }
+
+  /* `visibility` takes the tucked-away tabs out of the tab order once
+     they've gone, and holds them through the slide. */
+  body:has(.fn-phone-bar[data-condensed]) .settings-header {
+    transform: translateY(100%);
+    opacity: 0;
+    visibility: hidden;
+    transition: transform 0.2s ease, opacity 0.2s ease, visibility 0s linear 0.2s;
+  }
+
+  /* Not under the open menu, which covers the tabs and stands on the
+     toolbar's rule as it does on every other page. */
+  body:has(.settings-nav):not(:has(.fn-menu-scrim[data-open]))
+    .fn-phone-bar:not([data-condensed])
+    .explore-chrome-card {
+    border-top-color: transparent;
+  }
+
+  /* The rule is the header's, full width, rather than the row's, which the
+     edge fade would thin out at the right. */
+  .settings-nav {
+    align-items: flex-start;
+    padding-bottom: 6px;
+    box-shadow: none;
+  }
+
+  .settings-nav .fx-tab {
+    border-radius: 0 0 var(--tab-radius) var(--tab-radius);
+  }
+
+  .settings-nav .fx-tab[aria-selected='true'] {
+    padding-top: var(--tab-pad-y);
+    padding-bottom: calc(var(--tab-pad-y) + var(--tab-rise));
+    border-top-color: var(--tab-open);
+    border-bottom-color: var(--tab-line);
+  }
+
+  /* The footer's reservation for the toolbar (chrome.css), plus the strip. */
+  body:has(.fn-phone-bar):has(.settings-nav) .fn-footer {
+    padding-bottom: calc(20px + var(--fn-phone-bar-h) + var(--settings-tabs-h) + 1rem);
+  }
+}
+
+/* The cut, upside down: each wedge runs from the rule down to where the
+   shoulder's curve turns vertical, leaning in as it goes. */
+@media (max-width: 639px) and (min-resolution: 1.5dppx) {
+  .settings-nav .fx-tab::before,
+  .settings-nav .fx-tab::after {
+    top: -1px;
+    bottom: calc(var(--tab-radius) - 1px);
+    border-top-width: 1px;
+    border-bottom-width: 0;
+  }
+
+  .settings-nav .fx-tab::before {
+    transform-origin: bottom left;
+    transform: skewX(var(--tab-cut));
+  }
+
+  .settings-nav .fx-tab::after {
+    transform-origin: bottom right;
+    transform: skewX(calc(-1 * var(--tab-cut)));
+  }
+}
+
+/* A touched tab comes forward downward, toward the thumb. */
+@media (max-width: 639px) and (hover: hover) {
+  .settings-nav .fx-tab:hover:not([aria-selected='true']) {
+    padding-top: var(--tab-pad-y);
+    padding-bottom: calc(var(--tab-pad-y) + 1px);
+  }
+}
+
+[data-reduce-motion='true'] .settings-header {
+  transition: none;
 }
 
 @media (max-width: 560px) {
