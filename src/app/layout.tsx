@@ -11,6 +11,7 @@ import AutoRedirectSync from "@/components/AutoRedirectSync";
 import WhatsNewModal from "@/components/whatsnew/WhatsNewModal";
 import FontScaleSync from "@/components/FontScaleSync";
 import A11ySync from "@/components/A11ySync";
+import KeyChipPress from "@/components/KeyChipPress";
 import { DEFAULT_THEME, THEME_INIT_SCRIPT } from "@/lib/theme";
 import {
   COLOR_SCHEME_INIT_SCRIPT,
@@ -144,6 +145,7 @@ export default function RootLayout({
         <ThemeSync />
         <FontScaleSync />
         <A11ySync />
+        <KeyChipPress />
         <AtprotoSessionProvider>
           <PreferencesProvider>
             <ColorSchemeSync />

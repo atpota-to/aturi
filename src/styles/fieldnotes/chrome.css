@@ -360,16 +360,25 @@
   box-shadow: var(--shadow-overlay);
   z-index: 50;
   overflow: hidden;
+  /* Grows from the corner nearest its button and shrinks back there a
+     little faster than it came. The open state's transition times the
+     opening, this one the closing. */
   opacity: 0;
-  transform: translateY(-6px);
+  transform: scale(0.96);
+  transform-origin: top right;
   pointer-events: none;
-  transition: opacity 0.16s ease, transform 0.16s ease;
+  transition:
+    opacity var(--motion-press) ease-in,
+    transform var(--motion-press) ease-in;
 }
 
 .fn-header-panel[data-open] {
   opacity: 1;
   transform: none;
   pointer-events: auto;
+  transition:
+    opacity 160ms ease-out,
+    transform 160ms var(--ease-soft);
 }
 
 .fn-header-search-panel {
@@ -497,7 +506,11 @@
   background: var(--bg-primary);
   color: var(--text-tertiary);
   cursor: text;
-  transition: border-color 0.15s ease, background 0.15s ease;
+  transition:
+    border-color var(--motion-quick) ease,
+    background var(--motion-quick) ease,
+    color var(--motion-quick) ease,
+    box-shadow var(--motion-panel) var(--ease-soft);
 }
 
 .fn-search-panel .fn-search-field {
@@ -507,6 +520,10 @@
 .fn-search-field:focus-within {
   border-color: var(--accent-moss);
   background: var(--bg-secondary);
+  /* The soft halo the home search wears, and the icon (currentColor) warms
+     to the accent with it. */
+  box-shadow: 0 0 0 3px var(--accent-soft);
+  color: var(--text-accent);
 }
 
 .fn-search-icon {

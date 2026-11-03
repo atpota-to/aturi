@@ -291,6 +291,7 @@ export default function WaypointPicker({
             <div
               key={waypoint.id}
               className={`fn-lp-hero${index === 0 ? ' is-primary' : ''}`}
+              style={{ '--i': index } as React.CSSProperties}
             >
               <a
                 className="fn-lp-hero-link"
@@ -354,9 +355,10 @@ export default function WaypointPicker({
 
           {/* Every group the user has arranged, drawn as rows or tiles. */}
           <div className={`waypoint-compact is-${layout}`} id="waypoint-groups">
-            {visibleGroups.map(({ category, waypoints }) => (
+            {visibleGroups.map(({ category, waypoints }, order) => (
               <CompactWaypointGroup
                 key={category.id}
+                order={order}
                 label={category.name}
                 waypoints={waypoints}
                 layout={layout}

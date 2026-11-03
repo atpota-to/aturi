@@ -1,9 +1,11 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { ExternalLink } from 'lucide-react';
 import AppearIn from './AppearIn';
 import { Skeleton } from '@/components/SkeletonLoader';
+import Odometer from '@/components/Odometer';
+import { animate, MOTION, replay } from '@/lib/motion';
 import {
   ATPOTATO,
   WEATHER_REPORT,
@@ -182,6 +184,20 @@ export default function AtmosphericConditions() {
     ? new Date(reading.measuredAt).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })
     : null;
 
+  // Pulse on data: the dot beside "Updated" holds still until a new reading
+  // lands, then ripples once while the time flushes green (motion.css). A
+  // refresh that failed keeps the old reading, so it doesn't pulse.
+  const measuredAt = reading?.measuredAt ?? null;
+  const shownAt = useRef(measuredAt);
+  const updatedRef = useRef<HTMLSpanElement>(null);
+  useEffect(() => {
+    const was = shownAt.current;
+    shownAt.current = measuredAt;
+    if (!was || !measuredAt || was === measuredAt) return;
+    replay(updatedRef.current?.querySelector('.fn-live-dot'), 'data-blip');
+    replay(updatedRef.current?.querySelector('time'), 'data-fresh');
+  }, [measuredAt]);
+
   return (
     <AppearIn delay={0.09}>
       <section aria-labelledby="fn-wx-title" className="fn-list-card fn-wx">
@@ -200,7 +216,8 @@ export default function AtmosphericConditions() {
           </div>
           <div className="fn-wx-headside">
             {updated && (
-              <span className="fn-wx-updated">
+              <span ref={updatedRef} className="fn-wx-updated">
+                <span className="fn-live-dot" aria-hidden />
                 Updated <time dateTime={reading!.measuredAt}>{updated}</time>
               </span>
             )}
@@ -219,17 +236,28 @@ export default function AtmosphericConditions() {
         ) : (
           <dl className="fn-wx-grid">
             <Stat
+              order={0}
               label="Right now"
               loading={!loaded}
               value={reading ? capitalize(reading.condition) : null}
               note={
-                reading
-                  ? `${whole(reading.recordsPerSecond)} records a second` +
-                    (reading.accounts !== null ? ` · ${whole(reading.accounts)} accounts` : '')
-                  : missing
+                reading ? (
+                  <>
+                    <Odometer value={whole(reading.recordsPerSecond)} /> records a second
+                    {reading.accounts !== null && (
+                      <>
+                        {' · '}
+                        <Odometer value={whole(reading.accounts)} /> accounts
+                      </>
+                    )}
+                  </>
+                ) : (
+                  missing
+                )
               }
             />
             <Stat
+              order={1}
               label="Against usual"
               loading={!loaded}
               value={usual ? changeText(usual.changePercent) : null}
@@ -242,6 +270,7 @@ export default function AtmosphericConditions() {
               }
             />
             <Stat
+              order={2}
               label="Diversity index"
               loading={!loaded}
               value={reading?.diversity ? reading.diversity.index.toFixed(2) : null}
@@ -253,6 +282,7 @@ export default function AtmosphericConditions() {
               }
             />
             <Stat
+              order={3}
               label="Hosting diversity"
               loading={!loaded}
               value={reading?.hosts ? reading.hosts.index.toFixed(2) : null}
@@ -271,20 +301,42 @@ export default function AtmosphericConditions() {
 }
 
 function Stat({
+  order,
   label,
   loading,
   value,
   level,
   note,
 }: {
+  /** Place in the row, so readings land left to right out of their skeletons. */
+  order: number;
   label: string;
   loading: boolean;
   value: string | null;
   level?: string;
-  note: string;
+  note: ReactNode;
 }) {
+  // Row by row: when the first reading replaces the skeletons, each stat's
+  // figures rise 4px into place, 70ms after the stat before it.
+  const ref = useRef<HTMLDivElement>(null);
+  const wasLoading = useRef(loading);
+  useLayoutEffect(() => {
+    if (!wasLoading.current || loading) return;
+    wasLoading.current = false;
+    ref.current?.querySelectorAll('dd').forEach((dd) =>
+      animate(
+        dd,
+        [
+          { opacity: 0, transform: 'translateY(4px)' },
+          { opacity: 1, transform: 'none' },
+        ],
+        { duration: MOTION.panel, delay: order * 70 },
+      ),
+    );
+  }, [loading, order]);
+
   return (
-    <div className="fn-wx-stat">
+    <div ref={ref} className="fn-wx-stat">
       <dt>{label}</dt>
       {loading ? (
         <>
@@ -298,7 +350,8 @@ function Stat({
       ) : (
         <>
           <dd className="fn-wx-value">
-            {value ?? '–'}
+            {/* Figures roll to each new reading; the condition is a word. */}
+            {value && /\d/.test(value) ? <Odometer value={value} /> : (value ?? '–')}
             {value && level && <span className="fn-wx-level">{level}</span>}
           </dd>
           <dd className="fn-wx-note">{note}</dd>

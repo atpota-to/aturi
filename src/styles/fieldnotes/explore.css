@@ -346,6 +346,17 @@
   background: var(--accent-moss);
 }
 
+/* Bars ease to their new length when the window or metric changes, as the
+   rows glide to their new rank (useListMotion). */
+.fn-pulse-bar > span {
+  transition: width 480ms var(--ease-soft);
+}
+
+/* The rows' offset parent, so re-rank measures positions within the list. */
+.fn-pulse-card .fn-list-rows {
+  position: relative;
+}
+
 .fn-pulse-before-now {
   font-size: 13px;
   white-space: nowrap;

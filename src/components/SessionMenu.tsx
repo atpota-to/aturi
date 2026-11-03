@@ -363,6 +363,9 @@ function menuStyle(extra?: React.CSSProperties): React.CSSProperties {
     flexDirection: 'column',
     padding: '0.25rem',
     textAlign: 'left',
+    // Grows from the corner nearest the trigger (motion.css, "Menus").
+    transformOrigin: 'top right',
+    animation: 'pop-grow 160ms var(--ease-soft)',
     ...extra,
   };
 }
