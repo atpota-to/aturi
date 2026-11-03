@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation';
 import { Check, ChevronUp, FilePenLine, Link2, Trash2, X } from 'lucide-react';
 import { getReduceMotionSnapshot } from '@/lib/a11y';
 import SiteMenuButton, { useSiteMenuOpen } from '@/components/SiteMenuButton';
-import SiteBackButton from '@/components/SiteBackButton';
+import SiteNavButtons from '@/components/SiteNavButtons';
 import { useCondenseOnScroll } from '@/components/useCondenseOnScroll';
 import { useChromeBar, type ChromeBarAction } from './ChromeBarContext';
 import { useEditBar, type EditBarSnapshot } from './EditBarContext';
@@ -76,17 +76,16 @@ let mountedBars = 0;
  *     delete, and the confirm / in-flight steps that follow). These appear
  *     only while the in-page originals are off screen, so the same button is
  *     never on screen twice.
- *   - Right: copy the link to the page you're on. Not on a phone, where the
- *     back button by the menu takes its room and the browser's share sheet
- *     does its job.
+ *   - Right: copy the link to the page you're on. Not on a phone, where Back
+ *     and Home take its room and the browser's share sheet does its job.
  *
  * A phone can't fit a toolbar and a search field on one line, so there the
  * selection controls expand upward out of the bar as a panel — the mirror of
  * the nav's menu expanding downward out of the header.
  *
  * On a phone the header's bar steps aside entirely and this is the only
- * toolbar on the screen, so it also carries the site menu button and a back
- * button at its left end (the same toolbar <Header> draws on every other
+ * toolbar on the screen, so it also carries Back, Home and the site menu
+ * button at its right end (the same toolbar <Header> draws on every other
  * page). Scrolling down
  * a page slims it to just the field; scrolling back up brings the rest back
  * (useCondenseOnScroll).
@@ -279,9 +278,6 @@ export default function ExploreChromeBar() {
                 <DeleteSteps bar={bar} />
               ) : (
                 <>
-                  {/* Phone only (chrome.css); wider, the header has its own. */}
-                  <SiteMenuButton />
-                  <SiteBackButton />
                   {routeField ? <RouteField key="route" /> : <JumpField key="jump" />}
                   {bar && !inPanel && <SelectionControls bar={bar} />}
                   {inPanel && bar && (
@@ -293,6 +289,9 @@ export default function ExploreChromeBar() {
                   )}
                   {action && <ActionButton action={action} />}
                   <CopyLinkButton />
+                  {/* Phone only (chrome.css); wider, the header has its own. */}
+                  <SiteNavButtons />
+                  <SiteMenuButton />
                 </>
               )}
             </div>

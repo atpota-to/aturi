@@ -2,15 +2,15 @@
  * Whether the page before this one in the tab's history is a page of this
  * site, so the phone toolbar's back button knows whether going back stays on
  * aturi.to. When it wouldn't (a visit that started here from a link, or a
- * home-screen launch, which has no history at all) the button is Home
- * instead (SiteBackButton.tsx).
+ * home-screen launch, which has no history at all) the button is greyed out
+ * and Home beside it is the way on (SiteNavButtons.tsx).
  *
  * Where the browser has the Navigation API, it answers exactly:
  * `navigation.canGoBack` counts only this origin's entries. Elsewhere this
  * keeps an estimate: a count of client-side moves, one up for each new page
  * and one down when the browser steps back onto a path (a popstate). Two
  * things throw it off. A forward step reads as a step back, so it undercounts
- * and errs toward Home. A client-side redirect to a new path
+ * and greys Back out early. A client-side redirect to a new path
  * (`router.replace`, as a one-record collection does on its way to the
  * record) reads as a step, so on the page after one it can overcount by one,
  * and Back does what the browser's own back would.
