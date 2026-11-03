@@ -1,11 +1,9 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import Link from 'next/link';
 import { ExternalLink } from 'lucide-react';
 import AppearIn from './AppearIn';
 import { Skeleton } from '@/components/SkeletonLoader';
-import { groupPathFor } from '@/utils/ufos/nsid';
 import {
   ATPOTATO,
   WEATHER_REPORT,
@@ -34,12 +32,6 @@ const ALMANAC_URL = `${ATPOTATO}/api/weather-almanac?tz=UTC`;
 
 /** The station's window is a minute, so a fresher reading would not be a different one. */
 const REFRESH_MS = 60_000;
-const APPS_SHOWN = 5;
-
-/** A domain the station derived from an NSID: `place.stream.*` is `stream.place`. */
-const DOMAIN_RE = /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)+$/i;
-
-type App = { domain: string; count: number; unit: 'accounts' | 'records' };
 
 type Reading = {
   measuredAt: string;
@@ -49,7 +41,6 @@ type Reading = {
   accounts: number | null;
   diversity: { index: number; level: string; share: number; apps: number } | null;
   hosts: { index: number; share: number; independent: number } | null;
-  apps: App[];
 };
 
 type State = {
@@ -68,24 +59,6 @@ function isObj(value: unknown): value is Json {
 
 function num(value: unknown): number | null {
   return typeof value === 'number' && Number.isFinite(value) ? value : null;
-}
-
-/**
- * The apps outside Bluesky with the most accounts, which is what the
- * diversity index counts, so one app writing in bulk does not lead. A reading
- * without accounts (atpota.to's own fallback sample) ranks by records instead.
- */
-function appsOf(body: Json): App[] {
-  const byAccounts = isObj(body.accounts) && Array.isArray(body.accounts.apps) ? body.accounts.apps : null;
-  const list = byAccounts ?? (Array.isArray(body.apps) ? body.apps : []);
-  const unit = byAccounts ? 'accounts' : 'records';
-  return list
-    .flatMap((app): App[] => {
-      if (!isObj(app) || typeof app.domain !== 'string' || !DOMAIN_RE.test(app.domain)) return [];
-      const count = num(byAccounts ? app.accounts : app.count);
-      return count !== null && count > 0 ? [{ domain: app.domain.toLowerCase(), count, unit }] : [];
-    })
-    .slice(0, APPS_SHOWN);
 }
 
 function readingOf(body: unknown): Reading | null {
@@ -122,7 +95,6 @@ function readingOf(body: unknown): Reading | null {
     accounts: isObj(body.accounts) ? num(body.accounts.active) : null,
     diversity,
     hosts,
-    apps: appsOf(body),
   };
 }
 
@@ -155,11 +127,6 @@ const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 function changeText(pct: number): string {
   if (pct === 0) return '±0%';
   return pct > 0 ? `+${pct}%` : `−${Math.abs(pct)}%`;
-}
-
-/** The namespace an app's records live under: `stream.place` writes `place.stream.*`. */
-function namespaceOf(domain: string): string {
-  return domain.split('.').reverse().join('.');
 }
 
 export default function AtmosphericConditions() {
@@ -231,11 +198,17 @@ export default function AtmosphericConditions() {
               &rsquo;s weather station
             </p>
           </div>
-          {updated && (
-            <span className="fn-wx-updated">
-              Updated <time dateTime={reading!.measuredAt}>{updated}</time>
-            </span>
-          )}
+          <div className="fn-wx-headside">
+            {updated && (
+              <span className="fn-wx-updated">
+                Updated <time dateTime={reading!.measuredAt}>{updated}</time>
+              </span>
+            )}
+            <a href={WEATHER_REPORT} target="_blank" rel="noreferrer noopener" className="fn-list-card-headlink">
+              Full weather report
+              <ExternalLink size={12} aria-hidden />
+            </a>
+          </div>
         </div>
 
         {down ? (
@@ -244,81 +217,54 @@ export default function AtmosphericConditions() {
             latest it heard.
           </p>
         ) : (
-          <>
-            <dl className="fn-wx-grid">
-              <Stat
-                label="Right now"
-                loading={!loaded}
-                value={reading ? capitalize(reading.condition) : null}
-                note={
-                  reading
-                    ? `${whole(reading.recordsPerSecond)} records a second` +
-                      (reading.accounts !== null ? ` · ${whole(reading.accounts)} accounts` : '')
-                    : missing
-                }
-              />
-              <Stat
-                label="Against usual"
-                loading={!loaded}
-                value={usual ? changeText(usual.changePercent) : null}
-                note={
-                  usual
-                    ? `${capitalize(usual.verdict)} over the last hour`
-                    : almanac
-                      ? 'Still learning what usual looks like'
-                      : 'The almanac isn’t answering'
-                }
-              />
-              <Stat
-                label="Diversity index"
-                loading={!loaded}
-                value={reading?.diversity ? reading.diversity.index.toFixed(2) : null}
-                level={reading?.diversity?.level}
-                note={
-                  reading?.diversity
-                    ? `${percent(reading.diversity.share)} of active accounts write with ${whole(reading.diversity.apps)} other apps`
-                    : missing
-                }
-              />
-              <Stat
-                label="Hosting diversity"
-                loading={!loaded}
-                value={reading?.hosts ? reading.hosts.index.toFixed(2) : null}
-                level={reading?.hosts ? hostingLevel(reading.hosts.index) : undefined}
-                note={
-                  reading?.hosts
-                    ? `${percent(reading.hosts.share)} of accounts on ${whole(reading.hosts.independent)} independent PDSes`
-                    : missing
-                }
-              />
-            </dl>
-
-            {reading && reading.apps.length > 0 && (
-              <div className="fn-wx-apps">
-                <span className="fn-wx-apps-label">Busiest outside Bluesky</span>
-                {reading.apps.map((app) => (
-                  <Link
-                    key={app.domain}
-                    href={groupPathFor(namespaceOf(app.domain))}
-                    prefetch={false}
-                    className="fn-chip"
-                    title={`${app.count.toLocaleString('en-US')} ${app.unit} in the last minute. Open the ${namespaceOf(app.domain)} lexicons`}
-                  >
-                    {app.domain}
-                    <span className="fn-wx-app-count">{app.count.toLocaleString('en-US')}</span>
-                  </Link>
-                ))}
-              </div>
-            )}
-          </>
+          <dl className="fn-wx-grid">
+            <Stat
+              label="Right now"
+              loading={!loaded}
+              value={reading ? capitalize(reading.condition) : null}
+              note={
+                reading
+                  ? `${whole(reading.recordsPerSecond)} records a second` +
+                    (reading.accounts !== null ? ` · ${whole(reading.accounts)} accounts` : '')
+                  : missing
+              }
+            />
+            <Stat
+              label="Against usual"
+              loading={!loaded}
+              value={usual ? changeText(usual.changePercent) : null}
+              note={
+                usual
+                  ? `${capitalize(usual.verdict)} over the last hour`
+                  : almanac
+                    ? 'Still learning what usual looks like'
+                    : 'The almanac isn’t answering'
+              }
+            />
+            <Stat
+              label="Diversity index"
+              loading={!loaded}
+              value={reading?.diversity ? reading.diversity.index.toFixed(2) : null}
+              level={reading?.diversity?.level}
+              note={
+                reading?.diversity
+                  ? `${percent(reading.diversity.share)} of active accounts write with ${whole(reading.diversity.apps)} other apps`
+                  : missing
+              }
+            />
+            <Stat
+              label="Hosting diversity"
+              loading={!loaded}
+              value={reading?.hosts ? reading.hosts.index.toFixed(2) : null}
+              level={reading?.hosts ? hostingLevel(reading.hosts.index) : undefined}
+              note={
+                reading?.hosts
+                  ? `${percent(reading.hosts.share)} of accounts on ${whole(reading.hosts.independent)} independent PDSes`
+                  : missing
+              }
+            />
+          </dl>
         )}
-
-        <div className="fn-pulse-foot">
-          <a href={WEATHER_REPORT} target="_blank" rel="noreferrer noopener">
-            Full weather report on atpota.to
-            <ExternalLink size={13} aria-hidden />
-          </a>
-        </div>
       </section>
     </AppearIn>
   );

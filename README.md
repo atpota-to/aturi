@@ -41,7 +41,7 @@ Available at [aturi.to/explore](https://aturi.to/explore). A read-mostly window 
 - **Repo at a glance.** Record counts, creation date, identity history, PLC audit log, and (where available) cred.blue score for any account.
 - **Inbound backlinks.** See who else's records reference the one you're looking at, via the Constellation backlink index.
 - **Live firehose feed.** A calm, paginated view of the Jetstream right on the explore index, with creates/updates/deletes and rolling stats.
-- **Atmospheric conditions.** The last minute of the whole firehose from [atpota.to's weather station](https://atpota.to/weather): how busy it is and whether that's usual, the diversity index, hosting diversity, and the busiest apps outside Bluesky, each linked to its lexicons.
+- **Atmospheric conditions.** The last minute of the whole firehose from [atpota.to's weather station](https://atpota.to/weather): how busy it is and whether that's usual, the diversity index, and hosting diversity.
 - **Trending lexicons.** A live leaderboard of which atproto lexicons are seeing the most activity, sorted by mutations, events, repos, or PDS hosts.
 - **Record editor.** Sign in and edit any record in your own repo inline: schema-aware form for known lexicons, raw JSON for everything else.
 - **Pinning & customization.** Pin the lexicons you care about, name and reorder waypoint groups, add custom waypoints, all synced to a record in your own PDS so they follow you across browsers.
