@@ -743,8 +743,9 @@
 /* ─── Phone toolbar ──────────────────────────────────────────────────── */
 
 /* Below 640px the header's bar steps aside and its job moves to the bottom
-   of the screen, where a thumb can reach it: a toolbar with the menu button
-   and a search field, and the menu itself as a sheet rising out of it.
+   of the screen, where a thumb can reach it: a toolbar with the menu and back
+   buttons and a search field, and the menu itself as a sheet rising out of
+   it.
 
    Two components draw that toolbar. On explorer routes it is
    <ExploreChromeBar>, which already sat at the bottom carrying the route's
@@ -770,6 +771,7 @@ body.has-explore-chrome {
 .fn-masthead,
 .fn-phone-bar,
 .fn-site-menu-btn,
+.fn-site-back-btn,
 .fn-menu-grabber,
 .fn-menu-home,
 .fn-menu-whatsnew,
@@ -837,6 +839,20 @@ body.has-explore-chrome {
     display: inline-flex;
     position: relative;
     color: var(--text-primary);
+  }
+
+  /* Back, or Home where there's no page of this site to go back to
+     (SiteBackButton.tsx). A link in its Home form, so no underline. */
+  .fn-site-back-btn {
+    display: inline-flex;
+    color: var(--text-primary);
+    text-decoration: none;
+  }
+
+  /* The back button takes copy link's room on a phone, where the browser's
+     share sheet copies the page's address anyway. */
+  .explore-chrome-inner .explore-chrome-copy {
+    display: none;
   }
 
   /* Specific enough to outlast the chips' hover fill (explorer.css), which
