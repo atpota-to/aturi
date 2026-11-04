@@ -1054,7 +1054,65 @@ body.has-explore-chrome {
     border-width: 1px 0 0;
     border-radius: 18px 18px 0 0;
     box-shadow: 0 -10px 30px rgb(0 0 0 / 0.12);
-    transform: translateY(16px);
+    /* It rises out of the toolbar rather than fading in place: a clip
+       uncovers it upward from the toolbar's edge while it lifts 12px, and
+       closing draws it back down a little faster. The clip's sides and top
+       reach past the sheet (−40px) so the open sheet keeps its shadow and
+       its own rounded corners; only the bottom edge is fixed, at the
+       toolbar. */
+    transform: translateY(12px);
+    clip-path: inset(100% -40px 0 -40px);
+    transition:
+      clip-path 200ms cubic-bezier(0.4, 0, 1, 1),
+      transform 200ms cubic-bezier(0.4, 0, 1, 1),
+      opacity 140ms ease-in 60ms;
+  }
+
+  .fn-header-menu-panel[data-open] {
+    clip-path: inset(-40px -40px 0 -40px);
+    transition:
+      clip-path 340ms var(--ease-soft),
+      transform 340ms var(--ease-soft),
+      opacity 180ms ease-out;
+  }
+
+  /* Its rows follow the sheet up a beat behind, a row at a time (the grid
+     is two across), each lifting 6px. Closing, they fade with the sheet
+     and don't wait. --row is the row's place from the top. */
+  .fn-header-menu-panel :is(.fn-menu-home, .compact-nav-grid > *, .fn-menu-session) {
+    opacity: 0;
+    transform: translateY(6px);
+    transition:
+      opacity 120ms ease-in,
+      transform 120ms ease-in;
+  }
+
+  .fn-header-menu-panel[data-open] :is(.fn-menu-home, .compact-nav-grid > *, .fn-menu-session) {
+    opacity: 1;
+    transform: none;
+    transition:
+      opacity 240ms ease-out,
+      transform 320ms var(--ease-soft);
+    transition-delay: calc(60ms + var(--row, 0) * 20ms);
+  }
+
+  .fn-header-menu-panel .compact-nav-grid > * {
+    --row: 1;
+  }
+  .fn-header-menu-panel .compact-nav-grid > :nth-child(n + 3) {
+    --row: 2;
+  }
+  .fn-header-menu-panel .compact-nav-grid > :nth-child(n + 5) {
+    --row: 3;
+  }
+  .fn-header-menu-panel .compact-nav-grid > :nth-child(n + 7) {
+    --row: 4;
+  }
+  .fn-header-menu-panel .compact-nav-grid > :nth-child(n + 9) {
+    --row: 5;
+  }
+  .fn-header-menu-panel .fn-menu-session {
+    --row: 6;
   }
 
   .fn-menu {
@@ -1121,13 +1179,15 @@ body.has-explore-chrome {
     background: var(--modal-backdrop);
     opacity: 0;
     visibility: hidden;
-    transition: opacity 0.16s ease, visibility 0s linear 0.16s;
+    /* Timed with the sheet: it dims in as the sheet rises and clears as it
+       draws back down. */
+    transition: opacity 200ms ease-in, visibility 0s linear 200ms;
   }
 
   .fn-menu-scrim[data-open] {
     opacity: 1;
     visibility: visible;
-    transition: opacity 0.16s ease;
+    transition: opacity 340ms ease-out;
   }
 
   /* The bell's notes, which the menu's "What's new" row opens, as a sheet
@@ -1149,4 +1209,10 @@ body.has-explore-chrome {
 [data-reduce-motion='true'] .fn-site-nav-btn,
 [data-reduce-motion='true'] .fn-menu-scrim {
   transition: none;
+}
+
+/* The sheet's rows wait for it with a delay, which the global clamp on
+   durations leaves standing: drop it, so the menu appears whole. */
+[data-reduce-motion='true'] .fn-header-menu-panel :is(.fn-menu-home, .compact-nav-grid > *, .fn-menu-session) {
+  transition-delay: 0s !important;
 }
