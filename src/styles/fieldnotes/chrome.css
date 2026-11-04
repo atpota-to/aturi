@@ -1176,7 +1176,18 @@ body.has-explore-chrome {
     bottom: var(--fn-phone-bar-h);
     left: 0;
     z-index: 35;
-    background: var(--modal-backdrop);
+    /* The dim is an inset shadow, not a background, for Safari on iOS 26.
+       Safari tints the status bar from fixed elements touching the top edge,
+       and a fixed full-screen box with a translucent background counts as a
+       "dimming layer": once its opacity passed 0.1 Safari painted the status
+       bar in the fully dimmed colour while this was still fading in, and
+       held it until the fade-out was nearly over. An element with no
+       background and no content is skipped by that sampler (WebKit's
+       isHiddenOrNearlyTransparent), so the status bar keeps showing the page
+       beneath it, and this scrim, which reaches up under the status bar,
+       dims it in step with everything else. The spread is far larger than
+       any screen, so the shadow fills the box. */
+    box-shadow: inset 0 0 0 100vmax var(--modal-backdrop);
     opacity: 0;
     visibility: hidden;
     /* Timed with the sheet: it dims in as the sheet rises and clears as it
