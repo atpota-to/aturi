@@ -75,6 +75,10 @@
   text-decoration: none;
   white-space: nowrap;
   cursor: pointer;
+  /* iOS flashes a grey rounded box over a tapped element. It is the shape of
+     the tab's box, not of the cut folder tab around it, so it read as a
+     stray shape; the tab shows its own touched and open states. */
+  -webkit-tap-highlight-color: transparent;
   /* The rise: opening a tab eases its top edge up the 3px instead of
      snapping, and the tab it replaces settles back the same way. */
   transition:
@@ -102,7 +106,10 @@
     border-color: inherit;
     border-bottom-width: 1px;
     pointer-events: none;
-    transition: background-color 0.15s ease;
+    /* No transition of its own: the wedge inherits the tab's fill frame by
+       frame as the tab's fades. Given its own as well, Safari restarted it on
+       every inherited change, so the sides lagged the tab and flashed the
+       old colour beside it on every switch. */
   }
   .fx-tab::before {
     left: -1px;
