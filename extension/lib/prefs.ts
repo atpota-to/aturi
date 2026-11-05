@@ -199,7 +199,7 @@ export const DEFAULT_PREFS: Prefs = {
   waypointGroups: defaultWaypointGroups(),
   smartRecommendations: true,
   showRecents: true,
-  openInNewTab: false,
+  openInNewTab: true,
   compactMode: false,
   theme: 'light',
   fontSize: 'medium',
