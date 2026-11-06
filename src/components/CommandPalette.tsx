@@ -38,7 +38,7 @@ import {
   wantsLexiconSearch,
   wantsPeopleSearch,
 } from '@/lib/paletteSearch';
-import { isLinkable, universalPathFor, type PageContext } from '@/lib/pageContext';
+import { universalPathFor, type PageContext } from '@/lib/pageContext';
 import { applyColorScheme, COLOR_SCHEMES, type ColorScheme } from '@/lib/colorScheme';
 import { resolveSearchPathAsync, resolveSearchTarget } from '@/utils/atproto/searchRouting';
 import { encodeRepo } from '@/utils/atproto/urls';
@@ -54,9 +54,8 @@ import {
   recordQueryVisit,
   type SearchHistoryEntry,
 } from '@/utils/searchHistory';
-import { WAYPOINT_DESTINATIONS, getWaypointsForType, type Waypoint } from '@/utils/waypoints';
-import { customToWaypoint } from '@/utils/personalizeWaypoints';
-import type { WaypointType } from '@/utils/waypoints.data';
+import type { Waypoint } from '@/utils/waypoints';
+import { openInApps, waypointNoun } from '@/lib/openInApps';
 import { usePreferences } from './PreferencesProvider';
 import Kbd from './Kbd';
 import type { ResolvedCommand } from './KeyboardShortcutsProvider';
@@ -69,14 +68,6 @@ const RECENTS_EMPTY = 5;
 const RECENTS_MATCHED = 3;
 /** "Open in X" rows shown among the root results while typing. */
 const WAYPOINTS_MATCHED = 5;
-
-/**
- * Waypoints that point back at aturi.to itself. Their URLs are absolute and
- * production-pinned, so from here they'd only reload this site (or leave a
- * staging deploy for production); "Open in explorer" covers the one useful
- * case.
- */
-const SELF_WAYPOINTS = new Set(['aturi', 'aturiExplore']);
 
 type Navigate = (href: string, opts?: { newTab?: boolean; document?: boolean }) => void;
 
@@ -99,13 +90,6 @@ type Row = {
 
 /** What an asynchronous search returned, and for which text. */
 type Results<T> = { text: string; items: T[] };
-
-function waypointTypeFor(collection?: string, rkey?: string): WaypointType {
-  if (!collection || !rkey) return 'profile';
-  if (collection === 'app.bsky.feed.post') return 'post';
-  if (collection === 'app.bsky.graph.list') return 'list';
-  return 'record';
-}
 
 function Avatar({ src }: { src?: string }) {
   if (!src) return <User size={16} aria-hidden />;
@@ -248,16 +232,6 @@ export default function CommandPalette({
 
   // --- the profile or record on screen, as the waypoints see it ------------
   const subject = pageContext.subject;
-  const waypointTarget = useMemo(() => {
-    if (!isLinkable(subject)) return null;
-    return {
-      type: waypointTypeFor(subject.collection, subject.rkey),
-      handle: subject.repo,
-      did: subject.repo.startsWith('did:') ? subject.repo : undefined,
-      collection: subject.rkey ? subject.collection : undefined,
-      rkey: subject.rkey,
-    };
-  }, [subject]);
 
   /**
    * Every app that can open what's on screen: the reader's own waypoint
@@ -265,43 +239,13 @@ export default function CommandPalette({
    * of the catalog, so the palette never hides an app the picker would show
    * and still reaches one the reader tucked away.
    */
-  const waypoints = useMemo(() => {
-    if (!waypointTarget) return { mine: [], more: [] };
-    const { type, handle, collection, rkey, did } = waypointTarget;
-    const seen = new Set<string>();
-    const resolve = (w: Waypoint | null | undefined) => {
-      if (!w || seen.has(w.id) || SELF_WAYPOINTS.has(w.id)) return null;
-      if (!w.supportedTypes.includes(type)) return null;
-      const url = w.getUrl(handle, collection, rkey, did);
-      if (!url) return null;
-      seen.add(w.id);
-      return { waypoint: w, url };
-    };
-    const customById = new Map(prefs.customWaypoints.map((c) => [c.id, c]));
-    const mine = [];
-    for (const group of prefs.waypointGroups) {
-      for (const id of group.waypointIds) {
-        const custom = customById.get(id);
-        const hit = resolve(custom ? customToWaypoint(custom) : WAYPOINT_DESTINATIONS[id]);
-        if (hit) mine.push(hit);
-      }
-    }
-    const more = [];
-    for (const w of getWaypointsForType(type)) {
-      const hit = resolve(w);
-      if (hit) more.push(hit);
-    }
-    return { mine, more };
-  }, [waypointTarget, prefs.customWaypoints, prefs.waypointGroups]);
+  const { customWaypoints, waypointGroups } = prefs;
+  const waypoints = useMemo(
+    () => openInApps(subject, { customWaypoints, waypointGroups }),
+    [subject, customWaypoints, waypointGroups],
+  );
 
-  const subjectNoun =
-    waypointTarget?.type === 'profile'
-      ? 'profile'
-      : waypointTarget?.type === 'post'
-        ? 'post'
-        : waypointTarget?.type === 'list'
-          ? 'list'
-          : 'record';
+  const subjectNoun = waypointNoun(waypoints.type);
 
   // --- row builders ---------------------------------------------------------
   function commandRow(cmd: ResolvedCommand, section: string): Row {
