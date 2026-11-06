@@ -31,6 +31,7 @@ import SessionPanel from './SessionPanel';
 import CompactSearchPanel from './CompactSearchPanel';
 import StickyBreadcrumbBar from './explore/StickyBreadcrumbBar';
 import { JumpField } from './explore/ChromeField';
+import { usePhoneSearchOwner } from './explore/PhoneSearchSheet';
 import { useMediaQuery } from './explore/useIsNarrow';
 import { isEventOutside } from '@/lib/outsideClick';
 import { motionAllowed } from '@/lib/motion';
@@ -291,9 +292,10 @@ export default function Header(_props: HeaderProps) {
   const swipeStartRef = useRef<number | null>(null);
 
   // The phone toolbar slims as the reader scrolls down, except while it's in
-  // use: the menu open, or its field focused.
+  // use: the menu open, its field focused, or the search sheet up.
   const [barFocused, setBarFocused] = useState(false);
-  const barCondensed = useCondenseOnScroll(phone && !isExpanded && !barFocused);
+  const searching = usePhoneSearchOwner() !== null;
+  const barCondensed = useCondenseOnScroll(phone && !isExpanded && !barFocused && !searching);
 
   // The open state outlives this header (it's shared, and every page mounts
   // its own header), so a navigation closes it here rather than by remount.

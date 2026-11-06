@@ -8,7 +8,9 @@ import {
   subscribeSiteMenu,
   toggleSiteMenu,
 } from '@/lib/siteMenu';
+import { closePhoneSearch } from '@/lib/phoneSearch';
 import { useUnreadReleaseCount } from './whatsnew/WhatsNewBadge';
+import { usePhoneSearchOwner } from './explore/PhoneSearchSheet';
 
 /** Whether the site menu is open (see src/lib/siteMenu.ts). */
 export function useSiteMenuOpen(): boolean {
@@ -27,10 +29,31 @@ export function useSiteMenuOpen(): boolean {
  * Carries the what's-new dot as well, because on a phone the bell it belongs
  * to is inside the menu this opens. Styled as one of the toolbar's chips, and
  * hidden above phone width, where the header has its own button.
+ *
+ * While the search sheet is open (PhoneSearchSheet.tsx) it is that sheet's
+ * Close instead: the menu has nowhere to open over a search, and this is the
+ * way back to the page. Closing also drops the keyboard.
  */
 export default function SiteMenuButton() {
   const open = useSiteMenuOpen();
   const unread = useUnreadReleaseCount();
+  const searching = usePhoneSearchOwner() !== null;
+
+  if (searching) {
+    return (
+      <button
+        type="button"
+        onClick={() => {
+          if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
+          closePhoneSearch();
+        }}
+        aria-label="Close search"
+        className="explore-chrome-button fn-site-menu-btn"
+      >
+        <X size={18} aria-hidden />
+      </button>
+    );
+  }
 
   let label = 'Open menu';
   if (open) label = 'Close menu';

@@ -970,14 +970,18 @@ body.has-explore-chrome {
   /* While the field is in use the pair folds away and the field grows to
      the right into its room; the negative margin takes the row's gap with
      it. The chips shrink and fade where they stand rather than being
-     clipped, so nothing cuts off a focus ring. The menu button stays. */
-  .explore-chrome-inner:has(.explore-chrome-form:focus-within) .fn-site-nav {
+     clipped, so nothing cuts off a focus ring. The menu button stays. The
+     search sheet keeps them folded after the keyboard is put away, since
+     the search is still going on. */
+  .explore-chrome-inner:has(.explore-chrome-form:focus-within) .fn-site-nav,
+  html[data-phone-search] .fn-site-nav {
     max-width: 0;
     margin-left: -8px;
     pointer-events: none;
   }
 
-  .explore-chrome-inner:has(.explore-chrome-form:focus-within) .fn-site-nav-btn {
+  .explore-chrome-inner:has(.explore-chrome-form:focus-within) .fn-site-nav-btn,
+  html[data-phone-search] .fn-site-nav-btn {
     opacity: 0;
     transform: scale(0.6);
   }
@@ -1218,6 +1222,288 @@ body.has-explore-chrome {
     left: 8px;
     width: auto;
     max-height: calc(100dvh - var(--fn-phone-bar-h) - 32px);
+  }
+}
+
+/* ─── Phone search sheet ─────────────────────────────────────────────── */
+
+/* PhoneSearchSheet.tsx: what fills the screen above the phone toolbar while
+   its jump field is in use. Phone width only, like the toolbar; JumpField
+   closes it if the viewport widens.
+
+   Hiding the page while it is open is the point of it. With the keyboard up
+   on iOS 26 and later, Safari stands the toolbar on its address pill and
+   draws the strip between the toolbar and the keyboard itself, under the
+   pill and the keyboard's up / down / done bar, from the page's own
+   scrolling content. Fixed layers, the toolbar and this sheet included,
+   never reach it. With the page hidden there is nothing there to draw, and
+   the strip shows the root's background, set here to the toolbar's surface
+   so the toolbar reads as running down to the keyboard.
+
+   `visibility` rather than `display`, as the auto-redirect shim does
+   (globals.css): it takes the page out of sight and out of the
+   accessibility tree, lets the toolbars and the sheet opt back in, and
+   leaves the page laid out and scrolled where it was, so closing the sheet
+   puts it back untouched. Once <html> has a background of its own, body's
+   stops painting the canvas and is hidden with body's box. */
+
+.fn-search-sheet {
+  display: none;
+}
+
+@media (max-width: 639px) {
+  html[data-phone-search] {
+    background: var(--bg-secondary);
+  }
+
+  html[data-phone-search] body {
+    visibility: hidden;
+  }
+
+  html[data-phone-search] .fn-phone-bar,
+  html[data-phone-search] .explore-chrome-bar,
+  html[data-phone-search] .fn-search-sheet {
+    visibility: visible;
+  }
+
+  /* The sheet has a Paste and go row of its own. */
+  html[data-phone-search] .explore-chrome-paste {
+    display: none;
+  }
+
+  /* From the top of the screen down to the toolbar. A short list sits at
+     the bottom, beside the field (the body's auto top margin); a long one
+     scrolls inside the sheet, which starts it at its end. */
+  .fn-search-sheet {
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: var(--fn-phone-bar-h);
+    left: 0;
+    z-index: 45;
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
+    padding: calc(16px + env(safe-area-inset-top, 0px)) 12px 14px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    background: var(--bg-primary);
+  }
+
+  .fn-search-body {
+    margin-top: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .fn-search-section {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .fn-search-heading {
+    margin: 0;
+    padding: 0 4px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-tertiary);
+  }
+
+  .fn-search-hint {
+    margin: 0;
+    padding: 0 4px;
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--text-secondary);
+  }
+
+  .fn-search-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-medium);
+    border-radius: var(--radius-card);
+    overflow: hidden;
+  }
+
+  .fn-search-list > li + li {
+    border-top: 1px solid var(--border-subtle);
+  }
+
+  .fn-search-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    min-height: 52px;
+    box-sizing: border-box;
+    padding: 8px 12px;
+    border: 0;
+    background: transparent;
+    color: var(--text-primary);
+    font: inherit;
+    text-align: left;
+    text-decoration: none;
+    cursor: pointer;
+  }
+
+  .fn-search-row:active {
+    background: var(--surface-subtle);
+  }
+
+  .fn-search-row:focus-visible,
+  .fn-search-chip:focus-visible {
+    outline: 2px solid var(--text-accent);
+    outline-offset: -2px;
+  }
+
+  /* The row the keyboard's Search key runs; before anything is typed, Paste
+     and go, which is the one tap that gets somewhere. */
+  .fn-search-row.is-primary {
+    background: var(--accent-soft);
+    color: var(--accent-soft-fg);
+  }
+
+  /* Paste and go stands alone rather than in a list, so it is its own card. */
+  .fn-search-paste {
+    min-height: 58px;
+    border: 1px solid var(--accent-soft-border);
+    border-radius: var(--radius-card);
+  }
+
+  .fn-search-tile {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 32px;
+    height: 32px;
+    overflow: hidden;
+    border-radius: var(--radius-control);
+    background: var(--bg-tertiary);
+    color: var(--text-secondary);
+  }
+
+  .fn-search-tile.is-round {
+    border-radius: 50%;
+  }
+
+  .fn-search-row.is-primary .fn-search-tile {
+    background: transparent;
+    color: inherit;
+  }
+
+  .fn-search-avatar {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .fn-search-app-icon {
+    display: inline-flex;
+    width: 20px;
+    height: 20px;
+  }
+
+  .fn-search-app-icon > svg,
+  .fn-search-app-icon > img {
+    width: 100%;
+    height: 100%;
+  }
+
+  .fn-search-text {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+  }
+
+  .fn-search-label,
+  .fn-search-detail {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .fn-search-label {
+    font-size: 15px;
+    font-weight: 500;
+    line-height: 1.3;
+  }
+
+  .fn-search-row.is-primary .fn-search-label {
+    font-weight: 600;
+  }
+
+  .fn-search-detail {
+    font-size: 12.5px;
+    line-height: 1.35;
+    color: var(--text-tertiary);
+  }
+
+  .fn-search-detail.is-mono {
+    font-family: var(--font-mono);
+    font-size: 12px;
+  }
+
+  .fn-search-row.is-primary .fn-search-detail {
+    color: inherit;
+  }
+
+  /* What was typed, quoted back in a row's label. */
+  .fn-search-query {
+    font-family: var(--font-mono);
+    font-size: 0.93em;
+  }
+
+  .fn-search-end {
+    display: flex;
+    flex-shrink: 0;
+    color: var(--text-tertiary);
+  }
+
+  .fn-search-row.is-primary .fn-search-end {
+    color: inherit;
+  }
+
+  /* Quick links: one scrolling line that runs to the screen's edges, so a
+     chip cut off at the right says there are more. */
+  .fn-search-chips {
+    display: flex;
+    gap: 8px;
+    margin: 0 -12px;
+    padding: 0 12px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .fn-search-chips::-webkit-scrollbar {
+    display: none;
+  }
+
+  .fn-search-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    flex-shrink: 0;
+    height: 40px;
+    box-sizing: border-box;
+    padding: 0 14px 0 12px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-medium);
+    border-radius: var(--radius-pill);
+    color: var(--text-primary);
+    font-size: 14px;
+    font-weight: 500;
+    text-decoration: none;
+  }
+
+  .fn-search-chip svg {
+    color: var(--text-accent);
   }
 }
 

@@ -10,6 +10,7 @@ import { useCondenseOnScroll } from '@/components/useCondenseOnScroll';
 import { useChromeBar, type ChromeBarAction } from './ChromeBarContext';
 import { useEditBar, type EditBarSnapshot } from './EditBarContext';
 import { FieldForm, JumpField } from './ChromeField';
+import { usePhoneSearchOwner } from './PhoneSearchSheet';
 import { useIsNarrow, useMediaQuery } from './useIsNarrow';
 import { CHROME_OCCLUSION_PX, NAV_OCCLUSION_PX } from './useOffscreen';
 import DeleteProgressBar from './DeleteProgressBar';
@@ -199,14 +200,15 @@ export default function ExploreChromeBar() {
   const redundant = !takeover && !routeField && !bar && !action;
 
   // Slims while the reader scrolls down a page on a phone, unless the bar is
-  // in use: a field being typed in, the site menu or the selection panel
-  // open, or selection mode on at all, since its controls are what the bar is
-  // holding in reach.
+  // in use: a field being typed in, the search sheet, the site menu or the
+  // selection panel open, or selection mode on at all, since its controls are
+  // what the bar is holding in reach.
   const toolbarPhone = useMediaQuery('(max-width: 639px)');
   const menuOpen = useSiteMenuOpen();
+  const searching = usePhoneSearchOwner() !== null;
   const [focused, setFocused] = useState(false);
   const condensed = useCondenseOnScroll(
-    toolbarPhone && !hidden && !menuOpen && !focused && !bar && !panelOpen,
+    toolbarPhone && !hidden && !menuOpen && !searching && !focused && !bar && !panelOpen,
   );
 
   // On a two-column explorer page, centre the card on the content column
