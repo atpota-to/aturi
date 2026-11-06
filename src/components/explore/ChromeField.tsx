@@ -8,11 +8,14 @@ import { recordQueryVisit } from '@/utils/searchHistory';
 import {
   closePhoneSearch,
   getPhoneSearchOwner,
+  isCurrentPath,
   openPhoneSearch,
+  runPhoneSearchPrimary,
+  setPhoneSearchQuery,
   subscribePhoneSearch,
 } from '@/lib/phoneSearch';
 import { setSiteMenuOpen } from '@/lib/siteMenu';
-import PhoneSearchSheet, { usePhoneSearchOwner } from './PhoneSearchSheet';
+import { PHONE_SEARCH_SHEET_ID, usePhoneSearchOwner } from './PhoneSearchSheet';
 import { useMediaQuery } from './useIsNarrow';
 
 /** The phone toolbar's width (chrome.css, Phone toolbar), where the search sheet opens. */
@@ -32,9 +35,10 @@ const PHONE_QUERY = '(max-width: 639px)';
  * at:// URIs, and client URLs all resolve to their explorer page.
  *
  * On a phone, focusing it opens the search sheet (PhoneSearchSheet.tsx) over
- * the page, and the field drives it from the toolbar. A route's own filter
- * (RouteField in ExploreChromeBar) never does: its point is the list it
- * narrows, which the sheet would hide.
+ * the page, and the field drives it from the toolbar: it hands the sheet its
+ * text and the two things the sheet can ask of it, jump and paste. A
+ * route's own filter (RouteField in ExploreChromeBar) never opens the sheet:
+ * its point is the list it narrows, which the sheet would hide.
  */
 export function JumpField() {
   const router = useRouter();
@@ -45,22 +49,24 @@ export function JumpField() {
   // through /api/at-tags.
   const resolvingRef = useRef(false);
   const fieldId = useId();
-  const sheetId = `${fieldId}-sheet`;
   const phone = useMediaQuery(PHONE_QUERY);
   const sheetOpen = usePhoneSearchOwner() === fieldId;
   const canPaste = useCanReadClipboard();
-  // The sheet's primary row (what Search runs), set by the sheet.
-  const primaryRef = useRef<(() => void) | null>(null);
 
   // A landed navigation is the end of that query — don't leave it sitting in
-  // the bar on the page it took you to, or the sheet open over it.
+  // the bar on the page it took you to. (The sheet's host closes the sheet.)
   useEffect(() => {
     setValue('');
-    if (getPhoneSearchOwner() === fieldId) closePhoneSearch();
-  }, [pathname, fieldId]);
+  }, [pathname]);
+
+  // The sheet searches what the field holds.
+  useEffect(() => {
+    setPhoneSearchQuery(fieldId, value);
+  }, [fieldId, value]);
 
   // Closing the sheet, from here or from the toolbar's Close button, ends
-  // the search, as Cancel does in an iOS search field.
+  // the search, as Cancel does in an iOS search field. A field that goes
+  // while it owns the sheet (its page's toolbar unmounting) closes it.
   useEffect(() => {
     let mine = getPhoneSearchOwner() === fieldId;
     const unsubscribe = subscribePhoneSearch(() => {
@@ -80,24 +86,19 @@ export function JumpField() {
     if (!phone && sheetOpen) closePhoneSearch();
   }, [phone, sheetOpen]);
 
-  const openSheet = () => {
-    if (!phone || getPhoneSearchOwner() === fieldId) return;
-    setSiteMenuOpen(false);
-    openPhoneSearch(fieldId);
-  };
-
-  async function go(query: string) {
-    if (resolvingRef.current) return;
+  /** Resolve and go; false when the text named nowhere. */
+  async function go(query: string): Promise<boolean> {
+    if (resolvingRef.current) return false;
     resolvingRef.current = true;
     try {
       const path = await resolveSearchPathAsync(query);
-      if (path) {
-        recordQueryVisit(query, path);
-        // Closed here as well as on landing, for a jump to the page that is
-        // already open, where the path never changes.
-        if (getPhoneSearchOwner() === fieldId) closePhoneSearch();
-        router.push(path);
-      }
+      if (!path) return false;
+      recordQueryVisit(query, path);
+      // The sheet's host closes it when the next page lands; a jump to the
+      // page already open lands nowhere new, so close it here.
+      if (isCurrentPath(path)) closePhoneSearch();
+      router.push(path);
+      return true;
     } finally {
       resolvingRef.current = false;
     }
@@ -126,43 +127,40 @@ export function JumpField() {
     if (!/\s/.test(text)) await go(text);
   }
 
+  const openSheet = (query: string) => {
+    if (!phone) return;
+    if (getPhoneSearchOwner() !== fieldId) setSiteMenuOpen(false);
+    openPhoneSearch(fieldId, query, {
+      jump: go,
+      paste: canPaste ? () => void pasteAndGo() : null,
+    });
+  };
+
   return (
-    <>
-      <FieldForm
-        inputRef={inputRef}
-        label="Go to a handle, DID, or at:// URI"
-        placeholder="Go to a handle, DID or at:// URI"
-        value={value}
-        onChange={(next) => {
-          setValue(next);
-          // Typing reopens it too: Escape closes the sheet but leaves the
-          // field focused, so focus alone wouldn't bring it back.
-          openSheet();
-        }}
-        onSubmit={() => {
-          if (sheetOpen && primaryRef.current) primaryRef.current();
-          else void go(value);
-        }}
-        onClear={() => {
-          setValue('');
-          inputRef.current?.focus();
-        }}
-        onPasteAndGo={pasteAndGo}
-        onFocus={openSheet}
-        onEscapeEmpty={sheetOpen ? closePhoneSearch : undefined}
-        controls={sheetOpen ? sheetId : undefined}
-      />
-      {sheetOpen && (
-        <PhoneSearchSheet
-          id={sheetId}
-          query={value}
-          onJump={() => void go(value)}
-          onPaste={canPaste ? pasteAndGo : null}
-          onDone={closePhoneSearch}
-          primaryRef={primaryRef}
-        />
-      )}
-    </>
+    <FieldForm
+      inputRef={inputRef}
+      label="Go to a handle, DID, or at:// URI"
+      placeholder="Go to a handle, DID or at:// URI"
+      value={value}
+      onChange={(next) => {
+        setValue(next);
+        // Typing reopens it too: Escape closes the sheet but leaves the
+        // field focused, so focus alone wouldn't bring it back.
+        openSheet(next);
+      }}
+      onSubmit={() => {
+        if (sheetOpen && runPhoneSearchPrimary()) return;
+        void go(value);
+      }}
+      onClear={() => {
+        setValue('');
+        inputRef.current?.focus();
+      }}
+      onPasteAndGo={pasteAndGo}
+      onFocus={() => openSheet(value)}
+      onEscapeEmpty={sheetOpen ? closePhoneSearch : undefined}
+      controls={sheetOpen ? PHONE_SEARCH_SHEET_ID : undefined}
+    />
   );
 }
 

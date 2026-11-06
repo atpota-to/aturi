@@ -12,6 +12,7 @@ import WhatsNewModal from "@/components/whatsnew/WhatsNewModal";
 import FontScaleSync from "@/components/FontScaleSync";
 import A11ySync from "@/components/A11ySync";
 import KeyChipPress from "@/components/KeyChipPress";
+import PhoneSearchHost from "@/components/explore/PhoneSearchSheet";
 import { DEFAULT_THEME, THEME_INIT_SCRIPT } from "@/lib/theme";
 import {
   COLOR_SCHEME_INIT_SCRIPT,
@@ -165,6 +166,10 @@ export default function RootLayout({
                     clicks meant for the bar. */}
                 <main style={{ position: 'relative', zIndex: 2 }}>{children}</main>
               </PageTransition>
+              {/* The phone toolbar's search sheet. Here rather than in the
+                  toolbar, which belongs to a page: the sheet stays up through
+                  a navigation it started and fades out over the next page. */}
+              <PhoneSearchHost />
             </KeyboardShortcutsProvider>
           </PreferencesProvider>
         </AtprotoSessionProvider>

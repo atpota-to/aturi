@@ -1011,6 +1011,36 @@ body.has-explore-chrome {
     border: 2px solid var(--bg-secondary);
   }
 
+  /* The hamburger and the X, stacked (SiteMenuButton.tsx). Each turns a
+     quarter and shrinks as it gives way to the other, so opening the menu or
+     the search sheet turns one into the other in place. */
+  .fn-site-menu-icon {
+    display: grid;
+    place-items: center;
+  }
+
+  .fn-site-menu-icon > svg {
+    grid-area: 1 / 1;
+    transition:
+      opacity var(--motion-quick) ease,
+      transform var(--motion-panel) var(--ease-soft);
+  }
+
+  .fn-site-menu-icon > svg:last-child,
+  .fn-site-menu-icon[data-x] > svg:first-child {
+    opacity: 0;
+    transform: rotate(-90deg) scale(0.5);
+  }
+
+  .fn-site-menu-icon[data-x] > svg:first-child {
+    transform: rotate(90deg) scale(0.5);
+  }
+
+  .fn-site-menu-icon[data-x] > svg:last-child {
+    opacity: 1;
+    transform: none;
+  }
+
   /* Slim while scrolling down a page (useCondenseOnScroll): only the field
      stays, shorter and without its box, the way Safari folds its own bar.
      The field is still live, so a tap on it starts a search, and focusing
@@ -1245,10 +1275,52 @@ body.has-explore-chrome {
    accessibility tree, lets the toolbars and the sheet opt back in, and
    leaves the page laid out and scrolled where it was, so closing the sheet
    puts it back untouched. Once <html> has a background of its own, body's
-   stops painting the canvas and is hidden with body's box. */
+   stops painting the canvas and is hidden with body's box.
+
+   Motion. Opening, the sheet dissolves in over the page (140ms) and the
+   page is hidden only once it's covered, by a visibility change held back
+   for that long; its blocks rise 12px into place from the field upwards,
+   35ms apart (--i, counted up from the field). Closing, the page is back
+   at once, under the sheet: the blocks sink and fade (160ms) and the sheet
+   fades after them (200ms from 60ms), uncovering it. PhoneSearchHost keeps
+   the sheet mounted for that long (SHEET_EXIT_MS). A row that arrives
+   while typing settles in by itself (4px). */
 
 .fn-search-sheet {
   display: none;
+}
+
+@keyframes fn-search-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes fn-search-out {
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes fn-search-rise {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+}
+
+@keyframes fn-search-sink {
+  to {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+}
+
+@keyframes fn-search-row-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
 }
 
 @media (max-width: 639px) {
@@ -1258,6 +1330,7 @@ body.has-explore-chrome {
 
   html[data-phone-search] body {
     visibility: hidden;
+    transition: visibility 0s linear 140ms;
   }
 
   html[data-phone-search] .fn-phone-bar,
@@ -1288,6 +1361,12 @@ body.has-explore-chrome {
     overflow-y: auto;
     overscroll-behavior: contain;
     background: var(--bg-primary);
+    animation: fn-search-in 140ms ease-out both;
+  }
+
+  .fn-search-sheet[data-leaving] {
+    pointer-events: none;
+    animation: fn-search-out 200ms ease-in 60ms both;
   }
 
   .fn-search-body {
@@ -1295,6 +1374,19 @@ body.has-explore-chrome {
     display: flex;
     flex-direction: column;
     gap: 14px;
+  }
+
+  .fn-search-sheet[data-leaving] .fn-search-body {
+    animation: fn-search-sink 160ms ease-in both;
+  }
+
+  .fn-search-block {
+    animation: fn-search-rise var(--motion-arrive) var(--ease-soft) both;
+    animation-delay: calc(50ms + var(--i, 0) * 35ms);
+  }
+
+  .fn-search-list > li {
+    animation: fn-search-row-in var(--motion-panel) var(--ease-soft) both;
   }
 
   .fn-search-section {
@@ -1348,10 +1440,34 @@ body.has-explore-chrome {
     text-align: left;
     text-decoration: none;
     cursor: pointer;
+    transition:
+      background-color var(--motion-quick) ease,
+      color var(--motion-quick) ease;
   }
 
   .fn-search-row:active {
     background: var(--surface-subtle);
+  }
+
+  /* Picked, and waiting for its page: filled like the primary row, with a
+     spinner in place of its arrow (PhoneSearchSheet.tsx). */
+  .fn-search-row.is-pending,
+  .fn-search-chip.is-pending {
+    background: var(--accent-soft);
+    color: var(--accent-soft-fg);
+  }
+
+  .fn-search-chip.is-pending {
+    border-color: var(--accent-soft-border);
+  }
+
+  .fn-search-row.is-pending .fn-search-tile {
+    background: transparent;
+    color: inherit;
+  }
+
+  .fn-search-row.is-pending :is(.fn-search-detail, .fn-search-end) {
+    color: inherit;
   }
 
   .fn-search-row:focus-visible,
@@ -1500,11 +1616,31 @@ body.has-explore-chrome {
     font-size: 14px;
     font-weight: 500;
     text-decoration: none;
+    transition:
+      background-color var(--motion-quick) ease,
+      border-color var(--motion-quick) ease,
+      color var(--motion-quick) ease;
   }
 
   .fn-search-chip svg {
     color: var(--text-accent);
   }
+
+  .fn-search-chip.is-pending svg {
+    color: inherit;
+  }
+}
+
+/* The global clamp shortens durations but leaves delays standing: drop the
+   blocks' stagger, the sheet's late fade and the page's held-back hiding,
+   so with reduced motion the sheet is simply there, and simply gone. */
+[data-reduce-motion='true'] .fn-search-block,
+[data-reduce-motion='true'] .fn-search-sheet[data-leaving] {
+  animation-delay: 0s !important;
+}
+
+html[data-reduce-motion='true'][data-phone-search] body {
+  transition-delay: 0s;
 }
 
 [data-reduce-motion='true'] .explore-chrome-inner,

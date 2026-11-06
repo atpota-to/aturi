@@ -33,45 +33,45 @@ export function useSiteMenuOpen(): boolean {
  * While the search sheet is open (PhoneSearchSheet.tsx) it is that sheet's
  * Close instead: the menu has nowhere to open over a search, and this is the
  * way back to the page. Closing also drops the keyboard.
+ *
+ * Both icons are always drawn, stacked, and chrome.css turns one into the
+ * other, so the hamburger becomes the X rather than being swapped for it.
  */
 export default function SiteMenuButton() {
   const open = useSiteMenuOpen();
   const unread = useUnreadReleaseCount();
   const searching = usePhoneSearchOwner() !== null;
 
-  if (searching) {
-    return (
-      <button
-        type="button"
-        onClick={() => {
-          if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
-          closePhoneSearch();
-        }}
-        aria-label="Close search"
-        className="explore-chrome-button fn-site-menu-btn"
-      >
-        <X size={18} aria-hidden />
-      </button>
-    );
-  }
-
   let label = 'Open menu';
-  if (open) label = 'Close menu';
+  if (searching) label = 'Close search';
+  else if (open) label = 'Close menu';
   else if (unread > 0) label = `Open menu, ${unread} unread in What's new`;
+
+  const showX = open || searching;
 
   return (
     <button
       type="button"
       // Exempts this button from the header's close-on-outside-press.
       data-site-menu-toggle=""
-      onClick={toggleSiteMenu}
-      aria-expanded={open}
+      onClick={() => {
+        if (!searching) {
+          toggleSiteMenu();
+          return;
+        }
+        if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
+        closePhoneSearch();
+      }}
+      aria-expanded={searching ? undefined : open}
       aria-label={label}
       className="explore-chrome-button fn-site-menu-btn"
-      data-open={open || undefined}
+      data-open={(!searching && open) || undefined}
     >
-      {open ? <X size={18} aria-hidden /> : <Menu size={18} aria-hidden />}
-      {!open && unread > 0 && <span className="fn-site-menu-dot" aria-hidden />}
+      <span className="fn-site-menu-icon" data-x={showX || undefined} aria-hidden>
+        <Menu size={18} />
+        <X size={18} />
+      </span>
+      {!showX && unread > 0 && <span className="fn-site-menu-dot" aria-hidden />}
     </button>
   );
 }

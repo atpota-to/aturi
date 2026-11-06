@@ -7,12 +7,12 @@ import {
   useRef,
   useState,
   useSyncExternalStore,
-  type MutableRefObject,
+  type CSSProperties,
   type ReactNode,
 } from 'react';
 import { createPortal } from 'react-dom';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import {
   ArrowUpRight,
   Braces,
@@ -21,15 +21,23 @@ import {
   Clock,
   FileText,
   LayoutGrid,
+  LoaderCircle,
   Search,
   Server,
   User,
 } from 'lucide-react';
 import {
+  closePhoneSearch,
+  getPhoneSearchActions,
   getPhoneSearchOwner,
   getPhoneSearchServerOwner,
+  getPhoneSearchServerState,
+  getPhoneSearchState,
+  isCurrentPath,
+  setPhoneSearchPrimary,
   subscribePhoneSearch,
 } from '@/lib/phoneSearch';
+import { motionAllowed } from '@/lib/motion';
 import { looksLikeTarget, matchScore, nsidLikelihood, wantsPeopleSearch } from '@/lib/paletteSearch';
 import { atUriFor, pageContextFromPath, universalPathFor, type PageSubject } from '@/lib/pageContext';
 import { openInApps, waypointNoun } from '@/lib/openInApps';
@@ -72,6 +80,14 @@ import { useKeyboardShortcuts } from '../KeyboardShortcutsProvider';
  * commands: this is a way to go somewhere. Lists are bottom-anchored, so a
  * short one sits next to the field, and the row the keyboard's Search key
  * runs is drawn filled.
+ *
+ * Motion (chrome.css): the sheet dissolves in over the page and its blocks
+ * rise into place from the field upwards; the page is hidden once the sheet
+ * covers it. A picked result keeps the sheet up, with a spinner on its row,
+ * until the next page lands, and the sheet then fades out over that page
+ * rather than over the old one. That is why the sheet is drawn by
+ * <PhoneSearchHost> in the root layout and not by the field: the field
+ * belongs to a page's toolbar, which goes when the page does.
  */
 
 const SEARCH_DEBOUNCE_MS = 180;
@@ -79,8 +95,14 @@ const PEOPLE_LIMIT = 5;
 /** Recent jumps shown before anything is typed, and matched while typing. */
 const RECENTS_EMPTY = 5;
 const RECENTS_MATCHED = 3;
-/** Apps listed for a recognised link before "Every app" takes over. */
+/** Apps listed for a recognised link before "All apps" takes over. */
 const APPS_SHOWN = 4;
+
+/**
+ * How long the sheet stays mounted once closed: its blocks sink (160ms),
+ * then it fades (200ms, starting 60ms in). chrome.css, Phone search sheet.
+ */
+const SHEET_EXIT_MS = 280;
 
 /** Quick links under the recents, with the short names a chip has room for. */
 const QUICK_LINKS: { id: string; label: string }[] = [
@@ -90,13 +112,52 @@ const QUICK_LINKS: { id: string; label: string }[] = [
   { id: 'go-spaces', label: 'Spaces' },
 ];
 
+/** The sheet's id, for the field's aria-controls. There is only ever one. */
+export const PHONE_SEARCH_SHEET_ID = 'fn-search-sheet';
+
 /** Which field owns the sheet, if any (src/lib/phoneSearch.ts). */
 export function usePhoneSearchOwner(): string | null {
-  return useSyncExternalStore(
+  return useSyncExternalStore(subscribePhoneSearch, getPhoneSearchOwner, getPhoneSearchServerOwner);
+}
+
+/**
+ * Draws the sheet for whichever field opens it. Mounted once, in the root
+ * layout, so the sheet outlives the page it was opened on.
+ */
+export default function PhoneSearchHost() {
+  const { owner, query } = useSyncExternalStore(
     subscribePhoneSearch,
-    getPhoneSearchOwner,
-    getPhoneSearchServerOwner,
+    getPhoneSearchState,
+    getPhoneSearchServerState,
   );
+  const pathname = usePathname();
+
+  // Landing on another page is the end of the search; the sheet fades out
+  // over the page it led to.
+  const lastPath = useRef(pathname);
+  useEffect(() => {
+    if (lastPath.current === pathname) return;
+    lastPath.current = pathname;
+    closePhoneSearch();
+  }, [pathname]);
+
+  // Kept mounted through its way out. Worked out during render, as React
+  // adjusts state to a changed input, so the render that sees it close
+  // already keeps the sheet rather than dropping it for a frame.
+  const [prevOwner, setPrevOwner] = useState(owner);
+  const [leaving, setLeaving] = useState(false);
+  if (owner !== prevOwner) {
+    setPrevOwner(owner);
+    setLeaving(owner === null && prevOwner !== null && motionAllowed());
+  }
+  useEffect(() => {
+    if (!leaving) return undefined;
+    const t = window.setTimeout(() => setLeaving(false), SHEET_EXIT_MS);
+    return () => window.clearTimeout(t);
+  }, [leaving]);
+
+  if (owner === null && !leaving) return null;
+  return <PhoneSearchSheet query={query} leaving={owner === null} />;
 }
 
 type SheetRow = {
@@ -110,12 +171,13 @@ type SheetRow = {
   /** The detail is an identifier (a handle, an at:// URI): set in mono. */
   mono?: boolean;
   end?: ReactNode;
-  /** A page on this site. */
+  /** A page on this site, with what to record when it's picked. */
   href?: string;
+  record?: () => void;
   /** An app's own page, opened in a new tab as the palette does. */
   external?: string;
-  /** Runs on the pick: bookkeeping before a link navigates, or the action itself for a button. */
-  onPick?: () => void;
+  /** What a row that is neither runs. */
+  action?: () => void;
   /** What the keyboard's Search key runs. */
   primary?: boolean;
 };
@@ -149,38 +211,34 @@ function subjectLabel(subject: PageSubject): string {
   return subject.repo;
 }
 
-export default function PhoneSearchSheet({
-  id,
-  query,
-  onJump,
-  onPaste,
-  onDone,
-  primaryRef,
-}: {
-  id: string;
-  query: string;
-  /** The field's own submit: resolve what was typed and go there. */
-  onJump: () => void;
-  /** Paste and go, where the browser can read the clipboard. */
-  onPaste: (() => void) | null;
-  /** Close the sheet: a row was picked. */
-  onDone: () => void;
-  /** Set to the primary row's action, for the field's submit to run. */
-  primaryRef: MutableRefObject<(() => void) | null>;
-}) {
+/** A block's place in the entrance, counted up from the field. */
+function stagger(i: number): CSSProperties {
+  return { '--i': i } as CSSProperties;
+}
+
+function PhoneSearchSheet({ query, leaving }: { query: string; leaving: boolean }) {
   const router = useRouter();
   const { prefs } = usePreferences();
   const { commands } = useKeyboardShortcuts();
-  // Read once per opening; the sheet mounts each time the field opens it.
+  // Read once per opening; the host mounts the sheet each time it opens.
   const [history] = useState<SearchHistoryEntry[]>(() => readSearchHistory());
   const [people, setPeople] = useState<{ text: string; items: ActorTypeaheadResult[] }>({
     text: '',
     items: [],
   });
+  // The row picked and on its way, shown with a spinner until the page lands.
+  const [pending, setPending] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const pinnedRef = useRef(true);
+  const actions = getPhoneSearchActions();
 
   const text = query.trim();
   const peopleText = wantsPeopleSearch('all', text) ? text.replace(/^@/, '') : '';
+
+  // Typing on after a pick that never landed starts over.
+  useEffect(() => {
+    setPending(null);
+  }, [text]);
 
   // Debounced people typeahead, keyed by the text it answers, as the
   // palette's is, so a slow response never lands under a newer query.
@@ -203,7 +261,10 @@ export default function PhoneSearchSheet({
   // Where the text goes, when it names a place, and what it is there.
   const target = useMemo(() => (looksLikeTarget(text) ? resolveSearchTarget(text) : null), [text]);
   const subject = useMemo(
-    () => (target && !target.path.startsWith('/explore/pds/') ? pageContextFromPath(target.path).subject : null),
+    () =>
+      target && !target.path.startsWith('/explore/pds/')
+        ? pageContextFromPath(target.path).subject
+        : null,
     [target],
   );
   const { customWaypoints, waypointGroups } = prefs;
@@ -218,6 +279,21 @@ export default function PhoneSearchSheet({
     return [{ key: cmdId, label, href: cmd.href, Icon: cmd.icon }];
   });
 
+  /** A pick of a page on this site: record it, then wait for it to land. */
+  const follow = (key: string, href: string, record?: () => void) => {
+    record?.();
+    if (isCurrentPath(href)) closePhoneSearch();
+    else setPending(key);
+  };
+
+  const jump = () => {
+    if (!actions) return;
+    setPending('jump');
+    void actions.jump(query).then((went) => {
+      if (!went) setPending(null);
+    });
+  };
+
   const recentRow = (entry: SearchHistoryEntry): SheetRow => ({
     key: `recent:${entry.path}`,
     icon: <Avatar src={entry.avatar} fallback={recentIcon(entry.path)} />,
@@ -229,11 +305,10 @@ export default function PhoneSearchSheet({
     end: <ChevronRight size={16} aria-hidden />,
     href: entry.path,
     // Re-picking bumps the count; the merge keeps the stored avatar.
-    onPick: () => recordQueryVisit(entry.label, entry.path),
+    record: () => recordQueryVisit(entry.label, entry.path),
   });
 
   const personRow = (actor: ActorTypeaheadResult): SheetRow => {
-    const path = `/explore/${encodeRepo(actor.handle)}`;
     const name = actor.displayName?.trim();
     return {
       key: `actor:${actor.did}`,
@@ -243,11 +318,13 @@ export default function PhoneSearchSheet({
       detail: name ? `@${actor.handle}` : actor.did,
       mono: true,
       end: <ChevronRight size={16} aria-hidden />,
-      href: path,
-      onPick: () => recordActorVisit(actor),
+      href: `/explore/${encodeRepo(actor.handle)}`,
+      record: () => recordActorVisit(actor),
     };
   };
 
+  // Keyed by kind rather than destination, so the row stays put (and
+  // doesn't replay its entrance) as each keystroke changes where it goes.
   const jumpRow = (): SheetRow | null => {
     // A bare word (no dot, no scheme) only guesses at a handle, so it keeps
     // the plain "Go to" wording rather than being named as a repo.
@@ -274,19 +351,19 @@ export default function PhoneSearchSheet({
       mono = true;
     }
     return {
-      key: `jump:${dest.path}`,
+      key: 'jump',
       icon: isPds ? <Server size={18} aria-hidden /> : <Search size={18} aria-hidden />,
       label,
       detail,
       mono,
       end: <ChevronRight size={18} aria-hidden />,
-      onPick: onJump,
+      action: jump,
       primary: true,
     };
   };
 
   const lexiconRow = (): SheetRow => ({
-    key: `lex:${text}`,
+    key: 'lex',
     icon: <Braces size={16} aria-hidden />,
     label: (
       <>
@@ -313,7 +390,8 @@ export default function PhoneSearchSheet({
     if (recents.length) sections.push({ key: 'recent', title: 'Recent', rows: recents.map(recentRow) });
 
     const shown = new Set(recents.map((e) => e.did).filter(Boolean));
-    const found = people.text === peopleText && peopleText ? people.items.filter((a) => !shown.has(a.did)) : [];
+    const found =
+      people.text === peopleText && peopleText ? people.items.filter((a) => !shown.has(a.did)) : [];
     if (found.length) sections.push({ key: 'people', title: 'People', rows: found.map(personRow) });
 
     const allApps = [...apps.mine, ...apps.more];
@@ -354,9 +432,9 @@ export default function PhoneSearchSheet({
     const jumps: SheetRow[] = [];
     const lex = nsidLikelihood(text);
     if (lex === 'likely') jumps.push(lexiconRow());
-    const jump =
-      target || (sections.length === 0 && text.length >= 2 && !/\s/.test(text)) ? jumpRow() : null;
-    if (jump) jumps.push(jump);
+    const jumpable = target || (sections.length === 0 && text.length >= 2 && !/\s/.test(text));
+    const jumpTo = jumpable ? jumpRow() : null;
+    if (jumpTo) jumps.push(jumpTo);
     if (lex === 'possible') jumps.push(lexiconRow());
     if (jumps.length) sections.push({ key: 'jump', title: 'Jump to', rows: jumps });
   }
@@ -378,28 +456,55 @@ export default function PhoneSearchSheet({
   const showHint = !!text && sections.length === 0 && !waiting;
 
   useEffect(() => {
-    if (!primary) {
-      primaryRef.current = null;
+    if (leaving || !primary) {
+      setPhoneSearchPrimary(null);
       return;
     }
-    primaryRef.current = () => {
-      primary.onPick?.();
-      if (primary.href) {
-        onDone();
-        router.push(primary.href);
+    const row = primary;
+    setPhoneSearchPrimary(() => {
+      if (row.href) {
+        follow(row.key, row.href, row.record);
+        router.push(row.href);
+      } else {
+        row.action?.();
       }
-    };
+    });
   });
+  useEffect(() => () => setPhoneSearchPrimary(null), []);
 
-  // Keep the end of the list, the part beside the field, in view as the
-  // results change underneath a reader typing.
+  // Keep the end of the list, the part beside the field, in view: as the
+  // keyboard comes up and shrinks the sheet, and as results arrive, unless
+  // the reader has scrolled up to look at something.
+  useEffect(() => {
+    const el = scrollRef.current;
+    const body = el?.firstElementChild;
+    if (!el || !body) return undefined;
+    const onScroll = () => {
+      pinnedRef.current = el.scrollTop + el.clientHeight >= el.scrollHeight - 4;
+    };
+    const observer = new ResizeObserver(() => {
+      if (pinnedRef.current) el.scrollTop = el.scrollHeight;
+    });
+    observer.observe(el);
+    observer.observe(body);
+    el.addEventListener('scroll', onScroll, { passive: true });
+    return () => {
+      observer.disconnect();
+      el.removeEventListener('scroll', onScroll);
+    };
+  }, []);
+
+  // A new query starts at the end again.
   useLayoutEffect(() => {
     const el = scrollRef.current;
-    if (el) el.scrollTop = el.scrollHeight;
-  }, [text, people.text]);
+    if (!el) return;
+    el.scrollTop = el.scrollHeight;
+    pinnedRef.current = true;
+  }, [text]);
 
   const renderRow = (row: SheetRow) => {
-    const className = `fn-search-row${row.primary ? ' is-primary' : ''}`;
+    const busy = pending === row.key;
+    const className = `fn-search-row${row.primary ? ' is-primary' : ''}${busy ? ' is-pending' : ''}`;
     const body = (
       <>
         <span className={`fn-search-tile${row.round ? ' is-round' : ''}`}>{row.icon}</span>
@@ -409,19 +514,22 @@ export default function PhoneSearchSheet({
             <span className={`fn-search-detail${row.mono ? ' is-mono' : ''}`}>{row.detail}</span>
           )}
         </span>
-        {row.end && <span className="fn-search-end">{row.end}</span>}
+        {(row.end || busy) && (
+          <span className="fn-search-end">
+            {busy ? <LoaderCircle size={16} aria-hidden className="explore-spin" /> : row.end}
+          </span>
+        )}
       </>
     );
     if (row.href) {
+      const href = row.href;
       return (
         <Link
-          href={row.href}
+          href={href}
           prefetch={false}
           className={className}
-          onClick={() => {
-            row.onPick?.();
-            onDone();
-          }}
+          aria-busy={busy || undefined}
+          onClick={() => follow(row.key, href, row.record)}
         >
           {body}
         </Link>
@@ -435,60 +543,120 @@ export default function PhoneSearchSheet({
       );
     }
     return (
-      <button type="button" className={className} onClick={row.onPick}>
+      <button type="button" className={className} aria-busy={busy || undefined} onClick={row.action}>
         {body}
       </button>
     );
   };
 
-  return createPortal(
-    <div id={id} className="fn-search-sheet" role="region" aria-label="Search" ref={scrollRef}>
-      <div className="fn-search-body">
-        {showHint && (
-          <p className="fn-search-hint">
-            Nothing matches. Try a handle, a DID, an at:// URI or a link from any app.
-          </p>
-        )}
-        {sections.map((section) => (
-          <section key={section.key} className="fn-search-section" aria-labelledby={`${id}-${section.key}`}>
-            <h2 id={`${id}-${section.key}`} className="fn-search-heading">
-              {section.title}
-            </h2>
-            <ul className="fn-search-list">
-              {section.rows.map((row) => (
-                <li key={row.key}>{renderRow(row)}</li>
-              ))}
-            </ul>
-          </section>
-        ))}
-
-        {!text && quickLinks.length > 0 && (
-          <nav className="fn-search-section" aria-labelledby={`${id}-goto`}>
-            <h2 id={`${id}-goto`} className="fn-search-heading">
-              Go to
-            </h2>
-            <div className="fn-search-chips">
-              {quickLinks.map(({ key, label, href, Icon }) => (
-                <Link key={key} href={href} prefetch={false} className="fn-search-chip" onClick={onDone}>
+  // The blocks, top to bottom, each with its place counted up from the
+  // field, which is the order they rise in.
+  const blocks: { key: string; node: (i: number) => ReactNode }[] = [];
+  if (showHint) {
+    blocks.push({
+      key: 'hint',
+      node: (i) => (
+        <p key="hint" className="fn-search-hint fn-search-block" style={stagger(i)}>
+          Nothing matches. Try a handle, a DID, an at:// URI or a link from any app.
+        </p>
+      ),
+    });
+  }
+  for (const section of sections) {
+    const headingId = `fn-search-${section.key}`;
+    blocks.push({
+      key: section.key,
+      node: (i) => (
+        <section
+          key={section.key}
+          className="fn-search-section fn-search-block"
+          aria-labelledby={headingId}
+          style={stagger(i)}
+        >
+          <h2 id={headingId} className="fn-search-heading">
+            {section.title}
+          </h2>
+          <ul className="fn-search-list">
+            {section.rows.map((row) => (
+              <li key={row.key}>{renderRow(row)}</li>
+            ))}
+          </ul>
+        </section>
+      ),
+    });
+  }
+  if (!text && quickLinks.length > 0) {
+    blocks.push({
+      key: 'goto',
+      node: (i) => (
+        <nav
+          key="goto"
+          className="fn-search-section fn-search-block"
+          aria-labelledby="fn-search-goto"
+          style={stagger(i)}
+        >
+          <h2 id="fn-search-goto" className="fn-search-heading">
+            Go to
+          </h2>
+          <div className="fn-search-chips">
+            {quickLinks.map(({ key, label, href, Icon }) => (
+              <Link
+                key={key}
+                href={href}
+                prefetch={false}
+                className={`fn-search-chip${pending === key ? ' is-pending' : ''}`}
+                aria-busy={pending === key || undefined}
+                onClick={() => follow(key, href)}
+              >
+                {pending === key ? (
+                  <LoaderCircle size={15} aria-hidden className="explore-spin" />
+                ) : (
                   <Icon size={15} aria-hidden />
-                  {label}
-                </Link>
-              ))}
-            </div>
-          </nav>
-        )}
+                )}
+                {label}
+              </Link>
+            ))}
+          </div>
+        </nav>
+      ),
+    });
+  }
+  if (!text && actions?.paste) {
+    const paste = actions.paste;
+    blocks.push({
+      key: 'paste',
+      node: (i) => (
+        <button
+          key="paste"
+          type="button"
+          className="fn-search-row fn-search-paste fn-search-block is-primary"
+          style={stagger(i)}
+          onClick={paste}
+        >
+          <span className="fn-search-tile">
+            <ClipboardPaste size={18} aria-hidden />
+          </span>
+          <span className="fn-search-text">
+            <span className="fn-search-label">Paste and go</span>
+            <span className="fn-search-detail">A handle, DID, at:// URI or any app&rsquo;s link</span>
+          </span>
+        </button>
+      ),
+    });
+  }
 
-        {!text && onPaste && (
-          <button type="button" className="fn-search-row fn-search-paste is-primary" onClick={onPaste}>
-            <span className="fn-search-tile">
-              <ClipboardPaste size={18} aria-hidden />
-            </span>
-            <span className="fn-search-text">
-              <span className="fn-search-label">Paste and go</span>
-              <span className="fn-search-detail">A handle, DID, at:// URI or any app&rsquo;s link</span>
-            </span>
-          </button>
-        )}
+  return createPortal(
+    <div
+      id={PHONE_SEARCH_SHEET_ID}
+      className="fn-search-sheet"
+      role="region"
+      aria-label="Search"
+      ref={scrollRef}
+      data-leaving={leaving || undefined}
+      inert={leaving}
+    >
+      <div className="fn-search-body">
+        {blocks.map((block, index) => block.node(blocks.length - 1 - index))}
       </div>
     </div>,
     document.body,
