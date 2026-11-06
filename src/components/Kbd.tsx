@@ -1,7 +1,7 @@
 'use client';
 
 import { Fragment } from 'react';
-import { bindingTokens, type Platform } from '@/lib/keybindings';
+import { parseBinding, stepTokens, type Platform } from '@/lib/keybindings';
 
 /**
  * Renders a binding string as styled `<kbd>` chips — one chip per key, a thin
@@ -15,18 +15,25 @@ export default function Kbd({
   binding: string;
   platform: Platform;
 }) {
-  const steps = bindingTokens(binding, platform);
+  // Each chip also carries the key's own name (`mod`, `k`) as data-key, so
+  // it presses down while that key is held (KeyChipPress).
+  const steps = parseBinding(binding).map((step) => ({
+    names: step.split('+'),
+    tokens: stepTokens(step, platform),
+  }));
   if (steps.length === 0) return null;
   return (
     <span className="kbd-combo">
-      {steps.map((tokens, si) => (
+      {steps.map(({ names, tokens }, si) => (
         <Fragment key={si}>
           {si > 0 && <span className="kbd-then">then</span>}
           <span className="kbd-step">
             {tokens.map((tok, ti) => (
               <Fragment key={ti}>
                 {ti > 0 && <span className="kbd-plus">+</span>}
-                <kbd className="kbd">{tok}</kbd>
+                <kbd className="kbd" data-key={names[ti]}>
+                  {tok}
+                </kbd>
               </Fragment>
             ))}
           </span>

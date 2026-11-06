@@ -4,13 +4,16 @@ import { useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { Settings, X } from 'lucide-react';
 import { COMMAND_GROUPS, type Platform } from '@/lib/keybindings';
-import { KbdList } from './Kbd';
+import { PALETTE_PREFIXES } from '@/lib/paletteSearch';
+import Kbd, { KbdList } from './Kbd';
 import type { ResolvedCommand } from './KeyboardShortcutsProvider';
 
 /**
  * The `?` keyboard-shortcuts cheat sheet — a read-only reference grouped the
  * same way as the settings tab. Actionable navigation lives in the command
- * palette; this is purely "what are the keys". Native <dialog> for the focus
+ * palette; this is purely "what are the keys". Only bound commands are listed
+ * (most of the catalog is palette-only until someone binds it), followed by
+ * the keys that work inside the palette itself. Native <dialog> for the focus
  * trap + Escape, styled via globals.css `.cmdk-*` / `.shortcuts-*`.
  */
 export default function ShortcutsHelp({
@@ -25,12 +28,19 @@ export default function ShortcutsHelp({
   platform: Platform;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
+  // showModal() focuses the first control, which drew the focus ring on
+  // Close as the sheet opened. Focus the scrolling body instead: arrow keys
+  // scroll the list, Tab reaches the footer link, Shift+Tab reaches Close.
+  const bodyRef = useRef<HTMLDivElement>(null);
+  const unbound = commands.filter((c) => c.available && c.bindings.length === 0).length;
 
   useEffect(() => {
     const dlg = ref.current;
     if (!dlg) return;
-    if (open && !dlg.open) dlg.showModal();
-    else if (!open && dlg.open) dlg.close();
+    if (open && !dlg.open) {
+      dlg.showModal();
+      bodyRef.current?.focus({ preventScroll: true });
+    } else if (!open && dlg.open) dlg.close();
   }, [open]);
 
   useEffect(() => {
@@ -68,10 +78,10 @@ export default function ShortcutsHelp({
           </button>
         </div>
 
-        <div className="shortcuts-body">
+        <div className="shortcuts-body" ref={bodyRef} tabIndex={-1}>
           {COMMAND_GROUPS.map((group) => {
             const rows = commands.filter(
-              (c) => c.meta.group === group.id && c.available,
+              (c) => c.meta.group === group.id && c.available && c.bindings.length > 0,
             );
             if (rows.length === 0) return null;
             return (
@@ -96,6 +106,50 @@ export default function ShortcutsHelp({
               </section>
             );
           })}
+
+          <section className="shortcuts-group">
+            <h3 className="shortcuts-group-label">Inside the command palette</h3>
+            <ul className="shortcuts-rows">
+              {PALETTE_PREFIXES.map(({ prefix, label }) => (
+                <li key={prefix} className="shortcuts-row">
+                  <span className="shortcuts-row-label">Search {label} only</span>
+                  <span className="shortcuts-row-keys">
+                    <span className="kbd-step">
+                      <kbd className="kbd">{prefix}</kbd>
+                    </span>
+                  </span>
+                </li>
+              ))}
+              <li className="shortcuts-row">
+                <span className="shortcuts-row-label">Open in a new tab</span>
+                <span className="shortcuts-row-keys">
+                  <Kbd binding="mod+enter" platform={platform} />
+                </span>
+              </li>
+              <li className="shortcuts-row">
+                <span className="shortcuts-row-label">Next / previous result</span>
+                <span className="shortcuts-row-keys">
+                  <span className="kbd-list">
+                    <Kbd binding="arrowdown" platform={platform} />
+                    <span className="kbd-or">or</span>
+                    <Kbd binding="ctrl+n" platform={platform} />
+                  </span>
+                </span>
+              </li>
+              <li className="shortcuts-row">
+                <span className="shortcuts-row-label">Back out of a list</span>
+                <span className="shortcuts-row-keys">
+                  <Kbd binding="backspace" platform={platform} />
+                </span>
+              </li>
+            </ul>
+          </section>
+          {unbound > 0 && (
+            <p className="shortcuts-note">
+              {unbound} more commands have no shortcut yet. Find them in the
+              command palette, or give one a key in settings.
+            </p>
+          )}
         </div>
 
         <div className="shortcuts-foot">

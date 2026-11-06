@@ -114,12 +114,13 @@ struct GenericRecordCardView: View {
             VStack(alignment: .leading, spacing: 14) {
                 Text(title)
                     .font(AturiFont.title)
+                    .tracking(AturiFont.titleTracking)
                     .foregroundStyle(theme.textPrimary)
                     .fixedSize(horizontal: false, vertical: true)
 
                 if fields.isEmpty {
                     Text("This record has no fields.")
-                        .font(.footnote)
+                        .font(AturiFont.footnote)
                         .foregroundStyle(theme.textSecondary)
                 } else {
                     fieldsTable
@@ -131,7 +132,7 @@ struct GenericRecordCardView: View {
                             showsAllFields.toggle()
                         }
                     }
-                    .font(.footnote)
+                    .font(AturiFont.footnote)
                     .buttonStyle(.plain)
                     .foregroundStyle(theme.textAccent)
                 }
@@ -141,7 +142,7 @@ struct GenericRecordCardView: View {
                         .padding(.top, 8)
                 } label: {
                     Text("Record JSON")
-                        .font(.footnote.weight(.medium))
+                        .font(AturiFont.sans(.footnote, weight: .medium))
                         .foregroundStyle(theme.textSecondary)
                 }
                 .tint(theme.textTertiary)
@@ -159,7 +160,7 @@ struct GenericRecordCardView: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: AturiTheme.cardRadius, style: .continuous))
         .cardBackground()
     }
 
@@ -178,7 +179,7 @@ struct GenericRecordCardView: View {
                 Chip(displayType, style: .accent)
                 if let createdDate {
                     Text(createdDate, format: .dateTime.year().month(.abbreviated).day())
-                        .font(.footnote)
+                        .font(AturiFont.footnote)
                         .foregroundStyle(theme.textTertiary)
                 }
             }
@@ -265,7 +266,7 @@ private struct RecordFieldRow: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             Text(label)
-                .font(.system(.caption, design: .monospaced, weight: .semibold))
+                .font(AturiFont.monoFont(.caption, weight: .semibold))
                 .foregroundStyle(theme.textTertiary)
                 .textCase(.uppercase)
             valueView
@@ -301,7 +302,7 @@ private struct RecordFieldRow: View {
             } label: {
                 HStack(spacing: 4) {
                     Image(systemName: expanded ? "chevron.down" : "chevron.right")
-                        .font(.caption2)
+                        .font(AturiFont.caption2)
                     Text(containerSummary)
                 }
                 .font(AturiFont.monoSmall)
@@ -321,16 +322,16 @@ private struct RecordFieldRow: View {
             stringView(text)
         case .number(let number):
             Text(value.intValue.map { String($0) } ?? String(number))
-                .font(.body)
+                .font(AturiFont.body)
                 .foregroundStyle(theme.textPrimary)
                 .textSelection(.enabled)
         case .bool(let flag):
             Text(flag ? "true" : "false")
-                .font(.body)
+                .font(AturiFont.body)
                 .foregroundStyle(theme.textPrimary)
         case .null:
             Text("null")
-                .font(.body)
+                .font(AturiFont.body)
                 .foregroundStyle(theme.textTertiary)
         }
     }
@@ -352,7 +353,7 @@ private struct RecordFieldRow: View {
             .accessibilityHint("Opens in the explorer")
         } else {
             Text(display(text))
-                .font(.body)
+                .font(AturiFont.body)
                 .foregroundStyle(theme.textPrimary)
                 .textSelection(.enabled)
                 .fixedSize(horizontal: false, vertical: true)
@@ -386,7 +387,7 @@ struct RecordImageThumb: View {
     @Environment(\.displayScale) private var displayScale
 
     var body: some View {
-        let shape = RoundedRectangle(cornerRadius: 8, style: .continuous)
+        let shape = RoundedRectangle(cornerRadius: AturiTheme.controlRadius, style: .continuous)
         AsyncImage(url: URL(string: url)) { phase in
             if case .success(let image) = phase {
                 image
@@ -394,7 +395,7 @@ struct RecordImageThumb: View {
                     .scaledToFit()
                     .frame(maxHeight: 160)
                     .clipShape(shape)
-                    .overlay(shape.strokeBorder(theme.borderSubtle, lineWidth: AturiTheme.hairline(displayScale: displayScale)))
+                    .overlay(shape.strokeBorder(theme.borderMedium, lineWidth: AturiTheme.hairline(displayScale: displayScale)))
                     .accessibilityLabel("Image")
             }
         }

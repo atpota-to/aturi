@@ -71,8 +71,9 @@ export default function SessionPanel({ onNavigate, onSignInActiveChange }: Props
             flexDirection: 'column',
             gap: '0.5rem',
             padding: '0.625rem 0.75rem',
-            background: 'var(--bg-tertiary)',
+            background: 'var(--surface-subtle)',
             border: '1px solid var(--border-subtle)',
+            borderRadius: 'var(--radius-control)',
           }}
         >
           <div style={headerRowStyle()}>
@@ -88,7 +89,7 @@ export default function SessionPanel({ onNavigate, onSignInActiveChange }: Props
               <ArrowLeft size={14} />
             </button>
             <div style={{ minWidth: 0 }}>
-              <div style={{ fontSize: '0.875rem', color: 'var(--text-primary)' }}>
+              <div style={{ fontSize: '0.9375rem', fontWeight: 700, color: 'var(--text-primary)' }}>
                 Sign in with your handle
               </div>
               <div style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)' }}>
@@ -118,8 +119,9 @@ export default function SessionPanel({ onNavigate, onSignInActiveChange }: Props
         <div
           style={{
             padding: '0.625rem 0.75rem',
-            background: 'var(--bg-tertiary)',
+            background: 'var(--surface-subtle)',
             border: '1px solid var(--border-subtle)',
+            borderRadius: 'var(--radius-control)',
           }}
         >
           <ScopeSelector
@@ -145,7 +147,7 @@ export default function SessionPanel({ onNavigate, onSignInActiveChange }: Props
           style={{ font: 'inherit', textAlign: 'left', width: '100%' }}
         >
           <LogIn size={16} />
-          <span>sign in</span>
+          <span>Sign in</span>
         </button>
         {/* `prefetch={false}`: this is the signed-out branch, so every
             anonymous visitor prefetched an account page they have no session
@@ -166,10 +168,10 @@ export default function SessionPanel({ onNavigate, onSignInActiveChange }: Props
               flexWrap: 'wrap',
             }}
           >
-            settings
+            Settings
             <span
               style={{
-                fontSize: '0.65rem',
+                fontSize: '0.6875rem',
                 letterSpacing: '0.08em',
                 textTransform: 'uppercase',
                 color: 'var(--text-tertiary)',
@@ -202,8 +204,9 @@ export default function SessionPanel({ onNavigate, onSignInActiveChange }: Props
           alignItems: 'center',
           gap: '0.75rem',
           padding: '0.625rem 0.75rem',
-          background: 'var(--bg-tertiary)',
+          background: 'var(--surface-subtle)',
           border: '1px solid var(--border-subtle)',
+          borderRadius: 'var(--radius-control)',
         }}
       >
         {avatar ? (
@@ -216,6 +219,7 @@ export default function SessionPanel({ onNavigate, onSignInActiveChange }: Props
             style={{
               width: 32,
               height: 32,
+              borderRadius: '50%',
               objectFit: 'cover',
               flexShrink: 0,
               background: 'var(--bg-secondary)',
@@ -226,11 +230,12 @@ export default function SessionPanel({ onNavigate, onSignInActiveChange }: Props
             style={{
               width: 32,
               height: 32,
+              borderRadius: '50%',
               display: 'inline-flex',
               alignItems: 'center',
               justifyContent: 'center',
-              background: 'var(--bg-secondary)',
-              color: 'var(--text-tertiary)',
+              background: 'var(--accent-soft)',
+              color: 'var(--accent-soft-fg)',
               flexShrink: 0,
             }}
           >
@@ -240,7 +245,8 @@ export default function SessionPanel({ onNavigate, onSignInActiveChange }: Props
         <div style={{ minWidth: 0, lineHeight: 1.25, flex: 1 }}>
           <div
             style={{
-              fontSize: '0.875rem',
+              fontSize: '0.9375rem',
+              fontWeight: 700,
               color: 'var(--text-primary)',
               overflow: 'hidden',
               textOverflow: 'ellipsis',
@@ -276,7 +282,7 @@ export default function SessionPanel({ onNavigate, onSignInActiveChange }: Props
             onClick={onNavigate}
           >
             <Telescope size={16} />
-            <span>my repo</span>
+            <span>My repo</span>
           </Link>
         )}
         {/* Same slot as "sign in" once you're signed in: the way into your
@@ -288,7 +294,7 @@ export default function SessionPanel({ onNavigate, onSignInActiveChange }: Props
           onClick={onNavigate}
         >
           <Settings size={16} />
-          <span>settings</span>
+          <span>Settings</span>
         </Link>
       </div>
       <button
@@ -308,7 +314,7 @@ export default function SessionPanel({ onNavigate, onSignInActiveChange }: Props
         }}
       >
         <LogOut size={16} />
-        <span>sign out</span>
+        <span>Sign out</span>
       </button>
     </>
   );
@@ -329,10 +335,11 @@ function iconBackButtonStyle(): React.CSSProperties {
     display: 'inline-flex',
     alignItems: 'center',
     justifyContent: 'center',
-    width: 24,
-    height: 24,
+    width: 28,
+    height: 28,
     background: 'var(--bg-secondary)',
-    border: '1px solid var(--border-subtle)',
+    border: '1px solid var(--border-medium)',
+    borderRadius: 'var(--radius-control)',
     color: 'var(--text-secondary)',
     cursor: 'pointer',
     flexShrink: 0,
@@ -342,9 +349,12 @@ function iconBackButtonStyle(): React.CSSProperties {
 function inputStyle(): React.CSSProperties {
   return {
     width: '100%',
-    padding: '0.5rem 0.625rem',
+    height: 36,
+    boxSizing: 'border-box',
+    padding: '0 0.75rem',
     background: 'var(--bg-secondary)',
-    border: '1px solid var(--border-medium)',
+    border: '1px solid var(--border-strong)',
+    borderRadius: 'var(--radius-control)',
     color: 'var(--text-primary)',
     fontFamily: 'var(--font-mono)',
     fontSize: '0.8125rem',
@@ -354,12 +364,15 @@ function inputStyle(): React.CSSProperties {
 
 function primaryButtonStyle({ disabled }: { disabled?: boolean } = {}): React.CSSProperties {
   return {
-    padding: '0.5rem',
+    height: 36,
+    padding: '0 0.875rem',
     background: 'var(--accent-moss)',
     color: 'var(--text-on-accent)',
     border: '1px solid var(--accent-moss)',
-    fontFamily: 'var(--font-serif)',
+    borderRadius: 'var(--radius-control)',
+    fontFamily: 'var(--font-sans)',
     fontSize: '0.875rem',
+    fontWeight: 600,
     cursor: disabled ? 'not-allowed' : 'pointer',
     opacity: disabled ? 0.6 : 1,
   };

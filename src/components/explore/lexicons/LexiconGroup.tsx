@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { ArrowLeft, FileText, Folder, Layers, Search } from 'lucide-react';
 import AppearIn from '../AppearIn';
 import { Skeleton } from '@/components/SkeletonLoader';
-import { AppSiteLink, Credit } from './primitives';
+import { AppSiteLink, Credit, Nsid } from './primitives';
 import { fetchPrefix, searchLexicons } from '@/utils/ufos/client';
 import {
   type JustCount,
@@ -49,59 +49,30 @@ function Frame({
 }) {
   const segments = prefix.split('.');
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+    <div className="fn-lexdetail">
       <AppearIn rise>
-        <Link
-          href="/explore/lexicons"
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '0.3rem',
-            fontSize: '0.8125rem',
-            color: 'var(--text-accent)',
-            textDecoration: 'none',
-            fontFamily: 'var(--font-serif)',
-          }}
-        >
-          <ArrowLeft size={13} aria-hidden /> All lexicons
+        <Link href="/explore/lexicons" className="fn-backlink">
+          <ArrowLeft size={14} aria-hidden /> All lexicons
         </Link>
       </AppearIn>
 
       <AppearIn delay={0.04}>
-        <div
-          style={{
-            border: '1px solid var(--border-medium)',
-            background: 'var(--bg-secondary)',
-            padding: '1.25rem',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '0.6rem',
-          }}
-        >
-          <div
-            className="explore-small-caps"
-            style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
-          >
-            <span style={{ color: 'var(--text-accent)', display: 'inline-flex' }}>{icon}</span>
+        <div className="fn-lexhead">
+          <span className="fn-kicker fn-lexhead-kicker">
+            {icon}
             {eyebrow}
-          </div>
-          <h1
-            style={{
-              margin: 0,
-              fontFamily: 'var(--font-mono)',
-              fontSize: '1.35rem',
-              fontWeight: 500,
-              color: 'var(--text-primary)',
-              wordBreak: 'break-word',
-              lineHeight: 1.2,
-            }}
-          >
+          </span>
+          <h1 className="fn-lexhead-title fn-lexhead-mono">
             {segments.map((seg, i) => {
               const cumulative = segments.slice(0, i + 1).join('.');
               const last = i === segments.length - 1;
               return (
                 <span key={cumulative}>
-                  {i > 0 && <span style={{ color: 'var(--text-tertiary)' }}>.</span>}
+                  {i > 0 && (
+                    <span style={{ color: 'var(--text-tertiary)' }}>
+                      .<wbr />
+                    </span>
+                  )}
                   {last ? (
                     seg
                   ) : (
@@ -124,27 +95,26 @@ function Frame({
       {children}
 
       <AppearIn delay={0.12}>
-        <div style={{ border: '1px solid var(--border-medium)', background: 'var(--bg-secondary)' }}>
-          <Credit />
-        </div>
+        <Credit standalone />
       </AppearIn>
     </div>
   );
 }
 
-/** Card wrapping a listing of rows. */
-function ListCard({ children }: { children: React.ReactNode }) {
+/**
+ * Card wrapping a listing of rows, headed by a column row that names the
+ * figures: a bare number column read as a ranking before.
+ */
+function ListCard({ nameLabel, children }: { nameLabel: string; children: React.ReactNode }) {
   return (
     // Both views that render this one publish a filter to the bottom chrome
     // bar, so this card is what typing down there scrolls to.
     <AppearIn delay={0.08} id={CHROME_RESULTS_ID}>
-      <div
-        style={{
-          border: '1px solid var(--border-medium)',
-          background: 'var(--bg-secondary)',
-          padding: '0.25rem 1rem',
-        }}
-      >
+      <div className="fn-list-card">
+        <div className="fn-col-head fn-browse-grid">
+          <span>{nameLabel}</span>
+          <span style={{ textAlign: 'right' }}>Creates</span>
+        </div>
         {children}
       </div>
     </AppearIn>
@@ -224,11 +194,11 @@ function PrefixView({ prefix }: { prefix: string }) {
         </>
       }
     >
-      <ListCard>
+      <ListCard nameLabel="Entry">
         {children === null || visible === null ? (
           <ListSkeleton />
         ) : children.length === 0 ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', padding: '0.75rem 0' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', padding: '0.75rem 16px' }}>
             <p className="explore-muted" style={{ margin: 0 }}>
               Nothing is published under <code>{prefix}</code>.
             </p>
@@ -241,18 +211,24 @@ function PrefixView({ prefix }: { prefix: string }) {
             </Link>
           </div>
         ) : visible.length === 0 ? (
-          <p className="explore-muted" style={{ margin: 0, padding: '0.75rem 0' }}>
+          <p className="explore-muted" style={{ margin: 0, padding: '0.75rem 16px' }}>
             No entries under <code>{prefix}</code> match “{filter.trim()}”.
           </p>
         ) : (
           <>
-            <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+            <ul className="fn-list-rows">
               {visible.map((c, i) => (
-                <ChildRow key={`${childName(c)}-${i}`} child={c} isLast={i === visible.length - 1} />
+                <ChildRow key={`${childName(c)}-${i}`} child={c} />
               ))}
             </ul>
             {cursor && (
-              <button type="button" onClick={loadMore} disabled={loadingMore} style={loadMoreStyle(loadingMore)}>
+              <button
+                type="button"
+                onClick={loadMore}
+                disabled={loadingMore}
+                className="fn-list-card-foot"
+                style={{ cursor: loadingMore ? 'default' : 'pointer' }}
+              >
                 {loadingMore ? 'Loading…' : 'Load more'}
               </button>
             )}
@@ -266,36 +242,36 @@ function PrefixView({ prefix }: { prefix: string }) {
 function SummaryLine({ total, count }: { total: JustCount | null; count: number | null }) {
   if (!total) return <Skeleton width="14rem" height="0.85rem" />;
   return (
-    <p style={{ margin: 0, fontFamily: 'var(--font-mono)', fontSize: '0.8rem', color: 'var(--text-tertiary)' }}>
-      <span style={{ color: 'var(--text-secondary)' }}>{formatCount(total.creates)}</span> creates
+    <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-tertiary)' }}>
+      <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{formatCount(total.creates)}</span> creates
       {' · '}
-      <span style={{ color: 'var(--text-secondary)' }}>{formatCount(total.dids_estimate)}</span> repos
+      <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{formatCount(total.dids_estimate)}</span> repos
       {count != null && (
         <>
           {' · '}
-          <span style={{ color: 'var(--text-secondary)' }}>{count}</span> entries
+          <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{count}</span> entries
         </>
       )}
     </p>
   );
 }
 
-function ChildRow({ child, isLast }: { child: PrefixChild; isLast: boolean }) {
+function ChildRow({ child }: { child: PrefixChild }) {
   const isNamespace = child.type === 'prefix';
   const name = childName(child);
   const href = isNamespace ? groupPathFor(name) : lexiconPathFor(name);
   const Icon = isNamespace ? Folder : FileText;
   return (
-    <li style={{ borderBottom: isLast ? undefined : '1px solid var(--border-subtle)' }}>
-      <Link href={href} prefetch={false} style={rowStyle} onMouseEnter={hoverOn} onMouseLeave={hoverOff}>
+    <li>
+      <Link href={href} prefetch={false} className="fn-row fn-browse-grid">
         <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', minWidth: 0 }}>
           <Icon
             size={13}
             aria-hidden
             style={{ color: isNamespace ? 'var(--text-accent)' : 'var(--text-tertiary)', flexShrink: 0 }}
           />
-          <span style={nameStyle}>
-            {name}
+          <span className="fn-row-nsid" title={name}>
+            <Nsid value={name} />
             {isNamespace && <span style={{ color: 'var(--text-tertiary)' }}>.*</span>}
           </span>
         </span>
@@ -346,26 +322,25 @@ function SearchView({ term }: { term: string }) {
 
   return (
     <Frame prefix={term} eyebrow="Search results" icon={<Search size={13} aria-hidden />}>
-      <ListCard>
+      <ListCard nameLabel="Lexicon">
         {results === null || visible === null ? (
           <ListSkeleton />
         ) : results.length === 0 ? (
-          <p className="explore-muted" style={{ margin: 0, padding: '0.75rem 0' }}>
+          <p className="explore-muted" style={{ margin: 0, padding: '0.75rem 16px' }}>
             No lexicons matched “{term}”.
           </p>
         ) : visible.length === 0 ? (
-          <p className="explore-muted" style={{ margin: 0, padding: '0.75rem 0' }}>
+          <p className="explore-muted" style={{ margin: 0, padding: '0.75rem 16px' }}>
             No results match “{filter.trim()}”.
           </p>
         ) : (
-          <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
-            {visible.map((c, i) => (
-              <li
-                key={c.nsid}
-                style={{ borderBottom: i === visible.length - 1 ? undefined : '1px solid var(--border-subtle)' }}
-              >
-                <Link href={lexiconPathFor(c.nsid)} prefetch={false} style={rowStyle} onMouseEnter={hoverOn} onMouseLeave={hoverOff}>
-                  <span style={nameStyle}>{c.nsid}</span>
+          <ul className="fn-list-rows">
+            {visible.map((c) => (
+              <li key={c.nsid}>
+                <Link href={lexiconPathFor(c.nsid)} prefetch={false} className="fn-row fn-browse-grid">
+                  <span className="fn-row-nsid" title={c.nsid}>
+                    <Nsid value={c.nsid} />
+                  </span>
                   <Count value={c.creates} />
                 </Link>
               </li>
@@ -379,45 +354,9 @@ function SearchView({ term }: { term: string }) {
 
 // ─── shared bits ─────────────────────────────────────────────────────────────
 
-const rowStyle: React.CSSProperties = {
-  display: 'grid',
-  gridTemplateColumns: 'minmax(0, 1fr) 5rem',
-  gap: '0.875rem',
-  alignItems: 'center',
-  padding: '0.55rem 0',
-  textDecoration: 'none',
-  color: 'var(--text-primary)',
-  transition: 'background 0.2s ease',
-};
-
-const nameStyle: React.CSSProperties = {
-  fontFamily: 'var(--font-mono)',
-  fontSize: '0.8125rem',
-  overflow: 'hidden',
-  textOverflow: 'ellipsis',
-  whiteSpace: 'nowrap',
-};
-
-function hoverOn(e: React.MouseEvent<HTMLElement>) {
-  e.currentTarget.style.background = 'var(--bg-tertiary)';
-}
-function hoverOff(e: React.MouseEvent<HTMLElement>) {
-  e.currentTarget.style.background = 'transparent';
-}
-
 function Count({ value }: { value: number }) {
   return (
-    <span
-      title={`${value.toLocaleString()} creates`}
-      style={{
-        fontFamily: 'var(--font-mono)',
-        fontSize: '0.75rem',
-        color: 'var(--text-tertiary)',
-        fontVariantNumeric: 'tabular-nums',
-        textAlign: 'right',
-        whiteSpace: 'nowrap',
-      }}
-    >
+    <span className="fn-row-count" title={`${value.toLocaleString()} creates`}>
       {formatCount(value)}
     </span>
   );
@@ -432,36 +371,14 @@ function sortChildren(children: PrefixChild[]): PrefixChild[] {
   return [...children].sort((a, b) => b.creates - a.creates);
 }
 
-function loadMoreStyle(loading: boolean): React.CSSProperties {
-  return {
-    margin: '0.5rem 0',
-    width: '100%',
-    padding: '0.5rem',
-    background: 'var(--bg-tertiary)',
-    border: '1px solid var(--border-medium)',
-    color: 'var(--text-secondary)',
-    fontFamily: 'var(--font-serif)',
-    fontSize: '0.8125rem',
-    cursor: loading ? 'default' : 'pointer',
-  };
-}
-
 function ListSkeleton() {
   const widths = ['58%', '72%', '46%', '64%', '52%'];
   return (
-    <ul aria-hidden style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+    <ul aria-hidden className="fn-list-rows">
       {widths.map((w, i) => (
-        <li
-          key={i}
-          style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            padding: '0.55rem 0',
-            borderBottom: i === widths.length - 1 ? undefined : '1px solid var(--border-subtle)',
-          }}
-        >
+        <li key={i} className="fn-browse-grid">
           <Skeleton width={w} height="0.75rem" />
-          <Skeleton width="2.5rem" height="0.75rem" />
+          <Skeleton width="2.5rem" height="0.75rem" style={{ justifySelf: 'end' }} />
         </li>
       ))}
     </ul>

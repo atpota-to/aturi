@@ -78,6 +78,19 @@ targets:
           - UIInterfaceOrientationLandscapeRight
         UIUserInterfaceStyle: Automatic
         UIApplicationSupportsIndirectInputEvents: true
+        # Field Notes type: Figtree for the interface, IBM Plex Mono for
+        # identifiers (Aturi/Theme/Fonts.swift). The files live in
+        # Aturi/Resources/Fonts with their OFL licences and are picked up
+        # by the `Aturi` source path above. The share extension does not
+        # carry them and draws with the system font.
+        UIAppFonts:
+          - Figtree-Regular.ttf
+          - Figtree-Medium.ttf
+          - Figtree-SemiBold.ttf
+          - Figtree-Bold.ttf
+          - Figtree-ExtraBold.ttf
+          - IBMPlexMono-Regular.ttf
+          - IBMPlexMono-Medium.ttf
         # The activity every page advertises for Spotlight, Siri Suggestions
         # and Handoff (Aturi/PageActivity.swift). The system only hands an
         # app back the activity types it lists here.

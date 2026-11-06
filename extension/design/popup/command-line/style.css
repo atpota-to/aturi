@@ -1,0 +1,707 @@
+/* Command line: the popup opens on the site's go-to field; everything under
+   it is a result row. Loaded after popup.css; tokens only. */
+
+/* ---------- Head: brand row, then the field ---------- */
+
+.cl-head {
+  height: auto;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0;
+  padding: 0;
+}
+
+.cl-head-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 38px;
+  padding: 0 6px 0 14px;
+}
+
+.cl-head-row .popup-title {
+  color: var(--text-primary);
+}
+
+.cl-head-row .popup-topbar-actions {
+  margin-left: auto;
+}
+
+/* The site's header field (chrome.css .fn-search-field): 36px, paper at
+   rest, white with a moss edge while it has focus. */
+.cl-field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 36px;
+  margin: 0 12px 7px;
+  padding: 0 8px 0 11px;
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-control);
+  background: var(--bg-primary);
+  color: var(--text-tertiary);
+  cursor: text;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.cl-field:focus-within,
+.cl-field.is-focused {
+  border-color: var(--accent-moss);
+  background: var(--bg-secondary);
+}
+
+[data-theme='dark'] .cl-field:focus-within,
+[data-theme='dark'] .cl-field.is-focused {
+  border-color: var(--text-accent);
+}
+
+.cl-field-icon {
+  display: flex;
+  flex: none;
+}
+
+.cl-field.is-focused .cl-field-icon,
+.cl-field:focus-within .cl-field-icon {
+  color: var(--text-secondary);
+}
+
+.cl-input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--text-primary);
+  font: inherit;
+  font-size: var(--fs-md);
+  outline: none;
+}
+
+.cl-input::placeholder {
+  color: var(--text-tertiary);
+  opacity: 1;
+}
+
+/* A typed value is an identifier, so it sets in mono. */
+.cl-input:not(:placeholder-shown) {
+  font-family: var(--font-mono);
+  font-size: var(--fs-sm);
+}
+
+.cl-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* Key caps: 18px, one hairline, mono. */
+.cl-kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  border: 1px solid var(--border-medium);
+  border-radius: 4px;
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  line-height: 16px;
+}
+
+/* ---------- Results ---------- */
+
+.cl-results {
+  gap: 12px;
+  padding: 12px 12px 16px;
+}
+
+/* The drawer tab, with a line that can carry a note on its right. The tab
+   keeps popup.css's numbers (18px line, 3px pad, a 26px box, one pixel
+   over the sheet's edge); the wrapper is what lets the note sit beside it. */
+.cl-tabline {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: -1px;
+}
+
+.cl-tabline > .popup-section-label {
+  flex: none;
+  max-width: calc(100% - 120px);
+  margin: 0 0 0 var(--radius-card);
+  padding: 3px 10px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-medium);
+  border-bottom-color: var(--bg-secondary);
+  border-radius: var(--radius-control) var(--radius-control) 0 0;
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  line-height: 18px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cl-tab-count {
+  font-weight: 500;
+  color: var(--text-tertiary);
+}
+
+.cl-tabline-aside {
+  min-width: 0;
+  padding: 0 2px 5px 0;
+  font-size: var(--fs-xs);
+  line-height: 16px;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cl-jump {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-weight: 600;
+  color: var(--text-accent);
+}
+
+.cl-jump:hover {
+  color: var(--accent-forest);
+}
+
+[data-theme='dark'] .cl-jump:hover {
+  color: var(--text-primary);
+}
+
+/* Every result row: the keyboard selection is a soft panel with a 3px
+   accent edge on the left, drawn inside so nothing moves. */
+.cl-row.is-selected,
+.popup-waypoint.cl-row.is-selected,
+.popup-waypoint.cl-row.is-selected:hover {
+  background: var(--accent-soft-panel);
+  box-shadow: inset 3px 0 0 var(--text-accent);
+}
+
+.popup-waypoint.cl-row.is-selected .popup-waypoint-icon {
+  color: var(--text-accent);
+}
+
+/* The selected row's description becomes its key legend. */
+.cl-keys {
+  flex: 1;
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--fs-xs);
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+/* The first word ("Open on <host>") gives way before the second ("Copy
+   link"); the extension drops the host when the line is short. */
+.cl-keys-word {
+  margin-right: 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cl-keys-word:last-child {
+  flex: none;
+  margin-right: 0;
+}
+
+.cl-keys .cl-kbd {
+  padding: 0 3px;
+}
+
+@media (hover: hover) {
+  .popup-waypoint.cl-row.is-selected .popup-waypoint-copy {
+    opacity: 1;
+  }
+}
+
+/* ---------- This page: the record card ---------- */
+
+.cl-card {
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-card);
+  overflow: hidden;
+}
+
+.cl-record-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+}
+
+/* The ledger: one identifier per row, the whole row copies it, the glyph
+   at the end is the tell. The long one (AT URI) stacks its key over the
+   value so the value breaks only at a slash. */
+.cl-ledger {
+  display: flex;
+  flex-direction: column;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.cl-ledger-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  width: 100%;
+  min-height: 28px;
+  padding: 5px 4px 5px 12px;
+  color: inherit;
+  text-align: left;
+  transition: background 0.12s ease;
+}
+
+.cl-ledger-row + .cl-ledger-row {
+  border-top: 1px solid var(--border-subtle);
+}
+
+.cl-ledger-row:hover {
+  background: var(--surface-subtle);
+}
+
+.cl-ledger-row:focus-visible {
+  outline-offset: -2px;
+}
+
+.cl-ledger-row.is-stacked {
+  flex-wrap: wrap;
+  gap: 0 8px;
+}
+
+.cl-ledger-key {
+  flex: none;
+  width: 52px;
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  line-height: 18px;
+  color: var(--text-secondary);
+}
+
+.cl-ledger-row.is-stacked .cl-ledger-key {
+  width: auto;
+  flex: 1;
+}
+
+/* The value goes under the key line; the tell stays on the key line. */
+.cl-ledger-row.is-stacked .cl-ledger-val {
+  flex: 1 0 100%;
+  order: 2;
+}
+
+.cl-ledger-val {
+  flex: 1;
+  min-width: 0;
+  font-family: var(--font-mono);
+  font-size: var(--fs-sm);
+  line-height: 18px;
+  color: var(--text-secondary);
+  overflow-wrap: anywhere;
+}
+
+.cl-ledger-val b {
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.cl-mono-dim {
+  color: var(--text-tertiary);
+}
+
+/* A value too long for its line keeps its head and its tail. */
+.cl-trunc {
+  display: flex;
+  min-width: 0;
+}
+
+.cl-trunc-head {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cl-trunc-tail {
+  flex: none;
+}
+
+.cl-copy {
+  width: 28px;
+  height: 18px;
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-tertiary);
+}
+
+.cl-ledger-row:hover .cl-copy {
+  color: var(--text-accent);
+}
+
+.cl-ledger-row.is-copied {
+  background: var(--accent-soft);
+}
+
+.cl-ledger-row.is-copied .cl-ledger-key,
+.cl-ledger-row.is-copied .cl-copy {
+  color: var(--accent-soft-fg);
+}
+
+.cl-ledger-row.is-copied .cl-ledger-val {
+  color: var(--text-primary);
+}
+
+/* The hand-off band on the card's bottom edge (popup.css .inspect-cta). */
+.cl-band {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 38px;
+  padding: 0 12px;
+  border-top: 1px solid var(--border-subtle);
+  background: var(--surface-subtle);
+  color: var(--text-accent);
+  font-size: var(--fs-sm);
+  transition: background 0.12s ease;
+}
+
+.cl-band:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-accent);
+}
+
+.cl-band:focus-visible {
+  outline-offset: -2px;
+}
+
+.cl-band-title {
+  flex: none;
+  font-weight: 600;
+}
+
+.cl-band-note {
+  flex: 1;
+  min-width: 0;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cl-band > svg:last-child {
+  flex: none;
+  color: var(--text-tertiary);
+}
+
+/* ---------- Lists: guide strips between runs of rows ---------- */
+
+.cl-list {
+  overflow: hidden;
+}
+
+/* A guide card in the drawer: a paper strip naming the run under it. */
+.cl-guide {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 26px;
+  padding: 0 12px;
+  background: var(--bg-tertiary);
+  border-top: 1px solid var(--border-subtle);
+  border-bottom: 1px solid var(--border-subtle);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  line-height: 24px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.cl-guide:first-child {
+  height: 25px;
+  border-top: 0;
+}
+
+.cl-guide.is-highlighted {
+  color: var(--text-accent);
+}
+
+.cl-guide-count {
+  font-weight: 500;
+  color: var(--text-tertiary);
+}
+
+/* popup.css only rules a row that follows a row; a row after a guide
+   takes the guide's bottom hairline. */
+.cl-guide + .popup-waypoint {
+  border-top: 0;
+}
+
+/* Referenced records and recent repos: avatar letter, handle, a line of
+   what it says, copy on hover. */
+.cl-ref {
+  display: flex;
+  align-items: center;
+  transition: background 0.12s ease;
+}
+
+.cl-ref + .cl-ref {
+  border-top: 1px solid var(--border-subtle);
+}
+
+.cl-ref:hover {
+  background: var(--surface-subtle);
+}
+
+.cl-ref-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 36px;
+  padding: 0 4px 0 12px;
+  color: var(--text-primary);
+}
+
+.cl-ref-main:hover {
+  color: var(--text-primary);
+}
+
+.cl-ref-main:focus-visible {
+  outline-offset: -2px;
+}
+
+.cl-avatar-sm {
+  width: 20px;
+  height: 20px;
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--accent-soft-border);
+  color: var(--accent-soft-fg);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.cl-ref-handle {
+  flex: none;
+  max-width: 50%;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cl-ref-preview {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--fs-xs);
+  color: var(--text-tertiary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@media (hover: hover) {
+  .cl-ref .popup-waypoint-copy {
+    opacity: 0;
+  }
+
+  .cl-ref:hover .popup-waypoint-copy,
+  .cl-ref:focus-within .popup-waypoint-copy,
+  .cl-ref.is-selected .popup-waypoint-copy {
+    opacity: 1;
+  }
+}
+
+/* Extension rows: glyph, title, what it is now, the control. */
+.cl-setting {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 36px;
+  padding: 0 12px;
+  color: var(--text-primary);
+  text-align: left;
+  transition: background 0.12s ease;
+}
+
+.cl-setting + .cl-setting {
+  border-top: 1px solid var(--border-subtle);
+}
+
+.cl-setting:hover {
+  background: var(--surface-subtle);
+  color: var(--text-primary);
+}
+
+.cl-setting:focus-visible {
+  outline-offset: -2px;
+}
+
+.cl-setting-icon {
+  display: flex;
+  flex: none;
+  color: var(--text-tertiary);
+}
+
+.cl-setting-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.cl-setting-title {
+  flex: none;
+  font-weight: 600;
+}
+
+.cl-setting-desc {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--fs-xs);
+  color: var(--text-tertiary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cl-setting-aside {
+  flex: none;
+  font-size: var(--fs-sm);
+  color: var(--text-secondary);
+}
+
+.cl-setting > svg:last-child {
+  flex: none;
+  color: var(--text-tertiary);
+}
+
+/* The go-to row, offered under the results whenever the field has text. */
+.cl-goto {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 40px;
+  padding: 0 12px;
+  color: var(--text-primary);
+}
+
+.cl-goto:hover {
+  background: var(--surface-subtle);
+  color: var(--text-primary);
+}
+
+.cl-goto > svg:first-child {
+  flex: none;
+  color: var(--text-accent);
+}
+
+.cl-goto > svg:last-child {
+  flex: none;
+  color: var(--text-tertiary);
+}
+
+.cl-goto-text {
+  flex: none;
+  font-size: var(--fs-md);
+}
+
+.cl-goto-text b {
+  font-family: var(--font-mono);
+  font-size: var(--fs-sm);
+  font-weight: 500;
+}
+
+.cl-goto-note {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--fs-xs);
+  color: var(--text-tertiary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ---------- No-data page ---------- */
+
+.cl-notice {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  padding: 0 2px;
+  font-size: var(--fs-sm);
+  line-height: 18px;
+  color: var(--text-secondary);
+}
+
+.cl-notice > svg {
+  flex: none;
+  color: var(--text-tertiary);
+}
+
+.cl-notice-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.cl-notice-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 24px;
+  padding: 0 6px;
+  margin-right: -6px;
+  border-radius: var(--radius-control);
+  font-weight: 600;
+  color: var(--text-accent);
+}
+
+.cl-notice-action:hover {
+  background: var(--bg-tertiary);
+}
+
+.cl-tabline-note {
+  font-size: var(--fs-xs);
+}
+
+/* Touch: the dense rows grow to a thumb's width. */
+@media (hover: none) {
+  .cl-ledger-row {
+    min-height: 36px;
+  }
+
+  .cl-ref-main,
+  .cl-setting {
+    min-height: 44px;
+  }
+}

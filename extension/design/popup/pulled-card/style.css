@@ -1,0 +1,668 @@
+/* "Pull the card": rules loaded after popup.css. Everything stays on the
+   tokens, so dark follows. Prefix: pc- */
+
+:root {
+  /* The list behind a pulled card steps back under a paper-toned scrim
+     (the filed tone at 78%); dark takes it toward black. */
+  --pc-scrim: rgba(241, 238, 230, 0.78);
+  /* How much of the resting sheet shows above the pulled card: the
+     card's tabs and its head (12 + 26 + 12 + 39 + 7). */
+  --pc-peek: 96px;
+}
+
+[data-theme='dark'] {
+  --pc-scrim: rgba(0, 0, 0, 0.62);
+}
+
+/* ---------- Top bar: brand and two glyphs, no mode tabs ---------- */
+
+.popup-topbar-actions {
+  margin-left: auto;
+  gap: 2px;
+}
+
+/* ---------- This-page card: a labelled card with a pull tab ---------- */
+
+/* Two tabs stand on the card's top edge: its name on the left, as the
+   drawers are named, and the pull on the right. Same box as the drawer
+   label (18px line, 3px pad, 1px edge = 26px), same overhang onto the
+   card's border. */
+.pc-tabs {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 0 var(--radius-card) -1px;
+}
+
+.pc-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 60%;
+  padding: 3px 10px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-medium);
+  border-bottom-color: var(--bg-secondary);
+  border-radius: var(--radius-control) var(--radius-control) 0 0;
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  line-height: 18px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* The pull: the only tab that is a control, so it takes the accent and a
+   chevron pointing the way the card will go. */
+.pc-tab.pc-pull {
+  padding-right: 8px;
+  color: var(--text-accent);
+  cursor: pointer;
+  transition: color 0.12s ease, background 0.12s ease;
+}
+
+.pc-tab.pc-pull svg {
+  flex: none;
+}
+
+.pc-tab.pc-pull:hover {
+  color: var(--accent-forest);
+}
+
+[data-theme='dark'] .pc-tab.pc-pull:hover {
+  color: var(--text-primary);
+}
+
+.pc-tab.pc-pull:focus-visible {
+  outline-offset: -3px;
+}
+
+/* The hand-off band on the card's bottom edge (popup.css .inspect-cta):
+   label, a quiet note of what is over there, and the external mark. */
+.pc-open {
+  justify-content: flex-start;
+}
+
+.pc-open > svg:first-child {
+  flex: none;
+}
+
+.pc-open-label {
+  flex: none;
+}
+
+.pc-open-sub {
+  flex: 1;
+  min-width: 0;
+  font-weight: 400;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pc-open > svg:last-child {
+  flex: none;
+  color: var(--text-tertiary);
+}
+
+.pc-open:hover > svg:last-child {
+  color: currentColor;
+}
+
+/* ---------- Auto-redirect, filed at the end of the sheet ---------- */
+
+/* A global setting lives with the other filed things, last, not in a
+   sticky strip. When it is on, a per-tab strip (.pc-strip) appears at
+   the bottom edge instead; see NOTES.md. */
+.pc-redirect {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 48px;
+  padding: 8px 12px 8px 14px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-card);
+}
+
+.pc-redirect-icon {
+  display: flex;
+  flex: none;
+  color: var(--text-tertiary);
+}
+
+.pc-redirect-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.pc-redirect-title {
+  font-size: var(--fs-md);
+  font-weight: 600;
+}
+
+.pc-redirect-sub {
+  font-size: var(--fs-xs);
+  line-height: 1.35;
+  color: var(--text-tertiary);
+}
+
+.pc-redirect.is-on .pc-redirect-icon {
+  color: var(--text-accent);
+}
+
+/* On: the per-tab strip. Quiet in every state; paused drops the accent
+   rather than turning amber. */
+.pc-strip {
+  position: sticky;
+  bottom: 0;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 4px 8px 4px 14px;
+  background: var(--bg-secondary);
+  border-top: 1px solid var(--border-medium);
+  font-size: var(--fs-sm);
+  color: var(--text-secondary);
+}
+
+.pc-strip svg {
+  color: var(--text-accent);
+}
+
+.pc-strip.is-paused svg {
+  color: var(--text-tertiary);
+}
+
+.pc-strip-text {
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pc-strip-text b {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.pc-strip-btn {
+  height: 28px;
+  padding: 0 8px;
+  border-radius: var(--radius-control);
+  color: var(--text-accent);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.pc-strip-btn:hover {
+  background: var(--bg-tertiary);
+}
+
+/* ---------- The pulled state ---------- */
+
+/* The stage is as tall as the pulled card; the resting sheet fills it
+   behind, clipped, under the scrim. Chrome caps the popup at 600, so the
+   card is at least the rest of that. */
+.pc-stage {
+  position: relative;
+}
+
+/* Three layers: the resting sheet (its drawer labels carry a z-index of
+   their own, so the layer is isolated), the scrim, the pulled card. */
+.pc-behind {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  isolation: isolate;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.pc-scrim {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: var(--pc-scrim);
+  cursor: pointer;
+}
+
+.pc-sheet {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  margin: var(--pc-peek) 12px 0;
+  min-height: calc(600px - 48px - var(--pc-peek));
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-medium);
+  border-bottom: 0;
+  border-radius: var(--radius-card) var(--radius-card) 0 0;
+  box-shadow: var(--shadow-pop);
+}
+
+.pc-sheet-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px 8px 6px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.pc-back {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  height: 32px;
+  padding: 0 10px 0 6px;
+  border-radius: var(--radius-control);
+  color: var(--text-accent);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  transition: background 0.12s ease;
+}
+
+.pc-back:hover {
+  background: var(--bg-tertiary);
+}
+
+.pc-sheet-title {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  padding-left: 6px;
+  border-left: 1px solid var(--border-medium);
+}
+
+.pc-sheet-title b {
+  font-size: var(--fs-md);
+  font-weight: 700;
+  line-height: 18px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pc-sheet-title span {
+  font-size: var(--fs-xs);
+  line-height: 15px;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* The ledger: one identifier a line, the key in the sans, the value in
+   the mono, the copy at the right. Short values sit beside their key;
+   the two long ones (AT URI, link) take the key above so the value gets
+   the full width and breaks only at a slash. */
+.pc-ledger {
+  display: flex;
+  flex-direction: column;
+}
+
+.pc-row {
+  display: grid;
+  grid-template-columns: 52px minmax(0, 1fr) 32px;
+  align-items: center;
+  column-gap: 8px;
+  min-height: 37px;
+  padding: 2px 8px 2px 12px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.pc-row.is-stacked {
+  grid-template-columns: minmax(0, 1fr) 32px;
+  grid-template-rows: auto auto;
+  row-gap: 1px;
+  padding: 7px 8px 7px 12px;
+}
+
+.pc-row.is-stacked .pc-key {
+  grid-column: 1;
+  grid-row: 1;
+}
+
+.pc-row.is-stacked .pc-val {
+  grid-column: 1;
+  grid-row: 2;
+}
+
+.pc-row.is-stacked .pc-copy {
+  grid-column: 2;
+  grid-row: 1 / 3;
+  align-self: center;
+}
+
+.pc-key {
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  line-height: 18px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.pc-row.is-copied .pc-key {
+  color: var(--text-accent);
+}
+
+.pc-val {
+  min-width: 0;
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+  line-height: 16px;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pc-row.is-stacked .pc-val {
+  white-space: normal;
+  overflow: visible;
+  overflow-wrap: anywhere;
+  color: var(--text-secondary);
+}
+
+/* The part of a long identifier a person would recognise: the handle,
+   the record key. */
+.pc-val b {
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+/* A CID keeps its head and its tail; the middle gives way. */
+.pc-mid {
+  display: flex;
+  min-width: 0;
+}
+
+.pc-mid-a {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pc-mid-b {
+  flex: none;
+}
+
+.pc-copy {
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-control);
+  color: var(--text-tertiary);
+  transition: background 0.12s ease, color 0.12s ease;
+}
+
+.pc-copy:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-accent);
+}
+
+.pc-copy.is-copied {
+  background: var(--accent-soft);
+  border: 1px solid var(--accent-soft-border);
+  color: var(--accent-soft-fg);
+}
+
+/* The hand-off band, the card's one way to the site. */
+.pc-band {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 40px;
+  padding: 0 12px;
+  background: var(--surface-subtle);
+  border-bottom: 1px solid var(--border-subtle);
+  color: var(--text-accent);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  transition: background 0.12s ease;
+}
+
+.pc-band:hover {
+  background: var(--bg-tertiary);
+}
+
+.pc-band > svg:first-child,
+.pc-band-label {
+  flex: none;
+}
+
+.pc-band-sub {
+  flex: 1;
+  min-width: 0;
+  font-weight: 400;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pc-band > svg:last-child {
+  flex: none;
+  color: var(--text-tertiary);
+}
+
+.pc-band:hover > svg:last-child {
+  color: currentColor;
+}
+
+/* The other records the page references, one line each: who, then what
+   it says, then the way out. The row opens it on aturi.to; the button
+   copies its AT URI. */
+.pc-refs {
+  display: flex;
+  flex-direction: column;
+  padding-bottom: 4px;
+}
+
+.pc-refs-label {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+  margin: 0;
+  padding: 9px 12px 5px;
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  line-height: 18px;
+  color: var(--text-secondary);
+}
+
+.pc-count {
+  font-weight: 600;
+  color: var(--text-tertiary);
+}
+
+.pc-refs-note {
+  flex: 1;
+  min-width: 0;
+  font-weight: 400;
+  font-size: var(--fs-xs);
+  color: var(--text-tertiary);
+  text-align: right;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pc-ref {
+  display: flex;
+  align-items: center;
+  border-top: 1px solid var(--border-subtle);
+  transition: background 0.12s ease;
+}
+
+.pc-ref:hover {
+  background: var(--surface-subtle);
+}
+
+.pc-ref-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 37px;
+  padding: 0 4px 0 12px;
+  color: var(--text-primary);
+}
+
+.pc-ref-main:hover {
+  color: var(--text-primary);
+}
+
+.pc-ref-handle {
+  flex: none;
+  max-width: 50%;
+  font-size: var(--fs-md);
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pc-ref-preview {
+  flex: 1;
+  min-width: 0;
+  font-size: max(11px, var(--fs-xs));
+  color: var(--text-tertiary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pc-ref-main > svg {
+  flex: none;
+  color: var(--text-faint);
+  opacity: 0;
+  transition: opacity 0.12s ease;
+}
+
+.pc-ref:hover .pc-ref-main > svg,
+.pc-ref-main:focus-visible > svg {
+  opacity: 1;
+  color: var(--text-accent);
+}
+
+.pc-ref .pc-copy {
+  margin-right: 4px;
+}
+
+/* ---------- No-data page ---------- */
+
+.pc-nodata .popup-page-meta {
+  white-space: normal;
+  line-height: 1.4;
+}
+
+.pc-mark {
+  background: var(--accent-soft);
+  color: var(--accent-soft-fg);
+}
+
+.pc-lookup {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.pc-lookup-label {
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+
+.pc-lookup-row {
+  display: flex;
+  gap: 8px;
+}
+
+.pc-lookup-row .aturi-input {
+  flex: 1;
+  min-width: 0;
+  font-family: var(--font-mono);
+  font-size: var(--fs-sm);
+}
+
+.pc-lookup-row .aturi-input::placeholder {
+  font-family: var(--font-sans);
+  font-size: var(--fs-md);
+}
+
+.pc-lookup-row .aturi-btn {
+  flex: none;
+  padding: 0 14px;
+}
+
+.pc-lookup-note {
+  font-size: var(--fs-xs);
+  color: var(--text-tertiary);
+}
+
+/* App shortcuts as chips in each group's drawer: a mark and a name, three
+   or four to a line, instead of a tile wall. */
+.pc-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 8px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-card);
+}
+
+.pc-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  padding: 0 10px 0 8px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-control);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  white-space: nowrap;
+  transition: border-color 0.12s ease, background 0.12s ease;
+}
+
+.pc-chip:hover {
+  border-color: var(--border-strong);
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+}
+
+.pc-chip .popup-waypoint-icon {
+  color: var(--text-primary);
+}
+
+.pc-chip:hover .popup-waypoint-icon {
+  color: var(--text-accent);
+}
+
+/* The recents rows are links, not buttons: same box as a waypoint row. */
+.popup-waypoint-main[href] {
+  text-decoration: none;
+}

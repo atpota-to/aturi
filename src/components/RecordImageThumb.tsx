@@ -54,6 +54,7 @@ export default function RecordImageThumb({
           height: 'auto',
           objectFit: 'contain',
           border: '1px solid var(--border-medium)',
+          borderRadius: 'var(--radius-control)',
           background: 'var(--bg-tertiary)',
         }}
       />

@@ -2,8 +2,9 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
+import { Braces } from 'lucide-react';
 import { Skeleton } from '@/components/SkeletonLoader';
-import { Segmented } from './primitives';
+import { Nsid, Segmented } from './primitives';
 import { fetchCollections } from '@/utils/ufos/client';
 import { type CollectionOrder, type NsidCount } from '@/utils/ufos/config';
 import { formatCount } from '@/utils/ufos/format';
@@ -114,27 +115,19 @@ export default function BrowseAllLexicons() {
   }
 
   return (
-    <section
-      style={{ border: '1px solid var(--border-medium)', background: 'var(--bg-secondary)' }}
-    >
-      <div
-        style={{
-          display: 'flex',
-          flexWrap: 'wrap',
-          gap: '0.5rem 0.75rem',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          padding: '0.875rem 1rem',
-          borderBottom: '1px solid var(--border-subtle)',
-        }}
-      >
-        <span
-          className="explore-small-caps"
-          style={{ display: 'inline-flex', alignItems: 'center' }}
-        >
-          Browse all lexicons
-        </span>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+    <section className="fn-list-card" aria-labelledby="fn-browse-title">
+      <div className="fn-list-card-head fn-browse-head">
+        {/* The same title row as its sibling cards above it. */}
+        <div className="fn-list-card-title-row">
+          <span className="fn-list-card-icon" aria-hidden>
+            <Braces size={14} />
+          </span>
+          <h2 id="fn-browse-title" className="fn-list-card-title">
+            Browse all lexicons
+          </h2>
+          <span className="fn-list-card-via">via UFOs</span>
+        </div>
+        <div className="fn-list-card-controls">
           <Segmented
             ariaLabel="Browse view"
             options={[
@@ -158,16 +151,7 @@ export default function BrowseAllLexicons() {
             onClick={() => setDedupe((v) => !v)}
             aria-pressed={dedupe}
             title="Show only the top lexicon from each namespace"
-            style={{
-              padding: '0.3rem 0.7rem',
-              background: dedupe ? 'var(--accent-moss)' : 'var(--bg-tertiary)',
-              color: dedupe ? 'var(--text-on-accent)' : 'var(--text-secondary)',
-              border: '1px solid var(--border-medium)',
-              fontFamily: 'var(--font-serif)',
-              fontSize: '0.8125rem',
-              cursor: 'pointer',
-              transition: 'background 0.15s ease, color 0.15s ease',
-            }}
+            className="fn-toggle"
           >
             One per group
           </button>
@@ -175,70 +159,30 @@ export default function BrowseAllLexicons() {
       </div>
 
       {/* Column header */}
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'minmax(0, 1fr) 5rem',
-          gap: '0.875rem',
-          padding: '0.4rem 1rem',
-          borderBottom: '1px solid var(--border-subtle)',
-        }}
-        className="explore-small-caps"
-      >
+      <div className="fn-col-head fn-browse-grid">
         <span>Lexicon</span>
         <span style={{ textAlign: 'right' }}>{metricLabel}</span>
       </div>
 
       {error && (displayed === null || displayed.length === 0) ? (
-        <div className="explore-error" style={{ padding: '1rem' }}>
+        <div className="explore-error fn-list-card-msg">
           Couldn&rsquo;t reach the UFOs API: {error}
         </div>
       ) : displayed === null ? (
         <BrowseSkeleton />
       ) : displayed.length === 0 ? (
-        <p className="explore-placeholder" style={{ margin: 0 }}>
-          No lexicons found.
-        </p>
+        <p className="explore-placeholder fn-list-card-msg">No lexicons found.</p>
       ) : (
-        <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+        <ul className="fn-list-rows">
           {displayed.map((c, i) => (
-            <li
-              key={`${c.nsid}-${i}`}
-              style={{
-                borderBottom:
-                  i === displayed.length - 1 ? undefined : '1px solid var(--border-subtle)',
-              }}
-            >
+            <li key={`${c.nsid}-${i}`}>
               <Link
                 href={lexiconPathFor(c.nsid)}
                 prefetch={false}
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'minmax(0, 1fr) 5rem',
-                  gap: '0.875rem',
-                  alignItems: 'center',
-                  padding: '0.55rem 1rem',
-                  textDecoration: 'none',
-                  color: 'var(--text-primary)',
-                  transition: 'background 0.2s ease',
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = 'var(--bg-tertiary)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = 'transparent';
-                }}
+                className="fn-row fn-browse-grid"
               >
-                <span
-                  style={{
-                    fontFamily: 'var(--font-mono)',
-                    fontSize: '0.8125rem',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap',
-                  }}
-                >
-                  {c.nsid}
+                <span className="fn-row-nsid" title={c.nsid}>
+                  <Nsid value={c.nsid} />
                 </span>
                 <Count value={statFor(c)} />
               </Link>
@@ -248,25 +192,15 @@ export default function BrowseAllLexicons() {
       )}
 
       {view === 'all' && cursor && displayed && displayed.length > 0 && (
-        <div style={{ padding: '0.75rem 1rem', borderTop: '1px solid var(--border-subtle)' }}>
-          <button
-            type="button"
-            onClick={loadMore}
-            disabled={loadingMore}
-            style={{
-              width: '100%',
-              padding: '0.5rem',
-              background: 'var(--bg-tertiary)',
-              border: '1px solid var(--border-medium)',
-              color: 'var(--text-secondary)',
-              fontFamily: 'var(--font-serif)',
-              fontSize: '0.8125rem',
-              cursor: loadingMore ? 'default' : 'pointer',
-            }}
-          >
-            {loadingMore ? 'Loading…' : 'Load more'}
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={loadMore}
+          disabled={loadingMore}
+          className="fn-list-card-foot"
+          style={{ cursor: loadingMore ? 'default' : 'pointer' }}
+        >
+          {loadingMore ? 'Loading…' : 'Load more'}
+        </button>
       )}
     </section>
   );
@@ -287,17 +221,7 @@ function dedupeByNamespace(rows: NsidCount[]): NsidCount[] {
 
 function Count({ value }: { value: number }) {
   return (
-    <span
-      title={value.toLocaleString()}
-      style={{
-        fontFamily: 'var(--font-mono)',
-        fontSize: '0.75rem',
-        color: 'var(--text-tertiary)',
-        fontVariantNumeric: 'tabular-nums',
-        textAlign: 'right',
-        whiteSpace: 'nowrap',
-      }}
-    >
+    <span className="fn-row-count" title={value.toLocaleString()}>
       {formatCount(value)}
     </span>
   );
@@ -306,19 +230,9 @@ function Count({ value }: { value: number }) {
 function BrowseSkeleton() {
   const widths = ['64%', '48%', '72%', '56%', '40%', '68%', '52%', '60%'];
   return (
-    <ul aria-hidden style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+    <ul aria-hidden className="fn-list-rows">
       {widths.map((w, i) => (
-        <li
-          key={i}
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'minmax(0, 1fr) 5rem',
-            gap: '0.875rem',
-            alignItems: 'center',
-            padding: '0.55rem 1rem',
-            borderBottom: i === widths.length - 1 ? undefined : '1px solid var(--border-subtle)',
-          }}
-        >
+        <li key={i} className="fn-browse-grid">
           <Skeleton width={w} height="0.75rem" />
           <span style={{ display: 'flex', justifyContent: 'flex-end' }}>
             <Skeleton width="2.5rem" height="0.75rem" />

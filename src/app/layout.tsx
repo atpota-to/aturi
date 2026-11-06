@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Analytics } from "@vercel/analytics/next";
 import { AtprotoSessionProvider } from "@/components/AtprotoSessionProvider";
 import { PreferencesProvider } from "@/components/PreferencesProvider";
@@ -11,6 +11,8 @@ import AutoRedirectSync from "@/components/AutoRedirectSync";
 import WhatsNewModal from "@/components/whatsnew/WhatsNewModal";
 import FontScaleSync from "@/components/FontScaleSync";
 import A11ySync from "@/components/A11ySync";
+import KeyChipPress from "@/components/KeyChipPress";
+import PhoneSearchHost from "@/components/explore/PhoneSearchSheet";
 import { DEFAULT_THEME, THEME_INIT_SCRIPT } from "@/lib/theme";
 import {
   COLOR_SCHEME_INIT_SCRIPT,
@@ -22,6 +24,21 @@ import { getSiteUrl } from "@/lib/config";
 import { buildSiteJsonLd } from "@/lib/structuredData";
 import { serializeJsonLd } from "@/utils/sanitize";
 import "./globals.css";
+// Field Notes styles, one sheet per surface. Loaded after globals.css so a
+// surface's rules win over the shared base at equal specificity.
+import "@/styles/fieldnotes/chrome.css";
+import "@/styles/fieldnotes/home.css";
+import "@/styles/fieldnotes/explore.css";
+// The folder tabs, before the surfaces that place them (explorer, account).
+import "@/styles/fieldnotes/tabs.css";
+import "@/styles/fieldnotes/explorer.css";
+import "@/styles/fieldnotes/record.css";
+import "@/styles/fieldnotes/link.css";
+import "@/styles/fieldnotes/content.css";
+import "@/styles/fieldnotes/landing.css";
+import "@/styles/fieldnotes/account.css";
+// Motion shared across surfaces, last so it can restate their transitions.
+import "@/styles/fieldnotes/motion.css";
 
 export const metadata: Metadata = {
   title: "aturi.to: Tour the Atmosphere",
@@ -47,7 +64,7 @@ export const metadata: Metadata = {
         url: '/og-images/aturi-home.png',
         width: 1200,
         height: 672,
-        alt: 'aturi.to: three tools for one Atmosphere',
+        alt: 'aturi.to: jump between clients, share universal links, browse any PDS',
       },
     ],
   },
@@ -57,6 +74,26 @@ export const metadata: Metadata = {
     description: "Travel between clients with the browser extension, share universal Atmosphere links, and explore any account's PDS data.",
     images: ['/og-images/aturi-home.png'],
   },
+};
+
+/**
+ * `viewportFit: 'cover'` lets the page run under the iPhone's home indicator
+ * and rounded corners, which is the only way iOS will report how much of the
+ * screen they take: without it every `env(safe-area-inset-*)` reads 0.
+ *
+ * The phone toolbar needs that number. It sits on the bottom edge and pads
+ * itself by `env(safe-area-inset-bottom)` (chrome.css, Phone toolbar), and
+ * in a home-screen install there is no Safari toolbar under it to lift it
+ * clear of the home indicator, so without the inset it sat under the bar.
+ *
+ * Width and scale restate Next's defaults, which a `viewport` export
+ * replaces rather than extends. The sides are put back inside the safe area
+ * on <body> (globals.css), so landscape keeps the inset Safari used to add.
+ */
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  viewportFit: 'cover',
 };
 
 export default function RootLayout({
@@ -109,6 +146,7 @@ export default function RootLayout({
         <ThemeSync />
         <FontScaleSync />
         <A11ySync />
+        <KeyChipPress />
         <AtprotoSessionProvider>
           <PreferencesProvider>
             <ColorSchemeSync />
@@ -128,6 +166,10 @@ export default function RootLayout({
                     clicks meant for the bar. */}
                 <main style={{ position: 'relative', zIndex: 2 }}>{children}</main>
               </PageTransition>
+              {/* The phone toolbar's search sheet. Here rather than in the
+                  toolbar, which belongs to a page: the sheet stays up through
+                  a navigation it started and fades out over the next page. */}
+              <PhoneSearchHost />
             </KeyboardShortcutsProvider>
           </PreferencesProvider>
         </AtprotoSessionProvider>

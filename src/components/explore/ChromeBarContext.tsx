@@ -40,6 +40,13 @@ export type ChromeBarField = {
    * page it would scroll to.
    */
   resultsId?: string;
+  /**
+   * The page shows its own copy of this field (same state) on tablet and
+   * desktop, and hides it on phones (`max-width: 640px` in explorer.css). The
+   * bar then offers the jump search instead above that width, so the same
+   * field is never on screen twice, and takes the filter over below it.
+   */
+  inPage?: boolean;
 };
 
 /**
@@ -133,6 +140,7 @@ export function useChromeBarField(field: ChromeBarField | null): void {
   const status = field?.status ?? null;
   const resultsId = field?.resultsId;
   const submits = Boolean(field?.onSubmit);
+  const inPage = Boolean(field?.inPage);
 
   useEffect(() => {
     if (!active) {
@@ -145,10 +153,11 @@ export function useChromeBarField(field: ChromeBarField | null): void {
       value,
       status,
       resultsId,
+      inPage,
       onChange: (next) => handlers.current.onChange?.(next),
       onSubmit: submits ? () => handlers.current.onSubmit?.() : undefined,
     });
-  }, [active, placeholder, label, value, status, resultsId, submits, setField]);
+  }, [active, placeholder, label, value, status, resultsId, submits, inPage, setField]);
 
   useEffect(() => () => setField(null), [setField]);
 }

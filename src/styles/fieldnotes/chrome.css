@@ -1,0 +1,1658 @@
+/* Field Notes: chrome styles. Tokens live in src/app/globals.css (:root and
+   [data-theme='light']); use them rather than raw hex so dark mode and the
+   colour schemes keep working.
+
+   Covers the header (Header.tsx: the full-width bar plus the centered
+   `simple` / default variants), its panels (menu, search, session, what's
+   new), the sticky breadcrumb strip, and the footer. Rules that restyle a
+   shared global class (.compact-nav-link, .nav-link, .whats-new-*) are scoped
+   under .fn-header so other users of those classes are left alone.
+
+   Breakpoints:
+     ≥1440px  the tagline shows beside the wordmark
+     ≤1180px  inline nav folds into the menu button; the tagline shows
+              again in the room that leaves
+     ≤767px   the explorer "go to" field becomes a search button
+     ≤639px   phone: the bar gives way to a toolbar pinned to the bottom of
+              the screen (Phone toolbar, at the end of this file), the
+              menu becomes a sheet rising out of it, and landing pages
+              open with a masthead in place of the bar */
+
+.fn-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* ─── Header bar ─────────────────────────────────────────────────────── */
+
+.fn-header {
+  /* How far below its 36px trigger a dropdown opens so it lands where the
+     header's own panels do (`top: calc(100% + 8px)` of the header): half of
+     the 56px bar the trigger is centred in, plus that 8px. The what's-new
+     popover and the session menu both use it, so all three open at one
+     height instead of three. */
+  --fn-drop-offset: calc((56px - 36px) / 2 + 8px);
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  margin-bottom: 1.5rem;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-medium);
+  font-family: var(--font-sans);
+}
+
+.fn-header-bar {
+  /* Above the sticky breadcrumb strip, which slides out from behind it. */
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px 28px;
+  min-height: 56px;
+  padding: 8px 24px;
+  box-sizing: border-box;
+  background: var(--bg-secondary);
+}
+
+/* Brand link plus the tagline; one flex item of the bar, so the tagline sits
+   on its own 12px gap rather than the bar's 28px one. */
+.fn-header-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.fn-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  color: var(--text-primary);
+  text-decoration: none;
+}
+
+.fn-brand:hover {
+  color: var(--text-primary);
+}
+
+.fn-brand-mark {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  /* --text-accent, not the --accent-moss fill: the fill is a dark green in
+     both themes and nearly vanishes on the dark header. In light mode the
+     two are the same colour. */
+  color: var(--text-accent);
+}
+
+/* The leaf sways once from its stem when the wordmark is hovered. */
+@media (hover: hover) {
+  .fn-brand:hover .fn-brand-mark {
+    transform-origin: 10% 88%;
+    animation: leaf-sway 700ms var(--ease-soft);
+  }
+}
+
+@keyframes leaf-sway {
+  30% {
+    transform: rotate(-12deg);
+  }
+  62% {
+    transform: rotate(5deg);
+  }
+}
+
+.fn-wordmark {
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.fn-wordmark-tld {
+  color: var(--text-tertiary);
+  font-weight: 500;
+}
+
+/* Hidden unless the query under Responsive finds room for it. --text-tertiary
+   and the rule keep it reading as a caption to the wordmark, not a nav link. */
+.fn-tagline {
+  display: none;
+  padding-left: 12px;
+  border-left: 1px solid var(--border-medium);
+  color: var(--text-tertiary);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 18px;
+  white-space: nowrap;
+}
+
+.fn-nav {
+  display: flex;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.fn-nav-link {
+  padding: 6px 12px;
+  border-radius: var(--radius-control);
+  color: var(--text-secondary);
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.5;
+  white-space: nowrap;
+  text-decoration: none;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.fn-nav-link:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+.fn-nav-link[aria-current='page'],
+.fn-nav-link[aria-current='page']:hover {
+  background: var(--accent-soft);
+  color: var(--accent-soft-fg);
+  font-weight: 600;
+}
+
+/* Gliding pills (PrimaryNav in Header.tsx). Once the header has measured its
+   links it sets data-glide, and two shared shapes take over from each link's
+   own fill: the hover pill follows the pointer from link to link and fades
+   when it leaves the bar, and the green active pill slides from the section
+   you were on to the one you opened. Before that (and without script) the
+   links paint their own fills above, so the bar looks the same either way. */
+.fn-nav {
+  position: relative;
+}
+
+.fn-nav-link {
+  position: relative;
+  z-index: 1;
+}
+
+.fn-nav-pill {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 0;
+  border-radius: var(--radius-control);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.fn-nav-pill-hover {
+  background: var(--bg-tertiary);
+  transition:
+    transform var(--motion-panel) var(--ease-soft),
+    width var(--motion-panel) var(--ease-soft),
+    opacity var(--motion-quick) ease;
+}
+
+.fn-nav-pill-active {
+  background: var(--accent-soft);
+  transition:
+    transform 280ms var(--ease-soft),
+    width 280ms var(--ease-soft),
+    opacity var(--motion-quick) ease;
+}
+
+.fn-nav[data-hovering] .fn-nav-pill-hover,
+.fn-nav-pill-active[data-on] {
+  opacity: 1;
+}
+
+.fn-nav[data-glide] .fn-nav-link:hover,
+.fn-nav[data-glide] .fn-nav-link[aria-current='page'],
+.fn-nav[data-glide] .fn-nav-link[aria-current='page']:hover {
+  background: transparent;
+}
+
+.fn-header-actions {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 4px;
+}
+
+.fn-header-search {
+  flex: 0 1 360px;
+  min-width: 180px;
+  margin-right: 6px;
+}
+
+.fn-header-session {
+  display: inline-flex;
+  margin-left: 6px;
+}
+
+.fn-header-theme {
+  display: inline-flex;
+}
+
+/* Icon buttons in the bar: search, menu, theme, what's new. */
+.fn-icon-btn,
+.fn-header .fn-theme-btn,
+.fn-header .whats-new-badge-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  overflow: visible;
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius-control);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transform: none;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.fn-icon-btn:hover,
+.fn-icon-btn[aria-expanded='true'],
+.fn-header .fn-theme-btn:hover,
+.fn-header .whats-new-badge-btn:hover,
+.fn-header .whats-new-badge-btn[aria-expanded='true'] {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  border-color: transparent;
+  transform: none;
+}
+
+.fn-header .fn-theme-btn::before {
+  display: none;
+}
+
+.fn-header .fn-theme-btn svg,
+.fn-header .fn-theme-btn:hover svg {
+  transform: none;
+}
+
+.fn-header .whats-new-badge-dot {
+  top: 7px;
+  right: 7px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent-moss);
+  border: 2px solid var(--bg-secondary);
+}
+
+.fn-header .whats-new-popover {
+  top: calc(100% + var(--fn-drop-offset));
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-overlay);
+}
+
+/* Only one search affordance at a time: on explorer pages the bar field
+   wins until the tablet breakpoint; the menu button appears once the nav
+   folds. */
+.fn-search-toggle-explorer,
+.fn-menu-toggle {
+  display: none;
+}
+
+/* Session control (SessionMenu) */
+.fn-session-trigger:hover,
+.fn-session-trigger[aria-expanded='true'] {
+  background: var(--surface-subtle) !important;
+  border-color: var(--text-faint) !important;
+}
+
+/* The signed-in chip rests on --bg-primary (pillStyle), so the shared
+   hover above would lighten it back toward the bar. Step it a shade the
+   other way instead, as the menu tiles do. */
+.fn-session-account:hover,
+.fn-session-account[aria-expanded='true'] {
+  background: var(--bg-tertiary) !important;
+}
+
+/* The chip's avatar: a rounded square nested in the 8px control rather
+   than a circle, so its corners follow the chip's. 6px is the control
+   radius less the gap around it, as the menu rows do. Where corner-shape
+   ships, a squircle instead: its superellipse corner reads about as round
+   as that 6px arc at 10px, with no visible join where curve meets edge. */
+.fn-session-avatar {
+  border-radius: calc(var(--radius-control) - 2px);
+}
+
+@supports (corner-shape: squircle) {
+  .fn-session-avatar {
+    border-radius: calc(var(--radius-control) + 2px);
+    corner-shape: squircle;
+  }
+}
+
+.fn-session-item:hover {
+  background: var(--bg-tertiary) !important;
+  color: var(--text-primary) !important;
+}
+
+/* Sign out keeps its danger red under the pointer. */
+.fn-session-item[data-danger]:hover {
+  color: var(--danger) !important;
+}
+
+/* ─── Header panels (menu + search cards under the bar) ─────────────── */
+
+.fn-header-panel {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 16px;
+  width: min(24rem, calc(100vw - 32px));
+  box-sizing: border-box;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-overlay);
+  z-index: 50;
+  overflow: hidden;
+  /* Grows from the corner nearest its button and shrinks back there a
+     little faster than it came. The open state's transition times the
+     opening, this one the closing. */
+  opacity: 0;
+  transform: scale(0.96);
+  transform-origin: top right;
+  pointer-events: none;
+  transition:
+    opacity var(--motion-press) ease-in,
+    transform var(--motion-press) ease-in;
+}
+
+.fn-header-panel[data-open] {
+  opacity: 1;
+  transform: none;
+  pointer-events: auto;
+  transition:
+    opacity 160ms ease-out,
+    transform 160ms var(--ease-soft);
+}
+
+.fn-header-search-panel {
+  width: min(28rem, calc(100vw - 32px));
+  padding: 12px;
+}
+
+.fn-menu {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px;
+}
+
+.fn-menu-session {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 4px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.fn-header .compact-nav-grid {
+  gap: 6px;
+}
+
+/* Each destination is its own tile: the page's paper on the white panel,
+   with a hairline, so the menu reads as a set of buttons rather than a
+   run of loose labels. */
+.fn-header .compact-nav-link {
+  gap: 10px;
+  padding: 11px 12px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-control);
+  background: var(--bg-primary);
+  color: var(--text-secondary);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.4;
+  transform: none;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.fn-header .compact-nav-link::before {
+  display: none;
+}
+
+.fn-header .compact-nav-link:hover {
+  background: var(--bg-tertiary);
+  border-color: var(--border-medium);
+  color: var(--text-primary);
+  transform: none;
+}
+
+.fn-header .compact-nav-link svg,
+.fn-header .compact-nav-link:hover svg {
+  color: var(--text-tertiary);
+  transform: none;
+}
+
+.fn-header .compact-nav-link[aria-current='page'] {
+  background: var(--accent-soft);
+  border-color: var(--accent-soft-border);
+  color: var(--accent-soft-fg);
+  font-weight: 600;
+}
+
+.fn-header .compact-nav-link[aria-current='page'] svg {
+  color: var(--accent-soft-fg);
+}
+
+/* The Theme row: a status row rather than another destination. Full width
+   under the grid, with the current theme named at its end in the same tag
+   the Settings row wears ("LOCAL"). */
+.fn-header .compact-nav-link-wide {
+  grid-column: 1 / -1;
+}
+
+.fn-header .compact-nav-tag {
+  margin-left: auto;
+  font-size: 0.6875rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+}
+
+.fn-header .compact-nav-link.compact-nav-link-accent {
+  background: var(--accent-moss);
+  border-color: var(--accent-moss);
+  color: var(--text-on-accent);
+  font-weight: 600;
+}
+
+.fn-header .compact-nav-link.compact-nav-link-accent:hover {
+  background: var(--accent-forest);
+  border-color: var(--accent-forest);
+  color: var(--text-on-accent);
+}
+
+.fn-header .compact-nav-link.compact-nav-link-accent svg {
+  color: var(--text-on-accent);
+}
+
+/* ─── Search (CompactSearchPanel) ────────────────────────────────────── */
+
+.fn-search {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-family: var(--font-sans);
+}
+
+.fn-search-field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 36px;
+  padding: 0 8px 0 12px;
+  box-sizing: border-box;
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-control);
+  background: var(--bg-primary);
+  color: var(--text-tertiary);
+  cursor: text;
+  transition:
+    border-color var(--motion-quick) ease,
+    background var(--motion-quick) ease,
+    color var(--motion-quick) ease,
+    box-shadow var(--motion-panel) var(--ease-soft);
+}
+
+.fn-search-panel .fn-search-field {
+  height: 40px;
+}
+
+.fn-search-field:focus-within {
+  border-color: var(--accent-moss);
+  background: var(--bg-secondary);
+  /* The soft halo the home search wears, and the icon (currentColor) warms
+     to the accent with it. */
+  box-shadow: 0 0 0 3px var(--accent-soft);
+  color: var(--text-accent);
+}
+
+.fn-search-icon {
+  flex-shrink: 0;
+}
+
+.fn-search-input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--text-primary);
+  font: inherit;
+  font-size: 13.5px;
+  outline: none;
+}
+
+.fn-search-input::placeholder {
+  color: var(--text-tertiary);
+  opacity: 1;
+}
+
+.fn-kbd {
+  flex-shrink: 0;
+  padding: 1px 6px;
+  border: 1px solid var(--border-medium);
+  border-radius: 5px;
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.fn-search-dropdown {
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-control);
+  background: var(--surface-subtle);
+  overflow: hidden;
+}
+
+.fn-search-bar .fn-search-dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  min-width: 18rem;
+  z-index: 60;
+  background: var(--bg-secondary);
+  border-color: var(--border-medium);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-overlay);
+}
+
+.fn-search-list {
+  list-style: none;
+  margin: 0;
+  padding: 4px;
+  max-height: 18rem;
+  overflow-y: auto;
+}
+
+.fn-search-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.fn-search-option[data-active] {
+  background: var(--bg-tertiary);
+}
+
+.fn-search-avatar {
+  display: block;
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  object-fit: cover;
+  background: var(--bg-tertiary);
+}
+
+.fn-search-name {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fn-search-handle {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-tertiary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fn-search-recs {
+  max-height: 20rem;
+  overflow-y: auto;
+}
+
+/* ─── Sticky breadcrumb strip ───────────────────────────────────────── */
+
+/* Hangs off the bottom of the header and overlays the page, so revealing it
+   never changes the header's height or moves the page under it (see
+   StickyBreadcrumbBar). `top: 100%` lands on the header's own bottom border,
+   and the strip draws its replacement below itself. */
+.fn-sticky-crumbs-wrap {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 0;
+  background: var(--surface-subtle);
+  border-top: 1px solid var(--border-subtle);
+  border-bottom: 1px solid var(--border-medium);
+  box-shadow: 0 6px 12px -10px rgb(0 0 0 / 0.25);
+}
+
+.fn-sticky-crumbs {
+  padding: 8px 24px;
+}
+
+/* ─── Footer ─────────────────────────────────────────────────────────── */
+
+.fn-footer {
+  position: relative;
+  z-index: 1;
+  margin-top: 4rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px 24px;
+  padding: 20px 24px;
+  background: var(--bg-secondary);
+  border-top: 1px solid var(--border-medium);
+  color: var(--text-secondary);
+  font-family: var(--font-sans);
+  font-size: 13.5px;
+}
+
+.fn-footer-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.fn-footer-mark {
+  flex-shrink: 0;
+  color: var(--text-accent);
+}
+
+.fn-footer-name {
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.fn-footer-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 20px;
+}
+
+.fn-footer-nav .footer-link {
+  color: var(--text-primary);
+  text-decoration: none;
+}
+
+.fn-footer-nav .footer-link:hover {
+  color: var(--text-accent) !important;
+}
+
+.fn-footer-handle {
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  color: var(--text-accent);
+}
+
+/* ─── Responsive ─────────────────────────────────────────────────────── */
+
+/* The tagline costs the bar about 150px. With the nav inline, on explorer
+   pages that comes out of the go-to field, and below 1440px it would push the
+   field under the width at which its shortcut chip already has to hide (see
+   the next query). Once the nav folds into the menu there is room again, down
+   to the phone bar, where the 44px buttons need it. Written as where it shows
+   rather than where it hides, so a fractional width between two queries
+   leaves it hidden instead of crowding the bar. */
+@media (min-width: 1440px), (min-width: 640px) and (max-width: 1180px) {
+  .fn-tagline {
+    display: inline;
+  }
+}
+
+/* Just above the nav fold the go-to field is at its narrowest and the
+   shortcut chip was clipping the placeholder; the shortcut is still named
+   in the palette's footer and the shortcuts sheet. */
+@media (max-width: 1240px) {
+  .fn-header-search .fn-kbd {
+    display: none;
+  }
+}
+
+@media (max-width: 1180px) {
+  .fn-nav {
+    display: none;
+  }
+
+  .fn-menu-toggle {
+    display: inline-flex;
+  }
+}
+
+@media (max-width: 767px) {
+  .fn-header-search {
+    display: none;
+  }
+
+  .fn-search-toggle-explorer {
+    display: inline-flex;
+  }
+}
+
+/* Tablets: the three footer groups don't fit one row and wrapped into an
+   accidental two, nav orphaned on the right. Brand and credits take the
+   first row, the nav its own line on the same gutter. */
+@media (min-width: 640px) and (max-width: 959px) {
+  .fn-footer-nav {
+    order: 3;
+    flex-basis: 100%;
+  }
+
+  .fn-footer-credits {
+    white-space: nowrap;
+  }
+}
+
+@media (max-width: 639px) {
+  .fn-header {
+    margin-bottom: 1rem;
+  }
+
+  .fn-brand {
+    gap: 7px;
+  }
+
+  .fn-brand-mark {
+    width: 18px;
+    height: 18px;
+  }
+
+  .fn-wordmark {
+    font-size: 17px;
+  }
+
+  .fn-header-theme,
+  .fn-header-session {
+    display: none;
+  }
+
+  .fn-header-search-panel {
+    left: 8px;
+    right: 8px;
+    width: auto;
+    top: calc(100% + 6px);
+  }
+
+  .fn-sticky-crumbs {
+    padding: 8px 16px;
+  }
+
+  .fn-footer {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 20px 16px;
+  }
+
+  /* Two even rows of three instead of a ragged wrap that strands the last
+     link, and each link tall enough to tap. */
+  .fn-footer-nav {
+    display: grid;
+    grid-template-columns: repeat(3, auto);
+    justify-content: start;
+    gap: 0 20px;
+  }
+
+  .fn-footer-nav .footer-link {
+    display: inline-flex;
+    align-items: center;
+    min-height: 40px;
+  }
+}
+
+/* ─── Phone toolbar ──────────────────────────────────────────────────── */
+
+/* Below 640px the header's bar steps aside and its job moves to the bottom
+   of the screen, where a thumb can reach it: a toolbar with a search field,
+   Back and Home, and the menu button, and the menu itself as a sheet rising
+   out of it.
+
+   Two components draw that toolbar. On explorer routes it is
+   <ExploreChromeBar>, which already sat at the bottom carrying the route's
+   filter and actions, and gains the menu button here. Everywhere else it is
+   .fn-phone-bar in Header.tsx, built from the same .explore-chrome-* classes
+   so the two read as one object; it hides wherever the explorer's bar is up
+   (`body.has-explore-chrome`).
+
+   --fn-phone-bar-h is the toolbar's resting height, which the menu sheet,
+   the what's-new sheet and anything else pinned to the bottom stand on.
+   The header's toolbar is a fixed 65px (a 44px field, 10px above and below,
+   the 1px top rule) plus the home-indicator inset; the explorer's is
+   measured, since a confirm step can make it taller. */
+
+:root {
+  --fn-phone-bar-h: calc(65px + env(safe-area-inset-bottom, 0px));
+}
+
+body.has-explore-chrome {
+  --fn-phone-bar-h: var(--explore-chrome-h, calc(65px + env(safe-area-inset-bottom, 0px)));
+}
+
+.fn-masthead,
+.fn-phone-bar,
+.fn-site-menu-btn,
+.fn-site-nav,
+.fn-menu-grabber,
+.fn-menu-home,
+.fn-menu-whatsnew,
+.fn-menu-scrim {
+  display: none;
+}
+
+@media (max-width: 639px) {
+  /* The header keeps its place at the top of the page with nothing drawn:
+     it is still the sticky anchor the condensed breadcrumb hangs from, and
+     still holds the menu and the what's-new bell. Zero height, so the bar's
+     bottom edge, which the breadcrumb measures to decide when to drop its
+     condensed copy in, is the top of the screen. */
+  .fn-header {
+    background: transparent;
+    border-bottom: 0;
+  }
+
+  .fn-header-bar {
+    min-height: 0;
+    padding: 0;
+    background: transparent;
+  }
+
+  .fn-header-bar > .fn-header-brand,
+  .fn-header .fn-search-toggle,
+  .fn-header .fn-menu-toggle,
+  .fn-header .whats-new-badge-btn {
+    display: none;
+  }
+
+  /* Landing pages only (LANDING_PATHS in Header.tsx): the logo and tagline,
+     on the page rather than stuck over it. Tool pages start at their own
+     content. */
+  .fn-masthead {
+    display: flex;
+    align-items: center;
+    padding: 16px 16px 0;
+    font-family: var(--font-sans);
+  }
+
+  .fn-masthead .fn-tagline {
+    display: inline;
+  }
+
+  .fn-phone-bar {
+    display: block;
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+  }
+
+  body.has-explore-chrome .fn-phone-bar {
+    display: none;
+  }
+
+  /* The explorer bar's footer reservation (globals.css), for the header's
+     toolbar on every other page. */
+  body:has(.fn-phone-bar):not(.has-explore-chrome) .fn-footer {
+    padding-bottom: calc(20px + var(--fn-phone-bar-h) + 1rem);
+  }
+
+  .fn-site-menu-btn {
+    display: inline-flex;
+    position: relative;
+    color: var(--text-primary);
+  }
+
+  /* One line, always: with the field first and three chips after it, a
+     narrow phone or a larger text size would otherwise wrap the row under
+     the field's 12rem basis. The field gives up the width instead. */
+  .explore-chrome-inner {
+    flex-wrap: nowrap;
+  }
+
+  .explore-chrome-form {
+    flex-basis: 0;
+  }
+
+  /* At rest the field is narrower than its placeholder; end it on an
+     ellipsis rather than mid-word. */
+  .explore-chrome-input {
+    text-overflow: ellipsis;
+  }
+
+  /* Back and Home (SiteNavButtons.tsx), between the field and the menu.
+     Its width is set, two 44px chips and the gap between them, so it can
+     fold to nothing and back on a transition. */
+  .fn-site-nav {
+    display: flex;
+    flex-shrink: 0;
+    gap: 8px;
+    max-width: 96px;
+    transition: max-width 0.22s ease, margin-left 0.22s ease;
+  }
+
+  /* Home is a link, so no underline. */
+  .fn-site-nav-btn {
+    color: var(--text-primary);
+    text-decoration: none;
+    transition: color 0.2s ease, opacity 0.16s ease, transform 0.22s ease;
+  }
+
+  .fn-site-nav-btn[aria-current='page'] {
+    color: var(--text-accent);
+  }
+
+  /* While the field is in use the pair folds away and the field grows to
+     the right into its room; the negative margin takes the row's gap with
+     it. The chips shrink and fade where they stand rather than being
+     clipped, so nothing cuts off a focus ring. The menu button stays. The
+     search sheet keeps them folded after the keyboard is put away, since
+     the search is still going on. */
+  .explore-chrome-inner:has(.explore-chrome-form:focus-within) .fn-site-nav,
+  html[data-phone-search] .fn-site-nav {
+    max-width: 0;
+    margin-left: -8px;
+    pointer-events: none;
+  }
+
+  .explore-chrome-inner:has(.explore-chrome-form:focus-within) .fn-site-nav-btn,
+  html[data-phone-search] .fn-site-nav-btn {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+
+  /* Back and Home take copy link's room on a phone, where the browser's
+     share sheet copies the page's address anyway. */
+  .explore-chrome-inner .explore-chrome-copy {
+    display: none;
+  }
+
+  /* Specific enough to outlast the chips' hover fill (explorer.css), which
+     on a touch screen sticks to the button after the tap that opened it. */
+  .explore-chrome-inner .explore-chrome-button.fn-site-menu-btn[data-open] {
+    background: var(--accent-soft);
+    border-color: var(--accent-soft-border);
+    color: var(--accent-soft-fg);
+  }
+
+  .fn-site-menu-dot {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--text-accent);
+    border: 2px solid var(--bg-secondary);
+  }
+
+  /* The hamburger and the X, stacked (SiteMenuButton.tsx). Each turns a
+     quarter and shrinks as it gives way to the other, so opening the menu or
+     the search sheet turns one into the other in place. */
+  .fn-site-menu-icon {
+    display: grid;
+    place-items: center;
+  }
+
+  .fn-site-menu-icon > svg {
+    grid-area: 1 / 1;
+    transition:
+      opacity var(--motion-quick) ease,
+      transform var(--motion-panel) var(--ease-soft);
+  }
+
+  .fn-site-menu-icon > svg:last-child,
+  .fn-site-menu-icon[data-x] > svg:first-child {
+    opacity: 0;
+    transform: rotate(-90deg) scale(0.5);
+  }
+
+  .fn-site-menu-icon[data-x] > svg:first-child {
+    transform: rotate(90deg) scale(0.5);
+  }
+
+  .fn-site-menu-icon[data-x] > svg:last-child {
+    opacity: 1;
+    transform: none;
+  }
+
+  /* Slim while scrolling down a page (useCondenseOnScroll): only the field
+     stays, shorter and without its box, the way Safari folds its own bar.
+     The field is still live, so a tap on it starts a search, and focusing
+     it brings the full bar back. */
+  .explore-chrome-inner {
+    transition: padding 0.2s ease;
+  }
+
+  .explore-chrome-form {
+    transition: height 0.2s ease, background-color 0.2s ease, border-color 0.2s ease;
+  }
+
+  .explore-chrome-bar[data-condensed] .explore-chrome-inner,
+  .fn-phone-bar[data-condensed] .explore-chrome-inner {
+    padding-top: 4px;
+    padding-bottom: calc(4px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .explore-chrome-bar[data-condensed] .explore-chrome-inner > :not(.explore-chrome-form),
+  .fn-phone-bar[data-condensed] .explore-chrome-inner > :not(.explore-chrome-form) {
+    display: none;
+  }
+
+  .explore-chrome-bar[data-condensed] .explore-chrome-form,
+  .fn-phone-bar[data-condensed] .explore-chrome-form {
+    height: 32px;
+    background: transparent;
+    border-color: transparent;
+  }
+
+  /* Paste sits inside the field, so the rule above doesn't reach it. The
+     slim bar is the field's text and nothing else. */
+  .explore-chrome-bar[data-condensed] .explore-chrome-paste,
+  .fn-phone-bar[data-condensed] .explore-chrome-paste {
+    display: none;
+  }
+
+  /* The menu, as a sheet standing on the toolbar. Fixed rather than hung off
+     the header, and capped so a tall menu (the sign-in flow) scrolls inside
+     the sheet instead of running off the top of the screen. */
+  .fn-header-menu-panel {
+    position: fixed;
+    top: auto;
+    right: 0;
+    bottom: var(--fn-phone-bar-h);
+    left: 0;
+    width: auto;
+    max-height: calc(100dvh - var(--fn-phone-bar-h) - 24px);
+    /* Over the inline overflow the panel sets for the wider dropdown. */
+    overflow-y: auto !important;
+    overscroll-behavior: contain;
+    border-width: 1px 0 0;
+    border-radius: 18px 18px 0 0;
+    box-shadow: 0 -10px 30px rgb(0 0 0 / 0.12);
+    /* It rises out of the toolbar rather than fading in place: a clip
+       uncovers it upward from the toolbar's edge while it lifts 12px, and
+       closing draws it back down a little faster. The clip's sides and top
+       reach past the sheet (−40px) so the open sheet keeps its shadow and
+       its own rounded corners; only the bottom edge is fixed, at the
+       toolbar. */
+    transform: translateY(12px);
+    clip-path: inset(100% -40px 0 -40px);
+    transition:
+      clip-path 200ms cubic-bezier(0.4, 0, 1, 1),
+      transform 200ms cubic-bezier(0.4, 0, 1, 1),
+      opacity 140ms ease-in 60ms;
+  }
+
+  .fn-header-menu-panel[data-open] {
+    clip-path: inset(-40px -40px 0 -40px);
+    transition:
+      clip-path 340ms var(--ease-soft),
+      transform 340ms var(--ease-soft),
+      opacity 180ms ease-out;
+  }
+
+  /* Its rows follow the sheet up a beat behind, a row at a time (the grid
+     is two across), each lifting 6px. Closing, they fade with the sheet
+     and don't wait. --row is the row's place from the top. */
+  .fn-header-menu-panel :is(.fn-menu-home, .compact-nav-grid > *, .fn-menu-session) {
+    opacity: 0;
+    transform: translateY(6px);
+    transition:
+      opacity 120ms ease-in,
+      transform 120ms ease-in;
+  }
+
+  .fn-header-menu-panel[data-open] :is(.fn-menu-home, .compact-nav-grid > *, .fn-menu-session) {
+    opacity: 1;
+    transform: none;
+    transition:
+      opacity 240ms ease-out,
+      transform 320ms var(--ease-soft);
+    transition-delay: calc(60ms + var(--row, 0) * 20ms);
+  }
+
+  .fn-header-menu-panel .compact-nav-grid > * {
+    --row: 1;
+  }
+  .fn-header-menu-panel .compact-nav-grid > :nth-child(n + 3) {
+    --row: 2;
+  }
+  .fn-header-menu-panel .compact-nav-grid > :nth-child(n + 5) {
+    --row: 3;
+  }
+  .fn-header-menu-panel .compact-nav-grid > :nth-child(n + 7) {
+    --row: 4;
+  }
+  .fn-header-menu-panel .compact-nav-grid > :nth-child(n + 9) {
+    --row: 5;
+  }
+  .fn-header-menu-panel .fn-menu-session {
+    --row: 6;
+  }
+
+  .fn-menu {
+    padding: 6px 12px 12px;
+  }
+
+  .fn-menu-grabber {
+    display: block;
+    width: 36px;
+    height: 5px;
+    margin: 8px auto 0;
+    border-radius: var(--radius-pill);
+    background: var(--border-strong);
+  }
+
+  /* Home, led by the logo: the header bar's job, in the one place on a phone
+     that still has the logo on every page. Full width, over the grid. */
+  .fn-header .compact-nav-link.fn-menu-home {
+    display: flex;
+    color: var(--text-primary);
+  }
+
+  .fn-header .compact-nav-link.fn-menu-home svg {
+    color: var(--text-accent);
+  }
+
+  .fn-menu-home .fn-wordmark {
+    font-size: 16px;
+  }
+
+  /* What's new beside Theme, so the grid's last row is a pair like every
+     other row rather than one full-width row under another. */
+  .fn-header .compact-nav-link.fn-menu-whatsnew {
+    display: flex;
+    width: 100%;
+    text-align: left;
+  }
+
+  .fn-header .compact-nav-link-wide {
+    grid-column: auto;
+  }
+
+  .fn-menu-dot {
+    flex-shrink: 0;
+    width: 8px;
+    height: 8px;
+    margin-left: auto;
+    border-radius: 50%;
+    background: var(--text-accent);
+  }
+
+  /* The page behind the sheet, dimmed. It stops at the toolbar, which stays
+     live: its menu button is how the sheet closes. `visibility` holds it
+     through the fade-out so the press that closed the menu can't fall
+     through to a link underneath. */
+  .fn-menu-scrim {
+    display: block;
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: var(--fn-phone-bar-h);
+    left: 0;
+    z-index: 35;
+    /* The dim is an inset shadow, not a background, for Safari on iOS 26.
+       Safari tints the status bar from fixed elements touching the top edge,
+       and a fixed full-screen box with a translucent background counts as a
+       "dimming layer": once its opacity passed 0.1 Safari painted the status
+       bar in the fully dimmed colour while this was still fading in, and
+       held it until the fade-out was nearly over. An element with no
+       background and no content is skipped by that sampler (WebKit's
+       isHiddenOrNearlyTransparent), so the status bar keeps showing the page
+       beneath it, and this scrim, which reaches up under the status bar,
+       dims it in step with everything else. The spread is far larger than
+       any screen, so the shadow fills the box. */
+    box-shadow: inset 0 0 0 100vmax var(--modal-backdrop);
+    opacity: 0;
+    visibility: hidden;
+    /* Timed with the sheet: it dims in as the sheet rises and clears as it
+       draws back down. */
+    transition: opacity 200ms ease-in, visibility 0s linear 200ms;
+  }
+
+  .fn-menu-scrim[data-open] {
+    opacity: 1;
+    visibility: visible;
+    transition: opacity 340ms ease-out;
+  }
+
+  /* The bell's notes, which the menu's "What's new" row opens, as a sheet
+     over the toolbar like the menu. */
+  .fn-header .whats-new-popover {
+    position: fixed;
+    top: auto;
+    right: 8px;
+    bottom: calc(var(--fn-phone-bar-h) + 8px);
+    left: 8px;
+    width: auto;
+    max-height: calc(100dvh - var(--fn-phone-bar-h) - 32px);
+  }
+}
+
+/* ─── Phone search sheet ─────────────────────────────────────────────── */
+
+/* PhoneSearchSheet.tsx: what fills the screen above the phone toolbar while
+   its jump field is in use. Phone width only, like the toolbar; JumpField
+   closes it if the viewport widens.
+
+   Hiding the page while it is open is the point of it. With the keyboard up
+   on iOS 26 and later, Safari stands the toolbar on its address pill and
+   draws the strip between the toolbar and the keyboard itself, under the
+   pill and the keyboard's up / down / done bar, from the page's own
+   scrolling content. Fixed layers, the toolbar and this sheet included,
+   never reach it. With the page hidden there is nothing there to draw, and
+   the strip shows the root's background, set here to the toolbar's surface
+   so the toolbar reads as running down to the keyboard.
+
+   `visibility` rather than `display`, as the auto-redirect shim does
+   (globals.css): it takes the page out of sight and out of the
+   accessibility tree, lets the toolbars and the sheet opt back in, and
+   leaves the page laid out and scrolled where it was, so closing the sheet
+   puts it back untouched. Once <html> has a background of its own, body's
+   stops painting the canvas and is hidden with body's box.
+
+   Motion. Opening, the sheet dissolves in over the page (140ms) and the
+   page is hidden only once it's covered, by a visibility change held back
+   for that long; its blocks rise 12px into place from the field upwards,
+   35ms apart (--i, counted up from the field). Closing, the page is back
+   at once, under the sheet: the blocks sink and fade (160ms) and the sheet
+   fades after them (200ms from 60ms), uncovering it. PhoneSearchHost keeps
+   the sheet mounted for that long (SHEET_EXIT_MS). A row that arrives
+   while typing settles in by itself (4px). */
+
+.fn-search-sheet {
+  display: none;
+}
+
+@keyframes fn-search-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes fn-search-out {
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes fn-search-rise {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+}
+
+@keyframes fn-search-sink {
+  to {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+}
+
+@keyframes fn-search-row-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+
+@media (max-width: 639px) {
+  html[data-phone-search] {
+    background: var(--bg-secondary);
+  }
+
+  html[data-phone-search] body {
+    visibility: hidden;
+    transition: visibility 0s linear 140ms;
+  }
+
+  html[data-phone-search] .fn-phone-bar,
+  html[data-phone-search] .explore-chrome-bar,
+  html[data-phone-search] .fn-search-sheet {
+    visibility: visible;
+  }
+
+  /* The sheet has a Paste and go row of its own. */
+  html[data-phone-search] .explore-chrome-paste {
+    display: none;
+  }
+
+  /* From the top of the screen down to the toolbar. A short list sits at
+     the bottom, beside the field (the body's auto top margin); a long one
+     scrolls inside the sheet, which starts it at its end. */
+  .fn-search-sheet {
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: var(--fn-phone-bar-h);
+    left: 0;
+    z-index: 45;
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
+    padding: calc(16px + env(safe-area-inset-top, 0px)) 12px 14px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    background: var(--bg-primary);
+    animation: fn-search-in 140ms ease-out both;
+  }
+
+  .fn-search-sheet[data-leaving] {
+    pointer-events: none;
+    animation: fn-search-out 200ms ease-in 60ms both;
+  }
+
+  .fn-search-body {
+    margin-top: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .fn-search-sheet[data-leaving] .fn-search-body {
+    animation: fn-search-sink 160ms ease-in both;
+  }
+
+  .fn-search-block {
+    animation: fn-search-rise var(--motion-arrive) var(--ease-soft) both;
+    animation-delay: calc(50ms + var(--i, 0) * 35ms);
+  }
+
+  .fn-search-list > li {
+    animation: fn-search-row-in var(--motion-panel) var(--ease-soft) both;
+  }
+
+  .fn-search-section {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .fn-search-heading {
+    margin: 0;
+    padding: 0 4px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-tertiary);
+  }
+
+  .fn-search-hint {
+    margin: 0;
+    padding: 0 4px;
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--text-secondary);
+  }
+
+  .fn-search-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-medium);
+    border-radius: var(--radius-card);
+    overflow: hidden;
+  }
+
+  .fn-search-list > li + li {
+    border-top: 1px solid var(--border-subtle);
+  }
+
+  .fn-search-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    min-height: 52px;
+    box-sizing: border-box;
+    padding: 8px 12px;
+    border: 0;
+    background: transparent;
+    color: var(--text-primary);
+    font: inherit;
+    text-align: left;
+    text-decoration: none;
+    cursor: pointer;
+    transition:
+      background-color var(--motion-quick) ease,
+      color var(--motion-quick) ease;
+  }
+
+  .fn-search-row:active {
+    background: var(--surface-subtle);
+  }
+
+  /* Picked, and waiting for its page: filled like the primary row, with a
+     spinner in place of its arrow (PhoneSearchSheet.tsx). */
+  .fn-search-row.is-pending,
+  .fn-search-chip.is-pending {
+    background: var(--accent-soft);
+    color: var(--accent-soft-fg);
+  }
+
+  .fn-search-chip.is-pending {
+    border-color: var(--accent-soft-border);
+  }
+
+  .fn-search-row.is-pending .fn-search-tile {
+    background: transparent;
+    color: inherit;
+  }
+
+  .fn-search-row.is-pending :is(.fn-search-detail, .fn-search-end) {
+    color: inherit;
+  }
+
+  .fn-search-row:focus-visible,
+  .fn-search-chip:focus-visible {
+    outline: 2px solid var(--text-accent);
+    outline-offset: -2px;
+  }
+
+  /* The row the keyboard's Search key runs; before anything is typed, Paste
+     and go, which is the one tap that gets somewhere. */
+  .fn-search-row.is-primary {
+    background: var(--accent-soft);
+    color: var(--accent-soft-fg);
+  }
+
+  /* Paste and go stands alone rather than in a list, so it is its own card. */
+  .fn-search-paste {
+    min-height: 58px;
+    border: 1px solid var(--accent-soft-border);
+    border-radius: var(--radius-card);
+  }
+
+  .fn-search-tile {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 32px;
+    height: 32px;
+    overflow: hidden;
+    border-radius: var(--radius-control);
+    background: var(--bg-tertiary);
+    color: var(--text-secondary);
+  }
+
+  .fn-search-tile.is-round {
+    border-radius: 50%;
+  }
+
+  .fn-search-row.is-primary .fn-search-tile {
+    background: transparent;
+    color: inherit;
+  }
+
+  .fn-search-avatar {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .fn-search-app-icon {
+    display: inline-flex;
+    width: 20px;
+    height: 20px;
+  }
+
+  .fn-search-app-icon > svg,
+  .fn-search-app-icon > img {
+    width: 100%;
+    height: 100%;
+  }
+
+  .fn-search-text {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+  }
+
+  .fn-search-label,
+  .fn-search-detail {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .fn-search-label {
+    font-size: 15px;
+    font-weight: 500;
+    line-height: 1.3;
+  }
+
+  .fn-search-row.is-primary .fn-search-label {
+    font-weight: 600;
+  }
+
+  .fn-search-detail {
+    font-size: 12.5px;
+    line-height: 1.35;
+    color: var(--text-tertiary);
+  }
+
+  .fn-search-detail.is-mono {
+    font-family: var(--font-mono);
+    font-size: 12px;
+  }
+
+  .fn-search-row.is-primary .fn-search-detail {
+    color: inherit;
+  }
+
+  /* What was typed, quoted back in a row's label. */
+  .fn-search-query {
+    font-family: var(--font-mono);
+    font-size: 0.93em;
+  }
+
+  .fn-search-end {
+    display: flex;
+    flex-shrink: 0;
+    color: var(--text-tertiary);
+  }
+
+  .fn-search-row.is-primary .fn-search-end {
+    color: inherit;
+  }
+
+  /* Quick links: one scrolling line that runs to the screen's edges, so a
+     chip cut off at the right says there are more. */
+  .fn-search-chips {
+    display: flex;
+    gap: 8px;
+    margin: 0 -12px;
+    padding: 0 12px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .fn-search-chips::-webkit-scrollbar {
+    display: none;
+  }
+
+  .fn-search-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    flex-shrink: 0;
+    height: 40px;
+    box-sizing: border-box;
+    padding: 0 14px 0 12px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-medium);
+    border-radius: var(--radius-pill);
+    color: var(--text-primary);
+    font-size: 14px;
+    font-weight: 500;
+    text-decoration: none;
+    transition:
+      background-color var(--motion-quick) ease,
+      border-color var(--motion-quick) ease,
+      color var(--motion-quick) ease;
+  }
+
+  .fn-search-chip svg {
+    color: var(--text-accent);
+  }
+
+  .fn-search-chip.is-pending svg {
+    color: inherit;
+  }
+}
+
+/* The global clamp shortens durations but leaves delays standing: drop the
+   blocks' stagger, the sheet's late fade and the page's held-back hiding,
+   so with reduced motion the sheet is simply there, and simply gone. */
+[data-reduce-motion='true'] .fn-search-block,
+[data-reduce-motion='true'] .fn-search-sheet[data-leaving] {
+  animation-delay: 0s !important;
+}
+
+html[data-reduce-motion='true'][data-phone-search] body {
+  transition-delay: 0s;
+}
+
+[data-reduce-motion='true'] .explore-chrome-inner,
+[data-reduce-motion='true'] .explore-chrome-form,
+[data-reduce-motion='true'] .fn-site-nav,
+[data-reduce-motion='true'] .fn-site-nav-btn,
+[data-reduce-motion='true'] .fn-menu-scrim {
+  transition: none;
+}
+
+/* The sheet's rows wait for it with a delay, which the global clamp on
+   durations leaves standing: drop it, so the menu appears whole. */
+[data-reduce-motion='true'] .fn-header-menu-panel :is(.fn-menu-home, .compact-nav-grid > *, .fn-menu-session) {
+  transition-delay: 0s !important;
+}

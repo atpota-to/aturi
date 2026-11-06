@@ -71,30 +71,14 @@ export default function SpaceSetup({ onCreated }: { onCreated: () => void }) {
   };
 
   return (
-    <section
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '1rem',
-        padding: '1.5rem',
-        background: 'var(--bg-secondary)',
-        border: '1px dashed var(--border-medium)',
-      }}
-    >
+    <section className="fn-fb-card" data-tone="setup">
       <div>
-        <h2
-          style={{
-            margin: '0 0 0.4rem',
-            fontFamily: 'var(--font-serif)',
-            fontSize: '1.125rem',
-            color: 'var(--text-primary)',
-          }}
-        >
+        <h2 className="fn-fb-card-title">
           No feedback space yet
         </h2>
-        <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.9rem', lineHeight: 1.6 }}>
-          This board reads an <code className="explore-mono">app.userinput.space</code> record from{' '}
-          <Link href={`/explore/${FEEDBACK_OWNER}`} prefetch={false} style={{ color: 'var(--text-accent)' }}>
+        <p className="fn-fb-card-text">
+          This board reads an <code>app.userinput.space</code> record from{' '}
+          <Link href={`/explore/${FEEDBACK_OWNER}`} prefetch={false}>
             {FEEDBACK_OWNER}
           </Link>
           &rsquo;s repo. There isn&rsquo;t one yet, and only that account can write it.
@@ -102,7 +86,7 @@ export default function SpaceSetup({ onCreated }: { onCreated: () => void }) {
       </div>
 
       {!did ? (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+        <div className="fn-fb-field">
           <span className="explore-small-caps">Sign in as {FEEDBACK_OWNER} to create it</span>
           <SignInPanel defaultInput={FEEDBACK_OWNER} />
         </div>
@@ -112,8 +96,8 @@ export default function SpaceSetup({ onCreated }: { onCreated: () => void }) {
           board&rsquo;s space.
         </p>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <div className="fn-fb-field">
             <label className="explore-small-caps" htmlFor="space-name">
               Space name
             </label>
@@ -125,7 +109,7 @@ export default function SpaceSetup({ onCreated }: { onCreated: () => void }) {
               onChange={(e) => setName(e.target.value)}
             />
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+          <div className="fn-fb-field">
             <label className="explore-small-caps" htmlFor="space-description">
               Description
             </label>
@@ -138,7 +122,7 @@ export default function SpaceSetup({ onCreated }: { onCreated: () => void }) {
               onChange={(e) => setDescription(e.target.value)}
             />
           </div>
-          <p style={{ margin: 0, color: 'var(--text-tertiary)', fontSize: '0.8125rem' }}>
+          <p className="fn-fb-hint">
             Ships with categories: {DEFAULT_TAGS.map((t) => t.label).join(', ')}. Edit them later in
             the record editor.
           </p>
@@ -147,20 +131,9 @@ export default function SpaceSetup({ onCreated }: { onCreated: () => void }) {
             type="button"
             onClick={create}
             disabled={busy || !name.trim()}
-            style={{
-              alignSelf: 'flex-start',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '0.4rem',
-              padding: '0.5rem 1rem',
-              background: 'var(--accent-moss)',
-              border: '1px solid var(--accent-moss)',
-              color: 'var(--text-on-accent)',
-              fontFamily: 'var(--font-serif)',
-              fontSize: '0.875rem',
-              cursor: busy ? 'wait' : 'pointer',
-              opacity: busy ? 0.7 : 1,
-            }}
+            className="fn-c-btn fn-c-btn-primary"
+            data-wait={busy ? '' : undefined}
+            style={{ alignSelf: 'flex-start' }}
           >
             {busy ? <Loader2 size={14} className="explore-spin" /> : <Sparkles size={14} />}
             Create the space

@@ -65,7 +65,7 @@ struct PostCardView: View {
                     LinkNavigation.open(route, router: router, openURL: openURL)
                 } label: {
                     Label("View record data in the Explorer", systemImage: "binoculars")
-                        .font(.footnote)
+                        .font(AturiFont.footnote)
                         .foregroundStyle(theme.textAccent)
                 }
                 .buttonStyle(.plain)
@@ -85,10 +85,10 @@ struct PostCardView: View {
             Spacer(minLength: 0)
             if let date = post.createdAtDate {
                 RelativeDateText(date: date)
-                    .font(.caption)
+                    .font(AturiFont.caption)
             }
         }
-        .font(.footnote)
+        .font(AturiFont.footnote)
         .foregroundStyle(theme.textTertiary)
     }
 
@@ -133,12 +133,12 @@ private struct PostAuthorRow: View {
                 VStack(alignment: .leading, spacing: 2) {
                     HStack(alignment: .firstTextBaseline, spacing: 6) {
                         Text(author.displayLabel)
-                            .font(.body.weight(.semibold))
+                            .font(AturiFont.sans(.body, weight: .semibold))
                             .foregroundStyle(theme.textPrimary)
                             .lineLimit(1)
                         if let pronouns = author.pronouns, !pronouns.isEmpty {
                             Text(pronouns)
-                                .font(.footnote)
+                                .font(AturiFont.footnote)
                                 .foregroundStyle(theme.textTertiary)
                                 .lineLimit(1)
                         }
@@ -146,7 +146,7 @@ private struct PostAuthorRow: View {
                     if !author.handle.isEmpty {
                         Text("@\(author.handle)")
                             .font(AturiFont.monoSmall)
-                            .foregroundStyle(theme.textTertiary)
+                            .foregroundStyle(theme.textAccent)
                             .lineLimit(1)
                             .truncationMode(.middle)
                     }
@@ -166,7 +166,7 @@ private struct PostAuthorRow: View {
 /// text where a facet is malformed, exactly as `Facets.segments` decides.
 struct PostFacetText: View {
     let record: BskyPostRecord
-    var font: Font = .body
+    var font: Font = AturiFont.body
     var color: Color? = nil
 
     @Environment(\.aturiTheme) private var theme
@@ -236,15 +236,15 @@ private struct PostParentCard: View {
     }
 
     var body: some View {
-        let shape = RoundedRectangle(cornerRadius: 12, style: .continuous)
+        let shape = RoundedRectangle(cornerRadius: AturiTheme.cardRadius, style: .continuous)
         VStack(alignment: .leading, spacing: 8) {
             Label("Replying to", systemImage: "arrow.turn.down.right")
-                .font(.footnote)
+                .font(AturiFont.footnote)
                 .foregroundStyle(theme.textTertiary)
             PostAuthorRow(author: post.author, avatarSize: 32)
             if !post.record.text.isEmpty {
                 Text(post.record.text)
-                    .font(.footnote)
+                    .font(AturiFont.footnote)
                     .foregroundStyle(theme.textSecondary)
                     .lineLimit(3)
             }
@@ -256,7 +256,7 @@ private struct PostParentCard: View {
         .padding(.bottom, 14)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(theme.bgTertiary, in: shape)
-        .overlay(shape.strokeBorder(theme.borderSubtle, lineWidth: AturiTheme.hairline(displayScale: displayScale)))
+        .overlay(shape.strokeBorder(theme.borderMedium, lineWidth: AturiTheme.hairline(displayScale: displayScale)))
         .contentShape(shape)
         .onTapGesture {
             if let route {
@@ -371,13 +371,13 @@ struct PostImageGrid: View {
     }
 
     private func tile(_ image: EmbedImage, index: Int) -> some View {
-        let shape = RoundedRectangle(cornerRadius: 8, style: .continuous)
+        let shape = RoundedRectangle(cornerRadius: AturiTheme.controlRadius, style: .continuous)
         return Button {
             onTap(images, index)
         } label: {
             PostRemoteImage(url: image.thumb ?? image.fullsize)
                 .clipShape(shape)
-                .overlay(shape.strokeBorder(theme.borderSubtle, lineWidth: AturiTheme.hairline(displayScale: displayScale)))
+                .overlay(shape.strokeBorder(theme.borderMedium, lineWidth: AturiTheme.hairline(displayScale: displayScale)))
         }
         .buttonStyle(.plain)
         .accessibilityLabel(image.alt.flatMap { $0.isEmpty ? nil : $0 } ?? "Image \(index + 1) of \(images.count)")
@@ -431,7 +431,7 @@ struct PostExternalCard: View {
     }
 
     var body: some View {
-        let shape = RoundedRectangle(cornerRadius: 10, style: .continuous)
+        let shape = RoundedRectangle(cornerRadius: AturiTheme.controlRadius, style: .continuous)
         Button {
             if let destination {
                 openURL(destination)
@@ -445,18 +445,18 @@ struct PostExternalCard: View {
                 VStack(alignment: .leading, spacing: 4) {
                     if !external.title.isEmpty {
                         Text(external.title)
-                            .font(compact ? .footnote.weight(.semibold) : .body.weight(.semibold))
+                            .font(compact ? AturiFont.sans(.footnote, weight: .semibold) : AturiFont.sans(.body, weight: .semibold))
                             .foregroundStyle(theme.textPrimary)
                             .lineLimit(2)
                     }
                     if !compact, !external.description.isEmpty {
                         Text(external.description)
-                            .font(.footnote)
+                            .font(AturiFont.footnote)
                             .foregroundStyle(theme.textSecondary)
                             .lineLimit(3)
                     }
                     Text(external.hostname.isEmpty ? external.uri : external.hostname)
-                        .font(.caption)
+                        .font(AturiFont.caption)
                         .foregroundStyle(theme.textTertiary)
                         .lineLimit(1)
                         .truncationMode(.middle)
@@ -465,7 +465,7 @@ struct PostExternalCard: View {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(compact ? theme.bgSecondary : theme.bgTertiary, in: shape)
-            .overlay(shape.strokeBorder(theme.borderSubtle, lineWidth: AturiTheme.hairline(displayScale: displayScale)))
+            .overlay(shape.strokeBorder(theme.borderMedium, lineWidth: AturiTheme.hairline(displayScale: displayScale)))
             .contentShape(shape)
         }
         .buttonStyle(.plain)
@@ -499,7 +499,7 @@ struct PostVideoView: View {
     }
 
     var body: some View {
-        let shape = RoundedRectangle(cornerRadius: 10, style: .continuous)
+        let shape = RoundedRectangle(cornerRadius: AturiTheme.controlRadius, style: .continuous)
         VStack(alignment: .leading, spacing: 0) {
             Button {
                 if let destination {
@@ -524,14 +524,14 @@ struct PostVideoView: View {
 
             if !compact, let alt, !alt.isEmpty {
                 Text(alt)
-                    .font(.footnote)
+                    .font(AturiFont.footnote)
                     .foregroundStyle(theme.textTertiary)
                     .padding(8)
             }
         }
         .background(compact ? theme.bgSecondary : theme.bgTertiary, in: shape)
         .clipShape(shape)
-        .overlay(shape.strokeBorder(theme.borderSubtle, lineWidth: AturiTheme.hairline(displayScale: displayScale)))
+        .overlay(shape.strokeBorder(theme.borderMedium, lineWidth: AturiTheme.hairline(displayScale: displayScale)))
     }
 }
 
@@ -571,11 +571,11 @@ struct PostQuoteCard: View {
     }
 
     var body: some View {
-        let shape = RoundedRectangle(cornerRadius: 10, style: .continuous)
+        let shape = RoundedRectangle(cornerRadius: AturiTheme.controlRadius, style: .continuous)
         Group {
             if let message = record.unavailableMessage {
                 Text(message)
-                    .font(.footnote)
+                    .font(AturiFont.footnote)
                     .foregroundStyle(theme.textTertiary)
                     .padding(12)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -594,7 +594,7 @@ struct PostQuoteCard: View {
             }
         }
         .background(theme.bgTertiary, in: shape)
-        .overlay(shape.strokeBorder(theme.borderSubtle, lineWidth: AturiTheme.hairline(displayScale: displayScale)))
+        .overlay(shape.strokeBorder(theme.borderMedium, lineWidth: AturiTheme.hairline(displayScale: displayScale)))
     }
 
     private var quoteBody: some View {
@@ -603,12 +603,12 @@ struct PostQuoteCard: View {
                 HStack(spacing: 8) {
                     AvatarView(url: author.avatar, size: 24)
                     Text(author.displayLabel)
-                        .font(.footnote.weight(.semibold))
+                        .font(AturiFont.sans(.footnote, weight: .semibold))
                         .foregroundStyle(theme.textPrimary)
                         .lineLimit(1)
                     if !author.handle.isEmpty {
                         Text("@\(author.handle)")
-                            .font(.caption)
+                            .font(AturiFont.caption)
                             .foregroundStyle(theme.textTertiary)
                             .lineLimit(1)
                             .truncationMode(.middle)
@@ -617,12 +617,12 @@ struct PostQuoteCard: View {
             }
             if let text = record.text, !text.isEmpty {
                 Text(text)
-                    .font(.footnote)
+                    .font(AturiFont.footnote)
                     .foregroundStyle(theme.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
             } else if let title = nonPostTitle {
                 Text(title)
-                    .font(.footnote.weight(.semibold))
+                    .font(AturiFont.sans(.footnote, weight: .semibold))
                     .foregroundStyle(theme.textPrimary)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -631,7 +631,7 @@ struct PostQuoteCard: View {
             }
             if let label = unhydratedEmbedLabel {
                 Text(label)
-                    .font(.caption)
+                    .font(AturiFont.caption)
                     .foregroundStyle(theme.textTertiary)
             }
         }

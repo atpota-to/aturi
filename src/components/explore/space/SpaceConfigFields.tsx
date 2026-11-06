@@ -1,7 +1,7 @@
 'use client';
 
 import { useId } from 'react';
-import { DialogField, dialogNoteStyle } from './SpaceDialog';
+import { DialogField } from './SpaceDialog';
 import {
   formatAllowList,
   isValidManagingApp,
@@ -98,12 +98,11 @@ export default function SpaceConfigFields({
         >
           <input
             id={managingAppId}
-            className="explore-input"
+            className="explore-input fx-sp-mono"
             aria-describedby={managingAppHintId}
             aria-invalid={managingAppInvalid || undefined}
             disabled={disabled}
             placeholder="did:web:example.com#forum"
-            style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8125rem' }}
             value={policy.managingApp}
             onChange={(e) => onPolicyChange({ kind: 'managingApp', managingApp: e.target.value })}
           />
@@ -167,7 +166,7 @@ export default function SpaceConfigFields({
       )}
 
       {(policy.kind === 'unknown' || appAccess.kind === 'unknown') && (
-        <p style={{ ...dialogNoteStyle, color: 'var(--danger)' }}>
+        <p className="fx-sp-dialog-note fx-sp-dialog-warn">
           This space carries a rule this build doesn’t recognise. It is left
           exactly as it is unless you change it, and changing it replaces the
           whole rule rather than editing it.

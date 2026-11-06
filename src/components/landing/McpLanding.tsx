@@ -31,80 +31,31 @@ const EXAMPLES = [
 export default function McpLanding({ endpoint }: { endpoint: string }) {
   const display = endpoint.replace(/^https?:\/\//, '');
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '4rem' }}>
+    <div className="fl-page">
       <AppearIn rise>
-        <header className="landing-hero" style={{ display: 'grid', gap: '2.5rem', alignItems: 'center' }}>
-          <div>
-            <span
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.5rem',
-                flexWrap: 'wrap',
-                marginBottom: '1.25rem',
-              }}
-            >
-              <Badge icon={<Plug size={12} aria-hidden />}>{MCP_NAME}</Badge>
-              <span
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  padding: '0.25rem 0.5rem',
-                  border: '1px solid var(--text-accent)',
-                  color: 'var(--text-accent)',
-                  fontFamily: 'var(--font-mono)',
-                  fontSize: '0.68rem',
-                  letterSpacing: '0.1em',
-                  textTransform: 'uppercase',
-                  lineHeight: 1,
-                }}
-              >
-                {MCP_STAGE}
-              </span>
+        <header className="fl-hero">
+          <div className="fl-hero-copy">
+            <span className="fl-pill">
+              <Plug size={13} aria-hidden /> {MCP_NAME}
+              <span className="fl-pill-tag">{MCP_STAGE}</span>
             </span>
-            <h1
-              style={{
-                fontSize: '2.5rem',
-                fontWeight: 300,
-                marginBottom: '0.75rem',
-                color: 'var(--text-primary)',
-                lineHeight: 1.15,
-              }}
-            >
-              One URL makes the Atmosphere more traversable for agents
+            <h1 className="fl-title">
+              One URL makes the Atmosphere{' '}
+              <span className="fl-title-accent">more traversable for agents</span>
             </h1>
-            <p
-              style={{
-                fontSize: '1.05rem',
-                lineHeight: 1.6,
-                color: 'var(--text-secondary)',
-                maxWidth: '34rem',
-                marginBottom: '1rem',
-              }}
-            >
-              Add <code style={{ color: 'var(--text-accent)' }}>{display}</code> to
-              your AI&rsquo;s interface to get structured and contextual access to
-              the Atmosphere. Analyze any repository, explore backlinks, learn how
-              the protocol works, and ask clarifying questions. No key, no account,
-              nothing to install.
+            <p className="fl-lede">
+              Add <code>{display}</code> to your AI&rsquo;s interface to get
+              structured and contextual access to the Atmosphere. Analyze any
+              repository, explore backlinks, learn how the protocol works, and
+              ask clarifying questions. No key, no account, nothing to install.
             </p>
-            <p
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '0.4rem',
-                fontSize: '0.85rem',
-                color: 'var(--text-accent)',
-                fontFamily: 'var(--font-mono)',
-                marginBottom: '1.25rem',
-              }}
-            >
+            <p className="fl-meta">
               <Boxes size={14} aria-hidden />
               {TOOL_COUNT} read-only tools · no API key
             </p>
             <EndpointBlock endpoint={endpoint} />
           </div>
-          <div>
+          <div className="fl-hero-visual">
             <McpConversationVisual />
           </div>
         </header>
@@ -117,44 +68,39 @@ export default function McpLanding({ endpoint }: { endpoint: string }) {
           <p>
             Any client that speaks Streamable HTTP works. Clients that only
             speak stdio can bridge with{' '}
-            <code style={{ color: 'var(--text-accent)' }}>npx mcp-remote</code>.
+            <code>npx mcp-remote</code>.
           </p>
         }
         visual={<McpSetupVisual endpoint={endpoint} />}
       />
 
-      <FeatureSection
-        flip
-        badge={{ icon: <Boxes size={12} />, label: 'The tools' }}
-        title={`${capitalize(toolCountWord())} tools`}
-        body={
-          <>
-            {/* The grid beside this already names all ten groups, so the
-                prose says what the grid cannot. */}
-            <p>
-              Every tool is read-only. Most work against any repository on any
-              PDS, so reading a Leaflet document or a Tangled repo takes the
-              same call as reading a Bluesky post.
-            </p>
-            <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-              {EXAMPLES.map((question) => (
-                <li
-                  key={question}
-                  style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem', fontSize: '0.95rem' }}
-                >
-                  <ArrowRight
-                    size={14}
-                    aria-hidden
-                    style={{ color: 'var(--text-accent)', flexShrink: 0, marginTop: '0.3rem' }}
-                  />
-                  {question}
-                </li>
-              ))}
-            </ul>
-          </>
-        }
-        visual={<McpToolCatalogVisual />}
-      />
+      <section className="fl-section">
+        <div className="fl-section-head">
+          <span className="fl-kicker">
+            <Boxes size={14} /> The tools
+          </span>
+          <h2 className="fl-h2">{`${capitalize(toolCountWord())} tools`}</h2>
+          {/* The grid below already names all ten groups, so the prose says
+              what the grid cannot. */}
+          <p className="fl-body">
+            Every tool is read-only. Most work against any repository on any
+            PDS, so reading a Leaflet document or a Tangled repo takes the
+            same call as reading a Bluesky post.
+          </p>
+        </div>
+        <div className="fl-card fl-asks">
+          <span className="fl-mock-label">Things to ask</span>
+          <ul>
+            {EXAMPLES.map((question) => (
+              <li key={question}>
+                <ArrowRight size={14} aria-hidden />
+                {question}
+              </li>
+            ))}
+          </ul>
+        </div>
+        <McpToolCatalogVisual />
+      </section>
 
       <CrossLinkCards current="mcp" />
     </div>
@@ -171,58 +117,12 @@ function capitalize(value: string): string {
  * same way.
  */
 
-function Badge({ icon, children }: { icon: React.ReactNode; children: React.ReactNode }) {
-  return (
-    <span
-      style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: '0.4rem',
-        padding: '0.25rem 0.625rem',
-        border: '1px solid var(--border-subtle)',
-        background: 'var(--bg-tertiary)',
-        color: 'var(--text-tertiary)',
-        fontSize: '0.75rem',
-        letterSpacing: '0.08em',
-        textTransform: 'uppercase',
-        fontFamily: 'var(--font-serif)',
-        lineHeight: 1,
-      }}
-    >
-      {icon}
-      {children}
-    </span>
-  );
-}
-
 /** The endpoint, shown the way you would paste it, with a one-click copy. */
 function EndpointBlock({ endpoint }: { endpoint: string }) {
   return (
-    <div
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: '0.75rem',
-        border: '1px solid var(--border-medium)',
-        background: 'var(--bg-tertiary)',
-        padding: '0.625rem 0.625rem 0.625rem 0.875rem',
-      }}
-    >
-      <code
-        style={{
-          minWidth: 0,
-          flex: 1,
-          fontFamily: 'var(--font-mono)',
-          fontSize: '0.9rem',
-          color: 'var(--text-primary)',
-          wordBreak: 'break-all',
-        }}
-      >
-        {endpoint}
-      </code>
-      <span style={{ flexShrink: 0 }}>
-        <CopyButton value={endpoint} label="Copy" compact />
-      </span>
+    <div className="fl-endpoint">
+      <code>{endpoint}</code>
+      <CopyButton value={endpoint} label="Copy" compact />
     </div>
   );
 }

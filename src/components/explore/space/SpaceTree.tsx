@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import { ChevronDown, ChevronRight, Info } from 'lucide-react';
+import { ChevronRight, Info } from 'lucide-react';
 import { useAtprotoSession } from '@/components/AtprotoSessionProvider';
 import { encodeRepo, shortDid, spaceExplorePath } from '@/utils/atproto/urls';
 import { parseSpaceAtUri } from '@/utils/atproto/spaceUri';
@@ -292,34 +292,14 @@ export function SpaceTreeList({
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+    <div className="fx-sp-tree">
       {groups.map((group) => {
         const records = recordsIn(group.uris);
         return (
-          <div
-            key={group.type}
-            style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}
-          >
-            <div
-              style={{
-                display: 'flex',
-                flexWrap: 'wrap',
-                alignItems: 'baseline',
-                gap: '0.5rem',
-              }}
-            >
-              <code
-                style={{
-                  background: 'transparent',
-                  padding: 0,
-                  fontSize: '0.85rem',
-                  color: 'var(--text-primary)',
-                  overflowWrap: 'anywhere',
-                }}
-              >
-                {group.type}
-              </code>
-              <span style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)' }}>
+          <div key={group.type} className="fx-sp-group">
+            <div className="fx-sp-group-label">
+              <code>{group.type}</code>
+              <span>
                 {group.uris.length === 1 ? '1 space' : `${formatCount(group.uris.length)} spaces`}
                 {records !== null && ` · ${formatCount(records)} records`}
               </span>
@@ -383,17 +363,7 @@ function SpaceBranch({
 
   if (!parts) {
     return (
-      <div
-        style={{
-          border: '1px solid var(--border-medium)',
-          background: 'var(--bg-secondary)',
-          padding: '0.625rem 1rem',
-          fontFamily: 'var(--font-mono)',
-          fontSize: '0.85rem',
-          color: 'var(--text-tertiary)',
-          overflowWrap: 'anywhere',
-        }}
-      >
+      <div className="fx-sp-branch" data-unparsed>
         {uri} (unrecognised address)
       </div>
     );
@@ -416,166 +386,77 @@ function SpaceBranch({
     : `${authorityLabel}’s ${parts.spaceType} space`;
 
   return (
-    <section style={{ border: '1px solid var(--border-medium)', background: 'var(--bg-secondary)' }}>
+    <section className="fx-sp-branch">
       {/* Toggle, the space's own page and the count share the header row, the
-          way the collections list pairs its group header with a pin. These
-          used to be a footer of two underlined sentences on every card, which
-          repeated the same phrases once per space and cost a row each.
-          The count sits last so it lands on the same right edge as the counts
-          on the collection rows below; putting the link after it left the
-          column of chips stepped.
+          way the collections list pairs its group header with a pin. The count
+          sits last so it lands on the same right edge as the counts on the
+          collection rows below.
 
           There was a second link here, to the member's repo in the space. It
           went to a page listing the collections this row already has open
           underneath it, so it pointed at what you were looking at. */}
-      <div style={{ display: 'flex', alignItems: 'center' }}>
-      <button
-        type="button"
-        onClick={onToggle}
-        aria-expanded={open}
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '0.5rem',
-          flex: 1,
-          minWidth: 0,
-          padding: '0.625rem 0 0.625rem 1rem',
-          background: 'transparent',
-          border: 0,
-          textAlign: 'left',
-          fontFamily: 'var(--font-mono)',
-          fontSize: '0.875rem',
-          color: 'var(--text-primary)',
-          cursor: 'pointer',
-        }}
-      >
-        {open ? (
-          <ChevronDown size={14} aria-hidden style={{ color: 'var(--text-tertiary)' }} />
-        ) : (
-          <ChevronRight size={14} aria-hidden style={{ color: 'var(--text-tertiary)' }} />
-        )}
-        {/* Stacked rather than side by side: the type and the authority are
-            both unbreakable-ish strings, and competing for one line meant the
-            NSID got chopped mid-word on a phone. Vertically each gets the full
-            width, and the authority reads as the qualifier it is. */}
-        {/* The authority leads and the type is dropped: the group heading
-            above already names the type, and within a group the authority is
-            the only thing telling two rows apart. The key stays as the
-            qualifier, since one authority can run several spaces of a type. */}
-        <span
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '0.15rem',
-            flex: 1,
-            minWidth: 0,
-          }}
+      <div className="fx-sp-branch-head">
+        <button
+          type="button"
+          onClick={onToggle}
+          aria-expanded={open}
+          className="fx-sp-branch-toggle"
         >
-          {/* Truncated rather than wrapped. A handle on the alpha PDS runs to
-              about thirty characters, and with the icons and the count also on
-              this row it wrapped to a second line for one or two orphan
-              characters. Cutting from the end keeps the part that tells two
-              rows apart: within a group the domain is usually identical and
-              the name is what differs. The full value is on the title. */}
-          <code
-            title={authorityLabel}
-            style={{
-              background: 'transparent',
-              padding: 0,
-              color: 'var(--text-accent)',
-              whiteSpace: 'nowrap',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-            }}
-          >
-            {authorityLabel}
-          </code>
-          <span
-            title={parts.skey}
-            style={{
-              fontSize: '0.7rem',
-              color: 'var(--text-tertiary)',
-              whiteSpace: 'nowrap',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-            }}
-          >
-            {parts.skey}
+          <ChevronRight size={14} aria-hidden />
+          {/* The authority leads and the type is dropped: the group heading
+              above already names the type, and within a group the authority is
+              the only thing telling two rows apart. The key stays as the
+              qualifier, since one authority can run several spaces of a type.
+              Both truncate rather than wrap; the full value is on the title. */}
+          <span className="fx-sp-branch-names">
+            <code title={authorityLabel}>{authorityLabel}</code>
+            <span title={parts.skey}>{parts.skey}</span>
           </span>
-        </span>
-      </button>
+        </button>
         <Link
           href={spacePath}
           prefetch={false}
           aria-label={`About ${spaceLabel}`}
           title="About this space"
-          style={headerIconStyle}
+          className="fx-sp-branch-info"
         >
           <Info size={14} aria-hidden />
         </Link>
-        {count !== null && (
-          <span
-            style={{
-              flexShrink: 0,
-              // Matches the collection rows' trailing padding, so both chips
-              // sit on the same right edge.
-              marginRight: '1rem',
-              marginLeft: '0.25rem',
-              fontSize: '0.75rem',
-              color: 'var(--text-tertiary)',
-              padding: '0.125rem 0.5rem',
-              background: 'var(--bg-tertiary)',
-              border: '1px solid var(--border-subtle)',
-            }}
-          >
-            {formatCount(count)}
-          </span>
-        )}
+        {count !== null && <span className="fx-sp-count">{formatCount(count)}</span>}
       </div>
 
       {open && (
-        <div style={{ borderTop: '1px solid var(--border-subtle)' }}>
+        <div className="fx-sp-branch-body">
           {(!contents || contents.status === 'loading') && (
-            <p className="explore-placeholder" style={{ padding: '0.625rem 1.5rem', margin: 0 }}>
-              Loading your records…
-            </p>
+            <p className="fx-sp-msg">Loading your records…</p>
           )}
 
-          {contents?.status === 'error' && (
-            <p className="explore-error" style={{ padding: '0.625rem 1.5rem', margin: 0 }}>
-              {contents.message}
-            </p>
-          )}
+          {contents?.status === 'error' && <p className="fx-sp-err">{contents.message}</p>}
 
           {contents?.status === 'ready' && contents.collections.length === 0 && (
-            <p className="explore-placeholder" style={{ padding: '0.625rem 1.5rem', margin: 0 }}>
-              You haven’t written anything to this space yet.
-            </p>
+            <p className="fx-sp-msg">You haven’t written anything to this space yet.</p>
           )}
 
           {contents?.status === 'ready' && contents.collections.length > 0 && (
-            <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
-              {contents.collections.map((node, i) => (
+            <ul className="fx-sp-coll">
+              {contents.collections.map((node) => (
                 <CollectionRow
                   key={node.collection}
                   node={node}
                   href={`${memberPath}/${node.collection}`}
                   complete={contents.complete}
-                  baseBg={i % 2 === 1 ? 'var(--bg-tertiary)' : 'transparent'}
-                  first={i === 0}
                 />
               ))}
             </ul>
           )}
 
           {contents?.status === 'ready' && !contents.complete && (
-            <p style={{ ...noteStyle, padding: '0.5rem 1.5rem' }}>
+            <p className="fx-sp-note">
               Counted from the first {formatCount(RECORDS_PER_SPACE)} records in
               this space, so these are lower bounds. Open a collection for its
               full listing.
             </p>
           )}
-
         </div>
       )}
     </section>
@@ -591,74 +472,17 @@ function CollectionRow({
   node,
   href,
   complete,
-  baseBg,
-  first,
 }: {
   node: CollectionNode;
   href: string;
   /** False when the count is a lower bound from a truncated scan. */
   complete: boolean;
-  /** Resting background for zebra striping; mouseleave restores to this. */
-  baseBg: string;
-  /**
-   * First row in the list. Its rule is dropped because the branch body it
-   * opens already draws one directly above — two adjacent 1px borders paint
-   * as a single 2px line, which is what made this separator look heavier than
-   * every other one in the tree.
-   */
-  first?: boolean;
 }) {
   return (
-    <li
-      style={{
-        borderTop: first ? 'none' : '1px solid var(--border-subtle)',
-        background: baseBg,
-        transition: 'background 0.2s ease',
-      }}
-      onMouseEnter={(e) => {
-        e.currentTarget.style.background = 'var(--bg-tertiary)';
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.background = baseBg;
-      }}
-    >
-      <Link
-        href={href}
-        prefetch={false}
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '0.5rem',
-          padding: '0.55rem 1rem 0.55rem 2.25rem',
-          fontFamily: 'var(--font-mono)',
-          fontSize: '0.8125rem',
-          color: 'var(--text-primary)',
-          textDecoration: 'none',
-        }}
-      >
-        <code
-          style={{
-            flex: 1,
-            minWidth: 0,
-            background: 'transparent',
-            padding: 0,
-            color: 'var(--text-secondary)',
-            wordBreak: 'break-all',
-            overflowWrap: 'anywhere',
-          }}
-        >
-          {node.collection}
-        </code>
-        <span
-          style={{
-            fontSize: '0.75rem',
-            color: 'var(--text-tertiary)',
-            padding: '0.125rem 0.5rem',
-            background: 'var(--bg-tertiary)',
-            border: '1px solid var(--border-subtle)',
-            flexShrink: 0,
-          }}
-        >
+    <li>
+      <Link href={href} prefetch={false}>
+        <code>{node.collection}</code>
+        <span className="fx-sp-count">
           {formatCount(node.count)}
           {complete ? '' : '+'}
         </span>
@@ -666,28 +490,3 @@ function CollectionRow({
     </li>
   );
 }
-
-
-/**
- * Icon links in a branch header, modelled on the collections list's pin
- * button. Padding is tighter than the pin's because two of them sit here and
- * the space's own handle needs the width: an alpha-PDS handle runs to about
- * thirty characters, and every pixel these take is one it wraps by.
- */
-const headerIconStyle: React.CSSProperties = {
-  display: 'inline-flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  padding: '0 0.5rem',
-  color: 'var(--text-tertiary)',
-  flexShrink: 0,
-  transition: 'color 0.15s ease',
-};
-
-const noteStyle: React.CSSProperties = {
-  margin: 0,
-  fontSize: '0.8rem',
-  lineHeight: 1.5,
-  color: 'var(--text-tertiary)',
-  maxWidth: '46rem',
-};

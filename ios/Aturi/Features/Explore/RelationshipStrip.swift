@@ -75,7 +75,7 @@ private struct RelationshipStripBody: View {
                 .accessibilityAddTraits(.isHeader)
             if !model.isLoaded {
                 Text(RelationshipModel.loadingCopy)
-                    .font(.caption)
+                    .font(AturiFont.caption)
                     .foregroundStyle(theme.textTertiary)
             } else if model.hasSignals {
                 SettingsWrapLayout(spacing: 8) {
@@ -124,29 +124,29 @@ private struct RelationshipStripBody: View {
         }
     }
 
-    /// The web's chip: serif caption, hairline border, the accent tone for
-    /// a mutual follow.
+    /// The web's chip: a Field Notes pill, hairline border, the soft
+    /// accent fill for a mutual follow.
     private func chipLabel(_ chip: RelationshipChip) -> some View {
         let accent = chip.tone == .accent
         return HStack(spacing: 5) {
             Image(systemName: RelationshipModel.systemImage(for: chip.id))
-                .font(.caption2)
+                .font(AturiFont.caption2)
             Text(chip.label)
-                .font(.system(.caption, design: .serif))
+                .font(AturiFont.sans(.caption, weight: .medium))
             if let note = chip.note {
                 Text(note)
-                    .font(.system(.caption, design: .serif))
+                    .font(AturiFont.caption)
                     .opacity(0.75)
             }
         }
-        .foregroundStyle(accent ? theme.textAccent : theme.textSecondary)
+        .foregroundStyle(accent ? theme.accentSoftFg : theme.textSecondary)
         .lineLimit(1)
-        .padding(.horizontal, 9)
+        .padding(.horizontal, 10)
         .padding(.vertical, 5)
-        .background(theme.bgTertiary, in: RoundedRectangle(cornerRadius: 6, style: .continuous))
+        .background(accent ? theme.accentSoft : theme.bgSecondary, in: Capsule())
         .overlay(
-            RoundedRectangle(cornerRadius: 6, style: .continuous)
-                .strokeBorder(accent ? theme.textAccent : theme.borderSubtle, lineWidth: 1)
+            Capsule()
+                .strokeBorder(accent ? theme.accentSoftBorder : theme.borderMedium, lineWidth: 1)
         )
         .accessibilityElement(children: .combine)
     }

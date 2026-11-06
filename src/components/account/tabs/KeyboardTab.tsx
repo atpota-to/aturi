@@ -7,6 +7,7 @@ import Toggle from '../Toggle';
 import Kbd, { KbdList } from '@/components/Kbd';
 import {
   COMMAND_GROUPS,
+  WHEN_LABELS,
   bindingConflicts,
   eventToStep,
   normalizeBinding,
@@ -53,7 +54,7 @@ export default function KeyboardTab() {
         </div>
 
         <div className="kb-launchers">
-          <button type="button" className="kb-launch-button" onClick={openPalette}>
+          <button type="button" className="kb-launch-button" onClick={() => openPalette()}>
             <CommandIcon size={15} aria-hidden />
             <span>Open command palette</span>
           </button>
@@ -110,6 +111,7 @@ export default function KeyboardTab() {
                     description={cmd.meta.description}
                     bindings={cmd.bindings}
                     requiresAuth={Boolean(cmd.meta.requiresAuth)}
+                    whenLabel={cmd.meta.when ? WHEN_LABELS[cmd.meta.when] : undefined}
                     available={cmd.available}
                     platform={platform}
                     chords={state.chords}
@@ -166,6 +168,7 @@ function BindingRow({
   description,
   bindings,
   requiresAuth,
+  whenLabel,
   available,
   platform,
   chords,
@@ -179,6 +182,8 @@ function BindingRow({
   description: string;
   bindings: string[];
   requiresAuth: boolean;
+  /** Where a page-scoped command runs; it does nothing elsewhere. */
+  whenLabel?: string;
   available: boolean;
   platform: Platform;
   chords: boolean;
@@ -208,6 +213,7 @@ function BindingRow({
           {requiresAuth && !available && (
             <span className="kb-row-note"> · requires sign-in</span>
           )}
+          {whenLabel && <span className="kb-row-note"> · {whenLabel}</span>}
         </span>
         <span className="kb-row-desc">{description}</span>
         {conflictLabels.length > 0 && (
@@ -261,7 +267,7 @@ function BindingRow({
                 Reset
               </button>
             )}
-            {bindings.length > 0 && (
+            {bindings.length > 0 ? (
               <button
                 type="button"
                 className="kb-text-button"
@@ -271,6 +277,12 @@ function BindingRow({
               >
                 Clear
               </button>
+            ) : (
+              // Holds Clear's slot so Edit stays in the same column as the
+              // bound rows above and below.
+              <span className="kb-text-button kb-slot-placeholder" aria-hidden="true">
+                Clear
+              </span>
             )}
           </>
         )}

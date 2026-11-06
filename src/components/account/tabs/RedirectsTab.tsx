@@ -78,7 +78,7 @@ export default function RedirectsTab() {
           const meta = COMPAT_FAMILIES[family];
           const current = prefs.favoriteByFamily?.[family] ?? '';
           return (
-            <div className="settings-toggle-row" key={family}>
+            <div className={`settings-toggle-row${enabled ? '' : ' is-gated'}`} key={family}>
               <label className="settings-toggle-label" htmlFor={`redirect-${family}`}>
                 <span className="settings-toggle-label-text">{meta?.name ?? family}</span>
                 {meta?.description && (
@@ -92,17 +92,7 @@ export default function RedirectsTab() {
                 onChange={(e) =>
                   update((p) => setFavoriteForFamily(p, family, e.target.value || null))
                 }
-                style={{
-                  flexShrink: 0,
-                  padding: '0.4rem 0.5rem',
-                  fontSize: '0.85rem',
-                  fontFamily: 'var(--font-serif)',
-                  color: 'var(--text-primary)',
-                  background: 'var(--bg-primary)',
-                  border: '1px solid var(--border-medium)',
-                  opacity: enabled ? 1 : 0.5,
-                  cursor: enabled ? 'pointer' : 'not-allowed',
-                }}
+                className="settings-select"
               >
                 <option value="">Don&rsquo;t redirect</option>
                 {destinations.map((d) => (

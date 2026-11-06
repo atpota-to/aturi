@@ -1,0 +1,43 @@
+<div class="popup-shell">
+  <header class="popup-topbar" data-sticky>
+    <div class="popup-title"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"/><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/></svg><span>aturi</span></div>
+    <div class="popup-mode-tabs" role="tablist" aria-label="Popup mode">
+      <button type="button" role="tab" aria-selected="false" tabindex="-1" class="popup-mode-tab"><span class="popup-mode-tab-label" data-label="Open in">Open in</span></button>
+      <button type="button" role="tab" aria-selected="true" class="popup-mode-tab is-active"><span class="popup-mode-tab-label" data-label="This page">This page</span></button>
+    </div>
+    <div class="popup-topbar-actions">
+      <button type="button" class="popup-icon-btn" aria-label="Open extension settings"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 7h-9"/><path d="M14 17H5"/><circle cx="17" cy="17" r="3"/><circle cx="7" cy="7" r="3"/></svg></button>
+    </div>
+  </header>
+  <main class="popup-body">
+    <div class="popup-root" role="tabpanel">
+    <div class="popup-notice tt-notice">
+      <div class="popup-notice-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="m16.24 7.76-1.804 5.411a2 2 0 0 1-1.265 1.265L7.76 16.24l1.804-5.411a2 2 0 0 1 1.265-1.265z"/></svg></div>
+      <h2 class="popup-notice-title">No Atmosphere data on this page</h2>
+      <p class="popup-notice-body">We couldn't find a supported AT URI for this tab (from the address or an <code>at://</code> link in the page head). On a supported profile or post, this popup offers context-aware links instead.</p>
+    </div>
+    <form class="tt-lookup" aria-label="Look up a repo or record">
+      <label class="popup-section-label" for="tt-lookup-field">Look up</label>
+      <div class="tt-lookup-row">
+        <span class="tt-lookup-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg></span>
+        <input id="tt-lookup-field" class="aturi-input tt-lookup-input" type="text" placeholder="Handle, DID or at:// URI" spellcheck="false" autocomplete="off">
+        <button type="submit" class="aturi-btn aturi-btn-primary tt-lookup-go">Go</button>
+      </div>
+    </form>
+    <section class="popup-section is-sheet">
+      <h2 class="popup-section-label">Recent repos</h2>
+      <div class="popup-waypoints">
+      <div class="tt-ref">
+        <button type="button" class="tt-ref-main tt-recent" aria-label="Open dame.is on aturi.to"><svg class="tt-recent-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M16 8v5a3 3 0 0 0 6 0v-1a10 10 0 1 0-4 8"/></svg><span class="tt-recent-handle">dame.is</span><span class="tt-recent-count">12 visits</span><span class="tt-id-glyph tt-recent-go"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg></span></button>
+      </div>
+      <div class="tt-ref">
+        <button type="button" class="tt-ref-main tt-recent" aria-label="Open mitsuhiko.at on aturi.to"><svg class="tt-recent-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M16 8v5a3 3 0 0 0 6 0v-1a10 10 0 1 0-4 8"/></svg><span class="tt-recent-handle">mitsuhiko.at</span><span class="tt-recent-count">3 visits</span><span class="tt-id-glyph tt-recent-go"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg></span></button>
+      </div>
+      <div class="tt-ref">
+        <button type="button" class="tt-ref-main tt-recent" aria-label="Open bjkeefe.bsky.social on aturi.to"><svg class="tt-recent-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M16 8v5a3 3 0 0 0 6 0v-1a10 10 0 1 0-4 8"/></svg><span class="tt-recent-handle">bjkeefe.bsky.social</span><span class="tt-recent-count">2 visits</span><span class="tt-id-glyph tt-recent-go"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg></span></button>
+      </div>
+      </div>
+    </section>
+    </div>
+  </main>
+</div>

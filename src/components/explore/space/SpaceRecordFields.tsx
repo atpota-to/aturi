@@ -42,52 +42,17 @@ export default function SpaceRecordFields({ value }: Props) {
   });
 
   if (keys.length === 0) {
-    return <p className="explore-placeholder">This record has no fields.</p>;
+    return <p className="fx-sp-msg">This record has no fields.</p>;
   }
 
   return (
-    <dl
-      style={{
-        margin: 0,
-        display: 'grid',
-        gridTemplateColumns: 'minmax(6rem, max-content) 1fr',
-        border: '1px solid var(--border-medium)',
-        background: 'var(--bg-secondary)',
-      }}
-    >
-      {keys.map((key, i) => {
-        const last = i === keys.length - 1;
-        return (
-          <div key={key} style={{ display: 'contents' }}>
-            <dt
-              style={{
-                padding: '0.5rem 0.75rem',
-                borderBottom: last ? 'none' : '1px solid var(--border-subtle)',
-                fontFamily: 'var(--font-mono)',
-                fontSize: '0.75rem',
-                color: 'var(--text-tertiary)',
-                overflowWrap: 'anywhere',
-              }}
-            >
-              {key}
-            </dt>
-            <dd
-              style={{
-                margin: 0,
-                padding: '0.5rem 0.75rem',
-                borderBottom: last ? 'none' : '1px solid var(--border-subtle)',
-                fontFamily: 'var(--font-mono)',
-                fontSize: '0.8rem',
-                color: 'var(--text-primary)',
-                overflowWrap: 'anywhere',
-                whiteSpace: 'pre-wrap',
-              }}
-            >
-              {renderValue(value[key])}
-            </dd>
-          </div>
-        );
-      })}
+    <dl className="fx-sp-recfields">
+      {keys.map((key) => (
+        <div key={key}>
+          <dt>{key}</dt>
+          <dd>{renderValue(value[key])}</dd>
+        </div>
+      ))}
     </dl>
   );
 }
@@ -163,7 +128,7 @@ const nestedJsonStyle: React.CSSProperties = {
 };
 
 function Muted({ children }: { children: ReactNode }) {
-  return <span style={{ color: 'var(--text-tertiary)' }}>{children}</span>;
+  return <span className="fx-sp-muted">{children}</span>;
 }
 
 function formatBytes(bytes: number): string {

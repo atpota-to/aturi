@@ -11,13 +11,7 @@ import { AtSign, MessageCircle, Quote } from 'lucide-react';
  */
 export default function SharingScenariosVisual() {
   return (
-    <div
-      style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(16rem, 1fr))',
-        gap: '1rem',
-      }}
-    >
+    <div className="fl-scenarios">
       <Scenario
         icon={<MessageCircle size={14} />}
         label="In a DM"
@@ -25,7 +19,7 @@ export default function SharingScenariosVisual() {
         body={
           <>
             check this out:{' '}
-            <Link>aturi.to/profile/aturi.to/post/3lq…</Link>
+            <Link url="aturi.to/profile/aturi.to/post/3lq…" />
           </>
         }
       />
@@ -36,7 +30,7 @@ export default function SharingScenariosVisual() {
         body={
           <>
             writer · gardener · my work lives at{' '}
-            <Link>aturi.to/profile/new-account.bsky.social</Link>
+            <Link url="aturi.to/profile/new-account.bsky.social" />
           </>
         }
       />
@@ -47,7 +41,7 @@ export default function SharingScenariosVisual() {
         body={
           <>
             Follow updates →{' '}
-            <Link>aturi.to/profile/handle/app.bsky.feed.generator/news</Link>
+            <Link url="aturi.to/profile/handle/app.bsky.feed.generator/news" />
           </>
         }
       />
@@ -67,70 +61,33 @@ function Scenario({
   body: React.ReactNode;
 }) {
   return (
-    <div
-      style={{
-        background: 'var(--bg-secondary)',
-        border: '1px solid var(--border-medium)',
-        padding: '1rem',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '0.625rem',
-        transform: 'rotate(-0.15deg)',
-      }}
-    >
-      <div
-        style={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: '0.4rem',
-          color: 'var(--text-accent)',
-          fontSize: '0.7rem',
-          letterSpacing: '0.1em',
-          textTransform: 'uppercase',
-          fontFamily: 'var(--font-serif)',
-        }}
-      >
+    <div className="fl-card fl-scenario">
+      <span className="fl-mock-label" data-accent="">
         {icon}
         {label}
-      </div>
-      {author && (
-        <div
-          style={{
-            fontFamily: 'var(--font-mono)',
-            fontSize: '0.7rem',
-            color: 'var(--text-tertiary)',
-          }}
-        >
-          {author}
-        </div>
-      )}
-      <div
-        style={{
-          fontFamily: 'var(--font-serif)',
-          fontSize: '0.9rem',
-          color: 'var(--text-primary)',
-          lineHeight: 1.55,
-        }}
-      >
-        {body}
-      </div>
+      </span>
+      {author && <span className="fl-mock-sub">{author}</span>}
+      <div className="fl-scenario-body">{body}</div>
     </div>
   );
 }
 
-function Link({ children }: { children: React.ReactNode }) {
+/** A break opportunity after each slash, so a long URL wraps between path
+ *  segments rather than mid-word. */
+function Link({ url }: { url: string }) {
+  const parts = url.split('/');
   return (
-    <span
-      style={{
-        fontFamily: 'var(--font-mono)',
-        fontSize: '0.78rem',
-        color: 'var(--text-accent)',
-        borderBottom: '1px solid var(--text-accent)',
-        paddingBottom: '1px',
-        wordBreak: 'break-all',
-      }}
-    >
-      {children}
+    <span className="fl-scenario-link">
+      {parts.map((part, i) => (
+        <span key={i}>
+          {part}
+          {i < parts.length - 1 && (
+            <>
+              /<wbr />
+            </>
+          )}
+        </span>
+      ))}
     </span>
   );
 }

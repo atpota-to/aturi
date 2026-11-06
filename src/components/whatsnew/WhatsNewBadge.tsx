@@ -13,6 +13,26 @@ import {
 import WhatsNewContent from './WhatsNewContent';
 
 /**
+ * Window event the command palette's "What's new" command dispatches. The bell
+ * opens its notes and cancels the event, which tells the palette the request
+ * landed; uncanceled means no bell is mounted on this page.
+ */
+export const OPEN_WHATS_NEW_EVENT = 'aturi:open-whats-new';
+
+/**
+ * Unread release-note entries, for the dot shown away from the bell. On a
+ * phone the bell is folded into the site menu, so the dot moves to the
+ * toolbar button that opens it and to the menu's own "What's new" tile.
+ */
+export function useUnreadReleaseCount(): number {
+  const { prefs } = usePreferences();
+  return useMemo(
+    () => countEntries(unseenReleases(prefs.lastSeenReleaseId)),
+    [prefs.lastSeenReleaseId],
+  );
+}
+
+/**
  * Header bell with an unread dot, opening the same notes the modal shows.
  *
  * This is the passive half of the pair: it never interrupts, works on every
@@ -69,6 +89,18 @@ export default function WhatsNewBadge() {
   }, [open, close, available, update]);
 
   useEffect(() => {
+    function onRequest(e: Event) {
+      // No notes means no button below, so nothing to open: leave the event
+      // uncanceled and the palette reports it.
+      if (available.length === 0) return;
+      e.preventDefault();
+      if (!open) toggle();
+    }
+    window.addEventListener(OPEN_WHATS_NEW_EVENT, onRequest);
+    return () => window.removeEventListener(OPEN_WHATS_NEW_EVENT, onRequest);
+  }, [open, toggle, available.length]);
+
+  useEffect(() => {
     if (!open) return;
     const onDown = (e: MouseEvent) => {
       if (!wrapRef.current?.contains(e.target as Node)) setOpen(false);
@@ -114,7 +146,9 @@ export default function WhatsNewBadge() {
           <WhatsNewContent releases={shown} onNavigate={close} />
           <div className="whats-new-foot">
             <span />
-            <button type="button" className="whats-new-btn" onClick={close}>
+            {/* Outline, not filled: the item actions above are the
+                primary choices, and two filled buttons competed. */}
+            <button type="button" className="whats-new-btn is-secondary" onClick={close}>
               Done
             </button>
           </div>

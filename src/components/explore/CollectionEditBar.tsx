@@ -3,7 +3,6 @@
 import { Trash2 } from 'lucide-react';
 import { HOURLY_POINT_BUDGET } from '@/utils/atproto/writeThrottle';
 import DeleteProgressBar from './DeleteProgressBar';
-import { selectionButtonStyle } from './collectionListHelpers';
 
 /**
  * The in-page bulk-edit toolbar shown while selection mode is active on a
@@ -46,23 +45,14 @@ export default function CollectionEditBar({
   onCancelDelete: () => void;
   onStop: () => void;
 }) {
+  const plural = selectedSize === 1 ? '' : 's';
   return (
-    <div
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: '0.5rem',
-        flexWrap: 'wrap',
-        padding: '0.625rem 0.75rem',
-        background: 'var(--bg-secondary)',
-        border: '1px solid var(--border-medium)',
-      }}
-    >
+    <div className="fx-card fx-editbar">
       <button
         type="button"
         onClick={onSelectAll}
         disabled={recordsLength === 0 || allSelected || deleting}
-        style={selectionButtonStyle(recordsLength === 0 || allSelected || deleting)}
+        className="fx-btn fx-btn-sm"
       >
         Select
       </button>
@@ -70,20 +60,12 @@ export default function CollectionEditBar({
         type="button"
         onClick={onDeselectAll}
         disabled={selectedSize === 0 || deleting}
-        style={selectionButtonStyle(selectedSize === 0 || deleting)}
+        className="fx-btn fx-btn-sm"
       >
         Deselect
       </button>
-      <span
-        style={{
-          color: 'var(--text-tertiary)',
-          fontSize: '0.8125rem',
-          marginLeft: '0.25rem',
-        }}
-      >
-        {selectedSize} selected
-      </span>
-      <span style={{ flex: 1 }} />
+      <span className="fx-editbar-count">{selectedSize} selected</span>
+      <span className="fx-editbar-spacer" />
       {!confirmingDelete ? (
         <button
           type="button"
@@ -91,98 +73,41 @@ export default function CollectionEditBar({
           disabled={selectedSize === 0}
           aria-label={
             selectedSize
-              ? `Delete ${selectedSize} selected record${selectedSize === 1 ? '' : 's'}`
+              ? `Delete ${selectedSize} selected record${plural}`
               : 'Delete selected records'
           }
           title={
             selectedSize
-              ? `Delete ${selectedSize} selected record${selectedSize === 1 ? '' : 's'}`
+              ? `Delete ${selectedSize} selected record${plural}`
               : 'Delete selected records'
           }
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            // Icon-only now, so square the horizontal padding up rather
-            // than leaving the old icon+label width.
-            padding: '0.4rem 0.6rem',
-            background: 'var(--danger-soft)',
-            color: 'var(--danger)',
-            border: '1px solid var(--danger-border)',
-            fontFamily: 'var(--font-serif)',
-            fontSize: '0.8125rem',
-            cursor: selectedSize === 0 ? 'not-allowed' : 'pointer',
-            opacity: selectedSize === 0 ? 0.5 : 1,
-          }}
+          className="fx-btn fx-btn-sm fx-btn-danger"
         >
-          <Trash2 size={14} />
+          <Trash2 size={14} aria-hidden />
         </button>
       ) : deleting && deleteProgress ? (
         <>
-          <span
-            style={{
-              fontSize: '0.8125rem',
-              color: 'var(--text-secondary)',
-              whiteSpace: 'nowrap',
-            }}
-          >
+          <span className="fx-editbar-prompt" style={{ whiteSpace: 'nowrap' }}>
             {deleteWaitSec != null
               ? `Paced under the rate limit, resuming in ${deleteWaitSec}s`
               : 'Deleting…'}
           </span>
           <DeleteProgressBar done={deleteProgress.done} total={deleteProgress.total} />
-          <button
-            type="button"
-            onClick={onStop}
-            style={{
-              padding: '0.4rem 0.75rem',
-              background: 'transparent',
-              color: 'var(--text-secondary)',
-              border: '1px solid var(--border-medium)',
-              fontFamily: 'var(--font-serif)',
-              fontSize: '0.8125rem',
-              cursor: 'pointer',
-              whiteSpace: 'nowrap',
-            }}
-          >
+          <button type="button" onClick={onStop} className="fx-btn fx-btn-sm">
             Stop
           </button>
         </>
       ) : (
         <>
-          <span style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>
-            Delete {selectedSize} record{selectedSize === 1 ? '' : 's'}? This cannot be
-            undone.
+          <span className="fx-editbar-prompt">
+            Delete {selectedSize} record{plural}? This cannot be undone.
             {willPace &&
               ` Aturi will pace this under Bluesky's ~${HOURLY_POINT_BUDGET.toLocaleString()}/hour write limit, so it may pause partway.`}
           </span>
-          <button
-            type="button"
-            onClick={onConfirmDelete}
-            style={{
-              padding: '0.4rem 0.75rem',
-              background: 'var(--danger)',
-              color: 'var(--text-on-danger)',
-              border: '1px solid var(--danger)',
-              fontFamily: 'var(--font-serif)',
-              fontSize: '0.8125rem',
-              cursor: 'pointer',
-            }}
-          >
+          <button type="button" onClick={onConfirmDelete} className="fx-btn fx-btn-sm fx-btn-danger-solid">
             Confirm delete
           </button>
-          <button
-            type="button"
-            onClick={onCancelDelete}
-            style={{
-              padding: '0.4rem 0.75rem',
-              background: 'transparent',
-              color: 'var(--text-secondary)',
-              border: '1px solid var(--border-medium)',
-              fontFamily: 'var(--font-serif)',
-              fontSize: '0.8125rem',
-              cursor: 'pointer',
-            }}
-          >
+          <button type="button" onClick={onCancelDelete} className="fx-btn fx-btn-sm">
             Cancel
           </button>
         </>
