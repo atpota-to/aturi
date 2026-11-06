@@ -1054,6 +1054,13 @@ body.has-explore-chrome {
     border-color: transparent;
   }
 
+  /* Paste sits inside the field, so the rule above doesn't reach it. The
+     slim bar is the field's text and nothing else. */
+  .explore-chrome-bar[data-condensed] .explore-chrome-paste,
+  .fn-phone-bar[data-condensed] .explore-chrome-paste {
+    display: none;
+  }
+
   /* The menu, as a sheet standing on the toolbar. Fixed rather than hung off
      the header, and capped so a tall menu (the sign-in flow) scrolls inside
      the sheet instead of running off the top of the screen. */

@@ -1417,6 +1417,15 @@
   border-radius: 6px;
   padding: 4px;
 }
+/* Paste and go (ChromeField.tsx) is for touch screens, where pasting is
+   otherwise a long press and a menu. With a mouse and keyboard the paste
+   shortcut is quicker than any button, and Chrome would stop to ask for
+   clipboard permission on the first click. */
+@media (hover: hover) and (pointer: fine) {
+  .explore-chrome-paste {
+    display: none;
+  }
+}
 .explore-chrome-button {
   height: 36px;
   padding: 0 12px;
