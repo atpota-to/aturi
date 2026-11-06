@@ -912,6 +912,23 @@ body.has-explore-chrome {
     bottom: 0;
   }
 
+  /* While the field is in use, the bar's surface colour on the fixed box
+     itself as well as on the card inside it, for Safari on iOS 26. With the
+     keyboard up, Safari stands the bar on its address pill and draws the
+     strip from there down to the keyboard itself, under the pill and the
+     keyboard's accessory bar. To fill that strip it looks for a fixed
+     element at the edge and uses that element's own background-color
+     (WebKit's fixed container edges), falling back to sampling the page
+     when it has none. This box had none, the card inside it carrying the
+     colour, and the strip showed the page: the bar looked like it was
+     floating over the page rather than sitting on the keyboard. The card
+     covers this box exactly, so nothing changes on the page itself. Kept
+     to focus so the strip under Safari's toolbar the rest of the time stays
+     as it was. The explorer's bar gets the same rule in explorer.css. */
+  .fn-phone-bar:focus-within {
+    background: var(--bg-secondary);
+  }
+
   body.has-explore-chrome .fn-phone-bar {
     display: none;
   }

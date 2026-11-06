@@ -1918,6 +1918,14 @@
   .explore-chrome-shell {
     padding: 0 !important;
   }
+  /* The surface colour on the fixed frame while the field is in use, so
+     Safari on iOS 26 fills the strip between the bar and the keyboard with
+     it rather than with the page; chrome.css (Phone toolbar) has the why.
+     Only at this width, where the card fills the frame edge to edge; wider,
+     the frame has gutters around a floating card that this would paint. */
+  .explore-chrome-bar:focus-within {
+    background: var(--bg-secondary);
+  }
   .explore-chrome-card {
     border-radius: 0;
     border-width: 1px 0 0;
