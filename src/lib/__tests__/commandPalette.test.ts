@@ -59,6 +59,7 @@ test('the header’s destinations are all reachable from the palette', () => {
     'go-explore',
     'go-lexicons',
     'go-spaces',
+    'go-tools',
     'go-links',
     'go-extension',
     'go-mcp',

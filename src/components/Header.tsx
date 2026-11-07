@@ -23,6 +23,7 @@ import {
   Plug,
   Search,
   Telescope,
+  Wrench,
   X,
 } from 'lucide-react';
 import ThemeToggle from './ThemeToggle';
@@ -54,6 +55,7 @@ const NAV_ITEMS = [
   { href: '/explore', label: 'Explore', icon: Telescope, inline: true },
   { href: '/explore/lexicons', label: 'Lexicons', icon: Braces, inline: true },
   { href: '/explore/spaces', label: 'Spaces', icon: Orbit, inline: true },
+  { href: '/tools', label: 'Tools', icon: Wrench, inline: true },
   { href: '/links', label: 'Links', icon: Link2, inline: true },
   { href: '/extension', label: 'Extension', icon: Download, inline: true },
   { href: '/mcp', label: 'MCP', icon: Plug, inline: true },

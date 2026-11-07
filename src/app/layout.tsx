@@ -37,6 +37,7 @@ import "@/styles/fieldnotes/link.css";
 import "@/styles/fieldnotes/content.css";
 import "@/styles/fieldnotes/landing.css";
 import "@/styles/fieldnotes/account.css";
+import "@/styles/fieldnotes/tools.css";
 // Motion shared across surfaces, last so it can restate their transitions.
 import "@/styles/fieldnotes/motion.css";
 

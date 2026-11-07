@@ -49,6 +49,7 @@ import {
   Type,
   User,
   Waves,
+  Wrench,
   type LucideIcon,
 } from 'lucide-react';
 import { useAtprotoSession } from './AtprotoSessionProvider';
@@ -141,6 +142,7 @@ const COMMAND_ICONS: Record<CommandId, LucideIcon> = {
   'go-my-repo': User,
   'go-lexicons': Braces,
   'go-spaces': Orbit,
+  'go-tools': Wrench,
   'go-links': Compass,
   'go-extension': Download,
   'go-mcp': Plug,
@@ -176,6 +178,7 @@ const STATIC_HREFS: Partial<Record<CommandId, string>> = {
   'go-explore': '/explore',
   'go-lexicons': '/explore/lexicons',
   'go-spaces': '/explore/spaces',
+  'go-tools': '/tools',
   'go-links': '/links',
   'go-extension': '/extension',
   'go-mcp': '/mcp',
@@ -600,6 +603,7 @@ export function KeyboardShortcutsProvider({ children }: { children: ReactNode })
       'go-my-repo': navigate('go-my-repo'),
       'go-lexicons': navigate('go-lexicons'),
       'go-spaces': navigate('go-spaces'),
+      'go-tools': navigate('go-tools'),
       'go-links': navigate('go-links'),
       'go-extension': navigate('go-extension'),
       'go-mcp': navigate('go-mcp'),

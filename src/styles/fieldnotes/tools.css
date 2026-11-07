@@ -1,0 +1,607 @@
+/* Field Notes: the tools section (/tools and the tools under it). Tokens
+   live in src/app/globals.css (:root and [data-theme='light']); use them
+   rather than raw hex so dark mode and the colour schemes keep working.
+
+   The hub borrows the explorer's tiles (.fn-x-tiles, explore.css) and the
+   monitor its feed buttons (.fl-feed-pause, landing.css) and arrival accent
+   (.explore-jetstream-row, globals.css). Class prefixes: fn-t- (the
+   section), fn-sm- (stream monitor), fn-token (the chip field). */
+
+.fn-tools {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  color: var(--text-primary);
+}
+
+.fn-t-intro {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.fn-t-intro h1 {
+  margin: 0;
+  font-size: 36px;
+  line-height: 1.1;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  color: var(--text-primary);
+}
+
+.fn-t-intro p {
+  margin: 0;
+  max-width: 680px;
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--text-secondary);
+}
+
+.fn-t-intro code {
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+}
+
+.fn-t-kicker-link {
+  align-self: flex-start;
+  text-decoration: none;
+}
+
+.fn-t-kicker-link:hover {
+  color: var(--accent-forest);
+}
+
+/* Tiles hold a sentence here, not three words; give them the room. */
+.fn-t-tiles {
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+}
+
+.fn-t-tile {
+  align-items: flex-start;
+  padding: 14px 16px;
+}
+
+.fn-t-tile .fn-x-tile-chev {
+  align-self: center;
+}
+
+/* ---------- Stream monitor: filters ---------- */
+
+.fn-sm-filters {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 16px;
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-card);
+  background: var(--bg-secondary);
+}
+
+.fn-sm-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.fn-sm-field > .explore-small-caps {
+  font-size: 11px;
+}
+
+.fn-sm-field > .fn-segmented {
+  align-self: flex-start;
+}
+
+.fn-sm-kinds {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.fn-sm-kind-group {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.fn-sm-kind-source {
+  min-width: 96px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-tertiary);
+}
+
+.fn-sm-kind {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 32px;
+}
+
+.fn-sm-kind-count {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+  opacity: 0.75;
+}
+
+.fn-sm-filter-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 16px;
+}
+
+.fn-sm-filter-grid .explore-input {
+  box-sizing: border-box;
+  height: 40px;
+}
+
+.fn-sm-hint {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--text-tertiary);
+}
+
+.fn-sm-hint[data-error] {
+  color: var(--danger);
+}
+
+.fn-sm-reset {
+  align-self: flex-start;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-accent);
+  cursor: pointer;
+}
+
+.fn-sm-reset:hover {
+  color: var(--accent-forest);
+}
+
+.fn-sm-reset:focus-visible {
+  outline: 2px solid var(--text-accent);
+  outline-offset: 2px;
+}
+
+/* ---------- Chip field ---------- */
+
+.fn-tokens {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 5px;
+  min-height: 40px;
+  padding: 5px 6px;
+  box-sizing: border-box;
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-control);
+  background: var(--bg-secondary);
+  cursor: text;
+  transition: border-color 0.2s ease;
+}
+
+.fn-tokens:focus-within {
+  border-color: var(--text-accent);
+}
+
+.fn-token {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 100%;
+  height: 26px;
+  padding: 0 2px 0 9px;
+  box-sizing: border-box;
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-pill);
+  background: var(--surface-subtle);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-primary);
+  cursor: default;
+}
+
+.fn-token-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fn-token-note {
+  font-family: var(--font-sans);
+  font-size: 11px;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+}
+
+.fn-token[data-state='pending'] {
+  color: var(--text-secondary);
+}
+
+.fn-token[data-state='error'] {
+  border-color: var(--danger-border);
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
+.fn-token[data-state='error'] .fn-token-note {
+  color: var(--danger);
+}
+
+.fn-token-remove {
+  width: 20px;
+  height: 20px;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--text-tertiary);
+  cursor: pointer;
+}
+
+.fn-token-remove:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+.fn-token-remove:focus-visible {
+  outline: 2px solid var(--text-accent);
+  outline-offset: 0;
+}
+
+.fn-tokens-input {
+  flex: 1 1 80px;
+  min-width: 0;
+  height: 28px;
+  padding: 0 4px;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+}
+
+.fn-tokens-input::placeholder {
+  color: var(--text-tertiary);
+}
+
+/* ---------- Stream monitor: feed ---------- */
+
+.fn-sm-feed {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-card);
+  background: var(--bg-secondary);
+  overflow: hidden;
+}
+
+.fn-sm-feed-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 16px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border-medium);
+}
+
+.fn-sm-statuses {
+  flex: 1 1 auto;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 18px;
+}
+
+.fn-sm-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.fn-sm-status-label {
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.fn-sm-status-text {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-tertiary);
+}
+
+.fn-sm-dot {
+  width: 8px;
+  height: 8px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--border-strong);
+}
+
+.fn-sm-status[data-state='open'] .fn-sm-dot {
+  background: var(--status-live);
+}
+
+.fn-sm-status:is([data-state='connecting'], [data-state='reconnecting'], [data-state='waiting'])
+  .fn-sm-dot {
+  background: var(--text-tertiary);
+  animation: fn-sm-blink 1.2s ease-in-out infinite;
+}
+
+@keyframes fn-sm-blink {
+  50% {
+    opacity: 0.25;
+  }
+}
+
+.fn-sm-matched {
+  font-size: 12.5px;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+}
+
+.fn-sm-matched strong {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
+}
+
+.fn-sm-head-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.fn-sm-held {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  height: 34px;
+  border: 0;
+  border-bottom: 1px solid var(--accent-soft-border);
+  background: var(--accent-soft);
+  color: var(--accent-soft-fg);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.fn-sm-held:focus-visible {
+  outline: 2px solid var(--text-accent);
+  outline-offset: -2px;
+}
+
+/* A scroll box of its own, so the list can be read back through while the
+   page stays put. overflow-anchor: none keeps prepended rows from nudging
+   the scroll position (see .explore-jetstream-row); the stable gutter keeps
+   the scrollbar's arrival from reflowing every row. Scrolling still chains
+   to the page at either end, so a swipe over the list on a phone can carry
+   on past it. */
+.fn-sm-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  height: min(68dvh, 640px);
+  overflow-y: auto;
+  overflow-anchor: none;
+  scrollbar-gutter: stable;
+}
+
+.fn-sm-row {
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.fn-sm-row-main {
+  display: grid;
+  grid-template-columns: 8ch 11ch minmax(12ch, 18ch) minmax(0, 1fr) minmax(0, 1.4fr);
+  gap: 12px;
+  align-items: center;
+  width: 100%;
+  min-height: 36px;
+  padding: 0 14px;
+  box-sizing: border-box;
+  border: 0;
+  background: transparent;
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.fn-sm-row-main:hover,
+.fn-sm-row-main[aria-expanded='true'] {
+  background: var(--surface-subtle);
+}
+
+.fn-sm-row-main:focus-visible {
+  outline: 2px solid var(--text-accent);
+  outline-offset: -2px;
+}
+
+.fn-sm-time {
+  font-variant-numeric: tabular-nums;
+  color: var(--text-tertiary);
+}
+
+.fn-sm-badge {
+  justify-self: start;
+  padding: 2px 7px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+  font-family: var(--font-sans);
+  font-size: 11.5px;
+  font-weight: 600;
+  line-height: 1.35;
+  white-space: nowrap;
+}
+
+.fn-sm-badge[data-kind='create'] {
+  background: var(--accent-soft);
+  color: var(--accent-soft-fg);
+}
+
+.fn-sm-badge[data-kind='delete'] {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
+/* PLC operations are outlined, so the two sources read apart at a glance. */
+.fn-sm-badge:is([data-kind='plc-new'], [data-kind='plc-update'], [data-kind='plc-tombstone']) {
+  background: transparent;
+  border-color: var(--border-strong);
+}
+
+.fn-sm-badge[data-kind='plc-new'] {
+  border-color: var(--accent-soft-border);
+  color: var(--accent-soft-fg);
+}
+
+.fn-sm-badge[data-kind='plc-tombstone'] {
+  border-color: var(--danger-border);
+  color: var(--danger);
+}
+
+.fn-sm-did,
+.fn-sm-primary,
+.fn-sm-secondary {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fn-sm-did {
+  padding: 0;
+  background: transparent;
+  color: var(--text-tertiary);
+}
+
+.fn-sm-primary {
+  color: var(--text-accent);
+}
+
+.fn-sm-secondary {
+  font-family: var(--font-sans);
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.fn-sm-detail {
+  padding: 0 14px 14px;
+  background: var(--surface-subtle);
+}
+
+.fn-sm-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding-top: 6px;
+}
+
+.fn-sm-actions .fn-btn {
+  height: 32px;
+  font-size: 13px;
+}
+
+.fn-sm-json {
+  max-height: 360px;
+  margin-top: 10px;
+  margin-bottom: 0;
+  overflow: auto;
+}
+
+.fn-sm-empty {
+  padding: 28px 16px;
+  font-size: 13.5px;
+  color: var(--text-tertiary);
+}
+
+.fn-sm-foot {
+  padding: 10px 16px;
+  border-top: 1px solid var(--border-medium);
+  background: var(--surface-subtle);
+  font-size: 12.5px;
+  color: var(--text-tertiary);
+}
+
+/* Phones: each row stacks into two lines, the badge, account and time on
+   top and what happened under them. */
+@media (max-width: 640px) {
+  .fn-t-intro h1 {
+    font-size: 30px;
+  }
+
+  .fn-sm-filters {
+    padding: 14px;
+  }
+
+  .fn-sm-kind-source {
+    width: 100%;
+  }
+
+  .fn-sm-row-main {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-areas:
+      'badge did time'
+      'primary primary primary'
+      'secondary secondary secondary';
+    gap: 3px 10px;
+    padding: 8px 14px;
+  }
+
+  .fn-sm-time {
+    grid-area: time;
+  }
+
+  .fn-sm-badge {
+    grid-area: badge;
+  }
+
+  .fn-sm-did {
+    grid-area: did;
+  }
+
+  .fn-sm-primary {
+    grid-area: primary;
+  }
+
+  .fn-sm-secondary {
+    grid-area: secondary;
+  }
+
+  .fn-sm-secondary:empty {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fn-sm-dot {
+    animation: none !important;
+  }
+}
+
+[data-reduce-motion='true'] .fn-sm-dot {
+  animation: none !important;
+}

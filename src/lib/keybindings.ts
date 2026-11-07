@@ -51,6 +51,7 @@ export type CommandId =
   | 'go-my-repo'
   | 'go-lexicons'
   | 'go-spaces'
+  | 'go-tools'
   | 'go-links'
   | 'go-extension'
   | 'go-mcp'
@@ -333,6 +334,14 @@ export const COMMANDS: CommandMeta[] = [
     group: 'navigation',
     defaultBindings: [],
     keywords: ['spaces', 'permissioned', 'private', 'groups'],
+  },
+  {
+    id: 'go-tools',
+    label: 'Go to tools',
+    description: 'Small utilities, including a live Jetstream and PLC monitor.',
+    group: 'navigation',
+    defaultBindings: [],
+    keywords: ['tools', 'utilities', 'jetstream', 'firehose', 'plc', 'stream', 'monitor', 'live'],
   },
   {
     id: 'go-links',
