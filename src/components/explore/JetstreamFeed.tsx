@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { Activity, Pause, Play } from 'lucide-react';
+import Link from 'next/link';
+import { Activity, ArrowRight, Pause, Play } from 'lucide-react';
 import {
   createJetstreamConnection,
   type JetstreamCommit,
@@ -65,6 +66,8 @@ type Props = {
   height?: string;
   /** Max rows kept in the visible list before old rows drop off. */
   maxVisible?: number;
+  /** A fuller view of the stream to link from the header, e.g. the stream monitor. */
+  moreHref?: string;
 };
 
 /**
@@ -93,6 +96,7 @@ export default function JetstreamFeed({
   showPauseButton = true,
   height = '32rem',
   maxVisible = 20,
+  moreHref,
 }: Props) {
   const [collections] = useState<string[] | undefined>(
     initialCollections && initialCollections.length ? initialCollections : undefined,
@@ -239,6 +243,12 @@ export default function JetstreamFeed({
           <span className="fl-feed-rate" title="Events per second across the live network feed">
             ~<Odometer value={eps} format={(n) => n.toLocaleString()} duration={450} />/s
           </span>
+        )}
+        {moreHref && (
+          <Link href={moreHref} className="fl-feed-more">
+            Filter the stream
+            <ArrowRight size={12} aria-hidden />
+          </Link>
         )}
         {showPauseButton && (
           <button type="button" onClick={() => setPaused((p) => !p)} className="fl-feed-pause">

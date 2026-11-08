@@ -8,24 +8,36 @@ import {
   useRef,
   useState,
   useSyncExternalStore,
+  type ReactNode,
 } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { ArrowUp, Eraser, Pause, Play } from 'lucide-react';
+import { Activity, ArrowUp, Braces, Eraser, Pause, Play, Search, User } from 'lucide-react';
+import AppearIn from '@/components/explore/AppearIn';
 import CopyButton from '@/components/explore/CopyButton';
 import LinkifiedJson from '@/components/explore/LinkifiedJson';
+import RichRecordCard, { recordHasRichCard } from '@/components/explore/RichRecordCard';
+import ShareLinkChip from '@/components/explore/ShareLinkChip';
+import { CHROME_RESULTS_ID, useChromeBarField } from '@/components/explore/ChromeBarContext';
 import { Segmented } from '@/components/explore/lexicons/primitives';
+import RecordPreview from '@/components/RecordPreview';
+import { replay } from '@/lib/motion';
 import { subscribeJetstream } from '@/utils/atproto/jetstream';
-import { subscribePlcStream } from '@/utils/atproto/plcStream';
+import { getPlcAuditLog } from '@/utils/atproto/plc';
+import { subscribePlcStream, type PlcStreamEntry } from '@/utils/atproto/plcStream';
 import type { SocketStatus } from '@/utils/atproto/reconnectingSocket';
-import { resolveHandle } from '@/utils/atproto/identity';
-import { shortDid } from '@/utils/atproto/urls';
+import { resolveDidHandle, resolveHandle } from '@/utils/atproto/identity';
+import { searchActorsTypeahead, shouldQueryHandleTypeahead } from '@/utils/atproto/appview';
+import { parseAtUri, shortDid } from '@/utils/atproto/urls';
+import { searchLexicons } from '@/utils/ufos/client';
 import {
   DEFAULT_VIEW,
   MAX_ACCOUNTS,
   MAX_COLLECTIONS,
+  PRESETS,
   STREAM_KINDS,
   compileFilter,
+  describePlcChange,
   formatCount,
   itemFromJetstream,
   itemFromPlc,
@@ -39,13 +51,14 @@ import {
   viewFromSearch,
   viewToSearch,
   type MonitorView,
+  type PlcChange,
   type SourceChoice,
   type StreamItem,
   type StreamKind,
   type StreamProbe,
   type StreamSource,
 } from '@/lib/streamMonitor';
-import TokenField, { type FieldToken } from './TokenField';
+import TokenField, { type FieldToken, type Suggestion } from './TokenField';
 
 /** How often buffered events reach the list. */
 const FLUSH_MS = 500;
@@ -61,11 +74,26 @@ const MAX_ROWS = 300;
 const RATE_WINDOW_MS = 5_000;
 /** How long the "sampled" note lingers after the last dropped event. */
 const SAMPLED_NOTE_MS = 3_000;
+/**
+ * Matching events a second below which the list counts as calm: new rows get
+ * the arrival accent and accounts are looked up as they scroll into view.
+ * Above it the accent would sit on every row, and lookups would mean
+ * hundreds of requests a minute for rows nobody can read at that speed.
+ */
+const CALM_RATE = 3;
+/** Least time between two ripples of a source's live dot. */
+const BLIP_MS = 1_200;
+/**
+ * How long an empty list shows skeleton rows after connecting or a filter
+ * change, before it says it is waiting. A busy stream fills it well inside
+ * this; saying "waiting" any sooner flashes past on every load.
+ */
+const WARMUP_MS = 4_000;
 
 const KIND_META = new Map(STREAM_KINDS.map((k) => [k.id, k]));
-const SOURCES: { id: StreamSource; label: string }[] = [
-  { id: 'jetstream', label: 'Jetstream' },
-  { id: 'plc', label: 'PLC directory' },
+const SOURCES: { id: StreamSource; label: string; short: string }[] = [
+  { id: 'jetstream', label: 'Jetstream', short: 'Jetstream' },
+  { id: 'plc', label: 'PLC directory', short: 'PLC' },
 ];
 const SOURCE_OPTIONS: { value: SourceChoice; label: string }[] = [
   { value: 'both', label: 'Both' },
@@ -75,6 +103,8 @@ const SOURCE_OPTIONS: { value: SourceChoice; label: string }[] = [
 
 type Counts = Record<StreamKind, number>;
 type Rates = Record<StreamSource, number>;
+/** A listed event, and whether it arrived while the list was calm. */
+type Row = StreamItem & { accent: boolean };
 
 function zeroCounts(): Counts {
   return Object.fromEntries(STREAM_KINDS.map((k) => [k.id, 0])) as Counts;
@@ -84,7 +114,11 @@ type Stats = {
   counts: Counts;
   matched: number;
   rates: Rates;
+  /** Matching events a second. */
+  matchedRate: number;
   sampled: boolean;
+  /** Nothing has matched yet, and the filters are still new. */
+  warming: boolean;
   /** Matching events that arrived while the list was held. */
   held: number;
 };
@@ -93,7 +127,9 @@ const EMPTY_STATS: Stats = {
   counts: zeroCounts(),
   matched: 0,
   rates: { jetstream: 0, plc: 0 },
+  matchedRate: 0,
   sampled: false,
+  warming: true,
   held: 0,
 };
 
@@ -105,12 +141,17 @@ type LiveState = {
   nextId: number;
   pending: Map<StreamKind, (() => StreamItem)[]>;
   lastDropAt: number;
-  held: StreamItem[];
+  held: Row[];
   heldMatched: number;
   counts: Counts;
   matched: number;
   received: Rates;
-  samples: { t: number; jetstream: number; plc: number }[];
+  samples: { t: number; jetstream: number; plc: number; matched: number }[];
+  lastBlip: Rates;
+  /** When the matched count last went back to zero. */
+  zeroSince: number;
+  /** Collections seen in commits, and how often, for the collection field. */
+  seenCollections: Map<string, number>;
 };
 
 function createLiveState(): LiveState {
@@ -124,6 +165,9 @@ function createLiveState(): LiveState {
     matched: 0,
     received: { jetstream: 0, plc: 0 },
     samples: [],
+    lastBlip: { jetstream: 0, plc: 0 },
+    zeroSince: Date.now(),
+    seenCollections: new Map(),
   };
 }
 
@@ -151,6 +195,60 @@ function formatRate(perSecond: number): string {
   return `${formatCount(Math.round(perSecond))}/s`;
 }
 
+// Suggestions for the two token fields: accounts from the AppView typeahead
+// the sign-in field uses, collections from the UFOs lexicon search.
+async function suggestAccounts(query: string, signal: AbortSignal): Promise<Suggestion[]> {
+  if (!shouldQueryHandleTypeahead(query)) return [];
+  const actors = await searchActorsTypeahead(query.replace(/^@/, ''), { limit: 6, signal });
+  return actors.map((a) => ({
+    value: a.handle,
+    title: a.displayName?.trim() || a.handle,
+    detail: a.handle,
+    avatar: a.avatar ?? '',
+    did: a.did,
+  }));
+}
+
+/** Most collections the monitor tallies from the live stream, for suggestions. */
+const MAX_SEEN_COLLECTIONS = 5_000;
+
+/**
+ * Collection suggestions, best first: the namespace itself as a wildcard
+ * when the text is one, then collections this page has seen go by, most
+ * frequent first, then the UFOs lexicon search. The search alone ranks
+ * alphabetically and is full of one-account test NSIDs (`app.bsky.graph.aa`
+ * before `app.bsky.graph.follow`), so its results need more than one
+ * account to be offered.
+ */
+async function suggestCollections(
+  query: string,
+  signal: AbortSignal,
+  seen: Map<string, number>,
+): Promise<Suggestion[]> {
+  const q = query.toLowerCase().replace(/\.\*?$/, '');
+  const items: Suggestion[] = [];
+  const wildcard = q.includes('.') ? parseCollectionToken(`${q}.*`) : null;
+  if (wildcard) items.push({ value: wildcard, title: wildcard, detail: 'Every collection in this namespace' });
+
+  const local = [...seen]
+    .filter(([nsid]) => nsid.toLowerCase().includes(q))
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 6);
+  for (const [nsid, n] of local) {
+    items.push({ value: nsid, title: nsid, detail: `${formatCount(n)} seen on this page` });
+  }
+
+  if (items.length < 7) {
+    const matches = await searchLexicons(query, signal);
+    for (const m of matches.sort((a, b) => b.dids_estimate - a.dids_estimate)) {
+      if (items.length >= 7 || m.dids_estimate < 2) break;
+      if (items.some((i) => i.value === m.nsid)) continue;
+      items.push({ value: m.nsid, title: m.nsid, detail: `${formatCount(m.dids_estimate)} accounts` });
+    }
+  }
+  return items;
+}
+
 /**
  * Live Jetstream and PLC directory events in one list, filtered by source,
  * event type, account, collection and text.
@@ -164,15 +262,20 @@ function formatRate(perSecond: number): string {
  * The list holds still (new events wait above it) while it is paused,
  * scrolled away from the top, or has a row open, so a row can be read
  * without it sliding away.
+ *
+ * Laid out like the explorer's landings: the intro's copy on the left and
+ * the ways in (here, preset views) on the right, then one card whose head,
+ * tinted filter band and rows follow the feedback board and the lexicon
+ * cards.
  */
-export default function StreamMonitor() {
+export default function StreamMonitor({ intro }: { intro: ReactNode }) {
   const searchParams = useSearchParams();
   const [view, setView] = useState<MonitorView>(() => viewFromSearch(searchParams));
   const hidden = useSyncExternalStore(subscribeVisibility, getHidden, getHiddenOnServer);
   const [paused, setPaused] = useState(false);
   const [scrolledAway, setScrolledAway] = useState(false);
   const [openId, setOpenId] = useState<number | null>(null);
-  const [rows, setRows] = useState<StreamItem[]>([]);
+  const [rows, setRows] = useState<Row[]>([]);
   const [stats, setStats] = useState<Stats>(EMPTY_STATS);
   const [socket, setSocket] = useState<Record<StreamSource, SocketStatus>>({
     jetstream: 'connecting',
@@ -182,16 +285,18 @@ export default function StreamMonitor() {
   const [handleDids, setHandleDids] = useState<Record<string, string | null>>({});
   const requested = useRef(new Set<string>());
   const live = useRef<LiveState>(createLiveState());
-  const listRef = useRef<HTMLOListElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
+  const dots = useRef<Record<StreamSource, HTMLSpanElement | null>>({ jetstream: null, plc: null });
+
+  const search = viewToSearch(view);
 
   // Keep the address bar in step, so the view can be bookmarked or shared.
   useEffect(() => {
-    const qs = viewToSearch(view);
-    const next = `${window.location.pathname}${qs ? `?${qs}` : ''}`;
+    const next = `${window.location.pathname}${search ? `?${search}` : ''}`;
     if (next !== `${window.location.pathname}${window.location.search}`) {
       window.history.replaceState(null, '', next);
     }
-  }, [view]);
+  }, [search]);
 
   // ── Accounts ────────────────────────────────────────────────────────────
 
@@ -246,6 +351,19 @@ export default function StreamMonitor() {
   const ingest = useCallback((probe: StreamProbe, build: (id: number) => StreamItem) => {
     const s = live.current;
     s.received[probe.source] += 1;
+    if (probe.collection) {
+      const seen = s.seenCollections;
+      const n = seen.get(probe.collection);
+      if (n !== undefined) seen.set(probe.collection, n + 1);
+      else if (seen.size < MAX_SEEN_COLLECTIONS) seen.set(probe.collection, 1);
+    }
+    // The live dot ripples on data rather than blinking on a timer, as the
+    // explorer's Live button does (motion.css, "Live indicator").
+    const now = Date.now();
+    if (now - s.lastBlip[probe.source] > BLIP_MS) {
+      s.lastBlip[probe.source] = now;
+      replay(dots.current[probe.source], 'data-blip');
+    }
     const f = filterRef.current;
     if (!matchesExceptKind(f, probe)) return;
     s.counts[probe.kind] += 1;
@@ -262,7 +380,7 @@ export default function StreamMonitor() {
     list.push(() => build(id));
     if (list.length > PER_KIND_PER_FLUSH) {
       list.shift();
-      s.lastDropAt = Date.now();
+      s.lastDropAt = now;
     }
   }, []);
 
@@ -323,20 +441,20 @@ export default function StreamMonitor() {
       const s = live.current;
       const now = Date.now();
 
-      s.samples.push({ t: now, jetstream: s.received.jetstream, plc: s.received.plc });
+      s.samples.push({ t: now, jetstream: s.received.jetstream, plc: s.received.plc, matched: s.matched });
       while (s.samples.length > 2 && now - s.samples[1].t >= RATE_WINDOW_MS) s.samples.shift();
       const first = s.samples[0];
       const span = (now - first.t) / 1000;
-      const rates: Rates =
-        span > 0
-          ? {
-              jetstream: (s.received.jetstream - first.jetstream) / span,
-              plc: (s.received.plc - first.plc) / span,
-            }
-          : { jetstream: 0, plc: 0 };
+      const per = (n: number) => (span > 0 ? Math.max(0, n) / span : 0);
+      const rates: Rates = {
+        jetstream: per(s.received.jetstream - first.jetstream),
+        plc: per(s.received.plc - first.plc),
+      };
+      const matchedRate = per(s.matched - first.matched);
+      const accent = matchedRate < CALM_RATE;
 
-      const fresh: StreamItem[] = [];
-      for (const list of s.pending.values()) for (const build of list) fresh.push(build());
+      const fresh: Row[] = [];
+      for (const list of s.pending.values()) for (const build of list) fresh.push({ ...build(), accent });
       s.pending.clear();
       fresh.sort((a, b) => b.id - a.id);
 
@@ -353,7 +471,9 @@ export default function StreamMonitor() {
         counts: { ...s.counts },
         matched: s.matched,
         rates,
+        matchedRate,
         sampled: now - s.lastDropAt < SAMPLED_NOTE_MS,
+        warming: s.matched === 0 && now - s.zeroSince < WARMUP_MS,
         held: s.heldMatched,
       });
     }, FLUSH_MS);
@@ -368,6 +488,8 @@ export default function StreamMonitor() {
     s.counts = zeroCounts();
     s.matched = 0;
     s.heldMatched = 0;
+    s.samples = [];
+    s.zeroSince = Date.now();
   }, []);
 
   const changeView = useCallback(
@@ -432,9 +554,27 @@ export default function StreamMonitor() {
     );
   }
 
+  const suggestSeenCollections = useCallback(
+    (query: string, signal: AbortSignal) => suggestCollections(query, signal, live.current.seenCollections),
+    [],
+  );
+
+  // On a phone the Contains filter moves into the bottom bar, as a repo's
+  // lexicon filter does; wider, the bar keeps its jump search.
+  useChromeBarField({
+    placeholder: 'Filter events…',
+    label: 'Filter events by text',
+    value: view.text,
+    onChange: (text) => changeView({ text }),
+    resultsId: CHROME_RESULTS_ID,
+    inPage: true,
+  });
+
   // ── Render ──────────────────────────────────────────────────────────────
 
   const visible = useMemo(() => rows.filter((r) => matchesFilter(filter, r)), [rows, filter]);
+  const calm = stats.matchedRate < CALM_RATE;
+  const lookup = held || calm;
 
   const connection = (source: StreamSource): Connection => {
     if (!sourceShown(view.source, source)) return 'off';
@@ -443,6 +583,11 @@ export default function StreamMonitor() {
     if (hidden) return 'background';
     return socket[source];
   };
+  const shownSources = SOURCES.filter(({ id }) => sourceShown(view.source, id));
+  const connecting = shownSources.some(({ id }) => {
+    const c = connection(id);
+    return c === 'connecting' || c === 'reconnecting';
+  });
 
   const accountTokens: FieldToken[] = view.accounts.map((a) => {
     if (a.startsWith('did:')) return { value: a };
@@ -453,171 +598,242 @@ export default function StreamMonitor() {
       : { value: a, state: 'error', note: 'not found', title: 'This handle did not resolve to a DID' };
   });
 
-  const isDefault = viewToSearch(view) === '';
-
-  let emptyMessage = 'Waiting for events. With narrow filters this can take a while.';
+  let emptyMessage = 'Waiting for matching events. With narrow filters this can take a while.';
   if (!jetstreamWanted && !plcWanted && !noAccountResolved) emptyMessage = 'Every event type is switched off.';
   if (accountsPending && noAccountResolved) emptyMessage = 'Resolving handles…';
   else if (noAccountResolved) emptyMessage = 'None of those accounts resolved to a DID.';
   if (hidden) emptyMessage = 'Paused while this tab is in the background.';
+  const showSkeleton =
+    visible.length === 0 && !hidden && (connecting || ((jetstreamWanted || plcWanted) && stats.warming));
+
+  const via = shownSources.map((s) => s.short).join(' · ');
 
   return (
-    <>
-      <section className="fn-sm-filters" aria-label="Filters">
-        <div className="fn-sm-field">
-          <span className="explore-small-caps">Source</span>
-          <Segmented
-            ariaLabel="Source"
-            options={SOURCE_OPTIONS}
-            value={view.source}
-            onChange={(source) => changeView({ source })}
-          />
-        </div>
-
-        <div className="fn-sm-field">
-          <span className="explore-small-caps">Events</span>
-          <div className="fn-sm-kinds">
-            {SOURCES.filter(({ id }) => sourceShown(view.source, id)).map(({ id, label }) => (
-              <div key={id} role="group" aria-label={`${label} events`} className="fn-sm-kind-group">
-                {view.source === 'both' && <span className="fn-sm-kind-source">{label}</span>}
-                {STREAM_KINDS.filter((k) => k.source === id).map((k) => (
-                  <button
-                    key={k.id}
-                    type="button"
-                    className="fn-toggle fn-sm-kind"
-                    aria-pressed={view.kinds.includes(k.id)}
-                    title={k.hint}
-                    onClick={() => toggleKind(k.id)}
-                  >
-                    {k.label}
-                    <span className="fn-sm-kind-count">{formatCount(stats.counts[k.id])}</span>
-                  </button>
-                ))}
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="fn-sm-filter-grid">
-          <TokenField
-            label="Accounts"
-            placeholder="alice.bsky.social, did:plc:…"
-            hint="Handles or DIDs. Applies to both sources."
-            tokens={accountTokens}
-            max={MAX_ACCOUNTS}
-            parse={(raw) => {
-              const token = parseAccountToken(raw);
-              if (!token) return { error: `“${raw}” isn’t a handle or DID.` };
-              return { value: token.kind === 'did' ? token.did : token.handle };
-            }}
-            onChange={(accounts) => changeView({ accounts })}
-          />
-
-          {view.source !== 'plc' && (
-            <TokenField
-              label="Collections"
-              placeholder="app.bsky.feed.post, app.bsky.graph.*"
-              hint="NSIDs, or a namespace ending in .*. Narrows Jetstream commits; identity and account events have no collection and still show."
-              tokens={view.collections.map((value) => ({ value }))}
-              max={MAX_COLLECTIONS}
-              parse={(raw) => {
-                const nsid = parseCollectionToken(raw);
-                return nsid ? { value: nsid } : { error: `“${raw}” isn’t an NSID or a namespace like app.bsky.*` };
-              }}
-              onChange={(collections) => changeView({ collections })}
-            />
-          )}
-
-          <div className="fn-sm-field">
-            <label htmlFor="fn-sm-text" className="explore-small-caps">
-              Contains
-            </label>
-            <input
-              id="fn-sm-text"
-              type="search"
-              className="explore-input"
-              value={view.text}
-              placeholder="Any text"
-              autoComplete="off"
-              spellCheck={false}
-              onChange={(e) => changeView({ text: e.target.value })}
-            />
-            <p className="fn-sm-hint">Matched anywhere in the event’s JSON: post text, handles, URIs, PDS hosts.</p>
-          </div>
-        </div>
-
-        {!isDefault && (
-          <button type="button" className="fn-sm-reset" onClick={() => changeView(DEFAULT_VIEW)}>
-            Reset filters
-          </button>
-        )}
-      </section>
-
-      <section className="fn-sm-feed" aria-label="Live events">
-        <header className="fn-sm-feed-head">
-          <div className="fn-sm-statuses">
-            {SOURCES.filter(({ id }) => sourceShown(view.source, id)).map(({ id, label }) => (
-              <SourceStatus key={id} label={label} state={connection(id)} rate={stats.rates[id]} />
-            ))}
-          </div>
-          <span className="fn-sm-matched">
-            <strong>{stats.matched.toLocaleString()}</strong> matched
-          </span>
-          <div className="fn-sm-head-actions">
-            <button type="button" className="fl-feed-pause" onClick={() => setPaused((p) => !p)}>
-              {paused ? <Play size={11} aria-hidden /> : <Pause size={11} aria-hidden />}
-              {paused ? 'Resume' : 'Pause'}
-            </button>
-            <button type="button" className="fl-feed-pause" onClick={clear}>
-              <Eraser size={11} aria-hidden />
-              Clear
-            </button>
+    <div className="fn-tools fn-sm">
+      <AppearIn rise>
+        <header className="fn-x-intro fn-sm-intro">
+          <div className="fn-x-intro-copy">{intro}</div>
+          <div className="fn-x-intro-search fn-sm-presets">
+            <div className="fn-x-tries">
+              <span>Try</span>
+              {PRESETS.map((preset) => (
+                <button
+                  key={preset.id}
+                  type="button"
+                  className="fn-chip fn-sm-preset"
+                  aria-pressed={search === viewToSearch(preset.view)}
+                  title={preset.hint}
+                  onClick={() => {
+                    changeView(preset.view);
+                    showLatest();
+                  }}
+                >
+                  {preset.label}
+                </button>
+              ))}
+            </div>
           </div>
         </header>
+      </AppearIn>
 
-        {held && (
-          <button type="button" className="fn-sm-held" onClick={showLatest}>
-            <ArrowUp size={13} aria-hidden />
-            {stats.held > 0
-              ? `${stats.held.toLocaleString()} new ${stats.held === 1 ? 'event' : 'events'} · show latest`
-              : paused
-                ? 'Paused · resume'
-                : 'Holding while you read · back to live'}
-          </button>
-        )}
+      <AppearIn delay={0.06}>
+        <section className="fn-list-card fn-sm-card" aria-labelledby="fn-sm-title" id={CHROME_RESULTS_ID}>
+          <div className="fn-list-card-head fn-sm-head">
+            <div className="fn-list-card-title-row">
+              <span className="fn-list-card-icon" aria-hidden>
+                <Activity size={14} />
+              </span>
+              <h2 id="fn-sm-title" className="fn-list-card-title">
+                Live events
+              </h2>
+              {via && <span className="fn-list-card-via">via {via}</span>}
+              <div className="fn-sm-head-actions">
+                <button type="button" className="fx-btn" onClick={() => setPaused((p) => !p)}>
+                  {paused ? <Play size={14} aria-hidden /> : <Pause size={14} aria-hidden />}
+                  {paused ? 'Resume' : 'Pause'}
+                </button>
+                <button type="button" className="fx-btn" onClick={clear} title="Clear the list and counts">
+                  <Eraser size={14} aria-hidden />
+                  Clear
+                </button>
+                <ShareLinkChip
+                  url={`/tools/stream${search ? `?${search}` : ''}`}
+                  title="Copy a link to this view"
+                  iconOnly
+                  className="fx-title-share"
+                />
+              </div>
+            </div>
+            <div className="fn-sm-statusline">
+              {shownSources.map(({ id, label }) => (
+                <SourceStatus
+                  key={id}
+                  label={label}
+                  state={connection(id)}
+                  rate={stats.rates[id]}
+                  dotRef={(el) => {
+                    dots.current[id] = el;
+                  }}
+                />
+              ))}
+              <span className="fn-sm-matched">
+                <strong>{stats.matched.toLocaleString()}</strong> matched
+              </span>
+            </div>
+          </div>
 
-        <ol
-          ref={listRef}
-          className="fn-sm-list"
-          onScroll={(e) => setScrolledAway(e.currentTarget.scrollTop > 8)}
-        >
-          {visible.length === 0 ? (
-            <li className="fn-sm-empty">{emptyMessage}</li>
-          ) : (
-            visible.map((item) => (
-              <Row
-                key={item.id}
-                item={item}
-                open={openId === item.id}
-                onToggle={toggleRow}
-                onWatchAccount={watchAccount}
-                onWatchCollection={watchCollection}
+          <div className="fn-sm-band">
+            <div className="fn-sm-band-row">
+              <Segmented
+                ariaLabel="Source"
+                options={SOURCE_OPTIONS}
+                value={view.source}
+                onChange={(source) => changeView({ source })}
               />
-            ))
-          )}
-        </ol>
+              {search && (
+                <button type="button" className="fn-sm-reset" onClick={() => changeView(DEFAULT_VIEW)}>
+                  Reset filters
+                </button>
+              )}
+            </div>
+            <div className="fn-sm-kinds">
+              {shownSources.map(({ id, label }) => (
+                <div key={id} role="group" aria-label={`${label} events`} className="fn-sm-kind-group">
+                  {view.source === 'both' && <span className="fn-sm-kind-source">{label}</span>}
+                  {STREAM_KINDS.filter((k) => k.source === id).map((k) => (
+                    <button
+                      key={k.id}
+                      type="button"
+                      className="fn-fb-chip fn-sm-kind"
+                      aria-pressed={view.kinds.includes(k.id)}
+                      title={k.hint}
+                      onClick={() => toggleKind(k.id)}
+                    >
+                      {k.label}
+                      <span className="fn-sm-kind-count">{formatCount(stats.counts[k.id])}</span>
+                    </button>
+                  ))}
+                </div>
+              ))}
+            </div>
+            <div className="fn-sm-fields">
+              <TokenField
+                label="Accounts"
+                icon={<User size={14} />}
+                placeholder="Accounts: handle or DID"
+                hint="Handles or DIDs, for both sources. Jetstream sends only these accounts' events."
+                tokens={accountTokens}
+                max={MAX_ACCOUNTS}
+                parse={(raw) => {
+                  const token = parseAccountToken(raw);
+                  if (!token) return { error: `“${raw}” isn’t a handle or DID.` };
+                  return { value: token.kind === 'did' ? token.did : token.handle };
+                }}
+                onChange={(accounts) => changeView({ accounts })}
+                suggest={suggestAccounts}
+                onPick={(s) => {
+                  // The typeahead already knows the DID; no need to resolve it again.
+                  if (s.did) {
+                    requested.current.add(s.value);
+                    setHandleDids((prev) => ({ ...prev, [s.value]: s.did! }));
+                  }
+                  changeView({ accounts: [...view.accounts, s.value] });
+                }}
+              />
+              {view.source !== 'plc' && (
+                <TokenField
+                  label="Collections"
+                  icon={<Braces size={14} />}
+                  placeholder="Collections: NSID or app.bsky.*"
+                  hint="NSIDs, or a namespace ending in .* (app.bsky.graph.*). Narrows Jetstream commits; identity and account events have no collection and still show."
+                  tokens={view.collections.map((value) => ({ value }))}
+                  max={MAX_COLLECTIONS}
+                  parse={(raw) => {
+                    const nsid = parseCollectionToken(raw);
+                    return nsid ? { value: nsid } : { error: `“${raw}” isn’t an NSID or a namespace like app.bsky.*` };
+                  }}
+                  onChange={(collections) => changeView({ collections })}
+                  suggest={suggestSeenCollections}
+                />
+              )}
+              <label className="fx-field fn-sm-text" title="Matched anywhere in the event’s JSON: post text, handles, URIs, PDS hosts">
+                <Search size={14} aria-hidden />
+                <span className="fn-sr-only">Contains text</span>
+                <input
+                  type="search"
+                  value={view.text}
+                  placeholder="Contains text"
+                  autoComplete="off"
+                  spellCheck={false}
+                  onChange={(e) => changeView({ text: e.target.value })}
+                />
+              </label>
+            </div>
+          </div>
 
-        <footer className="fn-sm-foot">
-          {stats.sampled
-            ? `Busy stream: the list keeps up to ${(PER_KIND_PER_FLUSH * 1000) / FLUSH_MS} events a second of each type. The counts include every event.`
-            : `Newest first. The last ${MAX_ROWS} are kept.`}
-        </footer>
-      </section>
-    </>
+          {held && (
+            <button type="button" className="fn-sm-held" onClick={showLatest}>
+              <ArrowUp size={13} aria-hidden />
+              {stats.held > 0
+                ? `${stats.held.toLocaleString()} new ${stats.held === 1 ? 'event' : 'events'} · show latest`
+                : paused
+                  ? 'Paused · resume'
+                  : 'Holding while you read · back to live'}
+            </button>
+          )}
+
+          {/* The column heads scroll with the rows (sticky), so a scrollbar
+              narrows both alike and the columns stay lined up. */}
+          <div
+            ref={listRef}
+            className="fn-sm-scroll"
+            onScroll={(e) => setScrolledAway(e.currentTarget.scrollTop > 8)}
+          >
+            <ColumnHeads />
+            <ol className="fn-sm-list" aria-label="Events, newest first">
+              {showSkeleton ? (
+                <SkeletonRows />
+              ) : visible.length === 0 ? (
+                <li className="fn-sm-empty">{emptyMessage}</li>
+              ) : (
+                visible.map((item) => (
+                  <EventRow
+                    key={item.id}
+                    item={item}
+                    open={openId === item.id}
+                    lookup={lookup}
+                    onToggle={toggleRow}
+                    onWatchAccount={watchAccount}
+                    onWatchCollection={watchCollection}
+                  />
+                ))
+              )}
+            </ol>
+          </div>
+
+          <footer className="fn-sm-foot">
+            {stats.sampled
+              ? `Busy stream: the list keeps up to ${(PER_KIND_PER_FLUSH * 1000) / FLUSH_MS} events a second of each type. The counts include every event.`
+              : `Newest first. The last ${MAX_ROWS} are kept.`}
+            {!calm && !held && ' Pause to see handles.'}
+          </footer>
+        </section>
+      </AppearIn>
+    </div>
   );
 }
 
-function SourceStatus({ label, state, rate }: { label: string; state: Connection; rate: number }) {
+function SourceStatus({
+  label,
+  state,
+  rate,
+  dotRef,
+}: {
+  label: string;
+  state: Connection;
+  rate: number;
+  dotRef: (el: HTMLSpanElement | null) => void;
+}) {
   const text: Record<Connection, string> = {
     open: formatRate(rate),
     connecting: 'connecting…',
@@ -628,34 +844,162 @@ function SourceStatus({ label, state, rate }: { label: string; state: Connection
   };
   return (
     <span className="fn-sm-status" data-state={state}>
-      <span className="fn-sm-dot" aria-hidden />
+      <span ref={dotRef} className="fx-dot" data-live={state === 'open' || undefined} aria-hidden />
       <span className="fn-sm-status-label">{label}</span>
       <span className="fn-sm-status-text">{text[state]}</span>
     </span>
   );
 }
 
-const Row = memo(function Row({
+/**
+ * The account a row is about: the handle once known, the short DID until
+ * then. Looked up only while `lookup` is on and the cell is on screen; the
+ * lookup is cached and shared (resolveDidHandle), so a handle seen once is
+ * free after that.
+ */
+function AccountCell({ did, lookup }: { did: string; lookup: boolean }) {
+  const ref = useRef<HTMLElement>(null);
+  const [handle, setHandle] = useState<string | null>(null);
+  useEffect(() => {
+    const el = ref.current;
+    if (!lookup || handle || !el) return undefined;
+    let cancelled = false;
+    const observer = new IntersectionObserver((entries) => {
+      if (!entries.some((e) => e.isIntersecting)) return;
+      observer.disconnect();
+      resolveDidHandle(did).then((h) => {
+        if (!cancelled && h) setHandle(h);
+      });
+    });
+    observer.observe(el);
+    return () => {
+      cancelled = true;
+      observer.disconnect();
+    };
+  }, [did, lookup, handle]);
+  return (
+    <code ref={ref} className="fn-sm-account" data-handle={handle ? '' : undefined} title={did}>
+      {handle ? `@${handle}` : shortDid(did)}
+    </code>
+  );
+}
+
+/**
+ * A record's preview line, with the references likes, reposts and follows
+ * carry cut down to what tells them apart: `feed.post by did:plc:abcd…wxyz`
+ * rather than the whole at:// URI.
+ */
+function compactPreview(preview: string): { text: string; mono: boolean } {
+  const parsed = preview.startsWith('at://') ? parseAtUri(preview) : null;
+  if (parsed) {
+    const tail = parsed.collection ? parsed.collection.split('.').slice(-2).join('.') : 'repo';
+    return { text: `${tail} by ${shortDid(parsed.repo)}`, mono: true };
+  }
+  if (/^did:[a-z]+:\S+$/.test(preview)) return { text: shortDid(preview), mono: true };
+  return { text: preview, mono: false };
+}
+
+/** The "what" and "detail" cells, which mean different things per kind. */
+function Summary({ item }: { item: StreamItem }) {
+  switch (item.kind) {
+    case 'create':
+    case 'update':
+    case 'delete':
+      return (
+        <>
+          <span className="fn-sm-nsid" title={item.collection}>
+            {item.collection}
+          </span>
+          {item.preview ? (
+            <PreviewText preview={item.preview} />
+          ) : (
+            <span className="fn-sm-detail-mono">{item.rkey}</span>
+          )}
+        </>
+      );
+    case 'identity':
+      return (
+        <>
+          {item.handle ? (
+            <span className="fn-sm-handle">@{item.handle}</span>
+          ) : (
+            <span className="fn-sm-muted">identity refreshed</span>
+          )}
+          <span />
+        </>
+      );
+    case 'account':
+      return (
+        <>
+          <span>
+            <span className="fn-sm-pill" data-active={item.active || undefined}>
+              {item.active ? 'active' : item.status ?? 'inactive'}
+            </span>
+          </span>
+          <span />
+        </>
+      );
+    case 'plc-tombstone':
+      return (
+        <>
+          <span className="fn-sm-muted">tombstoned</span>
+          <span />
+        </>
+      );
+    default:
+      return (
+        <>
+          {item.handle ? (
+            <span className="fn-sm-handle" title={item.handle}>
+              @{item.handle}
+            </span>
+          ) : (
+            <span className="fn-sm-muted">no handle</span>
+          )}
+          <span className="fn-sm-detail-mono" title={item.pds}>
+            {item.pds ?? 'no PDS'}
+          </span>
+        </>
+      );
+  }
+}
+
+function PreviewText({ preview }: { preview: string }) {
+  const { text, mono } = compactPreview(preview);
+  return (
+    <span className={mono ? 'fn-sm-detail-mono' : 'fn-sm-detail-text'} title={preview}>
+      {text}
+    </span>
+  );
+}
+
+const EventRow = memo(function EventRow({
   item,
   open,
+  lookup,
   onToggle,
   onWatchAccount,
   onWatchCollection,
 }: {
-  item: StreamItem;
+  item: Row;
   open: boolean;
+  lookup: boolean;
   onToggle: (id: number) => void;
   onWatchAccount: (did: string) => void;
   onWatchCollection: (collection: string) => void;
 }) {
   const meta = KIND_META.get(item.kind)!;
   const at = new Date(item.time);
+  // PLC rows name the handle themselves, and so do identity events that
+  // carry one; looking those accounts up again would only repeat it.
+  const resolvable = item.source === 'jetstream' && !(item.kind === 'identity' && item.handle);
   return (
-    // data-fresh runs the feed's one-off arrival accent (globals.css).
-    <li className="fn-sm-row explore-jetstream-row" data-fresh="">
+    // data-fresh runs the feed's one-off arrival accent (globals.css), only
+    // for rows that arrived while the list was calm enough to notice it.
+    <li className="fn-sm-row explore-jetstream-row" data-fresh={item.accent ? '' : undefined}>
       <button
         type="button"
-        className="fn-sm-row-main"
+        className="fn-sm-row-main fn-sm-grid"
         aria-expanded={open}
         onClick={() => onToggle(item.id)}
       >
@@ -665,35 +1009,248 @@ const Row = memo(function Row({
         <span className="fn-sm-badge" data-kind={item.kind}>
           {meta.badge}
         </span>
-        <code className="fn-sm-did" title={item.did}>
-          {shortDid(item.did)}
-        </code>
-        <span className="fn-sm-primary" title={item.primary}>
-          {item.primary}
-        </span>
-        <span className="fn-sm-secondary" title={item.secondary}>
-          {item.secondary}
-        </span>
+        {resolvable ? (
+          <AccountCell did={item.did} lookup={lookup || open} />
+        ) : (
+          <code className="fn-sm-account" title={item.did}>
+            {shortDid(item.did)}
+          </code>
+        )}
+        <Summary item={item} />
       </button>
       {open && (
-        <div className="fn-sm-detail">
-          <div className="fn-sm-actions">
-            <Link href={item.href} prefetch={false} className="fn-btn">
-              Open in explorer
-            </Link>
-            <button type="button" className="fn-btn" onClick={() => onWatchAccount(item.did)}>
-              Watch this account
-            </button>
-            {item.collection && (
-              <button type="button" className="fn-btn" onClick={() => onWatchCollection(item.collection!)}>
-                Watch this collection
-              </button>
-            )}
-            <CopyButton value={JSON.stringify(item.data, null, 2)} label="Copy JSON" />
-          </div>
-          <LinkifiedJson value={item.data} className="explore-json fn-sm-json" />
-        </div>
+        <RowDetail item={item} onWatchAccount={onWatchAccount} onWatchCollection={onWatchCollection} />
       )}
     </li>
   );
 });
+
+type DetailView = 'preview' | 'fields' | 'changes' | 'json';
+
+function RowDetail({
+  item,
+  onWatchAccount,
+  onWatchCollection,
+}: {
+  item: StreamItem;
+  onWatchAccount: (did: string) => void;
+  onWatchCollection: (collection: string) => void;
+}) {
+  const commit =
+    item.source === 'jetstream' && (item.data as { kind?: string }).kind === 'commit'
+      ? (item.data as { commit: { record?: Record<string, unknown>; cid?: string } }).commit
+      : null;
+  const record = commit?.record && item.collection && item.rkey ? commit.record : null;
+  const hasPreview =
+    !!record &&
+    recordHasRichCard(item.collection!, item.rkey!) &&
+    item.collection !== 'app.bsky.actor.profile';
+
+  const views: { value: DetailView; label: string }[] = [];
+  if (hasPreview) views.push({ value: 'preview', label: 'Preview' });
+  if (record) views.push({ value: 'fields', label: 'Fields' });
+  if (item.source === 'plc') views.push({ value: 'changes', label: 'Changes' });
+  views.push({ value: 'json', label: 'JSON' });
+  const [shown, setShown] = useState<DetailView>(views[0].value);
+
+  const uri = item.collection && item.rkey ? `at://${item.did}/${item.collection}/${item.rkey}` : null;
+
+  return (
+    <div className="fn-sm-detail">
+      <div className="fn-sm-detail-bar">
+        {views.length > 1 && (
+          <Segmented ariaLabel="Event view" options={views} value={shown} onChange={setShown} />
+        )}
+        <div className="fn-sm-actions">
+          <Link href={item.href} prefetch={false} className="fx-btn">
+            Open in explorer
+          </Link>
+          <button type="button" className="fx-btn" onClick={() => onWatchAccount(item.did)}>
+            Watch account
+          </button>
+          {item.collection && (
+            <button type="button" className="fx-btn" onClick={() => onWatchCollection(item.collection!)}>
+              Watch collection
+            </button>
+          )}
+          <CopyButton value={JSON.stringify(item.data, null, 2)} label="Copy JSON" />
+        </div>
+      </div>
+      {shown === 'preview' && record && uri && (
+        <div className="fn-sm-preview">
+          <RichRecordCard
+            handle={item.did}
+            did={item.did}
+            collection={item.collection!}
+            rkey={item.rkey!}
+            record={{ uri, cid: commit?.cid ?? '', value: record }}
+            identity={{ did: item.did, handle: null, pds: '', repoStatus: null }}
+          />
+        </div>
+      )}
+      {shown === 'fields' && record && uri && (
+        <RecordPreview
+          record={{ uri, cid: commit?.cid, value: record }}
+          collection={item.collection!}
+          handle={item.did}
+          rkey={item.rkey!}
+          hideExplorerCtas
+        />
+      )}
+      {shown === 'changes' && <PlcChanges entry={item.data as PlcStreamEntry} />}
+      {shown === 'json' && <LinkifiedJson value={item.data} className="explore-json fn-sm-json" />}
+    </div>
+  );
+}
+
+function shortValue(value: string | null): string {
+  if (!value) return '—';
+  return value.length > 40 ? `${value.slice(0, 24)}…${value.slice(-8)}` : value;
+}
+
+/**
+ * What a PLC operation changed, read against the operation before it in the
+ * DID's audit log. Fetched when the row is opened, not before: one request
+ * for a row someone asked about, none for the rest.
+ */
+function PlcChanges({ entry }: { entry: PlcStreamEntry }) {
+  const [state, setState] = useState<{ changes: PlcChange[] } | { error: string } | null>(null);
+  const tombstone = plcKind(entry.operation) === 'plc-tombstone';
+  const genesis = plcKind(entry.operation) === 'plc-new';
+
+  useEffect(() => {
+    if (tombstone) return undefined;
+    let cancelled = false;
+    const load = genesis
+      ? Promise.resolve({ changes: describePlcChange(null, entry.operation) })
+      : getPlcAuditLog(entry.did).then((log) => {
+          const at = log.findIndex((e) => e.cid === entry.cid);
+          if (at < 0) return { error: 'This operation isn’t in the DID’s log yet. Try again in a moment.' };
+          const before = log.slice(0, at).reverse().find((e) => !e.nullified);
+          return { changes: describePlcChange(before?.operation ?? null, entry.operation) };
+        });
+    load
+      .catch(() => ({ error: 'Couldn’t read the DID’s log from plc.directory.' }))
+      .then((result) => {
+        if (!cancelled) setState(result);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [entry, genesis, tombstone]);
+
+  if (tombstone) {
+    return <p className="fn-sm-note">Tombstoned: this DID is deactivated and can’t be updated again.</p>;
+  }
+  if (!state) return <p className="fn-sm-note">Reading the DID’s log…</p>;
+  if ('error' in state) return <p className="fn-sm-note">{state.error}</p>;
+  if (!state.changes.length) {
+    return <p className="fn-sm-note">No change to the handle, PDS or keys. Another field was rewritten.</p>;
+  }
+  return (
+    <dl className="fn-sm-changes">
+      {state.changes.map((c) => (
+        <div key={c.label} className="fn-sm-change">
+          <dt>{c.label}</dt>
+          <dd>
+            {c.label === 'Rotation keys' ? (
+              'changed'
+            ) : genesis ? (
+              <code title={c.to ?? undefined}>{shortValue(c.to)}</code>
+            ) : (
+              <>
+                <code title={c.from ?? undefined}>{shortValue(c.from)}</code>
+                <span aria-label="to"> → </span>
+                <code title={c.to ?? undefined}>{shortValue(c.to)}</code>
+              </>
+            )}
+          </dd>
+        </div>
+      ))}
+    </dl>
+  );
+}
+
+function ColumnHeads() {
+  return (
+    <div className="fn-col-head fn-sm-grid fn-sm-cols" aria-hidden>
+      <span>Time</span>
+      <span>Event</span>
+      <span>Account</span>
+      <span>What</span>
+      <span>Detail</span>
+    </div>
+  );
+}
+
+/**
+ * Placeholder rows while the sockets connect: the live rows' grid in the
+ * site's .fn-skel bars, so the list holds its shape when the first events
+ * replace them.
+ */
+function SkeletonRows() {
+  return (
+    <>
+      {Array.from({ length: 10 }, (_, i) => (
+        <li key={i} aria-hidden className="fn-sm-row fn-sm-skel-row" style={{ opacity: 1 - i * 0.07 }}>
+          <span className="fn-sm-grid fn-sm-row-main">
+            <span className="fn-skel fn-sm-bar" style={{ width: '7ch' }} />
+            <span className="fn-skel fn-sm-bar" style={{ width: '6ch' }} />
+            <span className="fn-skel fn-sm-bar" style={{ width: '14ch' }} />
+            <span className="fn-skel fn-sm-bar" style={{ width: `${14 + (i % 4) * 3}ch` }} />
+            <span className="fn-skel fn-sm-bar" style={{ width: `${30 - (i % 3) * 6}%` }} />
+          </span>
+        </li>
+      ))}
+    </>
+  );
+}
+
+/**
+ * What the static page shows until the monitor renders (it reads its filters
+ * from the query string, so it renders in the browser): the same intro, and
+ * the card's outline in skeleton bars, so nothing moves when it arrives.
+ */
+export function StreamMonitorSkeleton({ intro }: { intro: ReactNode }) {
+  return (
+    <div className="fn-tools fn-sm" aria-busy>
+      <header className="fn-x-intro fn-sm-intro">
+        <div className="fn-x-intro-copy">{intro}</div>
+        <div className="fn-x-intro-search fn-sm-presets">
+          <div className="fn-x-tries">
+            <span>Try</span>
+            {PRESETS.map((p) => (
+              <span key={p.id} className="fn-chip fn-sm-preset">
+                {p.label}
+              </span>
+            ))}
+          </div>
+        </div>
+      </header>
+      <section className="fn-list-card fn-sm-card" aria-hidden>
+        <div className="fn-list-card-head fn-sm-head">
+          <div className="fn-list-card-title-row">
+            <span className="fn-list-card-icon">
+              <Activity size={14} />
+            </span>
+            <span className="fn-list-card-title">Live events</span>
+          </div>
+          <div className="fn-sm-statusline">
+            <span className="fn-skel fn-sm-bar" style={{ width: '22ch' }} />
+          </div>
+        </div>
+        <div className="fn-sm-band">
+          <span className="fn-skel" style={{ width: 260, height: 34 }} />
+          <span className="fn-skel" style={{ width: '70%', height: 28 }} />
+          <span className="fn-skel" style={{ width: '100%', height: 36 }} />
+        </div>
+        <div className="fn-sm-scroll">
+          <ColumnHeads />
+          <ol className="fn-sm-list">
+            <SkeletonRows />
+          </ol>
+        </div>
+      </section>
+    </div>
+  );
+}

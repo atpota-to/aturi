@@ -2,44 +2,32 @@
    live in src/app/globals.css (:root and [data-theme='light']); use them
    rather than raw hex so dark mode and the colour schemes keep working.
 
-   The hub borrows the explorer's tiles (.fn-x-tiles, explore.css) and the
-   monitor its feed buttons (.fl-feed-pause, landing.css) and arrival accent
-   (.explore-jetstream-row, globals.css). Class prefixes: fn-t- (the
-   section), fn-sm- (stream monitor), fn-token (the chip field). */
+   Built from the explorer's parts wherever one fits: the intro and its "Try"
+   row and tiles (.fn-x-*, explore.css), the list card (.fn-list-card-*), the
+   feedback board's filter chips (.fn-fb-chip, content.css), the explorer's
+   buttons, field and live dot (.fx-btn, .fx-field, .fx-dot, explorer.css),
+   and the feed's arrival accent (.explore-jetstream-row, globals.css). What
+   is left here is layout and the stream monitor's rows. Class prefixes:
+   fn-t- (the section), fn-sm- (stream monitor), fn-token (the chip field). */
+
+/* ---------- Page frame ----------
+   The tools layout wraps pages in .fn-c-wrap (content.css, 1040px). Tools
+   are working pages like the explorer's landings, so they take the same
+   1240px column (explore.css, "Page width"). */
+.fn-c-wrap:has(> .fn-tools) {
+  max-width: 1240px;
+}
 
 .fn-tools {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 28px;
   font-family: var(--font-sans);
   font-size: 14px;
   color: var(--text-primary);
 }
 
-.fn-t-intro {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.fn-t-intro h1 {
-  margin: 0;
-  font-size: 36px;
-  line-height: 1.1;
-  font-weight: 700;
-  letter-spacing: -0.025em;
-  color: var(--text-primary);
-}
-
-.fn-t-intro p {
-  margin: 0;
-  max-width: 680px;
-  font-size: 15px;
-  line-height: 1.55;
-  color: var(--text-secondary);
-}
-
-.fn-t-intro code {
+.fn-tools .fn-x-intro-copy code {
   font-family: var(--font-mono);
   font-size: 0.9em;
 }
@@ -53,9 +41,11 @@
   color: var(--accent-forest);
 }
 
+/* ---------- Hub ---------- */
+
 /* Tiles hold a sentence here, not three words; give them the room. */
 .fn-t-tiles {
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
 }
 
 .fn-t-tile {
@@ -67,92 +57,111 @@
   align-self: center;
 }
 
-/* ---------- Stream monitor: filters ---------- */
-
-.fn-sm-filters {
-  display: flex;
-  flex-direction: column;
-  gap: 18px;
-  padding: 16px;
-  border: 1px solid var(--border-medium);
-  border-radius: var(--radius-card);
-  background: var(--bg-secondary);
+.fn-t-cross {
+  margin-top: 36px;
 }
 
-.fn-sm-field {
+/* ---------- Stream monitor: intro ---------- */
+
+/* Presets are words, not handles, so they leave the chips' mono face. As
+   buttons they also need the pressed state the explorer's links don't. */
+.fn-sm-preset {
+  font-family: var(--font-sans);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.fn-sm-preset[aria-pressed='true'] {
+  background: var(--accent-soft);
+  border-color: var(--accent-soft-border);
+  color: var(--accent-soft-fg);
+}
+
+.fn-sm-preset:focus-visible {
+  outline: 2px solid var(--text-accent);
+  outline-offset: 2px;
+}
+
+@media (pointer: coarse) {
+  .fn-sm-preset {
+    height: 36px;
+  }
+}
+
+/* ---------- Stream monitor: card head ---------- */
+
+.fn-sm-card {
+  height: auto;
+}
+
+.fn-sm-head-actions {
+  margin-left: auto;
   display: flex;
-  flex-direction: column;
+  align-items: center;
   gap: 6px;
-  min-width: 0;
 }
 
-.fn-sm-field > .explore-small-caps {
-  font-size: 11px;
-}
-
-.fn-sm-field > .fn-segmented {
-  align-self: flex-start;
-}
-
-.fn-sm-kinds {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.fn-sm-kind-group {
+.fn-sm-statusline {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 6px;
+  gap: 6px 18px;
+  font-size: 13px;
 }
 
-.fn-sm-kind-source {
-  min-width: 96px;
-  font-size: 12.5px;
-  font-weight: 600;
-  color: var(--text-tertiary);
-}
-
-.fn-sm-kind {
+.fn-sm-status {
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  height: 32px;
+  white-space: nowrap;
 }
 
-.fn-sm-kind-count {
+.fn-sm-status-label {
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.fn-sm-status-text {
   font-family: var(--font-mono);
-  font-size: 11.5px;
-  font-weight: 400;
-  font-variant-numeric: tabular-nums;
-  opacity: 0.75;
-}
-
-.fn-sm-filter-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-  gap: 16px;
-}
-
-.fn-sm-filter-grid .explore-input {
-  box-sizing: border-box;
-  height: 40px;
-}
-
-.fn-sm-hint {
-  margin: 0;
   font-size: 12px;
-  line-height: 1.45;
+  font-variant-numeric: tabular-nums;
   color: var(--text-tertiary);
 }
 
-.fn-sm-hint[data-error] {
-  color: var(--danger);
+.fn-sm-matched {
+  margin-left: auto;
+  font-size: 12.5px;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+}
+
+.fn-sm-matched strong {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
+}
+
+/* ---------- Stream monitor: filter band ----------
+   The feedback board's band (content.css, .fn-fb-filters): a tinted strip
+   between the card's head and its list. */
+.fn-sm-band {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 16px;
+  background: var(--surface-subtle);
+  border-top: 1px solid var(--border-subtle);
+}
+
+.fn-sm-band-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
 }
 
 .fn-sm-reset {
-  align-self: flex-start;
   padding: 0;
   border: 0;
   background: transparent;
@@ -172,34 +181,108 @@
   outline-offset: 2px;
 }
 
-/* ---------- Chip field ---------- */
+.fn-sm-kinds {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 20px;
+}
+
+.fn-sm-kind-group {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.fn-sm-kind-source {
+  margin-right: 2px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-tertiary);
+}
+
+.fn-sm-kind {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.fn-sm-kind-count {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-tertiary);
+}
+
+.fn-sm-kind[aria-pressed='true'] .fn-sm-kind-count {
+  color: inherit;
+}
+
+.fn-sm-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 8px;
+}
+
+.fn-sm-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.fn-sm-text {
+  height: 36px;
+  align-self: start;
+}
+
+.fn-sm-hint {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--text-tertiary);
+}
+
+.fn-sm-hint[data-error] {
+  color: var(--danger);
+}
+
+/* ---------- Chip field ----------
+   Sized and drawn as .fx-field, so the three filters read as one row. */
 
 .fn-tokens {
+  position: relative;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 5px;
-  min-height: 40px;
-  padding: 5px 6px;
+  min-height: 36px;
+  padding: 3px 6px 3px 10px;
   box-sizing: border-box;
   border: 1px solid var(--border-medium);
   border-radius: var(--radius-control);
   background: var(--bg-secondary);
   cursor: text;
-  transition: border-color 0.2s ease;
+  transition: border-color 0.15s ease;
 }
 
 .fn-tokens:focus-within {
   border-color: var(--text-accent);
 }
 
+.fn-tokens-icon {
+  display: inline-flex;
+  margin-right: 3px;
+  color: var(--text-tertiary);
+}
+
 .fn-token {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 2px;
   max-width: 100%;
   height: 26px;
-  padding: 0 2px 0 9px;
+  padding: 0 1px 0 9px;
   box-sizing: border-box;
   border: 1px solid var(--border-medium);
   border-radius: var(--radius-pill);
@@ -218,6 +301,7 @@
 }
 
 .fn-token-note {
+  margin-left: 3px;
   font-family: var(--font-sans);
   font-size: 11px;
   color: var(--text-tertiary);
@@ -238,9 +322,12 @@
   color: var(--danger);
 }
 
+/* 24px: WCAG 2.2's minimum target, and on touch screens a larger hit area
+   around it without growing the chip. */
 .fn-token-remove {
-  width: 20px;
-  height: 20px;
+  position: relative;
+  width: 24px;
+  height: 24px;
   flex: none;
   display: inline-flex;
   align-items: center;
@@ -263,110 +350,32 @@
   outline-offset: 0;
 }
 
+@media (pointer: coarse) {
+  .fn-token-remove::after {
+    content: '';
+    position: absolute;
+    inset: -8px;
+  }
+}
+
 .fn-tokens-input {
   flex: 1 1 80px;
   min-width: 0;
   height: 28px;
-  padding: 0 4px;
+  padding: 0 2px;
   border: 0;
   outline: none;
   background: transparent;
   color: var(--text-primary);
-  font-family: var(--font-mono);
-  font-size: 12.5px;
+  font-family: var(--font-sans);
+  font-size: 13.5px;
 }
 
 .fn-tokens-input::placeholder {
   color: var(--text-tertiary);
 }
 
-/* ---------- Stream monitor: feed ---------- */
-
-.fn-sm-feed {
-  display: flex;
-  flex-direction: column;
-  border: 1px solid var(--border-medium);
-  border-radius: var(--radius-card);
-  background: var(--bg-secondary);
-  overflow: hidden;
-}
-
-.fn-sm-feed-head {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 10px 16px;
-  padding: 12px 16px;
-  border-bottom: 1px solid var(--border-medium);
-}
-
-.fn-sm-statuses {
-  flex: 1 1 auto;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px 18px;
-}
-
-.fn-sm-status {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  font-size: 13px;
-  white-space: nowrap;
-}
-
-.fn-sm-status-label {
-  font-weight: 700;
-  color: var(--text-primary);
-}
-
-.fn-sm-status-text {
-  font-family: var(--font-mono);
-  font-size: 12px;
-  font-variant-numeric: tabular-nums;
-  color: var(--text-tertiary);
-}
-
-.fn-sm-dot {
-  width: 8px;
-  height: 8px;
-  flex: none;
-  border-radius: 50%;
-  background: var(--border-strong);
-}
-
-.fn-sm-status[data-state='open'] .fn-sm-dot {
-  background: var(--status-live);
-}
-
-.fn-sm-status:is([data-state='connecting'], [data-state='reconnecting'], [data-state='waiting'])
-  .fn-sm-dot {
-  background: var(--text-tertiary);
-  animation: fn-sm-blink 1.2s ease-in-out infinite;
-}
-
-@keyframes fn-sm-blink {
-  50% {
-    opacity: 0.25;
-  }
-}
-
-.fn-sm-matched {
-  font-size: 12.5px;
-  color: var(--text-tertiary);
-  white-space: nowrap;
-}
-
-.fn-sm-matched strong {
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-  color: var(--text-primary);
-}
-
-.fn-sm-head-actions {
-  display: flex;
-  gap: 6px;
-}
+/* ---------- Stream monitor: list ---------- */
 
 .fn-sm-held {
   display: flex;
@@ -376,7 +385,7 @@
   width: 100%;
   height: 34px;
   border: 0;
-  border-bottom: 1px solid var(--accent-soft-border);
+  border-top: 1px solid var(--accent-soft-border);
   background: var(--accent-soft);
   color: var(--accent-soft-fg);
   font-family: var(--font-sans);
@@ -390,35 +399,47 @@
   outline-offset: -2px;
 }
 
-/* A scroll box of its own, so the list can be read back through while the
-   page stays put. overflow-anchor: none keeps prepended rows from nudging
+/* The scroll box. overflow-anchor: none keeps prepended rows from nudging
    the scroll position (see .explore-jetstream-row); the stable gutter keeps
    the scrollbar's arrival from reflowing every row. Scrolling still chains
    to the page at either end, so a swipe over the list on a phone can carry
    on past it. */
-.fn-sm-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  height: min(68dvh, 640px);
+.fn-sm-scroll {
+  height: min(64dvh, 620px);
   overflow-y: auto;
   overflow-anchor: none;
   scrollbar-gutter: stable;
 }
 
+.fn-sm-grid {
+  display: grid;
+  grid-template-columns: 8ch 10ch minmax(14ch, 20ch) minmax(0, 1fr) minmax(0, 1.5fr);
+  gap: 14px;
+  align-items: center;
+  padding: 0 16px;
+  box-sizing: border-box;
+}
+
+.fn-sm-cols {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.fn-sm-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
 .fn-sm-row {
-  border-bottom: 1px solid var(--border-subtle);
+  border-top: 1px solid var(--border-subtle);
 }
 
 .fn-sm-row-main {
-  display: grid;
-  grid-template-columns: 8ch 11ch minmax(12ch, 18ch) minmax(0, 1fr) minmax(0, 1.4fr);
-  gap: 12px;
-  align-items: center;
   width: 100%;
-  min-height: 36px;
-  padding: 0 14px;
-  box-sizing: border-box;
+  min-height: 38px;
   border: 0;
   background: transparent;
   color: var(--text-primary);
@@ -426,9 +447,10 @@
   font-size: 12.5px;
   text-align: left;
   cursor: pointer;
+  transition: background 0.15s ease;
 }
 
-.fn-sm-row-main:hover,
+button.fn-sm-row-main:hover,
 .fn-sm-row-main[aria-expanded='true'] {
   background: var(--surface-subtle);
 }
@@ -436,6 +458,14 @@
 .fn-sm-row-main:focus-visible {
   outline: 2px solid var(--text-accent);
   outline-offset: -2px;
+}
+
+.fn-sm-row-main > *,
+.fn-sm-cols > * {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .fn-sm-time {
@@ -454,7 +484,6 @@
   font-size: 11.5px;
   font-weight: 600;
   line-height: 1.35;
-  white-space: nowrap;
 }
 
 .fn-sm-badge[data-kind='create'] {
@@ -465,6 +494,13 @@
 .fn-sm-badge[data-kind='delete'] {
   background: var(--danger-soft);
   color: var(--danger);
+}
+
+/* The dark theme's danger tint left this badge's 11.5px text at 4.47:1; a
+   lighter tint brings it over 4.5:1 and still reads as a filled badge, which
+   keeps it apart from the outlined PLC badges below. */
+:root:not([data-theme='light']) .fn-sm-badge[data-kind='delete'] {
+  background: color-mix(in srgb, var(--danger) 6%, transparent);
 }
 
 /* PLC operations are outlined, so the two sources read apart at a glance. */
@@ -483,125 +519,287 @@
   color: var(--danger);
 }
 
-.fn-sm-did,
-.fn-sm-primary,
-.fn-sm-secondary {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.fn-sm-did {
+.fn-sm-account {
   padding: 0;
   background: transparent;
   color: var(--text-tertiary);
 }
 
-.fn-sm-primary {
+.fn-sm-account[data-handle] {
+  color: var(--text-primary);
+}
+
+.fn-sm-nsid {
   color: var(--text-accent);
 }
 
-.fn-sm-secondary {
+.fn-sm-handle {
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.fn-sm-muted {
+  font-family: var(--font-sans);
+  font-size: 13px;
+  color: var(--text-tertiary);
+}
+
+.fn-sm-detail-text {
   font-family: var(--font-sans);
   font-size: 13px;
   color: var(--text-secondary);
 }
 
+.fn-sm-detail-mono {
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+
+/* An account's status, worded as the event words it. */
+.fn-sm-pill {
+  display: inline-block;
+  padding: 1px 8px;
+  border-radius: var(--radius-pill);
+  background: var(--danger-soft);
+  color: var(--danger);
+  font-family: var(--font-sans);
+  font-size: 11.5px;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+:root:not([data-theme='light']) .fn-sm-pill:not([data-active]) {
+  background: color-mix(in srgb, var(--danger) 6%, transparent);
+}
+
+.fn-sm-pill[data-active] {
+  background: var(--accent-soft);
+  color: var(--accent-soft-fg);
+}
+
+/* ---------- Stream monitor: an open row ---------- */
+
 .fn-sm-detail {
-  padding: 0 14px 14px;
+  padding: 0 16px 16px;
   background: var(--surface-subtle);
+}
+
+.fn-sm-detail-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding-top: 8px;
 }
 
 .fn-sm-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-  padding-top: 6px;
+  gap: 6px;
+  margin-left: auto;
 }
 
-.fn-sm-actions .fn-btn {
+.fn-sm-actions .fx-btn {
   height: 32px;
   font-size: 13px;
 }
 
+.fn-sm-detail > .fn-sm-preview,
+.fn-sm-detail > .fn-sm-json,
+.fn-sm-detail > .fn-sm-note,
+.fn-sm-detail > .fn-sm-changes,
+.fn-sm-detail > :last-child {
+  margin-top: 12px;
+}
+
+.fn-sm-preview {
+  max-width: 640px;
+}
+
+/* RichRecordCard draws nothing for a post the AppView hasn't indexed yet. */
+.fn-sm-preview:empty::before {
+  content: 'Not on the Bluesky AppView yet. Fields and JSON show the record as written.';
+  font-size: 13px;
+  color: var(--text-tertiary);
+}
+
 .fn-sm-json {
   max-height: 360px;
-  margin-top: 10px;
   margin-bottom: 0;
   overflow: auto;
 }
 
+.fn-sm-note {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+.fn-sm-changes {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 6px 16px;
+  margin: 0;
+  font-size: 13px;
+}
+
+.fn-sm-change {
+  display: contents;
+}
+
+.fn-sm-changes dt {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+  line-height: 20px;
+}
+
+.fn-sm-changes dd {
+  margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  line-height: 20px;
+  color: var(--text-secondary);
+}
+
+.fn-sm-changes code {
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  color: var(--text-primary);
+}
+
+/* ---------- Stream monitor: empty, loading, foot ---------- */
+
 .fn-sm-empty {
   padding: 28px 16px;
+  border-top: 1px solid var(--border-subtle);
   font-size: 13.5px;
   color: var(--text-tertiary);
 }
 
+.fn-sm-skel-row .fn-sm-row-main {
+  cursor: default;
+}
+
+/* A .fn-skel bar (account.css) at the rows' line height. */
+.fn-sm-bar {
+  height: 9px;
+}
+
 .fn-sm-foot {
-  padding: 10px 16px;
-  border-top: 1px solid var(--border-medium);
+  margin: 0;
+  padding: 9px 16px;
+  border-top: 1px solid var(--border-subtle);
   background: var(--surface-subtle);
   font-size: 12.5px;
   color: var(--text-tertiary);
 }
 
-/* Phones: each row stacks into two lines, the badge, account and time on
-   top and what happened under them. */
+/* ---------- Phones ----------
+   The column heads go, and each row stacks: the badge, account and time on
+   top, what happened and its detail under them. The text filter moves into
+   the bottom bar (ExploreChromeBar), as the explorer's own filters do, so
+   the band keeps only the source, the types and the two chip fields. */
 @media (max-width: 640px) {
-  .fn-t-intro h1 {
-    font-size: 30px;
+  .fn-sm-cols {
+    display: none;
   }
 
-  .fn-sm-filters {
-    padding: 14px;
-  }
-
-  .fn-sm-kind-source {
-    width: 100%;
+  .fn-sm-text {
+    display: none;
   }
 
   .fn-sm-row-main {
     grid-template-columns: auto minmax(0, 1fr) auto;
     grid-template-areas:
-      'badge did time'
-      'primary primary primary'
-      'secondary secondary secondary';
+      'badge account time'
+      'what what what'
+      'detail detail detail';
     gap: 3px 10px;
-    padding: 8px 14px;
+    padding: 9px 16px;
   }
 
-  .fn-sm-time {
+  .fn-sm-row-main > :nth-child(1) {
     grid-area: time;
   }
 
-  .fn-sm-badge {
+  .fn-sm-row-main > :nth-child(2) {
     grid-area: badge;
   }
 
-  .fn-sm-did {
-    grid-area: did;
+  .fn-sm-row-main > :nth-child(3) {
+    grid-area: account;
   }
 
-  .fn-sm-primary {
-    grid-area: primary;
+  .fn-sm-row-main > :nth-child(4) {
+    grid-area: what;
   }
 
-  .fn-sm-secondary {
-    grid-area: secondary;
+  .fn-sm-row-main > :nth-child(5) {
+    grid-area: detail;
   }
 
-  .fn-sm-secondary:empty {
+  .fn-sm-row-main > :nth-child(5):empty {
+    display: none;
+  }
+
+  .fn-sm-matched {
+    margin-left: 0;
+  }
+
+  .fn-sm-actions {
+    margin-left: 0;
+  }
+
+  /* Presets and event types each keep to one line that scrolls sideways,
+     bleeding to the edge they sit against, so neither pushes the list a
+     screen down. */
+  .fn-sm-presets .fn-x-tries,
+  .fn-sm-kinds {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .fn-sm-presets .fn-x-tries::-webkit-scrollbar,
+  .fn-sm-kinds::-webkit-scrollbar {
+    display: none;
+  }
+
+  .fn-sm-presets .fn-x-tries {
+    margin: 0 -16px;
+    padding: 0 16px;
+  }
+
+  .fn-sm-kinds {
+    margin: 0 -16px;
+    padding: 0 16px;
+  }
+
+  .fn-sm-presets .fn-x-tries > *,
+  .fn-sm-kind-group,
+  .fn-sm-kind-group > * {
+    flex: none;
+  }
+
+  .fn-sm-kind-group {
+    flex-wrap: nowrap;
+  }
+
+  /* Room for Pause and Clear on the title's own line. */
+  .fn-sm-head .fn-list-card-via {
     display: none;
   }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .fn-sm-dot {
-    animation: none !important;
+@media (pointer: coarse) {
+  .fn-sm-row-main {
+    min-height: 44px;
   }
-}
-
-[data-reduce-motion='true'] .fn-sm-dot {
-  animation: none !important;
 }

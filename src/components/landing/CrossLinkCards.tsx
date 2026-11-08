@@ -1,9 +1,9 @@
 'use client';
 
 import Link from 'next/link';
-import { ChevronRight, Download, Leaf, Link2, Plug, Telescope } from 'lucide-react';
+import { ChevronRight, Download, Leaf, Link2, Plug, Telescope, Wrench } from 'lucide-react';
 
-type ProductKey = 'universal-links' | 'extension' | 'explore' | 'mcp';
+type ProductKey = 'universal-links' | 'extension' | 'explore' | 'mcp' | 'tools';
 
 type Card = {
   key: ProductKey;
@@ -49,6 +49,13 @@ const CARDS: Card[] = [
     icon: <Telescope size={18} />,
     title: 'Atmosphere Explorer',
     body: "Browse any account's PDS records, identity history, and backlinks.",
+  },
+  {
+    key: 'tools',
+    href: '/tools',
+    icon: <Wrench size={18} />,
+    title: 'Tools',
+    body: 'Small utilities, starting with a live monitor for Jetstream and the PLC directory.',
   },
 ];
 

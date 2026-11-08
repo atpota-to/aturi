@@ -3,8 +3,10 @@ import assert from 'node:assert/strict';
 import {
   ALL_KINDS,
   DEFAULT_VIEW,
+  PRESETS,
   collectionMatches,
   compileFilter,
+  describePlcChange,
   itemFromJetstream,
   itemFromPlc,
   matchesExceptKind,
@@ -40,8 +42,8 @@ test('a created post becomes a row with its text and a record link', () => {
   assert.equal(item.kind, 'create');
   assert.equal(item.source, 'jetstream');
   assert.equal(item.time, 1_700_000_000_000);
-  assert.equal(item.primary, 'app.bsky.feed.post');
-  assert.equal(item.secondary, 'hello there');
+  assert.equal(item.preview, 'hello there');
+  assert.equal(item.rkey, '3kabc');
   assert.equal(item.href, `/explore/${DID}/app.bsky.feed.post/3kabc`);
   assert.equal(item.collection, 'app.bsky.feed.post');
 });
@@ -55,7 +57,8 @@ test('a delete links to the collection, since the record is gone', () => {
   };
   const item = itemFromJetstream(evt, '', 2);
   assert.equal(item.kind, 'delete');
-  assert.equal(item.secondary, '3kxyz');
+  assert.equal(item.rkey, '3kxyz');
+  assert.equal(item.preview, undefined);
   assert.equal(item.href, `/explore/${DID}/app.bsky.feed.like`);
 });
 
@@ -65,21 +68,21 @@ test('identity and account events summarise what they carry', () => {
     '',
     3,
   );
-  assert.equal(withHandle.primary, 'alice.example.com');
+  assert.equal(withHandle.handle, 'alice.example.com');
   const bare = itemFromJetstream(
     { did: DID, time_us: 1, kind: 'identity', identity: { did: DID, seq: 1, time: '' } },
     '',
     4,
   );
-  assert.equal(bare.primary, 'identity changed');
+  assert.equal(bare.handle, undefined);
   const account = itemFromJetstream(
     { did: DID, time_us: 1, kind: 'account', account: { did: DID, active: false, status: 'takendown', seq: 1, time: '' } },
     '',
     5,
   );
   assert.equal(account.kind, 'account');
-  assert.equal(account.primary, 'inactive');
-  assert.equal(account.secondary, 'takendown');
+  assert.equal(account.active, false);
+  assert.equal(account.status, 'takendown');
   assert.equal(account.href, `/explore/${DID}`);
 });
 
@@ -106,8 +109,8 @@ test('a PLC row shows the claimed handle and PDS host', () => {
     6,
   );
   assert.equal(item.kind, 'plc-new');
-  assert.equal(item.primary, 'alice.example.com');
-  assert.equal(item.secondary, 'pds.example.com');
+  assert.equal(item.handle, 'alice.example.com');
+  assert.equal(item.pds, 'pds.example.com');
   assert.equal(item.time, Date.parse('2026-01-02T03:04:05.000Z'));
 });
 
@@ -117,8 +120,8 @@ test('legacy create operations still yield a handle and host', () => {
     '',
     7,
   );
-  assert.equal(item.primary, 'bob.example.com');
-  assert.equal(item.secondary, 'pds.example.com');
+  assert.equal(item.handle, 'bob.example.com');
+  assert.equal(item.pds, 'pds.example.com');
 });
 
 test('text matching is case-insensitive and empty matches everything', () => {
@@ -201,7 +204,7 @@ test('junk in the query string is dropped', () => {
   assert.equal(ALL_KINDS.length, 8);
 });
 
-test('a post with nothing to preview shows its rkey, not a second timestamp', () => {
+test('a post with nothing to preview has no preview, not a second timestamp', () => {
   const item = itemFromJetstream(
     {
       did: DID,
@@ -217,7 +220,8 @@ test('a post with nothing to preview shows its rkey, not a second timestamp', ()
     '',
     8,
   );
-  assert.equal(item.secondary, '3kimg');
+  assert.equal(item.preview, undefined);
+  assert.equal(item.rkey, '3kimg');
 });
 
 // --- matching --------------------------------------------------------------
@@ -249,4 +253,52 @@ test('filters narrow by source, account, collection and text; kinds are separate
   assert.ok(!matchesExceptKind(compileFilter({ ...DEFAULT_VIEW, source: 'plc' }, null), post));
   // Accounts asked for but none resolved: nothing passes.
   assert.ok(!matchesExceptKind(compileFilter(DEFAULT_VIEW, new Set()), post));
+});
+
+// --- PLC changes and presets -------------------------------------------------
+
+test('a PLC update names what moved', () => {
+  const prev = {
+    type: 'plc_operation',
+    prev: null,
+    alsoKnownAs: ['at://alice.example.com'],
+    services: { atproto_pds: { type: 'AtprotoPersonalDataServer', endpoint: 'https://old.example.com' } },
+    rotationKeys: ['did:key:a'],
+    verificationMethods: { atproto: 'did:key:s1' },
+  };
+  const next = {
+    ...prev,
+    prev: 'bafyprev',
+    alsoKnownAs: ['at://alice.example.net'],
+    services: { atproto_pds: { type: 'AtprotoPersonalDataServer', endpoint: 'https://new.example.com' } },
+  };
+  assert.deepEqual(describePlcChange(prev, next), [
+    { label: 'Handle', from: 'alice.example.com', to: 'alice.example.net' },
+    { label: 'PDS', from: 'old.example.com', to: 'new.example.com' },
+  ]);
+  const rotated = { ...next, rotationKeys: ['did:key:b'], verificationMethods: { atproto: 'did:key:s2' } };
+  assert.deepEqual(
+    describePlcChange(next, rotated).map((c) => c.label),
+    ['Signing key', 'Rotation keys'],
+  );
+  // A genesis operation has nothing before it: everything it sets is new.
+  assert.deepEqual(
+    describePlcChange(null, prev).map((c) => [c.label, c.from, c.to]),
+    [
+      ['Handle', null, 'alice.example.com'],
+      ['PDS', null, 'old.example.com'],
+      ['Signing key', null, 'did:key:s1'],
+    ],
+  );
+});
+
+test('every preset survives the query string and is distinct', () => {
+  const seen = new Set<string>();
+  for (const preset of PRESETS) {
+    const search = viewToSearch(preset.view);
+    assert.ok(search, `${preset.id} is not the default view`);
+    assert.equal(viewToSearch(viewFromSearch(new URLSearchParams(search))), search, preset.id);
+    assert.ok(!seen.has(search), `${preset.id} duplicates another preset`);
+    seen.add(search);
+  }
 });

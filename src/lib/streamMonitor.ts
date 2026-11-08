@@ -97,14 +97,19 @@ export type StreamItem = {
   did: string;
   /** Event time in ms: Jetstream's `time_us`, or the PLC entry's `createdAt`. */
   time: number;
-  /** What happened, in a few words: a collection, a handle, a status. */
-  primary: string;
-  /** Supporting detail: a record preview, an rkey, a PDS host. */
-  secondary: string;
   /** Where to look at it in the explorer. */
   href: string;
-  /** Set on commits, for the "only this collection" shortcut. */
+  /** Commits: the collection and record key, and a line of what was written. */
   collection?: string;
+  rkey?: string;
+  preview?: string;
+  /** The handle the event itself names: an identity event's, or a PLC claim. */
+  handle?: string;
+  /** PLC operations: the PDS host the DID points at. */
+  pds?: string;
+  /** Account events. */
+  active?: boolean;
+  status?: string;
   /** The message as received, for text matching. */
   raw: string;
   data: unknown;
@@ -123,34 +128,28 @@ export function itemFromJetstream(
   if (evt.kind === 'commit') {
     const { operation, collection, rkey, record } = evt.commit;
     // previewFor falls back to createdAt, which the row's clock already shows.
-    const preview = previewFor(record);
+    const preview = operation === 'delete' ? '' : previewFor(record);
     const recordPath = explorePathFromAtUri(`at://${evt.did}/${collection}/${rkey}`);
     const collectionPath = explorePathFromAtUri(`at://${evt.did}/${collection}`);
     return {
       ...base,
       kind: operation,
-      primary: collection,
-      secondary: operation !== 'delete' && preview && preview !== record?.createdAt ? preview : rkey,
       // A deleted record has nothing left to open; its collection does.
       href: (operation === 'delete' ? collectionPath : recordPath) ?? repoHref(evt.did),
       collection,
+      rkey,
+      preview: preview && preview !== record?.createdAt ? preview : undefined,
     };
   }
   if (evt.kind === 'identity') {
-    return {
-      ...base,
-      kind: 'identity',
-      primary: evt.identity.handle ?? 'identity changed',
-      secondary: evt.identity.handle ? '' : 'no handle in the event',
-      href: repoHref(evt.did),
-    };
+    return { ...base, kind: 'identity', href: repoHref(evt.did), handle: evt.identity.handle };
   }
   return {
     ...base,
     kind: 'account',
-    primary: evt.account.active ? 'active' : 'inactive',
-    secondary: evt.account.status ?? '',
     href: repoHref(evt.did),
+    active: evt.account.active,
+    status: evt.account.status,
   };
 }
 
@@ -183,12 +182,52 @@ export function itemFromPlc(entry: PlcStreamEntry, raw: string, id: number): Str
     kind,
     did: entry.did,
     time: Number.isNaN(parsed) ? Date.now() : parsed,
-    primary: tombstone ? 'tombstoned' : plcHandle(entry.operation) ?? 'no handle',
-    secondary: tombstone ? '' : plcPdsHost(entry.operation) ?? 'no PDS',
     href: repoHref(entry.did),
+    handle: tombstone ? undefined : plcHandle(entry.operation) ?? undefined,
+    pds: tombstone ? undefined : plcPdsHost(entry.operation) ?? undefined,
     raw,
     data: entry,
   };
+}
+
+export type PlcChange = {
+  label: 'Handle' | 'PDS' | 'Signing key' | 'Rotation keys';
+  from: string | null;
+  to: string | null;
+};
+
+function signingKey(op: PlcStreamOperation): string | null {
+  return op.verificationMethods?.atproto ?? op.signingKey ?? null;
+}
+
+function rotationKeys(op: PlcStreamOperation): string {
+  return (op.rotationKeys ?? [op.recoveryKey, op.signingKey].filter(Boolean)).join(' ');
+}
+
+/**
+ * What one PLC operation changed relative to the one before it, field by
+ * field, for the open row. A finer cut than `diffOps` (plc.ts), which says
+ * "services updated" where this names the PDS it moved from and to.
+ */
+export function describePlcChange(
+  prev: PlcStreamOperation | null,
+  next: PlcStreamOperation,
+): PlcChange[] {
+  const changes: PlcChange[] = [];
+  const pairs: [PlcChange['label'], (op: PlcStreamOperation) => string | null][] = [
+    ['Handle', plcHandle],
+    ['PDS', plcPdsHost],
+    ['Signing key', signingKey],
+  ];
+  for (const [label, read] of pairs) {
+    const from = prev ? read(prev) : null;
+    const to = read(next);
+    if (from !== to) changes.push({ label, from, to });
+  }
+  if (prev && rotationKeys(prev) !== rotationKeys(next)) {
+    changes.push({ label: 'Rotation keys', from: null, to: null });
+  }
+  return changes;
 }
 
 /** Case-insensitive match anywhere in the event's JSON. `needle` is lowercased. */
@@ -310,6 +349,71 @@ export const DEFAULT_VIEW: MonitorView = {
   collections: [],
   text: '',
 };
+
+/**
+ * Kinds for a view that shows only `source`: the listed kinds, plus every
+ * kind of the other source, so switching the source back later finds it on.
+ */
+function only(source: StreamSource, kinds: StreamKind[]): StreamKind[] {
+  return ALL_KINDS.filter((k) => kinds.includes(k) || kindSource(k) !== source);
+}
+
+export type Preset = { id: string; label: string; hint: string; view: MonitorView };
+
+/** Starting points offered beside the intro, as the explorer offers handles. */
+export const PRESETS: Preset[] = [
+  {
+    id: 'new-accounts',
+    label: 'New accounts',
+    hint: 'Each new did:plc, with the handle and PDS it starts on',
+    view: { ...DEFAULT_VIEW, source: 'plc', kinds: only('plc', ['plc-new']) },
+  },
+  {
+    id: 'moves',
+    label: 'Handle and PDS changes',
+    hint: 'Updates to existing DIDs: new handles, PDS migrations, key rotations',
+    view: { ...DEFAULT_VIEW, source: 'plc', kinds: only('plc', ['plc-update']) },
+  },
+  {
+    id: 'posts',
+    label: 'Bluesky posts',
+    hint: 'New app.bsky.feed.post records',
+    view: {
+      ...DEFAULT_VIEW,
+      source: 'jetstream',
+      kinds: only('jetstream', ['create']),
+      collections: ['app.bsky.feed.post'],
+    },
+  },
+  {
+    id: 'follows',
+    label: 'Follows and unfollows',
+    hint: 'app.bsky.graph.follow records created and deleted',
+    view: {
+      ...DEFAULT_VIEW,
+      source: 'jetstream',
+      kinds: only('jetstream', ['create', 'delete']),
+      collections: ['app.bsky.graph.follow'],
+    },
+  },
+  {
+    id: 'profiles',
+    label: 'Profile edits',
+    hint: 'app.bsky.actor.profile records written',
+    view: {
+      ...DEFAULT_VIEW,
+      source: 'jetstream',
+      kinds: only('jetstream', ['create', 'update']),
+      collections: ['app.bsky.actor.profile'],
+    },
+  },
+  {
+    id: 'account-status',
+    label: 'Account status',
+    hint: 'Activations, deactivations, suspensions and takedowns',
+    view: { ...DEFAULT_VIEW, source: 'jetstream', kinds: only('jetstream', ['account']) },
+  },
+];
 
 const SOURCE_CHOICES: SourceChoice[] = ['both', 'jetstream', 'plc'];
 
