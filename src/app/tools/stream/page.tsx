@@ -1,6 +1,5 @@
 import { Suspense } from 'react';
 import type { Metadata } from 'next';
-import Link from 'next/link';
 import StreamMonitor, { StreamMonitorSkeleton } from '@/components/tools/StreamMonitor';
 import { ChromeBarProvider } from '@/components/explore/ChromeBarContext';
 import ExploreChromeBar from '@/components/explore/ExploreChromeBar';
@@ -16,36 +15,37 @@ export const metadata: Metadata = {
   twitter: { card: 'summary_large_image', title: TITLE, description: DESCRIPTION },
 };
 
-const intro = (
+/** The intro, which the monitor keeps behind an ⓘ beside its title. */
+const about = (
   <>
-    <Link href="/tools" className="fn-kicker fn-t-kicker-link">
-      Tools
-    </Link>
-    <h1>Stream monitor</h1>
     <p>
       Records being written across the Atmosphere, from Jetstream, and every <code>did:plc</code>{' '}
-      operation, from the PLC directory, as they happen. Filters are kept in the link, so any view can
-      be shared.
+      operation, from the PLC directory, as they happen.
+    </p>
+    <p>
+      Pause holds new events above the list and stays connected. Stop disconnects from both streams.
+      Filters are kept in the link, so any view can be shared.
     </p>
   </>
 );
 
 /**
  * The monitor reads its filters from the query string, so it renders in the
- * browser under a Suspense boundary; the static HTML carries the intro and
- * the skeleton of the card.
+ * browser under a Suspense boundary; the static HTML carries the frame, the
+ * title and the intro.
  *
- * The explorer's bottom bar comes along (ChromeBarProvider): on a phone it
- * holds the text filter beside Back, Home and the menu, as it does on a
- * repo or a collection.
+ * The explorer's bottom bar comes along (ChromeBarProvider) for phones,
+ * where it becomes the monitor's toolbar: Pause and Stop, the text filter
+ * and the filters button. Wider, the monitor's own toolbar holds all of
+ * that, so the bar is phone only.
  */
 export default function StreamMonitorPage() {
   return (
     <ChromeBarProvider>
-      <Suspense fallback={<StreamMonitorSkeleton intro={intro} />}>
-        <StreamMonitor intro={intro} />
+      <Suspense fallback={<StreamMonitorSkeleton about={about} />}>
+        <StreamMonitor about={about} />
       </Suspense>
-      <ExploreChromeBar />
+      <ExploreChromeBar phoneOnly />
     </ChromeBarProvider>
   );
 }

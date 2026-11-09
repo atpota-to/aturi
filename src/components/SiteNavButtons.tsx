@@ -72,3 +72,33 @@ export default function SiteNavButtons() {
     </div>
   );
 }
+
+/**
+ * Back, as a tile in the phone menu sheet beside the logo's Home row. Drawn
+ * only on a page whose bottom toolbar gave Back and Home's place to its own
+ * controls (the stream monitor's Pause and Stop): chrome.css shows it while
+ * the toolbar holds a transport (`.fn-menu-back`). Greyed out on the same
+ * terms as the toolbar's Back.
+ */
+export function MenuBackButton({ onBack }: { onBack: () => void }) {
+  const router = useRouter();
+  const canGoBack = useSyncExternalStore(
+    subscribeSiteHistory,
+    getCanGoBackSnapshot,
+    getCanGoBackServerSnapshot,
+  );
+  return (
+    <button
+      type="button"
+      onClick={() => {
+        onBack();
+        router.back();
+      }}
+      disabled={!canGoBack}
+      className="compact-nav-link fn-menu-back"
+    >
+      <ChevronLeft size={16} aria-hidden />
+      <span>Back</span>
+    </button>
+  );
+}

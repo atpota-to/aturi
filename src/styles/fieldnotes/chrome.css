@@ -860,7 +860,9 @@ body.has-explore-chrome {
 .fn-site-menu-btn,
 .fn-site-nav,
 .fn-menu-grabber,
+.fn-menu-top,
 .fn-menu-home,
+.fn-menu-back,
 .fn-menu-whatsnew,
 .fn-menu-scrim {
   display: none;
@@ -1120,7 +1122,7 @@ body.has-explore-chrome {
   /* Its rows follow the sheet up a beat behind, a row at a time (the grid
      is two across), each lifting 6px. Closing, they fade with the sheet
      and don't wait. --row is the row's place from the top. */
-  .fn-header-menu-panel :is(.fn-menu-home, .compact-nav-grid > *, .fn-menu-session) {
+  .fn-header-menu-panel :is(.fn-menu-home, .fn-menu-back, .compact-nav-grid > *, .fn-menu-session) {
     opacity: 0;
     transform: translateY(6px);
     transition:
@@ -1128,7 +1130,7 @@ body.has-explore-chrome {
       transform 120ms ease-in;
   }
 
-  .fn-header-menu-panel[data-open] :is(.fn-menu-home, .compact-nav-grid > *, .fn-menu-session) {
+  .fn-header-menu-panel[data-open] :is(.fn-menu-home, .fn-menu-back, .compact-nav-grid > *, .fn-menu-session) {
     opacity: 1;
     transform: none;
     transition:
@@ -1182,6 +1184,31 @@ body.has-explore-chrome {
 
   .fn-menu-home .fn-wordmark {
     font-size: 16px;
+  }
+
+  /* Home's row. Back joins it, on its left, on a page whose toolbar gave
+     Back and Home's place to its own controls: the stream monitor's Pause
+     and Stop (ExploreChromeBar.tsx). Home is already here, so only Back
+     moves. */
+  .fn-menu-top {
+    display: flex;
+    gap: 6px;
+  }
+
+  .fn-menu-top > .fn-menu-home {
+    flex: 1;
+    min-width: 0;
+  }
+
+  body:has(.explore-chrome-transport) .fn-header .compact-nav-link.fn-menu-back {
+    display: flex;
+    flex: none;
+    color: var(--text-primary);
+  }
+
+  .fn-header .compact-nav-link.fn-menu-back:disabled {
+    color: var(--text-faint);
+    cursor: default;
   }
 
   /* What's new beside Theme, so the grid's last row is a pair like every
@@ -1631,6 +1658,127 @@ body.has-explore-chrome {
   }
 }
 
+/* ---------- Phone toolbar: a live stream's controls ----------
+   The stream monitor publishes play, pause and stop and a filter panel
+   (ChromeBarContext.tsx). On a phone ExploreChromeBar draws them where Back
+   and Home sit on other pages, and the menu takes Back in (.fn-menu-back).
+   Wider, the monitor's own toolbar holds all of it and the bar isn't drawn
+   at all (`phoneOnly`). */
+
+@media (min-width: 641px) {
+  .explore-chrome-bar[data-phone-only] {
+    display: none;
+  }
+}
+
+@media (max-width: 640px) {
+  /* Pause and Stop, joined into one control. Its width is set (two 44px
+     chips sharing a border) so it can fold to nothing and back. */
+  .explore-chrome-transport {
+    display: flex;
+    flex-shrink: 0;
+    max-width: 88px;
+    transition:
+      max-width 0.22s ease,
+      margin-left 0.22s ease,
+      opacity 0.16s ease;
+  }
+
+  .explore-chrome-transport > .explore-chrome-button {
+    color: var(--text-primary);
+  }
+
+  .explore-chrome-transport > :first-child {
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+  }
+
+  .explore-chrome-transport > :last-child {
+    margin-left: -1px;
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+  }
+
+  /* Paused or stopped, Play is the way back to live: lit, and drawn over
+     Stop's shared edge. Specific enough to outlast the chips' hover fill
+     (explorer.css), which sticks to a button after a tap. */
+  .explore-chrome-inner .explore-chrome-transport .explore-chrome-play:not([data-state='live']) {
+    position: relative;
+    z-index: 1;
+    background: var(--accent-soft);
+    border-color: var(--accent-soft-border);
+    color: var(--accent-soft-fg);
+  }
+
+  .explore-chrome-inner .explore-chrome-transport .explore-chrome-stop[aria-pressed='true'] {
+    background: var(--bg-tertiary);
+    color: var(--text-tertiary);
+  }
+
+  .explore-chrome-play[data-connecting] svg {
+    animation: fn-chrome-connecting 0.8s ease-in-out infinite alternate;
+  }
+
+  /* The page's panel button (the monitor's filters), with the count of
+     what's set in it. */
+  .explore-chrome-page-panel {
+    position: relative;
+    max-width: 44px;
+    color: var(--text-primary);
+    transition:
+      max-width 0.22s ease,
+      margin-left 0.22s ease,
+      opacity 0.16s ease;
+  }
+
+  .explore-chrome-inner .explore-chrome-button.explore-chrome-page-panel[data-open] {
+    background: var(--accent-soft);
+    border-color: var(--accent-soft-border);
+    color: var(--accent-soft-fg);
+  }
+
+  .explore-chrome-badge {
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    box-sizing: border-box;
+    border: 2px solid var(--bg-secondary);
+    border-radius: var(--radius-pill);
+    background: var(--accent-moss);
+    color: var(--text-on-accent);
+    font-family: var(--font-sans);
+    font-size: 10.5px;
+    font-weight: 700;
+    line-height: 14px;
+    text-align: center;
+  }
+
+  /* While the field is in use they fold away, as Back and Home do, and the
+     field grows into their room. The menu button stays. */
+  .explore-chrome-inner:has(.explore-chrome-form:focus-within) :is(.explore-chrome-transport, .explore-chrome-page-panel) {
+    max-width: 0;
+    min-width: 0;
+    margin-left: -8px;
+    padding: 0;
+    border-width: 0;
+    opacity: 0;
+    overflow: hidden;
+    pointer-events: none;
+  }
+}
+
+@keyframes fn-chrome-connecting {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0.35;
+  }
+}
+
 /* The global clamp shortens durations but leaves delays standing: drop the
    blocks' stagger, the sheet's late fade and the page's held-back hiding,
    so with reduced motion the sheet is simply there, and simply gone. */
@@ -1645,6 +1793,8 @@ html[data-reduce-motion='true'][data-phone-search] body {
 
 [data-reduce-motion='true'] .explore-chrome-inner,
 [data-reduce-motion='true'] .explore-chrome-form,
+[data-reduce-motion='true'] .explore-chrome-transport,
+[data-reduce-motion='true'] .explore-chrome-page-panel,
 [data-reduce-motion='true'] .fn-site-nav,
 [data-reduce-motion='true'] .fn-site-nav-btn,
 [data-reduce-motion='true'] .fn-menu-scrim {
@@ -1653,6 +1803,6 @@ html[data-reduce-motion='true'][data-phone-search] body {
 
 /* The sheet's rows wait for it with a delay, which the global clamp on
    durations leaves standing: drop it, so the menu appears whole. */
-[data-reduce-motion='true'] .fn-header-menu-panel :is(.fn-menu-home, .compact-nav-grid > *, .fn-menu-session) {
+[data-reduce-motion='true'] .fn-header-menu-panel :is(.fn-menu-home, .fn-menu-back, .compact-nav-grid > *, .fn-menu-session) {
   transition-delay: 0s !important;
 }

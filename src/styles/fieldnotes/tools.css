@@ -2,13 +2,13 @@
    live in src/app/globals.css (:root and [data-theme='light']); use them
    rather than raw hex so dark mode and the colour schemes keep working.
 
-   Built from the explorer's parts wherever one fits: the intro and its "Try"
-   row and tiles (.fn-x-*, explore.css), the list card (.fn-list-card-*), the
-   feedback board's filter chips (.fn-fb-chip, content.css), the explorer's
-   buttons, field and live dot (.fx-btn, .fx-field, .fx-dot, explorer.css),
-   and the feed's arrival accent (.explore-jetstream-row, globals.css). What
-   is left here is layout and the stream monitor's rows. Class prefixes:
-   fn-t- (the section), fn-sm- (stream monitor), fn-token (the chip field). */
+   Built from the explorer's parts wherever one fits: the hub's intro and
+   tiles (.fn-x-*, explore.css), the segmented control and the preset chips
+   (.fn-segmented, .fn-chip, explore.css), the explorer's buttons, field and
+   live dot (.fx-btn, .fx-field, .fx-dot, explorer.css), and the feed's
+   arrival accent (.explore-jetstream-row, globals.css). What is left here is
+   layout and the stream monitor's rows. Class prefixes: fn-t- (the
+   section), fn-sm- (stream monitor), fn-token (the chip field). */
 
 /* ---------- Page frame ----------
    The tools layout wraps pages in .fn-c-wrap (content.css, 1040px). Tools
@@ -32,15 +32,6 @@
   font-size: 0.9em;
 }
 
-.fn-t-kicker-link {
-  align-self: flex-start;
-  text-decoration: none;
-}
-
-.fn-t-kicker-link:hover {
-  color: var(--accent-forest);
-}
-
 /* ---------- Hub ---------- */
 
 /* Tiles hold a sentence here, not three words; give them the room. */
@@ -61,51 +52,186 @@
   margin-top: 36px;
 }
 
-/* ---------- Stream monitor: intro ---------- */
+/* ---------- Stream monitor: the frame ----------
+   A dashboard that fills the window under the site header, so the page
+   itself never scrolls; the list and the panels do. StreamMonitor measures
+   where it starts (--fn-sm-top), and the phone toolbar's height arrives as
+   --explore-chrome-h (0 where the bar isn't drawn). The values here hold
+   the first paint. While it's mounted the page wrapper's padding, the
+   header's gap and the footer step aside. */
 
-/* Presets are words, not handles, so they leave the chips' mono face. As
-   buttons they also need the pressed state the explorer's links don't. */
-.fn-sm-preset {
-  font-family: var(--font-sans);
-  font-size: 13px;
-  cursor: pointer;
+.fn-c-wrap:has(> .fn-sm) {
+  max-width: none;
+  min-height: 0;
+  padding: 0;
 }
 
-.fn-sm-preset[aria-pressed='true'] {
+body:has(.fn-sm) .fn-header {
+  margin-bottom: 0;
+}
+
+body:has(.fn-sm) .fn-footer {
+  display: none;
+}
+
+/* Also keeps a swipe that runs off the end of the list from dragging the
+   whole page on a phone. */
+html:has(.fn-sm) {
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
+.fn-sm {
+  --fn-sm-top: 57px;
+  display: flex;
+  flex-direction: column;
+  height: calc(100dvh - var(--fn-sm-top) - var(--explore-chrome-h, 0px));
+  font-family: var(--font-sans);
+  font-size: 14px;
+  color: var(--text-primary);
+  background: var(--bg-secondary);
+}
+
+/* ---------- Stream monitor: toolbar ----------
+   Title, transport, the sources' status, the matched count and the
+   actions, on one line under the site header. */
+
+.fn-sm-toolbar {
+  position: relative;
+  z-index: 5;
+  flex: none;
+  display: grid;
+  grid-template-columns: auto auto minmax(0, 1fr) auto auto;
+  grid-template-areas: 'title transport status matched actions';
+  align-items: center;
+  gap: 10px 18px;
+  padding: 10px 20px;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-medium);
+}
+
+.fn-sm-title {
+  grid-area: title;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.fn-sm-crumb {
+  font-size: 13px;
+  color: var(--text-tertiary);
+  text-decoration: none;
+}
+
+.fn-sm-crumb:hover {
+  color: var(--accent-forest);
+}
+
+.fn-sm-slash {
+  color: var(--text-faint);
+}
+
+.fn-sm-h1 {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: 16px;
+  font-weight: 650;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+}
+
+.fn-sm-icon {
+  width: 28px;
+  height: 28px;
+  flex: none;
+  display: inline-grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.fn-sm-icon:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+.fn-sm-icon[aria-expanded='true'] {
   background: var(--accent-soft);
-  border-color: var(--accent-soft-border);
   color: var(--accent-soft-fg);
 }
 
-.fn-sm-preset:focus-visible {
+.fn-sm-icon:focus-visible {
   outline: 2px solid var(--text-accent);
-  outline-offset: 2px;
+  outline-offset: 1px;
 }
 
-@media (pointer: coarse) {
-  .fn-sm-preset {
-    height: 36px;
-  }
+/* The intro, behind the ⓘ. */
+.fn-sm-about {
+  position: relative;
+  display: inline-flex;
 }
 
-/* ---------- Stream monitor: card head ---------- */
-
-.fn-sm-card {
-  height: auto;
+.fn-sm-about-panel {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: -12px;
+  z-index: 10;
+  width: min(380px, calc(100vw - 32px));
+  box-sizing: border-box;
+  padding: 14px 16px;
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-card);
+  background: var(--bg-elevated);
+  box-shadow: var(--shadow-overlay);
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: var(--text-secondary);
 }
 
-.fn-sm-head-actions {
-  margin-left: auto;
-  display: flex;
+.fn-sm-about-panel p {
+  margin: 0 0 8px;
+}
+
+.fn-sm-about-panel p:last-child {
+  margin: 0;
+}
+
+.fn-sm-about-panel code {
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+}
+
+/* Live, Pause, Stop: the site's segmented control (.fn-segmented). */
+.fn-sm-transport {
+  grid-area: transport;
+}
+
+.fn-sm-transport .fn-segmented-option {
+  display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 7px;
+  white-space: nowrap;
+}
+
+.fn-sm-transport .fn-segmented-option:disabled {
+  opacity: 0.45;
+  cursor: default;
 }
 
 .fn-sm-statusline {
+  grid-area: status;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 6px 18px;
+  gap: 4px 16px;
+  min-width: 0;
   font-size: 13px;
 }
 
@@ -116,9 +242,18 @@
   white-space: nowrap;
 }
 
+.fn-sm-status[data-state='off'],
+.fn-sm-status[data-state='stopped'] {
+  opacity: 0.6;
+}
+
 .fn-sm-status-label {
   font-weight: 600;
   color: var(--text-secondary);
+}
+
+.fn-sm-short {
+  display: none;
 }
 
 .fn-sm-status-text {
@@ -129,7 +264,7 @@
 }
 
 .fn-sm-matched {
-  margin-left: auto;
+  grid-area: matched;
   font-size: 12.5px;
   color: var(--text-tertiary);
   white-space: nowrap;
@@ -141,24 +276,89 @@
   color: var(--text-primary);
 }
 
-/* ---------- Stream monitor: filter band ----------
-   The feedback board's band (content.css, .fn-fb-filters): a tinted strip
-   between the card's head and its list. */
-.fn-sm-band {
+.fn-sm-head-actions {
+  grid-area: actions;
   display: flex;
-  flex-direction: column;
-  gap: 10px;
-  padding: 12px 16px;
-  background: var(--surface-subtle);
-  border-top: 1px solid var(--border-subtle);
+  align-items: center;
+  gap: 6px;
 }
 
-.fn-sm-band-row {
+/* Below desktop width only (the rail is a drawer there), and on a phone
+   the tally and the views take a line of their own. */
+.fn-sm-toolbar :is(.fn-sm-filters-btn, .fn-sm-tally, .fn-sm-strip-presets) {
+  display: none;
+}
+
+.fn-sm-filters-btn[aria-expanded='true'] {
+  background: var(--accent-soft);
+  border-color: var(--accent-soft-border);
+  color: var(--accent-soft-fg);
+}
+
+.fn-sm-filters-count {
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  box-sizing: border-box;
+  border-radius: var(--radius-pill);
+  background: var(--accent-moss);
+  color: var(--text-on-accent);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 18px;
+  text-align: center;
+}
+
+/* ---------- Stream monitor: body ----------
+   The filter rail, the list and, while an event is open, the inspector.
+   isolation keeps the drawers below the toolbar's about panel. */
+
+.fn-sm-body {
+  position: relative;
+  isolation: isolate;
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 284px minmax(0, 1fr);
+  overflow: hidden;
+}
+
+.fn-sm[data-inspect] .fn-sm-body {
+  grid-template-columns: 284px minmax(0, 1fr) minmax(340px, 400px);
+}
+
+/* ---------- Stream monitor: filter rail ---------- */
+
+.fn-sm-rail {
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
+  gap: 20px;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 16px 16px 24px;
+  box-sizing: border-box;
+  background: var(--surface-subtle);
+  border-right: 1px solid var(--border-medium);
+}
+
+.fn-sm-grab {
+  display: none;
+}
+
+.fn-sm-rail-head {
+  display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 8px;
+  gap: 12px;
+  min-height: 30px;
+}
+
+.fn-sm-rail-title {
+  flex: 1;
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  font-weight: 650;
 }
 
 .fn-sm-reset {
@@ -181,74 +381,941 @@
   outline-offset: 2px;
 }
 
-.fn-sm-kinds {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px 20px;
+.fn-sm-done {
+  display: none;
 }
 
-.fn-sm-kind-group {
+.fn-sm-sec {
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 6px;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
 }
 
-.fn-sm-kind-source {
-  margin-right: 2px;
-  font-size: 12px;
+.fn-sm-sec > .fn-segmented {
+  align-self: flex-start;
+}
+
+.fn-sm-sec-title {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: 11px;
   font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
   color: var(--text-tertiary);
 }
 
-.fn-sm-kind {
-  display: inline-flex;
-  align-items: center;
+.fn-sm-presets {
+  display: flex;
+  flex-wrap: wrap;
   gap: 6px;
 }
 
-.fn-sm-kind-count {
+/* Presets are words, not handles, so they leave the chips' mono face. As
+   buttons they also need the pressed state the explorer's links don't. */
+.fn-sm-preset {
+  flex: none;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.fn-sm-preset[aria-pressed='true'] {
+  background: var(--accent-soft);
+  border-color: var(--accent-soft-border);
+  color: var(--accent-soft-fg);
+}
+
+.fn-sm-preset:focus-visible {
+  outline: 2px solid var(--text-accent);
+  outline-offset: 2px;
+}
+
+/* Event types: one row each, its badge drawn as the list draws it, so the
+   rail is the list's legend too. */
+.fn-sm-kgroup + .fn-sm-kgroup {
+  margin-top: 8px;
+}
+
+.fn-sm-kgroup-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 0 2px 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.fn-sm-kgroup-rate {
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: 11.5px;
+  font-weight: 400;
   font-variant-numeric: tabular-nums;
   color: var(--text-tertiary);
 }
 
-.fn-sm-kind[aria-pressed='true'] .fn-sm-kind-count {
-  color: inherit;
-}
-
-.fn-sm-fields {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 8px;
-}
-
-.fn-sm-field {
+.fn-sm-klist {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  min-width: 0;
+  gap: 2px;
+}
+
+.fn-sm-kind {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 32px;
+  padding: 0 8px;
+  box-sizing: border-box;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--text-primary);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.fn-sm-kind:hover {
+  background: var(--bg-tertiary);
+}
+
+.fn-sm-kind:focus-visible {
+  outline: 2px solid var(--text-accent);
+  outline-offset: -2px;
+}
+
+.fn-sm-check {
+  width: 15px;
+  height: 15px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  box-sizing: border-box;
+  border: 1.5px solid var(--border-strong);
+  border-radius: 4px;
+  color: transparent;
+}
+
+.fn-sm-kind[aria-pressed='true'] .fn-sm-check {
+  border-color: var(--accent-moss);
+  background: var(--accent-moss);
+  color: var(--text-on-accent);
+}
+
+.fn-sm-kind[aria-pressed='false'] .fn-sm-badge {
+  opacity: 0.5;
+}
+
+.fn-sm-kind-count {
+  margin-left: auto;
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-tertiary);
 }
 
 .fn-sm-text {
   height: 36px;
-  align-self: start;
 }
 
-.fn-sm-hint {
+/* ---------- Stream monitor: list ----------
+   The only thing on the page that scrolls. Its rows are a table while the
+   list has the width for one and stack once it doesn't, by the list's own
+   width rather than the window's, so opening the inspector reflows them. */
+
+.fn-sm-main {
+  position: relative;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  min-width: 0;
+  min-height: 0;
+  container: fn-sm-list / inline-size;
+  background: var(--bg-secondary);
+}
+
+/* overflow-anchor: none keeps prepended rows from nudging the scroll
+   position (see .explore-jetstream-row); the stable gutter keeps the
+   scrollbar's arrival from reflowing every row. */
+.fn-sm-scroll {
+  min-height: 0;
+  overflow-y: auto;
+  overflow-anchor: none;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+}
+
+/* Floats over the top of the list while it holds, rather than pushing it
+   down a row. */
+.fn-sm-held {
+  position: absolute;
+  z-index: 3;
+  top: 44px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  max-width: calc(100% - 32px);
+  height: 32px;
+  padding: 0 14px 0 11px;
+  box-sizing: border-box;
+  border: 1px solid var(--accent-soft-border);
+  border-radius: var(--radius-pill);
+  background: var(--accent-soft);
+  box-shadow: var(--shadow-overlay);
+  color: var(--accent-soft-fg);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+}
+
+.fn-sm-held[data-tone='stopped'] {
+  border-color: var(--border-strong);
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+}
+
+.fn-sm-held:focus-visible {
+  outline: 2px solid var(--text-accent);
+  outline-offset: 2px;
+}
+
+.fn-sm-grid {
+  display: grid;
+  grid-template-columns: 8ch 10ch minmax(14ch, 20ch) minmax(0, 1fr) minmax(0, 1.5fr);
+  gap: 14px;
+  align-items: center;
+  padding: 0 16px;
+  box-sizing: border-box;
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+}
+
+.fn-sm-cols {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  border-top: 0;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+/* The grid is set in mono so its ch tracks match the rows'; the heads
+   themselves keep the column heads' sans face. */
+.fn-sm-cols > * {
+  font-family: var(--font-sans);
+}
+
+.fn-sm-list {
+  list-style: none;
   margin: 0;
-  font-size: 12px;
-  line-height: 1.45;
+  padding: 0;
+}
+
+.fn-sm-row {
+  border-bottom: 1px solid var(--border-subtle);
+  scroll-margin-top: 34px;
+}
+
+.fn-sm-row-main {
+  width: 100%;
+  min-height: 38px;
+  border: 0;
+  background: transparent;
+  color: var(--text-primary);
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+button.fn-sm-row-main:hover {
+  background: var(--surface-subtle);
+}
+
+.fn-sm-row[aria-current] .fn-sm-row-main {
+  background: var(--accent-soft);
+}
+
+.fn-sm-row[aria-current] .fn-sm-time {
+  color: var(--accent-soft-fg);
+}
+
+.fn-sm-row-main:focus-visible {
+  outline: 2px solid var(--text-accent);
+  outline-offset: -2px;
+}
+
+.fn-sm-row-main > *,
+.fn-sm-cols > * {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fn-sm-time {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
   color: var(--text-tertiary);
 }
 
-.fn-sm-hint[data-error] {
+.fn-sm-badge {
+  justify-self: start;
+  padding: 2px 7px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+  font-family: var(--font-sans);
+  font-size: 11.5px;
+  font-weight: 600;
+  line-height: 1.35;
+  white-space: nowrap;
+}
+
+.fn-sm-badge[data-kind='create'] {
+  background: var(--accent-soft);
+  color: var(--accent-soft-fg);
+}
+
+.fn-sm-badge[data-kind='delete'] {
+  background: var(--danger-soft);
   color: var(--danger);
 }
 
+/* The dark theme's danger tint left this badge's 11.5px text at 4.47:1; a
+   lighter tint brings it over 4.5:1 and still reads as a filled badge, which
+   keeps it apart from the outlined PLC badges below. */
+:root:not([data-theme='light']) .fn-sm-badge[data-kind='delete'] {
+  background: color-mix(in srgb, var(--danger) 6%, transparent);
+}
+
+/* PLC operations are outlined, so the two sources read apart at a glance. */
+.fn-sm-badge:is([data-kind='plc-new'], [data-kind='plc-update'], [data-kind='plc-tombstone']) {
+  background: transparent;
+  border-color: var(--border-strong);
+}
+
+.fn-sm-badge[data-kind='plc-new'] {
+  border-color: var(--accent-soft-border);
+  color: var(--accent-soft-fg);
+}
+
+.fn-sm-badge[data-kind='plc-tombstone'] {
+  border-color: var(--danger-border);
+  color: var(--danger);
+}
+
+.fn-sm-account {
+  padding: 0;
+  background: transparent;
+  color: var(--text-tertiary);
+}
+
+.fn-sm-account[data-handle] {
+  color: var(--text-primary);
+}
+
+.fn-sm-nsid {
+  color: var(--text-accent);
+}
+
+.fn-sm-handle {
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.fn-sm-muted {
+  font-family: var(--font-sans);
+  font-size: 13px;
+  color: var(--text-tertiary);
+}
+
+.fn-sm-detail-text {
+  font-family: var(--font-sans);
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.fn-sm-detail-mono {
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+
+/* An account's status, worded as the event words it. */
+.fn-sm-pill {
+  display: inline-block;
+  padding: 1px 8px;
+  border-radius: var(--radius-pill);
+  background: var(--danger-soft);
+  color: var(--danger);
+  font-family: var(--font-sans);
+  font-size: 11.5px;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+:root:not([data-theme='light']) .fn-sm-pill:not([data-active]) {
+  background: color-mix(in srgb, var(--danger) 6%, transparent);
+}
+
+.fn-sm-pill[data-active] {
+  background: var(--accent-soft);
+  color: var(--accent-soft-fg);
+}
+
+/* Where the stream was stopped: hatched, so it reads as a hole in the
+   list rather than one more row. */
+.fn-sm-gap {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 9px 16px;
+  border-bottom: 1px solid var(--border-subtle);
+  background: repeating-linear-gradient(
+    -45deg,
+    var(--surface-subtle) 0 8px,
+    var(--bg-tertiary) 8px 16px
+  );
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.fn-sm-empty {
+  padding: 28px 16px;
+  font-size: 13.5px;
+  color: var(--text-tertiary);
+}
+
+.fn-sm-skel-row .fn-sm-row-main {
+  cursor: default;
+}
+
+/* A .fn-skel bar (account.css) at the rows' line height. */
+.fn-sm-bar {
+  height: 9px;
+}
+
+.fn-sm-foot {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-height: 30px;
+  padding: 5px 16px;
+  box-sizing: border-box;
+  border-top: 1px solid var(--border-subtle);
+  background: var(--surface-subtle);
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+
+.fn-sm-foot-note {
+  min-width: 0;
+}
+
+.fn-sm-keys {
+  margin-left: auto;
+  display: flex;
+  gap: 12px;
+  white-space: nowrap;
+}
+
+.fn-sm-keys > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+@media (hover: none), (pointer: coarse) {
+  .fn-sm-keys {
+    display: none;
+  }
+}
+
+@container fn-sm-list (max-width: 719px) {
+  .fn-sm-cols,
+  .fn-sm-keys {
+    display: none;
+  }
+
+  .fn-sm-held {
+    top: 10px;
+  }
+
+  .fn-sm-row {
+    scroll-margin-top: 0;
+  }
+
+  .fn-sm-row-main {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-areas:
+      'badge account time'
+      'what what what'
+      'detail detail detail';
+    gap: 3px 10px;
+    padding: 9px 16px;
+  }
+
+  .fn-sm-row-main > :nth-child(1) {
+    grid-area: time;
+  }
+
+  .fn-sm-row-main > :nth-child(2) {
+    grid-area: badge;
+  }
+
+  .fn-sm-row-main > :nth-child(3) {
+    grid-area: account;
+  }
+
+  .fn-sm-row-main > :nth-child(4) {
+    grid-area: what;
+  }
+
+  .fn-sm-row-main > :nth-child(5) {
+    grid-area: detail;
+  }
+
+  .fn-sm-row-main > :nth-child(5):empty {
+    display: none;
+  }
+}
+
+/* ---------- Stream monitor: inspector ----------
+   The open event, in a column beside the list. Its body scrolls; its head
+   and actions stay put. */
+
+.fn-sm-insp {
+  display: none;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  background: var(--bg-secondary);
+  border-left: 1px solid var(--border-medium);
+}
+
+.fn-sm[data-inspect] .fn-sm-insp {
+  display: flex;
+}
+
+.fn-sm-insp > * {
+  flex: none;
+}
+
+.fn-sm-insp-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 12px 0 16px;
+  font-size: 12.5px;
+}
+
+.fn-sm-insp-nav {
+  margin-left: auto;
+  display: flex;
+  gap: 2px;
+}
+
+.fn-sm-insp-title {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+  padding: 8px 16px 0;
+}
+
+.fn-sm-insp-who {
+  margin: 0;
+  overflow: hidden;
+  font-family: var(--font-sans);
+  font-size: 15px;
+  font-weight: 650;
+  line-height: 1.3;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fn-sm-insp-did,
+.fn-sm-insp-path {
+  padding: 0;
+  background: transparent;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-tertiary);
+  overflow-wrap: anywhere;
+}
+
+.fn-sm-insp-views {
+  padding: 12px 16px 0;
+}
+
+.fn-sm-insp-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 14px 16px 16px;
+}
+
+.fn-sm-insp-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 12px 16px;
+  border-top: 1px solid var(--border-subtle);
+  background: var(--surface-subtle);
+}
+
+.fn-sm-insp-actions .fx-btn {
+  height: 32px;
+  font-size: 13px;
+}
+
+/* RichRecordCard draws nothing for a post the AppView hasn't indexed yet. */
+.fn-sm-preview:empty::before {
+  content: 'Not on the Bluesky AppView yet. Fields and JSON show the record as written.';
+  font-size: 13px;
+  color: var(--text-tertiary);
+}
+
+.fn-sm-json {
+  margin: 0;
+}
+
+.fn-sm-note {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+.fn-sm-changes {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 6px 16px;
+  margin: 0;
+  font-size: 13px;
+}
+
+.fn-sm-change {
+  display: contents;
+}
+
+.fn-sm-changes dt {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+  line-height: 20px;
+}
+
+.fn-sm-changes dd {
+  margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  line-height: 20px;
+  color: var(--text-secondary);
+}
+
+.fn-sm-changes code {
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  color: var(--text-primary);
+}
+
+.fn-sm-scrim {
+  display: none;
+}
+
+/* ---------- Tablet ----------
+   The rail and the inspector become drawers over the list, from the left
+   and the right, behind a Filters button in the toolbar, which wraps to a
+   second line for the transport and the status. */
+@media (max-width: 1023px) {
+  .fn-sm-toolbar {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-areas:
+      'title title actions'
+      'transport status matched';
+    padding: 10px 16px;
+  }
+
+  .fn-sm-toolbar .fn-sm-filters-btn {
+    display: inline-flex;
+    margin-right: 4px;
+  }
+
+  .fn-sm-clear {
+    width: 34px;
+    padding: 0;
+  }
+
+  .fn-sm-clear-label {
+    display: none;
+  }
+
+  .fn-sm-body,
+  .fn-sm[data-inspect] .fn-sm-body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .fn-sm-rail,
+  .fn-sm-insp {
+    position: absolute;
+    z-index: 20;
+    top: 0;
+    bottom: 0;
+    visibility: hidden;
+    box-shadow: var(--shadow-overlay);
+    transition:
+      transform 0.26s var(--ease-soft),
+      visibility 0s linear 0.26s;
+  }
+
+  .fn-sm-rail {
+    left: 0;
+    width: min(320px, 88%);
+    transform: translateX(-102%);
+  }
+
+  .fn-sm-insp {
+    display: flex;
+    right: 0;
+    width: min(440px, 92%);
+    transform: translateX(102%);
+  }
+
+  .fn-sm[data-filters] .fn-sm-rail,
+  .fn-sm[data-inspect] .fn-sm-insp {
+    visibility: visible;
+    transform: none;
+    transition: transform 0.26s var(--ease-soft);
+  }
+
+  .fn-sm-done {
+    display: inline-flex;
+    height: 30px;
+    font-size: 13px;
+  }
+
+  .fn-sm-scrim {
+    display: block;
+    position: absolute;
+    inset: 0;
+    z-index: 15;
+    background: var(--modal-backdrop);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+  }
+
+  .fn-sm[data-filters] .fn-sm-scrim,
+  .fn-sm[data-inspect] .fn-sm-scrim {
+    opacity: 0.55;
+    pointer-events: auto;
+  }
+}
+
+/* ---------- Phones ----------
+   The header gives way here, so the toolbar becomes a three-line strip:
+   the title and a Live, Paused or Stopped tally; the sources and the count;
+   the views. The transport, the text filter and the Filters button move
+   to the bottom toolbar (ExploreChromeBar), and the filters, an open event
+   and the site menu are sheets that rise out of it, so Pause and Stop stay
+   in reach. Event types scroll sideways rather than push the list down. */
+@media (max-width: 640px) {
+  .fn-sm-toolbar {
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    grid-template-areas:
+      'title actions tally'
+      'status status matched'
+      'presets presets presets';
+    gap: 8px 8px;
+    padding: calc(12px + env(safe-area-inset-top, 0px)) 16px 10px;
+    background: var(--bg-primary);
+  }
+
+  .fn-sm-h1 {
+    font-size: 17px;
+    font-weight: 700;
+  }
+
+  .fn-sm-about {
+    position: static;
+  }
+
+  .fn-sm-about-panel {
+    top: 46px;
+    left: 16px;
+    right: 16px;
+    width: auto;
+  }
+
+  .fn-sm-toolbar :is(.fn-sm-filters-btn, .fn-sm-transport, .fn-sm-share),
+  .fn-sm-sec-views,
+  .fn-sm-sec-text {
+    display: none;
+  }
+
+  .fn-sm-clear {
+    width: 32px;
+    height: 32px;
+    border-color: transparent;
+    background: transparent;
+    color: var(--text-tertiary);
+  }
+
+  .fn-sm-toolbar .fn-sm-tally {
+    grid-area: tally;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 24px;
+    padding: 0 9px;
+    border: 1px solid var(--border-medium);
+    border-radius: var(--radius-pill);
+    background: var(--bg-secondary);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    color: var(--text-secondary);
+  }
+
+  .fn-sm-tally[data-state='live'] {
+    border-color: var(--accent-soft-border);
+    color: var(--text-accent);
+  }
+
+  .fn-sm-tally[data-state='paused'] {
+    border-color: var(--accent-soft-border);
+    background: var(--accent-soft);
+    color: var(--accent-soft-fg);
+  }
+
+  .fn-sm-statusline {
+    flex-wrap: nowrap;
+    gap: 14px;
+    overflow: hidden;
+    font-size: 12.5px;
+  }
+
+  .fn-sm-long {
+    display: none;
+  }
+
+  .fn-sm-short {
+    display: inline;
+  }
+
+  .fn-sm-toolbar .fn-sm-strip-presets {
+    grid-area: presets;
+    display: flex;
+    flex-wrap: nowrap;
+    margin: 2px -16px 0;
+    padding: 0 16px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .fn-sm-strip-presets::-webkit-scrollbar {
+    display: none;
+  }
+
+  .fn-sm-main {
+    grid-template-rows: minmax(0, 1fr);
+  }
+
+  .fn-sm-foot {
+    display: none;
+  }
+
+  /* Sheets: standing on the toolbar (the monitor ends where it starts),
+     rising out of it, and capped so the list still shows above. */
+  .fn-sm-rail,
+  .fn-sm-insp {
+    top: auto;
+    left: 0;
+    right: 0;
+    width: auto;
+    max-height: 85%;
+    border: 0;
+    border-top: 1px solid var(--border-medium);
+    border-radius: 18px 18px 0 0;
+    background: var(--bg-secondary);
+    box-shadow: 0 -10px 30px rgb(0 0 0 / 0.12);
+    transform: translateY(102%);
+  }
+
+  .fn-sm-rail {
+    gap: 18px;
+    padding-top: 6px;
+  }
+
+  .fn-sm-grab {
+    display: block;
+    flex: none;
+    width: 36px;
+    height: 5px;
+    margin: 6px auto 0;
+    border-radius: var(--radius-pill);
+    background: var(--border-strong);
+  }
+
+  .fn-sm-rail > .fn-sm-grab {
+    margin-bottom: -10px;
+  }
+
+  .fn-sm-klist {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2px 8px;
+  }
+
+  .fn-sm-kind {
+    min-height: 40px;
+  }
+
+  .fn-sm-insp-actions {
+    padding-bottom: 12px;
+  }
+}
+
+@media (pointer: coarse) {
+  .fn-sm-row-main {
+    min-height: 44px;
+  }
+
+  .fn-sm-preset {
+    height: 36px;
+  }
+
+  .fn-sm-icon {
+    width: 36px;
+    height: 36px;
+  }
+}
+
+[data-reduce-motion='true'] .fn-sm-rail,
+[data-reduce-motion='true'] .fn-sm-insp,
+[data-reduce-motion='true'] .fn-sm-scrim {
+  transition: none !important;
+}
+
 /* ---------- Chip field ----------
-   Sized and drawn as .fx-field, so the three filters read as one row. */
+   Sized and drawn as .fx-field, so the filters read as one set. */
 
 .fn-tokens {
   position: relative;
@@ -375,431 +1442,21 @@
   color: var(--text-tertiary);
 }
 
-/* ---------- Stream monitor: list ---------- */
-
-.fn-sm-held {
+/* The field's wrapper and its error line (TokenField.tsx). */
+.fn-sm-field {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  width: 100%;
-  height: 34px;
-  border: 0;
-  border-top: 1px solid var(--accent-soft-border);
-  background: var(--accent-soft);
-  color: var(--accent-soft-fg);
-  font-family: var(--font-sans);
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.fn-sm-held:focus-visible {
-  outline: 2px solid var(--text-accent);
-  outline-offset: -2px;
-}
-
-/* The scroll box. overflow-anchor: none keeps prepended rows from nudging
-   the scroll position (see .explore-jetstream-row); the stable gutter keeps
-   the scrollbar's arrival from reflowing every row. Scrolling still chains
-   to the page at either end, so a swipe over the list on a phone can carry
-   on past it. */
-.fn-sm-scroll {
-  height: min(64dvh, 620px);
-  overflow-y: auto;
-  overflow-anchor: none;
-  scrollbar-gutter: stable;
-}
-
-.fn-sm-grid {
-  display: grid;
-  grid-template-columns: 8ch 10ch minmax(14ch, 20ch) minmax(0, 1fr) minmax(0, 1.5fr);
-  gap: 14px;
-  align-items: center;
-  padding: 0 16px;
-  box-sizing: border-box;
-}
-
-.fn-sm-cols {
-  position: sticky;
-  top: 0;
-  z-index: 1;
-  border-top: 1px solid var(--border-subtle);
-}
-
-.fn-sm-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-
-.fn-sm-row {
-  border-top: 1px solid var(--border-subtle);
-}
-
-.fn-sm-row-main {
-  width: 100%;
-  min-height: 38px;
-  border: 0;
-  background: transparent;
-  color: var(--text-primary);
-  font-family: var(--font-mono);
-  font-size: 12.5px;
-  text-align: left;
-  cursor: pointer;
-  transition: background 0.15s ease;
-}
-
-button.fn-sm-row-main:hover,
-.fn-sm-row-main[aria-expanded='true'] {
-  background: var(--surface-subtle);
-}
-
-.fn-sm-row-main:focus-visible {
-  outline: 2px solid var(--text-accent);
-  outline-offset: -2px;
-}
-
-.fn-sm-row-main > *,
-.fn-sm-cols > * {
+  flex-direction: column;
+  gap: 4px;
   min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
-.fn-sm-time {
-  font-variant-numeric: tabular-nums;
-  color: var(--text-tertiary);
-}
-
-.fn-sm-badge {
-  justify-self: start;
-  padding: 2px 7px;
-  border: 1px solid transparent;
-  border-radius: 6px;
-  background: var(--bg-tertiary);
-  color: var(--text-secondary);
-  font-family: var(--font-sans);
-  font-size: 11.5px;
-  font-weight: 600;
-  line-height: 1.35;
-}
-
-.fn-sm-badge[data-kind='create'] {
-  background: var(--accent-soft);
-  color: var(--accent-soft-fg);
-}
-
-.fn-sm-badge[data-kind='delete'] {
-  background: var(--danger-soft);
-  color: var(--danger);
-}
-
-/* The dark theme's danger tint left this badge's 11.5px text at 4.47:1; a
-   lighter tint brings it over 4.5:1 and still reads as a filled badge, which
-   keeps it apart from the outlined PLC badges below. */
-:root:not([data-theme='light']) .fn-sm-badge[data-kind='delete'] {
-  background: color-mix(in srgb, var(--danger) 6%, transparent);
-}
-
-/* PLC operations are outlined, so the two sources read apart at a glance. */
-.fn-sm-badge:is([data-kind='plc-new'], [data-kind='plc-update'], [data-kind='plc-tombstone']) {
-  background: transparent;
-  border-color: var(--border-strong);
-}
-
-.fn-sm-badge[data-kind='plc-new'] {
-  border-color: var(--accent-soft-border);
-  color: var(--accent-soft-fg);
-}
-
-.fn-sm-badge[data-kind='plc-tombstone'] {
-  border-color: var(--danger-border);
-  color: var(--danger);
-}
-
-.fn-sm-account {
-  padding: 0;
-  background: transparent;
-  color: var(--text-tertiary);
-}
-
-.fn-sm-account[data-handle] {
-  color: var(--text-primary);
-}
-
-.fn-sm-nsid {
-  color: var(--text-accent);
-}
-
-.fn-sm-handle {
-  font-family: var(--font-sans);
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text-primary);
-}
-
-.fn-sm-muted {
-  font-family: var(--font-sans);
-  font-size: 13px;
-  color: var(--text-tertiary);
-}
-
-.fn-sm-detail-text {
-  font-family: var(--font-sans);
-  font-size: 13px;
-  color: var(--text-secondary);
-}
-
-.fn-sm-detail-mono {
+.fn-sm-hint {
+  margin: 0;
   font-size: 12px;
+  line-height: 1.45;
   color: var(--text-tertiary);
 }
 
-/* An account's status, worded as the event words it. */
-.fn-sm-pill {
-  display: inline-block;
-  padding: 1px 8px;
-  border-radius: var(--radius-pill);
-  background: var(--danger-soft);
+.fn-sm-hint[data-error] {
   color: var(--danger);
-  font-family: var(--font-sans);
-  font-size: 11.5px;
-  font-weight: 600;
-  line-height: 1.5;
-}
-
-:root:not([data-theme='light']) .fn-sm-pill:not([data-active]) {
-  background: color-mix(in srgb, var(--danger) 6%, transparent);
-}
-
-.fn-sm-pill[data-active] {
-  background: var(--accent-soft);
-  color: var(--accent-soft-fg);
-}
-
-/* ---------- Stream monitor: an open row ---------- */
-
-.fn-sm-detail {
-  padding: 0 16px 16px;
-  background: var(--surface-subtle);
-}
-
-.fn-sm-detail-bar {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  padding-top: 8px;
-}
-
-.fn-sm-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-left: auto;
-}
-
-.fn-sm-actions .fx-btn {
-  height: 32px;
-  font-size: 13px;
-}
-
-.fn-sm-detail > .fn-sm-preview,
-.fn-sm-detail > .fn-sm-json,
-.fn-sm-detail > .fn-sm-note,
-.fn-sm-detail > .fn-sm-changes,
-.fn-sm-detail > :last-child {
-  margin-top: 12px;
-}
-
-.fn-sm-preview {
-  max-width: 640px;
-}
-
-/* RichRecordCard draws nothing for a post the AppView hasn't indexed yet. */
-.fn-sm-preview:empty::before {
-  content: 'Not on the Bluesky AppView yet. Fields and JSON show the record as written.';
-  font-size: 13px;
-  color: var(--text-tertiary);
-}
-
-.fn-sm-json {
-  max-height: 360px;
-  margin-bottom: 0;
-  overflow: auto;
-}
-
-.fn-sm-note {
-  margin: 0;
-  font-size: 13px;
-  line-height: 1.5;
-  color: var(--text-secondary);
-}
-
-.fn-sm-changes {
-  display: grid;
-  grid-template-columns: max-content minmax(0, 1fr);
-  gap: 6px 16px;
-  margin: 0;
-  font-size: 13px;
-}
-
-.fn-sm-change {
-  display: contents;
-}
-
-.fn-sm-changes dt {
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--text-tertiary);
-  line-height: 20px;
-}
-
-.fn-sm-changes dd {
-  margin: 0;
-  min-width: 0;
-  overflow-wrap: anywhere;
-  line-height: 20px;
-  color: var(--text-secondary);
-}
-
-.fn-sm-changes code {
-  font-family: var(--font-mono);
-  font-size: 12.5px;
-  color: var(--text-primary);
-}
-
-/* ---------- Stream monitor: empty, loading, foot ---------- */
-
-.fn-sm-empty {
-  padding: 28px 16px;
-  border-top: 1px solid var(--border-subtle);
-  font-size: 13.5px;
-  color: var(--text-tertiary);
-}
-
-.fn-sm-skel-row .fn-sm-row-main {
-  cursor: default;
-}
-
-/* A .fn-skel bar (account.css) at the rows' line height. */
-.fn-sm-bar {
-  height: 9px;
-}
-
-.fn-sm-foot {
-  margin: 0;
-  padding: 9px 16px;
-  border-top: 1px solid var(--border-subtle);
-  background: var(--surface-subtle);
-  font-size: 12.5px;
-  color: var(--text-tertiary);
-}
-
-/* ---------- Phones ----------
-   The column heads go, and each row stacks: the badge, account and time on
-   top, what happened and its detail under them. The text filter moves into
-   the bottom bar (ExploreChromeBar), as the explorer's own filters do, so
-   the band keeps only the source, the types and the two chip fields. */
-@media (max-width: 640px) {
-  .fn-sm-cols {
-    display: none;
-  }
-
-  .fn-sm-text {
-    display: none;
-  }
-
-  .fn-sm-row-main {
-    grid-template-columns: auto minmax(0, 1fr) auto;
-    grid-template-areas:
-      'badge account time'
-      'what what what'
-      'detail detail detail';
-    gap: 3px 10px;
-    padding: 9px 16px;
-  }
-
-  .fn-sm-row-main > :nth-child(1) {
-    grid-area: time;
-  }
-
-  .fn-sm-row-main > :nth-child(2) {
-    grid-area: badge;
-  }
-
-  .fn-sm-row-main > :nth-child(3) {
-    grid-area: account;
-  }
-
-  .fn-sm-row-main > :nth-child(4) {
-    grid-area: what;
-  }
-
-  .fn-sm-row-main > :nth-child(5) {
-    grid-area: detail;
-  }
-
-  .fn-sm-row-main > :nth-child(5):empty {
-    display: none;
-  }
-
-  .fn-sm-matched {
-    margin-left: 0;
-  }
-
-  .fn-sm-actions {
-    margin-left: 0;
-  }
-
-  /* Presets and event types each keep to one line that scrolls sideways,
-     bleeding to the edge they sit against, so neither pushes the list a
-     screen down. */
-  .fn-sm-presets .fn-x-tries,
-  .fn-sm-kinds {
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    scrollbar-width: none;
-  }
-
-  .fn-sm-presets .fn-x-tries::-webkit-scrollbar,
-  .fn-sm-kinds::-webkit-scrollbar {
-    display: none;
-  }
-
-  .fn-sm-presets .fn-x-tries {
-    margin: 0 -16px;
-    padding: 0 16px;
-  }
-
-  .fn-sm-kinds {
-    margin: 0 -16px;
-    padding: 0 16px;
-  }
-
-  .fn-sm-presets .fn-x-tries > *,
-  .fn-sm-kind-group,
-  .fn-sm-kind-group > * {
-    flex: none;
-  }
-
-  .fn-sm-kind-group {
-    flex-wrap: nowrap;
-  }
-
-  /* Room for Pause and Clear on the title's own line. */
-  .fn-sm-head .fn-list-card-via {
-    display: none;
-  }
-}
-
-@media (pointer: coarse) {
-  .fn-sm-row-main {
-    min-height: 44px;
-  }
 }

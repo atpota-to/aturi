@@ -2,12 +2,28 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { usePathname } from 'next/navigation';
-import { Check, ChevronUp, FilePenLine, Link2, Trash2, X } from 'lucide-react';
+import {
+  Check,
+  ChevronUp,
+  FilePenLine,
+  Link2,
+  Pause,
+  Play,
+  SlidersHorizontal,
+  Square,
+  Trash2,
+  X,
+} from 'lucide-react';
 import { getReduceMotionSnapshot } from '@/lib/a11y';
 import SiteMenuButton, { useSiteMenuOpen } from '@/components/SiteMenuButton';
 import SiteNavButtons from '@/components/SiteNavButtons';
 import { useCondenseOnScroll } from '@/components/useCondenseOnScroll';
-import { useChromeBar, type ChromeBarAction } from './ChromeBarContext';
+import {
+  useChromeBar,
+  type ChromeBarAction,
+  type ChromeBarPanel,
+  type ChromeBarTransport,
+} from './ChromeBarContext';
 import { useEditBar, type EditBarSnapshot } from './EditBarContext';
 import { FieldForm, JumpField } from './ChromeField';
 import { usePhoneSearchOwner } from './PhoneSearchSheet';
@@ -96,9 +112,16 @@ let mountedBars = 0;
  * never covers the end of a list or the footer's own links. The panel is deliberately left out of that
  * measurement: like the nav's, it floats over the page rather than pushing
  * it around.
+ *
+ * A page that plays a live stream (the stream monitor) can publish a
+ * transport and a panel. On a phone the bar then becomes that page's
+ * toolbar: Pause and Stop where Back and Home were, the page's filter, a
+ * button for its filter sheet, and the menu, which takes Back and Home in
+ * (Header.tsx, `.fn-menu-back`). `phoneOnly` is for such a page, whose own
+ * toolbar holds all of it above phone width: there the bar isn't drawn.
  */
-export default function ExploreChromeBar() {
-  const { field, action } = useChromeBar();
+export default function ExploreChromeBar({ phoneOnly = false }: { phoneOnly?: boolean } = {}) {
+  const { field, action, transport: publishedTransport, panel: publishedPanel } = useChromeBar();
   const { bar } = useEditBar();
   const narrow = useIsNarrow();
   const pathname = usePathname();
@@ -189,6 +212,9 @@ export default function ExploreChromeBar() {
   // Wider, the bar keeps its jump search so the filter isn't shown twice.
   const phone = useMediaQuery('(max-width: 640px)');
   const routeField = field && (!field.inPage || phone) ? field : null;
+  // Phone only, like an in-page field: wider, the page draws its own.
+  const transport = phone ? publishedTransport : null;
+  const panel = phone ? publishedPanel : null;
 
   // With nothing of the route's own to carry, the bar is a jump search and a
   // copy-link button. Wide enough for the header's own "go to" field, that is
@@ -207,8 +233,10 @@ export default function ExploreChromeBar() {
   const menuOpen = useSiteMenuOpen();
   const searching = usePhoneSearchOwner() !== null;
   const [focused, setFocused] = useState(false);
+  // A page with a transport scrolls inside itself, not the window, and its
+  // controls are the reason the bar is there.
   const condensed = useCondenseOnScroll(
-    toolbarPhone && !hidden && !menuOpen && !searching && !focused && !bar && !panelOpen,
+    toolbarPhone && !hidden && !menuOpen && !searching && !focused && !bar && !panelOpen && !transport,
   );
 
   // On a two-column explorer page, centre the card on the content column
@@ -266,6 +294,7 @@ export default function ExploreChromeBar() {
       className="explore-chrome-bar"
       data-redundant={redundant || undefined}
       data-condensed={condensed || undefined}
+      data-phone-only={phoneOnly || undefined}
       onFocus={() => setFocused(true)}
       onBlur={(e) => {
         if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setFocused(false);
@@ -280,7 +309,9 @@ export default function ExploreChromeBar() {
                 <DeleteSteps bar={bar} />
               ) : (
                 <>
+                  {transport && <TransportButtons transport={transport} />}
                   {routeField ? <RouteField key="route" /> : <JumpField key="jump" />}
+                  {panel && <PagePanelButton panel={panel} />}
                   {bar && !inPanel && <SelectionControls bar={bar} />}
                   {inPanel && bar && (
                     <PanelToggle
@@ -290,9 +321,11 @@ export default function ExploreChromeBar() {
                     />
                   )}
                   {action && <ActionButton action={action} />}
-                  <CopyLinkButton />
-                  {/* Phone only (chrome.css); wider, the header has its own. */}
-                  <SiteNavButtons />
+                  {!transport && <CopyLinkButton />}
+                  {/* Phone only (chrome.css); wider, the header has its own.
+                      A transport takes Back and Home's place, and they
+                      move into the menu. */}
+                  {!transport && <SiteNavButtons />}
                   <SiteMenuButton />
                 </>
               )}
@@ -301,6 +334,77 @@ export default function ExploreChromeBar() {
         </div>
       </div>
     </div>
+  );
+}
+
+/**
+ * Pause (or Play) and Stop, joined into one control at the start of the bar,
+ * where Back and Home sit on other pages. The first button is the one a
+ * thumb wants most and shows what it will do: Pause while live, Play while
+ * paused or stopped. Stop shows as pressed while stopped, and pressing it
+ * again plays.
+ */
+function TransportButtons({ transport }: { transport: ChromeBarTransport }) {
+  const { state, connecting } = transport;
+  const live = state === 'live';
+  const label = live ? 'Pause' : state === 'paused' ? 'Resume' : 'Play';
+  const stopped = state === 'stopped';
+  return (
+    <div className="explore-chrome-transport" role="group" aria-label="Stream">
+      <button
+        type="button"
+        onClick={live ? transport.onPause : transport.onPlay}
+        aria-label={label}
+        title={label}
+        className="explore-chrome-button explore-chrome-play"
+        data-state={state}
+        data-connecting={connecting || undefined}
+      >
+        {live ? (
+          <Pause size={16} fill="currentColor" aria-hidden />
+        ) : (
+          <Play size={16} fill="currentColor" aria-hidden />
+        )}
+      </button>
+      <button
+        type="button"
+        onClick={stopped ? transport.onPlay : transport.onStop}
+        aria-pressed={stopped}
+        aria-label="Stop"
+        title={stopped ? 'Stopped: press to play' : 'Stop'}
+        className="explore-chrome-button explore-chrome-stop"
+      >
+        <Square size={13} fill="currentColor" aria-hidden />
+      </button>
+    </div>
+  );
+}
+
+/**
+ * The button for the page's own panel (the stream monitor's filters), with
+ * a count of what's set in it, so a narrowed view reads as narrowed while
+ * the panel is shut.
+ */
+function PagePanelButton({ panel }: { panel: ChromeBarPanel }) {
+  const name = panel.count > 0 ? `${panel.label}, ${panel.count} set` : panel.label;
+  return (
+    <button
+      type="button"
+      onClick={panel.onToggle}
+      aria-expanded={panel.open}
+      aria-controls={panel.controls}
+      aria-label={name}
+      title={panel.label}
+      className="explore-chrome-button explore-chrome-page-panel"
+      data-open={panel.open || undefined}
+    >
+      <SlidersHorizontal size={17} aria-hidden />
+      {panel.count > 0 && (
+        <span className="explore-chrome-badge" aria-hidden>
+          {panel.count}
+        </span>
+      )}
+    </button>
   );
 }
 

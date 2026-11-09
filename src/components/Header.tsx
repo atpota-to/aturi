@@ -38,7 +38,7 @@ import { isEventOutside } from '@/lib/outsideClick';
 import { motionAllowed } from '@/lib/motion';
 import { SITE_MENU_TOGGLE_ATTR, setSiteMenuOpen, toggleSiteMenu } from '@/lib/siteMenu';
 import SiteMenuButton, { useSiteMenuOpen } from './SiteMenuButton';
-import SiteNavButtons from './SiteNavButtons';
+import SiteNavButtons, { MenuBackButton } from './SiteNavButtons';
 import { useCondenseOnScroll } from './useCondenseOnScroll';
 import WhatsNewBadge, {
   OPEN_WHATS_NEW_EVENT,
@@ -491,20 +491,24 @@ export default function Header(_props: HeaderProps) {
             {!isSignInActive && (
               <>
                 {/* Phone only: with no header bar on screen, the logo moves
-                    into the menu as the way home. */}
-                <Link
-                  href="/"
-                  prefetch={false}
-                  className="compact-nav-link fn-menu-home"
-                  aria-label="aturi.to home"
-                  aria-current={pathname === '/' ? 'page' : undefined}
-                >
-                  <Leaf size={16} strokeWidth={2.2} aria-hidden className="fn-brand-mark" />
-                  <span className="fn-wordmark">
-                    aturi<span className="fn-wordmark-tld">.to</span>
-                  </span>
-                  <span className="compact-nav-tag">Home</span>
-                </Link>
+                    into the menu as the way home. Back joins it on a page
+                    whose toolbar gave Back its place (the stream monitor). */}
+                <div className="fn-menu-top">
+                  <MenuBackButton onBack={() => setSiteMenuOpen(false)} />
+                  <Link
+                    href="/"
+                    prefetch={false}
+                    className="compact-nav-link fn-menu-home"
+                    aria-label="aturi.to home"
+                    aria-current={pathname === '/' ? 'page' : undefined}
+                  >
+                    <Leaf size={16} strokeWidth={2.2} aria-hidden className="fn-brand-mark" />
+                    <span className="fn-wordmark">
+                      aturi<span className="fn-wordmark-tld">.to</span>
+                    </span>
+                    <span className="compact-nav-tag">Home</span>
+                  </Link>
+                </div>
                 <div className="compact-nav-grid">
                   {NAV_ITEMS.map(({ href, label, icon: Icon }) => (
                     <Link
