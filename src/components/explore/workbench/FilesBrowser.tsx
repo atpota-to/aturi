@@ -236,7 +236,10 @@ export function FolderBrowser({
 
   return (
     <div className="fx-wb-pane" data-display={layout === 'icons' ? 'icons' : 'rows'}>
-      <div className="fx-wb-pane-head">
+      {/* The breadcrumb names the repo but not a namespace (the address has
+          no such segment), so only the root's title repeats it; on a phone
+          that head, which holds nothing else, steps aside. */}
+      <div className="fx-wb-pane-head" data-crumbed={ns ? undefined : 'only'}>
         <div className="fx-titlebar">
           <div className="fx-title-row">
             <h1 className="fx-h1">

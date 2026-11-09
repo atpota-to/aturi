@@ -310,7 +310,8 @@ function RecordView({
   // The frame around whichever body is showing. The page leads with the
   // breadcrumb and title bar; a pane has the host's breadcrumb above it, so
   // it leads with the record key and the host's controls, keeps `bar` (the
-  // tabs and actions) in place and scrolls the body under them.
+  // tabs, with the actions beside them) in place and scrolls the body under
+  // them.
   const frame = (body: ReactNode, bar?: ReactNode) =>
     pane ? (
       <div className="fn-rec fx-wb-rec" data-wide={pane.wide || undefined}>
@@ -319,12 +320,17 @@ function RecordView({
             {decodedRkey}
           </h2>
           {kindPill}
+          {/* With no tabs for them to sit beside, the actions join the
+              head rather than hold a row of their own. */}
+          {!bar && titleActions}
           <div className="fx-wb-insp-ctl">{pane.controls}</div>
         </div>
-        <div className="fx-wb-insp-bar">
-          {bar}
-          {titleActions}
-        </div>
+        {bar && (
+          <div className="fx-wb-insp-bar">
+            {bar}
+            {titleActions}
+          </div>
+        )}
         <div className="fx-wb-insp-body">{body}</div>
       </div>
     ) : (

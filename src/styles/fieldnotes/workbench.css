@@ -67,6 +67,10 @@ html:has(.fx-wb) {
      they read as folders on a plain row, a banded one and a selected one. */
   --fx-fd-folder: color-mix(in srgb, var(--text-accent) 24%, var(--bg-secondary));
   --fx-fd-folder-back: color-mix(in srgb, var(--text-accent) 52%, var(--bg-secondary));
+  /* A file's page: the sheet itself in light themes, where its outline
+     carries it; lifted off the sheet in dark ones, where an outline alone
+     left the icons as wireframes. */
+  --fx-fd-page: var(--bg-secondary);
   display: flex;
   flex-direction: column;
   height: calc(100dvh - var(--fx-wb-top) - var(--explore-chrome-h, 0px));
@@ -78,6 +82,18 @@ html:has(.fx-wb) {
 
 .fx-wb[data-mode='files'] {
   --fx-wb-rail: 252px;
+}
+
+:root:not([data-theme='light']) .fx-wb {
+  --fx-fd-page: color-mix(in srgb, var(--text-primary) 9%, var(--bg-secondary));
+}
+
+/* A small desktop with a record open has three panes to fit: the rail gives
+   up some of its width to the list. */
+@media (max-width: 1279px) {
+  .fx-wb[data-mode='workbench'] {
+    --fx-wb-rail: 264px;
+  }
 }
 
 /* Mono identifiers are set by their own classes; drop the global inline-code
@@ -160,11 +176,14 @@ html:has(.fx-wb) {
   outline-offset: 1px;
 }
 
-/* The breadcrumb stays on one line here; a long segment gives way to an
-   ellipsis rather than wrapping the toolbar taller. */
+/* The breadcrumb stays on one line here; when it runs out of room the
+   segments give way in order of how little they are missed. The PDS host
+   shortens first and then steps aside altogether, the repo and collection
+   shorten next, and the last segment, which is where you are, goes last. */
 .fx-wb-path {
   flex: 1 1 auto;
   min-width: 0;
+  container: fx-wb-path / inline-size;
 }
 
 .fx-wb-path .fx-crumbs {
@@ -173,9 +192,24 @@ html:has(.fx-wb) {
 }
 
 .fx-wb-path .fx-crumb {
-  flex: 0 1 auto;
+  flex: 0 2 auto;
   overflow-wrap: normal;
   white-space: nowrap;
+}
+
+/* The PDS crumb is the one with the server glyph. */
+.fx-wb-path .fx-crumb:has(svg) {
+  flex-shrink: 14;
+}
+
+.fx-wb-path .fx-crumb:last-child {
+  flex-shrink: 1;
+}
+
+@container fx-wb-path (max-width: 440px) {
+  .fx-crumb:has(svg):not(:only-child) {
+    display: none;
+  }
 }
 
 .fx-wb-path .fx-crumb a,
@@ -267,6 +301,7 @@ html:has(.fx-wb) {
   flex-direction: column;
   min-width: 0;
   min-height: 0;
+  container: fx-wb-insp / inline-size;
   background: var(--bg-primary);
   border-left: 1px solid var(--border-medium);
 }
@@ -413,9 +448,17 @@ html:has(.fx-wb) {
   margin: 0 16px;
 }
 
+/* One line whatever the rail's width: the field gives way, so the
+   collapse-all button never drops under it. */
 .fx-wb-tree .fx-tree-tools {
   flex: none;
+  flex-wrap: nowrap;
   margin: 0 4px 6px;
+}
+
+.fx-wb-tree .fx-tree-tools .fx-field {
+  flex: 1 1 0;
+  min-width: 0;
 }
 
 .fx-wb .fx-wb-tree .fx-tree-scroll {
@@ -429,11 +472,11 @@ html:has(.fx-wb) {
   mask-image: linear-gradient(to bottom, #000 calc(100% - 36px), transparent);
 }
 
-.fx-wb-rail-skeleton {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  padding: 18px 16px;
+/* Placeholders inside the real rows, so the rail's skeleton has the rail's
+   own shape. */
+.fx-wb-view[data-skeleton],
+.fx-fd-place[data-skeleton] {
+  pointer-events: none;
 }
 
 /* ---------- Main: a list pane ----------
@@ -511,16 +554,6 @@ html:has(.fx-wb) {
   box-shadow: inset 2px 0 0 var(--accent-moss);
 }
 
-.fx-wb-main-skeleton {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  padding: 16px 0;
-}
-
-.fx-wb-main-skeleton > :first-child {
-  margin-left: 16px;
-}
 
 /* Rows by the pane's own width, not the window's: with the inspector open
    the list has a phone's worth of room on a desktop, and takes the phone's
@@ -580,17 +613,37 @@ html:has(.fx-wb) {
   .fx-wb-pane-head .fx-h1 {
     font-size: 17px;
   }
-}
-
-/* Narrower still (the list beside a record with the full width): the key
-   and the date are what stepping needs. */
-@container fx-wb-main (max-width: 300px) {
-  .fx-rec-text,
+  /* The foot already says how many are loaded, and a search shows its tally
+     inside the field, so the count beside the field gives its row to it. */
   .fx-records-tools-meta {
     display: none;
   }
-  .fx-wb-pane-head .fx-actions .fx-btn:not([aria-pressed]) {
+  .fx-wb-records .fx-records-tools .fx-field {
+    flex: 1 1 100%;
+  }
+}
+
+/* Narrower still (the list beside a record with the full width): it is
+   there to step through, so it keeps the collection's name, the search, and
+   each record's key and date, and puts the rest away. */
+@container fx-wb-main (max-width: 300px) {
+  .fx-rec-text,
+  .fx-wb-pane-head .fx-pill,
+  .fx-wb-pane-head .fx-actions {
     display: none;
+  }
+  .fx-wb-pane-head {
+    padding: 10px 14px;
+  }
+  .fx-wb-pane-head .fx-h1 {
+    font-size: 15px;
+  }
+  .fx-wb-records .fx-records-tools {
+    padding: 8px 12px;
+  }
+  .fx-wb-records .fx-records-foot {
+    padding: 8px 14px;
+    font-size: 12px;
   }
 }
 
@@ -613,7 +666,9 @@ html:has(.fx-wb) {
   padding: 20px 24px 40px;
 }
 
-.fx-wb-page-inner:not([data-tab='overview']) {
+/* Identity, Log and Backlinks read better at a narrower measure, but keep
+   the overview's left edge, so the heading doesn't jump between views. */
+.fx-wb-page-inner:not([data-tab='overview']) .fx-wb-section {
   max-width: 920px;
 }
 
@@ -723,6 +778,27 @@ html:has(.fx-wb) {
   margin-left: auto;
 }
 
+/* With no tabs to sit beside (the full-width layout, an error, a record
+   with one section), the actions join the head rather than hold a row of
+   their own. */
+.fx-wb-insp-head .fn-rec-actions {
+  flex: none;
+  margin-left: auto;
+}
+
+.fx-wb-insp-head .fn-rec-actions + .fx-wb-insp-ctl {
+  margin-left: 4px;
+}
+
+.fx-wb-insp-head .fn-rec-btn {
+  height: 32px;
+  font-size: 13px;
+}
+
+.fx-wb-rec > .fx-wb-insp-head + .fx-wb-insp-body {
+  border-top: 1px solid var(--border-medium);
+}
+
 .fx-wb-insp-bar {
   display: flex;
   flex-wrap: wrap;
@@ -731,6 +807,12 @@ html:has(.fx-wb) {
   padding: 0 12px 10px 16px;
   background: var(--bg-secondary);
   border-bottom: 1px solid var(--border-medium);
+}
+
+/* The record page stretches its actions across a phone's width; here they
+   stay beside the tabs. */
+.fx-wb-rec .fn-rec-actions {
+  width: auto;
 }
 
 .fx-wb-insp-bar .fn-rec-actions {
@@ -748,6 +830,28 @@ html:has(.fx-wb) {
   overflow-y: auto;
   overscroll-behavior: contain;
   padding: 16px;
+}
+
+/* A narrow inspector keeps the tabs and the actions on one line: the
+   actions fold to their glyphs (each keeps its name for a screen reader and
+   as its tooltip). The label is a bare text node, so it is the font size
+   that puts it away. */
+@container fx-wb-insp (max-width: 560px) {
+  .fx-wb-rec .fn-rec-actions .fn-rec-btn {
+    width: 32px;
+    padding: 0;
+    gap: 0;
+    font-size: 0;
+  }
+}
+
+/* Narrower than its key, kind and controls together (a small phone's
+   sheet): the kind steps aside before the key is cut short. The breadcrumb
+   above still names the collection, which is what the kind says in words. */
+@container fx-wb-insp (max-width: 400px) {
+  .fx-wb-insp-head .fn-rec-pill {
+    display: none;
+  }
 }
 
 /* With the full width, the record page's two columns, held to its measure. */
@@ -865,7 +969,7 @@ a.fx-fd-place:hover {
 }
 
 .fx-fd-page {
-  fill: var(--bg-secondary);
+  fill: var(--fx-fd-page);
   stroke: var(--border-strong);
   stroke-width: 1.5;
 }
@@ -892,15 +996,36 @@ a.fx-fd-place:hover {
   display: none;
 }
 
-/* A small folder that has a site icon shows the icon over its corner. */
+/* A small folder that has a site icon shows the icon over its corner,
+   ringed in the row's own tone so the two read as a folder with a badge
+   rather than as one muddled shape. A namespace with no site icon would get
+   a letter tile there, too small to read, so it shows the folder alone. */
 .fx-fd-place .fx-fd-badge,
 .fx-fd-cell .fx-fd-badge {
   display: block;
   position: absolute;
-  right: -4px;
-  bottom: -3px;
+  right: -5px;
+  bottom: -4px;
   transform: scale(0.72);
   transform-origin: bottom right;
+}
+
+.fx-fd-place .fx-fd-badge .fx-favicon,
+.fx-fd-cell .fx-fd-badge .fx-favicon {
+  box-shadow: 0 0 0 2px var(--surface-subtle);
+}
+
+.fx-fd-cell .fx-fd-badge .fx-favicon {
+  box-shadow: 0 0 0 2px var(--bg-secondary);
+}
+
+.fx-fd-place .fx-favicon[data-state='letter'],
+.fx-fd-cell .fx-favicon[data-state='letter'] {
+  display: none;
+}
+
+.fx-fd-place .fx-fd-glyph {
+  margin-right: 2px;
 }
 
 /* ---------- Files: the icon grid ---------- */
@@ -922,6 +1047,9 @@ a.fx-fd-place:hover {
   position: relative;
   box-sizing: border-box;
   height: 100%;
+  /* A size container, so the kind label on a file can be as wide as its
+     tile rather than as its icon. */
+  container-type: inline-size;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -984,14 +1112,17 @@ label.fx-fd-tile[data-selected]:hover {
   transform: translate(-50%, -50%) scale(1.45);
 }
 
-/* The kind may run a little past the page's edges, as a label stuck on a
-   folder does, before it is cut short. */
+/* A file's kind is the last segment of its lexicon, and those run long
+   (`threadgate`, `agentAssignment`). The label is stuck across the foot of
+   the page like a tag and may be as wide as the tile, not just the page, so
+   it is only cut short when the tile itself can't hold it. */
 .fx-fd-tile .fx-fd-ext {
   display: block;
   position: absolute;
   left: 50%;
   bottom: 14%;
-  max-width: 124%;
+  width: max-content;
+  max-width: 100cqw;
   box-sizing: border-box;
   padding: 1px 4px;
   transform: translateX(-50%);
@@ -1222,6 +1353,24 @@ a.fx-fd-crumb:hover {
   }
 }
 
+/* The Files view has two switches in its toolbar. Between a phone and a
+   small desktop they leave the breadcrumb too little room, so it takes a
+   line of its own above them. */
+@media (min-width: 641px) and (max-width: 900px) {
+  .fx-wb[data-mode='files'] .fx-wb-toolbar {
+    flex-wrap: wrap;
+  }
+
+  .fx-wb[data-mode='files'] .fx-wb-path {
+    flex: 1 1 calc(100% - 60px);
+  }
+
+  .fx-wb[data-mode='files'] .fx-wb-toolbar-end {
+    flex: 1 1 100%;
+    justify-content: space-between;
+  }
+}
+
 /* ---------- Phones ----------
    The header gives way here, so the toolbar is the top of the screen: the
    breadcrumb, then the view switch. The rail opens from the bottom toolbar
@@ -1261,6 +1410,20 @@ a.fx-fd-crumb:hover {
     padding: 10px 14px;
   }
 
+  /* The breadcrumb just above already ends on this pane's name, so the
+     name isn't said twice in the first screen of a phone. A pane whose head
+     held nothing else goes with it. */
+  .fx-wb-pane-head[data-crumbed] .fx-title-row,
+  .fx-wb-pane-head[data-crumbed='only'] {
+    display: none;
+  }
+
+  /* The filter is in the bottom toolbar here, with its tally, so the row
+     that held it in the pane has nothing left to show. */
+  .fx-wb-records .fx-records-tools {
+    display: none;
+  }
+
   .fx-wb-page-inner {
     padding: 14px 14px 28px;
   }
@@ -1282,9 +1445,18 @@ a.fx-fd-crumb:hover {
     overflow: hidden;
   }
 
+  /* The rail's sheet is as tall as what's in it, up to most of the screen;
+     its lists then give way and scroll. */
   .fx-wb-rail,
   .fx-wb[data-norail] .fx-wb-rail {
-    height: 85%;
+    max-height: 85%;
+  }
+
+  .fx-wb-tree,
+  .fx-wb-tree > .fx-tree-pane,
+  .fx-wb .fx-wb-tree .fx-tree-scroll,
+  .fx-fd-side {
+    flex: 0 1 auto;
   }
 
   .fx-wb-insp {
@@ -1334,6 +1506,24 @@ a.fx-fd-crumb:hover {
   .fx-wb-view,
   .fx-fd-place {
     min-height: 40px;
+  }
+
+  /* The site's segmented control is 28px, sized for a pointer. These three
+     are the way between views and between a record's sections, so on touch
+     they grow to a comfortable tap. */
+  .fx-wb-toolbar .fn-segmented-option,
+  .fx-wb-insp-bar .fn-segmented-option,
+  .fx-viewbar .fn-segmented-option {
+    height: 34px;
+  }
+
+  .fx-fd-crumb {
+    min-height: 32px;
+  }
+
+  .fx-wb-rec .fn-rec-actions .fn-rec-btn {
+    min-width: 36px;
+    height: 36px;
   }
 }
 

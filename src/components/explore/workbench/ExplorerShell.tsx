@@ -38,8 +38,11 @@ import CopyButton from '../CopyButton';
 import { RecordPane, type RecordPaneTab } from '../RecordExplorer';
 import ShareLinkChip from '../ShareLinkChip';
 import {
+  SkeletonAccountCard,
   SkeletonBar,
+  SkeletonChipRow,
   SkeletonRecordRows,
+  SkeletonStatTiles,
   SkeletonTreePane,
 } from '../skeletons/primitives';
 import CollectionsTab from '../tabs/CollectionsTab';
@@ -47,6 +50,7 @@ import { useMediaQuery } from '../useIsNarrow';
 import { useRepoCollections } from '../useRepoCollections';
 import AccountView, { ACCOUNT_TABS, ACCOUNT_TAB_LABELS, type AccountTab } from './AccountView';
 import { FilesSidebar, FolderBrowser, PathBar, useNamespaces } from './FilesBrowser';
+import { RecordFileSkeleton } from './RecordFile';
 import { useFilesLayout } from './useExplorerView';
 import ViewSwitch, { FilesLayoutSwitch } from './ViewSwitch';
 
@@ -136,6 +140,7 @@ export default function ExplorerShell({ mode, repo, collection, rkey }: Props) {
   const files = mode === 'files';
   const layout = useFilesLayout();
   const drawers = useMediaQuery(DRAWERS_QUERY);
+  const phone = useMediaQuery(PHONE_QUERY);
 
   // Which account view the main pane shows when no collection is open. The
   // workbench opens on the overview; the Files view opens on the repo's
@@ -430,12 +435,16 @@ export default function ExplorerShell({ mode, repo, collection, rkey }: Props) {
         </button>
         <div className="fx-wb-path">
           {identity ? (
+            // On a phone the trail is the top of the screen and has to stay
+            // short: it runs from the account to the collection. The PDS is
+            // on the overview's account card, and an open record names
+            // itself at the head of its sheet.
             <Breadcrumb
               handle={identity.handle}
               did={identity.did}
-              pds={identity.pds}
+              pds={phone ? undefined : identity.pds}
               collection={collection ?? undefined}
-              rkey={collection && rkey ? rkey : undefined}
+              rkey={collection && rkey && !phone ? rkey : undefined}
               flush
             />
           ) : (
@@ -508,20 +517,23 @@ export default function ExplorerShell({ mode, repo, collection, rkey }: Props) {
               )}
             </>
           ) : (
-            <div className="fx-wb-rail-skeleton" aria-hidden>
-              <SkeletonBar width="9rem" height="1rem" />
-              <SkeletonBar width="6rem" />
-              <SkeletonTreePane rows={10} sidebar />
-            </div>
+            <RailSkeleton files={files} />
           )}
         </aside>
 
         <section className="fx-wb-main" aria-label={collection ? 'Records' : 'Account'}>
           {!identity ? (
-            <div className="fx-wb-main-skeleton" aria-hidden>
-              <SkeletonBar width="14rem" height="1.4rem" />
-              <SkeletonRecordRows />
-            </div>
+            <MainSkeleton
+              kind={
+                collection
+                  ? files && layout === 'icons'
+                    ? 'files'
+                    : 'records'
+                  : files && !accountTab
+                    ? 'folders'
+                    : 'account'
+              }
+            />
           ) : collection ? (
             // Keyed, so a new collection starts with a clean list: no stale
             // rows, selection or Live left over from the last one.
@@ -584,6 +596,98 @@ export default function ExplorerShell({ mode, repo, collection, rkey }: Props) {
             else if (window.matchMedia(PHONE_QUERY).matches || drawers) closeRecord();
           }}
         />
+      </div>
+    </div>
+  );
+}
+
+/**
+ * The rail before the account has resolved, in the rail's own rows: the
+ * account line, the four views, then the tree or the places. The headings
+ * are fixed, so they are drawn for real.
+ */
+function RailSkeleton({ files }: { files: boolean }) {
+  return (
+    <>
+      <div className="fx-wb-acct" aria-hidden>
+        <SkeletonBar width="36px" height="36px" shape="circle" style={{ flex: 'none' }} />
+        <div className="fx-wb-acct-names" style={{ gap: 7 }}>
+          <SkeletonBar width="7rem" height="0.85rem" />
+          <SkeletonBar width="5.5rem" height="0.6rem" />
+        </div>
+      </div>
+      <div className="fx-wb-views" aria-hidden>
+        {['4.25rem', '3.5rem', '1.75rem', '4.5rem'].map((width, i) => (
+          <span key={i} className="fx-wb-view" data-skeleton>
+            <SkeletonBar width="14px" height="14px" shape="control" style={{ flex: 'none' }} />
+            <SkeletonBar width={width} height="0.6rem" />
+          </span>
+        ))}
+      </div>
+      {files ? (
+        <div className="fx-fd-side" aria-hidden>
+          <h2 className="fx-wb-label">Namespaces</h2>
+          <div className="fx-fd-places">
+            {['5rem', '7rem', '4.5rem', '6rem', '5.5rem', '4rem'].map((width, i) => (
+              <span key={i} className="fx-fd-place" data-skeleton>
+                <SkeletonBar width="18px" height="14px" shape="control" style={{ flex: 'none' }} />
+                <SkeletonBar width={width} height="0.6rem" />
+              </span>
+            ))}
+          </div>
+        </div>
+      ) : (
+        <div className="fx-wb-tree" aria-hidden>
+          <h2 className="fx-wb-label">Collections</h2>
+          <SkeletonTreePane rows={10} sidebar />
+        </div>
+      )}
+    </>
+  );
+}
+
+/**
+ * The main pane before the account has resolved, shaped like what the
+ * address says is coming: a record list, a grid of files or folders, or the
+ * account's overview.
+ */
+function MainSkeleton({ kind }: { kind: 'records' | 'files' | 'folders' | 'account' }) {
+  if (kind === 'account') {
+    return (
+      <div className="fx-wb-page" aria-hidden>
+        <div className="fx-wb-page-inner fx-main">
+          <div className="fx-wb-overview">
+            <div className="fx-wb-overview-side">
+              <SkeletonAccountCard />
+            </div>
+            <div className="fx-wb-overview-main">
+              <SkeletonBar width="8rem" height="0.9rem" />
+              <SkeletonStatTiles />
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+  return (
+    <div className="fx-wb-pane" aria-hidden>
+      <div className="fx-wb-pane-head">
+        <div className="fx-titlebar">
+          <SkeletonBar width="13rem" height="1.35rem" />
+          {kind !== 'folders' && <SkeletonChipRow widths={['4.25rem', '5.75rem', '4.25rem']} />}
+        </div>
+      </div>
+      <div className="fx-records fx-wb-records">
+        <div className="fx-records-tools">
+          <SkeletonBar width="min(320px, 100%)" height="32px" shape="control" />
+        </div>
+        <div className="fx-wb-scroll">
+          {kind === 'records' ? (
+            <SkeletonRecordRows />
+          ) : (
+            <RecordFileSkeleton tiles={kind === 'folders' ? 8 : 18} />
+          )}
+        </div>
       </div>
     </div>
   );

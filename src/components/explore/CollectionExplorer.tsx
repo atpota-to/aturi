@@ -784,6 +784,13 @@ function CollectionList({
             }
           }}
         />
+        {/* A pane too narrow for the count beside the field drops it
+            (workbench.css); a search keeps its tally here instead. */}
+        {pane && query && (
+          <span className="fx-field-status">
+            {formatCount(visibleRecords.length)}/{formatCount(records.length)}
+          </span>
+        )}
       </label>
       <span className="fx-records-tools-meta" aria-live="polite">
         {countLabel}
@@ -902,7 +909,9 @@ function CollectionList({
   if (pane) {
     return (
       <div className="fx-wb-pane" data-display={pane.display}>
-        <div ref={setControlsNode} className="fx-wb-pane-head">
+        {/* `data-crumbed`: the host's breadcrumb ends on this collection, so
+            a phone, where the two would stack, shows the name once. */}
+        <div ref={setControlsNode} className="fx-wb-pane-head" data-crumbed>
           <div className="fx-titlebar">
             {titleRow}
             {actions}

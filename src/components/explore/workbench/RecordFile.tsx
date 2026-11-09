@@ -8,6 +8,9 @@ import { previewFor } from '@/utils/atproto/previewExtractors';
 import { SkeletonBar } from '../skeletons/primitives';
 import { FileGlyph, fileKindOf } from './FileIcons';
 
+/** An ISO 8601 date-time and nothing else, as `createdAt` fields hold. */
+const TIMESTAMP = /^\d{4}-\d{2}-\d{2}T[\d:.]+(Z|[+-]\d{2}:?\d{2})?$/;
+
 /**
  * One record as a file in the Files view's icon layout: its kind on the
  * icon, its record key as the name, then what it says and when it was made.
@@ -40,11 +43,15 @@ export default function RecordFile({
 }) {
   const rkey = rkeyFromAtUri(rec.uri) || '';
   const tidDate = tidToDate(rkey);
+  // A record with nothing to say for itself previews as its timestamp, which
+  // in a table fills the column; on a tile it only repeats the date below.
+  const preview = previewFor(rec.value);
+  const caption = TIMESTAMP.test(preview) ? '' : preview;
   const body = (
     <>
       <FileGlyph kind={fileKindOf(collection)} />
       <code className="fx-fd-name">{rkey}</code>
-      <span className="fx-fd-cap">{previewFor(rec.value)}</span>
+      <span className="fx-fd-cap">{caption}</span>
       {tidDate && (
         <time className="fx-fd-meta" dateTime={tidDate.toISOString()} title={tidDate.toISOString()}>
           {formatTidRelative(tidDate)}
