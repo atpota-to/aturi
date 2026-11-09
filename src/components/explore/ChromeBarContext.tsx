@@ -68,6 +68,36 @@ export type ChromeBarAction = {
   onClick: () => void;
 };
 
+/**
+ * Play, pause and stop for a page that shows a live stream (the stream
+ * monitor). Phone only: wider, the page's own toolbar holds them. A route
+ * that publishes one takes Back and Home's place in the bar for them, and
+ * those two move into the menu sheet (chrome.css, `.fn-menu-back`).
+ */
+export type ChromeBarTransport = {
+  state: 'live' | 'paused' | 'stopped';
+  /** Reconnecting after Play: shown, but not yet receiving. */
+  connecting?: boolean;
+  onPlay: () => void;
+  onPause: () => void;
+  onStop: () => void;
+};
+
+/**
+ * A panel the page opens from the bar, beside the field: the stream
+ * monitor's filters. Phone only, like the transport. The page draws and
+ * places the panel itself; the bar carries the button that toggles it.
+ */
+export type ChromeBarPanel = {
+  label: string;
+  /** What the panel has set, worn as a badge on the button. 0 shows none. */
+  count: number;
+  open: boolean;
+  /** DOM id of the panel, for aria-controls. */
+  controls?: string;
+  onToggle: () => void;
+};
+
 type ChromeBarContextValue = {
   /** The active field, or null when the route publishes none. */
   field: ChromeBarField | null;
@@ -75,6 +105,10 @@ type ChromeBarContextValue = {
   /** The active action button, or null when the route publishes none. */
   action: ChromeBarAction | null;
   setAction: (action: ChromeBarAction | null) => void;
+  transport: ChromeBarTransport | null;
+  setTransport: (transport: ChromeBarTransport | null) => void;
+  panel: ChromeBarPanel | null;
+  setPanel: (panel: ChromeBarPanel | null) => void;
 };
 
 const noop = () => {};
@@ -92,17 +126,23 @@ const ChromeBarContext = createContext<ChromeBarContextValue>({
   setField: noop,
   action: null,
   setAction: noop,
+  transport: null,
+  setTransport: noop,
+  panel: null,
+  setPanel: noop,
 });
 
 export function ChromeBarProvider({ children }: { children: ReactNode }) {
   const [field, setField] = useState<ChromeBarField | null>(null);
   const [action, setAction] = useState<ChromeBarAction | null>(null);
+  const [transport, setTransport] = useState<ChromeBarTransport | null>(null);
+  const [panel, setPanel] = useState<ChromeBarPanel | null>(null);
 
   // The setters are stable useState setters, so the value only changes
   // identity when what's published actually does.
   const value = useMemo<ChromeBarContextValue>(
-    () => ({ field, setField, action, setAction }),
-    [field, action],
+    () => ({ field, setField, action, setAction, transport, setTransport, panel, setPanel }),
+    [field, action, transport, panel],
   );
 
   return <ChromeBarContext.Provider value={value}>{children}</ChromeBarContext.Provider>;
@@ -188,4 +228,67 @@ export function useChromeBarAction(action: ChromeBarAction | null): void {
   }, [active, label, title, setAction]);
 
   useEffect(() => () => setAction(null), [setAction]);
+}
+
+/**
+ * Publish play, pause and stop to the bar for as long as it's mounted. Pass
+ * `null` to publish nothing. Handlers go through a ref, as the field's do,
+ * so only a change of state republishes.
+ */
+export function useChromeBarTransport(transport: ChromeBarTransport | null): void {
+  const { setTransport } = useChromeBar();
+
+  const handlers = useRef<Pick<ChromeBarTransport, 'onPlay' | 'onPause' | 'onStop'> | null>(null);
+  useEffect(() => {
+    handlers.current = transport;
+  });
+
+  const active = transport !== null;
+  const state = transport?.state ?? 'live';
+  const connecting = Boolean(transport?.connecting);
+
+  useEffect(() => {
+    if (!active) {
+      setTransport(null);
+      return;
+    }
+    setTransport({
+      state,
+      connecting,
+      onPlay: () => handlers.current?.onPlay(),
+      onPause: () => handlers.current?.onPause(),
+      onStop: () => handlers.current?.onStop(),
+    });
+  }, [active, state, connecting, setTransport]);
+
+  useEffect(() => () => setTransport(null), [setTransport]);
+}
+
+/**
+ * Publish a panel toggle to the bar for as long as it's mounted. Pass `null`
+ * to publish nothing.
+ */
+export function useChromeBarPanel(panel: ChromeBarPanel | null): void {
+  const { setPanel } = useChromeBar();
+
+  const onToggle = useRef<(() => void) | undefined>(undefined);
+  useEffect(() => {
+    onToggle.current = panel?.onToggle;
+  });
+
+  const active = panel !== null;
+  const label = panel?.label ?? '';
+  const count = panel?.count ?? 0;
+  const open = Boolean(panel?.open);
+  const controls = panel?.controls;
+
+  useEffect(() => {
+    if (!active) {
+      setPanel(null);
+      return;
+    }
+    setPanel({ label, count, open, controls, onToggle: () => onToggle.current?.() });
+  }, [active, label, count, open, controls, setPanel]);
+
+  useEffect(() => () => setPanel(null), [setPanel]);
 }
