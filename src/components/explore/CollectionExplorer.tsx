@@ -25,6 +25,7 @@ import ShareLinkChip from './ShareLinkChip';
 import { AccountCard, RepoNavCard } from './RepoExplorer';
 import CollectionEditBar from './CollectionEditBar';
 import CollectionRecordRow from './CollectionRecordRow';
+import RecordFile, { RecordFileSkeleton } from './workbench/RecordFile';
 import NotFoundPanel from '@/components/NotFoundPanel';
 import SkeletonSwap from './skeletons/SkeletonSwap';
 import { replay } from '@/lib/motion';
@@ -48,6 +49,42 @@ type Props = {
   repo: string;
   collection: string;
 };
+
+/**
+ * How the record list is hosted when it isn't the collection page: as a pane
+ * of the workbench or the Files view (workbench/ExplorerShell.tsx), which
+ * draw the frame, the breadcrumb and the sidebar themselves and show the open
+ * record beside the list rather than on a page of its own.
+ */
+export type CollectionPaneOptions = {
+  /** `rows` is the record table; `icons` draws each record as a file. */
+  display: 'rows' | 'icons';
+  /** The record open beside the list, which wears the selected fill. */
+  currentRkey?: string | null;
+  /**
+   * Called when the collection turns out to hold exactly one record, where
+   * the collection page leaves for that record's page.
+   */
+  onSingleton: (rkey: string) => void;
+  /**
+   * The records on screen, in order: the host steps through them, and shows
+   * one at once when it is opened rather than reading it again first.
+   */
+  onVisibleRecords?: (records: AtRecord[]) => void;
+  /** A record deleted beside the list: its row is dropped without a refetch. */
+  removedUri?: string | null;
+  /** A file double-clicked: the host gives the record the full width. */
+  onOpenWide?: () => void;
+};
+
+/** The record list of one collection, as a pane. See {@link CollectionPaneOptions}. */
+export function CollectionPane({
+  identity,
+  collection,
+  ...pane
+}: { identity: IdentityBundle; collection: string } & CollectionPaneOptions) {
+  return <CollectionList identity={identity} collection={collection} pane={pane} />;
+}
 
 export default function CollectionExplorer({ repo, collection }: Props) {
   const [identity, setIdentity] = useState<IdentityBundle | null>(null);
@@ -90,11 +127,18 @@ export default function CollectionExplorer({ repo, collection }: Props) {
 function CollectionList({
   identity,
   collection,
+  pane,
 }: {
   identity: IdentityBundle;
   collection: string;
+  /** Set when hosted as a pane; the collection page leaves it out. */
+  pane?: CollectionPaneOptions;
 }) {
   const router = useRouter();
+  // Read by effects that must not re-run when the host re-renders with fresh
+  // callbacks.
+  const paneRef = useRef(pane);
+  paneRef.current = pane;
   const { agent, did: signedInDid, session, loading: sessionLoading } = useAtprotoSession();
   const { prefs, loading: prefsLoading } = usePreferences();
   // The sidebar's account card honours the repo page's section prefs (the
@@ -259,8 +303,21 @@ function CollectionList({
     if (records.length !== 1) return;
     const rkey = rkeyFromAtUri(records[0].uri);
     if (!rkey) return;
+    // As a pane there is no record page to leave for: the host opens the
+    // record beside the list instead.
+    if (paneRef.current) {
+      paneRef.current.onSingleton(rkey);
+      return;
+    }
     router.replace(`/explore/${repoSeg}/${collection}/${encodeURIComponent(rkey)}`);
   }, [done, loading, live, editing, records, repoSeg, collection, router]);
+
+  // A record deleted from the inspector beside the list: drop its row.
+  const removedUri = pane?.removedUri ?? null;
+  useEffect(() => {
+    if (!removedUri) return;
+    setRecords((prev) => prev.filter((r) => r.uri !== removedUri));
+  }, [removedUri]);
 
   // One lowercased haystack per record — its rkey plus its whole JSON body,
   // so a search finds records by content ("that post about mushrooms") and
@@ -287,6 +344,24 @@ function CollectionList({
     () => (query ? records.filter((_, i) => haystacks[i].includes(query)) : records),
     [records, haystacks, query],
   );
+
+  // The host steps through what's on screen (newer, older), so it is told
+  // the records in order whenever they change.
+  const visibleRkeys = useMemo(
+    () => visibleRecords.map((r) => rkeyFromAtUri(r.uri) || ''),
+    [visibleRecords],
+  );
+  useEffect(() => {
+    paneRef.current?.onVisibleRecords?.(visibleRecords);
+  }, [visibleRecords]);
+
+  // Stepping can land on a row outside the pane's scroller: bring it in.
+  const paneScrollRef = useRef<HTMLDivElement>(null);
+  const currentRkey = pane?.currentRkey ?? null;
+  useEffect(() => {
+    if (!currentRkey) return;
+    paneScrollRef.current?.querySelector('[data-current]')?.scrollIntoView({ block: 'nearest' });
+  }, [currentRkey]);
 
   // Show the row skeleton only while the collection could still turn out to
   // have records: an empty set with pages left is the initial load, or the gap
@@ -575,6 +650,277 @@ function CollectionList({
         ? `${formatCount(visibleRecords.length)} of ${formatCount(records.length)} loaded`
         : `${formatCount(records.length)} ${done ? `record${records.length === 1 ? '' : 's'}` : 'loaded'}`;
 
+  // The pieces below are shared by the two ways this list is hosted: as its
+  // own page, and as a pane of the workbench or the Files view, which draw
+  // their own frame around it.
+  const titleRow = (
+    <div className="fx-title-row">
+      <h1 className="fx-h1">{collection}</h1>
+      {appDomain && (
+        <span className="fx-pill" title="The domain this namespace reverses to">
+          {appDomain}
+        </span>
+      )}
+    </div>
+  );
+
+  const actions = (
+    <div className="fx-actions">
+      <button
+        type="button"
+        onClick={() => setLive((l) => !l)}
+        aria-pressed={live}
+        className="fx-btn"
+        title={live ? 'Pause live stream' : 'Stream new records as they arrive'}
+      >
+        <span ref={liveDotRef} aria-hidden className="fx-dot" />
+        Live
+      </button>
+      <Link
+        href={lexiconPathFor(collection)}
+        prefetch={false}
+        className="fx-btn"
+        title="This collection's lexicon: usage across the network and its schema"
+      >
+        <BookOpen size={14} aria-hidden />
+        Lexicon
+      </Link>
+      {showEditButton && (
+        <button
+          type="button"
+          onClick={() => {
+            if (canEdit) {
+              if (editing) exitEditing();
+              else setEditing(true);
+            } else {
+              // Logged out — reveal the prefilled sign-in prompt instead.
+              setSignInOpen((v) => !v);
+            }
+          }}
+          className="fx-btn"
+          data-active={editActive || undefined}
+          title={
+            canEdit
+              ? editing
+                ? 'Exit selection mode'
+                : 'Select records to delete'
+              : 'Sign in to manage your records'
+          }
+        >
+          {editing ? <X size={14} aria-hidden /> : <FilePenLine size={14} aria-hidden />}
+          {editing ? 'Done' : 'Edit'}
+        </button>
+      )}
+      {/* No universal link route for collections — share the explorer URL.
+          Hidden on phones, where the bottom bar's copy-link is on
+          screen at the same time (explorer.css). As a pane the host's
+          toolbar carries the copy-link for wherever you are. */}
+      {!pane && (
+        <ShareLinkChip
+          url={`/explore/${repoSeg}/${collection}`}
+          iconOnly
+          className="fx-title-share"
+        />
+      )}
+    </div>
+  );
+
+  const editBlock = (editing || (signInOpen && !session)) && (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+      {editing && (
+        <CollectionEditBar
+          // The visible set, so "Select" greys out when a search has
+          // narrowed the list to nothing — same rule as its condensed twin.
+          recordsLength={visibleRecords.length}
+          selectedSize={selected.size}
+          allSelected={allSelected}
+          deleting={deleting}
+          confirmingDelete={confirmingDelete}
+          deleteProgress={deleteProgress}
+          deleteWaitSec={deleteWaitSec}
+          willPace={willPace}
+          onSelectAll={selectAll}
+          onDeselectAll={deselectAll}
+          onRequestDelete={requestDelete}
+          onConfirmDelete={confirmDelete}
+          onCancelDelete={cancelDelete}
+          onStop={stopDelete}
+        />
+      )}
+      {signInOpen && !session && (
+        <div className="fx-card fx-notice">
+          <p>
+            Sign in as{' '}
+            <strong>{identity.handle ? `@${identity.handle}` : identity.did}</strong> to
+            select and delete your own records.
+          </p>
+          <SignInPanel defaultInput={identity.handle || identity.did} />
+        </div>
+      )}
+      {editing && deleteError && (
+        <p className="explore-error" style={{ margin: 0 }}>
+          {deleteError}
+        </p>
+      )}
+    </div>
+  );
+
+  const tools = (
+    <div className="fx-records-tools">
+      {/* Same state as the chrome bar's field: a search over the
+          records fetched so far. */}
+      <label className="fx-field">
+        <Search size={14} aria-hidden />
+        <span className="fx-sr">Search records in this collection</span>
+        <input
+          type="text"
+          placeholder="Search loaded records"
+          value={filter}
+          onChange={(e) => setFilter(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Escape' && filter) {
+              e.preventDefault();
+              setFilter('');
+            }
+          }}
+        />
+      </label>
+      <span className="fx-records-tools-meta" aria-live="polite">
+        {countLabel}
+      </span>
+    </div>
+  );
+
+  const messages = (
+    <>
+      {error && (
+        <p className="explore-error" style={{ margin: '12px 16px' }}>
+          {error}
+        </p>
+      )}
+      {/* Only claim the collection is empty once we've actually
+          exhausted it (done). While records is empty but more pages
+          remain — the initial load, or the gap after a delete clears the
+          page before the auto-fetch refills it — keep showing "Loading"
+          so we never flash a false empty state. */}
+      {records.length === 0 && done && !error && (
+        <p className="fx-records-msg">No records in this collection.</p>
+      )}
+      {/* A search only sees what's been fetched, so when it comes up
+          empty and the collection still has pages left, say so —
+          otherwise "no match" reads as "not in this collection". */}
+      {records.length > 0 && visibleRecords.length === 0 && (
+        <p className="fx-records-msg">
+          No loaded records match <code>{filter.trim()}</code>.
+          {!done && ' Load more to search further.'}
+        </p>
+      )}
+    </>
+  );
+
+  const list =
+    pane?.display === 'icons' ? (
+      // The Files view: each record a file, named by its key.
+      <SkeletonSwap loading={awaitingFirstPage} skeleton={<RecordFileSkeleton />}>
+        {visibleRecords.length > 0 && (
+          <ul className="fx-fd-grid" data-editing={editing || undefined}>
+            {visibleRecords.map((rec, i) => (
+              <RecordFile
+                key={rec.uri}
+                rec={rec}
+                editing={editing}
+                isSelected={selected.has(rec.uri)}
+                repoSeg={repoSeg}
+                collection={collection}
+                onToggleSelect={toggleSelect}
+                current={currentRkey !== null && visibleRkeys[i] === currentRkey}
+                onOpenWide={pane.onOpenWide}
+              />
+            ))}
+          </ul>
+        )}
+      </SkeletonSwap>
+    ) : (
+      <SkeletonSwap
+        loading={awaitingFirstPage}
+        skeleton={<SkeletonRecordRows editing={editing} />}
+      >
+        {visibleRecords.length > 0 && (
+          <ul className="fx-rec-list" data-editing={editing || undefined}>
+            <li className="fx-rec-head" aria-hidden>
+              {editing && <span />}
+              <span>Record key</span>
+              <span>Preview</span>
+              <span>Created</span>
+            </li>
+            {visibleRecords.map((rec, i) => (
+              <CollectionRecordRow
+                key={rec.uri}
+                rec={rec}
+                editing={editing}
+                isSelected={selected.has(rec.uri)}
+                repoSeg={repoSeg}
+                collection={collection}
+                onToggleSelect={toggleSelect}
+                current={currentRkey !== null && visibleRkeys[i] === currentRkey}
+              />
+            ))}
+          </ul>
+        )}
+      </SkeletonSwap>
+    );
+
+  const foot = records.length > 0 && (
+    <div className="fx-records-foot">
+      <span>
+        {done
+          ? `All ${formatCount(records.length)} loaded`
+          : `${formatCount(records.length)} loaded, more on the PDS`}
+      </span>
+      {!done && (
+        <button
+          type="button"
+          onClick={() => loadPage(cursor)}
+          disabled={loading}
+          data-wait={loading || undefined}
+          className="fx-btn fx-btn-sm"
+          style={{ fontWeight: 600 }}
+          title={`Fetch the next ${RECORDS_PER_PAGE} records`}
+        >
+          {/* Fixed label; only a spinner joins it while loading, so
+              the button barely moves when tapped. */}
+          {loading && <Loader2 size={13} className="explore-spin" aria-hidden />}
+          Load more
+        </button>
+      )}
+    </div>
+  );
+
+  // As a pane: the title and actions stay put, the records scroll under
+  // them, and the foot stays in reach at the bottom. The host supplies the
+  // breadcrumb and the sidebar.
+  if (pane) {
+    return (
+      <div className="fx-wb-pane" data-display={pane.display}>
+        <div ref={setControlsNode} className="fx-wb-pane-head">
+          <div className="fx-titlebar">
+            {titleRow}
+            {actions}
+          </div>
+          {editBlock}
+        </div>
+        <section aria-label="Records" className="fx-records fx-wb-records" id={CHROME_RESULTS_ID}>
+          {tools}
+          <div ref={paneScrollRef} className="fx-wb-scroll">
+            {messages}
+            {list}
+          </div>
+          {foot}
+        </section>
+      </div>
+    );
+  }
+
   return (
     <div className="fx-explorer" data-page="collection">
       {/* The page's own controls live in this head: Live / Edit and the
@@ -591,113 +937,14 @@ function CollectionList({
                 collection={collection}
                 titled
               />
-              <div className="fx-title-row">
-                <h1 className="fx-h1">{collection}</h1>
-                {appDomain && (
-                  <span className="fx-pill" title="The domain this namespace reverses to">
-                    {appDomain}
-                  </span>
-                )}
-              </div>
+              {titleRow}
             </div>
 
-            <div className="fx-actions">
-              <button
-                type="button"
-                onClick={() => setLive((l) => !l)}
-                aria-pressed={live}
-                className="fx-btn"
-                title={live ? 'Pause live stream' : 'Stream new records as they arrive'}
-              >
-                <span ref={liveDotRef} aria-hidden className="fx-dot" />
-                Live
-              </button>
-              <Link
-                href={lexiconPathFor(collection)}
-                prefetch={false}
-                className="fx-btn"
-                title="This collection's lexicon: usage across the network and its schema"
-              >
-                <BookOpen size={14} aria-hidden />
-                Lexicon
-              </Link>
-              {showEditButton && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (canEdit) {
-                      if (editing) exitEditing();
-                      else setEditing(true);
-                    } else {
-                      // Logged out — reveal the prefilled sign-in prompt instead.
-                      setSignInOpen((v) => !v);
-                    }
-                  }}
-                  className="fx-btn"
-                  data-active={editActive || undefined}
-                  title={
-                    canEdit
-                      ? editing
-                        ? 'Exit selection mode'
-                        : 'Select records to delete'
-                      : 'Sign in to manage your records'
-                  }
-                >
-                  {editing ? <X size={14} aria-hidden /> : <FilePenLine size={14} aria-hidden />}
-                  {editing ? 'Done' : 'Edit'}
-                </button>
-              )}
-              {/* No universal link route for collections — share the explorer URL.
-                  Hidden on phones, where the bottom bar's copy-link is on
-                  screen at the same time (explorer.css). */}
-              <ShareLinkChip
-                url={`/explore/${repoSeg}/${collection}`}
-                iconOnly
-                className="fx-title-share"
-              />
-            </div>
+            {actions}
           </div>
         </AppearIn>
 
-        {(editing || (signInOpen && !session)) && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            {editing && (
-              <CollectionEditBar
-                // The visible set, so "Select" greys out when a search has
-                // narrowed the list to nothing — same rule as its condensed twin.
-                recordsLength={visibleRecords.length}
-                selectedSize={selected.size}
-                allSelected={allSelected}
-                deleting={deleting}
-                confirmingDelete={confirmingDelete}
-                deleteProgress={deleteProgress}
-                deleteWaitSec={deleteWaitSec}
-                willPace={willPace}
-                onSelectAll={selectAll}
-                onDeselectAll={deselectAll}
-                onRequestDelete={requestDelete}
-                onConfirmDelete={confirmDelete}
-                onCancelDelete={cancelDelete}
-                onStop={stopDelete}
-              />
-            )}
-            {signInOpen && !session && (
-              <div className="fx-card fx-notice">
-                <p>
-                  Sign in as{' '}
-                  <strong>{identity.handle ? `@${identity.handle}` : identity.did}</strong> to
-                  select and delete your own records.
-                </p>
-                <SignInPanel defaultInput={identity.handle || identity.did} />
-              </div>
-            )}
-            {editing && deleteError && (
-              <p className="explore-error" style={{ margin: 0 }}>
-                {deleteError}
-              </p>
-            )}
-          </div>
-        )}
+        {editBlock}
       </div>
 
       <aside className="fx-side" aria-label="Account and repository">
@@ -716,105 +963,10 @@ function CollectionList({
       <div className="fx-main">
         <AppearIn delay={0.05} id={CHROME_RESULTS_ID}>
           <section aria-label="Records" className="fx-card fx-records">
-            <div className="fx-records-tools">
-              {/* Same state as the chrome bar's field: a search over the
-                  records fetched so far. */}
-              <label className="fx-field">
-                <Search size={14} aria-hidden />
-                <span className="fx-sr">Search records in this collection</span>
-                <input
-                  type="text"
-                  placeholder="Search loaded records"
-                  value={filter}
-                  onChange={(e) => setFilter(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Escape' && filter) {
-                      e.preventDefault();
-                      setFilter('');
-                    }
-                  }}
-                />
-              </label>
-              <span className="fx-records-tools-meta" aria-live="polite">
-                {countLabel}
-              </span>
-            </div>
-
-            {error && (
-              <p className="explore-error" style={{ margin: '12px 16px' }}>
-                {error}
-              </p>
-            )}
-            {/* Only claim the collection is empty once we've actually
-                exhausted it (done). While records is empty but more pages
-                remain — the initial load, or the gap after a delete clears the
-                page before the auto-fetch refills it — keep showing "Loading"
-                so we never flash a false empty state. */}
-            {records.length === 0 && done && !error && (
-              <p className="fx-records-msg">No records in this collection.</p>
-            )}
-            {/* A search only sees what's been fetched, so when it comes up
-                empty and the collection still has pages left, say so —
-                otherwise "no match" reads as "not in this collection". */}
-            {records.length > 0 && visibleRecords.length === 0 && (
-              <p className="fx-records-msg">
-                No loaded records match <code>{filter.trim()}</code>.
-                {!done && ' Load more to search further.'}
-              </p>
-            )}
-
-            <SkeletonSwap
-              loading={awaitingFirstPage}
-              skeleton={<SkeletonRecordRows editing={editing} />}
-            >
-              {visibleRecords.length > 0 && (
-                <ul className="fx-rec-list" data-editing={editing || undefined}>
-                  <li className="fx-rec-head" aria-hidden>
-                    {editing && <span />}
-                    <span>Record key</span>
-                    <span>Preview</span>
-                    <span>Created</span>
-                  </li>
-                  {visibleRecords.map((rec) => (
-                    <CollectionRecordRow
-                      key={rec.uri}
-                      rec={rec}
-                      editing={editing}
-                      isSelected={selected.has(rec.uri)}
-                      repoSeg={repoSeg}
-                      collection={collection}
-                      onToggleSelect={toggleSelect}
-                    />
-                  ))}
-                </ul>
-              )}
-            </SkeletonSwap>
-
-            {records.length > 0 && (
-              <div className="fx-records-foot">
-                <span>
-                  {done
-                    ? `All ${formatCount(records.length)} loaded`
-                    : `${formatCount(records.length)} loaded, more on the PDS`}
-                </span>
-                {!done && (
-                  <button
-                    type="button"
-                    onClick={() => loadPage(cursor)}
-                    disabled={loading}
-                    data-wait={loading || undefined}
-                    className="fx-btn fx-btn-sm"
-                    style={{ fontWeight: 600 }}
-                    title={`Fetch the next ${RECORDS_PER_PAGE} records`}
-                  >
-                    {/* Fixed label; only a spinner joins it while loading, so
-                        the button barely moves when tapped. */}
-                    {loading && <Loader2 size={13} className="explore-spin" aria-hidden />}
-                    Load more
-                  </button>
-                )}
-              </div>
-            )}
+            {tools}
+            {messages}
+            {list}
+            {foot}
           </section>
         </AppearIn>
       </div>

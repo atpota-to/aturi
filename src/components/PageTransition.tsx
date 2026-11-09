@@ -2,13 +2,15 @@
 
 import { motion, AnimatePresence, MotionConfig } from 'framer-motion';
 import { usePathname } from 'next/navigation';
-import { ReactNode, useEffect, useLayoutEffect, useRef, useSyncExternalStore } from 'react';
+import { ReactNode, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from 'react';
 import {
   getReduceMotionServerSnapshot,
   getReduceMotionSnapshot,
   subscribeReduceMotion,
 } from '@/lib/a11y';
 import { animate, MOTION } from '@/lib/motion';
+import { parseExplorerPath } from '@/lib/explorerView';
+import { useExplorerView } from './explore/workbench/useExplorerView';
 
 interface PageTransitionProps {
   children: ReactNode;
@@ -57,6 +59,13 @@ function settleBlocks(page: HTMLElement): HTMLElement[] {
  * Route-level crossfade. Keyed on pathname so navigations trigger a fresh
  * mount of the children subtree.
  *
+ * One kind of move keeps the key it has: around one account's repository in
+ * the explorer's workbench and Files views (ExplorerShell). Those rewrite
+ * the address with the History API instead of navigating, precisely so the
+ * shell stays mounted with the records it has fetched; a fresh mount here
+ * would undo that. The key starts as the pathname either way, so the server
+ * and the first client render agree whatever view the visitor has chosen.
+ *
  * Tuned for subtlety:
  *
  *   - opacity-only on the page itself (no y-slide) — sliding the whole
@@ -83,6 +92,20 @@ function settleBlocks(page: HTMLElement): HTMLElement[] {
  */
 export default function PageTransition({ children }: PageTransitionProps) {
   const pathname = usePathname();
+  const explorerView = useExplorerView();
+  // The key follows the pathname, except across a move inside the explorer
+  // shell (see above), where it holds. Worked out while rendering, from the
+  // pathname the key was last decided for, so it is right in the same
+  // render the pathname changes in rather than one commit late.
+  const [keyed, setKeyed] = useState({ path: pathname, key: pathname });
+  let pageKey = keyed.key;
+  if (keyed.path !== pathname) {
+    const from = parseExplorerPath(keyed.path);
+    const to = parseExplorerPath(pathname);
+    const insideShell = explorerView !== 'classic' && !!from && !!to && from.repo === to.repo;
+    if (!insideShell) pageKey = pathname;
+    setKeyed({ path: pathname, key: pageKey });
+  }
   const reduceMotion = useSyncExternalStore(
     subscribeReduceMotion,
     getReduceMotionSnapshot,
@@ -133,7 +156,7 @@ export default function PageTransition({ children }: PageTransitionProps) {
     <MotionConfig reducedMotion={reduceMotion ? 'always' : 'never'}>
       <AnimatePresence mode="popLayout" initial={false}>
         <motion.div
-          key={pathname}
+          key={pageKey}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
@@ -141,7 +164,7 @@ export default function PageTransition({ children }: PageTransitionProps) {
             duration: 0.2,
             ease: 'easeOut',
           }}
-          data-page-key={pathname ?? ''}
+          data-page-key={pageKey ?? ''}
           // Hold the page area open while routing so the footer can't ride
           // up into the viewport mid-transition. Just under one screen so
           // short pages still look balanced.

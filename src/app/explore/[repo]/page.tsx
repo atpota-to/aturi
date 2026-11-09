@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import RepoExplorer from '@/components/explore/RepoExplorer';
+import ExplorerRoute from '@/components/explore/workbench/ExplorerRoute';
 
 type Params = { repo: string };
 
@@ -40,5 +40,5 @@ export default async function ExploreRepoPage({
   params: Promise<Params>;
 }) {
   const { repo } = await params;
-  return <RepoExplorer repo={decodeURIComponent(repo)} />;
+  return <ExplorerRoute repo={decodeURIComponent(repo)} />;
 }
