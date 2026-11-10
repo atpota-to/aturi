@@ -75,6 +75,14 @@ export type CollectionPaneOptions = {
   removedUri?: string | null;
   /** A file double-clicked: the host gives the record the full width. */
   onOpenWide?: () => void;
+  /**
+   * The host is showing something else over the list (what links to the
+   * open record) and keeps the list mounted under it, so coming back finds
+   * the same rows at the same scroll. Covered, the list gives up its place
+   * in the phone toolbar: the search and Edit there would act on rows that
+   * aren't on screen.
+   */
+  covered?: boolean;
 };
 
 /** The record list of one collection, as a pane. See {@link CollectionPaneOptions}. */
@@ -617,7 +625,7 @@ function CollectionList({
   // scrolled away. Only for the repo's owner: a logged-out visitor's Edit
   // reveals an in-page sign-in prompt, which is no use from down here.
   useChromeBarAction(
-    canEdit && !editing && controlsOffscreen
+    canEdit && !editing && controlsOffscreen && !pane?.covered
       ? {
           label: 'Edit',
           title: 'Select records to delete',
@@ -627,20 +635,24 @@ function CollectionList({
   );
 
   // The collection page's find action: search the records you've fetched.
-  useChromeBarField({
-    placeholder: 'Search records…',
-    label: 'Search records in this collection',
-    value: filter,
-    onChange: setFilter,
-    resultsId: CHROME_RESULTS_ID,
-    inPage: true,
-    status:
-      records.length === 0
-        ? null
-        : query
-          ? `${formatCount(visibleRecords.length)}/${formatCount(records.length)}`
-          : `${formatCount(records.length)}${done ? '' : '+'}`,
-  });
+  useChromeBarField(
+    pane?.covered
+      ? null
+      : {
+          placeholder: 'Search records…',
+          label: 'Search records in this collection',
+          value: filter,
+          onChange: setFilter,
+          resultsId: CHROME_RESULTS_ID,
+          inPage: true,
+          status:
+            records.length === 0
+              ? null
+              : query
+                ? `${formatCount(visibleRecords.length)}/${formatCount(records.length)}`
+                : `${formatCount(records.length)}${done ? '' : '+'}`,
+        },
+  );
 
   const appDomain = appDomainFor(groupPrefix(collection));
   const countLabel =

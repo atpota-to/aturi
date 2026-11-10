@@ -1,6 +1,11 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { describeLinkingRecord, hasNoContext, listKind } from '@/utils/atproto/backlinkDetails';
+import {
+  describeLinkingRecord,
+  hasNoContext,
+  listItemMember,
+  listKind,
+} from '@/utils/atproto/backlinkDetails';
 
 test('a starter pack reads as its name', () => {
   assert.deepEqual(
@@ -41,10 +46,22 @@ test('list purposes name the list', () => {
   assert.equal(listKind(undefined), 'List');
 });
 
-test('follows and blocks are never fetched for context', () => {
+test('follows, blocks, likes and reposts are never fetched for context', () => {
   assert.equal(hasNoContext('app.bsky.graph.follow'), true);
   assert.equal(hasNoContext('network.cosmik.follow'), true);
   assert.equal(hasNoContext('app.bsky.feed.block'), true);
+  assert.equal(hasNoContext('app.bsky.feed.like'), true);
+  assert.equal(hasNoContext('app.bsky.feed.repost'), true);
   assert.equal(hasNoContext('app.bsky.graph.listitem'), false);
   assert.equal(hasNoContext('app.bsky.feed.post'), false);
+});
+
+test('a list item names the account it adds and its list', () => {
+  assert.deepEqual(
+    listItemMember({ subject: 'did:plc:member', list: 'at://did:plc:owner/app.bsky.graph.list/3kabc' }),
+    { did: 'did:plc:member', list: 'at://did:plc:owner/app.bsky.graph.list/3kabc' },
+  );
+  assert.equal(listItemMember({ subject: 'did:plc:member' }), null);
+  assert.equal(listItemMember({ subject: 'alice.example', list: 'at://did:plc:owner/app.bsky.graph.list/3kabc' }), null);
+  assert.equal(listItemMember(null), null);
 });

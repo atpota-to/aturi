@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
-import { ChevronRight, Search, Server, Star } from 'lucide-react';
+import { ChevronRight, Link2, Search, Server, Star } from 'lucide-react';
 import type { IdentityBundle } from '@/utils/atproto/identity';
 import { pdsHostname } from '@/utils/atproto/pdsServer';
 import { appDomainFor } from '@/utils/ufos/nsid';
@@ -379,12 +379,20 @@ export function PathBar({
   ns,
   collection,
   rkey,
+  links,
 }: {
   identity: IdentityBundle;
   base: string;
   ns: string | null;
   collection: string | null;
   rkey: string | null;
+  /**
+   * Set while the pane lists what links to the account or the open record:
+   * the path then runs on into "Backlinks" and the relationship that's
+   * open, as two more folders. `relation` is its name, when the address
+   * gives one.
+   */
+  links?: { relation: string | null } | null;
 }) {
   const folder = collection ? namespaceOf(collection) : ns;
   const pdsHost = pdsHostname(identity.pds);
@@ -396,7 +404,7 @@ export function PathBar({
   useEffect(() => {
     const bar = barRef.current;
     if (bar) bar.scrollLeft = bar.scrollWidth;
-  }, [folder, collection, rkey]);
+  }, [folder, collection, rkey, links?.relation]);
 
   return (
     <nav ref={barRef} aria-label="Path" className="fx-fd-path">
@@ -409,7 +417,7 @@ export function PathBar({
         href={base}
         prefetch={false}
         className="fx-fd-crumb"
-        aria-current={!folder && !collection ? 'page' : undefined}
+        aria-current={!folder && !collection && !links ? 'page' : undefined}
       >
         <FolderGlyph />
         {identity.handle ? `@${identity.handle}` : identity.did}
@@ -447,10 +455,40 @@ export function PathBar({
       {collection && rkey && (
         <>
           {sep}
-          <span className="fx-fd-crumb" aria-current="page">
-            <FileGlyph kind="" />
-            {rkey}
+          {links ? (
+            <Link
+              href={`${base}/${collection}/${encodeURIComponent(rkey)}`}
+              prefetch={false}
+              rel="nofollow"
+              className="fx-fd-crumb"
+            >
+              <FileGlyph kind="" />
+              {rkey}
+            </Link>
+          ) : (
+            <span className="fx-fd-crumb" aria-current="page">
+              <FileGlyph kind="" />
+              {rkey}
+            </span>
+          )}
+        </>
+      )}
+      {links && (
+        <>
+          {sep}
+          <span className="fx-fd-crumb" aria-current={links.relation ? undefined : 'page'}>
+            <Link2 size={12} aria-hidden />
+            Backlinks
           </span>
+          {links.relation && (
+            <>
+              {sep}
+              <span className="fx-fd-crumb" aria-current="page">
+                <FolderGlyph />
+                {links.relation}
+              </span>
+            </>
+          )}
         </>
       )}
     </nav>

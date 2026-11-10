@@ -26,8 +26,9 @@ import {
 import { resolveIdentifier, type IdentityBundle } from '@/utils/atproto/identity';
 import { getProfile, type AppViewProfile } from '@/utils/atproto/appview';
 import type { AtRecord } from '@/utils/atproto/pdsClient';
+import type { MergedBacklink } from '@/utils/atproto/backlinkMerge';
 import { rkeyFromAtUri, shortDid } from '@/utils/atproto/urls';
-import { parseExplorerPath } from '@/lib/explorerView';
+import { parseExplorerPath, parsePeek, peekValue } from '@/lib/explorerView';
 import { getSiteMenuSnapshot, setSiteMenuOpen, subscribeSiteMenu } from '@/lib/siteMenu';
 import NotFoundPanel from '@/components/NotFoundPanel';
 import { useFillViewport } from '@/components/useFillViewport';
@@ -45,11 +46,13 @@ import {
   SkeletonStatTiles,
   SkeletonTreePane,
 } from '../skeletons/primitives';
+import { backlinkRelationLabel } from '../tabs/BacklinksTab';
 import CollectionsTab from '../tabs/CollectionsTab';
 import { useMediaQuery } from '../useIsNarrow';
 import { useRepoCollections } from '../useRepoCollections';
 import AccountView, { ACCOUNT_TABS, ACCOUNT_TAB_LABELS, type AccountTab } from './AccountView';
 import { FilesSidebar, FolderBrowser, PathBar, useNamespaces } from './FilesBrowser';
+import { PeekPane, RecordLinksView, type BacklinksHost } from './LinksView';
 import { RecordFileSkeleton } from './RecordFile';
 import { useFilesLayout } from './useExplorerView';
 import ViewSwitch, { FilesLayoutSwitch } from './ViewSwitch';
@@ -110,6 +113,12 @@ type Props = {
  * repository into such a move, so the pieces borrowed from the classic pages
  * (the tree, the record rows, the breadcrumb, links inside a record) need no
  * knowledge of where they are hosted.
+ *
+ * Backlinks use the same two panes. What links to the account (its
+ * Backlinks view) or to the open record (`?links=`, the relationship) is a
+ * list in the main pane, and a linking record opens in the inspector
+ * (`?peek=`) as a record of the collection would: it usually lives in
+ * someone else's repository, and leaving for it would lose the list.
  */
 export default function ExplorerShell({ mode, repo, collection, rkey }: Props) {
   const [identity, setIdentity] = useState<IdentityBundle | null>(null);
@@ -159,11 +168,17 @@ export default function ExplorerShell({ mode, repo, collection, rkey }: Props) {
   const [railHidden, setRailHidden] = useState(false);
   const [wide, setWide] = useState(false);
   const [recordTab, setRecordTab] = useState<RecordPaneTab>('preview');
+  // A peeked record keeps a tab of its own: opened from the record's
+  // Backlinks tab, it would otherwise open on its own backlinks.
+  const [peekTab, setPeekTab] = useState<RecordPaneTab>('preview');
   const [removedUri, setRemovedUri] = useState<string | null>(null);
   // What the list beside the inspector is showing, by record key and in
   // order: for stepping, and for opening a record without reading it again.
   const [listed, setListed] = useState<Map<string, AtRecord>>(() => new Map());
   const rkeys = useMemo(() => Array.from(listed.keys()), [listed]);
+  // The same for the list of what links here: the linking records on screen,
+  // as `?peek=` spells them.
+  const [linked, setLinked] = useState<string[]>([]);
 
   const rootRef = useRef<HTMLDivElement>(null);
   useFillViewport(rootRef, '--fx-wb-top');
@@ -181,6 +196,45 @@ export default function ExplorerShell({ mode, repo, collection, rkey }: Props) {
     [base],
   );
 
+  // ── Backlinks ───────────────────────────────────────────────────────────
+
+  const linksParam = searchParams.get('links');
+  const recordLinks = Boolean(collection && rkey) && linksParam !== null;
+  const linksOpen = recordLinks || accountTab === 'backlinks';
+  const peek = linksOpen ? parsePeek(searchParams.get('peek')) : null;
+  const peekKey = peek ? `${peek.did}/${peek.collection}/${peek.rkey}` : null;
+
+  // The address of the list of what links here: to the open record, or to
+  // the account. `relation` is the relationship it shows, `peekTo` the
+  // linking record open beside it.
+  const linksBase = recordLinks && collection && rkey ? recordPath(collection, rkey) : base;
+  const linksAddress = useCallback(
+    (relation: string | null, peekTo: string | null) => {
+      const query = new URLSearchParams();
+      if (!recordLinks) query.set('tab', 'backlinks');
+      if (relation !== null) query.set('links', relation);
+      if (peekTo) query.set('peek', peekTo);
+      return `${linksBase}?${query}`;
+    },
+    [recordLinks, linksBase],
+  );
+  const closePeek = useCallback(() => {
+    go(linksAddress(linksParam, null));
+  }, [go, linksAddress, linksParam]);
+
+  const onLinkedItems = useCallback((items: readonly MergedBacklink[]) => {
+    setLinked(items.flatMap((item) => peekValue(item.uri) ?? []));
+  }, []);
+  const backlinksHost = useMemo<BacklinksHost>(
+    () => ({
+      relation: linksParam,
+      relationHref: (relation) => linksAddress(relation, null),
+      display: files && layout === 'icons' ? 'icons' : 'rows',
+      peek: { current: peekKey ? `at://${peekKey}` : null, onItems: onLinkedItems },
+    }),
+    [linksParam, linksAddress, files, layout, peekKey, onLinkedItems],
+  );
+
   // A link to somewhere in this repository moves the shell there instead of
   // leaving the page. Links spell the repo as a handle or a DID; either is
   // this repo, and the move keeps the spelling the address bar has.
@@ -190,6 +244,15 @@ export default function ExplorerShell({ mode, repo, collection, rkey }: Props) {
     if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
     const anchor = (event.target as Element | null)?.closest?.('a[href]') as HTMLAnchorElement | null;
     if (!anchor || (anchor.target && anchor.target !== '_self') || anchor.hasAttribute('download')) return;
+    // A linking record in the list of what links here (a row marked by
+    // BacklinkPeekContext) opens beside the list, whichever repository it
+    // is in.
+    const peekTo = anchor.dataset.peek;
+    if (peekTo && linksOpen) {
+      event.preventDefault();
+      go(linksAddress(linksParam, peekTo));
+      return;
+    }
     let url: URL;
     try {
       url = new URL(anchor.href);
@@ -220,15 +283,23 @@ export default function ExplorerShell({ mode, repo, collection, rkey }: Props) {
   }, []);
 
   // Stepping replaces the address rather than adding to the history, so Back
-  // returns to the list and not through every record looked at.
+  // returns to the list and not through every record looked at. While the
+  // main pane lists what links here, it is that list being stepped through,
+  // and the linking record beside it that changes.
   const at = rkey ? rkeys.indexOf(rkey) : -1;
+  const peekAt = peekKey ? linked.indexOf(peekKey) : -1;
   const step = useCallback(
     (dir: number) => {
+      if (linksOpen) {
+        const next = peekAt < 0 ? linked[0] : linked[peekAt + dir];
+        if (next) go(linksAddress(linksParam, next), Boolean(peekKey));
+        return;
+      }
       if (!collection || rkeys.length === 0) return;
       const next = at < 0 ? rkeys[0] : rkeys[at + dir];
       if (next) go(recordPath(collection, next), Boolean(rkey));
     },
-    [collection, rkeys, at, rkey, go, recordPath],
+    [linksOpen, linked, peekAt, peekKey, linksAddress, linksParam, collection, rkeys, at, rkey, go, recordPath],
   );
 
   // A collection with one record opens it, as the collection page leaves for
@@ -286,7 +357,8 @@ export default function ExplorerShell({ mode, repo, collection, rkey }: Props) {
   // ── Keyboard ────────────────────────────────────────────────────────────
 
   // J and K step through the records (opening the newest if none is), Escape
-  // puts away the top layer. Keys the site's shortcut engine has claimed (it
+  // puts away the top layer: the rail's drawer, a peeked record, the list
+  // of what links to the open record, then the record. Keys the site's shortcut engine has claimed (it
   // calls preventDefault, and listens first) are left to it, and so is
   // typing.
   const keys = useRef<{ step: (dir: number) => void; escape: () => boolean }>({
@@ -299,6 +371,14 @@ export default function ExplorerShell({ mode, repo, collection, rkey }: Props) {
       escape: () => {
         if (drawers && railOpen) {
           setRailOpen(false);
+          return true;
+        }
+        if (peekKey) {
+          closePeek();
+          return true;
+        }
+        if (recordLinks && collection && rkey) {
+          go(recordPath(collection, rkey));
           return true;
         }
         if (rkey) {
@@ -334,11 +414,11 @@ export default function ExplorerShell({ mode, repo, collection, rkey }: Props) {
   // same words.
   useEffect(() => {
     document.title = rkey
-      ? `${rkey} · ${collection} · Atmosphere Explorer`
+      ? `${recordLinks ? 'Backlinks to ' : ''}${rkey} · ${collection} · Atmosphere Explorer`
       : collection
         ? `${collection} on ${repo} · Atmosphere Explorer`
         : `${repo} · Atmosphere Explorer`;
-  }, [repo, collection, rkey]);
+  }, [repo, collection, rkey, recordLinks]);
 
   // ── Files ───────────────────────────────────────────────────────────────
 
@@ -361,20 +441,80 @@ export default function ExplorerShell({ mode, repo, collection, rkey }: Props) {
     );
   }
 
-  const inspecting = Boolean(collection && rkey);
-  const sharePath = `${base}${collection ? `/${collection}` : ''}${
-    collection && rkey ? `/${encodeURIComponent(rkey)}` : ''
-  }${!collection && tabParam ? `?tab=${tabParam}` : ns ? `?ns=${encodeURIComponent(ns)}` : ''}`;
+  // A peeked record always shows. The open record does too, except where the
+  // inspector is a drawer and the main pane is listing what links to it: the
+  // drawer would cover the very list its backlinks card just opened.
+  const inspecting = peek ? true : Boolean(collection && rkey) && !(recordLinks && drawers);
+  // The full width is the record's alone; a list of what links to it needs
+  // the main pane.
+  const isWide = wide && !linksOpen;
+  const sharePath = linksOpen
+    ? linksAddress(linksParam, peekKey)
+    : `${base}${collection ? `/${collection}` : ''}${
+        collection && rkey ? `/${encodeURIComponent(rkey)}` : ''
+      }${!collection && tabParam ? `?tab=${tabParam}` : ns ? `?ns=${encodeURIComponent(ns)}` : ''}`;
 
+  // The record's own controls. Stepping belongs to the collection's list,
+  // so it steps aside with that list while the main pane shows what links
+  // to the record, and so does the full width.
   const controls = (
+    <>
+      {!linksOpen && (
+        <>
+          <button
+            type="button"
+            className="fx-wb-icon"
+            onClick={() => step(-1)}
+            disabled={at <= 0}
+            aria-label="Newer record"
+            title="Newer (K)"
+          >
+            <ChevronUp size={16} aria-hidden />
+          </button>
+          <button
+            type="button"
+            className="fx-wb-icon"
+            onClick={() => step(1)}
+            disabled={at < 0 || at >= rkeys.length - 1}
+            aria-label="Older record"
+            title="Older (J)"
+          >
+            <ChevronDown size={16} aria-hidden />
+          </button>
+          <button
+            type="button"
+            className="fx-wb-icon fx-wb-widen"
+            onClick={() => setWide((v) => !v)}
+            aria-pressed={wide}
+            aria-label={wide ? 'Return the record to the side' : 'Give the record the full width'}
+            title={wide ? 'Return to the side' : 'Full width'}
+          >
+            {wide ? <Minimize2 size={15} aria-hidden /> : <Maximize2 size={15} aria-hidden />}
+          </button>
+        </>
+      )}
+      <button
+        type="button"
+        className="fx-wb-icon"
+        onClick={closeRecord}
+        aria-label="Close record"
+        title="Close (Esc)"
+      >
+        <X size={17} aria-hidden />
+      </button>
+    </>
+  );
+
+  // A peeked record's: through the list of what links here, and back to it.
+  const peekControls = (
     <>
       <button
         type="button"
         className="fx-wb-icon"
         onClick={() => step(-1)}
-        disabled={at <= 0}
-        aria-label="Newer record"
-        title="Newer (K)"
+        disabled={peekAt <= 0}
+        aria-label="Previous linking record"
+        title="Previous (K)"
       >
         <ChevronUp size={16} aria-hidden />
       </button>
@@ -382,27 +522,17 @@ export default function ExplorerShell({ mode, repo, collection, rkey }: Props) {
         type="button"
         className="fx-wb-icon"
         onClick={() => step(1)}
-        disabled={at < 0 || at >= rkeys.length - 1}
-        aria-label="Older record"
-        title="Older (J)"
+        disabled={peekAt < 0 || peekAt >= linked.length - 1}
+        aria-label="Next linking record"
+        title="Next (J)"
       >
         <ChevronDown size={16} aria-hidden />
       </button>
       <button
         type="button"
-        className="fx-wb-icon fx-wb-widen"
-        onClick={() => setWide((v) => !v)}
-        aria-pressed={wide}
-        aria-label={wide ? 'Return the record to the side' : 'Give the record the full width'}
-        title={wide ? 'Return to the side' : 'Full width'}
-      >
-        {wide ? <Minimize2 size={15} aria-hidden /> : <Maximize2 size={15} aria-hidden />}
-      </button>
-      <button
-        type="button"
         className="fx-wb-icon"
-        onClick={closeRecord}
-        aria-label="Close record"
+        onClick={closePeek}
+        aria-label="Close linking record"
         title="Close (Esc)"
       >
         <X size={17} aria-hidden />
@@ -418,7 +548,7 @@ export default function ExplorerShell({ mode, repo, collection, rkey }: Props) {
       data-rail={railOpen || undefined}
       data-norail={railHidden || undefined}
       data-inspect={inspecting || undefined}
-      data-wide={(inspecting && wide) || undefined}
+      data-wide={(inspecting && isWide) || undefined}
       onClickCapture={onClickCapture}
     >
       <header className="fx-wb-toolbar">
@@ -535,21 +665,47 @@ export default function ExplorerShell({ mode, repo, collection, rkey }: Props) {
               }
             />
           ) : collection ? (
-            // Keyed, so a new collection starts with a clean list: no stale
-            // rows, selection or Live left over from the last one.
-            <CollectionPane
-              key={collection}
-              identity={identity}
-              collection={collection}
-              display={files && layout === 'icons' ? 'icons' : 'rows'}
-              currentRkey={rkey}
-              onSingleton={onSingleton}
-              onVisibleRecords={onVisibleRecords}
-              removedUri={removedUri}
-              onOpenWide={() => setWide(true)}
-            />
+            // Two layers in one cell. The list of what links to the open
+            // record goes over the collection's records rather than in
+            // their place, so the way back finds the same rows, loaded as
+            // far and scrolled as far as they were left.
+            <div className="fx-wb-stack">
+              <div className="fx-wb-layer" data-covered={recordLinks || undefined} inert={recordLinks}>
+                {/* Keyed, so a new collection starts with a clean list: no
+                    stale rows, selection or Live left over from the last. */}
+                <CollectionPane
+                  key={collection}
+                  identity={identity}
+                  collection={collection}
+                  display={files && layout === 'icons' ? 'icons' : 'rows'}
+                  currentRkey={rkey}
+                  onSingleton={onSingleton}
+                  onVisibleRecords={onVisibleRecords}
+                  removedUri={removedUri}
+                  onOpenWide={() => setWide(true)}
+                  covered={recordLinks}
+                />
+              </div>
+              {recordLinks && rkey && (
+                <div className="fx-wb-layer">
+                  <RecordLinksView
+                    key={rkey}
+                    identity={identity}
+                    collection={collection}
+                    rkey={rkey}
+                    backHref={recordPath(collection, rkey)}
+                    seed={listed.get(rkey) ?? null}
+                    host={backlinksHost}
+                  />
+                </div>
+              )}
+            </div>
           ) : accountTab ? (
-            <AccountView identity={identity} tab={accountTab} />
+            <AccountView
+              identity={identity}
+              tab={accountTab}
+              backlinks={accountTab === 'backlinks' ? backlinksHost : undefined}
+            />
           ) : (
             <FolderBrowser
               key={ns ?? ''}
@@ -562,29 +718,63 @@ export default function ExplorerShell({ mode, repo, collection, rkey }: Props) {
             />
           )}
           {files && identity && (
-            <PathBar identity={identity} base={base} ns={ns} collection={collection} rkey={rkey} />
+            <PathBar
+              identity={identity}
+              base={base}
+              ns={ns}
+              collection={collection}
+              rkey={rkey}
+              links={
+                linksOpen
+                  ? { relation: backlinkRelationLabel(recordLinks ? 'record' : 'account', linksParam) }
+                  : null
+              }
+            />
           )}
         </section>
 
-        <aside id={INSPECTOR_ID} className="fx-wb-insp" aria-label="Record" inert={!inspecting}>
-          {identity && collection && rkey && (
-            // Keyed by record: each one is read, edited and animated in on
-            // its own, and only the open tab carries across.
-            <RecordPane
-              key={`${collection}/${rkey}`}
-              identity={identity}
-              collection={collection}
-              rkey={rkey}
-              controls={controls}
-              wide={wide}
-              tab={recordTab}
-              onTab={setRecordTab}
-              seed={listed.get(rkey) ?? null}
-              onDeleted={() => {
-                setRemovedUri(`at://${identity.did}/${collection}/${rkey}`);
-                closeRecord();
-              }}
+        <aside
+          id={INSPECTOR_ID}
+          className="fx-wb-insp"
+          aria-label={peek ? 'Linking record' : 'Record'}
+          inert={!inspecting}
+        >
+          {identity && peek && peekKey ? (
+            <PeekPane
+              key={peekKey}
+              peek={peek}
+              own={identity}
+              controls={peekControls}
+              tab={peekTab}
+              onTab={setPeekTab}
+              onClose={closePeek}
             />
+          ) : (
+            identity &&
+            collection &&
+            rkey && (
+              // Keyed by record: each one is read, edited and animated in on
+              // its own, and only the open tab carries across.
+              <RecordPane
+                key={`${collection}/${rkey}`}
+                identity={identity}
+                collection={collection}
+                rkey={rkey}
+                controls={controls}
+                wide={isWide}
+                tab={recordTab}
+                onTab={setRecordTab}
+                seed={listed.get(rkey) ?? null}
+                onDeleted={() => {
+                  setRemovedUri(`at://${identity.did}/${collection}/${rkey}`);
+                  closeRecord();
+                }}
+                links={{
+                  href: (relation) => `${recordPath(collection, rkey)}?links=${relation}`,
+                  current: recordLinks ? linksParam : null,
+                }}
+              />
+            )
           )}
         </aside>
 
@@ -593,6 +783,7 @@ export default function ExplorerShell({ mode, repo, collection, rkey }: Props) {
           aria-hidden
           onClick={() => {
             if (railOpen) setRailOpen(false);
+            else if (peekKey) closePeek();
             else if (window.matchMedia(PHONE_QUERY).matches || drawers) closeRecord();
           }}
         />

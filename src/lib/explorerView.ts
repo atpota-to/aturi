@@ -147,3 +147,27 @@ export function parseExplorerPath(pathname: string | null | undefined): Explorer
   if (!repo || NOT_A_REPO.has(repo) || collection === SPACE_MARKER) return null;
   return { repo, collection: collection || null, rkey: rkey || null };
 }
+
+/**
+ * A linking record opened beside the list of what links somewhere (`?peek=`
+ * in the workbench and the Files view): `{did}/{collection}/{rkey}`, an AT
+ * URI without its scheme. It names a record in any repository, which the
+ * path, always this repository's, cannot.
+ */
+export type PeekTarget = { did: string; collection: string; rkey: string };
+
+/** Null unless the value is exactly a DID, a collection and a record key. */
+export function parsePeek(value: string | null | undefined): PeekTarget | null {
+  if (!value) return null;
+  const parts = value.split('/');
+  if (parts.length !== 3) return null;
+  const [did, collection, rkey] = parts;
+  if (!did.startsWith('did:') || !collection.includes('.') || !rkey) return null;
+  return { did, collection, rkey };
+}
+
+/** The `?peek=` value for a record, from its AT URI. Null for anything else. */
+export function peekValue(uri: string): string | null {
+  const value = uri.startsWith('at://') ? uri.slice('at://'.length) : uri;
+  return parsePeek(value) ? value : null;
+}

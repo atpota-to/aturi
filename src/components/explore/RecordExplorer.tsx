@@ -17,7 +17,7 @@ import EngagementSidecar from './EngagementSidecar';
 import LinkifiedJson from './LinkifiedJson';
 import RecordPreview from '@/components/RecordPreview';
 import RichRecordCard, { recordHasRichCard } from './RichRecordCard';
-import BacklinksTab from './tabs/BacklinksTab';
+import BacklinksTab, { type BacklinksLauncher } from './tabs/BacklinksTab';
 import LexiconUsageCard from './lexicons/LexiconUsageCard';
 import { Segmented } from './lexicons/primitives';
 import RecordEditor from './RecordEditor';
@@ -93,6 +93,12 @@ export type RecordPaneOptions = {
   seed?: AtRecord | null;
   /** The record was deleted in the editor; the page would leave for the collection. */
   onDeleted: () => void;
+  /**
+   * The host lists what links to the record in its main pane. The backlinks
+   * card then names the relationships and links each to its list there,
+   * rather than listing the records in a third of the page's width.
+   */
+  links?: BacklinksLauncher | null;
 };
 
 /** One record, as a pane. See {@link RecordPaneOptions}. */
@@ -227,6 +233,9 @@ function RecordView({
   }, [identity, collection, decodedRkey, seed]);
 
   const atUri = `at://${identity.did}/${collection}/${decodedRkey}`;
+  // Only while the pane sits beside the host's main pane: given the full
+  // width it covers that pane, and lists the linking records itself.
+  const launcher = pane && !pane.wide ? pane.links : null;
   const repoSeg = encodeRepo(identity.handle || identity.did);
   const isPost = collection === 'app.bsky.feed.post';
   const hasRichCard = recordHasRichCard(collection, decodedRkey);
@@ -370,7 +379,7 @@ function RecordView({
           />
         </AppearIn>
         <AppearIn delay={0.07}>
-          <BacklinksTab target={atUri} showSummary />
+          <BacklinksTab target={atUri} showSummary launcher={launcher} />
         </AppearIn>
         <AppearIn delay={0.09}>{copyRowNode}</AppearIn>
         {signInNode && <AppearIn delay={0.11}>{signInNode}</AppearIn>}
@@ -544,7 +553,7 @@ function RecordView({
           );
           column = 'aside';
         } else if (id === 'backlinks') {
-          node = <BacklinksTab target={atUri} showSummary />;
+          node = <BacklinksTab target={atUri} showSummary launcher={launcher} />;
           column = 'aside';
         } else if (id === 'signIn') {
           node = signInNode;

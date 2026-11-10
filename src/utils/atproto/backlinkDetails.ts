@@ -20,8 +20,16 @@ import { getRecordsByUris } from './slingshot';
 
 export type LinkerProfile = Pick<AppViewProfile, 'did' | 'handle' | 'displayName' | 'avatar'>;
 
-/** `kind` is a short label for the record type; `text` the record's words. */
-export type RecordContext = { kind: string | null; text: string };
+/**
+ * `kind` is a short label for the record type; `text` the record's words.
+ * `member` is set on a list item: the account it adds and the list it adds
+ * them to. Seen from that list, the account is what the row is about.
+ */
+export type RecordContext = {
+  kind: string | null;
+  text: string;
+  member?: { did: string; list: string };
+};
 
 /** Record types named in a row's context, by the collection's last segment. */
 const KIND_BY_NAME: Record<string, string> = {
@@ -46,8 +54,8 @@ function clean(text: string): string {
 
 /**
  * A row's context for a record value, or null when the record has nothing a
- * reader would recognise. Follows and blocks never get here (their records
- * are a subject and a date).
+ * reader would recognise. Follows, blocks, likes and reposts never get here
+ * (their records are a subject and a date).
  */
 export function describeLinkingRecord(collection: string, value: unknown): RecordContext | null {
   if (!value || typeof value !== 'object') return null;
@@ -73,9 +81,25 @@ export function listKind(purpose: unknown): string {
   return 'List';
 }
 
-/** Collections whose records carry no words worth fetching. */
+/**
+ * The account a list item adds and the list it adds them to, or null for a
+ * record that is not a well-formed list item.
+ */
+export function listItemMember(value: unknown): { did: string; list: string } | null {
+  if (!value || typeof value !== 'object') return null;
+  const { subject, list } = value as Record<string, unknown>;
+  if (typeof subject !== 'string' || !subject.startsWith('did:')) return null;
+  if (typeof list !== 'string' || !list.startsWith('at://')) return null;
+  return { did: subject, list };
+}
+
+/**
+ * Collections whose records carry no words worth fetching: each is a
+ * subject and a date. Likes and reposts are here with follows and blocks
+ * because a record's backlinks are mostly those, a page of them at a time.
+ */
 export function hasNoContext(collection: string): boolean {
-  return /(follow|block)$/i.test(collection.split('.').pop() ?? '');
+  return /(follow|block|like|repost)$/i.test(collection.split('.').pop() ?? '');
 }
 
 const profiles = new Map<string, LinkerProfile | null>();
@@ -178,21 +202,33 @@ async function loadPostContexts(uris: string[]) {
 async function loadRecordContexts(records: { uri: string; collection: string }[]) {
   if (!records.length) return;
   const fetched = await getRecordsByUris(records.map((r) => r.uri));
-  // A list item names an account and a list; the list's name is the context.
+  // A list item names an account and a list; the list's name is the context,
+  // and the account is kept beside it for a row seen from the list itself.
   const listUris = new Map<string, string>();
+  const members = new Map<string, { did: string; list: string }>();
   for (const r of records) {
     const value = fetched.get(r.uri)?.value;
     if (!value) continue;
-    if (r.collection === LIST_ITEM && typeof value.list === 'string') listUris.set(r.uri, value.list);
-    else contexts.set(r.uri, describeLinkingRecord(r.collection, value));
+    if (r.collection === LIST_ITEM && typeof value.list === 'string') {
+      listUris.set(r.uri, value.list);
+      const member = listItemMember(value);
+      if (member) members.set(r.uri, member);
+    } else contexts.set(r.uri, describeLinkingRecord(r.collection, value));
   }
   if (listUris.size) {
-    const lists = await getRecordsByUris([...listUris.values()]);
+    const lists = await getRecordsByUris([...new Set(listUris.values())]);
     for (const [uri, listUri] of listUris) {
       const list = lists.get(listUri)?.value;
       const name = typeof list?.name === 'string' ? list.name.trim() : '';
-      contexts.set(uri, name ? { kind: listKind(list?.purpose), text: clean(name) } : null);
+      const member = members.get(uri);
+      contexts.set(
+        uri,
+        name
+          ? { kind: listKind(list?.purpose), text: clean(name), ...(member ? { member } : {}) }
+          : null,
+      );
     }
+    void loadProfiles([...members.values()].map((m) => m.did));
   }
   // Records Slingshot could not find stay without context rather than retried.
   for (const r of records) if (!contexts.has(r.uri)) contexts.set(r.uri, null);

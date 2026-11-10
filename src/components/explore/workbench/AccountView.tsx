@@ -12,6 +12,7 @@ import RepoSpacesSection from '../space/RepoSpacesSection';
 import AuditTab from '../tabs/AuditTab';
 import BacklinksTab from '../tabs/BacklinksTab';
 import IdentityTab from '../tabs/IdentityTab';
+import { HostedBacklinks, type BacklinksHost } from './LinksView';
 
 /** The account-level views, named as the repo page's `?tab=` names them. */
 export const ACCOUNT_TABS = ['overview', 'identity', 'audit', 'backlinks'] as const;
@@ -36,9 +37,15 @@ export const ACCOUNT_TAB_LABELS: Record<AccountTab, string> = {
 export default function AccountView({
   identity,
   tab,
+  backlinks,
 }: {
   identity: IdentityBundle;
   tab: AccountTab;
+  /**
+   * How the shell hosts the Backlinks view: the open relationship in the
+   * address, and a linking record opened beside the list (LinksView.tsx).
+   */
+  backlinks?: BacklinksHost;
 }) {
   const { prefs, loading } = usePreferences();
   const sections = loading ? DEFAULT_REPO_SECTIONS : prefs.repoSections;
@@ -84,7 +91,12 @@ export default function AccountView({
               <div className="fx-tabpanel">
                 {tab === 'identity' && <IdentityTab identity={identity} />}
                 {tab === 'audit' && <AuditTab identity={identity} />}
-                {tab === 'backlinks' && <BacklinksTab target={identity.did} />}
+                {tab === 'backlinks' &&
+                  (backlinks ? (
+                    <HostedBacklinks target={identity.did} host={backlinks} />
+                  ) : (
+                    <BacklinksTab target={identity.did} />
+                  ))}
               </div>
             </section>
           </AppearIn>

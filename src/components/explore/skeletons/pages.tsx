@@ -457,44 +457,22 @@ export function AuditTabSkeleton() {
 }
 
 /**
- * The backlinks section on a record page: its per-source rows, each the
- * linking collection over its path with the counts stacked at the right, on
- * the loaded rows' own padding and hairlines (`.fx-backlink-source`).
+ * The backlinks section on a record page, under its count: a line per
+ * relationship (its glyph, its name, its count), on the loaded rows' own
+ * track (`.fx-bl-nav-row`).
  */
 export function BacklinksTabSkeleton() {
-  const widths = [
-    ['10rem', '7rem'],
-    ['11rem', '9rem'],
-    ['9.5rem', '8rem'],
-    ['10.5rem', '9.5rem'],
-  ];
   return (
-    <ul aria-hidden style={{ listStyle: 'none', margin: 0, padding: 0 }}>
-      {widths.map(([collection, path], i) => (
-        <li key={i} className="fx-backlink-source">
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: '1ch minmax(0, 1fr) auto',
-              gap: '0.5rem',
-              alignItems: 'start',
-              padding: '0.625rem 1rem',
-              fontFamily: 'var(--font-mono)',
-              fontSize: '0.85rem',
-            }}
-          >
-            <span />
-            <span style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem', minWidth: 0 }}>
-              <SkeletonLine width={collection} />
-              <SkeletonLine width={path} />
+    <ul className="fx-bl-nav" aria-hidden>
+      {['4rem', '5.5rem', '4.5rem'].map((width, i) => (
+        <li key={i}>
+          <span className="fx-bl-nav-row">
+            <SkeletonBar width="15px" height="15px" shape="control" style={{ flex: 'none' }} />
+            <span className="fx-bl-nav-label">
+              <SkeletonBar width={width} />
             </span>
-            <span
-              style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.15rem' }}
-            >
-              <SkeletonLine width="6rem" />
-              <SkeletonLine width="5rem" />
-            </span>
-          </div>
+            <SkeletonBar width="1.75rem" height="0.6rem" />
+          </span>
         </li>
       ))}
     </ul>

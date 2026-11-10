@@ -6,8 +6,9 @@
  * Constellation reports links as `collection` + record `path` pairs, and
  * one relationship is usually spread over many of them: @bsky.app is
  * followed through eight follow lexicons and mentioned through four
- * `app.bsky.feed.post` paths alone. The rules below are written for DID
- * targets. A record target (likes, reposts, replies) needs its own set.
+ * `app.bsky.feed.post` paths alone. There are two sets of rules: one for a
+ * DID target (who follows, mentions or lists an account) and one for a
+ * record target (what likes, answers or quotes a record).
  */
 
 import type { BacklinkSource } from './constellation';
@@ -69,6 +70,95 @@ export function relationOf(collection: string, path: string): BacklinkRelation {
   if (/verif|certif/i.test(collection + path)) return 'verify';
   if (name === 'listitem' || ROSTER_PATH.test(path)) return 'list';
   if (ENDORSE_WORDS.test(collection + path)) return 'endorse';
+  return 'other';
+}
+
+export type RecordBacklinkRelation =
+  | 'reply'
+  | 'thread'
+  | 'quote'
+  | 'repost'
+  | 'like'
+  | 'mention'
+  | 'item'
+  | 'subscribe'
+  | 'via'
+  | 'other';
+
+/**
+ * Display order for a record's relationships. What was written in answer
+ * comes first, since those links have something to read; the tallies follow,
+ * then how the record is filed and found. "other" always comes last.
+ */
+export const RECORD_RELATION_ORDER: readonly RecordBacklinkRelation[] = [
+  'reply',
+  'thread',
+  'quote',
+  'repost',
+  'like',
+  'mention',
+  'item',
+  'subscribe',
+  'via',
+  'other',
+];
+
+/** Any richtext facet: a record names another in its text only to link it. */
+const FACET_PATH = /facets\[/i;
+
+/** Lexicons that are a tally on a subject, by the collection's last segment. */
+const LIKE_NAME = /^(like|favou?rite|star|vote|upvote|reaction|recommend)$/i;
+const REPOST_NAME = /^(repost|reshare|boost)$/i;
+const COMMENT_NAME = /^(comment|reply)$/i;
+
+/** `.via.uri` on a follow, `.joinedViaStarterPack.uri` on a profile. */
+const VIA_PATH = /(^|\.)(via|joinedVia[A-Za-z]*)(\.|$)/;
+
+/**
+ * Fields that file a record under another without being named for its type:
+ * a `site.standard.document` belongs to its publication through `.site`.
+ * Keyed by the target collection's last segment.
+ */
+const OWNER_FIELD_ALIASES: Record<string, readonly string[]> = {
+  publication: ['site'],
+};
+
+/**
+ * A record files itself under another through one top-level field named for
+ * what it belongs to: a list item's `.list`, a document's `.publication`, an
+ * issue's `.repo`. So the field is compared with the target's own type.
+ */
+function isOwnerField(path: string, targetCollection: string | undefined): boolean {
+  const field = /^\.([A-Za-z]+)(\.uri)?$/.exec(path)?.[1].toLowerCase();
+  const type = targetCollection?.split('.').pop()?.toLowerCase();
+  if (!field || !type) return false;
+  return field === type || (OWNER_FIELD_ALIASES[type] ?? []).includes(field);
+}
+
+/**
+ * The relationship one source expresses towards a record. `targetCollection`
+ * is the record's own collection, which the "item" rule needs. First
+ * matching rule wins, and anything unrecognised is `other`.
+ *
+ * A reply links its parent and the thread's root. On a root post those are
+ * the same record, so the two paths are kept apart rather than merged:
+ * "reply" is what answers the record directly, "thread" everything under it.
+ */
+export function recordRelationOf(
+  collection: string,
+  path: string,
+  targetCollection?: string,
+): RecordBacklinkRelation {
+  const name = collection.split('.').pop() ?? '';
+  if (FACET_PATH.test(path) || MENTION_PATH.test(path)) return 'mention';
+  if (/^\.reply\.root(\.|$)/.test(path)) return 'thread';
+  if (/^\.reply\.parent(\.|$)/.test(path) || COMMENT_NAME.test(name)) return 'reply';
+  if (LIKE_NAME.test(name)) return 'like';
+  if (REPOST_NAME.test(name)) return 'repost';
+  if (/^\.embed\./.test(path)) return 'quote';
+  if (VIA_PATH.test(path)) return 'via';
+  if (/subscri/i.test(name)) return 'subscribe';
+  if (name === 'listitem' || isOwnerField(path, targetCollection)) return 'item';
   return 'other';
 }
 
@@ -147,8 +237,8 @@ export function backlinkPathLabels(paths: readonly string[]): Map<string, string
 
 export type RelationApp = { app: BacklinkApp; count: number };
 
-export type RelationBucket = {
-  relation: BacklinkRelation;
+export type RelationBucket<R extends string = BacklinkRelation> = {
+  relation: R;
   /** Links across every source in the bucket. */
   count: number;
   /**
@@ -164,14 +254,18 @@ export type RelationBucket = {
 };
 
 /**
- * Group sources by relationship, in {@link RELATION_ORDER}, dropping empty
- * buckets. Sources keep their relative order.
+ * Group sources by the relationship `classify` gives each, in `order`,
+ * dropping empty buckets. Sources keep their relative order.
  */
-export function bucketSources(sources: readonly BacklinkSource[]): RelationBucket[] {
-  const buckets = new Map<BacklinkRelation, RelationBucket>();
-  const apps = new Map<BacklinkRelation, Map<string, RelationApp>>();
+function bucketBy<R extends string>(
+  sources: readonly BacklinkSource[],
+  classify: (source: BacklinkSource) => R,
+  order: readonly R[],
+): RelationBucket<R>[] {
+  const buckets = new Map<R, RelationBucket<R>>();
+  const apps = new Map<R, Map<string, RelationApp>>();
   for (const s of sources) {
-    const relation = relationOf(s.collection, s.path);
+    const relation = classify(s);
     let b = buckets.get(relation);
     if (!b) {
       b = { relation, count: 0, accounts: 0, sources: [], apps: [] };
@@ -187,10 +281,30 @@ export function bucketSources(sources: readonly BacklinkSource[]): RelationBucke
     entry.count += s.count;
     byApp.set(app.key, entry);
   }
-  return RELATION_ORDER.flatMap((r) => {
+  return order.flatMap((r) => {
     const b = buckets.get(r);
     if (!b) return [];
     b.apps = [...apps.get(r)!.values()].sort((x, y) => y.count - x.count);
     return [b];
   });
+}
+
+/** An account's sources by relationship, in {@link RELATION_ORDER}. */
+export function bucketSources(sources: readonly BacklinkSource[]): RelationBucket[] {
+  return bucketBy(sources, (s) => relationOf(s.collection, s.path), RELATION_ORDER);
+}
+
+/**
+ * A record's sources by relationship, in {@link RECORD_RELATION_ORDER}.
+ * `targetCollection` is the collection of the record they point at.
+ */
+export function bucketRecordSources(
+  sources: readonly BacklinkSource[],
+  targetCollection: string,
+): RelationBucket<RecordBacklinkRelation>[] {
+  return bucketBy(
+    sources,
+    (s) => recordRelationOf(s.collection, s.path, targetCollection),
+    RECORD_RELATION_ORDER,
+  );
 }
