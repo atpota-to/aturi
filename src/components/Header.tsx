@@ -66,8 +66,9 @@ type NavGroup = { id: string; label: string; items: NavLeaf[] };
 /**
  * The bar's items on wide screens, in order. A plain entry is a link. One
  * with `items` is a group, a button that opens a flyout of its destinations:
- * nine destinations as five items, which is what leaves the bar room for the
- * go-to field and the tagline, and lets it stay a bar on a narrower window.
+ * eight destinations as four items, which is what leaves the bar room for
+ * the go-to field and the tagline, and lets it stay a bar on a narrower
+ * window.
  *
  * Explore gathers what you browse on the site; Products, what you take away
  * from it. A group's first item is the one its name promises, so it is the
@@ -80,8 +81,7 @@ const NAV: Array<NavLeaf | NavGroup> = [
     items: [
       {
         href: '/explore',
-        label: 'Explore',
-        title: 'Explorer',
+        label: 'Explorer',
         desc: 'Browse any account’s records',
         icon: Telescope,
       },
@@ -123,15 +123,36 @@ const NAV: Array<NavLeaf | NavGroup> = [
     ],
   },
   { href: '/docs', label: 'Docs', icon: BookOpen },
-  { href: '/feedback', label: 'Feedback', icon: MessageSquareHeart },
 ];
 
 /**
- * Every destination, flat: the menu panel's tiles, where there is room for
- * all of them at once. Lexicons and Spaces live under /explore, so they are
- * listed before Explore in ACTIVE_ORDER below to claim their own paths first.
+ * Not a section of the site so much as a way to reach the people behind it,
+ * so on wide screens it is an icon beside the bell: what you send, next to
+ * what you're sent. In the menu, where every destination has a label, it is
+ * a tile like the rest.
  */
-const NAV_ITEMS: NavLeaf[] = NAV.flatMap((entry) => ('items' in entry ? entry.items : [entry]));
+const FEEDBACK: NavLeaf = { href: '/feedback', label: 'Feedback', icon: MessageSquareHeart };
+
+/**
+ * The menu panel's sections, on screens too narrow for the bar: the bar's
+ * two groups under their own names, then what stands alone in it. Three
+ * destinations each, which is what lets the menu set them three across.
+ */
+const MENU_SECTIONS: NavGroup[] = [
+  ...NAV.filter((entry): entry is NavGroup => 'items' in entry),
+  {
+    id: 'more',
+    label: 'More',
+    items: [...NAV.filter((entry): entry is NavLeaf => !('items' in entry)), FEEDBACK],
+  },
+];
+
+/**
+ * Every destination, flat. Lexicons and Spaces live under /explore, so they
+ * are listed before Explore in ACTIVE_ORDER below to claim their own paths
+ * first.
+ */
+const NAV_ITEMS: NavLeaf[] = MENU_SECTIONS.flatMap((section) => section.items);
 
 /**
  * A group opens under a pointer that rests on its button, not one passing
@@ -655,6 +676,20 @@ export default function Header(_props: HeaderProps) {
               <Search size={18} />
             </button>
 
+            {/* Feedback, as an icon beside the bell (FEEDBACK above). Shown
+                only while the nav is inline (CSS): once it folds, the menu's
+                Feedback tile is the way there. */}
+            <Link
+              href={FEEDBACK.href}
+              prefetch={false}
+              className="fn-icon-btn fn-feedback-link"
+              aria-label={FEEDBACK.label}
+              title={FEEDBACK.label}
+              aria-current={activeHref === FEEDBACK.href ? 'page' : undefined}
+            >
+              <MessageSquareHeart size={18} aria-hidden />
+            </Link>
+
             {/* Only renders when there are release notes to show. On a phone
                 its button hides with the rest of the bar but it stays mounted:
                 the menu's "What's new" row opens its notes. */}
@@ -768,19 +803,35 @@ export default function Header(_props: HeaderProps) {
                     <span className="compact-nav-tag">Home</span>
                   </Link>
                 </div>
-                <div className="compact-nav-grid">
-                  {NAV_ITEMS.map(({ href, label, icon: Icon }) => (
-                    <Link
-                      key={href}
-                      href={href}
-                      className="compact-nav-link"
-                      prefetch={false}
-                      aria-current={activeHref === href ? 'page' : undefined}
-                    >
-                      <Icon size={16} />
-                      <span>{label}</span>
-                    </Link>
-                  ))}
+                {/* The destinations, in the bar's groups: a label, then its
+                    three as tiles across (chrome.css, "Menu sections"). */}
+                {MENU_SECTIONS.map((section) => (
+                  <div
+                    key={section.id}
+                    className="fn-menu-section"
+                    role="group"
+                    aria-labelledby={`fn-menu-${section.id}`}
+                  >
+                    <span id={`fn-menu-${section.id}`} className="fn-menu-kicker">
+                      {section.label}
+                    </span>
+                    <div className="fn-menu-tiles">
+                      {section.items.map(({ href, label, icon: Icon }) => (
+                        <Link
+                          key={href}
+                          href={href}
+                          className="compact-nav-link fn-menu-tile"
+                          prefetch={false}
+                          aria-current={activeHref === href ? 'page' : undefined}
+                        >
+                          <Icon size={18} />
+                          <span>{label}</span>
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+                <div className="compact-nav-grid fn-menu-utils">
                   {/* Phone only, paired with the theme row: the bell's place
                       once the bar it sits in has stepped aside. */}
                   <button
