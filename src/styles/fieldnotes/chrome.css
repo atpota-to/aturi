@@ -635,6 +635,35 @@
   white-space: nowrap;
 }
 
+/* One grid. Every row of the menu sits on the tiles' three columns, so the
+   gutters run straight from the top of the sheet to the bottom: the Home
+   row is two columns of logo and a third shared by the bell and the theme
+   switch (the phone rules below), and the session's rows (SessionPanel.tsx)
+   are Sign in across two with Settings in the third, or My repo, Settings
+   and Sign out one each. Under 360px three labelled tiles don't fit across,
+   and the session keeps the single column it already had there
+   (globals.css). */
+@media (min-width: 360px) {
+  .fn-menu-session .compact-nav-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .fn-menu-session .fn-menu-span-2 {
+    grid-column: span 2;
+  }
+
+  /* One column holds "Settings" but not the "local" tag after it, which
+     would wrap under and make the row half as tall again. */
+  .fn-menu-session .fn-menu-local {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+}
+
 /* Each destination is its own tile: the page's paper on the white panel,
    with a hairline, so the menu reads as a set of buttons rather than a
    run of loose labels. */
@@ -1422,14 +1451,22 @@ body.has-explore-chrome {
      own controls: the stream monitor's Pause and Stop
      (ExploreChromeBar.tsx). Home is already here, so only Back moves. */
   .fn-menu-top {
-    display: flex;
+    display: grid;
+    /* Six half-columns: with the same 6px gap, two of them are exactly one
+       of the tiles' three columns. */
+    grid-template-columns: repeat(6, minmax(0, 1fr));
     gap: 6px;
   }
 
   .fn-menu-top > .fn-menu-home {
-    flex: 1;
+    grid-column: span 4;
     min-width: 0;
     container-type: inline-size;
+  }
+
+  /* With Back in the row, Back and the logo take a column each. */
+  body:has(.explore-chrome-transport) .fn-menu-top > .fn-menu-home {
+    grid-column: span 2;
   }
 
   /* The tile's "Home" tag goes when the tile is too narrow to hold it (the
@@ -1443,6 +1480,7 @@ body.has-explore-chrome {
 
   body:has(.explore-chrome-transport) .fn-header .compact-nav-link.fn-menu-back {
     display: flex;
+    grid-column: span 2;
     flex: none;
     color: var(--text-primary);
   }
@@ -1452,15 +1490,32 @@ body.has-explore-chrome {
     cursor: default;
   }
 
-  /* What's new and the theme switch (Header.tsx, ThemeToggle.tsx): square
-     tiles the height of the row, an icon each, as wide as the toolbar's
-     chips below. A row of their own was two labels for two things the bar
-     has always shown as icons. */
+  /* What's new and the theme switch (Header.tsx, ThemeToggle.tsx): an icon
+     each, half a column wide, so the pair is the third column. A row of
+     their own was two labels for two things the bar has always shown as
+     icons. */
   .fn-header .compact-nav-link.fn-menu-chip {
-    flex: none;
     justify-content: center;
-    width: 44px;
+    min-width: 0;
     padding: 0;
+  }
+
+  /* Under 360px a column is too narrow for the logo once Back has taken
+     one, so on that page the row gives up the grid: Back and the icons take
+     what they need and the logo has the rest. */
+  @media (max-width: 359px) {
+    body:has(.explore-chrome-transport) .fn-menu-top {
+      display: flex;
+    }
+
+    body:has(.explore-chrome-transport) .fn-menu-top > .fn-menu-home {
+      flex: 1;
+    }
+
+    body:has(.explore-chrome-transport) .fn-header .compact-nav-link.fn-menu-chip {
+      flex: none;
+      width: 44px;
+    }
   }
 
   .fn-header .compact-nav-link.fn-menu-chip svg {

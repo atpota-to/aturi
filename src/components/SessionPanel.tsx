@@ -143,7 +143,8 @@ export default function SessionPanel({ onNavigate, onSignInActiveChange }: Props
             setError(null);
             setSignInStep('handle');
           }}
-          className="compact-nav-link compact-nav-link-accent"
+          // Two of the menu's three columns (chrome.css, "One grid").
+          className="compact-nav-link compact-nav-link-accent fn-menu-span-2"
           style={{ font: 'inherit', textAlign: 'left', width: '100%' }}
         >
           <LogIn size={16} />
@@ -169,7 +170,11 @@ export default function SessionPanel({ onNavigate, onSignInActiveChange }: Props
             }}
           >
             Settings
+            {/* Says the settings are this browser's until you sign in. Kept
+                for screen readers but not drawn where the tile is a single
+                column, which has no room for it (chrome.css, "One grid"). */}
             <span
+              className="fn-menu-local"
               style={{
                 fontSize: '0.6875rem',
                 letterSpacing: '0.08em',
@@ -296,26 +301,28 @@ export default function SessionPanel({ onNavigate, onSignInActiveChange }: Props
           <Settings size={16} />
           <span>Settings</span>
         </Link>
+        {/* Third across, on the menu's three columns, rather than a row of
+            its own under the other two. */}
+        <button
+          type="button"
+          onClick={async () => {
+            onNavigate?.();
+            await signOut();
+          }}
+          className="compact-nav-link"
+          style={{
+            // The class styles a hover-translate which conflicts a bit with
+            // a button; override font defaults so it matches the link rows.
+            font: 'inherit',
+            textAlign: 'left',
+            color: 'var(--danger)',
+            width: '100%',
+          }}
+        >
+          <LogOut size={16} />
+          <span>Sign out</span>
+        </button>
       </div>
-      <button
-        type="button"
-        onClick={async () => {
-          onNavigate?.();
-          await signOut();
-        }}
-        className="compact-nav-link"
-        style={{
-          // The class styles a hover-translate which conflicts a bit with
-          // a button; override font defaults so it matches the link rows.
-          font: 'inherit',
-          textAlign: 'left',
-          color: 'var(--danger)',
-          width: '100%',
-        }}
-      >
-        <LogOut size={16} />
-        <span>Sign out</span>
-      </button>
     </>
   );
 }
