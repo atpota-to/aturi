@@ -9,9 +9,10 @@
    under .fn-header so other users of those classes are left alone.
 
    Breakpoints:
-     ≥1440px  the tagline shows beside the wordmark
-     ≤1180px  inline nav folds into the menu button; the tagline shows
-              again in the room that leaves
+     ≥1200px  the tagline shows beside the wordmark
+     ≤1040px  the go-to field's shortcut chip hides
+     ≤1023px  inline nav and the Feedback icon fold into the menu button;
+              the tagline shows again in the room that leaves
      ≤767px   the explorer "go to" field becomes a search button
      ≤639px   phone: the bar gives way to a toolbar pinned to the bottom of
               the screen (Phone toolbar, at the end of this file), the
@@ -156,8 +157,12 @@
   color: var(--text-primary);
 }
 
+/* `data-current` is a group's button on one of the group's pages
+   (PrimaryNav in Header.tsx): a button has no `aria-current` to wear. */
 .fn-nav-link[aria-current='page'],
-.fn-nav-link[aria-current='page']:hover {
+.fn-nav-link[aria-current='page']:hover,
+.fn-nav-link[data-current],
+.fn-nav-link[data-current]:hover {
   background: var(--accent-soft);
   color: var(--accent-soft-fg);
   font-weight: 600;
@@ -212,8 +217,171 @@
 
 .fn-nav[data-glide] .fn-nav-link:hover,
 .fn-nav[data-glide] .fn-nav-link[aria-current='page'],
-.fn-nav[data-glide] .fn-nav-link[aria-current='page']:hover {
+.fn-nav[data-glide] .fn-nav-link[aria-current='page']:hover,
+.fn-nav[data-glide] .fn-nav-link[data-current],
+.fn-nav[data-glide] .fn-nav-link[data-current]:hover {
   background: transparent;
+}
+
+/* Nav groups (NAV in Header.tsx). Destinations that belong together share
+   one item in the bar: a button with a chevron, and under it a flyout that
+   lists them, each with its icon tile and a line saying what it is. The
+   flyout is one of the header's cards (same paper, hairline, corners and
+   shadow as the menu, search and session panels) and opens level with them,
+   growing from the corner nearest its button and shrinking back there a
+   little faster, as they do. Its rows are the destinations the menu shows
+   as tiles, laid out as a list. */
+.fn-nav-group {
+  position: relative;
+  display: flex;
+}
+
+/* The chevron's side is a little tighter than the label's, so the pair
+   reads as centred in the pill. */
+.fn-nav-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding-right: 9px;
+}
+
+.fn-nav-chevron {
+  flex-shrink: 0;
+  opacity: 0.7;
+  transition: transform var(--motion-quick) var(--ease-soft);
+}
+
+.fn-nav-trigger[aria-expanded='true'] {
+  color: var(--text-primary);
+}
+
+.fn-nav-trigger[aria-expanded='true'] .fn-nav-chevron {
+  transform: rotate(180deg);
+}
+
+/* Open, the button keeps the hover fill after the pointer has moved down
+   into the flyout, as the bar's icon buttons do while their panels are open.
+   On one of its own pages it already sits on the green pill. */
+.fn-nav-trigger[aria-expanded='true']:not([data-current]) {
+  background: var(--bg-tertiary);
+}
+
+.fn-nav-trigger[data-current][aria-expanded='true'] {
+  color: var(--accent-soft-fg);
+}
+
+.fn-nav-flyout {
+  position: absolute;
+  /* Level with the header's other panels. The nav is centred in the 56px
+     bar, so the bar's bottom edge is 28px below the nav's middle, and the
+     panels open 8px under that (--fn-drop-offset). */
+  top: calc(50% + 28px + 8px);
+  left: 0;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: max-content;
+  min-width: 16rem;
+  padding: 4px;
+  box-sizing: border-box;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-overlay);
+  opacity: 0;
+  transform: scale(0.96);
+  transform-origin: top left;
+  pointer-events: none;
+  transition:
+    opacity var(--motion-press) ease-in,
+    transform var(--motion-press) ease-in;
+}
+
+.fn-nav-flyout[data-open] {
+  opacity: 1;
+  transform: none;
+  pointer-events: auto;
+  transition:
+    opacity 160ms ease-out,
+    transform 160ms var(--ease-soft);
+}
+
+/* The strip between the button and the card, which the pointer crosses on
+   its way down. It belongs to the flyout, so crossing it isn't leaving. */
+.fn-nav-flyout::before {
+  content: '';
+  position: absolute;
+  right: 0;
+  bottom: 100%;
+  left: 0;
+  height: 24px;
+}
+
+/* 8px corners: the card's 12px less the 4px around the rows. */
+.fn-nav-flyout-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 14px 8px 8px;
+  border-radius: var(--radius-control);
+  color: var(--text-primary);
+  text-decoration: none;
+  transition: background 0.15s ease;
+}
+
+.fn-nav-flyout-row:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+/* The explorer tiles' icon square (.fn-x-tile-icon), a size down. */
+.fn-nav-flyout-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: calc(var(--radius-control) - 2px);
+  background: var(--accent-soft);
+  color: var(--accent-soft-fg);
+}
+
+.fn-nav-flyout-text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.fn-nav-flyout-title {
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.fn-nav-flyout-desc {
+  color: var(--text-tertiary);
+  font-size: 12.5px;
+  line-height: 1.35;
+  white-space: nowrap;
+}
+
+/* The page you are on: the menu tiles' green, with the icon square letting
+   the row's fill through rather than stacking a second one on it. */
+.fn-nav-flyout-row[aria-current='page'],
+.fn-nav-flyout-row[aria-current='page']:hover {
+  background: var(--accent-soft);
+  color: var(--accent-soft-fg);
+}
+
+.fn-nav-flyout-row[aria-current='page'] .fn-nav-flyout-icon {
+  background: transparent;
+}
+
+.fn-nav-flyout-row[aria-current='page'] .fn-nav-flyout-desc {
+  color: inherit;
 }
 
 .fn-header-actions {
@@ -270,6 +438,22 @@
   color: var(--text-primary);
   border-color: transparent;
   transform: none;
+}
+
+/* Feedback's icon is a link among buttons (Header.tsx). It holds its width:
+   a bare flex item beside the go-to field would otherwise give up room with
+   it when the bar is tight, where the bell and the theme button sit in
+   wrappers that don't. On its own page it wears the nav's green, as the
+   section links do. */
+.fn-feedback-link {
+  flex-shrink: 0;
+  text-decoration: none;
+}
+
+.fn-icon-btn[aria-current='page'],
+.fn-icon-btn[aria-current='page']:hover {
+  background: var(--accent-soft);
+  color: var(--accent-soft-fg);
 }
 
 .fn-header .fn-theme-btn::before {
@@ -406,6 +590,80 @@
   gap: 6px;
 }
 
+/* Menu sections (MENU_SECTIONS in Header.tsx). The bar's groups, kept: a
+   small label, then that group's three destinations across. A tile stands
+   its icon over its name, which is what lets three fit across a phone with
+   room for "Extension". The label is set like the tag that ends the Home
+   row. */
+.fn-menu-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-top: 6px;
+}
+
+.fn-menu-kicker {
+  padding: 0 2px;
+  color: var(--text-tertiary);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  line-height: 1.4;
+  text-transform: uppercase;
+}
+
+.fn-menu-tiles {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.fn-header .compact-nav-link.fn-menu-tile {
+  flex-direction: column;
+  justify-content: center;
+  gap: 6px;
+  min-width: 0;
+  padding: 12px 6px 10px;
+  font-size: 13px;
+  text-align: center;
+}
+
+.fn-menu-tile > span {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* One grid. Every row of the menu sits on the tiles' three columns, so the
+   gutters run straight from the top of the sheet to the bottom: the Home
+   row is two columns of logo and a third shared by the bell and the theme
+   switch (the phone rules below), and the session's rows (SessionPanel.tsx)
+   are Sign in across two with Settings in the third, or My repo, Settings
+   and Sign out one each. Under 360px three labelled tiles don't fit across,
+   and the session keeps the single column it already had there
+   (globals.css). */
+@media (min-width: 360px) {
+  .fn-menu-session .compact-nav-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .fn-menu-session .fn-menu-span-2 {
+    grid-column: span 2;
+  }
+
+  /* One column holds "Settings" but not the "local" tag after it, which
+     would wrap under and make the row half as tall again. */
+  .fn-menu-session .fn-menu-local {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+}
+
 /* Each destination is its own tile: the page's paper on the white panel,
    with a hairline, so the menu reads as a set of buttons rather than a
    run of loose labels. */
@@ -450,13 +708,6 @@
 
 .fn-header .compact-nav-link[aria-current='page'] svg {
   color: var(--accent-soft-fg);
-}
-
-/* The Theme row: a status row rather than another destination. Full width
-   under the grid, with the current theme named at its end in the same tag
-   the Settings row wears ("LOCAL"). */
-.fn-header .compact-nav-link-wide {
-  grid-column: 1 / -1;
 }
 
 .fn-header .compact-nav-tag {
@@ -715,30 +966,43 @@
 
 /* ─── Responsive ─────────────────────────────────────────────────────── */
 
+/* These three widths are sized to the bar at its fullest: an explorer page,
+   which carries the go-to field, with a signed-in account chip at its widest
+   (a display name that reaches its 6rem cap), about 93px more than the
+   Sign in button. There, everything in the bar but the field comes to about
+   790px, and 940px with the tagline; the field gets what is left of the
+   window's width. Regrouping the nav (NAV in Header.tsx) or adding a control
+   to the bar moves those two numbers, and these widths with them. */
+
 /* The tagline costs the bar about 150px. With the nav inline, on explorer
-   pages that comes out of the go-to field, and below 1440px it would push the
+   pages that comes out of the go-to field, and below 1200px it would push the
    field under the width at which its shortcut chip already has to hide (see
    the next query). Once the nav folds into the menu there is room again, down
    to the phone bar, where the 44px buttons need it. Written as where it shows
    rather than where it hides, so a fractional width between two queries
    leaves it hidden instead of crowding the bar. */
-@media (min-width: 1440px), (min-width: 640px) and (max-width: 1180px) {
+@media (min-width: 1200px), (min-width: 640px) and (max-width: 1023px) {
   .fn-tagline {
     display: inline;
   }
 }
 
 /* Just above the nav fold the go-to field is at its narrowest and the
-   shortcut chip was clipping the placeholder; the shortcut is still named
-   in the palette's footer and the shortcuts sheet. */
-@media (max-width: 1240px) {
+   shortcut chip was clipping the placeholder, which it does under about
+   250px; the shortcut is still named in the palette's footer and the
+   shortcuts sheet. */
+@media (max-width: 1040px) {
   .fn-header-search .fn-kbd {
     display: none;
   }
 }
 
-@media (max-width: 1180px) {
-  .fn-nav {
+/* A tablet on its side still gets the bar. Much under that the go-to field
+   is on its way down to its 180px minimum, which it reaches near 970px, and
+   past it the field would push into the nav. */
+@media (max-width: 1023px) {
+  .fn-nav,
+  .fn-feedback-link {
     display: none;
   }
 
@@ -863,7 +1127,6 @@ body.has-explore-chrome {
 .fn-menu-top,
 .fn-menu-home,
 .fn-menu-back,
-.fn-menu-whatsnew,
 .fn-menu-scrim {
   display: none;
 }
@@ -1119,10 +1382,11 @@ body.has-explore-chrome {
       opacity 180ms ease-out;
   }
 
-  /* Its rows follow the sheet up a beat behind, a row at a time (the grid
-     is two across), each lifting 6px. Closing, they fade with the sheet
-     and don't wait. --row is the row's place from the top. */
-  .fn-header-menu-panel :is(.fn-menu-home, .fn-menu-back, .compact-nav-grid > *, .fn-menu-session) {
+  /* Its rows follow the sheet up a beat behind, a row at a time (Home's
+     row, the three sections, the session), each lifting 6px. Closing, they
+     fade with the sheet and don't wait. --row is the row's place from the
+     top. */
+  .fn-header-menu-panel :is(.fn-menu-top > *, .fn-menu-section, .compact-nav-grid > *, .fn-menu-session) {
     opacity: 0;
     transform: translateY(6px);
     transition:
@@ -1130,7 +1394,7 @@ body.has-explore-chrome {
       transform 120ms ease-in;
   }
 
-  .fn-header-menu-panel[data-open] :is(.fn-menu-home, .fn-menu-back, .compact-nav-grid > *, .fn-menu-session) {
+  .fn-header-menu-panel[data-open] :is(.fn-menu-top > *, .fn-menu-section, .compact-nav-grid > *, .fn-menu-session) {
     opacity: 1;
     transform: none;
     transition:
@@ -1139,23 +1403,18 @@ body.has-explore-chrome {
     transition-delay: calc(60ms + var(--row, 0) * 20ms);
   }
 
-  .fn-header-menu-panel .compact-nav-grid > * {
+  .fn-header-menu-panel .compact-nav-grid > *,
+  .fn-header-menu-panel .fn-menu-section {
     --row: 1;
   }
-  .fn-header-menu-panel .compact-nav-grid > :nth-child(n + 3) {
+  .fn-header-menu-panel .fn-menu-section ~ .fn-menu-section {
     --row: 2;
   }
-  .fn-header-menu-panel .compact-nav-grid > :nth-child(n + 5) {
+  .fn-header-menu-panel .fn-menu-section ~ .fn-menu-section ~ .fn-menu-section {
     --row: 3;
   }
-  .fn-header-menu-panel .compact-nav-grid > :nth-child(n + 7) {
-    --row: 4;
-  }
-  .fn-header-menu-panel .compact-nav-grid > :nth-child(n + 9) {
-    --row: 5;
-  }
   .fn-header-menu-panel .fn-menu-session {
-    --row: 6;
+    --row: 4;
   }
 
   .fn-menu {
@@ -1186,22 +1445,42 @@ body.has-explore-chrome {
     font-size: 16px;
   }
 
-  /* Home's row. Back joins it, on its left, on a page whose toolbar gave
-     Back and Home's place to its own controls: the stream monitor's Pause
-     and Stop (ExploreChromeBar.tsx). Home is already here, so only Back
-     moves. */
+  /* Home's row, which is the header bar's stand-in on a phone: the logo,
+     then the bell and the theme switch as icons at its end. Back joins it,
+     on its left, on a page whose toolbar gave Back and Home's place to its
+     own controls: the stream monitor's Pause and Stop
+     (ExploreChromeBar.tsx). Home is already here, so only Back moves. */
   .fn-menu-top {
-    display: flex;
+    display: grid;
+    /* Six half-columns: with the same 6px gap, two of them are exactly one
+       of the tiles' three columns. */
+    grid-template-columns: repeat(6, minmax(0, 1fr));
     gap: 6px;
   }
 
   .fn-menu-top > .fn-menu-home {
-    flex: 1;
+    grid-column: span 4;
     min-width: 0;
+    container-type: inline-size;
+  }
+
+  /* With Back in the row, Back and the logo take a column each. */
+  body:has(.explore-chrome-transport) .fn-menu-top > .fn-menu-home {
+    grid-column: span 2;
+  }
+
+  /* The tile's "Home" tag goes when the tile is too narrow to hold it (the
+     logo, the tag and their gap want 125px inside): a small phone on a page
+     where Back has joined the row. The logo already says where it leads. */
+  @container (max-width: 126px) {
+    .fn-menu-home .compact-nav-tag {
+      display: none;
+    }
   }
 
   body:has(.explore-chrome-transport) .fn-header .compact-nav-link.fn-menu-back {
     display: flex;
+    grid-column: span 2;
     flex: none;
     color: var(--text-primary);
   }
@@ -1211,23 +1490,46 @@ body.has-explore-chrome {
     cursor: default;
   }
 
-  /* What's new beside Theme, so the grid's last row is a pair like every
-     other row rather than one full-width row under another. */
-  .fn-header .compact-nav-link.fn-menu-whatsnew {
-    display: flex;
-    width: 100%;
-    text-align: left;
+  /* What's new and the theme switch (Header.tsx, ThemeToggle.tsx): an icon
+     each, half a column wide, so the pair is the third column. A row of
+     their own was two labels for two things the bar has always shown as
+     icons. */
+  .fn-header .compact-nav-link.fn-menu-chip {
+    justify-content: center;
+    min-width: 0;
+    padding: 0;
   }
 
-  .fn-header .compact-nav-link-wide {
-    grid-column: auto;
+  /* Under 360px a column is too narrow for the logo once Back has taken
+     one, so on that page the row gives up the grid: Back and the icons take
+     what they need and the logo has the rest. */
+  @media (max-width: 359px) {
+    body:has(.explore-chrome-transport) .fn-menu-top {
+      display: flex;
+    }
+
+    body:has(.explore-chrome-transport) .fn-menu-top > .fn-menu-home {
+      flex: 1;
+    }
+
+    body:has(.explore-chrome-transport) .fn-header .compact-nav-link.fn-menu-chip {
+      flex: none;
+      width: 44px;
+    }
   }
 
+  .fn-header .compact-nav-link.fn-menu-chip svg {
+    color: var(--text-secondary);
+  }
+
+  /* Unread notes: the bell's dot, in its corner as on the wider bar. */
   .fn-menu-dot {
-    flex-shrink: 0;
+    position: absolute;
+    top: 8px;
+    right: 8px;
     width: 8px;
     height: 8px;
-    margin-left: auto;
+    border: 2px solid var(--bg-primary);
     border-radius: 50%;
     background: var(--text-accent);
   }

@@ -6,6 +6,7 @@ import {
   useEffect,
   useLayoutEffect,
   useRef,
+  type FocusEvent as ReactFocusEvent,
   type PointerEvent as ReactPointerEvent,
 } from 'react';
 import Link from 'next/link';
@@ -14,6 +15,7 @@ import {
   Bell,
   BookOpen,
   Braces,
+  ChevronDown,
   Download,
   Leaf,
   Link2,
@@ -25,6 +27,7 @@ import {
   Telescope,
   Wrench,
   X,
+  type LucideIcon,
 } from 'lucide-react';
 import ThemeToggle from './ThemeToggle';
 import SessionMenu from './SessionMenu';
@@ -46,22 +49,123 @@ import WhatsNewBadge, {
 } from './whatsnew/WhatsNewBadge';
 
 /**
- * Every destination the header links to. `inline` ones sit in the bar on wide
- * screens; all of them are in the menu panel. Lexicons and Spaces live under
- * /explore, so they are listed before Explore in ACTIVE_ORDER below to claim
- * their own paths first.
+ * One destination. `label` is its short name, on a bar link or a menu tile;
+ * a group's flyout has room for the fuller `title` and a line of `desc`.
  */
-const NAV_ITEMS = [
-  { href: '/explore', label: 'Explore', icon: Telescope, inline: true },
-  { href: '/explore/lexicons', label: 'Lexicons', icon: Braces, inline: true },
-  { href: '/explore/spaces', label: 'Spaces', icon: Orbit, inline: true },
-  { href: '/tools', label: 'Tools', icon: Wrench, inline: true },
-  { href: '/links', label: 'Links', icon: Link2, inline: true },
-  { href: '/extension', label: 'Extension', icon: Download, inline: true },
-  { href: '/mcp', label: 'MCP', icon: Plug, inline: true },
-  { href: '/docs', label: 'Docs', icon: BookOpen, inline: true },
-  { href: '/feedback', label: 'Feedback', icon: MessageSquareHeart, inline: true },
+type NavLeaf = {
+  href: string;
+  label: string;
+  icon: LucideIcon;
+  title?: string;
+  desc?: string;
+};
+
+/** Destinations that share one item in the bar: a button that opens a flyout. */
+type NavGroup = { id: string; label: string; items: NavLeaf[] };
+
+/**
+ * The bar's items on wide screens, in order. A plain entry is a link. One
+ * with `items` is a group, a button that opens a flyout of its destinations:
+ * eight destinations as four items, which is what leaves the bar room for
+ * the go-to field and the tagline, and lets it stay a bar on a narrower
+ * window.
+ *
+ * Explore gathers what you browse on the site; Products, what you take away
+ * from it. A group's first item is the one its name promises, so it is the
+ * row under the pointer when the flyout opens.
+ */
+const NAV: Array<NavLeaf | NavGroup> = [
+  {
+    id: 'explore',
+    label: 'Explore',
+    items: [
+      {
+        href: '/explore',
+        label: 'Explorer',
+        desc: 'Browse any account’s records',
+        icon: Telescope,
+      },
+      {
+        href: '/explore/lexicons',
+        label: 'Lexicons',
+        desc: 'Search every record type',
+        icon: Braces,
+      },
+      { href: '/explore/spaces', label: 'Spaces', desc: 'Browse shared spaces', icon: Orbit },
+    ],
+  },
+  { href: '/tools', label: 'Tools', icon: Wrench },
+  {
+    id: 'products',
+    label: 'Products',
+    items: [
+      {
+        href: '/links',
+        label: 'Links',
+        title: 'Universal links',
+        desc: 'One link, every client',
+        icon: Link2,
+      },
+      {
+        href: '/extension',
+        label: 'Extension',
+        title: 'Browser extension',
+        desc: 'Jump between clients in a click',
+        icon: Download,
+      },
+      {
+        href: '/mcp',
+        label: 'MCP',
+        title: 'MCP server',
+        desc: 'Read-only tools for your AI',
+        icon: Plug,
+      },
+    ],
+  },
+  { href: '/docs', label: 'Docs', icon: BookOpen },
 ];
+
+/**
+ * Not a section of the site so much as a way to reach the people behind it,
+ * so on wide screens it is an icon beside the bell: what you send, next to
+ * what you're sent. In the menu, where every destination has a label, it is
+ * a tile like the rest.
+ */
+const FEEDBACK: NavLeaf = { href: '/feedback', label: 'Feedback', icon: MessageSquareHeart };
+
+/**
+ * The menu panel's sections, on screens too narrow for the bar: the bar's
+ * two groups under their own names, then what stands alone in it. Three
+ * destinations each, which is what lets the menu set them three across.
+ */
+const MENU_SECTIONS: NavGroup[] = [
+  ...NAV.filter((entry): entry is NavGroup => 'items' in entry),
+  {
+    id: 'more',
+    label: 'More',
+    items: [...NAV.filter((entry): entry is NavLeaf => !('items' in entry)), FEEDBACK],
+  },
+];
+
+/**
+ * Every destination, flat. Lexicons and Spaces live under /explore, so they
+ * are listed before Explore in ACTIVE_ORDER below to claim their own paths
+ * first.
+ */
+const NAV_ITEMS: NavLeaf[] = MENU_SECTIONS.flatMap((section) => section.items);
+
+/**
+ * A group opens under a pointer that rests on its button, not one passing
+ * over it: this long, so crossing the bar on the way to the go-to field
+ * opens nothing.
+ */
+const FLYOUT_OPEN_MS = 90;
+
+/**
+ * How long the pointer may be off a flyout that hovering opened before it
+ * closes: enough to cut the corner on the way down to a row.
+ */
+const FLYOUT_CLOSE_MS = 140;
 
 /** Longest prefix first, so /explore/lexicons is Lexicons, not Explore. */
 const ACTIVE_ORDER = [...NAV_ITEMS].sort((a, b) => b.href.length - a.href.length);
@@ -157,28 +261,146 @@ function placePill(pill: HTMLElement, at: { x: number; w: number }, instant: boo
 }
 
 /**
+ * Where a bar item sits in the nav, for a pill to lie under it. A group's
+ * button is inside its own positioned wrapper (the flyout hangs from it), so
+ * its place in the bar is the wrapper's.
+ */
+function pillTarget(item: HTMLElement): { x: number; w: number } {
+  const box = item.closest<HTMLElement>('.fn-nav-group') ?? item;
+  return { x: box.offsetLeft, w: box.offsetWidth };
+}
+
+/**
  * The inline section links, with two shared shapes behind them (chrome.css,
  * "Gliding pills"): a hover pill that follows the pointer from link to link,
  * and the green active pill. Until this has measured the links, each link
  * paints its own fills, so the bar reads the same before hydration.
+ *
+ * A group (NAV) is a button with a flyout of its destinations under it
+ * (chrome.css, "Nav groups"). Resting the pointer on the button opens it and
+ * leaving closes it; a click, a tap or a key press opens it to stay, until
+ * Escape, a press elsewhere, or the focus moving on. Its links follow the
+ * button in the document, so Tab walks into them and out the other side.
  */
-function PrimaryNav({ activeHref }: { activeHref: string | null }) {
+function PrimaryNav({
+  activeHref,
+  pathname,
+  onPin,
+}: {
+  activeHref: string | null;
+  pathname: string | null;
+  /** A flyout was opened to stay: the bar's other panels should make way. */
+  onPin: () => void;
+}) {
   const navRef = useRef<HTMLElement>(null);
   const hoverRef = useRef<HTMLSpanElement>(null);
   const activeRef = useRef<HTMLSpanElement>(null);
+  // The open group, with the path it was opened on. The explorer's layout
+  // keeps one header across its routes, so a flyout would otherwise outlive
+  // the navigation it led to; one opened on another path counts as closed.
+  const [flyout, setFlyout] = useState<{ id: string; path: string | null } | null>(null);
+  const openGroup = flyout && flyout.path === pathname ? flyout.id : null;
+  // Opened by a click rather than by hovering, so leaving doesn't close it.
+  const pinnedRef = useRef(false);
+  const timerRef = useRef<number | undefined>(undefined);
+
+  const cancelTimer = () => window.clearTimeout(timerRef.current);
+  useEffect(() => () => window.clearTimeout(timerRef.current), []);
+
+  const closeFlyout = () => {
+    cancelTimer();
+    setFlyout(null);
+  };
+
+  useEffect(() => {
+    if (!openGroup) return;
+    const handleClickOutside = (event: MouseEvent) => {
+      if (isEventOutside(navRef.current, event)) setFlyout(null);
+    };
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return;
+      // The flyout goes inert as it closes, which would drop a focus that
+      // was inside it: hand it back to the button first.
+      const group = navRef.current?.querySelector<HTMLElement>(`[data-group="${openGroup}"]`);
+      if (group?.contains(document.activeElement)) {
+        group.querySelector<HTMLElement>('.fn-nav-trigger')?.focus();
+      }
+      setFlyout(null);
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [openGroup]);
+
+  const onGroupEnter = (id: string, event: ReactPointerEvent<HTMLElement>) => {
+    if (event.pointerType !== 'mouse') return;
+    cancelTimer();
+    if (openGroup === id) return;
+    // With one flyout open, moving along the bar swaps it for the next at
+    // once, and keeps whether it was opened to stay.
+    if (openGroup) {
+      setFlyout({ id, path: pathname });
+      return;
+    }
+    timerRef.current = window.setTimeout(() => {
+      pinnedRef.current = false;
+      setFlyout({ id, path: pathname });
+    }, FLYOUT_OPEN_MS);
+  };
+
+  const onGroupLeave = (id: string, event: ReactPointerEvent<HTMLElement>) => {
+    if (event.pointerType !== 'mouse') return;
+    cancelTimer();
+    if (pinnedRef.current) return;
+    const panel = event.currentTarget.querySelector('.fn-nav-flyout');
+    timerRef.current = window.setTimeout(() => {
+      // Left open while the keyboard is inside it.
+      if (panel?.contains(document.activeElement)) return;
+      setFlyout((current) => (current?.id === id ? null : current));
+    }, FLYOUT_CLOSE_MS);
+  };
+
+  const onGroupBlur = (id: string, event: ReactFocusEvent<HTMLElement>) => {
+    // Tabbing on past the group closes it. No next target means a press on
+    // something that takes no focus, which the mousedown listener rules on.
+    const next = event.relatedTarget as Node | null;
+    if (next && !event.currentTarget.contains(next)) {
+      setFlyout((current) => (current?.id === id ? null : current));
+    }
+  };
+
+  const onTriggerClick = (id: string) => {
+    cancelTimer();
+    if (openGroup !== id) {
+      pinnedRef.current = true;
+      setFlyout({ id, path: pathname });
+      onPin();
+    } else if (pinnedRef.current) {
+      setFlyout(null);
+    } else {
+      // Hovering had already opened it. Closing it under the click that was
+      // on its way would read as a flicker; the click keeps it open instead.
+      pinnedRef.current = true;
+    }
+  };
 
   useLayoutEffect(() => {
     const nav = navRef.current;
     const pill = activeRef.current;
     if (!nav || !pill) return;
     const place = (from: { x: number; w: number } | null) => {
-      const link = nav.querySelector<HTMLElement>('.fn-nav-link[aria-current="page"]');
+      const link = nav.querySelector<HTMLElement>(
+        '.fn-nav-link[aria-current="page"], .fn-nav-link[data-current]',
+      );
       // Below the nav breakpoint the bar is hidden (width 0): nothing to place.
       if (!link || link.offsetWidth === 0) {
         pill.removeAttribute('data-on');
         return;
       }
-      const to = { x: link.offsetLeft, w: link.offsetWidth };
+      const to = pillTarget(link);
       const slide = !!from && motionAllowed() && (from.x !== to.x || from.w !== to.w);
       placePill(pill, slide && from ? from : to, true);
       pill.setAttribute('data-on', '');
@@ -200,15 +422,14 @@ function PrimaryNav({ activeHref }: { activeHref: string | null }) {
     return () => ro.disconnect();
   }, [activeHref]);
 
-  const onLinkEnter = (event: ReactPointerEvent<HTMLAnchorElement>) => {
+  const onLinkEnter = (event: ReactPointerEvent<HTMLElement>) => {
     const nav = navRef.current;
     const pill = hoverRef.current;
     if (!nav || !pill || event.pointerType !== 'mouse') return;
-    const link = event.currentTarget;
     // Arriving from outside the bar, the pill appears under the link rather
     // than sliding in from wherever it last faded out.
     const arriving = !nav.hasAttribute('data-hovering');
-    placePill(pill, { x: link.offsetLeft, w: link.offsetWidth }, arriving);
+    placePill(pill, pillTarget(event.currentTarget), arriving);
     nav.setAttribute('data-hovering', '');
   };
 
@@ -221,18 +442,73 @@ function PrimaryNav({ activeHref }: { activeHref: string | null }) {
     >
       <span ref={hoverRef} className="fn-nav-pill fn-nav-pill-hover" aria-hidden />
       <span ref={activeRef} className="fn-nav-pill fn-nav-pill-active" aria-hidden />
-      {NAV_ITEMS.filter((item) => item.inline).map((item) => (
-        <Link
-          key={item.href}
-          href={item.href}
-          prefetch={false}
-          className="fn-nav-link"
-          aria-current={activeHref === item.href ? 'page' : undefined}
-          onPointerEnter={onLinkEnter}
-        >
-          {item.label}
-        </Link>
-      ))}
+      {NAV.map((entry) => {
+        if (!('items' in entry)) {
+          return (
+            <Link
+              key={entry.href}
+              href={entry.href}
+              prefetch={false}
+              className="fn-nav-link"
+              aria-current={activeHref === entry.href ? 'page' : undefined}
+              onPointerEnter={onLinkEnter}
+            >
+              {entry.label}
+            </Link>
+          );
+        }
+        const open = openGroup === entry.id;
+        const flyoutId = `fn-nav-flyout-${entry.id}`;
+        return (
+          <span
+            key={entry.id}
+            className="fn-nav-group"
+            data-group={entry.id}
+            onPointerEnter={(event) => onGroupEnter(entry.id, event)}
+            onPointerLeave={(event) => onGroupLeave(entry.id, event)}
+            onBlur={(event) => onGroupBlur(entry.id, event)}
+          >
+            {/* A button, not a link: what it opens is the list of places to
+                go. `data-current` marks the group you are in for the active
+                pill; the link inside carries `aria-current`. */}
+            <button
+              type="button"
+              className="fn-nav-link fn-nav-trigger"
+              aria-expanded={open}
+              aria-controls={flyoutId}
+              data-current={entry.items.some((item) => item.href === activeHref) || undefined}
+              onPointerEnter={onLinkEnter}
+              onClick={() => onTriggerClick(entry.id)}
+            >
+              {entry.label}
+              <ChevronDown size={13} aria-hidden className="fn-nav-chevron" />
+            </button>
+            {/* Stays mounted, as the header's panels do, so it shrinks back
+                as well as growing; `inert` keeps its links out of the tab
+                order and the accessibility tree while it is closed. */}
+            <div id={flyoutId} className="fn-nav-flyout" data-open={open || undefined} inert={!open}>
+              {entry.items.map(({ href, label, title, desc, icon: Icon }) => (
+                <Link
+                  key={href}
+                  href={href}
+                  prefetch={false}
+                  className="fn-nav-flyout-row"
+                  aria-current={activeHref === href ? 'page' : undefined}
+                  onClick={closeFlyout}
+                >
+                  <span className="fn-nav-flyout-icon" aria-hidden>
+                    <Icon size={16} />
+                  </span>
+                  <span className="fn-nav-flyout-text">
+                    <span className="fn-nav-flyout-title">{title ?? label}</span>
+                    {desc && <span className="fn-nav-flyout-desc">{desc}</span>}
+                  </span>
+                </Link>
+              ))}
+            </div>
+          </span>
+        );
+      })}
     </nav>
   );
 }
@@ -305,7 +581,7 @@ export default function Header(_props: HeaderProps) {
     setSiteMenuOpen(false);
   }, [pathname]);
 
-  // On a phone the bell is folded into the menu: its row closes the menu and
+  // On a phone the bell is folded into the menu: its tile closes the menu and
   // asks the bell, still mounted in the hidden bar, to open its notes, which
   // chrome.css lifts into a sheet over the toolbar.
   const openWhatsNew = () => {
@@ -364,7 +640,11 @@ export default function Header(_props: HeaderProps) {
 
           {/* Primary sections inline on wide screens; below the nav
               breakpoint they move into the menu panel (CSS hides this). */}
-          <PrimaryNav activeHref={activeHref} />
+          <PrimaryNav
+            activeHref={activeHref}
+            pathname={pathname}
+            onPin={() => setIsSearchExpanded(false)}
+          />
 
           <div className="fn-header-actions">
             {/* Explorer pages carry the "go to" field in the bar itself, as
@@ -395,6 +675,20 @@ export default function Header(_props: HeaderProps) {
             >
               <Search size={18} />
             </button>
+
+            {/* Feedback, as an icon beside the bell (FEEDBACK above). Shown
+                only while the nav is inline (CSS): once it folds, the menu's
+                Feedback tile is the way there. */}
+            <Link
+              href={FEEDBACK.href}
+              prefetch={false}
+              className="fn-icon-btn fn-feedback-link"
+              aria-label={FEEDBACK.label}
+              title={FEEDBACK.label}
+              aria-current={activeHref === FEEDBACK.href ? 'page' : undefined}
+            >
+              <MessageSquareHeart size={18} aria-hidden />
+            </Link>
 
             {/* Only renders when there are release notes to show. On a phone
                 its button hides with the rest of the bar but it stays mounted:
@@ -490,9 +784,11 @@ export default function Header(_props: HeaderProps) {
                 can claim the panel's vertical space. */}
             {!isSignInActive && (
               <>
-                {/* Phone only: with no header bar on screen, the logo moves
-                    into the menu as the way home. Back joins it on a page
-                    whose toolbar gave Back its place (the stream monitor). */}
+                {/* Phone only: with no header bar on screen, this row is
+                    the bar. The logo is the way home, and the bell and the
+                    theme switch end it as icons, as they end the bar on a
+                    wider screen. Back joins it on a page whose toolbar gave
+                    Back its place (the stream monitor). */}
                 <div className="fn-menu-top">
                   <MenuBackButton onBack={() => setSiteMenuOpen(false)} />
                   <Link
@@ -508,34 +804,48 @@ export default function Header(_props: HeaderProps) {
                     </span>
                     <span className="compact-nav-tag">Home</span>
                   </Link>
-                </div>
-                <div className="compact-nav-grid">
-                  {NAV_ITEMS.map(({ href, label, icon: Icon }) => (
-                    <Link
-                      key={href}
-                      href={href}
-                      className="compact-nav-link"
-                      prefetch={false}
-                      aria-current={activeHref === href ? 'page' : undefined}
-                    >
-                      <Icon size={16} />
-                      <span>{label}</span>
-                    </Link>
-                  ))}
-                  {/* Phone only, paired with the theme row: the bell's place
-                      once the bar it sits in has stepped aside. */}
+                  {/* The bell's place once the bar it sits in has stepped
+                      aside: it closes the menu and opens the notes. */}
                   <button
                     type="button"
-                    className="compact-nav-link fn-menu-whatsnew"
+                    className="compact-nav-link fn-menu-chip"
                     onClick={openWhatsNew}
                     aria-label={unread > 0 ? `What's new, ${unread} unread` : "What's new"}
+                    title="What's new"
                   >
-                    <Bell size={16} aria-hidden />
-                    <span>What&rsquo;s new</span>
+                    <Bell size={18} aria-hidden />
                     {unread > 0 && <span className="fn-menu-dot" aria-hidden />}
                   </button>
-                  <ThemeToggle variant="row" />
+                  <ThemeToggle variant="chip" />
                 </div>
+                {/* The destinations, in the bar's groups: a label, then its
+                    three as tiles across (chrome.css, "Menu sections"). */}
+                {MENU_SECTIONS.map((section) => (
+                  <div
+                    key={section.id}
+                    className="fn-menu-section"
+                    role="group"
+                    aria-labelledby={`fn-menu-${section.id}`}
+                  >
+                    <span id={`fn-menu-${section.id}`} className="fn-menu-kicker">
+                      {section.label}
+                    </span>
+                    <div className="fn-menu-tiles">
+                      {section.items.map(({ href, label, icon: Icon }) => (
+                        <Link
+                          key={href}
+                          href={href}
+                          className="compact-nav-link fn-menu-tile"
+                          prefetch={false}
+                          aria-current={activeHref === href ? 'page' : undefined}
+                        >
+                          <Icon size={18} />
+                          <span>{label}</span>
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                ))}
               </>
             )}
 
