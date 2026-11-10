@@ -581,7 +581,7 @@ export default function Header(_props: HeaderProps) {
     setSiteMenuOpen(false);
   }, [pathname]);
 
-  // On a phone the bell is folded into the menu: its row closes the menu and
+  // On a phone the bell is folded into the menu: its tile closes the menu and
   // asks the bell, still mounted in the hidden bar, to open its notes, which
   // chrome.css lifts into a sheet over the toolbar.
   const openWhatsNew = () => {
@@ -784,9 +784,11 @@ export default function Header(_props: HeaderProps) {
                 can claim the panel's vertical space. */}
             {!isSignInActive && (
               <>
-                {/* Phone only: with no header bar on screen, the logo moves
-                    into the menu as the way home. Back joins it on a page
-                    whose toolbar gave Back its place (the stream monitor). */}
+                {/* Phone only: with no header bar on screen, this row is
+                    the bar. The logo is the way home, and the bell and the
+                    theme switch end it as icons, as they end the bar on a
+                    wider screen. Back joins it on a page whose toolbar gave
+                    Back its place (the stream monitor). */}
                 <div className="fn-menu-top">
                   <MenuBackButton onBack={() => setSiteMenuOpen(false)} />
                   <Link
@@ -802,6 +804,19 @@ export default function Header(_props: HeaderProps) {
                     </span>
                     <span className="compact-nav-tag">Home</span>
                   </Link>
+                  {/* The bell's place once the bar it sits in has stepped
+                      aside: it closes the menu and opens the notes. */}
+                  <button
+                    type="button"
+                    className="compact-nav-link fn-menu-chip"
+                    onClick={openWhatsNew}
+                    aria-label={unread > 0 ? `What's new, ${unread} unread` : "What's new"}
+                    title="What's new"
+                  >
+                    <Bell size={18} aria-hidden />
+                    {unread > 0 && <span className="fn-menu-dot" aria-hidden />}
+                  </button>
+                  <ThemeToggle variant="chip" />
                 </div>
                 {/* The destinations, in the bar's groups: a label, then its
                     three as tiles across (chrome.css, "Menu sections"). */}
@@ -831,21 +846,6 @@ export default function Header(_props: HeaderProps) {
                     </div>
                   </div>
                 ))}
-                <div className="compact-nav-grid fn-menu-utils">
-                  {/* Phone only, paired with the theme row: the bell's place
-                      once the bar it sits in has stepped aside. */}
-                  <button
-                    type="button"
-                    className="compact-nav-link fn-menu-whatsnew"
-                    onClick={openWhatsNew}
-                    aria-label={unread > 0 ? `What's new, ${unread} unread` : "What's new"}
-                  >
-                    <Bell size={16} aria-hidden />
-                    <span>What&rsquo;s new</span>
-                    {unread > 0 && <span className="fn-menu-dot" aria-hidden />}
-                  </button>
-                  <ThemeToggle variant="row" />
-                </div>
               </>
             )}
 

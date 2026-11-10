@@ -22,7 +22,7 @@ export const OPEN_WHATS_NEW_EVENT = 'aturi:open-whats-new';
 /**
  * Unread release-note entries, for the dot shown away from the bell. On a
  * phone the bell is folded into the site menu, so the dot moves to the
- * toolbar button that opens it and to the menu's own "What's new" tile.
+ * toolbar button that opens it and to the menu's own bell tile.
  */
 export function useUnreadReleaseCount(): number {
   const { prefs } = usePreferences();

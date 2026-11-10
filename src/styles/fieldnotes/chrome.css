@@ -593,8 +593,8 @@
 /* Menu sections (MENU_SECTIONS in Header.tsx). The bar's groups, kept: a
    small label, then that group's three destinations across. A tile stands
    its icon over its name, which is what lets three fit across a phone with
-   room for "Extension". The label is set like the tags that end the Home
-   and Theme rows. */
+   room for "Extension". The label is set like the tag that ends the Home
+   row. */
 .fn-menu-section {
   display: flex;
   flex-direction: column;
@@ -633,11 +633,6 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-/* What's new and Theme: things the menu does, under the places it goes. */
-.fn-menu-utils {
-  margin-top: 8px;
 }
 
 /* Each destination is its own tile: the page's paper on the white panel,
@@ -684,13 +679,6 @@
 
 .fn-header .compact-nav-link[aria-current='page'] svg {
   color: var(--accent-soft-fg);
-}
-
-/* The Theme row: a status row rather than another destination. Full width
-   under the grid, with the current theme named at its end in the same tag
-   the Settings row wears ("LOCAL"). */
-.fn-header .compact-nav-link-wide {
-  grid-column: 1 / -1;
 }
 
 .fn-header .compact-nav-tag {
@@ -1110,7 +1098,6 @@ body.has-explore-chrome {
 .fn-menu-top,
 .fn-menu-home,
 .fn-menu-back,
-.fn-menu-whatsnew,
 .fn-menu-scrim {
   display: none;
 }
@@ -1366,11 +1353,11 @@ body.has-explore-chrome {
       opacity 180ms ease-out;
   }
 
-  /* Its rows follow the sheet up a beat behind, a row at a time (Home,
-     the three sections, the What's new and Theme pair, the session), each
-     lifting 6px. Closing, they fade with the sheet and don't wait. --row is
-     the row's place from the top. */
-  .fn-header-menu-panel :is(.fn-menu-home, .fn-menu-back, .fn-menu-section, .compact-nav-grid > *, .fn-menu-session) {
+  /* Its rows follow the sheet up a beat behind, a row at a time (Home's
+     row, the three sections, the session), each lifting 6px. Closing, they
+     fade with the sheet and don't wait. --row is the row's place from the
+     top. */
+  .fn-header-menu-panel :is(.fn-menu-top > *, .fn-menu-section, .compact-nav-grid > *, .fn-menu-session) {
     opacity: 0;
     transform: translateY(6px);
     transition:
@@ -1378,7 +1365,7 @@ body.has-explore-chrome {
       transform 120ms ease-in;
   }
 
-  .fn-header-menu-panel[data-open] :is(.fn-menu-home, .fn-menu-back, .fn-menu-section, .compact-nav-grid > *, .fn-menu-session) {
+  .fn-header-menu-panel[data-open] :is(.fn-menu-top > *, .fn-menu-section, .compact-nav-grid > *, .fn-menu-session) {
     opacity: 1;
     transform: none;
     transition:
@@ -1397,11 +1384,8 @@ body.has-explore-chrome {
   .fn-header-menu-panel .fn-menu-section ~ .fn-menu-section ~ .fn-menu-section {
     --row: 3;
   }
-  .fn-header-menu-panel .fn-menu-utils > * {
-    --row: 4;
-  }
   .fn-header-menu-panel .fn-menu-session {
-    --row: 5;
+    --row: 4;
   }
 
   .fn-menu {
@@ -1432,10 +1416,11 @@ body.has-explore-chrome {
     font-size: 16px;
   }
 
-  /* Home's row. Back joins it, on its left, on a page whose toolbar gave
-     Back and Home's place to its own controls: the stream monitor's Pause
-     and Stop (ExploreChromeBar.tsx). Home is already here, so only Back
-     moves. */
+  /* Home's row, which is the header bar's stand-in on a phone: the logo,
+     then the bell and the theme switch as icons at its end. Back joins it,
+     on its left, on a page whose toolbar gave Back and Home's place to its
+     own controls: the stream monitor's Pause and Stop
+     (ExploreChromeBar.tsx). Home is already here, so only Back moves. */
   .fn-menu-top {
     display: flex;
     gap: 6px;
@@ -1444,6 +1429,16 @@ body.has-explore-chrome {
   .fn-menu-top > .fn-menu-home {
     flex: 1;
     min-width: 0;
+    container-type: inline-size;
+  }
+
+  /* The tile's "Home" tag goes when the tile is too narrow to hold it (the
+     logo, the tag and their gap want 125px inside): a small phone on a page
+     where Back has joined the row. The logo already says where it leads. */
+  @container (max-width: 126px) {
+    .fn-menu-home .compact-nav-tag {
+      display: none;
+    }
   }
 
   body:has(.explore-chrome-transport) .fn-header .compact-nav-link.fn-menu-back {
@@ -1457,23 +1452,29 @@ body.has-explore-chrome {
     cursor: default;
   }
 
-  /* What's new beside Theme, so the grid's last row is a pair like every
-     other row rather than one full-width row under another. */
-  .fn-header .compact-nav-link.fn-menu-whatsnew {
-    display: flex;
-    width: 100%;
-    text-align: left;
+  /* What's new and the theme switch (Header.tsx, ThemeToggle.tsx): square
+     tiles the height of the row, an icon each, as wide as the toolbar's
+     chips below. A row of their own was two labels for two things the bar
+     has always shown as icons. */
+  .fn-header .compact-nav-link.fn-menu-chip {
+    flex: none;
+    justify-content: center;
+    width: 44px;
+    padding: 0;
   }
 
-  .fn-header .compact-nav-link-wide {
-    grid-column: auto;
+  .fn-header .compact-nav-link.fn-menu-chip svg {
+    color: var(--text-secondary);
   }
 
+  /* Unread notes: the bell's dot, in its corner as on the wider bar. */
   .fn-menu-dot {
-    flex-shrink: 0;
+    position: absolute;
+    top: 8px;
+    right: 8px;
     width: 8px;
     height: 8px;
-    margin-left: auto;
+    border: 2px solid var(--bg-primary);
     border-radius: 50%;
     background: var(--text-accent);
   }

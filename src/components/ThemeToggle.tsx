@@ -30,13 +30,13 @@ function getServerSnapshot(): Theme {
   return DEFAULT_THEME;
 }
 
-type Variant = 'inline' | 'row';
+type Variant = 'inline' | 'chip';
 
 interface ThemeToggleProps {
   /**
    * `inline` is a small icon-only button for use inside the regular nav row.
-   * `row` is a labeled segmented control sized for the compact-mode nav
-   * expansion drawer.
+   * `chip` is the same button as a square tile, for the end of the phone
+   * menu's Home row.
    */
   variant?: Variant;
 }
@@ -58,27 +58,24 @@ export default function ThemeToggle({ variant = 'inline' }: ThemeToggleProps) {
     );
   }
 
-  if (variant === 'row') {
-    // A full-width row under the destinations, in the same tile styling,
-    // that says which theme is on (the icon and a trailing tag) rather than
-    // posing as another place to go. Clicking toggles dark/light.
-    const rowNext: Theme = theme === 'dark' ? 'light' : 'dark';
+  const next: Theme = theme === 'dark' ? 'light' : 'dark';
+
+  if (variant === 'chip') {
+    // In the menu's tile styling, and the same button otherwise: the icon
+    // is the theme a tap switches to, as it is in the bar.
     return (
       <button
         type="button"
-        onClick={() => pick(rowNext)}
-        aria-label={`Switch to ${rowNext} mode`}
-        className="compact-nav-link compact-nav-link-wide"
-        style={{ textAlign: 'left', width: '100%' }}
+        onClick={() => pick(next)}
+        aria-label={`Switch to ${next} mode`}
+        title={`Switch to ${next} mode`}
+        className="compact-nav-link fn-menu-chip"
       >
-        {theme === 'dark' ? <Moon size={16} /> : <Sun size={16} />}
-        <span>Theme</span>
-        <span className="compact-nav-tag">{theme === 'dark' ? 'Dark' : 'Light'}</span>
+        {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
       </button>
     );
   }
 
-  const next: Theme = theme === 'dark' ? 'light' : 'dark';
   return (
     <button
       type="button"
