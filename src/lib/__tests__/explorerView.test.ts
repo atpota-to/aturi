@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { parseExplorerPath } from '@/lib/explorerView';
+import { parseExplorerPath, parsePeek, peekValue } from '@/lib/explorerView';
 
 test('reads the three account routes', () => {
   assert.deepEqual(parseExplorerPath('/explore/alice.example'), {
@@ -55,4 +55,29 @@ test('is null for a permissioned space, which has pages of its own', () => {
     parseExplorerPath('/explore/alice.example/space/com.example.type/key/did:plc:abc/app.bsky.feed.post'),
     null,
   );
+});
+
+test('a peek names a record in any repository', () => {
+  assert.deepEqual(parsePeek('did:plc:abc/app.bsky.feed.like/3kabc'), {
+    did: 'did:plc:abc',
+    collection: 'app.bsky.feed.like',
+    rkey: '3kabc',
+  });
+  assert.equal(peekValue('at://did:plc:abc/app.bsky.feed.like/3kabc'), 'did:plc:abc/app.bsky.feed.like/3kabc');
+});
+
+test('a peek is null unless it is a DID, a collection and a record key', () => {
+  for (const value of [
+    '',
+    'did:plc:abc',
+    'did:plc:abc/app.bsky.feed.like',
+    'alice.example/app.bsky.feed.like/3kabc',
+    'did:plc:abc/like/3kabc',
+    'did:plc:abc/app.bsky.feed.like/3kabc/extra',
+    'did:plc:abc/app.bsky.feed.like/',
+  ]) {
+    assert.equal(parsePeek(value), null, value);
+  }
+  assert.equal(parsePeek(null), null);
+  assert.equal(peekValue('at://did:plc:abc/app.bsky.feed.like'), null);
 });

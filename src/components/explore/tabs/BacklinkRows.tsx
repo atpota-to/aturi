@@ -1,6 +1,16 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
+import {
+  Fragment,
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from 'react';
+import Link from 'next/link';
 import {
   constellationPageFetcher,
   createBacklinkMerge,
@@ -14,13 +24,16 @@ import {
   loadProfiles,
   subscribeBacklinkDetails,
   type LinkerProfile,
+  type RecordContext,
 } from '@/utils/atproto/backlinkDetails';
 import { appForCollection, type BacklinkApp } from '@/utils/atproto/backlinkRelations';
 import { formatTidRelative, tidToDate } from '@/utils/atproto/tid';
-import { shortDid } from '@/utils/atproto/urls';
+import { explorePathFromAtUri, shortDid } from '@/utils/atproto/urls';
+import { peekValue } from '@/lib/explorerView';
 import { WAYPOINT_ICONS } from '@/utils/waypointIcons';
-import AtUriLink from '../AtUriLink';
 import { BacklinkRowsSkeleton } from '../skeletons/pages';
+import { FileGlyph, fileKindOf } from '../workbench/FileIcons';
+import { RecordFileSkeleton } from '../workbench/RecordFile';
 
 type Merge = ReturnType<typeof createBacklinkMerge>;
 
@@ -149,29 +162,92 @@ function LinkerAvatar({ profile }: { profile: LinkerProfile | null | undefined }
 }
 
 /**
+ * Set by a host that opens a linking record beside the list rather than
+ * leaving for it (the workbench and the Files view). A row then carries the
+ * record as `data-peek`, which the host's click handler reads, and the one
+ * that is open is marked. The link itself still goes to the record's own
+ * page, so it opens in a new tab as any other.
+ */
+export type BacklinkPeek = {
+  /** The AT URI of the linking record that is open, if one is. */
+  current: string | null;
+  /** The rows on screen, in order: what stepping moves through. */
+  onItems: (items: readonly MergedBacklink[]) => void;
+};
+
+export const BacklinkPeekContext = createContext<BacklinkPeek | null>(null);
+
+/** What a row links to and how a peeking host recognises it. */
+function useRowLink(item: MergedBacklink) {
+  const peek = useContext(BacklinkPeekContext);
+  const current = peek?.current === item.uri;
+  return {
+    href: explorePathFromAtUri(item.uri) ?? '#',
+    'data-peek': peek ? (peekValue(item.uri) ?? undefined) : undefined,
+    'data-current': current || undefined,
+    'aria-current': current ? ('true' as const) : undefined,
+  };
+}
+
+/**
+ * A handle that wraps after its dots rather than mid-label: a tile is a few
+ * characters narrower than most handles are long.
+ */
+function dotBreaks(text: string) {
+  const parts = text.split('.');
+  return parts.map((part, i) => (
+    <Fragment key={i}>
+      {part}
+      {i < parts.length - 1 && (
+        <>
+          .<wbr />
+        </>
+      )}
+    </Fragment>
+  ));
+}
+
+/**
+ * The account a row is about when it isn't the record's author: a list item
+ * seen from the list it belongs to. Every item of a list is written by the
+ * list's owner and names the same list, so author and context would repeat
+ * down the whole page; what differs is who each one adds.
+ */
+function memberOf(context: RecordContext | null | undefined, target: string): string | null {
+  return context?.member && context.member.list === target ? context.member.did : null;
+}
+
+/**
  * One linking record: who wrote it, when (from its TID), and what it is.
  * `selfDid` marks records the target's own account wrote; `selfLabel` says
  * what that account is here ("this account" on a repo, "author" on a
  * record). `showApp` adds the app's mark when a list mixes apps.
+ *
+ * `rel="nofollow"` + `prefetch={false}`, for the reason on <AtUriLink>: the
+ * destination is a record somewhere in the network, not a page of this site.
  */
 export function BacklinkRow({
   item,
+  target,
   selfDid,
   selfLabel,
   showApp,
 }: {
   item: MergedBacklink;
+  target: string;
   selfDid: string;
   selfLabel: string;
   showApp?: boolean;
 }) {
-  const profile = cachedProfile(item.did);
   const context = cachedContext(item.uri);
+  const member = memberOf(context, target);
+  const profile = cachedProfile(member ?? item.did);
   const date = tidToDate(item.rkey);
   const displayName = profile?.displayName?.trim();
+  const link = useRowLink(item);
   return (
     <li className="fx-bl-row">
-      <AtUriLink uri={item.uri} className="fx-bl-row-link">
+      <Link {...link} className="fx-bl-row-link" prefetch={false} rel="nofollow">
         <LinkerAvatar profile={profile} />
         <span className="fx-bl-row-body">
           <span className="fx-bl-row-line">
@@ -185,12 +261,12 @@ export function BacklinkRow({
             ) : (
               <>
                 <span className="fx-bl-row-name" data-mono data-pending={profile === undefined || undefined}>
-                  {shortDid(item.did)}
+                  {shortDid(member ?? item.did)}
                 </span>
                 {profile === null && <span className="fx-bl-row-handle">no profile</span>}
               </>
             )}
-            {item.did === selfDid && (
+            {!member && item.did === selfDid && (
               <span className="fx-bl-pill" data-tone="accent">
                 {selfLabel}
               </span>
@@ -201,7 +277,7 @@ export function BacklinkRow({
               </span>
             )}
           </span>
-          {context && (
+          {context && !member && (
             <span className="fx-bl-row-ctx">
               {context.kind && <span className="fx-bl-row-kind">{context.kind}</span>}
               {context.text}
@@ -216,7 +292,64 @@ export function BacklinkRow({
             </time>
           )}
         </span>
-      </AtUriLink>
+      </Link>
+    </li>
+  );
+}
+
+/**
+ * The same linking record as a file, for the Files view's icon layout: its
+ * kind on the icon with its author's face on the corner, the author as the
+ * name, then what it says and when. The icon-layout twin of <BacklinkRow>,
+ * on <RecordFile>'s tile.
+ */
+export function BacklinkFile({
+  item,
+  target,
+  selfDid,
+  selfLabel,
+}: {
+  item: MergedBacklink;
+  target: string;
+  selfDid: string;
+  selfLabel: string;
+}) {
+  const context = cachedContext(item.uri);
+  const member = memberOf(context, target);
+  const profile = cachedProfile(member ?? item.did);
+  const date = tidToDate(item.rkey);
+  const link = useRowLink(item);
+  const name = profile?.handle
+    ? `@${profile.handle}`
+    : profile?.displayName?.trim() || shortDid(member ?? item.did);
+  const caption = member ? '' : context?.text;
+  const own = !member && item.did === selfDid;
+  return (
+    <li className="fx-fd-item">
+      <Link
+        {...link}
+        className="fx-fd-tile"
+        prefetch={false}
+        rel="nofollow"
+        title={`${item.collection} by ${name}`}
+      >
+        <span className="fx-bl-file">
+          <FileGlyph kind={fileKindOf(item.collection)} />
+          <LinkerAvatar profile={profile} />
+        </span>
+        <span className="fx-fd-name" data-pending={profile === undefined || undefined}>
+          {dotBreaks(name)}
+        </span>
+        <span className="fx-fd-cap">
+          {own ? `${selfLabel}${caption ? ' · ' : ''}` : ''}
+          {caption}
+        </span>
+        {date && (
+          <time className="fx-fd-meta" dateTime={date.toISOString()} title={date.toISOString()}>
+            {formatTidRelative(date)}
+          </time>
+        )}
+      </Link>
     </li>
   );
 }
@@ -224,26 +357,38 @@ export function BacklinkRow({
 /**
  * A merged list's rows plus its foot: Show more while sources have more,
  * how many of the total are showing, and what failed. The relationships
- * view and the record page's open sources both use it.
+ * view and the record page's open sources both use it. `display` draws the
+ * records as file tiles instead of rows.
  */
 export function BacklinkRowList({
   merged,
+  target,
   total,
   selfDid,
   selfLabel,
   showApp,
+  display = 'rows',
 }: {
   merged: MergedBacklinks;
+  /** What the records link to: a DID or an AT URI. */
+  target: string;
   /** Links behind the list, from Constellation's counts. */
   total: number;
   selfDid: string;
   selfLabel: string;
   showApp?: boolean;
+  display?: 'rows' | 'icons';
 }) {
   useBacklinkDetails(merged.items);
   const { items, loading, done, failed, loadMore } = merged;
+  const onItems = useContext(BacklinkPeekContext)?.onItems;
+  useEffect(() => {
+    onItems?.(items);
+  }, [onItems, items]);
 
-  if (!items.length && loading) return <BacklinkRowsSkeleton />;
+  if (!items.length && loading) {
+    return display === 'icons' ? <RecordFileSkeleton tiles={12} /> : <BacklinkRowsSkeleton />;
+  }
   if (!items.length) {
     return (
       <p className="fx-empty">
@@ -253,11 +398,26 @@ export function BacklinkRowList({
   }
   return (
     <>
-      <ul className="fx-bl-list">
-        {items.map((item) => (
-          <BacklinkRow key={item.uri} item={item} selfDid={selfDid} selfLabel={selfLabel} showApp={showApp} />
-        ))}
-      </ul>
+      {display === 'icons' ? (
+        <ul className="fx-fd-grid fx-bl-files">
+          {items.map((item) => (
+            <BacklinkFile key={item.uri} item={item} target={target} selfDid={selfDid} selfLabel={selfLabel} />
+          ))}
+        </ul>
+      ) : (
+        <ul className="fx-bl-list">
+          {items.map((item) => (
+            <BacklinkRow
+              key={item.uri}
+              item={item}
+              target={target}
+              selfDid={selfDid}
+              selfLabel={selfLabel}
+              showApp={showApp}
+            />
+          ))}
+        </ul>
+      )}
       <div className="fx-bl-more">
         {!done && (
           <button type="button" className="fx-btn fx-btn-sm" onClick={loadMore} disabled={loading} data-wait={loading || undefined}>

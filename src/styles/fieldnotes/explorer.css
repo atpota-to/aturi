@@ -1465,16 +1465,69 @@
   font-family: var(--font-sans);
 }
 
-/* Backlink sources (BacklinksTab): divided rows in the panel's card, not a
-   card per row, with the explorer's row hover. */
-.fx-backlink-source + .fx-backlink-source {
+/* A record's relationships as a list of ways in (BacklinksTab's launcher):
+   the record card in a pane names each kind of link and its count, and the
+   pane beside it lists the records. Divided rows in the card, with the
+   explorer's row hover. */
+.fx-bl-nav {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.fx-bl-nav > li + li {
   border-top: 1px solid var(--border-subtle);
 }
-.fx-backlink-source > button:hover {
+.fx-bl-nav-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 40px;
+  padding: 0 8px;
+  border-radius: 8px;
+  font-size: 13.5px;
+  color: var(--text-primary);
+  text-decoration: none;
+}
+.fx-bl-nav-row > svg {
+  flex: none;
   color: var(--text-accent);
 }
-.fx-backlink-source > button:focus-visible {
-  background: var(--bg-tertiary) !important;
+.fx-bl-nav-row > .fx-bl-nav-go {
+  color: var(--text-faint);
+}
+.fx-bl-nav-label {
+  flex: 1;
+  min-width: 0;
+  font-weight: 600;
+}
+.fx-bl-nav-count {
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-secondary);
+}
+a.fx-bl-nav-row:hover {
+  background: var(--surface-subtle);
+}
+a.fx-bl-nav-row:hover > .fx-bl-nav-go {
+  color: var(--text-secondary);
+}
+.fx-bl-nav-row:focus-visible {
+  outline: 2px solid var(--text-accent);
+  outline-offset: -2px;
+}
+@media (pointer: coarse) {
+  .fx-bl-nav-row {
+    min-height: 44px;
+  }
+}
+/* The relationship the pane beside the card is listing. */
+.fx-bl-nav-row[aria-current='true'] {
+  background: var(--accent-soft);
+  color: var(--accent-soft-fg);
+}
+.fx-bl-nav-row[aria-current='true'] > svg,
+.fx-bl-nav-row[aria-current='true'] .fx-bl-nav-count {
+  color: inherit;
 }
 
 /* Backlinks tab on a repo page: a tile per relationship (followers,
@@ -1521,7 +1574,13 @@
   outline: 2px solid var(--text-accent);
   outline-offset: 2px;
 }
-.fx-bl-tile[aria-pressed='true'] {
+/* A tile is a link where its host keeps the open relationship in the
+   address, and marks the open one as current rather than pressed. */
+a.fx-bl-tile {
+  text-decoration: none;
+}
+.fx-bl-tile[aria-pressed='true'],
+.fx-bl-tile[aria-current='true'] {
   border-color: var(--accent-moss);
   background: var(--accent-soft);
 }
@@ -1556,7 +1615,10 @@
 }
 .fx-bl-tile[aria-pressed='true'] .fx-bl-tile-label,
 .fx-bl-tile[aria-pressed='true'] .fx-bl-tile-value,
-.fx-bl-tile[aria-pressed='true'] .fx-bl-tile-sub {
+.fx-bl-tile[aria-pressed='true'] .fx-bl-tile-sub,
+.fx-bl-tile[aria-current='true'] .fx-bl-tile-label,
+.fx-bl-tile[aria-current='true'] .fx-bl-tile-value,
+.fx-bl-tile[aria-current='true'] .fx-bl-tile-sub {
   color: var(--accent-soft-fg);
 }
 
@@ -1591,6 +1653,10 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
+}
+/* The relationship chips in the record card wear their glyph. */
+.fx-bl-apps .fx-chip > svg {
+  flex: none;
 }
 .fx-bl-chip-count {
   font-size: 12px;
@@ -1680,6 +1746,13 @@
 .fx-bl-row-link:focus-visible {
   outline: 2px solid var(--text-accent);
   outline-offset: -2px;
+}
+/* The linking record open beside the list (the workbench's peek), in the
+   record list's own selected fill. */
+.fx-bl-row-link[data-current],
+.fx-bl-row-link[data-current]:hover {
+  background: var(--accent-soft);
+  box-shadow: inset 2px 0 0 var(--accent-moss);
 }
 .fx-bl-avatar {
   display: grid;

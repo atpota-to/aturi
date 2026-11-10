@@ -3,7 +3,9 @@ import assert from 'node:assert/strict';
 import {
   appForCollection,
   backlinkPathLabels,
+  bucketRecordSources,
   bucketSources,
+  recordRelationOf,
   relationOf,
   shortBacklinkPath,
 } from '@/utils/atproto/backlinkRelations';
@@ -126,4 +128,75 @@ test('buckets follow the tile order, sum counts and rank apps', () => {
 
 test('no sources, no buckets', () => {
   assert.deepEqual(bucketSources([]), []);
+});
+
+// Sources seen pointing at records on the live index (a post, a feed, a
+// list, a starter pack, publications and their documents), by the linking
+// collection and path, the target's collection, and the relationship.
+const RECORD_CASES: [string, string, string, string][] = [
+  ['app.bsky.feed.like', '.subject.uri', 'app.bsky.feed.post', 'like'],
+  ['site.standard.graph.recommend', '.document', 'site.standard.document', 'like'],
+  ['app.bsky.feed.repost', '.subject.uri', 'app.bsky.feed.post', 'repost'],
+  ['app.bsky.feed.post', '.reply.parent.uri', 'app.bsky.feed.post', 'reply'],
+  ['pub.leaflet.comment', '.subject', 'pub.leaflet.document', 'reply'],
+  ['app.bsky.feed.post', '.reply.root.uri', 'app.bsky.feed.post', 'thread'],
+  ['app.bsky.feed.post', '.embed.record.uri', 'app.bsky.feed.post', 'quote'],
+  ['app.bsky.feed.post', '.embed.record.record.uri', 'app.bsky.feed.post', 'quote'],
+  ['app.bsky.feed.post', '.embed.generator.uri', 'app.bsky.feed.generator', 'quote'],
+  [
+    'app.bsky.feed.post',
+    '.embed.external.associatedRefs[com.atproto.repo.strongRef].uri',
+    'site.standard.publication',
+    'quote',
+  ],
+  [
+    'pub.leaflet.comment',
+    '.facets[].features[pub.leaflet.richtext.facet#atMention].atURI',
+    'pub.leaflet.publication',
+    'mention',
+  ],
+  ['app.bsky.graph.listitem', '.list', 'app.bsky.graph.list', 'item'],
+  ['pub.leaflet.document', '.publication', 'pub.leaflet.publication', 'item'],
+  ['site.standard.document', '.site', 'site.standard.publication', 'item'],
+  ['pub.leaflet.graph.subscription', '.publication', 'pub.leaflet.publication', 'subscribe'],
+  ['site.standard.graph.subscription', '.publication', 'site.standard.publication', 'subscribe'],
+  ['app.bsky.graph.follow', '.via.uri', 'app.bsky.graph.starterpack', 'via'],
+  ['app.bsky.actor.profile', '.joinedViaStarterPack.uri', 'app.bsky.graph.starterpack', 'via'],
+  ['app.bsky.graph.starterpack', '.feeds[].uri', 'app.bsky.feed.generator', 'other'],
+  ['app.bsky.graph.referencelistoptout', '.subject', 'app.bsky.graph.list', 'other'],
+  ['app.standard-reader.read', '.subject', 'site.standard.document', 'other'],
+];
+
+for (const [collection, path, target, relation] of RECORD_CASES) {
+  test(`${collection} ${path.slice(0, 40)} to a ${target.split('.').pop()} is ${relation}`, () => {
+    assert.equal(recordRelationOf(collection, path, target), relation);
+  });
+}
+
+test('a field is only an owner field on a record of the type it names', () => {
+  assert.equal(recordRelationOf('pub.leaflet.document', '.publication', 'app.bsky.feed.post'), 'other');
+  assert.equal(recordRelationOf('pub.leaflet.document', '.publication'), 'other');
+});
+
+test('a record’s buckets put what was written first and keep direct replies apart from the thread', () => {
+  const buckets = bucketRecordSources(
+    [
+      source('app.bsky.feed.like', '.subject.uri', 116, 116),
+      source('app.bsky.feed.post', '.reply.root.uri', 9, 7),
+      source('app.bsky.feed.post', '.reply.parent.uri', 6, 6),
+      source('app.bsky.feed.repost', '.subject.uri', 4, 4),
+      source('app.bsky.feed.post', '.embed.record.uri', 1, 1),
+    ],
+    'app.bsky.feed.post',
+  );
+  assert.deepEqual(
+    buckets.map((b) => [b.relation, b.count]),
+    [
+      ['reply', 6],
+      ['thread', 9],
+      ['quote', 1],
+      ['repost', 4],
+      ['like', 116],
+    ],
+  );
 });

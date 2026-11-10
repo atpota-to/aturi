@@ -548,6 +548,29 @@ html:has(.fx-wb) {
   background: var(--surface-subtle);
 }
 
+/* The main pane's two layers (ExplorerShell): a collection's records, and
+   over them the list of what links to the open record. One grid cell holds
+   both, and the covered one is hidden without leaving the layout, so its
+   scroll position is still there to come back to. */
+.fx-wb-stack {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template: minmax(0, 1fr) / minmax(0, 1fr);
+}
+
+.fx-wb-layer {
+  grid-area: 1 / 1;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.fx-wb-layer[data-covered] {
+  visibility: hidden;
+}
+
 /* The record open in the inspector. */
 .fx-wb .fx-rec-row[data-current] {
   background: var(--accent-soft);
@@ -725,6 +748,225 @@ html:has(.fx-wb) {
    beside them. */
 .fx-wb .account-stats-grid {
   grid-template-columns: repeat(auto-fill, minmax(10.5rem, 1fr));
+}
+
+/* ---------- Main: backlinks ----------
+   What links to the account or to the open record (AccountView,
+   RecordLinksView), on the account views' sheet. The tiles fit themselves
+   to the pane, as the glance tiles do: with a linking record open beside
+   the list the pane is a phone's width on a desktop. */
+
+.fx-wb .fx-bl-tiles {
+  grid-template-columns: repeat(auto-fill, minmax(9.5rem, 1fr));
+}
+
+/* In a narrow pane the tiles fold to a line of chips: a kind, its count.
+   Eight tiles three across would hold the first screen, and the list under
+   them is what the pane is narrow for. */
+@container fx-wb-main (max-width: 700px) {
+  .fx-wb .fx-bl-tiles {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .fx-wb .fx-bl-tile {
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+    min-height: 32px;
+    padding: 0 12px 0 10px;
+    border-radius: var(--radius-pill);
+  }
+
+  .fx-wb .fx-bl-tile-label svg {
+    width: 14px;
+    height: 14px;
+  }
+
+  .fx-wb .fx-bl-tile-value {
+    font-size: 12.5px;
+    font-weight: 500;
+    letter-spacing: 0;
+    color: var(--text-secondary);
+  }
+
+  .fx-wb .fx-bl-tile-sub {
+    display: none;
+  }
+}
+
+.fx-wb-links-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px 16px;
+}
+
+.fx-wb-links-head .fx-btn {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.fx-wb-links-title {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+/* Which record: its file, its key, and a line of what it says. */
+.fx-wb-links-target {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.fx-wb-links-target .fx-fd-glyph[data-kind='file'] {
+  width: 11px;
+}
+
+.fx-wb-links-target .fx-fd-ext {
+  display: none;
+}
+
+.fx-wb-links-target code {
+  flex: none;
+  padding: 0;
+  background: transparent;
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  color: var(--text-primary);
+}
+
+.fx-wb-links-target span:last-child {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Linking records as files (the Files view's icons): the grid is inside the
+   sheet's own padding, and each file wears its author on the corner. */
+.fx-fd-grid.fx-bl-files {
+  padding: 0;
+}
+
+.fx-bl-file {
+  position: relative;
+  display: inline-block;
+  line-height: 0;
+}
+
+/* On the top corner away from the fold: the foot of the page is the kind
+   label's. */
+.fx-bl-file .fx-bl-avatar {
+  position: absolute;
+  left: -13px;
+  top: -5px;
+  width: 24px;
+  height: 24px;
+  font-size: 11px;
+  line-height: 1;
+  box-shadow: 0 0 0 2px var(--bg-secondary);
+}
+
+.fx-bl-files .fx-fd-name {
+  overflow-wrap: break-word;
+}
+
+.fx-bl-files .fx-fd-name[data-pending] {
+  color: var(--text-tertiary);
+}
+
+/* ---------- Inspector: a linking record ----------
+   A record opened from the list of what links here (PeekPane). The bar over
+   it says whose it is, since it is rarely this account's, and is the way to
+   it; under the bar it is the inspector's record pane. */
+
+.fx-wb-peek {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.fx-wb-peek > .fx-wb-rec {
+  flex: 1;
+  min-height: 0;
+  gap: 0;
+  padding-top: 0;
+}
+
+.fx-wb-peek-bar {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 0 10px 0 16px;
+  background: var(--accent-soft);
+  border-bottom: 1px solid var(--accent-soft-border);
+  font-size: 12.5px;
+  color: var(--accent-soft-fg);
+}
+
+.fx-wb-peek-what {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.fx-wb-peek-who {
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+  color: inherit;
+  text-decoration: none;
+}
+
+.fx-wb-peek-who img {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.fx-wb-peek-who span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fx-wb-peek-who:hover span {
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+}
+
+.fx-wb-peek-who:focus-visible {
+  outline: 2px solid var(--text-accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+.fx-wb-peek-open {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
 }
 
 /* ---------- Inspector ----------
