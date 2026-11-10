@@ -9,8 +9,9 @@
    under .fn-header so other users of those classes are left alone.
 
    Breakpoints:
-     ≥1440px  the tagline shows beside the wordmark
-     ≤1180px  inline nav folds into the menu button; the tagline shows
+     ≥1240px  the tagline shows beside the wordmark
+     ≤1100px  the go-to field's shortcut chip hides
+     ≤1023px  inline nav folds into the menu button; the tagline shows
               again in the room that leaves
      ≤767px   the explorer "go to" field becomes a search button
      ≤639px   phone: the bar gives way to a toolbar pinned to the bottom of
@@ -156,8 +157,12 @@
   color: var(--text-primary);
 }
 
+/* `data-current` is a group's button on one of the group's pages
+   (PrimaryNav in Header.tsx): a button has no `aria-current` to wear. */
 .fn-nav-link[aria-current='page'],
-.fn-nav-link[aria-current='page']:hover {
+.fn-nav-link[aria-current='page']:hover,
+.fn-nav-link[data-current],
+.fn-nav-link[data-current]:hover {
   background: var(--accent-soft);
   color: var(--accent-soft-fg);
   font-weight: 600;
@@ -212,8 +217,171 @@
 
 .fn-nav[data-glide] .fn-nav-link:hover,
 .fn-nav[data-glide] .fn-nav-link[aria-current='page'],
-.fn-nav[data-glide] .fn-nav-link[aria-current='page']:hover {
+.fn-nav[data-glide] .fn-nav-link[aria-current='page']:hover,
+.fn-nav[data-glide] .fn-nav-link[data-current],
+.fn-nav[data-glide] .fn-nav-link[data-current]:hover {
   background: transparent;
+}
+
+/* Nav groups (NAV in Header.tsx). Destinations that belong together share
+   one item in the bar: a button with a chevron, and under it a flyout that
+   lists them, each with its icon tile and a line saying what it is. The
+   flyout is one of the header's cards (same paper, hairline, corners and
+   shadow as the menu, search and session panels) and opens level with them,
+   growing from the corner nearest its button and shrinking back there a
+   little faster, as they do. Its rows are the menu's destination tiles laid
+   out as a list. */
+.fn-nav-group {
+  position: relative;
+  display: flex;
+}
+
+/* The chevron's side is a little tighter than the label's, so the pair
+   reads as centred in the pill. */
+.fn-nav-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding-right: 9px;
+}
+
+.fn-nav-chevron {
+  flex-shrink: 0;
+  opacity: 0.7;
+  transition: transform var(--motion-quick) var(--ease-soft);
+}
+
+.fn-nav-trigger[aria-expanded='true'] {
+  color: var(--text-primary);
+}
+
+.fn-nav-trigger[aria-expanded='true'] .fn-nav-chevron {
+  transform: rotate(180deg);
+}
+
+/* Open, the button keeps the hover fill after the pointer has moved down
+   into the flyout, as the bar's icon buttons do while their panels are open.
+   On one of its own pages it already sits on the green pill. */
+.fn-nav-trigger[aria-expanded='true']:not([data-current]) {
+  background: var(--bg-tertiary);
+}
+
+.fn-nav-trigger[data-current][aria-expanded='true'] {
+  color: var(--accent-soft-fg);
+}
+
+.fn-nav-flyout {
+  position: absolute;
+  /* Level with the header's other panels. The nav is centred in the 56px
+     bar, so the bar's bottom edge is 28px below the nav's middle, and the
+     panels open 8px under that (--fn-drop-offset). */
+  top: calc(50% + 28px + 8px);
+  left: 0;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: max-content;
+  min-width: 16rem;
+  padding: 4px;
+  box-sizing: border-box;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-overlay);
+  opacity: 0;
+  transform: scale(0.96);
+  transform-origin: top left;
+  pointer-events: none;
+  transition:
+    opacity var(--motion-press) ease-in,
+    transform var(--motion-press) ease-in;
+}
+
+.fn-nav-flyout[data-open] {
+  opacity: 1;
+  transform: none;
+  pointer-events: auto;
+  transition:
+    opacity 160ms ease-out,
+    transform 160ms var(--ease-soft);
+}
+
+/* The strip between the button and the card, which the pointer crosses on
+   its way down. It belongs to the flyout, so crossing it isn't leaving. */
+.fn-nav-flyout::before {
+  content: '';
+  position: absolute;
+  right: 0;
+  bottom: 100%;
+  left: 0;
+  height: 24px;
+}
+
+/* 8px corners: the card's 12px less the 4px around the rows. */
+.fn-nav-flyout-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 14px 8px 8px;
+  border-radius: var(--radius-control);
+  color: var(--text-primary);
+  text-decoration: none;
+  transition: background 0.15s ease;
+}
+
+.fn-nav-flyout-row:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+/* The explorer tiles' icon square (.fn-x-tile-icon), a size down. */
+.fn-nav-flyout-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: calc(var(--radius-control) - 2px);
+  background: var(--accent-soft);
+  color: var(--accent-soft-fg);
+}
+
+.fn-nav-flyout-text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.fn-nav-flyout-title {
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.fn-nav-flyout-desc {
+  color: var(--text-tertiary);
+  font-size: 12.5px;
+  line-height: 1.35;
+  white-space: nowrap;
+}
+
+/* The page you are on: the menu tiles' green, with the icon square letting
+   the row's fill through rather than stacking a second one on it. */
+.fn-nav-flyout-row[aria-current='page'],
+.fn-nav-flyout-row[aria-current='page']:hover {
+  background: var(--accent-soft);
+  color: var(--accent-soft-fg);
+}
+
+.fn-nav-flyout-row[aria-current='page'] .fn-nav-flyout-icon {
+  background: transparent;
+}
+
+.fn-nav-flyout-row[aria-current='page'] .fn-nav-flyout-desc {
+  color: inherit;
 }
 
 .fn-header-actions {
@@ -715,29 +883,40 @@
 
 /* ─── Responsive ─────────────────────────────────────────────────────── */
 
+/* These three widths are sized to the bar at its fullest: an explorer page,
+   which carries the go-to field, with a signed-in account chip at its widest
+   (a display name that reaches its 6rem cap), about 93px more than the
+   Sign in button. Brand, nav and gutters come to roughly 550px and the
+   controls beside the field to 260px, so the field is the window's width
+   less 810px, and less 960px with the tagline. Regrouping the nav (NAV in
+   Header.tsx) changes the first number, and these with it. */
+
 /* The tagline costs the bar about 150px. With the nav inline, on explorer
-   pages that comes out of the go-to field, and below 1440px it would push the
+   pages that comes out of the go-to field, and below 1240px it would push the
    field under the width at which its shortcut chip already has to hide (see
    the next query). Once the nav folds into the menu there is room again, down
    to the phone bar, where the 44px buttons need it. Written as where it shows
    rather than where it hides, so a fractional width between two queries
    leaves it hidden instead of crowding the bar. */
-@media (min-width: 1440px), (min-width: 640px) and (max-width: 1180px) {
+@media (min-width: 1240px), (min-width: 640px) and (max-width: 1023px) {
   .fn-tagline {
     display: inline;
   }
 }
 
 /* Just above the nav fold the go-to field is at its narrowest and the
-   shortcut chip was clipping the placeholder; the shortcut is still named
-   in the palette's footer and the shortcuts sheet. */
-@media (max-width: 1240px) {
+   shortcut chip was clipping the placeholder, which it does under about
+   250px; the shortcut is still named in the palette's footer and the
+   shortcuts sheet. */
+@media (max-width: 1100px) {
   .fn-header-search .fn-kbd {
     display: none;
   }
 }
 
-@media (max-width: 1180px) {
+/* Where the go-to field would drop under its 180px minimum and push into
+   the nav. */
+@media (max-width: 1023px) {
   .fn-nav {
     display: none;
   }
