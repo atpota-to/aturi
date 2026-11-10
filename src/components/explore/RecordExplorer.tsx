@@ -19,6 +19,7 @@ import RecordPreview from '@/components/RecordPreview';
 import RichRecordCard, { recordHasRichCard } from './RichRecordCard';
 import BacklinksTab from './tabs/BacklinksTab';
 import LexiconUsageCard from './lexicons/LexiconUsageCard';
+import { Segmented } from './lexicons/primitives';
 import RecordEditor from './RecordEditor';
 import { repoRecordBackend } from './recordBackend';
 import SignInPanel from './SignInPanel';
@@ -45,6 +46,64 @@ type Props = {
   collection: string;
   rkey: string;
 };
+
+/** The tabs a record's sections are filed under in a pane. */
+export type RecordPaneTab = 'preview' | 'record' | 'backlinks' | 'more';
+
+const PANE_TABS: { value: RecordPaneTab; label: string }[] = [
+  { value: 'preview', label: 'Preview' },
+  { value: 'record', label: 'Record' },
+  { value: 'backlinks', label: 'Backlinks' },
+  { value: 'more', label: 'More' },
+];
+
+/**
+ * Which tab a section (by its slot id below) is filed under. Engagement
+ * counts sit under the rich preview when the record has one, as they do on
+ * the page; without one they follow the record's data, so a record with no
+ * preview never opens on a tab holding only a count that may not exist.
+ */
+function paneTabOf(slotId: string, hasPreview: boolean): RecordPaneTab {
+  if (slotId === 'richPreview') return 'preview';
+  if (slotId === 'engagement') return hasPreview ? 'preview' : 'record';
+  if (slotId === 'record') return 'record';
+  if (slotId === 'backlinks') return 'backlinks';
+  return 'more';
+}
+
+/**
+ * How the record view is hosted when it isn't the record page: as the
+ * inspector of the workbench or the Files view (workbench/ExplorerShell.tsx),
+ * beside the list the record was opened from.
+ *
+ * The page's sections are all still here, in the visitor's own order and
+ * with their own hidden ones left out; a pane files them under tabs, since
+ * it has a third of the page's width. Given the main width (`wide`) it lays
+ * them out as the page does.
+ */
+export type RecordPaneOptions = {
+  /** Stepping, widening and closing, drawn by the host in the pane's head. */
+  controls: ReactNode;
+  /** The pane has the main width: the page's two columns, not tabs. */
+  wide: boolean;
+  /** The open tab, held by the host so it survives stepping to another record. */
+  tab: RecordPaneTab;
+  onTab: (tab: RecordPaneTab) => void;
+  /** The record as the list already holds it, shown while the fresh read lands. */
+  seed?: AtRecord | null;
+  /** The record was deleted in the editor; the page would leave for the collection. */
+  onDeleted: () => void;
+};
+
+/** One record, as a pane. See {@link RecordPaneOptions}. */
+export function RecordPane({
+  identity,
+  collection,
+  rkey,
+  ...pane
+}: { identity: IdentityBundle; collection: string; rkey: string } & RecordPaneOptions) {
+  return <RecordView identity={identity} collection={collection} rkey={rkey} pane={pane} />;
+}
 
 export default function RecordExplorer({ repo, collection, rkey }: Props) {
   const [identity, setIdentity] = useState<IdentityBundle | null>(null);
@@ -102,13 +161,19 @@ function RecordView({
   identity,
   collection,
   rkey,
+  pane,
 }: {
   identity: IdentityBundle;
   collection: string;
   rkey: string;
+  /** Set when hosted as a pane; the record page leaves it out. */
+  pane?: RecordPaneOptions;
 }) {
   const router = useRouter();
-  const [record, setRecord] = useState<AtRecord | null>(null);
+  // Only the seed a pane mounted with counts: the host makes a new pane for
+  // each record, and a later render's copy must not restart the read below.
+  const [seed] = useState<AtRecord | null>(pane?.seed ?? null);
+  const [record, setRecord] = useState<AtRecord | null>(seed);
   const [recordError, setRecordError] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
   const { agent, did: signedInDid, session } = useAtprotoSession();
@@ -142,7 +207,8 @@ function RecordView({
 
   useEffect(() => {
     let cancelled = false;
-    setRecord(null);
+    // A seeded pane keeps showing what its list held until the read lands.
+    if (!seed) setRecord(null);
     setRecordError(null);
     getRecord(identity.pds, {
       repo: identity.did,
@@ -158,7 +224,7 @@ function RecordView({
     return () => {
       cancelled = true;
     };
-  }, [identity, collection, decodedRkey]);
+  }, [identity, collection, decodedRkey, seed]);
 
   const atUri = `at://${identity.did}/${collection}/${decodedRkey}`;
   const repoSeg = encodeRepo(identity.handle || identity.did);
@@ -190,6 +256,34 @@ function RecordView({
 
   const recordLabel = recordTypeLabel(collection);
 
+  const kindPill = recordLabel && (
+    <span className="fn-rec-pill">
+      {recordLabel.bluesky && (
+        <span aria-hidden className="fn-rec-pill-icon">
+          <BlueskySVG />
+        </span>
+      )}
+      {recordLabel.text}
+    </span>
+  );
+  const titleActions = (
+    <div className="fn-rec-actions">
+      <CopyTextButton value={atUri} label="Copy at:// URI" />
+      {/* The Edit button stays watched (setEditChipEl) so the chrome bar
+          offers the same action exactly while it isn't on screen. */}
+      {canEdit && !editing && (
+        <button
+          ref={setEditChipEl}
+          type="button"
+          className="fn-rec-btn"
+          onClick={() => setEditing(true)}
+          title="Edit this record"
+        >
+          <Pencil size={14} aria-hidden /> Edit
+        </button>
+      )}
+    </div>
+  );
   const breadcrumb = (
     <AppearIn rise>
       <div className="fn-rec-titlebar">
@@ -205,37 +299,46 @@ function RecordView({
           />
           <div className="fn-rec-titlerow">
             <h1 className="fn-rec-h1">{decodedRkey}</h1>
-            {recordLabel && (
-              <span className="fn-rec-pill">
-                {recordLabel.bluesky && (
-                  <span aria-hidden className="fn-rec-pill-icon">
-                    <BlueskySVG />
-                  </span>
-                )}
-                {recordLabel.text}
-              </span>
-            )}
+            {kindPill}
           </div>
         </div>
-        <div className="fn-rec-actions">
-          <CopyTextButton value={atUri} label="Copy at:// URI" />
-          {/* The Edit button stays watched (setEditChipEl) so the chrome bar
-              offers the same action exactly while it isn't on screen. */}
-          {canEdit && !editing && (
-            <button
-              ref={setEditChipEl}
-              type="button"
-              className="fn-rec-btn"
-              onClick={() => setEditing(true)}
-              title="Edit this record"
-            >
-              <Pencil size={14} aria-hidden /> Edit
-            </button>
-          )}
-        </div>
+        {titleActions}
       </div>
     </AppearIn>
   );
+
+  // The frame around whichever body is showing. The page leads with the
+  // breadcrumb and title bar; a pane has the host's breadcrumb above it, so
+  // it leads with the record key and the host's controls, keeps `bar` (the
+  // tabs, with the actions beside them) in place and scrolls the body under
+  // them.
+  const frame = (body: ReactNode, bar?: ReactNode) =>
+    pane ? (
+      <div className="fn-rec fx-wb-rec" data-wide={pane.wide || undefined}>
+        <div className="fx-wb-insp-head">
+          <h2 className="fx-wb-insp-rkey" title={decodedRkey}>
+            {decodedRkey}
+          </h2>
+          {kindPill}
+          {/* With no tabs for them to sit beside, the actions join the
+              head rather than hold a row of their own. */}
+          {!bar && titleActions}
+          <div className="fx-wb-insp-ctl">{pane.controls}</div>
+        </div>
+        {bar && (
+          <div className="fx-wb-insp-bar">
+            {bar}
+            {titleActions}
+          </div>
+        )}
+        <div className="fx-wb-insp-body">{body}</div>
+      </div>
+    ) : (
+      <div className="fn-rec">
+        {breadcrumb}
+        {body}
+      </div>
+    );
   const copyRowNode = (
     <CopyRow
       atUri={atUri}
@@ -256,52 +359,48 @@ function RecordView({
 
   // Load error: error panel + the helper sections that still make sense.
   if (recordError) {
-    return (
-      <div className="fn-rec">
-        {breadcrumb}
-        <div className="fn-rec-stack">
-          <AppearIn delay={0.05}>
-            <RecordErrorPanel
-              raw={recordError}
-              collection={collection}
-              rkey={decodedRkey}
-              handle={identity.handle || identity.did}
-            />
-          </AppearIn>
-          <AppearIn delay={0.07}>
-            <BacklinksTab target={atUri} showSummary />
-          </AppearIn>
-          <AppearIn delay={0.09}>{copyRowNode}</AppearIn>
-          {signInNode && <AppearIn delay={0.11}>{signInNode}</AppearIn>}
-        </div>
-      </div>
+    return frame(
+      <div className="fn-rec-stack">
+        <AppearIn delay={0.05}>
+          <RecordErrorPanel
+            raw={recordError}
+            collection={collection}
+            rkey={decodedRkey}
+            handle={identity.handle || identity.did}
+          />
+        </AppearIn>
+        <AppearIn delay={0.07}>
+          <BacklinksTab target={atUri} showSummary />
+        </AppearIn>
+        <AppearIn delay={0.09}>{copyRowNode}</AppearIn>
+        {signInNode && <AppearIn delay={0.11}>{signInNode}</AppearIn>}
+      </div>,
     );
   }
 
   // Edit mode: the editor takes the whole body; keep the copy row handy.
   if (editing && canEdit && backend) {
-    return (
-      <div className="fn-rec">
-        {breadcrumb}
-        <div className="fn-rec-stack">
-          <AppearIn delay={0.05}>
-            <RecordEditor
-              backend={backend}
-              collection={collection}
-              rkey={decodedRkey}
-              onSaved={(next) => {
-                setRecord((prev) => (prev ? { ...prev, value: next } : prev));
-              }}
-              onDeleted={() => {
-                setEditing(false);
-                router.push(`/explore/${repoSeg}/${collection}`);
-              }}
-              onCancel={() => setEditing(false)}
-            />
-          </AppearIn>
-          <AppearIn delay={0.07}>{copyRowNode}</AppearIn>
-        </div>
-      </div>
+    return frame(
+      <div className="fn-rec-stack">
+        <AppearIn delay={0.05}>
+          <RecordEditor
+            backend={backend}
+            collection={collection}
+            rkey={decodedRkey}
+            onSaved={(next) => {
+              setRecord((prev) => (prev ? { ...prev, value: next } : prev));
+            }}
+            onDeleted={() => {
+              setEditing(false);
+              // A pane's host closes it and drops the row from its list.
+              if (pane) pane.onDeleted();
+              else router.push(`/explore/${repoSeg}/${collection}`);
+            }}
+            onCancel={() => setEditing(false)}
+          />
+        </AppearIn>
+        <AppearIn delay={0.07}>{copyRowNode}</AppearIn>
+      </div>,
     );
   }
 
@@ -468,27 +567,54 @@ function RecordView({
         </AppearIn>
       ));
 
-  return (
-    <div className="fn-rec">
-      {breadcrumb}
-      <SkeletonSwap
-        loading={!record}
-        skeleton={
-          <RecordBodySkeleton
-            shape={recordSkeletonShape(collection, decodedRkey, cardHidden)}
-          />
-        }
-      >
-        {record && (
+  // In a pane without the main width, the same slots are filed under tabs
+  // rather than set in two columns. Only tabs with something in them show
+  // (the visitor may have hidden a section, and not every record has a rich
+  // preview), and the open one falls back to the first that does.
+  const tabbed = Boolean(pane && !pane.wide);
+  const hasPreview = placed.some((p) => p.id === 'richPreview');
+  const paneTabs = PANE_TABS.filter((t) =>
+    placed.some((p) => paneTabOf(p.id, hasPreview) === t.value),
+  );
+  const openTab = paneTabs.some((t) => t.value === pane?.tab) ? pane?.tab : paneTabs[0]?.value;
+
+  return frame(
+    <SkeletonSwap
+      loading={!record}
+      skeleton={
+        <RecordBodySkeleton
+          shape={recordSkeletonShape(collection, decodedRkey, cardHidden)}
+        />
+      }
+    >
+      {record &&
+        (tabbed ? (
+          <div className="fn-rec-stack">
+            {placed
+              .filter((p) => paneTabOf(p.id, hasPreview) === openTab)
+              .map((p, i) => (
+                <AppearIn key={p.id} delay={Math.min(i * 0.03, 0.12)} className="fn-rec-slot">
+                  {p.node}
+                </AppearIn>
+              ))}
+          </div>
+        ) : (
           <div className="fn-rec-body">
             <div className="fn-rec-main">{renderColumn('main')}</div>
             <aside className="fn-rec-aside" aria-label="Copy and links to this record">
               {renderColumn('aside')}
             </aside>
           </div>
-        )}
-      </SkeletonSwap>
-    </div>
+        ))}
+    </SkeletonSwap>,
+    tabbed && pane && openTab && paneTabs.length > 1 ? (
+      <Segmented
+        ariaLabel="Record sections"
+        options={paneTabs}
+        value={openTab}
+        onChange={pane.onTab}
+      />
+    ) : null,
   );
 }
 

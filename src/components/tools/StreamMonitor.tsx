@@ -5,13 +5,11 @@ import {
   useCallback,
   useEffect,
   useId,
-  useLayoutEffect,
   useMemo,
   useRef,
   useState,
   useSyncExternalStore,
   type ReactNode,
-  type RefObject,
 } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
@@ -45,6 +43,7 @@ import {
 } from '@/components/explore/ChromeBarContext';
 import { Segmented } from '@/components/explore/lexicons/primitives';
 import { useMediaQuery } from '@/components/explore/useIsNarrow';
+import { useFillViewport } from '@/components/useFillViewport';
 import RecordPreview from '@/components/RecordPreview';
 import SegmentThumb from '@/components/SegmentThumb';
 import { replay } from '@/lib/motion';
@@ -329,42 +328,6 @@ async function suggestCollections(
 }
 
 /**
- * Sizes the monitor to the window: from where it starts, under the site
- * header, to the window's foot, less the phone's bottom toolbar
- * (--explore-chrome-h, which ExploreChromeBar measures and which is 0 where
- * the bar isn't drawn). So the page itself never scrolls; only the list and
- * the panels do.
- *
- * The start is summed from offsetTop, which leaves out the transform the
- * page transition settles the page in with, and read again when the header
- * changes height (a larger text size) or the window does. tools.css carries
- * a fallback for the first paint.
- */
-function useFillViewport(ref: RefObject<HTMLElement | null>): void {
-  useLayoutEffect(() => {
-    const el = ref.current;
-    if (!el) return undefined;
-    const measure = () => {
-      let top = 0;
-      for (let node: HTMLElement | null = el; node; node = node.offsetParent as HTMLElement | null) {
-        top += node.offsetTop;
-      }
-      el.style.setProperty('--fn-sm-top', `${top}px`);
-    };
-    measure();
-    const header =
-      el.closest('[data-page-key]')?.querySelector('.fn-header') ?? document.querySelector('.fn-header');
-    const observer = new ResizeObserver(measure);
-    if (header) observer.observe(header);
-    window.addEventListener('resize', measure);
-    return () => {
-      observer.disconnect();
-      window.removeEventListener('resize', measure);
-    };
-  }, [ref]);
-}
-
-/**
  * Live Jetstream and PLC directory events in one list, filtered by source,
  * event type, account, collection and text.
  *
@@ -416,7 +379,7 @@ export default function StreamMonitor({ about }: { about: ReactNode }) {
     tally: null,
   });
   const drawers = useMediaQuery(DRAWERS_QUERY);
-  useFillViewport(rootRef);
+  useFillViewport(rootRef, '--fn-sm-top');
 
   const search = viewToSearch(view);
 
@@ -1876,7 +1839,7 @@ function SkeletonRows() {
  */
 export function StreamMonitorSkeleton({ about }: { about: ReactNode }) {
   const rootRef = useRef<HTMLDivElement>(null);
-  useFillViewport(rootRef);
+  useFillViewport(rootRef, '--fn-sm-top');
   return (
     <div ref={rootRef} className="fn-sm" aria-busy>
       <header className="fn-sm-toolbar">

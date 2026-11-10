@@ -7,6 +7,7 @@ import {
   ChevronUp,
   FilePenLine,
   Link2,
+  ListTree,
   Pause,
   Play,
   SlidersHorizontal,
@@ -381,9 +382,9 @@ function TransportButtons({ transport }: { transport: ChromeBarTransport }) {
 }
 
 /**
- * The button for the page's own panel (the stream monitor's filters), with
- * a count of what's set in it, so a narrowed view reads as narrowed while
- * the panel is shut.
+ * The button for the page's own panel (the stream monitor's filters, the
+ * explorer workbench's collections), with a count of what's set in it, so a
+ * narrowed view reads as narrowed while the panel is shut.
  */
 function PagePanelButton({ panel }: { panel: ChromeBarPanel }) {
   const name = panel.count > 0 ? `${panel.label}, ${panel.count} set` : panel.label;
@@ -398,7 +399,11 @@ function PagePanelButton({ panel }: { panel: ChromeBarPanel }) {
       className="explore-chrome-button explore-chrome-page-panel"
       data-open={panel.open || undefined}
     >
-      <SlidersHorizontal size={17} aria-hidden />
+      {panel.icon === 'tree' ? (
+        <ListTree size={17} aria-hidden />
+      ) : (
+        <SlidersHorizontal size={17} aria-hidden />
+      )}
       {panel.count > 0 && (
         <span className="explore-chrome-badge" aria-hidden>
           {panel.count}

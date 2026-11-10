@@ -90,6 +90,11 @@ export type ChromeBarTransport = {
  */
 export type ChromeBarPanel = {
   label: string;
+  /**
+   * The button's glyph: sliders for a panel of filters (the default), a tree
+   * for a panel of places to go (the explorer's collections).
+   */
+  icon?: 'filters' | 'tree';
   /** What the panel has set, worn as a badge on the button. 0 shows none. */
   count: number;
   open: boolean;
@@ -278,6 +283,7 @@ export function useChromeBarPanel(panel: ChromeBarPanel | null): void {
 
   const active = panel !== null;
   const label = panel?.label ?? '';
+  const icon = panel?.icon;
   const count = panel?.count ?? 0;
   const open = Boolean(panel?.open);
   const controls = panel?.controls;
@@ -287,8 +293,8 @@ export function useChromeBarPanel(panel: ChromeBarPanel | null): void {
       setPanel(null);
       return;
     }
-    setPanel({ label, count, open, controls, onToggle: () => onToggle.current?.() });
-  }, [active, label, count, open, controls, setPanel]);
+    setPanel({ label, icon, count, open, controls, onToggle: () => onToggle.current?.() });
+  }, [active, label, icon, count, open, controls, setPanel]);
 
   useEffect(() => () => setPanel(null), [setPanel]);
 }

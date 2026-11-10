@@ -29,6 +29,7 @@ export default function CollectionsTab({
   identity,
   variant = 'page',
   current,
+  pinnable,
 }: {
   identity: IdentityBundle;
   /**
@@ -39,6 +40,11 @@ export default function CollectionsTab({
   variant?: 'page' | 'sidebar';
   /** The collection being viewed, highlighted in the tree. */
   current?: string;
+  /**
+   * Keep the pin buttons in the sidebar tree. For the workbench, whose rail
+   * is the only collections tree there is, so pinning has to live in it.
+   */
+  pinnable?: boolean;
 }) {
   const sidebar = variant === 'sidebar';
   const [collections, setCollections] = useState<string[] | null>(null);
@@ -92,7 +98,7 @@ export default function CollectionsTab({
   const isOwnRepo = isSignedIn && myDid === identity.did;
   // Pin buttons work without sign-in: prefs are local-first and only
   // sync to the PDS once the user signs in.
-  const canPin = !sidebar;
+  const canPin = pinnable ?? !sidebar;
   // Signed-out users have no "mine vs others" distinction, so pin
   // toggles always target the primary list (`pinnedLexicons`). When
   // signed in, the scope picker decides.
