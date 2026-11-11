@@ -218,6 +218,15 @@ export type Preferences = {
    */
   pinScope: 'own' | 'all' | 'split';
   /**
+   * What the user has pinned in the lexicons explorer (/explore/lexicons):
+   * NSIDs, and namespaces in the group-pin spelling (`app.bsky.*`), in the
+   * order pinned. Kept at the top of that explorer's rail and nowhere else:
+   * apart from `pinnedLexicons`, which lifts collections in every account's
+   * tree, since watching a lexicon is a different wish from wanting it first
+   * in every repository.
+   */
+  lexiconExplorerPins: string[];
+  /**
    * Whether lexicon groups in the explorer's Collections tab should
    * start collapsed. Per-group toggles still work and stick for the
    * duration of the session, but the initial fallback (and the
@@ -315,6 +324,7 @@ export const DEFAULT_PREFERENCES: Preferences = {
   pinnedLexicons: [],
   pinnedLexiconsOthers: [],
   pinScope: 'own',
+  lexiconExplorerPins: [],
   collectionGroupsCollapsedByDefault: false,
   hideRelationshipBar: false,
   hideRepoGlance: false,
@@ -433,6 +443,9 @@ export function mergeWithDefaults(input: Partial<Preferences> | null | undefined
     input.pinScope === 'all' || input.pinScope === 'own' || input.pinScope === 'split'
       ? input.pinScope
       : 'own';
+  const lexiconExplorerPins = Array.isArray(input.lexiconExplorerPins)
+    ? input.lexiconExplorerPins.filter((s): s is string => typeof s === 'string')
+    : [];
   const collectionGroupsCollapsedByDefault =
     typeof input.collectionGroupsCollapsedByDefault === 'boolean'
       ? input.collectionGroupsCollapsedByDefault
@@ -494,6 +507,7 @@ export function mergeWithDefaults(input: Partial<Preferences> | null | undefined
     pinnedLexicons,
     pinnedLexiconsOthers,
     pinScope,
+    lexiconExplorerPins,
     collectionGroupsCollapsedByDefault,
     hideRelationshipBar,
     hideRepoGlance,
@@ -669,7 +683,8 @@ export function preferencesAreEqual(a: Preferences, b: Preferences): boolean {
     a.lastSeenReleaseId === b.lastSeenReleaseId &&
     a.announceReleases === b.announceReleases &&
     JSON.stringify(a.pinnedLexicons) === JSON.stringify(b.pinnedLexicons) &&
-    JSON.stringify(a.pinnedLexiconsOthers) === JSON.stringify(b.pinnedLexiconsOthers)
+    JSON.stringify(a.pinnedLexiconsOthers) === JSON.stringify(b.pinnedLexiconsOthers) &&
+    JSON.stringify(a.lexiconExplorerPins) === JSON.stringify(b.lexiconExplorerPins)
   );
 }
 
@@ -762,6 +777,19 @@ export function removePinnedLexicon(
 ): Preferences {
   const field = pinListFieldFor(target);
   return { ...prefs, [field]: prefs[field].filter((n) => n !== nsid) };
+}
+
+/**
+ * Pin `entry` (an NSID, or a namespace as `prefix.*`) in the lexicons
+ * explorer, at the end of the list, or unpin it if it was pinned. Leaves
+ * `pinnedLexicons` alone: see `lexiconExplorerPins`.
+ */
+export function toggleLexiconExplorerPin(prefs: Preferences, entry: string): Preferences {
+  const list = prefs.lexiconExplorerPins;
+  return {
+    ...prefs,
+    lexiconExplorerPins: list.includes(entry) ? list.filter((e) => e !== entry) : [...list, entry],
+  };
 }
 
 export function setPinScope(
