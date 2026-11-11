@@ -1,5 +1,7 @@
 /**
- * Which layout the account explorer draws at /explore/{repo} and below.
+ * Which layout the explorer draws: the account explorer at /explore/{repo}
+ * and below, and the lexicons explorer at /explore/lexicons and below
+ * (src/lib/lexiconExplorer.ts), one choice for both.
  *
  *   - `workbench`: a dashboard that fills the window. The account and its
  *     collections in a rail, the records in a list, the open record in an

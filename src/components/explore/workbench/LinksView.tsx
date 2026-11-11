@@ -114,6 +114,9 @@ export function RecordLinksView({
  * lives in someone else's repository, so a bar over it says whose and
  * offers the way there. Opening it properly is how to go on from it: its
  * own backlinks card lists what links to *it*.
+ *
+ * The lexicons workbench opens a lexicon's recent records the same way, with
+ * no account of its own and its own words on the bar.
  */
 export function PeekPane({
   peek,
@@ -122,17 +125,20 @@ export function PeekPane({
   tab,
   onTab,
   onClose,
+  label,
 }: {
   peek: PeekTarget;
   /** The shell's account: a record that links from this same repository. */
-  own: IdentityBundle;
+  own: IdentityBundle | null;
   /** Stepping and closing, drawn in the pane's head. */
   controls: ReactNode;
   tab: RecordPaneTab;
   onTab: (tab: RecordPaneTab) => void;
   onClose: () => void;
+  /** What the bar says before whose record it is, glyph included. */
+  label?: ReactNode;
 }) {
-  const local = peek.did === own.did;
+  const local = own !== null && peek.did === own.did;
   const [resolved, setResolved] = useState<{ identity: IdentityBundle | null; failed: boolean } | null>(
     null,
   );
@@ -168,8 +174,12 @@ export function PeekPane({
     <div className="fx-wb-peek">
       <div className="fx-wb-peek-bar">
         <span className="fx-wb-peek-what">
-          <Link2 size={13} aria-hidden />
-          Links here, from
+          {label ?? (
+            <>
+              <Link2 size={13} aria-hidden />
+              Links here, from
+            </>
+          )}
         </span>
         <Link
           href={`/explore/${repoSeg}`}

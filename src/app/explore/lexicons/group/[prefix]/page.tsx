@@ -1,5 +1,6 @@
+import { Suspense } from 'react';
 import type { Metadata } from 'next';
-import LexiconGroup from '@/components/explore/lexicons/LexiconGroup';
+import LexiconRoute, { LexiconRouteSkeleton } from '@/components/explore/lexicons/workbench/LexiconRoute';
 
 type Params = { prefix: string };
 
@@ -36,5 +37,9 @@ export default async function LexiconGroupPage({
   params: Promise<Params>;
 }) {
   const { prefix } = await params;
-  return <LexiconGroup prefix={decodeURIComponent(prefix)} />;
+  return (
+    <Suspense fallback={<LexiconRouteSkeleton />}>
+      <LexiconRoute group={decodeURIComponent(prefix)} />
+    </Suspense>
+  );
 }

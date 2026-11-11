@@ -1,5 +1,6 @@
+import { Suspense } from 'react';
 import type { Metadata } from 'next';
-import LexiconsExplorer from '@/components/explore/lexicons/LexiconsExplorer';
+import LexiconRoute, { LexiconRouteSkeleton } from '@/components/explore/lexicons/workbench/LexiconRoute';
 
 export const metadata: Metadata = {
   title: 'Lexicons · Atmosphere Explorer · aturi.to',
@@ -27,6 +28,14 @@ export const metadata: Metadata = {
   },
 };
 
+/**
+ * The workbench reads its list from the query string, so it renders in the
+ * browser under a Suspense boundary; the static HTML carries its frame.
+ */
 export default function LexiconsPage() {
-  return <LexiconsExplorer />;
+  return (
+    <Suspense fallback={<LexiconRouteSkeleton />}>
+      <LexiconRoute />
+    </Suspense>
+  );
 }

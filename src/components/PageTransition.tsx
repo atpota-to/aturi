@@ -10,6 +10,7 @@ import {
 } from '@/lib/a11y';
 import { animate, MOTION } from '@/lib/motion';
 import { parseExplorerPath } from '@/lib/explorerView';
+import { isLexiconPath } from '@/lib/lexiconExplorer';
 import { useExplorerView } from './explore/workbench/useExplorerView';
 
 interface PageTransitionProps {
@@ -59,8 +60,9 @@ function settleBlocks(page: HTMLElement): HTMLElement[] {
  * Route-level crossfade. Keyed on pathname so navigations trigger a fresh
  * mount of the children subtree.
  *
- * One kind of move keeps the key it has: around one account's repository in
- * the explorer's workbench and Files views (ExplorerShell). Those rewrite
+ * Two kinds of move keep the key they have: around one account's repository
+ * in the explorer's workbench and Files views (ExplorerShell), and around the
+ * lexicons explorer in the same two views (LexiconShell). Those rewrite
  * the address with the History API instead of navigating, precisely so the
  * shell stays mounted with the records it has fetched; a fresh mount here
  * would undo that. The key starts as the pathname either way, so the server
@@ -102,7 +104,9 @@ export default function PageTransition({ children }: PageTransitionProps) {
   if (keyed.path !== pathname) {
     const from = parseExplorerPath(keyed.path);
     const to = parseExplorerPath(pathname);
-    const insideShell = explorerView !== 'classic' && !!from && !!to && from.repo === to.repo;
+    const insideShell =
+      explorerView !== 'classic' &&
+      ((!!from && !!to && from.repo === to.repo) || (isLexiconPath(keyed.path) && isLexiconPath(pathname)));
     if (!insideShell) pageKey = pathname;
     setKeyed({ path: pathname, key: pageKey });
   }
