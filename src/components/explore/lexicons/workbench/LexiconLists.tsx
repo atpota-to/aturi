@@ -689,7 +689,7 @@ function NamespacePane({ host, prefix }: { host: ListHost; prefix: string }) {
             className="fx-btn"
             aria-pressed={pinned}
             onClick={() => toggle(pinEntry)}
-            title={pinned ? `Unpin ${prefix}.*` : `Pin ${prefix}.*, here and in every account’s collections`}
+            title={pinned ? `Unpin ${prefix}.*` : `Pin ${prefix}.* to the top of the lexicons rail`}
           >
             <Pin size={14} aria-hidden />
             {pinned ? 'Pinned' : 'Pin'}

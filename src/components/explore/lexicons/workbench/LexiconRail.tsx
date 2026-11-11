@@ -1,9 +1,8 @@
 'use client';
 
-import { useCallback, useEffect, useId, useMemo, useRef, useState, type KeyboardEvent } from 'react';
+import { useCallback, useEffect, useId, useMemo, useRef, useState, useSyncExternalStore, type KeyboardEvent } from 'react';
 import Link from 'next/link';
 import { BarChart3, Braces, ChevronRight, FolderTree, List, Pin, Search, Sparkles, Sprout, type LucideIcon } from 'lucide-react';
-import { usePreferences } from '@/components/PreferencesProvider';
 import {
   homeScopeFor,
   LEXICON_LIST_LABELS,
@@ -12,7 +11,14 @@ import {
   type LexiconLocation,
   type LexiconScope,
 } from '@/lib/lexiconExplorer';
-import { isPinGroup, pinGroupPrefix, PIN_GROUP_SUFFIX, togglePinnedLexicon } from '@/utils/preferences';
+import {
+  getLexiconPins,
+  getLexiconPinsOnServer,
+  setLexiconPins,
+  subscribeLexiconPins,
+  toggleLexiconPin,
+} from '@/lib/lexiconPins';
+import { isPinGroup, pinGroupPrefix, PIN_GROUP_SUFFIX } from '@/utils/preferences';
 import { searchLexicons } from '@/utils/ufos/client';
 import type { NsidCount } from '@/utils/ufos/config';
 import { formatCount } from '@/utils/ufos/format';
@@ -32,15 +38,15 @@ export const LIST_ICONS: Record<LexiconList, LucideIcon> = {
 /** Builds the address of somewhere else, keeping the window and the metric. */
 export type AddressFor = (to: { scope: LexiconScope; nsid?: string | null }) => string;
 
-/** The visitor's pinned lexicons and namespaces, shared with the account explorer's trees. */
+/**
+ * The lexicons and namespaces the visitor has pinned here
+ * (src/lib/lexiconPins.ts): this explorer's own, apart from the pinned
+ * lexicons the account explorer lifts in every account's collections.
+ */
 export function useLexiconPins() {
-  const { prefs, update } = usePreferences();
-  const pins = prefs.pinnedLexicons;
+  const pins = useSyncExternalStore(subscribeLexiconPins, getLexiconPins, getLexiconPinsOnServer);
   const set = useMemo(() => new Set(pins), [pins]);
-  const toggle = useCallback(
-    (entry: string) => update((p) => togglePinnedLexicon(p, entry, 'mine')),
-    [update],
-  );
+  const toggle = useCallback((entry: string) => setLexiconPins(toggleLexiconPin(getLexiconPins(), entry)), []);
   return { pins, isPinned: (entry: string) => set.has(entry), toggle };
 }
 
@@ -168,7 +174,7 @@ function PinButton({ pinned, onToggle, name }: { pinned: boolean; onToggle: () =
       data-pinned={pinned || undefined}
       aria-pressed={pinned}
       aria-label={pinned ? `Unpin ${name}` : `Pin ${name}`}
-      title={pinned ? 'Unpin' : 'Pin, here and in every account’s collections'}
+      title={pinned ? 'Unpin' : 'Pin to the top of this rail'}
       onClick={onToggle}
     >
       <Pin size={13} aria-hidden />

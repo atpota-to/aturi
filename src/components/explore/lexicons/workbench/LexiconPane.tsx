@@ -73,7 +73,7 @@ export default function LexiconPane({
         data-variant={pinned ? 'primary' : undefined}
         onClick={() => toggle(nsid)}
         aria-label={pinned ? 'Unpin this lexicon' : 'Pin this lexicon'}
-        title={pinned ? 'Unpin' : 'Pin, here and in every account’s collections'}
+        title={pinned ? 'Unpin' : 'Pin to the top of the lexicons rail'}
       >
         <Pin size={14} aria-hidden />
         {pinned ? 'Pinned' : 'Pin'}
