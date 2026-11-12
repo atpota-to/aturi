@@ -18,6 +18,8 @@ import { usePreferences } from '@/components/PreferencesProvider';
 import AppearIn from './AppearIn';
 import Breadcrumb from './Breadcrumb';
 import CopyButton from './CopyButton';
+import { HandleCheckMark } from './HandleCheck';
+import AccountToolLinks from './AccountToolLinks';
 import ProfileHeader from './ProfileHeader';
 import RelationshipStrip from './RelationshipStrip';
 import RepoSpacesSection from './space/RepoSpacesSection';
@@ -254,7 +256,12 @@ function RepoGlanceSection({
           Repo at a glance
         </button>
       </h2>
-      {!isCollapsed && <AccountStats did={identity.did} handle={identity.handle} />}
+      {!isCollapsed && (
+        <>
+          <AccountStats did={identity.did} handle={identity.handle} />
+          <AccountToolLinks did={identity.did} />
+        </>
+      )}
     </section>
   );
 }
@@ -298,6 +305,7 @@ function IdentityRow({ identity }: { identity: IdentityBundle }) {
             <code className="fx-mono fx-trunc" title={`@${identity.handle}`}>
               @{identity.handle}
             </code>
+            <HandleCheckMark did={identity.did} handle={identity.handle} />
             <CopyButton
               value={identity.handle}
               label="Copy handle"

@@ -6,7 +6,8 @@ import ToolsLanding from '@/components/tools/ToolsLanding';
  * No handle collides with it: a handle is a domain and always carries a dot.
  */
 const TITLE = 'Tools · aturi.to';
-const DESCRIPTION = 'Small single-purpose utilities for atproto, starting with a live Jetstream and PLC directory monitor.';
+const DESCRIPTION =
+  'Small single-purpose utilities for atproto: a handle debugger, a record validator, an XRPC console, a live Jetstream and PLC monitor, and more.';
 
 export const metadata: Metadata = {
   title: TITLE,

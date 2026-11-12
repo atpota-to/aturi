@@ -338,10 +338,14 @@ export const COMMANDS: CommandMeta[] = [
   {
     id: 'go-tools',
     label: 'Go to tools',
-    description: 'Small utilities, including a live Jetstream and PLC monitor.',
+    description: 'Small utilities: a handle debugger, a record validator, an XRPC console, a live monitor and more.',
     group: 'navigation',
     defaultBindings: [],
-    keywords: ['tools', 'utilities', 'jetstream', 'firehose', 'plc', 'stream', 'monitor', 'live'],
+    keywords: [
+      'tools', 'utilities', 'jetstream', 'firehose', 'plc', 'stream', 'monitor', 'live',
+      'handle', 'debugger', 'validator', 'validate', 'xrpc', 'console', 'decoder', 'decode',
+      'labels', 'feed', 'relay', 'oauth', 'resolver', 'calendar', 'inspector',
+    ],
   },
   {
     id: 'go-links',
