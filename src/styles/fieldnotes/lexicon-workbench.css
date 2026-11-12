@@ -1331,6 +1331,89 @@ a.fx-lx-rec:focus-visible {
   border-left: 2px solid var(--border-subtle);
 }
 
+/* Field usage (FieldUsage.tsx): a share of sampled records on its own line
+   under the field's name, the bar and its number side by side. */
+.fx-lx-use {
+  display: flex;
+  flex-basis: 100%;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px 6px;
+  min-width: 0;
+  margin-top: 2px;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-secondary);
+}
+
+.fx-lx-use-bar {
+  position: relative;
+  flex: none;
+  width: 5.5rem;
+  height: 5px;
+  border-radius: var(--radius-pill);
+  background: var(--bg-tertiary);
+  overflow: hidden;
+}
+
+.fx-lx-use-bar > span {
+  position: absolute;
+  inset: 0 auto 0 0;
+  min-width: 2px;
+  border-radius: inherit;
+  background: var(--text-accent);
+}
+
+.fx-lx-use[data-none] {
+  color: var(--text-tertiary);
+}
+
+.fx-lx-use[data-none] .fx-lx-use-bar > span {
+  min-width: 0;
+}
+
+/* A required field some records leave out: those records don't validate. */
+.fx-lx-use[data-gap] .fx-lx-use-bar > span {
+  background: var(--danger);
+}
+
+.fx-lx-use-gap {
+  white-space: nowrap;
+  font-weight: 600;
+  color: var(--danger);
+}
+
+.fx-lx-use-note {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--text-tertiary);
+}
+
+.fx-lx-use-head {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* Sampling Jetstream for more records: the button, then what it found. */
+.fx-lx-use-live {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+}
+
+.fx-lx-use-live .fx-btn {
+  gap: 6px;
+}
+
+.fx-lx-use-live-status {
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-tertiary);
+}
+
 .fx-lx-errors ul {
   margin: 0;
   padding: 0;

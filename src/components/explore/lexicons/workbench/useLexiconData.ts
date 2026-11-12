@@ -372,13 +372,14 @@ export function useLexiconStats(nsid: string, window: Window) {
 /**
  * The latest records UFOs sampled for a lexicon from the firehose. Kept for
  * the visit like the rest, so the inspector's tab and the main pane's list
- * show the same ones; Live is how to see newer.
+ * show the same ones; Live is how to see newer. Null asks for nothing, for
+ * a pane that only wants them for some lexicons.
  */
-export function useRecentRecords(nsid: string) {
-  const key = `records|${nsid}`;
+export function useRecentRecords(nsid: string | null) {
+  const key = nsid ? `records|${nsid}` : null;
   return useLoad<ApiRecord[]>(key, () =>
-    once(key, async () => {
-      const res = await fetchRecentRecordsResult([nsid]);
+    once(key as string, async () => {
+      const res = await fetchRecentRecordsResult([nsid as string]);
       if (res.failed) throw new Error('the UFOs API is unavailable');
       return [...res.records].sort((a, b) => b.time_us - a.time_us);
     }),
