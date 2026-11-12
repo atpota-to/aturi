@@ -71,15 +71,22 @@ type JetstreamMessage = {
  * Open Jetstream, collect matching commit events until `maxEvents` or
  * `durationMs`, then close. Resolves with what was collected; a quiet window
  * yields an empty array, which is a valid answer, not an error.
+ *
+ * `maxPayloadBytes` defaults to MAX_PAYLOAD_BYTES, which protects a caller
+ * the events are returned to. get_lexicon_field_usage only counts what it
+ * collects, so it passes a larger one and MAX_INGRESS_BYTES still bounds
+ * what is read.
  */
-function collectJetstream(opts: {
+export function collectJetstream(opts: {
   collections: string[];
   dids: string[];
   operations: Set<Operation>;
   maxEvents: number;
   durationMs: number;
+  maxPayloadBytes?: number;
 }): Promise<{ events: CollectedEvent[]; reachedMax: boolean }> {
   const { collections, dids, operations, maxEvents, durationMs } = opts;
+  const maxPayloadBytes = opts.maxPayloadBytes ?? MAX_PAYLOAD_BYTES;
 
   const params = new URLSearchParams();
   for (const c of collections) params.append('wantedCollections', c);
@@ -167,7 +174,7 @@ function collectJetstream(opts: {
       // Measure before keeping it: one outsized record should end the window
       // rather than be returned and blow the payload budget.
       const size = JSON.stringify(event).length;
-      if (bytes + size > MAX_PAYLOAD_BYTES) {
+      if (bytes + size > maxPayloadBytes) {
         finish(events.length > 0);
         return;
       }

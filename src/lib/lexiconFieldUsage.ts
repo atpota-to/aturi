@@ -152,6 +152,18 @@ export function measureFieldUsage(records: readonly SampledRecord[]): FieldUsage
   return { records: measured, accounts: dids.size, newest, oldest, fields: finish(root) };
 }
 
+/**
+ * Two samples of the same lexicon as one, each record once: a record in
+ * both (UFOs kept it, then Jetstream saw it updated) is counted as `newer`
+ * has it. `older`'s order is kept, with `newer`'s additions after it.
+ */
+export function mergeSamples<T extends { did: string; rkey: string }>(older: readonly T[], newer: readonly T[]): T[] {
+  const key = (r: T) => `${r.did}/${r.rkey}`;
+  const fresh = new Map(newer.map((r) => [key(r), r]));
+  const kept = older.filter((r) => !fresh.has(key(r)));
+  return [...kept, ...fresh.values()];
+}
+
 /** Every field in the sample by its path, nested ones included. */
 export function usageByPath(fields: readonly FieldUsage[], into = new Map<string, FieldUsage>()): Map<string, FieldUsage> {
   for (const f of fields) {

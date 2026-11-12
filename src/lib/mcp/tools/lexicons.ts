@@ -23,7 +23,14 @@ import {
   UFOS_HISTORY_BEGINS,
   type Direction,
 } from '@/lib/lexiconTrends';
-import { declaredRecordFields, fieldReport, measureFieldUsage } from '@/lib/lexiconFieldUsage';
+import {
+  declaredRecordFields,
+  fieldReport,
+  measureFieldUsage,
+  mergeSamples,
+  type SampledRecord,
+} from '@/lib/lexiconFieldUsage';
+import { collectJetstream } from '@/lib/mcp/tools/jetstream';
 import { summarizeLexicon } from '@/lib/lexiconSchema';
 import { WINDOWS, type Window } from '@/utils/ufos/windows';
 import { isoAgo, type CollectionOrder, type JustCount } from '@/utils/ufos/config';
@@ -105,6 +112,15 @@ async function findPublishedSchema(nsid: string): Promise<PublishedSchema> {
   if (!record) return { status: 'unpublished', did, resolvedVia };
   return { status: 'found', did, resolvedVia, record };
 }
+
+/**
+ * The Jetstream window get_lexicon_field_usage can add: as long as
+ * sample_jetstream's, and with the schema lookup beside it, inside the tool
+ * budget. A run on a busy lexicon ends at the record cap first.
+ */
+const USAGE_JETSTREAM_MAX_SECONDS = 15;
+const USAGE_JETSTREAM_MAX_RECORDS = 1000;
+const USAGE_JETSTREAM_MAX_BYTES = 4_000_000;
 
 /** A share to three places, the precision a sample of a few dozen records can carry and then some. */
 function share(records: number, of: number): number | null {
@@ -539,19 +555,53 @@ export function registerLexiconTools(server: McpServer): void {
         'accounts those came from, and what kinds of value it held. Checked against the published ' +
         'schema when there is one, naming declared fields no sampled record sets, required ones some ' +
         'leave out, and fields records set that the schema does not declare. Without a schema, it is ' +
-        'the shape the records take.',
-      inputSchema: z.object({ nsid: nsidSchema }),
+        'the shape the records take. Set jetstream_seconds to add records written live in the next ' +
+        'few seconds to that few-dozen sample.',
+      inputSchema: z.object({
+        nsid: nsidSchema,
+        jetstream_seconds: z
+          .number()
+          .int()
+          .min(1)
+          .max(USAGE_JETSTREAM_MAX_SECONDS)
+          .optional()
+          .describe(
+            `Also listen to Jetstream this long (max ${USAGE_JETSTREAM_MAX_SECONDS}) and add the records written, ` +
+              `up to ${USAGE_JETSTREAM_MAX_RECORDS}. Default: no live sample.`,
+          ),
+      }),
       annotations: READ_ONLY,
     },
-    toolHandler(async ({ nsid }) => {
+    toolHandler(async ({ nsid, jetstream_seconds }) => {
       assertNsid(nsid);
-      const [sampled, published] = await Promise.all([
+      const [sampled, published, streamed] = await Promise.all([
         fetchRecentRecordsResult([nsid]),
         // The schema only sharpens the answer, so failing to find it is a
         // status in the result rather than a failed call.
         findPublishedSchema(nsid).catch(() => null),
+        // So does Jetstream: a window that can't connect leaves the UFOs
+        // sample, and says so.
+        jetstream_seconds
+          ? collectJetstream({
+              collections: [nsid],
+              dids: [],
+              operations: new Set(['create', 'update']),
+              maxEvents: USAGE_JETSTREAM_MAX_RECORDS,
+              durationMs: jetstream_seconds * 1000,
+              maxPayloadBytes: USAGE_JETSTREAM_MAX_BYTES,
+            }).catch(() => null)
+          : undefined,
       ]);
-      if (sampled.failed) {
+      const live = (streamed?.events ?? [])
+        .filter((e) => e.collection === nsid && e.record)
+        .map((e) => ({
+          did: e.did,
+          rkey: e.rkey,
+          record: e.record,
+          ...(e.seenAt ? { time_us: Date.parse(e.seenAt) * 1000 } : {}),
+        }));
+      // Without a live sample, a UFOs outage leaves nothing to measure.
+      if (sampled.failed && live.length === 0) {
         throw new McpToolError(
           'upstream_error',
           'The UFOs record sampler is unavailable',
@@ -579,12 +629,22 @@ export function registerLexiconTools(server: McpServer): void {
                   ...(summary?.main ? { mainType: summary.main.type } : {}),
                 };
 
-      const sample = measureFieldUsage(sampled.records);
+      const merged = mergeSamples<SampledRecord & { rkey: string }>(sampled.records, live);
+      const sample = measureFieldUsage(merged);
       const sampleInfo = {
         records: sample.records,
         accounts: sample.accounts,
         newest: sample.newest === null ? null : new Date(sample.newest).toISOString(),
         oldest: sample.oldest === null ? null : new Date(sample.oldest).toISOString(),
+        sources: { ufos: merged.length - live.length, jetstream: live.length },
+        ...(sampled.failed ? { ufos: 'unavailable' } : {}),
+        ...(jetstream_seconds
+          ? {
+              jetstream: streamed
+                ? { seconds: jetstream_seconds, records: live.length, reachedMax: streamed.reachedMax }
+                : { seconds: jetstream_seconds, status: 'unavailable' },
+            }
+          : {}),
       };
       const links = { explore: siteLink(lexiconPathFor(nsid)) };
       if (sample.records === 0) {
@@ -593,7 +653,11 @@ export function registerLexiconTools(server: McpServer): void {
           sample: sampleInfo,
           schema,
           fields: [],
-          note: 'UFOs has sampled no records of this lexicon recently, so there is nothing to measure: it is quiet, or not a record type.',
+          note:
+            (jetstream_seconds ? 'Neither UFOs nor the Jetstream window' : 'UFOs') +
+            ' saw any records of this lexicon recently, so there is nothing to measure: it is quiet, or not a ' +
+            'record type.' +
+            (jetstream_seconds ? '' : ' jetstream_seconds can wait for new ones.'),
           links,
         };
       }
@@ -626,7 +690,8 @@ export function registerLexiconTools(server: McpServer): void {
           'share is records / of. of is the whole sample for a top-level field and, for a nested path ' +
           '(a.b), the records that set its parent object. Fields inside arrays and typed objects are not ' +
           'counted. The sample is the newest records UFOs keeps, a few dozen at most and often from few ' +
-          'accounts, so read shares as indicative and accounts as how many stand behind each.',
+          'accounts, plus any written during the Jetstream window, so read shares as indicative and ' +
+          'accounts as how many stand behind each.',
         links,
       };
     }),

@@ -2,12 +2,14 @@
 
 import { Fragment, useMemo } from 'react';
 import Link from 'next/link';
+import { Radio } from 'lucide-react';
 import { SkeletonBar } from '../../skeletons/primitives';
 import { homeScopeFor } from '@/lib/lexiconExplorer';
 import {
   baseFor,
   MAX_USAGE_DEPTH,
   measureFieldUsage,
+  mergeSamples,
   percentText,
   usageByPath,
   type DeclaredField,
@@ -18,34 +20,52 @@ import { parseLexiconRef } from '@/lib/lexiconSchema';
 import { formatTidRelative } from '@/utils/atproto/tid';
 import type { AddressFor } from './LexiconRail';
 import { useRecentRecords } from './useLexiconData';
+import { LIVE_MAX, LIVE_SECONDS, useLiveSample, type LiveSample } from './useLiveSample';
 
 /**
  * Field usage in the schema tab: how often records set each field, measured
  * over the newest records UFOs sampled from the firehose (useRecentRecords,
  * the same ones the Records tab lists, so this asks for nothing new when
- * that has loaded). A few dozen records is a small sample, so every number
- * says what it was counted over, and a share is never rounded to 0% or 100%
- * when it isn't one.
+ * that has loaded). A few dozen records is a small sample, so the visitor
+ * can widen it with records Jetstream sends as they're written
+ * (useLiveSample). Every number says what it was counted over, and a share
+ * is never rounded to 0% or 100% when it isn't one.
  */
 
-export type UsageState =
+export type UsageState = (
   | { status: 'loading' }
+  /** UFOs didn't answer, and Jetstream hasn't added anything. */
   | { status: 'failed'; error: string }
-  | { status: 'ready'; sample: FieldUsageSample; byPath: Map<string, FieldUsage> };
+  | {
+      status: 'ready';
+      sample: FieldUsageSample;
+      byPath: Map<string, FieldUsage>;
+      /** Where the sample's records came from, each counted once. */
+      sources: { ufos: number; jetstream: number };
+    }
+) & { live: LiveSample; ufosError: string | null };
 
 /** Field usage for a lexicon, or null when `enabled` is off and nothing is asked for. */
 export function useFieldUsage(nsid: string, enabled: boolean): UsageState | null {
   const recent = useRecentRecords(enabled ? nsid : null);
+  const live = useLiveSample(nsid);
   const data = recent.key === `records|${nsid}` ? recent.data : null;
+  const ufosError = data ? null : recent.error;
+  const settled = data !== null || ufosError !== null;
   const measured = useMemo(() => {
-    if (!data) return null;
-    const sample = measureFieldUsage(data);
-    return { sample, byPath: usageByPath(sample.fields) };
-  }, [data]);
+    if (!settled || (!data && live.records.length === 0)) return null;
+    const merged = mergeSamples(data ?? [], live.records);
+    const sample = measureFieldUsage(merged);
+    return {
+      sample,
+      byPath: usageByPath(sample.fields),
+      sources: { ufos: merged.length - live.records.length, jetstream: live.records.length },
+    };
+  }, [settled, data, live.records]);
   if (!enabled) return null;
-  if (measured) return { status: 'ready', ...measured };
-  if (recent.error) return { status: 'failed', error: recent.error };
-  return { status: 'loading' };
+  if (measured) return { status: 'ready', ...measured, live, ufosError };
+  if (ufosError) return { status: 'failed', error: ufosError, live, ufosError };
+  return { status: 'loading', live, ufosError };
 }
 
 function plural(n: number, one: string, many = `${one}s`): string {
@@ -58,7 +78,11 @@ function seenWhen(ms: number): string {
   return text.endsWith('ago') ? text : `on ${text}`;
 }
 
-/** What the shares were counted over, above the fields they're shown on. */
+function secondsText(seconds: number): string {
+  return `${Math.max(1, Math.round(seconds))}s`;
+}
+
+/** What the shares were counted over, above the fields they're shown on, with the way to widen it. */
 export function UsageNote({ state }: { state: UsageState }) {
   if (state.status === 'loading') {
     return (
@@ -67,19 +91,87 @@ export function UsageNote({ state }: { state: UsageState }) {
       </div>
     );
   }
+  return (
+    <div className="fx-lx-use-head">
+      <p className="fx-lx-use-note">
+        <SampleText state={state} />
+      </p>
+      <LiveControl live={state.live} />
+    </div>
+  );
+}
+
+function SampleText({ state }: { state: Exclude<UsageState, { status: 'loading' }> }) {
   if (state.status === 'failed') {
-    return <p className="fx-lx-use-note">Field usage didn’t load: the UFOs API didn’t answer ({state.error}).</p>;
+    return <>Field usage needs records, and the UFOs API didn’t answer ({state.error}). Jetstream can still catch new ones.</>;
   }
-  const { sample } = state;
+  const { sample, sources, live } = state;
   if (sample.records === 0) {
-    return <p className="fx-lx-use-note">UFOs hasn’t sampled any records of this lexicon recently, so there’s no field usage to show.</p>;
+    return <>UFOs hasn’t sampled any records of this lexicon recently. Jetstream can catch new ones as they’re written.</>;
+  }
+  const tail = (
+    <>
+      , from {plural(sample.accounts, 'account')}
+      {sample.oldest !== null && <>, the oldest seen {seenWhen(sample.oldest)}</>}.
+    </>
+  );
+  if (sources.jetstream === 0) {
+    return (
+      <>
+        Usage is the share of the {plural(sample.records, 'newest record')} UFOs sampled that set each field{tail}
+      </>
+    );
   }
   return (
-    <p className="fx-lx-use-note">
-      Usage is the share of the {plural(sample.records, 'newest record')} UFOs sampled that set each field, from{' '}
-      {plural(sample.accounts, 'account')}
-      {sample.oldest !== null && <>, the oldest seen {seenWhen(sample.oldest)}</>}.
-    </p>
+    <>
+      Usage is the share of {plural(sample.records, 'record')} that set each field:{' '}
+      {sources.ufos > 0 ? `${sources.ufos.toLocaleString('en-US')} UFOs sampled and ` : ''}
+      {sources.jetstream.toLocaleString('en-US')} from Jetstream over {secondsText(live.seconds)}
+      {state.ufosError ? ' (UFOs didn’t answer)' : ''}
+      {tail}
+    </>
+  );
+}
+
+/**
+ * Listen to Jetstream for more records, or stop listening. What the last
+ * run found is said beside it, politely, for a screen reader.
+ */
+function LiveControl({ live }: { live: LiveSample }) {
+  const status =
+    live.phase === 'listening'
+      ? `${plural(live.records.length, 'record')} from Jetstream so far`
+      : live.last
+        ? live.last.added > 0
+          ? `Added ${plural(live.last.added, 'record')} in ${secondsText(live.last.seconds)}.`
+          : live.last.errored
+            ? 'Jetstream didn’t connect.'
+            : `Nothing new was written in ${secondsText(live.last.seconds)}.`
+        : null;
+  return (
+    <div className="fx-lx-use-live">
+      {live.phase === 'listening' ? (
+        <button type="button" className="fx-btn fx-btn-sm" aria-pressed onClick={live.stop} title="Stop and keep what arrived">
+          <span className="fx-dot" data-live aria-hidden />
+          Stop listening
+        </button>
+      ) : (
+        <button
+          type="button"
+          className="fx-btn fx-btn-sm"
+          onClick={live.start}
+          title={`Add the records written in the next ${LIVE_SECONDS} seconds, up to ${LIVE_MAX.toLocaleString('en-US')}, as Jetstream sends them`}
+        >
+          <Radio size={13} aria-hidden />
+          {live.last ? `Listen ${LIVE_SECONDS}s more` : `Sample Jetstream for ${LIVE_SECONDS}s`}
+        </button>
+      )}
+      {status && (
+        <span className="fx-lx-use-live-status" aria-live="polite">
+          {status}
+        </span>
+      )}
+    </div>
   );
 }
 

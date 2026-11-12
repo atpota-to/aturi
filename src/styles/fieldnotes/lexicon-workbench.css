@@ -1390,6 +1390,30 @@ a.fx-lx-rec:focus-visible {
   color: var(--text-tertiary);
 }
 
+.fx-lx-use-head {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* Sampling Jetstream for more records: the button, then what it found. */
+.fx-lx-use-live {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+}
+
+.fx-lx-use-live .fx-btn {
+  gap: 6px;
+}
+
+.fx-lx-use-live-status {
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-tertiary);
+}
+
 .fx-lx-errors ul {
   margin: 0;
   padding: 0;

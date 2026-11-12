@@ -582,8 +582,28 @@ const NOTES = [
  * authority: the TXT record names did:plc:pub and Slingshot answers with
  * `schema`, unless either is left out.
  */
-async function runFieldUsage(nsid: string, opts: { schema?: unknown; recordsStatus?: number }) {
+async function runFieldUsage(
+  nsid: string,
+  opts: { schema?: unknown; recordsStatus?: number; jetstream?: unknown[] },
+  args: Record<string, unknown> = {},
+) {
   const originalFetch = globalThis.fetch;
+  const originalWs = (globalThis as { WebSocket?: unknown }).WebSocket;
+  const sockets: string[] = [];
+  /** Sends `opts.jetstream` as soon as it opens, then stays quiet until closed. */
+  class FakeJetstream {
+    onmessage: ((e: { data: string }) => void) | null = null;
+    onerror: (() => void) | null = null;
+    onclose: (() => void) | null = null;
+    constructor(url: string) {
+      sockets.push(url);
+      setTimeout(() => {
+        for (const m of opts.jetstream ?? []) this.onmessage?.({ data: JSON.stringify(m) });
+      }, 5);
+    }
+    close() {}
+  }
+  (globalThis as { WebSocket?: unknown }).WebSocket = FakeJetstream;
   globalThis.fetch = (async (input: RequestInfo | URL) => {
     const url = new URL(String(input));
     const json = (body: unknown, status = 200) =>
@@ -598,10 +618,11 @@ async function runFieldUsage(nsid: string, opts: { schema?: unknown; recordsStat
     return json({}, 404);
   }) as typeof fetch;
   try {
-    const result = await tools.get('get_lexicon_field_usage')!.handler({ nsid });
-    return { result, body: resultBody(result) };
+    const result = await tools.get('get_lexicon_field_usage')!.handler({ nsid, ...args });
+    return { result, body: resultBody(result), sockets };
   } finally {
     globalThis.fetch = originalFetch;
+    (globalThis as { WebSocket?: unknown }).WebSocket = originalWs;
   }
 }
 
@@ -613,6 +634,7 @@ test('get_lexicon_field_usage checks each field against the published schema', a
     accounts: 2,
     newest: new Date(1_800_000_002_000).toISOString(),
     oldest: new Date(1_800_000_000_000).toISOString(),
+    sources: { ufos: 3, jetstream: 0 },
   });
   assert.equal((body.schema as { status: string }).status, 'found');
   assert.deepEqual(
@@ -648,4 +670,62 @@ test('get_lexicon_field_usage fails rather than call every field unused when UFO
   const { result, body } = await runFieldUsage('com.example.usage.down', { recordsStatus: 503 });
   assert.equal(result.isError, true);
   assert.equal(body.code, 'upstream_error');
+});
+
+function commit(operation: string, did: string, rkey: string, record: Record<string, unknown> | null, collection = 'com.example.usage.note') {
+  return {
+    did,
+    time_us: 1_800_000_100_000_000,
+    kind: 'commit',
+    commit: { operation, collection, rkey, ...(record ? { record: { $type: collection, ...record } } : {}) },
+  };
+}
+
+test('get_lexicon_field_usage adds what Jetstream sends to the UFOs sample', async () => {
+  const { result, body, sockets } = await runFieldUsage(
+    'com.example.usage.live',
+    {
+      schema: NOTE_SCHEMA,
+      jetstream: [
+        // An update to a record UFOs already holds counts once, as updated.
+        commit('update', 'did:plc:b', '3k2', { text: 'three', createdAt: 't', mood: 'calm' }, 'com.example.usage.live'),
+        commit('create', 'did:plc:c', '3k9', { text: 'four', createdAt: 't' }, 'com.example.usage.live'),
+        commit('delete', 'did:plc:c', '3k8', null, 'com.example.usage.live'),
+        commit('create', 'did:plc:c', '3k7', { text: 'elsewhere' }, 'com.example.other'),
+      ],
+    },
+    { jetstream_seconds: 1 },
+  );
+  assert.notEqual(result.isError, true);
+  assert.equal(sockets.length, 1);
+  assert.deepEqual(new URL(sockets[0]).searchParams.getAll('wantedCollections'), ['com.example.usage.live']);
+  const sample = body.sample as Record<string, unknown>;
+  assert.equal(sample.records, 4);
+  assert.equal(sample.accounts, 3);
+  assert.deepEqual(sample.sources, { ufos: 2, jetstream: 2 });
+  assert.deepEqual(sample.jetstream, { seconds: 1, records: 2, reachedMax: false });
+  assert.deepEqual(body.requiredMissing, [], 'the record missing createdAt was updated to have it');
+  assert.deepEqual(body.declaredUnused, []);
+});
+
+test('get_lexicon_field_usage measures Jetstream alone when UFOs is down', async () => {
+  const { result, body } = await runFieldUsage(
+    'com.example.usage.liveonly',
+    {
+      recordsStatus: 503,
+      jetstream: [commit('create', 'did:plc:c', '3k9', { text: 'four' }, 'com.example.usage.liveonly')],
+    },
+    { jetstream_seconds: 1 },
+  );
+  assert.notEqual(result.isError, true);
+  const sample = body.sample as Record<string, unknown>;
+  assert.deepEqual(sample.sources, { ufos: 0, jetstream: 1 });
+  assert.equal(sample.ufos, 'unavailable');
+});
+
+test('get_lexicon_field_usage bounds the Jetstream window', () => {
+  const schema = tools.get('get_lexicon_field_usage')!.config.inputSchema!;
+  assert.equal(schema.safeParse({ nsid: 'app.bsky.feed.post', jetstream_seconds: 16 }).success, false);
+  assert.equal(schema.safeParse({ nsid: 'app.bsky.feed.post', jetstream_seconds: 0 }).success, false);
+  assert.equal(schema.safeParse({ nsid: 'app.bsky.feed.post', jetstream_seconds: 15 }).success, true);
 });

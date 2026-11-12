@@ -6,6 +6,7 @@ import {
   fieldReport,
   kindOf,
   measureFieldUsage,
+  mergeSamples,
   percentText,
   usageByPath,
 } from '@/lib/lexiconFieldUsage';
@@ -202,4 +203,24 @@ test('never rounds a share to a misleading 0% or 100%', () => {
   assert.equal(percentText(1, 300), '<1%');
   assert.equal(percentText(299, 300), '>99%');
   assert.equal(percentText(0, 0), '–');
+});
+
+test('merges two samples with each record counted once, as the newer one has it', () => {
+  const older = [
+    { did: 'did:plc:a', rkey: '1', record: { v: 'old' } },
+    { did: 'did:plc:a', rkey: '2', record: { v: 'old' } },
+  ];
+  const newer = [
+    { did: 'did:plc:a', rkey: '2', record: { v: 'new' } },
+    { did: 'did:plc:b', rkey: '2', record: { v: 'new' } },
+    { did: 'did:plc:b', rkey: '2', record: { v: 'newest' } },
+  ];
+  assert.deepEqual(
+    mergeSamples(older, newer).map((r) => [r.did, r.rkey, r.record.v]),
+    [
+      ['did:plc:a', '1', 'old'],
+      ['did:plc:a', '2', 'new'],
+      ['did:plc:b', '2', 'newest'],
+    ],
+  );
 });
