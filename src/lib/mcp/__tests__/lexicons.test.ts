@@ -19,6 +19,7 @@ test('registers exactly the lexicon tools', () => {
     [...tools.keys()].sort(),
     [
       'get_lexicon_activity',
+      'get_lexicon_field_usage',
       'get_lexicon_schema',
       'list_lexicon_movers',
       'list_new_lexicons',
@@ -70,7 +71,7 @@ test('window and sort are closed enums; limits are bounded', () => {
 });
 
 test('NSID-taking tools reject non-NSIDs before touching the network', async () => {
-  for (const name of ['get_lexicon_activity', 'sample_recent_records', 'get_lexicon_schema']) {
+  for (const name of ['get_lexicon_activity', 'sample_recent_records', 'get_lexicon_schema', 'get_lexicon_field_usage']) {
     const result = await tools.get(name)!.handler({ nsid: 'not an nsid' });
     assert.equal(result.isError, true, name);
     assert.equal(resultBody(result).code, 'invalid_parameter', name);
@@ -540,4 +541,111 @@ test('list_lexicon_movers applies the threshold to the busier window', async () 
   assert.equal(body.truncated, true);
   assert.equal((body.lexicons as unknown[]).length, 2);
   assert.equal(body.count, 5);
+});
+
+// A record schema with one required field records sometimes leave out, one
+// nobody sets, and records that add a field it never declares.
+const NOTE_SCHEMA = {
+  lexicon: 1,
+  id: 'com.example.usage.note',
+  defs: {
+    main: {
+      type: 'record',
+      key: 'tid',
+      record: {
+        type: 'object',
+        required: ['text', 'createdAt'],
+        properties: {
+          text: { type: 'string' },
+          createdAt: { type: 'string', format: 'datetime' },
+          mood: { type: 'string' },
+        },
+      },
+    },
+  },
+};
+
+const NOTES = [
+  { did: 'did:plc:a', text: 'one', createdAt: 't', colour: 'red' },
+  { did: 'did:plc:a', text: 'two', createdAt: 't' },
+  { did: 'did:plc:b', text: 'three' },
+].map(({ did, ...record }, i) => ({
+  did,
+  collection: 'com.example.usage.note',
+  rkey: `3k${i}`,
+  time_us: (1_800_000_000 + i) * 1_000_000,
+  record: { $type: 'com.example.usage.note', ...record },
+}));
+
+/**
+ * Run get_lexicon_field_usage against a fake UFOs and a fake schema
+ * authority: the TXT record names did:plc:pub and Slingshot answers with
+ * `schema`, unless either is left out.
+ */
+async function runFieldUsage(nsid: string, opts: { schema?: unknown; recordsStatus?: number }) {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = (async (input: RequestInfo | URL) => {
+    const url = new URL(String(input));
+    const json = (body: unknown, status = 200) =>
+      new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json' } });
+    if (url.pathname === '/records') return opts.recordsStatus ? json({}, opts.recordsStatus) : json(NOTES);
+    if (opts.schema && url.searchParams.get('type') === 'TXT') {
+      return json({ Answer: [{ data: '"did=did:plc:pub"' }] });
+    }
+    if (opts.schema && url.pathname.endsWith('/blue.microcosm.repo.getRecordByUri')) {
+      return json({ uri: url.searchParams.get('at_uri'), cid: 'bafyschema', value: opts.schema });
+    }
+    return json({}, 404);
+  }) as typeof fetch;
+  try {
+    const result = await tools.get('get_lexicon_field_usage')!.handler({ nsid });
+    return { result, body: resultBody(result) };
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+}
+
+test('get_lexicon_field_usage checks each field against the published schema', async () => {
+  const { result, body } = await runFieldUsage('com.example.usage.note', { schema: NOTE_SCHEMA });
+  assert.notEqual(result.isError, true);
+  assert.deepEqual(body.sample, {
+    records: 3,
+    accounts: 2,
+    newest: new Date(1_800_000_002_000).toISOString(),
+    oldest: new Date(1_800_000_000_000).toISOString(),
+  });
+  assert.equal((body.schema as { status: string }).status, 'found');
+  assert.deepEqual(
+    (body.fields as Array<Record<string, unknown>>).map((f) => [f.path, f.declared, f.required, f.records, f.of, f.share]),
+    [
+      ['text', true, true, 3, 3, 1],
+      ['createdAt', true, true, 2, 3, 0.667],
+      ['mood', true, false, 0, 3, 0],
+      ['colour', false, false, 1, 3, 0.333],
+    ],
+  );
+  assert.deepEqual(body.declaredUnused, ['mood']);
+  assert.deepEqual(body.undeclared, ['colour']);
+  assert.deepEqual(body.requiredMissing, [{ path: 'createdAt', missingFrom: 1 }]);
+});
+
+test('get_lexicon_field_usage still measures a lexicon with no schema to find', async () => {
+  const { result, body } = await runFieldUsage('com.example.usage.unclaimed', {});
+  assert.notEqual(result.isError, true);
+  assert.equal((body.schema as { status: string }).status, 'no_authority');
+  assert.deepEqual(
+    (body.fields as Array<Record<string, unknown>>).map((f) => [f.path, f.declared, f.records]),
+    [
+      ['text', null, 3],
+      ['createdAt', null, 2],
+      ['colour', null, 1],
+    ],
+  );
+  assert.equal(body.undeclared, undefined, 'nothing to be undeclared against');
+});
+
+test('get_lexicon_field_usage fails rather than call every field unused when UFOs is down', async () => {
+  const { result, body } = await runFieldUsage('com.example.usage.down', { recordsStatus: 503 });
+  assert.equal(result.isError, true);
+  assert.equal(body.code, 'upstream_error');
 });

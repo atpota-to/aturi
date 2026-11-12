@@ -7,6 +7,7 @@ import LinkifiedJson from '../../LinkifiedJson';
 import { SkeletonBar } from '../../skeletons/primitives';
 import { Segmented } from '../primitives';
 import { homeScopeFor } from '@/lib/lexiconExplorer';
+import { declaredRecordFields, type DeclaredField } from '@/lib/lexiconFieldUsage';
 import {
   summarizeLexicon,
   typeText,
@@ -22,6 +23,7 @@ import {
   LEXICON_SCHEMA_COLLECTION,
   type SchemaLookup,
 } from '@/utils/atproto/lexiconSchemaLookup';
+import { FieldsInPractice, UndeclaredFields, UsageMeter, UsageNote, useFieldUsage, type UsageState } from './FieldUsage';
 import { useDidLabel } from './useDidLabel';
 import type { AddressFor } from './LexiconRail';
 
@@ -62,6 +64,10 @@ export function schemaKind(lookup: SchemaLookup | null): string | null {
  * for, then the document's other definitions and the lexicons it refers to.
  * A ref to another lexicon opens it beside the same list; a ref within the
  * document scrolls to it. The JSON is a switch away, as published.
+ *
+ * A record lexicon's fields also say how often records set them (FieldUsage),
+ * with the fields records set that the schema leaves out; a lexicon with no
+ * schema to find shows the fields records set instead.
  */
 export default function SchemaView({
   nsid,
@@ -77,11 +83,22 @@ export default function SchemaView({
     () => (lookup?.status === 'found' ? summarizeLexicon(lookup.doc, nsid) : null),
     [lookup, nsid],
   );
+  const declared = useMemo(() => declaredRecordFields(summary), [summary]);
+  // Only records have fields to count, and an invalid NSID has no records.
+  const measure = lookup?.status === 'found' ? declared !== null : lookup != null && lookup.status !== 'invalid';
+  const usage = useFieldUsage(nsid, measure);
   const rootRef = useRef<HTMLDivElement>(null);
 
   if (!lookup) return <SchemaSkeleton />;
 
-  if (lookup.status !== 'found') return <NoSchema lookup={lookup} />;
+  if (lookup.status !== 'found') {
+    return (
+      <div className="fx-lx-schema">
+        <NoSchema lookup={lookup} />
+        {usage && <FieldsInPractice state={usage} nsid={nsid} addressFor={addressFor} />}
+      </div>
+    );
+  }
 
   const recordHref = `/explore/${lookup.authority.did}/${LEXICON_SCHEMA_COLLECTION}/${encodeURIComponent(nsid)}`;
   const jump = (ref: LexiconRef) => {
@@ -91,7 +108,8 @@ export default function SchemaView({
     target.setAttribute('data-flash', '');
     window.setTimeout(() => target.removeAttribute('data-flash'), 1200);
   };
-  const refs: RefTools = { addressFor, jump };
+  const refs: RefTools = { addressFor, jump, nsid };
+  const fieldUsage = usage && declared ? { state: usage, declared } : null;
 
   return (
     <div ref={rootRef} className="fx-lx-schema">
@@ -124,7 +142,7 @@ export default function SchemaView({
       ) : (
         <>
           {summary.main ? (
-            <DefCard def={summary.main} refs={refs} main />
+            <DefCard def={summary.main} refs={refs} main usage={fieldUsage} />
           ) : (
             <p className="fx-lx-schema-note">This document has no main definition, only the ones below.</p>
           )}
@@ -161,7 +179,10 @@ export default function SchemaView({
   );
 }
 
-type RefTools = { addressFor: AddressFor; jump: (ref: LexiconRef) => void };
+type RefTools = { addressFor: AddressFor; jump: (ref: LexiconRef) => void; nsid: string };
+
+/** How often records set a record lexicon's fields, for its main definition's field table. */
+type UsageTools = { state: UsageState; declared: Map<string, DeclaredField> };
 
 function Authority({ lookup }: { lookup: Extract<SchemaLookup, { status: 'found' }> }) {
   const label = useDidLabel(lookup.authority.did);
@@ -202,8 +223,8 @@ function NoSchema({ lookup }: { lookup: Exclude<SchemaLookup, { status: 'found' 
               on <code>{lookup.domain}</code>
             </>
           ) : null}
-          , and <code>{lookup.publisher}</code> isn’t a handle. That’s common for lexicons that work fine; the recent records
-          show the shape they take in practice.
+          , and <code>{lookup.publisher}</code> isn’t a handle. That’s common for lexicons that work fine; the fields
+          below are the shape they take in practice.
         </p>
       </div>
     );
@@ -222,7 +243,7 @@ function Unpublished({ lookup }: { lookup: Extract<SchemaLookup, { status: 'unpu
           {label}
         </Link>{' '}
         answers for this namespace but has no <code>{LEXICON_SCHEMA_COLLECTION}</code> record for{' '}
-        <code>{lookup.nsid}</code>. A lexicon can be widely used without one; the recent records show the shape it takes in
+        <code>{lookup.nsid}</code>. A lexicon can be widely used without one; the fields below are the shape it takes in
         practice.
       </p>
     </div>
@@ -240,7 +261,17 @@ const TYPE_NOTES: Record<string, string> = {
   'permission-set': 'A bundle of permissions an app asks for at once.',
 };
 
-function DefCard({ def, refs, main = false }: { def: LexiconDef; refs: RefTools; main?: boolean }) {
+function DefCard({
+  def,
+  refs,
+  main = false,
+  usage = null,
+}: {
+  def: LexiconDef;
+  refs: RefTools;
+  main?: boolean;
+  usage?: UsageTools | null;
+}) {
   return (
     <article className="fx-lx-def" data-def={def.name} data-main={main || undefined}>
       <header className="fx-lx-def-head">
@@ -271,8 +302,9 @@ function DefCard({ def, refs, main = false }: { def: LexiconDef; refs: RefTools;
           ))}
         </p>
       )}
-      {def.sections.map((section) => (
-        <SectionView key={section.title} section={section} refs={refs} />
+      {def.sections.map((section, i) => (
+        // A record has one section, its fields.
+        <SectionView key={section.title} section={section} refs={refs} usage={i === 0 ? usage : null} />
       ))}
       {def.errors.length > 0 && (
         <div className="fx-lx-errors">
@@ -291,30 +323,58 @@ function DefCard({ def, refs, main = false }: { def: LexiconDef; refs: RefTools;
   );
 }
 
-function SectionView({ section, refs }: { section: LexiconSection; refs: RefTools }) {
+function SectionView({
+  section,
+  refs,
+  usage,
+}: {
+  section: LexiconSection;
+  refs: RefTools;
+  usage: UsageTools | null;
+}) {
   return (
-    <div className="fx-lx-section">
-      <h4 className="fx-lx-section-title">
-        {section.title}
-        {section.encoding && <code className="fx-lx-encoding">{section.encoding}</code>}
-      </h4>
-      {section.description && <p className="fx-lx-def-desc">{section.description}</p>}
-      {section.body && (
-        <p className="fx-lx-shape">
-          <TypeView type={section.body} refs={refs} />
-        </p>
+    <>
+      <div className="fx-lx-section">
+        <h4 className="fx-lx-section-title">
+          {section.title}
+          {section.encoding && <code className="fx-lx-encoding">{section.encoding}</code>}
+        </h4>
+        {section.description && <p className="fx-lx-def-desc">{section.description}</p>}
+        {usage && section.fields.length > 0 && <UsageNote state={usage.state} />}
+        {section.body && (
+          <p className="fx-lx-shape">
+            <TypeView type={section.body} refs={refs} />
+          </p>
+        )}
+        {section.fields.length > 0 ? (
+          <FieldTable fields={section.fields} refs={refs} usage={usage?.state ?? null} />
+        ) : (
+          !section.body && <p className="fx-lx-schema-note">No fields.</p>
+        )}
+      </div>
+      {usage && (
+        <UndeclaredFields state={usage.state} declared={usage.declared} nsid={refs.nsid} addressFor={refs.addressFor} />
       )}
-      {section.fields.length > 0 ? (
-        <FieldTable fields={section.fields} refs={refs} />
-      ) : (
-        !section.body && <p className="fx-lx-schema-note">No fields.</p>
-      )}
-    </div>
+    </>
   );
 }
 
-/** Required fields first, as a reader building a record wants them. */
-function FieldTable({ fields, refs }: { fields: LexiconField[]; refs: RefTools }) {
+/**
+ * Required fields first, as a reader building a record wants them. With
+ * `usage`, each says how often records set it; `parent` is the path of the
+ * object a nested table's fields belong to.
+ */
+function FieldTable({
+  fields,
+  refs,
+  usage = null,
+  parent = null,
+}: {
+  fields: LexiconField[];
+  refs: RefTools;
+  usage?: UsageState | null;
+  parent?: string | null;
+}) {
   const ordered = [...fields].sort((a, b) => Number(b.required) - Number(a.required));
   return (
     <dl className="fx-lx-fields">
@@ -328,6 +388,9 @@ function FieldTable({ fields, refs }: { fields: LexiconField[]; refs: RefTools }
               </span>
             )}
             {field.nullable && <span className="fx-lx-opt">nullable</span>}
+            {usage && (
+              <UsageMeter state={usage} path={parent ? `${parent}.${field.name}` : field.name} required={field.required} />
+            )}
           </dt>
           <dd>
             <span className="fx-lx-field-type">
@@ -341,7 +404,12 @@ function FieldTable({ fields, refs }: { fields: LexiconField[]; refs: RefTools }
             {field.description && <span className="fx-lx-field-desc">{field.description}</span>}
             {field.type.kind === 'object' && field.type.fields.length > 0 && (
               <div className="fx-lx-nested">
-                <FieldTable fields={field.type.fields} refs={refs} />
+                <FieldTable
+                  fields={field.type.fields}
+                  refs={refs}
+                  usage={usage}
+                  parent={parent ? `${parent}.${field.name}` : field.name}
+                />
               </div>
             )}
           </dd>
