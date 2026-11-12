@@ -1368,6 +1368,17 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* A link into the matching tool, in a section heading's meta slot. */
+.fn-pds-tool-link {
+  font-weight: 600;
+  color: var(--text-accent);
+  text-decoration: none;
+}
+
+.fn-pds-tool-link:hover {
+  color: var(--accent-forest);
+}
+
 .fn-pds-repos > li:last-child {
   border-bottom: 0 !important;
 }
