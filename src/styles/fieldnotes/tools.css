@@ -8,7 +8,8 @@
    live dot (.fx-btn, .fx-field, .fx-dot, explorer.css), and the feed's
    arrival accent (.explore-jetstream-row, globals.css). What is left here is
    layout and the stream monitor's rows. Class prefixes: fn-t- (the
-   section), fn-sm- (stream monitor), fn-token (the chip field). */
+   section), fn-sm- (stream monitor), fn-token (the chip field). The other
+   tools' pages are in tool-pages.css (fn-tool-). */
 
 /* ---------- Page frame ----------
    The tools layout wraps pages in .fn-c-wrap (content.css, 1040px). Tools
@@ -50,6 +51,35 @@
 
 .fn-t-cross {
   margin-top: 36px;
+}
+
+/* The catalog's groups (src/lib/tools/catalog.ts), each a heading with a
+   line of what it holds, then its tiles. */
+.fn-t-group {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.fn-t-group-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 12px;
+}
+
+.fn-t-group-head h2 {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--text-primary);
+}
+
+.fn-t-group-head p {
+  margin: 0;
+  font-size: 13.5px;
+  color: var(--text-tertiary);
 }
 
 /* ---------- Stream monitor: the frame ----------
