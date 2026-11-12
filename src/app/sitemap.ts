@@ -1,5 +1,6 @@
 import type { MetadataRoute } from 'next';
 import { getSiteUrl } from '@/lib/config';
+import { TOOLS, toolHref } from '@/lib/tools/catalog';
 
 /**
  * Sitemap for the static, always-present surfaces. Record/profile pages are
@@ -16,7 +17,8 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { path: '/explore', priority: 0.8 },
     { path: '/explore/lexicons', priority: 0.6 },
     { path: '/tools', priority: 0.6 },
-    { path: '/tools/stream', priority: 0.6 },
+    // Every tool in the catalog: each is a static page of its own.
+    ...TOOLS.map((tool) => ({ path: toolHref(tool.slug), priority: 0.6 })),
     { path: '/docs', priority: 0.6 },
     { path: '/mcp', priority: 0.6 },
     { path: '/about', priority: 0.5 },

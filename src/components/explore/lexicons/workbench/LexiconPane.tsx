@@ -2,7 +2,7 @@
 
 import { useMemo, useState, type ReactNode } from 'react';
 import Link from 'next/link';
-import { ArrowRight, Check, Copy, Pin, Radio } from 'lucide-react';
+import { ArrowRight, Check, Copy, Pin, Radio, SquareTerminal } from 'lucide-react';
 import { Skeleton } from '@/components/SkeletonLoader';
 import AppearIn from '../../AppearIn';
 import { SkeletonBar } from '../../skeletons/primitives';
@@ -89,6 +89,19 @@ export default function LexiconPane({
         <Radio size={14} aria-hidden />
         Watch
       </Link>
+      {/* A query can be called, so offer the console with it loaded. The
+          page is static, so the link keeps its prefetch. */}
+      {kind === 'query' && (
+        <Link
+          href={`/tools/xrpc?method=${encodeURIComponent(nsid)}`}
+          className="fn-rec-btn"
+          aria-label="Try this query in the XRPC console"
+          title="Fill in its parameters and send it, in the XRPC console"
+        >
+          <SquareTerminal size={14} aria-hidden />
+          Try
+        </Link>
+      )}
     </div>
   );
 

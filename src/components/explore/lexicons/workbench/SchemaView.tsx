@@ -200,6 +200,18 @@ function Authority({ lookup }: { lookup: Extract<SchemaLookup, { status: 'found'
   );
 }
 
+/**
+ * Into the lexicon publishing checker, which walks the same chain step by
+ * step and says what to add. A static page, so the link keeps its prefetch.
+ */
+function PublishingCheckLink({ nsid }: { nsid: string }) {
+  return (
+    <Link href={`/tools/lexicon?nsid=${encodeURIComponent(nsid)}`} rel="nofollow">
+      See where the chain stops.
+    </Link>
+  );
+}
+
 function NoSchema({ lookup }: { lookup: Exclude<SchemaLookup, { status: 'found' }> }) {
   if (lookup.status === 'invalid') {
     return (
@@ -224,7 +236,7 @@ function NoSchema({ lookup }: { lookup: Exclude<SchemaLookup, { status: 'found' 
             </>
           ) : null}
           , and <code>{lookup.publisher}</code> isn’t a handle. That’s common for lexicons that work fine; the fields
-          below are the shape they take in practice.
+          below are the shape they take in practice. <PublishingCheckLink nsid={lookup.nsid} />
         </p>
       </div>
     );
@@ -244,7 +256,7 @@ function Unpublished({ lookup }: { lookup: Extract<SchemaLookup, { status: 'unpu
         </Link>{' '}
         answers for this namespace but has no <code>{LEXICON_SCHEMA_COLLECTION}</code> record for{' '}
         <code>{lookup.nsid}</code>. A lexicon can be widely used without one; the fields below are the shape it takes in
-        practice.
+        practice. <PublishingCheckLink nsid={lookup.nsid} />
       </p>
     </div>
   );

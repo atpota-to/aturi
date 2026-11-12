@@ -55,7 +55,7 @@ const CARDS: Card[] = [
     href: '/tools',
     icon: <Wrench size={18} />,
     title: 'Tools',
-    body: 'Small utilities, starting with a live monitor for Jetstream and the PLC directory.',
+    body: 'Small utilities: a handle debugger, a record validator, an XRPC console and a live network monitor.',
   },
 ];
 

@@ -5,6 +5,7 @@ import { DEFAULT_REPO_SECTIONS, sectionHidden } from '@/utils/exploreSections';
 import { usePreferences } from '@/components/PreferencesProvider';
 import AccountStats from '@/components/account/AccountStats';
 import AppearIn from '../AppearIn';
+import AccountToolLinks from '../AccountToolLinks';
 import { AccountCard } from '../RepoExplorer';
 import RelationshipStrip from '../RelationshipStrip';
 import RepoStatusNotice from '../RepoStatusNotice';
@@ -75,6 +76,7 @@ export default function AccountView({
                   <section className="fx-wb-section">
                     <h1 className="fx-wb-h">Repo at a glance</h1>
                     <AccountStats did={identity.did} handle={identity.handle} />
+                    <AccountToolLinks did={identity.did} />
                   </section>
                 </AppearIn>
               )}

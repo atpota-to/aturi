@@ -1,0 +1,3885 @@
+/* Field Notes: a single tool's page under /tools (ToolFrame.tsx,
+   Checks.tsx). The hub and the stream monitor are in tools.css.
+
+   Tokens live in src/app/globals.css; use them rather than raw hex so dark
+   mode and the colour schemes keep working. Built from the explorer's parts
+   wherever one fits: the head is the detail pages' card (.fn-lexhead,
+   explore.css), the input is the explorer's search field (.fn-searchbox,
+   globals.css), examples are its try-chips (.fn-chip), section headings are
+   the PDS page's (.fn-pds-repos-head), and results sit in its cards
+   (.fx-card, explorer.css). What is left here is the frame's layout and the
+   parts no explorer page has: the check list, the verdict, the fact grid.
+
+   Class prefix: fn-tool-. The shared parts come first; each tool's own
+   rules follow under a banner, in the catalog's order, as fn-tool-<slug>-.
+   The handle debugger has none: it is built from the shared parts alone. */
+
+/* ---------- Page frame ----------
+   The tools layout wraps pages in .fn-c-wrap (content.css, 1040px). A tool
+   reads top to bottom, so it takes a narrower column than the hub; a tool
+   that shows a table asks for the hub's width with data-wide. */
+.fn-c-wrap:has(> .fn-tool) {
+  max-width: 848px;
+}
+
+.fn-c-wrap:has(> .fn-tool[data-wide]) {
+  max-width: 1240px;
+}
+
+/* The one colour the site has no token for: a caution that is neither the
+   accent nor danger. The highlight trio is the theme's amber, already tuned
+   for both themes (globals.css, --margin-highlight-*). On the root rather
+   than on .fn-tool because the explorer borrows the status marks too (the
+   handle check, the record's schema check). */
+:root {
+  --tool-warn: var(--margin-highlight-fg);
+  --tool-warn-soft: var(--margin-highlight-tint);
+  --tool-warn-border: var(--margin-highlight-border);
+}
+
+.fn-tool {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  color: var(--text-primary);
+}
+
+.fn-tool code {
+  font-family: var(--font-mono);
+  font-size: 0.92em;
+}
+
+/* ---------- Head card ---------- */
+
+.fn-tool-head {
+  gap: 12px;
+}
+
+.fn-tool-head-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+}
+
+.fn-tool-crumb {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.fn-tool-crumb a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.fn-tool-crumb a:hover {
+  color: var(--accent-forest);
+}
+
+.fn-tool-crumb span {
+  color: var(--text-tertiary);
+}
+
+.fn-tool-crumb span[aria-hidden] {
+  color: var(--text-faint);
+}
+
+.fn-tool-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.fn-tool-lead {
+  margin: 0;
+  max-width: 62ch;
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--text-secondary);
+}
+
+/* ---------- Input ---------- */
+
+.fn-tool-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 6px;
+}
+
+/* SearchBox carries a bottom margin for its other hosts. */
+.fn-tool-searchbox {
+  margin-bottom: 0;
+}
+
+.fn-tool-searchbox-icon {
+  display: grid;
+  place-items: center;
+}
+
+.fn-searchbox-input[data-mono] {
+  font-family: var(--font-mono);
+  font-size: 14px;
+}
+
+.fn-tool-textform {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.fn-tool-textarea {
+  width: 100%;
+  min-height: 120px;
+  box-sizing: border-box;
+  padding: 12px 14px;
+  resize: vertical;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-strong);
+  border-radius: 10px;
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1.55;
+  outline: none;
+  transition:
+    border-color var(--motion-quick) ease,
+    box-shadow var(--motion-panel) var(--ease-soft);
+}
+
+.fn-tool-textarea::placeholder {
+  color: var(--text-tertiary);
+}
+
+/* The search field's focus: accent border and the pale halo. */
+.fn-tool-textarea:focus {
+  border-color: var(--text-accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.fn-tool-textform-row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.fn-tool-textform-row .fn-searchbox-submit {
+  height: 40px;
+}
+
+.fn-tool-textform-hint {
+  margin-right: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+
+/* The chips are buttons here, not links. */
+.fn-tool-tries .fn-chip {
+  cursor: pointer;
+}
+
+/* A chip that names its example ("A record key") rather than showing the
+   identifier itself is words, so it leaves the mono face. */
+.fn-tool-tries .fn-chip[data-label] {
+  font-family: var(--font-sans);
+  font-size: 13px;
+}
+
+.fn-tool-tries .fn-chip:focus-visible {
+  outline: 2px solid var(--text-accent);
+  outline-offset: 1px;
+}
+
+/* ---------- Choices ----------
+   A few options to pick between, as chips: the try-chips' shape (.fn-chip,
+   explore.css) in the sans face, since these are words, not identifiers.
+   The chosen one carries .fn-chip-mine, which already has the pale fill. */
+
+.fn-tool-choices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.fn-tool-choices .fn-chip {
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.fn-tool-choices .fn-chip-mine {
+  font-weight: 600;
+}
+
+.fn-tool-choices .fn-chip:focus-visible {
+  outline: 2px solid var(--text-accent);
+  outline-offset: 1px;
+}
+
+/* ---------- Results ---------- */
+
+.fn-tool-body {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+  min-width: 0;
+}
+
+.fn-tool-section {
+  min-width: 0;
+}
+
+.fn-tool-section-head h2 {
+  font-size: 17px;
+}
+
+.fn-tool-card {
+  padding: 16px 18px;
+}
+
+.fn-tool-card[data-flush] {
+  padding: 0;
+  overflow: hidden;
+}
+
+.fn-tool-card > :first-child {
+  margin-top: 0;
+}
+
+.fn-tool-card > :last-child {
+  margin-bottom: 0;
+}
+
+.fn-tool-card p {
+  margin: 0 0 10px;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--text-secondary);
+}
+
+.fn-tool-empty {
+  border-radius: var(--radius-card);
+  font-size: 14px;
+}
+
+/* ---------- Status marks ----------
+   A 22px disc with a glyph. Shared by the check list, the verdict and any
+   row that reports how something came out. */
+
+.fn-tool-mark {
+  width: 22px;
+  height: 22px;
+  flex: none;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--bg-tertiary);
+  color: var(--text-tertiary);
+}
+
+.fn-tool-mark[data-status='pass'] {
+  background: var(--accent-soft);
+  box-shadow: inset 0 0 0 1px var(--accent-soft-border);
+  color: var(--accent-soft-fg);
+}
+
+.fn-tool-mark[data-status='warn'] {
+  background: var(--tool-warn-soft);
+  box-shadow: inset 0 0 0 1px var(--tool-warn-border);
+  color: var(--tool-warn);
+}
+
+.fn-tool-mark[data-status='fail'] {
+  background: var(--danger-soft);
+  box-shadow: inset 0 0 0 1px var(--danger-border);
+  color: var(--danger);
+}
+
+.fn-tool-mark[data-status='pending'] {
+  background: transparent;
+}
+
+.fn-tool-spin {
+  animation: fn-tool-spin 0.9s linear infinite;
+}
+
+@keyframes fn-tool-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+[data-reduce-motion='true'] .fn-tool-spin {
+  animation: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fn-tool-spin {
+    animation: none;
+  }
+}
+
+/* ---------- Verdict ---------- */
+
+.fn-tool-verdict {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 16px;
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-card);
+  background: var(--surface-subtle);
+}
+
+.fn-tool-verdict[data-tone='pass'] {
+  background: var(--accent-soft);
+  border-color: var(--accent-soft-border);
+}
+
+.fn-tool-verdict[data-tone='warn'] {
+  background: var(--tool-warn-soft);
+  border-color: var(--tool-warn-border);
+}
+
+.fn-tool-verdict[data-tone='fail'] {
+  background: var(--danger-soft);
+  border-color: var(--danger-border);
+}
+
+.fn-tool-verdict-mark {
+  flex: none;
+  display: grid;
+  place-items: center;
+  height: 22px;
+  color: var(--text-secondary);
+}
+
+.fn-tool-verdict[data-tone='pass'] .fn-tool-verdict-mark {
+  color: var(--accent-soft-fg);
+}
+
+.fn-tool-verdict[data-tone='warn'] .fn-tool-verdict-mark {
+  color: var(--tool-warn);
+}
+
+.fn-tool-verdict[data-tone='fail'] .fn-tool-verdict-mark {
+  color: var(--danger);
+}
+
+.fn-tool-verdict-text {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.fn-tool-verdict-text strong {
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 22px;
+  color: var(--text-primary);
+  overflow-wrap: anywhere;
+}
+
+.fn-tool-verdict-text p {
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: var(--text-secondary);
+}
+
+/* ---------- Check list ---------- */
+
+.fn-tool-checks {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+.fn-tool-check {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr);
+  gap: 12px;
+  padding: 14px 16px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.fn-tool-check:first-child {
+  border-top: 0;
+}
+
+.fn-tool-check-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 22px;
+}
+
+.fn-tool-check-title {
+  font-size: 14px;
+  font-weight: 650;
+  line-height: 22px;
+  color: var(--text-primary);
+}
+
+.fn-tool-check-state {
+  flex: none;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+}
+
+.fn-tool-check[data-status='pass'] .fn-tool-check-state {
+  color: var(--text-accent);
+}
+
+.fn-tool-check[data-status='warn'] .fn-tool-check-state {
+  color: var(--tool-warn);
+}
+
+.fn-tool-check[data-status='fail'] .fn-tool-check-state {
+  color: var(--danger);
+}
+
+.fn-tool-check[data-status='skip'] .fn-tool-check-title {
+  color: var(--text-tertiary);
+}
+
+.fn-tool-check-summary {
+  margin: 2px 0 0;
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: var(--text-secondary);
+  overflow-wrap: anywhere;
+}
+
+.fn-tool-check-detail {
+  margin-top: 8px;
+  padding: 8px 10px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-control);
+  background: var(--surface-subtle);
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--text-secondary);
+  overflow-wrap: anywhere;
+}
+
+.fn-tool-check-detail > div + div {
+  margin-top: 2px;
+}
+
+.fn-tool-check-detail b {
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.fn-tool-check-fix {
+  margin-top: 10px;
+  padding-left: 10px;
+  border-left: 2px solid var(--border-strong);
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: var(--text-secondary);
+}
+
+.fn-tool-check[data-status='fail'] .fn-tool-check-fix {
+  border-left-color: var(--danger);
+}
+
+.fn-tool-check[data-status='warn'] .fn-tool-check-fix {
+  border-left-color: var(--tool-warn);
+}
+
+.fn-tool-check-fix > span {
+  display: block;
+  margin-bottom: 2px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+}
+
+.fn-tool-check-fix p {
+  margin: 0 0 6px;
+}
+
+.fn-tool-check-fix p:last-child {
+  margin: 0;
+}
+
+/* ---------- Facts ----------
+   Labelled values, as the PDS page lays out a server's details (.fn-dt). */
+
+.fn-tool-facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(17.5rem, 1fr));
+  gap: 14px 20px;
+  margin: 0;
+}
+
+.fn-tool-fact {
+  min-width: 0;
+}
+
+.fn-tool-fact[data-wide] {
+  grid-column: 1 / -1;
+}
+
+.fn-tool-fact dd {
+  margin: 0;
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  min-width: 0;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-primary);
+}
+
+.fn-tool-fact dd[data-plain] {
+  font-family: var(--font-sans);
+  font-size: 14px;
+}
+
+.fn-tool-fact-value {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.fn-tool-fact-value a {
+  color: var(--text-accent);
+  text-decoration: none;
+}
+
+.fn-tool-fact-value a:hover {
+  text-decoration: underline;
+}
+
+.fn-tool-fact dd .fx-copy {
+  margin-top: -2px;
+}
+
+/* ---------- Steps (a tool before it has input) ---------- */
+
+.fn-tool-steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.fn-tool-steps li {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr);
+  gap: 12px;
+}
+
+.fn-tool-step-n {
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--bg-tertiary);
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.fn-tool-steps strong {
+  display: block;
+  font-size: 14px;
+  font-weight: 650;
+  line-height: 22px;
+}
+
+.fn-tool-steps p {
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: var(--text-secondary);
+}
+
+/* ---------- Errors ---------- */
+
+.fn-tool-error {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px 16px;
+  padding: 12px 14px;
+  border: 1px solid var(--danger-border);
+  border-radius: var(--radius-card);
+  background: var(--danger-soft);
+}
+
+.fn-tool-error p {
+  margin: 0;
+  min-width: 0;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--danger);
+  overflow-wrap: anywhere;
+}
+
+/* ---------- Code and JSON ---------- */
+
+.fn-tool-code {
+  position: relative;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-control);
+  background: var(--surface-subtle);
+}
+
+.fn-tool-pre {
+  margin: 0;
+  padding: 10px 40px 10px 12px;
+  /* The site's bare <pre> carries a fill and a frame of its own
+     (globals.css); here the block around it already does. */
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--text-primary);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  overflow-x: auto;
+}
+
+.fn-tool-json .fn-tool-pre {
+  max-height: 480px;
+  overflow-y: auto;
+}
+
+.fn-tool-code > .fx-copy {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+}
+
+/* ---------- Tables ----------
+   The lexicon lists' look: a small-caps head on the off-white strip, rows
+   ruled by hairlines, identifiers in mono. Scrolls sideways inside its card
+   on a phone rather than widening the page. */
+
+.fn-tool-table-wrap {
+  overflow-x: auto;
+}
+
+.fn-tool-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13.5px;
+}
+
+.fn-tool-table th {
+  padding: 9px 14px;
+  background: var(--surface-subtle);
+  border-bottom: 1px solid var(--border-medium);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  text-align: left;
+  white-space: nowrap;
+  color: var(--text-tertiary);
+}
+
+.fn-tool-table td {
+  padding: 10px 14px;
+  border-top: 1px solid var(--border-subtle);
+  vertical-align: top;
+  color: var(--text-secondary);
+  overflow-wrap: anywhere;
+}
+
+.fn-tool-table tr:first-child td {
+  border-top: 0;
+}
+
+.fn-tool-table td[data-mono] {
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  color: var(--text-primary);
+}
+
+.fn-tool-table td[data-num],
+.fn-tool-table th[data-num] {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.fn-tool-table a {
+  color: var(--text-accent);
+  text-decoration: none;
+}
+
+.fn-tool-table a:hover {
+  text-decoration: underline;
+}
+
+/* ---------- Pills ----------
+   A short state beside a value: the stream monitor's badge, in three tones. */
+
+.fn-tool-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 7px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+  font-family: var(--font-sans);
+  font-size: 11.5px;
+  font-weight: 600;
+  line-height: 1.35;
+  white-space: nowrap;
+}
+
+.fn-tool-pill[data-tone='pass'] {
+  background: var(--accent-soft);
+  color: var(--accent-soft-fg);
+}
+
+.fn-tool-pill[data-tone='warn'] {
+  background: var(--tool-warn-soft);
+  color: var(--tool-warn);
+}
+
+.fn-tool-pill[data-tone='fail'] {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
+.fn-tool-pill[data-tone='outline'] {
+  background: transparent;
+  border-color: var(--border-strong);
+}
+
+/* ---------- Rows ----------
+   A list of results inside a flush card: one line of text with something
+   quiet on its right. */
+
+.fn-tool-rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.fn-tool-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  padding: 11px 16px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.fn-tool-row:first-child {
+  border-top: 0;
+}
+
+.fn-tool-row-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.fn-tool-row-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+
+a.fn-tool-row-title:hover {
+  color: var(--text-accent);
+}
+
+.fn-tool-row-sub {
+  font-size: 12.5px;
+  color: var(--text-tertiary);
+  overflow-wrap: anywhere;
+}
+
+.fn-tool-row-sub[data-mono] {
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+.fn-tool-row-end {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  color: var(--text-tertiary);
+  font-variant-numeric: tabular-nums;
+}
+
+.fn-tool-avatar {
+  width: 32px;
+  height: 32px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--bg-tertiary);
+  object-fit: cover;
+}
+
+.fn-tool-avatar[data-shape='square'] {
+  border-radius: 8px;
+}
+
+/* ---------- Progress ---------- */
+
+.fn-tool-progress {
+  height: 4px;
+  border-radius: var(--radius-pill);
+  background: var(--bg-tertiary);
+  overflow: hidden;
+}
+
+.fn-tool-progress > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--text-accent);
+  transition: width var(--motion-panel) var(--ease-soft);
+}
+
+/* ---------- Skeleton ---------- */
+
+.fn-tool-skeleton {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.fn-tool-skeleton li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.fn-tool-skeleton li:first-child {
+  border-top: 0;
+}
+
+.fn-tool-skeleton-lines {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* ---------- Toolbar ----------
+   A row of controls above a result: a segmented choice, a button or two. */
+
+.fn-tool-bar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+}
+
+.fn-tool-bar-end {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.fn-tool-note {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--text-tertiary);
+}
+
+.fn-tool-note a {
+  color: var(--text-accent);
+  text-decoration: none;
+}
+
+.fn-tool-note a:hover {
+  text-decoration: underline;
+}
+
+/* ---------- Phones ---------- */
+
+@media (max-width: 640px) {
+  .fn-tool {
+    gap: 24px;
+  }
+
+  .fn-tool-body {
+    gap: 24px;
+  }
+
+  .fn-tool-head {
+    padding: 16px 16px 16px;
+  }
+
+  .fn-tool-title .fn-lexhead-title {
+    font-size: 24px;
+  }
+
+  /* Under 16px, iOS Safari zooms the page when a field takes focus. */
+  .fn-tool-textarea,
+  .fn-searchbox-input[data-mono] {
+    font-size: 16px;
+  }
+
+  .fn-tool-textform-hint {
+    display: none;
+  }
+
+  .fn-tool-textform-row .fn-searchbox-submit {
+    flex: 1;
+    height: 48px;
+  }
+
+  .fn-tool-check,
+  .fn-tool-card:not([data-flush]) {
+    padding: 14px;
+  }
+
+  .fn-tool-row {
+    padding: 11px 14px;
+  }
+}
+
+/* ---------- Small parts ---------- */
+
+/* A text button in a heading's meta slot ("Check again"). */
+.fn-tool-link {
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-weight: 600;
+  color: var(--text-accent);
+  cursor: pointer;
+}
+
+.fn-tool-link:hover {
+  color: var(--accent-forest);
+}
+
+.fn-tool-link:focus-visible {
+  outline: 2px solid var(--text-accent);
+  outline-offset: 2px;
+  border-radius: 3px;
+}
+
+/* Buttons under a card's content. */
+.fn-tool-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+/* ==========================================================================
+   XRPC console (/tools/xrpc)
+   Only what this tool alone needs, under fn-tool-xrpc-.
+   ========================================================================== */
+
+/* ---------- Method picker ----------
+   The head card's field. The page is wide for the two columns below it, but
+   a search field that wide reads as a banner, so it keeps the reading
+   column's measure. */
+.fn-tool-xrpc-picker {
+  max-width: 760px;
+}
+
+/* Matches under the field while a method is open: the explorer's search
+   drop-down (.fn-searchbox-pop, globals.css), with an NSID and a line of
+   what the method does in each row. */
+.fn-tool-xrpc-pop {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.fn-tool-xrpc-pop li {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 8px 12px;
+  border-top: 1px solid var(--border-subtle);
+  cursor: pointer;
+}
+
+.fn-tool-xrpc-pop li:first-child {
+  border-top: 0;
+}
+
+.fn-tool-xrpc-pop li[aria-selected='true'] {
+  background: var(--bg-tertiary);
+}
+
+.fn-tool-xrpc-pop-nsid {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--text-primary);
+}
+
+.fn-tool-xrpc-pop-desc {
+  font-size: 12.5px;
+  color: var(--text-tertiary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ---------- Method list ----------
+   Every query by namespace, three cards across where there is room. Columns
+   rather than a grid, so a short namespace does not leave a hole beside a
+   long one. */
+.fn-tool-xrpc-families {
+  margin-bottom: 12px;
+  /* Four namespaces and "All" outgrow a phone; the row scrolls, not the page. */
+  overflow-x: auto;
+}
+
+.fn-tool-xrpc-groups {
+  columns: 3;
+  column-gap: 16px;
+}
+
+.fn-tool-xrpc-group {
+  break-inside: avoid;
+  margin-bottom: 16px;
+}
+
+.fn-tool-xrpc-group-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0;
+  padding: 9px 16px;
+  background: var(--surface-subtle);
+  border-bottom: 1px solid var(--border-medium);
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.fn-tool-xrpc-group-head span:last-child {
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-tertiary);
+}
+
+.fn-tool-xrpc-rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.fn-tool-xrpc-rows li + li {
+  border-top: 1px solid var(--border-subtle);
+}
+
+.fn-tool-xrpc-row {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 9px 16px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.fn-tool-xrpc-row:hover {
+  background: var(--surface-subtle);
+}
+
+.fn-tool-xrpc-row:focus-visible {
+  outline: 2px solid var(--text-accent);
+  outline-offset: -2px;
+}
+
+.fn-tool-xrpc-row-name {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+  overflow-wrap: anywhere;
+}
+
+.fn-tool-xrpc-row:hover .fn-tool-xrpc-row-name {
+  color: var(--text-accent);
+}
+
+.fn-tool-xrpc-row-desc {
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--text-tertiary);
+}
+
+/* ---------- Request and response ----------
+   Side by side on a desktop: the form keeps a fixed measure and the
+   response takes what is left, since JSON wants the width. */
+.fn-tool-xrpc-grid {
+  display: grid;
+  grid-template-columns: minmax(340px, 440px) minmax(0, 1fr);
+  align-items: start;
+  gap: 28px 24px;
+}
+
+.fn-tool-xrpc-form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  min-width: 0;
+}
+
+.fn-tool-xrpc-method {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.fn-tool-xrpc-nsid {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 1.35;
+  letter-spacing: -0.01em;
+  color: var(--text-primary);
+  overflow-wrap: anywhere;
+}
+
+.fn-tool-xrpc-method p {
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.55;
+}
+
+/* A part of the form with its name above it, in the small caps the stream
+   monitor's filter rail heads its groups with. */
+.fn-tool-xrpc-block {
+  min-width: 0;
+  margin: 0;
+  padding: 16px 0 0;
+  border: 0;
+  border-top: 1px solid var(--border-subtle);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.fn-tool-xrpc-block legend {
+  float: left;
+  width: 100%;
+  margin: 0 0 2px;
+  padding: 0;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+}
+
+.fn-tool-xrpc-block > .fn-tool-note {
+  margin: 0;
+}
+
+.fn-tool-xrpc-field {
+  width: 100%;
+  height: 34px;
+}
+
+.fn-tool-xrpc-field input,
+.fn-tool-xrpc-field select {
+  font-family: var(--font-mono);
+  font-size: 13px;
+}
+
+.fn-tool-xrpc-field select {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: var(--text-primary);
+  outline: none;
+  cursor: pointer;
+}
+
+.fn-tool-xrpc-params {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.fn-tool-xrpc-param {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 5px;
+  min-width: 0;
+}
+
+.fn-tool-xrpc-param-head {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+}
+
+.fn-tool-xrpc-param-name {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.fn-tool-xrpc-param-type {
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+
+.fn-tool-xrpc-param .fn-tool-note {
+  margin: 0;
+}
+
+.fn-tool-xrpc-list {
+  min-height: 0;
+  padding: 8px 10px;
+  border-color: var(--border-medium);
+  border-radius: var(--radius-control);
+}
+
+.fn-tool-xrpc-known {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.fn-tool-xrpc-known .fn-chip {
+  height: 26px;
+  padding: 0 9px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.fn-tool-xrpc-known .fn-chip[aria-pressed='true'] {
+  background: var(--accent-soft);
+  border-color: var(--accent-soft-border);
+  color: var(--accent-soft-fg);
+}
+
+.fn-tool-xrpc-known .fn-chip:focus-visible {
+  outline: 2px solid var(--text-accent);
+  outline-offset: 1px;
+}
+
+/* Add a parameter by name, where the lexicon could not say what there is. */
+.fn-tool-xrpc-add {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.fn-tool-xrpc-add .fx-btn {
+  height: 34px;
+  flex: none;
+}
+
+.fn-tool-xrpc-waiting {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.fn-tool-xrpc-send {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+}
+
+.fn-tool-xrpc-send .fn-searchbox-submit {
+  height: 40px;
+  min-width: 96px;
+}
+
+.fn-tool-xrpc-send .fn-tool-note {
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+.fn-tool-xrpc-preview {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  min-width: 0;
+}
+
+.fn-tool-xrpc-preview .fn-tool-code {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.fn-tool-xrpc-result {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+
+/* Time, size and type, on a line of their own under whatever the host said. */
+.fn-tool-xrpc-facts {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+
+/* The response is the point of the page, so it gets more room than a JSON
+   block does elsewhere. */
+.fn-tool-xrpc-result .fn-tool-json .fn-tool-pre,
+.fn-tool-xrpc-result .fn-tool-code .fn-tool-pre {
+  max-height: 720px;
+  overflow-y: auto;
+}
+
+/* ---------- Narrower ----------
+   Below a desktop's width the two columns stack and the method list is one
+   card across. */
+@media (max-width: 1100px) {
+  .fn-tool-xrpc-groups {
+    columns: 2;
+  }
+}
+
+@media (max-width: 960px) {
+  .fn-tool-xrpc-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 720px) {
+  .fn-tool-xrpc-groups {
+    columns: 1;
+  }
+}
+
+@media (max-width: 640px) {
+  /* Under 16px, iOS Safari zooms the page when a field takes focus. */
+  .fn-tool-xrpc-field {
+    height: 40px;
+  }
+
+  .fn-tool-xrpc-field input,
+  .fn-tool-xrpc-field select {
+    font-size: 16px;
+  }
+
+  .fn-tool-xrpc-add .fx-btn {
+    height: 40px;
+  }
+
+  .fn-tool-xrpc-row {
+    padding: 10px 14px;
+  }
+
+  .fn-tool-xrpc-group-head {
+    padding: 9px 14px;
+  }
+
+  .fn-tool-xrpc-send .fn-searchbox-submit {
+    flex: 1;
+    height: 48px;
+  }
+}
+
+/* ==========================================================================
+   Relay crawl check (/tools/relay)
+   Only what this tool alone needs, under fn-tool-relay-.
+   ========================================================================== */
+
+/* ---------- Relay rows ----------
+   One relay per row: how it came out, who runs it and what the status
+   means, then the status and its figures on the right. RelayStatusList
+   draws these on the Explorer's PDS page as well as here, outside .fn-tool,
+   so the list sets its own face and size. */
+
+.fn-tool-relay-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  font-family: var(--font-sans);
+  font-size: 14px;
+}
+
+.fn-tool-relay-card {
+  overflow: hidden;
+}
+
+.fn-tool-relay-row {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr) auto;
+  gap: 4px 12px;
+  padding: 14px 16px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.fn-tool-relay-row:first-child {
+  border-top: 0;
+}
+
+.fn-tool-relay-main {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.fn-tool-relay-name {
+  font-size: 14px;
+  font-weight: 650;
+  line-height: 22px;
+  color: var(--text-primary);
+}
+
+.fn-tool-relay-name span {
+  font-weight: 400;
+  color: var(--text-tertiary);
+}
+
+.fn-tool-relay-host {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-tertiary);
+  overflow-wrap: anywhere;
+}
+
+.fn-tool-relay-meaning {
+  margin-top: 4px;
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: var(--text-secondary);
+}
+
+.fn-tool-relay-figures {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  color: var(--text-tertiary);
+}
+
+.fn-tool-relay-figures .fn-tool-pill {
+  margin-bottom: 2px;
+}
+
+.fn-tool-relay-note {
+  margin-top: 10px;
+}
+
+.fn-tool-card .fn-tool-relay-note {
+  margin: 10px 0 0;
+  font-size: 12.5px;
+  color: var(--text-tertiary);
+}
+
+/* Compact (the Explorer's PDS page): one line a relay. The host and the
+   sentence step aside, and the figures run in a row with the status last. */
+.fn-tool-relay-list[data-compact] .fn-tool-relay-row {
+  align-items: center;
+  padding: 9px 16px;
+}
+
+.fn-tool-relay-list[data-compact] :is(.fn-tool-relay-host, .fn-tool-relay-meaning) {
+  display: none;
+}
+
+.fn-tool-relay-list[data-compact] .fn-tool-relay-figures {
+  flex-direction: row-reverse;
+  align-items: center;
+  gap: 4px 12px;
+}
+
+.fn-tool-relay-list[data-compact] .fn-tool-relay-figures .fn-tool-pill {
+  margin-bottom: 0;
+}
+
+/* Phones: the figures drop under the text, in a line. */
+@media (max-width: 640px) {
+  .fn-tool-relay-row {
+    grid-template-columns: 22px minmax(0, 1fr);
+    padding: 14px;
+  }
+
+  .fn-tool-relay-figures {
+    grid-column: 2;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 10px;
+    margin-top: 4px;
+    white-space: normal;
+  }
+
+  .fn-tool-relay-figures .fn-tool-pill {
+    margin-bottom: 0;
+  }
+}
+
+@media (max-width: 640px) {
+  .fn-tool-relay-list[data-compact] .fn-tool-relay-figures {
+    flex-direction: row;
+    margin-top: 0;
+  }
+
+  /* The sequence number is the first thing a narrow row can do without. */
+  .fn-tool-relay-list[data-compact] .fn-tool-relay-figures span:last-child:not(.fn-tool-pill) {
+    display: none;
+  }
+}
+
+/* ==========================================================================
+   Bulk identity resolver (/tools/resolve)
+   Only what this tool alone needs, under fn-tool-resolve-.
+   ========================================================================== */
+
+/* The progress bar, or the note that replaces it, takes the row's free
+   width; the export buttons stay at its end. */
+.fn-tool-resolve-bar {
+  margin-bottom: 12px;
+}
+
+.fn-tool-resolve-bar > .fn-tool-note {
+  flex: 1 1 280px;
+  min-width: 0;
+}
+
+.fn-tool-resolve-progress {
+  flex: 1 1 280px;
+}
+
+/* ---------- Table ----------
+   Five columns that each hold one unbroken identifier. The table keeps a
+   floor under its width and scrolls inside its card below that, so a DID is
+   never broken across three lines to fit a phone. */
+.fn-tool-resolve-table {
+  min-width: 860px;
+}
+
+.fn-tool-resolve-table td[data-mono] {
+  overflow-wrap: normal;
+  white-space: nowrap;
+}
+
+/* The input is whatever was pasted, so it alone may wrap. Its column is
+   asked to be wide enough for a DID, the longest thing commonly pasted, so
+   one is not broken three characters from its end. */
+.fn-tool-resolve-table th:first-child {
+  width: 292px;
+}
+
+.fn-tool-resolve-table td[data-mono]:first-child {
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
+.fn-tool-resolve-table tr[data-state='pending'] td {
+  color: var(--text-tertiary);
+}
+
+.fn-tool-resolve-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+.fn-tool-resolve-debug {
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+/* Capped, so a long note wraps under its pill instead of claiming the
+   table's spare width from the columns that hold identifiers. */
+.fn-tool-resolve-note {
+  display: block;
+  margin-top: 4px;
+  min-width: 170px;
+  max-width: 230px;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--text-tertiary);
+}
+
+.fn-tool-resolve-dash {
+  color: var(--text-faint);
+}
+
+/* ==========================================================================
+   Identifier decoder (/tools/decode)
+   Only what this tool alone needs, under fn-tool-decode-.
+   ========================================================================== */
+
+.fn-tool-decode-summary {
+  margin: 0 0 14px;
+  max-width: 62ch;
+}
+
+/* What a token's claim means, under its value. */
+.fn-tool-decode-meaning {
+  display: block;
+  margin-top: 2px;
+  font-family: var(--font-sans);
+  font-size: 12.5px;
+  color: var(--text-tertiary);
+}
+
+/* Things worth a second look: the check list's caution, as a ruled list. */
+.fn-tool-decode-notes {
+  list-style: none;
+  margin: 14px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.fn-tool-decode-notes li {
+  padding-left: 10px;
+  border-left: 2px solid var(--tool-warn);
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: var(--text-secondary);
+}
+
+.fn-tool-decode-json {
+  margin-top: 14px;
+}
+
+/* The parts of a compound identifier, each ruled off from the last. */
+.fn-tool-decode-parts {
+  margin-top: 16px;
+  display: flex;
+  flex-direction: column;
+}
+
+.fn-tool-decode-part {
+  padding: 16px 0 0;
+  margin-top: 16px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.fn-tool-decode-part h3 {
+  margin: 0 0 6px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+  font-size: 14.5px;
+  font-weight: 650;
+  color: var(--text-primary);
+}
+
+.fn-tool-decode-part h3 span {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-accent);
+}
+
+.fn-tool-decode-part .fn-tool-actions {
+  border-top: 0;
+  padding-top: 0;
+}
+
+/* ==========================================================================
+   Activity calendar (/tools/activity)
+   Only what this tool alone needs, under fn-tool-activity-.
+   ========================================================================== */
+
+/* ---------- The calendar's card ---------- */
+
+.fn-tool-activity-card {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.fn-tool-activity-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+}
+
+.fn-tool-card .fn-tool-activity-total {
+  margin: 0;
+  font-size: 14.5px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+.fn-tool-activity-total strong {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
+}
+
+.fn-tool-activity-total a {
+  font-family: var(--font-mono);
+  font-size: 13.5px;
+  color: var(--text-accent);
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+
+.fn-tool-activity-total a:hover {
+  text-decoration: underline;
+}
+
+/* The filter in force, as the pale green pill, with a cross to lift it. */
+.fn-tool-activity-filter {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 26px;
+  max-width: 100%;
+  padding: 0 9px;
+  border: 1px solid var(--accent-soft-border);
+  border-radius: var(--radius-pill);
+  background: var(--accent-soft);
+  color: var(--accent-soft-fg);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.15s ease;
+}
+
+.fn-tool-activity-filter:hover {
+  border-color: var(--text-accent);
+}
+
+.fn-tool-activity-filter:focus-visible {
+  outline: 2px solid var(--text-accent);
+  outline-offset: 2px;
+}
+
+.fn-tool-activity-filter svg {
+  flex: none;
+}
+
+/* ---------- The heat map (ActivityHeatmap.tsx) ----------
+   One column a week and one row a weekday. The cells share the card's width
+   down to a minimum, and below that the grid keeps its size and scrolls
+   sideways inside the card, so a phone shows a few months at a time rather
+   than a year of specks. */
+
+.fn-tool-activity-map {
+  /* Shade 0 is an empty day; 1 to 4 are mixed from the accent, so every
+     colour scheme and both themes get their own greens (or rusts, or pinks)
+     without a hex of this file's own. */
+  --fn-tool-activity-0: var(--bg-tertiary);
+  --fn-tool-activity-1: color-mix(in srgb, var(--text-accent) 26%, var(--bg-secondary));
+  --fn-tool-activity-2: color-mix(in srgb, var(--text-accent) 50%, var(--bg-secondary));
+  --fn-tool-activity-3: color-mix(in srgb, var(--text-accent) 76%, var(--bg-secondary));
+  --fn-tool-activity-4: var(--text-accent);
+  --fn-tool-activity-cell: 10px;
+  --fn-tool-activity-gap: 3px;
+  --fn-tool-activity-gutter: 30px;
+
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+
+.fn-tool-activity-map[data-compact] {
+  --fn-tool-activity-cell: 8px;
+  --fn-tool-activity-gap: 2px;
+  --fn-tool-activity-gutter: 0px;
+}
+
+.fn-tool-activity-scroll {
+  overflow-x: auto;
+  /* Room for the focus ring on the outermost days, which the scroller would
+     otherwise clip. None on the left, where the weekday gutter sits flush
+     so nothing shows past it while the grid scrolls. */
+  margin: -3px -3px -3px 0;
+  padding: 3px 3px 3px 0;
+  scrollbar-width: thin;
+}
+
+.fn-tool-activity-grid {
+  display: grid;
+  grid-template-columns:
+    var(--fn-tool-activity-gutter)
+    repeat(var(--fn-tool-activity-weeks), minmax(var(--fn-tool-activity-cell), 1fr));
+  grid-template-rows: 16px;
+  grid-auto-rows: auto;
+  gap: var(--fn-tool-activity-gap);
+  min-width: calc(
+    var(--fn-tool-activity-gutter) + var(--fn-tool-activity-weeks) *
+      (var(--fn-tool-activity-cell) + var(--fn-tool-activity-gap))
+  );
+}
+
+.fn-tool-activity-map[data-compact] .fn-tool-activity-grid {
+  grid-template-columns: repeat(var(--fn-tool-activity-weeks), minmax(var(--fn-tool-activity-cell), 1fr));
+  grid-template-rows: 14px;
+}
+
+.fn-tool-activity-month {
+  grid-row: 1;
+  font-size: 11px;
+  line-height: 14px;
+  white-space: nowrap;
+  color: var(--text-tertiary);
+}
+
+/* The weekday gutter: one strip down the seven rows, held at the left edge
+   while the grid scrolls under it, so a row still says which weekday it is
+   three months back. Its own seven rows share the days' gap, which lines
+   each label up with its row whatever size the cells come out. */
+.fn-tool-activity-weekdays {
+  grid-column: 1;
+  grid-row: 2 / span 7;
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  display: grid;
+  grid-template-rows: repeat(7, 1fr);
+  row-gap: var(--fn-tool-activity-gap);
+  background: var(--bg-secondary);
+  font-size: 10.5px;
+  line-height: 1;
+  color: var(--text-tertiary);
+}
+
+.fn-tool-activity-weekdays > span {
+  align-self: center;
+}
+
+.fn-tool-activity-day {
+  display: block;
+  aspect-ratio: 1;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 3px;
+  background: var(--fn-tool-activity-0);
+}
+
+.fn-tool-activity-day[data-level='1'] {
+  background: var(--fn-tool-activity-1);
+}
+
+.fn-tool-activity-day[data-level='2'] {
+  background: var(--fn-tool-activity-2);
+}
+
+.fn-tool-activity-day[data-level='3'] {
+  background: var(--fn-tool-activity-3);
+}
+
+.fn-tool-activity-day[data-level='4'] {
+  background: var(--fn-tool-activity-4);
+}
+
+button.fn-tool-activity-day {
+  cursor: pointer;
+}
+
+button.fn-tool-activity-day:hover {
+  outline: 1px solid var(--text-tertiary);
+  outline-offset: 1px;
+}
+
+button.fn-tool-activity-day:focus-visible {
+  outline: 2px solid var(--text-accent);
+  outline-offset: 1px;
+}
+
+/* The picked day: a ring in the text colour, which stands off every shade. */
+button.fn-tool-activity-day[aria-pressed='true'] {
+  outline: 2px solid var(--text-primary);
+  outline-offset: 1px;
+}
+
+.fn-tool-activity-legend {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+
+.fn-tool-activity-scale {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.fn-tool-activity-scale .fn-tool-activity-day {
+  width: 11px;
+}
+
+.fn-tool-activity-scale .fn-tool-activity-day:first-of-type {
+  margin-left: 4px;
+}
+
+.fn-tool-activity-scale .fn-tool-activity-day:last-of-type {
+  margin-right: 4px;
+}
+
+/* ---------- Progress ---------- */
+
+.fn-tool-activity-progress {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.fn-tool-activity-progress-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 30px;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.fn-tool-activity-progress-line > span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+/* ---------- Stats ----------
+   The lexicon pages' stat grid (.fn-stat-grid, explore.css), with a line
+   under each value for what it refers to. */
+
+/* Five across, or two with the total on a row of its own. Stated rather
+   than left to auto-fit, which strands the fifth tile beside an empty cell
+   that shows the grid's hairline colour as a grey block. */
+.fn-tool-activity-stats {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+@media (max-width: 760px) {
+  .fn-tool-activity-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .fn-tool-activity-stat:first-child {
+    grid-column: 1 / -1;
+  }
+}
+
+.fn-tool-activity-stat {
+  gap: 2px;
+  min-width: 0;
+  border: 0;
+  font: inherit;
+  text-align: left;
+}
+
+.fn-tool-activity-stat .fn-stat-value {
+  font-size: 22px;
+}
+
+button.fn-tool-activity-stat {
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+button.fn-tool-activity-stat:hover {
+  background: var(--surface-subtle);
+}
+
+button.fn-tool-activity-stat:focus-visible {
+  outline: 2px solid var(--text-accent);
+  outline-offset: -2px;
+}
+
+.fn-tool-activity-stat-sub {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  overflow-wrap: anywhere;
+}
+
+/* ---------- Where it was written ---------- */
+
+.fn-tool-activity-bar {
+  margin-bottom: 12px;
+}
+
+.fn-tool-activity-nsid {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.fn-tool-activity-share {
+  display: flex;
+  align-items: stretch;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.fn-tool-activity-share:first-child {
+  border-top: 0;
+}
+
+.fn-tool-activity-share[data-active] {
+  background: var(--accent-soft);
+}
+
+.fn-tool-activity-share-main {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 14px minmax(0, 1.2fr) minmax(60px, 1fr) 4.5rem 3rem;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 16px;
+  border: 0;
+  background: transparent;
+  color: var(--text-primary);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.fn-tool-activity-share:not([data-active]) .fn-tool-activity-share-main:hover {
+  background: var(--surface-subtle);
+}
+
+.fn-tool-activity-share-main:focus-visible {
+  outline: 2px solid var(--text-accent);
+  outline-offset: -2px;
+}
+
+.fn-tool-activity-share-name {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  overflow-wrap: anywhere;
+}
+
+.fn-tool-activity-share[data-active] .fn-tool-activity-nsid {
+  color: var(--accent-soft-fg);
+  font-weight: 600;
+}
+
+.fn-tool-activity-share-bar {
+  height: 6px;
+  border-radius: var(--radius-pill);
+  background: var(--bg-tertiary);
+  overflow: hidden;
+}
+
+.fn-tool-activity-share-bar > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--text-accent);
+  transition: width var(--motion-panel) var(--ease-soft);
+}
+
+.fn-tool-activity-share-count,
+.fn-tool-activity-share-pct {
+  text-align: right;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.fn-tool-activity-share-pct {
+  color: var(--text-tertiary);
+}
+
+.fn-tool-activity-share-open {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  border-left: 1px solid var(--border-subtle);
+  color: var(--text-tertiary);
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.fn-tool-activity-share-open:hover {
+  background: var(--surface-subtle);
+  color: var(--text-accent);
+}
+
+.fn-tool-activity-share-open:focus-visible {
+  outline: 2px solid var(--text-accent);
+  outline-offset: -2px;
+}
+
+/* ---------- A day, and what is missing ---------- */
+
+.fn-tool-activity-foot {
+  margin: 0;
+  padding: 10px 16px;
+  border-top: 1px solid var(--border-subtle);
+  background: var(--surface-subtle);
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--text-tertiary);
+}
+
+.fn-tool-activity-gap + .fn-tool-activity-gap,
+.fn-tool-activity-gap + p {
+  margin-top: 14px;
+}
+
+.fn-tool-activity-gaps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-control);
+  background: var(--surface-subtle);
+}
+
+.fn-tool-activity-gaps li {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 2px 16px;
+  padding: 7px 10px;
+  border-top: 1px solid var(--border-subtle);
+  font-size: 12.5px;
+  color: var(--text-secondary);
+}
+
+.fn-tool-activity-gaps li:first-child {
+  border-top: 0;
+}
+
+.fn-tool-activity-gaps code {
+  color: var(--text-primary);
+  overflow-wrap: anywhere;
+}
+
+/* ---------- Touch and phones ---------- */
+
+/* A finger needs more than 11px. The grid scrolls sideways anyway, so the
+   days can simply be bigger. */
+@media (pointer: coarse) {
+  .fn-tool-activity-map:not([data-compact]) {
+    --fn-tool-activity-cell: 18px;
+    --fn-tool-activity-gap: 4px;
+  }
+}
+
+@media (max-width: 640px) {
+  .fn-tool-activity-share-main {
+    grid-template-columns: 14px minmax(0, 1fr) auto auto;
+    gap: 10px;
+    padding: 11px 14px;
+  }
+
+  /* The share is the percentage beside it; the bar goes when room is short. */
+  .fn-tool-activity-share-bar {
+    display: none;
+  }
+
+  .fn-tool-activity-hint {
+    display: none;
+  }
+
+  .fn-tool-activity-foot {
+    padding: 10px 14px;
+  }
+}
+
+/* ==========================================================================
+   Lists and verifications (/tools/memberships)
+   Only what this tool alone needs, under fn-tool-memberships-.
+   ========================================================================== */
+
+/* The line under a section's heading that says what kind of list it holds.
+   The heading leaves 12px under itself; this sits in that gap's place. */
+.fn-tool-memberships-hint {
+  margin: -6px 0 10px;
+}
+
+/* A list or an account with no picture: the glyph on the avatar's own tile. */
+.fn-tool-memberships-blank {
+  display: inline-grid;
+  place-items: center;
+  color: var(--text-tertiary);
+}
+
+/* A list's own description, kept to two lines so a long one does not turn a
+   row into a paragraph. */
+.fn-tool-memberships-desc {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  margin-top: 2px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+  overflow-wrap: anywhere;
+}
+
+.fn-tool-memberships-rows .fn-tool-row-sub a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.fn-tool-memberships-rows .fn-tool-row-sub a:hover {
+  color: var(--text-accent);
+}
+
+/* A list that could no longer be described stays in the count, quietly. */
+.fn-tool-memberships-rows .fn-tool-row[data-quiet] .fn-tool-row-title {
+  font-weight: 500;
+  color: var(--text-tertiary);
+}
+
+/* "Load more" and how far the page has got. */
+.fn-tool-memberships-more {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px 14px;
+  margin-top: 12px;
+}
+
+/* The sections above are 28px apart; the pager belongs to the last of them. */
+.fn-tool-body > .fn-tool-memberships-more {
+  margin-top: -14px;
+}
+
+@media (max-width: 640px) {
+  /* The date or the standing drops under the row's text rather than
+     squeezing the name. 44px is the avatar and the gap beside it. */
+  .fn-tool-memberships-rows .fn-tool-row {
+    flex-wrap: wrap;
+  }
+
+  .fn-tool-memberships-rows .fn-tool-row-main {
+    flex-basis: calc(100% - 44px);
+  }
+
+  .fn-tool-memberships-rows .fn-tool-row-end {
+    flex-basis: 100%;
+    padding-left: 44px;
+  }
+}
+
+/* ==========================================================================
+   Label checker (/tools/labels)
+   Only what this tool alone needs, under fn-tool-labels-.
+   ========================================================================== */
+
+/* ---------- Labels, by who applied them ----------
+   One card per labeler: its name on the off-white strip, then a row per
+   label laid out as a check-list row is (title, a state on the right, a
+   sentence, the small print), without the mark. */
+
+.fn-tool-labels-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.fn-tool-labels-source {
+  background: var(--surface-subtle);
+  border-bottom: 1px solid var(--border-medium);
+}
+
+.fn-tool-labels-item {
+  padding: 13px 16px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.fn-tool-labels-item:first-child {
+  border-top: 0;
+}
+
+.fn-tool-labels-head {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 2px 9px;
+  min-height: 22px;
+}
+
+.fn-tool-labels-name {
+  font-size: 14px;
+  font-weight: 650;
+  line-height: 22px;
+  color: var(--text-primary);
+  overflow-wrap: anywhere;
+}
+
+.fn-tool .fn-tool-labels-val {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  overflow-wrap: anywhere;
+}
+
+/* The check list's state word, in the same place. */
+.fn-tool-labels-state {
+  margin-left: auto;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+}
+
+.fn-tool-labels-state[data-tone='warn'] {
+  color: var(--tool-warn);
+}
+
+.fn-tool-labels-item .fn-tool-labels-desc {
+  margin: 2px 0 0;
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: var(--text-secondary);
+  overflow-wrap: anywhere;
+}
+
+.fn-tool-labels-item .fn-tool-labels-desc[data-quiet] {
+  color: var(--text-tertiary);
+}
+
+/* The small print: where it sits, when it was applied, what it does. */
+.fn-tool-labels-item .fn-tool-labels-meta {
+  margin: 6px 0 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 0;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--text-tertiary);
+}
+
+.fn-tool-labels-meta > span + span::before {
+  content: '·';
+  margin: 0 7px;
+  color: var(--text-faint);
+}
+
+/* A label that no longer applies stays listed, quietly. */
+.fn-tool-labels-item[data-inactive] .fn-tool-labels-name {
+  color: var(--text-tertiary);
+  text-decoration: line-through;
+}
+
+/* ---------- The scan and the labeler field ---------- */
+
+.fn-tool-labels-scan {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.fn-tool-card.fn-tool-labels-scan > p {
+  margin: 0;
+}
+
+.fn-tool-labels-scanbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px 14px;
+  min-height: 30px;
+}
+
+.fn-tool-labels-scanbar .fn-tool-progress {
+  flex: 1 1 160px;
+}
+
+.fn-tool-labels-count {
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-tertiary);
+}
+
+.fn-tool-card p.fn-tool-labels-problem {
+  margin: 0;
+  font-size: 13px;
+  color: var(--danger);
+}
+
+.fn-tool-labels-add {
+  padding-top: 14px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+@media (max-width: 640px) {
+  .fn-tool-labels-item {
+    padding: 13px 14px;
+  }
+}
+
+/* ==========================================================================
+   Repo archive inspector (/tools/car)
+   Only what this tool alone needs, under fn-tool-car-.
+   ========================================================================== */
+
+/* ---------- Opening a file ----------
+   The second way in, under the account field: a dashed strip that takes a
+   dropped file, with a button for choosing one. */
+
+.fn-tool-car-file {
+  display: flex;
+  align-items: center;
+  gap: 10px 12px;
+  padding: 10px 12px;
+  border: 1px dashed var(--border-strong);
+  border-radius: 10px;
+  color: var(--text-tertiary);
+  transition: border-color var(--motion-quick) ease, background var(--motion-quick) ease;
+}
+
+.fn-tool-car-file[data-over] {
+  border-color: var(--text-accent);
+  background: var(--accent-soft);
+  color: var(--accent-soft-fg);
+}
+
+.fn-tool-car-file > svg {
+  flex: none;
+}
+
+.fn-tool-car-file p {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+/* The input is hidden inside its label (.fn-sr-only is absolute), so the
+   label is what shows focus. */
+.fn-tool-car-pick {
+  position: relative;
+  flex: none;
+}
+
+.fn-tool-car-pick:focus-within {
+  outline: 2px solid var(--text-accent);
+  outline-offset: 2px;
+}
+
+/* ---------- Before the fetch ---------- */
+
+.fn-tool-car-status {
+  margin-top: 12px;
+}
+
+.fn-tool-car-go {
+  align-items: center;
+}
+
+.fn-tool-car-go .fn-searchbox-submit {
+  height: 36px;
+  padding: 0 16px;
+  border-radius: var(--radius-control);
+  font-size: 13.5px;
+}
+
+.fn-tool-car-go .fx-btn {
+  height: 36px;
+}
+
+.fn-tool-car-go .fn-tool-note {
+  flex: 1 1 100%;
+  max-width: 68ch;
+}
+
+/* ---------- While it loads ---------- */
+
+.fn-tool-car-loading {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.fn-tool-car-loading-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.fn-tool-car-loading-head > svg {
+  flex: none;
+  margin-top: 2px;
+  color: var(--text-tertiary);
+}
+
+.fn-tool-car-loading-head > div {
+  flex: 1;
+  min-width: 0;
+}
+
+.fn-tool-car-loading-head strong {
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.fn-tool-car-loading-head p {
+  margin: 2px 0 0;
+  font-size: 13.5px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- Records ----------
+   Collections beside the chosen collection's record keys. One column on a
+   tablet or phone, where the collections become a short scrolling list. */
+
+.fn-tool-car-browser {
+  display: grid;
+  grid-template-columns: minmax(240px, 320px) minmax(0, 1fr);
+  align-items: start;
+  gap: 16px;
+}
+
+.fn-tool-car-side {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.fn-tool-car-filter {
+  height: 34px;
+}
+
+.fn-tool-car-colls {
+  max-height: 560px;
+  overflow-y: auto;
+}
+
+/* Rows are buttons in both lists: the shared row, reset to a plain button. */
+.fn-tool-car-coll,
+.fn-tool-car-keyrow {
+  width: 100%;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.fn-tool-car-colls > li + li,
+.fn-tool-car-key + .fn-tool-car-key {
+  border-top: 1px solid var(--border-subtle);
+}
+
+.fn-tool-car-colls .fn-tool-row,
+.fn-tool-car-keys .fn-tool-row {
+  border-top: 0;
+}
+
+.fn-tool-car-coll {
+  padding: 9px 14px;
+  gap: 10px;
+}
+
+.fn-tool-car-coll:hover,
+.fn-tool-car-keyrow:hover {
+  background: var(--surface-subtle);
+}
+
+.fn-tool-car-coll[aria-current='true'] {
+  background: var(--accent-soft);
+  box-shadow: inset 2px 0 0 var(--accent-forest);
+}
+
+.fn-tool-car-coll[aria-current='true'] .fn-tool-car-nsid,
+.fn-tool-car-coll[aria-current='true'] .fn-tool-row-end {
+  color: var(--accent-soft-fg);
+}
+
+.fn-tool-car-coll:focus-visible,
+.fn-tool-car-keyrow:focus-visible {
+  outline: 2px solid var(--text-accent);
+  outline-offset: -2px;
+}
+
+.fn-tool-car-nsid {
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  color: var(--text-primary);
+  overflow-wrap: anywhere;
+}
+
+.fn-tool-car-coll[aria-current='true'] .fn-tool-car-nsid {
+  font-weight: 500;
+}
+
+.fn-tool-car-none {
+  padding: 12px 14px;
+  font-size: 13px;
+  font-style: italic;
+  color: var(--text-tertiary);
+}
+
+.fn-tool-car-main {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+
+.fn-tool-car-bar {
+  min-height: 34px;
+}
+
+.fn-tool-car-title {
+  margin: 0;
+  min-width: 0;
+  font-family: var(--font-mono);
+  font-size: 15px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  color: var(--text-primary);
+  overflow-wrap: anywhere;
+}
+
+.fn-tool-car-keyrow {
+  padding: 9px 14px;
+  gap: 8px;
+}
+
+.fn-tool-car-chev {
+  flex: none;
+  color: var(--text-tertiary);
+  transition: transform var(--motion-quick) ease;
+}
+
+.fn-tool-car-keyrow[aria-expanded='true'] .fn-tool-car-chev {
+  transform: rotate(90deg);
+}
+
+.fn-tool-car-rkey {
+  padding: 0;
+  background: none;
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  color: var(--text-primary);
+  overflow-wrap: anywhere;
+}
+
+.fn-tool-car-key[data-open] {
+  background: var(--surface-subtle);
+}
+
+.fn-tool-car-key[data-open] .fn-tool-car-rkey {
+  font-weight: 500;
+  color: var(--text-accent);
+}
+
+/* The open record, under its row. */
+.fn-tool-car-record {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 2px 14px 14px 36px;
+}
+
+.fn-tool-car-record .fn-tool-code {
+  background: var(--bg-secondary);
+}
+
+.fn-tool-car-record-ids {
+  margin: 0;
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 2px 10px;
+  align-items: center;
+  font-size: 12.5px;
+}
+
+.fn-tool-car-record-ids dt {
+  color: var(--text-tertiary);
+}
+
+.fn-tool-car-record-ids dd {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+
+.fn-tool-car-record-ids code {
+  flex: 1;
+  min-width: 0;
+  padding: 0;
+  background: none;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fn-tool-car-record-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.fn-tool-car-more {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 14px;
+  border-top: 1px solid var(--border-subtle);
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-tertiary);
+}
+
+.fn-tool-car-blobs {
+  margin-top: 14px;
+  max-width: 76ch;
+}
+
+@media (max-width: 860px) {
+  .fn-tool-car-browser {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .fn-tool-car-colls {
+    max-height: 264px;
+  }
+}
+
+@media (max-width: 640px) {
+  .fn-tool-car-file {
+    flex-wrap: wrap;
+  }
+
+  .fn-tool-car-file p {
+    flex: 1 1 200px;
+  }
+
+  .fn-tool-car-pick {
+    flex: 1 1 100%;
+    height: 40px;
+  }
+
+  .fn-tool-car-go .fn-searchbox-submit,
+  .fn-tool-car-go .fx-btn {
+    flex: 1 1 100%;
+    height: 44px;
+  }
+
+  .fn-tool-car-bar .fn-tool-bar-end {
+    margin-left: 0;
+    flex-wrap: wrap;
+  }
+
+  .fn-tool-car-record {
+    padding-left: 14px;
+  }
+
+  /* The time drops under the key rather than squeezing it. */
+  .fn-tool-car-keyrow {
+    flex-wrap: wrap;
+  }
+
+  .fn-tool-car-keyrow .fn-tool-row-end {
+    flex: 1 1 100%;
+    padding-left: 22px;
+  }
+}
+
+/* ==========================================================================
+   Record validator (/tools/validate)
+   Only what this tool alone needs, under fn-tool-validate-.
+   ========================================================================== */
+
+/* One problem: where it is, then what is wrong with it. */
+.fn-tool-validate-issue {
+  align-items: flex-start;
+}
+
+.fn-tool-validate-path {
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--text-primary);
+  overflow-wrap: anywhere;
+}
+
+.fn-tool-validate-message {
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+/* The other lexicons a record's fields reached into. */
+.fn-tool-validate-consulted {
+  margin-top: 14px;
+}
+
+.fn-tool-validate-consulted ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+}
+
+.fn-tool-validate-consulted li {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+}
+
+.fn-tool-validate-consulted a {
+  color: var(--text-accent);
+  text-decoration: none;
+}
+
+.fn-tool-validate-consulted a:hover {
+  text-decoration: underline;
+}
+
+.fn-tool-validate-unchecked {
+  margin-top: 12px;
+}
+
+/* The path is a label, not a snippet: no chip behind it. */
+.fn-tool-validate-issue .fn-tool-validate-path {
+  align-self: flex-start;
+  padding: 0;
+  background: none;
+}
+
+/* ==========================================================================
+   Post inspector (/tools/post)
+   Only what this tool alone needs, under fn-tool-post-.
+   ========================================================================== */
+
+/* ---------- The text, marked up ---------- */
+
+.fn-tool-post-author {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.fn-tool-post-author-text {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.fn-tool-post-author-text strong {
+  font-size: 14px;
+  font-weight: 650;
+  overflow-wrap: anywhere;
+}
+
+.fn-tool-post-author-text a {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-accent);
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+
+.fn-tool-post-author-text a:hover {
+  text-decoration: underline;
+}
+
+/* The post as written: line breaks and runs of spaces are part of what the
+   byte offsets count, so they are kept. Sized up from the card's own
+   paragraphs, since this is the thing being read. */
+.fn-tool-card p.fn-tool-post-text {
+  margin: 14px 0 18px;
+  font-size: 16px;
+  line-height: 1.6;
+  color: var(--text-primary);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.fn-tool-card p.fn-tool-post-text[data-empty] {
+  font-size: 14px;
+  font-style: italic;
+  color: var(--text-tertiary);
+}
+
+/* A facet's stretch of the text: the pale pill green, with its number in the
+   table set small after it. A mention and a tag are told from a link by
+   their outline, so the difference does not rest on colour. */
+.fn-tool-post-mark {
+  padding: 1px 3px;
+  border-radius: 4px;
+  background: var(--accent-soft);
+  box-shadow: inset 0 0 0 1px var(--accent-soft-border);
+  color: var(--accent-soft-fg);
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+}
+
+.fn-tool-post-mark:is([data-kind='mention'], [data-kind='tag']) {
+  background: transparent;
+  box-shadow: inset 0 0 0 1px var(--accent-soft-ring);
+}
+
+.fn-tool-post-mark[data-kind='unknown'] {
+  background: var(--bg-tertiary);
+  box-shadow: inset 0 0 0 1px var(--border-medium);
+  color: var(--text-secondary);
+}
+
+/* Drawn where its offsets put it, which is not where it belongs. */
+.fn-tool-post-mark[data-misplaced] {
+  background: var(--danger-soft);
+  box-shadow: inset 0 0 0 1px var(--danger-border);
+  color: var(--danger);
+}
+
+.fn-tool-post-mark sup {
+  margin-left: 3px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 500;
+  line-height: 0;
+  color: var(--text-tertiary);
+}
+
+/* ---------- Facets ---------- */
+
+/* The finding in a sentence, above the table that supports it. */
+.fn-tool-post-summary {
+  margin: 0 0 12px;
+  padding-left: 10px;
+  border-left: 2px solid var(--border-strong);
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: var(--text-secondary);
+}
+
+.fn-tool-post-summary[data-status='pass'] {
+  border-left-color: var(--text-accent);
+}
+
+.fn-tool-post-summary[data-status='warn'] {
+  border-left-color: var(--tool-warn);
+}
+
+.fn-tool-post-summary[data-status='fail'] {
+  border-left-color: var(--danger);
+}
+
+.fn-tool-post-facets {
+  min-width: 620px;
+}
+
+.fn-tool-post-bytes {
+  white-space: nowrap;
+}
+
+/* Wide enough that a handle or a short URL is not broken mid-word. */
+.fn-tool-post-covers {
+  width: 30%;
+  min-width: 12rem;
+}
+
+.fn-tool-post-covers q {
+  color: var(--text-primary);
+  white-space: pre-wrap;
+}
+
+/* What a range that cannot be cut would cover, read byte by byte. */
+.fn-tool-post-covers q[data-broken] {
+  color: var(--danger);
+}
+
+.fn-tool-post-none {
+  font-style: italic;
+  color: var(--text-tertiary);
+}
+
+.fn-tool-post-feature {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+}
+
+.fn-tool-post-feature + .fn-tool-post-feature {
+  margin-top: 4px;
+}
+
+.fn-tool-post-target {
+  min-width: 0;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+/* What is wrong with the facet above, tucked under its row. */
+.fn-tool-table tr.fn-tool-post-problems td {
+  padding-top: 0;
+  border-top: 0;
+}
+
+.fn-tool-post-problems p {
+  margin: 0;
+  padding-left: 10px;
+  border-left: 2px solid var(--tool-warn);
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+.fn-tool-post-problems[data-level='error'] p {
+  border-left-color: var(--danger);
+}
+
+.fn-tool-post-problems p + p {
+  margin-top: 6px;
+}
+
+/* ---------- Phones ----------
+   Five columns do not fit, and scrolling sideways would hide the one thing
+   that matters, what is wrong with a facet. Each facet becomes a block
+   instead: its number, bytes and verdict on a line, then what it covers,
+   then what it marks it as. */
+
+@media (max-width: 640px) {
+  .fn-tool-table.fn-tool-post-facets {
+    display: block;
+    min-width: 0;
+  }
+
+  .fn-tool-post-facets thead {
+    display: none;
+  }
+
+  .fn-tool-post-facets tbody {
+    display: block;
+  }
+
+  .fn-tool-post-facets tr {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 6px 10px;
+    padding: 12px 14px;
+    border-top: 1px solid var(--border-subtle);
+  }
+
+  .fn-tool-post-facets tr:first-child {
+    border-top: 0;
+  }
+
+  .fn-tool-table.fn-tool-post-facets td {
+    padding: 0;
+    border: 0;
+  }
+
+  .fn-tool-post-facets td:nth-child(5) {
+    grid-row: 1;
+    grid-column: 3;
+  }
+
+  .fn-tool-post-facets td:nth-child(3),
+  .fn-tool-post-facets td:nth-child(4) {
+    grid-column: 1 / -1;
+  }
+
+  .fn-tool-post-covers {
+    width: auto;
+    min-width: 0;
+  }
+
+  /* The problems belong to the facet above: no rule between them. */
+  .fn-tool-post-facets tr.fn-tool-post-problems {
+    display: block;
+    padding-top: 0;
+    border-top: 0;
+  }
+
+  .fn-tool-post-facets tr.fn-tool-post-problems td:first-child {
+    display: none;
+  }
+
+  .fn-tool-post-facets tr[data-problem] {
+    padding-bottom: 10px;
+  }
+
+  .fn-tool-card p.fn-tool-post-text {
+    font-size: 15px;
+  }
+}
+
+/* ==========================================================================
+   Lexicon publishing checker (/tools/lexicon)
+   Only what this tool alone needs, under fn-tool-lexicon-.
+   ========================================================================== */
+
+/* The schema document under its facts. A whole lexicon runs long, so it
+   scrolls inside a shorter window than the frame's default. */
+.fn-tool-lexicon-doc {
+  margin-top: 14px;
+}
+
+.fn-tool-lexicon-doc .fn-tool-pre {
+  max-height: 320px;
+}
+
+/* ==========================================================================
+   Feed inspector (/tools/feed)
+   Only what this tool alone needs, under fn-tool-feed-.
+   ========================================================================== */
+
+/* ---------- The feed's card ---------- */
+
+.fn-tool-feed-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.fn-tool-feed-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+}
+
+/* No avatar: the tile icon's look, at the avatar's size. */
+span.fn-tool-feed-avatar {
+  display: grid;
+  place-items: center;
+  background: var(--accent-soft);
+  color: var(--accent-soft-fg);
+}
+
+.fn-tool-feed-card-text {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.fn-tool-feed-card-text strong {
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  overflow-wrap: anywhere;
+}
+
+.fn-tool-feed-card-text span {
+  font-size: 13px;
+  color: var(--text-tertiary);
+}
+
+.fn-tool-feed-card-text a {
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  color: var(--text-accent);
+  text-decoration: none;
+}
+
+.fn-tool-feed-card-text a:hover {
+  text-decoration: underline;
+}
+
+.fn-tool-card p.fn-tool-feed-desc {
+  margin: 12px 0 16px;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+
+.fn-tool-feed-card + .fn-tool-facts {
+  margin-top: 16px;
+}
+
+/* ---------- Skeleton ---------- */
+
+.fn-tool-feed-bar {
+  margin-bottom: 12px;
+}
+
+.fn-tool-feed-row {
+  align-items: flex-start;
+}
+
+/* The post's place in the skeleton, which is the one thing the generator
+   decides. */
+.fn-tool-feed-n {
+  flex: none;
+  width: 22px;
+  padding-top: 1px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  color: var(--text-tertiary);
+}
+
+.fn-tool-feed-author {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0 8px;
+  min-width: 0;
+  font-size: 14px;
+}
+
+.fn-tool-feed-author strong {
+  font-weight: 650;
+  overflow-wrap: anywhere;
+}
+
+.fn-tool-feed-author span {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-tertiary);
+  overflow-wrap: anywhere;
+}
+
+.fn-tool-feed-text {
+  margin: 1px 0 3px;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+
+.fn-tool-feed-text[data-empty] {
+  font-style: italic;
+  color: var(--text-tertiary);
+}
+
+a.fn-tool-feed-uri {
+  color: var(--text-tertiary);
+  text-decoration: none;
+}
+
+a.fn-tool-feed-uri:hover {
+  color: var(--text-accent);
+  text-decoration: underline;
+}
+
+/* An opaque token, often a few hundred characters of base64: one line, the
+   whole of it on hover. */
+.fn-tool-feed-context {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--text-faint);
+}
+
+.fn-tool-feed-row .fn-tool-row-end {
+  padding-top: 1px;
+}
+
+.fn-tool-feed-cursor {
+  margin-top: 10px;
+  overflow-wrap: anywhere;
+}
+
+.fn-tool-feed-cursor code {
+  color: var(--text-secondary);
+}
+
+/* ==========================================================================
+   OAuth client checker (/tools/oauth)
+   Only what this tool alone needs, under fn-tool-oauth-.
+   ========================================================================== */
+
+/* The fields the document carries that client metadata does not define. */
+.fn-tool-oauth-others {
+  margin-top: 10px;
+}
+
+/* ---------- Head: the view switch above the input ---------- */
+
+.fn-tool-oauth-head {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.fn-tool-oauth-head > .fn-tool-form {
+  align-self: stretch;
+}
+
+/* Where the rules come from, under the steps. Stated with the card so it
+   outranks the card's own paragraph margins (tool-pages.css). */
+.fn-tool-card p.fn-tool-oauth-source {
+  margin: 16px 0 0;
+  padding-top: 12px;
+  border-top: 1px solid var(--border-subtle);
+  font-size: 12.5px;
+  color: var(--text-tertiary);
+}
+
+.fn-tool-card p.fn-tool-oauth-implied {
+  margin: 12px 0 0;
+  font-size: 12.5px;
+  color: var(--text-tertiary);
+}
+
+/* ---------- Scope list ----------
+   The check list's rows (tool-pages.css), with the scope itself where a
+   check's title goes and a remove button where its state would be. */
+
+.fn-tool-oauth-scope {
+  min-width: 0;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 22px;
+  color: var(--text-primary);
+  overflow-wrap: anywhere;
+}
+
+.fn-tool-oauth-remove {
+  width: 24px;
+  height: 24px;
+  flex: none;
+  display: inline-grid;
+  place-items: center;
+  margin: -1px -4px 0 0;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.fn-tool-oauth-remove:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+.fn-tool-oauth-remove:focus-visible {
+  outline: 2px solid var(--text-accent);
+  outline-offset: 1px;
+}
+
+.fn-tool-oauth-problem,
+.fn-tool-oauth-note {
+  margin: 4px 0 0;
+  font-size: 13px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.fn-tool-oauth-problem {
+  color: var(--danger);
+}
+
+.fn-tool-oauth-note {
+  color: var(--text-tertiary);
+}
+
+/* ---------- Builder ---------- */
+
+.fn-tool-oauth-builder {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.fn-tool-card p.fn-tool-oauth-kind-hint {
+  margin: -6px 0 0;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+.fn-tool-oauth-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+  gap: 14px 16px;
+}
+
+.fn-tool-oauth-field {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 5px;
+}
+
+.fn-tool-oauth-field > label,
+.fn-tool-oauth-field-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-tertiary);
+}
+
+.fn-tool-oauth-field > .fx-field {
+  align-self: stretch;
+  height: 36px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+}
+
+.fn-tool-oauth-field-hint {
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--text-tertiary);
+}
+
+/* What the fields add up to, with the button that adds it. */
+.fn-tool-oauth-preview {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.fn-tool-oauth-preview-text {
+  flex: 1 1 16rem;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.fn-tool-oauth-preview-text code {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+  overflow-wrap: anywhere;
+}
+
+.fn-tool-oauth-preview-text span {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+.fn-tool-oauth-preview[data-status='invalid'] .fn-tool-oauth-preview-text span {
+  color: var(--danger);
+}
+
+/* ---------- Result ---------- */
+
+.fn-tool-oauth-out {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.fn-tool-oauth-out .fn-tool-note {
+  margin-top: 4px;
+}
+
+@media (max-width: 640px) {
+  /* Under 16px, iOS Safari zooms the page when a field takes focus. */
+  .fn-tool-oauth-field > .fx-field {
+    height: 40px;
+    font-size: 16px;
+  }
+
+  .fn-tool-oauth-preview .fx-btn {
+    flex: 1;
+    height: 40px;
+  }
+}
+
+/* ==========================================================================
+   Share button builder (/tools/share)
+   Only what this tool alone needs, under fn-tool-share-.
+   ========================================================================== */
+
+/* ---------- Input: text and link, each under its label ---------- */
+
+.fn-tool-share-form {
+  gap: 12px;
+}
+
+.fn-tool-share-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+}
+
+.fn-tool-share-label {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-tertiary);
+}
+
+.fn-tool-share-label span {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+.fn-tool-share-label span[data-over] {
+  color: var(--danger);
+}
+
+/* A post is prose, so the text is set in the sans face, not the mono one
+   the shared textarea carries for records and lists. */
+.fn-tool-share-text {
+  min-height: 84px;
+  font-family: var(--font-sans);
+  font-size: 15px;
+}
+
+/* The search field's shape, without the room it leaves for a leading icon. */
+.fn-tool-share-url {
+  height: 44px;
+  padding-left: 14px;
+}
+
+.fn-tool-share-url[aria-invalid='true'] {
+  border-color: var(--danger-border);
+}
+
+.fn-tool-share-problem {
+  margin: 0;
+  font-size: 13px;
+  color: var(--danger);
+}
+
+/* ---------- Links ---------- */
+
+.fn-tool-share-row {
+  align-items: flex-start;
+}
+
+/* The catalog's marks are drawn at 24px; the tile is the hub tile's, a size
+   down. */
+.fn-tool-share-icon {
+  width: 32px;
+  height: 32px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+.fn-tool-share-icon > svg,
+.fn-tool-share-icon > img {
+  width: 18px;
+  height: 18px;
+}
+
+.fn-tool-share-caveat {
+  color: var(--tool-warn);
+}
+
+.fn-tool-share-app {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 3px;
+}
+
+.fn-tool-share-row .fn-tool-row-end {
+  margin-top: 1px;
+}
+
+.fn-tool-share-source {
+  margin-top: 10px;
+}
+
+/* ---------- Markup ---------- */
+
+.fn-tool-share-markup {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.fn-tool-share-pick {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.fn-tool-share-pick-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-tertiary);
+}
+
+.fn-tool-share-labelfield {
+  height: 36px;
+  max-width: 22rem;
+}
+
+.fn-tool-share-snippet {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.fn-tool-share-snippet h3 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 650;
+  color: var(--text-primary);
+}
+
+/* The button as the snippet draws it, on the page's own ground: its colours
+   are fixed, so this shows them against whichever theme is on. */
+.fn-tool-share-preview {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 18px;
+  border: 1px dashed var(--border-medium);
+  border-radius: var(--radius-control);
+  background: var(--bg-primary);
+}
+
+@media (max-width: 640px) {
+  .fn-tool-share-row {
+    flex-wrap: wrap;
+  }
+
+  .fn-tool-share-row .fn-tool-row-main {
+    flex-basis: calc(100% - 44px);
+  }
+
+  .fn-tool-share-row .fn-tool-row-end {
+    margin-left: 44px;
+  }
+
+  /* Under 16px, iOS Safari zooms the page when a field takes focus. */
+  .fn-tool-share-text,
+  .fn-tool-share-labelfield {
+    font-size: 16px;
+  }
+
+  .fn-tool-share-labelfield {
+    height: 40px;
+    max-width: none;
+  }
+}
+
+/* ==========================================================================
+   Page checker (/tools/page)
+   Only what this tool alone needs, under fn-tool-page-.
+   ========================================================================== */
+
+/* ---------- Link card ----------
+   The image over the title, the description and the host: the four parts a
+   client draws, in the site's own card. Kept to a card's width rather than
+   the column's, so the image has the proportions it would have in a feed. */
+
+.fn-tool-page-card {
+  max-width: 520px;
+  overflow: hidden;
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-card);
+  background: var(--bg-secondary);
+}
+
+.fn-tool-page-card-image,
+.fn-tool-page-card-broken {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1.91 / 1;
+  border-bottom: 1px solid var(--border-subtle);
+  background: var(--bg-tertiary);
+}
+
+.fn-tool-page-card-image {
+  object-fit: cover;
+}
+
+.fn-tool-page-card-broken {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text-tertiary);
+}
+
+.fn-tool-page-card-text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 14px 13px;
+  min-width: 0;
+}
+
+.fn-tool-page-card-text strong {
+  font-size: 15px;
+  font-weight: 650;
+  line-height: 1.35;
+  color: var(--text-primary);
+  overflow-wrap: anywhere;
+}
+
+.fn-tool-page-card-text p {
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+  overflow-wrap: anywhere;
+  /* Two lines, as a card in a feed would cut it. */
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+
+.fn-tool-page-card-host {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 2px;
+  font-size: 12.5px;
+  color: var(--text-tertiary);
+}
+
+/* ---------- Declared records ---------- */
+
+.fn-tool-page-record {
+  align-items: flex-start;
+}
+
+.fn-tool-page-uri {
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  font-weight: 500;
+}
+
+.fn-tool-page-record .fn-tool-pill {
+  flex: none;
+  margin-top: 1px;
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  font-weight: 500;
+}
+
+.fn-tool-page-source {
+  margin-top: 10px;
+}
+
+/* ---------- Fields ---------- */
+
+.fn-tool-page-fields td:first-child {
+  width: 11rem;
+  white-space: nowrap;
+}
+
+@media (max-width: 640px) {
+  .fn-tool-page-record {
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .fn-tool-page-fields td:first-child {
+    width: auto;
+  }
+}

@@ -18,6 +18,8 @@ import LinkifiedJson from './LinkifiedJson';
 import RecordPreview from '@/components/RecordPreview';
 import RichRecordCard, { recordHasRichCard } from './RichRecordCard';
 import BacklinksTab, { type BacklinksLauncher } from './tabs/BacklinksTab';
+import { RecordSchemaRow } from './RecordSchemaCheck';
+import { toolLinksForRecord, type ToolLink } from '@/lib/tools/recordLinks';
 import LexiconUsageCard from './lexicons/LexiconUsageCard';
 import { Segmented } from './lexicons/primitives';
 import RecordEditor from './RecordEditor';
@@ -357,6 +359,7 @@ function RecordView({
       universalPath={aturiUniversalPath}
       recordJson={record ? JSON.stringify(record, null, 2) : null}
       pdsRecordUrl={pdsRecordUrl}
+      toolLinks={toolLinksForRecord(collection, atUri, decodedRkey)}
     />
   );
   const signInNode = !session ? (
@@ -474,6 +477,12 @@ function RecordView({
               </dd>
             </>
           )}
+          <RecordSchemaRow
+            record={record.value}
+            collection={collection}
+            rkey={decodedRkey}
+            atUri={atUri}
+          />
         </dl>
         {!structuredHidden && (
           <RecordPreview
@@ -752,6 +761,7 @@ function CopyRow({
   universalPath,
   recordJson,
   pdsRecordUrl,
+  toolLinks,
 }: {
   atUri: string;
   did: string;
@@ -763,6 +773,8 @@ function CopyRow({
   recordJson: string | null;
   /** Direct PDS XRPC URL — `View raw on PDS` lands on the raw JSON. */
   pdsRecordUrl: string;
+  /** Tools under /tools with something to say about this kind of record. */
+  toolLinks: ToolLink[];
 }) {
   return (
     <section className="fn-rec-card fn-rec-copy" aria-label="Copy">
@@ -784,6 +796,9 @@ function CopyRow({
           external
           title="Fetch the raw record JSON from the PDS"
         />
+        {toolLinks.map((tool) => (
+          <LinkButton key={tool.slug} href={tool.href} label={tool.label} title={tool.title} />
+        ))}
       </div>
     </section>
   );
