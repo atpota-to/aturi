@@ -32,9 +32,10 @@
  * Everything here is pure. The requests are in shadowbanClient.ts.
  */
 
+import { matchSupportedUrl } from '@/utils/reverseParsers';
+import { isValidDid } from '@/utils/atproto/spaceUri';
 import { tidToDate } from '@/utils/atproto/tid';
-import { NOT_LABELLED, parseSubjectInput, type LabelInput, type LabelTarget } from './labels';
-import { normalizeHostUrl } from './xrpc';
+import { parseAtUri } from '@/utils/atproto/urls';
 
 export const POST_COLLECTION = 'app.bsky.feed.post';
 
@@ -89,6 +90,33 @@ export const DEFAULT_APPVIEW = APPVIEWS[0];
 
 export type AppViewChoice = { ok: true; appview: AppView } | { ok: false; reason: string };
 
+type HostUrl = { ok: true; origin: string } | { ok: false; reason: string };
+
+/**
+ * Tidy a typed host into an origin. A bare name gets https. Plain http is
+ * kept only for this machine, which is where an AppView under development
+ * runs and the one place a browser will send it from a secure page.
+ */
+function normalizeHostUrl(raw: string): HostUrl {
+  const value = raw.trim();
+  if (!value) return { ok: false, reason: 'Enter the AppView’s host, such as appview.example.com.' };
+  let url: URL;
+  try {
+    url = new URL(/^[a-z][a-z0-9+.-]*:\/\//i.test(value) ? value : `https://${value}`);
+  } catch {
+    return { ok: false, reason: 'That isn’t a host name or URL.' };
+  }
+  const local = url.hostname === 'localhost' || url.hostname === '127.0.0.1' || url.hostname === '[::1]';
+  if (url.protocol === 'http:' && !local) {
+    return { ok: false, reason: 'Use https. Browsers won’t send this request over plain http.' };
+  }
+  if (url.protocol !== 'https:' && url.protocol !== 'http:') {
+    return { ok: false, reason: 'Use an https address.' };
+  }
+  if (url.username || url.password) return { ok: false, reason: 'Remove the username and password from the address.' };
+  return { ok: true, origin: url.origin };
+}
+
 /** Read the `appview` parameter: empty for Bluesky's, a listed id, or any host. */
 export function readAppViewParam(raw: string): AppViewChoice {
   const value = raw.trim();
@@ -110,20 +138,70 @@ export function readAppViewParam(raw: string): AppViewChoice {
  * What was asked about
  * -------------------------------------------------------------------------- */
 
-export type ShadowbanTarget = LabelTarget;
+/** An account or a post, with the account still as typed (a handle or a DID). */
+export type ShadowbanTarget =
+  | { kind: 'account'; actor: string }
+  | { kind: 'post'; actor: string; rkey: string };
+
+export type ShadowbanInput = { ok: true; target: ShadowbanTarget } | { ok: false; reason: string };
 
 /** The reason given for a record that is neither an account nor a post. */
 export const NOT_CHECKED = 'This checks accounts and posts. Enter a handle, a DID, or a link to a post.';
 
+const PROFILE_COLLECTION = 'app.bsky.actor.profile';
+const HANDLE_RE = /^([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]([a-z0-9-]{0,61}[a-z0-9])?$/;
+
+/** An account the way people paste one: a DID, or a handle with or without the @. */
+function readAccount(input: string): string | null {
+  let value = input.trim();
+  if (value.startsWith('@')) value = value.slice(1);
+  if (value.startsWith('did:')) return isValidDid(value) ? value : null;
+  const handle = value.toLowerCase();
+  return HANDLE_RE.test(handle) ? handle : null;
+}
+
+function targetFrom(actor: string, collection?: string, rkey?: string): ShadowbanInput {
+  const account = readAccount(actor);
+  if (!account) return { ok: false, reason: `“${actor}” isn’t a handle or a DID.` };
+  if (!collection || collection === PROFILE_COLLECTION) return { ok: true, target: { kind: 'account', actor: account } };
+  if (collection === POST_COLLECTION && rkey) return { ok: true, target: { kind: 'post', actor: account, rkey } };
+  return { ok: false, reason: NOT_CHECKED };
+}
+
 /**
- * A handle, a DID, an at:// URI, or a profile or post link. The label
- * checker reads the same things, so its reader is borrowed; only its word
- * for "not an account or a post" is about labels.
+ * A handle, a DID, an at:// URI, or a profile or post link from any client
+ * the link resolver knows (bsky.app and the rest of that family).
  */
-export function parseShadowbanInput(raw: string): LabelInput {
-  const input = parseSubjectInput(raw);
-  if (!input.ok && input.reason === NOT_LABELLED) return { ok: false, reason: NOT_CHECKED };
-  return input;
+export function parseShadowbanInput(raw: string): ShadowbanInput {
+  const value = raw.trim();
+  if (!value) return { ok: false, reason: 'Enter a handle, a DID, or a link to a post.' };
+
+  if (/^at:\/\//i.test(value)) {
+    const parsed = parseAtUri(value);
+    if (!parsed || parsed.space) return { ok: false, reason: 'That at:// URI isn’t valid.' };
+    return targetFrom(parsed.repo, parsed.collection, parsed.rkey);
+  }
+
+  if (/^https?:\/\//i.test(value)) {
+    let url: URL;
+    try {
+      url = new URL(value);
+    } catch {
+      return { ok: false, reason: 'That link isn’t valid.' };
+    }
+    const match = matchSupportedUrl(url);
+    if (!match) {
+      return { ok: false, reason: 'This tool doesn’t recognize that link. Paste the handle instead.' };
+    }
+    return targetFrom(match.parsed.handle, match.parsed.collection, match.parsed.rkey);
+  }
+
+  return targetFrom(value);
+}
+
+/** A stable string for a target, to key a run on. */
+export function targetKey(target: ShadowbanTarget): string {
+  return target.kind === 'post' ? `post:${target.actor}/${target.rkey}` : `account:${target.actor}`;
 }
 
 /* -------------------------------------------------------------------------- *
@@ -226,10 +304,7 @@ export type Evidence = {
   identity?: Identity;
   repo?: RepoState;
   profile?: ProfileState;
-  /**
-   * From the PDS. For an account, its most recent posts. For a post, that
-   * post alone, or none when the repository has no such record.
-   */
+  /** From the PDS: the account's most recent posts, whatever was asked about. */
   posts?: Probe<RepoPost[]>;
   /** Of `posts`, the URIs the AppView returned. */
   shown?: Probe<string[]>;
@@ -237,6 +312,16 @@ export type Evidence = {
   actorSearch?: Probe<ActorSearch>;
   /** URIs of the account's posts that post search returned. */
   postSearch?: Probe<string[]>;
+  /**
+   * When a post was asked about, the account is checked as above and the
+   * post on its own as well. This is its record from the PDS, or null when
+   * the repository has no such record.
+   */
+  post?: Probe<RepoPost | null>;
+  /** The post's URI when the AppView returns it, as `shown` is for `posts`. */
+  postShown?: Probe<string[]>;
+  /** For a post that is a reply: where it turned up in its thread. */
+  postThread?: Probe<ReplyProbe>;
   done?: boolean;
 };
 
@@ -333,24 +418,24 @@ export type ReplyReading = {
 export function readReply(reply: ReplyProbe, author: string): ReplyReading {
   switch (reply.thread) {
     case 'shown':
-      return { outcome: 'shown', label: 'In its thread', reason: 'Listed among the replies to the post it answers.' };
+      return { outcome: 'shown', label: 'In its thread', reason: 'Appears under the post it replies to.' };
     case 'crowded':
       return {
         outcome: 'unknown',
         label: 'Thread too long to tell',
-        reason: `The post it answers has more replies than the ${THREAD_REPLY_CAP} an AppView lists at once.`,
+        reason: `The post it replies to has more than ${THREAD_REPLY_CAP} replies, and the AppView only returns ${THREAD_REPLY_CAP} at a time.`,
       };
     case 'no-parent':
       return {
         outcome: 'unknown',
         label: 'Parent not shown',
-        reason: 'The post it answers is not on the AppView, so there is no thread for it to appear in.',
+        reason: 'The post it replies to isn’t on the AppView, so there’s no thread to check.',
       };
     case 'error':
       return {
         outcome: 'unknown',
-        label: 'Thread did not load',
-        reason: reply.message ? `The thread could not be read: ${reply.message}` : 'The thread could not be read.',
+        label: 'Thread didn’t load',
+        reason: reply.message ? `The thread didn’t load: ${reply.message}` : 'The thread didn’t load.',
       };
     case 'absent':
       break;
@@ -361,34 +446,34 @@ export function readReply(reply: ReplyProbe, author: string): ReplyReading {
     return {
       outcome: 'explained',
       label: 'Hidden by the thread’s author',
-      reason: 'The author of the thread hid this reply, which they are free to do.',
+      reason: 'The person who started the thread hid this reply.',
     };
   }
   if (reply.block?.found) {
     return {
       outcome: 'explained',
       label: 'Block in the thread',
-      reason: 'This account and an author further up the thread block one another, and AppViews leave replies out across a block.',
+      reason: 'There’s a block between this account and someone earlier in the thread. AppViews hide replies when there’s a block.',
     };
   }
   if (reply.gate?.restricted && authorOf(reply.root) !== author) {
     return {
       outcome: 'explained',
       label: 'Thread limits replies',
-      reason: 'The thread’s author limits who can reply, and a reply from outside that rule is kept out of the thread.',
+      reason: 'The person who started the thread limits who can reply. AppViews hide replies from people outside that limit.',
     };
   }
   const unchecked = [
     reply.block === null && !ownThread ? 'blocks' : null,
-    reply.gate === null && !ownThread ? 'the thread’s reply rules' : null,
+    reply.gate === null && !ownThread ? 'the thread’s reply limits' : null,
   ].filter(Boolean);
   return {
     outcome: 'hidden',
     label: 'Missing from its thread',
     reason: ownThread
-      ? 'A reply in the account’s own thread, left out. No block or reply rule applies to that.'
-      : `Left out of the thread, with no block or reply rule to explain it.${
-          unchecked.length ? ` (Could not check ${unchecked.join(' or ')}.)` : ''
+      ? 'This reply is in the account’s own thread, where blocks and reply limits don’t apply, and it’s still missing.'
+      : `Missing from the thread, and no block or reply limit explains it.${
+          unchecked.length ? ` (Couldn’t check ${unchecked.join(' or ')}.)` : ''
         }`,
   };
 }
@@ -406,7 +491,7 @@ export function postPresence(post: RepoPost, shown: Probe<string[]> | undefined,
 export type CheckStatus = 'pass' | 'warn' | 'fail' | 'info' | 'skip' | 'pending';
 
 export type ShadowbanCheck = {
-  id: 'pds' | 'profile' | 'posts' | 'threads' | 'actorSearch' | 'postSearch' | 'post' | 'thread';
+  id: 'pds' | 'profile' | 'posts' | 'threads' | 'actorSearch' | 'postSearch' | 'postRecord' | 'post' | 'thread';
   status: CheckStatus;
   title: string;
   summary: string;
@@ -424,42 +509,27 @@ export function moderationLabels(labels: ProfileLabel[], did: string): string[] 
 }
 
 function pdsCheck(evidence: Evidence): ShadowbanCheck {
-  const isPost = evidence.target.kind === 'post';
-  const title = isPost ? 'Post on its PDS' : 'Account on its PDS';
-  const { identity, repo, posts } = evidence;
-  if (!identity || !repo || (isPost && !posts)) {
-    return { id: 'pds', status: 'pending', title, summary: 'Reading the repository…' };
-  }
+  const title = 'Account on its PDS';
+  const { identity, repo } = evidence;
+  if (!identity || !repo) return { id: 'pds', status: 'pending', title, summary: 'Reading the PDS…' };
   const host = hostOf(identity.pds);
   if (repo.state === 'inactive') {
     return {
       id: 'pds',
       status: 'warn',
       title,
-      summary: `${host} reports the account as ${repo.status ?? 'inactive'}. An AppView stops showing an account its own PDS has switched off.`,
+      summary: `${host} reports the account as ${repo.status ?? 'inactive'}. AppViews stop showing accounts that their PDS has turned off.`,
     };
   }
-  if (isPost && posts) {
-    if (!posts.ok) return { id: 'pds', status: 'warn', title, summary: `${host} did not answer: ${posts.message}` };
-    if (posts.value.length === 0) {
-      return {
-        id: 'pds',
-        status: 'warn',
-        title,
-        summary: `${host} has no record at this address. The post was deleted, so there is nothing for an AppView to hide.`,
-      };
-    }
-    return { id: 'pds', status: 'pass', title, summary: `The record is in the repository on ${host}.` };
-  }
   if (repo.state === 'unknown') {
-    return { id: 'pds', status: 'info', title, summary: `${host} did not say whether the account is active: ${repo.message}` };
+    return { id: 'pds', status: 'info', title, summary: `${host} didn’t say whether the account is active: ${repo.message}` };
   }
   return { id: 'pds', status: 'pass', title, summary: `Active on ${host}.` };
 }
 
 function profileCheck(evidence: Evidence): ShadowbanCheck {
   const { appview, profile, identity } = evidence;
-  const title = evidence.target.kind === 'post' ? `Author on ${appview.name}` : `Profile on ${appview.name}`;
+  const title = `Profile on ${appview.name}`;
   if (!profile) return { id: 'profile', status: 'pending', title, summary: 'Asking the AppView…' };
   switch (profile.state) {
     case 'suspended':
@@ -467,33 +537,33 @@ function profileCheck(evidence: Evidence): ShadowbanCheck {
         id: 'profile',
         status: 'fail',
         title,
-        summary: `${appview.name} answers “${profile.message}”. That is a suspension it owns up to, not a hidden one.`,
+        summary: `${appview.name} says “${profile.message}”. The account is suspended, and the AppView says so openly.`,
       };
     case 'deactivated':
-      return { id: 'profile', status: 'info', title, summary: `${appview.name} answers “${profile.message}”.` };
+      return { id: 'profile', status: 'info', title, summary: `${appview.name} says “${profile.message}”.` };
     case 'missing':
       return {
         id: 'profile',
         status: 'fail',
         title,
-        summary: `${appview.name} has no profile for the account (“${profile.message}”). It has never indexed it, or has dropped it without saying so.`,
+        summary: `${appview.name} has no profile for this account (“${profile.message}”). Either it never indexed the account, or it removed it without saying why.`,
       };
     case 'error':
-      return { id: 'profile', status: 'warn', title, summary: `${appview.name} did not answer: ${profile.message}` };
+      return { id: 'profile', status: 'warn', title, summary: `${appview.name} didn’t answer: ${profile.message}` };
     case 'found':
       break;
   }
   const applied = moderationLabels(profile.labels, identity?.did ?? '');
   const selfHidden = profile.labels.some((label) => label.val === NO_UNAUTHENTICATED && label.src === identity?.did);
   const detail = selfHidden
-    ? ['The account labels itself !no-unauthenticated: it asks apps not to show it to people who are not signed in.']
+    ? ['The account has the !no-unauthenticated label, which asks apps to hide it from people who aren’t signed in.']
     : undefined;
   if (applied.length > 0) {
     return {
       id: 'profile',
       status: 'warn',
       title,
-      summary: `Shown, with ${applied.length === 1 ? 'a label' : 'labels'} from moderation: ${applied.join(', ')}. Labels are moderation in the open; apps say they are there.`,
+      summary: `${appview.name} shows the profile, with ${applied.length === 1 ? 'a moderation label' : 'moderation labels'}: ${applied.join(', ')}.`,
       detail,
     };
   }
@@ -506,30 +576,30 @@ function postsCheck(evidence: Evidence, now: number): ShadowbanCheck {
   if (!posts || (posts.ok && posts.value.length > 0 && !shown)) {
     return { id: 'posts', status: 'pending', title, summary: 'Comparing…' };
   }
-  if (!posts.ok) return { id: 'posts', status: 'skip', title, summary: `The PDS did not list the posts: ${posts.message}` };
-  if (posts.value.length === 0) return { id: 'posts', status: 'info', title, summary: 'The account has not written any posts.' };
-  if (shown && !shown.ok) return { id: 'posts', status: 'warn', title, summary: `${appview.name} did not answer: ${shown.message}` };
+  if (!posts.ok) return { id: 'posts', status: 'skip', title, summary: `The PDS didn’t list the posts: ${posts.message}` };
+  if (posts.value.length === 0) return { id: 'posts', status: 'info', title, summary: 'The account hasn’t posted anything.' };
+  if (shown && !shown.ok) return { id: 'posts', status: 'warn', title, summary: `${appview.name} didn’t answer: ${shown.message}` };
 
   const presence = posts.value.map((post) => postPresence(post, shown, now));
   const missing = presence.filter((p) => p === 'missing').length;
   const fresh = presence.filter((p) => p === 'new').length;
   const counted = posts.value.length - fresh;
   const freshNote =
-    fresh === 0 ? '' : ` ${fresh === 1 ? 'One post' : `${fresh} posts`} under two minutes old ${fresh === 1 ? 'was' : 'were'} not counted.`;
+    fresh === 0 ? '' : ` ${fresh === 1 ? 'One post' : `${fresh} posts`} from the last two minutes ${fresh === 1 ? 'was' : 'were'} skipped.`;
   if (missing > 0) {
     return {
       id: 'posts',
       status: 'fail',
       title,
-      summary: `${missing} of the ${counted} most recent posts ${missing === 1 ? 'is' : 'are'} in the repository but not on ${appview.name}.${freshNote}`,
-      detail: ['A post an AppView cannot read (an invalid record) goes missing the same way, so open one to be sure.'],
+      summary: `${missing} of the ${counted} latest posts ${missing === 1 ? 'is' : 'are'} on the PDS but missing from ${appview.name}.${freshNote}`,
+      detail: ['An AppView also skips posts it can’t read, such as malformed records, so open one to check.'],
     };
   }
   return {
     id: 'posts',
     status: 'pass',
     title,
-    summary: `${appview.name} returns all ${counted} of the most recent posts.${freshNote}`,
+    summary: `${appview.name} returns all ${counted} of the latest posts.${freshNote}`,
   };
 }
 
@@ -538,12 +608,12 @@ function threadsCheck(evidence: Evidence): ShadowbanCheck {
   const title = 'Replies in their threads';
   if (!replies) {
     return done
-      ? { id: 'threads', status: 'skip', title, summary: 'Not checked: the recent posts could not be compared.' }
+      ? { id: 'threads', status: 'skip', title, summary: 'Not checked, because the latest posts couldn’t be compared.' }
       : { id: 'threads', status: 'pending', title, summary: 'Opening the threads…' };
   }
   if (!replies.ok) return { id: 'threads', status: 'warn', title, summary: replies.message };
   if (replies.value.length === 0) {
-    return { id: 'threads', status: 'skip', title, summary: 'None of the recent posts the AppView returned is a reply.' };
+    return { id: 'threads', status: 'skip', title, summary: 'None of the latest posts on the AppView is a reply.' };
   }
   const readings = replies.value.map((reply) => readReply(reply, identity?.did ?? ''));
   const count = (outcome: ReplyReading['outcome']) => readings.filter((r) => r.outcome === outcome).length;
@@ -553,10 +623,10 @@ function threadsCheck(evidence: Evidence): ShadowbanCheck {
   const unknown = count('unknown');
   const notes = [
     explained > 0
-      ? `${explained === 1 ? 'One more is' : `${explained} more are`} left out because of a block or a reply rule.`
+      ? `${explained === 1 ? 'One more is' : `${explained} more are`} hidden because of a block or a reply limit.`
       : null,
     unknown > 0
-      ? `For ${explained > 0 ? 'another' : unknown === 1 ? 'one' : ''}${unknown === 1 ? '' : `${explained > 0 ? ' ' : ''}${unknown}`}, it could not be told.`
+      ? `${unknown === 1 ? 'One reply' : `${unknown} replies`} couldn’t be checked.`
       : null,
   ].filter((note): note is string => note !== null);
   if (hidden > 0) {
@@ -568,14 +638,14 @@ function threadsCheck(evidence: Evidence): ShadowbanCheck {
         ? ''
         : own === hidden
           ? hidden === 1
-            ? ' It is a reply in the account’s own thread.'
+            ? ' It’s a reply in the account’s own thread.'
             : ' All of them are in the account’s own threads.'
           : ` ${own} of them are in the account’s own threads.`;
     return {
       id: 'threads',
       status: 'fail',
       title,
-      summary: `${hidden} of ${total} recent replies ${hidden === 1 ? 'is' : 'are'} missing from the thread ${hidden === 1 ? 'it answers' : 'they answer'}, with nothing to explain it.${ownNote}`,
+      summary: `${hidden} of ${total} recent replies ${hidden === 1 ? 'is' : 'are'} missing from ${hidden === 1 ? 'its thread' : 'their threads'}, and no block or reply limit explains it.${ownNote}`,
       detail: notes.length ? notes : undefined,
     };
   }
@@ -585,7 +655,7 @@ function threadsCheck(evidence: Evidence): ShadowbanCheck {
       id: 'threads',
       status: 'info',
       title,
-      summary: notes.join(' ') || 'Could not tell.',
+      summary: notes.join(' ') || 'Couldn’t check.',
     };
   }
   return {
@@ -595,9 +665,9 @@ function threadsCheck(evidence: Evidence): ShadowbanCheck {
     summary:
       shownCount === total
         ? total === 1
-          ? 'The one recent reply shows under the post it answers.'
-          : `${total === 2 ? 'Both' : `All ${total}`} recent replies show under the posts they answer.`
-        : `${shownCount} of ${total} recent replies show under the posts they answer. ${notes.join(' ')}`,
+          ? 'The recent reply appears under the post it replies to.'
+          : `${total === 2 ? 'Both' : `All ${total}`} recent replies appear under the posts they reply to.`
+        : `${shownCount} of ${total} recent replies appear under the posts they reply to. ${notes.join(' ')}`,
   };
 }
 
@@ -621,7 +691,7 @@ function actorSearchCheck(evidence: Evidence): ShadowbanCheck {
       id: 'actorSearch',
       status: 'skip',
       title,
-      summary: `${appview.name} did not answer a search for accounts (${actorSearch.message}), so this was not checked.`,
+      summary: `${appview.name} didn’t answer an account search (${actorSearch.message}), so this wasn’t checked.`,
     };
   }
   const { inSearch, inTypeahead } = actorSearch.value;
@@ -634,7 +704,7 @@ function actorSearchCheck(evidence: Evidence): ShadowbanCheck {
       id: 'actorSearch',
       status: 'info',
       title,
-      summary: `Searching for ${handle} leaves it out, as it does every account that asks not to be shown to logged-out visitors. This search is made logged out, so it cannot tell more.`,
+      summary: `Searching for ${handle} doesn’t find it. That’s expected, because the account asks to be hidden from people who aren’t signed in, and this search runs signed out.`,
     };
   }
   if (inTypeahead) {
@@ -642,14 +712,14 @@ function actorSearchCheck(evidence: Evidence): ShadowbanCheck {
       id: 'actorSearch',
       status: 'fail',
       title,
-      summary: `Searching for ${handle} leaves it out, though typeahead finds it by the same name. The AppView has the account and excludes it from search.`,
+      summary: `Searching for ${handle} doesn’t find it, but typeahead does. ${appview.name} has the account and is leaving it out of search.`,
     };
   }
   return {
     id: 'actorSearch',
     status: 'warn',
     title,
-    summary: `Neither search nor typeahead finds ${handle}. The AppView may not have indexed the handle yet.`,
+    summary: `Neither search nor typeahead finds ${handle}. ${appview.name} may not have indexed the handle yet.`,
   };
 }
 
@@ -666,11 +736,11 @@ function postSearchCheck(evidence: Evidence, now: number): ShadowbanCheck {
       id: 'postSearch',
       status: 'skip',
       title,
-      summary: `${appview.name} did not answer a search for posts (${postSearch.message}), so this was not checked.`,
+      summary: `${appview.name} didn’t answer a post search (${postSearch.message}), so this wasn’t checked.`,
     };
   }
   if (!posts?.ok || !shown?.ok) {
-    return { id: 'postSearch', status: 'skip', title, summary: 'Not checked: the recent posts could not be compared.' };
+    return { id: 'postSearch', status: 'skip', title, summary: 'Not checked, because the latest posts couldn’t be compared.' };
   }
   const visible = new Set(shown.value);
   const eligible = posts.value.filter(
@@ -681,75 +751,93 @@ function postSearchCheck(evidence: Evidence, now: number): ShadowbanCheck {
       id: 'postSearch',
       status: 'skip',
       title,
-      summary: 'None of the recent posts is old enough to have reached search, which lags by a few minutes.',
+      summary: 'None of the latest posts is old enough to be in search yet. Search runs a few minutes behind.',
     };
   }
   const found = new Set(postSearch.value);
   const hits = eligible.filter((post) => found.has(post.uri)).length;
   if (hits === eligible.length) {
-    return { id: 'postSearch', status: 'pass', title, summary: `Search finds all ${eligible.length} recent posts it should.` };
+    return { id: 'postSearch', status: 'pass', title, summary: `Search finds all ${eligible.length} recent posts.` };
   }
   if (hits === 0) {
     return {
       id: 'postSearch',
       status: 'fail',
       title,
-      summary: `Search finds none of the ${eligible.length} recent posts that ${appview.name} itself returns.`,
+      summary: `Search finds none of the ${eligible.length} recent posts that ${appview.name} returns.`,
     };
   }
   return {
     id: 'postSearch',
     status: 'warn',
     title,
-    summary: `Search finds ${hits} of the ${eligible.length} recent posts that ${appview.name} itself returns.`,
+    summary: `Search finds ${hits} of the ${eligible.length} recent posts that ${appview.name} returns.`,
   };
 }
 
-function postCheck(evidence: Evidence, now: number): ShadowbanCheck {
-  const { appview, posts, shown } = evidence;
-  const title = `Post on ${appview.name}`;
-  if (!posts) return { id: 'post', status: 'pending', title, summary: 'Comparing…' };
-  if (!posts.ok || posts.value.length === 0) {
-    return { id: 'post', status: 'skip', title, summary: 'Not checked: there is no record to compare.' };
+function postRecordCheck(evidence: Evidence): ShadowbanCheck {
+  const { identity, repo, post } = evidence;
+  const title = 'Post on its PDS';
+  if (!identity || !post) return { id: 'postRecord', status: 'pending', title, summary: 'Reading the PDS…' };
+  const host = hostOf(identity.pds);
+  if (repo?.state === 'inactive') {
+    return { id: 'postRecord', status: 'skip', title, summary: 'Not checked, because the account isn’t active on its PDS.' };
   }
-  if (!shown) return { id: 'post', status: 'pending', title, summary: 'Asking the AppView…' };
-  if (!shown.ok) return { id: 'post', status: 'warn', title, summary: `${appview.name} did not answer: ${shown.message}` };
-  const presence = postPresence(posts.value[0], shown, now);
+  if (!post.ok) return { id: 'postRecord', status: 'warn', title, summary: `${host} didn’t answer: ${post.message}` };
+  if (!post.value) {
+    return {
+      id: 'postRecord',
+      status: 'warn',
+      title,
+      summary: `${host} has no post at this address, so it was deleted. There’s nothing for an AppView to hide.`,
+    };
+  }
+  return { id: 'postRecord', status: 'pass', title, summary: `The post is in the account’s repository on ${host}.` };
+}
+
+function postCheck(evidence: Evidence, now: number): ShadowbanCheck {
+  const { appview, post, postShown } = evidence;
+  const title = `Post on ${appview.name}`;
+  if (!post) return { id: 'post', status: 'pending', title, summary: 'Comparing…' };
+  if (!post.ok || !post.value) {
+    return { id: 'post', status: 'skip', title, summary: 'Not checked, because there’s no post to compare.' };
+  }
+  if (!postShown) return { id: 'post', status: 'pending', title, summary: 'Asking the AppView…' };
+  if (!postShown.ok) return { id: 'post', status: 'warn', title, summary: `${appview.name} didn’t answer: ${postShown.message}` };
+  const presence = postPresence(post.value, postShown, now);
   if (presence === 'shown') return { id: 'post', status: 'pass', title, summary: `${appview.name} returns the post.` };
   if (presence === 'new') {
-    return { id: 'post', status: 'info', title, summary: 'Written under two minutes ago. The AppView may not have it yet.' };
+    return { id: 'post', status: 'info', title, summary: 'Posted less than two minutes ago. The AppView may not have it yet.' };
   }
   return {
     id: 'post',
     status: 'fail',
     title,
-    summary: `The record is in the repository, but ${appview.name} will not return it.`,
-    detail: ['A record an AppView cannot read (an invalid post) goes missing the same way.'],
+    summary: `The post is on the PDS, but ${appview.name} won’t return it.`,
+    detail: ['An AppView also skips posts it can’t read, such as malformed records.'],
   };
 }
 
 function threadCheck(evidence: Evidence): ShadowbanCheck {
-  const { posts, shown, replies, identity, done } = evidence;
+  const { post, postShown, postThread, identity, done } = evidence;
   const title = 'In its thread';
-  const post = posts?.ok ? posts.value[0] : undefined;
-  if (posts?.ok && !post) return { id: 'thread', status: 'skip', title, summary: 'Not checked: there is no record.' };
-  if (post && !post.reply) {
-    return { id: 'thread', status: 'skip', title, summary: 'It is not a reply, so there is no thread to be left out of.' };
+  const record = post?.ok ? post.value : undefined;
+  if (post?.ok && !record) return { id: 'thread', status: 'skip', title, summary: 'Not checked, because there’s no post.' };
+  if (record && !record.reply) {
+    return { id: 'thread', status: 'skip', title, summary: 'It isn’t a reply, so there’s no thread to check.' };
   }
-  if (shown?.ok && post && !shown.value.includes(post.uri)) {
-    return { id: 'thread', status: 'skip', title, summary: 'Not checked: the AppView does not return the post at all.' };
+  if (postShown?.ok && record && !postShown.value.includes(record.uri)) {
+    return { id: 'thread', status: 'skip', title, summary: 'Not checked, because the AppView doesn’t return the post at all.' };
   }
-  if (!replies) {
+  if (!postThread) {
     return done
       ? { id: 'thread', status: 'skip', title, summary: 'Not checked.' }
       : { id: 'thread', status: 'pending', title, summary: 'Opening the thread…' };
   }
-  if (!replies.ok || replies.value.length === 0) {
-    return { id: 'thread', status: 'warn', title, summary: replies.ok ? 'Not checked.' : replies.message };
-  }
+  if (!postThread.ok) return { id: 'thread', status: 'warn', title, summary: postThread.message };
   // Asked about this one post, a reply left out for a reason anyone can see
   // is still worth a warning: it is the thing that was asked about.
-  const reading = readReply(replies.value[0], identity?.did ?? '');
+  const reading = readReply(postThread.value, identity?.did ?? '');
   const status: CheckStatus = {
     shown: 'pass',
     hidden: 'fail',
@@ -759,14 +847,14 @@ function threadCheck(evidence: Evidence): ShadowbanCheck {
   return { id: 'thread', status, title, summary: reading.reason };
 }
 
-/**
- * The checks for what has been observed so far, in the order they are shown.
- * `now` is when the comparison is made, so the grace periods can be tested.
- */
-export function buildChecks(evidence: Evidence, now: number): ShadowbanCheck[] {
-  if (evidence.target.kind === 'post') {
-    return [pdsCheck(evidence), profileCheck(evidence), postCheck(evidence, now), threadCheck(evidence)];
-  }
+/** The checks about the post that was asked about. None when an account was. */
+export function buildPostChecks(evidence: Evidence, now: number): ShadowbanCheck[] {
+  if (evidence.target.kind !== 'post') return [];
+  return [postRecordCheck(evidence), postCheck(evidence, now), threadCheck(evidence)];
+}
+
+/** The checks about the account, which run whether an account or a post was asked about. */
+export function buildAccountChecks(evidence: Evidence, now: number): ShadowbanCheck[] {
   return [
     pdsCheck(evidence),
     profileCheck(evidence),
@@ -776,6 +864,17 @@ export function buildChecks(evidence: Evidence, now: number): ShadowbanCheck[] {
     postSearchCheck(evidence, now),
   ];
 }
+
+/**
+ * Every check for what has been observed so far: the post's first, when a
+ * post was asked about, then the account's. `now` is when the comparison is
+ * made, so the grace periods can be tested.
+ */
+export function buildChecks(evidence: Evidence, now: number): ShadowbanCheck[] {
+  return [...buildPostChecks(evidence, now), ...buildAccountChecks(evidence, now)];
+}
+
+const POST_CHECK_IDS: ReadonlySet<ShadowbanCheck['id']> = new Set(['postRecord', 'post', 'thread']);
 
 export type ShadowbanVerdict = {
   tone: 'pass' | 'warn' | 'fail' | 'pending';
@@ -793,53 +892,64 @@ export function shadowbanVerdict(evidence: Evidence, checks: ShadowbanCheck[]): 
     return {
       tone: 'pending',
       title: `Checking on ${name}`,
-      text: 'Reading the repository from its PDS and asking the AppView for the same records.',
+      text: 'Reading the posts from the PDS and asking the AppView for the same ones.',
     };
   }
   if (evidence.repo?.state === 'inactive') {
-    return { tone: 'warn', title: 'The account is not active on its PDS', text: by('pds')?.summary ?? '' };
-  }
-  if (isPost && evidence.posts?.ok && evidence.posts.value.length === 0) {
-    return { tone: 'warn', title: 'This post no longer exists', text: by('pds')?.summary ?? '' };
+    return { tone: 'warn', title: 'The account isn’t active on its PDS', text: by('pds')?.summary ?? '' };
   }
   const profile = evidence.profile;
   if (profile?.state === 'suspended') {
     return { tone: 'fail', title: `Suspended on ${name}`, text: by('profile')?.summary ?? '' };
   }
   if (profile?.state === 'missing') {
-    return { tone: 'fail', title: `${name} does not show this account`, text: by('profile')?.summary ?? '' };
+    return { tone: 'fail', title: `${name} doesn’t show this account`, text: by('profile')?.summary ?? '' };
   }
   // No answer about the profile or the posts leaves nothing compared, which
   // must not read as "nothing hidden".
   if (profile?.state === 'error' && (!evidence.shown || !evidence.shown.ok)) {
     return {
       tone: 'warn',
-      title: `${name} did not answer`,
-      text: `Nothing could be compared: ${profile.message}. Check that ${hostOf(evidence.appview.origin)} serves the app.bsky API.`,
+      title: `${name} didn’t answer`,
+      text: `Nothing could be compared. Check that ${hostOf(evidence.appview.origin)} is an AppView that accepts requests from a browser.`,
     };
   }
 
   const failed = checks.filter((check) => check.status === 'fail');
-  if (failed.length > 0) {
-    return {
-      tone: 'fail',
-      title: isPost ? `Hidden on ${name}` : `Signs of a shadowban on ${name}`,
-      text: failed.map((check) => check.summary).join(' '),
-    };
+  const postFailed = failed.filter((check) => POST_CHECK_IDS.has(check.id));
+  const accountFailed = failed.filter((check) => !POST_CHECK_IDS.has(check.id));
+  const summaries = (list: ShadowbanCheck[]) => list.map((check) => check.summary).join(' ');
+  const deleted = isPost && evidence.post?.ok === true && evidence.post.value === null;
+
+  // A post that was asked about leads the answer, but the account's own
+  // findings are never dropped from it.
+  if (accountFailed.length > 0) {
+    const lead = !isPost
+      ? ''
+      : deleted
+        ? 'This post was deleted. '
+        : postFailed.length > 0
+          ? `${summaries(postFailed)} `
+          : `The post itself shows on ${name}. `;
+    return { tone: 'fail', title: `Possible shadowban on ${name}`, text: `${lead}${summaries(accountFailed)}` };
+  }
+  if (deleted) {
+    return { tone: 'warn', title: 'This post was deleted', text: by('postRecord')?.summary ?? '' };
+  }
+  if (postFailed.length > 0) {
+    return { tone: 'fail', title: `This post is hidden on ${name}`, text: summaries(postFailed) };
   }
   const warned = checks.filter((check) => check.status === 'warn');
   if (warned.length > 0) {
     return {
       tone: 'warn',
-      title: `Nothing hidden found on ${name}, with ${warned.length === 1 ? 'one thing' : `${warned.length} things`} to look at`,
+      title: `No shadowban found on ${name}, with ${warned.length === 1 ? 'one warning' : `${warned.length} warnings`}`,
       text: warned.map((check) => check.summary).join(' '),
     };
   }
   return {
     tone: 'pass',
-    title: `No sign of a shadowban on ${name}`,
-    text: isPost
-      ? `${name} shows the post wherever its repository says it should be.`
-      : `Everything checked in the repository, ${name} shows too.`,
+    title: `No shadowban found on ${name}`,
+    text: isPost ? `${name} shows the post and everything else that was checked.` : `${name} shows everything that was checked.`,
   };
 }

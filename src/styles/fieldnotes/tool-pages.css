@@ -2553,10 +2553,51 @@ button.fn-tool-activity-stat:focus-visible {
   margin-left: auto;
 }
 
-.fn-tool-shadowban-caveat {
-  margin-top: 18px;
-  padding-top: 14px;
-  border-top: 1px solid var(--border-subtle);
+/* The post that was asked about: its card, then its checks. When it is also
+   in the recent list, its row there is marked with the accent. */
+.fn-tool-shadowban-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.fn-tool-shadowban-target {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.fn-tool-card p.fn-tool-shadowban-target-text {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--text-primary);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.fn-tool-card p.fn-tool-shadowban-target-text[data-quiet] {
+  color: var(--text-tertiary);
+}
+
+.fn-tool-shadowban-target-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
+}
+
+.fn-tool-shadowban-target .fn-tool-actions {
+  margin-top: 0;
+}
+
+.fn-tool-card p.fn-tool-shadowban-target-missing {
+  color: var(--text-secondary);
+}
+
+.fn-tool-shadowban-post[data-target] {
+  box-shadow: inset 3px 0 0 var(--text-accent);
 }
 
 @media (max-width: 640px) {

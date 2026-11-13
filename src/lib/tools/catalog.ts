@@ -148,8 +148,8 @@ export const TOOLS: ToolEntry[] = [
   {
     slug: 'shadowban',
     title: 'Shadowban checker',
-    desc: 'Compare an account’s repository on its PDS with what an AppView shows, and find posts, replies or search results it quietly leaves out.',
-    lead: 'An AppView can hide an account without a label: its replies left out of threads, its posts or profile left out of search. This reads the repository from its PDS and asks an AppView for the same things.',
+    desc: 'Compare an account’s posts on its PDS with what an AppView returns, and find posts, replies or search results that are missing.',
+    lead: 'An AppView can hide an account without labeling it. Its replies disappear from threads, or it stops showing up in search. This reads the account’s posts from its PDS and compares them with what the AppView returns.',
     group: 'accounts',
     Icon: EyeOff,
     keywords: ['shadowban', 'shadow ban', 'hidden', 'needs review', 'visibility', 'appview', 'search', 'suppressed'],
