@@ -115,6 +115,16 @@ function configFor(page: string): PageConfig {
           `aturi.to/api/mcp ${TOOL_COUNT} tools What has @aturi.to been posting about, ` +
           'and which post landed best? resolve_identity get_author_feed did:plc:6teuh 8 posts',
       };
+    case 'shadowban':
+      return {
+        eyebrow: 'Shadowban checker',
+        title: 'Is an AppView\nhiding it?',
+        tagline:
+          'Read an account’s repository from its PDS, ask an AppView for the same posts, replies and searches, and see what it quietly leaves out.',
+        layout: 'split',
+        visual: <ShadowbanVisual />,
+        visualText: 'RECENT POSTS PDS APPVIEW post reply own thread search 2h 5h 1d you.example not in thread Signs of a shadowban',
+      };
     case 'spaces':
       return {
         eyebrow: 'Permissioned data · alpha',
@@ -683,6 +693,170 @@ function McpVisual() {
 }
 
 // ─── Route ────────────────────────────────────────────────────────────────
+
+// Danger red from the dark theme (--danger in globals.css). OG_COLORS has no
+// failure colour, since no other card shows something going wrong.
+const OG_DANGER = '#d97070';
+
+/** A check mark drawn as SVG: "\u2713" sits in a symbol block Satori cannot fetch a font for. */
+function CheckGlyph({ size = 14, color = OG_COLORS.accent }: { size?: number; color?: string }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke={color}
+      strokeWidth={2.6}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <polyline points="20 6 9 17 4 12" />
+    </svg>
+  );
+}
+
+/** A cross drawn as SVG, for the same reason. */
+function CrossGlyph({ size = 14, color = OG_DANGER }: { size?: number; color?: string }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke={color}
+      strokeWidth={2.6}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <line x1="18" y1="6" x2="6" y2="18" />
+      <line x1="6" y1="6" x2="18" y2="18" />
+    </svg>
+  );
+}
+
+/** One column cell of the comparison: a square mark, as the page draws them. */
+function ShadowbanMark({ state }: { state: 'shown' | 'hidden' | 'none' }) {
+  return (
+    <div
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        width: '26px',
+        height: '26px',
+        border: `1px solid ${
+          state === 'shown' ? OG_COLORS.borderAccent : state === 'hidden' ? OG_DANGER : OG_COLORS.borderSubtle
+        }`,
+      }}
+    >
+      {state === 'shown' ? <CheckGlyph /> : state === 'hidden' ? <CrossGlyph /> : null}
+    </div>
+  );
+}
+
+const SHADOWBAN_COLUMN = '78px';
+
+function ShadowbanRow({
+  kind,
+  age,
+  appview,
+  note,
+}: {
+  kind: string;
+  age: string;
+  appview: 'shown' | 'hidden';
+  note?: string;
+}) {
+  return (
+    <div
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        padding: '11px 18px',
+        borderTop: `1px solid ${OG_COLORS.borderSubtle}`,
+      }}
+    >
+      <div style={{ display: 'flex', flexDirection: 'column', flex: 1, gap: '3px' }}>
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: '10px' }}>
+          <MonoLine size={15} color={OG_COLORS.textPrimary}>
+            {kind}
+          </MonoLine>
+          <MonoLine size={13} color={OG_COLORS.textTertiary}>
+            {age}
+          </MonoLine>
+        </div>
+        {note && (
+          <MonoLine size={12} color={OG_DANGER}>
+            {note}
+          </MonoLine>
+        )}
+      </div>
+      <div style={{ display: 'flex', width: SHADOWBAN_COLUMN, justifyContent: 'center' }}>
+        <ShadowbanMark state="shown" />
+      </div>
+      <div style={{ display: 'flex', width: SHADOWBAN_COLUMN, justifyContent: 'center' }}>
+        <ShadowbanMark state={appview} />
+      </div>
+    </div>
+  );
+}
+
+function ShadowbanVisual() {
+  // The tool's comparison at a glance: what the repository holds on the
+  // left, what the AppView returns on the right, and the verdict when they
+  // disagree. The account is a placeholder, so the card never points at a
+  // real person.
+  return (
+    <Panel pad={0}>
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          padding: '12px 18px',
+          background: OG_COLORS.bgTertiary,
+        }}
+      >
+        <div style={{ display: 'flex', flex: 1 }}>
+          <Kicker>Recent posts</Kicker>
+        </div>
+        <div style={{ display: 'flex', width: SHADOWBAN_COLUMN, justifyContent: 'center' }}>
+          <Kicker>PDS</Kicker>
+        </div>
+        <div style={{ display: 'flex', width: SHADOWBAN_COLUMN, justifyContent: 'center' }}>
+          <Kicker>AppView</Kicker>
+        </div>
+      </div>
+      {/* Panel puts a 14px gap between its children; the rows draw their own
+          rules instead, so they sit in one column with none. */}
+      <div style={{ display: 'flex', flexDirection: 'column', marginTop: '-14px' }}>
+        <ShadowbanRow kind="post" age="2h" appview="shown" />
+        <ShadowbanRow kind="reply" age="5h" appview="shown" />
+        <ShadowbanRow kind="reply in own thread" age="1d" appview="hidden" note="not in thread" />
+        <ShadowbanRow kind="search you.example" age="" appview="hidden" />
+      </div>
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '12px',
+          marginTop: '-14px',
+          padding: '14px 18px',
+          borderTop: `1px solid ${OG_COLORS.borderSubtle}`,
+          borderLeft: `3px solid ${OG_DANGER}`,
+          background: 'rgba(217, 112, 112, 0.1)',
+        }}
+      >
+        <CrossGlyph size={18} />
+        <div style={{ display: 'flex', fontSize: '24px', color: OG_COLORS.textPrimary }}>
+          Signs of a shadowban
+        </div>
+      </div>
+    </Panel>
+  );
+}
 
 export async function GET(request: NextRequest) {
   try {

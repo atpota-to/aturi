@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { ExternalLink, EyeOff, Globe, Heart, MessageSquare, Users } from 'lucide-react';
+import { ExternalLink, Globe, Heart, MessageSquare, Users } from 'lucide-react';
 import { getProfile, type AppViewProfile } from '@/utils/atproto/appview';
 import { getRecord } from '@/utils/atproto/pdsClient';
 import type { IdentityBundle } from '@/utils/atproto/identity';
@@ -271,9 +271,6 @@ export default function ProfileHeader({ identity }: Props) {
       <div
         style={{
           flexBasis: '100%',
-          display: 'flex',
-          flexWrap: 'wrap',
-          gap: '0.5rem 1.5rem',
           paddingTop: '1rem',
           borderTop: '1px solid var(--border-subtle)',
           fontSize: '0.8125rem',
@@ -292,24 +289,6 @@ export default function ProfileHeader({ identity }: Props) {
         >
           <Globe size={12} />
           View the universal link page →
-        </Link>
-        {/* The shadowban checker, with this account filled in. nofollow
-            because it carries a DID, and every account page would otherwise
-            hand a crawler one more URL. */}
-        <Link
-          href={`/tools/shadowban?subject=${encodeURIComponent(identity.did)}`}
-          prefetch={false}
-          rel="nofollow"
-          className="profile-explorer-link"
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '0.4rem',
-            textDecoration: 'none',
-          }}
-        >
-          <EyeOff size={12} />
-          Check for a shadowban →
         </Link>
       </div>
     </section>
