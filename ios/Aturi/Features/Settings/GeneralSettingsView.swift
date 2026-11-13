@@ -72,7 +72,7 @@ struct GeneralSettingsView: View {
                         preferences.update { $0.setWaypointLayout(layout) }
                     } leading: {
                         Image(systemName: Self.layoutSymbol(layout))
-                            .font(.body)
+                            .font(AturiFont.body)
                             .foregroundStyle(theme.textSecondary)
                             .frame(width: 24)
                             .accessibilityHidden(true)
@@ -94,7 +94,7 @@ struct GeneralSettingsView: View {
                     }
                     .pickerStyle(.segmented)
                     Text("My repo shows the Pinned section only on your own account page. Every repo bubbles a single shared list up on every page that has a match. Separate lets you keep two different lists: one for your repo, another for everyone else\u{2019}s.")
-                        .font(.footnote)
+                        .font(AturiFont.footnote)
                         .foregroundStyle(theme.textSecondary)
                         .fixedSize(horizontal: false, vertical: true)
                 }
@@ -181,7 +181,7 @@ private struct SchemeSwatch: View {
         }
         .frame(width: 48, height: 30)
         .clipShape(shape)
-        .overlay(shape.strokeBorder(theme.borderSubtle, lineWidth: AturiTheme.hairline(displayScale: displayScale)))
+        .overlay(shape.strokeBorder(theme.borderMedium, lineWidth: AturiTheme.hairline(displayScale: displayScale)))
         .accessibilityHidden(true)
     }
 
@@ -280,13 +280,13 @@ private struct PinnedListSection: View {
                     }
                     .accessibilityLabel("Add lexicon to \(title)")
                 Button("Pin", action: submit)
-                    .font(.footnote.weight(.medium))
+                    .font(AturiFont.sans(.footnote, weight: .medium))
                     .buttonStyle(.borderless)
                     .disabled(draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
             }
             if let errorMessage {
                 Text(errorMessage)
-                    .font(.caption)
+                    .font(AturiFont.caption)
                     .foregroundStyle(theme.danger)
                     .fixedSize(horizontal: false, vertical: true)
             }

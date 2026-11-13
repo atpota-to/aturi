@@ -55,7 +55,7 @@ struct PDSView: View {
                 .aturiLabel()
                 .foregroundStyle(theme.textTertiary)
             Text(model.host)
-                .font(.system(.title2, design: .monospaced, weight: .light))
+                .font(AturiFont.monoFont(.title2))
                 .foregroundStyle(theme.textPrimary)
                 .lineLimit(2)
                 .truncationMode(.middle)
@@ -110,7 +110,7 @@ struct PDSView: View {
                 Divider()
                 cell("Invite required") {
                     Text(invite ? "Yes" : "No")
-                        .font(.footnote)
+                        .font(AturiFont.footnote)
                         .foregroundStyle(theme.textPrimary)
                 }
             }
@@ -192,14 +192,14 @@ struct PDSView: View {
                     .truncationMode(.middle)
                 if !row.secondaryLabel.isEmpty {
                     Text(row.secondaryLabel)
-                        .font(.caption2)
+                        .font(AturiFont.caption2)
                         .foregroundStyle(theme.textTertiary)
                         .lineLimit(1)
                         .truncationMode(.middle)
                 }
                 if let updated = row.updatedLabel() {
                     Text(updated)
-                        .font(.caption2)
+                        .font(AturiFont.caption2)
                         .foregroundStyle(theme.textTertiary)
                         .accessibilityLabel(row.revTitle ?? updated)
                 }

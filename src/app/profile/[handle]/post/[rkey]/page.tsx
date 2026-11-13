@@ -6,6 +6,7 @@ import AutoRedirect from '@/components/AutoRedirect';
 import AutoRedirectGate from '@/components/AutoRedirectGate';
 import PostPreview from '@/components/PostPreview';
 import PostPreviewSkeleton from '@/components/PostPreviewSkeleton';
+import WaypointPickerSkeleton from '@/components/WaypointPickerSkeleton';
 import ScrollIndicator from '@/components/ScrollIndicator';
 import Header from '@/components/Header';
 import NotFoundPanel from '@/components/NotFoundPanel';
@@ -80,11 +81,11 @@ async function PostContent({ handle, rkey }: { handle: string; rkey: string }) {
       return (
         <>
           <Header compact />
-          <div className="container-narrow waypoint-page" style={{ padding: '0 2rem 4rem' }}>
+          <div className="container-narrow waypoint-page">
             <NotFoundPanel
-              eyebrow="Couldn't resolve"
-              headline="That handle didn't resolve."
-              body={`We tried to resolve "${handle}" as an Atmosphere handle and didn't find anything. Try a different handle, DID, or AT URI below.`}
+              eyebrow="Couldn’t resolve"
+              headline="That handle didn’t resolve."
+              body={`We couldn’t find an account for “${handle}”. Check the spelling, or try a DID or an at:// URI below.`}
               initialQuery={handle}
             />
           </div>
@@ -121,7 +122,7 @@ async function PostContent({ handle, rkey }: { handle: string; rkey: string }) {
           rkey={rkey}
         />
         <Header compact />
-        <div className="container-narrow waypoint-page" style={{ padding: '0 2rem 4rem' }}>
+        <div className="container-narrow waypoint-page">
         <AutoRedirectGate
           type="post"
           handle={resolvedHandle}
@@ -158,6 +159,7 @@ async function PostContent({ handle, rkey }: { handle: string; rkey: string }) {
             className="content-fade-in"
             style={{
               border: '1px solid var(--border-medium)',
+              borderRadius: 'var(--radius-card)',
               background: 'var(--bg-secondary)',
               padding: '1rem 1.25rem',
               marginBottom: '1.5rem',
@@ -180,7 +182,7 @@ async function PostContent({ handle, rkey }: { handle: string; rkey: string }) {
           collection={collection}
           rkey={rkey}
           did={resolvedDid}
-          displayName={getDisplayName(resolvedHandle, resolvedDid)}
+          displayName={post?.author.displayName?.trim() || getDisplayName(resolvedHandle, resolvedDid)}
         />
 
         {/* Floating scroll indicator overlay */}
@@ -226,8 +228,11 @@ export default async function PostPage({ params }: Props) {
       fallback={
         <>
           <Header compact />
-          <div className="container-narrow waypoint-page" style={{ padding: '0 2rem 4rem' }}>
-            <PostPreviewSkeleton />
+          <div className="container-narrow waypoint-page">
+            <div className="skeleton-container">
+              <PostPreviewSkeleton />
+            </div>
+            <WaypointPickerSkeleton />
           </div>
         </>
       }

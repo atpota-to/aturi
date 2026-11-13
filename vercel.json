@@ -11,10 +11,13 @@
       "destination": "https://aturi.to/:path*",
       "permanent": true
     }
-  ]
+  ],
+  "regions": [
+    "iad1"
+  ],
+  "functions": {
+    "src/app/api/oauth/**/route.ts": {
+      "maxDuration": 30
+    }
+  }
 }
-
-
-
-
-

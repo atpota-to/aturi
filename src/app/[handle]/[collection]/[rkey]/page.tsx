@@ -6,6 +6,7 @@ import AutoRedirect from '@/components/AutoRedirect';
 import AutoRedirectGate from '@/components/AutoRedirectGate';
 import PostPreview from '@/components/PostPreview';
 import PostPreviewSkeleton from '@/components/PostPreviewSkeleton';
+import WaypointPickerSkeleton from '@/components/WaypointPickerSkeleton';
 import RecordPreview from '@/components/RecordPreview';
 import ScrollIndicator from '@/components/ScrollIndicator';
 import Header from '@/components/Header';
@@ -240,11 +241,11 @@ async function RecordContent({
       return (
         <>
           <Header compact />
-          <div className="container-narrow waypoint-page" style={{ padding: '0 2rem 4rem' }}>
+          <div className="container-narrow waypoint-page">
             <NotFoundPanel
-              eyebrow="Couldn't resolve"
-              headline="That handle didn't resolve."
-              body={`We tried to resolve "${handle}" as an Atmosphere handle and didn't find anything. Try a different handle, DID, or AT URI below.`}
+              eyebrow="Couldn’t resolve"
+              headline="That handle didn’t resolve."
+              body={`We couldn’t find an account for “${handle}”. Check the spelling, or try a DID or an at:// URI below.`}
               initialQuery={handle}
             />
           </div>
@@ -286,7 +287,7 @@ async function RecordContent({
     return (
       <>
         <Header compact />
-        <div className="container-narrow waypoint-page" style={{ padding: '0 2rem 4rem' }}>
+        <div className="container-narrow waypoint-page">
         {/* `handle` rather than `resolvedHandle`, so the gate resolves exactly
             the URL the pre-paint script did — the two halves must never send
             the same visitor to two different spellings of the same page. */}
@@ -400,6 +401,7 @@ async function RecordContent({
             className="content-fade-in"
             style={{
               border: '1px solid var(--border-medium)',
+              borderRadius: 'var(--radius-card)',
               background: 'var(--bg-secondary)',
               padding: '1rem 1.25rem',
               marginBottom: '1.5rem',
@@ -422,7 +424,7 @@ async function RecordContent({
           collection={collection}
           rkey={rkey}
           did={resolvedDid}
-          displayName={getDisplayName(resolvedHandle, resolvedDid)}
+          displayName={post?.author.displayName?.trim() || getDisplayName(resolvedHandle, resolvedDid)}
         />
 
         {/* Floating scroll indicator overlay */}
@@ -498,8 +500,11 @@ export default async function RecordPage({ params }: Props) {
         fallback={
           <>
             <Header compact />
-            <div className="container-narrow waypoint-page" style={{ padding: '0 2rem 4rem' }}>
-              <PostPreviewSkeleton />
+            <div className="container-narrow waypoint-page">
+              <div className="skeleton-container">
+                <PostPreviewSkeleton />
+              </div>
+              <WaypointPickerSkeleton />
             </div>
           </>
         }

@@ -43,6 +43,7 @@ final class PreferencesTests: XCTestCase {
         prefs.pinnedLexicons = ["app.bsky.feed.post", "sh.tangled.*"]
         prefs.pinnedLexiconsOthers = ["app.bsky.actor.profile"]
         prefs.pinScope = .split
+        prefs.lexiconExplorerPins = ["community.lexicon.calendar.rsvp", "sh.tangled.*"]
         prefs.collectionGroupsCollapsedByDefault = true
         prefs.repoGlanceCollapsedByDefault = true
         prefs.minimalPostPreview = true
@@ -64,6 +65,7 @@ final class PreferencesTests: XCTestCase {
         XCTAssertTrue(d.favoriteByFamily.isEmpty)
         XCTAssertEqual(d.knownWaypointIds, WaypointCatalog.order)
         XCTAssertEqual(d.pinScope, .own)
+        XCTAssertTrue(d.lexiconExplorerPins.isEmpty)
         XCTAssertTrue(d.announceReleases)
         XCTAssertEqual(d.updatedAt, "1970-01-01T00:00:00.000Z")
         XCTAssertEqual(d.waypointGroups.map(\.id), ["blueskyClients", "blueskyForks", "publications", "atmosphereApps", "devTools"])
@@ -96,6 +98,7 @@ final class PreferencesTests: XCTestCase {
         XCTAssertEqual(merged.waypointLayout, .dense)
         XCTAssertEqual(merged.lastSeenReleaseId, "")
         XCTAssertTrue(merged.announceReleases)
+        XCTAssertTrue(merged.lexiconExplorerPins.isEmpty)
     }
 
     func testMergeDropsUnknownFamiliesAndNonStringIds() {
@@ -150,12 +153,14 @@ final class PreferencesTests: XCTestCase {
     func testMergeReadsEveryScalarLeniently() {
         let merged = Preferences.mergeWithDefaults(json(#"""
         {"colorScheme": "sunset", "waypointLayout": "cards", "pinScope": "everyone", "pinnedLexicons": ["a.b.c", 4, null],
+         "lexiconExplorerPins": ["x.y.*", false],
          "knownWaypointIds": ["bluesky", 7], "updatedAt": 12, "announceReleases": "no", "lastSeenReleaseId": "r1"}
         """#))
         XCTAssertEqual(merged.colorScheme, .moss)
         XCTAssertEqual(merged.waypointLayout, .dense)
         XCTAssertEqual(merged.pinScope, .own)
         XCTAssertEqual(merged.pinnedLexicons, ["a.b.c"])
+        XCTAssertEqual(merged.lexiconExplorerPins, ["x.y.*"])
         XCTAssertEqual(merged.knownWaypointIds, ["bluesky"])
         XCTAssertEqual(merged.updatedAt, Preferences.epochUpdatedAt)
         XCTAssertTrue(merged.announceReleases)
@@ -247,6 +252,7 @@ final class PreferencesTests: XCTestCase {
         let expectedKeys: Set<String> = [
             "$type", "colorScheme", "waypointGroups", "customWaypoints", "autoRedirect", "favoriteByFamily", "waypointLayout",
             "knownWaypointIds", "lastSeenReleaseId", "announceReleases", "pinnedLexicons", "pinnedLexiconsOthers", "pinScope",
+            "lexiconExplorerPins",
             "collectionGroupsCollapsedByDefault", "repoGlanceCollapsedByDefault", "recordSections", "repoSections",
             "hideRelationshipBar", "hideRepoGlance", "minimalProfile", "hideRichPreview", "hideRichJsonPreview", "showRawRecordJson",
             "hiddenWaypoints", "waypointOrder", "updatedAt",
@@ -264,6 +270,7 @@ final class PreferencesTests: XCTestCase {
         XCTAssertEqual(record["hiddenWaypoints"], ["pdsls"])
         XCTAssertEqual(record["waypointOrder"], ["deer", "bluesky"])
         XCTAssertEqual(record["favoriteByFamily"], ["bluesky-social": "deer", "tangled": "tangled"])
+        XCTAssertEqual(record["lexiconExplorerPins"], ["community.lexicon.calendar.rsvp", "sh.tangled.*"])
         XCTAssertEqual(record["waypointGroups"]?[0]?["collapsed"]?.boolValue, true)
         XCTAssertNil(record["waypointGroups"]?[1]?["collapsed"], "absent collapsed is omitted like JSON.stringify drops undefined")
         XCTAssertEqual(record["customWaypoints"]?[0]?["templates"]?["post"]?.stringValue, "https://myapp.example/u/{handle}/p/{rkey}")
@@ -323,6 +330,7 @@ final class PreferencesTests: XCTestCase {
          "autoRedirect": true, "favoriteByFamily": {"bluesky-social": "bluesky", "tangled": null},
          "waypointLayout": "classic", "knownWaypointIds": ["bluesky"], "lastSeenReleaseId": "2026-03", "announceReleases": false,
          "pinnedLexicons": ["app.bsky.*"], "pinnedLexiconsOthers": [], "pinScope": "all",
+         "lexiconExplorerPins": ["app.bsky.feed.post", "sh.tangled.*"],
          "collectionGroupsCollapsedByDefault": true, "repoGlanceCollapsedByDefault": false,
          "recordSections": [{"id": "rawJson", "hidden": false}], "repoSections": [{"id": "profile", "hidden": true}],
          "hideRelationshipBar": false, "hideRepoGlance": false, "minimalProfile": true, "hideRichPreview": false,
@@ -340,6 +348,7 @@ final class PreferencesTests: XCTestCase {
         XCTAssertEqual(prefs.lastSeenReleaseId, "2026-03")
         XCTAssertFalse(prefs.announceReleases)
         XCTAssertEqual(prefs.pinScope, .all)
+        XCTAssertEqual(prefs.lexiconExplorerPins, ["app.bsky.feed.post", "sh.tangled.*"])
         XCTAssertEqual(prefs.recordSections.first, SectionConfig(id: "rawJson", hidden: false))
         XCTAssertEqual(prefs.recordSections.count, 8)
         XCTAssertEqual(prefs.repoSections.first, SectionConfig(id: "profile", hidden: true))
@@ -626,6 +635,19 @@ final class PreferencesTests: XCTestCase {
         XCTAssertEqual(PinnedLexicons.target(scope: .split, isOwnRepo: false), .others)
         XCTAssertEqual(PinnedLexicons.target(scope: .split, isOwnRepo: true), .mine)
         XCTAssertEqual(PinnedLexicons.target(scope: .all, isOwnRepo: false), .mine)
+    }
+
+    func testLexiconExplorerPinsAreTheirOwnList() {
+        var prefs = Preferences.defaults
+        prefs.pinnedLexicons = ["app.bsky.feed.post"]
+        let before = prefs
+        prefs.toggleLexiconExplorerPin("app.bsky.feed.post")
+        prefs.toggleLexiconExplorerPin("sh.tangled.*")
+        XCTAssertEqual(prefs.lexiconExplorerPins, ["app.bsky.feed.post", "sh.tangled.*"])
+        XCTAssertEqual(prefs.pinnedLexicons, ["app.bsky.feed.post"], "the account explorer's pins are untouched")
+        XCTAssertFalse(Preferences.preferencesAreEqual(before, prefs))
+        prefs.toggleLexiconExplorerPin("app.bsky.feed.post")
+        XCTAssertEqual(prefs.lexiconExplorerPins, ["sh.tangled.*"])
     }
 
     func testPinEntryHelpers() {

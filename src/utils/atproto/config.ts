@@ -7,6 +7,12 @@
 
 export const APPVIEW = 'https://public.api.bsky.app';
 export const PLC_DIRECTORY = 'https://plc.directory';
+/**
+ * The directory's live operation feed: the same entries as `/export`, plus a
+ * `seq`, pushed over a WebSocket as they are sequenced. `?cursor=<seq>`
+ * resumes after that entry.
+ */
+export const PLC_EXPORT_STREAM = 'wss://plc.directory/export/stream';
 export const CONSTELLATION = 'https://constellation.microcosm.blue';
 export const SLINGSHOT = 'https://slingshot.microcosm.blue';
 export const JETSTREAM = 'wss://jetstream2.us-east.bsky.network/subscribe';

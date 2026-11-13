@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { FilePenLine } from 'lucide-react';
+import { FilePenLine, Lock } from 'lucide-react';
 import NotFoundPanel from '@/components/NotFoundPanel';
 import { useAtprotoSession } from '@/components/AtprotoSessionProvider';
 import { encodeRepo, shortDid } from '@/utils/atproto/urls';
@@ -24,6 +24,7 @@ import LinkifiedJson from '../LinkifiedJson';
 import RecordEditor from '../RecordEditor';
 import { spaceRecordBackend } from '../recordBackend';
 import SpaceRecordFields from './SpaceRecordFields';
+import SpaceTitleBar from './SpaceTitleBar';
 import { SpaceReadErrorPanel, SpaceRepoAccessPanel } from './SpaceAccessPanel';
 import {
   useOwnPdsTransport,
@@ -72,8 +73,8 @@ export default function SpaceRecordExplorer({
     return (
       <NotFoundPanel
         eyebrow="Not a space address"
-        headline="That isn't a space address."
-        body="A permissioned record is addressed as at://{authority}/space/{type}/{key}/{did}/{collection}/{rkey}. One of those parts isn't valid here, so there is no record it could name."
+        headline="That isn’t a space address."
+        body="A permissioned record is addressed as at://{authority}/space/{type}/{key}/{did}/{collection}/{rkey}. One of those parts isn’t valid here, so there is no record it could name."
         initialQuery={rkey}
       />
     );
@@ -82,9 +83,10 @@ export default function SpaceRecordExplorer({
     const failed = error ? repo : author;
     return (
       <NotFoundPanel
-        eyebrow="Couldn't resolve"
-        headline="That identifier didn't resolve."
-        body={`We tried to resolve "${failed}" and the AT Protocol resolver returned: ${error || authorError}. Try another handle, DID, or AT URI below.`}
+        eyebrow="Couldn’t resolve"
+        headline="That identifier didn’t resolve."
+        body={`We couldn’t find an account for “${failed}”. Check the spelling, or try a DID or an at:// URI below.`}
+        details={error || authorError}
         initialQuery={failed}
       />
     );
@@ -200,157 +202,149 @@ function SpaceRecordView({
   const memberLabel = authorIdentity.handle ? `@${authorIdentity.handle}` : shortDid(authorIdentity.did);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-      <AppearIn rise>
-        <Breadcrumb
-          handle={identity.handle}
-          did={identity.did}
-          pds={identity.pds}
-          spaceRoot
-          spaceType={spaceType}
-          skey={skey}
-          author={authorIdentity.did}
-          authorHandle={authorIdentity.handle}
-          collection={collection}
-          rkey={rkey}
-          shareUrl={recordPath}
-        />
-      </AppearIn>
-
-      {!transport && (
-        <AppearIn delay={0.05}>
-          <SpaceRepoAccessPanel access={access} repo={repoAccess} what={`this record in ${memberLabel}’s repository`} />
-        </AppearIn>
-      )}
-
-      {transport && error != null && (
-        <AppearIn delay={0.05}>
-          <SpaceReadErrorPanel err={error} what="this record" />
-        </AppearIn>
-      )}
-
-      {transport && error == null && !record && !editing && <SpaceRecordBodySkeleton />}
-
-      {editing && canEdit && backend && (
-        <AppearIn delay={0.05}>
-          <RecordEditor
-            backend={backend}
-            collection={collection}
-            rkey={rkey}
-            canDelete={canDelete}
-            onSaved={(next) => {
-              setRecord((prev) => (prev ? { ...prev, value: next } : prev));
-            }}
-            onDeleted={() => {
-              setEditing(false);
-              router.push(collectionPath);
-            }}
-            onCancel={() => setEditing(false)}
+    <div className="fx-explorer" data-page="space-record" data-cols="1">
+      <div className="fx-head">
+        <AppearIn rise>
+          <SpaceTitleBar
+            crumbs={
+              <Breadcrumb
+                handle={identity.handle}
+                did={identity.did}
+                pds={identity.pds}
+                spaceRoot
+                spaceType={spaceType}
+                skey={skey}
+                author={authorIdentity.did}
+                authorHandle={authorIdentity.handle}
+                collection={collection}
+                rkey={rkey}
+                titled
+              />
+            }
+            title={rkey}
+            pill={
+              <span className="fx-pill fx-sp-pill-accent">
+                <Lock size={12} aria-hidden />
+                Permissioned record
+              </span>
+            }
+            actions={
+              record &&
+              !editing &&
+              canEdit && (
+                <button
+                  type="button"
+                  onClick={() => setEditing(true)}
+                  className="fx-btn fx-sp-primary"
+                >
+                  <FilePenLine size={14} aria-hidden /> Edit record
+                </button>
+              )
+            }
+            shareUrl={recordPath}
           />
         </AppearIn>
-      )}
+      </div>
 
-      {record && !editing && (
-        <AppearIn delay={0.05}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-            {showRaw ? (
-              /* LinkifiedJson tokenises the seven-segment space address the
-                 same way it tokenises a public one, and the explorer's AT URI
-                 mapper already routes those tokens back into this tree — so a
-                 record that references another permissioned record links
-                 straight to it, with no special casing here. */
-              <LinkifiedJson value={record} className="explore-json" />
-            ) : (
-              <SpaceRecordFields value={record.value} />
-            )}
-            {canEdit && (
-              <button
-                type="button"
-                onClick={() => setEditing(true)}
-                style={{
-                  alignSelf: 'flex-start',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '0.4rem',
-                  padding: '0.4rem 0.75rem',
-                  background: 'var(--accent-moss)',
-                  color: 'var(--text-on-accent)',
-                  border: '1px solid var(--accent-moss)',
-                  fontFamily: 'var(--font-serif)',
-                  fontSize: '0.8125rem',
-                  cursor: 'pointer',
-                }}
-              >
-                <FilePenLine size={12} aria-hidden /> Edit record
-              </button>
-            )}
-            {/* Your own record, and the grant covers reading it but not
-                writing it. Said once, here, rather than left as an edit button
-                that isn't there — the reason is a box that wasn't ticked at
-                sign-in, which is not something to work out from an absence. */}
-            {isOwnRecord && writeActions !== null && !canEdit && (
-              <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>
-                Editing your permissioned records needs a sign-in that asked for
-                it. Sign in again and tick “Edit your permissioned records”.
-              </p>
-            )}
-            {/* Session-only, unlike the public record page's equivalent: that
-                one persists a per-view preference, and those preference keys
-                describe the public record sections. Not worth widening the
-                stored schema for one toggle. */}
-            <button
-              type="button"
-              onClick={() => setShowRaw((v) => !v)}
-              style={{
-                alignSelf: 'flex-start',
-                padding: 0,
-                background: 'transparent',
-                border: 0,
-                cursor: 'pointer',
-                fontFamily: 'var(--font-serif)',
-                fontSize: '0.75rem',
-                letterSpacing: '0.04em',
-                color: 'var(--text-tertiary)',
-                transition: 'color 0.2s ease',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.color = 'var(--text-accent)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.color = 'var(--text-tertiary)';
-              }}
-            >
-              {showRaw ? 'Show fields' : 'Show raw JSON'}
-            </button>
-          </div>
-        </AppearIn>
-      )}
+      <div className="fx-main">
+        {!transport && (
+          <AppearIn delay={0.05}>
+            <SpaceRepoAccessPanel access={access} repo={repoAccess} what={`this record in ${memberLabel}’s repository`} />
+          </AppearIn>
+        )}
 
-      <AppearIn delay={0.09}>
-        <div
-          style={{
-            display: 'flex',
-            flexWrap: 'wrap',
-            alignItems: 'center',
-            gap: '0.5rem',
-            padding: '0.75rem 1rem',
-            border: '1px solid var(--border-medium)',
-            background: 'var(--bg-secondary)',
-          }}
-        >
-          <CopyButton value={atUri} label="AT URI" compact variant="subtle" />
-          <CopyButton value={space} label="Space address" compact variant="subtle" />
-          <CopyButton value={authorIdentity.did} label="Member DID" compact variant="subtle" />
-          {record && (
-            <CopyButton
-              value={JSON.stringify(record, null, 2)}
-              label="JSON"
-              compact
-              variant="subtle"
+        {transport && error != null && (
+          <AppearIn delay={0.05}>
+            <SpaceReadErrorPanel err={error} what="this record" />
+          </AppearIn>
+        )}
+
+        {transport && error == null && !record && !editing && <SpaceRecordBodySkeleton />}
+
+        {editing && canEdit && backend && (
+          <AppearIn delay={0.05}>
+            <RecordEditor
+              backend={backend}
+              collection={collection}
+              rkey={rkey}
+              canDelete={canDelete}
+              onSaved={(next) => {
+                setRecord((prev) => (prev ? { ...prev, value: next } : prev));
+              }}
+              onDeleted={() => {
+                setEditing(false);
+                router.push(collectionPath);
+              }}
+              onCancel={() => setEditing(false)}
             />
-          )}
-        </div>
-      </AppearIn>
+          </AppearIn>
+        )}
+
+        {record && !editing && (
+          <AppearIn delay={0.05}>
+            <section className="fx-card fx-sp-section">
+              <div className="fx-sp-head">
+                <h2 className="fx-sp-h2">Record</h2>
+                {/* Session-only, unlike the public record page's equivalent:
+                    that one persists a per-view preference, and those
+                    preference keys describe the public record sections. Not
+                    worth widening the stored schema for one toggle. */}
+                <span className="fx-sp-head-end">
+                  <span role="group" aria-label="Record view" className="fn-rec-seg">
+                    <button type="button" aria-pressed={!showRaw} onClick={() => setShowRaw(false)}>
+                      Fields
+                    </button>
+                    <button type="button" aria-pressed={showRaw} onClick={() => setShowRaw(true)}>
+                      JSON
+                    </button>
+                  </span>
+                </span>
+              </div>
+              {showRaw ? (
+                /* LinkifiedJson tokenises the seven-segment space address the
+                   same way it tokenises a public one, and the explorer's AT URI
+                   mapper already routes those tokens back into this tree — so a
+                   record that references another permissioned record links
+                   straight to it, with no special casing here. */
+                <div className="fx-sp-json">
+                  <LinkifiedJson value={record} className="explore-json" />
+                </div>
+              ) : (
+                <SpaceRecordFields value={record.value} />
+              )}
+              {/* Your own record, and the grant covers reading it but not
+                  writing it. Said once, here, rather than left as an edit button
+                  that isn't there — the reason is a box that wasn't ticked at
+                  sign-in, which is not something to work out from an absence. */}
+              {isOwnRecord && writeActions !== null && !canEdit && (
+                <p className="fx-sp-note fx-sp-foot">
+                  Editing your permissioned records needs a sign-in that asked for
+                  it. Sign in again and tick “Edit your permissioned records”.
+                </p>
+              )}
+            </section>
+          </AppearIn>
+        )}
+
+        <AppearIn delay={0.09}>
+          <section className="fn-rec-card fn-rec-copy" aria-label="Copy">
+            <h2 className="fn-rec-h2">Copy</h2>
+            <div className="fn-rec-copy-chips">
+              <CopyButton value={atUri} label="AT URI" compact variant="subtle" />
+              <CopyButton value={space} label="Space address" compact variant="subtle" />
+              <CopyButton value={authorIdentity.did} label="Member DID" compact variant="subtle" />
+              {record && (
+                <CopyButton
+                  value={JSON.stringify(record, null, 2)}
+                  label="JSON"
+                  compact
+                  variant="subtle"
+                />
+              )}
+            </div>
+          </section>
+        </AppearIn>
+      </div>
     </div>
   );
 }

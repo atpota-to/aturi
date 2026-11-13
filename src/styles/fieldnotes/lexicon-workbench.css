@@ -1,0 +1,1610 @@
+/* Field Notes: the lexicons explorer's Workbench and Files views
+   (lexicons/workbench/LexiconShell.tsx). Tokens live in src/app/globals.css;
+   use them rather than raw hex so dark mode and the colour schemes keep
+   working.
+
+   The frame is the account explorer's (workbench.css: .fx-wb and its
+   toolbar, rail, panes, inspector, drawers and sheets), and so are the
+   pieces it borrows: the tree's rows and the field (explorer.css), the
+   record inspector's head, tabs and actions (record.css), the stat tiles
+   and the chart's axis (explore.css). This sheet draws what the lexicons
+   have that an account doesn't: ranked rows, a schema, records from every
+   account. Class prefix: fx-lx-. */
+
+/* ---------- Frame ---------- */
+
+.fx-lx .fx-crumb[data-mono] a,
+.fx-lx .fx-crumb[data-mono] .fx-crumb-here {
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+}
+
+/* The toolbar holds three switches here. Until a desktop has the room the
+   breadcrumb takes a line of its own above them, as the Files view's does. */
+@media (min-width: 641px) and (max-width: 1180px) {
+  .fx-lx .fx-wb-toolbar {
+    flex-wrap: wrap;
+  }
+
+  .fx-lx .fx-wb-path {
+    flex: 1 1 calc(100% - 60px);
+  }
+
+  .fx-lx .fx-wb-toolbar-end {
+    flex: 1 1 100%;
+    flex-wrap: wrap;
+  }
+
+  .fx-lx .fx-wb-toolbar-end > .fx-title-share {
+    margin-left: auto;
+  }
+}
+
+/* ---------- Rail ---------- */
+
+.fx-lx-railhead {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 10px 10px 16px;
+}
+
+.fx-lx-railmark {
+  flex: none;
+  display: inline-grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  background: var(--accent-soft);
+  color: var(--accent-soft-fg);
+}
+
+.fx-lx-railsub {
+  overflow: hidden;
+  font-size: 12px;
+  color: var(--text-tertiary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fx-lx-find {
+  position: relative;
+  flex: none;
+  padding: 0 12px 10px;
+}
+
+.fx-lx-find .fx-field {
+  width: 100%;
+}
+
+.fx-lx-find input[type='search']::-webkit-search-cancel-button {
+  -webkit-appearance: none;
+}
+
+.fx-lx-find-list {
+  position: absolute;
+  z-index: 30;
+  top: calc(100% - 6px);
+  left: 12px;
+  right: 12px;
+  margin: 0;
+  padding: 4px;
+  list-style: none;
+  max-height: min(60vh, 360px);
+  overflow-y: auto;
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-control);
+  background: var(--bg-secondary);
+  box-shadow: var(--shadow-overlay);
+}
+
+.fx-lx-find-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 32px;
+  padding: 0 8px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.fx-lx-find-item[aria-selected='true'] {
+  background: var(--accent-soft);
+  color: var(--accent-soft-fg);
+}
+
+.fx-lx-find-nsid {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fx-lx-find-count {
+  flex: none;
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-tertiary);
+}
+
+.fx-wb-views + .fx-lx-tree {
+  padding-top: 2px;
+}
+
+.fx-lx-tree > .fx-lx-pins {
+  flex: none;
+  margin: 0;
+  padding: 0 8px 4px;
+  max-height: 30%;
+  overflow-y: auto;
+}
+
+/* Each level a step in; the chevron's slot is kept on a leaf so names line
+   up under their namespace. */
+.fx-lx-tree .fx-row .fx-row-main {
+  padding-left: 4px;
+}
+
+.fx-lx-tree .fx-row {
+  padding-left: calc(var(--depth, 0) * 14px);
+}
+
+.fx-lx-chev {
+  flex: none;
+  display: inline-grid;
+  place-items: center;
+  width: 20px;
+  padding: 0;
+  margin-left: 2px;
+  border: 0;
+  background: transparent;
+  color: var(--text-tertiary);
+  cursor: pointer;
+}
+
+button.fx-lx-chev:hover {
+  color: var(--text-primary);
+}
+
+button.fx-lx-chev:focus-visible {
+  outline: 2px solid var(--text-accent);
+  outline-offset: -2px;
+  border-radius: 5px;
+}
+
+.fx-lx-chev[aria-expanded='true'] .fx-row-chev {
+  transform: rotate(90deg);
+}
+
+.fx-lx-pins .fx-lx-chev {
+  display: none;
+}
+
+.fx-lx-glyph {
+  flex: none;
+  color: var(--text-tertiary);
+}
+
+.fx-lx-glyph[data-kind='namespace'] {
+  color: var(--text-accent);
+}
+
+.fx-lx-tree .fx-fd-glyph[data-kind='folder'] {
+  width: 16px;
+}
+
+.fx-lx-tree-wait,
+.fx-lx-tree-empty {
+  display: flex;
+  align-items: center;
+  min-height: 27px;
+  padding-left: calc(var(--depth, 0) * 14px + 30px);
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+
+.fx-lx-skel-row {
+  pointer-events: none;
+}
+
+/* ---------- Main: lists ---------- */
+
+.fx-lx-title-icon {
+  flex: none;
+  display: inline-grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: var(--accent-soft);
+  color: var(--accent-soft-fg);
+}
+
+.fx-lx-title-icon .fx-favicon {
+  width: 16px;
+  height: 16px;
+  background: transparent;
+}
+
+.fx-lx-pane .fx-title-row {
+  flex-wrap: nowrap;
+}
+
+/* A list's name is words; a namespace's is an identifier and stays mono. */
+.fx-lx-pane .fx-h1:not([data-mono]) {
+  font-family: var(--font-sans);
+  font-weight: 650;
+  letter-spacing: -0.015em;
+}
+
+.fx-lx-pane .fx-h1[data-mono] {
+  font-size: 19px;
+}
+
+.fx-lx-sub {
+  margin: -4px 0 0;
+  max-width: 72ch;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+.fx-lx-sub strong {
+  font-weight: 650;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.fx-lx-sub > span:last-child {
+  vertical-align: -1px;
+}
+
+.fx-lx-sub-nsid {
+  padding: 0;
+  background: transparent;
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  color: var(--text-primary);
+}
+
+.fx-wb-scroll[data-stale] {
+  opacity: 0.55;
+  transition: opacity 0.2s ease;
+}
+
+.fx-lx-list,
+.fx-lx-recs {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.fx-lx-head,
+.fx-lx-row {
+  display: grid;
+  align-items: center;
+  gap: 12px;
+  padding: 0 16px;
+  box-sizing: border-box;
+}
+
+.fx-lx-list[data-cols='ranked'] > .fx-lx-head,
+.fx-lx-list[data-cols='ranked'] > .fx-lx-item > * {
+  grid-template-columns: 1.75rem minmax(0, 1fr) 92px 4.5rem 4.75rem;
+}
+
+.fx-lx-list[data-cols='new'] > .fx-lx-head,
+.fx-lx-list[data-cols='new'] > .fx-lx-item > * {
+  grid-template-columns: 1.75rem minmax(0, 1fr) 5rem 5rem;
+}
+
+.fx-lx-list[data-cols='ns'] > .fx-lx-head,
+.fx-lx-list[data-cols='ns'] > .fx-lx-item > * {
+  grid-template-columns: minmax(0, 1fr) 5rem 5rem 4.75rem;
+}
+
+.fx-lx-list[data-cols='plain'] > .fx-lx-head,
+.fx-lx-list[data-cols='plain'] > .fx-lx-item > * {
+  grid-template-columns: minmax(0, 1fr) 5rem 5rem;
+}
+
+.fx-lx-list > .fx-lx-head {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  min-height: 32px;
+  background: var(--surface-subtle);
+  border-bottom: 1px solid var(--border-subtle);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+}
+
+.fx-lx-head [data-num] {
+  text-align: right;
+}
+
+.fx-lx-sort {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+.fx-lx-sort:hover,
+.fx-lx-sort[data-active] {
+  color: var(--text-primary);
+}
+
+.fx-lx-sort:focus-visible {
+  outline: 2px solid var(--text-accent);
+  outline-offset: 2px;
+  border-radius: 3px;
+}
+
+[data-num] > .fx-lx-sort {
+  margin-left: auto;
+}
+
+.fx-lx-head > [data-num] {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.fx-lx-row {
+  min-height: 42px;
+  padding-top: 6px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--border-subtle);
+  color: var(--text-primary);
+  text-decoration: none;
+  transition: background 0.12s ease;
+}
+
+.fx-lx-item:nth-child(odd) > .fx-lx-row {
+  background: var(--fx-stripe);
+}
+
+a.fx-lx-row:hover,
+.fx-lx-item:nth-child(odd) > a.fx-lx-row:hover {
+  background: var(--fx-stripe-hover);
+}
+
+a.fx-lx-row[data-current],
+.fx-lx-item > a.fx-lx-row[data-current]:hover {
+  background: var(--accent-soft);
+  box-shadow: inset 2px 0 0 var(--accent-moss);
+}
+
+a.fx-lx-row:focus-visible {
+  outline: 2px solid var(--text-accent);
+  outline-offset: -2px;
+}
+
+.fx-lx-row[data-skeleton] {
+  pointer-events: none;
+}
+
+.fx-lx-rank {
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-tertiary);
+}
+
+.fx-lx-name {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+}
+
+.fx-lx-name > .fx-fd-glyph[data-kind='folder'] {
+  width: 17px;
+}
+
+.fx-lx-nsid {
+  min-width: 0;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.fx-lx-ns {
+  color: var(--text-tertiary);
+}
+
+.fx-lx-leaf {
+  color: var(--text-primary);
+}
+
+a.fx-lx-row[data-current] .fx-lx-leaf {
+  color: var(--accent-soft-fg);
+  font-weight: 600;
+}
+
+.fx-lx-row[data-kind='namespace'] .fx-lx-leaf {
+  font-weight: 500;
+}
+
+.fx-lx-num {
+  text-align: right;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
+}
+
+.fx-lx-num[data-col='creates'] {
+  color: var(--text-secondary);
+}
+
+.fx-lx-change {
+  display: flex;
+  justify-content: flex-end;
+  min-width: 0;
+}
+
+.fx-lx-spark {
+  display: flex;
+  align-items: center;
+  height: 24px;
+}
+
+.fx-lx-msg {
+  margin: 12px 16px;
+}
+
+.fx-lx-note {
+  margin: 0;
+  padding: 12px 16px 16px;
+  max-width: 72ch;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--text-tertiary);
+}
+
+.fx-lx-note a {
+  color: var(--text-accent);
+}
+
+.fx-lx-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+  flex-wrap: wrap;
+}
+
+.fx-lx-foot .fn-credit {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.fx-lx-foot-more {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* A list beside an open lexicon has a phone's room on a desktop: each row
+   keeps its name and its headline figure, and puts away the rest. */
+@container fx-wb-main (max-width: 560px) {
+  .fx-lx-list[data-cols] > .fx-lx-head {
+    display: none;
+  }
+
+  .fx-lx-list[data-cols='ranked'] > .fx-lx-item > * {
+    grid-template-columns: 1.25rem minmax(0, 1fr) auto 4.25rem;
+  }
+
+  .fx-lx-list[data-cols='ranked'] .fx-lx-spark {
+    display: none;
+  }
+
+  .fx-lx-list[data-cols='new'] > .fx-lx-item > *,
+  .fx-lx-list[data-cols='plain'] > .fx-lx-item > * {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .fx-lx-list[data-cols='new'] .fx-lx-rank {
+    display: none;
+  }
+
+  .fx-lx-list[data-cols='ns'] > .fx-lx-item > * {
+    grid-template-columns: minmax(0, 1fr) auto 4.25rem;
+  }
+
+  .fx-lx-list [data-col='creates'] {
+    display: none;
+  }
+
+  .fx-lx-row {
+    gap: 10px;
+    padding-left: 14px;
+    padding-right: 14px;
+  }
+}
+
+/* Beside a lexicon with the full width: names, to step through. */
+@container fx-wb-main (max-width: 300px) {
+  .fx-lx-list[data-cols] > .fx-lx-item > * {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .fx-lx-list .fx-lx-rank,
+  .fx-lx-list .fx-lx-num,
+  .fx-lx-list .fx-lx-change,
+  .fx-lx-list .fx-favicon,
+  .fx-lx-list .fx-fd-glyph,
+  .fx-lx-sub,
+  .fx-lx-pane .fx-actions,
+  .fx-lx-title-icon {
+    display: none;
+  }
+
+  .fx-lx-pane .fx-h1 {
+    font-size: 15px;
+  }
+}
+
+/* ---------- Main: a lexicon's records ---------- */
+
+.fx-lx-records-title {
+  flex-wrap: wrap;
+  gap: 4px 12px;
+}
+
+.fx-lx-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  max-width: 100%;
+  height: 26px;
+  padding: 0 9px 0 7px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--border-medium);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-secondary);
+  text-decoration: none;
+}
+
+.fx-lx-back span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fx-lx-back:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+.fx-lx-rec {
+  display: grid;
+  grid-template-columns: minmax(8rem, 12rem) minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  min-height: 42px;
+  padding: 7px 16px;
+  box-sizing: border-box;
+  border-bottom: 1px solid var(--border-subtle);
+  color: var(--text-primary);
+  text-decoration: none;
+  transition: background 0.12s ease;
+}
+
+.fx-lx-recs > .fx-lx-item:nth-child(even) > .fx-lx-rec {
+  background: var(--fx-stripe);
+}
+
+a.fx-lx-rec:hover,
+.fx-lx-recs > .fx-lx-item:nth-child(even) > a.fx-lx-rec:hover {
+  background: var(--fx-stripe-hover);
+}
+
+a.fx-lx-rec[data-current],
+.fx-lx-recs > .fx-lx-item > a.fx-lx-rec[data-current]:hover {
+  background: var(--accent-soft);
+  box-shadow: inset 2px 0 0 var(--accent-moss);
+}
+
+a.fx-lx-rec:focus-visible {
+  outline: 2px solid var(--text-accent);
+  outline-offset: -2px;
+}
+
+.fx-lx-rec[data-skeleton] {
+  pointer-events: none;
+}
+
+.fx-lx-rec-who {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.fx-lx-rec-avatar {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: var(--bg-tertiary);
+}
+
+.fx-lx-rec-handle {
+  min-width: 0;
+  overflow: hidden;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fx-lx-rec-text {
+  min-width: 0;
+  overflow: hidden;
+  font-size: 13px;
+  color: var(--text-primary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fx-lx-rec-text code {
+  padding: 0;
+  background: transparent;
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  color: var(--text-tertiary);
+}
+
+.fx-lx-rec-time {
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+}
+
+/* Two lines in a narrow list, and always in the inspector's preview: who
+   and when, then what it says. */
+.fx-lx-recs[data-compact] .fx-lx-rec {
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas:
+    'who time'
+    'text text';
+  gap: 3px 12px;
+  padding: 8px 12px;
+}
+
+.fx-lx-recs[data-compact] .fx-lx-rec-who {
+  grid-area: who;
+}
+
+.fx-lx-recs[data-compact] .fx-lx-rec-text {
+  grid-area: text;
+  white-space: normal;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+.fx-lx-recs[data-compact] .fx-lx-rec-time {
+  grid-area: time;
+}
+
+@container fx-wb-main (max-width: 560px) {
+  .fx-lx-rec {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      'who time'
+      'text text';
+    gap: 3px 12px;
+    padding: 8px 14px;
+  }
+
+  .fx-lx-rec-who {
+    grid-area: who;
+  }
+
+  .fx-lx-rec-text {
+    grid-area: text;
+    white-space: normal;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    color: var(--text-secondary);
+    line-height: 1.4;
+  }
+
+  .fx-lx-rec-time {
+    grid-area: time;
+  }
+}
+
+/* ---------- Inspector: a lexicon ---------- */
+
+.fx-lx-insp .fx-wb-insp-head > .fx-favicon {
+  width: 16px;
+  height: 16px;
+}
+
+.fx-lx-insp-nsid {
+  font-size: 15px;
+}
+
+.fx-lx-kind-pill {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+}
+
+.fx-lx-tabpanel,
+.fx-lx-overview {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
+.fx-lx-lead {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--text-primary);
+}
+
+.fx-lx-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 24px;
+  margin: 0;
+}
+
+.fx-lx-facts:empty {
+  display: none;
+}
+
+.fx-lx-facts > div {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.fx-lx-facts dt {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+}
+
+.fx-lx-facts dd {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 13px;
+}
+
+.fx-lx-facts dd a:not(.fx-btn):not(.fn-btn) {
+  color: var(--text-accent);
+  text-decoration: none;
+}
+
+.fx-lx-facts dd a:not(.fx-btn):not(.fn-btn):hover {
+  text-decoration: underline;
+}
+
+.fx-lx-facts .fn-btn {
+  font-family: var(--font-sans);
+}
+
+.fx-lx-window {
+  margin-bottom: -8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-tertiary);
+}
+
+/* The tiles pick what the chart under them draws. */
+.fx-lx-stats {
+  grid-template-columns: repeat(auto-fit, minmax(7.25rem, 1fr));
+}
+
+.fx-lx-stat {
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  transition: background 0.12s ease;
+}
+
+.fx-lx-stat:hover {
+  background: var(--surface-subtle);
+}
+
+.fx-lx-stat[aria-pressed='true'] {
+  background: var(--accent-soft);
+  box-shadow: inset 0 -2px 0 var(--accent-moss);
+}
+
+.fx-lx-stat[aria-pressed='true'] .fn-stat-label {
+  color: var(--accent-soft-fg);
+}
+
+.fx-lx-stat:focus-visible {
+  outline: 2px solid var(--text-accent);
+  outline-offset: -2px;
+}
+
+.fx-lx-stat .fn-stat-value {
+  font-size: 22px;
+}
+
+.fx-lx-stat-delta {
+  display: inline-flex;
+  min-height: 1.1em;
+  font-size: 0.75rem;
+}
+
+.fx-lx-chart,
+.fx-lx-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+  padding: 14px 16px;
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-card);
+  background: var(--bg-secondary);
+}
+
+.fx-lx-chart-head {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.fx-lx-chart-plot {
+  height: 120px;
+}
+
+.fx-lx-chart-empty {
+  display: flex;
+  align-items: center;
+  height: 100%;
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-tertiary);
+}
+
+.fx-lx-h {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin: 0;
+  font-size: 13.5px;
+  font-weight: 650;
+  letter-spacing: -0.005em;
+  color: var(--text-primary);
+}
+
+.fx-lx-h code {
+  padding: 0;
+  background: transparent;
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  font-weight: 500;
+}
+
+.fx-lx-h-count {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-tertiary);
+  font-variant-numeric: tabular-nums;
+}
+
+.fx-lx-mini {
+  list-style: none;
+  margin: 0 -8px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.fx-lx-mini a {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 5px 8px;
+  border-radius: 6px;
+  color: var(--text-primary);
+  text-decoration: none;
+}
+
+.fx-lx-mini a:hover {
+  background: var(--bg-tertiary);
+}
+
+.fx-lx-mini-name {
+  min-width: 0;
+  overflow: hidden;
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fx-lx-mini-count {
+  flex: none;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-tertiary);
+}
+
+.fx-lx-more {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  align-self: flex-start;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-accent);
+  text-decoration: none;
+}
+
+.fx-lx-more:hover {
+  text-decoration: underline;
+}
+
+.fx-lx-records {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.fx-lx-records .fx-lx-recs {
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-card);
+  overflow: hidden;
+}
+
+.fx-lx-records .fx-lx-recs > .fx-lx-item:last-child > .fx-lx-rec {
+  border-bottom: 0;
+}
+
+.fx-lx-records-all {
+  align-self: flex-start;
+  gap: 6px;
+}
+
+/* With the full width: what it's used for beside what it is. */
+.fx-lx-wide {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
+  align-items: start;
+  gap: 20px 24px;
+  max-width: 1320px;
+  margin: 0 auto;
+}
+
+.fx-lx-wide-col {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
+@container fx-wb-insp (max-width: 900px) {
+  .fx-lx-wide {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* ---------- Inspector: the schema ---------- */
+
+.fx-lx-schema {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+}
+
+.fx-lx-schema-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 16px;
+}
+
+.fx-lx-authority {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  min-width: 0;
+  margin: 0;
+  flex: 1 1 16rem;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--text-secondary);
+}
+
+.fx-lx-authority > svg {
+  flex: none;
+  margin-top: 1px;
+  color: var(--text-accent);
+}
+
+.fx-lx-authority-who {
+  font-weight: 600;
+  color: var(--text-primary);
+  text-decoration: none;
+}
+
+.fx-lx-authority-who:hover {
+  text-decoration: underline;
+}
+
+.fx-lx-schema-tools {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.fx-lx-schema-tools .fx-btn {
+  gap: 4px;
+}
+
+.fx-lx-schema-note {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-tertiary);
+}
+
+.fx-lx-def {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+  padding: 12px 14px;
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-card);
+  background: var(--bg-secondary);
+  scroll-margin-top: 12px;
+  transition: box-shadow 0.4s ease;
+}
+
+.fx-lx-def[data-main] {
+  border-color: var(--accent-soft-border);
+}
+
+.fx-lx-def[data-flash] {
+  box-shadow: 0 0 0 3px var(--accent-soft-ring);
+}
+
+.fx-lx-def-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+}
+
+.fx-lx-def-name {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.fx-lx-kind {
+  display: inline-flex;
+  align-items: center;
+  height: 20px;
+  padding: 0 8px;
+  border-radius: var(--radius-pill);
+  background: var(--bg-tertiary);
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: var(--text-secondary);
+}
+
+.fx-lx-kind[data-kind='record'],
+.fx-lx-kind-pill[data-kind='record'] {
+  background: var(--accent-soft);
+  color: var(--accent-soft-fg);
+}
+
+.fx-lx-key {
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+
+.fx-lx-key code {
+  padding: 0;
+  background: transparent;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.fx-lx-def-desc {
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+.fx-lx-def-desc[data-muted] {
+  color: var(--text-tertiary);
+}
+
+.fx-lx-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.fx-lx-section-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 4px 0 0;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+}
+
+.fx-lx-encoding {
+  padding: 0;
+  background: transparent;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--text-secondary);
+}
+
+.fx-lx-fields {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.fx-lx-field {
+  display: grid;
+  grid-template-columns: minmax(7rem, 32%) minmax(0, 1fr);
+  align-items: baseline;
+  gap: 4px 14px;
+  padding: 8px 0;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.fx-lx-fields > .fx-lx-field:first-child {
+  border-top: 0;
+}
+
+.fx-lx-field dt {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 6px;
+  min-width: 0;
+}
+
+.fx-lx-field dd {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  margin: 0;
+}
+
+.fx-lx-field-name {
+  padding: 0;
+  background: transparent;
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-primary);
+  overflow-wrap: anywhere;
+}
+
+.fx-lx-field[data-deprecated] .fx-lx-field-name {
+  font-weight: 400;
+  color: var(--text-tertiary);
+  text-decoration: line-through;
+}
+
+.fx-lx-req,
+.fx-lx-opt {
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--text-accent);
+}
+
+.fx-lx-opt {
+  color: var(--text-tertiary);
+}
+
+.fx-lx-field-type,
+.fx-lx-shape,
+.fx-lx-union {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 6px;
+  min-width: 0;
+}
+
+.fx-lx-shape {
+  margin: 0;
+}
+
+.fx-lx-type {
+  padding: 0;
+  background: transparent;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.fx-lx-type-word {
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+
+.fx-lx-reflink {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-accent);
+  text-decoration: none;
+  overflow-wrap: anywhere;
+  text-align: left;
+  cursor: pointer;
+}
+
+.fx-lx-reflink:hover {
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+}
+
+.fx-lx-reflink:focus-visible {
+  outline: 2px solid var(--text-accent);
+  outline-offset: 1px;
+  border-radius: 3px;
+}
+
+.fx-lx-chip {
+  display: inline-flex;
+  align-items: center;
+  height: 18px;
+  padding: 0 6px;
+  border-radius: var(--radius-pill);
+  background: var(--surface-subtle);
+  border: 1px solid var(--border-subtle);
+  font-size: 11px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.fx-lx-field-desc {
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--text-secondary);
+}
+
+.fx-lx-nested {
+  margin-top: 2px;
+  padding-left: 12px;
+  border-left: 2px solid var(--border-subtle);
+}
+
+/* Field usage (FieldUsage.tsx): a share of sampled records on its own line
+   under the field's name, the bar and its number side by side. */
+.fx-lx-use {
+  display: flex;
+  flex-basis: 100%;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px 6px;
+  min-width: 0;
+  margin-top: 2px;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-secondary);
+}
+
+.fx-lx-use-bar {
+  position: relative;
+  flex: none;
+  width: 5.5rem;
+  height: 5px;
+  border-radius: var(--radius-pill);
+  background: var(--bg-tertiary);
+  overflow: hidden;
+}
+
+.fx-lx-use-bar > span {
+  position: absolute;
+  inset: 0 auto 0 0;
+  min-width: 2px;
+  border-radius: inherit;
+  background: var(--text-accent);
+}
+
+.fx-lx-use[data-none] {
+  color: var(--text-tertiary);
+}
+
+.fx-lx-use[data-none] .fx-lx-use-bar > span {
+  min-width: 0;
+}
+
+/* A required field some records leave out: those records don't validate. */
+.fx-lx-use[data-gap] .fx-lx-use-bar > span {
+  background: var(--danger);
+}
+
+.fx-lx-use-gap {
+  white-space: nowrap;
+  font-weight: 600;
+  color: var(--danger);
+}
+
+.fx-lx-use-note {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--text-tertiary);
+}
+
+.fx-lx-use-head {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* Sampling Jetstream for more records: the button, then what it found. */
+.fx-lx-use-live {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+}
+
+.fx-lx-use-live .fx-btn {
+  gap: 6px;
+}
+
+.fx-lx-use-live-status {
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-tertiary);
+}
+
+.fx-lx-errors ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.fx-lx-errors code {
+  padding: 0;
+  background: transparent;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.fx-lx-defs,
+.fx-lx-refs {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+
+.fx-lx-refs ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.fx-lx-ref {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  max-width: 100%;
+  min-height: 26px;
+  padding: 0 9px;
+  box-sizing: border-box;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--border-medium);
+  background: var(--bg-secondary);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-primary);
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+
+.fx-lx-ref svg {
+  flex: none;
+  color: var(--text-tertiary);
+}
+
+.fx-lx-ref:hover {
+  border-color: var(--accent-soft-border);
+  background: var(--accent-soft);
+  color: var(--accent-soft-fg);
+}
+
+.fx-lx-json {
+  min-width: 0;
+  overflow-x: auto;
+  padding: 12px 14px;
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-card);
+  background: var(--bg-secondary);
+  font-size: 12px;
+}
+
+.fx-lx-json pre {
+  margin: 0;
+}
+
+.fx-lx-empty {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 14px 16px;
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius-card);
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: var(--text-secondary);
+}
+
+.fx-lx-empty > svg {
+  flex: none;
+  margin-top: 2px;
+  color: var(--text-tertiary);
+}
+
+.fx-lx-empty p {
+  margin: 0;
+}
+
+.fx-lx-empty strong {
+  color: var(--text-primary);
+}
+
+.fx-lx-empty code {
+  font-size: 0.9em;
+}
+
+.fx-lx-empty a {
+  color: var(--text-accent);
+}
+
+/* A narrow inspector stacks a field's name over its type. */
+@container fx-wb-insp (max-width: 480px) {
+  .fx-lx-field {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* ---------- Phones ---------- */
+
+@media (max-width: 640px) {
+  .fx-lx-railhead {
+    padding-top: 8px;
+  }
+
+  .fx-lx-find {
+    padding: 0 14px 10px;
+  }
+
+  .fx-lx-find .fx-field {
+    height: 40px;
+  }
+
+  .fx-lx-tree > .fx-lx-pins {
+    max-height: none;
+  }
+
+  .fx-lx-sub {
+    font-size: 12.5px;
+  }
+
+  /* The toolbar's three switches share one line under the breadcrumb. */
+  .fx-lx .fx-wb-toolbar-end {
+    gap: 6px;
+  }
+
+  .fx-lx .fx-wb-toolbar-end .fn-segmented-option {
+    padding-left: 8px;
+    padding-right: 8px;
+  }
+}
+
+@media (pointer: coarse) {
+  .fx-lx-chev {
+    width: 30px;
+  }
+
+  .fx-lx-find-item {
+    min-height: 40px;
+  }
+
+  .fx-lx-row,
+  .fx-lx-rec {
+    min-height: 48px;
+  }
+}
+
+/* A phone's sheet, or an inspector as narrow: the tabs and the three
+   actions keep to one line, and the tiles go two by two rather than
+   three and one. */
+@container fx-wb-insp (max-width: 520px) {
+  .fx-lx-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@container fx-wb-insp (max-width: 420px) {
+  .fx-lx-insp .fx-wb-insp-bar {
+    gap: 8px;
+    padding-right: 10px;
+  }
+
+  .fx-lx-insp .fx-wb-insp-bar .fn-segmented-option {
+    padding-left: 9px;
+    padding-right: 9px;
+  }
+
+  .fx-lx-insp .fn-rec-actions {
+    gap: 4px;
+  }
+}

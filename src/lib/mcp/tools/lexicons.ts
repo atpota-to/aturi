@@ -1,7 +1,8 @@
 /**
  * Lexicon-ecosystem tools: what the network is doing beyond any one app,
  * via microcosm's UFOs API, plus published-schema lookup through the
- * standard `_lexicon` DNS authority method.
+ * standard `_lexicon` DNS authority method, and the two together: how often
+ * records set each field a schema declares.
  */
 
 import { z } from 'zod';
@@ -22,6 +23,15 @@ import {
   UFOS_HISTORY_BEGINS,
   type Direction,
 } from '@/lib/lexiconTrends';
+import {
+  declaredRecordFields,
+  fieldReport,
+  measureFieldUsage,
+  mergeSamples,
+  type SampledRecord,
+} from '@/lib/lexiconFieldUsage';
+import { collectJetstream } from '@/lib/mcp/tools/jetstream';
+import { summarizeLexicon } from '@/lib/lexiconSchema';
 import { WINDOWS, type Window } from '@/utils/ufos/windows';
 import { isoAgo, type CollectionOrder, type JustCount } from '@/utils/ufos/config';
 import { lexiconPathFor, publisherForNsid, schemaPathFor } from '@/utils/ufos/nsid';
@@ -65,6 +75,56 @@ function change(now: JustCount, before: JustCount) {
     creates: percentChange(now.creates ?? 0, before.creates ?? 0),
     didsEstimate: percentChange(now.dids_estimate ?? 0, before.dids_estimate ?? 0),
   };
+}
+
+type PublishedSchema =
+  | { status: 'no_authority'; domain: string | null; publisher: string }
+  | { status: 'unpublished'; did: string; resolvedVia: string }
+  | { status: 'found'; did: string; resolvedVia: string; record: { uri: string; cid: string; value: unknown } };
+
+/**
+ * The schema record for an NSID. Authority resolution: the DNS method is the
+ * spec; the reversed-NSID handle convention catches publishers who
+ * registered the handle but never added the TXT record.
+ */
+async function findPublishedSchema(nsid: string): Promise<PublishedSchema> {
+  const domain = lexiconAuthorityDomain(nsid);
+  let did = domain ? await resolveLexiconDid(domain) : null;
+  let resolvedVia = did ? '_lexicon DNS' : null;
+  if (!did) {
+    did = await resolveHandle(publisherForNsid(nsid));
+    if (did) resolvedVia = 'publisher handle convention';
+  }
+  if (!did || !resolvedVia) return { status: 'no_authority', domain, publisher: publisherForNsid(nsid) };
+
+  const uri = toAtUri({ did, collection: SCHEMA_COLLECTION, rkey: nsid });
+  let record = await getRecordByUri(uri);
+  if (!record) {
+    // Slingshot misses new or rarely-read records; the authority's own
+    // PDS is the source of truth before declaring the schema unpublished.
+    try {
+      const bundle = await resolveGuardedIdentity(did);
+      record = await getPdsRecord(bundle.pds, { repo: did, collection: SCHEMA_COLLECTION, rkey: nsid });
+    } catch {
+      record = null;
+    }
+  }
+  if (!record) return { status: 'unpublished', did, resolvedVia };
+  return { status: 'found', did, resolvedVia, record };
+}
+
+/**
+ * The Jetstream window get_lexicon_field_usage can add: as long as
+ * sample_jetstream's, and with the schema lookup beside it, inside the tool
+ * budget. A run on a busy lexicon ends at the record cap first.
+ */
+const USAGE_JETSTREAM_MAX_SECONDS = 15;
+const USAGE_JETSTREAM_MAX_RECORDS = 1000;
+const USAGE_JETSTREAM_MAX_BYTES = 4_000_000;
+
+/** A share to three places, the precision a sample of a few dozen records can carry and then some. */
+function share(records: number, of: number): number | null {
+  return of > 0 ? Math.round((records / of) * 1000) / 1000 : null;
 }
 
 function counts(entry: JustCount) {
@@ -441,43 +501,23 @@ export function registerLexiconTools(server: McpServer): void {
     toolHandler(async ({ nsid }) => {
       assertNsid(nsid);
 
-      // Authority resolution: the DNS method is the spec; the reversed-NSID
-      // handle convention catches publishers who registered the handle but
-      // never added the TXT record.
-      const domain = lexiconAuthorityDomain(nsid);
-      let did = domain ? await resolveLexiconDid(domain) : null;
-      let resolvedVia = did ? '_lexicon DNS' : null;
-      if (!did) {
-        did = await resolveHandle(publisherForNsid(nsid));
-        if (did) resolvedVia = 'publisher handle convention';
-      }
-      if (!did) {
+      const found = await findPublishedSchema(nsid);
+      if (found.status === 'no_authority') {
         throw new McpToolError(
           'not_found',
           `No authority found for ${nsid}`,
-          `Neither a _lexicon TXT record on ${domain ?? 'its domain'} nor the handle ${publisherForNsid(nsid)} resolves; the publisher has not made this lexicon discoverable.`,
+          `Neither a _lexicon TXT record on ${found.domain ?? 'its domain'} nor the handle ${found.publisher} resolves; the publisher has not made this lexicon discoverable.`,
         );
       }
-
-      const uri = toAtUri({ did, collection: SCHEMA_COLLECTION, rkey: nsid });
-      let record = await getRecordByUri(uri);
-      if (!record) {
-        // Slingshot misses new or rarely-read records; the authority's own
-        // PDS is the source of truth before declaring the schema unpublished.
-        try {
-          const bundle = await resolveGuardedIdentity(did);
-          record = await getPdsRecord(bundle.pds, { repo: did, collection: SCHEMA_COLLECTION, rkey: nsid });
-        } catch {
-          record = null;
-        }
-      }
-      if (!record) {
+      const { did, resolvedVia } = found;
+      if (found.status === 'unpublished') {
         throw new McpToolError(
           'not_found',
           `${did} is the authority for ${nsid} but has published no schema record`,
-          'The lexicon works without one; sample_recent_records shows the shape in practice.',
+          'The lexicon works without one; get_lexicon_field_usage shows the fields its records set in practice.',
         );
       }
+      const { record } = found;
 
       const serialized = JSON.stringify(record.value);
       const truncated = serialized.length > MAX_SCHEMA_BYTES;
@@ -501,6 +541,158 @@ export function registerLexiconTools(server: McpServer): void {
           explore: siteLink(schemaPathFor(nsid)),
           aturi: recordLink(did, SCHEMA_COLLECTION, nsid),
         },
+      };
+    }),
+  );
+
+  server.registerTool(
+    'get_lexicon_field_usage',
+    {
+      title: 'How often each field is used',
+      description:
+        'You have a record NSID and want to know which of its fields are used in practice: for each ' +
+        'field, the share of the newest records UFOs sampled network-wide that set it, how many ' +
+        'accounts those came from, and what kinds of value it held. Checked against the published ' +
+        'schema when there is one, naming declared fields no sampled record sets, required ones some ' +
+        'leave out, and fields records set that the schema does not declare. Without a schema, it is ' +
+        'the shape the records take. Set jetstream_seconds to add records written live in the next ' +
+        'few seconds to that few-dozen sample.',
+      inputSchema: z.object({
+        nsid: nsidSchema,
+        jetstream_seconds: z
+          .number()
+          .int()
+          .min(1)
+          .max(USAGE_JETSTREAM_MAX_SECONDS)
+          .optional()
+          .describe(
+            `Also listen to Jetstream this long (max ${USAGE_JETSTREAM_MAX_SECONDS}) and add the records written, ` +
+              `up to ${USAGE_JETSTREAM_MAX_RECORDS}. Default: no live sample.`,
+          ),
+      }),
+      annotations: READ_ONLY,
+    },
+    toolHandler(async ({ nsid, jetstream_seconds }) => {
+      assertNsid(nsid);
+      const [sampled, published, streamed] = await Promise.all([
+        fetchRecentRecordsResult([nsid]),
+        // The schema only sharpens the answer, so failing to find it is a
+        // status in the result rather than a failed call.
+        findPublishedSchema(nsid).catch(() => null),
+        // So does Jetstream: a window that can't connect leaves the UFOs
+        // sample, and says so.
+        jetstream_seconds
+          ? collectJetstream({
+              collections: [nsid],
+              dids: [],
+              operations: new Set(['create', 'update']),
+              maxEvents: USAGE_JETSTREAM_MAX_RECORDS,
+              durationMs: jetstream_seconds * 1000,
+              maxPayloadBytes: USAGE_JETSTREAM_MAX_BYTES,
+            }).catch(() => null)
+          : undefined,
+      ]);
+      const live = (streamed?.events ?? [])
+        .filter((e) => e.collection === nsid && e.record)
+        .map((e) => ({
+          did: e.did,
+          rkey: e.rkey,
+          record: e.record,
+          ...(e.seenAt ? { time_us: Date.parse(e.seenAt) * 1000 } : {}),
+        }));
+      // Without a live sample, a UFOs outage leaves nothing to measure.
+      if (sampled.failed && live.length === 0) {
+        throw new McpToolError(
+          'upstream_error',
+          'The UFOs record sampler is unavailable',
+          'Retry shortly; with no records every field would read as unused, which is not what happened.',
+        );
+      }
+
+      const summary = published?.status === 'found' ? summarizeLexicon(published.record.value, nsid) : null;
+      const declared = declaredRecordFields(summary);
+      const schema =
+        published === null
+          ? { status: 'unavailable' }
+          : published.status === 'no_authority'
+            ? { status: 'no_authority' }
+            : published.status === 'unpublished'
+              ? { status: 'unpublished', authorityDid: published.did }
+              : {
+                  // found: a record schema to compare with; not_a_record: its
+                  // main definition is a query or the like, or it has none;
+                  // unreadable: the record is not a lexicon document.
+                  status: declared ? 'found' : summary ? 'not_a_record' : 'unreadable',
+                  authorityDid: published.did,
+                  uri: published.record.uri,
+                  cid: published.record.cid,
+                  ...(summary?.main ? { mainType: summary.main.type } : {}),
+                };
+
+      const merged = mergeSamples<SampledRecord & { rkey: string }>(sampled.records, live);
+      const sample = measureFieldUsage(merged);
+      const sampleInfo = {
+        records: sample.records,
+        accounts: sample.accounts,
+        newest: sample.newest === null ? null : new Date(sample.newest).toISOString(),
+        oldest: sample.oldest === null ? null : new Date(sample.oldest).toISOString(),
+        sources: { ufos: merged.length - live.length, jetstream: live.length },
+        ...(sampled.failed ? { ufos: 'unavailable' } : {}),
+        ...(jetstream_seconds
+          ? {
+              jetstream: streamed
+                ? { seconds: jetstream_seconds, records: live.length, reachedMax: streamed.reachedMax }
+                : { seconds: jetstream_seconds, status: 'unavailable' },
+            }
+          : {}),
+      };
+      const links = { explore: siteLink(lexiconPathFor(nsid)) };
+      if (sample.records === 0) {
+        return {
+          nsid,
+          sample: sampleInfo,
+          schema,
+          fields: [],
+          note:
+            (jetstream_seconds ? 'Neither UFOs nor the Jetstream window' : 'UFOs') +
+            ' saw any records of this lexicon recently, so there is nothing to measure: it is quiet, or not a ' +
+            'record type.' +
+            (jetstream_seconds ? '' : ' jetstream_seconds can wait for new ones.'),
+          links,
+        };
+      }
+
+      const rows = fieldReport(sample, declared);
+      return {
+        nsid,
+        sample: sampleInfo,
+        schema,
+        fields: rows.map((r) => ({
+          path: r.path,
+          declared: r.declared,
+          required: r.required,
+          records: r.records,
+          of: r.of,
+          share: share(r.records, r.of),
+          accounts: r.accounts,
+          kinds: r.kinds,
+        })),
+        ...(declared
+          ? {
+              declaredUnused: rows.filter((r) => r.declared && r.records === 0 && r.of > 0).map((r) => r.path),
+              undeclared: rows.filter((r) => r.declared === false).map((r) => r.path),
+              requiredMissing: rows
+                .filter((r) => r.required && r.records < r.of)
+                .map((r) => ({ path: r.path, missingFrom: r.of - r.records })),
+            }
+          : {}),
+        note:
+          'share is records / of. of is the whole sample for a top-level field and, for a nested path ' +
+          '(a.b), the records that set its parent object. Fields inside arrays and typed objects are not ' +
+          'counted. The sample is the newest records UFOs keeps, a few dozen at most and often from few ' +
+          'accounts, plus any written during the Jetstream window, so read shares as indicative and ' +
+          'accounts as how many stand behind each.',
+        links,
       };
     }),
   );

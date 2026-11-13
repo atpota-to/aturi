@@ -5,7 +5,7 @@ import { Check, Globe, Plus } from 'lucide-react';
 /**
  * Static mock of the extension's "Add a custom waypoint" form. Each
  * waypoint is just a URL template like /u/{handle}/posts/{rkey} plus
- * a list of record types it supports — the extension parses the
+ * a list of record types it supports; the extension parses the
  * template both ways (forward fill when generating links, regex
  * matching when detecting AT URIs on the source side).
  *
@@ -15,60 +15,19 @@ import { Check, Globe, Plus } from 'lucide-react';
  */
 export default function CustomWaypointVisual() {
   return (
-    <div
-      style={{
-        background: 'var(--bg-secondary)',
-        border: '1px solid var(--border-medium)',
-        boxShadow: 'var(--shadow-overlay)',
-        maxWidth: '440px',
-        width: '100%',
-        margin: '0 auto',
-        transform: 'rotate(0.3deg)',
-      }}
-    >
-      <div
-        style={{
-          padding: '12px 14px',
-          borderBottom: '1px solid var(--border-subtle)',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px',
-        }}
-      >
-        <Plus size={14} style={{ color: 'var(--text-accent)' }} aria-hidden />
-        <div
-          style={{
-            fontFamily: 'var(--font-serif)',
-            fontSize: '0.9rem',
-            color: 'var(--text-primary)',
-          }}
-        >
+    <div className="fl-mock" data-size="s">
+      <div className="fl-mock-head">
+        <span className="fl-mock-head-title">
+          <Plus size={14} aria-hidden />
           Add a custom waypoint
-        </div>
+        </span>
       </div>
 
-      <div
-        style={{
-          padding: '14px',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '12px',
-        }}
-      >
-        <Field label="Name">
-          <span style={{ fontFamily: 'var(--font-serif)', fontSize: '0.85rem' }}>
-            My Reader
-          </span>
-        </Field>
+      <div className="fl-mock-body fl-mock-form">
+        <Field label="Name">My Reader</Field>
 
         <Field label="Profile URL template">
-          <span
-            style={{
-              fontFamily: 'var(--font-mono)',
-              fontSize: '0.78rem',
-              wordBreak: 'break-all',
-            }}
-          >
+          <span className="fl-mono">
             <Host>example.com</Host>
             <Slash />
             <Literal>u</Literal>
@@ -78,13 +37,7 @@ export default function CustomWaypointVisual() {
         </Field>
 
         <Field label="Post URL template">
-          <span
-            style={{
-              fontFamily: 'var(--font-mono)',
-              fontSize: '0.78rem',
-              wordBreak: 'break-all',
-            }}
-          >
+          <span className="fl-mono">
             <Host>example.com</Host>
             <Slash />
             <Literal>u</Literal>
@@ -97,52 +50,25 @@ export default function CustomWaypointVisual() {
           </span>
         </Field>
 
-        <Field label="Supported record types">
-          <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+        <div className="fl-mock-formfield">
+          <span className="fl-mock-formlabel">Supported record types</span>
+          <div className="fl-chips">
             <Chip selected>Posts</Chip>
             <Chip selected>Profiles</Chip>
             <Chip>Lists</Chip>
             <Chip>Feeds</Chip>
           </div>
-        </Field>
-
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            paddingTop: '4px',
-          }}
-        >
-          <div
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-              fontSize: '0.7rem',
-              color: 'var(--text-tertiary)',
-              fontFamily: 'var(--font-mono)',
-            }}
-          >
-            <Globe size={11} aria-hidden />
-            Two-way matching
-          </div>
-          <div
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-              padding: '5px 10px',
-              background: 'var(--accent-moss)',
-              color: 'var(--text-on-accent)',
-              border: '1px solid var(--accent-forest)',
-              fontSize: '0.75rem',
-              fontFamily: 'var(--font-serif)',
-            }}
-          >
-            <Check size={11} aria-hidden /> Saved
-          </div>
         </div>
+      </div>
+
+      <div className="fl-mock-foot">
+        <span className="fl-meta-faint">
+          <Globe size={12} aria-hidden />
+          Two-way matching
+        </span>
+        <span className="fl-mock-btn">
+          <Check size={12} aria-hidden /> Saved
+        </span>
       </div>
     </div>
   );
@@ -150,63 +76,34 @@ export default function CustomWaypointVisual() {
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-      <div
-        style={{
-          fontFamily: 'var(--font-serif)',
-          fontSize: '0.65rem',
-          textTransform: 'uppercase',
-          letterSpacing: '0.1em',
-          color: 'var(--text-tertiary)',
-        }}
-      >
-        {label}
-      </div>
-      <div
-        style={{
-          padding: '8px 10px',
-          background: 'var(--bg-tertiary)',
-          border: '1px solid var(--border-subtle)',
-          color: 'var(--text-primary)',
-        }}
-      >
-        {children}
-      </div>
+    <div className="fl-mock-formfield">
+      <span className="fl-mock-formlabel">{label}</span>
+      <div className="fl-mock-input">{children}</div>
     </div>
   );
 }
 
 function Chip({ children, selected }: { children: React.ReactNode; selected?: boolean }) {
   return (
-    <span
-      style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        padding: '3px 8px',
-        fontSize: '0.72rem',
-        fontFamily: 'var(--font-serif)',
-        background: selected ? 'var(--bg-secondary)' : 'transparent',
-        color: selected ? 'var(--text-primary)' : 'var(--text-tertiary)',
-        border: `1px solid ${selected ? 'var(--text-accent)' : 'var(--border-subtle)'}`,
-      }}
-    >
+    <span className="fl-chip" data-on={selected ? '' : undefined}>
+      {selected && <Check size={11} aria-hidden />}
       {children}
     </span>
   );
 }
 
 function Host({ children }: { children: React.ReactNode }) {
-  return <span style={{ color: 'var(--text-secondary)' }}>{children}</span>;
+  return <span className="fl-dim">{children}</span>;
 }
 
 function Slash() {
-  return <span style={{ color: 'var(--text-tertiary)' }}>/</span>;
+  return <span className="fl-faint">/</span>;
 }
 
 function Literal({ children }: { children: React.ReactNode }) {
-  return <span style={{ color: 'var(--text-primary)' }}>{children}</span>;
+  return <span>{children}</span>;
 }
 
 function Placeholder({ children }: { children: React.ReactNode }) {
-  return <span style={{ color: 'var(--text-accent)' }}>{children}</span>;
+  return <span className="fl-accent">{children}</span>;
 }

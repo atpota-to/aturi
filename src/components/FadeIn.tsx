@@ -13,13 +13,13 @@ interface FadeInProps {
 export function FadeIn({ children, delay = 0, className, style }: FadeInProps) {
   return (
     <motion.div
-      initial={{ opacity: 0, y: 40, scale: 0.98 }}
-      whileInView={{ opacity: 1, y: 0, scale: 1 }}
-      viewport={{ once: true, margin: '-100px' }}
+      initial={{ opacity: 0, y: 12 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: '-60px' }}
       transition={{
-        duration: 0.7,
+        duration: 0.45,
         delay,
-        ease: [0.34, 1.56, 0.64, 1] as [number, number, number, number], // Organic spring-like easing
+        ease: [0.22, 1, 0.36, 1] as [number, number, number, number], // Gentle ease-out, no overshoot
       }}
       className={className}
       style={style}
@@ -28,4 +28,3 @@ export function FadeIn({ children, delay = 0, className, style }: FadeInProps) {
     </motion.div>
   );
 }
-

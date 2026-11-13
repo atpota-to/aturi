@@ -19,23 +19,29 @@
 		141EEC90CB2C097816C0C49A /* IdentityIntents.swift in Sources */ = {isa = PBXBuildFile; fileRef = DEB3744259831C81C55B2643 /* IdentityIntents.swift */; };
 		15D28C9376159F1E0C6F93B0 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 79C948E0E865B5C816C85F4E /* Assets.xcassets */; };
 		170D805E4B9AD3F478C2D147 /* AturiShare.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 5898A7494BC4D49633AF6992 /* AturiShare.appex */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		1F2800BA52668D8EB9284020 /* Figtree-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 344036048BBE06D040B148FC /* Figtree-Regular.ttf */; };
+		1FFBDCA3949E17A032410AB7 /* Figtree-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 284B11B0412CAB139542058A /* Figtree-Bold.ttf */; };
+		26980FE9440389354F316304 /* IBMPlexMono-OFL.txt in Resources */ = {isa = PBXBuildFile; fileRef = D7ED82C8B00D2816BD1B32A5 /* IBMPlexMono-OFL.txt */; };
 		26E984EDFEE367B8EF9F8462 /* SignInSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = A6CF8DB5957076FF078DD261 /* SignInSheet.swift */; };
 		2704B3B641F6B66F491D4E6F /* GeneralSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A6D6E244471567A3DDBEAC4 /* GeneralSettingsView.swift */; };
 		30600C949B670EB0D2A1A2A4 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23062C65339819B3CCB71521 /* SettingsView.swift */; };
 		36E98B61895F09D20A5000C3 /* WaypointGroupsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 724200986D85BFF3F6259125 /* WaypointGroupsView.swift */; };
 		3A5EDC541F87237845831654 /* CardBackground.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2769EFEEA8CFFACA8C7AA3B1 /* CardBackground.swift */; };
+		3AAC7F5F2D8BAE9F14AFFC8F /* Figtree-Medium.ttf in Resources */ = {isa = PBXBuildFile; fileRef = ADD26DE5E582E9D419BBFFA2 /* Figtree-Medium.ttf */; };
 		3B37E32904FC412907CFD0B7 /* ProfileCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53E5D3FF0D9FF3EF07A512E2 /* ProfileCardView.swift */; };
 		3E91E9DFC154EAF4E6727B13 /* DeepLinks.swift in Sources */ = {isa = PBXBuildFile; fileRef = 196877AB495B7815CF2F7F41 /* DeepLinks.swift */; };
 		412D6BE9983BA1F3730D29D4 /* Fonts.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D271F19EF1B99E3C47A9326 /* Fonts.swift */; };
 		475D7774353A52C58AAD4D28 /* JetstreamView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0CFD13987444493EA6F0F33 /* JetstreamView.swift */; };
 		47A6F4FC2E4E44424073A2B8 /* AuditSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0DC13C7BE86796C43C1A76A7 /* AuditSection.swift */; };
 		4934B4189D7D99D08D5BE720 /* LexiconSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6AD938F45D509EFE475A8B80 /* LexiconSupport.swift */; };
+		4B7809AE92820E01E4CA1BC5 /* Figtree-OFL.txt in Resources */ = {isa = PBXBuildFile; fileRef = 6FB1EB847054CA89877536EB /* Figtree-OFL.txt */; };
 		4C4C41FE80ED6A126D847A80 /* AturiApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21C9F187C2114E68E66E2451 /* AturiApp.swift */; };
 		4D6FB3AE873ABC61E445F7B4 /* SharePickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A4AD09A61A026560CDBBD10 /* SharePickerView.swift */; };
 		5703F5181ACC78888B4A1DB9 /* IntentSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5D1D3BC944E09A8B818134B5 /* IntentSupport.swift */; };
 		5889BE767E751575ED39744F /* PostCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED4C47501FBFA5693EA16A3D /* PostCardView.swift */; };
 		5B0CE0B36671E29A4A6CE649 /* AturiCore in Frameworks */ = {isa = PBXBuildFile; productRef = E0F95780CB0876F8E53C9378 /* AturiCore */; };
 		5D2821ECC22C4FF66F688CAE /* RedirectsSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED9531E181C76E1DE6CCA03B /* RedirectsSettingsView.swift */; };
+		5D78129881C8749C912E2961 /* Figtree-ExtraBold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 021F6F630F57EC4110F09747 /* Figtree-ExtraBold.ttf */; };
 		5E2CCF7C75D79322E187E0F3 /* ExploreSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE6AD6B041881E4987ED8B8C /* ExploreSupport.swift */; };
 		61833723C8983261D68C5BF2 /* GenericRecordCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EBB84E8013DF1452C56554B4 /* GenericRecordCardView.swift */; };
 		657C376E1E3B73C4E84F25A6 /* AboutView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB1524E77D9BE3811961B690 /* AboutView.swift */; };
@@ -60,6 +66,7 @@
 		A4ECFAD786C2A1A179E511E1 /* ImageLightbox.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4FBFFC79B66E40F635C91D2D /* ImageLightbox.swift */; };
 		A65F71E38F20D8B593F4F9F2 /* JSONTreeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7F38501DEF14B51165C50D5 /* JSONTreeView.swift */; };
 		A9568E1E2201028E4D67AA8F /* IntentEntities.swift in Sources */ = {isa = PBXBuildFile; fileRef = F8D4FD6D3BE1E8FE7065393C /* IntentEntities.swift */; };
+		AEDA2D44FCBC37D16EB56817 /* IBMPlexMono-Medium.ttf in Resources */ = {isa = PBXBuildFile; fileRef = AD5BC4CC1EFC6B055E216873 /* IBMPlexMono-Medium.ttf */; };
 		B1C5E76CA88BBB375955756A /* IdentitySection.swift in Sources */ = {isa = PBXBuildFile; fileRef = C5D882D27D0EFD239BB4CE9D /* IdentitySection.swift */; };
 		B1F7C36E4D51CD5A532101E2 /* AvatarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F33ED664AF4750FC168F11AE /* AvatarView.swift */; };
 		B789B2C6C518027C369AE8E3 /* RelationshipStrip.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1A8EA39AF107A3A4D22D133 /* RelationshipStrip.swift */; };
@@ -79,9 +86,11 @@
 		DEE134A03FD6E6427FC86A10 /* BacklinksSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7610D3E709274FA33EF53DE8 /* BacklinksSection.swift */; };
 		E1FFB82B8D7B1ED276CD87E7 /* CustomWaypointsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FACE508A994C60A93401625F /* CustomWaypointsView.swift */; };
 		E3389C388BA5D721F2B8A0AC /* PreviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1799590180D234EA09ED9096 /* PreviewView.swift */; };
+		EBC26C2A0D12F58251F0B00A /* IBMPlexMono-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 2D7C1DDCA69714C537F80524 /* IBMPlexMono-Regular.ttf */; };
 		ECB8F16E5C4A451D771428C9 /* LoadableView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E3138489CE3C9849E71972B7 /* LoadableView.swift */; };
 		F6BEC86311FD5AE139AFEFCF /* MarginRecordCards.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1F892239C5B4B892B4EEA62 /* MarginRecordCards.swift */; };
 		FB28C3F7619694404D636F92 /* LinkNavigation.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2E7E2CB43378851FF76C145 /* LinkNavigation.swift */; };
+		FE149D42F29CF1B765FFA0E6 /* Figtree-SemiBold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 492854F2852014E83F0552F1 /* Figtree-SemiBold.ttf */; };
 		FE7FAE66768C0ABD37022DDD /* RepoView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C08D57249FFC6AC52988233E /* RepoView.swift */; };
 /* End PBXBuildFile section */
 
@@ -112,6 +121,7 @@
 /* Begin PBXFileReference section */
 		009349C67D798548E920F84B /* ExploreLandingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExploreLandingView.swift; sourceTree = "<group>"; };
 		01452C22764A59A2533DA2A9 /* ShareViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareViewController.swift; sourceTree = "<group>"; };
+		021F6F630F57EC4110F09747 /* Figtree-ExtraBold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = Figtree-ExtraBold.ttf; sourceTree = "<group>"; };
 		0DC13C7BE86796C43C1A76A7 /* AuditSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuditSection.swift; sourceTree = "<group>"; };
 		0E7217B596BD341FFA1D68C1 /* AccountSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountSettingsView.swift; sourceTree = "<group>"; };
 		16C1FB3F1038A8C813D221D5 /* LinkIntents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LinkIntents.swift; sourceTree = "<group>"; };
@@ -123,11 +133,15 @@
 		272F11132AE8B56A4794CB3D /* KeychainStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainStore.swift; sourceTree = "<group>"; };
 		2764A18FCA8A84BF01EA7AD6 /* AturiCore */ = {isa = PBXFileReference; lastKnownFileType = folder; name = AturiCore; path = Packages/AturiCore; sourceTree = SOURCE_ROOT; };
 		2769EFEEA8CFFACA8C7AA3B1 /* CardBackground.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardBackground.swift; sourceTree = "<group>"; };
+		284B11B0412CAB139542058A /* Figtree-Bold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = Figtree-Bold.ttf; sourceTree = "<group>"; };
 		2A9C29EC7F0DF61230F92521 /* EmptyState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmptyState.swift; sourceTree = "<group>"; };
 		2C0ED7AD20CD69828878ECF4 /* SectionHeader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SectionHeader.swift; sourceTree = "<group>"; };
 		2C6F1A502512FFF0C3C7275B /* SkeletonRows.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SkeletonRows.swift; sourceTree = "<group>"; };
+		2D7C1DDCA69714C537F80524 /* IBMPlexMono-Regular.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = IBMPlexMono-Regular.ttf; sourceTree = "<group>"; };
 		34361542B58D29B5DBB606BD /* CopyRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CopyRow.swift; sourceTree = "<group>"; };
+		344036048BBE06D040B148FC /* Figtree-Regular.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = Figtree-Regular.ttf; sourceTree = "<group>"; };
 		3A6D6E244471567A3DDBEAC4 /* GeneralSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeneralSettingsView.swift; sourceTree = "<group>"; };
+		492854F2852014E83F0552F1 /* Figtree-SemiBold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = Figtree-SemiBold.ttf; sourceTree = "<group>"; };
 		4FBFFC79B66E40F635C91D2D /* ImageLightbox.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageLightbox.swift; sourceTree = "<group>"; };
 		53E5D3FF0D9FF3EF07A512E2 /* ProfileCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileCardView.swift; sourceTree = "<group>"; };
 		55250DA1AA8AC6B682144D98 /* SessionBadge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionBadge.swift; sourceTree = "<group>"; };
@@ -138,6 +152,7 @@
 		650957C0FA8658DF7313314F /* PDSView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PDSView.swift; sourceTree = "<group>"; };
 		68228084EE66B3D947306CB0 /* PageActivity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PageActivity.swift; sourceTree = "<group>"; };
 		6AD938F45D509EFE475A8B80 /* LexiconSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LexiconSupport.swift; sourceTree = "<group>"; };
+		6FB1EB847054CA89877536EB /* Figtree-OFL.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = Figtree-OFL.txt; sourceTree = "<group>"; };
 		724200986D85BFF3F6259125 /* WaypointGroupsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WaypointGroupsView.swift; sourceTree = "<group>"; };
 		72E99949A1CD5DB4C1C6B776 /* NavigationIntents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NavigationIntents.swift; sourceTree = "<group>"; };
 		7610D3E709274FA33EF53DE8 /* BacklinksSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BacklinksSection.swift; sourceTree = "<group>"; };
@@ -159,6 +174,8 @@
 		A1F892239C5B4B892B4EEA62 /* MarginRecordCards.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarginRecordCards.swift; sourceTree = "<group>"; };
 		A4C94EE213E2337262D59996 /* Aturi.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Aturi.entitlements; sourceTree = "<group>"; };
 		A6CF8DB5957076FF078DD261 /* SignInSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignInSheet.swift; sourceTree = "<group>"; };
+		AD5BC4CC1EFC6B055E216873 /* IBMPlexMono-Medium.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = IBMPlexMono-Medium.ttf; sourceTree = "<group>"; };
+		ADD26DE5E582E9D419BBFFA2 /* Figtree-Medium.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = Figtree-Medium.ttf; sourceTree = "<group>"; };
 		AEFC548D34A7213F2AF9573C /* CustomWaypointForm.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomWaypointForm.swift; sourceTree = "<group>"; };
 		C08D57249FFC6AC52988233E /* RepoView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RepoView.swift; sourceTree = "<group>"; };
 		C1A8EA39AF107A3A4D22D133 /* RelationshipStrip.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RelationshipStrip.swift; sourceTree = "<group>"; };
@@ -171,6 +188,7 @@
 		D0CFD13987444493EA6F0F33 /* JetstreamView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JetstreamView.swift; sourceTree = "<group>"; };
 		D1297A67EBF9ED3292FE38C1 /* WaypointPickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WaypointPickerView.swift; sourceTree = "<group>"; };
 		D398F3D75CA9AE6062D814BE /* RecentLinksStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecentLinksStore.swift; sourceTree = "<group>"; };
+		D7ED82C8B00D2816BD1B32A5 /* IBMPlexMono-OFL.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = IBMPlexMono-OFL.txt; sourceTree = "<group>"; };
 		D7F38501DEF14B51165C50D5 /* JSONTreeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JSONTreeView.swift; sourceTree = "<group>"; };
 		D88B3BFBC63EEE211217C519 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		DB2D77717EF13BF7D8A33994 /* IdentifierText.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IdentifierText.swift; sourceTree = "<group>"; };
@@ -241,6 +259,22 @@
 				885A33F33D8D1E76177DA1CC /* WaypointMark.swift */,
 			);
 			path = Components;
+			sourceTree = "<group>";
+		};
+		252331C2D0739C37664FC754 /* Fonts */ = {
+			isa = PBXGroup;
+			children = (
+				284B11B0412CAB139542058A /* Figtree-Bold.ttf */,
+				021F6F630F57EC4110F09747 /* Figtree-ExtraBold.ttf */,
+				ADD26DE5E582E9D419BBFFA2 /* Figtree-Medium.ttf */,
+				6FB1EB847054CA89877536EB /* Figtree-OFL.txt */,
+				344036048BBE06D040B148FC /* Figtree-Regular.ttf */,
+				492854F2852014E83F0552F1 /* Figtree-SemiBold.ttf */,
+				AD5BC4CC1EFC6B055E216873 /* IBMPlexMono-Medium.ttf */,
+				D7ED82C8B00D2816BD1B32A5 /* IBMPlexMono-OFL.txt */,
+				2D7C1DDCA69714C537F80524 /* IBMPlexMono-Regular.ttf */,
+			);
+			path = Fonts;
 			sourceTree = "<group>";
 		};
 		2865A1CBA3EDA9FC718E70CD /* Features */ = {
@@ -404,6 +438,7 @@
 		E9E5FBC15E1FB90C17E58048 /* Resources */ = {
 			isa = PBXGroup;
 			children = (
+				252331C2D0739C37664FC754 /* Fonts */,
 				79C948E0E865B5C816C85F4E /* Assets.xcassets */,
 				D88B3BFBC63EEE211217C519 /* PrivacyInfo.xcprivacy */,
 			);
@@ -503,6 +538,15 @@
 			files = (
 				15D28C9376159F1E0C6F93B0 /* Assets.xcassets in Resources */,
 				118FB4F8ACC63C36B0CC9F69 /* PrivacyInfo.xcprivacy in Resources */,
+				1FFBDCA3949E17A032410AB7 /* Figtree-Bold.ttf in Resources */,
+				5D78129881C8749C912E2961 /* Figtree-ExtraBold.ttf in Resources */,
+				3AAC7F5F2D8BAE9F14AFFC8F /* Figtree-Medium.ttf in Resources */,
+				4B7809AE92820E01E4CA1BC5 /* Figtree-OFL.txt in Resources */,
+				1F2800BA52668D8EB9284020 /* Figtree-Regular.ttf in Resources */,
+				FE149D42F29CF1B765FFA0E6 /* Figtree-SemiBold.ttf in Resources */,
+				AEDA2D44FCBC37D16EB56817 /* IBMPlexMono-Medium.ttf in Resources */,
+				26980FE9440389354F316304 /* IBMPlexMono-OFL.txt in Resources */,
+				EBC26C2A0D12F58251F0B00A /* IBMPlexMono-Regular.ttf in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

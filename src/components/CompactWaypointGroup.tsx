@@ -19,6 +19,11 @@ type CompactWaypointGroupProps = {
   onCopy: (url: string, waypointId: string, e: React.MouseEvent) => void;
   /** Marks the recommended block so its label reads as the accent. */
   highlighted?: boolean;
+  /**
+   * The group's place in the picker, so its rows join the arrival cascade
+   * after the groups above them (link.css, "Arrival").
+   */
+  order?: number;
 };
 
 /**
@@ -56,6 +61,7 @@ export default function CompactWaypointGroup({
   copiedId,
   onCopy,
   highlighted = false,
+  order = 0,
 }: CompactWaypointGroupProps) {
   const entries = waypoints
     .map((waypoint) => ({
@@ -72,18 +78,19 @@ export default function CompactWaypointGroup({
       : waypoint.description;
 
   return (
-    <div className="waypoint-group">
-      <div className={`waypoint-group-label${highlighted ? ' is-highlighted' : ''}`}>
+    <div className="waypoint-group" style={{ '--g': order } as React.CSSProperties}>
+      <h2 className={`waypoint-group-label${highlighted ? ' is-highlighted' : ''}`}>
         <span>{label}</span>
         <i aria-hidden="true" />
-        <em>{entries.length}</em>
-      </div>
+        <em aria-label={`${entries.length} apps`}>{entries.length}</em>
+      </h2>
 
       {layout === 'grid' ? (
         <div className="waypoint-tiles">
-          {entries.map(({ waypoint, url }) => (
+          {entries.map(({ waypoint, url }, i) => (
             <a
               key={waypoint.id}
+              style={{ '--i': i } as React.CSSProperties}
               className="waypoint-tile"
               href={url}
               target="_blank"
@@ -97,10 +104,14 @@ export default function CompactWaypointGroup({
         </div>
       ) : (
         <div className="waypoint-rows">
-          {entries.map(({ waypoint, url }) => {
+          {entries.map(({ waypoint, url }, i) => {
             const isCopied = copiedId === waypoint.id;
             return (
-              <div key={waypoint.id} className="waypoint-row">
+              <div
+                key={waypoint.id}
+                className="waypoint-row"
+                style={{ '--i': i } as React.CSSProperties}
+              >
                 <a
                   className="waypoint-row-link"
                   href={url}

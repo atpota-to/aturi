@@ -97,9 +97,10 @@ function RecommendationSection({
           gap: '0.35rem',
           padding: '0.45rem 0.6rem 0.3rem',
           color: 'var(--text-tertiary)',
-          fontFamily: 'var(--font-mono)',
-          fontSize: '0.62rem',
-          letterSpacing: '0.08em',
+          fontFamily: 'var(--font-sans)',
+          fontSize: '11px',
+          fontWeight: 600,
+          letterSpacing: '0.06em',
           textTransform: 'uppercase',
         }}
       >
@@ -125,7 +126,7 @@ function RecommendationSection({
               transition: 'background 0.12s ease',
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.background = 'var(--bg-elevated)';
+              e.currentTarget.style.background = 'var(--surface-subtle)';
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.background = 'transparent';
@@ -141,6 +142,7 @@ function RecommendationSection({
                 style={{
                   width: 24,
                   height: 24,
+                  borderRadius: '50%',
                   objectFit: 'cover',
                   background: 'var(--bg-secondary)',
                   flexShrink: 0,
@@ -154,7 +156,8 @@ function RecommendationSection({
                   justifyContent: 'center',
                   width: 24,
                   height: 24,
-                  background: 'var(--bg-secondary)',
+                  borderRadius: '50%',
+                  background: 'var(--bg-tertiary)',
                   color: 'var(--text-tertiary)',
                   flexShrink: 0,
                 }}
@@ -170,8 +173,9 @@ function RecommendationSection({
               <div
                 style={{
                   fontSize: '0.8125rem',
+                  fontWeight: 600,
                   color: 'var(--text-primary)',
-                  fontFamily: 'var(--font-serif)',
+                  fontFamily: 'var(--font-sans)',
                   overflow: 'hidden',
                   textOverflow: 'ellipsis',
                   whiteSpace: 'nowrap',

@@ -1,13 +1,34 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { usePathname, useRouter } from 'next/navigation';
-import { Check, ChevronUp, FilePenLine, Link2, Search, Trash2, X } from 'lucide-react';
-import { resolveSearchPathAsync } from '@/utils/atproto/searchRouting';
+import { usePathname } from 'next/navigation';
+import {
+  Check,
+  ChevronUp,
+  FilePenLine,
+  Link2,
+  ListTree,
+  Pause,
+  Play,
+  SlidersHorizontal,
+  Square,
+  Trash2,
+  X,
+} from 'lucide-react';
 import { getReduceMotionSnapshot } from '@/lib/a11y';
-import { useChromeBar, type ChromeBarAction } from './ChromeBarContext';
+import SiteMenuButton, { useSiteMenuOpen } from '@/components/SiteMenuButton';
+import SiteNavButtons from '@/components/SiteNavButtons';
+import { useCondenseOnScroll } from '@/components/useCondenseOnScroll';
+import {
+  useChromeBar,
+  type ChromeBarAction,
+  type ChromeBarPanel,
+  type ChromeBarTransport,
+} from './ChromeBarContext';
 import { useEditBar, type EditBarSnapshot } from './EditBarContext';
-import { useIsNarrow } from './useIsNarrow';
+import { FieldForm, JumpField } from './ChromeField';
+import { usePhoneSearchOwner } from './PhoneSearchSheet';
+import { useIsNarrow, useMediaQuery } from './useIsNarrow';
 import { CHROME_OCCLUSION_PX, NAV_OCCLUSION_PX } from './useOffscreen';
 import DeleteProgressBar from './DeleteProgressBar';
 
@@ -51,8 +72,8 @@ function isSpacePath(pathname: string): boolean {
  * AnimatePresence keeps the outgoing route alive through the crossfade, so
  * during a navigation there are two — and React runs the departing one's
  * cleanup *after* the arriving one's effect. Counting them is what keeps
- * that cleanup from stripping the body's height reservation off a page that
- * still has a bar, which would drop the footer under it until the next
+ * that cleanup from stripping the footer's height reservation off a page
+ * that still has a bar, which would drop the footer under it until the next
  * reload.
  */
 let mountedBars = 0;
@@ -73,20 +94,35 @@ let mountedBars = 0;
  *     delete, and the confirm / in-flight steps that follow). These appear
  *     only while the in-page originals are off screen, so the same button is
  *     never on screen twice.
- *   - Right: copy the link to the page you're on.
+ *   - Right: copy the link to the page you're on. Not on a phone, where Back
+ *     and Home take its room and the browser's share sheet does its job.
  *
  * A phone can't fit a toolbar and a search field on one line, so there the
  * selection controls expand upward out of the bar as a panel — the mirror of
  * the nav's menu expanding downward out of the header.
  *
- * The bar reserves its own height as padding on <body> (see
- * `.has-explore-chrome` in globals.css), so it never covers the end of a
- * list or the site footer. The panel is deliberately left out of that
+ * On a phone the header's bar steps aside entirely and this is the only
+ * toolbar on the screen, so it also carries Back, Home and the site menu
+ * button at its right end (the same toolbar <Header> draws on every other
+ * page). Scrolling down
+ * a page slims it to just the field; scrolling back up brings the rest back
+ * (useCondenseOnScroll).
+ *
+ * The bar reserves its own height as bottom padding on the site footer
+ * (`.fn-footer`, under `body.has-explore-chrome` in globals.css), so it
+ * never covers the end of a list or the footer's own links. The panel is deliberately left out of that
  * measurement: like the nav's, it floats over the page rather than pushing
  * it around.
+ *
+ * A page that plays a live stream (the stream monitor) can publish a
+ * transport and a panel. On a phone the bar then becomes that page's
+ * toolbar: Pause and Stop where Back and Home were, the page's filter, a
+ * button for its filter sheet, and the menu, which takes Back and Home in
+ * (Header.tsx, `.fn-menu-back`). `phoneOnly` is for such a page, whose own
+ * toolbar holds all of it above phone width: there the bar isn't drawn.
  */
-export default function ExploreChromeBar() {
-  const { field, action } = useChromeBar();
+export default function ExploreChromeBar({ phoneOnly = false }: { phoneOnly?: boolean } = {}) {
+  const { field, action, transport: publishedTransport, panel: publishedPanel } = useChromeBar();
   const { bar } = useEditBar();
   const narrow = useIsNarrow();
   const pathname = usePathname();
@@ -109,6 +145,10 @@ export default function ExploreChromeBar() {
     mountedBars += 1;
     document.body.classList.add('has-explore-chrome');
     const apply = () => {
+      // The slim scrolling state is a lull, not a new size: reserving it
+      // would shrink the page under a reader mid-scroll, and the bar is
+      // always full again by the time they reach the end of the page.
+      if (node.dataset.condensed !== undefined) return;
       root.style.setProperty('--explore-chrome-h', `${node.offsetHeight}px`);
     };
     apply();
@@ -168,6 +208,80 @@ export default function ExploreChromeBar() {
   // isn't a thing anyone does.
   const takeover = !narrow && midStep;
 
+  // A route field the page also shows in place is the bar's only on a phone,
+  // where the in-page copy steps aside (explorer.css, `max-width: 640px`).
+  // Wider, the bar keeps its jump search so the filter isn't shown twice.
+  const phone = useMediaQuery('(max-width: 640px)');
+  const routeField = field && (!field.inPage || phone) ? field : null;
+  // Phone only, like an in-page field: wider, the page draws its own.
+  const transport = phone ? publishedTransport : null;
+  const panel = phone ? publishedPanel : null;
+
+  // With nothing of the route's own to carry, the bar is a jump search and a
+  // copy-link button. Wide enough for the header's own "go to" field, that is
+  // a second copy of it floating over the page (the header covers the
+  // search; the page carries its own share control), so CSS drops it at that
+  // width (explorer.css, `[data-redundant]`). Done in CSS rather than here
+  // because the media query has no answer during SSR, and gating on it in JS
+  // would paint the bar on every desktop load and then pull it away.
+  const redundant = !takeover && !routeField && !bar && !action;
+
+  // Slims while the reader scrolls down a page on a phone, unless the bar is
+  // in use: a field being typed in, the search sheet, the site menu or the
+  // selection panel open, or selection mode on at all, since its controls are
+  // what the bar is holding in reach.
+  const toolbarPhone = useMediaQuery('(max-width: 639px)');
+  const menuOpen = useSiteMenuOpen();
+  const searching = usePhoneSearchOwner() !== null;
+  const [focused, setFocused] = useState(false);
+  // A page with a transport scrolls inside itself, not the window, and its
+  // controls are the reason the bar is there.
+  const condensed = useCondenseOnScroll(
+    toolbarPhone && !hidden && !menuOpen && !searching && !focused && !bar && !panelOpen && !transport,
+  );
+
+  // On a two-column explorer page, centre the card on the content column
+  // rather than the viewport, so it doesn't run over the sidebar or the
+  // record's aside. Measured, since the columns are grid tracks whose
+  // position depends on the page; re-measured whenever the page's DOM or
+  // the viewport changes (the column mounts after the data loads).
+  useEffect(() => {
+    const node = barRef.current;
+    if (!node || hidden) return undefined;
+    let frame = 0;
+    const measure = () => {
+      frame = 0;
+      const column = document.querySelector<HTMLElement>('.fx-main, .fn-rec-main');
+      const rect = column?.getBoundingClientRect();
+      // Only when the column is narrower than the page, i.e. there's a
+      // sidebar beside it; a stacked layout keeps the default centring.
+      if (!rect || rect.width === 0 || rect.width > window.innerWidth * 0.8) {
+        delete node.dataset.column;
+        node.style.removeProperty('--explore-chrome-cx');
+        node.style.removeProperty('--explore-chrome-cw');
+        return;
+      }
+      node.dataset.column = '';
+      node.style.setProperty('--explore-chrome-cx', `${rect.left + rect.width / 2}px`);
+      node.style.setProperty('--explore-chrome-cw', `${rect.width}px`);
+    };
+    const schedule = () => {
+      if (!frame) frame = requestAnimationFrame(measure);
+    };
+    measure();
+    const mutations = new MutationObserver(schedule);
+    mutations.observe(document.body, { childList: true, subtree: true });
+    window.addEventListener('resize', schedule);
+    return () => {
+      if (frame) cancelAnimationFrame(frame);
+      mutations.disconnect();
+      window.removeEventListener('resize', schedule);
+      delete node.dataset.column;
+      node.style.removeProperty('--explore-chrome-cx');
+      node.style.removeProperty('--explore-chrome-cw');
+    };
+  }, [hidden, pathname]);
+
   // Below every hook above, which all have to run either way.
   if (hidden) return null;
 
@@ -176,7 +290,17 @@ export default function ExploreChromeBar() {
     // relative anchor for the panel, and the card itself — so the two ends of
     // the screen are the same object, one stuck to the top and one to the
     // bottom.
-    <div ref={barRef} className="explore-chrome-bar">
+    <div
+      ref={barRef}
+      className="explore-chrome-bar"
+      data-redundant={redundant || undefined}
+      data-condensed={condensed || undefined}
+      data-phone-only={phoneOnly || undefined}
+      onFocus={() => setFocused(true)}
+      onBlur={(e) => {
+        if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setFocused(false);
+      }}
+    >
       <div className="container-narrow explore-chrome-shell">
         <div className="explore-chrome-anchor">
           {inPanel && bar && <ChromePanel open={panelOpen} bar={bar} />}
@@ -186,7 +310,9 @@ export default function ExploreChromeBar() {
                 <DeleteSteps bar={bar} />
               ) : (
                 <>
-                  {field ? <RouteField key="route" /> : <JumpField key="jump" />}
+                  {transport && <TransportButtons transport={transport} />}
+                  {routeField ? <RouteField key="route" /> : <JumpField key="jump" />}
+                  {panel && <PagePanelButton panel={panel} />}
                   {bar && !inPanel && <SelectionControls bar={bar} />}
                   {inPanel && bar && (
                     <PanelToggle
@@ -196,7 +322,12 @@ export default function ExploreChromeBar() {
                     />
                   )}
                   {action && <ActionButton action={action} />}
-                  <CopyLinkButton />
+                  {!transport && <CopyLinkButton />}
+                  {/* Phone only (chrome.css); wider, the header has its own.
+                      A transport takes Back and Home's place, and they
+                      move into the menu. */}
+                  {!transport && <SiteNavButtons />}
+                  <SiteMenuButton />
                 </>
               )}
             </div>
@@ -204,6 +335,81 @@ export default function ExploreChromeBar() {
         </div>
       </div>
     </div>
+  );
+}
+
+/**
+ * Pause (or Play) and Stop, joined into one control at the start of the bar,
+ * where Back and Home sit on other pages. The first button is the one a
+ * thumb wants most and shows what it will do: Pause while live, Play while
+ * paused or stopped. Stop shows as pressed while stopped, and pressing it
+ * again plays.
+ */
+function TransportButtons({ transport }: { transport: ChromeBarTransport }) {
+  const { state, connecting } = transport;
+  const live = state === 'live';
+  const label = live ? 'Pause' : state === 'paused' ? 'Resume' : 'Play';
+  const stopped = state === 'stopped';
+  return (
+    <div className="explore-chrome-transport" role="group" aria-label="Stream">
+      <button
+        type="button"
+        onClick={live ? transport.onPause : transport.onPlay}
+        aria-label={label}
+        title={label}
+        className="explore-chrome-button explore-chrome-play"
+        data-state={state}
+        data-connecting={connecting || undefined}
+      >
+        {live ? (
+          <Pause size={16} fill="currentColor" aria-hidden />
+        ) : (
+          <Play size={16} fill="currentColor" aria-hidden />
+        )}
+      </button>
+      <button
+        type="button"
+        onClick={stopped ? transport.onPlay : transport.onStop}
+        aria-pressed={stopped}
+        aria-label="Stop"
+        title={stopped ? 'Stopped: press to play' : 'Stop'}
+        className="explore-chrome-button explore-chrome-stop"
+      >
+        <Square size={13} fill="currentColor" aria-hidden />
+      </button>
+    </div>
+  );
+}
+
+/**
+ * The button for the page's own panel (the stream monitor's filters, the
+ * explorer workbench's collections), with a count of what's set in it, so a
+ * narrowed view reads as narrowed while the panel is shut.
+ */
+function PagePanelButton({ panel }: { panel: ChromeBarPanel }) {
+  const name = panel.count > 0 ? `${panel.label}, ${panel.count} set` : panel.label;
+  return (
+    <button
+      type="button"
+      onClick={panel.onToggle}
+      aria-expanded={panel.open}
+      aria-controls={panel.controls}
+      aria-label={name}
+      title={panel.label}
+      className="explore-chrome-button explore-chrome-page-panel"
+      data-open={panel.open || undefined}
+    >
+      {panel.icon === 'tree' ? (
+        <ListTree size={17} aria-hidden />
+      ) : (
+        <SlidersHorizontal size={17} aria-hidden />
+      )}
+      {panel.count > 0 && (
+        <span className="explore-chrome-badge" aria-hidden>
+          {panel.count}
+        </span>
+      )}
+    </button>
   );
 }
 
@@ -395,15 +601,18 @@ const REVEAL_TOLERANCE_PX = 4;
 const REVEAL_SLACK_PX = 160;
 
 /**
- * Where the sticky nav ends, measured rather than assumed: it grows by a row
- * when the condensed breadcrumb drops into it, and a list scrolled to the
- * constant alone would have its first line clipped. Falls back to the
- * constant on a route without that nav.
+ * Where the sticky nav ends, measured rather than assumed: the condensed
+ * breadcrumb hangs a row below it once it drops in, and a list scrolled to
+ * the constant alone would have its first line clipped. The strip overlays
+ * the page outside the header's box, so it is measured on its own. Falls
+ * back to the constant on a route without that nav.
  */
 function navBottom(): number {
-  const nav = document.querySelector('.compact-header');
-  const bottom = nav ? nav.getBoundingClientRect().bottom : 0;
-  return Math.max(NAV_OCCLUSION_PX, Math.round(bottom));
+  const bottoms = ['.compact-header', '.fn-sticky-crumbs-wrap'].map((selector) => {
+    const node = document.querySelector(selector);
+    return node ? node.getBoundingClientRect().bottom : 0;
+  });
+  return Math.max(NAV_OCCLUSION_PX, Math.round(Math.max(...bottoms)));
 }
 
 /**
@@ -528,125 +737,6 @@ function RouteField() {
         inputRef.current?.focus();
       }}
     />
-  );
-}
-
-/**
- * Fallback for routes with no list to narrow — a single record, a lexicon,
- * the explorer landing. Same routing as the header search: handles, DIDs,
- * at:// URIs, and client URLs all resolve to their explorer page.
- */
-function JumpField() {
-  const router = useRouter();
-  const pathname = usePathname();
-  const [value, setValue] = useState('');
-  const inputRef = useRef<HTMLInputElement>(null);
-  // Guards a second Enter while an unrecognized URL is being resolved
-  // through /api/at-tags.
-  const resolvingRef = useRef(false);
-
-  // A landed navigation is the end of that query — don't leave it sitting in
-  // the bar on the page it took you to.
-  useEffect(() => {
-    setValue('');
-  }, [pathname]);
-
-  async function submit() {
-    if (resolvingRef.current) return;
-    resolvingRef.current = true;
-    try {
-      const path = await resolveSearchPathAsync(value);
-      if (path) router.push(path);
-    } finally {
-      resolvingRef.current = false;
-    }
-  }
-
-  return (
-    <FieldForm
-      inputRef={inputRef}
-      label="Go to a handle, DID, or at:// URI"
-      placeholder="Go to handle, DID, at:// URI…"
-      value={value}
-      onChange={setValue}
-      onSubmit={submit}
-      onClear={() => {
-        setValue('');
-        inputRef.current?.focus();
-      }}
-    />
-  );
-}
-
-function FieldForm({
-  inputRef,
-  label,
-  placeholder,
-  value,
-  status,
-  onChange,
-  onSubmit,
-  onClear,
-}: {
-  inputRef: React.RefObject<HTMLInputElement | null>;
-  label: string;
-  placeholder: string;
-  value: string;
-  status?: string | null;
-  onChange: (value: string) => void;
-  onSubmit: () => void;
-  onClear: () => void;
-}) {
-  return (
-    <form
-      role="search"
-      aria-label={label}
-      className="explore-chrome-form"
-      onSubmit={(e) => {
-        e.preventDefault();
-        onSubmit();
-      }}
-    >
-      <Search size={13} aria-hidden className="explore-chrome-search-icon" />
-      <input
-        ref={inputRef}
-        type="text"
-        autoComplete="off"
-        spellCheck={false}
-        enterKeyHint="search"
-        aria-label={label}
-        placeholder={placeholder}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        onKeyDown={(e) => {
-          // Escape clears rather than closes — the bar is permanent chrome,
-          // so there's nothing to dismiss.
-          if (e.key === 'Escape' && value) {
-            e.preventDefault();
-            onClear();
-          }
-        }}
-        className="explore-chrome-input"
-      />
-      {status && (
-        // Read as one unit so a mid-type update doesn't get announced
-        // digit by digit.
-        <span aria-live="polite" aria-atomic className="explore-chrome-status">
-          {status}
-        </span>
-      )}
-      {value && (
-        <button
-          type="button"
-          onClick={onClear}
-          aria-label="Clear"
-          title="Clear"
-          className="explore-chrome-clear"
-        >
-          <X size={12} aria-hidden />
-        </button>
-      )}
-    </form>
   );
 }
 

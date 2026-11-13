@@ -78,7 +78,7 @@ private struct JSONNodeView: View {
             } label: {
                 HStack(alignment: .firstTextBaseline, spacing: 4) {
                     Image(systemName: expanded ? "chevron.down" : "chevron.right")
-                        .font(.caption2)
+                        .font(AturiFont.caption2)
                         .frame(width: 12)
                         .foregroundStyle(theme.textTertiary)
                     if let key {
@@ -143,7 +143,7 @@ private struct JSONLeafRow: View {
                 Button(showsFull ? "Show less" : "Show all") {
                     showsFull.toggle()
                 }
-                .font(.caption)
+                .font(AturiFont.caption)
                 .buttonStyle(.plain)
                 .foregroundStyle(theme.textAccent)
             }

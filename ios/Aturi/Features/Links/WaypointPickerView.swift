@@ -193,10 +193,11 @@ struct WaypointPickerView: View {
         VStack(alignment: .leading, spacing: 6) {
             Text("Choose where to view")
                 .font(AturiFont.display)
+                .tracking(AturiFont.displayTracking)
                 .foregroundStyle(theme.textPrimary)
                 .fixedSize(horizontal: false, vertical: true)
             Text(contextText)
-                .font(.body)
+                .font(AturiFont.body)
                 .foregroundStyle(theme.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
         }
@@ -217,7 +218,7 @@ struct WaypointPickerView: View {
                 Text(openedFromLink
                      ? "Auto-redirect is on for \(family)."
                      : "Auto-redirect is on for \(family). You were not sent to \(name) because this page was opened from inside the app.")
-                    .font(.footnote)
+                    .font(AturiFont.footnote)
                     .foregroundStyle(theme.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
                 openButton(name: name, waypointId: target.waypointId, url: target.url)
@@ -225,7 +226,7 @@ struct WaypointPickerView: View {
                     Button("Change the setting") {
                         router?.select(.settings)
                     }
-                    .font(.footnote)
+                    .font(AturiFont.footnote)
                     .buttonStyle(.plain)
                     .foregroundStyle(theme.textAccent)
                 }
@@ -315,10 +316,10 @@ struct WaypointPickerView: View {
                 .font(AturiFont.subtitle)
                 .foregroundStyle(theme.textAccent)
             Text("Tour the Atmosphere.")
-                .font(.body)
+                .font(AturiFont.body)
                 .foregroundStyle(theme.textPrimary)
             Text("Switch between clients, share universal links, and explore any account's PDS data.")
-                .font(.footnote)
+                .font(AturiFont.footnote)
                 .foregroundStyle(theme.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
             HStack(spacing: 10) {
@@ -426,17 +427,17 @@ private struct NewWaypointsBanner: View {
             }
             .foregroundStyle(theme.textPrimary)
             Text(summary)
-                .font(.footnote)
+                .font(AturiFont.footnote)
                 .foregroundStyle(theme.textPrimary)
                 .fixedSize(horizontal: false, vertical: true)
             Spacer(minLength: 0)
             Button(waypoints.count == 1 ? "Add it" : "Add all", action: onAdd)
-                .font(.footnote.weight(.medium))
+                .font(AturiFont.sans(.footnote, weight: .medium))
                 .buttonStyle(.plain)
                 .foregroundStyle(theme.textAccent)
             Button(action: onDismiss) {
                 Image(systemName: "xmark")
-                    .font(.footnote.weight(.medium))
+                    .font(AturiFont.sans(.footnote, weight: .medium))
                     .foregroundStyle(theme.textTertiary)
                     .frame(width: 28, height: 28)
                     .contentShape(Rectangle())
@@ -520,7 +521,7 @@ private struct PickerCompactGroup: View {
                     .frame(height: AturiTheme.hairline(displayScale: displayScale))
                     .frame(maxWidth: .infinity)
                 Text("\(entries.count)")
-                    .font(.caption)
+                    .font(AturiFont.caption)
                     .foregroundStyle(theme.textTertiary)
             }
             .accessibilityElement(children: .combine)
@@ -567,7 +568,7 @@ private struct PickerDenseRow: View {
                     WaypointMark(id: entry.id, size: 18)
                         .foregroundStyle(theme.textPrimary)
                     Text(entry.waypoint.name)
-                        .font(.body)
+                        .font(AturiFont.body)
                         .foregroundStyle(theme.textPrimary)
                         .lineLimit(1)
                     Spacer(minLength: 8)
@@ -609,7 +610,7 @@ private struct PickerTile: View {
                 WaypointMark(id: entry.id, size: 26)
                     .foregroundStyle(theme.textPrimary)
                 Text(entry.waypoint.name)
-                    .font(.caption.weight(.medium))
+                    .font(AturiFont.sans(.caption, weight: .medium))
                     .foregroundStyle(theme.textPrimary)
                     .lineLimit(2)
                     .multilineTextAlignment(.center)
@@ -661,18 +662,18 @@ private struct PickerClassicGroup: View {
                             .foregroundStyle(theme.textPrimary)
                         if let description = category.description, !description.isEmpty {
                             Text(description)
-                                .font(.footnote)
+                                .font(AturiFont.footnote)
                                 .foregroundStyle(theme.textSecondary)
                         }
                     }
                     Spacer(minLength: 0)
                     if !isExpanded, entries.count > 1 {
                         Text("+\(entries.count - 1) more")
-                            .font(.caption)
+                            .font(AturiFont.caption)
                             .foregroundStyle(theme.textTertiary)
                     }
                     Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
-                        .font(.footnote.weight(.medium))
+                        .font(AturiFont.sans(.footnote, weight: .medium))
                         .foregroundStyle(theme.textTertiary)
                 }
                 .contentShape(Rectangle())
@@ -700,6 +701,7 @@ private struct PickerWaypointCard: View {
 
     @Environment(\.aturiTheme) private var theme
     @Environment(\.openURL) private var openURL
+    @Environment(\.displayScale) private var displayScale
 
     var body: some View {
         HStack(spacing: 4) {
@@ -710,14 +712,14 @@ private struct PickerWaypointCard: View {
             } label: {
                 HStack(spacing: 12) {
                     WaypointMark(id: entry.id, size: 28)
-                        .foregroundStyle(featured ? theme.textAccent : theme.textPrimary)
+                        .foregroundStyle(featured ? theme.accentSoftFg : theme.textPrimary)
                     VStack(alignment: .leading, spacing: 3) {
                         Text(entry.waypoint.name)
-                            .font(.body.weight(.semibold))
+                            .font(AturiFont.sans(.body, weight: .semibold))
                             .foregroundStyle(theme.textPrimary)
                             .lineLimit(1)
                         Text(entry.waypoint.describe(collection: collection))
-                            .font(.footnote)
+                            .font(AturiFont.footnote)
                             .foregroundStyle(theme.textSecondary)
                             .lineLimit(3)
                             .multilineTextAlignment(.leading)
@@ -725,7 +727,7 @@ private struct PickerWaypointCard: View {
                     }
                     Spacer(minLength: 8)
                     Image(systemName: "arrow.up.right")
-                        .font(.footnote.weight(.medium))
+                        .font(AturiFont.sans(.footnote, weight: .medium))
                         .foregroundStyle(theme.textTertiary)
                 }
                 .contentShape(Rectangle())
@@ -737,7 +739,15 @@ private struct PickerWaypointCard: View {
             CopyLinkButton(url: entry.url, name: entry.waypoint.name)
         }
         .padding(14)
+        .background(featured ? theme.accentSoft : Color.clear, in: RoundedRectangle(cornerRadius: AturiTheme.cardRadius, style: .continuous))
         .cardBackground()
+        .overlay {
+            // The recommended cards wear the Field Notes soft accent.
+            if featured {
+                RoundedRectangle(cornerRadius: AturiTheme.cardRadius, style: .continuous)
+                    .strokeBorder(theme.accentSoftBorder, lineWidth: AturiTheme.hairline(displayScale: displayScale))
+            }
+        }
     }
 }
 
@@ -766,7 +776,7 @@ private struct CopyLinkButton: View {
         } else {
             Button(action: copy) {
                 Image(systemName: copied ? "checkmark" : "doc.on.doc")
-                    .font(.body)
+                    .font(AturiFont.body)
                     .foregroundStyle(copied ? theme.textAccent : theme.textTertiary)
                     .frame(width: 36, height: 36)
                     .contentShape(Rectangle())

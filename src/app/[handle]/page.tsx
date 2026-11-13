@@ -6,6 +6,7 @@ import AutoRedirect from '@/components/AutoRedirect';
 import AutoRedirectGate from '@/components/AutoRedirectGate';
 import ProfilePreview from '@/components/ProfilePreview';
 import ProfilePreviewSkeleton from '@/components/ProfilePreviewSkeleton';
+import WaypointPickerSkeleton from '@/components/WaypointPickerSkeleton';
 import ScrollIndicator from '@/components/ScrollIndicator';
 import Header from '@/components/Header';
 import NotFoundPanel from '@/components/NotFoundPanel';
@@ -117,7 +118,7 @@ async function ProfileContent({ handle, resolvedDid }: { handle: string; resolve
   return (
     <>
       <Header compact />
-      <div className="container-narrow waypoint-page" style={{ padding: '0 2rem 4rem' }}>
+      <div className="container-narrow waypoint-page">
         {/* `handle` rather than `resolvedHandle`, so the gate resolves exactly
             the URL the pre-paint script did — the two halves must never send
             the same visitor to two different spellings of the same page. */}
@@ -133,7 +134,7 @@ async function ProfileContent({ handle, resolvedDid }: { handle: string; resolve
           type="profile"
           handle={resolvedHandle}
           did={resolvedDid}
-          displayName={getDisplayName(resolvedHandle, resolvedDid)}
+          displayName={profileData?.displayName?.trim() || getDisplayName(resolvedHandle, resolvedDid)}
           repoCollections={repoCollections}
         />
 
@@ -176,7 +177,7 @@ export default async function ProfilePage({ params }: Props) {
     return (
       <>
         <Header compact />
-        <div className="container-narrow waypoint-page" style={{ padding: '0 2rem 4rem' }}>
+        <div className="container-narrow waypoint-page">
           <NotFoundPanel
             eyebrow="Couldn't reach the resolver"
             headline="We couldn't look that up right now."
@@ -198,8 +199,11 @@ export default async function ProfilePage({ params }: Props) {
         fallback={
           <>
             <Header compact />
-            <div className="container-narrow waypoint-page" style={{ padding: '0 2rem 4rem' }}>
-              <ProfilePreviewSkeleton />
+            <div className="container-narrow waypoint-page">
+              <div className="skeleton-container">
+                <ProfilePreviewSkeleton />
+              </div>
+              <WaypointPickerSkeleton />
             </div>
           </>
         }

@@ -146,9 +146,10 @@ private struct PreviewScreen: View {
                 .foregroundStyle(theme.textAccent)
             Text("That handle did not resolve.")
                 .font(AturiFont.title)
+                .tracking(AturiFont.titleTracking)
                 .foregroundStyle(theme.textPrimary)
             Text("We tried to resolve \(components.identifier) as an Atmosphere handle and did not find anything. Try a different handle, DID or AT URI.")
-                .font(.footnote)
+                .font(AturiFont.footnote)
                 .foregroundStyle(theme.textSecondary)
                 .textSelection(.enabled)
                 .fixedSize(horizontal: false, vertical: true)
@@ -299,10 +300,10 @@ private struct AutoRedirectCountdownBar: View {
             HStack(spacing: 12) {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Opening in \(name)")
-                        .font(.body.weight(.medium))
+                        .font(AturiFont.sans(.body, weight: .medium))
                         .foregroundStyle(theme.textPrimary)
                     Text("Your auto-redirect preference. Tap anywhere to stay.")
-                        .font(.caption)
+                        .font(AturiFont.caption)
                         .foregroundStyle(theme.textSecondary)
                 }
                 Spacer(minLength: 0)

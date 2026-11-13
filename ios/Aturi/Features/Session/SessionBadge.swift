@@ -20,7 +20,7 @@ struct SessionBadge: View {
                 Button("Sign in") {
                     showSignIn = true
                 }
-                .font(.subheadline.weight(.medium))
+                .font(AturiFont.sans(.subheadline, weight: .medium))
             }
         }
         .sheet(isPresented: $showSignIn) {
@@ -49,8 +49,8 @@ struct SessionBadge: View {
             .padding(.leading, 3)
             .padding(.trailing, 10)
             .padding(.vertical, 3)
-            .background(theme.bgTertiary, in: Capsule())
-            .overlay(Capsule().strokeBorder(theme.borderSubtle, lineWidth: AturiTheme.hairline(displayScale: displayScale)))
+            .background(theme.bgSecondary, in: Capsule())
+            .overlay(Capsule().strokeBorder(theme.borderMedium, lineWidth: AturiTheme.hairline(displayScale: displayScale)))
         }
         .accessibilityLabel("Signed in as \(name)")
         .task(id: account.did) {
@@ -74,16 +74,16 @@ struct SessionSyncStatusLabel: View {
             switch store.syncStatus {
             case .idle:
                 Label("Settings are synced to your PDS", systemImage: "checkmark.icloud")
-                    .font(.footnote)
+                    .font(AturiFont.footnote)
                     .foregroundStyle(theme.textSecondary)
             case .syncing:
                 Label("Syncing settings", systemImage: "arrow.triangle.2.circlepath")
-                    .font(.footnote)
+                    .font(AturiFont.footnote)
                     .foregroundStyle(theme.textSecondary)
             case .failed(let message):
                 VStack(alignment: .leading, spacing: 4) {
                     Label("Settings could not sync", systemImage: "exclamationmark.icloud")
-                        .font(.footnote)
+                        .font(AturiFont.footnote)
                         .foregroundStyle(theme.danger)
                     Text(message)
                         .font(AturiFont.monoSmall)

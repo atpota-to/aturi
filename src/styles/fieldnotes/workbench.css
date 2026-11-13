@@ -1,0 +1,1776 @@
+/* Field Notes: the account explorer's full-window layouts. Tokens live in
+   src/app/globals.css (:root and [data-theme='light']); use them rather than
+   raw hex so dark mode and the colour schemes keep working.
+
+   Covers the Workbench and Files views of /explore/{repo} and below
+   (workbench/ExplorerShell.tsx) and the view switch above the classic pages.
+   The pieces inside the panes are the classic explorer's own (the collections
+   tree, the record rows, the record cards) and keep their classes and their
+   rules in explorer.css and record.css; this sheet draws the frame around
+   them and says only where a piece needs to differ for being in a pane. */
+
+/* ---------- Classic: the view switch above the pages ---------- */
+
+.fx-viewbar {
+  display: flex;
+  justify-content: flex-end;
+  margin: 0 0 12px;
+}
+
+/* ---------- The frame ----------
+   A dashboard that fills the window under the site header, as the stream
+   monitor does (tools.css), so the page itself never scrolls; the panes do.
+   ExplorerShell measures where it starts (--fx-wb-top), and the phone
+   toolbar's height arrives as --explore-chrome-h (0 where the bar isn't
+   drawn). The values here hold the first paint. While it's mounted the
+   explore layout's padding, the header's gap and the footer step aside. The
+   doubled class outranks the widths the classic pages set on the same
+   container, whichever pieces of theirs are inside. */
+
+.container-narrow.container-narrow:has(.fx-wb) {
+  max-width: none;
+  min-height: 0 !important;
+  padding: 0 !important;
+}
+
+body:has(.fx-wb) .fn-header {
+  margin-bottom: 0;
+}
+
+body:has(.fx-wb) .fn-footer {
+  display: none;
+}
+
+/* Also keeps a swipe that runs off the end of a list from dragging the
+   whole page on a phone. */
+html:has(.fx-wb) {
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
+/* Wider than a phone the toolbar below holds everything the bottom bar
+   would: the bar is the phone's. */
+@media (min-width: 641px) {
+  body:has(.fx-wb) .explore-chrome-bar {
+    display: none;
+  }
+}
+
+.fx-wb {
+  --fx-wb-top: 57px;
+  --fx-wb-rail: 300px;
+  /* The classic explorer's zebra bands (explorer.css, .fx-explorer), for the
+     tree and the record rows drawn here. */
+  --fx-stripe: color-mix(in srgb, var(--bg-tertiary) 70%, var(--bg-secondary));
+  --fx-stripe-hover: color-mix(in srgb, var(--bg-tertiary), var(--text-primary) 6%);
+  /* The Files view's folders: two steps of the accent over the sheet, so
+     they read as folders on a plain row, a banded one and a selected one. */
+  --fx-fd-folder: color-mix(in srgb, var(--text-accent) 24%, var(--bg-secondary));
+  --fx-fd-folder-back: color-mix(in srgb, var(--text-accent) 52%, var(--bg-secondary));
+  /* A file's page: the sheet itself in light themes, where its outline
+     carries it; lifted off the sheet in dark ones, where an outline alone
+     left the icons as wireframes. */
+  --fx-fd-page: var(--bg-secondary);
+  display: flex;
+  flex-direction: column;
+  height: calc(100dvh - var(--fx-wb-top) - var(--explore-chrome-h, 0px));
+  font-family: var(--font-sans);
+  font-size: 14px;
+  color: var(--text-primary);
+  background: var(--bg-secondary);
+}
+
+.fx-wb[data-mode='files'] {
+  --fx-wb-rail: 252px;
+}
+
+:root:not([data-theme='light']) .fx-wb {
+  --fx-fd-page: color-mix(in srgb, var(--text-primary) 9%, var(--bg-secondary));
+}
+
+/* A small desktop with a record open has three panes to fit: the rail gives
+   up some of its width to the list. */
+@media (max-width: 1279px) {
+  .fx-wb[data-mode='workbench'] {
+    --fx-wb-rail: 264px;
+  }
+}
+
+/* Mono identifiers are set by their own classes; drop the global inline-code
+   chip, as .fx-explorer does for the same elements. */
+.fx-wb code.fx-mono,
+.fx-wb code.fx-row-text,
+.fx-wb code.fx-rec-key,
+.fx-wb code.fx-fd-name {
+  background: transparent;
+  border-radius: 0;
+}
+.fx-wb code.fx-mono,
+.fx-wb code.fx-row-text,
+.fx-wb code.fx-fd-name {
+  padding: 0;
+}
+.fx-wb code.fx-row-text {
+  font-size: inherit;
+  color: inherit;
+}
+.fx-wb code.fx-mono {
+  font-size: 12.5px;
+  color: var(--text-primary);
+}
+.fx-wb code.fx-rec-key {
+  font-size: 12.5px;
+  color: var(--text-accent);
+}
+
+/* ---------- Toolbar ----------
+   Where you are, and how it's shown: the breadcrumb, the view switch and a
+   link to this view, on one line under the site header. */
+
+.fx-wb-toolbar {
+  position: relative;
+  z-index: 5;
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px 12px;
+  min-height: 51px;
+  padding: 8px 16px 8px 12px;
+  box-sizing: border-box;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-medium);
+}
+
+.fx-wb-icon {
+  width: 30px;
+  height: 30px;
+  flex: none;
+  display: inline-grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.fx-wb-icon:hover:not(:disabled) {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+.fx-wb-icon[aria-pressed='true'] {
+  background: var(--accent-soft);
+  color: var(--accent-soft-fg);
+}
+
+.fx-wb-icon:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.fx-wb-icon:focus-visible {
+  outline: 2px solid var(--text-accent);
+  outline-offset: 1px;
+}
+
+/* The breadcrumb stays on one line here; when it runs out of room the
+   segments give way in order of how little they are missed. The PDS host
+   shortens first and then steps aside altogether, the repo and collection
+   shorten next, and the last segment, which is where you are, goes last. */
+.fx-wb-path {
+  flex: 1 1 auto;
+  min-width: 0;
+  container: fx-wb-path / inline-size;
+}
+
+.fx-wb-path .fx-crumbs {
+  flex-wrap: nowrap;
+  font-size: 13px;
+}
+
+.fx-wb-path .fx-crumb {
+  flex: 0 2 auto;
+  overflow-wrap: normal;
+  white-space: nowrap;
+}
+
+/* The PDS crumb is the one with the server glyph. */
+.fx-wb-path .fx-crumb:has(svg) {
+  flex-shrink: 14;
+}
+
+.fx-wb-path .fx-crumb:last-child {
+  flex-shrink: 1;
+}
+
+@container fx-wb-path (max-width: 440px) {
+  .fx-crumb:has(svg):not(:only-child) {
+    display: none;
+  }
+}
+
+.fx-wb-path .fx-crumb a,
+.fx-wb-path .fx-crumb-here {
+  display: inline-block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fx-wb-path .fx-crumb a svg {
+  margin-right: 5px;
+  vertical-align: -1px;
+}
+
+.fx-wb-path .fx-crumb-sep {
+  flex: none;
+}
+
+.fx-wb-toolbar-end {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ---------- Body ----------
+   The rail, the main pane and, while a record is open, the inspector. Each
+   has a set column, so hiding the rail leaves the others where they are.
+   isolation keeps the drawers below the site header's panels. */
+
+.fx-wb-body {
+  position: relative;
+  isolation: isolate;
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: var(--fx-wb-rail) minmax(0, 1fr);
+  overflow: hidden;
+}
+
+.fx-wb[data-inspect] .fx-wb-body {
+  grid-template-columns: var(--fx-wb-rail) minmax(0, 1fr) minmax(420px, 38%);
+}
+
+/* The record given the full width: the list narrows to keys and dates and
+   stays to step through. */
+.fx-wb[data-wide] .fx-wb-body {
+  grid-template-columns: var(--fx-wb-rail) minmax(220px, 290px) minmax(0, 1fr);
+}
+
+.fx-wb[data-norail] {
+  --fx-wb-rail: 0px;
+}
+
+.fx-wb-rail {
+  grid-column: 1;
+  grid-row: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  min-width: 0;
+  min-height: 0;
+  box-sizing: border-box;
+  background: var(--surface-subtle);
+  border-right: 1px solid var(--border-medium);
+}
+
+.fx-wb[data-norail] .fx-wb-rail {
+  display: none;
+}
+
+.fx-wb-main {
+  grid-column: 2;
+  grid-row: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  container: fx-wb-main / inline-size;
+  background: var(--bg-secondary);
+}
+
+.fx-wb-insp {
+  grid-column: 3;
+  grid-row: 1;
+  display: none;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  container: fx-wb-insp / inline-size;
+  background: var(--bg-primary);
+  border-left: 1px solid var(--border-medium);
+}
+
+.fx-wb[data-inspect] .fx-wb-insp {
+  display: flex;
+}
+
+.fx-wb-scrim,
+.fx-wb-grab,
+.fx-wb-done {
+  display: none;
+}
+
+/* ---------- Rail ----------
+   The account, its own views, then the way around its repository: the
+   collections tree in the workbench, places in the Files view. */
+
+.fx-wb-acct {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 10px 12px 16px;
+}
+
+.fx-wb-acct .fx-avatar {
+  width: 36px;
+  height: 36px;
+  font-size: 15px;
+}
+
+.fx-wb-acct-names {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.fx-wb-acct-name {
+  overflow: hidden;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: 1.3;
+  color: var(--text-primary);
+  text-decoration: none;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fx-wb-acct-name:hover {
+  color: var(--accent-forest);
+}
+
+.fx-wb-acct-handle {
+  overflow: hidden;
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  color: var(--text-accent);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fx-wb-views {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 0 8px 10px;
+  border-bottom: 1px solid var(--border-medium);
+}
+
+.fx-wb-view {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 30px;
+  padding: 0 8px;
+  border-radius: 7px;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  text-decoration: none;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+
+.fx-wb-view:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+.fx-wb-view[aria-current='page'] {
+  background: var(--accent-soft);
+  color: var(--accent-soft-fg);
+  font-weight: 600;
+}
+
+.fx-wb-view:focus-visible,
+.fx-wb-acct-name:focus-visible {
+  outline: 2px solid var(--text-accent);
+  outline-offset: -2px;
+  border-radius: 6px;
+}
+
+.fx-wb-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  padding: 12px 16px 6px;
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+}
+
+.fx-wb-note {
+  margin: 2px 16px;
+  font-size: 13px;
+  color: var(--text-tertiary);
+}
+
+/* The tree fills what's left of the rail and scrolls there, its filter
+   staying put above it. The classic sidebar caps the same tree's height on
+   a page that scrolls; here the rail is the only place it could scroll. */
+.fx-wb-tree {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.fx-wb-tree > .fx-tree-pane {
+  flex: 1;
+  min-height: 0;
+  padding: 0 8px;
+}
+
+.fx-wb-tree > :not(.fx-tree-pane):not(.fx-wb-label) {
+  margin: 0 16px;
+}
+
+/* One line whatever the rail's width: the field gives way, so the
+   collapse-all button never drops under it. */
+.fx-wb-tree .fx-tree-tools {
+  flex: none;
+  flex-wrap: nowrap;
+  margin: 0 4px 6px;
+}
+
+.fx-wb-tree .fx-tree-tools .fx-field {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.fx-wb .fx-wb-tree .fx-tree-scroll {
+  flex: 1;
+  min-height: 0;
+  max-height: none;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-bottom: 28px;
+  -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 36px), transparent);
+  mask-image: linear-gradient(to bottom, #000 calc(100% - 36px), transparent);
+}
+
+/* Placeholders inside the real rows, so the rail's skeleton has the rail's
+   own shape. */
+.fx-wb-view[data-skeleton],
+.fx-fd-place[data-skeleton] {
+  pointer-events: none;
+}
+
+/* ---------- Main: a list pane ----------
+   A collection's records (CollectionPane) or a folder's folders
+   (FolderBrowser): the title and its actions, a filter, then the list, which
+   is the only part that scrolls, and the foot under it. */
+
+.fx-wb-pane {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.fx-wb-pane-head {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border-medium);
+}
+
+.fx-wb-pane-head .fx-titlebar {
+  align-items: center;
+}
+
+.fx-wb-pane-head .fx-h1 {
+  font-size: 19px;
+}
+
+.fx-wb-records {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: visible;
+}
+
+.fx-wb-records > * {
+  flex: none;
+}
+
+.fx-wb-records .fx-records-tools {
+  padding: 10px 16px;
+  border-bottom-color: var(--border-subtle);
+}
+
+/* overflow-anchor: none keeps rows a live stream prepends from nudging the
+   scroll position; the stable gutter keeps the scrollbar's arrival from
+   reflowing every row. */
+.fx-wb-records > .fx-wb-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-anchor: none;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+}
+
+.fx-wb-scroll .fx-rec-head {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.fx-wb-records .fx-records-foot {
+  border-top-color: var(--border-medium);
+  background: var(--surface-subtle);
+}
+
+/* The main pane's two layers (ExplorerShell): a collection's records, and
+   over them the list of what links to the open record. One grid cell holds
+   both, and the covered one is hidden without leaving the layout, so its
+   scroll position is still there to come back to. */
+.fx-wb-stack {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template: minmax(0, 1fr) / minmax(0, 1fr);
+}
+
+.fx-wb-layer {
+  grid-area: 1 / 1;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.fx-wb-layer[data-covered] {
+  visibility: hidden;
+}
+
+/* The record open in the inspector. */
+.fx-wb .fx-rec-row[data-current] {
+  background: var(--accent-soft);
+  box-shadow: inset 2px 0 0 var(--accent-moss);
+}
+
+
+/* Rows by the pane's own width, not the window's: with the inspector open
+   the list has a phone's worth of room on a desktop, and takes the phone's
+   two-line rows (explorer.css) for it. */
+@container fx-wb-main (max-width: 560px) {
+  .fx-rec-list,
+  .fx-rec-list[data-editing] {
+    display: block;
+  }
+  .fx-rec-head {
+    display: none;
+  }
+  .fx-rec-item {
+    display: block;
+  }
+  .fx-rec-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      'key time'
+      'text text';
+    gap: 2px 12px;
+    padding: 9px 14px;
+  }
+  .fx-rec-row[data-editing] {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-areas:
+      'check key time'
+      'check text text';
+  }
+  .fx-rec-row > *,
+  .fx-rec-row > :first-child,
+  .fx-rec-row > :last-child {
+    padding: 0;
+  }
+  .fx-rec-check {
+    grid-area: check;
+    padding-right: 4px !important;
+  }
+  .fx-rec-key,
+  .fx-fd-cell {
+    grid-area: key;
+  }
+  .fx-rec-text {
+    grid-area: text;
+    color: var(--text-secondary);
+    white-space: normal;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-height: 1.4;
+  }
+  .fx-rec-time {
+    grid-area: time;
+    font-size: 12.5px;
+  }
+  .fx-wb-pane-head .fx-h1 {
+    font-size: 17px;
+  }
+  /* The foot already says how many are loaded, and a search shows its tally
+     inside the field, so the count beside the field gives its row to it. */
+  .fx-records-tools-meta {
+    display: none;
+  }
+  .fx-wb-records .fx-records-tools .fx-field {
+    flex: 1 1 100%;
+  }
+}
+
+/* Narrower still (the list beside a record with the full width): it is
+   there to step through, so it keeps the collection's name, the search, and
+   each record's key and date, and puts the rest away. */
+@container fx-wb-main (max-width: 300px) {
+  .fx-rec-text,
+  .fx-wb-pane-head .fx-pill,
+  .fx-wb-pane-head .fx-actions {
+    display: none;
+  }
+  .fx-wb-pane-head {
+    padding: 10px 14px;
+  }
+  .fx-wb-pane-head .fx-h1 {
+    font-size: 15px;
+  }
+  .fx-wb-records .fx-records-tools {
+    padding: 8px 12px;
+  }
+  .fx-wb-records .fx-records-foot {
+    padding: 8px 14px;
+    font-size: 12px;
+  }
+}
+
+/* ---------- Main: the account ----------
+   The overview and the account's other views (AccountView): cards on the
+   page tone, as on the classic repo page, scrolling as one. */
+
+.fx-wb-page {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  background: var(--bg-primary);
+}
+
+.fx-wb-page-inner {
+  box-sizing: border-box;
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 20px 24px 40px;
+}
+
+/* Identity, Log and Backlinks read better at a narrower measure, but keep
+   the overview's left edge, so the heading doesn't jump between views. */
+.fx-wb-page-inner:not([data-tab='overview']) .fx-wb-section {
+  max-width: 920px;
+}
+
+.fx-wb-overview {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px 24px;
+  align-items: start;
+}
+
+@container fx-wb-main (min-width: 860px) {
+  .fx-wb-overview {
+    grid-template-columns: minmax(280px, 340px) minmax(0, 1fr);
+  }
+}
+
+.fx-wb-overview-side,
+.fx-wb-overview-main {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
+/* A strip or section that suppressed itself must not leave a gap. */
+.fx-wb-overview-side > div:empty,
+.fx-wb-overview-main > div:empty {
+  display: none;
+}
+
+.fx-wb-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+
+.fx-wb-h {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: 15px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  line-height: 1.3;
+  color: var(--text-primary);
+}
+
+.fx-wb-page .fx-tabpanel {
+  margin-top: 0;
+}
+
+/* The glance tiles fit themselves to the pane; the repo page's counts by
+   window width (explorer.css) don't hold with a rail and an account card
+   beside them. */
+.fx-wb .account-stats-grid {
+  grid-template-columns: repeat(auto-fill, minmax(10.5rem, 1fr));
+}
+
+/* ---------- Main: backlinks ----------
+   What links to the account or to the open record (AccountView,
+   RecordLinksView), on the account views' sheet. The tiles fit themselves
+   to the pane, as the glance tiles do: with a linking record open beside
+   the list the pane is a phone's width on a desktop. */
+
+.fx-wb .fx-bl-tiles {
+  grid-template-columns: repeat(auto-fill, minmax(9.5rem, 1fr));
+}
+
+/* In a narrow pane the tiles fold to a line of chips: a kind, its count.
+   Eight tiles three across would hold the first screen, and the list under
+   them is what the pane is narrow for. */
+@container fx-wb-main (max-width: 700px) {
+  .fx-wb .fx-bl-tiles {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .fx-wb .fx-bl-tile {
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+    min-height: 32px;
+    padding: 0 12px 0 10px;
+    border-radius: var(--radius-pill);
+  }
+
+  .fx-wb .fx-bl-tile-label svg {
+    width: 14px;
+    height: 14px;
+  }
+
+  .fx-wb .fx-bl-tile-value {
+    font-size: 12.5px;
+    font-weight: 500;
+    letter-spacing: 0;
+    color: var(--text-secondary);
+  }
+
+  .fx-wb .fx-bl-tile-sub {
+    display: none;
+  }
+}
+
+.fx-wb-links-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px 16px;
+}
+
+.fx-wb-links-head .fx-btn {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.fx-wb-links-title {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+/* Which record: its file, its key, and a line of what it says. */
+.fx-wb-links-target {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.fx-wb-links-target .fx-fd-glyph[data-kind='file'] {
+  width: 11px;
+}
+
+.fx-wb-links-target .fx-fd-ext {
+  display: none;
+}
+
+.fx-wb-links-target code {
+  flex: none;
+  padding: 0;
+  background: transparent;
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  color: var(--text-primary);
+}
+
+.fx-wb-links-target span:last-child {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Linking records as files (the Files view's icons): the grid is inside the
+   sheet's own padding, and each file wears its author on the corner. */
+.fx-fd-grid.fx-bl-files {
+  padding: 0;
+}
+
+.fx-bl-file {
+  position: relative;
+  display: inline-block;
+  line-height: 0;
+}
+
+/* On the top corner away from the fold: the foot of the page is the kind
+   label's. */
+.fx-bl-file .fx-bl-avatar {
+  position: absolute;
+  left: -13px;
+  top: -5px;
+  width: 24px;
+  height: 24px;
+  font-size: 11px;
+  line-height: 1;
+  box-shadow: 0 0 0 2px var(--bg-secondary);
+}
+
+.fx-bl-files .fx-fd-name {
+  overflow-wrap: break-word;
+}
+
+.fx-bl-files .fx-fd-name[data-pending] {
+  color: var(--text-tertiary);
+}
+
+/* ---------- Inspector: a linking record ----------
+   A record opened from the list of what links here (PeekPane). The bar over
+   it says whose it is, since it is rarely this account's, and is the way to
+   it; under the bar it is the inspector's record pane. */
+
+.fx-wb-peek {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.fx-wb-peek > .fx-wb-rec {
+  flex: 1;
+  min-height: 0;
+  gap: 0;
+  padding-top: 0;
+}
+
+.fx-wb-peek-bar {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 0 10px 0 16px;
+  background: var(--accent-soft);
+  border-bottom: 1px solid var(--accent-soft-border);
+  font-size: 12.5px;
+  color: var(--accent-soft-fg);
+}
+
+.fx-wb-peek-what {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.fx-wb-peek-who {
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+  color: inherit;
+  text-decoration: none;
+}
+
+.fx-wb-peek-who img {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.fx-wb-peek-who span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fx-wb-peek-who:hover span {
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+}
+
+.fx-wb-peek-who:focus-visible {
+  outline: 2px solid var(--text-accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+.fx-wb-peek-open {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+}
+
+/* ---------- Inspector ----------
+   The open record (RecordPane): its key and the stepping controls, the tabs
+   and actions, then the record's sections, which scroll. The sections are
+   the record page's own cards. */
+
+.fx-wb-insp > .fx-wb-rec {
+  flex: 1;
+  min-height: 0;
+  gap: 0;
+  padding-top: 0;
+}
+
+.fx-wb-rec > * {
+  flex: none;
+}
+
+.fx-wb-insp-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 51px;
+  padding: 8px 8px 6px 16px;
+  box-sizing: border-box;
+  background: var(--bg-secondary);
+}
+
+.fx-wb-insp-rkey {
+  margin: 0;
+  min-width: 0;
+  overflow: hidden;
+  font-family: var(--font-mono);
+  font-size: 16px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  line-height: 1.3;
+  color: var(--text-primary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fx-wb-insp-head .fn-rec-pill {
+  flex: none;
+}
+
+.fx-wb-insp-ctl {
+  flex: none;
+  display: flex;
+  gap: 2px;
+  margin-left: auto;
+}
+
+/* With no tabs to sit beside (the full-width layout, an error, a record
+   with one section), the actions join the head rather than hold a row of
+   their own. */
+.fx-wb-insp-head .fn-rec-actions {
+  flex: none;
+  margin-left: auto;
+}
+
+.fx-wb-insp-head .fn-rec-actions + .fx-wb-insp-ctl {
+  margin-left: 4px;
+}
+
+.fx-wb-insp-head .fn-rec-btn {
+  height: 32px;
+  font-size: 13px;
+}
+
+.fx-wb-rec > .fx-wb-insp-head + .fx-wb-insp-body {
+  border-top: 1px solid var(--border-medium);
+}
+
+.fx-wb-insp-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  padding: 0 12px 10px 16px;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-medium);
+}
+
+/* The record page stretches its actions across a phone's width; here they
+   stay beside the tabs. */
+.fx-wb-rec .fn-rec-actions {
+  width: auto;
+}
+
+.fx-wb-insp-bar .fn-rec-actions {
+  margin-left: auto;
+}
+
+.fx-wb-insp-bar .fn-rec-btn {
+  height: 32px;
+  font-size: 13px;
+}
+
+.fx-wb-rec > .fx-wb-insp-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 16px;
+}
+
+/* A narrow inspector keeps the tabs and the actions on one line: the
+   actions fold to their glyphs (each keeps its name for a screen reader and
+   as its tooltip). The label is a bare text node, so it is the font size
+   that puts it away. */
+@container fx-wb-insp (max-width: 560px) {
+  .fx-wb-rec .fn-rec-actions .fn-rec-btn {
+    width: 32px;
+    padding: 0;
+    gap: 0;
+    font-size: 0;
+  }
+}
+
+/* Narrower than its key, kind and controls together (a small phone's
+   sheet): the kind steps aside before the key is cut short. The breadcrumb
+   above still names the collection, which is what the kind says in words. */
+@container fx-wb-insp (max-width: 400px) {
+  .fx-wb-insp-head .fn-rec-pill {
+    display: none;
+  }
+}
+
+/* With the full width, the record page's two columns, held to its measure. */
+.fx-wb-rec[data-wide] > .fx-wb-insp-body {
+  padding: 20px 24px 32px;
+}
+
+.fx-wb-rec[data-wide] .fn-rec-body {
+  max-width: 1180px;
+  margin: 0 auto;
+}
+
+/* ---------- Files: places ----------
+   The Files view's sidebar: favourites and namespaces, each a folder. */
+
+.fx-fd-side {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-bottom: 16px;
+}
+
+.fx-fd-places {
+  list-style: none;
+  margin: 0;
+  padding: 0 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.fx-fd-place {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 30px;
+  padding: 0 8px;
+  border-radius: 7px;
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  color: var(--text-secondary);
+  text-decoration: none;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+
+a.fx-fd-place:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+/* Open: the selected fill. On the way to what's open: named, not filled. */
+.fx-fd-place[aria-current='page'] {
+  background: var(--accent-soft);
+  color: var(--accent-soft-fg);
+  font-weight: 600;
+}
+
+.fx-fd-place[aria-current='true'] {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.fx-fd-place:focus-visible {
+  outline: 2px solid var(--text-accent);
+  outline-offset: -2px;
+}
+
+.fx-fd-place-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fx-fd-place-count {
+  flex: none;
+  font-size: 11.5px;
+  font-weight: 400;
+  color: var(--text-tertiary);
+}
+
+/* ---------- Files: glyphs ----------
+   A folder and a file (FileIcons.tsx), at whatever width their place gives
+   them: text size in a row, large in the icon grid. */
+
+.fx-fd-glyph {
+  position: relative;
+  display: inline-block;
+  flex: none;
+  width: 18px;
+  line-height: 0;
+}
+
+.fx-fd-glyph svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.fx-fd-glyph[data-kind='file'] {
+  width: 13px;
+}
+
+.fx-fd-folder-back {
+  fill: var(--fx-fd-folder-back);
+}
+
+.fx-fd-folder-front {
+  fill: var(--fx-fd-folder);
+  stroke: var(--fx-fd-folder-back);
+  stroke-width: 1;
+}
+
+.fx-fd-page {
+  fill: var(--fx-fd-page);
+  stroke: var(--border-strong);
+  stroke-width: 1.5;
+}
+
+.fx-fd-fold {
+  fill: none;
+  stroke: var(--border-strong);
+  stroke-width: 1.5;
+  stroke-linejoin: round;
+}
+
+/* At text size the strokes are scaled down with the drawing; weigh them
+   back up so the outline still reads. */
+.fx-fd-glyph[data-kind='file'] .fx-fd-page,
+.fx-fd-glyph[data-kind='file'] .fx-fd-fold {
+  stroke-width: 4;
+  stroke: var(--text-tertiary);
+}
+
+/* The site icon a namespace's folder wears, and the kind a file wears: only
+   where the glyph is large enough to carry them. */
+.fx-fd-badge,
+.fx-fd-ext {
+  display: none;
+}
+
+/* A small folder that has a site icon shows the icon over its corner,
+   ringed in the row's own tone so the two read as a folder with a badge
+   rather than as one muddled shape. A namespace with no site icon would get
+   a letter tile there, too small to read, so it shows the folder alone. */
+.fx-fd-place .fx-fd-badge,
+.fx-fd-cell .fx-fd-badge {
+  display: block;
+  position: absolute;
+  right: -5px;
+  bottom: -4px;
+  transform: scale(0.72);
+  transform-origin: bottom right;
+}
+
+.fx-fd-place .fx-fd-badge .fx-favicon,
+.fx-fd-cell .fx-fd-badge .fx-favicon {
+  box-shadow: 0 0 0 2px var(--surface-subtle);
+}
+
+.fx-fd-cell .fx-fd-badge .fx-favicon {
+  box-shadow: 0 0 0 2px var(--bg-secondary);
+}
+
+.fx-fd-place .fx-favicon[data-state='letter'],
+.fx-fd-cell .fx-favicon[data-state='letter'] {
+  display: none;
+}
+
+.fx-fd-place .fx-fd-glyph {
+  margin-right: 2px;
+}
+
+/* ---------- Files: the icon grid ---------- */
+
+.fx-fd-grid {
+  list-style: none;
+  margin: 0;
+  padding: 12px 12px 18px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(132px, 1fr));
+  gap: 4px;
+}
+
+.fx-fd-item {
+  min-width: 0;
+}
+
+.fx-fd-tile {
+  position: relative;
+  box-sizing: border-box;
+  height: 100%;
+  /* A size container, so the kind label on a file can be as wide as its
+     tile rather than as its icon. */
+  container-type: inline-size;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  padding: 12px 8px 10px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  color: var(--text-primary);
+  text-align: center;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 0.12s ease, border-color 0.12s ease;
+}
+
+a.fx-fd-tile:hover,
+label.fx-fd-tile:hover {
+  background: var(--fx-stripe-hover);
+}
+
+a.fx-fd-tile[data-current],
+a.fx-fd-tile[data-current]:hover,
+label.fx-fd-tile[data-selected],
+label.fx-fd-tile[data-selected]:hover {
+  background: var(--accent-soft);
+  border-color: var(--accent-soft-border);
+}
+
+.fx-fd-tile:focus-visible {
+  outline: 2px solid var(--text-accent);
+  outline-offset: -2px;
+}
+
+.fx-fd-tile[data-skeleton] {
+  cursor: default;
+}
+
+.fx-fd-tile .fx-fd-glyph {
+  margin-bottom: 3px;
+}
+
+.fx-fd-tile .fx-fd-glyph[data-kind='folder'] {
+  width: 64px;
+}
+
+.fx-fd-tile .fx-fd-glyph[data-kind='file'] {
+  width: 46px;
+}
+
+.fx-fd-tile .fx-fd-glyph[data-kind='file'] .fx-fd-page,
+.fx-fd-tile .fx-fd-glyph[data-kind='file'] .fx-fd-fold {
+  stroke-width: 1.5;
+  stroke: var(--border-strong);
+}
+
+.fx-fd-tile .fx-fd-badge {
+  display: block;
+  position: absolute;
+  left: 50%;
+  top: 62%;
+  transform: translate(-50%, -50%) scale(1.45);
+}
+
+/* A file's kind is the last segment of its lexicon, and those run long
+   (`threadgate`, `agentAssignment`). The label is stuck across the foot of
+   the page like a tag and may be as wide as the tile, not just the page, so
+   it is only cut short when the tile itself can't hold it. */
+.fx-fd-tile .fx-fd-ext {
+  display: block;
+  position: absolute;
+  left: 50%;
+  bottom: 14%;
+  width: max-content;
+  max-width: 100cqw;
+  box-sizing: border-box;
+  padding: 1px 4px;
+  transform: translateX(-50%);
+  border-radius: 4px;
+  background: var(--accent-soft);
+  color: var(--accent-soft-fg);
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 600;
+  line-height: 1.35;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fx-fd-name {
+  max-width: 100%;
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  font-weight: 500;
+  line-height: 1.3;
+  color: var(--text-primary);
+  overflow-wrap: anywhere;
+}
+
+.fx-fd-cap {
+  max-width: 100%;
+  overflow: hidden;
+  font-size: 12px;
+  line-height: 1.35;
+  color: var(--text-secondary);
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.fx-fd-cap:empty {
+  display: none;
+}
+
+.fx-fd-meta {
+  font-size: 11.5px;
+  color: var(--text-tertiary);
+  font-variant-numeric: tabular-nums;
+}
+
+.fx-fd-check {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  cursor: pointer;
+  accent-color: var(--accent-moss);
+}
+
+/* ---------- Files: the list ----------
+   Folders and files in the record list's own table. A folder's row leads
+   with its glyph; a record's key wears a file glyph of its own. */
+
+.fx-fd-cell {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+}
+
+.fx-fd-cell .fx-rec-key {
+  padding: 0;
+}
+
+.fx-wb[data-mode='files'] .fx-rec-item > .fx-rec-row > .fx-rec-key::before {
+  content: '';
+  display: inline-block;
+  width: 11px;
+  height: 14px;
+  margin-right: 8px;
+  vertical-align: -2px;
+  background: var(--text-tertiary);
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 60'%3E%3Cpath fill='none' stroke='%23000' stroke-width='5' stroke-linejoin='round' d='M5 6a5 5 0 0 1 5-5h19.3l13.7 13.7V54a5 5 0 0 1-5 5H10a5 5 0 0 1-5-5ZM30 1.6V14h12.4'/%3E%3C/svg%3E")
+    center / contain no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 60'%3E%3Cpath fill='none' stroke='%23000' stroke-width='5' stroke-linejoin='round' d='M5 6a5 5 0 0 1 5-5h19.3l13.7 13.7V54a5 5 0 0 1-5 5H10a5 5 0 0 1-5-5ZM30 1.6V14h12.4'/%3E%3C/svg%3E")
+    center / contain no-repeat;
+}
+
+/* ---------- Files: the path bar ----------
+   Every folder from the PDS to what's open, under the pane. Scrolls
+   sideways rather than wrapping: it is one line by nature. */
+
+.fx-fd-path {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  min-height: 31px;
+  padding: 3px 12px;
+  box-sizing: border-box;
+  border-top: 1px solid var(--border-medium);
+  background: var(--surface-subtle);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  overflow-x: auto;
+  white-space: nowrap;
+  scrollbar-width: none;
+}
+
+.fx-fd-path::-webkit-scrollbar {
+  display: none;
+}
+
+.fx-fd-crumb {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 6px;
+  border-radius: 5px;
+  color: var(--text-secondary);
+  text-decoration: none;
+}
+
+a.fx-fd-crumb:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+.fx-fd-crumb[aria-current='page'] {
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.fx-fd-crumb:focus-visible {
+  outline: 2px solid var(--text-accent);
+  outline-offset: -1px;
+}
+
+.fx-fd-crumb .fx-fd-glyph {
+  width: 15px;
+}
+
+.fx-fd-crumb .fx-fd-glyph[data-kind='file'] {
+  width: 10px;
+}
+
+.fx-fd-path-sep {
+  flex: none;
+  color: var(--text-faint);
+}
+
+/* ---------- Tablet ----------
+   The rail and the inspector become drawers over the list, from the left
+   and the right; the rail's behind the button at the start of the toolbar. */
+@media (max-width: 1023px) {
+  .fx-wb-body,
+  .fx-wb[data-inspect] .fx-wb-body,
+  .fx-wb[data-wide] .fx-wb-body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .fx-wb-main {
+    grid-column: 1;
+  }
+
+  .fx-wb-rail,
+  .fx-wb-insp,
+  .fx-wb[data-norail] .fx-wb-rail {
+    grid-column: auto;
+    grid-row: auto;
+    display: flex;
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    visibility: hidden;
+    box-shadow: var(--shadow-overlay);
+    transition:
+      transform 0.26s var(--ease-soft),
+      visibility 0s linear 0.26s;
+  }
+
+  .fx-wb-rail,
+  .fx-wb[data-norail] .fx-wb-rail {
+    z-index: 22;
+    left: 0;
+    width: min(320px, 88%);
+    transform: translateX(-102%);
+  }
+
+  .fx-wb-insp {
+    z-index: 20;
+    right: 0;
+    width: min(540px, 94%);
+    transform: translateX(102%);
+  }
+
+  .fx-wb[data-rail] .fx-wb-rail,
+  .fx-wb[data-inspect] .fx-wb-insp {
+    visibility: visible;
+    transform: none;
+    transition: transform 0.26s var(--ease-soft);
+  }
+
+  .fx-wb-done {
+    display: inline-flex;
+  }
+
+  /* A drawer already has the width it can have. */
+  .fx-wb-widen {
+    display: none;
+  }
+
+  .fx-wb-scrim {
+    display: block;
+    position: absolute;
+    inset: 0;
+    z-index: 15;
+    background: var(--modal-backdrop);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+  }
+
+  .fx-wb[data-rail] .fx-wb-scrim,
+  .fx-wb[data-inspect] .fx-wb-scrim {
+    opacity: 0.55;
+    pointer-events: auto;
+  }
+}
+
+/* The Files view has two switches in its toolbar. Between a phone and a
+   small desktop they leave the breadcrumb too little room, so it takes a
+   line of its own above them. */
+@media (min-width: 641px) and (max-width: 900px) {
+  .fx-wb[data-mode='files'] .fx-wb-toolbar {
+    flex-wrap: wrap;
+  }
+
+  .fx-wb[data-mode='files'] .fx-wb-path {
+    flex: 1 1 calc(100% - 60px);
+  }
+
+  .fx-wb[data-mode='files'] .fx-wb-toolbar-end {
+    flex: 1 1 100%;
+    justify-content: space-between;
+  }
+}
+
+/* ---------- Phones ----------
+   The header gives way here, so the toolbar is the top of the screen: the
+   breadcrumb, then the view switch. The rail opens from the bottom toolbar
+   (ExploreChromeBar), which also carries the list's filter, and the rail and
+   an open record are sheets that rise out of it. */
+@media (max-width: 640px) {
+  .fx-viewbar {
+    margin-top: 12px;
+  }
+
+  .fx-wb-toolbar {
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: calc(12px + env(safe-area-inset-top, 0px)) 14px 10px;
+    background: var(--bg-primary);
+  }
+
+  .fx-wb-rail-toggle {
+    display: none;
+  }
+
+  .fx-wb-path {
+    flex: 1 1 100%;
+  }
+
+  .fx-wb-path .fx-crumbs {
+    flex-wrap: wrap;
+  }
+
+  .fx-wb-toolbar-end {
+    flex: 1 1 100%;
+    flex-wrap: wrap;
+    justify-content: space-between;
+  }
+
+  .fx-wb-pane-head {
+    padding: 10px 14px;
+  }
+
+  /* The breadcrumb just above already ends on this pane's name, so the
+     name isn't said twice in the first screen of a phone. A pane whose head
+     held nothing else goes with it. */
+  .fx-wb-pane-head[data-crumbed] .fx-title-row,
+  .fx-wb-pane-head[data-crumbed='only'] {
+    display: none;
+  }
+
+  /* The filter is in the bottom toolbar here, with its tally, so the row
+     that held it in the pane has nothing left to show. */
+  .fx-wb-records .fx-records-tools {
+    display: none;
+  }
+
+  .fx-wb-page-inner {
+    padding: 14px 14px 28px;
+  }
+
+  /* Sheets: standing on the toolbar (the shell ends where it starts),
+     rising out of it, and capped so the list still shows above. */
+  .fx-wb-rail,
+  .fx-wb-insp,
+  .fx-wb[data-norail] .fx-wb-rail {
+    top: auto;
+    left: 0;
+    right: 0;
+    width: auto;
+    border: 0;
+    border-top: 1px solid var(--border-medium);
+    border-radius: 18px 18px 0 0;
+    box-shadow: 0 -10px 30px rgb(0 0 0 / 0.12);
+    transform: translateY(102%);
+    overflow: hidden;
+  }
+
+  /* The rail's sheet is as tall as what's in it, up to most of the screen;
+     its lists then give way and scroll. */
+  .fx-wb-rail,
+  .fx-wb[data-norail] .fx-wb-rail {
+    max-height: 85%;
+  }
+
+  .fx-wb-tree,
+  .fx-wb-tree > .fx-tree-pane,
+  .fx-wb .fx-wb-tree .fx-tree-scroll,
+  .fx-fd-side {
+    flex: 0 1 auto;
+  }
+
+  .fx-wb-insp {
+    height: 92%;
+  }
+
+  .fx-wb-grab {
+    display: block;
+    flex: none;
+    width: 36px;
+    height: 5px;
+    margin: 8px auto 0;
+    border-radius: var(--radius-pill);
+    background: var(--border-strong);
+  }
+
+  .fx-wb-acct {
+    padding-top: 8px;
+  }
+
+  .fx-wb-view,
+  .fx-fd-place {
+    min-height: 42px;
+    font-size: 14px;
+  }
+
+  .fx-fd-grid {
+    grid-template-columns: repeat(auto-fill, minmax(104px, 1fr));
+    padding: 8px 8px 16px;
+  }
+
+  .fx-fd-path {
+    display: none;
+  }
+
+  .fx-wb-insp-body {
+    padding: 12px;
+  }
+}
+
+@media (pointer: coarse) {
+  .fx-wb-icon {
+    width: 36px;
+    height: 36px;
+  }
+
+  .fx-wb-view,
+  .fx-fd-place {
+    min-height: 40px;
+  }
+
+  /* The site's segmented control is 28px, sized for a pointer. These three
+     are the way between views and between a record's sections, so on touch
+     they grow to a comfortable tap. */
+  .fx-wb-toolbar .fn-segmented-option,
+  .fx-wb-insp-bar .fn-segmented-option,
+  .fx-viewbar .fn-segmented-option {
+    height: 34px;
+  }
+
+  .fx-fd-crumb {
+    min-height: 32px;
+  }
+
+  .fx-wb-rec .fn-rec-actions .fn-rec-btn {
+    min-width: 36px;
+    height: 36px;
+  }
+}
+
+[data-reduce-motion='true'] .fx-wb-rail,
+[data-reduce-motion='true'] .fx-wb-insp,
+[data-reduce-motion='true'] .fx-wb-scrim {
+  transition: none !important;
+}

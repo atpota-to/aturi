@@ -32,7 +32,7 @@ struct LexiconDetailView: View {
                 chartCard
                 if let notice = model.noActivityMessage {
                     Text(notice)
-                        .font(.footnote)
+                        .font(AturiFont.footnote)
                         .foregroundStyle(theme.textTertiary)
                         .fixedSize(horizontal: false, vertical: true)
                 }
@@ -164,6 +164,7 @@ struct LexiconDetailView: View {
                 .foregroundStyle(theme.textTertiary)
             Text(tile.valueLabel)
                 .font(AturiFont.title)
+                .tracking(AturiFont.titleTracking)
                 .monospacedDigit()
                 .foregroundStyle(theme.textPrimary)
             DeltaText(pct: tile.deltaPct, showsNew: false)
@@ -233,7 +234,7 @@ struct LexiconDetailView: View {
                 ActivityBars(data: model.series, label: model.chartTitle)
             } else {
                 Text(LexiconDetailModel.chartEmptyMessage)
-                    .font(.footnote)
+                    .font(AturiFont.footnote)
                     .foregroundStyle(theme.textTertiary)
                     .frame(maxWidth: .infinity, minHeight: 80, alignment: .leading)
             }
@@ -247,7 +248,7 @@ struct LexiconDetailView: View {
             LexiconCardBody(state: model.siblings, skeletonRows: 4, retry: { model.reloadSections() }) { siblings in
                 if siblings.isEmpty {
                     Text(model.siblingsEmptyMessage)
-                        .font(.footnote)
+                        .font(AturiFont.footnote)
                         .foregroundStyle(theme.textTertiary)
                         .fixedSize(horizontal: false, vertical: true)
                         .padding(14)
@@ -263,7 +264,7 @@ struct LexiconDetailView: View {
                             Divider()
                             NavigationLink(value: Route.lexiconGroup(prefix: model.groupPrefix)) {
                                 Text(label)
-                                    .font(.footnote)
+                                    .font(AturiFont.footnote)
                                     .foregroundStyle(theme.textAccent)
                                     .frame(maxWidth: .infinity, alignment: .leading)
                                     .padding(.horizontal, 14)
@@ -312,7 +313,7 @@ struct LexiconDetailView: View {
                     }
                 } else {
                     Text(LexiconDetailModel.samplesEmptyMessage)
-                        .font(.footnote)
+                        .font(AturiFont.footnote)
                         .foregroundStyle(theme.textTertiary)
                         .fixedSize(horizontal: false, vertical: true)
                         .padding(14)
@@ -336,7 +337,7 @@ struct LexiconDetailView: View {
                 .truncationMode(.middle)
                 if !row.preview.isEmpty {
                     Text(row.preview)
-                        .font(.footnote)
+                        .font(AturiFont.footnote)
                         .foregroundStyle(theme.textPrimary)
                         .lineLimit(2)
                 }
@@ -383,7 +384,7 @@ struct LexiconDetailView: View {
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 10)
-            .cardBackground(cornerRadius: 10)
+            .cardBackground(cornerRadius: AturiTheme.controlRadius)
         }
     }
 

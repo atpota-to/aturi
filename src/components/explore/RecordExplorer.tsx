@@ -1,13 +1,15 @@
 'use client';
 
-import { useEffect, useMemo, useState, type CSSProperties, type ReactNode } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { FilePenLine, SearchX, TriangleAlert } from 'lucide-react';
+import { Check, Copy, Eye, EyeOff, Pencil, SearchX, TriangleAlert } from 'lucide-react';
 import { getRecord, getRecordUrl, type AtRecord } from '@/utils/atproto/pdsClient';
 import { resolveIdentifier, type IdentityBundle } from '@/utils/atproto/identity';
 import { encodeRepo } from '@/utils/atproto/urls';
 import { lexiconPathFor } from '@/utils/ufos/nsid';
+import { getMarginLexiconDisplayName, getMarginLexiconType } from '@/utils/marginLexicons';
+import { BlueskySVG } from '@/utils/waypoints';
 import AppearIn from './AppearIn';
 import Breadcrumb from './Breadcrumb';
 import CopyButton from './CopyButton';
@@ -15,8 +17,11 @@ import EngagementSidecar from './EngagementSidecar';
 import LinkifiedJson from './LinkifiedJson';
 import RecordPreview from '@/components/RecordPreview';
 import RichRecordCard, { recordHasRichCard } from './RichRecordCard';
-import BacklinksTab from './tabs/BacklinksTab';
+import BacklinksTab, { type BacklinksLauncher } from './tabs/BacklinksTab';
+import { RecordSchemaRow } from './RecordSchemaCheck';
+import { toolLinksForRecord, type ToolLink } from '@/lib/tools/recordLinks';
 import LexiconUsageCard from './lexicons/LexiconUsageCard';
+import { Segmented } from './lexicons/primitives';
 import RecordEditor from './RecordEditor';
 import { repoRecordBackend } from './recordBackend';
 import SignInPanel from './SignInPanel';
@@ -25,13 +30,16 @@ import { useChromeBarAction } from './ChromeBarContext';
 import { useOffscreen } from './useOffscreen';
 import NotFoundPanel from '@/components/NotFoundPanel';
 import SkeletonSwap from './skeletons/SkeletonSwap';
-import { RecordBodySkeleton, RecordSkeleton } from './skeletons/pages';
+import {
+  RecordBodySkeleton,
+  RecordSkeleton,
+  type RecordSkeletonShape,
+} from './skeletons/pages';
 import { useAtprotoSession } from '@/components/AtprotoSessionProvider';
 import { usePreferences } from '@/components/PreferencesProvider';
 import {
   DEFAULT_RECORD_SECTIONS,
   sectionHidden,
-  type RecordSectionId,
 } from '@/utils/exploreSections';
 import { setSectionHidden, toggleRecordDataView } from '@/utils/preferences';
 
@@ -41,9 +49,79 @@ type Props = {
   rkey: string;
 };
 
+/** The tabs a record's sections are filed under in a pane. */
+export type RecordPaneTab = 'preview' | 'record' | 'backlinks' | 'more';
+
+const PANE_TABS: { value: RecordPaneTab; label: string }[] = [
+  { value: 'preview', label: 'Preview' },
+  { value: 'record', label: 'Record' },
+  { value: 'backlinks', label: 'Backlinks' },
+  { value: 'more', label: 'More' },
+];
+
+/**
+ * Which tab a section (by its slot id below) is filed under. Engagement
+ * counts sit under the rich preview when the record has one, as they do on
+ * the page; without one they follow the record's data, so a record with no
+ * preview never opens on a tab holding only a count that may not exist.
+ */
+function paneTabOf(slotId: string, hasPreview: boolean): RecordPaneTab {
+  if (slotId === 'richPreview') return 'preview';
+  if (slotId === 'engagement') return hasPreview ? 'preview' : 'record';
+  if (slotId === 'record') return 'record';
+  if (slotId === 'backlinks') return 'backlinks';
+  return 'more';
+}
+
+/**
+ * How the record view is hosted when it isn't the record page: as the
+ * inspector of the workbench or the Files view (workbench/ExplorerShell.tsx),
+ * beside the list the record was opened from.
+ *
+ * The page's sections are all still here, in the visitor's own order and
+ * with their own hidden ones left out; a pane files them under tabs, since
+ * it has a third of the page's width. Given the main width (`wide`) it lays
+ * them out as the page does.
+ */
+export type RecordPaneOptions = {
+  /** Stepping, widening and closing, drawn by the host in the pane's head. */
+  controls: ReactNode;
+  /** The pane has the main width: the page's two columns, not tabs. */
+  wide: boolean;
+  /** The open tab, held by the host so it survives stepping to another record. */
+  tab: RecordPaneTab;
+  onTab: (tab: RecordPaneTab) => void;
+  /** The record as the list already holds it, shown while the fresh read lands. */
+  seed?: AtRecord | null;
+  /** The record was deleted in the editor; the page would leave for the collection. */
+  onDeleted: () => void;
+  /**
+   * The host lists what links to the record in its main pane. The backlinks
+   * card then names the relationships and links each to its list there,
+   * rather than listing the records in a third of the page's width.
+   */
+  links?: BacklinksLauncher | null;
+};
+
+/** One record, as a pane. See {@link RecordPaneOptions}. */
+export function RecordPane({
+  identity,
+  collection,
+  rkey,
+  ...pane
+}: { identity: IdentityBundle; collection: string; rkey: string } & RecordPaneOptions) {
+  return <RecordView identity={identity} collection={collection} rkey={rkey} pane={pane} />;
+}
+
 export default function RecordExplorer({ repo, collection, rkey }: Props) {
   const [identity, setIdentity] = useState<IdentityBundle | null>(null);
   const [identityError, setIdentityError] = useState<string | null>(null);
+  const { prefs, loading: prefsLoading } = usePreferences();
+  const skeletonShape = recordSkeletonShape(
+    collection,
+    decodeRkey(rkey),
+    sectionHidden(prefsLoading ? DEFAULT_RECORD_SECTIONS : prefs.recordSections, 'richPreview'),
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -64,16 +142,17 @@ export default function RecordExplorer({ repo, collection, rkey }: Props) {
   if (identityError) {
     return (
       <NotFoundPanel
-        eyebrow="Couldn't resolve"
-        headline="That handle didn't resolve."
-        body={`We tried to resolve "${repo}" and the AT Protocol resolver returned: ${identityError}. Try another handle, DID, or AT URI below.`}
+        eyebrow="Couldn’t resolve"
+        headline="That handle didn’t resolve."
+        body={`We couldn’t find an account for “${repo}”. Check the spelling, or try a DID or an at:// URI below.`}
+        details={identityError}
         initialQuery={repo}
       />
     );
   }
 
   return (
-    <SkeletonSwap loading={!identity} skeleton={<RecordSkeleton />}>
+    <SkeletonSwap loading={!identity} skeleton={<RecordSkeleton shape={skeletonShape} />}>
       {identity && (
         <RecordView identity={identity} collection={collection} rkey={rkey} />
       )}
@@ -90,30 +169,30 @@ function RecordView({
   identity,
   collection,
   rkey,
+  pane,
 }: {
   identity: IdentityBundle;
   collection: string;
   rkey: string;
+  /** Set when hosted as a pane; the record page leaves it out. */
+  pane?: RecordPaneOptions;
 }) {
   const router = useRouter();
-  const [record, setRecord] = useState<AtRecord | null>(null);
+  // Only the seed a pane mounted with counts: the host makes a new pane for
+  // each record, and a later render's copy must not restart the read below.
+  const [seed] = useState<AtRecord | null>(pane?.seed ?? null);
+  const [record, setRecord] = useState<AtRecord | null>(seed);
   const [recordError, setRecordError] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
   const { agent, did: signedInDid, session } = useAtprotoSession();
   const { prefs, update: updatePrefs, loading: prefsLoading } = usePreferences();
 
-  const decodedRkey = useMemo(() => {
-    try {
-      return decodeURIComponent(rkey);
-    } catch {
-      return rkey;
-    }
-  }, [rkey]);
+  const decodedRkey = useMemo(() => decodeRkey(rkey), [rkey]);
 
   // The in-page "Edit record" chip, watched so the chrome bar can offer the
   // same action exactly while it isn't on screen. Its place on the page is
   // the visitor's choice (Settings → Sections), so it could be anywhere.
-  const [editChipEl, setEditChipEl] = useState<HTMLDivElement | null>(null);
+  const [editChipEl, setEditChipEl] = useState<HTMLButtonElement | null>(null);
   const editChipOffscreen = useOffscreen(editChipEl);
   // Resolved up here — ahead of the early returns below — so the chrome-bar
   // hook runs on every render.
@@ -136,7 +215,8 @@ function RecordView({
 
   useEffect(() => {
     let cancelled = false;
-    setRecord(null);
+    // A seeded pane keeps showing what its list held until the read lands.
+    if (!seed) setRecord(null);
     setRecordError(null);
     getRecord(identity.pds, {
       repo: identity.did,
@@ -152,9 +232,12 @@ function RecordView({
     return () => {
       cancelled = true;
     };
-  }, [identity, collection, decodedRkey]);
+  }, [identity, collection, decodedRkey, seed]);
 
   const atUri = `at://${identity.did}/${collection}/${decodedRkey}`;
+  // Only while the pane sits beside the host's main pane: given the full
+  // width it covers that pane, and lists the linking records itself.
+  const launcher = pane && !pane.wide ? pane.links : null;
   const repoSeg = encodeRepo(identity.handle || identity.did);
   const isPost = collection === 'app.bsky.feed.post';
   const hasRichCard = recordHasRichCard(collection, decodedRkey);
@@ -182,42 +265,91 @@ function RecordView({
     rkey: decodedRkey,
   });
 
-  // Edit affordance is a standalone chip rendered beneath the view sections —
-  // the sections are independently toggleable, so the button can't live inside
-  // any one of them (it would vanish when that section is hidden).
-  const editButton =
-    canEdit && !editing ? (
-      <button
-        type="button"
-        onClick={() => setEditing(true)}
-        style={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: '0.4rem',
-          padding: '0.4rem 0.75rem',
-          background: 'var(--accent-moss)',
-          color: 'var(--text-on-accent)',
-          border: '1px solid var(--accent-moss)',
-          fontFamily: 'var(--font-serif)',
-          fontSize: '0.8125rem',
-          cursor: 'pointer',
-        }}
-      >
-        <FilePenLine size={12} /> Edit record
-      </button>
-    ) : null;
+  const recordLabel = recordTypeLabel(collection);
 
+  const kindPill = recordLabel && (
+    <span className="fn-rec-pill">
+      {recordLabel.bluesky && (
+        <span aria-hidden className="fn-rec-pill-icon">
+          <BlueskySVG />
+        </span>
+      )}
+      {recordLabel.text}
+    </span>
+  );
+  const titleActions = (
+    <div className="fn-rec-actions">
+      <CopyTextButton value={atUri} label="Copy at:// URI" />
+      {/* The Edit button stays watched (setEditChipEl) so the chrome bar
+          offers the same action exactly while it isn't on screen. */}
+      {canEdit && !editing && (
+        <button
+          ref={setEditChipEl}
+          type="button"
+          className="fn-rec-btn"
+          onClick={() => setEditing(true)}
+          title="Edit this record"
+        >
+          <Pencil size={14} aria-hidden /> Edit
+        </button>
+      )}
+    </div>
+  );
   const breadcrumb = (
     <AppearIn rise>
-      <Breadcrumb
-        handle={identity.handle}
-        did={identity.did}
-        pds={identity.pds}
-        collection={collection}
-        rkey={decodedRkey}
-      />
+      <div className="fn-rec-titlebar">
+        <div className="fn-rec-titletext">
+          <Breadcrumb
+            handle={identity.handle}
+            did={identity.did}
+            pds={identity.pds}
+            collection={collection}
+            rkey={decodedRkey}
+            titled
+            flush
+          />
+          <div className="fn-rec-titlerow">
+            <h1 className="fn-rec-h1">{decodedRkey}</h1>
+            {kindPill}
+          </div>
+        </div>
+        {titleActions}
+      </div>
     </AppearIn>
   );
+
+  // The frame around whichever body is showing. The page leads with the
+  // breadcrumb and title bar; a pane has the host's breadcrumb above it, so
+  // it leads with the record key and the host's controls, keeps `bar` (the
+  // tabs, with the actions beside them) in place and scrolls the body under
+  // them.
+  const frame = (body: ReactNode, bar?: ReactNode) =>
+    pane ? (
+      <div className="fn-rec fx-wb-rec" data-wide={pane.wide || undefined}>
+        <div className="fx-wb-insp-head">
+          <h2 className="fx-wb-insp-rkey" title={decodedRkey}>
+            {decodedRkey}
+          </h2>
+          {kindPill}
+          {/* With no tabs for them to sit beside, the actions join the
+              head rather than hold a row of their own. */}
+          {!bar && titleActions}
+          <div className="fx-wb-insp-ctl">{pane.controls}</div>
+        </div>
+        {bar && (
+          <div className="fx-wb-insp-bar">
+            {bar}
+            {titleActions}
+          </div>
+        )}
+        <div className="fx-wb-insp-body">{body}</div>
+      </div>
+    ) : (
+      <div className="fn-rec">
+        {breadcrumb}
+        {body}
+      </div>
+    );
   const copyRowNode = (
     <CopyRow
       atUri={atUri}
@@ -227,39 +359,20 @@ function RecordView({
       universalPath={aturiUniversalPath}
       recordJson={record ? JSON.stringify(record, null, 2) : null}
       pdsRecordUrl={pdsRecordUrl}
+      toolLinks={toolLinksForRecord(collection, atUri, decodedRkey)}
     />
   );
   const signInNode = !session ? (
-    <div
-      style={{
-        padding: '0.875rem 1rem',
-        border: '1px solid var(--border-medium)',
-        background: 'var(--bg-secondary)',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '0.5rem',
-      }}
-    >
-      <p style={{ margin: 0, fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
-        Sign in with your handle to edit your own records.
-      </p>
+    <div className="fn-rec-card fn-rec-signin">
+      <p>Sign in with your handle to edit your own records.</p>
       <SignInPanel defaultInput={identity.handle || ''} />
-    </div>
-  ) : null;
-  const editChipNode = editButton ? (
-    <div
-      ref={setEditChipEl}
-      style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', alignItems: 'center' }}
-    >
-      {editButton}
     </div>
   ) : null;
 
   // Load error: error panel + the helper sections that still make sense.
   if (recordError) {
-    return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-        {breadcrumb}
+    return frame(
+      <div className="fn-rec-stack">
         <AppearIn delay={0.05}>
           <RecordErrorPanel
             raw={recordError}
@@ -269,20 +382,18 @@ function RecordView({
           />
         </AppearIn>
         <AppearIn delay={0.07}>
-          <BacklinksTab target={atUri} showSummary />
+          <BacklinksTab target={atUri} showSummary launcher={launcher} />
         </AppearIn>
         <AppearIn delay={0.09}>{copyRowNode}</AppearIn>
-        {editChipNode && <AppearIn delay={0.1}>{editChipNode}</AppearIn>}
         {signInNode && <AppearIn delay={0.11}>{signInNode}</AppearIn>}
-      </div>
+      </div>,
     );
   }
 
   // Edit mode: the editor takes the whole body; keep the copy row handy.
   if (editing && canEdit && backend) {
-    return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-        {breadcrumb}
+    return frame(
+      <div className="fn-rec-stack">
         <AppearIn delay={0.05}>
           <RecordEditor
             backend={backend}
@@ -293,43 +404,130 @@ function RecordView({
             }}
             onDeleted={() => {
               setEditing(false);
-              router.push(`/explore/${repoSeg}/${collection}`);
+              // A pane's host closes it and drops the row from its list.
+              if (pane) pane.onDeleted();
+              else router.push(`/explore/${repoSeg}/${collection}`);
             }}
             onCancel={() => setEditing(false)}
           />
         </AppearIn>
         <AppearIn delay={0.07}>{copyRowNode}</AppearIn>
-      </div>
+      </div>,
     );
   }
 
-  // Read mode: render the user's sections in their chosen order. The three
-  // data views (card / field table / raw JSON) keep their inline switch
-  // present even when collapsed, so they can be re-shown right on the page;
-  // helper sections simply disappear when hidden (re-show via Settings).
+  // Read mode: the user's sections in their chosen order, split over two
+  // columns. The record itself takes the wide column: the preview, then the
+  // Record card (field table and raw JSON behind one Fields/JSON switch),
+  // where long values have room, then engagement and sign-in. What sits
+  // around the record takes the aside: the copy row, lexicon usage and
+  // backlinks. Which app to open it in is the universal link page's job,
+  // which the copy row and the rich card link to.
   //
-  // Null until the record lands — the breadcrumb below is already real by
+  // Null until the record lands — the title bar above is already real by
   // then, so only the body waits, behind <RecordBodySkeleton>.
   const recordForPreview = record
     ? { uri: record.uri, cid: record.cid, value: record.value }
     : null;
-  const sectionRenderers: Record<RecordSectionId, () => ReactNode> | null =
-    record && recordForPreview
-      ? {
-        richPreview: () =>
-          !hasRichCard ? null : (
-            <div style={sectionGroupStyle}>
+  const recordCard =
+    record && recordForPreview ? (
+      <section className="fn-rec-card fn-rec-data" aria-labelledby="fn-rec-data-title">
+        <div className="fn-rec-data-head">
+          <h2 id="fn-rec-data-title" className="fn-rec-h2">
+            Record
+          </h2>
+          {/* Two toggles, not a switch: both views can be on at once (only
+              hiding both is refused), so each is a chip with the site's "on"
+              fill and a check, like a copied chip. */}
+          <div role="group" aria-label="Record view" className="fn-rec-seg">
+            <button
+              type="button"
+              aria-pressed={!structuredHidden}
+              onClick={() => updatePrefs((p) => toggleRecordDataView(p, 'structuredJson'))}
+            >
+              {!structuredHidden && <Check size={12} aria-hidden />}
+              Fields
+            </button>
+            <button
+              type="button"
+              aria-pressed={!rawHidden}
+              onClick={() => updatePrefs((p) => toggleRecordDataView(p, 'rawJson'))}
+            >
+              {!rawHidden && <Check size={12} aria-hidden />}
+              JSON
+            </button>
+          </div>
+        </div>
+        <dl className="fn-rec-ids">
+          <dt>URI</dt>
+          <dd>
+            <span className="fn-rec-ids-value" title={atUri}>
+              {atUri}
+            </span>
+            <CopyButton value={atUri} label="Copy at:// URI" compact variant="subtle" iconOnly />
+          </dd>
+          {record.cid && (
+            <>
+              <dt>CID</dt>
+              <dd>
+                <span className="fn-rec-ids-value" title={record.cid}>
+                  {record.cid}
+                </span>
+                <CopyButton value={record.cid} label="Copy CID" compact variant="subtle" iconOnly />
+              </dd>
+            </>
+          )}
+          <RecordSchemaRow
+            record={record.value}
+            collection={collection}
+            rkey={decodedRkey}
+            atUri={atUri}
+          />
+        </dl>
+        {!structuredHidden && (
+          <RecordPreview
+            record={recordForPreview}
+            collection={collection}
+            handle={identity.handle || identity.did}
+            rkey={decodedRkey}
+            pds={identity.pds}
+            hideExplorerCtas
+          />
+        )}
+        {!rawHidden && (
+          <div className="fn-rec-json">
+            <LinkifiedJson value={record} className="explore-json" />
+          </div>
+        )}
+      </section>
+    ) : null;
+
+  type Placed = { id: string; column: 'main' | 'aside'; node: ReactNode };
+  const placed: Placed[] = [];
+  if (record && recordForPreview) {
+    let recordPlaced = false;
+    for (const { id, hidden } of recordSections) {
+      if (id === 'richPreview') {
+        if (!hasRichCard) continue;
+        placed.push({
+          id,
+          column: 'main',
+          node: (
+            <div className="fn-rec-group">
               {!cardHidden && (
-                <RichRecordCard
-                  handle={identity.handle || identity.did}
-                  did={identity.did}
-                  collection={collection}
-                  rkey={decodedRkey}
-                  record={record}
-                  identity={identity}
-                />
+                <div className="fn-rec-preview">
+                  <RichRecordCard
+                    handle={identity.handle || identity.did}
+                    did={identity.did}
+                    collection={collection}
+                    rkey={decodedRkey}
+                    record={record}
+                    identity={identity}
+                  />
+                </div>
               )}
               <ViewSwitchButton
+                showing={!cardHidden}
                 label={cardHidden ? 'Show rich preview' : 'Hide rich preview'}
                 onToggle={() =>
                   updatePrefs((p) => setSectionHidden(p, 'record', 'richPreview', !cardHidden))
@@ -337,142 +535,223 @@ function RecordView({
               />
             </div>
           ),
-        structuredJson: () => (
-          <div style={sectionGroupStyle}>
-            {!structuredHidden && (
-              <RecordPreview
-                record={recordForPreview}
-                collection={collection}
-                handle={identity.handle || identity.did}
-                rkey={decodedRkey}
-                pds={identity.pds}
-                hideExplorerCtas
-              />
-            )}
-            <ViewSwitchButton
-              label={structuredHidden ? 'Show rich JSON preview' : 'Hide rich JSON preview'}
-              onToggle={() => updatePrefs((p) => toggleRecordDataView(p, 'structuredJson'))}
+        });
+      } else if (id === 'structuredJson' || id === 'rawJson') {
+        // Both data views live in the one Record card, placed where the
+        // first of them sits in the visitor's order.
+        if (recordPlaced) continue;
+        recordPlaced = true;
+        placed.push({ id: 'record', column: 'main', node: recordCard });
+      } else if (!hidden) {
+        let node: ReactNode = null;
+        let column: Placed['column'] = 'main';
+        // Posts show their counts in the rich card, and so do profiles
+        // while the rich preview is open, so skip the sidecar for those.
+        const countsInCard =
+          isPost || (collection === 'app.bsky.actor.profile' && hasRichCard && !cardHidden);
+        if (id === 'engagement' && !countsInCard) {
+          node = <EngagementSidecar did={identity.did} collection={collection} atUri={atUri} />;
+        } else if (id === 'copyRow') {
+          node = copyRowNode;
+          column = 'aside';
+        } else if (id === 'lexiconUsage') {
+          node = (
+            <LexiconUsageCard
+              collection={collection === 'com.atproto.lexicon.schema' ? decodedRkey : collection}
             />
-          </div>
-        ),
-        rawJson: () => (
-          <div style={sectionGroupStyle}>
-            {!rawHidden && <LinkifiedJson value={record} className="explore-json" />}
-            <ViewSwitchButton
-              label={rawHidden ? 'Show raw JSON' : 'Hide raw JSON'}
-              onToggle={() => updatePrefs((p) => toggleRecordDataView(p, 'rawJson'))}
-            />
-          </div>
-        ),
-        engagement: () =>
-          !isPost ? (
-            <EngagementSidecar did={identity.did} collection={collection} atUri={atUri} />
-          ) : null,
-        copyRow: () => copyRowNode,
-        lexiconUsage: () => (
-          <LexiconUsageCard
-            collection={collection === 'com.atproto.lexicon.schema' ? decodedRkey : collection}
-          />
-        ),
-        backlinks: () => <BacklinksTab target={atUri} showSummary />,
-        signIn: () => signInNode,
+          );
+          column = 'aside';
+        } else if (id === 'backlinks') {
+          node = <BacklinksTab target={atUri} showSummary launcher={launcher} />;
+          column = 'aside';
+        } else if (id === 'signIn') {
+          node = signInNode;
+        }
+        if (node != null) placed.push({ id, column, node });
       }
-      : null;
+    }
+  }
+  const renderColumn = (column: Placed['column']) =>
+    placed
+      .filter((p) => p.column === column)
+      .map((p, i) => (
+        <AppearIn
+          key={p.id}
+          delay={Math.min(0.05 + i * 0.03, 0.16)}
+          className="fn-rec-slot"
+          style={{ order: SLOT_ORDER[p.id] ?? 2 + placed.indexOf(p) }}
+        >
+          {p.node}
+        </AppearIn>
+      ));
 
-  const applicable = (id: string): boolean => {
-    if (id === 'richPreview') return hasRichCard;
-    if (id === 'engagement') return !isPost;
-    if (id === 'signIn') return !session;
-    return true;
-  };
-  const DATA_VIEW_IDS = new Set(['richPreview', 'structuredJson', 'rawJson']);
+  // In a pane without the main width, the same slots are filed under tabs
+  // rather than set in two columns. Only tabs with something in them show
+  // (the visitor may have hidden a section, and not every record has a rich
+  // preview), and the open one falls back to the first that does.
+  const tabbed = Boolean(pane && !pane.wide);
+  const hasPreview = placed.some((p) => p.id === 'richPreview');
+  const paneTabs = PANE_TABS.filter((t) =>
+    placed.some((p) => paneTabOf(p.id, hasPreview) === t.value),
+  );
+  const openTab = paneTabs.some((t) => t.value === pane?.tab) ? pane?.tab : paneTabs[0]?.value;
 
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-      {breadcrumb}
-      <SkeletonSwap loading={!sectionRenderers} skeleton={<RecordBodySkeleton />}>
-        {sectionRenderers && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            {recordSections.map(({ id, hidden }, i) => {
-              if (!applicable(id)) return null;
-              // Data views keep their switch even when collapsed; hidden
-              // helpers go.
-              if (!DATA_VIEW_IDS.has(id) && hidden) return null;
-              const node = sectionRenderers[id as RecordSectionId]();
-              if (node == null) return null;
-              return (
-                <AppearIn key={id} delay={Math.min(0.05 + i * 0.02, 0.16)}>
-                  {node}
+  return frame(
+    <SkeletonSwap
+      loading={!record}
+      skeleton={
+        <RecordBodySkeleton
+          shape={recordSkeletonShape(collection, decodedRkey, cardHidden)}
+        />
+      }
+    >
+      {record &&
+        (tabbed ? (
+          <div className="fn-rec-stack">
+            {placed
+              .filter((p) => paneTabOf(p.id, hasPreview) === openTab)
+              .map((p, i) => (
+                <AppearIn key={p.id} delay={Math.min(i * 0.03, 0.12)} className="fn-rec-slot">
+                  {p.node}
                 </AppearIn>
-              );
-            })}
-            {editChipNode && <AppearIn delay={0.18}>{editChipNode}</AppearIn>}
+              ))}
           </div>
-        )}
-      </SkeletonSwap>
-    </div>
+        ) : (
+          <div className="fn-rec-body">
+            <div className="fn-rec-main">{renderColumn('main')}</div>
+            <aside className="fn-rec-aside" aria-label="Copy and links to this record">
+              {renderColumn('aside')}
+            </aside>
+          </div>
+        ))}
+    </SkeletonSwap>,
+    tabbed && pane && openTab && paneTabs.length > 1 ? (
+      <Segmented
+        ariaLabel="Record sections"
+        options={paneTabs}
+        value={openTab}
+        onChange={pane.onTab}
+      />
+    ) : null,
+  );
+}
+
+function decodeRkey(rkey: string): string {
+  try {
+    return decodeURIComponent(rkey);
+  } catch {
+    return rkey;
+  }
+}
+
+/**
+ * What the skeletons can know from the URL and the visitor's sections before
+ * anything is fetched: whether a rich card leads the page (and which kind),
+ * and whether the title carries a kind pill. Mirrors the read-mode layout
+ * below, so each skeleton holds the columns the page will fill.
+ */
+function recordSkeletonShape(
+  collection: string,
+  rkey: string,
+  cardHidden: boolean,
+): RecordSkeletonShape {
+  return {
+    richCard: recordHasRichCard(collection, rkey) && !cardHidden,
+    isPost: collection === 'app.bsky.feed.post',
+    isProfile: collection === 'app.bsky.actor.profile' && rkey === 'self',
+    pill: recordTypeLabel(collection) !== null,
+  };
+}
+
+/**
+ * Stacking order once the two columns collapse into one (phones and narrow
+ * tablets, see .fn-rec-body in record.css): the preview, then its data,
+ * then everything else in the visitor's own order (2 plus its place in that
+ * order, since those slots come from both columns). The same values order
+ * the slots within each column on wider screens.
+ */
+const SLOT_ORDER: Record<string, number> = { richPreview: 0, record: 1 };
+
+/**
+ * The pill beside the rkey: what kind of record this is, in words, for the
+ * collections the site knows how to name. Others get no pill; the
+ * breadcrumb already names their collection.
+ */
+function recordTypeLabel(collection: string): { text: string; bluesky: boolean } | null {
+  const bsky: Record<string, string> = {
+    'app.bsky.feed.post': 'Bluesky post',
+    'app.bsky.actor.profile': 'Bluesky profile',
+    'app.bsky.feed.like': 'Bluesky like',
+    'app.bsky.feed.repost': 'Bluesky repost',
+    'app.bsky.graph.follow': 'Bluesky follow',
+    'app.bsky.graph.list': 'Bluesky list',
+    'app.bsky.graph.block': 'Bluesky block',
+    'app.bsky.feed.generator': 'Bluesky feed',
+  };
+  if (bsky[collection]) return { text: bsky[collection], bluesky: true };
+  if (getMarginLexiconType(collection)) {
+    return { text: getMarginLexiconDisplayName(collection), bluesky: false };
+  }
+  return null;
+}
+
+/**
+ * "Copy at:// URI" in the title bar: a full-size button with a label, which
+ * the compact copy chips elsewhere on the page are not.
+ */
+function CopyTextButton({ value, label }: { value: string; label: string }) {
+  const [copied, setCopied] = useState(false);
+  async function onClick() {
+    try {
+      await navigator.clipboard.writeText(value);
+    } catch {
+      return;
+    }
+    setCopied(true);
+    window.setTimeout(() => setCopied(false), 1400);
+  }
+  return (
+    <button
+      type="button"
+      className="fn-rec-btn"
+      onClick={onClick}
+      data-copied={copied || undefined}
+      aria-label={copied ? `${label}: copied` : label}
+    >
+      {copied ? <Check size={14} aria-hidden /> : <Copy size={14} aria-hidden />}
+      {copied ? 'Copied' : label}
+    </button>
   );
 }
 
 /**
- * A section + its view-switch share a tight vertical group (0.5rem) so the
- * toggle reads as belonging to the content directly above it, while groups sit
- * a full 1rem apart from each other in the page column.
- */
-const sectionGroupStyle: CSSProperties = {
-  display: 'flex',
-  flexDirection: 'column',
-  gap: '0.5rem',
-};
-
-/**
- * Quiet text toggle sitting beneath each record-body section (rich preview
- * card, rich JSON preview, raw JSON). Mirrors the repo page's ProfileViewSwitch
- * styling; callers own the persisted pref each one flips and supply a
- * state-dependent label. `alignSelf` keeps the hit area tight to the text even
- * though the group stretches its content sections full-width.
+ * Quiet text toggle sitting beneath the rich preview card. Callers own the
+ * persisted pref it flips and supply a state-dependent label. `alignSelf`
+ * keeps the hit area tight to the text.
  */
 function ViewSwitchButton({
+  showing,
   label,
   onToggle,
 }: {
+  /** Whether the view it governs is on screen; picks the eye glyph. */
+  showing: boolean;
   label: string;
   onToggle: () => void;
 }) {
   return (
-    <button
-      type="button"
-      onClick={onToggle}
-      style={{
-        alignSelf: 'flex-start',
-        padding: 0,
-        background: 'transparent',
-        border: 0,
-        cursor: 'pointer',
-        fontFamily: 'var(--font-serif)',
-        fontSize: '0.75rem',
-        letterSpacing: '0.04em',
-        color: 'var(--text-tertiary)',
-        transition: 'color 0.2s ease',
-      }}
-      onMouseEnter={(e) => {
-        e.currentTarget.style.color = 'var(--text-accent)';
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.color = 'var(--text-tertiary)';
-      }}
-    >
+    <button type="button" onClick={onToggle} className="fn-rec-switch">
+      {showing ? <EyeOff size={13} aria-hidden /> : <Eye size={13} aria-hidden />}
       {label}
     </button>
   );
 }
 
 /**
- * Single-row of compact copy buttons for the values a record-page
- * visitor might want to grab. Replaces the older RecordMeta + per-cell
- * copy + standalone "Copy JSON" + outbound "Universal link" cluster.
- * Values themselves aren't displayed — the URI elements are in the
- * breadcrumb above, and CID/DID/PDS are visible in the raw JSON below.
+ * The values a record-page visitor might want to grab, as compact copy chips,
+ * plus the two ways out (the universal link page and the raw record on the
+ * PDS). The URI and CID also sit in the Record card with their own copy
+ * buttons; this row keeps the rest together.
  */
 function CopyRow({
   atUri,
@@ -482,6 +761,7 @@ function CopyRow({
   universalPath,
   recordJson,
   pdsRecordUrl,
+  toolLinks,
 }: {
   atUri: string;
   did: string;
@@ -493,37 +773,34 @@ function CopyRow({
   recordJson: string | null;
   /** Direct PDS XRPC URL — `View raw on PDS` lands on the raw JSON. */
   pdsRecordUrl: string;
+  /** Tools under /tools with something to say about this kind of record. */
+  toolLinks: ToolLink[];
 }) {
-  // CID intentionally omitted — the preview card's footer surfaces it
-  // visibly with click-to-copy, so a second copy chip here would
-  // duplicate the affordance.
   return (
-    <div
-      style={{
-        display: 'flex',
-        flexWrap: 'wrap',
-        alignItems: 'center',
-        gap: '0.5rem',
-        padding: '0.75rem 1rem',
-        border: '1px solid var(--border-medium)',
-        background: 'var(--bg-secondary)',
-      }}
-    >
-      <CopyButton value={atUri} label="AT URI" compact variant="subtle" />
-      <CopyButton value={did} label="DID" compact variant="subtle" />
-      <CopyButton value={pds} label="PDS" compact variant="subtle" />
-      <CopyButton value={universalLink} label="Universal link" compact variant="subtle" />
-      {recordJson && (
-        <CopyButton value={recordJson} label="JSON" compact variant="subtle" />
-      )}
-      <LinkButton href={universalPath} label="Universal link page" />
-      <LinkButton
-        href={pdsRecordUrl}
-        label="View on PDS"
-        external
-        title="Fetch the raw record JSON from the PDS"
-      />
-    </div>
+    <section className="fn-rec-card fn-rec-copy" aria-label="Copy">
+      <h2 className="fn-rec-h2">Copy</h2>
+      <div className="fn-rec-copy-chips">
+        <CopyButton value={atUri} label="AT URI" compact variant="subtle" />
+        <CopyButton value={did} label="DID" compact variant="subtle" />
+        <CopyButton value={pds} label="PDS" compact variant="subtle" />
+        <CopyButton value={universalLink} label="Universal link" compact variant="subtle" />
+        {recordJson && (
+          <CopyButton value={recordJson} label="JSON" compact variant="subtle" />
+        )}
+      </div>
+      <div className="fn-rec-copy-links">
+        <LinkButton href={universalPath} label="Universal link page" />
+        <LinkButton
+          href={pdsRecordUrl}
+          label="View on PDS"
+          external
+          title="Fetch the raw record JSON from the PDS"
+        />
+        {toolLinks.map((tool) => (
+          <LinkButton key={tool.slug} href={tool.href} label={tool.label} title={tool.title} />
+        ))}
+      </div>
+    </section>
   );
 }
 
@@ -611,60 +888,15 @@ function RecordErrorPanel({
   }
 
   return (
-    <div
-      style={{
-        border: '1px solid var(--border-medium)',
-        background: 'var(--bg-secondary)',
-        padding: '1.5rem 1.25rem',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '0.6rem',
-      }}
-    >
-      <div
-        className="explore-small-caps"
-        style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
-      >
-        <Icon size={13} aria-hidden style={{ color: 'var(--text-accent)' }} />
+    <div className="fn-rec-card fn-rec-error">
+      <div className="fn-rec-error-kicker">
+        <Icon size={14} aria-hidden />
         {notFound ? 'Not found' : 'Error'}
       </div>
-      <h2
-        style={{
-          margin: 0,
-          fontFamily: 'var(--font-serif)',
-          fontWeight: 400,
-          fontSize: '1.25rem',
-          color: 'var(--text-primary)',
-        }}
-      >
-        {headline}
-      </h2>
-      <p
-        style={{
-          margin: 0,
-          fontSize: '0.9rem',
-          lineHeight: 1.6,
-          color: 'var(--text-secondary)',
-          maxWidth: '42rem',
-        }}
-      >
-        {body}
-      </p>
+      <h2>{headline}</h2>
+      <p>{body}</p>
       {notFound && isSchema && (
-        <Link
-          href={lexiconPathFor(rkey)}
-          prefetch={false}
-          style={{
-            alignSelf: 'flex-start',
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '0.3rem',
-            fontSize: '0.85rem',
-            color: 'var(--text-accent)',
-            textDecoration: 'none',
-            fontFamily: 'var(--font-serif)',
-          }}
-        >
+        <Link href={lexiconPathFor(rkey)} prefetch={false} className="fn-rec-error-link">
           See how {rkey} is used across the atmosphere →
         </Link>
       )}

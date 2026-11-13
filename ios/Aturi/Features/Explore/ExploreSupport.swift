@@ -53,7 +53,7 @@ struct ExploreBreadcrumb: View {
                 ForEach(Array(segments.enumerated()), id: \.element.id) { index, segment in
                     if index > 0 {
                         Image(systemName: "chevron.right")
-                            .font(.caption2)
+                            .font(AturiFont.caption2)
                             .foregroundStyle(theme.textTertiary)
                     }
                     if index < segments.count - 1, let route = segment.route {
@@ -76,7 +76,7 @@ struct ExploreBreadcrumb: View {
         HStack(spacing: 4) {
             if let systemImage = segment.systemImage {
                 Image(systemName: systemImage)
-                    .font(.caption2)
+                    .font(AturiFont.caption2)
                     .foregroundStyle(theme.textTertiary)
             }
             Text(segment.label)
@@ -87,12 +87,12 @@ struct ExploreBreadcrumb: View {
         }
         .padding(.horizontal, 8)
         .padding(.vertical, 5)
-        .background(theme.bgTertiary, in: RoundedRectangle(cornerRadius: 6, style: .continuous))
+        .background(theme.surfaceSubtle, in: RoundedRectangle(cornerRadius: 6, style: .continuous))
     }
 }
 
 /// The explorer's "that did not resolve" panel: a small-caps eyebrow, a
-/// serif headline and the resolver's own words, with a retry when the
+/// bold headline and the resolver's own words, with a retry when the
 /// failure might be transient.
 struct ExploreNotFoundPanel: View {
     let eyebrow: String
@@ -116,9 +116,10 @@ struct ExploreNotFoundPanel: View {
                 .foregroundStyle(theme.textAccent)
             Text(headline)
                 .font(AturiFont.title)
+                .tracking(AturiFont.titleTracking)
                 .foregroundStyle(theme.textPrimary)
             Text(message)
-                .font(.footnote)
+                .font(AturiFont.footnote)
                 .foregroundStyle(theme.textSecondary)
                 .textSelection(.enabled)
                 .fixedSize(horizontal: false, vertical: true)
@@ -150,10 +151,10 @@ struct ExploreFilterField: View {
     }
 
     var body: some View {
-        let shape = RoundedRectangle(cornerRadius: 8, style: .continuous)
+        let shape = RoundedRectangle(cornerRadius: AturiTheme.controlRadius, style: .continuous)
         HStack(spacing: 8) {
             Image(systemName: "line.3.horizontal.decrease")
-                .font(.footnote)
+                .font(AturiFont.footnote)
                 .foregroundStyle(theme.textTertiary)
             TextField(placeholder, text: $text)
                 .font(AturiFont.monoSmall)
@@ -173,8 +174,8 @@ struct ExploreFilterField: View {
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 8)
-        .background(theme.bgTertiary, in: shape)
-        .overlay(shape.strokeBorder(theme.borderSubtle, lineWidth: AturiTheme.hairline(displayScale: displayScale)))
+        .background(theme.bgSecondary, in: shape)
+        .overlay(shape.strokeBorder(theme.borderMedium, lineWidth: AturiTheme.hairline(displayScale: displayScale)))
     }
 }
 
@@ -193,7 +194,7 @@ struct ExploreTextSwitch: View {
 
     var body: some View {
         Button(label, action: action)
-            .font(.caption)
+            .font(AturiFont.caption)
             .foregroundStyle(theme.textTertiary)
             .buttonStyle(.plain)
     }

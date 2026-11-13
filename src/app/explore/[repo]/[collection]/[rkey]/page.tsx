@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import RecordExplorer from '@/components/explore/RecordExplorer';
+import ExplorerRoute from '@/components/explore/workbench/ExplorerRoute';
 
 type Params = { repo: string; collection: string; rkey: string };
 
@@ -45,7 +45,7 @@ export default async function ExploreRecordPage({
 }) {
   const { repo, collection, rkey } = await params;
   return (
-    <RecordExplorer
+    <ExplorerRoute
       repo={decodeURIComponent(repo)}
       collection={decodeURIComponent(collection)}
       rkey={decodeURIComponent(rkey)}

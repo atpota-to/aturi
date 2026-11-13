@@ -1,5 +1,6 @@
+import { Suspense } from 'react';
 import type { Metadata } from 'next';
-import LexiconDetail from '@/components/explore/lexicons/LexiconDetail';
+import LexiconRoute, { LexiconRouteSkeleton } from '@/components/explore/lexicons/workbench/LexiconRoute';
 
 type Params = { nsid: string };
 
@@ -39,5 +40,9 @@ export default async function LexiconDetailPage({
   params: Promise<Params>;
 }) {
   const { nsid } = await params;
-  return <LexiconDetail nsid={decodeURIComponent(nsid)} />;
+  return (
+    <Suspense fallback={<LexiconRouteSkeleton />}>
+      <LexiconRoute nsid={decodeURIComponent(nsid)} />
+    </Suspense>
+  );
 }

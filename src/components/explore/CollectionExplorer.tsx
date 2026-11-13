@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Pause, Play, FilePenLine, X, Plus, Loader2 } from 'lucide-react';
+import Link from 'next/link';
+import { BookOpen, FilePenLine, X, Loader2, Search } from 'lucide-react';
 import { listRecordsPage, type AtRecord } from '@/utils/atproto/pdsClient';
 import {
   msUntilBudget,
@@ -15,12 +16,19 @@ import {
   createJetstreamConnection,
   type JetstreamCommit,
 } from '@/utils/atproto/jetstream';
+import { appDomainFor, groupPrefix, lexiconPathFor } from '@/utils/ufos/nsid';
+import { DEFAULT_REPO_SECTIONS, sectionHidden } from '@/utils/exploreSections';
+import { usePreferences } from '@/components/PreferencesProvider';
 import AppearIn from './AppearIn';
 import Breadcrumb from './Breadcrumb';
+import ShareLinkChip from './ShareLinkChip';
+import { AccountCard, RepoNavCard } from './RepoExplorer';
 import CollectionEditBar from './CollectionEditBar';
 import CollectionRecordRow from './CollectionRecordRow';
+import RecordFile, { RecordFileSkeleton } from './workbench/RecordFile';
 import NotFoundPanel from '@/components/NotFoundPanel';
 import SkeletonSwap from './skeletons/SkeletonSwap';
+import { replay } from '@/lib/motion';
 import { CollectionSkeleton } from './skeletons/pages';
 import { SkeletonRecordRows } from './skeletons/primitives';
 import SignInPanel from './SignInPanel';
@@ -33,7 +41,6 @@ import {
   APPLY_WRITES_MAX,
   THROTTLE_TICK_MS,
   sleep,
-  listColumns,
   formatCount,
   rateLimitResetMinutes,
 } from './collectionListHelpers';
@@ -42,6 +49,50 @@ type Props = {
   repo: string;
   collection: string;
 };
+
+/**
+ * How the record list is hosted when it isn't the collection page: as a pane
+ * of the workbench or the Files view (workbench/ExplorerShell.tsx), which
+ * draw the frame, the breadcrumb and the sidebar themselves and show the open
+ * record beside the list rather than on a page of its own.
+ */
+export type CollectionPaneOptions = {
+  /** `rows` is the record table; `icons` draws each record as a file. */
+  display: 'rows' | 'icons';
+  /** The record open beside the list, which wears the selected fill. */
+  currentRkey?: string | null;
+  /**
+   * Called when the collection turns out to hold exactly one record, where
+   * the collection page leaves for that record's page.
+   */
+  onSingleton: (rkey: string) => void;
+  /**
+   * The records on screen, in order: the host steps through them, and shows
+   * one at once when it is opened rather than reading it again first.
+   */
+  onVisibleRecords?: (records: AtRecord[]) => void;
+  /** A record deleted beside the list: its row is dropped without a refetch. */
+  removedUri?: string | null;
+  /** A file double-clicked: the host gives the record the full width. */
+  onOpenWide?: () => void;
+  /**
+   * The host is showing something else over the list (what links to the
+   * open record) and keeps the list mounted under it, so coming back finds
+   * the same rows at the same scroll. Covered, the list gives up its place
+   * in the phone toolbar: the search and Edit there would act on rows that
+   * aren't on screen.
+   */
+  covered?: boolean;
+};
+
+/** The record list of one collection, as a pane. See {@link CollectionPaneOptions}. */
+export function CollectionPane({
+  identity,
+  collection,
+  ...pane
+}: { identity: IdentityBundle; collection: string } & CollectionPaneOptions) {
+  return <CollectionList identity={identity} collection={collection} pane={pane} />;
+}
 
 export default function CollectionExplorer({ repo, collection }: Props) {
   const [identity, setIdentity] = useState<IdentityBundle | null>(null);
@@ -66,9 +117,10 @@ export default function CollectionExplorer({ repo, collection }: Props) {
   if (identityError) {
     return (
       <NotFoundPanel
-        eyebrow="Couldn't resolve"
-        headline="That handle didn't resolve."
-        body={`We tried to resolve "${repo}" and the AT Protocol resolver returned: ${identityError}. Try another handle, DID, or AT URI below.`}
+        eyebrow="Couldn’t resolve"
+        headline="That handle didn’t resolve."
+        body={`We couldn’t find an account for “${repo}”. Check the spelling, or try a DID or an at:// URI below.`}
+        details={identityError}
         initialQuery={repo}
       />
     );
@@ -83,12 +135,23 @@ export default function CollectionExplorer({ repo, collection }: Props) {
 function CollectionList({
   identity,
   collection,
+  pane,
 }: {
   identity: IdentityBundle;
   collection: string;
+  /** Set when hosted as a pane; the collection page leaves it out. */
+  pane?: CollectionPaneOptions;
 }) {
   const router = useRouter();
+  // Read by effects that must not re-run when the host re-renders with fresh
+  // callbacks.
+  const paneRef = useRef(pane);
+  paneRef.current = pane;
   const { agent, did: signedInDid, session, loading: sessionLoading } = useAtprotoSession();
+  const { prefs, loading: prefsLoading } = usePreferences();
+  // The sidebar's account card honours the repo page's section prefs (the
+  // rich preview and identity rows can each be hidden there).
+  const repoSections = prefsLoading ? DEFAULT_REPO_SECTIONS : prefs.repoSections;
   const [records, setRecords] = useState<AtRecord[]>([]);
   const [cursor, setCursor] = useState<string | undefined>(undefined);
   const [done, setDone] = useState(false);
@@ -199,6 +262,11 @@ function CollectionList({
     loadPage(cursor);
   }, [records.length, loading, error, done, cursor, loadPage]);
 
+  // Pulse on data: the Live dot holds still and ripples once when a record
+  // arrives (motion.css). A burst of commits ripples once, not once each.
+  const liveDotRef = useRef<HTMLSpanElement>(null);
+  const lastBlip = useRef(0);
+
   // Live mode: jetstream subscription filtered to this collection+DID. New
   // commits are prepended to the list (capped to a sensible window).
   useEffect(() => {
@@ -209,6 +277,10 @@ function CollectionList({
         if (evt.commit.collection !== collection) return;
         if (evt.did !== identity.did) return;
         const atUri = `at://${evt.did}/${evt.commit.collection}/${evt.commit.rkey}`;
+        if (Date.now() - lastBlip.current > 1200) {
+          lastBlip.current = Date.now();
+          replay(liveDotRef.current, 'data-blip');
+        }
         const cid = evt.commit.cid || '';
         const value = (evt.commit.record as Record<string, unknown>) || {};
         setRecords((prev) => {
@@ -239,8 +311,21 @@ function CollectionList({
     if (records.length !== 1) return;
     const rkey = rkeyFromAtUri(records[0].uri);
     if (!rkey) return;
+    // As a pane there is no record page to leave for: the host opens the
+    // record beside the list instead.
+    if (paneRef.current) {
+      paneRef.current.onSingleton(rkey);
+      return;
+    }
     router.replace(`/explore/${repoSeg}/${collection}/${encodeURIComponent(rkey)}`);
   }, [done, loading, live, editing, records, repoSeg, collection, router]);
+
+  // A record deleted from the inspector beside the list: drop its row.
+  const removedUri = pane?.removedUri ?? null;
+  useEffect(() => {
+    if (!removedUri) return;
+    setRecords((prev) => prev.filter((r) => r.uri !== removedUri));
+  }, [removedUri]);
 
   // One lowercased haystack per record — its rkey plus its whole JSON body,
   // so a search finds records by content ("that post about mushrooms") and
@@ -267,6 +352,24 @@ function CollectionList({
     () => (query ? records.filter((_, i) => haystacks[i].includes(query)) : records),
     [records, haystacks, query],
   );
+
+  // The host steps through what's on screen (newer, older), so it is told
+  // the records in order whenever they change.
+  const visibleRkeys = useMemo(
+    () => visibleRecords.map((r) => rkeyFromAtUri(r.uri) || ''),
+    [visibleRecords],
+  );
+  useEffect(() => {
+    paneRef.current?.onVisibleRecords?.(visibleRecords);
+  }, [visibleRecords]);
+
+  // Stepping can land on a row outside the pane's scroller: bring it in.
+  const paneScrollRef = useRef<HTMLDivElement>(null);
+  const currentRkey = pane?.currentRkey ?? null;
+  useEffect(() => {
+    if (!currentRkey) return;
+    paneScrollRef.current?.querySelector('[data-current]')?.scrollIntoView({ block: 'nearest' });
+  }, [currentRkey]);
 
   // Show the row skeleton only while the collection could still turn out to
   // have records: an empty set with pages left is the initial load, or the gap
@@ -522,7 +625,7 @@ function CollectionList({
   // scrolled away. Only for the repo's owner: a logged-out visitor's Edit
   // reveals an in-page sign-in prompt, which is no use from down here.
   useChromeBarAction(
-    canEdit && !editing && controlsOffscreen
+    canEdit && !editing && controlsOffscreen && !pane?.covered
       ? {
           label: 'Edit',
           title: 'Select records to delete',
@@ -532,247 +635,362 @@ function CollectionList({
   );
 
   // The collection page's find action: search the records you've fetched.
-  useChromeBarField({
-    placeholder: 'Search records…',
-    label: 'Search records in this collection',
-    value: filter,
-    onChange: setFilter,
-    resultsId: CHROME_RESULTS_ID,
-    status:
-      records.length === 0
-        ? null
-        : query
-          ? `${formatCount(visibleRecords.length)}/${formatCount(records.length)}`
-          : `${formatCount(records.length)}${done ? '' : '+'}`,
-  });
-
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-      <AppearIn rise>
-        <Breadcrumb
-          handle={identity.handle}
-          did={identity.did}
-          pds={identity.pds}
-          collection={collection}
-          // No universal link route for collections — share the explorer URL.
-          shareUrl={`/explore/${repoSeg}/${collection}`}
-        />
-      </AppearIn>
-
-      <AppearIn delay={0.05}>
-      {/* The page's own controls. Watched as one block — Edit/Live/Fetch and
-          the selection toolbar that appears under them — so the chrome bar
-          takes over exactly when this whole cluster is off screen. */}
-      <div
-        ref={setControlsNode}
-        style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
-          {showEditButton && (
-            <button
-              type="button"
-              onClick={() => {
-                if (canEdit) {
-                  if (editing) exitEditing();
-                  else setEditing(true);
-                } else {
-                  // Logged out — reveal the prefilled sign-in prompt instead.
-                  setSignInOpen((v) => !v);
-                }
-              }}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '0.4rem',
-                padding: '0.4rem 0.75rem',
-                background: editActive ? 'var(--accent-moss)' : 'var(--bg-tertiary)',
-                color: editActive ? 'var(--text-on-accent)' : 'var(--text-secondary)',
-                border: `1px solid ${editActive ? 'var(--accent-moss)' : 'var(--border-medium)'}`,
-                fontFamily: 'var(--font-serif)',
-                fontSize: '0.8125rem',
-                cursor: 'pointer',
-              }}
-              title={
-                canEdit
-                  ? editing
-                    ? 'Exit selection mode'
-                    : 'Select records to delete'
-                  : 'Sign in to manage your records'
-              }
-            >
-              {editing ? <X size={12} /> : <FilePenLine size={12} />}
-              {editing ? 'Done' : 'Edit'}
-            </button>
-          )}
-          <button
-            type="button"
-            onClick={() => setLive((l) => !l)}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '0.4rem',
-              padding: '0.4rem 0.75rem',
-              background: live ? 'var(--accent-moss)' : 'var(--bg-tertiary)',
-              color: live ? 'var(--text-on-accent)' : 'var(--text-secondary)',
-              border: `1px solid ${live ? 'var(--accent-moss)' : 'var(--border-medium)'}`,
-              fontFamily: 'var(--font-serif)',
-              fontSize: '0.8125rem',
-              cursor: 'pointer',
-            }}
-            title={live ? 'Pause live stream' : 'Stream new records as they arrive'}
-          >
-            {live ? <Pause size={12} /> : <Play size={12} />}
-            Live
-          </button>
-          {!done && records.length > 0 && (
-            <button
-              type="button"
-              onClick={() => loadPage(cursor)}
-              disabled={loading}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '0.4rem',
-                padding: '0.4rem 0.75rem',
-                background: 'var(--bg-tertiary)',
-                color: 'var(--text-secondary)',
-                border: '1px solid var(--border-medium)',
-                fontFamily: 'var(--font-serif)',
-                fontSize: '0.8125rem',
-                cursor: loading ? 'wait' : 'pointer',
-              }}
-              title={`Fetch the next ${RECORDS_PER_PAGE} records`}
-            >
-              {/* Keep the label fixed at "Fetch" and only swap the icon for a
-                  spinner while loading — both icons are 12px, so the button
-                  never changes width when tapped. */}
-              {loading ? (
-                <Loader2 size={12} className="explore-spin" />
-              ) : (
-                <Plus size={12} />
-              )}
-              Fetch
-            </button>
-          )}
-          <span
-            style={{
-              color: 'var(--text-tertiary)',
-              fontSize: '0.8125rem',
-              // Pin the count to the right edge so the Fetch→Fetching… width
-              // change is absorbed by the flexible gap on its left instead of
-              // shoving the count sideways on every tap.
-              marginLeft: 'auto',
-              whiteSpace: 'nowrap',
-            }}
-          >
-            {records.length === 0 && !done
-              ? 'Loading…'
+  useChromeBarField(
+    pane?.covered
+      ? null
+      : {
+          placeholder: 'Search records…',
+          label: 'Search records in this collection',
+          value: filter,
+          onChange: setFilter,
+          resultsId: CHROME_RESULTS_ID,
+          inPage: true,
+          status:
+            records.length === 0
+              ? null
               : query
-                ? `${formatCount(visibleRecords.length)} of ${formatCount(records.length)}`
-                : `${formatCount(records.length)} record${records.length === 1 ? '' : 's'}`}
-          </span>
-        </div>
+                ? `${formatCount(visibleRecords.length)}/${formatCount(records.length)}`
+                : `${formatCount(records.length)}${done ? '' : '+'}`,
+        },
+  );
 
-        {editing && (
-          <CollectionEditBar
-            // The visible set, so "Select" greys out when a search has
-            // narrowed the list to nothing — same rule as its condensed twin.
-            recordsLength={visibleRecords.length}
-            selectedSize={selected.size}
-            allSelected={allSelected}
-            deleting={deleting}
-            confirmingDelete={confirmingDelete}
-            deleteProgress={deleteProgress}
-            deleteWaitSec={deleteWaitSec}
-            willPace={willPace}
-            onSelectAll={selectAll}
-            onDeselectAll={deselectAll}
-            onRequestDelete={requestDelete}
-            onConfirmDelete={confirmDelete}
-            onCancelDelete={cancelDelete}
-            onStop={stopDelete}
-          />
-        )}
-        {signInOpen && !session && (
-          <div
-            style={{
-              padding: '0.875rem 1rem',
-              border: '1px solid var(--border-medium)',
-              background: 'var(--bg-secondary)',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '0.5rem',
-            }}
-          >
-            <p style={{ margin: 0, fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
-              Sign in as{' '}
-              <strong>{identity.handle ? `@${identity.handle}` : identity.did}</strong> to
-              select and delete your own records.
-            </p>
-            <SignInPanel defaultInput={identity.handle || identity.did} />
-          </div>
-        )}
-        {editing && deleteError && (
-          <p className="explore-error" style={{ margin: 0 }}>
-            {deleteError}
-          </p>
-        )}
-      </div>
-      </AppearIn>
+  const appDomain = appDomainFor(groupPrefix(collection));
+  const countLabel =
+    records.length === 0 && !done
+      ? 'Loading…'
+      : query
+        ? `${formatCount(visibleRecords.length)} of ${formatCount(records.length)} loaded`
+        : `${formatCount(records.length)} ${done ? `record${records.length === 1 ? '' : 's'}` : 'loaded'}`;
 
-      <AppearIn delay={0.1} id={CHROME_RESULTS_ID}>
-      {error && <p className="explore-error">{error}</p>}
-      {/* Only claim the collection is empty once we've actually exhausted it
-          (done). While records is empty but more pages remain — the initial
-          load, or the gap after a delete clears the page before the auto-fetch
-          refills it — keep showing "Loading" so we never flash a false empty
-          state. */}
-      {records.length === 0 && done && !error && (
-        <p className="explore-placeholder">No records in this collection.</p>
+  // The pieces below are shared by the two ways this list is hosted: as its
+  // own page, and as a pane of the workbench or the Files view, which draw
+  // their own frame around it.
+  const titleRow = (
+    <div className="fx-title-row">
+      <h1 className="fx-h1">{collection}</h1>
+      {appDomain && (
+        <span className="fx-pill" title="The domain this namespace reverses to">
+          {appDomain}
+        </span>
       )}
-      {/* A search only sees what's been fetched, so when it comes up empty
-          and the collection still has pages left, say so — otherwise "no
-          match" reads as "not in this collection". */}
-      {records.length > 0 && visibleRecords.length === 0 && (
-        <p className="explore-placeholder">
-          No loaded records match <code>{filter.trim()}</code>.
-          {!done && ' Fetch more to search further.'}
+    </div>
+  );
+
+  const actions = (
+    <div className="fx-actions">
+      <button
+        type="button"
+        onClick={() => setLive((l) => !l)}
+        aria-pressed={live}
+        className="fx-btn"
+        title={live ? 'Pause live stream' : 'Stream new records as they arrive'}
+      >
+        <span ref={liveDotRef} aria-hidden className="fx-dot" />
+        Live
+      </button>
+      <Link
+        href={lexiconPathFor(collection)}
+        prefetch={false}
+        className="fx-btn"
+        title="This collection's lexicon: usage across the network and its schema"
+      >
+        <BookOpen size={14} aria-hidden />
+        Lexicon
+      </Link>
+      {showEditButton && (
+        <button
+          type="button"
+          onClick={() => {
+            if (canEdit) {
+              if (editing) exitEditing();
+              else setEditing(true);
+            } else {
+              // Logged out — reveal the prefilled sign-in prompt instead.
+              setSignInOpen((v) => !v);
+            }
+          }}
+          className="fx-btn"
+          data-active={editActive || undefined}
+          title={
+            canEdit
+              ? editing
+                ? 'Exit selection mode'
+                : 'Select records to delete'
+              : 'Sign in to manage your records'
+          }
+        >
+          {editing ? <X size={14} aria-hidden /> : <FilePenLine size={14} aria-hidden />}
+          {editing ? 'Done' : 'Edit'}
+        </button>
+      )}
+      {/* No universal link route for collections — share the explorer URL.
+          Hidden on phones, where the bottom bar's copy-link is on
+          screen at the same time (explorer.css). As a pane the host's
+          toolbar carries the copy-link for wherever you are. */}
+      {!pane && (
+        <ShareLinkChip
+          url={`/explore/${repoSeg}/${collection}`}
+          iconOnly
+          className="fx-title-share"
+        />
+      )}
+    </div>
+  );
+
+  const editBlock = (editing || (signInOpen && !session)) && (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+      {editing && (
+        <CollectionEditBar
+          // The visible set, so "Select" greys out when a search has
+          // narrowed the list to nothing — same rule as its condensed twin.
+          recordsLength={visibleRecords.length}
+          selectedSize={selected.size}
+          allSelected={allSelected}
+          deleting={deleting}
+          confirmingDelete={confirmingDelete}
+          deleteProgress={deleteProgress}
+          deleteWaitSec={deleteWaitSec}
+          willPace={willPace}
+          onSelectAll={selectAll}
+          onDeselectAll={deselectAll}
+          onRequestDelete={requestDelete}
+          onConfirmDelete={confirmDelete}
+          onCancelDelete={cancelDelete}
+          onStop={stopDelete}
+        />
+      )}
+      {signInOpen && !session && (
+        <div className="fx-card fx-notice">
+          <p>
+            Sign in as{' '}
+            <strong>{identity.handle ? `@${identity.handle}` : identity.did}</strong> to
+            select and delete your own records.
+          </p>
+          <SignInPanel defaultInput={identity.handle || identity.did} />
+        </div>
+      )}
+      {editing && deleteError && (
+        <p className="explore-error" style={{ margin: 0 }}>
+          {deleteError}
         </p>
       )}
+    </div>
+  );
 
+  const tools = (
+    <div className="fx-records-tools">
+      {/* Same state as the chrome bar's field: a search over the
+          records fetched so far. */}
+      <label className="fx-field">
+        <Search size={14} aria-hidden />
+        <span className="fx-sr">Search records in this collection</span>
+        <input
+          type="text"
+          placeholder="Search loaded records"
+          value={filter}
+          onChange={(e) => setFilter(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Escape' && filter) {
+              e.preventDefault();
+              setFilter('');
+            }
+          }}
+        />
+        {/* A pane too narrow for the count beside the field drops it
+            (workbench.css); a search keeps its tally here instead. */}
+        {pane && query && (
+          <span className="fx-field-status">
+            {formatCount(visibleRecords.length)}/{formatCount(records.length)}
+          </span>
+        )}
+      </label>
+      <span className="fx-records-tools-meta" aria-live="polite">
+        {countLabel}
+      </span>
+    </div>
+  );
+
+  const messages = (
+    <>
+      {error && (
+        <p className="explore-error" style={{ margin: '12px 16px' }}>
+          {error}
+        </p>
+      )}
+      {/* Only claim the collection is empty once we've actually
+          exhausted it (done). While records is empty but more pages
+          remain — the initial load, or the gap after a delete clears the
+          page before the auto-fetch refills it — keep showing "Loading"
+          so we never flash a false empty state. */}
+      {records.length === 0 && done && !error && (
+        <p className="fx-records-msg">No records in this collection.</p>
+      )}
+      {/* A search only sees what's been fetched, so when it comes up
+          empty and the collection still has pages left, say so —
+          otherwise "no match" reads as "not in this collection". */}
+      {records.length > 0 && visibleRecords.length === 0 && (
+        <p className="fx-records-msg">
+          No loaded records match <code>{filter.trim()}</code>.
+          {!done && ' Load more to search further.'}
+        </p>
+      )}
+    </>
+  );
+
+  const list =
+    pane?.display === 'icons' ? (
+      // The Files view: each record a file, named by its key.
+      <SkeletonSwap loading={awaitingFirstPage} skeleton={<RecordFileSkeleton />}>
+        {visibleRecords.length > 0 && (
+          <ul className="fx-fd-grid" data-editing={editing || undefined}>
+            {visibleRecords.map((rec, i) => (
+              <RecordFile
+                key={rec.uri}
+                rec={rec}
+                editing={editing}
+                isSelected={selected.has(rec.uri)}
+                repoSeg={repoSeg}
+                collection={collection}
+                onToggleSelect={toggleSelect}
+                current={currentRkey !== null && visibleRkeys[i] === currentRkey}
+                onOpenWide={pane.onOpenWide}
+              />
+            ))}
+          </ul>
+        )}
+      </SkeletonSwap>
+    ) : (
       <SkeletonSwap
         loading={awaitingFirstPage}
         skeleton={<SkeletonRecordRows editing={editing} />}
       >
-      <ul
-        style={{
-          listStyle: 'none',
-          margin: 0,
-          padding: 0,
-          border: visibleRecords.length ? '1px solid var(--border-medium)' : 0,
-          background: 'var(--bg-secondary)',
-          // One grid for the whole list so the rkey/preview columns align
-          // across rows; each row re-adopts these tracks via subgrid.
-          display: 'grid',
-          gridTemplateColumns: listColumns(editing),
-          columnGap: '1rem',
-        }}
-      >
-        {visibleRecords.map((rec) => (
-          <CollectionRecordRow
-            key={rec.uri}
-            rec={rec}
-            editing={editing}
-            isSelected={selected.has(rec.uri)}
-            repoSeg={repoSeg}
-            collection={collection}
-            onToggleSelect={toggleSelect}
-          />
-        ))}
-      </ul>
+        {visibleRecords.length > 0 && (
+          <ul className="fx-rec-list" data-editing={editing || undefined}>
+            <li className="fx-rec-head" aria-hidden>
+              {editing && <span />}
+              <span>Record key</span>
+              <span>Preview</span>
+              <span>Created</span>
+            </li>
+            {visibleRecords.map((rec, i) => (
+              <CollectionRecordRow
+                key={rec.uri}
+                rec={rec}
+                editing={editing}
+                isSelected={selected.has(rec.uri)}
+                repoSeg={repoSeg}
+                collection={collection}
+                onToggleSelect={toggleSelect}
+                current={currentRkey !== null && visibleRkeys[i] === currentRkey}
+              />
+            ))}
+          </ul>
+        )}
       </SkeletonSwap>
-      </AppearIn>
+    );
+
+  const foot = records.length > 0 && (
+    <div className="fx-records-foot">
+      <span>
+        {done
+          ? `All ${formatCount(records.length)} loaded`
+          : `${formatCount(records.length)} loaded, more on the PDS`}
+      </span>
+      {!done && (
+        <button
+          type="button"
+          onClick={() => loadPage(cursor)}
+          disabled={loading}
+          data-wait={loading || undefined}
+          className="fx-btn fx-btn-sm"
+          style={{ fontWeight: 600 }}
+          title={`Fetch the next ${RECORDS_PER_PAGE} records`}
+        >
+          {/* Fixed label; only a spinner joins it while loading, so
+              the button barely moves when tapped. */}
+          {loading && <Loader2 size={13} className="explore-spin" aria-hidden />}
+          Load more
+        </button>
+      )}
+    </div>
+  );
+
+  // As a pane: the title and actions stay put, the records scroll under
+  // them, and the foot stays in reach at the bottom. The host supplies the
+  // breadcrumb and the sidebar.
+  if (pane) {
+    return (
+      <div className="fx-wb-pane" data-display={pane.display}>
+        {/* `data-crumbed`: the host's breadcrumb ends on this collection, so
+            a phone, where the two would stack, shows the name once. */}
+        <div ref={setControlsNode} className="fx-wb-pane-head" data-crumbed>
+          <div className="fx-titlebar">
+            {titleRow}
+            {actions}
+          </div>
+          {editBlock}
+        </div>
+        <section aria-label="Records" className="fx-records fx-wb-records" id={CHROME_RESULTS_ID}>
+          {tools}
+          <div ref={paneScrollRef} className="fx-wb-scroll">
+            {messages}
+            {list}
+          </div>
+          {foot}
+        </section>
+      </div>
+    );
+  }
+
+  return (
+    <div className="fx-explorer" data-page="collection">
+      {/* The page's own controls live in this head: Live / Edit and the
+          selection toolbar that appears under them. Watched as one block so
+          the chrome bar takes over exactly when the cluster is off screen. */}
+      <div ref={setControlsNode} className="fx-head">
+        <AppearIn rise>
+          <div className="fx-titlebar">
+            <div className="fx-titlebar-text">
+              <Breadcrumb
+                handle={identity.handle}
+                did={identity.did}
+                pds={identity.pds}
+                collection={collection}
+                titled
+              />
+              {titleRow}
+            </div>
+
+            {actions}
+          </div>
+        </AppearIn>
+
+        {editBlock}
+      </div>
+
+      <aside className="fx-side" aria-label="Account and repository">
+        <AppearIn delay={0.08}>
+          <AccountCard
+            identity={identity}
+            profileHidden={sectionHidden(repoSections, 'profile')}
+            identityHidden={sectionHidden(repoSections, 'identity')}
+          />
+        </AppearIn>
+        <AppearIn delay={0.12}>
+          <RepoNavCard identity={identity} collection={collection} />
+        </AppearIn>
+      </aside>
+
+      <div className="fx-main">
+        <AppearIn delay={0.05} id={CHROME_RESULTS_ID}>
+          <section aria-label="Records" className="fx-card fx-records">
+            {tools}
+            {messages}
+            {list}
+            {foot}
+          </section>
+        </AppearIn>
+      </div>
     </div>
   );
 }
-

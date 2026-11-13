@@ -213,14 +213,15 @@ function Chip({
         display: 'inline-flex',
         alignItems: 'center',
         gap: '0.35rem',
-        padding: '0.2rem 0.55rem',
-        background: accent ? 'var(--bg-tertiary)' : 'var(--bg-tertiary)',
-        border: `1px solid ${
-          accent ? 'var(--text-accent)' : 'var(--border-subtle)'
-        }`,
-        color: accent ? 'var(--text-accent)' : 'var(--text-secondary)',
-        fontFamily: 'var(--font-serif)',
-        fontSize: '0.75rem',
+        height: '24px',
+        padding: '0 9px',
+        borderRadius: 'var(--radius-pill)',
+        background: accent ? 'var(--accent-soft)' : 'var(--surface-subtle)',
+        border: `1px solid ${accent ? 'var(--accent-soft-border)' : 'var(--border-medium)'}`,
+        color: accent ? 'var(--accent-soft-fg)' : 'var(--text-secondary)',
+        fontFamily: 'var(--font-sans)',
+        fontSize: '12.5px',
+        fontWeight: accent ? 600 : 500,
         lineHeight: 1,
         whiteSpace: 'nowrap',
       }}
@@ -283,16 +284,16 @@ function formatShortDate(d: Date): string {
 const shellStyle: React.CSSProperties = {
   display: 'flex',
   flexDirection: 'column',
-  gap: '0.625rem',
-  padding: '0.75rem 1rem',
+  gap: '10px',
+  padding: '14px 16px',
   background: 'var(--bg-secondary)',
   border: '1px solid var(--border-medium)',
+  borderRadius: 'var(--radius-card)',
 };
 
 const titleStyle: React.CSSProperties = {
-  fontFamily: 'var(--font-serif)',
-  fontSize: '0.75rem',
-  letterSpacing: '0.08em',
-  textTransform: 'uppercase',
-  color: 'var(--text-tertiary)',
+  fontFamily: 'var(--font-sans)',
+  fontSize: '13px',
+  fontWeight: 700,
+  color: 'var(--text-primary)',
 };

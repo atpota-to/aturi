@@ -1,0 +1,529 @@
+/* One sheet, no tabs. Loaded after popup.css; everything here is either an
+   override of a shipped class or an .os-* addition. Tokens only. */
+
+/* ---------- Shell ---------- */
+
+[hidden] {
+  display: none !important;
+}
+
+/* With the mode tabs gone, the actions take over the push to the right. */
+.popup-topbar-actions {
+  margin-left: auto;
+}
+
+/* The footer is a plain row at the end of the sheet, not a sticky strip:
+   the shell's min-height still pins it to the bottom edge on a short page. */
+.popup-redirect.os-redirect {
+  position: static;
+  min-height: 44px;
+  padding: 6px 12px 6px 14px;
+  background: var(--bg-primary);
+  border-top: 1px solid var(--border-medium);
+}
+
+.os-redirect .popup-redirect-sub {
+  color: var(--text-tertiary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.os-redirect.is-paused .popup-redirect-sub {
+  color: var(--warn-fg-muted);
+}
+
+/* Auto-redirect on: a moss mark in the bar says so at a glance and jumps to
+   the row at the end. Off: nothing in the bar. */
+.os-topbar-redirect {
+  color: var(--text-accent);
+}
+
+.os-topbar-redirect:hover {
+  color: var(--text-accent);
+}
+
+/* ---------- Index card ---------- */
+
+.os-card {
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-card);
+  overflow: hidden;
+}
+
+.os-card-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 12px 10px;
+}
+
+/* The ledger: one identifier per 28px line, hairlines between, running the
+   card's full width. Each line is a button that copies its value. */
+.os-ledger {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.os-ledger > li + li {
+  border-top: 1px solid var(--border-subtle);
+}
+
+.os-id {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  min-height: 28px;
+  padding: 0 6px 0 12px;
+  text-align: left;
+  transition: background 0.12s ease;
+}
+
+.os-id:hover {
+  background: var(--surface-subtle);
+}
+
+.os-id:focus-visible {
+  outline-offset: -2px;
+}
+
+.os-id-label {
+  flex: none;
+  width: 44px;
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  line-height: 1;
+  color: var(--text-tertiary);
+}
+
+/* The value keeps to one line. Its tail (the rkey, the end of a cid) never
+   gives way; the head takes the ellipsis, so what distinguishes the record
+   is always visible. */
+.os-id-value {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+  line-height: 16px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+/* The two long ones (the AT URI, the link) wrap at a slash rather than
+   lose their middle: the label and the glyph sit on the first line. */
+.os-id.is-tall {
+  align-items: flex-start;
+  padding-top: 6px;
+  padding-bottom: 6px;
+}
+
+.os-id.is-tall .os-id-label {
+  line-height: 16px;
+}
+
+.os-id.is-tall .os-id-glyph {
+  margin-top: -3px;
+}
+
+.os-id-value.is-wrap {
+  display: block;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.os-id-head {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.os-id-tail {
+  flex: none;
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.os-id-value.is-plain {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: block;
+  color: var(--text-primary);
+}
+
+.os-id-glyph {
+  flex: none;
+  width: 26px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  color: var(--text-faint);
+  transition: color 0.12s ease, background 0.12s ease;
+}
+
+.os-id:hover .os-id-glyph {
+  color: var(--text-accent);
+}
+
+.os-id.is-copied .os-id-label {
+  color: var(--text-accent);
+}
+
+.os-id.is-copied .os-id-glyph {
+  background: var(--accent-soft);
+  color: var(--accent-soft-fg);
+}
+
+/* The hand-off: the card's bottom band, as last round's ledger. */
+.os-cta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 38px;
+  padding: 0 12px;
+  border-top: 1px solid var(--border-subtle);
+  background: var(--surface-subtle);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--text-accent);
+  transition: background 0.12s ease;
+}
+
+.os-cta:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-accent);
+}
+
+.os-cta:focus-visible {
+  outline-offset: -2px;
+}
+
+.os-cta > svg {
+  flex: none;
+}
+
+.os-cta-sub {
+  flex: 1;
+  min-width: 0;
+  font-weight: 400;
+  color: var(--text-tertiary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ---------- Filed drawer: the records the page refers to ---------- */
+
+/* Closed, the drawer and its tab sit a step below the page. Pulled, they
+   take the page's white like every other open box. */
+.os-filed > .popup-section-label {
+  background: var(--surface-filed);
+  border-bottom-color: var(--surface-filed);
+  color: var(--text-tertiary);
+}
+
+.os-filed:has(> .os-drawer[open]) > .popup-section-label {
+  background: var(--bg-secondary);
+  border-bottom-color: var(--bg-secondary);
+  color: var(--text-secondary);
+}
+
+.os-drawer {
+  background: var(--surface-filed);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-card);
+  overflow: hidden;
+}
+
+.os-drawer[open] {
+  background: var(--bg-secondary);
+}
+
+.os-drawer-front {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 38px;
+  padding: 0 12px 0 10px;
+  list-style: none;
+  cursor: pointer;
+  font-size: var(--fs-sm);
+  color: var(--text-secondary);
+  transition: background 0.12s ease;
+}
+
+.os-drawer-front::-webkit-details-marker {
+  display: none;
+}
+
+.os-drawer-front:hover {
+  color: var(--text-primary);
+}
+
+.os-drawer[open] > .os-drawer-front:hover {
+  background: var(--surface-subtle);
+}
+
+.os-drawer-front:focus-visible {
+  outline-offset: -2px;
+}
+
+.os-drawer-chevron {
+  flex: none;
+  color: var(--text-tertiary);
+  transition: transform 0.15s ease;
+}
+
+.os-drawer[open] > .os-drawer-front .os-drawer-chevron {
+  transform: rotate(90deg);
+}
+
+.os-drawer-front-text {
+  flex: none;
+  font-weight: 600;
+}
+
+.os-drawer-preview {
+  flex: 1;
+  min-width: 0;
+  color: var(--text-tertiary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.os-drawer[open] .os-drawer-preview {
+  visibility: hidden;
+}
+
+.os-ref {
+  display: flex;
+  align-items: center;
+  border-top: 1px solid var(--border-subtle);
+  transition: background 0.12s ease;
+}
+
+.os-ref:hover {
+  background: var(--surface-subtle);
+}
+
+.os-ref-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 36px;
+  padding: 0 4px 0 12px;
+  color: var(--text-primary);
+  text-align: left;
+}
+
+.os-ref-main:focus-visible {
+  outline-offset: -2px;
+}
+
+.os-ref-handle {
+  flex: none;
+  max-width: 55%;
+  font-size: var(--fs-md);
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.os-ref-preview {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--fs-xs);
+  color: var(--text-tertiary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Five rows whose whole point is the copy: the glyph stays visible. */
+.os-ref .popup-waypoint-copy {
+  width: 28px;
+  height: 28px;
+  margin-right: 6px;
+  opacity: 1;
+}
+
+.os-ref-more {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 34px;
+  border-top: 1px solid var(--border-subtle);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--text-accent);
+}
+
+/* ---------- No-data page ---------- */
+
+.os-notice {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  padding: 2px 2px 0;
+  min-height: 28px;
+  font-size: var(--fs-md);
+  color: var(--text-secondary);
+}
+
+.os-notice > svg {
+  flex: none;
+  color: var(--text-tertiary);
+}
+
+.os-notice-text {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.os-notice-rescan {
+  flex: none;
+  height: 28px;
+  margin-right: -6px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0 8px;
+  border-radius: var(--radius-control);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--text-accent);
+}
+
+.os-notice-rescan:hover {
+  background: var(--bg-tertiary);
+}
+
+/* The lookup: the site's header go-to field, in the popup. */
+.os-lookup {
+  display: flex;
+  gap: 8px;
+  margin: 2px 0 0;
+}
+
+.os-lookup-field {
+  flex: 1;
+  min-width: 0;
+  position: relative;
+}
+
+.os-lookup-field > svg {
+  position: absolute;
+  top: 11px;
+  left: 11px;
+  color: var(--text-tertiary);
+  pointer-events: none;
+}
+
+.os-lookup .aturi-input {
+  padding-left: 32px;
+}
+
+.os-lookup .aturi-btn {
+  flex: none;
+  padding: 0 14px;
+}
+
+/* Recently seen repos: waypoint rows, a letter mark each. */
+.os-repo-count {
+  flex: none;
+  margin-right: 6px;
+  font-size: var(--fs-xs);
+  color: var(--text-faint);
+  white-space: nowrap;
+}
+
+/* Groups collapsed to their names: one box, five fronts, each a line with
+   the group's marks. Opened, the group's app rows come out under it on the
+   subtle surface. */
+.os-group + .os-group {
+  border-top: 1px solid var(--border-subtle);
+}
+
+.os-group-front {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 38px;
+  padding: 0 12px 0 10px;
+  list-style: none;
+  cursor: pointer;
+  color: var(--text-primary);
+  transition: background 0.12s ease;
+}
+
+.os-group-front::-webkit-details-marker {
+  display: none;
+}
+
+.os-group-front:hover {
+  background: var(--surface-subtle);
+}
+
+.os-group-front:focus-visible {
+  outline-offset: -2px;
+}
+
+.os-group[open] > .os-group-front .os-drawer-chevron {
+  transform: rotate(90deg);
+}
+
+.os-group-name {
+  flex: none;
+  font-weight: 600;
+}
+
+.os-group-marks {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  overflow: hidden;
+}
+
+.os-group-marks .popup-waypoint-icon {
+  color: var(--text-tertiary);
+}
+
+.os-group-more {
+  flex: none;
+  font-size: var(--fs-xs);
+  color: var(--text-tertiary);
+}
+
+.os-group-rows {
+  background: var(--surface-subtle);
+  border-top: 1px solid var(--border-subtle);
+}
+
+.os-group-rows .popup-waypoint:hover {
+  background: var(--bg-tertiary);
+}
+
+.os-group-rows .popup-waypoint-main {
+  padding-left: 32px;
+}

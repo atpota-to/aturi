@@ -24,49 +24,23 @@ const RECOVERY_LINKS: { href: string; label: string; note: string }[] = [
  */
 export default function NotFound() {
   return (
-    <div style={{ position: 'relative', overflow: 'hidden' }}>
-      <div className="container-narrow" style={{ padding: '2rem 2rem 0' }}>
-        <Header compact />
-      </div>
-      {/* Mirror the explore layout's gutter so the panel doesn't sit flush
-          against the viewport edges on this top-level route. The panel
-          itself no longer self-pads. */}
-      <div className="container-narrow" style={{ padding: '0 2rem 4rem' }}>
+    <div style={{ position: 'relative', overflowX: 'clip' }}>
+      <Header compact />
+      <div className="fn-c-error-wrap">
         <NotFoundPanel />
 
         {/* Kept out of NotFoundPanel itself: that component is also used for
             resolve-error states inside the explorer, where a list of top-level
             site links is noise. Here it's the whole point. */}
-        <nav
-          aria-label="Where to look next"
-          style={{ maxWidth: '40rem', margin: '0 auto' }}
-        >
-          <h2
-            style={{
-              fontSize: '0.7rem',
-              letterSpacing: '0.12em',
-              textTransform: 'uppercase',
-              fontFamily: 'var(--font-serif)',
-              color: 'var(--text-tertiary)',
-              margin: '0 0 0.75rem',
-            }}
-          >
-            Where to look next
-          </h2>
-          <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+        <nav aria-label="Where to look next" className="fn-c-next">
+          <h2>Where to look next</h2>
+          <ul>
             {RECOVERY_LINKS.map(({ href, label, note }) => (
-              <li key={href} style={{ marginBottom: '0.4rem', fontSize: '0.9rem' }}>
-                <Link
-                  href={href}
-                  style={{
-                    color: 'var(--text-accent)',
-                    textDecoration: 'none',
-                    fontFamily: 'var(--font-mono, ui-monospace, monospace)',
-                  }}
-                >
-                  {label}
+              <li key={href}>
+                <Link href={href}>
+                  <span className="fn-c-next-path">{label}</span>
+                  <span className="fn-c-next-note">{note}</span>
                 </Link>
-                <span style={{ color: 'var(--text-tertiary)' }}> — {note}</span>
               </li>
             ))}
           </ul>

@@ -54,55 +54,12 @@ export default function SpaceGlance({ tree, myDid }: { tree: SpaceTree; myDid: s
   ];
 
   return (
-    // The rules are a 1px gap showing the grid's own background through, with
-    // each cell painting its own. Cell borders can't do it: the column count
-    // comes from auto-fit, so which cell ends a row isn't known here, and a
-    // border-right on every one drew the columns but no row divider and
-    // doubled against the container's edge. A gap draws exactly one line
-    // between each pair of neighbours at whatever count auto-fit lands on.
-    <section
-      style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(9rem, 1fr))',
-        gap: '1px',
-        border: '1px solid var(--border-medium)',
-        background: 'var(--border-subtle)',
-      }}
-    >
+    <section className="fx-sp-glance">
       {cells.map((cell) => (
-        <div
-          key={cell.label}
-          style={{
-            padding: '0.75rem 1rem',
-            background: 'var(--bg-secondary)',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '0.15rem',
-            minWidth: 0,
-          }}
-        >
-          <span
-            style={{
-              fontSize: '0.7rem',
-              letterSpacing: '0.06em',
-              textTransform: 'uppercase',
-              color: 'var(--text-tertiary)',
-            }}
-          >
-            {cell.label}
-          </span>
-          <span
-            style={{
-              fontFamily: 'var(--font-mono)',
-              fontSize: '1.25rem',
-              color: 'var(--text-primary)',
-            }}
-          >
-            {cell.value}
-          </span>
-          {cell.hint && (
-            <span style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)' }}>{cell.hint}</span>
-          )}
+        <div key={cell.label}>
+          <span className="fx-sp-glance-label">{cell.label}</span>
+          <span className="fx-sp-glance-value">{cell.value}</span>
+          {cell.hint && <span className="fx-sp-glance-hint">{cell.hint}</span>}
         </div>
       ))}
     </section>

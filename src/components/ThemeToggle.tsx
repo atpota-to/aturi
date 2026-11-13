@@ -30,13 +30,13 @@ function getServerSnapshot(): Theme {
   return DEFAULT_THEME;
 }
 
-type Variant = 'inline' | 'row';
+type Variant = 'inline' | 'chip';
 
 interface ThemeToggleProps {
   /**
    * `inline` is a small icon-only button for use inside the regular nav row.
-   * `row` is a labeled segmented control sized for the compact-mode nav
-   * expansion drawer.
+   * `chip` is the same button as a square tile, for the end of the phone
+   * menu's Home row.
    */
   variant?: Variant;
 }
@@ -58,38 +58,33 @@ export default function ThemeToggle({ variant = 'inline' }: ThemeToggleProps) {
     );
   }
 
-  if (variant === 'row') {
-    // Match the other compact-menu rows exactly: an icon + label button using
-    // the shared .compact-nav-link styling. Clicking toggles dark/light; the
-    // moon/sun icon reflects the current theme.
-    const rowNext: Theme = theme === 'dark' ? 'light' : 'dark';
+  const next: Theme = theme === 'dark' ? 'light' : 'dark';
+
+  if (variant === 'chip') {
+    // In the menu's tile styling, and the same button otherwise: the icon
+    // is the theme a tap switches to, as it is in the bar.
     return (
       <button
         type="button"
-        onClick={() => pick(rowNext)}
-        aria-label={`Switch to ${rowNext} mode`}
-        className="compact-nav-link"
-        style={{ font: 'inherit', textAlign: 'left', width: '100%' }}
+        onClick={() => pick(next)}
+        aria-label={`Switch to ${next} mode`}
+        title={`Switch to ${next} mode`}
+        className="compact-nav-link fn-menu-chip"
       >
-        {theme === 'dark' ? <Moon size={16} /> : <Sun size={16} />}
-        <span>theme</span>
+        {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
       </button>
     );
   }
 
-  const next: Theme = theme === 'dark' ? 'light' : 'dark';
   return (
     <button
       type="button"
       onClick={() => pick(next)}
       aria-label={`Switch to ${next} mode`}
       title={`Switch to ${next} mode`}
-      className="nav-link"
-      style={{
-        padding: '0.5rem',
-      }}
+      className="nav-link fn-theme-btn"
     >
-      {theme === 'dark' ? <Sun size={14} /> : <Moon size={14} />}
+      {theme === 'dark' ? <Sun size={17} /> : <Moon size={17} />}
     </button>
   );
 }

@@ -365,6 +365,10 @@ struct SharePalette: Equatable {
     var textSecondary: Color { SharePalette.color(palette.textSecondary) }
     var textTertiary: Color { SharePalette.color(palette.textTertiary) }
     var textAccent: Color { SharePalette.color(palette.textAccent) }
+    /// `--accent-soft` and its text: the Field Notes pill the app uses for
+    /// a recommended row, here behind "Open in Aturi".
+    var accentSoft: Color { SharePalette.color(palette.accentSoft) }
+    var accentSoftFg: Color { SharePalette.color(palette.accentSoftFg) }
 
     /// The palette is covered by a drift test, so an unparseable token only
     /// happens for hand-typed input; it paints a neutral grey rather than
@@ -378,7 +382,7 @@ struct SharePalette: Equatable {
 }
 
 private struct SharePaletteKey: EnvironmentKey {
-    static let defaultValue = SharePalette(scheme: .default, isDark: true)
+    static let defaultValue = SharePalette(scheme: .default, isDark: false)
 }
 
 extension EnvironmentValues {
@@ -466,7 +470,7 @@ struct SharePickerView: View {
                     HStack(spacing: 12) {
                         Image(systemName: "arrow.up.forward.app")
                             .font(.title3)
-                            .foregroundStyle(palette.textAccent)
+                            .foregroundStyle(palette.accentSoftFg)
                             .accessibilityHidden(true)
                         VStack(alignment: .leading, spacing: 2) {
                             Text("Open in Aturi")
@@ -491,7 +495,7 @@ struct SharePickerView: View {
                     .foregroundStyle(palette.textSecondary)
                     .textCase(nil)
             }
-            .listRowBackground(palette.bgSecondary)
+            .listRowBackground(palette.accentSoft)
 
             let groups = model.groups
             if groups.isEmpty {
@@ -601,8 +605,10 @@ private struct ShareNoticeRow: View {
     }
 }
 
-/// The empty and error states: a serif title, the offending text when
+/// The empty and error states: a bold title, the offending text when
 /// there is one, and a sentence of explanation. Cancel lives in the bar.
+/// The extension does not bundle the app's Figtree, so the title is the
+/// system sans at the weight and tracking of the app's titles.
 private struct ShareMessage: View {
     let title: String
     let text: String?
@@ -613,7 +619,8 @@ private struct ShareMessage: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text(title)
-                .font(.system(.title2, design: .serif))
+                .font(.system(.title2, design: .default, weight: .bold))
+                .tracking(-0.3)
                 .foregroundStyle(palette.textPrimary)
             if let text, !text.isEmpty {
                 Text(text)

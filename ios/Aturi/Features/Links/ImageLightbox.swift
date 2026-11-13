@@ -55,7 +55,7 @@ struct ImageLightbox: View {
                 dismiss()
             } label: {
                 Image(systemName: "xmark")
-                    .font(.body.weight(.semibold))
+                    .font(AturiFont.sans(.body, weight: .semibold))
                     .padding(10)
                     .background(Color.black.opacity(0.5), in: Circle())
             }
@@ -65,7 +65,7 @@ struct ImageLightbox: View {
 
             if images.count > 1 {
                 Text("\(index + 1) of \(images.count)")
-                    .font(.footnote.weight(.medium))
+                    .font(AturiFont.sans(.footnote, weight: .medium))
                     .padding(.horizontal, 10)
                     .padding(.vertical, 6)
                     .background(Color.black.opacity(0.5), in: Capsule())
@@ -79,7 +79,7 @@ struct ImageLightbox: View {
                 }
             } label: {
                 Image(systemName: "arrow.up.right.square")
-                    .font(.body.weight(.semibold))
+                    .font(AturiFont.sans(.body, weight: .semibold))
                     .padding(10)
                     .background(Color.black.opacity(0.5), in: Circle())
             }
@@ -95,13 +95,13 @@ struct ImageLightbox: View {
     private var caption: some View {
         if let alt = current?.alt, !alt.isEmpty {
             Text(alt)
-                .font(.footnote)
+                .font(AturiFont.footnote)
                 .foregroundStyle(.white)
                 .multilineTextAlignment(.center)
                 .lineLimit(4)
                 .padding(.horizontal, 14)
                 .padding(.vertical, 10)
-                .background(Color.black.opacity(0.6), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+                .background(Color.black.opacity(0.6), in: RoundedRectangle(cornerRadius: AturiTheme.controlRadius, style: .continuous))
                 .padding(.horizontal, 16)
                 .padding(.bottom, 40)
         }

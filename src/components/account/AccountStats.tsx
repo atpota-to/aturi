@@ -27,6 +27,8 @@ import {
 } from '@/utils/atproto/constellation';
 import { fetchCachedCredBlueScore, type CredBlueScore } from '@/utils/credBlueScore';
 import { CRED_BLUE_BASE } from '@/utils/atproto/config';
+import { Skeleton } from '@/components/SkeletonLoader';
+import Odometer from '@/components/Odometer';
 
 type Props = {
   did: string;
@@ -436,20 +438,19 @@ function StatTile({
   } else if (valueLabel != null) {
     display = valueLabel;
   } else if (value == null) {
+    // Inline-block, so the value's line box (and the tile) keeps the
+    // height the number will need when it lands.
     display = (
-      <span
-        style={{
-          display: 'inline-block',
-          width: '3rem',
-          height: '0.875rem',
-          background: 'var(--bg-tertiary)',
-          opacity: 0.6,
-        }}
-        aria-hidden
+      <Skeleton
+        width="3rem"
+        height="0.875rem"
+        style={{ display: 'inline-block', verticalAlign: 'middle' }}
       />
     );
   } else {
-    display = value.toLocaleString();
+    // Each figure replaces its own placeholder as its fetch lands, its
+    // digits rolling up from 0.
+    display = <Odometer value={value} format={(n) => n.toLocaleString()} rollIn />;
   }
   const body = (
     <>
@@ -503,14 +504,15 @@ const TILE_BASE_STYLE: React.CSSProperties = {
   gap: '0.4rem',
 };
 
-/** The big serif value line (numbers, dates, sizes). */
+/** The value line (numbers, dates, sizes). */
 const TILE_VALUE_STYLE: React.CSSProperties = {
-  fontFamily: 'var(--font-serif)',
+  fontFamily: 'var(--font-sans)',
   fontSize: '1.25rem',
-  fontWeight: 400,
+  fontWeight: 700,
+  letterSpacing: '-0.02em',
   color: 'var(--text-primary)',
   fontVariantNumeric: 'tabular-nums',
-  lineHeight: 1.1,
+  lineHeight: 1.15,
   // Keep short values (esp. the "Aug 2023" date) on one line instead of
   // breaking at the space in the narrow mobile tiles.
   whiteSpace: 'nowrap',
@@ -524,16 +526,18 @@ const TILE_SUBLABEL_STYLE: React.CSSProperties = {
   marginTop: '-0.15rem',
 };
 
-/** The icon + small-caps label row shared by every tile. */
+/** The icon + sentence-case label row shared by every tile. */
 function TileLabel({ icon, label }: { icon: React.ReactNode; label: string }) {
   return (
     <div
-      className="explore-small-caps"
       style={{
         display: 'inline-flex',
         alignItems: 'center',
         gap: '0.4rem',
-        color: 'var(--text-tertiary)',
+        fontFamily: 'var(--font-sans)',
+        fontSize: '0.75rem',
+        fontWeight: 600,
+        color: 'var(--text-secondary)',
       }}
     >
       {/* inline-flex so the wrapper hugs the 16px glyph instead of inheriting
@@ -742,44 +746,22 @@ function MeasureButton({
       {label}
     </>
   );
+  // The explorer's shared small button (.fx-btn.fx-btn-sm).
   const style: React.CSSProperties = {
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: '0.35rem',
     alignSelf: 'flex-start',
-    padding: '0.3rem 0.55rem',
-    background: 'transparent',
-    border: '1px solid var(--border-medium)',
-    color: 'var(--text-secondary)',
-    fontFamily: 'var(--font-serif)',
-    fontSize: '0.8rem',
-    lineHeight: 1.1,
     cursor: interactive ? 'pointer' : 'default',
-    transition: 'border-color 0.2s ease, color 0.2s ease',
   };
 
   if (!interactive) {
     return (
-      <span style={style} aria-hidden>
+      <span className="fx-btn fx-btn-sm" style={style} aria-hidden>
         {inner}
       </span>
     );
   }
 
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      style={style}
-      onMouseEnter={(e) => {
-        e.currentTarget.style.borderColor = 'var(--text-accent)';
-        e.currentTarget.style.color = 'var(--text-primary)';
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.borderColor = 'var(--border-medium)';
-        e.currentTarget.style.color = 'var(--text-secondary)';
-      }}
-    >
+    <button type="button" className="fx-btn fx-btn-sm" onClick={onClick} style={style}>
       {inner}
     </button>
   );

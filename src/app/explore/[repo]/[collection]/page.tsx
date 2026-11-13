@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import CollectionExplorer from '@/components/explore/CollectionExplorer';
+import ExplorerRoute from '@/components/explore/workbench/ExplorerRoute';
 
 type Params = { repo: string; collection: string };
 
@@ -40,7 +40,7 @@ export default async function ExploreCollectionPage({
 }) {
   const { repo, collection } = await params;
   return (
-    <CollectionExplorer
+    <ExplorerRoute
       repo={decodeURIComponent(repo)}
       collection={decodeURIComponent(collection)}
     />

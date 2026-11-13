@@ -1,7 +1,6 @@
 import type { CSSProperties, ReactNode } from 'react';
-import { ChevronRight } from 'lucide-react';
-import { Skeleton } from '@/components/SkeletonLoader';
-import { listColumns } from '../collectionListHelpers';
+import { Search } from 'lucide-react';
+import { Skeleton, type SkeletonShape } from '@/components/SkeletonLoader';
 
 /**
  * Shared shapes for the explore route skeletons.
@@ -13,22 +12,29 @@ import { listColumns } from '../collectionListHelpers';
  * When one of the real components changes shape, its stand-in here changes
  * with it.
  *
- * Bars are `<Skeleton>` from the site-wide loader, so they inherit the existing
- * shimmer sweep (and its reduced-motion behaviour) rather than inventing a
- * second one.
+ * Bars are `<Skeleton>` from the site-wide loader, so they share its tone,
+ * corners and pulse (and its reduced-motion behaviour) rather than inventing
+ * a second one. A bar standing in for a control passes `shape="control"`;
+ * text keeps the default pill.
+ *
+ * Static chrome that is known before anything loads (a field's outline and
+ * search icon, a card's frame, a fixed heading) is drawn for real, with the
+ * real classes, so only the data has to resolve.
  */
 
 /** Text-line bar. The default height reads as a line of ~0.85rem body text. */
 export function SkeletonBar({
   width,
   height = '0.7rem',
+  shape,
   style,
 }: {
   width: string;
   height?: string;
+  shape?: SkeletonShape;
   style?: CSSProperties;
 }) {
-  return <Skeleton width={width} height={height} style={style} />;
+  return <Skeleton width={width} height={height} shape={shape} style={style} />;
 }
 
 /** The bordered `--bg-secondary` box that most explore sections live in. */
@@ -46,6 +52,7 @@ export function SkeletonPanel({
       style={{
         padding,
         border: '1px solid var(--border-medium)',
+        borderRadius: 'var(--radius-card)',
         background: 'var(--bg-secondary)',
         ...style,
       }}
@@ -65,39 +72,36 @@ export function SkeletonPanel({
 export function SkeletonBreadcrumb({
   widths,
   share = true,
+  titled = false,
 }: {
   widths: string[];
   share?: boolean;
+  /** Mirrors <Breadcrumb titled>: no bottom margin, trailing separator. */
+  titled?: boolean;
 }) {
   return (
     <div
-      style={{
-        display: 'flex',
-        flexWrap: 'wrap',
-        alignItems: 'center',
-        gap: '0.5rem',
-        marginBottom: '1.5rem',
-        minHeight: '1.5rem',
-      }}
+      className="fx-crumbs"
+      style={{ marginBottom: titled ? 0 : '1.5rem', minHeight: '1.5rem' }}
     >
       {widths.map((width, i) => (
-        <span
-          key={i}
-          style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', minWidth: 0 }}
-        >
+        <span key={i} className="fx-crumb">
           {i > 0 && (
-            <ChevronRight
-              size={14}
-              aria-hidden
-              style={{ color: 'var(--text-tertiary)', opacity: 0.4, flexShrink: 0 }}
-            />
+            <span aria-hidden className="fx-crumb-sep">
+              /
+            </span>
           )}
           <SkeletonBar width={width} />
         </span>
       ))}
+      {titled && (
+        <span aria-hidden className="fx-crumb-sep">
+          /
+        </span>
+      )}
       {share && (
         <span style={{ marginLeft: 'auto' }}>
-          <SkeletonBar width="5.5rem" height="1.6rem" />
+          <SkeletonBar width="5.5rem" height="1.6rem" shape="control" />
         </span>
       )}
     </div>
@@ -105,44 +109,166 @@ export function SkeletonBreadcrumb({
 }
 
 /**
- * Stand-in for <ProfileHeader>: square avatar, name, handle, two lines of bio
- * and the follower/following/posts strip, over the universal-link footer.
+ * Stand-in for the explorer's account card (<ProfileHeader> with the identity
+ * rows): round avatar, name and handle, two lines of bio, the three stats,
+ * the DID / handle / PDS list and the "Open profile in…" row.
  */
-export function SkeletonProfileCard() {
+export function SkeletonAccountCard() {
   return (
-    <SkeletonPanel
-      padding="1.25rem"
-      style={{ display: 'flex', gap: '1.25rem', alignItems: 'flex-start', flexWrap: 'wrap' }}
-    >
-      <Skeleton width="72px" height="72px" style={{ flexShrink: 0 }} />
-      <div style={{ flex: '1 1 18rem', minWidth: 0 }}>
-        <SkeletonBar width="11rem" height="1.1rem" style={{ marginBottom: '0.6rem' }} />
-        <SkeletonBar width="8rem" style={{ marginBottom: '0.9rem' }} />
+    <SkeletonPanel padding="16px" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <Skeleton width="44px" height="44px" shape="circle" style={{ flexShrink: 0 }} />
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <SkeletonBar width="7rem" height="0.95rem" style={{ marginBottom: '0.45rem' }} />
+          <SkeletonBar width="6rem" />
+        </div>
+      </div>
+      <div>
         <SkeletonBar width="100%" style={{ marginBottom: '0.4rem' }} />
         <SkeletonBar width="72%" />
-        <div
-          style={{
-            display: 'flex',
-            flexWrap: 'wrap',
-            gap: '1rem',
-            marginTop: '0.875rem',
-          }}
-        >
-          <SkeletonBar width="5.5rem" height="0.65rem" />
-          <SkeletonBar width="5.5rem" height="0.65rem" />
-          <SkeletonBar width="4.5rem" height="0.65rem" />
-        </div>
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
+        {[0, 1, 2].map((i) => (
+          <div key={i}>
+            <SkeletonBar width="3rem" height="0.85rem" style={{ marginBottom: '0.35rem' }} />
+            <SkeletonBar width="3.5rem" height="0.55rem" />
+          </div>
+        ))}
       </div>
       <div
         style={{
-          flexBasis: '100%',
-          paddingTop: '1rem',
+          display: 'grid',
+          gridTemplateColumns: '56px 1fr',
+          gap: '12px 10px',
+          paddingTop: '14px',
           borderTop: '1px solid var(--border-subtle)',
         }}
       >
-        <SkeletonBar width="13rem" height="0.65rem" />
+        {['78%', '60%', '66%'].map((w, i) => (
+          <span key={i} style={{ display: 'contents' }}>
+            <SkeletonBar width="2rem" height="0.6rem" />
+            <SkeletonBar width={w} height="0.6rem" />
+          </span>
+        ))}
+      </div>
+      <div style={{ display: 'flex', gap: '8px' }}>
+        <Skeleton height="36px" shape="control" style={{ flex: 1 }} />
+        <Skeleton width="36px" height="36px" shape="control" />
       </div>
     </SkeletonPanel>
+  );
+}
+
+/**
+ * Stand-in for the repository card: the folder tabs standing on a panel that
+ * holds the collections tree. The tabs and the panel wear the real card's
+ * classes (tabs.css, `.fx-tabs`), so they take its exact geometry at every
+ * width and in the sidebar; each bar sits in a box one label-line tall (the
+ * tab's 20px line box), so a tab is as high as it will be with its words in.
+ */
+export function SkeletonRepoCard({
+  tabWidths,
+  rows = 8,
+  compact = false,
+}: {
+  tabWidths: string[];
+  rows?: number;
+  compact?: boolean;
+}) {
+  return (
+    <div className="fx-repo" style={{ pointerEvents: 'none' }}>
+      <div className="fx-tabs">
+        {tabWidths.map((width, i) => (
+          <span key={i} className="fx-tab" data-active={i === 0 || undefined}>
+            <span style={{ display: 'flex', alignItems: 'center', height: '20px' }}>
+              <SkeletonBar width={width} height="0.65rem" />
+            </span>
+          </span>
+        ))}
+      </div>
+      <div className="fx-tabpanel">
+        <SkeletonTreePane rows={rows} sidebar={compact} />
+      </div>
+    </div>
+  );
+}
+
+/**
+ * The tree's shape while it loads: two groups, each with a leaf straight
+ * under it and a sub-group of leaves, at the depths the real rows use. The
+ * widths are NSID-ish, so the run reads as names rather than as bars.
+ */
+const TREE_SHAPE: { kind: 'group' | 'leaf'; depth: 0 | 1 | 2; width: string }[] = [
+  { kind: 'group', depth: 0, width: '5.5rem' },
+  { kind: 'leaf', depth: 1, width: '15rem' },
+  { kind: 'group', depth: 1, width: '8rem' },
+  { kind: 'leaf', depth: 2, width: '10.5rem' },
+  { kind: 'leaf', depth: 2, width: '9rem' },
+  { kind: 'group', depth: 1, width: '7rem' },
+  { kind: 'leaf', depth: 2, width: '11.5rem' },
+  { kind: 'leaf', depth: 2, width: '8.5rem' },
+  { kind: 'leaf', depth: 2, width: '10rem' },
+  { kind: 'group', depth: 0, width: '5rem' },
+  { kind: 'leaf', depth: 1, width: '13rem' },
+  { kind: 'leaf', depth: 1, width: '11rem' },
+];
+
+/**
+ * Stand-in for <CollectionsTab>'s pane: the filter field and collapse button,
+ * then tree rows. Built from the tree's own classes (`.fx-tree-pane`,
+ * `.fx-tree-tools`, `.fx-field`, `.fx-row`), so the tools row, the row pitch,
+ * the indents and the phone layout (44px rows on hairlines, edge to edge)
+ * are the tree's, at every width and in the sidebar. The field's outline and
+ * search icon are drawn for real; only its count waits.
+ */
+export function SkeletonTreePane({
+  rows = 8,
+  sidebar = false,
+}: {
+  rows?: number;
+  sidebar?: boolean;
+}) {
+  return (
+    <div
+      className="fx-tree-pane"
+      aria-hidden
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: sidebar ? 0 : '12px',
+        pointerEvents: 'none',
+      }}
+    >
+      <div className="fx-tree-tools">
+        <span className="fx-field">
+          <Search size={14} aria-hidden />
+          <SkeletonBar width="7.5rem" height="0.6rem" />
+        </span>
+        <span className="fx-btn fx-btn-icon" />
+      </div>
+      <div className="fx-tree">
+        {Array.from({ length: rows }).map((_, i) => {
+          const row = TREE_SHAPE[i % TREE_SHAPE.length];
+          return (
+            <div
+              key={i}
+              className="fx-row"
+              data-kind={row.kind}
+              data-depth={row.depth}
+              data-stripe={i % 2 === 1 || undefined}
+            >
+              <span className="fx-row-main">
+                {/* The group's chevron: its 12px, so the names line up. */}
+                {row.kind === 'group' && <span style={{ width: 12, flex: 'none' }} />}
+                {/* A top-level group's icon slot, as the empty tile it loads into. */}
+                {row.kind === 'group' && row.depth === 0 && <span className="fx-favicon" />}
+                <SkeletonBar width={row.width} height="0.6rem" />
+              </span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
   );
 }
 
@@ -184,36 +310,6 @@ export function SkeletonFieldGrid({
 }
 
 /**
- * Stand-in for the repo page's tab strip and whatever the open tab renders.
- * The bar under the tabs is the real border, so the strip reads as tabs rather
- * than as four loose blocks.
- */
-export function SkeletonTabs({ tabWidths }: { tabWidths: string[] }) {
-  return (
-    <div>
-      <div
-        style={{
-          display: 'flex',
-          flexWrap: 'wrap',
-          gap: '0.25rem',
-          borderBottom: '1px solid var(--border-medium)',
-        }}
-      >
-        {tabWidths.map((width, i) => (
-          <div key={i} style={{ padding: '0.625rem 0.875rem' }}>
-            <SkeletonBar width={width} height="0.65rem" />
-          </div>
-        ))}
-      </div>
-      <div style={{ marginTop: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-        <SkeletonBar width="min(24rem, 100%)" height="2.15rem" />
-        <SkeletonRowList rows={6} />
-      </div>
-    </div>
-  );
-}
-
-/**
  * Generic bordered list of single-line rows — the shape shared by the
  * collections list, the spaces tree, the PDS repo list and the space member
  * table. Widths cycle so the stack reads as distinct items rather than a
@@ -236,6 +332,8 @@ export function SkeletonRowList({
         margin: 0,
         padding: 0,
         border: '1px solid var(--border-medium)',
+        borderRadius: 'var(--radius-card)',
+        overflow: 'hidden',
         background: 'var(--bg-secondary)',
       }}
     >
@@ -266,9 +364,10 @@ export function SkeletonRowList({
 }
 
 /**
- * Stand-in for a collection listing. Adopts `listColumns()` — the same tracks
- * the real list uses — so the rkey and preview columns land where the records
- * will put them, and each row carries the TID timestamp's second line.
+ * Stand-in for a collection listing: the records card's column header and
+ * rows (key, preview, created) on the same `.fx-rec-list` tracks the real list
+ * uses, so the columns land where the records will put them. Unframed — it
+ * sits inside the records card (wrap it in a panel elsewhere).
  */
 export function SkeletonRecordRows({
   rows = 8,
@@ -280,40 +379,31 @@ export function SkeletonRecordRows({
   const rkeyWidths = ['13ch', '13ch', '9ch', '13ch', '11ch', '13ch', '13ch', '7ch'];
   const previewWidths = ['68%', '41%', '77%', '52%', '35%', '61%', '44%', '70%'];
   return (
-    <ul
-      style={{
-        listStyle: 'none',
-        margin: 0,
-        padding: 0,
-        border: '1px solid var(--border-medium)',
-        background: 'var(--bg-secondary)',
-        display: 'grid',
-        gridTemplateColumns: listColumns(editing),
-        columnGap: '1rem',
-      }}
-    >
+    <ul className="fx-rec-list" data-editing={editing || undefined} aria-hidden>
+      <li className="fx-rec-head">
+        {editing && <span />}
+        <span>Record key</span>
+        <span>Preview</span>
+        <span>Created</span>
+      </li>
       {Array.from({ length: rows }).map((_, i) => (
-        <li
-          key={i}
-          style={{
-            gridColumn: '1 / -1',
-            display: 'grid',
-            gridTemplateColumns: 'subgrid',
-            alignItems: 'center',
-            padding: '0.625rem 1rem',
-            borderBottom: '1px solid var(--border-subtle)',
-          }}
-        >
-          {editing && <SkeletonBar width="1rem" height="1rem" />}
-          <div style={{ minWidth: 0 }}>
-            <SkeletonBar width={rkeyWidths[i % rkeyWidths.length]} />
-            <SkeletonBar
-              width="6ch"
-              height="0.55rem"
-              style={{ marginTop: '0.3rem' }}
-            />
+        <li key={i} className="fx-rec-item">
+          <div className="fx-rec-row fx-rec-skel" data-editing={editing || undefined}>
+            {editing && (
+              <span className="fx-rec-check">
+                <SkeletonBar width="16px" height="16px" />
+              </span>
+            )}
+            <span className="fx-rec-key">
+              <SkeletonBar width={rkeyWidths[i % rkeyWidths.length]} />
+            </span>
+            <span className="fx-rec-text" style={{ overflow: 'visible' }}>
+              <SkeletonBar width={previewWidths[i % previewWidths.length]} />
+            </span>
+            <span className="fx-rec-time">
+              <SkeletonBar width="2rem" />
+            </span>
           </div>
-          <SkeletonBar width={previewWidths[i % previewWidths.length]} />
         </li>
       ))}
     </ul>
@@ -333,8 +423,9 @@ export function SkeletonJson({ lines = 10 }: { lines?: number }) {
       style={{
         marginTop: '0.5rem',
         padding: '0.875rem 1rem',
-        background: 'var(--bg-tertiary)',
+        background: 'var(--surface-subtle)',
         border: '1px solid var(--border-subtle)',
+        borderRadius: 'var(--radius-control)',
         display: 'flex',
         flexDirection: 'column',
         gap: '0.45rem',
@@ -352,7 +443,7 @@ export function SkeletonJson({ lines = 10 }: { lines?: number }) {
 /**
  * Stand-in for <RecordPreview>'s structured field table: `LABEL  value` rows in
  * a card, over the mono CID footer strip. Matches the real card's 140px label
- * column and, like it, sits square, so the swap doesn't tilt the page.
+ * column and its rounded frame.
  */
 export function SkeletonFieldCard({ rows = 5 }: { rows?: number }) {
   const valueWidths = ['64%', '88%', '41%', '73%', '52%', '80%'];
@@ -361,6 +452,8 @@ export function SkeletonFieldCard({ rows = 5 }: { rows?: number }) {
       style={{
         background: 'var(--bg-secondary)',
         border: '1px solid var(--border-medium)',
+        borderRadius: 'var(--radius-card)',
+        overflow: 'hidden',
       }}
     >
       <div style={{ padding: '1.5rem' }}>
@@ -387,7 +480,7 @@ export function SkeletonFieldCard({ rows = 5 }: { rows?: number }) {
       <div
         style={{
           padding: '0.875rem 1.5rem',
-          background: 'var(--bg-tertiary)',
+          background: 'var(--surface-subtle)',
           borderTop: '1px solid var(--border-subtle)',
         }}
       >
@@ -404,22 +497,6 @@ export function SkeletonFieldCard({ rows = 5 }: { rows?: number }) {
  */
 export function SkeletonViewSwitch({ width = '8rem' }: { width?: string }) {
   return <SkeletonBar width={width} height="0.6rem" />;
-}
-
-/** A data view plus its view switch — the record page's repeating unit. */
-export function SkeletonSectionGroup({
-  children,
-  switchWidth,
-}: {
-  children: ReactNode;
-  switchWidth?: string;
-}) {
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-      {children}
-      <SkeletonViewSwitch width={switchWidth} />
-    </div>
-  );
 }
 
 /**
@@ -472,7 +549,7 @@ export function SkeletonChipRow({
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
       {widths.map((width, i) => (
-        <SkeletonBar key={i} width={width} height="1.85rem" />
+        <SkeletonBar key={i} width={width} height="1.85rem" shape="control" />
       ))}
       {trailingWidth && (
         <span style={{ marginLeft: 'auto' }}>

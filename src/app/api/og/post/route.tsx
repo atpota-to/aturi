@@ -2,14 +2,20 @@ import { ImageResponse } from '@vercel/og';
 import { NextRequest } from 'next/server';
 import { fetchImageAsDataUrl } from '@/lib/og-image';
 import {
+  Avatar,
+  BlueskyIcon,
   BrandMark,
+  Folder,
   FooterCta,
-  loadGoogleFont,
-  OgFooter,
+  LinkGlyph,
+  loadOgFonts,
   OgFrame,
   OG_COLORS,
-  OG_GLYPH_BASELINE,
+  OG_RADIUS,
+  PANEL_CONTENT_W,
+  PersonGlyph,
   sanitizeOgText,
+  StatLine,
 } from '@/lib/og-design';
 import { getEmbedImages } from '@/utils/postEmbeds';
 import type { ReactNode } from 'react';
@@ -30,8 +36,10 @@ export const revalidate = 3600; // Cache for 1 hour
 // off in the corner. Folding the byline in also freed ~90px of height, which
 // goes to the rail.
 const MEDIA_W = 420;
-const MEDIA_H = 340;
-const TEXT_COL_W = 1060 - MEDIA_W - 28;
+const MEDIA_H = 330;
+const TEXT_COL_W = PANEL_CONTENT_W - MEDIA_W - 28;
+/** The byline row (a 58px avatar) and the gap under it. */
+const BYLINE_H = 58 + 18;
 
 /**
  * Trim to a word boundary near `max`, dropping trailing punctuation so the
@@ -45,28 +53,45 @@ function clamp(text: string, max: number): string {
   return `${cut.replace(/[\s.,;:!?·|—-]+$/, '')}…`;
 }
 
-// ─── Glyphs ─────────────────────────────────────────────────────────────────
-// Inline SVG rather than emoji: a glyph Crimson Pro doesn't carry sends Satori
-// to Google Fonts for a dynamic subset, which 400s and kills the whole image.
-
-function PersonGlyph({ size = 30 }: { size?: number }) {
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke={OG_COLORS.accent}
-      strokeWidth={1.5}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      xmlns="http://www.w3.org/2000/svg"
-    >
-      <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
-      <circle cx="12" cy="7" r="4" />
-    </svg>
-  );
+/**
+ * Fit text to a line budget on top of clamp's character cap.
+ *
+ * A character cap alone does not bound height: line breaks do, and a post
+ * written as short paragraphs overflowed the sheet at well under the cap,
+ * which with the body centred pushed the byline out through the top. Blank
+ * lines between paragraphs are folded away (each one costs a whole line on a
+ * card with five to spare), then paragraphs are kept while their estimated
+ * wrapped lines fit, and the first that does not is clamped into the rest.
+ * `perLine` is an estimate, so pass a conservative one: words wrap whole.
+ */
+function fitLines(text: string, { maxLines, perLine }: { maxLines: number; perLine: number }): string {
+  const paragraphs = text.replace(/\n\s*\n+/g, '\n').trim().split('\n');
+  const out: string[] = [];
+  let used = 0;
+  for (const para of paragraphs) {
+    const need = Math.max(1, Math.ceil(para.length / perLine));
+    if (used + need <= maxLines) {
+      out.push(para);
+      used += need;
+      continue;
+    }
+    const room = maxLines - used;
+    if (room > 0) {
+      out.push(clamp(para, room * perLine));
+    } else if (out.length > 0) {
+      out[out.length - 1] = `${out[out.length - 1].replace(/[\s.,;:!?·|—…-]+$/, '')}…`;
+    }
+    break;
+  }
+  return out.join('\n');
 }
+
+/** Average Figtree advance as a share of the size, rounded up for safety. */
+const FIGTREE_EM = 0.48;
+
+// ─── Glyphs ─────────────────────────────────────────────────────────────────
+// Inline SVG rather than emoji: a glyph Figtree doesn't carry sends Satori to
+// Google Fonts for a dynamic subset, which 400s and kills the whole image.
 
 function QuoteGlyph({ size = 18 }: { size?: number }) {
   return (
@@ -103,45 +128,25 @@ function ReplyGlyph({ size = 16 }: { size?: number }) {
   );
 }
 
-function LinkGlyph({ size = 16 }: { size?: number }) {
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke={OG_COLORS.accent}
-      strokeWidth={2}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      xmlns="http://www.w3.org/2000/svg"
-      style={{ flexShrink: 0 }}
-    >
-      <path d="M9 17H7A5 5 0 0 1 7 7h2" />
-      <path d="M15 7h2a5 5 0 1 1 0 10h-2" />
-      <line x1="8" y1="12" x2="16" y2="12" />
-    </svg>
-  );
-}
-
 function PlayBadge() {
   return (
     <div
       style={{
         position: 'absolute',
-        top: `${Math.round(MEDIA_H / 2) - 32}px`,
-        left: `${Math.round(MEDIA_W / 2) - 32}px`,
-        width: '64px',
-        height: '64px',
+        top: `${Math.round(MEDIA_H / 2) - 34}px`,
+        left: `${Math.round(MEDIA_W / 2) - 34}px`,
+        width: '68px',
+        height: '68px',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        background: 'rgba(10, 10, 10, 0.72)',
-        border: `1px solid ${OG_COLORS.borderAccent}`,
+        background: OG_COLORS.bgSecondary,
+        border: `1px solid ${OG_COLORS.borderMedium}`,
+        borderRadius: `${OG_RADIUS.pill}px`,
       }}
     >
-      <svg width="26" height="26" viewBox="0 0 24 24" fill={OG_COLORS.accent} xmlns="http://www.w3.org/2000/svg">
-        <path d="M8 5v14l11-7z" />
+      <svg width="28" height="28" viewBox="0 0 24 24" fill={OG_COLORS.accentFill} xmlns="http://www.w3.org/2000/svg">
+        <path d="M9 5.5v13l10-6.5z" />
       </svg>
     </div>
   );
@@ -334,35 +339,46 @@ export async function GET(request: NextRequest) {
     // Budget the text column: media steals half the width, a quote steals
     // half the height, and both together leave room for a line or two.
     const textCap = hasMedia && hasQuote ? 90 : hasMedia || hasQuote ? 150 : 260;
-    const truncatedText = clamp(postText, textCap);
-    const quoteText = quote ? clamp(quote.text, hasMedia ? 70 : 120) : '';
+    const cappedText = clamp(postText, textCap);
 
     // A text-only post has the whole card to itself, so let it run larger.
     const textSize =
-      (truncatedText.length > 150 ? 26 : truncatedText.length > 80 ? 29 : 32) +
+      (cappedText.length > 150 ? 24 : cappedText.length > 80 ? 27 : 30) +
       (!hasMedia && !hasQuote ? 4 : 0);
+
+    // Then hold the copy to the lines the column has room for: the rail's
+    // height, less the byline and any quote (two lines of quoted text).
+    const textColW = hasMedia ? TEXT_COL_W : PANEL_CONTENT_W;
+    const quoteLines = 2;
+    const quoteH = hasQuote ? 18 + 30 + 29 + quoteLines * 28 : 0;
+    const truncatedText = fitLines(cappedText, {
+      maxLines: Math.max(1, Math.floor((MEDIA_H - BYLINE_H - quoteH) / (textSize * 1.45))),
+      perLine: Math.floor(textColW / (textSize * FIGTREE_EM)),
+    });
+    const quoteText = quote
+      ? fitLines(clamp(quote.text, hasMedia ? 70 : 120), {
+          maxLines: quoteLines,
+          perLine: Math.floor((textColW - 38) / (20 * FIGTREE_EM)),
+        })
+      : '';
 
     const [avatarDataUrl, embedImageDataUrl] = await Promise.all([
       fetchImageAsDataUrl(avatarUrl),
       fetchImageAsDataUrl(media?.imageUrl),
     ]);
 
-    const allText =
-      `${displayName} @${handleName} ${truncatedText} ${quoteText} ${quote?.author || ''} ` +
-      `${media?.title || ''} ${media?.host || ''} ${chipLabel} ${chipName} ` +
-      `${likeCount.toLocaleString()} ${repostCount.toLocaleString()} ${replyCount.toLocaleString()} ` +
-      'likes reposts replies Choose where to view aturi.to ' +
-      OG_GLYPH_BASELINE;
+    const stats: [number, string][] = [
+      [likeCount, likeCount === 1 ? 'like' : 'likes'],
+      [repostCount, repostCount === 1 ? 'repost' : 'reposts'],
+      [replyCount, replyCount === 1 ? 'reply' : 'replies'],
+    ];
 
-    const [crimsonData, monoData] = await Promise.all([
-      loadGoogleFont('Crimson+Pro:wght@300;400;600', allText),
-      loadGoogleFont(
-        'IBM+Plex+Mono:wght@500',
-        `@${handleName} ${likeCount.toLocaleString()} ${repostCount.toLocaleString()} ` +
-          `${replyCount.toLocaleString()} ${media?.host || ''} , . : / - _ ` +
-          OG_GLYPH_BASELINE,
-      ),
-    ]);
+    const fonts = await loadOgFonts(
+      `${displayName} ${truncatedText} ${quoteText} ${quote?.author || ''} ` +
+        `${media?.title || ''} ${chipLabel} ${chipName} Choose where to view ` +
+        `${stats.map(([n, label]) => `${n.toLocaleString()} ${label}`).join(' ')}`,
+      `@${handleName} ${media?.host || ''}`,
+    );
 
     // ── Media rail ────────────────────────────────────────────────────────
     const isLinkCard = media?.kind === 'external';
@@ -381,8 +397,9 @@ export async function GET(request: NextRequest) {
           height: `${MEDIA_H}px`,
           position: 'relative',
           overflow: 'hidden',
-          background: OG_COLORS.bgSecondary,
-          border: `1px solid ${OG_COLORS.borderSubtle}`,
+          background: OG_COLORS.bgTertiary,
+          border: `1px solid ${OG_COLORS.borderMedium}`,
+          borderRadius: `${OG_RADIUS.control}px`,
         }}
       >
         {embedImageDataUrl && (
@@ -398,6 +415,20 @@ export async function GET(request: NextRequest) {
             }}
           />
         )}
+        {/* A link card with no thumbnail (or one we could not decode) would
+            otherwise leave an empty well above its title. */}
+        {isLinkCard && !embedImageDataUrl && (
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              height: `${imageH}px`,
+            }}
+          >
+            <LinkGlyph size={56} color={OG_COLORS.textFaint} />
+          </div>
+        )}
         {media?.kind === 'video' && embedImageDataUrl && <PlayBadge />}
         {isLinkCard && (
           <div
@@ -407,7 +438,7 @@ export async function GET(request: NextRequest) {
               gap: '8px',
               height: `${linkStripH}px`,
               padding: '16px 18px',
-              background: OG_COLORS.bgTertiary,
+              background: OG_COLORS.surfaceSubtle,
               borderTop: `1px solid ${OG_COLORS.borderSubtle}`,
               overflow: 'hidden',
             }}
@@ -415,8 +446,9 @@ export async function GET(request: NextRequest) {
             <div
               style={{
                 display: 'flex',
-                fontSize: '21px',
-                lineHeight: 1.25,
+                fontSize: '20px',
+                fontWeight: 600,
+                lineHeight: 1.3,
                 color: OG_COLORS.textPrimary,
               }}
             >
@@ -443,64 +475,29 @@ export async function GET(request: NextRequest) {
       </div>
     ) : null;
 
+    // The tab names what the post *is*: a post, or a reply and to whom. A
+    // shared label reading "Bluesky post" was worth less than the corner it
+    // sat in, so the tab carries the relationship instead.
+    const tab: ReactNode = chipName ? (
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: '9px' }}>
+        <span style={{ display: 'flex', color: OG_COLORS.textSecondary, fontWeight: 500 }}>{chipLabel}</span>
+        <span style={{ display: 'flex' }}>{chipName}</span>
+      </div>
+    ) : (
+      chipLabel
+    );
+
     const content: ReactNode = (
       <OgFrame>
-        <div
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            flex: 1,
-            gap: '24px',
-            position: 'relative',
-            zIndex: 1,
-          }}
+        <Folder
+          tab={tab}
+          tabIcon={
+            isReply ? <ReplyGlyph size={20} /> : <BlueskyIcon size={20} color={OG_COLORS.brandBluesky} />
+          }
+          aside={<BrandMark />}
+          footerLeft={<StatLine stats={stats} />}
+          footerRight={<FooterCta>Choose where to view</FooterCta>}
         >
-          {/* Top row, reversed against the other cards: what the post *is*
-              leads, the wordmark follows. A shared eyebrow reading "Bluesky
-              post" was worth less than the corner it sat in. */}
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              gap: '32px',
-              position: 'relative',
-              zIndex: 1,
-            }}
-          >
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '13px',
-                padding: '9px 18px 9px 15px',
-                background: OG_COLORS.bgTertiary,
-                border: `1px solid ${isReply ? OG_COLORS.borderAccent : OG_COLORS.borderSubtle}`,
-              }}
-            >
-              {isReply && <ReplyGlyph size={17} />}
-              <span
-                style={{
-                  display: 'flex',
-                  fontFamily: 'IBM Plex Mono',
-                  fontSize: '15px',
-                  fontWeight: 500,
-                  letterSpacing: '0.14em',
-                  textTransform: 'uppercase',
-                  color: isReply ? OG_COLORS.accent : OG_COLORS.textTertiary,
-                }}
-              >
-                {chipLabel}
-              </span>
-              {chipName && (
-                <span style={{ display: 'flex', fontSize: '21px', color: OG_COLORS.textPrimary }}>
-                  {chipName}
-                </span>
-              )}
-            </div>
-            <BrandMark size={22} />
-          </div>
-
           {/* Body — byline and copy on the left, media on a fixed right rail.
               alignItems: center puts the two columns on one axis, so the
               byline sits level with the middle of a tall photo instead of
@@ -519,47 +516,31 @@ export async function GET(request: NextRequest) {
                 display: 'flex',
                 flexDirection: 'column',
                 flex: 1,
-                gap: '20px',
+                gap: '18px',
                 minWidth: 0,
                 overflow: 'hidden',
               }}
             >
               {/* Byline */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '18px' }}>
-                <div
-                  style={{
-                    width: '64px',
-                    height: '64px',
-                    flexShrink: 0,
-                    background: OG_COLORS.bgTertiary,
-                    border: `1px solid ${OG_COLORS.borderMedium}`,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    overflow: 'hidden',
-                  }}
-                >
-                  {avatarDataUrl ? (
-                    <img
-                      src={avatarDataUrl}
-                      alt=""
-                      width={64}
-                      height={64}
-                      style={{ width: '64px', height: '64px', objectFit: 'cover' }}
-                    />
-                  ) : (
-                    <PersonGlyph size={30} />
-                  )}
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                  <div style={{ display: 'flex', fontSize: '30px', fontWeight: 400 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                <Avatar src={avatarDataUrl} size={58} fallback={<PersonGlyph size={28} />} />
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', minWidth: 0 }}>
+                  <div
+                    style={{
+                      display: 'flex',
+                      fontSize: '27px',
+                      fontWeight: 700,
+                      letterSpacing: '-0.015em',
+                      lineHeight: 1.15,
+                    }}
+                  >
                     {displayName}
                   </div>
                   <div
                     style={{
                       display: 'flex',
                       fontFamily: 'IBM Plex Mono',
-                      fontSize: '20px',
+                      fontSize: '19px',
                       fontWeight: 500,
                       color: OG_COLORS.textTertiary,
                     }}
@@ -575,11 +556,10 @@ export async function GET(request: NextRequest) {
                     display: 'flex',
                     fontSize: `${textSize}px`,
                     lineHeight: 1.45,
-                    fontWeight: 300,
                     color: OG_COLORS.textPrimary,
                     whiteSpace: 'pre-wrap',
                     wordBreak: 'break-word',
-                    maxWidth: hasMedia ? `${TEXT_COL_W}px` : '1060px',
+                    maxWidth: hasMedia ? `${TEXT_COL_W}px` : `${PANEL_CONTENT_W}px`,
                   }}
                 >
                   {truncatedText}
@@ -591,11 +571,11 @@ export async function GET(request: NextRequest) {
                   style={{
                     display: 'flex',
                     flexDirection: 'column',
-                    gap: '8px',
-                    padding: '18px 22px',
-                    background: OG_COLORS.bgSecondary,
-                    border: `1px solid ${OG_COLORS.borderSubtle}`,
-                    borderLeft: `3px solid ${OG_COLORS.borderAccent}`,
+                    gap: '6px',
+                    padding: '14px 18px',
+                    background: OG_COLORS.surfaceSubtle,
+                    border: `1px solid ${OG_COLORS.borderMedium}`,
+                    borderRadius: `${OG_RADIUS.control}px`,
                     overflow: 'hidden',
                   }}
                 >
@@ -604,19 +584,19 @@ export async function GET(request: NextRequest) {
                       display: 'flex',
                       alignItems: 'center',
                       gap: '9px',
-                      fontSize: '20px',
-                      color: OG_COLORS.accent,
+                      fontSize: '19px',
+                      fontWeight: 700,
+                      color: OG_COLORS.textPrimary,
                     }}
                   >
-                    <QuoteGlyph size={17} />
+                    <QuoteGlyph size={16} />
                     <span style={{ display: 'flex' }}>{quote?.author}</span>
                   </div>
                   <div
                     style={{
                       display: 'flex',
-                      fontSize: '22px',
+                      fontSize: '20px',
                       lineHeight: 1.4,
-                      fontWeight: 300,
                       color: OG_COLORS.textSecondary,
                       whiteSpace: 'pre-wrap',
                     }}
@@ -629,48 +609,14 @@ export async function GET(request: NextRequest) {
 
             {mediaRail}
           </div>
-
-          <OgFooter
-            left={
-              <div style={{ display: 'flex', gap: '26px', fontSize: '20px', fontWeight: 300 }}>
-                {[
-                  [likeCount, 'likes'],
-                  [repostCount, 'reposts'],
-                  [replyCount, 'replies'],
-                ].map(([count, label]) => (
-                  <div
-                    key={label as string}
-                    style={{ display: 'flex', alignItems: 'baseline', gap: '7px', color: OG_COLORS.textSecondary }}
-                  >
-                    <span
-                      style={{
-                        display: 'flex',
-                        fontFamily: 'IBM Plex Mono',
-                        fontSize: '20px',
-                        fontWeight: 500,
-                        color: OG_COLORS.accent,
-                      }}
-                    >
-                      {(count as number).toLocaleString()}
-                    </span>
-                    <span style={{ display: 'flex' }}>{label}</span>
-                  </div>
-                ))}
-              </div>
-            }
-            right={<FooterCta>Choose where to view</FooterCta>}
-          />
-        </div>
+        </Folder>
       </OgFrame>
     );
 
     const imageResponse = new ImageResponse(content, {
       width: 1200,
       height: 630,
-      fonts: [
-        { name: 'Crimson Pro', data: crimsonData, weight: 300, style: 'normal' },
-        { name: 'IBM Plex Mono', data: monoData, weight: 500, style: 'normal' },
-      ],
+      fonts,
     });
 
     imageResponse.headers.set(

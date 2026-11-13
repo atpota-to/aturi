@@ -109,6 +109,7 @@ export const TOOL_GROUPS: CatalogGroup[] = [
       { name: 'search_lexicons', summary: 'Find record types by name when you don’t know the NSID' },
       { name: 'sample_recent_records', summary: 'Recent records network-wide in one collection' },
       { name: 'get_lexicon_schema', summary: 'A published schema, found through the _lexicon DNS method' },
+      { name: 'get_lexicon_field_usage', summary: 'How often records set each field, checked against the published schema' },
     ],
   },
   {

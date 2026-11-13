@@ -106,8 +106,8 @@ struct JetstreamView: View {
     private var header: some View {
         HStack(spacing: 10) {
             Image(systemName: "waveform.path.ecg")
-                .font(.footnote)
-                .foregroundStyle(isLive ? theme.textAccent : theme.textTertiary)
+                .font(AturiFont.footnote)
+                .foregroundStyle(isLive ? theme.statusLive : theme.textTertiary)
                 .symbolEffect(.pulse, isActive: isLive)
                 .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 2) {
@@ -139,12 +139,12 @@ struct JetstreamView: View {
             setLive(!wantsLive)
         } label: {
             Image(systemName: wantsLive ? "pause.fill" : "play.fill")
-                .font(.footnote.weight(.semibold))
+                .font(AturiFont.sans(.footnote, weight: .semibold))
                 .foregroundStyle(wantsLive ? theme.textPrimary : theme.textOnAccent)
                 .contentTransition(.symbolEffect(.replace))
                 .frame(width: 34, height: 34)
-                .background(wantsLive ? theme.bgTertiary : theme.accent, in: Circle())
-                .overlay(Circle().strokeBorder(theme.borderSubtle, lineWidth: AturiTheme.hairline(displayScale: displayScale)))
+                .background(wantsLive ? theme.bgSecondary : theme.accent, in: Circle())
+                .overlay(Circle().strokeBorder(theme.borderMedium, lineWidth: AturiTheme.hairline(displayScale: displayScale)))
                 .contentShape(Circle())
         }
         .buttonStyle(.plain)
@@ -198,7 +198,7 @@ struct JetstreamView: View {
                     }
                 } label: {
                     Label(opsSummary, systemImage: "line.3.horizontal.decrease.circle")
-                        .font(.footnote)
+                        .font(AturiFont.footnote)
                         .lineLimit(1)
                 }
                 .accessibilityLabel("Operations, \(opsSummary)")
@@ -214,7 +214,7 @@ struct JetstreamView: View {
             }
             HStack(spacing: 8) {
                 Image(systemName: "magnifyingglass")
-                    .font(.footnote)
+                    .font(AturiFont.footnote)
                     .foregroundStyle(theme.textTertiary)
                 TextField("Collection, e.g. app.bsky.feed.post or app.bsky.*", text: $collectionFilter)
                     .font(AturiFont.monoSmall)
@@ -239,7 +239,7 @@ struct JetstreamView: View {
             }
             .padding(.horizontal, 10)
             .padding(.vertical, 8)
-            .background(theme.bgTertiary, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+            .background(theme.bgTertiary, in: RoundedRectangle(cornerRadius: AturiTheme.controlRadius, style: .continuous))
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 10)
@@ -290,12 +290,12 @@ struct JetstreamView: View {
                 Text(compact
                      ? "Watch new records appear across the network as they are created."
                      : "Watch records being created, updated and deleted across the network as they happen.")
-                    .font(.footnote)
+                    .font(AturiFont.footnote)
                     .foregroundStyle(theme.textSecondary)
                     .multilineTextAlignment(.center)
                     .fixedSize(horizontal: false, vertical: true)
                 Label("Start live feed", systemImage: "play.fill")
-                    .font(.footnote.weight(.medium))
+                    .font(AturiFont.sans(.footnote, weight: .medium))
                     .foregroundStyle(theme.textAccent)
             }
             .frame(maxWidth: .infinity)
@@ -392,7 +392,7 @@ private struct JetstreamRowView: View {
                 }
                 if !row.preview.isEmpty {
                     Text(row.preview)
-                        .font(.footnote)
+                        .font(AturiFont.footnote)
                         .foregroundStyle(theme.textSecondary)
                         .lineLimit(1)
                 }
@@ -415,10 +415,10 @@ private struct JetstreamRowView: View {
     private var opPill: some View {
         Text(row.opSymbol)
             .font(AturiFont.monoSmall)
-            .foregroundStyle(row.op == .create ? theme.textAccent : theme.textPrimary)
+            .foregroundStyle(row.op == .create ? theme.accentSoftFg : theme.textPrimary)
             .frame(width: 18, height: 18)
             .background(
-                row.op == .create ? theme.accent.opacity(0.18) : theme.bgTertiary,
+                row.op == .create ? theme.accentSoft : theme.bgTertiary,
                 in: RoundedRectangle(cornerRadius: 4, style: .continuous)
             )
             .accessibilityLabel(row.opTitle)

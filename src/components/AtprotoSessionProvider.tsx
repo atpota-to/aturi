@@ -10,13 +10,21 @@ import {
   type ReactNode,
 } from 'react';
 import type { Agent } from '@atproto/api';
-import type { OAuthSession } from '@atproto/oauth-client-browser';
 import { getOauthClient, getOauthEvents } from '@/lib/oauth/client';
-import { DEFAULT_SCOPE_IDS, buildScopeString, spaceGrantLevel } from '@/lib/oauth/scopes';
+import { resolveAuthMode, hasSignedInHint } from '@/lib/oauth/authMode';
+import { describeSignInError } from '@/lib/oauth/signInError';
+import { createBffSession, fetchBffSession, startBffSignIn } from '@/lib/oauth/bffSession';
+import type { AtSession } from '@/lib/oauth/session';
+import {
+  DEFAULT_SCOPE_IDS,
+  buildScopeString,
+  scopeIdsFromString,
+  spaceGrantLevel,
+} from '@/lib/oauth/scopes';
 import { clearSpaceCredentials } from '@/utils/atproto/spaceCredential';
 
 type SessionContextValue = {
-  session: OAuthSession | null;
+  session: AtSession | null;
   agent: Agent | null;
   did: string | null;
   loading: boolean;
@@ -53,25 +61,71 @@ const Ctx = createContext<SessionContextValue | null>(null);
  *
  * `agent` is lazy-loaded from `@atproto/api` only when a session exists, so
  * the SDK (~200KB gzipped) is never on the cold-visit critical path.
+ *
+ * Two OAuth clients live behind this one interface: the original public
+ * browser client, and — when the deployment is configured for it — a
+ * confidential backend client whose tokens never reach the browser. Bootstrap
+ * prefers an existing browser session over starting a backend one, so nobody
+ * signed in today is logged out or forced to re-authorize by the migration.
+ * Which client a NEW sign-in uses is `NEXT_PUBLIC_AUTH_MODE`; see authMode.ts.
  */
 export function AtprotoSessionProvider({ children }: { children: ReactNode }) {
-  const [session, setSession] = useState<OAuthSession | null>(null);
+  const [session, setSession] = useState<AtSession | null>(null);
   const [agent, setAgent] = useState<Agent | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const [grantedScope, setGrantedScope] = useState<string | null>(null);
   const [pds, setPds] = useState<string | null>(null);
+  const [mode] = useState(resolveAuthMode);
 
   useEffect(() => {
     let cancelled = false;
 
+    const dropSession = (sub?: string) => {
+      // Space credentials are minted against a delegation token from one
+      // account's PDS, so they must never outlive that account's session —
+      // including when it goes away underneath us (revoked elsewhere, account
+      // switch). They live in memory only, so this is the whole cleanup.
+      clearSpaceCredentials();
+      setSession((current) => (!sub || (current && current.sub === sub) ? null : current));
+    };
+
     (async () => {
       try {
+        // A backend session is honoured whenever one exists, INDEPENDENT of
+        // `mode`. `mode` decides which client a new sign-in uses; it must not
+        // decide whether an existing session counts, or flipping the flag back
+        // to `browser` would sign out everyone who had signed in through the
+        // backend — turning the rollback into the outage it exists to avoid.
+        //
+        // The hint cookie carries no secret and is what keeps this from
+        // costing every anonymous visitor a round trip on every page load.
+        if (hasSignedInHint()) {
+          for (let attempt = 0; attempt < 3; attempt += 1) {
+            const result = await fetchBffSession();
+            if (cancelled) return;
+            if (result.status === 'ok') {
+              setSession(
+                createBffSession(result.info, { onInvalid: () => dropSession() }),
+              );
+              setGrantedScope(result.info.scope);
+              setPds(result.info.pds);
+              return;
+            }
+            if (result.status === 'signed-out') break;
+            // `unavailable` is a cold start or a database hiccup, NOT a
+            // sign-out. Retrying rather than clearing is what stops a
+            // momentary blip becoming a mass logout.
+            await new Promise((r) => setTimeout(r, 800 * (attempt + 1)));
+          }
+          if (cancelled) return;
+        }
+
         const client = await getOauthClient();
         const result = await client.init();
         if (cancelled) return;
         if (result && 'session' in result && result.session) {
-          setSession(result.session);
+          setSession(result.session as unknown as AtSession);
         }
       } catch (err) {
         if (!cancelled) setError(err as Error);
@@ -80,23 +134,31 @@ export function AtprotoSessionProvider({ children }: { children: ReactNode }) {
       }
     })();
 
+    // The backend's sign-in route redirects failures back here with a message
+    // rather than rendering raw JSON into a top-level navigation. Pick it up,
+    // then strip it so a reload doesn't resurrect it.
+    try {
+      const url = new URL(window.location.href);
+      const message = url.searchParams.get('oauth_error');
+      if (message) {
+        setError(new Error(describeSignInError(message)));
+        url.searchParams.delete('oauth_error');
+        window.history.replaceState({}, '', url.toString());
+      }
+    } catch {
+      // A malformed location is not worth failing a mount over.
+    }
+
     const events = getOauthEvents();
     const onDeleted = (event: Event) => {
-      const detail = (event as CustomEvent<{ sub?: string }>).detail;
-      const sub = detail?.sub;
-      // Space credentials are minted against a delegation token from one
-      // account's PDS, so they must never outlive that account's session —
-      // including when it goes away underneath us (revoked elsewhere, account
-      // switch). They live in memory only, so this is the whole cleanup.
-      clearSpaceCredentials();
-      setSession((current) => (current && current.sub === sub ? null : current));
+      dropSession((event as CustomEvent<{ sub?: string }>).detail?.sub);
     };
     events.addEventListener('deleted', onDeleted);
     return () => {
       cancelled = true;
       events.removeEventListener('deleted', onDeleted);
     };
-  }, []);
+  }, [mode]);
 
   useEffect(() => {
     let cancelled = false;
@@ -107,8 +169,9 @@ export function AtprotoSessionProvider({ children }: { children: ReactNode }) {
     import('@atproto/api')
       .then(({ Agent }) => {
         if (cancelled) return;
-        // OAuthSession is shaped like an XRPC client; @atproto/api's Agent
-        // accepts it directly.
+        // Both session shapes are structurally SessionManagers — an object
+        // carrying `did` and `fetchHandler` — which is exactly what the Agent
+        // constructor accepts.
         setAgent(new Agent(session as unknown as ConstructorParameters<typeof Agent>[0]));
       })
       .catch((err) => {
@@ -121,12 +184,13 @@ export function AtprotoSessionProvider({ children }: { children: ReactNode }) {
 
   /**
    * Read the granted scope (and the PDS, which rides along as the token's
-   * `aud`) off the current token.
+   * `aud`) off the current session.
    *
-   * `getTokenInfo(false)` is deliberate: `false` reads whatever is cached and
-   * never refreshes. Passing `undefined` or `'auto'` would let a page load
-   * spend a refresh round trip — and, worse, surface a refresh failure — just
-   * to answer a question about capabilities.
+   * `getTokenInfo(false)` is deliberate for the browser client: `false` reads
+   * whatever is cached and never refreshes. Passing `undefined` or `'auto'`
+   * would let a page load spend a refresh round trip — and, worse, surface a
+   * refresh failure — just to answer a question about capabilities. The
+   * backend client already answered both at bootstrap, from a stored row.
    */
   useEffect(() => {
     let cancelled = false;
@@ -154,19 +218,44 @@ export function AtprotoSessionProvider({ children }: { children: ReactNode }) {
     };
   }, [session]);
 
-  const signIn = useCallback(async (input: string, scope?: string) => {
-    const client = await getOauthClient();
-    // The fallback is the picker's default set, not METADATA_SCOPE: the
-    // metadata string is the declared superset and now carries both `space:`
-    // tokens, so defaulting to it would send a caller that omitted the argument
-    // to a consent screen asking for whole-space read of every space, with no
-    // box having been ticked. This string is byte-identical to what the app
-    // requested before spaces existed.
-    await client.signIn(input, { scope: scope ?? buildScopeString(DEFAULT_SCOPE_IDS) });
-  }, []);
+  /**
+   * Dispatching here rather than in the sign-in hook is what makes the
+   * migration one file instead of several: three surfaces call this directly
+   * (the hook, the account tab, and the spaces landing page), and patching the
+   * hook alone would leave two of them still minting legacy sessions.
+   *
+   * The backend takes a closed set of permission ids, never a scope string —
+   * an open string reaching `authorize()` is a privilege-escalation surface.
+   * Callers keep passing the string they always did and it is inverted here;
+   * see `scopeIdsFromString`.
+   */
+  const signIn = useCallback(
+    async (input: string, scope?: string) => {
+      // The fallback is the picker's default set, not METADATA_SCOPE: the
+      // metadata string is the declared superset and now carries both `space:`
+      // tokens, so defaulting to it would send a caller that omitted the
+      // argument to a consent screen asking for whole-space read of every
+      // space, with no box having been ticked.
+      const scopeString = scope ?? buildScopeString(DEFAULT_SCOPE_IDS);
+
+      if (mode === 'bff') {
+        const ids = scope ? scopeIdsFromString(scope) : DEFAULT_SCOPE_IDS;
+        const returnTo =
+          window.location.pathname + window.location.search + window.location.hash;
+        startBffSignIn(input, [...ids], returnTo);
+        // The browser navigates away; nothing after this runs.
+        return;
+      }
+
+      const client = await getOauthClient();
+      await client.signIn(input, { scope: scopeString });
+    },
+    [mode],
+  );
 
   const signOut = useCallback(async () => {
     if (!session) return;
+    const sub = session.sub;
     // Drop space credentials first: they authorize reads of other members'
     // private records and are only ever held in memory, so signing out has to
     // take them with it even if the revoke call below fails.
@@ -175,6 +264,18 @@ export function AtprotoSessionProvider({ children }: { children: ReactNode }) {
       await session.signOut();
     } catch {
       // ignore network errors on revoke; we still drop local state
+    }
+    // Both clients can hold a session for the same account at once — that is
+    // the whole point of honouring an existing browser session while new
+    // sign-ins go to the backend. So signing out has to end BOTH, or the next
+    // page load finds the leftover one in IndexedDB and the user is signed
+    // back in by something they just signed out of.
+    try {
+      const client = await getOauthClient();
+      await client.revoke(sub);
+    } catch {
+      // No browser session for this account, or the revoke failed. Either way
+      // the local state below is what the user sees.
     }
     setSession(null);
   }, [session]);

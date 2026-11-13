@@ -1,0 +1,357 @@
+/* Copy menu and hand off. Loaded after popup.css; everything here is an
+   override or an addition on the shipped classes, on tokens only. */
+
+/* ---------- Top bar: brand, the global auto-redirect switch, settings ----------
+   No mode tabs, so the bar's right half holds the one global control the
+   footer used to carry. The theme toggle moved to Settings > Appearance. */
+.cm-topbar {
+  padding-right: 8px;
+}
+
+.cm-topbar-right {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.cm-redirect {
+  height: 32px;
+  padding: 0 8px;
+  border-radius: var(--radius-control);
+  color: var(--text-secondary);
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.cm-redirect:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+.cm-redirect-icon {
+  flex: none;
+  color: var(--text-tertiary);
+}
+
+.cm-redirect.on {
+  color: var(--text-primary);
+}
+
+.cm-redirect.on .cm-redirect-icon {
+  color: var(--text-accent);
+}
+
+.cm-redirect-label {
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  line-height: 16px;
+  white-space: nowrap;
+}
+
+/* ---------- This page: the index card ---------- */
+.cm-page {
+  gap: 10px;
+}
+
+.cm-actions {
+  position: relative;
+}
+
+/* The menu's trigger and the hand-off share one row at equal weight. The
+   chevron and the external mark sit a tone down so the words lead. */
+.cm-copy-btn > svg:last-child,
+.cm-open-btn > svg:last-child {
+  flex: none;
+  color: var(--text-tertiary);
+}
+
+.cm-copy-btn > svg:last-child {
+  margin-left: -2px;
+}
+
+.cm-copy-btn.is-open {
+  background: var(--bg-tertiary);
+  border-color: var(--text-faint);
+}
+
+/* ---------- The copy menu: a floating ledger ----------
+   The only floating thing in the popup, so the only shadow. It spans the
+   actions row, so a value gets the room a chip row never had. */
+.cm-menu {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(100% + 6px);
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-pop);
+}
+
+.cm-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  height: 34px;
+  padding: 0 8px;
+  border-radius: var(--radius-control);
+  text-align: left;
+  transition: background 0.12s ease;
+}
+
+.cm-menu-item:hover,
+.cm-menu-item:focus-visible {
+  background: var(--bg-tertiary);
+}
+
+.cm-menu-item:focus-visible {
+  outline-offset: -2px;
+}
+
+/* Label column, then the value in mono. The label is what you are copying;
+   the value is a preview, truncated in the middle in the real thing so the
+   rkey stays visible (hand-cut here). */
+.cm-menu-key {
+  flex: none;
+  width: 56px;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  line-height: 16px;
+  color: var(--text-secondary);
+}
+
+.cm-menu-val {
+  flex: 1;
+  min-width: 0;
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+  line-height: 16px;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cm-menu-item:hover .cm-menu-key,
+.cm-menu-item:hover .cm-menu-val,
+.cm-menu-item:focus-visible .cm-menu-key,
+.cm-menu-item:focus-visible .cm-menu-val {
+  color: var(--text-primary);
+}
+
+/* Copied: the row takes the accent-soft family for a moment, the label
+   reads "Copied", a tick lands on the right; the menu stays open so a
+   second identifier is one more click. */
+.cm-menu-item.is-copied,
+.cm-menu-item.is-copied:hover {
+  background: var(--accent-soft);
+}
+
+.cm-menu-item.is-copied .cm-menu-key,
+.cm-menu-item.is-copied .cm-menu-val {
+  color: var(--accent-soft-fg);
+}
+
+.cm-menu-check {
+  flex: none;
+  display: flex;
+  color: var(--accent-soft-fg);
+}
+
+/* ---------- Per-tab band on the card (auto-redirect on) ----------
+   Global state lives in the top bar; what concerns this tab sits on this
+   tab's card, as the card's bottom edge. */
+.cm-page-band {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 34px;
+  margin: 0 -12px -12px;
+  padding: 0 6px 0 12px;
+  border-top: 1px solid var(--border-subtle);
+  border-radius: 0 0 calc(var(--radius-card) - 1px) calc(var(--radius-card) - 1px);
+  background: var(--surface-subtle);
+  font-size: var(--fs-sm);
+  color: var(--text-secondary);
+}
+
+.cm-page-band > svg {
+  flex: none;
+  color: var(--text-accent);
+}
+
+.cm-page-band-text {
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cm-page-band-action {
+  flex: none;
+  height: 28px;
+  padding: 0 8px;
+  border-radius: var(--radius-control);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--text-accent);
+}
+
+.cm-page-band-action:hover {
+  background: var(--bg-tertiary);
+}
+
+.cm-page-band.is-paused {
+  background: var(--warn-bg);
+  border-top-color: var(--warn-border);
+  color: var(--warn-fg);
+}
+
+.cm-page-band.is-paused > svg {
+  color: var(--warn-icon);
+}
+
+.cm-page-band.is-paused .cm-page-band-text {
+  font-weight: 600;
+}
+
+.cm-page-band.is-paused .cm-page-band-action {
+  color: var(--warn-fg);
+}
+
+.cm-page-band.is-paused .cm-page-band-action:hover {
+  background: var(--bg-secondary);
+}
+
+/* ---------- The hand-off line at the end of the drawer ---------- */
+.cm-more {
+  margin: 0;
+  padding: 2px 2px 0;
+  font-size: var(--fs-sm);
+  line-height: 20px;
+  color: var(--text-tertiary);
+}
+
+.cm-more a {
+  font-weight: 600;
+}
+
+/* ---------- No-data page: the card becomes a lookup field ---------- */
+.cm-nodata {
+  margin: 0;
+  font-size: var(--fs-md);
+  line-height: 20px;
+  color: var(--text-secondary);
+}
+
+.cm-lookup {
+  display: flex;
+  align-items: center;
+  height: 36px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-control);
+  background: var(--bg-secondary);
+  overflow: hidden;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.cm-lookup:hover {
+  border-color: var(--text-faint);
+}
+
+.cm-lookup:focus-within {
+  border-color: var(--accent-moss);
+  box-shadow: 0 0 0 3px var(--glow-strong);
+}
+
+[data-theme='dark'] .cm-lookup:focus-within {
+  border-color: var(--text-accent);
+}
+
+.cm-lookup > svg {
+  flex: none;
+  margin-left: 10px;
+  color: var(--text-tertiary);
+}
+
+.cm-lookup-input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  padding: 0 8px;
+  border: 0;
+  background: transparent;
+  font-family: var(--font-sans);
+  font-size: var(--fs-md);
+  color: var(--text-primary);
+}
+
+.cm-lookup-input:focus {
+  outline: none;
+}
+
+.cm-lookup-go {
+  flex: none;
+  height: 100%;
+  padding: 0 12px;
+  border-left: 1px solid var(--border-medium);
+  background: var(--surface-subtle);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--text-accent);
+  transition: background 0.12s ease;
+}
+
+.cm-lookup-go:hover {
+  background: var(--bg-tertiary);
+}
+
+.cm-recent {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.cm-recent-label {
+  margin-right: 2px;
+  font-size: var(--fs-xs);
+  color: var(--text-tertiary);
+}
+
+.cm-chip {
+  height: 24px;
+  padding: 0 8px;
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-control);
+  background: var(--bg-secondary);
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+  color: var(--text-secondary);
+  transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
+}
+
+.cm-chip:hover {
+  background: var(--surface-subtle);
+  border-color: var(--border-strong);
+  color: var(--text-primary);
+}
+
+/* Shortcut rows carry a name and a host only, so they sit a step shorter. */
+.cm-shortcuts .popup-waypoint-main {
+  min-height: 36px;
+}
+
+/* Variant (post-footnote.html): the hand-off line as the card's footnote,
+   between the card and the first drawer, so the badge's count is answered
+   in the first 600px. Pulled up to sit on the card's shadow line. */
+.cm-more.is-footnote {
+  margin-top: -4px;
+}
