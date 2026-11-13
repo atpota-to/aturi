@@ -44,6 +44,7 @@ export function toolLinksForAccount(did: string): ToolLink[] {
     link('activity', 'actor', did, 'Activity calendar', 'A year of this account’s writes across every app'),
     link('memberships', 'account', did, 'Lists and verifications', 'Lists this account is on, and who has verified it'),
     link('labels', 'subject', did, 'Labels', 'Labels on this account, from every labeler'),
+    link('shadowban', 'subject', did, 'Shadowban check', 'Whether Bluesky’s AppView quietly leaves this account out'),
     link('car', 'actor', did, 'Repo archive', 'Browse this account’s repository export'),
   ];
 }
