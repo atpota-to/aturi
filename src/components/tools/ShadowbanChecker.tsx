@@ -254,8 +254,8 @@ function CheckRow({ check }: { check: ShadowbanCheck }) {
 
 const PRESENCE: Record<PostPresence, { tone: Tone; words: (name: string) => string; title: string }> = {
   shown: { tone: 'pass', words: (name) => `on ${name}`, title: 'The AppView returns this post.' },
-  missing: { tone: 'fail', words: () => 'missing', title: 'In the repository, but the AppView will not return it.' },
-  new: { tone: 'info', words: () => 'too new to tell', title: 'Written under two minutes ago; it may not be indexed yet.' },
+  missing: { tone: 'fail', words: () => 'missing', title: 'The PDS has this post, but the AppView won’t return it.' },
+  new: { tone: 'info', words: () => 'too new to tell', title: 'Posted less than two minutes ago. The AppView may not have it yet.' },
   pending: { tone: 'info', words: () => '…', title: 'Not compared yet.' },
 };
 
@@ -325,7 +325,7 @@ function PostRow({ post, evidence, now }: { post: RepoPost; evidence: Evidence; 
           </Tag>
         )}
         {notInSearch && (
-          <Tag tone="warn" title="Post search by this author does not return it.">
+          <Tag tone="warn" title="Searching this author’s posts doesn’t find it.">
             not in search
           </Tag>
         )}
@@ -348,20 +348,20 @@ function Fact({ label, children, copy, wide }: { label: string; children: ReactN
 
 const INTRO = [
   {
-    term: 'The repository, from its PDS',
-    text: 'The account’s posts as they are, read from the server that hosts them. Nothing an AppView decides changes this copy.',
+    term: 'Posts on the PDS',
+    text: 'Reads the account’s 25 latest posts directly from its PDS, the server that stores them. AppViews can’t change this copy.',
   },
   {
-    term: 'The same posts, from the AppView',
-    text: 'Each of the most recent posts is asked for by its address. One the repository has and the AppView will not return is hidden.',
+    term: 'Posts on the AppView',
+    text: 'Asks the AppView for each of those posts. If the PDS has a post and the AppView won’t return it, the AppView is hiding it.',
   },
   {
-    term: 'Replies, in their threads',
-    text: 'Each recent reply is looked for under the post it answers. This is where Bluesky’s unlabelled “needs review” shows: the reply exists and loads on its own, but is left out of the thread. A block or the thread’s reply rules can keep a reply out too, so both are looked up first.',
+    term: 'Replies in threads',
+    text: 'Looks for each recent reply under the post it replies to. This is where Bluesky’s “needs review” status shows up now that it’s no longer a label. The reply opens on its own but is missing from the thread. Blocks and reply limits can also hide a reply, so the tool checks for those first.',
   },
   {
     term: 'Search',
-    text: 'The account is searched for by its handle, with typeahead as the control, and its posts by author. Typeahead finding it where search does not means it was indexed and then left out.',
+    text: 'Searches for the account by its handle and for its posts by author. If typeahead (the suggestions that appear as you type) finds the account but full search doesn’t, the AppView is leaving it out of search.',
   },
 ];
 
@@ -378,11 +378,11 @@ export function ShadowbanHeading({ share = PATH }: { share?: string }) {
         </div>
         <ShareLinkChip url={share} />
       </div>
-      <h1 className="shadowban-title">Is an AppView hiding it?</h1>
+      <h1 className="shadowban-title">Check for a shadowban.</h1>
       <p className="shadowban-lead">
-        An AppView can hide an account without a label: its replies left out of threads, its posts
-        or profile left out of search. This reads the repository from its PDS and asks an AppView
-        for the same things.
+        An AppView can hide an account without labeling it. Its replies disappear from threads, or
+        it stops showing up in search. This reads the account’s posts from its PDS and compares
+        them with what the AppView returns.
       </p>
     </>
   );
@@ -486,7 +486,7 @@ export default function ShadowbanChecker() {
               </Section>
 
               {!isPost && posts.length > 0 && (
-                <Section title="Recent posts" meta={`${posts.length} from the repository, newest first`}>
+                <Section title="Recent posts" meta={`${posts.length} from the PDS, newest first`}>
                   <ul className="shadowban-list">
                     {posts.map((post) => (
                       <PostRow key={post.uri} post={post} evidence={evidence} now={now} />
@@ -560,12 +560,6 @@ export default function ShadowbanChecker() {
                     </li>
                   ))}
                 </ol>
-                <p className="shadowban-caveat">
-                  Everything is asked logged out, as anyone could. What an AppView does only for
-                  signed-in people (ranking replies, folding some under “hidden replies”, feeds) is out
-                  of sight here. A difference is a sign rather than proof: an AppView also drops a post
-                  it cannot read.
-                </p>
               </div>
             </Section>
           )}

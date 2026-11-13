@@ -5,7 +5,7 @@ import ShadowbanChecker, { ShadowbanHeading } from '@/components/tools/Shadowban
 
 const title = 'Shadowban checker · aturi.to';
 const description =
-  'Compare an account’s repository on its PDS with what an AppView shows, and find posts, replies or search results it quietly leaves out.';
+  'Compare an account’s posts on its PDS with what an AppView returns, and find posts, replies or search results that are missing.';
 
 const image = '/api/og/static?page=shadowban';
 
@@ -15,7 +15,7 @@ export const metadata: Metadata = {
   openGraph: {
     title,
     description,
-    images: [{ url: image, width: 1200, height: 630, alt: 'Shadowban checker: is an AppView hiding it?' }],
+    images: [{ url: image, width: 1200, height: 630, alt: 'aturi.to shadowban checker' }],
   },
   twitter: { card: 'summary_large_image', title, description, images: [image] },
 };

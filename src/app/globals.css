@@ -3460,19 +3460,10 @@ html {
   color: var(--text-primary);
 }
 
-.shadowban-steps p,
-.shadowban-caveat {
+.shadowban-steps p {
   margin: 0;
   line-height: 1.6;
   color: var(--text-secondary);
-}
-
-.shadowban-caveat {
-  margin-top: 1.25rem;
-  padding-top: 1rem;
-  border-top: 1px solid var(--border-subtle);
-  font-style: italic;
-  color: var(--text-tertiary);
 }
 
 @media (max-width: 640px) {

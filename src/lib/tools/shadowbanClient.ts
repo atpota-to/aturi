@@ -122,7 +122,7 @@ async function xrpc<T>(
 
 /** What went wrong, in a few words. A status of 0 is a request that never got an answer. */
 function failureWords(answer: { status: number; error: string | null; message: string | null }): string {
-  if (answer.status === 0) return 'the host is down, or does not take requests from a browser';
+  if (answer.status === 0) return 'the host is down, or doesn’t accept requests from a browser';
   return answer.message ?? answer.error ?? `HTTP ${answer.status}`;
 }
 
@@ -138,17 +138,17 @@ function pdsFailure(err: unknown): string {
 async function resolveIdentity(actor: string, signal: AbortSignal): Promise<Identity> {
   const did = actor.startsWith('did:') ? actor : await resolveHandle(actor);
   if (!did || !isValidDid(did)) {
-    throw new Error(`${actor} does not resolve to an account. Check the spelling, or use its DID.`);
+    throw new Error(`${actor} doesn’t match any account. Check the spelling, or use its DID.`);
   }
   let document;
   try {
     document = await fetchDidDocument(did, signal);
   } catch (err) {
     if (signal.aborted) throw err;
-    throw new Error(`The DID document for ${did} could not be read, so its PDS is unknown.`);
+    throw new Error(`Couldn’t read the DID document for ${did}, so its PDS is unknown.`);
   }
   const pds = pdsFrom(document);
-  if (!pds) throw new Error(`The DID document for ${did} names no PDS, so there is no repository to compare with.`);
+  if (!pds) throw new Error(`The DID document for ${did} doesn’t list a PDS, so there are no posts to compare.`);
   return { did, handle: actor.startsWith('did:') ? claimedHandle(document) : actor, pds };
 }
 

@@ -203,7 +203,7 @@ test('readReply does not excuse a missing reply in the account’s own thread wi
 test('readReply says when blocks or rules could not be checked', () => {
   const reading = readReply(absent({ block: null, gate: null }), DID);
   assert.equal(reading.outcome, 'hidden');
-  assert.match(reading.reason, /Could not check blocks or the thread’s reply rules/);
+  assert.match(reading.reason, /Couldn’t check blocks or the thread’s reply limits/);
 });
 
 test('readReply cannot tell for a crowded thread, a missing parent or a failed read', () => {
@@ -230,7 +230,7 @@ test('an account the AppView shows in full passes every check', () => {
   );
   const verdict = shadowbanVerdict(evidence, checks);
   assert.equal(verdict.tone, 'pass');
-  assert.equal(verdict.title, 'No sign of a shadowban on Bluesky');
+  assert.equal(verdict.title, 'No shadowban found on Bluesky');
 });
 
 test('the checks wait for what has not arrived, and so does the verdict', () => {
@@ -250,10 +250,10 @@ test('a post in the repository and not on the AppView is a sign, and a fresh one
   const checks = buildChecks(evidence, NOW);
   const posts = checks.find((check) => check.id === 'posts');
   assert.equal(posts?.status, 'fail');
-  assert.match(posts?.summary ?? '', /^1 of the 3 most recent posts is in the repository but not on Bluesky\. One post under two minutes old was not counted\./);
+  assert.match(posts?.summary ?? '', /^1 of the 3 latest posts is on the PDS but missing from Bluesky\. One post from the last two minutes was skipped\./);
   const verdict = shadowbanVerdict(evidence, checks);
   assert.equal(verdict.tone, 'fail');
-  assert.equal(verdict.title, 'Signs of a shadowban on Bluesky');
+  assert.equal(verdict.title, 'Possible shadowban on Bluesky');
 });
 
 test('a reply missing from its thread is a sign; one left out across a block is not', () => {
@@ -281,7 +281,7 @@ test('a reply missing from the account’s own thread is said to be so', () => {
   };
   const threads = buildChecks(evidence, NOW).find((check) => check.id === 'threads');
   assert.equal(threads?.status, 'fail');
-  assert.match(threads?.summary ?? '', /It is a reply in the account’s own thread\./);
+  assert.match(threads?.summary ?? '', /It’s a reply in the account’s own thread\./);
 });
 
 test('left out of search but found by typeahead is a sign', () => {
@@ -325,7 +325,7 @@ test('an AppView without search skips the search checks', () => {
   const checks = buildChecks(evidence, NOW);
   assert.equal(status(checks, 'actorSearch'), 'skip');
   assert.equal(status(checks, 'postSearch'), 'skip');
-  assert.equal(shadowbanVerdict(evidence, checks).title, 'No sign of a shadowban on Blacksky');
+  assert.equal(shadowbanVerdict(evidence, checks).title, 'No shadowban found on Blacksky');
 });
 
 test('post search counts only posts the AppView returns that are old enough to be searchable', () => {
@@ -365,7 +365,7 @@ test('a suspension and an unknown account are named in the verdict', () => {
   evidence.profile = { state: 'suspended', message: 'Account has been suspended' };
   assert.equal(shadowbanVerdict(evidence, buildChecks(evidence, NOW)).title, 'Suspended on Bluesky');
   evidence.profile = { state: 'missing', message: 'Profile not found' };
-  assert.equal(shadowbanVerdict(evidence, buildChecks(evidence, NOW)).title, 'Bluesky does not show this account');
+  assert.equal(shadowbanVerdict(evidence, buildChecks(evidence, NOW)).title, 'Bluesky doesn’t show this account');
 });
 
 test('an AppView that does not answer is said so, not reported as hiding nothing', () => {
@@ -377,7 +377,7 @@ test('an AppView that does not answer is said so, not reported as hiding nothing
   evidence.postSearch = { ok: false, message: 'the host is down' };
   const verdict = shadowbanVerdict(evidence, buildChecks(evidence, NOW));
   assert.equal(verdict.tone, 'warn');
-  assert.equal(verdict.title, 'Bluesky did not answer');
+  assert.equal(verdict.title, 'Bluesky didn’t answer');
 });
 
 test('an account its PDS has switched off is not the AppView’s doing', () => {
@@ -386,7 +386,7 @@ test('an account its PDS has switched off is not the AppView’s doing', () => {
   evidence.profile = { state: 'suspended', message: 'Account has been suspended' };
   const verdict = shadowbanVerdict(evidence, buildChecks(evidence, NOW));
   assert.equal(verdict.tone, 'warn');
-  assert.equal(verdict.title, 'The account is not active on its PDS');
+  assert.equal(verdict.title, 'The account isn’t active on its PDS');
   assert.match(verdict.text, /takendown/);
 });
 
@@ -459,5 +459,5 @@ test('a deleted post is not a hidden one', () => {
   assert.equal(status(checks, 'post'), 'skip');
   const verdict = shadowbanVerdict(evidence, checks);
   assert.equal(verdict.tone, 'warn');
-  assert.equal(verdict.title, 'This post no longer exists');
+  assert.equal(verdict.title, 'This post was deleted');
 });
