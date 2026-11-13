@@ -3130,7 +3130,6 @@ html {
   padding: 1.125rem 1.25rem;
   background: var(--bg-secondary);
   border: 1px solid var(--border-medium);
-  border-left-width: 3px;
 }
 
 .shadowban-verdict strong {
@@ -3154,12 +3153,10 @@ html {
 
 .shadowban-verdict[data-tone='warn'] {
   border-color: var(--margin-highlight-border);
-  border-left-color: var(--margin-highlight-fg);
 }
 
 .shadowban-verdict[data-tone='fail'] {
   border-color: var(--danger-border);
-  border-left-color: var(--danger);
   background: linear-gradient(var(--danger-soft), var(--danger-soft)), var(--bg-secondary);
 }
 
