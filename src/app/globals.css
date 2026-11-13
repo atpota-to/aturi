@@ -3352,6 +3352,57 @@ html {
   margin-left: auto;
 }
 
+/* The post that was asked about, when it is also in the recent list. */
+.shadowban-post[data-target] {
+  box-shadow: inset 3px 0 0 var(--text-accent);
+  background: linear-gradient(var(--glow-subtle), var(--glow-subtle)), var(--bg-secondary);
+}
+
+/* The post asked about: its card, then its checks. */
+.shadowban-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.shadowban-target {
+  display: flex;
+  flex-direction: column;
+  gap: 0.875rem;
+}
+
+.shadowban-target-text {
+  margin: 0;
+  font-size: 1.05rem;
+  line-height: 1.55;
+  color: var(--text-primary);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.shadowban-target-text[data-quiet] {
+  color: var(--text-tertiary);
+  font-style: italic;
+}
+
+.shadowban-target-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+}
+
+.shadowban-target .shadowban-actions {
+  margin-top: 0.25rem;
+}
+
+.shadowban-target-missing {
+  margin: 0 0 1rem;
+  color: var(--text-secondary);
+  font-style: italic;
+}
+
 /* A short state beside a value: the PDS page's "deactivated" tag, in four tones. */
 .shadowban-tag {
   padding: 0.125rem 0.4rem;

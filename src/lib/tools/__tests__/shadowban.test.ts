@@ -9,7 +9,9 @@ import {
   NO_UNAUTHENTICATED,
   SEARCH_GRACE_MS,
   THREAD_REPLY_CAP,
+  buildAccountChecks,
   buildChecks,
+  buildPostChecks,
   parseShadowbanInput,
   placeReply,
   postPresence,
@@ -392,72 +394,108 @@ test('an account its PDS has switched off is not the AppView’s doing', () => {
 
 // --- a post -----------------------------------------------------------------
 
+/** A post the AppView shows, by an account it shows in full. */
 function cleanPost(reply?: { parent: string; root: string }): Evidence {
-  const one = post(HOUR, reply);
+  const one = post(HOUR / 2, reply, 5);
   return {
+    ...cleanAccount(),
     target: { kind: 'post', actor: DID, rkey: one.rkey },
-    appview: DEFAULT_APPVIEW,
-    identity: { did: DID, handle: 'alice.example.com', pds: 'https://pds.example.com' },
-    repo: { state: 'active' },
-    profile: { state: 'found', handle: 'alice.example.com', displayName: null, avatar: null, labels: [] },
-    posts: { ok: true, value: [one] },
-    shown: { ok: true, value: [one.uri] },
-    replies: reply
-      ? { ok: true, value: [{ uri: one.uri, parent: reply.parent, root: reply.root, thread: 'shown' }] }
+    post: { ok: true, value: one },
+    postShown: { ok: true, value: [one.uri] },
+    postThread: reply
+      ? { ok: true, value: { uri: one.uri, parent: reply.parent, root: reply.root, thread: 'shown' } }
       : undefined,
-    done: true,
   };
 }
 
-test('a post that is not a reply is checked for itself alone', () => {
+test('a post is checked on its own, and its author in full', () => {
   const evidence = cleanPost();
   const checks = buildChecks(evidence, NOW);
   assert.deepEqual(
     checks.map((check) => [check.id, check.status]),
     [
-      ['pds', 'pass'],
-      ['profile', 'pass'],
+      ['postRecord', 'pass'],
       ['post', 'pass'],
       ['thread', 'skip'],
+      ['pds', 'pass'],
+      ['profile', 'pass'],
+      ['posts', 'pass'],
+      ['threads', 'pass'],
+      ['actorSearch', 'pass'],
+      ['postSearch', 'pass'],
     ],
   );
-  assert.equal(shadowbanVerdict(evidence, checks).tone, 'pass');
+  assert.deepEqual(buildPostChecks(evidence, NOW).map((check) => check.id), ['postRecord', 'post', 'thread']);
+  assert.equal(buildAccountChecks(evidence, NOW).length, 6);
+  const verdict = shadowbanVerdict(evidence, checks);
+  assert.equal(verdict.tone, 'pass');
+  assert.equal(verdict.text, 'Bluesky shows the post and everything else that was checked.');
+});
+
+test('an account asked about has no post checks', () => {
+  assert.deepEqual(buildPostChecks(cleanAccount(), NOW), []);
 });
 
 test('a post the AppView will not return is hidden', () => {
   const evidence = cleanPost({ parent: otherPost(1), root: otherPost(1) });
-  evidence.shown = { ok: true, value: [] };
-  evidence.replies = undefined;
+  evidence.postShown = { ok: true, value: [] };
+  evidence.postThread = undefined;
   const checks = buildChecks(evidence, NOW);
   assert.equal(status(checks, 'post'), 'fail');
   assert.equal(status(checks, 'thread'), 'skip');
-  assert.equal(shadowbanVerdict(evidence, checks).title, 'Hidden on Bluesky');
+  assert.equal(shadowbanVerdict(evidence, checks).title, 'This post is hidden on Bluesky');
 });
 
 test('a reply left out of its thread is hidden, and one left out across a block is a warning', () => {
   const ref = { parent: otherPost(1), root: otherPost(1) };
   const evidence = cleanPost(ref);
-  assert.ok(evidence.replies?.ok);
-  const [reply] = evidence.replies.value;
+  assert.ok(evidence.postThread?.ok);
+  const reply = evidence.postThread.value;
 
-  evidence.replies = { ok: true, value: [{ ...reply, thread: 'absent', gate: { restricted: false, hidden: false }, block: { found: false } }] };
+  evidence.postThread = { ok: true, value: { ...reply, thread: 'absent', gate: { restricted: false, hidden: false }, block: { found: false } } };
   let checks = buildChecks(evidence, NOW);
   assert.equal(status(checks, 'thread'), 'fail');
-  assert.equal(shadowbanVerdict(evidence, checks).tone, 'fail');
+  assert.equal(shadowbanVerdict(evidence, checks).title, 'This post is hidden on Bluesky');
 
-  evidence.replies = { ok: true, value: [{ ...reply, thread: 'absent', gate: { restricted: false, hidden: false }, block: { found: true } }] };
+  evidence.postThread = { ok: true, value: { ...reply, thread: 'absent', gate: { restricted: false, hidden: false }, block: { found: true } } };
   checks = buildChecks(evidence, NOW);
   assert.equal(status(checks, 'thread'), 'warn');
   assert.equal(shadowbanVerdict(evidence, checks).tone, 'warn');
 });
 
-test('a deleted post is not a hidden one', () => {
+test('a post that shows, by an account search leaves out, still reports the account', () => {
   const evidence = cleanPost();
-  evidence.posts = { ok: true, value: [] };
-  evidence.shown = undefined;
-  const checks = buildChecks(evidence, NOW);
+  evidence.actorSearch = { ok: true, value: { inSearch: false, inTypeahead: true } };
+  const verdict = shadowbanVerdict(evidence, buildChecks(evidence, NOW));
+  assert.equal(verdict.tone, 'fail');
+  assert.equal(verdict.title, 'Possible shadowban on Bluesky');
+  assert.match(verdict.text, /^The post itself shows on Bluesky\. Searching for alice\.example\.com doesn’t find it/);
+});
+
+test('a hidden post by a flagged account names both', () => {
+  const evidence = cleanPost();
+  evidence.postShown = { ok: true, value: [] };
+  evidence.actorSearch = { ok: true, value: { inSearch: false, inTypeahead: true } };
+  const verdict = shadowbanVerdict(evidence, buildChecks(evidence, NOW));
+  assert.equal(verdict.title, 'Possible shadowban on Bluesky');
+  assert.match(verdict.text, /^The post is on the PDS, but Bluesky won’t return it\. Searching for/);
+});
+
+test('a deleted post is not a hidden one, and the account is still checked', () => {
+  const evidence = cleanPost();
+  evidence.post = { ok: true, value: null };
+  evidence.postShown = undefined;
+  let checks = buildChecks(evidence, NOW);
+  assert.equal(status(checks, 'postRecord'), 'warn');
   assert.equal(status(checks, 'post'), 'skip');
-  const verdict = shadowbanVerdict(evidence, checks);
+  assert.equal(status(checks, 'posts'), 'pass');
+  let verdict = shadowbanVerdict(evidence, checks);
   assert.equal(verdict.tone, 'warn');
   assert.equal(verdict.title, 'This post was deleted');
+
+  evidence.actorSearch = { ok: true, value: { inSearch: false, inTypeahead: true } };
+  checks = buildChecks(evidence, NOW);
+  verdict = shadowbanVerdict(evidence, checks);
+  assert.equal(verdict.title, 'Possible shadowban on Bluesky');
+  assert.match(verdict.text, /^This post was deleted\. /);
 });
