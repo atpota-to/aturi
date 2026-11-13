@@ -6,6 +6,7 @@ import {
   BookOpen,
   Compass,
   Download,
+  EyeOff,
   Menu,
   MessageSquareHeart,
   Orbit,
@@ -369,6 +370,10 @@ export default function Header({ simple = false, compact = false }: HeaderProps)
                   <Link href="/explore/spaces" className="compact-nav-link" prefetch={false}>
                     <Orbit size={16} />
                     <span>spaces</span>
+                  </Link>
+                  <Link href="/tools/shadowban" className="compact-nav-link" prefetch={false}>
+                    <EyeOff size={16} />
+                    <span>shadowban check</span>
                   </Link>
                   <Link href="/mcp" className="compact-nav-link" prefetch={false}>
                     <Plug size={16} />

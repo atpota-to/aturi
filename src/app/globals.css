@@ -2896,6 +2896,606 @@ html {
   word-break: break-word;
 }
 
+/* ==========================================================================
+   Shadowban checker (/tools/shadowban, ShadowbanChecker.tsx)
+   The Explorer landing's header over the PDS page's bordered rows, with
+   status colours from the theme: the accent for pass, the highlight amber
+   for a warning, danger for a failure. Square corners throughout, like the
+   rest of the Explorer.
+   ========================================================================== */
+
+.shadowban {
+  display: flex;
+  flex-direction: column;
+  gap: 2.5rem;
+}
+
+.shadowban-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  min-width: 0;
+}
+
+.shadowban-head-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-bottom: 1.25rem;
+}
+
+.shadowban-kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.25rem 0.625rem;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-tertiary);
+  color: var(--text-tertiary);
+  font-family: var(--font-serif);
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.shadowban-title {
+  margin: 0 0 0.75rem;
+  font-size: 2.5rem;
+  font-weight: 300;
+  color: var(--text-primary);
+}
+
+.shadowban-lead {
+  max-width: 38rem;
+  margin: 0 0 2rem;
+  font-size: 1.05rem;
+  line-height: 1.6;
+  color: var(--text-secondary);
+}
+
+/* The search field and its button: the Explorer's SearchBox. */
+.shadowban-search {
+  display: flex;
+  align-items: stretch;
+  gap: 0.5rem;
+  margin-bottom: 1.25rem;
+}
+
+.shadowban-search-field {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+}
+
+.shadowban-search-field svg {
+  position: absolute;
+  top: 50%;
+  left: 0.875rem;
+  transform: translateY(-50%);
+  color: var(--text-tertiary);
+  pointer-events: none;
+}
+
+.shadowban-search-field input,
+.shadowban-host input {
+  width: 100%;
+  padding: 0.75rem 0.875rem 0.75rem 2.5rem;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-medium);
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+
+.shadowban-search-field input:focus,
+.shadowban-host input:focus {
+  border-color: var(--text-accent);
+}
+
+.shadowban-submit {
+  padding: 0.75rem 1.25rem;
+  background: var(--accent-moss);
+  color: var(--text-on-accent);
+  border: 1px solid var(--accent-moss);
+  font-family: var(--font-serif);
+  font-size: 0.95rem;
+  white-space: nowrap;
+  transition: background 0.2s ease, opacity 0.2s ease;
+}
+
+.shadowban-submit:hover {
+  background: var(--accent-forest);
+}
+
+.shadowban-submit:disabled {
+  opacity: 0.75;
+  cursor: progress;
+}
+
+/* Try-chips and the AppView choices: the Explorer's try-chips, as buttons. */
+.shadowban-tries,
+.shadowban-appview,
+.shadowban-chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.shadowban-appview {
+  margin-top: 0.75rem;
+}
+
+.shadowban-chips-label {
+  font-size: 0.85rem;
+  color: var(--text-tertiary);
+}
+
+.shadowban-try,
+.shadowban-chip {
+  padding: 0.125rem 0.5rem;
+  border: 1px solid var(--border-subtle);
+  background: transparent;
+  color: var(--text-accent);
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+.shadowban-try:hover,
+.shadowban-chip:hover {
+  border-color: var(--text-accent);
+}
+
+.shadowban-chip {
+  font-family: var(--font-serif);
+  font-size: 0.9rem;
+}
+
+.shadowban-chip[data-mine] {
+  border-color: var(--text-accent);
+  background: var(--glow-medium);
+  color: var(--text-primary);
+}
+
+.shadowban-try:focus-visible,
+.shadowban-chip:focus-visible,
+.shadowban-button:focus-visible,
+.shadowban-link:focus-visible,
+.shadowban-submit:focus-visible {
+  outline: 2px solid var(--text-accent);
+  outline-offset: 2px;
+}
+
+.shadowban-host {
+  display: flex;
+  gap: 0.5rem;
+  flex-basis: 100%;
+  max-width: 28rem;
+}
+
+.shadowban-host input {
+  padding-left: 0.875rem;
+}
+
+.shadowban-appview-problem {
+  flex-basis: 100%;
+}
+
+/* Buttons under a card, and the one in a section heading. */
+.shadowban-button {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.5rem 1rem;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-medium);
+  color: var(--text-primary);
+  font-family: var(--font-serif);
+  font-size: 0.875rem;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: border-color 0.2s ease;
+}
+
+.shadowban-button:hover {
+  border-color: var(--text-accent);
+}
+
+.shadowban-link {
+  color: var(--text-accent);
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+}
+
+.shadowban-link:hover {
+  text-decoration: underline;
+}
+
+.shadowban-failed {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+/* The answer in one line. */
+.shadowban-verdict {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.875rem;
+  padding: 1.125rem 1.25rem;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-medium);
+  border-left-width: 3px;
+}
+
+.shadowban-verdict strong {
+  display: block;
+  margin-bottom: 0.25rem;
+  font-size: 1.2rem;
+  font-weight: 400;
+  color: var(--text-primary);
+}
+
+.shadowban-verdict p {
+  margin: 0;
+  line-height: 1.6;
+  color: var(--text-secondary);
+}
+
+.shadowban-verdict[data-tone='pass'] {
+  border-color: var(--text-accent);
+  background: linear-gradient(var(--glow-subtle), var(--glow-subtle)), var(--bg-secondary);
+}
+
+.shadowban-verdict[data-tone='warn'] {
+  border-color: var(--margin-highlight-border);
+  border-left-color: var(--margin-highlight-fg);
+}
+
+.shadowban-verdict[data-tone='fail'] {
+  border-color: var(--danger-border);
+  border-left-color: var(--danger);
+  background: linear-gradient(var(--danger-soft), var(--danger-soft)), var(--bg-secondary);
+}
+
+/* Status marks: a small square with a glyph. */
+.shadowban-mark {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  border: 1px solid var(--border-medium);
+  color: var(--text-tertiary);
+}
+
+.shadowban-mark[data-status='pass'] {
+  border-color: var(--text-accent);
+  color: var(--text-accent);
+}
+
+.shadowban-mark[data-status='warn'] {
+  border-color: var(--margin-highlight-border);
+  color: var(--margin-highlight-fg);
+}
+
+.shadowban-mark[data-status='fail'] {
+  border-color: var(--danger-border);
+  color: var(--danger);
+}
+
+.shadowban-spin {
+  animation: shadowban-spin 0.9s linear infinite;
+}
+
+@keyframes shadowban-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .shadowban-spin {
+    animation: none;
+  }
+}
+
+/* Sections: the PDS page's "Repos on this PDS" heading and bordered list. */
+.shadowban-section-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.shadowban-section-head h2 {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 400;
+}
+
+.shadowban-section-head > span {
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  color: var(--text-tertiary);
+}
+
+.shadowban-list {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-medium);
+}
+
+.shadowban-list > li + li {
+  border-top: 1px solid var(--border-subtle);
+}
+
+.shadowban-check {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.875rem;
+  padding: 0.875rem 1rem;
+}
+
+.shadowban-check-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.shadowban-check-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.shadowban-check-title {
+  font-size: 1rem;
+  color: var(--text-primary);
+}
+
+.shadowban-check-state {
+  flex: none;
+  font-size: 0.7rem;
+}
+
+.shadowban-check[data-status='pass'] .shadowban-check-state {
+  color: var(--text-accent);
+}
+
+.shadowban-check[data-status='warn'] .shadowban-check-state {
+  color: var(--margin-highlight-fg);
+}
+
+.shadowban-check[data-status='fail'] .shadowban-check-state {
+  color: var(--danger);
+}
+
+.shadowban-check-summary,
+.shadowban-check-detail {
+  margin: 0.25rem 0 0;
+  font-size: 0.925rem;
+  line-height: 1.55;
+  color: var(--text-secondary);
+}
+
+.shadowban-check-detail {
+  font-size: 0.85rem;
+  color: var(--text-tertiary);
+}
+
+/* A recent post: its text and kind on the left, how it came out on the right. */
+.shadowban-post {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 0.5rem 1rem;
+  padding: 0.75rem 1rem;
+}
+
+.shadowban-post-main {
+  flex: 1 1 16rem;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+
+.shadowban-post-text {
+  color: var(--text-primary);
+  line-height: 1.45;
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+
+.shadowban-post-text:hover {
+  color: var(--text-accent);
+}
+
+.shadowban-post-text[data-quiet] {
+  color: var(--text-tertiary);
+  font-style: italic;
+}
+
+.shadowban-post-sub,
+.shadowban-post-reason {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--text-tertiary);
+}
+
+.shadowban-post-reason {
+  font-family: var(--font-serif);
+  font-size: 0.85rem;
+  font-style: italic;
+}
+
+.shadowban-tags {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.375rem;
+  margin-left: auto;
+}
+
+/* A short state beside a value: the PDS page's "deactivated" tag, in four tones. */
+.shadowban-tag {
+  padding: 0.125rem 0.4rem;
+  border: 1px solid var(--border-medium);
+  color: var(--text-tertiary);
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  white-space: nowrap;
+}
+
+.shadowban-tag[data-tone='pass'] {
+  border-color: var(--text-accent);
+  color: var(--text-accent);
+}
+
+.shadowban-tag[data-tone='warn'] {
+  border-color: var(--margin-highlight-border);
+  color: var(--margin-highlight-fg);
+}
+
+.shadowban-tag[data-tone='fail'] {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+/* A padded card: the PDS page's header card. */
+.shadowban-card {
+  padding: 1.25rem;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-medium);
+}
+
+.shadowban-facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  gap: 0.75rem 1.5rem;
+  margin: 0;
+}
+
+.shadowban-fact[data-wide] {
+  grid-column: 1 / -1;
+}
+
+.shadowban-fact dt {
+  margin-bottom: 0.25rem;
+}
+
+.shadowban-fact dd {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  color: var(--text-primary);
+  overflow-wrap: anywhere;
+}
+
+.shadowban-fact dd a {
+  color: var(--text-accent);
+  text-decoration: none;
+}
+
+.shadowban-fact dd a:hover {
+  text-decoration: underline;
+}
+
+.shadowban-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border-subtle);
+}
+
+/* What it checks, before anything has been asked. */
+.shadowban-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.shadowban-steps li {
+  display: flex;
+  gap: 1rem;
+}
+
+.shadowban-step-n {
+  flex: none;
+  padding-top: 0.15rem;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  color: var(--text-tertiary);
+}
+
+.shadowban-steps strong {
+  display: block;
+  margin-bottom: 0.2rem;
+  font-weight: 400;
+  font-size: 1.05rem;
+  color: var(--text-primary);
+}
+
+.shadowban-steps p,
+.shadowban-caveat {
+  margin: 0;
+  line-height: 1.6;
+  color: var(--text-secondary);
+}
+
+.shadowban-caveat {
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border-subtle);
+  font-style: italic;
+  color: var(--text-tertiary);
+}
+
+@media (max-width: 640px) {
+  .shadowban-title {
+    font-size: 2rem;
+  }
+
+  /* Under 16px, iOS Safari zooms the page when a field takes focus. */
+  .shadowban-search-field input,
+  .shadowban-host input {
+    font-size: 16px;
+  }
+
+  .shadowban-host {
+    max-width: none;
+  }
+
+  .shadowban-tags {
+    justify-content: flex-start;
+    margin-left: 0;
+  }
+}
+
 /* Trending/Top lexicons row grid: rank | nsid | sparkline | count. Shared
    by the live rows and the loading skeleton so the two stay in lockstep.
    The sparkline column is fixed-width and, together with the count and
