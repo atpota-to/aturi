@@ -17,6 +17,7 @@ import {
   Binary,
   BookCheck,
   CalendarDays,
+  EyeOff,
   FileArchive,
   FileCheck2,
   KeyRound,
@@ -143,6 +144,15 @@ export const TOOLS: ToolEntry[] = [
     group: 'accounts',
     Icon: Tags,
     keywords: ['labels', 'labeler', 'moderation', 'ozone', 'takedown', 'warning'],
+  },
+  {
+    slug: 'shadowban',
+    title: 'Shadowban checker',
+    desc: 'Compare an account’s repository on its PDS with what an AppView shows, and find posts, replies or search results it quietly leaves out.',
+    lead: 'An AppView can hide an account without a label: its replies left out of threads, its posts or profile left out of search. This reads the repository from its PDS and asks an AppView for the same things.',
+    group: 'accounts',
+    Icon: EyeOff,
+    keywords: ['shadowban', 'shadow ban', 'hidden', 'needs review', 'visibility', 'appview', 'search', 'suppressed'],
   },
   {
     slug: 'car',

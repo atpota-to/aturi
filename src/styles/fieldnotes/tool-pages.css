@@ -2487,6 +2487,95 @@ button.fn-tool-activity-stat:focus-visible {
 }
 
 /* ==========================================================================
+   Shadowban checker (/tools/shadowban)
+   Only what this tool alone needs, under fn-tool-shadowban-.
+   ========================================================================== */
+
+/* The AppView picker under the search field: its name, the choices, and a
+   host field that opens under "Other". */
+.fn-tool-shadowban-appview {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 10px;
+}
+
+.fn-tool-shadowban-appview-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-tertiary);
+}
+
+.fn-tool-shadowban-host {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-basis: 100%;
+  max-width: 26rem;
+}
+
+.fn-tool-shadowban-host .fx-field {
+  flex: 1;
+  height: 34px;
+}
+
+.fn-tool-shadowban-problem {
+  flex-basis: 100%;
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--danger);
+}
+
+/* A post's row: its text, then how it came out on the right. The pills wrap
+   under the text when there is no room beside it. */
+.fn-tool-shadowban-post {
+  flex-wrap: wrap;
+  align-items: flex-start;
+}
+
+.fn-tool-shadowban-post .fn-tool-row-main {
+  flex-basis: 16rem;
+}
+
+.fn-tool-shadowban-post .fn-tool-row-title {
+  font-weight: 500;
+}
+
+.fn-tool-shadowban-post .fn-tool-row-title[data-quiet] {
+  color: var(--text-tertiary);
+}
+
+.fn-tool-shadowban-pills {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+  margin-left: auto;
+}
+
+.fn-tool-shadowban-caveat {
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+@media (max-width: 640px) {
+  .fn-tool-shadowban-host {
+    max-width: none;
+  }
+
+  /* Under 16px, iOS Safari zooms the page when a field takes focus. */
+  .fn-tool-shadowban-host input {
+    font-size: 16px;
+  }
+
+  .fn-tool-shadowban-pills {
+    justify-content: flex-start;
+    margin-left: 0;
+  }
+}
+
+/* ==========================================================================
    Repo archive inspector (/tools/car)
    Only what this tool alone needs, under fn-tool-car-.
    ========================================================================== */

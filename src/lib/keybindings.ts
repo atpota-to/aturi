@@ -344,7 +344,7 @@ export const COMMANDS: CommandMeta[] = [
     keywords: [
       'tools', 'utilities', 'jetstream', 'firehose', 'plc', 'stream', 'monitor', 'live',
       'handle', 'debugger', 'validator', 'validate', 'xrpc', 'console', 'decoder', 'decode',
-      'labels', 'feed', 'relay', 'oauth', 'resolver', 'calendar', 'inspector',
+      'labels', 'feed', 'relay', 'oauth', 'resolver', 'calendar', 'inspector', 'shadowban',
     ],
   },
   {
