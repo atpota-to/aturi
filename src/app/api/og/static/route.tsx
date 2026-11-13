@@ -118,12 +118,12 @@ function configFor(page: string): PageConfig {
     case 'shadowban':
       return {
         eyebrow: 'Shadowban checker',
-        title: 'Is an AppView\nhiding it?',
+        title: 'Check for a\nshadowban.',
         tagline:
-          'Read an account’s repository from its PDS, ask an AppView for the same posts, replies and searches, and see what it quietly leaves out.',
+          'Compare an account’s posts on its PDS with what an AppView returns, and find the replies and search results it hides.',
         layout: 'split',
         visual: <ShadowbanVisual />,
-        visualText: 'RECENT POSTS PDS APPVIEW post reply own thread search 2h 5h 1d you.example not in thread Signs of a shadowban',
+        visualText: 'RECENT POSTS PDS APPVIEW post reply own thread search 2h 5h 1d you.example not in thread Possible shadowban',
       };
     case 'spaces':
       return {
@@ -851,7 +851,7 @@ function ShadowbanVisual() {
       >
         <CrossGlyph size={18} />
         <div style={{ display: 'flex', fontSize: '24px', color: OG_COLORS.textPrimary }}>
-          Signs of a shadowban
+          Possible shadowban
         </div>
       </div>
     </Panel>

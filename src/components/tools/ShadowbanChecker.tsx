@@ -9,9 +9,11 @@ import ShareLinkChip from '@/components/explore/ShareLinkChip';
 import {
   APPVIEWS,
   DEFAULT_APPVIEW,
+  POST_COLLECTION,
   SEARCH_GRACE_MS,
   authorOf,
-  buildChecks,
+  buildAccountChecks,
+  buildPostChecks,
   parseShadowbanInput,
   postPresence,
   readAppViewParam,
@@ -23,6 +25,7 @@ import {
   type Evidence,
   type PostPresence,
   type RepoPost,
+  type ReplyProbe,
   type ReplyReading,
   type ShadowbanCheck,
 } from '@/lib/tools/shadowban';
@@ -254,8 +257,8 @@ function CheckRow({ check }: { check: ShadowbanCheck }) {
 
 const PRESENCE: Record<PostPresence, { tone: Tone; words: (name: string) => string; title: string }> = {
   shown: { tone: 'pass', words: (name) => `on ${name}`, title: 'The AppView returns this post.' },
-  missing: { tone: 'fail', words: () => 'missing', title: 'In the repository, but the AppView will not return it.' },
-  new: { tone: 'info', words: () => 'too new to tell', title: 'Written under two minutes ago; it may not be indexed yet.' },
+  missing: { tone: 'fail', words: () => 'missing', title: 'The PDS has this post, but the AppView won’t return it.' },
+  new: { tone: 'info', words: () => 'too new to tell', title: 'Posted less than two minutes ago. The AppView may not have it yet.' },
   pending: { tone: 'info', words: () => '…', title: 'Not compared yet.' },
 };
 
@@ -274,27 +277,103 @@ function Tag({ tone, title, children }: { tone: Tone; title: string; children: R
   );
 }
 
-function PostRow({ post, evidence, now }: { post: RepoPost; evidence: Evidence; now: number }) {
-  const presence = postPresence(post, evidence.shown, now);
-  const shownTag = PRESENCE[presence];
-  const replyProbe = evidence.replies?.ok ? evidence.replies.value.find((r) => r.uri === post.uri) : undefined;
+function postKind(post: RepoPost): string {
+  if (!post.reply) return 'post';
+  return authorOf(post.reply.root) === authorOf(post.uri) ? 'reply in its own thread' : 'reply';
+}
+
+/** How a post came out, for its tags: on the AppView or not, in its thread or not, in search or not. */
+type PostOutcome = {
+  presence: PostPresence;
+  reply: ReplyReading | null;
+  notInSearch: boolean;
+};
+
+function postOutcome(
+  post: RepoPost,
+  evidence: Evidence,
+  shown: Evidence['shown'],
+  replyProbe: ReplyProbe | undefined,
+  now: number,
+): PostOutcome {
+  const presence = postPresence(post, shown, now);
   const reply = replyProbe ? readReply(replyProbe, evidence.identity?.did ?? '') : null;
+  // Post search returns the author's latest posts, so only a post among the
+  // recent ones can be said to be missing from it.
+  const recent = evidence.posts?.ok && evidence.posts.value.some((p) => p.uri === post.uri);
   const searchable =
+    recent &&
     presence === 'shown' &&
     evidence.postSearch?.ok &&
     post.writtenAt !== null &&
     now - post.writtenAt >= SEARCH_GRACE_MS;
-  const notInSearch = searchable && evidence.postSearch?.ok && !evidence.postSearch.value.includes(post.uri);
-  const text = post.text.trim();
-  const when = post.writtenAt !== null ? formatTidRelative(new Date(post.writtenAt)) : null;
-  const kind = post.reply
-    ? authorOf(post.reply.root) === authorOf(post.uri)
-      ? 'reply in its own thread'
-      : 'reply'
-    : 'post';
+  const notInSearch = Boolean(searchable && evidence.postSearch?.ok && !evidence.postSearch.value.includes(post.uri));
+  return { presence, reply, notInSearch };
+}
 
+function PostTags({
+  outcome,
+  evidence,
+  isTarget = false,
+}: {
+  outcome: PostOutcome;
+  evidence: Evidence;
+  isTarget?: boolean;
+}) {
+  const shownTag = PRESENCE[outcome.presence];
   return (
-    <li className="shadowban-post">
+    <span className="shadowban-tags">
+      {isTarget && (
+        <Tag tone="info" title="The post you entered.">
+          this post
+        </Tag>
+      )}
+      <Tag tone={shownTag.tone} title={shownTag.title}>
+        {outcome.presence === 'pending' && evidence.done ? 'not compared' : shownTag.words(evidence.appview.name)}
+      </Tag>
+      {outcome.reply && (
+        <Tag tone={REPLY_TONE[outcome.reply.outcome]} title={outcome.reply.reason}>
+          {outcome.reply.label.toLowerCase()}
+        </Tag>
+      )}
+      {outcome.notInSearch && (
+        <Tag tone="warn" title="Searching this author’s posts doesn’t find it.">
+          not in search
+        </Tag>
+      )}
+    </span>
+  );
+}
+
+function When({ post }: { post: RepoPost }) {
+  if (post.writtenAt === null) return null;
+  const date = new Date(post.writtenAt);
+  return (
+    <>
+      {' · '}
+      <time dateTime={date.toISOString()} title={date.toISOString()}>
+        {formatTidRelative(date)}
+      </time>
+    </>
+  );
+}
+
+function PostRow({
+  post,
+  evidence,
+  now,
+  isTarget,
+}: {
+  post: RepoPost;
+  evidence: Evidence;
+  now: number;
+  isTarget: boolean;
+}) {
+  const replyProbe = evidence.replies?.ok ? evidence.replies.value.find((r) => r.uri === post.uri) : undefined;
+  const outcome = postOutcome(post, evidence, evidence.shown, replyProbe, now);
+  const text = post.text.trim();
+  return (
+    <li className="shadowban-post" data-target={isTarget || undefined}>
       <div className="shadowban-post-main">
         <Link
           href={explorePathFromAtUri(post.uri) ?? `/explore/${authorOf(post.uri)}`}
@@ -305,32 +384,63 @@ function PostRow({ post, evidence, now }: { post: RepoPost; evidence: Evidence; 
           {text ? (text.length > 140 ? `${text.slice(0, 140)}…` : text) : 'No text'}
         </Link>
         <span className="shadowban-post-sub">
-          {kind}
-          {when && (
-            <>
-              {' · '}
-              <time dateTime={new Date(post.writtenAt as number).toISOString()}>{when}</time>
-            </>
-          )}
+          {postKind(post)}
+          <When post={post} />
         </span>
-        {reply && reply.outcome !== 'shown' && <span className="shadowban-post-reason">{reply.reason}</span>}
+        {outcome.reply && outcome.reply.outcome !== 'shown' && (
+          <span className="shadowban-post-reason">{outcome.reply.reason}</span>
+        )}
       </div>
-      <span className="shadowban-tags">
-        <Tag tone={shownTag.tone} title={shownTag.title}>
-          {presence === 'pending' && evidence.done ? 'not compared' : shownTag.words(evidence.appview.name)}
-        </Tag>
-        {reply && (
-          <Tag tone={REPLY_TONE[reply.outcome]} title={reply.reason}>
-            {reply.label.toLowerCase()}
-          </Tag>
-        )}
-        {notInSearch && (
-          <Tag tone="warn" title="Post search by this author does not return it.">
-            not in search
-          </Tag>
-        )}
-      </span>
+      <PostTags outcome={outcome} evidence={evidence} isTarget={isTarget} />
     </li>
+  );
+}
+
+/** The post that was asked about: its full text, how it came out, and its address. */
+function TargetPost({ evidence, uri, now }: { evidence: Evidence; uri: string; now: number }) {
+  const { post } = evidence;
+  if (!post) return <p className="explore-placeholder">Reading the post from the PDS…</p>;
+  if (!post.ok || !post.value) {
+    return (
+      <div className="shadowban-card">
+        <p className="shadowban-target-missing">
+          {post.ok ? 'There’s no post at this address on the PDS.' : 'The post couldn’t be read from the PDS.'}
+        </p>
+        <dl className="shadowban-facts">
+          <Fact label="Post" copy={uri} wide>
+            {uri}
+          </Fact>
+        </dl>
+      </div>
+    );
+  }
+  const record = post.value;
+  const replyProbe = evidence.postThread?.ok ? evidence.postThread.value : undefined;
+  const outcome = postOutcome(record, evidence, evidence.postShown, replyProbe, now);
+  const text = record.text.trim();
+  return (
+    <div className="shadowban-card shadowban-target">
+      <p className="shadowban-target-text" data-quiet={text ? undefined : true}>
+        {text || 'No text'}
+      </p>
+      <div className="shadowban-target-meta">
+        <span className="shadowban-post-sub">
+          {postKind(record)}
+          <When post={record} />
+        </span>
+        <PostTags outcome={outcome} evidence={evidence} />
+      </div>
+      <dl className="shadowban-facts">
+        <Fact label="Post" copy={record.uri} wide>
+          {record.uri}
+        </Fact>
+      </dl>
+      <div className="shadowban-actions">
+        <Link href={explorePathFromAtUri(record.uri) ?? `/explore/${authorOf(record.uri)}`} prefetch={false} className="shadowban-button">
+          Open the post in the Explorer
+        </Link>
+      </div>
+    </div>
   );
 }
 
@@ -348,20 +458,20 @@ function Fact({ label, children, copy, wide }: { label: string; children: ReactN
 
 const INTRO = [
   {
-    term: 'The repository, from its PDS',
-    text: 'The account’s posts as they are, read from the server that hosts them. Nothing an AppView decides changes this copy.',
+    term: 'Posts on the PDS',
+    text: 'Reads the account’s 25 latest posts directly from its PDS, the server that stores them. AppViews can’t change this copy.',
   },
   {
-    term: 'The same posts, from the AppView',
-    text: 'Each of the most recent posts is asked for by its address. One the repository has and the AppView will not return is hidden.',
+    term: 'Posts on the AppView',
+    text: 'Asks the AppView for each of those posts. If the PDS has a post and the AppView won’t return it, the AppView is hiding it. If you enter a link to a post, that post is checked as well.',
   },
   {
-    term: 'Replies, in their threads',
-    text: 'Each recent reply is looked for under the post it answers. This is where Bluesky’s unlabelled “needs review” shows: the reply exists and loads on its own, but is left out of the thread. A block or the thread’s reply rules can keep a reply out too, so both are looked up first.',
+    term: 'Replies in threads',
+    text: 'Looks for each recent reply under the post it replies to. This is where Bluesky’s “needs review” status shows up now that it’s no longer a label. The reply opens on its own but is missing from the thread. Blocks and reply limits can also hide a reply, so the tool checks for those first.',
   },
   {
     term: 'Search',
-    text: 'The account is searched for by its handle, with typeahead as the control, and its posts by author. Typeahead finding it where search does not means it was indexed and then left out.',
+    text: 'Searches for the account by its handle and for its posts by author. If typeahead (the suggestions that appear as you type) finds the account but full search doesn’t, the AppView is leaving it out of search.',
   },
 ];
 
@@ -378,11 +488,11 @@ export function ShadowbanHeading({ share = PATH }: { share?: string }) {
         </div>
         <ShareLinkChip url={share} />
       </div>
-      <h1 className="shadowban-title">Is an AppView hiding it?</h1>
+      <h1 className="shadowban-title">Check for a shadowban.</h1>
       <p className="shadowban-lead">
-        An AppView can hide an account without a label: its replies left out of threads, its posts
-        or profile left out of search. This reads the repository from its PDS and asks an AppView
-        for the same things.
+        An AppView can hide an account without labeling it. Its replies disappear from threads, or
+        it stops showing up in search. This reads the account’s posts from its PDS and compares
+        them with what the AppView returns.
       </p>
     </>
   );
@@ -402,19 +512,31 @@ export default function ShadowbanChecker() {
 
   const evidence: Evidence | null = run.data ?? (target && appview ? { target, appview } : null);
   const now = evidence?.checkedAt ?? 0;
-  const checks = evidence && run.status !== 'error' ? buildChecks(evidence, now) : [];
-  const verdict = evidence && run.status !== 'error' ? shadowbanVerdict(evidence, checks) : null;
+  const live = evidence && run.status !== 'error' ? evidence : null;
+  const postChecks = live ? buildPostChecks(live, now) : [];
+  const accountChecks = live ? buildAccountChecks(live, now) : [];
+  const verdict = live ? shadowbanVerdict(live, [...postChecks, ...accountChecks]) : null;
 
   const identity = evidence?.identity;
   const profile = evidence?.profile?.state === 'found' ? evidence.profile : null;
   const handle = profile?.handle ?? identity?.handle ?? null;
   const who = handle ? `@${handle}` : identity ? shortDid(identity.did) : '';
-  const isPost = target?.kind === 'post';
   const posts = evidence?.posts?.ok ? evidence.posts.value : [];
+  const postUri =
+    target?.kind === 'post' ? `at://${identity?.did ?? target.actor}/${POST_COLLECTION}/${target.rkey}` : null;
   const appviewParam = appview && appview.param !== DEFAULT_APPVIEW.param ? appview.param : '';
   const share = target
     ? `${PATH}?subject=${encodeURIComponent(raw.trim())}${appviewParam ? `&appview=${encodeURIComponent(appviewParam)}` : ''}`
     : PATH;
+
+  const again =
+    run.status === 'loading' ? (
+      'checking…'
+    ) : (
+      <button type="button" className="shadowban-link" onClick={run.rerun}>
+        check again
+      </button>
+    );
 
   return (
     <div className="shadowban">
@@ -460,48 +582,38 @@ export default function ShadowbanChecker() {
             </div>
           )}
 
-          {verdict && evidence && (
+          {verdict && live && (
             <>
               <Verdict tone={verdict.tone} title={verdict.title}>
                 {verdict.text}
               </Verdict>
 
-              <Section
-                title="Checks"
-                meta={
-                  run.status === 'loading' ? (
-                    'checking…'
-                  ) : (
-                    <button type="button" className="shadowban-link" onClick={run.rerun}>
-                      check again
-                    </button>
-                  )
-                }
-              >
-                <ul className="shadowban-list" aria-label={`Checks on ${evidence.appview.name}`}>
-                  {checks.map((check) => (
+              {postUri && (
+                <Section title="This post" meta={again}>
+                  <div className="shadowban-stack">
+                    <TargetPost evidence={live} uri={postUri} now={now} />
+                    <ul className="shadowban-list" aria-label={`Checks on this post on ${live.appview.name}`}>
+                      {postChecks.map((check) => (
+                        <CheckRow key={check.id} check={check} />
+                      ))}
+                    </ul>
+                  </div>
+                </Section>
+              )}
+
+              <Section title={postUri ? 'Account checks' : 'Checks'} meta={postUri ? undefined : again}>
+                <ul className="shadowban-list" aria-label={`Checks on the account on ${live.appview.name}`}>
+                  {accountChecks.map((check) => (
                     <CheckRow key={check.id} check={check} />
                   ))}
                 </ul>
               </Section>
 
-              {!isPost && posts.length > 0 && (
-                <Section title="Recent posts" meta={`${posts.length} from the repository, newest first`}>
-                  <ul className="shadowban-list">
-                    {posts.map((post) => (
-                      <PostRow key={post.uri} post={post} evidence={evidence} now={now} />
-                    ))}
-                  </ul>
-                </Section>
-              )}
-
               {identity && (
-                <Section title="Checked">
+                <Section title="Account">
                   <div className="shadowban-card">
                     <dl className="shadowban-facts">
-                      <Fact label={isPost ? 'Author' : 'Account'}>
-                        {profile?.displayName ? `${profile.displayName} (${who})` : who}
-                      </Fact>
+                      <Fact label="Account">{profile?.displayName ? `${profile.displayName} (${who})` : who}</Fact>
                       <Fact label="DID" copy={identity.did}>
                         {identity.did}
                       </Fact>
@@ -513,32 +625,24 @@ export default function ShadowbanChecker() {
                           {identity.pds.replace(/^https?:\/\//, '')}
                         </Link>
                       </Fact>
-                      <Fact label="AppView">{evidence.appview.origin.replace(/^https?:\/\//, '')}</Fact>
-                      {isPost && posts[0] && (
-                        <Fact label="Post" copy={posts[0].uri} wide>
-                          {posts[0].uri}
-                        </Fact>
-                      )}
+                      <Fact label="AppView">{live.appview.origin.replace(/^https?:\/\//, '')}</Fact>
                     </dl>
                     <div className="shadowban-actions">
-                      <Link
-                        href={(isPost && posts[0] ? explorePathFromAtUri(posts[0].uri) : null) ?? `/explore/${identity.did}`}
-                        prefetch={false}
-                        className="shadowban-button"
-                      >
-                        Open in the Explorer
+                      <Link href={`/explore/${identity.did}`} prefetch={false} className="shadowban-button">
+                        Open the account in the Explorer
                       </Link>
-                      {isPost && (
-                        <button
-                          type="button"
-                          className="shadowban-button"
-                          onClick={() => setQuery({ subject: identity.did })}
-                        >
-                          Check the author
-                        </button>
-                      )}
                     </div>
                   </div>
+                </Section>
+              )}
+
+              {posts.length > 0 && (
+                <Section title="Recent posts" meta={`${posts.length} from the PDS, newest first`}>
+                  <ul className="shadowban-list">
+                    {posts.map((post) => (
+                      <PostRow key={post.uri} post={post} evidence={live} now={now} isTarget={post.uri === postUri} />
+                    ))}
+                  </ul>
                 </Section>
               )}
             </>
@@ -560,12 +664,6 @@ export default function ShadowbanChecker() {
                     </li>
                   ))}
                 </ol>
-                <p className="shadowban-caveat">
-                  Everything is asked logged out, as anyone could. What an AppView does only for
-                  signed-in people (ranking replies, folding some under “hidden replies”, feeds) is out
-                  of sight here. A difference is a sign rather than proof: an AppView also drops a post
-                  it cannot read.
-                </p>
               </div>
             </Section>
           )}

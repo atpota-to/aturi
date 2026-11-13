@@ -122,7 +122,7 @@ async function xrpc<T>(
 
 /** What went wrong, in a few words. A status of 0 is a request that never got an answer. */
 function failureWords(answer: { status: number; error: string | null; message: string | null }): string {
-  if (answer.status === 0) return 'the host is down, or does not take requests from a browser';
+  if (answer.status === 0) return 'the host is down, or doesn’t accept requests from a browser';
   return answer.message ?? answer.error ?? `HTTP ${answer.status}`;
 }
 
@@ -138,17 +138,17 @@ function pdsFailure(err: unknown): string {
 async function resolveIdentity(actor: string, signal: AbortSignal): Promise<Identity> {
   const did = actor.startsWith('did:') ? actor : await resolveHandle(actor);
   if (!did || !isValidDid(did)) {
-    throw new Error(`${actor} does not resolve to an account. Check the spelling, or use its DID.`);
+    throw new Error(`${actor} doesn’t match any account. Check the spelling, or use its DID.`);
   }
   let document;
   try {
     document = await fetchDidDocument(did, signal);
   } catch (err) {
     if (signal.aborted) throw err;
-    throw new Error(`The DID document for ${did} could not be read, so its PDS is unknown.`);
+    throw new Error(`Couldn’t read the DID document for ${did}, so its PDS is unknown.`);
   }
   const pds = pdsFrom(document);
-  if (!pds) throw new Error(`The DID document for ${did} names no PDS, so there is no repository to compare with.`);
+  if (!pds) throw new Error(`The DID document for ${did} doesn’t list a PDS, so there are no posts to compare.`);
   return { did, handle: actor.startsWith('did:') ? claimedHandle(document) : actor, pds };
 }
 
@@ -176,14 +176,14 @@ async function readRecentPosts(identity: Identity): Promise<Probe<RepoPost[]>> {
   }
 }
 
-/** The one post asked about, or none when the repository has no such record. */
-async function readOnePost(identity: Identity, rkey: string): Promise<Probe<RepoPost[]>> {
+/** The one post asked about, or null when the repository has no such record. */
+async function readOnePost(identity: Identity, rkey: string): Promise<Probe<RepoPost | null>> {
   try {
     const record = await getRecord(identity.pds, { repo: identity.did, collection: POST_COLLECTION, rkey });
-    return { ok: true, value: [readRepoPost(record)] };
+    return { ok: true, value: readRepoPost(record) };
   } catch (err) {
     const status = (err as { status?: number }).status;
-    if (status === 400 || status === 404) return { ok: true, value: [] };
+    if (status === 400 || status === 404) return { ok: true, value: null };
     return { ok: false, message: pdsFailure(err) };
   }
 }
@@ -387,8 +387,9 @@ async function searchPosts(origin: string, did: string, signal: AbortSignal): Pr
  * -------------------------------------------------------------------------- */
 
 /**
- * Gather the evidence for an account or a post, publishing as each part
- * arrives so the check list fills in step by step. Only an account that
+ * Gather the evidence for an account, publishing as each part arrives so the
+ * check list fills in step by step. When a post was asked about, its author
+ * is checked in full and the post on its own alongside. Only an account that
  * cannot be found is thrown; every other failure is recorded as evidence.
  */
 export async function investigate(
@@ -408,27 +409,32 @@ export async function investigate(
   update({ identity });
 
   const { origin } = appview;
-  const isPost = target.kind === 'post';
   await Promise.all([
     readRepo(identity).then((repo) => update({ repo })),
     readProfile(origin, identity.did, signal).then((profile) => update({ profile })),
     (async () => {
-      const posts = isPost ? await readOnePost(identity, target.rkey) : await readRecentPosts(identity);
+      const posts = await readRecentPosts(identity);
       update({ posts });
       if (!posts.ok || posts.value.length === 0) return;
       const shown = await readShown(origin, posts.value, signal);
       update({ shown });
       if (!shown.ok) return;
-      const replies = isPost
-        ? posts.value.filter((post) => post.reply && shown.value.includes(post.uri))
-        : repliesToCheck(posts.value, shown.value);
-      if (isPost && replies.length === 0) return;
-      update({ replies: await checkReplies(origin, identity.did, replies, signal) });
+      update({ replies: await checkReplies(origin, identity.did, repliesToCheck(posts.value, shown.value), signal) });
     })(),
-    isPost ? null : searchPosts(origin, identity.did, signal).then((postSearch) => update({ postSearch })),
-    isPost || !identity.handle
-      ? null
-      : searchActor(origin, identity, signal).then((actorSearch) => update({ actorSearch })),
+    searchPosts(origin, identity.did, signal).then((postSearch) => update({ postSearch })),
+    identity.handle ? searchActor(origin, identity, signal).then((actorSearch) => update({ actorSearch })) : null,
+    target.kind === 'post'
+      ? (async () => {
+          const post = await readOnePost(identity, target.rkey);
+          update({ post });
+          if (!post.ok || !post.value) return;
+          const postShown = await readShown(origin, [post.value], signal);
+          update({ postShown });
+          if (!postShown.ok || !postShown.value.includes(post.value.uri) || !post.value.reply) return;
+          const probes = await checkReplies(origin, identity.did, [post.value], signal);
+          update({ postThread: probes.ok ? { ok: true, value: probes.value[0] } : probes });
+        })()
+      : null,
   ]);
 
   update({ done: true });
