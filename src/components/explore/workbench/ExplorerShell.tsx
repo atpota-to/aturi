@@ -29,6 +29,13 @@ import type { AtRecord } from '@/utils/atproto/pdsClient';
 import type { MergedBacklink } from '@/utils/atproto/backlinkMerge';
 import { rkeyFromAtUri, shortDid } from '@/utils/atproto/urls';
 import { parseExplorerPath, parsePeek, peekValue } from '@/lib/explorerView';
+import {
+  DEFAULT_LEXICON_LIST,
+  DEFAULT_LEXICON_METRIC,
+  DEFAULT_LEXICON_WINDOW,
+  homeScopeFor,
+  lexiconAddress,
+} from '@/lib/lexiconExplorer';
 import { getSiteMenuSnapshot, setSiteMenuOpen, subscribeSiteMenu } from '@/lib/siteMenu';
 import NotFoundPanel from '@/components/NotFoundPanel';
 import { useFillViewport } from '@/components/useFillViewport';
@@ -36,6 +43,8 @@ import Breadcrumb from '../Breadcrumb';
 import { useChromeBarPanel } from '../ChromeBarContext';
 import { CollectionPane } from '../CollectionExplorer';
 import CopyButton from '../CopyButton';
+import LexiconPane, { type LexiconTab } from '../lexicons/workbench/LexiconPane';
+import type { AddressFor } from '../lexicons/workbench/LexiconRail';
 import { RecordPane, type RecordPaneTab } from '../RecordExplorer';
 import ShareLinkChip from '../ShareLinkChip';
 import {
@@ -67,6 +76,19 @@ const PHONE_QUERY = '(max-width: 640px)';
 
 const RAIL_ID = 'fx-wb-rail';
 const INSPECTOR_ID = 'fx-wb-inspector';
+
+/**
+ * The lexicons explorer's location, less where it is, for the lexicon pane
+ * borrowed from it (LexiconPane): its default window and ranking, and links
+ * out of it that open the lexicons explorer at the place they name.
+ */
+const LEXICON_DEFAULTS = {
+  records: false,
+  peek: null,
+  window: DEFAULT_LEXICON_WINDOW,
+  metric: DEFAULT_LEXICON_METRIC,
+} as const;
+const lexiconAddressFor: AddressFor = ({ scope, nsid = null }) => lexiconAddress({ ...LEXICON_DEFAULTS, scope, nsid });
 
 const ACCOUNT_TAB_ICONS: Record<AccountTab, LucideIcon> = {
   overview: LayoutDashboard,
@@ -171,6 +193,7 @@ export default function ExplorerShell({ mode, repo, collection, rkey }: Props) {
   // A peeked record keeps a tab of its own: opened from the record's
   // Backlinks tab, it would otherwise open on its own backlinks.
   const [peekTab, setPeekTab] = useState<RecordPaneTab>('preview');
+  const [lexiconTab, setLexiconTab] = useState<LexiconTab>('overview');
   const [removedUri, setRemovedUri] = useState<string | null>(null);
   // What the list beside the inspector is showing, by record key and in
   // order: for stepping, and for opening a record without reading it again.
@@ -221,6 +244,18 @@ export default function ExplorerShell({ mode, repo, collection, rkey }: Props) {
   const closePeek = useCallback(() => {
     go(linksAddress(linksParam, null));
   }, [go, linksAddress, linksParam]);
+
+  // ── Lexicon ─────────────────────────────────────────────────────────────
+
+  // The open collection's lexicon, in the inspector (`?lexicon`). The
+  // collection page's Lexicon button leaves for the lexicons explorer; here
+  // that would drop the shell for a different screen, so it opens beside
+  // the list as a record does, over the open record if there is one, and
+  // closing it finds the list (and the record) as they were.
+  const lexiconOpen = Boolean(collection) && !linksOpen && searchParams.has('lexicon');
+  const placePath = collection ? (rkey ? recordPath(collection, rkey) : `${base}/${collection}`) : base;
+  const lexiconHref = `${placePath}?lexicon`;
+  const closeLexicon = useCallback(() => go(placePath), [go, placePath]);
 
   const onLinkedItems = useCallback((items: readonly MergedBacklink[]) => {
     setLinked(items.flatMap((item) => peekValue(item.uri) ?? []));
@@ -328,10 +363,10 @@ export default function ExplorerShell({ mode, repo, collection, rkey }: Props) {
     setRailOpen(false);
   }, [collection, accountTab, ns]);
 
-  // A record only keeps the full width while it's open.
+  // A record, or the lexicon, only keeps the full width while it's open.
   useEffect(() => {
-    if (!rkey) setWide(false);
-  }, [rkey]);
+    if (!rkey && !lexiconOpen) setWide(false);
+  }, [rkey, lexiconOpen]);
 
   // The site menu is a sheet on the same toolbar: opening it puts the rail's
   // sheet away.
@@ -357,8 +392,9 @@ export default function ExplorerShell({ mode, repo, collection, rkey }: Props) {
   // ── Keyboard ────────────────────────────────────────────────────────────
 
   // J and K step through the records (opening the newest if none is), Escape
-  // puts away the top layer: the rail's drawer, a peeked record, the list
-  // of what links to the open record, then the record. Keys the site's shortcut engine has claimed (it
+  // puts away the top layer: the rail's drawer, a peeked record, the
+  // lexicon, the list of what links to the open record, then the record.
+  // Keys the site's shortcut engine has claimed (it
   // calls preventDefault, and listens first) are left to it, and so is
   // typing.
   const keys = useRef<{ step: (dir: number) => void; escape: () => boolean }>({
@@ -375,6 +411,10 @@ export default function ExplorerShell({ mode, repo, collection, rkey }: Props) {
         }
         if (peekKey) {
           closePeek();
+          return true;
+        }
+        if (lexiconOpen) {
+          closeLexicon();
           return true;
         }
         if (recordLinks && collection && rkey) {
@@ -444,13 +484,15 @@ export default function ExplorerShell({ mode, repo, collection, rkey }: Props) {
   // A peeked record always shows. The open record does too, except where the
   // inspector is a drawer and the main pane is listing what links to it: the
   // drawer would cover the very list its backlinks card just opened.
-  const inspecting = peek ? true : Boolean(collection && rkey) && !(recordLinks && drawers);
+  const inspecting = peek || lexiconOpen ? true : Boolean(collection && rkey) && !(recordLinks && drawers);
   // The full width is the record's alone; a list of what links to it needs
   // the main pane.
   const isWide = wide && !linksOpen;
   const sharePath = linksOpen
     ? linksAddress(linksParam, peekKey)
-    : `${base}${collection ? `/${collection}` : ''}${
+    : lexiconOpen
+      ? lexiconHref
+      : `${base}${collection ? `/${collection}` : ''}${
         collection && rkey ? `/${encodeURIComponent(rkey)}` : ''
       }${!collection && tabParam ? `?tab=${tabParam}` : ns ? `?ns=${encodeURIComponent(ns)}` : ''}`;
 
@@ -533,6 +575,31 @@ export default function ExplorerShell({ mode, repo, collection, rkey }: Props) {
         className="fx-wb-icon"
         onClick={closePeek}
         aria-label="Close linking record"
+        title="Close (Esc)"
+      >
+        <X size={17} aria-hidden />
+      </button>
+    </>
+  );
+
+  // The lexicon's: there is no list of lexicons here to step through.
+  const lexiconControls = (
+    <>
+      <button
+        type="button"
+        className="fx-wb-icon fx-wb-widen"
+        onClick={() => setWide((v) => !v)}
+        aria-pressed={wide}
+        aria-label={wide ? 'Return the lexicon to the side' : 'Give the lexicon the full width'}
+        title={wide ? 'Return to the side' : 'Full width'}
+      >
+        {wide ? <Minimize2 size={15} aria-hidden /> : <Maximize2 size={15} aria-hidden />}
+      </button>
+      <button
+        type="button"
+        className="fx-wb-icon"
+        onClick={closeLexicon}
+        aria-label="Close lexicon"
         title="Close (Esc)"
       >
         <X size={17} aria-hidden />
@@ -687,6 +754,7 @@ export default function ExplorerShell({ mode, repo, collection, rkey }: Props) {
                   onVisibleRecords={onVisibleRecords}
                   removedUri={removedUri}
                   onOpenWide={() => setWide(true)}
+                  lexiconHref={lexiconHref}
                   covered={recordLinks}
                 />
               </div>
@@ -740,7 +808,7 @@ export default function ExplorerShell({ mode, repo, collection, rkey }: Props) {
         <aside
           id={INSPECTOR_ID}
           className="fx-wb-insp"
-          aria-label={peek ? 'Linking record' : 'Record'}
+          aria-label={peek ? 'Linking record' : lexiconOpen ? 'Lexicon' : 'Record'}
           inert={!inspecting}
         >
           {identity && peek && peekKey ? (
@@ -752,6 +820,25 @@ export default function ExplorerShell({ mode, repo, collection, rkey }: Props) {
               tab={peekTab}
               onTab={setPeekTab}
               onClose={closePeek}
+            />
+          ) : lexiconOpen && collection ? (
+            // In the network-wide list rather than its namespace, so the
+            // pane lists the lexicon's siblings: nothing beside it does here.
+            <LexiconPane
+              key={collection}
+              nsid={collection}
+              loc={{ ...LEXICON_DEFAULTS, scope: { kind: 'list', list: DEFAULT_LEXICON_LIST }, nsid: collection }}
+              addressFor={lexiconAddressFor}
+              controls={lexiconControls}
+              wide={isWide}
+              tab={lexiconTab}
+              onTab={setLexiconTab}
+              recordsHref={lexiconAddress({
+                ...LEXICON_DEFAULTS,
+                scope: homeScopeFor(collection),
+                nsid: collection,
+                records: true,
+              })}
             />
           ) : (
             identity &&
@@ -788,6 +875,7 @@ export default function ExplorerShell({ mode, repo, collection, rkey }: Props) {
           onClick={() => {
             if (railOpen) setRailOpen(false);
             else if (peekKey) closePeek();
+            else if (lexiconOpen) closeLexicon();
             else if (window.matchMedia(PHONE_QUERY).matches || drawers) closeRecord();
           }}
         />
