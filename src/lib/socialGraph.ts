@@ -147,31 +147,12 @@ export function hashUnit(s: string): number {
   return (h >>> 0) / 4294967296;
 }
 
-const GOLDEN_ANGLE = 2.399963229728653;
-
 /**
- * Angles that spread each relation's accounts around its ring. The hash only
- * fixes the order, so an account keeps roughly its place between loads; the
- * angle itself is the golden-angle step by rank, which never clumps the way
- * raw hashes of similar DIDs can.
+ * The golden angle, in radians. Stepping round a circle by it spreads any run
+ * of consecutive steps evenly, however many there are, which is what lets the
+ * orbit place each account by its arrival alone.
  */
-export function spreadAngles(people: readonly GraphPerson[]): Map<string, number> {
-  const families = new Map<Relation, GraphPerson[]>();
-  for (const p of people) {
-    const r = relationOf(p);
-    const list = families.get(r);
-    if (list) list.push(p);
-    else families.set(r, [p]);
-  }
-  const out = new Map<string, number>();
-  for (const list of families.values()) {
-    list
-      .map((p) => ({ did: p.did, h: hashUnit(p.did) }))
-      .sort((a, b) => a.h - b.h)
-      .forEach(({ did }, i) => out.set(did, (i * GOLDEN_ANGLE) % (Math.PI * 2)));
-  }
-  return out;
-}
+export const GOLDEN_ANGLE = 2.399963229728653;
 
 /* ------------------------------------------------------------------ */
 /* Threads                                                              */
@@ -384,4 +365,62 @@ export function didOfUri(uri: string | undefined | null): string | null {
 export function stackAround(centre: number, n: number, rowHeight: number, cardHeight: number): number[] {
   const top = centre - (n * rowHeight - (rowHeight - cardHeight)) / 2;
   return Array.from({ length: n }, (_, i) => top + i * rowHeight);
+}
+
+/* ------------------------------------------------------------------ */
+/* A tree of mixed cards                                                */
+/* ------------------------------------------------------------------ */
+
+export type TreeNode = { key: string; w: number; h: number; children: TreeNode[] };
+export type PlacedNode = { key: string; x: number; y: number; w: number; h: number; parent: string | null; depth: number };
+
+/**
+ * Left to right, one column per depth, each column as wide as its widest
+ * card. Leaves stack top to bottom; a parent sits level with the middle of
+ * its children, and a parent taller than its children pushes the whole
+ * subtree down so nothing overlaps. Cards can be any height, which the
+ * thread explorer needs: a post is taller than a person.
+ */
+export function treeLayout(
+  root: TreeNode,
+  { colGap = 56, rowGap = 12 }: { colGap?: number; rowGap?: number } = {},
+): { nodes: PlacedNode[]; width: number; height: number } {
+  const colWidth: number[] = [];
+  const measure = (n: TreeNode, depth: number) => {
+    colWidth[depth] = Math.max(colWidth[depth] ?? 0, n.w);
+    n.children.forEach((c) => measure(c, depth + 1));
+  };
+  measure(root, 0);
+  const colX = colWidth.map((_, i) => colWidth.slice(0, i).reduce((s, w) => s + w + colGap, 0));
+
+  const placed = new Map<string, PlacedNode>();
+  const shift = (n: TreeNode, dy: number) => {
+    placed.get(n.key)!.y += dy;
+    n.children.forEach((c) => shift(c, dy));
+  };
+  // Places `n` with its subtree starting at `top`; returns the subtree's bottom.
+  const place = (n: TreeNode, depth: number, top: number, parent: string | null): number => {
+    const me: PlacedNode = { key: n.key, x: colX[depth], y: top, w: n.w, h: n.h, parent, depth };
+    placed.set(n.key, me);
+    if (!n.children.length) return top + n.h;
+    let cursor = top;
+    let bottom = top;
+    for (const c of n.children) {
+      bottom = place(c, depth + 1, cursor, n.key);
+      cursor = bottom + rowGap;
+    }
+    const first = placed.get(n.children[0].key)!;
+    const last = placed.get(n.children[n.children.length - 1].key)!;
+    me.y = (first.y + first.h / 2 + last.y + last.h / 2) / 2 - n.h / 2;
+    if (me.y < top) {
+      const dy = top - me.y;
+      shift(n, dy);
+      bottom += dy;
+    }
+    return Math.max(bottom, me.y + n.h);
+  };
+  const height = place(root, 0, 0, null);
+  const nodes = [...placed.values()];
+  const width = Math.max(...nodes.map((p) => p.x + p.w));
+  return { nodes, width, height };
 }

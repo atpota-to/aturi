@@ -21,8 +21,10 @@
  */
 
 import { withIdentification } from '../requestDeadline';
+import { appForCollection } from './backlinkRelations';
 import { TTLMap } from './cache';
 import { APPVIEW, CONSTELLATION } from './config';
+import { backlinksFromPage, flattenSources, getBacklinkSources, getBacklinks } from './constellation';
 import {
   DAY_MS,
   WINDOW_DAYS,
@@ -79,6 +81,8 @@ export const LIMITS = {
   inCommonMaxFollows: 600,
   /** Accounts getRelationships answers for in one request. */
   relChunk: 30,
+  /** Engaged accounts outside the follows checked for following back. */
+  strangers: 1500,
   concurrency: 6,
 } as const;
 
@@ -131,13 +135,14 @@ type RelationshipsPage = {
  * Whether `actor` follows each of `others`, and each of them follows
  * `actor`: app.bsky.graph.getRelationships, 30 DIDs a request. Accounts the
  * AppView doesn't know are left out. Null when every request failed.
- * `onPart` hears how many of `others` have been answered so far.
+ * `onPart` hears each request's accounts once they are answered (or the
+ * request failed), with how many of `others` that makes so far.
  */
 async function relationshipsWith(
   actor: string,
   others: readonly string[],
   ctx: Ctx,
-  onPart?: (answered: number) => void,
+  onPart?: (part: readonly string[], answered: number, found: Map<string, FollowRelation>) => void,
 ): Promise<Map<string, FollowRelation> | null> {
   const out = new Map<string, FollowRelation>();
   const parts = chunk(others, LIMITS.relChunk);
@@ -154,7 +159,7 @@ async function relationshipsWith(
         if (r.did && !r.notFound) out.set(r.did, { following: !!r.following, followedBy: !!r.followedBy });
       }
     }
-    onPart?.(answered);
+    onPart?.(part, answered, out);
   });
   return ok || !parts.length ? out : null;
 }
@@ -209,23 +214,28 @@ async function readFollows(did: string, ctx: Ctx, max: number = LIMITS.follows) 
 /* The neighbourhood                                                    */
 /* ------------------------------------------------------------------ */
 
-export type GraphStage = 'follows' | 'mutuals' | 'outbound' | 'inbound' | 'followers' | 'common' | 'done';
+export type GraphStage = 'follows' | 'mutuals' | 'outbound' | 'inbound' | 'common' | 'done';
 
 export const STAGE_LABELS: Record<GraphStage, string> = {
   follows: 'Reading who they follow',
   mutuals: 'Checking who follows them back',
   outbound: `Reading ${WINDOW_DAYS} days of their likes, reposts and posts`,
   inbound: 'Reading who engaged with their posts',
-  followers: 'Checking which of those follow them',
   common: 'Counting follows in common',
   done: 'Done',
 };
 
 /** The stages in the order they run, for a progress bar. */
-export const STAGE_ORDER: readonly GraphStage[] = ['follows', 'mutuals', 'outbound', 'inbound', 'followers', 'common'];
+export const STAGE_ORDER: readonly GraphStage[] = ['follows', 'mutuals', 'outbound', 'inbound', 'common'];
 
 export type Neighbourhood = {
   subject: Profile & { did: string };
+  /**
+   * The accounts whose relation to the subject is known, in the order it
+   * became known. The order only ever grows at the end, so a drawing can
+   * give each account a place the moment it arrives and never move it for
+   * anyone else's sake.
+   */
   people: GraphPerson[];
   /** The subject's follows, as DIDs, for the flow view's "followed by their follows". */
   follows: string[];
@@ -365,6 +375,11 @@ export async function loadNeighbourhood(
   let records = 0;
   let lastEmit = 0;
   const follows: string[] = [];
+  // Who may be drawn, in the order they became drawable: an account joins
+  // once its relation to the subject is settled, so it arrives on its own
+  // ring rather than landing on one and jumping to another.
+  const known: string[] = [];
+  const isKnown = new Set<string>();
   const emit = (next: GraphStage) => {
     stage = next;
     stageDone = 0;
@@ -380,11 +395,22 @@ export async function loadNeighbourhood(
     lastEmit = Date.now();
     onUpdate(snapshot());
   };
+  const reveal = (dids: readonly string[]) => {
+    for (const did of dids) {
+      if (isKnown.has(did) || !people.has(did)) continue;
+      isKnown.add(did);
+      known.push(did);
+    }
+    tick(stageDone);
+  };
   // A fresh array of fresh objects each time, so React sees a change and a
   // stage already handed out never moves under a render.
   const snapshot = (): Neighbourhood => ({
     subject: { ...profile, did: subject.did },
-    people: [...people.values()].map((p) => ({ ...p, inKinds: { ...p.inKinds }, outKinds: { ...p.outKinds } })),
+    people: known.map((did) => {
+      const p = people.get(did)!;
+      return { ...p, inKinds: { ...p.inKinds }, outKinds: { ...p.outKinds } };
+    }),
     follows: [...follows],
     stage,
     stageDone,
@@ -393,6 +419,53 @@ export async function loadNeighbourhood(
     windowStart,
     windowEnd,
   });
+
+  // Accounts outside the follows who engaged either way are checked for
+  // following back in batches as they turn up, alongside the reads that find
+  // them, three batches at a time, and drawn as each batch is answered.
+  const queued = new Set<string>();
+  const waiting: string[] = [];
+  const checks: Promise<void>[] = [];
+  let running = 0;
+  const slots: (() => void)[] = [];
+  // A slot is taken the moment it's granted, and handed straight to the next
+  // in line when freed, so no more than three are ever out at once.
+  const slot = () => {
+    if (running < 3) {
+      running += 1;
+      return Promise.resolve();
+    }
+    return new Promise<void>((go) => slots.push(go));
+  };
+  const release = () => {
+    const next = slots.shift();
+    if (next) next();
+    else running -= 1;
+  };
+  const check = async (batch: string[]) => {
+    await slot();
+    const [rel, named] = await Promise.all([relationshipsWith(subject.did, batch, ctx), profilesFor(batch, ctx)]);
+    release();
+    for (const did of batch) {
+      const p = people.get(did)!;
+      if (rel?.get(did)?.followedBy) p.followedBy = true;
+      const n = named.get(did);
+      if (n) Object.assign(p, { handle: n.handle, displayName: n.displayName, avatar: n.avatar });
+    }
+    reveal(batch);
+  };
+  const enqueue = (all = false) => {
+    for (const p of people.values()) {
+      if (p.following || queued.has(p.did)) continue;
+      queued.add(p.did);
+      // Past the cap an account is drawn unchecked, as no link.
+      if (queued.size > LIMITS.strangers) reveal([p.did]);
+      else waiting.push(p.did);
+    }
+    while (waiting.length >= LIMITS.relChunk || (all && waiting.length)) {
+      checks.push(check(waiting.splice(0, LIMITS.relChunk)));
+    }
+  };
 
   // 1. Follows.
   emit('follows');
@@ -403,10 +476,12 @@ export async function loadNeighbourhood(
     follows.push(p.did);
   }
 
-  // 2. Which of them follow back.
+  // 2. Which of them follow back, drawn a batch at a time as answered.
   emit('mutuals');
-  await relationshipsWith(subject.did, follows, ctx, (n) => tick(n / follows.length)).then((rel) => {
-    for (const [did, r] of rel ?? []) if (r.followedBy) people.get(did)!.followedBy = true;
+  await relationshipsWith(subject.did, follows, ctx, (part, answered, found) => {
+    for (const did of part) if (found.get(did)?.followedBy) people.get(did)!.followedBy = true;
+    stageDone = answered / follows.length;
+    reveal(part);
   });
 
   // 3. Outbound: the subject's own records.
@@ -437,6 +512,7 @@ export async function loadNeighbourhood(
     }
   };
   applyTally([]);
+  enqueue();
 
   // 4. Inbound: who engaged with the subject's most-engaged recent posts.
   emit('inbound');
@@ -496,32 +572,20 @@ export async function loadNeighbourhood(
       inbound.push({ did: r.did, kind: job.kind, at });
     }
     applyTally(inbound);
+    enqueue();
     tick(finished / jobs.length);
   });
   applyTally(inbound);
+  enqueue(true);
+  await Promise.all(checks);
 
-  // 5. Which of the engaged accounts outside their follows follow them.
-  emit('followers');
-  const strangers = [...people.values()]
-    .filter((p) => !p.following)
-    .sort((a, b) => b.in + b.out - (a.in + a.out))
-    .slice(0, 600)
-    .map((p) => p.did);
-  const fans = await relationshipsWith(subject.did, strangers, ctx, (n) => tick((0.8 * n) / Math.max(1, strangers.length)));
-  for (const [did, r] of fans ?? []) {
-    const p = people.get(did);
-    if (p && r.followedBy) p.followedBy = true;
-  }
-  const unnamed = [...people.values()].filter((p) => !p.handle).map((p) => p.did);
-  const named = await profilesFor(unnamed, ctx);
-  for (const [did, p] of named) Object.assign(people.get(did)!, { handle: p.handle, displayName: p.displayName, avatar: p.avatar });
-
-  // 6. Follows in common, for the most engaged accounts with no direct link:
+  // 5. Follows in common, for the most engaged accounts with no direct link:
   // how many of the subject's follows follow each one. Skipped when the
   // follows weren't all read, since a count of part of them would be wrong.
   emit('common');
   if (!read.capped && follows.length && follows.length <= LIMITS.inCommonMaxFollows) {
-    const candidates = [...people.values()]
+    const candidates = known
+      .map((did) => people.get(did)!)
       .filter((p) => !p.following && !p.followedBy && p.in + p.out > 0)
       .sort((a, b) => b.in + b.out - (a.in + a.out))
       .slice(0, LIMITS.inCommonCandidates);
@@ -619,6 +683,34 @@ const threadCache = new TTLMap<string, ThreadGraph>(5 * 60_000);
 
 const isMedia = (t?: string) => !!t && /images|video/.test(t);
 
+type PostView = NonNullable<ThreadNode['post']>;
+
+function postInput(p: PostView, parent: string | null): ThreadPostInput {
+  return {
+    uri: p.uri,
+    parent,
+    did: p.author.did,
+    handle: p.author.handle,
+    displayName: p.author.displayName || undefined,
+    avatar: p.author.avatar,
+    text: String(p.record?.text ?? ''),
+    createdAt: p.record?.createdAt ?? '',
+    likes: p.likeCount ?? 0,
+    reposts: p.repostCount ?? 0,
+    replies: p.replyCount ?? 0,
+    quotes: p.quoteCount ?? 0,
+    hasMedia: isMedia(p.embed?.$type) || isMedia(p.embed?.media?.$type),
+  };
+}
+
+/** A reply tree flattened, leaving out blocked and deleted posts and what hangs under them. */
+function flattenNode(n: ThreadNode, parent: string | null, out: ThreadPostInput[]) {
+  const p = n.post;
+  if (!p || (n.$type && n.$type !== 'app.bsky.feed.defs#threadViewPost')) return;
+  out.push(postInput(p, parent));
+  for (const r of n.replies ?? []) flattenNode(r, p.uri, out);
+}
+
 /**
  * The whole thread a post belongs to, from its first post down, as far as
  * the AppView returns it. Blocked and deleted posts are left out, and so is
@@ -637,27 +729,7 @@ export async function loadThread(uri: string, signal?: AbortSignal): Promise<Thr
   const data = await getJson<{ thread?: ThreadNode }>(`${APPVIEW}/xrpc/app.bsky.feed.getPostThread?${params}`, ctx);
   if (!data?.thread?.post) return null;
   const flat: ThreadPostInput[] = [];
-  const walk = (n: ThreadNode, parent: string | null) => {
-    const p = n.post;
-    if (!p || (n.$type && n.$type !== 'app.bsky.feed.defs#threadViewPost')) return;
-    flat.push({
-      uri: p.uri,
-      parent,
-      did: p.author.did,
-      handle: p.author.handle,
-      displayName: p.author.displayName || undefined,
-      avatar: p.author.avatar,
-      text: String(p.record?.text ?? ''),
-      createdAt: p.record?.createdAt ?? '',
-      likes: p.likeCount ?? 0,
-      reposts: p.repostCount ?? 0,
-      replies: p.replyCount ?? 0,
-      quotes: p.quoteCount ?? 0,
-      hasMedia: isMedia(p.embed?.$type) || isMedia(p.embed?.media?.$type),
-    });
-    for (const r of n.replies ?? []) walk(r, p.uri);
-  };
-  walk(data.thread, null);
+  flattenNode(data.thread, null, flat);
   const root = buildThread(flat, data.thread.post.uri);
   if (!root) return null;
   const out: ThreadGraph = { root, focus: uri, posts: flat.length };
@@ -678,4 +750,108 @@ export async function loadThreadRelations(
   const unique = [...new Set(authors)].filter((d) => d !== op);
   const rel = await relationshipsWith(op, unique, ctx);
   return signal?.aborted ? null : rel;
+}
+
+/* ------------------------------------------------------------------ */
+/* The thread explorer                                                  */
+/* ------------------------------------------------------------------ */
+
+/**
+ * The replies under any post, as a tree rooted at it: for a post the
+ * explorer reached from outside the thread it opened on (a quote, say).
+ */
+export async function loadReplies(uri: string, signal?: AbortSignal): Promise<ThreadPost | null> {
+  const params = new URLSearchParams({ uri, depth: '20', parentHeight: '0' });
+  const data = await getJson<{ thread?: ThreadNode }>(`${APPVIEW}/xrpc/app.bsky.feed.getPostThread?${params}`, {
+    calls: 0,
+    signal,
+  });
+  if (!data?.thread?.post) return null;
+  const flat: ThreadPostInput[] = [];
+  flattenNode(data.thread, null, flat);
+  return buildThread(flat, data.thread.post.uri);
+}
+
+/** One page of who liked or reposted a post, 50 at a time, from the AppView. */
+export async function postAccounts(
+  uri: string,
+  kind: 'likes' | 'reposts',
+  cursor?: string,
+  signal?: AbortSignal,
+): Promise<{ items: GraphAccount[]; cursor?: string } | null> {
+  const params = new URLSearchParams({ uri, limit: '50' });
+  if (cursor) params.set('cursor', cursor);
+  const method = kind === 'likes' ? 'getLikes' : 'getRepostedBy';
+  const page = await getJson<{ likes?: { actor: Profile }[]; repostedBy?: Profile[]; cursor?: string }>(
+    `${APPVIEW}/xrpc/app.bsky.feed.${method}?${params}`,
+    { calls: 0, signal },
+  );
+  if (!page) return null;
+  const list = kind === 'likes' ? (page.likes ?? []).map((l) => l.actor) : (page.repostedBy ?? []);
+  return { items: list.map(toAccount), cursor: page.cursor };
+}
+
+/** One page of the posts quoting a post, as tree nodes with no replies read yet. */
+export async function postQuotes(
+  uri: string,
+  cursor?: string,
+  signal?: AbortSignal,
+): Promise<{ items: ThreadPost[]; cursor?: string } | null> {
+  const params = new URLSearchParams({ uri, limit: '25' });
+  if (cursor) params.set('cursor', cursor);
+  const page = await getJson<{ posts?: PostView[]; cursor?: string }>(`${APPVIEW}/xrpc/app.bsky.feed.getQuotes?${params}`, {
+    calls: 0,
+    signal,
+  });
+  if (!page) return null;
+  const items = (page.posts ?? []).map((p) => buildThread([postInput(p, null)], p.uri)).filter((p): p is ThreadPost => !!p);
+  return { items, cursor: page.cursor };
+}
+
+/**
+ * The ways a post is linked that the explorer's own chips don't cover, as
+ * Constellation counts them: everything but Bluesky's likes, reposts,
+ * replies and quotes, which come from the AppView with the full history.
+ */
+const COVERED_SOURCES = new Set([
+  'app.bsky.feed.like:subject.uri',
+  'app.bsky.feed.repost:subject.uri',
+  'app.bsky.feed.post:reply.parent.uri',
+  'app.bsky.feed.post:reply.root.uri',
+  'app.bsky.feed.post:embed.record.uri',
+  'app.bsky.feed.post:embed.record.record.uri',
+]);
+
+export type LinkSource = { source: string; label: string; count: number };
+
+export async function otherLinks(uri: string): Promise<LinkSource[] | null> {
+  const sources = flattenSources(await getBacklinkSources(uri));
+  if (!sources) return null;
+  return sources
+    .filter((s) => s.count > 0 && !COVERED_SOURCES.has(s.source))
+    .map((s) => ({ source: s.source, label: `${appForCollection(s.collection).name}: ${s.collection.split('.').pop()}`, count: s.count }));
+}
+
+export type LinkRecord = { uri: string; did: string; collection: string; rkey: string; author?: GraphAccount };
+
+/** One page of the records behind a link source, with their authors named. */
+export async function linkRecords(
+  uri: string,
+  source: string,
+  cursor?: string,
+): Promise<{ items: LinkRecord[]; cursor?: string } | null> {
+  const page = await getBacklinks(uri, source, { limit: 25, cursor });
+  if (!page) return null;
+  const records = backlinksFromPage(page);
+  const named = await profilesFor([...new Set(records.map((r) => r.did))], { calls: 0 });
+  return {
+    items: records.map((r) => ({
+      uri: `at://${r.did}/${r.collection}/${r.rkey}`,
+      did: r.did,
+      collection: r.collection,
+      rkey: r.rkey,
+      author: named.has(r.did) ? toAccount(named.get(r.did)!) : undefined,
+    })),
+    cursor: page.cursor ?? undefined,
+  };
 }

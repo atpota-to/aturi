@@ -3,7 +3,9 @@
 import { useCallback, useEffect, useState } from 'react';
 import { flattenThread, relationOf, type Relation } from '@/lib/socialGraph';
 import { loadThread, loadThreadRelations, type FollowRelation, type ThreadGraph } from '@/utils/atproto/graphData';
+import { Maximize2 } from 'lucide-react';
 import { Segmented } from '../lexicons/primitives';
+import { openExplorer } from './ThreadExplorer';
 import { FlowThread } from './FlowView';
 import { GRAPH_LAYOUT_OPTIONS, type GraphLayout } from './GraphTab';
 import { LedgerThread } from './LedgerView';
@@ -67,18 +69,29 @@ export default function ThreadSection({ uri }: { uri: string }) {
     [op?.did, opName, relations],
   );
 
+  const rkey = uri.split('/').pop() ?? '';
+  const fullScreen = (
+    <button type="button" className="fx-graph-tool" onClick={() => openExplorer(rkey)}>
+      <Maximize2 size={14} aria-hidden />
+      Full screen
+    </button>
+  );
+
   if (failed || !thread || !op || op.size < 2) {
     return (
       <section className="fn-rec-card fx-graph fx-graph-thread" aria-labelledby="fx-graph-thread-title">
-        <h2 id="fx-graph-thread-title" className="fn-rec-h2">
-          Thread
-        </h2>
+        <div className="fx-graph-head">
+          <h2 id="fx-graph-thread-title" className="fn-rec-h2">
+            Thread
+          </h2>
+          {thread && fullScreen}
+        </div>
         <p className="explore-placeholder" role="status">
           {failed
             ? 'Couldn’t read this thread from the Bluesky AppView.'
             : !thread
               ? 'Reading the thread…'
-              : 'Nobody has replied yet, so there’s no thread to draw.'}
+              : 'Nobody has replied yet. Its likes, quotes and links open full screen.'}
         </p>
       </section>
     );
@@ -97,6 +110,7 @@ export default function ThreadSection({ uri }: { uri: string }) {
           {fmt(thread.posts)} posts{op.uri !== current ? ', from the first' : ''}
         </p>
         <Segmented ariaLabel="Thread layout" options={GRAPH_LAYOUT_OPTIONS} value={layout} onChange={setLayout} />
+        {fullScreen}
       </div>
       <Legend keys={THREAD_KEYS} subject={opName} op />
       <div className="fx-graph-body">

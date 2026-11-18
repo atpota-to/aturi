@@ -7,14 +7,16 @@ import {
   didOfUri,
   flattenThread,
   flowLayout,
+  GOLDEN_ANGLE,
   icicleLayout,
   orbitRadius,
   radialLayout,
   relationOf,
-  spreadAngles,
   stackAround,
   tally,
   tidToMs,
+  treeLayout,
+  type TreeNode,
   type GraphPerson,
   type ThreadPostInput,
 } from '@/lib/socialGraph';
@@ -85,12 +87,11 @@ test('orbit puts closer relations nearer the centre', () => {
   assert.ok(none <= 1 && mutual > 0);
 });
 
-test('spread angles are stable and spread a ring evenly', () => {
-  const people = Array.from({ length: 30 }, (_, i) => person(`did:plc:${i}`, { following: true, followedBy: true }));
-  const a = spreadAngles(people);
-  const b = spreadAngles([...people].reverse());
-  for (const p of people) assert.equal(a.get(p.did), b.get(p.did));
-  assert.equal(new Set(a.values()).size, 30);
+test('golden-angle steps never land two accounts in one place', () => {
+  const angles = Array.from({ length: 400 }, (_, i) => (i * GOLDEN_ANGLE) % (Math.PI * 2)).sort((a, b) => a - b);
+  const gaps = angles.slice(1).map((a, i) => a - angles[i]);
+  // Evenly enough that the tightest gap is within a few times the average.
+  assert.ok(Math.min(...gaps) > (Math.PI * 2) / 400 / 4);
 });
 
 const post = (uri: string, parent: string | null, createdAt: string, over: Partial<ThreadPostInput> = {}): ThreadPostInput => ({
@@ -197,4 +198,31 @@ test('small helpers', () => {
   assert.equal(didOfUri('at://did:plc:abc/app.bsky.feed.post/3k'), 'did:plc:abc');
   assert.equal(didOfUri('https://example.com'), null);
   assert.deepEqual(stackAround(100, 3, 60, 50), [15, 75, 135]);
+});
+
+test('tree layout keeps cards apart and parents level with their children', () => {
+  const leaf = (key: string, h = 40): TreeNode => ({ key, w: 100, h, children: [] });
+  const root: TreeNode = {
+    key: 'root',
+    w: 200,
+    h: 120,
+    children: [
+      { key: 'a', w: 150, h: 40, children: [leaf('a1'), leaf('a2'), leaf('a3')] },
+      leaf('b', 20),
+    ],
+  };
+  const { nodes, width, height } = treeLayout(root, { colGap: 50, rowGap: 10 });
+  const at = (k: string) => nodes.find((n) => n.key === k)!;
+  // Columns by depth, each as wide as its widest card.
+  assert.deepEqual([at('root').x, at('a').x, at('a1').x], [0, 250, 450]);
+  assert.equal(width, 550);
+  // Leaves never overlap, in order.
+  for (const [u, v] of [['a1', 'a2'], ['a2', 'a3']]) assert.ok(at(u).y + at(u).h + 10 <= at(v).y);
+  // A parent is centred on its children.
+  const mid = (k: string) => at(k).y + at(k).h / 2;
+  assert.equal(mid('a'), (mid('a1') + mid('a3')) / 2);
+  // A parent taller than its children pushes them down rather than poking out above.
+  assert.ok(at('root').y >= 0);
+  assert.ok(height >= at('root').y + at('root').h);
+  assert.equal(at('a2').parent, 'a');
 });

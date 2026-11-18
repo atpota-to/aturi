@@ -11,13 +11,14 @@ import {
   type Relation,
   type ThreadPost,
 } from '@/lib/socialGraph';
-import type { GraphAccount } from '@/utils/atproto/graphData';
+import type { GraphAccount, LinkRecord } from '@/utils/atproto/graphData';
 
 /** What the detail panel beside a drawing is describing. */
 export type GraphFocus =
   | { kind: 'subject' }
   | { kind: 'person'; person: GraphPerson | GraphAccount; note?: string }
   | { kind: 'post'; post: ThreadPost }
+  | { kind: 'record'; record: LinkRecord; label: string }
   | { kind: 'group'; label: string; count: number | null; note?: string };
 
 export type FocusProps = {
@@ -420,6 +421,27 @@ export function GraphDetail({
           </Link>
           <Link href={explorePath(p)} prefetch={false}>
             Their repo
+          </Link>
+        </p>
+      </>
+    );
+  } else if (focus.kind === 'record') {
+    const { record, label } = focus;
+    const who = record.author ?? { did: record.did };
+    body = (
+      <>
+        <div className="fx-graph-who">
+          <Avatar src={who.avatar} name={nameOf(who)} />
+          <div className="fx-graph-names">
+            <span className="fx-graph-dn">{nameOf(who)}</span>
+            <span className="fx-graph-hd">{handleOf(who)}</span>
+          </div>
+        </div>
+        <p className="fx-graph-detail-text">A {label} record linking here.</p>
+        <p className="fx-graph-hd">{record.collection}</p>
+        <p className="fx-graph-links">
+          <Link href={`/explore/${encodeRepo(record.did)}/${record.collection}/${encodeURIComponent(record.rkey)}`} prefetch={false}>
+            Open this record
           </Link>
         </p>
       </>

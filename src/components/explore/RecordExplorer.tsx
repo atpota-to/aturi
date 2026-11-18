@@ -18,6 +18,7 @@ import LinkifiedJson from './LinkifiedJson';
 import RecordPreview from '@/components/RecordPreview';
 import RichRecordCard, { recordHasRichCard } from './RichRecordCard';
 import BacklinksTab, { type BacklinksLauncher } from './tabs/BacklinksTab';
+import ThreadExplorer from './graph/ThreadExplorer';
 import ThreadSection from './graph/ThreadSection';
 import { RecordSchemaRow } from './RecordSchemaCheck';
 import { toolLinksForRecord, type ToolLink } from '@/lib/tools/recordLinks';
@@ -289,6 +290,7 @@ function RecordView({
   );
   const titleActions = (
     <div className="fn-rec-actions">
+      {isPost && <ThreadExplorer uri={atUri} rkey={decodedRkey} />}
       <CopyTextButton value={atUri} label="Copy at:// URI" />
       {/* The Edit button stays watched (setEditChipEl) so the chrome bar
           offers the same action exactly while it isn't on screen. */}

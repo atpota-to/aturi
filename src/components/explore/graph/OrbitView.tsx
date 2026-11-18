@@ -2,6 +2,7 @@
 
 import { useMemo } from 'react';
 import {
+  GOLDEN_ANGLE,
   ORBIT_RINGS,
   engagementOf,
   flattenThread,
@@ -9,7 +10,6 @@ import {
   orbitRadius,
   radialLayout,
   relationOf,
-  spreadAngles,
   type GraphPerson,
   type ThreadPost,
 } from '@/lib/socialGraph';
@@ -42,19 +42,20 @@ const dotSize = (p: GraphPerson) => {
  * (more follows in common, closer) and the rest on the rim. Dot size is
  * engagement either way over the window.
  *
- * While the read is running each dot keeps the angle its DID hashes to, so
- * when a follow-back or a count of follows in common lands it moves straight
- * in or out to its ring, and the ring changes are easy to follow. Once the
- * read is done the dots settle into the evenly spread angles. Dots stay in
- * the order their accounts were found, never re-sorted: moving an element in
- * the DOM would restart its arrival and cut its move short.
+ * The loader hands accounts over only once their relation is known, in an
+ * order that only grows at the end, so each dot is given its angle by its
+ * place in that order (the golden-angle step, which spreads any run of them
+ * evenly) and its ring by its relation, and arrives where it stays. Nothing
+ * re-spreads when the read finishes. The 2nd-degree scale is fixed by the
+ * number of follows rather than the largest count so far, so a new count
+ * never moves the others. Dots stay in arrival order in the DOM, never
+ * re-sorted: moving an element would restart its arrival.
  */
 export function OrbitAccount({ data, focus, onFocus }: { data: Neighbourhood } & FocusProps) {
-  const settled = data.stage === 'done';
   const { placed, hidden } = useMemo(() => {
+    const angle = new Map(data.people.map((p, i) => [p.did, (i * GOLDEN_ANGLE) % (Math.PI * 2)]));
     const drawn = data.people.filter((p) => relationOf(p) !== 'further' || engagementOf(p) >= RIM_MIN_ENGAGEMENT);
-    const maxInCommon = Math.max(2, ...drawn.map((p) => p.inCommon ?? 0));
-    const angles = settled ? spreadAngles(drawn) : null;
+    const maxInCommon = Math.max(2, data.follows.length);
     const tabbable = new Set(
       [...drawn]
         .sort((a, b) => engagementOf(b) - engagementOf(a))
@@ -66,11 +67,11 @@ export function OrbitAccount({ data, focus, onFocus }: { data: Neighbourhood } &
       placed: drawn
         .map((p) => {
           const r = orbitRadius(p, maxInCommon) * R;
-          const a = angles?.get(p.did) ?? hashUnit(p.did) * Math.PI * 2;
+          const a = angle.get(p.did) ?? 0;
           return { p, x: Math.cos(a) * r, y: Math.sin(a) * r, size: dotSize(p), tab: tabbable.has(p.did) };
         }),
     };
-  }, [data.people, settled]);
+  }, [data.people, data.follows.length]);
 
   const focused = focus?.kind === 'person' ? focus.person.did : null;
   const subject = data.subject;
@@ -90,7 +91,7 @@ export function OrbitAccount({ data, focus, onFocus }: { data: Neighbourhood } &
               <circle
                 r={size}
                 className="fx-graph-dot fx-graph-arrive"
-                style={{ animationDelay: `${Math.round(hashUnit(`${p.did}:in`) * 500)}ms` }}
+                style={{ animationDelay: `${Math.round(hashUnit(`${p.did}:in`) * 240)}ms` }}
                 data-focus={focused === p.did || undefined}
                 fill={relationColor(relationOf(p))}
                 fillOpacity={engagementOf(p) ? 0.9 : 0.5}

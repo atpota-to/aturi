@@ -622,7 +622,8 @@
 
 .fx-graph-progress-track {
   display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
   gap: 4px;
 }
 
@@ -723,4 +724,146 @@
   50% {
     opacity: 0.55;
   }
+}
+
+/* ─── The thread explorer ────────────────────────────────────────────────
+
+   Full screen over the page: a header with the key and the controls, the
+   tree on a canvas that scrolls both ways (and pans with a mouse drag), and
+   the detail panel beside it, or under it on a phone. */
+
+.fx-tx {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  background: var(--bg-primary);
+  padding-top: env(safe-area-inset-top, 0px);
+  outline: none;
+}
+
+.fx-tx-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 18px;
+  padding: 10px max(16px, env(safe-area-inset-right, 0px)) 10px max(16px, env(safe-area-inset-left, 0px));
+  border-bottom: 1px solid var(--border-medium);
+  background: var(--bg-secondary);
+}
+
+.fx-tx-title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+}
+
+.fx-tx-title h2 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.fx-tx-tools {
+  display: flex;
+  gap: 6px;
+  margin-left: auto;
+}
+
+.fx-tx-close {
+  color: var(--text-primary);
+}
+
+.fx-tx-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  min-height: 0;
+}
+
+.fx-tx-canvas {
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  cursor: grab;
+}
+
+.fx-tx-canvas[data-dragging] {
+  cursor: grabbing;
+  user-select: none;
+}
+
+.fx-tx-canvas > svg {
+  display: block;
+}
+
+.fx-tx-msg {
+  margin: 48px;
+}
+
+.fx-tx-side {
+  min-height: 0;
+  overflow: auto;
+  padding: 16px max(16px, env(safe-area-inset-right, 0px)) 16px 16px;
+  border-left: 1px solid var(--border-medium);
+  background: var(--bg-secondary);
+}
+
+.fx-tx-side .fx-graph-detail {
+  padding: 0;
+  border: 0;
+  background: none;
+}
+
+@media (max-width: 760px) {
+  /* The detail panel names each account's relation; on a phone the key's
+     three lines are worth more as canvas. */
+  .fx-tx-head .fx-graph-legend {
+    display: none;
+  }
+
+  .fx-tx-body {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr) auto;
+  }
+
+  .fx-tx-side {
+    max-height: 38vh;
+    padding-bottom: max(16px, env(safe-area-inset-bottom, 0px));
+    border-top: 1px solid var(--border-medium);
+    border-left: 0;
+  }
+}
+
+.fx-tx-chip rect {
+  fill: var(--bg-tertiary);
+  stroke: var(--border-medium);
+}
+
+.fx-tx-chip text {
+  fill: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.fx-tx-chip[data-active] rect,
+.fx-tx-group rect {
+  fill: var(--accent-soft);
+  stroke: var(--accent-soft-border);
+}
+
+.fx-tx-chip[data-active] text {
+  fill: var(--accent-soft-fg);
+}
+
+.fx-tx-group:not([data-open]) rect {
+  fill: var(--bg-tertiary);
+  stroke: var(--border-medium);
+}
+
+.fx-tx-chip:hover rect,
+.fx-tx-group:hover rect {
+  stroke: var(--text-tertiary);
 }
