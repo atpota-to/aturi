@@ -49,6 +49,7 @@ import type { AddressFor } from '../lexicons/workbench/LexiconRail';
 import { RecordPane, type RecordPaneTab } from '../RecordExplorer';
 import RelationshipStrip from '../RelationshipStrip';
 import { AccountCard } from '../RepoExplorer';
+import { AccountCheckBadges } from '../AccountChecks';
 import ShareLinkChip from '../ShareLinkChip';
 import { AuditTabSkeleton, IdentityTabSkeleton } from '../skeletons/pages';
 import {
@@ -1136,6 +1137,8 @@ function RailAccount({
         </Link>
         {name && handle && <span className="fx-wb-acct-handle">@{handle}</span>}
       </div>
+      {/* Folded, the card keeps the checks' answers in sight. */}
+      <AccountCheckBadges identity={identity} base={base} />
       <CopyButton value={identity.did} label="Copy DID" compact variant="subtle" iconOnly />
       {foldable && (
         <button

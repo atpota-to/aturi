@@ -20,6 +20,7 @@ import Breadcrumb from './Breadcrumb';
 import CopyButton from './CopyButton';
 import { HandleCheckMark } from './HandleCheck';
 import AccountToolLinks from './AccountToolLinks';
+import AccountChecks from './AccountChecks';
 import ProfileHeader from './ProfileHeader';
 import RelationshipStrip from './RelationshipStrip';
 import RepoSpacesSection from './space/RepoSpacesSection';
@@ -204,8 +205,10 @@ function RepoView({ identity }: { identity: IdentityBundle }) {
 
 /**
  * The account card: the AppView profile (unless the visitor hid the rich
- * preview) with the repo's identity rows under it. Shared by the repo page and
- * the collection page's sidebar.
+ * preview) with the repo's identity rows under it, then its label and
+ * visibility checks. Shared by the repo page and the collection page's
+ * sidebar, and drawn by the Workbench and Files rails too, so the checks are
+ * on every layout's card.
  */
 export function AccountCard({
   identity,
@@ -225,6 +228,7 @@ export function AccountCard({
       shareUrl={`/profile/${identity.handle || identity.did}`}
     >
       {!identityHidden && <IdentityRow identity={identity} />}
+      <AccountChecks identity={identity} />
     </ProfileHeader>
   );
 }

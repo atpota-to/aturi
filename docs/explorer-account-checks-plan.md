@@ -75,17 +75,17 @@ Taken from the round 2 mockups where the review left a question open.
 
 ### M3. The card rows (all three layouts)
 
-- [ ] `AccountChecks`: Labels and Visibility rows inside `AccountCard`,
+- [x] `AccountChecks`: Labels and Visibility rows inside `AccountCard`,
       which the workbench rail, the Files rail and Classic's sidebar all
       draw.
-- [ ] Loading states: skeleton while asking Bluesky; count, bar and
+- [x] Loading states: skeleton while asking Bluesky; count, bar and
       "n of 611" while scanning; six dots filling as each visibility check
       returns; pills when done.
-- [ ] End states: clear, no labels, Bluesky moderation label (amber),
+- [x] End states: clear, no labels, Bluesky moderation label (amber),
       missing replies / left out of search (amber with dots), not shown
       (red), no Bluesky profile, could not ask (Retry), seen before (age).
-- [ ] Each row links to its view.
-- [ ] Badges in the folded rail header: label count (ring while
+- [x] Each row links to its view.
+- [x] Badges in the folded rail header: label count (ring while
       scanning), eye (spinner while running, then green, amber or red).
 
 ### M4. Views in Workbench and Files
