@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import PdsExplorer from '@/components/explore/PdsExplorer';
+import PdsRoute from '@/components/explore/pds/PdsRoute';
 
 type Params = { host: string };
 
@@ -36,5 +36,5 @@ export default async function ExplorePdsPage({
   params: Promise<Params>;
 }) {
   const { host } = await params;
-  return <PdsExplorer host={decodeURIComponent(host)} />;
+  return <PdsRoute host={decodeURIComponent(host)} />;
 }
