@@ -230,11 +230,25 @@ html:has(.fx-wb) {
   flex: none;
 }
 
+/* The view switch and the copy-link close the toolbar in every view, so
+   changing views never moves the switch you just pressed. What only one
+   view has (the Files view's Icons and List, the lexicons' window) comes
+   ahead of them in .fx-wb-toolbar-tools, and where the group has a line to
+   itself those keep to the left and the switch to the right. */
 .fx-wb-toolbar-end {
   flex: none;
   display: flex;
   align-items: center;
+  justify-content: flex-end;
   gap: 8px;
+}
+
+.fx-wb-toolbar-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: inherit;
+  margin-right: auto;
 }
 
 /* ---------- Body ----------
@@ -1609,7 +1623,6 @@ a.fx-fd-crumb:hover {
 
   .fx-wb[data-mode='files'] .fx-wb-toolbar-end {
     flex: 1 1 100%;
-    justify-content: space-between;
   }
 }
 
@@ -1642,10 +1655,12 @@ a.fx-fd-crumb:hover {
     flex-wrap: wrap;
   }
 
+  /* Short of room for everything on one line, the view's own controls go
+     to a line under the view switch rather than push it down, so the switch
+     is on the same line in every view. */
   .fx-wb-toolbar-end {
     flex: 1 1 100%;
-    flex-wrap: wrap;
-    justify-content: space-between;
+    flex-wrap: wrap-reverse;
   }
 
   .fx-wb-pane-head {

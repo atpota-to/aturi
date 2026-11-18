@@ -34,10 +34,6 @@
     flex: 1 1 100%;
     flex-wrap: wrap;
   }
-
-  .fx-lx .fx-wb-toolbar-end > .fx-title-share {
-    margin-left: auto;
-  }
 }
 
 /* ---------- Rail ---------- */
