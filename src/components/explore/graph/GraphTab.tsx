@@ -3,7 +3,8 @@
 import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import type { IdentityBundle } from '@/utils/atproto/identity';
-import { loadNeighbourhood, LIMITS, STAGE_LABELS, type Neighbourhood } from '@/utils/atproto/graphData';
+import { relationOf } from '@/lib/socialGraph';
+import { loadNeighbourhood, STAGE_LABELS, STAGE_ORDER, type Neighbourhood } from '@/utils/atproto/graphData';
 import { Segmented } from '../lexicons/primitives';
 import { FlowAccount } from './FlowView';
 import { LedgerAccount } from './LedgerView';
@@ -27,7 +28,9 @@ export const GRAPH_LAYOUT_OPTIONS: { value: GraphLayout; label: string }[] = [
  * shared link land on the same view.
  *
  * Nothing is read until the tab is opened; the read is staged (see
- * graphData.ts) and the drawing fills in as each stage lands.
+ * graphData.ts). A progress bar names each stage as it runs, and the drawing
+ * fills in underneath it as the data lands: dots appear as accounts are
+ * found and move rings as follows are checked.
  */
 export default function GraphTab({ identity }: { identity: IdentityBundle }) {
   const router = useRouter();
@@ -64,12 +67,9 @@ export default function GraphTab({ identity }: { identity: IdentityBundle }) {
     <div className="fx-graph">
       <div className="fx-graph-head">
         <Segmented ariaLabel="Graph layout" options={GRAPH_LAYOUT_OPTIONS} value={layout} onChange={selectLayout} />
-        <p className="fx-graph-status" role="status">
-          {loading
-            ? `${data ? STAGE_LABELS[data.stage] : STAGE_LABELS.follows}…${data?.requests ? ` ${fmt(data.requests)} requests so far` : ''}`
-            : `${fmt(data.people.length)} accounts`}
-        </p>
+        {!loading && <p className="fx-graph-status">{fmt(data.people.length)} accounts</p>}
       </div>
+      {loading && <GraphProgress data={data} />}
       {empty ? (
         <p className="explore-placeholder">
           Nothing to draw: this account follows no one and nobody engaged either way in the last 30 days.
@@ -90,7 +90,6 @@ export default function GraphTab({ identity }: { identity: IdentityBundle }) {
               emptyText="Point at, tap or tab to someone in the drawing to see who they are."
             />
           </div>
-          {data.stage === 'done' && <Coverage data={data} subjectName={subjectName} />}
         </>
       ) : (
         <div className="fx-graph-placeholder" aria-hidden />
@@ -99,50 +98,40 @@ export default function GraphTab({ identity }: { identity: IdentityBundle }) {
   );
 }
 
-const day = (ms: number) => new Date(ms).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-
-/** What was read and what was left out, in plain words. */
-function Coverage({ data, subjectName }: { data: Neighbourhood; subjectName: string }) {
-  const c = data.coverage;
-  const lines: string[] = [];
-  lines.push(
-    c.followsCapped
-      ? `Follows: the newest ${fmt(c.followsRead)} of ${fmt(data.subject.followsCount ?? c.followsRead)}.`
-      : `Follows: all ${fmt(c.followsRead)}.`,
-  );
-  if (c.mutualsFailed) lines.push('Constellation didn’t answer, so nobody is marked as following back.');
-  if (c.outboundFailed) {
-    lines.push(`${subjectName}’s PDS didn’t answer, so their own likes, reposts and posts weren’t read.`);
-  } else {
-    lines.push(
-      `${subjectName}’s engagement: ${fmt(c.likesRead)} likes, ${fmt(c.repostsRead)} reposts and ${fmt(c.postsRead)} posts from their own repo` +
-        (c.outboundReachedMs ? `, reaching back to ${day(c.outboundReachedMs)} rather than the full 30 days.` : ', the full 30 days.'),
-    );
-  }
-  if (c.inboundPosts) {
-    lines.push(
-      `Engagement with them: who liked, reposted, replied to or quoted their ${fmt(c.inboundPosts)} most-engaged posts of the ${fmt(c.inboundPostsScanned)} most recent` +
-        (c.inboundShare != null ? ` (${Math.round(c.inboundShare * 100)}% of the engagement on those)` : '') +
-        `, plus mentions of them.` +
-        (c.inboundTruncated ? ` ${fmt(c.inboundTruncated)} of those lists ran past one page of ${LIMITS.perList} and were read in part.` : ''),
-    );
-  } else {
-    lines.push('Engagement with them: no posts with engagement in the last 30 days, so only mentions were read.');
-  }
-  lines.push(
-    c.inCommonSkipped
-      ? `2nd degree wasn’t counted: past ${fmt(LIMITS.inCommonMaxFollows)} follows, each count takes too many requests.`
-      : `2nd degree: follows in common counted for the ${fmt(c.inCommonCounted)} most engaged accounts with no follow either way. Everyone else with no follow sits on the rim, unmeasured.`,
-  );
-  lines.push(
-    `Followers are known for their follows and for everyone who engaged either way, not for every follower. ${fmt(data.requests)} requests to the Bluesky AppView, their PDS and Constellation, all public.`,
-  );
+/**
+ * The read, as it happens: one segment per stage, filling as the stage runs,
+ * and a line naming the stage with what has been found so far. The stage name
+ * is the live region; the running counts change too often to announce.
+ */
+function GraphProgress({ data }: { data: Neighbourhood | null }) {
+  const stage = data?.stage ?? 'follows';
+  const at = Math.max(0, STAGE_ORDER.indexOf(stage));
+  const done = data?.stageDone ?? 0;
+  const found: string[] = [];
+  if (data && at > 0) found.push(`${fmt(data.follows.length)} follows`);
+  if (data && at > 1) found.push(`${fmt(data.people.filter((p) => relationOf(p) === 'mutual').length)} follow back`);
+  if (data && at > 2) found.push(`${fmt(data.records)} of their likes, reposts and posts`);
+  if (data && at > 3) found.push(`${fmt(data.people.filter((p) => p.in > 0).length)} accounts engaged with them`);
   return (
-    <details className="fx-graph-coverage">
-      <summary>How this was read</summary>
-      {lines.map((l) => (
-        <p key={l}>{l}</p>
-      ))}
-    </details>
+    <div className="fx-graph-progress">
+      <div
+        className="fx-graph-progress-track"
+        role="progressbar"
+        aria-label="Reading this account’s graph"
+        aria-valuemin={0}
+        aria-valuemax={STAGE_ORDER.length}
+        aria-valuenow={at + done}
+      >
+        {STAGE_ORDER.map((s, i) => (
+          <span key={s} className="fx-graph-progress-step" data-state={i < at ? 'done' : i === at ? 'active' : undefined}>
+            <span style={{ width: `${i < at ? 100 : i === at ? Math.max(6, done * 100) : 0}%` }} />
+          </span>
+        ))}
+      </div>
+      <p className="fx-graph-progress-text">
+        <span role="status">{STAGE_LABELS[stage]}…</span>
+        {found.length > 0 && <span className="fx-graph-progress-found"> {found.join(' · ')}</span>}
+      </p>
+    </div>
   );
 }

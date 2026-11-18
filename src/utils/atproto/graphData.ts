@@ -5,12 +5,19 @@
  * signed in or not. The shapes and the arithmetic live in
  * `lib/socialGraph.ts`; this file only fetches.
  *
+ * Who follows whom always comes from the AppView's getRelationships, never
+ * from Constellation. Constellation began indexing on 2025-01-28 and has not
+ * backfilled, so any follow older than that is missing from it: on a sample
+ * account it found 156 of 228 follow-backs, and every one it missed predated
+ * the index (checked 2026-11-18). Constellation is still the source for
+ * likes, reposts, replies, quotes and mentions, which the 30-day window
+ * keeps well inside what it has.
+ *
  * Every read is bounded (see LIMITS) and the neighbourhood loads in stages,
- * each one handed to the caller as it lands, so the drawing fills in rather
- * than waiting on the slowest read. For a typical account the whole thing is
- * a couple of hundred requests, most of them Constellation's, which is why
- * the explorer only starts it when the Graph tab is opened, and keeps the
- * result for ten minutes.
+ * handed to the caller as they land, so the drawing fills in rather than
+ * waiting on the slowest read. For a typical account the whole thing is a
+ * few hundred requests, which is why the explorer only starts it when the
+ * Graph tab is opened, and keeps the result for ten minutes.
  */
 
 import { withIdentification } from '../requestDeadline';
@@ -29,8 +36,6 @@ import {
   type ThreadPost,
   type ThreadPostInput,
 } from '@/lib/socialGraph';
-
-const FOLLOW_SOURCE = 'app.bsky.graph.follow:subject';
 
 /**
  * Bluesky writes a mention facet with its `$type` and Constellation indexes
@@ -53,7 +58,7 @@ const POST_SOURCES: Record<Exclude<EngagementKind, 'mention'>, string[]> = {
 /**
  * How far each read goes. The point of each number is a request budget, not
  * a claim about what matters: an account that follows 5,000 people still
- * gets a drawing, and the coverage note says what was left out.
+ * gets a drawing, of the part that was read.
  */
 export const LIMITS = {
   /** Follows read, at 100 a page. */
@@ -69,11 +74,11 @@ export const LIMITS = {
   /** Constellation answers at most 100 per page; one page per post and kind. */
   perList: 100,
   /** Engaged accounts outside the follow graph counted for follows in common. */
-  inCommonCandidates: 24,
-  /** Past this many follows, one count is more than ten requests: skipped. */
-  inCommonMaxFollows: 900,
-  /** DIDs per `did`-filtered request; ~90 keeps the URL under 4 KB. */
-  didChunk: 90,
+  inCommonCandidates: 16,
+  /** Past this many follows, one count is more than 20 requests: skipped. */
+  inCommonMaxFollows: 600,
+  /** Accounts getRelationships answers for in one request. */
+  relChunk: 30,
   concurrency: 6,
 } as const;
 
@@ -116,32 +121,42 @@ function backlinksUrl(subject: string, source: string, limit: number, dids: read
   return `${CONSTELLATION}/xrpc/blue.microcosm.links.getBacklinks?${params}`;
 }
 
-/**
- * Which of `dids` follow `subject`: Constellation's `did` filter, about 90
- * candidates a request. Null when every request failed.
- */
-export async function followersAmong(subject: string, dids: readonly string[], ctx: Ctx): Promise<Set<string> | null> {
-  const found = new Set<string>();
-  let answered = 0;
-  for (const part of chunk(dids, LIMITS.didChunk)) {
-    // A chunk of n candidates has at most n follows; one page holds 100.
-    const page = await getJson<BacklinkPage>(backlinksUrl(subject, FOLLOW_SOURCE, 100, part), ctx);
-    if (!page) continue;
-    answered += 1;
-    for (const r of page.records ?? []) found.add(r.did);
-  }
-  return answered || !dids.length ? found : null;
-}
+export type FollowRelation = { following: boolean; followedBy: boolean };
 
-/** How many of `dids` follow `subject`, from `total` alone (one record a page). */
-async function countFollowersAmong(subject: string, dids: readonly string[], ctx: Ctx): Promise<number | null> {
-  let total = 0;
-  for (const part of chunk(dids, LIMITS.didChunk)) {
-    const page = await getJson<BacklinkPage>(backlinksUrl(subject, FOLLOW_SOURCE, 1, part), ctx);
-    if (!page || typeof page.total !== 'number') return null;
-    total += page.total;
-  }
-  return total;
+type RelationshipsPage = {
+  relationships?: { did?: string; following?: string; followedBy?: string; notFound?: boolean }[];
+};
+
+/**
+ * Whether `actor` follows each of `others`, and each of them follows
+ * `actor`: app.bsky.graph.getRelationships, 30 DIDs a request. Accounts the
+ * AppView doesn't know are left out. Null when every request failed.
+ * `onPart` hears how many of `others` have been answered so far.
+ */
+async function relationshipsWith(
+  actor: string,
+  others: readonly string[],
+  ctx: Ctx,
+  onPart?: (answered: number) => void,
+): Promise<Map<string, FollowRelation> | null> {
+  const out = new Map<string, FollowRelation>();
+  const parts = chunk(others, LIMITS.relChunk);
+  let answered = 0;
+  let ok = 0;
+  await pool(parts, 4, async (part) => {
+    const params = new URLSearchParams({ actor });
+    part.forEach((d) => params.append('others', d));
+    const page = await getJson<RelationshipsPage>(`${APPVIEW}/xrpc/app.bsky.graph.getRelationships?${params}`, ctx);
+    answered += part.length;
+    if (page) {
+      ok += 1;
+      for (const r of page.relationships ?? []) {
+        if (r.did && !r.notFound) out.set(r.did, { following: !!r.following, followedBy: !!r.followedBy });
+      }
+    }
+    onPart?.(answered);
+  });
+  return ok || !parts.length ? out : null;
 }
 
 type Profile = { did: string; handle?: string; displayName?: string; avatar?: string; followsCount?: number; followersCount?: number };
@@ -206,34 +221,8 @@ export const STAGE_LABELS: Record<GraphStage, string> = {
   done: 'Done',
 };
 
-export type GraphCoverage = {
-  followsRead: number;
-  followsCapped: boolean;
-  mutualsFailed: boolean;
-  /** Outbound records read per collection, and whether a cap cut the window short. */
-  likesRead: number;
-  repostsRead: number;
-  postsRead: number;
-  outboundFailed: boolean;
-  /** When a cap stopped a read before the window's start, how far back it reached. */
-  outboundReachedMs: number | null;
-  /**
-   * Own posts whose engagement was read, of how many recent ones the author
-   * feed scan saw (at most three pages, and never past the window).
-   */
-  inboundPosts: number;
-  inboundPostsScanned: number;
-  /**
-   * The read posts' share of the window's like, repost, reply and quote
-   * counts, as the AppView reports them: how much of the inbound picture was
-   * actually looked at.
-   */
-  inboundShare: number | null;
-  /** Lists that held more than one page, so were read in part. */
-  inboundTruncated: number;
-  inCommonCounted: number;
-  inCommonSkipped: boolean;
-};
+/** The stages in the order they run, for a progress bar. */
+export const STAGE_ORDER: readonly GraphStage[] = ['follows', 'mutuals', 'outbound', 'inbound', 'followers', 'common'];
 
 export type Neighbourhood = {
   subject: Profile & { did: string };
@@ -241,7 +230,10 @@ export type Neighbourhood = {
   /** The subject's follows, as DIDs, for the flow view's "followed by their follows". */
   follows: string[];
   stage: GraphStage;
-  coverage: GraphCoverage;
+  /** How far through the current stage, 0 to 1, where that can be known. */
+  stageDone: number;
+  /** The subject's own likes, reposts and posts read from the window. */
+  records: number;
   requests: number;
   windowStart: number;
   windowEnd: number;
@@ -349,22 +341,6 @@ export async function loadNeighbourhood(
   const ctx: Ctx = { calls: 0, signal };
   const windowEnd = Date.now();
   const windowStart = windowEnd - WINDOW_DAYS * DAY_MS;
-  const coverage: GraphCoverage = {
-    followsRead: 0,
-    followsCapped: false,
-    mutualsFailed: false,
-    likesRead: 0,
-    repostsRead: 0,
-    postsRead: 0,
-    outboundFailed: false,
-    outboundReachedMs: null,
-    inboundPosts: 0,
-    inboundPostsScanned: 0,
-    inboundShare: null,
-    inboundTruncated: 0,
-    inCommonCounted: 0,
-    inCommonSkipped: false,
-  };
 
   const profile = (await getJson<Profile>(
     `${APPVIEW}/xrpc/app.bsky.actor.getProfile?actor=${encodeURIComponent(subject.did)}`,
@@ -385,10 +361,23 @@ export async function loadNeighbourhood(
     outKinds: {},
   });
   let stage: GraphStage = 'follows';
+  let stageDone = 0;
+  let records = 0;
+  let lastEmit = 0;
   const follows: string[] = [];
   const emit = (next: GraphStage) => {
     stage = next;
+    stageDone = 0;
     if (signal?.aborted) return;
+    lastEmit = Date.now();
+    onUpdate(snapshot());
+  };
+  // Progress inside a long stage, at most a few times a second: often enough
+  // for the drawing to fill in visibly, not so often it redraws on every reply.
+  const tick = (done: number, force = false) => {
+    stageDone = Math.max(stageDone, Math.min(1, done));
+    if (signal?.aborted || (!force && Date.now() - lastEmit < 250)) return;
+    lastEmit = Date.now();
     onUpdate(snapshot());
   };
   // A fresh array of fresh objects each time, so React sees a change and a
@@ -398,7 +387,8 @@ export async function loadNeighbourhood(
     people: [...people.values()].map((p) => ({ ...p, inKinds: { ...p.inKinds }, outKinds: { ...p.outKinds } })),
     follows: [...follows],
     stage,
-    coverage: { ...coverage },
+    stageDone,
+    records,
     requests: ctx.calls,
     windowStart,
     windowEnd,
@@ -412,14 +402,12 @@ export async function loadNeighbourhood(
     people.set(p.did, { ...blank(p.did, p), following: true });
     follows.push(p.did);
   }
-  coverage.followsRead = follows.length;
-  coverage.followsCapped = read.capped;
 
   // 2. Which of them follow back.
   emit('mutuals');
-  const back = await followersAmong(subject.did, follows, ctx);
-  if (back) for (const did of back) people.get(did)!.followedBy = true;
-  else coverage.mutualsFailed = follows.length > 0;
+  await relationshipsWith(subject.did, follows, ctx, (n) => tick(n / follows.length)).then((rel) => {
+    for (const [did, r] of rel ?? []) if (r.followedBy) people.get(did)!.followedBy = true;
+  });
 
   // 3. Outbound: the subject's own records.
   emit('outbound');
@@ -438,14 +426,7 @@ export async function loadNeighbourhood(
     if (did) outbound.push({ did, kind: 'repost', at: r.at });
   }
   for (const r of posts.records) outbound.push(...outboundFromPost(r.value, r.at));
-  coverage.likesRead = likes.records.length;
-  coverage.repostsRead = reposts.records.length;
-  coverage.postsRead = posts.records.length;
-  coverage.outboundFailed = likes.failed && reposts.failed && posts.failed;
-  const reached = [likes, reposts, posts]
-    .filter((r) => r.capped && r.records.length)
-    .map((r) => r.records[r.records.length - 1].at);
-  coverage.outboundReachedMs = reached.length ? Math.max(...reached) : null;
+  records = likes.records.length + reposts.records.length + posts.records.length;
 
   const applyTally = (inbound: EngagementEvent[]) => {
     const t = tally(inbound, outbound, { t0: windowStart, t1: windowEnd, exclude: subject.did });
@@ -484,10 +465,6 @@ export async function loadNeighbourhood(
   }
   const score = (p: FeedItem['post']) => (p.likeCount ?? 0) + (p.repostCount ?? 0) + (p.replyCount ?? 0) + (p.quoteCount ?? 0);
   const picked = [...feed].sort((a, b) => score(b) - score(a)).slice(0, LIMITS.inboundPosts).filter((p) => score(p) > 0);
-  const allScore = feed.reduce((s, p) => s + score(p), 0);
-  coverage.inboundPostsScanned = feed.length;
-  coverage.inboundPosts = picked.length;
-  coverage.inboundShare = allScore ? picked.reduce((s, p) => s + score(p), 0) / allScore : null;
 
   const inbound: EngagementEvent[] = [];
   const seen = new Set<string>();
@@ -507,51 +484,53 @@ export async function loadNeighbourhood(
     }
   }
   for (const source of MENTION_SOURCES) jobs.push({ subject: subject.did, kind: 'mention', source, fallback: 0 });
+  let finished = 0;
   await pool(jobs, LIMITS.concurrency, async (job) => {
     const page = await getJson<BacklinkPage>(backlinksUrl(job.subject, job.source, LIMITS.perList), ctx);
-    if (!page) return;
-    if ((page.total ?? 0) > LIMITS.perList && job.kind !== 'mention') coverage.inboundTruncated += 1;
-    for (const r of page.records ?? []) {
+    finished += 1;
+    for (const r of page?.records ?? []) {
       const key = `${r.did}/${r.collection}/${r.rkey}`;
       if (seen.has(key)) continue;
       seen.add(key);
       const at = tidToMs(r.rkey) ?? job.fallback;
       inbound.push({ did: r.did, kind: job.kind, at });
     }
+    applyTally(inbound);
+    tick(finished / jobs.length);
   });
   applyTally(inbound);
 
   // 5. Which of the engaged accounts outside their follows follow them.
   emit('followers');
-  const strangers = [...people.values()].filter((p) => !p.following).sort((a, b) => b.in + b.out - (a.in + a.out));
-  const fans = await followersAmong(
-    subject.did,
-    strangers.slice(0, 600).map((p) => p.did),
-    ctx,
-  );
-  for (const did of fans ?? []) {
+  const strangers = [...people.values()]
+    .filter((p) => !p.following)
+    .sort((a, b) => b.in + b.out - (a.in + a.out))
+    .slice(0, 600)
+    .map((p) => p.did);
+  const fans = await relationshipsWith(subject.did, strangers, ctx, (n) => tick((0.8 * n) / Math.max(1, strangers.length)));
+  for (const [did, r] of fans ?? []) {
     const p = people.get(did);
-    if (p) p.followedBy = true;
+    if (p && r.followedBy) p.followedBy = true;
   }
   const unnamed = [...people.values()].filter((p) => !p.handle).map((p) => p.did);
   const named = await profilesFor(unnamed, ctx);
   for (const [did, p] of named) Object.assign(people.get(did)!, { handle: p.handle, displayName: p.displayName, avatar: p.avatar });
 
-  // 6. Follows in common, for the most engaged accounts with no direct link.
+  // 6. Follows in common, for the most engaged accounts with no direct link:
+  // how many of the subject's follows follow each one. Skipped when the
+  // follows weren't all read, since a count of part of them would be wrong.
   emit('common');
-  if (read.capped || follows.length > LIMITS.inCommonMaxFollows) {
-    coverage.inCommonSkipped = true;
-  } else if (follows.length) {
+  if (!read.capped && follows.length && follows.length <= LIMITS.inCommonMaxFollows) {
     const candidates = [...people.values()]
       .filter((p) => !p.following && !p.followedBy && p.in + p.out > 0)
       .sort((a, b) => b.in + b.out - (a.in + a.out))
       .slice(0, LIMITS.inCommonCandidates);
-    await pool(candidates, LIMITS.concurrency, async (p) => {
-      const n = await countFollowersAmong(p.did, follows, ctx);
-      if (n !== null) {
-        people.get(p.did)!.inCommon = n;
-        coverage.inCommonCounted += 1;
-      }
+    let counted = 0;
+    await pool(candidates, 3, async (p) => {
+      const rel = await relationshipsWith(p.did, follows, ctx);
+      counted += 1;
+      if (rel) people.get(p.did)!.inCommon = [...rel.values()].filter((r) => r.followedBy).length;
+      tick(counted / candidates.length, true);
     });
   }
 
@@ -597,10 +576,11 @@ export async function followedByFollows(
   signal?: AbortSignal,
 ): Promise<GraphAccount[] | null> {
   const ctx: Ctx = { calls: 0, signal };
-  const found = await followersAmong(did, follows, ctx);
-  if (!found) return null;
-  const named = await profilesFor([...found], ctx);
-  return [...found].map((d) => (named.has(d) ? toAccount(named.get(d)!) : { did: d }));
+  const rel = await relationshipsWith(did, follows, ctx);
+  if (!rel) return null;
+  const found = [...rel].filter(([, r]) => r.followedBy).map(([d]) => d);
+  const named = await profilesFor(found, ctx);
+  return found.map((d) => (named.has(d) ? toAccount(named.get(d)!) : { did: d }));
 }
 
 /** Follow and follower counts for one account, for a flow card that opens. */
@@ -627,7 +607,6 @@ type ThreadNode = {
   replies?: ThreadNode[];
 };
 
-export type ThreadRelation = { following: boolean; followedBy: boolean };
 
 export type ThreadGraph = {
   root: ThreadPost;
@@ -687,21 +666,16 @@ export async function loadThread(uri: string, signal?: AbortSignal): Promise<Thr
 }
 
 /**
- * Each author's relation to `op`: whom `op` follows (their follow list, up
- * to the usual cap) and who follows `op` (Constellation's `did` filter over
- * the authors). A handful of requests for most threads.
+ * Each author's relation to `op`, both ways, from getRelationships: one
+ * request per 30 authors, so a handful for most threads.
  */
 export async function loadThreadRelations(
   op: string,
   authors: readonly string[],
   signal?: AbortSignal,
-): Promise<{ relations: Map<string, ThreadRelation>; capped: boolean } | null> {
+): Promise<Map<string, FollowRelation> | null> {
   const ctx: Ctx = { calls: 0, signal };
   const unique = [...new Set(authors)].filter((d) => d !== op);
-  const [follows, back] = await Promise.all([readFollows(op, ctx), followersAmong(op, unique, ctx)]);
-  if (signal?.aborted) return null;
-  const following = new Set(follows.list.map((p) => p.did));
-  const relations = new Map<string, ThreadRelation>();
-  for (const d of unique) relations.set(d, { following: following.has(d), followedBy: back?.has(d) ?? false });
-  return { relations, capped: follows.capped };
+  const rel = await relationshipsWith(op, unique, ctx);
+  return signal?.aborted ? null : rel;
 }

@@ -129,9 +129,9 @@ function Bands({
       const color = relationColor(relationOf(p));
       return (
         <g key={`${isLeft ? 'l' : 'r'}${p.did}`}>
-          <path d={d} fill={color} fillOpacity={focused === p.did ? 0.6 : 0.3} />
+          <path d={d} fill={color} fillOpacity={focused === p.did ? 0.6 : 0.3} className="fx-graph-fade" />
           <g
-            className="fx-graph-mark"
+            className="fx-graph-mark fx-graph-fade"
             role="img"
             aria-label={`${nameOf(p)}: ${fmt(v)}`}
             data-focus={focused === p.did || undefined}
@@ -293,7 +293,8 @@ export function LedgerThread({
             return (
               <g
                 key={post.uri}
-                className="fx-graph-mark fx-graph-cell"
+                className="fx-graph-mark fx-graph-cell fx-graph-fade"
+                style={{ animationDelay: `${Math.min(900, (post.depth - at.depth) * 110)}ms` }}
                 role="button"
                 aria-label={`${post.displayName || post.handle}, ${fmt(post.size - 1)} replies under it${canOpen ? ', open its branch' : ''}`}
                 data-focus={focused === post.uri || undefined}

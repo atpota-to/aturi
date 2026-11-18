@@ -11,9 +11,9 @@
  *
  *   - "2nd degree" there comes from a weekly snapshot of everyone the
  *     owner's follows follow. Here it is counted on demand, account by
- *     account, with Constellation's `did` filter: how many of the subject's
- *     follows follow this one. So it is known only for the accounts it was
- *     counted for, and `inCommon` is null everywhere else.
+ *     account, with the AppView's getRelationships: how many of the
+ *     subject's follows follow this one. So it is known only for the
+ *     accounts it was counted for, and `inCommon` is null everywhere else.
  *   - Inbound engagement there is the owner's notifications. Here it is the
  *     likes, reposts, replies and quotes Constellation indexes against the
  *     subject's own posts, plus mentions of their DID.

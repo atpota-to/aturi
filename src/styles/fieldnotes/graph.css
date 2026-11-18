@@ -612,19 +612,115 @@
   color: var(--text-tertiary);
 }
 
-/* ─── How this was read ──────────────────────────────────────────────── */
+/* ─── Reading ────────────────────────────────────────────────────────── */
 
-.fx-graph-coverage {
+.fx-graph-progress {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.fx-graph-progress-track {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 4px;
+}
+
+.fx-graph-progress-step {
+  height: 6px;
+  overflow: hidden;
+  border-radius: 3px;
+  background: var(--bg-tertiary);
+}
+
+.fx-graph-progress-step > span {
+  display: block;
+  height: 100%;
+  border-radius: 3px;
+  background: var(--text-accent);
+  transition: width 0.3s ease;
+}
+
+.fx-graph-progress-text {
+  margin: 0;
   font-size: 0.85rem;
   color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
 }
 
-.fx-graph-coverage summary {
-  min-height: 32px;
-  cursor: pointer;
+.fx-graph-progress-found {
+  color: var(--text-tertiary);
 }
 
-.fx-graph-coverage p {
-  max-width: 72ch;
-  margin: 6px 0 0;
+/* ─── Arrivals ───────────────────────────────────────────────────────────
+
+   The drawing fills in as the read lands: a dot pops in when its account is
+   found and glides to another ring when a follow-back or a count of follows
+   in common arrives (.fx-graph-place carries the position as a transform, so
+   the move animates everywhere); bands and blocks fade in; flow cards slide
+   in a column at a time. Nothing moves for anyone who asked for less motion. */
+
+@media (prefers-reduced-motion: no-preference) {
+  .fx-graph-arrive {
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: fx-graph-pop 0.55s cubic-bezier(0.2, 0.8, 0.3, 1.2) both;
+  }
+
+  .fx-graph-fade {
+    animation: fx-graph-fade-in 0.5s ease-out both;
+  }
+
+  .fx-graph-slide {
+    animation: fx-graph-slide-in 0.4s cubic-bezier(0.2, 0.7, 0.3, 1) both;
+  }
+
+  .fx-graph-place {
+    transition: transform 0.8s cubic-bezier(0.3, 0.7, 0.2, 1);
+  }
+
+  .fx-graph-dot {
+    transition:
+      r 0.4s ease,
+      fill 0.4s ease,
+      fill-opacity 0.4s ease;
+  }
+
+  .fx-graph-rank-bar span {
+    transition: width 0.45s ease;
+  }
+
+  .fx-graph-bar-track span {
+    transition: flex-grow 0.45s ease;
+  }
+
+  .fx-graph-progress-step[data-state='active'] > span {
+    animation: fx-graph-breathe 1.4s ease-in-out infinite;
+  }
+}
+
+@keyframes fx-graph-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.2);
+  }
+}
+
+@keyframes fx-graph-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes fx-graph-slide-in {
+  from {
+    opacity: 0;
+    transform: translateX(-10px);
+  }
+}
+
+@keyframes fx-graph-breathe {
+  50% {
+    opacity: 0.55;
+  }
 }

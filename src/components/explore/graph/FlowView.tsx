@@ -235,8 +235,8 @@ export function FlowAccount({ data, focus, onFocus }: { data: Neighbourhood } & 
 
   // Lay the columns out: each one stacked around the open card before it.
   type Item =
-    | { type: 'group'; g: FlowGroup; level: number; x: number; y: number; open: boolean }
-    | { type: 'person'; a: GraphAccount; level: number; x: number; y: number; open: boolean; count: number | null }
+    | { type: 'group'; g: FlowGroup; level: number; x: number; y: number; open: boolean; i: number }
+    | { type: 'person'; a: GraphAccount; level: number; x: number; y: number; open: boolean; count: number | null; i: number }
     | { type: 'note'; text: string; level: number; x: number; y: number; moreFor?: string; key: string };
   const items: Item[] = [];
   const links: { x1: number; y1: number; x2: number; y2: number; hot: boolean; key: string }[] = [];
@@ -250,7 +250,7 @@ export function FlowAccount({ data, focus, onFocus }: { data: Neighbourhood } & 
     let openGroup: { g: FlowGroup; y: number } | null = null;
     columns.groups.forEach((g, i) => {
       const open = path[level] === g.key;
-      items.push({ type: 'group', g, level, x, y: ys[i], open });
+      items.push({ type: 'group', g, level, x, y: ys[i], open, i });
       links.push({ x1: anchor.x, y1: anchor.y, x2: x, y2: ys[i] + CARD_H / 2, hot: open, key: `${g.key}-in` });
       if (open) openGroup = { g, y: ys[i] };
     });
@@ -268,7 +268,7 @@ export function FlowAccount({ data, focus, onFocus }: { data: Neighbourhood } & 
       const known = people.get(a.did);
       const count =
         og.g.key.endsWith('|in') && known ? known.in : og.g.key.endsWith('|out') && known ? known.out : known ? engagementOf(known) || null : null;
-      items.push({ type: 'person', a: known ?? a, level: level + 1, x, y: py[i], open, count });
+      items.push({ type: 'person', a: known ?? a, level: level + 1, x, y: py[i], open, count, i });
       links.push({ x1: gx + GROUP_W, y1: og.y + CARD_H / 2, x2: x, y2: py[i] + CARD_H / 2, hot: open, key: `${og.g.key}-${a.did}` });
       if (open) openPersonAt = { did: a.did, y: py[i] };
     });
@@ -334,7 +334,8 @@ export function FlowAccount({ data, focus, onFocus }: { data: Neighbourhood } & 
               return (
                 <g
                   key={g.key}
-                  className="fx-graph-mark"
+                  className="fx-graph-mark fx-graph-slide"
+                  style={{ animationDelay: `${it.i * 35}ms` }}
                   role="button"
                   aria-expanded={it.open}
                   aria-label={`${g.label}${g.count != null ? `, ${fmt(g.count)}` : ''}`}
@@ -359,7 +360,8 @@ export function FlowAccount({ data, focus, onFocus }: { data: Neighbourhood } & 
               return (
                 <g
                   key={`${it.level}-${a.did}`}
-                  className="fx-graph-mark"
+                  className="fx-graph-mark fx-graph-slide"
+                  style={{ animationDelay: `${Math.min(it.i, 12) * 35}ms` }}
                   role="button"
                   aria-expanded={it.open}
                   aria-label={nameOf(a)}
@@ -516,7 +518,8 @@ export function FlowThread({
             return (
               <g key={post.uri}>
                 <g
-                  className="fx-graph-mark"
+                  className="fx-graph-mark fx-graph-slide"
+                  style={{ animationDelay: `${Math.min(900, (post.depth - root.depth) * 110)}ms` }}
                   role="button"
                   aria-expanded={post.kids.length ? !folded.has(post.uri) : undefined}
                   aria-label={`${post.displayName || post.handle}: ${truncate(post.text, 80) || 'no text'}`}

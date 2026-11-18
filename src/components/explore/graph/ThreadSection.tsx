@@ -2,12 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { flattenThread, relationOf, type Relation } from '@/lib/socialGraph';
-import {
-  loadThread,
-  loadThreadRelations,
-  type ThreadGraph,
-  type ThreadRelation,
-} from '@/utils/atproto/graphData';
+import { loadThread, loadThreadRelations, type FollowRelation, type ThreadGraph } from '@/utils/atproto/graphData';
 import { Segmented } from '../lexicons/primitives';
 import { FlowThread } from './FlowView';
 import { GRAPH_LAYOUT_OPTIONS, type GraphLayout } from './GraphTab';
@@ -27,7 +22,7 @@ const THREAD_KEYS: readonly Relation[] = ['mutual', 'following', 'follower', 'fu
 export default function ThreadSection({ uri }: { uri: string }) {
   const [thread, setThread] = useState<ThreadGraph | null>(null);
   const [failed, setFailed] = useState(false);
-  const [relations, setRelations] = useState<{ map: Map<string, ThreadRelation>; capped: boolean } | null>(null);
+  const [relations, setRelations] = useState<Map<string, FollowRelation> | null>(null);
   const [layout, setLayout] = useState<GraphLayout>('flow');
   const [focus, setFocus] = useState<GraphFocus | null>(null);
 
@@ -42,7 +37,7 @@ export default function ThreadSection({ uri }: { uri: string }) {
       setThread(t);
       if (t.root.size < 2) return;
       const r = await loadThreadRelations(t.root.did, flattenThread(t.root).map((p) => p.did), ac.signal);
-      if (r && !ac.signal.aborted) setRelations({ map: r.relations, capped: r.capped });
+      if (r && !ac.signal.aborted) setRelations(r);
     });
     return () => ac.abort();
   }, [uri]);
@@ -53,7 +48,7 @@ export default function ThreadSection({ uri }: { uri: string }) {
   const relationOfAuthor = useCallback(
     (did: string): Relation | 'op' => {
       if (did === op?.did) return 'op';
-      const r = relations?.map.get(did);
+      const r = relations?.get(did);
       return r ? relationOf({ ...r, inCommon: null }) : 'further';
     },
     [op?.did, relations],
@@ -62,7 +57,7 @@ export default function ThreadSection({ uri }: { uri: string }) {
   const relationFor = useCallback(
     (did: string): string | null => {
       if (did === op?.did) return 'Started this thread';
-      const r = relations?.map.get(did);
+      const r = relations?.get(did);
       if (!r) return null;
       if (r.following && r.followedBy) return `Mutual with ${opName}`;
       if (r.following) return `${opName} follows them`;
@@ -118,11 +113,6 @@ export default function ThreadSection({ uri }: { uri: string }) {
           emptyText="Point at, tap or tab to a post to read it here."
         />
       </div>
-      {relations?.capped && (
-        <p className="fx-graph-caption">
-          {opName} follows more accounts than were read, so some of the people they follow show as no link.
-        </p>
-      )}
     </section>
   );
 }

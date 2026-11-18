@@ -5,6 +5,7 @@ import {
   ORBIT_RINGS,
   engagementOf,
   flattenThread,
+  hashUnit,
   orbitRadius,
   radialLayout,
   relationOf,
@@ -27,6 +28,9 @@ const RIM_MIN_ENGAGEMENT = 2;
 /** Dots past this many, by engagement, are reachable by pointer but not by Tab. */
 const TABBABLE = 60;
 
+/** A thread draws itself outward from its first post, a level at a time. */
+const depthDelay = (depth: number) => Math.min(900, depth * 110);
+
 const dotSize = (p: GraphPerson) => {
   const w = engagementOf(p);
   return w ? Math.min(24, 5 + Math.sqrt(w) * 2.2) : 4;
@@ -37,12 +41,20 @@ const dotSize = (p: GraphPerson) => {
  * the inner ring, one-way follows outside it, 2nd degree across the middle
  * (more follows in common, closer) and the rest on the rim. Dot size is
  * engagement either way over the window.
+ *
+ * While the read is running each dot keeps the angle its DID hashes to, so
+ * when a follow-back or a count of follows in common lands it moves straight
+ * in or out to its ring, and the ring changes are easy to follow. Once the
+ * read is done the dots settle into the evenly spread angles. Dots stay in
+ * the order their accounts were found, never re-sorted: moving an element in
+ * the DOM would restart its arrival and cut its move short.
  */
 export function OrbitAccount({ data, focus, onFocus }: { data: Neighbourhood } & FocusProps) {
+  const settled = data.stage === 'done';
   const { placed, hidden } = useMemo(() => {
     const drawn = data.people.filter((p) => relationOf(p) !== 'further' || engagementOf(p) >= RIM_MIN_ENGAGEMENT);
     const maxInCommon = Math.max(2, ...drawn.map((p) => p.inCommon ?? 0));
-    const angles = spreadAngles(drawn);
+    const angles = settled ? spreadAngles(drawn) : null;
     const tabbable = new Set(
       [...drawn]
         .sort((a, b) => engagementOf(b) - engagementOf(a))
@@ -54,13 +66,11 @@ export function OrbitAccount({ data, focus, onFocus }: { data: Neighbourhood } &
       placed: drawn
         .map((p) => {
           const r = orbitRadius(p, maxInCommon) * R;
-          const a = angles.get(p.did) ?? 0;
+          const a = angles?.get(p.did) ?? hashUnit(p.did) * Math.PI * 2;
           return { p, x: Math.cos(a) * r, y: Math.sin(a) * r, size: dotSize(p), tab: tabbable.has(p.did) };
-        })
-        // Small dots last, so a big one never hides a small one.
-        .sort((a, b) => b.size - a.size),
+        }),
     };
-  }, [data.people]);
+  }, [data.people, settled]);
 
   const focused = focus?.kind === 'person' ? focus.person.did : null;
   const subject = data.subject;
@@ -74,19 +84,21 @@ export function OrbitAccount({ data, focus, onFocus }: { data: Neighbourhood } &
             <circle key={f} r={f * R} className="fx-graph-ring" />
           ))}
           {placed.map(({ p, x, y, size, tab }) => (
-            <circle
-              key={p.did}
-              cx={x}
-              cy={y}
-              r={size}
-              className="fx-graph-dot"
-              data-focus={focused === p.did || undefined}
-              fill={relationColor(relationOf(p))}
-              fillOpacity={engagementOf(p) ? 0.9 : 0.5}
-              role="img"
-              aria-label={`${nameOf(p)}: ${fmt(p.in)} to them, ${fmt(p.out)} from them`}
-              {...markProps(() => onFocus({ kind: 'person', person: p }), undefined, tab)}
-            />
+            // Placed by a CSS transform rather than cx/cy, so a ring change
+            // animates in every browser; the circle inside does the arrival.
+            <g key={p.did} className="fx-graph-place" style={{ transform: `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px)` }}>
+              <circle
+                r={size}
+                className="fx-graph-dot fx-graph-arrive"
+                style={{ animationDelay: `${Math.round(hashUnit(`${p.did}:in`) * 500)}ms` }}
+                data-focus={focused === p.did || undefined}
+                fill={relationColor(relationOf(p))}
+                fillOpacity={engagementOf(p) ? 0.9 : 0.5}
+                role="img"
+                aria-label={`${nameOf(p)}: ${fmt(p.in)} to them, ${fmt(p.out)} from them`}
+                {...markProps(() => onFocus({ kind: 'person', person: p }), undefined, tab)}
+              />
+            </g>
           ))}
           <g
             className="fx-graph-mark"
@@ -149,7 +161,17 @@ export function OrbitThread({
             if (!p.parent) return null;
             const a = pos.get(p.parent);
             const b = pos.get(p.uri);
-            return a && b ? <line key={`l${p.uri}`} x1={a.x} y1={a.y} x2={b.x} y2={b.y} className="fx-graph-edge" /> : null;
+            return a && b ? (
+              <line
+                key={`l${p.uri}`}
+                x1={a.x}
+                y1={a.y}
+                x2={b.x}
+                y2={b.y}
+                className="fx-graph-edge fx-graph-fade"
+                style={{ animationDelay: `${depthDelay(p.depth)}ms` }}
+              />
+            ) : null;
           })}
           {posts.map((p, i) => {
             const q = pos.get(p.uri)!;
@@ -158,7 +180,7 @@ export function OrbitThread({
             const show = () => onFocus({ kind: 'post', post: p });
             const label = `${p.displayName || p.handle}: ${truncate(p.text, 80) || 'no text'}`;
             return isRoot ? (
-              <g key={p.uri} className="fx-graph-mark" role="img" aria-label={label} {...markProps(show)}>
+              <g key={p.uri} className="fx-graph-mark fx-graph-arrive" role="img" aria-label={label} {...markProps(show)}>
                 <Face x={q.x} y={q.y} r={r} avatar={p.avatar} name={p.handle || p.did} ring={relationColor('op')} />
               </g>
             ) : (
@@ -167,7 +189,8 @@ export function OrbitThread({
                 cx={q.x}
                 cy={q.y}
                 r={r}
-                className="fx-graph-dot"
+                className="fx-graph-dot fx-graph-arrive"
+                style={{ animationDelay: `${depthDelay(p.depth)}ms` }}
                 data-focus={focused === p.uri || undefined}
                 data-current={current === p.uri || undefined}
                 fill={relationColor(relationOfAuthor(p.did))}
