@@ -2,6 +2,8 @@
 
 import Link from 'next/link';
 import { Check, Pin, PinOff } from 'lucide-react';
+import { groupPrefix } from '@/utils/ufos/nsid';
+import LexiconFavicon from './LexiconFavicon';
 
 /**
  * A single lexicon (leaf NSID) row in the collections tree — a link to the
@@ -20,6 +22,7 @@ export default function LeafRow({
   pinned,
   onTogglePin,
   current,
+  stripe,
 }: {
   nsid: string;
   href: string;
@@ -36,6 +39,8 @@ export default function LeafRow({
   onTogglePin?: () => void;
   /** The collection on screen — gets the selected fill. */
   current?: boolean;
+  /** Banded row in the tree's zebra striping. */
+  stripe?: boolean;
 }) {
   const hasDim = dimPrefix && nsid.startsWith(dimPrefix);
   const dim = hasDim ? dimPrefix : '';
@@ -46,6 +51,7 @@ export default function LeafRow({
       data-kind="leaf"
       data-depth={flat ? 0 : deepIndent ? 2 : 1}
       data-current={current || undefined}
+      data-stripe={stripe || undefined}
     >
       {/* `prefetch={false}` + `rel="nofollow"`, per <LinkifiedJson>. One row
           per collection in the repo, and the repo is any repo in the network. */}
@@ -57,6 +63,8 @@ export default function LeafRow({
         aria-current={current ? 'page' : undefined}
         className="fx-row-main"
       >
+        {/* No group header above a flat row to carry the site's icon. */}
+        {flat && <LexiconFavicon prefix={groupPrefix(nsid)} />}
         <span className="fx-row-text">
           {dim && <span className="fx-row-dim fx-row-inherit">{dim}</span>}
           {tail}

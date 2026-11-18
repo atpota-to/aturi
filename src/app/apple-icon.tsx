@@ -19,7 +19,8 @@ export default function AppleIcon() {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          background: '#0a0f0d',
+          // Field Notes paper and moss, as the site's header sets the leaf.
+          background: '#f6f4ee',
         }}
       >
         <svg
@@ -27,8 +28,8 @@ export default function AppleIcon() {
           height="135"
           viewBox="0 0 24 24"
           fill="none"
-          stroke="#8a9a7f"
-          strokeWidth="2"
+          stroke="#3f5e2e"
+          strokeWidth="2.2"
           strokeLinecap="round"
           strokeLinejoin="round"
         >

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { ChevronsDownUp, ChevronsUpDown, Pin, Search } from 'lucide-react';
 import { describeRepo } from '@/utils/atproto/pdsClient';
 import { encodeRepo } from '@/utils/atproto/urls';
@@ -22,12 +22,14 @@ import {
 import { groupHierarchically, pinnedKey } from './collectionGrouping';
 import { CHROME_RESULTS_ID, useChromeBarField, type ChromeBarField } from '../ChromeBarContext';
 import GroupHeader from './GroupHeader';
+import { animate, MOTION, unfoldIn } from '@/lib/motion';
 import LeafRow from './LeafRow';
 
 export default function CollectionsTab({
   identity,
   variant = 'page',
   current,
+  pinnable,
 }: {
   identity: IdentityBundle;
   /**
@@ -38,6 +40,11 @@ export default function CollectionsTab({
   variant?: 'page' | 'sidebar';
   /** The collection being viewed, highlighted in the tree. */
   current?: string;
+  /**
+   * Keep the pin buttons in the sidebar tree. For the workbench, whose rail
+   * is the only collections tree there is, so pinning has to live in it.
+   */
+  pinnable?: boolean;
 }) {
   const sidebar = variant === 'sidebar';
   const [collections, setCollections] = useState<string[] | null>(null);
@@ -91,7 +98,7 @@ export default function CollectionsTab({
   const isOwnRepo = isSignedIn && myDid === identity.did;
   // Pin buttons work without sign-in: prefs are local-first and only
   // sync to the PDS once the user signs in.
-  const canPin = !sidebar;
+  const canPin = pinnable ?? !sidebar;
   // Signed-out users have no "mine vs others" distinction, so pin
   // toggles always target the primary list (`pinnedLexicons`). When
   // signed in, the scope picker decides.
@@ -199,6 +206,13 @@ export default function CollectionsTab({
   // way to that collection start open: the tree is there to say where you
   // are, and 39 open namespaces said nothing. `prefix` is the dotted
   // namespace a key stands for (a pinned group's key is not its prefix).
+  // Opening a group unfolds it: the children grow to their height and the
+  // first rows drift down into place (unfoldIn). Only for the group just
+  // opened (or every group, for expand all), never for groups that render
+  // open on load. Children unmount when a group closes, so closing stays
+  // instant: keeping them mounted would also draw them into the zebra
+  // count. Cleared after each commit, so a later re-render doesn't replay.
+  const unfolding = useRef<string | null>(null);
   function isOpen(key: string, prefix = key): boolean {
     return (
       openOverrides[key] ??
@@ -206,6 +220,7 @@ export default function CollectionsTab({
     );
   }
   function toggle(key: string, prefix = key) {
+    unfolding.current = isOpen(key, prefix) ? null : key;
     setOpenOverrides((prev) => ({ ...prev, [key]: !isOpen(key, prefix) }));
   }
 
@@ -221,6 +236,26 @@ export default function CollectionsTab({
       row.getBoundingClientRect().top - scroller.getBoundingClientRect().top + scroller.scrollTop - 12;
   }, [sidebar, current, collections]);
 
+  // Row by row: when the collections first replace the skeleton, the tree's
+  // first rows land top to bottom, 70ms apart, each rising 4px.
+  const arrived = useRef(!!collections);
+  useLayoutEffect(() => {
+    if (arrived.current || !collections) return;
+    arrived.current = true;
+    Array.from(scrollRef.current?.querySelectorAll('.fx-row') ?? [])
+      .slice(0, 10)
+      .forEach((row, i) =>
+        animate(
+          row,
+          [
+            { opacity: 0, transform: 'translateY(4px)' },
+            { opacity: 1, transform: 'none' },
+          ],
+          { duration: MOTION.panel, delay: i * 70 },
+        ),
+      );
+  }, [collections]);
+
   // Collect every group key currently rendered so the "expand/collapse all"
   // button can target the visible set, not stale keys from a previous filter.
   const allGroupKeys = useMemo(() => {
@@ -234,12 +269,19 @@ export default function CollectionsTab({
   }, [groups, pinnedGroups]);
   const anyOpen = allGroupKeys.some((k) => isOpen(k));
   function setAllOpen(open: boolean) {
+    unfolding.current = open ? '*' : null;
     setOpenOverrides((prev) => {
       const next = { ...prev };
       for (const k of allGroupKeys) next[k] = open;
       return next;
     });
   }
+  useEffect(() => {
+    unfolding.current = null;
+  });
+  const unfoldRef = (key: string) => (el: HTMLElement | null) => {
+    if (el && (unfolding.current === key || unfolding.current === '*')) unfoldIn(el);
+  };
 
   function togglePin(nsid: string) {
     update((p) => togglePinnedLexicon(p, nsid, pinTarget));
@@ -301,12 +343,17 @@ export default function CollectionsTab({
     );
   }
   if (error) return <>{bridge}<p className="explore-error">{error}</p></>;
-  if (!collections) return <>{bridge}<CollectionsTabSkeleton /></>;
+  if (!collections) return <>{bridge}<CollectionsTabSkeleton sidebar={sidebar} /></>;
   if (collections.length === 0) {
     return <>{bridge}<p className="explore-placeholder">No collections on this repo.</p></>;
   }
 
   const leafHref = (nsid: string) => `/explore/${repoSeg}/${nsid}`;
+  // Zebra striping counts the rows as drawn, headers and leaves alike, so it
+  // runs on unbroken through nested groups where `:nth-child` would restart
+  // in every list. Each section starts its own count.
+  const pinnedStripe = stripeCounter();
+  const treeStripe = stripeCounter();
 
   return (
     <>
@@ -406,12 +453,14 @@ export default function CollectionsTab({
                       prefix={g.prefix}
                       count={g.items.length}
                       emphasize
+                      favicon
+                      stripe={pinnedStripe()}
                       pinnable={canPin}
                       pinned
                       onTogglePin={() => toggleGroupPin(g.prefix)}
                     />
                     {open && (
-                      <ul style={listStyle()}>
+                      <ul ref={unfoldRef(pinnedKey(g.entry))} style={listStyle()}>
                         {g.items.map((nsid) => (
                           <LeafRow
                             key={nsid}
@@ -420,6 +469,7 @@ export default function CollectionsTab({
                             dimPrefix={`${g.prefix}.`}
                             inCommon={myCollections?.has(nsid)}
                             current={nsid === current}
+                            stripe={pinnedStripe()}
                           />
                         ))}
                       </ul>
@@ -442,6 +492,7 @@ export default function CollectionsTab({
                       pinned
                       onTogglePin={() => togglePin(nsid)}
                       current={nsid === current}
+                      stripe={pinnedStripe()}
                     />
                   ))}
                 </ul>
@@ -473,12 +524,14 @@ export default function CollectionsTab({
                       prefix={g.key}
                       count={g.totalCount}
                       emphasize
+                      favicon
+                      stripe={treeStripe()}
                       pinnable={canPin}
                       pinned={isGroupPinned(g.key)}
                       onTogglePin={() => toggleGroupPin(g.key)}
                     />
                     {majorOpen && (
-                      <div>
+                      <div ref={unfoldRef(g.key)}>
                         {/* Direct leaves (3-segment NSIDs) come first. */}
                         {g.directItems.length > 0 && (
                           <ul style={listStyle()}>
@@ -493,6 +546,7 @@ export default function CollectionsTab({
                                 pinned={activePinSet.has(nsid)}
                                 onTogglePin={() => togglePin(nsid)}
                                 current={nsid === current}
+                                stripe={treeStripe()}
                               />
                             ))}
                           </ul>
@@ -509,12 +563,13 @@ export default function CollectionsTab({
                                 dimPrefix={`${g.key}.`}
                                 count={sub.items.length}
                                 indent
+                                stripe={treeStripe()}
                                 pinnable={canPin}
                                 pinned={isGroupPinned(sub.fullKey)}
                                 onTogglePin={() => toggleGroupPin(sub.fullKey)}
                               />
                               {subOpen && (
-                                <ul style={listStyle()}>
+                                <ul ref={unfoldRef(sub.fullKey)} style={listStyle()}>
                                   {sub.items.map((nsid) => (
                                     <LeafRow
                                       key={nsid}
@@ -527,6 +582,7 @@ export default function CollectionsTab({
                                       pinned={activePinSet.has(nsid)}
                                       onTogglePin={() => togglePin(nsid)}
                                       current={nsid === current}
+                                      stripe={treeStripe()}
                                     />
                                   ))}
                                 </ul>
@@ -557,6 +613,12 @@ export default function CollectionsTab({
 function ChromeFieldBridge({ field }: { field: ChromeBarField }) {
   useChromeBarField(field);
   return null;
+}
+
+/** Alternates false, true, false… one call per row drawn. */
+function stripeCounter(): () => boolean {
+  let row = 0;
+  return () => row++ % 2 === 1;
 }
 
 function listStyle(): React.CSSProperties {

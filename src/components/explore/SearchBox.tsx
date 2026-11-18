@@ -6,9 +6,10 @@ import {
   useEffect,
   useRef,
   useState,
+  useSyncExternalStore,
   type KeyboardEvent,
 } from 'react';
-import { Search } from 'lucide-react';
+import { ClipboardPaste, Search } from 'lucide-react';
 import { encodeRepo } from '@/utils/atproto/urls';
 import { resolveSearchPathAsync } from '@/utils/atproto/searchRouting';
 import {
@@ -24,12 +25,28 @@ import {
   type SearchHistoryEntry,
 } from '@/utils/searchHistory';
 import SearchRecommendations from './SearchRecommendations';
+import { readClipboard, useCanReadClipboard } from './ChromeField';
+import KindChip from '@/components/KindChip';
+import PlaceholderRoll from '@/components/PlaceholderRoll';
+import { getReduceMotionSnapshot, subscribeReduceMotion } from '@/lib/a11y';
 
 const TYPEAHEAD_DEBOUNCE_MS = 180;
 const RECENTS_LIMIT = 6;
 const FREQUENT_LIMIT = 4;
 
 const DEFAULT_PLACEHOLDER = 'Handle, DID, at:// URI or URL';
+
+/**
+ * What the empty field cycles through: the description first, then one of
+ * each kind of thing it accepts, as you'd paste it.
+ */
+const PLACEHOLDER_ROLL = [
+  DEFAULT_PLACEHOLDER,
+  'dame.is',
+  'did:plc:…',
+  'at://anisota.net/app.bsky.feed.post/…',
+  'https://bsky.app/profile/aturi.to',
+] as const;
 
 type Props = {
   initial?: string;
@@ -55,6 +72,17 @@ export default function SearchBox({ initial, className, placeholder }: Props) {
   const [resolving, setResolving] = useState(false);
   const resolvingRef = useRef(false);
   const wrapRef = useRef<HTMLDivElement>(null);
+  const [focused, setFocused] = useState(false);
+  // The rolling placeholder takes over from the native one after hydration,
+  // unless motion is reduced or the host set its own placeholder. The server
+  // snapshot keeps the native placeholder in the HTML.
+  const motionOk = useSyncExternalStore(
+    subscribeReduceMotion,
+    () => !getReduceMotionSnapshot(),
+    () => false,
+  );
+  const roll = motionOk && !placeholder;
+  const canPaste = useCanReadClipboard();
 
   useEffect(() => {
     setValue(initial || '');
@@ -136,20 +164,39 @@ export default function SearchBox({ initial, className, placeholder }: Props) {
       goToActor(suggestions[highlightIndex]);
       return;
     }
+    await go(value);
+  }
+
+  /** Free-text routing: resolve and go. */
+  async function go(query: string) {
     if (resolvingRef.current) return;
     resolvingRef.current = true;
     setResolving(true);
     try {
       // Async so an unrecognized URL gets a chance to tell us, via its AT
       // Tags, which record it's actually about.
-      const path = await resolveSearchPathAsync(value);
+      const path = await resolveSearchPathAsync(query);
       if (!path) return;
-      recordQueryVisit(value, path);
+      recordQueryVisit(query, path);
       router.push(path);
     } finally {
       resolvingRef.current = false;
       setResolving(false);
     }
+  }
+
+  /*
+   * Paste and go, as in the toolbar's jump search (ChromeField.tsx), for the
+   * phone where pasting is otherwise a long press and a menu. A handle, DID,
+   * at:// URI or URL has no spaces in it; text that does would only route to
+   * a not-found repo, so it stays in the field to be edited.
+   */
+  async function pasteAndGo() {
+    const text = await readClipboard();
+    if (!text) return;
+    setValue(text);
+    setShowSuggestions(false);
+    if (!/\s/.test(text)) await go(text);
   }
 
   function onKeyDown(e: KeyboardEvent<HTMLInputElement>) {
@@ -188,7 +235,7 @@ export default function SearchBox({ initial, className, placeholder }: Props) {
           autoComplete="off"
           spellCheck={false}
           className="fn-searchbox-input"
-          placeholder={placeholder ?? DEFAULT_PLACEHOLDER}
+          placeholder={roll ? '' : (placeholder ?? DEFAULT_PLACEHOLDER)}
           aria-label={DEFAULT_PLACEHOLDER}
           value={value}
           onChange={(e) => {
@@ -196,11 +243,13 @@ export default function SearchBox({ initial, className, placeholder }: Props) {
             setShowSuggestions(true);
           }}
           onFocus={() => {
+            setFocused(true);
             setShowSuggestions(true);
             // Refresh so visits recorded since mount (this tab or another)
             // show up.
             setHistory(readSearchHistory());
           }}
+          onBlur={() => setFocused(false)}
           onKeyDown={onKeyDown}
           role="combobox"
           aria-expanded={showList}
@@ -210,6 +259,28 @@ export default function SearchBox({ initial, className, placeholder }: Props) {
             highlightIndex >= 0 ? `search-typeahead-${highlightIndex}` : undefined
           }
         />
+        {roll && value === '' && (
+          <PlaceholderRoll
+            items={PLACEHOLDER_ROLL}
+            paused={focused}
+            className="fn-searchbox-roll"
+          />
+        )}
+        <KindChip value={value} />
+        {canPaste && value === '' && (
+          // The kind chip's place, which is empty until there's text.
+          <button
+            type="button"
+            // Keeps focus (and a phone's keyboard) where it was.
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => void pasteAndGo()}
+            aria-label="Paste and go"
+            title="Paste and go"
+            className="fn-searchbox-paste"
+          >
+            <ClipboardPaste size={17} aria-hidden />
+          </button>
+        )}
 
         {showList && (
           <ul

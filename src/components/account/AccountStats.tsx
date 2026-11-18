@@ -27,6 +27,8 @@ import {
 } from '@/utils/atproto/constellation';
 import { fetchCachedCredBlueScore, type CredBlueScore } from '@/utils/credBlueScore';
 import { CRED_BLUE_BASE } from '@/utils/atproto/config';
+import { Skeleton } from '@/components/SkeletonLoader';
+import Odometer from '@/components/Odometer';
 
 type Props = {
   did: string;
@@ -436,20 +438,19 @@ function StatTile({
   } else if (valueLabel != null) {
     display = valueLabel;
   } else if (value == null) {
+    // Inline-block, so the value's line box (and the tile) keeps the
+    // height the number will need when it lands.
     display = (
-      <span
-        style={{
-          display: 'inline-block',
-          width: '3rem',
-          height: '0.875rem',
-          background: 'var(--bg-tertiary)',
-          opacity: 0.6,
-        }}
-        aria-hidden
+      <Skeleton
+        width="3rem"
+        height="0.875rem"
+        style={{ display: 'inline-block', verticalAlign: 'middle' }}
       />
     );
   } else {
-    display = value.toLocaleString();
+    // Each figure replaces its own placeholder as its fetch lands, its
+    // digits rolling up from 0.
+    display = <Odometer value={value} format={(n) => n.toLocaleString()} rollIn />;
   }
   const body = (
     <>

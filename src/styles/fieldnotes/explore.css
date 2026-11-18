@@ -4,12 +4,12 @@
 
 /* ---------- Page width ----------
    The explore layout wraps every page in .container-narrow (800px). The
-   section's three landings (explore, lexicons, spaces) want the mockup's
-   wider 1240px column, so the container widens only when it holds one of
-   those pages. */
+   section's two tool landings (explore, lexicons) want the mockup's wider
+   1240px column, so the container widens only when it holds one of those
+   pages. The spaces landing takes the product landings' frame instead; see
+   "Spaces landing" below. */
 .container-narrow:has(> .fn-explore),
-.container-narrow:has(> .fn-lexicons),
-.container-narrow:has(> .fn-spaces-landing) {
+.container-narrow:has(> .fn-lexicons) {
   max-width: 1240px;
 }
 
@@ -24,9 +24,9 @@
 }
 
 /* Spotlights, the live feed and cross-links below the pulse keep their own
-   layout; 64px between them, the rhythm the spaces landing uses, where the
-   intro, tiles and pulse above stay one group at the base gap. */
-.fn-explore > :nth-child(n + 4) {
+   layout; 64px between them, where the intro, tiles, conditions and pulse
+   above stay one group at the base gap. */
+.fn-explore > :nth-child(n + 5) {
   margin-top: 36px;
 }
 
@@ -308,6 +308,13 @@
   gap: 12px;
 }
 
+/* Rank on the flex rows (Rising, New). 20px is the ranked rows' 18px column
+   plus the 2px their 12px grid gap has over this row's 10px, so identifiers
+   start at the same offset in all three cards. */
+.fn-pulse-row > .fn-row-rank {
+  flex: 0 0 20px;
+}
+
 .fn-pulse-nsid-bar {
   min-width: 0;
   display: flex;
@@ -337,6 +344,17 @@
   height: 4px;
   border-radius: 4px;
   background: var(--accent-moss);
+}
+
+/* Bars ease to their new length when the window or metric changes, as the
+   rows glide to their new rank (useListMotion). */
+.fn-pulse-bar > span {
+  transition: width 480ms var(--ease-soft);
+}
+
+/* The rows' offset parent, so re-rank measures positions within the list. */
+.fn-pulse-card .fn-list-rows {
+  position: relative;
 }
 
 .fn-pulse-before-now {
@@ -386,6 +404,120 @@
 .fn-pulse-foot > button:hover {
   background: var(--surface-subtle);
   color: var(--accent-forest);
+}
+
+/* ---------- Atmospheric conditions ---------- */
+
+.fn-wx {
+  height: auto;
+}
+
+.fn-wx-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 4px 16px;
+  padding: 14px 16px 12px;
+}
+
+.fn-wx-heading {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.fn-wx-heading .fn-list-card-sub a {
+  color: var(--text-accent);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.fn-wx-heading .fn-list-card-sub a:hover {
+  color: var(--accent-forest);
+}
+
+/* The time and the way out to the full report, on the heading's right; under
+   it once the heading takes the row. */
+.fn-wx-headside {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 14px;
+}
+
+.fn-wx-updated {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  font-variant-numeric: tabular-nums;
+}
+
+.fn-wx-headside .fn-list-card-headlink {
+  margin-left: 0;
+}
+
+/* Hairlines between the stats from the grid's own background, as .fn-stat-grid
+   draws them; two to a row on a phone so none is left beside an empty slot.
+   No bottom border: the card's own edge is the line under them. */
+.fn-wx-grid {
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1px;
+  background: var(--border-subtle);
+  border-top: 1px solid var(--border-subtle);
+}
+
+@media (min-width: 720px) {
+  .fn-wx-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.fn-wx-stat {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 16px 14px;
+  background: var(--bg-secondary);
+}
+
+.fn-wx-stat dt {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-tertiary);
+}
+
+.fn-wx-stat dd {
+  margin: 0;
+}
+
+.fn-wx-value {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 8px;
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.fn-wx-level {
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: 0;
+  color: var(--text-accent);
+}
+
+.fn-wx-note {
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--text-secondary);
 }
 
 /* ---------- List card (shared by the landing and the lexicon pages) ---------- */
@@ -676,6 +808,49 @@
   outline-offset: 1px;
 }
 
+/* Sliding thumb (SegmentThumb.tsx), for every toggle with the segmented
+   look: this one, .settings-seg and .waypoint-layout-toggle. Once placed,
+   the track carries data-thumb and one raised thumb slides between options;
+   the chosen option's own fill and shadow step aside for it. !important
+   because each toggle states its chosen fill at its own specificity, the
+   dark-theme ones higher still. */
+[data-thumb] {
+  position: relative;
+}
+
+.fn-seg-thumb {
+  display: none;
+}
+
+[data-thumb] > .fn-seg-thumb {
+  display: block;
+  position: absolute;
+  top: 0;
+  left: 0;
+  border-radius: 6px;
+  background: var(--bg-secondary);
+  box-shadow: 0 1px 2px rgb(28 30 25 / 0.12);
+  pointer-events: none;
+  transition:
+    transform var(--motion-panel) var(--ease-soft),
+    width var(--motion-panel) var(--ease-soft),
+    height var(--motion-panel) var(--ease-soft);
+}
+
+:root:not([data-theme='light']) [data-thumb] > .fn-seg-thumb {
+  background: var(--border-strong);
+}
+
+[data-thumb] > :not(.fn-seg-thumb) {
+  position: relative;
+  z-index: 1;
+}
+
+[data-thumb] > :is([aria-pressed='true'], .is-active) {
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
 .fn-btn {
   height: 36px;
   display: inline-flex;
@@ -736,7 +911,7 @@
     gap: 22px;
   }
 
-  .fn-explore > :nth-child(n + 4) {
+  .fn-explore > :nth-child(n + 5) {
     margin-top: 26px;
   }
 
@@ -759,24 +934,41 @@
     grid-template-columns: 16px minmax(0, 1fr) 72px;
     gap: 10px;
   }
+  .fn-pulse-row > .fn-row-rank {
+    flex-basis: 16px;
+  }
 }
 
 /* ---------- Spaces landing ----------
-   The page is laid out in SpacesLanding.tsx; these are the pieces that
-   change with the viewport, which inline styles can't. */
+   A product landing like /extension, /links and /mcp, built from their
+   .fl-* classes (landing.css). These are the pieces those don't cover. */
 
-.fn-sp-landing-title {
-  margin: 0 0 0.75rem;
-  font-size: 36px;
-  font-weight: 700;
-  letter-spacing: -0.025em;
-  line-height: 1.1;
-  color: var(--text-primary);
+/* Their page frame, .container-narrow.fl-container: a 1120px column with a
+   24px gutter and 72px under the cross-links (48px on phones). The explore
+   layout sets its padding inline, hence the !important, the same override
+   the account explorer makes in explorer.css. At 768px and under the shared
+   16px phone gutter in globals.css applies, as it does on theirs. */
+.container-narrow:has(> .fn-spaces-landing) {
+  max-width: 1120px;
+  padding-bottom: 72px !important;
 }
 
-/* The measure: 75-80 characters at 16px. */
-.fn-sp-lead {
-  max-width: 38rem;
+@media (min-width: 769px) {
+  .container-narrow:has(> .fn-spaces-landing) {
+    padding-left: 24px !important;
+    padding-right: 24px !important;
+  }
+}
+
+/* The sign-in form in the hero. .fl-hero-actions sizes its children to
+   their content, which suits a lone button; a form wants a field's width,
+   so this one stretches to the copy column, short of a line too long to
+   read as one control. Both classes, because landing.css loads after this
+   file and its own align-items would otherwise win. */
+.fl-hero-actions.fn-sp-hero-action {
+  align-self: stretch;
+  align-items: stretch;
+  max-width: 440px;
 }
 
 .fn-spaces-landing .oauth-typeahead-input {
@@ -813,6 +1005,9 @@
 }
 
 @media (max-width: 640px) {
+  .container-narrow:has(> .fn-spaces-landing) {
+    padding-bottom: 48px !important;
+  }
   /* Under 16px, iOS Safari zooms the page when the field takes focus. */
   .fn-spaces-landing .oauth-typeahead-input {
     height: 48px;
@@ -820,12 +1015,6 @@
   }
   .fn-sp-signin-btn {
     min-height: 48px;
-  }
-}
-
-@media (max-width: 600px) {
-  .fn-sp-landing-title {
-    font-size: 30px;
   }
 }
 
@@ -1177,6 +1366,17 @@
   font-size: 13px;
   color: var(--text-tertiary);
   font-variant-numeric: tabular-nums;
+}
+
+/* A link into the matching tool, in a section heading's meta slot. */
+.fn-pds-tool-link {
+  font-weight: 600;
+  color: var(--text-accent);
+  text-decoration: none;
+}
+
+.fn-pds-tool-link:hover {
+  color: var(--accent-forest);
 }
 
 .fn-pds-repos > li:last-child {

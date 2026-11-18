@@ -522,6 +522,11 @@ public struct Preferences: Hashable, Sendable {
     public var pinnedLexicons: [String]
     public var pinnedLexiconsOthers: [String]
     public var pinScope: PinScope
+    /// What the web's lexicons explorer has pinned: NSIDs, and namespaces as
+    /// `prefix.*`. Apart from `pinnedLexicons`, which lifts collections in
+    /// every account's tree. This app has no lexicons explorer; the list is
+    /// carried through untouched so a write from this device keeps it.
+    public var lexiconExplorerPins: [String]
     public var collectionGroupsCollapsedByDefault: Bool
     public var hideRelationshipBar: Bool
     public var hideRepoGlance: Bool
@@ -556,6 +561,7 @@ public struct Preferences: Hashable, Sendable {
         pinnedLexicons: [String] = [],
         pinnedLexiconsOthers: [String] = [],
         pinScope: PinScope = .own,
+        lexiconExplorerPins: [String] = [],
         collectionGroupsCollapsedByDefault: Bool = false,
         hideRelationshipBar: Bool = false,
         hideRepoGlance: Bool = false,
@@ -584,6 +590,7 @@ public struct Preferences: Hashable, Sendable {
         self.pinnedLexicons = pinnedLexicons
         self.pinnedLexiconsOthers = pinnedLexiconsOthers
         self.pinScope = pinScope
+        self.lexiconExplorerPins = lexiconExplorerPins
         self.collectionGroupsCollapsedByDefault = collectionGroupsCollapsedByDefault
         self.hideRelationshipBar = hideRelationshipBar
         self.hideRepoGlance = hideRepoGlance
@@ -631,6 +638,7 @@ public struct Preferences: Hashable, Sendable {
         let pinnedLexicons = stringArray(input["pinnedLexicons"])
         let pinnedLexiconsOthers = stringArray(input["pinnedLexiconsOthers"])
         let pinScope = input["pinScope"]?.stringValue.flatMap(PinScope.init(rawValue:)) ?? .own
+        let lexiconExplorerPins = stringArray(input["lexiconExplorerPins"])
         let collectionGroupsCollapsedByDefault = input["collectionGroupsCollapsedByDefault"]?.boolValue ?? false
         let hideRelationshipBar = input["hideRelationshipBar"]?.boolValue ?? false
         let hideRepoGlance = input["hideRepoGlance"]?.boolValue ?? false
@@ -686,6 +694,7 @@ public struct Preferences: Hashable, Sendable {
             pinnedLexicons: pinnedLexicons,
             pinnedLexiconsOthers: pinnedLexiconsOthers,
             pinScope: pinScope,
+            lexiconExplorerPins: lexiconExplorerPins,
             collectionGroupsCollapsedByDefault: collectionGroupsCollapsedByDefault,
             hideRelationshipBar: hideRelationshipBar,
             hideRepoGlance: hideRepoGlance,
@@ -771,6 +780,7 @@ public struct Preferences: Hashable, Sendable {
             "pinnedLexicons": .array(pinnedLexicons.map { .string($0) }),
             "pinnedLexiconsOthers": .array(pinnedLexiconsOthers.map { .string($0) }),
             "pinScope": .string(pinScope.rawValue),
+            "lexiconExplorerPins": .array(lexiconExplorerPins.map { .string($0) }),
             "collectionGroupsCollapsedByDefault": .bool(collectionGroupsCollapsedByDefault),
             "hideRelationshipBar": .bool(hideRelationshipBar),
             "hideRepoGlance": .bool(hideRepoGlance),
@@ -806,6 +816,7 @@ public struct Preferences: Hashable, Sendable {
             "pinnedLexicons": .array(pinnedLexicons.map { .string($0) }),
             "pinnedLexiconsOthers": .array(pinnedLexiconsOthers.map { .string($0) }),
             "pinScope": .string(pinScope.rawValue),
+            "lexiconExplorerPins": .array(lexiconExplorerPins.map { .string($0) }),
             "collectionGroupsCollapsedByDefault": .bool(collectionGroupsCollapsedByDefault),
             "repoGlanceCollapsedByDefault": .bool(repoGlanceCollapsedByDefault),
             "recordSections": .array(recordSections.map(\.jsonValue)),
@@ -860,6 +871,7 @@ public struct Preferences: Hashable, Sendable {
             && a.announceReleases == b.announceReleases
             && a.pinnedLexicons == b.pinnedLexicons
             && a.pinnedLexiconsOthers == b.pinnedLexiconsOthers
+            && a.lexiconExplorerPins == b.lexiconExplorerPins
     }
 
     /// `pickNewer` from preferencesPds.ts: the copy with the later
@@ -937,6 +949,14 @@ public struct Preferences: Hashable, Sendable {
 
     public mutating func setPinScope(_ scope: PinScope) {
         pinScope = scope
+    }
+
+    /// The web's `toggleLexiconExplorerPin`: pin `entry` at the end of the
+    /// lexicons explorer's list, or unpin it. `pinnedLexicons` is untouched.
+    public mutating func toggleLexiconExplorerPin(_ entry: String) {
+        lexiconExplorerPins = lexiconExplorerPins.contains(entry)
+            ? lexiconExplorerPins.filter { $0 != entry }
+            : lexiconExplorerPins + [entry]
     }
 
     // MARK: Groups

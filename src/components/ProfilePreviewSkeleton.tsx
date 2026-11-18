@@ -1,30 +1,41 @@
 /**
  * ProfilePreviewSkeleton Component
- * Loading state for ProfilePreview, shaped like the card it stands in for
+ * Loading state for ProfilePreview, wearing the card's own classes (link.css)
+ * from the banner down to the explorer strip, with the account's words as
+ * bars.
  */
 
-import { Skeleton, SkeletonCircle, SkeletonText } from './SkeletonLoader';
+import { SkeletonCircle, SkeletonLine } from './SkeletonLoader';
 
 export default function ProfilePreviewSkeleton() {
   return (
-    <div className="skeleton-container card fn-lp-preview fn-lp-profile">
+    <section aria-hidden className="card fn-lp-preview fn-lp-profile">
+      {/* Most accounts have a banner, so its band is held: for one without,
+          the card gets shorter when it lands rather than pushing the page. */}
+      <div className="fn-skel profile-preview-banner" style={{ borderRadius: 0 }} />
+
       <div className="fn-lp-profile-body">
         <div className="fn-lp-profile-id">
           <SkeletonCircle size="48px" />
           <div className="fn-lp-profile-names">
-            {/* Display name */}
-            <Skeleton height="1.0625rem" width="140px" style={{ marginBottom: '0.375rem' }} />
-            {/* Handle */}
-            <Skeleton height="0.8125rem" width="110px" />
+            <SkeletonLine className="fn-lp-profile-name" width="8.5rem" height="0.85rem" />
+            <SkeletonLine className="fn-lp-handle" width="7rem" height="0.6rem" />
           </div>
         </div>
 
-        {/* Description */}
-        <SkeletonText lines={2} lastLineWidth="70%" />
+        <div className="fn-lp-profile-bio">
+          <SkeletonLine width="100%" />
+          <SkeletonLine width="64%" />
+        </div>
 
-        {/* Stats line */}
-        <Skeleton height="0.8125rem" width="220px" />
+        <div className="fn-lp-profile-stats">
+          <SkeletonLine width="15rem" />
+        </div>
+
+        <div className="fn-lp-preview-foot">
+          <SkeletonLine width="10rem" style={{ minHeight: '24px' }} />
+        </div>
       </div>
-    </div>
+    </section>
   );
 }

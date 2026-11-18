@@ -20,6 +20,7 @@ import {
 import SearchRecommendations from './explore/SearchRecommendations';
 import { useKeyboardShortcuts } from './KeyboardShortcutsProvider';
 import { bindingTokens } from '@/lib/keybindings';
+import KindChip from './KindChip';
 
 const TYPEAHEAD_DEBOUNCE_MS = 180;
 const RECENTS_LIMIT = 6;
@@ -234,10 +235,15 @@ export default function CompactSearchPanel({ active, onDone, variant = 'panel' }
           className="fn-search-input"
         />
         {isBar && hint && !focused && value === '' && (
-          <kbd className="fn-kbd" title="Command palette: jump anywhere">
+          <kbd
+            className="fn-kbd"
+            title="Command palette: jump anywhere"
+            data-key={paletteBinding?.replace(/\+/g, ' ')}
+          >
             {hint}
           </kbd>
         )}
+        <KindChip value={value} />
       </label>
 
       {dropdownOpen && (showList || showRecommendations) && (

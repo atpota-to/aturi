@@ -277,7 +277,7 @@ function SkeletonRows({ mode, count }: { mode: Mode; count: number }) {
               </span>
             </span>
             <span className="lexicon-row-spark">
-              <Skeleton width="90px" height="24px" />
+              <Skeleton width="90px" height="24px" shape="block" />
             </span>
             <span
               style={{

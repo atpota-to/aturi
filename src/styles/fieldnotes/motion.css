@@ -1,0 +1,483 @@
+/* Field Notes: motion that crosses surfaces. Tokens live in
+   src/app/globals.css (--motion-*, --ease-soft, --shadow-lift); use them
+   rather than raw values so every surface moves alike.
+
+   Loaded last, after every surface sheet, so a rule here can restate a
+   component's `transition` list with the motion properties added without
+   raising its specificity. Motion that belongs to one component (the folder
+   tabs, the collection tree, the nav pills) lives with that component's
+   styles instead; this sheet holds what many components share.
+
+   Reduced motion: the [data-reduce-motion] block in globals.css collapses
+   every transition and keyframe animation. Transforms that hold while
+   hovered are not transitions, so the rules that set them are undone at the
+   end of this sheet. */
+
+/* ─── Buttons: lift ──────────────────────────────────────────────────────
+   Text buttons rise 1px onto a soft shadow under the pointer and set back
+   down while pressed. Icon buttons and menu rows keep their fill-only hover:
+   a lift reads as "this is a button", and those already say so. */
+
+:is(
+    .fn-home-button,
+    .fn-dl-button,
+    .fn-searchbox-submit,
+    .fx-btn,
+    .fn-btn,
+    .fn-c-btn,
+    .fl-button,
+    .fn-lp-btn,
+    .share-button,
+    .settings-btn,
+    .fn-rec-btn
+  ) {
+  transition:
+    background-color var(--motion-quick) ease,
+    border-color var(--motion-quick) ease,
+    color var(--motion-quick) ease,
+    opacity var(--motion-quick) ease,
+    box-shadow var(--motion-quick) var(--ease-soft),
+    transform var(--motion-quick) var(--ease-soft);
+}
+
+:is(
+    .fn-home-button,
+    .fn-dl-button,
+    .fn-searchbox-submit,
+    .fx-btn,
+    .fn-btn,
+    .fn-c-btn,
+    .fl-button,
+    .fn-lp-btn,
+    .share-button,
+    .settings-btn,
+    .fn-rec-btn
+  ):hover:not(:disabled, [aria-disabled='true']) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px -4px var(--shadow-lift);
+}
+
+:is(
+    .fn-home-button,
+    .fn-dl-button,
+    .fn-searchbox-submit,
+    .fx-btn,
+    .fn-btn,
+    .fn-c-btn,
+    .fl-button,
+    .fn-lp-btn,
+    .share-button,
+    .settings-btn,
+    .fn-rec-btn
+  ):active:not(:disabled, [aria-disabled='true']) {
+  transform: none;
+  box-shadow: 0 1px 2px var(--shadow-lift);
+  transition-duration: var(--motion-press);
+}
+
+/* ─── Search fields ──────────────────────────────────────────────────────
+   The focus halo lives with each field (globals.css, chrome.css). Here: the
+   rolling placeholder on the home and explore search (PlaceholderRoll.tsx)
+   and the chip that names what you've typed (KindChip.tsx). */
+
+.fn-searchbox-roll {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 41px;
+  right: 14px;
+  display: grid;
+  align-items: center;
+  overflow: hidden;
+  color: var(--text-tertiary);
+  font-family: var(--font-sans);
+  font-size: 15px;
+  pointer-events: none;
+}
+
+.fn-home-search .fn-searchbox-roll {
+  left: 44px;
+  right: 16px;
+}
+
+/* Phones set the field at 16px (globals.css) so iOS doesn't zoom on focus. */
+@media (max-width: 640px) {
+  .fn-searchbox-roll {
+    font-size: 16px;
+  }
+}
+
+.fn-roll-line {
+  grid-area: 1 / 1;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.fn-roll-line[data-example] {
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+}
+
+.fn-roll-line.is-in {
+  animation: roll-in 320ms var(--ease-soft) 60ms backwards;
+}
+
+.fn-roll-line.is-out {
+  animation: roll-out 280ms cubic-bezier(0.4, 0, 1, 1) forwards;
+}
+
+@keyframes roll-in {
+  from {
+    opacity: 0;
+    transform: translateY(100%);
+  }
+}
+
+@keyframes roll-out {
+  to {
+    opacity: 0;
+    transform: translateY(-100%);
+  }
+}
+
+.fn-kind-slot {
+  display: inline-grid;
+  flex-shrink: 0;
+  justify-items: end;
+}
+
+/* In the home and explore search the slot sits over the field's right end;
+   the input makes room for it while a chip shows. */
+.fn-searchbox-field > .fn-kind-slot {
+  position: absolute;
+  top: 50%;
+  right: 12px;
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+.fn-searchbox-field:has(.fn-kind-chip) .fn-searchbox-input {
+  padding-right: 96px;
+}
+
+.fn-kind-chip {
+  grid-area: 1 / 1;
+  padding: 1px 8px;
+  border-radius: var(--radius-pill);
+  background: var(--accent-soft);
+  box-shadow: inset 0 0 0 1px var(--accent-soft-ring);
+  color: var(--accent-soft-fg);
+  font-family: var(--font-sans);
+  font-size: 11.5px;
+  font-weight: 600;
+  line-height: 1.5;
+  white-space: nowrap;
+  animation: kind-in 200ms var(--ease-soft);
+}
+
+@keyframes kind-in {
+  from {
+    opacity: 0;
+    transform: translateY(3px);
+  }
+}
+
+/* ─── Copy feedback: the check draws in ──────────────────────────────────
+   Every copy button swaps its icon for a check while "copied" (CopyButton,
+   ShareLinkChip, ShareButton, the picker rows, the record and docs copies).
+   The check mounts fresh each time, so it draws its own stroke on arrival.
+   The path is lucide's check, a little under 24 units long. */
+
+:is(
+    .fx-copy,
+    .fx-btn,
+    .fn-lp-hero-copy,
+    .waypoint-row-copy,
+    .share-button,
+    .explore-chrome-copy,
+    .fn-rec-btn,
+    .fn-field-copy,
+    .fn-code-copy,
+    .fn-c-btn,
+    .fn-home-iconbtn
+  )
+  .lucide-check
+  path {
+  stroke-dasharray: 24;
+  animation: check-draw var(--motion-panel) var(--ease-soft) 40ms backwards;
+}
+
+@keyframes check-draw {
+  from {
+    stroke-dashoffset: 24;
+  }
+}
+
+/* ─── Numbers: the odometer ──────────────────────────────────────────────
+   Odometer.tsx. Each digit is an invisible copy of itself, which gives the
+   cell its width and the line its baseline, with the 0–9 column over it.
+   The column is ten lines tall, so a translateY of −10% per digit lands it.
+   `clip` rather than `hidden` keeps the cell on the text's baseline;
+   `hidden` is the fallback where `clip` isn't supported. */
+
+.fn-odo {
+  display: inline-block;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.fn-odo-cell {
+  position: relative;
+  display: inline-block;
+  overflow: hidden;
+  overflow: clip;
+}
+
+.fn-odo-ghost {
+  visibility: hidden;
+}
+
+.fn-odo-col {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: flex;
+  flex-direction: column;
+  transition: transform var(--odo-dur, 700ms) var(--ease-soft);
+}
+
+.fn-odo-col > span {
+  display: block;
+  text-align: center;
+}
+
+/* ─── Live indicator: pulse on data ──────────────────────────────────────
+   Live dots hold still. When new data lands, the script restarts
+   `data-blip` (replay() in src/lib/motion.ts) and one thin ring spreads
+   from the dot; a timestamp beside it flushes green with `data-fresh`.
+   Used by the Live button on a collection (.fx-dot) and the atmospheric
+   conditions card (.fn-live-dot). */
+
+.fn-live-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin-right: 6px;
+  border-radius: 50%;
+  background: var(--status-live);
+  vertical-align: 1px;
+}
+
+.fx-dot,
+.fn-live-dot {
+  position: relative;
+}
+
+.fx-dot::after,
+.fn-live-dot::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border: 1.5px solid var(--status-live);
+  border-radius: 50%;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.fx-dot[data-blip]::after,
+.fn-live-dot[data-blip]::after {
+  animation: live-ripple 1.2s var(--ease-soft);
+}
+
+@keyframes live-ripple {
+  from {
+    opacity: 0.6;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(2.9);
+  }
+}
+
+time[data-fresh] {
+  animation: fresh-flush 900ms ease-out;
+}
+
+@keyframes fresh-flush {
+  from {
+    color: var(--text-accent);
+  }
+}
+
+/* ─── Menus and popovers: grow from the button ──────────────────────────
+   Each opens from 96% at the corner nearest the button that opened it. The
+   header's panels stay mounted and also shrink back (chrome.css,
+   .fn-header-panel); these unmount when they close, so only the opening
+   moves. The session menu sets the same animation inline (SessionMenu.tsx).
+   On phones the notes open as a sheet over the toolbar, so they rise
+   instead. */
+
+.whats-new-popover {
+  transform-origin: top right;
+  animation: pop-grow 160ms var(--ease-soft);
+}
+
+:is(.fn-searchbox-pop, .fn-search-dropdown) {
+  transform-origin: top center;
+  animation: pop-grow 160ms var(--ease-soft);
+}
+
+@media (max-width: 639px) {
+  .fn-header .whats-new-popover {
+    animation-name: pop-rise;
+  }
+}
+
+@keyframes pop-grow {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+}
+
+@keyframes pop-rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+/* ─── Theme switch: soft crossfade ──────────────────────────────────────
+   applyTheme (src/lib/theme.ts) sets data-theme-fade on <html> for the
+   400ms around a switch. Every colour eases to the new theme together, so
+   the page dims or brightens rather than flashing. !important because it
+   has to win over each component's own transition list, for that moment
+   only. */
+
+[data-theme-fade] *,
+[data-theme-fade] *::before,
+[data-theme-fade] *::after {
+  transition:
+    background-color 320ms ease,
+    border-color 320ms ease,
+    color 320ms ease,
+    fill 320ms ease,
+    stroke 320ms ease,
+    box-shadow 320ms ease,
+    outline-color 320ms ease !important;
+}
+
+/* ─── Small details ─────────────────────────────────────────────────────
+   The leaf sway and the focus-ring settle live with their rules (chrome.css,
+   globals.css). Here: shortcut chips that press while their keys are held,
+   prompts that rise in after the page settles, and the bell that rocks
+   when something new lands. */
+
+/* Key press (KeyChipPress.tsx sets data-down while the key is held). */
+:is(.kbd, .fn-kbd) {
+  transition:
+    transform var(--motion-press) ease-out,
+    box-shadow var(--motion-press) ease-out,
+    background-color var(--motion-press) ease-out;
+}
+
+:is(.kbd, .fn-kbd)[data-down] {
+  transform: translateY(1px);
+  box-shadow: none;
+  background: var(--bg-tertiary);
+}
+
+/* Banner rise: "Remember my choice" and the new-waypoints note wait for the
+   page to settle, then rise 10px into place. */
+:is(.fn-lp-remember, .new-waypoints-banner) {
+  animation: banner-rise var(--motion-arrive) var(--ease-soft) 600ms backwards;
+}
+
+@keyframes banner-rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+}
+
+/* Bell nudge: when an unread dot appears (prefs hydrate, a release lands),
+   it pops in and the bell rocks once from its top. :has() starts the rock
+   only as the dot arrives, so it plays once per arrival. */
+:is(.whats-new-badge-dot, .fn-site-menu-dot, .fn-menu-dot) {
+  animation: dot-pop 320ms var(--ease-soft) 120ms backwards;
+}
+
+.whats-new-badge-btn:has(.whats-new-badge-dot) > svg {
+  transform-origin: 50% 12%;
+  animation: bell-rock 600ms ease-in-out;
+}
+
+@keyframes dot-pop {
+  from {
+    transform: scale(0);
+  }
+  60% {
+    transform: scale(1.3);
+  }
+}
+
+@keyframes bell-rock {
+  25% {
+    transform: rotate(14deg);
+  }
+  50% {
+    transform: rotate(-10deg);
+  }
+  75% {
+    transform: rotate(5deg);
+  }
+}
+
+/* ─── Reduced motion ─────────────────────────────────────────────────── */
+
+[data-reduce-motion='true'] :is(
+    .fn-home-button,
+    .fn-dl-button,
+    .fn-searchbox-submit,
+    .fx-btn,
+    .fn-btn,
+    .fn-c-btn,
+    .fl-button,
+    .fn-lp-btn,
+    .share-button,
+    .settings-btn,
+    .fn-rec-btn
+  ):is(:hover, :active) {
+  transform: none !important;
+}
+
+/* Delays outlive the global clamp on durations, so a delayed entrance would
+   still hold its element invisible for the delay: drop these outright. */
+[data-reduce-motion='true'] .waypoint-page > .fn-lp-picker :is(
+    .fn-lp-head,
+    .fn-lp-hero,
+    .waypoint-layout-bar,
+    .waypoint-group-label,
+    .waypoint-row,
+    .waypoint-tile,
+    .fn-lp-see-all
+  ),
+[data-reduce-motion='true'] :is(
+    .fn-lp-remember,
+    .new-waypoints-banner,
+    .whats-new-badge-dot,
+    .fn-site-menu-dot,
+    .fn-menu-dot,
+    .fn-roll-line
+  ),
+[data-reduce-motion='true'] .lucide-check path {
+  animation: none !important;
+}
+
+/* Held transforms: the arrow's lean, a pressed key chip. */
+[data-reduce-motion='true'] .fn-lp-hero-link:hover .fn-lp-hero-arrow,
+[data-reduce-motion='true'] :is(.kbd, .fn-kbd)[data-down] {
+  transform: none !important;
+}

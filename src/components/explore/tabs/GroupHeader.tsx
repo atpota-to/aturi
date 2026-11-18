@@ -2,6 +2,7 @@
 
 import { ChevronRight, Pin, PinOff } from 'lucide-react';
 import { PIN_GROUP_SUFFIX } from '@/utils/preferences';
+import LexiconFavicon from './LexiconFavicon';
 
 /**
  * Collapsible header row for a lexicon group (a major `app.bsky` block or a
@@ -21,6 +22,8 @@ export default function GroupHeader({
   pinnable,
   pinned,
   onTogglePin,
+  favicon,
+  stripe,
 }: {
   open: boolean;
   onToggle: () => void;
@@ -34,13 +37,22 @@ export default function GroupHeader({
   pinnable?: boolean;
   pinned?: boolean;
   onTogglePin?: () => void;
+  /** Draw the icon of the site the prefix reverses to (top-level groups). */
+  favicon?: boolean;
+  /** Banded row in the tree's zebra striping. */
+  stripe?: boolean;
 }) {
   const hasDim = dimPrefix && prefix.startsWith(dimPrefix);
   const dim = hasDim ? dimPrefix : '';
   const tail = hasDim ? prefix.slice(dimPrefix.length) : prefix;
   const groupNsid = `${prefix}${PIN_GROUP_SUFFIX}`;
   return (
-    <div className="fx-row" data-kind="group" data-depth={indent ? 1 : 0}>
+    <div
+      className="fx-row"
+      data-kind="group"
+      data-depth={indent ? 1 : 0}
+      data-stripe={stripe || undefined}
+    >
       <button
         type="button"
         onClick={onToggle}
@@ -49,6 +61,7 @@ export default function GroupHeader({
         style={{ fontWeight: emphasize ? 500 : 400 }}
       >
         <ChevronRight size={12} strokeWidth={2.2} aria-hidden className="fx-row-chev" />
+        {favicon && <LexiconFavicon prefix={prefix} />}
         <code className="fx-row-text">
           {dim && <span className="fx-row-dim fx-row-inherit">{dim}</span>}
           {tail}

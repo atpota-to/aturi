@@ -53,7 +53,7 @@
 }
 /* One column below 920px: the two columns dissolve (display: contents) so
    their slots can interleave by the `order` RecordExplorer gives them —
-   preview, open-in, record data, then the rest. */
+   preview, record data, then the rest. */
 @media (max-width: 920px) {
   .fn-rec-body {
     flex-direction: column;
@@ -249,114 +249,6 @@
   color: var(--text-primary);
 }
 
-/* --- open in ------------------------------------------------------------- */
-
-.fn-open {
-  padding: 14px 12px 6px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-.fn-open > .fn-rec-h2 {
-  padding: 0 4px 4px;
-}
-.fn-open-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  height: 40px;
-  padding: 0 12px;
-  box-sizing: border-box;
-  border-radius: var(--radius-control);
-  border: 1px solid transparent;
-  color: var(--text-primary);
-  text-decoration: none;
-  transition: background 0.15s ease, border-color 0.15s ease;
-}
-.fn-open-row:hover {
-  background: var(--bg-primary);
-  color: var(--text-primary);
-}
-.fn-open-row:focus-visible {
-  outline: 2px solid var(--text-accent);
-  outline-offset: 1px;
-}
-.fn-open-row[data-rank] {
-  height: 44px;
-}
-.fn-open-row[data-rank='primary'] {
-  background: var(--accent-moss);
-  border-color: var(--accent-moss);
-  color: var(--text-on-accent);
-}
-.fn-open-row[data-rank='primary']:hover {
-  background: var(--accent-forest);
-  border-color: var(--accent-forest);
-  color: var(--text-on-accent);
-}
-.fn-open-row[data-rank='secondary'] {
-  border-color: var(--border-strong);
-}
-.fn-open-icon {
-  width: 16px;
-  height: 16px;
-  flex: none;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-.fn-open-icon svg,
-.fn-open-icon img {
-  width: 16px;
-  height: 16px;
-  object-fit: contain;
-}
-.fn-open-name {
-  flex: 1;
-  min-width: 0;
-  font-weight: 500;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.fn-open-row[data-rank] .fn-open-name {
-  font-weight: 600;
-}
-.fn-open-note {
-  font-size: 12px;
-  color: var(--text-tertiary);
-}
-.fn-open-row[data-rank='primary'] .fn-open-note {
-  color: inherit;
-  opacity: 0.9;
-}
-.fn-open-domain {
-  font-family: var(--font-mono);
-  font-size: 12px;
-  color: var(--text-tertiary);
-  white-space: nowrap;
-}
-.fn-open-more {
-  display: flex;
-  flex-direction: column;
-  margin-top: 4px;
-}
-.fn-open-all {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 38px;
-  margin: 2px -12px 0;
-  border-top: 1px solid var(--border-subtle);
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text-accent);
-  text-decoration: none;
-}
-.fn-open-all:hover {
-  color: var(--accent-forest);
-}
-
 /* --- record card (fields / json) ----------------------------------------- */
 
 .fn-rec-data {
@@ -412,7 +304,8 @@
   margin: 0;
   padding: 8px 12px 8px 16px;
   display: grid;
-  grid-template-columns: 34px minmax(0, 1fr);
+  /* Wide enough for the longest label, "Schema" (RecordSchemaCheck.tsx). */
+  grid-template-columns: max-content minmax(0, 1fr);
   gap: 2px 10px;
   align-items: center;
   font-size: 12.5px;
@@ -439,6 +332,112 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+/* The Schema row (RecordSchemaCheck.tsx): how the record fares against the
+   schema published for its type. The mark is the tool pages' status disc
+   (tool-pages.css), a size down to sit on a 12.5px line. */
+.fn-rec-schema {
+  min-height: 24px;
+}
+.fn-rec-schema-mark {
+  width: 16px;
+  height: 16px;
+}
+.fn-rec-schema-text,
+.fn-rec-schema-toggle {
+  flex: 1;
+  min-width: 0;
+  font-size: 12.5px;
+  color: var(--text-primary);
+  text-align: left;
+}
+.fn-rec-schema[data-verdict='no-schema'] .fn-rec-schema-text {
+  color: var(--text-tertiary);
+}
+.fn-rec-schema-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0;
+  border: 0;
+  background: none;
+  font-family: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+.fn-rec-schema-toggle svg {
+  color: var(--text-tertiary);
+  transition: transform var(--motion-quick) ease;
+}
+.fn-rec-schema-toggle[aria-expanded='true'] svg {
+  transform: rotate(180deg);
+}
+.fn-rec-schema-toggle:focus-visible {
+  outline: 2px solid var(--text-accent);
+  outline-offset: 2px;
+  border-radius: 3px;
+}
+.fn-rec-schema-open {
+  text-decoration: none;
+}
+.fn-rec-ids dd.fn-rec-schema-detail {
+  grid-column: 1 / -1;
+  display: block;
+  padding: 4px 0 2px;
+}
+.fn-rec-schema-issues {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.fn-rec-schema-issues li {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding-left: 9px;
+  border-left: 2px solid var(--danger);
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--text-secondary);
+}
+.fn-rec-schema-issues li[data-severity='warning'] {
+  border-left-color: var(--tool-warn);
+}
+.fn-rec-schema-issues code {
+  padding: 0;
+  background: none;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-primary);
+  overflow-wrap: anywhere;
+}
+
+/* The same check in the editor, above its buttons. */
+.fn-rec-schema-result {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-control);
+  background: var(--surface-subtle);
+}
+.fn-rec-schema-result p {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+.fn-rec-schema-result strong {
+  font-weight: 650;
+  color: var(--text-primary);
+}
+
 .fn-rec-json {
   padding: 12px 16px 16px;
 }
@@ -492,12 +491,6 @@
 .record-fields .fn-field-label {
   min-width: 100px;
   max-width: 100px;
-}
-/* In the aside the top-level labels take the 84px the nested rows already
-   use: one label rhythm, and 16px more for the values. */
-.fn-rec-aside .record-fields .fn-field-label {
-  min-width: 84px;
-  max-width: 84px;
 }
 .fn-field-value {
   flex: 1;
@@ -593,7 +586,7 @@
   max-width: 84px;
 }
 /* globals.css stacks label over value once the table is under 460px. The
-   record page's aside is narrower than that by design, and its 100px mono
+   record page's column is narrower than that on a phone, and its 100px mono
    label column still leaves the value room, so the bare table keeps the two
    side by side until it is really cramped. */
 @container (max-width: 460px) {
@@ -983,9 +976,6 @@
   }
   .fn-rec-preview .card:not(.post-preview) {
     padding: 14px !important;
-  }
-  .fn-open-row[data-rank] {
-    height: 48px;
   }
 }
 

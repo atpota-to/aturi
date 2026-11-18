@@ -7,7 +7,9 @@ import {
   type Lexicon,
   type LexiconField,
 } from '@/utils/atproto/lexicons';
+import { checkRecord, type RecordCheck } from '@/lib/tools/validateRun';
 import { RecordEditorSkeleton } from './skeletons/pages';
+import { SchemaCheckResult } from './RecordSchemaCheck';
 import type { RecordBackend } from './recordBackend';
 
 type Props = {
@@ -59,6 +61,10 @@ export default function RecordEditor({
   const [error, setError] = useState<string | null>(null);
   const [savedFlash, setSavedFlash] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
+  // The draft checked against its published schema, on request. Cleared by
+  // any edit, so what is shown always describes what is in the editor.
+  const [schemaCheck, setSchemaCheck] = useState<RecordCheck | null>(null);
+  const [checking, setChecking] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -92,6 +98,7 @@ export default function RecordEditor({
 
   const updateField = useCallback((key: string, next: unknown) => {
     setValue((prev) => ({ ...(prev || {}), [key]: next }));
+    setSchemaCheck(null);
   }, []);
 
   const buildRecordPayload = useCallback((): Record<string, unknown> => {
@@ -149,6 +156,25 @@ export default function RecordEditor({
       setError(err instanceof Error ? err.message : String(err));
     } finally {
       setSaving(false);
+    }
+  }
+
+  /**
+   * Check the draft against the schema published for its type, before it is
+   * written. This advises and never blocks a save: the PDS decides what it
+   * accepts, and it does not validate lexicons it has never heard of, which
+   * is exactly when a second opinion is worth having.
+   */
+  async function handleCheck() {
+    setChecking(true);
+    setError(null);
+    try {
+      const record = buildRecordPayload();
+      setSchemaCheck(await checkRecord(record, collection, { rkey: isNew ? undefined : rkey }));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setChecking(false);
     }
   }
 
@@ -210,13 +236,20 @@ export default function RecordEditor({
       )}
 
       {rawMode || !lex ? (
-        <RawJsonEditor value={rawText} onChange={setRawText} />
+        <RawJsonEditor
+          value={rawText}
+          onChange={(text) => {
+            setRawText(text);
+            setSchemaCheck(null);
+          }}
+        />
       ) : (
         <FormEditor lex={lex} value={value || {}} onChange={updateField} />
       )}
 
       {error && <p className="explore-error">{error}</p>}
       {savedFlash && <p className="fn-editor-saved">Saved.</p>}
+      {schemaCheck && <SchemaCheckResult check={schemaCheck} />}
 
       <div className="fn-editor-actions">
         <button
@@ -237,6 +270,18 @@ export default function RecordEditor({
             className="fn-rec-btn"
           >
             Cancel
+          </button>
+        )}
+        {!confirmingDelete && (
+          <button
+            type="button"
+            onClick={handleCheck}
+            disabled={saving || deleting || checking}
+            className="fn-rec-btn"
+            data-wait={checking || undefined}
+            title="Check this draft against the schema published for its type"
+          >
+            {checking ? 'Checking…' : 'Check schema'}
           </button>
         )}
         {!isNew && canDelete && !confirmingDelete && (

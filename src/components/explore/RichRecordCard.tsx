@@ -2,7 +2,9 @@
 
 import { useEffect, useState } from 'react';
 import PostPreview from '@/components/PostPreview';
+import PostPreviewSkeleton from '@/components/PostPreviewSkeleton';
 import ProfileHeader from './ProfileHeader';
+import SkeletonSwap from './skeletons/SkeletonSwap';
 import {
   MarginAnnotationPreview,
   MarginBookmarkPreview,
@@ -62,8 +64,9 @@ export function recordHasRichCard(collection: string, rkey: string): boolean {
  * Renders ONLY the rich preview card for a record — the Bluesky post card for
  * posts (via the AppView thread, for author/embeds/counts), the profile card
  * for the profile record, and the bespoke at.margin.* cards for margin
- * lexicons. Returns null for generic records (no card) and while a post's
- * thread or the profile is still loading.
+ * lexicons. Returns null for generic records (no card) and for a post whose
+ * thread couldn't be fetched; while the thread is on its way it holds the
+ * card's place with the post card's skeleton.
  *
  * The structured field table (RecordPreview) and the raw JSON are separate,
  * independently-toggleable sections that RecordExplorer renders alongside this
@@ -80,7 +83,8 @@ export default function RichRecordCard({
   const marginType = getMarginLexiconType(collection);
   const isPost = collection === 'app.bsky.feed.post';
 
-  const [postThread, setPostThread] = useState<PostThread | null>(null);
+  // undefined while the thread is on its way, null once it has failed.
+  const [postThread, setPostThread] = useState<PostThread | null | undefined>(undefined);
 
   useEffect(() => {
     if (!isPost) {
@@ -88,6 +92,7 @@ export default function RichRecordCard({
       return undefined;
     }
     let cancelled = false;
+    setPostThread(undefined);
     const atUri = `at://${did}/${collection}/${rkey}`;
     fetchPostThread(atUri).then((thread) => {
       if (!cancelled) setPostThread(thread);
@@ -102,9 +107,16 @@ export default function RichRecordCard({
     : null;
 
   if (isPost) {
+    // The record has landed but the AppView's view of it may not have: keep
+    // the card's place rather than open the page with a gap the post then
+    // pushes everything down to fill.
     const post = postThread?.thread[0]?.value.post;
-    if (!post) return null;
-    return <PostPreview post={post} parent={postThread?.parent} hideExplorerCtas />;
+    if (postThread !== undefined && !post) return null;
+    return (
+      <SkeletonSwap loading={postThread === undefined} skeleton={<PostPreviewSkeleton />}>
+        {post && <PostPreview post={post} parent={postThread?.parent} hideExplorerCtas />}
+      </SkeletonSwap>
+    );
   }
 
   // The profile record's own universal link (`/profile/{handle}/

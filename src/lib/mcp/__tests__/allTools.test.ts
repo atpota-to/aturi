@@ -59,6 +59,7 @@ const ARGS: Record<string, Record<string, unknown>> = {
   search_lexicons: { query: 'blog' },
   sample_recent_records: { nsid: 'app.bsky.feed.post' },
   get_lexicon_schema: { nsid: 'app.bsky.feed.post' },
+  get_lexicon_field_usage: { nsid: 'app.bsky.feed.post' },
   sample_jetstream: { collections: ['app.bsky.feed.post'], duration_seconds: 1, max_events: 1 },
   search_atproto_docs: { query: 'lexicon', limit: 1 },
   read_atproto_doc: { id: 'specs/lexicon' },

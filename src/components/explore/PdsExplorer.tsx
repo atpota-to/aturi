@@ -8,6 +8,7 @@ import {
   getServerHealth,
   listRepos,
   normalizePdsBase,
+  pdsHostname,
   type RepoEntry,
   type ServerDescription,
   type ServerHealth,
@@ -19,6 +20,7 @@ import AppearIn from './AppearIn';
 import CopyButton from './CopyButton';
 import ShareLinkChip from './ShareLinkChip';
 import { PdsReposSkeleton } from './skeletons/pages';
+import RelayStatusList from '@/components/tools/RelayStatusList';
 import { CHROME_RESULTS_ID, useChromeBarField } from './ChromeBarContext';
 
 type Props = {
@@ -158,6 +160,30 @@ export default function PdsExplorer({ host }: Props) {
           pdsBase={pdsBase}
         />
       </AppearIn>
+
+      {/* What the relays know of this host, once it has answered as a PDS:
+          a name that is not one would only collect four "not known"s. The
+          rows are the relay crawl check's own (RelayStatusList.tsx). */}
+      {serverInfo && (
+        <AppearIn delay={0.05}>
+          <section>
+            <header className="fn-pds-repos-head">
+              <h2>Relays</h2>
+              <span>
+                {/* A static page, so the link keeps its prefetch. */}
+                <Link
+                  href={`/tools/relay?host=${encodeURIComponent(pdsHostname(pdsBase))}`}
+                  rel="nofollow"
+                  className="fn-pds-tool-link"
+                >
+                  Relay crawl check
+                </Link>
+              </span>
+            </header>
+            <RelayStatusList hostname={pdsHostname(pdsBase)} compact />
+          </section>
+        </AppearIn>
+      )}
 
       <AppearIn delay={0.08}>
         <section id={CHROME_RESULTS_ID}>

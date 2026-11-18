@@ -49,7 +49,7 @@ const READING = {
   perSecond: { posts: 45.9, likes: 304.7, reposts: 53.2, follows: 28.9 },
   condition: 'breezy',
   records: { perSecond: 440.7, bluesky: 439.6, elsewhere: 1.1 },
-  diversity: { index: 0.26, apps: 18, collections: 40, level: 'low' },
+  diversity: { index: 1.77, level: 'low', share: 0.44, spread: 16.27, apps: 18, collections: 40 },
   apps: [{ domain: 'stream.place', perSecond: 0.2, count: 10, collections: ['place.stream.chat.message'] }],
   bluesky: [{ nsid: 'app.bsky.feed.like', perSecond: 304.7, count: 18280 }],
   events: { creates: 431, updates: 2.3, deletes: 50, identity: 0.3, account: 0.4 },
@@ -83,6 +83,14 @@ const ALMANAC = {
     now: sums(3600, 1_800_000),
     days: sums(7200, 2_880_000, { windows: 2 }),
     weeks: sums(3600, 1_440_000, { windows: 1 }),
+    // By accounts, for the last whole clock hour: a third more mixed than
+    // the same hour last week, where the records' share is the same both times.
+    diversity: {
+      hour: '2026-10-20T21:00:00.000Z',
+      now: { index: 2.4, share: 0.6, spread: 16, elsewhere: 600 },
+      days: { windows: 2, index: 2.2 },
+      weeks: { windows: 1, index: 1.8 },
+    },
   },
   newApps: {
     historyStart: '2026-10-01T00:00:00.000Z',
@@ -149,9 +157,15 @@ test('the weather report pairs the live reading with the almanac', async () => {
   assert.deepEqual(now.blueskyCollections, READING.bluesky);
   assert.equal('series' in now, false, 'the sparkline series is the page’s, not the agent’s');
 
+  // The index passes through as atpota.to worked it out, by accounts.
+  assert.equal((now.diversity as Record<string, unknown>).index, 1.77);
+
   const almanac = body.almanac as Record<string, Record<string, unknown>>;
   assert.equal(almanac.timeZone, 'America/New_York');
   assert.equal(almanac.today.recordsPerSecond, 500);
+  // A ratio of record counts, so it is not called the diversity index.
+  assert.equal(almanac.today.recordsOutsideBlueskyPercent, 0.5);
+  assert.equal('diversityIndex' in almanac.today, false);
   assert.deepEqual(almanac.today.busiestMinute, { minute: '2026-10-20T19:04:00.000Z', recordsPerSecond: 509.8 });
 
   // The same weekday wins over the days before once there is one.
@@ -159,6 +173,18 @@ test('the weather report pairs the live reading with the almanac', async () => {
   assert.equal((usual.usual as Record<string, unknown>).recordsPerSecond, 400);
   assert.equal(usual.changePercent, 25);
   assert.equal(usual.verdict, 'much busier than usual');
+  // The hour's index against the same basis as the records: last week's.
+  assert.deepEqual(usual.diversity, {
+    hour: '2026-10-20T21:00:00.000Z',
+    index: 2.4,
+    level: 'low',
+    share: 0.6,
+    spread: 16,
+    accountsOutsideBluesky: 600,
+    usual: { windows: 1, index: 1.8 },
+    changePercent: 33,
+    verdict: 'more mixed than usual',
+  });
 
   // A ten-minute hour is too thin to rank, however busy it looked.
   const hours = almanac.hoursOfTheWeek as Record<string, unknown>;
@@ -185,6 +211,29 @@ test('a station with no history yet says so rather than inventing a usual', asyn
   const usual = (body.almanac as Record<string, Record<string, unknown>>).againstUsual;
   assert.equal(usual.verdict, null);
   assert.match(String(usual.note), /still learning/);
+  // The hour's own index still answers; only the comparison waits.
+  const diversity = usual.diversity as Record<string, unknown>;
+  assert.equal(diversity.index, 2.4);
+  assert.equal(diversity.usual, undefined);
+});
+
+test('an hour with few accounts outside Bluesky gives its index but no comparison', async () => {
+  const almanac = {
+    ...ALMANAC,
+    normal: {
+      ...ALMANAC.normal,
+      diversity: { ...ALMANAC.normal.diversity, now: { index: 4, share: 1, spread: 16, elsewhere: 12 } },
+    },
+  };
+  const body = await withFetch(
+    (url) => (url.includes('/api/atmosphere') ? READING : url.includes('/api/weather-almanac') ? almanac : undefined),
+    async () => resultBody(await weather.handler({})),
+  );
+  const usual = (body.almanac as Record<string, Record<string, unknown>>).againstUsual;
+  const diversity = usual.diversity as Record<string, unknown>;
+  assert.equal(diversity.level, 'moderate');
+  assert.equal(diversity.verdict, undefined);
+  assert.equal(diversity.changePercent, undefined);
 });
 
 test('one half failing still answers with the other, and names what is missing', async () => {
@@ -240,8 +289,11 @@ function historyBody(compare: { seconds: number; prevSeconds: number }, accounts
     accounts: {
       seconds: 3600,
       prevSeconds: accountsPrev,
-      total: { active: 132_601, bluesky: 132_336, elsewhere: 423 },
-      points: [{ t: '2026-10-20T17:00:00.000Z', seconds: 3600, active: 132_601, bluesky: 132_336, elsewhere: 423 }],
+      total: { active: 132_601, bluesky: 132_336, elsewhere: 423, index: 1.6, share: 0.32, spread: 25 },
+      prev: { seconds: 3600, active: 120_000, bluesky: 119_700, elsewhere: 300, index: 1.25, share: 0.25, spread: 25 },
+      points: [
+        { t: '2026-10-20T17:00:00.000Z', seconds: 3600, active: 132_601, bluesky: 132_336, elsewhere: 423, index: 1.6, share: 0.32, spread: 25 },
+      ],
       apps: [{ domain: 'sprk.so', active: 80, prevActive: 40, collections: ['so.sprk.feed.post'] }],
     },
   };
@@ -256,7 +308,11 @@ test('history answers rates, and ranks only buckets the station mostly heard', a
   assert.equal(body.bucket, 'hour');
   assert.deepEqual(body.coverage, { heardSeconds: 7800, rangeSeconds: 86_400, percent: 9 });
   assert.equal((body.averagePerSecond as Record<string, number>).creates, 1569.2);
-  assert.equal(body.diversityIndex, 1);
+  // The index comes from the accounts; the records' share has its own name.
+  assert.equal(body.diversityIndex, 1.6);
+  assert.equal(body.recordsOutsideBlueskyPercent, 1);
+  assert.equal((body.points as Array<Record<string, unknown>>)[1].recordsOutsideBlueskyPercent, 1);
+  assert.equal('diversityIndex' in (body.points as Array<Record<string, unknown>>)[1], false);
   // The ten-minute bucket is the fastest by rate and is still not the busiest.
   assert.deepEqual(body.busiest, { t: '2026-10-20T17:00:00.000Z', recordsPerSecond: 500 });
   assert.deepEqual(body.quietest, { t: '2026-10-20T18:00:00.000Z', recordsPerSecond: 400 });
@@ -275,10 +331,27 @@ test('apps compare by rate, so an earlier window heard for half as long is not a
   assert.equal(apps.busiest[1].new, true);
   assert.equal(apps.busiest[1].changePercent, null);
 
-  const accounts = body.accounts as { comparable: boolean; busiestApps: Array<Record<string, unknown>>; diversityIndex: number };
+  const accounts = body.accounts as Record<string, unknown> & { comparable: boolean; busiestApps: Array<Record<string, unknown>> };
   assert.equal(accounts.comparable, true);
   assert.equal(accounts.busiestApps[0].changePercent, 100);
-  assert.equal(accounts.diversityIndex, 0.32);
+  assert.deepEqual(accounts.diversity, { index: 1.6, share: 0.32, spread: 25, level: 'low' });
+  assert.equal(accounts.earlierDiversityIndex, 1.25);
+  assert.equal((accounts.points as Array<Record<string, unknown>>)[0].diversityIndex, 1.6);
+});
+
+test('history without the accounts’ index leaves the index out rather than inventing one', async () => {
+  const body = historyBody({ seconds: 7200, prevSeconds: 3600 }, 3600);
+  const { active, bluesky, elsewhere } = body.accounts.total;
+  const bare = { ...body, accounts: { ...body.accounts, total: { active, bluesky, elsewhere }, prev: undefined } };
+  const answer = await withFetch(
+    (url) => (url.includes('/api/weather-history') ? bare : undefined),
+    async () => resultBody(await history.handler({ range: 'day' })),
+  );
+  assert.equal(answer.diversityIndex, undefined);
+  assert.equal(answer.recordsOutsideBlueskyPercent, 1);
+  const accounts = answer.accounts as Record<string, unknown>;
+  assert.equal(accounts.diversity, undefined);
+  assert.equal(accounts.earlierDiversityIndex, undefined);
 });
 
 test('an earlier window the station barely heard compares nothing', async () => {

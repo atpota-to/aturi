@@ -2,11 +2,12 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { BookOpen, ChevronRight, Cloud, Gauge, Layers, Pin, Plug, User } from 'lucide-react';
+import { Activity, BookOpen, ChevronRight, Cloud, Gauge, Layers, Pin, Plug, User } from 'lucide-react';
 import AppearIn from './AppearIn';
 import SearchBox from './SearchBox';
 import JetstreamFeed from './JetstreamFeed';
 import AtmospherePulse from './lexicons/AtmospherePulse';
+import AtmosphericConditions from './AtmosphericConditions';
 import CrossLinkCards from '@/components/landing/CrossLinkCards';
 import FeatureSection from '@/components/landing/FeatureSection';
 import PinnedLexiconsVisual from '@/components/landing/PinnedLexiconsVisual';
@@ -18,11 +19,12 @@ import { encodeRepo } from '@/utils/atproto/urls';
 
 const SUGGESTIONS = ['dame.is', 'anisota.net', 'aturi.to', 'atpota.to'];
 
-/** Other ways into the explorer. All three are static pages, so they keep
+/** Other ways into the explorer. All of them are static pages, so they keep
  * Next's default prefetch. */
 const TILES = [
   { href: '/explore/lexicons', title: 'Lexicons', desc: 'Search every record type', Icon: BookOpen },
   { href: '/explore/spaces', title: 'Spaces', desc: 'Browse shared spaces', Icon: Layers },
+  { href: '/tools/stream', title: 'Stream monitor', desc: 'Watch the network live', Icon: Activity },
   { href: '/mcp', title: 'MCP server', desc: 'Read-only tools for your AI', Icon: Plug },
 ];
 
@@ -109,6 +111,8 @@ export default function ExploreLanding() {
         </nav>
       </AppearIn>
 
+      <AtmosphericConditions />
+
       <AtmospherePulse />
 
       {/* Feature spotlights — what the Explorer does that other AT
@@ -185,6 +189,7 @@ export default function ExploreLanding() {
           wantedOps={['create', 'update', 'delete']}
           showOpLabels
           showStats
+          moreHref="/tools/stream"
         />
       </AppearIn>
 

@@ -22,7 +22,10 @@ export default defineConfig({
     name: 'Aturi',
     description:
       'Move around the Atmosphere: switch between clients, auto-redirect to your client of choice, and copy universal links.',
-    permissions: ['storage', 'tabs', 'declarativeNetRequest', 'clipboardWrite'],
+    // `identity` is used by ONE optional feature: signing in to aturi.to from
+    // the Settings page, via identity.launchWebAuthFlow. Nothing else in the
+    // extension touches it, and every other feature works signed out.
+    permissions: ['storage', 'tabs', 'declarativeNetRequest', 'clipboardWrite', 'identity'],
     host_permissions: ['<all_urls>'],
     action: {
       default_title: 'Aturi',
@@ -46,10 +49,20 @@ export default defineConfig({
         id: 'aturi@dame.is',
         // Must match support for gecko.data_collection_permissions (desktop 140+, Android 142+ per AMO).
         strict_min_version: '140.0',
-        // Required for new Firefox submissions on AMO (Nov 2025+). Adjust if the
-        // extension transmits data off-device for storage/processing.
+        // Required for new Firefox submissions on AMO (Nov 2025+).
+        //
+        // This was `['none']` until sign-in existed. Signing in sends a handle
+        // to aturi.to and stores a session token, which is exactly what
+        // Mozilla defines `authenticationInfo` to cover — so declaring `none`
+        // alongside a sign-in feature would be a false declaration, whether or
+        // not any given user ever uses it.
+        //
+        // Deliberately NOT declared: `websiteContent`. Page scanning still
+        // happens entirely on-device and nothing it reads is ever transmitted,
+        // and that distinction is worth keeping accurate rather than
+        // over-declaring it away.
         data_collection_permissions: {
-          required: ['none'],
+          required: ['authenticationInfo'],
         },
       },
       gecko_android: {

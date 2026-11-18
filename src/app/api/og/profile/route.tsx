@@ -2,20 +2,22 @@ import { ImageResponse } from '@vercel/og';
 import { NextRequest } from 'next/server';
 import { fetchImageAsDataUrl } from '@/lib/og-image';
 import {
+  Avatar,
+  BrandMark,
+  Folder,
   FooterCta,
-  loadGoogleFont,
-  OgFooter,
+  loadOgFonts,
   OgFrame,
   OG_COLORS,
-  OG_GLYPH_BASELINE,
+  PersonGlyph,
   sanitizeOgText,
-  TopRow,
+  StatLine,
 } from '@/lib/og-design';
 
 export const runtime = 'edge';
 export const revalidate = 3600; // Cache for 1 hour
 
-const AVATAR = 132;
+const AVATAR = 120;
 
 /**
  * Trim a bio to at most `maxLines` lines and `maxChars` characters, breaking on
@@ -38,25 +40,6 @@ function clampBio(bio: string, { maxChars = 240, maxLines = 4 } = {}): string {
   // Drop trailing punctuation before the ellipsis, so a bio that happens to
   // break after a full stop doesn't render as "sky/weather.…".
   return truncated ? `${out.replace(/[\s.,;:!?·|—-]+$/, '')}…` : out;
-}
-
-function PersonGlyph({ size = 56 }: { size?: number }) {
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke={OG_COLORS.accent}
-      strokeWidth={1.4}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      xmlns="http://www.w3.org/2000/svg"
-    >
-      <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
-      <circle cx="12" cy="7" r="4" />
-    </svg>
-  );
 }
 
 export async function GET(request: NextRequest) {
@@ -116,76 +99,36 @@ export async function GET(request: NextRequest) {
       [posts, 'posts'],
     ];
 
-    // The eyebrow is uppercased in CSS, so the subset needs the full alphabet
-    // to cover the transformed glyphs (see OG_GLYPH_BASELINE).
-    const allText =
-      `${displayName} @${handleName} ${bio} Universal link ` +
-      `Open in any Atmosphere client followers following posts aturi.to ` +
-      OG_GLYPH_BASELINE;
-
-    const [crimsonData, monoData] = await Promise.all([
-      loadGoogleFont('Crimson+Pro:wght@300;400;600', allText),
-      loadGoogleFont(
-        'IBM+Plex+Mono:wght@500',
-        `@${handleName} ${stats.map(([n]) => n.toLocaleString()).join(' ')} , . : / - _ ` +
-          OG_GLYPH_BASELINE,
-      ),
-    ]);
+    const fonts = await loadOgFonts(
+      `${displayName} ${bio} Profile Open in any Atmosphere client ` +
+        `${stats.map(([n, label]) => `${n.toLocaleString()} ${label}`).join(' ')}`,
+      `@${handleName}`,
+    );
 
     // Long display names would otherwise run under the card's right edge.
-    const nameSize = displayName.length > 26 ? 38 : displayName.length > 18 ? 44 : 52;
+    const nameSize = displayName.length > 26 ? 38 : displayName.length > 18 ? 44 : 50;
 
     return new ImageResponse(
       (
         <OgFrame>
-          <div
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              flex: 1,
-              gap: '30px',
-              position: 'relative',
-              zIndex: 1,
-            }}
+          <Folder
+            tab="Profile"
+            tabIcon={<PersonGlyph size={22} color={OG_COLORS.accent} />}
+            aside={<BrandMark />}
+            footerLeft={<StatLine stats={stats} />}
+            footerRight={<FooterCta>Open in any Atmosphere client</FooterCta>}
           >
-            <TopRow eyebrow="Universal link" />
-
-            {/* Identity — avatar and name on one baseline, so the block reads
-                as a single unit instead of two columns drifting apart. */}
+            {/* Identity — avatar and name on one axis, so the block reads as a
+                single unit instead of two columns drifting apart. */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '28px', flexShrink: 0 }}>
-              <div
-                style={{
-                  width: `${AVATAR}px`,
-                  height: `${AVATAR}px`,
-                  flexShrink: 0,
-                  background: OG_COLORS.bgTertiary,
-                  border: `1px solid ${OG_COLORS.borderAccent}`,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  overflow: 'hidden',
-                }}
-              >
-                {avatarDataUrl ? (
-                  <img
-                    src={avatarDataUrl}
-                    alt=""
-                    width={AVATAR}
-                    height={AVATAR}
-                    style={{ width: `${AVATAR}px`, height: `${AVATAR}px`, objectFit: 'cover' }}
-                  />
-                ) : (
-                  <PersonGlyph size={56} />
-                )}
-              </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', minWidth: 0 }}>
+              <Avatar src={avatarDataUrl} size={AVATAR} fallback={<PersonGlyph size={52} />} />
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', minWidth: 0 }}>
                 <div
                   style={{
                     display: 'flex',
                     fontSize: `${nameSize}px`,
-                    fontWeight: 400,
-                    letterSpacing: '-0.02em',
+                    fontWeight: 700,
+                    letterSpacing: '-0.025em',
                     lineHeight: 1.1,
                   }}
                 >
@@ -195,7 +138,7 @@ export async function GET(request: NextRequest) {
                   style={{
                     display: 'flex',
                     fontFamily: 'IBM Plex Mono',
-                    fontSize: '26px',
+                    fontSize: '25px',
                     fontWeight: 500,
                     color: OG_COLORS.accent,
                   }}
@@ -220,9 +163,8 @@ export async function GET(request: NextRequest) {
                 <div
                   style={{
                     display: 'flex',
-                    fontSize: '29px',
+                    fontSize: '26px',
                     lineHeight: 1.5,
-                    fontWeight: 300,
                     color: OG_COLORS.textSecondary,
                     whiteSpace: 'pre-wrap',
                     wordBreak: 'break-word',
@@ -232,48 +174,13 @@ export async function GET(request: NextRequest) {
                 </div>
               )}
             </div>
-
-            <OgFooter
-              left={
-                <div style={{ display: 'flex', gap: '34px', fontSize: '21px', fontWeight: 300 }}>
-                  {stats.map(([count, label]) => (
-                    <div
-                      key={label}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'baseline',
-                        gap: '8px',
-                        color: OG_COLORS.textSecondary,
-                      }}
-                    >
-                      <span
-                        style={{
-                          display: 'flex',
-                          fontFamily: 'IBM Plex Mono',
-                          fontSize: '24px',
-                          fontWeight: 500,
-                          color: OG_COLORS.accent,
-                        }}
-                      >
-                        {count.toLocaleString()}
-                      </span>
-                      <span style={{ display: 'flex' }}>{label}</span>
-                    </div>
-                  ))}
-                </div>
-              }
-              right={<FooterCta>Open in any Atmosphere client</FooterCta>}
-            />
-          </div>
+          </Folder>
         </OgFrame>
       ),
       {
         width: 1200,
         height: 630,
-        fonts: [
-          { name: 'Crimson Pro', data: crimsonData, weight: 300, style: 'normal' },
-          { name: 'IBM Plex Mono', data: monoData, weight: 500, style: 'normal' },
-        ],
+        fonts,
         headers: {
           // Override @vercel/og's default 1-year immutable cache: profile
           // cards change when the account's avatar/name/bio changes.

@@ -21,6 +21,7 @@ export default function CollectionRecordRow({
   repoSeg,
   collection,
   onToggleSelect,
+  current,
 }: {
   rec: AtRecord;
   editing: boolean;
@@ -28,6 +29,12 @@ export default function CollectionRecordRow({
   repoSeg: string;
   collection: string;
   onToggleSelect: (uri: string) => void;
+  /**
+   * The record open beside the list (the workbench's inspector): the row
+   * wears the selected fill. Never set on the collection page, where a row
+   * leaves for the record's own page.
+   */
+  current?: boolean;
 }) {
   const rkey = rkeyFromAtUri(rec.uri) || '';
   // TID-derived timestamps are decoded client-side from the rkey
@@ -79,6 +86,8 @@ export default function CollectionRecordRow({
           prefetch={false}
           rel="nofollow"
           className="fx-rec-row"
+          data-current={current || undefined}
+          aria-current={current ? 'true' : undefined}
         >
           {cells}
         </Link>

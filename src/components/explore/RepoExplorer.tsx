@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, type KeyboardEvent, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { resolveIdentifier, type IdentityBundle } from '@/utils/atproto/identity';
 import RepoStatusNotice from './RepoStatusNotice';
@@ -18,6 +18,8 @@ import { usePreferences } from '@/components/PreferencesProvider';
 import AppearIn from './AppearIn';
 import Breadcrumb from './Breadcrumb';
 import CopyButton from './CopyButton';
+import { HandleCheckMark } from './HandleCheck';
+import AccountToolLinks from './AccountToolLinks';
 import ProfileHeader from './ProfileHeader';
 import RelationshipStrip from './RelationshipStrip';
 import RepoSpacesSection from './space/RepoSpacesSection';
@@ -28,6 +30,7 @@ import AuditTab from './tabs/AuditTab';
 import BacklinksTab from './tabs/BacklinksTab';
 import NotFoundPanel from '@/components/NotFoundPanel';
 import SkeletonSwap from './skeletons/SkeletonSwap';
+import { useFadeOnChange } from '@/components/useFadeOnChange';
 import { RepoSkeleton } from './skeletons/pages';
 
 const TABS = [
@@ -253,7 +256,12 @@ function RepoGlanceSection({
           Repo at a glance
         </button>
       </h2>
-      {!isCollapsed && <AccountStats did={identity.did} handle={identity.handle} />}
+      {!isCollapsed && (
+        <>
+          <AccountStats did={identity.did} handle={identity.handle} />
+          <AccountToolLinks did={identity.did} />
+        </>
+      )}
     </section>
   );
 }
@@ -297,6 +305,7 @@ function IdentityRow({ identity }: { identity: IdentityBundle }) {
             <code className="fx-mono fx-trunc" title={`@${identity.handle}`}>
               @{identity.handle}
             </code>
+            <HandleCheckMark did={identity.did} handle={identity.handle} />
             <CopyButton
               value={identity.handle}
               label="Copy handle"
@@ -331,6 +340,9 @@ function TabbedView({ identity }: { identity: IdentityBundle }) {
   const searchParams = useSearchParams();
   const tabParam = (searchParams.get('tab') || 'collections') as TabId;
   const tab: TabId = TABS.find((t) => t.id === tabParam) ? tabParam : 'collections';
+  // The open folder's sheet fades its new contents in as the tab rises.
+  const panelRef = useRef<HTMLDivElement>(null);
+  useFadeOnChange(panelRef, tab);
 
   function selectTab(id: TabId) {
     const next = new URLSearchParams(searchParams.toString());
@@ -392,6 +404,7 @@ function TabbedView({ identity }: { identity: IdentityBundle }) {
       </div>
 
       <div
+        ref={panelRef}
         role="tabpanel"
         id="repo-tabpanel"
         aria-labelledby={`repo-tab-${tab}`}

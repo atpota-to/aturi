@@ -1050,19 +1050,11 @@ a.fn-c-pill:hover {
   color: var(--text-tertiary);
   font-variant-numeric: tabular-nums;
 }
-.fn-fb-skel {
-  display: flex;
-  gap: 14px;
-  padding: 14px 16px;
-}
-.fn-fb-skel + .fn-fb-skel {
-  border-top: 1px solid var(--border-subtle);
-}
-.fn-fb-skel-main {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+/* The loading rows (BoardSkeleton) are the real rows' classes; this gives
+   a title bar the title link's type, so its line is the title's height. */
+.fn-fb-skel-title {
+  font-size: 15px;
+  line-height: 1.35;
 }
 
 /* Author line. */
@@ -1330,7 +1322,8 @@ a.fn-c-pill:hover {
   flex-wrap: wrap;
   gap: 6px 10px;
 }
-.fn-fb-post-title h1 {
+.fn-fb-post-title h1,
+.fn-fb-skel-h1 {
   margin: 0;
   font-family: var(--font-sans);
   font-size: 24px;
@@ -1459,7 +1452,8 @@ a.fn-c-pill:hover {
     padding: 0 3px;
     border-radius: var(--radius-pill);
   }
-  .fn-fb-post-title h1 {
+  .fn-fb-post-title h1,
+  .fn-fb-skel-h1 {
     font-size: 21px;
   }
   .fn-fb-filters {

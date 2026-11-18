@@ -1,8 +1,10 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { getPlcDocument, type PlcDocument } from '@/utils/atproto/plc';
 import type { IdentityBundle } from '@/utils/atproto/identity';
+import { HandleCheckLine } from '../HandleCheck';
 import { IdentityTabSkeleton } from '../skeletons/pages';
 
 export default function IdentityTab({ identity }: { identity: IdentityBundle }) {
@@ -43,8 +45,17 @@ export default function IdentityTab({ identity }: { identity: IdentityBundle }) 
   const services = doc.service || [];
   const verifications = doc.verificationMethod || [];
 
+  // The handle the document claims: its first at:// entry.
+  const claimed = akas.find((a) => a.startsWith('at://'))?.slice('at://'.length) || null;
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+      {claimed && (
+        <Section title="Handle">
+          <HandleCheckLine did={did} handle={claimed} />
+        </Section>
+      )}
+
       <Section title="Also known as">
         <ul className="explore-identity-list">
           {akas.length === 0 && <li className="explore-muted">—</li>}
@@ -95,6 +106,14 @@ export default function IdentityTab({ identity }: { identity: IdentityBundle }) 
                   <code style={{ fontSize: '0.75rem' }}>
                     {v.publicKeyMultibase}
                   </code>
+                  {/* Which curve the key is on, in the identifier decoder. */}
+                  <Link
+                    href={`/tools/decode?q=${encodeURIComponent(v.publicKeyMultibase)}`}
+                    rel="nofollow"
+                    className="fx-idsec-link"
+                  >
+                    Decode
+                  </Link>
                 </div>
               )}
             </li>

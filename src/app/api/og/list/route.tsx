@@ -2,21 +2,21 @@ import { ImageResponse } from '@vercel/og';
 import { NextRequest } from 'next/server';
 import { fetchImageAsDataUrl } from '@/lib/og-image';
 import {
-  ContextLabel,
+  Avatar,
+  BrandMark,
+  Folder,
   FooterCta,
-  loadGoogleFont,
-  OgFooter,
+  loadOgFonts,
   OgFrame,
   OG_COLORS,
-  OG_GLYPH_BASELINE,
+  PersonGlyph,
   sanitizeOgText,
-  TopRow,
 } from '@/lib/og-design';
 
 export const runtime = 'edge';
 export const revalidate = 3600; // Cache for 1 hour
 
-const LIST_AVATAR = 104;
+const LIST_AVATAR = 112;
 
 /**
  * Trim to a word boundary near `max`, dropping trailing punctuation so the
@@ -30,15 +30,15 @@ function clamp(text: string, max: number): string {
   return `${cut.replace(/[\s.,;:!?·|—-]+$/, '')}…`;
 }
 
-function ListGlyph({ size = 44 }: { size?: number }) {
+function ListGlyph({ size = 44, color = OG_COLORS.accent }: { size?: number; color?: string }) {
   return (
     <svg
       width={size}
       height={size}
       viewBox="0 0 24 24"
       fill="none"
-      stroke={OG_COLORS.accent}
-      strokeWidth={1.4}
+      stroke={color}
+      strokeWidth={1.8}
       strokeLinecap="round"
       strokeLinejoin="round"
       xmlns="http://www.w3.org/2000/svg"
@@ -114,95 +114,77 @@ export async function GET(request: NextRequest) {
     const countLabel =
       itemCount === null ? '' : `${itemCount.toLocaleString()} ${itemCount === 1 ? 'member' : 'members'}`;
 
-    const allText =
-      `${listName} ${description} ${creatorName} @${creatorHandle} ${countLabel} ` +
-      'List Curated by aturi.to Open in any Atmosphere client Universal link ' +
-      OG_GLYPH_BASELINE;
+    const fonts = await loadOgFonts(
+      `${listName} ${description} Curated by ${creatorName} ${countLabel} List Open in any Atmosphere client`,
+      `@${creatorHandle}`,
+    );
 
-    const [crimsonData, monoData] = await Promise.all([
-      loadGoogleFont('Crimson+Pro:wght@300;400;600', allText),
-      loadGoogleFont(
-        'IBM+Plex+Mono:wght@500',
-        `List @${creatorHandle} ${countLabel} , . : / - _ ` + OG_GLYPH_BASELINE,
-      ),
-    ]);
-
-    const nameSize = listName.length > 30 ? 44 : listName.length > 20 ? 52 : 60;
+    const nameSize = listName.length > 30 ? 42 : listName.length > 20 ? 50 : 58;
 
     return new ImageResponse(
       (
         <OgFrame>
-          <div
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              flex: 1,
-              gap: '28px',
-              position: 'relative',
-              zIndex: 1,
-            }}
+          <Folder
+            tab={
+              countLabel ? (
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: '10px' }}>
+                  <span style={{ display: 'flex' }}>List</span>
+                  <span style={{ display: 'flex', fontWeight: 500, color: OG_COLORS.textTertiary }}>
+                    {countLabel}
+                  </span>
+                </div>
+              ) : (
+                'List'
+              )
+            }
+            tabIcon={<ListGlyph size={22} />}
+            aside={<BrandMark />}
+            // The byline lives in the footer so an undescribed list still has
+            // a weighted bottom edge instead of one line floating mid-card.
+            footerLeft={
+              <div style={{ display: 'flex', alignItems: 'center', gap: '14px', minWidth: 0 }}>
+                <Avatar src={creatorAvatarDataUrl} size={40} fallback={<PersonGlyph size={20} />} />
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: '12px' }}>
+                  <span style={{ display: 'flex', fontSize: '22px', color: OG_COLORS.textSecondary }}>
+                    Curated by
+                    <span style={{ display: 'flex', marginLeft: '6px', fontWeight: 700, color: OG_COLORS.textPrimary }}>
+                      {creatorName}
+                    </span>
+                  </span>
+                  <span
+                    style={{
+                      display: 'flex',
+                      fontFamily: 'IBM Plex Mono',
+                      fontSize: '18px',
+                      fontWeight: 500,
+                      color: OG_COLORS.textTertiary,
+                    }}
+                  >
+                    {'@' + creatorHandle}
+                  </span>
+                </div>
+              </div>
+            }
+            footerRight={<FooterCta>Open in any Atmosphere client</FooterCta>}
           >
-            <TopRow eyebrow="Universal link" />
-
-            <div style={{ display: 'flex', alignItems: 'center', gap: '26px', flexShrink: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '28px', flexShrink: 0 }}>
+              <Avatar
+                src={listAvatarDataUrl}
+                size={LIST_AVATAR}
+                shape="square"
+                fallback={<ListGlyph size={48} />}
+              />
               <div
                 style={{
-                  width: `${LIST_AVATAR}px`,
-                  height: `${LIST_AVATAR}px`,
-                  flexShrink: 0,
-                  background: OG_COLORS.bgTertiary,
-                  border: `1px solid ${OG_COLORS.borderAccent}`,
                   display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  overflow: 'hidden',
+                  fontSize: `${nameSize}px`,
+                  fontWeight: 800,
+                  letterSpacing: '-0.03em',
+                  lineHeight: 1.1,
+                  minWidth: 0,
                 }}
               >
-                {listAvatarDataUrl ? (
-                  <img
-                    src={listAvatarDataUrl}
-                    alt=""
-                    width={LIST_AVATAR}
-                    height={LIST_AVATAR}
-                    style={{
-                      width: `${LIST_AVATAR}px`,
-                      height: `${LIST_AVATAR}px`,
-                      objectFit: 'cover',
-                    }}
-                  />
-                ) : (
-                  <ListGlyph size={44} />
-                )}
-              </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', minWidth: 0 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                  <ContextLabel>List</ContextLabel>
-                  {countLabel && (
-                    <div
-                      style={{
-                        display: 'flex',
-                        fontFamily: 'IBM Plex Mono',
-                        fontSize: '19px',
-                        fontWeight: 500,
-                        color: OG_COLORS.textTertiary,
-                      }}
-                    >
-                      {countLabel}
-                    </div>
-                  )}
-                </div>
-                <div
-                  style={{
-                    display: 'flex',
-                    fontSize: `${nameSize}px`,
-                    fontWeight: 400,
-                    letterSpacing: '-0.02em',
-                    lineHeight: 1.1,
-                  }}
-                >
-                  {listName}
-                </div>
+                {listName}
               </div>
             </div>
 
@@ -221,7 +203,6 @@ export async function GET(request: NextRequest) {
                     display: 'flex',
                     fontSize: '26px',
                     lineHeight: 1.5,
-                    fontWeight: 300,
                     color: OG_COLORS.textSecondary,
                     wordBreak: 'break-word',
                   }}
@@ -230,65 +211,13 @@ export async function GET(request: NextRequest) {
                 </div>
               )}
             </div>
-
-            <OgFooter
-              // The byline lives in the footer so an undescribed list still has
-              // a weighted bottom edge instead of one line floating mid-card.
-              left={
-                <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-                  <div
-                    style={{
-                      width: '42px',
-                      height: '42px',
-                      flexShrink: 0,
-                      background: OG_COLORS.bgTertiary,
-                      border: `1px solid ${OG_COLORS.borderMedium}`,
-                      display: 'flex',
-                      overflow: 'hidden',
-                    }}
-                  >
-                    {creatorAvatarDataUrl && (
-                      <img
-                        src={creatorAvatarDataUrl}
-                        alt=""
-                        width={42}
-                        height={42}
-                        style={{ width: '42px', height: '42px', objectFit: 'cover' }}
-                      />
-                    )}
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'baseline', gap: '12px' }}>
-                    <span
-                      style={{ display: 'flex', fontSize: '23px', color: OG_COLORS.textSecondary }}
-                    >
-                      Curated by {creatorName}
-                    </span>
-                    <span
-                      style={{
-                        display: 'flex',
-                        fontFamily: 'IBM Plex Mono',
-                        fontSize: '18px',
-                        fontWeight: 500,
-                        color: OG_COLORS.textTertiary,
-                      }}
-                    >
-                      {'@' + creatorHandle}
-                    </span>
-                  </div>
-                </div>
-              }
-              right={<FooterCta>Open in any Atmosphere client</FooterCta>}
-            />
-          </div>
+          </Folder>
         </OgFrame>
       ),
       {
         width: 1200,
         height: 630,
-        fonts: [
-          { name: 'Crimson Pro', data: crimsonData, weight: 300, style: 'normal' },
-          { name: 'IBM Plex Mono', data: monoData, weight: 500, style: 'normal' },
-        ],
+        fonts,
         headers: {
           // Override @vercel/og's default 1-year immutable cache: list
           // cards change when the list's name/description changes.

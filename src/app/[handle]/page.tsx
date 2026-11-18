@@ -6,6 +6,7 @@ import AutoRedirect from '@/components/AutoRedirect';
 import AutoRedirectGate from '@/components/AutoRedirectGate';
 import ProfilePreview from '@/components/ProfilePreview';
 import ProfilePreviewSkeleton from '@/components/ProfilePreviewSkeleton';
+import WaypointPickerSkeleton from '@/components/WaypointPickerSkeleton';
 import ScrollIndicator from '@/components/ScrollIndicator';
 import Header from '@/components/Header';
 import NotFoundPanel from '@/components/NotFoundPanel';
@@ -199,7 +200,10 @@ export default async function ProfilePage({ params }: Props) {
           <>
             <Header compact />
             <div className="container-narrow waypoint-page">
-              <ProfilePreviewSkeleton />
+              <div className="skeleton-container">
+                <ProfilePreviewSkeleton />
+              </div>
+              <WaypointPickerSkeleton />
             </div>
           </>
         }

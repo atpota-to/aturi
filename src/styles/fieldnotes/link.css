@@ -25,12 +25,14 @@
   }
 }
 
-.waypoint-page > .content-fade-in {
+.waypoint-page > .content-fade-in,
+.waypoint-page > .skeleton-container {
   margin-bottom: 1.5rem;
 }
 
 .waypoint-page > .content-fade-in > .card,
-.waypoint-page > .content-fade-in > div > .card {
+.waypoint-page > .content-fade-in > div > .card,
+.waypoint-page > .skeleton-container > .card {
   margin-bottom: 0 !important;
 }
 
@@ -216,6 +218,56 @@
   scroll-margin-top: 72px;
 }
 
+/* Arrival: a quiet cascade. The picker resolves out of its skeleton with
+   the preview card above it (.content-fade-in), then reads top to bottom:
+   the heading, the recommended rows 36ms apart, and each group after the
+   one above it, its rows 36ms apart. Opacity only, nothing moves. Rows set
+   their place as --i and groups as --g (WaypointPicker.tsx,
+   CompactWaypointGroup.tsx); the caps keep a long list from trailing.
+   Reduced motion drops the cascade in motion.css, since a delay survives
+   the global clamp on durations. */
+.waypoint-page > .fn-lp-picker :is(
+    .fn-lp-head,
+    .fn-lp-hero,
+    .waypoint-layout-bar,
+    .waypoint-group-label,
+    .waypoint-row,
+    .waypoint-tile,
+    .fn-lp-see-all
+  ) {
+  animation: picker-arrive 320ms ease-out backwards;
+}
+
+.waypoint-page > .fn-lp-picker .fn-lp-hero {
+  animation-delay: calc(60ms + min(var(--i, 0), 6) * 36ms);
+}
+
+.waypoint-page > .fn-lp-picker .waypoint-group {
+  --picker-group-at: calc(200ms + min(var(--g, 0), 3) * 90ms);
+}
+
+.waypoint-page > .fn-lp-picker .waypoint-layout-bar {
+  animation-delay: 160ms;
+}
+
+.waypoint-page > .fn-lp-picker .waypoint-group-label {
+  animation-delay: var(--picker-group-at);
+}
+
+.waypoint-page > .fn-lp-picker :is(.waypoint-row, .waypoint-tile) {
+  animation-delay: calc(var(--picker-group-at) + 36ms + min(var(--i, 0), 8) * 36ms);
+}
+
+.waypoint-page > .fn-lp-picker .fn-lp-see-all {
+  animation-delay: 420ms;
+}
+
+@keyframes picker-arrive {
+  from {
+    opacity: 0;
+  }
+}
+
 .fn-lp-head {
   display: flex;
   flex-direction: column;
@@ -223,7 +275,8 @@
   margin-top: 0.25rem;
 }
 
-.fn-lp-head h1 {
+.fn-lp-head h1,
+.fn-lp-head-title {
   margin: 0;
   font-family: var(--font-sans);
   font-size: 1.625rem;
@@ -234,18 +287,21 @@
   overflow-wrap: anywhere;
 }
 
-.fn-lp-head p {
+.fn-lp-head p,
+.fn-lp-head-sub {
   margin: 0;
   font-size: 0.9375rem;
   color: var(--text-secondary);
 }
 
 @media (max-width: 600px) {
-  .fn-lp-head h1 {
+  .fn-lp-head h1,
+  .fn-lp-head-title {
     font-size: 1.375rem;
   }
 
-  .fn-lp-head p {
+  .fn-lp-head p,
+  .fn-lp-head-sub {
     font-size: 0.84375rem;
   }
 }
@@ -354,6 +410,12 @@
 .fn-lp-hero-arrow {
   flex: none;
   color: var(--text-tertiary);
+  transition: transform var(--motion-quick) var(--ease-soft);
+}
+
+/* The arrow leans toward the app it opens. */
+.fn-lp-hero-link:hover .fn-lp-hero-arrow {
+  transform: translateX(3px);
 }
 
 .fn-lp-hero.is-primary .fn-lp-hero-arrow {
@@ -1067,6 +1129,24 @@
 @media (max-width: 600px) {
   .fn-lp-scroll {
     bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
+  }
+}
+
+/* On a phone the site toolbar is pinned to the bottom edge (chrome.css,
+   Phone toolbar), so the remember bar and the scroll hint stand on it rather
+   than on the edge of the screen. The full-bleed bar also hands the
+   home-indicator inset to the toolbar, which now owns that edge. */
+@media (max-width: 639px) {
+  .fn-lp-remember,
+  .fn-lp-scroll {
+    bottom: calc(var(--fn-phone-bar-h) + 1rem);
+  }
+}
+
+@media (max-width: 600px) {
+  .fn-lp-remember {
+    bottom: var(--fn-phone-bar-h);
+    padding-bottom: 0.875rem;
   }
 }
 

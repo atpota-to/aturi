@@ -30,6 +30,7 @@
  *   pinnedLexicons?: string[]         // NSIDs pinned in the explorer
  *   pinnedLexiconsOthers?: string[]   // separate list for others' repos in split mode
  *   pinScope?: 'own' | 'all' | 'split'
+ *   lexiconExplorerPins?: string[]    // NSIDs and `prefix.*` pinned in the lexicons explorer
  *   collectionGroupsCollapsedByDefault?: boolean
  *   hideRelationshipBar?: boolean         // hide the explorer relationship strip
  *   hideRepoGlance?: boolean              // hide the "Repo at a glance" section
@@ -127,6 +128,7 @@ export async function writePreferencesToPds(
     pinnedLexicons: prefs.pinnedLexicons,
     pinnedLexiconsOthers: prefs.pinnedLexiconsOthers,
     pinScope: prefs.pinScope,
+    lexiconExplorerPins: prefs.lexiconExplorerPins,
     collectionGroupsCollapsedByDefault: prefs.collectionGroupsCollapsedByDefault,
     repoGlanceCollapsedByDefault: prefs.repoGlanceCollapsedByDefault,
     // Section layout — the source of truth for explore-page visibility/order.

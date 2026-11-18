@@ -19,6 +19,7 @@ test('registers exactly the lexicon tools', () => {
     [...tools.keys()].sort(),
     [
       'get_lexicon_activity',
+      'get_lexicon_field_usage',
       'get_lexicon_schema',
       'list_lexicon_movers',
       'list_new_lexicons',
@@ -70,7 +71,7 @@ test('window and sort are closed enums; limits are bounded', () => {
 });
 
 test('NSID-taking tools reject non-NSIDs before touching the network', async () => {
-  for (const name of ['get_lexicon_activity', 'sample_recent_records', 'get_lexicon_schema']) {
+  for (const name of ['get_lexicon_activity', 'sample_recent_records', 'get_lexicon_schema', 'get_lexicon_field_usage']) {
     const result = await tools.get(name)!.handler({ nsid: 'not an nsid' });
     assert.equal(result.isError, true, name);
     assert.equal(resultBody(result).code, 'invalid_parameter', name);
@@ -540,4 +541,191 @@ test('list_lexicon_movers applies the threshold to the busier window', async () 
   assert.equal(body.truncated, true);
   assert.equal((body.lexicons as unknown[]).length, 2);
   assert.equal(body.count, 5);
+});
+
+// A record schema with one required field records sometimes leave out, one
+// nobody sets, and records that add a field it never declares.
+const NOTE_SCHEMA = {
+  lexicon: 1,
+  id: 'com.example.usage.note',
+  defs: {
+    main: {
+      type: 'record',
+      key: 'tid',
+      record: {
+        type: 'object',
+        required: ['text', 'createdAt'],
+        properties: {
+          text: { type: 'string' },
+          createdAt: { type: 'string', format: 'datetime' },
+          mood: { type: 'string' },
+        },
+      },
+    },
+  },
+};
+
+const NOTES = [
+  { did: 'did:plc:a', text: 'one', createdAt: 't', colour: 'red' },
+  { did: 'did:plc:a', text: 'two', createdAt: 't' },
+  { did: 'did:plc:b', text: 'three' },
+].map(({ did, ...record }, i) => ({
+  did,
+  collection: 'com.example.usage.note',
+  rkey: `3k${i}`,
+  time_us: (1_800_000_000 + i) * 1_000_000,
+  record: { $type: 'com.example.usage.note', ...record },
+}));
+
+/**
+ * Run get_lexicon_field_usage against a fake UFOs and a fake schema
+ * authority: the TXT record names did:plc:pub and Slingshot answers with
+ * `schema`, unless either is left out.
+ */
+async function runFieldUsage(
+  nsid: string,
+  opts: { schema?: unknown; recordsStatus?: number; jetstream?: unknown[] },
+  args: Record<string, unknown> = {},
+) {
+  const originalFetch = globalThis.fetch;
+  const originalWs = (globalThis as { WebSocket?: unknown }).WebSocket;
+  const sockets: string[] = [];
+  /** Sends `opts.jetstream` as soon as it opens, then stays quiet until closed. */
+  class FakeJetstream {
+    onmessage: ((e: { data: string }) => void) | null = null;
+    onerror: (() => void) | null = null;
+    onclose: (() => void) | null = null;
+    constructor(url: string) {
+      sockets.push(url);
+      setTimeout(() => {
+        for (const m of opts.jetstream ?? []) this.onmessage?.({ data: JSON.stringify(m) });
+      }, 5);
+    }
+    close() {}
+  }
+  (globalThis as { WebSocket?: unknown }).WebSocket = FakeJetstream;
+  globalThis.fetch = (async (input: RequestInfo | URL) => {
+    const url = new URL(String(input));
+    const json = (body: unknown, status = 200) =>
+      new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json' } });
+    if (url.pathname === '/records') return opts.recordsStatus ? json({}, opts.recordsStatus) : json(NOTES);
+    if (opts.schema && url.searchParams.get('type') === 'TXT') {
+      return json({ Answer: [{ data: '"did=did:plc:pub"' }] });
+    }
+    if (opts.schema && url.pathname.endsWith('/blue.microcosm.repo.getRecordByUri')) {
+      return json({ uri: url.searchParams.get('at_uri'), cid: 'bafyschema', value: opts.schema });
+    }
+    return json({}, 404);
+  }) as typeof fetch;
+  try {
+    const result = await tools.get('get_lexicon_field_usage')!.handler({ nsid, ...args });
+    return { result, body: resultBody(result), sockets };
+  } finally {
+    globalThis.fetch = originalFetch;
+    (globalThis as { WebSocket?: unknown }).WebSocket = originalWs;
+  }
+}
+
+test('get_lexicon_field_usage checks each field against the published schema', async () => {
+  const { result, body } = await runFieldUsage('com.example.usage.note', { schema: NOTE_SCHEMA });
+  assert.notEqual(result.isError, true);
+  assert.deepEqual(body.sample, {
+    records: 3,
+    accounts: 2,
+    newest: new Date(1_800_000_002_000).toISOString(),
+    oldest: new Date(1_800_000_000_000).toISOString(),
+    sources: { ufos: 3, jetstream: 0 },
+  });
+  assert.equal((body.schema as { status: string }).status, 'found');
+  assert.deepEqual(
+    (body.fields as Array<Record<string, unknown>>).map((f) => [f.path, f.declared, f.required, f.records, f.of, f.share]),
+    [
+      ['text', true, true, 3, 3, 1],
+      ['createdAt', true, true, 2, 3, 0.667],
+      ['mood', true, false, 0, 3, 0],
+      ['colour', false, false, 1, 3, 0.333],
+    ],
+  );
+  assert.deepEqual(body.declaredUnused, ['mood']);
+  assert.deepEqual(body.undeclared, ['colour']);
+  assert.deepEqual(body.requiredMissing, [{ path: 'createdAt', missingFrom: 1 }]);
+});
+
+test('get_lexicon_field_usage still measures a lexicon with no schema to find', async () => {
+  const { result, body } = await runFieldUsage('com.example.usage.unclaimed', {});
+  assert.notEqual(result.isError, true);
+  assert.equal((body.schema as { status: string }).status, 'no_authority');
+  assert.deepEqual(
+    (body.fields as Array<Record<string, unknown>>).map((f) => [f.path, f.declared, f.records]),
+    [
+      ['text', null, 3],
+      ['createdAt', null, 2],
+      ['colour', null, 1],
+    ],
+  );
+  assert.equal(body.undeclared, undefined, 'nothing to be undeclared against');
+});
+
+test('get_lexicon_field_usage fails rather than call every field unused when UFOs is down', async () => {
+  const { result, body } = await runFieldUsage('com.example.usage.down', { recordsStatus: 503 });
+  assert.equal(result.isError, true);
+  assert.equal(body.code, 'upstream_error');
+});
+
+function commit(operation: string, did: string, rkey: string, record: Record<string, unknown> | null, collection = 'com.example.usage.note') {
+  return {
+    did,
+    time_us: 1_800_000_100_000_000,
+    kind: 'commit',
+    commit: { operation, collection, rkey, ...(record ? { record: { $type: collection, ...record } } : {}) },
+  };
+}
+
+test('get_lexicon_field_usage adds what Jetstream sends to the UFOs sample', async () => {
+  const { result, body, sockets } = await runFieldUsage(
+    'com.example.usage.live',
+    {
+      schema: NOTE_SCHEMA,
+      jetstream: [
+        // An update to a record UFOs already holds counts once, as updated.
+        commit('update', 'did:plc:b', '3k2', { text: 'three', createdAt: 't', mood: 'calm' }, 'com.example.usage.live'),
+        commit('create', 'did:plc:c', '3k9', { text: 'four', createdAt: 't' }, 'com.example.usage.live'),
+        commit('delete', 'did:plc:c', '3k8', null, 'com.example.usage.live'),
+        commit('create', 'did:plc:c', '3k7', { text: 'elsewhere' }, 'com.example.other'),
+      ],
+    },
+    { jetstream_seconds: 1 },
+  );
+  assert.notEqual(result.isError, true);
+  assert.equal(sockets.length, 1);
+  assert.deepEqual(new URL(sockets[0]).searchParams.getAll('wantedCollections'), ['com.example.usage.live']);
+  const sample = body.sample as Record<string, unknown>;
+  assert.equal(sample.records, 4);
+  assert.equal(sample.accounts, 3);
+  assert.deepEqual(sample.sources, { ufos: 2, jetstream: 2 });
+  assert.deepEqual(sample.jetstream, { seconds: 1, records: 2, reachedMax: false });
+  assert.deepEqual(body.requiredMissing, [], 'the record missing createdAt was updated to have it');
+  assert.deepEqual(body.declaredUnused, []);
+});
+
+test('get_lexicon_field_usage measures Jetstream alone when UFOs is down', async () => {
+  const { result, body } = await runFieldUsage(
+    'com.example.usage.liveonly',
+    {
+      recordsStatus: 503,
+      jetstream: [commit('create', 'did:plc:c', '3k9', { text: 'four' }, 'com.example.usage.liveonly')],
+    },
+    { jetstream_seconds: 1 },
+  );
+  assert.notEqual(result.isError, true);
+  const sample = body.sample as Record<string, unknown>;
+  assert.deepEqual(sample.sources, { ufos: 0, jetstream: 1 });
+  assert.equal(sample.ufos, 'unavailable');
+});
+
+test('get_lexicon_field_usage bounds the Jetstream window', () => {
+  const schema = tools.get('get_lexicon_field_usage')!.config.inputSchema!;
+  assert.equal(schema.safeParse({ nsid: 'app.bsky.feed.post', jetstream_seconds: 16 }).success, false);
+  assert.equal(schema.safeParse({ nsid: 'app.bsky.feed.post', jetstream_seconds: 0 }).success, false);
+  assert.equal(schema.safeParse({ nsid: 'app.bsky.feed.post', jetstream_seconds: 15 }).success, true);
 });

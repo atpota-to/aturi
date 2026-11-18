@@ -3,6 +3,7 @@
 import { Fragment, useMemo } from 'react';
 import { ArrowDownRight, ArrowUpRight, ExternalLink } from 'lucide-react';
 import { formatPct } from '@/utils/ufos/format';
+import SegmentThumb from '@/components/SegmentThumb';
 
 /**
  * Shared presentational primitives for the lexicons surfaces (trending
@@ -117,6 +118,7 @@ export function Segmented<T extends string>({
 }) {
   return (
     <div role="group" aria-label={ariaLabel} className="fn-segmented">
+      <SegmentThumb active={value} />
       {options.map(({ value: v, label }) => {
         const active = v === value;
         return (

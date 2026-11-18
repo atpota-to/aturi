@@ -30,6 +30,13 @@
   gap: 16px;
   align-items: start;
   font-family: var(--font-sans);
+  /* Zebra striping for the collections tree and the records list. The band
+     sits most of the way to the theme's hover fill, and the hover over a list
+     with bands goes a step past that fill, so a hovered row still stands out
+     whether or not it is banded. Both mix the theme's own tokens, so every
+     scheme gets bands in its own tint. */
+  --fx-stripe: color-mix(in srgb, var(--bg-tertiary) 70%, var(--bg-secondary));
+  --fx-stripe-hover: color-mix(in srgb, var(--bg-tertiary), var(--text-primary) 6%);
 }
 /* On a collection the records come first when stacked: the sidebar is
    navigation, and a phone shouldn't have to scroll past a tree to reach the
@@ -239,14 +246,9 @@
 .fx-dot[data-live] {
   background: var(--status-live);
 }
-[aria-pressed='true'] > .fx-dot {
-  animation: fx-pulse 1.6s ease-in-out infinite;
-}
-@keyframes fx-pulse {
-  50% {
-    opacity: 0.35;
-  }
-}
+/* Live, the dot holds still: it ripples once each time a record arrives
+   (CollectionExplorer.tsx, motion.css "Live indicator") rather than
+   blinking on a timer whatever the stream is doing. */
 [data-reduce-motion='true'] .fx-dot {
   animation: none !important;
 }
@@ -520,6 +522,95 @@
 .fx-dl a:hover {
   color: var(--accent-forest);
 }
+/* The tools that read a whole account (AccountToolLinks.tsx), in a row
+   under the stats grid. */
+.fx-acct-tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+.fx-acct-tools .fx-btn {
+  color: var(--text-secondary);
+}
+.fx-acct-tools .fx-btn svg {
+  color: var(--text-tertiary);
+}
+
+/* Whether the handle resolves back to the DID (HandleCheck.tsx): a quiet
+   check when it does, a labelled warning when it does not. Both open the
+   handle debugger. The tones are the tool pages' (tool-pages.css). */
+.fx-dl a.fx-handle-check {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 18px;
+  min-width: 18px;
+  padding: 0;
+  justify-content: center;
+  box-sizing: border-box;
+  border-radius: var(--radius-pill);
+  background: var(--accent-soft);
+  box-shadow: inset 0 0 0 1px var(--accent-soft-border);
+  color: var(--accent-soft-fg);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+}
+.fx-dl a.fx-handle-check[data-state='bad'] {
+  padding: 0 7px 0 6px;
+  background: var(--tool-warn-soft);
+  box-shadow: inset 0 0 0 1px var(--tool-warn-border);
+  color: var(--tool-warn);
+}
+.fx-dl a.fx-handle-check:hover {
+  box-shadow: inset 0 0 0 1px currentColor;
+}
+.fx-dl a.fx-handle-check:focus-visible {
+  outline: 2px solid var(--text-accent);
+  outline-offset: 2px;
+}
+
+/* The same answer as a sentence, in the Identity tab. */
+.fx-handle-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px 16px;
+  padding: 12px 14px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-control);
+  background: var(--surface-subtle);
+}
+.fx-handle-line[data-state='ok'] {
+  border-color: var(--accent-soft-border);
+  background: var(--accent-soft);
+}
+.fx-handle-line[data-state='bad'] {
+  border-color: var(--tool-warn-border);
+  background: var(--tool-warn-soft);
+}
+.fx-handle-line-main {
+  flex: 1 1 240px;
+  min-width: 0;
+}
+.fx-handle-line-main code {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--text-primary);
+  background: none;
+  padding: 0;
+  overflow-wrap: anywhere;
+}
+.fx-handle-line-main p {
+  margin: 2px 0 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
 .fx-acct-actions {
   display: flex;
   gap: 8px;
@@ -679,6 +770,17 @@
 .fx-row:hover {
   background: var(--bg-tertiary);
 }
+/* Every other row as drawn is banded; CollectionsTab does the counting,
+   since the rows sit in nested lists `:nth-child` can't count across. Phones
+   keep their own scheme below: hairlines between rows and filled leaves. */
+@media (min-width: 641px) {
+  .fx-row[data-stripe] {
+    background: var(--fx-stripe);
+  }
+  .fx-row:hover {
+    background: var(--fx-stripe-hover);
+  }
+}
 .fx-row-main {
   flex: 1;
   min-width: 0;
@@ -709,6 +811,39 @@
 }
 .fx-row-main[aria-expanded='true'] .fx-row-chev {
   transform: rotate(90deg);
+}
+/* A top-level group's site icon (LexiconFavicon). The slot is fixed, so
+   names line up whether it holds the icon, a letter tile for a namespace
+   with no site or no icon, or the empty tile an icon fades in over. */
+.fx-favicon {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--text-primary) 9%, transparent);
+  color: var(--text-secondary);
+  font-family: var(--font-sans);
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 1;
+}
+.fx-favicon img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+.fx-favicon[data-state='loaded'] {
+  background: transparent;
+}
+.fx-favicon[data-state='loaded'] img {
+  opacity: 1;
 }
 .fx-row-text {
   flex: 1;
@@ -1005,7 +1140,12 @@
   min-width: 0;
 }
 .fx-rec-row:hover {
-  background: var(--surface-subtle);
+  background: var(--fx-stripe-hover);
+}
+/* Zebra striping, every other record banded. `of .fx-rec-item` skips the
+   column-head row, so the first record is never the banded one. */
+.fx-rec-item:nth-child(even of .fx-rec-item) {
+  background: var(--fx-stripe);
 }
 .fx-rec-row:focus-visible {
   outline: 2px solid var(--text-accent);
@@ -1331,6 +1471,20 @@
   color: var(--text-primary);
 }
 
+/* A quiet link at the end of an identity row, into the matching tool. */
+.fx-idsec-link {
+  flex: none;
+  margin-left: 4px;
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-accent);
+  text-decoration: none;
+}
+.fx-idsec-link:hover {
+  color: var(--accent-forest);
+}
+
 /* --- bottom chrome bar --------------------------------------------------- */
 
 .explore-chrome-card {
@@ -1365,6 +1519,15 @@
 .explore-chrome-clear {
   border-radius: 6px;
   padding: 4px;
+}
+/* Paste and go (ChromeField.tsx) is for touch screens, where pasting is
+   otherwise a long press and a menu. With a mouse and keyboard the paste
+   shortcut is quicker than any button, and Chrome would stop to ask for
+   clipboard permission on the first click. */
+@media (hover: hover) and (pointer: fine) {
+  .explore-chrome-paste {
+    display: none;
+  }
 }
 .explore-chrome-button {
   height: 36px;
@@ -1405,24 +1568,499 @@
   font-family: var(--font-sans);
 }
 
-/* Backlink sources (BacklinksTab): divided rows in the panel's card, not a
-   card per row, with the explorer's row hover. */
-.fx-backlink-source + .fx-backlink-source {
+/* A record's relationships as a list of ways in (BacklinksTab's launcher):
+   the record card in a pane names each kind of link and its count, and the
+   pane beside it lists the records. Divided rows in the card, with the
+   explorer's row hover. */
+.fx-bl-nav {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.fx-bl-nav > li + li {
   border-top: 1px solid var(--border-subtle);
 }
-.fx-backlink-source > button:hover,
-/* The linking records inside an expanded source: a hover and focus colour,
-   the DID underlined, so a row reads as the link it is. */
-.fx-backlink-record:hover,
-.fx-backlink-record:focus-visible {
+.fx-bl-nav-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 40px;
+  padding: 0 8px;
+  border-radius: 8px;
+  font-size: 13.5px;
+  color: var(--text-primary);
+  text-decoration: none;
+}
+.fx-bl-nav-row > svg {
+  flex: none;
   color: var(--text-accent);
 }
-.fx-backlink-record:hover code:first-child {
+.fx-bl-nav-row > .fx-bl-nav-go {
+  color: var(--text-faint);
+}
+.fx-bl-nav-label {
+  flex: 1;
+  min-width: 0;
+  font-weight: 600;
+}
+.fx-bl-nav-count {
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-secondary);
+}
+a.fx-bl-nav-row:hover {
+  background: var(--surface-subtle);
+}
+a.fx-bl-nav-row:hover > .fx-bl-nav-go {
+  color: var(--text-secondary);
+}
+.fx-bl-nav-row:focus-visible {
+  outline: 2px solid var(--text-accent);
+  outline-offset: -2px;
+}
+@media (pointer: coarse) {
+  .fx-bl-nav-row {
+    min-height: 44px;
+  }
+}
+/* The relationship the pane beside the card is listing. */
+.fx-bl-nav-row[aria-current='true'] {
+  background: var(--accent-soft);
+  color: var(--accent-soft-fg);
+}
+.fx-bl-nav-row[aria-current='true'] > svg,
+.fx-bl-nav-row[aria-current='true'] .fx-bl-nav-count {
+  color: inherit;
+}
+
+/* Backlinks tab on a repo page: a tile per relationship (followers,
+   mentions, lists…) over one merged list of the records behind it. The
+   tiles are the "Repo at a glance" tiles (AccountStats) made pressable, at
+   the same sizes, so the tab reads as part of the page above it. */
+.fx-bl {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.fx-bl-tiles {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+/* Two across on a phone, and between 960 and 1100 where the sidebar leaves
+   the column narrow: the glance grid's breakpoints. */
+@media (max-width: 640px), (min-width: 960px) and (max-width: 1099px) {
+  .fx-bl-tiles {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+.fx-bl-tile {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  min-width: 0;
+  padding: 0.75rem 0.875rem;
+  border: 1px solid var(--border-medium);
+  border-radius: 10px;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+.fx-bl-tile:hover {
+  border-color: var(--border-strong);
+  background: var(--surface-subtle);
+}
+.fx-bl-tile:focus-visible {
+  outline: 2px solid var(--text-accent);
+  outline-offset: 2px;
+}
+/* A tile is a link where its host keeps the open relationship in the
+   address, and marks the open one as current rather than pressed. */
+a.fx-bl-tile {
+  text-decoration: none;
+}
+.fx-bl-tile[aria-pressed='true'],
+.fx-bl-tile[aria-current='true'] {
+  border-color: var(--accent-moss);
+  background: var(--accent-soft);
+}
+.fx-bl-tile-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+.fx-bl-tile-label svg {
+  flex: none;
+  color: var(--text-accent);
+}
+.fx-bl-tile-value {
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.fx-bl-tile-sub {
+  margin-top: -0.15rem;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--text-tertiary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.fx-bl-tile[aria-pressed='true'] .fx-bl-tile-label,
+.fx-bl-tile[aria-pressed='true'] .fx-bl-tile-value,
+.fx-bl-tile[aria-pressed='true'] .fx-bl-tile-sub,
+.fx-bl-tile[aria-current='true'] .fx-bl-tile-label,
+.fx-bl-tile[aria-current='true'] .fx-bl-tile-value,
+.fx-bl-tile[aria-current='true'] .fx-bl-tile-sub {
+  color: var(--accent-soft-fg);
+}
+
+.fx-bl-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.fx-bl-detail-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 12px;
+}
+.fx-bl-detail-head h3 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 650;
+  color: var(--text-primary);
+}
+.fx-bl-detail-head p {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-tertiary);
+}
+.fx-bl-apps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.fx-bl-apps .fx-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+/* The relationship chips in the record card wear their glyph. */
+.fx-bl-apps .fx-chip > svg {
+  flex: none;
+}
+.fx-bl-chip-count {
+  font-size: 12px;
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+  opacity: 0.8;
+}
+/* Narrowed to one source from the Sources list: says which, with a way
+   back to the whole relationship. */
+.fx-bl-narrow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+  padding: 8px 10px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-control);
+  background: var(--surface-subtle);
+  font-size: 12.5px;
+  color: var(--text-secondary);
+}
+.fx-bl-narrow code {
+  min-width: 0;
+  padding: 0.15em 0.4em;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-primary);
+  overflow-wrap: anywhere;
+}
+.fx-bl-narrow .fx-btn {
+  margin-left: auto;
+}
+
+/* An app's waypoint mark, or a monogram where the catalogue has none. */
+.fx-bl-mark {
+  flex: none;
+  display: inline-grid;
+  place-items: center;
+  width: 14px;
+  height: 14px;
+  border-radius: 4px;
+  overflow: hidden;
+  color: var(--text-primary);
+}
+.fx-bl-mark svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.fx-bl-mark[data-mono] {
+  background: var(--bg-tertiary);
+  box-shadow: inset 0 0 0 1px var(--border-medium);
+  color: var(--text-tertiary);
+  font-family: var(--font-sans);
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+/* A linking record: avatar, name and handle, a line of what it says, and
+   when. The whole row is the link to the record. */
+.fx-bl-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.fx-bl-row + .fx-bl-row {
+  border-top: 1px solid var(--border-subtle);
+}
+.fx-bl-row-link {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: start;
+  padding: 9px 8px;
+  border-radius: 8px;
+  color: var(--text-primary);
+  text-decoration: none;
+}
+.fx-bl-row-link:hover {
+  background: var(--surface-subtle);
+}
+.fx-bl-row-link:hover .fx-bl-row-name {
   text-decoration: underline;
   text-underline-offset: 0.15em;
 }
-.fx-backlink-source > button:focus-visible {
-  background: var(--bg-tertiary) !important;
+.fx-bl-row-link:focus-visible {
+  outline: 2px solid var(--text-accent);
+  outline-offset: -2px;
+}
+/* The linking record open beside the list (the workbench's peek), in the
+   record list's own selected fill. */
+.fx-bl-row-link[data-current],
+.fx-bl-row-link[data-current]:hover {
+  background: var(--accent-soft);
+  box-shadow: inset 2px 0 0 var(--accent-moss);
+}
+.fx-bl-avatar {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: var(--bg-tertiary);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-tertiary);
+}
+.fx-bl-avatar[data-empty] {
+  box-shadow: inset 0 0 0 1px var(--border-medium);
+}
+.fx-bl-row-body {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.fx-bl-row-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 7px;
+  min-width: 0;
+  font-size: 13.5px;
+  line-height: 1.35;
+}
+.fx-bl-row-name {
+  min-width: 0;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.fx-bl-row-name[data-mono] {
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  font-weight: 500;
+}
+.fx-bl-row-name[data-pending] {
+  color: var(--text-tertiary);
+}
+.fx-bl-row-handle {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-tertiary);
+  overflow-wrap: anywhere;
+}
+/* Two lines of a post or a title, then an ellipsis. */
+.fx-bl-row-ctx {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--text-secondary);
+}
+.fx-bl-row-kind {
+  margin-right: 0.4em;
+  color: var(--text-tertiary);
+}
+.fx-bl-row-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding-top: 1px;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+}
+.fx-bl-pill {
+  display: inline-flex;
+  align-items: center;
+  height: 18px;
+  padding: 0 6px;
+  border-radius: var(--radius-pill);
+  background: var(--bg-tertiary);
+  box-shadow: inset 0 0 0 1px var(--border-medium);
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+.fx-bl-pill[data-tone='accent'] {
+  background: var(--accent-soft);
+  box-shadow: inset 0 0 0 1px var(--accent-soft-ring);
+  color: var(--accent-soft-fg);
+}
+.fx-bl-more {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 14px;
+  padding: 4px 8px 0;
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-tertiary);
+}
+
+/* The raw sources behind a relationship, for anyone who wants the
+   collection and path: each narrows the list to itself. */
+.fx-bl-sources {
+  padding-top: 8px;
+  border-top: 1px solid var(--border-subtle);
+}
+.fx-bl-sources > summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 0;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  list-style: none;
+  cursor: pointer;
+}
+.fx-bl-sources > summary::-webkit-details-marker {
+  display: none;
+}
+.fx-bl-sources > summary:hover {
+  color: var(--text-primary);
+}
+.fx-bl-sources > summary:focus-visible {
+  outline: 2px solid var(--text-accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+.fx-bl-sources > summary svg {
+  color: var(--text-tertiary);
+  transition: transform 0.15s ease;
+}
+.fx-bl-sources[open] > summary svg {
+  transform: rotate(90deg);
+}
+.fx-bl-source-list {
+  list-style: none;
+  margin: 4px 0 0;
+  padding: 0;
+}
+.fx-bl-source {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+  width: 100%;
+  padding: 5px 8px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  font: inherit;
+  text-align: left;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+.fx-bl-source:hover {
+  background: var(--bg-tertiary);
+}
+.fx-bl-source:focus-visible {
+  outline: 2px solid var(--text-accent);
+  outline-offset: -2px;
+}
+.fx-bl-source[aria-pressed='true'] {
+  background: var(--accent-soft);
+  color: var(--accent-soft-fg);
+}
+/* Plain text in the row, not the global inline-code chip. */
+.fx-bl-source code {
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: inherit;
+  overflow-wrap: anywhere;
+}
+.fx-bl-source code span {
+  color: var(--text-tertiary);
+}
+.fx-bl-source[aria-pressed='true'] code span {
+  color: inherit;
+}
+.fx-bl-source-count {
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-tertiary);
+}
+.fx-bl-credit {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+.fx-bl-credit a {
+  color: var(--text-accent);
+}
+@media (prefers-reduced-motion: reduce) {
+  .fx-bl-tile,
+  .fx-bl-sources > summary svg {
+    transition: none;
+  }
 }
 
 /* Two-column explorer pages: ExploreChromeBar centres the card on the

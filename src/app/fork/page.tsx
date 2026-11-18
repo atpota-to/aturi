@@ -172,6 +172,20 @@ NEXT_PUBLIC_REPO_URL=https://github.com/you/your-fork`}
               <p>
                 See <code className="fl-code">.env.example</code> for all available options.
               </p>
+              <p>
+                <strong>Optional: longer sign-ins.</strong> Out of the box your fork
+                signs users in through the browser, which needs no database and no
+                secrets &mdash; but the spec caps those sessions at roughly two
+                weeks. Running the backend OAuth client instead makes them
+                effectively unlimited. It costs a Postgres database, two generated
+                keys &mdash; one to sign with, one to encrypt stored tokens &mdash;
+                and applying <code className="fl-code">sql/001_oauth_bff.sql</code>.
+                Skipping it costs nothing but session length. See{' '}
+                <code className="fl-code">docs/backend-oauth.md</code>, and note that
+                a free-tier Supabase project pauses after about a week of inactivity
+                &mdash; which for this is a sign-in outage, so a fork with quiet
+                spells is better off on a database that does not sleep.
+              </p>
             </div>
           </section>
 
