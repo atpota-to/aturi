@@ -103,12 +103,7 @@ export function JumpField() {
    * be edited rather than followed.
    */
   async function pasteAndGo() {
-    let text: string;
-    try {
-      text = (await navigator.clipboard.readText()).trim();
-    } catch {
-      return;
-    }
+    const text = await readClipboard();
     if (!text) return;
     setValue(text);
     if (!/\s/.test(text)) await go(text);
@@ -183,16 +178,28 @@ export function useJump() {
 /**
  * Text that can only mean "take me there": an at:// URI or an http(s) link.
  * A route's filter takes over the bar from the jump search, but these still
- * jump on Enter, since a pasted link is the commonest way into the bar. The
- * filter still narrows by them as they're typed (a record search can match a
- * like's subject URI); a live filter has nothing for Enter to do, so Enter
- * is free to mean go. A handle or DID stays a filter, because a list of repos
- * or members is narrowed by exactly those, and a half-typed one would jump to
- * a repo that doesn't exist.
+ * jump on Enter or Paste and go, since a pasted link is the commonest way
+ * into the bar. The filter still narrows by them as they're typed (a record
+ * search can match a like's subject URI); a live filter has nothing for
+ * Enter to do, so Enter is free to mean go. A handle or DID stays a filter,
+ * because a list of repos or members is narrowed by exactly those, and a
+ * half-typed one would jump to a repo that doesn't exist.
  */
 export function isJumpQuery(text: string): boolean {
   const v = text.trim();
   return !/\s/.test(v) && (v.startsWith('at://') || /^https?:\/\//i.test(v));
+}
+
+/**
+ * The clipboard's text, trimmed, for a Paste and go button; null when it's
+ * empty or the browser refused the read (see JumpField's pasteAndGo).
+ */
+export async function readClipboard(): Promise<string | null> {
+  try {
+    return (await navigator.clipboard.readText()).trim() || null;
+  } catch {
+    return null;
+  }
 }
 
 const noSubscription = () => () => {};
@@ -232,7 +239,7 @@ export function FieldForm({
   onChange: (value: string) => void;
   onSubmit: () => void;
   onClear: () => void;
-  /** Only the jump search offers this; a route's filter has nothing to go to. */
+  /** Shown in Clear's slot while the field is empty, where the clipboard can be read. */
   onPasteAndGo?: () => void;
   onFocus?: () => void;
   /** Escape on an empty field: the jump search closes its phone sheet. */
@@ -302,6 +309,11 @@ export function FieldForm({
         canPaste && (
           <button
             type="button"
+            // Chromium focuses a button on press, and focus in the form folds
+            // Back and Home away on a phone (chrome.css) so the field grows
+            // right, carrying this button out from under the finger before
+            // the click lands. Refusing focus keeps it where it was tapped.
+            onMouseDown={(e) => e.preventDefault()}
             onClick={onPasteAndGo}
             aria-label="Paste and go"
             title="Paste and go"
