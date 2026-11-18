@@ -1,6 +1,7 @@
 # Plan: account checks in the Explorer
 
-Status: in progress.
+Status: built. All milestones below are done; see Left over for what was
+not, and why.
 
 Labels and Visibility (the shadowban checker) run by themselves for every
 account the Explorer opens, and show on the account card in all three
@@ -29,7 +30,8 @@ Taken from the round 2 mockups where the review left a question open.
   open in the main pane and Repo archive opens its tool.
 - **D3 (Bluesky moderation labels):** an active label from Bluesky's own
   moderation service leads the card's Labels row in amber, and turns the
-  folded card's label badge amber, so it shows on every page of the account.
+  label badge beside the rail's Labels view amber, so it shows on every page
+  of the account.
 - **D4 (no Bluesky profile):** when Bluesky's AppView answers "Profile not
   found", both rows say "No Bluesky profile" and the visibility check does
   not run. The label check's first request is what finds this out, so it
@@ -85,8 +87,10 @@ Taken from the round 2 mockups where the review left a question open.
       missing replies / left out of search (amber with dots), not shown
       (red), no Bluesky profile, could not ask (Retry), seen before (age).
 - [x] Each row links to its view.
-- [x] Badges in the folded rail header: label count (ring while
-      scanning), eye (spinner while running, then green, amber or red).
+- [x] ~~Badges in the folded rail header.~~ Built, then taken out in M6:
+      the rail's Labels and Visibility views sit right under the folded
+      header on every page and carry the same badges, and in the narrower
+      Files rail the extra badges squeezed the account's name to a letter.
 
 ### M4. Views in Workbench and Files
 
@@ -114,13 +118,30 @@ Taken from the round 2 mockups where the review left a question open.
 
 ### M6. Verification and wrap-up
 
-- [ ] `npm run lint`, `npm run typecheck`, `npm test`, `npm run build`.
-- [ ] `cd extension && npm run compile && npm test` (it imports
+- [x] `npm run lint`, `npm run typecheck`, `npm test`, `npm run build`.
+- [x] `cd extension && npm run compile && npm test` (it imports
       `src/utils`; nothing there should change, but run it).
-- [ ] Browser pass in all three layouts: an ordinary account, an account
+- [x] Browser pass in all three layouts: an ordinary account, an account
       with no Bluesky profile, light and dark, desktop and phone widths.
-- [ ] This file marked done, with anything left over listed below.
+      Against the production build: rows go asking, scanning, done; the
+      views join the card's runs (32 label requests in all, one visibility
+      run); an account with no Bluesky profile says so on both rows and
+      sends no visibility requests; no new console errors.
+- [x] This file marked done, with anything left over listed below.
 
 ## Left over
 
-Nothing yet.
+- **Round 1's other ideas.** Palette commands for the checks, and a Checks
+  tab in the Workbench record inspector for a post's own labels and
+  visibility, were left for later in round 2 and are not built.
+- **Runs shared by DID.** The Explorer keys every run by the account's DID,
+  and its "Open in…" links carry the DID, so the tool page they open joins
+  the same run. A tool page opened with a handle typed in keys its runs by
+  that handle and starts its own.
+- **Per tab, in memory.** The shared runs live in the page. A full reload,
+  or another tab, starts afresh.
+- **Not from this work, seen while testing.** In the Files rail (252px) the
+  card's follower and following counts run into each other for large
+  numbers. In development every page logs a hydration warning from the root
+  layout's head, and an empty-`href` error from the `activity+json` link the
+  layout carries on purpose (Apple TN3156).

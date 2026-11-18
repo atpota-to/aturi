@@ -54,7 +54,7 @@ import type { AddressFor } from '../lexicons/workbench/LexiconRail';
 import { RecordPane, type RecordPaneTab } from '../RecordExplorer';
 import RelationshipStrip from '../RelationshipStrip';
 import { AccountCard } from '../RepoExplorer';
-import { AccountCheckBadges, CheckNavBadge } from '../AccountChecks';
+import { CheckNavBadge } from '../AccountChecks';
 import { toolBySlug } from '@/lib/tools/catalog';
 import { toolLinksForAccount } from '@/lib/tools/recordLinks';
 import ShareLinkChip from '../ShareLinkChip';
@@ -1201,8 +1201,6 @@ function RailAccount({
         </Link>
         {name && handle && <span className="fx-wb-acct-handle">@{handle}</span>}
       </div>
-      {/* Folded, the card keeps the checks' answers in sight. */}
-      <AccountCheckBadges identity={identity} base={base} />
       <CopyButton value={identity.did} label="Copy DID" compact variant="subtle" iconOnly />
       {foldable && (
         <button

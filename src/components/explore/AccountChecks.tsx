@@ -2,7 +2,7 @@
 
 import { useEffect, useState, type CSSProperties, type ReactNode } from 'react';
 import Link from 'next/link';
-import { Check, ChevronRight, Eye, EyeOff, LoaderCircle, Tags, TriangleAlert, X } from 'lucide-react';
+import { Check, ChevronRight, Eye, EyeOff, LoaderCircle, TriangleAlert, X } from 'lucide-react';
 import { labelSourceWords, type DotState, type VisibilitySummary } from '@/lib/tools/accountChecks';
 import { formatCount, scanPercent, type ScanProgress } from '@/lib/tools/labels';
 import { getProfile, type AppViewProfile } from '@/utils/atproto/appview';
@@ -19,10 +19,14 @@ import {
 
 /**
  * An account's label and visibility checks, as the Explorer shows them
- * everywhere the account is: two rows on the account card, badges on the
- * folded card, and badges beside the Labels and Visibility views in the
- * rail. All of them read useAccountChecks, which shares one run of each
- * check across the page.
+ * everywhere the account is: two rows on the account card, badges beside
+ * the Labels and Visibility views in the rail and on Classic's tabs, and an
+ * author card on Classic's record page. All of them read useAccountChecks,
+ * which shares one run of each check across the page.
+ *
+ * The folded card has no badges of its own: the rail's Labels and
+ * Visibility views sit right under it, on every page, carrying the same
+ * ones.
  *
  * The rows show the work as it happens. Labels: a placeholder while
  * Bluesky's moderation service answers, then the count climbing as the scan
@@ -357,8 +361,8 @@ export function LabelBadge({ state }: { state: LabelCheckState }) {
   }
 }
 
-/** The visibility check in a badge: a spinner, then a tone. */
-export function VisibilityBadge({ state, icon = 'mark' }: { state: VisibilityCheckState; icon?: 'mark' | 'eye' }) {
+/** The visibility check in a badge: a spinner, then a mark in its tone. */
+export function VisibilityBadge({ state }: { state: VisibilityCheckState }) {
   switch (state.kind) {
     case 'waiting':
     case 'running':
@@ -366,13 +370,7 @@ export function VisibilityBadge({ state, icon = 'mark' }: { state: VisibilityChe
     case 'done': {
       const tone = VISIBILITY_TONE[state.summary.tone];
       const glyph =
-        icon === 'eye' ? (
-          tone === 'bad' ? (
-            <EyeOff size={12} aria-hidden />
-          ) : (
-            <Eye size={12} aria-hidden />
-          )
-        ) : tone === 'ok' ? (
+        tone === 'ok' ? (
           <Check size={12} strokeWidth={2.6} aria-hidden />
         ) : tone === 'warn' ? (
           <TriangleAlert size={12} aria-hidden />
@@ -391,35 +389,6 @@ export function VisibilityBadge({ state, icon = 'mark' }: { state: VisibilityChe
     case 'absent':
       return null;
   }
-}
-
-/**
- * Both checks on the folded account card, so their answers stay in sight on
- * every collection and record. Each opens its view.
- */
-export function AccountCheckBadges({ identity, base }: { identity: IdentityBundle; base: string }) {
-  const { labels, visibility } = useAccountChecks(identity.did);
-  if (labels.kind === 'absent') return null;
-  const moderation = labels.kind === 'done' && labels.summary.moderation.length > 0;
-  return (
-    <span className="fx-check-badges">
-      <Link
-        href={`${base}?tab=labels`}
-        prefetch={false}
-        className="fx-check-badge"
-        data-tone={moderation ? 'warn' : undefined}
-        aria-label="Labels"
-        title="Labels"
-      >
-        <Tags size={12} aria-hidden />
-        <LabelBadge state={labels} />
-      </Link>
-      <Link href={`${base}?tab=visibility`} prefetch={false} className="fx-check-badge" aria-label="Visibility" title="Visibility">
-        <VisibilityBadge state={visibility} icon="eye" />
-        {visibility.kind === 'error' || visibility.kind === 'absent' ? <Eye size={12} aria-hidden /> : null}
-      </Link>
-    </span>
-  );
 }
 
 /** A check's badge beside its view in the rail. */
