@@ -1,0 +1,1070 @@
+/* Field Notes: the PDS explorer (explore/pds/). Tokens live in
+   src/app/globals.css; use them rather than raw hex so dark mode and the
+   colour schemes keep working.
+
+   The Workbench and Files views are the account explorer's frame
+   (workbench.css: .fx-wb and its toolbar, rail, panes, inspector, drawers
+   and sheets), and they borrow what the lexicons explorer drew for a list
+   that isn't a repository (lexicon-workbench.css): the rail's head, the
+   sortable list rows, the cards and facts of its inspector. This sheet draws
+   what a host has that neither does: accounts with a standing and a last
+   commit, the counts of them, and the server's own facts. It also styles
+   the accounts table on the classic page. Class prefix: fx-pd-. */
+
+/* ---------- Frame ---------- */
+
+.fx-pd .fx-crumb[data-mono] a,
+.fx-pd .fx-crumb[data-mono] .fx-crumb-here {
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+}
+
+.fx-pd .fx-wb-path .fx-crumb-here svg {
+  margin-right: 5px;
+  vertical-align: -1px;
+}
+
+/* The account trail drops its PDS crumb when room runs out; here the host
+   is where you are, so it shortens instead. */
+@container fx-wb-path (max-width: 440px) {
+  .fx-pd .fx-crumb:has(svg):not(:only-child) {
+    display: inline-flex;
+    max-width: 45%;
+  }
+}
+
+/* ---------- Standing ----------
+   A status in words with a mark beside it (parts.tsx, StatusMark). The tone
+   follows the site's own: the accent for active, the caution amber for a
+   status the account holder chose, danger for one imposed on them. */
+
+.fx-pd-standing {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  font-weight: 500;
+  line-height: 1.3;
+  white-space: nowrap;
+  color: var(--text-secondary);
+}
+
+.fx-pd-dot {
+  flex: none;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--text-tertiary);
+}
+
+.fx-pd-standing[data-tone='good'] .fx-pd-dot {
+  background: var(--status-live);
+}
+
+.fx-pd-standing[data-tone='warn'] {
+  color: var(--tool-warn);
+}
+
+.fx-pd-standing[data-tone='warn'] .fx-pd-dot {
+  background: var(--tool-warn);
+}
+
+.fx-pd-standing[data-tone='bad'] {
+  color: var(--danger);
+}
+
+.fx-pd-standing[data-tone='bad'] .fx-pd-dot {
+  background: var(--danger);
+}
+
+/* In a list most accounts are active: theirs is the quiet line. */
+.fx-pd-standing[data-quiet] {
+  color: var(--text-tertiary);
+  font-weight: 400;
+}
+
+/* ---------- Rail ---------- */
+
+.fx-pd-railhost {
+  font-family: var(--font-mono);
+  font-size: 13.5px;
+  font-weight: 600;
+  letter-spacing: 0;
+}
+
+.fx-pd-view-count {
+  margin-left: auto;
+  font-size: 11.5px;
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-tertiary);
+}
+
+.fx-wb-view[aria-current='page'] .fx-pd-view-count {
+  color: inherit;
+}
+
+.fx-pd-groups {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-bottom: 24px;
+}
+
+/* Words, not identifiers, unlike the Files view's folder names. */
+.fx-pd-group {
+  font-family: var(--font-sans);
+  font-size: 13px;
+}
+
+.fx-pd-group[data-depth='1'] {
+  padding-left: 26px;
+}
+
+.fx-pd-group[data-empty]:not([aria-current]) {
+  color: var(--text-tertiary);
+}
+
+.fx-pd-group .fx-fd-place-count {
+  font-variant-numeric: tabular-nums;
+}
+
+.fx-pd-group[aria-current='page'] .fx-fd-place-count {
+  color: inherit;
+}
+
+.fx-pd-group-icon {
+  flex: none;
+  color: var(--text-tertiary);
+}
+
+.fx-pd-group-icon[data-quiet] {
+  opacity: 0.7;
+}
+
+.fx-pd-group-dot {
+  justify-content: center;
+  width: 13px;
+}
+
+.fx-pd-group .fx-fd-glyph[data-kind='folder'] {
+  width: 17px;
+}
+
+.fx-pd-rail-note {
+  margin: 12px 16px 0;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+/* ---------- Main: the accounts ---------- */
+
+.fx-pd-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.fx-pd-select {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 4px 0 10px;
+  box-sizing: border-box;
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-control);
+  background: var(--bg-secondary);
+  font-size: 13px;
+  transition: border-color 0.15s ease;
+}
+
+.fx-pd-select:focus-within {
+  border-color: var(--text-accent);
+}
+
+.fx-pd-select-label {
+  color: var(--text-tertiary);
+  white-space: nowrap;
+}
+
+.fx-pd-select select {
+  min-width: 0;
+  height: 100%;
+  padding: 0 2px;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  font-weight: 500;
+  color: var(--text-primary);
+  outline: none;
+  cursor: pointer;
+}
+
+.fx-pd-clear {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-accent);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.fx-pd-clear:hover {
+  text-decoration: underline;
+}
+
+.fx-pd-foot-error {
+  font-size: 12.5px;
+  color: var(--danger);
+}
+
+.fx-pd-foot-note {
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+
+/* The rows: where it is in the listing, who it is, its DID, how it stands
+   and when it last committed. */
+.fx-lx-list[data-cols='accounts'] > .fx-lx-head,
+.fx-lx-list[data-cols='accounts'] > .fx-lx-item > * {
+  grid-template-columns: 3.25rem minmax(0, 1.35fr) minmax(0, 1fr) 7rem 7rem;
+}
+
+.fx-pd-list > .fx-lx-head > * {
+  white-space: nowrap;
+}
+
+.fx-pd-list > .fx-lx-head > .fx-pd-col-time {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.fx-pd-rank {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fx-pd-who {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+}
+
+.fx-pd-avatar {
+  flex: none;
+  display: inline-grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: var(--bg-tertiary);
+}
+
+.fx-pd-avatar[data-empty] {
+  background: var(--accent-soft);
+  color: var(--accent-soft-fg);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: lowercase;
+}
+
+.fx-pd-names {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.fx-pd-handle {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--text-primary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fx-pd-handle[data-pending] {
+  color: var(--text-secondary);
+}
+
+a.fx-lx-row[data-current] .fx-pd-handle {
+  color: var(--accent-soft-fg);
+  font-weight: 600;
+}
+
+.fx-pd-display {
+  flex: 0 10 auto;
+  min-width: 0;
+  overflow: hidden;
+  font-size: 12.5px;
+  color: var(--text-tertiary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fx-pd-did {
+  min-width: 0;
+  overflow: hidden;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-tertiary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fx-pd-status {
+  min-width: 0;
+}
+
+.fx-pd-time {
+  text-align: right;
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.fx-pd-time[data-old],
+.fx-pd-time[data-unknown] {
+  color: var(--text-tertiary);
+}
+
+/* An account the host won't serve keeps its row, quieter. */
+.fx-pd-row:not([data-standing='active']) .fx-pd-avatar {
+  filter: grayscale(1);
+  opacity: 0.6;
+}
+
+.fx-pd-list[data-files] .fx-pd-who > .fx-fd-glyph[data-kind='folder'] {
+  width: 18px;
+}
+
+.fx-pd-sentinel {
+  height: 1px;
+  list-style: none;
+}
+
+/* Beside an open account, or on a tablet: the DID gives its column to the
+   name; the inspector and the row's tooltip still have it. */
+@container fx-wb-main (max-width: 760px) {
+  .fx-lx-list[data-cols='accounts'] > .fx-lx-head,
+  .fx-lx-list[data-cols='accounts'] > .fx-lx-item > * {
+    grid-template-columns: 2.75rem minmax(0, 1fr) 6.75rem 6.75rem;
+  }
+
+  .fx-pd-list .fx-pd-did,
+  .fx-pd-list .fx-pd-col-did {
+    display: none;
+  }
+}
+
+/* A phone's width: two lines, who and when, then the DID and the standing. */
+@container fx-wb-main (max-width: 560px) {
+  .fx-lx-list[data-cols='accounts'] > .fx-lx-head {
+    display: none;
+  }
+
+  .fx-lx-list[data-cols='accounts'] > .fx-lx-item > * {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      'who time'
+      'did status';
+    gap: 3px 12px;
+  }
+
+  .fx-pd-list .fx-pd-rank {
+    display: none;
+  }
+
+  .fx-pd-list .fx-pd-who {
+    grid-area: who;
+  }
+
+  .fx-pd-list .fx-pd-did {
+    display: block;
+    grid-area: did;
+    padding-left: 31px;
+    font-size: 11.5px;
+  }
+
+  .fx-pd-list .fx-pd-status {
+    grid-area: status;
+    justify-self: end;
+  }
+
+  .fx-pd-list .fx-pd-time {
+    grid-area: time;
+  }
+
+  .fx-pd-display {
+    display: none;
+  }
+}
+
+/* Beside an account given the full width: names, to step through. */
+@container fx-wb-main (max-width: 300px) {
+  .fx-lx-list[data-cols='accounts'] > .fx-lx-item > * {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas: 'who status';
+  }
+
+  .fx-pd-list .fx-pd-did,
+  .fx-pd-list .fx-pd-time {
+    display: none;
+  }
+
+  .fx-pd-list .fx-pd-status .fx-pd-standing {
+    font-size: 0;
+    gap: 0;
+  }
+
+  .fx-pd-pane .fx-actions,
+  .fx-pd-pane .fx-lx-sub,
+  .fx-pd-pane .fx-lx-title-icon {
+    display: none;
+  }
+}
+
+/* Folders: each account's folder wears its avatar on the front. */
+.fx-pd-folder {
+  position: relative;
+  display: block;
+  width: 64px;
+  margin-bottom: 3px;
+}
+
+.fx-pd-folder .fx-fd-glyph[data-kind='folder'] {
+  width: 64px;
+  margin: 0;
+}
+
+.fx-pd-folder-face {
+  position: absolute;
+  left: 50%;
+  top: 62%;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  object-fit: cover;
+  transform: translate(-50%, -50%);
+  box-shadow: 0 0 0 2px var(--fx-fd-folder);
+  background: var(--bg-tertiary);
+}
+
+.fx-pd-tile[data-inactive] .fx-pd-folder {
+  filter: grayscale(1);
+  opacity: 0.55;
+}
+
+.fx-pd-tile .fx-fd-name[data-pending] {
+  color: var(--text-secondary);
+}
+
+.fx-pd-tile .fx-fd-meta .fx-pd-standing {
+  font-size: 11.5px;
+}
+
+.fx-pd-tile .fx-fd-meta .fx-pd-time {
+  font-size: 11.5px;
+}
+
+/* ---------- Main: the overview ---------- */
+
+.fx-pd-h-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4px 16px;
+}
+
+.fx-pd-h-note {
+  font-size: 12.5px;
+  color: var(--text-tertiary);
+}
+
+.fx-pd-server {
+  gap: 14px;
+}
+
+.fx-pd-server-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.fx-pd-kicker {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+}
+
+.fx-pd-server-host {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 17px;
+  font-weight: 600;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+  color: var(--text-primary);
+}
+
+.fx-pd-server-error {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-tertiary);
+}
+
+.fx-pd-facts {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 0;
+}
+
+.fx-pd-facts > div {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.fx-pd-facts dt {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+}
+
+.fx-pd-facts dd {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+  min-width: 0;
+  margin: 0;
+}
+
+/* An identifier with its copy button: the identifier wraps, the button
+   stays beside it. */
+.fx-pd-facts dd:has(> code + .fx-copy) {
+  flex-wrap: nowrap;
+  align-items: flex-start;
+}
+
+.fx-pd-facts dd code {
+  flex: 0 1 auto;
+  min-width: 0;
+  padding: 0;
+  background: transparent;
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  color: var(--text-primary);
+  overflow-wrap: anywhere;
+}
+
+.fx-pd-facts dd a {
+  color: var(--text-accent);
+  text-decoration: none;
+}
+
+.fx-pd-facts dd a:hover {
+  text-decoration: underline;
+}
+
+.fx-pd-fact-text {
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--text-primary);
+}
+
+.fx-pd-fact-text .fx-pd-standing {
+  margin-right: 4px;
+}
+
+.fx-pd-fact-quiet {
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-tertiary);
+}
+
+.fx-pd-domains {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.fx-pd-facts dd code.fx-pd-domain {
+  padding: 1px 8px;
+  border-radius: var(--radius-pill);
+  background: var(--accent-soft);
+  color: var(--accent-soft-fg);
+  font-size: 12px;
+}
+
+.fx-pd-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.fx-pd-outlink {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12.5px;
+  color: var(--text-accent);
+  text-decoration: none;
+}
+
+.fx-pd-outlink:hover {
+  text-decoration: underline;
+}
+
+.fx-pd-outlink svg {
+  opacity: 0.65;
+}
+
+.fx-pd-tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.fx-pd-tiles {
+  grid-template-columns: repeat(auto-fit, minmax(9.5rem, 1fr));
+}
+
+/* Each tile is a way into the list it counts. */
+a.fx-pd-tile-stat {
+  color: inherit;
+  text-decoration: none;
+  transition: background 0.12s ease;
+}
+
+a.fx-pd-tile-stat:hover {
+  background: var(--surface-subtle);
+}
+
+a.fx-pd-tile-stat:focus-visible {
+  outline: 2px solid var(--text-accent);
+  outline-offset: -2px;
+}
+
+/* A figure standing alone keeps the font's own figures; tabular ones are
+   for columns. */
+.fx-pd-tile-stat .fn-stat-value {
+  font-size: 22px;
+  font-variant-numeric: normal;
+}
+
+.fx-pd-tile-note {
+  min-height: 1.35em;
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+
+.fx-pd-note {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-tertiary);
+}
+
+.fx-pd-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr));
+  align-items: start;
+  gap: 16px;
+}
+
+/* One whole in parts: a thin bar with a surface gap between the parts and
+   rounded ends, its names and numbers in the legend under it. */
+.fx-pd-split {
+  display: flex;
+  gap: 2px;
+  height: 8px;
+}
+
+.fx-pd-split-part {
+  flex-basis: 0;
+  min-width: 3px;
+  background: var(--text-tertiary);
+}
+
+.fx-pd-split-part:first-child {
+  border-radius: 4px 0 0 4px;
+}
+
+.fx-pd-split-part:last-child {
+  border-radius: 0 4px 4px 0;
+}
+
+.fx-pd-split-part:only-child {
+  border-radius: 4px;
+}
+
+.fx-pd-split-part[data-tone='good'] {
+  background: var(--status-live);
+}
+
+.fx-pd-split-part[data-tone='warn'] {
+  background: var(--tool-warn);
+}
+
+.fx-pd-split-part[data-tone='bad'] {
+  background: var(--danger);
+}
+
+.fx-pd-legend,
+.fx-pd-bars {
+  list-style: none;
+  margin: 0 -8px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.fx-pd-legend a {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto 3rem;
+  align-items: center;
+  gap: 10px;
+  padding: 5px 8px;
+  border-radius: 6px;
+  color: var(--text-primary);
+  text-decoration: none;
+}
+
+.fx-pd-legend a:hover,
+.fx-pd-bars a:hover {
+  background: var(--bg-tertiary);
+}
+
+.fx-pd-legend-n,
+.fx-pd-bar-n {
+  text-align: right;
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
+}
+
+.fx-pd-legend-pct {
+  text-align: right;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-tertiary);
+}
+
+.fx-pd-bars a {
+  display: grid;
+  grid-template-columns: 7.5rem minmax(0, 1fr) 3.5rem;
+  align-items: center;
+  gap: 10px;
+  padding: 5px 8px;
+  border-radius: 6px;
+  color: var(--text-primary);
+  text-decoration: none;
+}
+
+.fx-pd-bar-label {
+  font-size: 12.5px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.fx-pd-bar-track {
+  height: 8px;
+  border-radius: 4px;
+  background: var(--bg-tertiary);
+  overflow: hidden;
+}
+
+.fx-pd-bar-fill {
+  display: block;
+  height: 100%;
+  border-radius: 4px;
+  background: var(--text-accent);
+}
+
+.fx-pd-bars a[data-quiet] .fx-pd-bar-fill {
+  background: var(--text-tertiary);
+}
+
+.fx-pd-recent a {
+  align-items: center;
+}
+
+.fx-pd-recent .fx-pd-who {
+  gap: 8px;
+}
+
+.fx-pd-lead {
+  margin: 0;
+  max-width: 72ch;
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: var(--text-secondary);
+}
+
+.fx-pd-lead code {
+  padding: 0;
+  background: transparent;
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  color: var(--text-primary);
+}
+
+.fx-pd-lead a {
+  color: var(--text-accent);
+}
+
+.fx-pd-relays {
+  max-width: 920px;
+}
+
+/* ---------- Inspector: an account ---------- */
+
+.fx-pd-insp .fx-wb-insp-head > .fx-pd-avatar {
+  flex: none;
+}
+
+.fx-pd-insp-name {
+  font-size: 15px;
+}
+
+.fx-pd-insp .fx-wb-insp-head > .fx-pd-standing {
+  flex: none;
+}
+
+/* No tabs to sit beside, so the actions lead their row. */
+.fx-pd-insp .fx-wb-insp-bar .fn-rec-actions {
+  margin-left: 0;
+}
+
+/* A narrow inspector folds its actions to their glyphs (workbench.css);
+   the way into the repository keeps its words. */
+@container fx-wb-insp (max-width: 560px) {
+  .fx-pd-insp .fn-rec-actions .fn-rec-btn[data-variant='primary'] {
+    width: auto;
+    padding: 0 12px;
+    gap: 6px;
+    font-size: 13px;
+  }
+}
+
+.fx-pd-profile {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.fx-pd-profile-name {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  line-height: 1.25;
+  color: var(--text-primary);
+  overflow-wrap: anywhere;
+}
+
+.fx-pd-profile-handle {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--text-accent);
+  overflow-wrap: anywhere;
+}
+
+.fx-pd-profile-bio {
+  margin: 4px 0 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text-primary);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.fx-pd-profile-counts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  margin: 2px 0 0;
+  font-size: 12.5px;
+  color: var(--text-tertiary);
+}
+
+.fx-pd-profile-counts strong {
+  font-weight: 650;
+  color: var(--text-primary);
+}
+
+.fx-pd-handle-check {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+  min-width: 0;
+}
+
+.fx-pd-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-tertiary);
+}
+
+.fx-pd-check[data-tone='good'] {
+  color: var(--accent-soft-fg);
+}
+
+.fx-pd-check[data-tone='bad'] {
+  color: var(--danger);
+}
+
+.fx-pd-facts dd code.fx-pd-cid {
+  display: block;
+  max-width: calc(100% - 40px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fx-pd-colls {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.fx-pd-coll-ns {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+}
+
+.fx-pd-coll-ns code {
+  padding: 0;
+  background: transparent;
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.fx-pd-colls ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin: 6px 0 0;
+  padding: 0 0 0 23px;
+  list-style: none;
+}
+
+.fx-pd-colls ul a {
+  display: inline-block;
+  padding: 2px 8px;
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-pill);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-primary);
+  text-decoration: none;
+  transition: background 0.12s ease, border-color 0.12s ease;
+}
+
+.fx-pd-colls ul a:hover {
+  background: var(--accent-soft);
+  border-color: var(--accent-soft-border);
+  color: var(--accent-soft-fg);
+}
+
+/* ---------- Classic: the accounts table ----------
+   The same rows in a card on the scrolling page. The zebra bands are the
+   workbench's (they live on .fx-wb there). */
+
+.fx-pd-classic {
+  --fx-stripe: color-mix(in srgb, var(--bg-tertiary) 70%, var(--bg-secondary));
+  --fx-stripe-hover: color-mix(in srgb, var(--bg-tertiary), var(--text-primary) 6%);
+  container: fx-wb-main / inline-size;
+}
+
+.fx-pd-classic-card {
+  overflow: hidden;
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-card);
+  background: var(--bg-secondary);
+}
+
+.fx-pd-classic .fx-records-tools {
+  border-bottom-color: var(--border-subtle);
+}
+
+/* The page scrolls under the site header, so the column heads stay put. */
+.fx-pd-classic .fx-lx-list > .fx-lx-head {
+  position: static;
+}
+
+.fx-pd-classic .fx-lx-item:last-child > .fx-lx-row {
+  border-bottom: 0;
+}
+
+.fx-pd-classic .fx-records-foot {
+  border-top-color: var(--border-medium);
+  background: var(--surface-subtle);
+}
+
+/* ---------- Phones ---------- */
+
+@media (max-width: 640px) {
+  .fx-pd-actions {
+    width: 100%;
+  }
+
+  .fx-pd-select {
+    height: 36px;
+  }
+
+  .fx-pd-cards {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .fx-pd-bars a {
+    grid-template-columns: 7rem minmax(0, 1fr) 3rem;
+  }
+}
+
+@media (pointer: coarse) {
+  .fx-pd-group {
+    min-height: 40px;
+  }
+
+  .fx-pd-legend a,
+  .fx-pd-bars a {
+    min-height: 40px;
+  }
+}
