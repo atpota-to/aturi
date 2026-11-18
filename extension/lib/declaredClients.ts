@@ -24,9 +24,10 @@ import { adoptWaypoint, setFavoriteForFamily, type Prefs } from './prefs';
  * makes no background requests, and signing in to it is optional, so it takes
  * the declaration once, when asked: fetch it, show what it would set, and
  * write the parts it can act on into `favoriteByFamily` like any other choice
- * made on the Defaults tab. Nothing about the record is kept afterwards, and the redirect
- * rules are generated from favorites exactly as before, so a declaration can
- * never put a destination into them that the favorites picker couldn't.
+ * made on the Defaults tab. Nothing about the record is kept afterwards, and
+ * the redirect rules are generated from favorites exactly as before, so a
+ * declaration can never put a destination into them that the favorites
+ * picker couldn't.
  */
 
 /** What importing a declaration would do for one compat family. */
