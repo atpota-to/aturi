@@ -101,119 +101,51 @@ export default function CustomTab() {
       )}
 
       {!addingNew && !editing && (
-        <button
-          type="button"
-          onClick={() => setAddingNew(true)}
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '0.4rem',
-            alignSelf: 'flex-start',
-            padding: '0.55rem 0.875rem',
-            background: 'var(--accent-moss)',
-            color: 'var(--text-on-accent)',
-            border: '1px solid var(--accent-moss)',
-            fontFamily: 'var(--font-serif)',
-            fontSize: '0.875rem',
-            cursor: 'pointer',
-          }}
-        >
-          <Plus size={14} /> Add custom waypoint
-        </button>
+        <div>
+          <button
+            type="button"
+            onClick={() => setAddingNew(true)}
+            className="settings-btn is-primary"
+          >
+            <Plus size={14} /> Add custom waypoint
+          </button>
+        </div>
       )}
 
       {prefs.customWaypoints.length === 0 ? (
-        <p
-          style={{
-            margin: 0,
-            color: 'var(--text-tertiary)',
-            fontSize: '0.85rem',
-            fontStyle: 'italic',
-          }}
-        >
-          No custom waypoints yet.
-        </p>
+        <p className="settings-empty">No custom waypoints yet.</p>
       ) : (
-        <ul
-          style={{
-            listStyle: 'none',
-            padding: 0,
-            margin: 0,
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '0.4rem',
-          }}
-        >
-          {prefs.customWaypoints.map((c) => (
-            <li
-              key={c.id}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.625rem',
-                padding: '0.625rem 0.875rem',
-                background: 'var(--bg-tertiary)',
-                border: '1px solid var(--border-subtle)',
-              }}
-            >
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div
-                  style={{
-                    fontFamily: 'var(--font-serif)',
-                    fontSize: '0.95rem',
-                    color: 'var(--text-primary)',
-                  }}
-                >
-                  {c.name}
+        <div>
+          <ul className="settings-list">
+            {prefs.customWaypoints.map((c) => (
+              <li key={c.id} className="settings-list-item">
+                <div style={{ flex: 1, minWidth: 0, padding: '6px 0' }}>
+                  <div className="settings-list-title">{c.name}</div>
+                  {c.domain && <div className="settings-list-meta">{c.domain}</div>}
                 </div>
-                {c.domain && (
-                  <div
-                    style={{
-                      fontFamily: 'var(--font-mono)',
-                      fontSize: '0.75rem',
-                      color: 'var(--text-tertiary)',
-                    }}
-                  >
-                    {c.domain}
-                  </div>
-                )}
-              </div>
-              <button
-                type="button"
-                onClick={() => setEditingId(c.id)}
-                title="Edit"
-                aria-label={`Edit ${c.name}`}
-                style={iconBtn()}
-              >
-                <Pencil size={13} />
-              </button>
-              <button
-                type="button"
-                onClick={() => remove(c.id)}
-                title="Delete"
-                aria-label={`Delete ${c.name}`}
-                style={iconBtn({ danger: true })}
-              >
-                <Trash2 size={13} />
-              </button>
-            </li>
-          ))}
-        </ul>
+                <button
+                  type="button"
+                  onClick={() => setEditingId(c.id)}
+                  title="Edit"
+                  aria-label={`Edit ${c.name}`}
+                  className="settings-icon-btn"
+                >
+                  <Pencil size={14} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => remove(c.id)}
+                  title="Delete"
+                  aria-label={`Delete ${c.name}`}
+                  className="settings-icon-btn is-danger"
+                >
+                  <Trash2 size={14} />
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
       )}
     </section>
   );
-}
-
-function iconBtn({ danger }: { danger?: boolean } = {}): React.CSSProperties {
-  return {
-    display: 'inline-flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: 28,
-    height: 28,
-    background: 'transparent',
-    border: '1px solid var(--border-subtle)',
-    color: danger ? 'var(--danger)' : 'var(--text-secondary)',
-    cursor: 'pointer',
-  };
 }

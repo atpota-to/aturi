@@ -114,7 +114,9 @@ export default function WhatsNewBadge() {
           <WhatsNewContent releases={shown} onNavigate={close} />
           <div className="whats-new-foot">
             <span />
-            <button type="button" className="whats-new-btn" onClick={close}>
+            {/* Outline, not filled: the item actions above are the
+                primary choices, and two filled buttons competed. */}
+            <button type="button" className="whats-new-btn is-secondary" onClick={close}>
               Done
             </button>
           </div>

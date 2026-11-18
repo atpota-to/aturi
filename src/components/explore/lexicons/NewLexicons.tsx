@@ -18,30 +18,36 @@ import { WINDOWS, type Window } from '@/utils/ufos/windows';
  * gives the same answer.
  */
 
-type NewLexicon = { nsid: string; creates: number; didsEstimate: number };
-type Answer = { minAccounts: number; historyBegins: string; count: number; lexicons: NewLexicon[] };
+export type NewLexicon = { nsid: string; creates: number; didsEstimate: number };
+export type NewLexiconsAnswer = {
+  minAccounts: number;
+  historyBegins: string;
+  count: number;
+  lexicons: NewLexicon[];
+};
 
-const RESULT_COUNT = 10;
+export const NEW_RESULT_COUNT = 10;
 /** Row count after "Show more". */
-const EXPANDED_COUNT = 25;
+export const NEW_EXPANDED_COUNT = 25;
 
-export default function NewLexicons() {
-  const [window, setWindow] = useState<Window>('7d');
-  const [answer, setAnswer] = useState<Answer | null>(null);
+/**
+ * Loads /api/lexicons/new for a window. As in the trending strip, the
+ * previous answer stays up while a new window loads, so the skeleton only
+ * shows on first load. Shared with the /explore landing's "New" card.
+ */
+export function useNewLexicons(timeWindow: Window) {
+  const [answer, setAnswer] = useState<NewLexiconsAnswer | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [expanded, setExpanded] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
     setError(null);
-    // As in the trending strip, the previous rows stay up while a new
-    // window loads; the skeleton only shows on first load.
     (async () => {
       try {
-        const res = await fetch(`/api/lexicons/new?window=${window}`);
+        const res = await fetch(`/api/lexicons/new?window=${timeWindow}`);
         const body = await res.json().catch(() => null);
         if (!res.ok || !body?.ok) throw new Error(body?.error ?? `HTTP ${res.status}`);
-        if (!cancelled) setAnswer(body as Answer);
+        if (!cancelled) setAnswer(body as NewLexiconsAnswer);
       } catch (err) {
         if (!cancelled) setError(err instanceof Error ? err.message : String(err));
       }
@@ -49,118 +55,81 @@ export default function NewLexicons() {
     return () => {
       cancelled = true;
     };
-  }, [window]);
+  }, [timeWindow]);
 
-  const limit = expanded ? EXPANDED_COUNT : RESULT_COUNT;
+  return { answer, error };
+}
+
+export default function NewLexicons() {
+  const [timeWindow, setTimeWindow] = useState<Window>('7d');
+  const { answer, error } = useNewLexicons(timeWindow);
+  const [expanded, setExpanded] = useState(false);
+
+  const limit = expanded ? NEW_EXPANDED_COUNT : NEW_RESULT_COUNT;
   const visible = answer ? answer.lexicons.slice(0, limit) : null;
 
   return (
     <AppearIn delay={0.14}>
-      <section
-        style={{
-          border: '1px solid var(--border-medium)',
-          background: 'var(--bg-secondary)',
-        }}
-      >
-        <div
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '0.625rem',
-            padding: '0.875rem 1rem',
-          }}
-        >
-          <div
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '0.5rem',
-              fontFamily: 'var(--font-serif)',
-              color: 'var(--text-primary)',
-              fontSize: '0.9375rem',
-            }}
-          >
-            <Sprout size={14} aria-hidden style={{ color: 'var(--text-accent)' }} />
-            New lexicons
-            <span
-              style={{
-                marginLeft: '0.25rem',
-                fontSize: '0.7rem',
-                color: 'var(--text-tertiary)',
-                letterSpacing: '0.08em',
-                textTransform: 'uppercase',
-              }}
-            >
-              via UFOs
+      <section id="new" className="fn-list-card" aria-labelledby="fn-new-lexicons-title">
+        <div className="fn-list-card-head">
+          <div className="fn-list-card-title-row">
+            <span className="fn-list-card-icon" aria-hidden>
+              <Sprout size={14} />
             </span>
+            <h2 id="fn-new-lexicons-title" className="fn-list-card-title">
+              New lexicons
+            </h2>
+            <span className="fn-list-card-via">via UFOs</span>
           </div>
-          <p style={{ margin: 0, fontSize: '0.8125rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+          <p className="fn-list-card-sub">
             Record types seen for the first time in this window, with three or more accounts using them.
           </p>
-          <div>
+          <div className="fn-list-card-controls">
             <Segmented
               ariaLabel="Time window"
               options={(Object.keys(WINDOWS) as Window[]).map((w) => ({ value: w, label: WINDOWS[w].label }))}
-              value={window}
-              onChange={(v) => setWindow(v as Window)}
+              value={timeWindow}
+              onChange={(v) => setTimeWindow(v as Window)}
             />
           </div>
         </div>
-        <div style={{ borderTop: '1px solid var(--border-subtle)' }}>
+        <div className="fn-list-card-body">
           {error ? (
-            <div className="explore-error" style={{ padding: '1rem' }}>
+            <div className="explore-error fn-list-card-msg">
               Couldn&rsquo;t load new lexicons: {error}
             </div>
           ) : visible ? (
             visible.length === 0 ? (
-              <p className="explore-placeholder" style={{ padding: '1rem', margin: 0 }}>
+              <p className="explore-placeholder fn-list-card-msg">
                 Nothing new with three or more accounts in this window.
               </p>
             ) : (
               <>
-                <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+                <ul className="fn-list-rows">
                   {visible.map((lexicon, i) => (
-                    <Row key={lexicon.nsid} lexicon={lexicon} rank={i + 1} isLast={i === visible.length - 1} />
+                    <Row key={lexicon.nsid} lexicon={lexicon} rank={i + 1} />
                   ))}
                 </ul>
-                {answer && answer.count > RESULT_COUNT && (
-                  <div style={{ padding: '0.75rem 1rem', borderTop: '1px solid var(--border-subtle)' }}>
-                    <button
-                      type="button"
-                      onClick={() => setExpanded((v) => !v)}
-                      aria-expanded={expanded}
-                      style={{
-                        width: '100%',
-                        padding: '0.5rem',
-                        background: 'var(--bg-tertiary)',
-                        border: '1px solid var(--border-medium)',
-                        color: 'var(--text-secondary)',
-                        fontFamily: 'var(--font-serif)',
-                        fontSize: '0.8125rem',
-                        cursor: 'pointer',
-                      }}
-                    >
-                      {expanded ? `Show ${RESULT_COUNT}` : `Show ${Math.min(answer.count, EXPANDED_COUNT)} of ${answer.count}`}
-                    </button>
-                  </div>
+                {answer && answer.count > NEW_RESULT_COUNT && (
+                  <button
+                    type="button"
+                    onClick={() => setExpanded((v) => !v)}
+                    aria-expanded={expanded}
+                    className="fn-list-card-foot"
+                  >
+                    {expanded
+                      ? `Show ${NEW_RESULT_COUNT}`
+                      : `Show ${Math.min(answer.count, NEW_EXPANDED_COUNT)} of ${answer.count}`}
+                  </button>
                 )}
               </>
             )
           ) : (
-            <SkeletonRows count={RESULT_COUNT} />
+            <SkeletonRows count={NEW_RESULT_COUNT} />
           )}
         </div>
         {answer && (
-          <p
-            style={{
-              margin: 0,
-              padding: '0.625rem 1rem',
-              borderTop: '1px solid var(--border-subtle)',
-              fontSize: '0.75rem',
-              lineHeight: 1.5,
-              color: 'var(--text-tertiary)',
-            }}
-          >
+          <p className="fn-list-card-note">
             First seen means no activity UFOs recorded between {answer.historyBegins}, when its history begins,
             and the start of the window. Account counts are estimates, and a few accounts can still be one
             developer testing.
@@ -172,33 +141,17 @@ export default function NewLexicons() {
   );
 }
 
-function Row({ lexicon, rank, isLast }: { lexicon: NewLexicon; rank: number; isLast: boolean }) {
+function Row({ lexicon, rank }: { lexicon: NewLexicon; rank: number }) {
   const { head, tail } = splitNsid(lexicon.nsid);
   return (
-    <li style={{ borderBottom: isLast ? undefined : '1px solid var(--border-subtle)' }}>
+    <li>
       <Link
         href={lexiconPathFor(lexicon.nsid)}
         prefetch={false}
         title={`Open ${lexicon.nsid} in the lexicons explorer`}
-        className="lexicon-row-grid"
-        style={{ textDecoration: 'none', color: 'var(--text-primary)', transition: 'background 0.2s ease' }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.background = 'var(--bg-tertiary)';
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.background = 'transparent';
-        }}
+        className="lexicon-row-grid fn-row"
       >
-        <span
-          style={{
-            fontFamily: 'var(--font-mono)',
-            fontSize: '0.75rem',
-            color: 'var(--text-tertiary)',
-            fontVariantNumeric: 'tabular-nums',
-          }}
-        >
-          {rank.toString().padStart(2, '0')}
-        </span>
+        <span className="fn-row-rank">{rank}</span>
         <span className="lexicon-row-nsid" title={lexicon.nsid}>
           <span className="lexicon-nsid-head">{head}</span>
           {tail && <span className="lexicon-nsid-tail">{tail}</span>}
@@ -212,20 +165,9 @@ function Row({ lexicon, rank, isLast }: { lexicon: NewLexicon; rank: number; isL
 
 function Count({ value, unit }: { value: number; unit: string }) {
   return (
-    <span
-      title={`${value.toLocaleString()} ${unit}`}
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'flex-end',
-        gap: '0.1rem',
-        fontFamily: 'var(--font-mono)',
-        fontVariantNumeric: 'tabular-nums',
-        whiteSpace: 'nowrap',
-      }}
-    >
-      <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{formatCount(value)}</span>
-      <span style={{ fontSize: '0.625rem', color: 'var(--text-tertiary)' }}>{unit}</span>
+    <span className="fn-row-figures" title={`${value.toLocaleString()} ${unit}`}>
+      <span className="fn-row-count">{formatCount(value)}</span>
+      <span className="fn-row-unit">{unit}</span>
     </span>
   );
 }
@@ -234,9 +176,9 @@ function Count({ value, unit }: { value: number; unit: string }) {
 function SkeletonRows({ count }: { count: number }) {
   const nsidWidths = ['62%', '78%', '52%', '70%', '46%', '82%', '58%', '66%', '50%', '74%'];
   return (
-    <ul aria-hidden style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+    <ul aria-hidden className="fn-list-rows">
       {Array.from({ length: count }).map((_, i) => (
-        <li key={i} style={{ borderBottom: i === count - 1 ? undefined : '1px solid var(--border-subtle)' }}>
+        <li key={i}>
           <div className="lexicon-row-grid">
             <Skeleton width="1.25rem" height="0.75rem" />
             <span className="lexicon-row-nsid-skel">

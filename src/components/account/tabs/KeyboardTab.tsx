@@ -261,7 +261,7 @@ function BindingRow({
                 Reset
               </button>
             )}
-            {bindings.length > 0 && (
+            {bindings.length > 0 ? (
               <button
                 type="button"
                 className="kb-text-button"
@@ -271,6 +271,12 @@ function BindingRow({
               >
                 Clear
               </button>
+            ) : (
+              // Holds Clear's slot so Edit stays in the same column as the
+              // bound rows above and below.
+              <span className="kb-text-button kb-slot-placeholder" aria-hidden="true">
+                Clear
+              </span>
             )}
           </>
         )}

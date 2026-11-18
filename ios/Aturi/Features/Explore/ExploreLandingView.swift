@@ -103,9 +103,10 @@ private struct ExploreLandingScreen: View {
                 .foregroundStyle(theme.textTertiary)
             Text("Browse any repository.")
                 .font(AturiFont.display)
+                .tracking(AturiFont.displayTracking)
                 .foregroundStyle(theme.textPrimary)
             Text("Every account in the Atmosphere keeps its records in a public PDS. Browse collections, inspect identity history and follow backlinks.")
-                .font(.body)
+                .font(AturiFont.body)
                 .foregroundStyle(theme.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
         }
@@ -143,7 +144,7 @@ private struct ExploreLandingScreen: View {
                 }
                 .padding(.horizontal, 12)
                 .padding(.vertical, 10)
-                .cardBackground(cornerRadius: 10)
+                .cardBackground(cornerRadius: AturiTheme.controlRadius)
 
                 Button(model.isResolving ? "Looking\u{2026}" : "Look up", action: submit)
                     .buttonStyle(.aturiSecondary)
@@ -228,7 +229,7 @@ private struct ExploreLandingScreen: View {
                             AvatarView(url: avatar, size: 24)
                         } else {
                             Image(systemName: entry.path.hasPrefix("/explore/pds/") ? "server.rack" : "person")
-                                .font(.footnote)
+                                .font(AturiFont.footnote)
                                 .foregroundStyle(theme.textTertiary)
                                 .frame(width: 24, height: 24)
                                 .background(theme.bgTertiary, in: Circle())
@@ -262,7 +263,7 @@ private struct ExploreLandingScreen: View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 8) {
                 Text("Try:")
-                    .font(.footnote)
+                    .font(AturiFont.footnote)
                     .foregroundStyle(theme.textTertiary)
                 if let mine = model.myRepo {
                     exampleChip(mine, systemImage: "person", accented: true)
@@ -281,18 +282,18 @@ private struct ExploreLandingScreen: View {
             HStack(spacing: 4) {
                 if let systemImage {
                     Image(systemName: systemImage)
-                        .font(.caption2)
+                        .font(AturiFont.caption2)
                 }
                 Text(repo)
                     .font(AturiFont.monoSmall)
             }
-            .foregroundStyle(theme.textAccent)
-            .padding(.horizontal, 8)
-            .padding(.vertical, 4)
-            .background(theme.bgTertiary, in: RoundedRectangle(cornerRadius: 6, style: .continuous))
+            .foregroundStyle(accented ? theme.accentSoftFg : theme.textAccent)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 5)
+            .background(accented ? theme.accentSoft : theme.bgSecondary, in: Capsule())
             .overlay(
-                RoundedRectangle(cornerRadius: 6, style: .continuous)
-                    .strokeBorder(accented ? theme.textAccent : theme.borderSubtle, lineWidth: 1)
+                Capsule()
+                    .strokeBorder(accented ? theme.accentSoftBorder : theme.borderMedium, lineWidth: 1)
             )
         }
         .buttonStyle(.plain)
@@ -368,7 +369,7 @@ private struct LandingTrendingSection: View {
                         }
                     } label: {
                         Label(model.metric.label, systemImage: "slider.horizontal.3")
-                            .font(.footnote)
+                            .font(AturiFont.footnote)
                             .lineLimit(1)
                     }
                     .accessibilityLabel("Metric, \(model.metric.label)")
@@ -380,14 +381,14 @@ private struct LandingTrendingSection: View {
             Divider()
             HStack(spacing: 4) {
                 Text("Data from")
-                    .font(.caption2)
+                    .font(AturiFont.caption2)
                     .foregroundStyle(theme.textTertiary)
                 Button("Microcosm") {
                     if let url = URL(string: "https://www.microcosm.blue") {
                         openURL(url)
                     }
                 }
-                .font(.caption2)
+                .font(AturiFont.caption2)
                 .buttonStyle(.plain)
                 .foregroundStyle(theme.textAccent)
                 .accessibilityHint("Opens outside the app")
@@ -464,7 +465,7 @@ private struct LandingTrendingSection: View {
                         .foregroundStyle(theme.textTertiary)
                     if let delta = row.deltaLabel {
                         Text(delta)
-                            .font(.caption2.weight(.medium))
+                            .font(AturiFont.sans(.caption2, weight: .medium))
                             .foregroundStyle(delta.hasPrefix("-") ? theme.danger : theme.textAccent)
                     }
                 }

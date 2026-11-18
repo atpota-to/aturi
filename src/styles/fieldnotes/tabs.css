@@ -1,0 +1,187 @@
+/* Field Notes: folder tabs. Tokens live in src/app/globals.css (:root and
+   [data-theme='light']); use them rather than raw hex so dark mode and the
+   colour schemes keep working.
+
+   The panel is the open folder; the tabs stand on its top edge like the cut
+   tabs of folders filed behind it. One hairline, two tones, three pixels: the
+   open tab is the panel's own sheet, 3px taller, its bottom edge painted over
+   the panel's top border; the filed tabs sit a step below the page
+   (--surface-filed); a touched tab comes forward 1px and its tone lifts
+   halfway toward the sheet. Each tab is cut, not stamped: below the 8px
+   shoulder its sides lean out 4°, drawn by two skewed pseudo-wedges that
+   inherit the tab's fill and edge, so hover, open, theme and scheme need no
+   extra rules. A 4° hairline can only be drawn crisply on a 1.5x or denser
+   display; at 1x the sides stay vertical and the tab is today's shape.
+
+   Folder tabs when choosing opens a different sheet; the segmented control
+   (.fn-segmented) when it only changes how the same sheet is shown
+   (Creates/Updates/Deletes, 1d/7d/30d, Dark/Light); toggles when more than
+   one can be on at once (the record card's Fields/JSON).
+
+   Used by the repository card and its sidebar copy (RepoExplorer.tsx,
+   explorer.css), the settings shell (SettingsShell.tsx, account.css) and the
+   loading skeleton (skeletons/primitives.tsx). The landing-page popup mocks
+   (landing.css) and the extension's real popup (popup.css, its own build)
+   mirror the numbers by hand. A context sets the custom properties on its
+   .fx-tabs; it never restyles the parts. The panel is a sibling, so a context
+   whose open sheet is not --bg-secondary sets --tab-open on the row and
+   paints its own panel. */
+
+.fx-tabs {
+  --tab-open: var(--bg-secondary); /* the sheet the open tab belongs to */
+  --tab-filed: var(--surface-filed); /* folders filed behind */
+  --tab-line: var(--border-medium);
+  --tab-radius: var(--radius-control);
+  --tab-rise: 3px; /* how much higher the open tab stands */
+  --tab-cut: 4deg; /* lean of each side below the shoulder */
+  --tab-gap: 6px; /* the flared bases need room */
+  --tab-inset: var(--radius-card); /* no tab on the panel's rounded corner */
+  --tab-pad-x: 14px;
+  --tab-pad-y: 8px;
+  --tab-size: 13.5px;
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: flex-end;
+  gap: var(--tab-gap);
+  padding: 0 var(--tab-inset);
+  /* Tabs never wrap: a second row of folder tabs would stand on the first. */
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.fx-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.fx-tab {
+  position: relative;
+  /* Its own stacking context, so the wedges sit under the label. */
+  z-index: 0;
+  display: inline-flex;
+  align-items: center;
+  flex: none;
+  gap: 6px;
+  padding: var(--tab-pad-y) var(--tab-pad-x);
+  background: var(--tab-filed);
+  border: 1px solid var(--tab-line);
+  border-radius: var(--tab-radius) var(--tab-radius) 0 0;
+  font-family: var(--font-sans);
+  font-size: var(--tab-size);
+  font-weight: 500;
+  /* An integer line box: 1.4 × 13.5 put every hairline on a half pixel. */
+  line-height: 20px;
+  letter-spacing: 0;
+  color: var(--text-tertiary);
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: color 0.15s ease, background-color 0.15s ease;
+}
+
+/* The cut. Each wedge starts where the shoulder's curve turns vertical and
+   leans outward to the base; it inherits the tab's fill and edge colours,
+   and its bottom edge extends the tab's, so the open tab paints the panel
+   border out under its flare as well. Only where the display can draw a 4°
+   hairline crisply: at 1x it would be a grey ramp beside crisp horizontals. */
+@media (min-resolution: 1.5dppx) {
+  .fx-tab::before,
+  .fx-tab::after {
+    content: '';
+    position: absolute;
+    z-index: -1;
+    top: calc(var(--tab-radius) - 1px);
+    bottom: -1px;
+    width: 10px;
+    background: inherit;
+    border: 0 solid;
+    border-color: inherit;
+    border-bottom-width: 1px;
+    pointer-events: none;
+    transition: background-color 0.15s ease;
+  }
+  .fx-tab::before {
+    left: -1px;
+    border-left-width: 1px;
+    transform-origin: top left;
+    transform: skewX(calc(-1 * var(--tab-cut)));
+  }
+  .fx-tab::after {
+    right: -1px;
+    border-right-width: 1px;
+    transform-origin: top right;
+    transform: skewX(var(--tab-cut));
+  }
+}
+
+/* A label never changes width when its weight does: a hidden, zero-height
+   copy in the open weight reserves the room, so the row never jitters as
+   tabs open. */
+.fx-tab-label {
+  display: inline-block;
+  text-align: center;
+}
+.fx-tab-label::after {
+  content: attr(data-label);
+  display: block;
+  height: 0;
+  overflow: hidden;
+  font-weight: 600;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+/* Touched: the tab comes forward one pixel (padding, not transform, so the
+   base stays on the folder edge) and its tone lifts halfway toward the
+   sheet. Derived, so in dark it sits between filed and open in every
+   scheme; --surface-subtle is lighter than the sheet there. Pointer devices
+   only: a tapped tab opens. */
+@media (hover: hover) {
+  .fx-tab:hover:not([aria-selected='true']):not([data-active]) {
+    padding-top: calc(var(--tab-pad-y) + 1px);
+    background: color-mix(in srgb, var(--tab-filed) 50%, var(--tab-open));
+    color: var(--text-primary);
+  }
+}
+.fx-tab:focus-visible {
+  outline: 2px solid var(--accent-moss);
+  outline-offset: -3px;
+}
+
+/* Open: three pixels higher, in the sheet's colour, its bottom edge painted
+   in the sheet's colour over the panel's top border so the two read as one
+   sheet. */
+.fx-tab[aria-selected='true'],
+.fx-tab[data-active] {
+  z-index: 1;
+  padding-top: calc(var(--tab-pad-y) + var(--tab-rise));
+  background: var(--tab-open);
+  border-bottom-color: var(--tab-open);
+  color: var(--text-primary);
+  font-weight: 600;
+  cursor: default;
+}
+
+/* Tucked one pixel up under the tab row, so each tab's bottom edge lies on
+   the panel's top border: the open tab paints it out, the rest repeat it.
+   `clip` rather than `hidden` keeps the rounded corners over edge-to-edge
+   rows without making the panel a scroll container. Must be the row's
+   --tab-open. */
+.fx-tabpanel {
+  position: relative;
+  margin-top: -1px;
+  padding: 16px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-card);
+  overflow: hidden;
+  overflow: clip;
+  min-width: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fx-tab,
+  .fx-tab::before,
+  .fx-tab::after {
+    transition: none;
+  }
+}

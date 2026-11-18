@@ -1056,7 +1056,9 @@ final class LexiconsModelTests: XCTestCase {
         XCTAssertEqual(model.series, [1, 0, 3])
         XCTAssertEqual(transport.count(containing: "/prefix"), 1, "siblings and samples are NSID-only")
         XCTAssertEqual(transport.count(containing: "/records"), 1)
-        XCTAssertTrue(transport.urls(containing: "/collections/stats").last!.contains("since=2025-01-06T00%3A00%3A00.000Z&until=2025-01-07T00%3A00%3A00.000Z"))
+        // The current and prior windows' stats are fetched together (async
+        // let), so either can land last; assert the current one was asked for.
+        XCTAssertTrue(transport.urls(containing: "/collections/stats").contains { $0.contains("since=2025-01-06T00%3A00%3A00.000Z&until=2025-01-07T00%3A00%3A00.000Z") })
         XCTAssertTrue(transport.urls(containing: "/timeseries").last!.contains("step=7200"))
 
         model.window = .oneDay

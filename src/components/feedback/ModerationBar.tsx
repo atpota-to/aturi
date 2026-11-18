@@ -70,19 +70,10 @@ export default function ModerationBar({
     run('status', (a) => setStatus(a, { subject, state, note }));
 
   return (
-    <div
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '0.6rem',
-        padding: '0.875rem 1rem',
-        background: 'var(--bg-tertiary)',
-        border: '1px dashed var(--border-medium)',
-      }}
-    >
+    <div className="fn-fb-card" data-tone="mod">
       <span className="explore-small-caps">Moderator actions</span>
 
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem' }}>
+      <div className="fn-fb-chips">
         {UI_STATES.map((state) => {
           const active = state === currentStatus;
           return (
@@ -91,18 +82,8 @@ export default function ModerationBar({
               type="button"
               disabled={busy !== null || active}
               onClick={() => applyStatus(state)}
-              style={{
-                padding: '0.2rem 0.55rem',
-                background: active ? 'var(--accent-moss)' : 'var(--bg-secondary)',
-                border: `1px solid ${active ? 'var(--accent-moss)' : 'var(--border-subtle)'}`,
-                color: active ? 'var(--text-on-accent)' : 'var(--text-secondary)',
-                fontFamily: 'var(--font-serif)',
-                fontSize: '0.75rem',
-                letterSpacing: '0.05em',
-                textTransform: 'uppercase',
-                cursor: busy || active ? 'default' : 'pointer',
-                opacity: busy && busy !== 'status' ? 0.6 : 1,
-              }}
+              className="fn-fb-modstate"
+              data-active={active ? '' : undefined}
             >
               {UI_STATE_META[state].label}
             </button>
@@ -123,22 +104,14 @@ export default function ModerationBar({
         <button
           type="button"
           onClick={() => setShowNote(true)}
-          style={{
-            alignSelf: 'flex-start',
-            padding: 0,
-            background: 'none',
-            border: 'none',
-            color: 'var(--text-tertiary)',
-            fontSize: '0.75rem',
-            textDecoration: 'underline',
-            cursor: 'pointer',
-          }}
+          className="fn-fb-linkbtn"
+          style={{ alignSelf: 'flex-start' }}
         >
           Add a note to the next status
         </button>
       )}
 
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
+      <div className="fn-fb-chips">
         <ActionButton
           icon={busy === 'pin' ? <Loader2 size={13} className="explore-spin" /> : <Pin size={13} />}
           label={pinned ? 'Pinned' : 'Pin to top'}
@@ -185,19 +158,7 @@ function ActionButton({
       type="button"
       onClick={onClick}
       disabled={disabled}
-      style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: '0.35rem',
-        padding: '0.3rem 0.65rem',
-        background: 'var(--bg-secondary)',
-        border: `1px solid ${danger ? 'var(--danger-border)' : 'var(--border-subtle)'}`,
-        color: danger ? 'var(--danger)' : 'var(--text-secondary)',
-        fontFamily: 'var(--font-serif)',
-        fontSize: '0.8125rem',
-        cursor: disabled ? 'not-allowed' : 'pointer',
-        opacity: disabled ? 0.55 : 1,
-      }}
+      className={`fn-c-btn fn-c-btn-sm${danger ? ' fn-c-btn-danger' : ''}`}
     >
       {icon}
       {label}

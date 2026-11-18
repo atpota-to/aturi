@@ -78,16 +78,9 @@ export default function Composer({
         e.preventDefault();
         submit();
       }}
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '0.75rem',
-        padding: '1.125rem',
-        background: 'var(--bg-secondary)',
-        border: '1px solid var(--border-medium)',
-      }}
+      className="fn-fb-card"
     >
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+      <div className="fn-fb-field">
         <label className="explore-small-caps" htmlFor="feedback-title">
           What&rsquo;s on your mind?
         </label>
@@ -104,9 +97,9 @@ export default function Composer({
         />
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+      <div className="fn-fb-field">
         <label className="explore-small-caps" htmlFor="feedback-body">
-          Details <span style={{ textTransform: 'none' }}>(optional)</span>
+          Details <span className="fn-fb-label-aside">(optional)</span>
         </label>
         <textarea
           id="feedback-body"
@@ -120,9 +113,9 @@ export default function Composer({
       </div>
 
       {tags.length ? (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+        <div className="fn-fb-field">
           <span className="explore-small-caps">Category</span>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
+          <div className="fn-fb-chips">
             {tags.map((tag) => {
               const active = selected.has(tag.value);
               return (
@@ -131,15 +124,7 @@ export default function Composer({
                   type="button"
                   aria-pressed={active}
                   onClick={() => toggleTag(tag.value)}
-                  style={{
-                    padding: '0.25rem 0.6rem',
-                    background: active ? 'var(--accent-moss)' : 'var(--bg-tertiary)',
-                    border: `1px solid ${active ? 'var(--accent-moss)' : 'var(--border-subtle)'}`,
-                    color: active ? 'var(--text-on-accent)' : 'var(--text-secondary)',
-                    fontFamily: 'var(--font-mono)',
-                    fontSize: '0.75rem',
-                    cursor: 'pointer',
-                  }}
+                  className="fn-fb-tagpick"
                 >
                   {tag.label}
                 </button>
@@ -151,16 +136,8 @@ export default function Composer({
 
       {error ? <p className="explore-error">{error}</p> : null}
 
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: '0.75rem',
-          flexWrap: 'wrap',
-        }}
-      >
-        <span style={{ color: 'var(--text-tertiary)', fontSize: '0.75rem' }}>
+      <div className="fn-fb-form-foot">
+        <span className="fn-fb-hint">
           {posted
             ? 'Posted to your repo. It appears here once the index catches up.'
             : 'Posts as a record in your own repo.'}
@@ -168,19 +145,7 @@ export default function Composer({
         <button
           type="submit"
           disabled={!canSubmit}
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '0.4rem',
-            padding: '0.5rem 1rem',
-            background: 'var(--accent-moss)',
-            border: '1px solid var(--accent-moss)',
-            color: 'var(--text-on-accent)',
-            fontFamily: 'var(--font-serif)',
-            fontSize: '0.875rem',
-            cursor: canSubmit ? 'pointer' : 'not-allowed',
-            opacity: canSubmit ? 1 : 0.55,
-          }}
+          className="fn-c-btn fn-c-btn-primary"
         >
           {busy ? <Loader2 size={14} className="explore-spin" /> : <Send size={14} />}
           Post feedback

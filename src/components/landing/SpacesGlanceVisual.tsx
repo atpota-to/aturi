@@ -26,124 +26,33 @@ const ROWS: { spaceType: string; skey: string; authority: string; yours?: boolea
 
 export default function SpacesGlanceVisual() {
   return (
-    <div
-      style={{
-        width: '100%',
-        maxWidth: '460px',
-        margin: '0 auto',
-        background: 'var(--bg-secondary)',
-        border: '1px solid var(--border-medium)',
-        boxShadow: 'var(--shadow-overlay)',
-        fontFamily: 'var(--font-serif)',
-        color: 'var(--text-primary)',
-        transform: 'rotate(0.3deg)',
-      }}
-    >
-      <div
-        style={{
-          padding: '12px 16px 10px',
-          borderBottom: '1px solid var(--border-subtle)',
-          background: 'linear-gradient(180deg, var(--bg-secondary), var(--bg-primary))',
-        }}
-      >
-        <div
-          style={{
-            fontSize: '0.6rem',
-            color: 'var(--text-tertiary)',
-            textTransform: 'uppercase',
-            letterSpacing: '0.12em',
-            marginBottom: '3px',
-          }}
-        >
-          Explore · @you.example
-        </div>
-        <div style={{ fontSize: '0.95rem', fontWeight: 500, letterSpacing: '-0.01em' }}>
-          Spaces at a glance
-        </div>
+    <div className="fl-mock">
+      <div className="fl-mock-head">
+        <span className="fl-mock-head-stack">
+          <span className="fl-mock-label">Explore · @you.example</span>
+          <span className="fl-mock-head-title">Spaces at a glance</span>
+        </span>
       </div>
 
-      {/* Stat cells, drawn with the same 1px-gap grid the live SpaceGlance
-          uses so the dividers match. */}
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
-          gap: '1px',
-          background: 'var(--border-subtle)',
-          borderBottom: '1px solid var(--border-subtle)',
-        }}
-      >
+      <div className="fl-stats" data-cols="3">
         {CELLS.map((cell) => (
-          <div
-            key={cell.label}
-            style={{
-              padding: '0.625rem 0.75rem',
-              background: 'var(--bg-secondary)',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '0.15rem',
-              minWidth: 0,
-            }}
-          >
-            <span
-              style={{
-                fontSize: '0.6rem',
-                letterSpacing: '0.08em',
-                textTransform: 'uppercase',
-                color: 'var(--text-tertiary)',
-              }}
-            >
-              {cell.label}
-            </span>
-            <span
-              style={{
-                fontFamily: 'var(--font-mono)',
-                fontSize: '1.1rem',
-                color: 'var(--text-primary)',
-              }}
-            >
-              {cell.value}
-            </span>
-            <span style={{ fontSize: '0.6rem', color: 'var(--text-tertiary)' }}>{cell.hint}</span>
+          <div key={cell.label} className="fl-stat">
+            <span className="fl-stat-label">{cell.label}</span>
+            <span className="fl-stat-value">{cell.value}</span>
+            <span className="fl-stat-sub">{cell.hint}</span>
           </div>
         ))}
       </div>
 
-      <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
-        {ROWS.map((row, i) => (
-          <li
-            key={`${row.skey}-${row.authority}`}
-            style={{
-              display: 'flex',
-              flexWrap: 'wrap',
-              alignItems: 'baseline',
-              gap: '0.6rem',
-              padding: '0.55rem 1rem',
-              fontFamily: 'var(--font-mono)',
-              fontSize: '0.75rem',
-              borderBottom: i < ROWS.length - 1 ? '1px solid var(--border-subtle)' : 'none',
-            }}
-          >
-            <span style={{ color: 'var(--text-primary)' }}>{row.spaceType}</span>
-            <span style={{ color: 'var(--text-tertiary)' }}>{row.skey}</span>
-            <span
-              style={{
-                marginLeft: 'auto',
-                display: 'inline-flex',
-                alignItems: 'baseline',
-                gap: '0.4rem',
-                color: 'var(--text-tertiary)',
-              }}
-            >
+      <ul className="fl-spacerows">
+        {ROWS.map((row) => (
+          <li key={`${row.skey}-${row.authority}`}>
+            <span>{row.spaceType}</span>
+            <span className="fl-faint">{row.skey}</span>
+            <span className="fl-spacerows-auth">
               {row.authority}
               {row.yours && (
-                <span
-                  style={{
-                    fontSize: '0.6rem',
-                    padding: '0.05rem 0.3rem',
-                    border: '1px solid var(--border-subtle)',
-                  }}
-                >
+                <span className="fl-chip" data-on="">
                   yours
                 </span>
               )}

@@ -68,7 +68,7 @@ struct DeltaText: View {
         let figure = UFOsFormat.formatPct(pct)
         return HStack(spacing: 2) {
             Image(systemName: positive ? "arrow.up.right" : "arrow.down.right")
-                .font(.caption2)
+                .font(AturiFont.caption2)
                 .accessibilityHidden(true)
             Text(figure)
                 .font(.caption2.weight(.medium).monospacedDigit())
@@ -203,7 +203,7 @@ struct LexiconSectionCard<Content: View>: View {
         VStack(alignment: .leading, spacing: 0) {
             HStack(spacing: 6) {
                 Image(systemName: systemImage)
-                    .font(.caption)
+                    .font(AturiFont.caption)
                     .foregroundStyle(theme.textAccent)
                     .accessibilityHidden(true)
                 Text(title)

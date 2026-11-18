@@ -11,7 +11,7 @@ import {
   type SpaceTransport,
 } from '@/utils/atproto/spaceClient';
 import SpaceConfigFields from './SpaceConfigFields';
-import SpaceDialog, { DialogButton, dialogNoteStyle } from './SpaceDialog';
+import SpaceDialog, { DialogButton } from './SpaceDialog';
 import {
   appAccessDraftEquals,
   appAccessDraftFromConfig,
@@ -111,8 +111,8 @@ export function ManageSpaceButton({
 
   return (
     <>
-      <button type="button" onClick={openForm} style={quietButtonStyle}>
-        <Settings2 size={12} /> Manage
+      <button type="button" onClick={openForm} className="fx-btn fx-btn-sm">
+        <Settings2 size={13} /> Manage
       </button>
 
       <SpaceDialog
@@ -202,8 +202,8 @@ export function AdoptSpaceButton({
 
   return (
     <>
-      <button type="button" onClick={() => setOpen(true)} style={quietButtonStyle}>
-        <Settings2 size={12} /> Configure this space
+      <button type="button" onClick={() => setOpen(true)} className="fx-btn fx-btn-sm">
+        <Settings2 size={13} /> Configure this space
       </button>
 
       <SpaceDialog
@@ -287,14 +287,9 @@ export function DeleteSpaceButton({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        style={{
-          ...quietButtonStyle,
-          background: 'var(--danger-soft)',
-          color: 'var(--danger)',
-          borderColor: 'var(--danger-border)',
-        }}
+        className="fx-btn fx-btn-sm fx-btn-danger"
       >
-        <Trash2 size={12} /> Delete
+        <Trash2 size={13} /> Delete
       </button>
 
       <SpaceDialog
@@ -314,15 +309,15 @@ export function DeleteSpaceButton({
           </>
         }
       >
-        <p style={dialogNoteStyle}>
+        <p className="fx-sp-dialog-note">
           Every read and write against{' '}
-          <code style={{ background: 'transparent', padding: 0, overflowWrap: 'anywhere' }}>
+          <code>
             {space}
           </code>{' '}
           fails afterwards, and the address cannot be brought back by re-creating
           it.
         </p>
-        <p style={dialogNoteStyle}>
+        <p className="fx-sp-dialog-note">
           Your own records in the space are deleted with it, because your server
           is both the space’s host and yours. Other members’ records stay on
           their own servers, marked as belonging to a deleted space.
@@ -331,16 +326,3 @@ export function DeleteSpaceButton({
     </>
   );
 }
-
-const quietButtonStyle: React.CSSProperties = {
-  display: 'inline-flex',
-  alignItems: 'center',
-  gap: '0.4rem',
-  padding: '0.3rem 0.6rem',
-  background: 'var(--bg-tertiary)',
-  color: 'var(--text-secondary)',
-  border: '1px solid var(--border-subtle)',
-  fontFamily: 'var(--font-serif)',
-  fontSize: '0.8rem',
-  cursor: 'pointer',
-};

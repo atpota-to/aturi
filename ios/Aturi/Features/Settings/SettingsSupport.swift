@@ -50,7 +50,7 @@ struct SettingsSection<Content: View>: View {
         } footer: {
             if let footer, !footer.isEmpty {
                 Text(footer)
-                    .font(.footnote)
+                    .font(AturiFont.footnote)
                     .foregroundStyle(theme.textSecondary)
             }
         }
@@ -75,7 +75,7 @@ struct SettingsRowLabel: View {
         HStack(alignment: .center, spacing: 12) {
             if let systemImage {
                 Image(systemName: systemImage)
-                    .font(.body)
+                    .font(AturiFont.body)
                     .foregroundStyle(theme.textAccent)
                     .frame(width: 24)
                     .accessibilityHidden(true)
@@ -86,7 +86,7 @@ struct SettingsRowLabel: View {
                     .foregroundStyle(theme.textPrimary)
                 if let detail, !detail.isEmpty {
                     Text(detail)
-                        .font(.footnote)
+                        .font(AturiFont.footnote)
                         .foregroundStyle(theme.textSecondary)
                         .lineLimit(2)
                 }
@@ -117,7 +117,7 @@ struct SettingsToggleRow: View {
                     .foregroundStyle(theme.textPrimary)
                 if let detail, !detail.isEmpty {
                     Text(detail)
-                        .font(.footnote)
+                        .font(AturiFont.footnote)
                         .foregroundStyle(theme.textSecondary)
                         .fixedSize(horizontal: false, vertical: true)
                 }
@@ -162,14 +162,14 @@ struct SettingsChoiceRow<Leading: View>: View {
                         .foregroundStyle(theme.textPrimary)
                     if let detail, !detail.isEmpty {
                         Text(detail)
-                            .font(.footnote)
+                            .font(AturiFont.footnote)
                             .foregroundStyle(theme.textSecondary)
                             .fixedSize(horizontal: false, vertical: true)
                     }
                 }
                 Spacer(minLength: 0)
                 Image(systemName: "checkmark")
-                    .font(.body.weight(.semibold))
+                    .font(AturiFont.sans(.body, weight: .semibold))
                     .foregroundStyle(theme.textAccent)
                     .opacity(isSelected ? 1 : 0)
                     .accessibilityHidden(true)
@@ -190,7 +190,7 @@ extension SettingsChoiceRow where Leading == EmptyView {
 }
 
 /// A selectable capsule for multi-choice sets (record types, compat
-/// families): filled with the accent when on.
+/// families): the Field Notes soft accent pill when on.
 struct SettingsChipToggle: View {
     let title: String
     let isOn: Bool
@@ -208,13 +208,13 @@ struct SettingsChipToggle: View {
     var body: some View {
         Button(action: action) {
             Text(title)
-                .font(.footnote.weight(.medium))
+                .font(AturiFont.sans(.footnote, weight: .medium))
                 .lineLimit(1)
                 .padding(.horizontal, 10)
                 .padding(.vertical, 6)
-                .foregroundStyle(isOn ? theme.textOnAccent : theme.textSecondary)
-                .background(isOn ? theme.accent : theme.bgTertiary, in: Capsule())
-                .overlay(Capsule().strokeBorder(theme.borderSubtle, lineWidth: AturiTheme.hairline(displayScale: displayScale)))
+                .foregroundStyle(isOn ? theme.accentSoftFg : theme.textSecondary)
+                .background(isOn ? theme.accentSoft : theme.bgSecondary, in: Capsule())
+                .overlay(Capsule().strokeBorder(isOn ? theme.accentSoftBorder : theme.borderMedium, lineWidth: AturiTheme.hairline(displayScale: displayScale)))
         }
         .buttonStyle(.plain)
         .accessibilityAddTraits(isOn ? AccessibilityTraits.isSelected : AccessibilityTraits())

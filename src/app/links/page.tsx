@@ -32,10 +32,7 @@ export default function UniversalLinksPage() {
   return (
     <>
       <Header compact />
-      <div
-        className="container-narrow"
-        style={{ padding: '0 2rem 4rem', minHeight: '80dvh' }}
-      >
+      <div className="container-narrow fl-container">
         <UniversalLinksLanding />
       </div>
     </>

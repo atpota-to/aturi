@@ -1,0 +1,1222 @@
+/* Field Notes: explore styles. Tokens live in src/app/globals.css (:root and
+   [data-theme='light']); use them rather than raw hex so dark mode and the
+   colour schemes keep working. */
+
+/* ---------- Page width ----------
+   The explore layout wraps every page in .container-narrow (800px). The
+   section's three landings (explore, lexicons, spaces) want the mockup's
+   wider 1240px column, so the container widens only when it holds one of
+   those pages. */
+.container-narrow:has(> .fn-explore),
+.container-narrow:has(> .fn-lexicons),
+.container-narrow:has(> .fn-spaces-landing) {
+  max-width: 1240px;
+}
+
+.fn-explore {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+  padding-top: 36px;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  color: var(--text-primary);
+}
+
+/* Spotlights, the live feed and cross-links below the pulse keep their own
+   layout; 64px between them, the rhythm the spaces landing uses, where the
+   intro, tiles and pulse above stay one group at the base gap. */
+.fn-explore > :nth-child(n + 4) {
+  margin-top: 36px;
+}
+
+.fn-kicker {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-accent);
+}
+
+/* ---------- Intro ---------- */
+
+.fn-x-intro {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 24px 48px;
+}
+
+.fn-x-intro-copy {
+  flex: 1 1 440px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.fn-x-intro-copy h1,
+.fn-lexicons-intro h1 {
+  margin: 0;
+  font-size: 36px;
+  line-height: 1.1;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  color: var(--text-primary);
+}
+
+.fn-x-intro-copy p,
+.fn-lexicons-intro p {
+  margin: 0;
+  max-width: 540px;
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--text-secondary);
+}
+
+.fn-x-intro-search {
+  flex: 1 1 440px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* SearchBox carries a bottom margin for its other hosts. */
+.fn-x-intro-search form,
+.fn-lexicons-intro form {
+  margin-bottom: 0 !important;
+}
+
+/* Phones: the button under the field, as the explorer's own search box
+   does (globals.css, .fn-searchbox), so the placeholder isn't cut short. */
+@media (max-width: 640px) {
+  .fn-lexicons-intro form {
+    flex-direction: column;
+  }
+}
+
+.fn-x-tries {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.fn-x-tries > span {
+  font-size: 13px;
+  color: var(--text-tertiary);
+  margin-right: 2px;
+}
+
+.fn-chip {
+  height: 30px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0 10px;
+  box-sizing: border-box;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--border-medium);
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  text-decoration: none;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.fn-chip:hover {
+  border-color: var(--border-strong);
+  background: var(--surface-subtle);
+  color: var(--text-primary);
+}
+
+.fn-chip-mine {
+  background: var(--accent-soft);
+  border-color: var(--accent-soft-border);
+  color: var(--accent-soft-fg);
+}
+
+.fn-chip-mine:hover {
+  background: var(--accent-soft);
+  border-color: var(--text-accent);
+  color: var(--accent-soft-fg);
+}
+
+/* ---------- Tiles ---------- */
+
+.fn-x-tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+}
+
+.fn-x-tile {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: var(--radius-card);
+  border: 1px solid var(--border-medium);
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  text-decoration: none;
+  transition: border-color 0.15s ease;
+}
+
+.fn-x-tile:hover {
+  border-color: var(--border-strong);
+  color: var(--text-primary);
+}
+
+.fn-x-tile-icon {
+  width: 36px;
+  height: 36px;
+  flex: none;
+  border-radius: 9px;
+  background: var(--accent-soft);
+  color: var(--accent-soft-fg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.fn-x-tile-text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+/* The chevron says "link" on touch screens, where the hover border can't. */
+.fn-x-tile-chev {
+  flex: none;
+  color: var(--text-tertiary);
+}
+
+.fn-x-tile:hover .fn-x-tile-chev {
+  color: var(--text-accent);
+}
+
+.fn-x-tile-title {
+  font-weight: 700;
+}
+
+.fn-x-tile-desc {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+/* ---------- This week in the Atmosphere ---------- */
+
+.fn-pulse {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.fn-pulse-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.fn-pulse-heading {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.fn-pulse-heading h2 {
+  margin: 0;
+  font-size: 19px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--text-primary);
+}
+
+.fn-pulse-heading span {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.fn-pulse-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.fn-pulse-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+  align-items: stretch;
+}
+
+/* Three cards: two to a row on a tablet with the third spanning both (rather
+   than left alone beside an empty slot), three across once they fit. */
+@media (min-width: 720px) {
+  .fn-pulse-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .fn-pulse-grid > :nth-child(3):last-child {
+    grid-column: 1 / -1;
+  }
+}
+@media (min-width: 1100px) {
+  .fn-pulse-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .fn-pulse-grid > :nth-child(3):last-child {
+    grid-column: auto;
+  }
+}
+
+.fn-pulse-card .fn-list-card-head {
+  gap: 2px;
+  padding: 14px 16px 10px;
+}
+
+.fn-pulse-card .fn-list-card-title {
+  font-size: 15px;
+}
+
+.fn-pulse-card .fn-list-card-sub {
+  font-size: 12.5px;
+}
+
+.fn-pulse-card .fn-list-card-body {
+  flex: 1;
+}
+
+.fn-pulse-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 46px;
+  padding: 6px 16px;
+  box-sizing: border-box;
+}
+
+.fn-pulse-row-ranked {
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr) 76px;
+  gap: 12px;
+}
+
+.fn-pulse-nsid-bar {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.fn-pulse-nsid {
+  flex: 1;
+  min-width: 0;
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fn-pulse-bar {
+  display: block;
+  height: 4px;
+  border-radius: 4px;
+  background: var(--border-subtle);
+}
+
+.fn-pulse-bar > span {
+  display: block;
+  height: 4px;
+  border-radius: 4px;
+  background: var(--accent-moss);
+}
+
+.fn-pulse-before-now {
+  font-size: 13px;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.fn-pulse-before-now > span {
+  color: var(--text-tertiary);
+}
+
+.fn-pulse-before-now strong {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.fn-pulse-foot {
+  display: flex;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.fn-pulse-foot > a,
+.fn-pulse-foot > button {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 42px;
+  padding: 0 12px;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-accent);
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.fn-pulse-foot > button {
+  color: var(--text-secondary);
+  border-right: 1px solid var(--border-subtle);
+}
+
+.fn-pulse-foot > a:hover,
+.fn-pulse-foot > button:hover {
+  background: var(--surface-subtle);
+  color: var(--accent-forest);
+}
+
+/* ---------- List card (shared by the landing and the lexicon pages) ---------- */
+
+.fn-list-card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-card);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  height: 100%;
+}
+
+.fn-list-card-head {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px 16px 12px;
+}
+
+.fn-list-card-title-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.fn-list-card-icon {
+  width: 26px;
+  height: 26px;
+  flex: none;
+  border-radius: 7px;
+  background: var(--accent-soft);
+  color: var(--accent-soft-fg);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.fn-list-card-title {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--text-primary);
+}
+
+/* --text-tertiary, not --text-faint: these are words to read, and faint
+   lands near 2.3:1 on paper. */
+.fn-list-card-via {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+}
+
+.fn-list-card-headlink {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-accent);
+  text-decoration: none;
+}
+
+.fn-list-card-headlink:hover {
+  color: var(--accent-forest);
+}
+
+.fn-list-card-sub {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+.fn-list-card-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 2px;
+}
+
+.fn-list-card .explore-error.fn-list-card-msg,
+.fn-list-card .explore-placeholder.fn-list-card-msg {
+  margin: 0;
+  padding: 14px 16px;
+  border: 0;
+  border-top: 1px solid var(--border-subtle);
+  border-radius: 0;
+}
+
+.fn-list-card .explore-placeholder.fn-list-card-msg {
+  background: transparent;
+  font-style: normal;
+  color: var(--text-tertiary);
+}
+
+.fn-list-rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.fn-list-rows > li {
+  border-top: 1px solid var(--border-subtle);
+}
+
+.fn-row {
+  color: var(--text-primary);
+  text-decoration: none;
+  transition: background 0.15s ease;
+}
+
+.fn-row:hover {
+  background: var(--surface-subtle);
+  color: var(--text-primary);
+}
+
+.fn-row:focus-visible {
+  outline: 2px solid var(--text-accent);
+  outline-offset: -2px;
+}
+
+/* A column head leading the card, or the list, needs no rule above it. */
+.fn-list-card > .fn-col-head:first-child,
+.fn-list-rows > .fn-col-head:first-child {
+  border-top: 0;
+}
+
+.fn-row-rank {
+  font-family: var(--font-sans);
+  font-size: 12px;
+  color: var(--text-tertiary);
+  font-variant-numeric: tabular-nums;
+}
+
+.fn-row-figures {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 1px;
+  white-space: nowrap;
+}
+
+.fn-row-count {
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  text-align: right;
+}
+
+.fn-row-unit {
+  font-size: 11px;
+  color: var(--text-tertiary);
+}
+
+.fn-list-card-foot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 42px;
+  border: 0;
+  border-top: 1px solid var(--border-subtle);
+  background: transparent;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-accent);
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.fn-list-card-foot:hover {
+  background: var(--surface-subtle);
+  color: var(--accent-forest);
+}
+
+.fn-list-card-note {
+  margin: 0;
+  padding: 10px 16px;
+  border-top: 1px solid var(--border-subtle);
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-tertiary);
+}
+
+/* The lexicon row grid from globals, in list-card spacing. */
+.fn-list-card .lexicon-row-grid {
+  min-height: 46px;
+  padding: 6px 16px;
+  gap: 12px;
+  /* A fixed figures column, not auto: each row is its own grid, so an auto
+     track sized to "+5825%" on one row and "+390%" on the next left the
+     sparklines starting at different x. */
+  grid-template-columns: 1.5rem minmax(0, 1fr) 7rem 4.5rem;
+}
+
+.fn-list-card .lexicon-row-nsid {
+  font-size: 12.5px;
+}
+
+@media (max-width: 600px) {
+  .fn-list-card .lexicon-row-grid {
+    /* Fixed for the same reason as above; 4.5rem clears the widest
+       figure-and-delta pair (~62px). */
+    grid-template-columns: 1.25rem minmax(0, 1fr) 3rem 4.5rem;
+    gap: 8px;
+    padding: 6px 12px;
+  }
+
+  /* The trending card's three controls: the short pair (Trending/Top and
+     1d/7d/30d) share a row and the wide metric picker takes its own, instead
+     of three ragged rows. */
+  #trending .fn-list-card-controls > .fn-segmented:nth-child(2) {
+    order: 1;
+  }
+
+  /* Browse rows: an NSID wraps at its dots (primitives.tsx, Nsid) rather
+     than losing its last segment to an ellipsis; the figures column
+     narrows to what a count needs. */
+  .fn-browse-grid {
+    grid-template-columns: minmax(0, 1fr) 4rem;
+    gap: 10px;
+    padding: 6px 12px;
+  }
+  .fn-browse-grid .fn-row-nsid {
+    white-space: normal;
+    overflow-wrap: anywhere;
+    line-height: 1.35;
+  }
+}
+
+/* ---------- Shared controls ---------- */
+
+/* The site's one segmented control: a recessed track, 28px options, and a
+   raised thumb on the chosen one (--border-strong in dark, where a white
+   thumb would be darker than its track). The settings, record and picker
+   toggles carry the same values under their own class names. */
+.fn-segmented {
+  display: inline-flex;
+  padding: 3px;
+  border-radius: var(--radius-control);
+  background: var(--bg-tertiary);
+}
+
+.fn-segmented-option {
+  height: 28px;
+  padding: 0 12px;
+  border-radius: 6px;
+  border: 0;
+  background: transparent;
+  color: var(--text-secondary);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.fn-segmented-option:hover {
+  color: var(--text-primary);
+}
+
+.fn-segmented-option[aria-pressed='true'] {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font-weight: 600;
+  cursor: default;
+  box-shadow: 0 1px 2px rgb(28 30 25 / 0.12);
+}
+
+:root:not([data-theme='light']) .fn-segmented-option[aria-pressed='true'] {
+  background: var(--border-strong);
+}
+
+.fn-segmented-option:focus-visible {
+  outline: 2px solid var(--text-accent);
+  outline-offset: 1px;
+}
+
+.fn-btn {
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 14px;
+  box-sizing: border-box;
+  border-radius: var(--radius-control);
+  border: 1px solid var(--border-strong);
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: 13.5px;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.fn-btn:hover {
+  border-color: var(--text-tertiary);
+  background: var(--surface-subtle);
+  color: var(--text-primary);
+}
+
+.fn-credit {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 5px;
+  padding: 10px 16px;
+  border-top: 1px solid var(--border-subtle);
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+}
+
+.fn-credit-standalone {
+  padding: 0 4px;
+  border-top: 0;
+}
+
+.fn-credit a {
+  color: var(--text-accent);
+  text-decoration: none;
+}
+
+.fn-credit a:hover {
+  color: var(--accent-forest);
+}
+
+@media (max-width: 600px) {
+  .fn-explore {
+    padding-top: 20px;
+    gap: 22px;
+  }
+
+  .fn-explore > :nth-child(n + 4) {
+    margin-top: 26px;
+  }
+
+  .fn-x-intro-copy h1,
+  .fn-lexicons-intro h1 {
+    font-size: 30px;
+  }
+
+  .fn-x-intro-copy,
+  .fn-x-intro-search {
+    flex-basis: 100%;
+  }
+
+  /* Ranked rows kept desktop padding and a 76px figures column, which left
+     the identifier about 20 characters at 390px. */
+  .fn-pulse-row {
+    padding: 6px 12px;
+  }
+  .fn-pulse-row-ranked {
+    grid-template-columns: 16px minmax(0, 1fr) 72px;
+    gap: 10px;
+  }
+}
+
+/* ---------- Spaces landing ----------
+   The page is laid out in SpacesLanding.tsx; these are the pieces that
+   change with the viewport, which inline styles can't. */
+
+.fn-sp-landing-title {
+  margin: 0 0 0.75rem;
+  font-size: 36px;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  line-height: 1.1;
+  color: var(--text-primary);
+}
+
+/* The measure: 75-80 characters at 16px. */
+.fn-sp-lead {
+  max-width: 38rem;
+}
+
+.fn-spaces-landing .oauth-typeahead-input {
+  height: 40px;
+  font-size: 14px;
+}
+
+.fn-sp-signin-btn {
+  min-height: 40px;
+}
+
+.fn-sp-apps {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.fn-sp-app {
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-card);
+  background: var(--bg-secondary);
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.fn-sp-app:hover {
+  border-color: var(--border-strong);
+  background: var(--surface-subtle);
+}
+
+@media (max-width: 960px) {
+  .fn-sp-apps {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  /* Under 16px, iOS Safari zooms the page when the field takes focus. */
+  .fn-spaces-landing .oauth-typeahead-input {
+    height: 48px;
+    font-size: 16px;
+  }
+  .fn-sp-signin-btn {
+    min-height: 48px;
+  }
+}
+
+@media (max-width: 600px) {
+  .fn-sp-landing-title {
+    font-size: 30px;
+  }
+}
+
+@media (max-width: 560px) {
+  .fn-sp-apps {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* ---------- Lexicon pages ---------- */
+
+.fn-lexicons {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+  padding-top: 36px;
+  font-family: var(--font-sans);
+  font-size: 14px;
+}
+
+.fn-lexicons-intro {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 24px 48px;
+}
+
+.fn-lexicons-intro > div {
+  flex: 1 1 440px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* Trending beside New on wide screens; Browse spans both. */
+.fn-lexicons-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(460px, 100%), 1fr));
+  gap: 16px;
+  /* Each card is as tall as its own content. Stretched to a shared height,
+     the shorter one opened a blank band above its credit that read as a
+     missing row. */
+  align-items: start;
+}
+
+.fn-freshness {
+  margin: 0;
+  text-align: center;
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+
+.fn-browse-head {
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
+}
+
+.fn-browse-head .fn-list-card-controls {
+  margin-top: 0;
+}
+
+.fn-browse-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 5rem;
+  gap: 12px;
+  align-items: center;
+  min-height: 42px;
+  padding: 6px 16px;
+  box-sizing: border-box;
+}
+
+.fn-col-head {
+  min-height: 32px;
+  border-top: 1px solid var(--border-subtle);
+  background: var(--surface-subtle);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+}
+
+.fn-row-nsid {
+  min-width: 0;
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fn-toggle {
+  height: 34px;
+  padding: 0 12px;
+  border-radius: var(--radius-control);
+  border: 1px solid var(--border-medium);
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.fn-toggle:hover {
+  border-color: var(--border-strong);
+  color: var(--text-primary);
+}
+
+.fn-toggle[aria-pressed='true'] {
+  background: var(--accent-soft);
+  border-color: var(--accent-soft-border);
+  color: var(--accent-soft-fg);
+  font-weight: 600;
+}
+
+/* ---------- Lexicon detail and group ---------- */
+
+.fn-lexdetail {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding-top: 24px;
+  font-family: var(--font-sans);
+  font-size: 14px;
+}
+
+.fn-backlink {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-accent);
+  text-decoration: none;
+}
+
+.fn-backlink:hover {
+  color: var(--accent-forest);
+}
+
+.fn-lexhead {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-card);
+  padding: 20px 20px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.fn-lexhead-kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.fn-lexhead-title {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+  color: var(--text-primary);
+  /* The NSID carries a break after every dot (primitives.tsx, Nsid); this
+     is only the backstop for a single segment wider than the column. */
+  overflow-wrap: anywhere;
+}
+
+.fn-lexhead-mono {
+  font-family: var(--font-mono);
+  font-size: 24px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+}
+
+.fn-lexhead-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 18px;
+  font-size: 13px;
+  color: var(--text-tertiary);
+}
+
+.fn-lexhead-meta a,
+.fn-lexhead-meta strong {
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  font-weight: 500;
+}
+
+.fn-lexhead-meta a {
+  color: var(--text-accent);
+  text-decoration: none;
+}
+
+.fn-lexhead-meta strong {
+  color: var(--text-secondary);
+}
+
+.fn-lexhead-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.fn-lexdetail-window {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px 12px;
+  margin: 4px 0 -4px;
+}
+
+.fn-lexdetail-window-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-tertiary);
+}
+
+.fn-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr));
+  gap: 1px;
+  background: var(--border-subtle);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-card);
+  overflow: hidden;
+}
+
+.fn-stat {
+  background: var(--bg-secondary);
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.fn-stat-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-tertiary);
+}
+
+.fn-stat-value {
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.fn-chart-card {
+  padding: 14px 16px 18px;
+  gap: 14px;
+  height: auto;
+}
+
+.fn-chart-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+/* The chart's scale, under the line: when it starts, its range, when it
+   ends. Pulled up a little so it reads as the line's caption. */
+.fn-chart-axis {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 4px 12px;
+  margin-top: -6px;
+  font-size: 11px;
+  color: var(--text-tertiary);
+  font-variant-numeric: tabular-nums;
+}
+
+.fn-chart-axis > :nth-child(2) {
+  text-align: center;
+}
+
+.fn-sample-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 42px;
+  padding: 6px 16px;
+  box-sizing: border-box;
+}
+
+.fn-row-time {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.fn-lexdetail .fn-list-card {
+  height: auto;
+}
+
+/* ---------- PDS host ---------- */
+
+.fn-pds {
+  gap: 24px;
+}
+
+.fn-dt {
+  margin-bottom: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-tertiary);
+}
+
+.fn-dt::first-letter {
+  text-transform: uppercase;
+}
+
+.fn-pds-repos-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  margin-bottom: 12px;
+}
+
+.fn-pds-repos-head h2 {
+  margin: 0;
+  font-size: 19px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--text-primary);
+}
+
+.fn-pds-repos-head span {
+  font-size: 13px;
+  color: var(--text-tertiary);
+  font-variant-numeric: tabular-nums;
+}
+
+.fn-pds-repos > li:last-child {
+  border-bottom: 0 !important;
+}
+
+.fn-pds .explore-error,
+.fn-pds .explore-placeholder {
+  border-radius: var(--radius-card);
+}
+
+.fn-pds section > div:last-child > .fn-btn {
+  margin-top: 4px;
+}
+
+/* Touch: the try-chips and segmented options keep their size and get an
+   invisible 40px hit area. */
+@media (pointer: coarse) {
+  .fn-chip,
+  .fn-segmented-option,
+  .fn-toggle,
+  .fn-btn,
+  .fn-backlink {
+    position: relative;
+  }
+  .fn-chip::after,
+  .fn-segmented-option::after,
+  .fn-toggle::after,
+  .fn-btn::after,
+  .fn-backlink::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 100%;
+    height: 40px;
+    transform: translate(-50%, -50%);
+  }
+  .fn-btn::after,
+  .fn-backlink::after {
+    height: 44px;
+  }
+}

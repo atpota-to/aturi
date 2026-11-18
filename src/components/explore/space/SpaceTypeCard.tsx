@@ -48,174 +48,94 @@ export default function SpaceTypeCard({ nsid }: { nsid: string }) {
     : [];
 
   return (
-    <section
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '0.75rem',
-        padding: '1rem',
-        border: '1px solid var(--border-medium)',
-        background: 'var(--bg-secondary)',
-      }}
-    >
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'baseline',
-          justifyContent: 'space-between',
-          gap: '0.75rem',
-          flexWrap: 'wrap',
-        }}
-      >
-        <h2
-          style={{
-            margin: 0,
-            fontFamily: 'var(--font-serif)',
-            fontWeight: 400,
-            fontSize: '1rem',
-            color: 'var(--text-primary)',
-          }}
-        >
-          {declaration ? declaration.name : 'Space type'}
-        </h2>
-        <Link href={lexiconPathFor(nsid)} prefetch={false} className="explore-json-link">
-          <code style={{ background: 'transparent', padding: 0 }}>{nsid}</code>
-        </Link>
+    <section className="fx-card fx-sp-section">
+      <div className="fx-sp-head">
+        <h2 className="fx-sp-h2">{declaration ? declaration.name : 'Space type'}</h2>
+        <span className="fx-sp-head-end">
+          <Link href={lexiconPathFor(nsid)} prefetch={false} className="fx-sp-head-link">
+            <code>{nsid}</code>
+          </Link>
+        </span>
       </div>
 
-      {!resolved && <SpaceTypeFieldsSkeleton />}
+      <div className="fx-sp-body">
+        {!resolved && <SpaceTypeFieldsSkeleton />}
 
-      {resolved && !declaration && (
-        <p style={noteStyle}>
-          No space type declaration resolved for <code>{nsid}</code>. Either its
-          publisher hasn’t published a <code>com.atproto.lexicon.schema</code>{' '}
-          record for it, or the record there isn’t a space definition. The space
-          itself may still exist; the declaration is documentation, not a
-          gatekeeper.
-        </p>
-      )}
+        {resolved && !declaration && (
+          <p className="fx-sp-note">
+            No space type declaration resolved for <code>{nsid}</code>. Either its
+            publisher hasn’t published a <code>com.atproto.lexicon.schema</code>{' '}
+            record for it, or the record there isn’t a space definition. The space
+            itself may still exist; the declaration is documentation, not a
+            gatekeeper.
+          </p>
+        )}
 
-      {resolved && declaration && (
-        <>
-          {declaration.description && (
-            <p
-              style={{
-                margin: 0,
-                fontSize: '0.9rem',
-                lineHeight: 1.6,
-                color: 'var(--text-secondary)',
-                maxWidth: '46rem',
-              }}
-            >
-              {declaration.description}
-            </p>
-          )}
+        {resolved && declaration && (
+          <>
+            {declaration.description && (
+              <p className="fx-sp-lede">{declaration.description}</p>
+            )}
 
-          <dl
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(14rem, 1fr))',
-              gap: '1rem',
-              margin: 0,
-            }}
-          >
-            <Field label="key type">
-              <code style={codeStyle}>{declaration.key}</code>
-            </Field>
-            <Field label="collections">
-              {declaration.collections.length === 0 ? (
-                <span className="explore-muted">none declared</span>
-              ) : (
-                <span
-                  style={{
-                    display: 'flex',
-                    flexWrap: 'wrap',
-                    gap: '0.375rem',
-                    minWidth: 0,
-                  }}
-                >
-                  {declaration.collections.map((collection) => (
-                    <Link
-                      key={collection}
-                      href={lexiconPathFor(collection)}
-                      prefetch={false}
-                      className="explore-json-link"
-                    >
-                      {collection}
-                    </Link>
-                  ))}
-                </span>
-              )}
-            </Field>
-            <Field label="declared at">
-              {sourcePath ? (
-                <Link href={sourcePath} prefetch={false} style={{ color: 'var(--text-primary)', textDecoration: 'none', minWidth: 0 }}>
-                  <code style={codeStyle}>{declaration.source.uri}</code>
-                </Link>
-              ) : (
-                <code style={codeStyle}>{declaration.source.uri}</code>
-              )}
-              <CopyButton
-                value={declaration.source.uri}
-                label="Copy declaration URI"
-                compact
-                variant="subtle"
-              />
-            </Field>
-          </dl>
+            <dl className="fx-sp-fields">
+              <Field label="Key type">
+                <code>{declaration.key}</code>
+              </Field>
+              <Field label="Collections">
+                {declaration.collections.length === 0 ? (
+                  <span className="explore-muted">none declared</span>
+                ) : (
+                  <span className="fx-sp-tags">
+                    {declaration.collections.map((collection) => (
+                      <Link key={collection} href={lexiconPathFor(collection)} prefetch={false}>
+                        {collection}
+                      </Link>
+                    ))}
+                  </span>
+                )}
+              </Field>
+              <Field label="Declared at">
+                {sourcePath ? (
+                  <Link href={sourcePath} prefetch={false}>
+                    <code>{declaration.source.uri}</code>
+                  </Link>
+                ) : (
+                  <code>{declaration.source.uri}</code>
+                )}
+                <CopyButton
+                  value={declaration.source.uri}
+                  label="Copy declaration URI"
+                  compact
+                  variant="subtle"
+                  iconOnly
+                />
+              </Field>
+            </dl>
 
-          {otherNames.length > 0 && (
-            <p style={noteStyle}>
-              Also named{' '}
-              {otherNames.map(([lang, name], i) => (
-                <span key={lang}>
-                  {i > 0 && ', '}
-                  <strong>{name}</strong> ({lang})
-                </span>
-              ))}
-              .
-            </p>
-          )}
-        </>
-      )}
+            {otherNames.length > 0 && (
+              <p className="fx-sp-note">
+                Also named{' '}
+                {otherNames.map(([lang, name], i) => (
+                  <span key={lang}>
+                    {i > 0 && ', '}
+                    <strong>{name}</strong> ({lang})
+                  </span>
+                ))}
+                .
+              </p>
+            )}
+          </>
+        )}
+      </div>
     </section>
   );
 }
 
-const codeStyle: React.CSSProperties = {
-  background: 'transparent',
-  padding: 0,
-  color: 'inherit',
-};
-
-const noteStyle: React.CSSProperties = {
-  margin: 0,
-  fontSize: '0.8rem',
-  lineHeight: 1.5,
-  color: 'var(--text-tertiary)',
-  maxWidth: '46rem',
-};
-
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div style={{ minWidth: 0 }}>
-      <dt className="explore-small-caps" style={{ marginBottom: '0.25rem' }}>
-        {label}
-      </dt>
-      <dd
-        style={{
-          margin: 0,
-          fontFamily: 'var(--font-mono)',
-          fontSize: '0.85rem',
-          wordBreak: 'break-all',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '0.5rem',
-          flexWrap: 'wrap',
-        }}
-      >
-        {children}
-      </dd>
+    <div>
+      <dt>{label}</dt>
+      <dd>{children}</dd>
     </div>
   );
 }

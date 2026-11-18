@@ -158,7 +158,7 @@ export default function ThreadView({ did, rkey }: { did: string; rkey: string })
 
   if (loading) {
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+      <div className="fn-fb">
         <Skeleton width="40%" height="1.75rem" />
         <Skeleton width="100%" height="6rem" />
         <Skeleton width="100%" height="4rem" />
@@ -168,7 +168,7 @@ export default function ThreadView({ did, rkey }: { did: string; rkey: string })
 
   if (error || !thread || !ctx) {
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+      <div className="fn-fb">
         <BackLink />
         <p className="explore-error">{error ?? 'Discussion not found.'}</p>
       </div>
@@ -180,18 +180,10 @@ export default function ThreadView({ did, rkey }: { did: string; rkey: string })
   const canReply = Boolean(session.did) && !lockedAt;
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+    <div className="fn-fb">
       <BackLink />
 
-      <article
-        style={{
-          display: 'flex',
-          gap: '1rem',
-          padding: '1.25rem',
-          background: 'var(--bg-secondary)',
-          border: '1px solid var(--border-medium)',
-        }}
-      >
+      <article className="fn-fb-post">
         <VoteButtons
           score={discussion.counts.score}
           vote={voting.directionFor(discussion.uri)}
@@ -200,42 +192,17 @@ export default function ThreadView({ did, rkey }: { did: string; rkey: string })
           onVote={(next) => voting.cast({ uri: discussion.uri, cid: discussion.cid }, next)}
         />
 
-        <div style={{ minWidth: 0, flex: 1 }}>
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'baseline',
-              flexWrap: 'wrap',
-              gap: '0.5rem',
-              marginBottom: '0.5rem',
-            }}
-          >
-            {discussion.pinned ? <Pin size={14} style={{ color: 'var(--text-accent)' }} /> : null}
-            <h1
-              style={{
-                margin: 0,
-                fontFamily: 'var(--font-serif)',
-                fontSize: '1.375rem',
-                lineHeight: 1.25,
-                color: 'var(--text-primary)',
-              }}
-            >
-              {discussion.title}
-            </h1>
+        <div className="fn-fb-post-main">
+          <div className="fn-fb-post-title">
+            {discussion.pinned ? <Pin size={16} className="fn-fb-pin" /> : null}
+            <h1>{discussion.title}</h1>
             <StatusChip state={discussion.status} showOpen />
           </div>
 
           {discussion.body ? <Body text={discussion.body} /> : null}
 
           {imageHost && discussion.record.images?.length ? (
-            <div
-              style={{
-                display: 'flex',
-                flexWrap: 'wrap',
-                gap: '0.5rem',
-                margin: '0.75rem 0',
-              }}
-            >
+            <div className="fn-fb-images">
               {discussion.record.images.map((img, i) => {
                 const url = sanitizeUrl(
                   getBlobUrl(imageHost, discussion.authorDid, img.image.ref.$link),
@@ -247,11 +214,6 @@ export default function ThreadView({ did, rkey }: { did: string; rkey: string })
                     key={img.image.ref.$link + i}
                     src={url}
                     alt={img.alt || ''}
-                    style={{
-                      maxWidth: '100%',
-                      maxHeight: '320px',
-                      border: '1px solid var(--border-subtle)',
-                    }}
                   />
                 );
               })}
@@ -259,33 +221,13 @@ export default function ThreadView({ did, rkey }: { did: string; rkey: string })
           ) : null}
 
           {discussion.statusNote ? (
-            <blockquote
-              style={{
-                margin: '0.75rem 0',
-                padding: '0.6rem 0.875rem',
-                borderLeft: '2px solid var(--text-accent)',
-                background: 'var(--bg-tertiary)',
-                color: 'var(--text-secondary)',
-                fontSize: '0.875rem',
-                lineHeight: 1.6,
-              }}
-            >
-              <span className="explore-small-caps" style={{ display: 'block', marginBottom: '0.25rem' }}>
-                Note from the team
-              </span>
+            <blockquote className="fn-fb-note">
+              <span className="fn-fb-note-label">Note from the team</span>
               {discussion.statusNote}
             </blockquote>
           ) : null}
 
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              flexWrap: 'wrap',
-              gap: '0.5rem 0.75rem',
-              marginTop: '0.75rem',
-            }}
-          >
+          <div className="fn-fb-meta">
             <AuthorLine
               author={authors.get(discussion.authorDid) ?? fallbackAuthor(discussion.authorDid)}
               at={discussion.createdAt}
@@ -297,11 +239,7 @@ export default function ThreadView({ did, rkey }: { did: string; rkey: string })
             <Link
               href={`/explore/${discussion.uri.replace('at://', '')}`}
               prefetch={false}
-              style={{
-                color: 'var(--text-tertiary)',
-                fontSize: '0.75rem',
-                fontFamily: 'var(--font-mono)',
-              }}
+              className="fn-fb-recordlink"
             >
               view record →
             </Link>
@@ -321,30 +259,24 @@ export default function ThreadView({ did, rkey }: { did: string; rkey: string })
       ) : null}
 
       {lockedAt ? (
-        <p
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.4rem',
-            margin: 0,
-            padding: '0.6rem 0.875rem',
-            background: 'var(--bg-tertiary)',
-            border: '1px solid var(--border-subtle)',
-            color: 'var(--text-tertiary)',
-            fontSize: '0.8125rem',
-          }}
-        >
-          <Lock size={13} />
+        <p className="fn-fb-locked">
+          <Lock size={14} />
           This thread was locked. Replies posted after{' '}
-          <time dateTime={lockedAt}>{new Date(lockedAt).toLocaleDateString()}</time> aren&rsquo;t
+          <time dateTime={lockedAt}>
+            {new Date(lockedAt).toLocaleDateString('en-US', {
+              month: 'short',
+              day: 'numeric',
+              year: 'numeric',
+            })}
+          </time> aren&rsquo;t
           shown.
         </p>
       ) : null}
 
-      <section style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-        <span className="explore-small-caps">
+      <section className="fn-fb-replies-card">
+        <h2 className="fn-fb-replies-head">
           {replies.length} {replies.length === 1 ? 'reply' : 'replies'}
-        </span>
+        </h2>
 
         {replies.length === 0 ? (
           <p className="explore-placeholder">No replies yet.</p>
@@ -368,16 +300,7 @@ export default function ThreadView({ did, rkey }: { did: string; rkey: string })
       {/* A locked thread takes no replies from anyone, so a signed-out visitor
           gets the lock notice above and no invitation to sign in for nothing. */}
       {!session.did && !lockedAt ? (
-        <div
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '0.5rem',
-            padding: '1rem 1.125rem',
-            background: 'var(--bg-secondary)',
-            border: '1px solid var(--border-subtle)',
-          }}
-        >
+        <div className="fn-fb-card">
           <span className="explore-small-caps">Sign in to reply</span>
           <SignInPanel />
         </div>
@@ -398,19 +321,8 @@ export default function ThreadView({ did, rkey }: { did: string; rkey: string })
 
 function BackLink() {
   return (
-    <Link
-      href="/feedback"
-      style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: '0.35rem',
-        alignSelf: 'flex-start',
-        color: 'var(--text-tertiary)',
-        fontSize: '0.8125rem',
-        textDecoration: 'none',
-      }}
-    >
-      <ArrowLeft size={14} />
+    <Link href="/feedback" className="fn-fb-back">
+      <ArrowLeft size={15} />
       All feedback
     </Link>
   );
@@ -419,18 +331,7 @@ function BackLink() {
 /** Plain-text body, preserving the author's line breaks. */
 function Body({ text }: { text: string }) {
   return (
-    <p
-      style={{
-        margin: 0,
-        color: 'var(--text-secondary)',
-        fontSize: '0.9375rem',
-        lineHeight: 1.65,
-        whiteSpace: 'pre-wrap',
-        overflowWrap: 'anywhere',
-      }}
-    >
-      {text}
-    </p>
+    <p className="fn-fb-body">{text}</p>
   );
 }
 
@@ -454,52 +355,34 @@ function ReplyRow({
   replying: boolean;
 }) {
   return (
-    <div
-      style={{
+    <div className="fn-fb-reply" data-nested={reply.depth > 0 ? '' : undefined}>
+      <div
+        className="fn-fb-reply-inner"
         // Indent by depth, with a rule marking the nesting so a deep reply
         // still reads as a response to something.
-        marginLeft: `${reply.depth * 1.25}rem`,
-        padding: '0.75rem 1rem',
-        background: 'var(--bg-secondary)',
-        border: '1px solid var(--border-subtle)',
-        borderLeft: reply.depth > 0 ? '2px solid var(--border-medium)' : undefined,
-      }}
-    >
-      <div style={{ marginBottom: '0.4rem' }}>
-        <AuthorLine author={author} at={reply.createdAt} edited={reply.editedAt} size="sm" />
-      </div>
-      <Body text={reply.body} />
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '0.75rem',
-          marginTop: '0.5rem',
-        }}
+        style={{ marginLeft: `${Math.max(0, reply.depth - 1) * 1.25}rem` }}
       >
-        <VoteButtons
-          score={reply.counts.score}
-          vote={vote}
-          onVote={onVote}
-          disabled={!canVote}
-          orientation="horizontal"
-        />
-        {canReply ? (
-          <button
-            type="button"
-            onClick={onReply}
-            style={{
-              padding: 0,
-              background: 'none',
-              border: 'none',
-              color: replying ? 'var(--text-accent)' : 'var(--text-tertiary)',
-              fontSize: '0.75rem',
-              cursor: 'pointer',
-            }}
-          >
-            {replying ? 'Replying…' : 'Reply'}
-          </button>
-        ) : null}
+        <AuthorLine author={author} at={reply.createdAt} edited={reply.editedAt} size="sm" />
+        <Body text={reply.body} />
+        <div className="fn-fb-reply-actions">
+          <VoteButtons
+            score={reply.counts.score}
+            vote={vote}
+            onVote={onVote}
+            disabled={!canVote}
+            orientation="horizontal"
+          />
+          {canReply ? (
+            <button
+              type="button"
+              onClick={onReply}
+              className="fn-fb-linkbtn"
+              data-quiet={replying ? undefined : ''}
+            >
+              {replying ? 'Replying…' : 'Reply'}
+            </button>
+          ) : null}
+        </div>
       </div>
     </div>
   );
@@ -548,40 +431,12 @@ function ReplyComposer({
         e.preventDefault();
         submit();
       }}
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '0.6rem',
-        padding: '1rem',
-        background: 'var(--bg-secondary)',
-        border: '1px solid var(--border-medium)',
-      }}
+      className="fn-fb-card"
     >
       {parent ? (
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: '0.5rem',
-            color: 'var(--text-tertiary)',
-            fontSize: '0.75rem',
-          }}
-        >
-          <span>Replying to a comment in this thread</span>
-          <button
-            type="button"
-            onClick={onCancelParent}
-            style={{
-              padding: 0,
-              background: 'none',
-              border: 'none',
-              color: 'var(--text-tertiary)',
-              textDecoration: 'underline',
-              cursor: 'pointer',
-              fontSize: '0.75rem',
-            }}
-          >
+        <div className="fn-fb-form-foot">
+          <span className="fn-fb-hint">Replying to a comment in this thread</span>
+          <button type="button" onClick={onCancelParent} className="fn-fb-linkbtn">
             reply to the discussion instead
           </button>
         </div>
@@ -601,20 +456,8 @@ function ReplyComposer({
       <button
         type="submit"
         disabled={!canSubmit}
-        style={{
-          alignSelf: 'flex-start',
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: '0.4rem',
-          padding: '0.45rem 0.9rem',
-          background: 'var(--accent-moss)',
-          border: '1px solid var(--accent-moss)',
-          color: 'var(--text-on-accent)',
-          fontFamily: 'var(--font-serif)',
-          fontSize: '0.875rem',
-          cursor: canSubmit ? 'pointer' : 'not-allowed',
-          opacity: canSubmit ? 1 : 0.55,
-        }}
+        className="fn-c-btn fn-c-btn-primary"
+        style={{ alignSelf: 'flex-start' }}
       >
         {busy ? <Loader2 size={14} className="explore-spin" /> : <Send size={14} />}
         Post reply

@@ -185,30 +185,12 @@ export default function HandleTypeaheadInput({
         aria-activedescendant={
           activeIndex >= 0 ? `${listId}-${activeIndex}` : undefined
         }
+        className="oauth-typeahead-input"
         style={inputStyle}
       />
 
       {showList && (
-        <ul
-          id={listId}
-          role="listbox"
-          aria-label={listLabel}
-          style={{
-            position: 'absolute',
-            top: 'calc(100% + 0.25rem)',
-            left: 0,
-            right: 0,
-            listStyle: 'none',
-            margin: 0,
-            padding: 0,
-            background: 'var(--bg-secondary)',
-            border: '1px solid var(--border-medium)',
-            boxShadow: 'var(--shadow-overlay)',
-            zIndex: 30,
-            maxHeight: '16rem',
-            overflowY: 'auto',
-          }}
-        >
+        <ul id={listId} role="listbox" aria-label={listLabel} className="oauth-typeahead">
           {visible.map((actor, i) => {
             const active = i === activeIndex;
             return (
@@ -224,70 +206,25 @@ export default function HandleTypeaheadInput({
                   pick(actor);
                 }}
                 onMouseEnter={() => setHighlightIndex(i)}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.5rem',
-                  padding: '0.4rem 0.625rem',
-                  background: active ? 'var(--bg-tertiary)' : 'transparent',
-                  borderBottom:
-                    i < visible.length - 1 ? '1px solid var(--border-subtle)' : 'none',
-                  cursor: 'pointer',
-                  transition: 'background 0.12s ease',
-                }}
+                className={`oauth-typeahead-item ${active ? 'is-active' : ''}`}
               >
                 {actor.avatar ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
                     src={actor.avatar}
                     alt=""
-                    width={22}
-                    height={22}
-                    style={{
-                      width: 22,
-                      height: 22,
-                      objectFit: 'cover',
-                      background: 'var(--bg-tertiary)',
-                      flexShrink: 0,
-                    }}
+                    width={24}
+                    height={24}
+                    className="oauth-typeahead-avatar"
                   />
                 ) : (
-                  <span
-                    style={{
-                      width: 22,
-                      height: 22,
-                      background: 'var(--bg-tertiary)',
-                      flexShrink: 0,
-                    }}
-                  />
+                  <span className="oauth-typeahead-avatar" />
                 )}
-                <div style={{ minWidth: 0, lineHeight: 1.2 }}>
+                <div className="oauth-typeahead-text">
                   {actor.displayName?.trim() && (
-                    <div
-                      style={{
-                        fontSize: '0.8125rem',
-                        color: 'var(--text-primary)',
-                        fontFamily: 'var(--font-serif)',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap',
-                      }}
-                    >
-                      {actor.displayName}
-                    </div>
+                    <div className="oauth-typeahead-name">{actor.displayName}</div>
                   )}
-                  <div
-                    style={{
-                      fontSize: '0.7rem',
-                      color: 'var(--text-tertiary)',
-                      fontFamily: 'var(--font-mono)',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap',
-                    }}
-                  >
-                    {actor.handle}
-                  </div>
+                  <div className="oauth-typeahead-handle">{actor.handle}</div>
                 </div>
               </li>
             );

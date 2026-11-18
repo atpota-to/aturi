@@ -38,21 +38,21 @@ export default function SpaceAccessPanel({ state, what, defaultAccount }: Props)
       return null;
 
     case 'resolving':
-      return <p className="explore-placeholder">Checking your access…</p>;
+      return <p className="fx-card fx-sp-msg">Checking your access…</p>;
 
     case 'acquiring':
-      return <p className="explore-placeholder">Requesting a space credential…</p>;
+      return <p className="fx-card fx-sp-msg">Requesting a space credential…</p>;
 
     case 'anonymous':
       return (
         <Panel icon={<Lock size={13} />} eyebrow="Sign in" headline="Permissioned records aren’t public">
-          <p style={bodyStyle}>
+          <p className="fx-sp-panel-body">
             {capitalize(target)} lives outside the public repository, so there is
             nothing here to read without an account. Sign in as a member of this
             space to read {target}.
           </p>
           <SignInPanel defaultInput={defaultAccount} />
-          <p style={noteStyle}>
+          <p className="fx-sp-note">
             Reading a space needs the permissioned-data permission. The
             permission screen offers it on servers that run the spaces build,
             already ticked.
@@ -67,7 +67,7 @@ export default function SpaceAccessPanel({ state, what, defaultAccount }: Props)
           eyebrow="Permission needed"
           headline="Your sign-in didn’t include space access"
         >
-          <p style={bodyStyle}>
+          <p className="fx-sp-panel-body">
             Permissioned data is a separate permission, and this session was
             authorized without it, either because it wasn’t ticked or because
             your server doesn’t support spaces yet and dropped it. Authorize
@@ -84,22 +84,22 @@ export default function SpaceAccessPanel({ state, what, defaultAccount }: Props)
           eyebrow="Confirm"
           headline="Ask this space for a credential?"
         >
-          <p style={bodyStyle}>
+          <p className="fx-sp-panel-body">
             Reading {target} means asking your own server for a token that names
             you and says you are acting for this space, then handing that token
             to the server this space is run from. That server learns your
             account either way, so nothing is sent until you say so.
           </p>
-          <dl style={hostListStyle}>
+          <dl className="fx-sp-fields fx-sp-hosts">
             <div>
-              <dt className="explore-small-caps">authority</dt>
-              <dd style={hostValueStyle}>
+              <dt>Authority</dt>
+              <dd>
                 <code>{state.authority.did}</code>
               </dd>
             </div>
             <div>
-              <dt className="explore-small-caps">receives your token</dt>
-              <dd style={hostValueStyle}>
+              <dt>Receives your token</dt>
+              <dd>
                 <code>{state.authority.spaceHost}</code>
                 {!state.authority.dedicatedHost && (
                   <span className="explore-muted">
@@ -110,10 +110,14 @@ export default function SpaceAccessPanel({ state, what, defaultAccount }: Props)
               </dd>
             </div>
           </dl>
-          <button type="button" onClick={state.unlock} style={unlockButtonStyle}>
-            <KeyRound size={12} /> Unlock this space
+          <button
+            type="button"
+            onClick={state.unlock}
+            className="fx-btn fx-btn-lg fx-sp-primary fx-sp-self-start"
+          >
+            <KeyRound size={14} /> Unlock this space
           </button>
-          <p style={noteStyle}>
+          <p className="fx-sp-note">
             Applies to every space this authority runs, for as long as you stay
             signed in.
           </p>
@@ -127,7 +131,7 @@ export default function SpaceAccessPanel({ state, what, defaultAccount }: Props)
           eyebrow="Permission needed"
           headline="Whole-space access not granted"
         >
-          <p style={bodyStyle}>
+          <p className="fx-sp-panel-body">
             You granted read access to your own permissioned records, which is
             enough to read your own repository in this space but not anyone
             else’s. Reading {target} needs whole-space access.
@@ -143,7 +147,7 @@ export default function SpaceAccessPanel({ state, what, defaultAccount }: Props)
           eyebrow="Not permitted"
           headline="This space restricts which applications may read it"
         >
-          <p style={bodyStyle}>
+          <p className="fx-sp-panel-body">
             aturi.to is a public OAuth client with no published signing keys, so
             it cannot present the client attestation an allow-list space
             requires. No configuration changes that. It can’t be granted access
@@ -157,7 +161,7 @@ export default function SpaceAccessPanel({ state, what, defaultAccount }: Props)
           eyebrow="Not permitted"
           headline="You don’t have access to this space"
         >
-          <p style={bodyStyle}>
+          <p className="fx-sp-panel-body">
             The space authority hasn’t granted your account access. Membership
             is the authority’s decision and there is nothing to retry from here;
             ask whoever runs the space.
@@ -171,7 +175,7 @@ export default function SpaceAccessPanel({ state, what, defaultAccount }: Props)
       // that there is nothing here. The same copy the read-error panel uses.
       return (
         <Panel icon={<TriangleAlert size={13} />} eyebrow="Not found" headline="No such space">
-          <p style={bodyStyle}>
+          <p className="fx-sp-panel-body">
             The space host doesn’t know this address. Either the space never
             existed, or its authority is served somewhere other than the host
             its DID document points at.
@@ -182,7 +186,7 @@ export default function SpaceAccessPanel({ state, what, defaultAccount }: Props)
     case 'gone':
       return (
         <Panel icon={<TriangleAlert size={13} />} eyebrow="Deleted" headline="This space is gone">
-          <p style={bodyStyle}>
+          <p className="fx-sp-panel-body">
             Its authority deleted it. Records that were in it are no longer
             readable by anyone, and the address won’t come back.
           </p>
@@ -196,7 +200,7 @@ export default function SpaceAccessPanel({ state, what, defaultAccount }: Props)
           eyebrow="Error"
           headline="Couldn’t reach this space"
         >
-          <p style={bodyStyle}>
+          <p className="fx-sp-panel-body">
             {state.code
               ? `The space host answered ${state.code}.`
               : 'The space host didn’t answer as expected.'}{' '}
@@ -244,7 +248,7 @@ export function SpaceReadErrorPanel({ err, what }: { err: unknown; what: string 
     case 'space-not-found':
       return (
         <Panel icon={<TriangleAlert size={13} />} eyebrow="Not found" headline="No such space">
-          <p style={bodyStyle}>
+          <p className="fx-sp-panel-body">
             The space host doesn’t know this address. Either the space never
             existed, or its authority is served somewhere other than the host
             its DID document points at.
@@ -256,7 +260,7 @@ export function SpaceReadErrorPanel({ err, what }: { err: unknown; what: string 
     case 'repo-not-found':
       return (
         <Panel icon={<Lock size={13} />} eyebrow="Nothing returned" headline={`Couldn’t read ${what}`}>
-          <p style={bodyStyle}>
+          <p className="fx-sp-panel-body">
             The host answered <code>RepoNotFound</code>, which it uses for three
             different situations on purpose: this member has never written to
             the space, or their repository isn’t readable with this credential,
@@ -269,7 +273,7 @@ export function SpaceReadErrorPanel({ err, what }: { err: unknown; what: string 
     case 'repo-unavailable':
       return (
         <Panel icon={<TriangleAlert size={13} />} eyebrow="Unavailable" headline={`This repository is ${failure.state}`}>
-          <p style={bodyStyle}>
+          <p className="fx-sp-panel-body">
             The host is holding this member’s repository in a state that doesn’t
             serve reads. Nothing is missing; it just isn’t being handed out.
           </p>
@@ -280,7 +284,7 @@ export function SpaceReadErrorPanel({ err, what }: { err: unknown; what: string 
     case 'record-not-found':
       return (
         <Panel icon={<TriangleAlert size={13} />} eyebrow="Not found" headline="This record doesn’t exist">
-          <p style={bodyStyle}>
+          <p className="fx-sp-panel-body">
             There is no record at this key in that member’s permissioned
             repository. It may have been deleted, or the link may be wrong.
           </p>
@@ -291,7 +295,7 @@ export function SpaceReadErrorPanel({ err, what }: { err: unknown; what: string 
     default:
       return (
         <Panel icon={<TriangleAlert size={13} />} eyebrow="Error" headline={`Couldn’t read ${what}`}>
-          <p style={bodyStyle}>
+          <p className="fx-sp-panel-body">
             {failure.kind === 'invalid-credential' || failure.kind === 'credential-stale'
               ? 'The space credential was refused. Reloading the page mints a fresh one.'
               : 'The host returned an error. It might be temporary; try again in a moment.'}
@@ -333,21 +337,9 @@ export function SpaceReauthorizeButton({
           // The account is already known, so skip straight to the picker.
           if (did) proceedToScopes(did);
         }}
-        style={{
-          alignSelf: 'flex-start',
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: '0.4rem',
-          padding: '0.4rem 0.75rem',
-          background: 'var(--accent-moss)',
-          color: 'var(--text-on-accent)',
-          border: '1px solid var(--accent-moss)',
-          fontFamily: 'var(--font-serif)',
-          fontSize: '0.8125rem',
-          cursor: 'pointer',
-        }}
+        className="fx-btn fx-btn-lg fx-sp-primary fx-sp-self-start"
       >
-        <KeyRound size={12} /> {label}
+        <KeyRound size={14} /> {label}
       </button>
     );
   }
@@ -359,14 +351,7 @@ export function SpaceReauthorizeButton({
   }
 
   return (
-    <div
-      style={{
-        padding: '0.75rem',
-        background: 'var(--bg-tertiary)',
-        border: '1px solid var(--border-medium)',
-        maxWidth: '24rem',
-      }}
-    >
+    <div className="fx-sp-scopes">
       <ScopeSelector
         account={pendingAccount}
         busy={busy}
@@ -404,7 +389,7 @@ export function SpaceRepoAccessPanel({
       return null;
 
     case 'checking':
-      return <p className="explore-placeholder">Checking this member against the space…</p>;
+      return <p className="fx-card fx-sp-msg">Checking this member against the space…</p>;
 
     case 'unlisted':
       return (
@@ -413,7 +398,7 @@ export function SpaceRepoAccessPanel({
           eyebrow="Not in this space"
           headline="The space doesn’t list this account"
         >
-          <p style={bodyStyle}>
+          <p className="fx-sp-panel-body">
             The space host’s own record of who has written here doesn’t include
             this DID, so there is nothing of theirs to read. Their server is not
             one this space vouched for either, so no credential is sent to it. If
@@ -431,54 +416,6 @@ export function SpaceRepoAccessPanel({
   }
 }
 
-const hostListStyle: React.CSSProperties = {
-  display: 'flex',
-  flexDirection: 'column',
-  gap: '0.5rem',
-  margin: 0,
-  padding: '0.75rem',
-  border: '1px solid var(--border-subtle)',
-  background: 'var(--bg-tertiary)',
-};
-
-const hostValueStyle: React.CSSProperties = {
-  margin: 0,
-  fontFamily: 'var(--font-mono)',
-  fontSize: '0.8rem',
-  wordBreak: 'break-all',
-  color: 'var(--text-primary)',
-};
-
-const unlockButtonStyle: React.CSSProperties = {
-  alignSelf: 'flex-start',
-  display: 'inline-flex',
-  alignItems: 'center',
-  gap: '0.4rem',
-  padding: '0.4rem 0.75rem',
-  background: 'var(--accent-moss)',
-  color: 'var(--text-on-accent)',
-  border: '1px solid var(--accent-moss)',
-  fontFamily: 'var(--font-serif)',
-  fontSize: '0.8125rem',
-  cursor: 'pointer',
-};
-
-const bodyStyle: React.CSSProperties = {
-  margin: 0,
-  fontSize: '0.9rem',
-  lineHeight: 1.6,
-  color: 'var(--text-secondary)',
-  maxWidth: '42rem',
-};
-
-const noteStyle: React.CSSProperties = {
-  margin: 0,
-  fontSize: '0.8rem',
-  lineHeight: 1.5,
-  color: 'var(--text-tertiary)',
-  maxWidth: '42rem',
-};
-
 function Panel({
   icon,
   eyebrow,
@@ -491,34 +428,12 @@ function Panel({
   children: ReactNode;
 }) {
   return (
-    <div
-      style={{
-        border: '1px solid var(--border-medium)',
-        background: 'var(--bg-secondary)',
-        padding: '1.5rem 1.25rem',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '0.6rem',
-      }}
-    >
-      <div
-        className="explore-small-caps"
-        style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
-      >
-        <span style={{ color: 'var(--text-accent)', display: 'inline-flex' }}>{icon}</span>
+    <div className="fx-card fx-sp-panel">
+      <div className="fx-sp-kicker">
+        {icon}
         {eyebrow}
       </div>
-      <h2
-        style={{
-          margin: 0,
-          fontFamily: 'var(--font-serif)',
-          fontWeight: 400,
-          fontSize: '1.25rem',
-          color: 'var(--text-primary)',
-        }}
-      >
-        {headline}
-      </h2>
+      <h2 className="fx-sp-panel-h">{headline}</h2>
       {children}
     </div>
   );
@@ -526,11 +441,9 @@ function Panel({
 
 function Technical({ detail }: { detail: string }) {
   return (
-    <details className="explore-section" style={{ marginTop: '0.35rem' }}>
+    <details className="fx-sp-tech">
       <summary>Technical details</summary>
-      <p className="explore-error" style={{ marginTop: '0.5rem' }}>
-        {detail}
-      </p>
+      <p className="fx-sp-err">{detail}</p>
     </details>
   );
 }

@@ -39,7 +39,7 @@ struct RedirectsSettingsView: View {
             if rows.isEmpty {
                 SettingsSection {
                     Text("No client families to configure yet. Waypoints are only offered here once they are visible in your picker; check Waypoint groups.")
-                        .font(.footnote)
+                        .font(AturiFont.footnote)
                         .foregroundStyle(theme.textSecondary)
                 }
             } else {
@@ -70,7 +70,7 @@ struct RedirectsSettingsView: View {
                     .foregroundStyle(theme.textPrimary)
                 if let description = row.description, !description.isEmpty {
                     Text(description)
-                        .font(.footnote)
+                        .font(AturiFont.footnote)
                         .foregroundStyle(theme.textSecondary)
                         .fixedSize(horizontal: false, vertical: true)
                 }
@@ -127,18 +127,18 @@ private struct ClientPill: View {
                     .foregroundStyle(theme.textPrimary)
             }
             Text(name)
-                .font(.subheadline.weight(.medium))
+                .font(AturiFont.sans(.subheadline, weight: .medium))
                 .foregroundStyle(theme.textPrimary)
                 .lineLimit(1)
             Image(systemName: "chevron.up.chevron.down")
-                .font(.caption2.weight(.semibold))
+                .font(AturiFont.sans(.caption2, weight: .semibold))
                 .foregroundStyle(theme.textTertiary)
         }
         .padding(.leading, waypointId == nil ? 14 : 10)
         .padding(.trailing, 12)
         .padding(.vertical, 8)
-        .background(theme.bgTertiary, in: Capsule())
-        .overlay(Capsule().strokeBorder(theme.borderSubtle, lineWidth: AturiTheme.hairline(displayScale: displayScale)))
+        .background(theme.bgSecondary, in: Capsule())
+        .overlay(Capsule().strokeBorder(theme.borderMedium, lineWidth: AturiTheme.hairline(displayScale: displayScale)))
         .contentShape(Capsule())
     }
 }

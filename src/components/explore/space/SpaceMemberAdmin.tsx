@@ -13,7 +13,7 @@ import {
   type SimpleSpaceConfig,
   type SpaceTransport,
 } from '@/utils/atproto/spaceClient';
-import SpaceDialog, { DialogButton, DialogField, dialogNoteStyle } from './SpaceDialog';
+import SpaceDialog, { DialogButton, DialogField } from './SpaceDialog';
 import { describeSpaceManageError } from '@/utils/atproto/simpleSpaceConfig';
 
 /**
@@ -92,8 +92,8 @@ export function AddMemberButton({
 
   return (
     <>
-      <button type="button" onClick={() => setOpen(true)} style={memberButtonStyle}>
-        <UserPlus size={12} /> Add
+      <button type="button" onClick={() => setOpen(true)} className="fx-btn fx-btn-sm">
+        <UserPlus size={13} /> Add
       </button>
 
       <SpaceDialog
@@ -126,19 +126,22 @@ export function AddMemberButton({
             listLabel="Matching accounts"
             inputStyle={{
               width: '100%',
-              padding: '0.55rem 0.75rem',
-              background: 'var(--bg-tertiary)',
-              border: '1px solid var(--border-medium)',
+              height: '36px',
+              boxSizing: 'border-box',
+              padding: '0 10px',
+              background: 'var(--bg-secondary)',
+              border: '1px solid var(--border-strong)',
+              borderRadius: 'var(--radius-control)',
               color: 'var(--text-primary)',
               fontFamily: 'var(--font-mono)',
-              fontSize: '0.8125rem',
+              fontSize: '13px',
               outline: 'none',
             }}
           />
         </DialogField>
 
         {advisory && (
-          <p style={{ ...dialogNoteStyle, color: 'var(--danger)' }}>
+          <p className="fx-sp-dialog-note fx-sp-dialog-warn">
             This space’s user access isn’t set to the member list, so the list is
             kept but never consulted. Adding someone here grants them nothing
             until you switch the space to “Member list”.
@@ -193,15 +196,9 @@ export function RemoveMemberButton({
         onClick={() => setOpen(true)}
         aria-label={`Remove ${label} from this space`}
         title={`Remove ${label}`}
-        style={{
-          ...memberButtonStyle,
-          padding: '0.2rem 0.4rem',
-          background: 'transparent',
-          color: 'var(--text-tertiary)',
-          borderColor: 'var(--border-subtle)',
-        }}
+        className="fx-btn fx-btn-sm fx-btn-quiet fx-sp-icon-btn"
       >
-        <UserMinus size={12} />
+        <UserMinus size={13} />
       </button>
 
       <SpaceDialog
@@ -221,29 +218,16 @@ export function RemoveMemberButton({
           </>
         }
       >
-        <p style={dialogNoteStyle}>
+        <p className="fx-sp-dialog-note">
           They stop qualifying for a credential from now on. One already in their
           hands keeps working until it expires, and anything they have written
           stays in their own repository — this ends their access, it doesn’t
           retract their records.
         </p>
-        <p style={{ ...dialogNoteStyle, fontFamily: 'var(--font-mono)', overflowWrap: 'anywhere' }}>
+        <p className="fx-sp-dialog-note fx-sp-mono">
           {did}
         </p>
       </SpaceDialog>
     </>
   );
 }
-
-const memberButtonStyle: React.CSSProperties = {
-  display: 'inline-flex',
-  alignItems: 'center',
-  gap: '0.35rem',
-  padding: '0.25rem 0.5rem',
-  background: 'var(--bg-tertiary)',
-  color: 'var(--text-secondary)',
-  border: '1px solid var(--border-subtle)',
-  fontFamily: 'var(--font-serif)',
-  fontSize: '0.75rem',
-  cursor: 'pointer',
-};

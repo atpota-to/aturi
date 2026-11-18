@@ -1,6 +1,6 @@
 'use client';
 
-import { ChevronRight, Star } from 'lucide-react';
+import { ChevronRight, Leaf, Star } from 'lucide-react';
 import {
   AnisotaLogo,
   BlueskySVG,
@@ -53,96 +53,30 @@ const ROWS: { icon: React.ReactNode; name: string; desc: string; featured?: bool
  */
 export default function PickerPreviewVisual() {
   return (
-    <div
-      style={{
-        background: 'var(--bg-secondary)',
-        border: '1px solid var(--border-medium)',
-        boxShadow: 'var(--shadow-overlay)',
-        maxWidth: '420px',
-        width: '100%',
-        margin: '0 auto',
-        padding: '1.25rem',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '0.875rem',
-        transform: 'rotate(0.4deg)',
-      }}
-    >
+    <div className="fl-mock" data-size="s">
       {/* Pretend ProfilePreview header */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-        <div
-          style={{
-            width: 44,
-            height: 44,
-            borderRadius: '50%',
-            background:
-              'linear-gradient(135deg, var(--accent-moss), var(--accent-forest))',
-            flexShrink: 0,
-          }}
-          aria-hidden
-        />
-        <div style={{ minWidth: 0, flex: 1 }}>
-          <div
-            style={{
-              fontFamily: 'var(--font-serif)',
-              fontSize: '1rem',
-              color: 'var(--text-primary)',
-              lineHeight: 1.2,
-            }}
-          >
-            Aturi
-          </div>
-          <div
-            style={{
-              fontFamily: 'var(--font-mono)',
-              fontSize: '0.75rem',
-              color: 'var(--text-tertiary)',
-            }}
-          >
-            @aturi.to
-          </div>
-        </div>
+      <div className="fl-mock-head fl-picker-head">
+        <span className="fl-picker-avatar" aria-hidden>
+          <Leaf size={18} strokeWidth={2.2} />
+        </span>
+        <span className="fl-mock-row-text">
+          <span className="fl-picker-name">Aturi</span>
+          <span className="fl-mock-sub">@aturi.to</span>
+        </span>
       </div>
 
-      {/* Recommended */}
-      <div>
-        <div
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '0.35rem',
-            fontSize: '0.65rem',
-            fontWeight: 600,
-            color: 'var(--text-accent)',
-            textTransform: 'uppercase',
-            letterSpacing: '0.1em',
-            marginBottom: '0.5rem',
-          }}
-        >
+      <div className="fl-mock-body">
+        <span className="fl-mock-label" data-accent="">
           <Star size={11} /> Recommended for posts
-        </div>
+        </span>
         <Row {...ROWS[0]} />
       </div>
 
-      {/* Other clients */}
-      <div>
-        <div
-          style={{
-            fontSize: '0.65rem',
-            fontWeight: 600,
-            color: 'var(--text-secondary)',
-            textTransform: 'uppercase',
-            letterSpacing: '0.1em',
-            marginBottom: '0.5rem',
-          }}
-        >
-          Open in another client
-        </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-          {ROWS.slice(1).map((r) => (
-            <Row key={r.name} {...r} />
-          ))}
-        </div>
+      <div className="fl-mock-body">
+        <span className="fl-mock-label">Open in another client</span>
+        {ROWS.slice(1).map((r) => (
+          <Row key={r.name} {...r} />
+        ))}
       </div>
     </div>
   );
@@ -160,52 +94,13 @@ function Row({
   featured?: boolean;
 }) {
   return (
-    <div
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: '10px',
-        padding: '8px 10px',
-        background: featured ? 'var(--bg-tertiary)' : 'transparent',
-        border: `1px solid ${featured ? 'var(--text-accent)' : 'var(--border-subtle)'}`,
-      }}
-    >
-      <span
-        style={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          width: 22,
-          height: 22,
-          color: 'var(--text-accent)',
-          flexShrink: 0,
-        }}
-      >
-        {icon}
+    <div className="fl-mock-row" data-featured={featured ? '' : undefined}>
+      <span className="fl-mock-icon">{icon}</span>
+      <span className="fl-mock-row-text">
+        <span className="fl-mock-name">{name}</span>
+        <span className="fl-mock-desc">{desc}</span>
       </span>
-      <div style={{ flex: 1, minWidth: 0, lineHeight: 1.2 }}>
-        <div
-          style={{
-            fontSize: '0.85rem',
-            color: 'var(--text-primary)',
-            fontFamily: 'var(--font-serif)',
-          }}
-        >
-          {name}
-        </div>
-        <div
-          style={{
-            fontSize: '0.7rem',
-            color: 'var(--text-tertiary)',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap',
-          }}
-        >
-          {desc}
-        </div>
-      </div>
-      <ChevronRight size={13} style={{ color: 'var(--text-tertiary)', flexShrink: 0 }} />
+      <ChevronRight size={14} className="fl-mock-chev" />
     </div>
   );
 }

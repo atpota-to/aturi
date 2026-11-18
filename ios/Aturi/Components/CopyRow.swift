@@ -36,7 +36,7 @@ struct CopyRow: View {
                 HStack(spacing: 4) {
                     if copied {
                         Text("Copied")
-                            .font(.caption)
+                            .font(AturiFont.caption)
                     }
                     Image(systemName: copied ? "checkmark" : "doc.on.doc")
                 }

@@ -76,7 +76,7 @@ struct SettingsView: View {
                                 .foregroundStyle(theme.textAccent)
                                 .accessibilityHidden(true)
                             Text("Settings are saved on this device only. Sign in to sync them to your PDS and carry them across devices.")
-                                .font(.footnote)
+                                .font(AturiFont.footnote)
                                 .foregroundStyle(theme.textSecondary)
                                 .fixedSize(horizontal: false, vertical: true)
                         }

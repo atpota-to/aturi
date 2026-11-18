@@ -133,7 +133,7 @@ struct MarginRecordCard: View {
                 .padding(12)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: AturiTheme.cardRadius, style: .continuous))
         .cardBackground()
         .sheet(isPresented: $showsJSON) {
             MarginJSONSheet(title: "Raw \(type.displayName.lowercased()) data", subtitle: collection, value: value)
@@ -154,7 +154,7 @@ struct MarginRecordCard: View {
                 Chip(type.displayName, systemImage: symbol, style: .accent)
                 if type == .annotation, let motivation = value["motivation"]?.stringValue, !motivation.isEmpty {
                     Text(motivation)
-                        .font(.footnote)
+                        .font(AturiFont.footnote)
                         .italic()
                         .foregroundStyle(theme.textTertiary)
                 }
@@ -170,13 +170,14 @@ struct MarginRecordCard: View {
             if let pageTitle, !pageTitle.isEmpty {
                 Text(pageTitle)
                     .font(AturiFont.title)
+                    .tracking(AturiFont.titleTracking)
                     .foregroundStyle(theme.textPrimary)
                     .fixedSize(horizontal: false, vertical: true)
             }
 
             if let descriptionText, !descriptionText.isEmpty {
                 Text(descriptionText)
-                    .font(.footnote)
+                    .font(AturiFont.footnote)
                     .foregroundStyle(theme.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -202,16 +203,16 @@ struct MarginRecordCard: View {
             switch type {
             case .collectionItem:
                 Text("Links an annotation to a collection")
-                    .font(.footnote)
+                    .font(AturiFont.footnote)
                     .foregroundStyle(theme.textSecondary)
                 if let position = value["position"]?.intValue {
                     Text("Position: \(position)")
-                        .font(.footnote)
+                        .font(AturiFont.footnote)
                         .foregroundStyle(theme.textTertiary)
                 }
             case .like:
                 Text("Liked an annotation or reply")
-                    .font(.footnote)
+                    .font(AturiFont.footnote)
                     .foregroundStyle(theme.textSecondary)
             default:
                 EmptyView()
@@ -228,7 +229,7 @@ struct MarginRecordCard: View {
             if let selectedText, !selectedText.isEmpty {
                 MarginSection("Selected text") {
                     Text(selectedText)
-                        .font(.body)
+                        .font(AturiFont.body)
                         .italic()
                         .foregroundStyle(theme.textPrimary)
                         .padding(.leading, 12)
@@ -242,7 +243,7 @@ struct MarginRecordCard: View {
             if let note = value["body"]?["value"]?.stringValue, !note.isEmpty {
                 MarginSection("Note") {
                     Text(note)
-                        .font(.body)
+                        .font(AturiFont.body)
                         .foregroundStyle(theme.textPrimary)
                 }
             }
@@ -253,7 +254,7 @@ struct MarginRecordCard: View {
             if let selectedText, !selectedText.isEmpty {
                 MarginSection("Highlighted text") {
                     Text(selectedText)
-                        .font(.body)
+                        .font(AturiFont.body)
                         .foregroundStyle(theme.textPrimary)
                         .padding(.vertical, 8)
                         .padding(.horizontal, 12)
@@ -275,7 +276,7 @@ struct MarginRecordCard: View {
             if let text = value["text"]?.stringValue, !text.isEmpty {
                 MarginSection(nil) {
                     Text(text)
-                        .font(.body)
+                        .font(AturiFont.body)
                         .foregroundStyle(theme.textPrimary)
                 }
             }
@@ -292,7 +293,7 @@ struct MarginRecordCard: View {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 6) {
                         Image(systemName: "tag")
-                            .font(.caption)
+                            .font(AturiFont.caption)
                             .foregroundStyle(theme.textTertiary)
                             .accessibilityHidden(true)
                         ForEach(Array(tags.enumerated()), id: \.offset) { _, tag in
@@ -319,7 +320,7 @@ struct MarginRecordCard: View {
                         Text(createdDate, format: .dateTime.year().month(.abbreviated).day().hour().minute())
                     }
                 }
-                .font(.footnote)
+                .font(AturiFont.footnote)
                 .foregroundStyle(theme.textTertiary)
                 .accessibilityElement(children: .combine)
             }
@@ -328,7 +329,7 @@ struct MarginRecordCard: View {
                 showsJSON = true
             }
             .buttonStyle(.aturiSecondary)
-            .font(.footnote)
+            .font(AturiFont.footnote)
         }
         .padding(12)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -403,7 +404,7 @@ private struct MarginReference: View {
                 }
             } else {
                 Text("Missing")
-                    .font(.footnote)
+                    .font(AturiFont.footnote)
                     .foregroundStyle(theme.textTertiary)
             }
         }

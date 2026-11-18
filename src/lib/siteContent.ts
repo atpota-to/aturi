@@ -159,7 +159,7 @@ export const ABOUT_PAGE: ContentPage = {
         },
         {
           kind: 'p',
-          text: 'Your personalization — waypoint groups, ordering, pins, custom waypoints, colour scheme — is written to a `to.aturi.actor.preferences/self` record in your own repository, not to a server here. Move to a different PDS and it moves with you. The browser extension makes no background network calls at all and keeps its preferences in local storage. The [Terms and Privacy Policy](/terms) spell out what each surface touches.',
+          text: 'Your personalization — waypoint groups, ordering, pins, custom waypoints, color scheme — is written to a `to.aturi.actor.preferences/self` record in your own repository, not to a server here. Move to a different PDS and it moves with you. The browser extension makes no background network calls at all and keeps its preferences in local storage. The [Terms and Privacy Policy](/terms) spell out what each surface touches.',
         },
       ],
     },
@@ -203,7 +203,7 @@ export const CONTACT_PAGE: ContentPage = {
       blocks: [
         {
           kind: 'p',
-          text: 'Do not open a public issue for a vulnerability. Report it privately through [GitHub Security Advisories](https://github.com/atpota-to/aturi/security/advisories/new), or email `aturi@atpota.to`. Expect an acknowledgement within a week; if you hear nothing after that, DM [@aturi.to on Bluesky](https://bsky.app/profile/aturi.to) referencing the report without describing the issue publicly.',
+          text: 'Do not open a public issue for a vulnerability. Report it privately through [GitHub Security Advisories](https://github.com/atpota-to/aturi/security/advisories/new), or email [aturi@atpota.to](mailto:aturi@atpota.to). Expect an acknowledgement within a week; if you hear nothing after that, DM [@aturi.to on Bluesky](https://bsky.app/profile/aturi.to) referencing the report without describing the issue publicly.',
         },
       ],
     },
@@ -213,12 +213,12 @@ export const CONTACT_PAGE: ContentPage = {
       blocks: [
         {
           kind: 'p',
-          text: 'For anything that is not a bug, a feature or a vulnerability — press, takedown requests, questions about the packages, or wanting to add a client to the waypoint catalog — email `contact@aturi.to`.',
+          text: 'For anything that is not a bug, a feature or a vulnerability — press, takedown requests, questions about the packages, or wanting to add a client to the waypoint catalog — email [contact@aturi.to](mailto:contact@aturi.to).',
         },
         {
           kind: 'ul',
           items: [
-            'Email: `contact@aturi.to` (general) · `aturi@atpota.to` (security)',
+            'Email: [contact@aturi.to](mailto:contact@aturi.to) (general) · [aturi@atpota.to](mailto:aturi@atpota.to) (security)',
             'Bluesky: [@aturi.to](https://bsky.app/profile/aturi.to)',
             'Maintainer: [dame](https://atpota.to)',
             'Source: [github.com/atpota-to/aturi](https://github.com/atpota-to/aturi)',

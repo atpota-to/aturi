@@ -50,9 +50,10 @@ export default function PageSkeleton({
           className="skeleton-container"
           style={{
             marginBottom: '2rem',
-            padding: showCard ? '1.5rem' : 0,
+            padding: showCard ? '18px' : 0,
             background: showCard ? 'var(--bg-secondary)' : 'transparent',
             border: showCard ? '1px solid var(--border-medium)' : 'none',
+            borderRadius: showCard ? 'var(--radius-card)' : undefined,
           }}
         >
           {/* Section title */}
@@ -74,8 +75,8 @@ export default function PageSkeleton({
                 marginTop: '1.5rem',
               }}
             >
-              <Skeleton height="2.5rem" width="120px" />
-              <Skeleton height="2.5rem" width="120px" />
+              <Skeleton height="36px" width="120px" style={{ borderRadius: 'var(--radius-control)' }} />
+              <Skeleton height="36px" width="120px" style={{ borderRadius: 'var(--radius-control)' }} />
             </div>
           )}
         </div>
@@ -118,9 +119,10 @@ export function CardListSkeleton({ count = 3 }: { count?: number }) {
           key={i}
           className="skeleton-container"
           style={{
-            padding: '1.5rem',
+            padding: '18px',
             background: 'var(--bg-secondary)',
             border: '1px solid var(--border-medium)',
+            borderRadius: 'var(--radius-card)',
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1rem' }}>

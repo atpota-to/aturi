@@ -1,0 +1,593 @@
+/* "Two tabs, renamed": loaded after popup.css. Everything here is either a
+   small override of a shipped class or a .tt-* addition; colours and sizes
+   come from tokens.css so dark holds without a second set of rules. */
+
+/* ---------- Open in: the one-line record card ---------- */
+
+/* The page's record as a single line on an index card: title, collection,
+   and a chevron into This page. Clicking the line pulls that card. */
+.tt-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 40px;
+  padding: 0 2px 0 12px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-card);
+  color: var(--text-primary);
+  text-align: left;
+  transition: background 0.12s ease;
+}
+
+.tt-line:hover {
+  background: var(--surface-subtle);
+}
+
+.tt-line:focus-visible {
+  outline-offset: -2px;
+}
+
+.tt-line-title {
+  flex: none;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.tt-line-meta {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--fs-sm);
+  color: var(--text-tertiary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tt-line-go {
+  width: 32px;
+  height: 32px;
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-tertiary);
+  transition: color 0.12s ease;
+}
+
+.tt-line:hover .tt-line-go {
+  color: var(--text-accent);
+}
+
+/* ---------- This page: the index card and its ledger ---------- */
+
+.tt-card {
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-card);
+  overflow: hidden;
+}
+
+/* 10 + 20 + 18 + 8 = a 56px head, so the first ledger hairline lands on a
+   whole pixel. */
+.tt-card-head {
+  padding: 10px 12px 8px;
+}
+
+.tt-card-title {
+  font-size: var(--fs-base);
+  line-height: 20px;
+  color: var(--text-secondary);
+}
+
+.tt-card-title b {
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.tt-card-sub {
+  font-size: var(--fs-sm);
+  line-height: 18px;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tt-ledger {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+/* A ledger line: label, mono value, copy glyph. The whole line is the copy
+   button, so Tab and Enter copy without a mouse; the glyph is only the sign. */
+.tt-id {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 40px;
+  padding: 0 4px 0 12px;
+  border-top: 1px solid var(--border-subtle);
+  color: var(--text-primary);
+  text-align: left;
+  transition: background 0.12s ease;
+}
+
+.tt-id:hover {
+  background: var(--surface-subtle);
+}
+
+.tt-id:focus-visible {
+  outline-offset: -2px;
+}
+
+.tt-id-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tt-id-label {
+  flex: none;
+  width: 54px;
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  line-height: 18px;
+  color: var(--text-secondary);
+}
+
+.tt-id-value {
+  flex: 1;
+  min-width: 0;
+  font-family: var(--font-mono);
+  font-size: var(--fs-sm);
+  line-height: 18px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* The two identifiers that never fit one line (AT URI, link) take two: the
+   label stands over the value, and the value breaks at its slashes. */
+.tt-id.is-tall {
+  padding-top: 7px;
+  padding-bottom: 7px;
+}
+
+.tt-id.is-tall .tt-id-text {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0;
+}
+
+.tt-id.is-tall .tt-id-value {
+  width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  text-overflow: clip;
+}
+
+.tt-id-tail {
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.tt-id-glyph {
+  width: 32px;
+  height: 32px;
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-control);
+  color: var(--text-tertiary);
+  transition: background 0.12s ease, color 0.12s ease;
+}
+
+.tt-id:hover .tt-id-glyph {
+  color: var(--text-accent);
+}
+
+.tt-id.is-copied .tt-id-label {
+  color: var(--text-accent);
+}
+
+.tt-id.is-copied .tt-id-glyph {
+  background: var(--accent-soft);
+  color: var(--accent-soft-fg);
+}
+
+/* The way out to the site: the card's bottom band, as last round's ledger. */
+.tt-cta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  min-height: 38px;
+  padding: 0 12px;
+  border-top: 1px solid var(--border-subtle);
+  background: var(--surface-subtle);
+  color: var(--text-accent);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  text-align: left;
+  transition: background 0.12s ease;
+}
+
+.tt-cta:hover {
+  background: var(--bg-tertiary);
+}
+
+.tt-cta:focus-visible {
+  outline-offset: -2px;
+}
+
+.tt-cta-label {
+  flex: none;
+}
+
+.tt-cta-note {
+  flex: 1;
+  min-width: 0;
+  font-weight: 400;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tt-cta > svg:last-child {
+  flex: none;
+  color: var(--text-tertiary);
+}
+
+/* ---------- Also on this page ---------- */
+
+/* The drawer's tab on the left, the rescan on the right, both on the
+   drawer's top edge. The tab repeats popup.css's sheet-label rule, which
+   only reaches a label that is the sheet's direct child. */
+.tt-drawer-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.tt-drawer-head > .popup-section-label {
+  position: relative;
+  z-index: 1;
+  flex: 0 1 auto;
+  min-width: 0;
+  margin: 0 0 -1px var(--radius-card);
+  padding: 3px 10px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-medium);
+  border-bottom-color: var(--bg-secondary);
+  border-radius: var(--radius-control) var(--radius-control) 0 0;
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  line-height: 18px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* The label's text ends 2px inside the card edge, as the tab's does. */
+.tt-drawer-head > .inspect-rescan {
+  margin: 0 -6px 3px 0;
+  flex: none;
+}
+
+.tt-ref {
+  display: flex;
+  align-items: center;
+  transition: background 0.12s ease;
+}
+
+.tt-ref + .tt-ref {
+  border-top: 1px solid var(--border-subtle);
+}
+
+.tt-ref:hover {
+  background: var(--surface-subtle);
+}
+
+.tt-ref-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 0 4px 0 12px;
+  color: var(--text-primary);
+  text-align: left;
+}
+
+.tt-ref-main:focus-visible,
+.tt-ref-copy:focus-visible {
+  outline-offset: -2px;
+}
+
+.tt-ref-handle {
+  flex: none;
+  max-width: 56%;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tt-ref-preview {
+  flex: 1;
+  min-width: 0;
+  font-size: max(11px, var(--fs-xs));
+  color: var(--text-tertiary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tt-ref-copy {
+  margin-right: 4px;
+}
+
+.tt-ref:hover .tt-ref-copy {
+  color: var(--text-accent);
+}
+
+/* ---------- Auto-redirect: this page's status row ---------- */
+
+.tt-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 0 4px 0 12px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-card);
+}
+
+.tt-status-icon {
+  flex: none;
+  color: var(--text-tertiary);
+}
+
+.tt-status.is-on .tt-status-icon {
+  color: var(--text-accent);
+}
+
+.tt-status-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.tt-status-title {
+  flex: none;
+  font-weight: 600;
+}
+
+.tt-status-state {
+  min-width: 0;
+  font-size: var(--fs-sm);
+  color: var(--text-tertiary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* On: the row carries a second line (where posts go) under the title, and
+   the pause button beside them, so nothing is squeezed. 48px, as the
+   current footer is when on. */
+.tt-status.is-on {
+  min-height: 48px;
+}
+
+.tt-status.is-on .tt-status-text {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0;
+  line-height: 18px;
+}
+
+.tt-status.is-on .tt-status-state {
+  max-width: 100%;
+  font-size: var(--fs-xs);
+}
+
+.tt-status-link {
+  flex: none;
+  height: 28px;
+  padding: 0 8px;
+  border-radius: var(--radius-control);
+  color: var(--text-accent);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.tt-status-link:hover {
+  background: var(--bg-tertiary);
+}
+
+/* ---------- Auto-redirect: the status strip (only when on) ---------- */
+
+/* A line, not a control: it says where links go on this tab and offers the
+   pause. The switch lives in Settings. Sticky, 36px, so the pause is one
+   click away the moment a redirect has just happened. */
+.tt-strip {
+  position: sticky;
+  bottom: 0;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 36px;
+  padding: 0 6px 0 14px;
+  background: var(--bg-secondary);
+  border-top: 1px solid var(--border-medium);
+  font-size: var(--fs-sm);
+  color: var(--text-secondary);
+}
+
+.tt-strip-icon {
+  flex: none;
+  color: var(--text-accent);
+}
+
+.tt-strip-text {
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tt-strip-text b {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+/* ---------- No-data page: This page ---------- */
+
+.tt-notice {
+  padding: 12px 8px 4px;
+}
+
+.tt-notice .popup-notice-title {
+  font-size: var(--fs-xl);
+}
+
+.tt-notice .popup-notice-body {
+  font-size: var(--fs-sm);
+}
+
+.tt-lookup {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.tt-lookup-row {
+  position: relative;
+  display: flex;
+  gap: 8px;
+}
+
+.tt-lookup-icon {
+  position: absolute;
+  top: 0;
+  left: 11px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  color: var(--text-tertiary);
+  pointer-events: none;
+}
+
+.tt-lookup-input {
+  flex: 1;
+  min-width: 0;
+  padding-left: 32px;
+  font-family: var(--font-mono);
+  font-size: var(--fs-sm);
+}
+
+.tt-lookup-input::placeholder {
+  font-family: var(--font-sans);
+  font-size: var(--fs-md);
+}
+
+/* A fixed width keeps the field's right edge, and its hairline, on a whole
+   pixel. */
+.tt-lookup-go {
+  flex: none;
+  width: 48px;
+  padding: 0;
+}
+
+/* Recent repos: the same row as a reference, a handle in mono with a count. */
+.tt-recent-icon {
+  flex: none;
+  color: var(--text-tertiary);
+}
+
+.tt-recent-handle {
+  flex: 0 1 auto;
+  min-width: 0;
+  font-family: var(--font-mono);
+  font-size: var(--fs-md);
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tt-recent-count {
+  flex: 1;
+  min-width: 0;
+  font-size: max(11px, var(--fs-xs));
+  color: var(--text-tertiary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* The row opens the repo on aturi.to; the glyph at its end says so. */
+.tt-recent-go {
+  margin-right: 4px;
+}
+
+.tt-recent:hover .tt-recent-go {
+  color: var(--text-accent);
+}
+
+/* ---------- No-data page: Open in ---------- */
+
+.tt-shortcuts-note {
+  margin: 0;
+  padding: 2px 2px 0;
+  font-size: var(--fs-sm);
+  line-height: 18px;
+  color: var(--text-tertiary);
+}
+
+/* The shipped tile is 88.1px tall (1.3 and 1.5 line-heights on 12px and
+   11px text); whole-pixel lines make it 88, so every tile hairline below
+   the first row lands on a pixel. */
+.popup-tile-name {
+  line-height: 16px;
+}
+
+.popup-tile-desc {
+  line-height: 16px;
+}
+
+/* 338px of panel across three tiles: a 7px column gap makes each 108px,
+   so the tiles' vertical hairlines land on pixels too. */
+.popup-tiles {
+  gap: 8px 7px;
+}
+
+/* Touch: the dense controls grow to a thumb's width, as popup.css does. */
+@media (hover: none) {
+  .tt-status-link,
+  .tt-strip .popup-redirect-pause,
+  .tt-status .popup-redirect-pause {
+    height: 36px;
+  }
+}

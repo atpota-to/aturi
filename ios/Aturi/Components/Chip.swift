@@ -1,6 +1,7 @@
 import SwiftUI
 
-/// A small capsule tag: a collection count, a status, a family name.
+/// A small capsule tag: a collection count, a status, a family name. The
+/// accent style is the web's Field Notes soft pill.
 struct Chip: View {
     enum Style {
         case neutral
@@ -24,15 +25,23 @@ struct Chip: View {
     private var foreground: Color {
         switch style {
         case .neutral: return theme.textSecondary
-        case .accent: return theme.textAccent
+        case .accent: return theme.accentSoftFg
         case .danger: return theme.danger
+        }
+    }
+
+    private var border: Color {
+        switch style {
+        case .neutral: return theme.borderMedium
+        case .accent: return theme.accentSoftBorder
+        case .danger: return theme.danger.opacity(0.3)
         }
     }
 
     private var background: Color {
         switch style {
         case .neutral: return theme.bgTertiary
-        case .accent: return theme.accent.opacity(0.18)
+        case .accent: return theme.accentSoft
         case .danger: return theme.danger.opacity(0.14)
         }
     }
@@ -41,16 +50,16 @@ struct Chip: View {
         HStack(spacing: 4) {
             if let systemImage {
                 Image(systemName: systemImage)
-                    .font(.caption2)
+                    .font(AturiFont.caption2)
             }
             Text(text)
-                .font(.caption.weight(.medium))
+                .font(AturiFont.sans(.caption, weight: .medium))
                 .lineLimit(1)
         }
         .foregroundStyle(foreground)
         .padding(.horizontal, 8)
         .padding(.vertical, 4)
         .background(background, in: Capsule())
-        .overlay(Capsule().strokeBorder(theme.borderSubtle, lineWidth: AturiTheme.hairline(displayScale: displayScale)))
+        .overlay(Capsule().strokeBorder(border, lineWidth: AturiTheme.hairline(displayScale: displayScale)))
     }
 }

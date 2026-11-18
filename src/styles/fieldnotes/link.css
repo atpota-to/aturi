@@ -1,0 +1,1219 @@
+/* Field Notes: link styles. Tokens live in src/app/globals.css (:root and
+   [data-theme='light']); use them rather than raw hex so dark mode and the
+   colour schemes keep working. */
+
+/* ============================================================
+   Universal-link pages (/[handle], /[handle]/[collection]/[rkey],
+   /profile/[handle]/post/[rkey]): one centred column. The preview
+   card sits on top, then the picker, then a sticky "remember" bar.
+   ============================================================ */
+
+.container-narrow.waypoint-page {
+  max-width: 640px;
+  padding-top: 1.5rem;
+  padding-bottom: 0;
+  padding-left: 1.5rem !important;
+  padding-right: 1.5rem !important;
+  font-family: var(--font-sans);
+}
+
+@media (max-width: 600px) {
+  .container-narrow.waypoint-page {
+    padding-top: 1rem;
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+  }
+}
+
+.waypoint-page > .content-fade-in {
+  margin-bottom: 1.5rem;
+}
+
+.waypoint-page > .content-fade-in > .card,
+.waypoint-page > .content-fade-in > div > .card {
+  margin-bottom: 0 !important;
+}
+
+/* --- Preview cards ------------------------------------------------------- */
+
+.fn-lp-preview.card {
+  padding: 0;
+  overflow: hidden;
+  margin-bottom: 1.5rem;
+}
+
+.waypoint-page .fn-lp-preview.card:hover {
+  border-color: var(--border-medium);
+}
+
+.fn-lp-profile .profile-preview-banner {
+  height: 96px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.fn-lp-profile-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+  padding: 1rem 1.125rem 0.875rem;
+}
+
+.fn-lp-profile-id {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.fn-lp-avatar {
+  width: 48px;
+  height: 48px;
+  flex: none;
+  border-radius: 50%;
+  overflow: hidden;
+  background: var(--accent-soft-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.fn-lp-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.fn-lp-profile-names {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+
+.fn-lp-profile-name {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: 1.0625rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: 1.25;
+  color: var(--text-primary);
+  min-width: 0;
+}
+
+.fn-lp-profile-name > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fn-lp-handle {
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  color: var(--text-accent);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fn-lp-profile-bio {
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+.fn-lp-profile-stats,
+.fn-lp-profile-extras {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: 0.25rem;
+  row-gap: 0.25rem;
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+}
+
+.fn-lp-profile-stats strong,
+.fn-lp-profile-extras strong {
+  color: var(--text-primary);
+  font-weight: 700;
+}
+
+.fn-lp-profile-joined {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3125rem;
+  margin-left: auto;
+  color: var(--text-tertiary);
+}
+
+.fn-lp-profile-extras {
+  column-gap: 1rem;
+}
+
+.fn-lp-preview-foot {
+  margin: 0.125rem -1.125rem -0.875rem;
+  padding: 0.625rem 1.125rem;
+  border-top: 1px solid var(--border-subtle);
+  background: var(--surface-subtle);
+  font-size: 0.8125rem;
+}
+
+.waypoint-page .profile-explorer-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  min-height: 24px;
+  color: var(--text-accent);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.waypoint-page .profile-explorer-link:hover {
+  color: var(--accent-forest);
+}
+
+@media (max-width: 600px) {
+  .fn-lp-profile .profile-preview-banner {
+    height: 72px;
+  }
+
+  .fn-lp-profile-joined {
+    margin-left: 0;
+    flex-basis: 100%;
+  }
+}
+
+/* Post preview: the card's inline styles carry the shape; this trims the
+   spacing to the column and keeps hover quiet. */
+.waypoint-page .post-preview.card {
+  padding: 1.125rem !important;
+}
+
+.waypoint-page .post-preview.card:hover {
+  border-color: var(--border-medium);
+}
+
+.waypoint-page .parent-card {
+  border-radius: var(--radius-card);
+}
+
+/* ============================================================
+   Picker
+   ============================================================ */
+
+.fn-lp-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  font-family: var(--font-sans);
+  /* Clear the sticky header when the scroll hint jumps here. */
+  scroll-margin-top: 72px;
+}
+
+.fn-lp-head {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin-top: 0.25rem;
+}
+
+.fn-lp-head h1 {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: 1.625rem;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  line-height: 1.2;
+  color: var(--text-primary);
+  overflow-wrap: anywhere;
+}
+
+.fn-lp-head p {
+  margin: 0;
+  font-size: 0.9375rem;
+  color: var(--text-secondary);
+}
+
+@media (max-width: 600px) {
+  .fn-lp-head h1 {
+    font-size: 1.375rem;
+  }
+
+  .fn-lp-head p {
+    font-size: 0.84375rem;
+  }
+}
+
+.fn-lp-empty.card {
+  padding: 1.5rem;
+  text-align: center;
+  color: var(--text-secondary);
+}
+
+/* --- Recommended rows ---------------------------------------------------- */
+
+.fn-lp-recommended {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.fn-lp-hero {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+  min-height: 56px;
+  border-radius: var(--radius-card);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-strong);
+  color: var(--text-primary);
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.fn-lp-hero:hover {
+  border-color: var(--text-tertiary);
+}
+
+.fn-lp-hero.is-primary {
+  background: var(--accent-moss);
+  border-color: var(--accent-moss);
+  color: var(--text-on-accent);
+}
+
+.fn-lp-hero.is-primary:hover {
+  background: var(--accent-forest);
+  border-color: var(--accent-forest);
+}
+
+.fn-lp-hero-link {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex: 1;
+  min-width: 0;
+  padding: 0.5rem 0.25rem 0.5rem 1rem;
+  color: inherit;
+  text-decoration: none;
+  border-radius: var(--radius-card);
+}
+
+.fn-lp-hero-link:hover {
+  color: inherit;
+}
+
+.fn-lp-hero-icon {
+  display: flex;
+  flex: none;
+  width: 20px;
+  height: 20px;
+  color: var(--text-accent);
+}
+
+.fn-lp-hero.is-primary .fn-lp-hero-icon {
+  color: var(--text-on-accent);
+}
+
+.fn-lp-hero-icon svg,
+.fn-lp-hero-icon img {
+  width: 100%;
+  height: 100%;
+}
+
+.fn-lp-hero-text {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  line-height: 1.25;
+}
+
+.fn-lp-hero-name {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fn-lp-hero-sub {
+  font-size: 0.75rem;
+  color: var(--text-tertiary);
+}
+
+.fn-lp-hero.is-primary .fn-lp-hero-sub {
+  color: inherit;
+  opacity: 0.9;
+}
+
+.fn-lp-hero-arrow {
+  flex: none;
+  color: var(--text-tertiary);
+}
+
+.fn-lp-hero.is-primary .fn-lp-hero-arrow {
+  color: inherit;
+}
+
+.fn-lp-hero-copy {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  margin: 0 0.25rem 0 0;
+  padding: 0;
+  background: none;
+  border: none;
+  border-radius: var(--radius-control);
+  color: var(--text-tertiary);
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+
+.fn-lp-hero-copy:hover {
+  color: var(--text-accent);
+}
+
+.fn-lp-hero.is-primary .fn-lp-hero-copy {
+  color: var(--text-on-accent);
+  opacity: 0.8;
+}
+
+.fn-lp-hero.is-primary .fn-lp-hero-copy:hover {
+  opacity: 1;
+}
+
+.fn-lp-hero-link:focus-visible,
+.fn-lp-hero-copy:focus-visible {
+  outline: 2px solid var(--text-accent);
+  outline-offset: 2px;
+}
+
+.fn-lp-hero.is-primary .fn-lp-hero-link:focus-visible,
+.fn-lp-hero.is-primary .fn-lp-hero-copy:focus-visible {
+  outline-color: var(--accent-forest);
+}
+
+/* --- Layout switch ------------------------------------------------------- */
+
+.fn-lp-picker .waypoint-layout-bar {
+  justify-content: flex-end;
+  margin: 0.5rem 0 -0.25rem;
+}
+
+.waypoint-layout-bar-label {
+  font-family: var(--font-sans);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--text-tertiary);
+}
+
+/* Same values as .fn-segmented (explore.css), the site's one segmented
+   control: it had its own bordered white track and a pale-green chosen
+   option, so the two toggles on the settings page looked unrelated. */
+.waypoint-layout-toggle {
+  display: inline-flex;
+  gap: 0;
+  padding: 3px;
+  border: 0;
+  border-radius: var(--radius-control);
+  background: var(--bg-tertiary);
+}
+
+.waypoint-layout-option {
+  min-width: 32px;
+  min-height: 28px;
+  justify-content: center;
+  padding: 0.25rem 0.5rem;
+  border: none;
+  border-right: none;
+  border-radius: 6px;
+  color: var(--text-secondary);
+}
+
+.waypoint-layout-toggle.is-labelled .waypoint-layout-option {
+  font-family: var(--font-sans);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  padding: 0.375rem 0.75rem;
+}
+
+.waypoint-layout-option:hover {
+  background: transparent;
+  color: var(--text-primary);
+}
+
+.waypoint-layout-option.is-active,
+.waypoint-layout-option.is-active:hover {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  box-shadow: 0 1px 2px rgb(28 30 25 / 0.12);
+}
+
+:root:not([data-theme='light']) .waypoint-layout-option.is-active {
+  background: var(--border-strong);
+}
+
+/* --- Groups -------------------------------------------------------------- */
+
+.fn-lp-picker .waypoint-compact {
+  gap: 1.25rem;
+}
+
+/* The group's name is the tab on its drawer: a small folder tab in the
+   box's own colour, standing on the box's top edge and painting its border
+   out, the way the repository card's open tab does (tabs.css). 18px line,
+   8px padding, 2px border: a 28px box on whole pixels. Mirror tabs.css if
+   the radius or hairline token ever change. */
+.fn-lp-picker .waypoint-group-label {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  width: fit-content;
+  max-width: calc(100% - 2 * var(--radius-card));
+  margin: 0 0 -1px var(--radius-card);
+  padding: 4px 12px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-medium);
+  border-bottom-color: var(--bg-secondary);
+  border-radius: var(--radius-control) var(--radius-control) 0 0;
+  font-family: var(--font-sans);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: none;
+  line-height: 18px;
+  color: var(--text-secondary);
+}
+
+.fn-lp-picker .waypoint-group-label i {
+  display: none;
+}
+
+/* The group's count is read, so it takes --text-tertiary; --text-faint is
+   about 2.3:1 on paper. */
+.fn-lp-picker .waypoint-group-label em {
+  font-style: normal;
+  font-weight: 500;
+  color: var(--text-tertiary);
+}
+
+.fn-lp-picker .waypoint-group-label.is-highlighted {
+  color: var(--text-accent);
+}
+
+.fn-lp-picker .waypoint-rows {
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-card);
+  background: var(--bg-secondary);
+  overflow: hidden;
+}
+
+.fn-lp-picker .waypoint-row {
+  min-height: 48px;
+  border-bottom: 1px solid var(--border-subtle);
+  transition: background 0.15s ease;
+}
+
+.fn-lp-picker .waypoint-row:hover {
+  background: var(--surface-subtle);
+}
+
+.fn-lp-picker .waypoint-row-link,
+.fn-lp-picker .waypoint-row:hover .waypoint-row-link {
+  gap: 0.75rem;
+  padding: 0 0.25rem 0 0.875rem;
+}
+
+.fn-lp-picker .waypoint-row-name {
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.fn-lp-picker .waypoint-row-host {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--text-tertiary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.fn-lp-picker .waypoint-compact-icon {
+  color: var(--text-primary);
+}
+
+.fn-lp-picker .waypoint-row:hover .waypoint-compact-icon,
+.fn-lp-picker .waypoint-tile:hover .waypoint-compact-icon {
+  color: var(--text-accent);
+}
+
+/* --text-tertiary rather than faint: on touch this button is always shown
+   (below), and a control needs 3:1 against the row to be found. */
+.fn-lp-picker .waypoint-row-copy {
+  width: 40px;
+  justify-content: center;
+  padding: 0;
+  color: var(--text-tertiary);
+}
+
+.fn-lp-picker .waypoint-row-copy:hover {
+  color: var(--text-accent);
+}
+
+.fn-lp-picker .waypoint-row-link:focus-visible,
+.fn-lp-picker .waypoint-row-copy:focus-visible,
+.fn-lp-picker .waypoint-tile:focus-visible {
+  outline: 2px solid var(--text-accent);
+  outline-offset: -2px;
+  opacity: 1;
+}
+
+/* Touch: no hover to reveal the copy button, so it stays. The host
+   stays too (the design keeps it at phone width); it ellipsises first. */
+@media (hover: none), (max-width: 600px) {
+  .fn-lp-picker .waypoint-row-copy {
+    opacity: 1;
+    margin-left: 0;
+  }
+
+  .fn-lp-picker .waypoint-row-host {
+    display: block;
+  }
+}
+
+.fn-lp-picker .waypoint-tiles {
+  grid-template-columns: repeat(auto-fill, minmax(5.75rem, 1fr));
+  gap: 0.5rem;
+  padding: 0.5rem;
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-card);
+  background: var(--bg-secondary);
+}
+
+.fn-lp-picker .waypoint-tile {
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-card);
+  background: var(--bg-primary);
+  min-height: 5rem;
+}
+
+.fn-lp-picker .waypoint-tile:hover {
+  background: var(--bg-secondary);
+  border-color: var(--border-strong);
+  transform: none;
+}
+
+.fn-lp-picker .waypoint-tile-name {
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+/* --- "See all" disclosure ------------------------------------------------ */
+
+.fn-lp-see-all {
+  align-self: center;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  min-height: 44px;
+  padding: 0 0.75rem;
+  background: none;
+  border: none;
+  border-radius: var(--radius-control);
+  font-family: var(--font-sans);
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-accent);
+  cursor: pointer;
+}
+
+.fn-lp-see-all:hover {
+  color: var(--accent-forest);
+}
+
+.fn-lp-see-all:focus-visible {
+  outline: 2px solid var(--text-accent);
+  outline-offset: 2px;
+}
+
+/* --- Classic layout (full cards) ----------------------------------------- */
+
+.fn-lp-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+}
+
+.fn-lp-picker .section-header {
+  margin: 0 0 0.5rem;
+  font-family: var(--font-sans);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--text-secondary);
+}
+
+.fn-lp-picker .more-options-section {
+  margin-top: 0.75rem;
+}
+
+.fn-lp-picker .waypoint-button,
+.fn-lp-picker .waypoint-button:hover,
+.fn-lp-picker .featured-waypoint,
+.fn-lp-picker .featured-waypoint:hover {
+  transform: none !important;
+  box-shadow: none;
+}
+
+.fn-lp-picker .waypoint-button {
+  gap: 0.875rem;
+  padding: 0.875rem 1rem;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-card);
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.fn-lp-picker .waypoint-button::before,
+.fn-lp-picker .featured-waypoint::before {
+  display: none;
+}
+
+.fn-lp-picker .waypoint-button:hover {
+  background: var(--surface-subtle);
+  border-color: var(--border-strong);
+}
+
+/* The arrow anchor covers the whole card (the card is already positioned
+   and clipped, globals.css), so one tab stop opens the app; the copy button
+   stays above it. The ring is drawn on the card, since the anchor's box is
+   now the card's. */
+.fn-lp-picker .waypoint-open-link::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+}
+.fn-lp-picker .waypoint-button-actions .copy-button {
+  position: relative;
+  z-index: 1;
+}
+.fn-lp-picker .waypoint-open-link:focus-visible {
+  outline: none;
+}
+.fn-lp-picker .waypoint-button:has(.waypoint-open-link:focus-visible) {
+  outline: 2px solid var(--text-accent);
+  outline-offset: 2px;
+}
+
+.fn-lp-picker .featured-waypoint {
+  border-color: var(--accent-soft-border);
+  background: var(--accent-soft);
+}
+
+.fn-lp-picker .featured-waypoint:hover {
+  background: var(--accent-soft);
+  border-color: var(--text-accent);
+}
+
+.fn-lp-picker .waypoint-icon {
+  width: 22px;
+  height: 22px;
+  color: var(--text-primary);
+}
+
+.fn-lp-picker .waypoint-icon svg {
+  width: 100%;
+  height: 100%;
+}
+
+.fn-lp-picker .waypoint-button:hover .waypoint-icon {
+  color: var(--text-accent);
+}
+
+.fn-lp-picker .waypoint-name {
+  font-size: 0.9375rem;
+  font-weight: 700;
+}
+
+.fn-lp-picker .waypoint-description {
+  font-size: 0.8125rem;
+  line-height: 1.4;
+  color: var(--text-secondary);
+}
+
+.waypoint-button-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.waypoint-button-actions .copy-button,
+.waypoint-button-actions .waypoint-open-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  background: none;
+  border: none;
+  border-radius: var(--radius-control);
+  color: var(--text-tertiary);
+  cursor: pointer;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+
+.waypoint-button-actions .copy-button:hover,
+.waypoint-button-actions .waypoint-open-link:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-accent) !important;
+}
+
+.fn-lp-picker .category-section {
+  margin-bottom: 0.75rem;
+}
+
+.fn-lp-picker .category-header {
+  padding: 0.5rem 0;
+  margin-bottom: 0.5rem;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.fn-lp-picker .category-header:hover {
+  border-bottom-color: var(--border-strong);
+}
+
+.fn-lp-picker .category-title h3 {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: 0.875rem;
+  font-weight: 700;
+  letter-spacing: -0.005em;
+  text-transform: none;
+  color: var(--text-primary);
+}
+.fn-lp-picker .category-title h3 em {
+  margin-left: 0.5rem;
+  font-style: normal;
+  font-weight: 500;
+  color: var(--text-tertiary);
+}
+
+.fn-lp-picker .category-description {
+  font-size: 0.8125rem;
+  letter-spacing: 0;
+  color: var(--text-tertiary);
+}
+
+.fn-lp-picker .expand-indicator {
+  padding: 0.125rem 0.5rem;
+  border: none;
+  border-radius: var(--radius-pill);
+  background: var(--accent-soft);
+  box-shadow: inset 0 0 0 1px var(--accent-soft-ring);
+  color: var(--accent-soft-fg);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0;
+}
+
+.fn-lp-picker .expand-button {
+  width: 32px;
+  height: 32px;
+  justify-content: center;
+  border-radius: var(--radius-control);
+}
+
+.fn-lp-picker .expand-button:hover {
+  transform: none;
+  background: var(--bg-tertiary);
+}
+
+.fn-lp-picker .stacked-cards::before,
+.fn-lp-picker .stacked-cards::after {
+  display: none;
+}
+
+.fn-lp-picker .stacked-cards {
+  padding-bottom: 0;
+}
+
+.fn-lp-picker .waypoint-list {
+  gap: 0.5rem;
+}
+
+.fn-lp-picker .waypoint-item {
+  animation-duration: 0.2s;
+  animation-timing-function: ease-out;
+  transform: translateY(-4px);
+}
+
+.fn-lp-picker .subcategories {
+  border-left-width: 1px;
+}
+
+/* --- About + share ------------------------------------------------------- */
+
+.fn-lp-about.card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-top: 1.5rem;
+  padding: 1rem 1.125rem;
+}
+
+.fn-lp-about.card:hover {
+  border-color: var(--border-medium);
+}
+
+.fn-lp-about > div {
+  flex: 1 1 16rem;
+  min-width: 0;
+}
+
+.fn-lp-about h3 {
+  margin: 0 0 0.25rem;
+  font-family: var(--font-sans);
+  font-size: 0.9375rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--text-primary);
+}
+
+.fn-lp-about p {
+  margin: 0;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+.share-button,
+.fn-lp-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4375rem;
+  height: 36px;
+  padding: 0 0.875rem;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-control);
+  font-family: var(--font-sans);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.share-button:hover,
+.fn-lp-btn:hover {
+  background: var(--surface-subtle);
+  border-color: var(--text-tertiary);
+  color: var(--text-primary);
+}
+
+.fn-lp-btn.is-primary {
+  background: var(--accent-moss);
+  border-color: var(--accent-moss);
+  color: var(--text-on-accent);
+}
+
+.fn-lp-btn.is-primary:hover {
+  background: var(--accent-forest);
+  border-color: var(--accent-forest);
+  color: var(--text-on-accent);
+}
+
+.share-button:focus-visible,
+.fn-lp-btn:focus-visible {
+  outline: 2px solid var(--text-accent);
+  outline-offset: 2px;
+}
+
+/* --- Sticky "remember my choice" bar --------------------------------------
+   Sticks to the bottom of the viewport for as long as the picker is on
+   screen. Full-bleed on phones (the column's 16px gutter is undone), a
+   floating card on wider screens. */
+
+.fn-lp-remember {
+  position: sticky;
+  bottom: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 1rem 0 1.5rem;
+  padding: 0.75rem 0.875rem 0.75rem 1rem;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-card);
+}
+
+@media (min-width: 601px) {
+  /* Floating over the list it covers, so it wears the overlay shadow the
+     header's panels do: without it the card read as one more row. */
+  .fn-lp-remember {
+    bottom: 1rem;
+    box-shadow: var(--shadow-overlay);
+  }
+
+  /* Fill the gap between the floating card and the viewport edge so rows
+     scrolling underneath don't peek out below it. */
+  .fn-lp-remember::after {
+    content: '';
+    position: absolute;
+    top: calc(100% + 1px);
+    left: -1px;
+    right: -1px;
+    height: 1rem;
+    background: var(--bg-primary);
+    pointer-events: none;
+  }
+}
+
+.fn-lp-remember-text {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  flex: 1;
+  min-width: 0;
+  min-height: 40px;
+}
+
+.fn-lp-remember-title {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.fn-lp-remember-sub {
+  font-size: 0.78125rem;
+  line-height: 1.35;
+  color: var(--text-secondary);
+}
+
+@media (max-width: 600px) {
+  .fn-lp-remember {
+    margin: 1rem -1rem 0;
+    padding: 0.625rem 1rem calc(0.875rem + env(safe-area-inset-bottom, 0px));
+    border-width: 1px 0 0;
+    border-radius: 0;
+  }
+
+  /* The full-bleed band rests directly on the footer at the end of the
+     page instead of leaving an empty strip of page between them. */
+  body:has(.waypoint-page .fn-lp-remember) .fn-footer {
+    margin-top: 0;
+  }
+}
+
+/* --- Scroll hint ---------------------------------------------------------- */
+
+.fn-lp-scroll {
+  position: fixed;
+  left: 50%;
+  bottom: 1.5rem;
+  z-index: 30;
+  transform: translateX(-50%);
+  transition: opacity 0.3s ease;
+}
+
+.fn-lp-scroll.is-hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.fn-lp-scroll .scroll-indicator-floating {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  height: 32px;
+  padding: 0 0.875rem 0 0.625rem;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-pill);
+  font-family: var(--font-sans);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  box-shadow: var(--shadow-overlay);
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+
+.fn-lp-scroll .scroll-indicator-floating:hover {
+  color: var(--text-accent);
+  border-color: var(--border-strong);
+}
+
+@media (max-width: 600px) {
+  .fn-lp-scroll {
+    bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
+  }
+}
+
+/* --- New-waypoints banner (picker + account settings) --------------------- */
+
+.new-waypoints-banner {
+  gap: 0.75rem;
+  padding: 0.625rem 0.75rem 0.625rem 0.875rem;
+  background: var(--accent-soft);
+  border: 1px solid var(--accent-soft-border);
+  border-radius: var(--radius-card);
+}
+
+.fn-lp-picker .new-waypoints-banner {
+  margin-bottom: 0.25rem;
+}
+
+.new-waypoints-banner-icons {
+  color: var(--accent-soft-fg);
+}
+
+.new-waypoints-banner-text {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--accent-soft-fg);
+}
+
+.new-waypoints-banner-add {
+  height: 32px;
+  padding: 0 0.75rem;
+  background: var(--accent-moss);
+  border: 1px solid var(--accent-moss);
+  border-radius: var(--radius-control);
+  font-family: var(--font-sans);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--text-on-accent);
+}
+
+.new-waypoints-banner-add:hover {
+  background: var(--accent-forest);
+  border-color: var(--accent-forest);
+}
+
+.new-waypoints-banner-dismiss {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-control);
+  color: var(--accent-soft-fg);
+}
+
+.new-waypoints-banner-dismiss:hover {
+  background: var(--bg-secondary);
+}
+
+/* ============================================================
+   Not-found / resolver-error panel
+   ============================================================ */
+
+.fn-lp-notfound {
+  max-width: 36rem;
+  margin: 3rem auto 4rem;
+  font-family: var(--font-sans);
+}
+
+.fn-lp-notfound-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  height: 26px;
+  padding: 0 0.625rem;
+  margin-bottom: 1rem;
+  border-radius: var(--radius-pill);
+  background: var(--accent-soft);
+  box-shadow: inset 0 0 0 1px var(--accent-soft-ring);
+  color: var(--accent-soft-fg);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.fn-lp-notfound-title {
+  margin: 0 0 0.5rem;
+  font-family: var(--font-sans);
+  font-size: 2rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+  color: var(--text-primary);
+}
+
+.fn-lp-notfound-body {
+  margin: 0 0 1.25rem;
+  font-size: 0.9375rem;
+  line-height: 1.55;
+  color: var(--text-secondary);
+}
+
+/* The raw resolver error, folded away under the plain-language body. Its
+   box needs its own gap above the search field it sits on. */
+.fn-lp-notfound-details {
+  margin: -0.5rem 0 1.25rem;
+}
+
+.fn-lp-notfound-search {
+  margin-bottom: 1rem;
+}
+
+.fn-lp-notfound-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+@media (max-width: 600px) {
+  .fn-lp-notfound {
+    margin: 1.5rem auto 3rem;
+  }
+
+  .fn-lp-notfound-title {
+    font-size: 1.625rem;
+  }
+}
+
+/* --- Phone tap targets ---------------------------------------------------- */
+
+@media (max-width: 600px) {
+  .share-button,
+  .fn-lp-btn {
+    height: 40px;
+  }
+}
+
+/* Touch: the layout toggle and the Explorer link keep their size and get an
+   invisible 40px hit area. */
+@media (pointer: coarse) {
+  .waypoint-layout-option,
+  .waypoint-page .profile-explorer-link {
+    position: relative;
+  }
+  .waypoint-layout-option::after,
+  .waypoint-page .profile-explorer-link::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: max(100%, 40px);
+    height: max(100%, 40px);
+    transform: translate(-50%, -50%);
+  }
+}

@@ -57,40 +57,11 @@ export default function McpSetupVisual({ endpoint }: { endpoint: string }) {
   ];
 
   return (
-    <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+    <div className="fl-mock fl-setup" data-size="l">
       {setups.map((setup) => (
-        <div
-          key={setup.client}
-          style={{
-            border: '1px solid var(--border-subtle)',
-            background: 'var(--bg-secondary)',
-            display: 'flex',
-            flexDirection: 'column',
-          }}
-        >
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              gap: '0.5rem',
-              padding: '0.35rem 0.35rem 0.35rem 0.75rem',
-              borderBottom: '1px solid var(--border-subtle)',
-              background: 'var(--bg-tertiary)',
-            }}
-          >
-            <span
-              style={{
-                fontSize: '0.7rem',
-                letterSpacing: '0.08em',
-                textTransform: 'uppercase',
-                fontFamily: 'var(--font-serif)',
-                color: 'var(--text-tertiary)',
-                lineHeight: 1,
-              }}
-            >
-              {setup.client}
-            </span>
+        <div key={setup.client} className="fl-setup-row">
+          <div className="fl-setup-head">
+            <span className="fl-setup-client">{setup.client}</span>
             <CopyButton
               value={setup.copy}
               label={setup.kind === 'path' ? 'Copy URL' : 'Copy'}
@@ -98,23 +69,9 @@ export default function McpSetupVisual({ endpoint }: { endpoint: string }) {
               variant="subtle"
             />
           </div>
-          <pre
-            style={{
-              // globals.css gives every <pre> a border and its own tertiary
-              // background. Inside this card both are redundant, and the
-              // border read as a second, thicker edge around the row.
-              margin: 0,
-              border: 'none',
-              background: 'transparent',
-              padding: '0.625rem 0.75rem',
-              fontFamily: 'var(--font-mono)',
-              fontSize: '0.68rem',
-              lineHeight: 1.55,
-              color: setup.kind === 'path' ? 'var(--text-secondary)' : 'var(--text-accent)',
-              whiteSpace: 'pre-wrap',
-              wordBreak: 'break-all',
-            }}
-          >
+          {/* globals.css gives every <pre> a border and background; the
+              .fl-setup-code rule clears both inside this card. */}
+          <pre className="fl-setup-code" data-kind={setup.kind}>
             {setup.body}
           </pre>
         </div>

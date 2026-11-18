@@ -73,7 +73,7 @@ struct SignInSheet: View {
     private var handleStep: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text("Sign in with your handle to edit your own records, and to keep your settings on your PDS so they carry across devices.")
-                .font(.body)
+                .font(AturiFont.body)
                 .foregroundStyle(theme.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
             HandleTypeaheadField(text: $input, onSubmit: proceedToScopes)
@@ -81,7 +81,7 @@ struct SignInSheet: View {
                 .buttonStyle(.aturiPrimary)
                 .disabled(trimmedInput.isEmpty)
             Text("You will be sent to your own server to approve the sign in. This app never sees your password.")
-                .font(.footnote)
+                .font(AturiFont.footnote)
                 .foregroundStyle(theme.textTertiary)
                 .fixedSize(horizontal: false, vertical: true)
             if let errorMessage {
@@ -125,7 +125,7 @@ struct SignInSheet: View {
             .buttonStyle(.aturiPrimary)
             .disabled(busy)
             Text("Reading records is always allowed: your repo is public.")
-                .font(.footnote)
+                .font(AturiFont.footnote)
                 .foregroundStyle(theme.textTertiary)
                 .fixedSize(horizontal: false, vertical: true)
             if let errorMessage {
@@ -136,7 +136,7 @@ struct SignInSheet: View {
 
     private func errorText(_ message: String) -> some View {
         Text(message)
-            .font(.footnote)
+            .font(AturiFont.footnote)
             .foregroundStyle(theme.danger)
             .textSelection(.enabled)
             .fixedSize(horizontal: false, vertical: true)
@@ -204,10 +204,10 @@ struct ScopePicker: View {
                 Toggle(isOn: binding(for: scope.id)) {
                     VStack(alignment: .leading, spacing: 2) {
                         Text(scope.label)
-                            .font(.body)
+                            .font(AturiFont.body)
                             .foregroundStyle(theme.textPrimary)
                         Text(scope.hint)
-                            .font(.footnote)
+                            .font(AturiFont.footnote)
                             .foregroundStyle(theme.textTertiary)
                             .fixedSize(horizontal: false, vertical: true)
                     }
@@ -289,10 +289,10 @@ struct HandleTypeaheadField: View {
                 .disabled(disabled)
                 .onSubmit(onSubmit)
                 .padding(12)
-                .background(theme.bgTertiary, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+                .background(theme.bgSecondary, in: RoundedRectangle(cornerRadius: AturiTheme.controlRadius, style: .continuous))
                 .overlay(
-                    RoundedRectangle(cornerRadius: 10, style: .continuous)
-                        .strokeBorder(theme.borderSubtle, lineWidth: AturiTheme.hairline(displayScale: displayScale))
+                    RoundedRectangle(cornerRadius: AturiTheme.controlRadius, style: .continuous)
+                        .strokeBorder(theme.borderMedium, lineWidth: AturiTheme.hairline(displayScale: displayScale))
                 )
                 .accessibilityLabel("Handle or DID")
                 .onChange(of: text) { _, newValue in

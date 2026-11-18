@@ -101,12 +101,12 @@ struct RecordEditorSheet: View {
                     }
                     if !session.writeAccess {
                         Text("Sign in with a scope that allows writes to save changes.")
-                            .font(.caption)
+                            .font(AturiFont.caption)
                             .foregroundStyle(theme.textTertiary)
                     }
                     if let errorMessage {
                         Text(errorMessage)
-                            .font(.caption)
+                            .font(AturiFont.caption)
                             .foregroundStyle(theme.danger)
                             .textSelection(.enabled)
                             .fixedSize(horizontal: false, vertical: true)
@@ -172,7 +172,7 @@ struct RecordEditorSheet: View {
             Spacer(minLength: 0)
             if let lexicon {
                 Text(lexicon.label)
-                    .font(.footnote)
+                    .font(AturiFont.footnote)
                     .foregroundStyle(theme.textTertiary)
                     .lineLimit(1)
             }
@@ -223,11 +223,11 @@ struct RecordEditorSheet: View {
                 .accessibilityLabel("Record JSON")
             if parsedRaw == nil {
                 Text("JSON error: the text does not parse.")
-                    .font(.caption)
+                    .font(AturiFont.caption)
                     .foregroundStyle(theme.danger)
             } else if parsedRaw?.objectValue == nil {
                 Text("JSON error: a record must be an object.")
-                    .font(.caption)
+                    .font(AturiFont.caption)
                     .foregroundStyle(theme.danger)
             }
         }
@@ -403,7 +403,7 @@ private struct FieldView: View {
             control
             if let footnote {
                 Text(footnote)
-                    .font(.caption)
+                    .font(AturiFont.caption)
                     .foregroundStyle(theme.textTertiary)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -433,7 +433,7 @@ private struct FieldView: View {
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
                 .padding(10)
-                .cardBackground(cornerRadius: 8)
+                .cardBackground(cornerRadius: AturiTheme.controlRadius)
                 .accessibilityLabel(field.label)
         case .textarea, .markdown:
             TextEditor(text: stringBinding)
@@ -441,7 +441,7 @@ private struct FieldView: View {
                 .scrollContentBackground(.hidden)
                 .frame(minHeight: field.type == .markdown ? 240 : 100)
                 .padding(6)
-                .cardBackground(cornerRadius: 8)
+                .cardBackground(cornerRadius: AturiTheme.controlRadius)
                 .accessibilityLabel(field.label)
         case .datetime:
             DatetimeField(label: field.label, value: stringBinding)
@@ -453,7 +453,7 @@ private struct FieldView: View {
             Toggle(field.label, isOn: boolBinding)
                 .padding(.horizontal, 12)
                 .padding(.vertical, 8)
-                .cardBackground(cornerRadius: 8)
+                .cardBackground(cornerRadius: AturiTheme.controlRadius)
         case .json:
             JSONField(label: field.label, value: $value)
         }
@@ -500,7 +500,7 @@ private struct DatetimeField: View {
                 Button("Now") {
                     value = Formatting.isoTimestamp(Date())
                 }
-                .font(.footnote.weight(.medium))
+                .font(AturiFont.sans(.footnote, weight: .medium))
                 .buttonStyle(.plain)
                 .foregroundStyle(theme.textAccent)
                 .accessibilityLabel("Set \(label) to now")
@@ -513,7 +513,7 @@ private struct DatetimeField: View {
             }
         }
         .padding(10)
-        .cardBackground(cornerRadius: 8)
+        .cardBackground(cornerRadius: AturiTheme.controlRadius)
     }
 }
 
@@ -539,7 +539,7 @@ private struct TagsField: View {
             .textInputAutocapitalization(.never)
             .autocorrectionDisabled()
             .padding(10)
-            .cardBackground(cornerRadius: 8)
+            .cardBackground(cornerRadius: AturiTheme.controlRadius)
             .accessibilityLabel(label)
             .onChange(of: text) { _, next in
                 let parts = next.split(separator: ",")
@@ -579,7 +579,7 @@ private struct NumberField: View {
             .keyboardType(.numbersAndPunctuation)
             .autocorrectionDisabled()
             .padding(10)
-            .cardBackground(cornerRadius: 8)
+            .cardBackground(cornerRadius: AturiTheme.controlRadius)
             .accessibilityLabel(label)
             .onChange(of: text) { _, next in
                 let trimmed = next.trimmingCharacters(in: .whitespaces)
@@ -619,7 +619,7 @@ private struct JSONField: View {
                 .scrollContentBackground(.hidden)
                 .frame(minHeight: 120)
                 .padding(6)
-                .cardBackground(cornerRadius: 8)
+                .cardBackground(cornerRadius: AturiTheme.controlRadius)
                 .accessibilityLabel(label)
                 .onChange(of: text) { _, next in
                     let trimmed = next.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -635,7 +635,7 @@ private struct JSONField: View {
                 }
             if parseError {
                 Text("JSON error: the text does not parse.")
-                    .font(.caption)
+                    .font(AturiFont.caption)
                     .foregroundStyle(theme.danger)
             }
         }

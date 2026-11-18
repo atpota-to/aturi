@@ -1,0 +1,702 @@
+/* Copy menu, combined: record tabs on the card, Seen lately, header search.
+   Loaded after popup.css; everything here overrides or adds to the shipped
+   classes, on tokens only. */
+
+/* Visually hidden, read aloud: the ledger's live region. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ---------- Top bar: brand, auto-redirect, search glyph, settings ----------
+   The bar is the one region about the extension rather than this page, so
+   the global switch stays here. The two glyphs sit together at the end.
+   The sticky wrapper holds the bar, its search drawer and the scrim; the
+   inner box is the positioned one, so the drawer hangs from the bar's
+   bottom edge whether or not the wrapper is sticky. */
+.cm2-bar {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+}
+
+.cm2-bar-inner {
+  position: relative;
+}
+
+.cm2-bar .popup-topbar {
+  position: static;
+  z-index: auto;
+}
+
+.cm2-topbar {
+  padding-right: 6px;
+}
+
+.cm2-topbar-right {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.cm2-redirect {
+  height: 32px;
+  margin-right: 4px;
+  padding: 0 8px;
+  border-radius: var(--radius-control);
+  color: var(--text-secondary);
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.cm2-redirect:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+.cm2-redirect-icon {
+  flex: none;
+  color: var(--text-tertiary);
+}
+
+.cm2-redirect.on {
+  color: var(--text-primary);
+}
+
+.cm2-redirect.on .cm2-redirect-icon {
+  color: var(--text-accent);
+}
+
+.cm2-redirect-label {
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  line-height: 16px;
+  white-space: nowrap;
+}
+
+/* The search glyph, pressed while its drawer is open. */
+.popup-icon-btn.is-pressed,
+.popup-icon-btn.is-pressed:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+/* ---------- The search drawer ----------
+   Pressing the glyph pulls a drawer out from under the bar: the site's
+   36px go-to field at full width, Seen lately beneath it as suggestions,
+   and once something is typed, a "Go to … on aturi.to" row on top. It is
+   the one thing that floats, so the one thing with a shadow. It covers the
+   bar's hairline so bar and drawer read as one grown bar. Below it a scrim
+   dims the page: the drawer is a mode, and a click on the scrim leaves it. */
+.cm2-search {
+  position: absolute;
+  top: calc(100% - 1px);
+  left: 0;
+  right: 0;
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 6px 12px 8px;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-medium);
+  box-shadow: var(--shadow-pop);
+}
+
+.cm2-search[hidden] {
+  display: none;
+}
+
+.cm2-scrim {
+  position: fixed;
+  inset: 48px 0 0;
+  z-index: 3;
+  background: color-mix(in srgb, var(--bg-primary) 60%, transparent);
+}
+
+/* The field: the site's header go-to field. */
+.cm2-field {
+  display: flex;
+  align-items: center;
+  height: 36px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-control);
+  background: var(--bg-secondary);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.cm2-field:hover {
+  border-color: var(--text-faint);
+}
+
+.cm2-field:focus-within {
+  border-color: var(--accent-moss);
+  box-shadow: 0 0 0 3px var(--glow-strong);
+}
+
+[data-theme='dark'] .cm2-field:focus-within {
+  border-color: var(--text-accent);
+}
+
+.cm2-field > svg {
+  flex: none;
+  margin-left: 10px;
+  color: var(--text-tertiary);
+}
+
+.cm2-field-input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  padding: 0 8px;
+  border: 0;
+  background: transparent;
+  font-family: var(--font-sans);
+  font-size: var(--fs-md);
+  color: var(--text-primary);
+}
+
+.cm2-field-input:focus {
+  outline: none;
+}
+
+/* The close sits 4px inside the 8px field, so its corner is the nested
+   4px, as the letter marks and keycaps. */
+.cm2-field-close {
+  flex: none;
+  width: 28px;
+  height: 28px;
+  margin-right: 3px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: calc(var(--radius-control) - 4px);
+  color: var(--text-tertiary);
+  transition: background 0.12s ease, color 0.12s ease;
+}
+
+.cm2-field-close:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+/* A keycap: Enter on the go row, "/" at the end of the no-data field. */
+.cm2-kbd {
+  flex: none;
+  padding: 1px 5px;
+  border: 1px solid var(--border-medium);
+  border-radius: 4px;
+  font-family: var(--font-sans);
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 14px;
+  color: var(--text-tertiary);
+}
+
+/* The "/" hint sits in the field at rest and goes when the field has focus:
+   it says how to get here, and once here it has nothing to say. */
+.cm2-field > .cm2-kbd {
+  margin-right: 10px;
+  color: var(--text-faint);
+}
+
+.cm2-field:focus-within > .cm2-kbd {
+  display: none;
+}
+
+/* Suggestions under the field: one listbox the field owns. */
+.cm2-sugg,
+.cm2-sugg-group {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.cm2-sugg-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px 2px;
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  color: var(--text-tertiary);
+}
+
+.cm2-sugg-head > svg {
+  color: var(--text-faint);
+}
+
+/* A row is the shipped waypoint row's height, with the handle at the
+   row's size, so Seen lately reads the same here and in its sheet. */
+.cm2-sugg-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 40px;
+  padding: 0 8px;
+  border-radius: var(--radius-control);
+  color: var(--text-primary);
+  transition: background 0.12s ease;
+}
+
+.cm2-sugg-row:hover,
+.cm2-sugg-row[aria-selected='true'] {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+.cm2-sugg-handle {
+  flex: none;
+  font-weight: 600;
+}
+
+.cm2-sugg-host {
+  flex: 1;
+  min-width: 0;
+  font-size: max(11px, var(--fs-xs));
+  color: var(--text-tertiary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cm2-sugg-count {
+  flex: none;
+  font-size: var(--fs-xs);
+  color: var(--text-faint);
+  white-space: nowrap;
+}
+
+/* The go row: what Enter does, spelled out, with what was typed in mono. */
+.cm2-sugg-row.is-go {
+  margin-top: 2px;
+  color: var(--text-accent);
+  font-size: var(--fs-md);
+  font-weight: 600;
+}
+
+.cm2-sugg-row.is-go > svg {
+  flex: none;
+}
+
+.cm2-sugg-go {
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cm2-sugg-typed {
+  font-family: var(--font-mono);
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+/* ---------- The card and its folder tabs ----------
+   The card is the open folder; its records are the tabs on its top edge,
+   drawn with the shipped .popup-mode-tab numbers: the open tab takes the
+   card's white and runs into it, the filed ones sit a step below the page.
+   "This page" is pinned at the left; the references scroll beside it in a
+   run that fades at its ends; the +N tab at the right end, outside the
+   run, counts what the strip is not showing and opens the list of all. */
+.cm2-card-section {
+  gap: 0;
+}
+
+.cm2-tabs {
+  --popup-tab-open: var(--bg-secondary);
+  --popup-tab-filed: var(--surface-filed);
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: flex-end;
+  gap: 5px;
+  margin: 0 var(--radius-card) -1px;
+}
+
+.cm2-tablist {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: flex-end;
+  gap: 5px;
+}
+
+.cm2-tab {
+  flex: none;
+  scroll-snap-align: start;
+}
+
+/* A long handle (a did:web, a subdomain chain) ellipsises so no one tab
+   can take the whole strip. */
+.cm2-tab .popup-mode-tab-label {
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* The pinned tab carries a window glyph, so when it is filed it still
+   reads as the page itself and not one more handle. */
+.cm2-tab.is-pinned > svg {
+  flex: none;
+  margin-left: -2px;
+  color: var(--text-tertiary);
+}
+
+.cm2-tab.is-pinned.is-active > svg {
+  color: var(--text-accent);
+}
+
+/* The lone tab on the no-data page is a label, not a control: the open
+   folder is empty, so its glyph stays quiet. */
+.cm2-tabs.is-lone .cm2-tab.is-active > svg {
+  color: var(--text-tertiary);
+}
+
+/* The run: scrolls sideways, rests on whole tabs, and keeps the tab it
+   scrolls to clear of the 40px fades at either end. */
+.cm2-tabs-scroll {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: flex-end;
+  gap: 5px;
+  /* 1px of room each side for the wedges and the hover lift; the bottom
+     pixel is where the wedges' bottom edge lands, as on the bar. */
+  padding: 1px 1px 1px;
+  margin-bottom: -1px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  scroll-snap-type: x proximity;
+  scroll-padding-inline: 40px;
+}
+
+.cm2-tabs-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+/* The fades. At rest the run dissolves into its end; scrolled, its start
+   is fully clear for the width of the gap (so no fragment butts against
+   "This page") and dissolves over the next 34px; at the end of the run
+   only the start fades. The script sets the classes. */
+.cm2-tabs-scroll.is-overflowing {
+  -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 40px), transparent);
+  mask-image: linear-gradient(to right, #000 calc(100% - 40px), transparent);
+}
+
+.cm2-tabs-scroll.is-overflowing.is-scrolled {
+  -webkit-mask-image: linear-gradient(to right, transparent 6px, #000 40px, #000 calc(100% - 40px), transparent);
+  mask-image: linear-gradient(to right, transparent 6px, #000 40px, #000 calc(100% - 40px), transparent);
+}
+
+.cm2-tabs-scroll.is-overflowing.is-scrolled.is-at-end {
+  -webkit-mask-image: linear-gradient(to right, transparent 6px, #000 40px);
+  mask-image: linear-gradient(to right, transparent 6px, #000 40px);
+}
+
+/* The +N tab: filed tab furniture, a count of the references not fully in
+   view, and a disclosure for the list below the card. Open, it comes
+   forward the hover step, since it is not the card's sheet. */
+.cm2-tab-more {
+  padding-inline: 9px;
+  font-variant-numeric: tabular-nums;
+}
+
+.cm2-tab-more.is-expanded,
+.cm2-tab-more.is-expanded:hover {
+  padding-top: 6px;
+  background: color-mix(in srgb, var(--popup-tab-filed) 50%, var(--popup-tab-open));
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+/* The list of every referenced record, as a sheet under the card. */
+.cm2-refs[hidden] {
+  display: none;
+}
+
+.cm2-ref .popup-waypoint-main {
+  padding-right: 12px;
+}
+
+.cm2-ref .popup-waypoint-main[aria-current] .popup-waypoint-name {
+  color: var(--text-accent);
+}
+
+.cm2-ref-current {
+  flex: none;
+  display: inline-flex;
+  color: var(--text-accent);
+}
+
+/* ---------- The card ---------- */
+.cm2-page {
+  gap: 10px;
+}
+
+.cm2-page-preview {
+  margin: -2px 0 0;
+  font-size: var(--fs-sm);
+  line-height: 1.45;
+  color: var(--text-tertiary);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+}
+
+.cm2-actions {
+  position: relative;
+}
+
+.cm2-copy-btn > svg:last-child,
+.cm2-open-btn > svg:last-child {
+  flex: none;
+  color: var(--text-tertiary);
+}
+
+.cm2-copy-btn > svg:last-child {
+  margin-left: -2px;
+}
+
+.cm2-copy-btn.is-open {
+  background: var(--bg-tertiary);
+  border-color: var(--border-strong);
+}
+
+/* For the length of a copy the button itself says so (the shipped
+   is-copied tint); the chevron stays, the ledger stays open. */
+.cm2-copy-btn.is-open.is-copied {
+  background: var(--accent-soft);
+  border-color: var(--accent-soft-border);
+  color: var(--accent-soft-fg);
+}
+
+.cm2-copy-btn.is-copied > svg:last-child {
+  color: var(--accent-soft-fg);
+}
+
+/* ---------- The Copy ledger ----------
+   Copy ▾ unfolds the record's identifiers inside the card, below the
+   verbs: a ledger of six rows, label then value in mono, each row a
+   button that copies. It is a disclosure, not a menu: it stays open after
+   a pick and across tab switches, Tab moves between rows, Esc folds it. It
+   pushes the drawers down instead of covering them. Long values wrap at a
+   slash or a dot (the <wbr>s in the markup); a CID wraps where it must. */
+.cm2-ledger {
+  display: flex;
+  flex-direction: column;
+  margin: 2px -12px -12px;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--border-subtle);
+  border-radius: 0 0 calc(var(--radius-card) - 1px) calc(var(--radius-card) - 1px);
+  overflow: hidden;
+}
+
+.cm2-ledger[hidden] {
+  display: none;
+}
+
+.cm2-ledger > li {
+  display: block;
+}
+
+.cm2-ledger > li + li {
+  border-top: 1px solid var(--border-subtle);
+}
+
+.cm2-ledger-row {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  width: 100%;
+  min-height: 34px;
+  padding: 8px 10px 8px 12px;
+  text-align: left;
+  transition: background 0.12s ease;
+}
+
+.cm2-ledger-row:hover,
+.cm2-ledger-row:focus-visible {
+  background: var(--surface-subtle);
+}
+
+.cm2-ledger-row:focus-visible {
+  outline-offset: -2px;
+}
+
+.cm2-ledger-key {
+  flex: none;
+  width: 50px;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  line-height: 18px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.cm2-ledger-val {
+  flex: 1;
+  min-width: 0;
+  font-family: var(--font-mono);
+  font-size: var(--fs-sm);
+  line-height: 18px;
+  color: var(--text-secondary);
+  overflow-wrap: anywhere;
+}
+
+.cm2-rkey {
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.cm2-ledger-row:hover .cm2-ledger-key,
+.cm2-ledger-row:hover .cm2-ledger-val,
+.cm2-ledger-row:focus-visible .cm2-ledger-key,
+.cm2-ledger-row:focus-visible .cm2-ledger-val {
+  color: var(--text-primary);
+}
+
+/* Copied: the row keeps its name and takes the accent-soft family for a
+   moment, with a tick at the end of its last line. The tick is out of
+   flow: the AT URI's DID segment fills its line to within 2px, so anything
+   in flow at the row's end would re-wrap the value for the length of the
+   state. Nothing moves, so a second copy is one more click. */
+.cm2-ledger-row.is-copied,
+.cm2-ledger-row.is-copied:hover {
+  background: var(--accent-soft);
+}
+
+.cm2-ledger-row.is-copied .cm2-ledger-key,
+.cm2-ledger-row.is-copied .cm2-ledger-val,
+.cm2-ledger-row.is-copied .cm2-rkey {
+  color: var(--accent-soft-fg);
+}
+
+.cm2-ledger-tick {
+  position: absolute;
+  right: 10px;
+  bottom: 8px;
+  height: 18px;
+  display: inline-flex;
+  align-items: center;
+  color: var(--accent-soft-fg);
+}
+
+/* ---------- Per-page band on the card (auto-redirect on) ---------- */
+.cm2-page-band {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 34px;
+  margin: 0 -12px -12px;
+  padding: 0 6px 0 12px;
+  border-top: 1px solid var(--border-subtle);
+  border-radius: 0 0 calc(var(--radius-card) - 1px) calc(var(--radius-card) - 1px);
+  background: var(--surface-subtle);
+  font-size: var(--fs-sm);
+  color: var(--text-secondary);
+}
+
+.cm2-ledger:not([hidden]) + .sr-only + .cm2-page-band {
+  margin-top: 12px;
+}
+
+.cm2-page-band > svg {
+  flex: none;
+  color: var(--text-accent);
+}
+
+.cm2-page-band-text {
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cm2-page-band-action {
+  flex: none;
+  height: 28px;
+  padding: 0 8px;
+  border-radius: var(--radius-control);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--text-accent);
+}
+
+.cm2-page-band-action:hover {
+  background: var(--bg-tertiary);
+}
+
+.cm2-page-band.is-paused {
+  background: var(--warn-bg);
+  border-top-color: var(--warn-border);
+  color: var(--warn-fg);
+}
+
+.cm2-page-band.is-paused > svg {
+  color: var(--warn-icon);
+}
+
+.cm2-page-band.is-paused .cm2-page-band-text {
+  font-weight: 600;
+}
+
+.cm2-page-band.is-paused .cm2-page-band-action {
+  color: var(--warn-fg);
+}
+
+/* ---------- No-data page ---------- */
+.cm2-nodata {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: var(--fs-md);
+  line-height: 20px;
+  color: var(--text-secondary);
+}
+
+.cm2-nodata > svg {
+  flex: none;
+  color: var(--text-accent);
+}
+
+.cm2-lookup {
+  margin: 0;
+}
+
+/* Seen lately: the repos the extension has met on pages lately, as rows
+   in a sheet of their own; the count sits at the end of the row, inside
+   the link, so the whole row opens the repo. */
+.cm2-seen .popup-waypoint-main {
+  padding-right: 10px;
+  text-decoration: none;
+}
+
+/* Pulled 4px closer than the row's gap: the longest PDS host in the
+   fixture fills its column to the pixel at the medium preset. */
+.cm2-repo-count {
+  flex: none;
+  margin-left: -4px;
+  font-size: var(--fs-xs);
+  color: var(--text-faint);
+  white-space: nowrap;
+}

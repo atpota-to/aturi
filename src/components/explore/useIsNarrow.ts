@@ -20,15 +20,26 @@ const NARROW_QUERY = '(max-width: 560px)';
  * exists once selection mode is on and that can't happen before hydration.
  */
 export function useIsNarrow(): boolean {
-  const subscribe = useCallback((onChange: () => void) => {
-    const mql = window.matchMedia(NARROW_QUERY);
-    mql.addEventListener('change', onChange);
-    return () => mql.removeEventListener('change', onChange);
-  }, []);
+  return useMediaQuery(NARROW_QUERY);
+}
+
+/**
+ * Whether `query` matches, subscribed the same way as {@link useIsNarrow}.
+ * Also `false` on the server.
+ */
+export function useMediaQuery(query: string): boolean {
+  const subscribe = useCallback(
+    (onChange: () => void) => {
+      const mql = window.matchMedia(query);
+      mql.addEventListener('change', onChange);
+      return () => mql.removeEventListener('change', onChange);
+    },
+    [query],
+  );
 
   return useSyncExternalStore(
     subscribe,
-    () => window.matchMedia(NARROW_QUERY).matches,
+    () => window.matchMedia(query).matches,
     () => false,
   );
 }

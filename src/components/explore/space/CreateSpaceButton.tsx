@@ -7,7 +7,7 @@ import { isValidNsid, isValidRecordKey, parseSpaceAtUri } from '@/utils/atproto/
 import { encodeRepo, spaceExplorePath } from '@/utils/atproto/urls';
 import { createSimpleSpace, type SpaceTransport } from '@/utils/atproto/spaceClient';
 import SpaceConfigFields from './SpaceConfigFields';
-import SpaceDialog, { DialogButton, DialogField, dialogNoteStyle } from './SpaceDialog';
+import SpaceDialog, { DialogButton, DialogField } from './SpaceDialog';
 import {
   appAccessDraftToInput,
   DEFAULT_APP_ACCESS_DRAFT,
@@ -105,21 +105,9 @@ export default function CreateSpaceButton({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        style={{
-          alignSelf: 'flex-start',
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: '0.4rem',
-          padding: '0.4rem 0.75rem',
-          background: 'var(--accent-moss)',
-          color: 'var(--text-on-accent)',
-          border: '1px solid var(--accent-moss)',
-          fontFamily: 'var(--font-serif)',
-          fontSize: '0.8125rem',
-          cursor: 'pointer',
-        }}
+        className="fx-btn fx-btn-sm fx-sp-primary"
       >
-        <Plus size={12} /> New space
+        <Plus size={13} /> New space
       </button>
 
       <SpaceDialog
@@ -152,12 +140,11 @@ export default function CreateSpaceButton({
         >
           <input
             id={typeId}
-            className="explore-input"
+            className="explore-input fx-sp-mono"
             aria-describedby={typeHintId}
             aria-invalid={Boolean(trimmedType) && !typeValid ? true : undefined}
             disabled={busy}
             placeholder="app.example.group"
-            style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8125rem' }}
             value={type}
             onChange={(e) => setType(e.target.value)}
           />
@@ -175,12 +162,11 @@ export default function CreateSpaceButton({
         >
           <input
             id={skeyId}
-            className="explore-input"
+            className="explore-input fx-sp-mono"
             aria-describedby={skeyHintId}
             aria-invalid={!skeyValid ? true : undefined}
             disabled={busy}
             placeholder="Generated TID"
-            style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8125rem' }}
             value={skey}
             onChange={(e) => setSkey(e.target.value)}
           />
@@ -194,7 +180,7 @@ export default function CreateSpaceButton({
           disabled={busy}
         />
 
-        <p style={dialogNoteStyle}>
+        <p className="fx-sp-dialog-note">
           Both rules can be changed afterwards from the space’s own page.
         </p>
       </SpaceDialog>

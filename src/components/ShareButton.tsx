@@ -23,21 +23,10 @@ export default function ShareButton({ url, label = 'Copy link' }: ShareButtonPro
 
   return (
     <button
+      type="button"
       onClick={handleCopy}
       className="share-button"
       aria-label={label}
-      style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: '0.5rem',
-        padding: '0.75rem 1.25rem',
-        background: 'var(--bg-tertiary)',
-        border: '1px solid var(--border-medium)',
-        color: 'var(--text-primary)',
-        fontSize: '0.875rem',
-        transition: 'all 0.3s ease',
-        cursor: 'pointer',
-      }}
     >
       {copied ? (
         <>
@@ -53,9 +42,3 @@ export default function ShareButton({ url, label = 'Copy link' }: ShareButtonPro
     </button>
   );
 }
-
-
-
-
-
-

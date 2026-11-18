@@ -36,7 +36,6 @@ export function EmbedImageGrid({
   marginBottom,
   maxHeight,
   background,
-  boxShadow,
   limit,
   stopPropagation,
 }: {
@@ -46,7 +45,11 @@ export function EmbedImageGrid({
   marginBottom?: string;
   maxHeight: string;
   background: string;
-  boxShadow: string;
+  /**
+   * Accepted for existing callers but no longer drawn: Field Notes images sit
+   * flat, framed by a hairline border and rounded corners instead.
+   */
+  boxShadow?: string;
   /** Cap the number of images shown (e.g. the parent preview shows 2). */
   limit?: number;
   /** Stop click propagation so opening an image doesn't trigger card nav. */
@@ -94,7 +97,7 @@ export function EmbedImageGrid({
                   background,
                   display: 'block',
                   border: '1px solid var(--border-medium)',
-                  boxShadow,
+                  borderRadius: '10px',
                 }}
               />
             </a>
@@ -158,7 +161,7 @@ export function ExternalEmbedCard({
         color: 'inherit',
         overflow: 'hidden',
         ...(full ? { transition: 'border-color 0.2s ease' } : { fontSize: '0.75rem' }),
-        boxShadow: full ? '0 4px 12px rgba(0, 0, 0, 0.3)' : '0 2px 8px rgba(0, 0, 0, 0.2)',
+        borderRadius: full ? '10px' : '8px',
       }}
     >
       {external.thumb && (
@@ -228,7 +231,7 @@ export function VideoEmbed({
         background: full ? 'var(--bg-tertiary)' : 'var(--bg-secondary)',
         overflow: 'hidden',
         border: '1px solid var(--border-medium)',
-        boxShadow: full ? '0 4px 12px rgba(0, 0, 0, 0.4)' : '0 2px 8px rgba(0, 0, 0, 0.3)',
+        borderRadius: full ? '10px' : '8px',
       }}
     >
       <video

@@ -5,10 +5,7 @@ export default function FeedbackLayout({ children }: { children: ReactNode }) {
   return (
     <>
       <Header compact />
-      <div
-        className="container-narrow"
-        style={{ padding: '0 2rem 4rem', minHeight: '80dvh' }}
-      >
+      <div className="fn-c-wrap" data-width="board">
         {children}
       </div>
     </>

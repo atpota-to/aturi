@@ -1,0 +1,637 @@
+/* "Drawers": the popup as a card-catalog stack. Loaded after popup.css;
+   reuses its top bar, icon button, waypoint rows and switch, and adds the
+   drawer (tab + box with a face and a body), the identifier ledger, the
+   guide strips that divide a drawer, and the lookup field. All on tokens. */
+
+/* ---------- Shell ---------- */
+
+.dw-topbar .popup-topbar-actions {
+  margin-left: auto;
+}
+
+.dw-stack {
+  gap: 10px;
+  padding: 12px 12px 16px;
+}
+
+/* ---------- Drawer: tab line, tab, box ---------- */
+
+.dw-drawer {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.dw-tabline {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  min-width: 0;
+}
+
+/* The drawer's tab: popup.css's sheet label, as a button with a chevron.
+   18px line, 3px pad, 1px border = 26px; the -1px margin lands its bottom
+   edge on the box's top border, which its own bottom edge (box colour)
+   hides, so tab and box read as one piece of card. */
+.dw-tab {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  width: fit-content;
+  max-width: calc(100% - 2 * var(--radius-card));
+  margin: 0 0 -1px var(--radius-card);
+  padding: 3px 10px 3px 8px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-medium);
+  border-bottom-color: var(--bg-secondary);
+  border-radius: var(--radius-control) var(--radius-control) 0 0;
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  line-height: 18px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  text-align: left;
+  transition: color 0.12s ease;
+}
+
+.dw-tab:hover {
+  color: var(--text-primary);
+}
+
+.dw-tab:focus-visible {
+  outline-offset: -3px;
+}
+
+.dw-tab-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dw-tab-chev {
+  flex: none;
+  color: var(--text-tertiary);
+  transition: transform 0.15s ease, color 0.12s ease;
+}
+
+.dw-drawer.is-open .dw-tab-chev {
+  transform: rotate(90deg);
+}
+
+.dw-tab:hover .dw-tab-chev {
+  color: var(--text-secondary);
+}
+
+.dw-tab-count {
+  font-weight: 600;
+  color: var(--text-tertiary);
+}
+
+/* A note or quiet link on the tab line's right, baseline with the tab. */
+.dw-tabline-note {
+  margin-left: auto;
+  min-width: 0;
+  padding: 0 2px 5px 0;
+  font-size: var(--fs-xs);
+  line-height: 16px;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dw-tabline-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: 600;
+  color: var(--text-tertiary);
+  border-radius: 4px;
+  transition: color 0.12s ease;
+}
+
+.dw-tabline-link:hover {
+  color: var(--text-accent);
+}
+
+/* The drawer itself: one white box, one hairline, the card radius. The
+   face is always showing; the body pulls out under it. */
+.dw-box {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-card);
+  overflow: hidden;
+}
+
+.dw-face {
+  min-width: 0;
+}
+
+.dw-body {
+  min-width: 0;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.dw-body-only {
+  border-top: 0;
+}
+
+.dw-drawer:not(.is-open) .dw-body {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dw-tab-chev {
+    transition: none;
+  }
+}
+
+/* ---------- This page: face, ledger, hand-off band ---------- */
+
+.dw-page-face {
+  padding: 9px 12px;
+}
+
+.dw-page-title {
+  font-size: var(--fs-base);
+  line-height: 20px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dw-page-title b {
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.dw-page-src {
+  font-size: var(--fs-xs);
+  line-height: 16px;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* The ledger: one identifier per line, label, value, copy glyph. The row
+   is the button; the glyph is its tell. Long identifiers (the AT URI, the
+   universal link) stack the label over the value and let it wrap. */
+.dw-ledger {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.dw-ledger li + li {
+  border-top: 1px solid var(--border-subtle);
+}
+
+.dw-id {
+  display: grid;
+  grid-template-columns: 52px minmax(0, 1fr) 24px;
+  column-gap: 6px;
+  align-items: center;
+  width: 100%;
+  padding: 4px 8px 4px 12px;
+  text-align: left;
+  color: inherit;
+  transition: background 0.12s ease;
+}
+
+.dw-id:hover {
+  background: var(--surface-subtle);
+}
+
+.dw-id:focus-visible {
+  outline-offset: -2px;
+}
+
+.dw-id-label {
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  line-height: 18px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.dw-id-value {
+  min-width: 0;
+  font-family: var(--font-mono);
+  font-size: var(--fs-sm);
+  line-height: 18px;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dw-id-value b {
+  font-weight: 500;
+}
+
+.dw-id-glyph {
+  width: 24px;
+  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  color: var(--text-tertiary);
+  transition: color 0.12s ease;
+}
+
+.dw-id:hover .dw-id-glyph {
+  color: var(--text-accent);
+}
+
+.dw-id.is-long {
+  grid-template-columns: minmax(0, 1fr) 24px;
+  grid-template-rows: 18px auto;
+}
+
+.dw-id.is-long .dw-id-label {
+  grid-column: 1;
+  grid-row: 1;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.dw-id.is-long .dw-id-value {
+  grid-column: 1;
+  grid-row: 2;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  color: var(--text-secondary);
+}
+
+.dw-id.is-long .dw-id-value b {
+  color: var(--text-primary);
+}
+
+.dw-id.is-long .dw-id-glyph {
+  grid-column: 2;
+  grid-row: 1 / 3;
+}
+
+/* Copied: the row takes the soft accent for a moment, the label says so
+   and the glyph becomes a tick. Nothing moves. */
+.dw-id.is-copied,
+.dw-id.is-copied:hover {
+  background: var(--accent-soft);
+}
+
+.dw-id.is-copied .dw-id-label,
+.dw-id.is-copied .dw-id-glyph {
+  color: var(--accent-soft-fg);
+}
+
+.dw-kbd {
+  margin-left: auto;
+  padding: 0 5px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 4px;
+  background: var(--bg-primary);
+  font-family: var(--font-sans);
+  font-size: 10px;
+  line-height: 16px;
+  font-weight: 600;
+  color: var(--text-tertiary);
+}
+
+/* The hand-off to the site: a band along the drawer's bottom edge. */
+.dw-band {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 38px;
+  padding: 0 10px 0 12px;
+  border-top: 1px solid var(--border-subtle);
+  background: var(--surface-subtle);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--text-accent);
+  transition: background 0.12s ease;
+}
+
+.dw-band:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-accent);
+}
+
+.dw-band:focus-visible {
+  outline-offset: -2px;
+}
+
+.dw-band > svg:first-child {
+  flex: none;
+}
+
+.dw-band-note {
+  min-width: 0;
+  font-weight: 400;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dw-band-ext {
+  margin-left: auto;
+  flex: none;
+  color: var(--text-tertiary);
+}
+
+/* ---------- Guide strips inside a drawer ---------- */
+
+/* The guide cards that divide a catalog drawer: a strip of the page's
+   paper between runs of rows, naming the group. The first strip in a
+   drawer stays card-white: the tab stands on it, and a tab on paper left
+   a one-pixel lip. */
+.dw-guide {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 12px;
+  background: var(--bg-primary);
+  border-bottom: 1px solid var(--border-subtle);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  line-height: 16px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.popup-waypoint + .dw-guide {
+  border-top: 1px solid var(--border-subtle);
+}
+
+.dw-face > .dw-guide:first-child,
+.dw-body-only > .dw-guide:first-child {
+  background: var(--bg-secondary);
+}
+
+.dw-guide.is-lead {
+  color: var(--text-accent);
+}
+
+.dw-guide-count {
+  margin-left: auto;
+  font-weight: 500;
+  color: var(--text-tertiary);
+}
+
+/* ---------- Also on this page ---------- */
+
+.dw-refs-face {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 40px;
+  padding: 0 12px;
+  text-align: left;
+  font-size: var(--fs-sm);
+  line-height: 18px;
+  color: var(--text-secondary);
+  transition: background 0.12s ease;
+}
+
+.dw-refs-face:hover {
+  background: var(--surface-subtle);
+}
+
+.dw-refs-face:focus-visible {
+  outline-offset: -2px;
+}
+
+.dw-refs-face-text {
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dw-refs-face-text b {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+/* A referenced record is a row like a waypoint's: handle, a line of the
+   post, copy on hover; the row opens it on aturi.to. */
+.dw-ref .popup-waypoint-main {
+  text-decoration: none;
+}
+
+/* ---------- Auto-redirect ---------- */
+
+.dw-rd-face {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 0 12px;
+}
+
+.dw-rd-icon {
+  flex: none;
+  color: var(--text-tertiary);
+}
+
+.dw-rd-face.is-on .dw-rd-icon {
+  color: var(--text-accent);
+}
+
+.dw-rd-text {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--fs-sm);
+  line-height: 18px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dw-rd-text b {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+/* Paused on this tab: the face, not the popup, takes the amber. */
+.dw-rd-face.is-paused {
+  background: var(--warn-bg);
+}
+
+.dw-rd-face.is-paused .dw-rd-icon {
+  color: var(--warn-icon);
+}
+
+.dw-rd-face.is-paused .dw-rd-text {
+  color: var(--warn-fg-muted);
+}
+
+.dw-rd-face.is-paused .dw-rd-text b {
+  color: var(--warn-fg);
+}
+
+.dw-rd-copy {
+  margin: 0;
+  padding: 10px 12px 0;
+  font-size: var(--fs-sm);
+  line-height: 18px;
+  color: var(--text-secondary);
+}
+
+.dw-rd-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px 12px;
+}
+
+.dw-rd-hint {
+  font-size: var(--fs-xs);
+  color: var(--text-tertiary);
+}
+
+/* A plain 32px control, as the page card's buttons were. */
+.dw-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 10px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-control);
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font-size: var(--fs-md);
+  font-weight: 600;
+  white-space: nowrap;
+  transition: background 0.12s ease, border-color 0.12s ease;
+}
+
+.dw-btn:hover:not(:disabled) {
+  background: var(--surface-subtle);
+  border-color: var(--text-faint);
+}
+
+.dw-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* ---------- No-data page: lookup ---------- */
+
+.dw-lookup {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px 12px;
+}
+
+.dw-lookup-label {
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  line-height: 18px;
+  color: var(--text-secondary);
+}
+
+.dw-lookup-form {
+  display: flex;
+  gap: 8px;
+}
+
+.dw-lookup-field {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 36px;
+  padding: 0 10px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-control);
+  background: var(--bg-secondary);
+  color: var(--text-tertiary);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.dw-lookup-field:hover {
+  border-color: var(--text-faint);
+}
+
+.dw-lookup-field:focus-within {
+  border-color: var(--accent-moss);
+  box-shadow: 0 0 0 3px var(--glow-strong);
+}
+
+[data-theme='dark'] .dw-lookup-field:focus-within {
+  border-color: var(--text-accent);
+}
+
+.dw-lookup-field > svg {
+  flex: none;
+}
+
+.dw-lookup-input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  padding: 0;
+  background: none;
+  font: inherit;
+  font-size: var(--fs-md);
+  color: var(--text-primary);
+  outline: none;
+}
+
+.dw-lookup-go {
+  flex: none;
+  height: 36px;
+  min-height: 36px;
+  padding: 0 14px;
+}
+
+.dw-recent {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  font-size: var(--fs-xs);
+  color: var(--text-tertiary);
+}
+
+.dw-recent-label {
+  margin-right: 2px;
+  font-weight: 600;
+}
+
+.dw-chip {
+  display: inline-flex;
+  align-items: center;
+  height: 24px;
+  padding: 0 8px;
+  border: 1px solid var(--border-medium);
+  border-radius: 6px;
+  background: var(--bg-secondary);
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+  color: var(--text-secondary);
+  transition: border-color 0.12s ease, color 0.12s ease;
+}
+
+.dw-chip:hover {
+  border-color: var(--border-strong);
+  color: var(--text-primary);
+}

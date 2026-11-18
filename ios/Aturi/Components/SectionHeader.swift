@@ -19,7 +19,7 @@ struct SectionHeader: View {
                 .foregroundStyle(theme.textTertiary)
             if let detail, !detail.isEmpty {
                 Text(detail)
-                    .font(.footnote)
+                    .font(AturiFont.footnote)
                     .foregroundStyle(theme.textSecondary)
             }
         }

@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { ArrowUpRight, Boxes, Users } from 'lucide-react';
 import { Sparkline } from './primitives';
-import { fetchCollectionStats, fetchTimeseries } from '@/utils/ufos/client';
+import { fetchCollectionStatsResult, fetchTimeseries } from '@/utils/ufos/client';
 import { isoAgo, type JustCount } from '@/utils/ufos/config';
 import { formatCount } from '@/utils/ufos/format';
 import { lexiconPathFor } from '@/utils/ufos/nsid';
@@ -33,16 +33,19 @@ export default function LexiconUsageCard({ collection }: { collection: string })
     const sinceIso = isoAgo(WINDOW_HOURS);
     (async () => {
       const [statsRes, tsRes] = await Promise.allSettled([
-        fetchCollectionStats({ collections: [collection], since: sinceIso }),
+        // The failure-aware call: the plain one answers an outage with an
+        // empty map, which read here as "0 creates · 0 repos" for even the
+        // busiest lexicon in the network.
+        fetchCollectionStatsResult({ collections: [collection], since: sinceIso }),
         fetchTimeseries({ collection, since: sinceIso, step: SERIES_STEP }),
       ]);
       if (cancelled) return;
-      if (statsRes.status === 'fulfilled' && statsRes.value.has(collection)) {
-        setStats(statsRes.value.get(collection)!);
-      } else if (statsRes.status === 'fulfilled') {
-        setStats({ creates: 0, updates: 0, deletes: 0, dids_estimate: 0 });
-      } else {
+      if (statsRes.status === 'rejected' || statsRes.value.failed) {
         setFailed(true);
+      } else if (statsRes.value.stats.has(collection)) {
+        setStats(statsRes.value.stats.get(collection)!);
+      } else {
+        setStats({ creates: 0, updates: 0, deletes: 0, dids_estimate: 0 });
       }
       if (tsRes.status === 'fulfilled') {
         setSeries(tsRes.value.series.get(collection)?.map((b) => b.creates) ?? []);
@@ -67,21 +70,31 @@ export default function LexiconUsageCard({ collection }: { collection: string })
         flexWrap: 'wrap',
         alignItems: 'center',
         gap: '1.25rem',
-        padding: '0.875rem 1rem',
+        padding: '14px 16px',
         border: '1px solid var(--border-medium)',
+        borderRadius: 'var(--radius-card)',
         background: 'var(--bg-secondary)',
         textDecoration: 'none',
         color: 'var(--text-primary)',
         transition: 'background 0.2s ease',
       }}
       onMouseEnter={(e) => {
-        e.currentTarget.style.background = 'var(--bg-tertiary)';
+        e.currentTarget.style.background = 'var(--surface-subtle)';
       }}
       onMouseLeave={(e) => {
         e.currentTarget.style.background = 'var(--bg-secondary)';
       }}
     >
-      <span className="explore-small-caps" style={{ flexBasis: '100%' }}>
+      <span
+        style={{
+          flexBasis: '100%',
+          fontSize: '12px',
+          fontWeight: 700,
+          letterSpacing: '0.06em',
+          textTransform: 'uppercase',
+          color: 'var(--text-accent)',
+        }}
+      >
         Lexicon usage · across the atmosphere · 7d
       </span>
 
@@ -110,7 +123,7 @@ export default function LexiconUsageCard({ collection }: { collection: string })
           marginLeft: series.some((v) => v > 0) ? undefined : 'auto',
           fontSize: '0.8125rem',
           color: 'var(--text-accent)',
-          fontFamily: 'var(--font-serif)',
+          fontWeight: 600,
           whiteSpace: 'nowrap',
         }}
       >
@@ -135,7 +148,7 @@ function Stat({
       title={label}
     >
       <span style={{ color: 'var(--text-tertiary)', display: 'inline-flex' }}>{icon}</span>
-      <span style={{ fontVariantNumeric: 'tabular-nums', color: 'var(--text-primary)' }}>
+      <span style={{ fontVariantNumeric: 'tabular-nums', color: 'var(--text-primary)', fontWeight: 600 }}>
         {value ?? '—'}
       </span>
       <span style={{ color: 'var(--text-tertiary)', fontSize: '0.8125rem' }}>{label}</span>

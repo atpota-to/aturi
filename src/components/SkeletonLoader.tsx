@@ -28,6 +28,7 @@ export function Skeleton({
         width,
         height,
         background: 'var(--bg-tertiary)',
+        borderRadius: 6,
         position: 'relative',
         overflow: 'hidden',
         ...style,
@@ -49,6 +50,7 @@ export function SkeletonCircle({
       height={size}
       style={{
         flexShrink: 0,
+        borderRadius: '50%',
         ...style,
       }}
     />

@@ -58,7 +58,10 @@ struct AturiTheme: Equatable {
     let isDark: Bool
     let palette: Palette
 
-    init(scheme: AturiColorScheme = .default, isDark: Bool = true) {
+    /// Light by default, as the web and the extension now are; the root
+    /// always passes the resolved appearance, so this only shows in
+    /// previews and outside `themedRoot()`.
+    init(scheme: AturiColorScheme = .default, isDark: Bool = false) {
         self.scheme = scheme
         self.isDark = isDark
         self.palette = scheme.palette(dark: isDark)
@@ -76,10 +79,33 @@ struct AturiTheme: Equatable {
     var textSecondary: Color { Color(hex: palette.textSecondary) }
     var textTertiary: Color { Color(hex: palette.textTertiary) }
     var textAccent: Color { Color(hex: palette.textAccent) }
-    /// Drawn with alpha over whatever is beneath it, like the CSS token.
+    /// `--text-faint`: the quietest text, below tertiary.
+    var textFaint: Color { Color(hex: palette.textFaint) }
+    /// The border tokens. Drawn with alpha over whatever is beneath them
+    /// where the scheme spells them as rgba, opaque for moss.
+    /// `borderSubtle` divides rows inside a card.
     var borderSubtle: Color { Color(rgba: palette.borderSubtle) }
+    /// `--border-medium`: the 1px hairline around cards and controls.
+    var borderMedium: Color { Color(rgba: palette.borderMedium) }
+    /// `--border-strong`: pressed outlines.
+    var borderStrong: Color { Color(rgba: palette.borderStrong) }
     var danger: Color { Color(hex: palette.danger) }
     var textOnAccent: Color { Color(hex: palette.textOnAccent) }
+    /// `--surface-subtle`: inset metadata strips and table heads.
+    var surfaceSubtle: Color { Color(hex: palette.surfaceSubtle) }
+    /// `--accent-soft`: the pale pill behind a selected row, pill or chip.
+    var accentSoft: Color { Color(hex: palette.accentSoft) }
+    /// `--accent-soft-fg`: text and icons on `accentSoft`.
+    var accentSoftFg: Color { Color(hex: palette.accentSoftFg) }
+    /// `--accent-soft-border`: the outline of an `accentSoft` pill.
+    var accentSoftBorder: Color { Color(hex: palette.accentSoftBorder) }
+    /// `--status-live`: the "live" dot.
+    var statusLive: Color { Color(hex: palette.statusLive) }
+
+    /// Field Notes radii: cards 12pt, controls (buttons, fields, rows)
+    /// 8pt; pills are capsules.
+    static let cardRadius: CGFloat = 12
+    static let controlRadius: CGFloat = 8
 
     var colorScheme: SwiftUI.ColorScheme { isDark ? .dark : .light }
 
@@ -183,6 +209,7 @@ struct ThemedRoot: ViewModifier {
         let theme = theme
         return content
             .environment(\.aturiTheme, theme)
+            .font(AturiFont.body)
             .tint(theme.accent)
             .preferredColorScheme(appearance.preferredColorScheme)
             .background(theme.bgPrimary.ignoresSafeArea())

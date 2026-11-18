@@ -1,0 +1,27 @@
+{
+  "note": "What the Waypoints tab lists on the post page (https://bsky.app/profile/dame.is/post/3mypi5zkyps2i), in order, after the extension's grouping and recommendation logic. 'absent' means the target repo has no records for that app, so the row is dimmed with 'No records found on this repo'. Hosts are what each row's description names ('View post on <host>'). The no-data page lists the same groups as home-page shortcuts (every app with a home page), four to a row today, three in the recommended mockup.",
+  "post": {
+    "recommended": { "label": "Recommended for Posts", "items": [["anisota", "Anisota", "anisota.net"], ["blacksky", "Blacksky", "blacksky.community"]] },
+    "groups": [
+      { "label": "Bluesky Clients", "items": [["bluepy", "Bluepy", "bluepy.social"], ["reddwarf", "Red Dwarf", "reddwarf.app"], ["impro", "Impro", "impro.social"], ["lea", "Lea", "lea.ac"]] },
+      { "label": "Bluesky Forks", "items": [["witchsky", "Witchsky", "witchsky.app"], ["mu", "Mu", "mu.social"], ["deer", "Deer", "deer.social"], ["northsky", "Northsky", "northsky.app"]] },
+      { "label": "Publications", "items": [["leaflet", "Leaflet", "leaflet.pub"], ["anisota-reader", "Anisota Reader", "anisota.net"], ["offprint", "Offprint", "offprint.app"], ["pckt", "pckt", "pckt.blog"], ["standard-reader", "Standard Reader", "standard-reader.app"]] },
+      { "label": "Atmosphere", "items": [["aturi", "Aturi", "aturi.to"], ["pinkleap", "Pinkleap", "pinkleap.app"], ["margin", "Margin", "margin.at"], ["semble", "Semble", "semble.so", "absent"], ["streamplace", "Streamplace", "stream.place"], ["grain", "Grain", "grain.social"], ["popfeed", "Popfeed", "popfeed.social"], ["sifa", "Sifa", "sifa.app", "absent"], ["blento", "Blento", "blento.app", "absent"], ["tangled", "Tangled", "tangled.org"]] },
+      { "label": "Dev Tools", "items": [["aturi-explore", "Aturi Explore", "aturi.to/explore"], ["pdsls", "PDSls", "pdsls.dev"], ["atp-tools", "atp.tools", "atp.tools"], ["taproot", "Taproot", "atproto.at"]] }
+    ],
+    "pageCard": { "title": "Post by dame.is", "meta": "app.bsky.feed.post · on Bluesky", "actions": ["Copy aturi.to link", "Copy at:// URI"] },
+    "redirect": { "state": "Off", "note": "The footer's switch turns auto-redirect on or off for the whole extension; when it is on, a 'Pause on this tab' button appears beside it and the strip turns amber while paused." }
+  },
+  "nopage": {
+    "title": "No Atmosphere data on this page",
+    "body": "We couldn't find a supported AT URI for this tab (from the address or an at:// link in the page head). On a supported profile or post, this popup offers context-aware links instead.",
+    "shortcuts": "Jump to an app · Shortcuts open each app's home page",
+    "groups": [
+      { "label": "Bluesky Clients", "items": [["anisota", "Anisota", "anisota.net"], ["bluesky", "Bluesky", "bsky.app"], ["bluepy", "Bluepy", "bluepy.social"], ["reddwarf", "Red Dwarf", "reddwarf.app"], ["impro", "Impro", "impro.social"], ["lea", "Lea", "lea.ac"]] },
+      { "label": "Bluesky Forks", "items": [["blacksky", "Blacksky", "blacksky.community"], ["witchsky", "Witchsky", "witchsky.app"], ["mu", "Mu", "mu.social"], ["deer", "Deer", "deer.social"], ["northsky", "Northsky", "northsky.app"]] },
+      { "label": "Publications", "items": [["leaflet", "Leaflet", "leaflet.pub"], ["anisota-reader", "Anisota Reader", "anisota.net"], ["offprint", "Offprint", "offprint.app"], ["pckt", "pckt", "pckt.blog"], ["standard-reader", "Standard Reader", "standard-reader.app"]] },
+      { "label": "Atmosphere", "items": [["aturi", "Aturi", "aturi.to"], ["pinkleap", "Pinkleap", "pinkleap.app"], ["margin", "Margin", "margin.at"], ["semble", "Semble", "semble.so"], ["streamplace", "Streamplace", "stream.place"], ["grain", "Grain", "grain.social"], ["popfeed", "Popfeed", "popfeed.social"], ["sifa", "Sifa", "sifa.app"], ["blento", "Blento", "blento.app"], ["tangled", "Tangled", "tangled.org"]] },
+      { "label": "Dev Tools", "items": [["aturi-explore", "Aturi Explore", "aturi.to/explore"], ["pdsls", "PDSls", "pdsls.dev"], ["atp-tools", "atp.tools", "atp.tools"], ["taproot", "Taproot", "atproto.at"]] }
+    ]
+  }
+}

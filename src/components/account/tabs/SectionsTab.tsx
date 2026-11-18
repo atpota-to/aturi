@@ -26,7 +26,7 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { GripVertical } from 'lucide-react';
+import { GripVertical, Lock } from 'lucide-react';
 import { usePreferences } from '@/components/PreferencesProvider';
 import Toggle from '../Toggle';
 import {
@@ -103,16 +103,8 @@ function SectionList({ page }: { page: ExplorePage }) {
 
   return (
     <div>
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          gap: 16,
-          marginBottom: 12,
-        }}
-      >
-        <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-tertiary)' }}>
+      <div className="settings-list-toolbar">
+        <p className="settings-kicker" style={{ margin: 0 }}>
           {visibleCount} of {sections.length} shown
         </p>
         <button
@@ -121,19 +113,7 @@ function SectionList({ page }: { page: ExplorePage }) {
             if (!confirm('Reset these sections to their default order and visibility?')) return;
             update((prev) => resetSections(prev, page));
           }}
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '0.35rem',
-            padding: '0.35rem 0.75rem',
-            background: 'transparent',
-            border: '1px solid var(--border-medium)',
-            color: 'var(--text-secondary)',
-            fontFamily: 'var(--font-serif)',
-            fontSize: '0.8rem',
-            cursor: 'pointer',
-            flexShrink: 0,
-          }}
+          className="settings-btn is-small"
         >
           Reset
         </button>
@@ -144,7 +124,7 @@ function SectionList({ page }: { page: ExplorePage }) {
           items={sections.map((s) => s.id)}
           strategy={verticalListSortingStrategy}
         >
-          <div style={{ border: '1px solid var(--border-medium)' }}>
+          <div className="settings-sortable">
             {sections.map((s) => {
               const m = meta.find((mm) => mm.id === s.id);
               if (!m) return null;
@@ -208,22 +188,23 @@ function SectionRow({
       >
         <GripVertical size={14} />
       </span>
-      <label htmlFor={switchId} style={{ flex: 1, minWidth: 0, cursor: 'pointer' }}>
-        <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={{ fontSize: '0.95rem', color: 'var(--text-primary)' }}>{label}</span>
+      <label htmlFor={switchId} className="settings-section-label">
+        <span className="settings-section-name">
+          <span>{label}</span>
           <span className="reorder-tag">{kind === 'record-data' ? 'content' : 'helper'}</span>
+          {toggleDisabled && (
+            // The switch is locked (this is the last data view), and a hover
+            // title never shows on touch, so the lock says so on sight.
+            <span
+              className="reorder-tag reorder-tag-lock"
+              title="At least one data view must stay visible"
+            >
+              <Lock size={11} aria-hidden />
+              <span className="fn-sr-only">always shown</span>
+            </span>
+          )}
         </span>
-        <span
-          style={{
-            display: 'block',
-            fontSize: '0.8rem',
-            color: 'var(--text-tertiary)',
-            lineHeight: 1.45,
-            marginTop: 2,
-          }}
-        >
-          {description}
-        </span>
+        <span className="settings-section-desc">{description}</span>
       </label>
       <span
         className="settings-switch"

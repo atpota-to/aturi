@@ -73,7 +73,7 @@ struct IdentitySection: View {
                                 .frame(maxWidth: .infinity, alignment: .leading)
                                 .padding(.top, 6)
                         }
-                        .font(.footnote)
+                        .font(AturiFont.footnote)
                         .foregroundStyle(theme.textSecondary)
                     }
                 }

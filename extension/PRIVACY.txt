@@ -1,5 +1,5 @@
 ATURI BROWSER EXTENSION - PRIVACY POLICY
-Last updated: July 17, 2026
+Last updated: October 26, 2026
 
 Canonical URL: https://aturi.to/extension/privacy
 
@@ -11,13 +11,13 @@ data. It has no analytics, no telemetry, no tracking, no advertising, and no
 remote code. Everything you configure stays in your own browser.
 
 The extension does, however, read limited information from pages you visit
-so it can offer waypoints and inspect AT URIs. Page reading happens entirely
-inside your browser; the extension never sends page contents to
-Aturi-operated servers. The extension also makes anonymous lookups to public
-atproto services (Bluesky AppView, PLC directory, Constellation, and your
-chosen Personal Data Server) when you actively use the waypoint picker or
-the Inspect tab. The details of every network request and every part of the
-page that is read are described below.
+so it can offer waypoints and show the AT URIs a page carries. Page reading
+happens entirely inside your browser; the extension never sends page
+contents to Aturi-operated servers. The extension also makes anonymous
+lookups to public atproto services (Bluesky AppView, PLC directory, and the
+Personal Data Servers that hold the records) when you open the popup on a
+page with records, or use the waypoint picker. The details of every network
+request and every part of the page that is read are described below.
 
 
 1. WHAT THE EXTENSION STORES
@@ -42,14 +42,17 @@ browser vendor (Google, Mozilla, Apple, etc.) may sync this data across
 your devices through their own infrastructure under their own privacy
 policy. Aturi has no access to that synced data.
 
-Identity records, record previews, and backlink counts fetched by the
-Inspect tab live only in popup memory while the popup is open and are
-discarded when you close it. One exception: when history is enabled (the
-default), the extension remembers the repo identifiers (the DID/handle) of
-records it saw, so the "no AT URIs on this page" empty state can suggest
-repos you recently looked at. These identifiers are stored locally alongside
-your other preferences, are gated on the same History toggle as the recents
-list, and are removed when you clear or disable history.
+Identity records and record previews fetched for the popup's record card
+live only in popup memory while the popup is open and are discarded when
+you close it. One exception: when history is enabled (the default), the
+extension keeps a "Seen lately" list of the accounts whose records it saw
+on pages where you opened the popup, so the popup can suggest them when you
+look something up. Each entry holds the account's DID, handle and PDS host,
+how many pages it turned up on, and a one-way hash of the last page counted
+(never the page's address). The list is capped at 50 accounts, stored only
+in this browser's local extension storage (it is not synced), gated on the
+same toggle as the recents list, and removed when you clear or disable
+history.
 
 
 2. WHAT THE EXTENSION READS FROM PAGES
@@ -57,7 +60,7 @@ list, and are removed when you clear or disable history.
 The extension includes two content scripts that run on ordinary web pages.
 Both run entirely inside your browser. No data they read is ever sent to
 Aturi-operated servers; the extension only uses what they read to render
-the popup and Inspect tab locally.
+the popup locally.
 
   - Passive head detection (detect-head.content.ts). On every page load, a
     tiny script runs once and looks for <link href="at://..."> elements in
@@ -68,7 +71,7 @@ the popup and Inspect tab locally.
     how the extension supports apps like Leaflet, Offprint, and pckt,
     which advertise their AT URI in the head rather than the URL.
 
-  - Inspect scan (inspect-scan.content.ts). This script scans the page for
+  - Page scan (inspect-scan.content.ts). This script scans the page for
     AT URIs (at://...) in the document head, OpenGraph and Twitter meta
     tags, anchor hrefs, JSON-LD blocks, and a capped portion (up to about
     2 MB) of the page's visible text. It runs in two modes:
@@ -81,10 +84,10 @@ the popup and Inspect tab locally.
         turn this off with the passive-scan toggle in the options page,
         after which the script stays idle until you ask for a scan.
 
-      * On demand, when you open the popup's Inspect tab: it runs the same
-        scan and returns the URIs it found, deduplicated, along with a
-        short surrounding text snippet for context, so the popup can render
-        the Inspect cards.
+      * On demand, when you open the popup: it runs the same scan and
+        returns the URIs it found, deduplicated, along with a short
+        surrounding text snippet for context, so the popup can show each
+        record the page carries as a tab on its record card.
 
     In both modes the scan stays inside your browser and never transmits
     page content to Aturi-operated servers.
@@ -109,28 +112,23 @@ service, whose own privacy policy applies.
     https://public.api.bsky.app/xrpc/com.atproto.identity.resolveHandle.
     The handle is sent as a query parameter; nothing else is sent.
 
-  - Inspect: identity resolution. When you open the Inspect tab and there
-    is an AT URI to look up, the extension resolves the repo identifier
-    through the same Bluesky AppView. For did:plc:... identifiers it may
-    fetch the DID document from the PLC directory (plc.directory), and for
-    did:web:... identifiers it fetches the DID document from the
-    /.well-known/did.json endpoint of the host named in the DID, to
-    discover the user's PDS host.
+  - Record card: identity resolution. When you open the popup on a page
+    with AT URIs, the extension resolves the repo identifier of the page's
+    own record, and of each other record on the page, through the same
+    Bluesky AppView. For did:plc:... identifiers it may fetch the DID
+    document from the PLC directory (plc.directory), and for did:web:...
+    identifiers it fetches the DID document from the /.well-known/did.json
+    endpoint of the host named in the DID, to discover the account's handle
+    (which labels the record's tab) and its PDS host.
 
-  - Inspect: repository description. To show a repo at a glance, the
-    Inspect tab calls com.atproto.repo.describeRepo on the resolved PDS
-    host, which returns the account's collections and handle.
+  - Record card: repository description. For the record whose tab is open,
+    the extension calls com.atproto.repo.describeRepo on the resolved PDS
+    host, which returns the account's handle and collections.
 
-  - Inspect: record fetch. Once the PDS host is known, the extension calls
-    com.atproto.repo.getRecord on that PDS to fetch the record itself
-    (when the AT URI points at a specific collection and rkey) so the
-    Inspect card can show a preview. For Bluesky posts it may additionally
-    call app.bsky.feed.getPostThread on the AppView to show reply/thread
-    context.
-
-  - Inspect: backlink count. The Inspect tab queries the third-party
-    Constellation index (constellation.microcosm.blue) with the AT URI to
-    fetch an aggregate count of public backlinks to that record.
+  - Record card: record fetch. Once the PDS host is known, the extension
+    calls com.atproto.repo.getRecord on that PDS to fetch the open record
+    itself, for its CID (one of the identifiers the Copy list offers) and,
+    for a record the page references, a short preview.
 
 Auto-redirects do not make network requests. They are implemented with
 chrome.declarativeNetRequest, which lets the browser rewrite URLs locally
@@ -146,10 +144,9 @@ during normal use.
 
   - storage - to persist your preferences, custom waypoints, and recents
     list.
-  - tabs - to read the URL (and, for Inspect, the tab id) of the current
-    tab when you open the popup, so the extension can offer waypoints
-    that match the page you're on and route the Inspect scan request to
-    the right tab.
+  - tabs - to read the URL and the tab id of the current tab when you
+    open the popup, so the extension can offer waypoints that match the
+    page you're on and route the page scan request to the right tab.
   - declarativeNetRequest - to perform local URL redirects without
     exposing your browsing history to the extension.
   - clipboardWrite - to copy universal Aturi links to your clipboard when
@@ -183,9 +180,9 @@ during normal use.
 When you click a waypoint or follow an auto-redirected link, your browser
 navigates to a third-party Atmosphere client (Bluesky, Blacksky, Leaflet,
 Tangled, Margin, Grain, PDSls, atp.tools, etc.) or a custom waypoint you
-defined. When you use the Inspect tab, your browser makes the lookups
-described in Section 3 directly to the Bluesky AppView, the PLC directory,
-Constellation, and the relevant Personal Data Server. Each of these
+defined. When the popup shows a page's records, your browser makes the
+lookups described in Section 3 directly to the Bluesky AppView, the PLC
+directory, and the relevant Personal Data Server. Each of these
 services has its own privacy policy and terms of service, and Aturi has no
 control over them.
 
@@ -202,9 +199,10 @@ information, it does not knowingly collect data from children under 13.
 Settings persist in your browser's extension storage for as long as the
 extension is installed. You can:
 
-  - Clear the recents list at any time from the History tab in the options
-    page.
-  - Disable history tracking entirely from the History tab.
+  - Clear the Recents and Seen lately lists at any time from the popup
+    section of the settings page.
+  - Disable history tracking entirely from the same section, which also
+    removes the Seen lately list.
   - Remove all extension data by uninstalling the extension. Your browser
     may also remove any synced copy via its own sync settings.
 

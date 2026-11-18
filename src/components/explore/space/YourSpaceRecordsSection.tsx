@@ -108,77 +108,37 @@ export default function YourSpaceRecordsSection({
   const myRepoPath = `${spacePath}/${encodeRepo(myDid)}`;
 
   return (
-    <section style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'baseline', gap: '0.75rem' }}>
-        <h2
-          style={{
-            margin: 0,
-            fontFamily: 'var(--font-serif)',
-            fontWeight: 400,
-            fontSize: '1rem',
-            color: 'var(--text-primary)',
-          }}
-        >
-          Your records in this space
-        </h2>
-        <Link href={myRepoPath} prefetch={false} className="explore-json-link">
-          Open your repository →
-        </Link>
+    <section className="fx-card fx-sp-section">
+      <div className="fx-sp-head">
+        <h2 className="fx-sp-h2">Your records in this space</h2>
+        <span className="fx-sp-head-end">
+          <Link href={myRepoPath} prefetch={false} className="fx-sp-head-link">
+            Open your repository →
+          </Link>
+        </span>
       </div>
 
-      {!transport && (
-        <p className="explore-placeholder">Checking what you can read here…</p>
-      )}
+      {!transport && <p className="fx-sp-msg">Checking what you can read here…</p>}
 
-      {transport && error && <p className="explore-error">{error}</p>}
+      {transport && error && <p className="fx-sp-err">{error}</p>}
 
       {transport && !error && loading && collections.length === 0 && (
-        <SkeletonRowList rows={3} trailingWidth="4rem" />
+        <div className="fx-sp-body">
+          <SkeletonRowList rows={3} trailingWidth="4rem" />
+        </div>
       )}
 
       {transport && !error && !loading && collections.length === 0 && (
-        <p className="explore-placeholder">
-          You haven’t written anything to this space yet.
-        </p>
+        <p className="fx-sp-msg">You haven’t written anything to this space yet.</p>
       )}
 
       {collections.length > 0 && (
-        <ul
-          style={{
-            listStyle: 'none',
-            margin: 0,
-            padding: 0,
-            border: '1px solid var(--border-medium)',
-            background: 'var(--bg-secondary)',
-          }}
-        >
-          {collections.map(({ collection, count }, i) => (
-            <li
-              key={collection}
-              style={{
-                borderBottom:
-                  i < collections.length - 1 ? '1px solid var(--border-subtle)' : 'none',
-              }}
-            >
-              <Link
-                href={`${myRepoPath}/${collection}`}
-                prefetch={false}
-                style={{
-                  display: 'flex',
-                  flexWrap: 'wrap',
-                  alignItems: 'baseline',
-                  gap: '0.75rem',
-                  padding: '0.625rem 1rem',
-                  fontFamily: 'var(--font-mono)',
-                  fontSize: '0.85rem',
-                  color: 'var(--text-primary)',
-                  textDecoration: 'none',
-                }}
-              >
-                <code style={{ background: 'transparent', padding: 0, color: 'var(--text-primary)' }}>
-                  {collection}
-                </code>
-                <span style={{ marginLeft: 'auto', color: 'var(--text-tertiary)' }}>
+        <ul className="fx-sp-list">
+          {collections.map(({ collection, count }) => (
+            <li key={collection}>
+              <Link href={`${myRepoPath}/${collection}`} prefetch={false} className="fx-sp-row">
+                <code className="fx-sp-row-main">{collection}</code>
+                <span className="fx-sp-row-end">
                   {formatCount(count)}
                   {complete ? '' : '+'}
                 </span>
@@ -189,15 +149,7 @@ export default function YourSpaceRecordsSection({
       )}
 
       {!complete && collections.length > 0 && (
-        <p
-          style={{
-            margin: 0,
-            fontSize: '0.8rem',
-            lineHeight: 1.5,
-            color: 'var(--text-tertiary)',
-            maxWidth: '46rem',
-          }}
-        >
+        <p className="fx-sp-note fx-sp-foot">
           Counted from the first {formatCount(SUMMARY_LIMIT)} records, so these
           are lower bounds. Open a collection for its full listing.
         </p>

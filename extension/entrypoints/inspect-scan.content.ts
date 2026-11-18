@@ -7,7 +7,7 @@ import {
 import { matchSupportedUrl } from '@aturi/reverseParsers';
 
 /**
- * Content script for the Inspect tab. Has two jobs:
+ * Content script for the popup's record tabs. Has two jobs:
  *
  * 1. Passive: on every page load (and on SPA route changes) run a fast
  *    structured scan and report the count to the background worker, which
@@ -16,11 +16,10 @@ import { matchSupportedUrl } from '@aturi/reverseParsers';
  *
  * 2. On demand: answer `aturi:inspect-scan` messages from the popup with a
  *    full scan (including the body-text regex). This is unconditional —
- *    even when passive scanning is off, the popup's manual button still
- *    works.
+ *    even when passive scanning is off, opening the popup still scans.
  *
  * Runs alongside `detect-head.content.ts` — that script handles a different
- * message (`aturi:query-head`) used by the Waypoints flow.
+ * message (`aturi:query-head`) the popup uses to find the page's own record.
  */
 
 const STORAGE_KEY = 'aturi.prefs.v1';

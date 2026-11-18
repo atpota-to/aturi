@@ -41,7 +41,7 @@ struct CustomWaypointsView: View {
             if customs.isEmpty {
                 SettingsSection {
                     Text("No custom waypoints yet.")
-                        .font(.footnote)
+                        .font(AturiFont.footnote)
                         .foregroundStyle(theme.textTertiary)
                 }
             } else {
@@ -95,14 +95,14 @@ struct CustomWaypointsView: View {
                     }
                     if let description = custom.description, !description.isEmpty {
                         Text(description)
-                            .font(.footnote)
+                            .font(AturiFont.footnote)
                             .foregroundStyle(theme.textSecondary)
                             .lineLimit(2)
                     }
                 }
                 Spacer(minLength: 0)
                 Image(systemName: "pencil")
-                    .font(.footnote.weight(.medium))
+                    .font(AturiFont.sans(.footnote, weight: .medium))
                     .foregroundStyle(theme.textTertiary)
                     .accessibilityHidden(true)
             }

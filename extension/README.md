@@ -34,7 +34,16 @@ auto-redirect links between them.
 - **Custom waypoints**: wire up any site that uses a consistent URL structure
   via URL templates (`/profile/{handle}`, `/u/{handle}/p/{rkey}`, etc.).
 - **Recents**: the popup surfaces the waypoints you use most often first.
-- **AT Tags**: the Inspect tab reads the
+- **Every record on the page**: the popup's card carries a folder tab for the
+  page's own record and one for each other record the page references, each
+  with a Copy list of its identifiers (AT URI, aturi.to link, DID, handle, PDS
+  host, CID) and a hand-off to aturi.to. Waypoints act on whichever record's
+  tab is open.
+- **Look up anything**: the search glyph in the popup's bar (or `/`) opens
+  aturi.to's go-to field, with the accounts you have come across lately as
+  suggestions. "Seen lately" is a small list kept on this device only, and
+  goes with the Recents toggle.
+- **AT Tags**: the popup reads the
   [AT Tags](https://tangled.org/chrisshank.com/at-tags/) a page declares about
   itself (`<meta name="at:canonical" content="at://...">` and the `at:alternate`,
   `at:author`, `at:me`, and namespaced `at:{namespace}:{property}` siblings) and
@@ -106,6 +115,10 @@ The toolbar icon matches the main Aturi app favicon (a lucide leaf on the deep
 green background). The master SVG lives at `assets/icon.svg`; run
 `npm run icons` after editing it to regenerate the 16/32/48/96/128 px PNGs in
 `public/icon/` that WXT packages.
+
+## Design
+
+The next popup design (a record card with folder tabs per record, a Copy ledger, Seen lately and a header search) is mocked up under `design/popup/`, with the briefs, the alternatives it was chosen over and the panel verdicts. See `design/popup/README.md` before implementing it.
 
 ## Known limitations
 

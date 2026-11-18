@@ -192,7 +192,7 @@ struct CollectionView: View {
                 .disabled(model.selectedCount == 0 || model.isDeleting)
                 .accessibilityLabel("Deselect all records")
                 Text("\(model.selectedCount) selected")
-                    .font(.footnote)
+                    .font(AturiFont.footnote)
                     .monospacedDigit()
                     .foregroundStyle(theme.textTertiary)
                 Spacer(minLength: 0)
@@ -225,19 +225,19 @@ struct CollectionView: View {
                 }
                 if let status = model.deleteStatusLabel {
                     Text(status)
-                        .font(.footnote)
+                        .font(AturiFont.footnote)
                         .foregroundStyle(theme.textSecondary)
                 }
             }
             if !session.deleteAccess {
                 Text("This sign-in cannot delete records. Sign out and back in to grant it.")
-                    .font(.footnote)
+                    .font(AturiFont.footnote)
                     .foregroundStyle(theme.textTertiary)
                     .fixedSize(horizontal: false, vertical: true)
             }
             if let error = model.deleteError {
                 Text(error)
-                    .font(.footnote)
+                    .font(AturiFont.footnote)
                     .foregroundStyle(theme.danger)
                     .textSelection(.enabled)
                     .fixedSize(horizontal: false, vertical: true)
@@ -330,7 +330,7 @@ struct CollectionView: View {
         HStack(alignment: .top, spacing: 12) {
             if let selected {
                 Image(systemName: selected ? "checkmark.circle.fill" : "circle")
-                    .font(.body)
+                    .font(AturiFont.body)
                     .foregroundStyle(selected ? theme.textAccent : theme.textTertiary)
                     .padding(.top, 1)
                     .accessibilityHidden(true)
@@ -344,13 +344,13 @@ struct CollectionView: View {
                     .lineLimit(2)
                 if let date = row.tidDate {
                     RelativeDateText(date: date)
-                        .font(.caption2)
+                        .font(AturiFont.caption2)
                         .foregroundStyle(theme.textTertiary)
                 }
             }
             .frame(minWidth: 100, maxWidth: 160, alignment: .leading)
             Text(row.preview)
-                .font(.footnote)
+                .font(AturiFont.footnote)
                 .foregroundStyle(theme.textSecondary)
                 .lineLimit(2)
             Spacer(minLength: 0)

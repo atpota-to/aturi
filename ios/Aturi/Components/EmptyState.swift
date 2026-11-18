@@ -21,7 +21,7 @@ struct EmptyState: View {
                 .foregroundStyle(theme.textPrimary)
             if let detail, !detail.isEmpty {
                 Text(detail)
-                    .font(.footnote)
+                    .font(AturiFont.footnote)
                     .foregroundStyle(theme.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
             }

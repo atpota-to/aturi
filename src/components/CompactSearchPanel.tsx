@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState, type KeyboardEvent } from 'react';
+import { useCallback, useEffect, useId, useRef, useState, type KeyboardEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { Search } from 'lucide-react';
 import { encodeRepo } from '@/utils/atproto/urls';
@@ -18,6 +18,8 @@ import {
   type SearchHistoryEntry,
 } from '@/utils/searchHistory';
 import SearchRecommendations from './explore/SearchRecommendations';
+import { useKeyboardShortcuts } from './KeyboardShortcutsProvider';
+import { bindingTokens } from '@/lib/keybindings';
 
 const TYPEAHEAD_DEBOUNCE_MS = 180;
 const RECENTS_LIMIT = 6;
@@ -28,6 +30,12 @@ type Props = {
   active: boolean;
   /** Called after a navigation/submit so the parent can close the panel. */
   onDone: () => void;
+  /**
+   * `panel` (default) fills the header's drop-down search card. `bar` is the
+   * always-visible field in the header row on explorer pages: its
+   * suggestions drop down only while it has focus.
+   */
+  variant?: 'panel' | 'bar';
 };
 
 /**
@@ -37,8 +45,23 @@ type Props = {
  * "Look up" button (the input alone is the UI). When the input is empty it
  * surfaces locally-stored "recent" and "frequent" recommendations.
  */
-export default function CompactSearchPanel({ active, onDone }: Props) {
+export default function CompactSearchPanel({ active, onDone, variant = 'panel' }: Props) {
   const router = useRouter();
+  const isBar = variant === 'bar';
+  const [focused, setFocused] = useState(false);
+  // Two copies can be mounted at once (the bar and the drop-down panel), so
+  // the listbox ids are per-instance.
+  const listId = `compact-search-typeahead-${useId().replace(/:/g, '')}`;
+  // The bar shows the command palette's shortcut as a hint: the palette jumps
+  // to a handle or at:// URI from anywhere, the same job this field does.
+  const { commands, platform, state: keyState } = useKeyboardShortcuts();
+  const paletteBinding = commands.find((c) => c.meta.id === 'command-palette')?.bindings[0];
+  const hint =
+    keyState.enabled && paletteBinding
+      ? bindingTokens(paletteBinding, platform)
+          .map((step) => step.join(platform === 'mac' ? '' : '+'))
+          .join(' ')
+      : null;
   const [value, setValue] = useState('');
   const [suggestions, setSuggestions] = useState<ActorTypeaheadResult[]>([]);
   const [highlightIndex, setHighlightIndex] = useState(-1);
@@ -84,7 +107,7 @@ export default function CompactSearchPanel({ active, onDone }: Props) {
         limit: 6,
         signal: controller.signal,
       });
-      setSuggestions(results);
+      setSuggestions(rankByHandle(results, trimmed));
       setHighlightIndex(-1);
     }, TYPEAHEAD_DEBOUNCE_MS);
     return () => {
@@ -98,9 +121,10 @@ export default function CompactSearchPanel({ active, onDone }: Props) {
       router.push(path);
       setValue('');
       setSuggestions([]);
+      if (isBar) inputRef.current?.blur();
       onDone();
     },
-    [router, onDone],
+    [router, onDone, isBar],
   );
 
   const goToActor = useCallback(
@@ -128,6 +152,13 @@ export default function CompactSearchPanel({ active, onDone }: Props) {
       goToActor(suggestions[highlightIndex]);
       return;
     }
+    // A bare word ("dame") can't be a handle, DID, at:// URI or URL, all of
+    // which carry a dot, colon or slash, so resolving it only ever ended on
+    // "That handle didn't resolve." Take the best suggestion instead.
+    if (!/[.:/]/.test(value.trim()) && suggestions.length > 0) {
+      goToActor(suggestions[0]);
+      return;
+    }
     if (resolvingRef.current) return;
     resolvingRef.current = true;
     try {
@@ -143,6 +174,7 @@ export default function CompactSearchPanel({ active, onDone }: Props) {
 
   function onKeyDown(e: KeyboardEvent<HTMLInputElement>) {
     if (e.key === 'Escape') {
+      if (isBar) inputRef.current?.blur();
       onDone();
       return;
     }
@@ -163,169 +195,134 @@ export default function CompactSearchPanel({ active, onDone }: Props) {
   // the user starts typing).
   const showRecommendations =
     !showList && value.trim() === '' && (recents.length > 0 || frequent.length > 0);
+  // The bar variant is always on screen, so its suggestions only drop down
+  // while the input has focus; the panel variant is only mounted-and-visible
+  // while open, so it shows them whenever there are any.
+  const dropdownOpen = isBar ? focused : true;
 
   return (
-    <form onSubmit={onSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-      <div style={{ position: 'relative' }}>
-        <Search
-          size={16}
-          style={{
-            position: 'absolute',
-            top: '50%',
-            transform: 'translateY(-50%)',
-            left: '0.75rem',
-            color: 'var(--text-tertiary)',
-            pointerEvents: 'none',
-          }}
-        />
+    <form
+      onSubmit={onSubmit}
+      role={isBar ? 'search' : undefined}
+      className={isBar ? 'fn-search fn-search-bar' : 'fn-search fn-search-panel'}
+    >
+      <label className="fn-search-field">
+        <Search size={15} aria-hidden className="fn-search-icon" />
+        <span className="fn-sr-only">Go to a handle, DID or at:// URI</span>
         <input
           ref={inputRef}
           type="text"
           autoComplete="off"
           spellCheck={false}
-          placeholder="handle, DID, or URL"
+          placeholder="Go to a handle, DID or at:// URI"
           value={value}
           onChange={(e) => setValue(e.target.value)}
           onKeyDown={onKeyDown}
+          onFocus={() => {
+            if (!isBar) return;
+            setFocused(true);
+            setHistory(readSearchHistory());
+          }}
+          onBlur={() => setFocused(false)}
           role="combobox"
-          aria-expanded={showList}
+          aria-expanded={showList && dropdownOpen}
           aria-autocomplete="list"
-          aria-controls="compact-search-typeahead-list"
+          aria-controls={listId}
           aria-activedescendant={
-            highlightIndex >= 0 ? `compact-search-typeahead-${highlightIndex}` : undefined
+            highlightIndex >= 0 ? `${listId}-${highlightIndex}` : undefined
           }
-          style={{
-            width: '100%',
-            padding: '0.55rem 0.75rem 0.55rem 2.25rem',
-            background: 'var(--bg-tertiary)',
-            border: '1px solid var(--border-medium)',
-            color: 'var(--text-primary)',
-            fontFamily: 'var(--font-mono)',
-            fontSize: '0.78rem',
-            outline: 'none',
-          }}
+          className="fn-search-input"
         />
-      </div>
+        {isBar && hint && !focused && value === '' && (
+          <kbd className="fn-kbd" title="Command palette: jump anywhere">
+            {hint}
+          </kbd>
+        )}
+      </label>
 
-      {showList && (
-        <ul
-          id="compact-search-typeahead-list"
-          role="listbox"
-          style={{
-            listStyle: 'none',
-            margin: 0,
-            padding: 0,
-            background: 'var(--bg-tertiary)',
-            border: '1px solid var(--border-subtle)',
-            maxHeight: '18rem',
-            overflowY: 'auto',
-          }}
-        >
-          {suggestions.map((actor, i) => {
-            const isActive = i === highlightIndex;
-            return (
-              <li
-                key={actor.did}
-                id={`compact-search-typeahead-${i}`}
-                role="option"
-                aria-selected={isActive}
-                onMouseDown={(e) => {
-                  // mousedown beats the input's blur so the click registers
-                  // before any focus-related state change unmounts us.
-                  e.preventDefault();
-                  goToActor(actor);
-                }}
-                onMouseEnter={() => setHighlightIndex(i)}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.5rem',
-                  padding: '0.4rem 0.6rem',
-                  background: isActive ? 'var(--bg-elevated)' : 'transparent',
-                  borderBottom:
-                    i < suggestions.length - 1
-                      ? '1px solid var(--border-subtle)'
-                      : 'none',
-                  cursor: 'pointer',
-                  transition: 'background 0.12s ease',
-                }}
-              >
-                {actor.avatar ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={actor.avatar}
-                    alt=""
-                    width={24}
-                    height={24}
-                    style={{
-                      width: 24,
-                      height: 24,
-                      objectFit: 'cover',
-                      background: 'var(--bg-secondary)',
-                      flexShrink: 0,
-                    }}
-                  />
-                ) : (
-                  <span
-                    style={{
-                      width: 24,
-                      height: 24,
-                      background: 'var(--bg-secondary)',
-                      flexShrink: 0,
-                    }}
-                  />
-                )}
-                <div style={{ minWidth: 0, lineHeight: 1.2 }}>
-                  {actor.displayName?.trim() && (
-                    <div
-                      style={{
-                        fontSize: '0.8125rem',
-                        color: 'var(--text-primary)',
-                        fontFamily: 'var(--font-serif)',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap',
-                      }}
-                    >
-                      {actor.displayName}
-                    </div>
-                  )}
-                  <div
-                    style={{
-                      fontSize: '0.7rem',
-                      color: 'var(--text-tertiary)',
-                      fontFamily: 'var(--font-mono)',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap',
-                    }}
-                  >
-                    @{actor.handle}
-                  </div>
-                </div>
-              </li>
-            );
-          })}
-        </ul>
-      )}
-
-      {showRecommendations && (
+      {dropdownOpen && (showList || showRecommendations) && (
         <div
-          style={{
-            background: 'var(--bg-tertiary)',
-            border: '1px solid var(--border-subtle)',
-            maxHeight: '20rem',
-            overflowY: 'auto',
-          }}
+          className="fn-search-dropdown"
+          // In the bar variant the list sits under a focused input; keep a
+          // click inside it from blurring that input (which would close the
+          // dropdown before the click lands).
+          onMouseDown={isBar ? (e) => e.preventDefault() : undefined}
         >
-          <SearchRecommendations
-            recents={recents}
-            frequent={frequent}
-            onPick={goToEntry}
-            onEnriched={reloadHistory}
-          />
+          {showList && (
+            <ul id={listId} role="listbox" className="fn-search-list">
+              {suggestions.map((actor, i) => {
+                const isActive = i === highlightIndex;
+                return (
+                  <li
+                    key={actor.did}
+                    id={`${listId}-${i}`}
+                    role="option"
+                    aria-selected={isActive}
+                    onMouseDown={(e) => {
+                      // mousedown beats the input's blur so the click registers
+                      // before any focus-related state change unmounts us.
+                      e.preventDefault();
+                      goToActor(actor);
+                    }}
+                    onMouseEnter={() => setHighlightIndex(i)}
+                    className="fn-search-option"
+                    data-active={isActive || undefined}
+                  >
+                    {actor.avatar ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={actor.avatar}
+                        alt=""
+                        width={24}
+                        height={24}
+                        className="fn-search-avatar"
+                      />
+                    ) : (
+                      <span className="fn-search-avatar" />
+                    )}
+                    <div style={{ minWidth: 0, lineHeight: 1.25 }}>
+                      {actor.displayName?.trim() && (
+                        <div className="fn-search-name">{actor.displayName}</div>
+                      )}
+                      <div className="fn-search-handle">@{actor.handle}</div>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+
+          {showRecommendations && (
+            <div className="fn-search-recs">
+              <SearchRecommendations
+                recents={recents}
+                frequent={frequent}
+                onPick={goToEntry}
+                onEnriched={reloadHistory}
+              />
+            </div>
+          )}
         </div>
       )}
     </form>
   );
+}
+
+/**
+ * Typeahead results with the handles that match what was typed moved to the
+ * front: an exact handle, then handles whose first label is the query
+ * ("dame" → dame.is), then other prefixes, then the search's own order.
+ * The search ranks by its own relevance, which put @dame.is third for
+ * "dame". The sort is stable, so ties keep that order.
+ */
+function rankByHandle(results: ActorTypeaheadResult[], query: string): ActorTypeaheadResult[] {
+  const q = query.toLowerCase().replace(/^@/, '');
+  const rank = (actor: ActorTypeaheadResult) => {
+    const handle = actor.handle.toLowerCase();
+    if (handle === q) return 0;
+    if (handle.startsWith(`${q}.`)) return 1;
+    if (handle.startsWith(q)) return 2;
+    return 3;
+  };
+  return [...results].sort((a, b) => rank(a) - rank(b));
 }
