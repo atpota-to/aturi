@@ -209,7 +209,7 @@ const noSubscription = () => () => {};
  * only gained it in 125, and it needs a secure context). False on the
  * server, so the button only appears once hydrated.
  */
-function useCanReadClipboard(): boolean {
+export function useCanReadClipboard(): boolean {
   return useSyncExternalStore(
     noSubscription,
     () => typeof navigator.clipboard?.readText === 'function',

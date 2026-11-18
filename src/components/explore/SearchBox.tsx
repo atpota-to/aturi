@@ -9,7 +9,7 @@ import {
   useSyncExternalStore,
   type KeyboardEvent,
 } from 'react';
-import { Search } from 'lucide-react';
+import { ClipboardPaste, Search } from 'lucide-react';
 import { encodeRepo } from '@/utils/atproto/urls';
 import { resolveSearchPathAsync } from '@/utils/atproto/searchRouting';
 import {
@@ -25,6 +25,7 @@ import {
   type SearchHistoryEntry,
 } from '@/utils/searchHistory';
 import SearchRecommendations from './SearchRecommendations';
+import { readClipboard, useCanReadClipboard } from './ChromeField';
 import KindChip from '@/components/KindChip';
 import PlaceholderRoll from '@/components/PlaceholderRoll';
 import { getReduceMotionSnapshot, subscribeReduceMotion } from '@/lib/a11y';
@@ -81,6 +82,7 @@ export default function SearchBox({ initial, className, placeholder }: Props) {
     () => false,
   );
   const roll = motionOk && !placeholder;
+  const canPaste = useCanReadClipboard();
 
   useEffect(() => {
     setValue(initial || '');
@@ -162,20 +164,39 @@ export default function SearchBox({ initial, className, placeholder }: Props) {
       goToActor(suggestions[highlightIndex]);
       return;
     }
+    await go(value);
+  }
+
+  /** Free-text routing: resolve and go. */
+  async function go(query: string) {
     if (resolvingRef.current) return;
     resolvingRef.current = true;
     setResolving(true);
     try {
       // Async so an unrecognized URL gets a chance to tell us, via its AT
       // Tags, which record it's actually about.
-      const path = await resolveSearchPathAsync(value);
+      const path = await resolveSearchPathAsync(query);
       if (!path) return;
-      recordQueryVisit(value, path);
+      recordQueryVisit(query, path);
       router.push(path);
     } finally {
       resolvingRef.current = false;
       setResolving(false);
     }
+  }
+
+  /*
+   * Paste and go, as in the toolbar's jump search (ChromeField.tsx), for the
+   * phone where pasting is otherwise a long press and a menu. A handle, DID,
+   * at:// URI or URL has no spaces in it; text that does would only route to
+   * a not-found repo, so it stays in the field to be edited.
+   */
+  async function pasteAndGo() {
+    const text = await readClipboard();
+    if (!text) return;
+    setValue(text);
+    setShowSuggestions(false);
+    if (!/\s/.test(text)) await go(text);
   }
 
   function onKeyDown(e: KeyboardEvent<HTMLInputElement>) {
@@ -246,6 +267,20 @@ export default function SearchBox({ initial, className, placeholder }: Props) {
           />
         )}
         <KindChip value={value} />
+        {canPaste && value === '' && (
+          // The kind chip's place, which is empty until there's text.
+          <button
+            type="button"
+            // Keeps focus (and a phone's keyboard) where it was.
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => void pasteAndGo()}
+            aria-label="Paste and go"
+            title="Paste and go"
+            className="fn-searchbox-paste"
+          >
+            <ClipboardPaste size={17} aria-hidden />
+          </button>
+        )}
 
         {showList && (
           <ul
