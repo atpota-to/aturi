@@ -76,6 +76,12 @@ export type CollectionPaneOptions = {
   /** A file double-clicked: the host gives the record the full width. */
   onOpenWide?: () => void;
   /**
+   * Where the Lexicon button goes. The host opens the lexicon beside the
+   * list, as it does a record, where the collection page leaves for the
+   * lexicon's own page.
+   */
+  lexiconHref?: string;
+  /**
    * The host is showing something else over the list (what links to the
    * open record) and keeps the list mounted under it, so coming back finds
    * the same rows at the same scroll. Covered, the list gives up its place
@@ -689,7 +695,7 @@ function CollectionList({
         Live
       </button>
       <Link
-        href={lexiconPathFor(collection)}
+        href={pane?.lexiconHref ?? lexiconPathFor(collection)}
         prefetch={false}
         className="fx-btn"
         title="This collection's lexicon: usage across the network and its schema"
