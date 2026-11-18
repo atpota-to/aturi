@@ -20,11 +20,11 @@ import { adoptWaypoint, setFavoriteForFamily, type Prefs } from './prefs';
 /**
  * Importing a `to.aturi.client.declaration` record as favorites.
  *
- * The site follows a signed-in account's declaration live. The extension has
- * no account and makes no background requests, so it takes the declaration
- * once, when asked: fetch it, show what it would set, and write the parts it
- * can act on into `favoriteByFamily` like any other choice made on the
- * Defaults tab. Nothing about the record is kept afterwards, and the redirect
+ * The site follows a signed-in account's declaration live. The extension
+ * makes no background requests, and signing in to it is optional, so it takes
+ * the declaration once, when asked: fetch it, show what it would set, and
+ * write the parts it can act on into `favoriteByFamily` like any other choice
+ * made on the Defaults tab. Nothing about the record is kept afterwards, and the redirect
  * rules are generated from favorites exactly as before, so a declaration can
  * never put a destination into them that the favorites picker couldn't.
  */
