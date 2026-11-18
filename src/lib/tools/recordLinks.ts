@@ -45,6 +45,7 @@ export function toolLinksForAccount(did: string): ToolLink[] {
     link('memberships', 'account', did, 'Lists and verifications', 'Lists this account is on, and who has verified it'),
     link('labels', 'subject', did, 'Labels', 'Labels on this account, from every labeler'),
     link('shadowban', 'subject', did, 'Shadowban check', 'Whether Bluesky’s AppView is hiding this account'),
+    link('mutuals', 'account', did, 'Mutuals’ blocks', 'The accounts this account’s mutuals block most'),
     link('car', 'actor', did, 'Repo archive', 'Browse this account’s repository export'),
   ];
 }
