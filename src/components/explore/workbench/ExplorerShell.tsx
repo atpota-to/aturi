@@ -582,7 +582,11 @@ export default function ExplorerShell({ mode, repo, collection, rkey }: Props) {
           )}
         </div>
         <div className="fx-wb-toolbar-end">
-          {files && <FilesLayoutSwitch />}
+          {files && (
+            <div className="fx-wb-toolbar-tools">
+              <FilesLayoutSwitch />
+            </div>
+          )}
           <ViewSwitch />
           <ShareLinkChip
             url={sharePath}
