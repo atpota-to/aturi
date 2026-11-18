@@ -73,10 +73,20 @@ export default function RootLayout({
     >
       <head>
         {/* Apple TN3156 requires an `application/activity+json` link element
-            on social-network post pages for rich previews in Messages.
-            Bluesky's bskyweb base template emits this with an empty href on
-            EVERY page; we mirror that exactly. */}
-        <link type="application/activity+json" href="" />
+            on social-network post pages for rich previews in Messages. It
+            asks only for the `type` attribute; Bluesky's bskyweb base template
+            emits one on EVERY page, and so do we.
+
+            The empty `rel` is load-bearing. React hydrates a <link> in <head>
+            by comparing getAttribute("rel") against props.rel with `!==`, so
+            a link with no rel (null vs undefined) never matches and every
+            page load throws a hydration mismatch (#418), wherever the element
+            sits in <head>. `rel="alternate"` would hydrate too, but fediverse
+            servers follow alternate activity+json links to fetch an
+            ActivityPub object, and we have none to offer; Mastodon errors on
+            one with no href. No `href` either: React never serializes an
+            empty one, and TN3156 doesn't ask for it. */}
+        <link rel="" type="application/activity+json" />
         {/* Apply the saved theme before first paint to avoid a dark/light
             flash on cold loads. The script reads from localStorage and sets
             data-theme on <html> synchronously. */}
