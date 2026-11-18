@@ -795,19 +795,115 @@ a.fx-check-badge .fx-check-count {
   }
 }
 
-/* The tools that read a whole account (AccountToolLinks.tsx), in a row
-   under the stats grid. */
-.fx-acct-tools {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 12px;
+/* The tools that read a whole account (AccountToolLinks.tsx), as a list
+   under the account card in Classic's sidebar. Quieter than the card: rows
+   like the rail's Tools list, each leaving for its tool page. */
+.fx-card.fx-acct-tools {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 1px;
+  padding: 8px;
 }
-.fx-acct-tools .fx-btn {
-  color: var(--text-secondary);
-}
-.fx-acct-tools .fx-btn svg {
+.fx-acct-tools-h {
+  margin: 0;
+  padding: 4px 8px 6px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
   color: var(--text-tertiary);
+}
+.fx-acct-tool {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 30px;
+  padding: 0 8px;
+  border-radius: 7px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  text-decoration: none;
+}
+.fx-acct-tool:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+.fx-acct-tool > svg:first-child {
+  flex: none;
+  color: var(--text-tertiary);
+}
+.fx-acct-tool-out {
+  flex: none;
+  margin-left: auto;
+  color: var(--text-tertiary);
+}
+
+/* Classic's record page: the author, with the author's two checks
+   (AccountChecks.tsx), at the head of the side column. */
+.fx-card.fx-author {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+  padding: 14px 16px 16px;
+}
+.fx-author-h {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+}
+.fx-author-who {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  margin: -4px -6px;
+  padding: 4px 6px;
+  border-radius: 8px;
+  color: var(--text-primary);
+  text-decoration: none;
+}
+.fx-author-who:hover {
+  background: var(--bg-tertiary);
+}
+.fx-author-who .fx-avatar {
+  flex: none;
+  width: 30px;
+  height: 30px;
+  font-size: 13px;
+}
+.fx-author-names {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.fx-author-name {
+  overflow: hidden;
+  font-size: 13.5px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.fx-author-handle {
+  overflow: hidden;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-accent);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.fx-author .fx-checks {
+  padding-top: 10px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+/* A check's badge on its Classic repo tab. */
+.fx-tab .fx-wb-view-end {
+  margin-left: 0;
 }
 
 /* Whether the handle resolves back to the DID (HandleCheck.tsx): a quiet

@@ -1,12 +1,13 @@
 'use client';
 
-import type { CSSProperties, ReactNode } from 'react';
+import { useEffect, useState, type CSSProperties, type ReactNode } from 'react';
 import Link from 'next/link';
 import { Check, ChevronRight, Eye, EyeOff, LoaderCircle, Tags, TriangleAlert, X } from 'lucide-react';
 import { labelSourceWords, type DotState, type VisibilitySummary } from '@/lib/tools/accountChecks';
 import { formatCount, scanPercent, type ScanProgress } from '@/lib/tools/labels';
+import { getProfile, type AppViewProfile } from '@/utils/atproto/appview';
 import type { IdentityBundle } from '@/utils/atproto/identity';
-import { encodeRepo } from '@/utils/atproto/urls';
+import { encodeRepo, shortDid } from '@/utils/atproto/urls';
 import { SkeletonBar } from './skeletons/primitives';
 import {
   keptFor,
@@ -428,5 +429,61 @@ export function CheckNavBadge({ did, check }: { did: string; check: 'labels' | '
     <span className="fx-wb-view-end">
       {check === 'labels' ? <LabelBadge state={labels} /> : <VisibilityBadge state={visibility} />}
     </span>
+  );
+}
+
+/**
+ * The author of a record, with the author's two checks, for Classic's record
+ * page: it has no account card, and this is the same answer the card would
+ * give. The name opens the author's repo page.
+ */
+export function AuthorChecks({ identity }: { identity: IdentityBundle }) {
+  const { labels, visibility } = useAccountChecks(identity.did);
+  const now = useNow();
+  const [profile, setProfile] = useState<AppViewProfile | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    getProfile(identity.did).then((p) => {
+      if (!cancelled) setProfile(p);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [identity.did]);
+
+  const handle = identity.handle || profile?.handle || null;
+  const name = profile?.displayName?.trim() || (handle ? `@${handle}` : shortDid(identity.did));
+  const initial = name.replace(/^@/, '').charAt(0);
+  return (
+    <section className="fx-card fx-author" aria-labelledby="fx-author-h">
+      <h2 id="fx-author-h" className="fx-author-h">
+        Author
+      </h2>
+      <Link href={`/explore/${encodeRepo(handle || identity.did)}`} prefetch={false} className="fx-author-who">
+        {profile?.avatar ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={profile.avatar} alt="" width={30} height={30} className="fx-avatar" />
+        ) : (
+          <span aria-hidden className="fx-avatar">
+            {initial}
+          </span>
+        )}
+        <span className="fx-author-names">
+          <span className="fx-author-name">{name}</span>
+          {handle && name !== `@${handle}` && <span className="fx-author-handle">@{handle}</span>}
+        </span>
+        <ChevronRight size={14} className="fx-check-go" aria-hidden />
+      </Link>
+      <dl className="fx-dl fx-checks">
+        <dt>Labels</dt>
+        <dd>
+          <LabelsRow state={labels} href={accountViewHref(identity, 'labels')} now={now} />
+        </dd>
+        <dt>Visibility</dt>
+        <dd>
+          <VisibilityRow state={visibility} href={accountViewHref(identity, 'visibility')} now={now} />
+        </dd>
+      </dl>
+    </section>
   );
 }

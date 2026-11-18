@@ -105,11 +105,11 @@ Taken from the round 2 mockups where the review left a question open.
 
 ### M5. Classic
 
-- [ ] Labels and Visibility tabs after Collections on the repo page, with
+- [x] Labels and Visibility tabs after Collections on the repo page, with
       the same badges.
-- [ ] Tools list under the account card on the repo and collection pages,
+- [x] Tools list under the account card on the repo and collection pages,
       replacing the button row.
-- [ ] Author card on record pages: the author's two rows, linking to the
+- [x] Author card on record pages: the author's two rows, linking to the
       repo page's tabs.
 
 ### M6. Verification and wrap-up

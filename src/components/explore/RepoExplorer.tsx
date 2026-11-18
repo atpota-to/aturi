@@ -20,7 +20,9 @@ import Breadcrumb from './Breadcrumb';
 import CopyButton from './CopyButton';
 import { HandleCheckMark } from './HandleCheck';
 import AccountToolLinks from './AccountToolLinks';
-import AccountChecks from './AccountChecks';
+import AccountChecks, { CheckNavBadge } from './AccountChecks';
+import dynamic from 'next/dynamic';
+import { ToolSkeleton } from '@/components/tools/ToolFrame';
 import ProfileHeader from './ProfileHeader';
 import RelationshipStrip from './RelationshipStrip';
 import RepoSpacesSection from './space/RepoSpacesSection';
@@ -37,6 +39,8 @@ import { RepoSkeleton } from './skeletons/pages';
 
 const TABS = [
   { id: 'collections', label: 'Collections' },
+  { id: 'labels', label: 'Labels' },
+  { id: 'visibility', label: 'Visibility' },
   { id: 'identity', label: 'Identity' },
   { id: 'audit', label: 'Log' },
   { id: 'backlinks', label: 'Backlinks' },
@@ -44,6 +48,14 @@ const TABS = [
 ] as const;
 
 type TabId = (typeof TABS)[number]['id'];
+
+/** The account card's two checks in full, as tabs carrying the checks' badges. */
+const CHECK_TABS: ReadonlySet<TabId> = new Set(['labels', 'visibility']);
+
+// Loaded when their tab opens; the card's rows need only the runs.
+const toolLoading = () => <ToolSkeleton rows={4} />;
+const LabelChecker = dynamic(() => import('@/components/tools/LabelChecker'), { loading: toolLoading });
+const ShadowbanChecker = dynamic(() => import('@/components/tools/ShadowbanChecker'), { loading: toolLoading });
 
 export default function RepoExplorer({ repo }: { repo: string }) {
   const [identity, setIdentity] = useState<IdentityBundle | null>(null);
@@ -117,6 +129,7 @@ function RepoView({ identity }: { identity: IdentityBundle }) {
           update((p) => setSectionHidden(p, 'repo', 'profile', !profileHidden))
         }
       />
+      <AccountToolLinks did={identity.did} />
     </div>
   );
 
@@ -265,7 +278,6 @@ function RepoGlanceSection({
       {!isCollapsed && (
         <>
           <AccountStats did={identity.did} handle={identity.handle} />
-          <AccountToolLinks did={identity.did} />
         </>
       )}
     </section>
@@ -404,6 +416,7 @@ function TabbedView({ identity }: { identity: IdentityBundle }) {
               <span className="fx-tab-label" data-label={t.label}>
                 {t.label}
               </span>
+              {CHECK_TABS.has(t.id) && <CheckNavBadge did={identity.did} check={t.id as 'labels' | 'visibility'} />}
             </button>
           );
         })}
@@ -417,6 +430,16 @@ function TabbedView({ identity }: { identity: IdentityBundle }) {
         className="fx-tabpanel"
       >
         {tab === 'collections' && <CollectionsTab identity={identity} />}
+        {tab === 'labels' && (
+          <div className="fx-tabpanel-tool">
+            <LabelChecker subject={identity.did} />
+          </div>
+        )}
+        {tab === 'visibility' && (
+          <div className="fx-tabpanel-tool">
+            <ShadowbanChecker subject={identity.did} />
+          </div>
+        )}
         {tab === 'identity' && <IdentityTab identity={identity} />}
         {tab === 'audit' && <AuditTab identity={identity} />}
         {tab === 'backlinks' && <BacklinksTab target={identity.did} />}
@@ -429,8 +452,9 @@ function TabbedView({ identity }: { identity: IdentityBundle }) {
 /**
  * Graph stays off the sidebar copy below: its strip is sized for four labels
  * in the 300px column (explorer.css), and a fifth would scroll out of sight.
+ * So do the two check tabs, which the account card's own rows link to.
  */
-const SIDEBAR_TABS = TABS.filter((t) => t.id !== 'graph');
+const SIDEBAR_TABS = TABS.filter((t) => t.id !== 'graph' && !CHECK_TABS.has(t.id));
 
 /**
  * The collection page's sidebar copy of the repository card: the same four

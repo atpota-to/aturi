@@ -23,6 +23,7 @@ import AppearIn from './AppearIn';
 import Breadcrumb from './Breadcrumb';
 import ShareLinkChip from './ShareLinkChip';
 import { AccountCard, RepoNavCard } from './RepoExplorer';
+import AccountToolLinks from './AccountToolLinks';
 import CollectionEditBar from './CollectionEditBar';
 import CollectionRecordRow from './CollectionRecordRow';
 import RecordFile, { RecordFileSkeleton } from './workbench/RecordFile';
@@ -981,6 +982,9 @@ function CollectionList({
             profileHidden={sectionHidden(repoSections, 'profile')}
             identityHidden={sectionHidden(repoSections, 'identity')}
           />
+        </AppearIn>
+        <AppearIn delay={0.1}>
+          <AccountToolLinks did={identity.did} />
         </AppearIn>
         <AppearIn delay={0.12}>
           <RepoNavCard identity={identity} collection={collection} />

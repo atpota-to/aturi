@@ -23,6 +23,7 @@ import ThreadSection from './graph/ThreadSection';
 import { RecordSchemaRow } from './RecordSchemaCheck';
 import { toolLinksForRecord, type ToolLink } from '@/lib/tools/recordLinks';
 import LexiconUsageCard from './lexicons/LexiconUsageCard';
+import { AuthorChecks } from './AccountChecks';
 import { Segmented } from './lexicons/primitives';
 import RecordEditor from './RecordEditor';
 import { repoRecordBackend } from './recordBackend';
@@ -516,6 +517,9 @@ function RecordView({
 
   type Placed = { id: string; column: 'main' | 'aside'; node: ReactNode };
   const placed: Placed[] = [];
+  // The classic page has no account card, so the author's checks head its
+  // side column. In a workbench pane the rail beside it has the card.
+  if (record && !pane) placed.push({ id: 'author', column: 'aside', node: <AuthorChecks identity={identity} /> });
   if (record && recordForPreview) {
     let recordPlaced = false;
     for (const { id, hidden } of recordSections) {
@@ -686,7 +690,7 @@ function recordSkeletonShape(
  * order, since those slots come from both columns). The same values order
  * the slots within each column on wider screens.
  */
-const SLOT_ORDER: Record<string, number> = { richPreview: 0, record: 1 };
+const SLOT_ORDER: Record<string, number> = { richPreview: 0, record: 1, author: 0 };
 
 /**
  * The pill beside the rkey: what kind of record this is, in words, for the
