@@ -41,13 +41,10 @@ const PHONE_QUERY = '(max-width: 639px)';
  * its point is the list it narrows, which the sheet would hide.
  */
 export function JumpField() {
-  const router = useRouter();
   const pathname = usePathname();
   const [value, setValue] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
-  // Guards a second Enter while an unrecognized URL is being resolved
-  // through /api/at-tags.
-  const resolvingRef = useRef(false);
+  const jump = useJump();
   const fieldId = useId();
   const phone = useMediaQuery(PHONE_QUERY);
   const sheetOpen = usePhoneSearchOwner() === fieldId;
@@ -87,22 +84,12 @@ export function JumpField() {
   }, [phone, sheetOpen]);
 
   /** Resolve and go; false when the text named nowhere. */
-  async function go(query: string): Promise<boolean> {
-    if (resolvingRef.current) return false;
-    resolvingRef.current = true;
-    try {
-      const path = await resolveSearchPathAsync(query);
-      if (!path) return false;
-      recordQueryVisit(query, path);
+  const go = (query: string) =>
+    jump(query, (path) => {
       // The sheet's host closes it when the next page lands; a jump to the
       // page already open lands nowhere new, so close it here.
       if (isCurrentPath(path)) closePhoneSearch();
-      router.push(path);
-      return true;
-    } finally {
-      resolvingRef.current = false;
-    }
-  }
+    });
 
   /*
    * Pasting a link someone shared is the most common way into this field,
@@ -162,6 +149,50 @@ export function JumpField() {
       controls={sheetOpen ? PHONE_SEARCH_SHEET_ID : undefined}
     />
   );
+}
+
+/**
+ * The jump search's routing, for any field that can send you somewhere:
+ * resolve the text to its explorer page (handles, DIDs, at:// URIs, client
+ * URLs, AT Tags for an unrecognized URL) and push it. Resolves false when the
+ * text named nowhere. `beforePush` sees the path first, for a caller with
+ * something to tidy before the page changes.
+ */
+export function useJump() {
+  const router = useRouter();
+  // Guards a second Enter while an unrecognized URL is being resolved
+  // through /api/at-tags.
+  const resolvingRef = useRef(false);
+
+  return async (query: string, beforePush?: (path: string) => void): Promise<boolean> => {
+    if (resolvingRef.current) return false;
+    resolvingRef.current = true;
+    try {
+      const path = await resolveSearchPathAsync(query);
+      if (!path) return false;
+      recordQueryVisit(query, path);
+      beforePush?.(path);
+      router.push(path);
+      return true;
+    } finally {
+      resolvingRef.current = false;
+    }
+  };
+}
+
+/**
+ * Text that can only mean "take me there": an at:// URI or an http(s) link.
+ * A route's filter takes over the bar from the jump search, but these still
+ * jump on Enter, since a pasted link is the commonest way into the bar. The
+ * filter still narrows by them as they're typed (a record search can match a
+ * like's subject URI); a live filter has nothing for Enter to do, so Enter
+ * is free to mean go. A handle or DID stays a filter, because a list of repos
+ * or members is narrowed by exactly those, and a half-typed one would jump to
+ * a repo that doesn't exist.
+ */
+export function isJumpQuery(text: string): boolean {
+  const v = text.trim();
+  return !/\s/.test(v) && (v.startsWith('at://') || /^https?:\/\//i.test(v));
 }
 
 const noSubscription = () => () => {};
