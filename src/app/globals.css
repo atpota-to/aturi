@@ -2745,6 +2745,48 @@ html {
   opacity: 0.75;
 }
 
+/* Paste and go (SearchBox.tsx), over the field's right end while it's
+   empty. Touch screens only, as in the toolbar (explorer.css,
+   .explore-chrome-paste): with a mouse and keyboard the paste shortcut is
+   quicker, and Chrome would stop to ask for clipboard permission. The
+   field and the rolling placeholder make room for it only where it shows. */
+.fn-searchbox-paste {
+  display: none;
+}
+
+@media not all and (hover: hover) and (pointer: fine) {
+  .fn-searchbox-paste {
+    position: absolute;
+    top: 50%;
+    right: 6px;
+    transform: translateY(-50%);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--text-tertiary);
+    cursor: pointer;
+  }
+
+  .fn-searchbox-paste:active {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+  }
+
+  .fn-searchbox-field:has(.fn-searchbox-paste) .fn-searchbox-input {
+    padding-right: 48px;
+  }
+
+  .fn-searchbox-field:has(.fn-searchbox-paste) .fn-searchbox-roll {
+    right: 48px;
+  }
+}
+
 /* Phones: the button drops under the field, as it does on home, so the
    field gets the full width and its placeholder ("Handle, DID, at:// URI
    or URL") isn't cut short by a button beside it. */

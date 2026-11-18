@@ -230,11 +230,25 @@ html:has(.fx-wb) {
   flex: none;
 }
 
+/* The view switch and the copy-link close the toolbar in every view, so
+   changing views never moves the switch you just pressed. What only one
+   view has (the Files view's Icons and List, the lexicons' window) comes
+   ahead of them in .fx-wb-toolbar-tools, and where the group has a line to
+   itself those keep to the left and the switch to the right. */
 .fx-wb-toolbar-end {
   flex: none;
   display: flex;
   align-items: center;
+  justify-content: flex-end;
   gap: 8px;
+}
+
+.fx-wb-toolbar-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: inherit;
+  margin-right: auto;
 }
 
 /* ---------- Body ----------
@@ -318,7 +332,9 @@ html:has(.fx-wb) {
 
 /* ---------- Rail ----------
    The account, its own views, then the way around its repository: the
-   collections tree in the workbench, places in the Files view. */
+   collections tree in the workbench, places in the Files view. The account
+   is its card where the rail is a column, and a line where it's a drawer or
+   while something is open below it (RailAccount). */
 
 .fx-wb-acct {
   flex: none;
@@ -374,6 +390,45 @@ html:has(.fx-wb) {
   gap: 1px;
   padding: 0 8px 10px;
   border-bottom: 1px solid var(--border-medium);
+}
+
+/* The account card, the repo page's own, laid flat on the rail rather than
+   framed on it, with the fold button in its corner. Whatever comes first in
+   the card (the avatar and names, or the identity rows when there's no
+   profile) stops short of the button. */
+.fx-wb-acct-card {
+  position: relative;
+  flex: none;
+  display: flex;
+  flex-direction: column;
+}
+
+.fx-wb-acct-card .fx-acct {
+  padding: 16px 16px 14px;
+  background: none;
+  border: 0;
+  border-radius: 0;
+}
+
+.fx-wb-acct-card .fx-acct > :first-child {
+  padding-right: 26px;
+}
+
+.fx-wb-fold {
+  position: absolute;
+  top: 12px;
+  right: 8px;
+  z-index: 1;
+}
+
+.fx-wb-acct-strip {
+  margin: 0 12px 12px;
+}
+
+/* The strip suppresses itself for a visitor who isn't signed in, or who is
+   looking at their own account. */
+.fx-wb-acct-strip:empty {
+  display: none;
 }
 
 .fx-wb-view {
@@ -689,8 +744,8 @@ html:has(.fx-wb) {
   padding: 20px 24px 40px;
 }
 
-/* Identity, Log and Backlinks read better at a narrower measure, but keep
-   the overview's left edge, so the heading doesn't jump between views. */
+/* Backlinks reads better at a narrower measure, but keeps the overview's
+   left edge, so the heading doesn't jump between views. */
 .fx-wb-page-inner:not([data-tab='overview']) .fx-wb-section {
   max-width: 920px;
 }
@@ -702,8 +757,10 @@ html:has(.fx-wb) {
   align-items: start;
 }
 
+/* The account card beside the rest, where the rail can't show it
+   (AccountView's `card`): a drawer on a tablet, or a rail put away. */
 @container fx-wb-main (min-width: 860px) {
-  .fx-wb-overview {
+  .fx-wb-overview[data-card] {
     grid-template-columns: minmax(280px, 340px) minmax(0, 1fr);
   }
 }
@@ -714,6 +771,39 @@ html:has(.fx-wb) {
   flex-direction: column;
   gap: 16px;
   min-width: 0;
+}
+
+/* Sections, not cards, so a little more air between them. The column is
+   what the tiles and the identity cards below fit themselves to. */
+.fx-wb-overview-main {
+  gap: 24px;
+  container: fx-wb-overview / inline-size;
+}
+
+/* The DID document beside its log, once both have a readable measure; one
+   over the other until then. */
+.fx-wb-idgrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+@container fx-wb-overview (min-width: 760px) {
+  .fx-wb-idgrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.fx-wb-idcard {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  scroll-margin-top: 20px;
+}
+
+.fx-wb-idcard .fx-log-more {
+  align-self: flex-start;
 }
 
 /* A strip or section that suppressed itself must not leave a gap. */
@@ -743,11 +833,18 @@ html:has(.fx-wb) {
   margin-top: 0;
 }
 
-/* The glance tiles fit themselves to the pane; the repo page's counts by
-   window width (explorer.css) don't hold with a rail and an account card
-   beside them. */
+/* The glance tiles fit themselves to the overview's column; the repo page's
+   counts by window width (explorer.css) don't hold with a rail beside them.
+   Four across where the column has the room, two where it doesn't (the
+   account card beside it, a phone): eight tiles fill either. */
 .fx-wb .account-stats-grid {
-  grid-template-columns: repeat(auto-fill, minmax(10.5rem, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+@container fx-wb-overview (min-width: 640px) {
+  .fx-wb .account-stats-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
 }
 
 /* ---------- Main: backlinks ----------
@@ -1609,7 +1706,6 @@ a.fx-fd-crumb:hover {
 
   .fx-wb[data-mode='files'] .fx-wb-toolbar-end {
     flex: 1 1 100%;
-    justify-content: space-between;
   }
 }
 
@@ -1642,10 +1738,12 @@ a.fx-fd-crumb:hover {
     flex-wrap: wrap;
   }
 
+  /* Short of room for everything on one line, the view's own controls go
+     to a line under the view switch rather than push it down, so the switch
+     is on the same line in every view. */
   .fx-wb-toolbar-end {
     flex: 1 1 100%;
-    flex-wrap: wrap;
-    justify-content: space-between;
+    flex-wrap: wrap-reverse;
   }
 
   .fx-wb-pane-head {

@@ -26,7 +26,7 @@ import {
   type ChromeBarTransport,
 } from './ChromeBarContext';
 import { useEditBar, type EditBarSnapshot } from './EditBarContext';
-import { FieldForm, JumpField } from './ChromeField';
+import { FieldForm, JumpField, isJumpQuery, readClipboard, useJump } from './ChromeField';
 import { usePhoneSearchOwner } from './PhoneSearchSheet';
 import { useIsNarrow, useMediaQuery } from './useIsNarrow';
 import { CHROME_OCCLUSION_PX, NAV_OCCLUSION_PX } from './useOffscreen';
@@ -712,13 +712,22 @@ function useRevealResults(resultsId: string | undefined) {
 
 /**
  * The route's own filter/search, driven straight from the published snapshot
- * so typing here and typing in the in-page control are the same edit.
+ * so typing here and typing in the in-page control are the same edit. It
+ * stands in for the jump search, so a link or at:// URI still goes on Enter
+ * or Paste and go (isJumpQuery) rather than only narrowing the list to
+ * nothing.
  */
 function RouteField() {
   const { field } = useChromeBar();
   const inputRef = useRef<HTMLInputElement>(null);
   const revealResults = useRevealResults(field?.resultsId);
+  const jump = useJump();
   if (!field) return null;
+
+  // The filter belongs to the page, which a jump to where you already are
+  // (or a query string away) leaves mounted, so it's emptied on the way out
+  // rather than left narrowing the next page by this link.
+  const go = (text: string) => jump(text, () => field.onChange(''));
 
   return (
     <FieldForm
@@ -731,10 +740,23 @@ function RouteField() {
         field.onChange(next);
         revealResults();
       }}
-      onSubmit={() => field.onSubmit?.()}
+      onSubmit={() => {
+        if (isJumpQuery(field.value)) void go(field.value.trim());
+        else field.onSubmit?.();
+      }}
       onClear={() => {
         field.onChange('');
         inputRef.current?.focus();
+      }}
+      // As in the jump search, a pasted link goes where it points. Anything
+      // else is something to filter by, and stays in the field to do that.
+      // A link stays there too if it named nowhere, to be seen and edited.
+      onPasteAndGo={async () => {
+        const text = await readClipboard();
+        if (!text) return;
+        field.onChange(text);
+        if (isJumpQuery(text)) await go(text);
+        else revealResults();
       }}
     />
   );
