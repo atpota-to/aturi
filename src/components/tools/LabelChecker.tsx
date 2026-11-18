@@ -351,10 +351,11 @@ function LabelGroupCard({
  * it means. The logic is in src/lib/tools/labels.ts and the requests in
  * labelsClient.ts; this runs them and draws the result.
  *
- * Two runs. The first is automatic and small: Bluesky's own labeler, the
- * subject's self-labels and any labelers added by hand. The second, a scan
- * of every labeler on the network, is several dozen requests, so it only
- * starts on a button press and is never kept in the link.
+ * Two runs, both automatic. The first is small and answers quickly:
+ * Bluesky's own labeler, the subject's self-labels and any labelers added by
+ * hand. The second, a scan of every labeler on the network, starts as soon
+ * as the first is in. It is a few dozen requests, a few at a time, and can be
+ * stopped part way; whatever it found by then stays on the page.
  */
 export default function LabelChecker() {
   const [{ subject: raw, labelers: rawLabelers }, setQuery] = useToolQuery(['subject', 'labelers'] as const);
@@ -367,15 +368,12 @@ export default function LabelChecker() {
     checkBase(target as LabelTarget, addedValues, signal),
   );
 
-  // The scan belongs to the subject it was started for: change the subject
-  // or the added labelers and it is no longer running, with nothing to reset.
-  const [scanRequest, setScanRequest] = useState<{ key: string; n: number } | null>(null);
+  // The scan starts once the first answer is in, and belongs to the subject
+  // it was started for: change the subject or the added labelers and a new
+  // one starts, with nothing to reset. "Scan again" is the run's own rerun.
   const stopRef = useRef<AbortController | null>(null);
   const baseData = base.status === 'done' ? base.data : null;
-  const scanKey =
-    scanRequest && scanRequest.key === baseKey && baseData && !baseData.unavailable
-      ? `${scanRequest.key}#${scanRequest.n}`
-      : null;
+  const scanKey = baseData && !baseData.unavailable ? baseKey : null;
   const scan = useToolRun<ScanResult>(scanKey, ({ signal, publish }) => {
     const stop = new AbortController();
     stopRef.current = stop;
@@ -413,14 +411,18 @@ export default function LabelChecker() {
   let coverage = '';
   if (baseData) {
     const extra = baseData.asked.length - 1;
-    if (scanning && progress) {
-      coverage = `Asking every labeler: ${formatCount(progress.checked + progress.failed)} of ${formatCount(progress.total)} so far.`;
+    const first = `Asked Bluesky’s moderation service${extra > 0 ? ` and ${extra === 1 ? 'one labeler' : `${extra} labelers`} you added` : ''}. Self-labels are included.`;
+    if (scanning) {
+      coverage = progress
+        ? `Asking every labeler: ${formatCount(progress.checked + progress.failed)} of ${formatCount(progress.total)} so far.`
+        : `${first} Listing every other labeler.`;
     } else if (scanDone?.stopped) {
       coverage = `Stopped after ${formatCount(scanDone.progress.checked)} of ${formatCount(scanDone.progress.total)} labelers.`;
     } else if (scanDone) {
       coverage = `Asked all ${formatCount(scanDone.progress.total)} labelers that publish a service record.`;
     } else {
-      coverage = `Asked Bluesky’s moderation service${extra > 0 ? ` and ${extra === 1 ? 'one labeler' : `${extra} labelers`} you added` : ''}. Self-labels are included. Scan every labeler to ask the rest.`;
+      // The scan failed to start; the Labelers section below says why.
+      coverage = `${first} The other labelers could not be asked.`;
     }
   }
 
@@ -469,12 +471,12 @@ export default function LabelChecker() {
         <>
           <ToolVerdict
             tone="info"
-            title={
+            title={`${
               active === 0
                 ? `No labels on ${subjectName}`
                 : `${active === 1 ? 'One label' : `${active} labels`} on ${subjectName}`
-            }
-            icon={<Tags size={18} />}
+            }${scanning ? ' so far' : ''}`}
+            icon={scanning ? <LoaderCircle size={18} className="fn-tool-spin" /> : <Tags size={18} />}
           >
             {coverage}
           </ToolVerdict>
@@ -509,7 +511,7 @@ export default function LabelChecker() {
             <ToolCard className="fn-tool-labels-scan">
               <p>
                 Anyone can run a labeler, and an app only shows labels from the ones its user
-                subscribes to. A scan asks every labeler the relay lists, {LABELERS_PER_REQUEST} at a time.
+                subscribes to. The checker asks every labeler the relay lists, {LABELERS_PER_REQUEST} at a time.
               </p>
 
               <div className="fn-tool-labels-scanbar" aria-live="polite">
@@ -539,9 +541,9 @@ export default function LabelChecker() {
                     <button
                       type="button"
                       className="fx-btn fx-btn-sm"
-                      onClick={() => setScanRequest((prev) => ({ key: baseKey as string, n: (prev?.n ?? 0) + 1 }))}
+                      onClick={scan.rerun}
                     >
-                      <ScanSearch size={14} aria-hidden /> {scanDone || scan.status === 'error' ? 'Scan again' : 'Scan every labeler'}
+                      <ScanSearch size={14} aria-hidden /> Scan again
                     </button>
                     {scanDone && (
                       <span className="fn-tool-labels-count">
@@ -639,8 +641,9 @@ export default function LabelChecker() {
               term: 'Every other labeler',
               text: (
                 <>
-                  A scan lists every account with an <code>app.bsky.labeler.service</code> record and
-                  asks Bluesky’s AppView which of them have labelled this.
+                  Asked straight after. The checker lists every account with an{' '}
+                  <code>app.bsky.labeler.service</code> record and asks Bluesky’s AppView which of
+                  them have labelled this.
                 </>
               ),
             },
