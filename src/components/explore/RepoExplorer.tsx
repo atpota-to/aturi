@@ -28,6 +28,7 @@ import CollectionsTab from './tabs/CollectionsTab';
 import IdentityTab from './tabs/IdentityTab';
 import AuditTab from './tabs/AuditTab';
 import BacklinksTab from './tabs/BacklinksTab';
+import GraphTab from './graph/GraphTab';
 import NotFoundPanel from '@/components/NotFoundPanel';
 import SkeletonSwap from './skeletons/SkeletonSwap';
 import { useFadeOnChange } from '@/components/useFadeOnChange';
@@ -38,6 +39,7 @@ const TABS = [
   { id: 'identity', label: 'Identity' },
   { id: 'audit', label: 'Log' },
   { id: 'backlinks', label: 'Backlinks' },
+  { id: 'graph', label: 'Graph' },
 ] as const;
 
 type TabId = (typeof TABS)[number]['id'];
@@ -185,7 +187,7 @@ function RepoView({ identity }: { identity: IdentityBundle }) {
             />
           </AppearIn>
         )}
-        {/* Tabbed collections / identity / log / backlinks — core content,
+        {/* Tabbed collections / identity / log / backlinks / graph — core content,
             not configurable. */}
         <AppearIn delay={0.2}>
           <TabbedView identity={identity} />
@@ -414,10 +416,17 @@ function TabbedView({ identity }: { identity: IdentityBundle }) {
         {tab === 'identity' && <IdentityTab identity={identity} />}
         {tab === 'audit' && <AuditTab identity={identity} />}
         {tab === 'backlinks' && <BacklinksTab target={identity.did} />}
+        {tab === 'graph' && <GraphTab key={identity.did} identity={identity} />}
       </div>
     </section>
   );
 }
+
+/**
+ * Graph stays off the sidebar copy below: its strip is sized for four labels
+ * in the 300px column (explorer.css), and a fifth would scroll out of sight.
+ */
+const SIDEBAR_TABS = TABS.filter((t) => t.id !== 'graph');
 
 /**
  * The collection page's sidebar copy of the repository card: the same four
@@ -435,7 +444,7 @@ export function RepoNavCard({
   return (
     <section aria-label="Repository" className="fx-repo">
       <nav aria-label="Repository views" className="fx-tabs">
-        {TABS.map((t) => (
+        {SIDEBAR_TABS.map((t) => (
           <Link
             key={t.id}
             href={t.id === 'collections' ? repoPath : `${repoPath}?tab=${t.id}`}

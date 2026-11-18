@@ -17,6 +17,7 @@ import {
   Link2,
   Maximize2,
   Minimize2,
+  Orbit,
   PanelLeft,
   X,
   type LucideIcon,
@@ -103,6 +104,7 @@ const lexiconAddressFor: AddressFor = ({ scope, nsid = null }) => lexiconAddress
 const ACCOUNT_VIEW_ICONS: Record<AccountViewId, LucideIcon> = {
   overview: LayoutDashboard,
   backlinks: Link2,
+  graph: Orbit,
 };
 
 type Props = {

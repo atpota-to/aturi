@@ -40,6 +40,7 @@ Available at [aturi.to/explore](https://aturi.to/explore). A read-mostly window 
 - **Browse any repository.** Drill from PDS → repo → collection → record for any handle or DID, with collapsible group nav and a search box that autocompletes from your own repo's collections when signed in.
 - **Repo at a glance.** Record counts, creation date, identity history, PLC audit log, and (where available) cred.blue score for any account.
 - **Inbound backlinks.** See who else's records reference the one you're looking at, via the Constellation backlink index.
+- **Social graph and threads.** An account's Graph tab draws who sits around it (mutuals, one-way follows, 2nd degree, and 30 days of engagement both ways) as an orbit, a ledger, or a flow chart you open one relationship at a time. A Bluesky post gets the same three views of its whole thread.
 - **Live firehose feed.** A calm, paginated view of the Jetstream right on the explore index, with creates/updates/deletes and rolling stats.
 - **Atmospheric conditions.** The last minute of the whole firehose from [atpota.to's weather station](https://atpota.to/weather): how busy it is and whether that's usual, the diversity index, and hosting diversity.
 - **Trending lexicons.** A live leaderboard of which atproto lexicons are seeing the most activity, sorted by mutations, events, repos, or PDS hosts.

@@ -37,6 +37,7 @@ import "@/styles/fieldnotes/link.css";
 import "@/styles/fieldnotes/content.css";
 import "@/styles/fieldnotes/landing.css";
 import "@/styles/fieldnotes/account.css";
+import "@/styles/fieldnotes/graph.css";
 import "@/styles/fieldnotes/tools.css";
 import "@/styles/fieldnotes/tool-pages.css";
 import "@/styles/fieldnotes/workbench.css";

@@ -1,0 +1,869 @@
+/* The Graph tab and the post page's Thread section (components/explore/graph).
+
+   Relation colours are the drawing's one categorical set: mutual, followed
+   one way, following one way, 2nd degree, and a neutral for no measured
+   link. Picked to stay apart for deutan, protan and tritan readers across
+   every pair, not just neighbours (dots of any two can sit side by side),
+   and checked against both themes' surfaces. The neutral is never the only
+   cue: it is also the outermost ring and is named in the key. */
+:root {
+  --g-mutual: #3a9a78;
+  --g-following: #cf7a34;
+  --g-follower: #4a8bd6;
+  --g-second: #c46aae;
+  --g-further: #6f7168;
+  --g-op: var(--text-primary);
+}
+
+[data-theme='light'] {
+  --g-mutual: #23805e;
+  --g-following: #bd5f1c;
+  --g-follower: #3b6fc4;
+  --g-second: #a64d97;
+  --g-further: #8f9186;
+}
+
+.fx-graph {
+  container-type: inline-size;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+
+.fx-graph-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 14px;
+}
+
+.fx-graph-head .fn-rec-h2 {
+  margin: 0;
+}
+
+/* On a post page the section is a record card, which leaves padding to
+   what's inside it. */
+.fx-graph-thread {
+  padding: 12px 16px 16px;
+}
+
+.fx-graph-status {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--text-tertiary);
+  font-variant-numeric: tabular-nums;
+}
+
+.fx-graph-legend {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.fx-graph-legend li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.fx-graph-swatch {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex: none;
+}
+
+.fx-graph-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 14px;
+}
+
+@container (min-width: 820px) {
+  .fx-graph-body {
+    grid-template-columns: minmax(0, 1fr) 260px;
+    align-items: start;
+  }
+
+  .fx-graph-detail {
+    position: sticky;
+    top: 88px;
+  }
+}
+
+.fx-graph-main {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.fx-graph-caption {
+  margin: 0;
+  max-width: 72ch;
+  font-size: 0.85rem;
+  color: var(--text-tertiary);
+}
+
+.fx-graph-placeholder {
+  height: 420px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  background: var(--bg-secondary);
+}
+
+/* ─── Drawing frames ─────────────────────────────────────────────────── */
+
+.fx-graph-zoom,
+.fx-graph-flow,
+.fx-graph-bands {
+  border: 1px solid var(--border-medium);
+  border-radius: 12px;
+  background: var(--bg-secondary);
+}
+
+.fx-graph-zoom {
+  overflow: hidden;
+}
+
+.fx-graph-tools {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+  padding: 6px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.fx-graph-tools-zoom {
+  display: inline-flex;
+  gap: 6px;
+}
+
+.fx-graph-tool {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-width: 32px;
+  min-height: 32px;
+  padding: 0 8px;
+  font: inherit;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-subtle);
+  border-radius: 7px;
+  cursor: pointer;
+}
+
+.fx-graph-tool:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.fx-graph-tool:focus-visible,
+.fx-graph-rank-row:focus-visible,
+.fx-graph-mark:focus-visible,
+.fx-graph-dot:focus-visible {
+  outline: 2px solid var(--text-accent);
+  outline-offset: 2px;
+}
+
+.fx-graph-scroll {
+  overflow: auto;
+  max-height: min(72vh, 680px);
+  overscroll-behavior: contain;
+}
+
+.fx-graph-sheet {
+  margin: 0 auto;
+}
+
+.fx-graph-sheet > svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.fx-graph-svg {
+  font-family: var(--font-sans);
+  user-select: none;
+}
+
+.fx-graph-bands {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+/* ─── Marks ──────────────────────────────────────────────────────────── */
+
+.fx-graph-ring {
+  fill: none;
+  stroke: var(--border-strong);
+  stroke-width: 1;
+  stroke-dasharray: 2 5;
+}
+
+.fx-graph-ring-label {
+  fill: var(--text-tertiary);
+  font-size: 19px;
+  paint-order: stroke;
+  stroke: var(--bg-secondary);
+  stroke-width: 5px;
+  stroke-linejoin: round;
+}
+
+.fx-graph-dot {
+  stroke: var(--bg-secondary);
+  stroke-width: 1.5;
+  cursor: pointer;
+}
+
+.fx-graph-dot[data-current] {
+  stroke: var(--text-accent);
+  stroke-width: 3;
+}
+
+.fx-graph-dot[data-focus] {
+  stroke: var(--text-primary);
+  stroke-width: 3;
+}
+
+.fx-graph-mark {
+  cursor: pointer;
+}
+
+.fx-graph-mark:focus,
+.fx-graph-dot:focus {
+  outline: none;
+}
+
+.fx-graph-edge {
+  fill: none;
+  stroke: var(--border-strong);
+  stroke-width: 1.5;
+}
+
+.fx-graph-edge[data-hot] {
+  stroke: var(--text-secondary);
+  stroke-width: 2;
+}
+
+.fx-graph-card {
+  fill: var(--bg-elevated);
+  stroke: var(--border-strong);
+  stroke-width: 1;
+}
+
+.fx-graph-card[data-group] {
+  fill: var(--bg-tertiary);
+}
+
+.fx-graph-card[data-open] {
+  fill: var(--accent-soft);
+  stroke: var(--accent-soft-border);
+}
+
+.fx-graph-card[data-strong] {
+  stroke: var(--text-secondary);
+}
+
+.fx-graph-card[data-current] {
+  stroke: var(--text-accent);
+  stroke-width: 2;
+}
+
+.fx-graph-mark[data-focus] .fx-graph-card {
+  stroke: var(--text-primary);
+  stroke-width: 2;
+}
+
+.fx-graph-stub {
+  fill: var(--bg-tertiary);
+  stroke: var(--border-medium);
+  stroke-dasharray: 3 3;
+}
+
+.fx-graph-hit {
+  fill: transparent;
+}
+
+.fx-graph-spine {
+  fill: var(--text-primary);
+}
+
+.fx-graph-cell[data-current] rect:first-child {
+  stroke: var(--text-accent);
+  stroke-width: 2;
+}
+
+.fx-graph-cell[data-focus] rect:first-child {
+  stroke: var(--text-primary);
+  stroke-width: 2;
+}
+
+.fx-graph-face-blank {
+  fill: var(--bg-tertiary);
+}
+
+.fx-graph-face-letter {
+  fill: var(--text-secondary);
+  font-weight: 650;
+}
+
+.fx-graph-t-name {
+  fill: var(--text-primary);
+  font-size: 13.5px;
+  font-weight: 600;
+}
+
+.fx-graph-t-sub {
+  fill: var(--text-tertiary);
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+}
+
+.fx-graph-t-body {
+  fill: var(--text-secondary);
+  font-size: 12.5px;
+}
+
+.fx-graph-t-num {
+  fill: var(--text-primary);
+  font-size: 13px;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+
+.fx-graph-t-head {
+  fill: var(--text-secondary);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+/* ─── Detail panel ───────────────────────────────────────────────────── */
+
+.fx-graph-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid var(--border-medium);
+  border-radius: 12px;
+  background: var(--bg-secondary);
+}
+
+.fx-graph-detail-empty,
+.fx-graph-detail-text {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+}
+
+.fx-graph-who {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.fx-graph-avatar {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+  font-weight: 650;
+}
+
+.fx-graph-names {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.fx-graph-dn {
+  font-weight: 650;
+  color: var(--text-primary);
+  overflow-wrap: anywhere;
+}
+
+.fx-graph-hd {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  color: var(--text-tertiary);
+  overflow-wrap: anywhere;
+}
+
+.fx-graph-rel {
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+}
+
+.fx-graph-post-text {
+  margin: 0;
+  max-height: 14em;
+  overflow: auto;
+  font-size: 0.9rem;
+  color: var(--text-primary);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.fx-graph-facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(72px, 1fr));
+  gap: 6px;
+  margin: 0;
+}
+
+.fx-graph-facts div {
+  padding: 6px 8px;
+  border-radius: 8px;
+  background: var(--bg-tertiary);
+}
+
+.fx-graph-facts dt {
+  font-size: 0.75rem;
+  color: var(--text-tertiary);
+}
+
+.fx-graph-facts dd {
+  margin: 0;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+
+.fx-graph-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  margin: 0;
+  font-size: 0.875rem;
+}
+
+.fx-graph-links a {
+  color: var(--text-accent);
+}
+
+/* ─── Ledger ─────────────────────────────────────────────────────────── */
+
+.fx-graph-ledger {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  min-width: 0;
+}
+
+.fx-graph-ledger-lists,
+.fx-graph-bars {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+}
+
+@container (min-width: 600px) {
+  .fx-graph-ledger-lists,
+  .fx-graph-bars {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+}
+
+.fx-graph-rank-h {
+  margin: 0 0 6px;
+  font-size: 0.9rem;
+  font-weight: 650;
+}
+
+.fx-graph-rank ol {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.fx-graph-rank-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(60px, 38%) 3.5ch;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 40px;
+  padding: 8px 6px;
+  font: inherit;
+  font-size: 0.875rem;
+  text-align: left;
+  color: var(--text-primary);
+  background: none;
+  border: 0;
+  border-radius: 7px;
+  cursor: pointer;
+}
+
+.fx-graph-rank-row:hover,
+.fx-graph-rank-row[data-focus] {
+  background: var(--bg-tertiary);
+}
+
+.fx-graph-rank-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fx-graph-rank-bar {
+  display: block;
+  height: 8px;
+  overflow: hidden;
+  border-radius: 4px;
+  background: var(--bg-tertiary);
+}
+
+.fx-graph-rank-bar span {
+  display: block;
+  height: 100%;
+  border-radius: 4px;
+}
+
+.fx-graph-rank-n {
+  text-align: right;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.fx-graph-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+}
+
+.fx-graph-bar-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.fx-graph-bar-head span {
+  font-weight: 500;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.fx-graph-bar-track {
+  display: flex;
+  gap: 2px;
+  height: 12px;
+}
+
+.fx-graph-bar-track span {
+  min-width: 3px;
+  border-radius: 3px;
+}
+
+.fx-graph-bar-table {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  font-size: 0.85rem;
+}
+
+.fx-graph-bar-table div {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.fx-graph-bar-table dt {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-secondary);
+}
+
+.fx-graph-bar-table dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.fx-graph-bar-table dd span {
+  color: var(--text-tertiary);
+}
+
+/* ─── Reading ────────────────────────────────────────────────────────── */
+
+.fx-graph-progress {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.fx-graph-progress-track {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  gap: 4px;
+}
+
+.fx-graph-progress-step {
+  height: 6px;
+  overflow: hidden;
+  border-radius: 3px;
+  background: var(--bg-tertiary);
+}
+
+.fx-graph-progress-step > span {
+  display: block;
+  height: 100%;
+  border-radius: 3px;
+  background: var(--text-accent);
+  transition: width 0.3s ease;
+}
+
+.fx-graph-progress-text {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.fx-graph-progress-found {
+  color: var(--text-tertiary);
+}
+
+/* ─── Arrivals ───────────────────────────────────────────────────────────
+
+   The drawing fills in as the read lands: a dot pops in when its account is
+   found and glides to another ring when a follow-back or a count of follows
+   in common arrives (.fx-graph-place carries the position as a transform, so
+   the move animates everywhere); bands and blocks fade in; flow cards slide
+   in a column at a time. Nothing moves for anyone who asked for less motion. */
+
+@media (prefers-reduced-motion: no-preference) {
+  .fx-graph-arrive {
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: fx-graph-pop 0.55s cubic-bezier(0.2, 0.8, 0.3, 1.2) both;
+  }
+
+  .fx-graph-fade {
+    animation: fx-graph-fade-in 0.5s ease-out both;
+  }
+
+  .fx-graph-slide {
+    animation: fx-graph-slide-in 0.4s cubic-bezier(0.2, 0.7, 0.3, 1) both;
+  }
+
+  .fx-graph-place {
+    transition: transform 0.8s cubic-bezier(0.3, 0.7, 0.2, 1);
+  }
+
+  .fx-graph-dot {
+    transition:
+      r 0.4s ease,
+      fill 0.4s ease,
+      fill-opacity 0.4s ease;
+  }
+
+  .fx-graph-rank-bar span {
+    transition: width 0.45s ease;
+  }
+
+  .fx-graph-bar-track span {
+    transition: flex-grow 0.45s ease;
+  }
+
+  .fx-graph-progress-step[data-state='active'] > span {
+    animation: fx-graph-breathe 1.4s ease-in-out infinite;
+  }
+}
+
+@keyframes fx-graph-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.2);
+  }
+}
+
+@keyframes fx-graph-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes fx-graph-slide-in {
+  from {
+    opacity: 0;
+    transform: translateX(-10px);
+  }
+}
+
+@keyframes fx-graph-breathe {
+  50% {
+    opacity: 0.55;
+  }
+}
+
+/* ─── The thread explorer ────────────────────────────────────────────────
+
+   Full screen over the page: a header with the key and the controls, the
+   tree on a canvas that scrolls both ways (and pans with a mouse drag), and
+   the detail panel beside it, or under it on a phone. */
+
+.fx-tx {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  background: var(--bg-primary);
+  padding-top: env(safe-area-inset-top, 0px);
+  outline: none;
+}
+
+.fx-tx-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 18px;
+  padding: 10px max(16px, env(safe-area-inset-right, 0px)) 10px max(16px, env(safe-area-inset-left, 0px));
+  border-bottom: 1px solid var(--border-medium);
+  background: var(--bg-secondary);
+}
+
+.fx-tx-title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+}
+
+.fx-tx-title h2 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.fx-tx-tools {
+  display: flex;
+  gap: 6px;
+  margin-left: auto;
+}
+
+.fx-tx-close {
+  color: var(--text-primary);
+}
+
+.fx-tx-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  min-height: 0;
+}
+
+.fx-tx-canvas {
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  cursor: grab;
+}
+
+.fx-tx-canvas[data-dragging] {
+  cursor: grabbing;
+  user-select: none;
+}
+
+.fx-tx-canvas > svg {
+  display: block;
+}
+
+.fx-tx-msg {
+  margin: 48px;
+}
+
+.fx-tx-side {
+  min-height: 0;
+  overflow: auto;
+  padding: 16px max(16px, env(safe-area-inset-right, 0px)) 16px 16px;
+  border-left: 1px solid var(--border-medium);
+  background: var(--bg-secondary);
+}
+
+.fx-tx-side .fx-graph-detail {
+  padding: 0;
+  border: 0;
+  background: none;
+}
+
+@media (max-width: 760px) {
+  /* The detail panel names each account's relation; on a phone the key's
+     three lines are worth more as canvas. */
+  .fx-tx-head .fx-graph-legend {
+    display: none;
+  }
+
+  .fx-tx-body {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr) auto;
+  }
+
+  .fx-tx-side {
+    max-height: 38vh;
+    padding-bottom: max(16px, env(safe-area-inset-bottom, 0px));
+    border-top: 1px solid var(--border-medium);
+    border-left: 0;
+  }
+}
+
+.fx-tx-chip rect {
+  fill: var(--bg-tertiary);
+  stroke: var(--border-medium);
+}
+
+.fx-tx-chip text {
+  fill: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.fx-tx-chip[data-active] rect,
+.fx-tx-group rect {
+  fill: var(--accent-soft);
+  stroke: var(--accent-soft-border);
+}
+
+.fx-tx-chip[data-active] text {
+  fill: var(--accent-soft-fg);
+}
+
+.fx-tx-group:not([data-open]) rect {
+  fill: var(--bg-tertiary);
+  stroke: var(--border-medium);
+}
+
+.fx-tx-chip:hover rect,
+.fx-tx-group:hover rect {
+  stroke: var(--text-tertiary);
+}

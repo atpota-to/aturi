@@ -14,10 +14,11 @@ import RepoSpacesSection from '../space/RepoSpacesSection';
 import AuditTab from '../tabs/AuditTab';
 import BacklinksTab from '../tabs/BacklinksTab';
 import IdentityTab from '../tabs/IdentityTab';
+import GraphTab from '../graph/GraphTab';
 import { HostedBacklinks, type BacklinksHost } from './LinksView';
 
 /** The account-level views, named as the repo page's `?tab=` names them. */
-export const ACCOUNT_TABS = ['overview', 'identity', 'audit', 'backlinks'] as const;
+export const ACCOUNT_TABS = ['overview', 'identity', 'audit', 'backlinks', 'graph'] as const;
 export type AccountTab = (typeof ACCOUNT_TABS)[number];
 
 /**
@@ -26,16 +27,17 @@ export type AccountTab = (typeof ACCOUNT_TABS)[number];
  * the overview rather than tabs as in Classic. Their `?tab=` names still
  * work: they open the overview at their section.
  */
-export const ACCOUNT_VIEWS = ['overview', 'backlinks'] as const;
+export const ACCOUNT_VIEWS = ['overview', 'backlinks', 'graph'] as const;
 export type AccountViewId = (typeof ACCOUNT_VIEWS)[number];
 
 export const ACCOUNT_VIEW_LABELS: Record<AccountViewId, string> = {
   overview: 'Overview',
   backlinks: 'Backlinks',
+  graph: 'Graph',
 };
 
 export function accountViewOf(tab: AccountTab): AccountViewId {
-  return tab === 'backlinks' ? 'backlinks' : 'overview';
+  return tab === 'backlinks' || tab === 'graph' ? tab : 'overview';
 }
 
 const IDENTITY_ID = 'fx-wb-identity';
@@ -52,8 +54,8 @@ const LOG_PREVIEW = 5;
  *
  * These are the repo page's own pieces, recomposed. The overview is the
  * glance stats over the identity document and its log, still honouring the
- * visitor's section choices; Backlinks is its tab, on the sheet a folder tab
- * opens. The collections tree, the repo page's other tab, is the rail beside
+ * visitor's section choices; Backlinks and Graph are its tabs, each on the
+ * sheet a folder tab opens. The collections tree, the repo page's other tab, is the rail beside
  * this pane, and so is the account card, wherever the rail is on screen to
  * show it. Where it isn't (a drawer, or hidden), `card` puts the card back
  * here, beside the glance, so the account is never out of sight or on
@@ -153,6 +155,17 @@ export default function AccountView({
                 ) : (
                   <BacklinksTab target={identity.did} />
                 )}
+              </div>
+            </section>
+          </AppearIn>
+        )}
+
+        {view === 'graph' && (
+          <AppearIn key={view}>
+            <section className="fx-wb-section">
+              <h1 className="fx-wb-h">{ACCOUNT_VIEW_LABELS.graph}</h1>
+              <div className="fx-tabpanel">
+                <GraphTab key={identity.did} identity={identity} />
               </div>
             </section>
           </AppearIn>

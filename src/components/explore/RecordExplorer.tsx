@@ -18,6 +18,8 @@ import LinkifiedJson from './LinkifiedJson';
 import RecordPreview from '@/components/RecordPreview';
 import RichRecordCard, { recordHasRichCard } from './RichRecordCard';
 import BacklinksTab, { type BacklinksLauncher } from './tabs/BacklinksTab';
+import ThreadExplorer from './graph/ThreadExplorer';
+import ThreadSection from './graph/ThreadSection';
 import { RecordSchemaRow } from './RecordSchemaCheck';
 import { toolLinksForRecord, type ToolLink } from '@/lib/tools/recordLinks';
 import LexiconUsageCard from './lexicons/LexiconUsageCard';
@@ -50,11 +52,12 @@ type Props = {
 };
 
 /** The tabs a record's sections are filed under in a pane. */
-export type RecordPaneTab = 'preview' | 'record' | 'backlinks' | 'more';
+export type RecordPaneTab = 'preview' | 'record' | 'thread' | 'backlinks' | 'more';
 
 const PANE_TABS: { value: RecordPaneTab; label: string }[] = [
   { value: 'preview', label: 'Preview' },
   { value: 'record', label: 'Record' },
+  { value: 'thread', label: 'Thread' },
   { value: 'backlinks', label: 'Backlinks' },
   { value: 'more', label: 'More' },
 ];
@@ -69,6 +72,7 @@ function paneTabOf(slotId: string, hasPreview: boolean): RecordPaneTab {
   if (slotId === 'richPreview') return 'preview';
   if (slotId === 'engagement') return hasPreview ? 'preview' : 'record';
   if (slotId === 'record') return 'record';
+  if (slotId === 'thread') return 'thread';
   if (slotId === 'backlinks') return 'backlinks';
   return 'more';
 }
@@ -286,6 +290,7 @@ function RecordView({
   );
   const titleActions = (
     <div className="fn-rec-actions">
+      {isPost && <ThreadExplorer uri={atUri} rkey={decodedRkey} />}
       <CopyTextButton value={atUri} label="Copy at:// URI" />
       {/* The Edit button stays watched (setEditChipEl) so the chrome bar
           offers the same action exactly while it isn't on screen. */}
@@ -579,6 +584,9 @@ function RecordView({
         if (node != null) placed.push({ id, column, node });
       }
     }
+    // A post's whole thread, drawn. Not one of the visitor's sections, so it
+    // follows them; a post with no replies gets a line saying so.
+    if (isPost) placed.push({ id: 'thread', column: 'main', node: <ThreadSection uri={atUri} /> });
   }
   const renderColumn = (column: Placed['column']) =>
     placed
