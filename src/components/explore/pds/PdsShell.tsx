@@ -316,7 +316,11 @@ export default function PdsShell({ mode, host }: { mode: 'workbench' | 'files'; 
           <PdsCrumbs host={host} loc={loc} tab={tab} addressFor={addressFor} phone={phone} />
         </div>
         <div className="fx-wb-toolbar-end">
-          {files && tab === 'accounts' && <FilesLayoutSwitch />}
+          {files && tab === 'accounts' && (
+            <div className="fx-wb-toolbar-tools">
+              <FilesLayoutSwitch />
+            </div>
+          )}
           <ViewSwitch />
           <ShareLinkChip
             url={pdsAddress(loc, defaultTab)}
