@@ -247,7 +247,14 @@ function RecordView({
   // defaults so first paint matches SSR and doesn't flicker.
   const settled = !prefsLoading;
   const recordSections = settled ? prefs.recordSections : DEFAULT_RECORD_SECTIONS;
-  const cardHidden = sectionHidden(recordSections, 'richPreview');
+  // In a pane without the main width, the sections are filed under tabs
+  // rather than set in two columns (see the read-mode layout below).
+  const tabbed = Boolean(pane && !pane.wide);
+  // There the Preview tab is itself the switch: the card always shows under
+  // it, with no "Hide rich preview" control beneath, and the page's setting
+  // is left to the page. Otherwise a hidden card left the tab holding only
+  // the control that brings it back.
+  const cardHidden = !tabbed && sectionHidden(recordSections, 'richPreview');
   const structuredHiddenRaw = sectionHidden(recordSections, 'structuredJson');
   const rawHidden = sectionHidden(recordSections, 'rawJson');
   // The field table and raw JSON are the two data views; at least one must
@@ -526,13 +533,15 @@ function RecordView({
                   />
                 </div>
               )}
-              <ViewSwitchButton
-                showing={!cardHidden}
-                label={cardHidden ? 'Show rich preview' : 'Hide rich preview'}
-                onToggle={() =>
-                  updatePrefs((p) => setSectionHidden(p, 'record', 'richPreview', !cardHidden))
-                }
-              />
+              {!tabbed && (
+                <ViewSwitchButton
+                  showing={!cardHidden}
+                  label={cardHidden ? 'Show rich preview' : 'Hide rich preview'}
+                  onToggle={() =>
+                    updatePrefs((p) => setSectionHidden(p, 'record', 'richPreview', !cardHidden))
+                  }
+                />
+              )}
             </div>
           ),
         });
@@ -589,7 +598,6 @@ function RecordView({
   // rather than set in two columns. Only tabs with something in them show
   // (the visitor may have hidden a section, and not every record has a rich
   // preview), and the open one falls back to the first that does.
-  const tabbed = Boolean(pane && !pane.wide);
   const hasPreview = placed.some((p) => p.id === 'richPreview');
   const paneTabs = PANE_TABS.filter((t) =>
     placed.some((p) => paneTabOf(p.id, hasPreview) === t.value),
