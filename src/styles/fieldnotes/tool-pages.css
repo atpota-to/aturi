@@ -2780,31 +2780,6 @@ button.fn-tool-activity-stat:focus-visible {
   margin-top: 12px;
 }
 
-.fn-tool-mutuals-skipped {
-  margin-top: 10px;
-  font-size: 12.5px;
-  color: var(--text-tertiary);
-}
-
-.fn-tool-mutuals-skipped summary {
-  cursor: pointer;
-  font-weight: 600;
-  color: var(--text-secondary);
-}
-
-.fn-tool-mutuals-skipped ul {
-  margin: 8px 0 0;
-  padding-left: 18px;
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-}
-
-.fn-tool-mutuals-skipped a {
-  color: var(--text-accent);
-  text-decoration: none;
-}
-
 /* ---------- The distribution ---------- */
 
 .fn-tool-mutuals-dist {
@@ -3036,18 +3011,6 @@ button.fn-tool-activity-stat:focus-visible {
   font-size: 12px;
   color: var(--text-tertiary);
   font-variant-numeric: tabular-nums;
-}
-
-.fn-tool-mutuals-table summary {
-  cursor: pointer;
-  font-size: 12.5px;
-  font-weight: 600;
-  color: var(--text-secondary);
-}
-
-.fn-tool-mutuals-table .fn-tool-table {
-  margin-top: 8px;
-  max-width: 320px;
 }
 
 /* ---------- Narrowed to one mutual ---------- */
@@ -3530,18 +3493,7 @@ button.fn-tool-mutuals-stack:focus-visible {
 }
 
 .fn-tool-mutuals-gone {
-  margin-top: 16px;
-}
-
-.fn-tool-mutuals-gone summary {
-  cursor: pointer;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text-secondary);
-}
-
-.fn-tool-mutuals-gone > .fn-tool-note {
-  margin: 8px 0 10px;
+  margin-top: 12px;
 }
 
 @media (max-width: 640px) {

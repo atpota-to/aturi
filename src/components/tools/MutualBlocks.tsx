@@ -126,7 +126,6 @@ function Flags({ flags }: { flags: CandidateFlags }) {
       {flags.mutual && <span className="fn-tool-pill" data-tone="warn">Mutual</span>}
       {!flags.mutual && flags.followed && <span className="fn-tool-pill" data-tone="warn">Followed</span>}
       {flags.blocked && <span className="fn-tool-pill">Already blocked</span>}
-      {flags.missing && <span className="fn-tool-pill" data-tone="outline">Not found</span>}
     </>
   );
 }
@@ -389,7 +388,7 @@ export default function MutualBlocks() {
     setOverrides({ key: scanKey, ticks: new Map(ticks).set(did, value) });
   const tickAll = (value: boolean) => {
     const next = new Map(ticks);
-    for (const c of shownCandidates) next.set(c.did, value);
+    for (const c of present) next.set(c.did, value);
     setOverrides({ key: scanKey, ticks: next });
   };
   const selected = ranked.filter((c) => isTicked(c.did)).map((c) => c.did);
@@ -565,23 +564,10 @@ export default function MutualBlocks() {
                   Choose one to see only the accounts it blocks.
                 </p>
                 {skipped.length > 0 && done && (
-                  <details className="fn-tool-mutuals-skipped">
-                    <summary>
-                      {nf.format(skipped.length)} not read
-                    </summary>
-                    <ul>
-                      {scan.states.map((state, index) =>
-                        state.status === 'skipped' && !state.stopped ? (
-                          <li key={scan.mutuals[index].did}>
-                            <Link href={`/explore/${scan.mutuals[index].did}`} prefetch={false}>
-                              {who(scan.mutuals[index])}
-                            </Link>
-                            : {state.reason}
-                          </li>
-                        ) : null,
-                      )}
-                    </ul>
-                  </details>
+                  <p className="fn-tool-note">
+                    {nf.format(skipped.length)} {skipped.length === 1 ? 'mutual' : 'mutuals'} could not be read, marked
+                    with a red ring. Point at one to see why.
+                  </p>
                 )}
               </ToolCard>
             </ToolSection>
@@ -674,7 +660,7 @@ export default function MutualBlocks() {
                       </button>
                     )}
                     <span className="fn-tool-bar-end fn-tool-note">
-                      Accounts {name} follows, mutuals and accounts that no longer exist start unticked.
+                      Accounts {name} follows and mutuals start unticked.
                     </span>
                   </div>
                   <ToolCard flush>
@@ -712,35 +698,10 @@ export default function MutualBlocks() {
                     </div>
                   )}
                   {gone.length > 0 && (
-                    <details className="fn-tool-mutuals-gone">
-                      <summary>
-                        {nf.format(gone.length)} {gone.length === 1 ? 'account no longer exists' : 'accounts no longer exist'}
-                      </summary>
-                      <p className="fn-tool-note">
-                        Deleted, deactivated or taken down since they were blocked. A list entry for one does nothing
-                        unless it comes back, so they start unticked.
-                      </p>
-                      <ToolCard flush>
-                        <ul className="fn-tool-rows">
-                          {gone.slice(0, shownCount).map((candidate) => (
-                            <CandidateRow
-                              key={candidate.did}
-                              candidate={candidate}
-                              profile={null}
-                              flags={flagsFor(candidate.did)}
-                              checked={isTicked(candidate.did)}
-                              onCheck={(value) => tick(candidate.did, value)}
-                              mutuals={scan.mutuals}
-                              mutualsRead={mutualsRead}
-                              expanded={expanded === candidate.did}
-                              onExpand={() =>
-                                setExpanded({ key: scanKey, did: expanded === candidate.did ? null : candidate.did })
-                              }
-                            />
-                          ))}
-                        </ul>
-                      </ToolCard>
-                    </details>
+                    <p className="fn-tool-note fn-tool-mutuals-gone">
+                      {nf.format(gone.length)} {gone.length === 1 ? 'account that no longer exists is' : 'accounts that no longer exist are'}{' '}
+                      left out: deleted, deactivated or taken down since they were blocked.
+                    </p>
                   )}
                 </>
               )}

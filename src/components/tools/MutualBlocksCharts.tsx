@@ -240,27 +240,6 @@ export function Distribution({
         />
         <span aria-hidden>{nf.format(top)}</span>
       </div>
-      <details className="fn-tool-mutuals-table">
-        <summary>The same as a table</summary>
-        <table className="fn-tool-table">
-          <thead>
-            <tr>
-              <th>Mutuals blocking</th>
-              <th data-num>Accounts</th>
-            </tr>
-          </thead>
-          <tbody>
-            {bins
-              .filter((bin) => bin.count > 0)
-              .map((bin) => (
-                <tr key={bin.from}>
-                  <td>{binLabel(bin)}</td>
-                  <td data-num>{nf.format(bin.count)}</td>
-                </tr>
-              ))}
-          </tbody>
-        </table>
-      </details>
     </div>
   );
 }
