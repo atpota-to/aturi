@@ -41,13 +41,10 @@ const PHONE_QUERY = '(max-width: 639px)';
  * its point is the list it narrows, which the sheet would hide.
  */
 export function JumpField() {
-  const router = useRouter();
   const pathname = usePathname();
   const [value, setValue] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
-  // Guards a second Enter while an unrecognized URL is being resolved
-  // through /api/at-tags.
-  const resolvingRef = useRef(false);
+  const jump = useJump();
   const fieldId = useId();
   const phone = useMediaQuery(PHONE_QUERY);
   const sheetOpen = usePhoneSearchOwner() === fieldId;
@@ -87,22 +84,12 @@ export function JumpField() {
   }, [phone, sheetOpen]);
 
   /** Resolve and go; false when the text named nowhere. */
-  async function go(query: string): Promise<boolean> {
-    if (resolvingRef.current) return false;
-    resolvingRef.current = true;
-    try {
-      const path = await resolveSearchPathAsync(query);
-      if (!path) return false;
-      recordQueryVisit(query, path);
+  const go = (query: string) =>
+    jump(query, (path) => {
       // The sheet's host closes it when the next page lands; a jump to the
       // page already open lands nowhere new, so close it here.
       if (isCurrentPath(path)) closePhoneSearch();
-      router.push(path);
-      return true;
-    } finally {
-      resolvingRef.current = false;
-    }
-  }
+    });
 
   /*
    * Pasting a link someone shared is the most common way into this field,
@@ -116,12 +103,7 @@ export function JumpField() {
    * be edited rather than followed.
    */
   async function pasteAndGo() {
-    let text: string;
-    try {
-      text = (await navigator.clipboard.readText()).trim();
-    } catch {
-      return;
-    }
+    const text = await readClipboard();
     if (!text) return;
     setValue(text);
     if (!/\s/.test(text)) await go(text);
@@ -164,6 +146,62 @@ export function JumpField() {
   );
 }
 
+/**
+ * The jump search's routing, for any field that can send you somewhere:
+ * resolve the text to its explorer page (handles, DIDs, at:// URIs, client
+ * URLs, AT Tags for an unrecognized URL) and push it. Resolves false when the
+ * text named nowhere. `beforePush` sees the path first, for a caller with
+ * something to tidy before the page changes.
+ */
+export function useJump() {
+  const router = useRouter();
+  // Guards a second Enter while an unrecognized URL is being resolved
+  // through /api/at-tags.
+  const resolvingRef = useRef(false);
+
+  return async (query: string, beforePush?: (path: string) => void): Promise<boolean> => {
+    if (resolvingRef.current) return false;
+    resolvingRef.current = true;
+    try {
+      const path = await resolveSearchPathAsync(query);
+      if (!path) return false;
+      recordQueryVisit(query, path);
+      beforePush?.(path);
+      router.push(path);
+      return true;
+    } finally {
+      resolvingRef.current = false;
+    }
+  };
+}
+
+/**
+ * Text that can only mean "take me there": an at:// URI or an http(s) link.
+ * A route's filter takes over the bar from the jump search, but these still
+ * jump on Enter or Paste and go, since a pasted link is the commonest way
+ * into the bar. The filter still narrows by them as they're typed (a record
+ * search can match a like's subject URI); a live filter has nothing for
+ * Enter to do, so Enter is free to mean go. A handle or DID stays a filter,
+ * because a list of repos or members is narrowed by exactly those, and a
+ * half-typed one would jump to a repo that doesn't exist.
+ */
+export function isJumpQuery(text: string): boolean {
+  const v = text.trim();
+  return !/\s/.test(v) && (v.startsWith('at://') || /^https?:\/\//i.test(v));
+}
+
+/**
+ * The clipboard's text, trimmed, for a Paste and go button; null when it's
+ * empty or the browser refused the read (see JumpField's pasteAndGo).
+ */
+export async function readClipboard(): Promise<string | null> {
+  try {
+    return (await navigator.clipboard.readText()).trim() || null;
+  } catch {
+    return null;
+  }
+}
+
 const noSubscription = () => () => {};
 
 /**
@@ -171,7 +209,7 @@ const noSubscription = () => () => {};
  * only gained it in 125, and it needs a secure context). False on the
  * server, so the button only appears once hydrated.
  */
-function useCanReadClipboard(): boolean {
+export function useCanReadClipboard(): boolean {
   return useSyncExternalStore(
     noSubscription,
     () => typeof navigator.clipboard?.readText === 'function',
@@ -201,7 +239,7 @@ export function FieldForm({
   onChange: (value: string) => void;
   onSubmit: () => void;
   onClear: () => void;
-  /** Only the jump search offers this; a route's filter has nothing to go to. */
+  /** Shown in Clear's slot while the field is empty, where the clipboard can be read. */
   onPasteAndGo?: () => void;
   onFocus?: () => void;
   /** Escape on an empty field: the jump search closes its phone sheet. */
@@ -271,6 +309,11 @@ export function FieldForm({
         canPaste && (
           <button
             type="button"
+            // Chromium focuses a button on press, and focus in the form folds
+            // Back and Home away on a phone (chrome.css) so the field grows
+            // right, carrying this button out from under the finger before
+            // the click lands. Refusing focus keeps it where it was tapped.
+            onMouseDown={(e) => e.preventDefault()}
             onClick={onPasteAndGo}
             aria-label="Paste and go"
             title="Paste and go"
