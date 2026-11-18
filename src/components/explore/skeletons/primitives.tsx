@@ -111,11 +111,20 @@ export function SkeletonBreadcrumb({
 /**
  * Stand-in for the explorer's account card (<ProfileHeader> with the identity
  * rows): round avatar, name and handle, two lines of bio, the three stats,
- * the DID / handle / PDS list and the "Open profile in…" row.
+ * the DID / handle / PDS list and the "Open profile in…" row. `flat` drops
+ * the frame, for the workbench's rail, where the card lies flat on the rail.
  */
-export function SkeletonAccountCard() {
+export function SkeletonAccountCard({ flat = false }: { flat?: boolean }) {
   return (
-    <SkeletonPanel padding="16px" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+    <SkeletonPanel
+      padding="16px"
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '14px',
+        ...(flat && { border: 0, borderRadius: 0, background: 'none' }),
+      }}
+    >
       <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
         <Skeleton width="44px" height="44px" shape="circle" style={{ flexShrink: 0 }} />
         <div style={{ flex: 1, minWidth: 0 }}>

@@ -13,8 +13,6 @@ import { usePathname, useSearchParams } from 'next/navigation';
 import {
   ChevronDown,
   ChevronUp,
-  Fingerprint,
-  History,
   LayoutDashboard,
   Link2,
   Maximize2,
@@ -37,7 +35,9 @@ import {
   lexiconAddress,
 } from '@/lib/lexiconExplorer';
 import { getSiteMenuSnapshot, setSiteMenuOpen, subscribeSiteMenu } from '@/lib/siteMenu';
+import { DEFAULT_REPO_SECTIONS, sectionHidden } from '@/utils/exploreSections';
 import NotFoundPanel from '@/components/NotFoundPanel';
+import { usePreferences } from '@/components/PreferencesProvider';
 import { useFillViewport } from '@/components/useFillViewport';
 import Breadcrumb from '../Breadcrumb';
 import { useChromeBarPanel } from '../ChromeBarContext';
@@ -46,7 +46,10 @@ import CopyButton from '../CopyButton';
 import LexiconPane, { type LexiconTab } from '../lexicons/workbench/LexiconPane';
 import type { AddressFor } from '../lexicons/workbench/LexiconRail';
 import { RecordPane, type RecordPaneTab } from '../RecordExplorer';
+import RelationshipStrip from '../RelationshipStrip';
+import { AccountCard } from '../RepoExplorer';
 import ShareLinkChip from '../ShareLinkChip';
+import { AuditTabSkeleton, IdentityTabSkeleton } from '../skeletons/pages';
 import {
   SkeletonAccountCard,
   SkeletonBar,
@@ -59,7 +62,14 @@ import { backlinkRelationLabel } from '../tabs/BacklinksTab';
 import CollectionsTab from '../tabs/CollectionsTab';
 import { useMediaQuery } from '../useIsNarrow';
 import { useRepoCollections } from '../useRepoCollections';
-import AccountView, { ACCOUNT_TABS, ACCOUNT_TAB_LABELS, type AccountTab } from './AccountView';
+import AccountView, {
+  ACCOUNT_TABS,
+  ACCOUNT_VIEWS,
+  ACCOUNT_VIEW_LABELS,
+  accountViewOf,
+  type AccountTab,
+  type AccountViewId,
+} from './AccountView';
 import { FilesSidebar, FolderBrowser, PathBar, useNamespaces } from './FilesBrowser';
 import { PeekPane, RecordLinksView, type BacklinksHost } from './LinksView';
 import { RecordFileSkeleton } from './RecordFile';
@@ -90,10 +100,8 @@ const LEXICON_DEFAULTS = {
 } as const;
 const lexiconAddressFor: AddressFor = ({ scope, nsid = null }) => lexiconAddress({ ...LEXICON_DEFAULTS, scope, nsid });
 
-const ACCOUNT_TAB_ICONS: Record<AccountTab, LucideIcon> = {
+const ACCOUNT_VIEW_ICONS: Record<AccountViewId, LucideIcon> = {
   overview: LayoutDashboard,
-  identity: Fingerprint,
-  audit: History,
   backlinks: Link2,
 };
 
@@ -184,10 +192,15 @@ export default function ExplorerShell({ mode, repo, collection, rkey }: Props) {
       : files
         ? null
         : 'overview';
+  const accountView = accountTab ? accountViewOf(accountTab) : null;
   const ns = !collection && !accountTab ? searchParams.get('ns') : null;
 
   const [railOpen, setRailOpen] = useState(false);
   const [railHidden, setRailHidden] = useState(false);
+  // The account card heads the rail while the rail is a column on screen;
+  // as a drawer, or hidden, the rail keeps a line and the overview has the
+  // card instead.
+  const cardInRail = !drawers && !railHidden;
   const [wide, setWide] = useState(false);
   const [recordTab, setRecordTab] = useState<RecordPaneTab>('preview');
   // A peeked record keeps a tab of its own: opened from the record's
@@ -676,23 +689,29 @@ export default function ExplorerShell({ mode, repo, collection, rkey }: Props) {
           <span className="fx-wb-grab" aria-hidden />
           {identity ? (
             <>
-              <RailAccount identity={identity} base={base} onDone={() => setRailOpen(false)} />
+              <RailAccount
+                identity={identity}
+                base={base}
+                card={cardInRail}
+                browsing={Boolean(collection || ns)}
+                onDone={() => setRailOpen(false)}
+              />
               <nav aria-label="Account" className="fx-wb-views">
-                {ACCOUNT_TABS.map((tab) => {
-                  const Icon = ACCOUNT_TAB_ICONS[tab];
+                {ACCOUNT_VIEWS.map((view) => {
+                  const Icon = ACCOUNT_VIEW_ICONS[view];
                   // The overview is the workbench's bare repo address; the
                   // Files view keeps that for the repo's folders.
-                  const href = tab === 'overview' && !files ? base : `${base}?tab=${tab}`;
+                  const href = view === 'overview' && !files ? base : `${base}?tab=${view}`;
                   return (
                     <Link
-                      key={tab}
+                      key={view}
                       href={href}
                       prefetch={false}
                       className="fx-wb-view"
-                      aria-current={accountTab === tab ? 'page' : undefined}
+                      aria-current={accountView === view ? 'page' : undefined}
                     >
                       <Icon size={14} aria-hidden />
-                      {ACCOUNT_TAB_LABELS[tab]}
+                      {ACCOUNT_VIEW_LABELS[view]}
                     </Link>
                   );
                 })}
@@ -718,7 +737,7 @@ export default function ExplorerShell({ mode, repo, collection, rkey }: Props) {
               )}
             </>
           ) : (
-            <RailSkeleton files={files} />
+            <RailSkeleton files={files} card={cardInRail && !collection && !ns} />
           )}
         </aside>
 
@@ -734,6 +753,7 @@ export default function ExplorerShell({ mode, repo, collection, rkey }: Props) {
                     ? 'folders'
                     : 'account'
               }
+              card={!cardInRail}
             />
           ) : collection ? (
             // Two layers in one cell. The list of what links to the open
@@ -776,6 +796,7 @@ export default function ExplorerShell({ mode, repo, collection, rkey }: Props) {
             <AccountView
               identity={identity}
               tab={accountTab}
+              card={!cardInRail}
               backlinks={accountTab === 'backlinks' ? backlinksHost : undefined}
             />
           ) : (
@@ -886,21 +907,28 @@ export default function ExplorerShell({ mode, repo, collection, rkey }: Props) {
 
 /**
  * The rail before the account has resolved, in the rail's own rows: the
- * account line, the four views, then the tree or the places. The headings
- * are fixed, so they are drawn for real.
+ * account card or its line (`card`, as RailAccount will draw it), the two
+ * views, then the tree or the places. The headings are fixed, so they are
+ * drawn for real.
  */
-function RailSkeleton({ files }: { files: boolean }) {
+function RailSkeleton({ files, card }: { files: boolean; card: boolean }) {
   return (
     <>
-      <div className="fx-wb-acct" aria-hidden>
-        <SkeletonBar width="36px" height="36px" shape="circle" style={{ flex: 'none' }} />
-        <div className="fx-wb-acct-names" style={{ gap: 7 }}>
-          <SkeletonBar width="7rem" height="0.85rem" />
-          <SkeletonBar width="5.5rem" height="0.6rem" />
+      {card ? (
+        <div className="fx-wb-acct-card" aria-hidden>
+          <SkeletonAccountCard flat />
         </div>
-      </div>
+      ) : (
+        <div className="fx-wb-acct" aria-hidden>
+          <SkeletonBar width="36px" height="36px" shape="circle" style={{ flex: 'none' }} />
+          <div className="fx-wb-acct-names" style={{ gap: 7 }}>
+            <SkeletonBar width="7rem" height="0.85rem" />
+            <SkeletonBar width="5.5rem" height="0.6rem" />
+          </div>
+        </div>
+      )}
       <div className="fx-wb-views" aria-hidden>
-        {['4.25rem', '3.5rem', '1.75rem', '4.5rem'].map((width, i) => (
+        {['4.25rem', '4.5rem'].map((width, i) => (
           <span key={i} className="fx-wb-view" data-skeleton>
             <SkeletonBar width="14px" height="14px" shape="control" style={{ flex: 'none' }} />
             <SkeletonBar width={width} height="0.6rem" />
@@ -932,20 +960,41 @@ function RailSkeleton({ files }: { files: boolean }) {
 /**
  * The main pane before the account has resolved, shaped like what the
  * address says is coming: a record list, a grid of files or folders, or the
- * account's overview.
+ * account's overview, with the account card beside it where the rail won't
+ * have it (`card`, as AccountView takes it).
  */
-function MainSkeleton({ kind }: { kind: 'records' | 'files' | 'folders' | 'account' }) {
+function MainSkeleton({
+  kind,
+  card = false,
+}: {
+  kind: 'records' | 'files' | 'folders' | 'account';
+  card?: boolean;
+}) {
   if (kind === 'account') {
     return (
       <div className="fx-wb-page" aria-hidden>
         <div className="fx-wb-page-inner fx-main">
-          <div className="fx-wb-overview">
-            <div className="fx-wb-overview-side">
-              <SkeletonAccountCard />
-            </div>
+          <div className="fx-wb-overview" data-card={card || undefined}>
+            {card && (
+              <div className="fx-wb-overview-side">
+                <SkeletonAccountCard />
+              </div>
+            )}
             <div className="fx-wb-overview-main">
-              <SkeletonBar width="8rem" height="0.9rem" />
-              <SkeletonStatTiles />
+              <div className="fx-wb-section">
+                <SkeletonBar width="8rem" height="0.9rem" />
+                <SkeletonStatTiles />
+              </div>
+              <div className="fx-wb-idgrid">
+                <div className="fx-tabpanel fx-wb-idcard">
+                  <SkeletonBar width="4.5rem" height="0.9rem" />
+                  <IdentityTabSkeleton />
+                </div>
+                <div className="fx-tabpanel fx-wb-idcard">
+                  <SkeletonBar width="2.5rem" height="0.9rem" />
+                  <AuditTabSkeleton />
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -977,16 +1026,26 @@ function MainSkeleton({ kind }: { kind: 'records' | 'files' | 'folders' | 'accou
 }
 
 /**
- * The account, in the rail: who this is and their DID to copy. The whole
- * account card (bio, counts, where to open the profile) is the Overview.
+ * The account, at the head of the rail. Where the rail is a column on screen
+ * (`card`), this is the account card itself, the one the classic page keeps
+ * in its sidebar: the profile, the identity rows, where to open the profile,
+ * and how the visitor relates to the account. It folds to one line while a
+ * collection or a folder is open (`browsing`), so the tree under it has the
+ * room, and the visitor can fold or unfold it either way, a choice that
+ * holds until they change it. As a drawer the rail keeps the line, and the
+ * overview shows the card instead (AccountView).
  */
 function RailAccount({
   identity,
   base,
+  card,
+  browsing,
   onDone,
 }: {
   identity: IdentityBundle;
   base: string;
+  card: boolean;
+  browsing: boolean;
   /** Closes the rail when it is a drawer; the button is hidden when it isn't. */
   onDone: () => void;
 }) {
@@ -1001,6 +1060,58 @@ function RailAccount({
       cancelled = true;
     };
   }, [identity.did]);
+
+  const { prefs, loading } = usePreferences();
+  const sections = loading ? DEFAULT_REPO_SECTIONS : prefs.repoSections;
+  const profileHidden = sectionHidden(sections, 'profile');
+  const identityHidden = sectionHidden(sections, 'identity');
+
+  // The card would say no more than the line when the visitor hid the
+  // identity rows and there is no profile to show in their place.
+  const hasProfile = Boolean(
+    profile && (profile.displayName?.trim() || profile.description?.trim() || profile.avatar),
+  );
+  const foldable = card && !(identityHidden && (profileHidden || !hasProfile));
+  const [foldChoice, setFoldChoice] = useState<boolean | null>(null);
+  const folded = !foldable || (foldChoice ?? browsing);
+
+  // Folding swaps one toggle for the other: keep the focus on it, but only
+  // when the visitor pressed it, not when opening a collection folded it.
+  const toggleRef = useRef<HTMLButtonElement>(null);
+  const refocus = useRef(false);
+  useEffect(() => {
+    if (!refocus.current) return;
+    refocus.current = false;
+    toggleRef.current?.focus();
+  }, [folded]);
+  const toggle = () => {
+    refocus.current = true;
+    setFoldChoice(!folded);
+  };
+
+  if (!folded) {
+    return (
+      <div className="fx-wb-acct-card">
+        <button
+          ref={toggleRef}
+          type="button"
+          className="fx-wb-icon fx-wb-fold"
+          onClick={toggle}
+          aria-expanded
+          aria-label="Fold the account card"
+          title="Fold"
+        >
+          <ChevronUp size={16} aria-hidden />
+        </button>
+        <AccountCard identity={identity} profileHidden={profileHidden} identityHidden={identityHidden} />
+        {!sectionHidden(sections, 'relationship') && (
+          <div className="fx-wb-acct-strip">
+            <RelationshipStrip target={identity} />
+          </div>
+        )}
+      </div>
+    );
+  }
 
   const handle = identity.handle || profile?.handle || null;
   const name = profile?.displayName?.trim() || null;
@@ -1024,6 +1135,19 @@ function RailAccount({
         {name && handle && <span className="fx-wb-acct-handle">@{handle}</span>}
       </div>
       <CopyButton value={identity.did} label="Copy DID" compact variant="subtle" iconOnly />
+      {foldable && (
+        <button
+          ref={toggleRef}
+          type="button"
+          className="fx-wb-icon"
+          onClick={toggle}
+          aria-expanded={false}
+          aria-label="Unfold the account card"
+          title="Unfold"
+        >
+          <ChevronDown size={16} aria-hidden />
+        </button>
+      )}
       <button type="button" className="fx-btn fx-btn-sm fx-wb-done" onClick={onDone}>
         Done
       </button>
