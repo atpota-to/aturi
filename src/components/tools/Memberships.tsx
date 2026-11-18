@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import { BadgeCheck, List, LoaderCircle, User } from 'lucide-react';
 import { Credit } from '@/components/explore/lexicons/primitives';
@@ -226,7 +226,7 @@ function ListSection({ title, hint, items }: { title: string; hint: string; item
  * pages of lists load on a button, since a well-known account is on tens of
  * thousands and each one takes two lookups to describe.
  */
-export default function Memberships({ subject }: { subject?: string } = {}) {
+export default function Memberships({ subject, heading }: { subject?: string; heading?: ReactNode } = {}) {
   const [query, setQuery] = useToolQuery(['account'] as const);
   // Embedded in the Explorer, the account comes from the page.
   const embedded = subject !== undefined;
@@ -298,6 +298,7 @@ export default function Memberships({ subject }: { subject?: string } = {}) {
     <ToolShell
       slug={SLUG}
       embedded={embedded}
+      heading={heading}
       share={actor ? `${toolHref(SLUG)}?account=${encodeURIComponent(actor)}` : undefined}
       form={
         <ToolForm

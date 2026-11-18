@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useRef, useState } from 'react';
+import { useMemo, useRef, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import { CalendarDays, ExternalLink, Square, X } from 'lucide-react';
 import LexiconFavicon from '@/components/explore/tabs/LexiconFavicon';
@@ -67,7 +67,7 @@ function settled(collections: CollectionScan[]): number {
  * activityScan.ts; this starts a read, shows it filling in, and draws the
  * result.
  */
-export default function ActivityCalendar({ subject }: { subject?: string } = {}) {
+export default function ActivityCalendar({ subject, heading }: { subject?: string; heading?: ReactNode } = {}) {
   const [query, setQuery] = useToolQuery(['actor'] as const);
   // Embedded in the Explorer, the account comes from the page.
   const embedded = subject !== undefined;
@@ -95,6 +95,7 @@ export default function ActivityCalendar({ subject }: { subject?: string } = {})
     <ToolShell
       slug={SLUG}
       embedded={embedded}
+      heading={heading}
       share={actor ? `${toolHref(SLUG)}?actor=${encodeURIComponent(actor)}` : undefined}
       form={
         <ToolForm

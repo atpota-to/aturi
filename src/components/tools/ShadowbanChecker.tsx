@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, type FormEvent } from 'react';
+import { useState, type FormEvent, type ReactNode } from 'react';
 import Link from 'next/link';
 import { Check, EyeOff, LoaderCircle, TriangleAlert, X } from 'lucide-react';
 import { toolHref } from '@/lib/tools/catalog';
@@ -341,7 +341,7 @@ function toItems(checks: ShadowbanCheck[]): CheckItem[] {
  * src/lib/tools/shadowban.ts and the requests in shadowbanClient.ts; this
  * runs them and draws the result.
  */
-export default function ShadowbanChecker({ subject }: { subject?: string } = {}) {
+export default function ShadowbanChecker({ subject, heading }: { subject?: string; heading?: ReactNode } = {}) {
   const [query, setQuery] = useToolQuery(['subject', 'appview'] as const);
   // Embedded in the Explorer, the account comes from the page rather than
   // the query string, and the tool draws without its head card. The AppView
@@ -407,6 +407,7 @@ export default function ShadowbanChecker({ subject }: { subject?: string } = {})
       slug={SLUG}
       share={share}
       embedded={embedded}
+      heading={heading}
       controls={picker}
       form={
         <>

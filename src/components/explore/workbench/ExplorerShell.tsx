@@ -11,14 +11,19 @@ import {
 import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
 import {
+  BadgeCheck,
+  CalendarDays,
   ChevronDown,
   ChevronUp,
+  ExternalLink,
+  EyeOff,
   LayoutDashboard,
   Link2,
   Maximize2,
   Minimize2,
   Orbit,
   PanelLeft,
+  Tags,
   X,
   type LucideIcon,
 } from 'lucide-react';
@@ -49,7 +54,9 @@ import type { AddressFor } from '../lexicons/workbench/LexiconRail';
 import { RecordPane, type RecordPaneTab } from '../RecordExplorer';
 import RelationshipStrip from '../RelationshipStrip';
 import { AccountCard } from '../RepoExplorer';
-import { AccountCheckBadges } from '../AccountChecks';
+import { AccountCheckBadges, CheckNavBadge } from '../AccountChecks';
+import { toolBySlug } from '@/lib/tools/catalog';
+import { toolLinksForAccount } from '@/lib/tools/recordLinks';
 import ShareLinkChip from '../ShareLinkChip';
 import { AuditTabSkeleton, IdentityTabSkeleton } from '../skeletons/pages';
 import {
@@ -66,6 +73,7 @@ import { useMediaQuery } from '../useIsNarrow';
 import { useRepoCollections } from '../useRepoCollections';
 import AccountView, {
   ACCOUNT_TABS,
+  ACCOUNT_TOOL_VIEWS,
   ACCOUNT_VIEWS,
   ACCOUNT_VIEW_LABELS,
   accountViewOf,
@@ -104,9 +112,16 @@ const lexiconAddressFor: AddressFor = ({ scope, nsid = null }) => lexiconAddress
 
 const ACCOUNT_VIEW_ICONS: Record<AccountViewId, LucideIcon> = {
   overview: LayoutDashboard,
+  labels: Tags,
+  visibility: EyeOff,
   backlinks: Link2,
   graph: Orbit,
+  lists: BadgeCheck,
+  activity: CalendarDays,
 };
+
+/** Tools in the rail's Tools list that open their own page rather than a view. */
+const LINKED_TOOLS: ReadonlySet<string> = new Set(['mutuals', 'car']);
 
 type Props = {
   /** Which of the two full-window layouts to draw. */
@@ -715,9 +730,49 @@ export default function ExplorerShell({ mode, repo, collection, rkey }: Props) {
                     >
                       <Icon size={14} aria-hidden />
                       {ACCOUNT_VIEW_LABELS[view]}
+                      {(view === 'labels' || view === 'visibility') && (
+                        <CheckNavBadge did={identity.did} check={view} />
+                      )}
                     </Link>
                   );
                 })}
+              </nav>
+              {/* The tools that read the whole account. Lists and Activity
+                  open in the main pane; the others have a page of their
+                  own (a download, a map of blocks), so they open it. */}
+              <nav aria-labelledby="fx-wb-tools-h" className="fx-wb-views fx-wb-tools">
+                <h2 id="fx-wb-tools-h" className="fx-wb-label">
+                  Tools
+                </h2>
+                {ACCOUNT_TOOL_VIEWS.map((view) => {
+                  const Icon = ACCOUNT_VIEW_ICONS[view];
+                  return (
+                    <Link
+                      key={view}
+                      href={`${base}?tab=${view}`}
+                      prefetch={false}
+                      className="fx-wb-view"
+                      aria-current={accountView === view ? 'page' : undefined}
+                    >
+                      <Icon size={14} aria-hidden />
+                      {ACCOUNT_VIEW_LABELS[view]}
+                    </Link>
+                  );
+                })}
+                {toolLinksForAccount(identity.did)
+                  .filter((tool) => LINKED_TOOLS.has(tool.slug))
+                  .map((tool) => {
+                    const { Icon } = toolBySlug(tool.slug);
+                    return (
+                      // A static tool page, so this keeps its prefetch;
+                      // nofollow because it carries a DID.
+                      <Link key={tool.slug} href={tool.href} rel="nofollow" className="fx-wb-view" title={tool.title}>
+                        <Icon size={14} aria-hidden />
+                        {tool.label}
+                        <ExternalLink size={12} className="fx-wb-view-end" aria-hidden />
+                      </Link>
+                    );
+                  })}
               </nav>
               {files ? (
                 <FilesSidebar
@@ -931,7 +986,16 @@ function RailSkeleton({ files, card }: { files: boolean; card: boolean }) {
         </div>
       )}
       <div className="fx-wb-views" aria-hidden>
-        {['4.25rem', '4.5rem'].map((width, i) => (
+        {['4.25rem', '3rem', '4rem', '4.5rem', '3rem'].map((width, i) => (
+          <span key={i} className="fx-wb-view" data-skeleton>
+            <SkeletonBar width="14px" height="14px" shape="control" style={{ flex: 'none' }} />
+            <SkeletonBar width={width} height="0.6rem" />
+          </span>
+        ))}
+      </div>
+      <div className="fx-wb-views fx-wb-tools" aria-hidden>
+        <h2 className="fx-wb-label">Tools</h2>
+        {['9rem', '7rem', '6.5rem', '6rem'].map((width, i) => (
           <span key={i} className="fx-wb-view" data-skeleton>
             <SkeletonBar width="14px" height="14px" shape="control" style={{ flex: 'none' }} />
             <SkeletonBar width={width} height="0.6rem" />

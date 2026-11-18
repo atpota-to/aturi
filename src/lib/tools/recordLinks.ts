@@ -38,13 +38,15 @@ export function toolLinksForRecord(collection: string, atUri: string, rkey: stri
   }
 }
 
-/** Tools that read a whole account, for its overview. */
+/**
+ * Tools that read a whole account, for the Tools list in the explorer's
+ * sidebar. The label and visibility checks are not among them: they run on
+ * the account card and have views of their own.
+ */
 export function toolLinksForAccount(did: string): ToolLink[] {
   return [
-    link('activity', 'actor', did, 'Activity calendar', 'A year of this account’s writes across every app'),
     link('memberships', 'account', did, 'Lists and verifications', 'Lists this account is on, and who has verified it'),
-    link('labels', 'subject', did, 'Labels', 'Labels on this account, from every labeler'),
-    link('shadowban', 'subject', did, 'Shadowban check', 'Whether Bluesky’s AppView is hiding this account'),
+    link('activity', 'actor', did, 'Activity calendar', 'A year of this account’s writes across every app'),
     link('mutuals', 'account', did, 'Mutuals’ blocks', 'The accounts this account’s mutuals block most'),
     link('car', 'actor', did, 'Repo archive', 'Browse this account’s repository export'),
   ];

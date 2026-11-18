@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import { LoaderCircle, ScanSearch, Square, Tags, User } from 'lucide-react';
 import { toolHref } from '@/lib/tools/catalog';
@@ -204,7 +204,7 @@ function LabelGroupCard({
  * as the first is in. It is a few dozen requests, a few at a time, and can be
  * stopped part way; whatever it found by then stays on the page.
  */
-export default function LabelChecker({ subject }: { subject?: string } = {}) {
+export default function LabelChecker({ subject, heading }: { subject?: string; heading?: ReactNode } = {}) {
   const [query, setQuery] = useToolQuery(['subject', 'labelers'] as const);
   // Embedded in the Explorer, the account comes from the page rather than
   // the query string, and the tool draws without its head card.
@@ -271,6 +271,7 @@ export default function LabelChecker({ subject }: { subject?: string } = {}) {
     <ToolShell
       slug={SLUG}
       embedded={embedded}
+      heading={heading}
       share={
         target
           ? `${toolHref(SLUG)}?subject=${encodeURIComponent(raw.trim())}${

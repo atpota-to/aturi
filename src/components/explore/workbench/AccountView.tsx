@@ -1,12 +1,12 @@
 'use client';
 
 import { useEffect } from 'react';
+import dynamic from 'next/dynamic';
 import type { IdentityBundle } from '@/utils/atproto/identity';
 import { DEFAULT_REPO_SECTIONS, sectionHidden } from '@/utils/exploreSections';
 import { usePreferences } from '@/components/PreferencesProvider';
 import AccountStats from '@/components/account/AccountStats';
 import AppearIn from '../AppearIn';
-import AccountToolLinks from '../AccountToolLinks';
 import { AccountCard } from '../RepoExplorer';
 import RelationshipStrip from '../RelationshipStrip';
 import RepoStatusNotice from '../RepoStatusNotice';
@@ -16,9 +16,29 @@ import BacklinksTab from '../tabs/BacklinksTab';
 import IdentityTab from '../tabs/IdentityTab';
 import GraphTab from '../graph/GraphTab';
 import { HostedBacklinks, type BacklinksHost } from './LinksView';
+import { ToolSkeleton } from '@/components/tools/ToolFrame';
+
+// The tools behind the check and tool views, loaded when one is opened
+// rather than with every account page. The card's rows need only their runs
+// (checkRuns.ts), not these.
+const toolLoading = () => <ToolSkeleton rows={4} />;
+const LabelChecker = dynamic(() => import('@/components/tools/LabelChecker'), { loading: toolLoading });
+const ShadowbanChecker = dynamic(() => import('@/components/tools/ShadowbanChecker'), { loading: toolLoading });
+const Memberships = dynamic(() => import('@/components/tools/Memberships'), { loading: toolLoading });
+const ActivityCalendar = dynamic(() => import('@/components/tools/ActivityCalendar'), { loading: toolLoading });
 
 /** The account-level views, named as the repo page's `?tab=` names them. */
-export const ACCOUNT_TABS = ['overview', 'identity', 'audit', 'backlinks', 'graph'] as const;
+export const ACCOUNT_TABS = [
+  'overview',
+  'identity',
+  'audit',
+  'labels',
+  'visibility',
+  'backlinks',
+  'graph',
+  'lists',
+  'activity',
+] as const;
 export type AccountTab = (typeof ACCOUNT_TABS)[number];
 
 /**
@@ -26,18 +46,27 @@ export type AccountTab = (typeof ACCOUNT_TABS)[number];
  * own, both read from the same DID document, so here they are sections of
  * the overview rather than tabs as in Classic. Their `?tab=` names still
  * work: they open the overview at their section.
+ *
+ * Labels and Visibility are the account card's two checks in full, so they
+ * sit with the account's own views. Lists and Activity are tools that read
+ * the account, listed apart under Tools (ACCOUNT_TOOL_VIEWS).
  */
-export const ACCOUNT_VIEWS = ['overview', 'backlinks', 'graph'] as const;
-export type AccountViewId = (typeof ACCOUNT_VIEWS)[number];
+export const ACCOUNT_VIEWS = ['overview', 'labels', 'visibility', 'backlinks', 'graph'] as const;
+export const ACCOUNT_TOOL_VIEWS = ['lists', 'activity'] as const;
+export type AccountViewId = (typeof ACCOUNT_VIEWS)[number] | (typeof ACCOUNT_TOOL_VIEWS)[number];
 
 export const ACCOUNT_VIEW_LABELS: Record<AccountViewId, string> = {
   overview: 'Overview',
+  labels: 'Labels',
+  visibility: 'Visibility',
   backlinks: 'Backlinks',
   graph: 'Graph',
+  lists: 'Lists and verifications',
+  activity: 'Activity calendar',
 };
 
 export function accountViewOf(tab: AccountTab): AccountViewId {
-  return tab === 'backlinks' || tab === 'graph' ? tab : 'overview';
+  return tab === 'identity' || tab === 'audit' ? 'overview' : tab;
 }
 
 const IDENTITY_ID = 'fx-wb-identity';
@@ -80,6 +109,9 @@ export default function AccountView({
   const { prefs, loading } = usePreferences();
   const sections = loading ? DEFAULT_REPO_SECTIONS : prefs.repoSections;
   const view = accountViewOf(tab);
+  // An embedded tool puts the view's heading at the start of its own bar,
+  // beside its settings and the link to its page.
+  const toolHeading = <h1 className="fx-wb-h">{ACCOUNT_VIEW_LABELS[view]}</h1>;
 
   // `?tab=identity` and `?tab=audit`, from Classic or an old link, name a
   // section of the overview: bring it into view.
@@ -115,7 +147,6 @@ export default function AccountView({
                   <section className="fx-wb-section">
                     <h1 className="fx-wb-h">Repo at a glance</h1>
                     <AccountStats did={identity.did} handle={identity.handle} />
-                    <AccountToolLinks did={identity.did} />
                   </section>
                 </AppearIn>
               )}
@@ -156,6 +187,19 @@ export default function AccountView({
                   <BacklinksTab target={identity.did} />
                 )}
               </div>
+            </section>
+          </AppearIn>
+        )}
+
+        {/* A tool drawn inside the pane with this account filled in. The
+            label and visibility checks join the runs the card started. */}
+        {(view === 'labels' || view === 'visibility' || view === 'lists' || view === 'activity') && (
+          <AppearIn key={view}>
+            <section className="fx-wb-section fx-wb-toolview">
+              {view === 'labels' && <LabelChecker subject={identity.did} heading={toolHeading} />}
+              {view === 'visibility' && <ShadowbanChecker subject={identity.did} heading={toolHeading} />}
+              {view === 'lists' && <Memberships subject={identity.did} heading={toolHeading} />}
+              {view === 'activity' && <ActivityCalendar subject={identity.did} heading={toolHeading} />}
             </section>
           </AppearIn>
         )}

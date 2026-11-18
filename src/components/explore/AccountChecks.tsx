@@ -267,7 +267,11 @@ function VisibilityRow({ state, href, now }: { state: VisibilityCheckState; href
           </Pill>
           {/* A finding keeps its dots, so it shows which check found it. */}
           {(tone === 'warn' || tone === 'bad') && <Dots summary={summary} />}
-          <span className="fx-check-sub" data-quiet={tone !== 'ok' || undefined}>
+          <span
+            className="fx-check-sub"
+            data-quiet={tone !== 'ok' || undefined}
+            data-optional={(tone === 'ok' && !kept) || undefined}
+          >
             {[summary.more > 0 ? `+${summary.more} more` : tone === 'ok' ? 'on Bluesky' : null, kept]
               .filter(Boolean)
               .join(' · ')}
@@ -413,6 +417,16 @@ export function AccountCheckBadges({ identity, base }: { identity: IdentityBundl
         <VisibilityBadge state={visibility} icon="eye" />
         {visibility.kind === 'error' || visibility.kind === 'absent' ? <Eye size={12} aria-hidden /> : null}
       </Link>
+    </span>
+  );
+}
+
+/** A check's badge beside its view in the rail. */
+export function CheckNavBadge({ did, check }: { did: string; check: 'labels' | 'visibility' }) {
+  const { labels, visibility } = useAccountChecks(did);
+  return (
+    <span className="fx-wb-view-end">
+      {check === 'labels' ? <LabelBadge state={labels} /> : <VisibilityBadge state={visibility} />}
     </span>
   );
 }

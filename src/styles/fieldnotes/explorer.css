@@ -529,6 +529,14 @@
    --tool-warn amber for worth a look, --danger for hidden. */
 .fx-checks dd {
   gap: 6px;
+  container-type: inline-size;
+}
+/* Context that can go when the row is narrow (the Files rail), rather than
+   end in an ellipsis. */
+@container (max-width: 190px) {
+  .fx-check-sub[data-optional] {
+    display: none;
+  }
 }
 .fx-dl a.fx-check-link {
   flex: 1;

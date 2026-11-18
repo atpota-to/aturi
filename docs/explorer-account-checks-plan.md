@@ -90,15 +90,18 @@ Taken from the round 2 mockups where the review left a question open.
 
 ### M4. Views in Workbench and Files
 
-- [ ] `labels`, `visibility`, `lists` and `activity` in `ACCOUNT_TABS`.
-- [ ] Rail nav: Overview, Labels, Visibility, Backlinks, Graph, with badges
+- [x] `labels`, `visibility`, `lists` and `activity` in `ACCOUNT_TABS`.
+- [x] Rail nav: Overview, Labels, Visibility, Backlinks, Graph, with badges
       on Labels (count, ring while scanning) and Visibility (spinner, then a
       tone).
-- [ ] Rail Tools list: Lists and verifications, Activity calendar (views),
-      Repo archive (link to `/tools/car`).
-- [ ] `AccountView` draws each check view with the embedded tool.
-- [ ] The button row under "Repo at a glance" is removed.
-- [ ] Rail skeleton matches the new rail.
+- [x] Rail Tools list: Lists and verifications, Activity calendar (views),
+      Mutuals' blocks and Repo archive (links to their tools). Mutuals'
+      blocks arrived upstream during the build and joins as a link.
+- [x] `AccountView` draws each check view with the embedded tool.
+- [x] The button row under "Repo at a glance" is removed.
+- [x] Rail skeleton matches the new rail.
+- [x] The rail scrolls on a short window rather than squeezing the
+      collections tree, which keeps a usable height.
 
 ### M5. Classic
 

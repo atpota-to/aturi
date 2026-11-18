@@ -259,6 +259,11 @@
   margin-left: auto;
 }
 
+.fn-tool-embed-bar > h1,
+.fn-tool-embed-bar > h2 {
+  margin: 0 8px 0 0;
+}
+
 .fn-tool-section {
   min-width: 0;
 }

@@ -42,6 +42,7 @@ export function ToolShell({
   wide,
   form,
   embedded = false,
+  heading,
   controls,
   children,
 }: {
@@ -54,6 +55,8 @@ export function ToolShell({
   form?: ReactNode;
   /** Drawn inside the Explorer, without the head card. */
   embedded?: boolean;
+  /** The host's own heading for the embedded tool, at the start of its bar. */
+  heading?: ReactNode;
   /** Settings that still apply when embedded, beside the link to the tool. */
   controls?: ReactNode;
   children?: ReactNode;
@@ -65,6 +68,7 @@ export function ToolShell({
     return (
       <div className="fn-tool" data-embedded>
         <div className="fn-tool-embed-bar">
+          {heading}
           {controls}
           {/* A client-side move, so the run the Explorer started is the
               one the tool page joins (src/lib/tools/runCache.ts). */}
