@@ -1,7 +1,8 @@
 'use client';
 
-import { useCallback, useEffect, useEffectEvent, useMemo, useState } from 'react';
+import { useCallback, useEffect, useEffectEvent, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { usePathname, useSearchParams } from 'next/navigation';
+import { sharedRuns, type RunWork } from '@/lib/tools/runCache';
 
 /**
  * A tool's input, kept in the query string so any result can be shared or
@@ -123,4 +124,55 @@ export function useToolRun<T>(
     return { status: 'error', data: current.data, error: current.error, rerun };
   }
   return { status: 'done', data: current.data as T, error: undefined, rerun };
+}
+
+const NO_SUBSCRIPTION = () => () => undefined;
+const noSnapshot = () => undefined;
+
+/**
+ * `useToolRun`, joined to the page's shared runs (src/lib/tools/runCache.ts):
+ * every caller with the same `input` shares one run and its result, which is
+ * kept for ten minutes. For a check the Explorer asks from several places at
+ * once, such as the account card and the tool's own view.
+ *
+ * `input` must name everything the answer depends on, since another caller's
+ * `work` may be the one that runs. `settledAt` says how old a kept result
+ * is; `rerun` starts the run again for every caller.
+ */
+export function useSharedToolRun<T>(
+  input: string | null,
+  work: RunWork<T>,
+): ToolRun<T> & { rerun: () => void; settledAt: number | null } {
+  // The latest `work`, for a run started from an effect or a click.
+  const workRef = useRef(work);
+  useLayoutEffect(() => {
+    workRef.current = work;
+  });
+
+  const subscribe = useMemo(
+    () => (input === null ? NO_SUBSCRIPTION : (listener: () => void) => sharedRuns.subscribe(input, listener)),
+    [input],
+  );
+  const getSnapshot = useCallback(() => (input === null ? undefined : sharedRuns.peek<T>(input)), [input]);
+  // The server, and hydration, see a run that has not started, so a result
+  // kept from earlier in the visit never makes the first render disagree.
+  const snapshot = useSyncExternalStore(subscribe, getSnapshot, noSnapshot);
+
+  useEffect(() => {
+    if (input === null) return;
+    sharedRuns.ensure<T>(input, (ctx) => workRef.current(ctx));
+  }, [input]);
+
+  const rerun = useCallback(() => {
+    if (input !== null) sharedRuns.restart<T>(input, (ctx) => workRef.current(ctx));
+  }, [input]);
+
+  if (input === null) return { status: 'idle', data: undefined, error: undefined, rerun, settledAt: null };
+  if (!snapshot || snapshot.status === 'loading') {
+    return { status: 'loading', data: snapshot?.data, error: undefined, rerun, settledAt: null };
+  }
+  if (snapshot.status === 'error') {
+    return { status: 'error', data: snapshot.data, error: snapshot.error ?? 'Something went wrong', rerun, settledAt: snapshot.settledAt };
+  }
+  return { status: 'done', data: snapshot.data as T, error: undefined, rerun, settledAt: snapshot.settledAt };
 }

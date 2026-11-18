@@ -49,17 +49,17 @@ Taken from the round 2 mockups where the review left a question open.
 
 ### M1. Shared runs and summaries (pure, tested)
 
-- [ ] `src/lib/tools/runCache.ts`: a keyed store of runs. One run per key,
+- [x] `src/lib/tools/runCache.ts`: a keyed store of runs. One run per key,
       joined by every caller; results kept for a TTL; an unsettled run
       aborted when its last subscriber leaves (after a short grace, so a
       remount does not restart it); `rerun` replaces the entry.
-- [ ] `useSharedToolRun` beside `useToolRun`, with the same return shape
+- [x] `useSharedToolRun` beside `useToolRun`, with the same return shape
       plus when the result settled.
-- [ ] `src/lib/tools/accountChecks.ts`: `labelSummary` (active count,
+- [x] `src/lib/tools/accountChecks.ts`: `labelSummary` (active count,
       sources, Bluesky moderation labels first), `visibilitySummary` (the six
       dot states and a short verdict), `profileAbsence` (reads the AppView's
       wording: missing, suspended, deactivated).
-- [ ] Tests for all three in `src/lib/tools/__tests__/`.
+- [x] Tests for all three in `src/lib/tools/__tests__/`.
 
 ### M2. Tools that can be embedded
 
