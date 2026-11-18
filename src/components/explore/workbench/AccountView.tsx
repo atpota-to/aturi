@@ -13,10 +13,11 @@ import RepoSpacesSection from '../space/RepoSpacesSection';
 import AuditTab from '../tabs/AuditTab';
 import BacklinksTab from '../tabs/BacklinksTab';
 import IdentityTab from '../tabs/IdentityTab';
+import GraphTab from '../graph/GraphTab';
 import { HostedBacklinks, type BacklinksHost } from './LinksView';
 
 /** The account-level views, named as the repo page's `?tab=` names them. */
-export const ACCOUNT_TABS = ['overview', 'identity', 'audit', 'backlinks'] as const;
+export const ACCOUNT_TABS = ['overview', 'identity', 'audit', 'backlinks', 'graph'] as const;
 export type AccountTab = (typeof ACCOUNT_TABS)[number];
 
 export const ACCOUNT_TAB_LABELS: Record<AccountTab, string> = {
@@ -24,6 +25,7 @@ export const ACCOUNT_TAB_LABELS: Record<AccountTab, string> = {
   identity: 'Identity',
   audit: 'Log',
   backlinks: 'Backlinks',
+  graph: 'Graph',
 };
 
 /**
@@ -31,8 +33,8 @@ export const ACCOUNT_TAB_LABELS: Record<AccountTab, string> = {
  *
  * These are the repo page's own pieces, recomposed. Overview is its sidebar
  * and glance stats (the account card, the relationship strip, the spaces
- * section), still honouring the visitor's section choices; Identity, Log and
- * Backlinks are its tabs, each on the sheet a folder tab opens. The
+ * section), still honouring the visitor's section choices; Identity, Log,
+ * Backlinks and Graph are its tabs, each on the sheet a folder tab opens. The
  * collections tree, the fourth of those tabs, is the rail beside this pane.
  */
 export default function AccountView({
@@ -99,6 +101,7 @@ export default function AccountView({
                   ) : (
                     <BacklinksTab target={identity.did} />
                   ))}
+                {tab === 'graph' && <GraphTab key={identity.did} identity={identity} />}
               </div>
             </section>
           </AppearIn>

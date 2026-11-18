@@ -19,6 +19,7 @@ import {
   Link2,
   Maximize2,
   Minimize2,
+  Orbit,
   PanelLeft,
   X,
   type LucideIcon,
@@ -95,6 +96,7 @@ const ACCOUNT_TAB_ICONS: Record<AccountTab, LucideIcon> = {
   identity: Fingerprint,
   audit: History,
   backlinks: Link2,
+  graph: Orbit,
 };
 
 type Props = {
