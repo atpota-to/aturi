@@ -29,6 +29,7 @@ import {
   Share2,
   SquareTerminal,
   Tags,
+  UsersRound,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -153,6 +154,15 @@ export const TOOLS: ToolEntry[] = [
     group: 'accounts',
     Icon: EyeOff,
     keywords: ['shadowban', 'shadow ban', 'hidden', 'needs review', 'visibility', 'appview', 'search', 'suppressed'],
+  },
+  {
+    slug: 'mutuals',
+    title: 'Mutuals’ blocks',
+    desc: 'See which accounts your mutuals block most, map how their blocks overlap, and save the ones you pick as a moderation list.',
+    lead: 'Blocks are public records. This finds the accounts that follow each other with yours, reads each one’s blocks from its own PDS, and shows which accounts many of them block, and how far they agree.',
+    group: 'accounts',
+    Icon: UsersRound,
+    keywords: ['mutuals', 'moots', 'blocks', 'blocked', 'block list', 'moderation list', 'modlist', 'six degrees'],
   },
   {
     slug: 'car',
