@@ -366,13 +366,15 @@ export default function LexiconShell({ mode, fallback }: { mode: 'workbench' | '
           <LexiconCrumbs loc={loc} addressFor={addressFor} phone={phone} />
         </div>
         <div className="fx-wb-toolbar-end">
-          <Segmented
-            ariaLabel="Count over"
-            options={WINDOW_OPTIONS}
-            value={loc.window}
-            onChange={(w: Window) => go(at({ window: w }), true)}
-          />
-          {files && iconsApply && <FilesLayoutSwitch />}
+          <div className="fx-wb-toolbar-tools">
+            <Segmented
+              ariaLabel="Count over"
+              options={WINDOW_OPTIONS}
+              value={loc.window}
+              onChange={(w: Window) => go(at({ window: w }), true)}
+            />
+            {files && iconsApply && <FilesLayoutSwitch />}
+          </div>
           <ViewSwitch />
           <ShareLinkChip url={lexiconAddress(loc)} title="Copy a link to this view" iconOnly className="fx-title-share" />
         </div>

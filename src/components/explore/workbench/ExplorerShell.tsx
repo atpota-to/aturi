@@ -13,8 +13,6 @@ import { usePathname, useSearchParams } from 'next/navigation';
 import {
   ChevronDown,
   ChevronUp,
-  Fingerprint,
-  History,
   LayoutDashboard,
   Link2,
   Maximize2,
@@ -29,15 +27,29 @@ import type { AtRecord } from '@/utils/atproto/pdsClient';
 import type { MergedBacklink } from '@/utils/atproto/backlinkMerge';
 import { rkeyFromAtUri, shortDid } from '@/utils/atproto/urls';
 import { parseExplorerPath, parsePeek, peekValue } from '@/lib/explorerView';
+import {
+  DEFAULT_LEXICON_LIST,
+  DEFAULT_LEXICON_METRIC,
+  DEFAULT_LEXICON_WINDOW,
+  homeScopeFor,
+  lexiconAddress,
+} from '@/lib/lexiconExplorer';
 import { getSiteMenuSnapshot, setSiteMenuOpen, subscribeSiteMenu } from '@/lib/siteMenu';
+import { DEFAULT_REPO_SECTIONS, sectionHidden } from '@/utils/exploreSections';
 import NotFoundPanel from '@/components/NotFoundPanel';
+import { usePreferences } from '@/components/PreferencesProvider';
 import { useFillViewport } from '@/components/useFillViewport';
 import Breadcrumb from '../Breadcrumb';
 import { useChromeBarPanel } from '../ChromeBarContext';
 import { CollectionPane } from '../CollectionExplorer';
 import CopyButton from '../CopyButton';
+import LexiconPane, { type LexiconTab } from '../lexicons/workbench/LexiconPane';
+import type { AddressFor } from '../lexicons/workbench/LexiconRail';
 import { RecordPane, type RecordPaneTab } from '../RecordExplorer';
+import RelationshipStrip from '../RelationshipStrip';
+import { AccountCard } from '../RepoExplorer';
 import ShareLinkChip from '../ShareLinkChip';
+import { AuditTabSkeleton, IdentityTabSkeleton } from '../skeletons/pages';
 import {
   SkeletonAccountCard,
   SkeletonBar,
@@ -50,7 +62,14 @@ import { backlinkRelationLabel } from '../tabs/BacklinksTab';
 import CollectionsTab from '../tabs/CollectionsTab';
 import { useMediaQuery } from '../useIsNarrow';
 import { useRepoCollections } from '../useRepoCollections';
-import AccountView, { ACCOUNT_TABS, ACCOUNT_TAB_LABELS, type AccountTab } from './AccountView';
+import AccountView, {
+  ACCOUNT_TABS,
+  ACCOUNT_VIEWS,
+  ACCOUNT_VIEW_LABELS,
+  accountViewOf,
+  type AccountTab,
+  type AccountViewId,
+} from './AccountView';
 import { FilesSidebar, FolderBrowser, PathBar, useNamespaces } from './FilesBrowser';
 import { PeekPane, RecordLinksView, type BacklinksHost } from './LinksView';
 import { RecordFileSkeleton } from './RecordFile';
@@ -68,10 +87,21 @@ const PHONE_QUERY = '(max-width: 640px)';
 const RAIL_ID = 'fx-wb-rail';
 const INSPECTOR_ID = 'fx-wb-inspector';
 
-const ACCOUNT_TAB_ICONS: Record<AccountTab, LucideIcon> = {
+/**
+ * The lexicons explorer's location, less where it is, for the lexicon pane
+ * borrowed from it (LexiconPane): its default window and ranking, and links
+ * out of it that open the lexicons explorer at the place they name.
+ */
+const LEXICON_DEFAULTS = {
+  records: false,
+  peek: null,
+  window: DEFAULT_LEXICON_WINDOW,
+  metric: DEFAULT_LEXICON_METRIC,
+} as const;
+const lexiconAddressFor: AddressFor = ({ scope, nsid = null }) => lexiconAddress({ ...LEXICON_DEFAULTS, scope, nsid });
+
+const ACCOUNT_VIEW_ICONS: Record<AccountViewId, LucideIcon> = {
   overview: LayoutDashboard,
-  identity: Fingerprint,
-  audit: History,
   backlinks: Link2,
 };
 
@@ -162,15 +192,21 @@ export default function ExplorerShell({ mode, repo, collection, rkey }: Props) {
       : files
         ? null
         : 'overview';
+  const accountView = accountTab ? accountViewOf(accountTab) : null;
   const ns = !collection && !accountTab ? searchParams.get('ns') : null;
 
   const [railOpen, setRailOpen] = useState(false);
   const [railHidden, setRailHidden] = useState(false);
+  // The account card heads the rail while the rail is a column on screen;
+  // as a drawer, or hidden, the rail keeps a line and the overview has the
+  // card instead.
+  const cardInRail = !drawers && !railHidden;
   const [wide, setWide] = useState(false);
   const [recordTab, setRecordTab] = useState<RecordPaneTab>('preview');
   // A peeked record keeps a tab of its own: opened from the record's
   // Backlinks tab, it would otherwise open on its own backlinks.
   const [peekTab, setPeekTab] = useState<RecordPaneTab>('preview');
+  const [lexiconTab, setLexiconTab] = useState<LexiconTab>('overview');
   const [removedUri, setRemovedUri] = useState<string | null>(null);
   // What the list beside the inspector is showing, by record key and in
   // order: for stepping, and for opening a record without reading it again.
@@ -221,6 +257,18 @@ export default function ExplorerShell({ mode, repo, collection, rkey }: Props) {
   const closePeek = useCallback(() => {
     go(linksAddress(linksParam, null));
   }, [go, linksAddress, linksParam]);
+
+  // ── Lexicon ─────────────────────────────────────────────────────────────
+
+  // The open collection's lexicon, in the inspector (`?lexicon`). The
+  // collection page's Lexicon button leaves for the lexicons explorer; here
+  // that would drop the shell for a different screen, so it opens beside
+  // the list as a record does, over the open record if there is one, and
+  // closing it finds the list (and the record) as they were.
+  const lexiconOpen = Boolean(collection) && !linksOpen && searchParams.has('lexicon');
+  const placePath = collection ? (rkey ? recordPath(collection, rkey) : `${base}/${collection}`) : base;
+  const lexiconHref = `${placePath}?lexicon`;
+  const closeLexicon = useCallback(() => go(placePath), [go, placePath]);
 
   const onLinkedItems = useCallback((items: readonly MergedBacklink[]) => {
     setLinked(items.flatMap((item) => peekValue(item.uri) ?? []));
@@ -328,10 +376,10 @@ export default function ExplorerShell({ mode, repo, collection, rkey }: Props) {
     setRailOpen(false);
   }, [collection, accountTab, ns]);
 
-  // A record only keeps the full width while it's open.
+  // A record, or the lexicon, only keeps the full width while it's open.
   useEffect(() => {
-    if (!rkey) setWide(false);
-  }, [rkey]);
+    if (!rkey && !lexiconOpen) setWide(false);
+  }, [rkey, lexiconOpen]);
 
   // The site menu is a sheet on the same toolbar: opening it puts the rail's
   // sheet away.
@@ -357,8 +405,9 @@ export default function ExplorerShell({ mode, repo, collection, rkey }: Props) {
   // ── Keyboard ────────────────────────────────────────────────────────────
 
   // J and K step through the records (opening the newest if none is), Escape
-  // puts away the top layer: the rail's drawer, a peeked record, the list
-  // of what links to the open record, then the record. Keys the site's shortcut engine has claimed (it
+  // puts away the top layer: the rail's drawer, a peeked record, the
+  // lexicon, the list of what links to the open record, then the record.
+  // Keys the site's shortcut engine has claimed (it
   // calls preventDefault, and listens first) are left to it, and so is
   // typing.
   const keys = useRef<{ step: (dir: number) => void; escape: () => boolean }>({
@@ -375,6 +424,10 @@ export default function ExplorerShell({ mode, repo, collection, rkey }: Props) {
         }
         if (peekKey) {
           closePeek();
+          return true;
+        }
+        if (lexiconOpen) {
+          closeLexicon();
           return true;
         }
         if (recordLinks && collection && rkey) {
@@ -444,13 +497,15 @@ export default function ExplorerShell({ mode, repo, collection, rkey }: Props) {
   // A peeked record always shows. The open record does too, except where the
   // inspector is a drawer and the main pane is listing what links to it: the
   // drawer would cover the very list its backlinks card just opened.
-  const inspecting = peek ? true : Boolean(collection && rkey) && !(recordLinks && drawers);
+  const inspecting = peek || lexiconOpen ? true : Boolean(collection && rkey) && !(recordLinks && drawers);
   // The full width is the record's alone; a list of what links to it needs
   // the main pane.
   const isWide = wide && !linksOpen;
   const sharePath = linksOpen
     ? linksAddress(linksParam, peekKey)
-    : `${base}${collection ? `/${collection}` : ''}${
+    : lexiconOpen
+      ? lexiconHref
+      : `${base}${collection ? `/${collection}` : ''}${
         collection && rkey ? `/${encodeURIComponent(rkey)}` : ''
       }${!collection && tabParam ? `?tab=${tabParam}` : ns ? `?ns=${encodeURIComponent(ns)}` : ''}`;
 
@@ -540,6 +595,31 @@ export default function ExplorerShell({ mode, repo, collection, rkey }: Props) {
     </>
   );
 
+  // The lexicon's: there is no list of lexicons here to step through.
+  const lexiconControls = (
+    <>
+      <button
+        type="button"
+        className="fx-wb-icon fx-wb-widen"
+        onClick={() => setWide((v) => !v)}
+        aria-pressed={wide}
+        aria-label={wide ? 'Return the lexicon to the side' : 'Give the lexicon the full width'}
+        title={wide ? 'Return to the side' : 'Full width'}
+      >
+        {wide ? <Minimize2 size={15} aria-hidden /> : <Maximize2 size={15} aria-hidden />}
+      </button>
+      <button
+        type="button"
+        className="fx-wb-icon"
+        onClick={closeLexicon}
+        aria-label="Close lexicon"
+        title="Close (Esc)"
+      >
+        <X size={17} aria-hidden />
+      </button>
+    </>
+  );
+
   return (
     <div
       ref={rootRef}
@@ -582,7 +662,11 @@ export default function ExplorerShell({ mode, repo, collection, rkey }: Props) {
           )}
         </div>
         <div className="fx-wb-toolbar-end">
-          {files && <FilesLayoutSwitch />}
+          {files && (
+            <div className="fx-wb-toolbar-tools">
+              <FilesLayoutSwitch />
+            </div>
+          )}
           <ViewSwitch />
           <ShareLinkChip
             url={sharePath}
@@ -605,23 +689,29 @@ export default function ExplorerShell({ mode, repo, collection, rkey }: Props) {
           <span className="fx-wb-grab" aria-hidden />
           {identity ? (
             <>
-              <RailAccount identity={identity} base={base} onDone={() => setRailOpen(false)} />
+              <RailAccount
+                identity={identity}
+                base={base}
+                card={cardInRail}
+                browsing={Boolean(collection || ns)}
+                onDone={() => setRailOpen(false)}
+              />
               <nav aria-label="Account" className="fx-wb-views">
-                {ACCOUNT_TABS.map((tab) => {
-                  const Icon = ACCOUNT_TAB_ICONS[tab];
+                {ACCOUNT_VIEWS.map((view) => {
+                  const Icon = ACCOUNT_VIEW_ICONS[view];
                   // The overview is the workbench's bare repo address; the
                   // Files view keeps that for the repo's folders.
-                  const href = tab === 'overview' && !files ? base : `${base}?tab=${tab}`;
+                  const href = view === 'overview' && !files ? base : `${base}?tab=${view}`;
                   return (
                     <Link
-                      key={tab}
+                      key={view}
                       href={href}
                       prefetch={false}
                       className="fx-wb-view"
-                      aria-current={accountTab === tab ? 'page' : undefined}
+                      aria-current={accountView === view ? 'page' : undefined}
                     >
                       <Icon size={14} aria-hidden />
-                      {ACCOUNT_TAB_LABELS[tab]}
+                      {ACCOUNT_VIEW_LABELS[view]}
                     </Link>
                   );
                 })}
@@ -647,7 +737,7 @@ export default function ExplorerShell({ mode, repo, collection, rkey }: Props) {
               )}
             </>
           ) : (
-            <RailSkeleton files={files} />
+            <RailSkeleton files={files} card={cardInRail && !collection && !ns} />
           )}
         </aside>
 
@@ -663,6 +753,7 @@ export default function ExplorerShell({ mode, repo, collection, rkey }: Props) {
                     ? 'folders'
                     : 'account'
               }
+              card={!cardInRail}
             />
           ) : collection ? (
             // Two layers in one cell. The list of what links to the open
@@ -683,6 +774,7 @@ export default function ExplorerShell({ mode, repo, collection, rkey }: Props) {
                   onVisibleRecords={onVisibleRecords}
                   removedUri={removedUri}
                   onOpenWide={() => setWide(true)}
+                  lexiconHref={lexiconHref}
                   covered={recordLinks}
                 />
               </div>
@@ -704,6 +796,7 @@ export default function ExplorerShell({ mode, repo, collection, rkey }: Props) {
             <AccountView
               identity={identity}
               tab={accountTab}
+              card={!cardInRail}
               backlinks={accountTab === 'backlinks' ? backlinksHost : undefined}
             />
           ) : (
@@ -736,7 +829,7 @@ export default function ExplorerShell({ mode, repo, collection, rkey }: Props) {
         <aside
           id={INSPECTOR_ID}
           className="fx-wb-insp"
-          aria-label={peek ? 'Linking record' : 'Record'}
+          aria-label={peek ? 'Linking record' : lexiconOpen ? 'Lexicon' : 'Record'}
           inert={!inspecting}
         >
           {identity && peek && peekKey ? (
@@ -748,6 +841,25 @@ export default function ExplorerShell({ mode, repo, collection, rkey }: Props) {
               tab={peekTab}
               onTab={setPeekTab}
               onClose={closePeek}
+            />
+          ) : lexiconOpen && collection ? (
+            // In the network-wide list rather than its namespace, so the
+            // pane lists the lexicon's siblings: nothing beside it does here.
+            <LexiconPane
+              key={collection}
+              nsid={collection}
+              loc={{ ...LEXICON_DEFAULTS, scope: { kind: 'list', list: DEFAULT_LEXICON_LIST }, nsid: collection }}
+              addressFor={lexiconAddressFor}
+              controls={lexiconControls}
+              wide={isWide}
+              tab={lexiconTab}
+              onTab={setLexiconTab}
+              recordsHref={lexiconAddress({
+                ...LEXICON_DEFAULTS,
+                scope: homeScopeFor(collection),
+                nsid: collection,
+                records: true,
+              })}
             />
           ) : (
             identity &&
@@ -784,6 +896,7 @@ export default function ExplorerShell({ mode, repo, collection, rkey }: Props) {
           onClick={() => {
             if (railOpen) setRailOpen(false);
             else if (peekKey) closePeek();
+            else if (lexiconOpen) closeLexicon();
             else if (window.matchMedia(PHONE_QUERY).matches || drawers) closeRecord();
           }}
         />
@@ -794,21 +907,28 @@ export default function ExplorerShell({ mode, repo, collection, rkey }: Props) {
 
 /**
  * The rail before the account has resolved, in the rail's own rows: the
- * account line, the four views, then the tree or the places. The headings
- * are fixed, so they are drawn for real.
+ * account card or its line (`card`, as RailAccount will draw it), the two
+ * views, then the tree or the places. The headings are fixed, so they are
+ * drawn for real.
  */
-function RailSkeleton({ files }: { files: boolean }) {
+function RailSkeleton({ files, card }: { files: boolean; card: boolean }) {
   return (
     <>
-      <div className="fx-wb-acct" aria-hidden>
-        <SkeletonBar width="36px" height="36px" shape="circle" style={{ flex: 'none' }} />
-        <div className="fx-wb-acct-names" style={{ gap: 7 }}>
-          <SkeletonBar width="7rem" height="0.85rem" />
-          <SkeletonBar width="5.5rem" height="0.6rem" />
+      {card ? (
+        <div className="fx-wb-acct-card" aria-hidden>
+          <SkeletonAccountCard flat />
         </div>
-      </div>
+      ) : (
+        <div className="fx-wb-acct" aria-hidden>
+          <SkeletonBar width="36px" height="36px" shape="circle" style={{ flex: 'none' }} />
+          <div className="fx-wb-acct-names" style={{ gap: 7 }}>
+            <SkeletonBar width="7rem" height="0.85rem" />
+            <SkeletonBar width="5.5rem" height="0.6rem" />
+          </div>
+        </div>
+      )}
       <div className="fx-wb-views" aria-hidden>
-        {['4.25rem', '3.5rem', '1.75rem', '4.5rem'].map((width, i) => (
+        {['4.25rem', '4.5rem'].map((width, i) => (
           <span key={i} className="fx-wb-view" data-skeleton>
             <SkeletonBar width="14px" height="14px" shape="control" style={{ flex: 'none' }} />
             <SkeletonBar width={width} height="0.6rem" />
@@ -840,20 +960,41 @@ function RailSkeleton({ files }: { files: boolean }) {
 /**
  * The main pane before the account has resolved, shaped like what the
  * address says is coming: a record list, a grid of files or folders, or the
- * account's overview.
+ * account's overview, with the account card beside it where the rail won't
+ * have it (`card`, as AccountView takes it).
  */
-function MainSkeleton({ kind }: { kind: 'records' | 'files' | 'folders' | 'account' }) {
+function MainSkeleton({
+  kind,
+  card = false,
+}: {
+  kind: 'records' | 'files' | 'folders' | 'account';
+  card?: boolean;
+}) {
   if (kind === 'account') {
     return (
       <div className="fx-wb-page" aria-hidden>
         <div className="fx-wb-page-inner fx-main">
-          <div className="fx-wb-overview">
-            <div className="fx-wb-overview-side">
-              <SkeletonAccountCard />
-            </div>
+          <div className="fx-wb-overview" data-card={card || undefined}>
+            {card && (
+              <div className="fx-wb-overview-side">
+                <SkeletonAccountCard />
+              </div>
+            )}
             <div className="fx-wb-overview-main">
-              <SkeletonBar width="8rem" height="0.9rem" />
-              <SkeletonStatTiles />
+              <div className="fx-wb-section">
+                <SkeletonBar width="8rem" height="0.9rem" />
+                <SkeletonStatTiles />
+              </div>
+              <div className="fx-wb-idgrid">
+                <div className="fx-tabpanel fx-wb-idcard">
+                  <SkeletonBar width="4.5rem" height="0.9rem" />
+                  <IdentityTabSkeleton />
+                </div>
+                <div className="fx-tabpanel fx-wb-idcard">
+                  <SkeletonBar width="2.5rem" height="0.9rem" />
+                  <AuditTabSkeleton />
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -885,16 +1026,26 @@ function MainSkeleton({ kind }: { kind: 'records' | 'files' | 'folders' | 'accou
 }
 
 /**
- * The account, in the rail: who this is and their DID to copy. The whole
- * account card (bio, counts, where to open the profile) is the Overview.
+ * The account, at the head of the rail. Where the rail is a column on screen
+ * (`card`), this is the account card itself, the one the classic page keeps
+ * in its sidebar: the profile, the identity rows, where to open the profile,
+ * and how the visitor relates to the account. It folds to one line while a
+ * collection or a folder is open (`browsing`), so the tree under it has the
+ * room, and the visitor can fold or unfold it either way, a choice that
+ * holds until they change it. As a drawer the rail keeps the line, and the
+ * overview shows the card instead (AccountView).
  */
 function RailAccount({
   identity,
   base,
+  card,
+  browsing,
   onDone,
 }: {
   identity: IdentityBundle;
   base: string;
+  card: boolean;
+  browsing: boolean;
   /** Closes the rail when it is a drawer; the button is hidden when it isn't. */
   onDone: () => void;
 }) {
@@ -909,6 +1060,58 @@ function RailAccount({
       cancelled = true;
     };
   }, [identity.did]);
+
+  const { prefs, loading } = usePreferences();
+  const sections = loading ? DEFAULT_REPO_SECTIONS : prefs.repoSections;
+  const profileHidden = sectionHidden(sections, 'profile');
+  const identityHidden = sectionHidden(sections, 'identity');
+
+  // The card would say no more than the line when the visitor hid the
+  // identity rows and there is no profile to show in their place.
+  const hasProfile = Boolean(
+    profile && (profile.displayName?.trim() || profile.description?.trim() || profile.avatar),
+  );
+  const foldable = card && !(identityHidden && (profileHidden || !hasProfile));
+  const [foldChoice, setFoldChoice] = useState<boolean | null>(null);
+  const folded = !foldable || (foldChoice ?? browsing);
+
+  // Folding swaps one toggle for the other: keep the focus on it, but only
+  // when the visitor pressed it, not when opening a collection folded it.
+  const toggleRef = useRef<HTMLButtonElement>(null);
+  const refocus = useRef(false);
+  useEffect(() => {
+    if (!refocus.current) return;
+    refocus.current = false;
+    toggleRef.current?.focus();
+  }, [folded]);
+  const toggle = () => {
+    refocus.current = true;
+    setFoldChoice(!folded);
+  };
+
+  if (!folded) {
+    return (
+      <div className="fx-wb-acct-card">
+        <button
+          ref={toggleRef}
+          type="button"
+          className="fx-wb-icon fx-wb-fold"
+          onClick={toggle}
+          aria-expanded
+          aria-label="Fold the account card"
+          title="Fold"
+        >
+          <ChevronUp size={16} aria-hidden />
+        </button>
+        <AccountCard identity={identity} profileHidden={profileHidden} identityHidden={identityHidden} />
+        {!sectionHidden(sections, 'relationship') && (
+          <div className="fx-wb-acct-strip">
+            <RelationshipStrip target={identity} />
+          </div>
+        )}
+      </div>
+    );
+  }
 
   const handle = identity.handle || profile?.handle || null;
   const name = profile?.displayName?.trim() || null;
@@ -932,6 +1135,19 @@ function RailAccount({
         {name && handle && <span className="fx-wb-acct-handle">@{handle}</span>}
       </div>
       <CopyButton value={identity.did} label="Copy DID" compact variant="subtle" iconOnly />
+      {foldable && (
+        <button
+          ref={toggleRef}
+          type="button"
+          className="fx-wb-icon"
+          onClick={toggle}
+          aria-expanded={false}
+          aria-label="Unfold the account card"
+          title="Unfold"
+        >
+          <ChevronDown size={16} aria-hidden />
+        </button>
+      )}
       <button type="button" className="fx-btn fx-btn-sm fx-wb-done" onClick={onDone}>
         Done
       </button>
