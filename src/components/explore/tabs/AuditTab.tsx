@@ -10,17 +10,30 @@ import {
 import type { IdentityBundle } from '@/utils/atproto/identity';
 import { AuditTabSkeleton } from '../skeletons/pages';
 
-export default function AuditTab({ identity }: { identity: IdentityBundle }) {
+export default function AuditTab({
+  identity,
+  limit,
+}: {
+  identity: IdentityBundle;
+  /**
+   * Show only this many of the newest operations, with a button for the
+   * rest. The workbench's overview sets it, where the log shares a row with
+   * the identity card; the Log tab shows them all.
+   */
+  limit?: number;
+}) {
   const { did } = identity;
   const isPlc = did.startsWith('did:plc:');
   const [log, setLog] = useState<PlcAuditEntry[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [showAll, setShowAll] = useState(false);
 
   useEffect(() => {
     if (!isPlc) return undefined;
     let cancelled = false;
     setLog(null);
     setError(null);
+    setShowAll(false);
     getPlcAuditLog(did)
       .then((l) => {
         if (!cancelled) setLog(Array.isArray(l) ? l : []);
@@ -47,17 +60,25 @@ export default function AuditTab({ identity }: { identity: IdentityBundle }) {
   // Newest first; pass the chronologically-previous operation so diffs can
   // surface what changed.
   const ordered = [...log].reverse();
+  const shown = limit && !showAll ? ordered.slice(0, limit) : ordered;
 
   return (
-    <ol className="fx-log">
-      {ordered.map((entry, i) => (
-        <AuditEntryRow
-          key={entry.cid || `${entry.createdAt}-${i}`}
-          entry={entry}
-          prev={log[log.length - i - 2]}
-        />
-      ))}
-    </ol>
+    <>
+      <ol className="fx-log">
+        {shown.map((entry, i) => (
+          <AuditEntryRow
+            key={entry.cid || `${entry.createdAt}-${i}`}
+            entry={entry}
+            prev={log[log.length - i - 2]}
+          />
+        ))}
+      </ol>
+      {shown.length < ordered.length && (
+        <button type="button" className="fx-btn fx-btn-sm fx-log-more" onClick={() => setShowAll(true)}>
+          Show all {ordered.length.toLocaleString()} operations
+        </button>
+      )}
+    </>
   );
 }
 
