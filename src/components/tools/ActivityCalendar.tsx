@@ -67,8 +67,11 @@ function settled(collections: CollectionScan[]): number {
  * activityScan.ts; this starts a read, shows it filling in, and draws the
  * result.
  */
-export default function ActivityCalendar() {
-  const [{ actor: raw }, setQuery] = useToolQuery(['actor'] as const);
+export default function ActivityCalendar({ subject }: { subject?: string } = {}) {
+  const [query, setQuery] = useToolQuery(['actor'] as const);
+  // Embedded in the Explorer, the account comes from the page.
+  const embedded = subject !== undefined;
+  const raw = embedded ? subject : query.actor;
   const input = raw ? normalizeActorInput(raw) : null;
   const actor = input?.ok ? input.actor : null;
 
@@ -91,6 +94,7 @@ export default function ActivityCalendar() {
   return (
     <ToolShell
       slug={SLUG}
+      embedded={embedded}
       share={actor ? `${toolHref(SLUG)}?actor=${encodeURIComponent(actor)}` : undefined}
       form={
         <ToolForm

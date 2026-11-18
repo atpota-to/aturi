@@ -63,15 +63,15 @@ Taken from the round 2 mockups where the review left a question open.
 
 ### M2. Tools that can be embedded
 
-- [ ] `ToolShell` gains an embedded mode: no head card or form, an "Open in
+- [x] `ToolShell` gains an embedded mode: no head card or form, an "Open in
       <tool>" link, and an optional row of controls.
-- [ ] `LabelChecker`, `ShadowbanChecker`, `Memberships`, `ActivityCalendar`
+- [x] `LabelChecker`, `ShadowbanChecker`, `Memberships`, `ActivityCalendar`
       take an optional `subject`. Given one, they read it instead of the
       query string and draw embedded.
-- [ ] The label checker's two runs and the shadowban checker's run go
+- [x] The label checker's two runs and the shadowban checker's run go
       through the shared cache, keyed so the explorer and the tool page
       share a run for the same DID.
-- [ ] Tool pages behave exactly as before (verified in a browser).
+- [x] Tool pages behave exactly as before (verified in a browser).
 
 ### M3. The card rows (all three layouts)
 

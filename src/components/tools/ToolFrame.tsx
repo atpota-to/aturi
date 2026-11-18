@@ -2,7 +2,7 @@
 
 import { useState, type FormEvent, type ReactNode } from 'react';
 import Link from 'next/link';
-import { RotateCw, Search } from 'lucide-react';
+import { ExternalLink, RotateCw, Search } from 'lucide-react';
 import AppearIn from '@/components/explore/AppearIn';
 import CopyButton from '@/components/explore/CopyButton';
 import LinkifiedJson from '@/components/explore/LinkifiedJson';
@@ -30,12 +30,19 @@ import { TOOL_GROUPS, toolBySlug, toolHref } from '@/lib/tools/catalog';
  * Takes the tool's slug rather than its catalog entry, because the entry
  * holds an icon component and this is rendered from server pages too (as the
  * Suspense fallback), where a component cannot cross to the client as a prop.
+ *
+ * `embedded` is the same tool inside the Explorer, where the account comes
+ * from the page: no head card and no input, a bar with the tool's own
+ * `controls` and a link to the tool page with the subject filled in, then
+ * the results.
  */
 export function ToolShell({
   slug,
   share,
   wide,
   form,
+  embedded = false,
+  controls,
   children,
 }: {
   slug: string;
@@ -45,11 +52,31 @@ export function ToolShell({
   wide?: boolean;
   /** The tool's input, drawn inside the head card. */
   form?: ReactNode;
+  /** Drawn inside the Explorer, without the head card. */
+  embedded?: boolean;
+  /** Settings that still apply when embedded, beside the link to the tool. */
+  controls?: ReactNode;
   children?: ReactNode;
 }) {
   const tool = toolBySlug(slug);
   const group = TOOL_GROUPS.find((g) => g.id === tool.group);
   const { Icon } = tool;
+  if (embedded) {
+    return (
+      <div className="fn-tool" data-embedded>
+        <div className="fn-tool-embed-bar">
+          {controls}
+          {/* A client-side move, so the run the Explorer started is the
+              one the tool page joins (src/lib/tools/runCache.ts). */}
+          <Link href={share ?? toolHref(slug)} className="fx-btn fx-btn-sm fn-tool-embed-open">
+            <ExternalLink size={13} aria-hidden />
+            Open in {tool.title}
+          </Link>
+        </div>
+        {children ? <div className="fn-tool-body">{children}</div> : null}
+      </div>
+    );
+  }
   return (
     <div className="fn-tool" data-wide={wide || undefined}>
       <AppearIn rise>

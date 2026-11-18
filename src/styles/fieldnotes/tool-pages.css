@@ -236,6 +236,29 @@
   min-width: 0;
 }
 
+/* A tool inside the Explorer (ToolShell's embedded mode): no head card, a
+   bar with the tool's own settings and the way to its page, then the
+   results, spaced a little tighter to sit in a pane. */
+.fn-tool[data-embedded] {
+  gap: 18px;
+}
+
+.fn-tool[data-embedded] .fn-tool-body {
+  gap: 22px;
+}
+
+.fn-tool-embed-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 12px;
+  min-width: 0;
+}
+
+.fn-tool-embed-open {
+  margin-left: auto;
+}
+
 .fn-tool-section {
   min-width: 0;
 }
