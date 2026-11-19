@@ -50,8 +50,12 @@ test('the association file names the app and only the link paths it handles', ()
   };
   assert.deepEqual(body.applinks.details[0].appIDs, [`ABCDE12345.${IOS_BUNDLE_ID}`]);
   const paths = body.applinks.details[0].components.map((c) => c['/']);
-  assert.deepEqual(paths, ['/profile/*', '/explore/*', '/at/*', '/at:*']);
+  assert.deepEqual(paths, ['/profile/*', '/explore/*', '/at/*', '/at:*', '/links', '/account']);
   // Claiming the root would pull /about, /docs and every other page into the
   // app; the bare-handle links stay in Safari by design.
   assert.ok(!paths.includes('/*'));
+  // The two app pages are claimed exactly: a wildcard under either would
+  // claim pages the app has no screen for.
+  assert.ok(!paths.includes('/links/*'));
+  assert.ok(!paths.includes('/account/*'));
 });

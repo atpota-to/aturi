@@ -33,10 +33,14 @@ struct WaypointPickerView: View {
     @Environment(AppRouter.self) private var router: AppRouter?
     @Environment(\.aturiTheme) private var theme
     @Environment(\.openURL) private var openURL
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     /// Groups folded on this page. Everything starts open, as the web's
     /// smart expansion opens every group holding a compatible waypoint,
     /// which is every group that survives the filter below.
     @State private var collapsedGroups: Set<String> = []
+    /// The compact layouts' "Show fewer apps": every group shows until the
+    /// visitor folds the list to its first, as on the web.
+    @State private var showAllGroups = true
 
     init(
         type: WaypointType,
@@ -184,8 +188,9 @@ struct WaypointPickerView: View {
                 NewWaypointsBanner(waypoints: newWaypoints, onAdd: addNewWaypoints, onDismiss: dismissNewWaypoints)
             }
             header
-            primaryAction
+            autoRedirectNotice
             if hasWaypoints {
+                recommendedRows
                 layoutBar
                 if layout == .classic {
                     classicList
@@ -217,12 +222,13 @@ struct WaypointPickerView: View {
         .accessibilityAddTraits(.isHeader)
     }
 
-    /* The one filled button: the auto-redirect favourite when the
-       preference applies to this page (the web would already have left; on
-       iOS it is offered, with the countdown handled by the page), else the
-       first recommendation. */
+    /* A live auto-redirect preference for this page, said where the
+       choice is made: the web's notice for a redirect it held back
+       (`SuppressedNotice` in `AutoRedirectGate.tsx`), with the favourite
+       one tap away. On iOS the countdown belongs to the page; in-app
+       navigation never follows the preference at all. */
     @ViewBuilder
-    private var primaryAction: some View {
+    private var autoRedirectNotice: some View {
         if let target = autoRedirectTarget {
             let name = LinkResolverModel.waypointName(target.waypointId, customWaypoints: prefs.customWaypoints)
             let family = WaypointCatalog.compatFamilies[target.family]?.name ?? target.family.rawValue
@@ -233,7 +239,16 @@ struct WaypointPickerView: View {
                     .font(AturiFont.footnote)
                     .foregroundStyle(theme.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
-                openButton(name: name, waypointId: target.waypointId, url: target.url)
+                Button {
+                    open(target.url)
+                } label: {
+                    HStack(spacing: 8) {
+                        WaypointMark(id: target.waypointId, size: 18)
+                        Text("Open in \(name)")
+                    }
+                }
+                .buttonStyle(.aturiSecondary)
+                .accessibilityHint("Opens outside the app")
                 if router != nil {
                     Button("Change the setting") {
                         router?.openSettings(.redirects)
@@ -246,22 +261,26 @@ struct WaypointPickerView: View {
             .padding(14)
             .frame(maxWidth: .infinity, alignment: .leading)
             .cardBackground()
-        } else if let featured = recommended.entries.first {
-            openButton(name: featured.waypoint.name, waypointId: featured.id, url: featured.url)
         }
     }
 
-    private func openButton(name: String, waypointId: String, url: String) -> some View {
-        Button {
-            open(url)
-        } label: {
-            HStack(spacing: 8) {
-                WaypointMark(id: waypointId, size: 18)
-                Text("Open in \(name)")
+    /* Every recommendation as a large row above the layout switch, the
+       first filled and the rest outlined, each with its own copy button:
+       the web's hero rows since its link-page rebuild (72e3ac2). The same
+       rows lead every layout, so no layout repeats them as a group. */
+    @ViewBuilder
+    private var recommendedRows: some View {
+        let rows = recommended
+        if !rows.entries.isEmpty {
+            let primaryId = rows.entries.first?.id
+            VStack(spacing: 12) {
+                ForEach(rows.entries) { entry in
+                    PickerHeroRow(entry: entry, collection: collection, isPrimary: entry.id == primaryId)
+                }
             }
+            .accessibilityElement(children: .contain)
+            .accessibilityLabel(rows.label.isEmpty ? "Recommended" : rows.label)
         }
-        .buttonStyle(.aturiPrimary)
-        .accessibilityHint("Opens outside the app")
     }
 
     /* The layout switch sits above the list rather than only in settings so
@@ -279,42 +298,57 @@ struct WaypointPickerView: View {
 
     // MARK: Lists
 
+    /* Every group the person arranged, as rows or tiles, then the web's
+       "See all N apps" disclosure, which folds the list to its first group
+       and counts every distinct app across them while folded. */
     private var compactList: some View {
-        VStack(alignment: .leading, spacing: 18) {
-            if !recommended.entries.isEmpty {
-                PickerCompactGroup(label: recommended.label, entries: recommended.entries, layout: layout, collection: collection, highlighted: true)
-            }
-            ForEach(groups) { group in
+        let all = groups
+        let visible = showAllGroups ? all : Array(all.prefix(1))
+        let appCount = Set(all.flatMap { group in group.entries.map(\.id) }).count
+        return VStack(alignment: .leading, spacing: 20) {
+            ForEach(visible) { group in
                 PickerCompactGroup(label: group.category.name, entries: group.entries, layout: layout, collection: collection)
+            }
+            if all.count > 1 {
+                seeAllButton(appCount: appCount)
             }
         }
     }
 
-    private var classicList: some View {
-        VStack(alignment: .leading, spacing: 20) {
-            if !recommended.entries.isEmpty {
-                VStack(alignment: .leading, spacing: 10) {
-                    SectionHeader(recommended.label)
-                    ForEach(recommended.entries) { entry in
-                        PickerWaypointCard(entry: entry, collection: collection, featured: true)
-                    }
-                }
+    private func seeAllButton(appCount: Int) -> some View {
+        Button {
+            withAnimation(AturiMotion.animation(AturiMotion.soft(AturiMotion.panel), reduceMotion: reduceMotion)) {
+                showAllGroups.toggle()
             }
-            if !groups.isEmpty {
-                VStack(alignment: .leading, spacing: 14) {
-                    if !recommended.entries.isEmpty {
-                        SectionHeader("More options")
-                    }
-                    ForEach(groups) { group in
-                        PickerClassicGroup(
-                            category: group.category,
-                            entries: group.entries,
-                            collection: collection,
-                            isExpanded: !collapsedGroups.contains(group.id)
-                        ) {
-                            toggleGroup(group.id)
-                        }
-                    }
+        } label: {
+            HStack(spacing: 4) {
+                Text(showAllGroups ? "Show fewer apps" : "See all \(appCount) apps")
+                Image(systemName: showAllGroups ? "chevron.up" : "chevron.down")
+                    .font(AturiFont.sans(.footnote, weight: .semibold))
+            }
+            .font(AturiFont.sans(.subheadline, weight: .semibold))
+            .foregroundStyle(theme.textAccent)
+            .padding(.horizontal, 12)
+            .frame(minHeight: 44)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .frame(maxWidth: .infinity)
+    }
+
+    /* The recommended rows above the switch lead this layout too, so the
+       groups follow the switch directly, as Cards does on the web since it
+       stopped repeating the recommendation as a titled block below it. */
+    private var classicList: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            ForEach(groups) { group in
+                PickerClassicGroup(
+                    category: group.category,
+                    entries: group.entries,
+                    collection: collection,
+                    isExpanded: !collapsedGroups.contains(group.id)
+                ) {
+                    toggleGroup(group.id)
                 }
             }
         }
@@ -380,6 +414,59 @@ struct WaypointPickerView: View {
         let ids = prefs.newBuiltinWaypointIds
         guard !ids.isEmpty else { return }
         preferences.update { _ = $0.markWaypointsKnown(ids) }
+    }
+}
+
+/// The web's remember-my-choice bar (`fn-lp-remember` in
+/// `WaypointPicker.tsx`): whether auto-redirect is on, and the way to the
+/// Redirects screen where it is set. Opening links straight in a favourite
+/// app is that existing preference, so the bar states it rather than
+/// setting anything itself. The preview page pins it to the bottom edge
+/// while the picker is on screen; the auto-redirect countdown takes the
+/// same place while it runs.
+struct WaypointRememberBar: View {
+    @Environment(PreferencesStore.self) private var preferences
+    @Environment(AppRouter.self) private var router: AppRouter?
+    @Environment(\.aturiTheme) private var theme
+    @Environment(\.displayScale) private var displayScale
+
+    private var isOn: Bool {
+        preferences.prefs.autoRedirect
+    }
+
+    var body: some View {
+        HStack(spacing: 12) {
+            VStack(alignment: .leading, spacing: 1) {
+                Text(isOn ? "Auto-redirect is on" : "Remember my choice")
+                    .font(AturiFont.sans(.subheadline, weight: .bold))
+                    .foregroundStyle(theme.textPrimary)
+                Text(isOn
+                     ? "Links like this open in your favorite app right away."
+                     : "Pick a favorite app and links like this open there right away.")
+                    .font(AturiFont.caption)
+                    .foregroundStyle(theme.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .frame(maxWidth: .infinity, minHeight: 40, alignment: .leading)
+            .accessibilityElement(children: .combine)
+            if let router {
+                Button(isOn ? "Change" : "Set up") {
+                    router.openSettings(.redirects)
+                }
+                .buttonStyle(.aturiSecondary)
+                .accessibilityHint("Opens the Redirects settings")
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.top, 10)
+        .padding(.bottom, 14)
+        // Full-bleed on the card colour, as the bar is at phone width.
+        .background(theme.bgSecondary)
+        .overlay(alignment: .top) {
+            Rectangle()
+                .fill(theme.borderMedium)
+                .frame(height: AturiTheme.hairline(displayScale: displayScale))
+        }
     }
 }
 
@@ -506,37 +593,29 @@ private struct WaypointLayoutToggle: View {
     }
 }
 
-/// One group in either compact layout: the label with its count, then rows
-/// (dense) or tiles (grid). Both drop the description the classic cards
-/// carry; dense trades it for the host, grid for nothing, so the full text
-/// is kept as the accessibility hint. Port of `CompactWaypointGroup.tsx`.
+/// One group in either compact layout: its name as the tab on a drawer,
+/// then rows (dense) or tiles (grid) in the drawer. Both drop the
+/// description the classic cards carry; dense trades it for the host, grid
+/// for nothing, so the full text is kept as the accessibility hint. Port of
+/// `CompactWaypointGroup.tsx`.
 private struct PickerCompactGroup: View {
     let label: String
     let entries: [WaypointPickerEntry]
     let layout: WaypointLayout
     let collection: String?
-    var highlighted = false
 
     @Environment(\.aturiTheme) private var theme
     @Environment(\.displayScale) private var displayScale
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 8) {
-                Text(label)
-                    .aturiLabel()
-                    .foregroundStyle(highlighted ? theme.textAccent : theme.textTertiary)
-                    .lineLimit(1)
-                Rectangle()
-                    .fill(theme.borderSubtle)
-                    .frame(height: AturiTheme.hairline(displayScale: displayScale))
-                    .frame(maxWidth: .infinity)
-                Text("\(entries.count)")
-                    .font(AturiFont.caption)
-                    .foregroundStyle(theme.textTertiary)
-            }
-            .accessibilityElement(children: .combine)
-            .accessibilityAddTraits(.isHeader)
+        VStack(alignment: .leading, spacing: 0) {
+            /* The tab stands on the drawer's top edge: drawn over the box
+               and nudged down one hairline, so its painted-out bottom edge
+               covers the box's border where the two meet. */
+            PickerDrawerTab(label: label, count: entries.count)
+                .padding(.horizontal, AturiTheme.cardRadius)
+                .offset(y: AturiTheme.hairline(displayScale: displayScale))
+                .zIndex(1)
 
             if layout == .grid {
                 LazyVGrid(columns: [GridItem(.adaptive(minimum: 84), spacing: 8)], spacing: 8) {
@@ -544,6 +623,8 @@ private struct PickerCompactGroup: View {
                         PickerTile(entry: entry, collection: collection)
                     }
                 }
+                .padding(8)
+                .cardBackground()
             } else {
                 VStack(spacing: 0) {
                     ForEach(entries) { entry in
@@ -557,6 +638,50 @@ private struct PickerCompactGroup: View {
                 .cardBackground()
             }
         }
+    }
+}
+
+/// A group's name as the tab on its drawer (`.waypoint-group-label` in
+/// link.css): a small folder tab in the drawer's own colour with the
+/// group's count beside the name, its bottom border painted out so tab and
+/// drawer read as one piece.
+private struct PickerDrawerTab: View {
+    let label: String
+    let count: Int
+
+    @Environment(\.aturiTheme) private var theme
+    @Environment(\.displayScale) private var displayScale
+
+    var body: some View {
+        let hairline = AturiTheme.hairline(displayScale: displayScale)
+        let shape = UnevenRoundedRectangle(
+            topLeadingRadius: AturiTheme.controlRadius,
+            topTrailingRadius: AturiTheme.controlRadius,
+            style: .continuous
+        )
+        return HStack(alignment: .firstTextBaseline, spacing: 8) {
+            Text(label)
+                .font(AturiFont.sans(.footnote, weight: .bold))
+                .foregroundStyle(theme.textSecondary)
+                .lineLimit(1)
+            // The count is read, so it takes the tertiary text, not faint.
+            Text("\(count)")
+                .font(AturiFont.sans(.footnote, weight: .medium))
+                .foregroundStyle(theme.textTertiary)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 4)
+        .background(theme.bgSecondary, in: shape)
+        .overlay(shape.strokeBorder(theme.borderMedium, lineWidth: hairline))
+        .overlay(alignment: .bottom) {
+            Rectangle()
+                .fill(theme.bgSecondary)
+                .frame(height: hairline)
+                .padding(.horizontal, hairline)
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("\(label), \(count) apps")
+        .accessibilityAddTraits(.isHeader)
     }
 }
 
@@ -602,7 +727,9 @@ private struct PickerDenseRow: View {
     }
 }
 
-/// An icon tile: mark and name only; copy lives in the context menu.
+/// An icon tile: mark and name only; copy lives in the context menu. The
+/// tiles sit on the page colour inside their drawer, each with a subtle
+/// hairline, as on the web.
 private struct PickerTile: View {
     let entry: WaypointPickerEntry
     let collection: String?
@@ -610,24 +737,27 @@ private struct PickerTile: View {
     @Environment(\.aturiTheme) private var theme
     @Environment(AppRouter.self) private var router: AppRouter?
     @Environment(\.openURL) private var openURL
+    @Environment(\.displayScale) private var displayScale
 
     var body: some View {
-        Button {
+        let shape = RoundedRectangle(cornerRadius: AturiTheme.cardRadius, style: .continuous)
+        return Button {
             LinkNavigation.openWaypoint(entry.url, router: router, openURL: openURL)
         } label: {
             VStack(spacing: 6) {
                 WaypointMark(id: entry.id, size: 26)
                     .foregroundStyle(theme.textPrimary)
                 Text(entry.waypoint.name)
-                    .font(AturiFont.sans(.caption, weight: .medium))
+                    .font(AturiFont.sans(.caption, weight: .semibold))
                     .foregroundStyle(theme.textPrimary)
                     .lineLimit(2)
                     .multilineTextAlignment(.center)
             }
-            .frame(maxWidth: .infinity)
             .padding(.vertical, 12)
             .padding(.horizontal, 6)
-            .cardBackground()
+            .frame(maxWidth: .infinity, minHeight: 80)
+            .background(theme.bgPrimary, in: shape)
+            .overlay(shape.strokeBorder(theme.borderSubtle, lineWidth: AturiTheme.hairline(displayScale: displayScale)))
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
@@ -706,12 +836,10 @@ private struct PickerClassicGroup: View {
 private struct PickerWaypointCard: View {
     let entry: WaypointPickerEntry
     let collection: String?
-    var featured = false
 
     @Environment(\.aturiTheme) private var theme
     @Environment(AppRouter.self) private var router: AppRouter?
     @Environment(\.openURL) private var openURL
-    @Environment(\.displayScale) private var displayScale
 
     var body: some View {
         HStack(spacing: 4) {
@@ -720,7 +848,7 @@ private struct PickerWaypointCard: View {
             } label: {
                 HStack(spacing: 12) {
                     WaypointMark(id: entry.id, size: 28)
-                        .foregroundStyle(featured ? theme.accentSoftFg : theme.textPrimary)
+                        .foregroundStyle(theme.textPrimary)
                     VStack(alignment: .leading, spacing: 3) {
                         Text(entry.waypoint.name)
                             .font(AturiFont.sans(.body, weight: .semibold))
@@ -747,15 +875,64 @@ private struct PickerWaypointCard: View {
             CopyLinkButton(url: entry.url, name: entry.waypoint.name)
         }
         .padding(14)
-        .background(featured ? theme.accentSoft : Color.clear, in: RoundedRectangle(cornerRadius: AturiTheme.cardRadius, style: .continuous))
         .cardBackground()
-        .overlay {
-            // The recommended cards wear the Field Notes soft accent.
-            if featured {
-                RoundedRectangle(cornerRadius: AturiTheme.cardRadius, style: .continuous)
-                    .strokeBorder(theme.accentSoftBorder, lineWidth: AturiTheme.hairline(displayScale: displayScale))
+    }
+}
+
+/// One recommended app as a large row above the layout switch, the web's
+/// `.fn-lp-hero`: the first filled with the accent, the rest outlined on
+/// the card colour, each labelled Recommended. The copy button sits beside
+/// the open button rather than inside it, so neither swallows the other's
+/// tap.
+private struct PickerHeroRow: View {
+    let entry: WaypointPickerEntry
+    let collection: String?
+    let isPrimary: Bool
+
+    @Environment(\.aturiTheme) private var theme
+    @Environment(AppRouter.self) private var router: AppRouter?
+    @Environment(\.openURL) private var openURL
+    @Environment(\.displayScale) private var displayScale
+
+    var body: some View {
+        let shape = RoundedRectangle(cornerRadius: AturiTheme.cardRadius, style: .continuous)
+        return HStack(spacing: 0) {
+            Button {
+                LinkNavigation.openWaypoint(entry.url, router: router, openURL: openURL)
+            } label: {
+                HStack(spacing: 12) {
+                    WaypointMark(id: entry.id, size: 20)
+                        .foregroundStyle(isPrimary ? theme.textOnAccent : theme.textAccent)
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text(entry.waypoint.name)
+                            .font(AturiFont.sans(.subheadline, weight: .bold))
+                            .foregroundStyle(isPrimary ? theme.textOnAccent : theme.textPrimary)
+                            .lineLimit(1)
+                        Text("Recommended")
+                            .font(AturiFont.caption)
+                            .foregroundStyle(isPrimary ? theme.textOnAccent.opacity(0.9) : theme.textTertiary)
+                    }
+                    Spacer(minLength: 8)
+                    // The web's arrow, leaning toward the app it opens.
+                    Image(systemName: "arrow.right")
+                        .font(AturiFont.sans(.subheadline, weight: .semibold))
+                        .foregroundStyle(isPrimary ? theme.textOnAccent : theme.textTertiary)
+                }
+                .padding(.leading, 16)
+                .padding(.trailing, 4)
+                .padding(.vertical, 8)
+                .frame(maxWidth: .infinity, minHeight: 56, alignment: .leading)
+                .contentShape(Rectangle())
             }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Open in \(entry.waypoint.name), recommended")
+            .accessibilityHint(entry.waypoint.describe(collection: collection))
+
+            CopyLinkButton(url: entry.url, name: entry.waypoint.name, onAccent: isPrimary, side: 44)
+                .padding(.trailing, 4)
         }
+        .background(isPrimary ? theme.accent : theme.bgSecondary, in: shape)
+        .overlay(shape.strokeBorder(isPrimary ? theme.accent : theme.borderStrong, lineWidth: AturiTheme.hairline(displayScale: displayScale)))
     }
 }
 
@@ -766,6 +943,11 @@ private struct CopyLinkButton: View {
     let url: String
     let name: String
     var showsText = false
+    /// The icon form on the accent fill (the first recommended row): drawn
+    /// in the on-accent colour rather than the tertiary text.
+    var onAccent = false
+    /// The icon form's square tap target.
+    var side: CGFloat = 36
 
     @Environment(\.aturiTheme) private var theme
     @State private var copied = false
@@ -773,6 +955,13 @@ private struct CopyLinkButton: View {
 
     /// Matches the web's `setTimeout(..., 2000)`.
     private static let feedbackDuration: Double = 2
+
+    private var iconColor: Color {
+        if onAccent {
+            return theme.textOnAccent.opacity(copied ? 1 : 0.8)
+        }
+        return copied ? theme.textAccent : theme.textTertiary
+    }
 
     var body: some View {
         if showsText {
@@ -785,8 +974,8 @@ private struct CopyLinkButton: View {
             Button(action: copy) {
                 Image(systemName: copied ? "checkmark" : "doc.on.doc")
                     .font(AturiFont.body)
-                    .foregroundStyle(copied ? theme.textAccent : theme.textTertiary)
-                    .frame(width: 36, height: 36)
+                    .foregroundStyle(iconColor)
+                    .frame(width: side, height: side)
                     .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
