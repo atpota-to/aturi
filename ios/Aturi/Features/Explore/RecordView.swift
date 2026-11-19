@@ -381,6 +381,13 @@ private struct RecordScreen: View {
                         detail: "The raw record JSON from the PDS"
                     )
                 }
+                /* Any tool with something to say about this kind of record
+                   (Inspect post, Inspect feed, Check publishing), under
+                   Open as on the web. */
+                ForEach(ToolLinks.forRecord(collection: model.collection, atUri: row.atUri, rkey: model.decodedRkey)) { link in
+                    Divider()
+                    ToolLinkRow(link: link)
+                }
             }
             .padding(.horizontal, 14)
             .padding(.vertical, 4)

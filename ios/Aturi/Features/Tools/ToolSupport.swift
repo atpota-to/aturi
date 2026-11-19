@@ -488,3 +488,67 @@ struct ToolPlaceholder: View {
         .cardBackground()
     }
 }
+
+// MARK: - Links into tools
+
+/// One row that opens a tool with its input filled in, as the explorer
+/// offers them where a record or account is already open
+/// (`AccountToolLinks.tsx`, the record page's Open links).
+struct ToolLinkRow: View {
+    let link: ToolLink
+
+    @Environment(\.aturiTheme) private var theme
+
+    var body: some View {
+        NavigationLink(value: Route.tool(slug: link.slug, query: link.query)) {
+            HStack(spacing: 8) {
+                Image(systemName: ToolIcon.systemImage(for: link.slug))
+                    .font(AturiFont.footnote)
+                    .foregroundStyle(theme.textTertiary)
+                    .frame(width: 18)
+                    .accessibilityHidden(true)
+                Text(link.label)
+                    .font(AturiFont.footnote)
+                    .foregroundStyle(theme.textAccent)
+                Spacer(minLength: 0)
+                Image(systemName: "chevron.right")
+                    .font(AturiFont.caption2)
+                    .foregroundStyle(theme.textTertiary)
+                    .accessibilityHidden(true)
+            }
+            .padding(.vertical, 10)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityHint(link.title)
+    }
+}
+
+/// The account page's Tools card: the tools that read a whole account.
+struct AccountToolLinksCard: View {
+    let did: String
+
+    @Environment(\.aturiTheme) private var theme
+
+    var body: some View {
+        let links = ToolLinks.forAccount(did: did)
+        VStack(alignment: .leading, spacing: 0) {
+            Text("Tools")
+                .font(AturiFont.sans(.footnote, weight: .bold))
+                .foregroundStyle(theme.textSecondary)
+                .padding(.top, 12)
+                .padding(.bottom, 2)
+                .accessibilityAddTraits(.isHeader)
+            ForEach(Array(links.enumerated()), id: \.element.id) { index, link in
+                if index > 0 {
+                    Divider()
+                }
+                ToolLinkRow(link: link)
+            }
+        }
+        .padding(.horizontal, 14)
+        .padding(.bottom, 2)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .cardBackground()
+    }
+}

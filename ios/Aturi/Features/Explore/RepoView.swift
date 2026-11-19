@@ -239,6 +239,9 @@ private struct RepoScreen: View {
             rkey: nil,
             did: identity.did
         ))
+        /* The account's Tools list (`AccountToolLinks.tsx`, e56c568): the
+           tools that read a whole account, opened with it filled in. */
+        AccountToolLinksCard(did: identity.did)
         RepoTabBar(selection: $tab, identity: identity)
         tabContent
     }

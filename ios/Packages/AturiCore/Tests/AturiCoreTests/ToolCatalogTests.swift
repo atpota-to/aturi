@@ -42,6 +42,33 @@ final class ToolCatalogTests: XCTestCase {
         XCTAssertEqual(grouped.flatMap(\.tools).count, ToolCatalog.tools.count)
     }
 
+    // Port of src/lib/tools/__tests__/recordLinks.test.ts.
+
+    func testRecordLinksGoToTheToolForThatKindOfRecord() {
+        let did = "did:plc:z72i7hdynmk6r22z27h6tvur"
+        let post = ToolLinks.forRecord(collection: "app.bsky.feed.post", atUri: "at://\(did)/app.bsky.feed.post/3n22yg6lg2k2f", rkey: "3n22yg6lg2k2f")
+        XCTAssertEqual(post.map(\.slug), ["post"])
+        XCTAssertEqual(post.first?.query["post"], "at://\(did)/app.bsky.feed.post/3n22yg6lg2k2f")
+
+        let feed = ToolLinks.forRecord(collection: "app.bsky.feed.generator", atUri: "at://\(did)/app.bsky.feed.generator/whats-hot", rkey: "whats-hot")
+        XCTAssertEqual(feed.map(\.slug), ["feed"])
+
+        let schema = ToolLinks.forRecord(collection: "com.atproto.lexicon.schema", atUri: "at://\(did)/com.atproto.lexicon.schema/app.bsky.feed.post", rkey: "app.bsky.feed.post")
+        XCTAssertEqual(schema.first?.query["nsid"], "app.bsky.feed.post", "a schema record's key is the NSID it defines")
+
+        XCTAssertEqual(ToolLinks.forRecord(collection: "app.bsky.feed.like", atUri: "at://\(did)/app.bsky.feed.like/3k", rkey: "3k"), [])
+    }
+
+    func testAccountLinksCarryTheDidAndNameCatalogTools() {
+        let did = "did:plc:z72i7hdynmk6r22z27h6tvur"
+        let links = ToolLinks.forAccount(did: did)
+        XCTAssertFalse(links.isEmpty)
+        for link in links {
+            XCTAssertEqual(Array(link.query.values), [did])
+            XCTAssertNotNil(ToolCatalog.tool(link.slug), "\(link.slug) is in the catalog")
+        }
+    }
+
     func testCopyDoesNotSendTheReaderToABrowser() {
         for tool in ToolCatalog.tools {
             XCTAssertFalse(tool.desc.contains("browser"), "\(tool.slug): \(tool.desc)")
