@@ -13,17 +13,15 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
   Bell,
-  BookOpen,
   Braces,
   ChevronDown,
   Download,
   Leaf,
-  Link2,
   Menu,
   MessageSquareHeart,
-  Orbit,
   Plug,
   Search,
+  Signpost,
   Telescope,
   Wrench,
   X,
@@ -51,6 +49,8 @@ import WhatsNewBadge, {
 /**
  * One destination. `label` is its short name, on a bar link or a menu tile;
  * a group's flyout has room for the fuller `title` and a line of `desc`.
+ * `also` lists other paths that count as being here, for a page this one
+ * lists without the path living under it.
  */
 type NavLeaf = {
   href: string;
@@ -58,6 +58,7 @@ type NavLeaf = {
   icon: LucideIcon;
   title?: string;
   desc?: string;
+  also?: string[];
 };
 
 /** Destinations that share one item in the bar: a button that opens a flyout. */
@@ -66,13 +67,18 @@ type NavGroup = { id: string; label: string; items: NavLeaf[] };
 /**
  * The bar's items on wide screens, in order. A plain entry is a link. One
  * with `items` is a group, a button that opens a flyout of its destinations:
- * eight destinations as four items, which is what leaves the bar room for
+ * six destinations as three items, which is what leaves the bar room for
  * the go-to field and the tagline, and lets it stay a bar on a narrower
  * window.
  *
  * Explore gathers what you browse on the site; Products, what you take away
  * from it. A group's first item is the one its name promises, so it is the
  * row under the pointer when the flyout opens.
+ *
+ * Two pages are reached from a page here rather than from the bar. The docs
+ * are Waypoints' integration guide, and its page leads to them. Spaces is
+ * listed on the Tools hub for now, so Tools is lit on its landing (`also`);
+ * a space itself, under /explore/{repo}, is still the Explorer's.
  */
 const NAV: Array<NavLeaf | NavGroup> = [
   {
@@ -91,20 +97,18 @@ const NAV: Array<NavLeaf | NavGroup> = [
         desc: 'Search every record type',
         icon: Braces,
       },
-      { href: '/explore/spaces', label: 'Spaces', desc: 'Browse shared spaces', icon: Orbit },
     ],
   },
-  { href: '/tools', label: 'Tools', icon: Wrench },
+  { href: '/tools', label: 'Tools', icon: Wrench, also: ['/explore/spaces'] },
   {
     id: 'products',
     label: 'Products',
     items: [
       {
-        href: '/links',
-        label: 'Links',
-        title: 'Universal links',
-        desc: 'One link, every client',
-        icon: Link2,
+        href: '/waypoints',
+        label: 'Waypoints',
+        desc: 'Universal links, and the kit behind them',
+        icon: Signpost,
       },
       {
         href: '/extension',
@@ -122,37 +126,27 @@ const NAV: Array<NavLeaf | NavGroup> = [
       },
     ],
   },
-  { href: '/docs', label: 'Docs', icon: BookOpen },
 ];
 
 /**
  * Not a section of the site so much as a way to reach the people behind it,
- * so on wide screens it is an icon beside the bell: what you send, next to
- * what you're sent. In the menu, where every destination has a label, it is
- * a tile like the rest.
+ * so it is an icon wherever it appears: beside the bell on wide screens, what
+ * you send next to what you're sent, and beside the bell again in the phone
+ * menu's top row.
  */
 const FEEDBACK: NavLeaf = { href: '/feedback', label: 'Feedback', icon: MessageSquareHeart };
 
 /**
- * The menu panel's sections, on screens too narrow for the bar: the bar's
- * two groups under their own names, then what stands alone in it. Three
- * destinations each, which is what lets the menu set them three across.
+ * The menu panel's tiles, on screens too narrow for the bar: every
+ * destination the bar has, in its order, three across. That makes two rows
+ * that need no labels: what you browse here (Explorer, Lexicons, Tools),
+ * then what you take away (Waypoints, Extension, MCP). The bar's group names
+ * were labels for a flyout, and over a grid of six they only got in the way.
  */
-const MENU_SECTIONS: NavGroup[] = [
-  ...NAV.filter((entry): entry is NavGroup => 'items' in entry),
-  {
-    id: 'more',
-    label: 'More',
-    items: [...NAV.filter((entry): entry is NavLeaf => !('items' in entry)), FEEDBACK],
-  },
-];
+const MENU_ITEMS: NavLeaf[] = NAV.flatMap((entry) => ('items' in entry ? entry.items : [entry]));
 
-/**
- * Every destination, flat. Lexicons and Spaces live under /explore, so they
- * are listed before Explore in ACTIVE_ORDER below to claim their own paths
- * first.
- */
-const NAV_ITEMS: NavLeaf[] = MENU_SECTIONS.flatMap((section) => section.items);
+/** Every destination, flat, Feedback's icon included. */
+const NAV_ITEMS: NavLeaf[] = [...MENU_ITEMS, FEEDBACK];
 
 /**
  * A group opens under a pointer that rests on its button, not one passing
@@ -167,13 +161,18 @@ const FLYOUT_OPEN_MS = 90;
  */
 const FLYOUT_CLOSE_MS = 140;
 
-/** Longest prefix first, so /explore/lexicons is Lexicons, not Explore. */
-const ACTIVE_ORDER = [...NAV_ITEMS].sort((a, b) => b.href.length - a.href.length);
+/**
+ * Every path that lights a destination, longest first, so /explore/lexicons
+ * is Lexicons and /explore/spaces is Tools, not Explore.
+ */
+const ACTIVE_ORDER = NAV_ITEMS.flatMap((item) =>
+  [item.href, ...(item.also ?? [])].map((path) => ({ path, href: item.href })),
+).sort((a, b) => b.path.length - a.path.length);
 
 function activeNavHref(pathname: string | null): string | null {
   if (!pathname) return null;
   const hit = ACTIVE_ORDER.find(
-    (item) => pathname === item.href || pathname.startsWith(`${item.href}/`),
+    ({ path }) => pathname === path || pathname.startsWith(`${path}/`),
   );
   return hit?.href ?? null;
 }
@@ -187,14 +186,14 @@ function activeNavHref(pathname: string | null): string | null {
  * for, and the menu one tap away at the bottom has the logo and Home.
  *
  * /explore/spaces counts as a landing despite living under /explore: it is
- * a product page built like /extension and /links, not an explorer view. A
+ * a product page built like /extension and /waypoints, not an explorer view. A
  * space itself is at /explore/{repo}/space, so the prefix match below
  * reaches nothing else.
  */
 const LANDING_PATHS = [
   '/',
   '/extension',
-  '/links',
+  '/waypoints',
   '/mcp',
   '/explore/spaces',
   '/docs',
@@ -676,9 +675,10 @@ export default function Header(_props: HeaderProps) {
               <Search size={18} />
             </button>
 
-            {/* Feedback, as an icon beside the bell (FEEDBACK above). Shown
-                only while the nav is inline (CSS): once it folds, the menu's
-                Feedback tile is the way there. */}
+            {/* Feedback, as an icon beside the bell (FEEDBACK above). It
+                stays in the bar when the nav folds into the menu, which has
+                no row for it on a tablet; on a phone, where the bar is
+                gone, the menu's top row carries it (CSS). */}
             <Link
               href={FEEDBACK.href}
               prefetch={false}
@@ -785,10 +785,10 @@ export default function Header(_props: HeaderProps) {
             {!isSignInActive && (
               <>
                 {/* Phone only: with no header bar on screen, this row is
-                    the bar. The logo is the way home, and the bell and the
-                    theme switch end it as icons, as they end the bar on a
-                    wider screen. Back joins it on a page whose toolbar gave
-                    Back its place (the stream monitor). */}
+                    the bar. The logo is the way home, and Feedback, the bell
+                    and the theme switch end it as icons, as they end the bar
+                    on a wider screen. Back joins it on a page whose toolbar
+                    gave Back its place (the stream monitor). */}
                 <div className="fn-menu-top">
                   <MenuBackButton onBack={() => setSiteMenuOpen(false)} />
                   <Link
@@ -804,6 +804,17 @@ export default function Header(_props: HeaderProps) {
                     </span>
                     <span className="compact-nav-tag">Home</span>
                   </Link>
+                  {/* Feedback, as the icon it is in the bar (FEEDBACK). */}
+                  <Link
+                    href={FEEDBACK.href}
+                    prefetch={false}
+                    className="compact-nav-link fn-menu-chip"
+                    aria-label={FEEDBACK.label}
+                    title={FEEDBACK.label}
+                    aria-current={activeHref === FEEDBACK.href ? 'page' : undefined}
+                  >
+                    <MessageSquareHeart size={18} aria-hidden />
+                  </Link>
                   {/* The bell's place once the bar it sits in has stepped
                       aside: it closes the menu and opens the notes. */}
                   <button
@@ -818,34 +829,22 @@ export default function Header(_props: HeaderProps) {
                   </button>
                   <ThemeToggle variant="chip" />
                 </div>
-                {/* The destinations, in the bar's groups: a label, then its
-                    three as tiles across (chrome.css, "Menu sections"). */}
-                {MENU_SECTIONS.map((section) => (
-                  <div
-                    key={section.id}
-                    className="fn-menu-section"
-                    role="group"
-                    aria-labelledby={`fn-menu-${section.id}`}
-                  >
-                    <span id={`fn-menu-${section.id}`} className="fn-menu-kicker">
-                      {section.label}
-                    </span>
-                    <div className="fn-menu-tiles">
-                      {section.items.map(({ href, label, icon: Icon }) => (
-                        <Link
-                          key={href}
-                          href={href}
-                          className="compact-nav-link fn-menu-tile"
-                          prefetch={false}
-                          aria-current={activeHref === href ? 'page' : undefined}
-                        >
-                          <Icon size={18} />
-                          <span>{label}</span>
-                        </Link>
-                      ))}
-                    </div>
-                  </div>
-                ))}
+                {/* The destinations, three across (MENU_ITEMS; chrome.css,
+                    "Menu tiles"). */}
+                <div className="fn-menu-tiles">
+                  {MENU_ITEMS.map(({ href, label, icon: Icon }) => (
+                    <Link
+                      key={href}
+                      href={href}
+                      className="compact-nav-link fn-menu-tile"
+                      prefetch={false}
+                      aria-current={activeHref === href ? 'page' : undefined}
+                    >
+                      <Icon size={18} />
+                      <span>{label}</span>
+                    </Link>
+                  ))}
+                </div>
               </>
             )}
 

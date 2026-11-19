@@ -110,7 +110,7 @@ API when you are building a client and want resolution to happen locally.
 - [About](${origin}/about): what the project is, who maintains it, and how it is funded.
 - [Contact](${origin}/contact): how to reach the maintainer, report a bug, or disclose a vulnerability.
 - [Atmosphere Explorer](${origin}/explore): browse any account's PDS records in the browser.
-- [Universal links](${origin}/links): how the \`aturi.to/{handle}\` link format works.
+- [Waypoints](${origin}/waypoints): universal links (the \`aturi.to/{handle}\` link format), the client catalog, and the packages and API behind them.
 - [Browser extension](${origin}/extension): jump between Atmosphere clients in one click.
 - [Lexicon directory](${origin}/explore/lexicons): known atproto record types.
 

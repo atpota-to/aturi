@@ -349,11 +349,11 @@ export const COMMANDS: CommandMeta[] = [
   },
   {
     id: 'go-links',
-    label: 'Go to universal links',
-    description: 'The at:// universal link tools.',
+    label: 'Go to waypoints',
+    description: 'Universal links, the client catalog, and the packages behind them.',
     group: 'navigation',
     defaultBindings: ['g l'],
-    keywords: ['links', 'universal', 'share'],
+    keywords: ['waypoints', 'links', 'universal', 'share', 'catalog', 'clients', 'open in'],
   },
   {
     id: 'go-extension',

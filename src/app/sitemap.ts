@@ -12,7 +12,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
 
   const routes = [
     { path: '/', priority: 1 },
-    { path: '/links', priority: 0.9 },
+    { path: '/waypoints', priority: 0.9 },
     { path: '/extension', priority: 0.9 },
     { path: '/explore', priority: 0.8 },
     { path: '/explore/lexicons', priority: 0.6 },

@@ -264,7 +264,7 @@ export const HOME_PAGE: ContentPage = {
             '`aturi.to/{handle}` — a profile, e.g. [aturi.to/aturi.to](/aturi.to)',
             '`aturi.to/profile/{handle}/post/{rkey}` — a Bluesky post',
             '`aturi.to/{handle}/{collection}/{rkey}` — any record in any lexicon',
-            'More detail at [/links](/links).',
+            'More detail at [/waypoints](/waypoints).',
           ],
         },
       ],

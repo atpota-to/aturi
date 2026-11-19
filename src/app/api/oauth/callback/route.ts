@@ -47,7 +47,7 @@ export const dynamic = 'force-dynamic';
  */
 const GENERIC_ORIGINS = new Set([
   '/', '/account', '/explore', '/explore/spaces', '/explore/lexicons',
-  '/docs', '/links', '/extension', '/feedback', '/fork', '/terms',
+  '/docs', '/waypoints', '/extension', '/feedback', '/fork', '/terms',
 ]);
 
 function landingFor(returnTo: string, did: string): string {

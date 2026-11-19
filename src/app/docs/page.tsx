@@ -471,7 +471,7 @@ export default function DocsPage() {
 
         <p className="fn-docs-foot">
           Building an Atmosphere client and want it in the catalog?{' '}
-          <Link href="/links">See the supported waypoints</Link> or open a PR.
+          <Link href="/waypoints#catalog">See the supported waypoints</Link> or open a PR.
         </p>
       </div>
     </>
