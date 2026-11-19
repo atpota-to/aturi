@@ -86,9 +86,9 @@ export const LIMITS = {
   concurrency: 6,
 } as const;
 
-type Ctx = { calls: number; signal?: AbortSignal };
+export type Ctx = { calls: number; signal?: AbortSignal };
 
-async function getJson<T>(url: string, ctx: Ctx): Promise<T | null> {
+export async function getJson<T>(url: string, ctx: Ctx): Promise<T | null> {
   if (ctx.signal?.aborted) return null;
   ctx.calls += 1;
   try {
@@ -100,7 +100,7 @@ async function getJson<T>(url: string, ctx: Ctx): Promise<T | null> {
   }
 }
 
-async function pool<T, R>(items: readonly T[], n: number, fn: (item: T) => Promise<R>): Promise<R[]> {
+export async function pool<T, R>(items: readonly T[], n: number, fn: (item: T) => Promise<R>): Promise<R[]> {
   const out = new Array<R>(items.length);
   let next = 0;
   await Promise.all(
@@ -114,7 +114,7 @@ async function pool<T, R>(items: readonly T[], n: number, fn: (item: T) => Promi
   return out;
 }
 
-const chunk = <T,>(list: readonly T[], size: number): T[][] =>
+export const chunk = <T,>(list: readonly T[], size: number): T[][] =>
   Array.from({ length: Math.ceil(list.length / size) }, (_, i) => list.slice(i * size, i * size + size));
 
 type BacklinkPage = { total?: number; records?: { did: string; collection: string; rkey: string }[]; cursor?: string | null };
@@ -677,7 +677,23 @@ export type ThreadGraph = {
   /** The post the page is about, which may be any reply in the thread. */
   focus: string;
   posts: number;
+  /**
+   * The thread's reply rules, from the threadgate the AppView returns with
+   * it: whether its author limits who may reply, and the replies they hid.
+   */
+  gate: { restricted: boolean; hidden: string[] };
 };
+
+type ThreadgateView = { record?: { allow?: unknown; hiddenReplies?: unknown } };
+
+function readGate(view: ThreadgateView | undefined): ThreadGraph['gate'] {
+  const record = view?.record ?? {};
+  return {
+    // `allow` absent means anyone may reply; any list, even an empty one, limits it.
+    restricted: Array.isArray(record.allow),
+    hidden: Array.isArray(record.hiddenReplies) ? record.hiddenReplies.filter((u): u is string => typeof u === 'string') : [],
+  };
+}
 
 const threadCache = new TTLMap<string, ThreadGraph>(5 * 60_000);
 
@@ -726,13 +742,16 @@ export async function loadThread(uri: string, signal?: AbortSignal): Promise<Thr
   );
   const rootUri = one?.posts?.[0]?.record?.reply?.root?.uri || uri;
   const params = new URLSearchParams({ uri: rootUri, depth: '50', parentHeight: '0' });
-  const data = await getJson<{ thread?: ThreadNode }>(`${APPVIEW}/xrpc/app.bsky.feed.getPostThread?${params}`, ctx);
+  const data = await getJson<{ thread?: ThreadNode; threadgate?: ThreadgateView }>(
+    `${APPVIEW}/xrpc/app.bsky.feed.getPostThread?${params}`,
+    ctx,
+  );
   if (!data?.thread?.post) return null;
   const flat: ThreadPostInput[] = [];
   flattenNode(data.thread, null, flat);
   const root = buildThread(flat, data.thread.post.uri);
   if (!root) return null;
-  const out: ThreadGraph = { root, focus: uri, posts: flat.length };
+  const out: ThreadGraph = { root, focus: uri, posts: flat.length, gate: readGate(data.threadgate) };
   if (!signal?.aborted) threadCache.set(uri, out);
   return out;
 }

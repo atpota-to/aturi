@@ -13,6 +13,13 @@
   --g-second: #c46aae;
   --g-further: #6f7168;
   --g-op: var(--text-primary);
+  /* Pinned accounts in the thread explorer: four hues kept clear of the
+     relation set above, each drawn with its number too, so the colour is
+     never the only cue. */
+  --g-pin-1: #e0b020;
+  --g-pin-2: #2bb3c9;
+  --g-pin-3: #9884f7;
+  --g-pin-4: #e46f9e;
 }
 
 [data-theme='light'] {
@@ -21,6 +28,10 @@
   --g-follower: #3b6fc4;
   --g-second: #a64d97;
   --g-further: #8f9186;
+  --g-pin-1: #a87e00;
+  --g-pin-2: #0d8297;
+  --g-pin-3: #6650dc;
+  --g-pin-4: #bf3f73;
 }
 
 .fx-graph {
@@ -906,8 +917,8 @@ g[data-moving] .fx-graph-mark,
   position: fixed;
   inset: 0;
   z-index: 1000;
-  display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
+  display: flex;
+  flex-direction: column;
   background: var(--bg-primary);
   padding-top: env(safe-area-inset-top, 0px);
   outline: none;
@@ -949,6 +960,7 @@ g[data-moving] .fx-graph-mark,
 
 .fx-tx-body {
   display: grid;
+  flex: 1;
   grid-template-columns: minmax(0, 1fr);
   min-height: 0;
 }
@@ -1011,7 +1023,7 @@ g[data-moving] .fx-graph-mark,
 @media (max-width: 760px) {
   /* The detail panel names each account's relation; on a phone the key's
      three lines are worth more as canvas. */
-  .fx-tx-head .fx-graph-legend {
+  .fx-tx-head .fx-tx-keys {
     display: none;
   }
 
@@ -1058,4 +1070,749 @@ g[data-moving] .fx-graph-mark,
 .fx-tx-chip:hover rect,
 .fx-tx-group:hover rect {
   stroke: var(--text-tertiary);
+}
+
+/* ─── The thread explorer's insights ─────────────────────────────────────
+
+   The toolbar under the header, and what the drawing adds on top of the
+   tree: the thread's author ringed and tagged, pinned people haloed in
+   their colour with their number, blocks in the danger colour (a mark on
+   each card, the line between two posts when it runs across a reply, arcs
+   between whoever is pinned or picked and the people they block), and the
+   replies Bluesky leaves out as dashed cards where they would be. */
+
+.fx-tx-keys {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 18px;
+}
+
+.fx-tx-marks svg {
+  flex: none;
+}
+
+.fx-tx-key-block {
+  fill: none;
+  stroke: var(--danger);
+  stroke-width: 1.5;
+  stroke-dasharray: 4 3;
+}
+
+.fx-tx-key-cut {
+  fill: none;
+  stroke: var(--text-tertiary);
+  stroke-dasharray: 3 2;
+}
+
+.fx-tx-bar {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+  padding: 8px max(16px, env(safe-area-inset-right, 0px)) 8px max(16px, env(safe-area-inset-left, 0px));
+  border-bottom: 1px solid var(--border-subtle);
+  background: var(--bg-primary);
+}
+
+.fx-tx-search {
+  display: inline-flex;
+  flex: 1 1 220px;
+  align-items: center;
+  gap: 4px;
+  max-width: 380px;
+  min-height: 32px;
+  padding: 0 4px 0 10px;
+  border: 1px solid var(--border-medium);
+  border-radius: 8px;
+  background: var(--bg-secondary);
+}
+
+.fx-tx-search:focus-within {
+  border-color: var(--text-accent);
+}
+
+.fx-tx-search input {
+  flex: 1;
+  min-width: 0;
+  padding: 6px 0;
+  font: inherit;
+  font-size: 0.85rem;
+  color: var(--text-primary);
+  background: none;
+  border: 0;
+  outline: none;
+}
+
+.fx-tx-search-icon {
+  flex: none;
+  color: var(--text-tertiary);
+}
+
+.fx-tx-search-count,
+.fx-tx-count {
+  font-size: 0.78rem;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.fx-tx-icon {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  color: var(--text-secondary);
+  background: none;
+  border: 0;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.fx-tx-icon:hover:not(:disabled) {
+  background: var(--bg-tertiary);
+}
+
+.fx-tx-icon:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.fx-tx-icon:focus-visible,
+.fx-tx-pin-go:focus-visible,
+.fx-tx-person:focus-visible,
+.fx-tx-link:focus-visible,
+.fx-tx-stat:focus-visible,
+.fx-tx-select select:focus-visible {
+  outline: 2px solid var(--text-accent);
+  outline-offset: 1px;
+}
+
+.fx-tx-bar-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.fx-tx-select select {
+  min-height: 32px;
+  padding: 0 8px;
+  font: inherit;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-subtle);
+  border-radius: 7px;
+}
+
+.fx-tx-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.fx-tx-toggle[data-on] {
+  color: var(--accent-soft-fg);
+  background: var(--accent-soft);
+  border-color: var(--accent-soft-border);
+}
+
+.fx-tx-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 12px;
+  margin-left: auto;
+}
+
+.fx-tx-stat {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 0;
+  font: inherit;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  background: none;
+  border: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.fx-tx-stat[data-tone='block'] svg {
+  color: var(--danger);
+}
+
+button.fx-tx-stat {
+  text-decoration: underline;
+  text-decoration-color: var(--border-strong);
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+button.fx-tx-stat:disabled {
+  text-decoration: none;
+  cursor: default;
+}
+
+.fx-tx-pins {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.fx-tx-pin {
+  display: inline-flex;
+  align-items: center;
+  padding-right: 2px;
+  border: 1.5px solid;
+  border-radius: 999px;
+  background: var(--bg-secondary);
+}
+
+.fx-tx-pin-go {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 190px;
+  padding: 3px 4px;
+  font: inherit;
+  font-size: 0.8rem;
+  color: var(--text-primary);
+  background: none;
+  border: 0;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.fx-tx-pin-go span:last-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fx-tx-pinmark {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--bg-primary);
+}
+
+.fx-tx-people {
+  position: relative;
+}
+
+.fx-tx-pop {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: min(340px, calc(100vw - 32px));
+  max-height: min(60vh, 480px);
+  padding: 8px;
+  border: 1px solid var(--border-medium);
+  border-radius: 12px;
+  background: var(--bg-elevated);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.25);
+}
+
+.fx-tx-pop-filter {
+  padding: 6px 10px;
+  font: inherit;
+  font-size: 0.85rem;
+  color: var(--text-primary);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-medium);
+  border-radius: 8px;
+}
+
+.fx-tx-pop-note {
+  margin: 0;
+  padding: 2px 4px;
+  font-size: 0.78rem;
+  color: var(--text-tertiary);
+}
+
+.fx-tx-pop-list {
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  overflow: auto;
+  list-style: none;
+}
+
+.fx-tx-person {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 6px;
+  font: inherit;
+  text-align: left;
+  color: var(--text-primary);
+  background: none;
+  border: 0;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.fx-tx-person:hover:not(:disabled) {
+  background: var(--bg-tertiary);
+}
+
+.fx-tx-person[aria-pressed='true'] {
+  background: var(--accent-soft);
+}
+
+.fx-tx-person:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.fx-tx-person-face {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  object-fit: cover;
+  font-size: 0.8rem;
+  font-weight: 650;
+  color: var(--text-secondary);
+  background: var(--bg-tertiary);
+}
+
+.fx-tx-person-names {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.fx-tx-person-name {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  overflow: hidden;
+  font-size: 0.85rem;
+  font-weight: 600;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.fx-tx-person-sub {
+  overflow: hidden;
+  font-size: 0.75rem;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.fx-tx-person-blocks {
+  color: var(--danger);
+}
+
+.fx-tx-person-blocks svg {
+  vertical-align: -1px;
+}
+
+.fx-tx-person-pin {
+  flex: none;
+  color: var(--text-tertiary);
+}
+
+.fx-tx-op {
+  display: inline-block;
+  padding: 0 5px;
+  border-radius: 4px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--bg-primary);
+  background: var(--g-op);
+}
+
+/* Cards */
+
+.fx-graph-card[data-op] {
+  stroke: var(--g-op);
+  stroke-width: 1.5;
+}
+
+.fx-tx-op-ring {
+  fill: none;
+  stroke: var(--g-op);
+  stroke-width: 1;
+  opacity: 0.45;
+}
+
+.fx-tx-pin-ring {
+  fill: none;
+  stroke-width: 3;
+}
+
+.fx-tx-badge text {
+  font-size: 10.5px;
+  font-weight: 700;
+}
+
+.fx-tx-b-op rect {
+  fill: var(--g-op);
+}
+
+.fx-tx-b-op text,
+.fx-tx-b-pin text,
+.fx-tx-b-label text {
+  fill: var(--bg-primary);
+}
+
+.fx-tx-b-block rect {
+  fill: var(--danger-soft);
+  stroke: var(--danger-border);
+}
+
+.fx-tx-b-block text {
+  fill: var(--danger);
+}
+
+.fx-tx-b-fold rect,
+.fx-tx-b-cut rect {
+  fill: var(--bg-tertiary);
+  stroke: var(--border-strong);
+}
+
+.fx-tx-b-fold rect {
+  stroke-dasharray: 2 2;
+}
+
+.fx-tx-b-fold text,
+.fx-tx-b-cut text {
+  fill: var(--text-secondary);
+}
+
+.fx-tx-b-label rect {
+  fill: var(--danger);
+}
+
+.fx-tx-blockglyph circle {
+  fill: var(--bg-primary);
+  stroke: var(--danger);
+  stroke-width: 1.6;
+}
+
+.fx-tx-blockglyph line {
+  stroke: var(--danger);
+  stroke-width: 1.6;
+  stroke-linecap: round;
+}
+
+.fx-tx-b-block .fx-tx-blockglyph circle {
+  fill: none;
+}
+
+/* Lines */
+
+.fx-tx-edge[data-block] {
+  stroke: var(--danger);
+  stroke-width: 1.75;
+  stroke-dasharray: 5 4;
+}
+
+.fx-tx-edge[data-cut] {
+  stroke-dasharray: 3 4;
+}
+
+.fx-tx-edge[data-pin] {
+  stroke-width: 3.5;
+}
+
+.fx-tx-arc {
+  fill: none;
+  stroke: var(--danger);
+  stroke-width: 1.5;
+  stroke-dasharray: 6 4;
+  opacity: 0.8;
+}
+
+.fx-tx-arrowhead {
+  fill: var(--danger);
+}
+
+/* Replies Bluesky leaves out */
+
+.fx-tx-ghost-card {
+  fill: var(--bg-secondary);
+  stroke: var(--text-tertiary);
+  stroke-width: 1.25;
+  stroke-dasharray: 5 4;
+}
+
+.fx-tx-ghost[data-tone='moderation'] .fx-tx-ghost-card,
+.fx-tx-ghost[data-tone='social'] .fx-tx-ghost-card {
+  stroke: var(--danger);
+}
+
+.fx-tx-ghost-body {
+  opacity: 0.78;
+}
+
+.fx-tx-ghost-none {
+  font-style: italic;
+  fill: var(--text-tertiary);
+}
+
+.fx-tx-cut-pill rect {
+  fill: var(--bg-tertiary);
+  stroke: var(--border-medium);
+}
+
+.fx-tx-cut-pill text {
+  font-size: 11.5px;
+  font-weight: 650;
+  fill: var(--text-secondary);
+}
+
+.fx-tx-ghost[data-tone='moderation'] .fx-tx-cut-pill rect {
+  fill: var(--danger-soft);
+  stroke: var(--danger-border);
+}
+
+.fx-tx-ghost[data-tone='social'] .fx-tx-cut-pill rect {
+  fill: none;
+  stroke: var(--danger);
+}
+
+.fx-tx-ghost[data-tone='moderation'] .fx-tx-cut-pill text,
+.fx-tx-ghost[data-tone='social'] .fx-tx-cut-pill text {
+  fill: var(--danger);
+}
+
+.fx-tx-ghost[data-tone='unknown'] .fx-tx-cut-pill rect {
+  fill: var(--accent-soft);
+  stroke: var(--accent-soft-border);
+}
+
+.fx-tx-ghost[data-tone='unknown'] .fx-tx-cut-pill text {
+  fill: var(--accent-soft-fg);
+}
+
+[data-pick] .fx-tx-ghost:hover:not([data-focus]) .fx-tx-ghost-card {
+  stroke: var(--text-secondary);
+}
+
+.fx-tx-ghost[data-focus] .fx-tx-ghost-card {
+  stroke: var(--text-primary);
+  stroke-width: 2;
+}
+
+/* Search hits, the post stepped to, and everything else faded back */
+
+.fx-tx-canvas [data-hit] .fx-graph-card,
+.fx-tx-canvas [data-hit] .fx-tx-ghost-card {
+  stroke: var(--text-accent);
+  stroke-width: 2;
+}
+
+.fx-tx-canvas [data-hit-current] .fx-graph-card,
+.fx-tx-canvas [data-hit-current] .fx-tx-ghost-card {
+  stroke-width: 3.5;
+}
+
+.fx-tx-canvas [data-flash] .fx-graph-card,
+.fx-tx-canvas [data-flash] .fx-tx-ghost-card {
+  stroke: var(--text-accent);
+  animation: fx-tx-flash 0.8s ease-in-out 2;
+}
+
+.fx-tx-canvas [data-dim] {
+  opacity: 0.18;
+}
+
+/* Not the card's own <g> or the edge's <path>: the motion engine writes
+   their opacity a frame at a time as they arrive and leave. */
+.fx-tx-canvas [data-mnode] > g,
+.fx-tx-canvas .fx-tx-edge-wrap,
+.fx-tx-canvas .fx-tx-arc {
+  transition: opacity 160ms ease;
+}
+
+@keyframes fx-tx-flash {
+  50% {
+    stroke-width: 6;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fx-tx-canvas [data-flash] .fx-graph-card,
+  .fx-tx-canvas [data-flash] .fx-tx-ghost-card {
+    animation: none;
+    stroke-width: 3.5;
+  }
+}
+
+/* The details pane's account section */
+
+.fx-tx-side {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.fx-tx-insight {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.fx-tx-insight-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.fx-tx-insight-h {
+  margin: 0;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+}
+
+.fx-tx-blocklist {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  list-style: none;
+}
+
+.fx-tx-blocklist li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.fx-tx-blocklist svg {
+  flex: none;
+  color: var(--danger);
+}
+
+.fx-tx-link {
+  padding: 0;
+  font: inherit;
+  text-align: left;
+  color: var(--text-accent);
+  background: none;
+  border: 0;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  overflow-wrap: anywhere;
+  cursor: pointer;
+}
+
+.fx-tx-labels {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.fx-tx-labels li {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 650;
+  color: var(--text-primary);
+  background: var(--bg-tertiary);
+}
+
+.fx-tx-labels li span {
+  font-size: 0.72rem;
+  font-weight: 400;
+  color: var(--text-tertiary);
+}
+
+.fx-tx-labels li[data-mod] {
+  color: var(--danger);
+  background: var(--danger-soft);
+}
+
+.fx-tx-cut-tag {
+  align-self: flex-start;
+  margin: 0;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 650;
+  color: var(--text-secondary);
+  background: var(--bg-tertiary);
+}
+
+.fx-tx-cut-tag[data-tone='moderation'] {
+  color: var(--danger);
+  background: var(--danger-soft);
+}
+
+.fx-tx-cut-tag[data-tone='social'] {
+  color: var(--danger);
+  background: none;
+  box-shadow: inset 0 0 0 1px var(--danger);
+}
+
+.fx-tx-cut-tag[data-tone='unknown'] {
+  color: var(--accent-soft-fg);
+  background: var(--accent-soft);
+}
+
+@media (max-width: 760px) {
+  /* Icons only for the tools, their names kept for screen readers. */
+  .fx-tx-tool-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+
+  .fx-tx-search {
+    flex-basis: 100%;
+    max-width: none;
+  }
+
+  .fx-tx-summary {
+    width: 100%;
+    margin-left: 0;
+  }
 }

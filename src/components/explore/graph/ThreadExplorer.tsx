@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { createPortal } from 'react-dom';
-import { Maximize2, Minus, Plus, RotateCcw, Scan, X } from 'lucide-react';
+import { Ban, Maximize2, Minus, Plus, RotateCcw, Scan, X } from 'lucide-react';
 import {
   defaultFolds,
   flattenThread,
@@ -11,6 +11,24 @@ import {
   type Relation,
   type ThreadPost,
 } from '@/lib/socialGraph';
+import {
+  PIN_SLOTS,
+  blockBetween,
+  blockLinks,
+  blockWords,
+  blockedWith,
+  indexBlocks,
+  outsideLabels,
+  parentsOf,
+  pathTo,
+  postMatches,
+  readCut,
+  sortReplies,
+  type Between,
+  type CutReading,
+  type CutReply,
+  type ReplyOrder,
+} from '@/lib/threadInsights';
 import {
   linkRecords,
   loadReplies,
@@ -25,6 +43,7 @@ import {
   type LinkSource,
   type ThreadGraph,
 } from '@/utils/atproto/graphData';
+import { loadThreadInsights, type ThreadInsights } from '@/utils/atproto/threadInsightsData';
 import { useTreeMotion, type MotionNode } from './motion';
 import {
   Face,
@@ -39,6 +58,8 @@ import {
   usePickedDetails,
   wrapLines,
 } from './shared';
+import { AccountInsight, CutDetail, type BlockRow } from './ThreadInsightPane';
+import ThreadToolbar, { pinColor, type Layers, type PersonRow } from './ThreadToolbar';
 
 /* ------------------------------------------------------------------ */
 /* Opening and closing                                                  */
@@ -121,6 +142,7 @@ type ListState = {
 
 type XKind =
   | { kind: 'post'; post: ThreadPost }
+  | { kind: 'ghost'; cut: CutReply; reading: CutReading }
   | { kind: 'group'; open: string; label: string }
   | { kind: 'account'; account: GraphAccount }
   | { kind: 'source'; open: string; source: LinkSource; isOpen: boolean }
@@ -130,6 +152,7 @@ type XNode = { key: string; w: number; h: number; children: XNode[] } & XKind;
 
 const SIZE = {
   post: [300, 120],
+  ghost: [300, 104],
   group: [210, 36],
   account: [240, 46],
   source: [240, 40],
@@ -137,17 +160,92 @@ const SIZE = {
   note: [200, 34],
 } as const;
 
-/** Replies shown under a post before "more replies", most-discussed first. */
+/** Replies shown under a post before "more replies", in the chosen order. */
 const REPLIES_AT_ONCE = 6;
 /** Items shown in a group before "Show more". */
 const PAGE = 8;
 /** No path through quotes of quotes goes deeper than this. */
 const MAX_DEPTH = 40;
+/** The canvas's margin round the tree. */
+const PAD = 48;
 
 const plural = (n: number, one: string, many: string) => `${fmt(n)} ${n === 1 ? one : many}`;
 
 /** Pointing at a card only marks it (CSS); the details wait for a click. */
 const quiet = () => {};
+
+const isEditable = (t: EventTarget | null) =>
+  t instanceof Element && !!t.closest('input, textarea, select, [contenteditable=""], [contenteditable="true"]');
+
+/** A left-out reply, shaped as a post so the details pane can be opened on it. */
+function ghostPost(c: CutReply): ThreadPost {
+  return {
+    uri: c.uri,
+    parent: c.parent,
+    did: c.did,
+    handle: c.author?.handle,
+    displayName: c.author?.displayName,
+    avatar: c.author?.avatar,
+    text: c.text ?? '',
+    createdAt: c.createdAt ?? '',
+    likes: c.likes ?? 0,
+    reposts: c.reposts ?? 0,
+    replies: 0,
+    quotes: 0,
+    hasMedia: c.hasMedia,
+    depth: 0,
+    kids: [],
+    size: 1,
+  };
+}
+
+/** A small circle with a bar through it: the drawing's mark for a block. */
+function BlockGlyph({ x, y, r = 7 }: { x: number; y: number; r?: number }) {
+  const d = r * 0.62;
+  return (
+    <g className="fx-tx-blockglyph" aria-hidden>
+      <circle cx={x} cy={y} r={r} />
+      <line x1={x - d} y1={y + d} x2={x + d} y2={y - d} />
+    </g>
+  );
+}
+
+/** A pill in the top-right corner of a card. */
+type Badge = { id: string; text: string; cls: string; title: string; icon?: 'block'; color?: string; round?: boolean };
+
+const badgeWidth = (b: Badge) => (b.round ? 18 : b.text.length * 6.3 + (b.icon ? 26 : 14));
+
+function drawBadges(badges: Badge[], right: number, y: number): { nodes: React.ReactNode; left: number } {
+  let cx = right;
+  const nodes = badges.map((b) => {
+    const w = badgeWidth(b);
+    cx -= w;
+    const at = cx;
+    cx -= 5;
+    return (
+      <g key={b.id} className={`fx-tx-badge ${b.cls}`}>
+        <title>{b.title}</title>
+        {b.round ? (
+          <>
+            <circle cx={at + 9} cy={y + 9} r={9} style={{ fill: b.color }} />
+            <text x={at + 9} y={y + 13} textAnchor="middle">
+              {b.text}
+            </text>
+          </>
+        ) : (
+          <>
+            <rect x={at} y={y} width={w} height={18} rx={9} />
+            {b.icon === 'block' && <BlockGlyph x={at + 11} y={y + 9} r={5} />}
+            <text x={at + (b.icon ? 20 : 7)} y={y + 13}>
+              {b.text}
+            </text>
+          </>
+        )}
+      </g>
+    );
+  });
+  return { nodes, left: cx };
+}
 
 /**
  * A Bluesky post's whole neighbourhood, full screen: the thread it belongs
@@ -156,6 +254,15 @@ const quiet = () => {};
  * opening as a branch of its own. Quote posts are posts like any other, so a
  * quote opens onto its own replies, quotes and links, and the tree can wander
  * across threads.
+ *
+ * On top of the tree it says what the Bluesky app doesn't (see
+ * lib/threadInsights.ts): the replies Bluesky leaves out, drawn where they
+ * would be; the replies it folds away; and the blocks between the people
+ * posting, as a mark on each card, as the line between two posts when it
+ * runs across a reply, and as arcs from whoever is pinned or picked. The
+ * toolbar searches the thread, pins up to four people to trace (their
+ * posts, and the way down to each, take a colour and a number), reorders
+ * and folds the tree, and turns those layers on and off.
  *
  * A card's details open beside the canvas for a click and close again with
  * a second click, their close button or Esc (a second Esc closes the
@@ -180,16 +287,43 @@ function Explorer({ uri, onClose }: { uri: string; onClose: () => void }) {
   const [reveal, setReveal] = useState<string | null>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
   const boxRef = useRef<HTMLDivElement>(null);
+  const searchRef = useRef<HTMLInputElement>(null);
 
-  // The page underneath stays put while the explorer is up, and Escape closes
-  // it, once any details open beside the canvas are closed.
+  const [insights, setInsights] = useState<ThreadInsights | null>(null);
+  const [order, setOrder] = useState<ReplyOrder>('discussed');
+  const [query, setQuery] = useState('');
+  const [matchAt, setMatchAt] = useState(-1);
+  const [pins, setPins] = useState<string[]>([]);
+  const [layers, setLayers] = useState<Layers>({ blocks: false, cut: true, spotlight: true });
+  // Posts that must be drawn, whatever is folded: search hits stepped to,
+  // pinned people's posts, anyone jumped to. Their way down is opened too.
+  const [revealed, setRevealed] = useState<Set<string>>(() => new Set());
+  const [goto, setGoto] = useState<string | null>(null);
+  const [flash, setFlash] = useState<string | null>(null);
+  const pinCursor = useRef(new Map<string, number>());
+  const cutCursor = useRef(-1);
+
+  // The page underneath stays put while the explorer is up. Escape closes
+  // it, once any details open beside the canvas are closed, and / searches.
   useEffect(() => {
     const root = document.documentElement;
     const before = root.style.overflow;
     root.style.overflow = 'hidden';
     dialogRef.current?.focus();
+    // The explorer owns the keyboard while it's up. The site's shortcuts and
+    // the workbench's (Esc closes the record, j and k step through records)
+    // listen on window, so a key stops here, at the document, on its way
+    // there: one Esc used to close both the explorer and the record under it.
+    // What the key does by default (Tab, scrolling, typing) is untouched.
     const onKey = (e: KeyboardEvent) => {
+      e.stopPropagation();
+      if (e.key === '/' && !e.metaKey && !e.ctrlKey && !e.altKey && !isEditable(e.target)) {
+        e.preventDefault();
+        searchRef.current?.focus();
+        return;
+      }
       if (e.key !== 'Escape') return;
+      e.preventDefault();
       if (focusRef.current) close(true);
       else onClose();
     };
@@ -209,6 +343,13 @@ function Explorer({ uri, onClose }: { uri: string; onClose: () => void }) {
     });
     return () => ac.abort();
   }, [uri]);
+
+  useEffect(() => {
+    if (!thread) return undefined;
+    const ac = new AbortController();
+    void loadThreadInsights(thread, setInsights, ac.signal);
+    return () => ac.abort();
+  }, [thread]);
 
   const op = thread?.root.did ?? null;
   const opName = thread?.root.handle ? `@${thread.root.handle}` : 'the first poster';
@@ -230,6 +371,62 @@ function Explorer({ uri, onClose }: { uri: string; onClose: () => void }) {
     return f;
   }, [folded, thread, ancestors]);
   const expandedNow = useMemo(() => new Set([...expanded, ...ancestors]), [expanded, ancestors]);
+
+  /* ---------------- what the insights say ---------------- */
+
+  const allPosts = useMemo(() => (thread ? flattenThread(thread.root) : []), [thread]);
+  const cuts = useMemo(() => insights?.cut ?? [], [insights?.cut]);
+  const cutByParent = useMemo(() => {
+    const m = new Map<string, CutReply[]>();
+    for (const c of cuts) m.set(c.parent, [...(m.get(c.parent) ?? []), c]);
+    return m;
+  }, [cuts]);
+  const cutByUri = useMemo(() => new Map(cuts.map((c) => [c.uri, c])), [cuts]);
+  const postByUri = useMemo(() => new Map(allPosts.map((p) => [p.uri, p])), [allPosts]);
+  const didOfPost = useMemo(() => new Map(allPosts.map((p) => [p.uri, p.did])), [allPosts]);
+  const authorOf = useCallback((u: string) => didOfPost.get(u) ?? cutByUri.get(u)?.did, [didOfPost, cutByUri]);
+  const parents = useMemo(() => {
+    const m = thread ? parentsOf(thread.root) : new Map<string, string | null>();
+    for (const c of cuts) m.set(c.uri, c.parent);
+    return m;
+  }, [thread, cuts]);
+  const blockIndex = useMemo(() => indexBlocks(insights?.blocks ?? []), [insights?.blocks]);
+  const blocksDone = insights?.stage === 'done';
+  const postsBy = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const p of allPosts) m.set(p.did, (m.get(p.did) ?? 0) + 1);
+    return m;
+  }, [allPosts]);
+
+  const handles = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const p of allPosts) if (p.handle) m.set(p.did, p.handle);
+    for (const [d, f] of insights?.authors ?? []) if (f.handle && !m.has(d)) m.set(d, f.handle);
+    for (const c of cuts) if (c.author?.handle && !m.has(c.did)) m.set(c.did, c.author.handle);
+    return m;
+  }, [allPosts, insights?.authors, cuts]);
+  const atNameOf = useCallback(
+    (did: string | undefined) => {
+      if (!did) return 'someone';
+      const h = handles.get(did);
+      return h ? `@${h}` : `${did.slice(0, 16)}…`;
+    },
+    [handles],
+  );
+
+  const readingOf = useCallback(
+    (c: CutReply): CutReading =>
+      readCut(c, {
+        rootDid: op ?? '',
+        parentDid: didOfPost.get(c.parent) ?? '',
+        name: atNameOf,
+        blocks: blockIndex,
+        blocksDone,
+        blocksRead: (d) => insights?.blocksRead.has(d) ?? false,
+        gateRestricted: thread?.gate.restricted ?? false,
+      }),
+    [op, didOfPost, atNameOf, blockIndex, blocksDone, insights?.blocksRead, thread?.gate.restricted],
+  );
 
   /* ---------------- reading what a branch needs ---------------- */
 
@@ -273,13 +470,14 @@ function Explorer({ uri, onClose }: { uri: string; onClose: () => void }) {
       }
     }
     for (const s of subtrees.values()) if (typeof s === 'object') flattenThread(s).forEach((p) => dids.add(p.did));
+    for (const c of cuts) dids.add(c.did);
     const missing = [...dids].filter((d) => d !== op && !relAsked.current.has(d));
     if (!missing.length) return;
     missing.forEach((d) => relAsked.current.add(d));
     void loadThreadRelations(op, missing).then((r) => {
       if (r) setRelations((m) => new Map([...m, ...r]));
     });
-  }, [op, thread, lists, subtrees]);
+  }, [op, thread, lists, subtrees, cuts]);
 
   const relationOfDid = useCallback(
     (did: string): Relation | 'op' => {
@@ -303,6 +501,145 @@ function Explorer({ uri, onClose }: { uri: string; onClose: () => void }) {
     [op, opName, relations],
   );
 
+  /* ---------------- finding and tracing ---------------- */
+
+  // The thread's posts in the order they're drawn, each post's left-out
+  // replies after its own, for stepping through search hits and through a
+  // pinned person's posts top to bottom.
+  const treeOrder = useMemo(() => {
+    const out: string[] = [];
+    const walk = (p: ThreadPost) => {
+      out.push(p.uri);
+      for (const k of sortReplies(p.kids, order)) walk(k);
+      for (const c of cutByParent.get(p.uri) ?? []) out.push(c.uri);
+    };
+    if (thread) walk(thread.root);
+    return out;
+  }, [thread, order, cutByParent]);
+
+  const searching = query.trim().length > 0;
+  const matches = useMemo(() => {
+    if (!searching) return [];
+    return treeOrder.filter((u) => {
+      const p = cutByUri.get(u);
+      if (p) return layers.cut && postMatches({ text: p.text ?? '', handle: p.author?.handle, displayName: p.author?.displayName }, query);
+      const post = postByUri.get(u);
+      return !!post && postMatches(post, query);
+    });
+  }, [searching, treeOrder, cutByUri, postByUri, query, layers.cut]);
+  const matchSet = useMemo(() => new Set(matches), [matches]);
+  const currentHit = matchAt >= 0 ? (matches[matchAt] ?? null) : null;
+
+  // The way down to each pinned person's posts, one set per pin.
+  const pinPaths = useMemo(
+    () => pins.map((did) => pathTo(parents, treeOrder.filter((u) => authorOf(u) === did))),
+    [pins, parents, treeOrder, authorOf],
+  );
+  const traceSlot = useCallback((u: string) => pinPaths.findIndex((s) => s.has(u)), [pinPaths]);
+
+  const mustShow = useMemo(() => pathTo(parents, revealed), [parents, revealed]);
+  const forcedOpen = useMemo(
+    () => new Set([...mustShow].map((u) => parents.get(u)).filter((u): u is string => !!u)),
+    [mustShow, parents],
+  );
+
+  // Whoever a pinned person is in a block with stays lit too, so the arcs
+  // between them don't end on a faded card.
+  const pinPeers = useMemo(() => new Set(pins.flatMap((d) => [...blockedWith(blockIndex, d)])), [pins, blockIndex]);
+  const spot = layers.spotlight && (searching || pins.length > 0);
+  const lit = useCallback(
+    (u: string | null, did: string | null) =>
+      (searching && !!u && matchSet.has(u)) ||
+      (pins.length > 0 &&
+        ((!!did && (pins.includes(did) || pinPeers.has(did))) || (!!u && pinPaths.some((s) => s.has(u))))),
+    [searching, matchSet, pins, pinPeers, pinPaths],
+  );
+
+  const goTo = useCallback((u: string) => {
+    setRevealed((s) => (s.has(u) ? s : new Set(s).add(u)));
+    setGoto(u);
+    setFlash(u);
+  }, []);
+
+  useEffect(() => {
+    if (!flash) return undefined;
+    const t = window.setTimeout(() => setFlash(null), 1600);
+    return () => window.clearTimeout(t);
+  }, [flash]);
+
+  const onQuery = (q: string) => {
+    setQuery(q);
+    setMatchAt(-1);
+  };
+
+  const step = (by: 1 | -1) => {
+    if (!matches.length) return;
+    const next = matchAt < 0 ? (by === 1 ? 0 : matches.length - 1) : (matchAt + by + matches.length) % matches.length;
+    setMatchAt(next);
+    goTo(matches[next]);
+  };
+
+  const togglePin = (did: string) => {
+    if (pins.includes(did)) {
+      setPins((ps) => ps.filter((d) => d !== did));
+      return;
+    }
+    if (pins.length >= PIN_SLOTS) return;
+    setPins((ps) => [...ps, did]);
+    // Everything they posted is drawn, so the trace is whole, and the view
+    // goes to the first of it.
+    const theirs = treeOrder.filter((u) => authorOf(u) === did);
+    setRevealed((s) => new Set([...s, ...theirs]));
+    if (cuts.some((c) => c.did === did)) setLayers((l) => ({ ...l, cut: true }));
+    if (theirs.length) {
+      pinCursor.current.set(did, 0);
+      setGoto(theirs[0]);
+      setFlash(theirs[0]);
+    }
+  };
+
+  const postsOf = useCallback((did: string) => treeOrder.filter((u) => authorOf(u) === did), [treeOrder, authorOf]);
+
+  const jumpTo = (did: string) => {
+    const list = postsOf(did);
+    if (!list.length) return;
+    const i = ((pinCursor.current.get(did) ?? -1) + 1) % list.length;
+    pinCursor.current.set(did, i);
+    goTo(list[i]);
+  };
+
+  /** Someone named in the details: their first post, drawn, shown and picked. */
+  const goToPerson = (did: string) => {
+    const first = postsOf(did)[0];
+    if (!first) return;
+    goTo(first);
+    const c = cutByUri.get(first);
+    if (c) setLayers((l) => ({ ...l, cut: true }));
+    const post = c ? ghostPost(c) : postByUri.get(first);
+    if (post && !(focus?.kind === 'post' && focus.post.uri === first)) pick({ kind: 'post', post });
+  };
+
+  const nextCut = () => {
+    if (!cuts.length) return;
+    const ordered = treeOrder.filter((u) => cutByUri.has(u));
+    cutCursor.current = (cutCursor.current + 1) % ordered.length;
+    setLayers((l) => ({ ...l, cut: true }));
+    goTo(ordered[cutCursor.current]);
+  };
+
+  const expandAll = () => {
+    setFolded(new Set());
+    setExpanded(new Set(allPosts.filter((p) => p.kids.length).map((p) => p.uri)));
+  };
+
+  const collapseAll = () => {
+    if (!thread) return;
+    const base = thread.root.depth;
+    setFolded(new Set(allPosts.filter((p) => p.depth > base && p.kids.length && !ancestors.has(p.uri)).map((p) => p.uri)));
+    setExpanded(new Set());
+    setRevealed(new Set());
+  };
+
   /* ---------------- toggles ---------------- */
 
   const toggleOpen = (key: string, nodeKey: string) => {
@@ -321,12 +658,17 @@ function Explorer({ uri, onClose }: { uri: string; onClose: () => void }) {
       setSubtrees((m) => new Map(m).set(post.uri, 'loading'));
       void loadReplies(post.uri).then((tree) => setSubtrees((m) => new Map(m).set(post.uri, tree ?? 'failed')));
     } else {
+      const showing = !foldedNow.has(post.uri) || forcedOpen.has(post.uri);
       setFolded(() => {
         const next = new Set(foldedNow);
-        if (next.has(post.uri)) next.delete(post.uri);
-        else next.add(post.uri);
+        if (showing) next.add(post.uri);
+        else next.delete(post.uri);
         return next;
       });
+      // Folding a post lets go of whatever was holding its replies open.
+      if (showing) {
+        setRevealed((s) => new Set([...s].filter((u) => u === post.uri || !pathTo(parents, [u]).has(post.uri))));
+      }
     }
     setReveal(nodeKey);
   };
@@ -356,24 +698,40 @@ function Explorer({ uri, onClose }: { uri: string; onClose: () => void }) {
       if (depth < MAX_DEPTH) {
         const sub = subtrees.get(post.uri);
         const source = typeof sub === 'object' ? sub : post;
+        const repliesOpen = !foldedNow.has(post.uri) || forcedOpen.has(post.uri);
+        let more: XNode | null = null;
         if (sub === 'loading') children.push(note(`${key}>loading`, 'Reading replies…'));
         else if (sub === 'failed') children.push(note(`${key}>failed`, 'Couldn’t read the replies'));
-        else if (source.kids.length && !foldedNow.has(post.uri)) {
-          const sorted = [...source.kids].sort(
-            (a, b) => b.size - a.size || Date.parse(a.createdAt) - Date.parse(b.createdAt),
-          );
-          const kids = expandedNow.has(post.uri) ? sorted : sorted.slice(0, REPLIES_AT_ONCE);
+        else if (source.kids.length && repliesOpen) {
+          const sorted = sortReplies(source.kids, order);
+          const kids = expandedNow.has(post.uri)
+            ? sorted
+            : sorted.filter((k, i) => i < REPLIES_AT_ONCE || mustShow.has(k.uri));
           for (const k of kids) children.push(postNode(k, `${key}>${k.uri}`, depth + 1));
           const hidden = sorted.length - kids.length;
           if (hidden > 0) {
-            children.push(
-              note(`${key}>more`, `${plural(hidden, 'more reply', 'more replies')}`, () => {
-                setExpanded((e) => new Set(e).add(post.uri));
-                setReveal(`${key}>more`);
-              }),
-            );
+            more = note(`${key}>more`, `${plural(hidden, 'more reply', 'more replies')}`, () => {
+              setExpanded((e) => new Set(e).add(post.uri));
+              setReveal(`${key}>more`);
+            });
           }
         }
+        // Left-out replies go where the AppView would have put them, after
+        // the replies it did return, unless those are folded away.
+        if (layers.cut && (repliesOpen || !source.kids.length)) {
+          for (const c of cutByParent.get(post.uri) ?? []) {
+            children.push({
+              key: `${key}>${c.uri}`,
+              kind: 'ghost',
+              cut: c,
+              reading: readingOf(c),
+              w: SIZE.ghost[0],
+              h: SIZE.ghost[1],
+              children: [],
+            });
+          }
+        }
+        if (more) children.push(more);
         for (const g of GROUPS) {
           const openKey = `${post.uri}|${g}`;
           if (open.has(openKey)) children.push(groupNode(post, g, key, depth));
@@ -433,7 +791,7 @@ function Explorer({ uri, onClose }: { uri: string; onClose: () => void }) {
     return postNode(thread.root, thread.root.uri, 0);
     // showMore reads refs and state setters only.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [thread, subtrees, foldedNow, expandedNow, open, lists, shown]);
+  }, [thread, subtrees, foldedNow, expandedNow, open, lists, shown, order, mustShow, forcedOpen, layers.cut, cutByParent, readingOf]);
 
   const layout = useMemo(() => (tree ? treeLayout(tree, { colGap: 64, rowGap: 14 }) : null), [tree]);
   const byKey = useMemo(() => {
@@ -450,25 +808,66 @@ function Explorer({ uri, onClose }: { uri: string; onClose: () => void }) {
     [layout, byKey],
   );
   const motion = useTreeMotion(motionNodes, zoom);
+  /** The cards as drawn now, after any drags, without the ones folding away. */
+  const shownItems = useMemo(() => motion.items.filter((it) => !it.leaving), [motion.items]);
+  // Where each post is first drawn: in the thread before any quote branch.
+  const keyOfUri = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const n of byKey.values()) {
+      const u = n.kind === 'post' ? n.post.uri : n.kind === 'ghost' ? n.cut.uri : null;
+      if (u && !m.has(u)) m.set(u, n.key);
+    }
+    return m;
+  }, [byKey]);
 
   /* ---------------- moving around ---------------- */
 
-  const PAD = 48;
   const placeOf = motion.place;
 
   // Open on the post the explorer was opened from, in the middle.
   const started = useRef(false);
+  const autoScroll = useRef<{ left: number; top: number } | null>(null);
+  const focusKey = useMemo(
+    () => (thread ? ([...byKey.values()].find((n) => n.kind === 'post' && n.post.uri === thread.focus)?.key ?? thread.root.uri) : null),
+    [thread, byKey],
+  );
   useEffect(() => {
     const box = boxRef.current;
-    if (!box || !layout || !thread || started.current) return;
+    if (!box || !layout || !focusKey || started.current) return;
     started.current = true;
-    const key = [...byKey.values()].find((n) => n.kind === 'post' && n.post.uri === thread.focus)?.key ?? thread.root.uri;
-    const p = placeOf(key);
+    const p = placeOf(focusKey);
     if (p) {
       box.scrollLeft = Math.max(0, (p.x + PAD) * zoom - box.clientWidth / 3);
       box.scrollTop = Math.max(0, (p.y + PAD + p.h / 2) * zoom - box.clientHeight / 2);
+      autoScroll.current = { left: box.scrollLeft, top: box.scrollTop };
     }
-  }, [layout, thread, byKey, placeOf, zoom]);
+  }, [layout, focusKey, placeOf, zoom]);
+
+  // Left-out replies land a moment after the thread and push the cards
+  // around them aside. If the reader hasn't moved the view yet, it follows
+  // the post it opened on as that glides to its new place.
+  const followed = useRef(false);
+  const cutsKnown = !!insights && insights.stage !== 'reading';
+  useEffect(() => {
+    const box = boxRef.current;
+    const at = autoScroll.current;
+    if (followed.current || !cutsKnown || !box || !at || !focusKey) return;
+    followed.current = true;
+    if (Math.abs(box.scrollLeft - at.left) > 2 || Math.abs(box.scrollTop - at.top) > 2) return;
+    const p = placeOf(focusKey);
+    if (!p) return;
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    box.scrollTo({
+      left: Math.max(0, (p.x + PAD) * zoom - box.clientWidth / 3),
+      top: Math.max(0, (p.y + PAD + p.h / 2) * zoom - box.clientHeight / 2),
+      behavior: reduce ? 'auto' : 'smooth',
+    });
+  }, [cutsKnown, focusKey, placeOf, zoom]);
+
+  const zoomRef = useRef(zoom);
+  useEffect(() => {
+    zoomRef.current = zoom;
+  }, [zoom]);
 
   // After a branch opens, bring it into view, moving no further than needed.
   useEffect(() => {
@@ -476,7 +875,7 @@ function Explorer({ uri, onClose }: { uri: string; onClose: () => void }) {
     if (!box || !reveal) return;
     const p = placeOf(reveal);
     if (!p) return;
-    const kids = motion.items.filter((n) => !n.leaving && n.parent === reveal);
+    const kids = shownItems.filter((n) => n.parent === reveal);
     const right = Math.max(p.x + p.w, ...kids.map((k) => k.x + k.w));
     const top = Math.min(p.y, ...kids.map((k) => k.y));
     const bottom = Math.max(p.y + p.h, ...kids.map((k) => k.y + k.h));
@@ -490,7 +889,24 @@ function Explorer({ uri, onClose }: { uri: string; onClose: () => void }) {
     const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     box.scrollTo({ left: Math.max(0, left), top: Math.max(0, scrollTop), behavior: reduce ? 'auto' : 'smooth' });
     setReveal(null);
-  }, [reveal, motion.items, placeOf, zoom]);
+  }, [reveal, shownItems, placeOf, zoom]);
+
+  // A post stepped to (a search hit, a pinned person's next post, someone
+  // named in the details) comes to the middle of the screen.
+  useEffect(() => {
+    const box = boxRef.current;
+    if (!box || !goto) return;
+    const key = keyOfUri.get(goto);
+    const p = key ? placeOf(key) : null;
+    setGoto(null);
+    if (!p) return;
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    box.scrollTo({
+      left: Math.max(0, (p.x + PAD + p.w / 2) * zoom - box.clientWidth / 2),
+      top: Math.max(0, (p.y + PAD + p.h / 2) * zoom - box.clientHeight / 2),
+      behavior: reduce ? 'auto' : 'smooth',
+    });
+  }, [goto, keyOfUri, placeOf, zoom]);
 
   // Zoom about a point on screen (the pointer, or the middle).
   const zoomTo = useCallback((next: number, at?: { x: number; y: number }) => {
@@ -511,10 +927,6 @@ function Explorer({ uri, onClose }: { uri: string; onClose: () => void }) {
   }, []);
 
   // Pinch or ctrl/cmd + wheel zooms; a plain wheel scrolls as usual.
-  const zoomRef = useRef(zoom);
-  useEffect(() => {
-    zoomRef.current = zoom;
-  }, [zoom]);
   useEffect(() => {
     const box = boxRef.current;
     if (!box) return undefined;
@@ -573,9 +985,75 @@ function Explorer({ uri, onClose }: { uri: string; onClose: () => void }) {
         : focus?.kind === 'record'
           ? focus.record.uri
           : null;
+  const focusDid =
+    focus?.kind === 'post'
+      ? focus.post.did
+      : focus?.kind === 'person'
+        ? focus.person.did
+        : focus?.kind === 'record'
+          ? focus.record.did
+          : null;
+
+  /** The marks a card's author carries, whatever card it is. */
+  const authorBadges = (did: string, uri: string | null): Badge[] => {
+    const out: Badge[] = [];
+    if (did === op) out.push({ id: 'op', text: 'OP', cls: 'fx-tx-b-op', title: `${opName} started this thread` });
+    const slot = pins.indexOf(did);
+    if (slot >= 0) out.push({ id: 'pin', text: String(slot + 1), cls: 'fx-tx-b-pin', title: `Pinned (${slot + 1})`, round: true, color: pinColor(slot) });
+    const n = blockedWith(blockIndex, did).size;
+    if (n) {
+      out.push({
+        id: 'block',
+        text: fmt(n),
+        cls: 'fx-tx-b-block',
+        icon: 'block',
+        title: `In a block with ${plural(n, 'other person', 'other people')} in this thread`,
+      });
+    }
+    const fold = uri ? insights?.folded.get(uri) : undefined;
+    if (fold) {
+      out.push({
+        id: 'fold',
+        text: fold === 'author' ? 'Hidden by OP' : 'Folded',
+        cls: 'fx-tx-b-fold',
+        title:
+          fold === 'author'
+            ? `${opName} hid this reply. Bluesky’s app shows it only to people who ask to see hidden replies.`
+            : 'Bluesky’s app keeps this reply out of the thread until someone asks to see more replies.',
+      });
+    }
+    const label = outsideLabels(insights?.authors.get(did)?.labels ?? [], did)[0];
+    if (label) out.push({ id: 'label', text: label, cls: 'fx-tx-b-label', title: `The account is labelled “${label}”` });
+    return out;
+  };
+
+  /** Rings round a card: one for the thread's author, one in a pinned person's colour. */
+  const rings = (did: string, x: number, y: number, w: number, h: number) => {
+    const slot = pins.indexOf(did);
+    return (
+      <>
+        {slot >= 0 && (
+          <rect x={x - 7} y={y - 7} width={w + 14} height={h + 14} rx={16} className="fx-tx-pin-ring" style={{ stroke: pinColor(slot) }} />
+        )}
+        {did === op && <rect x={x - 3.5} y={y - 3.5} width={w + 7} height={h + 7} rx={13} className="fx-tx-op-ring" />}
+      </>
+    );
+  };
+
+  // The card whose details are open stays lit, and so does everyone its
+  // block arcs run to.
+  const focusPeers = focusDid ? blockedWith(blockIndex, focusDid) : new Set<string>();
+  const markState = (u: string | null, did: string | null) => ({
+    'data-dim':
+      spot && !lit(u, did) && !(u && u === focusedKey) && !(did && (did === focusDid || focusPeers.has(did))) ? '' : undefined,
+    'data-hit': u && matchSet.has(u) ? '' : undefined,
+    'data-hit-current': u && u === currentHit ? '' : undefined,
+    'data-flash': u && u === flash ? '' : undefined,
+  });
 
   const drawNode = (n: XNode, x: number, y: number) => {
     if (n.kind === 'post') return drawPost(n, n.post, x, y);
+    if (n.kind === 'ghost') return drawGhost(n, n.cut, n.reading, x, y);
     if (n.kind === 'group' || n.kind === 'source') {
       const label = n.kind === 'group' ? n.label : `${n.source.label} · ${fmt(n.source.count)}`;
       const isOpen = n.kind === 'group' || n.isOpen;
@@ -587,6 +1065,7 @@ function Explorer({ uri, onClose }: { uri: string; onClose: () => void }) {
           aria-expanded={isOpen}
           aria-label={n.kind === 'group' ? `${label}, close` : label}
           data-open={isOpen || undefined}
+          data-dim={spot || undefined}
           {...markProps(quiet, () => toggleOpen(n.open, n.key))}
         >
           <rect x={x} y={y} width={n.w} height={n.h} rx={n.h / 2} />
@@ -598,6 +1077,7 @@ function Explorer({ uri, onClose }: { uri: string; onClose: () => void }) {
     }
     if (n.kind === 'account') {
       const a = n.account;
+      const badges = drawBadges(authorBadges(a.did, null), x + n.w - 8, y - 9);
       return (
         <g
           key={n.key}
@@ -605,9 +1085,11 @@ function Explorer({ uri, onClose }: { uri: string; onClose: () => void }) {
           role="button"
           aria-label={nameOf(a)}
           data-focus={focusedKey === a.did || undefined}
+          {...markState(null, a.did)}
           {...markProps(quiet, () => pick({ kind: 'person', person: a }))}
         >
-          <rect x={x} y={y} width={n.w} height={n.h} rx={10} className="fx-graph-card" />
+          {rings(a.did, x, y, n.w, n.h)}
+          <rect x={x} y={y} width={n.w} height={n.h} rx={10} className="fx-graph-card" data-op={a.did === op || undefined} />
           <Face x={x + 24} y={y + n.h / 2} r={13} avatar={a.avatar} name={nameOf(a)} ring={relationColor(relationOfDid(a.did))} />
           <text x={x + 47} y={y + 20} className="fx-graph-t-name">
             {truncate(nameOf(a), 24)}
@@ -615,6 +1097,7 @@ function Explorer({ uri, onClose }: { uri: string; onClose: () => void }) {
           <text x={x + 47} y={y + 36} className="fx-graph-t-sub">
             {truncate(a.handle ? `@${a.handle}` : a.did, 26)}
           </text>
+          {badges.nodes}
         </g>
       );
     }
@@ -628,6 +1111,7 @@ function Explorer({ uri, onClose }: { uri: string; onClose: () => void }) {
           role="button"
           aria-label={`${n.label} by ${nameOf(who)}`}
           data-focus={focusedKey === r.uri || undefined}
+          {...markState(null, r.did)}
           {...markProps(quiet, () => pick({ kind: 'record', record: r, label: n.label }))}
         >
           <rect x={x} y={y} width={n.w} height={n.h} rx={10} className="fx-graph-card" />
@@ -648,6 +1132,7 @@ function Explorer({ uri, onClose }: { uri: string; onClose: () => void }) {
         className={action ? 'fx-graph-mark' : undefined}
         role={action ? 'button' : undefined}
         tabIndex={action ? 0 : undefined}
+        data-dim={spot || undefined}
         onClick={action}
         onKeyDown={
           action
@@ -668,11 +1153,60 @@ function Explorer({ uri, onClose }: { uri: string; onClose: () => void }) {
     );
   };
 
+  const drawGhost = (n: XNode, c: CutReply, reading: CutReading, x: number, y: number) => {
+    const name = c.author?.displayName || c.author?.handle || atNameOf(c.did);
+    const tag = drawBadges(
+      [{ id: 'cut', text: 'Left out', cls: 'fx-tx-b-cut', title: 'Bluesky leaves this reply out of the thread' }],
+      x + n.w - 10,
+      y + 12,
+    );
+    const lines = c.text === null ? [] : wrapLines(c.text || (c.hasMedia ? 'An image or video' : ''), 40, 2);
+    const pillW = Math.min(n.w - 24, reading.label.length * 6.6 + 18);
+    return (
+      <g
+        key={n.key}
+        className="fx-graph-mark fx-tx-ghost"
+        data-tone={reading.tone}
+        role="button"
+        aria-label={`Left out on Bluesky: ${name}. ${reading.label}`}
+        data-focus={focusedKey === c.uri || undefined}
+        {...markState(c.uri, c.did)}
+        {...markProps(quiet, () => pick({ kind: 'post', post: ghostPost(c) }))}
+      >
+        <rect x={x} y={y} width={n.w} height={n.h} rx={10} className="fx-tx-ghost-card" />
+        <g className="fx-tx-ghost-body">
+          <Face x={x + 26} y={y + 22} r={11} avatar={c.author?.avatar} name={name} ring={relationColor(relationOfDid(c.did))} />
+          <text x={x + 44} y={y + 27} className="fx-graph-t-name">
+            {truncate(name, Math.max(6, Math.floor((tag.left - x - 50) / 7.4)))}
+          </text>
+          {c.text === null ? (
+            <text x={x + 14} y={y + 52} className="fx-graph-t-body fx-tx-ghost-none">
+              Its text couldn’t be read
+            </text>
+          ) : (
+            lines.map((line, i) => (
+              <text key={i} x={x + 14} y={y + 50 + i * 16} className="fx-graph-t-body">
+                {line}
+              </text>
+            ))
+          )}
+        </g>
+        {tag.nodes}
+        <g className="fx-tx-cut-pill">
+          <rect x={x + 12} y={y + n.h - 30} width={pillW} height={22} rx={11} />
+          <text x={x + 12 + pillW / 2} y={y + n.h - 15} textAnchor="middle">
+            {truncate(reading.label, Math.floor((pillW - 14) / 6.6))}
+          </text>
+        </g>
+      </g>
+    );
+  };
+
   const drawPost = (n: XNode, post: ThreadPost, x: number, y: number) => {
     const sub = subtrees.get(post.uri);
     const kids = typeof sub === 'object' ? sub.kids : post.kids;
     const loaded = kids.length > 0;
-    const repliesShown = loaded && !foldedNow.has(post.uri);
+    const repliesShown = loaded && (!foldedNow.has(post.uri) || forcedOpen.has(post.uri));
     const replyCount = Math.max(post.replies, kids.length);
     type Chip = { id: string; label: string; active: boolean; act: () => void };
     const chips: Chip[] = [];
@@ -713,12 +1247,15 @@ function Explorer({ uri, onClose }: { uri: string; onClose: () => void }) {
       .filter((c) => c.x + c.w <= x + n.w - 8);
     const lines = wrapLines(post.text || (post.hasMedia ? 'An image or video' : ''), 40, 2);
     const isCurrent = post.uri === thread?.focus;
+    const badges = drawBadges(authorBadges(post.did, post.uri), x + n.w - 10, y + 12);
+    const nameRoom = Math.max(6, Math.floor((badges.left - x - 50) / 7.4));
     return (
-      <g key={n.key}>
+      <g key={n.key} {...markState(post.uri, post.did)}>
+        {rings(post.did, x, y, n.w, n.h)}
         <g
           className="fx-graph-mark"
           role="button"
-          aria-label={`${post.displayName || post.handle}: ${truncate(post.text, 90) || 'no text'}`}
+          aria-label={`${post.displayName || post.handle}${post.did === op ? ' (started the thread)' : ''}: ${truncate(post.text, 90) || 'no text'}`}
           data-focus={focusedKey === post.uri || undefined}
           {...markProps(quiet, () => {
             pick({ kind: 'post', post });
@@ -728,16 +1265,26 @@ function Explorer({ uri, onClose }: { uri: string; onClose: () => void }) {
             if (replyCount > 0 && !repliesShown) toggleReplies(post, n.key, loaded);
           })}
         >
-          <rect x={x} y={y} width={n.w} height={n.h} rx={10} className="fx-graph-card" data-current={isCurrent || undefined} />
+          <rect
+            x={x}
+            y={y}
+            width={n.w}
+            height={n.h}
+            rx={10}
+            className="fx-graph-card"
+            data-current={isCurrent || undefined}
+            data-op={post.did === op || undefined}
+          />
           <Face x={x + 26} y={y + 22} r={11} avatar={post.avatar} name={post.handle || post.did} ring={relationColor(relationOfDid(post.did))} />
           <text x={x + 44} y={y + 27} className="fx-graph-t-name">
-            {truncate(post.displayName || post.handle || '', 26)}
+            {truncate(post.displayName || post.handle || '', Math.min(26, nameRoom))}
           </text>
           {lines.map((line, i) => (
             <text key={i} x={x + 14} y={y + 50 + i * 16} className="fx-graph-t-body">
               {line}
             </text>
           ))}
+          {badges.nodes}
         </g>
         {placedChips.map((c) => (
           <g
@@ -759,6 +1306,163 @@ function Explorer({ uri, onClose }: { uri: string; onClose: () => void }) {
     );
   };
 
+  /** The account a node is about, if it's about one. */
+  const didOfNode = (n: XNode): string | null =>
+    n.kind === 'post' ? n.post.did : n.kind === 'ghost' ? n.cut.did : n.kind === 'account' ? n.account.did : null;
+  const uriOfNode = (n: XNode): string | null => (n.kind === 'post' ? n.post.uri : n.kind === 'ghost' ? n.cut.uri : null);
+
+  // Arcs for the blocks worth drawing: all of them with the Blocks layer
+  // on, otherwise only a pinned or picked account's. Each pair is joined
+  // once, between its two nearest cards, and points at whoever is blocked.
+  const arcs = useMemo(() => {
+    type Card = (typeof shownItems)[number];
+    const cards = new Map<string, Card[]>();
+    for (const p of shownItems) {
+      const did = didOfNode(p.data);
+      if (did) cards.set(did, [...(cards.get(did) ?? []), p]);
+    }
+    const wanted = blockLinks(blockIndex).filter(
+      (l) => layers.blocks || pins.includes(l.a) || pins.includes(l.b) || l.a === focusDid || l.b === focusDid,
+    );
+    const out: { key: string; d: string; both: boolean; a: string; b: string }[] = [];
+    for (const { a, b, between } of wanted) {
+      const ca = cards.get(a);
+      const cb = cards.get(b);
+      if (!ca || !cb) continue;
+      let best: [Card, Card] | null = null;
+      let dist = Infinity;
+      for (const p of ca) {
+        for (const q of cb) {
+          const d = Math.hypot(p.x - q.x, p.y - q.y);
+          if (d < dist) {
+            dist = d;
+            best = [p, q];
+          }
+        }
+      }
+      if (!best) continue;
+      // From the blocker to the blocked; both ways gets an arrow at each end.
+      const [from, to] = between.aBlocksB ? best : [best[1], best[0]];
+      const x1 = from.x + from.w;
+      const y1 = from.y + from.h / 2;
+      const x2 = to.x + to.w;
+      const y2 = to.y + to.h / 2;
+      const bulge = 36 + Math.min(240, Math.abs(y2 - y1) * 0.2 + Math.abs(x2 - x1) * 0.1);
+      const cxp = Math.max(x1, x2) + bulge;
+      out.push({
+        key: `${a} ${b}`,
+        d: `M${x1},${y1} C${cxp},${y1} ${cxp},${y2} ${x2},${y2}`,
+        both: between.aBlocksB && between.bBlocksA,
+        a,
+        b,
+      });
+    }
+    return out;
+  }, [shownItems, blockIndex, layers.blocks, pins, focusDid]);
+
+  /* ---------------- the toolbar and the details ---------------- */
+
+  const people = useMemo((): PersonRow[] => {
+    const rows = new Map<string, PersonRow>();
+    const row = (did: string, p: { handle?: string; displayName?: string; avatar?: string }) => {
+      let r = rows.get(did);
+      if (!r) {
+        const f = insights?.authors.get(did);
+        const handle = p.handle ?? f?.handle;
+        r = {
+          did,
+          name: p.displayName || f?.displayName || (handle ? `@${handle}` : did),
+          handle,
+          avatar: p.avatar ?? f?.avatar,
+          posts: 0,
+          blocks: blockedWith(blockIndex, did).size,
+          cut: 0,
+          op: did === op,
+        };
+        rows.set(did, r);
+      }
+      return r;
+    };
+    for (const p of allPosts) row(p.did, p).posts += 1;
+    for (const c of cuts) row(c.did, c.author ?? {}).cut += 1;
+    return [...rows.values()].sort((a, b) => Number(b.op) - Number(a.op) || b.posts + b.cut - (a.posts + a.cut) || a.name.localeCompare(b.name));
+  }, [allPosts, cuts, insights?.authors, blockIndex, op]);
+
+  const links = useMemo(() => blockLinks(blockIndex), [blockIndex]);
+  const foldedCount = insights?.folded.size ?? 0;
+  const summary = !thread ? null : (
+    <>
+      {(!insights || insights.stage !== 'done') && (
+        <span className="fx-graph-status" role="status">
+          {!insights || insights.stage === 'reading'
+            ? 'Looking for left-out replies…'
+            : `Reading blocks… ${Math.round(insights.blocksDone * 100)}%`}
+        </span>
+      )}
+      {insights && (
+        <>
+          <span
+            className="fx-tx-stat"
+            data-tone="block"
+            title={
+              insights.stage === 'done'
+                ? `Blocks between people who posted here, read for ${fmt(insights.blocksRead.size)} of ${fmt(insights.participants)} accounts. Blocks made through moderation lists can’t be seen.`
+                : undefined
+            }
+          >
+            <Ban size={13} aria-hidden />
+            {plural(links.length, 'block', 'blocks')}
+          </span>
+          <button
+            type="button"
+            className="fx-tx-stat"
+            data-tone="cut"
+            onClick={nextCut}
+            disabled={!cuts.length}
+            title={cuts.length ? 'Go to the next reply Bluesky leaves out' : 'No replies found missing from the thread'}
+          >
+            {fmt(cuts.length)} left out
+          </button>
+          <span className="fx-tx-stat" title="Replies Bluesky’s app keeps behind “show more”, hidden by the thread’s author or folded by Bluesky">
+            {fmt(foldedCount)} folded
+          </span>
+        </>
+      )}
+    </>
+  );
+
+  const insightPane = (did: string, profileLinks: boolean) => {
+    const e = blockIndex.get(did);
+    const rows: BlockRow[] = [...blockedWith(blockIndex, did)].map((o) => ({
+      did: o,
+      name: atNameOf(o),
+      theyBlock: e?.blocks.has(o) ?? false,
+      blockedBy: e?.blockedBy.has(o) ?? false,
+    }));
+    const foldedBy = { author: 0, bluesky: 0 };
+    for (const [u, why] of insights?.folded ?? []) if (didOfPost.get(u) === did) foldedBy[why] += 1;
+    return (
+      <AccountInsight
+        did={did}
+        facts={insights?.authors.get(did)}
+        name={atNameOf(did)}
+        isOp={did === op}
+        postsHere={postsBy.get(did) ?? 0}
+        blocks={rows}
+        blocksState={!blocksDone ? 'reading' : insights?.blocksRead.has(did) ? 'done' : 'unread'}
+        folded={foldedBy}
+        cut={cuts.filter((c) => c.did === did).length}
+        pinSlot={pins.indexOf(did)}
+        canPin={pins.length < PIN_SLOTS}
+        onPin={() => togglePin(did)}
+        onGo={goToPerson}
+        profileLinks={profileLinks}
+      />
+    );
+  };
+
+  const focusCut = focus?.kind === 'post' ? cutByUri.get(focus.post.uri) : undefined;
+
   return (
     <div ref={dialogRef} className="fx-tx" data-pick role="dialog" aria-modal="true" aria-labelledby="fx-tx-title" tabIndex={-1}>
       <div className="fx-tx-head">
@@ -770,7 +1474,12 @@ function Explorer({ uri, onClose }: { uri: string; onClose: () => void }) {
             </span>
           )}
         </div>
-        {thread && <Legend keys={['mutual', 'following', 'follower', 'further']} subject={opName} op />}
+        {thread && (
+          <div className="fx-tx-keys">
+            <Legend keys={['mutual', 'following', 'follower', 'further']} subject={opName} op />
+            <MarksKey />
+          </div>
+        )}
         <div className="fx-tx-tools">
           <button type="button" className="fx-graph-tool" onClick={() => zoomTo(zoom / 1.25)} aria-label="Zoom out">
             <Minus size={14} aria-hidden />
@@ -794,12 +1503,34 @@ function Explorer({ uri, onClose }: { uri: string; onClose: () => void }) {
           </button>
         </div>
       </div>
+      {thread && (
+        <ThreadToolbar
+          searchRef={searchRef}
+          query={query}
+          onQuery={onQuery}
+          matches={matches.length}
+          matchAt={matchAt}
+          onStep={step}
+          people={people}
+          pins={pins}
+          onTogglePin={togglePin}
+          onJumpPin={jumpTo}
+          order={order}
+          onOrder={setOrder}
+          onExpandAll={expandAll}
+          onCollapseAll={collapseAll}
+          layers={layers}
+          onLayer={(key, on) => setLayers((l) => ({ ...l, [key]: on }))}
+          summary={summary}
+        />
+      )}
       <div className="fx-tx-body" data-open={focus ? '' : undefined}>
         <div
           ref={boxRef}
           className="fx-tx-canvas"
           data-dragging={dragging || undefined}
           data-moving={motion.rootProps['data-moving']}
+          data-spot={spot || undefined}
           onPointerDown={onPointerDown}
           onPointerMove={onPointerMove}
           onPointerUp={endDrag}
@@ -822,11 +1553,76 @@ function Explorer({ uri, onClose }: { uri: string; onClose: () => void }) {
               aria-label="The thread, its quotes, likes, reposts and links"
             >
               <GraphDefs />
+              <defs>
+                <marker
+                  id="fx-tx-arrow"
+                  viewBox="0 0 10 10"
+                  refX={9}
+                  refY={5}
+                  markerWidth={7}
+                  markerHeight={7}
+                  orient="auto-start-reverse"
+                  markerUnits="userSpaceOnUse"
+                >
+                  <path d="M0,1 L10,5 L0,9 z" className="fx-tx-arrowhead" />
+                </marker>
+              </defs>
               <g {...motion.rootProps}>
                 {motion.items.map((it) => {
                   const edge = motion.edgeProps(it);
-                  return edge ? <path key={`e-${it.key}`} {...edge} className="fx-graph-edge" /> : null;
+                  if (!edge) return null;
+                  const child = it.data;
+                  const from = it.parent ? motion.place(it.parent) : undefined;
+                  const parent = from?.data ?? (it.parent ? byKey.get(it.parent) : undefined);
+                  const childDid = didOfNode(child);
+                  const childUri = uriOfNode(child);
+                  const across: Between | null =
+                    parent?.kind === 'post' && childDid && child.kind !== 'account'
+                      ? blockBetween(blockIndex, parent.post.did, childDid)
+                      : null;
+                  const slot = parent?.kind === 'post' && childUri ? traceSlot(childUri) : -1;
+                  return (
+                    <g
+                      key={`e-${it.key}`}
+                      className="fx-tx-edge-wrap"
+                      data-dim={spot && slot < 0 && !lit(childUri, childDid) ? '' : undefined}
+                    >
+                      <path
+                        {...edge}
+                        className="fx-graph-edge fx-tx-edge"
+                        data-cut={child.kind === 'ghost' || undefined}
+                        data-block={across ? '' : undefined}
+                        data-pin={slot >= 0 || undefined}
+                        style={slot >= 0 ? { stroke: pinColor(slot) } : undefined}
+                      >
+                        {across && parent?.kind === 'post' && childDid && (
+                          <title>{blockWords(across, atNameOf(parent.post.did), atNameOf(childDid))}</title>
+                        )}
+                      </path>
+                      {/* At the curve's middle, where the cards are now; it
+                          catches up when a card glides or is dragged. */}
+                      {across && from && !it.leaving && (
+                        <BlockGlyph x={(from.x + from.w + it.x) / 2} y={(from.y + from.h / 2 + it.y + it.h / 2) / 2} />
+                      )}
+                    </g>
+                  );
                 })}
+                <g className="fx-tx-arcs" aria-hidden>
+                  {arcs.map((arc) => (
+                    <path
+                      key={arc.key}
+                      d={arc.d}
+                      className="fx-tx-arc"
+                      data-dim={
+                        spot && !(pins.includes(arc.a) || pins.includes(arc.b) || arc.a === focusDid || arc.b === focusDid)
+                          ? ''
+                          : undefined
+                      }
+                      markerEnd="url(#fx-tx-arrow)"
+                      markerStart={arc.both ? 'url(#fx-tx-arrow)' : undefined}
+                    />
+                  ))}
+                </g>
                 {motion.items.map((it) => (
                   <g key={it.key} {...motion.nodeProps(it)}>
                     {drawNode(it.data, 0, 0)}
@@ -838,10 +1634,42 @@ function Explorer({ uri, onClose }: { uri: string; onClose: () => void }) {
         </div>
         {thread && focus && (
           <div className="fx-tx-side">
-            <GraphDetail focus={focus} subjectName={opName} relationFor={relationFor} onClose={closePane} />
+            {focusCut ? (
+              <CutDetail
+                cut={focusCut}
+                reading={readingOf(focusCut)}
+                name={atNameOf(focusCut.did)}
+                parentName={atNameOf(didOfPost.get(focusCut.parent))}
+                onClose={closePane}
+              />
+            ) : (
+              <GraphDetail focus={focus} subjectName={opName} relationFor={relationFor} onClose={closePane} />
+            )}
+            {focusDid && insightPane(focusDid, focus.kind !== 'person')}
           </div>
         )}
       </div>
     </div>
+  );
+}
+
+/** What the drawing's own marks mean, beside the relation colours. */
+function MarksKey() {
+  return (
+    <ul className="fx-graph-legend fx-tx-marks" aria-label="Marks">
+      <li>
+        <svg width="26" height="12" viewBox="0 0 26 12" aria-hidden>
+          <path d="M1,6 H25" className="fx-tx-key-block" />
+          <BlockGlyph x={13} y={6} r={5} />
+        </svg>
+        Block
+      </li>
+      <li>
+        <svg width="22" height="14" viewBox="0 0 22 14" aria-hidden>
+          <rect x={1} y={1} width={20} height={12} rx={3} className="fx-tx-key-cut" />
+        </svg>
+        Left out on Bluesky
+      </li>
+    </ul>
   );
 }
