@@ -164,7 +164,7 @@ function Bands({
       {side(left, (p) => p.in, true)}
       {side(right, (p) => p.out, false)}
       <rect x={CX - BW / 2} y={barTop} width={BW} height={Math.max(sumL, sumR) * scale} rx={4} className="fx-graph-spine" />
-      <g className="fx-graph-mark" role="img" aria-label={nameOf(subject)} {...markProps(() => onFocus({ kind: 'subject' }))}>
+      <g className="fx-graph-mark" role="img" aria-label={nameOf(subject)} {...markProps(() => onFocus(null))}>
         <Face x={CX} y={barTop - 22} r={16} avatar={subject.avatar} name={nameOf(subject)} ring="var(--text-primary)" />
       </g>
     </svg>

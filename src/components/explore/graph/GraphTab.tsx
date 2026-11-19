@@ -31,6 +31,10 @@ export const GRAPH_LAYOUT_OPTIONS: { value: GraphLayout; label: string }[] = [
  * graphData.ts). A progress bar names each stage as it runs, and the drawing
  * fills in underneath it as the data lands: dots appear as accounts are
  * found and move rings as follows are checked.
+ *
+ * The drawing gets the full width. Whoever is pointed at is described in a
+ * strip above it, which stays empty until then: the account itself is in the
+ * explorer's left pane already.
  */
 export default function GraphTab({ identity }: { identity: IdentityBundle }) {
   const router = useRouter();
@@ -39,7 +43,7 @@ export default function GraphTab({ identity }: { identity: IdentityBundle }) {
   const layout: GraphLayout = (GRAPH_LAYOUTS as readonly string[]).includes(param ?? '') ? (param as GraphLayout) : 'orbit';
   const [data, setData] = useState<Neighbourhood | null>(null);
   const [failed, setFailed] = useState(false);
-  const [focus, setFocus] = useState<GraphFocus | null>({ kind: 'subject' });
+  const [focus, setFocus] = useState<GraphFocus | null>(null);
 
   useEffect(() => {
     const ac = new AbortController();
@@ -76,19 +80,17 @@ export default function GraphTab({ identity }: { identity: IdentityBundle }) {
         </p>
       ) : data ? (
         <>
+          <GraphDetail
+            strip
+            focus={focus}
+            subjectName={subjectName}
+            emptyText="Point at, tap or tab to someone in the drawing to see who they are."
+          />
           {layout !== 'ledger' && <Legend subject={subjectName} />}
-          <div className="fx-graph-body">
-            <div className="fx-graph-main">
-              {layout === 'orbit' && <OrbitAccount data={data} focus={focus} onFocus={setFocus} />}
-              {layout === 'ledger' && <LedgerAccount data={data} focus={focus} onFocus={setFocus} />}
-              {layout === 'flow' && <FlowAccount data={data} focus={focus} onFocus={setFocus} />}
-            </div>
-            <GraphDetail
-              focus={focus}
-              subject={data.subject}
-              subjectName={subjectName}
-              emptyText="Point at, tap or tab to someone in the drawing to see who they are."
-            />
+          <div className="fx-graph-main">
+            {layout === 'orbit' && <OrbitAccount data={data} focus={focus} onFocus={setFocus} />}
+            {layout === 'ledger' && <LedgerAccount data={data} focus={focus} onFocus={setFocus} />}
+            {layout === 'flow' && <FlowAccount data={data} focus={focus} onFocus={setFocus} />}
           </div>
         </>
       ) : (

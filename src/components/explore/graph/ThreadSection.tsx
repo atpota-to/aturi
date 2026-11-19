@@ -121,7 +121,6 @@ export default function ThreadSection({ uri }: { uri: string }) {
         </div>
         <GraphDetail
           focus={focus}
-          subject={{ did: op.did, handle: op.handle, displayName: op.displayName, avatar: op.avatar }}
           subjectName={opName}
           relationFor={relationFor}
           emptyText="Point at, tap or tab to a post to read it here."

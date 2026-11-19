@@ -105,7 +105,7 @@ export function OrbitAccount({ data, focus, onFocus }: { data: Neighbourhood } &
             className="fx-graph-mark"
             role="img"
             aria-label={nameOf(subject)}
-            {...markProps(() => onFocus({ kind: 'subject' }))}
+            {...markProps(() => onFocus(null))}
           >
             <Face x={0} y={0} r={28} avatar={subject.avatar} name={nameOf(subject)} ring="var(--text-primary)" />
           </g>

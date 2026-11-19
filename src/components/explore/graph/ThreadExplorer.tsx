@@ -811,7 +811,6 @@ function Explorer({ uri, onClose }: { uri: string; onClose: () => void }) {
           {thread && (
             <GraphDetail
               focus={focus}
-              subject={{ did: thread.root.did, handle: thread.root.handle, displayName: thread.root.displayName, avatar: thread.root.avatar }}
               subjectName={opName}
               relationFor={relationFor}
               emptyText="Point at, tap or tab to something to see it here."

@@ -464,6 +464,114 @@
   color: var(--text-accent);
 }
 
+/* The account Graph tab's panel: a strip above the drawing rather than a
+   column beside it, so the drawing has the width. Who it is sits on the
+   left, where they stand and what they gave in the middle, the counts and
+   the ways onward on the right.
+
+   Where it is one row its height is fixed and long lines are cut short. A
+   strip that grew with what's pointed at would push the drawing down under
+   the pointer, onto someone else, whose shorter strip would pull it back.
+   Too narrow for one row, it goes under the drawing instead, as the column
+   did: above, it would push a phone's drawing off the screen. */
+.fx-graph-detail[data-layout='strip'] {
+  order: 1;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 6px 14px;
+  min-height: 64px;
+  padding: 10px 14px;
+}
+
+.fx-graph-detail[data-layout='strip'] > * {
+  grid-column: 1 / -1;
+  min-width: 0;
+}
+
+.fx-graph-detail[data-layout='strip'] > .fx-graph-who {
+  grid-column: 1;
+}
+
+.fx-graph-detail[data-layout='strip'] > .fx-graph-facts {
+  grid-column: 2;
+  grid-row: 1;
+}
+
+.fx-graph-detail[data-layout='strip'] .fx-graph-facts {
+  grid-template-columns: repeat(2, minmax(60px, auto));
+}
+
+.fx-graph-detail[data-layout='strip'] .fx-graph-facts div {
+  padding: 4px 8px;
+}
+
+.fx-graph-detail[data-layout='strip'] .fx-graph-dn,
+.fx-graph-detail[data-layout='strip'] .fx-graph-hd {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@container (min-width: 600px) {
+  .fx-graph-detail[data-layout='strip'] {
+    order: 0;
+    position: sticky;
+    top: 88px;
+    z-index: 2;
+    grid-template-columns: minmax(0, max-content) minmax(0, 1fr) auto auto;
+    align-content: center;
+    row-gap: 2px;
+    height: 68px;
+    overflow: hidden;
+  }
+
+  .fx-graph-detail[data-layout='strip'] > * {
+    grid-column: 2;
+  }
+
+  .fx-graph-detail[data-layout='strip'] > .fx-graph-who,
+  .fx-graph-detail[data-layout='strip'] > .fx-graph-dn {
+    grid-column: 1;
+    grid-row: 1 / span 3;
+    max-width: 12rem;
+  }
+
+  .fx-graph-detail[data-layout='strip'] > .fx-graph-facts {
+    grid-column: 3;
+    grid-row: 1 / span 3;
+  }
+
+  .fx-graph-detail[data-layout='strip'] > .fx-graph-links {
+    grid-column: 4;
+    grid-row: 1 / span 3;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .fx-graph-detail[data-layout='strip'] > .fx-graph-detail-empty {
+    grid-column: 1 / -1;
+  }
+
+  .fx-graph-detail[data-layout='strip'] > .fx-graph-rel,
+  .fx-graph-detail[data-layout='strip'] > .fx-graph-detail-text {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .fx-graph-detail[data-layout='strip'] > .fx-graph-rel .fx-graph-swatch {
+    margin-right: 7px;
+  }
+
+  /* The workbench scrolls its own pane, which starts below the site header,
+     where the classic page scrolls the window under it. */
+  .fx-wb-page .fx-graph-detail[data-layout='strip'] {
+    top: 12px;
+  }
+}
+
 /* ─── Ledger ─────────────────────────────────────────────────────────── */
 
 .fx-graph-ledger {

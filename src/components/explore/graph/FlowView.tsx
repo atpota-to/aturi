@@ -317,7 +317,7 @@ export function FlowAccount({ data, focus, onFocus }: { data: Neighbourhood } & 
           {links.map((l) => (
             <Connector key={l.key} x1={l.x1} y1={l.y1 + shift} x2={l.x2} y2={l.y2 + shift} hot={l.hot} />
           ))}
-          <g className="fx-graph-mark" role="img" aria-label={nameOf(subject)} {...markProps(() => onFocus({ kind: 'subject' }))}>
+          <g className="fx-graph-mark" role="img" aria-label={nameOf(subject)} {...markProps(() => onFocus(null))}>
             <rect x={0} y={subjectY} width={SUBJECT_W} height={CARD_H} rx={10} className="fx-graph-card" data-strong />
             <Face x={26} y={subjectY + CARD_H / 2} r={16} avatar={subject.avatar} name={nameOf(subject)} ring="var(--text-primary)" />
             <text x={52} y={subjectY + 22} className="fx-graph-t-name">

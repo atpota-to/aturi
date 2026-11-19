@@ -15,7 +15,6 @@ import type { GraphAccount, LinkRecord } from '@/utils/atproto/graphData';
 
 /** What the detail panel beside a drawing is describing. */
 export type GraphFocus =
-  | { kind: 'subject' }
   | { kind: 'person'; person: GraphPerson | GraphAccount; note?: string }
   | { kind: 'post'; post: ThreadPost }
   | { kind: 'record'; record: LinkRecord; label: string }
@@ -23,7 +22,8 @@ export type GraphFocus =
 
 export type FocusProps = {
   focus: GraphFocus | null;
-  onFocus: (f: GraphFocus) => void;
+  /** Null clears the panel, as pointing at the account a drawing is about does. */
+  onFocus: (f: GraphFocus | null) => void;
 };
 
 export const isPerson = (p: GraphPerson | GraphAccount): p is GraphPerson => 'following' in p;
@@ -331,42 +331,30 @@ function kindsText(kinds: GraphPerson['inKinds']): string {
  * The detail panel: who or what the pointer, finger or focus is on, in
  * words, with the ways onward from it. A drawing says where things sit; this
  * says what they are, for anyone the drawing alone doesn't serve.
+ *
+ * Beside a thread it is a column, since a post's text wants the height. On an
+ * account's Graph tab it is a `strip` above the drawing instead: the account
+ * itself is already in the explorer's left pane, so the column would mostly
+ * repeat it, and the drawing is the thing that needs the width.
  */
 export function GraphDetail({
   focus,
-  subject,
   subjectName,
   relationFor,
   emptyText,
+  strip = false,
 }: {
   focus: GraphFocus | null;
-  subject: { did: string; handle?: string; displayName?: string; avatar?: string; followsCount?: number; followersCount?: number };
   subjectName: string;
   /** The relation sentence for an account that isn't a full GraphPerson (thread authors, flow cards). */
   relationFor?: (did: string) => string | null;
   emptyText: string;
+  /** One short row above the drawing (below it on a phone) rather than a column beside it. */
+  strip?: boolean;
 }) {
   let body: ReactNode;
   if (!focus) {
     body = <p className="fx-graph-detail-empty">{emptyText}</p>;
-  } else if (focus.kind === 'subject') {
-    body = (
-      <>
-        <div className="fx-graph-who">
-          <Avatar src={subject.avatar} name={nameOf(subject)} />
-          <div className="fx-graph-names">
-            <span className="fx-graph-dn">{nameOf(subject)}</span>
-            <span className="fx-graph-hd">{handleOf(subject)}</span>
-          </div>
-        </div>
-        {(subject.followsCount != null || subject.followersCount != null) && (
-          <dl className="fx-graph-facts">
-            <Fact k="Follows" v={fmt(subject.followsCount ?? 0)} />
-            <Fact k="Followers" v={fmt(subject.followersCount ?? 0)} />
-          </dl>
-        )}
-      </>
-    );
   } else if (focus.kind === 'group') {
     body = (
       <>
@@ -477,7 +465,7 @@ export function GraphDetail({
     );
   }
   return (
-    <aside className="fx-graph-detail" aria-live="polite" aria-label="Details">
+    <aside className="fx-graph-detail" data-layout={strip ? 'strip' : undefined} aria-live="polite" aria-label="Details">
       {body}
     </aside>
   );
