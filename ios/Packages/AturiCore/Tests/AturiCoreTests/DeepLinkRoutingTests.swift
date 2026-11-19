@@ -18,6 +18,8 @@ final class DeepLinkRoutingTests: XCTestCase {
         XCTAssertEqual(parts.path, "/explore/alice.test")
         XCTAssertEqual(parts.pathSegments, ["explore", "alice.test"])
         XCTAssertEqual(parts.query, ["tab": "audit", "q": "a b"])
+        XCTAssertEqual(parts.fragment, "frag")
+        XCTAssertEqual(LinkParts("https://aturi.to/links")?.fragment, "")
     }
 
     func testLinkPartsKeepsADidAuthorityWhole() throws {
@@ -179,10 +181,25 @@ final class DeepLinkRoutingTests: XCTestCase {
 
     func testTheLexiconsIndexOpensTheLexiconsSection() {
         XCTAssertEqual(destination("https://aturi.to/explore/lexicons"), .section(.lexicons))
-        XCTAssertEqual(destination("https://aturi.to/explore/lexicons?list=new"), .section(.lexicons))
-        XCTAssertEqual(destination("https://aturi.to/explore/lexicons?list=trending"), .section(.lexicons))
-        XCTAssertEqual(destination("https://aturi.to/explore/lexicons?list=all"), .section(.lexicons))
+        XCTAssertEqual(destination("https://aturi.to/explore/lexicons?list=nope"), .section(.lexicons))
         XCTAssertEqual(destination("https://aturi.to/explore/lexicons?q=%20"), .section(.lexicons))
+        XCTAssertEqual(destination("https://aturi.to/explore/lexicons#pinned"), .section(.lexicons))
+    }
+
+    func testANamedListOpensTheLexiconsSectionOnIt() {
+        XCTAssertEqual(destination("https://aturi.to/explore/lexicons?list=new"), .lexiconList("new"))
+        XCTAssertEqual(destination("https://aturi.to/explore/lexicons?list=trending"), .lexiconList("trending"))
+        XCTAssertEqual(destination("https://aturi.to/explore/lexicons?list=top"), .lexiconList("top"))
+        XCTAssertEqual(destination("https://aturi.to/explore/lexicons?list=all&window=1d"), .lexiconList("all"))
+        XCTAssertEqual(destination("https://aturi.to/explore/lexicons?list=New"), .section(.lexicons))
+    }
+
+    func testTheNewCardsAnchorOpensTheNewList() {
+        // The landing's "All new lexicons" links here on the web.
+        XCTAssertEqual(destination("https://aturi.to/explore/lexicons#new"), .lexiconList("new"))
+        // A named list or a search is what the page shows, anchor or not.
+        XCTAssertEqual(destination("https://aturi.to/explore/lexicons?list=all#new"), .lexiconList("all"))
+        XCTAssertEqual(destination("https://aturi.to/explore/lexicons?q=leaflet#new"), .explore(.lexiconGroup(prefix: "leaflet")))
     }
 
     func testALexiconsSearchOrNamespaceOpensTheGroupPage() {
@@ -194,7 +211,7 @@ final class DeepLinkRoutingTests: XCTestCase {
     }
 
     func testTheLexiconsQueryIsReadInTheWebsOrder() {
-        XCTAssertEqual(destination("https://aturi.to/explore/lexicons?list=new&q=leaflet"), .section(.lexicons))
+        XCTAssertEqual(destination("https://aturi.to/explore/lexicons?list=new&q=leaflet"), .lexiconList("new"))
         XCTAssertEqual(destination("https://aturi.to/explore/lexicons?list=nope&q=leaflet"), .explore(.lexiconGroup(prefix: "leaflet")))
         XCTAssertEqual(destination("https://aturi.to/explore/lexicons?ns=app.bsky&q=leaflet"), .explore(.lexiconGroup(prefix: "app.bsky")))
     }

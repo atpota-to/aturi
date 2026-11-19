@@ -153,10 +153,14 @@ extension Route {
     }
 }
 
-/// What a URL maps to: a route pushed on a tab, or a tab's root.
+/// What a URL maps to: a route pushed on a tab, a tab's root, or the
+/// Lexicons tab's New section.
 enum DeepLinkTarget: Hashable {
     case route(Route, tab: Tab)
     case tabRoot(Tab)
+    /// The Lexicons tab at its root on the New section
+    /// (`AppRouter.showNewLexicons`).
+    case newLexicons
 }
 
 /// URL-to-target mapping, kept separate from the router so it can be
@@ -177,6 +181,13 @@ enum DeepLinks {
         case .explore(let explorer, let repoTab):
             guard let route = Route(destination: explorer, repoTab: repoTab) else { return nil }
             return .route(route, tab: route.defaultTab)
+        case .lexiconList(let list):
+            /* New is the one list the Lexicons tab can be sent to from
+               outside; any other opens the tab as it stands. */
+            if list == "new" {
+                return .newLexicons
+            }
+            return .tabRoot(.lexicons)
         case .section(let section):
             return .tabRoot(Tab(section))
         }
@@ -225,7 +236,8 @@ final class AppRouter {
     private(set) var clipboardLinkRequested = false
     /// Set by the Explore landing's "All new lexicons", cleared by the
     /// Lexicons tab when it turns to its New section: the web's link to
-    /// `/explore/lexicons#new`, which lands on that card.
+    /// `/explore/lexicons#new`, which lands on that card. An incoming link
+    /// to that address, or to `?list=new`, sets it too.
     private(set) var newLexiconsRequested = false
 
     init() {}
@@ -365,6 +377,8 @@ final class AppRouter {
             selectedTab = tab
         case .route(let route, let tab):
             open(route, in: tab)
+        case .newLexicons:
+            showNewLexicons()
         }
     }
 }

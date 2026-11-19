@@ -18,6 +18,10 @@ public enum DeepLinkDestination: Hashable, Sendable {
     /// opens on, one of `DeepLinkRouting.repoTabs` other than the default,
     /// and only ever set on `.repo`.
     case explore(SearchDestination, repoTab: String? = nil)
+    /// The lexicons index on one of its ranked lists, one of
+    /// `DeepLinkRouting.lexiconLists`: a link's `?list=`, or `#new`, the
+    /// anchor of the web's New card that its "All new lexicons" links to.
+    case lexiconList(String)
     /// A section's root page.
     case section(LinkSection)
 }
@@ -26,8 +30,8 @@ public enum DeepLinkDestination: Hashable, Sendable {
 /// rather than in the app target so it can be tested. The grammar follows
 /// the web's route tree: `/profile/*` and the bare `/{handle}` forms are
 /// the universal-link pages; `/explore/*` is the explorer, with the query
-/// its pages read (`?tab=` on a repo, `?list=`, `?ns=` and `?q=` on the
-/// lexicons index); `/at/*`, `/at:*` and the `at` scheme land on the
+/// its pages read (`?tab=` on a repo, `?list=`, `?ns=`, `?q=` and `#new` on
+/// the lexicons index); `/at/*`, `/at:*` and the `at` scheme land on the
 /// explorer too, as the web's `/at/[...slug]` redirect sends pasted AT URIs
 /// there; `aturi://open?url=` is the share extension's wrapper around any
 /// of these; and a supported client's own link (bsky.app and the rest of
@@ -72,10 +76,9 @@ public enum DeepLinkRouting {
         let trimmed = string.trimmingCharacters(in: .whitespacesAndNewlines)
         guard let parts = LinkParts(trimmed), parts.scheme == "https" || parts.scheme == "http",
               parts.host == Endpoints.aturiHost, parts.pathSegments == ["account"],
-              let hash = trimmed.firstIndex(of: "#")
+              !parts.fragment.isEmpty
         else { return nil }
-        let fragment = String(trimmed[trimmed.index(after: hash)...]).lowercased()
-        return fragment.isEmpty ? nil : fragment
+        return parts.fragment.lowercased()
     }
 
     /// `?tab=` on a repo page, when it names a tab other than the default.
@@ -114,7 +117,7 @@ public enum DeepLinkRouting {
 
         case "http", "https":
             if parts.host == Endpoints.aturiHost {
-                return aturiDestination(segments: parts.pathSegments, query: parts.query)
+                return aturiDestination(parts)
             }
             guard let url = URL(string: trimmed), let match = matchSupportedUrl(url) else { return nil }
             let parsed = match.parsed
@@ -143,16 +146,17 @@ public enum DeepLinkRouting {
         return .explore(.repo(uri.repo))
     }
 
-    /// aturi.to paths. `segments` are the percent-encoded path segments;
-    /// identifiers are decoded here because they are handed to resolvers
-    /// raw, while the explorer ladder decodes through `SearchDestination`.
-    private static func aturiDestination(segments: [String], query: [String: String]) -> DeepLinkDestination? {
+    /// aturi.to paths. The path segments are percent-encoded; identifiers
+    /// are decoded here because they are handed to resolvers raw, while the
+    /// explorer ladder decodes through `SearchDestination`.
+    private static func aturiDestination(_ parts: LinkParts) -> DeepLinkDestination? {
+        let segments = parts.pathSegments
         guard let first = segments.first else { return .section(.links) }
         let rest = Array(segments.dropFirst())
 
         switch first {
         case "explore":
-            return exploreDestination(rest, query: query)
+            return exploreDestination(rest, query: parts.query, fragment: parts.fragment)
 
         case "links":
             return .section(.links)
@@ -212,7 +216,7 @@ public enum DeepLinkRouting {
     /// `/explore/...`: the ladder `SearchDestination` already decodes, a
     /// repo page's `?tab=`, and the two index pages that are sections of
     /// their own.
-    private static func exploreDestination(_ rest: [String], query: [String: String]) -> DeepLinkDestination? {
+    private static func exploreDestination(_ rest: [String], query: [String: String], fragment: String) -> DeepLinkDestination? {
         if rest.isEmpty { return .section(.explore) }
         let destination = SearchDestination(explorePath: "/explore/" + rest.joined(separator: "/"))
         switch destination {
@@ -224,7 +228,7 @@ public enum DeepLinkRouting {
             return .explore(destination)
         }
         // Index pages the destination type carries verbatim.
-        if rest == ["lexicons"] { return lexiconsIndexDestination(query: query) }
+        if rest == ["lexicons"] { return lexiconsIndexDestination(query: query, fragment: fragment) }
         if rest == ["pds"] { return .section(.explore) }
         // Space pages and anything future: not modelled here.
         return nil
@@ -232,20 +236,22 @@ public enum DeepLinkRouting {
 
     /* `/explore/lexicons` with the web's query, read in the order
        `parseLexiconLocation` reads it: a named list wins, then a dotted
-       namespace (`?ns=`), then a search (`?q=`). The ranked lists are the
-       Lexicons section itself, which a link cannot pick a list on yet, so
-       `?list=` lands there. A namespace or a search opens the group page,
-       which lists a dotted prefix's namespace and searches anything else,
-       as the web's group route does. */
-    private static func lexiconsIndexDestination(query: [String: String]) -> DeepLinkDestination {
+       namespace (`?ns=`), then a search (`?q=`). A namespace or a search
+       opens the group page, which lists a dotted prefix's namespace and
+       searches anything else, as the web's group route does. Failing all
+       three, `#new` is the anchor of the page's New card. */
+    private static func lexiconsIndexDestination(query: [String: String], fragment: String) -> DeepLinkDestination {
         if let list = query["list"], lexiconLists.contains(list) {
-            return .section(.lexicons)
+            return .lexiconList(list)
         }
         if let namespace = trimmedValue(query["ns"]), namespace.contains(".") {
             return .explore(.lexiconGroup(prefix: namespace))
         }
         if let term = trimmedValue(query["q"]) {
             return .explore(.lexiconGroup(prefix: term))
+        }
+        if fragment == "new" {
+            return .lexiconList("new")
         }
         return .section(.lexicons)
     }
@@ -286,7 +292,8 @@ public enum DeepLinkRouting {
 /// A hand-parsed URL. Foundation's `URL` is avoided on purpose: `at://`
 /// authorities carry colons (`did:plc:...`) that read as ports, and a
 /// literal `at://` inside an https path confuses the RFC 3986 parser.
-/// Enough of the grammar to route on: scheme, host, path and query.
+/// Enough of the grammar to route on: scheme, host, path, query and
+/// fragment.
 struct LinkParts: Hashable, Sendable {
     let scheme: String
     /// Lowercased, without a `www.` prefix; empty for scheme-only URLs
@@ -296,6 +303,8 @@ struct LinkParts: Hashable, Sendable {
     let path: String
     /// Decoded; the first value wins when a key repeats.
     let query: [String: String]
+    /// Everything after the first `#`, as written; empty without one.
+    let fragment: String
 
     init?(_ raw: String) {
         guard let colon = raw.firstIndex(of: ":") else { return nil }
@@ -307,7 +316,10 @@ struct LinkParts: Hashable, Sendable {
 
         var rest = raw[raw.index(after: colon)...]
         if let hash = rest.firstIndex(of: "#") {
+            fragment = String(rest[rest.index(after: hash)...])
             rest = rest[..<hash]
+        } else {
+            fragment = ""
         }
         var queryPart: Substring = ""
         if let question = rest.firstIndex(of: "?") {
