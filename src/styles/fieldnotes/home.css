@@ -94,6 +94,23 @@
   border: 0;
 }
 
+/* The "Try" chips under the field (.fn-x-tries and .fn-chip, explore.css). A
+   chip that names its example ("Bluesky post") rather than showing the
+   identifier is words, so it leaves the mono face. */
+.fn-home-tries {
+  margin-top: 12px;
+}
+
+.fn-home-tries .fn-chip[data-words] {
+  font-family: var(--font-sans);
+  font-size: 13px;
+}
+
+.fn-home-tries .fn-chip:focus-visible {
+  outline: 2px solid var(--text-accent);
+  outline-offset: 1px;
+}
+
 .fn-home-browsers {
   display: flex;
   flex-wrap: wrap;
