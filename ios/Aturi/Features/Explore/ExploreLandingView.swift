@@ -16,12 +16,12 @@ struct ExploreLandingView: View {
 
 /// Port of `ExploreLanding.tsx` + `SearchBox.tsx` + `SearchRecommendations.tsx`:
 /// the headline, the search box with its typeahead and history, the "Try:"
-/// chips, the trending strip and the live feed.
+/// chips, "This week in the Atmosphere" and the live feed.
 private struct ExploreLandingScreen: View {
     let sessionState: SessionState
 
     @State private var model: ExploreLandingModel
-    @State private var lexicons = LexiconsModel()
+    @State private var pulse = AtmospherePulseModel()
     @FocusState private var fieldFocused: Bool
 
     @Environment(AppRouter.self) private var router
@@ -40,15 +40,7 @@ private struct ExploreLandingScreen: View {
                 header
                 searchArea
                 exampleChips
-                LandingTrendingSection(model: lexicons)
-                Button {
-                    router.select(.lexicons)
-                } label: {
-                    Label("Explore all lexicons", systemImage: "arrow.up.right")
-                        .font(AturiFont.monoSmall)
-                        .foregroundStyle(theme.textAccent)
-                }
-                .buttonStyle(.plain)
+                AtmospherePulseSection(model: pulse)
                 /* The explorer dashboard variant, as `ExploreLanding.tsx`
                    mounts it: every operation with its pill, the op and
                    collection filters and the rolling stats footer. The
@@ -71,13 +63,13 @@ private struct ExploreLandingScreen: View {
             }
         }
         .task {
-            if lexicons.ranking.isIdle {
-                lexicons.reloadRanking()
+            if pulse.top.isIdle {
+                pulse.load()
             }
         }
         .refreshable {
             model.history.reload()
-            await lexicons.reloadRanking().value
+            await pulse.load().value
         }
         .onChange(of: sessionState) { _, next in
             model.session = next
@@ -356,154 +348,216 @@ private struct ExploreLandingScreen: View {
     }
 }
 
-/// The compact Trending / Top strip on the landing (`TrendingLexicons.tsx`).
-/// Only the ranking half of `LexiconsModel` is driven here: `load()` would
-/// also pull the 200-row catalog the Lexicons tab needs, so the strip calls
-/// `reloadRanking()` itself and refetches on its own toggle changes.
-private struct LandingTrendingSection: View {
-    let model: LexiconsModel
+/// "This week in the Atmosphere", port of `AtmospherePulse.tsx`: one metric
+/// and one window control over three cards, Most active (a log-scaled bar
+/// and the change against the window before), Rising ("prior → now") and
+/// New this week. Each card's foot leads to the Lexicons tab, where the
+/// full strip and its sparklines live. The web lays the cards side by side;
+/// a phone stacks them.
+private struct AtmospherePulseSection: View {
+    let model: AtmospherePulseModel
 
     @Environment(AppRouter.self) private var router
-    @Environment(\.openURL) private var openURL
     @Environment(\.aturiTheme) private var theme
 
     var body: some View {
         @Bindable var model = model
-        VStack(alignment: .leading, spacing: 0) {
-            VStack(alignment: .leading, spacing: 10) {
-                HStack(spacing: 8) {
-                    Label(model.rankingTitle, systemImage: model.mode == .trending ? "sparkles" : "chart.bar")
-                        .font(AturiFont.subtitle)
-                        .foregroundStyle(theme.textPrimary)
-                    Text("via UFOs")
-                        .aturiLabel()
-                        .foregroundStyle(theme.textTertiary)
-                    Spacer(minLength: 0)
-                    if model.isRankingRefreshing {
-                        ProgressView()
-                            .controlSize(.small)
-                    }
-                }
-                Picker("View mode", selection: $model.mode) {
-                    ForEach(LexiconRankingMode.allCases, id: \.self) { mode in
-                        Text(mode.label).tag(mode)
-                    }
-                }
-                .pickerStyle(.segmented)
-                HStack(spacing: 8) {
-                    Picker("Time window", selection: $model.window) {
-                        ForEach(UFOsWindow.allCases, id: \.self) { window in
-                            Text(window.label).tag(window)
-                        }
-                    }
-                    .pickerStyle(.segmented)
-                    Menu {
-                        Picker("Metric", selection: $model.metric) {
-                            ForEach(Metric.allCases, id: \.self) { metric in
-                                Text(metric.label).tag(metric)
-                            }
-                        }
-                    } label: {
-                        Label(model.metric.label, systemImage: "slider.horizontal.3")
-                            .font(AturiFont.footnote)
-                            .lineLimit(1)
-                    }
-                    .accessibilityLabel("Metric, \(model.metric.label)")
+        VStack(alignment: .leading, spacing: 12) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(model.heading)
+                    .font(AturiFont.title)
+                    .tracking(AturiFont.titleTracking)
+                    .foregroundStyle(theme.textPrimary)
+                Text(model.headingDetail)
+                    .font(AturiFont.footnote)
+                    .foregroundStyle(theme.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .accessibilityElement(children: .combine)
+            .accessibilityAddTraits(.isHeader)
+            Picker("Metric", selection: $model.metric) {
+                ForEach(Metric.allCases, id: \.self) { metric in
+                    Text(metric.label).tag(metric)
                 }
             }
-            .padding(14)
-            Divider()
-            content
-            Divider()
-            HStack(spacing: 4) {
-                Text("Data from")
-                    .font(AturiFont.caption2)
-                    .foregroundStyle(theme.textTertiary)
-                Button("Microcosm") {
-                    if let url = URL(string: "https://www.microcosm.blue") {
-                        openURL(url)
+            .pickerStyle(.segmented)
+            Picker("Time window", selection: $model.window) {
+                ForEach(UFOsWindow.allCases, id: \.self) { window in
+                    Text(AtmospherePulseModel.windowLabel(window)).tag(window)
+                }
+            }
+            .pickerStyle(.segmented)
+
+            pulseCard(title: "Most active", subtitle: model.topSubtitle) {
+                cardBody(rows: model.visibleTop, error: model.topErrorMessage, empty: AtmospherePulseModel.rankingEmptyMessage) { rows in
+                    let max = rows.map(\.value).max() ?? 1
+                    ForEach(Array(rows.enumerated()), id: \.element.id) { index, row in
+                        if index > 0 { Divider() }
+                        activeRow(row, rank: index + 1, max: max)
                     }
                 }
-                .font(AturiFont.caption2)
-                .buttonStyle(.plain)
-                .foregroundStyle(theme.textAccent)
-                .accessibilityHint("Opens outside the app")
+            } foot: {
+                cardFoot(
+                    toggle: model.showsTopToggle ? (model.topToggleLabel, { self.model.topExpanded.toggle() }) : nil,
+                    linkLabel: "All lexicons"
+                )
             }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 8)
+
+            pulseCard(title: "Rising", subtitle: model.risingSubtitle) {
+                cardBody(rows: model.visibleRising, error: model.risingErrorMessage, empty: AtmospherePulseModel.rankingEmptyMessage) { rows in
+                    ForEach(Array(rows.enumerated()), id: \.element.id) { index, row in
+                        if index > 0 { Divider() }
+                        risingRow(row, rank: index + 1)
+                    }
+                }
+            } foot: {
+                cardFoot(
+                    toggle: model.showsRisingToggle ? (model.risingToggleLabel, { self.model.risingExpanded.toggle() }) : nil,
+                    linkLabel: "All rising lexicons"
+                )
+            }
+
+            pulseCard(title: model.newTitle, subtitle: model.newSubtitle) {
+                cardBody(rows: model.visibleNew, error: model.newErrorMessage, empty: AtmospherePulseModel.newEmptyMessage) { rows in
+                    ForEach(Array(rows.enumerated()), id: \.element.id) { index, lexicon in
+                        if index > 0 { Divider() }
+                        newRow(lexicon, rank: index + 1)
+                    }
+                }
+            } foot: {
+                cardFoot(
+                    toggle: model.showsNewToggle ? (model.newToggleLabel, { self.model.newExpanded.toggle() }) : nil,
+                    linkLabel: "All new lexicons"
+                )
+            }
+
+            MicrocosmCredit()
         }
-        .cardBackground()
-        .onChange(of: model.mode) { _, _ in model.reloadRanking() }
-        .onChange(of: model.window) { _, _ in model.reloadRanking() }
-        .onChange(of: model.metric) { _, _ in model.reloadRanking() }
-        .onChange(of: model.expanded) { _, _ in model.reloadRanking() }
     }
 
+    // MARK: Card frame
+
+    private func pulseCard<Content: View, Foot: View>(
+        title: String,
+        subtitle: String,
+        @ViewBuilder content: () -> Content,
+        @ViewBuilder foot: () -> Foot
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(AturiFont.subtitle)
+                    .foregroundStyle(theme.textPrimary)
+                Text(subtitle)
+                    .font(AturiFont.footnote)
+                    .foregroundStyle(theme.textTertiary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 12)
+            .accessibilityElement(children: .combine)
+            .accessibilityAddTraits(.isHeader)
+            Divider()
+            content()
+            Divider()
+            foot()
+        }
+        .cardBackground()
+    }
+
+    /// The previous rows stay up while a toggle refetches; the skeleton is
+    /// for the first load only.
     @ViewBuilder
-    private var content: some View {
-        if let message = model.rankingErrorMessage {
-            ErrorPanel(message: "Could not reach the UFOs API: \(message)") {
-                model.reloadRanking()
+    private func cardBody<Row, Rows: View>(
+        rows: [Row]?,
+        error: String?,
+        empty: String,
+        @ViewBuilder content: @escaping ([Row]) -> Rows
+    ) -> some View {
+        if let error {
+            ErrorPanel(message: error) {
+                model.load()
             }
             .padding(12)
-        } else if let rows = model.visibleRanking {
+        } else if let rows {
             if rows.isEmpty {
-                EmptyState(title: LexiconsModel.rankingEmptyMessage)
-                    .padding(12)
+                Text(empty)
+                    .font(AturiFont.footnote)
+                    .foregroundStyle(theme.textTertiary)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(14)
             } else {
                 VStack(spacing: 0) {
-                    ForEach(Array(rows.enumerated()), id: \.element.id) { index, row in
-                        if index > 0 {
-                            Divider()
-                        }
-                        rankingRow(row, rank: index + 1)
-                    }
-                    if model.showsRankingToggle {
-                        Divider()
-                        Button(model.rankingToggleLabel) {
-                            model.expanded.toggle()
-                        }
-                        .buttonStyle(.aturiSecondary)
-                        .padding(12)
-                    }
+                    content(rows)
                 }
             }
         } else {
-            SkeletonRows(count: 6)
+            SkeletonRows(count: 5)
                 .padding(14)
         }
     }
 
-    private func rankingRow(_ row: LexiconRankingRow, rank: Int) -> some View {
+    private func cardFoot(toggle: (String, () -> Void)?, linkLabel: String) -> some View {
+        HStack(spacing: 12) {
+            if let toggle {
+                Button(toggle.0, action: toggle.1)
+                    .font(AturiFont.sans(.footnote, weight: .semibold))
+                    .buttonStyle(.plain)
+                    .foregroundStyle(theme.textSecondary)
+            }
+            Spacer(minLength: 0)
+            Button {
+                router.select(.lexicons)
+            } label: {
+                Text(linkLabel)
+                    .font(AturiFont.sans(.footnote, weight: .semibold))
+                    .foregroundStyle(theme.textAccent)
+            }
+            .buttonStyle(.plain)
+            .accessibilityHint("Opens the Lexicons tab")
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
+    }
+
+    // MARK: Rows
+
+    private func rankText(_ rank: Int) -> some View {
+        Text("\(rank)")
+            .font(AturiFont.monoSmall)
+            .monospacedDigit()
+            .foregroundStyle(theme.textTertiary)
+            .frame(minWidth: 20, alignment: .leading)
+    }
+
+    /// Rank, the NSID over its log-scaled bar, the full count and the
+    /// change against the window before.
+    private func activeRow(_ row: LexiconRankingRow, rank: Int, max: Int) -> some View {
         NavigationLink(value: Route.lexicon(nsid: row.nsid)) {
             HStack(spacing: 10) {
-                Text(rank < 10 ? "0\(rank)" : "\(rank)")
-                    .font(AturiFont.monoSmall)
-                    .foregroundStyle(theme.textTertiary)
-                VStack(alignment: .leading, spacing: 1) {
-                    Text(row.namespaceHead)
-                        .font(AturiFont.monoSmall)
-                        .foregroundStyle(theme.textPrimary)
-                        .lineLimit(1)
-                    if !row.namespaceTail.isEmpty {
-                        Text(row.namespaceTail)
-                            .font(AturiFont.monoSmall)
-                            .foregroundStyle(theme.textSecondary)
-                            .lineLimit(1)
-                            .truncationMode(.middle)
-                    }
+                rankText(rank)
+                VStack(alignment: .leading, spacing: 5) {
+                    NsidSplitText(row.nsid)
+                    Capsule()
+                        .fill(theme.bgTertiary)
+                        .frame(height: 3)
+                        .overlay(alignment: .leading) {
+                            GeometryReader { geometry in
+                                Capsule()
+                                    .fill(theme.accent)
+                                    .frame(width: geometry.size.width * AtmospherePulseModel.barFraction(row.value, max: max))
+                            }
+                        }
+                        .accessibilityHidden(true)
                 }
-                Spacer(minLength: 4)
-                UsageSparkline(data: row.series, label: model.rankingSeriesLabel)
-                VStack(alignment: .trailing, spacing: 2) {
-                    Text(row.valueLabel)
+                Spacer(minLength: 6)
+                VStack(alignment: .trailing, spacing: 3) {
+                    Text(row.value.formatted())
                         .font(AturiFont.monoSmall)
-                        .foregroundStyle(theme.textTertiary)
-                    if let delta = row.deltaLabel {
-                        Text(delta)
-                            .font(AturiFont.sans(.caption2, weight: .medium))
-                            .foregroundStyle(delta.hasPrefix("-") ? theme.danger : theme.textAccent)
-                    }
+                        .monospacedDigit()
+                        .foregroundStyle(theme.textPrimary)
+                        .contentTransition(.numericText(value: Double(row.value)))
+                    DeltaText(pct: row.deltaPct)
                 }
             }
             .padding(.horizontal, 14)
@@ -511,7 +565,59 @@ private struct LandingTrendingSection: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        .contextMenu { LexiconRowMenu(nsid: row.nsid) }
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("\(rank), \(row.nsid), \(row.valueLabel) \(model.metric.label)\(row.deltaLabel.map { ", \($0)" } ?? "")")
+        .accessibilityLabel("\(rank), \(row.nsid), \(row.value.formatted()) \(model.metricUnit)\(row.deltaLabel.map { ", \($0)" } ?? "")")
+    }
+
+    /// Rank, the NSID, and "prior → now".
+    private func risingRow(_ row: LexiconRankingRow, rank: Int) -> some View {
+        let prior = row.prior ?? 0
+        return NavigationLink(value: Route.lexicon(nsid: row.nsid)) {
+            HStack(spacing: 10) {
+                rankText(rank)
+                NsidSplitText(row.nsid)
+                Spacer(minLength: 6)
+                HStack(spacing: 4) {
+                    Text("\(prior.formatted()) \u{2192}")
+                        .foregroundStyle(theme.textTertiary)
+                    Text(row.value.formatted())
+                        .fontWeight(.semibold)
+                        .foregroundStyle(theme.textPrimary)
+                }
+                .font(AturiFont.monoSmall)
+                .monospacedDigit()
+                .lineLimit(1)
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 9)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .contextMenu { LexiconRowMenu(nsid: row.nsid) }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(rank), \(row.nsid), \(prior.formatted()) to \(row.value.formatted()) \(model.metricUnit)")
+    }
+
+    /// Rank, the NSID and how many accounts wrote it.
+    private func newRow(_ lexicon: NewLexicon, rank: Int) -> some View {
+        NavigationLink(value: Route.lexicon(nsid: lexicon.nsid)) {
+            HStack(spacing: 10) {
+                rankText(rank)
+                NsidSplitText(lexicon.nsid)
+                Spacer(minLength: 6)
+                Text(lexicon.didsEstimate.formatted())
+                    .font(AturiFont.monoSmall)
+                    .monospacedDigit()
+                    .foregroundStyle(theme.textPrimary)
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 9)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .contextMenu { LexiconRowMenu(nsid: lexicon.nsid) }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(rank), \(lexicon.nsid), \(lexicon.didsEstimate.formatted()) accounts, \(lexicon.creates.formatted()) records")
     }
 }

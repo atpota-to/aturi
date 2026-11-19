@@ -398,6 +398,48 @@ final class LexiconsModelTests: XCTestCase {
         XCTAssertTrue(transport.urls(containing: "/timeseries").last!.contains("step=86400"))
     }
 
+    func testTopWithPriorCarriesDeltasAndWithoutSeriesSkipsTheTimeseries() async {
+        let transport = LexiconsFakeTransport(rankingRoutes())
+        let client = UFOsClient(http: HTTPClient(transport: transport))
+        let rows = await LexiconsModel.fetchRanking(
+            window: .sevenDays, mode: .top, metric: .dids, resultCount: 10,
+            withSeries: false, withPrior: true,
+            client: client, now: Self.now
+        ) ?? []
+        XCTAssertEqual(rows.map(\.nsid), ["app.bsky.feed.post", "social.grain.gallery", "sh.tangled.repo", "net.anisota.harvest.minigame", "com.example.thing"])
+        XCTAssertEqual(rows.map(\.value), [1000, 520, 300, 50, 10])
+        XCTAssertEqual(rows.map(\.prior), [0, 250, 400, 0, 5], "prior counts for the picked rows, zero where stats has none")
+        XCTAssertEqual(rows.map(\.deltaPct), [nil, 108, -25, nil, 100])
+        XCTAssertEqual(rows.map(\.series), Array(repeating: [Int](), count: 5))
+        XCTAssertEqual(transport.count(containing: "/timeseries"), 0)
+        let prior = transport.urls(containing: "since=2024-12-25")
+        XCTAssertEqual(prior.count, 1, "one prior-window lookup for the picked rows")
+        XCTAssertTrue(prior[0].contains("until=2025-01-01T00%3A00%3A00.000Z"), prior[0])
+    }
+
+    func testTrendingRowsCarryTheirPriorCounts() async {
+        let transport = LexiconsFakeTransport(rankingRoutes())
+        let client = UFOsClient(http: HTTPClient(transport: transport))
+        let rows = await LexiconsModel.fetchRanking(
+            window: .sevenDays, mode: .trending, metric: .dids, resultCount: 10,
+            withSeries: false,
+            client: client, now: Self.now
+        ) ?? []
+        XCTAssertEqual(rows.map(\.nsid), ["social.grain.gallery", "com.example.thing", "sh.tangled.repo", "net.anisota.harvest.minigame"])
+        XCTAssertEqual(rows.map(\.prior), [250, 5, 400, 0])
+        XCTAssertEqual(transport.count(containing: "/timeseries"), 0)
+    }
+
+    func testTopWithoutPriorLeavesItUnknown() async {
+        let transport = LexiconsFakeTransport(rankingRoutes())
+        let client = UFOsClient(http: HTTPClient(transport: transport))
+        let rows = await LexiconsModel.fetchRanking(
+            window: .sevenDays, mode: .top, metric: .dids, resultCount: 10, client: client, now: Self.now
+        ) ?? []
+        XCTAssertEqual(rows.map(\.prior), [nil, nil, nil, nil, nil])
+        XCTAssertEqual(transport.count(containing: "since=2024-12-25"), 0)
+    }
+
     func testStaticFetchRankingReturnsNilOnFailure() async {
         let transport = LexiconsFakeTransport([])
         let client = UFOsClient(http: HTTPClient(transport: transport))
