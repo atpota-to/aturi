@@ -80,24 +80,6 @@
   flex: none;
 }
 
-.fx-graph-body {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: 14px;
-}
-
-@container (min-width: 820px) {
-  .fx-graph-body {
-    grid-template-columns: minmax(0, 1fr) 260px;
-    align-items: start;
-  }
-
-  .fx-graph-detail {
-    position: sticky;
-    top: 88px;
-  }
-}
-
 .fx-graph-main {
   display: flex;
   flex-direction: column;
@@ -464,13 +446,14 @@
   color: var(--text-accent);
 }
 
-/* ─── Account details pane ───────────────────────────────────────────── */
+/* ─── Details pane ───────────────────────────────────────────────────── */
 
-/* The account Graph tab opens details for a click, in a pane that slides in
-   beside the drawing and pushes it narrower while it's open. Laid over the
-   drawing it would hide the Ledger's right-hand names, the very ones being
-   clicked. Below 820px it falls under the drawing. */
-.fx-graph-account {
+/* The account Graph tab and a post's Thread section open details for a
+   click (data-pick), in a pane that slides in beside the drawing and pushes
+   it narrower while it's open. Laid over the drawing it would hide the
+   Ledger's right-hand names, the very ones being clicked. Below 820px it
+   falls under the drawing. */
+.fx-graph[data-pick] {
   position: relative;
 }
 
@@ -552,21 +535,43 @@
 }
 
 /* Pointing marks what's under the pointer; the details wait for a click. */
-.fx-graph-account .fx-graph-dot:hover:not([data-focus]) {
+[data-pick] .fx-graph-dot:hover:not([data-focus]) {
   stroke: var(--text-primary);
   stroke-width: 2;
 }
 
-.fx-graph-account .fx-graph-mark:hover:not([data-focus]) .fx-graph-card {
+[data-pick] .fx-graph-mark:hover:not([data-focus]) .fx-graph-card {
   stroke: var(--text-secondary);
 }
 
-.fx-graph-account .fx-graph-band-row:has(> .fx-graph-mark:hover:not([data-focus])) > path {
+[data-pick] .fx-graph-band-row:has(> .fx-graph-mark:hover:not([data-focus])) > path {
   fill-opacity: 0.48;
 }
 
-/* Whose dot it is, on the Orbit. Placed by GraphTab above the dot, or below
-   it near the top, and never in the pointer's way. */
+[data-pick] .fx-graph-cell:hover:not([data-focus]) rect:first-child {
+  fill-opacity: 0.36;
+}
+
+/* A thread's Flow folds from a button on a card's edge, where the lines to
+   its replies start, since a click on the card opens its details. */
+.fx-graph-fold circle {
+  fill: var(--bg-elevated);
+  stroke: var(--border-strong);
+  stroke-width: 1;
+}
+
+.fx-graph-fold line {
+  stroke: var(--text-secondary);
+  stroke-width: 1.5;
+  stroke-linecap: round;
+}
+
+.fx-graph-fold:hover circle {
+  stroke: var(--text-primary);
+}
+
+/* Whose dot it is, or what post, on the Orbit. Placed by usePickedDetails
+   above the dot, or below it near the top, and never in the pointer's way. */
 .fx-graph-tip {
   position: absolute;
   z-index: 3;
@@ -921,8 +926,13 @@
 
 .fx-tx-body {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 300px;
+  grid-template-columns: minmax(0, 1fr);
   min-height: 0;
+}
+
+/* The details column is there only while a card's details are open. */
+.fx-tx-body[data-open] {
+  grid-template-columns: minmax(0, 1fr) 300px;
 }
 
 .fx-tx-canvas {
@@ -953,10 +963,26 @@
   background: var(--bg-secondary);
 }
 
+.fx-tx-side {
+  animation: fx-graph-pane-in 180ms ease-out;
+}
+
 .fx-tx-side .fx-graph-detail {
+  position: relative;
   padding: 0;
   border: 0;
   background: none;
+}
+
+.fx-tx-side .fx-graph-detail-close {
+  top: -4px;
+  right: -4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fx-tx-side {
+    animation: none;
+  }
 }
 
 @media (max-width: 760px) {
@@ -966,7 +992,8 @@
     display: none;
   }
 
-  .fx-tx-body {
+  .fx-tx-body,
+  .fx-tx-body[data-open] {
     grid-template-columns: minmax(0, 1fr);
     grid-template-rows: minmax(0, 1fr) auto;
   }
