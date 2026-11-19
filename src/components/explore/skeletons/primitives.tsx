@@ -87,7 +87,9 @@ export function SkeletonBreadcrumb({
     <>
       <div
         className="fx-crumbs"
-        style={{ marginBottom: titled ? 0 : '1.5rem', minHeight: '1.5rem' }}
+        // Carrying the switch, the row is its line of text and no taller, as
+        // the real one is, so the switch under it doesn't shift on load.
+        style={{ marginBottom: titled ? 0 : '1.5rem', minHeight: bar ? undefined : '1.5rem' }}
       >
         {widths.map((width, i) => (
           <span key={i} className="fx-crumb">

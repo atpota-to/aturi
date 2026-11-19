@@ -1796,10 +1796,42 @@ a.fx-fd-crumb:hover {
     display: none;
   }
 
-  /* 8px under the trail, as the toolbar's gap puts its switch. */
+  /* The trail and its switch are drawn as the shell's toolbar draws them
+     (.fx-wb-toolbar below), so changing views moves neither: the trail 12px
+     from the top in the toolbar's 13px, the switch 8px under it, and a rule
+     10px under that running edge to edge, with the page 14px below it. The
+     header that collapses to nothing here keeps a margin, which is the top;
+     the record page's own 8px goes. */
+  body:has(.fx-crumbbar) .fn-header {
+    margin-bottom: 12px;
+  }
+
+  .fn-rec:has(.fx-crumbbar) {
+    padding-top: 0;
+  }
+
+  .fx-crumbs:has(+ .fx-crumbbar) {
+    font-size: 13px;
+  }
+
   .fx-crumbbar {
+    position: relative;
     display: flex;
     margin-top: 8px;
+    /* The account page's 16px row gap, less 2. */
+    margin-bottom: -2px;
+    /* 10px, and the rule's own pixel under it. */
+    padding-bottom: 11px;
+  }
+
+  /* Out through the page's gutter to the screen's edges. */
+  .fx-crumbbar::after {
+    content: '';
+    position: absolute;
+    right: calc(-1 * var(--page-edge));
+    bottom: 0;
+    left: calc(-1 * var(--page-edge));
+    border-bottom: 1px solid var(--border-medium);
   }
 
   /* A titled trail ends on a separator that leads into the title under
@@ -1821,6 +1853,7 @@ a.fx-fd-crumb:hover {
   .fx-titlebar-text > .fx-crumbbar,
   .fn-rec-titletext > .fx-crumbbar {
     margin-top: 2px;
+    margin-bottom: 8px;
   }
 
   .fx-wb-toolbar {
