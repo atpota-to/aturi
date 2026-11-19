@@ -21,7 +21,7 @@ extension Route {
     /// which are a lookup rather than a page to come back to.
     var activityTitle: String? {
         switch self {
-        case .repo(let repo):
+        case .repo(let repo, _):
             return repo
         case .collection(let repo, let collection):
             return "\(collection) · \(repo)"
@@ -50,7 +50,7 @@ extension Route {
     /// NSID or a record key finds it.
     var activityKeywords: Set<String> {
         switch self {
-        case .repo(let repo):
+        case .repo(let repo, _):
             return [repo]
         case .collection(let repo, let collection):
             return [repo, collection]

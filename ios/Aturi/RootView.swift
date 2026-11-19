@@ -54,8 +54,8 @@ struct RouteDestinationView: View {
     @ViewBuilder
     private var page: some View {
         switch route {
-        case .repo(let repo):
-            RepoView(repo: repo)
+        case .repo(let repo, let tab):
+            RepoView(repo: repo, initialTab: tab)
         case .collection(let repo, let collection):
             CollectionView(repo: repo, collection: collection)
         case .record(let repo, let collection, let rkey):

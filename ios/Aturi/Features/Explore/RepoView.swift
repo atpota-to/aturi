@@ -7,16 +7,20 @@ import AturiCore
 /// from the environment.
 struct RepoView: View {
     let repo: String
+    /// The tab to open on: a link's `?tab=`, whose values are `RepoTab`'s
+    /// raw values. Nil, or a tab this page does not have, opens Collections.
+    let initialTab: String?
 
     @Environment(PreferencesStore.self) private var preferences
     @Environment(\.sessionStore) private var session
 
-    init(repo: String) {
+    init(repo: String, initialTab: String? = nil) {
         self.repo = repo
+        self.initialTab = initialTab
     }
 
     var body: some View {
-        RepoScreen(repo: repo, preferences: preferences, viewerDid: session.state.did)
+        RepoScreen(repo: repo, initialTab: initialTab, preferences: preferences, viewerDid: session.state.did)
     }
 }
 
@@ -63,9 +67,10 @@ private struct RepoScreen: View {
     @Environment(\.openURL) private var openURL
     @Environment(\.aturiTheme) private var theme
 
-    init(repo: String, preferences: PreferencesStore, viewerDid: String?) {
+    init(repo: String, initialTab: String?, preferences: PreferencesStore, viewerDid: String?) {
         self.viewerDid = viewerDid
         _model = State(initialValue: RepoModel(input: repo, preferences: preferences, viewerDid: viewerDid))
+        _tab = State(initialValue: initialTab.flatMap { RepoTab(rawValue: $0) } ?? .collections)
     }
 
     var body: some View {
