@@ -345,8 +345,8 @@ final class StreamMonitorTests: XCTestCase {
     func testQueryStringsEncodeAsURLSearchParamsDoes() {
         XCTAssertEqual(NetworkToolQuery.encode([("q", "two words"), ("collection", "app.bsky.*"), ("account", Self.did)]), "q=two+words&collection=app.bsky.*&account=did%3Aplc%3Aaaaaaaaaaaaaaaaaaaaaaaaa")
         let back = NetworkToolQuery.decode("?q=two+words&type=create&type=delete&empty=")
-        XCTAssertEqual(back.map(\.0), ["q", "type", "type", "empty"])
-        XCTAssertEqual(back.map(\.1), ["two words", "create", "delete", ""])
+        XCTAssertEqual(back.map { $0.0 }, ["q", "type", "type", "empty"])
+        XCTAssertEqual(back.map { $0.1 }, ["two words", "create", "delete", ""])
         let folded = NetworkToolQuery.dictionary(back)
         XCTAssertEqual(folded.query["type"], "create")
         XCTAssertFalse(folded.lossless)

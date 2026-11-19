@@ -888,6 +888,11 @@ private struct StreamTokenField: View {
     @Environment(\.aturiTheme) private var theme
     @Environment(\.displayScale) private var displayScale
 
+    init(kind: Kind, model: StreamMonitorModel) {
+        self.kind = kind
+        self.model = model
+    }
+
     private var placeholder: String {
         kind == .accounts ? "Handle or DID" : "NSID or app.bsky.*"
     }
@@ -1130,6 +1135,10 @@ private struct StreamEventSheet: View {
     @Environment(\.aturiTheme) private var theme
     @Environment(AppRouter.self) private var router: AppRouter?
 
+    init(model: StreamMonitorModel) {
+        self.model = model
+    }
+
     var body: some View {
         NavigationStack {
             Group {
@@ -1319,6 +1328,11 @@ private struct StreamPlcChangesView: View {
 
     @State private var state: StreamPlcChangesState?
     @Environment(\.aturiTheme) private var theme
+
+    init(model: StreamMonitorModel, entry: PlcStreamEntry) {
+        self.model = model
+        self.entry = entry
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
