@@ -506,6 +506,14 @@
   padding: 4px 8px;
 }
 
+/* The counts are labelled with the account's handle, which can be long. */
+.fx-graph-detail[data-layout='strip'] .fx-graph-facts dt {
+  max-width: 9rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .fx-graph-detail[data-layout='strip'] .fx-graph-dn,
 .fx-graph-detail[data-layout='strip'] .fx-graph-hd {
   overflow: hidden;

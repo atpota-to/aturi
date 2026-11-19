@@ -14,7 +14,7 @@ import {
   type ThreadPost,
 } from '@/lib/socialGraph';
 import type { Neighbourhood } from '@/utils/atproto/graphData';
-import { Face, GraphDefs, ZoomBox, fmt, markProps, nameOf, relationColor, truncate, type FocusProps } from './shared';
+import { Face, GraphDefs, ZoomBox, atName, fmt, markProps, nameOf, relationColor, truncate, type FocusProps } from './shared';
 
 const R = 480;
 
@@ -96,7 +96,7 @@ export function OrbitAccount({ data, focus, onFocus }: { data: Neighbourhood } &
                 fill={relationColor(relationOf(p))}
                 fillOpacity={engagementOf(p) ? 0.9 : 0.5}
                 role="img"
-                aria-label={`${nameOf(p)}: ${fmt(p.in)} to them, ${fmt(p.out)} from them`}
+                aria-label={`${nameOf(p)}: ${fmt(p.in)} to ${atName(subject)}, ${fmt(p.out)} from ${atName(subject)}`}
                 {...markProps(() => onFocus({ kind: 'person', person: p }), undefined, tab)}
               />
             </g>
