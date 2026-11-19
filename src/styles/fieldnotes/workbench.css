@@ -1930,10 +1930,13 @@ a.fx-fd-crumb:hover {
   }
 
   /* The rail's sheet is as tall as what's in it, up to most of the screen;
-     its lists then give way and scroll. */
+     its lists then give way and scroll. Should what comes before them not
+     fit either, the sheet scrolls rather than cutting it off. */
   .fx-wb-rail,
   .fx-wb[data-norail] .fx-wb-rail {
     max-height: 85%;
+    overflow-y: auto;
+    overscroll-behavior: contain;
   }
 
   .fx-wb-tree,
@@ -1946,6 +1949,21 @@ a.fx-fd-crumb:hover {
   .fx-wb-rail > .fx-wb-tree,
   .fx-wb-rail > .fx-fd-side {
     min-height: 0;
+  }
+
+  /* An account's sheet has its views and its tools above the list, which
+     on a phone take most of the sheet by themselves: the list would give
+     way to nothing. It keeps its full height instead and the sheet scrolls
+     as one, so there is no scroller inside a scroller, and no fade at the
+     foot of a list that no longer scrolls on its own. */
+  .fx-wb-rail:has(> .fx-wb-tools) > .fx-wb-tree,
+  .fx-wb-rail:has(> .fx-wb-tools) > .fx-fd-side {
+    flex: none;
+  }
+
+  .fx-wb-rail:has(> .fx-wb-tools) .fx-tree-scroll {
+    -webkit-mask-image: none;
+    mask-image: none;
   }
 
   .fx-wb-insp {
@@ -1966,7 +1984,9 @@ a.fx-fd-crumb:hover {
     padding-top: 8px;
   }
 
+  /* The tools' quieter rows too: on a phone every row is a tap. */
   .fx-wb-view,
+  .fx-wb-tools .fx-wb-view,
   .fx-fd-place {
     min-height: 42px;
     font-size: 14px;
@@ -1993,6 +2013,7 @@ a.fx-fd-crumb:hover {
   }
 
   .fx-wb-view,
+  .fx-wb-tools .fx-wb-view,
   .fx-fd-place {
     min-height: 40px;
   }
