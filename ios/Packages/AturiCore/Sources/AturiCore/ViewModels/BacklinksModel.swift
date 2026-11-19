@@ -1,184 +1,349 @@
 import Foundation
 import Observation
 
-// Port of src/components/explore/tabs/BacklinksTab.tsx: the inbound-link
-// panel the repo screen mounts as a tab (target = DID) and the record
-// screen mounts as a featured card with a count header (target = at://
-// URI). The three states the web keeps in one variable (`undefined` still
-// loading, `null` constellation unavailable, `[]` nothing links here) are
-// `Loadable.loading`, `.failed` and `.loaded([])`.
+// Port of src/components/explore/tabs/BacklinksTab.tsx and BacklinkRows.tsx:
+// the inbound-link panel the repo screen mounts as a tab (target = DID)
+// and the record screen mounts as a featured card with a count header
+// (target = at:// URI). The three states the web keeps in one variable
+// (`undefined` still loading, `null` constellation unavailable, `[]`
+// nothing links here) are `Loadable.loading`, `.failed` and `.loaded([])`.
 //
-// Each source opens into its own paged list of linking records, 25 at a
-// time, exactly as `BacklinkRecords` pages them. Constellation only hands
-// back link coordinates, so once a page lands the rows are hydrated
-// through Slingshot (the record content, for a one-line preview) and the
-// linking DIDs are labelled with their handles (the "identity labels" the
-// web resolves through the same edge). Hydration is best effort: a row
-// renders the moment its coordinates arrive and fills in behind.
+// Either target gets the relationships view: a tile (or, in the record
+// card, a chip) per kind of link over one merged list of the records
+// behind it. An account's kinds are who follows, mentions and lists it; a
+// record's are what answers, quotes and likes it (BacklinkRelations). The
+// open relationship can be narrowed to one app, or to one raw
+// collection + path source, and each narrowing keeps its own merged list
+// (BacklinkMerge), so moving between relationships, apps and sources and
+// back shows what was already loaded instead of starting over.
+//
+// Constellation only hands back link coordinates, so once a batch lands
+// its rows are filled in through BacklinkDetailsStore: who wrote each
+// record (AppView profiles) and a line of what it says (post text, a list
+// item's list, a record's title). Likes, follows, blocks and reposts carry
+// no words and are never fetched for them.
 
-/// One source's list of linking records and where its pagination stands.
-public struct BacklinkRecordsPage: Hashable, Sendable {
-    public var records: [BacklinkRecord]
-    public var cursor: String?
-    /// No further page: the index sent no cursor, an empty batch, or an
-    /// error.
-    public var isDone: Bool
-    public var isLoading: Bool
-    /// The last request failed; the web shows "Couldn't load linking
-    /// records" in place of the list.
-    public var errored: Bool
+/// What a panel's target is, which decides the rules its sources are
+/// sorted by and what its own account is called in the rows.
+public enum BacklinkTargetKind: Hashable, Sendable {
+    case account
+    case record(collection: String)
+}
 
-    public init(
-        records: [BacklinkRecord] = [],
-        cursor: String? = nil,
-        isDone: Bool = false,
-        isLoading: Bool = true,
-        errored: Bool = false
-    ) {
-        self.records = records
-        self.cursor = cursor
-        self.isDone = isDone
-        self.isLoading = isLoading
-        self.errored = errored
+extension BacklinkRelation {
+    /// What the relationship's tile is called.
+    public var label: String {
+        switch self {
+        case .follow: return "Followers"
+        case .mention: return "Mentions"
+        case .list: return "Lists"
+        case .block: return "Blocks"
+        case .verify: return "Verifications"
+        case .endorse: return "Vouches"
+        case .embed: return "Embedded copies"
+        case .other: return "Other links"
+        }
     }
 
-    /// `!done && records.length > 0`: whether the "Load more" control shows.
-    public var canLoadMore: Bool {
-        !isDone && !records.isEmpty
+    /// The line under the list's heading.
+    public var about: String {
+        switch self {
+        case .follow: return "Accounts that follow this one, in any app."
+        case .mention: return "Posts, documents and lists that mention this account."
+        case .list: return "Lists, starter packs and groups this account is in."
+        case .block: return "Accounts that block this one."
+        case .verify: return "Verification records that name this account, by others or by itself."
+        case .endorse: return "Endorsements, vouches, top-friends slots and contact cards."
+        case .embed: return "Records that keep a copy of this account\u{2019}s details, like a starter pack showing a feed it made."
+        case .other: return BacklinksModel.otherAbout
+        }
     }
 }
 
-/// One row of an opened source: the link coordinates plus whatever
-/// hydration has filled in so far.
-public struct BacklinkRow: Hashable, Sendable, Identifiable {
-    public var record: BacklinkRecord
-    /// The linking account's handle, once Slingshot has answered for it.
-    public var handle: String?
-    /// The linking record's content, once Slingshot has answered for it.
-    public var hydrated: FetchedRecord?
-
-    public init(record: BacklinkRecord, handle: String? = nil, hydrated: FetchedRecord? = nil) {
-        self.record = record
-        self.handle = handle
-        self.hydrated = hydrated
-    }
-
-    public var id: String { record.atUri }
-    public var atUri: String { record.atUri }
-    public var did: String { record.did }
-    public var rkey: String { record.rkey }
-
-    /// The web's left column: `shortDid(r.did)`.
-    public var shortDid: String {
-        AturiCore.shortDid(record.did)
-    }
-
-    /// "@handle" once the identity label resolved, the shortened DID until
-    /// then (and forever, for a DID whose document names no handle).
+extension RecordBacklinkRelation {
+    /// What the relationship's chip is called.
     public var label: String {
-        if let handle, !handle.isEmpty { return "@" + handle }
-        return shortDid
+        switch self {
+        case .reply: return "Replies"
+        case .thread: return "In thread"
+        case .quote: return "Quotes"
+        case .repost: return "Reposts"
+        case .like: return "Likes"
+        case .mention: return "Mentions"
+        case .item: return "Items"
+        case .subscribe: return "Subscribers"
+        case .via: return "Came via"
+        case .other: return "Other links"
+        }
     }
 
-    /// A one-line preview of the linking record, nil until hydrated or
-    /// when the record has nothing previewable.
-    public var preview: String? {
-        guard let hydrated else { return nil }
-        let text = RecordPreview.previewFor(hydrated.value)
-        return text.isEmpty ? nil : text
+    /// The line under the list's heading.
+    public var about: String {
+        switch self {
+        case .reply: return "Replies and comments that answer this record directly."
+        case .thread: return "Every reply in the thread this record started, at any depth."
+        case .quote: return "Posts that quote or embed this record."
+        case .repost: return "Accounts that reposted this record."
+        case .like: return "Likes, stars, votes and recommendations."
+        case .mention: return "Records that link to this one in their text."
+        case .item: return "Records filed under this one, like a list\u{2019}s members or a publication\u{2019}s documents."
+        case .subscribe: return "Subscriptions to this record."
+        case .via: return "Follows and sign-ups made through this record."
+        case .other: return BacklinksModel.otherAbout
+        }
     }
+}
+
+/// One relationship as the panel shows it: a bucket of sources with its
+/// name and description, the same shape for an account's relationships
+/// and a record's. `key` is the relation's raw value.
+public struct BacklinkGroup: Hashable, Sendable, Identifiable {
+    public var key: String
+    public var label: String
+    public var about: String
+    /// Links across every source in the group.
+    public var count: Int
+    /// Distinct accounts, summed per source (see `BacklinkBucket.accounts`).
+    public var accounts: Int
+    public var sources: [BacklinkSource]
+    public var apps: [BacklinkAppCount]
+
+    public init<Relation: Hashable & Sendable>(key: String, label: String, about: String, bucket: BacklinkBucket<Relation>) {
+        self.key = key
+        self.label = label
+        self.about = about
+        self.count = bucket.count
+        self.accounts = bucket.accounts
+        self.sources = bucket.sources
+        self.apps = bucket.apps
+    }
+
+    public var id: String { key }
+
+    /// The tile's big number, in full.
+    public var countText: String {
+        BacklinksModel.grouped(count)
+    }
+
+    /// The chip's number, abbreviated.
+    public var compactCountText: String {
+        UFOsFormat.formatCount(count)
+    }
+
+    /// The tile's line under the number: accounts when Constellation
+    /// reported them, else sources, and how many apps when more than one.
+    public var subtitle: String {
+        let sourceCount = sources.count
+        let base = accounts > 0
+            ? "\(UFOsFormat.formatCount(accounts)) \(accounts == 1 ? "account" : "accounts")"
+            : "\(sourceCount) \(sourceCount == 1 ? "source" : "sources")"
+        return apps.count > 1 ? "\(base) \u{00B7} \(apps.count) apps" : base
+    }
+
+    /// The tile's hint. Accounts are distinct per source, summed: it says
+    /// so wherever two sources could share an account.
+    public var hint: String {
+        let sourceCount = sources.count
+        let head = "\(BacklinksModel.grouped(count)) \(count == 1 ? "link" : "links") through \(sourceCount) \(sourceCount == 1 ? "source" : "sources")"
+        if sourceCount > 1 {
+            return head + ". Accounts are counted per source, so one account linking through two counts twice."
+        }
+        return head + "."
+    }
+
+    /// The disclosure over the raw sources: "3 sources behind followers".
+    public var sourcesTitle: String {
+        "\(sources.count) \(sources.count == 1 ? "source" : "sources") behind \(label.lowercased())"
+    }
+
+    /// The button that undoes a narrowing to one source.
+    public var showAllLabel: String {
+        "Show all \(label.lowercased())"
+    }
+}
+
+/// A narrowing within one relationship: to one app (by `BacklinkApp.key`)
+/// or to one raw source (by `BacklinkSource.source`). It belongs to the
+/// relationship it was made in; moving to another starts whole.
+public struct BacklinkNarrowing: Hashable, Sendable {
+    public var relation: String
+    public var app: String?
+    public var source: String?
+
+    public init(relation: String, app: String? = nil, source: String? = nil) {
+        self.relation = relation
+        self.app = app
+        self.source = source
+    }
+}
+
+/// One merged list and where its loading stands.
+public struct BacklinkList: Hashable, Sendable {
+    public var items: [MergedBacklink]
+    public var isLoading: Bool
+    /// Every source is exhausted.
+    public var isDone: Bool
+    /// Sources whose last request failed.
+    public var failed: [String]
+
+    public init(items: [MergedBacklink] = [], isLoading: Bool = true, isDone: Bool = false, failed: [String] = []) {
+        self.items = items
+        self.isLoading = isLoading
+        self.isDone = isDone
+        self.failed = failed
+    }
+
+    /// Whether "Show more" shows.
+    public var canLoadMore: Bool {
+        !isDone
+    }
+}
+
+/// One linking record as a row reads, port of `BacklinkRow` in
+/// BacklinkRows.tsx: who wrote it, when (from its TID), and what it is.
+public struct BacklinkRow: Hashable, Sendable, Identifiable {
+    public var item: MergedBacklink
+    /// The account the row is about: the record's author, or, for a list
+    /// item seen from the list it belongs to, the account it adds. Every
+    /// item of a list is written by the list's owner and names the same
+    /// list, so author and context would repeat down the whole page; what
+    /// differs is who each one adds.
+    public var subjectDid: String
+    /// The display name, else the handle, else the shortened DID.
+    public var title: String
+    /// "@handle" beside a display name.
+    public var handle: String?
+    /// The title is the shortened DID, set in the identifier face.
+    public var titleIsIdentifier: Bool
+    /// The profile has not been looked up yet.
+    public var isPending: Bool
+    /// The AppView answered and has no profile for the account.
+    public var hasNoProfile: Bool
+    /// The avatar's thumbnail URL.
+    public var avatar: String?
+    /// "this account" or "author" when the target's own account wrote it.
+    public var selfLabel: String?
+    /// The context line, hidden on a member row (it would repeat the list).
+    public var context: RecordContext?
+    /// The app's mark, when the list mixes apps.
+    public var app: BacklinkApp?
+
+    public var id: String { item.uri }
+    public var uri: String { item.uri }
+
+    /// The time in the record's TID rkey, nil for any other key.
+    public var date: Date? {
+        TID.date(from: item.rkey)
+    }
+
+    /// "×3 links" for a record that links here more than once.
+    public var linksLabel: String? {
+        item.links > 1 ? "\u{00D7}\(item.links) links" : nil
+    }
+}
+
+/// One raw source in the disclosure under a relationship.
+public struct BacklinkSourceRow: Hashable, Sendable, Identifiable {
+    public var source: BacklinkSource
+    public var app: BacklinkApp
+    /// The path with its type qualifiers shortened (`backlinkPathLabels`).
+    public var pathLabel: String
+    /// The list is narrowed to this source.
+    public var isNarrowed: Bool
+
+    public var id: String { source.source }
 }
 
 @MainActor
 @Observable
 public final class BacklinksModel {
-    /// `limit: 25` in `BacklinkRecords.loadPage`.
-    public nonisolated static let pageSize = 25
-    /// Identity labels are resolved a few at a time, the width the web's
-    /// author resolver uses against Slingshot.
-    public nonisolated static let labelConcurrency = 6
+    /// `step = 20` in `useMergedBacklinks`: records per batch, and per
+    /// request to each source.
+    public nonisolated static let pageSize = 20
     /// Where the "constellation" and "Microcosm" links in the panel point.
     public nonisolated static let constellationURL = URL(string: "https://constellation.microcosm.blue")!
     public nonisolated static let microcosmURL = URL(string: "https://www.microcosm.blue")!
 
-    // Copy, verbatim from the component.
+    // Copy, verbatim from the components.
     public nonisolated static let unavailableMessage = "Backlinks unavailable (constellation)."
     /// The tab's empty state.
     public nonisolated static let emptyMessage = "No backlinks found."
-    /// The card's empty state.
-    public nonisolated static let emptySummaryMessage = "Nothing references this record yet."
-    public nonisolated static let recordsErrorMessage = "Couldn\u{2019}t load linking records."
+    public nonisolated static let recordsErrorMessage = "Couldn\u{2019}t load linking records from Constellation."
     public nonisolated static let noRecordsMessage = "No linking records to show."
     public nonisolated static let loadingMessage = "Loading\u{2026}"
-    public nonisolated static let loadMoreLabel = "Load more"
+    public nonisolated static let loadMoreLabel = "Show more"
+    nonisolated static let otherAbout = "Links from fields the groups above don\u{2019}t cover."
 
     /// The DID or AT URI the panel is about.
     public private(set) var target: String
     /// The flattened, count-sorted source list. `failed` is the index being
     /// unreachable; `loaded([])` is a real "nothing links here".
     public private(set) var sources: Loadable<[BacklinkSource]> = .idle
-    /// The one source whose records are expanded (`open` on the web).
-    public private(set) var openSource: String?
-    /// Paged records per source, keyed by `BacklinkSource.source`. A page
-    /// stays cached when its source is collapsed, so reopening does not
-    /// refetch (the web unmounts and refetches; the list is the same).
-    public private(set) var pages: [String: BacklinkRecordsPage] = [:]
-    /// Slingshot record content keyed by AT URI.
-    public private(set) var hydratedRecords: [String: FetchedRecord] = [:]
-    /// Resolved handles keyed by DID. A DID Slingshot could not label is
-    /// simply absent.
-    public private(set) var handles: [String: String] = [:]
-    /// Whether opened pages are hydrated through Slingshot at all. Off for
-    /// surfaces that only want the coordinates (or tests of the paging).
+    /// The sources as relationships, in display order; empty until loaded.
+    public private(set) var groups: [BacklinkGroup] = []
+    /// The open relationship's key; nil opens the first.
+    public private(set) var selectedRelation: String?
+    /// The last narrowing made, whichever relationship it was made in.
+    public private(set) var narrowing: BacklinkNarrowing?
+    /// Merged lists keyed by the sources behind them (`listKey`).
+    public private(set) var lists: [String: BacklinkList] = [:]
+    /// Profiles and context lines for the rows.
+    public let details: BacklinkDetailsStore
+    /// Whether rows are filled in with profiles and context at all. Off
+    /// for surfaces that only want the coordinates (or tests of the paging).
     public let hydrates: Bool
 
     @ObservationIgnored private let constellation: ConstellationClient
-    @ObservationIgnored private let slingshot: SlingshotClient
     @ObservationIgnored private var loadTask: Task<Void, Never>?
-    @ObservationIgnored private var pageTasks: [String: Task<Void, Never>] = [:]
-    /// DIDs already asked about, so a second page full of the same
-    /// accounts costs nothing.
-    @ObservationIgnored private var labelAttempts: Set<String> = []
+    @ObservationIgnored private var listTasks: [String: Task<Void, Never>] = [:]
+    @ObservationIgnored private var merges: [String: BacklinkMerge] = [:]
+    /// Bumped by every new target and every cancel, so an answer that
+    /// lands after either is dropped.
+    @ObservationIgnored private var generation = 0
 
     /// - Parameters:
     ///   - target: the DID or AT URI; `load()` fetches it. Empty until
     ///     `load(target:)` when the owner does not know it yet.
-    ///   - http: the transport every Constellation and Slingshot call goes
-    ///     through, injectable for tests.
+    ///   - http: the transport every Constellation, AppView and Slingshot
+    ///     call goes through, injectable for tests.
     ///   - hydrates: see `hydrates`.
     public init(target: String = "", http: HTTPClient = .shared, hydrates: Bool = true) {
         self.target = target
         self.constellation = ConstellationClient(http: http)
-        self.slingshot = SlingshotClient(http: http)
+        self.details = BacklinkDetailsStore(http: http)
         self.hydrates = hydrates
     }
 
     // MARK: Loading
 
-    /// Fetch the source list for the current target, dropping every open
-    /// page and any load in flight.
+    /// Fetch the source list for the current target, dropping every list
+    /// and any load in flight.
     public func load() {
         load(target: target)
     }
 
-    /// Point the panel at a new target and fetch its sources.
+    /// Point the panel at a new target and fetch its sources. Profiles and
+    /// context lines stay cached: they belong to the linking records, not
+    /// to the target.
     public func load(target: String) {
         loadTask?.cancel()
         loadTask = nil
-        cancelPages()
+        cancelLists()
+        generation += 1
         self.target = target
-        openSource = nil
-        pages = [:]
-        hydratedRecords = [:]
-        handles = [:]
-        labelAttempts = []
+        groups = []
+        selectedRelation = nil
+        narrowing = nil
+        lists = [:]
+        merges = [:]
         guard !target.isEmpty else {
             sources = .idle
             return
         }
         sources = .loading
+        let generation = self.generation
         loadTask = Task { [weak self] in
-            await self?.fetchSources(target)
+            await self?.fetchSources(target, generation: generation)
         }
     }
 
@@ -198,31 +363,42 @@ public final class BacklinksModel {
         await loadTask?.value
     }
 
-    /// Wait for a source's page (and its hydration) in flight, if any.
-    public func awaitPage(for source: String) async {
-        await pageTasks[source]?.value
+    /// Wait for the open list's batch in flight (and its rows' details), if any.
+    public func awaitActiveList() async {
+        guard let key = activeListKey else { return }
+        await listTasks[key]?.value
     }
 
-    /// Cancel everything in flight (screen leaving).
+    /// Cancel everything in flight (screen leaving). A list cut off mid-batch
+    /// is dropped with its merge, whose sources may have read the
+    /// cancellation as a failure, so `loadActiveList()` starts it afresh.
     public func cancel() {
         loadTask?.cancel()
         loadTask = nil
-        cancelPages()
+        cancelLists()
+        generation += 1
+        for (key, list) in lists where list.isLoading {
+            lists[key] = nil
+            merges[key] = nil
+        }
     }
 
-    private func cancelPages() {
-        for task in pageTasks.values { task.cancel() }
-        pageTasks = [:]
+    private func cancelLists() {
+        for task in listTasks.values { task.cancel() }
+        listTasks = [:]
     }
 
-    private func fetchSources(_ target: String) async {
+    private func fetchSources(_ target: String, generation: Int) async {
         let result = await constellation.sources(for: target)
-        guard !Task.isCancelled else { return }
+        guard !Task.isCancelled, generation == self.generation else { return }
         if let result {
             // A source with no links behind it is not a source: listed, it
             // read as "0 backlinks" and inflated "across N sources". The
             // web's Backlinks tab drops them the same way.
-            sources = .loaded(result.filter { $0.count > 0 })
+            let list = result.filter { $0.count > 0 }
+            groups = BacklinksModel.relationGroups(for: target, sources: list)
+            sources = .loaded(list)
+            loadActiveList()
         } else {
             sources = .failed(BacklinksModel.unavailableMessage)
         }
@@ -256,7 +432,7 @@ public final class BacklinksModel {
         return BacklinksModel.grouped(totals.records)
     }
 
-    /// The line beside the count, one of the five the header prints:
+    /// The line beside the count, one of the four the header prints:
     /// "loading…", "unavailable", "no records reference this yet", or
     /// "across N sources · from M accounts" (the accounts clause only when
     /// some source reported distinct DIDs).
@@ -277,128 +453,339 @@ public final class BacklinksModel {
         }
     }
 
-    /// The abbreviated per-source figures ("2.4k backlinks", "312 accounts").
+    /// The abbreviated figures on chips and source rows ("2.4k").
     public nonisolated static func compactCount(_ n: Int) -> String {
         UFOsFormat.formatCount(n)
     }
 
-    // MARK: Per-source records
+    // MARK: Relationships
 
-    public func isOpen(_ source: String) -> Bool {
-        openSource == source
-    }
-
-    /// The row's chevron: open this source (closing any other) or close it.
-    public func toggle(source: String) {
-        if openSource == source {
-            close()
-        } else {
-            open(source: source)
+    /// `relationshipsFor` in BacklinksTab.tsx: an AT URI with a collection
+    /// is a record, anything else an account.
+    public nonisolated static func targetKind(of target: String) -> BacklinkTargetKind {
+        if target.hasPrefix("at://"), let uri = AtUri(parsing: target), let collection = uri.collection, !collection.isEmpty {
+            return .record(collection: collection)
         }
+        return .account
     }
 
-    /// Expand a source, fetching its first page unless it is already cached.
-    public func open(source: String) {
-        openSource = source
-        if pages[source] == nil {
-            loadPage(source: source, after: nil)
-        }
-    }
-
-    public func close() {
-        openSource = nil
-    }
-
-    /// The "Load more" button: the next page for a source that has one.
-    public func loadMore(source: String) {
-        guard let page = pages[source], page.canLoadMore, !page.isLoading else { return }
-        loadPage(source: source, after: page.cursor)
-    }
-
-    /// The rows of a source's opened list, hydration applied.
-    public func rows(for source: String) -> [BacklinkRow] {
-        guard let page = pages[source] else { return [] }
-        return page.records.map { record in
-            BacklinkRow(record: record, handle: handles[record.did], hydrated: hydratedRecords[record.atUri])
-        }
-    }
-
-    /// The handle a linking DID resolved to, if any.
-    public func label(for did: String) -> String? {
-        handles[did]
-    }
-
-    private func loadPage(source: String, after cursor: String?) {
-        var page = pages[source] ?? BacklinkRecordsPage()
-        page.isLoading = true
-        pages[source] = page
-        let target = self.target
-        pageTasks[source] = Task { [weak self] in
-            await self?.fetchPage(target: target, source: source, after: cursor)
-        }
-    }
-
-    private func fetchPage(target: String, source: String, after cursor: String?) async {
-        let response = await constellation.getBacklinks(
-            target: target,
-            source: source,
-            limit: BacklinksModel.pageSize,
-            cursor: cursor
-        )
-        guard !Task.isCancelled, var page = pages[source] else { return }
-        guard let response else {
-            page.errored = true
-            page.isLoading = false
-            page.isDone = true
-            pages[source] = page
-            return
-        }
-        let batch = response.backlinks
-        page.records = cursor == nil ? batch : page.records + batch
-        page.cursor = response.cursor.flatMap { $0.isEmpty ? nil : $0 }
-        if page.cursor == nil || batch.isEmpty {
-            page.isDone = true
-        }
-        page.isLoading = false
-        pages[source] = page
-        if hydrates, !batch.isEmpty {
-            await hydrate(batch)
-        }
-    }
-
-    /// Fill in record content and identity labels for a freshly landed
-    /// batch. Both lookups run together; the page has already been
-    /// published, so a slow edge only delays the previews, never the rows.
-    private func hydrate(_ batch: [BacklinkRecord]) async {
-        let uris = batch.map(\.atUri).filter { hydratedRecords[$0] == nil }
-        let dids = Set(batch.map(\.did)).subtracting(labelAttempts).sorted()
-        labelAttempts.formUnion(dids)
-        let slingshot = self.slingshot
-        async let recordLookup = slingshot.getRecordsByUris(uris)
-        async let docLookup = BacklinksModel.resolveLabels(dids, slingshot: slingshot)
-        let (records, docs) = await (recordLookup, docLookup)
-        guard !Task.isCancelled else { return }
-        hydratedRecords.merge(records) { _, fresh in fresh }
-        for (index, doc) in docs.enumerated() {
-            if let handle = doc?.handle, !handle.isEmpty {
-                handles[dids[index]] = handle
+    /// A target's sources as relationships: an account's set for a DID, a
+    /// record's for an AT URI.
+    public nonisolated static func relationGroups(for target: String, sources: [BacklinkSource]) -> [BacklinkGroup] {
+        switch targetKind(of: target) {
+        case .record(let collection):
+            return BacklinkRelations.bucketRecordSources(sources, targetCollection: collection).map { bucket in
+                BacklinkGroup(key: bucket.relation.rawValue, label: bucket.relation.label, about: bucket.relation.about, bucket: bucket)
+            }
+        case .account:
+            return BacklinkRelations.bucketSources(sources).map { bucket in
+                BacklinkGroup(key: bucket.relation.rawValue, label: bucket.relation.label, about: bucket.relation.about, bucket: bucket)
             }
         }
     }
 
-    /// One mini-doc per DID, in input order, a few at a time.
-    private nonisolated static func resolveLabels(_ dids: [String], slingshot: SlingshotClient) async -> [MiniDoc?] {
-        guard !dids.isEmpty else { return [] }
-        let docs = try? await SlingshotClient.mapWithConcurrency(dids, limit: labelConcurrency) { did, _ in
-            await slingshot.resolveMiniDoc(did)
+    public var kind: BacklinkTargetKind {
+        BacklinksModel.targetKind(of: target)
+    }
+
+    /// The account whose own records get the `selfLabel` pill: the account
+    /// itself, or the record's author.
+    public var selfDid: String {
+        switch kind {
+        case .record:
+            return AtUri(parsing: target)?.repo ?? target
+        case .account:
+            return target
         }
-        return docs ?? []
+    }
+
+    /// What the target's own account is called in the rows.
+    public var selfLabel: String {
+        switch kind {
+        case .record: return "author"
+        case .account: return "this account"
+        }
+    }
+
+    /// The open relationship: the one selected, else the first.
+    public var selectedGroup: BacklinkGroup? {
+        if let selectedRelation, let group = groups.first(where: { $0.key == selectedRelation }) {
+            return group
+        }
+        return groups.first
+    }
+
+    public func isSelected(_ group: BacklinkGroup) -> Bool {
+        selectedGroup?.key == group.key
+    }
+
+    /// Open a relationship's list (a tile or a chip).
+    public func select(relation: String) {
+        selectedRelation = relation
+        loadActiveList()
+    }
+
+    /// The narrowing in force: the last one made, if it was made in the
+    /// open relationship.
+    public var activeNarrowing: BacklinkNarrowing? {
+        guard let narrowing, let group = selectedGroup, narrowing.relation == group.key else { return nil }
+        return narrowing
+    }
+
+    public var narrowedApp: String? {
+        activeNarrowing?.app
+    }
+
+    public var narrowedSourceKey: String? {
+        activeNarrowing?.source
+    }
+
+    /// Neither an app nor a source is picked: the "All" chip.
+    public var isShowingAll: Bool {
+        narrowedApp == nil && narrowedSourceKey == nil
+    }
+
+    /// The "All" chip, and "Show all …" under a narrowed source.
+    public func showAll() {
+        narrowing = nil
+        loadActiveList()
+    }
+
+    /// An app chip.
+    public func narrow(toApp key: String) {
+        guard let group = selectedGroup else { return }
+        narrowing = BacklinkNarrowing(relation: group.key, app: key)
+        loadActiveList()
+    }
+
+    /// A row of the sources disclosure: narrow to it, or back to the whole
+    /// relationship when it is already the one shown.
+    public func toggleSource(_ source: String) {
+        guard let group = selectedGroup else { return }
+        if narrowedSourceKey == source {
+            narrowing = nil
+        } else {
+            narrowing = BacklinkNarrowing(relation: group.key, source: source)
+        }
+        loadActiveList()
+    }
+
+    /// The sources behind the list on screen.
+    public var activeSources: [BacklinkSource] {
+        guard let group = selectedGroup else { return [] }
+        if let source = narrowedSourceKey {
+            return group.sources.filter { $0.source == source }
+        }
+        if let app = narrowedApp {
+            return group.sources.filter { BacklinkRelations.appForCollection($0.collection).key == app }
+        }
+        return group.sources
+    }
+
+    /// Links behind the list on screen, from Constellation's counts.
+    public var activeTotal: Int {
+        activeSources.reduce(0) { $0 + $1.count }
+    }
+
+    /// The one source the list is narrowed to, if it is.
+    public var narrowedSource: BacklinkSource? {
+        narrowedSourceKey == nil ? nil : activeSources.first
+    }
+
+    /// How a narrowed source reads after "Only": the collection and its
+    /// path, without the path of a root-level link.
+    public nonisolated static func sourceText(_ source: BacklinkSource) -> String {
+        source.collection + (source.path == "." ? "" : source.path)
+    }
+
+    /// The app filter shows when a relationship spans more than one app.
+    public var showsAppFilter: Bool {
+        (selectedGroup?.apps.count ?? 0) > 1
+    }
+
+    /// Rows wear their app's mark when the list mixes apps.
+    public var showsAppOnRows: Bool {
+        showsAppFilter && isShowingAll
+    }
+
+    /// The raw collection + path pairs behind the open relationship, each
+    /// with a short path label. Labels are made per collection, so two
+    /// paths that would read the same keep their namespaces.
+    public var sourceRows: [BacklinkSourceRow] {
+        guard let group = selectedGroup else { return [] }
+        var pathsByCollection: [String: [String]] = [:]
+        for source in group.sources {
+            pathsByCollection[source.collection, default: []].append(source.path)
+        }
+        var labels: [String: [String: String]] = [:]
+        for (collection, paths) in pathsByCollection {
+            labels[collection] = BacklinkRelations.backlinkPathLabels(paths)
+        }
+        let narrowed = narrowedSourceKey
+        return group.sources.map { source in
+            BacklinkSourceRow(
+                source: source,
+                app: BacklinkRelations.appForCollection(source.collection),
+                pathLabel: labels[source.collection]?[source.path] ?? source.path,
+                isNarrowed: narrowed == source.source
+            )
+        }
+    }
+
+    // MARK: The merged list
+
+    /// A list's key: the sources behind it, in order. Nil for none.
+    nonisolated static func listKey(_ sources: [String]) -> String? {
+        sources.isEmpty ? nil : sources.joined(separator: "\n")
+    }
+
+    private var activeListKey: String? {
+        BacklinksModel.listKey(activeSources.map(\.source))
+    }
+
+    /// The list on screen, nil until its first batch is asked for.
+    public var activeList: BacklinkList? {
+        guard let key = activeListKey else { return nil }
+        return lists[key]
+    }
+
+    /// Nothing to show yet and something on the way: the skeleton.
+    public var isListLoading: Bool {
+        if let list = activeList { return list.isLoading }
+        return !activeSources.isEmpty
+    }
+
+    /// The list on screen as rows, details applied.
+    public var rows: [BacklinkRow] {
+        guard let list = activeList else { return [] }
+        let showsApp = showsAppOnRows
+        return list.items.map { row(for: $0, showsApp: showsApp) }
+    }
+
+    /// One record as a row reads, from whatever details have landed.
+    public func row(for item: MergedBacklink, showsApp: Bool = false) -> BacklinkRow {
+        let context = details.context(for: item.uri)
+        var member: String?
+        if let candidate = context?.member, candidate.list == target {
+            member = candidate.did
+        }
+        let subject = member ?? item.did
+        let profile = details.profile(for: subject)
+        let displayName = profile?.displayName?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let handle = profile?.handle ?? ""
+
+        let title: String
+        var handleText: String?
+        var isIdentifier = false
+        if !displayName.isEmpty {
+            title = displayName
+            handleText = handle.isEmpty ? nil : "@" + handle
+        } else if !handle.isEmpty {
+            title = handle
+        } else {
+            title = shortDid(subject)
+            isIdentifier = true
+        }
+
+        return BacklinkRow(
+            item: item,
+            subjectDid: subject,
+            title: title,
+            handle: handleText,
+            titleIsIdentifier: isIdentifier,
+            isPending: hydrates && !details.isProfileKnown(subject),
+            hasNoProfile: details.missingProfiles.contains(subject),
+            avatar: profile?.avatar.map { $0.replacingOccurrences(of: "/img/avatar/", with: "/img/avatar_thumbnail/") },
+            selfLabel: member == nil && item.did == selfDid ? selfLabel : nil,
+            context: member == nil ? context : nil,
+            app: showsApp ? BacklinkRelations.appForCollection(item.collection) : nil
+        )
+    }
+
+    /// The list's foot: records shown against links in all. A record that
+    /// links twice is one row, so the two numbers are not the same unit.
+    /// No claim about order: Constellation lists links as it indexed them,
+    /// which an edited record breaks (see BacklinkMerge).
+    public var footerText: String? {
+        guard let list = activeList, !list.items.isEmpty else { return nil }
+        let total = activeTotal
+        var text = "\(BacklinksModel.grouped(list.items.count)) shown \u{00B7} \(BacklinksModel.grouped(total)) \(total == 1 ? "link" : "links") in all"
+        if !list.failed.isEmpty {
+            let count = list.failed.count
+            text += " \u{00B7} \(count) \(count == 1 ? "source" : "sources") didn\u{2019}t answer"
+        }
+        return text
+    }
+
+    /// What an empty, settled list says.
+    public var listEmptyMessage: String {
+        if let list = activeList, !list.failed.isEmpty {
+            return BacklinksModel.recordsErrorMessage
+        }
+        return BacklinksModel.noRecordsMessage
+    }
+
+    /// Start the list on screen if nothing has asked for it yet. Selecting
+    /// and narrowing call it; the view calls it on appear, for a list a
+    /// `cancel()` dropped.
+    public func loadActiveList() {
+        let keys = activeSources.map(\.source)
+        guard let key = BacklinksModel.listKey(keys), lists[key] == nil else { return }
+        loadBatch(key: key, sources: keys)
+    }
+
+    /// "Show more": the next batch of the list on screen.
+    public func loadMore() {
+        let keys = activeSources.map(\.source)
+        guard let key = BacklinksModel.listKey(keys), let list = lists[key], !list.isLoading, !list.isDone else { return }
+        loadBatch(key: key, sources: keys)
+    }
+
+    private func loadBatch(key: String, sources keys: [String]) {
+        let merge: BacklinkMerge
+        if let existing = merges[key] {
+            merge = existing
+        } else {
+            merge = BacklinkMerge(
+                sources: keys,
+                pageSize: BacklinksModel.pageSize,
+                fetchPage: BacklinkMerge.constellationFetcher(target: target, client: constellation)
+            )
+            merges[key] = merge
+        }
+        var list = lists[key] ?? BacklinkList()
+        list.isLoading = true
+        lists[key] = list
+        let generation = self.generation
+        listTasks[key] = Task { [weak self] in
+            let batch = await merge.next(BacklinksModel.pageSize)
+            await self?.receive(batch, key: key, generation: generation)
+        }
+    }
+
+    private func receive(_ batch: BacklinkMergeBatch, key: String, generation: Int) async {
+        guard !Task.isCancelled, generation == self.generation, var list = lists[key] else { return }
+        list.items.append(contentsOf: batch.items)
+        if !batch.relinked.isEmpty {
+            for index in list.items.indices {
+                if let links = batch.relinked[list.items[index].uri] {
+                    list.items[index].links = links
+                }
+            }
+        }
+        list.isLoading = false
+        list.isDone = batch.isDone
+        list.failed = batch.failed
+        lists[key] = list
+        if hydrates, !batch.items.isEmpty {
+            await details.hydrate(batch.items.map(\.record))
+        }
     }
 
     /// `toLocaleString()` as an English reader sees it: thousands grouped
     /// with commas. Deterministic so the header reads the same in tests and
     /// on device; a screen that wants locale grouping has `totals`.
-    private nonisolated static func grouped(_ n: Int) -> String {
+    nonisolated static func grouped(_ n: Int) -> String {
         let digits = String(n.magnitude)
         var out = ""
         for (index, character) in digits.enumerated() {
