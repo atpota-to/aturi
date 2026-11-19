@@ -19,7 +19,7 @@ import {
   getRepoUrl,
 } from '@/utils/atproto/pdsClient';
 import { tidToDate, formatTidRelative } from '@/utils/atproto/tid';
-import { getPlcAuditLog, type PlcAuditEntry } from '@/utils/atproto/plc';
+import { getPlcAuditLog, relativeAge, type PlcAuditEntry } from '@/utils/atproto/plc';
 import { getInactiveRepoRev, resolveIdentifier } from '@/utils/atproto/identity';
 import {
   flattenSources,
@@ -372,28 +372,6 @@ function CredBlueTile({
       interactive={interactive}
     />
   );
-}
-
-/**
- * Convert a Date in the past into a single coarse phrase ("3 years old",
- * "2 months old", "12 days old"). Returns the largest unit that fits;
- * keeps it terse so it can sit beneath the absolute date inside a tile.
- */
-function relativeAge(then: Date): string {
-  const ms = Date.now() - then.getTime();
-  if (ms < 0) return 'in the future';
-  const days = Math.floor(ms / 86_400_000);
-  if (days < 1) return 'today';
-  if (days === 1) return '1 day old';
-  if (days < 30) return `${days} days old`;
-  const months = Math.floor(days / 30);
-  if (months < 12) return `${months} month${months === 1 ? '' : 's'} old`;
-  const years = Math.floor(days / 365);
-  const remMonths = Math.floor((days - years * 365) / 30);
-  if (remMonths > 0) {
-    return `${years} yr ${remMonths} mo old`;
-  }
-  return `${years} year${years === 1 ? '' : 's'} old`;
 }
 
 function StatTile({

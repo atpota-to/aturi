@@ -13,6 +13,7 @@ import { setSectionHidden } from '@/utils/preferences';
 import Link from 'next/link';
 import { ChevronRight, Eye, EyeOff } from 'lucide-react';
 import { pdsHostname } from '@/utils/atproto/pdsServer';
+import { getPlcAuditLog, plcCreatedAt, relativeAge } from '@/utils/atproto/plc';
 import { encodeRepo } from '@/utils/atproto/urls';
 import { usePreferences } from '@/components/PreferencesProvider';
 import AppearIn from './AppearIn';
@@ -36,6 +37,7 @@ import NotFoundPanel from '@/components/NotFoundPanel';
 import SkeletonSwap from './skeletons/SkeletonSwap';
 import { useFadeOnChange } from '@/components/useFadeOnChange';
 import { RepoSkeleton } from './skeletons/pages';
+import { SkeletonBar } from './skeletons/primitives';
 
 const TABS = [
   { id: 'collections', label: 'Collections' },
@@ -349,7 +351,64 @@ function IdentityRow({ identity }: { identity: IdentityBundle }) {
         </span>
         <CopyButton value={identity.pds} label="Copy pds" compact variant="subtle" iconOnly />
       </dd>
+      {identity.did.startsWith('did:plc:') && <CreatedRow did={identity.did} />}
     </dl>
+  );
+}
+
+/**
+ * When the account was made: the timestamp of the DID's first PLC operation,
+ * the same source as the Created tile in Repo at a glance. A did:web keeps
+ * no such log, so it gets no row at all rather than a dash.
+ *
+ * The date, then the account's age. The age gives way when the row is narrow
+ * (the Files rail), and the date's tooltip carries it there.
+ */
+function CreatedRow({ did }: { did: string }) {
+  // Keyed by DID, so a stale answer for the last account never shows on this one.
+  const [entry, setEntry] = useState<{ did: string; at: Date | null } | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    getPlcAuditLog(did)
+      .then((log) => {
+        if (!cancelled) setEntry({ did, at: plcCreatedAt(log) });
+      })
+      .catch(() => {
+        if (!cancelled) setEntry({ did, at: null });
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [did]);
+
+  const settled = entry?.did === did ? entry : null;
+  let body: ReactNode;
+  if (!settled) {
+    body = <SkeletonBar width="96px" height="0.6rem" style={{ flex: 'none' }} />;
+  } else if (!settled.at) {
+    body = <span className="explore-muted">unknown</span>;
+  } else {
+    const at = settled.at;
+    const age = relativeAge(at);
+    body = (
+      <>
+        <time
+          dateTime={at.toISOString()}
+          title={`${at.toLocaleString(undefined, { dateStyle: 'long', timeStyle: 'short' })} · ${age}`}
+        >
+          {at.toLocaleDateString(undefined, { dateStyle: 'medium' })}
+        </time>
+        <span className="fx-created-age">{age}</span>
+      </>
+    );
+  }
+
+  return (
+    <>
+      <dt>Created</dt>
+      <dd className="fx-created">{body}</dd>
+    </>
   );
 }
 

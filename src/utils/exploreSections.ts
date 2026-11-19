@@ -112,7 +112,7 @@ export const REPO_SECTION_META: SectionMeta[] = [
   {
     id: 'identity',
     label: 'Identity row',
-    description: 'Handle, DID and PDS.',
+    description: 'Handle, DID, PDS and creation date.',
     kind: 'record-data',
   },
   {

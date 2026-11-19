@@ -126,7 +126,7 @@ export function SkeletonBreadcrumb({
 /**
  * Stand-in for the explorer's account card (<ProfileHeader> with the identity
  * rows): round avatar, name and handle, two lines of bio, the three stats,
- * the DID / handle / PDS list and the "Open profile in…" row. `flat` drops
+ * the DID / handle / PDS / created list and the "Open profile in…" row. `flat` drops
  * the frame, for the workbench's rail, where the card lies flat on the rail.
  */
 export function SkeletonAccountCard({ flat = false }: { flat?: boolean }) {
@@ -168,7 +168,7 @@ export function SkeletonAccountCard({ flat = false }: { flat?: boolean }) {
           borderTop: '1px solid var(--border-subtle)',
         }}
       >
-        {['78%', '60%', '66%'].map((w, i) => (
+        {['78%', '60%', '66%', '70%'].map((w, i) => (
           <span key={i} style={{ display: 'contents' }}>
             <SkeletonBar width="2rem" height="0.6rem" />
             <SkeletonBar width={w} height="0.6rem" />

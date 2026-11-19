@@ -49,6 +49,13 @@ export type PlcAuditEntry = {
 const PLC_TTL = 30_000;
 const docCache = new TTLMap<string, PlcDocument>(PLC_TTL);
 const auditCache = new TTLMap<string, PlcAuditEntry[]>(PLC_TTL);
+/**
+ * Audit-log requests still on the wire. The account card's Created row, the
+ * Repo at a glance tile and the Log tab all ask for the same log as a repo
+ * page opens, before the first answer can reach the TTL cache, so they share
+ * one request rather than each making their own.
+ */
+const auditInflight = new Map<string, Promise<PlcAuditEntry[]>>();
 
 async function fetchJson<T>(url: string): Promise<T> {
   const res = await fetch(url, withIdentification());
@@ -72,11 +79,58 @@ export async function getPlcAuditLog(did: string): Promise<PlcAuditEntry[]> {
   if (!did) throw new Error('getPlcAuditLog: missing did');
   const cached = auditCache.get(did);
   if (cached) return cached;
-  const log = await fetchJson<PlcAuditEntry[]>(
+  const pending = auditInflight.get(did);
+  if (pending) return pending;
+  const request = fetchJson<PlcAuditEntry[]>(
     `${PLC_DIRECTORY}/${encodeURIComponent(did)}/log/audit`,
-  );
-  auditCache.set(did, log);
-  return log;
+  )
+    .then((log) => {
+      auditCache.set(did, log);
+      return log;
+    })
+    .finally(() => auditInflight.delete(did));
+  auditInflight.set(did, request);
+  return request;
+}
+
+/**
+ * When a did:plc was created: the timestamp of its first operation, or null
+ * when the log is empty or the timestamp doesn't parse.
+ */
+export function plcCreatedAt(log: PlcAuditEntry[]): Date | null {
+  const first = log[0]?.createdAt;
+  if (!first) return null;
+  const date = new Date(first);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+/**
+ * Convert a Date in the past into a single coarse phrase ("3 years old",
+ * "2 months old", "12 days old"). Returns the largest unit that fits;
+ * keeps it terse so it can sit beside or beneath the absolute date.
+ *
+ * Months and years are counted on the calendar (whole months since the same
+ * day of the month), not as 30- and 365-day blocks: mixing those two block
+ * sizes once gave "0 yr 12 mo" in the last days before a first anniversary.
+ */
+export function relativeAge(then: Date, now: Date = new Date()): string {
+  const ms = now.getTime() - then.getTime();
+  if (ms < 0) return 'in the future';
+  let months =
+    (now.getFullYear() - then.getFullYear()) * 12 + (now.getMonth() - then.getMonth());
+  if (now.getDate() < then.getDate()) months -= 1;
+  if (months < 1) {
+    const days = Math.floor(ms / 86_400_000);
+    if (days < 1) return 'today';
+    return `${days} day${days === 1 ? '' : 's'} old`;
+  }
+  if (months < 12) return `${months} month${months === 1 ? '' : 's'} old`;
+  const years = Math.floor(months / 12);
+  const remMonths = months % 12;
+  if (remMonths > 0) {
+    return `${years} yr ${remMonths} mo old`;
+  }
+  return `${years} year${years === 1 ? '' : 's'} old`;
 }
 
 /**
