@@ -12,6 +12,10 @@ import AturiCore
 struct ValidateToolView: View {
     let query: [String: String]
 
+    init(query: [String: String]) {
+        self.query = query
+    }
+
     @State private var model = RecordValidatorModel()
     @State private var text = ""
 
@@ -299,6 +303,12 @@ struct RecordToolsVerdict: View {
     let title: String
     let text: String
 
+    init(status: ToolCheckStatus, title: String, text: String) {
+        self.status = status
+        self.title = title
+        self.text = text
+    }
+
     @Environment(\.aturiTheme) private var theme
 
     private var tint: Color {
@@ -354,6 +364,11 @@ struct RecordToolsError: View {
     let message: String
     var retry: (() -> Void)? = nil
 
+    init(message: String, retry: (() -> Void)? = nil) {
+        self.message = message
+        self.retry = retry
+    }
+
     @Environment(\.aturiTheme) private var theme
 
     var body: some View {
@@ -386,6 +401,11 @@ struct RecordToolsError: View {
 struct RecordToolsIntro: View {
     var title: String = "What it checks"
     let items: [(term: String, text: String)]
+
+    init(title: String = "What it checks", items: [(term: String, text: String)]) {
+        self.title = title
+        self.items = items
+    }
 
     @Environment(\.aturiTheme) private var theme
 

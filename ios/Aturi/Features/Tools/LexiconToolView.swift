@@ -10,6 +10,10 @@ import AturiCore
 struct LexiconToolView: View {
     let query: [String: String]
 
+    init(query: [String: String]) {
+        self.query = query
+    }
+
     @State private var model = LexiconCheckerModel()
     @State private var text = ""
 
