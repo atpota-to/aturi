@@ -108,12 +108,17 @@ export function plcCreatedAt(log: PlcAuditEntry[]): Date | null {
  * Convert a Date in the past into a single coarse phrase ("3 years old",
  * "2 months old", "12 days old"). Returns the largest unit that fits;
  * keeps it terse so it can sit beside or beneath the absolute date.
+ * `suffix: 'ago'` gives the same span as a time ("3 yr 8 mo ago"), for a
+ * row labelled "Created".
  *
  * Months and years are counted on the calendar (whole months since the same
  * day of the month), not as 30- and 365-day blocks: mixing those two block
  * sizes once gave "0 yr 12 mo" in the last days before a first anniversary.
  */
-export function relativeAge(then: Date, now: Date = new Date()): string {
+export function relativeAge(
+  then: Date,
+  { now = new Date(), suffix = 'old' }: { now?: Date; suffix?: 'old' | 'ago' } = {},
+): string {
   const ms = now.getTime() - then.getTime();
   if (ms < 0) return 'in the future';
   let months =
@@ -122,15 +127,15 @@ export function relativeAge(then: Date, now: Date = new Date()): string {
   if (months < 1) {
     const days = Math.floor(ms / 86_400_000);
     if (days < 1) return 'today';
-    return `${days} day${days === 1 ? '' : 's'} old`;
+    return `${days} day${days === 1 ? '' : 's'} ${suffix}`;
   }
-  if (months < 12) return `${months} month${months === 1 ? '' : 's'} old`;
+  if (months < 12) return `${months} month${months === 1 ? '' : 's'} ${suffix}`;
   const years = Math.floor(months / 12);
   const remMonths = months % 12;
   if (remMonths > 0) {
-    return `${years} yr ${remMonths} mo old`;
+    return `${years} yr ${remMonths} mo ${suffix}`;
   }
-  return `${years} year${years === 1 ? '' : 's'} old`;
+  return `${years} year${years === 1 ? '' : 's'} ${suffix}`;
 }
 
 /**

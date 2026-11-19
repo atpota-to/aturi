@@ -522,18 +522,19 @@
 .fx-dl a:hover {
   color: var(--accent-forest);
 }
-/* The Created row: the date, then the account's age in the secondary
-   voice. The age goes when the row is narrow (the Files rail) rather than
-   end in an ellipsis; the date's tooltip still carries it. */
+/* The Created row, first on the card: the account's age, then the date in
+   the secondary voice. The date goes when the row is narrow (the Files rail)
+   rather than end in an ellipsis; the age's tooltip still carries it. */
 .fx-dl dd.fx-created {
   gap: 6px;
   container-type: inline-size;
 }
-.fx-dl dd.fx-created time {
+.fx-created-age {
   flex: none;
   white-space: nowrap;
+  font-weight: 500;
 }
-.fx-created-age {
+.fx-created-date {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -542,7 +543,7 @@
   color: var(--text-secondary);
 }
 @container (max-width: 180px) {
-  .fx-created-age {
+  .fx-created-date {
     display: none;
   }
 }
@@ -556,9 +557,11 @@
   container-type: inline-size;
 }
 /* Context that can go when the row is narrow (the Files rail), rather than
-   end in an ellipsis. */
+   end in an ellipsis or push the row past the card's edge: the dots beside a
+   finding only repeat what its pill says. */
 @container (max-width: 190px) {
-  .fx-check-sub[data-optional] {
+  .fx-check-sub[data-optional],
+  .fx-check-dots[data-optional] {
     display: none;
   }
 }
@@ -677,8 +680,12 @@
   background: var(--border-strong);
   box-shadow: none;
 }
+/* A row's pill can shrink, its words ending in an ellipsis, so a long
+   finding ("No profile on Bluesky") stays inside a narrow card. Its icon,
+   and an icon-only badge, keep their size. */
 .fx-check-pill {
-  flex: none;
+  flex: 0 1 auto;
+  min-width: 0;
   height: 21px;
   display: inline-flex;
   align-items: center;
@@ -689,7 +696,16 @@
   font-weight: 600;
   white-space: nowrap;
 }
+.fx-check-pill > svg {
+  flex: none;
+}
+.fx-check-pill-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 .fx-check-pill[data-icon] {
+  flex: none;
   width: 21px;
   padding: 0;
   justify-content: center;

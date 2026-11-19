@@ -50,11 +50,15 @@ const VISIBILITY_TONE: Record<VisibilitySummary['tone'], Tone> = {
   fail: 'bad',
 };
 
+/**
+ * The words sit in their own span, so a narrow row ends them in an ellipsis;
+ * the tooltip still has them whole.
+ */
 function Pill({ tone, icon, children }: { tone: Tone; icon?: ReactNode; children: ReactNode }) {
   return (
-    <span className="fx-check-pill" data-tone={tone}>
+    <span className="fx-check-pill" data-tone={tone} title={typeof children === 'string' ? children : undefined}>
       {icon}
-      {children}
+      <span className="fx-check-pill-text">{children}</span>
     </span>
   );
 }
@@ -90,11 +94,28 @@ const DOT_WORDS: Record<DotState, string> = {
   skip: 'nothing to check',
 };
 
-export function Dots({ summary, waiting = false }: { summary: VisibilitySummary | null; waiting?: boolean }) {
+/**
+ * `optional` marks dots that only repeat a pill beside them, which can go when
+ * the row is narrow (the Files rail) so the pill keeps its words.
+ */
+export function Dots({
+  summary,
+  waiting = false,
+  optional = false,
+}: {
+  summary: VisibilitySummary | null;
+  waiting?: boolean;
+  optional?: boolean;
+}) {
   const dots = summary?.dots ?? Array.from({ length: 6 }, () => null);
   const done = summary?.done ?? 0;
   return (
-    <span className="fx-check-dots" role="img" aria-label={`${done} of ${dots.length} visibility checks back`}>
+    <span
+      className="fx-check-dots"
+      role="img"
+      aria-label={`${done} of ${dots.length} visibility checks back`}
+      data-optional={optional || undefined}
+    >
       {dots.map((dot, index) => (
         <i
           key={dot?.id ?? index}
@@ -271,7 +292,7 @@ function VisibilityRow({ state, href, now }: { state: VisibilityCheckState; href
             {summary.short}
           </Pill>
           {/* A finding keeps its dots, so it shows which check found it. */}
-          {(tone === 'warn' || tone === 'bad') && <Dots summary={summary} />}
+          {(tone === 'warn' || tone === 'bad') && <Dots summary={summary} optional />}
           <span
             className="fx-check-sub"
             data-quiet={tone !== 'ok' || undefined}

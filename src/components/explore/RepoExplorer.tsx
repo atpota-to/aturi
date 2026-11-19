@@ -311,6 +311,9 @@ function IdentityRow({ identity }: { identity: IdentityBundle }) {
   const host = pdsHostname(identity.pds);
   return (
     <dl className="fx-dl">
+      {/* First: how old an account is says more about it at a glance than
+          its identifiers do. */}
+      {identity.did.startsWith('did:plc:') && <CreatedRow did={identity.did} />}
       <dt>DID</dt>
       <dd>
         <code className="fx-mono fx-trunc" title={identity.did}>
@@ -351,7 +354,6 @@ function IdentityRow({ identity }: { identity: IdentityBundle }) {
         </span>
         <CopyButton value={identity.pds} label="Copy pds" compact variant="subtle" iconOnly />
       </dd>
-      {identity.did.startsWith('did:plc:') && <CreatedRow did={identity.did} />}
     </dl>
   );
 }
@@ -361,8 +363,9 @@ function IdentityRow({ identity }: { identity: IdentityBundle }) {
  * the same source as the Created tile in Repo at a glance. A did:web keeps
  * no such log, so it gets no row at all rather than a dash.
  *
- * The date, then the account's age. The age gives way when the row is narrow
- * (the Files rail), and the date's tooltip carries it there.
+ * The account's age leads, with the date beside it in a quieter voice. The
+ * date gives way when the row is narrow (the Files rail), and the age's
+ * tooltip carries it there.
  */
 function CreatedRow({ did }: { did: string }) {
   // Keyed by DID, so a stale answer for the last account never shows on this one.
@@ -390,16 +393,16 @@ function CreatedRow({ did }: { did: string }) {
     body = <span className="explore-muted">unknown</span>;
   } else {
     const at = settled.at;
-    const age = relativeAge(at);
     body = (
       <>
         <time
+          className="fx-created-age"
           dateTime={at.toISOString()}
-          title={`${at.toLocaleString(undefined, { dateStyle: 'long', timeStyle: 'short' })} · ${age}`}
+          title={at.toLocaleString(undefined, { dateStyle: 'long', timeStyle: 'short' })}
         >
-          {at.toLocaleDateString(undefined, { dateStyle: 'medium' })}
+          {relativeAge(at, { suffix: 'ago' })}
         </time>
-        <span className="fx-created-age">{age}</span>
+        <span className="fx-created-date">{at.toLocaleDateString(undefined, { dateStyle: 'medium' })}</span>
       </>
     );
   }
