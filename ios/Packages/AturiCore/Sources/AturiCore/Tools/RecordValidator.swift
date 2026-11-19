@@ -432,7 +432,7 @@ public enum RecordValidator {
             }
         }
         let accept = asStrings(def["accept"])
-        if let mime = blob["mimeType"]?.stringValue, !accept.isEmpty {
+        if let mime = blob["mimeType"]?.stringValue, !mime.isEmpty, !accept.isEmpty {
             let ok = accept.contains { pattern in
                 pattern == "*/*" || pattern == mime || (pattern.hasSuffix("/*") && mime.hasPrefix(String(pattern.dropLast())))
             }
