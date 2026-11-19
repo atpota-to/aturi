@@ -85,7 +85,7 @@ private struct RelationshipStripBody: View {
                 }
             } else {
                 Text(RelationshipModel.noSignalsCopy)
-                    .font(.caption.italic())
+                    .font(AturiFont.sans(.caption).italic())
                     .foregroundStyle(theme.textTertiary)
             }
         }
@@ -118,7 +118,7 @@ private struct RelationshipStripBody: View {
                 chipLabel(chip)
             }
             .buttonStyle(.plain)
-            .accessibilityHint(destination == .identityTab ? "Shows the ID tab" : "Shows the Lexicons tab")
+            .accessibilityHint(destination == .identityTab ? "Shows the Identity tab" : "Shows the Collections tab")
         } else {
             chipLabel(chip)
         }

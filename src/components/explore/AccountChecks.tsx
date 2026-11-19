@@ -7,6 +7,7 @@ import { labelSourceWords, type DotState, type VisibilitySummary } from '@/lib/t
 import { formatCount, scanPercent, type ScanProgress } from '@/lib/tools/labels';
 import { getProfile, type AppViewProfile } from '@/utils/atproto/appview';
 import type { IdentityBundle } from '@/utils/atproto/identity';
+import { getPlcAuditLog, plcCreatedAt, relativeAge } from '@/utils/atproto/plc';
 import { encodeRepo, shortDid } from '@/utils/atproto/urls';
 import { SkeletonBar } from './skeletons/primitives';
 import {
@@ -19,7 +20,8 @@ import {
 
 /**
  * An account's label and visibility checks, as the Explorer shows them
- * everywhere the account is: two rows on the account card, badges beside
+ * everywhere the account is: two rows on the account card (under a third,
+ * the account's age), badges beside
  * the Labels and Visibility views in the rail and on Classic's tabs, and an
  * author card on Classic's record page. All of them read useAccountChecks,
  * which shares one run of each check across the page.
@@ -35,8 +37,12 @@ import {
  * finish. Then a few words for what was found.
  */
 
-/** Where an account's views are, spelled as the explorer spells the repo. */
-export function accountViewHref(identity: IdentityBundle, tab: 'labels' | 'visibility'): string {
+/**
+ * Where an account's views are, spelled as the explorer spells the repo.
+ * `audit` is the PLC log: Classic's Log tab, and the overview's Log section
+ * in Workbench and Files.
+ */
+export function accountViewHref(identity: IdentityBundle, tab: 'labels' | 'visibility' | 'audit'): string {
   return `/explore/${encodeRepo(identity.handle || identity.did)}?tab=${tab}`;
 }
 
@@ -50,11 +56,15 @@ const VISIBILITY_TONE: Record<VisibilitySummary['tone'], Tone> = {
   fail: 'bad',
 };
 
+/**
+ * The words sit in their own span, so a narrow row ends them in an ellipsis;
+ * the tooltip still has them whole.
+ */
 function Pill({ tone, icon, children }: { tone: Tone; icon?: ReactNode; children: ReactNode }) {
   return (
-    <span className="fx-check-pill" data-tone={tone}>
+    <span className="fx-check-pill" data-tone={tone} title={typeof children === 'string' ? children : undefined}>
       {icon}
-      {children}
+      <span className="fx-check-pill-text">{children}</span>
     </span>
   );
 }
@@ -90,11 +100,28 @@ const DOT_WORDS: Record<DotState, string> = {
   skip: 'nothing to check',
 };
 
-export function Dots({ summary, waiting = false }: { summary: VisibilitySummary | null; waiting?: boolean }) {
+/**
+ * `optional` marks dots that only repeat a pill beside them, which can go when
+ * the row is narrow (the Files rail) so the pill keeps its words.
+ */
+export function Dots({
+  summary,
+  waiting = false,
+  optional = false,
+}: {
+  summary: VisibilitySummary | null;
+  waiting?: boolean;
+  optional?: boolean;
+}) {
   const dots = summary?.dots ?? Array.from({ length: 6 }, () => null);
   const done = summary?.done ?? 0;
   return (
-    <span className="fx-check-dots" role="img" aria-label={`${done} of ${dots.length} visibility checks back`}>
+    <span
+      className="fx-check-dots"
+      role="img"
+      aria-label={`${done} of ${dots.length} visibility checks back`}
+      data-optional={optional || undefined}
+    >
       {dots.map((dot, index) => (
         <i
           key={dot?.id ?? index}
@@ -271,7 +298,7 @@ function VisibilityRow({ state, href, now }: { state: VisibilityCheckState; href
             {summary.short}
           </Pill>
           {/* A finding keeps its dots, so it shows which check found it. */}
-          {(tone === 'warn' || tone === 'bad') && <Dots summary={summary} />}
+          {(tone === 'warn' || tone === 'bad') && <Dots summary={summary} optional />}
           <span
             className="fx-check-sub"
             data-quiet={tone !== 'ok' || undefined}
@@ -321,14 +348,86 @@ function VisibilityRow({ state, href, now }: { state: VisibilityCheckState; href
 }
 
 /**
- * The two rows, for the account card (RepoExplorer's AccountCard), which the
- * workbench rail, the Files rail and Classic's sidebar all draw.
+ * When the account was made, leading the card's checks: how long ago, then
+ * the date in a quieter voice, which gives way when the row is narrow (the
+ * Files rail) while the age's tooltip keeps it. The time is the DID's first
+ * PLC operation, the same source as the Created tile in Repo at a glance,
+ * so the row opens the PLC log. A did:web keeps no such log, so it gets no
+ * row at all rather than a dash.
+ */
+function CreatedRow({ identity }: { identity: IdentityBundle }) {
+  const { did } = identity;
+  // Keyed by DID, so a stale answer for the last account never shows on this one.
+  const [entry, setEntry] = useState<{ did: string; at: Date | null } | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    getPlcAuditLog(did)
+      .then((log) => {
+        if (!cancelled) setEntry({ did, at: plcCreatedAt(log) });
+      })
+      .catch(() => {
+        if (!cancelled) setEntry({ did, at: null });
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [did]);
+
+  const settled = entry?.did === did ? entry : null;
+  let body: ReactNode;
+  let label: string;
+  if (!settled) {
+    label = 'Created: reading the PLC log';
+    body = <SkeletonBar width="96px" height="0.55rem" style={{ flex: 'none' }} />;
+  } else if (!settled.at) {
+    label = 'Created: unknown';
+    body = (
+      <span className="fx-check-sub" data-quiet>
+        Unknown
+      </span>
+    );
+  } else {
+    const { at } = settled;
+    const age = relativeAge(at, { suffix: 'ago' });
+    const when = at.toLocaleString(undefined, { dateStyle: 'long', timeStyle: 'short' });
+    label = `Created ${age}, ${when}`;
+    body = (
+      <>
+        <time className="fx-check-age" dateTime={at.toISOString()} title={when}>
+          {age}
+        </time>
+        <span className="fx-check-sub" data-optional>
+          {at.toLocaleDateString(undefined, { dateStyle: 'medium' })}
+        </span>
+      </>
+    );
+  }
+
+  return (
+    <>
+      <dt>Created</dt>
+      <dd>
+        <Link href={accountViewHref(identity, 'audit')} prefetch={false} className="fx-check-link" aria-label={label}>
+          {body}
+          <ChevronRight size={13} className="fx-check-go" aria-hidden />
+        </Link>
+      </dd>
+    </>
+  );
+}
+
+/**
+ * The card's rows, for the account card (RepoExplorer's AccountCard), which
+ * the workbench rail, the Files rail and Classic's sidebar all draw: the
+ * account's age, then the two checks.
  */
 export default function AccountChecks({ identity }: { identity: IdentityBundle }) {
   const { labels, visibility } = useAccountChecks(identity.did);
   const now = useNow();
   return (
     <dl className="fx-dl fx-checks">
+      {identity.did.startsWith('did:plc:') && <CreatedRow identity={identity} />}
       <dt>Labels</dt>
       <dd>
         <LabelsRow state={labels} href={accountViewHref(identity, 'labels')} now={now} />

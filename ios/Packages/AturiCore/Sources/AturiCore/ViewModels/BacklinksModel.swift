@@ -219,7 +219,10 @@ public final class BacklinksModel {
         let result = await constellation.sources(for: target)
         guard !Task.isCancelled else { return }
         if let result {
-            sources = .loaded(result)
+            // A source with no links behind it is not a source: listed, it
+            // read as "0 backlinks" and inflated "across N sources". The
+            // web's Backlinks tab drops them the same way.
+            sources = .loaded(result.filter { $0.count > 0 })
         } else {
             sources = .failed(BacklinksModel.unavailableMessage)
         }

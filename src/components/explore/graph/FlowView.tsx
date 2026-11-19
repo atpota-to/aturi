@@ -476,6 +476,11 @@ const T_H = 74;
  * The thread left to right, one column per reply depth. Replies come
  * most-discussed first, six at a time; past the second level a big thread
  * starts folded, except along the way to the post the page is about.
+ *
+ * Where a click opens a post's details (`onSelect`), folding moves off the
+ * card to a button on its edge, so reading the first post doesn't fold the
+ * whole thread away. A click on a folded post still opens its replies, as
+ * its "+n" does.
  */
 export function FlowThread({
   root,
@@ -483,6 +488,7 @@ export function FlowThread({
   relationOfAuthor,
   focus,
   onFocus,
+  onSelect,
 }: {
   root: ThreadPost;
   current: string;
@@ -580,10 +586,20 @@ export function FlowThread({
         <g
           className="fx-graph-mark"
           role="button"
-          aria-expanded={post.kids.length ? !folded.has(post.uri) : undefined}
+          aria-expanded={!onSelect && post.kids.length ? !folded.has(post.uri) : undefined}
           aria-label={`${post.displayName || post.handle}: ${truncate(post.text, 80) || 'no text'}`}
           data-focus={focused === post.uri || undefined}
-          {...markProps(() => onFocus({ kind: 'post', post }), () => toggle(post))}
+          {...markProps(
+            () => onFocus({ kind: 'post', post }),
+            onSelect
+              ? () => {
+                  onSelect({ kind: 'post', post });
+                  // A click also opens folded replies, but never folds them;
+                  // that's the edge button's job.
+                  if (post.kids.length && folded.has(post.uri)) toggle(post);
+                }
+              : () => toggle(post),
+          )}
         >
           <rect x={0} y={0} width={T_W} height={T_H} rx={10} className="fx-graph-card" data-current={post.uri === current || undefined} />
           <Face x={26} y={22} r={11} avatar={post.avatar} name={post.handle || post.did} ring={relationColor(rel)} />
@@ -601,6 +617,18 @@ export function FlowThread({
             </text>
           ))}
         </g>
+        {onSelect && hidden === 0 && post.kids.length > 0 && !folded.has(post.uri) && (
+          <g
+            className="fx-graph-mark fx-graph-fold"
+            role="button"
+            aria-expanded
+            aria-label={`Fold the ${post.kids.length === 1 ? 'reply' : 'replies'} under this post`}
+            {...markProps(() => onFocus({ kind: 'post', post }), () => toggle(post))}
+          >
+            <circle cx={T_W} cy={T_H / 2} r={9} />
+            <line x1={T_W - 4} y1={T_H / 2} x2={T_W + 4} y2={T_H / 2} />
+          </g>
+        )}
         {hidden > 0 && (
           <g
             className="fx-graph-mark"
@@ -648,8 +676,11 @@ export function FlowThread({
         </g>
       </FlowBox>
       <p className="fx-graph-caption">
-        Replies one column deeper, most-discussed first. Choose a post to fold or open what’s under it, or drag it with
-        a mouse to move it out of the way.
+        Replies one column deeper, most-discussed first.{' '}
+        {onSelect
+          ? 'Choose a post to read it whole, and to open its replies if they’re folded; the button on its edge folds them.'
+          : 'Choose a post to fold or open what’s under it.'}{' '}
+        Drag a card with a mouse to move it out of the way.
       </p>
     </>
   );

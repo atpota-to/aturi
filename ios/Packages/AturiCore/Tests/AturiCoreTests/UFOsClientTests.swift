@@ -341,6 +341,45 @@ final class UFOsClientTests: XCTestCase {
         XCTAssertEqual(NSID.publisherForNsid("solo"), "solo")
     }
 
+    // Port of src/utils/__tests__/appDomain.test.ts.
+
+    func testAppDomainForReversesTheFirstTwoLabelsOfANamespace() {
+        XCTAssertEqual(NSID.appDomainFor("app.voresky"), "voresky.app")
+        XCTAssertEqual(NSID.appDomainFor("app.bsky.feed"), "bsky.app")
+        XCTAssertEqual(NSID.appDomainFor("com.atproto"), "atproto.com")
+        XCTAssertEqual(NSID.appDomainFor("App.Voresky"), "voresky.app")
+    }
+
+    func testAppDomainForKeepsTheProjectLabelUnderPerProjectHosts() {
+        XCTAssertEqual(NSID.appDomainFor("io.github.romiojoseph.blog"), "romiojoseph.github.io")
+        XCTAssertEqual(NSID.appDomainFor("app.vercel.dekoboko"), "dekoboko.vercel.app")
+        XCTAssertEqual(NSID.appDomainFor("app.netlify.stackstratum"), "stackstratum.netlify.app")
+        XCTAssertEqual(NSID.appDomainFor("dev.pages.updowndraft.feed"), "updowndraft.pages.dev")
+    }
+
+    func testAppDomainForKeepsTheOwnerLabelUnderCountrySecondLevels() {
+        XCTAssertEqual(NSID.appDomainFor("ar.com.cabildoabierto"), "cabildoabierto.com.ar")
+        XCTAssertEqual(NSID.appDomainFor("id.ac.ui.cs.amanah"), "ui.ac.id")
+        // A generic TLD has no second level to skip.
+        XCTAssertEqual(NSID.appDomainFor("com.example"), "example.com")
+    }
+
+    func testAppDomainForIsNilWhenNoSiteCanBeNamed() {
+        XCTAssertNil(NSID.appDomainFor("app"))
+        XCTAssertNil(NSID.appDomainFor("io.github"))
+        XCTAssertNil(NSID.appDomainFor("uk.co"))
+        XCTAssertNil(NSID.appDomainFor("foo bar.baz"))
+        XCTAssertNil(NSID.appDomainFor("app.-voresky"))
+        XCTAssertNil(NSID.appDomainFor("9app.voresky"))
+        XCTAssertNil(NSID.appDomainFor("a.voresky"))
+        XCTAssertNil(NSID.appDomainFor("app..voresky"))
+    }
+
+    func testAFullNsidGoesThroughGroupPrefixSoItsNameIsNotALabel() {
+        XCTAssertEqual(NSID.appDomainFor(NSID.groupPrefix("app.voresky.post")), "voresky.app")
+        XCTAssertNil(NSID.appDomainFor(NSID.groupPrefix("dev.pages.skywrite")))
+    }
+
     func testPaths() {
         XCTAssertEqual(NSID.schemaPathFor("app.bsky.feed.post"), "/explore/bsky.app/com.atproto.lexicon.schema/app.bsky.feed.post")
         XCTAssertEqual(NSID.lexiconPathFor("app.bsky.feed.post"), "/explore/lexicons/app.bsky.feed.post")

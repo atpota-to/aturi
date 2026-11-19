@@ -616,6 +616,48 @@ public enum NSID {
         return "\(parts[1]).\(parts[0])"
     }
 
+    /// Hosts that give every project its own subdomain. An NSID under one
+    /// names its site a label deeper than `<owner>.<tld>`:
+    /// `io.github.romiojoseph.blog.post` lives at `romiojoseph.github.io`,
+    /// not `github.io`. Only the hosts that turn up in published NSIDs.
+    static let projectHostSuffixes: Set<String> = ["github.io", "gitlab.io", "netlify.app", "vercel.app", "pages.dev"]
+
+    /// Second-level labels that country TLDs sell names under (`com.ar`,
+    /// `co.uk`, `ac.id`), which push the registrable domain a label deeper
+    /// the same way.
+    static let countrySecondLevels: Set<String> = ["ac", "co", "com", "edu", "gov", "ne", "net", "or", "org"]
+
+    /// The domain a namespace's app most likely lives at, port of
+    /// `appDomainFor` in `src/utils/ufos/nsid.ts`: the reversed prefix cut
+    /// to its registrable domain. `app.voresky` and `app.voresky.feed` ->
+    /// `voresky.app`, `ar.com.cabildoabierto` -> `cabildoabierto.com.ar`.
+    /// Takes a namespace prefix, not a full NSID, whose final segment is a
+    /// name rather than a domain label (pass `groupPrefix(nsid)`). Nil when
+    /// the prefix stops at a shared suffix (`io.github`) or is not made of
+    /// hostname labels, so a free-text group page never links anywhere. A
+    /// guess from naming convention: nothing checks that the domain
+    /// resolves or that its owner wrote the lexicon.
+    public static func appDomainFor(_ prefix: String) -> String? {
+        let labels = prefix.lowercased().components(separatedBy: ".")
+        guard labels.count >= 2, labels.allSatisfy(isHostnameLabel) else { return nil }
+        // TLDs are at least two characters and never start with a digit.
+        guard labels[0].count >= 2, let first = labels[0].unicodeScalars.first, ("a"..."z").contains(first) else { return nil }
+        let pair = "\(labels[1]).\(labels[0])"
+        let sharedSuffix = projectHostSuffixes.contains(pair)
+            || (labels[0].count == 2 && countrySecondLevels.contains(labels[1]))
+        let depth = sharedSuffix ? 3 : 2
+        guard labels.count >= depth else { return nil }
+        return labels[0..<depth].reversed().joined(separator: ".")
+    }
+
+    /// `^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$`, spelled out.
+    private static func isHostnameLabel(_ label: String) -> Bool {
+        let scalars = Array(label.unicodeScalars)
+        guard let first = scalars.first, let last = scalars.last, scalars.count <= 63 else { return false }
+        func isAlnum(_ c: Unicode.Scalar) -> Bool { ("a"..."z").contains(c) || ("0"..."9").contains(c) }
+        return isAlnum(first) && isAlnum(last) && scalars.allSatisfy { isAlnum($0) || $0 == "-" }
+    }
+
     /// Lexicon-schema records live at this collection on the publisher's
     /// repo, keyed by the full NSID. The explorer's record screen renders
     /// them, falling through to a not-found message when the publisher has

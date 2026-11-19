@@ -63,7 +63,7 @@ public struct SectionMeta: Hashable, Sendable, Identifiable {
 public enum ExploreSections {
     /// Record-page sections in default display order.
     public static let recordSectionMeta: [SectionMeta] = [
-        SectionMeta(id: "richPreview", label: "Rich preview", description: "The rendered Bluesky post card (or margin-lexicon card). Records without a card skip this.", kind: .recordData),
+        SectionMeta(id: "richPreview", label: "Rich preview", description: "The rendered Bluesky post or profile card (or margin-lexicon card). Records without a card skip this.", kind: .recordData),
         SectionMeta(id: "structuredJson", label: "Rich JSON preview", description: "The record's fields as a structured, linkified table.", kind: .recordData),
         SectionMeta(id: "rawJson", label: "Raw JSON", description: "The full, linkified record JSON.", kind: .recordData),
         SectionMeta(id: "engagement", label: "Engagement counts", description: "Followers / posts and similar counts (non-post records).", kind: .helper),
@@ -518,10 +518,10 @@ public struct Preferences: Hashable, Sendable {
     public var pinnedLexicons: [String]
     public var pinnedLexiconsOthers: [String]
     public var pinScope: PinScope
-    /// What the web's lexicons explorer has pinned: NSIDs, and namespaces as
-    /// `prefix.*`. Apart from `pinnedLexicons`, which lifts collections in
-    /// every account's tree. This app has no lexicons explorer; the list is
-    /// carried through untouched so a write from this device keeps it.
+    /// What the lexicons explorer has pinned (the web's, and this app's
+    /// Lexicons tab): NSIDs, and namespaces as `prefix.*`, in the order
+    /// pinned. Apart from `pinnedLexicons`, which lifts collections in every
+    /// account's tree.
     public var lexiconExplorerPins: [String]
     public var collectionGroupsCollapsedByDefault: Bool
     public var hideRelationshipBar: Bool

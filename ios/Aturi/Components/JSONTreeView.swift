@@ -160,7 +160,7 @@ private struct JSONLeafRow: View {
                 .foregroundStyle(theme.textAccent)
         case .bool(let flag):
             Text(flag ? "true" : "false")
-                .foregroundStyle(theme.accent)
+                .foregroundStyle(theme.textAccent)
         case .null:
             Text("null")
                 .foregroundStyle(theme.textTertiary)

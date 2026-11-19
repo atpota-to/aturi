@@ -11,7 +11,25 @@ import AturiCore
 struct LexiconGroupView: View {
     @State private var model: LexiconGroupModel
 
+    @Environment(PreferencesStore.self) private var preferences
+    @Environment(\.openURL) private var openURL
     @Environment(\.aturiTheme) private var theme
+
+    /// The namespace's pin, in the group spelling (`app.bsky.*`) the web's
+    /// rail and namespace headers write.
+    private var pinEntry: String {
+        model.prefix + PinnedLexicons.groupSuffix
+    }
+
+    private var isPinned: Bool {
+        preferences.prefs.lexiconExplorerPins.contains(pinEntry)
+    }
+
+    /// A free-text search has no site; `appDomainFor` refuses anything
+    /// that is not made of hostname labels.
+    private var appDomain: String? {
+        model.isPrefixView ? NSID.appDomainFor(model.prefix) : nil
+    }
 
     init(prefix: String) {
         _model = State(initialValue: LexiconGroupModel(prefix: prefix))
@@ -32,6 +50,16 @@ struct LexiconGroupView: View {
         .navigationTitle(model.prefix)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
+            if model.isPrefixView {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        preferences.update { $0.toggleLexiconExplorerPin(pinEntry) }
+                    } label: {
+                        Image(systemName: isPinned ? "pin.fill" : "pin")
+                    }
+                    .accessibilityLabel(isPinned ? "Unpin this namespace" : "Pin this namespace")
+                }
+            }
             if let url = Route.lexiconGroup(prefix: model.prefix).webURL {
                 ToolbarItem(placement: .topBarTrailing) {
                     ShareLink(item: url) {
@@ -65,10 +93,18 @@ struct LexiconGroupView: View {
                     .foregroundStyle(theme.textTertiary)
                     .fixedSize(horizontal: false, vertical: true)
             } else if model.isPrefixView, model.entries.isIdle || model.entries.isLoading {
-                RoundedRectangle(cornerRadius: 4, style: .continuous)
-                    .fill(theme.bgTertiary)
-                    .frame(width: 200, height: 12)
+                SkeletonBar(width: 200, height: 11)
                     .accessibilityLabel("Loading")
+            }
+            if let appDomain, let url = URL(string: "https://\(appDomain)") {
+                Button {
+                    openURL(url)
+                } label: {
+                    Label("Visit \(appDomain)", systemImage: "arrow.up.right.square")
+                        .lineLimit(1)
+                }
+                .buttonStyle(.aturiSecondary)
+                .accessibilityHint("\(appDomain), inferred from the namespace. Opens outside the app")
             }
             CopyRow(label: model.isPrefixView ? "Namespace" : "Term", value: model.prefix)
         }

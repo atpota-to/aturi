@@ -150,14 +150,24 @@ struct WaypointPickerView: View {
         return resolveAutoRedirect(prefs, context: context, selfHost: LinkResolverModel.selfHost)
     }
 
-    /// `getContextText`: the line under the heading.
+    /// `getContextText`: the heading, "Open @alice.test's post in…".
     private var contextText: String {
         switch type {
-        case .post: return "Open post by \(display) on..."
-        case .profile: return "Open profile for \(display) on..."
-        case .list: return "Open list by \(display) on..."
-        case .record: return "Open record from \(display) on..."
-        case .unknown: return "Open content from \(display) on..."
+        case .post: return "Open \(display)\u{2019}s post in\u{2026}"
+        case .profile: return "Open \(display)\u{2019}s profile in\u{2026}"
+        case .list: return "Open \(display)\u{2019}s list in\u{2026}"
+        case .record: return "Open this record from \(display) in\u{2026}"
+        case .unknown: return "Open content from \(display) in\u{2026}"
+        }
+    }
+
+    /// `getSubheadText`: what every option has in common.
+    private var subheadText: String {
+        switch type {
+        case .post: return "Pick an app. They all show the same post."
+        case .profile: return "Pick an app. They all show the same account."
+        case .list: return "Pick an app. They all show the same list."
+        case .record, .unknown: return "Pick an app. They all read the same record."
         }
     }
 
@@ -191,12 +201,14 @@ struct WaypointPickerView: View {
 
     private var header: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text("Choose where to view")
+            /* The web's heading since its link-page rebuild (72e3ac2): who
+               and what, then what every option has in common. */
+            Text(contextText)
                 .font(AturiFont.display)
                 .tracking(AturiFont.displayTracking)
                 .foregroundStyle(theme.textPrimary)
                 .fixedSize(horizontal: false, vertical: true)
-            Text(contextText)
+            Text(subheadText)
                 .font(AturiFont.body)
                 .foregroundStyle(theme.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -224,7 +236,7 @@ struct WaypointPickerView: View {
                 openButton(name: name, waypointId: target.waypointId, url: target.url)
                 if router != nil {
                     Button("Change the setting") {
-                        router?.select(.settings)
+                        router?.openSettings(.redirects)
                     }
                     .font(AturiFont.footnote)
                     .buttonStyle(.plain)
@@ -343,8 +355,7 @@ struct WaypointPickerView: View {
     // MARK: Actions
 
     private func open(_ string: String) {
-        guard let url = URL(string: string) else { return }
-        openURL(url)
+        LinkNavigation.openWaypoint(string, router: router, openURL: openURL)
     }
 
     private func toggleGroup(_ id: String) {
@@ -555,14 +566,13 @@ private struct PickerDenseRow: View {
     let collection: String?
 
     @Environment(\.aturiTheme) private var theme
+    @Environment(AppRouter.self) private var router: AppRouter?
     @Environment(\.openURL) private var openURL
 
     var body: some View {
         HStack(spacing: 4) {
             Button {
-                if let url = URL(string: entry.url) {
-                    openURL(url)
-                }
+                LinkNavigation.openWaypoint(entry.url, router: router, openURL: openURL)
             } label: {
                 HStack(spacing: 10) {
                     WaypointMark(id: entry.id, size: 18)
@@ -598,13 +608,12 @@ private struct PickerTile: View {
     let collection: String?
 
     @Environment(\.aturiTheme) private var theme
+    @Environment(AppRouter.self) private var router: AppRouter?
     @Environment(\.openURL) private var openURL
 
     var body: some View {
         Button {
-            if let url = URL(string: entry.url) {
-                openURL(url)
-            }
+            LinkNavigation.openWaypoint(entry.url, router: router, openURL: openURL)
         } label: {
             VStack(spacing: 6) {
                 WaypointMark(id: entry.id, size: 26)
@@ -700,15 +709,14 @@ private struct PickerWaypointCard: View {
     var featured = false
 
     @Environment(\.aturiTheme) private var theme
+    @Environment(AppRouter.self) private var router: AppRouter?
     @Environment(\.openURL) private var openURL
     @Environment(\.displayScale) private var displayScale
 
     var body: some View {
         HStack(spacing: 4) {
             Button {
-                if let url = URL(string: entry.url) {
-                    openURL(url)
-                }
+                LinkNavigation.openWaypoint(entry.url, router: router, openURL: openURL)
             } label: {
                 HStack(spacing: 12) {
                     WaypointMark(id: entry.id, size: 28)

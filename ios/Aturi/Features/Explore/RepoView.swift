@@ -31,8 +31,8 @@ private enum RepoTab: String, CaseIterable, Identifiable {
 
     var label: String {
         switch self {
-        case .collections: return "Lexicons"
-        case .identity: return "ID"
+        case .collections: return "Collections"
+        case .identity: return "Identity"
         case .audit: return "Log"
         case .backlinks: return "Backlinks"
         }
@@ -43,7 +43,7 @@ private enum RepoTab: String, CaseIterable, Identifiable {
 /// `RepoStatusNotice.tsx` and `RelationshipStrip.tsx`: breadcrumb, the
 /// inactive-repo banner, the configurable sections (relationship strip,
 /// profile card, identity row, repo at a glance), the waypoint row and the
-/// tabbed lexicons / ID / log / backlinks.
+/// tabbed collections / identity / log / backlinks.
 private struct RepoScreen: View {
     let viewerDid: String?
 
@@ -79,7 +79,9 @@ private struct RepoScreen: View {
                     ExploreNotFoundPanel(
                         eyebrow: RecordModel.identityFailureEyebrow,
                         headline: RecordModel.identityFailureHeadline,
-                        message: model.notFoundMessage ?? message
+                        message: model.notFoundMessage ?? message,
+                        details: message,
+                        query: model.input
                     ) {
                         model.load()
                     }
@@ -362,7 +364,8 @@ private struct RepoStatusBanner: View {
 
 /// The profile card, port of `ProfileHeader.tsx`: avatar, name, pronouns,
 /// the handle doubling as the website link, the bio and the three counts.
-private struct RepoProfileCard: View {
+/// Also the rich preview of the `app.bsky.actor.profile/self` record.
+struct RepoProfileCard: View {
     let header: RepoProfileHeader
     let onUniversalLink: () -> Void
 
@@ -383,7 +386,7 @@ private struct RepoProfileCard: View {
                         }
                         if let pronouns = header.pronouns {
                             Text(pronouns)
-                                .font(.footnote.italic())
+                                .font(AturiFont.footnote.italic())
                                 .foregroundStyle(theme.textTertiary)
                         }
                     }
@@ -683,9 +686,7 @@ private struct RepoStatTile: View {
                     .foregroundStyle(theme.textPrimary)
                     .lineLimit(1)
             } else {
-                RoundedRectangle(cornerRadius: 3, style: .continuous)
-                    .fill(theme.bgTertiary)
-                    .frame(width: 48, height: 14)
+                SkeletonBar(width: 48, height: 14)
                     .accessibilityHidden(true)
             }
             if let sublabel {
@@ -703,7 +704,7 @@ private struct RepoStatTile: View {
     }
 }
 
-/// The Lexicons tab, port of `CollectionsTab.tsx` with `GroupHeader.tsx`
+/// The Collections tab, port of `CollectionsTab.tsx` with `GroupHeader.tsx`
 /// and `LeafRow.tsx`: the filter, the cross-repo filter for a signed-in
 /// visitor, the pinned block and the two-level grouped list with pins.
 private struct RepoCollectionsTab: View {
@@ -758,7 +759,7 @@ private struct RepoCollectionsTab: View {
         @Bindable var model = model
         return VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 8) {
-                ExploreFilterField("Filter lexicons", text: $model.filter, label: "Filter lexicons on this repo")
+                ExploreFilterField("Filter collections", text: $model.filter, label: "Filter collections on this repo")
                 if !model.groups.isEmpty {
                     Button {
                         model.toggleAllOpen()
