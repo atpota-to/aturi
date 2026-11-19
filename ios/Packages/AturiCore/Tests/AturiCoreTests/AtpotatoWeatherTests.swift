@@ -106,7 +106,8 @@ final class AtpotatoWeatherTests: XCTestCase {
     // MARK: Reading the endpoints
 
     func testAReadingFromTheStation() throws {
-        let reading = try XCTUnwrap(AtpotatoWeather.reading(from: json(Self.atmosphereBody)))
+        let body = try json(Self.atmosphereBody)
+        let reading = try XCTUnwrap(AtpotatoWeather.reading(from: body))
         XCTAssertEqual(reading.measuredAt, "2026-11-19T19:17:04.000Z")
         XCTAssertEqual(reading.condition, "breezy")
         XCTAssertEqual(reading.recordsPerSecond, 496.7)
@@ -117,18 +118,20 @@ final class AtpotatoWeatherTests: XCTestCase {
 
     func testAFallbackSampleLeavesItsMissingPartsOut() throws {
         // No accounts or hosts, and a diversity with no word of its own.
-        let body = #"{"measuredAt":"2026-11-19T19:17:04.000Z","condition":"calm","records":{"perSecond":12},"diversity":{"index":6.2},"source":"jetstream"}"#
-        let reading = try XCTUnwrap(AtpotatoWeather.reading(from: json(body)))
+        let body = try json(#"{"measuredAt":"2026-11-19T19:17:04.000Z","condition":"calm","records":{"perSecond":12},"diversity":{"index":6.2},"source":"jetstream"}"#)
+        let reading = try XCTUnwrap(AtpotatoWeather.reading(from: body))
         XCTAssertNil(reading.accounts)
         XCTAssertNil(reading.hosts)
         XCTAssertEqual(reading.diversity, AtmosphereReading.Diversity(index: 6.2, level: "high", share: 0, apps: 0))
     }
 
     func testHostsNeedTheirIndexAndIndependentCount() throws {
-        let noCount = #"{"measuredAt":"t","condition":"calm","records":{"perSecond":1},"hosts":{"diversity":{"index":9}}}"#
-        XCTAssertNil(try XCTUnwrap(AtpotatoWeather.reading(from: json(noCount))).hosts)
-        let noIndex = #"{"measuredAt":"t","condition":"calm","records":{"perSecond":1},"hosts":{"independent":4,"diversity":{"share":1}}}"#
-        XCTAssertNil(try XCTUnwrap(AtpotatoWeather.reading(from: json(noIndex))).hosts)
+        let noCount = try json(#"{"measuredAt":"t","condition":"calm","records":{"perSecond":1},"hosts":{"diversity":{"index":9}}}"#)
+        let noCountReading = try XCTUnwrap(AtpotatoWeather.reading(from: noCount))
+        XCTAssertNil(noCountReading.hosts)
+        let noIndex = try json(#"{"measuredAt":"t","condition":"calm","records":{"perSecond":1},"hosts":{"independent":4,"diversity":{"share":1}}}"#)
+        let noIndexReading = try XCTUnwrap(AtpotatoWeather.reading(from: noIndex))
+        XCTAssertNil(noIndexReading.hosts)
     }
 
     func testAReadingNeedsItsTimeConditionAndRate() throws {
@@ -140,7 +143,8 @@ final class AtpotatoWeatherTests: XCTestCase {
     }
 
     func testTheUsualFromTheAlmanac() throws {
-        let usual = try XCTUnwrap(AtpotatoWeather.usual(from: json(Self.almanacBody)))
+        let body = try json(Self.almanacBody)
+        let usual = try XCTUnwrap(AtpotatoWeather.usual(from: body))
         XCTAssertEqual(usual.basis, .weeks)
         XCTAssertEqual(usual.windows, 6)
         XCTAssertEqual(usual.ratio, 1.0630899, accuracy: 1e-6)
