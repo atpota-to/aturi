@@ -739,7 +739,7 @@ extension RecordValidator {
     /// 2, column 5"), without its closing full stop.
     static func jsonProblem(_ error: Error) -> String {
         var detail: String?
-        if case DecodingError.dataCorrupted(let context) = error {
+        if let decoding = error as? DecodingError, case .dataCorrupted(let context) = decoding {
             // Through `Any`, so the cast reads the same on Darwin, where every
             // error bridges, and on Linux, where only an NSError is one.
             if let underlying = context.underlyingError,
