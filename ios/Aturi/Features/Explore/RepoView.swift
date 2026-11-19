@@ -1519,7 +1519,7 @@ private struct AccountCheckTabBadge: View {
 }
 
 /// The verdict at the head of a check's tab, the tools' `ToolVerdict`.
-private struct AccountCheckVerdict: View {
+struct AccountCheckVerdict: View {
     let title: String
     let text: String
     let tone: AccountCheckTone
@@ -1736,7 +1736,7 @@ private struct RepoLabelsTab: View {
 
 /// The labels one labeler applied, port of `LabelGroupCard`: who it is
 /// (a link to its repo), then each label.
-private struct RepoLabelGroupCard: View {
+struct RepoLabelGroupCard: View {
     let group: Labels.LabelGroup
     let labeler: LabelsClient.LabelerInfo?
     let subjectAvatar: String?
@@ -2001,7 +2001,7 @@ private struct RepoVisibilityTab: View {
 }
 
 /// One of the six checks, the tools' `CheckList` row.
-private struct RepoVisibilityCheckRow: View {
+struct RepoVisibilityCheckRow: View {
     let check: Shadowban.ShadowbanCheck
 
     @Environment(\.aturiTheme) private var theme
@@ -2071,7 +2071,7 @@ private struct RepoVisibilityCheckRow: View {
 /// One recent post and how it came out, port of `PostRow` and
 /// `PostPills`: on the AppView or not, in its thread or not, in search or
 /// not. Opens the post's record page.
-private struct RepoVisibilityPostRow: View {
+struct RepoVisibilityPostRow: View {
     let post: Shadowban.RepoPost
     let evidence: Shadowban.Evidence
     let now: Date
