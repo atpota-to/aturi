@@ -37,11 +37,31 @@ private struct PreviewScreen: View {
     /// The countdown runs at most once per page, however often the link
     /// re-resolves (pull to refresh sets `link` again).
     @State private var autoRedirectOffered = false
+    /* Where the picker is, for the bar along the bottom edge (see
+       `bottomBar`). The page's height is measured outside the bottom inset
+       and the picker from the scroll view's top, so neither moves when the
+       inset's content changes height. Until measured, the picker counts as
+       on screen, so the scroll hint cannot flash on a page that has no need
+       of it, as the web's starts. */
+    @State private var pageHeight: CGFloat = .infinity
+    @State private var pickerOnScreen = true
+    @State private var scrolledPastHint = false
 
     @Environment(AppRouter.self) private var router: AppRouter?
     @Environment(\.aturiTheme) private var theme
     @Environment(\.openURL) private var openURL
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    /// The scroll view's coordinate space, which the picker and the
+    /// content measure themselves in.
+    private static let scrollSpaceName = "preview-scroll"
+    private static let scrollSpace = CoordinateSpace.named(PreviewScreen.scrollSpaceName)
+    /// The picker's scroll target, for the hint's tap.
+    private static let pickerAnchor = "waypoint-picker"
+    /// How far the page scrolls before the hint is put away, the web's
+    /// `window.scrollY > 150`.
+    private static let hintScrollDistance: CGFloat = 150
 
     init(components: AtUriComponents, preferences: PreferencesStore) {
         self.components = components
@@ -64,19 +84,26 @@ private struct PreviewScreen: View {
     }
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
-                preview
-                picker
+        ScrollViewReader { proxy in
+            ScrollView {
+                VStack(alignment: .leading, spacing: 20) {
+                    preview
+                    picker
+                        .id(Self.pickerAnchor)
+                        .background { pickerPositionReader }
+                }
+                .background { scrollDistanceReader }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
+            .coordinateSpace(name: Self.scrollSpaceName)
+            .safeAreaInset(edge: .bottom) { bottomBar(proxy) }
+            .background { pageHeightReader }
         }
         .background(theme.bgPrimary)
         .navigationTitle(model.link?.displayName ?? "Preview")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar { toolbarContent }
-        .safeAreaInset(edge: .bottom) { countdownBar }
         /* Any sign of life means the visitor is reading this page, not
            waiting to be sent elsewhere: a scroll or a tap anywhere stops the
            countdown, and the control underneath still gets its tap. */
@@ -252,14 +279,68 @@ private struct PreviewScreen: View {
         }
     }
 
-    // MARK: Auto-redirect
+    // MARK: Bottom edge
 
+    /* The bottom edge holds one bar at a time. The countdown wins while it
+       runs. Otherwise the remember bar stands there once the picker's top
+       is on screen, as the web's sticks once the picker reaches the
+       viewport, and until then the scroll hint does, put away after a
+       short scroll; on the web the two share that spot too. */
     @ViewBuilder
-    private var countdownBar: some View {
+    private func bottomBar(_ proxy: ScrollViewProxy) -> some View {
         if model.isAutoRedirectArmed, let name = model.autoRedirectTargetName {
             AutoRedirectCountdownBar(name: name, duration: LinkResolverModel.autoRedirectDelay, cancel: cancelCountdown)
+        } else if model.link != nil {
+            if pickerOnScreen {
+                WaypointRememberBar()
+            } else if !scrolledPastHint {
+                PickerScrollHint {
+                    scrollToPicker(proxy)
+                }
+            }
         }
     }
+
+    private func scrollToPicker(_ proxy: ScrollViewProxy) {
+        withAnimation(AturiMotion.animation(AturiMotion.soft(AturiMotion.arrive), reduceMotion: reduceMotion)) {
+            proxy.scrollTo(Self.pickerAnchor, anchor: .top)
+        }
+    }
+
+    /// Whether the picker's top edge has come up past the page's bottom
+    /// edge, measured from the scroll view's top.
+    private var pickerPositionReader: some View {
+        GeometryReader { geometry in
+            let onScreen = geometry.frame(in: Self.scrollSpace).minY < pageHeight
+            Color.clear
+                .onChange(of: onScreen, initial: true) { _, value in
+                    pickerOnScreen = value
+                }
+        }
+    }
+
+    /// Whether the content has scrolled far enough to put the hint away.
+    private var scrollDistanceReader: some View {
+        GeometryReader { geometry in
+            let scrolled = geometry.frame(in: Self.scrollSpace).minY < -Self.hintScrollDistance
+            Color.clear
+                .onChange(of: scrolled, initial: true) { _, value in
+                    scrolledPastHint = value
+                }
+        }
+    }
+
+    /// The page's height, bottom inset included.
+    private var pageHeightReader: some View {
+        GeometryReader { geometry in
+            Color.clear
+                .onChange(of: geometry.size.height, initial: true) { _, height in
+                    pageHeight = height
+                }
+        }
+    }
+
+    // MARK: Auto-redirect
 
     private func cancelCountdown() {
         guard model.isAutoRedirectArmed else { return }
@@ -327,5 +408,36 @@ private struct AutoRedirectCountdownBar: View {
                 remaining = 0
             }
         }
+    }
+}
+
+/// The web's "Scroll to choose an app" pill (`ScrollIndicator.tsx`): there
+/// while a tall preview keeps the picker below the fold, and a tap scrolls
+/// to the picker. Floats on a clear strip, so the page shows around it.
+private struct PickerScrollHint: View {
+    let action: () -> Void
+
+    @Environment(\.aturiTheme) private var theme
+    @Environment(\.displayScale) private var displayScale
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 6) {
+                Image(systemName: "chevron.down")
+                Text("Scroll to choose an app")
+            }
+            .font(AturiFont.sans(.caption, weight: .semibold))
+            .foregroundStyle(theme.textSecondary)
+            .padding(.leading, 10)
+            .padding(.trailing, 14)
+            .frame(minHeight: 32)
+            .background(theme.bgSecondary, in: Capsule())
+            .overlay(Capsule().strokeBorder(theme.borderMedium, lineWidth: AturiTheme.hairline(displayScale: displayScale)))
+            .shadow(color: Color.black.opacity(0.12), radius: 8, y: 2)
+            .contentShape(Capsule())
+        }
+        .buttonStyle(.plain)
+        .frame(maxWidth: .infinity)
+        .padding(.bottom, 12)
     }
 }
