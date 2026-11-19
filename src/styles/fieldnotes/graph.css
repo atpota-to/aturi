@@ -520,10 +520,19 @@
     top: 88px;
     z-index: 2;
     grid-template-columns: minmax(0, max-content) minmax(0, 1fr) auto auto;
-    align-content: center;
-    row-gap: 2px;
+    /* The middle column's one to three lines sit in the auto rows, between
+       two equal spare rows, so they centre on the avatar and counts however
+       many there are. The empty ::before holds the first spare row. */
+    grid-template-rows: 1fr repeat(3, auto) 1fr;
+    row-gap: 0;
     height: 68px;
     overflow: hidden;
+  }
+
+  .fx-graph-detail[data-layout='strip']::before {
+    content: '';
+    grid-column: 2;
+    grid-row: 1;
   }
 
   .fx-graph-detail[data-layout='strip'] > * {
@@ -533,18 +542,18 @@
   .fx-graph-detail[data-layout='strip'] > .fx-graph-who,
   .fx-graph-detail[data-layout='strip'] > .fx-graph-dn {
     grid-column: 1;
-    grid-row: 1 / span 3;
+    grid-row: 1 / -1;
     max-width: 12rem;
   }
 
   .fx-graph-detail[data-layout='strip'] > .fx-graph-facts {
     grid-column: 3;
-    grid-row: 1 / span 3;
+    grid-row: 1 / -1;
   }
 
   .fx-graph-detail[data-layout='strip'] > .fx-graph-links {
     grid-column: 4;
-    grid-row: 1 / span 3;
+    grid-row: 1 / -1;
     flex-direction: column;
     gap: 2px;
   }
