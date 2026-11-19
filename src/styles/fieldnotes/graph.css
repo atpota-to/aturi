@@ -1768,13 +1768,26 @@ button.fx-tx-stat:disabled {
   background: var(--danger-soft);
 }
 
+/* The reason sits on one line, so the pill stays a pill; a long handle
+   ends in an ellipsis, and the sentence under it names everyone in full. */
+.fx-tx-cut-head {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  min-width: 0;
+}
+
 .fx-tx-cut-tag {
-  align-self: flex-start;
+  max-width: 100%;
   margin: 0;
   padding: 3px 10px;
+  overflow: hidden;
   border-radius: 999px;
   font-size: 0.8rem;
   font-weight: 650;
+  white-space: nowrap;
+  text-overflow: ellipsis;
   color: var(--text-secondary);
   background: var(--bg-tertiary);
 }
