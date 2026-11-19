@@ -62,11 +62,11 @@ final class AtmospherePulseModelTests: XCTestCase {
         "{" + entries.map { #""\#($0.0)":\#($0.1)"# }.joined(separator: ",") + "}"
     }
 
-    private nonisolated static let pool = #"{"collections":[\#([
+    private nonisolated static let pool = #"{"collections":["# + [
         row("app.bsky.feed.post", 5000, dids: 1000),
         row("social.grain.gallery", 800, dids: 500),
         row("sh.tangled.repo", 300, dids: 300),
-    ].joined(separator: ","))]}"#
+    ].joined(separator: ",") + "]}"
 
     private nonisolated static func newBody(count: Int) -> String {
         let lexicons = (1...count).map { #"{"nsid":"app.new\#($0).thing","creates":\#($0 * 10),"didsEstimate":\#($0)}"# }

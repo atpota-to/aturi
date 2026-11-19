@@ -204,6 +204,8 @@ struct JetstreamView: View {
                             Text(opLabel(op))
                         }
                     }
+                    /* Checkmark items, not the root's moss switch style. */
+                    .toggleStyle(.automatic)
                 } label: {
                     Label(opsSummary, systemImage: "line.3.horizontal.decrease.circle")
                         .font(AturiFont.footnote)
