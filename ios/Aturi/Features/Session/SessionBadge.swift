@@ -7,6 +7,7 @@ import AturiCore
 struct SessionBadge: View {
     @Environment(\.sessionStore) private var sessionStore
     @Environment(PreferencesStore.self) private var preferences
+    @Environment(AppRouter.self) private var router: AppRouter?
     @Environment(\.aturiTheme) private var theme
     @Environment(\.displayScale) private var displayScale
     @State private var avatar: String?
@@ -34,8 +35,26 @@ struct SessionBadge: View {
     private func signedIn(_ account: OAuthSession) -> some View {
         let name = account.handle ?? shortDid(account.did)
         return Menu {
-            Button("Sign out", role: .destructive) {
+            /* The web's session menu (SessionMenu.tsx): the account's own
+               repo, Settings, then Sign out. */
+            if let router {
+                Button {
+                    router.open(.repo(account.did), in: .explore)
+                } label: {
+                    Label("My repo in Explorer", systemImage: "binoculars")
+                }
+                Button {
+                    router.popToRoot(.settings)
+                    router.select(.settings)
+                } label: {
+                    Label("Settings", systemImage: "gearshape")
+                }
+                Divider()
+            }
+            Button(role: .destructive) {
                 Task { await sessionStore.signOut() }
+            } label: {
+                Label("Sign out", systemImage: "rectangle.portrait.and.arrow.right")
             }
         } label: {
             HStack(spacing: 6) {

@@ -301,6 +301,7 @@ struct WaypointOpenRow: View {
     let targets: [WaypointOpenTarget]
     var title: String = "Open in"
 
+    @Environment(AppRouter.self) private var router: AppRouter?
     @Environment(\.openURL) private var openURL
     @Environment(\.aturiTheme) private var theme
 
@@ -349,8 +350,7 @@ struct WaypointOpenRow: View {
     }
 
     private func open(_ string: String) {
-        guard let url = URL(string: string) else { return }
-        openURL(url)
+        LinkNavigation.openWaypoint(string, router: router, openURL: openURL)
     }
 }
 

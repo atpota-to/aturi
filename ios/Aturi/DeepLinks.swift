@@ -172,6 +172,32 @@ enum DeepLinks {
         target(for: string, depth: 0)
     }
 
+    /// Whether the link carries the web's `?stay=1`, looking through the
+    /// share extension's `aturi://open?url=` wrapper.
+    static func asksToStay(_ string: String) -> Bool {
+        asksToStay(string, depth: 0)
+    }
+
+    private static func asksToStay(_ string: String, depth: Int) -> Bool {
+        guard let parts = LinkParts(string.trimmingCharacters(in: .whitespacesAndNewlines)) else { return false }
+        if parts.scheme == "aturi" {
+            guard parts.host == "open", depth < maxNesting, let inner = parts.query["url"] else { return false }
+            return asksToStay(inner, depth: depth + 1)
+        }
+        return parts.query["stay"] == "1"
+    }
+
+    /// `/account#redirects` and the other settings tabs, as the web's
+    /// `SettingsShell` reads its hash. Nil for any other link.
+    static func settingsPage(for string: String) -> SettingsPage? {
+        let trimmed = string.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let parts = LinkParts(trimmed), parts.scheme == "https" || parts.scheme == "http",
+              parts.host == Endpoints.aturiHost, parts.pathSegments == ["account"],
+              let hash = trimmed.firstIndex(of: "#")
+        else { return nil }
+        return SettingsPage(rawValue: String(trimmed[trimmed.index(after: hash)...]).lowercased())
+    }
+
     private static func target(for string: String, depth: Int) -> DeepLinkTarget? {
         let trimmed = string.trimmingCharacters(in: .whitespacesAndNewlines)
         guard let parts = LinkParts(trimmed) else { return nil }
@@ -457,9 +483,7 @@ final class AppRouter {
     /// the caller can hand them to Safari.
     @discardableResult
     func handle(url: URL) -> Bool {
-        guard let target = DeepLinks.target(for: url) else { return false }
-        apply(target)
-        return true
+        handle(string: url.absoluteString)
     }
 
     /// `handle(url:)` for pasted text and strings Foundation's `URL`
@@ -467,8 +491,23 @@ final class AppRouter {
     @discardableResult
     func handle(string: String) -> Bool {
         guard let target = DeepLinks.target(for: string) else { return false }
+        if case .tabRoot(.settings) = target, let page = DeepLinks.settingsPage(for: string) {
+            openSettings(page)
+            return true
+        }
+        if case .route(.preview(let components), _) = target, DeepLinks.asksToStay(string) {
+            LinkNavigation.noteStay(components)
+        }
         apply(target)
         return true
+    }
+
+    /// Show one settings screen over the Settings root, as a link to
+    /// `/account#redirects` does on the web.
+    func openSettings(_ page: SettingsPage) {
+        settingsPath = NavigationPath()
+        settingsPath.append(page)
+        selectedTab = .settings
     }
 
     /// Open a link that came from outside the app (a Shortcuts action, the

@@ -142,7 +142,7 @@ final class LinkResolverModelTests: XCTestCase {
         XCTAssertEqual(post.likeCount, 2)
         XCTAssertEqual(parent?.uri, "at://did:plc:bob/app.bsky.feed.post/3kparent")
 
-        XCTAssertEqual(model.contextText, "Open post by @alice.test on...")
+        XCTAssertEqual(model.contextText, "Open @alice.test\u{2019}s post in\u{2026}")
         XCTAssertNil(model.repoCollections, "record pages do not scan the repo")
         XCTAssertTrue(model.hasWaypoints)
         XCTAssertTrue(waypointIds(model).contains("bluesky"))
@@ -200,7 +200,7 @@ final class LinkResolverModelTests: XCTestCase {
         XCTAssertFalse(link.isRecord)
         XCTAssertEqual(link.atUri, "at://did:plc:alice123")
         XCTAssertEqual(link.aturiLink, "https://aturi.to/profile/alice.test")
-        XCTAssertEqual(model.contextText, "Open profile for @alice.test on...")
+        XCTAssertEqual(model.contextText, "Open @alice.test\u{2019}s profile in\u{2026}")
 
         let ids = waypointIds(model)
         XCTAssertTrue(ids.contains("bluesky"), "app.bsky. records are present")
@@ -256,7 +256,7 @@ final class LinkResolverModelTests: XCTestCase {
         await model.resolve("https://aturi.to/profile/did:plc:alice123")
         XCTAssertEqual(model.link?.handle, "did:plc:alice123")
         XCTAssertEqual(model.link?.displayName, "@did:plc:alice123...")
-        XCTAssertEqual(model.contextText, "Open profile for @did:plc:alice123... on...")
+        XCTAssertEqual(model.contextText, "Open @did:plc:alice123...\u{2019}s profile in\u{2026}")
     }
 
     func testAtPrefixedHandleIsStripped() async {
