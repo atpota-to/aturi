@@ -15,6 +15,10 @@ import AturiCore
 struct CarToolView: View {
     let query: [String: String]
 
+    init(query: [String: String]) {
+        self.query = query
+    }
+
     /* The system's SHA-256 for the block-hash check: the package's own is
        written for Linux and is far slower over a large archive. */
     @State private var model = CarInspectorModel(hash: { bytes in Array(SHA256.hash(data: bytes)) })
