@@ -35,12 +35,17 @@ struct JetstreamView: View {
     private static let compactRows = 8
     private static let dashboardRows = 20
 
-    init(compact: Bool) {
+    /// `collections` narrows the socket to those NSIDs, as a lexicon's
+    /// Watch does on the web (the stream monitor with `?collection=`), and
+    /// `startsLive` opens it at once since that is what Watch was asked for.
+    init(compact: Bool, collections: [String] = [], startsLive: Bool = false) {
         self.compact = compact
         _model = State(initialValue: JetstreamModel(
+            collections: collections,
             ops: compact ? [.create] : JetstreamOperation.allCases,
             maxRows: compact ? JetstreamView.compactRows : JetstreamView.dashboardRows
         ))
+        _wantsLive = State(initialValue: startsLive)
     }
 
     var body: some View {

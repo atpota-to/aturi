@@ -980,7 +980,6 @@ final class LexiconsModelTests: XCTestCase {
         XCTAssertEqual(model.series, [])
         XCTAssertFalse(model.hasSeriesActivity)
         XCTAssertTrue(model.hasActivity, "unknown reads as active so the notice does not flash")
-        XCTAssertNil(model.noActivityMessage)
         XCTAssertNil(model.visibleSamples)
         XCTAssertNil(model.browseGroupPath)
 
@@ -996,7 +995,6 @@ final class LexiconsModelTests: XCTestCase {
         XCTAssertEqual(tiles.map(\.valueLabel), ["100", "5", "2", "50"])
         XCTAssertEqual(model.activity.value?.total, 157)
         XCTAssertTrue(model.hasActivity)
-        XCTAssertNil(model.noActivityMessage)
         XCTAssertNil(model.activityErrorMessage)
         XCTAssertEqual(model.series, [1, 0, 3])
         XCTAssertTrue(model.hasSeriesActivity)
@@ -1052,7 +1050,6 @@ final class LexiconsModelTests: XCTestCase {
         XCTAssertFalse(model.isActivityRefreshing)
         XCTAssertEqual(model.statTiles?.map(\.current), [0, 0, 0, 0], "the 1d window has no stats in the fixture")
         XCTAssertFalse(model.hasActivity)
-        XCTAssertEqual(model.noActivityMessage, "No recorded activity for this lexicon in the last 1d.")
         XCTAssertEqual(model.series, [1, 0, 3])
         XCTAssertEqual(transport.count(containing: "/prefix"), 1, "siblings and samples are NSID-only")
         XCTAssertEqual(transport.count(containing: "/records"), 1)
@@ -1094,7 +1091,6 @@ final class LexiconsModelTests: XCTestCase {
         XCTAssertNil(down.statTiles)
         XCTAssertEqual(down.series, [])
         XCTAssertTrue(down.hasActivity)
-        XCTAssertNil(down.noActivityMessage)
         XCTAssertNil(down.visibleSamples)
         XCTAssertNil(down.browseGroupPath)
 
@@ -1119,7 +1115,6 @@ final class LexiconsModelTests: XCTestCase {
         await quiet.load().value
         XCTAssertEqual(quiet.activity.value, LexiconActivity(current: .zero, prior: .zero, buckets: []))
         XCTAssertFalse(quiet.hasActivity)
-        XCTAssertEqual(quiet.noActivityMessage, "No recorded activity for this lexicon in the last 7d.")
         XCTAssertEqual(quiet.siblings.value, [])
         XCTAssertNil(quiet.browseGroupPath)
         XCTAssertEqual(quiet.visibleSamples, [])

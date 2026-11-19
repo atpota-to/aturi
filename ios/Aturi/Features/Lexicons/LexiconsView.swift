@@ -30,6 +30,7 @@ struct LexiconsView: View {
     @FocusState private var searchFocused: Bool
 
     @Environment(AppRouter.self) private var router
+    @Environment(PreferencesStore.self) private var preferences
     @Environment(\.openURL) private var openURL
     @Environment(\.aturiTheme) private var theme
 
@@ -39,6 +40,7 @@ struct LexiconsView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
                 header
+                pinnedSection
                 Picker("Section", selection: $segment) {
                     ForEach(Segment.allCases) { segment in
                         Text(segment.label).tag(segment)
@@ -117,6 +119,65 @@ struct LexiconsView: View {
                 .foregroundStyle(theme.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
         }
+    }
+
+    // MARK: Pinned (LexiconRail.tsx)
+
+    /* What the person pinned from a lexicon or a namespace page, in the
+       order pinned: the web rail's Pinned list, which travels with the
+       synced preferences. A namespace pin is spelled `prefix.*`. */
+    @ViewBuilder
+    private var pinnedSection: some View {
+        let pins = preferences.prefs.lexiconExplorerPins
+        if !pins.isEmpty {
+            LexiconSectionCard("Pinned", systemImage: "pin") {
+                VStack(spacing: 0) {
+                    ForEach(Array(pins.enumerated()), id: \.element) { index, entry in
+                        if index > 0 {
+                            Divider()
+                        }
+                        pinnedRow(entry)
+                    }
+                }
+            }
+        }
+    }
+
+    private func pinnedRow(_ entry: String) -> some View {
+        let isGroup = PinnedLexicons.isGroup(entry)
+        let name = isGroup ? PinnedLexicons.groupPrefix(entry) : entry
+        let route: Route = isGroup ? .lexiconGroup(prefix: name) : .lexicon(nsid: name)
+        return NavigationLink(value: route) {
+            HStack(spacing: 10) {
+                Image(systemName: isGroup ? "folder" : "square.stack.3d.up")
+                    .font(AturiFont.footnote)
+                    .foregroundStyle(theme.textTertiary)
+                    .accessibilityHidden(true)
+                Text(isGroup ? "\(name).*" : name)
+                    .font(AturiFont.monoSmall)
+                    .foregroundStyle(theme.textPrimary)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+                Spacer(minLength: 0)
+                Image(systemName: "chevron.right")
+                    .font(AturiFont.caption2)
+                    .foregroundStyle(theme.textFaint)
+                    .accessibilityHidden(true)
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 11)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .contextMenu {
+            Button(role: .destructive) {
+                preferences.update { $0.toggleLexiconExplorerPin(entry) }
+            } label: {
+                Label("Unpin", systemImage: "pin.slash")
+            }
+        }
+        .accessibilityLabel(isGroup ? "Namespace \(name)" : name)
+        .accessibilityHint("Pinned. Touch and hold to unpin")
     }
 
     // MARK: Trending (TrendingLexicons.tsx)
@@ -345,7 +406,7 @@ struct LexiconsView: View {
             HStack(spacing: 8) {
                 Image(systemName: "magnifyingglass")
                     .foregroundStyle(theme.textTertiary)
-                TextField("app.bsky.feed.post, grain, smokesignal", text: $model.searchQuery)
+                TextField("NSID, namespace or app name", text: $model.searchQuery)
                     .font(AturiFont.monoSmall)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()

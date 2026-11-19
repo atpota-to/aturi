@@ -1329,12 +1329,6 @@ public final class LexiconDetailModel {
         activity.value.map { $0.total > 0 } ?? true
     }
 
-    /// The muted line under the chart once the window is known to be quiet.
-    public var noActivityMessage: String? {
-        guard activity.value != nil, !hasActivity else { return nil }
-        return "No recorded activity for this lexicon in the last \(window.label)."
-    }
-
     public var activityErrorMessage: String? {
         activity.errorMessage.map { "Couldn't reach the UFOs API: \($0)" }
     }

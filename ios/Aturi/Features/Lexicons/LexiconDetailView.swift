@@ -12,6 +12,7 @@ struct LexiconDetailView: View {
     @State private var model: LexiconDetailModel
 
     @Environment(AppRouter.self) private var router
+    @Environment(PreferencesStore.self) private var preferences
     @Environment(\.openURL) private var openURL
     @Environment(\.aturiTheme) private var theme
 
@@ -23,6 +24,16 @@ struct LexiconDetailView: View {
         Route(explorePath: model.schemaPath)
     }
 
+    /// The site the namespace's app most likely lives at, guessed from the
+    /// NSID as the web's `AppSiteLink` does.
+    private var appDomain: String? {
+        NSID.appDomainFor(NSID.groupPrefix(model.nsid))
+    }
+
+    private var isPinned: Bool {
+        preferences.prefs.lexiconExplorerPins.contains(model.nsid)
+    }
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
@@ -30,12 +41,6 @@ struct LexiconDetailView: View {
                 windowPicker
                 statTiles
                 chartCard
-                if let notice = model.noActivityMessage {
-                    Text(notice)
-                        .font(AturiFont.footnote)
-                        .foregroundStyle(theme.textTertiary)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
                 siblingsCard
                 samplesCard
                 searchCard
@@ -48,6 +53,17 @@ struct LexiconDetailView: View {
         .navigationTitle(model.nsid)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
+            /* Pin, as the web's lexicon pane has it: kept at the top of the
+               Lexicons tab, synced with the rest of the preferences, and
+               apart from the account explorer's pinned collections. */
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    preferences.update { $0.toggleLexiconExplorerPin(model.nsid) }
+                } label: {
+                    Image(systemName: isPinned ? "pin.fill" : "pin")
+                }
+                .accessibilityLabel(isPinned ? "Unpin this lexicon" : "Pin this lexicon")
+            }
             if let url = Route.lexicon(nsid: model.nsid).webURL {
                 ToolbarItem(placement: .topBarTrailing) {
                     ShareLink(item: url) {
@@ -104,11 +120,10 @@ struct LexiconDetailView: View {
                         .truncationMode(.middle)
                 }
             }
-            if let schemaRoute {
-                NavigationLink(value: schemaRoute) {
-                    Label("View schema record", systemImage: "doc.text")
-                }
-                .buttonStyle(.aturiSecondary)
+            /* Side by side where they fit, stacked where they don't. */
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: 8) { headerActions }
+                VStack(alignment: .leading, spacing: 8) { headerActions }
             }
             CopyRow(label: "NSID", value: model.nsid)
         }
@@ -116,9 +131,45 @@ struct LexiconDetailView: View {
         .cardBackground()
     }
 
+    /// The schema record, the app's site, and Watch: the web's "View
+    /// schema record" and `AppSiteLink`, plus the lexicon pane's Watch,
+    /// which opens the live feed narrowed to this lexicon.
+    @ViewBuilder
+    private var headerActions: some View {
+        if let schemaRoute {
+            NavigationLink(value: schemaRoute) {
+                Label("View schema record", systemImage: "doc.text")
+            }
+            .buttonStyle(.aturiSecondary)
+        }
+        if let appDomain, let url = URL(string: "https://\(appDomain)") {
+            Button {
+                openURL(url)
+            } label: {
+                Label("Visit \(appDomain)", systemImage: "arrow.up.right.square")
+                    .lineLimit(1)
+            }
+            .buttonStyle(.aturiSecondary)
+            .accessibilityHint("\(appDomain), inferred from the NSID. Opens outside the app")
+        }
+        NavigationLink {
+            LexiconLiveView(nsid: model.nsid)
+        } label: {
+            Label("Watch", systemImage: "dot.radiowaves.left.and.right")
+        }
+        .buttonStyle(.aturiSecondary)
+        .accessibilityHint("New records of this lexicon as they arrive")
+    }
+
     private var windowPicker: some View {
         @Bindable var model = model
         return HStack(spacing: 8) {
+            /* Labelled, as the web's is: it governs the tiles and chart. */
+            Text("Last \(model.window.label) \u{00B7} change vs the \(model.window.label) before")
+                .font(AturiFont.footnote)
+                .foregroundStyle(theme.textTertiary)
+                .lineLimit(2)
+                .fixedSize(horizontal: false, vertical: true)
             Spacer(minLength: 0)
             if model.isActivityRefreshing {
                 ProgressView()
@@ -391,5 +442,24 @@ struct LexiconDetailView: View {
     private func submitSearch() {
         guard let destination = model.submitSearch() else { return }
         ExploreNavigator.open(destination, router: router, openURL: openURL)
+    }
+}
+
+/// A lexicon's Watch: the live Jetstream feed narrowed to its records, the
+/// phone's stand-in for the web's stream monitor opened with
+/// `?collection=`.
+private struct LexiconLiveView: View {
+    let nsid: String
+
+    @Environment(\.aturiTheme) private var theme
+
+    var body: some View {
+        ScrollView {
+            JetstreamView(compact: false, collections: [nsid], startsLive: true)
+                .padding(16)
+        }
+        .background(theme.bgPrimary)
+        .navigationTitle("Live")
+        .navigationBarTitleDisplayMode(.inline)
     }
 }
