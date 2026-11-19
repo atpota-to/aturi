@@ -430,7 +430,7 @@ private struct MutualsWall: View {
                 .opacity(dimmed ? 0.35 : 1)
                 .overlay(Circle().strokeBorder(ring, lineWidth: 2))
                 .overlay(alignment: .bottomTrailing) {
-                    if case .reading = state {
+                    if state.isReading {
                         Circle()
                             .fill(theme.statusLive)
                             .frame(width: 8, height: 8)

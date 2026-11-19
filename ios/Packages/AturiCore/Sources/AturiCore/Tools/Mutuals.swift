@@ -578,6 +578,11 @@ public enum MutualsReadState: Hashable, Sendable {
         return false
     }
 
+    public var isReading: Bool {
+        if case .reading = self { return true }
+        return false
+    }
+
     /// Skipped by the scan's Stop, rather than unreadable.
     public var isStopped: Bool {
         if case .skipped(_, _, let stopped) = self { return stopped }
