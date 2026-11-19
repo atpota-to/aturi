@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { RotateCcw } from 'lucide-react';
 import {
   defaultFolds,
   engagementOf,
@@ -19,6 +20,7 @@ import {
   type GraphAccount,
   type Neighbourhood,
 } from '@/utils/atproto/graphData';
+import { useTreeMotion, type MotionNode } from './motion';
 import { Face, GraphDefs, atName, fmt, markProps, nameOf, relationColor, truncate, wrapLines, type FocusProps } from './shared';
 
 /* ------------------------------------------------------------------ */
@@ -39,18 +41,21 @@ function Connector({ x1, y1, x2, y2, hot }: { x1: number; y1: number; x2: number
 /**
  * The flow's scroll box. The chart is drawn at 1:1 so its words stay
  * readable, and scrolls natively in both directions; when it grows a column,
- * the box brings the new column into view.
+ * the box brings the new column into view. Once a card has been dragged out
+ * of place, a Tidy button in the corner puts them all back.
  */
 function FlowBox({
   label,
   width,
   height,
   reveal,
+  onTidy,
   children,
 }: {
   label: string;
   width: number;
   height: number;
+  onTidy?: () => void;
   /**
    * A card (in drawing coordinates) to bring into view when `key` changes:
    * scrolled sideways only as far as it takes to show it with a little of
@@ -74,11 +79,19 @@ function FlowBox({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [reveal?.key]);
   return (
-    <div ref={ref} className="fx-graph-scroll fx-graph-flow" role="group" aria-label={label}>
-      <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} className="fx-graph-svg">
-        <GraphDefs />
-        {children}
-      </svg>
+    <div className="fx-graph-flow-frame">
+      <div ref={ref} className="fx-graph-scroll fx-graph-flow" role="group" aria-label={label}>
+        <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} className="fx-graph-svg">
+          <GraphDefs />
+          {children}
+        </svg>
+      </div>
+      {onTidy && (
+        <button type="button" className="fx-graph-tool fx-graph-tidy" onClick={onTidy} title="Put the cards you moved back in place">
+          <RotateCcw size={14} aria-hidden />
+          Tidy
+        </button>
+      )}
     </div>
   );
 }
@@ -234,14 +247,14 @@ export function FlowAccount({ data, focus, onFocus, onSelect }: { data: Neighbou
   };
 
   // Lay the columns out: each one stacked around the open card before it.
+  // Every card names the card it hangs off, which is where it grows from.
   type Item =
-    | { type: 'group'; g: FlowGroup; level: number; x: number; y: number; open: boolean; i: number }
-    | { type: 'person'; a: GraphAccount; level: number; x: number; y: number; open: boolean; count: number | null; i: number }
-    | { type: 'note'; text: string; level: number; x: number; y: number; moreFor?: string; key: string };
+    | { type: 'group'; key: string; parent: string; g: FlowGroup; level: number; x: number; y: number; open: boolean }
+    | { type: 'person'; key: string; parent: string; a: GraphAccount; level: number; x: number; y: number; open: boolean; count: number | null }
+    | { type: 'note'; key: string; parent: string; text: string; level: number; x: number; y: number; moreFor?: string };
   const items: Item[] = [];
-  const links: { x1: number; y1: number; x2: number; y2: number; hot: boolean; key: string }[] = [];
   let x = SUBJECT_W + COL_GAP;
-  let anchor = { x: SUBJECT_W, y: CARD_H / 2 };
+  let anchor = { key: 'subject', y: CARD_H / 2 };
   let columns: { owner: string; groups: FlowGroup[] } | null = { owner: subject.did, groups: subjectGroups };
   let level = 0;
   while (columns) {
@@ -250,14 +263,12 @@ export function FlowAccount({ data, focus, onFocus, onSelect }: { data: Neighbou
     let openGroup: { g: FlowGroup; y: number } | null = null;
     columns.groups.forEach((g, i) => {
       const open = path[level] === g.key;
-      items.push({ type: 'group', g, level, x, y: ys[i], open, i });
-      links.push({ x1: anchor.x, y1: anchor.y, x2: x, y2: ys[i] + CARD_H / 2, hot: open, key: `${g.key}-in` });
+      items.push({ type: 'group', key: g.key, parent: anchor.key, g, level, x, y: ys[i], open });
       if (open) openGroup = { g, y: ys[i] };
     });
     if (!openGroup) break;
     const og = openGroup as { g: FlowGroup; y: number };
     // A column of people.
-    const gx = x;
     x += GROUP_W + COL_GAP;
     const { list, loading, failed, more } = accountsOf(og.g);
     const rows = list.length + (loading || failed || more || !list.length ? 1 : 0);
@@ -268,20 +279,19 @@ export function FlowAccount({ data, focus, onFocus, onSelect }: { data: Neighbou
       const known = people.get(a.did);
       const count =
         og.g.key.endsWith('|in') && known ? known.in : og.g.key.endsWith('|out') && known ? known.out : known ? engagementOf(known) || null : null;
-      items.push({ type: 'person', a: known ?? a, level: level + 1, x, y: py[i], open, count, i });
-      links.push({ x1: gx + GROUP_W, y1: og.y + CARD_H / 2, x2: x, y2: py[i] + CARD_H / 2, hot: open, key: `${og.g.key}-${a.did}` });
+      items.push({ type: 'person', key: `${level + 1}-${a.did}`, parent: og.g.key, a: known ?? a, level: level + 1, x, y: py[i], open, count });
       if (open) openPersonAt = { did: a.did, y: py[i] };
     });
     const tailY = py[list.length] ?? py[py.length - 1];
-    if (loading) items.push({ type: 'note', text: 'Reading…', level: level + 1, x, y: tailY, key: `${og.g.key}-loading` });
-    else if (failed) items.push({ type: 'note', text: 'Couldn’t read this list', level: level + 1, x, y: tailY, key: `${og.g.key}-failed` });
-    else if (!list.length) items.push({ type: 'note', text: 'Nobody here', level: level + 1, x, y: tailY, key: `${og.g.key}-empty` });
-    else if (more) {
-      items.push({ type: 'note', text: 'Show more', level: level + 1, x, y: tailY, moreFor: og.g.key, key: `${og.g.key}-more` });
-    }
+    const note = (key: string, text: string, moreFor?: string) =>
+      items.push({ type: 'note', key: `${og.g.key}-${key}`, parent: og.g.key, text, level: level + 1, x, y: tailY, moreFor });
+    if (loading) note('loading', 'Reading…');
+    else if (failed) note('failed', 'Couldn’t read this list');
+    else if (!list.length) note('empty', 'Nobody here');
+    else if (more) note('more', 'Show more', og.g.key);
     if (!openPersonAt) break;
     const op = openPersonAt as { did: string; y: number };
-    anchor = { x: x + PERSON_W, y: op.y + CARD_H / 2 };
+    anchor = { key: `${level + 1}-${op.did}`, y: op.y + CARD_H / 2 };
     x += PERSON_W + COL_GAP;
     level += 2;
     columns = { owner: op.did, groups: personGroups(op.did) };
@@ -289,15 +299,131 @@ export function FlowAccount({ data, focus, onFocus, onSelect }: { data: Neighbou
 
   const minY = Math.min(0, ...items.map((i) => i.y));
   const shift = PAD - minY;
-  const maxY = Math.max(CARD_H, ...items.map((i) => i.y + CARD_H)) + shift + PAD;
-  const width = Math.max(...items.map((i) => i.x + (i.type === 'group' ? GROUP_W : PERSON_W)), SUBJECT_W) + PAD * 2;
-  const last = items[items.length - 1];
-  const focusedDid = focus?.kind === 'person' ? focus.person.did : null;
   const subjectY = shift;
 
-  const colorOf = (did: string): string | null => {
+  type Card = { type: 'subject' } | Item;
+  const motion = useTreeMotion<Card>([
+    { key: 'subject', x: 0, y: subjectY, w: SUBJECT_W, h: CARD_H, parent: null, data: { type: 'subject' } },
+    ...items.map((it) => ({
+      key: it.key,
+      x: it.x,
+      y: it.y + shift,
+      w: it.type === 'group' ? GROUP_W : PERSON_W,
+      h: CARD_H,
+      parent: it.parent,
+      edge: it.type !== 'note',
+      data: it,
+    })),
+  ]);
+
+  const maxY = Math.max(Math.max(CARD_H, ...items.map((i) => i.y + CARD_H)) + shift, motion.bounds.bottom) + PAD;
+  const width =
+    Math.max(...items.map((i) => i.x + (i.type === 'group' ? GROUP_W : PERSON_W)), SUBJECT_W, motion.bounds.right) + PAD * 2;
+  const last = items[items.length - 1];
+  const lastAt = last ? motion.place(last.key) : undefined;
+  const focusedDid = focus?.kind === 'person' ? focus.person.did : null;
+
+  const colorOf = (did: string): string | undefined => {
     const p = people.get(did);
-    return p ? relationColor(relationOf(p)) : null;
+    return p ? relationColor(relationOf(p)) : undefined;
+  };
+
+  const drawCard = (it: Card) => {
+    if (it.type === 'subject') {
+      return (
+        <g className="fx-graph-mark" role="img" aria-label={nameOf(subject)} {...markProps(() => onFocus(null), onSelect && (() => onSelect(null)))}>
+          <rect x={0} y={0} width={SUBJECT_W} height={CARD_H} rx={10} className="fx-graph-card" data-strong />
+          <Face x={26} y={CARD_H / 2} r={16} avatar={subject.avatar} name={nameOf(subject)} ring="var(--text-primary)" />
+          <text x={52} y={22} className="fx-graph-t-name">
+            {truncate(nameOf(subject), 17)}
+          </text>
+          <text x={52} y={39} className="fx-graph-t-sub">
+            {truncate(atName(subject), 20)}
+          </text>
+        </g>
+      );
+    }
+    if (it.type === 'group') {
+      const { g } = it;
+      return (
+        <g
+          className="fx-graph-mark"
+          role="button"
+          aria-expanded={it.open}
+          aria-label={`${g.label}${g.count != null ? `, ${fmt(g.count)}` : ''}`}
+          {...markProps(
+            () => onFocus({ kind: 'group', label: g.label, count: g.count, note: g.note }),
+            () => choose(it.level, g.key),
+          )}
+        >
+          <rect x={0} y={0} width={GROUP_W} height={CARD_H} rx={10} className="fx-graph-card" data-group data-open={it.open || undefined} />
+          <text x={14} y={22} className="fx-graph-t-name">
+            {truncate(g.label, 26)}
+          </text>
+          <text x={14} y={39} className="fx-graph-t-sub">
+            {g.count != null ? `${fmt(g.count)} ${g.count === 1 ? 'account' : 'accounts'}` : 'open to read'}
+          </text>
+        </g>
+      );
+    }
+    if (it.type === 'person') {
+      const { a } = it;
+      return (
+        <g
+          className="fx-graph-mark"
+          role="button"
+          aria-expanded={it.open}
+          aria-label={nameOf(a)}
+          data-focus={focusedDid === a.did || undefined}
+          {...markProps(
+            () => onFocus({ kind: 'person', person: a }),
+            () => {
+              onSelect?.({ kind: 'person', person: a });
+              choose(it.level, a.did);
+              void openPerson(a.did);
+            },
+          )}
+        >
+          <rect x={0} y={0} width={PERSON_W} height={CARD_H} rx={10} className="fx-graph-card" data-open={it.open || undefined} />
+          <Face x={28} y={CARD_H / 2} r={15} avatar={a.avatar} name={nameOf(a)} ring={colorOf(a.did)} />
+          <text x={54} y={22} className="fx-graph-t-name">
+            {truncate(nameOf(a), it.count != null ? 20 : 24)}
+          </text>
+          <text x={54} y={39} className="fx-graph-t-sub">
+            {truncate(a.handle ? `@${a.handle}` : a.did, 26)}
+          </text>
+          {it.count != null && (
+            <text x={PERSON_W - 12} y={22} textAnchor="end" className="fx-graph-t-num">
+              {fmt(it.count)}
+            </text>
+          )}
+        </g>
+      );
+    }
+    const moreFor = it.moreFor;
+    return (
+      <g
+        className={moreFor ? 'fx-graph-mark' : undefined}
+        role={moreFor ? 'button' : undefined}
+        tabIndex={moreFor ? 0 : undefined}
+        onClick={moreFor ? () => onMore(moreFor) : undefined}
+        onKeyDown={
+          moreFor
+            ? (e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  onMore(moreFor);
+                }
+              }
+            : undefined
+        }
+      >
+        <rect x={0} y={6} width={PERSON_W} height={CARD_H - 12} rx={9} className="fx-graph-stub" />
+        <text x={14} y={30} className="fx-graph-t-body">
+          {it.text}
+        </text>
+      </g>
+    );
   };
 
   return (
@@ -308,121 +434,30 @@ export function FlowAccount({ data, focus, onFocus, onSelect }: { data: Neighbou
         height={Math.max(maxY, 320)}
         reveal={
           // Nothing opened yet: start at the account, on the left.
-          last && path.length
-            ? { x: last.x + PAD, y: last.y + shift, w: last.type === 'group' ? GROUP_W : PERSON_W, h: CARD_H, key: path.join('>') }
+          last && lastAt && path.length
+            ? { x: lastAt.x + PAD, y: lastAt.y, w: lastAt.w, h: CARD_H, key: path.join('>') }
             : null
         }
+        onTidy={motion.moved ? motion.tidy : undefined}
       >
         <g transform={`translate(${PAD} 0)`}>
-          {links.map((l) => (
-            <Connector key={l.key} x1={l.x1} y1={l.y1 + shift} x2={l.x2} y2={l.y2 + shift} hot={l.hot} />
-          ))}
-          <g className="fx-graph-mark" role="img" aria-label={nameOf(subject)} {...markProps(() => onFocus(null), onSelect && (() => onSelect(null)))}>
-            <rect x={0} y={subjectY} width={SUBJECT_W} height={CARD_H} rx={10} className="fx-graph-card" data-strong />
-            <Face x={26} y={subjectY + CARD_H / 2} r={16} avatar={subject.avatar} name={nameOf(subject)} ring="var(--text-primary)" />
-            <text x={52} y={subjectY + 22} className="fx-graph-t-name">
-              {truncate(nameOf(subject), 17)}
-            </text>
-            <text x={52} y={subjectY + 39} className="fx-graph-t-sub">
-              {truncate(atName(subject), 20)}
-            </text>
-          </g>
-          {items.map((it) => {
-            const y = it.y + shift;
-            if (it.type === 'group') {
-              const { g } = it;
-              return (
-                <g
-                  key={g.key}
-                  className="fx-graph-mark fx-graph-slide"
-                  style={{ animationDelay: `${it.i * 35}ms` }}
-                  role="button"
-                  aria-expanded={it.open}
-                  aria-label={`${g.label}${g.count != null ? `, ${fmt(g.count)}` : ''}`}
-                  {...markProps(
-                    () => onFocus({ kind: 'group', label: g.label, count: g.count, note: g.note }),
-                    () => choose(it.level, g.key),
-                  )}
-                >
-                  <rect x={it.x} y={y} width={GROUP_W} height={CARD_H} rx={10} className="fx-graph-card" data-group data-open={it.open || undefined} />
-                  <text x={it.x + 14} y={y + 22} className="fx-graph-t-name">
-                    {truncate(g.label, 26)}
-                  </text>
-                  <text x={it.x + 14} y={y + 39} className="fx-graph-t-sub">
-                    {g.count != null ? `${fmt(g.count)} ${g.count === 1 ? 'account' : 'accounts'}` : 'open to read'}
-                  </text>
-                </g>
-              );
-            }
-            if (it.type === 'person') {
-              const { a } = it;
-              const stripe = colorOf(a.did);
-              return (
-                <g
-                  key={`${it.level}-${a.did}`}
-                  className="fx-graph-mark fx-graph-slide"
-                  style={{ animationDelay: `${Math.min(it.i, 12) * 35}ms` }}
-                  role="button"
-                  aria-expanded={it.open}
-                  aria-label={nameOf(a)}
-                  data-focus={focusedDid === a.did || undefined}
-                  {...markProps(
-                    () => onFocus({ kind: 'person', person: a }),
-                    () => {
-                      onSelect?.({ kind: 'person', person: a });
-                      choose(it.level, a.did);
-                      void openPerson(a.did);
-                    },
-                  )}
-                >
-                  <rect x={it.x} y={y} width={PERSON_W} height={CARD_H} rx={10} className="fx-graph-card" data-open={it.open || undefined} />
-                  {stripe && <rect x={it.x} y={y + 9} width={4} height={CARD_H - 18} rx={2} fill={stripe} />}
-                  <Face x={it.x + 30} y={y + CARD_H / 2} r={15} avatar={a.avatar} name={nameOf(a)} />
-                  <text x={it.x + 54} y={y + 22} className="fx-graph-t-name">
-                    {truncate(nameOf(a), it.count != null ? 20 : 24)}
-                  </text>
-                  <text x={it.x + 54} y={y + 39} className="fx-graph-t-sub">
-                    {truncate(a.handle ? `@${a.handle}` : a.did, 26)}
-                  </text>
-                  {it.count != null && (
-                    <text x={it.x + PERSON_W - 12} y={y + 22} textAnchor="end" className="fx-graph-t-num">
-                      {fmt(it.count)}
-                    </text>
-                  )}
-                </g>
-              );
-            }
-            const moreFor = it.moreFor;
-            return (
-              <g
-                key={it.key}
-                className={moreFor ? 'fx-graph-mark' : undefined}
-                role={moreFor ? 'button' : undefined}
-                tabIndex={moreFor ? 0 : undefined}
-                onClick={moreFor ? () => onMore(moreFor) : undefined}
-                onKeyDown={
-                  moreFor
-                    ? (e) => {
-                        if (e.key === 'Enter' || e.key === ' ') {
-                          e.preventDefault();
-                          onMore(moreFor);
-                        }
-                      }
-                    : undefined
-                }
-              >
-                <rect x={it.x} y={y + 6} width={PERSON_W} height={CARD_H - 12} rx={9} className="fx-graph-stub" />
-                <text x={it.x + 14} y={y + 30} className="fx-graph-t-body">
-                  {it.text}
-                </text>
+          <g {...motion.rootProps}>
+            {motion.items.map((it) => {
+              const edge = motion.edgeProps(it);
+              const hot = it.data.type !== 'subject' && it.data.type !== 'note' && it.data.open;
+              return edge ? <path key={`e-${it.key}`} {...edge} className="fx-graph-edge" data-hot={hot || undefined} /> : null;
+            })}
+            {motion.items.map((it) => (
+              <g key={it.key} {...motion.nodeProps(it)}>
+                {drawCard(it.data)}
               </g>
-            );
-          })}
+            ))}
+          </g>
         </g>
       </FlowBox>
       <p className="fx-graph-caption">
         Open a relationship to see who’s in it, and a person to open theirs. Their follows and followers are read live,
-        so this goes as far as you like.
+        so this goes as far as you like. Drag a card with a mouse to move it out of the way.
       </p>
     </>
   );
@@ -484,9 +519,105 @@ export function FlowThread({
     setLastToggled(p.uri);
   };
 
-  const width = (layout.maxDepth + 1) * T_COL + 120;
-  const height = Math.max(layout.rows * T_ROW, T_ROW) + PAD;
-  const revealAt = pos.get(lastToggled ?? current) ?? pos.get(root.uri);
+  type Card = { type: 'card'; post: ThreadPost; hidden: number } | { type: 'stub'; parent: ThreadPost; hidden: number };
+  const motionNodes = useMemo<MotionNode<Card>[]>(
+    () => [
+      ...layout.cards.map((c) => ({
+        key: c.post.uri,
+        x: c.x,
+        y: c.y,
+        w: T_W,
+        h: T_H,
+        parent: c.post.parent && pos.has(c.post.parent) ? c.post.parent : null,
+        data: { type: 'card' as const, post: c.post, hidden: c.folded },
+      })),
+      ...layout.stubs.map((s) => ({
+        key: `more-${s.parent.uri}`,
+        x: s.x,
+        y: s.y,
+        w: T_W,
+        h: T_H,
+        parent: s.parent.uri,
+        data: { type: 'stub' as const, parent: s.parent, hidden: s.hidden },
+      })),
+    ],
+    [layout, pos],
+  );
+  const motion = useTreeMotion(motionNodes);
+
+  const width = Math.max((layout.maxDepth + 1) * T_COL, motion.bounds.right) + 120;
+  const height = Math.max(layout.rows * T_ROW, T_ROW, motion.bounds.bottom) + PAD;
+  const revealAt = motion.place(lastToggled ?? current) ?? motion.place(root.uri);
+
+  const drawCard = (it: Card) => {
+    if (it.type === 'stub') {
+      const { parent, hidden } = it;
+      return (
+        <g
+          className="fx-graph-mark"
+          role="button"
+          aria-label={`Show ${hidden} more replies`}
+          {...markProps(
+            () => onFocus({ kind: 'post', post: parent }),
+            () => {
+              setExpanded((e) => new Set(e).add(parent.uri));
+              setLastToggled(parent.uri);
+            },
+          )}
+        >
+          <rect x={0} y={18} width={T_W} height={T_H - 36} rx={9} className="fx-graph-stub" />
+          <text x={14} y={T_H / 2 + 5} className="fx-graph-t-body">
+            {fmt(hidden)} more {hidden === 1 ? 'reply' : 'replies'}
+          </text>
+        </g>
+      );
+    }
+    const { post, hidden } = it;
+    const rel = post === root ? 'op' : relationOfAuthor(post.did);
+    const lines = wrapLines(post.text || (post.hasMedia ? 'An image or video' : ''), 36, 2);
+    return (
+      <>
+        <g
+          className="fx-graph-mark"
+          role="button"
+          aria-expanded={post.kids.length ? !folded.has(post.uri) : undefined}
+          aria-label={`${post.displayName || post.handle}: ${truncate(post.text, 80) || 'no text'}`}
+          data-focus={focused === post.uri || undefined}
+          {...markProps(() => onFocus({ kind: 'post', post }), () => toggle(post))}
+        >
+          <rect x={0} y={0} width={T_W} height={T_H} rx={10} className="fx-graph-card" data-current={post.uri === current || undefined} />
+          <Face x={26} y={22} r={11} avatar={post.avatar} name={post.handle || post.did} ring={relationColor(rel)} />
+          <text x={44} y={27} className="fx-graph-t-name">
+            {truncate(post.displayName || post.handle || '', 22)}
+          </text>
+          {post.likes > 0 && (
+            <text x={T_W - 12} y={27} textAnchor="end" className="fx-graph-t-sub">
+              {fmt(post.likes)} ♥
+            </text>
+          )}
+          {lines.map((line, i) => (
+            <text key={i} x={14} y={48 + i * 16} className="fx-graph-t-body">
+              {line}
+            </text>
+          ))}
+        </g>
+        {hidden > 0 && (
+          <g
+            className="fx-graph-mark"
+            role="button"
+            aria-label={`Show ${hidden} replies`}
+            {...markProps(() => onFocus({ kind: 'post', post }), () => toggle(post))}
+          >
+            <Connector x1={T_W} y1={T_H / 2} x2={T_W + 16} y2={T_H / 2} />
+            <rect x={T_W + 16} y={T_H / 2 - 14} width={64} height={28} rx={14} className="fx-graph-stub" />
+            <text x={T_W + 48} y={T_H / 2 + 5} textAnchor="middle" className="fx-graph-t-num">
+              +{fmt(hidden)}
+            </text>
+          </g>
+        )}
+      </>
+    );
+  };
 
   return (
     <>
@@ -499,92 +630,26 @@ export function FlowThread({
             ? { x: revealAt.x + PAD, y: revealAt.y + PAD / 2, w: T_W, h: T_H, key: `${lastToggled ?? current}:${folded.size}:${expanded.size}` }
             : null
         }
+        onTidy={motion.moved ? motion.tidy : undefined}
       >
         <g transform={`translate(${PAD} ${PAD / 2})`}>
-          {layout.cards.map(({ post }) => {
-            if (!post.parent) return null;
-            const a = pos.get(post.parent);
-            const b = pos.get(post.uri);
-            return a && b ? (
-              <Connector key={`l${post.uri}`} x1={a.x + T_W} y1={a.y + T_H / 2} x2={b.x} y2={b.y + T_H / 2} hot={ancestors.has(post.uri) || post.uri === current} />
-            ) : null;
-          })}
-          {layout.stubs.map((s) => {
-            const a = pos.get(s.parent.uri)!;
-            return <Connector key={`s${s.parent.uri}`} x1={a.x + T_W} y1={a.y + T_H / 2} x2={s.x} y2={s.y + T_H / 2} />;
-          })}
-          {layout.cards.map(({ post, x, y, folded: hiddenCount }) => {
-            const rel = post === root ? 'op' : relationOfAuthor(post.did);
-            const lines = wrapLines(post.text || (post.hasMedia ? 'An image or video' : ''), 36, 2);
-            return (
-              <g key={post.uri}>
-                <g
-                  className="fx-graph-mark fx-graph-slide"
-                  style={{ animationDelay: `${Math.min(900, (post.depth - root.depth) * 110)}ms` }}
-                  role="button"
-                  aria-expanded={post.kids.length ? !folded.has(post.uri) : undefined}
-                  aria-label={`${post.displayName || post.handle}: ${truncate(post.text, 80) || 'no text'}`}
-                  data-focus={focused === post.uri || undefined}
-                  {...markProps(() => onFocus({ kind: 'post', post }), () => toggle(post))}
-                >
-                  <rect x={x} y={y} width={T_W} height={T_H} rx={10} className="fx-graph-card" data-current={post.uri === current || undefined} />
-                  <rect x={x} y={y + 10} width={4} height={T_H - 20} rx={2} fill={relationColor(rel)} />
-                  <Face x={x + 26} y={y + 22} r={11} avatar={post.avatar} name={post.handle || post.did} />
-                  <text x={x + 44} y={y + 27} className="fx-graph-t-name">
-                    {truncate(post.displayName || post.handle || '', 22)}
-                  </text>
-                  {post.likes > 0 && (
-                    <text x={x + T_W - 12} y={y + 27} textAnchor="end" className="fx-graph-t-sub">
-                      {fmt(post.likes)} ♥
-                    </text>
-                  )}
-                  {lines.map((line, i) => (
-                    <text key={i} x={x + 14} y={y + 48 + i * 16} className="fx-graph-t-body">
-                      {line}
-                    </text>
-                  ))}
-                </g>
-                {hiddenCount > 0 && (
-                  <g
-                    className="fx-graph-mark"
-                    role="button"
-                    aria-label={`Show ${hiddenCount} replies`}
-                    {...markProps(() => onFocus({ kind: 'post', post }), () => toggle(post))}
-                  >
-                    <Connector x1={x + T_W} y1={y + T_H / 2} x2={x + T_W + 16} y2={y + T_H / 2} />
-                    <rect x={x + T_W + 16} y={y + T_H / 2 - 14} width={64} height={28} rx={14} className="fx-graph-stub" />
-                    <text x={x + T_W + 48} y={y + T_H / 2 + 5} textAnchor="middle" className="fx-graph-t-num">
-                      +{fmt(hiddenCount)}
-                    </text>
-                  </g>
-                )}
+          <g {...motion.rootProps}>
+            {motion.items.map((it) => {
+              const edge = motion.edgeProps(it);
+              const hot = it.data.type === 'card' && (ancestors.has(it.key) || it.key === current);
+              return edge ? <path key={`e-${it.key}`} {...edge} className="fx-graph-edge" data-hot={hot || undefined} /> : null;
+            })}
+            {motion.items.map((it) => (
+              <g key={it.key} {...motion.nodeProps(it)}>
+                {drawCard(it.data)}
               </g>
-            );
-          })}
-          {layout.stubs.map((s) => (
-            <g
-              key={`more-${s.parent.uri}`}
-              className="fx-graph-mark"
-              role="button"
-              aria-label={`Show ${s.hidden} more replies`}
-              {...markProps(
-                () => onFocus({ kind: 'post', post: s.parent }),
-                () => {
-                  setExpanded((e) => new Set(e).add(s.parent.uri));
-                  setLastToggled(s.parent.uri);
-                },
-              )}
-            >
-              <rect x={s.x} y={s.y + 18} width={T_W} height={T_H - 36} rx={9} className="fx-graph-stub" />
-              <text x={s.x + 14} y={s.y + T_H / 2 + 5} className="fx-graph-t-body">
-                {fmt(s.hidden)} more {s.hidden === 1 ? 'reply' : 'replies'}
-              </text>
-            </g>
-          ))}
+            ))}
+          </g>
         </g>
       </FlowBox>
       <p className="fx-graph-caption">
-        Replies one column deeper, most-discussed first. Choose a post to fold or open what’s under it.
+        Replies one column deeper, most-discussed first. Choose a post to fold or open what’s under it, or drag it with
+        a mouse to move it out of the way.
       </p>
     </>
   );
