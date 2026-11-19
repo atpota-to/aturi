@@ -12,6 +12,10 @@ import AturiCore
 struct RelayToolView: View {
     let query: [String: String]
 
+    init(query: [String: String]) {
+        self.query = query
+    }
+
     @State private var model = RelayCheckModel()
     @State private var text = ""
     @State private var started = false
@@ -216,6 +220,11 @@ struct RelayStatusRows: View {
     var compact: Bool = false
 
     @Environment(\.aturiTheme) private var theme
+
+    init(results: [RelayCheck.RelayResult], compact: Bool = false) {
+        self.results = results
+        self.compact = compact
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
