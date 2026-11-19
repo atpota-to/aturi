@@ -594,11 +594,13 @@ public final class MutualsModel {
         guard !people.isEmpty else { return }
         try await withThrowingTaskGroup(of: (index: Int, result: MutualsReadResult).self) { group in
             var next = 0
-            func enqueue() {
+            // Returns the index it started. The state change is made by the
+            // caller, in the group's body, which runs on the main actor; a
+            // nested function does not inherit that isolation.
+            func enqueue() -> Int {
                 let index = next
                 next += 1
                 let did = people[index].did
-                self.states[index] = .reading(blocks: 0)
                 // Each page's count, back on the main actor. A late one is
                 // dropped once the mutual has its final state.
                 let report: @Sendable (Int, Int) -> Void = { blocks, records in
@@ -610,15 +612,18 @@ public final class MutualsModel {
                     let result = try await client.readMutual(did, scanned: scanned, stopper: stopper, onProgress: report)
                     return (index: index, result: result)
                 }
+                return index
             }
             for _ in 0..<min(Self.mutualConcurrency, people.count) {
-                enqueue()
+                let started = enqueue()
+                self.states[started] = .reading(blocks: 0)
             }
             while let finished = try await group.next() {
                 try self.check(gen)
                 self.record(finished.index, finished.result)
                 if next < people.count, !stopper.isStopped {
-                    enqueue()
+                    let started = enqueue()
+                    self.states[started] = .reading(blocks: 0)
                 }
             }
         }

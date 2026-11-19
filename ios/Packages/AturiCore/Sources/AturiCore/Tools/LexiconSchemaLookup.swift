@@ -168,7 +168,7 @@ public actor LexiconSchemaLookup {
         guard isValidNsid(nsid), let domain = LexiconSchemaLookup.authorityDomain(nsid) else {
             return .invalid(nsid: nsid)
         }
-        let publisher = UFOsClient.publisherForNsid(nsid)
+        let publisher = NSID.publisherForNsid(nsid)
 
         var authority: Authority?
         let probe = await dns.lookup("_lexicon.\(domain)")
