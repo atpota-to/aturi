@@ -2157,9 +2157,9 @@ private struct RepoVisibilityPostRow: View {
 /// The author of a record with the author's two checks, port of
 /// `AuthorChecks`: the record page has no account card, and this is the
 /// answer the card would give. The name opens the author's repo page, and
-/// so do the rows, since a repo route here carries no tab. Name and avatar
-/// come from the label check's first answer, which is a getProfile, so the
-/// card costs no request of its own.
+/// each row opens its own tab there. Name and avatar come from the label
+/// check's first answer, which is a getProfile, so the card costs no
+/// request of its own.
 struct AccountChecksAuthorCard: View {
     let identity: IdentityBundle
 
@@ -2209,8 +2209,12 @@ struct AccountChecksAuthorCard: View {
             }
             .buttonStyle(.plain)
             Divider()
-            AccountChecksRows(model: model) { _ in
-                router.open(.repo(repo))
+            /* Each row opens its own tab on the author's repo page. */
+            AccountChecksRows(model: model) { kind in
+                switch kind {
+                case .labels: router.open(.repo(repo, tab: RepoTab.labels.rawValue))
+                case .visibility: router.open(.repo(repo, tab: RepoTab.visibility.rawValue))
+                }
             }
         }
         .padding(.horizontal, 14)
