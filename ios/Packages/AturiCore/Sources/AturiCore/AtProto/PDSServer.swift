@@ -9,8 +9,9 @@ import FoundationNetworking
 ///   - describeServer(pds)  -> server metadata (DID, available domains, links).
 ///   - serverHealth(pds)    -> implementation version from `_health`.
 ///   - listRepos(pds, ...)  -> paginated list of repos hosted on the PDS.
+///   - protectedResourceMetadata(pds) -> where its accounts sign in.
 ///
-/// All three wrap public endpoints; no auth required. The host reaching this
+/// All four wrap public endpoints; no auth required. The host reaching this
 /// module is caller-influenced (it comes from a DID document or straight from
 /// the explorer's PDS screen), so every read refuses redirects: a PDS
 /// answering XRPC has no reason to redirect, and following one would re-point
@@ -115,6 +116,27 @@ public struct PDSServer: Sendable {
         }
     }
 
+    /// The PDS's OAuth protected-resource metadata (RFC 9728), as much of
+    /// it as the explorer reads. Read from JSON leniently: an
+    /// `authorization_servers` entry that is not a string is dropped
+    /// rather than failing the whole document.
+    public struct ProtectedResourceMetadata: Hashable, Sendable {
+        public var resource: String?
+        /// Where the PDS's accounts sign in: itself, or an entryway in front
+        /// of it (bsky.social).
+        public var authorizationServers: [String]?
+
+        public init(resource: String? = nil, authorizationServers: [String]? = nil) {
+            self.resource = resource
+            self.authorizationServers = authorizationServers
+        }
+
+        public init(json: JSONValue) {
+            resource = json["resource"]?.stringValue
+            authorizationServers = json["authorization_servers"]?.arrayValue?.compactMap { $0.stringValue }
+        }
+    }
+
     // MARK: Base helpers
 
     /// Strip the trailing slash from a PDS URL so concatenation with
@@ -191,6 +213,18 @@ public struct PDSServer: Sendable {
         let base = try PDSServer.requireBase(pds)
         let url = makeURL(base, path: "/xrpc/_health")
         return try await http.getJSON(ServerHealth.self, from: url, refuseRedirects: true)
+    }
+
+    /// `/.well-known/oauth-protected-resource`, which names the
+    /// authorization server the PDS's accounts sign in through. Served at a
+    /// well-known path rather than over XRPC, and only by PDSs that support
+    /// OAuth, so callers should treat failure as "not said" rather than an
+    /// error condition.
+    public func protectedResourceMetadata(pds: String) async throws -> ProtectedResourceMetadata {
+        let base = try PDSServer.requireBase(pds)
+        let url = makeURL(base, path: "/.well-known/oauth-protected-resource")
+        let json = try await http.getJSONValue(from: url, refuseRedirects: true)
+        return ProtectedResourceMetadata(json: json)
     }
 
     /// com.atproto.sync.listRepos (single page).
