@@ -769,9 +769,11 @@ function ViewSwitchButton({
 
 /**
  * The values a record-page visitor might want to grab, as compact copy chips,
- * plus the two ways out (the universal link page and the raw record on the
- * PDS). The URI and CID also sit in the Record card with their own copy
- * buttons; this row keeps the rest together.
+ * and the ways out (the universal link page, the raw record on the PDS, and
+ * any tool with something to say about the record), each under its own
+ * heading so a link is never mistaken for a copy button. The URI and CID
+ * also sit in the Record card with their own copy buttons; this card keeps
+ * the rest together.
  */
 function CopyRow({
   atUri,
@@ -797,7 +799,7 @@ function CopyRow({
   toolLinks: ToolLink[];
 }) {
   return (
-    <section className="fn-rec-card fn-rec-copy" aria-label="Copy">
+    <section className="fn-rec-card fn-rec-copy" aria-label="Copy and open">
       <h2 className="fn-rec-h2">Copy</h2>
       <div className="fn-rec-copy-chips">
         <CopyButton value={atUri} label="AT URI" compact variant="subtle" />
@@ -808,6 +810,7 @@ function CopyRow({
           <CopyButton value={recordJson} label="JSON" compact variant="subtle" />
         )}
       </div>
+      <h2 className="fn-rec-h2 fn-rec-copy-h">Open</h2>
       <div className="fn-rec-copy-links">
         <LinkButton href={universalPath} label="Universal link page" />
         <LinkButton

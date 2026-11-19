@@ -817,6 +817,13 @@
   height: 28px;
   border-radius: var(--radius-control);
 }
+/* The links get a heading of their own, set off from the copy chips, so
+   the card never calls a link a copy button. */
+.fn-rec-copy-h {
+  margin-top: 4px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border-subtle);
+}
 .fn-rec-signin {
   padding: 14px 16px;
   display: flex;
