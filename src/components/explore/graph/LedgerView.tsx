@@ -32,8 +32,10 @@ const SIDE = 14;
 
 /**
  * Below this width the bands give way to two lists. Above it the drawing is
- * laid out at the box's own width (up to 1000 units, never under 720), so its
+ * laid out at the box's own width (up to 1200 units, never under 720), so its
  * names stay near their real size instead of shrinking with a fixed canvas.
+ * The cap is past the widest the Graph tab gets, so a wide box gets longer
+ * bands and roomier names rather than the same drawing scaled up.
  */
 const BANDS_MIN_WIDTH = 520;
 
@@ -68,7 +70,7 @@ export function LedgerAccount({ data, focus, onFocus }: { data: Neighbourhood } 
           subject={data.subject}
           focused={focused}
           onFocus={onFocus}
-          width={Math.min(1000, Math.max(720, width))}
+          width={Math.min(1200, Math.max(720, width))}
         />
       ) : (
         <div className="fx-graph-ledger-lists">

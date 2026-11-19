@@ -816,8 +816,9 @@ svg.fx-wb-view-end {
 }
 
 /* Backlinks reads better at a narrower measure, but keeps the overview's
-   left edge, so the heading doesn't jump between views. */
-.fx-wb-page-inner:not([data-tab='overview']) .fx-wb-section {
+   left edge, so the heading doesn't jump between views. The graph is a
+   drawing rather than a measure of text, and takes the overview's width. */
+.fx-wb-page-inner:not([data-tab='overview']):not([data-tab='graph']) .fx-wb-section {
   max-width: 920px;
 }
 
