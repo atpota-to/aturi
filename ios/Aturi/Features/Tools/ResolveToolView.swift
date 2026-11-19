@@ -14,6 +14,13 @@ import AturiCore
 struct ResolveToolView: View {
     let query: [String: String]
 
+    /* Explicit, as the app's shared views are: `ToolPageView` builds this
+       from another file, and the private state below has to stay out of a
+       generated initializer's reach. */
+    init(query: [String: String]) {
+        self.query = query
+    }
+
     @State private var model = BulkResolveModel()
     @State private var text = ""
     @State private var started = false

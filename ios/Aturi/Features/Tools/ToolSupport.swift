@@ -180,6 +180,22 @@ struct ToolInputBar: View {
     @FocusState private var focused: Bool
     @Environment(\.aturiTheme) private var theme
 
+    init(
+        placeholder: String,
+        text: Binding<String>,
+        buttonTitle: String = "Check",
+        isRunning: Bool = false,
+        keyboard: UIKeyboardType = .URL,
+        submit: @escaping () -> Void
+    ) {
+        self.placeholder = placeholder
+        _text = text
+        self.buttonTitle = buttonTitle
+        self.isRunning = isRunning
+        self.keyboard = keyboard
+        self.submit = submit
+    }
+
     private var trimmed: String {
         text.trimmingCharacters(in: .whitespacesAndNewlines)
     }
@@ -245,6 +261,22 @@ struct ToolTextEditor: View {
 
     @Environment(\.aturiTheme) private var theme
 
+    init(
+        placeholder: String,
+        text: Binding<String>,
+        buttonTitle: String = "Check",
+        isRunning: Bool = false,
+        minHeight: CGFloat = 120,
+        submit: @escaping () -> Void
+    ) {
+        self.placeholder = placeholder
+        _text = text
+        self.buttonTitle = buttonTitle
+        self.isRunning = isRunning
+        self.minHeight = minHeight
+        self.submit = submit
+    }
+
     var body: some View {
         let shape = RoundedRectangle(cornerRadius: 10, style: .continuous)
         VStack(alignment: .leading, spacing: 8) {
@@ -289,6 +321,11 @@ struct ToolExamples: View {
     let pick: (String) -> Void
 
     @Environment(\.aturiTheme) private var theme
+
+    init(examples: [String], pick: @escaping (String) -> Void) {
+        self.examples = examples
+        self.pick = pick
+    }
 
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
@@ -389,6 +426,12 @@ struct ToolCheckRow: View {
 
     @Environment(\.aturiTheme) private var theme
 
+    init(status: ToolCheckStatus, title: String, detail: String? = nil) {
+        self.status = status
+        self.title = title
+        self.detail = detail
+    }
+
     private var tint: Color {
         switch status {
         case .pass: return theme.textAccent
@@ -441,6 +484,12 @@ struct ToolFactRow: View {
 
     @Environment(\.aturiTheme) private var theme
 
+    init(label: String, value: String, mono: Bool = true) {
+        self.label = label
+        self.value = value
+        self.mono = mono
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 2) {
             Text(label)
@@ -466,6 +515,11 @@ struct ToolPlaceholder: View {
 
     @Environment(\.openURL) private var openURL
     @Environment(\.aturiTheme) private var theme
+
+    init(slug: String, query: [String: String]) {
+        self.slug = slug
+        self.query = query
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -499,6 +553,10 @@ struct ToolLinkRow: View {
 
     @Environment(\.aturiTheme) private var theme
 
+    init(link: ToolLink) {
+        self.link = link
+    }
+
     var body: some View {
         NavigationLink(value: Route.tool(slug: link.slug, query: link.query)) {
             HStack(spacing: 8) {
@@ -529,6 +587,10 @@ struct AccountToolLinksCard: View {
     let did: String
 
     @Environment(\.aturiTheme) private var theme
+
+    init(did: String) {
+        self.did = did
+    }
 
     var body: some View {
         let links = ToolLinks.forAccount(did: did)

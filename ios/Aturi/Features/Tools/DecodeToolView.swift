@@ -12,6 +12,13 @@ import AturiCore
 struct DecodeToolView: View {
     let query: [String: String]
 
+    /* Explicit, as the app's shared views are: `ToolPageView` builds this
+       from another file, and the private state below has to stay out of a
+       generated initializer's reach. */
+    init(query: [String: String]) {
+        self.query = query
+    }
+
     @State private var text = ""
     /// What was last decoded, and when: "3 hours ago" is read against the
     /// moment of decoding, so it does not shift while the page is open.

@@ -1139,6 +1139,11 @@ struct AccountCheckPill: View {
 
     @Environment(\.aturiTheme) private var theme
 
+    init(text: String, tone: AccountCheckTone) {
+        self.text = text
+        self.tone = tone
+    }
+
     var body: some View {
         let color = tone.color(theme)
         HStack(spacing: 3) {
@@ -1527,6 +1532,15 @@ struct AccountCheckVerdict: View {
 
     @Environment(\.aturiTheme) private var theme
 
+    /* Explicit, as the shared components here are: the views that reuse
+       this one live in other files (the tools). */
+    init(title: String, text: String, tone: AccountCheckTone, busy: Bool = false) {
+        self.title = title
+        self.text = text
+        self.tone = tone
+        self.busy = busy
+    }
+
     var body: some View {
         let color = tone.color(theme)
         let shape = RoundedRectangle(cornerRadius: AturiTheme.cardRadius, style: .continuous)
@@ -1744,6 +1758,14 @@ struct RepoLabelGroupCard: View {
     let now: Date
 
     @Environment(\.aturiTheme) private var theme
+
+    init(group: Labels.LabelGroup, labeler: LabelsClient.LabelerInfo?, subjectAvatar: String?, languages: [String], now: Date) {
+        self.group = group
+        self.labeler = labeler
+        self.subjectAvatar = subjectAvatar
+        self.languages = languages
+        self.now = now
+    }
 
     private var name: String {
         if group.isSelf { return "Set by the account itself" }
@@ -2006,6 +2028,10 @@ struct RepoVisibilityCheckRow: View {
 
     @Environment(\.aturiTheme) private var theme
 
+    init(check: Shadowban.ShadowbanCheck) {
+        self.check = check
+    }
+
     private var statusWords: String {
         switch check.status {
         case .pass: return "pass"
@@ -2077,6 +2103,12 @@ struct RepoVisibilityPostRow: View {
     let now: Date
 
     @Environment(\.aturiTheme) private var theme
+
+    init(post: Shadowban.RepoPost, evidence: Shadowban.Evidence, now: Date) {
+        self.post = post
+        self.evidence = evidence
+        self.now = now
+    }
 
     private var kind: String {
         guard let reply = post.reply else { return "Post" }
