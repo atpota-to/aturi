@@ -100,8 +100,9 @@ public final class HandleDebugModel {
         let gen = generation
         evidence = HandleDebug.Evidence(handle: handle)
         isRunning = true
-        let run = Task { [weak self] in
-            await self?.investigate(handle, gen)
+        let run = Task<Void, Never> { [weak self] in
+            guard let self else { return }
+            await self.investigate(handle, gen)
         }
         task = run
         return run

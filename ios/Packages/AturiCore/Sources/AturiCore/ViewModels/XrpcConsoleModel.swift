@@ -602,7 +602,7 @@ public final class XrpcConsoleModel {
             }
         }
         if authority == nil {
-            authority = await slingshot.resolveMiniDoc(UFOsClient.publisherForNsid(nsid))?.did
+            authority = await slingshot.resolveMiniDoc(NSID.publisherForNsid(nsid))?.did
         }
         guard let authority else { return nil }
 

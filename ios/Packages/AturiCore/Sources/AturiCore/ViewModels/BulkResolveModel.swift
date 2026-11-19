@@ -96,8 +96,9 @@ public final class BulkResolveModel {
         let gen = generation
         let entries = list.entries
         isRunning = true
-        let run = Task { [weak self] in
-            await self?.resolveAll(entries, gen)
+        let run = Task<Void, Never> { [weak self] in
+            guard let self else { return }
+            await self.resolveAll(entries, gen)
         }
         task = run
         return run

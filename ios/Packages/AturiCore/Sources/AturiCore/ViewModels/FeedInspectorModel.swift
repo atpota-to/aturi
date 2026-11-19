@@ -63,8 +63,9 @@ public final class FeedInspectorModel {
         }
         evidence = FeedInspector.Evidence(authority: target.authority, rkey: target.rkey)
         isRunning = true
-        let started = Task { [weak self] in
-            await self?.investigate(target, cursor: cursor, gen: gen)
+        let started = Task<Void, Never> { [weak self] in
+            guard let self else { return }
+            await self.investigate(target, cursor: cursor, gen: gen)
         }
         task = started
         return started

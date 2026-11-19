@@ -199,8 +199,9 @@ public final class RelayCheckModel {
         input = parsed
         guard parsed.isValid else { return nil }
         isResolving = true
-        let next = Task { [weak self] in
-            await self?.resolve(parsed, generation: gen)
+        let next = Task<Void, Never> { [weak self] in
+            guard let self else { return }
+            await self.resolve(parsed, generation: gen)
         }
         task = next
         return next

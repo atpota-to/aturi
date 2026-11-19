@@ -717,7 +717,7 @@ public enum LexiconPublishing {
 
     /// The handle the lexicons explorer would try for an NSID with no DNS record.
     public static func conventionHandle(_ nsid: String) -> String {
-        UFOsClient.publisherForNsid(nsid).lowercased()
+        NSID.publisherForNsid(nsid).lowercased()
     }
 
     /// The schema record the evidence turned up, by the spec's route or the convention's.
