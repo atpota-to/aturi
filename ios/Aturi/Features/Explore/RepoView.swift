@@ -386,7 +386,7 @@ struct RepoProfileCard: View {
                         }
                         if let pronouns = header.pronouns {
                             Text(pronouns)
-                                .font(.footnote.italic())
+                                .font(AturiFont.footnote.italic())
                                 .foregroundStyle(theme.textTertiary)
                         }
                     }
@@ -686,9 +686,7 @@ private struct RepoStatTile: View {
                     .foregroundStyle(theme.textPrimary)
                     .lineLimit(1)
             } else {
-                RoundedRectangle(cornerRadius: 3, style: .continuous)
-                    .fill(theme.bgTertiary)
-                    .frame(width: 48, height: 14)
+                SkeletonBar(width: 48, height: 14)
                     .accessibilityHidden(true)
             }
             if let sublabel {

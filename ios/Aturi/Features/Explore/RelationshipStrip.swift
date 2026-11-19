@@ -85,7 +85,7 @@ private struct RelationshipStripBody: View {
                 }
             } else {
                 Text(RelationshipModel.noSignalsCopy)
-                    .font(.caption.italic())
+                    .font(AturiFont.sans(.caption).italic())
                     .foregroundStyle(theme.textTertiary)
             }
         }

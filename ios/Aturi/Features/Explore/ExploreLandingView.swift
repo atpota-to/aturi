@@ -27,6 +27,7 @@ private struct ExploreLandingScreen: View {
     @Environment(AppRouter.self) private var router
     @Environment(\.openURL) private var openURL
     @Environment(\.aturiTheme) private var theme
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     init(history: SearchHistoryStore, sessionState: SessionState) {
         self.sessionState = sessionState
@@ -98,14 +99,15 @@ private struct ExploreLandingScreen: View {
 
     private var header: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Label("Atmosphere data explorer", systemImage: "binoculars")
+            Label("Atmosphere explorer", systemImage: "binoculars")
                 .aturiLabel()
                 .foregroundStyle(theme.textTertiary)
-            Text("Browse any repository.")
+            Text("Browse any repository")
                 .font(AturiFont.display)
                 .tracking(AturiFont.displayTracking)
                 .foregroundStyle(theme.textPrimary)
-            Text("Every account in the Atmosphere keeps its records in a public PDS. Browse collections, inspect identity history and follow backlinks.")
+            /* The web's intro, less "all from the browser". */
+            Text("Every account in the Atmosphere keeps its records in a public PDS. Browse collections, inspect identity history, follow backlinks, and edit your own records.")
                 .font(AturiFont.body)
                 .foregroundStyle(theme.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -114,13 +116,14 @@ private struct ExploreLandingScreen: View {
 
     private var searchArea: some View {
         @Bindable var model = model
+        let fieldShape = RoundedRectangle(cornerRadius: 10, style: .continuous)
         return VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 8) {
                 HStack(spacing: 8) {
                     Image(systemName: "magnifyingglass")
-                        .foregroundStyle(theme.textTertiary)
-                    TextField("handle, DID, at:// URI, or URL", text: $model.query)
-                        .font(AturiFont.monoSmall)
+                        .foregroundStyle(fieldFocused ? theme.textAccent : theme.textTertiary)
+                    TextField("Handle, DID, at:// URI or URL", text: $model.query)
+                        .font(AturiFont.body)
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
                         .keyboardType(.URL)
@@ -140,11 +143,24 @@ private struct ExploreLandingScreen: View {
                         }
                         .buttonStyle(.plain)
                         .accessibilityLabel("Clear search")
+                    } else {
+                        pasteAndGo
                     }
                 }
                 .padding(.horizontal, 12)
-                .padding(.vertical, 10)
-                .cardBackground(cornerRadius: AturiTheme.controlRadius)
+                .frame(minHeight: 48)
+                /* The web's search field (globals.css): 10pt corners on the
+                   strong edge, turning to the text accent with a 3pt soft
+                   halo while focused. */
+                .background(theme.bgSecondary, in: fieldShape)
+                .overlay(fieldShape.strokeBorder(fieldFocused ? theme.textAccent : theme.borderStrong, lineWidth: 1))
+                .background(
+                    RoundedRectangle(cornerRadius: 13, style: .continuous)
+                        .fill(theme.accentSoft)
+                        .padding(-3)
+                        .opacity(fieldFocused ? 1 : 0)
+                )
+                .animation(AturiMotion.animation(.easeOut(duration: AturiMotion.quick), reduceMotion: reduceMotion), value: fieldFocused)
 
                 Button(model.isResolving ? "Looking\u{2026}" : "Look up", action: submit)
                     .buttonStyle(.aturiSecondary)
@@ -297,6 +313,26 @@ private struct ExploreLandingScreen: View {
             )
         }
         .buttonStyle(.plain)
+    }
+
+    /// The web's Paste and go (5be4163), shown while the field is empty.
+    /// The system paste button reads the clipboard without iOS's "allow
+    /// paste" prompt. A pasted link or identifier goes straight through;
+    /// text with spaces in it stays in the field to be edited.
+    private var pasteAndGo: some View {
+        PasteButton(payloadType: String.self) { strings in
+            guard let text = strings.first?.trimmingCharacters(in: .whitespacesAndNewlines), !text.isEmpty else { return }
+            Task { @MainActor in
+                model.query = text
+                if !text.contains(where: \.isWhitespace) {
+                    submit()
+                }
+            }
+        }
+        .labelStyle(.iconOnly)
+        .buttonBorderShape(.capsule)
+        .controlSize(.small)
+        .accessibilityLabel("Paste and go")
     }
 
     private func submit() {

@@ -25,6 +25,7 @@ struct JetstreamView: View {
     @State private var wantsLive = false
 
     @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.aturiTheme) private var theme
     @Environment(\.displayScale) private var displayScale
 
@@ -113,7 +114,9 @@ struct JetstreamView: View {
             Image(systemName: "waveform.path.ecg")
                 .font(AturiFont.footnote)
                 .foregroundStyle(isLive ? theme.statusLive : theme.textTertiary)
-                .symbolEffect(.pulse, isActive: isLive)
+                /* The web dropped its continuous pulse (50beaa7): the dot
+                   holds still and answers once each time data lands. */
+                .symbolEffect(.bounce, options: .nonRepeating, value: reduceMotion ? 0 : model.stats.total)
                 .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 2) {
                 Text(JetstreamModel.title)

@@ -93,9 +93,7 @@ struct LexiconGroupView: View {
                     .foregroundStyle(theme.textTertiary)
                     .fixedSize(horizontal: false, vertical: true)
             } else if model.isPrefixView, model.entries.isIdle || model.entries.isLoading {
-                RoundedRectangle(cornerRadius: 4, style: .continuous)
-                    .fill(theme.bgTertiary)
-                    .frame(width: 200, height: 12)
+                SkeletonBar(width: 200, height: 11)
                     .accessibilityLabel("Loading")
             }
             if let appDomain, let url = URL(string: "https://\(appDomain)") {

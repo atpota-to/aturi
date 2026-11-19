@@ -235,9 +235,7 @@ struct LexiconDetailView: View {
             Text(metric.label)
                 .aturiLabel()
                 .foregroundStyle(theme.textTertiary)
-            RoundedRectangle(cornerRadius: 4, style: .continuous)
-                .fill(theme.bgTertiary)
-                .frame(width: 56, height: 22)
+            SkeletonBar(width: 56, height: 22, cornerRadius: AturiTheme.controlRadius)
         }
         .padding(12)
         .frame(maxWidth: .infinity, alignment: .leading)

@@ -92,7 +92,7 @@ struct BacklinksSection: View {
     private var unavailable: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(BacklinksModel.unavailableMessage)
-                .font(.footnote.italic())
+                .font(AturiFont.footnote.italic())
                 .foregroundStyle(theme.textSecondary)
             HStack(spacing: 12) {
                 Button("Retry") {

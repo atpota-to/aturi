@@ -57,19 +57,25 @@ struct SessionBadge: View {
                 Label("Sign out", systemImage: "rectangle.portrait.and.arrow.right")
             }
         } label: {
-            HStack(spacing: 6) {
-                AvatarView(url: avatar, size: 22)
+            /* The web's account chip (1d9c62b): a squared-off avatar in a
+               control-radius chip with the strong edge, the handle in the
+               sans at 600. */
+            HStack(spacing: 7) {
+                AvatarView(url: avatar, size: 24, squareCornerRadius: 6)
                 Text(name)
-                    .font(AturiFont.monoSmall)
+                    .font(AturiFont.sans(.subheadline, weight: .semibold))
                     .foregroundStyle(theme.textPrimary)
                     .lineLimit(1)
                     .truncationMode(.middle)
             }
-            .padding(.leading, 3)
+            .padding(.leading, 4)
             .padding(.trailing, 10)
-            .padding(.vertical, 3)
-            .background(theme.bgSecondary, in: Capsule())
-            .overlay(Capsule().strokeBorder(theme.borderMedium, lineWidth: AturiTheme.hairline(displayScale: displayScale)))
+            .padding(.vertical, 4)
+            .background(theme.bgSecondary, in: RoundedRectangle(cornerRadius: AturiTheme.controlRadius, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: AturiTheme.controlRadius, style: .continuous)
+                    .strokeBorder(theme.borderStrong, lineWidth: AturiTheme.hairline(displayScale: displayScale))
+            )
         }
         .accessibilityLabel("Signed in as \(name)")
         .task(id: account.did) {
