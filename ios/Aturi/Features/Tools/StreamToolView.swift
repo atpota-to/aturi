@@ -22,11 +22,7 @@ struct StreamToolView: View {
 
     @State private var model: StreamMonitorModel
     @State private var filtersOpen = false
-    /// Where the visible part of the page starts, and where the list
-    /// starts, in window coordinates: the list counts as scrolled away once
-    /// its top passes under the navigation bar.
-    @State private var viewportTop: CGFloat = 0
-    @State private var listTop: CGFloat = 0
+    @State private var scroll = StreamScrollGeometry()
     @State private var scrollToTop = 0
 
     @Environment(\.scenePhase) private var scenePhase
@@ -50,7 +46,7 @@ struct StreamToolView: View {
             StreamHeadForm(model: model)
         } content: {
             ScrollViewReader { proxy in
-                StreamListSection(model: model, open: open)
+                StreamListSection(model: model, open: open, onTop: listMoved)
                     .onChange(of: scrollToTop) { _, _ in
                         withAnimation(.easeOut(duration: 0.2)) {
                             proxy.scrollTo(StreamListSection.topID, anchor: .top)
@@ -60,17 +56,13 @@ struct StreamToolView: View {
         }
         .background(
             GeometryReader { geometry in
-                Color.clear.preference(key: StreamViewportTopKey.self, value: geometry.frame(in: .global).minY)
+                Color.clear
+                    .onChange(of: geometry.frame(in: .global).minY, initial: true) { _, top in
+                        scroll.viewportTop = top
+                        updateScrolledAway()
+                    }
             }
         )
-        .onPreferenceChange(StreamViewportTopKey.self) { value in
-            viewportTop = value
-            updateScrolledAway()
-        }
-        .onPreferenceChange(StreamListTopKey.self) { value in
-            listTop = value
-            updateScrolledAway()
-        }
         .safeAreaInset(edge: .bottom, spacing: 0) {
             StreamBottomBar(model: model, filtersOpen: $filtersOpen, showLatest: showLatest)
         }
@@ -118,27 +110,27 @@ struct StreamToolView: View {
         scrollToTop += 1
     }
 
+    private func listMoved(_ top: CGFloat) {
+        scroll.listTop = top
+        updateScrolledAway()
+    }
+
+    /// The list counts as scrolled away once its top passes under the
+    /// navigation bar, the web's `scrollTop > 8`.
     private func updateScrolledAway() {
         // Before the first layout both read zero; nothing is scrolled yet.
-        guard viewportTop != 0 || listTop != 0 else { return }
-        model.setScrolledAway(listTop < viewportTop - 8)
+        guard scroll.viewportTop != 0 || scroll.listTop != 0 else { return }
+        model.setScrolledAway(scroll.listTop < scroll.viewportTop - 8)
     }
 }
 
-private struct StreamViewportTopKey: PreferenceKey {
-    static let defaultValue: CGFloat = 0
-
-    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
-        value = nextValue()
-    }
-}
-
-private struct StreamListTopKey: PreferenceKey {
-    static let defaultValue: CGFloat = 0
-
-    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
-        value = nextValue()
-    }
+/// Where the visible part of the page starts and where the list starts, in
+/// window coordinates. A plain class rather than observed state: it changes
+/// on every frame of a scroll, and only the list's top crossing the page's
+/// is worth drawing anything for.
+private final class StreamScrollGeometry {
+    var viewportTop: CGFloat = 0
+    var listTop: CGFloat = 0
 }
 
 // MARK: - Head card
@@ -280,6 +272,8 @@ private struct StreamListSection: View {
 
     let model: StreamMonitorModel
     let open: (Int) -> Void
+    /// The list's top in window coordinates, as it moves.
+    let onTop: (CGFloat) -> Void
 
     @Environment(\.aturiTheme) private var theme
 
@@ -312,7 +306,10 @@ private struct StreamListSection: View {
         .id(StreamListSection.topID)
         .background(alignment: .top) {
             GeometryReader { geometry in
-                Color.clear.preference(key: StreamListTopKey.self, value: geometry.frame(in: .global).minY)
+                Color.clear
+                    .onChange(of: geometry.frame(in: .global).minY, initial: true) { _, top in
+                        onTop(top)
+                    }
             }
         }
     }
