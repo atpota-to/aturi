@@ -1109,10 +1109,15 @@
    the what's-new sheet and anything else pinned to the bottom stand on.
    The header's toolbar is a fixed 65px (a 44px field, 10px above and below,
    the 1px top rule) plus the home-indicator inset; the explorer's is
-   measured, since a confirm step can make it taller. */
+   measured, since a confirm step can make it taller.
+
+   --fn-phone-bar-slim-h is the header's toolbar while it is slim on a
+   scroll (below: a 32px field, 4px above and below, the 1px top rule, and
+   the inset), for anything that keeps standing on the bar as it shrinks. */
 
 :root {
   --fn-phone-bar-h: calc(65px + env(safe-area-inset-bottom, 0px));
+  --fn-phone-bar-slim-h: calc(41px + env(safe-area-inset-bottom, 0px));
 }
 
 body.has-explore-chrome {
