@@ -777,8 +777,12 @@ public final class BacklinksModel {
         list.isDone = batch.isDone
         list.failed = batch.failed
         lists[key] = list
+        /* The whole list, not only this batch: a lookup that failed or was
+           cut off earlier is asked again, as the web's rows ask about every
+           item each time the list changes. The store skips what it already
+           knows or has in flight. */
         if hydrates, !batch.items.isEmpty {
-            await details.hydrate(batch.items.map(\.record))
+            await details.hydrate(list.items.map(\.record))
         }
     }
 
