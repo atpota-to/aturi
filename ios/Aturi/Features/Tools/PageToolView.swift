@@ -12,6 +12,10 @@ import AturiCore
 struct PageToolView: View {
     let query: [String: String]
 
+    init(query: [String: String]) {
+        self.query = query
+    }
+
     @State private var model = PageCheckerModel()
     @State private var text = ""
     @State private var started = false

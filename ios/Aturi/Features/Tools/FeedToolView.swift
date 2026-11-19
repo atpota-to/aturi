@@ -13,6 +13,10 @@ import AturiCore
 struct FeedToolView: View {
     let query: [String: String]
 
+    init(query: [String: String]) {
+        self.query = query
+    }
+
     @State private var model = FeedInspectorModel()
     @State private var text = ""
     @State private var started = false
@@ -332,6 +336,11 @@ struct ServicesExamples: View {
     let examples: [ServicesExample]
     let pick: (String) -> Void
 
+    init(examples: [ServicesExample], pick: @escaping (String) -> Void) {
+        self.examples = examples
+        self.pick = pick
+    }
+
     @Environment(\.aturiTheme) private var theme
 
     var body: some View {
@@ -372,6 +381,10 @@ extension ServiceCheckStatus {
 /// The verdict above a check list: the web's `ToolVerdict`.
 struct ServicesVerdictCard: View {
     let verdict: ServiceVerdict
+
+    init(verdict: ServiceVerdict) {
+        self.verdict = verdict
+    }
 
     @Environment(\.aturiTheme) private var theme
 
@@ -432,6 +445,10 @@ struct ServicesVerdictCard: View {
 struct ServicesCheckList: View {
     let checks: [ServiceCheck]
 
+    init(checks: [ServiceCheck]) {
+        self.checks = checks
+    }
+
     @Environment(\.aturiTheme) private var theme
 
     var body: some View {
@@ -448,6 +465,10 @@ struct ServicesCheckList: View {
 
 struct ServicesCheckRow: View {
     let check: ServiceCheck
+
+    init(check: ServiceCheck) {
+        self.check = check
+    }
 
     @Environment(\.aturiTheme) private var theme
 
@@ -493,6 +514,10 @@ struct ServicesCheckRow: View {
 struct ServicesInputError: View {
     let message: String
 
+    init(message: String) {
+        self.message = message
+    }
+
     @Environment(\.aturiTheme) private var theme
 
     var body: some View {
@@ -523,6 +548,12 @@ struct ServicesIntro: View {
     var title: String = "What it checks"
     let items: [ServicesIntroItem]
     var note: String? = nil
+
+    init(title: String = "What it checks", items: [ServicesIntroItem], note: String? = nil) {
+        self.title = title
+        self.items = items
+        self.note = note
+    }
 
     @Environment(\.aturiTheme) private var theme
 
@@ -563,6 +594,11 @@ struct ServicesIntro: View {
 struct ServicesCodeBlock: View {
     let text: String
     let label: String
+
+    init(text: String, label: String) {
+        self.text = text
+        self.label = label
+    }
 
     @Environment(\.aturiTheme) private var theme
     @State private var copied = false

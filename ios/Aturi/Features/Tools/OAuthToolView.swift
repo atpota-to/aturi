@@ -11,6 +11,10 @@ import AturiCore
 struct OAuthToolView: View {
     let query: [String: String]
 
+    init(query: [String: String]) {
+        self.query = query
+    }
+
     @State private var model = OAuthCheckerModel()
     @State private var clientText = ""
     @State private var scopeText = ""
