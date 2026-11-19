@@ -39,13 +39,13 @@ public final class RelayStatusModel {
         self.hostname = hostname
         results = relays.map { RelayCheck.RelayResult(relay: $0) }
         isLoading = true
-        let client = client
-        let relays = relays
+        let asker = client
+        let list = relays
         let next = Task { [weak self] in
             await withTaskGroup(of: (index: Int, answer: RelayCheck.Answer).self) { group in
-                for (index, relay) in relays.enumerated() {
+                for (index, relay) in list.enumerated() {
                     group.addTask {
-                        let answer = await client.ask(relay, about: hostname)
+                        let answer = await asker.ask(relay, about: hostname)
                         return (index: index, answer: answer)
                     }
                 }
@@ -226,20 +226,20 @@ public final class RelayCheckModel {
     }
 
     private func resolve(_ input: RelayCheck.Input, generation gen: Int) async {
-        let client = client
+        let asker = client
         switch input {
         case .invalid:
             isResolving = false
         case .host(let host):
             publish(Target(host: host), generation: gen)
-            let probe = await client.probe(host)
+            let probe = await asker.probe(host)
             settle(probe, generation: gen)
         case .account(let identifier):
-            let mini = await client.resolveAccount(identifier)
+            let mini = await asker.resolveAccount(identifier)
             await fromAccount(mini, identifier: identifier, generation: gen)
         case .either(let host):
-            async let probeLookup = client.probe(host)
-            async let miniLookup = client.resolveAccount(host)
+            async let probeLookup = asker.probe(host)
+            async let miniLookup = asker.resolveAccount(host)
             let probe = await probeLookup
             let mini = await miniLookup
             guard gen == generation, !Task.isCancelled else { return }

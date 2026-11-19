@@ -614,8 +614,8 @@ public final class PDSModel {
         for did in dids {
             profilePending.insert(did)
         }
-        let appView = appView
-        let result = await appView.getProfilesResult(dids)
+        let lookup = appView
+        let result = await lookup.getProfilesResult(dids)
         // A reload or a cancel has already cleared the pending set.
         guard gen == generation, !Task.isCancelled else { return }
         for did in dids {
@@ -706,13 +706,13 @@ public final class PDSModel {
     }
 
     private func named(_ row: PDSRepoRow) -> PDSRepoRow {
-        guard let name = name(for: row.did) else { return row }
-        var row = row
-        row.handle = name.handle
-        row.displayName = name.displayName
-        row.avatar = name.avatar
-        row.nameSettled = true
-        return row
+        guard let known = name(for: row.did) else { return row }
+        var filled = row
+        filled.handle = known.handle
+        filled.displayName = known.displayName
+        filled.avatar = known.avatar
+        filled.nameSettled = true
+        return filled
     }
 
     /// The accounts under the status and commit filters, in the order asked
@@ -723,10 +723,10 @@ public final class PDSModel {
         let kept = all.filter { row in
             PDSExplorer.matchesStatus(row.standing, status) && PDSExplorer.matchesCommit(row.revDate, commit, now: now)
         }
-        let sort = sort
-        let desc = desc
+        let order = sort
+        let descending = desc
         let ordered = kept.sorted { a, b in
-            PDSExplorer.compareAccounts(a.sortable, b.sortable, sort: sort, desc: desc) < 0
+            PDSExplorer.compareAccounts(a.sortable, b.sortable, sort: order, desc: descending) < 0
         }
         let needle = query
         let visible = needle.isEmpty ? ordered : ordered.filter { $0.matches(needle) }

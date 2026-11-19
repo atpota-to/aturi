@@ -171,8 +171,10 @@ public enum PDSExplorer {
             account: accountParam.hasPrefix("did:") ? accountParam : nil
         )
 
-        let named = query["tab"].flatMap { Tab(rawValue: $0) }
-        let tab: Tab? = named ?? (accounts.narrowsAccounts ? .accounts : nil)
+        var tab = query["tab"].flatMap { Tab(rawValue: $0) }
+        if tab == nil && accounts.narrowsAccounts {
+            tab = .accounts
+        }
         if tab == .accounts {
             var loc = accounts
             loc.tab = .accounts
