@@ -265,6 +265,7 @@ export function LedgerThread({
   relationOfAuthor,
   focus,
   onFocus,
+  onSelect,
 }: {
   root: ThreadPost;
   current: string;
@@ -311,7 +312,12 @@ export function LedgerThread({
                 data-current={current === post.uri || undefined}
                 {...markProps(
                   () => onFocus({ kind: 'post', post }),
-                  canOpen ? () => setTop([...top, post]) : undefined,
+                  canOpen || onSelect
+                    ? () => {
+                        onSelect?.({ kind: 'post', post });
+                        if (canOpen) setTop([...top, post]);
+                      }
+                    : undefined,
                   w > 6,
                 )}
               >

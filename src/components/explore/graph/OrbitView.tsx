@@ -143,6 +143,7 @@ export function OrbitThread({
   relationOfAuthor,
   focus,
   onFocus,
+  onSelect,
 }: {
   root: ThreadPost;
   current: string;
@@ -183,9 +184,10 @@ export function OrbitThread({
             const isRoot = p === root;
             const r = isRoot ? 24 : Math.min(18, 4 + Math.sqrt(p.likes) * 1.6);
             const show = () => onFocus({ kind: 'post', post: p });
+            const pick = onSelect && (() => onSelect({ kind: 'post', post: p }));
             const label = `${p.displayName || p.handle}: ${truncate(p.text, 80) || 'no text'}`;
             return isRoot ? (
-              <g key={p.uri} className="fx-graph-mark fx-graph-arrive" role="img" aria-label={label} {...markProps(show)}>
+              <g key={p.uri} className="fx-graph-mark fx-graph-arrive" role="img" aria-label={label} {...markProps(show, pick)}>
                 <Face x={q.x} y={q.y} r={r} avatar={p.avatar} name={p.handle || p.did} ring={relationColor('op')} />
               </g>
             ) : (
@@ -201,7 +203,7 @@ export function OrbitThread({
                 fill={relationColor(relationOfAuthor(p.did))}
                 role="img"
                 aria-label={label}
-                {...markProps(show, undefined, i < TABBABLE)}
+                {...markProps(show, pick, i < TABBABLE)}
               />
             );
           })}
