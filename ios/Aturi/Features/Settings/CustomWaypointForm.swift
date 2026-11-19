@@ -280,6 +280,8 @@ struct CustomWaypointForm: View {
         let trimmedDescription = descriptionText.trimmingCharacters(in: .whitespacesAndNewlines)
         let familyList = WaypointCatalog.compatFamilyOrder.filter { families.contains($0) }
 
+        /* An edited waypoint keeps what this app cannot show: types, template
+           keys, families and fields a newer client wrote. */
         let waypoint = CustomWaypoint(
             id: initial?.id ?? CustomWaypoint.newId(),
             name: trimmedName,
@@ -287,7 +289,8 @@ struct CustomWaypointForm: View {
             description: trimmedDescription.isEmpty ? nil : trimmedDescription,
             supportedTypes: enabledTypes,
             templates: filled,
-            redirectCompat: familyList.isEmpty ? nil : familyList
+            redirectCompat: familyList.isEmpty ? nil : familyList,
+            passthrough: initial?.passthrough ?? CustomWaypointPassthrough()
         )
         onSave(waypoint)
         dismiss()

@@ -945,10 +945,12 @@ public final class RepoModel {
     /// The `/explore/...` path segment for this repo.
     public var repoSegment: String? { identity.value.map { encodeRepo($0.handle ?? $0.did) } }
 
-    /// The not-found panel body when the identifier did not resolve.
+    /// The not-found panel body when the identifier did not resolve, in
+    /// the web's words; the resolver's own error goes under "Technical
+    /// details".
     public var notFoundMessage: String? {
-        identity.errorMessage.map {
-            "We tried to resolve \"\(input)\" and the AT Protocol resolver returned: \($0). Try a handle, DID, or AT URI below."
+        identity.errorMessage.map { _ in
+            "We couldn\u{2019}t find an account for \u{201C}\(input)\u{201D}. Check the spelling, or try a DID or an at:// URI below."
         }
     }
 

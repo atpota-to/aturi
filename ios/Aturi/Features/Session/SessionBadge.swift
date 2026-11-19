@@ -7,6 +7,7 @@ import AturiCore
 struct SessionBadge: View {
     @Environment(\.sessionStore) private var sessionStore
     @Environment(PreferencesStore.self) private var preferences
+    @Environment(AppRouter.self) private var router: AppRouter?
     @Environment(\.aturiTheme) private var theme
     @Environment(\.displayScale) private var displayScale
     @State private var avatar: String?
@@ -34,23 +35,47 @@ struct SessionBadge: View {
     private func signedIn(_ account: OAuthSession) -> some View {
         let name = account.handle ?? shortDid(account.did)
         return Menu {
-            Button("Sign out", role: .destructive) {
+            /* The web's session menu (SessionMenu.tsx): the account's own
+               repo, Settings, then Sign out. */
+            if let router {
+                Button {
+                    router.open(.repo(account.did), in: .explore)
+                } label: {
+                    Label("My repo in Explorer", systemImage: "binoculars")
+                }
+                Button {
+                    router.popToRoot(.settings)
+                    router.select(.settings)
+                } label: {
+                    Label("Settings", systemImage: "gearshape")
+                }
+                Divider()
+            }
+            Button(role: .destructive) {
                 Task { await sessionStore.signOut() }
+            } label: {
+                Label("Sign out", systemImage: "rectangle.portrait.and.arrow.right")
             }
         } label: {
-            HStack(spacing: 6) {
-                AvatarView(url: avatar, size: 22)
+            /* The web's account chip (1d9c62b): a squared-off avatar in a
+               control-radius chip with the strong edge, the handle in the
+               sans at 600. */
+            HStack(spacing: 7) {
+                AvatarView(url: avatar, size: 24, squareCornerRadius: 6)
                 Text(name)
-                    .font(AturiFont.monoSmall)
+                    .font(AturiFont.sans(.subheadline, weight: .semibold))
                     .foregroundStyle(theme.textPrimary)
                     .lineLimit(1)
                     .truncationMode(.middle)
             }
-            .padding(.leading, 3)
+            .padding(.leading, 4)
             .padding(.trailing, 10)
-            .padding(.vertical, 3)
-            .background(theme.bgSecondary, in: Capsule())
-            .overlay(Capsule().strokeBorder(theme.borderMedium, lineWidth: AturiTheme.hairline(displayScale: displayScale)))
+            .padding(.vertical, 4)
+            .background(theme.bgSecondary, in: RoundedRectangle(cornerRadius: AturiTheme.controlRadius, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: AturiTheme.controlRadius, style: .continuous)
+                    .strokeBorder(theme.borderStrong, lineWidth: AturiTheme.hairline(displayScale: displayScale))
+            )
         }
         .accessibilityLabel("Signed in as \(name)")
         .task(id: account.did) {

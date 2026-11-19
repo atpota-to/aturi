@@ -343,6 +343,39 @@
   font-weight: 600;
 }
 
+/* ─── Moving cards in the tree drawings ─────────────────────────────────
+
+   A mouse or pen can drag a card (and what hangs off it) out of the way;
+   the card lifts while it's held. A card on its way out after its branch
+   closed can't be pointed at. Tidy, in the flow's corner or the thread
+   explorer's toolbar, puts moved cards back. */
+
+[data-mnode][data-lifted] .fx-graph-card {
+  filter: drop-shadow(0 6px 14px rgb(0 0 0 / 0.18));
+}
+
+[data-mnode][data-leaving] {
+  pointer-events: none;
+}
+
+g[data-moving],
+g[data-moving] .fx-graph-mark,
+.fx-tx-canvas[data-moving] {
+  cursor: grabbing;
+}
+
+.fx-graph-flow-frame {
+  position: relative;
+  min-width: 0;
+}
+
+.fx-graph-tidy {
+  position: absolute;
+  top: 8px;
+  right: 20px;
+  box-shadow: var(--shadow-overlay);
+}
+
 /* ─── Detail panel ───────────────────────────────────────────────────── */
 
 .fx-graph-detail {
@@ -816,8 +849,9 @@
    The drawing fills in as the read lands: a dot pops in when its account is
    found and glides to another ring when a follow-back or a count of follows
    in common arrives (.fx-graph-place carries the position as a transform, so
-   the move animates everywhere); bands and blocks fade in; flow cards slide
-   in a column at a time. Nothing moves for anyone who asked for less motion. */
+   the move animates everywhere); bands and blocks fade in. The tree drawings
+   (flow charts and the thread explorer) animate their cards from script, in
+   graph/motion.ts. Nothing moves for anyone who asked for less motion. */
 
 @media (prefers-reduced-motion: no-preference) {
   .fx-graph-arrive {
@@ -828,10 +862,6 @@
 
   .fx-graph-fade {
     animation: fx-graph-fade-in 0.5s ease-out both;
-  }
-
-  .fx-graph-slide {
-    animation: fx-graph-slide-in 0.4s cubic-bezier(0.2, 0.7, 0.3, 1) both;
   }
 
   .fx-graph-place {
@@ -868,13 +898,6 @@
 @keyframes fx-graph-fade-in {
   from {
     opacity: 0;
-  }
-}
-
-@keyframes fx-graph-slide-in {
-  from {
-    opacity: 0;
-    transform: translateX(-10px);
   }
 }
 
@@ -1623,9 +1646,11 @@ button.fx-tx-stat:disabled {
   opacity: 0.18;
 }
 
-.fx-tx-canvas[data-spot] .fx-graph-slide,
-.fx-tx-canvas[data-spot] .fx-graph-fade,
-.fx-tx-canvas[data-spot] .fx-tx-arc {
+/* Not the card's own <g> or the edge's <path>: the motion engine writes
+   their opacity a frame at a time as they arrive and leave. */
+.fx-tx-canvas [data-mnode] > g,
+.fx-tx-canvas .fx-tx-edge-wrap,
+.fx-tx-canvas .fx-tx-arc {
   transition: opacity 160ms ease;
 }
 

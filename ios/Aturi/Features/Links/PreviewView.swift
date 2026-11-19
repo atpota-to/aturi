@@ -31,6 +31,8 @@ private struct PreviewScreen: View {
     @State private var model: LinkResolverModel
     /// Settled once, on first appearance.
     @State private var openedFromLink = false
+    /// The incoming link carried `?stay=1`: show the picker, never count down.
+    @State private var stayRequested = false
     @State private var originDecided = false
     /// The countdown runs at most once per page, however often the link
     /// re-resolves (pull to refresh sets `link` again).
@@ -95,7 +97,7 @@ private struct PreviewScreen: View {
         .onChange(of: model.link) { _, link in
             guard let link else { return }
             RecentLinksStore.shared.record(input: link.aturiLink, label: link.displayName, detail: link.collection)
-            if openedFromLink, !autoRedirectOffered {
+            if openedFromLink, !stayRequested, !autoRedirectOffered {
                 autoRedirectOffered = true
                 model.armAutoRedirect()
             }
@@ -271,6 +273,7 @@ private struct PreviewScreen: View {
         guard !originDecided else { return }
         originDecided = true
         let pushedInApp = LinkNavigation.consumeInAppPreview(components)
+        stayRequested = LinkNavigation.consumeStay(components)
         openedFromLink = !pushedInApp && router?.selectedTab == .links
     }
 }

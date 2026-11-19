@@ -11,6 +11,9 @@ struct CopyRow: View {
 
     @Environment(\.aturiTheme) private var theme
     @State private var copied = false
+    /// The pending "back to Copy" reset; a second tap restarts the beat
+    /// rather than being cut short by the first tap's timer.
+    @State private var resetTask: Task<Void, Never>?
 
     init(label: String, value: String, mono: Bool = true) {
         self.label = label
@@ -39,12 +42,14 @@ struct CopyRow: View {
                             .font(AturiFont.caption)
                     }
                     Image(systemName: copied ? "checkmark" : "doc.on.doc")
+                        .contentTransition(.symbolEffect(.replace))
                 }
                 .foregroundStyle(copied ? theme.textAccent : theme.textSecondary)
                 .padding(.vertical, 6)
                 .padding(.horizontal, 8)
             }
             .buttonStyle(.plain)
+            .sensoryFeedback(.success, trigger: copied) { _, now in now }
             .accessibilityLabel(copied ? "Copied" : "Copy \(label)")
         }
         .padding(.vertical, 6)
@@ -55,8 +60,10 @@ struct CopyRow: View {
         withAnimation(.easeInOut(duration: 0.15)) {
             copied = true
         }
-        Task { @MainActor in
+        resetTask?.cancel()
+        resetTask = Task { @MainActor in
             try? await Task.sleep(for: .seconds(1.5))
+            guard !Task.isCancelled else { return }
             withAnimation(.easeInOut(duration: 0.15)) {
                 copied = false
             }

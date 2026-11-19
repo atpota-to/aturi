@@ -1,14 +1,13 @@
 'use client';
 
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { createPortal } from 'react-dom';
-import { Ban, Maximize2, Minus, Plus, Scan, X } from 'lucide-react';
+import { Ban, Maximize2, Minus, Plus, RotateCcw, Scan, X } from 'lucide-react';
 import {
   defaultFolds,
   flattenThread,
   relationOf,
   treeLayout,
-  type PlacedNode,
   type Relation,
   type ThreadPost,
 } from '@/lib/socialGraph';
@@ -45,6 +44,7 @@ import {
   type ThreadGraph,
 } from '@/utils/atproto/graphData';
 import { loadThreadInsights, type ThreadInsights } from '@/utils/atproto/threadInsightsData';
+import { useTreeMotion, type MotionNode } from './motion';
 import {
   Face,
   GraphDefs,
@@ -803,7 +803,13 @@ function Explorer({ uri, onClose }: { uri: string; onClose: () => void }) {
     if (tree) walk(tree);
     return m;
   }, [tree]);
-  const placed = useMemo(() => new Map((layout?.nodes ?? []).map((n) => [n.key, n])), [layout]);
+  const motionNodes = useMemo<MotionNode<XNode>[]>(
+    () => layout?.nodes.map((p) => ({ key: p.key, x: p.x, y: p.y, w: p.w, h: p.h, parent: p.parent, data: byKey.get(p.key)! })) ?? [],
+    [layout, byKey],
+  );
+  const motion = useTreeMotion(motionNodes, zoom);
+  /** The cards as drawn now, after any drags, without the ones folding away. */
+  const shownItems = useMemo(() => motion.items.filter((it) => !it.leaving), [motion.items]);
   // Where each post is first drawn: in the thread before any quote branch.
   const keyOfUri = useMemo(() => {
     const m = new Map<string, string>();
@@ -816,53 +822,52 @@ function Explorer({ uri, onClose }: { uri: string; onClose: () => void }) {
 
   /* ---------------- moving around ---------------- */
 
-  const placeOf = useCallback((key: string) => placed.get(key) ?? null, [placed]);
+  const placeOf = motion.place;
 
   // Open on the post the explorer was opened from, in the middle.
   const started = useRef(false);
+  const autoScroll = useRef<{ left: number; top: number } | null>(null);
+  const focusKey = useMemo(
+    () => (thread ? ([...byKey.values()].find((n) => n.kind === 'post' && n.post.uri === thread.focus)?.key ?? thread.root.uri) : null),
+    [thread, byKey],
+  );
   useEffect(() => {
     const box = boxRef.current;
-    if (!box || !layout || !thread || started.current) return;
+    if (!box || !layout || !focusKey || started.current) return;
     started.current = true;
-    const key = [...byKey.values()].find((n) => n.kind === 'post' && n.post.uri === thread.focus)?.key ?? thread.root.uri;
-    const p = placeOf(key);
+    const p = placeOf(focusKey);
     if (p) {
       box.scrollLeft = Math.max(0, (p.x + PAD) * zoom - box.clientWidth / 3);
       box.scrollTop = Math.max(0, (p.y + PAD + p.h / 2) * zoom - box.clientHeight / 2);
+      autoScroll.current = { left: box.scrollLeft, top: box.scrollTop };
     }
-  }, [layout, thread, byKey, placeOf, zoom]);
+  }, [layout, focusKey, placeOf, zoom]);
 
-  // When the tree changes shape (a branch opens, left-out replies arrive,
-  // the order changes), the card nearest the middle of the screen stays
-  // where it was on screen, so nothing slides out from under the reader.
+  // Left-out replies land a moment after the thread and push the cards
+  // around them aside. If the reader hasn't moved the view yet, it follows
+  // the post it opened on as that glides to its new place.
+  const followed = useRef(false);
+  const cutsKnown = !!insights && insights.stage !== 'reading';
+  useEffect(() => {
+    const box = boxRef.current;
+    const at = autoScroll.current;
+    if (followed.current || !cutsKnown || !box || !at || !focusKey) return;
+    followed.current = true;
+    if (Math.abs(box.scrollLeft - at.left) > 2 || Math.abs(box.scrollTop - at.top) > 2) return;
+    const p = placeOf(focusKey);
+    if (!p) return;
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    box.scrollTo({
+      left: Math.max(0, (p.x + PAD) * zoom - box.clientWidth / 3),
+      top: Math.max(0, (p.y + PAD + p.h / 2) * zoom - box.clientHeight / 2),
+      behavior: reduce ? 'auto' : 'smooth',
+    });
+  }, [cutsKnown, focusKey, placeOf, zoom]);
+
   const zoomRef = useRef(zoom);
   useEffect(() => {
     zoomRef.current = zoom;
   }, [zoom]);
-  const prevPlaced = useRef<Map<string, PlacedNode> | null>(null);
-  useLayoutEffect(() => {
-    const box = boxRef.current;
-    const prev = prevPlaced.current;
-    prevPlaced.current = placed;
-    if (!box || !prev || prev === placed || !started.current || !placed.size) return;
-    const z = zoomRef.current;
-    const cx = (box.scrollLeft + box.clientWidth / 2) / z - PAD;
-    const cy = (box.scrollTop + box.clientHeight / 2) / z - PAD;
-    let anchor: PlacedNode | null = null;
-    let best = Infinity;
-    for (const p of prev.values()) {
-      if (!placed.has(p.key)) continue;
-      const d = Math.hypot(p.x + p.w / 2 - cx, p.y + p.h / 2 - cy);
-      if (d < best) {
-        best = d;
-        anchor = p;
-      }
-    }
-    if (!anchor) return;
-    const now = placed.get(anchor.key)!;
-    if (now.x !== anchor.x) box.scrollLeft += (now.x - anchor.x) * z;
-    if (now.y !== anchor.y) box.scrollTop += (now.y - anchor.y) * z;
-  }, [placed]);
 
   // After a branch opens, bring it into view, moving no further than needed.
   useEffect(() => {
@@ -870,7 +875,7 @@ function Explorer({ uri, onClose }: { uri: string; onClose: () => void }) {
     if (!box || !reveal) return;
     const p = placeOf(reveal);
     if (!p) return;
-    const kids = layout!.nodes.filter((n) => n.parent === reveal);
+    const kids = shownItems.filter((n) => n.parent === reveal);
     const right = Math.max(p.x + p.w, ...kids.map((k) => k.x + k.w));
     const top = Math.min(p.y, ...kids.map((k) => k.y));
     const bottom = Math.max(p.y + p.h, ...kids.map((k) => k.y + k.h));
@@ -884,7 +889,7 @@ function Explorer({ uri, onClose }: { uri: string; onClose: () => void }) {
     const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     box.scrollTo({ left: Math.max(0, left), top: Math.max(0, scrollTop), behavior: reduce ? 'auto' : 'smooth' });
     setReveal(null);
-  }, [reveal, layout, placeOf, zoom]);
+  }, [reveal, shownItems, placeOf, zoom]);
 
   // A post stepped to (a search hit, a pinned person's next post, someone
   // named in the details) comes to the middle of the screen.
@@ -892,7 +897,7 @@ function Explorer({ uri, onClose }: { uri: string; onClose: () => void }) {
     const box = boxRef.current;
     if (!box || !goto) return;
     const key = keyOfUri.get(goto);
-    const p = key ? placed.get(key) : null;
+    const p = key ? placeOf(key) : null;
     setGoto(null);
     if (!p) return;
     const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -901,7 +906,7 @@ function Explorer({ uri, onClose }: { uri: string; onClose: () => void }) {
       top: Math.max(0, (p.y + PAD + p.h / 2) * zoom - box.clientHeight / 2),
       behavior: reduce ? 'auto' : 'smooth',
     });
-  }, [goto, keyOfUri, placed, zoom]);
+  }, [goto, keyOfUri, placeOf, zoom]);
 
   // Zoom about a point on screen (the pointer, or the middle).
   const zoomTo = useCallback((next: number, at?: { x: number; y: number }) => {
@@ -940,7 +945,8 @@ function Explorer({ uri, onClose }: { uri: string; onClose: () => void }) {
   const [dragging, setDragging] = useState(false);
   const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     if (e.pointerType !== 'mouse' || e.button !== 0) return;
-    if ((e.target as Element).closest('.fx-graph-mark')) return;
+    // A press on a card clicks or drags the card.
+    if ((e.target as Element).closest('[data-mnode]')) return;
     const box = boxRef.current!;
     drag.current = { x: e.clientX, y: e.clientY, left: box.scrollLeft, top: box.scrollTop };
     box.setPointerCapture(e.pointerId);
@@ -958,10 +964,13 @@ function Explorer({ uri, onClose }: { uri: string; onClose: () => void }) {
     setDragging(false);
   };
 
+  const width = layout ? Math.max(layout.width, motion.bounds.right) + PAD * 2 : 0;
+  const height = layout ? Math.max(layout.height, motion.bounds.bottom) + PAD * 2 : 0;
+
   const fit = () => {
     const box = boxRef.current;
     if (!box || !layout) return;
-    const z = Math.min(1, box.clientWidth / (layout.width + PAD * 2), box.clientHeight / (layout.height + PAD * 2));
+    const z = Math.min(1, box.clientWidth / width, box.clientHeight / height);
     setZoom(Math.max(0.35, z));
     requestAnimationFrame(() => box.scrollTo({ left: 0, top: 0 }));
   };
@@ -1031,8 +1040,12 @@ function Explorer({ uri, onClose }: { uri: string; onClose: () => void }) {
     );
   };
 
+  // The card whose details are open stays lit, and so does everyone its
+  // block arcs run to.
+  const focusPeers = focusDid ? blockedWith(blockIndex, focusDid) : new Set<string>();
   const markState = (u: string | null, did: string | null) => ({
-    'data-dim': spot && !lit(u, did) ? '' : undefined,
+    'data-dim':
+      spot && !lit(u, did) && !(u && u === focusedKey) && !(did && (did === focusDid || focusPeers.has(did))) ? '' : undefined,
     'data-hit': u && matchSet.has(u) ? '' : undefined,
     'data-hit-current': u && u === currentHit ? '' : undefined,
     'data-flash': u && u === flash ? '' : undefined,
@@ -1047,7 +1060,7 @@ function Explorer({ uri, onClose }: { uri: string; onClose: () => void }) {
       return (
         <g
           key={n.key}
-          className="fx-graph-mark fx-graph-slide fx-tx-group"
+          className="fx-graph-mark fx-tx-group"
           role="button"
           aria-expanded={isOpen}
           aria-label={n.kind === 'group' ? `${label}, close` : label}
@@ -1068,7 +1081,7 @@ function Explorer({ uri, onClose }: { uri: string; onClose: () => void }) {
       return (
         <g
           key={n.key}
-          className="fx-graph-mark fx-graph-slide"
+          className="fx-graph-mark"
           role="button"
           aria-label={nameOf(a)}
           data-focus={focusedKey === a.did || undefined}
@@ -1077,8 +1090,7 @@ function Explorer({ uri, onClose }: { uri: string; onClose: () => void }) {
         >
           {rings(a.did, x, y, n.w, n.h)}
           <rect x={x} y={y} width={n.w} height={n.h} rx={10} className="fx-graph-card" data-op={a.did === op || undefined} />
-          <rect x={x} y={y + 9} width={4} height={n.h - 18} rx={2} fill={relationColor(relationOfDid(a.did))} />
-          <Face x={x + 26} y={y + n.h / 2} r={13} avatar={a.avatar} name={nameOf(a)} />
+          <Face x={x + 24} y={y + n.h / 2} r={13} avatar={a.avatar} name={nameOf(a)} ring={relationColor(relationOfDid(a.did))} />
           <text x={x + 47} y={y + 20} className="fx-graph-t-name">
             {truncate(nameOf(a), 24)}
           </text>
@@ -1095,7 +1107,7 @@ function Explorer({ uri, onClose }: { uri: string; onClose: () => void }) {
       return (
         <g
           key={n.key}
-          className="fx-graph-mark fx-graph-slide"
+          className="fx-graph-mark"
           role="button"
           aria-label={`${n.label} by ${nameOf(who)}`}
           data-focus={focusedKey === r.uri || undefined}
@@ -1103,8 +1115,7 @@ function Explorer({ uri, onClose }: { uri: string; onClose: () => void }) {
           {...markProps(quiet, () => pick({ kind: 'record', record: r, label: n.label }))}
         >
           <rect x={x} y={y} width={n.w} height={n.h} rx={10} className="fx-graph-card" />
-          <rect x={x} y={y + 9} width={4} height={n.h - 18} rx={2} fill={relationColor(relationOfDid(r.did))} />
-          <Face x={x + 26} y={y + n.h / 2} r={13} avatar={who.avatar} name={nameOf(who)} />
+          <Face x={x + 24} y={y + n.h / 2} r={13} avatar={who.avatar} name={nameOf(who)} ring={relationColor(relationOfDid(r.did))} />
           <text x={x + 47} y={y + 21} className="fx-graph-t-name">
             {truncate(nameOf(who), 26)}
           </text>
@@ -1118,7 +1129,7 @@ function Explorer({ uri, onClose }: { uri: string; onClose: () => void }) {
     return (
       <g
         key={n.key}
-        className={action ? 'fx-graph-mark fx-graph-slide' : 'fx-graph-slide'}
+        className={action ? 'fx-graph-mark' : undefined}
         role={action ? 'button' : undefined}
         tabIndex={action ? 0 : undefined}
         data-dim={spot || undefined}
@@ -1154,7 +1165,7 @@ function Explorer({ uri, onClose }: { uri: string; onClose: () => void }) {
     return (
       <g
         key={n.key}
-        className="fx-graph-mark fx-graph-slide fx-tx-ghost"
+        className="fx-graph-mark fx-tx-ghost"
         data-tone={reading.tone}
         role="button"
         aria-label={`Left out on Bluesky: ${name}. ${reading.label}`}
@@ -1164,7 +1175,7 @@ function Explorer({ uri, onClose }: { uri: string; onClose: () => void }) {
       >
         <rect x={x} y={y} width={n.w} height={n.h} rx={10} className="fx-tx-ghost-card" />
         <g className="fx-tx-ghost-body">
-          <Face x={x + 26} y={y + 22} r={11} avatar={c.author?.avatar} name={name} />
+          <Face x={x + 26} y={y + 22} r={11} avatar={c.author?.avatar} name={name} ring={relationColor(relationOfDid(c.did))} />
           <text x={x + 44} y={y + 27} className="fx-graph-t-name">
             {truncate(name, Math.max(6, Math.floor((tag.left - x - 50) / 7.4)))}
           </text>
@@ -1239,14 +1250,20 @@ function Explorer({ uri, onClose }: { uri: string; onClose: () => void }) {
     const badges = drawBadges(authorBadges(post.did, post.uri), x + n.w - 10, y + 12);
     const nameRoom = Math.max(6, Math.floor((badges.left - x - 50) / 7.4));
     return (
-      <g key={n.key} className="fx-graph-slide" {...markState(post.uri, post.did)}>
+      <g key={n.key} {...markState(post.uri, post.did)}>
         {rings(post.did, x, y, n.w, n.h)}
         <g
           className="fx-graph-mark"
           role="button"
           aria-label={`${post.displayName || post.handle}${post.did === op ? ' (started the thread)' : ''}: ${truncate(post.text, 90) || 'no text'}`}
           data-focus={focusedKey === post.uri || undefined}
-          {...markProps(quiet, () => pick({ kind: 'post', post }))}
+          {...markProps(quiet, () => {
+            pick({ kind: 'post', post });
+            // A click also opens the replies if they're closed, but never
+            // folds them: reading a post shouldn't fold away what's under it.
+            // The replies chip still does both.
+            if (replyCount > 0 && !repliesShown) toggleReplies(post, n.key, loaded);
+          })}
         >
           <rect
             x={x}
@@ -1258,8 +1275,7 @@ function Explorer({ uri, onClose }: { uri: string; onClose: () => void }) {
             data-current={isCurrent || undefined}
             data-op={post.did === op || undefined}
           />
-          <rect x={x} y={y + 10} width={4} height={n.h - 20} rx={2} fill={relationColor(relationOfDid(post.did))} />
-          <Face x={x + 26} y={y + 22} r={11} avatar={post.avatar} name={post.handle || post.did} />
+          <Face x={x + 26} y={y + 22} r={11} avatar={post.avatar} name={post.handle || post.did} ring={relationColor(relationOfDid(post.did))} />
           <text x={x + 44} y={y + 27} className="fx-graph-t-name">
             {truncate(post.displayName || post.handle || '', Math.min(26, nameRoom))}
           </text>
@@ -1299,10 +1315,10 @@ function Explorer({ uri, onClose }: { uri: string; onClose: () => void }) {
   // on, otherwise only a pinned or picked account's. Each pair is joined
   // once, between its two nearest cards, and points at whoever is blocked.
   const arcs = useMemo(() => {
-    if (!layout) return [];
-    const cards = new Map<string, PlacedNode[]>();
-    for (const p of layout.nodes) {
-      const did = didOfNode(byKey.get(p.key)!);
+    type Card = (typeof shownItems)[number];
+    const cards = new Map<string, Card[]>();
+    for (const p of shownItems) {
+      const did = didOfNode(p.data);
       if (did) cards.set(did, [...(cards.get(did) ?? []), p]);
     }
     const wanted = blockLinks(blockIndex).filter(
@@ -1313,7 +1329,7 @@ function Explorer({ uri, onClose }: { uri: string; onClose: () => void }) {
       const ca = cards.get(a);
       const cb = cards.get(b);
       if (!ca || !cb) continue;
-      let best: [PlacedNode, PlacedNode] | null = null;
+      let best: [Card, Card] | null = null;
       let dist = Infinity;
       for (const p of ca) {
         for (const q of cb) {
@@ -1342,7 +1358,7 @@ function Explorer({ uri, onClose }: { uri: string; onClose: () => void }) {
       });
     }
     return out;
-  }, [layout, byKey, blockIndex, layers.blocks, pins, focusDid]);
+  }, [shownItems, blockIndex, layers.blocks, pins, focusDid]);
 
   /* ---------------- the toolbar and the details ---------------- */
 
@@ -1447,9 +1463,6 @@ function Explorer({ uri, onClose }: { uri: string; onClose: () => void }) {
 
   const focusCut = focus?.kind === 'post' ? cutByUri.get(focus.post.uri) : undefined;
 
-  const width = layout ? layout.width + PAD * 2 : 0;
-  const height = layout ? layout.height + PAD * 2 : 0;
-
   return (
     <div ref={dialogRef} className="fx-tx" data-pick role="dialog" aria-modal="true" aria-labelledby="fx-tx-title" tabIndex={-1}>
       <div className="fx-tx-head">
@@ -1474,6 +1487,12 @@ function Explorer({ uri, onClose }: { uri: string; onClose: () => void }) {
           <button type="button" className="fx-graph-tool" onClick={() => zoomTo(zoom * 1.25)} aria-label="Zoom in">
             <Plus size={14} aria-hidden />
           </button>
+          {motion.moved && (
+            <button type="button" className="fx-graph-tool" onClick={motion.tidy} title="Put the cards you moved back in place">
+              <RotateCcw size={14} aria-hidden />
+              Tidy
+            </button>
+          )}
           <button type="button" className="fx-graph-tool" onClick={fit}>
             <Scan size={14} aria-hidden />
             Fit
@@ -1510,6 +1529,7 @@ function Explorer({ uri, onClose }: { uri: string; onClose: () => void }) {
           ref={boxRef}
           className="fx-tx-canvas"
           data-dragging={dragging || undefined}
+          data-moving={motion.rootProps['data-moving']}
           data-spot={spot || undefined}
           onPointerDown={onPointerDown}
           onPointerMove={onPointerMove}
@@ -1547,54 +1567,68 @@ function Explorer({ uri, onClose }: { uri: string; onClose: () => void }) {
                   <path d="M0,1 L10,5 L0,9 z" className="fx-tx-arrowhead" />
                 </marker>
               </defs>
-              {layout.nodes.map((p) => {
-                if (!p.parent) return null;
-                const a = placed.get(p.parent)!;
-                const child = byKey.get(p.key)!;
-                const parent = byKey.get(p.parent)!;
-                const x1 = a.x + a.w;
-                const y1 = a.y + a.h / 2;
-                const x2 = p.x;
-                const y2 = p.y + p.h / 2;
-                const mx = (x1 + x2) / 2;
-                const childDid = didOfNode(child);
-                const childUri = uriOfNode(child);
-                const across: Between | null =
-                  parent.kind === 'post' && childDid && child.kind !== 'account'
-                    ? blockBetween(blockIndex, parent.post.did, childDid)
-                    : null;
-                const slot = parent.kind === 'post' && childUri ? traceSlot(childUri) : -1;
-                return (
-                  <g key={`e-${p.key}`} className="fx-graph-fade" data-dim={spot && slot < 0 && !lit(childUri, childDid) ? '' : undefined}>
-                    <path
-                      d={`M${x1},${y1} C${mx},${y1} ${mx},${y2} ${x2},${y2}`}
-                      className="fx-graph-edge fx-tx-edge"
-                      data-cut={child.kind === 'ghost' || undefined}
-                      data-block={across ? '' : undefined}
-                      data-pin={slot >= 0 || undefined}
-                      style={slot >= 0 ? { stroke: pinColor(slot) } : undefined}
+              <g {...motion.rootProps}>
+                {motion.items.map((it) => {
+                  const edge = motion.edgeProps(it);
+                  if (!edge) return null;
+                  const child = it.data;
+                  const from = it.parent ? motion.place(it.parent) : undefined;
+                  const parent = from?.data ?? (it.parent ? byKey.get(it.parent) : undefined);
+                  const childDid = didOfNode(child);
+                  const childUri = uriOfNode(child);
+                  const across: Between | null =
+                    parent?.kind === 'post' && childDid && child.kind !== 'account'
+                      ? blockBetween(blockIndex, parent.post.did, childDid)
+                      : null;
+                  const slot = parent?.kind === 'post' && childUri ? traceSlot(childUri) : -1;
+                  return (
+                    <g
+                      key={`e-${it.key}`}
+                      className="fx-tx-edge-wrap"
+                      data-dim={spot && slot < 0 && !lit(childUri, childDid) ? '' : undefined}
                     >
-                      {across && parent.kind === 'post' && childDid && (
-                        <title>{blockWords(across, atNameOf(parent.post.did), atNameOf(childDid))}</title>
+                      <path
+                        {...edge}
+                        className="fx-graph-edge fx-tx-edge"
+                        data-cut={child.kind === 'ghost' || undefined}
+                        data-block={across ? '' : undefined}
+                        data-pin={slot >= 0 || undefined}
+                        style={slot >= 0 ? { stroke: pinColor(slot) } : undefined}
+                      >
+                        {across && parent?.kind === 'post' && childDid && (
+                          <title>{blockWords(across, atNameOf(parent.post.did), atNameOf(childDid))}</title>
+                        )}
+                      </path>
+                      {/* At the curve's middle, where the cards are now; it
+                          catches up when a card glides or is dragged. */}
+                      {across && from && !it.leaving && (
+                        <BlockGlyph x={(from.x + from.w + it.x) / 2} y={(from.y + from.h / 2 + it.y + it.h / 2) / 2} />
                       )}
-                    </path>
-                    {across && <BlockGlyph x={mx} y={(y1 + y2) / 2} />}
+                    </g>
+                  );
+                })}
+                <g className="fx-tx-arcs" aria-hidden>
+                  {arcs.map((arc) => (
+                    <path
+                      key={arc.key}
+                      d={arc.d}
+                      className="fx-tx-arc"
+                      data-dim={
+                        spot && !(pins.includes(arc.a) || pins.includes(arc.b) || arc.a === focusDid || arc.b === focusDid)
+                          ? ''
+                          : undefined
+                      }
+                      markerEnd="url(#fx-tx-arrow)"
+                      markerStart={arc.both ? 'url(#fx-tx-arrow)' : undefined}
+                    />
+                  ))}
+                </g>
+                {motion.items.map((it) => (
+                  <g key={it.key} {...motion.nodeProps(it)}>
+                    {drawNode(it.data, 0, 0)}
                   </g>
-                );
-              })}
-              <g className="fx-tx-arcs" aria-hidden>
-                {arcs.map((arc) => (
-                  <path
-                    key={arc.key}
-                    d={arc.d}
-                    className="fx-tx-arc"
-                    data-dim={spot && !(pins.includes(arc.a) || pins.includes(arc.b) || arc.a === focusDid || arc.b === focusDid) ? '' : undefined}
-                    markerEnd="url(#fx-tx-arrow)"
-                    markerStart={arc.both ? 'url(#fx-tx-arrow)' : undefined}
-                  />
                 ))}
               </g>
-              {layout.nodes.map((p) => drawNode(byKey.get(p.key)!, p.x, p.y))}
             </svg>
           )}
         </div>

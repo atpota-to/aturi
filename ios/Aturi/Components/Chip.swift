@@ -1,7 +1,9 @@
 import SwiftUI
 
 /// A small capsule tag: a collection count, a status, a family name. The
-/// accent style is the web's Field Notes soft pill.
+/// accent style is the web's Field Notes soft pill, which wears the firmer
+/// `--accent-soft-ring` and a semibold label (fd3c9c9); the neutral one is
+/// the web's plain pill, the card colour with a medium hairline.
 struct Chip: View {
     enum Style {
         case neutral
@@ -33,14 +35,14 @@ struct Chip: View {
     private var border: Color {
         switch style {
         case .neutral: return theme.borderMedium
-        case .accent: return theme.accentSoftBorder
+        case .accent: return theme.accentSoftRing
         case .danger: return theme.danger.opacity(0.3)
         }
     }
 
     private var background: Color {
         switch style {
-        case .neutral: return theme.bgTertiary
+        case .neutral: return theme.bgSecondary
         case .accent: return theme.accentSoft
         case .danger: return theme.danger.opacity(0.14)
         }
@@ -53,7 +55,7 @@ struct Chip: View {
                     .font(AturiFont.caption2)
             }
             Text(text)
-                .font(AturiFont.sans(.caption, weight: .medium))
+                .font(AturiFont.sans(.caption, weight: style == .accent ? .semibold : .medium))
                 .lineLimit(1)
         }
         .foregroundStyle(foreground)

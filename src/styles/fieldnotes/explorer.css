@@ -522,31 +522,6 @@
 .fx-dl a:hover {
   color: var(--accent-forest);
 }
-/* The Created row, first on the card: the account's age, then the date in
-   the secondary voice. The date goes when the row is narrow (the Files rail)
-   rather than end in an ellipsis; the age's tooltip still carries it. */
-.fx-dl dd.fx-created {
-  gap: 6px;
-  container-type: inline-size;
-}
-.fx-created-age {
-  flex: none;
-  white-space: nowrap;
-  font-weight: 500;
-}
-.fx-created-date {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-size: 12.5px;
-  color: var(--text-secondary);
-}
-@container (max-width: 180px) {
-  .fx-created-date {
-    display: none;
-  }
-}
 /* The account's label and visibility checks (AccountChecks.tsx): two rows
    on the card, and badges in the rail and on Classic's tabs. Each row is a
    link to its view, laid out as the identity rows above it are. The tones
@@ -585,6 +560,13 @@
   flex: none;
   margin-left: auto;
   color: var(--text-tertiary);
+}
+/* The Created row's age, which leads its row as a count or a pill leads
+   the checks under it. */
+.fx-check-age {
+  flex: none;
+  white-space: nowrap;
+  font-weight: 500;
 }
 .fx-check-sub {
   min-width: 0;

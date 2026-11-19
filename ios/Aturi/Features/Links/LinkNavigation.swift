@@ -42,6 +42,44 @@ enum LinkNavigation {
         return pendingInAppPreview == components
     }
 
+    /// Open a waypoint's link. The `aturi` and `aturiExplore` waypoints
+    /// point back at aturi.to, and iOS hands an app's own universal links
+    /// to Safari when the app opens them itself, so those two used to leave
+    /// the app for pages it has. The web keeps them on the site
+    /// (`SELF_WAYPOINTS` in `openInApps.ts`); here they push the matching
+    /// page. Every other client, and any aturi.to page the app has no
+    /// screen for, opens as before.
+    @MainActor
+    static func openWaypoint(_ string: String, router: AppRouter?, openURL: OpenURLAction) {
+        guard let url = URL(string: string) else { return }
+        if let router,
+           let host = url.host?.lowercased(), host == Endpoints.aturiHost || host == "www." + Endpoints.aturiHost,
+           case .route(let route, _)? = DeepLinks.target(for: url) {
+            open(route, router: router, openURL: openURL)
+            return
+        }
+        openURL(url)
+    }
+
+    /* `?stay=1` on an incoming link: the web's one-off escape hatch from
+       auto-redirect (`hasStayParam`), documented on the Redirects screen.
+       The router notes it for the preview it is about to push, and that
+       page shows the picker without counting down. */
+    @MainActor private static var pendingStay: AtUriComponents?
+
+    @MainActor
+    static func noteStay(_ components: AtUriComponents) {
+        pendingStay = components
+    }
+
+    /// Whether the incoming link for `components` asked to stay. Clears the
+    /// note either way.
+    @MainActor
+    static func consumeStay(_ components: AtUriComponents) -> Bool {
+        defer { pendingStay = nil }
+        return pendingStay == components
+    }
+
     /// The universal-link page for a record's AT URI: the same page the
     /// web's `/profile/{did}/post/{rkey}` links reach. Nil for a repo-level
     /// URI or anything that is not an AT URI.

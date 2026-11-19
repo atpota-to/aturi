@@ -88,7 +88,9 @@ private struct RecordScreen: View {
                     ExploreNotFoundPanel(
                         eyebrow: RecordModel.identityFailureEyebrow,
                         headline: RecordModel.identityFailureHeadline,
-                        message: model.identityFailureBody ?? message
+                        message: model.identityFailureBody ?? message,
+                        details: message,
+                        query: model.repo
                     ) {
                         model.reload()
                     }
@@ -190,7 +192,9 @@ private struct RecordScreen: View {
             ForEach(model.sections) { section in
                 sectionView(section, record: record)
             }
-            WaypointOpenRow(targets: waypointTargets)
+            /* No "Open this record in" row: the web dropped it (6fa671a),
+               since picking an app is the universal link page's job, and
+               the copy card links there. */
             editChip
         }
     }
@@ -256,17 +260,24 @@ private struct RecordScreen: View {
                 /* Inside the explorer the card's own "view in the
                    explorer" footer would point at this very page. */
                 PostCardView(post: post, parent: parent, showsExplorerLink: false)
+            case .profile(let header):
+                /* The card's universal link is the one route out to the
+                   shareable profile page; the record's own universal link
+                   opens it as a generic record. */
+                RepoProfileCard(header: header) {
+                    router.open(.preview(AtUriComponents(identifier: header.handle ?? header.profile.did)))
+                }
             case .margin(let type, let record):
                 if let identity = model.identityBundle {
                     MarginRecordCard(type: type, record: record, identity: identity)
                 }
             }
-        } else if model.isPost {
-            switch model.postThread {
-            case .idle, .loading:
+        } else if model.isPost || model.isProfileRecord {
+            if model.isRichCardLoading {
                 SkeletonRows(count: 3)
-            case .failed, .loaded:
-                /* No live post in the AppView: no card, as on the web. */
+            } else {
+                /* No live post or profile in the AppView: no card, as on
+                   the web. */
                 EmptyView()
             }
         }
@@ -301,7 +312,10 @@ private struct RecordScreen: View {
     @ViewBuilder
     private var copyRowSection: some View {
         if let row = model.copyRow {
+            /* Two headings, as on the web (f333fa5): values to copy, then
+               the ways out, so a link never reads as a copy button. */
             VStack(spacing: 0) {
+                copyCardHeading("Copy")
                 CopyRow(label: "AT URI", value: row.atUri)
                 Divider()
                 CopyRow(label: "DID", value: row.did)
@@ -318,6 +332,7 @@ private struct RecordScreen: View {
                     CopyRow(label: "JSON", value: json)
                 }
                 Divider()
+                copyCardHeading("Open")
                 Button {
                     openUniversalLinkPage()
                 } label: {
@@ -352,6 +367,16 @@ private struct RecordScreen: View {
         }
     }
 
+    private func copyCardHeading(_ title: String) -> some View {
+        Text(title)
+            .font(AturiFont.sans(.footnote, weight: .bold))
+            .foregroundStyle(theme.textSecondary)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.top, 10)
+            .padding(.bottom, 2)
+            .accessibilityAddTraits(.isHeader)
+    }
+
     private var signInPrompt: some View {
         VStack(alignment: .leading, spacing: 10) {
             Text(RecordModel.signInPrompt)
@@ -377,27 +402,6 @@ private struct RecordScreen: View {
             }
             .buttonStyle(.aturiSecondary)
         }
-    }
-
-    /// The picker groups narrowed by the model, flattened with the
-    /// featured recommendation first.
-    private var waypointTargets: [WaypointOpenTarget] {
-        var seen = Set<String>()
-        var out: [WaypointOpenTarget] = []
-        for group in model.waypoints {
-            for waypoint in group.waypoints where !seen.contains(waypoint.id) {
-                guard let url = model.url(for: waypoint) else { continue }
-                seen.insert(waypoint.id)
-                out.append(WaypointOpenTarget(waypoint: waypoint, url: url))
-            }
-        }
-        if let featuredId = model.featured?.id,
-           let index = out.firstIndex(where: { $0.id == featuredId }),
-           index > 0 {
-            let featured = out.remove(at: index)
-            out.insert(featured, at: 0)
-        }
-        return out
     }
 
     private func openUniversalLinkPage() {

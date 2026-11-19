@@ -62,7 +62,7 @@ struct PDSView: View {
                 .textSelection(.enabled)
             if let message = model.serverErrorMessage {
                 Text(message)
-                    .font(.footnote.italic())
+                    .font(AturiFont.footnote.italic())
                     .foregroundStyle(theme.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
             }

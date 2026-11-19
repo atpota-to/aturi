@@ -638,18 +638,27 @@ public final class CollectionModel {
     public var noMatchMessage: String? {
         guard !records.isEmpty, visibleRows.isEmpty else { return nil }
         let base = "No loaded records match \(filter.trimmingCharacters(in: .whitespacesAndNewlines))."
-        return done ? base : base + " Fetch more to search further."
+        return done ? base : base + " Load more to search further."
     }
 
-    /// The count beside the controls: "Loading…", "12 of 1.2k" while
-    /// searching, else "1.2k records".
+    /// The count beside the controls: "Loading…", "12 of 1.2k loaded"
+    /// while searching, else "1.2k records" once every page is in and
+    /// "1.2k loaded" while more wait on the PDS, as the web words it.
     public var countLabel: String {
         if records.isEmpty, !done { return "Loading…" }
         let total = Self.formatCount(records.count)
         if !query.isEmpty {
-            return "\(Self.formatCount(visibleRows.count)) of \(total)"
+            return "\(Self.formatCount(visibleRows.count)) of \(total) loaded"
         }
-        return "\(total) record\(records.count == 1 ? "" : "s")"
+        return done ? "\(total) record\(records.count == 1 ? "" : "s")" : "\(total) loaded"
+    }
+
+    /// The line under the list once anything has loaded: "All 1.2k loaded",
+    /// or "1.2k loaded, more on the PDS" beside the Load more button.
+    public var footerLabel: String? {
+        guard !records.isEmpty else { return nil }
+        let total = Self.formatCount(records.count)
+        return done ? "All \(total) loaded" : "\(total) loaded, more on the PDS"
     }
 
     /// The chrome bar's status: nil before anything loaded, "shown/total"
@@ -682,10 +691,11 @@ public final class CollectionModel {
         "/explore/\(repoSegment)/\(collection)"
     }
 
-    /// The not-found panel body when the repo did not resolve.
+    /// The not-found panel body when the repo did not resolve, in the web's
+    /// words; the resolver's own error goes under "Technical details".
     public var notFoundMessage: String? {
-        identity.errorMessage.map {
-            "We tried to resolve \"\(repo)\" and the AT Protocol resolver returned: \($0). Try another handle, DID, or AT URI below."
+        identity.errorMessage.map { _ in
+            "We couldn\u{2019}t find an account for \u{201C}\(repo)\u{201D}. Check the spelling, or try a DID or an at:// URI below."
         }
     }
 

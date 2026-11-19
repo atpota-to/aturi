@@ -32,14 +32,14 @@ struct ShareTarget: Hashable {
         AturiCore.displayName(handle: handle, did: did)
     }
 
-    /// `getContextText`: the line above the rows.
+    /// `getContextText`: the line above the rows, in the web's words.
     var contextText: String {
         switch type {
-        case .post: return "Open post by \(subjectName) on"
-        case .profile: return "Open profile for \(subjectName) on"
-        case .list: return "Open list by \(subjectName) on"
-        case .record: return "Open record from \(subjectName) on"
-        case .unknown: return "Open content from \(subjectName) on"
+        case .post: return "Open \(subjectName)\u{2019}s post in\u{2026}"
+        case .profile: return "Open \(subjectName)\u{2019}s profile in\u{2026}"
+        case .list: return "Open \(subjectName)\u{2019}s list in\u{2026}"
+        case .record: return "Open this record from \(subjectName) in\u{2026}"
+        case .unknown: return "Open content from \(subjectName) in\u{2026}"
         }
     }
 

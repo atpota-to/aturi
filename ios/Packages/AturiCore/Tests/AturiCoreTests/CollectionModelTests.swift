@@ -177,6 +177,7 @@ final class CollectionModelTests: XCTestCase {
         let model = makeModel(transport)
 
         XCTAssertEqual(model.countLabel, "Loading…")
+        XCTAssertNil(model.footerLabel)
         XCTAssertNil(model.searchStatusLabel)
         await model.load().value
 
@@ -188,7 +189,8 @@ final class CollectionModelTests: XCTestCase {
         XCTAssertTrue(model.canLoadMore)
         XCTAssertFalse(model.awaitingFirstPage)
         XCTAssertFalse(model.isEmpty)
-        XCTAssertEqual(model.countLabel, "100 records")
+        XCTAssertEqual(model.countLabel, "100 loaded")
+        XCTAssertEqual(model.footerLabel, "100 loaded, more on the PDS")
         XCTAssertEqual(model.searchStatusLabel, "100+")
         XCTAssertEqual(model.repoSegment, "alice.example")
         XCTAssertEqual(model.sharePath, "/explore/alice.example/app.bsky.feed.post")
@@ -204,6 +206,7 @@ final class CollectionModelTests: XCTestCase {
         XCTAssertTrue(model.done, "a partial page ends pagination")
         XCTAssertFalse(model.canLoadMore)
         XCTAssertEqual(model.countLabel, "140 records")
+        XCTAssertEqual(model.footerLabel, "All 140 loaded")
         XCTAssertEqual(model.searchStatusLabel, "140")
         XCTAssertNil(model.loadMore(), "nothing more to fetch")
         XCTAssertEqual(transport.count(containing: "listRecords"), 2)
@@ -313,7 +316,7 @@ final class CollectionModelTests: XCTestCase {
 
         model.filter = " MUSHROOM "
         XCTAssertEqual(model.visibleRows.map(\.rkey), ["aaa", "ccc"], "matches a value and a nested URL")
-        XCTAssertEqual(model.countLabel, "2 of 3")
+        XCTAssertEqual(model.countLabel, "2 of 3 loaded")
         XCTAssertEqual(model.searchStatusLabel, "2/3")
         XCTAssertNil(model.noMatchMessage)
 
@@ -323,7 +326,7 @@ final class CollectionModelTests: XCTestCase {
         model.filter = "zzz"
         XCTAssertTrue(model.visibleRows.isEmpty)
         XCTAssertEqual(model.noMatchMessage, "No loaded records match zzz.")
-        XCTAssertEqual(model.countLabel, "0 of 3")
+        XCTAssertEqual(model.countLabel, "0 of 3 loaded")
     }
 
     func testNoMatchMessageMentionsRemainingPages() async {
@@ -332,7 +335,7 @@ final class CollectionModelTests: XCTestCase {
         let model = makeModel(CollectionRoutedTransport(routes))
         await model.load().value
         model.filter = "zzz"
-        XCTAssertEqual(model.noMatchMessage, "No loaded records match zzz. Fetch more to search further.")
+        XCTAssertEqual(model.noMatchMessage, "No loaded records match zzz. Load more to search further.")
         XCTAssertEqual(model.searchStatusLabel, "0/100")
     }
 
@@ -347,7 +350,7 @@ final class CollectionModelTests: XCTestCase {
         XCTAssertEqual(model.identity.errorMessage, "Could not resolve nobody.example")
         XCTAssertEqual(
             model.notFoundMessage,
-            "We tried to resolve \"nobody.example\" and the AT Protocol resolver returned: Could not resolve nobody.example. Try another handle, DID, or AT URI below."
+            "We couldn\u{2019}t find an account for \u{201C}nobody.example\u{201D}. Check the spelling, or try a DID or an at:// URI below."
         )
         XCTAssertEqual(model.repoSegment, "nobody.example")
         XCTAssertTrue(model.records.isEmpty)
