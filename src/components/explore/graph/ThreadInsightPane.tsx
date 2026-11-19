@@ -238,9 +238,12 @@ export function CutDetail({
           <span className="fx-graph-hd">{cut.author?.handle ? `@${cut.author.handle}` : cut.did}</span>
         </div>
       </div>
-      <p className="fx-tx-cut-tag" data-tone={reading.tone}>
-        Left out on Bluesky · {reading.label}
-      </p>
+      <div className="fx-tx-cut-head">
+        <span className="fx-tx-insight-h">Left out on Bluesky</span>
+        <p className="fx-tx-cut-tag" data-tone={reading.tone} title={reading.label}>
+          {reading.label}
+        </p>
+      </div>
       <p className="fx-graph-post-text">
         {cut.text === null ? (
           <em>Its text couldn’t be read.</em>
