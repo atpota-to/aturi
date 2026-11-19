@@ -509,7 +509,7 @@ public enum StreamMonitor {
             let did = wire.did
         else { return nil }
         let timeUs = wire.time_us ?? 0
-        switch wire.kind {
+        switch wire.kind ?? "" {
         case "commit":
             guard let commit = wire.commit, let collection = commit.collection,
                 let operation = commit.operation.flatMap(JetstreamOperation.init(rawValue:))
