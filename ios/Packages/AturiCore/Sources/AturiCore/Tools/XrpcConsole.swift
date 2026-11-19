@@ -115,20 +115,23 @@ public struct XrpcParamSpec: Hashable, Sendable, Identifiable {
         if extra { return lexiconKnown ? "not in the lexicon" : "" }
         var parts: [String] = []
         if kind == .array {
-            let item = itemKind == nil || itemKind == .unknown ? "values" : itemKind!.rawValue
-            parts.append("list of \(item)")
+            if let item = itemKind, item != .unknown {
+                parts.append("list of \(item.rawValue)")
+            } else {
+                parts.append("list of values")
+            }
         } else if kind != .unknown {
             parts.append(kind.rawValue)
         }
-        if let format { parts.append(format) }
-        if let minimum, let maximum {
-            parts.append("\(XrpcConsole.number(minimum)) to \(XrpcConsole.number(maximum))")
-        } else if let minimum {
-            parts.append("at least \(XrpcConsole.number(minimum))")
-        } else if let maximum {
-            parts.append("at most \(XrpcConsole.number(maximum))")
+        if let format = format { parts.append(format) }
+        if let low = minimum, let high = maximum {
+            parts.append("\(XrpcConsole.number(low)) to \(XrpcConsole.number(high))")
+        } else if let low = minimum {
+            parts.append("at least \(XrpcConsole.number(low))")
+        } else if let high = maximum {
+            parts.append("at most \(XrpcConsole.number(high))")
         }
-        if kind == .array, let maxLength { parts.append("up to \(XrpcConsole.number(maxLength))") }
+        if kind == .array, let longest = maxLength { parts.append("up to \(XrpcConsole.number(longest))") }
         return parts.joined(separator: ", ")
     }
 }

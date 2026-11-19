@@ -651,16 +651,16 @@ public final class XrpcConsoleModel {
         let clock = ContinuousClock()
         let startedAt = clock.now
 
-        let data: Data
-        let response: HTTPURLResponse
+        let exchange: (Data, HTTPURLResponse)
         do {
-            (data, response) = try await http.send(urlRequest)
+            exchange = try await http.send(urlRequest)
         } catch HTTPFailure.tooLarge(let bytes) {
             return XrpcConsoleResult(kind: .tooLarge, url: url, origin: origin, ms: milliseconds(clock.now - startedAt), bytes: bytes)
         } catch {
             if Task.isCancelled { throw CancellationError() }
             return XrpcConsoleResult(kind: .network, url: url, origin: origin)
         }
+        let (data, response) = exchange
         let ms = milliseconds(clock.now - startedAt)
         let contentType = HTTPClient.header("Content-Type", in: response)
 
