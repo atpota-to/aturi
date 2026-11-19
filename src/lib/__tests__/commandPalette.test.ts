@@ -134,7 +134,7 @@ test('universal links address what they link to', () => {
 });
 
 test('site pages are never read as handles', () => {
-  for (const path of ['/', '/docs', '/mcp', '/account', '/feedback', '/links', '/terms']) {
+  for (const path of ['/', '/docs', '/mcp', '/account', '/feedback', '/waypoints', '/terms']) {
     const ctx = pageContextFromPath(path);
     assert.equal(ctx.subject, null, path);
     assert.equal(ctx.surface, 'other', path);

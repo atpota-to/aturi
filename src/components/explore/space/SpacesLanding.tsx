@@ -22,7 +22,7 @@ import { useSpaceGrant } from './useSpaceAccess';
  * `/explore/spaces` — the way in for someone who has heard about atproto
  * spaces and wants to see their own.
  *
- * Built from the same pieces as the other product landing pages (/links,
+ * Built from the same pieces as the other product landing pages (/waypoints,
  * /extension, /mcp): the `fl-*` classes in landing.css for the hero, section
  * heads and callout band, so the type scale, spacing and phone layout are
  * theirs rather than a copy that drifts. It lives under /explore only

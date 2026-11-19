@@ -1,4 +1,4 @@
-/* Field Notes: product landing pages (/extension, /links, /mcp, /fork,
+/* Field Notes: product landing pages (/extension, /waypoints, /mcp, /fork,
    /extension/privacy) and the landing pieces the explore and spaces pages
    reuse (FeatureSection, CrossLinkCards, the *Visual mocks, JetstreamFeed).
    Tokens live in src/app/globals.css; use them rather than raw hex so dark
@@ -205,6 +205,14 @@
   margin-top: 4px;
 }
 
+/* Two calls to action side by side, wrapping to stacked when they don't
+   fit (the Waypoints hero and its closing band). */
+.fl-hero-actions[data-row] {
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
 /* ---------- Buttons ---------- */
 
 .fl-button {
@@ -401,7 +409,7 @@
   color: var(--text-secondary);
 }
 
-/* The example address in the universal-links card: an identifier, so mono,
+/* The example address in the Waypoints card: an identifier, so mono,
    with no chip around it; <wbr>s in the markup let it break at its slashes. */
 .fl-cross-card p code {
   font-family: var(--font-mono);
@@ -1421,53 +1429,125 @@
   font-weight: 700;
 }
 
-/* Sharing scenarios */
-.fl-scenarios {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 16px;
-}
-
-.fl-scenario {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 18px;
-}
-
-.fl-scenario-body {
-  font-size: 14.5px;
-  line-height: 1.55;
-  color: var(--text-primary);
-}
-
-.fl-scenario-link {
-  font-family: var(--font-mono);
-  font-size: 12.5px;
-  color: var(--text-accent);
-  text-decoration: underline;
-  text-underline-offset: 3px;
-  /* Breaks come from the <wbr> after each slash; anywhere is the fallback
-     for a single segment wider than the card. */
-  overflow-wrap: anywhere;
-}
-
 @media (max-width: 960px) {
-  .fl-types,
-  .fl-scenarios {
+  .fl-types {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
 @media (max-width: 640px) {
-  .fl-types,
-  .fl-scenarios {
+  .fl-types {
     grid-template-columns: minmax(0, 1fr);
   }
   .fl-anatomy-item {
     grid-template-columns: minmax(0, 1fr);
     gap: 3px;
   }
+}
+
+/* ---------- Waypoints ---------- */
+
+/* The whole client catalog (/waypoints#catalog): one card, a row per
+   category with its name beside its clients, which wrap as chips. On a
+   phone the name sits over the chips. */
+.fl-catalog {
+  display: flex;
+  flex-direction: column;
+}
+
+.fl-catalog-row {
+  display: grid;
+  grid-template-columns: 11rem minmax(0, 1fr);
+  gap: 8px 20px;
+  align-items: start;
+  padding: 16px 20px;
+}
+
+.fl-catalog-row + .fl-catalog-row {
+  border-top: 1px solid var(--border-subtle);
+}
+
+.fl-catalog-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin: 0;
+  padding-top: 5px;
+  font-family: var(--font-sans);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.fl-catalog-count {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-tertiary);
+}
+
+.fl-catalog-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.fl-catalog-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 32px;
+  padding: 0 12px 0 9px;
+  box-sizing: border-box;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-pill);
+  background: var(--bg-primary);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+
+@media (max-width: 640px) {
+  .fl-catalog-row {
+    grid-template-columns: minmax(0, 1fr);
+    padding: 14px 16px;
+  }
+
+  .fl-catalog-head {
+    padding-top: 0;
+  }
+}
+
+/* Six cards into the guide's sections: three across, then two, then one,
+   so the set never leaves one alone on a row. */
+.fl-build-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+@media (max-width: 960px) {
+  .fl-build-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .fl-build-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* The quickstart: as wide as the section's copy, not the page. */
+.fl-build-code {
+  max-width: 720px;
+  min-width: 0;
+}
+
+.fl-build-code .fn-code {
+  margin: 0;
 }
 
 /* ---------- MCP ---------- */

@@ -240,7 +240,7 @@ export default function ShareBuilder() {
         </ToolCard>
         <p className="fn-tool-note fn-tool-share-source">
           These are the clients in the{' '}
-          <Link href="/links">universal links</Link> catalog with a confirmed compose route. The route is
+          <Link href="/waypoints#catalog">waypoints</Link> catalog with a confirmed compose route. The route is
           Bluesky’s{' '}
           <a href="https://docs.bsky.app/docs/advanced-guides/intent-links" target="_blank" rel="noreferrer">
             action intent link

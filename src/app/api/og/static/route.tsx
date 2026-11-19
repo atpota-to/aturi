@@ -84,6 +84,16 @@ function configFor(page: string): PageConfig {
         visualText: 'Open dame’s post in… Pick an app. They all show the same post. Recommended Anisota Bluesky Leaflet +22 more clients',
         visualMono: 'aturi.to/dame.is/app.bsky.feed.post/3lq9 anisota.net bsky.app leaflet.pub',
       };
+    case 'waypoints':
+      return {
+        eyebrow: 'Waypoints',
+        title: 'Every record, in\n*every Atmosphere app.*',
+        tagline:
+          'Universal links that let people pick the app, and MIT packages and a keyless API to put the same picker in yours.',
+        visual: <PickerVisual />,
+        visualText: 'Open dame’s post in… Pick an app. They all show the same post. Recommended Anisota Bluesky Leaflet +22 more clients',
+        visualMono: 'aturi.to/dame.is/app.bsky.feed.post/3lq9 anisota.net bsky.app leaflet.pub',
+      };
     case 'fork':
       return {
         eyebrow: 'Fork & deploy',
