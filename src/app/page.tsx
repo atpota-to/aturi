@@ -29,7 +29,7 @@ export default function HomePage() {
 
       <div className="fn-home-body">
         {/* Products, led by the extension (the hero's download CTA), then
-            the explorer (the hero's search), then universal links. */}
+            the explorer (the hero's search), then Waypoints. */}
         <ProductCards />
 
         <FadeIn>
