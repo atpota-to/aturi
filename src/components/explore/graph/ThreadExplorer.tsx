@@ -25,7 +25,19 @@ import {
   type LinkSource,
   type ThreadGraph,
 } from '@/utils/atproto/graphData';
-import { Face, GraphDefs, GraphDetail, Legend, fmt, markProps, nameOf, relationColor, truncate, wrapLines, type GraphFocus } from './shared';
+import {
+  Face,
+  GraphDefs,
+  GraphDetail,
+  Legend,
+  fmt,
+  markProps,
+  nameOf,
+  relationColor,
+  truncate,
+  usePickedDetails,
+  wrapLines,
+} from './shared';
 
 /* ------------------------------------------------------------------ */
 /* Opening and closing                                                  */
@@ -133,6 +145,9 @@ const MAX_DEPTH = 40;
 
 const plural = (n: number, one: string, many: string) => `${fmt(n)} ${n === 1 ? one : many}`;
 
+/** Pointing at a card only marks it (CSS); the details wait for a click. */
+const quiet = () => {};
+
 /**
  * A Bluesky post's whole neighbourhood, full screen: the thread it belongs
  * to as a tree of post cards, and on each card the ways in from elsewhere
@@ -140,6 +155,10 @@ const plural = (n: number, one: string, many: string) => `${fmt(n)} ${n === 1 ? 
  * opening as a branch of its own. Quote posts are posts like any other, so a
  * quote opens onto its own replies, quotes and links, and the tree can wander
  * across threads.
+ *
+ * A card's details open beside the canvas for a click and close again with
+ * a second click, their close button or Esc (a second Esc closes the
+ * explorer). Pointing at a card only marks it.
  */
 function Explorer({ uri, onClose }: { uri: string; onClose: () => void }) {
   const [thread, setThread] = useState<ThreadGraph | null>(null);
@@ -151,37 +170,41 @@ function Explorer({ uri, onClose }: { uri: string; onClose: () => void }) {
   const [lists, setLists] = useState<Map<string, ListState>>(() => new Map());
   const [subtrees, setSubtrees] = useState<Map<string, ThreadPost | 'loading' | 'failed'>>(() => new Map());
   const [shown, setShown] = useState<Map<string, number>>(() => new Map());
-  const [focus, setFocus] = useState<GraphFocus | null>(null);
+  const { picked: focus, pick, close, closePane, drawingProps } = usePickedDetails<HTMLDivElement>(false);
+  const focusRef = useRef(focus);
+  useEffect(() => {
+    focusRef.current = focus;
+  }, [focus]);
   const [zoom, setZoom] = useState(1);
   const [reveal, setReveal] = useState<string | null>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
   const boxRef = useRef<HTMLDivElement>(null);
 
-  // The page underneath stays put while the explorer is up, and Escape closes it.
+  // The page underneath stays put while the explorer is up, and Escape closes
+  // it, once any details open beside the canvas are closed.
   useEffect(() => {
     const root = document.documentElement;
     const before = root.style.overflow;
     root.style.overflow = 'hidden';
     dialogRef.current?.focus();
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
+      if (e.key !== 'Escape') return;
+      if (focusRef.current) close(true);
+      else onClose();
     };
     document.addEventListener('keydown', onKey);
     return () => {
       root.style.overflow = before;
       document.removeEventListener('keydown', onKey);
     };
-  }, [onClose]);
+  }, [onClose, close]);
 
   useEffect(() => {
     const ac = new AbortController();
     loadThread(uri, ac.signal).then((t) => {
       if (ac.signal.aborted) return;
       if (!t) setFailed(true);
-      else {
-        setThread(t);
-        setFocus({ kind: 'post', post: flattenThread(t.root).find((p) => p.uri === t.focus) ?? t.root });
-      }
+      else setThread(t);
     });
     return () => ac.abort();
   }, [uri]);
@@ -557,10 +580,7 @@ function Explorer({ uri, onClose }: { uri: string; onClose: () => void }) {
           aria-expanded={isOpen}
           aria-label={n.kind === 'group' ? `${label}, close` : label}
           data-open={isOpen || undefined}
-          {...markProps(
-            () => setFocus({ kind: 'group', label, count: n.kind === 'source' ? n.source.count : null }),
-            () => toggleOpen(n.open, n.key),
-          )}
+          {...markProps(quiet, () => toggleOpen(n.open, n.key))}
         >
           <rect x={x} y={y} width={n.w} height={n.h} rx={n.h / 2} />
           <text x={x + 16} y={y + n.h / 2 + 4.5} className="fx-graph-t-name">
@@ -578,7 +598,7 @@ function Explorer({ uri, onClose }: { uri: string; onClose: () => void }) {
           role="button"
           aria-label={nameOf(a)}
           data-focus={focusedKey === a.did || undefined}
-          {...markProps(() => setFocus({ kind: 'person', person: a }))}
+          {...markProps(quiet, () => pick({ kind: 'person', person: a }))}
         >
           <rect x={x} y={y} width={n.w} height={n.h} rx={10} className="fx-graph-card" />
           <rect x={x} y={y + 9} width={4} height={n.h - 18} rx={2} fill={relationColor(relationOfDid(a.did))} />
@@ -602,7 +622,7 @@ function Explorer({ uri, onClose }: { uri: string; onClose: () => void }) {
           role="button"
           aria-label={`${n.label} by ${nameOf(who)}`}
           data-focus={focusedKey === r.uri || undefined}
-          {...markProps(() => setFocus({ kind: 'record', record: r, label: n.label }))}
+          {...markProps(quiet, () => pick({ kind: 'record', record: r, label: n.label }))}
         >
           <rect x={x} y={y} width={n.w} height={n.h} rx={10} className="fx-graph-card" />
           <rect x={x} y={y + 9} width={4} height={n.h - 18} rx={2} fill={relationColor(relationOfDid(r.did))} />
@@ -695,7 +715,7 @@ function Explorer({ uri, onClose }: { uri: string; onClose: () => void }) {
           role="button"
           aria-label={`${post.displayName || post.handle}: ${truncate(post.text, 90) || 'no text'}`}
           data-focus={focusedKey === post.uri || undefined}
-          {...markProps(() => setFocus({ kind: 'post', post }))}
+          {...markProps(quiet, () => pick({ kind: 'post', post }))}
         >
           <rect x={x} y={y} width={n.w} height={n.h} rx={10} className="fx-graph-card" data-current={isCurrent || undefined} />
           <rect x={x} y={y + 10} width={4} height={n.h - 20} rx={2} fill={relationColor(relationOfDid(post.did))} />
@@ -717,7 +737,7 @@ function Explorer({ uri, onClose }: { uri: string; onClose: () => void }) {
             aria-pressed={c.active}
             aria-label={`${c.label} on this post`}
             data-active={c.active || undefined}
-            {...markProps(() => setFocus({ kind: 'post', post }), c.act)}
+            {...markProps(quiet, c.act)}
           >
             <rect x={c.x} y={y + n.h - 32} width={c.w} height={22} rx={11} />
             <text x={c.x + c.w / 2} y={y + n.h - 17} textAnchor="middle">
@@ -733,7 +753,7 @@ function Explorer({ uri, onClose }: { uri: string; onClose: () => void }) {
   const height = layout ? layout.height + PAD * 2 : 0;
 
   return (
-    <div ref={dialogRef} className="fx-tx" role="dialog" aria-modal="true" aria-labelledby="fx-tx-title" tabIndex={-1}>
+    <div ref={dialogRef} className="fx-tx" data-pick role="dialog" aria-modal="true" aria-labelledby="fx-tx-title" tabIndex={-1}>
       <div className="fx-tx-head">
         <div className="fx-tx-title">
           <h2 id="fx-tx-title">Thread</h2>
@@ -761,7 +781,7 @@ function Explorer({ uri, onClose }: { uri: string; onClose: () => void }) {
           </button>
         </div>
       </div>
-      <div className="fx-tx-body">
+      <div className="fx-tx-body" data-open={focus ? '' : undefined}>
         <div
           ref={boxRef}
           className="fx-tx-canvas"
@@ -770,6 +790,7 @@ function Explorer({ uri, onClose }: { uri: string; onClose: () => void }) {
           onPointerMove={onPointerMove}
           onPointerUp={endDrag}
           onPointerCancel={endDrag}
+          {...drawingProps}
         >
           {failed ? (
             <p className="explore-error fx-tx-msg">Couldn’t read this thread from the Bluesky AppView.</p>
@@ -807,16 +828,11 @@ function Explorer({ uri, onClose }: { uri: string; onClose: () => void }) {
             </svg>
           )}
         </div>
-        <div className="fx-tx-side">
-          {thread && (
-            <GraphDetail
-              focus={focus}
-              subjectName={opName}
-              relationFor={relationFor}
-              emptyText="Point at, tap or tab to something to see it here."
-            />
-          )}
-        </div>
+        {thread && focus && (
+          <div className="fx-tx-side">
+            <GraphDetail focus={focus} subjectName={opName} relationFor={relationFor} onClose={closePane} />
+          </div>
+        )}
       </div>
     </div>
   );

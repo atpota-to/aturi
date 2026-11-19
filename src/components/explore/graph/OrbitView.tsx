@@ -51,7 +51,7 @@ const dotSize = (p: GraphPerson) => {
  * never moves the others. Dots stay in arrival order in the DOM, never
  * re-sorted: moving an element would restart its arrival.
  */
-export function OrbitAccount({ data, focus, onFocus }: { data: Neighbourhood } & FocusProps) {
+export function OrbitAccount({ data, focus, onFocus, onSelect }: { data: Neighbourhood } & FocusProps) {
   const { placed, hidden } = useMemo(() => {
     const angle = new Map(data.people.map((p, i) => [p.did, (i * GOLDEN_ANGLE) % (Math.PI * 2)]));
     const drawn = data.people.filter((p) => relationOf(p) !== 'further' || engagementOf(p) >= RIM_MIN_ENGAGEMENT);
@@ -97,7 +97,11 @@ export function OrbitAccount({ data, focus, onFocus }: { data: Neighbourhood } &
                 fillOpacity={engagementOf(p) ? 0.9 : 0.5}
                 role="img"
                 aria-label={`${nameOf(p)}: ${fmt(p.in)} to ${atName(subject)}, ${fmt(p.out)} from ${atName(subject)}`}
-                {...markProps(() => onFocus({ kind: 'person', person: p }), undefined, tab)}
+                {...markProps(
+                  () => onFocus({ kind: 'person', person: p }),
+                  onSelect && (() => onSelect({ kind: 'person', person: p })),
+                  tab,
+                )}
               />
             </g>
           ))}
@@ -105,7 +109,7 @@ export function OrbitAccount({ data, focus, onFocus }: { data: Neighbourhood } &
             className="fx-graph-mark"
             role="img"
             aria-label={nameOf(subject)}
-            {...markProps(() => onFocus(null))}
+            {...markProps(() => onFocus(null), onSelect && (() => onSelect(null)))}
           >
             <Face x={0} y={0} r={28} avatar={subject.avatar} name={nameOf(subject)} ring="var(--text-primary)" />
           </g>
@@ -139,6 +143,7 @@ export function OrbitThread({
   relationOfAuthor,
   focus,
   onFocus,
+  onSelect,
 }: {
   root: ThreadPost;
   current: string;
@@ -179,9 +184,10 @@ export function OrbitThread({
             const isRoot = p === root;
             const r = isRoot ? 24 : Math.min(18, 4 + Math.sqrt(p.likes) * 1.6);
             const show = () => onFocus({ kind: 'post', post: p });
+            const pick = onSelect && (() => onSelect({ kind: 'post', post: p }));
             const label = `${p.displayName || p.handle}: ${truncate(p.text, 80) || 'no text'}`;
             return isRoot ? (
-              <g key={p.uri} className="fx-graph-mark fx-graph-arrive" role="img" aria-label={label} {...markProps(show)}>
+              <g key={p.uri} className="fx-graph-mark fx-graph-arrive" role="img" aria-label={label} {...markProps(show, pick)}>
                 <Face x={q.x} y={q.y} r={r} avatar={p.avatar} name={p.handle || p.did} ring={relationColor('op')} />
               </g>
             ) : (
@@ -197,7 +203,7 @@ export function OrbitThread({
                 fill={relationColor(relationOfAuthor(p.did))}
                 role="img"
                 aria-label={label}
-                {...markProps(show, undefined, i < TABBABLE)}
+                {...markProps(show, pick, i < TABBABLE)}
               />
             );
           })}

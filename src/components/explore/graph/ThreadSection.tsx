@@ -10,7 +10,7 @@ import { FlowThread } from './FlowView';
 import { GRAPH_LAYOUT_OPTIONS, type GraphLayout } from './GraphTab';
 import { LedgerThread } from './LedgerView';
 import { OrbitThread } from './OrbitView';
-import { GraphDetail, Legend, fmt, type GraphFocus } from './shared';
+import { GraphDetail, GraphTip, Legend, fmt, usePickedDetails } from './shared';
 
 const THREAD_KEYS: readonly Relation[] = ['mutual', 'following', 'follower', 'further'];
 
@@ -20,13 +20,18 @@ const THREAD_KEYS: readonly Relation[] = ['mutual', 'following', 'follower', 'fu
  * Orbit and Ledger. Colours are each author's relation to whoever started
  * the thread. A post nobody replied to gets one line saying so, since the
  * section always has a tab of its own in the workbench's record pane.
+ *
+ * A post's whole text and counts open beside the drawing for a click, as an
+ * account's do on its Graph tab (usePickedDetails); on the Orbit, whose dots
+ * show no text, pointing at one shows its author and opening words.
  */
 export default function ThreadSection({ uri }: { uri: string }) {
   const [thread, setThread] = useState<ThreadGraph | null>(null);
   const [failed, setFailed] = useState(false);
   const [relations, setRelations] = useState<Map<string, FollowRelation> | null>(null);
   const [layout, setLayout] = useState<GraphLayout>('flow');
-  const [focus, setFocus] = useState<GraphFocus | null>(null);
+  const { picked, pick, preview, tip, tipPicked, rootRef, closePane, onKeyDown, drawingProps } =
+    usePickedDetails<HTMLElement>(layout === 'orbit');
 
   useEffect(() => {
     const ac = new AbortController();
@@ -98,10 +103,16 @@ export default function ThreadSection({ uri }: { uri: string }) {
   }
 
   const current = thread.focus;
-  const props = { root: op, current, relationOfAuthor, focus, onFocus: setFocus };
+  const props = { root: op, current, relationOfAuthor, focus: picked, onFocus: preview, onSelect: pick };
 
   return (
-    <section className="fn-rec-card fx-graph fx-graph-thread" aria-labelledby="fx-graph-thread-title">
+    <section
+      ref={rootRef}
+      className="fn-rec-card fx-graph fx-graph-thread"
+      data-pick
+      aria-labelledby="fx-graph-thread-title"
+      onKeyDown={onKeyDown}
+    >
       <div className="fx-graph-head">
         <h2 id="fx-graph-thread-title" className="fn-rec-h2">
           Thread
@@ -113,19 +124,17 @@ export default function ThreadSection({ uri }: { uri: string }) {
         {fullScreen}
       </div>
       <Legend keys={THREAD_KEYS} subject={opName} op />
-      <div className="fx-graph-body">
-        <div className="fx-graph-main">
+      <div className="fx-graph-split" data-open={picked ? '' : undefined}>
+        <div className="fx-graph-main" {...drawingProps}>
           {layout === 'flow' && <FlowThread {...props} />}
           {layout === 'orbit' && <OrbitThread {...props} />}
           {layout === 'ledger' && <LedgerThread {...props} />}
         </div>
-        <GraphDetail
-          focus={focus}
-          subjectName={opName}
-          relationFor={relationFor}
-          emptyText="Point at, tap or tab to a post to read it here."
-        />
+        {picked && (
+          <GraphDetail focus={picked} subjectName={opName} relationFor={relationFor} onClose={closePane} />
+        )}
       </div>
+      {tip && <GraphTip tip={tip} picked={tipPicked} subjectName={opName} />}
     </section>
   );
 }

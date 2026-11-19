@@ -9,7 +9,7 @@ import { Segmented } from '../lexicons/primitives';
 import { FlowAccount } from './FlowView';
 import { LedgerAccount } from './LedgerView';
 import { OrbitAccount } from './OrbitView';
-import { GraphDetail, Legend, atName, fmt, type GraphFocus } from './shared';
+import { GraphDetail, GraphTip, Legend, atName, fmt, usePickedDetails, type GraphFocus } from './shared';
 
 export const GRAPH_LAYOUTS = ['orbit', 'ledger', 'flow'] as const;
 export type GraphLayout = (typeof GRAPH_LAYOUTS)[number];
@@ -32,9 +32,9 @@ export const GRAPH_LAYOUT_OPTIONS: { value: GraphLayout; label: string }[] = [
  * fills in underneath it as the data lands: dots appear as accounts are
  * found and move rings as follows are checked.
  *
- * The drawing gets the full width. Whoever is pointed at is described in a
- * strip above it, which stays empty until then: the account itself is in the
- * explorer's left pane already.
+ * The drawing gets the full width until someone in it is clicked, and their
+ * details slide in beside it (usePickedDetails). The account itself isn't
+ * described: it is in the explorer's left pane already.
  */
 export default function GraphTab({ identity }: { identity: IdentityBundle }) {
   const router = useRouter();
@@ -43,7 +43,17 @@ export default function GraphTab({ identity }: { identity: IdentityBundle }) {
   const layout: GraphLayout = (GRAPH_LAYOUTS as readonly string[]).includes(param ?? '') ? (param as GraphLayout) : 'orbit';
   const [data, setData] = useState<Neighbourhood | null>(null);
   const [failed, setFailed] = useState(false);
-  const [focus, setFocus] = useState<GraphFocus | null>(null);
+  const {
+    picked: selected,
+    pick,
+    preview,
+    tip,
+    tipPicked,
+    rootRef,
+    closePane,
+    onKeyDown,
+    drawingProps,
+  } = usePickedDetails<HTMLDivElement>(layout === 'orbit');
 
   useEffect(() => {
     const ac = new AbortController();
@@ -66,9 +76,13 @@ export default function GraphTab({ identity }: { identity: IdentityBundle }) {
   const subjectName = data ? atName(data.subject) : identity.handle ? `@${identity.handle}` : 'this account';
   const empty = data?.stage === 'done' && data.people.length === 0;
   const loading = !data || data.stage !== 'done';
+  // The read keeps going after a click, so the details follow the latest
+  // copy of whoever was clicked rather than the one the click caught.
+  const latest = selected?.kind === 'person' ? data?.people.find((p) => p.did === selected.person.did) : undefined;
+  const shown: GraphFocus | null = latest && selected?.kind === 'person' ? { ...selected, person: latest } : selected;
 
   return (
-    <div className="fx-graph">
+    <div ref={rootRef} className="fx-graph" data-pick onKeyDown={onKeyDown}>
       <div className="fx-graph-head">
         <Segmented ariaLabel="Graph layout" options={GRAPH_LAYOUT_OPTIONS} value={layout} onChange={selectLayout} />
         {!loading && <p className="fx-graph-status">{fmt(data.people.length)} accounts</p>}
@@ -80,18 +94,16 @@ export default function GraphTab({ identity }: { identity: IdentityBundle }) {
         </p>
       ) : data ? (
         <>
-          <GraphDetail
-            strip
-            focus={focus}
-            subjectName={subjectName}
-            emptyText="Point at, tap or tab to someone in the drawing to see who they are."
-          />
           {layout !== 'ledger' && <Legend subject={subjectName} />}
-          <div className="fx-graph-main">
-            {layout === 'orbit' && <OrbitAccount data={data} focus={focus} onFocus={setFocus} />}
-            {layout === 'ledger' && <LedgerAccount data={data} focus={focus} onFocus={setFocus} />}
-            {layout === 'flow' && <FlowAccount data={data} focus={focus} onFocus={setFocus} />}
+          <div className="fx-graph-split" data-open={shown ? '' : undefined}>
+            <div className="fx-graph-main" {...drawingProps}>
+              {layout === 'orbit' && <OrbitAccount data={data} focus={shown} onFocus={preview} onSelect={pick} />}
+              {layout === 'ledger' && <LedgerAccount data={data} focus={shown} onFocus={preview} onSelect={pick} />}
+              {layout === 'flow' && <FlowAccount data={data} focus={shown} onFocus={preview} onSelect={pick} />}
+            </div>
+            {shown && <GraphDetail focus={shown} subjectName={subjectName} onClose={closePane} />}
           </div>
+          {tip && <GraphTip tip={tip} picked={tipPicked} subjectName={subjectName} />}
         </>
       ) : (
         <div className="fx-graph-placeholder" aria-hidden />

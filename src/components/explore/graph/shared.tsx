@@ -1,8 +1,8 @@
 'use client';
 
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import Link from 'next/link';
-import { Minus, Plus, Scan } from 'lucide-react';
+import { Minus, Plus, Scan, X } from 'lucide-react';
 import { encodeRepo } from '@/utils/atproto/urls';
 import {
   RELATION_ORDER,
@@ -24,6 +24,12 @@ export type FocusProps = {
   focus: GraphFocus | null;
   /** Null clears the panel, as pointing at the account a drawing is about does. */
   onFocus: (f: GraphFocus | null) => void;
+  /**
+   * A click or Enter on a mark, where the drawing keeps its details for a
+   * click rather than following the pointer (the account Graph tab). Pointing
+   * still calls `onFocus`, and `focus` is then what was picked.
+   */
+  onSelect?: (f: GraphFocus | null) => void;
 };
 
 export const isPerson = (p: GraphPerson | GraphAccount): p is GraphPerson => 'following' in p;
@@ -327,34 +333,193 @@ function kindsText(kinds: GraphPerson['inKinds']): string {
     .join(', ');
 }
 
+/** One pick told from another: the same person, post or record. */
+function pickKey(f: GraphFocus | null): string | null {
+  if (!f) return null;
+  if (f.kind === 'person') return `person:${f.person.did}`;
+  if (f.kind === 'post') return `post:${f.post.uri}`;
+  if (f.kind === 'record') return `record:${f.record.uri}`;
+  return `group:${f.label}`;
+}
+
+export type GraphTipAt = { focus: GraphFocus; x: number; y: number; below: boolean };
+
+/**
+ * Details on a click, for the account Graph tab and a post's Thread section.
+ * Clicking someone or something in the drawing opens its details in a pane
+ * beside it, which stays put while the pointer moves on, so the ways onward
+ * from it can be reached across the drawing; a second click, the close
+ * button or Esc puts it away. Pointing only marks what's under the pointer,
+ * and where marks carry no names (`tooltips`, the Orbit's dots) a tooltip
+ * says whose each is.
+ *
+ * `rootRef` and `onKeyDown` go on the section, which places the tooltip, and
+ * `drawingProps` on what holds the drawing, which tracks the mark under the
+ * pointer or keyboard focus: the tooltip is placed against it, and focus goes
+ * back to it when the pane is closed from the keyboard.
+ */
+export function usePickedDetails<T extends HTMLElement>(tooltips: boolean) {
+  const [picked, setPicked] = useState<GraphFocus | null>(null);
+  const [tip, setTip] = useState<GraphTipAt | null>(null);
+  const rootRef = useRef<T>(null);
+  const anchorRef = useRef<Element | null>(null);
+  const openerRef = useRef<Element | null>(null);
+  // A tap fires the same hover and focus events a mouse does; a tooltip from
+  // one would stay up over the drawing.
+  const inputRef = useRef<string>('mouse');
+
+  const preview = useCallback(
+    (f: GraphFocus | null) => {
+      const root = rootRef.current;
+      const el = anchorRef.current;
+      const named = f?.kind === 'post' || (f?.kind === 'person' && isPerson(f.person));
+      if (!tooltips || inputRef.current === 'touch' || !f || !named || !root || !el) {
+        setTip(null);
+        return;
+      }
+      const r = el.getBoundingClientRect();
+      const box = root.getBoundingClientRect();
+      const below = r.top - box.top < 110;
+      setTip({
+        focus: f,
+        x: Math.min(Math.max(r.left + r.width / 2 - box.left, 130), box.width - 130),
+        y: below ? r.bottom - box.top : r.top - box.top,
+        below,
+      });
+    },
+    [tooltips],
+  );
+
+  const pick = useCallback((f: GraphFocus | null) => {
+    openerRef.current = anchorRef.current;
+    setPicked((cur) => (f && pickKey(cur) === pickKey(f) ? null : f));
+  }, []);
+
+  const close = useCallback((returnFocus: boolean) => {
+    setPicked(null);
+    const el = openerRef.current as HTMLElement | SVGElement | null;
+    if (returnFocus && el?.isConnected) el.focus({ preventScroll: true });
+  }, []);
+
+  // The tooltip is placed once, where the mark was; scrolling moves the mark.
+  useEffect(() => {
+    if (!tip) return undefined;
+    const hide = () => setTip(null);
+    window.addEventListener('scroll', hide, true);
+    return () => window.removeEventListener('scroll', hide, true);
+  }, [tip]);
+
+  // Under the drawing on a narrow screen, the pane can open out of sight.
+  const key = pickKey(picked);
+  useEffect(() => {
+    if (!key) return;
+    const pane = rootRef.current?.querySelector('.fx-graph-split > .fx-graph-detail');
+    const still = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    pane?.scrollIntoView({ block: 'nearest', behavior: still ? 'auto' : 'smooth' });
+  }, [key]);
+
+  const track = (e: React.SyntheticEvent) => {
+    anchorRef.current = (e.target as Element).closest?.('[tabindex]') ?? null;
+  };
+
+  return {
+    picked,
+    pick,
+    preview,
+    tip,
+    /** Whether the tooltip's mark is the one whose details are open. */
+    tipPicked: Boolean(tip && pickKey(tip.focus) === key),
+    rootRef,
+    close,
+    /** The close button's: focus goes back to the mark only if the button was reached from the keyboard. */
+    closePane: () => close(Boolean(document.activeElement?.matches(':focus-visible'))),
+    onKeyDown: (e: React.KeyboardEvent) => {
+      if (e.key === 'Escape' && picked) {
+        e.stopPropagation();
+        close(true);
+      }
+    },
+    drawingProps: {
+      onPointerOverCapture: (e: React.PointerEvent) => {
+        inputRef.current = e.pointerType;
+        track(e);
+      },
+      onPointerDownCapture: (e: React.PointerEvent) => {
+        inputRef.current = e.pointerType;
+      },
+      onKeyDownCapture: () => {
+        inputRef.current = 'keyboard';
+      },
+      onFocusCapture: track,
+      onPointerOut: (e: React.PointerEvent) => {
+        const a = anchorRef.current;
+        if (tip && a?.contains(e.target as Node) && !a.contains(e.relatedTarget as Node | null)) setTip(null);
+      },
+      onBlurCapture: (e: React.FocusEvent) => {
+        if (tip && e.target === anchorRef.current) setTip(null);
+      },
+    },
+  };
+}
+
+/** Whose dot it is, or what post: name and one line, for marks that show neither. */
+export function GraphTip({ tip, picked, subjectName }: { tip: GraphTipAt; picked: boolean; subjectName: string }) {
+  const f = tip.focus;
+  let name: string;
+  let line: string | null = null;
+  let swatch: string | null = null;
+  if (f.kind === 'person') {
+    name = nameOf(f.person);
+    if (isPerson(f.person)) {
+      line = relationSentence(f.person, subjectName);
+      swatch = relationColor(relationOf(f.person));
+    }
+  } else if (f.kind === 'post') {
+    name = f.post.displayName || f.post.handle || f.post.did;
+    line = truncate(f.post.text, 140) || (f.post.hasMedia ? 'An image or video, no text.' : 'No text.');
+  } else {
+    return null;
+  }
+  return (
+    <div className="fx-graph-tip" data-below={tip.below || undefined} style={{ left: tip.x, top: tip.y }} aria-hidden>
+      <span className="fx-graph-tip-name">{name}</span>
+      {line && (
+        <span className="fx-graph-tip-rel">
+          {swatch && <span className="fx-graph-swatch" style={{ background: swatch }} />}
+          {line}
+        </span>
+      )}
+      {!picked && <span className="fx-graph-tip-hint">Click for details</span>}
+    </div>
+  );
+}
+
 /**
  * The detail panel: who or what the pointer, finger or focus is on, in
  * words, with the ways onward from it. A drawing says where things sit; this
  * says what they are, for anyone the drawing alone doesn't serve.
  *
- * Beside a thread it is a column, since a post's text wants the height. On an
- * account's Graph tab it is a `strip` above the drawing instead: the account
- * itself is already in the explorer's left pane, so the column would mostly
- * repeat it, and the drawing is the thing that needs the width.
+ * It opens for a click (see usePickedDetails), with `onClose`, and isn't
+ * there otherwise: the drawing is the thing that needs the width.
  */
 export function GraphDetail({
   focus,
   subjectName,
   relationFor,
   emptyText,
-  strip = false,
+  onClose,
 }: {
   focus: GraphFocus | null;
   subjectName: string;
   /** The relation sentence for an account that isn't a full GraphPerson (thread authors, flow cards). */
   relationFor?: (did: string) => string | null;
-  emptyText: string;
-  /** One short row above the drawing (below it on a phone) rather than a column beside it. */
-  strip?: boolean;
+  emptyText?: string;
+  /** Shown as a close button; the panel is then something opened, not always there. */
+  onClose?: () => void;
 }) {
   let body: ReactNode;
   if (!focus) {
-    body = <p className="fx-graph-detail-empty">{emptyText}</p>;
+    body = emptyText ? <p className="fx-graph-detail-empty">{emptyText}</p> : null;
   } else if (focus.kind === 'group') {
     body = (
       <>
@@ -467,7 +632,12 @@ export function GraphDetail({
     );
   }
   return (
-    <aside className="fx-graph-detail" data-layout={strip ? 'strip' : undefined} aria-live="polite" aria-label="Details">
+    <aside className="fx-graph-detail" aria-live="polite" aria-label="Details">
+      {onClose && (
+        <button type="button" className="fx-graph-detail-close" onClick={onClose} aria-label="Close details">
+          <X size={16} aria-hidden />
+        </button>
+      )}
       {body}
     </aside>
   );
