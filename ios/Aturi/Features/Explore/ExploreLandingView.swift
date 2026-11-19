@@ -621,7 +621,8 @@ private struct AtmospherePulseSection: View {
             } foot: {
                 cardFoot(
                     toggle: model.showsNewToggle ? (model.newToggleLabel, { self.model.newExpanded.toggle() }) : nil,
-                    linkLabel: "All new lexicons"
+                    linkLabel: "All new lexicons",
+                    opensNewLexicons: true
                 )
             }
 
@@ -691,7 +692,9 @@ private struct AtmospherePulseSection: View {
         }
     }
 
-    private func cardFoot(toggle: (String, () -> Void)?, linkLabel: String) -> some View {
+    /// `opensNewLexicons` is the web's `/explore/lexicons#new`: the Lexicons
+    /// tab at its root with the New section showing.
+    private func cardFoot(toggle: (String, () -> Void)?, linkLabel: String, opensNewLexicons: Bool = false) -> some View {
         HStack(spacing: 12) {
             if let toggle {
                 Button(toggle.0, action: toggle.1)
@@ -701,7 +704,11 @@ private struct AtmospherePulseSection: View {
             }
             Spacer(minLength: 0)
             Button {
-                router.select(.lexicons)
+                if opensNewLexicons {
+                    router.showNewLexicons()
+                } else {
+                    router.select(.lexicons)
+                }
             } label: {
                 Text(linkLabel)
                     .font(AturiFont.sans(.footnote, weight: .semibold))

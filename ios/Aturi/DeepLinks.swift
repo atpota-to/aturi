@@ -433,6 +433,10 @@ final class AppRouter {
     /// asks before an app reads what another app copied, and only an app
     /// that is on screen can be asked.
     private(set) var clipboardLinkRequested = false
+    /// Set by the Explore landing's "All new lexicons", cleared by the
+    /// Lexicons tab when it turns to its New section: the web's link to
+    /// `/explore/lexicons#new`, which lands on that card.
+    private(set) var newLexiconsRequested = false
 
     init() {}
 
@@ -545,6 +549,22 @@ final class AppRouter {
     func consumeClipboardLinkRequest() -> Bool {
         guard clipboardLinkRequested else { return false }
         clipboardLinkRequested = false
+        return true
+    }
+
+    /// Show the Lexicons tab at its root with the New section selected
+    /// (see `newLexiconsRequested`).
+    func showNewLexicons() {
+        popToRoot(.lexicons)
+        selectedTab = .lexicons
+        newLexiconsRequested = true
+    }
+
+    /// True once per request: the Lexicons tab calls this when it appears
+    /// and when the request changes, then shows its New section.
+    func consumeNewLexiconsRequest() -> Bool {
+        guard newLexiconsRequested else { return false }
+        newLexiconsRequested = false
         return true
     }
 
