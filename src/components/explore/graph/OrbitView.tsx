@@ -51,7 +51,7 @@ const dotSize = (p: GraphPerson) => {
  * never moves the others. Dots stay in arrival order in the DOM, never
  * re-sorted: moving an element would restart its arrival.
  */
-export function OrbitAccount({ data, focus, onFocus }: { data: Neighbourhood } & FocusProps) {
+export function OrbitAccount({ data, focus, onFocus, onSelect }: { data: Neighbourhood } & FocusProps) {
   const { placed, hidden } = useMemo(() => {
     const angle = new Map(data.people.map((p, i) => [p.did, (i * GOLDEN_ANGLE) % (Math.PI * 2)]));
     const drawn = data.people.filter((p) => relationOf(p) !== 'further' || engagementOf(p) >= RIM_MIN_ENGAGEMENT);
@@ -97,7 +97,11 @@ export function OrbitAccount({ data, focus, onFocus }: { data: Neighbourhood } &
                 fillOpacity={engagementOf(p) ? 0.9 : 0.5}
                 role="img"
                 aria-label={`${nameOf(p)}: ${fmt(p.in)} to ${atName(subject)}, ${fmt(p.out)} from ${atName(subject)}`}
-                {...markProps(() => onFocus({ kind: 'person', person: p }), undefined, tab)}
+                {...markProps(
+                  () => onFocus({ kind: 'person', person: p }),
+                  onSelect && (() => onSelect({ kind: 'person', person: p })),
+                  tab,
+                )}
               />
             </g>
           ))}
@@ -105,7 +109,7 @@ export function OrbitAccount({ data, focus, onFocus }: { data: Neighbourhood } &
             className="fx-graph-mark"
             role="img"
             aria-label={nameOf(subject)}
-            {...markProps(() => onFocus(null))}
+            {...markProps(() => onFocus(null), onSelect && (() => onSelect(null)))}
           >
             <Face x={0} y={0} r={28} avatar={subject.avatar} name={nameOf(subject)} ring="var(--text-primary)" />
           </g>

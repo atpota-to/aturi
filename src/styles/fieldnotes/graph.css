@@ -464,129 +464,146 @@
   color: var(--text-accent);
 }
 
-/* The account Graph tab's panel: a strip above the drawing rather than a
-   column beside it, so the drawing has the width. Who it is sits on the
-   left, where they stand and what they gave in the middle, the counts and
-   the ways onward on the right.
+/* ─── Account details pane ───────────────────────────────────────────── */
 
-   Where it is one row its height is fixed and long lines are cut short. A
-   strip that grew with what's pointed at would push the drawing down under
-   the pointer, onto someone else, whose shorter strip would pull it back.
-   Too narrow for one row, it goes under the drawing instead, as the column
-   did: above, it would push a phone's drawing off the screen. */
-.fx-graph-detail[data-layout='strip'] {
-  order: 1;
+/* The account Graph tab opens details for a click, in a pane that slides in
+   beside the drawing and pushes it narrower while it's open. Laid over the
+   drawing it would hide the Ledger's right-hand names, the very ones being
+   clicked. Below 820px it falls under the drawing. */
+.fx-graph-account {
+  position: relative;
+}
+
+.fx-graph-split {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 6px 14px;
-  min-height: 64px;
-  padding: 10px 14px;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 14px;
 }
 
-.fx-graph-detail[data-layout='strip'] > * {
-  grid-column: 1 / -1;
-  min-width: 0;
+.fx-graph-split > .fx-graph-detail {
+  position: relative;
+  animation: fx-graph-pane-in 180ms ease-out;
 }
 
-.fx-graph-detail[data-layout='strip'] > .fx-graph-who {
-  grid-column: 1;
+/* A handle can be longer than the pane is wide. */
+.fx-graph-split .fx-graph-facts dt {
+  overflow-wrap: anywhere;
 }
 
-.fx-graph-detail[data-layout='strip'] > .fx-graph-facts {
-  grid-column: 2;
-  grid-row: 1;
-}
+@container (min-width: 820px) {
+  .fx-graph-split[data-open] {
+    grid-template-columns: minmax(0, 1fr) 280px;
+    align-items: start;
+  }
 
-.fx-graph-detail[data-layout='strip'] .fx-graph-facts {
-  grid-template-columns: repeat(2, minmax(60px, auto));
-}
-
-.fx-graph-detail[data-layout='strip'] .fx-graph-facts div {
-  padding: 4px 8px;
-}
-
-/* The counts are labelled with the account's handle, which can be long. */
-.fx-graph-detail[data-layout='strip'] .fx-graph-facts dt {
-  max-width: 9rem;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.fx-graph-detail[data-layout='strip'] .fx-graph-dn,
-.fx-graph-detail[data-layout='strip'] .fx-graph-hd {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-@container (min-width: 600px) {
-  .fx-graph-detail[data-layout='strip'] {
-    order: 0;
+  .fx-graph-split > .fx-graph-detail {
     position: sticky;
     top: 88px;
-    z-index: 2;
-    grid-template-columns: minmax(0, max-content) minmax(0, 1fr) auto auto;
-    /* The middle column's one to three lines sit in the auto rows, between
-       two equal spare rows, so they centre on the avatar and counts however
-       many there are. The empty ::before holds the first spare row. */
-    grid-template-rows: 1fr repeat(3, auto) 1fr;
-    row-gap: 0;
-    height: 68px;
-    overflow: hidden;
-  }
-
-  .fx-graph-detail[data-layout='strip']::before {
-    content: '';
-    grid-column: 2;
-    grid-row: 1;
-  }
-
-  .fx-graph-detail[data-layout='strip'] > * {
-    grid-column: 2;
-  }
-
-  .fx-graph-detail[data-layout='strip'] > .fx-graph-who,
-  .fx-graph-detail[data-layout='strip'] > .fx-graph-dn {
-    grid-column: 1;
-    grid-row: 1 / -1;
-    max-width: 12rem;
-  }
-
-  .fx-graph-detail[data-layout='strip'] > .fx-graph-facts {
-    grid-column: 3;
-    grid-row: 1 / -1;
-  }
-
-  .fx-graph-detail[data-layout='strip'] > .fx-graph-links {
-    grid-column: 4;
-    grid-row: 1 / -1;
-    flex-direction: column;
-    gap: 2px;
-  }
-
-  .fx-graph-detail[data-layout='strip'] > .fx-graph-detail-empty {
-    grid-column: 1 / -1;
-  }
-
-  .fx-graph-detail[data-layout='strip'] > .fx-graph-rel,
-  .fx-graph-detail[data-layout='strip'] > .fx-graph-detail-text {
-    display: block;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  .fx-graph-detail[data-layout='strip'] > .fx-graph-rel .fx-graph-swatch {
-    margin-right: 7px;
   }
 
   /* The workbench scrolls its own pane, which starts below the site header,
      where the classic page scrolls the window under it. */
-  .fx-wb-page .fx-graph-detail[data-layout='strip'] {
+  .fx-wb-page .fx-graph-split > .fx-graph-detail {
     top: 12px;
   }
+}
+
+@keyframes fx-graph-pane-in {
+  from {
+    opacity: 0;
+    transform: translateX(16px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fx-graph-split > .fx-graph-detail {
+    animation: none;
+  }
+}
+
+.fx-graph-detail-close {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  color: var(--text-tertiary);
+  background: none;
+  border: 0;
+  border-radius: 7px;
+  cursor: pointer;
+}
+
+.fx-graph-detail-close:hover {
+  color: var(--text-primary);
+  background: var(--bg-tertiary);
+}
+
+.fx-graph-detail-close:focus-visible {
+  outline: 2px solid var(--text-accent);
+  outline-offset: 1px;
+}
+
+.fx-graph-detail-close + * {
+  padding-right: 28px;
+}
+
+/* Pointing marks what's under the pointer; the details wait for a click. */
+.fx-graph-account .fx-graph-dot:hover:not([data-focus]) {
+  stroke: var(--text-primary);
+  stroke-width: 2;
+}
+
+.fx-graph-account .fx-graph-mark:hover:not([data-focus]) .fx-graph-card {
+  stroke: var(--text-secondary);
+}
+
+.fx-graph-account .fx-graph-band-row:has(> .fx-graph-mark:hover:not([data-focus])) > path {
+  fill-opacity: 0.48;
+}
+
+/* Whose dot it is, on the Orbit. Placed by GraphTab above the dot, or below
+   it near the top, and never in the pointer's way. */
+.fx-graph-tip {
+  position: absolute;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-width: 260px;
+  padding: 7px 10px;
+  border: 1px solid var(--border-medium);
+  border-radius: 9px;
+  background: var(--bg-elevated);
+  box-shadow: var(--shadow-overlay);
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  pointer-events: none;
+  transform: translate(-50%, calc(-100% - 8px));
+}
+
+.fx-graph-tip[data-below] {
+  transform: translate(-50%, 8px);
+}
+
+.fx-graph-tip-name {
+  font-weight: 650;
+  color: var(--text-primary);
+  overflow-wrap: anywhere;
+}
+
+.fx-graph-tip-rel {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.fx-graph-tip-hint {
+  font-size: 0.75rem;
+  color: var(--text-tertiary);
 }
 
 /* ─── Ledger ─────────────────────────────────────────────────────────── */

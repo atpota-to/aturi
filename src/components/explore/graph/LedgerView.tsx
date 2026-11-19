@@ -44,7 +44,7 @@ const BANDS_MIN_WIDTH = 520;
  * width by count, with the dame.is degree bars underneath: of everyone on
  * each side, how many are mutuals, follows, followers, 2nd degree and further.
  */
-export function LedgerAccount({ data, focus, onFocus }: { data: Neighbourhood } & FocusProps) {
+export function LedgerAccount({ data, focus, onFocus, onSelect }: { data: Neighbourhood } & FocusProps) {
   const [ref, width] = useWidth<HTMLDivElement>();
   const subject = atName(data.subject);
   const { left, right, inbound, outbound } = useMemo(() => {
@@ -70,12 +70,13 @@ export function LedgerAccount({ data, focus, onFocus }: { data: Neighbourhood } 
           subject={data.subject}
           focused={focused}
           onFocus={onFocus}
+          onSelect={onSelect}
           width={Math.min(1200, Math.max(720, width))}
         />
       ) : (
         <div className="fx-graph-ledger-lists">
-          <RankList title="Engaged with them most" people={left} value={(p) => p.in} focused={focused} onFocus={onFocus} />
-          <RankList title="They engaged with most" people={right} value={(p) => p.out} focused={focused} onFocus={onFocus} />
+          <RankList title="Engaged with them most" people={left} value={(p) => p.in} focused={focused} onFocus={onFocus} onSelect={onSelect} />
+          <RankList title="They engaged with most" people={right} value={(p) => p.out} focused={focused} onFocus={onFocus} onSelect={onSelect} />
         </div>
       )}
       <div className="fx-graph-bars">
@@ -92,6 +93,7 @@ function Bands({
   subject,
   focused,
   onFocus,
+  onSelect,
   width: W,
 }: {
   left: GraphPerson[];
@@ -99,6 +101,7 @@ function Bands({
   subject: Neighbourhood['subject'];
   focused: string | null;
   onFocus: FocusProps['onFocus'];
+  onSelect: FocusProps['onSelect'];
   width: number;
 }) {
   // The label column on each side: a count, a name and an avatar.
@@ -130,14 +133,17 @@ function Bands({
         : `M${cx},${y2} C${mx},${y2} ${mx},${y1} ${px},${y1} L${px},${y1 + th} C${mx},${y1 + th} ${mx},${y2 + th} ${cx},${y2 + th} Z`;
       const color = relationColor(relationOf(p));
       return (
-        <g key={`${isLeft ? 'l' : 'r'}${p.did}`}>
+        <g key={`${isLeft ? 'l' : 'r'}${p.did}`} className="fx-graph-band-row">
           <path d={d} fill={color} fillOpacity={focused === p.did ? 0.6 : 0.3} className="fx-graph-fade" />
           <g
             className="fx-graph-mark fx-graph-fade"
             role="img"
             aria-label={`${nameOf(p)}: ${fmt(v)}`}
             data-focus={focused === p.did || undefined}
-            {...markProps(() => onFocus({ kind: 'person', person: p }))}
+            {...markProps(
+              () => onFocus({ kind: 'person', person: p }),
+              onSelect && (() => onSelect({ kind: 'person', person: p })),
+            )}
           >
             <rect x={isLeft ? 10 : W - LABEL} y={y - rowH / 2 + 2} width={LABEL - 10} height={rowH - 4} className="fx-graph-hit" />
             <rect x={isLeft ? px - 5 : px} y={y1} width={5} height={th} fill={color} rx={2} />
@@ -166,7 +172,7 @@ function Bands({
       {side(left, (p) => p.in, true)}
       {side(right, (p) => p.out, false)}
       <rect x={CX - BW / 2} y={barTop} width={BW} height={Math.max(sumL, sumR) * scale} rx={4} className="fx-graph-spine" />
-      <g className="fx-graph-mark" role="img" aria-label={nameOf(subject)} {...markProps(() => onFocus(null))}>
+      <g className="fx-graph-mark" role="img" aria-label={nameOf(subject)} {...markProps(() => onFocus(null), onSelect && (() => onSelect(null)))}>
         <Face x={CX} y={barTop - 22} r={16} avatar={subject.avatar} name={nameOf(subject)} ring="var(--text-primary)" />
       </g>
     </svg>
@@ -179,12 +185,14 @@ function RankList({
   value,
   focused,
   onFocus,
+  onSelect,
 }: {
   title: string;
   people: GraphPerson[];
   value: (p: GraphPerson) => number;
   focused: string | null;
   onFocus: FocusProps['onFocus'];
+  onSelect: FocusProps['onSelect'];
 }) {
   const max = Math.max(1, ...people.map(value));
   return (
@@ -197,7 +205,7 @@ function RankList({
               type="button"
               className="fx-graph-rank-row"
               data-focus={focused === p.did || undefined}
-              onClick={() => onFocus({ kind: 'person', person: p })}
+              onClick={() => (onSelect ?? onFocus)({ kind: 'person', person: p })}
               onFocus={() => onFocus({ kind: 'person', person: p })}
             >
               <span className="fx-graph-rank-name">{nameOf(p)}</span>

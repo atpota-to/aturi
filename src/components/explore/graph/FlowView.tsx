@@ -112,7 +112,7 @@ const PAD = 24;
  * page at a time, and on as far as anyone cares to go. One branch is open
  * per column, so the chart is always a path with its choices beside it.
  */
-export function FlowAccount({ data, focus, onFocus }: { data: Neighbourhood } & FocusProps) {
+export function FlowAccount({ data, focus, onFocus, onSelect }: { data: Neighbourhood } & FocusProps) {
   const subject = data.subject;
   const people = useMemo(() => new Map(data.people.map((p) => [p.did, p])), [data.people]);
   // [groupKey, personDid, groupKey, personDid, …]
@@ -317,7 +317,7 @@ export function FlowAccount({ data, focus, onFocus }: { data: Neighbourhood } & 
           {links.map((l) => (
             <Connector key={l.key} x1={l.x1} y1={l.y1 + shift} x2={l.x2} y2={l.y2 + shift} hot={l.hot} />
           ))}
-          <g className="fx-graph-mark" role="img" aria-label={nameOf(subject)} {...markProps(() => onFocus(null))}>
+          <g className="fx-graph-mark" role="img" aria-label={nameOf(subject)} {...markProps(() => onFocus(null), onSelect && (() => onSelect(null)))}>
             <rect x={0} y={subjectY} width={SUBJECT_W} height={CARD_H} rx={10} className="fx-graph-card" data-strong />
             <Face x={26} y={subjectY + CARD_H / 2} r={16} avatar={subject.avatar} name={nameOf(subject)} ring="var(--text-primary)" />
             <text x={52} y={subjectY + 22} className="fx-graph-t-name">
@@ -369,6 +369,7 @@ export function FlowAccount({ data, focus, onFocus }: { data: Neighbourhood } & 
                   {...markProps(
                     () => onFocus({ kind: 'person', person: a }),
                     () => {
+                      onSelect?.({ kind: 'person', person: a });
                       choose(it.level, a.did);
                       void openPerson(a.did);
                     },
