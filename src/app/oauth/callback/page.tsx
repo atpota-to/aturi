@@ -36,7 +36,7 @@ const GENERIC_ORIGINS = new Set([
   '/explore/spaces',
   '/explore/lexicons',
   '/docs',
-  '/links',
+  '/waypoints',
   '/extension',
   '/feedback',
   '/fork',

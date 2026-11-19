@@ -1,9 +1,9 @@
 'use client';
 
 import Link from 'next/link';
-import { ChevronRight, Download, Leaf, Link2, Plug, Telescope, Wrench } from 'lucide-react';
+import { ChevronRight, Download, Leaf, Plug, Signpost, Telescope, Wrench } from 'lucide-react';
 
-type ProductKey = 'universal-links' | 'extension' | 'explore' | 'mcp' | 'tools';
+type ProductKey = 'waypoints' | 'extension' | 'explore' | 'mcp' | 'tools';
 
 type Card = {
   key: ProductKey;
@@ -15,17 +15,17 @@ type Card = {
 
 const CARDS: Card[] = [
   {
-    key: 'universal-links',
-    href: '/links',
-    icon: <Link2 size={18} />,
-    title: 'Universal links',
+    key: 'waypoints',
+    href: '/waypoints',
+    icon: <Signpost size={18} />,
+    title: 'Waypoints',
     body: (
       <>
         Share{' '}
         <code>
           aturi.to/<wbr />handle/<wbr />collection/<wbr />rkey
         </code>
-        . Visitors choose which Atmosphere app opens it.
+        {' '}and let visitors choose the app, or build the same picker into yours.
       </>
     ),
   },
