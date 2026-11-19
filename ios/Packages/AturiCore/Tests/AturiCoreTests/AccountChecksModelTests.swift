@@ -174,7 +174,12 @@ final class AccountChecksModelTests: XCTestCase {
         model.retain()
         XCTAssertEqual(model.base.status, .loading)
         model.release()
-        try await Task.sleep(nanoseconds: 400_000_000)
+        // Wait for the abort rather than a fixed beat, so a slow CI host
+        // cannot outrun the 50ms grace; the 2s transport delay bounds it.
+        let deadline = Date().addingTimeInterval(3)
+        while model.isRunning, Date() < deadline {
+            try await Task.sleep(nanoseconds: 20_000_000)
+        }
         XCTAssertEqual(model.base.status, .idle)
         XCTAssertFalse(model.isRunning)
 

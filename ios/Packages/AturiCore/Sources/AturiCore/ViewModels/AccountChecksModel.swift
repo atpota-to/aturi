@@ -105,6 +105,10 @@ public final class AccountChecksModel {
     @ObservationIgnored private var visibilityGeneration = 0
     @ObservationIgnored private var watchers = 0
     @ObservationIgnored private var abortTask: Task<Void, Never>?
+    /// When a view last asked for or let go of this model. A model with no
+    /// result yet ages from here, so one just handed out is not dropped
+    /// before the view that asked for it has appeared.
+    @ObservationIgnored private var lastTouched: Date
 
     public init(
         identity: IdentityBundle,
@@ -117,6 +121,7 @@ public final class AccountChecksModel {
         shadowbanClient = ShadowbanClient(http: http)
         self.clock = clock
         self.grace = grace
+        lastTouched = clock()
     }
 
     // MARK: Watching
@@ -124,6 +129,7 @@ public final class AccountChecksModel {
     /// A view showing this account's checks appeared: keep its runs going,
     /// and start (or retry, or refresh) whatever it needs.
     public func retain() {
+        lastTouched = clock()
         watchers += 1
         abortTask?.cancel()
         abortTask = nil
@@ -133,6 +139,7 @@ public final class AccountChecksModel {
     /// That view went away. With nobody left watching, a run still in
     /// flight is cancelled after the grace.
     public func release() {
+        lastTouched = clock()
         watchers = max(0, watchers - 1)
         guard watchers == 0, isRunning else { return }
         abortTask?.cancel()
@@ -150,11 +157,15 @@ public final class AccountChecksModel {
     }
 
     /// Nobody is watching and nothing kept is worth keeping: the store drops
-    /// such a model rather than hold every account ever opened.
+    /// such a model rather than hold every account ever opened. One with no
+    /// result yet is kept for the TTL from when a view last touched it, as
+    /// the web's `prune` only drops stale entries: the card, its badges and
+    /// the tabs all ask the store before any of them appears, and dropping
+    /// a fresh model there handed each of them its own.
     var isDisposable: Bool {
         guard watchers == 0, !isRunning else { return false }
         let settled = [base.settledAt, scan.settledAt, visibility.settledAt].compactMap { $0 }
-        guard let newest = settled.max() else { return true }
+        let newest = settled.max() ?? lastTouched
         return clock().timeIntervalSince(newest) >= Self.ttl
     }
 
@@ -224,14 +235,20 @@ public final class AccountChecksModel {
     }
 
     private func startBase() {
+        /* Only a new answer replacing a finished one starts the other two
+           over. Retrying a failed first answer leaves the visibility check
+           alone, since it ran (or is running) on its own key, as on the web;
+           the scan never started without a finished answer. */
+        if base.status == .done {
+            scanGeneration += 1
+            visibilityGeneration += 1
+            scanTask?.cancel()
+            visibilityTask?.cancel()
+            scan = Run()
+            visibility = Run()
+        }
         baseGeneration += 1
-        scanGeneration += 1
-        visibilityGeneration += 1
         baseTask?.cancel()
-        scanTask?.cancel()
-        visibilityTask?.cancel()
-        scan = Run()
-        visibility = Run()
         base = Run(status: .loading)
         let gen = baseGeneration
         let client = labelsClient
