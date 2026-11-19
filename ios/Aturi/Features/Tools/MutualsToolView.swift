@@ -914,21 +914,21 @@ private struct MutualsSaveCard: View {
         }
     }
 
-    /// The writes go through the session: one `createRecord` per member,
-    /// since the session layer has no batched create yet. Pacing, Stop and
-    /// "add the remaining" work the same either way.
+    /// The writes go through the session: the list and its block by
+    /// `createRecord`, and the members by `applyWrites`, up to
+    /// `Mutuals.applyWritesMax` in one atomic commit, as the web does. A
+    /// batch that fails wrote nothing, so "add the remaining" picks up
+    /// exactly where it stopped.
     private func writer(did: String) -> MutualsListWriter {
         let session = self.session
         return MutualsListWriter(
             did: did,
-            batchSize: 1,
+            batchSize: Mutuals.applyWritesMax,
             createRecord: { collection, record in
                 try await session.createRecord(collection: collection, rkey: nil, value: record)
             },
             createListItems: { records in
-                for record in records {
-                    _ = try await session.createRecord(collection: Mutuals.listItemCollection, rkey: nil, value: record)
-                }
+                try await session.applyWrites(creates: records, collection: Mutuals.listItemCollection)
             }
         )
     }
@@ -1057,7 +1057,7 @@ private struct MutualsSaveCard: View {
                         model.stopSaving()
                     }
                     .buttonStyle(.aturiSecondary)
-                    .accessibilityHint("Stops after the account being written")
+                    .accessibilityHint("Stops after the batch being written")
                 }
             }
         }
@@ -1067,7 +1067,7 @@ private struct MutualsSaveCard: View {
         if let seconds = progress?.waitingSeconds {
             return "Waiting \(seconds)s for your PDS\u{2019}s write budget, then carrying on. Keep this page open."
         }
-        return "Writing to your repository, one record at a time."
+        return "Writing to your repository in batches of \(Mutuals.applyWritesMax)."
     }
 
     private func finishedText(_ outcome: MutualsAddOutcome, saving: MutualsSaving, name: String) -> String {

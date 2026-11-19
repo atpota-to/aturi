@@ -37,7 +37,7 @@ private final class MutualsFakeTransport: HTTPTransport, @unchecked Sendable {
         lock.lock()
         defer { lock.unlock() }
         recorded.append(url)
-        return routes.first { $0.patterns.allSatisfy(url.contains) }?.reply
+        return routes.first { $0.patterns.allSatisfy { pattern in url.contains(pattern) } }?.reply
             ?? Reply(status: 404, body: #"{"error":"NotFound"}"#)
     }
 

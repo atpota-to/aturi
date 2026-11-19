@@ -234,6 +234,10 @@ private struct PageLinkCardPreview: View {
 
     @Environment(\.aturiTheme) private var theme
 
+    init(card: PageChecker.LinkCard) {
+        self.card = card
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             if let image = card.image, let url = URL(string: image) {

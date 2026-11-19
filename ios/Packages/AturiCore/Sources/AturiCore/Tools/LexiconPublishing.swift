@@ -882,7 +882,11 @@ public struct LexiconPublishingClient: Sendable {
                 let uri = body?["uri"]?.stringValue ?? LexiconPublishing.schemaRecordUri(did: did, nsid: nsid)
                 return .found(pds: base, uri: uri, cid: body?["cid"]?.stringValue, value: value)
             }
-            return .error(pds: base, error: "HTTP 200")
+            // The web reads `error` whatever the status: a 200 naming
+            // RecordNotFound is still a missing record.
+            let code = body?["error"]?.stringValue ?? ""
+            if code == "RecordNotFound" { return .missing(pds: base) }
+            return .error(pds: base, error: code.isEmpty ? "HTTP 200" : "\(code) (HTTP 200)")
         } catch let error as HTTPError {
             let body = try? JSONValue.parse(Data(error.body.utf8))
             let code = body?["error"]?.stringValue ?? ""

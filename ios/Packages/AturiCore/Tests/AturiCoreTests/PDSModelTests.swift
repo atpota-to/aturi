@@ -710,7 +710,7 @@ final class PDSModelTests: XCTestCase {
         XCTAssertEqual(model.repos.count, 2)
         XCTAssertFalse(model.firstPageFailed)
         XCTAssertTrue(model.canLoadMore, "the next page can be tried again")
-        XCTAssertEqual(model.footerLabel, "2 listed, more on the host The last page didn’t load.")
+        XCTAssertEqual(model.footerLabel, "2 listed, more on the host. The last page didn’t load.")
     }
 
     func testAHostThatIsNotAHostFailsBeforeAnyRequest() async {

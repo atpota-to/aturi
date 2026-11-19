@@ -599,7 +599,11 @@ private struct ActivityResultsView: View {
                         )
                     }
                     if undated > 0 {
-                        Text("\(ActivityWords.plural(undated, "record")) \(undated == 1 ? "has" : "have") no time in \(undated == 1 ? "its" : "their") key and no createdAt, so \(undated == 1 ? "it is" : "they are") not on the calendar.")
+                        let records: String = ActivityWords.plural(undated, "record")
+                        let note: String = undated == 1
+                            ? records + " has no time in its key and no createdAt, so it is not on the calendar."
+                            : records + " have no time in their key and no createdAt, so they are not on the calendar."
+                        Text(note)
                             .font(AturiFont.footnote)
                             .foregroundStyle(theme.textSecondary)
                             .fixedSize(horizontal: false, vertical: true)

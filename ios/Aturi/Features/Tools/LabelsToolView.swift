@@ -158,7 +158,8 @@ struct LabelsToolView: View {
         let who = base.view?.handle.map { "@\($0)" } ?? shortDid(base.subject.did)
         let subjectName = isPost(base) ? "this post by \(who)" : who
         let howMany = active == 1 ? "One label" : "\(active) labels"
-        let title = (active == 0 ? "No labels on \(subjectName)" : "\(howMany) on \(subjectName)") + (scanning ? " so far" : "")
+        let found: String = active == 0 ? "No labels on \(subjectName)" : "\(howMany) on \(subjectName)"
+        let title: String = scanning ? found + " so far" : found
         let sources = groups.count == 1 ? "one source" : "\(groups.count) sources"
         let finished = model.scan.status == .done && model.scan.data?.stopped == false
 

@@ -759,7 +759,7 @@ public enum XrpcConsole {
     /// Whether a media type is one the console shows as text: JSON, or
     /// anything textual.
     public static func isTextual(_ contentType: String?) -> Bool {
-        guard let contentType else { return true }
+        guard let contentType, !contentType.isEmpty else { return true }
         return contentType.firstMatch(of: textualType) != nil
     }
 

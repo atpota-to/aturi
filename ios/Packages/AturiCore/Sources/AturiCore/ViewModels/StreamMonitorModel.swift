@@ -703,6 +703,8 @@ public final class StreamMonitorModel {
     }
 
     private func openJetstream(_ config: JetstreamConfig) {
+        // A new socket starts out connecting, not with the last one's status.
+        setSocketStatus(.jetstream, .connecting)
         let subscription = sources.openJetstream(config.dids, config.collections)
         let task = Task { [weak self] in
             for await update in subscription.updates {
@@ -726,6 +728,7 @@ public final class StreamMonitorModel {
     }
 
     private func openPlc() {
+        setSocketStatus(.plc, .connecting)
         let subscription = sources.openPlc()
         let task = Task { [weak self] in
             for await update in subscription.updates {

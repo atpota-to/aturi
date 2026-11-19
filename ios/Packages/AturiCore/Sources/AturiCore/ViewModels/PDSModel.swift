@@ -833,7 +833,7 @@ public final class PDSModel {
         let count = RelayCheck.formatCount(baseRows.count)
         var text = done ? "All \(count) listed" : "\(count) listed, more on the host"
         if reposError != nil {
-            text += " The last page didn’t load."
+            text += ". The last page didn’t load."
         }
         return text
     }
