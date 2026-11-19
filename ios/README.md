@@ -55,7 +55,7 @@ Three routes in, all handled by `Aturi/DeepLinks.swift`, which maps the destinat
 
 | Link | Handled by |
 | --- | --- |
-| `https://aturi.to/profile/…`, `/explore/…`, `/at/…`, `/at://…` | Universal links (associated domains) |
+| `https://aturi.to/profile/…`, `/explore/…`, `/at/…`, `/at://…`, `/links`, `/account` | Universal links (associated domains) |
 | `at://did:plc:…/collection/rkey` | The `at` URL scheme |
 | `aturi://open?url=<encoded link>` | The `aturi` URL scheme, used by the share extension |
 
