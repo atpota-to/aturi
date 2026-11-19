@@ -289,13 +289,13 @@ struct OAuthToolView: View {
                     .font(AturiFont.footnote)
                     .foregroundStyle(theme.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
-                ForEach(scope.problems, id: \.self) { problem in
+                ForEach(Array(scope.problems.enumerated()), id: \.offset) { _, problem in
                     Text(problem)
                         .font(AturiFont.footnote)
                         .foregroundStyle(theme.danger)
                         .fixedSize(horizontal: false, vertical: true)
                 }
-                ForEach(scope.notes, id: \.self) { note in
+                ForEach(Array(scope.notes.enumerated()), id: \.offset) { _, note in
                     Text(note)
                         .font(AturiFont.caption)
                         .foregroundStyle(theme.textTertiary)
@@ -473,6 +473,13 @@ private struct ScopeField: View {
     let hint: String
 
     @Environment(\.aturiTheme) private var theme
+
+    init(label: String, text: Binding<String>, placeholder: String, hint: String) {
+        self.label = label
+        _text = text
+        self.placeholder = placeholder
+        self.hint = hint
+    }
 
     var body: some View {
         let shape = RoundedRectangle(cornerRadius: AturiTheme.controlRadius, style: .continuous)
