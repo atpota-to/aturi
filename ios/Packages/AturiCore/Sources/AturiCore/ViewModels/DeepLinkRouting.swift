@@ -70,11 +70,22 @@ public enum DeepLinkRouting {
     }
 
     /// The hash of an `aturi.to/account` link, lowercased: `redirects` for
-    /// `/account#redirects`, as the web's `SettingsShell` reads it. Nil for
-    /// any other link, and for an account link without one.
+    /// `/account#redirects`, as the web's `SettingsShell` reads it, looking
+    /// through the share extension's `aturi://open?url=` wrapper as
+    /// `destination` does. Nil for any other link, and for an account link
+    /// without one.
     public static func settingsFragment(for string: String) -> String? {
+        settingsFragment(for: string, depth: 0)
+    }
+
+    private static func settingsFragment(for string: String, depth: Int) -> String? {
         let trimmed = string.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard let parts = LinkParts(trimmed), parts.scheme == "https" || parts.scheme == "http",
+        guard let parts = LinkParts(trimmed) else { return nil }
+        if parts.scheme == "aturi" {
+            guard parts.host == "open", depth < maxNesting, let inner = parts.query["url"] else { return nil }
+            return settingsFragment(for: inner, depth: depth + 1)
+        }
+        guard parts.scheme == "https" || parts.scheme == "http",
               parts.host == Endpoints.aturiHost, parts.pathSegments == ["account"],
               !parts.fragment.isEmpty
         else { return nil }
@@ -341,11 +352,19 @@ struct LinkParts: Hashable, Sendable {
             path = String(rest)
         }
 
+        /* Form encoding, as `URLSearchParams` reads and writes it: a `+` is a
+           space (the web's lexicon links spell `?q=two+words`), and a
+           literal plus arrives as `%2B`, which `URIEncoding.encodeComponent`
+           also writes for the share extension's `?url=`. */
+        func decode(_ raw: Substring) -> String {
+            let spaced = raw.replacingOccurrences(of: "+", with: " ")
+            return spaced.removingPercentEncoding ?? spaced
+        }
         var items: [String: String] = [:]
         for pair in queryPart.split(separator: "&") {
             let keyValue = pair.split(separator: "=", maxSplits: 1, omittingEmptySubsequences: false)
-            let key = String(keyValue[0]).removingPercentEncoding ?? String(keyValue[0])
-            let value = keyValue.count > 1 ? (String(keyValue[1]).removingPercentEncoding ?? String(keyValue[1])) : ""
+            let key = decode(keyValue[0])
+            let value = keyValue.count > 1 ? decode(keyValue[1]) : ""
             if items[key] == nil {
                 items[key] = value
             }

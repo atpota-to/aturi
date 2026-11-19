@@ -66,6 +66,8 @@ final class DeepLinkRoutingTests: XCTestCase {
         XCTAssertNil(DeepLinkRouting.settingsFragment(for: "https://aturi.to/account#"))
         XCTAssertNil(DeepLinkRouting.settingsFragment(for: "https://aturi.to/links#redirects"))
         XCTAssertNil(DeepLinkRouting.settingsFragment(for: "https://example.com/account#redirects"))
+        let wrapped = "aturi://open?url=" + URIEncoding.encodeComponent("https://aturi.to/account#redirects")
+        XCTAssertEqual(DeepLinkRouting.settingsFragment(for: wrapped), "redirects", "through the share extension's wrapper")
     }
 
     func testTheExplorerIndexesOpenTheExploreSection() {
@@ -204,6 +206,8 @@ final class DeepLinkRoutingTests: XCTestCase {
 
     func testALexiconsSearchOrNamespaceOpensTheGroupPage() {
         XCTAssertEqual(destination("https://aturi.to/explore/lexicons?q=leaflet"), .explore(.lexiconGroup(prefix: "leaflet")))
+        XCTAssertEqual(destination("https://aturi.to/explore/lexicons?q=two+words"), .explore(.lexiconGroup(prefix: "two words")), "a plus is a space, as URLSearchParams writes it")
+        XCTAssertEqual(destination("https://aturi.to/explore/lexicons?q=a%2Bb"), .explore(.lexiconGroup(prefix: "a+b")))
         XCTAssertEqual(destination("https://aturi.to/explore/lexicons?q=%20leaflet%20"), .explore(.lexiconGroup(prefix: "leaflet")))
         XCTAssertEqual(destination("https://aturi.to/explore/lexicons?ns=app.bsky"), .explore(.lexiconGroup(prefix: "app.bsky")))
         // An undotted `ns` is not a namespace; the web ignores it too.
