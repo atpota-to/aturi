@@ -15,8 +15,18 @@ struct PDSView: View {
 
     @Environment(\.aturiTheme) private var theme
 
-    init(host: String) {
-        _model = State(initialValue: PDSModel(host: host))
+    /// `query` is a link's accounts filters and order (`?status=`,
+    /// `?commit=`, `?sort=`, `?dir=`), read as the web's PDS page reads its
+    /// address, so a filtered, sorted list sent as a link opens as sent.
+    init(host: String, query: [String: String] = [:]) {
+        let model = PDSModel(host: host)
+        if !query.isEmpty,
+           let location = PDSExplorer.parse(path: "/explore/pds/" + URIEncoding.encodeComponent(host), query: query) {
+            model.status = location.status
+            model.commit = location.commit
+            model.setOrder(location.sort, desc: location.desc)
+        }
+        _model = State(initialValue: model)
     }
 
     var body: some View {

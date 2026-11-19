@@ -27,7 +27,7 @@ extension Route {
             return "\(collection) · \(repo)"
         case .record(let repo, let collection, let rkey):
             return "\(collection)/\(rkey) · \(repo)"
-        case .pds(let host):
+        case .pds(let host, _):
             return "\(host) (PDS)"
         case .lexicon(let nsid):
             return nsid
@@ -58,7 +58,7 @@ extension Route {
             return [repo, collection]
         case .record(let repo, let collection, let rkey):
             return [repo, collection, rkey]
-        case .pds(let host):
+        case .pds(let host, _):
             return [host]
         case .lexicon(let nsid):
             return [nsid]

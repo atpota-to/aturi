@@ -17,8 +17,10 @@ public enum DeepLinkDestination: Hashable, Sendable {
     /// An explorer page, never `.explorer(path:)`: a path the port does
     /// not model is refused instead. `repoTab` is the tab a repo page
     /// opens on, one of `DeepLinkRouting.repoTabs` other than the default,
-    /// and only ever set on `.repo`.
-    case explore(SearchDestination, repoTab: String? = nil)
+    /// and only ever set on `.repo`. `pdsQuery` is a PDS page's query (its
+    /// accounts' filters and order, read by `PDSExplorer.parse`), only
+    /// ever set on `.pds`.
+    case explore(SearchDestination, repoTab: String? = nil, pdsQuery: [String: String] = [:])
     /// The lexicons index on one of its ranked lists, one of
     /// `DeepLinkRouting.lexiconLists`: a link's `?list=`, or `#new`, the
     /// anchor of the web's New card that its "All new lexicons" links to.
@@ -246,6 +248,8 @@ public enum DeepLinkRouting {
             break
         case .repo:
             return .explore(destination, repoTab: repoTab(from: query))
+        case .pds:
+            return .explore(destination, pdsQuery: query)
         default:
             return .explore(destination)
         }

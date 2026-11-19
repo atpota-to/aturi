@@ -136,6 +136,11 @@ final class DeepLinkRoutingTests: XCTestCase {
             .explore(.record(repo: "did:plc:abc", collection: "app.bsky.feed.post", rkey: "3k7abc"))
         )
         XCTAssertEqual(destination("https://aturi.to/explore/pds/pds.example.com"), .explore(.pds(host: "pds.example.com")))
+        XCTAssertEqual(
+            destination("https://aturi.to/explore/pds/pds.example.com?status=active&sort=handle"),
+            .explore(.pds(host: "pds.example.com"), pdsQuery: ["status": "active", "sort": "handle"]),
+            "a PDS page keeps its accounts' filters and order"
+        )
     }
 
     func testSpacePagesAreLeftToSafari() {

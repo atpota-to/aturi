@@ -67,8 +67,8 @@ struct RouteDestinationView: View {
             CollectionView(repo: repo, collection: collection)
         case .record(let repo, let collection, let rkey):
             RecordView(repo: repo, collection: collection, rkey: rkey)
-        case .pds(let host):
-            PDSView(host: host)
+        case .pds(let host, let query):
+            PDSView(host: host, query: query)
         case .lexicon(let nsid):
             LexiconDetailView(nsid: nsid)
         case .lexiconGroup(let prefix):

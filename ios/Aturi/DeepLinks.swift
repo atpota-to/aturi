@@ -43,7 +43,9 @@ enum Route: Hashable {
     case repo(String, tab: String? = nil)
     case collection(repo: String, collection: String)
     case record(repo: String, collection: String, rkey: String)
-    case pds(host: String)
+    /// A PDS page, with its accounts' filters and order when a link names
+    /// them (`?status=`, `?commit=`, `?sort=`, `?dir=`).
+    case pds(host: String, query: [String: String] = [:])
     case lexicon(nsid: String)
     case lexiconGroup(prefix: String)
     /// The universal-link page: preview card plus waypoint picker.
@@ -60,7 +62,7 @@ extension Route {
     /// this app models. Nil for the lexicons index, space pages and
     /// anything else `SearchDestination` carries verbatim. `repoTab` is a
     /// link's `?tab=`, which only a repo page reads.
-    init?(destination: SearchDestination, repoTab: String? = nil) {
+    init?(destination: SearchDestination, repoTab: String? = nil, pdsQuery: [String: String] = [:]) {
         switch destination {
         case .repo(let repo):
             self = .repo(repo, tab: repoTab)
@@ -69,7 +71,7 @@ extension Route {
         case .record(let repo, let collection, let rkey):
             self = .record(repo: repo, collection: collection, rkey: rkey)
         case .pds(let host):
-            self = .pds(host: host)
+            self = .pds(host: host, query: pdsQuery)
         case .lexicon(let nsid):
             self = .lexicon(nsid: nsid)
         case .lexiconGroup(let prefix):
@@ -109,7 +111,7 @@ extension Route {
             return .collection(repo: repo, collection: collection)
         case .record(let repo, let collection, let rkey):
             return .record(repo: repo, collection: collection, rkey: rkey)
-        case .pds(let host):
+        case .pds(let host, _):
             return .pds(host: host)
         case .lexicon(let nsid):
             return .lexicon(nsid: nsid)
@@ -143,8 +145,14 @@ extension Route {
     /// `?tab=` for a repo page opened on a tab, so the page handed to
     /// Handoff or Spotlight reopens on it, as the link that opened it did.
     private var tabQuery: String {
-        guard case .repo(_, let tab?) = self else { return "" }
-        return "?tab=" + URIEncoding.encodeComponent(tab)
+        switch self {
+        case .repo(_, let tab?):
+            return "?tab=" + URIEncoding.encodeComponent(tab)
+        case .pds(_, let query):
+            return Route.queryString(query)
+        default:
+            return ""
+        }
     }
 
     /// `?a=1&b=2` with the keys sorted, so one input is always one URL;
@@ -199,8 +207,8 @@ enum DeepLinks {
         switch destination {
         case .preview(let components):
             return .route(.preview(components), tab: .links)
-        case .explore(let explorer, let repoTab):
-            guard let route = Route(destination: explorer, repoTab: repoTab) else { return nil }
+        case .explore(let explorer, let repoTab, let pdsQuery):
+            guard let route = Route(destination: explorer, repoTab: repoTab, pdsQuery: pdsQuery) else { return nil }
             return .route(route, tab: route.defaultTab)
         case .lexiconList(let list):
             /* New is the one list the Lexicons tab can be sent to from
