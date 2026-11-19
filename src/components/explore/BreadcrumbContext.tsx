@@ -64,3 +64,23 @@ export function BreadcrumbProvider({ children }: { children: ReactNode }) {
 export function useBreadcrumbTrail() {
   return useContext(BreadcrumbContext);
 }
+
+/**
+ * What the in-page breadcrumb carries on a line of its own under it, on a
+ * phone: the classic account pages' view switch (workbench/ExplorerRoute).
+ *
+ * On a phone the Workbench and Files views open on their toolbar, the
+ * breadcrumb and then the switch; the classic pages used to open on the
+ * switch, with the breadcrumb under it. Handing the switch to the breadcrumb
+ * puts every view's trail at the very top and its switch on the line below,
+ * whichever page is showing and without each page placing it. Null (the
+ * default) everywhere else, so the shell's toolbar and the space pages draw
+ * their breadcrumb as they always have.
+ */
+const BreadcrumbBarContext = createContext<ReactNode>(null);
+
+export const BreadcrumbBarProvider = BreadcrumbBarContext.Provider;
+
+export function useBreadcrumbBar() {
+  return useContext(BreadcrumbBarContext);
+}

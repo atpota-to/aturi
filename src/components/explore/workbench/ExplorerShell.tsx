@@ -663,14 +663,14 @@ export default function ExplorerShell({ mode, repo, collection, rkey }: Props) {
         </button>
         <div className="fx-wb-path">
           {identity ? (
-            // On a phone the trail is the top of the screen and has to stay
-            // short: it runs from the account to the collection. The PDS is
-            // on the overview's account card, and an open record names
-            // itself at the head of its sheet.
+            // On a phone the trail is the top of the screen and wraps rather
+            // than shortens: it runs from the PDS to the collection, as the
+            // classic pages' does, so every view opens on the same path. An
+            // open record names itself at the head of its sheet.
             <Breadcrumb
               handle={identity.handle}
               did={identity.did}
-              pds={phone ? undefined : identity.pds}
+              pds={identity.pds}
               collection={collection ?? undefined}
               rkey={collection && rkey && !phone ? rkey : undefined}
               flush
