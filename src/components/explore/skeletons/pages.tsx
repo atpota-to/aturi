@@ -49,7 +49,11 @@ export function RepoSkeleton() {
   return (
     <div className="fx-explorer" data-page="repo">
       <div className="fx-head">
-        <SkeletonBreadcrumb widths={[PDS_CRUMB, REPO_CRUMB]} share={false} titled />
+        {/* Wrapped as the page wraps its breadcrumb (<AppearIn>), so the line
+            a phone's breadcrumb carries under it sits as close as it will. */}
+        <div>
+          <SkeletonBreadcrumb widths={[PDS_CRUMB, REPO_CRUMB]} share={false} titled />
+        </div>
       </div>
       <div className="fx-side">
         <SkeletonAccountCard />

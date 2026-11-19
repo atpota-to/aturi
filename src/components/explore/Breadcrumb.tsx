@@ -6,7 +6,7 @@ import { Server, User } from 'lucide-react';
 import { encodeRepo, shortDid } from '@/utils/atproto/urls';
 import { SPACE_MARKER } from '@/utils/atproto/spaceUri';
 import { pdsHostname } from '@/utils/atproto/pdsServer';
-import { useBreadcrumbTrail, type BreadcrumbCrumb } from './BreadcrumbContext';
+import { useBreadcrumbBar, useBreadcrumbTrail, type BreadcrumbCrumb } from './BreadcrumbContext';
 import ShareLinkChip from './ShareLinkChip';
 
 // The condensed breadcrumb reveals the moment the full one has slipped
@@ -98,6 +98,7 @@ export default function Breadcrumb({
 
   const navRef = useRef<HTMLElement>(null);
   const { setTrail, setScrolledPast } = useBreadcrumbTrail();
+  const bar = useBreadcrumbBar();
 
   // Mirror the visible trail into shared context so the floating nav can
   // re-render it in miniature once this breadcrumb scrolls away. The share
@@ -211,53 +212,58 @@ export default function Breadcrumb({
   const visible = titled && trail.length > 1 ? trail.slice(0, -1) : trail;
 
   return (
-    <nav
-      ref={navRef}
-      aria-label="Breadcrumb"
-      className="fx-crumbs"
-      style={{ marginBottom: titled || flush ? 0 : '1.5rem' }}
-    >
-      {/* Rendered straight off the mirrored trail so the visible row and its
-          condensed twin can never drift apart as levels are added. A crumb
-          without an href is terminal — today only a record key. */}
-      {visible.map((crumb, i) => (
-        <span key={`${i}-${crumb.href ?? crumb.label}`} className="fx-crumb">
-          {crumb.href ? (
-            <Link
-              href={crumb.href}
-              prefetch={false}
-              aria-current={!titled && i === visible.length - 1 ? 'page' : undefined}
-            >
-              {crumb.icon === 'server' && (
-                <Server size={12} aria-hidden style={{ opacity: 0.7 }} />
-              )}
-              {crumb.icon === 'user' && (
-                <User size={12} aria-hidden style={{ opacity: 0.7 }} />
-              )}
-              {crumb.label}
-            </Link>
-          ) : (
-            <span className="fx-crumb-here" aria-current="page">
-              {crumb.label}
-            </span>
-          )}
-          {/* Each separator rides after its crumb (the last one too when the
-              title below carries the final segment), so a row that wraps on
-              a phone ends a line on "/" and starts the next on a crumb, and
-              never leaves a separator alone on a line. */}
-          {(i < visible.length - 1 || visible.length < trail.length) && (
-            <span aria-hidden className="fx-crumb-sep">
-              /
-            </span>
-          )}
-        </span>
-      ))}
+    <>
+      <nav
+        ref={navRef}
+        aria-label="Breadcrumb"
+        className="fx-crumbs"
+        style={{ marginBottom: titled || flush ? 0 : '1.5rem' }}
+      >
+        {/* Rendered straight off the mirrored trail so the visible row and its
+            condensed twin can never drift apart as levels are added. A crumb
+            without an href is terminal — today only a record key. */}
+        {visible.map((crumb, i) => (
+          <span key={`${i}-${crumb.href ?? crumb.label}`} className="fx-crumb">
+            {crumb.href ? (
+              <Link
+                href={crumb.href}
+                prefetch={false}
+                aria-current={!titled && i === visible.length - 1 ? 'page' : undefined}
+              >
+                {crumb.icon === 'server' && (
+                  <Server size={12} aria-hidden style={{ opacity: 0.7 }} />
+                )}
+                {crumb.icon === 'user' && (
+                  <User size={12} aria-hidden style={{ opacity: 0.7 }} />
+                )}
+                {crumb.label}
+              </Link>
+            ) : (
+              <span className="fx-crumb-here" aria-current="page">
+                {crumb.label}
+              </span>
+            )}
+            {/* Each separator rides after its crumb (the last one too when the
+                title below carries the final segment), so a row that wraps on
+                a phone ends a line on "/" and starts the next on a crumb, and
+                never leaves a separator alone on a line. */}
+            {(i < visible.length - 1 || visible.length < trail.length) && (
+              <span aria-hidden className="fx-crumb-sep">
+                /
+              </span>
+            )}
+          </span>
+        ))}
 
-      {shareUrl && (
-        <span className="fx-crumbs-share">
-          <ShareLinkChip url={shareUrl} />
-        </span>
-      )}
-    </nav>
+        {shareUrl && (
+          <span className="fx-crumbs-share">
+            <ShareLinkChip url={shareUrl} />
+          </span>
+        )}
+      </nav>
+      {/* Outside the landmark: a way between views, not a step in the path.
+          Shown on phones only (workbench.css, .fx-crumbbar). */}
+      {bar && <div className="fx-crumbbar">{bar}</div>}
+    </>
   );
 }
