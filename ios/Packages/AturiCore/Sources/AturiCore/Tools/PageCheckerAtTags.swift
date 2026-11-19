@@ -210,7 +210,9 @@ public enum PageCheckerAtTags {
         for tag in PageCheckerHTML.tags(named: "meta", in: bytes) {
             guard let name = PageCheckerHTML.attribute("name", in: tag) else { continue }
             let content = PageCheckerHTML.attribute("content", in: tag)
-            entries.append((name: PageCheckerHTML.decodeEntities(name), content: content.map { PageCheckerHTML.decodeEntities($0) }))
+            let decodedName: String? = PageCheckerHTML.decodeEntities(name)
+            let decodedContent: String? = content.map { PageCheckerHTML.decodeEntities($0) }
+            entries.append((name: decodedName, content: decodedContent))
         }
         return parse(entries)
     }

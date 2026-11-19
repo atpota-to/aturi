@@ -66,7 +66,7 @@ struct ShareToolView: View {
                     Text("Try")
                         .font(AturiFont.caption)
                         .foregroundStyle(theme.textTertiary)
-                    ForEach(ShareBuilderModel.examples, id: \.label) { example in
+                    ForEach(ShareBuilderModel.examples, id: \.self) { example in
                         Button {
                             model.applyExample(text: example.text, url: example.url)
                         } label: {

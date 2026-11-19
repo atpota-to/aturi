@@ -28,10 +28,16 @@ public final class ShareBuilderModel {
         url = query["url"] ?? ""
     }
 
+    public struct Example: Hashable, Sendable {
+        public let label: String
+        public let text: String
+        public let url: String
+    }
+
     /// The web's two "Try" examples.
-    public static let examples: [(label: String, text: String, url: String)] = [
-        ("A page", "Touring the Atmosphere with aturi.to", "https://aturi.to"),
-        ("Text only", "Hello from my own website!", ""),
+    public nonisolated static let examples = [
+        Example(label: "A page", text: "Touring the Atmosphere with aturi.to", url: "https://aturi.to"),
+        Example(label: "Text only", text: "Hello from my own website!", url: ""),
     ]
 
     public func applyExample(text: String, url: String) {
